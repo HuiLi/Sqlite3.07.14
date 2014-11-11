@@ -9,6 +9,8 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
+** 这个文件里的代码是实现了VDBE的执行方法,vdbeaux.c文件控制着像创建删除VDBE实例的
+** 具体细节,这个文件只在乎VDBE程序的执行.
 ** The code in this file implements execution method of the 
 ** Virtual Database Engine (VDBE).  A separate file ("vdbeaux.c")
 ** handles housekeeping details such as creating and deleting
