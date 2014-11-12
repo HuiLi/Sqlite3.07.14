@@ -50,7 +50,7 @@
 
 /*
 ** Invoke this macro on memory cells just prior to changing the
-** value of the cell.  This macro verifies that shallow copies are
+** value of OP_LoadAnalysis the cell.  This macro verifies that shallow copies are
 ** not misused.
 */
 #ifdef SQLITE_DEBUG
@@ -4883,6 +4883,7 @@ case OP_ParseSchema: {
 ** Read the sqlite_stat1 table for database P1 and load the content
 ** of that table into the internal index hash table.  This will cause
 ** the analysis to be used when preparing all subsequent queries.
+** 读数据库P1的表sqlite_stat1和把那张表的内容加载到内部索引hash表。这将导致分析准备所有后续查询时使用。
 */
 case OP_LoadAnalysis: {
   assert( pOp->p1>=0 && pOp->p1<db->nDb );
