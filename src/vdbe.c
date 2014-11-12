@@ -3269,7 +3269,9 @@ case OP_OpenWrite: {
 ** different name to distinguish its use.  Tables created using
 ** by this opcode will be used for automatically created transient
 ** indices in joins.
+** 第一次使用github
 */
+
 case OP_OpenAutoindex: 
 case OP_OpenEphemeral: {
   VdbeCursor *pCx;
