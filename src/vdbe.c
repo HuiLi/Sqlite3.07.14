@@ -16,17 +16,16 @@
 ** handles housekeeping details such as creating and deleting
 ** VDBE instances.  This file is solely interested in executing
 ** the VDBE program.
-**
 ** In the external interface, an "sqlite3_stmt*" is an opaque pointer
 ** to a VDBE.
-**
+** 在与外部通讯时，sqlite3_stmt*是一个指向VDBE的不透明的指针
 ** The SQL parser generates a program which is then executed by
 ** the VDBE to do the work of the SQL statement.  VDBE programs are 
 ** similar in form to assembly language.  The program consists of
 ** a linear sequence of operations.  Each operation has an opcode 
 ** and 5 operands.  Operands P1, P2, and P3 are integers.  Operand P4 
 ** is a null-terminated string.  Operand P5 is an unsigned character.
-** Few opcodes use all 5 operands.
+** Few opcodes use all 5 operands.//
 **
 ** Computation results are stored on a set of registers numbered beginning
 ** with 1 and going up to Vdbe.nMem.  Each register can store
@@ -65,9 +64,11 @@
 ** procedures use this information to make sure that indices are
 ** working correctly.  This variable has no function other than to
 ** help verify the correct operation of the library.
+** 
 */
 #ifdef SQLITE_TEST
-int sqlite3_search_count = 0;
+int sqlite3_search_count = 0;/*这个全局变量会随着游标的移动而增大，不管是通过OP_SeekXX还是OP_Next
+							还是OP_Prev操作码，它不能帮助核实正确的操作。*/
 #endif
 
 /*
@@ -79,7 +80,9 @@ int sqlite3_search_count = 0;
 ** in an ordinary build.
 */
 #ifdef SQLITE_TEST
-int sqlite3_interrupt_count = 0;
+int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在VDBE中执行一次，它就减1，,当它变为0时，
+									sqlite3结构体中的u1.isInterrupted区域会被设置以模拟一个中断发生
+									*/
 #endif
 
 /*
@@ -90,7 +93,8 @@ int sqlite3_interrupt_count = 0;
 ** library.
 */
 #ifdef SQLITE_TEST
-int sqlite3_sort_count = 0;
+int sqlite3_sort_count = 0;/*这个全局变量是在OP_Sort操作码执行后增加1,测试步骤会使用这个信息以确定排序在
+							适当的时间发生或没发生,这个变量除了帮助验证正确的库操作没有其他功能.*/
 #endif
 
 /*
@@ -101,10 +105,13 @@ int sqlite3_sort_count = 0;
 ** help verify the correct operation of the library.
 */
 #ifdef SQLITE_TEST
-int sqlite3_max_blobsize = 0;
+int sqlite3_max_blobsize = 0;/*这个全局变量记录了已经被VDBE操作码使用了的最大的MEM_Blob或者MEM_Str,测试
+							步骤使用它确定zero-blob功能工作正常,这个变量除了帮助验证正确的库操作没有其他功能*/
 static void updateMaxBlobsize(Mem *p){
-  if( (p->flags & (MEM_Str|MEM_Blob))!=0 && p->n>sqlite3_max_blobsize ){
-    sqlite3_max_blobsize = p->n;
+  if( (p->flags & (MEM_Str|MEM_Blob))!=0 && p->n > sqlite3_max_blobsize ){
+    sqlite3_max_blobsize = p->n;/*如果p指向的结构体的标记'与'上 'MEM_Str和MEM_Blob或运算的值'的结果不等于0,
+								p指向的结构体对象内的n的值也大于sqlite3_max_blobsize,那么更新sqlite3_max_blobsize
+								为p指向的n的值.n为字符串类型值的字符个数,*/
   }
 }
 #endif
@@ -114,7 +121,8 @@ static void updateMaxBlobsize(Mem *p){
 ** is executed. This is used to test whether or not the foreign key
 ** operation implemented using OP_FkIsZero is working. This variable
 ** has no function other than to help verify the correct operation of the
-** library.
+** library.这个全局变量在OP_Found操作码执行后增加1,这个是用来测试外键操作实施时,是否
+** 在使用OP_FkIsZero操作码.这个变量除了帮助验证正确的库操作没有其他功能
 */
 #ifdef SQLITE_TEST
 int sqlite3_found_count = 0;
@@ -122,7 +130,8 @@ int sqlite3_found_count = 0;
 
 /*
 ** Test a register to see if it exceeds the current maximum blob size.
-** If it does, record the new maximum blob size.
+** If it does, record the new maximum blob size.测试一个寄存器来看它是否超过
+** 了当前最大blob,超过了就记录这个最大值.
 */
 #if defined(SQLITE_TEST) && !defined(SQLITE_OMIT_BUILTIN_TEST)
 # define UPDATE_MAX_BLOBSIZE(P)  updateMaxBlobsize(P)
@@ -132,7 +141,8 @@ int sqlite3_found_count = 0;
 
 /*
 ** Convert the given register into a string if it isn't one
-** already. Return non-zero if a malloc() fails.
+** already. Return non-zero if a malloc() fails.把给的不完整的寄存器值转换
+** 为一个字符串,如果malloc()失败,返回非零值.
 */
 #define Stringify(P, enc) \
    if(((P)->flags&(MEM_Str|MEM_Blob))==0 && sqlite3VdbeMemStringify(P,enc)) \
@@ -144,16 +154,22 @@ int sqlite3_found_count = 0;
 ** is responsible for deallocating that string.  Because the register
 ** does not control the string, it might be deleted without the register
 ** knowing it.
-**
+** 一个临时的字符串值(MEM_Ephem标记所指的)包含一个指向动态分配的字符串的指针,一些其他
+** 的实体是负责清除这个字符串的.原因是寄存器无法控制这个字符串,寄存器可能都不知道它被删除了.
 ** This routine converts an ephemeral string into a dynamically allocated
 ** string that the register itself controls.  In other words, it
 ** converts an MEM_Ephem string into an MEM_Dyn string.
+** 寄存器自己控制这个程序把一个临时字符串转换为一个动态分配的字符串,
+** 也就是说,它把MEM_Ephem标记所指的字符串转换为EME_Dyn标记所指的字符串.
 */
 #define Deephemeralize(P) \
    if( ((P)->flags&MEM_Ephem)!=0 \
        && sqlite3VdbeMemMakeWriteable(P) ){ goto no_mem;}
 
-/* Return true if the cursor was opened using the OP_OpenSorter opcode. */
+/* 
+** Return true if the cursor was opened using the OP_OpenSorter opcode.
+** 如果使用OP_OpenSorter操作码打开了游标,就返回true
+*/
 #ifdef SQLITE_OMIT_MERGE_SORT
 # define isSorter(x) 0
 #else
@@ -165,6 +181,8 @@ int sqlite3_found_count = 0;
 ** user-defined function or returned to the user as the result of a query.
 ** This routine sets the pMem->type variable used by the sqlite3_value_*() 
 ** routines.
+** 验证寄存器里的pMem指针会被一个自定义方法运行通过还是作为查询结果返回给user,这程序
+** 调用sqlite3_value_*()定义了pMem->type变量
 */
 void sqlite3VdbeMemStoreType(Mem *pMem){
   int flags = pMem->flags;
@@ -187,13 +205,14 @@ void sqlite3VdbeMemStoreType(Mem *pMem){
 /*
 ** Allocate VdbeCursor number iCur.  Return a pointer to it.  Return NULL
 ** if we run out of memory.
+** 分配Vdbe游标数 iCur,返回一个指针给它,如果内存用尽就返回NULL.
 */
 static VdbeCursor *allocateCursor(
   Vdbe *p,              /* The virtual machine */
-  int iCur,             /* Index of the new VdbeCursor */
+  int iCur,             /* Index of the new VdbeCursor 游标的索引值*/
   int nField,           /* Number of fields in the table or index */
   int iDb,              /* Database the cursor belongs to, or -1 */
-  int isBtreeCursor     /* True for B-Tree.  False for pseudo-table or vtab */
+  int isBtreeCursor     /* True for B-Tree.False for pseudo-table or vtab B树就为true,虚表或者假表为false*/
 ){
   /* Find the memory cell that will be used to store the blob of memory
   ** required for this VdbeCursor structure. It is convenient to use a 
@@ -212,6 +231,12 @@ static VdbeCursor *allocateCursor(
   ** Memory cells for cursors are allocated at the top of the address
   ** space. Memory cell (p->nMem) corresponds to cursor 0. Space for
   ** cursor 1 is managed by memory cell (p->nMem-1), etc.
+  ** 找到这个VdbeCursor结构体需要的会被用来存储二进制大对象的存储单元.使用一个vdbe
+  ** 存储单元来管理一个VdbeCursor结构体所需要的内存分配是很方便的,原因如下:
+  ** 一,在vdbe程序中,游标数有时被用于两个不同的目的,不同的用途可能会需要不同
+  ** 的内存分配,而内存单元提供了可增长的分配机制.
+  ** 二,当使用ENBALE_MEMORY_MANAGEMENT时,内存单元缓冲区可以被sqlite3_release
+  ** _memory()API释放,把内存分配数量最小化是系统决定的.
   */
   Mem *pMem = &p->aMem[p->nMem-iCur];
 
@@ -249,6 +274,7 @@ static VdbeCursor *allocateCursor(
 ** do so without loss of information.  In other words, if the string
 ** looks like a number, convert it into a number.  If it does not
 ** look like a number, leave it alone.
+** 在不丢失信息的提前下,尝试把一个像数字的值转换为数字
 */
 static void applyNumericAffinity(Mem *pRec){
   if( (pRec->flags & (MEM_Real|MEM_Int))==0 ){
@@ -268,8 +294,9 @@ static void applyNumericAffinity(Mem *pRec){
 }
 
 /*
+** 
 ** Processing is determine by the affinity parameter:
-**
+** 执行的过程由下面这几个参数决定	
 ** SQLITE_AFF_INTEGER:
 ** SQLITE_AFF_REAL:
 ** SQLITE_AFF_NUMERIC:
@@ -278,12 +305,14 @@ static void applyNumericAffinity(Mem *pRec){
 **    is not possible.  Note that the integer representation is
 **    always preferred, even if the affinity is REAL, because
 **    an integer representation is more space efficient on disk.
-**
+**	  尝试把Mem结构体类型的指针pRec转换为一个整形,如果不能转换为整形就转换为浮点型
+**    要注意到整形是优先的,即使最像的参数是一个REAL类型,这是因为在磁盘上整形的空间利用率更高
 ** SQLITE_AFF_TEXT:
 **    Convert pRec to a text representation.
-**
+**    把pRec转换为文本
 ** SQLITE_AFF_NONE:
 **    No-op.  pRec is unchanged.
+**    无操作,pRec不变
 */
 static void applyAffinity(
   Mem *pRec,          /* The value to apply affinity to */
@@ -314,6 +343,8 @@ static void applyAffinity(
 ** into a numeric representation.  Use either INTEGER or REAL whichever
 ** is appropriate.  But only do the conversion if it is possible without
 ** loss of information and return the revised type of the argument.
+** 尝试把一个函数参数或者一个结果行转换为一个数字表示的表达式.使用INTEGER或REAL中的合
+** 适的一个.但是只在不会丢失信息和可以返回改过的参数的情况下转换.
 */
 int sqlite3_value_numeric_type(sqlite3_value *pVal){
   Mem *pMem = (Mem*)pVal;
@@ -327,6 +358,9 @@ int sqlite3_value_numeric_type(sqlite3_value *pVal){
 /*
 ** Exported version of applyAffinity(). This one works on sqlite3_value*, 
 ** not the internal Mem* type.
+** 使用sqlite3_value*类型参数的applyAffinity()函数,它没使用Mem*类型的参数
+** 但是怎么感觉函数体还是调用的使用Mem*类型的applyAffinity函数,而且还是把sqlite3_value*
+** 类型强制转换为了Mem*类型.
 */
 void sqlite3ValueApplyAffinity(
   sqlite3_value *pVal, 
@@ -462,6 +496,7 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 /* 
 ** hwtime.h contains inline assembler code for implementing 
 ** high-performance timing routines.
+** hwtime.h包含了内联汇编代码用来执行高性能时间程序(还不清楚是计时还是定时)
 */
 #include "hwtime.h"
 
@@ -476,6 +511,11 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 ** implement a loop.  This test used to be on every single instruction,
 ** but that meant we more testing than we needed.  By only testing the
 ** flag on jump instructions, we get a (small) speed improvement.
+** CHECK_FOR_INTERRUPT宏在这里定义用来监视sqlite3_interrupt()是否已经被调用
+** 如果调用了,运行着的VDBE程序就中断.
+** 给每一条跳转指令添加这个宏,用来实现循环( 翻译有歧义,还要再细看).虽然这个测试被用于每
+** 一条单一的指令,但是这意味着我们做了比我们需要的更多的测试.通过仅仅测试跳转指令的标记,
+** 我们得到了一些速度的提升.
 */
 #define CHECK_FOR_INTERRUPT \
    if( db->u1.isInterrupted ) goto abort_due_to_interrupt;
@@ -491,6 +531,11 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 ** Usage:
 **
 **     assert( checkSavepointCount(db) );
+**
+** checkSavepointCount()这个函数仅仅被assert( checkSavepointCount(db) )回调.
+** 它检查sqlite3.nTransaction类型变量正在被正确的设置为开始于sqlite3.pSavepoint指针
+** 的链表中,无事务savepoints指针的数量.
+** 
 */
 static int checkSavepointCount(sqlite3 *db){
   int n = 0;
