@@ -29,7 +29,7 @@
 ** be parsed.  Initialize the pParse structure as needed.
 */
 void sqlite3BeginParse(Parse *pParse, int explainFlag){
-  pParse->explain = (u8)explainFlag;
+  pParse->explain = (u8)explainFlag;//
   pParse->nVar = 0;
 }
 
@@ -2347,7 +2347,7 @@ void sqlite3DeferForeignKey(Parse *pParse, int isDeferred){
   pFKey->isDeferred = (u8)isDeferred;
 #endif
 }
-
+//
 /*
 ** Generate code that will erase and refill index *pIdx.  This is
 ** used to initialize a newly created index or to recompute the
