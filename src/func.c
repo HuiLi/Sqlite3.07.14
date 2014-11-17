@@ -10,30 +10,31 @@
 **
 *************************************************************************
 ** This file contains the C functions that implement various SQL
-** functions of SQLite.  
+** functions of SQLite.  这个文件包含实现各种SQL函数的SQLite的C函数。
 **
 ** There is only one exported symbol in this file - the function
 ** sqliteRegisterBuildinFunctions() found at the bottom of the file.
-** All other code has file scope.
+这个文件只有一个出口标志——函数sqliteRegisterBuildinFunctions(),在文件的底部
+** All other code has file scope.。
 */
-#include "sqliteInt.h"
+#include "sqliteInt.h"//头文件
 #include <stdlib.h>
 #include <assert.h>
 #include "vdbeInt.h"
 
 /*
-** Return the collating function associated with a function.
+** Return the collating function associated with a function.返回与函数有关的排序函数
 */
 static CollSeq *sqlite3GetFuncCollSeq(sqlite3_context *context){
-  return context->pColl;
+  return context->pColl;//返回排序
 }
 
 /*
-** Indicate that the accumulator load should be skipped on this
+** Indicate that the accumulator load should be skipped on this表示累加器负载应该跳过这个迭代的总循环。
 ** iteration of the aggregate loop.
 */
 static void sqlite3SkipAccumulatorLoad(sqlite3_context *context){
-  context->skipFlag = 1;
+  context->skipFlag = 1;//跳转的标志为1；
 }
 
 /*
