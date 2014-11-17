@@ -3,7 +3,7 @@
 **
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
-**
+**    hahaha
 **    May you do good and not evil.
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
@@ -11,7 +11,7 @@
 *************************************************************************
 ** This file contains the C functions that implement various SQL
 ** functions of SQLite.  
-**
+**  
 ** There is only one exported symbol in this file - the function
 ** sqliteRegisterBuildinFunctions() found at the bottom of the file.
 ** All other code has file scope.
