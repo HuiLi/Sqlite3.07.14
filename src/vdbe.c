@@ -550,6 +550,8 @@ static int checkSavepointCount(sqlite3 *db){
 ** Transfer error message text from an sqlite3_vtab.zErrMsg (text stored
 ** in memory obtained from sqlite3_malloc) into a Vdbe.zErrMsg (text stored
 ** in memory obtained from sqlite3DbMalloc).
+** 把一个sqlite3_vtab.zErrMsg(文本存储在从sqlite3_malloc分配来的内存中)中的错误消息
+** 传送到一个Vdbe.zErrMsg(文本存储在从sqlite3Malloc分配来的内存中)中
 */
 static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
   sqlite3 *db = p->db;
@@ -567,6 +569,7 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 ** close the program with a final OP_Halt and to set up the callbacks
 ** and the error message pointer.
 **
+** 
 ** Whenever a row or result data is available, this routine will either
 ** invoke the result callback (if there is one) or return with
 ** SQLITE_ROW.
@@ -590,6 +593,19 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 **
 ** After this routine has finished, sqlite3VdbeFinalize() should be
 ** used to clean up the mess that was left behind.
+**
+** sqlite3VdbeExec()运行前一定要调用sqlite3VdbeMakeReady(),这样最后
+** 一个OP_Halt能关闭程序,设置回调函数和错误信息指针,无论何时一行数据或者
+** 结果已得出,这个程序会调用结果的回调函数,返回SQLITE_ROW.如果一个请求
+** 是要打开上锁的数据库,这个程序会调用busy回调函数,返回SQLITE_BUSY.如果
+** 一个错误发生,一条错误信息会写入由sqlite3_malloc()分配的内存中,产生
+** p->zErrMsg会指向这块内存,错误代码会存放在p->rc,然后返回SQLITE_ERROR
+** 如果回调函数一直返回非零值,程序就会立即退出,虽然不会有错误信息,但是
+** p->r字段设置为了SQLITE_ABORT,然后程序返回SQLITE_ERROR.内存分配错误会
+** 导致p->rc被设置为SQLITE_NOMEM,程序也会返回SQLITE_ERROR,其他一些致命
+** 错误也会返回SQLITE_ERROR,这个程序执行结束,sqlite3VdbeFinalize()会执行
+** 用来清除刚刚留下的垃圾
+
 */
 int sqlite3VdbeExec(
   Vdbe *p                    /* The VDBE */
@@ -688,6 +704,9 @@ int sqlite3VdbeExec(
     ** sqlite3VdbeExec() or since last time the progress callback was called).
     ** If the progress callback returns non-zero, exit the virtual machine with
     ** a return code SQLITE_ABORT.
+    ** 如果VDBE配置过,请求的VDBE操作码都已经执行完(要么是sqlite3VdbeExec()这次的
+    ** 调用,要么是上一次程序调用回调函数),如果回调函数返回了非零值,退出虚拟机返回
+    ** SQLITE_ABORT
     */
     if( checkProgress ){
       if( db->nProgressOps==nProgressOps ){
@@ -707,6 +726,9 @@ int sqlite3VdbeExec(
     ** external allocations out of mem[p2] and set mem[p2] to be
     ** an undefined integer.  Opcodes will either fill in the integer
     ** value or convert mem[p2] to a different type.
+    ** 任何一个有"out2-prerelease"注释标签的操作码都会释放mem[p2]外部分
+    ** 配的内存,设置mem[p2]为一个未定义的整形,这些操作码不是被整形值填满
+    ** 就是转换mem[p2]为其他的类型.
     */
     assert( pOp->opflags==sqlite3OpcodeProperty[pOp->opcode] );
     if( pOp->opflags & OPFLG_OUT2_PRERELEASE ){
@@ -779,7 +801,14 @@ int sqlite3VdbeExec(
 ** for lines of that contain "Opcode:".  That line and all subsequent
 ** comment lines are used in the generation of the opcode.html documentation
 ** file.
-**
+** 下面这一大坨switch语句,每一个case都是在VDBE里执行一个单独的指令,每一条case
+** 的格式非常重要,对SQLite执行makefile命令时,扫描这些case后生成两个c文件,
+** opcodes.h和opcodes.c.opcodes.h文件里是每一个opcode对应的unique整型值的define
+** 语句,opcodes.c文件是一个string类型数组,每一个string是一个opcode对应的象征名字
+** 如果case语句在一个"/# same as ... #/"评论块里,那这个评价用来判断这条opcode的
+** 特殊值.下列的关键字是用来构造初始化opcodeProperty[]数组时OPFLG_INITIALIZER的
+** 值,包括:in1, in2, in3, out2_prerelease, out2, out3.
+**   
 ** SUMMARY:
 **
 **     Formatting is important to scripts that scan this file.
@@ -793,6 +822,7 @@ int sqlite3VdbeExec(
 ** The next instruction executed will be 
 ** the one at index P2 from the beginning of
 ** the program.
+** 一个无条件跳转到P2地址的操作码,下一条执行的指令会是从程序一开始就有的的索引P2里的
 */
 case OP_Goto: {             /* jump */
   CHECK_FOR_INTERRUPT;
@@ -804,6 +834,7 @@ case OP_Goto: {             /* jump */
 **
 ** Write the current address onto register P1
 ** and then jump to address P2.
+** 把当前地址写入寄存器P1,然后跳到P2地址
 */
 case OP_Gosub: {            /* jump */
   assert( pOp->p1>0 && pOp->p1<=p->nMem );
@@ -820,6 +851,7 @@ case OP_Gosub: {            /* jump */
 /* Opcode:  Return P1 * * * *
 **
 ** Jump to the next instruction after the address in register P1.
+** 跳到寄存器P1后面地址的指令
 */
 case OP_Return: {           /* in1 */
   pIn1 = &aMem[pOp->p1];
@@ -831,6 +863,7 @@ case OP_Return: {           /* in1 */
 /* Opcode:  Yield P1 * * * *
 **
 ** Swap the program counter with the value in register P1.
+** 交换程序计数器和寄存器P1里的值
 */
 case OP_Yield: {            /* in1 */
   int pcDest;
@@ -849,6 +882,8 @@ case OP_Yield: {            /* in1 */
 ** Check the value in register P3.  If it is NULL then Halt using
 ** parameter P1, P2, and P4 as if this were a Halt instruction.  If the
 ** value in register P3 is not NULL, then this routine is a no-op.
+** 检查寄存器P3里的值,如果是空的,并且有Halt指令,那么Halt指令使用参数P1,P2
+** 和P4,如果寄存器P3里的值不是NULL,这个程序就什么都不做.
 */
 case OP_HaltIfNull: {      /* in3 */
   pIn3 = &aMem[pOp->p3];
@@ -874,6 +909,13 @@ case OP_HaltIfNull: {      /* in3 */
 ** There is an implied "Halt 0 0 0" instruction inserted at the very end of
 ** every program.  So a jump past the last instruction of the program
 ** is the same as executing Halt.
+** 立即退出,所有的游标等自动关闭.P1是sqlite3_exec()函数或sqlite3_reset()或
+** sqlite3_finalize()的返回值.对于一个平常的结束,P1应该返回SQLITE_OK(0),对于
+** 错误,它会是其他值,如果P1!=0然后P2会决定是否要回滚当前事务.P2为OE_Fail时,
+** 不会回滚,P2为OE_Rollback时回滚,如果P2为OE_Abort,那么收回所有VDBE执行过程
+** 中的变化,但是不会回滚事务.如果P4不是空的,那它就是一个错误信息字符串.这里
+** 有一个隐藏的"Halt 0 0 0"指令,他嵌在每一个程序最后.所以一个跳过上一条指令
+** 的跳转也是执行Halt.
 */
 case OP_Halt: {
   if( pOp->p1==SQLITE_OK && p->pFrame ){
@@ -889,7 +931,11 @@ case OP_Halt: {
       ** currently being halted. If the p2 instruction of this OP_Halt
       ** instruction is set to OE_Ignore, then the sub-program is throwing
       ** an IGNORE exception. In this case jump to the address specified
-      ** as the p2 of the calling OP_Program.  */
+      ** as the p2 of the calling OP_Program.  
+      ** pc指令是用来唤醒子当前被结束的子程序的OP_Program,如果OP_Halt的p2
+      ** 指令设置为OE_Ignore,那么子程序会抛出一个IGNORE异常.在这里跳转到
+      ** OP_Program调用的p2的地址.
+      */
       pc = p->aOp[pc].p2-1;
     }
     aOp = p->aOp;
@@ -924,6 +970,7 @@ case OP_Halt: {
 /* Opcode: Integer P1 P2 * * *
 **
 ** The 32-bit integer value P1 is written into register P2.
+** 存放32位整型值的寄存器P1写入到寄存器P2里
 */
 case OP_Integer: {         /* out2-prerelease */
   pOut->u.i = pOp->p1;
@@ -934,6 +981,7 @@ case OP_Integer: {         /* out2-prerelease */
 **
 ** P4 is a pointer to a 64-bit integer value.
 ** Write that value into register P2.
+** P4是一个指向64位整型值的指针,把P4的值写入到P2里
 */
 case OP_Int64: {           /* out2-prerelease */
   assert( pOp->p4.pI64!=0 );
@@ -946,6 +994,7 @@ case OP_Int64: {           /* out2-prerelease */
 **
 ** P4 is a pointer to a 64-bit floating point value.
 ** Write that value into register P2.
+** P4是一个指向64位浮点型值的指针,把这个值写入到P2
 */
 case OP_Real: {            /* same as TK_FLOAT, out2-prerelease */
   pOut->flags = MEM_Real;
@@ -959,6 +1008,8 @@ case OP_Real: {            /* same as TK_FLOAT, out2-prerelease */
 **
 ** P4 points to a nul terminated UTF-8 string. This opcode is transformed 
 ** into an OP_String before it is executed for the first time.
+** P4是一个UTF-8制式的以nul结尾的字符串,这个操作码在第一次被执行前会转换为
+** 一个OP_String.
 */
 case OP_String8: {         /* same as TK_STRING, out2-prerelease */
   assert( pOp->p4.z!=0 );
@@ -992,6 +1043,7 @@ case OP_String8: {         /* same as TK_STRING, out2-prerelease */
 /* Opcode: String P1 P2 * P4 *
 **
 ** The string value P4 of length P1 (bytes) is stored in register P2.
+** 
 */
 case OP_String: {          /* out2-prerelease */
   assert( pOp->p4.z!=0 );
@@ -1009,6 +1061,8 @@ case OP_String: {          /* out2-prerelease */
 ** NULL into register P3 and ever register in between P2 and P3.  If P3
 ** is less than P2 (typically P3 is zero) then only register P2 is
 ** set to NULL
+** 往P2里写入一个NULL,如果P3比P2大,那么也要往P3里写入NULL,甚至P2P3之间的
+** 寄存器也要写入.如果P3小于P2(特别是P3是zero时),那就只把P2设置为NULL.
 */
 case OP_Null: {           /* out2-prerelease */
   int cnt;
@@ -1030,6 +1084,7 @@ case OP_Null: {           /* out2-prerelease */
 **
 ** P4 points to a blob of data P1 bytes long.  Store this
 ** blob in register P2.
+** 
 */
 case OP_Blob: {                /* out2-prerelease */
   assert( pOp->p1 <= SQLITE_MAX_LENGTH );
@@ -1037,7 +1092,7 @@ case OP_Blob: {                /* out2-prerelease */
   pOut->enc = encoding;
   UPDATE_MAX_BLOBSIZE(pOut);
   break;
-}
+} 
 
 /* Opcode: Variable P1 P2 * P4 *
 **
@@ -1045,6 +1100,8 @@ case OP_Blob: {                /* out2-prerelease */
 **
 ** If the parameter is named, then its name appears in P4 and P3==1.
 ** The P4 value is used by sqlite3_bind_parameter_name().
+** 把P1参数的边界值传递给P2,如果参数命名过了,那么他的名字也要出现在
+** P4中,P3为1.P4的值是被sqlite3_bind_parameter_name()使用的.
 */
 case OP_Variable: {            /* out2-prerelease */
   Mem *pVar;       /* Value being transferred */
@@ -1066,6 +1123,8 @@ case OP_Variable: {            /* out2-prerelease */
 ** registers P2..P2+P3-1.  Registers P1..P1+P1-1 are
 ** left holding a NULL.  It is an error for register ranges
 ** P1..P1+P3-1 and P2..P2+P3-1 to overlap.
+** 把P1..P1+P3-1的值转移到P2..P2+P3-1中.P1..P1+P1-1丢弃并设为NULL,
+** P1..P1+P3-1到P2..P2+P3-1的值重复是一个错误
 */
 case OP_Move: {
   char *zMalloc;   /* Holding variable for allocated memory */
@@ -1130,6 +1189,10 @@ case OP_Copy: {             /* in1, out2 */
 ** Thus the program must guarantee that the original will not change
 ** during the lifetime of the copy.  Use OP_Copy to make a complete
 ** copy.
+** 把P1浅拷贝到P2中去,这个指令只对值进行了浅拷贝,如果值为一个字符串或者
+** 二进制大文件,那么拷贝只是一个指向它源的指针,最糟的是,如果源被释放了,
+** 这个拷贝就变无效了,因此程序必须保证在有拷贝期间源不会改变.使用OP_Copy
+** 生成一个完整的拷贝.
 */
 case OP_SCopy: {            /* in1, out2 */
   pIn1 = &aMem[pOp->p1];
@@ -1150,6 +1213,9 @@ case OP_SCopy: {            /* in1, out2 */
 ** with an SQLITE_ROW return code and it sets up the sqlite3_stmt
 ** structure to provide access to the top P1 values as the result
 ** row.
+** P1寄存器通过P1+P2-1确定结果的一行,这个操作码使得sqlite3_step()调用
+** 至结束,返回一个SQLITE_ROW,它还设置sqlite3_stmt结构体能够提供与结果
+** 行里的最上面的P1值的交互.
 */
 case OP_ResultRow: {
   Mem *pMem;
@@ -1160,7 +1226,9 @@ case OP_ResultRow: {
 
   /* If this statement has violated immediate foreign key constraints, do
   ** not return the number of rows modified. And do not RELEASE the statement
-  ** transaction. It needs to be rolled back.  */
+  ** transaction. It needs to be rolled back.  
+  ** 如果这个声明违反了最近的外键约束,那就不返回修改过的行的行数,也不发布这个声明的事务,它需要被回滚.
+  */
   if( SQLITE_OK!=(rc = sqlite3VdbeCheckFk(p, 0)) ){
     assert( db->flags&SQLITE_CountRows );
     assert( p->usesStmtJournal );
@@ -1181,6 +1249,8 @@ case OP_ResultRow: {
   **
   ** The statement transaction is never a top-level transaction.  Hence
   ** the RELEASE call below can never fail.
+  ** 如果SQLITE_CountRows标示设置在sqlite3.flags码中,那么DML声明调用这个操作码,返回
+  ** 修改过的行数给用户.这是一个打开一个声明事务可能调用这个操作码的VM的唯一方法.
   */
   assert( p->iStatement==0 || db->flags&SQLITE_CountRows );
   rc = sqlite3VdbeCloseStatement(p, SAVEPOINT_RELEASE);
@@ -1194,6 +1264,7 @@ case OP_ResultRow: {
   /* Make sure the results of the current row are \000 terminated
   ** and have an assigned type.  The results are de-ephemeralized as
   ** a side effect.
+  ** 确定当前行的结果以\000结束,并且有一个指定的类型,这个结果有副作用
   */
   pMem = p->pResultSet = &aMem[pOp->p1];
   for(i=0; i<pOp->p2; i++){
@@ -1225,6 +1296,7 @@ case OP_ResultRow: {
 ** It is illegal for P1 and P3 to be the same register. Sometimes,
 ** if P3 is the same register as P2, the implementation is able
 ** to avoid a memcpy().
+** 添加P1中的文本到P2中文本的末尾,把结果放在P3中,如果P1或P2的文本是空的,那就在P3中存放NULL
 */
 case OP_Concat: {           /* same as TK_CONCAT, in1, in2, out3 */
   i64 nByte;
@@ -1266,6 +1338,7 @@ case OP_Concat: {           /* same as TK_CONCAT, in1, in2, out3 */
 ** Add the value in register P1 to the value in register P2
 ** and store the result in register P3.
 ** If either input is NULL, the result is NULL.
+** 把P1的值加到P2中,然后存放在P3中,如果有一个输入是空的,那结果就是空的
 */
 /* Opcode: Multiply P1 P2 P3 * *
 **
@@ -1273,12 +1346,14 @@ case OP_Concat: {           /* same as TK_CONCAT, in1, in2, out3 */
 ** Multiply the value in register P1 by the value in register P2
 ** and store the result in register P3.
 ** If either input is NULL, the result is NULL.
+** P1乘以P2的结果放在P3中,如果输入有一个空的那结果就是空的
 */
 /* Opcode: Subtract P1 P2 P3 * *
 **
 ** Subtract the value in register P1 from the value in register P2
 ** and store the result in register P3.
 ** If either input is NULL, the result is NULL.
+** P3 = P1-P2,如果有一个是NULL,结果就是null
 */
 /* Opcode: Divide P1 P2 P3 * *
 **
@@ -1286,6 +1361,7 @@ case OP_Concat: {           /* same as TK_CONCAT, in1, in2, out3 */
 ** and store the result in register P3 (P3=P2/P1). If the value in 
 ** register P1 is zero, then the result is NULL. If either input is 
 ** NULL, the result is NULL.
+** P3=P1除以P2,如果P1为0,结果就是null.任意输入为NULL,那结果就是NULL
 */
 /* Opcode: Remainder P1 P2 P3 * *
 **
@@ -1293,6 +1369,8 @@ case OP_Concat: {           /* same as TK_CONCAT, in1, in2, out3 */
 ** register P1 by the value in register P2 and store the result in P3. 
 ** If the value in register P2 is zero the result is NULL.
 ** If either operand is NULL, the result is NULL.
+** 计算P1/P2的余数放在P3中,如果P2的值是0,那结果为NULL,如果任意一个操作数为NULL,那结果也是NULL
+** 
 */
 case OP_Add:                   /* same as TK_PLUS, in1, in2, out3 */
 case OP_Subtract:              /* same as TK_MINUS, in1, in2, out3 */
@@ -1392,6 +1470,10 @@ arithmetic_result_is_null:
 ** The interface used by the implementation of the aforementioned functions
 ** to retrieve the collation sequence set by this opcode is not available
 ** publicly, only to user functions defined in func.c.
+** P4是一个指向CollSeq结构体的指针,如果下一个对用户自定义函数的调用或者对
+** sqlite3GetFuncCollSeq()的调用,这个对照顺序就会返回,这是被内嵌的min,max,
+** nullif函数使用的.
+** 
 */
 case OP_CollSeq: {
   assert( pOp->p4type==P4_COLLSEQ );
@@ -1416,6 +1498,13 @@ case OP_CollSeq: {
 ** invocation of this opcode.
 **
 ** See also: AggStep and AggFinal
+** 在P5的参数(从P2和继承者得到的)的参与下,调用一个自定义函数(P4是一个指向一
+** 个定义函数的功能结构的指针).这个函数的结果存储在P3中,P3必须不是方法的输入参数.
+** P1是一个32位的位掩码,用于指示在编译时每一个传递给这个函数的参数是否是常量.如果
+** 第一个参数是常量,那么P1的0位被设置.这是用于决定元数据(与一个使用了
+** sqlite3_set-auxdata()API的自定义函数的参数有关联)是否被安全的保留着直到这个
+** 操作码下一次被调用.
+** 还可以看下: AggStep和AggFinal
 */
 case OP_Function: {
   int i;
@@ -1459,6 +1548,8 @@ case OP_Function: {
   /* The output cell may already have a buffer allocated. Move
   ** the pointer to ctx.s so in case the user-function can use
   ** the already allocated buffer instead of allocating a new one.
+  ** 输出单元可能已经有了一个分配的缓冲区.移动指向这个缓冲区的指针到
+  ** ctx.s,用于让自定义函数可以使用这个已经分配了的缓冲区,而不用再分配一个.
   */
   sqlite3VdbeMemMove(&ctx.s, pOut);
   MemSetTypeFlag(&ctx.s, MEM_Null);
@@ -1476,6 +1567,7 @@ case OP_Function: {
 
   /* If any auxiliary data functions have been called by this user function,
   ** immediately call the destructor for any non-static values.
+  ** 如果任意的辅助数据函数已经被自定义函数调用过了,立即为非静态值调用析构函数
   */
   if( ctx.pVdbeFunc ){
     sqlite3VdbeDeleteAuxData(ctx.pVdbeFunc, pOp->p1);
@@ -1488,18 +1580,20 @@ case OP_Function: {
     ** user function may have called an sqlite3_result_XXX() function
     ** to return a value. The following call releases any resources
     ** associated with such a value.
+    ** 即使malloc()函数运行失败,自定义函数可能已经调用了一个sqlite3_result_XXX()
+    ** 函数来返回一个值.它接下来的调用释放了与这个值有关的所有资源.
     */
     sqlite3VdbeMemRelease(&ctx.s);
     goto no_mem;
   }
 
-  /* If the function returned an error, throw an exception */
+  /* If the function returned an error, throw an exception 如果函数返回一个错误,抛出异常*/
   if( ctx.isError ){
     sqlite3SetString(&p->zErrMsg, db, "%s", sqlite3_value_text(&ctx.s));
     rc = ctx.isError;
   }
 
-  /* Copy the result of the function into register P3 */
+  /* Copy the result of the function into register P3 复制函数的结果到P3*/
   sqlite3VdbeChangeEncoding(&ctx.s, encoding);
   sqlite3VdbeMemMove(pOut, &ctx.s);
   if( sqlite3VdbeMemTooBig(pOut) ){
@@ -1510,6 +1604,8 @@ case OP_Function: {
   /* The app-defined function has done something that as caused this
   ** statement to expire.  (Perhaps the function called sqlite3_exec()
   ** with a CREATE TABLE statement.)
+  ** 功能定义函数做了一些事情导致语句不能再运行了(大概这个函数使用CREATE TABLE
+  ** 语句调用sqlite3_exec())
   */
   if( p->expired ) rc = SQLITE_ABORT;
 #endif
@@ -1524,12 +1620,15 @@ case OP_Function: {
 ** Take the bit-wise AND of the values in register P1 and P2 and
 ** store the result in register P3.
 ** If either input is NULL, the result is NULL.
+** 把位操作AND的值放入P1和P2,把结果放入P3,如果每个输入都是空的,
+** 结果也是空的
 */
 /* Opcode: BitOr P1 P2 P3 * *
 **
 ** Take the bit-wise OR of the values in register P1 and P2 and
 ** store the result in register P3.
 ** If either input is NULL, the result is NULL.
+** 把位操作OR的值放入P1和P2中,把结果放入P3,如果输入都是空的,那结果也是空的
 */
 /* Opcode: ShiftLeft P1 P2 P3 * *
 **
@@ -1537,6 +1636,8 @@ case OP_Function: {
 ** number of bits specified by the integer in register P1.
 ** Store the result in register P3.
 ** If either input is NULL, the result is NULL.
+** 通过P1中的整形确定P2中的整形值左移几位.P3存放移动后的结果
+** 如果输入都是空的,那结果也是空的
 */
 /* Opcode: ShiftRight P1 P2 P3 * *
 **
@@ -1544,6 +1645,8 @@ case OP_Function: {
 ** number of bits specified by the integer in register P1.
 ** Store the result in register P3.
 ** If either input is NULL, the result is NULL.
+** 通过P1中的整形确定P2中的整形值右移几位.P3存放移动后的结果
+** 如果输入都是空的,那结果也是空的
 */
 case OP_BitAnd:                 /* same as TK_BITAND, in1, in2, out3 */
 case OP_BitOr:                  /* same as TK_BITOR, in1, in2, out3 */
@@ -1603,6 +1706,8 @@ case OP_ShiftRight: {           /* same as TK_RSHIFT, in1, in2, out3 */
 ** The result is always an integer.
 **
 ** To force any register to be an integer, just add 0.
+** 添加一个常量P2给P1里的值,结果是一个整数.
+** 把每个寄存器的值改为整形的话就添加0.
 */
 case OP_AddImm: {            /* in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1618,6 +1723,8 @@ case OP_AddImm: {            /* in1 */
 ** in P1 is not an integer and cannot be converted into an integer
 ** without data loss, then jump immediately to P2, or if P2==0
 ** raise an SQLITE_MISMATCH exception.
+** 强制把P1里的值转换为整形,如果P1的值不是整形而且在不丢失数据的前
+** 提下也不能转换为整形,那就立即跳转到P2,或者P2==0时抛出一个SQLITE_MISMATCH异常
 */
 case OP_MustBeInt: {            /* jump, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1644,6 +1751,9 @@ case OP_MustBeInt: {            /* jump, in1 */
 ** has REAL affinity.  Such column values may still be stored as
 ** integers, for space efficiency, but after extraction we want them
 ** to have only a real value.
+** 如果P1是整数就转换为浮点型,这个操作码用于从拥有REAL affinity的一行
+** 提取信息.为了空间利用率,这一行的值可能还是存储为整形,但是提取后我们
+** 想让它只有一个浮点数.
 */
 case OP_RealAffinity: {                  /* in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1663,6 +1773,9 @@ case OP_RealAffinity: {                  /* in1 */
 ** are afterwards simply interpreted as text.
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
+** 强制P1里的值为文本，如果这个值正好是数字类型的,使用printf()的等价物把它
+** 转换为字符串,二进制大文件的值是不变的,只是用文本表示.
+** 此程序无法改变NULL值,它就是NULL.
 */
 case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1686,6 +1799,9 @@ case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
 ** to the underlying data.
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
+** 强制P1里的值为一个二进制大文件值，如果这个值正好是数字类型的，
+** 转换为字符串,字符串是对二进制大文件进行重新解释,它所代表的数据是不变的
+** 此程序无法改变NULL值,它就是NULL.
 */
 case OP_ToBlob: {                  /* same as TK_TO_BLOB, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1710,6 +1826,9 @@ case OP_ToBlob: {                  /* same as TK_TO_BLOB, in1 */
 ** is possible.
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
+** 强制P1里的值为一个整形数值，如果这个值正好是浮点数，丢掉它的小数部分.
+** 值是一个文本或二进制大文件，使用atoi()的等价物尝试先转换为整数,如果不能
+** 就存储为0.就存储为0.0.此程序无法改变NULL值,它就是NULL.
 */
 case OP_ToNumeric: {                  /* same as TK_TO_NUMERIC, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1726,6 +1845,9 @@ case OP_ToNumeric: {                  /* same as TK_TO_NUMERIC, in1 */
 ** equivalent of atoi() and store 0 if no such conversion is possible.
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
+** 强制P1里的值为一个整形数值，如果这个值正好是浮点数，丢掉它的小数部分.
+** 值是一个文本或二进制大文件，使用atoi()的等价物尝试先转换为整数,如果不能
+** 就存储为0.就存储为0.0.此程序无法改变NULL值,它就是NULL.
 */
 case OP_ToInt: {                  /* same as TK_TO_INT, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1744,7 +1866,10 @@ case OP_ToInt: {                  /* same as TK_TO_INT, in1 */
 ** equivalent of atoi() and store 0.0 if no such conversion is possible.
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
-*/
+** 强制P1里的值为一个浮点型指针数值，如果这个值正好是整数，转换他，如果这个
+** 值是一个文本或二进制大文件，使用atoi()的等价物尝试先转换为整数,如果不能
+** 就存储为0.0.此程序无法改变NULL值,它就是NULL.
+* /
 case OP_ToReal: {                  /* same as TK_TO_REAL, in1 */
   pIn1 = &aMem[pOp->p1];
   memAboutToChange(p, pIn1);
