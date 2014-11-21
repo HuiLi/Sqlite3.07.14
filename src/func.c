@@ -9,65 +9,71 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** This file contains the C functions that implement various SQL
+** This file contains the C functions that implement various SQL这个文件包含实现各种SQL函数的SQLite的C函数。
 ** functions of SQLite.  
 **
 ** There is only one exported symbol in this file - the function
-** sqliteRegisterBuildinFunctions() found at the bottom of the file.
+** sqliteRegisterBuildinFunctions() found at the bottom of the file.这个文件只有一个出口标志——函数sqliteRegisterBuildinFunctions()发现在文件的底部。
 ** All other code has file scope.
 */
 #include "sqliteInt.h"
 #include <stdlib.h>
-#include <assert.h>
+#include <assert.h>//断言就是用于在代码中捕捉这些假设，可以将断言看作是异常处理的一种高级形式。
+//断言表示为一些布尔表达式，程序员相信在程序中的某个特定点该表达式值为真。
+//assert是宏，而不是函数。在C的assert.h头文件中。
+//assert宏的原型定义在<assert.h>中，其作用是如果它的条件返回错误，则终止程序执行
 #include "vdbeInt.h"
 
 /*
-** Return the collating function associated with a function.
+** Return the collating function associated with a function.返回排序函数与函数有关。
 */
 static CollSeq *sqlite3GetFuncCollSeq(sqlite3_context *context){
-  return context->pColl;
+  return context->pColl;//返回排序的序列
 }
 
 /*
 ** Indicate that the accumulator load should be skipped on this
-** iteration of the aggregate loop.
+** iteration of the aggregate loop.表明累加器负载应该跳过这个迭代的总循环。。
 */
 static void sqlite3SkipAccumulatorLoad(sqlite3_context *context){
-  context->skipFlag = 1;
+  context->skipFlag = 1;//跳转标志为1
 }
 
 /*
 ** Implementation of the non-aggregate min() and max() functions
+实现非聚合min()和max()函数
 */
 static void minmaxFunc(
-  sqlite3_context *context,
+  sqlite3_context *context,?													//函数上下文
   int argc,
   sqlite3_value **argv
 ){
   int i;
-  int mask;    /* 0 for min() or 0xffffffff for max() */
+  int mask;    /* 0 for min() or 0xffffffff for max();0为最小,-1为最大
+  因为int 为带符号类型,带符号类型最高为是符号位
+  ,又因为0xFFFFFFFF,也就是四个字节32 bits全是1, 符号位是1,所以这个数是负数 */
   int iBest;
   CollSeq *pColl;
 
-  assert( argc>1 );
-  mask = sqlite3_user_data(context)==0 ? 0 : -1;
+  assert( argc>1 );																	                                //如果 argc>1，则继续执行，否则终止程序执行
+  mask = sqlite3_user_data(context)==0 ? 0 : -1;								                  	//判断最小最大值
   pColl = sqlite3GetFuncCollSeq(context);
   assert( pColl );
-  assert( mask==-1 || mask==0 );
+  assert( mask==-1 || mask==0 );													                          //断言最大值是-1或者最小值是0
   iBest = 0;
-  if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;
+  if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;							              //自定义接口函数
   for(i=1; i<argc; i++){
     if( sqlite3_value_type(argv[i])==SQLITE_NULL ) return;
-    if( (sqlite3MemCompare(argv[iBest], argv[i], pColl)^mask)>=0 ){
+    if( (sqlite3MemCompare(argv[iBest], argv[i], pColl)^mask)>=0 ){					        //比较大小
       testcase( mask==0 );
       iBest = i;
     }
   }
-  sqlite3_result_value(context, argv[iBest]);
+  sqlite3_result_value(context, argv[iBest]);									                    	//返回最值
 }
 
 /*
-** Return the type of the argument.
+** Return the type of the argument.返回的类型参数。
 */
 static void typeofFunc(
   sqlite3_context *context,
@@ -75,20 +81,20 @@ static void typeofFunc(
   sqlite3_value **argv
 ){
   const char *z = 0;
-  UNUSED_PARAMETER(NotUsed);
+  UNUSED_PARAMETER(NotUsed);//从未用过的参数
   switch( sqlite3_value_type(argv[0]) ){
-    case SQLITE_INTEGER: z = "integer"; break;
-    case SQLITE_TEXT:    z = "text";    break;
-    case SQLITE_FLOAT:   z = "real";    break;
-    case SQLITE_BLOB:    z = "blob";    break;
-    default:             z = "null";    break;
+    case SQLITE_INTEGER: z = "integer"; break;									                  	//带符号整型
+    case SQLITE_TEXT:    z = "text";    break;									                  	//字符串文本
+    case SQLITE_FLOAT:   z = "real";    break;									                   	//浮点数
+    case SQLITE_BLOB:    z = "blob";    break;									                  	//二进制大对象
+    default:             z = "null";    break;									                   	//空值
   }
-  sqlite3_result_text(context, z, -1, SQLITE_STATIC);
+  sqlite3_result_text(context, z, -1, SQLITE_STATIC);							                	//返回结果
 }
 
 
 /*
-** Implementation of the length() function
+** Implementation of the length() function长度函数的实现
 */
 static void lengthFunc(
   sqlite3_context *context,
@@ -100,57 +106,58 @@ static void lengthFunc(
   assert( argc==1 );
   UNUSED_PARAMETER(argc);
   switch( sqlite3_value_type(argv[0]) ){
-    case SQLITE_BLOB:
-    case SQLITE_INTEGER:
-    case SQLITE_FLOAT: {
-      sqlite3_result_int(context, sqlite3_value_bytes(argv[0]));
+    case SQLITE_BLOB:														                                    	//二进制
+    case SQLITE_INTEGER:				                                                     	//整型
+    case SQLITE_FLOAT: {														                                	//浮点数
+      sqlite3_result_int(context, sqlite3_value_bytes(argv[0]));				            	//返回标量值
       break;
     }
-    case SQLITE_TEXT: {
+    case SQLITE_TEXT: {															                              	  //文本
       const unsigned char *z = sqlite3_value_text(argv[0]);
-      if( z==0 ) return;
+      if( z==0 ) return;														                              	  //长度为0，返回0
       len = 0;
       while( *z ){
         len++;
         SQLITE_SKIP_UTF8(z);
       }
-      sqlite3_result_int(context, len);
+      sqlite3_result_int(context, len);											                  	   //返回长度
       break;
     }
     default: {
-      sqlite3_result_null(context);
+      sqlite3_result_null(context);												                      	//返回空值
       break;
     }
   }
 }
 
 /*
-** Implementation of the abs() function.
+** Implementation of the abs() function.abs函数的实现。
 **
 ** IMP: R-23979-26855 The abs(X) function returns the absolute value of
-** the numeric argument X. 
-*/
-static void absFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
+** the numeric argument X. abs(X)函数返回数值的绝对值参数X
+*/  
+static void absFunc(sqlite3_context *context, int argc, sqlite3_value **argv){	  //绝对值函数
   assert( argc==1 );
   UNUSED_PARAMETER(argc);
   switch( sqlite3_value_type(argv[0]) ){
     case SQLITE_INTEGER: {
       i64 iVal = sqlite3_value_int64(argv[0]);
-      if( iVal<0 ){
+      if( iVal<0 ){                                                              	//判断如果ival小于0
         if( (iVal<<1)==0 ){
           /* IMP: R-35460-15084 If X is the integer -9223372036854775807 then
           ** abs(X) throws an integer overflow error since there is no
-          ** equivalent positive 64-bit two complement value. */
-          sqlite3_result_error(context, "integer overflow", -1);
+          ** equivalent positive 64-bit two complement value. 如果X是整数-9223372036854775807
+          那么abs(X)抛出一个整数溢出错误,  因为没有积极的64位两个补充值。*/
+          sqlite3_result_error(context, "integer overflow", -1);                	//返回错误，整型溢出
           return;
         }
-        iVal = -iVal;
+        iVal = -iVal;                                                          		//取ival的负赋值给ival
       } 
       sqlite3_result_int64(context, iVal);
       break;
     }
     case SQLITE_NULL: {
-      /* IMP: R-37434-19929 Abs(X) returns NULL if X is NULL. */
+      /* IMP: R-37434-19929 Abs(X) returns NULL if X is NULL. 如果x是空，则返回绝对值为空*/
       sqlite3_result_null(context);
       break;
     }
@@ -158,18 +165,20 @@ static void absFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
       /* Because sqlite3_value_double() returns 0.0 if the argument is not
       ** something that can be converted into a number, we have:
       ** IMP: R-57326-31541 Abs(X) return 0.0 if X is a string or blob that
-      ** cannot be converted to a numeric value. 
+      ** cannot be converted to a numeric value.
+      因为sqlite3_value_double()返回0.如果这个内容不可以被转换成一个数字值，
+      Abs(X)返回0，如果X是一个字符串或blob,不能被转换成数字值。
       */
       double rVal = sqlite3_value_double(argv[0]);
-      if( rVal<0 ) rVal = -rVal;
-      sqlite3_result_double(context, rVal);
+      if( rVal<0 ) rVal = -rVal;													                         //如果rval小于0，取rval的负赋值给rval
+      sqlite3_result_double(context, rVal);										                  	//返回绝对值
       break;
     }
   }
 }
 
 /*
-** Implementation of the substr() function.
+** Implementation of the substr() function.substr()函数的实现substr 取部份字符串string substr(string string, int start, int [length])
 **
 ** substr(x,p1,p2)  returns p2 characters of x[] beginning with p1.
 ** p1 is 1-indexed.  So substr(x,1,1) returns the first character
@@ -179,6 +188,12 @@ static void absFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 ** If p1 is negative, then we begin abs(p1) from the end of x[].
 **
 ** If p2 is negative, return the p2 characters preceeding p1.
+substr(x,p1,p2)是返回从p1开始查找x[]中第p2的字符
+。所以substr(x,1,1)返回第一个字符x,
+如果x是文本,那么我们实际上计算utf - 8字符数。
+如果x是一个blob,那么我们计数字节。
+如果p1是负的,那么我们开始从abs(p1)中x[]尾端算起。
+如果p2是负的,返回倒数第p2个字符。
 */
 static void substrFunc(
   sqlite3_context *context,
@@ -194,30 +209,30 @@ static void substrFunc(
 
   assert( argc==3 || argc==2 );
   if( sqlite3_value_type(argv[1])==SQLITE_NULL
-   || (argc==3 && sqlite3_value_type(argv[2])==SQLITE_NULL)
+   || (argc==3 && sqlite3_value_type(argv[2])==SQLITE_NULL)							//判断为空值的情况
   ){
-    return;
+    return;																		                        	//返回空
   }
   p0type = sqlite3_value_type(argv[0]);
   p1 = sqlite3_value_int(argv[1]);
-  if( p0type==SQLITE_BLOB ){
+  if( p0type==SQLITE_BLOB ){													                	//判断取值是否为二进制
     len = sqlite3_value_bytes(argv[0]);
     z = sqlite3_value_blob(argv[0]);
     if( z==0 ) return;
     assert( len==sqlite3_value_bytes(argv[0]) );
-  }else{
+  }else{																		                          	//若z是文本			
     z = sqlite3_value_text(argv[0]);
     if( z==0 ) return;
     len = 0;
-    if( p1<0 ){
+    if( p1<0 ){																		                      //若p1为负
       for(z2=z; *z2; len++){
-        SQLITE_SKIP_UTF8(z2);
+        SQLITE_SKIP_UTF8(z2);														
       }
     }
   }
   if( argc==3 ){
-    p2 = sqlite3_value_int(argv[2]);
-    if( p2<0 ){
+    p2 = sqlite3_value_int(argv[2]);												
+    if( p2<0 ){																		
       p2 = -p2;
       negP2 = 1;
     }
@@ -264,24 +279,28 @@ static void substrFunc(
 
 /*
 ** Implementation of the round() function
+返回数字表达式并四舍五入为指定的长度或精度。
 */
 #ifndef SQLITE_OMIT_FLOATING_POINT
-static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
+static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){		
   int n = 0;
   double r;
   char *zBuf;
   assert( argc==1 || argc==2 );
   if( argc==2 ){
-    if( SQLITE_NULL==sqlite3_value_type(argv[1]) ) return;
+    if( SQLITE_NULL==sqlite3_value_type(argv[1]) ) return;								//先判断为空值的情况
     n = sqlite3_value_int(argv[1]);
     if( n>30 ) n = 30;
     if( n<0 ) n = 0;
   }
   if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;
   r = sqlite3_value_double(argv[0]);
-  /* If Y==0 and X will fit in a 64-bit int,
+  /* If Y==0 and X will fit in a 64-bit int
   ** handle the rounding directly,
   ** otherwise use printf.
+  如果Y = X = 0,适合在一个64位整数,
+直接处理输出
+否则使用printf。
   */
   if( n==0 && r>=0 && r<LARGEST_INT64-1 ){
     r = (double)((sqlite_int64)(r+0.5));
@@ -306,20 +325,24 @@ static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 ** the database handle that malloc() has failed and return NULL.
 ** If nByte is larger than the maximum string or blob length, then
 ** raise an SQLITE_TOOBIG exception and return NULL.
+分配nByte字节的空间使用sqlite3_malloc()。
+如果分配失败,调用sqlite3_result_error_nomem()通知数据库句柄,malloc()失败,返回NULL。
+如果nByte大于最大字符串或blob长度,然后引发一个SQLITE_TOOBIG异常,返回NULL。
 */
-static void *contextMalloc(sqlite3_context *context, i64 nByte){
+static void *contextMalloc(sqlite3_context *context, i64 nByte){					//该函数分配了NBytes个字节,并返回了指向这块内存的指针
+																					                                //如果分配失败，则返回一个空指针null
   char *z;
   sqlite3 *db = sqlite3_context_db_handle(context);
   assert( nByte>0 );
   testcase( nByte==db->aLimit[SQLITE_LIMIT_LENGTH] );
   testcase( nByte==db->aLimit[SQLITE_LIMIT_LENGTH]+1 );
-  if( nByte>db->aLimit[SQLITE_LIMIT_LENGTH] ){
+  if( nByte>db->aLimit[SQLITE_LIMIT_LENGTH] ){									        	//如果nByte大于最大字符串或blob长度,然后引发一个SQLITE_TOOBIG异常,返回NULL。
     sqlite3_result_error_toobig(context);
     z = 0;
   }else{
     z = sqlite3Malloc((int)nByte);
     if( !z ){
-      sqlite3_result_error_nomem(context);
+      sqlite3_result_error_nomem(context);											//如果分配失败,调用sqlite3_result_error_nomem()通知数据库句柄,malloc()失败,返回NULL?
     }
   }
   return z;
