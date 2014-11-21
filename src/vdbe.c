@@ -16,28 +16,42 @@
 ** handles housekeeping details such as creating and deleting
 ** VDBE instances.  This file is solely interested in executing
 ** the VDBE program.
+**
+** 在与外部通讯时，sqlite3_stmt*是一个指向VDBE的不透明的指针
 ** In the external interface, an "sqlite3_stmt*" is an opaque pointer
 ** to a VDBE.
-** 在与外部通讯时，sqlite3_stmt*是一个指向VDBE的不透明的指针
+**
+** SQL解析器生成一个程序然后由VDBE执行SQL语句的工作。VDBE程序在形式上类似于汇编语言。
+** VDBC程序由一系列线性操作组成。每个操作都有1个操作码和5个操作数。操作数P1,P2,P3是整数。
+** 操作数P4是一个以null结尾的字符串。操作数P5是一个无符号字符。一些操作码全部使用这5个操作数。
 ** The SQL parser generates a program which is then executed by
 ** the VDBE to do the work of the SQL statement.  VDBE programs are 
 ** similar in form to assembly language.  The program consists of
 ** a linear sequence of operations.  Each operation has an opcode 
 ** and 5 operands.  Operands P1, P2, and P3 are integers.  Operand P4 
 ** is a null-terminated string.  Operand P5 is an unsigned character.
-** Few opcodes use all 5 operands.//
+** Few opcodes use all 5 operands.
 **
+** 计算结果存储在一组寄存器当中，这组寄存器的编号从1开始,最终存放在Vdbe.nMem文件中。
+** 每个寄存器可以存储一个整数,一个以NULL结尾的字符串,一个浮点数,或者是一个值为“NULL”的SQL。
+** 发生这种从一种类型到另一种类型的隐式转换是必要的。
 ** Computation results are stored on a set of registers numbered beginning
 ** with 1 and going up to Vdbe.nMem.  Each register can store
 ** either an integer, a null-terminated string, a floating point
 ** number, or the SQL "NULL" value.  An implicit conversion from one
 ** type to the other occurs as necessary.
 ** 
+** 这个文件中的大部分代码被sqlite3VdbeExec()函数用于解析VDBE程序。
+** 但是要建立一个程序指令的指令还需要其他例程(例程的作用类似于函数，但含义更为丰富一些。
+** 例程是某个系统对外提供的功能接口或服务的集合)的帮助和支撑。
 ** Most of the code in this file is taken up by the sqlite3VdbeExec()
 ** function which does the work of interpreting a VDBE program.
 ** But other routines are also provided to help in building up
 ** a program instruction by instruction.
 **
+** 各种脚本都会扫描这个源文件以生成HTML文档,头文件,或其他派生文件。
+** 因此，该文件中的代码的格式非常重要。请参阅该文件中的其他注释。
+** 如果对文档内容有疑问,请在改变或添加代码时，不要违背现有的注释和代码缩进格式。
 ** Various scripts scan this source file in order to generate HTML
 ** documentation, headers files, or other derived files.  The formatting
 ** of the code in this file is, therefore, important.  See other comments
