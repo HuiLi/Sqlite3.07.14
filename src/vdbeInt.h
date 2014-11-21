@@ -14,6 +14,8 @@
 ** source code file "vdbe.c".  When that file became too big (over
 ** 6000 lines long) it was split up into several smaller files and
 ** this header information was factored out.
+** 这个头文件定义了一些VDBE私有的信息，这些信息用于都要用在vdbe.c文件内容之前，
+** 当vdbe.c太大时，它会分解成一些小文件，这个头文件也会被每个小文件声明
 */
 #ifndef _VDBEINT_H_
 #define _VDBEINT_H_
@@ -22,6 +24,7 @@
 ** SQL is translated into a sequence of instructions to be
 ** executed by a virtual machine.  Each instruction is an instance
 ** of the following structure.
+** SQL语句被翻译成一串指令被vdbe运行，每条指令都是这个结构体的一个实例
 */
 typedef struct VdbeOp Op;
 
@@ -45,6 +48,9 @@ typedef struct Explain Explain;
 ** 
 ** Every cursor that the virtual machine has open is represented by an
 ** instance of the following structure.
+** 一个游标是一个数据库文件里指向一个B树的指针。这个游标依靠一个特殊的键
+** 搜寻B树的一个节点，或者循环整个B树的节点。你可以在游标所指的节点插入新
+** 的B树节点或者恢复这个节点的键或者数据
 */
 struct VdbeCursor {
   BtCursor *pCursor;    /* The cursor structure of the backend */
@@ -71,7 +77,9 @@ struct VdbeCursor {
   VdbeSorter *pSorter;  /* Sorter object for OP_SorterOpen cursors */
 
   /* Result of last sqlite3BtreeMoveto() done by an OP_NotExists or 
-  ** OP_IsUnique opcode on this cursor. */
+  ** OP_IsUnique opcode on this cursor. 
+  ** 游标上OP_NotExists操作码或者OP_IsUnique操作码最后执行的sqlite3BtreeMoveto()返回的结果
+  */
   int seekResult;
 
   /* Cached information about the header for the data record that the
@@ -82,6 +90,8 @@ struct VdbeCursor {
   **
   ** aRow might point to (ephemeral) data for the current row, or it might
   ** be NULL.
+  ** 缓存游标所指的数据记录的头部信息，只有当cacheStatus和 Vdbe.cacheCtr匹配时有效
+  **  Vdbe.cacheCtr不会使用CACHE_STALE的值，所以设置cacheStatus=CACHE_STALE保证cache是过期的
   */
   u32 cacheStatus;      /* Cache is valid if this matches Vdbe.cacheCtr */
   int payloadSize;      /* Total number of bytes in the record */
@@ -111,6 +121,14 @@ typedef struct VdbeCursor VdbeCursor;
 **
 ** The currently executing frame is stored in Vdbe.pFrame. Vdbe.pFrame is
 ** set to NULL if the currently executing frame is the main program.
+** 当一个子程序（OP_Program）执行完后，VdbeFrame类型的结构体被分配来储存当前
+** 程序计数器的值，此外当前的内存单元数组和很多其他的值也存储在VDBE结构体中，
+** 当子程序结束时了，这些值会从 VdbeFrame结构体拷贝回Vdbe，重新存储VM的状态
+** 为执行子程序之前的状态。
+** 一个VdbeFrame对象的内存是被父frame的内存单元分配和管理的，当这个存储单元被删除
+** 或者被重写，VdbeFrame对象不会马上释放。而是链接到Vdbe.pDelFrame表。当VM执行VdbeHalt()后
+** 复位时Vdbe.pDelFrame表的内容会被删除。原因就是为了当属于子frame的内存单元释放时避免
+** sqlite3VdbeMemRelease()被递归调用。
 */
 typedef struct VdbeFrame VdbeFrame;
 struct VdbeFrame {
@@ -132,7 +150,7 @@ struct VdbeFrame {
   int nChange;            /* Statement changes (Vdbe.nChanges)     */
 };
 
-#define VdbeFrameMem(p) ((Mem *)&((u8 *)p)[ROUND8(sizeof(VdbeFrame))])
+#define VdbeFrameMem(p) (  (Mem *) & (  (u8 *)p  )[ROUND8(sizeof(VdbeFrame))]    )
 
 /*
 ** A value for VdbeCursor.cacheValid that means the cache is always invalid.
@@ -143,6 +161,8 @@ struct VdbeFrame {
 ** Internally, the vdbe manipulates nearly all SQL values as Mem
 ** structures. Each Mem struct may cache multiple representations (string,
 ** integer etc.) of the same value.
+** 在内部，vdbe以操作Mem结构体的形式操作几乎所有的sql语句，每一个Mem结构体可能缓存
+** 多个相同值的表达式（string，int等）
 */
 struct Mem {
   sqlite3 *db;        /* The associated database connection */
@@ -178,6 +198,10 @@ struct Mem {
 ** database (see below for exceptions). If the MEM_Term flag is also
 ** set, then the string is nul terminated. The MEM_Int and MEM_Real 
 ** flags may coexist with the MEM_Str flag.
+** 下面的一个或多个标示被设置用于指示Mem结构体中validOK表达式的值，如果MEM_Null标示
+** 被设置，那Mem结构体中validOK表达式的值是一个sql空值，其他的标示也不会再设置了。
+** 如果MEM_Str标示被设置，Mem.z指向一个字符串表达式，通常作为主数据库这是编码在相同的unicode编码。
+** 如果MEM_Term标示也被设置了，那这个字符串是 空 终止符。MEM_Int和MEM_Real标示可能会和MEM_Str标示共存。
 */
 #define MEM_Null      0x0001   /* Value is NULL */
 #define MEM_Str       0x0002   /* Value is a string */
@@ -193,6 +217,8 @@ struct Mem {
 ** the following flags must be set to determine the memory management
 ** policy for Mem.z.  The MEM_Term flag tells us whether or not the
 ** string is \000 or \u0000 terminated
+** 无论何时Mem包含着一个有效的string或者blob表达式，下面标示中的一个必须被设置用于
+** 决定Mem.z的内存管理策略。如果是MEM_Term标示，那就是告诉我们string表达式是否是\000或\u0000结尾。
 */
 #define MEM_Term      0x0200   /* String rep is nul terminated */
 #define MEM_Dyn       0x0400   /* Need to call sqliteFree() on Mem.z */
@@ -207,6 +233,7 @@ struct Mem {
 
 /*
 ** Clear any existing type flags from a Mem and replace them with f
+** 清楚Mem里所有剩余的类型标示然后用f替换它们。
 */
 #define MemSetTypeFlag(p, f) \
    ((p)->flags = ((p)->flags&~(MEM_TypeMask|MEM_Zero))|f)
@@ -214,6 +241,7 @@ struct Mem {
 /*
 ** Return true if a memory cell is not marked as invalid.  This macro
 ** is for use inside assert() statements only.
+** 如果一个内存单元没有标记为有效，返回true，这个宏只用在含有assert（）的语句中。
 */
 #ifdef SQLITE_DEBUG
 #define memIsValid(M)  ((M)->flags & MEM_Invalid)==0
@@ -228,6 +256,7 @@ struct Mem {
 ** allows functions such as "regexp" to compile their constant regular
 ** expression argument once and reused the compiled code for multiple
 ** invocations.
+**
 */
 struct VdbeFunc {
   FuncDef *pFunc;               /* The definition of the function */
@@ -250,6 +279,10 @@ struct VdbeFunc {
 **
 ** This structure is defined inside of vdbeInt.h because it uses substructures
 ** (Mem) which are only defined there.
+** sqlite3_context结构体是一个可安装的功能，指向这个结构体的实例的指针在执行SQL功能程序中是首先要定义的
+** 在sqlite.h中有一个typedef struct sqlite3_context，所以所有的程序，甚至SQLITE的公共接口，都
+** 可以使用指针指向这个结构体。但是这个文件是知道这个结构体内部构造的唯一文件。
+** 这个结构体定义在这个文件中是因为它使用的基础构造（Mem结构体）也定义在这个文件中。
 */
 struct sqlite3_context {
   FuncDef *pFunc;       /* Pointer to function information.  MUST BE FIRST */
@@ -264,6 +297,7 @@ struct sqlite3_context {
 /*
 ** An Explain object accumulates indented output which is helpful
 ** in describing recursive data structures.
+** 一个解释对象，累积缩进的输出，有助于描述递归数据结构
 */
 struct Explain {
   Vdbe *pVdbe;       /* Attach the explanation to this Vdbe */
@@ -287,6 +321,11 @@ struct Explain {
 ** "DROP TABLE" statements and to prevent some nasty side effects of
 ** malloc failure when SQLite is invoked recursively by a virtual table 
 ** method function.
+** 一个vdbe的实例，这个结构体包含了完整的虚拟机定义。
+** sqlite3_prepare()返回的sqlite3_stmt结构体类型指针是指向这个结构体实例的指针
+** 在vdbe程序制造任意的虚拟表方法的装置期间，Vdbe.inVtabMethod变量被设置为非零。
+** 当xDsetory方法调用时Vdbe.inVtabMethod变量设置为2，其他方法调用时Vdbe.inVtabMethod变量设置为1。
+** 这个变量被用于两个目的：1.使xDestory方法执行"DROP TABLE"语句 2.当SQLite被虚拟表方法递归调用时显示一些内存分配失败的负面影响
 */
 struct Vdbe {
   sqlite3 *db;            /* The database connection that owns this statement */
