@@ -11,7 +11,7 @@
 *************************************************************************
 ** This file contains code for implementations of the r-tree and r*-tree
 ** algorithms packaged as an SQLite virtual table module.
-*/
+*/这个文件包含了用SQLite虚表实现rtree和r*tree的代码
 
 /*
 ** Database Format of R-Tree Tables
