@@ -50,7 +50,11 @@
 **      of 4-byte coordinates. For leaf nodes the integer is the rowid
 **      of a record. For internal nodes it is the node number of a
 **      child page.
-*/
+*/rtree根节点一直都存在，不论R树表是否为空,根节点的id一直为1.其他所有节点的大小应该与根节点大小相同。其他节点应该满足下面条件
+1.如果节点是根节点，则前2个byte包含树的高度信息，对于非根节点，前两个字节未被使用。
+2.接下来的2byte包含了节点所对应的指针数量。
+3.节点剩下的部分包含了指针信息。每个指针包含4byte的坐标信息和8byte的整型信息。对于叶子节点是记录的行号。对于内部节点是孩子页的节点号。
+
 
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_RTREE)
 
