@@ -9,9 +9,9 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** 这个文件里的代码是实现了VDBE的执行方法,vdbeaux.c文件控制着像创建删除VDBE实例的
-** 具体细节,这个文件只在乎VDBE程序的执行.
-** The code in this file implements execution method of the 
+** 这个文件里的代码是实现了VDBE的执行方法，vdbeaux.c文件控制着像创建删除VDBE实例的
+** 具体细节，这个文件只在乎VDBE程序的执行.
+** The code in this file implements execution method of the
 ** Virtual Database Engine (VDBE).  A separate file ("vdbeaux.c")
 ** handles housekeeping details such as creating and deleting
 ** VDBE instances.  This file is solely interested in executing
@@ -23,24 +23,25 @@
 **
 ** SQL解析器生成一个程序然后由VDBE执行SQL语句的工作。VDBE程序在形式上类似于汇编语言。
 ** VDBC程序由一系列线性操作组成。每个操作都有1个操作码和5个操作数。操作数P1,P2,P3是整数。
-** 操作数P4是一个以null结尾的字符串。操作数P5是一个无符号字符。一些操作码全部使用这5个操作数。
+** 操作数P4是一个以null结尾的字符串。操作数P5是一个无符号字符(P5的类型是u8，在sqliteInt.h中
+** u8类型的含义是“1-byte unsigned integer”)。一些操作码全部使用这5个操作数。
 ** The SQL parser generates a program which is then executed by
-** the VDBE to do the work of the SQL statement.  VDBE programs are 
+** the VDBE to do the work of the SQL statement.  VDBE programs are
 ** similar in form to assembly language.  The program consists of
-** a linear sequence of operations.  Each operation has an opcode 
-** and 5 operands.  Operands P1, P2, and P3 are integers.  Operand P4 
+** a linear sequence of operations.  Each operation has an opcode
+** and 5 operands.  Operands P1, P2, and P3 are integers.  Operand P4
 ** is a null-terminated string.  Operand P5 is an unsigned character.
 ** Few opcodes use all 5 operands.
 **
-** 计算结果存储在一组寄存器当中，这组寄存器的编号从1开始,最终存放在Vdbe.nMem文件中。
-** 每个寄存器可以存储一个整数,一个以NULL结尾的字符串,一个浮点数,或者是一个值为“NULL”的SQL。
+** 计算结果存储在一组寄存器当中,这组寄存器的编号从1开始,寄存器存放在的内存地址为Vdbe.nMem(nMem是整型)。
+** 每个寄存器可以存储一个整数，一个以NULL结尾的字符串，一个浮点数，或者是一个值为“NULL”的SQL。
 ** 发生这种从一种类型到另一种类型的隐式转换是必要的。
 ** Computation results are stored on a set of registers numbered beginning
 ** with 1 and going up to Vdbe.nMem.  Each register can store
 ** either an integer, a null-terminated string, a floating point
 ** number, or the SQL "NULL" value.  An implicit conversion from one
 ** type to the other occurs as necessary.
-** 
+**
 ** 这个文件中的大部分代码被sqlite3VdbeExec()函数用于解析VDBE程序。
 ** 但是要建立一个程序指令的指令还需要其他例程(例程的作用类似于函数，但含义更为丰富一些。
 ** 例程是某个系统对外提供的功能接口或服务的集合)的帮助和支撑。
@@ -49,19 +50,27 @@
 ** But other routines are also provided to help in building up
 ** a program instruction by instruction.
 **
-** 各种脚本都会扫描这个源文件以生成HTML文档,头文件,或其他派生文件。
-** 因此，该文件中的代码的格式非常重要。请参阅该文件中的其他注释。
-** 如果对文档内容有疑问,请在改变或添加代码时，不要违背现有的注释和代码缩进格式。
+** 各种脚本都会扫描这个源文件以生成HTML文档，头文件，或其他派生文件。
+** 因此,该文件中的代码的格式非常重要。请参阅该文件中的其他注释。
+** 如果对文档内容有疑问，请在改变或添加代码时，不要违背现有的注释和代码缩进格式。
 ** Various scripts scan this source file in order to generate HTML
 ** documentation, headers files, or other derived files.  The formatting
 ** of the code in this file is, therefore, important.  See other comments
 ** in this file for details.  If in doubt, do not deviate from existing
 ** commenting and indentation practices when changing or adding code.
 */
+
+/*
+** 引入两个头文件：
+** vdbeInt.h中定义了VDBE常用的数据结构；
+** sqliteInt.h中定义了SQLite的内部接口和数据结构。
+*/
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
 /*
+** 只有在改变操作数OP_LoadAnalysis的值之前才应许内存单元上调用这个宏。
+** 这个宏可以确保潜在的备份不被滥用。
 ** Invoke this macro on memory cells just prior to changing the
 ** value of OP_LoadAnalysis the cell.  This macro verifies that shallow copies are
 ** not misused.
@@ -1896,22 +1905,35 @@ case OP_ToReal: {                  /* same as TK_TO_REAL, in1 */
 
 /* Opcode: Lt P1 P2 P3 P4 P5
 **
+** 比较寄存器中操作码P1和P3的值。如果 P3<P1 则跳转到地址P2。
 ** Compare the values in register P1 and P3.  If reg(P3)<reg(P1) then
-** jump to address P2.  
+** jump to address P2.
 **
+** 如果P5的SQLITE_JUMPIFNULL位被重置，同时P1或P3为null，则进行跳转。
+** 如果SQLITE_JUMPIFNULL位被清除，同时P1和P3两者中任何一个是null，那么操作失败。
 ** If the SQLITE_JUMPIFNULL bit of P5 is set and either reg(P1) or
-** reg(P3) is NULL then take the jump.  If the SQLITE_JUMPIFNULL 
+** reg(P3) is NULL then take the jump.  If the SQLITE_JUMPIFNULL
 ** bit is clear then fall through if either operand is NULL.
 **
+** P5的SQLITE_AFF_MASK部分必须是一个相关的字符 —— 例如SQLITE_AFF_TEXT、SQLITE_AFF_INTEGER等等。
+** 要根据这种相关性原则来比较两个输入值，这一要求是强制的。如果SQLITE_AFF_MASK是0x00(十六进制0)，
+** 那么数值相关性就起作用了。注意，对输入值做相关性转换后会被存储回输入寄存器P1和P3中。
+** 所以这个操作码能够导致寄存器P1和P3中对应值的永久改变。
 ** The SQLITE_AFF_MASK portion of P5 must be an affinity character -
-** SQLITE_AFF_TEXT, SQLITE_AFF_INTEGER, and so forth. An attempt is made 
+** SQLITE_AFF_TEXT, SQLITE_AFF_INTEGER, and so forth. An attempt is made
 ** to coerce both inputs according to this affinity before the
 ** comparison is made. If the SQLITE_AFF_MASK is 0x00, then numeric
 ** affinity is used. Note that the affinity conversions are stored
 ** back into the input registers P1 and P3.  So this opcode can cause
 ** persistent changes to registers P1 and P3.
 **
-** Once any conversions have taken place, and neither value is NULL, 
+** 一旦任意一种转换发生，同时两个值都不为空，则进行值的比较。
+** 如果两个值的字段类型都是blob(二进制大对象，是一个可以存储二进制文件的容器。在计算机中，
+** blob常常是数据库中用来存储二进制文件的字段类型)，则调用memcmp()函数来判定比较结果。
+** 如果两个值的文本类型，就需要调用P4中适当的排序函数来进行比较。如果没有指定P4，
+** 那么memcmp()函数就用于比较文本字符串。如果两个值都是整型,那就使用一个数值型比较方法。
+** 如果是两个不同类型的值,比较规则就是：数字小于字符串，字符串小于blob。
+** Once any conversions have taken place, and neither value is NULL,
 ** the values are compared. If both values are blobs then memcmp() is
 ** used to determine the results of the comparison.  If both values
 ** are text, then the appropriate collating function specified in
@@ -1921,15 +1943,23 @@ case OP_ToReal: {                  /* same as TK_TO_REAL, in1 */
 ** are of different types, then numbers are considered less than
 ** strings and strings are considered less than blobs.
 **
+** 如果P5的SQLITE_STOREP2位被重置，则不会产生跳转。而是将一个布尔类型的结果(值是0或1，或NULL)
+** 存至寄存器P2中。
 ** If the SQLITE_STOREP2 bit of P5 is set, then do not jump.  Instead,
 ** store a boolean result (either 0, or 1, or NULL) in register P2.
 */
+
 /* Opcode: Ne P1 P2 P3 P4 P5
 **
+** 这部分操作码的作用与Lt操作码类似，唯一不同的是，当寄存器P1和寄存器P3中的操作对象不相等时，
+** 跳转操作会被执行。查看Lt操作码可以获得额外的信息。
 ** This works just like the Lt opcode except that the jump is taken if
 ** the operands in registers P1 and P3 are not equal.  See the Lt opcode for
 ** additional information.
 **
+** 如果SQLITE_NULLEQ的值被赋予P5，则比较的结果要么是真要么假，不可能是NULL。
+** 如果两个操作数都是null，那么比较的结果是假。如果任意一个操作数为空，则结果是真。
+** 如果操作数都不是null，同时P5中的SQLITE_NULLEQ标记为省略，那么它的结果与上面一样也是真。
 ** If SQLITE_NULLEQ is set in P5 then the result of comparison is always either
 ** true or false and is never NULL.  If both operands are NULL then the result
 ** of comparison is false.  If either operand is NULL then the result is true.
@@ -1938,10 +1968,15 @@ case OP_ToReal: {                  /* same as TK_TO_REAL, in1 */
 */
 /* Opcode: Eq P1 P2 P3 P4 P5
 **
+** 这部分操作码的作用与Lt操作码类似，唯一不同的是，当寄存器P1和寄存器P3中的操作对象不相等时，
+** 跳转操作会被执行。查看Lt操作码可以获得额外的信息。
 ** This works just like the Lt opcode except that the jump is taken if
 ** the operands in registers P1 and P3 are equal.
 ** See the Lt opcode for additional information.
 **
+** 如果SQLITE_NULLEQ的值被赋予P5，那么比较产生的结果要么是真要么假，不可能是NULL。
+** 如果两个操作数都是null，那么比较的结果是真。如果任意一个操作数为空，则结果是假。
+** 如果操作数都不是null，同时P5中的SQLITE_NULLEQ标记为省略，那么它的结果与上面一样也是假。
 ** If SQLITE_NULLEQ is set in P5 then the result of comparison is always either
 ** true or false and is never NULL.  If both operands are NULL then the result
 ** of comparison is true.  If either operand is NULL then the result is false.
@@ -1950,18 +1985,24 @@ case OP_ToReal: {                  /* same as TK_TO_REAL, in1 */
 */
 /* Opcode: Le P1 P2 P3 P4 P5
 **
+** 这部分操作码的作用与Lt操作码类似，唯一不同的是，当寄存器P3中内容小于或等于寄存器P1中的内容时，
+** 跳转操作会被执行。查看Lt操作码可以获得更多信息。
 ** This works just like the Lt opcode except that the jump is taken if
 ** the content of register P3 is less than or equal to the content of
 ** register P1.  See the Lt opcode for additional information.
 */
 /* Opcode: Gt P1 P2 P3 P4 P5
 **
+** 这部分操作码的作用与Lt操作码类似，唯一不同的是，当寄存器P3中内容大于寄存器P1中的内容时，
+** 跳转操作会被执行。查看Lt操作码可以获得更多信息。
 ** This works just like the Lt opcode except that the jump is taken if
 ** the content of register P3 is greater than the content of
 ** register P1.  See the Lt opcode for additional information.
 */
 /* Opcode: Ge P1 P2 P3 P4 P5
 **
+** 这部分操作码的作用与Lt操作码类似，唯一不同的是，当寄存器P3中内容大于或等于寄存器P1中的内容时，
+** 跳转操作会被执行。查看Lt操作码可以获得更多信息。
 ** This works just like the Lt opcode except that the jump is taken if
 ** the content of register P3 is greater than or equal to the content of
 ** register P1.  See the Lt opcode for additional information.
@@ -1972,8 +2013,12 @@ case OP_Lt:               /* same as TK_LT, jump, in1, in3 */
 case OP_Le:               /* same as TK_LE, jump, in1, in3 */
 case OP_Gt:               /* same as TK_GT, jump, in1, in3 */
 case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
-  int res;            /* Result of the comparison of pIn1 against pIn3 */
-  char affinity;      /* Affinity to use for comparison */
+  int res;            /* Result of the comparison of pIn1 against pIn3
+                      ** 存放输入操作对象pIn1和pIn3的比较结果
+                      */
+  char affinity;      /* Affinity to use for comparison
+                      ** 用于比较的相关性字符
+                      */
   u16 flags1;         /* Copy of initial value of pIn1->flags */
   u16 flags3;         /* Copy of initial value of pIn3->flags */
 
@@ -1987,6 +2032,8 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
       /* If SQLITE_NULLEQ is set (which will only happen if the operator is
       ** OP_Eq or OP_Ne) then take the jump or not depending on whether
       ** or not both operands are null.
+      ** 如果SQLITE_NULLEQ被赋值(如果操作码是OP_Eq或OP_Ne时才会生效)，
+      ** 那么进行跳转，或者不取决于这两个操作数是否为空。
       */
       assert( pOp->opcode==OP_Eq || pOp->opcode==OP_Ne );
       res = (flags1 & flags3 & MEM_Null)==0;
@@ -1994,6 +2041,8 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
       /* SQLITE_NULLEQ is clear and at least one operand is NULL,
       ** then the result is always NULL.
       ** The jump is taken if the SQLITE_JUMPIFNULL bit is set.
+      ** SQLITE_NULLEQ是空的，同时至少有一个操作数是null，那么结果通常是null。
+      ** 如果SQLITE_JUMPIFNULL为被重置，执行跳转。
       */
       if( pOp->p5 & SQLITE_STOREP2 ){
         pOut = &aMem[pOp->p2];
@@ -2005,7 +2054,9 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
       break;
     }
   }else{
-    /* Neither operand is NULL.  Do a comparison. */
+    /* Neither operand is NULL.  Do a comparison. 
+    ** 两个操作数都不为null，做比较。
+    */
     affinity = pOp->p5 & SQLITE_AFF_MASK;
     if( affinity ){
       applyAffinity(pIn1, affinity, encoding);
