@@ -334,7 +334,9 @@ struct Vdbe {
   Mem **apArg;            /* Arguments to currently executing user function */
   Mem *aColName;          /* Column names to return */
   Mem *pResultSet;        /* Pointer to an array of results */
-  int nMem;               /* Number of memory locations currently allocated */
+  int nMem;               /* Number of memory locations currently allocated
+                          ** 当前分配的内存位置
+                          */
   int nOp;                /* Number of instructions in the program */
   int nOpAlloc;           /* Number of slots allocated for aOp[] */
   int nLabel;             /* Number of labels used */
