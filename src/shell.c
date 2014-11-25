@@ -23,11 +23,11 @@
 #ifndef SQLITE_DISABLE_LFS
 # define _LARGE_FILE       1
 # ifndef _FILE_OFFSET_BITS
-#   define _FILE_OFFSET_BITS 64
+# define _FILE_OFFSET_BITS 64
 # endif
 # define _LARGEFILE_SOURCE 1
 #endif
-
+//引入头文件
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -53,13 +53,13 @@
 # include <readline/history.h>
 #endif
 #if !defined(HAVE_EDITLINE) && (!defined(HAVE_READLINE) || HAVE_READLINE!=1)
-# define readline(p) local_getline(p,stdin,0)
+# define readline(p) local_getline(p,stdin,0)      
 # define add_history(X)
 # define read_history(X)
 # define write_history(X)
 # define stifle_history(X)
 #endif
-
+//有参数的宏定义
 #if defined(_WIN32) || defined(WIN32)
 # include <io.h>
 #define isatty(h) _isatty(h)
@@ -83,7 +83,7 @@ extern int isatty(int);
 #endif
 
 /* True if the timer is enabled */
-static int enableTimer = 0;
+static int enableTimer = 0;  // 初始化了激活时间  
 
 /* ctype macros that work with signed characters */
 #define IsSpace(X)  isspace((unsigned char)X)
@@ -95,29 +95,29 @@ static int enableTimer = 0;
 #include <sys/resource.h>
 
 /* Saved resource information for the beginning of an operation */
-static struct rusage sBegin;
+static struct rusage sBegin;    //定义开始
 
 /*
-** Begin timing an operation
+** Begin timing an operation   
 */
-static void beginTimer(void){
+static void beginTimer(void){  //表示开始的时间函数
   if( enableTimer ){
     getrusage(RUSAGE_SELF, &sBegin);
   }
 }
 
 /* Return the difference of two time_structs in seconds */
-static double timeDiff(struct timeval *pStart, struct timeval *pEnd){
+static double timeDiff(struct timeval *pStart, struct timeval *pEnd){  // 有关返回用户时间和系统时间之间的差异
   return (pEnd->tv_usec - pStart->tv_usec)*0.000001 + 
          (double)(pEnd->tv_sec - pStart->tv_sec);
 }
 
 /*
-** Print the timing results.
+** Print the timing results. 
 */
-static void endTimer(void){
+static void endTimer(void){   //表示打印结果的时间
   if( enableTimer ){
-    struct rusage sEnd;
+    struct rusage sEnd;   //结束
     getrusage(RUSAGE_SELF, &sEnd);
     printf("CPU Time: user %f sys %f\n",
        timeDiff(&sBegin.ru_utime, &sEnd.ru_utime),
@@ -125,7 +125,7 @@ static void endTimer(void){
   }
 }
 
-#define BEGIN_TIMER beginTimer()
+#define BEGIN_TIMER beginTimer()  //宏定义了开始和结束时间的函数，方便后面使用
 #define END_TIMER endTimer()
 #define HAS_TIMER 1
 
@@ -144,8 +144,8 @@ static GETPROCTIMES getProcessTimesAddr = NULL;
 ** Check to see if we have timer support.  Return 1 if necessary
 ** support found (or found previously).
 */
-static int hasTimer(void){
-  if( getProcessTimesAddr ){
+static int hasTimer(void){    //计时器
+  if( getProcessTimesAddr ){   //如果支持返回1
     return 1;
   } else {
     /* GetProcessTimes() isn't supported in WIN95 and some other Windows versions.
@@ -154,7 +154,8 @@ static int hasTimer(void){
     */
     hProcess = GetCurrentProcess();
     if( hProcess ){
-      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));
+      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件，属于内核级文件。它控制着系统的内存管理、数据的输入输出操作和中断处理
+                                                                ** 当Windows启动时，kernel32.dll就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  											 ** 就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  
       if( NULL != hinstLib ){
         getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");
         if( NULL != getProcessTimesAddr ){
@@ -401,11 +402,11 @@ static char *one_input_line(const char *zPrior, FILE *in){
   return zResult;
 }
 
-struct previous_mode_data {
+struct previous_mode_data {  // 定义了结构体，该结构体的作用是在.explain命令执行之前的模式信息
   int valid;        /* Is there legit data in here? */
-  int mode;
-  int showHeader;
-  int colWidth[100];
+  int mode;                       //输出模式
+  int showHeader;                //显示列名
+  int colWidth[100];             //所需列宽
 };
 
 /*
@@ -414,30 +415,31 @@ struct previous_mode_data {
 ** state and mode information.
 */
 struct callback_data {
-  sqlite3 *db;           /* The database */
-  int echoOn;            /* True to echo input commands */
-  int statsOn;           /* True to display memory stats before each finalize */
-  int cnt;               /* Number of records displayed so far */
-  FILE *out;             /* Write results here */
-  FILE *traceOut;        /* Output for sqlite3_trace() */
-  int nErr;              /* Number of errors seen */
-  int mode;              /* An output mode setting */
-  int writableSchema;    /* True if PRAGMA writable_schema=ON */
-  int showHeader;        /* True to show column names in List or Column mode */
-  char *zDestTable;      /* Name of destination table when MODE_Insert */
-  char separator[20];    /* Separator character for MODE_List */
-  int colWidth[100];     /* Requested width of each column when in column mode*/
-  int actualWidth[100];  /* Actual width of each column */
-  char nullvalue[20];    /* The text to print when a NULL comes back from
-                         ** the database */
-  struct previous_mode_data explainPrev;
-                         /* Holds the mode information just before
-                         ** .explain ON */
-  char outfile[FILENAME_MAX]; /* Filename for *out */
-  const char *zDbFilename;    /* name of the database file */
-  const char *zVfs;           /* Name of VFS to use */
-  sqlite3_stmt *pStmt;   /* Current statement if any. */
-  FILE *pLog;            /* Write log output here */
+  sqlite3 *db;           //表示要打开的数据库                                 /* The database */ 
+  int echoOn;                                                                 /* True to echo input commands */
+  int statsOn;          //在每次结束之前显示存储器的统计数据                  /* True to display memory stats before each finalize */
+  int cnt;              //已经显示的记录数                                    /* Number of records displayed so far */
+  FILE *out;            //表示用于输出的文件流                                /* Write results here */
+  FILE *traceOut;                                                             /* Output for sqlite3_trace() */
+  int nErr;               //表示返回的错误                                    /* Number of errors seen */
+  int mode;               //输出模式                                           /* An output mode setting */
+  int writableSchema;                                                         /* True if PRAGMA writable_schema=ON */
+  int showHeader;          //在列表或者列模式下显示列的名字                    /* True to show column names in List or Column mode */
+  char *zDestTable;       //在insert显示模式下，存储表的名称，方便构建sql语句  /* Name of destination table when MODE_Insert */
+  char separator[20];                                                         /* Separator character for MODE_List */
+  int colWidth[100];      //在列模式下的所需列宽                               /* Requested width of each column when in column mode*/
+  int actualWidth[100];    //列的实际宽度                                      /* Actual width of each column */
+  char nullvalue[20];     //代替从数据库中返回的记录中空的选项，这个可以通过.nullvalue命令来设置
+                                        /* The text to print when a NULL comes back from
+                                       ** the database */
+  struct previous_mode_data explainPrev;    
+                                       /* Holds the mode information just before
+                                       ** .explain ON */
+  char outfile[FILENAME_MAX];                                                  /* Filename for *out */
+  const char *zDbFilename;    //存放数据库文件的名字                           /* name of the database file */
+  const char *zVfs;                                                            /* Name of VFS to use */
+  sqlite3_stmt *pStmt;      //存放当前的statement句柄                          /* Current statement if any. */
+  FILE *pLog;                 //表示用于输出的日志文件流                        /* Write log output here */
 };
 
 /*
