@@ -414,7 +414,7 @@ struct previous_mode_data {
 ** state and mode information.
 */
 struct callback_data {
-  sqlite3 *db;           /* The database */
+  sqlite3 *db;           /* The database 表示要打开的数据库*/ 
   int echoOn;            /* True to echo input commands */
   int statsOn;           /* True to display memory stats before each finalize */
   int cnt;               /* Number of records displayed so far */
