@@ -154,9 +154,8 @@ static int hasTimer(void){    //计时器
     */
     hProcess = GetCurrentProcess();
     if( hProcess ){
-      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));   /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件，属于内核级文件。
-	                                                             **它控制着系统的内存管理、数据的输入输出操作和中断处理，当Windows启动时，kernel32.dll
-																 ** 就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  
+      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件，属于内核级文件。它控制着系统的内存管理、数据的输入输出操作和中断处理
+                                                                ** 当Windows启动时，kernel32.dll就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  											 ** 就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  
       if( NULL != hinstLib ){
         getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");
         if( NULL != getProcessTimesAddr ){
