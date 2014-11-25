@@ -69,7 +69,7 @@
 #include "vdbeInt.h"
 
 /*
-** 只有在改变操作数OP_LoadAnalysis的值之前才应许内存单元上调用这个宏。
+** 只有在改变操作数OP_LoadAnalysis的值之前才允许内存单元上调用这个宏。
 ** 这个宏可以确保潜在的备份不被滥用。
 ** Invoke this macro on memory cells just prior to changing the
 ** value of OP_LoadAnalysis the cell.  This macro verifies that shallow copies are
@@ -87,7 +87,9 @@
 ** procedures use this information to make sure that indices are
 ** working correctly.  This variable has no function other than to
 ** help verify the correct operation of the library.
-** 
+** 周敏菲补充、修改：
+** 这个全局变量…………操作码。测试程序使用这个信息来确保索引的正常工作。这个变量只用于验证库操作
+** 的正确性，没有别的功能
 */
 #ifdef SQLITE_TEST
 int sqlite3_search_count = 0;/*这个全局变量会随着游标的移动而增大，不管是通过OP_SeekXX还是OP_Next
@@ -101,6 +103,7 @@ int sqlite3_search_count = 0;/*这个全局变量会随着游标的移动而增�
 **
 ** This facility is used for testing purposes only.  It does not function
 ** in an ordinary build.
+** 此工具仅用于测试目的。它在正常的编译中是不起作用的。
 */
 #ifdef SQLITE_TEST
 int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在VDBE中执行一次，它就减1，,当它变为0时，
@@ -206,6 +209,10 @@ int sqlite3_found_count = 0;
 ** routines.
 ** 验证寄存器里的pMem指针会被一个自定义方法运行通过还是作为查询结果返回给user,这程序
 ** 调用sqlite3_value_*()定义了pMem->type变量
+** 周敏菲修改：
+** 指针变量pMem指向一个寄存器，这个寄存器会被传递给一个用户自定义的功能函数，或者作为
+** 查询的结果返回给用户。下面这个函数会给变量pMem->type赋不同的值，pMem->type还会在
+** sqlite3_value_*()函数中被调用。
 */
 void sqlite3VdbeMemStoreType(Mem *pMem){
   int flags = pMem->flags;
@@ -232,9 +239,13 @@ void sqlite3VdbeMemStoreType(Mem *pMem){
 */
 static VdbeCursor *allocateCursor(
   Vdbe *p,              /* The virtual machine */
-  int iCur,             /* Index of the new VdbeCursor 游标的索引值*/
-  int nField,           /* Number of fields in the table or index */
-  int iDb,              /* Database the cursor belongs to, or -1 */
+  int iCur,             /* Index of the new VdbeCursor 虚拟机游标的索引值*/
+  int nField,           /* Number of fields in the table or index 
+                        ** 表中字段或索引的数量
+                        */
+  int iDb,              /* Database the cursor belongs to, or -1 
+                        ** 这个游标属于哪个数据库，或者iDb = -1
+                        */
   int isBtreeCursor     /* True for B-Tree.False for pseudo-table or vtab B树就为true,虚表或者假表为false*/
 ){
   /* Find the memory cell that will be used to store the blob of memory
@@ -260,6 +271,8 @@ static VdbeCursor *allocateCursor(
   ** 的内存分配,而内存单元提供了可增长的分配机制.
   ** 二,当使用ENBALE_MEMORY_MANAGEMENT时,内存单元缓冲区可以被sqlite3_release
   ** _memory()API释放,把内存分配数量最小化是系统决定的.
+  ** 分配给游标的内存存储单元在地址空间的最顶端。虚拟机P在内存中的存储位置nMem(p->nMem)对应于游标0。
+  ** 游标1是由内存单元(p->nMem-1)来管理,等等。
   */
   Mem *pMem = &p->aMem[p->nMem-iCur];
 
@@ -317,13 +330,12 @@ static void applyNumericAffinity(Mem *pRec){
 }
 
 /*
-** 
 ** Processing is determine by the affinity parameter:
-** 执行的过程由下面这几个参数决定	
+** 执行的过程由下面这几个参数决定
 ** SQLITE_AFF_INTEGER:
 ** SQLITE_AFF_REAL:
 ** SQLITE_AFF_NUMERIC:
-**    Try to convert pRec to an integer representation or a 
+**    Try to convert pRec to an integer representation or a
 **    floating-point representation if an integer representation
 **    is not possible.  Note that the integer representation is
 **    always preferred, even if the affinity is REAL, because
@@ -368,6 +380,8 @@ static void applyAffinity(
 ** loss of information and return the revised type of the argument.
 ** 尝试把一个函数参数或者一个结果行转换为一个数字表示的表达式.使用INTEGER或REAL中的合
 ** 适的一个.但是只在不会丢失信息和可以返回改过的参数的情况下转换.
+** 周敏菲修改：
+** 尝试…………一个。但是只有在没有信息丢失的情况下才进行转换，同时返回一个修改后的type参数。
 */
 int sqlite3_value_numeric_type(sqlite3_value *pVal){
   Mem *pMem = (Mem*)pVal;
@@ -384,10 +398,13 @@ int sqlite3_value_numeric_type(sqlite3_value *pVal){
 ** 使用sqlite3_value*类型参数的applyAffinity()函数,它没使用Mem*类型的参数
 ** 但是怎么感觉函数体还是调用的使用Mem*类型的applyAffinity函数,而且还是把sqlite3_value*
 ** 类型强制转换为了Mem*类型.
+** 周敏菲修改：
+** 函数applyAffinity()的另一种输出版本。这个版本需要一个sqlite3_value*类型的参数，
+** 而不是像上面那个applyAffinity()函数一样需要一个Mem*类型的参数。
 */
 void sqlite3ValueApplyAffinity(
-  sqlite3_value *pVal, 
-  u8 affinity, 
+  sqlite3_value *pVal,
+  u8 affinity,
   u8 enc
 ){
   applyAffinity((Mem *)pVal, affinity, enc);
@@ -397,6 +414,7 @@ void sqlite3ValueApplyAffinity(
 /*
 ** Write a nice string representation of the contents of cell pMem
 ** into buffer zBuf, length nBuf.
+** 将pMem所在内存单元中的字符串表达式的内容写入到缓冲字符串变量zBuf中，字符串长度写入nBuf中。
 */
 void sqlite3VdbeMemPrettyPrint(Mem *pMem, char *zBuf){
   char *zCsr = zBuf;
@@ -479,6 +497,7 @@ void sqlite3VdbeMemPrettyPrint(Mem *pMem, char *zBuf){
 #ifdef SQLITE_DEBUG
 /*
 ** Print the value of a register for tracing purposes:
+** 打印寄存器的值，便于dubug时追踪程序的运行情况
 */
 static void memTracePrint(FILE *out, Mem *p){
   if( p->flags & MEM_Null ){
@@ -516,8 +535,8 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 
 #ifdef VDBE_PROFILE
 
-/* 
-** hwtime.h contains inline assembler code for implementing 
+/*
+** hwtime.h contains inline assembler code for implementing
 ** high-performance timing routines.
 ** hwtime.h包含了内联汇编代码用来执行高性能时间程序(还不清楚是计时还是定时)
 */
@@ -536,7 +555,7 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 ** flag on jump instructions, we get a (small) speed improvement.
 ** CHECK_FOR_INTERRUPT宏在这里定义用来监视sqlite3_interrupt()是否已经被调用
 ** 如果调用了,运行着的VDBE程序就中断.
-** 给每一条跳转指令添加这个宏,用来实现循环( 翻译有歧义,还要再细看).虽然这个测试被用于每
+** 给每一条跳转指令添加这个宏,用来实现循环(翻译有歧义,还要再细看).虽然这个测试被用于每
 ** 一条单一的指令,但是这意味着我们做了比我们需要的更多的测试.通过仅仅测试跳转指令的标记,
 ** 我们得到了一些速度的提升.
 */
@@ -548,9 +567,9 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 /*
 ** This function is only called from within an assert() expression. It
 ** checks that the sqlite3.nTransaction variable is correctly set to
-** the number of non-transaction savepoints currently in the 
+** the number of non-transaction savepoints currently in the
 ** linked list starting at sqlite3.pSavepoint.
-** 
+**
 ** Usage:
 **
 **     assert( checkSavepointCount(db) );
@@ -558,7 +577,9 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 ** checkSavepointCount()这个函数仅仅被assert( checkSavepointCount(db) )回调.
 ** 它检查sqlite3.nTransaction类型变量正在被正确的设置为开始于sqlite3.pSavepoint指针
 ** 的链表中,无事务savepoints指针的数量.
-** 
+** 周敏菲修改：
+** 它用于检测变量sqlite3.nTransaction被正确赋值为当前链表中非事务性存储点的数目，这个链表
+** 的起始点为sqlite3.pSavepoint。
 */
 static int checkSavepointCount(sqlite3 *db){
   int n = 0;
@@ -592,7 +613,7 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 ** close the program with a final OP_Halt and to set up the callbacks
 ** and the error message pointer.
 **
-** 
+**
 ** Whenever a row or result data is available, this routine will either
 ** invoke the result callback (if there is one) or return with
 ** SQLITE_ROW.
@@ -711,6 +732,7 @@ int sqlite3VdbeExec(
 
     /* Check to see if we need to simulate an interrupt.  This only happens
     ** if we have a special test build.
+    ** 如果我们需要模拟一个中断，可以查看下面的代码。只有定义SQLITE_TEST宏时这段代码才起作用。
     */
 #ifdef SQLITE_TEST
     if( sqlite3_interrupt_count>0 ){
@@ -805,6 +827,7 @@ int sqlite3VdbeExec(
 ** the switch statement will break with convention and be flush-left. Another
 ** big comment (similar to this one) will mark the point in the code where
 ** we transition back to normal indentation.
+** 下面这一大坨switch语句,每一个case都是在VDBE里执行一个单独的指令。
 **
 ** The formatting of each case is important.  The makefile for SQLite
 ** generates two C files "opcodes.h" and "opcodes.c" by scanning this
@@ -814,24 +837,26 @@ int sqlite3VdbeExec(
 ** each string is the symbolic name for the corresponding opcode.  If the
 ** case statement is followed by a comment of the form "/# same as ... #/"
 ** that comment is used to determine the particular value of the opcode.
+** 每一条case的格式非常重要,对SQLite执行makefile命令时,扫描这些case后生成两个c文件,
+** opcodes.h和opcodes.c.opcodes.h文件里是每一个opcode对应的unique整型值的define
+** 语句,opcodes.c文件是一个string类型数组,每一个string是一个opcode对应的象征名字
+** 如果case语句在一个"/# same as ... #/"评论块里,那这个评价用来判断这条opcode的
+** 特殊值.
 **
 ** Other keywords in the comment that follows each case are used to
 ** construct the OPFLG_INITIALIZER value that initializes opcodeProperty[].
 ** Keywords include: in1, in2, in3, out2_prerelease, out2, out3.  See
 ** the mkopcodeh.awk script for additional information.
+** 下列的关键字是用来构造初始化opcodeProperty[]数组时OPFLG_INITIALIZER的
+** 值,包括:in1, in2, in3, out2_prerelease, out2, out3.
 **
 ** Documentation about VDBE opcodes is generated by scanning this file
 ** for lines of that contain "Opcode:".  That line and all subsequent
 ** comment lines are used in the generation of the opcode.html documentation
 ** file.
-** 下面这一大坨switch语句,每一个case都是在VDBE里执行一个单独的指令,每一条case
-** 的格式非常重要,对SQLite执行makefile命令时,扫描这些case后生成两个c文件,
-** opcodes.h和opcodes.c.opcodes.h文件里是每一个opcode对应的unique整型值的define
-** 语句,opcodes.c文件是一个string类型数组,每一个string是一个opcode对应的象征名字
-** 如果case语句在一个"/# same as ... #/"评论块里,那这个评价用来判断这条opcode的
-** 特殊值.下列的关键字是用来构造初始化opcodeProperty[]数组时OPFLG_INITIALIZER的
-** 值,包括:in1, in2, in3, out2_prerelease, out2, out3.
-**   
+** VDBE操作码文档是通过扫描这个文件中包含“Opcode:”的行来生成的。
+** 这条线和所有后续注释行都用于生成opcode.html这个文档文件。
+**
 ** SUMMARY:
 **
 **     Formatting is important to scripts that scan this file.
@@ -2019,7 +2044,9 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
   char affinity;      /* Affinity to use for comparison
                       ** 用于比较的相关性字符
                       */
-  u16 flags1;         /* Copy of initial value of pIn1->flags */
+  u16 flags1;         /* Copy of initial value of pIn1->flags
+                      ** u16数据类型在“sqliteInt.h”文件有定义，代表“2-byte unsigned integer”
+                      */
   u16 flags3;         /* Copy of initial value of pIn3->flags */
 
   pIn1 = &aMem[pOp->p1];

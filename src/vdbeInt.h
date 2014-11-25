@@ -175,8 +175,13 @@ struct Mem {
     RowSet *pRowSet;    /* Used only when flags==MEM_RowSet */
     VdbeFrame *pFrame;  /* Used when flags==MEM_Frame */
   } u;
-  int n;              /* Number of characters in string value, excluding '\0' */
-  u16 flags;          /* Some combination of MEM_Null, MEM_Str, MEM_Dyn, etc. */
+  int n;              /* Number of characters in string value, excluding '\0'
+                      ** n用于存放字符串变量里字符的个数，不包括'\0'
+                      */
+  u16 flags;          /* Some combination of MEM_Null, MEM_Str, MEM_Dyn, etc.
+                      ** flags在结构体Mem中起到标记作用，用于程序中的判断语句，
+                      ** flags的值只能等于MEM_Null, MEM_Str, MEM_Dyn三者中的一个。
+                      */
   u8  type;           /* One of SQLITE_NULL, SQLITE_TEXT, SQLITE_INTEGER, etc */
   u8  enc;            /* SQLITE_UTF8, SQLITE_UTF16BE, SQLITE_UTF16LE */
 #ifdef SQLITE_DEBUG
@@ -196,7 +201,7 @@ struct Mem {
 ** If the MEM_Str flag is set then Mem.z points at a string representation.
 ** Usually this is encoded in the same unicode encoding as the main
 ** database (see below for exceptions). If the MEM_Term flag is also
-** set, then the string is nul terminated. The MEM_Int and MEM_Real 
+** set, then the string is nul terminated. The MEM_Int and MEM_Real
 ** flags may coexist with the MEM_Str flag.
 ** 下面的一个或多个标示被设置用于指示Mem结构体中validOK表达式的值，如果MEM_Null标示
 ** 被设置，那Mem结构体中validOK表达式的值是一个sql空值，其他的标示也不会再设置了。
@@ -335,7 +340,7 @@ struct Vdbe {
   Mem *aColName;          /* Column names to return */
   Mem *pResultSet;        /* Pointer to an array of results */
   int nMem;               /* Number of memory locations currently allocated
-                          ** 当前分配的内存位置
+                          ** nMem用于存放此时虚拟机在内存中的位置
                           */
   int nOp;                /* Number of instructions in the program */
   int nOpAlloc;           /* Number of slots allocated for aOp[] */
