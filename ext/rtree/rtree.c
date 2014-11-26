@@ -1295,7 +1295,7 @@ static int findLeafNode(Rtree *pRtree, i64 iRowid, RtreeNode **ppLeaf){
 ** as the second argument for a MATCH constraint. The value passed as the
 ** first argument to this function is the right-hand operand to the MATCH
 ** operator.
-** 这个函数用来配置Rtree匹配的约束。该值用来作为右边匹配符
+** 这个函数的第二个参数配置匹配的约束。第一个参数用来作为右边匹配符的操作对象
 */
 static int deserializeGeometry(sqlite3_value *pValue, RtreeConstraint *pCons){
   RtreeMatchArg *p;
