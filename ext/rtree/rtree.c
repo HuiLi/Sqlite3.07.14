@@ -223,7 +223,7 @@ struct Rtree {
 **
 ** If an R*-tree "Reinsert" operation is required, the same number of
 ** cells are removed from the overfull node and reinserted into the tree.
-** 一个节点所存储的最大单元数是最小单元数的3倍。即m=M/3
+** 一个节点所存储的最大单元数是最小单元数的3倍。即m=M/3,这是Guttman论文实验测试的最佳参数值
 ** 如果rtree可以进行重插入操作，在进行重插入的过程中,节点单元数如果超过最
 ** 大值,节点将重新插入到树中。
 */
