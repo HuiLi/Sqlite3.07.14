@@ -660,7 +660,9 @@ int sqlite3VdbeExec(
   int rc = SQLITE_OK;        /* Value to return */
   sqlite3 *db = p->db;       /* The database */
   u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive */
-  u8 encoding = ENC(db);     /* The database encoding */
+  u8 encoding = ENC(db);     /* The database encoding 
+                             ** 数据库编码格式。
+                             */
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
   int checkProgress;         /* True if progress callbacks are enabled */
   int nProgressOps = 0;      /* Opcodes executed since progress callback. */
@@ -670,8 +672,12 @@ int sqlite3VdbeExec(
   Mem *pIn2 = 0;             /* 2nd input operand */
   Mem *pIn3 = 0;             /* 3rd input operand */
   Mem *pOut = 0;             /* Output operand */
-  int iCompare = 0;          /* Result of last OP_Compare operation */
-  int *aPermute = 0;         /* Permutation of columns for OP_Compare */
+  int iCompare = 0;          /* Result of last OP_Compare operation
+                             ** 存放操作码OP_Compare的操作结果
+                             */
+  int *aPermute = 0;         /* Permutation of columns for OP_Compare
+                             ** 操作码OP_Compare使用的数组。
+                             */
   i64 lastRowid = db->lastRowid;  /* Saved value of the last insert ROWID */
 #ifdef VDBE_PROFILE
   u64 start;                 /* CPU clock count at start of opcode */
@@ -2059,7 +2065,7 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
       /* If SQLITE_NULLEQ is set (which will only happen if the operator is
       ** OP_Eq or OP_Ne) then take the jump or not depending on whether
       ** or not both operands are null.
-      ** 如果SQLITE_NULLEQ被赋值(如果操作码是OP_Eq或OP_Ne时才会生效)，
+      ** 如果SQLITE_NULLEQ已经被设置(如果操作码是OP_Eq或OP_Ne时才会生效)，
       ** 那么进行跳转，或者不取决于这两个操作数是否为空。
       */
       assert( pOp->opcode==OP_Eq || pOp->opcode==OP_Ne );
@@ -2081,7 +2087,7 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
       break;
     }
   }else{
-    /* Neither operand is NULL.  Do a comparison. 
+    /* Neither operand is NULL.  Do a comparison.
     ** 两个操作数都不为null，做比较。
     */
     affinity = pOp->p5 & SQLITE_AFF_MASK;
@@ -2115,7 +2121,9 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
     pc = pOp->p2-1;
   }
 
-  /* Undo any changes made by applyAffinity() to the input registers. */
+  /* Undo any changes made by applyAffinity() to the input registers.
+  ** 撤销applyAffinity()函数对输入寄存器所做的所有修改。
+  */
   pIn1->flags = (pIn1->flags&~MEM_TypeMask) | (flags1&MEM_TypeMask);
   pIn3->flags = (pIn3->flags&~MEM_TypeMask) | (flags3&MEM_TypeMask);
   break;
@@ -2125,10 +2133,14 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
 **
 ** Set the permutation used by the OP_Compare operator to be the array
 ** of integers in P4.
+** 将P4中操作码OP_Compare使用的数组设置为整型数组。
 **
 ** The permutation is only valid until the next OP_Permutation, OP_Compare,
 ** OP_Halt, or OP_ResultRow.  Typically the OP_Permutation should occur
 ** immediately prior to the OP_Compare.
+** 这个数组是唯一一个在操作码OP_Permutation OP_Compare,OP_Halt或OP_ResultRow中都有效的值。
+** 通常OP_Permutation操作发生在OP_Compare之前。
+**
 */
 case OP_Permutation: {
   assert( pOp->p4type==P4_INTARRAY );
@@ -2142,14 +2154,19 @@ case OP_Permutation: {
 ** Compare two vectors of registers in reg(P1)..reg(P1+P3-1) (call this
 ** vector "A") and in reg(P2)..reg(P2+P3-1) ("B").  Save the result of
 ** the comparison for use by the next OP_Jump instruct.
+** 比较两个向量寄存器，寄存器(P1). .寄存器(P1+P3-1)(称这个向量为“A”)，以及寄存器(P2). .寄存器(P2+P3-1)(“B”)。
+** 比较的结果将被保存，并用于下一个操作码OP_Jump。
 **
 ** P4 is a KeyInfo structure that defines collating sequences and sort
 ** orders for the comparison.  The permutation applies to registers
 ** only.  The KeyInfo elements are used sequentially.
+** P4是一个KeyInfo类型的结构体，它定义了排序序列和排序方式。这个序列只应用于寄存器。
+** 这些KeyInfo类型的元素按顺序使用。
 **
 ** The comparison is a sort comparison, so NULLs compare equal,
 ** NULLs are less than numbers, numbers are less than strings,
 ** and strings are less than blobs.
+** 这个比较是一种分类比较，所以null等于null，nulls小于数字，数字小于字符串，字符串小于blob。
 */
 case OP_Compare: {
   int n;
@@ -2202,6 +2219,7 @@ case OP_Compare: {
 ** Jump to the instruction at address P1, P2, or P3 depending on whether
 ** in the most recent OP_Compare instruction the P1 vector was less than
 ** equal to, or greater than the P2 vector, respectively.
+** 分别跳转到的指令地址P1,P2,P3，这取决于在最近的OP_Compare指令中P1向量是小于等于P2向量，还是大于P2向量。
 */
 case OP_Jump: {             /* jump */
   if( iCompare<0 ){
@@ -2218,19 +2236,25 @@ case OP_Jump: {             /* jump */
 **
 ** Take the logical AND of the values in registers P1 and P2 and
 ** write the result into register P3.
+** 逻辑操作码AND中的值取自寄存器P1和P2，最后的结果写入寄存器P3。
 **
 ** If either P1 or P2 is 0 (false) then the result is 0 even if
 ** the other input is NULL.  A NULL and true or two NULLs give
 ** a NULL output.
+** 如果P1和P2有一个是0(假)，那么结果是0，即使另一个输入为空结果也是0。
+** 一个NULL和一个真，或者两个NULL，都输出NULL。
 */
 /* Opcode: Or P1 P2 P3 * *
 **
 ** Take the logical OR of the values in register P1 and P2 and
 ** store the answer in register P3.
+** 逻辑操作码OR中的值取自寄存器P1和P2，最后的结果写入寄存器P3。
 **
 ** If either P1 or P2 is nonzero (true) then the result is 1 (true)
 ** even if the other input is NULL.  A NULL and false or two NULLs
 ** give a NULL output.
+** 如果P1和P2有一个非0(真)，那么结果是1(真)，即使另一个输入为空。
+** 一个NULL和一个假，或者两个NULL，都输出NULL。
 */
 case OP_And:              /* same as TK_AND, in1, in2, out3 */
 case OP_Or: {             /* same as TK_OR, in1, in2, out3 */
@@ -3456,6 +3480,8 @@ case OP_OpenWrite: {
   pCur->isIndex = !pCur->isTable;
   break;
 }
+/*翻译到这里，就ok了*/
+
 
 /* Opcode: OpenEphemeral P1 P2 * P4 P5
 **
