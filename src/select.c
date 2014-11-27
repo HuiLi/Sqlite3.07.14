@@ -11,28 +11,31 @@
 *************************************************************************
 ** This file contains C code routines that are called by the parser
 ** to handle SELECT statements in SQLite.
+**此文件包含由语法分析器来处理在 SQLite 的 SELECT 语句调用的 C 代码例程
 */
-#include "sqliteInt.h"
 
+#include "sqliteInt.h"  /*预编译处理器把sqliteInt.h文件中的内容加载到程序中来*/
 
 /*
 ** Delete all the content of a Select structure but do not deallocate
 ** the select structure itself.
+**删除所有选择的内容结构但不释放选择结构本身。
 */
 static void clearSelect(sqlite3 *db, Select *p){
-  sqlite3ExprListDelete(db, p->pEList);
-  sqlite3SrcListDelete(db, p->pSrc);
-  sqlite3ExprDelete(db, p->pWhere);
-  sqlite3ExprListDelete(db, p->pGroupBy);
-  sqlite3ExprDelete(db, p->pHaving);
-  sqlite3ExprListDelete(db, p->pOrderBy);
-  sqlite3SelectDelete(db, p->pPrior);
-  sqlite3ExprDelete(db, p->pLimit);
-  sqlite3ExprDelete(db, p->pOffset);
+  sqlite3ExprListDelete(db, p->pEList);   /*删除整个表达式列表*/
+  sqlite3SrcListDelete(db, p->pSrc);   /*删除整个SrcList,包括所有的子结构*/
+  sqlite3ExprDelete(db, p->pWhere);     /*递归删除一个表达式树*/
+  sqlite3ExprListDelete(db, p->pGroupBy);   /*删除整个表达式列表*/
+  sqlite3ExprDelete(db, p->pHaving);   /*递归删除一个表达式树*/
+  sqlite3ExprListDelete(db, p->pOrderBy);   /*删除整个表达式列表*/
+  sqlite3SelectDelete(db, p->pPrior);   /*删除给定的选择结构和所有的子结构*/
+  sqlite3ExprDelete(db, p->pLimit);    /*递归删除一个表达式树*/
+  sqlite3ExprDelete(db, p->pOffset);     /*递归删除一个表达式树*/
 }
 
 /*
 ** Initialize a SelectDest structure.
+**初始化一个SelectDest结构.
 */
 void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){
   pDest->eDest = (u8)eDest;
@@ -46,18 +49,19 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure.
+**分配一个新的选择结构和返回一个结构的指针.
 */
 Select *sqlite3SelectNew(
-  Parse *pParse,        /* Parsing context */
-  ExprList *pEList,     /* which columns to include in the result */
-  SrcList *pSrc,        /* the FROM clause -- which tables to scan */
-  Expr *pWhere,         /* the WHERE clause */
-  ExprList *pGroupBy,   /* the GROUP BY clause */
-  Expr *pHaving,        /* the HAVING clause */
-  ExprList *pOrderBy,   /* the ORDER BY clause */
-  int isDistinct,       /* true if the DISTINCT keyword is present */
-  Expr *pLimit,         /* LIMIT value.  NULL means not used */
-  Expr *pOffset         /* OFFSET value.  NULL means no offset */
+  Parse *pParse,        /* Parsing context  解析上下文*/
+  ExprList *pEList,     /* which columns to include in the result  列包含在结果中*/
+  SrcList *pSrc,        /* the FROM clause -- which tables to scan  from字句----表扫描 */
+  Expr *pWhere,         /* the WHERE clause  where字句*/
+  ExprList *pGroupBy,   /* the GROUP BY clause  group by字句*/
+  Expr *pHaving,        /* the HAVING clause  having字句*/
+  ExprList *pOrderBy,   /* the ORDER BY clause  order by字句*/
+  int isDistinct,       /* true if the DISTINCT keyword is present  如果关键字distinct存在，则为true*/
+  Expr *pLimit,         /* LIMIT value.  NULL means not used  limit值，如果值为空意味着limit未使用*/
+  Expr *pOffset         /* OFFSET value.  NULL means no offset  offset值，如果值为空意味着没有offset*/
 ){
   Select *pNew;
   Select standin;
@@ -100,6 +104,7 @@ Select *sqlite3SelectNew(
 
 /*
 ** Delete the given Select structure and all of its substructures.
+**删除给定的选择结构和所有的子结构
 */
 void sqlite3SelectDelete(sqlite3 *db, Select *p){
   if( p ){
@@ -124,6 +129,17 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){
 **
 ** If an illegal or unsupported join type is seen, then still return
 ** a join type, but put an error in the pParse structure.
+**鉴于1 - 3标识符事先加入关键字,确定加入的类型。
+**返回一个整数常数,表示该类型的下列值: 
+**JT_INNER 
+**JT_CROSS 
+**JT_OUTER 
+**JT_NATURAL 
+**JT_LEFT 
+**JT_RIGHT 
+**完全外连接的组合JT_LEFT JT_RIGHT。 如果看到一个
+**非法或不受支持的连接类型,然后仍然返回一个
+**连接类型,但在pParse结构中放入一个错误
 */
 int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){
   int jointype = 0;
@@ -132,17 +148,17 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){
                              /*   0123456789 123456789 123456789 123 */
   static const char zKeyText[] = "naturaleftouterightfullinnercross";
   static const struct {
-    u8 i;        /* Beginning of keyword text in zKeyText[] */
-    u8 nChar;    /* Length of the keyword in characters */
+    u8 i;        /* Beginning of keyword text in zKeyText[]   在KeyText[] 中开始关键字的文本*/
+    u8 nChar;    /* Length of the keyword in characters  在字符中关键字的长度*/
     u8 code;     /* Join type mask */
   } aKeyword[] = {
-    /* natural */ { 0,  7, JT_NATURAL                },
-    /* left    */ { 6,  4, JT_LEFT|JT_OUTER          },
-    /* outer   */ { 10, 5, JT_OUTER                  },
-    /* right   */ { 14, 5, JT_RIGHT|JT_OUTER         },
-    /* full    */ { 19, 4, JT_LEFT|JT_RIGHT|JT_OUTER },
-    /* inner   */ { 23, 5, JT_INNER                  },
-    /* cross   */ { 28, 5, JT_INNER|JT_CROSS         },
+    /* natural 自然连接 */ { 0,  7, JT_NATURAL                },
+    /* left   左连接 */ { 6,  4, JT_LEFT|JT_OUTER          },
+    /* outer  外连接 */ { 10, 5, JT_OUTER                  },
+    /* right   右连接*/ { 14, 5, JT_RIGHT|JT_OUTER         },
+    /* full    全连接*/ { 19, 4, JT_LEFT|JT_RIGHT|JT_OUTER },
+    /* inner  内连接 */ { 23, 5, JT_INNER                  },
+    /* cross   交叉连接*/ { 28, 5, JT_INNER|JT_CROSS         },
   };
   int i, j;
   apAll[0] = pA;
@@ -185,6 +201,7 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){
 /*
 ** Return the index of a column in a table.  Return -1 if the column
 ** is not contained in the table.
+**返回一个表中的列的索引。如果该列没有包含在表中返回-1。
 */
 static int columnIndex(Table *pTab, const char *zCol){
   int i;
@@ -197,23 +214,26 @@ static int columnIndex(Table *pTab, const char *zCol){
 /*
 ** Search the first N tables in pSrc, from left to right, looking for a
 ** table that has a column named zCol.  
+**在pSrc中搜索第一个N表，从左向右，搜索列中有名为zCol的表。
 **
 ** When found, set *piTab and *piCol to the table index and column index
 ** of the matching column and return TRUE.
+**当找到以后，设置* piTab和* piCol表索引和匹配列的列索引，并返回TRUE 。
 **
 ** If not found, return FALSE.
+**如果没有找到，返回FALSE。
 */
 static int tableAndColumnIndex(
-  SrcList *pSrc,       /* Array of tables to search */
-  int N,               /* Number of tables in pSrc->a[] to search */
-  const char *zCol,    /* Name of the column we are looking for */
-  int *piTab,          /* Write index of pSrc->a[] here */
-  int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here */
+  SrcList *pSrc,       /* Array of tables to search 搜索一系列的表*/
+  int N,               /* Number of tables in pSrc->a[] to search 在pSrc->a[] 中搜索表的数目*/
+  const char *zCol,    /* Name of the column we are looking for 寻找列的名字*/
+  int *piTab,          /* Write index of pSrc->a[] here 写入索引*/
+  int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here 写入索引*/
 ){
-  int i;               /* For looping over tables in pSrc */
-  int iCol;            /* Index of column matching zCol */
+  int i;               /* For looping over tables in pSrc 对pSrc遍历表*/
+  int iCol;            /* Index of column matching zCol   匹配zCol索引的列*/
 
-  assert( (piTab==0)==(piCol==0) );  /* Both or neither are NULL */
+  assert( (piTab==0)==(piCol==0) );  /* Both or neither are NULL  都是或都不是都为空*/
   for(i=0; i<N; i++){
     iCol = columnIndex(pSrc->a[i].pTab, zCol);
     if( iCol>=0 ){
