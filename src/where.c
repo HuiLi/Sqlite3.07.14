@@ -92,7 +92,7 @@ struct WhereTerm {
     WhereAndInfo *pAndInfo; /* 当eOperator==WO_AND时的额外信息 */
   } u;
   u16 eOperator;          /* WO_xx宏的值，用于描述<op> */
-  u8 wtFlags;             /* TERM_xxx bit flags.  See below */
+  u8 wtFlags;             /* TERM_xxx标志.  见下面定义 */
   u8 nChild;              /* Number of children that must disable us */
   WhereClause *pWC;       /* The clause this term is part of */
   Bitmask prereqRight;    /* Bitmask of tables used by pExpr->pRight */
@@ -104,7 +104,7 @@ struct WhereTerm {
 */
 #define TERM_DYNAMIC    0x01   /* 需要调用 sqlite3ExprDelete(db, pExpr) */
 #define TERM_VIRTUAL    0x02   /* 优化器添加的.  Do not code */
-#define TERM_CODED      0x04   /* This term is already coded */
+#define TERM_CODED      0x04   /* 这个term已经生成代码 */
 #define TERM_COPIED     0x08   /* Has a child */
 #define TERM_ORINFO     0x10   /* Need to free the WhereTerm.u.pOrInfo object */
 #define TERM_ANDINFO    0x20   /* Need to free the WhereTerm.u.pAndInfo obj */
@@ -124,54 +124,59 @@ struct WhereTerm {
 **           a AND ((b AND c) OR (d AND e)) AND f
 **
 ** There are separate WhereClause objects for the whole clause and for
-** the subclauses "(b AND c)" and "(d AND e)".  The pOuter field of the
-** subclauses points to the WhereClause object for the whole clause.
+** the subclauses "(b AND c)" and "(d AND e)".
+** 这里有很多独立的WhereClause对象组成整个Where语句和类似"(b AND c)"以及"(d AND e)"这样的子语句。
+** pOuter字段指针指向整个Where语句的WhereClause对象的子语句。
 */
 struct WhereClause {
-  Parse *pParse;           /* The parser context */
-  WhereMaskSet *pMaskSet;  /* Mapping of table cursor numbers to bitmasks */
+  Parse *pParse;           /* 语法分析器上下文 */
+  WhereMaskSet *pMaskSet;  /* 表游标数到位掩码的映射 Mapping of table cursor numbers to bitmasks */
   Bitmask vmask;           /* Bitmask identifying virtual table cursors */
   WhereClause *pOuter;     /* Outer conjunction */
   u8 op;                   /* Split operator.  TK_AND or TK_OR */
   u16 wctrlFlags;          /* Might include WHERE_AND_ONLY */
-  int nTerm;               /* Number of terms */
+  int nTerm;               /* term的数量 */
   int nSlot;               /* Number of entries in a[] */
-  WhereTerm *a;            /* Each a[] describes a term of the WHERE cluase */
+  WhereTerm *a;            /* 每一个 a[] 表示WHERE语句中的term */
 #if defined(SQLITE_SMALL_STACK)
   WhereTerm aStatic[1];    /* Initial static space for a[] */
 #else
-  WhereTerm aStatic[8];    /* Initial static space for a[] */
+  WhereTerm aStatic[8];    /* 初始化a[]静态空间 */
 #endif
 };
 
-/*
+/* ****************** WhereOrInfo 定义说明 *********************
 ** A WhereTerm with eOperator==WO_OR has its u.pOrInfo pointer set to
 ** a dynamically allocated instance of the following structure.
+** 若WhereTerm的eOperator字段等于WO_OR，则该WhereTerm里u.pOrInfo指针指向
+** 该结构体的一个动态分配的实例。
 */
 struct WhereOrInfo {
-  WhereClause wc;          /* Decomposition into subterms */
+  WhereClause wc;          /* 子term的分解 Decomposition into subterms */
   Bitmask indexable;       /* Bitmask of all indexable tables in the clause */
 };
 
-/*
+/* ****************** WhereAndInfo 定义说明 *********************
 ** A WhereTerm with eOperator==WO_AND has its u.pAndInfo pointer set to
 ** a dynamically allocated instance of the following structure.
+** 若WhereTerm的eOperator字段等于WO_AND，则该WhereTerm里u.pAndInfo指针指向
+** 该结构体的一个动态分配的实例。
 */
 struct WhereAndInfo {
   WhereClause wc;          /* The subexpression broken out */
 };
 
-/*
+/* ****************** WhereMaskSet 定义说明 *********************
 ** An instance of the following structure keeps track of a mapping
 ** between VDBE cursor numbers and bits of the bitmasks in WhereTerm.
+** 该结构体实例用于跟踪WhereTerm中 VDBE 光标数量以及位掩码的映射
 **
 ** The VDBE cursor numbers are small integers contained in 
-** SrcList_item.iCursor and Expr.iTable fields.  For any given WHERE 
-** clause, the cursor numbers might not begin with 0 and they might
-** contain gaps in the numbering sequence.  But we want to make maximum
-** use of the bits in our bitmasks.  This structure provides a mapping
-** from the sparse cursor numbers into consecutive integers beginning
-** with 0.
+** VDBE 光标数量为small integer类型包含在 SrcList_item.iCursor 或 Expr.iTable 字段中。
+** 对于任何给定的WHERE子句，光标数据可能不是从0开始，他们可能包含空白的编号的顺序。
+** But we want to make maximum use of the bits in our bitmasks.  This structure provides a mapping
+** from the sparse cursor numbers into consecutive integers beginning with 0.
+** 但是我们想让我们的掩码位最大的使用。这种结构提供一个映射的稀疏光标的数字从0开始连续的整数。
 **
 ** If WhereMaskSet.ix[A]==B it means that The A-th bit of a Bitmask
 ** corresponds VDBE cursor number B.  The A-th bit of a bitmask is 1<<A.
@@ -195,10 +200,11 @@ struct WhereMaskSet {
 /*
 ** A WhereCost object records a lookup strategy and the estimated
 ** cost of pursuing that strategy.
+** WhereCost 对象记录一个查询策略以及预估的进行该策略的成本。
 */
 struct WhereCost {
-  WherePlan plan;    /* The lookup strategy */
-  double rCost;      /* Overall cost of pursuing this search strategy */
+  WherePlan plan;    /* 策略计划 */
+  double rCost;      /* 该查询计划的总成本 */
   Bitmask used;      /* Bitmask of cursors used by this plan */
 };
 
@@ -228,9 +234,9 @@ struct WhereCost {
 ** strategies are appropriate.
 **
 ** The least significant 12 bits is reserved as a mask for WO_ values above.
-** The WhereLevel.wsFlags field is usually set to WO_IN|WO_EQ|WO_ISNULL.
-** But if the table is the right table of a left join, WhereLevel.wsFlags
-** is set to WO_IN|WO_EQ.  The WhereLevel.wsFlags field can then be used as
+** WhereLevel.wsFlags 字段的值通常是 WO_IN|WO_EQ|WO_ISNULL.
+** 但如果表是左连接的右表, WhereLevel.wsFlags 设置为 WO_IN|WO_EQ。
+** The WhereLevel.wsFlags field can then be used as
 ** the "op" parameter to findTerm when we are resolving equality constraints.
 ** ISNULL constraints will then not be used on the right table of a left
 ** join.  Tickets #2177 and #2189.
@@ -257,16 +263,16 @@ struct WhereCost {
 #define WHERE_DISTINCT     0x40000000  /* Correct order for DISTINCT */
 
 /*
-** Initialize a preallocated WhereClause structure.
+** 初始化一个预先分配的WhereClause结构
 */
 static void whereClauseInit(
-  WhereClause *pWC,        /* The WhereClause to be initialized */
-  Parse *pParse,           /* The parsing context */
+  WhereClause *pWC,        /* 将要初始化的WhereClause */
+  Parse *pParse,           /* 语法分析器上下文 */
   WhereMaskSet *pMaskSet,  /* Mapping from table cursor numbers to bitmasks */
   u16 wctrlFlags           /* Might include WHERE_AND_ONLY */
 ){
-  pWC->pParse = pParse;
-  pWC->pMaskSet = pMaskSet;
+  pWC->pParse = pParse;    /* 初始化pWC的pParse */
+  pWC->pMaskSet = pMaskSet;  /* 初始化pWC的pMaskSet */
   pWC->pOuter = 0;
   pWC->nTerm = 0;
   pWC->nSlot = ArraySize(pWC->aStatic);
@@ -275,11 +281,11 @@ static void whereClauseInit(
   pWC->wctrlFlags = wctrlFlags;
 }
 
-/* Forward reference */
+/* 前置引用 */
 static void whereClauseClear(WhereClause*);
 
 /*
-** Deallocate all memory associated with a WhereOrInfo object.
+** 释放一个 WhereOrInfo 对象相关联的存储空间
 */
 static void whereOrInfoDelete(sqlite3 *db, WhereOrInfo *p){
   whereClauseClear(&p->wc);
@@ -287,7 +293,7 @@ static void whereOrInfoDelete(sqlite3 *db, WhereOrInfo *p){
 }
 
 /*
-** Deallocate all memory associated with a WhereAndInfo object.
+** 释放一个 WhereAndInfo 对象WhereAndInfo相关联的存储空间
 */
 static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
   whereClauseClear(&p->wc);
@@ -295,8 +301,8 @@ static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
 }
 
 /*
-** Deallocate a WhereClause structure.  The WhereClause structure
-** itself is not freed.  This routine is the inverse of whereClauseInit().
+** 释放一个 WhereClause 结构体.  WhereClause 结构体自身没有释放。
+** 这是一个 whereClauseInit() 的逆向操作。
 */
 static void whereClauseClear(WhereClause *pWC){
   int i;
@@ -318,14 +324,19 @@ static void whereClauseClear(WhereClause *pWC){
 }
 
 /*
-** Add a single new WhereTerm entry to the WhereClause object pWC.
+** 添加单个新 WhereTerm 对象到 WhereClause 对象pWC中。
 ** The new WhereTerm object is constructed from Expr p and with wtFlags.
+** 新的 WhereTerm 对象由Expr p和wtFlags构造而成。
 ** The index in pWC->a[] of the new WhereTerm is returned on success.
+** 新 WhereTerm 对象在 pWC->a[] 数组中的索引值会在加入成功后由函数返回。
 ** 0 is returned if the new WhereTerm could not be added due to a memory
 ** allocation error.  The memory allocation failure will be recorded in
 ** the db->mallocFailed flag so that higher-level functions can detect it.
+** 返回0表示新 WhereTerm 由于空间分配错误无法添加。
+** 内存分配失败将记录在 DB—> mallocfailed 标志中使更高级别的函数可以检测到它。
 **
 ** This routine will increase the size of the pWC->a[] array as necessary.
+** 通常这会增加 pWC->a[] 数组的大小。
 **
 ** If the wtFlags argument includes TERM_DYNAMIC, then responsibility
 ** for freeing the expression p is assumed by the WhereClause object pWC.
