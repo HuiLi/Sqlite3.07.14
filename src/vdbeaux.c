@@ -10,8 +10,9 @@
 **
 *************************************************************************
 ** This file contains code used for creating, destroying, and populating
-** a VDBE (or an "sqlite3_stmt" as it is known to the outside world.)  Prior
-** to version 2.8.7, all this code was combined into the vdbe.c source file.
+** a VDBE (or an "sqlite3_stmt" as it is known to the outside world.)  
+**本文件包含了对VDBE的创建、销毁和填充（构成）源码。这个子程序只是vdbe.c种的一部分。
+** Prior to version 2.8.7, all this code was combined into the vdbe.c source file.
 ** But that file was getting too big so this subroutines were split out.
 */
 #include "sqliteInt.h"
