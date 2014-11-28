@@ -2293,8 +2293,10 @@ case OP_Or: {             /* same as TK_OR, in1, in2, out3 */
 /* Opcode: Not P1 P2 * * *
 **
 ** Interpret the value in register P1 as a boolean value.  Store the
-** boolean complement in register P2.  If the value in register P1 is 
+** boolean complement in register P2.  If the value in register P1 is
 ** NULL, then a NULL is stored in P2.
+** 将寄存器中P1的值解释为一个布尔值。将这个布尔值取反后存储在寄存器P2中。
+** 如果寄存器P1中的值是NULL,则把NULL存储在P2。
 */
 case OP_Not: {                /* same as TK_NOT, in1, out2 */
   pIn1 = &aMem[pOp->p1];
@@ -2312,6 +2314,8 @@ case OP_Not: {                /* same as TK_NOT, in1, out2 */
 ** Interpret the content of register P1 as an integer.  Store the
 ** ones-complement of the P1 value into register P2.  If P1 holds
 ** a NULL then store a NULL in P2.
+** 将寄存器P1的内容转换为一个整数。将P1的值按位取反后值存储到寄存器P2内。
+** 如果寄存器P1中的值是NULL,则把NULL存储在P2。
 */
 case OP_BitNot: {             /* same as TK_BITNOT, in1, out2 */
   pIn1 = &aMem[pOp->p1];
@@ -2328,6 +2332,7 @@ case OP_BitNot: {             /* same as TK_BITNOT, in1, out2 */
 **
 ** Check if OP_Once flag P1 is set. If so, jump to instruction P2. Otherwise,
 ** set the flag and fall through to the next instruction.
+** 如果P1中flag已经被赋值，跳转到指令P2。否则，设置flag的值，执行下一个指令。
 **
 ** See also: JumpOnce
 */
@@ -2345,13 +2350,17 @@ case OP_Once: {             /* jump */
 **
 ** Jump to P2 if the value in register P1 is true.  The value
 ** is considered true if it is numeric and non-zero.  If the value
-** in P1 is NULL then take the jump if P3 is non-zero.
+** in P1 is NULL tAR-hen take the jump if P3 is non-zero.
+** 如果寄存器P1的值是真就跳转到P2。如果P1的值是数字和非零值，就会被认定为真。
+** 如果P1中的值是NULL，同时P3非零，就会跳转到P2。
 */
 /* Opcode: IfNot P1 P2 P3 * *
 **
 ** Jump to P2 if the value in register P1 is False.  The value
 ** is considered false if it has a numeric value of zero.  If the value
 ** in P1 is NULL then take the jump if P3 is zero.
+** 如果寄存器P1的值是假就跳转到P2。如果P1的值是零，就会被认定为假。
+** 如果P1中的值是NULL，同时P3非零，就会跳转到P2。
 */
 case OP_If:                 /* jump, in1 */
 case OP_IfNot: {            /* jump, in1 */
@@ -2376,6 +2385,7 @@ case OP_IfNot: {            /* jump, in1 */
 /* Opcode: IsNull P1 P2 * * *
 **
 ** Jump to P2 if the value in register P1 is NULL.
+** 如果P1中的值是NULL则跳转到P2。
 */
 case OP_IsNull: {            /* same as TK_ISNULL, jump, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -2387,7 +2397,8 @@ case OP_IsNull: {            /* same as TK_ISNULL, jump, in1 */
 
 /* Opcode: NotNull P1 P2 * * *
 **
-** Jump to P2 if the value in register P1 is not NULL.  
+** Jump to P2 if the value in register P1 is not NULL.
+** 如果P1中的值是不是NULL则跳转到P2。
 */
 case OP_NotNull: {            /* same as TK_NOTNULL, jump, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -2402,37 +2413,59 @@ case OP_NotNull: {            /* same as TK_NOTNULL, jump, in1 */
 ** Interpret the data that cursor P1 points to as a structure built using
 ** the MakeRecord instruction.  (See the MakeRecord opcode for additional
 ** information about the format of the data.)  Extract the P2-th column
-** from this record.  If there are less that (P2+1) 
+** from this record.  If there are less that (P2+1)
 ** values in the record, extract a NULL.
+** 将指针P1指向的数据转换为可以被MakeRecord指令使用的结构类型。
+** (参见MakeRecord操作码可以获得更多有关这个数据格式的信息。)
+** 从记录中提取第P2列的数据。如果记录中的数据少于(P2+1)中的值，就提取一个NULL值。
 **
 ** The value extracted is stored in register P3.
+** 这个提取的值被存储在寄存器P3中。
 **
 ** If the column contains fewer than P2 fields, then extract a NULL.  Or,
 ** if the P4 argument is a P4_MEM use the value of the P4 argument as
 ** the result.
+** 如果存取数据的列少于P2中的字段，则提取一个NULL值。如果参数P4是P4_MEM
+** (P4定义在vdbe.c文件里“P4 is a pointer to a Mem* structure”)，就使用参数P4的值作为结果。
 **
 ** If the OPFLAG_CLEARCACHE bit is set on P5 and P1 is a pseudo-table cursor,
 ** then the cache of the cursor is reset prior to extracting the column.
 ** The first OP_Column against a pseudo-table after the value of the content
 ** register has changed should have this bit set.
+** 如果伪表指针位OPFLAG_CLEARCACHE被设置在P5和P1中，那么在提取列内数据之前，要重置这个指针所指的缓存。
+** 内容寄存器的值改变之后，第一个针对伪表的OP_Column操作码应该拥有这个二进制位。
 **
 ** If the OPFLAG_LENGTHARG and OPFLAG_TYPEOFARG bits are set on P5 when
 ** the result is guaranteed to only be used as the argument of a length()
 ** or typeof() function, respectively.  The loading of large blobs can be
 ** skipped for length() and all content loading can be skipped for typeof().
+** 如果二进制位OPFLAG_LENGTHARG和OPFLAG_TYPEOFARG都设置在P5中，要保证它们只能作为函数length()
+** 和函数typeof()的参数。函数length()可以跳过正在加载的二进制大对象以及所有正在加载的能容。
 */
 case OP_Column: {
   u32 payloadSize;   /* Number of bytes in the record */
   i64 payloadSize64; /* Number of bytes in the record */
   int p1;            /* P1 value of the opcode */
-  int p2;            /* column number to retrieve */
+  int p2;            /* column number to retrieve
+                     ** 用于检索的列号
+                     */
   VdbeCursor *pC;    /* The VDBE cursor */
-  char *zRec;        /* Pointer to complete record-data */
+  char *zRec;        /* Pointer to complete record-data
+                     ** 指向完整数据的指针
+                     */
   BtCursor *pCrsr;   /* The BTree cursor */
-  u32 *aType;        /* aType[i] holds the numeric type of the i-th column */
-  u32 *aOffset;      /* aOffset[i] is offset to start of data for i-th column */
-  int nField;        /* number of fields in the record */
-  int len;           /* The length of the serialized data for the column */
+  u32 *aType;        /* aType[i] holds the numeric type of the i-th column
+                     ** aType[i]存储了第i个列的数值类型
+                     */
+  u32 *aOffset;      /* aOffset[i] is offset to start of data for i-th column
+                     ** 
+                     */
+  int nField;        /* number of fields in the record
+                     ** 记录中的字段个数
+                     */
+  int len;           /* The length of the serialized data for the column 
+                     ** 
+                     */
   int i;             /* Loop counter */
   char *zData;       /* Part of the record being decoded */
   Mem *pDest;        /* Where to write the extracted value */
