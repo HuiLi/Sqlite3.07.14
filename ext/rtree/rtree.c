@@ -102,11 +102,11 @@
   #define PickSeeds LinearPickSeeds
   #define AssignCells splitNodeGuttman
 #endif
-#if VARIANT_RSTARTREE_SPLIT
+#if VARIANT_RSTARTREE_SPLIT    //定义R*树分裂算法,R*树分裂算法与R树分裂算法不同
   #define AssignCells splitNodeStartree
 #endif
 
-#if !defined(NDEBUG) && !defined(SQLITE_DEBUG) 
+#if !defined(NDEBUG) && !defined(SQLITE_DEBUG)  //是否支持调试
 # define NDEBUG 1
 #endif
 
@@ -227,7 +227,7 @@ struct Rtree {
 ** 验测试的最佳参数值，如果rtree可以进行重插入操作，在进行重插入的过程中,
 ** 结点单元数如果超过最大值,结点将重新插入到树中。
 */
-#define RTREE_MINCELLS(p) ((((p)->iNodeSize-4)/(p)->nBytesPerCell)/3)
+#define RTREE_MINCELLS(p) ((((p)->iNodeSize-4)/(p)->nBytesPerCell)/3) //获得结点最小单元数
 #define RTREE_REINSERT(p) RTREE_MINCELLS(p)
 #define RTREE_MAXCELLS 51
 
@@ -353,16 +353,20 @@ struct RtreeMatchArg {
 ** 将被分配。它将作为用户函数s_r_g_c()被创建，这个函数最终被sqlite3_create_function_v2()
 ** 回收机制回收（调用s_r_g_c()创建几何回调函数）
 */
-struct RtreeGeomCallback {
+struct RtreeGeomCallback {  //在R树中一般是深度优先搜索
   int (*xGeom)(sqlite3_rtree_geometry*, int, RtreeDValue*, int*);
   void *pContext;
 };
+/*
+** xGeom是一种函回调形式,sqlite3_rtree_geometry是一个结构体
+** 它提供了SQL函数如果回调的信息,其中包括如何执行和析构
+*/
 
 #ifndef MAX
-# define MAX(x,y) ((x) < (y) ? (y) : (x))
+# define MAX(x,y) ((x) < (y) ? (y) : (x))   //求最大值
 #endif
 #ifndef MIN
-# define MIN(x,y) ((x) > (y) ? (y) : (x))
+# define MIN(x,y) ((x) > (y) ? (y) : (x))    //求最小值
 #endif
 
 /*
@@ -465,7 +469,7 @@ static int nodeHash(i64 iNode){
 ** to it. Otherwise, return 0.
 ** 搜索结点iNode在hash表中的位置，如果找到，就返回一个指向它的指针，否则返回0
 */
-static RtreeNode *nodeHashLookup(Rtree *pRtree, i64 iNode){
+static RtreeNode *nodeHashLookup(Rtree *pRtree, i64 iNode){ //查找结点iNode的hash值
   RtreeNode *p;
   for(p=pRtree->aHash[nodeHash(iNode)]; p && p->iNode!=iNode; p=p->pNext);
   return p;
