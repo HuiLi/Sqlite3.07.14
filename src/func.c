@@ -44,7 +44,7 @@ static void sqlite3SkipAccumulatorLoad(sqlite3_context *context){
 实现非聚合min()和max()函数
 */
 static void minmaxFunc(
-  sqlite3_context *context,?							//函数上下文
+  sqlite3_context *context,//函数上下文
   int argc,
   sqlite3_value **argv
 ){
@@ -55,11 +55,11 @@ static void minmaxFunc(
   int iBest;
   CollSeq *pColl;
 
-  assert( argc>1 );											//如果 argc>1，则继续执行，否则终止程序执行
-  mask = sqlite3_user_data(context)==0 ? 0 : -1;			//判断最小最大值
+  assert( argc>1 );//如果 argc>1，则继续执行，否则终止程序执行
+  mask = sqlite3_user_data(context)==0 ? 0 : -1;//判断最小最大值
   pColl = sqlite3GetFuncCollSeq(context);
   assert( pColl );
-  assert( mask==-1 || mask==0 );							//断言最大值是-1或者最小值是0
+  assert( mask==-1 || mask==0 );//断言最大值是-1或者最小值是0
   iBest = 0;
   if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;	//自定义接口函数
   for(i=1; i<argc; i++){
@@ -485,7 +485,7 @@ static void randomBlob(
 last_insert_rowid()SQL函数的实现。返回值是sqlite3_last_insert_rowid()API函数一样的。
 */
 static void last_insert_rowid(	//返回last_insert_rowid( )ROWID 最后一个连接从数据库中插入的行, 
-								//该调用该函数last_insert_rowid()SQL 函数将被添加sqlite3_last_insert_rowid( )C/C++ 接口函数.
+//该调用该函数last_insert_rowid()SQL 函数将被添加sqlite3_last_insert_rowid( )C/C++ 接口函数.
   sqlite3_context *context, 
   int NotUsed, 
   sqlite3_value **NotUsed2
@@ -858,24 +858,11 @@ static void sourceidFunc(
 }
 
 /*
-** Implementation of the sqlite_log() function.  This is a wrapper around
-** sqlite3_log().  The return value is NULL.  The function exists purely for
-** its side-effects.
-*/
-static void errlogFunc(
-  sqlite3_context *context,
-  int argc,
-  sqlite3_value **argv
-){
-  UNUSED_PARAMETER(argc);
-  UNUSED_PARAMETER(context);
-  sqlite3_log(sqlite3_value_int(argv[0]), "%s", sqlite3_value_text(argv[1]));
-}
-
-/*
 ** Implementation of the sqlite_compileoption_used() function.
 ** The result is an integer that identifies if the compiler option
 ** was used to build SQLite.
+sqlite_compileoption_used()功能实现。其结果是一个整数，
+,该整数标识用于构建SQLite的编译器选项。
 */
 #ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
 static void compileoptionusedFunc(
@@ -888,7 +875,7 @@ static void compileoptionusedFunc(
   UNUSED_PARAMETER(argc);
   /* IMP: R-39564-36305 The sqlite_compileoption_used() SQL
   ** function is a wrapper around the sqlite3_compileoption_used() C/C++
-  ** function.
+  ** function.此函数是该函数的周围的SQL 包装sqlite3_compileoption_used() C/C++接口
   */
   if( (zOptName = (const char*)sqlite3_value_text(argv[0]))!=0 ){
     sqlite3_result_int(context, sqlite3_compileoption_used(zOptName));
@@ -900,6 +887,8 @@ static void compileoptionusedFunc(
 ** Implementation of the sqlite_compileoption_get() function. 
 ** The result is a string that identifies the compiler options 
 ** used to build SQLite.
+sqlite_compileoption_get() 功能实现。其结果是一个字符串，
+,该字符串标识用于构建SQLite的编译器选项。
 */
 #ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
 static void compileoptiongetFunc(
@@ -912,6 +901,7 @@ static void compileoptiongetFunc(
   UNUSED_PARAMETER(argc);
   /* IMP: R-04922-24076 The sqlite_compileoption_get() SQL function
   ** is a wrapper around the sqlite3_compileoption_get() C/C++ function.
+ 此函数是该函数的周围的SQL 包装sqlite3_compileoption_get() C/C++接口
   */
   n = sqlite3_value_int(argv[0]);
   sqlite3_result_text(context, sqlite3_compileoption_get(n), -1, SQLITE_STATIC);
@@ -919,7 +909,7 @@ static void compileoptiongetFunc(
 #endif /* SQLITE_OMIT_COMPILEOPTION_DIAGS */
 
 /* Array for converting from half-bytes (nybbles) into ASCII hex
-** digits. */
+** digits.从半字节数组转换为ASCII码的十六进制数字（nybbles）。 */
 static const char hexdigits[] = {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' 
@@ -935,8 +925,13 @@ static const char hexdigits[] = {
 ** the argument.  If the argument is NULL, the return value is the string
 ** "NULL".  Otherwise, the argument is enclosed in single quotes with
 ** single-quote escapes.
+实验-这是不是一个正式的功能。该接口可以改变。这个功能可能会消失。不写代码，取决于该函数。
+quote()功能的实现。这个函数使用一个参数。如果参数为数值，返回值和参数相同。
+如果参数为空，返回值是字符串“空”。否则，该参数含在单引号转义引号
 */
-static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
+static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){//quote( )函数返回一个字符串, 
+//它是对参数的值适合于网络部署管理器另一个SQL 语句字符串是合法的内部引号,
+//将应用程序部署到single-quotes 与转码BLOBs是编码的十六进制数文字
   assert( argc==1 );
   UNUSED_PARAMETER(argc);
   switch( sqlite3_value_type(argv[0]) ){
@@ -952,15 +947,15 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
       sqlite3_result_text(context, zBuf, -1, SQLITE_TRANSIENT);
       break;
     }
-    case SQLITE_INTEGER: {
+    case SQLITE_INTEGER: {//整数
       sqlite3_result_value(context, argv[0]);
       break;
     }
-    case SQLITE_BLOB: {
+    case SQLITE_BLOB: {//二进制大对象
       char *zText = 0;
       char const *zBlob = sqlite3_value_blob(argv[0]);
       int nBlob = sqlite3_value_bytes(argv[0]);
-      assert( zBlob==sqlite3_value_blob(argv[0]) ); /* No encoding change */
+      assert( zBlob==sqlite3_value_blob(argv[0]) ); /* No encoding change 没有编码的变化*/
       zText = (char *)contextMalloc(context, (2*(i64)nBlob)+4); 
       if( zText ){
         int i;
@@ -977,7 +972,7 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
       }
       break;
     }
-    case SQLITE_TEXT: {
+    case SQLITE_TEXT: {//文本
       int i,j;
       u64 n;
       const unsigned char *zArg = sqlite3_value_text(argv[0]);
@@ -1001,7 +996,7 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
       break;
     }
     default: {
-      assert( sqlite3_value_type(argv[0])==SQLITE_NULL );
+      assert( sqlite3_value_type(argv[0])==SQLITE_NULL );//断言类型为空
       sqlite3_result_text(context, "NULL", 4, SQLITE_STATIC);
       break;
     }
@@ -1011,8 +1006,9 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 /*
 ** The hex() function.  Interpret the argument as a blob.  Return
 ** a hexadecimal rendering as text.
+hex()函数，解释的参数作为BLOB。返回十六进制显示为文本。
 */
-static void hexFunc(
+static void hexFunc(//将其参数hex( )函数作为BLOB 并返回一个字符串, 它呈现的内容是大写十六进制blob
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -1024,8 +1020,8 @@ static void hexFunc(
   UNUSED_PARAMETER(argc);
   pBlob = sqlite3_value_blob(argv[0]);
   n = sqlite3_value_bytes(argv[0]);
-  assert( pBlob==sqlite3_value_blob(argv[0]) );  /* No encoding change */
-  z = zHex = contextMalloc(context, ((i64)n)*2 + 1);
+  assert( pBlob==sqlite3_value_blob(argv[0]) );  /* No encoding change 没有编码的变化*/
+  z = zHex = contextMalloc(context, ((i64)n)*2 + 1);//调用 contextMalloc();
   if( zHex ){
     for(i=0; i<n; i++, pBlob++){
       unsigned char c = *pBlob;
@@ -1033,14 +1029,17 @@ static void hexFunc(
       *(z++) = hexdigits[c&0xf];
     }
     *z = 0;
-    sqlite3_result_text(context, zHex, n*2, sqlite3_free);
+    sqlite3_result_text(context, zHex, n*2, sqlite3_free);//返回文本类型
   }
 }
 
 /*
 ** The zeroblob(N) function returns a zero-filled blob of size N bytes.
+zeroblob(N)函数返回一个N个字节大小的zero-filled blob。
 */
-static void zeroblobFunc(
+static void zeroblobFunc(//zeroblob(n )函数返回一个BLOB n字节的0x00 组成的SQLite这些zeroblobs 
+//非常高效地管理zeroblobs可用于编写的BLOB 的更高版本预留空间使用增量BLOB I/O 
+//此SQL 函数使用的sqlite3_result_zeroblob( )从C/C++ 接口例程
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -1064,29 +1063,31 @@ static void zeroblobFunc(
 ** them A, B, and C. The result is also a string which is derived
 ** from A by replacing every occurance of B with C.  The match
 ** must be exact.  Collating sequences are not used.
+replace()函数。三个参数都是字符串:称之为A,B,c .结果也是字符串,这个字符串来自A，通过取代每一个出现B和C得来。
+必须精确匹配。排序序列不被使用。
 */
-static void replaceFunc(
+static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串通过字符串替换形成的字符串
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
-  const unsigned char *zStr;        /* The input string A */
-  const unsigned char *zPattern;    /* The pattern string B */
-  const unsigned char *zRep;        /* The replacement string C */
-  unsigned char *zOut;              /* The output */
-  int nStr;                /* Size of zStr */
-  int nPattern;            /* Size of zPattern */
-  int nRep;                /* Size of zRep */
-  i64 nOut;                /* Maximum size of zOut */
-  int loopLimit;           /* Last zStr[] that might match zPattern[] */
-  int i, j;                /* Loop counters */
+  const unsigned char *zStr;        /* The input string A 输入字符串A*/
+  const unsigned char *zPattern;    /* The pattern string B 模式字符串B */
+  const unsigned char *zRep;        /* The replacement string C 替换字符串C*/
+  unsigned char *zOut;              /* The output输出 */
+  int nStr;                /* Size of zStr Al输入字符串的大小*/
+  int nPattern;            /* Size of zPattern 模式字符串的大小*/
+  int nRep;                /* Size of zRep 替换字符串的大小*/
+  i64 nOut;                /* Maximum size of zOut 输出字符串的最大大小*/
+  int loopLimit;           /* Last zStr[] that might match zPattern[] 最后 zStr[] 可能匹配的zPattern[] */
+  int i, j;                /* Loop counters 循环计数*/
 
   assert( argc==3 );
   UNUSED_PARAMETER(argc);
   zStr = sqlite3_value_text(argv[0]);
   if( zStr==0 ) return;
-  nStr = sqlite3_value_bytes(argv[0]);
-  assert( zStr==sqlite3_value_text(argv[0]) );  /* No encoding change */
+  nStr = sqlite3_value_bytes(argv[0]);//l输入字符串
+  assert( zStr==sqlite3_value_text(argv[0]) );  /* No encoding change 没有编码的变化*/
   zPattern = sqlite3_value_text(argv[1]);
   if( zPattern==0 ){
     assert( sqlite3_value_type(argv[1])==SQLITE_NULL
@@ -1098,9 +1099,20 @@ static void replaceFunc(
     sqlite3_result_value(context, argv[0]);
     return;
   }
+  nPattern = sqlite3_value_text(argv[1]);
+  if( zPattern==0 ){//模式字符串为空
+    assert( sqlite3_value_type(argv[1])==SQLITE_NULL
+            || sqlite3_context_db_handle(context)->mallocFailed );
+    return;
+  }
+  if( zPattern[0]==0 ){
+    assert( sqlite3_value_type(argv[1])!=SQLITE_NULL );
+    sqlite3_result_value(context, argv[0]);
+    return;
+  }
   nPattern = sqlite3_value_bytes(argv[1]);
-  assert( zPattern==sqlite3_value_text(argv[1]) );  /* No encoding change */
-  zRep = sqlite3_value_text(argv[2]);
+  assert( zPattern==sqlite3_value_text(argv[1]) );  /* No encoding change 没有编码的变化*/
+  zRep = sqlite3_value_text(argv[2]);//替换字符串
   if( zRep==0 ) return;
   nRep = sqlite3_value_bytes(argv[2]);
   assert( zRep==sqlite3_value_text(argv[2]) );
