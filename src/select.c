@@ -652,6 +652,7 @@ static void selectInnerLoop(
   }else if( eDest!=SRT_Exists ){
     /* If the destination is an EXISTS(...) expression, the actual
     ** values returned by the SELECT are not required.
+    **如果目标是一个EXISTS(...)表达式，由select返回的实际值是不需要的。
     */
     sqlite3ExprCacheClear(pParse);
     sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest==SRT_Output);
@@ -661,6 +662,7 @@ static void selectInnerLoop(
   /* If the DISTINCT keyword was present on the SELECT statement
   ** and this row has been seen before, then do not make this row
   ** part of the result.
+  **如果distinct关键字在select语句中出现，这行之前已经见过，那么这行不作为结果的一部分。
   */
   if( hasDistinct ){
     assert( pEList!=0 );
@@ -674,6 +676,7 @@ static void selectInnerLoop(
   switch( eDest ){
     /* In this mode, write each query result to the key of the temporary
     ** table iParm.
+    **在这种模式下，给临时表iParm写入每个查询结果。
     */
 #ifndef SQLITE_OMIT_COMPOUND_SELECT
     case SRT_Union: {
@@ -688,6 +691,7 @@ static void selectInnerLoop(
     /* Construct a record from the query result, but instead of
     ** saving that record, use it as a key to delete elements from
     ** the temporary table iParm.
+    **构建一个记录的查询结果，但不是保存该记录，将其作为从临时表iParm删除元素的一个键。
     */
     case SRT_Except: {
       sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn);
@@ -696,6 +700,7 @@ static void selectInnerLoop(
 #endif
 
     /* Store the result as data using a unique key.
+    **数据使用唯一关键字存储结果
     */
     case SRT_Table:
     case SRT_EphemTab: {
@@ -720,6 +725,8 @@ static void selectInnerLoop(
     /* If we are creating a set for an "expr IN (SELECT ...)" construct,
     ** then there should be a single item on the stack.  Write this
     ** item into the set table with bogus data.
+    **如果我们为"expr IN (SELECT ...)" 创建一组构造，那么在堆栈上就应该
+    **有一个单独的条款。把这个条款写入虚假数据表。
     */
     case SRT_Set: {
       assert( nColumn==1 );
@@ -728,7 +735,10 @@ static void selectInnerLoop(
         /* At first glance you would think we could optimize out the
         ** ORDER BY in this case since the order of entries in the set
         ** does not matter.  But there might be a LIMIT clause, in which
-        ** case the order does matter */
+        ** case the order does matter 
+        **一开始看的时候，你会以为我们能在这种情况下优化了order by，
+        **因为项目的集合中的顺序并不重要。
+        */
         pushOntoSorter(pParse, pOrderBy, p, regResult);
       }else{
         int r1 = sqlite3GetTempReg(pParse);
@@ -741,16 +751,20 @@ static void selectInnerLoop(
     }
 
     /* If any row exist in the result set, record that fact and abort.
+    **如果任何一行在结果集中存在，记录这一事实并中止。
     */
     case SRT_Exists: {
       sqlite3VdbeAddOp2(v, OP_Integer, 1, iParm);
-      /* The LIMIT clause will terminate the loop for us */
+      /* The LIMIT clause will terminate the loop for us 
+      limit子句将终止我们的循环
+      */
       break;
     }
 
     /* If this is a scalar select that is part of an expression, then
     ** store the results in the appropriate memory cell and break out
     ** of the scan loop.
+    **这是一个标量选择，是表达式的一部分，然后将结果存储在适当的存储单元，中止扫描循环。
     */
     case SRT_Mem: {
       assert( nColumn==1 );
@@ -758,7 +772,9 @@ static void selectInnerLoop(
         pushOntoSorter(pParse, pOrderBy, p, regResult);
       }else{
         sqlite3ExprCodeMove(pParse, regResult, iParm, 1);
-        /* The LIMIT clause will jump out of the loop for us */
+        /* The LIMIT clause will jump out of the loop for us 
+        **limit子句会跳出我们的循环
+        */
       }
       break;
     }
@@ -767,6 +783,7 @@ static void selectInnerLoop(
     /* Send the data to the callback function or to a subroutine.  In the
     ** case of a subroutine, the subroutine itself is responsible for
     ** popping the data from the stack.
+    **将数据发送到回调函数或子程序。在子程序的情况下，子程序本身负责从堆栈中弹出的数据。
     */
     case SRT_Coroutine:
     case SRT_Output: {
@@ -791,6 +808,8 @@ static void selectInnerLoop(
     ** the body of a TRIGGER.  The purpose of such selects is to call
     ** user-defined functions that have side effects.  We do not care
     ** about the actual results of the select.
+    **丢弃结果。这是用于触发器的select语句。这样选择的目的是要调用用户定义函数。
+    **我们不关心实际的选择结果。
     */
     default: {
       assert( eDest==SRT_Discard );
@@ -802,6 +821,8 @@ static void selectInnerLoop(
   /* Jump to the end of the loop if the LIMIT is reached.  Except, if
   ** there is a sorter, in which case the sorter has already limited
   ** the output for us.
+  **如果limit到达，跳转到循环结束。除了，如果有一个分选机，
+  **在这种情况下分选机已经限制了我们的输出。
   */
   if( pOrderBy==0 && p->iLimit ){
     sqlite3VdbeAddOp3(v, OP_IfZero, p->iLimit, iBreak, -1);
@@ -811,17 +832,23 @@ static void selectInnerLoop(
 /*
 ** Given an expression list, generate a KeyInfo structure that records
 ** the collating sequence for each expression in that expression list.
+**给定一个表达式列表，生成一个KeyInfo结构，记录在该表达式列表中的每个表达式的排序序列。
 **
 ** If the ExprList is an ORDER BY or GROUP BY clause then the resulting
 ** KeyInfo structure is appropriate for initializing a virtual index to
 ** implement that clause.  If the ExprList is the result set of a SELECT
 ** then the KeyInfo structure is appropriate for initializing a virtual
 ** index to implement a DISTINCT test.
+**如果ExprList是一个order by或者group by子句，那么KeyInfo结构体适合初始化虚拟索引去实现
+**这些子句。如果ExprList是select的结果集，那么KeyInfo结构体适合初始化一个虚拟索引去实
+**现DISTINCT测试。
 **
 ** Space to hold the KeyInfo structure is obtain from malloc.  The calling
 ** function is responsible for seeing that this structure is eventually
 ** freed.  Add the KeyInfo structure to the P4 field of an opcode using
 ** P4_KEYINFO_HANDOFF is the usual way of dealing with this.
+**保存KeyInfo结构体的空间是由malloc获得。调用函数负责看到这个结构体最终释放。
+**KeyInfo结构添加到使用P4_KEYINFO_HANDOFF P4的一个操作码是通常的处理方式。
 */
 static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){
   sqlite3 *db = pParse->db;
@@ -853,6 +880,7 @@ static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){
 #ifndef SQLITE_OMIT_COMPOUND_SELECT
 /*
 ** Name of the connection operator, used for error messages.
+**连接符的名称，用于错误消息。
 */
 static const char *selectOpName(int id){
   char *z;
@@ -862,7 +890,7 @@ static const char *selectOpName(int id){
     case TK_EXCEPT:    z = "EXCEPT";      break;
     default:           z = "UNION";       break;
   }
-  return z;
+  return z;  /*返回连接符的名称*/
 }
 #endif /* SQLITE_OMIT_COMPOUND_SELECT */
 
@@ -876,6 +904,11 @@ static const char *selectOpName(int id){
 **
 ** where xxx is one of "DISTINCT", "ORDER BY" or "GROUP BY". Exactly which
 ** is determined by the zUsage argument.
+**除非一个"EXPLAIN QUERY PLAN"命令正在处理，这个功能就是一个空操作。
+**否则，它增加一个单独的输出行到EQP结果，标题的形式为:
+**"USE TEMP B-TREE FOR xxx"
+**其中xxx是"distinct","order by",或者"group by"中的一个。究竟是哪个由
+**zUsage参数决定。
 */
 static void explainTempTable(Parse *pParse, const char *zUsage){
   if( pParse->explain==2 ){
@@ -891,11 +924,14 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 ** in sqlite3Select() to assign values to structure member variables that
 ** only exist if SQLITE_OMIT_EXPLAIN is not defined without polluting the
 ** code with #ifndef directives.
+**分配表达式b给a。第二，无操作符，宏的版本由SQLITE_OMIT_EXPLAIN 定义提供。这允许
+**sqlite3Select()的代码给结构体的成员变量分配值，如果SQLITE_OMIT_EXPLAIN没有
+**定义，没有#ifndef 指令的代码其才会存在。
 */
 # define explainSetInteger(a, b) a = b
 
 #else
-/* No-op versions of the explainXXX() functions and macros. */
+/* No-op versions of the explainXXX() functions and macros. 无操作符版本的explainXXX() 函数和宏。*/
 # define explainTempTable(y,z)
 # define explainSetInteger(y,z)
 #endif
@@ -914,13 +950,22 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 ** of the same name. The parameter "op" must be one of TK_UNION, TK_EXCEPT,
 ** TK_INTERSECT or TK_ALL. The first form is used if argument bUseTmp is 
 ** false, or the second form if it is true.
+**除非一个"EXPLAIN QUERY PLAN"命令正在处理，这个功能就是一个空操作。
+**否则，它增加一个单独的输出行到EQP结果，标题的形式为:
+
+**"COMPOSITE SUBQUERIES iSub1 and iSub2 (op)"
+**"COMPOSITE SUBQUERIES iSub1 and iSub2 USING TEMP B-TREE (op)"
+
+**iSub1和iSub2整数作为相应的传递函数参数，运算是相同名称的参数
+**的文本表示。参数"op"必是TK_UNION, TK_EXCEPT,TK_INTERSECT或者TK_ALL之一。
+**如果参数bUseTmp是false就使用第一种形式，或者如果是true就使用第二种形式。
 */
 static void explainComposite(
-  Parse *pParse,                  /* Parse context */
-  int op,                         /* One of TK_UNION, TK_EXCEPT etc. */
-  int iSub1,                      /* Subquery id 1 */
-  int iSub2,                      /* Subquery id 2 */
-  int bUseTmp                     /* True if a temp table was used */
+  Parse *pParse,                  /* Parse context 解析上下文*/
+  int op,                         /* One of TK_UNION, TK_EXCEPT etc.   TK_UNION, TK_EXCEPT等之一*/
+  int iSub1,                      /* Subquery id 1 子查询id 1*/
+  int iSub2,                      /* Subquery id 2 子查询id 2*/
+  int bUseTmp                     /* True if a temp table was used 如果临时表被使用就是true*/
 ){
   assert( op==TK_UNION || op==TK_EXCEPT || op==TK_INTERSECT || op==TK_ALL );
   if( pParse->explain==2 ){
@@ -933,7 +978,7 @@ static void explainComposite(
   }
 }
 #else
-/* No-op versions of the explainXXX() functions and macros. */
+/* No-op versions of the explainXXX() functions and macros. 无操作版本的explainXXX()函数和宏。*/
 # define explainComposite(v,w,x,y,z)
 #endif
 
@@ -942,16 +987,18 @@ static void explainComposite(
 ** then the results were placed in a sorter.  After the loop is terminated
 ** we need to run the sorter and output the results.  The following
 ** routine generates the code needed to do that.
+**如果内部循环使用一个非空pOrderBy生成参数,然后把结果放置在一个分选机。 
+**循环终止后我们需要运行分选机和输出结果。下面的例程生成所需的代码。 
 */
 static void generateSortTail(
-  Parse *pParse,    /* Parsing context */
-  Select *p,        /* The SELECT statement */
-  Vdbe *v,          /* Generate code into this VDBE */
-  int nColumn,      /* Number of columns of data */
-  SelectDest *pDest /* Write the sorted results here */
+  Parse *pParse,    /* Parsing context 解析上下文*/
+  Select *p,        /* The SELECT statement   select语句*/
+  Vdbe *v,          /* Generate code into this VDBE  在VDBE中生成代码**/
+  int nColumn,      /* Number of columns of data 数据的列数目*/
+  SelectDest *pDest /* Write the sorted results here 在这里写入排序结果*/
 ){
-  int addrBreak = sqlite3VdbeMakeLabel(v);     /* Jump here to exit loop */
-  int addrContinue = sqlite3VdbeMakeLabel(v);  /* Jump here for next cycle */
+  int addrBreak = sqlite3VdbeMakeLabel(v);     /* Jump here to exit loop 跳转到这里退出循环*/
+  int addrContinue = sqlite3VdbeMakeLabel(v);  /* Jump here for next cycle 跳转到这里进行下一个周期*/
   int addr;
   int iTab;
   int pseudoTab = 0;
