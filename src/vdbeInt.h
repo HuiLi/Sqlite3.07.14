@@ -14,6 +14,7 @@
 ** source code file "vdbe.c".  When that file became too big (over
 ** 6000 lines long) it was split up into several smaller files and
 ** this header information was factored out.
+**这是一个头文件，文件中包含的信息对于VDBE（）是私有的。这些信息全部都**用在vdbe.c这个资源文件之上。当这个文件太大时（超过6000行时）将会被分成几个较小的文件，这个文件就是被分解出来的。
 */
 #ifndef _VDBEINT_H_
 #define _VDBEINT_H_
@@ -22,6 +23,7 @@
 ** SQL is translated into a sequence of instructions to be
 ** executed by a virtual machine.  Each instruction is an instance
 ** of the following structure.
+**（为了能够被虚拟机执行SQl语句被翻译成了一些有序的指令。每一条指令都是下面结构的一个实例。）
 */
 typedef struct VdbeOp Op;
 
@@ -30,7 +32,9 @@ typedef struct VdbeOp Op;
 */
 typedef unsigned char Bool;
 
-/* Opaque type used by code in vdbesort.c */
+/* Opaque type used by code in vdbesort.c  
+**Opaque类型被vdbesort.c文件中的代码使用
+*/
 typedef struct VdbeSorter VdbeSorter;
 
 /* Opaque type used by the explainer */
@@ -38,13 +42,16 @@ typedef struct Explain Explain;
 
 /*
 ** A cursor is a pointer into a single BTree within a database file.
+**一个游标是一个数据库文件中单一BTree的指针。
 ** The cursor can seek to a BTree entry with a particular key, or
 ** loop over all entries of the Btree.  You can also insert new BTree
 ** entries or retrieve the key or data from the entry that the cursor
 ** is currently pointing to.
-** 
+**这个游标能够找到拥有特定值的一个BTree的入口，或者遍历BTree的所有入
+**口。你能够新的BTree入口或者从这个游标通常指向的的入口检索值或者数据。
 ** Every cursor that the virtual machine has open is represented by an
 ** instance of the following structure.
+**每一个虚拟机已经开启的游标都代表着一个一下结构的常量。
 */
 struct VdbeCursor {
   BtCursor *pCursor;    /* The cursor structure of the backend */
