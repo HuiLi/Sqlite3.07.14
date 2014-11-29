@@ -257,16 +257,24 @@ static int tableAndColumnIndex(
 ** where tab1 is the iSrc'th table in SrcList pSrc and tab2 is the 
 ** (iSrc+1)'th. Column col1 is column iColLeft of tab1, and col2 is
 ** column iColRight of tab2.
+
+**此功能是用来添加由JOIN语法SELECT语句的WHERE子句表达默示条件。这个新的条件，
+**是相比现有的WHERE子句的这种形式：
+
+**(tab1.col1 = tab2.col2)
+
+**tab1是SrcList pSrc的iSrc'th表，tab2是(iSrc+1)'th。列col1是tab1的iColLeft列，col2是
+**tab2的iColRight列
 */
 static void addWhereTerm(
-  Parse *pParse,                  /* Parsing context */
-  SrcList *pSrc,                  /* List of tables in FROM clause */
-  int iLeft,                      /* Index of first table to join in pSrc */
-  int iColLeft,                   /* Index of column in first table */
-  int iRight,                     /* Index of second table in pSrc */
-  int iColRight,                  /* Index of column in second table */
-  int isOuterJoin,                /* True if this is an OUTER join */
-  Expr **ppWhere                  /* IN/OUT: The WHERE clause to add to */
+  Parse *pParse,                  /* Parsing context  解析上下文*/
+  SrcList *pSrc,                  /* List of tables in FROM clause   from字句中的列表 */
+  int iLeft,                      /* Index of first table to join in pSrc  第一个表的索引加入pSrc */
+  int iColLeft,                   /* Index of column in first table  第一个表的列的索引*/
+  int iRight,                     /* Index of second table in pSrc  第二个表的索引在 pSrc中*/
+  int iColRight,                  /* Index of column in second table  列的索引在第二个表中*/
+  int isOuterJoin,                /* True if this is an OUTER join  如果是外部连接返回邋true*/
+  Expr **ppWhere                  /* IN/OUT: The WHERE clause to add to  where子句添加到in/out*/
 ){
   sqlite3 *db = pParse->db;
   Expr *pE1;
@@ -295,6 +303,8 @@ static void addWhereTerm(
 ** Set the EP_FromJoin property on all terms of the given expression.
 ** And set the Expr.iRightJoinTable to iTable for every term in the
 ** expression.
+**在给定的表达式中的所有条件进行EP_FromJoin属性设置。并给iTable的每一种
+**表达形式进行Expr.iRightJoinTable设置。
 **
 ** The EP_FromJoin property is used on terms of an expression to tell
 ** the LEFT OUTER JOIN processing logic that this term is part of the
@@ -302,6 +312,9 @@ static void addWhereTerm(
 ** of the more general WHERE clause.  These terms are moved over to the
 ** WHERE clause during join processing but we need to remember that they
 ** originated in the ON or USING clause.
+**EP_FromJoin 属性用于左外连接处理逻辑的表达形式，这种形式是加入限制指定on或者
+**using子句的一部分，不是一般where子句的一部分。这些术语移动到where 子句中加入
+**处理，但是我们必须记住它们起源于on或者useing子句。
 **
 ** The Expr.iRightJoinTable tells the WHERE clause processing that the
 ** expression depends on table iRightJoinTable even if that table is not
@@ -316,6 +329,14 @@ static void addWhereTerm(
 ** defer the handling of t1.x=5, it will be processed immediately
 ** after the t1 loop and rows with t1.x!=5 will never appear in
 ** the output, which is incorrect.
+**Expr.iRightJoinTable告诉where 子句表达式依靠表iRightJoinTable处理，即使表在
+**表达式中没有明确提到。这些信息需要像这个例子:
+
+**SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.b AND t1.x=5
+
+**where 子句需要推迟处理t1.x=5，直到加入t2循环之后。以这种方式，
+**每当t1.x!=5时，一个NULL t2行将被加入。如果我们不推迟 t1.x=5的处理，
+**将会被立即处理后与t1循环和列t1.x!=5永远不会输出，这是不正确的。
 */
 static void setJoinExpr(Expr *p, int iTable){
   while( p ){
@@ -332,6 +353,8 @@ static void setJoinExpr(Expr *p, int iTable){
 ** This routine processes the join information for a SELECT statement.
 ** ON and USING clauses are converted into extra terms of the WHERE clause.
 ** NATURAL joins also create extra WHERE clause terms.
+**这个程序处理一个select语句的加入信息。on或者using子句转换为额外的where子句。
+**自然连接也创建额外的where子句条件。
 **
 ** The terms of a FROM clause are contained in the Select.pSrc structure.
 ** The left most table is the first entry in Select.pSrc.  The right-most
@@ -339,14 +362,19 @@ static void setJoinExpr(Expr *p, int iTable){
 ** the left.  Thus entry 0 contains the join operator for the join between
 ** entries 0 and 1.  Any ON or USING clauses associated with the join are
 ** also attached to the left entry.
+**from子句的条件包含在Select.pSrc结构体中。
+**最左边的表在Select.pSrc中是第一项。最右边的表是最后一项。
+**join操作符从左边开始进行。因此进入0包含联接运算符条目0和1之间的连接。
+**任何on或者using子句与join联合也附加到左条目。
 **
 ** This routine returns the number of errors encountered.
+**这个程序返回错误的数量
 */
 static int sqliteProcessJoin(Parse *pParse, Select *p){
-  SrcList *pSrc;                  /* All tables in the FROM clause */
-  int i, j;                       /* Loop counters */
-  struct SrcList_item *pLeft;     /* Left table being joined */
-  struct SrcList_item *pRight;    /* Right table being joined */
+  SrcList *pSrc;                  /* All tables in the FROM clause   rom子句中的所有表*/
+  int i, j;                       /* Loop counters  循环计数器*/
+  struct SrcList_item *pLeft;     /* Left table being joined   左表被加入*/
+  struct SrcList_item *pRight;    /* Right table being joined   右表被加入*/
 
   pSrc = p->pSrc;
   pLeft = &pSrc->a[0];
@@ -361,6 +389,7 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
 
     /* When the NATURAL keyword is present, add WHERE clause terms for
     ** every column that the two tables have in common.
+    **当natural关键字存在，并且WHERE子句的条件为两个表中有相同列。
     */
     if( pRight->jointype & JT_NATURAL ){
       if( pRight->pOn || pRight->pUsing ){
@@ -369,9 +398,9 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
         return 1;
       }
       for(j=0; j<pRightTab->nCol; j++){
-        char *zName;   /* Name of column in the right table */
-        int iLeft;     /* Matching left table */
-        int iLeftCol;  /* Matching column in the left table */
+        char *zName;   /* Name of column in the right table 右表中列的名字*/
+        int iLeft;     /* Matching left table 匹配左表*/
+        int iLeftCol;  /* Matching column in the left table 在左表中匹配列*/
 
         zName = pRightTab->aCol[j].zName;
         if( tableAndColumnIndex(pSrc, i+1, zName, &iLeft, &iLeftCol) ){
@@ -382,6 +411,7 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
     }
 
     /* Disallow both ON and USING clauses in the same join
+    **不允许on和using子句有相同的连接
     */
     if( pRight->pOn && pRight->pUsing ){
       sqlite3ErrorMsg(pParse, "cannot have both ON and USING "
@@ -391,6 +421,7 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
 
     /* Add the ON clause to the end of the WHERE clause, connected by
     ** an AND operator.
+    **on子句添加到where子句的末尾，由一个and操作符相连。
     */
     if( pRight->pOn ){
       if( isOuter ) setJoinExpr(pRight->pOn, pRight->iCursor);
@@ -404,14 +435,19 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
     ** to the WHERE clause:    A.X=B.X AND A.Y=B.Y AND A.Z=B.Z
     ** Report an error if any column mentioned in the USING clause is
     ** not contained in both tables to be joined.
+    **在using子句中每一个命名的列创建额外的where子句条件。例如:
+    **如果两个表的连接是A和B,using列名为X,Y,Z,然后把它们添加到
+    **where子句:A.X=B.X AND A.Y=B.Y AND A.Z=B.Z
+    **如果using子句中提到的任何列不包含在表的连接中，就会报告
+    **一个错误。
     */
     if( pRight->pUsing ){
       IdList *pList = pRight->pUsing;
       for(j=0; j<pList->nId; j++){
-        char *zName;     /* Name of the term in the USING clause */
-        int iLeft;       /* Table on the left with matching column name */
-        int iLeftCol;    /* Column number of matching column on the left */
-        int iRightCol;   /* Column number of matching column on the right */
+        char *zName;     /* Name of the term in the USING clause   using子句的名称术语*/
+        int iLeft;       /* Table on the left with matching column name   左边的表与匹配的列名*/
+        int iLeftCol;    /* Column number of matching column on the left  左边匹配列的列数*/
+        int iRightCol;   /* Column number of matching column on the right  右边匹配列的列数*/
 
         zName = pList->a[j].zName;
         iRightCol = columnIndex(pRightTab, zName);
@@ -433,12 +469,13 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
 /*
 ** Insert code into "v" that will push the record on the top of the
 ** stack into the sorter.
+**插入代码"v"，在分选机将会推进记录到栈的顶部。
 */
 static void pushOntoSorter(
-  Parse *pParse,         /* Parser context */
-  ExprList *pOrderBy,    /* The ORDER BY clause */
-  Select *pSelect,       /* The whole SELECT statement */
-  int regData            /* Register holding data to be sorted */
+  Parse *pParse,         /* Parser context  解析上下文*/
+  ExprList *pOrderBy,    /* The ORDER BY clause   order by子句*/
+  Select *pSelect,       /* The whole SELECT statement  整个select语句*/
+  int regData            /* Register holding data to be sorted  注册数据进行排序*/
 ){
   Vdbe *v = pParse->pVdbe;
   int nExpr = pOrderBy->nExpr;
@@ -478,11 +515,12 @@ static void pushOntoSorter(
 
 /*
 ** Add code to implement the OFFSET
+**添加代码来实现offset。
 */
 static void codeOffset(
-  Vdbe *v,          /* Generate code into this VM */
-  Select *p,        /* The SELECT statement being coded */
-  int iContinue     /* Jump here to skip the current record */
+  Vdbe *v,          /* Generate code into this VM  在VM中生成代码*/
+  Select *p,        /* The SELECT statement being coded  select语句被编码*/
+  int iContinue     /* Jump here to skip the current record  跳到这里跳过当前记录*/
 ){
   if( p->iOffset && iContinue!=0 ){
     int addr;
@@ -499,16 +537,19 @@ static void codeOffset(
 ** form a distinct entry.  iTab is a sorting index that holds previously
 ** seen combinations of the N values.  A new entry is made in iTab
 ** if the current N values are new.
+**添加代码，将检查确保N个寄存器开始iMem形成一个鲜明的条目。iTab是一个分类所引，
+**以前见到的N值得组合。如果当前的N值是新的，一个新的条目由iTab产生。
 **
 ** A jump to addrRepeat is made and the N+1 values are popped from the
 ** stack if the top N elements are not distinct.
+**如果前N个元素不明显，跳转到addrRepeat，N+1个值从栈中弹出。
 */
 static void codeDistinct(
-  Parse *pParse,     /* Parsing and code generating context */
-  int iTab,          /* A sorting index used to test for distinctness */
-  int addrRepeat,    /* Jump to here if not distinct */
-  int N,             /* Number of elements */
-  int iMem           /* First element */
+  Parse *pParse,     /* Parsing and code generating context 解析和代码生成上下文*/
+  int iTab,          /* A sorting index used to test for distinctness 一个索引用于不同的测试*/
+  int addrRepeat,    /* Jump to here if not distinct 如果不明显跳转到这里*/
+  int N,             /* Number of elements 元素数目*/
+  int iMem           /* First element 第一个元素*/
 ){
   Vdbe *v;
   int r1;
@@ -528,11 +569,14 @@ static void codeDistinct(
 ** column.  We do this in a subroutine because the error used to occur
 ** in multiple places.  (The error only occurs in one place now, but we
 ** retain the subroutine to minimize code disruption.)
+**当一个select语句中使用子表达式就产生一个错误的信息(例如:a in(select * from table))，
+**但是它有多于1的结果列。我们在子程序中这样做是因为错误通常发生在多个地方。 
+**(现在错误只发生在一个地方，但是我们保留中断的子程序将代码错误减少到最小。)
 */
 static int checkForMultiColumnSelectError(
-  Parse *pParse,       /* Parse context. */
-  SelectDest *pDest,   /* Destination of SELECT results */
-  int nExpr            /* Number of result columns returned by SELECT */
+  Parse *pParse,       /* Parse context. 解析上下文 */
+  SelectDest *pDest,   /* Destination of SELECT results   select结果的最终目的*/
+  int nExpr            /* Number of result columns returned by SELECT  结果列的数目由select返回*/
 ){
   int eDest = pDest->eDest;
   if( nExpr>1 && (eDest==SRT_Mem || eDest==SRT_Set) ){
@@ -548,31 +592,34 @@ static int checkForMultiColumnSelectError(
 /*
 ** This routine generates the code for the inside of the inner loop
 ** of a SELECT.
+**这个程序生成一个select 的内循环的内部代码。
 **
 ** If srcTab and nColumn are both zero, then the pEList expressions
 ** are evaluated in order to get the data for this row.  If nColumn>0
 ** then data is pulled from srcTab and pEList is used only to get the
 ** datatypes for each column.
+**如果srcTab和nColumn都是零，那么pEList表达式为了获得行数据进行赋值。
+**如果nColumn>0 那么数据从srcTab中拉出，pEList只用于从每一列获得数据类型。
 */
 static void selectInnerLoop(
-  Parse *pParse,          /* The parser context */
-  Select *p,              /* The complete select statement being coded */
-  ExprList *pEList,       /* List of values being extracted */
-  int srcTab,             /* Pull data from this table */
-  int nColumn,            /* Number of columns in the source table */
-  ExprList *pOrderBy,     /* If not NULL, sort results using this key */
-  int distinct,           /* If >=0, make sure results are distinct */
-  SelectDest *pDest,      /* How to dispose of the results */
-  int iContinue,          /* Jump here to continue with next row */
-  int iBreak              /* Jump here to break out of the inner loop */
+  Parse *pParse,          /* The parser context 解析上下文*/
+  Select *p,              /* The complete select statement being coded 完整的select语句被编码*/
+  ExprList *pEList,       /* List of values being extracted  列表值被提取*/
+  int srcTab,             /* Pull data from this table 从这个表中提取数据*/
+  int nColumn,            /* Number of columns in the source table  源表中列的数目*/
+  ExprList *pOrderBy,     /* If not NULL, sort results using this key 如果不是NULL，使用这个key对结果进行排序*/
+  int distinct,           /* If >=0, make sure results are distinct 如果>=0，确保结果是不同的*/
+  SelectDest *pDest,      /* How to dispose of the results 怎样处理结果*/
+  int iContinue,          /* Jump here to continue with next row 跳到这里继续下一行*/
+  int iBreak              /* Jump here to break out of the inner loop 跳到这里中断内部循环*/
 ){
   Vdbe *v = pParse->pVdbe;
   int i;
-  int hasDistinct;        /* True if the DISTINCT keyword is present */
-  int regResult;              /* Start of memory holding result set */
-  int eDest = pDest->eDest;   /* How to dispose of results */
-  int iParm = pDest->iSDParm; /* First argument to disposal method */
-  int nResultCol;             /* Number of result columns */
+  int hasDistinct;        /* True if the DISTINCT keyword is present 如果distinct关键字存在返回true*/
+  int regResult;              /* Start of memory holding result set 开始的内存持有结果集*/
+  int eDest = pDest->eDest;   /* How to dispose of results 怎样处理结果*/
+  int iParm = pDest->iSDParm; /* First argument to disposal method 第一个参数的处理方法*/
+  int nResultCol;             /* Number of result columns 结果列的数目*/
 
   assert( v );
   if( NEVER(v==0) ) return;
@@ -583,6 +630,7 @@ static void selectInnerLoop(
   }
 
   /* Pull the requested columns.
+  **取出请求列
   */
   if( nColumn>0 ){
     nResultCol = nColumn;
