@@ -2635,6 +2635,8 @@ case OP_Column: {
     ** them, respectively.  So the maximum header length results from a
     ** 3-byte type for each of the maximum of 32768 columns plus three
     ** extra bytes for the header length itself.  32768*3 + 3 = 98307.
+    ** 类型的总条目可以介于1到5字节。但是4和5字节类型使用如此多的数据空间,只能有4096和32的分别。
+    ** 所以最大头长度的结果从一个3字节类型为每个32768列加三头额外字节长度本身。32768 * 3 + 3 = 98307。
     */
     if( offset > 98307 ){
       rc = SQLITE_CORRUPT_BKPT;
