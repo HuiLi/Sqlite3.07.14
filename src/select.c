@@ -1054,7 +1054,9 @@ static void generateSortTail(
     case SRT_Mem: {
       assert( nColumn==1 );
       sqlite3ExprCodeMove(pParse, regRow, iParm, 1);
-      /* The LIMIT clause will terminate the loop for us */
+      /* The LIMIT clause will terminate the loop for us 
+      **limit子句将终止我们的循环
+      */
       break;
     }
 #endif
@@ -1082,7 +1084,8 @@ static void generateSortTail(
   sqlite3ReleaseTempReg(pParse, regRow);
   sqlite3ReleaseTempReg(pParse, regRowid);
 
-  /* The bottom of the loop
+  /* The bottom of the loop               
+  **循环的底部
   */
   sqlite3VdbeResolveLabel(v, addrContinue);
   if( p->selFlags & SF_UseSorter ){
@@ -1113,6 +1116,20 @@ static void generateSortTail(
 **   SELECT abc FROM (SELECT col AS abc FROM tbl);
 ** 
 ** The declaration type for any expression other than a column is NULL.
+**返回一个指向表达式pExpr 包含 'declaration type'的字符串。
+**这个字符串可以视为静态调用者。
+
+**如果表达式是一列，声明类型是确切的数据类型定义从最初的
+**create table 语句中获取。ROWID字段的声明类型是整数。当一个表达式
+**被认为作为一列在子查询中是复杂的。在所有下面的SELECT语句
+**的结果集的表达被认为是这个函数的列。
+
+**   SELECT col FROM tbl;
+**   SELECT (SELECT col FROM tbl;
+**   SELECT (SELECT col FROM tbl);
+**   SELECT abc FROM (SELECT col AS abc FROM tbl);
+
+**声明类型以外的任何表达式列是空的。
 */
 static const char *columnType(
   NameContext *pNC, 
@@ -1134,10 +1151,12 @@ static const char *columnType(
       /* The expression is a column. Locate the table the column is being
       ** extracted from in NameContext.pSrcList. This table may be real
       ** database table or a subquery.
+      **表达式是一个列。被定位的表的列从NameContext.pSrcList中提取。
+      **这个表可能是真实的数据库表，或者是一个子查询。
       */
-      Table *pTab = 0;            /* Table structure column is extracted from */
-      Select *pS = 0;             /* Select the column is extracted from */
-      int iCol = pExpr->iColumn;  /* Index of column in pTab */
+      Table *pTab = 0;            /* Table structure column is extracted from 表结构列被提取*/
+      Select *pS = 0;             /* Select the column is extracted from 选择列被提取*/
+      int iCol = pExpr->iColumn;  /* Index of column in pTab 索引列在pTab中*/
       testcase( pExpr->op==TK_AGG_COLUMN );
       testcase( pExpr->op==TK_COLUMN );
       while( pNC && !pTab ){
@@ -1168,7 +1187,20 @@ static const char *columnType(
         ** This is not a problem, as the column type of "t1.col" is never
         ** used. When columnType() is called on the expression 
         ** "(SELECT t1.col)", the correct type is returned (see the TK_SELECT
-        ** branch below.  */
+        ** branch below.  
+        **在同一时间，诸如触发器内"SELECT new.x "代码将导致这种状态运行。自那时以来，
+        **我们已重组触发代码是如何生成的，因此该条件不再可能。但是，它仍然可以适用于
+        **像下面的语句：
+	
+	      **CREATE TABLE t1(col INTEGER);
+        **SELECT (SELECT t1.col) FROM FROM t1;
+        
+        **当columnType()调用在子选择中的表达式"t1.col"。在这种情况下，设置列的类型为空，
+        **即使它确实应该"INTEGER"。
+
+        **这不是一个问题，因为" t1.col "的列类型是从未使用过。当columnType ()被调用的
+        **表达式"(SELECT t1.col)" ，则返回正确的类型(请参阅下面的TK_SELECT分支)。 
+        */
         break;
       }
 
@@ -1177,11 +1209,15 @@ static const char *columnType(
         /* The "table" is actually a sub-select or a view in the FROM clause
         ** of the SELECT statement. Return the declaration type and origin
         ** data for the result-set column of the sub-select.
+        **"表"实际上是一个子选择，或者是一个在select语句的from子句的视图。
+        **返回声明类型和来源数据的子选择的结果集列。
         */
         if( iCol>=0 && ALWAYS(iCol<pS->pEList->nExpr) ){
           /* If iCol is less than zero, then the expression requests the
           ** rowid of the sub-select or view. This expression is legal (see 
           ** test case misc2.2.2) - it always evaluates to NULL.
+          **如果iCol小于零，则表达式请求子选择或视图的rowid。
+          **这种表达式合法的(见测试案例misc2.2.2)-它始终计算为空。
           */
           NameContext sNC;
           Expr *p = pS->pEList->a[iCol].pExpr;
@@ -1191,7 +1227,7 @@ static const char *columnType(
           zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); 
         }
       }else if( ALWAYS(pTab->pSchema) ){
-        /* A real table */
+        /* A real table 一个真实的表*/
         assert( !pS );
         if( iCol<0 ) iCol = pTab->iPKey;
         assert( iCol==-1 || (iCol>=0 && iCol<pTab->nCol) );
@@ -1215,6 +1251,7 @@ static const char *columnType(
       /* The expression is a sub-select. Return the declaration type and
       ** origin info for the single column in the result set of the SELECT
       ** statement.
+      **表达式是一个子选择。返回声明类型和 在SELECT语句的结果集的单个列的来源信息
       */
       NameContext sNC;
       Select *pS = pExpr->x.pSelect;
@@ -1241,11 +1278,12 @@ static const char *columnType(
 /*
 ** Generate code that will tell the VDBE the declaration types of columns
 ** in the result set.
+**生成的代码会告诉VDBE在结果集中的列的声明类型。
 */
 static void generateColumnTypes(
-  Parse *pParse,      /* Parser context */
-  SrcList *pTabList,  /* List of tables */
-  ExprList *pEList    /* Expressions defining the result set */
+  Parse *pParse,      /* Parser context 解析上下文*/
+  SrcList *pTabList,  /* List of tables 表的集合*/
+  ExprList *pEList    /* Expressions defining the result set 表达式定义结果集*/
 ){
 #ifndef SQLITE_OMIT_DECLTYPE
   Vdbe *v = pParse->pVdbe;
@@ -1265,6 +1303,8 @@ static void generateColumnTypes(
     /* The vdbe must make its own copy of the column-type and other 
     ** column specific strings, in case the schema is reset before this
     ** virtual machine is deleted.
+    **VDBE必须做出自己的列的类型和其他列的特定字符串的副本，在此情况下，
+    **虚拟机被删除之前的模式被重置。
     */
     sqlite3VdbeSetColName(v, i, COLNAME_DATABASE, zOrigDb, SQLITE_TRANSIENT);
     sqlite3VdbeSetColName(v, i, COLNAME_TABLE, zOrigTab, SQLITE_TRANSIENT);
@@ -1281,6 +1321,7 @@ static void generateColumnTypes(
 ** Generate code that will tell the VDBE the names of columns
 ** in the result set.  This information is used to provide the
 ** azCol[] values in the callback.
+**生成的代码，会告诉VDBE结果集中列的名字。这些信息用于提供在回调中azCol[] 的值。
 */
 static void generateColumnNames(
   Parse *pParse,      /* Parser context */
