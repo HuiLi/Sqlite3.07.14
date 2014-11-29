@@ -2425,7 +2425,7 @@ case OP_NotNull: {            /* same as TK_NOTNULL, jump, in1 */
 ** If the column contains fewer than P2 fields, then extract a NULL.  Or,
 ** if the P4 argument is a P4_MEM use the value of the P4 argument as
 ** the result.
-** 如果存取数据的列少于P2中的字段，则提取一个NULL值。如果参数P4是P4_MEM
+** 如果存取数据的列少于P2中的字段，则提取一个NULL值。如果参数P4的值是P4_MEM
 ** (P4定义在vdbe.c文件里“P4 is a pointer to a Mem* structure”)，就使用参数P4的值作为结果。
 **
 ** If the OPFLAG_CLEARCACHE bit is set on P5 and P1 is a pseudo-table cursor,
@@ -2440,7 +2440,7 @@ case OP_NotNull: {            /* same as TK_NOTNULL, jump, in1 */
 ** or typeof() function, respectively.  The loading of large blobs can be
 ** skipped for length() and all content loading can be skipped for typeof().
 ** 如果二进制位OPFLAG_LENGTHARG和OPFLAG_TYPEOFARG都设置在P5中，要保证它们只能作为函数length()
-** 和函数typeof()的参数。函数length()可以跳过正在加载的二进制大对象以及所有正在加载的能容。
+** 和函数typeof()的参数。函数length()可以忽略正在加载的二进制大对象以及所有正在加载的内容。
 */
 case OP_Column: {
   u32 payloadSize;   /* Number of bytes in the record */
@@ -2455,7 +2455,7 @@ case OP_Column: {
                      */
   BtCursor *pCrsr;   /* The BTree cursor */
   u32 *aType;        /* aType[i] holds the numeric type of the i-th column
-                     ** aType[i]存储了第i个列的数值类型
+                     ** aType[i]存储了第i列的数值类型
                      */
   u32 *aOffset;      /* aOffset[i] is offset to start of data for i-th column
                      ** 
@@ -2463,17 +2463,27 @@ case OP_Column: {
   int nField;        /* number of fields in the record
                      ** 记录中的字段个数
                      */
-  int len;           /* The length of the serialized data for the column 
-                     ** 
+  int len;           /* The length of the serialized data for the column
+                     ** 序列化数据列的长度
                      */
   int i;             /* Loop counter */
   char *zData;       /* Part of the record being decoded */
-  Mem *pDest;        /* Where to write the extracted value */
-  Mem sMem;          /* For storing the record being decoded */
-  u8 *zIdx;          /* Index into header */
-  u8 *zEndHdr;       /* Pointer to first byte after the header */
+  Mem *pDest;        /* Where to write the extracted value
+                     ** 被提取的值卸载*pDest所指的内存位置
+                     */
+  Mem sMem;          /* For storing the record being decoded
+                     ** 说sMem用于存贮正在被解码的数据
+                     */
+  u8 *zIdx;          /* Index into header
+                     ** 索引头
+                     */
+  u8 *zEndHdr;       /* Pointer to first byte after the header
+                     ** *zEndHdr指向索引头后的第一个字节
+                     */
   u32 offset;        /* Offset into the data */
-  u32 szField;       /* Number of bytes in the content of a field */
+  u32 szField;       /* Number of bytes in the content of a field
+                     ** 
+                     */
   int szHdr;         /* Size of the header size field at start of record */
   int avail;         /* Number of bytes of available data */
   u32 t;             /* A type code from the record header */
@@ -2492,15 +2502,20 @@ case OP_Column: {
 
   /* This block sets the variable payloadSize to be the total number of
   ** bytes in the record.
+  ** 这部分代码将变量的有效长度设置为记录的总的字节数量，换句话说就是，记录有多长，这个变量就有长。
   **
   ** zRec is set to be the complete text of the record if it is available.
   ** The complete record text is always available for pseudo-tables
   ** If the record is stored in a cursor, the complete record text
   ** might be available in the  pC->aRow cache.  Or it might not be.
   ** If the data is unavailable,  zRec is set to NULL.
+  ** 如果zRec可用，将完整的记录文本赋值给zRec。完整的记录文本总是可以用于伪表。
+  ** 如果记录存储在指针里，整个记录文本在pC->aRow缓存中可能是可用的，也可能不是。
+  ** 如果数据不可用时，zRec被设置为NULL。
   **
   ** We also compute the number of columns in the record.  For cursors,
   ** the number of columns is stored in the VdbeCursor.nField element.
+  ** 我们还要计算记录中有多少列。列数存储在VdbeCursor.nField字段上。
   */
   pC = p->apCsr[p1];
   assert( pC!=0 );
@@ -2523,7 +2538,10 @@ case OP_Column: {
       assert( rc==SQLITE_OK );   /* True because of CursorMoveto() call above */
       /* sqlite3BtreeParseCellPtr() uses getVarint32() to extract the
       ** payload size, so it is impossible for payloadSize64 to be
-      ** larger than 32 bits. */
+      ** larger than 32 bits.
+      ** 函数sqlite3BtreeParseCellPtr()使用函数getVarint32()提取有效的文本大小，因此
+      ** 有效长度可能是64位大小，要比32位大。
+      */
       assert( (payloadSize64 & SQLITE_MAX_U32)==(u64)payloadSize64 );
       payloadSize = (u32)payloadSize64;
     }else{
@@ -2545,7 +2563,9 @@ case OP_Column: {
   }
 
   /* If payloadSize is 0, then just store a NULL.  This can happen because of
-  ** nullRow or because of a corrupt database. */
+  ** nullRow or because of a corrupt database. 
+  ** 如果有效长度是0，就存储一个NULL值。这种情况发生在数据库没有数据行，或数据库损坏的情况下。
+  */
   if( payloadSize==0 ){
     MemSetTypeFlag(pDest, MEM_Null);
     goto op_column_out;
@@ -2560,6 +2580,7 @@ case OP_Column: {
 
   /* Read and parse the table header.  Store the results of the parse
   ** into the record header cache fields of the cursor.
+  ** 读取、解析表头。将解析的结果存储到指针所指的缓存记录的头部。
   */
   aType = pC->aType;
   if( pC->cacheStatus==p->cacheCtr ){
@@ -2571,7 +2592,9 @@ case OP_Column: {
     pC->payloadSize = payloadSize;
     pC->cacheStatus = p->cacheCtr;
 
-    /* Figure out how many bytes are in the header */
+    /* Figure out how many bytes are in the header
+    ** 计算
+    */
     if( zRec ){
       zData = zRec;
     }else{
@@ -2584,6 +2607,8 @@ case OP_Column: {
       ** save the payload in the pC->aRow cache.  That will save us from
       ** having to make additional calls to fetch the content portion of
       ** the record.
+      ** 如果函数KeyFetch()或ataFetch()能够得到全部的有效长度，将这个有效长度存储在pC->aRow缓存中。
+      ** 这能够让我们不必额外调用函数来获取所需要的记录内容。
       */
       assert( avail>=0 );
       if( payloadSize <= (u32)avail ){
@@ -2595,11 +2620,15 @@ case OP_Column: {
     }
     /* The following assert is true in all cases except when
     ** the database file has been corrupted externally.
-    **    assert( zRec!=0 || avail>=payloadSize || avail>=9 ); */
+    **    assert( zRec!=0 || avail>=payloadSize || avail>=9 );
+    ** 除非数据库被损坏，否则这个assert语句的结果在任何情况下都是真。
+    */
     szHdr = getVarint32((u8*)zData, offset);
 
     /* Make sure a corrupt database has not given us an oversize header.
     ** Do this now to avoid an oversize memory allocation.
+    ** 确保损坏的数据库没有还没有生成超过长度限制的头文件。
+    ** 现在这样做(下面的代码)能够避免超额的内存分配。
     **
     ** Type entries can be between 1 and 5 bytes each.  But 4 and 5 byte
     ** types use so much data space that there can only be 4096 and 32 of
