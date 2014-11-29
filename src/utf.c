@@ -2,15 +2,15 @@
 ** 2004 April 13
 **
 ** The author disclaims copyright to this source code.  In place of
-** a legal notice, here is a blessing:
+** a legal notice, here is a blessing:(这里没有法律警示，只有一段祝福。)
 **
 **    May you do good and not evil.
 **    May you find forgiveness for yourself and forgive others.
-**    May you share freely, never taking more than you give.
+**    May you share freely, never taking more than you give.（这祝福写的真好！）
 **
 *************************************************************************
 ** This file contains routines used to translate between UTF-8, 
-** UTF-16, UTF-16BE, and UTF-16LE.
+** UTF-16, UTF-16BE, and UTF-16LE.（这个文件包含了以上几种不同编码方式文件的转换途径。）
 **
 ** Notes on UTF-8:
 **
@@ -40,14 +40,14 @@
 #ifndef SQLITE_AMALGAMATION
 /*
 ** The following constant value is used by the SQLITE_BIGENDIAN and
-** SQLITE_LITTLEENDIAN macros.
+** SQLITE_LITTLEENDIAN macros.（下面的常量由Sqlite的高位优先和低位优先的宏命令使用）
 */
 const int sqlite3one = 1;
 #endif /* SQLITE_AMALGAMATION */
 
 /*
 ** This lookup table is used to help decode the first byte of
-** a multi-byte UTF8 character.
+** a multi-byte UTF8 character.（这个查找表用来帮助给一个多字节的UFT8字符的第一个字节编码。）
 */
 static const unsigned char sqlite3Utf8Trans1[] = {
   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
