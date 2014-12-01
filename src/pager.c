@@ -10,13 +10,15 @@
 **
 *************************************************************************
 ** This is the implementation of the page cache subsystem or "pager".
-** 
+    这是页面缓存子系统的实或者叫“寻呼机”。
 ** The pager is used to access a database disk file.  It implements
 ** atomic commit and rollback through the use of a journal file that
 ** is separate from the database file.  The pager also implements file
 ** locking to prevent two processes from writing the same database
 ** file simultaneously, or one process from reading the database while
 ** another is writing.
+    寻呼机是用于访问数据库的磁盘文件。它通过使用独立于数据库文件的日志文件实现原子提交和回滚。
+    寻呼机同样实现利用文件锁防止两个进程同时编写相同的数据库，或者防止一个进程读取正在被编写的数据库。
 */
 #ifndef SQLITE_OMIT_DISKIO
 #include "sqliteInt.h"
@@ -5244,7 +5246,7 @@ static int pager_open_journal(Pager *pPager){
 /*
 ** Begin a write-transaction on the specified pager object. If a 
 ** write-transaction has already been opened, this function is a no-op.
-**
+** 在指定的寻呼机对象上开始一个写事务。如果写事务已经被打开，这个功能就是一个空操作。
 ** If the exFlag argument is false, then acquire at least a RESERVED
 ** lock on the database file. If exFlag is true, then acquire at least
 ** an EXCLUSIVE lock. If such a lock is already held, no locking 

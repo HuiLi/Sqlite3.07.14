@@ -9,18 +9,16 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** This module contains C code that generates VDBE code used to process
-** the WHERE clause of SQL statements.  This module is responsible for
-** generating the code that loops through a table looking for applicable
-** rows.  Indices are selected and used to speed the search when doing
-** so is applicable.  Because this module is responsible for selecting
-** indices, you might also think of this module as the "query optimizer".
+** 这个模块包括用于处理SQL语句中的WHERE子句的VDBE代码生成的C语言代码。
+** 该模块负责生成用于遍历整个表来寻找有效行的VDBE代码。
+** 如果有可用索引的话可以通过索引加快搜索，因为该模块负责选择索引，你也可
+** 以认为该模块是“查询优化器”。。。
 */
 #include "sqliteInt.h"
 
 
 /*
-** Trace output macros
+** 跟踪输出宏，大概是用于当定义了SQLITE_TEST时查看调试信息之用。
 */
 #if defined(SQLITE_TEST) || defined(SQLITE_DEBUG)
 int sqlite3WhereTrace = 0;
@@ -31,7 +29,7 @@ int sqlite3WhereTrace = 0;
 # define WHERETRACE(X)
 #endif
 
-/* Forward reference
+/* 前置引用
 */
 typedef struct WhereClause WhereClause;
 typedef struct WhereMaskSet WhereMaskSet;
@@ -39,45 +37,39 @@ typedef struct WhereOrInfo WhereOrInfo;
 typedef struct WhereAndInfo WhereAndInfo;
 typedef struct WhereCost WhereCost;
 
-/*
-** The query generator uses an array of instances of this structure to
-** help it analyze the subexpressions of the WHERE clause.  Each WHERE
-** clause subexpression is separated from the others by AND operators,
-** usually, or sometimes subexpressions separated by OR.
+/*  ****************** WhereTerm定义说明 *********************
 **
-** All WhereTerms are collected into a single WhereClause structure.  
-** The following identity holds:
+** 查询生成器使用一个该结构体的数组用于分析WHERE语句的子表达式。
+** 通常每一个WHERE语句子表达式用AND隔开,有时使用OR操作符隔开。
+**
+** 所有WhereTerms汇总到一个单一的WhereClause结构体中.  
+** 使用以下方式保存:
 **
 **        WhereTerm.pWC->a[WhereTerm.idx] == WhereTerm
 **
-** When a term is of the form:
+** 如果term如下形式:
 **
 **              X <op> <expr>
 **
-** where X is a column name and <op> is one of certain operators,
-** then WhereTerm.leftCursor and WhereTerm.u.leftColumn record the
-** cursor number and column number for X.  WhereTerm.eOperator records
-** the <op> using a bitmask encoding defined by WO_xxx below.  The
-** use of a bitmask encoding for the operator allows us to search
-** quickly for terms that match any of several different operators.
+** 这里X是一个列名并且<op>是某些操作符。
+** leftCursor和WhereTerm.u.leftColumn记录了X的指针数。
+** WhereTerm.eOperator使用下面定义的WO_xxx和位掩码（Bitmask）记录了<op>
+** 操作符的位掩码编码允许我们使用快速搜索匹配几种不同的操作符。
 **
-** A WhereTerm might also be two or more subterms connected by OR:
+** 一个WhereTerm也可能是两个或多个子项通过OR连接，如下:
 **
 **         (t1.X <op> <expr>) OR (t1.Y <op> <expr>) OR ....
 **
-** In this second case, wtFlag as the TERM_ORINFO set and eOperator==WO_OR
-** and the WhereTerm.u.pOrInfo field points to auxiliary information that
-** is collected about the
+** 在第二种情况下, wtFlag等于TERM_ORINFO并且eOperator==WO_OR，
+** WhereTerm.u.pOrInfo字段指针指向与收集有关的信息。
 **
-** If a term in the WHERE clause does not match either of the two previous
-** categories, then eOperator==0.  The WhereTerm.pExpr field is still set
-** to the original subexpression content and wtFlags is set up appropriately
-** but no other fields in the WhereTerm object are meaningful.
+** 如果一个WHERE语句中的term不匹配前面两种情形，则eOperator==0。
+** WhereTerm.pExpr字段对于原有子表达式内容和wtFlags还是恰当的，
+** 但是WhereTerm对象中的其他字段是无效的。
 **
-** When eOperator!=0, prereqRight and prereqAll record sets of cursor numbers,
-** but they do so indirectly.  A single WhereMaskSet structure translates
-** cursor number into bits and the translated bit is stored in the prereq
-** fields.  The translation is used in order to maximize the number of
+** 当eOperator!=0, prereqRight和prereqAll记录了光标号,但是是间接的。
+** 单个WhereMaskSet结构体转换光标号为比特和翻译的比特存储在prereq字段。
+** The translation is used in order to maximize the number of
 ** bits that will fit in a Bitmask.  The VDBE cursor numbers might be
 ** spread out over the non-negative integers.  For example, the cursor
 ** numbers might be 3, 8, 9, 10, 20, 23, 41, and 45.  The WhereMaskSet
@@ -86,22 +78,21 @@ typedef struct WhereCost WhereCost;
 ** bits in the Bitmask.  So, in the example above, the cursor numbers
 ** would be mapped into integers 0 through 7.
 **
-** The number of terms in a join is limited by the number of bits
-** in prereqRight and prereqAll.  The default is 64 bits, hence SQLite
-** is only able to process joins with 64 or fewer tables.
+** Term的一个连接的数量受prereqRight和prereqAll比特数的限制。
+** 默认是64位, 因此SQLite仅能够处理64个以下的表的连接。
 */
 typedef struct WhereTerm WhereTerm;
 struct WhereTerm {
-  Expr *pExpr;            /* Pointer to the subexpression that is this term */
+  Expr *pExpr;            /* 指向这个term的子表达式的指针 */
   int iParent;            /* Disable pWC->a[iParent] when this term disabled */
-  int leftCursor;         /* Cursor number of X in "X <op> <expr>" */
+  int leftCursor;         /* "X <op> <expr>"中X的数量 */
   union {
-    int leftColumn;         /* Column number of X in "X <op> <expr>" */
-    WhereOrInfo *pOrInfo;   /* Extra information if eOperator==WO_OR */
-    WhereAndInfo *pAndInfo; /* Extra information if eOperator==WO_AND */
+    int leftColumn;         /* "X <op> <expr>"中X的数量 */
+    WhereOrInfo *pOrInfo;   /* 当eOperator==WO_OR时的额外信息 */
+    WhereAndInfo *pAndInfo; /* 当eOperator==WO_AND时的额外信息 */
   } u;
-  u16 eOperator;          /* A WO_xx value describing <op> */
-  u8 wtFlags;             /* TERM_xxx bit flags.  See below */
+  u16 eOperator;          /* WO_xx宏的值，用于描述<op> */
+  u8 wtFlags;             /* TERM_xxx标志.  见下面定义 */
   u8 nChild;              /* Number of children that must disable us */
   WhereClause *pWC;       /* The clause this term is part of */
   Bitmask prereqRight;    /* Bitmask of tables used by pExpr->pRight */
@@ -109,11 +100,11 @@ struct WhereTerm {
 };
 
 /*
-** Allowed values of WhereTerm.wtFlags
+** WhereTerm.wtFlags的可用值
 */
-#define TERM_DYNAMIC    0x01   /* Need to call sqlite3ExprDelete(db, pExpr) */
-#define TERM_VIRTUAL    0x02   /* Added by the optimizer.  Do not code */
-#define TERM_CODED      0x04   /* This term is already coded */
+#define TERM_DYNAMIC    0x01   /* 需要调用 sqlite3ExprDelete(db, pExpr) */
+#define TERM_VIRTUAL    0x02   /* 优化器添加的.  Do not code */
+#define TERM_CODED      0x04   /* 这个term已经生成代码 */
 #define TERM_COPIED     0x08   /* Has a child */
 #define TERM_ORINFO     0x10   /* Need to free the WhereTerm.u.pOrInfo object */
 #define TERM_ANDINFO    0x20   /* Need to free the WhereTerm.u.pAndInfo obj */
@@ -124,63 +115,68 @@ struct WhereTerm {
 #  define TERM_VNULL    0x00   /* Disabled if not using stat3 */
 #endif
 
-/*
-** An instance of the following structure holds all information about a
-** WHERE clause.  Mostly this is a container for one or more WhereTerms.
+/* ****************** WhereClause定义说明 *********************
+** 该结构体的一个实例用于保存整个WHERE语法树的信息。
+** 大部分时候它是一个或多个WhereTerms的容器
 **
-** Explanation of pOuter:  For a WHERE clause of the form
+** pOuter说明:  对于如下形式的WHERE语法树
 **
 **           a AND ((b AND c) OR (d AND e)) AND f
 **
 ** There are separate WhereClause objects for the whole clause and for
-** the subclauses "(b AND c)" and "(d AND e)".  The pOuter field of the
-** subclauses points to the WhereClause object for the whole clause.
+** the subclauses "(b AND c)" and "(d AND e)".
+** 这里有很多独立的WhereClause对象组成整个Where语句和类似"(b AND c)"以及"(d AND e)"这样的子语句。
+** pOuter字段指针指向整个Where语句的WhereClause对象的子语句。
 */
 struct WhereClause {
-  Parse *pParse;           /* The parser context */
-  WhereMaskSet *pMaskSet;  /* Mapping of table cursor numbers to bitmasks */
+  Parse *pParse;           /* 语法分析器上下文 */
+  WhereMaskSet *pMaskSet;  /* 表游标数到位掩码的映射 Mapping of table cursor numbers to bitmasks */
   Bitmask vmask;           /* Bitmask identifying virtual table cursors */
   WhereClause *pOuter;     /* Outer conjunction */
   u8 op;                   /* Split operator.  TK_AND or TK_OR */
   u16 wctrlFlags;          /* Might include WHERE_AND_ONLY */
-  int nTerm;               /* Number of terms */
+  int nTerm;               /* term的数量 */
   int nSlot;               /* Number of entries in a[] */
-  WhereTerm *a;            /* Each a[] describes a term of the WHERE cluase */
+  WhereTerm *a;            /* 每一个 a[] 表示WHERE语句中的term */
 #if defined(SQLITE_SMALL_STACK)
   WhereTerm aStatic[1];    /* Initial static space for a[] */
 #else
-  WhereTerm aStatic[8];    /* Initial static space for a[] */
+  WhereTerm aStatic[8];    /* 初始化a[]静态空间 */
 #endif
 };
 
-/*
+/* ****************** WhereOrInfo 定义说明 *********************
 ** A WhereTerm with eOperator==WO_OR has its u.pOrInfo pointer set to
 ** a dynamically allocated instance of the following structure.
+** 若WhereTerm的eOperator字段等于WO_OR，则该WhereTerm里u.pOrInfo指针指向
+** 该结构体的一个动态分配的实例。
 */
 struct WhereOrInfo {
-  WhereClause wc;          /* Decomposition into subterms */
+  WhereClause wc;          /* 子term的分解 Decomposition into subterms */
   Bitmask indexable;       /* Bitmask of all indexable tables in the clause */
 };
 
-/*
+/* ****************** WhereAndInfo 定义说明 *********************
 ** A WhereTerm with eOperator==WO_AND has its u.pAndInfo pointer set to
 ** a dynamically allocated instance of the following structure.
+** 若WhereTerm的eOperator字段等于WO_AND，则该WhereTerm里u.pAndInfo指针指向
+** 该结构体的一个动态分配的实例。
 */
 struct WhereAndInfo {
   WhereClause wc;          /* The subexpression broken out */
 };
 
-/*
+/* ****************** WhereMaskSet 定义说明 *********************
 ** An instance of the following structure keeps track of a mapping
 ** between VDBE cursor numbers and bits of the bitmasks in WhereTerm.
+** 该结构体实例用于跟踪WhereTerm中 VDBE 光标数量以及位掩码的映射
 **
 ** The VDBE cursor numbers are small integers contained in 
-** SrcList_item.iCursor and Expr.iTable fields.  For any given WHERE 
-** clause, the cursor numbers might not begin with 0 and they might
-** contain gaps in the numbering sequence.  But we want to make maximum
-** use of the bits in our bitmasks.  This structure provides a mapping
-** from the sparse cursor numbers into consecutive integers beginning
-** with 0.
+** VDBE 光标数量为small integer类型包含在 SrcList_item.iCursor 或 Expr.iTable 字段中。
+** 对于任何给定的WHERE子句，光标数据可能不是从0开始，他们可能包含空白的编号的顺序。
+** But we want to make maximum use of the bits in our bitmasks.  This structure provides a mapping
+** from the sparse cursor numbers into consecutive integers beginning with 0.
+** 但是我们想让我们的掩码位最大的使用。这种结构提供一个映射的稀疏光标的数字从0开始连续的整数。
 **
 ** If WhereMaskSet.ix[A]==B it means that The A-th bit of a Bitmask
 ** corresponds VDBE cursor number B.  The A-th bit of a bitmask is 1<<A.
@@ -204,10 +200,11 @@ struct WhereMaskSet {
 /*
 ** A WhereCost object records a lookup strategy and the estimated
 ** cost of pursuing that strategy.
+** WhereCost 对象记录一个查询策略以及预估的进行该策略的成本。
 */
 struct WhereCost {
-  WherePlan plan;    /* The lookup strategy */
-  double rCost;      /* Overall cost of pursuing this search strategy */
+  WherePlan plan;    /* 策略计划 */
+  double rCost;      /* 该查询计划的总成本 */
   Bitmask used;      /* Bitmask of cursors used by this plan */
 };
 
@@ -237,9 +234,9 @@ struct WhereCost {
 ** strategies are appropriate.
 **
 ** The least significant 12 bits is reserved as a mask for WO_ values above.
-** The WhereLevel.wsFlags field is usually set to WO_IN|WO_EQ|WO_ISNULL.
-** But if the table is the right table of a left join, WhereLevel.wsFlags
-** is set to WO_IN|WO_EQ.  The WhereLevel.wsFlags field can then be used as
+** WhereLevel.wsFlags 字段的值通常是 WO_IN|WO_EQ|WO_ISNULL.
+** 但如果表是左连接的右表, WhereLevel.wsFlags 设置为 WO_IN|WO_EQ。
+** The WhereLevel.wsFlags field can then be used as
 ** the "op" parameter to findTerm when we are resolving equality constraints.
 ** ISNULL constraints will then not be used on the right table of a left
 ** join.  Tickets #2177 and #2189.
@@ -266,16 +263,16 @@ struct WhereCost {
 #define WHERE_DISTINCT     0x40000000  /* Correct order for DISTINCT */
 
 /*
-** Initialize a preallocated WhereClause structure.
+** 初始化一个预先分配的WhereClause结构
 */
 static void whereClauseInit(
-  WhereClause *pWC,        /* The WhereClause to be initialized */
-  Parse *pParse,           /* The parsing context */
+  WhereClause *pWC,        /* 将要初始化的WhereClause */
+  Parse *pParse,           /* 语法分析器上下文 */
   WhereMaskSet *pMaskSet,  /* Mapping from table cursor numbers to bitmasks */
   u16 wctrlFlags           /* Might include WHERE_AND_ONLY */
 ){
-  pWC->pParse = pParse;
-  pWC->pMaskSet = pMaskSet;
+  pWC->pParse = pParse;    /* 初始化pWC的pParse */
+  pWC->pMaskSet = pMaskSet;  /* 初始化pWC的pMaskSet */
   pWC->pOuter = 0;
   pWC->nTerm = 0;
   pWC->nSlot = ArraySize(pWC->aStatic);
@@ -284,11 +281,11 @@ static void whereClauseInit(
   pWC->wctrlFlags = wctrlFlags;
 }
 
-/* Forward reference */
+/* 前置引用 */
 static void whereClauseClear(WhereClause*);
 
 /*
-** Deallocate all memory associated with a WhereOrInfo object.
+** 释放一个 WhereOrInfo 对象相关联的存储空间
 */
 static void whereOrInfoDelete(sqlite3 *db, WhereOrInfo *p){
   whereClauseClear(&p->wc);
@@ -296,7 +293,7 @@ static void whereOrInfoDelete(sqlite3 *db, WhereOrInfo *p){
 }
 
 /*
-** Deallocate all memory associated with a WhereAndInfo object.
+** 释放一个 WhereAndInfo 对象WhereAndInfo相关联的存储空间
 */
 static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
   whereClauseClear(&p->wc);
@@ -304,8 +301,8 @@ static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
 }
 
 /*
-** Deallocate a WhereClause structure.  The WhereClause structure
-** itself is not freed.  This routine is the inverse of whereClauseInit().
+** 释放一个 WhereClause 结构体.  WhereClause 结构体自身没有释放。
+** 这是一个 whereClauseInit() 的逆向操作。
 */
 static void whereClauseClear(WhereClause *pWC){
   int i;
@@ -327,14 +324,19 @@ static void whereClauseClear(WhereClause *pWC){
 }
 
 /*
-** Add a single new WhereTerm entry to the WhereClause object pWC.
+** 添加单个新 WhereTerm 对象到 WhereClause 对象pWC中。
 ** The new WhereTerm object is constructed from Expr p and with wtFlags.
+** 新的 WhereTerm 对象由Expr p和wtFlags构造而成。
 ** The index in pWC->a[] of the new WhereTerm is returned on success.
+** 新 WhereTerm 对象在 pWC->a[] 数组中的索引值会在加入成功后由函数返回。
 ** 0 is returned if the new WhereTerm could not be added due to a memory
 ** allocation error.  The memory allocation failure will be recorded in
 ** the db->mallocFailed flag so that higher-level functions can detect it.
+** 返回0表示新 WhereTerm 由于空间分配错误无法添加。
+** 内存分配失败将记录在 DB—> mallocfailed 标志中使更高级别的函数可以检测到它。
 **
 ** This routine will increase the size of the pWC->a[] array as necessary.
+** 通常这会增加 pWC->a[] 数组的大小。
 **
 ** If the wtFlags argument includes TERM_DYNAMIC, then responsibility
 ** for freeing the expression p is assumed by the WhereClause object pWC.
@@ -4580,14 +4582,13 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 **
 ** If an error occurs, this routine returns NULL.
 **
-** The basic idea is to do a nested loop, one loop for each table in
-** the FROM clause of a select.  (INSERT and UPDATE statements are the
-** same as a SELECT with only a single table in the FROM clause.)  For
-** example, if the SQL is this:
+** 基本理念是嵌套循环, 针对SELECT中FROM语句后的每一个表有一个循环体。
+** 在INSERT和UPDATE语句中类似，只不过这两个语句FROM只包含一个表。
+** 举个栗子，如果过有这样的一条SQL语句:
 **
 **       SELECT * FROM t1, t2, t3 WHERE ...;
 **
-** Then the code generated is conceptually like the following:
+** 则代码生成器在概念上如下:
 **
 **      foreach row1 in t1 do       \    Code generated
 **        foreach row2 in t2 do      |-- by sqlite3WhereBegin()
@@ -4659,34 +4660,44 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** If the where clause loops cannot be arranged to provide the correct
 ** output order, then the *ppOrderBy is unchanged.
 */
+/*
+** 在Sqlite中查询优化的基本概念是嵌套循环（nested loop），在本函数中完成所有的查询优化。
+** 而对于每一层的优化，基本的理念就是对于该层循环的表，分析WHERE子句中是否有表达式能够使用其索引。
+** Sqlite有三种基本的扫描策略：
+** (1)全表扫描，这种情况通常出现在没有WHERE子句时；
+** (2)基于索引扫描，这种情况通常出现在表有索引，而且WHERE中的表达式又能够使用该索引的情况；
+** (3)基本rowid的扫描，这种情况通常出现在WHERE表达式中含有rowid的条件。
+**    该情况实际上也是对表进行的扫描。可以说，Sqlite以rowid为聚簇索引。
+*/
 WhereInfo *sqlite3WhereBegin(
-  Parse *pParse,        /* The parser context */
-  SrcList *pTabList,    /* A list of all tables to be scanned */
-  Expr *pWhere,         /* The WHERE clause */
+  Parse *pParse,        /* 语法分析器上下文 */
+  SrcList *pTabList,    /* 需要被扫描的table列表（即From语句后跟的Table的信息列表） */
+  Expr *pWhere,         /* Where语法树 */
   ExprList **ppOrderBy, /* An ORDER BY clause, or NULL */
   ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL */
   u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h */
-  int iIdxCur           /* If WHERE_ONETABLE_ONLY is set, index cursor number */
+  int iIdxCur           /* 如果设置了WHERE_ONETABLE_ONLY,这个是表的索引值 */
 ){
-  int i;                     /* Loop counter */
-  int nByteWInfo;            /* Num. bytes allocated for WhereInfo struct */
-  int nTabList;              /* Number of elements in pTabList */
-  WhereInfo *pWInfo;         /* Will become the return value of this function */
-  Vdbe *v = pParse->pVdbe;   /* The virtual database engine */
+  int i;                     /* 循环计数器 */
+  int nByteWInfo;            /* 为WhereInfo结构体分配的字节数 */
+  int nTabList;              /* pTabList中元素的个数 */
+  WhereInfo *pWInfo;         /* 函数返回变量 */
+  Vdbe *v = pParse->pVdbe;   /* VDBE引擎 */
   Bitmask notReady;          /* Cursors that are not yet positioned */
   WhereMaskSet *pMaskSet;    /* The expression mask set */
-  WhereClause *pWC;               /* Decomposition of the WHERE clause */
+  WhereClause *pWC;               /* WHERE语句的分解 */
   struct SrcList_item *pTabItem;  /* A single entry from pTabList */
   WhereLevel *pLevel;             /* A single level in the pWInfo list */
   int iFrom;                      /* First unused FROM clause element */
   int andFlags;              /* AND-ed combination of all pWC->a[].wtFlags */
-  sqlite3 *db;               /* Database connection */
+  sqlite3 *db;               /* 数据库的连接 */
 
   /* The number of tables in the FROM clause is limited by the number of
   ** bits in a Bitmask 
   */
   testcase( pTabList->nSrc==BMS );
   if( pTabList->nSrc>BMS ){
+    /* From语句后面的表数量超过Bitmask的比特数量限制 */
     sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);
     return 0;
   }

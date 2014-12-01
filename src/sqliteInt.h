@@ -9,8 +9,9 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** Internal interface definitions for SQLite.
 **
+** Internal interface definitions for SQLite.
+** 定义了SQLite的内部接口。
 */
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_
@@ -1134,6 +1135,8 @@ struct Column {
 ** A "Collating Sequence" is defined by an instance of the following
 ** structure. Conceptually, a collating sequence consists of a name and
 ** a comparison routine that defines the order of that sequence.
+** 一个“排序序列”就是下面这个结构体的一个实例。从概念上讲，一个排序序列由一个名称，以及
+** 一个用于对序列进行比较、排序的程序(不知道怎么翻译routine)构成。
 **
 ** There may two separate implementations of the collation function, one
 ** that processes text in UTF-8 encoding (CollSeq.xCmp) and another that
@@ -1141,15 +1144,22 @@ struct Column {
 ** native byte order. When a collation sequence is invoked, SQLite selects
 ** the version that will require the least expensive encoding
 ** translations, if any.
+** 排序函数有两个不同的的实现版本，一个处理utf-8编码的文本(CollSeq.xCmp)，另一个处理utf - 16
+** 编码的文本(CollSeq.xCmp16)，两种都使用计算机原生的字节顺序。在调用排序序列时，如果条件允许，
+** SQLite会选择编码转换代价最小的版本。
 **
 ** The CollSeq.pUser member variable is an extra parameter that passed in
 ** as the first argument to the UTF-8 comparison function, xCmp.
 ** CollSeq.pUser16 is the equivalent for the UTF-16 comparison function,
 ** xCmp16.
+** 成员变量CollSeq.pUser是一个额外的参数，它作为第一个参数传递到utf-8版本的比较函数xCmp()。
+** CollSeq.pUser16对于编码为utf-16的比较函数xCmp16有同等意义。
 **
 ** If both CollSeq.xCmp and CollSeq.xCmp16 are NULL, it means that the
 ** collating sequence is undefined.  Indices built on an undefined
 ** collating sequence may not be read or written.
+** 如果两个CollSeq.xCmp和CollSeq.xCmp16都是NULL，这意味着排序序列没有定义。
+** 索引建立在一个未定义的排序序列可能不会被读或写。
 */
 struct CollSeq {
   char *zName;          /* Name of the collating sequence, UTF-8 encoded */
@@ -1167,17 +1177,23 @@ struct CollSeq {
 
 /*
 ** Column affinity types.
+** 列关联类型。
 **
 ** These used to have mnemonic name like 'i' for SQLITE_AFF_INTEGER and
 ** 't' for SQLITE_AFF_TEXT.  But we can save a little space and improve
-** the speed a little by numbering the values consecutively.  
+** the speed a little by numbering the values consecutively.
+** 这些宏定义的作用是让我们有一个便于记忆的名字，比如‘i’对应SQLITE_AFF_INTEGER，‘t’对应SQLITE_AFF_TEXT。
+** 但是我们可以通过给变量连续编号来节省一些内存空间，同时提升一点运行速度
 **
 ** But rather than start with 0 or 1, we begin with 'a'.  That way,
 ** when multiple affinity types are concatenated into a string and
 ** used as the P4 operand, they will be more readable.
+** 不过，这里我们从“a”开始编号，而不是从0或1开始。这样,当多个关联类型连接成一个字符串,
+** 并且被用作P4操作数时，他们将更具可读性。
 **
 ** Note also that the numeric types are grouped together so that testing
 ** for a numeric type is a single comparison.
+** 还要注意，这些数值类型组合在一起是为了方便对每一个数值类型进行测试，这种测试仅仅是一种比较。
 */
 #define SQLITE_AFF_TEXT     'a'
 #define SQLITE_AFF_NONE     'b'
@@ -1189,34 +1205,40 @@ struct CollSeq {
 
 /*
 ** The SQLITE_AFF_MASK values masks off the significant bits of an
-** affinity value. 
+** affinity value.
+** SQLITE_AFF_MASK相当于一个掩码，与一个代表关联性的二进制位相对应。
 */
 #define SQLITE_AFF_MASK     0x67
 
 /*
 ** Additional bit values that can be ORed with an affinity without
 ** changing the affinity.
+** 另外一些二进制值。
 */
-#define SQLITE_JUMPIFNULL   0x08  /* jumps if either operand is NULL */
+#define SQLITE_JUMPIFNULL   0x08  /* jumps if either operand is NULL 
+								  ** 如果任何一个操作数是空，就跳转
+								  */
 #define SQLITE_STOREP2      0x10  /* Store result in reg[P2] rather than jump */
+								  ** 结果存储在寄存器P2中，不进行跳转
+								  */
 #define SQLITE_NULLEQ       0x80  /* NULL=NULL */
 
 /*
 ** An object of this type is created for each virtual table present in
-** the database schema. 
+** the database schema.
 **
 ** If the database schema is shared, then there is one instance of this
 ** structure for each database connection (sqlite3*) that uses the shared
 ** schema. This is because each database connection requires its own unique
-** instance of the sqlite3_vtab* handle used to access the virtual table 
-** implementation. sqlite3_vtab* handles can not be shared between 
-** database connections, even when the rest of the in-memory database 
+** instance of the sqlite3_vtab* handle used to access the virtual table
+** implementation. sqlite3_vtab* handles can not be shared between
+** database connections, even when the rest of the in-memory database
 ** schema is shared, as the implementation often stores the database
 ** connection handle passed to it via the xConnect() or xCreate() method
 ** during initialization internally. This database connection handle may
-** then be used by the virtual table implementation to access real tables 
-** within the database. So that they appear as part of the callers 
-** transaction, these accesses need to be made via the same database 
+** then be used by the virtual table implementation to access real tables
+** within the database. So that they appear as part of the callers
+** transaction, these accesses need to be made via the same database
 ** connection as that used to execute SQL operations on the virtual table.
 **
 ** All VTable objects that correspond to a single table in a shared
@@ -1393,7 +1415,7 @@ struct FKey {
 ** key is set to NULL.  CASCADE means that a DELETE or UPDATE of the
 ** referenced table row is propagated into the row that holds the
 ** foreign key.
-** 
+**
 ** The following symbolic values are used to record which type
 ** of action to take.
 */
@@ -1414,8 +1436,9 @@ struct FKey {
 
 /*
 ** An instance of the following structure is passed as the first
-** argument to sqlite3VdbeKeyCompare and is used to control the 
+** argument to sqlite3VdbeKeyCompare and is used to control the
 ** comparison of the two index keys.
+** 下面这个结构体的实例会作为第一个参数传递给sqlite3VdbeKeyCompare方法，还会被用于控制两个索引键的比较。
 */
 struct KeyInfo {
   sqlite3 *db;        /* The database connection */
