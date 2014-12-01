@@ -42,27 +42,27 @@ typedef struct Explain Explain;
 
 /*
 ** A cursor is a pointer into a single BTree within a database file.
-**一个游标是一个数据库文件中单一BTree的指针。
+**一个指针是一个数据库文件中单一BTree的指示器。
 ** The cursor can seek to a BTree entry with a particular key, or
 ** loop over all entries of the Btree.  You can also insert new BTree
 ** entries or retrieve the key or data from the entry that the cursor
 ** is currently pointing to.
-**这个游标能够找到拥有特定值的一个BTree的入口，或者遍历BTree的所有入
-**口。你能够新的BTree入口或者从这个游标通常指向的的入口检索值或者数据。
+**这个指针能够找到拥有特定值的一个BTree的入口，或者遍历BTree的所有入
+**口。你能够新的BTree入口或者从这个指针通常指向的的入口检索值或者数据。
 ** Every cursor that the virtual machine has open is represented by an
 ** instance of the following structure.
-**每一个虚拟机已经开启的游标都代表着一个一下结构的常量。
+**每一个虚拟机已经开启的指针都代表着一个一下结构的常量。
 */
 struct VdbeCursor {
-  BtCursor *pCursor;    /* The cursor structure of the backend */
-  Btree *pBt;           /* Separate file holding temporary table */
-  KeyInfo *pKeyInfo;    /* Info about index keys needed by index cursors */
-  int iDb;              /* Index of cursor database in db->aDb[] (or -1) */
-  int pseudoTableReg;   /* Register holding pseudotable content. */
-  int nField;           /* Number of fields in the header */
-  Bool zeroed;          /* True if zeroed out and ready for reuse */
-  Bool rowidIsValid;    /* True if lastRowid is valid */
-  Bool atFirst;         /* True if pointing to first entry */
+  BtCursor *pCursor;    /* The cursor structure of the backend 后台的指针结构*/
+  Btree *pBt;           /* Separate file holding temporary table 分开拥有临时表的文件 */
+  KeyInfo *pKeyInfo;    /* Info about index keys needed by index cursors 索引指针所需要的索引键的有关信息*/
+  int iDb;              /* Index of cursor database in db->aDb[] (or -1) 指针数据库的检索*/
+  int pseudoTableReg;   /* Register holding pseudotable content. 记录包含伪随机号码表的目录*/
+  int nField;           /* Number of fields in the header 头文件中的区域数量*/
+  Bool zeroed;          /* True if zeroed out and ready for reuse如果为零则为真并且准备被复用。 */
+  Bool rowidIsValid;    /* True if lastRowid is valid 如果最后一行的行ID是有效地则为真。*/
+  Bool atFirst;         /* True if pointing to first entry 如果指向第一个入口则为真*/
   Bool useRandomRowid;  /* Generate new record numbers semi-randomly */
   Bool nullRow;         /* True if pointing to a row with no data */
   Bool deferredMoveto;  /* A call to sqlite3BtreeMoveto() is needed */
