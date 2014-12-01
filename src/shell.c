@@ -135,10 +135,10 @@ static void endTimer(void){   //表示打印结果的时间
 
 /* Saved resource information for the beginning of an operation */
 static HANDLE hProcess;
-static FILETIME ftKernelBegin;
-static FILETIME ftUserBegin;
+static FILETIME ftKernelBegin; //内核开始时间
+static FILETIME ftUserBegin;  //用户开始时间
 typedef BOOL (WINAPI *GETPROCTIMES)(HANDLE, LPFILETIME, LPFILETIME, LPFILETIME, LPFILETIME);
-static GETPROCTIMES getProcessTimesAddr = NULL;
+static GETPROCTIMES getProcessTimesAddr = NULL;  //表示得到进程时间
 
 /*
 ** Check to see if we have timer support.  Return 1 if necessary
@@ -154,14 +154,15 @@ static int hasTimer(void){    //计时器
     */
     hProcess = GetCurrentProcess();
     if( hProcess ){
-      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件，属于内核级文件。它控制着系统的内存管理、数据的输入输出操作和中断处理
+      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  //加载动态链接库。之后可以访问库内的资源  
+                                                               /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件，属于内核级文件。它控制着系统的内存管理、数据的输入输出操作和中断处理
                                                                 ** 当Windows启动时，kernel32.dll就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  											 ** 就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  
-      if( NULL != hinstLib ){
-        getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");
-        if( NULL != getProcessTimesAddr ){
+       if( NULL != hinstLib ){
+        getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");  //获取动态连接库里的功能函数地址
+        if( NULL != getProcessTimesAddr ){  //如果获取成功，返回1
           return 1;
         }
-        FreeLibrary(hinstLib); 
+        FreeLibrary(hinstLib);  //释放动态连接库。
       }
     }
   }
@@ -173,14 +174,14 @@ static int hasTimer(void){    //计时器
 */
 static void beginTimer(void){
   if( enableTimer && getProcessTimesAddr ){
-    FILETIME ftCreation, ftExit;
+    FILETIME ftCreation, ftExit; //分别定义了表示时间信息的建立和结束的变量
     getProcessTimesAddr(hProcess, &ftCreation, &ftExit, &ftKernelBegin, &ftUserBegin);
   }
 }
 
 /* Return the difference of two FILETIME structs in seconds */
-static double timeDiff(FILETIME *pStart, FILETIME *pEnd){
-  sqlite_int64 i64Start = *((sqlite_int64 *) pStart);
+static double timeDiff(FILETIME *pStart, FILETIME *pEnd){ // 有关返回开始时间和系统时间之间的差异
+  sqlite_int64 i64Start = *((sqlite_int64 *) pStart);  //定义一个新的类型 sqlite_int64
   sqlite_int64 i64End = *((sqlite_int64 *) pEnd);
   return (double) ((i64End - i64Start) / 10000000.0);
 }
@@ -188,8 +189,8 @@ static double timeDiff(FILETIME *pStart, FILETIME *pEnd){
 /*
 ** Print the timing results.
 */
-static void endTimer(void){
-  if( enableTimer && getProcessTimesAddr){
+static void endTimer(void){  //表示打印结果的时间
+  if( enableTimer && getProcessTimesAddr){  //激活成功并且得到函数地址
     FILETIME ftCreation, ftExit, ftKernelEnd, ftUserEnd;
     getProcessTimesAddr(hProcess, &ftCreation, &ftExit, &ftKernelEnd, &ftUserEnd);
     printf("CPU Time: user %f sys %f\n",
@@ -200,7 +201,7 @@ static void endTimer(void){
 
 #define BEGIN_TIMER beginTimer()
 #define END_TIMER endTimer()
-#define HAS_TIMER hasTimer()
+#define HAS_TIMER hasTimer()  //定义哈希时间
 
 #else
 #define BEGIN_TIMER 
@@ -211,42 +212,43 @@ static void endTimer(void){
 /*
 ** Used to prevent warnings about unused parameters
 */
-#define UNUSED_PARAMETER(x) (void)(x)
+#define UNUSED_PARAMETER(x) (void)(x)  //为了防止不使用的参数的警告
 
 /*
 ** If the following flag is set, then command execution stops
 ** at an error if we are not interactive.
 */
-static int bail_on_error = 0;
+static int bail_on_error = 0;//设置下面的标记,如果我们没有交互命令执行就会因为一个错误而停止
 
 /*
 ** Threat stdin as an interactive input if the following variable
 ** is true.  Otherwise, assume stdin is connected to a file or pipe.
 */
-static int stdin_is_interactive = 1;
+static int stdin_is_interactive = 1; //如果这个变量是true，进行交互式输入，否则，假设交互式输入是连接到文件或者管道的。
 
 /*
 ** The following is the open SQLite database.  We make a pointer
 ** to this database a static variable so that it can be accessed
 ** by the SIGINT handler to interrupt database processing.
 */
-static sqlite3 *db = 0;
+static sqlite3 *db = 0; //表示打开的数据库，定义一个静态的指针变量，我们就能够通过中断信号控制来中断数据库操作
 
 /*
 ** True if an interrupt (Control-C) has been received.
 */
-static volatile int seenInterrupt = 0;
+static volatile int seenInterrupt = 0;   //用来检测中断的变量，如果收到中断信号，就将变量赋值为 1
 
 /*
 ** This is the name of our program. It is set in main(), used
 ** in a number of other places, mostly for error messages.
 */
-static char *Argv0;
+static char *Argv0;  //  被使用在main（）函数和很多其他场合，表示程序的名字，下面程序中更多被使用在错误信息里。如：fprintf(stderr,"%s: Error: no database filename specified\n", Argv0);
 
 /*
 ** Prompt strings. Initialized in main. Settable with
-**   .prompt main continue
+**   .prompt main continue 
 */
+//提示字符串，在main函数中初始化，用.prompt main continue 设定
 static char mainPrompt[20];     /* First line prompt. default: "sqlite> "*/
 static char continuePrompt[20]; /* Continuation prompt. default: "   ...> " */
 
@@ -254,7 +256,7 @@ static char continuePrompt[20]; /* Continuation prompt. default: "   ...> " */
 ** Write I/O traces to the following stream.
 */
 #ifdef SQLITE_ENABLE_IOTRACE
-static FILE *iotrace = 0;
+static FILE *iotrace = 0;  //表示用于输入输出的流
 #endif
 
 /*
@@ -262,41 +264,41 @@ static FILE *iotrace = 0;
 ** format string and subsequent arguments are values to be substituted
 ** in place of % fields.  The result of formatting this string
 ** is written to iotrace.
-*/
+*/ //输出时，第一个内容是一个格式字符串，后面的内容是%+字段的格式。这个结果是来表示输入输出流的
 #ifdef SQLITE_ENABLE_IOTRACE
-static void iotracePrintf(const char *zFormat, ...){
-  va_list ap;
+static void iotracePrintf(const char *zFormat, ...){ //有一个参数zFormat固定以外,后面跟的参数的个数和类型是可变的（用三个点“…”做参数占位符）
+  va_list ap;  //这个变量是存储参数地址的指针.因为得到参数的地址之后，再结合参数的类型，才能得到参数的值。
   char *z;
-  if( iotrace==0 ) return;
-  va_start(ap, zFormat);
-  z = sqlite3_vmprintf(zFormat, ap);
-  va_end(ap);
-  fprintf(iotrace, "%s", z);
-  sqlite3_free(z);
+  if( iotrace==0 ) return;  //没有输入输出操作，返回
+  va_start(ap, zFormat); //以固定参数的地址为起点确定变参的内存起始地址
+  z = sqlite3_vmprintf(zFormat, ap);//函数返回的字符串被写入通过 malloc() 得到的内存空间，因此，永远不会存在内存泄露的问题。返回的字符串要用sqlite3_free()释放空间。
+  va_end(ap); //结束
+  fprintf(iotrace, "%s", z); // 格式化输出 fprintf(文件指针,格式字符串,输出表列)
+  sqlite3_free(z);  //释放空间
 }
 #endif
 
 
 /*
-** Determines if a string is a number of not.
+** Determines if a string is a number of not.  //如果有很多非数字则终止
 */
 static int isNumber(const char *z, int *realnum){
-  if( *z=='-' || *z=='+' ) z++;
-  if( !IsDigit(*z) ){
+  if( *z=='-' || *z=='+' ) z++;  //判断正负
+  if( !IsDigit(*z) ){ //判断是否是数字，如果不是，返回0
     return 0;
   }
-  z++;
-  if( realnum ) *realnum = 0;
-  while( IsDigit(*z) ){ z++; }
-  if( *z=='.' ){
+  z++;   
+  if( realnum ) *realnum = 0; //
+  while( IsDigit(*z) ){ z++; } //如果遇到数字，指针后移一位
+  if( *z=='.' ){   //判断是否是小数
     z++;
     if( !IsDigit(*z) ) return 0;
     while( IsDigit(*z) ){ z++; }
     if( realnum ) *realnum = 1;
   }
-  if( *z=='e' || *z=='E' ){
+  if( *z=='e' || *z=='E' ){// 判断是否有指数
     z++;
-    if( *z=='+' || *z=='-' ) z++;
+    if( *z=='+' || *z=='-' ) z++; //指数的正负
     if( !IsDigit(*z) ) return 0;
     while( IsDigit(*z) ){ z++; }
     if( realnum ) *realnum = 1;
@@ -414,7 +416,7 @@ struct previous_mode_data {  // 定义了结构体，该结构体的作用是在
 ** the main program to the callback.  This is used to communicate
 ** state and mode information.
 */
-struct callback_data {
+struct callback_data {  //定义结构体，用来进行各方法之间的传值与当前状态的获取；如回调，传达声明和模式信息。
   sqlite3 *db;           //表示要打开的数据库                                 /* The database */ 
   int echoOn;                                                                 /* True to echo input commands */
   int statsOn;          //在每次结束之前显示存储器的统计数据                  /* True to display memory stats before each finalize */
