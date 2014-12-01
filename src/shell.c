@@ -242,7 +242,7 @@ static volatile int seenInterrupt = 0;   //用来检测中断的变量，如果�
 ** This is the name of our program. It is set in main(), used
 ** in a number of other places, mostly for error messages.
 */
-static char *Argv0;  //  被使用在main（）函数和很多其他场合，表示程序的名字，下面程序中更多被使用在错误信息里。如：fprintf(stderr,"%s: Error: no database filename specified\n", Argv0);
+static char *Argv0;  //被使用在main（）函数和很多其他场合，表示程序的名字，下面程序中更多被使用在错误信息里。如：fprintf(stderr,"%s: Error: no database filename specified\n", Argv0);
 
 /*
 ** Prompt strings. Initialized in main. Settable with
