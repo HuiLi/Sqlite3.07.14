@@ -2635,8 +2635,8 @@ case OP_Column: {
     ** them, respectively.  So the maximum header length results from a
     ** 3-byte type for each of the maximum of 32768 columns plus three
     ** extra bytes for the header length itself.  32768*3 + 3 = 98307.
-    ** 类型的总条目可以介于1到5字节。但是4和5字节类型使用如此多的数据空间,只能有4096和32的分别。
-    ** 所以最大头长度的结果从一个3字节类型为每个32768列加三头额外字节长度本身。32768 * 3 + 3 = 98307。
+    ** 类型的总条目可以介于1到5个字节。但是4和5字节类型使用如此多的数据空间,
+    ** (后面的看不懂什么意思)
     */
     if( offset > 98307 ){
       rc = SQLITE_CORRUPT_BKPT;
@@ -2655,6 +2655,13 @@ case OP_Column: {
     ** will likely be much smaller since nField will likely be less than
     ** 20 or so.  This insures that Robson memory allocation limits are
     ** not exceeded even for corrupt database files.
+    ** 为了获取变量nFiedld的类型值，我们需要读取数据的字节个数，并计算。在这里，
+    ** 变量offset的值是一个上界。但变量nField的值可能明显少于数据表中真正的列数，
+    ** 如果真是那样，5*nField+3可能小于变量offset的值。为了限制内存分配的大小，我们要
+    ** 使len(数据长度)尽量小，特别是当损坏的数据库文件已经引起offset的值过大的时候。
+    ** 变量Offset的极限值是98307。但98307可能还是超过了Robson内存分配在某些配置上的限制。
+    ** 由于系统不允许过大的内存分配，因此nField的值可能会小于20，nField*5+3的值可能也会比较小。
+    ** 这就确保即使在数据库文件损坏的情况下，也不会超过Robson内存分配限制。
     */
     len = nField*5 + 3;
     if( len > (int)offset ) len = (int)offset;
@@ -2664,6 +2671,9 @@ case OP_Column: {
     ** record header if the record header does not fit on a single page
     ** in the B-Tree.  When that happens, use sqlite3VdbeMemFromBtree() to
     ** acquire the complete header text.
+    ** 上面的函数KeyFetch()和DataFetch()在大多数情况下会快速获取整个记录的头文件。但如果记录头
+    ** 不适合单个页面的b树，那这两个函数就无法获得完整的记录头文件。当这种情况发生时，
+    ** 使用sqlite3VdbeMemFromBtree()函数来获取完整的记录的头文本。
     */
     if( !zRec && avail<len ){
       sMem.flags = 0;
@@ -2681,6 +2691,8 @@ case OP_Column: {
     ** arrays.  aType[i] will contain the type integer for the i-th
     ** column and aOffset[i] will contain the offset from the beginning
     ** of the record to the start of the data for the i-th column
+    ** 通过扫描头文件以获取数组aType[]和aOffset[]的值。aType[i]存储了第i个列的整型数据，
+    ** aOffset[i]存储了从记录的起始地址到第i个列中数据存储的首地址的偏移量。
     */
     for(i=0; i<nField; i++){
       if( zIdx<zEndHdr ){
@@ -2704,6 +2716,9 @@ case OP_Column: {
         ** table. Set the offset for any extra columns not present in
         ** the record to 0. This tells code below to store the default value
         ** for the column instead of deserializing a value from the record.
+        ** 如果i小于nField，那么记录中的字段是比SetNumColumns小，SetNumColumns是表中的列数。
+        ** 将offset设置为一个额外的、在记录总不存在的列，并赋值为0。也就是说，下面的代码将
+        ** 这一列赋值为默认值，而不是将记录中反序列化后的值赋值给它。
         */
         aOffset[i] = 0;
       }
@@ -2714,8 +2729,11 @@ case OP_Column: {
     /* If we have read more header data than was contained in the header,
     ** or if the end of the last field appears to be past the end of the
     ** record, or if the end of the last field appears to be before the end
-    ** of the record (when all fields present), then we must be dealing 
+    ** of the record (when all fields present), then we must be dealing
     ** with a corrupt database.
+    ** 如果我们读取的数据比头文件中包含的还要多，或者最后一个字段的结束地址超出了数据记录的
+    ** 结束地址，又或者最后一个字段的结束地址出现在数据记录的结束地址之前(所有字段多出现过了)，
+    ** 那么我们必须对损坏的数据库进行处理。
     */
     if( (zIdx > zEndHdr) || (offset > payloadSize)
          || (zIdx==zEndHdr && offset!=payloadSize) ){
@@ -2724,20 +2742,27 @@ case OP_Column: {
     }
   }
 
-  /* Get the column information. If aOffset[p2] is non-zero, then 
+  /* Get the column information. If aOffset[p2] is non-zero, then
   ** deserialize the value from the record. If aOffset[p2] is zero,
   ** then there are not enough fields in the record to satisfy the
   ** request.  In this case, set the value NULL or to P4 if P4 is
   ** a pointer to a Mem object.
+  ** 获得列的信息。如果aOffset[p2]是非零值，那么反序列化记录中的值。如果aOffset[p2]为0，
+  ** 那就意味着记录中没有足够的字段来满足需求。在这种情况下，将值设置为NULL，如果P4是一个
+  ** 指向Mem类型对象的指针，将值设置为P4。
   */
   if( aOffset[p2] ){
     assert( rc==SQLITE_OK );
     if( zRec ){
-      /* This is the common case where the whole row fits on a single page */
+      /* This is the common case where the whole row fits on a single page
+      ** 所有的行都符合单页面是一种常见的情况。
+      */
       VdbeMemRelease(pDest);
       sqlite3VdbeSerialGet((u8 *)&zRec[aOffset[p2]], aType[p2], pDest);
     }else{
-      /* This branch happens only when the row overflows onto multiple pages */
+      /* This branch happens only when the row overflows onto multiple pages
+      ** 只有在行溢出到多个页面时，else中出现的情况才会发生
+      */
       t = aType[p2];
       if( (pOp->p5 & (OPFLAG_LENGTHARG|OPFLAG_TYPEOFARG))!=0
        && ((t>=12 && (t&1)==0) || (pOp->p5 & OPFLAG_TYPEOFARG)!=0)
@@ -2746,7 +2771,11 @@ case OP_Column: {
         ** the length(X) function if X is a blob.  So we might as well use
         ** bogus content rather than reading content from disk.  NULL works
         ** for text and blob and whatever is in the payloadSize64 variable
-        ** will work for everything else. */
+        ** will work for everything else.
+        ** 对于函数typeof()和参数X是blob类型的函数length(X)来说，内容是无关紧要的。
+        ** 因此，我们不妨使用虚拟数据而不是从磁盘读取数据。NULL值适用于文本类型、blob类型，
+        ** 以及任何64位有效长度的变量，在这些情况下NULL都能够正常工作
+        */
         zData = t<12 ? (char*)&payloadSize64 : 0;
       }else{
         len = sqlite3VdbeSerialTypeLen(t);
@@ -2773,6 +2802,8 @@ case OP_Column: {
   ** sqlite3VdbeMemFromBtree() call above) then transfer control of that
   ** dynamically allocated space over to the pDest structure.
   ** This prevents a memory copy.
+  ** 如果我们通过动态分配空间来保存数据(在上面调用的sqlite3VdbeMemFromBtree()函数中)，
+  ** 然后再用动态分配的空间来存储pDest结构类型的数据。这可以防止内存复制。
   */
   if( sMem.zMalloc ){
     assert( sMem.z==sMem.zMalloc );

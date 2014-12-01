@@ -2563,6 +2563,9 @@ int sqlite3WalkSelectFrom(Walker*, Select*);
 ** routines that report the line-number on which the error originated
 ** using sqlite3_log().  The routines also provide a convenient place
 ** to set a debugger breakpoint.
+** 这些命名为SQLITE_*_BKPT的宏定义用来代替与它们名字相同的错误代码，不包括_BKPT后缀。
+** 这些宏调用sqlite3_log()函数提示代码在哪儿一行发生了错误。这些用于调试程序的例程
+** 还提供了一个方便的地方设置断点调试器。
 */
 int sqlite3CorruptError(int);
 int sqlite3MisuseError(int);
