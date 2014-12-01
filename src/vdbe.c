@@ -2635,6 +2635,8 @@ case OP_Column: {
     ** them, respectively.  So the maximum header length results from a
     ** 3-byte type for each of the maximum of 32768 columns plus three
     ** extra bytes for the header length itself.  32768*3 + 3 = 98307.
+    ** 类型的总条目可以介于1到5个字节。但是4和5字节类型使用如此多的数据空间,
+    ** (后面的看不懂什么意思)
     */
     if( offset > 98307 ){
       rc = SQLITE_CORRUPT_BKPT;
@@ -2653,6 +2655,13 @@ case OP_Column: {
     ** will likely be much smaller since nField will likely be less than
     ** 20 or so.  This insures that Robson memory allocation limits are
     ** not exceeded even for corrupt database files.
+    ** 为了获取变量nFiedld的类型值，我们需要读取数据的字节个数，并计算。在这里，
+    ** 变量offset的值是一个上界。但变量nField的值可能明显少于数据表中真正的列数，
+    ** 如果真是那样，5*nField+3可能小于变量offset的值。为了限制内存分配的大小，我们要
+    ** 使len(数据长度)尽量小，特别是当损坏的数据库文件已经引起offset的值过大的时候。
+    ** 变量Offset的极限值是98307。但98307可能还是超过了Robson内存分配在某些配置上的限制。
+    ** 由于系统不允许过大的内存分配，因此nField的值可能会小于20，nField*5+3的值可能也会比较小。
+    ** 这就确保即使在数据库文件损坏的情况下，也不会超过Robson内存分配限制。
     */
     len = nField*5 + 3;
     if( len > (int)offset ) len = (int)offset;
@@ -2662,6 +2671,9 @@ case OP_Column: {
     ** record header if the record header does not fit on a single page
     ** in the B-Tree.  When that happens, use sqlite3VdbeMemFromBtree() to
     ** acquire the complete header text.
+    ** 上面的函数KeyFetch()和DataFetch()在大多数情况下会快速获取整个记录的头文件。但如果记录头
+    ** 不适合单个页面的b树，那这两个函数就无法获得完整的记录头文件。当这种情况发生时，
+    ** 使用sqlite3VdbeMemFromBtree()函数来获取完整的记录的头文本。
     */
     if( !zRec && avail<len ){
       sMem.flags = 0;
@@ -2679,6 +2691,8 @@ case OP_Column: {
     ** arrays.  aType[i] will contain the type integer for the i-th
     ** column and aOffset[i] will contain the offset from the beginning
     ** of the record to the start of the data for the i-th column
+    ** 通过扫描头文件以获取数组aType[]和aOffset[]的值。aType[i]存储了第i个列的整型数据，
+    ** aOffset[i]存储了从记录的起始地址到第i个列中数据存储的首地址的偏移量。
     */
     for(i=0; i<nField; i++){
       if( zIdx<zEndHdr ){
@@ -2702,6 +2716,9 @@ case OP_Column: {
         ** table. Set the offset for any extra columns not present in
         ** the record to 0. This tells code below to store the default value
         ** for the column instead of deserializing a value from the record.
+        ** 如果i小于nField，那么记录中的字段是比SetNumColumns小，SetNumColumns是表中的列数。
+        ** 将offset设置为一个额外的、在记录总不存在的列，并赋值为0。也就是说，下面的代码将
+        ** 这一列赋值为默认值，而不是将记录中反序列化后的值赋值给它。
         */
         aOffset[i] = 0;
       }
@@ -2712,8 +2729,11 @@ case OP_Column: {
     /* If we have read more header data than was contained in the header,
     ** or if the end of the last field appears to be past the end of the
     ** record, or if the end of the last field appears to be before the end
-    ** of the record (when all fields present), then we must be dealing 
+    ** of the record (when all fields present), then we must be dealing
     ** with a corrupt database.
+    ** 如果我们读取的数据比头文件中包含的还要多，或者最后一个字段的结束地址超出了数据记录的
+    ** 结束地址，又或者最后一个字段的结束地址出现在数据记录的结束地址之前(所有字段多出现过了)，
+    ** 那么我们必须对损坏的数据库进行处理。
     */
     if( (zIdx > zEndHdr) || (offset > payloadSize)
          || (zIdx==zEndHdr && offset!=payloadSize) ){
@@ -2722,20 +2742,27 @@ case OP_Column: {
     }
   }
 
-  /* Get the column information. If aOffset[p2] is non-zero, then 
+  /* Get the column information. If aOffset[p2] is non-zero, then
   ** deserialize the value from the record. If aOffset[p2] is zero,
   ** then there are not enough fields in the record to satisfy the
   ** request.  In this case, set the value NULL or to P4 if P4 is
   ** a pointer to a Mem object.
+  ** 获得列的信息。如果aOffset[p2]是非零值，那么反序列化记录中的值。如果aOffset[p2]为0，
+  ** 那就意味着记录中没有足够的字段来满足需求。在这种情况下，将值设置为NULL，如果P4是一个
+  ** 指向Mem类型对象的指针，将值设置为P4。
   */
   if( aOffset[p2] ){
     assert( rc==SQLITE_OK );
     if( zRec ){
-      /* This is the common case where the whole row fits on a single page */
+      /* This is the common case where the whole row fits on a single page
+      ** 所有的行都符合单页面是一种常见的情况。
+      */
       VdbeMemRelease(pDest);
       sqlite3VdbeSerialGet((u8 *)&zRec[aOffset[p2]], aType[p2], pDest);
     }else{
-      /* This branch happens only when the row overflows onto multiple pages */
+      /* This branch happens only when the row overflows onto multiple pages
+      ** 只有在行溢出到多个页面时，else中出现的情况才会发生
+      */
       t = aType[p2];
       if( (pOp->p5 & (OPFLAG_LENGTHARG|OPFLAG_TYPEOFARG))!=0
        && ((t>=12 && (t&1)==0) || (pOp->p5 & OPFLAG_TYPEOFARG)!=0)
@@ -2744,7 +2771,11 @@ case OP_Column: {
         ** the length(X) function if X is a blob.  So we might as well use
         ** bogus content rather than reading content from disk.  NULL works
         ** for text and blob and whatever is in the payloadSize64 variable
-        ** will work for everything else. */
+        ** will work for everything else.
+        ** 对于函数typeof()和参数X是blob类型的函数length(X)来说，内容是无关紧要的。
+        ** 因此，我们不妨使用虚拟数据而不是从磁盘读取数据。NULL值适用于文本类型、blob类型，
+        ** 以及任何64位有效长度的变量，在这些情况下NULL都能够正常工作
+        */
         zData = t<12 ? (char*)&payloadSize64 : 0;
       }else{
         len = sqlite3VdbeSerialTypeLen(t);
@@ -2771,6 +2802,8 @@ case OP_Column: {
   ** sqlite3VdbeMemFromBtree() call above) then transfer control of that
   ** dynamically allocated space over to the pDest structure.
   ** This prevents a memory copy.
+  ** 如果我们通过动态分配空间来保存数据(在上面调用的sqlite3VdbeMemFromBtree()函数中)，
+  ** 然后再用动态分配的空间来存储pDest结构类型的数据。这可以防止内存复制。
   */
   if( sMem.zMalloc ){
     assert( sMem.z==sMem.zMalloc );
@@ -2793,10 +2826,13 @@ op_column_out:
 /* Opcode: Affinity P1 P2 * P4 *
 **
 ** Apply affinities to a range of P2 registers starting with P1.
+** 对从P1开始到P2的一系列寄存器进行相关性比较。
 **
 ** P4 is a string that is P2 characters long. The nth character of the
 ** string indicates the column affinity that should be used for the nth
 ** memory cell in the range.
+** P4是一个长度与P2中字符相等的字符串。字符串的第n个字符表示列的关联性，这个关联性
+** 只用于第n个存储单元的范围内。
 */
 case OP_Affinity: {
   const char *zAffinity;   /* The affinity to be applied */
@@ -2821,15 +2857,21 @@ case OP_Affinity: {
 ** Convert P2 registers beginning with P1 into the [record format]
 ** use as a data record in a database table or as a key
 ** in an index.  The OP_Column opcode can decode the record later.
+** 将从P1开始到P2的寄存器转换成[记录 格式]形式的数据记录格式，以用作数据库表的数据记录，
+** 或索引的键。OP_Column操作码可以解码这种样式的数据记录。
 **
 ** P4 may be a string that is P2 characters long.  The nth character of the
 ** string indicates the column affinity that should be used for the nth
 ** field of the index key.
+** P4是一个长度与P2中字符相等的字符串。这个字符串的第n个字符表示列的关联性，这个关联性
+** 应该用作第n个转的索引键。
 **
 ** The mapping from character to affinity is given by the SQLITE_AFF_
 ** macros defined in sqliteInt.h.
+** sqliteInt.h中通过“SQLITE_AFF_”格式的宏，定义了字符与关联性变量的映射关系。
 **
 ** If P4 is NULL then all index fields have the affinity NONE.
+** 如果P4是NULL，那么所有索引字段都与NONE相关联。
 */
 case OP_MakeRecord: {
   u8 *zNewRecord;        /* A buffer to hold the data for the new record */
@@ -2852,13 +2894,13 @@ case OP_MakeRecord: {
   ** like this:
   **
   ** ------------------------------------------------------------------------
-  ** | hdr-size | type 0 | type 1 | ... | type N-1 | data0 | ... | data N-1 | 
+  ** | hdr-size | type 0 | type 1 | ... | type N-1 | data0 | ... | data N-1 |
   ** ------------------------------------------------------------------------
   **
   ** Data(0) is taken from register P1.  Data(1) comes from register P1+1
   ** and so froth.
   **
-  ** Each type field is a varint representing the serial type of the 
+  ** Each type field is a varint representing the serial type of the
   ** corresponding data element (see sqlite3VdbeSerialType()). The
   ** hdr-size field is also a varint which is the offset from the beginning
   ** of the record to data0.
@@ -2913,7 +2955,7 @@ case OP_MakeRecord: {
     goto too_big;
   }
 
-  /* Make sure the output register has a buffer large enough to store 
+  /* Make sure the output register has a buffer large enough to store
   ** the new record. The output register (pOp->p3) is not allowed to
   ** be one of the input registers (because the following call to
   ** sqlite3VdbeMemGrow() could clobber the value before it is used).
@@ -2950,7 +2992,7 @@ case OP_MakeRecord: {
 
 /* Opcode: Count P1 P2 * * *
 **
-** Store the number of entries (an integer value) in the table or index 
+** Store the number of entries (an integer value) in the table or index
 ** opened by cursor P1 in register P2
 */
 #ifndef SQLITE_OMIT_BTREECOUNT
@@ -2989,7 +3031,7 @@ case OP_Savepoint: {
   zName = pOp->p4.z;
 
   /* Assert that the p1 parameter is valid. Also that if there is no open
-  ** transaction, then there cannot be any savepoints. 
+  ** transaction, then there cannot be any savepoints.
   */
   assert( db->pSavepoint==0 || db->autoCommit==0 );
   assert( p1==SAVEPOINT_BEGIN||p1==SAVEPOINT_RELEASE||p1==SAVEPOINT_ROLLBACK );
@@ -2998,7 +3040,7 @@ case OP_Savepoint: {
 
   if( p1==SAVEPOINT_BEGIN ){
     if( db->writeVdbeCnt>0 ){
-      /* A new savepoint cannot be created if there are active write 
+      /* A new savepoint cannot be created if there are active write
       ** statements (i.e. open read/write incremental blob handles).
       */
       sqlite3SetString(&p->zErrMsg, db, "cannot open savepoint - "
@@ -3023,7 +3065,7 @@ case OP_Savepoint: {
       if( pNew ){
         pNew->zName = (char *)&pNew[1];
         memcpy(pNew->zName, zName, nName+1);
-    
+
         /* If there is no open transaction, then mark this as a special
         ** "transaction savepoint". */
         if( db->autoCommit ){
@@ -3032,7 +3074,7 @@ case OP_Savepoint: {
         }else{
           db->nSavepoint++;
         }
-    
+
         /* Link the new savepoint into the database handle's list. */
         pNew->pNext = db->pSavepoint;
         db->pSavepoint = pNew;
@@ -3045,7 +3087,7 @@ case OP_Savepoint: {
     /* Find the named savepoint. If there is no such savepoint, then an
     ** an error is returned to the user.  */
     for(
-      pSavepoint = db->pSavepoint; 
+      pSavepoint = db->pSavepoint;
       pSavepoint && sqlite3StrICmp(pSavepoint->zName, zName);
       pSavepoint = pSavepoint->pNext
     ){
@@ -3055,17 +3097,17 @@ case OP_Savepoint: {
       sqlite3SetString(&p->zErrMsg, db, "no such savepoint: %s", zName);
       rc = SQLITE_ERROR;
     }else if( db->writeVdbeCnt>0 && p1==SAVEPOINT_RELEASE ){
-      /* It is not possible to release (commit) a savepoint if there are 
+      /* It is not possible to release (commit) a savepoint if there are
       ** active write statements.
       */
-      sqlite3SetString(&p->zErrMsg, db, 
+      sqlite3SetString(&p->zErrMsg, db,
         "cannot release savepoint - SQL statements in progress"
       );
       rc = SQLITE_BUSY;
     }else{
 
       /* Determine whether or not this is a transaction savepoint. If so,
-      ** and this is a RELEASE command, then the current transaction 
+      ** and this is a RELEASE command, then the current transaction
       ** is committed. 
       */
       int isTransaction = pSavepoint->pNext==0 && db->isTransactionSavepoint;
@@ -3101,8 +3143,8 @@ case OP_Savepoint: {
           db->flags = (db->flags | SQLITE_InternChanges);
         }
       }
-  
-      /* Regardless of whether this is a RELEASE or ROLLBACK, destroy all 
+
+      /* Regardless of whether this is a RELEASE or ROLLBACK, destroy all
       ** savepoints nested inside of the savepoint being operated on. */
       while( db->pSavepoint!=pSavepoint ){
         pTmp = db->pSavepoint;
@@ -3111,8 +3153,8 @@ case OP_Savepoint: {
         db->nSavepoint--;
       }
 
-      /* If it is a RELEASE, then destroy the savepoint being operated on 
-      ** too. If it is a ROLLBACK TO, then set the number of deferred 
+      /* If it is a RELEASE, then destroy the savepoint being operated on
+      ** too. If it is a ROLLBACK TO, then set the number of deferred
       ** constraint violations present in the database to the value stored
       ** when the savepoint was created.  */
       if( p1==SAVEPOINT_RELEASE ){
@@ -3161,7 +3203,7 @@ case OP_AutoCommit: {
   if( turnOnAC && iRollback && db->activeVdbeCnt>1 ){
     /* If this instruction implements a ROLLBACK and other VMs are
     ** still running, and a transaction is active, return an error indicating
-    ** that the other VMs must complete first. 
+    ** that the other VMs must complete first.
     */
     sqlite3SetString(&p->zErrMsg, db, "cannot rollback transaction - "
         "SQL statements in progress");
@@ -3170,7 +3212,7 @@ case OP_AutoCommit: {
 #endif
   if( turnOnAC && !iRollback && db->writeVdbeCnt>0 ){
     /* If this instruction implements a COMMIT and other VMs are writing
-    ** return an error indicating that the other VMs must complete first. 
+    ** return an error indicating that the other VMs must complete first.
     */
     sqlite3SetString(&p->zErrMsg, db, "cannot commit transaction - "
         "SQL statements in progress");
@@ -3204,7 +3246,7 @@ case OP_AutoCommit: {
         (!desiredAutoCommit)?"cannot start a transaction within a transaction":(
         (iRollback)?"cannot rollback - no transaction is active":
                    "cannot commit - no transaction is active"));
-         
+
     rc = SQLITE_ERROR;
   }
   break;
@@ -3259,13 +3301,13 @@ case OP_Transaction: {
       goto abort_due_to_error;
     }
 
-    if( pOp->p2 && p->usesStmtJournal 
-     && (db->autoCommit==0 || db->activeVdbeCnt>1) 
+    if( pOp->p2 && p->usesStmtJournal
+     && (db->autoCommit==0 || db->activeVdbeCnt>1)
     ){
       assert( sqlite3BtreeIsInTrans(pBt) );
       if( p->iStatement==0 ){
         assert( db->nStatement>=0 && db->nSavepoint>=0 );
-        db->nStatement++; 
+        db->nStatement++;
         p->iStatement = db->nSavepoint + db->nStatement;
       }
 
@@ -3315,9 +3357,9 @@ case OP_ReadCookie: {               /* out2-prerelease */
 /* Opcode: SetCookie P1 P2 P3 * *
 **
 ** Write the content of register P3 (interpreted as an integer)
-** into cookie number P2 of database P1.  P2==1 is the schema version.  
-** P2==2 is the database format. P2==3 is the recommended pager cache 
-** size, and so forth.  P1==0 is the main database file and P1==1 is the 
+** into cookie number P2 of database P1.  P2==1 is the schema version.
+** P2==2 is the database format. P2==3 is the recommended pager cache
+** size, and so forth.  P1==0 is the main database file and P1==1 is the
 ** database file used to store temporary tables.
 **
 ** A transaction must be started before executing this opcode.
@@ -3387,7 +3429,7 @@ case OP_VerifyCookie: {
   if( iMeta!=pOp->p2 || iGen!=pOp->p3 ){
     sqlite3DbFree(db, p->zErrMsg);
     p->zErrMsg = sqlite3DbStrDup(db, "database schema has changed");
-    /* If the schema-cookie from the database file matches the cookie 
+    /* If the schema-cookie from the database file matches the cookie
     ** stored with the in-memory representation of the schema, do
     ** not reload the schema from the database file.
     **
@@ -3397,7 +3439,7 @@ case OP_VerifyCookie: {
     ** prepared queries. If such a query is out-of-date, we do not want to
     ** discard the database schema, as the user code implementing the
     ** v-table would have to be ready for the sqlite3_vtab structure itself
-    ** to be invalidated whenever sqlite3_step() is called from within 
+    ** to be invalidated whenever sqlite3_step() is called from within
     ** a v-table method.
     */
     if( db->aDb[pOp->p1].pSchema->schema_cookie!=iMeta ){
@@ -3413,8 +3455,8 @@ case OP_VerifyCookie: {
 /* Opcode: OpenRead P1 P2 P3 P4 P5
 **
 ** Open a read-only cursor for the database table whose root page is
-** P2 in a database file.  The database file is determined by P3. 
-** P3==0 means the main database, P3==1 means the database used for 
+** P2 in a database file.  The database file is determined by P3.
+** P3==0 means the main database, P3==1 means the database used for
 ** temporary tables, and P3>1 means used the corresponding attached
 ** database.  Give the new cursor an identifier of P1.  The P1
 ** values need not be contiguous but all P1 values should be small integers.
@@ -3433,9 +3475,9 @@ case OP_VerifyCookie: {
 ** SQLITE_BUSY error code.
 **
 ** The P4 value may be either an integer (P4_INT32) or a pointer to
-** a KeyInfo structure (P4_KEYINFO). If it is a pointer to a KeyInfo 
-** structure, then said structure defines the content and collating 
-** sequence of the index being opened. Otherwise, if P4 is an integer 
+** a KeyInfo structure (P4_KEYINFO). If it is a pointer to a KeyInfo
+** structure, then said structure defines the content and collating
+** sequence of the index being opened. Otherwise, if P4 is an integer
 ** value, it is set to the number of columns in the table.
 **
 ** See also OpenWrite.
@@ -3447,9 +3489,9 @@ case OP_VerifyCookie: {
 ** root page.
 **
 ** The P4 value may be either an integer (P4_INT32) or a pointer to
-** a KeyInfo structure (P4_KEYINFO). If it is a pointer to a KeyInfo 
-** structure, then said structure defines the content and collating 
-** sequence of the index being opened. Otherwise, if P4 is an integer 
+** a KeyInfo structure (P4_KEYINFO). If it is a pointer to a KeyInfo
+** structure, then said structure defines the content and collating
+** sequence of the index being opened. Otherwise, if P4 is an integer
 ** value, it is set to the number of columns in the table, or to the
 ** largest index of any column of the table that is actually used.
 **
@@ -3537,7 +3579,7 @@ case OP_OpenWrite: {
   /* Set the VdbeCursor.isTable and isIndex variables. Previous versions of
   ** SQLite used to check if the root-page flags were sane at this point
   ** and report database corruption if they were not, but this check has
-  ** since moved into the btree layer.  */  
+  ** since moved into the btree layer.  */
   pCur->isTable = pOp->p4type!=P4_KEYINFO;
   pCur->isIndex = !pCur->isTable;
   break;
@@ -3548,7 +3590,7 @@ case OP_OpenWrite: {
 /* Opcode: OpenEphemeral P1 P2 * P4 P5
 **
 ** Open a new cursor P1 to a transient table.
-** The cursor is always opened read/write even if 
+** The cursor is always opened read/write even if
 ** the main database is read-only.  The ephemeral
 ** table is deleted automatically when the cursor is closed.
 **
@@ -3577,10 +3619,10 @@ case OP_OpenWrite: {
 ** 第一次使用github
 */
 
-case OP_OpenAutoindex: 
+case OP_OpenAutoindex:
 case OP_OpenEphemeral: {
   VdbeCursor *pCx;
-  static const int vfsFlags = 
+  static const int vfsFlags =
       SQLITE_OPEN_READWRITE |
       SQLITE_OPEN_CREATE |
       SQLITE_OPEN_EXCLUSIVE |
@@ -3591,7 +3633,7 @@ case OP_OpenEphemeral: {
   pCx = allocateCursor(p, pOp->p1, pOp->p2, -1, 1);
   if( pCx==0 ) goto no_mem;
   pCx->nullRow = 1;
-  rc = sqlite3BtreeOpen(db->pVfs, 0, db, &pCx->pBt, 
+  rc = sqlite3BtreeOpen(db->pVfs, 0, db, &pCx->pBt,
                         BTREE_OMIT_JOURNAL | BTREE_SINGLE | pOp->p5, vfsFlags);
   if( rc==SQLITE_OK ){
     rc = sqlite3BtreeBeginTrans(pCx->pBt, 1);
@@ -3605,10 +3647,10 @@ case OP_OpenEphemeral: {
     if( pOp->p4.pKeyInfo ){
       int pgno;
       assert( pOp->p4type==P4_KEYINFO );
-      rc = sqlite3BtreeCreateTable(pCx->pBt, &pgno, BTREE_BLOBKEY | pOp->p5); 
+      rc = sqlite3BtreeCreateTable(pCx->pBt, &pgno, BTREE_BLOBKEY | pOp->p5);
       if( rc==SQLITE_OK ){
         assert( pgno==MASTER_ROOT+1 );
-        rc = sqlite3BtreeCursor(pCx->pBt, pgno, 1, 
+        rc = sqlite3BtreeCursor(pCx->pBt, pgno, 1,
                                 (KeyInfo*)pOp->p4.z, pCx->pCursor);
         pCx->pKeyInfo = pOp->p4.pKeyInfo;
         pCx->pKeyInfo->enc = ENC(p->db);
