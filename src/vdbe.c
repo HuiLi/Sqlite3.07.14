@@ -660,7 +660,9 @@ int sqlite3VdbeExec(
   int rc = SQLITE_OK;        /* Value to return */
   sqlite3 *db = p->db;       /* The database */
   u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive */
-  u8 encoding = ENC(db);     /* The database encoding */
+  u8 encoding = ENC(db);     /* The database encoding 
+                             ** 数据库编码格式。
+                             */
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
   int checkProgress;         /* True if progress callbacks are enabled */
   int nProgressOps = 0;      /* Opcodes executed since progress callback. */
@@ -670,8 +672,12 @@ int sqlite3VdbeExec(
   Mem *pIn2 = 0;             /* 2nd input operand */
   Mem *pIn3 = 0;             /* 3rd input operand */
   Mem *pOut = 0;             /* Output operand */
-  int iCompare = 0;          /* Result of last OP_Compare operation */
-  int *aPermute = 0;         /* Permutation of columns for OP_Compare */
+  int iCompare = 0;          /* Result of last OP_Compare operation
+                             ** 存放操作码OP_Compare的操作结果
+                             */
+  int *aPermute = 0;         /* Permutation of columns for OP_Compare
+                             ** 操作码OP_Compare使用的数组。
+                             */
   i64 lastRowid = db->lastRowid;  /* Saved value of the last insert ROWID */
 #ifdef VDBE_PROFILE
   u64 start;                 /* CPU clock count at start of opcode */
@@ -2059,7 +2065,7 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
       /* If SQLITE_NULLEQ is set (which will only happen if the operator is
       ** OP_Eq or OP_Ne) then take the jump or not depending on whether
       ** or not both operands are null.
-      ** 如果SQLITE_NULLEQ被赋值(如果操作码是OP_Eq或OP_Ne时才会生效)，
+      ** 如果SQLITE_NULLEQ已经被设置(如果操作码是OP_Eq或OP_Ne时才会生效)，
       ** 那么进行跳转，或者不取决于这两个操作数是否为空。
       */
       assert( pOp->opcode==OP_Eq || pOp->opcode==OP_Ne );
@@ -2081,7 +2087,7 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
       break;
     }
   }else{
-    /* Neither operand is NULL.  Do a comparison. 
+    /* Neither operand is NULL.  Do a comparison.
     ** 两个操作数都不为null，做比较。
     */
     affinity = pOp->p5 & SQLITE_AFF_MASK;
@@ -2115,7 +2121,9 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
     pc = pOp->p2-1;
   }
 
-  /* Undo any changes made by applyAffinity() to the input registers. */
+  /* Undo any changes made by applyAffinity() to the input registers.
+  ** 撤销applyAffinity()函数对输入寄存器所做的所有修改。
+  */
   pIn1->flags = (pIn1->flags&~MEM_TypeMask) | (flags1&MEM_TypeMask);
   pIn3->flags = (pIn3->flags&~MEM_TypeMask) | (flags3&MEM_TypeMask);
   break;
@@ -2125,10 +2133,14 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
 **
 ** Set the permutation used by the OP_Compare operator to be the array
 ** of integers in P4.
+** 将P4中操作码OP_Compare使用的数组设置为整型数组。
 **
 ** The permutation is only valid until the next OP_Permutation, OP_Compare,
 ** OP_Halt, or OP_ResultRow.  Typically the OP_Permutation should occur
 ** immediately prior to the OP_Compare.
+** 这个数组是唯一一个在操作码OP_Permutation OP_Compare,OP_Halt或OP_ResultRow中都有效的值。
+** 通常OP_Permutation操作发生在OP_Compare之前。
+**
 */
 case OP_Permutation: {
   assert( pOp->p4type==P4_INTARRAY );
@@ -2142,14 +2154,19 @@ case OP_Permutation: {
 ** Compare two vectors of registers in reg(P1)..reg(P1+P3-1) (call this
 ** vector "A") and in reg(P2)..reg(P2+P3-1) ("B").  Save the result of
 ** the comparison for use by the next OP_Jump instruct.
+** 比较两个向量寄存器，寄存器(P1). .寄存器(P1+P3-1)(称这个向量为“A”)，以及寄存器(P2). .寄存器(P2+P3-1)(“B”)。
+** 比较的结果将被保存，并用于下一个操作码OP_Jump。
 **
 ** P4 is a KeyInfo structure that defines collating sequences and sort
 ** orders for the comparison.  The permutation applies to registers
 ** only.  The KeyInfo elements are used sequentially.
+** P4是一个KeyInfo类型的结构体，它定义了排序序列和排序方式。这个序列只应用于寄存器。
+** 这些KeyInfo类型的元素按顺序使用。
 **
 ** The comparison is a sort comparison, so NULLs compare equal,
 ** NULLs are less than numbers, numbers are less than strings,
 ** and strings are less than blobs.
+** 这个比较是一种分类比较，所以null等于null，nulls小于数字，数字小于字符串，字符串小于blob。
 */
 case OP_Compare: {
   int n;
@@ -2202,6 +2219,7 @@ case OP_Compare: {
 ** Jump to the instruction at address P1, P2, or P3 depending on whether
 ** in the most recent OP_Compare instruction the P1 vector was less than
 ** equal to, or greater than the P2 vector, respectively.
+** 分别跳转到的指令地址P1,P2,P3，这取决于在最近的OP_Compare指令中P1向量是小于等于P2向量，还是大于P2向量。
 */
 case OP_Jump: {             /* jump */
   if( iCompare<0 ){
@@ -2218,19 +2236,25 @@ case OP_Jump: {             /* jump */
 **
 ** Take the logical AND of the values in registers P1 and P2 and
 ** write the result into register P3.
+** 逻辑操作码AND中的值取自寄存器P1和P2，最后的结果写入寄存器P3。
 **
 ** If either P1 or P2 is 0 (false) then the result is 0 even if
 ** the other input is NULL.  A NULL and true or two NULLs give
 ** a NULL output.
+** 如果P1和P2有一个是0(假)，那么结果是0，即使另一个输入为空结果也是0。
+** 一个NULL和一个真，或者两个NULL，都输出NULL。
 */
 /* Opcode: Or P1 P2 P3 * *
 **
 ** Take the logical OR of the values in register P1 and P2 and
 ** store the answer in register P3.
+** 逻辑操作码OR中的值取自寄存器P1和P2，最后的结果写入寄存器P3。
 **
 ** If either P1 or P2 is nonzero (true) then the result is 1 (true)
 ** even if the other input is NULL.  A NULL and false or two NULLs
 ** give a NULL output.
+** 如果P1和P2有一个非0(真)，那么结果是1(真)，即使另一个输入为空。
+** 一个NULL和一个假，或者两个NULL，都输出NULL。
 */
 case OP_And:              /* same as TK_AND, in1, in2, out3 */
 case OP_Or: {             /* same as TK_OR, in1, in2, out3 */
@@ -2269,8 +2293,10 @@ case OP_Or: {             /* same as TK_OR, in1, in2, out3 */
 /* Opcode: Not P1 P2 * * *
 **
 ** Interpret the value in register P1 as a boolean value.  Store the
-** boolean complement in register P2.  If the value in register P1 is 
+** boolean complement in register P2.  If the value in register P1 is
 ** NULL, then a NULL is stored in P2.
+** 将寄存器中P1的值解释为一个布尔值。将这个布尔值取反后存储在寄存器P2中。
+** 如果寄存器P1中的值是NULL,则把NULL存储在P2。
 */
 case OP_Not: {                /* same as TK_NOT, in1, out2 */
   pIn1 = &aMem[pOp->p1];
@@ -2288,6 +2314,8 @@ case OP_Not: {                /* same as TK_NOT, in1, out2 */
 ** Interpret the content of register P1 as an integer.  Store the
 ** ones-complement of the P1 value into register P2.  If P1 holds
 ** a NULL then store a NULL in P2.
+** 将寄存器P1的内容转换为一个整数。将P1的值按位取反后值存储到寄存器P2内。
+** 如果寄存器P1中的值是NULL,则把NULL存储在P2。
 */
 case OP_BitNot: {             /* same as TK_BITNOT, in1, out2 */
   pIn1 = &aMem[pOp->p1];
@@ -2304,6 +2332,7 @@ case OP_BitNot: {             /* same as TK_BITNOT, in1, out2 */
 **
 ** Check if OP_Once flag P1 is set. If so, jump to instruction P2. Otherwise,
 ** set the flag and fall through to the next instruction.
+** 如果P1中flag已经被赋值，跳转到指令P2。否则，设置flag的值，执行下一个指令。
 **
 ** See also: JumpOnce
 */
@@ -2321,13 +2350,17 @@ case OP_Once: {             /* jump */
 **
 ** Jump to P2 if the value in register P1 is true.  The value
 ** is considered true if it is numeric and non-zero.  If the value
-** in P1 is NULL then take the jump if P3 is non-zero.
+** in P1 is NULL tAR-hen take the jump if P3 is non-zero.
+** 如果寄存器P1的值是真就跳转到P2。如果P1的值是数字和非零值，就会被认定为真。
+** 如果P1中的值是NULL，同时P3非零，就会跳转到P2。
 */
 /* Opcode: IfNot P1 P2 P3 * *
 **
 ** Jump to P2 if the value in register P1 is False.  The value
 ** is considered false if it has a numeric value of zero.  If the value
 ** in P1 is NULL then take the jump if P3 is zero.
+** 如果寄存器P1的值是假就跳转到P2。如果P1的值是零，就会被认定为假。
+** 如果P1中的值是NULL，同时P3非零，就会跳转到P2。
 */
 case OP_If:                 /* jump, in1 */
 case OP_IfNot: {            /* jump, in1 */
@@ -2352,6 +2385,7 @@ case OP_IfNot: {            /* jump, in1 */
 /* Opcode: IsNull P1 P2 * * *
 **
 ** Jump to P2 if the value in register P1 is NULL.
+** 如果P1中的值是NULL则跳转到P2。
 */
 case OP_IsNull: {            /* same as TK_ISNULL, jump, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -2363,7 +2397,8 @@ case OP_IsNull: {            /* same as TK_ISNULL, jump, in1 */
 
 /* Opcode: NotNull P1 P2 * * *
 **
-** Jump to P2 if the value in register P1 is not NULL.  
+** Jump to P2 if the value in register P1 is not NULL.
+** 如果P1中的值是不是NULL则跳转到P2。
 */
 case OP_NotNull: {            /* same as TK_NOTNULL, jump, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -2378,45 +2413,77 @@ case OP_NotNull: {            /* same as TK_NOTNULL, jump, in1 */
 ** Interpret the data that cursor P1 points to as a structure built using
 ** the MakeRecord instruction.  (See the MakeRecord opcode for additional
 ** information about the format of the data.)  Extract the P2-th column
-** from this record.  If there are less that (P2+1) 
+** from this record.  If there are less that (P2+1)
 ** values in the record, extract a NULL.
+** 将指针P1指向的数据转换为可以被MakeRecord指令使用的结构类型。
+** (参见MakeRecord操作码可以获得更多有关这个数据格式的信息。)
+** 从记录中提取第P2列的数据。如果记录中的数据少于(P2+1)中的值，就提取一个NULL值。
 **
 ** The value extracted is stored in register P3.
+** 这个提取的值被存储在寄存器P3中。
 **
 ** If the column contains fewer than P2 fields, then extract a NULL.  Or,
 ** if the P4 argument is a P4_MEM use the value of the P4 argument as
 ** the result.
+** 如果存取数据的列少于P2中的字段，则提取一个NULL值。如果参数P4的值是P4_MEM
+** (P4定义在vdbe.c文件里“P4 is a pointer to a Mem* structure”)，就使用参数P4的值作为结果。
 **
 ** If the OPFLAG_CLEARCACHE bit is set on P5 and P1 is a pseudo-table cursor,
 ** then the cache of the cursor is reset prior to extracting the column.
 ** The first OP_Column against a pseudo-table after the value of the content
 ** register has changed should have this bit set.
+** 如果伪表指针位OPFLAG_CLEARCACHE被设置在P5和P1中，那么在提取列内数据之前，要重置这个指针所指的缓存。
+** 内容寄存器的值改变之后，第一个针对伪表的OP_Column操作码应该拥有这个二进制位。
 **
 ** If the OPFLAG_LENGTHARG and OPFLAG_TYPEOFARG bits are set on P5 when
 ** the result is guaranteed to only be used as the argument of a length()
 ** or typeof() function, respectively.  The loading of large blobs can be
 ** skipped for length() and all content loading can be skipped for typeof().
+** 如果二进制位OPFLAG_LENGTHARG和OPFLAG_TYPEOFARG都设置在P5中，要保证它们只能作为函数length()
+** 和函数typeof()的参数。函数length()可以忽略正在加载的二进制大对象以及所有正在加载的内容。
 */
 case OP_Column: {
   u32 payloadSize;   /* Number of bytes in the record */
   i64 payloadSize64; /* Number of bytes in the record */
   int p1;            /* P1 value of the opcode */
-  int p2;            /* column number to retrieve */
+  int p2;            /* column number to retrieve
+                     ** 用于检索的列号
+                     */
   VdbeCursor *pC;    /* The VDBE cursor */
-  char *zRec;        /* Pointer to complete record-data */
+  char *zRec;        /* Pointer to complete record-data
+                     ** 指向完整数据的指针
+                     */
   BtCursor *pCrsr;   /* The BTree cursor */
-  u32 *aType;        /* aType[i] holds the numeric type of the i-th column */
-  u32 *aOffset;      /* aOffset[i] is offset to start of data for i-th column */
-  int nField;        /* number of fields in the record */
-  int len;           /* The length of the serialized data for the column */
+  u32 *aType;        /* aType[i] holds the numeric type of the i-th column
+                     ** aType[i]存储了第i列的数值类型
+                     */
+  u32 *aOffset;      /* aOffset[i] is offset to start of data for i-th column
+                     ** 
+                     */
+  int nField;        /* number of fields in the record
+                     ** 记录中的字段个数
+                     */
+  int len;           /* The length of the serialized data for the column
+                     ** 序列化数据列的长度
+                     */
   int i;             /* Loop counter */
   char *zData;       /* Part of the record being decoded */
-  Mem *pDest;        /* Where to write the extracted value */
-  Mem sMem;          /* For storing the record being decoded */
-  u8 *zIdx;          /* Index into header */
-  u8 *zEndHdr;       /* Pointer to first byte after the header */
+  Mem *pDest;        /* Where to write the extracted value
+                     ** 被提取的值卸载*pDest所指的内存位置
+                     */
+  Mem sMem;          /* For storing the record being decoded
+                     ** 说sMem用于存贮正在被解码的数据
+                     */
+  u8 *zIdx;          /* Index into header
+                     ** 索引头
+                     */
+  u8 *zEndHdr;       /* Pointer to first byte after the header
+                     ** *zEndHdr指向索引头后的第一个字节
+                     */
   u32 offset;        /* Offset into the data */
-  u32 szField;       /* Number of bytes in the content of a field */
+  u32 szField;       /* Number of bytes in the content of a field
+                     ** 
+                     */
   int szHdr;         /* Size of the header size field at start of record */
   int avail;         /* Number of bytes of available data */
   u32 t;             /* A type code from the record header */
@@ -2435,15 +2502,20 @@ case OP_Column: {
 
   /* This block sets the variable payloadSize to be the total number of
   ** bytes in the record.
+  ** 这部分代码将变量的有效长度设置为记录的总的字节数量，换句话说就是，记录有多长，这个变量就有长。
   **
   ** zRec is set to be the complete text of the record if it is available.
   ** The complete record text is always available for pseudo-tables
   ** If the record is stored in a cursor, the complete record text
   ** might be available in the  pC->aRow cache.  Or it might not be.
   ** If the data is unavailable,  zRec is set to NULL.
+  ** 如果zRec可用，将完整的记录文本赋值给zRec。完整的记录文本总是可以用于伪表。
+  ** 如果记录存储在指针里，整个记录文本在pC->aRow缓存中可能是可用的，也可能不是。
+  ** 如果数据不可用时，zRec被设置为NULL。
   **
   ** We also compute the number of columns in the record.  For cursors,
   ** the number of columns is stored in the VdbeCursor.nField element.
+  ** 我们还要计算记录中有多少列。列数存储在VdbeCursor.nField字段上。
   */
   pC = p->apCsr[p1];
   assert( pC!=0 );
@@ -2466,7 +2538,10 @@ case OP_Column: {
       assert( rc==SQLITE_OK );   /* True because of CursorMoveto() call above */
       /* sqlite3BtreeParseCellPtr() uses getVarint32() to extract the
       ** payload size, so it is impossible for payloadSize64 to be
-      ** larger than 32 bits. */
+      ** larger than 32 bits.
+      ** 函数sqlite3BtreeParseCellPtr()使用函数getVarint32()提取有效的文本大小，因此
+      ** 有效长度可能是64位大小，要比32位大。
+      */
       assert( (payloadSize64 & SQLITE_MAX_U32)==(u64)payloadSize64 );
       payloadSize = (u32)payloadSize64;
     }else{
@@ -2488,7 +2563,9 @@ case OP_Column: {
   }
 
   /* If payloadSize is 0, then just store a NULL.  This can happen because of
-  ** nullRow or because of a corrupt database. */
+  ** nullRow or because of a corrupt database. 
+  ** 如果有效长度是0，就存储一个NULL值。这种情况发生在数据库没有数据行，或数据库损坏的情况下。
+  */
   if( payloadSize==0 ){
     MemSetTypeFlag(pDest, MEM_Null);
     goto op_column_out;
@@ -2503,6 +2580,7 @@ case OP_Column: {
 
   /* Read and parse the table header.  Store the results of the parse
   ** into the record header cache fields of the cursor.
+  ** 读取、解析表头。将解析的结果存储到指针所指的缓存记录的头部。
   */
   aType = pC->aType;
   if( pC->cacheStatus==p->cacheCtr ){
@@ -2514,7 +2592,9 @@ case OP_Column: {
     pC->payloadSize = payloadSize;
     pC->cacheStatus = p->cacheCtr;
 
-    /* Figure out how many bytes are in the header */
+    /* Figure out how many bytes are in the header
+    ** 计算
+    */
     if( zRec ){
       zData = zRec;
     }else{
@@ -2527,6 +2607,8 @@ case OP_Column: {
       ** save the payload in the pC->aRow cache.  That will save us from
       ** having to make additional calls to fetch the content portion of
       ** the record.
+      ** 如果函数KeyFetch()或ataFetch()能够得到全部的有效长度，将这个有效长度存储在pC->aRow缓存中。
+      ** 这能够让我们不必额外调用函数来获取所需要的记录内容。
       */
       assert( avail>=0 );
       if( payloadSize <= (u32)avail ){
@@ -2538,11 +2620,15 @@ case OP_Column: {
     }
     /* The following assert is true in all cases except when
     ** the database file has been corrupted externally.
-    **    assert( zRec!=0 || avail>=payloadSize || avail>=9 ); */
+    **    assert( zRec!=0 || avail>=payloadSize || avail>=9 );
+    ** 除非数据库被损坏，否则这个assert语句的结果在任何情况下都是真。
+    */
     szHdr = getVarint32((u8*)zData, offset);
 
     /* Make sure a corrupt database has not given us an oversize header.
     ** Do this now to avoid an oversize memory allocation.
+    ** 确保损坏的数据库没有还没有生成超过长度限制的头文件。
+    ** 现在这样做(下面的代码)能够避免超额的内存分配。
     **
     ** Type entries can be between 1 and 5 bytes each.  But 4 and 5 byte
     ** types use so much data space that there can only be 4096 and 32 of
@@ -3456,6 +3542,8 @@ case OP_OpenWrite: {
   pCur->isIndex = !pCur->isTable;
   break;
 }
+/*翻译到这里，就ok了*/
+
 
 /* Opcode: OpenEphemeral P1 P2 * P4 P5
 **
