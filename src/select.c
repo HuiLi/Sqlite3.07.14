@@ -66,15 +66,19 @@ Select *sqlite3SelectNew(
   Select *pNew;
   Select standin;
   sqlite3 *db = pParse->db;
-  pNew = sqlite3DbMallocZero(db, sizeof(*pNew) );
-  assert( db->mallocFailed || !pOffset || pLimit ); /* OFFSET implies LIMIT */
+  pNew = sqlite3DbMallocZero(db, sizeof(*pNew) );  /* 分配和零内存，如果分配失败，使mallocFaied标志在连接指针中。 */
+  assert( db->mallocFailed || !pOffset || pLimit ); /* 判断分配是否失败,或pOffset值为空,或pLimit值不为空*/
   if( pNew==0 ){
     assert( db->mallocFailed );
     pNew = &standin;
     memset(pNew, 0, sizeof(*pNew));
   }
   if( pEList==0 ){
-    pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db,TK_ALL,0));
+    pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db,TK_ALL,0)); /*新添加的元素在表达式列表的末尾。如果pList的
+                                                                           初始数据为空，那么新建 一个新的表达式列表。
+                                                                            如果出现内存分配错误，则整个列表被释放并返
+                                                                            回空。如果返回的是非空，则保证新的条目成功追加。
+	                                                                  */
   }
   pNew->pEList = pEList;
   if( pSrc==0 ) pSrc = sqlite3DbMallocZero(db, sizeof(*pSrc));
@@ -92,8 +96,8 @@ Select *sqlite3SelectNew(
   pNew->addrOpenEphm[1] = -1;
   pNew->addrOpenEphm[2] = -1;
   if( db->mallocFailed ) {
-    clearSelect(db, pNew);
-    if( pNew!=&standin ) sqlite3DbFree(db, pNew);
+    clearSelect(db, pNew);  /*删除所有选择的内容结构但不释放选择结构本身*/
+    if( pNew!=&standin ) sqlite3DbFree(db, pNew); /*如果pNew没有获得standin的地址，释放相关联的内存。 */
     pNew = 0;
   }else{
     assert( pNew->pSrc!=0 || pParse->nErr>0 );
@@ -108,8 +112,8 @@ Select *sqlite3SelectNew(
 */
 void sqlite3SelectDelete(sqlite3 *db, Select *p){
   if( p ){
-    clearSelect(db, p);
-    sqlite3DbFree(db, p);
+    clearSelect(db, p);  /*删除所有选择的内容结构但不释放选择结构本身*/
+    sqlite3DbFree(db, p);  /*空闲内存,可能被关联到一个特定的数据库连接。*/
   }
 }
 
@@ -186,8 +190,8 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){
     const char *zSp = " ";
     assert( pB!=0 );
     if( pC==0 ){ zSp++; }
-    sqlite3ErrorMsg(pParse, "unknown or unsupported join type: "
-       "%T %T%s%T", pA, pB, zSp, pC);
+    sqlite3ErrorMsg(pParse, "unknown or unsupported join type: "  
+       "%T %T%s%T", pA, pB, zSp, pC);  /*错误消息*/
     jointype = JT_INNER;
   }else if( (jointype & JT_OUTER)!=0 
          && (jointype & (JT_LEFT|JT_RIGHT))!=JT_LEFT ){
@@ -235,7 +239,7 @@ static int tableAndColumnIndex(
 
   assert( (piTab==0)==(piCol==0) );  /* Both or neither are NULL  都是或都不是都为空*/
   for(i=0; i<N; i++){
-    iCol = columnIndex(pSrc->a[i].pTab, zCol);
+    iCol = columnIndex(pSrc->a[i].pTab, zCol); /*返回表的列的索引赋给iCol，如果该列没有在表中，iCol的值是-1.*/
     if( iCol>=0 ){
       if( piTab ){
         *piTab = i;
@@ -286,7 +290,9 @@ static void addWhereTerm(
   assert( pSrc->a[iLeft].pTab );
   assert( pSrc->a[iRight].pTab );
 
-  pE1 = sqlite3CreateColumnExpr(db, pSrc, iLeft, iColLeft);
+  pE1 = sqlite3CreateColumnExpr(db, pSrc, iLeft, iColLeft);/*分配并返回一个表达式的指针，来加载在SrcList pSrc中的
+                                                             数据源的iCol列。把这个指针赋给pE1。
+                                                            */
   pE2 = sqlite3CreateColumnExpr(db, pSrc, iRight, iColRight);
 
   pEq = sqlite3PExpr(pParse, TK_EQ, pE1, pE2, 0);
@@ -450,7 +456,9 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
         int iRightCol;   /* Column number of matching column on the right  右边匹配列的列数*/
 
         zName = pList->a[j].zName;
-        iRightCol = columnIndex(pRightTab, zName);
+        iRightCol = columnIndex(pRightTab, zName); /*返回一个表中的列的索引。如果该列没有在表中返回-1。
+		                                     返回值赋给iRightCol。
+		                                   */
         if( iRightCol<0
          || !tableAndColumnIndex(pSrc, i+1, zName, &iLeft, &iLeftCol)
         ){
@@ -479,10 +487,12 @@ static void pushOntoSorter(
 ){
   Vdbe *v = pParse->pVdbe;
   int nExpr = pOrderBy->nExpr;
-  int regBase = sqlite3GetTempRange(pParse, nExpr+2);
-  int regRecord = sqlite3GetTempReg(pParse);
+  int regBase = sqlite3GetTempRange(pParse, nExpr+2); /*分配或释放一块连续的寄存器，返回一个整数值，
+                                                        把该值赋给regBase。
+                                                       */
+  int regRecord = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果。*/
   int op;
-  sqlite3ExprCacheClear(pParse);
+  sqlite3ExprCacheClear(pParse); /*清除所有列的缓存条目*/
   sqlite3ExprCodeExprList(pParse, pOrderBy, regBase, 0);
   sqlite3VdbeAddOp2(v, OP_Sequence, pOrderBy->iECursor, regBase+nExpr);
   sqlite3ExprCodeMove(pParse, regData, regBase+nExpr+1, 1);
@@ -506,7 +516,7 @@ static void pushOntoSorter(
     addr1 = sqlite3VdbeAddOp1(v, OP_IfZero, iLimit);
     sqlite3VdbeAddOp2(v, OP_AddImm, iLimit, -1);
     addr2 = sqlite3VdbeAddOp0(v, OP_Goto);
-    sqlite3VdbeJumpHere(v, addr1);
+    sqlite3VdbeJumpHere(v, addr1); /*改变指令地址的p2操作，使其指向下一条指令的地址编码。*/
     sqlite3VdbeAddOp1(v, OP_Last, pOrderBy->iECursor);
     sqlite3VdbeAddOp1(v, OP_Delete, pOrderBy->iECursor);
     sqlite3VdbeJumpHere(v, addr2);
@@ -555,8 +565,8 @@ static void codeDistinct(
   int r1;
 
   v = pParse->pVdbe;
-  r1 = sqlite3GetTempReg(pParse);
-  sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N);
+  r1 = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果，返回的整数赋给r1.*/
+  sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N); /*添加一个操作值，包括整型的p4值。*/
   sqlite3VdbeAddOp3(v, OP_MakeRecord, iMem, N, r1);
   sqlite3VdbeAddOp2(v, OP_IdxInsert, iTab, r1);
   sqlite3ReleaseTempReg(pParse, r1);
@@ -626,7 +636,7 @@ static void selectInnerLoop(
   assert( pEList!=0 );
   hasDistinct = distinct>=0;
   if( pOrderBy==0 && !hasDistinct ){
-    codeOffset(v, p, iContinue);
+    codeOffset(v, p, iContinue); /*添加代码来实现offset。*/
   }
 
   /* Pull the requested columns.
@@ -654,7 +664,7 @@ static void selectInnerLoop(
     ** values returned by the SELECT are not required.
     **如果目标是一个EXISTS(...)表达式，由select返回的实际值是不需要的。
     */
-    sqlite3ExprCacheClear(pParse);
+    sqlite3ExprCacheClear(pParse);  /*清除所有列的缓存条目。*/
     sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest==SRT_Output);
   }
   nColumn = nResultCol;
@@ -669,7 +679,7 @@ static void selectInnerLoop(
     assert( pEList->nExpr==nColumn );
     codeDistinct(pParse, distinct, iContinue, nColumn, regResult);
     if( pOrderBy==0 ){
-      codeOffset(v, p, iContinue);
+      codeOffset(v, p, iContinue); /*添加代码来实现offset。*/
     }
   }
 
@@ -714,7 +724,7 @@ static void selectInnerLoop(
         int r2 = sqlite3GetTempReg(pParse);
         sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, r2);
         sqlite3VdbeAddOp3(v, OP_Insert, iParm, r1, r2);
-        sqlite3VdbeChangeP5(v, OPFLAG_APPEND);
+        sqlite3VdbeChangeP5(v, OPFLAG_APPEND);  /*对于最新添加的操作，改变p5操作数的值。*/
         sqlite3ReleaseTempReg(pParse, r2);
       }
       sqlite3ReleaseTempReg(pParse, r1);
@@ -742,7 +752,7 @@ static void selectInnerLoop(
         pushOntoSorter(pParse, pOrderBy, p, regResult);
       }else{
         int r1 = sqlite3GetTempReg(pParse);
-        sqlite3VdbeAddOp4(v, OP_MakeRecord, regResult, 1, r1, &p->affinity, 1);
+        sqlite3VdbeAddOp4(v, OP_MakeRecord, regResult, 1, r1, &p->affinity, 1); /*添加一个操作码，其中包括作为指针的p4值。*/
         sqlite3ExprCacheAffinityChange(pParse, regResult, 1);
         sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);
         sqlite3ReleaseTempReg(pParse, r1);
@@ -866,7 +876,7 @@ static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){
     pInfo->db = db;
     for(i=0, pItem=pList->a; i<nExpr; i++, pItem++){
       CollSeq *pColl;
-      pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr);
+      pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr); /*为表达式pExpr返回默认排序顺序。如果没有默认排序 类型，返回0.*/
       if( !pColl ){
         pColl = db->pDfltColl;
       }
@@ -914,7 +924,8 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
   if( pParse->explain==2 ){
     Vdbe *v = pParse->pVdbe;
     char *zMsg = sqlite3MPrintf(pParse->db, "USE TEMP B-TREE FOR %s", zUsage);
-    sqlite3VdbeAddOp4(v, OP_Explain, pParse->iSelectId, 0, 0, zMsg, P4_DYNAMIC);
+    sqlite3VdbeAddOp4(v, OP_Explain, pParse->iSelectId, 0, 0, zMsg, P4_DYNAMIC); /*添加一个操作码，其中包括作为指针的p4值。*/
+  }
   }
 }
 
@@ -1027,7 +1038,7 @@ static void generateSortTail(
     codeOffset(v, p, addrContinue);
     sqlite3VdbeAddOp2(v, OP_SorterData, iTab, regSortOut);
     sqlite3VdbeAddOp3(v, OP_Column, ptab2, pOrderBy->nExpr+1, regRow);
-    sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);
+    sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE); /*对于最近添加的操作改变p5操作数的值。*/
   }else{
     addr = 1 + sqlite3VdbeAddOp2(v, OP_Sort, iTab, addrBreak);
     codeOffset(v, p, addrContinue);
@@ -1047,7 +1058,7 @@ static void generateSortTail(
     case SRT_Set: {
       assert( nColumn==1 );
       sqlite3VdbeAddOp4(v, OP_MakeRecord, regRow, 1, regRowid, &p->affinity, 1);
-      sqlite3ExprCacheAffinityChange(pParse, regRow, 1);
+      sqlite3ExprCacheAffinityChange(pParse, regRow, 1); /*记录从iStart开始，发生在iCount寄存器中的改变的事实。*/
       sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, regRowid);
       break;
     }
