@@ -393,10 +393,10 @@ static const sqlite3_api_routines sqlite3Apis = {
 ** by calling sqlite3DbFree(db, ).
 */
 static int sqlite3LoadExtension(
-  sqlite3 *db,          /* Load the extension into this database connection */
-  const char *zFile,    /* Name of the shared library containing extension */
-  const char *zProc,    /* Entry point.  Use "sqlite3_extension_init" if 0 */
-  char **pzErrMsg       /* Put error message here if not 0 */
+  sqlite3 *db,          //建立连接
+  const char *zFile,    //共享库的名称
+  const char *zProc,   //入口点，如果zProc=0，则使用  sqlite3_extension_init
+  char **pzErrMsg       //存放错误信息
 ){
   sqlite3_vfs *pVfs = db->pVfs;
   void *handle;
