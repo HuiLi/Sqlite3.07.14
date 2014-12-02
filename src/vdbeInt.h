@@ -63,18 +63,18 @@ struct VdbeCursor {
   Bool zeroed;          /* True if zeroed out and ready for reuse如果为零则为真并且准备被复用。 */
   Bool rowidIsValid;    /* True if lastRowid is valid 如果最后一行的行ID是有效地则为真。*/
   Bool atFirst;         /* True if pointing to first entry 如果指向第一个入口则为真*/
-  Bool useRandomRowid;  /* Generate new record numbers semi-randomly */
-  Bool nullRow;         /* True if pointing to a row with no data */
-  Bool deferredMoveto;  /* A call to sqlite3BtreeMoveto() is needed */
-  Bool isTable;         /* True if a table requiring integer keys */
-  Bool isIndex;         /* True if an index containing keys only - no data */
-  Bool isOrdered;       /* True if the underlying table is BTREE_UNORDERED */
-  Bool isSorter;        /* True if a new-style sorter */
-  sqlite3_vtab_cursor *pVtabCursor;  /* The cursor for a virtual table */
-  const sqlite3_module *pModule;     /* Module for cursor pVtabCursor */
-  i64 seqCount;         /* Sequence counter */
-  i64 movetoTarget;     /* Argument to the deferred sqlite3BtreeMoveto() */
-  i64 lastRowid;        /* Last rowid from a Next or NextIdx operation */
+  Bool useRandomRowid;  /* Generate new record numbers semi-randomly 半随机的生成新的记录号码*/
+  Bool nullRow;         /* True if pointing to a row with no data 如果指向某一没有数据的行则为真*/
+  Bool deferredMoveto;  /* A call to sqlite3BtreeMoveto() is needed 对sqlite3BtreeMoveto()方法的访问时需要的*/
+  Bool isTable;         /* True if a table requiring integer keys 如果一个表要求有整数键则为真*/
+  Bool isIndex;         /* True if an index containing keys only - no data 如果一个索引所包含的键没有数据则为真*/
+  Bool isOrdered;       /* True if the underlying table is BTREE_UNORDERED 基础数据表是无顺序的则为真*/
+  Bool isSorter;        /* True if a new-style sorter 如果是新的种类则为真*/
+  sqlite3_vtab_cursor *pVtabCursor;  /* The cursor for a virtual table 虚拟表的指针*/
+  const sqlite3_module *pModule;     /* Module for cursor pVtabCursor 指针pVtabCursor的模块 */
+  i64 seqCount;         /* Sequence counter 指令计数器*/
+  i64 movetoTarget;     /* Argument to the deferred sqlite3BtreeMoveto() 对推迟的方法sqlite3BtreeMoveto() 的内容提要*/
+  i64 lastRowid;        /* Last rowid from a Next or NextIdx operation最后一个行id来自下一个操作 */
   VdbeSorter *pSorter;  /* Sorter object for OP_SorterOpen cursors */
 
   /* Result of last sqlite3BtreeMoveto() done by an OP_NotExists or 
