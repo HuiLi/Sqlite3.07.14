@@ -280,23 +280,23 @@ static void iotracePrintf(const char *zFormat, ...){ //有一个参数zFormat固
 
 
 /*
-** Determines if a string is a number of not.  //如果有很多非数字则终止
+** Determines if a string is a number of not.  //如果有很多非数字则终止,z为得到的字符串
 */
 static int isNumber(const char *z, int *realnum){
   if( *z=='-' || *z=='+' ) z++;  //判断正负
   if( !IsDigit(*z) ){ //判断是否是数字，如果不是，返回0
     return 0;
   }
-  z++;   
-  if( realnum ) *realnum = 0; //
+  z++;       //指针后移一位
+  if( realnum ) *realnum = 0; //  字符串的实际长度
   while( IsDigit(*z) ){ z++; } //如果遇到数字，指针后移一位
   if( *z=='.' ){   //判断是否是小数
     z++;
-    if( !IsDigit(*z) ) return 0;
+    if( !IsDigit(*z) ) return 0; //如果遇到非数字，返回0
     while( IsDigit(*z) ){ z++; }
-    if( realnum ) *realnum = 1;
+    if( realnum ) *realnum = 1; //
   }
-  if( *z=='e' || *z=='E' ){// 判断是否有指数
+  if( *z=='e' || *z=='E' ){ // 判断是否有指数
     z++;
     if( *z=='+' || *z=='-' ) z++; //指数的正负
     if( !IsDigit(*z) ) return 0;
@@ -313,18 +313,18 @@ static int isNumber(const char *z, int *realnum){
 ** The correct way to do this with sqlite3 is to use the bind API, but
 ** since the shell is built around the callback paradigm it would be a lot
 ** of work. Instead just use this hack, which is quite harmless.
-*/
+*/    //一个全局的char指针变量和一个SQL函数从一个SQL语句中访问它当前的值。这个程序之前使用sqlite_exec_printf() AP代替一个字符串成为SQL语句，sqlite3的正确的方法是使用bind API,但当shell建立在回调模式,将可以完成大量的工作
 static const char *zShellStatic = 0;
-static void shellstaticFunc(
+static void shellstaticFunc(   //
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
   assert( 0==argc );
   assert( zShellStatic );
-  UNUSED_PARAMETER(argc);
+  UNUSED_PARAMETER(argc);  //不使用的参数，根据前面的定义设置为空
   UNUSED_PARAMETER(argv);
-  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC);
+  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC); //
 }
 
 
@@ -334,27 +334,28 @@ static void shellstaticFunc(
 ** to the text.  NULL is returned at end of file, or if malloc()
 ** fails.
 **
-** The interface is like "readline" but no command-line editing
+** The interface is like "readline" but no command-line editing  //readline方法描述从一个textstream文件读取一整行并返回得到的字符串，这个接口是像readline一样，而不是命令行编辑
 ** is done.
-*/
-static char *local_getline(char *zPrompt, FILE *in, int csvFlag){
-  char *zLine;
-  int nLine;
-  int n;
+*/  //从文件的文本中读取一行，将文本存储到从malloc（）中得到的内存空间，并且返回一个指针，如果失败，在文件结束返回NULL,或者如果malloc()失败。
+// 在需要一次读入一整行很长的内容时可以使用此方法
+static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //从文件中读取行的函数定义:*zPrompt表示读取的字符串*in表示打开文件的指针，csvFlag读取的长度
+  char *zLine;  //读取行
+  int nLine;  //指定长度
+  int n; 
   int inQuote = 0;
 
-  if( zPrompt && *zPrompt ){
+  if( zPrompt && *zPrompt ){// 读取成功，则输出字符串
     printf("%s",zPrompt);
     fflush(stdout);
   }
-  nLine = 100;
-  zLine = malloc( nLine );
-  if( zLine==0 ) return 0;
+  nLine = 100;  //赋值指定长度
+  zLine = malloc( nLine ); //分配大小为nLine的内存空间
+  if( zLine==0 ) return 0;  //如果字符串为空，则返回0
   n = 0;
-  while( 1 ){
-    if( n+100>nLine ){
+  while( 1 ){  //设定一个一般字符串的长度限制为缓冲区的大小, 每次读取后, 再判断下是否到达行末, 如果没有到达, 再利用上面的方法动态分配缓冲区
+    if( n+100>nLine ){  
       nLine = nLine*2 + 100;
-      zLine = realloc(zLine, nLine);
+      zLine = realloc(zLine, nLine); //将zLine对象的存储空间改为nLine大小
       if( zLine==0 ) return 0;
     }
     if( fgets(&zLine[n], nLine - n, in)==0 ){
@@ -457,20 +458,20 @@ struct callback_data {  //定义结构体，用来进行各方法之间的传值
 #define MODE_Csv      7  /* Quote strings, numbers are plain */
 #define MODE_Explain  8  /* Like MODE_Column, but do not truncate data */
 
-static const char *modeDescr[] = {
+static const char *modeDescr[] = { //定义允许的模式字符数组；数据表格显示格式
   "line",
   "column",
   "list",
   "semi",
   "html",
-  "insert",
+  "insert",  //显示insert sql语句
   "tcl",
   "csv",
   "explain",
 };
 
 /*
-** Number of elements in an array
+** Number of elements in an array   //数组中元素的数量
 */
 #define ArraySize(X)  (int)(sizeof(X)/sizeof(X[0]))
 
@@ -478,7 +479,7 @@ static const char *modeDescr[] = {
 ** Compute a string length that is limited to what can be stored in
 ** lower 30 bits of a 32-bit signed integer.
 */
-static int strlen30(const char *z){
+static int strlen30(const char *z){     //能够存储的最大bit数
   const char *z2 = z;
   while( *z2 ){ z2++; }
   return 0x3fffffff & (int)(z2 - z);
@@ -1014,9 +1015,9 @@ static char *save_err_msg(
 ** Display memory stats.
 */
 static int display_stats(
-  sqlite3 *db,                /* Database to query */
-  struct callback_data *pArg, /* Pointer to struct callback_data */
-  int bReset                  /* True to reset the stats */
+  sqlite3 *db,                // 要访问的数据库 /* Database to query */
+  struct callback_data *pArg, //定义一个回调函数的指针  /* Pointer to struct callback_data */
+  int bReset                 //对重置操作进行判断 /* True to reset the stats */
 ){
   int iCur;
   int iHiwtr;
