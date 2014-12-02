@@ -2874,7 +2874,9 @@ case OP_Affinity: {
 ** 如果P4是NULL，那么所有索引字段都与NONE相关联。
 */
 case OP_MakeRecord: {
-  u8 *zNewRecord;        /* A buffer to hold the data for the new record */
+  u8 *zNewRecord;        /* A buffer to hold the data for the new record
+                         ** *zNewRecord作为缓冲变量，存放新纪录的数据
+                         */
   Mem *pRec;             /* The new record */
   u64 nData;             /* Number of bytes of data space */
   int nHdr;              /* Number of bytes of header space */
@@ -2882,16 +2884,21 @@ case OP_MakeRecord: {
   int nZero;             /* Number of zero bytes at the end of the record */
   int nVarint;           /* Number of bytes in a varint */
   u32 serial_type;       /* Type field */
-  Mem *pData0;           /* First field to be combined into the record */
+  Mem *pData0;           /* First field to be combined into the record
+                         ** 第一个字段组合成的记录
+                         */
   Mem *pLast;            /* Last field of the record */
   int nField;            /* Number of fields in the record */
   char *zAffinity;       /* The affinity string for the record */
-  int file_format;       /* File format to use for encoding */
+  int file_format;       /* File format to use for encoding
+                         ** 文件的编码格式
+                         */
   int i;                 /* Space used in zNewRecord[] */
   int len;               /* Length of a field */
 
   /* Assuming the record contains N fields, the record format looks
   ** like this:
+  ** 假设记录中含有N个字段，记录的格式就像这样：
   **
   ** ------------------------------------------------------------------------
   ** | hdr-size | type 0 | type 1 | ... | type N-1 | data0 | ... | data N-1 |
@@ -2899,13 +2906,20 @@ case OP_MakeRecord: {
   **
   ** Data(0) is taken from register P1.  Data(1) comes from register P1+1
   ** and so froth.
+  ** Data(0)取自寄存器P1。 Data(1)取自寄存器P2，以此类推。
   **
   ** Each type field is a varint representing the serial type of the
   ** corresponding data element (see sqlite3VdbeSerialType()). The
   ** hdr-size field is also a varint which is the offset from the beginning
   ** of the record to data0.
+  ** 每种类型字段都是由一个varint(varint的意思应该是整形变量)，varint代表一系列与它对应的
+  ** 数据元素类型(见sqlite3VdbeSerialType()，这个函数在vdbeaux.c文件中，它将返回值存储在
+  ** 参数pMem中返回给调用者)。hdr-size字段也是一个varint，这个varint是从记录的开始位置
+  ** 到data0的偏移量。
   */
-  nData = 0;         /* Number of bytes of data space */
+  nData = 0;         /* Number of bytes of data space
+                     ** 数据空间的字节数
+                     */
   nHdr = 0;          /* Number of bytes of header space */
   nZero = 0;         /* Number of zero bytes at the end of the record */
   nField = pOp->p1;
@@ -2923,6 +2937,7 @@ case OP_MakeRecord: {
 
   /* Loop through the elements that will make up the record to figure
   ** out how much space is required for the new record.
+  ** 遍历新纪录中的所有元素，以计算需要多少空间来存放这个新纪录。
   */
   for(pRec=pData0; pRec<=pLast; pRec++){
     assert( memIsValid(pRec) );
@@ -2938,7 +2953,10 @@ case OP_MakeRecord: {
     nHdr += sqlite3VarintLen(serial_type);
     if( pRec->flags & MEM_Zero ){
       /* Only pure zero-filled BLOBs can be input to this Opcode.
-      ** We do not allow blobs with a prefix and a zero-filled tail. */
+      ** We do not allow blobs with a prefix and a zero-filled tail.
+      ** 只有所有数据位都是0的Blob类型的值才能被输入到这个操作中。我们不允许blobs类型的
+      ** 的数据中出现前缀和全部是0的后缀。
+      */
       nZero += pRec->u.nZero;
     }else if( len ){
       nZero = 0;
@@ -2959,6 +2977,8 @@ case OP_MakeRecord: {
   ** the new record. The output register (pOp->p3) is not allowed to
   ** be one of the input registers (because the following call to
   ** sqlite3VdbeMemGrow() could clobber the value before it is used).
+  ** 确保输出寄存器有足够大的缓冲区来存储新的记录。输出寄存器(pOp->p3)不允许的输入寄存器
+  ** (因为在使用寄存器之前，代码会调用sqlite3VdbeMemGrow()函数来强制改写寄存器中的值)。
   */
   if( sqlite3VdbeMemGrow(pOut, (int)nByte, 0) ){
     goto no_mem;
