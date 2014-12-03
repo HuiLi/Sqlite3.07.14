@@ -79,7 +79,7 @@ struct VdbeCursor {
 
   /* Result of last sqlite3BtreeMoveto() done by an OP_NotExists or 
   ** OP_IsUnique opcode on this cursor.
-**OP_NotExists或者 OP_IsUnique在这个指针上的操作码所形成的的上一个sqlite3BtreeMoveto()方法的结果。*/
+  **OP_NotExists或者 OP_IsUnique在这个指针上的操作码所形成的的上一个sqlite3BtreeMoveto()方法的结果。*/
   int seekResult;
 
   /* Cached information about the header for the data record that the
@@ -87,15 +87,16 @@ struct VdbeCursor {
   ** Vdbe.cacheCtr.  Vdbe.cacheCtr will never take on the value of
   ** CACHE_STALE and so setting cacheStatus=CACHE_STALE guarantees that
   ** the cache is out of date.
-  **
+  ** 缓存的的关于头文件的信息，这个头文件正是这个指针现在指向的数据记录。仅在当缓存状态与Vdbe.cacheCtr匹配时才有效。
+  ** Vdbe.cacheCtr将永远取不到CACHE_STALE的值，因此设置cacheStatus=CACHE_STALE的保证了缓存已经过期。
   ** aRow might point to (ephemeral) data for the current row, or it might
-  ** be NULL.
+  ** be NULL.一行可能指向（临时的）当前行的数据，否则它可能为空。
   */
-  u32 cacheStatus;      /* Cache is valid if this matches Vdbe.cacheCtr */
-  int payloadSize;      /* Total number of bytes in the record */
-  u32 *aType;           /* Type values for all entries in the record */
+  u32 cacheStatus;      /* Cache is valid if this matches Vdbe.cacheCtr 如果这匹配了Vdbe.cacheCtr，则缓存是是有效的*/
+  int payloadSize;      /* Total number of bytes in the record 记录中所有的字节数的总和*/
+  u32 *aType;           /* Type values for all entries in the record 记录中所有入口的类型值*/
   u32 *aOffset;         /* Cached offsets to the start of each columns data */
-  u8 *aRow;             /* Data for the current row, if all on one page */
+  u8 *aRow;             /* Data for the current row, if all on one page 当前行的数据，如果所有的数据都在同一页*/
 };
 typedef struct VdbeCursor VdbeCursor;
 
@@ -107,7 +108,8 @@ typedef struct VdbeCursor VdbeCursor;
 ** these values are copied back to the Vdbe from the VdbeFrame structure,
 ** restoring the state of the VM to as it was before the sub-program
 ** began executing.
-**
+** 当一个子线程被执行，这个类型的结构将被分配存储当前程序计数器的值，而且当前存储单元阵列和各种其它的框架特定值存储在vdbe结构当中。
+**当子程序运行结束，这些值将从VDBE框架当中复制回来。存储虚拟机的状态当做它在子程序开始执行之前。
 ** The memory for a VdbeFrame object is allocated and managed by a memory
 ** cell in the parent (calling) frame. When the memory cell is deleted or
 ** overwritten, the VdbeFrame object is not freed immediately. Instead, it
@@ -116,9 +118,11 @@ typedef struct VdbeCursor VdbeCursor;
 ** this instead of deleting the VdbeFrame immediately is to avoid recursive
 ** calls to sqlite3VdbeMemRelease() when the memory cells belonging to the
 ** child frame are released.
-**
+** 一个虚拟机框架对象的内存由父框架的一个存储单元中被分配和管理。当内存单元被删除或者重写，虚拟机框架对象不会被立即释放。相反的，
+** 他将被链接到Vdbe.pDelFrame清单中。
 ** The currently executing frame is stored in Vdbe.pFrame. Vdbe.pFrame is
 ** set to NULL if the currently executing frame is the main program.
+** 当前的执行框架被存储在Vdbe.pFrame里面。如果当前的执行框架在主程序当中，Vdbe.pFrame将被置为空。 
 */
 typedef struct VdbeFrame VdbeFrame;
 struct VdbeFrame {
