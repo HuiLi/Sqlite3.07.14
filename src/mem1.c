@@ -21,7 +21,9 @@
 ** SQLITE_MEMDEBUG nor the SQLITE_WIN32_MALLOC macros are defined.  The
 ** default configuration is to use memory allocation routines in this
 ** file.
-**此文件包含在sqlite3_mem_methods对象指定的低级别的内存分配程序的实现。当SQLITE_SYSTEM_MALLOC被定义，这个文件的内容将会被使用。如果SQLITE MEMDEBUG或者SQLITE WIN32 MALLOC的宏被定义，那么SQLITE_SYSTEM_MALLOC的宏也会被自动定义。在这个文件中缺省配置是使用内存分配例程。
+**此文件包含在sqlite3_mem_methods对象指定的低级别的内存分配程序的实现。当SQLITE_SYSTEM_MALLOC被定义，
+这个文件的内容将会被使用。如果SQLITE MEMDEBUG或者SQLITE WIN32 MALLOC的宏被定义，那么SQLITE_SYSTEM_MALLOC
+的宏也会被自动定义。在这个文件中缺省配置是使用内存分配例程。
 ** C-preprocessor macro summary:
 **
 **    HAVE_MALLOC_USABLE_SIZE     The configure script sets this symbol if
@@ -31,7 +33,8 @@
 **                                If an equivalent interface exists by
 **                                a different name, using a separate -D
 **                                option to rename it.
-**如果malloc_usable_size()接口存在在目标平台上, 配置脚本设置这个符号。或者, 如果需要的话，这个符号可以手动设置。如果一个等效接口存在一个不同的名称,使用一个单独的- D选项来重命名它
+**如果malloc_usable_size()接口存在在目标平台上, 配置脚本设置这个符号。或者, 如果需要的话，这个符号可以手动设置。
+如果一个等效接口存在一个不同的名称,使用一个单独的- D选项来重命名它
 **    SQLITE_WITHOUT_ZONEMALLOC   Some older macs lack support for the zone
 **                                memory allocator.  Set this symbol to enable
 **                                building on older macs.
