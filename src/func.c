@@ -1160,26 +1160,28 @@ static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串
 /*
 ** Implementation of the TRIM(), LTRIM(), and RTRIM() functions.
 ** The userdata is 0x1 for left trim, 0x2 for right trim, 0x3 for both.
+实现TRIM(), LTRIM(), and RTRIM()函数。用户数据是0x1代表左侧空格符移除，
+0x2代表右侧空格符移除即尾部的空格符清除，0x3代表两侧空格符都移除。
 */
-static void trimFunc(
+static void trimFunc(//trim() 函数所返回一个字符串
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
-  const unsigned char *zIn;         /* Input string */
-  const unsigned char *zCharSet;    /* Set of characters to trim */
-  int nIn;                          /* Number of bytes in input */
-  int flags;                        /* 1: trimleft  2: trimright  3: trim */
-  int i;                            /* Loop counter */
-  unsigned char *aLen = 0;          /* Length of each character in zCharSet */
-  unsigned char **azChar = 0;       /* Individual characters in zCharSet */
-  int nChar;                        /* Number of characters in zCharSet */
+  const unsigned char *zIn;         /* Input string 输入字符串*/
+  const unsigned char *zCharSet;    /* Set of characters to trim 设置移除类型*/
+  int nIn;                          /* Number of bytes in input 输入字节数*/
+  int flags;                        /* 1: trimleft  2: trimright  3: trim 标志1 ，左侧字符移除，标志2 ，右侧字符移除， 标志3 ，两侧字符移除*/
+  int i;                            /* Loop counter 循环计数*/
+  unsigned char *aLen = 0;          /* Length of each character in zCharSet zCharSet每个字符的长度*/
+  unsigned char **azChar = 0;       /* Individual characters in zCharSet zCharSet单个字符*/
+  int nChar;                        /* Number of characters in zCharSet zCharSet字符数*/
 
   if( sqlite3_value_type(argv[0])==SQLITE_NULL ){
     return;
   }
   zIn = sqlite3_value_text(argv[0]);
-  if( zIn==0 ) return;
+  if( zIn==0 ) return;//判断字符串是否为空
   nIn = sqlite3_value_bytes(argv[0]);
   assert( zIn==sqlite3_value_text(argv[0]) );
   if( argc==1 ){
@@ -1201,7 +1203,7 @@ static void trimFunc(
       if( azChar==0 ){
         return;
       }
-      aLen = (unsigned char*)&azChar[nChar];
+      aLen = (unsigned char*)&azChar[nChar];//移除类型的长度
       for(z=zCharSet, nChar=0; *z; nChar++){
         azChar[nChar] = (unsigned char *)z;
         SQLITE_SKIP_UTF8(z);
@@ -1210,8 +1212,8 @@ static void trimFunc(
     }
   }
   if( nChar>0 ){
-    flags = SQLITE_PTR_TO_INT(sqlite3_user_data(context));
-    if( flags & 1 ){
+    flags = SQLITE_PTR_TO_INT(sqlite3_user_data(context));//移除标志
+    if( flags & 1 ){//标志1 ，左侧字符移除
       while( nIn>0 ){
         int len = 0;
         for(i=0; i<nChar; i++){
@@ -1223,7 +1225,7 @@ static void trimFunc(
         nIn -= len;
       }
     }
-    if( flags & 2 ){
+    if( flags & 2 ){//标志2 ，右侧字符移除
       while( nIn>0 ){
         int len = 0;
         for(i=0; i<nChar; i++){
@@ -1238,22 +1240,25 @@ static void trimFunc(
       sqlite3_free(azChar);
     }
   }
-  sqlite3_result_text(context, (char*)zIn, nIn, SQLITE_TRANSIENT);
+  sqlite3_result_text(context, (char*)zIn, nIn, SQLITE_TRANSIENT);//返回最后移除的字符串
 }
 
 
 /* IMP: R-25361-16150 This function is omitted from SQLite by default. It
 ** is only available if the SQLITE_SOUNDEX compile-time option is used
 ** when SQLite is built.
+这个函数是省略了默认SQLite。它
+只有SQLITE_SOUNDEX编译时选项时该函数才可用
 */
 #ifdef SQLITE_SOUNDEX
 /*
-** Compute the soundex encoding of a word.
+** Compute the soundex encoding of a word.计算一个字的Soundex编码
 **
 ** IMP: R-59782-00072 The soundex(X) function returns a string that is the
 ** soundex encoding of the string X. 
+soundex(X)函数返回一个字符串,该字符串是字符串X的soundex编码。
 */
-static void soundexFunc(
+static void soundexFunc(//	计算字符串X的soundex编码。
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -1277,7 +1282,7 @@ static void soundexFunc(
   for(i=0; zIn[i] && !sqlite3Isalpha(zIn[i]); i++){}
   if( zIn[i] ){
     u8 prevcode = iCode[zIn[i]&0x7f];
-    zResult[0] = sqlite3Toupper(zIn[i]);
+    zResult[0] = sqlite3Toupper(zIn[i]);//小写字母转化为大写字母函数，对UTF-8字符不能提供好的支持。
     for(j=1; j<4 && zIn[i]; i++){
       int code = iCode[zIn[i]&0x7f];
       if( code>0 ){
@@ -1296,7 +1301,7 @@ static void soundexFunc(
     sqlite3_result_text(context, zResult, 4, SQLITE_TRANSIENT);
   }else{
     /* IMP: R-64894-50321 The string "?000" is returned if the argument
-    ** is NULL or contains no ASCII alphabetic characters. */
+    ** is NULL or contains no ASCII alphabetic characters.参数为NULL或不包含ASCII字母字符时返回字符串"?000". */
     sqlite3_result_text(context, "?000", 4, SQLITE_STATIC);
   }
 }
@@ -1305,6 +1310,8 @@ static void soundexFunc(
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
 /*
 ** A function that loads a shared-library extension then returns NULL.
+一个加载共享库的函数扩展然后返回NULL。
+
 */
 static void loadExt(sqlite3_context *context, int argc, sqlite3_value **argv){
   const char *zFile = (const char *)sqlite3_value_text(argv[0]);
@@ -1328,14 +1335,15 @@ static void loadExt(sqlite3_context *context, int argc, sqlite3_value **argv){
 /*
 ** An instance of the following structure holds the context of a
 ** sum() or avg() aggregate computation.
+以下结构的实例持有的上下文中sum()或avg()聚集计算。
 */
 typedef struct SumCtx SumCtx;
 struct SumCtx {
-  double rSum;      /* Floating point sum */
-  i64 iSum;         /* Integer sum */   
-  i64 cnt;          /* Number of elements summed */
-  u8 overflow;      /* True if integer overflow seen */
-  u8 approx;        /* True if non-integer value was input to the sum */
+  double rSum;      /* Floating point sum 浮点数的总和*/
+  i64 iSum;         /* Integer sum 整数总和*/   
+  i64 cnt;          /* Number of elements summed 元素数量的总和*/
+  u8 overflow;      /* True if integer overflow seen 如果整数溢出，是真的*/
+  u8 approx;        /* True if non-integer value was input to the sum 如果当输入均为非整数时，和是精确的*/
 };
 
 /*
@@ -1347,6 +1355,11 @@ struct SumCtx {
 ** SUM might return an integer if it never encounters a floating point
 ** value.  TOTAL never fails, but SUM might through an exception if
 ** it overflows an integer.
+例子用计算总和，平均值和总和。
+该sum()功能如下（broken）SQL标准，这意味着
+如果总和没有输入，返回null。在这种情况下TOTAL返回0
+此外，TOTAL总是返回一个浮点数，在这里若SUM从没有遇到一个浮点数，SUM可能返回一个整数。
+TOTAL总不会失败，但sum可能出现一个异常如果它溢出整数。
 */
 static void sumStep(sqlite3_context *context, int argc, sqlite3_value **argv){
   SumCtx *p;
@@ -1364,7 +1377,7 @@ static void sumStep(sqlite3_context *context, int argc, sqlite3_value **argv){
         p->overflow = 1;
       }
     }else{
-      p->rSum += sqlite3_value_double(argv[0]);
+      p->rSum += sqlite3_value_double(argv[0]);//浮点数的总和
       p->approx = 1;
     }
   }
@@ -1374,15 +1387,15 @@ static void sumFinalize(sqlite3_context *context){
   p = sqlite3_aggregate_context(context, 0);
   if( p && p->cnt>0 ){
     if( p->overflow ){
-      sqlite3_result_error(context,"integer overflow",-1);
+      sqlite3_result_error(context,"integer overflow",-1);//返回错误整数溢出为-1
     }else if( p->approx ){
-      sqlite3_result_double(context, p->rSum);
+      sqlite3_result_double(context, p->rSum);//如果不是整数时返回浮点数的总和
     }else{
-      sqlite3_result_int64(context, p->iSum);
+      sqlite3_result_int64(context, p->iSum);//反之返回整数总和
     }
   }
 }
-static void avgFinalize(sqlite3_context *context){
+static void avgFinalize(sqlite3_context *context){//平均值
   SumCtx *p;
   p = sqlite3_aggregate_context(context, 0);
   if( p && p->cnt>0 ){
@@ -1392,13 +1405,14 @@ static void avgFinalize(sqlite3_context *context){
 static void totalFinalize(sqlite3_context *context){
   SumCtx *p;
   p = sqlite3_aggregate_context(context, 0);
-  /* (double)0 In case of SQLITE_OMIT_FLOATING_POINT... */
+  /* (double)0 In case of SQLITE_OMIT_FLOATING_POINT... (double)0为缺省浮点值*/
   sqlite3_result_double(context, p ? p->rSum : (double)0);
 }
 
 /*
 ** The following structure keeps track of state information for the
 ** count() aggregate function.
+以下的结构保持跟踪状态信息的count()聚合函数。
 */
 typedef struct CountCtx CountCtx;
 struct CountCtx {
@@ -1407,6 +1421,8 @@ struct CountCtx {
 
 /*
 ** Routines to implement the count() aggregate function.
+例程来实现count()聚合函数。
+
 */
 static void countStep(sqlite3_context *context, int argc, sqlite3_value **argv){
   CountCtx *p;
@@ -1419,7 +1435,9 @@ static void countStep(sqlite3_context *context, int argc, sqlite3_value **argv){
   /* The sqlite3_aggregate_count() function is deprecated.  But just to make
   ** sure it still operates correctly, verify that its count agrees with our 
   ** internal count when using count(*) and when the total count can be
-  ** expressed as a 32-bit integer. */
+  ** expressed as a 32-bit integer.
+  sqlite3_aggregate_count()函数被弃用。 只是以保证它仍然运行正确,
+  验证其同意我们内部计数时使用count(*)和total计数可以表示为一个32位整数。*/
   assert( argc==1 || p==0 || p->n>0x7fffffff
           || p->n==sqlite3_aggregate_count(context) );
 #endif
@@ -1432,6 +1450,7 @@ static void countFinalize(sqlite3_context *context){
 
 /*
 ** Routines to implement min() and max() aggregate functions.
+例程来实现min() 和 max() 聚合函数。
 */
 static void minmaxStep(
   sqlite3_context *context, 
@@ -1450,7 +1469,7 @@ static void minmaxStep(
   }else if( pBest->flags ){
     int max;
     int cmp;
-    CollSeq *pColl = sqlite3GetFuncCollSeq(context);
+    CollSeq *pColl = sqlite3GetFuncCollSeq(context);//调觭qlite3GetFuncCollSeq(context)函数
     /* This step function is used for both the min() and max() aggregates,
     ** the only difference between the two being that the sense of the
     ** comparison is inverted. For the max() aggregate, the
@@ -1458,13 +1477,16 @@ static void minmaxStep(
     ** returns (void *)db, where db is the sqlite3* database pointer.
     ** Therefore the next statement sets variable 'max' to 1 for the max()
     ** aggregate, or 0 for min().
+    这阶梯函数用于min()和max()聚集,两者之间唯一的区别是,比较的意义是倒置的。
+    对于max()聚合函数,sqlite3_user_data()函数返回(void *)-1。对于min(),它返回(void *)db,db数据库sqlite3 *指针。
+    因此下一个语句集变量“max”max()聚合为1 ,或min()为0。
     */
     max = sqlite3_user_data(context)!=0;
     cmp = sqlite3MemCompare(pBest, pArg, pColl);
     if( (max && cmp<0) || (!max && cmp>0) ){
       sqlite3VdbeMemCopy(pBest, pArg);
     }else{
-      sqlite3SkipAccumulatorLoad(context);
+      sqlite3SkipAccumulatorLoad(context);//调用 sqlite3SkipAccumulatorLoad(context)函数
     }
   }else{
     sqlite3VdbeMemCopy(pBest, pArg);
@@ -1483,6 +1505,8 @@ static void minMaxFinalize(sqlite3_context *context){
 
 /*
 ** group_concat(EXPR, ?SEPARATOR?)
+这个功能返回的结果集是一个group里面的非空值组成的字符串，
+如果group里全是空值的时候它返回的是NULL。
 */
 static void groupConcatStep(
   sqlite3_context *context,
@@ -1494,7 +1518,7 @@ static void groupConcatStep(
   const char *zSep;
   int nVal, nSep;
   assert( argc==1 || argc==2 );
-  if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;
+  if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;//group里全是空值的时候它返回的是NULL。
   pAccum = (StrAccum*)sqlite3_aggregate_context(context, sizeof(*pAccum));
 
   if( pAccum ){
@@ -1536,6 +1560,9 @@ static void groupConcatFinalize(sqlite3_context *context){
 ** This routine does per-connection function registration.  Most
 ** of the built-in functions above are part of the global function set.
 ** This routine only deals with those that are not global.
+这个例程是在每个连接函数注册。
+最上面的内置函数是全局函数集的一部分。
+这个例程只处理那些不是全局的函数。
 */
 void sqlite3RegisterBuiltinFunctions(sqlite3 *db){
   int rc = sqlite3_overload_function(db, "MATCH", 2);
@@ -1547,6 +1574,7 @@ void sqlite3RegisterBuiltinFunctions(sqlite3 *db){
 
 /*
 ** Set the LIKEOPT flag on the 2-argument function with the given name.
+设置LIKEOPT标志给定2-argument函数名字。
 */
 static void setLikeOptFlag(sqlite3 *db, const char *zName, u8 flagVal){
   FuncDef *pDef;
@@ -1561,13 +1589,16 @@ static void setLikeOptFlag(sqlite3 *db, const char *zName, u8 flagVal){
 ** Register the built-in LIKE and GLOB functions.  The caseSensitive
 ** parameter determines whether or not the LIKE operator is case
 ** sensitive.  GLOB is always case sensitive.
+注册内置的LIKE and GLOB函数。
+caseSensitive参数确定LIKE 操作符是否区分大小写的。 
+GLOB永远都是区分大小写的。
 */
 void sqlite3RegisterLikeFunctions(sqlite3 *db, int caseSensitive){
   struct compareInfo *pInfo;
   if( caseSensitive ){
-    pInfo = (struct compareInfo*)&likeInfoAlt;
+    pInfo = (struct compareInfo*)&likeInfoAlt;//区分大小写
   }else{
-    pInfo = (struct compareInfo*)&likeInfoNorm;
+    pInfo = (struct compareInfo*)&likeInfoNorm;//不区分大小写
   }
   sqlite3CreateFunc(db, "like", 2, SQLITE_UTF8, pInfo, likeFunc, 0, 0, 0);
   sqlite3CreateFunc(db, "like", 3, SQLITE_UTF8, pInfo, likeFunc, 0, 0, 0);
@@ -1584,6 +1615,9 @@ void sqlite3RegisterLikeFunctions(sqlite3 *db, int caseSensitive){
 ** then set aWc[0] through aWc[2] to the wildcard characters and
 ** return TRUE.  If the function is not a LIKE-style function then
 ** return FALSE.
+pExpr指向一个实现一个函数表达式。如果它适合应用LIKE 的最优化，
+函数将AWC [ 0 ]通过AWC [ 2 ]的通配符并返回true。
+如果函数是一个不 LIKE-style函数那么返回false。
 */
 int sqlite3IsLikeFunction(sqlite3 *db, Expr *pExpr, int *pIsNocase, char *aWc){
   FuncDef *pDef;
@@ -1604,6 +1638,8 @@ int sqlite3IsLikeFunction(sqlite3 *db, Expr *pExpr, int *pIsNocase, char *aWc){
   /* The memcpy() statement assumes that the wildcard characters are
   ** the first three statements in the compareInfo structure.  The
   ** asserts() that follow verify that assumption
+  memcpy()语句认为通配符compareInfo中的前三个语句结构。
+  asserts() 将验证这个假设
   */
   memcpy(aWc, pDef->pUserData, 3);
   assert( (char*)&likeInfoAlt == (char*)&likeInfoAlt.matchAll );
@@ -1619,6 +1655,10 @@ int sqlite3IsLikeFunction(sqlite3 *db, Expr *pExpr, int *pIsNocase, char *aWc){
 ** a consequence of calling sqlite3_initialize()).
 **
 ** After this routine runs
+所有的FuncDef结构都在aBuiltinFunc[]数组上面的全局函数散列表中。
+这发生在起始时间(由于调用sqlite3_initialize())。
+这个例程运行后
+
 */
 void sqlite3RegisterGlobalFunctions(void){
   /*
@@ -1628,6 +1668,9 @@ void sqlite3RegisterGlobalFunctions(void){
   ** The array cannot be constant since changes are made to the
   ** FuncDef.pHash elements at start-time.  The elements of this array
   ** are read-only after initialization is complete.
+以下数组持有在这个文件中定义的所有函数的FuncDef结构。
+由于改变了FuncDef，数组不能成为常量。pHash元素起始时间。
+这个数组的元素初始化完成后是只读的。
   */
   static SQLITE_WSD FuncDef aBuiltinFunc[] = {
     FUNCTION(ltrim,              1, 1, 0, trimFunc         ),
@@ -1712,3 +1755,4 @@ void sqlite3RegisterGlobalFunctions(void){
   sqlite3AlterFunctions();
 #endif
 }
+
