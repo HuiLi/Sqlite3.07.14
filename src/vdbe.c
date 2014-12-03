@@ -3014,6 +3014,7 @@ case OP_MakeRecord: {
 **
 ** Store the number of entries (an integer value) in the table or index
 ** opened by cursor P1 in register P2
+** 存储表中或索引中已经被条目的数量(一个整数值)在表或索引打开游标P1在寄存器P2
 */
 #ifndef SQLITE_OMIT_BTREECOUNT
 case OP_Count: {         /* out2-prerelease */
@@ -3036,6 +3037,8 @@ case OP_Count: {         /* out2-prerelease */
 ** Open, release or rollback the savepoint named by parameter P4, depending
 ** on the value of P1. To open a new savepoint, P1==0. To release (commit) an
 ** existing savepoint, P1==1, or to rollback an existing savepoint P1==2.
+** 保存点的打开，释放或回滚由参数P4来指定，依赖于P1的值。当P1==0时，打开一个新的保存点。
+** 当P1==1时，释放(提交)现有的保存点。当P1==2时，回滚现有保存点。
 */
 case OP_Savepoint: {
   int p1;                         /* Value of P1 operand */
@@ -3052,6 +3055,7 @@ case OP_Savepoint: {
 
   /* Assert that the p1 parameter is valid. Also that if there is no open
   ** transaction, then there cannot be any savepoints.
+  ** 断言参数p1是有效的。如果还没有打开事务，那么就不需要任何保存点。
   */
   assert( db->pSavepoint==0 || db->autoCommit==0 );
   assert( p1==SAVEPOINT_BEGIN||p1==SAVEPOINT_RELEASE||p1==SAVEPOINT_ROLLBACK );
@@ -3062,6 +3066,7 @@ case OP_Savepoint: {
     if( db->writeVdbeCnt>0 ){
       /* A new savepoint cannot be created if there are active write
       ** statements (i.e. open read/write incremental blob handles).
+      ** 如果有写操作在活动，就无法创建一个新的保存点(也就是，打开读/写增量blob的操作)。
       */
       sqlite3SetString(&p->zErrMsg, db, "cannot open savepoint - "
         "SQL statements in progress");
@@ -3073,7 +3078,10 @@ case OP_Savepoint: {
       /* This call is Ok even if this savepoint is actually a transaction
       ** savepoint (and therefore should not prompt xSavepoint()) callbacks.
       ** If this is a transaction savepoint being opened, it is guaranteed
-      ** that the db->aVTrans[] array is empty.  */
+      ** that the db->aVTrans[] array is empty.
+      ** 即使这个保存点是一个事务的保存点(因此不应该提示xSavepoint()函数)回调，这个调用也是正确的。
+      ** 如果这是一个事务的保存点正被打开，要保证数组db->aVTrans[]为空。
+      */
       assert( db->autoCommit==0 || db->nVTrans==0 );
       rc = sqlite3VtabSavepoint(db, SAVEPOINT_BEGIN,
                                 db->nStatement+db->nSavepoint);
@@ -3087,7 +3095,9 @@ case OP_Savepoint: {
         memcpy(pNew->zName, zName, nName+1);
 
         /* If there is no open transaction, then mark this as a special
-        ** "transaction savepoint". */
+        ** "transaction savepoint".
+        ** 如果没有打开事务，那么将这个保存点标记为一个特殊的“事务保存点”。
+        */
         if( db->autoCommit ){
           db->autoCommit = 0;
           db->isTransactionSavepoint = 1;
@@ -3095,7 +3105,9 @@ case OP_Savepoint: {
           db->nSavepoint++;
         }
 
-        /* Link the new savepoint into the database handle's list. */
+        /* Link the new savepoint into the database handle's list.
+        ** 将新的保存点链接到数据库处理列表中。
+        */
         pNew->pNext = db->pSavepoint;
         db->pSavepoint = pNew;
         pNew->nDeferredCons = db->nDeferredCons;
@@ -3105,7 +3117,9 @@ case OP_Savepoint: {
     iSavepoint = 0;
 
     /* Find the named savepoint. If there is no such savepoint, then an
-    ** an error is returned to the user.  */
+    ** an error is returned to the user.
+    ** 找到指定的保存点。如果没有这样的保存点，则需要向用户返回一个错误信息。
+    */
     for(
       pSavepoint = db->pSavepoint;
       pSavepoint && sqlite3StrICmp(pSavepoint->zName, zName);
@@ -3119,6 +3133,7 @@ case OP_Savepoint: {
     }else if( db->writeVdbeCnt>0 && p1==SAVEPOINT_RELEASE ){
       /* It is not possible to release (commit) a savepoint if there are
       ** active write statements.
+      ** 如果有写操作在活动，就不能释放(提交)保存点。
       */
       sqlite3SetString(&p->zErrMsg, db,
         "cannot release savepoint - SQL statements in progress"
@@ -3129,6 +3144,7 @@ case OP_Savepoint: {
       /* Determine whether or not this is a transaction savepoint. If so,
       ** and this is a RELEASE command, then the current transaction
       ** is committed. 
+      ** 判断pSavepoint->pNext是不是一个事务的保存点。如果是，而且这是一个发布命令，那么提交当前事务。
       */
       int isTransaction = pSavepoint->pNext==0 && db->isTransactionSavepoint;
       if( isTransaction && p1==SAVEPOINT_RELEASE ){
@@ -3165,7 +3181,10 @@ case OP_Savepoint: {
       }
 
       /* Regardless of whether this is a RELEASE or ROLLBACK, destroy all
-      ** savepoints nested inside of the savepoint being operated on. */
+      ** savepoints nested inside of the savepoint being operated on.
+      ** 不管是释放还是回滚，都需要销毁所有的保存点，包括与被操作点相嵌套的点，而不仅仅是
+      ** 只操作那个被操作的保存点。
+      */
       while( db->pSavepoint!=pSavepoint ){
         pTmp = db->pSavepoint;
         db->pSavepoint = pTmp->pNext;
@@ -3176,7 +3195,10 @@ case OP_Savepoint: {
       /* If it is a RELEASE, then destroy the savepoint being operated on
       ** too. If it is a ROLLBACK TO, then set the number of deferred
       ** constraint violations present in the database to the value stored
-      ** when the savepoint was created.  */
+      ** when the savepoint was created.
+      ** 如果它是释放操作，也要销毁被操作的保存点。如果是回滚，
+      ** 然后设置延迟约束违反的数量目前在数据库中存储的值保存点时创建的。
+      */
       if( p1==SAVEPOINT_RELEASE ){
         assert( pSavepoint==db->pSavepoint );
         db->pSavepoint = pSavepoint->pNext;

@@ -1095,6 +1095,7 @@ struct Savepoint {
 /*
 ** The following are used as the second parameter to sqlite3Savepoint(),
 ** and as the P1 argument to the OP_Savepoint instruction.
+** 下面的宏定义用作函数sqlite3Savepoint()的第2个参数，同时在操作码Savepoint中，P1要与它们作比较判断。
 */
 #define SAVEPOINT_BEGIN      0
 #define SAVEPOINT_RELEASE    1
