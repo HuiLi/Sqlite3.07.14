@@ -75,10 +75,11 @@ struct VdbeCursor {
   i64 seqCount;         /* Sequence counter 指令计数器*/
   i64 movetoTarget;     /* Argument to the deferred sqlite3BtreeMoveto() 对推迟的方法sqlite3BtreeMoveto() 的内容提要*/
   i64 lastRowid;        /* Last rowid from a Next or NextIdx operation最后一个行id来自下一个操作 */
-  VdbeSorter *pSorter;  /* Sorter object for OP_SorterOpen cursors */
+  VdbeSorter *pSorter;  /* Sorter object for OP_SorterOpen cursors OP_SorterOpen指针的分类对象*/
 
   /* Result of last sqlite3BtreeMoveto() done by an OP_NotExists or 
-  ** OP_IsUnique opcode on this cursor. */
+  ** OP_IsUnique opcode on this cursor.
+**OP_NotExists或者 OP_IsUnique在这个指针上的操作码所形成的的上一个sqlite3BtreeMoveto()方法的结果。*/
   int seekResult;
 
   /* Cached information about the header for the data record that the
