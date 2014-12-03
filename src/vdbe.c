@@ -2874,7 +2874,9 @@ case OP_Affinity: {
 ** 如果P4是NULL，那么所有索引字段都与NONE相关联。
 */
 case OP_MakeRecord: {
-  u8 *zNewRecord;        /* A buffer to hold the data for the new record */
+  u8 *zNewRecord;        /* A buffer to hold the data for the new record
+                         ** *zNewRecord作为缓冲变量，存放新纪录的数据
+                         */
   Mem *pRec;             /* The new record */
   u64 nData;             /* Number of bytes of data space */
   int nHdr;              /* Number of bytes of header space */
@@ -2882,16 +2884,21 @@ case OP_MakeRecord: {
   int nZero;             /* Number of zero bytes at the end of the record */
   int nVarint;           /* Number of bytes in a varint */
   u32 serial_type;       /* Type field */
-  Mem *pData0;           /* First field to be combined into the record */
+  Mem *pData0;           /* First field to be combined into the record
+                         ** 第一个字段组合成的记录
+                         */
   Mem *pLast;            /* Last field of the record */
   int nField;            /* Number of fields in the record */
   char *zAffinity;       /* The affinity string for the record */
-  int file_format;       /* File format to use for encoding */
+  int file_format;       /* File format to use for encoding
+                         ** 文件的编码格式
+                         */
   int i;                 /* Space used in zNewRecord[] */
   int len;               /* Length of a field */
 
   /* Assuming the record contains N fields, the record format looks
   ** like this:
+  ** 假设记录中含有N个字段，记录的格式就像这样：
   **
   ** ------------------------------------------------------------------------
   ** | hdr-size | type 0 | type 1 | ... | type N-1 | data0 | ... | data N-1 |
@@ -2899,13 +2906,20 @@ case OP_MakeRecord: {
   **
   ** Data(0) is taken from register P1.  Data(1) comes from register P1+1
   ** and so froth.
+  ** Data(0)取自寄存器P1。 Data(1)取自寄存器P2，以此类推。
   **
   ** Each type field is a varint representing the serial type of the
   ** corresponding data element (see sqlite3VdbeSerialType()). The
   ** hdr-size field is also a varint which is the offset from the beginning
   ** of the record to data0.
+  ** 每种类型字段都是由一个varint(varint的意思应该是整形变量)，varint代表一系列与它对应的
+  ** 数据元素类型(见sqlite3VdbeSerialType()，这个函数在vdbeaux.c文件中，它将返回值存储在
+  ** 参数pMem中返回给调用者)。hdr-size字段也是一个varint，这个varint是从记录的开始位置
+  ** 到data0的偏移量。
   */
-  nData = 0;         /* Number of bytes of data space */
+  nData = 0;         /* Number of bytes of data space
+                     ** 数据空间的字节数
+                     */
   nHdr = 0;          /* Number of bytes of header space */
   nZero = 0;         /* Number of zero bytes at the end of the record */
   nField = pOp->p1;
@@ -2923,6 +2937,7 @@ case OP_MakeRecord: {
 
   /* Loop through the elements that will make up the record to figure
   ** out how much space is required for the new record.
+  ** 遍历新纪录中的所有元素，以计算需要多少空间来存放这个新纪录。
   */
   for(pRec=pData0; pRec<=pLast; pRec++){
     assert( memIsValid(pRec) );
@@ -2938,7 +2953,10 @@ case OP_MakeRecord: {
     nHdr += sqlite3VarintLen(serial_type);
     if( pRec->flags & MEM_Zero ){
       /* Only pure zero-filled BLOBs can be input to this Opcode.
-      ** We do not allow blobs with a prefix and a zero-filled tail. */
+      ** We do not allow blobs with a prefix and a zero-filled tail.
+      ** 只有所有数据位都是0的Blob类型的值才能被输入到这个操作中。我们不允许blobs类型的
+      ** 的数据中出现前缀和全部是0的后缀。
+      */
       nZero += pRec->u.nZero;
     }else if( len ){
       nZero = 0;
@@ -2959,6 +2977,8 @@ case OP_MakeRecord: {
   ** the new record. The output register (pOp->p3) is not allowed to
   ** be one of the input registers (because the following call to
   ** sqlite3VdbeMemGrow() could clobber the value before it is used).
+  ** 确保输出寄存器有足够大的缓冲区来存储新的记录。输出寄存器(pOp->p3)不允许的输入寄存器
+  ** (因为在使用寄存器之前，代码会调用sqlite3VdbeMemGrow()函数来强制改写寄存器中的值)。
   */
   if( sqlite3VdbeMemGrow(pOut, (int)nByte, 0) ){
     goto no_mem;
@@ -2994,6 +3014,7 @@ case OP_MakeRecord: {
 **
 ** Store the number of entries (an integer value) in the table or index
 ** opened by cursor P1 in register P2
+** 存储表中或索引中已经被条目的数量(一个整数值)在表或索引打开游标P1在寄存器P2
 */
 #ifndef SQLITE_OMIT_BTREECOUNT
 case OP_Count: {         /* out2-prerelease */
@@ -3016,6 +3037,8 @@ case OP_Count: {         /* out2-prerelease */
 ** Open, release or rollback the savepoint named by parameter P4, depending
 ** on the value of P1. To open a new savepoint, P1==0. To release (commit) an
 ** existing savepoint, P1==1, or to rollback an existing savepoint P1==2.
+** 保存点的打开，释放或回滚由参数P4来指定，依赖于P1的值。当P1==0时，打开一个新的保存点。
+** 当P1==1时，释放(提交)现有的保存点。当P1==2时，回滚现有保存点。
 */
 case OP_Savepoint: {
   int p1;                         /* Value of P1 operand */
@@ -3032,6 +3055,7 @@ case OP_Savepoint: {
 
   /* Assert that the p1 parameter is valid. Also that if there is no open
   ** transaction, then there cannot be any savepoints.
+  ** 断言参数p1是有效的。如果还没有打开事务，那么就不需要任何保存点。
   */
   assert( db->pSavepoint==0 || db->autoCommit==0 );
   assert( p1==SAVEPOINT_BEGIN||p1==SAVEPOINT_RELEASE||p1==SAVEPOINT_ROLLBACK );
@@ -3042,6 +3066,7 @@ case OP_Savepoint: {
     if( db->writeVdbeCnt>0 ){
       /* A new savepoint cannot be created if there are active write
       ** statements (i.e. open read/write incremental blob handles).
+      ** 如果有写操作在活动，就无法创建一个新的保存点(也就是，打开读/写增量blob的操作)。
       */
       sqlite3SetString(&p->zErrMsg, db, "cannot open savepoint - "
         "SQL statements in progress");
@@ -3053,7 +3078,10 @@ case OP_Savepoint: {
       /* This call is Ok even if this savepoint is actually a transaction
       ** savepoint (and therefore should not prompt xSavepoint()) callbacks.
       ** If this is a transaction savepoint being opened, it is guaranteed
-      ** that the db->aVTrans[] array is empty.  */
+      ** that the db->aVTrans[] array is empty.
+      ** 即使这个保存点是一个事务的保存点(因此不应该提示xSavepoint()函数)回调，这个调用也是正确的。
+      ** 如果这是一个事务的保存点正被打开，要保证数组db->aVTrans[]为空。
+      */
       assert( db->autoCommit==0 || db->nVTrans==0 );
       rc = sqlite3VtabSavepoint(db, SAVEPOINT_BEGIN,
                                 db->nStatement+db->nSavepoint);
@@ -3067,7 +3095,9 @@ case OP_Savepoint: {
         memcpy(pNew->zName, zName, nName+1);
 
         /* If there is no open transaction, then mark this as a special
-        ** "transaction savepoint". */
+        ** "transaction savepoint".
+        ** 如果没有打开事务，那么将这个保存点标记为一个特殊的“事务保存点”。
+        */
         if( db->autoCommit ){
           db->autoCommit = 0;
           db->isTransactionSavepoint = 1;
@@ -3075,7 +3105,9 @@ case OP_Savepoint: {
           db->nSavepoint++;
         }
 
-        /* Link the new savepoint into the database handle's list. */
+        /* Link the new savepoint into the database handle's list.
+        ** 将新的保存点链接到数据库处理列表中。
+        */
         pNew->pNext = db->pSavepoint;
         db->pSavepoint = pNew;
         pNew->nDeferredCons = db->nDeferredCons;
@@ -3085,7 +3117,9 @@ case OP_Savepoint: {
     iSavepoint = 0;
 
     /* Find the named savepoint. If there is no such savepoint, then an
-    ** an error is returned to the user.  */
+    ** an error is returned to the user.
+    ** 找到指定的保存点。如果没有这样的保存点，则需要向用户返回一个错误信息。
+    */
     for(
       pSavepoint = db->pSavepoint;
       pSavepoint && sqlite3StrICmp(pSavepoint->zName, zName);
@@ -3099,6 +3133,7 @@ case OP_Savepoint: {
     }else if( db->writeVdbeCnt>0 && p1==SAVEPOINT_RELEASE ){
       /* It is not possible to release (commit) a savepoint if there are
       ** active write statements.
+      ** 如果有写操作在活动，就不能释放(提交)保存点。
       */
       sqlite3SetString(&p->zErrMsg, db,
         "cannot release savepoint - SQL statements in progress"
@@ -3109,6 +3144,7 @@ case OP_Savepoint: {
       /* Determine whether or not this is a transaction savepoint. If so,
       ** and this is a RELEASE command, then the current transaction
       ** is committed. 
+      ** 判断pSavepoint->pNext是不是一个事务的保存点。如果是，而且这是一个发布命令，那么提交当前事务。
       */
       int isTransaction = pSavepoint->pNext==0 && db->isTransactionSavepoint;
       if( isTransaction && p1==SAVEPOINT_RELEASE ){
@@ -3145,7 +3181,10 @@ case OP_Savepoint: {
       }
 
       /* Regardless of whether this is a RELEASE or ROLLBACK, destroy all
-      ** savepoints nested inside of the savepoint being operated on. */
+      ** savepoints nested inside of the savepoint being operated on.
+      ** 不管是释放还是回滚，都需要销毁所有的保存点，包括与被操作点相嵌套的点，而不仅仅是
+      ** 只操作那个被操作的保存点。
+      */
       while( db->pSavepoint!=pSavepoint ){
         pTmp = db->pSavepoint;
         db->pSavepoint = pTmp->pNext;
@@ -3156,7 +3195,10 @@ case OP_Savepoint: {
       /* If it is a RELEASE, then destroy the savepoint being operated on
       ** too. If it is a ROLLBACK TO, then set the number of deferred
       ** constraint violations present in the database to the value stored
-      ** when the savepoint was created.  */
+      ** when the savepoint was created.
+      ** 如果它是释放操作，也要销毁被操作的保存点。如果是回滚，
+      ** 然后设置延迟约束违反的数量目前在数据库中存储的值保存点时创建的。
+      */
       if( p1==SAVEPOINT_RELEASE ){
         assert( pSavepoint==db->pSavepoint );
         db->pSavepoint = pSavepoint->pNext;
@@ -3184,8 +3226,12 @@ case OP_Savepoint: {
 ** back any currently active btree transactions. If there are any active
 ** VMs (apart from this one), then a ROLLBACK fails.  A COMMIT fails if
 ** there are active writing VMs or active VMs that use shared cache.
+** 设置数据库自动提交的标志值flag为P1(1或0)。如果P2是真，回退到任何一个当前正在活动的btree事务。
+** 如果有任何一个正在活动的vm(除了当前这个)，那么回滚失败。如果存在一个进程正在对vm进行写操作，
+** 或者某个虚拟机使用了共享缓存，那么提交操作就会失败。
 **
 ** This instruction causes the VM to halt.
+** 这个指令会导致虚拟机停止。
 */
 case OP_AutoCommit: {
   int desiredAutoCommit;
@@ -3204,6 +3250,8 @@ case OP_AutoCommit: {
     /* If this instruction implements a ROLLBACK and other VMs are
     ** still running, and a transaction is active, return an error indicating
     ** that the other VMs must complete first.
+    ** 如果这个指令实现了一个回滚操作，而且其他虚拟机仍在运行，同时事务是活跃的，
+    ** 那么返回一个错误信息，这个信息表明需要让其他vm先执行。
     */
     sqlite3SetString(&p->zErrMsg, db, "cannot rollback transaction - "
         "SQL statements in progress");
@@ -3213,6 +3261,8 @@ case OP_AutoCommit: {
   if( turnOnAC && !iRollback && db->writeVdbeCnt>0 ){
     /* If this instruction implements a COMMIT and other VMs are writing
     ** return an error indicating that the other VMs must complete first.
+    ** 如果该指令执行提交操作，同时其他vm正在进行写操作，那么就要返回一个错误信息，
+    ** 这个信息表明必须让其他vm先完成。
     */
     sqlite3SetString(&p->zErrMsg, db, "cannot commit transaction - "
         "SQL statements in progress");

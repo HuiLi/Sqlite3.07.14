@@ -407,6 +407,8 @@ struct Vdbe {
 
 /*
 ** Function prototypes
+** 功能函数原型(或者说声明功能函数)。这些功能函数的具体实现都在vdbeaux.c文件中。
+** 注：真是坑啊，今天才找见在哪儿实现的，纠结了n多天。
 */
 void sqlite3VdbeFreeCursor(Vdbe *, VdbeCursor*);
 void sqliteVdbePopStack(Vdbe*,int);

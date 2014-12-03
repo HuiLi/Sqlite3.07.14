@@ -2574,14 +2574,21 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
 ** data and index records. Each serialized value consists of a
 ** 'serial-type' and a blob of data. The serial type is an 8-byte unsigned
 ** integer, stored as a varint.
+** 这几个函数封装了这样的功：将存储在SQLite数据库中和索引记录中的数据序列化为对应的值。
+** 每个序列化的值由连续的类型和一个二进制大对象数据组成。这种连续的类型是一个8字节的无符号整形，
+** 存储为varint类型。
 **
 ** In an SQLite index record, the serial type is stored directly before
 ** the blob of data that it corresponds to. In a table record, all serial
 ** types are stored at the start of the record, and the blobs of data at
 ** the end. Hence these functions allow the caller to handle the
 ** serial-type and data blob seperately.
+** 在SQLite索引记录中，序列类型直接存储在与它相对应的blob类型数据之前。在表的记录中，
+** 所有序列类型都存储的记录的开始位置，blob类型的数据在数据的末尾。因此这些函数允许调用者
+** 将串行类型和blob类型的数据分开操作。
 **
 ** The following table describes the various storage classes for data:
+** 下表描述了数据的各种存储类型:
 **
 **   serial type        bytes of data      type
 **   --------------     ---------------    ---------------
@@ -2605,6 +2612,7 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
 
 /*
 ** Return the serial-type for the value stored in pMem.
+** 返回序列类型的值，存储在参数pMem中。
 */
 u32 sqlite3VdbeSerialType(Mem *pMem, int file_format){
   int flags = pMem->flags;
