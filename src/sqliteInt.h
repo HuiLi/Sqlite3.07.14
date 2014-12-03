@@ -212,14 +212,14 @@
 #endif
 
 /*
-** NDEBUG and SQLITE_DEBUG are opposites.  It should always be true that
-** defined(NDEBUG)==!defined(SQLITE_DEBUG).  If this is not currently true,
-** make it true by defining or undefining NDEBUG.
+** NDEBUG and SQLITE_DEBUG are opposites.  It should always be true that      NDEBUG 和 SQLITE_DEBUG是相反的。
+** defined(NDEBUG)==!defined(SQLITE_DEBUG).  If this is not currently true,   defined(NDEBUG)==!defined(SQLITE_DEBUG)这个定义是永远为真的。
+** make it true by defining or undefining NDEBUG.     如果当前不是真的，则可以通过定义或者不定义NDEBUG来让它为真。
 **
-** Setting NDEBUG makes the code smaller and run faster by disabling the
-** number assert() statements in the code.  So we want the default action
+** Setting NDEBUG makes the code smaller and run faster by disabling the     设置NDEBUG，通过禁止在代码中assert()语句的数目，让代码更小一些，运行速度更快一些。
+** number assert() statements in the code.  So we want the default action    因此，我们想要的默认操作是设置 NDEBUG并且 NDEBUG只有在SQLITE_DEBUG被设置的时候才不被定义。
 ** to be for NDEBUG to be set and NDEBUG to be undefined only if SQLITE_DEBUG
-** is set.  Thus NDEBUG becomes an opt-in rather than an opt-out
+** is set.  Thus NDEBUG becomes an opt-in rather than an opt-out      因此，NDEBUG变成了选择性输入，而不是选择性输出
 ** feature.
 */
 #if !defined(NDEBUG) && !defined(SQLITE_DEBUG) 
@@ -230,16 +230,16 @@
 #endif
 
 /*
-** The testcase() macro is used to aid in coverage testing.  When 
+** The testcase() macro is used to aid in coverage testing.  When  宏testcase()被用于帮助覆盖测试。
 ** doing coverage testing, the condition inside the argument to
-** testcase() must be evaluated both true and false in order to
+** testcase() must be evaluated both true and false in order to           当做覆盖测试时内容概要中的条件是testcase() 必须在真和假之间估值 ，这样做为了得到完整的分支覆盖。 
 ** get full branch coverage.  The testcase() macro is inserted
-** to help ensure adequate test coverage in places where simple
+** to help ensure adequate test coverage in places where simple          宏testcase()的插入式为了保证在某些地方充分的测试覆盖，这些地方简单的条件覆盖或分支覆盖是不足的。
 ** condition/decision coverage is inadequate.  For example, testcase()
-** can be used to make sure boundary values are tested.  For
-** bitmask tests, testcase() can be used to make sure each bit
+** can be used to make sure boundary values are tested.  For    例如，宏testcase()可以用来确保分支值是被测试过的。
+** bitmask tests, testcase() can be used to make sure each bit  对于位掩码测试，宏testcase()可以用来确保每一位都是有意义的并且至少被使用一次。
 ** is significant and used at least once.  On switch statements
-** where multiple cases go to the same block of code, testcase()
+** where multiple cases go to the same block of code, testcase()  在switch语句中，多重条件定位到相同的代码块，宏testcase()可以确保所有的条件是已经被估计的。
 ** can insure that all cases are evaluated.
 **
 */
@@ -251,7 +251,7 @@
 #endif
 
 /*
-** The TESTONLY macro is used to enclose variable declarations or
+** The TESTONLY macro is used to enclose variable declarations or    宏TESTONLY被用来装入变量声明或其它小块的代码，这需要宏testcase() 和 assert()中参数的支撑。
 ** other bits of code that are needed to support the arguments
 ** within testcase() and assert() macros.
 */
@@ -262,12 +262,12 @@
 #endif
 
 /*
-** Sometimes we need a small amount of code such as a variable initialization
-** to setup for a later assert() statement.  We do not want this code to
-** appear when assert() is disabled.  The following macro is therefore
-** used to contain that setup code.  The "VVA" acronym stands for
+** Sometimes we need a small amount of code such as a variable initialization   一些时候，我们需要一些少量的代码，如设置变量初始化的代码，来设置后面的assert()语句。
+** to setup for a later assert() statement.  We do not want this code to    我们不想要这些代码在assert()无效时/被禁止时出现。
+** appear when assert() is disabled.  The following macro is therefore   因此后面的宏被用来隐藏(contain)设置码。
+** used to contain that setup code.  The "VVA" acronym stands for     首字母缩写'VVA'被用来替代"Verification, Validation, and Accreditation".
 ** "Verification, Validation, and Accreditation".  In other words, the
-** code within VVA_ONLY() will only run during verification processes.
+** code within VVA_ONLY() will only run during verification processes.  换句话说，VVA_ONLY()中的代码将仅仅在验证过程期间运行。
 */
 #ifndef NDEBUG
 # define VVA_ONLY(X)  X
@@ -276,17 +276,17 @@
 #endif
 
 /*
-** The ALWAYS and NEVER macros surround boolean expressions which 
+** The ALWAYS and NEVER macros surround boolean expressions which      宏ALWAYS 和 NEVER围绕布尔表达式，其目的是它们分别总是真的或假的
 ** are intended to always be true or false, respectively.  Such
-** expressions could be omitted from the code completely.  But they
-** are included in a few cases in order to enhance the resilience
-** of SQLite to unexpected behavior - to make the code "self-healing"
+** expressions could be omitted from the code completely.  But they   这个表达可以完全从代码中删除。
+** are included in a few cases in order to enhance the resilience     但这里包含了一些少数情形，其目的是为了提高SQLite意外行为的恢复力，
+** of SQLite to unexpected behavior - to make the code "self-healing"   在首次意外行为暗示时，让代码自愈或可塑而不是易碎或彻底悔了
 ** or "ductile" rather than being "brittle" and crashing at the first
 ** hint of unplanned behavior.
 **
-** In other words, ALWAYS and NEVER are added for defensive code.
+** In other words, ALWAYS and NEVER are added for defensive code.   换句话说， 宏ALWAYS 和 NEVER是为了保护代码而引入的。
 **
-** When doing coverage testing ALWAYS and NEVER are hard-coded to
+** When doing coverage testing ALWAYS and NEVER are hard-coded to   当做恢复测试时，宏ALWAYS 和 NEVER被硬编码为真和假，以至于当时被指定的不可达代码不被计算入未经检验的代码中。
 ** be true and false so that the unreachable code then specify will
 ** not be counted as untested code.
 */
@@ -302,17 +302,17 @@
 #endif
 
 /*
-** Return true (non-zero) if the input is a integer that is too large
-** to fit in 32-bits.  This macro is used inside of various testcase()
+** Return true (non-zero) if the input is a integer that is too large    如果输入的整型太大而不能放入32位，则返回真(非零)。
+** to fit in 32-bits.  This macro is used inside of various testcase()   这个宏用于testcase()宏变量内，来验证我们已经测试的大文件支持的数据库。
 ** macros to verify that we have tested SQLite for large-file support.
 */
 #define IS_BIG_INT(X)  (((X)&~(i64)0xffffffff)!=0)
 
 /*
-** The macro unlikely() is a hint that surrounds a boolean
-** expression that is usually false.  Macro likely() surrounds
-** a boolean expression that is usually true.  GCC is able to
-** use these hints to generate better code, sometimes.
+** The macro unlikely() is a hint that surrounds a boolean    宏unlikely()是一个环绕一个值通常为假的布尔表达式的提示。
+** expression that is usually false.  Macro likely() surrounds  宏likely()是一个环绕一个值通常为真的布尔表达式的提示。
+** a boolean expression that is usually true.  GCC is able to   有时，GCC能够用这种提示来生成更好的代码。   
+** use these hints to generate better code, sometimes.      GCC（GNU Compiler Collection，GNU编译器套装），是一套由GNU开发的编程语言编译器。
 */
 #if defined(__GNUC__) && 0
 # define likely(X)    __builtin_expect((X),1)
@@ -332,7 +332,7 @@
 #include <stddef.h>
 
 /*
-** If compiling for a processor that lacks floating point support,
+** If compiling for a processor that lacks floating point support,   假如处理机的编译缺乏浮点型的支撑，可以用整型取代浮点型。
 ** substitute integer for floating-point
 */
 #ifdef SQLITE_OMIT_FLOATING_POINT
@@ -352,9 +352,9 @@
 #endif
 
 /*
-** OMIT_TEMPDB is set to 1 if SQLITE_OMIT_TEMPDB is defined, or 0
-** afterward. Having this macro allows us to cause the C compiler 
-** to omit code used by TEMP tables without messy #ifndef statements.
+** OMIT_TEMPDB is set to 1 if SQLITE_OMIT_TEMPDB is defined, or 0       如果SQLITE_OMIT_TEMPDB被定义了，OMIT_TEMPDB被设置为1，否则，设为0
+** afterward. Having this macro allows us to cause the C compiler     这个宏允许我们触发C编译器忽略没有凌乱的#ifndef语句的TEMP表的代码的使用。 
+** to omit code used by TEMP tables without messy #ifndef statements.      
 */
 #ifdef SQLITE_OMIT_TEMPDB
 #define OMIT_TEMPDB 1
@@ -363,8 +363,8 @@
 #endif
 
 /*
-** The "file format" number is an integer that is incremented whenever
-** the VDBE-level file format changes.  The following macros define the
+** The "file format" number is an integer that is incremented whenever   文件格式号是一个整数，每当VDBE级的文件格式改变时这个值是递增的。    VDBE:虚拟数据库引擎Virtual Database Engine
+** the VDBE-level file format changes.  The following macros define the     下面的宏定义了新数据库的缺省文件格式和库可以读的最大文件格式
 ** the default file format for new databases and the maximum file format
 ** that the library can read.
 */
@@ -374,7 +374,7 @@
 #endif
 
 /*
-** Determine whether triggers are recursive by default.  This can be
+** Determine whether triggers are recursive by default.  This can be   取决于触发器是否是默认递归的。这是可以被改变的在运行时使用一个编译指示。
 ** changed at run-time using a pragma.
 */
 #ifndef SQLITE_DEFAULT_RECURSIVE_TRIGGERS
@@ -382,7 +382,7 @@
 #endif
 
 /*
-** Provide a default value for SQLITE_TEMP_STORE in case it is not specified
+** Provide a default value for SQLITE_TEMP_STORE in case it is not specified  为 SQLITE_TEMP_STORE提供一个缺省值，如果它在命令行上没被规定的话。
 ** on the command-line
 */
 #ifndef SQLITE_TEMP_STORE
@@ -390,16 +390,16 @@
 #endif
 
 /*
-** GCC does not define the offsetof() macro so we'll have to do it
-** ourselves.
+** GCC does not define the offsetof() macro so we'll have to do it    GCC并没有定义宏offsetof()，因此我们不得不自己定义。
+** ourselves.                                                         GCC（GNU Compiler Collection，GNU编译器套装），是一套由GNU开发的编程语言编译器。
 */
 #ifndef offsetof
 #define offsetof(STRUCTURE,FIELD) ((int)((char*)&((STRUCTURE*)0)->FIELD))
 #endif
 
 /*
-** Check to see if this machine uses EBCDIC.  (Yes, believe it or
-** not, there are still machines out there that use EBCDIC.)
+** Check to see if this machine uses EBCDIC.  (Yes, believe it or       检查机器是否使用了EBCDIC。 (是，相信或者不相信，都会有机器在那里使用EBCDIC)
+** not, there are still machines out there that use EBCDIC.)              EBCDIC:扩充的二进制编码的十进制交换码（Extended Binary Coded Decimal Interchange Code）
 */
 #if 'A' == '\301'
 # define SQLITE_EBCDIC 1
@@ -408,11 +408,11 @@
 #endif
 
 /*
-** Integers of known sizes.  These typedefs might change for architectures
-** where the sizes very.  Preprocessor macros are available so that the
-** types can be conveniently redefined at compile-type.  Like this:
+** Integers of known sizes.  These typedefs might change for architectures   已知尺寸的整型。  这些类型可能会改变结构的大小。
+** where the sizes very.  Preprocessor macros are available so that the      预处理宏是可用的，所以在编译类型上可以方便地重新定义的类型。
+** types can be conveniently redefined at compile-type.  Like this:          例如:把'-DUINTPTR_TYPE定义为long long int型
 **
-**         cc '-DUINTPTR_TYPE=long long int' ...
+**         cc '-DUINTPTR_TYPE=long long int' ...                         int 在内存占两个字节 ，范围是-32768~32767；而long long int在内存占八个字节， 范围是-922337203685775808~922337203685775807
 */
 #ifndef UINT32_TYPE
 # ifdef HAVE_UINT32_T
@@ -452,36 +452,37 @@
 #ifndef LONGDOUBLE_TYPE
 # define LONGDOUBLE_TYPE long double
 #endif
-typedef sqlite_int64 i64;          /* 8-byte signed integer */
-typedef sqlite_uint64 u64;         /* 8-byte unsigned integer */
-typedef UINT32_TYPE u32;           /* 4-byte unsigned integer */
-typedef UINT16_TYPE u16;           /* 2-byte unsigned integer */
-typedef INT16_TYPE i16;            /* 2-byte signed integer */
-typedef UINT8_TYPE u8;             /* 1-byte unsigned integer */
-typedef INT8_TYPE i8;              /* 1-byte signed integer */
+typedef sqlite_int64 i64;          /* 8-byte signed integer 8位有符号整型*/
+typedef sqlite_uint64 u64;         /* 8-byte unsigned integer 8位无符号整型*/
+typedef UINT32_TYPE u32;           /* 4-byte unsigned integer 4位无符号整型*/
+typedef UINT16_TYPE u16;           /* 2-byte unsigned integer 2位无符号整型*/
+typedef INT16_TYPE i16;            /* 2-byte signed integer 2位有符号整型*/
+typedef UINT8_TYPE u8;             /* 1-byte unsigned integer 1位无符号整型*/
+typedef INT8_TYPE i8;              /* 1-byte signed integer 1位有符号整型*/
 
 /*
-** SQLITE_MAX_U32 is a u64 constant that is the maximum u64 value
-** that can be stored in a u32 without loss of data.  The value
-** is 0x00000000ffffffff.  But because of quirks of some compilers, we
+** SQLITE_MAX_U32 is a u64 constant that is the maximum u64 value        
+SQLITE_MAX_U32是一个u64类型(上面定义的8位无符号整型)的常量，就是说，u64的最大值可以被存储在u32(4位无符号整型)中而且不丢失数据。
+** that can be stored in a u32 without loss of data.  The value     这个值是0x00000000ffffffff。
+** is 0x00000000ffffffff.  But because of quirks of some compilers, we     但是由于一些编译器的怪异模式，我们不得不指定这个值在不直观的方式显示。
 ** have to specify the value in the less intuitive manner shown:
 */
 #define SQLITE_MAX_U32  ((((u64)1)<<32)-1)
 
 /*
-** The datatype used to store estimates of the number of rows in a
-** table or index.  This is an unsigned integer type.  For 99.9% of
-** the world, a 32-bit integer is sufficient.  But a 64-bit integer
+** The datatype used to store estimates of the number of rows in a    这个数据类型被用来存储一个表或者索引中所估计的行数。
+** table or index.  This is an unsigned integer type.  For 99.9% of   这是一个无符号整型。
+** the world, a 32-bit integer is sufficient.  But a 64-bit integer   世界上99.9%的32位整型是足够的。 但64位整型如有必要的话将在编译阶段被使用。
 ** can be used at compile-time if desired.
 */
 #ifdef SQLITE_64BIT_STATS
- typedef u64 tRowcnt;    /* 64-bit only if requested at compile-time */
+ typedef u64 tRowcnt;    /* 64-bit only if requested at compile-time 64位只在编译阶段有使用请求*/
 #else
- typedef u32 tRowcnt;    /* 32-bit is the default */
+ typedef u32 tRowcnt;    /* 32-bit is the default 32位是默认的*/
 #endif
 
 /*
-** Macros to determine whether the machine is big or little endian,
+** Macros to determine whether the machine is big or little endian,    宏决定机器在运行期间的估值是低位优先还是高位优先
 ** evaluated at runtime.
 */
 #ifdef SQLITE_AMALGAMATION
@@ -501,32 +502,32 @@ extern const int sqlite3one;
 #endif
 
 /*
-** Constants for the largest and smallest possible 64-bit signed integers.
-** These macros are designed to work correctly on both 32-bit and 64-bit
+** Constants for the largest and smallest possible 64-bit signed integers.  64位有符号整型可能的最大常量和最小常量。
+** These macros are designed to work correctly on both 32-bit and 64-bit    这些宏被定义正确地在32位和64位编译器上工作。 
 ** compilers.
 */
 #define LARGEST_INT64  (0xffffffff|(((i64)0x7fffffff)<<32))
 #define SMALLEST_INT64 (((i64)-1) - LARGEST_INT64)
 
 /* 
-** Round up a number to the next larger multiple of 8.  This is used
-** to force 8-byte alignment on 64-bit architectures.
+** Round up a number to the next larger multiple of 8.  This is used      向上舍入一个数，使之接近8的倍数。
+** to force 8-byte alignment on 64-bit architectures.     这是用来强制8位对齐64位的体系结构。
 */
 #define ROUND8(x)     (((x)+7)&~7)
 
 /*
-** Round down to the nearest multiple of 8
+** Round down to the nearest multiple of 8   最接近8的倍数的四舍五入。
 */
 #define ROUNDDOWN8(x) ((x)&~7)
 
 /*
-** Assert that the pointer X is aligned to an 8-byte boundary.  This
-** macro is used only within assert() to verify that the code gets
+** Assert that the pointer X is aligned to an 8-byte boundary.  This   声明指针X是对齐到8字节边界的。
+** macro is used only within assert() to verify that the code gets     这个宏只在assert()中用来验证代码是否得到了正确的对齐限制。
 ** all alignment restrictions correct.
 **
-** Except, if SQLITE_4_BYTE_ALIGNED_MALLOC is defined, then the
+** Except, if SQLITE_4_BYTE_ALIGNED_MALLOC is defined, then the      有例外，如果 SQLITE_4_BYTE_ALIGNED_MALLOC被定义了， 潜在的malloc()实现可能会返回我们4字节对齐的指针
 ** underlying malloc() implemention might return us 4-byte aligned
-** pointers.  In that case, only verify 4-byte alignment.
+** pointers.  In that case, only verify 4-byte alignment.            在这种情况下，只验证4字节的对齐。
 */
 #ifdef SQLITE_4_BYTE_ALIGNED_MALLOC
 # define EIGHT_BYTE_ALIGNMENT(X)   ((((char*)(X) - (char*)0)&3)==0)
@@ -536,19 +537,19 @@ extern const int sqlite3one;
 
 
 /*
-** An instance of the following structure is used to store the busy-handler
+** An instance of the following structure is used to store the busy-handler   以下的结构的一个实例是用于存储繁忙的处理器回调给SQLite的一个处理。
 ** callback for a given sqlite handle. 
 **
-** The sqlite.busyHandler member of the sqlite struct contains the busy
-** callback for the database handle. Each pager opened via the sqlite
-** handle is passed a pointer to sqlite.busyHandler. The busy-handler
+** The sqlite.busyHandler member of the sqlite struct contains the busy   结构体busyHandler的成员包括数据库句柄的频繁回调
+** callback for the database handle. Each pager opened via the sqlite     每一页通过SQLite句柄传递一个指针到sqlite.busyhandler打开
+** handle is passed a pointer to sqlite.busyHandler. The busy-handler     繁忙的处理程序的回调目前仅仅是pager.c中的调用。
 ** callback is currently invoked only from within pager.c.
 */
 typedef struct BusyHandler BusyHandler;
 struct BusyHandler {
-  int (*xFunc)(void *,int);  /* The busy callback */
-  void *pArg;                /* First arg to busy callback */
-  int nBusy;                 /* Incremented with each busy call */
+  int (*xFunc)(void *,int);  /* The busy callback 频繁回调*/
+  void *pArg;                /* First arg to busy callback 频繁回调的第一个自变量*/
+  int nBusy;                 /* Incremented with each busy call 每一个频繁调用的增加*/
 };
 
 /*
