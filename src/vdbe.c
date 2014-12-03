@@ -3226,8 +3226,12 @@ case OP_Savepoint: {
 ** back any currently active btree transactions. If there are any active
 ** VMs (apart from this one), then a ROLLBACK fails.  A COMMIT fails if
 ** there are active writing VMs or active VMs that use shared cache.
+** 设置数据库自动提交的标志值flag为P1(1或0)。如果P2是真，回退到任何一个当前正在活动的btree事务。
+** 如果有任何一个正在活动的vm(除了当前这个)，那么回滚失败。如果存在一个进程正在对vm进行写操作，
+** 或者某个虚拟机使用了共享缓存，那么提交操作就会失败。
 **
 ** This instruction causes the VM to halt.
+** 这个指令会导致虚拟机停止。
 */
 case OP_AutoCommit: {
   int desiredAutoCommit;
@@ -3246,6 +3250,8 @@ case OP_AutoCommit: {
     /* If this instruction implements a ROLLBACK and other VMs are
     ** still running, and a transaction is active, return an error indicating
     ** that the other VMs must complete first.
+    ** 如果这个指令实现了一个回滚操作，而且其他虚拟机仍在运行，同时事务是活跃的，
+    ** 那么返回一个错误信息，这个信息表明需要让其他vm先执行。
     */
     sqlite3SetString(&p->zErrMsg, db, "cannot rollback transaction - "
         "SQL statements in progress");
@@ -3255,6 +3261,8 @@ case OP_AutoCommit: {
   if( turnOnAC && !iRollback && db->writeVdbeCnt>0 ){
     /* If this instruction implements a COMMIT and other VMs are writing
     ** return an error indicating that the other VMs must complete first.
+    ** 如果该指令执行提交操作，同时其他vm正在进行写操作，那么就要返回一个错误信息，
+    ** 这个信息表明必须让其他vm先完成。
     */
     sqlite3SetString(&p->zErrMsg, db, "cannot commit transaction - "
         "SQL statements in progress");
