@@ -119,19 +119,20 @@ typedef struct VdbeCursor VdbeCursor;
 ** calls to sqlite3VdbeMemRelease() when the memory cells belonging to the
 ** child frame are released.
 ** 一个虚拟机框架对象的内存由父框架的一个存储单元中被分配和管理。当内存单元被删除或者重写，虚拟机框架对象不会被立即释放。相反的，
-** 他将被链接到Vdbe.pDelFrame清单中。
+** 他将被链接到Vdbe.pDelFrame清单中。当虚拟机在中重启后，Vdbe.pDelFrame的目录清单被删除。这么做而不是立刻删除虚拟机框架对象是为了
+** 避免当属于子框架的存储单元被释放时循环调用sqlite3VdbeMemRelease()方法。
 ** The currently executing frame is stored in Vdbe.pFrame. Vdbe.pFrame is
 ** set to NULL if the currently executing frame is the main program.
 ** 当前的执行框架被存储在Vdbe.pFrame里面。如果当前的执行框架在主程序当中，Vdbe.pFrame将被置为空。 
 */
 typedef struct VdbeFrame VdbeFrame;
 struct VdbeFrame {
-  Vdbe *v;                /* VM this frame belongs to */
-  VdbeFrame *pParent;     /* Parent of this frame, or NULL if parent is main */
-  Op *aOp;                /* Program instructions for parent frame */
-  Mem *aMem;              /* Array of memory cells for parent frame */
-  u8 *aOnceFlag;          /* Array of OP_Once flags for parent frame */
-  VdbeCursor **apCsr;     /* Array of Vdbe cursors for parent frame */
+  Vdbe *v;                /* VM this frame belongs to 这个框架所属的虚拟机*/
+  VdbeFrame *pParent;     /* Parent of this frame, or NULL if parent is main 框架的父类是主程序否则为空*/
+  Op *aOp;                /* Program instructions for parent frame 针对父框架的程序指令 */
+  Mem *aMem;              /* Array of memory cells for parent frame 父框架的存储单元数组*/
+  u8 *aOnceFlag;          /* Array of OP_Once flags for parent frame 父框架的OP_Once标记数组*/
+  VdbeCursor **apCsr;     /* Array of Vdbe cursors for parent frame  父框架的vdbe指针数组*/
   void *token;            /* Copy of SubProgram.token */
   i64 lastRowid;          /* Last insert rowid (sqlite3.lastRowid) */
   u16 nCursor;            /* Number of entries in apCsr */
