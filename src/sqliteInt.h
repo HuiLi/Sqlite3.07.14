@@ -9,31 +9,30 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-**
-** Internal interface definitions for SQLite.
-** 定义了SQLite的内部接口。
+** Internal interface definitions for SQLite. SQLite内部界面的定义
+** 
 */
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_
 
 /*
-** These #defines should enable >2GB file support on POSIX if the
+** These #defines should enable >2GB file support on POSIX if the     如果潜在的操作系统能够支撑的话，_SQLITEINT_H_的定义应该使得可移植性操作系统接口能支撑2G以上的大文件
 ** underlying operating system supports it.  If the OS lacks
-** large file support, or if the OS is windows, these should be no-ops.
+** large file support, or if the OS is windows, these should be no-ops.  如果操作系统缺乏大文件的支撑，或者如果操作系统是windows操作系统，这里就应该是空操作。
 **
-** Ticket #2739:  The _LARGEFILE_SOURCE macro must appear before any
-** system #includes.  Hence, this block of code must be the very first
+** Ticket #2739:  The _LARGEFILE_SOURCE macro must appear before any     标签#2739:宏_LARGEFILE_SOURCE必须在任一系统#includes前出现
+** system #includes.  Hence, this block of code must be the very first   因此，代码块必须在所有源文件中首先编码。
 ** code in all source files.
 **
-** Large file support can be disabled using the -DSQLITE_DISABLE_LFS switch
-** on the compiler command line.  This is necessary if you are compiling
-** on a recent machine (ex: Red Hat 7.2) but you want your code to work
-** on an older machine (ex: Red Hat 6.0).  If you compile on Red Hat 7.2
-** without this option, LFS is enable.  But LFS does not exist in the kernel
-** in Red Hat 6.0, so the code won't work.  Hence, for maximum binary
-** portability you should omit LFS.
+** Large file support can be disabled using the -DSQLITE_DISABLE_LFS switch   大文件的支持可能会禁止 -DSQLITE_DISABLE_LFS在编译器命令行上的转换。
+** on the compiler command line.  This is necessary if you are compiling      这是有必要的假如你要在在近期的机器上编译的话(Red Hat 7.2除外)，
+** on a recent machine (ex: Red Hat 7.2) but you want your code to work       除非你想要你的代码在老式机器上运行(Red Hat 6.0除外)
+** on an older machine (ex: Red Hat 6.0).  If you compile on Red Hat 7.2      如果你的编译在Red Hat 7.2上没有这个选项
+** without this option, LFS is enable.  But LFS does not exist in the kernel  LFS逻辑文件系统（Logical File System）/逻辑文件结构（Logical File Structure）将使之成为可能。
+** in Red Hat 6.0, so the code won't work.  Hence, for maximum binary         但如果 Red Hat 6.0的内核里面不存在LFS，那么代码不会被运行。
+** portability you should omit LFS.  因此，对于最大的二进制可移植性，你应该忽略LFS。                                  
 **
-** Similar is true for Mac OS X.  LFS is only supported on Mac OS X 9 and later.
+** Similar is true for Mac OS X.  LFS is only supported on Mac OS X 9 and later.  对于操作系统Mac OS X也是一样的。   LFC仅仅支持MAC OS X 9及之后的版本。
 */
 #ifndef SQLITE_DISABLE_LFS
 # define _LARGE_FILE       1
@@ -44,8 +43,8 @@
 #endif
 
 /*
-** Include the configuration header output by 'configure' if we're using the
-** autoconf-based build
+** Include the configuration header output by 'configure' if we're using the    假如我们使用基于atuoconf构建,则要incloude 'configure'配置头输出。
+** autoconf-based build         Autoconf是一个用于生成可以自动地配置软件源代码包以适应多种Unix类系统的 shell脚本的工具。
 */
 #ifdef _HAVE_SQLITE_CONFIG_H
 #include "config.h"
@@ -53,22 +52,22 @@
 
 #include "sqliteLimit.h"
 
-/* Disable nuisance warnings on Borland compilers */
+/* Disable nuisance warnings on Borland compilers 禁止Borland编译器上的妨扰警告信号 */   
 #if defined(__BORLANDC__)
-#pragma warn -rch /* unreachable code */
-#pragma warn -ccc /* Condition is always true or false */
-#pragma warn -aus /* Assigned value is never used */
-#pragma warn -csu /* Comparing signed and unsigned */
-#pragma warn -spa /* Suspicious pointer arithmetic */
+#pragma warn -rch /* unreachable code 不可达代码 */
+#pragma warn -ccc /* Condition is always true or false 条件要么是真要么是假*/
+#pragma warn -aus /* Assigned value is never used 分配值从未用过*/
+#pragma warn -csu /* Comparing signed and unsigned 比较有符号和无符号*/
+#pragma warn -spa /* Suspicious pointer arithmetic 可疑的指针运算*/
 #endif
 
-/* Needed for various definitions... */
+/* Needed for various definitions... 需要为变量做定义*/
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE
 #endif
 
 /*
-** Include standard header files as necessary
+** Include standard header files as necessary     Include标准的头文件是必要的
 */
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -78,90 +77,90 @@
 #endif
 
 /*
-** The following macros are used to cast pointers to integers and
-** integers to pointers.  The way you do this varies from one compiler
-** to the next, so we have developed the following set of #if statements
+** The following macros are used to cast pointers to integers and     下面的宏定义是指针到整型，整型到指针的转换
+** integers to pointers.  The way you do this varies from one compiler  用这样的方法，一个编译器到下一个编译器是不同的，
+** to the next, so we have developed the following set of #if statements  因此，我们研制出了下面这样一组条件语句为许多不同的编译器生成一个适当的宏命令。
 ** to generate appropriate macros for a wide range of compilers.
 **
-** The correct "ANSI" way to do this is to use the intptr_t type. 
-** Unfortunately, that typedef is not available on all compilers, or
-** if it is available, it requires an #include of specific headers
+** The correct "ANSI" way to do this is to use the intptr_t type    正确的方式是用intptr_t类型来做这些。  注:intptr_t在不同的平台是不一样的，始终与地址位数相同，因此用来存放地址，即地址。
+** Unfortunately, that typedef is not available on all compilers, or  不幸的是，这种类型定义在所有的编译器上都是无效的，
+** if it is available, it requires an #include of specific headers    即是是有效的，也需要#include特殊的从一个编译器到下一个编译器是不同的头文件
 ** that vary from one machine to the next.
 **
-** Ticket #3860:  The llvm-gcc-4.2 compiler from Apple chokes on
-** the ((void*)&((char*)0)[X]) construct.  But MSVC chokes on ((void*)(X)).
+** Ticket #3860:  The llvm-gcc-4.2 compiler from Apple chokes on    标签#3860: 来自苹果公司的llvm-gcc-4.2编译器停止了使用((void*)&((char*)0)[X])结构
+** the ((void*)&((char*)0)[X]) construct.  But MSVC chokes on ((void*)(X)).   但是MSVC停止了使用((void*)(X))，因此我们不得不取决于编译器在不同的方式中定义宏指令
 ** So we have to define the macros in different ways depending on the
 ** compiler.
 */
 #if defined(__PTRDIFF_TYPE__)  /* This case should work for GCC */
 # define SQLITE_INT_TO_PTR(X)  ((void*)(__PTRDIFF_TYPE__)(X))
 # define SQLITE_PTR_TO_INT(X)  ((int)(__PTRDIFF_TYPE__)(X))
-#elif !defined(__GNUC__)       /* Works for compilers other than LLVM */
+#elif !defined(__GNUC__)       /* Works for compilers other than LLVM 在编译器上运行而不是在LLVM上运行   LLVM:低级虚拟机(Low Level Virtual Machine) */
 # define SQLITE_INT_TO_PTR(X)  ((void*)&((char*)0)[X])
 # define SQLITE_PTR_TO_INT(X)  ((int)(((char*)X)-(char*)0))
-#elif defined(HAVE_STDINT_H)   /* Use this case if we have ANSI headers */
+#elif defined(HAVE_STDINT_H)   /* Use this case if we have ANSI headers 在如果我没有ANSI标准的头文件，这种情况下使用    ANSI:美国国家标准学会（ American National Standards Institute） */
 # define SQLITE_INT_TO_PTR(X)  ((void*)(intptr_t)(X))
 # define SQLITE_PTR_TO_INT(X)  ((int)(intptr_t)(X))
-#else                          /* Generates a warning - but it always works */
+#else                          /* Generates a warning - but it always works 形成一个警告，但是还是运行的*/
 # define SQLITE_INT_TO_PTR(X)  ((void*)(X))
 # define SQLITE_PTR_TO_INT(X)  ((int)(X))
 #endif
 
 /*
-** The SQLITE_THREADSAFE macro must be defined as 0, 1, or 2.
-** 0 means mutexes are permanently disable and the library is never
-** threadsafe.  1 means the library is serialized which is the highest
-** level of threadsafety.  2 means the libary is multithreaded - multiple
-** threads can use SQLite as long as no two threads try to use the same
+** The SQLITE_THREADSAFE macro must be defined as 0, 1, or 2.      宏SQLITE_THREADSAFE必须定义为'0','1'或者'2'
+** 0 means mutexes are permanently disable and the library is never    '0'表示互斥锁是永久无效的，并且库是没有安全威胁的。
+** threadsafe.  1 means the library is serialized which is the highest   '1'表示库是序列化的，线程安全的等级是最高级
+** level of threadsafety.  2 means the libary is multithreaded - multiple   
+** threads can use SQLite as long as no two threads try to use the same    '2'表示库可以多线程到多线程的使用，只要没有同时有2个线程使用相同的数据库连接。
 ** database connection at the same time.
 **
-** Older versions of SQLite used an optional THREADSAFE macro.
-** We support that for legacy.
+** Older versions of SQLite used an optional THREADSAFE macro.   老版本的SQLite使用了一个可选择的 THREADSAFE宏
+** We support that for legacy.   我们把它作为遗产来支持
 */
 #if !defined(SQLITE_THREADSAFE)
 #if defined(THREADSAFE)
 # define SQLITE_THREADSAFE THREADSAFE
 #else
-# define SQLITE_THREADSAFE 1 /* IMP: R-07272-22309 */
+# define SQLITE_THREADSAFE 1 /* IMP: R-07272-22309  接口信息处理器:R-07272-22309 */
 #endif
 #endif
 
 /*
-** Powersafe overwrite is on by default.  But can be turned off using
-** the -DSQLITE_POWERSAFE_OVERWRITE=0 command-line option.
+** Powersafe overwrite is on by default.  But can be turned off using    Powersafe默认情况下是覆盖。  
+** the -DSQLITE_POWERSAFE_OVERWRITE=0 command-line option.      但是可以关掉 -DSQLITE_POWERSAFE_OVERWRITE=0命令行选项的使用。
 */
 #ifndef SQLITE_POWERSAFE_OVERWRITE
 # define SQLITE_POWERSAFE_OVERWRITE 1
 #endif
 
 /*
-** The SQLITE_DEFAULT_MEMSTATUS macro must be defined as either 0 or 1.
+** The SQLITE_DEFAULT_MEMSTATUS macro must be defined as either 0 or 1.  宏SQLITE_DEFAULT_MEMSTATUS必须被定义为0或者1.
 ** It determines whether or not the features related to 
-** SQLITE_CONFIG_MEMSTATUS are available by default or not. This value can
-** be overridden at runtime using the sqlite3_config() API.
+** SQLITE_CONFIG_MEMSTATUS are available by default or not. This value can    取决于这个特征是否与SQLITE_CONFIG_MEMSTATUS是不是默认可供使用的有关
+** be overridden at runtime using the sqlite3_config() API. 在运行时使用sqlite3_config() API,这个值可以被覆盖        API:应用程序界面（Application Program Interface）
 */
 #if !defined(SQLITE_DEFAULT_MEMSTATUS)
 # define SQLITE_DEFAULT_MEMSTATUS 1
 #endif
 
 /*
-** Exactly one of the following macros must be defined in order to
+** Exactly one of the following macros must be defined in order to     为了指定哪一个内存子系统被使用，下面的其中一个宏被定义是正确的。
 ** specify which memory allocation subsystem to use.
 **
-**     SQLITE_SYSTEM_MALLOC          // Use normal system malloc()
-**     SQLITE_WIN32_MALLOC           // Use Win32 native heap API
-**     SQLITE_ZERO_MALLOC            // Use a stub allocator that always fails
-**     SQLITE_MEMDEBUG               // Debugging version of system malloc()
+**     SQLITE_SYSTEM_MALLOC          // Use normal system malloc()    用标准系统的内存分配函数
+**     SQLITE_WIN32_MALLOC           // Use Win32 native heap API     用win32自身的堆栈API
+**     SQLITE_ZERO_MALLOC            // Use a stub allocator that always fails  用故障的根分配器
+**     SQLITE_MEMDEBUG               // Debugging version of system malloc()  系统调试版的内存分配函数
 **
-** On Windows, if the SQLITE_WIN32_MALLOC_VALIDATE macro is defined and the
-** assert() macro is enabled, each call into the Win32 native heap subsystem
-** will cause HeapValidate to be called.  If heap validation should fail, an
-** assertion will be triggered.
+** On Windows, if the SQLITE_WIN32_MALLOC_VALIDATE macro is defined and the   在windows操作系统上，如果宏SQLITE_WIN32_MALLOC_VALIDATE被定义并且宏assert()被启用。
+** assert() macro is enabled, each call into the Win32 native heap subsystem                assert()是个定义在 <assert.h> 中的宏, 用来测试断言。一个断言本质上是写下程序员的假设, 如果假设被违反, 那表明有个严重的程序错误。
+** will cause HeapValidate to be called.  If heap validation should fail, an  每一次在win32自身的堆栈子系统上的调用将引起HeapValidate的调用。
+** assertion will be triggered. 如果堆栈建议失败了，将引起一个警告。
 **
-** (Historical note:  There used to be several other options, but we've
+** (Historical note:  There used to be several other options, but we've  历史注释:过去有很多很多其他的选项，但我们消减得只剩三个了。
 ** pared it down to just these three.)
 **
-** If none of the above are defined, then set SQLITE_SYSTEM_MALLOC as
+** If none of the above are defined, then set SQLITE_SYSTEM_MALLOC as   假如上面的都没有被定义，SQLITE_SYSTEM_MALLOC将被设置为默认值。
 ** the default.
 */
 #if defined(SQLITE_SYSTEM_MALLOC) \
@@ -181,7 +180,7 @@
 #endif
 
 /*
-** If SQLITE_MALLOC_SOFT_LIMIT is not zero, then try to keep the
+** If SQLITE_MALLOC_SOFT_LIMIT is not zero, then try to keep the   如果SQLITE_MALLOC_SOFT_LIMIT的值不是0，则保持可能的值下分配的内存大小。
 ** sizes of memory allocations below this value where possible.
 */
 #if !defined(SQLITE_MALLOC_SOFT_LIMIT)
@@ -189,24 +188,24 @@
 #endif
 
 /*
-** We need to define _XOPEN_SOURCE as follows in order to enable
-** recursive mutexes on most Unix systems.  But Mac OS X is different.
-** The _XOPEN_SOURCE define causes problems for Mac OS X we are told,
-** so it is omitted there.  See ticket #2673.
+** We need to define _XOPEN_SOURCE as follows in order to enable    为了启用在大多数UNIX操作系统上的递归互斥体， 我们需要将_XOPEN_SOURCE做如下定义
+** recursive mutexes on most Unix systems.  But Mac OS X is different.  但 Mac OS X 操作系统是不同的。
+** The _XOPEN_SOURCE define causes problems for Mac OS X we are told,    _XOPEN_SOURCE define的定义会导致我们说过的 Mac OS X操作系统的问题
+** so it is omitted there.  See ticket #2673.  因此，这儿是忽略了的。见标签:#2673
 **
-** Later we learn that _XOPEN_SOURCE is poorly or incorrectly
+** Later we learn that _XOPEN_SOURCE is poorly or incorrectly  稍后，我们将学到 _XOPEN_SOURCE在一些操作系统上的执行是不良的或者说是错误的。
 ** implemented on some systems.  So we avoid defining it at all
-** if it is already defined or if it is unneeded because we are
-** not doing a threadsafe build.  Ticket #2681.
+** if it is already defined or if it is unneeded because we are   因此，我们可以不定义它，假如它已经被定义了或如果它因为我们不做不安全的构建而不需要了。
+** not doing a threadsafe build.  Ticket #2681.   标签:#2681
 **
-** See also ticket #2741.
+** See also ticket #2741.  也看标签:#2741
 */
 #if !defined(_XOPEN_SOURCE) && !defined(__DARWIN__) && !defined(__APPLE__) && SQLITE_THREADSAFE
-#  define _XOPEN_SOURCE 500  /* Needed to enable pthread recursive mutexes */
+#  define _XOPEN_SOURCE 500  /* Needed to enable pthread recursive mutexes 需要启用多线程编程递归互斥体*/
 #endif
 
 /*
-** The TCL headers are only needed when compiling the TCL bindings.
+** The TCL headers are only needed when compiling the TCL bindings.   TCL头文件只有当编译TCL绑定时才需要。  TCL：事务控制语言
 */
 #if defined(SQLITE_TCL) || defined(TCLSH)
 # include <tcl.h>
