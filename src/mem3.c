@@ -23,7 +23,7 @@
 ** This version of the memory allocation subsystem is included
 ** in the build only if SQLITE_ENABLE_MEMSYS3 is defined.
 */
-#include "sqliteInt.h"
+#include "sqliteInt.h"           //SQLite初始化
 
 /*
 ** This version of the memory allocator is only built into the library
@@ -32,18 +32,18 @@
 ** it is available. The mempool allocator is activated by calling
 ** sqlite3_config().
 */
-#ifdef SQLITE_ENABLE_MEMSYS3
+#ifdef SQLITE_ENABLE_MEMSYS3   //宏定义触发该内存分配子系统被组建到库中
 
 /*
 ** Maximum size (in Mem3Blocks) of a "small" chunk.
 */
-#define MX_SMALL 10
+#define MX_SMALL 10    //Mem3Blocks中的一个块
 
 
 /*
 ** Number of freelist hash slots
 */
-#define N_HASH  61
+#define N_HASH  61    //自由列表中hash slots的个数
 
 /*
 ** A memory allocation (also called a "chunk") consists of two or 
@@ -77,89 +77,19 @@
 ** out.  If a chunk is checked out, the user data may extend into
 ** the u.hdr.prevSize value of the following chunk.
 */
-typedef struct Mem3Block Mem3Block;
+typedef struct Mem3Block Mem3Block;   //定义一个任意类型的数据块结构体
 struct Mem3Block {
-  union {
+  union {       //联合体，它里面定义的每个变量使用同一段内存空间，达到节约空间的目的
     struct {
-      u32 prevSize;   /* Size of previous chunk in Mem3Block elements */
-      u32 size4x;     /* 4x the size of current chunk in Mem3Block elements */
-    } hdr;
+      u32 prevSize;   /* Size of previous chunk in Mem3Block elements */ //前一个chunk的大小
+      u32 size4x;     /* 4x the size of current chunk in Mem3Block elements *///当前chunk大小
+    } hdr;    //chunk中的第一个block名为hdr，不返回给用户
     struct {
-      u32 next;       /* Index in mem3.aPool[] of next free chunk */
-      u32 prev;       /* Index in mem3.aPool[] of previous free chunk */
-    } list;
-  } u;
+      u32 next;       /* Index in mem3.aPool[] of next free chunk *///下一个未使用chunk的索引号
+      u32 prev;       /* Index in mem3.aPool[] of previous free chunk *///前一个未使用chunk的索引号
+    } list;   //chunk中的第二个block名为list
+  } u;   //定义了一个名为u的chunk
 };
-
-/*
-** All of the static variables used by this module are collected
-** into a single structure named "mem3".  This is to keep the
-** static variables organized and to reduce namespace pollution
-** when this module is combined with other in the amalgamation.
-*/
-static SQLITE_WSD struct Mem3Global {
-  /*
-  ** Memory available for allocation. nPool is the size of the array
-  ** (in Mem3Blocks) pointed to by aPool less 2.
-  */
-  u32 nPool;
-  Mem3Block *aPool;
-
-  /*
-  ** True if we are evaluating an out-of-memory callback.
-  */
-  int alarmBusy;
-  
-  /*
-  ** Mutex to control access to the memory allocation subsystem.
-  */
-  sqlite3_mutex *mutex;
-  
-  /*
-  ** The minimum amount of free space that we have seen.
-  */
-  u32 mnMaster;
-
-  /*
-  ** iMaster is the index of the master chunk.  Most new allocations
-  ** occur off of this chunk.  szMaster is the size (in Mem3Blocks)
-  ** of the current master.  iMaster is 0 if there is not master chunk.
-  ** The master chunk is not in either the aiHash[] or aiSmall[].
-  */
-  u32 iMaster;
-  u32 szMaster;
-
-  /*
-  ** Array of lists of free blocks according to the block size 
-  ** for smaller chunks, or a hash on the block size for larger
-  ** chunks.
-  */
-  u32 aiSmall[MX_SMALL-1];   /* For sizes 2 through MX_SMALL, inclusive */
-  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1 and larger */
-} mem3 = { 97535575 };
-
-#define mem3 GLOBAL(struct Mem3Global, mem3)
-
-/*
-** Unlink the chunk at mem3.aPool[i] from list it is currently
-** on.  *pRoot is the list that i is a member of.
-*/
-static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
-  u32 next = mem3.aPool[i].u.list.next;
-  u32 prev = mem3.aPool[i].u.list.prev;
-  assert( sqlite3_mutex_held(mem3.mutex) );
-  if( prev==0 ){
-    *pRoot = next;
-  }else{
-    mem3.aPool[prev].u.list.next = next;
-  }
-  if( next ){
-    mem3.aPool[next].u.list.prev = prev;
-  }
-  mem3.aPool[i].u.list.next = 0;
-  mem3.aPool[i].u.list.prev = 0;
-}
-
 /*
 ** Unlink the chunk at index i from 
 ** whatever list is currently a member of.
