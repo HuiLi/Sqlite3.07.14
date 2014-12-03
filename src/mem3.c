@@ -90,6 +90,55 @@ struct Mem3Block {
     } list;   //chunk中的第二个block名为list
   } u;   //定义了一个名为u的chunk
 };
+
+/*
+** All of the static variables used by this module are collected
+** into a single structure named "mem3".  This is to keep the
+** static variables organized and to reduce namespace pollution
+** when this module is combined with other in the amalgamation.
+*/
+static SQLITE_WSD struct Mem3Global {
+  /*
+  ** Memory available for allocation. nPool is the size of the array
+  ** (in Mem3Blocks) pointed to by aPool less 2.
+  */
+  u32 nPool;   //内存变量数组分配的空间大小
+  Mem3Block *aPool;//指向Mem3Block类型变量的指针，用于指向nPool
+
+  /*
+  ** True if we are evaluating an out-of-memory callback.
+  */
+  int alarmBusy;  //为真时进行内存回收
+  
+  /*
+  ** Mutex to control access to the memory allocation subsystem.
+  */
+  sqlite3_mutex *mutex;    //控制内存分配子系统的访问
+  
+  /*
+  ** The minimum amount of free space that we have seen.
+  */
+  u32 mnMaster;    //最小可分配空闲空间的大小
+
+  /*
+  ** iMaster is the index of the master chunk.  Most new allocations
+  ** occur off of this chunk.  szMaster is the size (in Mem3Blocks)
+  ** of the current master.  iMaster is 0 if there is not master chunk.
+  ** The master chunk is not in either the aiHash[] or aiSmall[].
+  */
+  u32 iMaster;  //新分配的chunk的索引号
+  u32 szMaster;  //当前chunk的大小，不构成双链表
+
+  /*
+  ** Array of lists of free blocks according to the block size 
+  ** for smaller chunks, or a hash on the block size for larger
+  ** chunks.
+  */
+  u32 aiSmall[MX_SMALL-1]; /* For sizes 2 through MX_SMALL, inclusive *///双链表中较小的chunk数组
+  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1 and larger *///较大chunk
+} mem3 = { 97535575 };//定义一个名为mem3的全局变量并赋值
+
+#define mem3 GLOBAL(struct Mem3Global, mem3)
 /*
 ** Unlink the chunk at index i from 
 ** whatever list is currently a member of.
