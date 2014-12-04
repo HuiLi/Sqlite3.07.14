@@ -11,7 +11,7 @@
 *************************************************************************
 ** This file contains the C functions that implement a memory
 ** allocation subsystem for use by SQLite. 
-**
+**此文件包含SQLite使用的实现内存分配子系统的C函数。
 ** This version of the memory allocation subsystem omits all
 ** use of malloc(). The application gives SQLite a block of memory
 ** before calling sqlite3_initialize() from which allocations
@@ -19,12 +19,16 @@
 ** implementations. Once sqlite3_initialize() has been called,
 ** the amount of memory available to SQLite is fixed and cannot
 ** be changed.
-**
+**此版本的内存分配子系统省略了所有malloc()函数的使用，
+**该应用程序在调用sqlite3_initialize() 前提供给Sqlite一个内存块，这个分配通过xMalloc() 和 xRealloc() 实现，
+**一旦sqlite3_initialize（）被调用，可用的内存SQLite的量是固定的，不能被改变。
 ** This version of the memory allocation subsystem is included
 ** in the build only if SQLITE_ENABLE_MEMSYS5 is defined.
-**
+**此版本的内存分配子系统仅包含在SQLITE_ENABLE_MEMSYS5的定义构建中。
 ** This memory allocator uses the following algorithm:
-**
+**该内存分配器使用下面的算法
+**1.所有的内存分配大小四舍五入至 2 的幂。2.如果两个相邻的自由块是一个大块的两部分，那么这两个块会被合并成一个大的单独的块。
+**3.从第一个可用的空闲块分配新的内存
 **   1.  All memory allocations sizes are rounded up to a power of 2.
 **
 **   2.  If two adjacent free blocks are the halves of a larger block,
@@ -42,9 +46,10 @@
 ** N be the total amount of memory available for allocation.  Robson
 ** proved that this memory allocator will never breakdown due to 
 ** fragmentation as long as the following constraint holds:
-**
+**让n是最大内存分配与最小分配的比值(四舍五入至 2 的幂)， 让M是应用程序曾经在任何时间点取出的最大内存数量。设 N 是内存的的可供分配总量。
+**罗布森证明了这个内存分配器将不会因为内存碎片崩溃，只要满足以下约束
 **      N >=  M*(1 + log2(n)/2) - n + 1
-**
+**函数Sqlite3_status() 逻辑追踪 n 和 M 的最大值所以应用程序可以在任何时间，验证此约束。
 ** The sqlite3_status() logic tracks the maximum values of n and M so
 ** that an application can, at any time, verify this constraint.
 */
@@ -54,20 +59,24 @@
 ** This version of the memory allocator is used only when 
 ** SQLITE_ENABLE_MEMSYS5 is defined.
 */
+/*
+**此版本的内存分配器只有在SQLITE_ENABLE_MEMSYS5 被定义时才被使用
+*/
 #ifdef SQLITE_ENABLE_MEMSYS5
 
 /*
 ** A minimum allocation is an instance of the following structure.
 ** Larger allocations are an array of these structures where the
 ** size of the array is a power of 2.
-**
+**最低配置如下面程序中结构体所示.更高的配置是结构体数组，数组的大小是 2 的幂。
+**此对象的大小必须是 2 的幂。在函数memsys5Init() 中，得以验证。
 ** The size of this object must be a power of two.  That fact is
-** verified in memsys5Init().
+** verified in memsys5Init().定义结构体Mem5Link
 */
 typedef struct Mem5Link Mem5Link;
 struct Mem5Link {
-  int next;       /* Index of next free chunk */
-  int prev;       /* Index of previous free chunk */
+  int next;       /* Index of next free chunk *//*下一个空闲块的索引*/
+  int prev;       /* Index of previous free chunk *//*前一个空闲块的索引*/
 };
 
 /*
@@ -75,12 +84,13 @@ struct Mem5Link {
 ** mem5.szAtom is always at least 8 and 32-bit integers are used,
 ** it is not actually possible to reach this limit.
 */
-#define LOGMAX 30
+/*任何分配的最大尺寸为（（1<< LOGMAX）* mem5.azAtom）。因为mem5.Atom总是至少8位和32位的整数时，它实际上不可能达到这个限度。*/
+#define LOGMAX 30             /*宏定义LOGMAX为30*/
 
 /*
-** Masks used for mem5.aCtrl[] elements.
+** Masks used for mem5.aCtrl[] elements.以下两个常量用于 mem5.aCtrl [] 元素的掩码
 */
-#define CTRL_LOGSIZE  0x1f    /* Log2 Size of this block */
+#define CTRL_LOGSIZE  0x1f    /* Log2 Size of this block *//*宏定义 CTRL_LOGSIZE块的大小，为16进制的1f，即十进制的31*/
 #define CTRL_FREE     0x20    /* True if not checked out */
 
 /*
@@ -89,35 +99,43 @@ struct Mem5Link {
 ** static variables organized and to reduce namespace pollution
 ** when this module is combined with other in the amalgamation.
 */
+/*
+**本模块使用的所有静态变量被聚集在一个结构体”mem5”中。
+**这样当本模块和其他模块合并时，就能保持这些静态变量，并且能减少命名空间污染。
+**mem5是Mem5Global类型的结构体.
+*/
 static SQLITE_WSD struct Mem5Global {
   /*
-  ** Memory available for allocation
+  ** Memory available for allocation可供分配的内存
   */
-  int szAtom;      /* Smallest possible allocation in bytes */
-  int nBlock;      /* Number of szAtom sized blocks in zPool */
-  u8 *zPool;       /* Memory available to be allocated */
+  int szAtom;      /* Smallest possible allocation in bytes*//*以字节为单位的最小可能分配*/
+  int nBlock;      /* Number of szAtom sized blocks in zPool*//*在zPool存储池中一些szAtom大小的块数目 */
+  u8 *zPool;       /* Memory available to be allocated *//*可用来分配的内存，zPool是无符号字符类型的指针*/
   
   /*
   ** Mutex to control access to the memory allocation subsystem.
   */
-  sqlite3_mutex *mutex;
+  sqlite3_mutex *mutex;    /*互斥锁来控制对内存分配子系统访问*/
 
   /*
   ** Performance statistics
+  **性能统计信息 u32:无符号整型
   */
-  u64 nAlloc;         /* Total number of calls to malloc */
-  u64 totalAlloc;     /* Total of all malloc calls - includes internal frag */
-  u64 totalExcess;    /* Total internal fragmentation */
-  u32 currentOut;     /* Current checkout, including internal fragmentation */
-  u32 currentCount;   /* Current number of distinct checkouts */
-  u32 maxOut;         /* Maximum instantaneous currentOut */
-  u32 maxCount;       /* Maximum instantaneous currentCount */
-  u32 maxRequest;     /* Largest allocation (exclusive of internal frag) */
-  
+  u64 nAlloc;         /* Total number of calls to malloc *//*调用malloc总数*/
+  u64 totalAlloc;     /* Total of all malloc calls - includes internal frag *//*所有Mallocde 调用总合— 包括内部碎片*/
+  u64 totalExcess;    /* Total internal fragmentation *//*总内部碎片*/
+  u32 currentOut;     /* Current checkout, including internal fragmentation *//*当前校验，包括内部碎片*/
+  u32 currentCount;   /* Current number of distinct checkouts *//*当前不同的检出数*/
+  u32 maxOut;         /* Maximum instantaneous currentOut *//*currentOut瞬时最大值*/
+  u32 maxCount;       /* Maximum instantaneous currentCount *//*currentCount 瞬时最大值*/
+  u32 maxRequest;     /* Largest allocation (exclusive of internal frag) *//*最大配置 （不包括内部碎片）*/
   /*
   ** Lists of free blocks.  aiFreelist[0] is a list of free blocks of
   ** size mem5.szAtom.  aiFreelist[1] holds blocks of size szAtom*2.
   ** and so forth.
+  */
+  /*
+  **空闲块数组。 aiFreelist[0]是大小为mem5.szAtom空闲块数组。 aiFreelist[1]大小为szAtom*2，以此类推。
   */
   int aiFreelist[LOGMAX+1];
 
@@ -126,7 +144,7 @@ static SQLITE_WSD struct Mem5Global {
   ** of each block.  One byte per block.
   */
   u8 *aCtrl;
-
+/*aCtrl是无符号类型的指针用于追踪哪些内存块被划出，检查了每块的大小。*/
 } mem5;
 
 /*
