@@ -9,18 +9,18 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** An tokenizer for SQL
+** An tokenizer for SQL一个SQL的定制 
 **
-** This file contains C code that implements the sqlite3_complete() API.
+** This file contains C code that implements the sqlite3_complete() API.此文件包含C代码实现sqlite3_complete()的API。
 ** This code used to be part of the tokenizer.c source file.  But by
 ** separating it out, the code will be automatically omitted from
-** static links that do not use it.
+** static links that do not use it.本代码用的是tokenizer.c源文件的一部分。但是分离出来了，该代码会自动从省略静态链接而是不使用它。
 */
 #include "sqliteInt.h"
 #ifndef SQLITE_OMIT_COMPLETE
 
 /*
-** This is defined in tokenize.c.  We just have to import the definition.
+** This is defined in tokenize.c.  We just have to import the definition.这个在tokenize.c中定义，我们只是需要引入定义 
 */
 #ifndef SQLITE_AMALGAMATION
 #ifdef SQLITE_ASCII
@@ -35,7 +35,7 @@ extern const char sqlite3IsEbcdicIdChar[];
 
 /*
 ** Token types used by the sqlite3_complete() routine.  See the header
-** comments on that procedure for additional information.
+** comments on that procedure for additional information.查看更多的信息，程序集的信息。
 */
 #define tkSEMI    0
 #define tkWS      1
@@ -49,65 +49,65 @@ extern const char sqlite3IsEbcdicIdChar[];
 #endif
 
 /*
-** Return TRUE if the given SQL string ends in a semicolon.
+** Return TRUE if the given SQL string ends in a semicolon.如果给定的SQL字符串以分号结束返回true。
 **
-** Special handling is require for CREATE TRIGGER statements.
+** Special handling is require for CREATE TRIGGER statements.特殊处理需要创建触发器语句。
 ** Whenever the CREATE TRIGGER keywords are seen, the statement
-** must end with ";END;".
+** must end with ";END;".每当创建被触发关键词，声明必须以“；END；”。
 **
-** This implementation uses a state machine with 8 states:
+** This implementation uses a state machine with 8 states:该实现使用一个具有8个状态的状态机：
 **
-**   (0) INVALID   We have not yet seen a non-whitespace character.
+**   (0) INVALID   We have not yet seen a non-whitespace character.我们还没有看到一个非空格字符。
 **
 **   (1) START     At the beginning or end of an SQL statement.  This routine
 **                 returns 1 if it ends in the START state and 0 if it ends
-**                 in any other state.
+**                 in any other state.在一个SQL语句的开始或结束。本例程返回1，如果它结束在开始的状态或0，如果它结束在任何其他状态。
 **
 **   (2) NORMAL    We are in the middle of statement which ends with a single
-**                 semicolon.
+**                 semicolon.我们在语句结束与一个单一的中间用分号。
 **
 **   (3) EXPLAIN   The keyword EXPLAIN has been seen at the beginning of 
-**                 a statement.
+**                 a statement. 关键词EXPLAIN在开始的时候就已经声明。
 **
 **   (4) CREATE    The keyword CREATE has been seen at the beginning of a
 **                 statement, possibly preceeded by EXPLAIN and/or followed by
-**                 TEMP or TEMPORARY
+**                 TEMP or TEMPORARY   关键词CREATE已经在一开始声明被看到，可能的解释之前和/或之后临时的或临时的
 **
 **   (5) TRIGGER   We are in the middle of a trigger definition that must be
-**                 ended by a semicolon, the keyword END, and another semicolon.
+**                 ended by a semicolon, the keyword END, and another semicolon.我们是在一个触发器定义中，必须是以分号结束，关键字END，另一个分号。
 **
 **   (6) SEMI      We've seen the first semicolon in the ";END;" that occurs at
-**                 the end of a trigger definition.
+**                 the end of a trigger definition.我们已经看到分号在第一个分号结尾";END;" 一个触发器定义结束。
 **
 **   (7) END       We've seen the ";END" of the ";END;" that occurs at the end
-**                 of a trigger difinition.
+**                 of a trigger difinition.我们已经看到了";END" ；“END；“末尾触发器的定义。
 **
 ** Transitions between states above are determined by tokens extracted
-** from the input.  The following tokens are significant:
+** from the input.  The following tokens are significant:状态之间的转换是由标记提取确定以上从输入。下面的标记是重要的：
 **
-**   (0) tkSEMI      A semicolon.
-**   (1) tkWS        Whitespace.
-**   (2) tkOTHER     Any other SQL token.
-**   (3) tkEXPLAIN   The "explain" keyword.
-**   (4) tkCREATE    The "create" keyword.
-**   (5) tkTEMP      The "temp" or "temporary" keyword.
-**   (6) tkTRIGGER   The "trigger" keyword.
-**   (7) tkEND       The "end" keyword.
+**   (0) tkSEMI      A semicolon.一个分号
+**   (1) tkWS        Whitespace.空格。
+**   (2) tkOTHER     Any other SQL token.任何其他SQL令牌  
+**   (3) tkEXPLAIN   The "explain" keyword.关键字"explain"
+**   (4) tkCREATE    The "create" keyword.关键字 "create"
+**   (5) tkTEMP      The "temp" or "temporary" keyword.关键字 "temp"   "temporary" 
+**   (6) tkTRIGGER   The "trigger" keyword.关键字"trigger" 
+**   (7) tkEND       The "end" keyword.关键字"end"
 **
-** Whitespace never causes a state transition and is always ignored.
-** This means that a SQL string of all whitespace is invalid.
+** Whitespace never causes a state transition and is always ignored.空格不会导致状态转换，它常被忽略。
+** This means that a SQL string of all whitespace is invalid.这意味着一个空白的SQL字符串无效。
 **
-** If we compile with SQLITE_OMIT_TRIGGER, all of the computation needed
+** If we compile with SQLITE_OMIT_TRIGGER, all of the computation needed如果我们用sqlite_omit_trigger编译的，所有的计算需要，一个触发端可以省略。
 ** to recognize the end of a trigger can be omitted.  All we have to do
-** is look for a semicolon that is not part of an string or comment.
+** is look for a semicolon that is not part of an string or comment.我们要做的就是找一个分号，不是一个字符串或注释的一部分。
 */
 int sqlite3_complete(const char *zSql){
-  u8 state = 0;   /* Current state, using numbers defined in header comment */
-  u8 token;       /* Value of the next token */
+  u8 state = 0;   /* Current state, using numbers defined in header comment 用成员定义注释*/
+  u8 token;       /* Value of the next token 下一个标记的价值*/
 
 #ifndef SQLITE_OMIT_TRIGGER
-  /* A complex statement machine used to detect the end of a CREATE TRIGGER
-  ** statement.  This is the normal case.
+  /* A complex statement machine used to detect the end of a CREATE TRIGGER复杂的语句机用于检测CREATE TRIGGER结束
+  ** statement.  This is the normal case. 这是正常的情况下 
   */
   static const u8 trans[8][8] = {
                      /* Token:                                                */
@@ -123,7 +123,7 @@ int sqlite3_complete(const char *zSql){
   };
 #else
   /* If triggers are not supported by this compile then the statement machine
-  ** used to detect the end of a statement is much simplier
+  ** used to detect the end of a statement is much simplier  如果触发器不支持这种编译，然后用于检测语句的结束声明的机器是非常简单的 
   */
   static const u8 trans[3][3] = {
                      /* Token:           */
@@ -136,7 +136,7 @@ int sqlite3_complete(const char *zSql){
 
   while( *zSql ){
     switch( *zSql ){
-      case ';': {  /* A semicolon */
+      case ';': {  /* A semicolon 分好*/
         token = tkSEMI;
         break;
       }
@@ -144,7 +144,7 @@ int sqlite3_complete(const char *zSql){
       case '\r':
       case '\t':
       case '\n':
-      case '\f': {  /* White space is ignored */
+      case '\f': {  /* White space is ignored 空格被忽略*/
         token = tkWS;
         break;
       }
@@ -178,7 +178,7 @@ int sqlite3_complete(const char *zSql){
         break;
       }
       case '`':     /* Grave-accent quoted symbols used by MySQL */
-      case '"':     /* single- and double-quoted strings */
+      case '"':     /* single- and double-quoted strings 单，双引号字符串*/
       case '\'': {
         int c = *zSql;
         zSql++;
@@ -257,7 +257,7 @@ int sqlite3_complete(const char *zSql){
 /*
 ** This routine is the same as the sqlite3_complete() routine described
 ** above, except that the parameter is required to be UTF-16 encoded, not
-** UTF-8.
+** UTF-8.这个程序是相同描述的sqlite3_complete（）例程，所不同的是该参数需要是UTF-16进行编码，而不是UTF-8。
 */
 int sqlite3_complete16(const void *zSql){
   sqlite3_value *pVal;
