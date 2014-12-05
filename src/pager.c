@@ -5656,7 +5656,7 @@ void sqlite3PagerDontWrite(PgHdr *pPg){
 ** change-counter, stored as a 4-byte big-endian integer starting at 
 ** byte offset 24 of the pager file.  The secondary change counter at
 ** 92 is also updated, as is the SQLite version number at offset 96.
-**
+* 这个例程被调用来增加数据库文件中change-counter的价值，存储为一个4字节的高位优先整数起始于pager文件中24个字节偏移量。
 ** But this only happens if the pPager->changeCountDone flag is false.
 ** To avoid excess churning of page 1, the update only happens once.
 ** See also the pager_write_changecounter() routine that does an 
