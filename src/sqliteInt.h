@@ -553,51 +553,51 @@ struct BusyHandler {
 };
 
 /*
-** Name of the master database table.  The master database table
-** is a special table that holds the names and attributes of all
+** Name of the master database table.  The master database table   主数据库表名。  
+** is a special table that holds the names and attributes of all   主数据库表是一个特殊的表，拥有所有用户数据表和索引的名字和特征属性。
 ** user tables and indices.
 */
 #define MASTER_NAME       "sqlite_master"
 #define TEMP_MASTER_NAME  "sqlite_temp_master"
 
 /*
-** The root-page of the master database table.
+** The root-page of the master database table.    主数据库表的根页。
 */
 #define MASTER_ROOT       1
 
 /*
-** The name of the schema table.
+** The name of the schema table.   模式表表名。
 */
 #define SCHEMA_TABLE(x)  ((!OMIT_TEMPDB)&&(x==1)?TEMP_MASTER_NAME:MASTER_NAME)
 
 /*
-** A convenience macro that returns the number of elements in
+** A convenience macro that returns the number of elements in   一个很方便的宏，可以返回数组中元素的个数。
 ** an array.
 */
 #define ArraySize(X)    ((int)(sizeof(X)/sizeof(X[0])))
 
 /*
-** The following value as a destructor means to use sqlite3DbFree().
-** The sqlite3DbFree() routine requires two parameters instead of the 
-** one parameter that destructors normally want.  So we have to introduce 
+** The following value as a destructor means to use sqlite3DbFree().       以下的值作为一个析构函数意味着要使用sqlite3dbfree()
+** The sqlite3DbFree() routine requires two parameters instead of the      常规的sqlite3dbfree()需要两个参数来代替析构函数通常所需要的一个参数
+** one parameter that destructors normally want.  So we have to introduce  所以我们必须引入这个魔法值，魔法值的代码知道处理差异。
 ** this magic value that the code knows to handle differently.  Any 
-** pointer will work here as long as it is distinct from SQLITE_STATIC
+** pointer will work here as long as it is distinct from SQLITE_STATIC     所有指针，只要与SQLITE_STATIC和SQLITE_TRANSIENT不同，都在这里起作用。
 ** and SQLITE_TRANSIENT.
 */
 #define SQLITE_DYNAMIC   ((sqlite3_destructor_type)sqlite3MallocSize)
 
 /*
-** When SQLITE_OMIT_WSD is defined, it means that the target platform does
-** not support Writable Static Data (WSD) such as global and static variables.
-** All variables must either be on the stack or dynamically allocated from
-** the heap.  When WSD is unsupported, the variable declarations scattered
-** throughout the SQLite code must become constants instead.  The SQLITE_WSD
+** When SQLITE_OMIT_WSD is defined, it means that the target platform does     当SQLITE_OMIT_WSD被定义时，这就意味着目标平台不支持全局可写变量，例如全局变量和静态变量。
+** not support Writable Static Data (WSD) such as global and static variables.   WSD:全局可写变量Writable Static Data (WSD)
+** All variables must either be on the stack or dynamically allocated from     所有变量都必须是在堆栈上或从堆中动态分配的。
+** the heap.  When WSD is unsupported, the variable declarations scattered     当WSD不支持时，遍布在SQLite代码中的变量声明必须变成常数代替。
+** throughout the SQLite code must become constants instead.  The SQLITE_WSD   宏SQLITE_WSD就是用来达到这个目的的。
 ** macro is used for this purpose.  And instead of referencing the variable
-** directly, we use its constant as a key to lookup the run-time allocated
-** buffer that holds real variable.  The constant is also the initializer
+** directly, we use its constant as a key to lookup the run-time allocated     代替直接引用变量，我们使用常量作为查找运行时分配存放实型变量的缓冲区的关键。
+** buffer that holds real variable.  The constant is also the initializer      常量也是初始化运行时分配缓冲区的关键。
 ** for the run-time allocated buffer.
 **
-** In the usual case where WSD is supported, the SQLITE_WSD and GLOBAL
+** In the usual case where WSD is supported, the SQLITE_WSD and GLOBAL         在通常的情况下WSD是被支持的,宏SQLITE_WSD 和 GLOBAL成了空操作，并且不影响执行。
 ** macros become no-ops and have zero performance impact.
 */
 #ifdef SQLITE_OMIT_WSD
@@ -613,26 +613,26 @@ struct BusyHandler {
 #endif
 
 /*
-** The following macros are used to suppress compiler warnings and to
-** make it clear to human readers when a function parameter is deliberately 
+** The following macros are used to suppress compiler warnings and to          以下的宏被用来来抑制编译器警告，
+** make it clear to human readers when a function parameter is deliberately    而且当一个函数的参数是故意落在函数体内部未使用是，可以让人类读者清楚的知道这一点。
 ** left unused within the body of a function. This usually happens when
-** a function is called via a function pointer. For example the 
-** implementation of an SQL aggregate step callback may not use the
-** parameter indicating the number of arguments passed to the aggregate,
+** a function is called via a function pointer. For example the                这通常发生在通过一个函数指针的调用函数时。
+** implementation of an SQL aggregate step callback may not use the            例如，SQL聚合步骤的实现回调可能不会使用参数指出传递到总体的参数数量,
+** parameter indicating the number of arguments passed to the aggregate,       如果它知道这是在其他地方强制执行的。
 ** if it knows that this is enforced elsewhere.
 **
-** When a function parameter is not used at all within the body of a function,
+** When a function parameter is not used at all within the body of a function, 当一个函数的参数是根本不用在函数体内部，一般称之为 "NotUsed"或"NotUsed2"以使事情更加清晰。
 ** it is generally named "NotUsed" or "NotUsed2" to make things even clearer.
-** However, these macros may also be used to suppress warnings related to
+** However, these macros may also be used to suppress warnings related to      然而，这些宏也可以用来抑制，可能会或可能不会被用于根据编译选项参数相关的警告。
 ** parameters that may or may not be used depending on compilation options.
-** For example those parameters only used in assert() statements. In these
+** For example those parameters only used in assert() statements. In these     例如，这些参数仅用于assert()语句。在这些情况下，参数的命名按惯例。
 ** cases the parameters are named as per the usual conventions.
 */
 #define UNUSED_PARAMETER(x) (void)(x)
 #define UNUSED_PARAMETER2(x,y) UNUSED_PARAMETER(x),UNUSED_PARAMETER(y)
 
 /*
-** Forward references to structures
+** Forward references to structures   结构体的前置声明
 */
 typedef struct AggInfo AggInfo;
 typedef struct AuthContext AuthContext;
@@ -679,9 +679,9 @@ typedef struct WhereInfo WhereInfo;
 typedef struct WhereLevel WhereLevel;
 
 /*
-** Defer sourcing vdbe.h and btree.h until after the "u8" and 
-** "BusyHandler" typedefs. vdbe.h also requires a few of the opaque
-** pointer types (i.e. FuncDef) defined above.
+** Defer sourcing vdbe.h and btree.h until after the "u8" and               在"u8"和"BusyHandler"类型定义之后推迟 vdbe.h 和 btree.h的发起。
+** "BusyHandler" typedefs. vdbe.h also requires a few of the opaque         vdbe.h也需要一些不透明指针型(即函数定义)定义上面的东西。
+** pointer types (i.e. FuncDef) defined above.         不透明数据类型隐藏了它们内部格式或结构。在C语言中，它们就像黑盒一样。支持它们的语言不是很多。作为替代，开发者们利用typedef声明一个类型，把它叫做不透明类型，希望其他人别去把它重新转化回对应的那个标准C类型。
 */
 #include "btree.h"
 #include "vdbe.h"
@@ -693,18 +693,18 @@ typedef struct WhereLevel WhereLevel;
 
 
 /*
-** Each database file to be accessed by the system is an instance
-** of the following structure.  There are normally two of these structures
-** in the sqlite.aDb[] array.  aDb[0] is the main database file and
-** aDb[1] is the database file used to hold temporary tables.  Additional
-** databases may be attached.
+** Each database file to be accessed by the system is an instance  每个数据库文件将被系统访问下列结构实例。
+** of the following structure.  There are normally two of these structures  在数组sqlite.aDb[]里通常有两个这种结构。
+** in the sqlite.aDb[] array.  aDb[0] is the main database file and         aDb[0]是主数据库文件，aDb[1]是用于存放临时数据表的数据库文件。
+** aDb[1] is the database file used to hold temporary tables.  Additional   附加数据库可以被连接。
+** databases may be attached.  
 */
 struct Db {
-  char *zName;         /* Name of this database */
-  Btree *pBt;          /* The B*Tree structure for this database file */
+  char *zName;         /* Name of this database 数据库名称*/
+  Btree *pBt;          /* The B*Tree structure for this database file 数据库文件的B*Tree结构*/
   u8 inTrans;          /* 0: not writable.  1: Transaction.  2: Checkpoint */
-  u8 safety_level;     /* How aggressive at syncing data to disk */
-  Schema *pSchema;     /* Pointer to database schema (possibly shared) */
+  u8 safety_level;     /* How aggressive at syncing data to disk   0:不可写 1:事务处理  2:检查*/
+  Schema *pSchema;     /* Pointer to database schema (possibly shared) 指向数据库模式的指针(可能是共享的)*/
 };
 
 /*
