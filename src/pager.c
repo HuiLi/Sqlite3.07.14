@@ -5591,6 +5591,8 @@ int sqlite3PagerWrite(DbPage *pDbPage){
     ** writing to any of these nPage pages may damage the others, the
     ** journal file must contain sync()ed copies of all of them
     ** before any of them can be written out to the database file.
+       如果PGHDR_NEED_SYNC标记设置为在pg1启动的nPage下的任何页面，那么它需要设置为全部。
+       因为写这些nPage页面会影响到其他，在他们被写出数据库文件之前，日志文件必须包含sync()ed的全部副本。
     */
     if( rc==SQLITE_OK && needSync ){
       assert( !MEMDB );
@@ -5615,6 +5617,8 @@ int sqlite3PagerWrite(DbPage *pDbPage){
 ** Return TRUE if the page given in the argument was previously passed
 ** to sqlite3PagerWrite().  In other words, return TRUE if it is ok
 ** to change the content of the page.
+    如果论点给出的页面被优先通过sqlite3PagerWrite()，那么返回TRUE。
+    换句话说，如果它成功改变了页面的内容则返回TRUE。
 */
 #ifndef NDEBUG
 int sqlite3PagerIswriteable(DbPage *pPg){
@@ -5628,13 +5632,14 @@ int sqlite3PagerIswriteable(DbPage *pPg){
 ** that page might be marked as dirty.  This happens, for example, when
 ** the page has been added as a leaf of the freelist and so its
 ** content no longer matters.
-**
+** 调用这个程序告诉pager没有必要编写分回磁盘页的信息，即使页面或许会被标记为dirty。
+   这一切发生的时候,例如,当页面添加了自由表中的叶,所以它的内容不再重要。
 ** The overlying software layer calls this routine when all of the data
 ** on the given page is unused. The pager marks the page as clean so
 ** that it does not get written to disk.
-**
+** 当所提供页面上的所有数据未使用，整个软件层就调用这个程序。pager标记干净页面以至于它不会被写入磁盘。
 ** Tests show that this optimization can quadruple the speed of large 
-** DELETE operations.
+** DELETE operations.测试表明，这种优化可以将删除操作的速度提高四倍。
 */
 void sqlite3PagerDontWrite(PgHdr *pPg){
   Pager *pPager = pPg->pPager;
