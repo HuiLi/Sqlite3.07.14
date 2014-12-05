@@ -38,6 +38,7 @@
 /*
 ** Malloc and Free functions
 */
+/*内存空间的分配和释放add by guancan 20141205*/
 static void *fts3HashMalloc(int n){
   void *p = sqlite3_malloc(n);
   if( p ){
