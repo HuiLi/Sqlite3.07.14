@@ -24,6 +24,7 @@
 **       SQLite (in which case SQLITE_ENABLE_FTS3 is defined).
 */
 //该行注释仅用于熟悉流程，请通过审查add by guancan 20141205
+/*这是在SQLite中被普遍使用的哈希表实现的头文件.为了是他能够作为一个全文索引模块的哈希表的实现我们稍作了修改*/
 #include "fts3Int.h"
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
 
