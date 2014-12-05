@@ -11,9 +11,10 @@
 ******************************************************************************
 **
 ** This file contains code that is specific to Windows.
+** 此文件包含代码是特定于Windows.
 */
 #include "sqliteInt.h"
-#if SQLITE_OS_WIN               /* This file is used for Windows only */
+#if SQLITE_OS_WIN               /* This file is used for Windows only 这个文件是用来仅适用于Windows */
 
 #ifdef __CYGWIN__
 # include <sys/cygwin.h>
@@ -21,11 +22,13 @@
 
 /*
 ** Include code that is common to all os_*.c files
+** 包含的代码适用于所有os_*.c文件 
 */
 #include "os_common.h"
 
 /*
 ** Macro to find the minimum of two numeric values.
+** 宏找到至少两个数值。
 */
 #ifndef MIN
 # define MIN(x,y) ((x)<(y)?(x):(y))
@@ -33,6 +36,7 @@
 
 /*
 ** Some Microsoft compilers lack this definition.
+** 一些微软的编译器缺乏这种定义。
 */
 #ifndef INVALID_FILE_ATTRIBUTES
 # define INVALID_FILE_ATTRIBUTES ((DWORD)-1) 
@@ -48,52 +52,56 @@
 
 #ifndef SQLITE_OMIT_WAL
 /* Forward references */
-typedef struct winShm winShm;           /* A connection to shared-memory */
-typedef struct winShmNode winShmNode;   /* A region of shared-memory */
+/*向前引用*/
+typedef struct winShm winShm;           /* A connection to shared-memory 一个共享内存连接 */
+typedef struct winShmNode winShmNode;   /* A region of shared-memory 一个共享内存区域 */
 #endif
 
 /*
 ** WinCE lacks native support for file locking so we have to fake it
 ** with some code of our own.
+**WinCE缺乏原生支持文件锁定，所以我们必须用一些自己代码修改它
 */
 #if SQLITE_OS_WINCE
 typedef struct winceLock {
-  int nReaders;       /* Number of reader locks obtained */
-  BOOL bPending;      /* Indicates a pending lock has been obtained */
-  BOOL bReserved;     /* Indicates a reserved lock has been obtained */
-  BOOL bExclusive;    /* Indicates an exclusive lock has been obtained */
+  int nReaders;       /* Number of reader locks obtained 一些阅读器锁定所获取内容 */
+  BOOL bPending;      /* Indicates a pending lock has been obtained 指定一个已经获得的等待锁*/
+  BOOL bReserved;     /* Indicates a reserved lock has been obtained 指定一个已经获得的保留锁*/
+  BOOL bExclusive;    /* Indicates an exclusive lock has been obtained 指定一个已经获得的专用锁*/
 } winceLock;
 #endif
 
 /*
 ** The winFile structure is a subclass of sqlite3_file* specific to the win32
 ** portability layer.
+**winfile结构是 sqlite3_file* 仅限于win32可移植层一个子类
 */
 typedef struct winFile winFile;
 struct winFile {
-  const sqlite3_io_methods *pMethod; /*** Must be first ***/
-  sqlite3_vfs *pVfs;      /* The VFS used to open this file */
-  HANDLE h;               /* Handle for accessing the file */
-  u8 locktype;            /* Type of lock currently held on this file */
-  short sharedLockByte;   /* Randomly chosen byte used as a shared lock */
-  u8 ctrlFlags;           /* Flags.  See WINFILE_* below */
-  DWORD lastErrno;        /* The Windows errno from the last I/O error */
+  const sqlite3_io_methods *pMethod; /*** Must be first 必须是首先的  ***/
+  sqlite3_vfs *pVfs;      /* The VFS used to open this file VFS用来打开此文件*/
+  HANDLE h;               /* Handle for accessing the file 访问文件的句柄 */
+  u8 locktype;            /* Type of lock currently held on this file 目前持有此文件的锁类型*/
+  short sharedLockByte;   /* Randomly chosen byte used as a shared lock 用作共享锁随机选择的字节*/
+  u8 ctrlFlags;           /* Flags.  See WINFILE_* below 标识.  见下文WINFILE_* */
+  DWORD lastErrno;        /* The Windows errno from the last I/O error Windows的错误号来源于最后一个I / O错误*/
 #ifndef SQLITE_OMIT_WAL
-  winShm *pShm;           /* Instance of shared memory on this file */
+  winShm *pShm;           /* Instance of shared memory on this file 此文件共享内存的实例*/
 #endif
-  const char *zPath;      /* Full pathname of this file */
-  int szChunk;            /* Chunk size configured by FCNTL_CHUNK_SIZE */
+  const char *zPath;      /* Full pathname of this file 这个文件的全路径名*/
+  int szChunk;            /* Chunk size configured by FCNTL_CHUNK_SIZE 通过FCNTL_CHUNK_SIZE配置的块大小 */
 #if SQLITE_OS_WINCE
-  LPWSTR zDeleteOnClose;  /* Name of file to delete when closing */
-  HANDLE hMutex;          /* Mutex used to control access to shared lock */  
-  HANDLE hShared;         /* Shared memory segment used for locking */
-  winceLock local;        /* Locks obtained by this instance of winFile */
-  winceLock *shared;      /* Global shared lock memory for the file  */
+  LPWSTR zDeleteOnClose;  /* Name of file to delete when closing 当关闭时删除文件的名称*/
+  HANDLE hMutex;          /* Mutex used to control access to shared lock 互斥用于控制访问共享锁*/  
+  HANDLE hShared;         /* Shared memory segment used for locking 共享内存段用于锁定*/
+  winceLock local;        /* Locks obtained by this instance of winFile 通过该WINFILE的实例获取锁*/
+  winceLock *shared;      /* Global shared lock memory for the file  储存该文件的全局共享锁*/
 #endif
 };
 
 /*
 ** Allowed values for winFile.ctrlFlags
+**允许winFile.ctrlFlags值
 */
 #define WINFILE_PERSIST_WAL     0x04   /* Persistent WAL mode */
 #define WINFILE_PSOW            0x10   /* SQLITE_IOCAP_POWERSAFE_OVERWRITE */
