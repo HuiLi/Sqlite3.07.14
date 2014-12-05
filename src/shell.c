@@ -458,16 +458,16 @@ struct callback_data {  //定义结构体，用来进行各方法之间的传值
 #define MODE_Csv      7  /* Quote strings, numbers are plain */
 #define MODE_Explain  8  /* Like MODE_Column, but do not truncate data */
 
-static const char *modeDescr[] = { //定义允许的模式字符数组；数据表格显示格式
-  "line",
-  "column",
-  "list",
-  "semi",
-  "html",
+static const char *modeDescr[] = { //定义允许的模式字符数组；数据显示格式；有好几种显示模式，默认的是 list 显示模式，一般我们使用 column 显示模式
+  "line",    //每行一个值
+  "column",   //以整齐的列显示每一行数据
+  "list",    //分隔符分隔的字符
+  "semi",    //和list模式类似，但是每一行会以“；”结束
+  "html",     //以html代码方式显示
   "insert",  //显示insert sql语句
-  "tcl",
-  "csv",
-  "explain",
+  "tcl",    //TCL列表元素
+  "csv",     //逗号分隔值
+  "explain",  //和column类似，但不截断数据
 };
 
 /*
@@ -479,26 +479,26 @@ static const char *modeDescr[] = { //定义允许的模式字符数组；数据�
 ** Compute a string length that is limited to what can be stored in
 ** lower 30 bits of a 32-bit signed integer.
 */
-static int strlen30(const char *z){     //能够存储的最大bit数
+static int strlen30(const char *z){     //能够存储的最大bit数;字符串长度是有限的,可以存储在低30位的32位带符号整数
   const char *z2 = z;
   while( *z2 ){ z2++; }
   return 0x3fffffff & (int)(z2 - z);
 }
 
 /*
-** A callback for the sqlite3_log() interface.
+** A callback for the sqlite3_log() interface.    //sqlite3_log()接口的回调
 */
-static void shellLog(void *pArg, int iErrCode, const char *zMsg){
-  struct callback_data *p = (struct callback_data*)pArg;
-  if( p->pLog==0 ) return;
-  fprintf(p->pLog, "(%d) %s\n", iErrCode, zMsg);
-  fflush(p->pLog);
+static void shellLog(void *pArg, int iErrCode, const char *zMsg){  //生产shell下运行的日志
+  struct callback_data *p = (struct callback_data*)pArg;  
+  if( p->pLog==0 ) return;   //如果没有日志返回
+  fprintf(p->pLog, "(%d) %s\n", iErrCode, zMsg); //输出日志信息
+  fflush(p->pLog); //清空缓存
 }
 
 /*
 ** Output the given string as a hex-encoded blob (eg. X'1234' )
 */
-static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){
+static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){//将字符串以hex二进制编码的方式输出
   int i;
   char *zBlob = (char *)pBlob;
   fprintf(out,"X'");
@@ -509,13 +509,13 @@ static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){
 /*
 ** Output the given string as a quoted string using SQL quoting conventions.
 */
-static void output_quoted_string(FILE *out, const char *z){
+static void output_quoted_string(FILE *out, const char *z){//将字符串以引证字符串的形式输出
   int i;
   int nSingle = 0;
   for(i=0; z[i]; i++){
     if( z[i]=='\'' ) nSingle++;
   }
-  if( nSingle==0 ){
+  if( nSingle==0 ){ //
     fprintf(out,"'%s'",z);
   }else{
     fprintf(out,"'");
@@ -539,7 +539,7 @@ static void output_quoted_string(FILE *out, const char *z){
 /*
 ** Output the given string as a quoted according to C or TCL quoting rules.
 */
-static void output_c_string(FILE *out, const char *z){
+static void output_c_string(FILE *out, const char *z){  //根据C或TCL引用规则输出字符串
   unsigned int c;
   fputc('"', out);
   while( (c = *(z++))!=0 ){
@@ -566,9 +566,9 @@ static void output_c_string(FILE *out, const char *z){
 
 /*
 ** Output the given string with characters that are special to
-** HTML escaped.
+** HTML escaped. 
 */
-static void output_html_string(FILE *out, const char *z){
+static void output_html_string(FILE *out, const char *z){//以特殊的HTML代码方式显示字符串
   int i;
   while( *z ){
     for(i=0;   z[i] 
@@ -600,7 +600,7 @@ static void output_html_string(FILE *out, const char *z){
 
 /*
 ** If a field contains any character identified by a 1 in the following
-** array, then the string must be quoted for CSV.
+** array, then the string must be quoted for CSV.  // 如果一个域包含任何被下面数组的定义的字符，这个字符串必须被引证为CSV
 */
 static const char needCsvQuote[] = {
   1, 1, 1, 1, 1, 1, 1, 1,   1, 1, 1, 1, 1, 1, 1, 1,   
@@ -625,11 +625,11 @@ static const char needCsvQuote[] = {
 ** Output a single term of CSV.  Actually, p->separator is used for
 ** the separator, which may or may not be a comma.  p->nullvalue is
 ** the null value.  Strings are quoted if necessary.
-*/
-static void output_csv(struct callback_data *p, const char *z, int bSep){
+*/  //
+static void output_csv(struct callback_data *p, const char *z, int bSep){//以csv格式输出字符串，其中p->separator被用作表示分隔符，p->nullvalue表示NUll值，字符串只有在必要的时候被引用
   FILE *out = p->out;
   if( z==0 ){
-    fprintf(out,"%s",p->nullvalue);
+    fprintf(out,"%s",p->nullvalue);  //格式化输出 fprintf(文件指针,格式字符串,输出表列)
   }else{
     int i;
     int nSep = strlen30(p->separator);
@@ -659,12 +659,13 @@ static void output_csv(struct callback_data *p, const char *z, int bSep){
 
 #ifdef SIGINT
 /*
-** This routine runs when the user presses Ctrl-C
+** This routine runs when the user presses Ctrl-C 
 */
-static void interrupt_handler(int NotUsed){
-  UNUSED_PARAMETER(NotUsed);
-  seenInterrupt = 1;
-  if( db ) sqlite3_interrupt(db);
+//seenInterrupt是用来检测中断的变量，前面定义初值为0，如果收到中断信号，就将变量赋值为 1
+static void interrupt_handler(int NotUsed){ //中断控制函数，当操作为Ctrl-C的时候调用
+  UNUSED_PARAMETER(NotUsed);   //表示不使用的参数
+  seenInterrupt = 1;   //指示中断信号的变量，此时表示收到中断信号。
+  if( db ) sqlite3_interrupt(db);  //如果数据库被打开，则中断它
 }
 #endif
 
@@ -672,12 +673,12 @@ static void interrupt_handler(int NotUsed){
 ** This is the callback routine that the shell
 ** invokes for each row of a query result.
 */
-static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int *aiType){
+static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int *aiType){ //解释器回调查询结果的每一行
   int i;
-  struct callback_data *p = (struct callback_data*)pArg;
+  struct callback_data *p = (struct callback_data*)pArg; //定义一个callback_data的对象
 
-  switch( p->mode ){
-    case MODE_Line: {
+  switch( p->mode ){  //判断调用的模式，根据调用的模式不同，选择不同的方式输出结果
+    case MODE_Line: {  //Line模式
       int w = 5;
       if( azArg==0 ) break;
       for(i=0; i<nArg; i++){
@@ -687,12 +688,12 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       if( p->cnt++>0 ) fprintf(p->out,"\n");
       for(i=0; i<nArg; i++){
         fprintf(p->out,"%*s = %s\n", w, azCol[i],
-                azArg[i] ? azArg[i] : p->nullvalue);
+                azArg[i] ? azArg[i] : p->nullvalue);  //p->nullvalue表示NUll值
       }
       break;
     }
     case MODE_Explain:
-    case MODE_Column: {
+    case MODE_Column: {  //Explain和Column模式
       if( p->cnt++==0 ){
         for(i=0; i<nArg; i++){
           int w, n;
@@ -746,7 +747,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       break;
     }
     case MODE_Semi:
-    case MODE_List: {
+    case MODE_List: { //Semi和List模式
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           fprintf(p->out,"%s%s",azCol[i], i==nArg-1 ? "\n" : p->separator);
@@ -767,7 +768,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       }
       break;
     }
-    case MODE_Html: {
+    case MODE_Html: {  //Html模式
       if( p->cnt++==0 && p->showHeader ){
         fprintf(p->out,"<TR>");
         for(i=0; i<nArg; i++){
@@ -787,7 +788,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"</TR>\n");
       break;
     }
-    case MODE_Tcl: {
+    case MODE_Tcl: { // Tcl模式
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           output_c_string(p->out,azCol[i] ? azCol[i] : "");
@@ -803,7 +804,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"\n");
       break;
     }
-    case MODE_Csv: {
+    case MODE_Csv: { //Csv模式
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           output_csv(p, azCol[i] ? azCol[i] : "", i<nArg-1);
@@ -817,10 +818,10 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"\n");
       break;
     }
-    case MODE_Insert: {
+    case MODE_Insert: {  //Insert模式
       p->cnt++;
       if( azArg==0 ) break;
-      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);
+      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);//指目的表
       for(i=0; i<nArg; i++){
         char *zSep = i>0 ? ",": "";
         if( (azArg[i]==0) || (aiType && aiType[i]==SQLITE_NULL) ){
@@ -852,10 +853,10 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
 /*
 ** This is the callback routine that the SQLite library
 ** invokes for each row of a query result.
-*/
-static int callback(void *pArg, int nArg, char **azArg, char **azCol){
+*/  
+static int callback(void *pArg, int nArg, char **azArg, char **azCol){   //定义SQLite库调用查询结果的每一行的回调程序
   /* since we don't have type info, call the shell_callback with a NULL value */
-  return shell_callback(pArg, nArg, azArg, azCol, NULL);
+  return shell_callback(pArg, nArg, azArg, azCol, NULL);  //当没有类型信息,使用Null值调用shell_callback 
 }
 
 /*
@@ -863,13 +864,13 @@ static int callback(void *pArg, int nArg, char **azArg, char **azCol){
 ** the name of the table given.  Escape any quote characters in the
 ** table name.
 */
-static void set_table_name(struct callback_data *p, const char *zName){
+static void set_table_name(struct callback_data *p, const char *zName){ //设定的目标表字段callback_data结构的表的名称。任何引用字符转义的表名。zName表示表名
   int i, n;
   int needQuote;
   char *z;
 
-  if( p->zDestTable ){
-    free(p->zDestTable);
+  if( p->zDestTable ){   //p->zDestTable指目的表
+    free(p->zDestTable);  //释放空间
     p->zDestTable = 0;
   }
   if( zName==0 ) return;
