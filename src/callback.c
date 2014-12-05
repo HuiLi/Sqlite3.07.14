@@ -2,23 +2,23 @@
 ** 2005 May 23 
 **
 ** The author disclaims copyright to this source code.  In place of
-** a legal notice, here is a blessing:
+** a legal notice, here is a blessing:    作者声明这个源代码版权。代替一个法律声明，这里是一个祝福：
 **
-**    May you do good and not evil.
+**    May you do good and not evil.愿你做的是好事，而不是邪恶。也许你会发现宽恕自己和宽容别人。你可以自由分享，不要获取多余给予。
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
 **
 ** This file contains functions used to access the internal hash tables
-** of user defined functions and collation sequences.
+** of user defined functions and collation sequences.该文件包含用于访问用户定义的函数和排序队列的内部哈希表的功能。
 */
 
 #include "sqliteInt.h"
 
 /*
 ** Invoke the 'collation needed' callback to request a collation sequence
-** in the encoding enc of name zName, length nName.
+** in the encoding enc of name zName, length nName.引用“collation needed'回调至zName，长度nNAME，编码ENC要求归类队列。
 */
 static void callCollNeeded(sqlite3 *db, int enc, const char *zName){
   assert( !db->xCollNeeded || !db->xCollNeeded16 );
@@ -47,7 +47,7 @@ static void callCollNeeded(sqlite3 *db, int enc, const char *zName){
 ** collation function in the best encoding but there may be other versions
 ** of this collation function (for other text encodings) available. Use one
 ** of these instead if they exist. Avoid a UTF-8 <-> UTF-16 conversion if
-** possible.
+** possible.如果回收未能提供一个排序函数中最好的编码，但也有可能提供其他版本的这个排序函数的（其他文本编码）供这个程序被调用。如果它们存在使用其中的一个来代替。如果可能的话避免UTF-8<- > UTF-16转换。
 */
 static int synthCollSeq(sqlite3 *db, CollSeq *pColl){
   CollSeq *pColl2;
@@ -68,22 +68,22 @@ static int synthCollSeq(sqlite3 *db, CollSeq *pColl){
 /*
 ** This function is responsible for invoking the collation factory callback
 ** or substituting a collation sequence of a different encoding when the
-** requested collation sequence is not available in the desired encoding.
+** requested collation sequence is not available in the desired encoding.这个功能是负责调用回收工厂回调或代以一个不同的编码的排列顺序时所需的排序顺序并不在所需的编码时可用。
 ** 
 ** If it is not NULL, then pColl must point to the database native encoding 
-** collation sequence with name zName, length nName.
+** collation sequence with name zName, length nName.如果不是NULL，则pColl必须指向本地数据库，通过对zName，长度nNAME归类序列。
 **
 ** The return value is either the collation sequence to be used in database
 ** db for collation type name zName, length nName, or NULL, if no collation
-** sequence can be found.
+** sequence can be found.返回值是被用来在数据库DB整理类型名称zName，长度nName，或NULL，如果没有排序顺序，可以发现归类序列。
 **
 ** See also: sqlite3LocateCollSeq(), sqlite3FindCollSeq()
 */
 CollSeq *sqlite3GetCollSeq(
-  sqlite3* db,          /* The database connection */
-  u8 enc,               /* The desired encoding for the collating sequence */
-  CollSeq *pColl,       /* Collating sequence with native encoding, or NULL */
-  const char *zName     /* Collating sequence name */
+  sqlite3* db,          /* The database connection 数据库连接*/
+  u8 enc,               /* The desired encoding for the collating sequence 为整理顺序所需的编码*/
+  CollSeq *pColl,       /* Collating sequence with native encoding, or NULL 与本地编码，或NULL排序序列*/
+  const char *zName     /* Collating sequence name 排序序列名称*/
 ){
   CollSeq *p;
 
@@ -92,8 +92,8 @@ CollSeq *sqlite3GetCollSeq(
     p = sqlite3FindCollSeq(db, enc, zName, 0);
   }
   if( !p || !p->xCmp ){
-    /* No collation sequence of this type for this encoding is registered.
-    ** Call the collation factory to see if it can supply us with one.
+    /* No collation sequence of this type for this encoding is registered.任何归类于这种类型这种编码序列被注册。
+    ** Call the collation factory to see if it can supply us with one.调用回收工厂，看它是否能够提供给我们。
     */
     callCollNeeded(db, enc, zName);
     p = sqlite3FindCollSeq(db, enc, zName, 0);
@@ -109,12 +109,12 @@ CollSeq *sqlite3GetCollSeq(
 ** This routine is called on a collation sequence before it is used to
 ** check that it is defined. An undefined collation sequence exists when
 ** a database is loaded that contains references to collation sequences
-** that have not been defined by sqlite3_create_collation() etc.
+** that have not been defined by sqlite3_create_collation() etc.这个程序被调用的排列顺序前先用它来检查它的定义。当数据库被加载，其中包含对那些尚未被sqlite3_create_collation（）定义等，整理序列未定义的排序顺序。
 **
-** If required, this routine calls the 'collation needed' callback to
+** If required, this routine calls the 'collation needed' callback to如果需要的话，这个程序将调用“collation needed'，回调要求整理顺序的定义。
 ** request a definition of the collating sequence. If this doesn't work, 
 ** an equivalent collating sequence that uses a text encoding different
-** from the main database is substituted, if one is available.
+** from the main database is substituted, if one is available.如果这不行，则使用文本编码，如果可用的话从主数据库不同的等效排序序列替换。
 */
 int sqlite3CheckCollSeq(Parse *pParse, CollSeq *pColl){
   if( pColl ){
@@ -136,20 +136,20 @@ int sqlite3CheckCollSeq(Parse *pParse, CollSeq *pColl){
 /*
 ** Locate and return an entry from the db.aCollSeq hash table. If the entry
 ** specified by zName and nName is not found and parameter 'create' is
-** true, then create a new entry. Otherwise return NULL.
+** true, then create a new entry. Otherwise return NULL.找到并返回从db.aCollSeq哈希表中的条目。如果该条目没有发现zName和nNAME规定和参数“创造”是真的，然后创建一个新的条目。否则返回NULL。
 **
 ** Each pointer stored in the sqlite3.aCollSeq hash table contains an
 ** array of three CollSeq structures. The first is the collation sequence
-** prefferred for UTF-8, the second UTF-16le, and the third UTF-16be.
+** prefferred for UTF-8, the second UTF-16le, and the third UTF-16be.存储在sqlite3.aCollSeq哈希表中的每个指针包含一个排列三CollSeq结构。首先是排序顺序为UTF-8，第二UTF-16LE，第三UTF-16BE。
 **
 ** Stored immediately after the three collation sequences is a copy of
 ** the collation sequence name. A pointer to this string is stored in
-** each collation sequence structure.
+** each collation sequence structure.三个归类序列后，立即存储是归类序列名称的副本。一个指向该字符串存储在每个排列顺序结构。
 */
 static CollSeq *findCollSeqEntry(
-  sqlite3 *db,          /* Database connection */
-  const char *zName,    /* Name of the collating sequence */
-  int create            /* Create a new entry if true */
+  sqlite3 *db,          /* Database connection 数据库连接*/
+  const char *zName,    /* Name of the collating sequence 整理顺序名称*/
+  int create            /* Create a new entry if true 建立一个入口*/
 ){
   CollSeq *pColl;
   int nName = sqlite3Strlen30(zName);
@@ -171,7 +171,7 @@ static CollSeq *findCollSeqEntry(
 
       /* If a malloc() failure occurred in sqlite3HashInsert(), it will 
       ** return the pColl pointer to be deleted (because it wasn't added
-      ** to the hash table).
+      ** to the hash table).如果一个malloc（）故障发生在sqlite3HashInsert（），它将返回pColl指针被删除（因为它不添加到哈希表）。
       */
       assert( pDel==0 || pDel==pColl );
       if( pDel!=0 ){
@@ -187,17 +187,17 @@ static CollSeq *findCollSeqEntry(
 /*
 ** Parameter zName points to a UTF-8 encoded string nName bytes long.
 ** Return the CollSeq* pointer for the collation sequence named zName
-** for the encoding 'enc' from the database 'db'.
+** for the encoding 'enc' from the database 'db'.参数zName指向一个UTF-8编码字符串n名称字节长。返回CollSeq*指针命名zName从数据库“DB”编码“ENC”的排列顺序。
 **
 ** If the entry specified is not found and 'create' is true, then create a
-** new entry.  Otherwise return NULL.
+** new entry.  Otherwise return NULL.如果没有找到指定的条目和'CREAT'是真的，然后创建一个新的条目。否则返回NULL。
 **
 ** A separate function sqlite3LocateCollSeq() is a wrapper around
 ** this routine.  sqlite3LocateCollSeq() invokes the collation factory
 ** if necessary and generates an error message if the collating sequence
-** cannot be found.
+** cannot be found.一个单独的功能sqlite3LocateCollSeq（）是围绕这个例程的。如果排序序列无法找到，sqlite3LocateCollSeq（）调用整理工厂并在必要时产生的错误信息。
 **
-** See also: sqlite3LocateCollSeq(), sqlite3GetCollSeq()
+** See also: sqlite3LocateCollSeq(), sqlite3GetCollSeq()另请参见：sqlite3LocateCollSeq（），sqlite3GetCollSeq（）
 */
 CollSeq *sqlite3FindCollSeq(
   sqlite3 *db,
@@ -221,57 +221,58 @@ CollSeq *sqlite3FindCollSeq(
 ** is called to test how well the function passed as the first argument
 ** matches the request for a function with nArg arguments in a system
 ** that uses encoding enc. The value returned indicates how well the
-** request is matched. A higher value indicates a better match.
+** request is matched. A higher value indicates a better match.在寻找最佳函数定义，这个过程被称为测试，以及如何传递的第一个参数的功能，在使用编码ENC系统nArg参数的函数时要求相匹配。返回的值表示良好的请求相匹配。较高的值表示更好的匹配。
 **
 ** If nArg is -1 that means to only return a match (non-zero) if p->nArg
 ** is also -1.  In other words, we are searching for a function that
-** takes a variable number of arguments.
+** takes a variable number of arguments.如果nArg是-1，这意味着只返回匹配（非零），如对 - > nArg也是-1。换句话说，我们正在寻找一个函数，采用可变数量的参数。
 **
 ** If nArg is -2 that means that we are searching for any function 
 ** regardless of the number of arguments it uses, so return a positive
-** match score for any
+** match score for any如果nArg是-2意味着我们正在寻找任何功能无关的参数，它使用的数量，以便返回一个正匹配的记录
 **
-** The returned value is always between 0 and 6, as follows:
+** The returned value is always between 0 and 6, as follows:返回的值总是在0和6，如下：
 **
-** 0: Not a match.
+** 0: Not a match.不匹配 
 ** 1: UTF8/16 conversion required and function takes any number of arguments.
 ** 2: UTF16 byte order change required and function takes any number of args.
 ** 3: encoding matches and function takes any number of arguments
 ** 4: UTF8/16 conversion required - argument count matches exactly
 ** 5: UTF16 byte order conversion required - argument count matches exactly
-** 6: Perfect match:  encoding and argument count match exactly.
+** 6: Perfect match:  encoding and argument count match exactly.1：UTF8/16的转换要求和功能需要的任何数量的参数。2：需要UTF16字节顺序的变化和功能的需要任意数量的args。3：编码匹配和函数接受任何数目的参数4：UTF8/16的转换需要- 参数数完全匹配5：UTF16字节顺序转换所需- 参数数完全匹配6：完美匹配：编码和参数个数完全匹配。
 **
 ** If nArg==(-2) then any function with a non-null xStep or xFunc is
 ** a perfect match and any function with both xStep and xFunc NULL is
-** a non-match.
+** a non-match.f nArg==（- 2），然后用任何一个非空XSTEP功能或xFunc是一个很好的匹配，并与两个XSTEP和xFunc NULL任何函数是一个不匹配。
 */
-#define FUNC_PERFECT_MATCH 6  /* The score for a perfect match */
+*/
+#define FUNC_PERFECT_MATCH 6  /* The score for a perfect match 记录很匹配*/
 static int matchQuality(
-  FuncDef *p,     /* The function we are evaluating for match quality */
+  FuncDef *p,     /* The function we are evaluating for match quality 我们正在评估匹配质量的功能*/
   int nArg,       /* Desired number of arguments.  (-1)==any */
-  u8 enc          /* Desired text encoding */
+  u8 enc          /* Desired text encoding 期望中的文本编码*/
 ){
   int match;
 
   /* nArg of -2 is a special case */
   if( nArg==(-2) ) return (p->xFunc==0 && p->xStep==0) ? 0 : FUNC_PERFECT_MATCH;
 
-  /* Wrong number of arguments means "no match" */
+  /* Wrong number of arguments means "no match" 参数错误的意思是“不匹配”*/
   if( p->nArg!=nArg && p->nArg>=0 ) return 0;
 
   /* Give a better score to a function with a specific number of arguments
-  ** than to function that accepts any number of arguments. */
+  ** than to function that accepts any number of arguments. 举一个更好的记录，功能与函数参数的具体数量，接受任意记录的参数。如果文本编码匹配*/
   if( p->nArg==nArg ){
     match = 4;
   }else{
     match = 1;
   }
 
-  /* Bonus points if the text encoding matches */
+  /* Bonus points if the text encoding matches 如果文本编码匹配*/
   if( enc==p->iPrefEnc ){
-    match += 2;  /* Exact encoding match */
+    match += 2;  /* Exact encoding match 确切的编码匹配*/
   }else if( (enc & p->iPrefEnc & 2)!=0 ){
-    match += 1;  /* Both are UTF16, but with different byte orders */
+    match += 1;  /* Both are UTF16, but with different byte orders 两者都是UTF16，但不同的字节顺序*/
   }
 
   return match;
@@ -279,7 +280,7 @@ static int matchQuality(
 
 /*
 ** Search a FuncDefHash for a function with the given name.  Return
-** a pointer to the matching FuncDef if found, or 0 if there is no match.
+** a pointer to the matching FuncDef if found, or 0 if there is no match.搜索FuncDefHash与给定名称的功能。如果不存在匹配，返回指针到匹配FuncDef如果找到，或0。 
 */
 static FuncDef *functionSearch(
   FuncDefHash *pHash,  /* Hash table to search */
