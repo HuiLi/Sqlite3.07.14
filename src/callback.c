@@ -283,10 +283,10 @@ static int matchQuality(
 ** a pointer to the matching FuncDef if found, or 0 if there is no match.搜索FuncDefHash与给定名称的功能。如果不存在匹配，返回指针到匹配FuncDef如果找到，或0。 
 */
 static FuncDef *functionSearch(
-  FuncDefHash *pHash,  /* Hash table to search */
-  int h,               /* Hash of the name */
-  const char *zFunc,   /* Name of function */
-  int nFunc            /* Number of bytes in zFunc */
+  FuncDefHash *pHash,  /* Hash table to search 哈希表搜索*/
+  int h,               /* Hash of the name 名称的哈西表*/
+  const char *zFunc,   /* Name of function 功能的名字*/
+  int nFunc            /* Number of bytes in zFunc zFunc字节数*/
 ){
   FuncDef *p;
   for(p=pHash->a[h]; p; p=p->pHash){
@@ -298,11 +298,11 @@ static FuncDef *functionSearch(
 }
 
 /*
-** Insert a new FuncDef into a FuncDefHash hash table.
+** Insert a new FuncDef into a FuncDefHash hash table.插入一个新的FuncDef成FuncDefHash哈希表
 */
 void sqlite3FuncDefInsert(
-  FuncDefHash *pHash,  /* The hash table into which to insert */
-  FuncDef *pDef        /* The function definition to insert */
+  FuncDefHash *pHash,  /* The hash table into which to insert 哈希表插入*/
+  FuncDef *pDef        /* The function definition to insert 该函数定义插入*/
 ){
   FuncDef *pOther;
   int nName = sqlite3Strlen30(pDef->zName);
@@ -326,40 +326,40 @@ void sqlite3FuncDefInsert(
 ** Locate a user function given a name, a number of arguments and a flag
 ** indicating whether the function prefers UTF-16 over UTF-8.  Return a
 ** pointer to the FuncDef structure that defines that function, or return
-** NULL if the function does not exist.
+** NULL if the function does not exist.找到一个名字用户的功能，一些参数和标志，指示功能是否倾向UTF-16在UTF-8。如果功能不存在，返回一个指针FuncDef结构定义功能，或返回NULL。
 **
 ** If the createFlag argument is true, then a new (blank) FuncDef
 ** structure is created and liked into the "db" structure if a
-** no matching function previously existed.
+** no matching function previously existed. 如果createFlag是真的，那么一个新的（空白）FuncDef结构创建，像到“DB”的结构，如果以前就存在一个不匹配功能。
 **
 ** If nArg is -2, then the first valid function found is returned.  A
 ** function is valid if either xFunc or xStep is non-zero.  The nArg==(-2)
 ** case is used to see if zName is a valid function name for some number
-** of arguments.  If nArg is -2, then createFlag must be 0.
+** of arguments.  If nArg is -2, then createFlag must be 0.如果nArg是-2，那么找到的第一个有效的函数返回。函数是有效的，如果任一xFunc或XSTEP是非零。nArg==（- 2）的情况下被使用，看是否zName是参数一定数量有效的函数名称。如果nArg为-2，则createFlag必须为0。
 **
 ** If createFlag is false, then a function with the required name and
 ** number of arguments may be returned even if the eTextRep flag does not
-** match that requested.
+** match that requested.    如果createFlag是假，用参数的所需名称和编号的函数可以返回，即使eTextRep标志不匹配请求。
 */
 FuncDef *sqlite3FindFunction(
-  sqlite3 *db,       /* An open database */
-  const char *zName, /* Name of the function.  Not null-terminated */
-  int nName,         /* Number of characters in the name */
-  int nArg,          /* Number of arguments.  -1 means any number */
-  u8 enc,            /* Preferred text encoding */
+  sqlite3 *db,       /* An open database 一个开放数据库*/
+  const char *zName, /* Name of the function.  Not null-terminated Not null-terminated 功能名，不是空终止*/
+  int nName,         /* Number of characters in the name 名称中的字符数*/
+  int nArg,          /* Number of arguments.  -1 means any number 数量的参数。 -1意味着任何数字*/
+  u8 enc,            /* Preferred text encoding 偏好文本编码*/
   u8 createFlag      /* Create new entry if true and does not otherwise exist */
 ){
-  FuncDef *p;         /* Iterator variable */
-  FuncDef *pBest = 0; /* Best match found so far */
-  int bestScore = 0;  /* Score of best match */
-  int h;              /* Hash value */
+  FuncDef *p;         /* Iterator variable 迭代变量*/
+  FuncDef *pBest = 0; /* Best match found so far 迄今发现最佳匹配*/
+  int bestScore = 0;  /* Score of best match 最佳匹配*/
+  int h;              /* Hash value 哈希值*/
 
   assert( nArg>=(-2) );
   assert( nArg>=(-1) || createFlag==0 );
   assert( enc==SQLITE_UTF8 || enc==SQLITE_UTF16LE || enc==SQLITE_UTF16BE );
   h = (sqlite3UpperToLower[(u8)zName[0]] + nName) % ArraySize(db->aFunc.a);
 
-  /* First search for a match amongst the application-defined functions.
+  /* First search for a match amongst the application-defined functions.首先搜索匹配之的应用程序定义的功能。
   */
   p = functionSearch(&db->aFunc, h, zName, nName);
   while( p ){
@@ -371,13 +371,13 @@ FuncDef *sqlite3FindFunction(
     p = p->pNext;
   }
 
-  /* If no match is found, search the built-in functions.
+  /* If no match is found, search the built-in functions.如果没有找到匹配，搜索内置函数。
   **
   ** If the SQLITE_PreferBuiltin flag is set, then search the built-in
   ** functions even if a prior app-defined function was found.  And give
-  ** priority to built-in functions.
+  ** priority to built-in functions.如果SQLITE_PreferBuiltin标志被设置，则搜索所述内置函数,即使现有的应用程序定义的函数被发现。并内置函数优先。
   **
-  ** Except, if createFlag is true, that means that we are trying to
+  ** Except, if createFlag is true, that means that we are trying to但是，如果createFlag是真实的，这意味着我们正在试图安装一个新的功能。返回FuncDef结构将有覆盖新的信息，适用于新的功能领域。但是FuncDefs为内置函数是只读。因此，创建一个新的功能时，我们必须去寻找内置插件。
   ** install a new function.  Whatever FuncDef structure is returned it will
   ** have fields overwritten with new information appropriate for the
   ** new function.  But the FuncDefs for built-in functions are read-only.
@@ -399,7 +399,7 @@ FuncDef *sqlite3FindFunction(
 
   /* If the createFlag parameter is true and the search did not reveal an
   ** exact match for the name, number of arguments and encoding, then add a
-  ** new entry to the hash table and return it.
+  ** new entry to the hash table and return it.如果createFlag参数为true，搜索没有透露姓名的精确匹配，参数和编码号，那么添加一个新条目哈希表并将其返回。
   */
   if( createFlag && bestScore<FUNC_PERFECT_MATCH && 
       (pBest = sqlite3DbMallocZero(db, sizeof(*pBest)+nName+1))!=0 ){
@@ -421,9 +421,9 @@ FuncDef *sqlite3FindFunction(
 ** Free all resources held by the schema structure. The void* argument points
 ** at a Schema struct. This function does not call sqlite3DbFree(db, ) on the 
 ** pointer itself, it just cleans up subsidiary resources (i.e. the contents
-** of the schema hash tables).
+** of the schema hash tables).免费的模式结构有的所有资源。void*参数指向在模式结构。此功能不会调用sqlite3DbFree（db，）上的指针本身，它只是清理子的资源（即架构哈希表中的内容）。
 **
-** The Schema.cache_size variable is not cleared.
+** The Schema.cache_size variable is not cleared.该Schema.cache_size变量没有被清除。
 */
 void sqlite3SchemaClear(void *p){
   Hash temp1;
@@ -455,7 +455,7 @@ void sqlite3SchemaClear(void *p){
 
 /*
 ** Find and return the schema associated with a BTree.  Create
-** a new one if necessary.
+** a new one if necessary.查找并返回一个B树关联的模式。如果必要的，创建一个新的
 */
 Schema *sqlite3SchemaGet(sqlite3 *db, Btree *pBt){
   Schema * p;
