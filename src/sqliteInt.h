@@ -2533,7 +2533,7 @@ struct Walker {
   } u;
 };
 
-/* Forward declarations */
+/* Forward declarations 前置声明*/
 int sqlite3WalkExpr(Walker*, Expr*);
 int sqlite3WalkExprList(Walker*, ExprList*);
 int sqlite3WalkSelect(Walker*, Select*);
@@ -2543,15 +2543,15 @@ int sqlite3WalkSelectFrom(Walker*, Select*);
 /*
 ** Return code from the parse-tree walking primitives and their
 ** callbacks.
-*/
-#define WRC_Continue    0   /* Continue down into children */
-#define WRC_Prune       1   /* Omit children but continue walking siblings */
-#define WRC_Abort       2   /* Abandon the tree walk */
+从解析树遍历的结点和他们的回调函数返回代码*/
+#define WRC_Continue    0   /* Continue down into children 继续向下访问孩子结点*/
+#define WRC_Prune       1   /* Omit children but continue walking siblings 忽略孩子结点但继续访问兄弟结点*/
+#define WRC_Abort       2   /* Abandon the tree walk放弃树的遍历 */
 
 /*
 ** Assuming zIn points to the first byte of a UTF-8 character,
 ** advance zIn to point to the first byte of the next UTF-8 character.
-*/
+假设指针ZIN指向UTF-8字符的第一个字节，就将ZIN前进以指向下一个UTF-8字符的第一个字节。*/
 #define SQLITE_SKIP_UTF8(zIn) {                        \
   if( (*(zIn++))>=0xc0 ){                              \
     while( (*zIn & 0xc0)==0x80 ){ zIn++; }             \
@@ -2580,13 +2580,14 @@ int sqlite3CantopenError(int);
 ** FTS4 is really an extension for FTS3.  It is enabled using the
 ** SQLITE_ENABLE_FTS3 macro.  But to avoid confusion we also all
 ** the SQLITE_ENABLE_FTS4 macro to serve as an alisse for SQLITE_ENABLE_FTS3.
-*/
+FTS4是FTS3真正的延伸。它能够使用宏SQLITE_ENABLE_FTS3。但为了避免混淆，我们仍然将所有的SQLITE_ENABLE_FTS4作为alisse来服务于SQLITE_ENABLE_FTS3。*/
 #if defined(SQLITE_ENABLE_FTS4) && !defined(SQLITE_ENABLE_FTS3)
 # define SQLITE_ENABLE_FTS3
 #endif
 
 /*
 ** The ctype.h header is needed for non-ASCII systems.  It is also
+   头文件 ctype.h是非ASCII系统所必须的。当FTS3被包括于amalgamation中时，这个头文件对FTS3来说也是必需的。
 ** needed by FTS3 when FTS3 is included in the amalgamation.
 */
 #if !defined(SQLITE_ASCII) || \
@@ -2597,8 +2598,9 @@ int sqlite3CantopenError(int);
 /*
 ** The following macros mimic the standard library functions toupper(),
 ** isspace(), isalnum(), isdigit() and isxdigit(), respectively. The
+以下的宏分别模仿了标准库函数 toupper(),isspace(), isalnum(), isdigit() and isxdigit()。
 ** sqlite versions only work for ASCII characters, regardless of locale.
-*/
+该sqlite版本只对ASCII字符生效，不论区域。*/
 #ifdef SQLITE_ASCII
 # define sqlite3Toupper(x)  ((x)&~(sqlite3CtypeMap[(unsigned char)(x)]&0x20))
 # define sqlite3Isspace(x)   (sqlite3CtypeMap[(unsigned char)(x)]&0x01)
@@ -2618,7 +2620,7 @@ int sqlite3CantopenError(int);
 #endif
 
 /*
-** Internal function prototypes
+** Internal function prototypes内部函数原型
 */
 #define sqlite3StrICmp sqlite3_stricmp
 int sqlite3Strlen30(const char*);
@@ -2651,8 +2653,10 @@ int sqlite3HeapNearlyFull(void);
 ** use of alloca() to obtain space for large automatic objects.  By default,
 ** obtain space from malloc().
 **
+在具有充足的堆栈空间和支持alloca（）的系统中，使用alloca（）来为大型自动对象获取空间。在缺省的情况下，用 malloc()来获取空间。
 ** The alloca() routine never returns NULL.  This will cause code paths
 ** that deal with sqlite3StackAlloc() failures to be unreachable.
+alloca()永远不会返回空值，这将导致处理sqlite3StackAlloc()错误的代码路径不可达。
 */
 #ifdef SQLITE_USE_ALLOCA
 # define sqlite3StackAllocRaw(D,N)   alloca(N)
