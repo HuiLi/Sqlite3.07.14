@@ -1862,11 +1862,12 @@ static int unixClose(sqlite3_file *id){
 
 /******************************************************************************
 ****************************** No-op Locking **********************************
-**
+// 无操作锁
 ** Of the various locking implementations available, this is by far the
 ** simplest:  locking is ignored.  No attempt is made to lock the database
 ** file for reading or writing.
 **
+// 相对其他一系列锁的实现，这种无操作锁是迄今为止最简单的，它没有试图锁住数据库文件进行读或写。
 ** This locking mode is appropriate for use on read-only databases
 ** (ex: databases that are burned into CD-ROM, for example.)  It can
 ** also be used if the application employs some external mechanism to
@@ -1876,6 +1877,9 @@ static int unixClose(sqlite3_file *id){
 ** database connections are accessing the same database file at the same
 ** time and one or more of those connections are writing.
 */
+// 这种模式的锁适用于只读的数据库，例如刻在CD-ROM上的数据库。当一个应用程序使用外部机制去阻止两个或两个以上的
+// 数据库连接对同一个数据库同时进行访问时也可以使用它。但是，当这种锁用于大量的数据库连接同时访问一个数据库，并
+// 且这些连接当中有一个或者更多的是进行写操作的情况的时候，就会一个严重的数据库损坏风险。
 
 static int nolockCheckReservedLock(sqlite3_file *NotUsed, int *pResOut){
   UNUSED_PARAMETER(NotUsed);
@@ -1892,7 +1896,7 @@ static int nolockUnlock(sqlite3_file *NotUsed, int NotUsed2){
 }
 
 /*
-** Close the file.
+** Close the file.   // 关闭文件
 */
 static int nolockClose(sqlite3_file *id) {
   return closeUnixFile(id);
@@ -1903,7 +1907,7 @@ static int nolockClose(sqlite3_file *id) {
 
 /******************************************************************************
 ************************* Begin dot-file Locking ******************************
-**
+// 点文件锁
 ** The dotfile locking implementation uses the existance of separate lock
 ** files (really a directory) to control access to the database.  This works
 ** on just about every filesystem imaginable.  But there are serious downsides:
@@ -1917,17 +1921,23 @@ static int nolockClose(sqlite3_file *id) {
 ** Nevertheless, a dotlock is an appropriate locking mode for use if no
 ** other locking strategy is available.
 **
+// 点文件锁的实现是使用存在单独的锁文件，就是一种目录来控制对数据库的访问。这种机制用于任意一种文件系统，但是它又存在严重的缺陷：
+（1）它没有并发性，一个读者就阻碍了其他所有要对数据库进行读写的连接；
+（2）应用程序的崩溃或功率的耗损都会使旧的锁文件无法自动清理，而需要手动清除。
+不过，点文件锁是一种适用于没有其他锁策略可用的情况的锁机制。
 ** Dotfile locking works by creating a subdirectory in the same directory as
 ** the database and with the same name but with a ".lock" extension added.
 ** The existance of a lock directory implies an EXCLUSIVE lock.  All other
 ** lock types (SHARED, RESERVED, PENDING) are mapped into EXCLUSIVE.
 */
-
+// 点文件锁的工作原理是在同一个目录里面创建次目录存入数据库，并且有相同的扩展名“.lock”。一个锁目录的存在意
+// 味着它是排他锁。其它所有类型的锁（共享锁，保留锁，未决锁）都映射到拍他锁。
 /*
 ** The file suffix added to the data base filename in order to create the
 ** lock directory.
 */
-#define DOTLOCK_SUFFIX ".lock"
+// 文件后缀添加到数据库文件里面以创建锁目录。
+#define DOTLOCK_SUFFIX ".lock"    //预定义锁文件后缀为.lock
 
 /*
 ** This routine checks if there is a RESERVED lock held on the specified
@@ -1935,10 +1945,14 @@ static int nolockClose(sqlite3_file *id) {
 ** to a non-zero value otherwise *pResOut is set to zero.  The return value
 ** is set to SQLITE_OK unless an I/O error occurs during lock checking.
 **
+// 这个程序会检查指定文件或者是其他任何进程里是否持有保留锁，如果持有保留锁，将指针*pResOout的值设为非零，
+否则设为0.返回值设为SQLITE_OK除非在锁检查期间发生I/O错误。
 ** In dotfile locking, either a lock exists or it does not.  So in this
 ** variation of CheckReservedLock(), *pResOut is set to true if any lock
 ** is held on the file and false if the file is unlocked.
 */
+// 在点文件锁机制中，锁要么存在要么不存在。所以函数CheckReservedLock()的变化就是如果文件被加锁，*pResOut 
+//的值设为true，文件没被加锁则设为false。
 static int dotlockCheckReservedLock(sqlite3_file *id, int *pResOut) {
   int rc = SQLITE_OK;
   int reserved = 0;
@@ -1948,13 +1962,14 @@ static int dotlockCheckReservedLock(sqlite3_file *id, int *pResOut) {
   
   assert( pFile );
 
-  /* Check if a thread in this process holds such a lock */
+  /* Check if a thread in this process holds such a lock */    // 检查进程中是否有一个线程持有锁
   if( pFile->eFileLock>SHARED_LOCK ){
     /* Either this connection or some other connection in the same process
-    ** holds a lock on the file.  No need to check further. */
+** holds a lock on the file.  No need to check further. */ 
+// 这个连接或者是同一进程中其它一些连接中有锁定文件，则停止检查
     reserved = 1;
   }else{
-    /* The lock is held if and only if the lockfile exists */
+    /* The lock is held if and only if the lockfile exists */    // 持有锁，当且仅当锁文件存在
     const char *zLockFile = (const char*)pFile->lockingContext;
     reserved = osAccess(zLockFile, 0)==0;
   }
@@ -1965,31 +1980,36 @@ static int dotlockCheckReservedLock(sqlite3_file *id, int *pResOut) {
 
 /*
 ** Lock the file with the lock specified by parameter eFileLock - one
-** of the following:
+** of the following:  
 **
-**     (1) SHARED_LOCK
-**     (2) RESERVED_LOCK
-**     (3) PENDING_LOCK
-**     (4) EXCLUSIVE_LOCK
+// 使用参数eFileLock以下值之一指定的锁对文件加锁
+**     (1) SHARED_LOCK   // 共享锁
+**     (2) RESERVED_LOCK   // 保留锁
+**     (3) PENDING_LOCK    // 未决锁
+**     (4) EXCLUSIVE_LOCK   // 排他锁
 **
 ** Sometimes when requesting one lock state, additional lock states
 ** are inserted in between.  The locking might fail on one of the later
 ** transitions leaving the lock state different from what it started but
 ** still short of its goal.  The following chart shows the allowed
 ** transitions and the inserted intermediate states:
+// 当请求一个锁状态的时候，额外的锁状态会插入到其中。锁定失败后会后来的转换会使它不同于开始时候的锁状态，
+但是仍能达到预期目标。以下的记录是允许的转换和插入的状态。
 **
-**    UNLOCKED -> SHARED
-**    SHARED -> RESERVED
-**    SHARED -> (PENDING) -> EXCLUSIVE
-**    RESERVED -> (PENDING) -> EXCLUSIVE
-**    PENDING -> EXCLUSIVE
+**    UNLOCKED -> SHARED   // 未加锁-->共享锁
+**    SHARED -> RESERVED    // 共享锁转为-->保留锁
+**    SHARED -> (PENDING) -> EXCLUSIVE   // 共享锁-->未决锁（插入）-->排他锁
+**    RESERVED -> (PENDING) -> EXCLUSIVE  // 保留锁-->未决锁（插入）-->排他锁
+**    PENDING -> EXCLUSIVE  // 未决锁-->排他锁
 **
 ** This routine will only increase a lock.  Use the sqlite3OsUnlock()
 ** routine to lower a locking level.
-**
+** 
+// 这个程序只是增加一个锁。使用sqlite3的OsUnlock()程序降低锁的级别。
 ** With dotfile locking, we really only support state (4): EXCLUSIVE.
 ** But we track the other locking levels internally.
 */
+// 使用点文件锁，实际上只支持第四种状态：排他锁，但是可以在内部追踪其他级别的锁。
 static int dotlockLock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
   char *zLockFile = (char *)pFile->lockingContext;
@@ -1999,9 +2019,10 @@ static int dotlockLock(sqlite3_file *id, int eFileLock) {
   /* If we have any lock, then the lock file already exists.  All we have
   ** to do is adjust our internal record of the lock level.
   */
+// 如果有其中任意一种锁，那么锁文件其实已经存在了，我们要做的只是修改内部记录的锁级别。
   if( pFile->eFileLock > NO_LOCK ){
     pFile->eFileLock = eFileLock;
-    /* Always update the timestamp on the old file */
+    /* Always update the timestamp on the old file */   // 更新旧文件的时间戳
 #ifdef HAVE_UTIME
     utime(zLockFile, NULL);
 #else
@@ -2010,10 +2031,10 @@ static int dotlockLock(sqlite3_file *id, int eFileLock) {
     return SQLITE_OK;
   }
   
-  /* grab an exclusive lock */
+  /* grab an exclusive lock */    // 攫取一个排他锁
   rc = osMkdir(zLockFile, 0777);
   if( rc<0 ){
-    /* failed to open/create the lock directory */
+    /* failed to open/create the lock directory */   // 创建锁目录失败
     int tErrno = errno;
     if( EEXIST == tErrno ){
       rc = SQLITE_BUSY;
@@ -2026,7 +2047,7 @@ static int dotlockLock(sqlite3_file *id, int eFileLock) {
     return rc;
   } 
   
-  /* got it, set the type and return ok */
+  /* got it, set the type and return ok */    // 获取成功，设置类型值并返回ok
   pFile->eFileLock = eFileLock;
   return rc;
 }
@@ -2035,11 +2056,14 @@ static int dotlockLock(sqlite3_file *id, int eFileLock) {
 ** Lower the locking level on file descriptor pFile to eFileLock.  eFileLock
 ** must be either NO_LOCK or SHARED_LOCK.
 **
+// 在文件描述符pFile 到eFileLok降低锁的级别 ，eFileLock必须是NO_LOCK or和SHARED_LOCK两者之一。
 ** If the locking level of the file descriptor is already at or below
 ** the requested locking level, this routine is a no-op.
 **
+// 如果文件描述符的锁定级别已经在正在请求的锁级别或以下，那么这个程序是一个空操作。
 ** When the locking level reaches NO_LOCK, delete the lock file.
 */
+// 当锁定级别达到了NO_LOCK时删除锁文件。
 static int dotlockUnlock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
   char *zLockFile = (char *)pFile->lockingContext;
@@ -2050,20 +2074,21 @@ static int dotlockUnlock(sqlite3_file *id, int eFileLock) {
            pFile->eFileLock, getpid()));
   assert( eFileLock<=SHARED_LOCK );
   
-  /* no-op if possible */
+  /* no-op if possible */   // 空操作如果有可能
   if( pFile->eFileLock==eFileLock ){
     return SQLITE_OK;
   }
 
   /* To downgrade to shared, simply update our internal notion of the
   ** lock state.  No need to mess with the file on disk.
-  */
+  */  
+// 降级到共享时，只需简单地更新锁状态的内部概念，而不需要毁坏磁盘文件。
   if( eFileLock==SHARED_LOCK ){
     pFile->eFileLock = SHARED_LOCK;
     return SQLITE_OK;
   }
   
-  /* To fully unlock the database, delete the lock file */
+  /* To fully unlock the database, delete the lock file */   // 完全打开数据库时删除锁文件
   assert( eFileLock==NO_LOCK );
   rc = osRmdir(zLockFile);
   if( rc<0 && errno==ENOTDIR ) rc = osUnlink(zLockFile);
@@ -2084,7 +2109,8 @@ static int dotlockUnlock(sqlite3_file *id, int eFileLock) {
 
 /*
 ** Close a file.  Make sure the lock has been released before closing.
-*/
+*/ 
+// 关闭一个文件，确保锁在关闭之前已经被释放。
 static int dotlockClose(sqlite3_file *id) {
   int rc;
   if( id ){
@@ -2100,8 +2126,8 @@ static int dotlockClose(sqlite3_file *id) {
 
 /******************************************************************************
 ************************** Begin flock Locking ********************************
-**
-** Use the flock() system call to do file locking.
+// 聚集锁
+** Use the flock() system call to do file locking. 使用系统调用函数flock() 执行文件锁定。
 **
 ** flock() locking is like dot-file locking in that the various
 ** fine-grain locking levels supported by SQLite are collapsed into
@@ -2110,13 +2136,16 @@ static int dotlockClose(sqlite3_file *id) {
 ** still works when you do this, but concurrency is reduced since
 ** only a single process can be reading the database at a time.
 **
+// 聚集锁在SQLite支持各种细粒锁级别紧缩成一个单独的排他锁这一点上和点文件锁是一样的。换句话说，共享锁，
+保留锁和未决锁对于排他锁来说是一样的。当你这样做时，SQLite仍然工作,但并发性降低,因为同一时间只有一个进程可以读取数据库。
 ** Omit this section if SQLITE_ENABLE_LOCKING_STYLE is turned off or if
 ** compiling for VXWORKS.
-*/
+*/  
+// 如果SQLITE_ENABLE_LOCKING_STYLE被关闭或者VXWORKS被编译，则忽略这部分。
 #if SQLITE_ENABLE_LOCKING_STYLE && !OS_VXWORKS
 
 /*
-** Retry flock() calls that fail with EINTR
+** Retry flock() calls that fail with EINTR  // 系统调用中断则重试flock()函数调用
 */
 #ifdef EINTR
 static int robust_flock(int fd, int op){
@@ -2135,6 +2164,8 @@ static int robust_flock(int fd, int op){
 ** to a non-zero value otherwise *pResOut is set to zero.  The return value
 ** is set to SQLITE_OK unless an I/O error occurs during lock checking.
 */
+// 这个程序会检查指定文件或者是其他任何进程里是否持有保留锁，如果持有保留锁，将指针*pResOout的值设为非零，
+// 否则设为0.返回值设为SQLITE_OK除非在锁检查期间发生I/O错误。
 static int flockCheckReservedLock(sqlite3_file *id, int *pResOut){
   int rc = SQLITE_OK;
   int reserved = 0;
@@ -2144,21 +2175,21 @@ static int flockCheckReservedLock(sqlite3_file *id, int *pResOut){
   
   assert( pFile );
   
-  /* Check if a thread in this process holds such a lock */
+  /* Check if a thread in this process holds such a lock */  // 检查进程中是否有线程持有保留锁
   if( pFile->eFileLock>SHARED_LOCK ){
     reserved = 1;
   }
   
-  /* Otherwise see if some other process holds it. */
+  /* Otherwise see if some other process holds it. */   // 如果没有则查看其它进程
   if( !reserved ){
-    /* attempt to get the lock */
+    /* attempt to get the lock */     // 获取锁
     int lrc = robust_flock(pFile->h, LOCK_EX | LOCK_NB);
     if( !lrc ){
-      /* got the lock, unlock it */
+      /* got the lock, unlock it */    // 获取锁，并解锁
       lrc = robust_flock(pFile->h, LOCK_UN);
       if ( lrc ) {
         int tErrno = errno;
-        /* unlock failed with an error */
+        /* unlock failed with an error */     // 解锁发生错误并且失败
         lrc = SQLITE_IOERR_UNLOCK; 
         if( IS_LOCK_ERROR(lrc) ){
           pFile->lastErrno = tErrno;
@@ -2168,7 +2199,7 @@ static int flockCheckReservedLock(sqlite3_file *id, int *pResOut){
     } else {
       int tErrno = errno;
       reserved = 1;
-      /* someone else might have it reserved */
+      /* someone else might have it reserved */     // 其它进程可能保留了锁
       lrc = sqliteErrorFromPosixError(tErrno, SQLITE_IOERR_LOCK); 
       if( IS_LOCK_ERROR(lrc) ){
         pFile->lastErrno = tErrno;
@@ -2192,31 +2223,37 @@ static int flockCheckReservedLock(sqlite3_file *id, int *pResOut){
 ** Lock the file with the lock specified by parameter eFileLock - one
 ** of the following:
 **
-**     (1) SHARED_LOCK
-**     (2) RESERVED_LOCK
-**     (3) PENDING_LOCK
-**     (4) EXCLUSIVE_LOCK
-**
+// 使用参数eFileLock以下值之一指定的锁对文件加锁
+**     (1) SHARED_LOCK   // 共享锁
+**     (2) RESERVED_LOCK   // 保留锁
+**     (3) PENDING_LOCK    // 未决锁
+**     (4) EXCLUSIVE_LOCK   // 排他锁
 ** Sometimes when requesting one lock state, additional lock states
 ** are inserted in between.  The locking might fail on one of the later
 ** transitions leaving the lock state different from what it started but
 ** still short of its goal.  The following chart shows the allowed
 ** transitions and the inserted intermediate states:
 **
-**    UNLOCKED -> SHARED
-**    SHARED -> RESERVED
-**    SHARED -> (PENDING) -> EXCLUSIVE
-**    RESERVED -> (PENDING) -> EXCLUSIVE
-**    PENDING -> EXCLUSIVE
+// 当请求一个锁状态的时候，额外的锁状态会插入到其中。锁定失败后会后来的转换会使它不同于开始时候的锁状态，
+但是仍能达到预期目标。以下的记录是允许的转换和插入的状态。
+**
+**    UNLOCKED -> SHARED   //未加锁-->共享锁
+**    SHARED -> RESERVED    //共享锁转为-->保留锁
+**    SHARED -> (PENDING) -> EXCLUSIVE   //共享锁-->未决锁（插入）-->排他锁
+**    RESERVED -> (PENDING) -> EXCLUSIVE  //保留锁-->未决锁（插入）-->排他锁
+**    PENDING -> EXCLUSIVE  //未决锁-->排他锁
 **
 ** flock() only really support EXCLUSIVE locks.  We track intermediate
 ** lock states in the sqlite3_file structure, but all locks SHARED or
 ** above are really EXCLUSIVE locks and exclude all other processes from
 ** access the file.
 **
+// 聚集锁实际上只支持排他锁。我们在sqlite3文件结构中追踪中间级别的锁状态，但是所有的共享锁或者以上级别的锁事实上
+都是排他锁，并且拒绝其它进程访问这个文件。
 ** This routine will only increase a lock.  Use the sqlite3OsUnlock()
 ** routine to lower a locking level.
 */
+// 这个程序只是增加一个锁。使用sqlite3的OsUnlock()程序降低锁的级别。
 static int flockLock(sqlite3_file *id, int eFileLock) {
   int rc = SQLITE_OK;
   unixFile *pFile = (unixFile*)id;
@@ -2224,7 +2261,7 @@ static int flockLock(sqlite3_file *id, int eFileLock) {
   assert( pFile );
 
   /* if we already have a lock, it is exclusive.  
-  ** Just adjust level and punt on outta here. */
+  ** Just adjust level and punt on outta here. */  // 如果已经有一个排他锁，只需调整锁的级别
   if (pFile->eFileLock > NO_LOCK) {
     pFile->eFileLock = eFileLock;
     return SQLITE_OK;
@@ -2234,13 +2271,13 @@ static int flockLock(sqlite3_file *id, int eFileLock) {
   
   if (robust_flock(pFile->h, LOCK_EX | LOCK_NB)) {
     int tErrno = errno;
-    /* didn't get, must be busy */
+    /* didn't get, must be busy */     // 系统繁忙，请求失败
     rc = sqliteErrorFromPosixError(tErrno, SQLITE_IOERR_LOCK);
     if( IS_LOCK_ERROR(rc) ){
       pFile->lastErrno = tErrno;
     }
   } else {
-    /* got it, set the type and return ok */
+    /* got it, set the type and return ok */    // 获取成功，设置类型值并返回ok
     pFile->eFileLock = eFileLock;
   }
   OSTRACE(("LOCK    %d %s %s (flock)\n", pFile->h, azFileLock(eFileLock), 
@@ -2258,9 +2295,11 @@ static int flockLock(sqlite3_file *id, int eFileLock) {
 ** Lower the locking level on file descriptor pFile to eFileLock.  eFileLock
 ** must be either NO_LOCK or SHARED_LOCK.
 **
+// 在文件描述符pFile 到eFileLok降低锁的级别 ，eFileLock必须是NO_LOCK or和SHARED_LOCK两者之一。
 ** If the locking level of the file descriptor is already at or below
 ** the requested locking level, this routine is a no-op.
 */
+// 如果文件描述符的锁定级别已经在正在请求的锁级别或以下，那么这个程序是一个空操作。
 static int flockUnlock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
   
@@ -2269,18 +2308,18 @@ static int flockUnlock(sqlite3_file *id, int eFileLock) {
            pFile->eFileLock, getpid()));
   assert( eFileLock<=SHARED_LOCK );
   
-  /* no-op if possible */
+  /* no-op if possible */     // 无操作是可能的
   if( pFile->eFileLock==eFileLock ){
     return SQLITE_OK;
   }
   
-  /* shared can just be set because we always have an exclusive */
+  /* shared can just be set because we always have an exclusive */    // 共享锁只能被旁置因为总有一个排他锁
   if (eFileLock==SHARED_LOCK) {
     pFile->eFileLock = eFileLock;
     return SQLITE_OK;
   }
   
-  /* no, really, unlock. */
+  /* no, really, unlock. */     // 否则就解锁
   if( robust_flock(pFile->h, LOCK_UN) ){
 #ifdef SQLITE_IGNORE_FLOCK_LOCK_ERRORS
     return SQLITE_OK;
@@ -2293,7 +2332,7 @@ static int flockUnlock(sqlite3_file *id, int eFileLock) {
 }
 
 /*
-** Close a file.
+** Close a file.     // 关闭文件
 */
 static int flockClose(sqlite3_file *id) {
   if( id ){
@@ -2302,21 +2341,24 @@ static int flockClose(sqlite3_file *id) {
   return closeUnixFile(id);
 }
 
-#endif /* SQLITE_ENABLE_LOCKING_STYLE && !OS_VXWORK */
+#endif /* SQLITE_ENABLE_LOCKING_STYLE && !OS_VXWORK */    
+// 如果是SQLITE_ENABLE_LOCKING_STYLE并且操作系统不是VXWORK就编译，否则跳过
 
 /******************* End of the flock lock implementation *********************
 ******************************************************************************/
-
 /******************************************************************************
 ************************ Begin Named Semaphore Locking ************************
-**
-** Named semaphore locking is only supported on VxWorks.
+// 命名信号锁
+** Named semaphore locking is only supported on VxWorks.  
+// 只有VxWorks操作系统支持命名信号锁
 **
 ** Semaphore locking is like dot-lock and flock in that it really only
 ** supports EXCLUSIVE locking.  Only a single process can read or write
 ** the database file at a time.  This reduces potential concurrency, but
 ** makes the lock implementation much easier.
 */
+// 命名信号锁就像点文件锁和聚集锁一样，实际上只支持排他锁。只有单个进程可以在同一时间对数据库文件进行读或写。
+// 这虽然减少了潜在的并发性，却使得这种锁的实现更加容易。
 #if OS_VXWORKS
 
 /*
@@ -2325,6 +2367,8 @@ static int flockClose(sqlite3_file *id) {
 ** to a non-zero value otherwise *pResOut is set to zero.  The return value
 ** is set to SQLITE_OK unless an I/O error occurs during lock checking.
 */
+// 这个程序会检查指定文件或者是其他任何进程里是否持有保留锁，如果持有保留锁，将指针*pResOout的值设为非零，否则设为0.
+// 返回值设为SQLITE_OK除非在锁检查期间发生I/O错误。
 static int semCheckReservedLock(sqlite3_file *id, int *pResOut) {
   int rc = SQLITE_OK;
   int reserved = 0;
@@ -2334,12 +2378,12 @@ static int semCheckReservedLock(sqlite3_file *id, int *pResOut) {
   
   assert( pFile );
 
-  /* Check if a thread in this process holds such a lock */
+  /* Check if a thread in this process holds such a lock */     // 检查这个进程的其它线程是否持有这个锁
   if( pFile->eFileLock>SHARED_LOCK ){
     reserved = 1;
   }
   
-  /* Otherwise see if some other process holds it. */
+  /* Otherwise see if some other process holds it. */    // 否则查看别的进程
   if( !reserved ){
     sem_t *pSem = pFile->pInode->pSem;
     struct stat statBuf;
@@ -2350,11 +2394,12 @@ static int semCheckReservedLock(sqlite3_file *id, int *pResOut) {
         rc = sqliteErrorFromPosixError(tErrno, SQLITE_IOERR_CHECKRESERVEDLOCK);
         pFile->lastErrno = tErrno;
       } else {
-        /* someone else has the lock when we are in NO_LOCK */
+        /* someone else has the lock when we are in NO_LOCK */  
+// 当我们处于未加锁状态时别的进程持有命名信号锁
         reserved = (pFile->eFileLock < SHARED_LOCK);
       }
     }else{
-      /* we could have it if we want it */
+      /* we could have it if we want it */    // 如果需要就可以获取
       sem_post(pSem);
     }
   }
@@ -2368,10 +2413,11 @@ static int semCheckReservedLock(sqlite3_file *id, int *pResOut) {
 ** Lock the file with the lock specified by parameter eFileLock - one
 ** of the following:
 **
-**     (1) SHARED_LOCK
-**     (2) RESERVED_LOCK
-**     (3) PENDING_LOCK
-**     (4) EXCLUSIVE_LOCK
+// 使用参数eFileLock以下值之一指定的锁对文件加锁
+**     (1) SHARED_LOCK   // 共享锁
+**     (2) RESERVED_LOCK   // 保留锁
+**     (3) PENDING_LOCK    // 未决锁
+**     (4) EXCLUSIVE_LOCK   // 排他锁
 **
 ** Sometimes when requesting one lock state, additional lock states
 ** are inserted in between.  The locking might fail on one of the later
@@ -2379,20 +2425,26 @@ static int semCheckReservedLock(sqlite3_file *id, int *pResOut) {
 ** still short of its goal.  The following chart shows the allowed
 ** transitions and the inserted intermediate states:
 **
-**    UNLOCKED -> SHARED
-**    SHARED -> RESERVED
-**    SHARED -> (PENDING) -> EXCLUSIVE
-**    RESERVED -> (PENDING) -> EXCLUSIVE
-**    PENDING -> EXCLUSIVE
+// 当请求一个锁状态的时候，额外的锁状态会插入到其中。锁定失败后会后来的转换会使它不同于开始时候的锁状态，
+但是仍能达到预期目标。以下的记录是允许的转换和插入的状态。
+**
+**    UNLOCKED -> SHARED   // 未加锁-->共享锁
+**    SHARED -> RESERVED    // 共享锁转为-->保留锁
+**    SHARED -> (PENDING) -> EXCLUSIVE   // 共享锁-->未决锁（插入）-->排他锁
+**    RESERVED -> (PENDING) -> EXCLUSIVE  // 保留锁-->未决锁（插入）-->排他锁
+**    PENDING -> EXCLUSIVE  // 未决锁-->排他锁
 **
 ** Semaphore locks only really support EXCLUSIVE locks.  We track intermediate
 ** lock states in the sqlite3_file structure, but all locks SHARED or
 ** above are really EXCLUSIVE locks and exclude all other processes from
 ** access the file.
 **
+// 命名信号锁实际上只支持排他锁。我们在sqlite3文件结构中追踪中间级别的锁状态，但是所有的共享锁或者以上级别的
+锁事实上都是排他锁，并且拒绝其它进程访问这个文件。
 ** This routine will only increase a lock.  Use the sqlite3OsUnlock()
 ** routine to lower a locking level.
 */
+// 这个程序只是增加一个锁。使用sqlite3的OsUnlock()程序降低锁的级别。
 static int semLock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
   int fd;
@@ -2400,20 +2452,20 @@ static int semLock(sqlite3_file *id, int eFileLock) {
   int rc = SQLITE_OK;
 
   /* if we already have a lock, it is exclusive.  
-  ** Just adjust level and punt on outta here. */
+  ** Just adjust level and punt on outta here. */    // 调整级别后结束程序
   if (pFile->eFileLock > NO_LOCK) {
     pFile->eFileLock = eFileLock;
     rc = SQLITE_OK;
     goto sem_end_lock;
   }
   
-  /* lock semaphore now but bail out when already locked. */
+  /* lock semaphore now but bail out when already locked. */     // 锁定信号，但是信号被锁定时将其释放
   if( sem_trywait(pSem)==-1 ){
     rc = SQLITE_BUSY;
     goto sem_end_lock;
   }
 
-  /* got it, set the type and return ok */
+  /* got it, set the type and return ok */      // 获取成功，设置类型值并返回ok
   pFile->eFileLock = eFileLock;
 
  sem_end_lock:
@@ -2427,6 +2479,9 @@ static int semLock(sqlite3_file *id, int eFileLock) {
 ** If the locking level of the file descriptor is already at or below
 ** the requested locking level, this routine is a no-op.
 */
+// 在文件描述符pFile 到eFileLok降低锁的级别 ，eFileLock必须是NO_LOCK or和SHARED_LOCK两者之一。
+// 如果文件描述符的锁定级别已经在正在请求的锁级别或以下，那么这个程序是一个空操作。
+
 static int semUnlock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
   sem_t *pSem = pFile->pInode->pSem;
@@ -2437,18 +2492,19 @@ static int semUnlock(sqlite3_file *id, int eFileLock) {
            pFile->eFileLock, getpid()));
   assert( eFileLock<=SHARED_LOCK );
   
-  /* no-op if possible */
+  /* no-op if possible */      // 无操作是可能的
   if( pFile->eFileLock==eFileLock ){
     return SQLITE_OK;
   }
   
-  /* shared can just be set because we always have an exclusive */
+  /* shared can just be set because we always have an exclusive */     // 共享锁只能被旁置因为总有一个排他锁
+
   if (eFileLock==SHARED_LOCK) {
     pFile->eFileLock = eFileLock;
     return SQLITE_OK;
   }
   
-  /* no, really unlock. */
+  /* no, really unlock. */     // 否则就解锁   
   if ( sem_post(pSem)==-1 ) {
     int rc, tErrno = errno;
     rc = sqliteErrorFromPosixError(tErrno, SQLITE_IOERR_UNLOCK);
@@ -2462,7 +2518,7 @@ static int semUnlock(sqlite3_file *id, int eFileLock) {
 }
 
 /*
- ** Close a file.
+ ** Close a file.     // 关闭文件
  */
 static int semClose(sqlite3_file *id) {
   if( id ){
@@ -2481,38 +2537,42 @@ static int semClose(sqlite3_file *id) {
 /*
 ** Named semaphore locking is only available on VxWorks.
 **
+// 命名信号锁只适用于VxWorks，在VxWorks下才编译
 *************** End of the named semaphore lock implementation ****************
 ******************************************************************************/
 
 
 /******************************************************************************
 *************************** Begin AFP Locking *********************************
-**
+// 苹果文件协议锁
 ** AFP is the Apple Filing Protocol.  AFP is a network filesystem found
 ** on Apple Macintosh computers - both OS9 and OSX.
 **
+// AFP是苹果文件协议，AFP是建立在苹果麦金塔什电脑，包括OS9 和OSX操作系统之上的网络文件系统。
 ** Third-party implementations of AFP are available.  But this code here
-** only works on OSX.
+** only works on OSX.  
+// AFP的第三方实现是有效的，但是这段代码仅仅作用于OSX系统上。
 */
 
 #if defined(__APPLE__) && SQLITE_ENABLE_LOCKING_STYLE
 /*
 ** The afpLockingContext structure contains all afp lock specific state
 */
+// afpLockingContext 结构体包含所有苹果文件协议锁特定的状态。
 typedef struct afpLockingContext afpLockingContext;
 struct afpLockingContext {
   int reserved;
-  const char *dbPath;             /* Name of the open file */
+  const char *dbPath;             /* Name of the open file */     // 打开的文件名
 };
 
 struct ByteRangeLockPB2
 {
-  unsigned long long offset;        /* offset to first byte to lock */
-  unsigned long long length;        /* nbr of bytes to lock */
-  unsigned long long retRangeStart; /* nbr of 1st byte locked if successful */
-  unsigned char unLockFlag;         /* 1 = unlock, 0 = lock */
-  unsigned char startEndFlag;       /* 1=rel to end of fork, 0=rel to start */
-  int fd;                           /* file desc to assoc this lock with */
+  unsigned long long offset;        /* offset to first byte to lock */   // 锁定第一个字节偏移量
+  unsigned long long length;        /* nbr of bytes to lock */      // 锁定的字节数
+  unsigned long long retRangeStart; /* nbr of 1st byte locked if successful */      // 成功锁定nbr的第一个字节
+  unsigned char unLockFlag;         /* 1 = unlock, 0 = lock */      // 未加锁置为1，锁定置为0
+  unsigned char startEndFlag;       /* 1=rel to end of fork, 0=rel to start */    // 端交叉结束置为1，开始置为0
+  int fd;                           /* file desc to assoc this lock with */    // 文件用关联文件名扩展描述这个锁
 };
 
 #define afpfsByteRangeLock2FSCTL        _IOWR('z', 23, struct ByteRangeLockPB2)
@@ -2520,15 +2580,16 @@ struct ByteRangeLockPB2
 /*
 ** This is a utility for setting or clearing a bit-range lock on an
 ** AFP filesystem.
+// 这是一个用于在AFP文件系统中设置或清除比特范围内的锁的实用程序
 ** 
-** Return SQLITE_OK on success, SQLITE_BUSY on failure.
-*/
+** Return SQLITE_OK on success, SQLITE_BUSY on failure. 
+*/     成功返回SQLITE_OK，失败返回SQLITE_BUSY
 static int afpSetLock(
-  const char *path,              /* Name of the file to be locked or unlocked */
-  unixFile *pFile,               /* Open file descriptor on path */
-  unsigned long long offset,     /* First byte to be locked */
-  unsigned long long length,     /* Number of bytes to lock */
-  int setLockFlag                /* True to set lock.  False to clear lock */
+  const char *path,         /* Name of the file to be locked or unlocked */   // 锁定或未锁定文件名称
+  unixFile *pFile,           /* Open file descriptor on path */     // 在路径中打开文件描述符
+  unsigned long long offset,     /* First byte to be locked */     // 锁定第一个字节
+  unsigned long long length,     /* Number of bytes to lock */      // 锁定的字节数
+  int setLockFlag                /* True to set lock.  False to clear lock */    // 成功就设置锁，失败则清除锁
 ){
   struct ByteRangeLockPB2 pb;
   int err;
@@ -2553,7 +2614,8 @@ static int afpSetLock(
 #else
     rc = sqliteErrorFromPosixError(tErrno,
                     setLockFlag ? SQLITE_IOERR_LOCK : SQLITE_IOERR_UNLOCK);
-#endif /* SQLITE_IGNORE_AFP_LOCK_ERRORS */
+#endif /* SQLITE_IGNORE_AFP_LOCK_ERRORS */   
+// 如果是SQLITE_IGNORE_AFP_LOCK_ERRORS就编译，否则跳过
     if( IS_LOCK_ERROR(rc) ){
       pFile->lastErrno = tErrno;
     }
@@ -2569,6 +2631,8 @@ static int afpSetLock(
 ** to a non-zero value otherwise *pResOut is set to zero.  The return value
 ** is set to SQLITE_OK unless an I/O error occurs during lock checking.
 */
+// 这个程序会检查指定文件或者是其他任何进程里是否持有保留锁，如果持有保留锁，将指针*pResOout的值设为非零，
+否则设为0.返回值设为SQLITE_OK除非在锁检查期间发生I/O错误。
 static int afpCheckReservedLock(sqlite3_file *id, int *pResOut){
   int rc = SQLITE_OK;
   int reserved = 0;
@@ -2583,7 +2647,8 @@ static int afpCheckReservedLock(sqlite3_file *id, int *pResOut){
     *pResOut = 1;
     return SQLITE_OK;
   }
-  unixEnterMutex(); /* Because pFile->pInode is shared across threads */
+  unixEnterMutex(); /* Because pFile->pInode is shared across threads */  
+// pFile->pInode在线程之间共享
   
   /* Check if a thread in this process holds such a lock */
   if( pFile->pInode->eFileLock>SHARED_LOCK ){
@@ -2593,14 +2658,16 @@ static int afpCheckReservedLock(sqlite3_file *id, int *pResOut){
   /* Otherwise see if some other process holds it.
    */
   if( !reserved ){
-    /* lock the RESERVED byte */
+    /* lock the RESERVED byte */     // 锁定保留状态字节
     int lrc = afpSetLock(context->dbPath, pFile, RESERVED_BYTE, 1,1);  
     if( SQLITE_OK==lrc ){
       /* if we succeeded in taking the reserved lock, unlock it to restore
-      ** the original state */
+      ** the original state */  
+// 如果成功获得保留锁，则解锁并让它恢复到最初状态
       lrc = afpSetLock(context->dbPath, pFile, RESERVED_BYTE, 1, 0);
     } else {
-      /* if we failed to get the lock then someone else must have it */
+      /* if we failed to get the lock then someone else must have it */   
+// 如果获取保留锁失败则表明别的进程持有它
       reserved = 1;
     }
     if( IS_LOCK_ERROR(lrc) ){
@@ -2619,10 +2686,11 @@ static int afpCheckReservedLock(sqlite3_file *id, int *pResOut){
 ** Lock the file with the lock specified by parameter eFileLock - one
 ** of the following:
 **
-**     (1) SHARED_LOCK
-**     (2) RESERVED_LOCK
-**     (3) PENDING_LOCK
-**     (4) EXCLUSIVE_LOCK
+// 使用参数eFileLock以下值之一指定的锁对文件加锁
+**     (1) SHARED_LOCK   //共享锁
+**     (2) RESERVED_LOCK   //保留锁
+**     (3) PENDING_LOCK    //未决锁
+**     (4) EXCLUSIVE_LOCK   //排他锁
 **
 ** Sometimes when requesting one lock state, additional lock states
 ** are inserted in between.  The locking might fail on one of the later
@@ -2630,15 +2698,19 @@ static int afpCheckReservedLock(sqlite3_file *id, int *pResOut){
 ** still short of its goal.  The following chart shows the allowed
 ** transitions and the inserted intermediate states:
 **
-**    UNLOCKED -> SHARED
-**    SHARED -> RESERVED
-**    SHARED -> (PENDING) -> EXCLUSIVE
-**    RESERVED -> (PENDING) -> EXCLUSIVE
-**    PENDING -> EXCLUSIVE
+// 当请求一个锁状态的时候，额外的锁状态会插入到其中。锁定失败后会后来的转换会使它不同于开始时候的锁状态，
+但是仍能达到预期目标。以下的记录是允许的转换和插入的状态。
+**
+**    UNLOCKED -> SHARED   //未加锁-->共享锁
+**    SHARED -> RESERVED    //共享锁转为-->保留锁
+**    SHARED -> (PENDING) -> EXCLUSIVE   //共享锁-->未决锁（插入）-->排他锁
+**    RESERVED -> (PENDING) -> EXCLUSIVE  //保留锁-->未决锁（插入）-->排他锁
+**    PENDING -> EXCLUSIVE  //未决锁-->排他锁
 **
 ** This routine will only increase a lock.  Use the sqlite3OsUnlock()
 ** routine to lower a locking level.
 */
+// 这个程序只是增加一个锁。使用sqlite3的OsUnlock()程序降低锁的级别。
 static int afpLock(sqlite3_file *id, int eFileLock){
   int rc = SQLITE_OK;
   unixFile *pFile = (unixFile*)id;
@@ -2654,29 +2726,36 @@ static int afpLock(sqlite3_file *id, int eFileLock){
   ** unixFile, do nothing. Don't use the afp_end_lock: exit path, as
   ** unixEnterMutex() hasn't been called yet.
   */
+// 如果已经有一个这种类型的锁或unixFile有更多限制性，不做任何操作。不要使用afp_end_lock:退出路径,因为unixEnterMutex()尚未被调用。
   if( pFile->eFileLock>=eFileLock ){
     OSTRACE(("LOCK    %d %s ok (already held) (afp)\n", pFile->h,
            azFileLock(eFileLock)));
     return SQLITE_OK;
   }
 
-  /* Make sure the locking sequence is correct
+  /* Make sure the locking sequence is correct 
   **  (1) We never move from unlocked to anything higher than shared lock.
   **  (2) SQLite never explicitly requests a pendig lock.
   **  (3) A shared lock is always held when a reserve lock is requested.
   */
+// 确保锁定顺序是正确的
+（1）从未加锁状态只能转移到共享锁
+（2）SQLite不会明确请求一个未决锁
+（3）当获取到保留锁时，共享锁也一直不能释放
   assert( pFile->eFileLock!=NO_LOCK || eFileLock==SHARED_LOCK );
   assert( eFileLock!=PENDING_LOCK );
   assert( eFileLock!=RESERVED_LOCK || pFile->eFileLock==SHARED_LOCK );
   
   /* This mutex is needed because pFile->pInode is shared across threads
-  */
+  */    
+// 这种互斥是必要的，因为pFile->pInode在线程之间是共享的
   unixEnterMutex();
   pInode = pFile->pInode;
 
   /* If some thread using this PID has a lock via a different unixFile*
   ** handle that precludes the requested lock, return BUSY.
-  */
+  */    
+// 如果有线程使用拥有一个不同的unixFile*操作的进程ID去排除请求的锁，则返回BUSY。
   if( (pFile->eFileLock!=pInode->eFileLock && 
        (pInode->eFileLock>=PENDING_LOCK || eFileLock>SHARED_LOCK))
      ){
@@ -2687,7 +2766,8 @@ static int afpLock(sqlite3_file *id, int eFileLock){
   /* If a SHARED lock is requested, and some thread using this PID already
   ** has a SHARED or RESERVED lock, then increment reference counts and
   ** return SQLITE_OK.
-  */
+  */   
+// 如果要请求一个共享锁，并且一些使用这个进程ID的线程已经持有一个共享锁或者保留锁，那么只需增加引用计数并且返回SQLITE_OK。
   if( eFileLock==SHARED_LOCK && 
      (pInode->eFileLock==SHARED_LOCK || pInode->eFileLock==RESERVED_LOCK) ){
     assert( eFileLock==SHARED_LOCK );
@@ -2702,7 +2782,8 @@ static int afpLock(sqlite3_file *id, int eFileLock){
   /* A PENDING lock is needed before acquiring a SHARED lock and before
   ** acquiring an EXCLUSIVE lock.  For the SHARED lock, the PENDING will
   ** be released.
-  */
+  */  
+// 在获得共享锁和排他锁之前，需要保持未决锁。获得共享锁之后，未决锁就会被释放掉
   if( eFileLock==SHARED_LOCK 
       || (eFileLock==EXCLUSIVE_LOCK && pFile->eFileLock<PENDING_LOCK)
   ){
@@ -2717,6 +2798,7 @@ static int afpLock(sqlite3_file *id, int eFileLock){
   /* If control gets to this point, then actually go ahead and make
   ** operating system calls for the specified lock.
   */
+// 如果控制到这个点上，那么继续让操作系统调用指定的锁。
   if( eFileLock==SHARED_LOCK ){
     int lrc1, lrc2, lrc1Errno = 0;
     long lk, mask;
@@ -2725,8 +2807,8 @@ static int afpLock(sqlite3_file *id, int eFileLock){
     assert( pInode->eFileLock==0 );
         
     mask = (sizeof(long)==8) ? LARGEST_INT64 : 0x7fffffff;
-    /* Now get the read-lock SHARED_LOCK */
-    /* note that the quality of the randomness doesn't matter that much */
+    /* Now get the read-lock SHARED_LOCK */      // 获取共享锁的读锁
+    /* note that the quality of the randomness doesn't matter that much */      // 需要注意的是随机性的质量是无关紧要的
     lk = random(); 
     pInode->sharedByte = (lk & mask)%(SHARED_SIZE - 1);
     lrc1 = afpSetLock(context->dbPath, pFile, 
@@ -2734,7 +2816,7 @@ static int afpLock(sqlite3_file *id, int eFileLock){
     if( IS_LOCK_ERROR(lrc1) ){
       lrc1Errno = pFile->lastErrno;
     }
-    /* Drop the temporary PENDING lock */
+    /* Drop the temporary PENDING lock */     // 释放临时的未决锁
     lrc2 = afpSetLock(context->dbPath, pFile, PENDING_BYTE, 1, 0);
     
     if( IS_LOCK_ERROR(lrc1) ) {
@@ -2752,40 +2834,44 @@ static int afpLock(sqlite3_file *id, int eFileLock){
       pInode->nShared = 1;
     }
   }else if( eFileLock==EXCLUSIVE_LOCK && pInode->nShared>1 ){
-    /* We are trying for an exclusive lock but another thread in this
+    /* We are trying for an exclusive lock but another thread in this  
      ** same process is still holding a shared lock. */
+// 请求一个排他锁，而这时候同一个进程的其他线程仍然持有共享锁
     rc = SQLITE_BUSY;
   }else{
     /* The request was for a RESERVED or EXCLUSIVE lock.  It is
     ** assumed that there is a SHARED or greater lock on the file
     ** already.
-    */
+*/   
+// 请求保留锁或者排他锁。假设这个文件已经存在一个共享锁或者更高级别的锁。
     int failed = 0;
     assert( 0!=pFile->eFileLock );
     if (eFileLock >= RESERVED_LOCK && pFile->eFileLock < RESERVED_LOCK) {
-        /* Acquire a RESERVED lock */
+        /* Acquire a RESERVED lock */     // 获取保留锁
         failed = afpSetLock(context->dbPath, pFile, RESERVED_BYTE, 1,1);
       if( !failed ){
         context->reserved = 1;
       }
     }
     if (!failed && eFileLock == EXCLUSIVE_LOCK) {
-      /* Acquire an EXCLUSIVE lock */
+      /* Acquire an EXCLUSIVE lock */    // 获取排他锁
         
       /* Remove the shared lock before trying the range.  we'll need to 
       ** reestablish the shared lock if we can't get the  afpUnlock
-      */
+      */   
+// 获取之前要删除共享锁，如果没有得到AFP锁，就需要重新请求共享锁。
       if( !(failed = afpSetLock(context->dbPath, pFile, SHARED_FIRST +
                          pInode->sharedByte, 1, 0)) ){
         int failed2 = SQLITE_OK;
-        /* now attemmpt to get the exclusive lock range */
+        /* now attemmpt to get the exclusive lock range */    // 再尝试请求排他锁
         failed = afpSetLock(context->dbPath, pFile, SHARED_FIRST, 
                                SHARED_SIZE, 1);
         if( failed && (failed2 = afpSetLock(context->dbPath, pFile, 
                        SHARED_FIRST + pInode->sharedByte, 1, 1)) ){
           /* Can't reestablish the shared lock.  Sqlite can't deal, this is
-          ** a critical I/O error
-          */
+          ** a critical I/O error  
+          */   
+// 不能重建共享锁，这是一个Sqlite不能处理的I/O错误
           rc = ((failed & SQLITE_IOERR) == SQLITE_IOERR) ? failed2 : 
                SQLITE_IOERR_LOCK;
           goto afp_end_lock;
@@ -2821,6 +2907,9 @@ afp_end_lock:
 ** If the locking level of the file descriptor is already at or below
 ** the requested locking level, this routine is a no-op.
 */
+// 在文件描述符pFile 到eFileLok降低锁的级别 ，eFileLock必须是NO_LOCK or和SHARED_LOCK两者之一。
+如果文件描述符的锁定级别已经在正在请求的锁级别或以下，那么这个程序是一个空操作。
+
 static int afpUnlock(sqlite3_file *id, int eFileLock) {
   int rc = SQLITE_OK;
   unixFile *pFile = (unixFile*)id;
@@ -2857,7 +2946,10 @@ static int afpUnlock(sqlite3_file *id, int eFileLock) {
     ** other connections to the same file might not realize that
     ** the file has changed and hence might not know to flush their
     ** cache.  The use of a stale cache can lead to database corruption.
-    */
+*/
+// 当锁减少至其它进程可以再读数据库文件时，确保数据库文件有任何变动都要更新  事务计数器。如果事务计数器
+// 没有更新，那么访问这个文件的其它连接就不能识别文件的改变，因此可能不会刷新它们的缓存。使用旧的缓存会导
+// 致数据库损坏。
     assert( pFile->inNormalWrite==0
            || pFile->dbUpdate==0
            || pFile->transCntrChng==1 );
@@ -2867,7 +2959,7 @@ static int afpUnlock(sqlite3_file *id, int eFileLock) {
     if( pFile->eFileLock==EXCLUSIVE_LOCK ){
       rc = afpSetLock(context->dbPath, pFile, SHARED_FIRST, SHARED_SIZE, 0);
       if( rc==SQLITE_OK && (eFileLock==SHARED_LOCK || pInode->nShared>1) ){
-        /* only re-establish the shared lock if necessary */
+        /* only re-establish the shared lock if necessary */   如果有必要就只能重建共享锁
         int sharedLockByte = SHARED_FIRST+pInode->sharedByte;
         rc = afpSetLock(context->dbPath, pFile, sharedLockByte, 1, 1);
       } else {
@@ -2892,7 +2984,9 @@ static int afpUnlock(sqlite3_file *id, int eFileLock) {
     /* Decrement the shared lock counter.  Release the lock using an
     ** OS call only when all threads in this same process have released
     ** the lock.
-    */
+*/       
+// 共享锁计数器进行递减操作。当且仅当同一进程中的所有线程都被释放掉
+      // 共享锁，使用一个操作系统调用释放该锁。
     unsigned long long sharedLockByte = SHARED_FIRST+pInode->sharedByte;
     pInode->nShared--;
     if( pInode->nShared==0 ){
@@ -2922,7 +3016,7 @@ static int afpUnlock(sqlite3_file *id, int eFileLock) {
 }
 
 /*
-** Close a file & cleanup AFP specific locking context 
+** Close a file & cleanup AFP specific locking context     // 关闭一个文件，并清理AFP特定的锁记录
 */
 static int afpClose(sqlite3_file *id) {
   int rc = SQLITE_OK;
@@ -2935,7 +3029,9 @@ static int afpClose(sqlite3_file *id) {
       ** yet because that would clear those locks.  Instead, add the file
       ** descriptor to pInode->aPending.  It will be automatically closed when
       ** the last lock is cleared.
-      */
+      */  
+// 如果还有未完成的锁，清理完这些锁事前不要关闭文件。相反,添加文件
+// 描述符pInode - >a Pending。它将在最后一个锁被清理掉之后自动关闭。
       setPendingFd(pFile);
     }
     releaseInodeInfo(pFile);
@@ -2947,18 +3043,21 @@ static int afpClose(sqlite3_file *id) {
 }
 
 #endif /* defined(__APPLE__) && SQLITE_ENABLE_LOCKING_STYLE */
+// 如果是SQLITE_ENABLE_LOCKING_STYLE并且操作系统是APPLE就编译，否则跳过
 /*
 ** The code above is the AFP lock implementation.  The code is specific
 ** to MacOSX and does not work on other unix platforms.  No alternative
 ** is available.  If you don't compile for a mac, then the "unix-afp"
 ** VFS is not available.
-**
+**   
+// 以上代码是AFP锁的实现，它是MacOSX操作系统特有的，不适合其它的unix平台。没有别的选择，如果不用mac编译，
+那么unix-afp的虚拟文件系统就不可用。
 ********************* End of the AFP lock implementation **********************
 ******************************************************************************/
 
 /******************************************************************************
 *************************** Begin NFS Locking ********************************/
-
+// 网络系统文件锁
 #if defined(__APPLE__) && SQLITE_ENABLE_LOCKING_STYLE
 /*
  ** Lower the locking level on file descriptor pFile to eFileLock.  eFileLock
@@ -2976,10 +3075,11 @@ static int nfsUnlock(sqlite3_file *id, int eFileLock){
 ** The code above is the NFS lock implementation.  The code is specific
 ** to MacOSX and does not work on other unix platforms.  No alternative
 ** is available.  
+// 以上代码是AFP锁的实现，它是MacOSX操作系统特有的，不适合其它的unix平台。没有别的选择，如果不用mac编译，
+那么unix-afp的虚拟文件系统就不可用。
 **
 ********************* End of the NFS lock implementation **********************
 ******************************************************************************/
-
 /******************************************************************************
 **************** Non-locking sqlite3_file methods *****************************
 **
