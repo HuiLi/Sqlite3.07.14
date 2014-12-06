@@ -2521,15 +2521,15 @@ struct Sqlite3Config {
 ** Context pointer passed down through the tree-walk.
 */
 struct Walker {
-  int (*xExprCallback)(Walker*, Expr*);     /* Callback for expressions */
-  int (*xSelectCallback)(Walker*,Select*);  /* Callback for SELECTs */
-  Parse *pParse;                            /* Parser context.  */
-  int walkerDepth;                          /* Number of subqueries */
-  union {                                   /* Extra data for callback */
-    NameContext *pNC;                          /* Naming context */
-    int i;                                     /* Integer value */
-    SrcList *pSrcList;                         /* FROM clause */
-    struct SrcCount *pSrcCount;                /* Counting column references */
+  int (*xExprCallback)(Walker*, Expr*);     /* Callback for expressions *回调函数表达式/
+  int (*xSelectCallback)(Walker*,Select*);  /* Callback for SELECTs 回调函数SELECTs*/
+  Parse *pParse;                            /* Parser context. 分析器上下文 */
+  int walkerDepth;                          /* Number of subqueries 子查询数*/
+  union {                                   /* Extra data for callback 额外的回调数据*/
+    NameContext *pNC;                          /* Naming context 一个namecontext结构体的指针命名上下文*/
+    int i;                                     /* Integer value 定义一个整形*/
+    SrcList *pSrcList;                         /* FROM clause FROM子句*/
+    struct SrcCount *pSrcCount;                /* Counting column references计算列引用 */
   } u;
 };
 
