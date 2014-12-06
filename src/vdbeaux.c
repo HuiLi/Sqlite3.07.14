@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** 2003 September 6
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -2090,26 +2090,33 @@ int sqlite3VdbeCheckFk(Vdbe *p, int deferred){
 #endif
 
 /*
+这一部分功能用于处理当程序VDBE出现停机的情况，如果VDBE处于开启自动模式时，会自动提交对数据库的改写。
+如果需要事物回滚，就会回滚。
+**这是唯一的方式能够将一个VM的状态从SQLITE_MAGIC_RUN转为SQLITE_MAGIC_HALT
+**因为竞争所的原因造成无法完成数据提交，将返回SQLITE_BUSY，那么将意味着数据库没有关闭需要对前面的代码重复执行一次。
 ** This routine is called the when a VDBE tries to halt.  If the VDBE
 ** has made changes and is in autocommit mode, then commit those
 ** changes.  If a rollback is needed, then do the rollback.
-**
+
 ** This routine is the only way to move the state of a VM from
 ** SQLITE_MAGIC_RUN to SQLITE_MAGIC_HALT.  It is harmless to
 ** call this on a VM that is in the SQLITE_MAGIC_HALT state.
-**
+
 ** Return an error code.  If the commit could not complete because of
 ** lock contention, return SQLITE_BUSY.  If SQLITE_BUSY is returned, it
 ** means the close did not happen and needs to be repeated.
 */
 int sqlite3VdbeHalt(Vdbe *p){
-  int rc;                         /* Used to store transient return codes */
+  int rc;                         /* Used to store transient return codes rc用于存储执行一个事务的返回值*/
   sqlite3 *db = p->db;
 
-  /* This function contains the logic that determines if a statement or
+  /* 在方法中会包含处理逻辑用于判断一个语句或一个事务被虚拟机处理后返回是提交成功还是事务回滚。
+   **如果一下四种任何一种错误发生的话（SQLITE_NOMEM，SQLITE_IOERR，SQLITE_FULL，SQLITE_INTERRUPT），那将会导
+  致内部缓存出现不一致的状态，那么我们需要回滚事务，如果没有完整的事务声明。
+  This function contains the logic that determines if a statement or
   ** transaction will be committed or rolled back as a result of the
   ** execution of this virtual machine. 
-  **
+ 
   ** If any of the following errors occur:
   **
   **     SQLITE_NOMEM
@@ -2122,7 +2129,7 @@ int sqlite3VdbeHalt(Vdbe *p){
   ** one, or the complete transaction if there is no statement transaction.
   */
 
-  if( p->db->mallocFailed ){
+  if( p->db->mallocFailed ){//数据库分配内存失败
     p->rc = SQLITE_NOMEM;
   }
   if( p->aOnceFlag ) memset(p->aOnceFlag, 0, p->nOnceFlag);
@@ -2132,26 +2139,38 @@ int sqlite3VdbeHalt(Vdbe *p){
   }
   checkActiveVdbeCnt(db);
 
-  /* No commit or rollback needed if the program never started */
+  /* No commit or rollback needed if the program never started 
+  如果程序没有开始执行，就不需要提交或者回滚
+  */
   if( p->pc>=0 ){
     int mrc;   /* Primary error code from p->rc */
     int eStatementOp = 0;
     int isSpecialError;            /* Set to true if a 'special' error */
 
-    /* Lock all btrees used by the statement */
+    /* Lock all btrees used by the statement 
+	对所有使用btrees的语句加锁
+	*/
     sqlite3VdbeEnter(p);
 
-    /* Check for one of the special errors */
+    /* Check for one of the special errors 
+	检查是否存在special errors
+	*/
     mrc = p->rc & 0xff;
     assert( p->rc!=SQLITE_IOERR_BLOCKED );  /* This error no longer exists */
+	//mrc出现SQLITE_NOMEM，SQLITE_IOERR，SQLITE_INTERRUPT，SQLITE_FULL这些错误的一个或多个时isSpecialError的值为True
     isSpecialError = mrc==SQLITE_NOMEM || mrc==SQLITE_IOERR
                      || mrc==SQLITE_INTERRUPT || mrc==SQLITE_FULL;
     if( isSpecialError ){
-      /* If the query was read-only and the error code is SQLITE_INTERRUPT, 
+      /* 如果发生isSpecialError是True时，会分到更细的情况来处理。
+	  当查询语句是只读的时候而且错误代码是SQLITE_INTERRUPT不需要回滚，因为没有对数据库有写操作。其他的情况会发生对数据库
+	  改变需要执行数据库事务回滚来达到数据库的一致性。即为写操作回滚到原来数据库一致的状态。
+	  **对于一个简单的读取数据的语句，更重要的是关心一个语句或者事务的回滚操作。如果错误发生在写日志或者一个数据文件做为
+	  释放缓存页面的一个操作时，事务的回滚可以保持页的数据一致性。
+	  If the query was read-only and the error code is SQLITE_INTERRUPT, 
       ** no rollback is necessary. Otherwise, at least a savepoint 
       ** transaction must be rolled back to restore the database to a 
       ** consistent state.
-      **
+   
       ** Even if the statement is read-only, it is important to perform
       ** a statement or transaction rollback operation. If the error 
       ** occured while writing to the journal, sub-journal or database
@@ -2159,11 +2178,12 @@ int sqlite3VdbeHalt(Vdbe *p){
       ** pagerStress() in pager.c), the rollback is required to restore 
       ** the pager to a consistent state.
       */
-      if( !p->readOnly || mrc!=SQLITE_INTERRUPT ){
-        if( (mrc==SQLITE_NOMEM || mrc==SQLITE_FULL) && p->usesStmtJournal ){
-          eStatementOp = SAVEPOINT_ROLLBACK;
+      if( !p->readOnly || mrc!=SQLITE_INTERRUPT ){//只读或者mrc!=SQLITE_INTERRUPT
+        if( (mrc==SQLITE_NOMEM || mrc==SQLITE_FULL) && p->usesStmtJournal ){//mrc没有内存空间或者SQLITE_FULL并且p指向usesStmtJournal
+          eStatementOp = SAVEPOINT_ROLLBACK;//事务回滚到保存点
         }else{
-          /* We are forced to roll back the active transaction. Before doing
+          /* 
+		  We are forced to roll back the active transaction. Before doing
           ** so, abort any other statements this handle currently has active.
           */
           sqlite3RollbackAll(db, SQLITE_ABORT_ROLLBACK);
@@ -2173,12 +2193,16 @@ int sqlite3VdbeHalt(Vdbe *p){
       }
     }
 
-    /* Check for immediate foreign key violations. */
+    /*检查外键约束是否满足约束条件
+	Check for immediate foreign key violations. */
     if( p->rc==SQLITE_OK ){
       sqlite3VdbeCheckFk(p, 0);
     }
   
-    /* If the auto-commit flag is set and this is the only active writer 
+    /* 如果设置了自动提交，而且这是一个处于活动状态的写操作，我们将提交或者是回滚当前的事务。
+	# define sqlite3VtabInSync(db) 0
+	这个功能模块在上面所说的special errors的处理时会用到
+	If the auto-commit flag is set and this is the only active writer 
     ** VM, then we do either a commit or rollback of the current transaction. 
     **
     ** Note: This block also runs if one of the special errors handled 
@@ -2197,28 +2221,31 @@ int sqlite3VdbeHalt(Vdbe *p){
           }
           rc = SQLITE_CONSTRAINT;
         }else{ 
-          /* The auto-commit flag is true, the vdbe program was successful 
+          /* 当设置了自动提交事务市，那么数据库虚拟引擎中的程序会成功提交或者返回一个错误，如果没有额外的外键约束的事务。
+		  这个时候事务的提交是必须的。
+		  The auto-commit flag is true, the vdbe program was successful 
           ** or hit an 'OR FAIL' constraint and there are no deferred foreign
           ** key constraints to hold up the transaction. This means a commit 
           ** is required. */
           rc = vdbeCommit(db, p);
         }
-        if( rc==SQLITE_BUSY && p->readOnly ){
+        if( rc==SQLITE_BUSY && p->readOnly ){//rc返回值为SQLITE_BUSY并且对数据库操作为只读执行下面代码，先释放当前的查询语句，
+			//并返回SQLITE_BUSY
           sqlite3VdbeLeave(p);
           return SQLITE_BUSY;
-        }else if( rc!=SQLITE_OK ){
+        }else if( rc!=SQLITE_OK ){//数据库返回值不等于SQLITE_OK，p->rc赋值为当前rc值，并且执行事务回滚语句
           p->rc = rc;
           sqlite3RollbackAll(db, SQLITE_OK);
-        }else{
+        }else{//rc==SQLITE_BUSY && p->readOnly 和rc!=SQLITE_OK这两个判断条件都不满足时将提交事务
           db->nDeferredCons = 0;
           sqlite3CommitInternalChanges(db);
         }
-      }else{
+      }else{//( p->rc==SQLITE_OK || (p->errorAction==OE_Fail && !isSpecialError)这个判断条件不满足是回滚当前数据库事务
         sqlite3RollbackAll(db, SQLITE_OK);
       }
       db->nStatement = 0;
-    }else if( eStatementOp==0 ){
-      if( p->rc==SQLITE_OK || p->errorAction==OE_Fail ){
+    }else if( eStatementOp==0 ){ //!sqlite3VtabInSync(db) && db->autoCommit && db->writeVdbeCnt==(p->readOnly==0)不满足上述判断，满足eStatementOp==0
+      if( p->rc==SQLITE_OK || p->errorAction==OE_Fail ){//在p->rc==SQLITE_OK || p->errorAction==OE_Fail
         eStatementOp = SAVEPOINT_RELEASE;
       }else if( p->errorAction==OE_Abort ){
         eStatementOp = SAVEPOINT_ROLLBACK;
@@ -2229,39 +2256,47 @@ int sqlite3VdbeHalt(Vdbe *p){
       }
     }
   
-    /* If eStatementOp is non-zero, then a statement transaction needs to
+    /* 如果eStatementOp的值不等于0，那么对于一个声明事务要么提交，要们回滚事务，调用函数sqlite3VdbeCloseStatement(p,eOp)
+	来完成上述描述功能当p->iStatement 的值大于0会关闭当前的声明事务.其中形参eOp必须是SAVEPOINT_ROLLBACK或者
+	SAVEPOINT_RELEASE，不可以取其他的值。如果eOp取值为SAVEPOINT_ROLLBACK，当前的事务会回滚；如果eOp取值为SAVEPOINT_RELEASE
+	会提交当前的事务。如果执行的过程中出现了IO日常错误，形如SQLITE_IOERR_XXX的错误代码会返回给程序的调用，否则程序返回True
+	If eStatementOp is non-zero, then a statement transaction needs to
     ** be committed or rolled back. Call sqlite3VdbeCloseStatement() to
     ** do so. If this operation returns an error, and the current statement
     ** error code is SQLITE_OK or SQLITE_CONSTRAINT, then promote the
     ** current statement error code.
     */
     if( eStatementOp ){
-      rc = sqlite3VdbeCloseStatement(p, eStatementOp);
-      if( rc ){
+      rc = sqlite3VdbeCloseStatement(p, eStatementOp);//局部变量rc接受调用sqlite3VdbeCloseStatement(p, eStatementOp)的值，
+      if( rc ){//rc=调用sqlite3VdbeCloseStatement返回的
         if( p->rc==SQLITE_OK || p->rc==SQLITE_CONSTRAINT ){
-          p->rc = rc;
+          p->rc = rc;//将p->rc的值都赋为sqlite3VdbeCloseStatement返回值
           sqlite3DbFree(db, p->zErrMsg);
           p->zErrMsg = 0;
         }
+		//sqlite3VdbeCloseStatement返回值不等于SQLITE_OK或者SQLITE_CONSTRAINT
         sqlite3RollbackAll(db, SQLITE_ABORT_ROLLBACK);
-        sqlite3CloseSavepoints(db);
+        sqlite3CloseSavepoints(db);//关闭数据库所有的事务保存点，这个操作仅仅关闭数据库句柄对象，
+		//不会关闭任何在Btree和pages中的保存点
         db->autoCommit = 1;
       }
     }
   
-    /* If this was an INSERT, UPDATE or DELETE and no statement transaction
+    /* 如果这是一个插入，更新，删除和没有任何声明式事务回滚，那么就可以对更新数据库连接改变计数器
+	If this was an INSERT, UPDATE or DELETE and no statement transaction
     ** has been rolled back, update the database connection change-counter. 
     */
-    if( p->changeCntOn ){
-      if( eStatementOp!=SAVEPOINT_ROLLBACK ){
-        sqlite3VdbeSetChanges(db, p->nChange);
+    if( p->changeCntOn ){//changeCntOn表示可以更新改变计数器的值
+      if( eStatementOp!=SAVEPOINT_ROLLBACK ){//数据库不处于回滚到保存点
+        sqlite3VdbeSetChanges(db, p->nChange);//更改数据库连接次数
       }else{
         sqlite3VdbeSetChanges(db, 0);
       }
-      p->nChange = 0;
+      p->nChange = 0;//从上一次重置开始，数据库改变的次数
     }
 
-    /* Release the locks */
+    /* 释放数据库锁
+	Release the locks */
     sqlite3VdbeLeave(p);
   }
 
@@ -2539,14 +2574,21 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
 ** data and index records. Each serialized value consists of a
 ** 'serial-type' and a blob of data. The serial type is an 8-byte unsigned
 ** integer, stored as a varint.
+** 这几个函数封装了这样的功：将存储在SQLite数据库中和索引记录中的数据序列化为对应的值。
+** 每个序列化的值由连续的类型和一个二进制大对象数据组成。这种连续的类型是一个8字节的无符号整形，
+** 存储为varint类型。
 **
 ** In an SQLite index record, the serial type is stored directly before
 ** the blob of data that it corresponds to. In a table record, all serial
 ** types are stored at the start of the record, and the blobs of data at
 ** the end. Hence these functions allow the caller to handle the
 ** serial-type and data blob seperately.
+** 在SQLite索引记录中，序列类型直接存储在与它相对应的blob类型数据之前。在表的记录中，
+** 所有序列类型都存储的记录的开始位置，blob类型的数据在数据的末尾。因此这些函数允许调用者
+** 将串行类型和blob类型的数据分开操作。
 **
 ** The following table describes the various storage classes for data:
+** 下表描述了数据的各种存储类型:
 **
 **   serial type        bytes of data      type
 **   --------------     ---------------    ---------------
@@ -2570,6 +2612,7 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
 
 /*
 ** Return the serial-type for the value stored in pMem.
+** 返回序列类型的值，存储在参数pMem中。
 */
 u32 sqlite3VdbeSerialType(Mem *pMem, int file_format){
   int flags = pMem->flags;
