@@ -700,47 +700,47 @@ typedef struct WhereLevel WhereLevel;
 ** databases may be attached.
 */
 struct Db {
-  char *zName;         /* Name of this database */
-  Btree *pBt;          /* The B*Tree structure for this database file */
-  u8 inTrans;          /* 0: not writable.  1: Transaction.  2: Checkpoint */
-  u8 safety_level;     /* How aggressive at syncing data to disk */
-  Schema *pSchema;     /* Pointer to database schema (possibly shared) */
+  char *zName;         /* Name of this database 数据库的名字*/
+  Btree *pBt;          /* The B*Tree structure for this database file 此数据库文件的B树结构*/
+  u8 inTrans;          /* 0: not writable.  1: Transaction.  2: Checkpoint 0：不可写 1：事务 2:检查点*/
+  u8 safety_level;     /* How aggressive at syncing data to disk  将数据同步到磁盘的可靠程度 */
+  Schema *pSchema;     /* Pointer to database schema (possibly shared)  指向数据库模式(可能被共享)*/
 };
 
 /*
 ** An instance of the following structure stores a database schema.
-**
-** Most Schema objects are associated with a Btree.  The exception is
+**//以下结构体的一个实例存储的是数据库的模式。
+** Most Schema objects are associated with a Btree.  The exception is  //大多数的模式对象都与树相关，只有TEMP数据库模式例外，它不需要其他结构的支撑。
 ** the Schema for the TEMP databaes (sqlite3.aDb[1]) which is free-standing.
-** In shared cache mode, a single Schema object can be shared by multiple
+** In shared cache mode, a single Schema object can be shared by multiple//在共享缓存模式下，一个单一的模式对象可以为多个B树所共享，指的是同一个底层BtShared对象。
 ** Btrees that refer to the same underlying BtShared object.
 ** 
 ** Schema objects are automatically deallocated when the last Btree that
 ** references them is destroyed.   The TEMP Schema is manually freed by
-** sqlite3_close().
+** sqlite3_close().//当没有B树引用该模式对象的时候，该模式对象将被系统自动释放，但是TEMP模式对象需要利用sqlite3_close()函数来手动释放。
 *
-** A thread must be holding a mutex on the corresponding Btree in order
-** to access Schema content.  This implies that the thread must also be
+** A thread must be holding a mutex on the corresponding Btree in order    //线程必须拥有相应的B树互斥才可以访问模式的内容。
+** to access Schema content.  This implies that the thread must also be   //这意味着该线程必须同时拥有sqlite3连接指针的互斥。
 ** holding a mutex on the sqlite3 connection pointer that owns the Btree.
-** For a TEMP Schema, only the connection mutex is required.
+** For a TEMP Schema, only the connection mutex is required.//对于TEMP模式，只有连接互斥是必须的。
 */
 struct Schema {
-  int schema_cookie;   /* Database schema version number for this file */
-  int iGeneration;     /* Generation counter.  Incremented with each change */
-  Hash tblHash;        /* All tables indexed by name */
-  Hash idxHash;        /* All (named) indices indexed by name */
-  Hash trigHash;       /* All triggers indexed by name */
-  Hash fkeyHash;       /* All foreign keys by referenced table name */
-  Table *pSeqTab;      /* The sqlite_sequence table used by AUTOINCREMENT */
-  u8 file_format;      /* Schema format version for this file */
-  u8 enc;              /* Text encoding used by this database */
-  u16 flags;           /* Flags associated with this schema */
-  int cache_size;      /* Number of pages to use in the cache */
+  int schema_cookie;   /* Database schema version number for this file该文件数据库模式的版本号 */
+  int iGeneration;     /* Generation counter.  Incremented with each change 代计数器，随着模式的改变其值递增*/
+  Hash tblHash;        /* All tables indexed by name 每个数据库表都是通过其名字来进行索引*/
+  Hash idxHash;        /* All (named) indices indexed by name 用名字索引已命名的索引*/
+  Hash trigHash;       /* All triggers indexed by name所有的触发器利用名字进行索引 */
+  Hash fkeyHash;       /* All foreign keys by referenced table name 外键通过所参照表的名字进行索引*/
+  Table *pSeqTab;      /* The sqlite_sequence table used by AUTOINCREMENT 被AUTOINCREMENThe使用的sqlite_sequence表*/
+  u8 file_format;      /* Schema format version for this fil文件的模式格式版本 */
+  u8 enc;              /* Text encoding used by this database数据库所使用的文字编码 */
+  u16 flags;           /* Flags associated with this schema 与该模式相关联的标志*/
+  int cache_size;      /* Number of pages to use in the cache 在缓存cache中使用的快数*/
 };
 
 /*
 ** These macros can be used to test, set, or clear bits in the 
-** Db.pSchema->flags field.
+** Db.pSchema->flags field.//这些宏可用于测试，设置或清除在Db.pSchema->flags字段中的位信息。
 */
 #define DbHasProperty(D,I,P)     (((D)->aDb[I].pSchema->flags&(P))==(P))
 #define DbHasAnyProperty(D,I,P)  (((D)->aDb[I].pSchema->flags&(P))!=0)
@@ -748,72 +748,72 @@ struct Schema {
 #define DbClearProperty(D,I,P)   (D)->aDb[I].pSchema->flags&=~(P)
 
 /*
-** Allowed values for the DB.pSchema->flags field.
+** Allowed values for the DB.pSchema->flags field.   //DB.pSchema->flags 字段所允许的值。
 **
 ** The DB_SchemaLoaded flag is set after the database schema has been
-** read into internal hash tables.
+** read into internal hash tables.  //当数据库模式被读入内部哈希表之后，DB_SchemaLoaded标志将被设置。
 **
-** DB_UnresetViews means that one or more views have column names that
+** DB_UnresetViews means that one or more views have column names that 
 ** have been filled out.  If the schema changes, these column names might
-** changes and so the view will need to be reset.
+** changes and so the view will need to be reset.//DB_UnresetViews是指一个或者多个视图有列名，当模式改变的时候，列的名字或许也会变，所以视图也需要被复位。
 */
-#define DB_SchemaLoaded    0x0001  /* The schema has been loaded */
-#define DB_UnresetViews    0x0002  /* Some views have defined column names */
-#define DB_Empty           0x0004  /* The file is empty (length 0 bytes) */
+#define DB_SchemaLoaded    0x0001  /* The schema has been loaded 模式已被加载*/
+#define DB_UnresetViews    0x0002  /* Some views have defined column names 一些定义列名字的视图*/
+#define DB_Empty           0x0004  /* The file is empty (length 0 bytes) 空文件*/
 
 /*
 ** The number of different kinds of things that can be limited
-** using the sqlite3_limit() interface.
+** using the sqlite3_limit() interface.//不同种类东西的数量是可以用sqlite3_limit()接口来进行限制的。
 */
 #define SQLITE_N_LIMIT (SQLITE_LIMIT_TRIGGER_DEPTH+1)
 
 /*
-** Lookaside malloc is a set of fixed-size buffers that can be used
+** Lookaside malloc is a set of fixed-size buffers that can be used    //malloc全称是memory allocation,即动态内存分配，无法知道内存具体位置的时候，想要绑定真正的内存空间，就需要用到动态的分配内存。
 ** to satisfy small transient memory allocation requests for objects
-** associated with a particular database connection.  The use of
+** associated with a particular database connection.  The use of       //后备动态内存分配是一组固定大小的缓冲区，可以用来满足一个特定数据库连接对象的小的即时内存分配请求。
 ** lookaside malloc provides a significant performance enhancement
 ** (approx 10%) by avoiding numerous malloc/free requests while parsing
-** SQL statements.
+** SQL statements.//通过避免SQL语句解析时的大量的动态内存分配或释放，后备动态内存缓冲区的使用使得SQLite的性能有显著的提高，大约有10%。
 **
 ** The Lookaside structure holds configuration information about the
-** lookaside malloc subsystem.  Each available memory allocation in
+** lookaside malloc subsystem.  Each available memory allocation in   //Lookaside结构体拥有后备动态内存分配子系统的配置信息。
 ** the lookaside subsystem is stored on a linked list of LookasideSlot
-** objects.
+** objects.  在后备内存分配子系统中的每一个可用的内存分配空间都是存储在结构体类型LookasideSlot类对象的链接列表中。//
 **
-** Lookaside allocations are only allowed for objects that are associated
+** Lookaside allocations are only allowed for objects that are associated  //只允许对与特定的数据库连接相关联的对象进行后备动态内存分配。
 ** with a particular database connection.  Hence, schema information cannot
-** be stored in lookaside because in shared cache mode the schema information
+** be stored in lookaside because in shared cache mode the schema information//所以，模式信息不能存储在后备内存区里，因为在共享cache模块中模式信息是被多个数据库连接所共享的。
 ** is shared by multiple database connections.  Therefore, while parsing
 ** schema information, the Lookaside.bEnabled flag is cleared so that
-** lookaside allocations are not used to construct the schema objects.
+** lookaside allocations are not used to construct the schema objects. //因此，当解析模式信息时，Lookaside.bEnabled标志将会被清除，来保证后备内存分配不会被用来构建模式对象。
 */
 struct Lookaside {
-  u16 sz;                 /* Size of each buffer in bytes */
-  u8 bEnabled;            /* False to disable new lookaside allocations */
-  u8 bMalloced;           /* True if pStart obtained from sqlite3_malloc() */
-  int nOut;               /* Number of buffers currently checked out */
-  int mxOut;              /* Highwater mark for nOut */
-  int anStat[3];          /* 0: hits.  1: size misses.  2: full misses */
-  LookasideSlot *pFree;   /* List of available buffers */
-  void *pStart;           /* First byte of available memory space */
-  void *pEnd;             /* First byte past end of available space */
+  u16 sz;                 /* Size of each buffer in bytes , u16是sqlite内部自定义的一个类型，即是UINT16_TYPE，2-byte unsigned integer，两字节的无符号整数，sz代表每一个缓冲区的大小，即其所包含的字节数。*/
+  u8 bEnabled;            /* False to disable new lookaside allocations , bEnabled是一个标志位，占用两个字节的无符号整数，表示可以进行新的后备内存区的分配。*/
+  u8 bMalloced;           /* True if pStart obtained from sqlite3_malloc()  如果有足够的后备内存区，则bMalloced的值即为真。 */
+  int nOut;               /* Number of buffers currently checked out 当前已知的缓冲区数量。 */
+  int mxOut;              /* Highwater mark for nOut nOut的最大标记? */
+  int anStat[3];          /* 0: hits.  1: size misses.  2: full misses   */
+  LookasideSlot *pFree;   /* List of available buffers  可用缓冲区列表*/
+  void *pStart;           /* First byte of available memory space  可用内存空间的第一个字节*/
+  void *pEnd;             /* First byte past end of available space 可用空间后的首个字节*/
 };
 struct LookasideSlot {
-  LookasideSlot *pNext;    /* Next buffer in the list of free buffers */
+  LookasideSlot *pNext;    /* Next buffer in the list of free buffers , pNext是一个LookasideSlot结构体类型的指针，指向的是空间缓冲区列表中的下一个缓冲区。*/
 };
 
 /*
-** A hash table for function definitions.
+** A hash table for function definitions.   //用于函数定义的哈希表
 **
 ** Hash each FuncDef structure into one of the FuncDefHash.a[] slots.
-** Collisions are on the FuncDef.pHash chain.
+** Collisions are on the FuncDef.pHash chain. //将每个FuncDef结构散列进FuncDefHash.a[]槽中，在FuncDef.pHash链上存在碰撞。
 */
 struct FuncDefHash {
-  FuncDef *a[23];       /* Hash table for functions */
+  FuncDef *a[23];       /* Hash table for functions 函数的哈希表*/
 };
 
 /*
-** Each database connection is an instance of the following structure.
+** Each database connection is an instance of the following structure. //每一个数据库链接都是如下结构体的一个实例
 */
 struct sqlite3 {
   sqlite3_vfs *pVfs;            /* OS Interface */
