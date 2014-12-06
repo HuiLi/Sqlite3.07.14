@@ -3307,11 +3307,14 @@ case OP_AutoCommit: {
 ** Begin a transaction.  The transaction ends when a Commit or Rollback
 ** opcode is encountered.  Depending on the ON CONFLICT setting, the
 ** transaction might also be rolled back if an error is encountered.
+** 开始一个事务。当遇到提交或回滚操作码时，事务结束。根据冲突设置，如果出现错误，事务也可能回滚。
 **
 ** P1 is the index of the database file on which the transaction is
 ** started.  Index 0 is the main database file and index 1 is the
 ** file used for temporary tables.  Indices of 2 or more are used for
 ** attached databases.
+** P1是数据库的索引文件，事务从这个索引开始执行。索引0是主数据库文件，索引1用于临时表文件。
+** 有不少于2个的指数用于连接数据库。
 **
 ** If P2 is non-zero, then a write-transaction is started.  A RESERVED lock is
 ** obtained on the database file when a write-transaction is started.  No
@@ -3320,6 +3323,9 @@ case OP_AutoCommit: {
 ** write transaction must be started before any changes can be made to the
 ** database.  If P2 is 2 or greater then an EXCLUSIVE lock is also obtained
 ** on the file.
+** 如果P2是非零值，那么写-事务开始执行。写-事务开始时，会给被操作的数据库文件会加一个保留锁。
+** 在该事务进行中，其他进程不能够开始另一个写-事务。写-事务开始执行的同时还会创建一个回滚日志。
+** 只有启动了写-事务才能对数据库进行更改。如果P2的值是2或更大的值，会给被操作文件加一个独占锁。
 **
 ** If a write-transaction is started and the Vdbe.usesStmtJournal flag is
 ** true (this flag is set if the Vdbe may modify more than one row and may
@@ -3330,8 +3336,13 @@ case OP_AutoCommit: {
 ** VDBE to be rolled back after an error without having to roll back the
 ** entire transaction. If no error is encountered, the statement transaction
 ** will automatically commit when the VDBE halts.
+** 如果写-事务开始，同时Vdbe.usesStmtJournal标记为真(如果Vdbe可以修改多个行，又能够抛出ABORT异常，
+** 这个标记值就被设置)，那么一个声明-事务也可能被打开。更具体地说，如果目前的数据库连接不是处在
+** 自动提交模式，后者有其他声明-事务在活动，那么声明事务就会被打开。发生错误之后，声明-事务允许
+** 只回滚VDBE所做的修改，而不必回滚整个事务。如果没有遇到错误，该声明-事务在VDBE停止时会自动提交。
 **
 ** If P2 is zero, then a read-lock is obtained on the database file.
+** 如果P2是0，则会给数据库文件加上只读锁。
 */
 case OP_Transaction: {
   Btree *pBt;
@@ -3368,7 +3379,9 @@ case OP_Transaction: {
 
       /* Store the current value of the database handles deferred constraint
       ** counter. If the statement transaction needs to be rolled back,
-      ** the value of this counter needs to be restored too.  */
+      ** the value of this counter needs to be restored too.
+      ** 存储数据库处理延迟约束计数器的当前值。如果声明-事务需要回滚，该计数器的值也需要恢复。
+      */
       p->nStmtDefCons = db->nDeferredCons;
     }
   }
@@ -3382,10 +3395,13 @@ case OP_Transaction: {
 ** P3==3 is the recommended pager cache size, and so forth.  P1==0 is
 ** the main database file and P1==1 is the database file used to store
 ** temporary tables.
-**
+** 从P1指代的数据库中读取cookie的数量P3，把它写进寄存器P2。P3==1代表架构版本。P3==2代表数据库格式。
+** P3==3代表推荐页的缓存大小，等等。P1==0代表主数据库文件，P1==1代表这个数据库文件曾被用于存储临时表。
+
 ** There must be a read-lock on the database (either a transaction
 ** must be started or there must be an open cursor) before
 ** executing this instruction.
+** 执行该指令之前，必须给数据库加一个只读-锁(要么必须启动一个事务，要么必须有一个打开的游标)。
 */
 case OP_ReadCookie: {               /* out2-prerelease */
   int iMeta;
@@ -3411,8 +3427,11 @@ case OP_ReadCookie: {               /* out2-prerelease */
 ** P2==2 is the database format. P2==3 is the recommended pager cache
 ** size, and so forth.  P1==0 is the main database file and P1==1 is the
 ** database file used to store temporary tables.
+** 将寄存器P3的内容写入到P1数据库里的cookie(也就P2)中。P2==1代表架构版本。P2==2代表数据库格式。
+** P2==3代表推荐页的缓存大小，等等。P1==0代表主数据库文件，P1==1代表这个数据库文件曾用于存储临时表。
 **
 ** A transaction must be started before executing this opcode.
+** 执行这个操作码之前必须有一个事务已经开始执行。
 */
 case OP_SetCookie: {       /* in3 */
   Db *pDb;
@@ -3436,7 +3455,9 @@ case OP_SetCookie: {       /* in3 */
   }
   if( pOp->p1==1 ){
     /* Invalidate all prepared statements whenever the TEMP database
-    ** schema is changed.  Ticket #1644 */
+    ** schema is changed.  Ticket #1644
+    ** 每当临时数据库模式被更改，所有准备好的语句就无效了。
+    */
     sqlite3ExpirePreparedStatements(db);
     p->expired = 0;
   }
@@ -3448,18 +3469,24 @@ case OP_SetCookie: {       /* in3 */
 ** Check the value of global database parameter number 0 (the
 ** schema version) and make sure it is equal to P2 and that the
 ** generation counter on the local schema parse equals P3.
+** 检索整个数据库中值为0的参数的个数(模式版本)，并确保这个数量等于P2，这个迭代计数器
+** 在本地模式(local schema这个东东不知道该翻译成什么好)中解析为P3。
 **
 ** P1 is the database number which is 0 for the main database file
 ** and 1 for the file holding temporary tables and some higher number
 ** for auxiliary databases.
+** P1是数据库编号，0代表主数据库文件，1代表这个数据库文件持有临时表，更大的数代表辅助数据库。
 **
 ** The cookie changes its value whenever the database schema changes.
 ** This operation is used to detect when that the cookie has changed
 ** and that the current process needs to reread the schema.
+** 每当数据库模式改变，cookie也会更改为对应的值。当cookie已经改变，以及当前进程需要重读模式的时候，
+** 这个操作通常起检测作用。
 **
 ** Either a transaction needs to have been started or an OP_Open needs
 ** to be executed (to establish a read lock) before this opcode is
 ** invoked.
+** 在调用此操作码之前，要么需要启动一个事务，要么操作码Open需要被执行(这两个操作都是为了建立一个只读锁)。
 */
 case OP_VerifyCookie: {
   int iMeta;
@@ -3482,6 +3509,7 @@ case OP_VerifyCookie: {
     /* If the schema-cookie from the database file matches the cookie
     ** stored with the in-memory representation of the schema, do
     ** not reload the schema from the database file.
+    ** 如果数据库文件里的模式cookie与储存在内存中的模式cookie匹配，就不需要重新加载数据库文件中模式。
     **
     ** If virtual-tables are in use, this is not just an optimization.
     ** Often, v-tables store their data in other SQLite tables, which
@@ -3491,6 +3519,9 @@ case OP_VerifyCookie: {
     ** v-table would have to be ready for the sqlite3_vtab structure itself
     ** to be invalidated whenever sqlite3_step() is called from within
     ** a v-table method.
+    ** 如果使用虚拟表，这不仅仅是一个优化。v-tables的数据通常储存在其他SQLite表中，需要调用
+    ** xNext()函数和其他v-table函数来查询这些数据，这些函数使用了已经准备好的查询语句。如果这样
+    ** 如果一个查询过期了，但我们不打算退出数据库模式，
     */
     if( db->aDb[pOp->p1].pSchema->schema_cookie!=iMeta ){
       sqlite3ResetOneSchema(db, pOp->p1);
@@ -3511,9 +3542,13 @@ case OP_VerifyCookie: {
 ** database.  Give the new cursor an identifier of P1.  The P1
 ** values need not be contiguous but all P1 values should be small integers.
 ** It is an error for P1 to be negative.
+** 在数据库文件中，打开一个只读游标，这个指针指向根页面为P2的数据库表。数据库文件由P3来决定。
+** P3==0代表主数据库，P3==1意味着这个数据库文件曾用于存储临时表，和P3>1表示使用相应的附加数据库。
+** 给这个新指针一个标示符P1。P1值不必是连续的，但P1的所有值应该小整数。如果P1是负数，将产生错误。
 **
 ** If P5!=0 then use the content of register P2 as the root page, not
 ** the value of P2 itself.
+** 如果P5!=0，那么将寄存器P2中的内容作为跟页，而不是使用P2本身的值。
 **
 ** There will be a read lock on the database whenever there is an
 ** open cursor.  If the database was unlocked prior to this instruction
@@ -3523,12 +3558,19 @@ case OP_VerifyCookie: {
 ** released when all cursors are closed.  If this instruction attempts
 ** to get a read lock but fails, the script terminates with an
 ** SQLITE_BUSY error code.
+** 只要有一个打开的游标，就需要给数据库加上一个读锁。如果在执行这个指令之前数据库无锁状态，
+** 那么这个指令中必须包含给数据库加读锁的操作。读锁允许其他进程读取数据库，但禁止任何其他进程
+** 修改数据库。所有游标(指针)都关闭后读锁才会释放。如果该指令试图获得读锁但失败了，
+** 脚本(程序)就会终止，同时生成一个SQLITE_BUSY错误代码。
 **
 ** The P4 value may be either an integer (P4_INT32) or a pointer to
 ** a KeyInfo structure (P4_KEYINFO). If it is a pointer to a KeyInfo
 ** structure, then said structure defines the content and collating
 ** sequence of the index being opened. Otherwise, if P4 is an integer
 ** value, it is set to the number of columns in the table.
+** P4的值可以是一个整数(P4_INT32)或一个指向KeyInfo结构类型的指针(P4_KEYINFO)。如果它是一个
+** KeyInfo结构体指针，也就意味着结构体定义的内容和索引的排序序列正在被打开。否则，
+** 如果P4是一个整型数值，它的值会被设置为表的列数。。
 **
 ** See also OpenWrite.
 */
@@ -3537,6 +3579,7 @@ case OP_VerifyCookie: {
 ** Open a read/write cursor named P1 on the table or index whose root
 ** page is P2.  Or if P5!=0 use the content of register P2 to find the
 ** root page.
+** 在表上或者跟页面为P2的索引上打开一个名为P1的读/写游标。如果P5!=0，使用寄存器P2的内容来寻找根页面。
 **
 ** The P4 value may be either an integer (P4_INT32) or a pointer to
 ** a KeyInfo structure (P4_KEYINFO). If it is a pointer to a KeyInfo
@@ -3544,10 +3587,15 @@ case OP_VerifyCookie: {
 ** sequence of the index being opened. Otherwise, if P4 is an integer
 ** value, it is set to the number of columns in the table, or to the
 ** largest index of any column of the table that is actually used.
+** P4的值可以是一个整数(P4_INT32)或一个指向KeyInfo结构类型的指针(P4_KEYINFO)。如果它是一个
+** KeyInfo结构体指针，也就意味着结构体定义的内容和索引的排序序列正在被打开。否则，
+** 如果P4是一个整型数值，它的值会被设置为表的列数，或者设置为表中实际使用的任何列的做大索引值。
 **
 ** This instruction works just like OpenRead except that it opens the cursor
 ** in read/write mode.  For a given table, there can be one or more read-only
 ** cursors or a single read/write cursor but not both.
+** 这个指令的工作流程与操作码OpenRead相似，除了它以读/写模式打开游标。对于一个给定的表，
+** 可以有一个或多个只读指针，或者有不多于一个的读/写游标。
 **
 ** See also OpenRead.
 */
@@ -3599,7 +3647,10 @@ case OP_OpenWrite: {
     /* The p2 value always comes from a prior OP_CreateTable opcode and
     ** that opcode will always set the p2 value to 2 or more or else fail.
     ** If there were a failure, the prepared statement would have halted
-    ** before reaching this instruction. */
+    ** before reaching this instruction.
+    ** P2的值通常由前面的操作码OP_CreateTable来设定，p2值一般被设置为2或更大的数，否者设置失败。
+    ** 如果失败了，预先准备好的语句将会在到达这个指令之前停止执行。
+    */
     if( NEVER(p2<2) ) {
       rc = SQLITE_CORRUPT_BKPT;
       goto abort_due_to_error;
@@ -3623,13 +3674,19 @@ case OP_OpenWrite: {
   sqlite3BtreeCursorHints(pCur->pCursor, (pOp->p5 & OPFLAG_BULKCSR));
 
   /* Since it performs no memory allocation or IO, the only value that
-  ** sqlite3BtreeCursor() may return is SQLITE_OK. */
+  ** sqlite3BtreeCursor() may return is SQLITE_OK.
+  ** 因为这个操作码在执行工程中没有内存分配或IO，因此sqlite3BtreeCursor()函数会返回唯一的值SQLITE_OK。
+  */
   assert( rc==SQLITE_OK );
 
   /* Set the VdbeCursor.isTable and isIndex variables. Previous versions of
   ** SQLite used to check if the root-page flags were sane at this point
   ** and report database corruption if they were not, but this check has
-  ** since moved into the btree layer.  */
+  ** since moved into the btree layer.
+  ** 设置变量VdbeCursor.isTable和isIndex变量。在以前的SQLite版本中，如果根页的标记值
+  ** 在执行到此处时是完整的，程序会执行检查操作，如果标记值不完整，则会报告数据库故障，
+  ** 但是现在这个检查操作已经移到了btree层。
+  */
   pCur->isTable = pOp->p4type!=P4_KEYINFO;
   pCur->isIndex = !pCur->isTable;
   break;
