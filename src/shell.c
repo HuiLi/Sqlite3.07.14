@@ -947,162 +947,163 @@ static char *appendText(char *zIn, char const *zAppend, char quote){
 ** Execute a query statement that will generate SQL output.  Print
 ** the result columns, comma-separated, on a line and then add a
 ** semicolon terminator to the end of that line.
-**
+**  //执行一个生成的SQL输出的查询语句。打印结果列,逗号分隔线,以一个分号终结这行
 ** If the number of columns is 1 and that column contains text "--"
 ** then write the semicolon on a separate line.  That way, if a 
 ** "--" comment occurs at the end of the statement, the comment
 ** won't consume the semicolon terminator.
-*/
-static int run_table_dump_query(
-  struct callback_data *p, /* Query context */
-  const char *zSelect,     /* SELECT statement to extract content */
-  const char *zFirstRow    /* Print before first row, if not NULL */
+*/  //如果列的数量是1并且列包含文本”——“，然后输出分号在单独的行中。这样,如果一个”——“出现在声明的最后,则不使用分号
+static int run_table_dump_query(//使用.dump命令可以将数据库对象导出成SQL格式
+  struct callback_data *p, //要查询的内容    /* Query context */  
+  const char *zSelect,     //抽取选择语句的内容  /* SELECT statement to extract content */
+  const char *zFirstRow    //如果不为NUll，则在第一行之前打印   /* Print before first row, if not NULL */
 ){
-  sqlite3_stmt *pSelect;
-  int rc;
+  sqlite3_stmt *pSelect;  //把一个sql语句解析到pSelect中，即存放当前的statement句柄 
+  int rc;     //定义返回值
   int nResult;
   int i;
   const char *z;
-  rc = sqlite3_prepare(p->db, zSelect, -1, &pSelect, 0);
-  if( rc!=SQLITE_OK || !pSelect ){
-    fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db));
-    p->nErr++;
+  rc = sqlite3_prepare(p->db, zSelect, -1, &pSelect, 0); //函数完成 sql 语句的解析。第一个参数跟前面一样，是个 sqlite3 * 类型变量，第二个参数是一个 sql 语句。第三个参数我写的是-1，这个参数含义是前面 sql 语句的长度。如果小于0，sqlite会自动计算它的长度（把sql语句当成以\0结尾的字符串）。第四个参数是 sqlite3_stmt 的指针的指针。解析以后的sql语句就放在这个结构里。
+  if( rc!=SQLITE_OK || !pSelect ){ //如果返回值不是SQLITE_OK或者没有得到当前语句
+    fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db)); //则输出错误信息
+    p->nErr++;  //nErr表示返回的错误信息
     return rc;
   }
-  rc = sqlite3_step(pSelect);
-  nResult = sqlite3_column_count(pSelect);
-  while( rc==SQLITE_ROW ){
-    if( zFirstRow ){
+  rc = sqlite3_step(pSelect); //通过这个语句，pSelect 表示的sql语句就被写到了数据库里。最后，要把 sqlite3_stmt 结构给释放，函数的返回值基于创建sqlite3_stmt参数所使用的函数
+  nResult = sqlite3_column_count(pSelect); //分配空间
+  while( rc==SQLITE_ROW ){ //返回值为SQLITE_ROW
+    if( zFirstRow ){ //如果不为NUll，则打印第一行
       fprintf(p->out, "%s", zFirstRow);
       zFirstRow = 0;
     }
-    z = (const char*)sqlite3_column_text(pSelect, 0);
+    z = (const char*)sqlite3_column_text(pSelect, 0);//提取数据
     fprintf(p->out, "%s", z);
     for(i=1; i<nResult; i++){ 
-      fprintf(p->out, ",%s", sqlite3_column_text(pSelect, i));
+      fprintf(p->out, ",%s", sqlite3_column_text(pSelect, i));//循环输出数据
     }
     if( z==0 ) z = "";
-    while( z[0] && (z[0]!='-' || z[1]!='-') ) z++;
+    while( z[0] && (z[0]!='-' || z[1]!='-') ) z++; //如果列的数量是1并且列包含文本”——“，然后输出分号在单独的行中
     if( z[0] ){
       fprintf(p->out, "\n;\n");
     }else{
       fprintf(p->out, ";\n");
     }    
-    rc = sqlite3_step(pSelect);
+    rc = sqlite3_step(pSelect); //把sql语句写到数据库里
   }
-  rc = sqlite3_finalize(pSelect);
-  if( rc!=SQLITE_OK ){
+  rc = sqlite3_finalize(pSelect);//把刚才分配的内容析构掉，这个过程销毁前面被sqlite3_prepare创建的准备语句，每个准备语句都必须使用这个函数去销毁以防止内存泄露。
+  if( rc!=SQLITE_OK ){ //如果返回值不是SQLITE_OK，则返回错误信息
     fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db));
     p->nErr++;
   }
-  return rc;
+  return rc;  //函数的返回值
 }
 
 /*
-** Allocate space and save off current error string.
+** Allocate space and save off current error string. //分配空间，保存消除当前错误的字符串
 */
-static char *save_err_msg(
-  sqlite3 *db            /* Database to query */
+static char *save_err_msg(  //保存错误信息
+  sqlite3 *db               //要访问的数据库 /* Database to query */
 ){
   int nErrMsg = 1+strlen30(sqlite3_errmsg(db));
-  char *zErrMsg = sqlite3_malloc(nErrMsg);
+  char *zErrMsg = sqlite3_malloc(nErrMsg);//通过sqlite3_malloc()接口，SQLite扩展或应用程序本身都可以使用相同的SQLite的底层分配函数来使用内存
   if( zErrMsg ){
-    memcpy(zErrMsg, sqlite3_errmsg(db), nErrMsg);
+    memcpy(zErrMsg, sqlite3_errmsg(db), nErrMsg);//更新错误信息
   }
   return zErrMsg;
 }
 
 /*
-** Display memory stats.
+** Display memory stats.   //显示内存统计数据
 */
-static int display_stats(
+static int display_stats(  //显示统计数据
   sqlite3 *db,                // 要访问的数据库 /* Database to query */
   struct callback_data *pArg, //定义一个回调函数的指针  /* Pointer to struct callback_data */
   int bReset                 //对重置操作进行判断 /* True to reset the stats */
 ){
-  int iCur;
-  int iHiwtr;
+  int iCur;  //定义两个指示变量，存储当前的选择值
+  int iHiwtr; //存储历史最高值
 
-  if( pArg && pArg->out ){
+  if( pArg && pArg->out ){  //pArg->out指向用于输出的文件流
     
-    iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MEMORY_USED, &iCur, &iHiwtr, bReset);
+    iHiwtr = iCur = -1;//赋值为-1
+    sqlite3_status(SQLITE_STATUS_MEMORY_USED, &iCur, &iHiwtr, bReset);//SQLITE_STATUS_MEMORY_USED确认当前访问的统计信息，当前选择的值会写入到iCur整型参数，历史最高值会写入到iHiwtr参数中。如果bReset为true，则在调用返回时iHiwtr标志会重置为当前选择的值。
     fprintf(pArg->out, "Memory Used:                         %d (max %d) bytes\n", iCur, iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &iCur, &iHiwtr, bReset);//当前的内存分配信息
     fprintf(pArg->out, "Number of Outstanding Allocations:   %d (max %d)\n", iCur, iHiwtr);
 /*
-** Not currently used by the CLI.
+** Not currently used by the CLI.  // 没有使用命令行界面
 **    iHiwtr = iCur = -1;
-**    sqlite3_status(SQLITE_STATUS_PAGECACHE_USED, &iCur, &iHiwtr, bReset);
-**    fprintf(pArg->out, "Number of Pcache Pages Used:         %d (max %d) pages\n", iCur, iHiwtr);
+**    sqlite3_status(SQLITE_STATUS_PAGECACHE_USED, &iCur, &iHiwtr, bReset);//页面缓存使用信息
+**    fprintf(pArg->out, "Number of Pcache Pages Used:         %d (max %d) pages\n", iCur, iHiwtr);//使用的寄存器页面的数量
 */
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &iCur, &iHiwtr, bReset);//页面缓存溢出信息
     fprintf(pArg->out, "Number of Pcache Overflow Bytes:     %d (max %d) bytes\n", iCur, iHiwtr);
 /*
 ** Not currently used by the CLI.
 **    iHiwtr = iCur = -1;
-**    sqlite3_status(SQLITE_STATUS_SCRATCH_USED, &iCur, &iHiwtr, bReset);
+**    sqlite3_status(SQLITE_STATUS_SCRATCH_USED, &iCur, &iHiwtr, bReset); //记录信息
 **    fprintf(pArg->out, "Number of Scratch Allocations Used:  %d (max %d)\n", iCur, iHiwtr);
 */
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_SCRATCH_OVERFLOW, &iCur, &iHiwtr, bReset);
-    fprintf(pArg->out, "Number of Scratch Overflow Bytes:    %d (max %d) bytes\n", iCur, iHiwtr);
+    sqlite3_status(SQLITE_STATUS_SCRATCH_OVERFLOW, &iCur, &iHiwtr, bReset);//记录信息溢出
+    fprintf(pArg->out, "Number of Scratch Overflow Byt es:    %d (max %d) bytes\n", iCur, iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &iCur, &iHiwtr, bReset);//分配的内存大小
+	.
     fprintf(pArg->out, "Largest Allocation:                  %d bytes\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PAGECACHE_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_PAGECACHE_SIZE, &iCur, &iHiwtr, bReset);//页面缓存的大小信息
     fprintf(pArg->out, "Largest Pcache Allocation:           %d bytes\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_SCRATCH_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_SCRATCH_SIZE, &iCur, &iHiwtr, bReset);//记录信息的大小
     fprintf(pArg->out, "Largest Scratch Allocation:          %d bytes\n", iHiwtr);
 #ifdef YYTRACKMAXSTACKDEPTH
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PARSER_STACK, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_PARSER_STACK, &iCur, &iHiwtr, bReset); //解析器堆栈
     fprintf(pArg->out, "Deepest Parser Stack:                %d (max %d)\n", iCur, iHiwtr);
 #endif
   }
-
-  if( pArg && pArg->out && db ){
-    iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr, bReset);
+//对于单个数据库连接的统计
+  if( pArg && pArg->out && db ){//如果得到输出文件流和数据库连接成功
+    iHiwtr = iCur = -1;//赋值-1
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr, bReset);//sqlite3_db_status()多一个数据库连接参数，并且返回的是这个连接的内存统计信息，而不是整个SQLite库
     fprintf(pArg->out, "Lookaside Slots Used:                %d (max %d)\n", iCur, iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);//后备命中
     fprintf(pArg->out, "Successful lookaside attempts:       %d\n", iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);//后备缺失大小
     fprintf(pArg->out, "Lookaside failures due to size:      %d\n", iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);//后备失败
     fprintf(pArg->out, "Lookaside failures due to OOM:       %d\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);//页面堆使用
     fprintf(pArg->out, "Pager Heap Usage:                    %d bytes\n", iCur);    iHiwtr = iCur = -1;
     sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &iCur, &iHiwtr, 1);
-    fprintf(pArg->out, "Page cache hits:                     %d\n", iCur);
+    fprintf(pArg->out, "Page cache hits:                     %d\n", iCur);//页面的高速缓存命中
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &iCur, &iHiwtr, 1);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &iCur, &iHiwtr, 1);//页面的缓存丢失
     fprintf(pArg->out, "Page cache misses:                   %d\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_WRITE, &iCur, &iHiwtr, 1);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_WRITE, &iCur, &iHiwtr, 1);//页面高速缓存丢失
     fprintf(pArg->out, "Page cache writes:                   %d\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_SCHEMA_USED, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_SCHEMA_USED, &iCur, &iHiwtr, bReset);//模式的堆使用
     fprintf(pArg->out, "Schema Heap Usage:                   %d bytes\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_STMT_USED, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_STMT_USED, &iCur, &iHiwtr, bReset);//声明的堆和后备使用
     fprintf(pArg->out, "Statement Heap/Lookaside Usage:      %d bytes\n", iCur); 
   }
 
-  if( pArg && pArg->out && db && pArg->pStmt ){
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, bReset);
+  if( pArg && pArg->out && db && pArg->pStmt ){//如果得到输入数据流和当前的声明句柄
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, bReset);//按步扫描
     fprintf(pArg->out, "Fullscan Steps:                      %d\n", iCur);
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_SORT, bReset);
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_SORT, bReset);//排序操作
     fprintf(pArg->out, "Sort Operations:                     %d\n", iCur);
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_AUTOINDEX, bReset);
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_AUTOINDEX, bReset);//自动索引
     fprintf(pArg->out, "Autoindex Inserts:                   %d\n", iCur);
   }
-
+  
   return 0;
 }
 
