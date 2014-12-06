@@ -1,4 +1,4 @@
-﻿/*
+﻿ /*
 ** 2003 September 6
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -2314,7 +2314,10 @@ int sqlite3VdbeHalt(Vdbe *p){
     p->rc = SQLITE_NOMEM;
   }
 
-  /* If the auto-commit flag is set to true, then any locks that were held
+  /* 
+  如果自动提交的属性被设置为True，同时对于所有加锁的数据连接都被释放，在这种情况下调用函数sqlite3ConnectionUnlocked来
+  回调所有的释放所功能，得到释放所有的资源。
+  If the auto-commit flag is set to true, then any locks that were held
   ** by connection db have now been released. Call sqlite3ConnectionUnlocked() 
   ** to invoke any required unlock-notify callbacks.
   */
@@ -2327,7 +2330,8 @@ int sqlite3VdbeHalt(Vdbe *p){
 }
 
 
-/*
+/*对于每一个VDBE都会保持最近的sqlite3_step（执行sql语句，得到返回结果的一行）函数得到的p->rc的值，
+在qlite3VdbeResetStepResult这个函数的执行会将p->rc的值重置为SQLITE_OK
 ** Each VDBE holds the result of the most recent sqlite3_step() call
 ** in p->rc.  This routine sets that result back to SQLITE_OK.
 */
@@ -2336,6 +2340,9 @@ void sqlite3VdbeResetStepResult(Vdbe *p){
 }
 
 /*
+将属于VDBE相关的错误代码和错误信息作为第一个参数一起传递给数据库句柄处理函数（因此在调用sqlite3_errcode() 和
+sqlite3_errmsg()两个函数能够得到相应的信息）。sqlite3VdbeTransferError函数并没有处理任何错误的代码和错误信息
+仅仅是将他们复制然后传递给数据库句柄
 ** Copy the error code and error message belonging to the VDBE passed
 ** as the first argument to its database handle (so that they will be 
 ** returned by calls to sqlite3_errcode() and sqlite3_errmsg()).
@@ -2344,7 +2351,7 @@ void sqlite3VdbeResetStepResult(Vdbe *p){
 ** copies them to the database handle.
 */
 int sqlite3VdbeTransferError(Vdbe *p){
-  sqlite3 *db = p->db;
+  sqlite3 *db = p->db;//在Vdbe 结构中有一个sqlite3类型的变量属性
   int rc = p->rc;
   if( p->zErrMsg ){
     u8 mallocFailed = db->mallocFailed;
@@ -2359,7 +2366,10 @@ int sqlite3VdbeTransferError(Vdbe *p){
   return rc;
 }
 
-/*
+/*在一次运行处理后清除这个VDBE的内存资源等信息但是并不是直接将其删除。将任何出现的错误信息
+赋值给参数*pzErrMsg。最后返回结果代码。在这个程序运行过后，VDBE已经准备好被下一次的执行。
+从另一个方面来看，sqlite3VdbeReset函数重新将虚拟机的状态从VDBE_MAGIC_RUN或者VDBE_MAGIC_HALT设置为
+VDBE_MAGIC_INIT状态。
 ** Clean up a VDBE after execution but do not delete the VDBE just yet.
 ** Write any error messages into *pzErrMsg.  Return the result code.
 **
@@ -2374,13 +2384,17 @@ int sqlite3VdbeReset(Vdbe *p){
   sqlite3 *db;
   db = p->db;
 
-  /* If the VM did not run to completion or if it encountered an
+  /* 如果说VM程序没有完全执行结束或者在执行的过程中遇到了一个错误异常，那么可以认为当前VM并没有被很好的
+  停止当前的状态。那么，我们马上将其停机。
+  If the VM did not run to completion or if it encountered an
   ** error, then it might not have been halted properly.  So halt
   ** it now.
   */
   sqlite3VdbeHalt(p);
 
-  /* If the VDBE has be run even partially, then transfer the error code
+  /* 如果VDBE处于部分运行的状态，那么需要将错误代码和错误信息从VDBE中转到主数据库结构中。虽然VDBE已经被
+  设置为运行状态但是没有处理任何程序指令，那么保持主数据库错误信息。
+  If the VDBE has be run even partially, then transfer the error code
   ** and error message from the VDBE into the main database structure.  But
   ** if the VDBE has just been set to run but has not actually executed any
   ** instructions yet, leave the main database error information unchanged.
@@ -2391,7 +2405,9 @@ int sqlite3VdbeReset(Vdbe *p){
     p->zErrMsg = 0;
     if( p->runOnlyOnce ) p->expired = 1;
   }else if( p->rc && p->expired ){
-    /* The expired flag was set on the VDBE before the first call
+    /* 在第一次调用sqlite3_step()函数之前需要设置数据结构VDBE中的属性expired值。为了数据库设置的一致性
+	因为已经调用了sqlite3_step，同样也需要设置数据库错误的相关信息
+	The expired flag was set on the VDBE before the first call
     ** to sqlite3_step(). For consistency (since sqlite3_step() was
     ** called), set the database error in this case as well.
     */
@@ -2401,18 +2417,25 @@ int sqlite3VdbeReset(Vdbe *p){
     p->zErrMsg = 0;
   }
 
-  /* Reclaim all memory used by the VDBE
+  /* 最后回收所有的被VDBE使用的内存资源
+  Reclaim all memory used by the VDBE
   */
   Cleanup(p);
 
-  /* Save profiling information from this VDBE run.
+  /* 保存在VDBE运行是产生的分析信息
+  opcode：表示具体执行什么样的操作
+  cnt：指令会被执行多少次
+  cycles：执行当前执行所花费的所有时间
+  nOp：所有操作指令的个数
+  Save profiling information from this VDBE run.
   */
 #ifdef VDBE_PROFILE
   {
-    FILE *out = fopen("vdbe_profile.out", "a");
+    FILE *out = fopen("vdbe_profile.out", "a");//打开一个只写文件，a 以附加的方式打开只写文件。
+	//若文件不存在，则会建立该文件，如果文件存在，写入的数据会被加到文件尾，即文件原先的内容会被保留
     if( out ){
       int i;
-      fprintf(out, "---- ");
+      fprintf(out, "---- ");//向out中写入信息
       for(i=0; i<p->nOp; i++){
         fprintf(out, "%02x", p->aOp[i].opcode);
       }
@@ -2425,7 +2448,7 @@ int sqlite3VdbeReset(Vdbe *p){
         );
         sqlite3VdbePrintOp(out, i, &p->aOp[i]);
       }
-      fclose(out);
+      fclose(out);//关闭文件输出流
     }
   }
 #endif
@@ -2433,21 +2456,32 @@ int sqlite3VdbeReset(Vdbe *p){
   return p->rc & db->errMask;
 }
  
-/*
+/*在程序执行过后清除VDBE占用的资源并删除这个VDBE。最后返回的代码是一个实数。将整个过程中所有的错误信息
+传递给指针参数pzErrMsg。
 ** Clean up and delete a VDBE after execution.  Return an integer which is
 ** the result code.  Write any error message text into *pzErrMsg.
 */
 int sqlite3VdbeFinalize(Vdbe *p){
   int rc = SQLITE_OK;
-  if( p->magic==VDBE_MAGIC_RUN || p->magic==VDBE_MAGIC_HALT ){
+  if( p->magic==VDBE_MAGIC_RUN || p->magic==VDBE_MAGIC_HALT ){//如果处于DBE_MAGIC_RUN或者VDBE_MAGIC_HALT状态的VDBE重新设置状态
     rc = sqlite3VdbeReset(p);
     assert( (rc & p->db->errMask)==rc );
   }
-  sqlite3VdbeDelete(p);
+  sqlite3VdbeDelete(p);//删除当前的VDBE
   return rc;
 }
 
 /*
+struct VdbeFunc {
+  FuncDef *pFunc;               The definition of the function 
+  int nAux;                      Number of entries allocated for apAux[] 
+  struct AuxData {
+    void *pAux;                   第i个参数的额外数据 
+    void (*xDelete)(void *);       额外参数的析构函数
+  } apAux[1];                    One slot for each function argument 
+}
+为每一个VdbeFunc中的AuxData调用析构函数释放资源而且在mask中有与之对应的位是清楚的。如果VdbeFunc中nAux
+的值超过31时就会调用xDelete函数来删除实例。当mask参数值为0时会删除所有的AuxData
 ** Call the destructor for each auxdata entry in pVdbeFunc for which
 ** the corresponding bit in mask is clear.  Auxdata entries beyond 31
 ** are always destroyed.  To destroy all auxdata entries, call this
@@ -2467,6 +2501,8 @@ void sqlite3VdbeDeleteAuxData(VdbeFunc *pVdbeFunc, int mask){
 }
 
 /*
+将函数sqlite3VdbeDeleteObject的第二个参数关联Vdbe结构相关的资源全部释放掉。sqlite3VdbeDeleteObject和
+sqlite3VdbeDelete最大的不同在于：VdbeDelete仅仅是将从VMs列表和与之对应的数据库连接断开
 ** Free all memory associated with the Vdbe passed as the second argument.
 ** The difference between this function and sqlite3VdbeDelete() is that
 ** VdbeDelete() also unlinks the Vdbe from the list of VMs associated with
@@ -2476,14 +2512,16 @@ void sqlite3VdbeDeleteObject(sqlite3 *db, Vdbe *p){
   SubProgram *pSub, *pNext;
   int i;
   assert( p->db==0 || p->db==db );
+  //释放Vdbe所占用的内存空间
   releaseMemArray(p->aVar, p->nVar);
   releaseMemArray(p->aColName, p->nResColumn*COLNAME_N);
-  for(pSub=p->pProgram; pSub; pSub=pNext){
+  for(pSub=p->pProgram; pSub; pSub=pNext){//pSub,和pNext都是SubProgram类型，开始pSub指向p->pProgram的起始节点，
+	  //一直遍历整个链表，vdbeFreeOpArray和sqlite3DbFree释放资源
     pNext = pSub->pNext;
     vdbeFreeOpArray(db, pSub->aOp, pSub->nOp);
     sqlite3DbFree(db, pSub);
   }
-  for(i=p->nzVar-1; i>=0; i--) sqlite3DbFree(db, p->azVar[i]);
+  for(i=p->nzVar-1; i>=0; i--) sqlite3DbFree(db, p->azVar[i]);//nzVar表示azVar[]数组长度，便利数组azVar[]释放azVar[i]占有的资源
   vdbeFreeOpArray(db, p->aOp, p->nOp);
   sqlite3DbFree(db, p->aLabel);
   sqlite3DbFree(db, p->aColName);
@@ -2493,7 +2531,7 @@ void sqlite3VdbeDeleteObject(sqlite3 *db, Vdbe *p){
   sqlite3DbFree(db, p->zExplain);
   sqlite3DbFree(db, p->pExplain);
 #endif
-  sqlite3DbFree(db, p);
+  sqlite3DbFree(db, p);//释放数据库运行占用的空间
 }
 
 /*
@@ -2502,10 +2540,11 @@ void sqlite3VdbeDeleteObject(sqlite3 *db, Vdbe *p){
 void sqlite3VdbeDelete(Vdbe *p){
   sqlite3 *db;
 
-  if( NEVER(p==0) ) return;
+  if( NEVER(p==0) ) return;//数据库已经为空，不为空时将p->db赋值给db
   db = p->db;
-  assert( sqlite3_mutex_held(db->mutex) );
-  if( p->pPrev ){
+  assert( sqlite3_mutex_held(db->mutex) );//程序互斥
+  
+  if( p->pPrev ){//如果当前的Vdbe的前驱借点存在，将当前节点的后驱与其前驱链接在一起
     p->pPrev->pNext = p->pNext;
   }else{
     assert( db->pVdbe==p );
@@ -2516,10 +2555,14 @@ void sqlite3VdbeDelete(Vdbe *p){
   }
   p->magic = VDBE_MAGIC_DEAD;
   p->db = 0;
-  sqlite3VdbeDeleteObject(db, p);
+  sqlite3VdbeDeleteObject(db, p);//释放资源
 }
 
-/*
+/*确保游标P已经准备好读或者写最近的定位到的行。如果遇到OOM错误或者I/O错误是返回错误代码，阻止我们定位
+光标移动到正确的位置。如果说一个MoveTo指令在给定的光标之前出现，那么我们执行MoveTo指令。如果没有先出现
+p->deferredMoveto指令那么检查在当前游标下的行是否已经被删除了，如果当前行被删除了标记当前行为NULL，
+p->nullRow = 1。
+如果说游标已经指向正确的行并且也没有被删除，那么这个程序就是一个no-op
 ** Make sure the cursor p is ready to read or write the row to which it
 ** was last positioned.  Return an error code if an OOM fault or I/O error
 ** prevents us from positioning the cursor to its correct position.
@@ -2561,7 +2604,12 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
   return SQLITE_OK;
 }
 
-/*
+/*下面的函数用于封装代码的序列化值存储在SQLite的数据和索引记录中。
+每一个序列化的值包括序列化类型和blob类型的数据。序列化类型是一个8-byte无符号整型，被存储为一个变异体。
+在一个数据库索引记录结构中，与序列化类型对应的blob数据类型会首先存储。在一个表存储结构中所有的序列化
+类型数据会在记录的开始就存储，所有的blob类型的数据在记录的最后存储。因此在这些函数允许调用者分开处理
+序列化数据类型和blob类型数据。下面的表详细介绍了不同的数据存储类
+
 ** The following functions:
 **
 ** sqlite3VdbeSerialType()
@@ -2605,12 +2653,14 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
 **     10,11                               reserved for expansion
 **    N>=12 and even       (N-12)/2        BLOB
 **    N>=13 and odd        (N-13)/2        text
-**
+**序列化类型值N大于等于12且为偶数的，对应的字节数据使用(N-12)/2，存储类型为BLOB
+  序列化类型值N大于等于13且为奇数的，对应的字节数据使用(N-13)/2，存储类型为text
+  序列化类型为8，9的在3.3.0的版本中使用，以前的版本不会识别这两个值
 ** The 8 and 9 types were added in 3.3.0, file format 4.  Prior versions
 ** of SQLite will not understand those serial types.
 */
 
-/*
+/*返回的序列化值存储在pMem中
 ** Return the serial-type for the value stored in pMem.
 ** 返回序列类型的值，存储在参数pMem中。
 */
@@ -2621,29 +2671,31 @@ u32 sqlite3VdbeSerialType(Mem *pMem, int file_format){
   if( flags&MEM_Null ){
     return 0;
   }
-  if( flags&MEM_Int ){
-    /* Figure out whether to use 1, 2, 4, 6 or 8 bytes. */
+  if( flags&MEM_Int ){//flags&MEM_Int的值大于0，执行if里面代码
+    /* 找出1, 2, 4, 6 ， 8中使用的一个
+	Figure out whether to use 1, 2, 4, 6 or 8 bytes. */
 #   define MAX_6BYTE ((((i64)0x00008000)<<32)-1)
     i64 i = pMem->u.i;
     u64 u;
-    if( file_format>=4 && (i&1)==i ){
+    if( file_format>=4 && (i&1)==i ){//形参file_format>=4 并且（(i&1)==i）
       return 8+(u32)i;
     }
-    if( i<0 ){
+	
+    if( i<0 ){//i<0是得到u64 u的值
       if( i<(-MAX_6BYTE) ) return 6;
       /* Previous test prevents:  u = -(-9223372036854775808) */
       u = -i;
     }else{
       u = i;
     }
-    if( u<=127 ) return 1;
-    if( u<=32767 ) return 2;
-    if( u<=8388607 ) return 3;
-    if( u<=2147483647 ) return 4;
-    if( u<=MAX_6BYTE ) return 5;
-    return 6;
+    if( u<=127 ) return 1;//u<=127
+    if( u<=32767 ) return 2;//127<u<=32767
+    if( u<=8388607 ) return 3;//32767<u<=8388607
+    if( u<=2147483647 ) return 4;//8388607<u<=2147483647
+    if( u<=MAX_6BYTE ) return 5;//2147483647< u<=MAX_6BYTE
+    return 6;//如果前面关于u值的判断都不符合是返回6
   }
-  if( flags&MEM_Real ){
+  if( flags&MEM_Real ){//flags&MEM_Real的值大于0
     return 7;
   }
   assert( pMem->db->mallocFailed || flags&(MEM_Str|MEM_Blob) );
@@ -2655,7 +2707,8 @@ u32 sqlite3VdbeSerialType(Mem *pMem, int file_format){
   return ((n*2) + 12 + ((flags&MEM_Str)!=0));
 }
 
-/*
+/*返回对应的序列化类型的数据长度，对于u32类型的值大于12时，返回(serial_type-12)/2；其他情况返回
+aSize[] = { 0, 1, 2, 3, 4, 6, 8, 8, 0, 0, 0, 0 }中的aSize[serial_type]
 ** Return the length of the data corresponding to the supplied serial-type.
 */
 u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
@@ -2667,7 +2720,15 @@ u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
   }
 }
 
-/*
+/*如果说我们需要在一个架构上面实现一个混合浮点数（例如：ARM7）那么我们需要讲低四位字节和高四位字节
+  交换。然后在返回我们的结果。对于大多数硬件架构来说，不需要这样处理。
+  混合浮点数问题在ARM7架构上只会出现在使用GCC时，在ARM7芯片上面不会出现异常。出现这样问题的原因是早期
+  GCC版本在存储两个字的64位浮点数出现错误序列。这个错误一直从早先的GCC版本延伸到今。当然也不能全部归
+  于当前的GCC问题，也可能是仅仅是从过去的编译器中复制出来的错误。在新的GCC版本中会使用不同的应用二进制
+  程序接口来获取正确的混合浮点数的二进制序列。
+  sqlite开发者在ARM7的架构上面编译和运行他们的程序，他们多次使用-DSQLITE_DEBUG来调试代码。根据开发者
+  调试的经验来看在DEBUG模式下，一些断言能够保证混合浮点数的二进制序列是正确的。
+  (2007-08-30)  Frank
 ** If we are on an architecture with mixed-endian floating 
 ** points (ex: ARM7) then swap the lower 4 bytes with the 
 ** upper 4 bytes.  Return the result.
@@ -2687,7 +2748,10 @@ u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
 ** application using -DSQLITE_DEBUG=1 at least once.  With DEBUG
 ** enabled, some asserts below will ensure that the byte order of
 ** floating point values is correct.
-**
+**Frank van Vugt对着这个问题做了深入的研究，他向SQLite开发者发来了他的研究成果，他在邮件中写道
+一些Linux内核可以提供浮点数的硬件模拟那么我们可以使用由IEEE标准化定义的32位浮点类型来代替全48位。但是
+在这样的系统中，浮点数字节位的交换会变得异常麻烦。为了避免这样的麻烦对于必须要做的字节交换会使用一个64位
+的整型来代替64位的浮点数来进行交换。
 ** (2007-08-30)  Frank van Vugt has studied this problem closely
 ** and has send his findings to the SQLite developers.  Frank
 ** writes that some Linux kernels offer floating point hardware
@@ -2702,7 +2766,7 @@ u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
 ** so we trust him.
 */
 #ifdef SQLITE_MIXED_ENDIAN_64BIT_FLOAT
-static u64 floatSwap(u64 in){
+static u64 floatSwap(u64 in){//64位字节交换
   union {
     u64 r;
     u32 i[2];
