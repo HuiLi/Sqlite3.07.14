@@ -3700,7 +3700,8 @@ case OP_OpenWrite: {
 ** The cursor is always opened read/write even if
 ** the main database is read-only.  The ephemeral
 ** table is deleted automatically when the cursor is closed.
-**
+**打开新的索引P1,P1指向一个事务表。
+**此索引经常打开去读取和更改。
 ** P2 is the number of columns in the ephemeral table.
 ** The cursor points to a BTree table if P4==0 and to a BTree index
 ** if P4 is not 0.  If P4 is not NULL, it points to a KeyInfo structure
