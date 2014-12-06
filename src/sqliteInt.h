@@ -816,42 +816,42 @@ struct FuncDefHash {
 ** Each database connection is an instance of the following structure. //每一个数据库链接都是如下结构体的一个实例
 */
 struct sqlite3 {
-  sqlite3_vfs *pVfs;            /* OS Interface */
-  struct Vdbe *pVdbe;           /* List of active virtual machines */
-  CollSeq *pDfltColl;           /* The default collating sequence (BINARY) */
-  sqlite3_mutex *mutex;         /* Connection mutex */
-  Db *aDb;                      /* All backends */
-  int nDb;                      /* Number of backends currently in use */
-  int flags;                    /* Miscellaneous flags. See below */
-  i64 lastRowid;                /* ROWID of most recent insert (see above) */
-  unsigned int openFlags;       /* Flags passed to sqlite3_vfs.xOpen() */
-  int errCode;                  /* Most recent error code (SQLITE_*) */
-  int errMask;                  /* & result codes with this before returning */
-  u8 autoCommit;                /* The auto-commit flag. */
-  u8 temp_store;                /* 1: file 2: memory 0: default */
-  u8 mallocFailed;              /* True if we have seen a malloc failure */
-  u8 dfltLockMode;              /* Default locking-mode for attached dbs */
+  sqlite3_vfs *pVfs;            /* OS Interface 操作系统接口 */
+  struct Vdbe *pVdbe;           /* List of active virtual machines 活动虚拟机列表*/
+  CollSeq *pDfltColl;           /* The default collating sequence (BINARY) 默认排序顺序*/
+  sqlite3_mutex *mutex;         /* Connection mutex 链接互斥*/
+  Db *aDb;                      /* All backends 所有后端*/
+  int nDb;                      /* Number of backends currently in use 目前所使用的后端数*/
+  int flags;                    /* Miscellaneous flags. See below 杂项标志*/
+  i64 lastRowid;                /* ROWID of most recent insert (see above) 最近插入的行ID*/
+  unsigned int openFlags;       /* Flags passed to sqlite3_vfs.xOpen() 传递给sqlite3_vfs.xOpen()函数的标志*/
+  int errCode;                  /* Most recent error code (SQLITE_*) 最近的错误代码*/
+  int errMask;                  /* & result codes with this before returning 所出现错误的提示码*/
+  u8 autoCommit;                /* The auto-commit flag. 自动提交标志*/
+  u8 temp_store;                /* 1: file 2: memory 0: default 1:文件  2:内存  0:默认*/
+  u8 mallocFailed;              /* True if we have seen a malloc failure 若动态内存分配失败即为真*/
+  u8 dfltLockMode;              /* Default locking-mode for attached dbs 附加数据库系统的默认锁定模式*/
   signed char nextAutovac;      /* Autovac setting after VACUUM if >=0 */
-  u8 suppressErr;               /* Do not issue error messages if true */
-  u8 vtabOnConflict;            /* Value to return for s3_vtab_on_conflict() */
-  u8 isTransactionSavepoint;    /* True if the outermost savepoint is a TS */
+  u8 suppressErr;               /* Do not issue error messages if true 若为真则不提示错误信息*/
+  u8 vtabOnConflict;            /* Value to return for s3_vtab_on_conflict() , 返回给s3_vtab_on_conflict()函数的值*/
+  u8 isTransactionSavepoint;    /* True if the outermost savepoint is a TS 若外层保存点是一个事务保存点，则为真*/
   int nextPagesize;             /* Pagesize after VACUUM if >0 */
-  u32 magic;                    /* Magic number for detect library misuse */
-  int nChange;                  /* Value returned by sqlite3_changes() */
-  int nTotalChange;             /* Value returned by sqlite3_total_changes() */
-  int aLimit[SQLITE_N_LIMIT];   /* Limits */
-  struct sqlite3InitInfo {      /* Information used during initialization */
-    int newTnum;                /* Rootpage of table being initialized */
-    u8 iDb;                     /* Which db file is being initialized */
-    u8 busy;                    /* TRUE if currently initializing */
-    u8 orphanTrigger;           /* Last statement is orphaned TEMP trigger */
+  u32 magic;                    /* Magic number for detect library misuse 幻数检测库滥用*/
+  int nChange;                  /* Value returned by sqlite3_changes() , sqlite3_changes()函数所返回的值*/
+  int nTotalChange;             /* Value returned by sqlite3_total_changes() , sqlite3_total_changes()函数所返回的值*/
+  int aLimit[SQLITE_N_LIMIT];   /* Limits 限制信息*/
+  struct sqlite3InitInfo {      /* Information used during initialization 初始化时候所使用到的信息*/
+    int newTnum;                /* Rootpage of table being initialized 表的Rootpage被初始化*/
+    u8 iDb;                     /* Which db file is being initialized 哪一个数据库文件被初始化*/
+    u8 busy;                    /* TRUE if currently initializing 若当前正在被初始化，即为真*/
+    u8 orphanTrigger;           /* Last statement is orphaned TEMP trigger 最后一条语句是一个孤立的TEMP触发器*/
   } init;
-  int activeVdbeCnt;            /* Number of VDBEs currently executing */
-  int writeVdbeCnt;             /* Number of active VDBEs that are writing */
-  int vdbeExecCnt;              /* Number of nested calls to VdbeExec() */
-  int nExtension;               /* Number of loaded extensions */
-  void **aExtension;            /* Array of shared library handles */
-  void (*xTrace)(void*,const char*);        /* Trace function */
+  int activeVdbeCnt;            /* Number of VDBEs currently executing 正在执行的虚拟数据库引擎的数目*/
+  int writeVdbeCnt;             /* Number of active VDBEs that are writing 活跃的写虚拟数据库引擎的数目*/
+  int vdbeExecCnt;              /* Number of nested calls to VdbeExec() 嵌套调用VdbeExec()的次数*/
+  int nExtension;               /* Number of loaded extensions 加载扩展数*/
+  void **aExtension;            /* Array of shared library handles 共享库句柄数组*/
+  void (*xTrace)(void*,const char*);        /* Trace function 跟踪功能*/
   void *pTraceArg;                          /* Argument to the trace function */
   void (*xProfile)(void*,const char*,u64);  /* Profiling function */
   void *pProfileArg;                        /* Argument to profile function */
