@@ -21,6 +21,16 @@
 ** handle case conversions for the UTF character set since the tables
 ** involved are nearly as big or bigger than SQLite itself.
 */
+
+//Elaine translation
+/*
+数组将所有大写字符映射到其相应的小写字符。
+
+SQLite的只考虑US-ASCII（或EBCDIC）字符。我们不考虑UTF字符集，因为包含的表是
+几乎大于SQLite的本身。
+
+*/
+
 const unsigned char sqlite3UpperToLower[] = {
 #ifdef SQLITE_ASCII
       0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17,
@@ -89,6 +99,23 @@ const unsigned char sqlite3UpperToLower[] = {
 ** SQLite's versions are identical to the standard versions assuming a
 ** locale of "C". They are implemented as macros in sqliteInt.h.
 */
+
+//Elaine translation
+/*
+下面的256字节的查找表用于支持sqlite的内置的标准库函数。
+
+如果是小写字母需要转换成大写字母的ASCII值，则bit 0x20 被设置为有效。如果X是小写字母的ASCII，
+那么与其相对应的大写字母ASCII值为(x-0x20)。因此toupper()的实现是：(x&~(map[x]&0x20)).
+
+标准函数tolower()的实现使用sqlite3UpperToLower[] 数组，在SQLite中使用tolower()比toupper()的多.
+
+  如果字符是非字母的并且可以被SQLite识别，则bit 0x40被设置为有效位。标示符是字母，“_”“$” 和
+  非ASCII的UTF字符。判断是否是字符是判断标示符是0x46的一部分。
+
+  SQLite的版本和标准的C是相似的。在sqliteInt.h中以宏去实现的。
+
+*/
+
 #ifdef SQLITE_ASCII
 const unsigned char sqlite3CtypeMap[256] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  /* 00..07    ........ */
@@ -137,6 +164,10 @@ const unsigned char sqlite3CtypeMap[256] = {
 ** The following singleton contains the global configuration for
 ** the SQLite library.
 */
+//Elaine translation
+/*
+以下struct 包含SQLite库的全局配置。
+*/
 SQLITE_WSD struct Sqlite3Config sqlite3Config = {
    SQLITE_DEFAULT_MEMSTATUS,  /* bMemstat */
    1,                         /* bCoreMutex */
@@ -178,11 +209,19 @@ SQLITE_WSD struct Sqlite3Config sqlite3Config = {
 ** database connections.  After initialization, this table is
 ** read-only.
 */
+
+//Elaine translation
+/*
+全局函数的哈希表,函数对于所有数据库连接是公共的。初始化后,这个表是只读的。
+*/
+
 SQLITE_WSD FuncDefHash sqlite3GlobalFunctions;
 
 /*
 ** Constant tokens for values 0 and 1.
 */
+
+/*常量符号的值为0和1*/
 const Token sqlite3IntTokens[] = {
    { "0", 1 },
    { "1", 1 }
@@ -206,6 +245,18 @@ const Token sqlite3IntTokens[] = {
 ** 0x40000000 results in an incompatible database file format!
 ** Changing the pending byte during operating results in undefined
 ** and dileterious behavior.
+*/
+
+/*
+在兼容数据库中pending byte 的值必须是0x40000000(1个字节代表千兆字节)
+SQLite的从未使用包含pending byte的数据库页面。它从来不尝试去读或者写页面。
+pending byte 页面被用来作为VFS层文件管理使用
+
+在测试过程中，经常需要移动pending byte在文件的不同位置。这使得处理文件
+上的pending byte比1G小的多。sqlite3_test_control()接口可以用来移动pending byte。
+
+在不兼容的数据可文件中，改变pending byte的值而不是0x40000000.
+
 */
 #ifndef SQLITE_OMIT_WSD
 int sqlite3PendingByte = 0x40000000;
