@@ -2157,15 +2157,15 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     /* 初始化备份,用于创建sqlite3_backup对象，
     该对象将作为本次拷贝操作的句柄传给其余两个函数。*/
     pBackup = sqlite3_backup_init(p->db, zDb, pSrc, "main");
-    if( pBackup==0 ){
-      fprintf(stderr, "Error: %s\n", sqlite3_errmsg(p->db));
-      sqlite3_close(pSrc);
+    if( pBackup==0 ){/*初始化备份失败*/
+      fprintf(stderr, "Error: %s\n", sqlite3_errmsg(p->db));/*把错误信息按要求格式输出到stderr文件中*/
+      sqlite3_close(pSrc);/*关闭pSrc指向的空间*/
       return 1;
     }
     while( (rc = sqlite3_backup_step(pBackup,100))==SQLITE_OK /*判断sqlite3_backup_step 是否成功复制100个页面。*/
           || rc==SQLITE_BUSY  ){
       if( rc==SQLITE_BUSY ) {  
-        if( nTimeout++ >= 3 ) break; 
+        if( nTimeout++ >= 3 ) break;/*三次请求之后，数据库文件一直锁定，则跳出当前操作*/ 
         sqlite3_sleep(100);  /*sqlite3_sleep 函数使当前线程暂停执行100毫秒。*/
       }
     }
@@ -2184,17 +2184,17 @@ static int do_meta_command(char *zLine, struct callback_data *p){
   /*判断是否输入了.schema命令
   该命令可以得到一个表或视图的定义(DDL)语句。*/
   if( c=='s' && strncmp(azArg[0], "schema", n)==0 && nArg<3 ){
-    struct callback_data data;
+    struct callback_data data;/*回显参数*/
     char *zErrMsg = 0;
-    open_db(p);
-    memcpy(&data, p, sizeof(data));
+    open_db(p);/*打开数据库*/
+    memcpy(&data, p, sizeof(data));/* 从p所指的内存地址的起始位置开始拷贝sizeof(data)个字节data的内存地址的起始位置中。*/
     data.showHeader = 0;
     data.mode = MODE_Semi;/*将宏定义的MODE_Semi的值 赋给结构体变量*/
     if( nArg>1 ){
       int i;
       for(i=0; azArg[1][i]; i++) azArg[1][i] = ToLower(azArg[1][i]);/* 把字符转换成小写字母,非字母字符不做出处理 */
-      if( strcmp(azArg[1],"sqlite_master")==0 ){
-        char *new_argv[2], *new_colv[2];
+      if( strcmp(azArg[1],"sqlite_master")==0 ){/*azArg[1]指向字符串与要求字符串匹配，则输出对应表*/
+        char *new_argv[2], *new_colv[2];/*定义两个指针数组*/
         new_argv[0] = "CREATE TABLE sqlite_master (\n"
                       "  type text,\n"
                       "  name text,\n"
@@ -2207,9 +2207,9 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         new_colv[1] = 0;
         callback(&data, 1, new_argv, new_colv);/*回调函数用以显示查询结果，下同*/
         rc = SQLITE_OK;
-      }else if( strcmp(azArg[1],"sqlite_temp_master")==0 ){
+      }else if( strcmp(azArg[1],"sqlite_temp_master")==0 ){/*azArg[1]指向字符串与要求字符串匹配，则输出对应表*/
         char *new_argv[2], *new_colv[2];
-        new_argv[0] = "CREATE TEMP TABLE sqlite_temp_master (\n"?*将SQL语句赋给new_argv[0]数组*/
+        new_argv[0] = "CREATE TEMP TABLE sqlite_temp_master (\n"/*将SQL语句赋给new_argv[0]数组*/
                       "  type text,\n"
                       "  name text,\n"
                       "  tbl_name text,\n"
@@ -2219,10 +2219,10 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         new_argv[1] = 0;
         new_colv[0] = "sql";
         new_colv[1] = 0;
-        callback(&data, 1, new_argv, new_colv);
+        callback(&data, 1, new_argv, new_colv);/*回调函数用以显示查询结果，下同*/
         rc = SQLITE_OK;
       }else{
-        zShellStatic = azArg[1];
+        zShellStatic = azArg[1];/*静态指针zShellStatic指向常量指针azArg[1]的内存空间*/
         rc = sqlite3_exec(p->db,/*对p指针指向的数据库执行下列SQL语句*/
           "SELECT sql FROM "
           "  (SELECT sql sql, type type, tbl_name tbl_name, name name, rowid x"
@@ -2246,11 +2246,11 @@ static int do_meta_command(char *zLine, struct callback_data *p){
                   " CASE type WHEN 'view' THEN rowid ELSE name END",
          callback( &data, &zErrMsg);
     }
-    if( zErrMsg ){/*若不为空，则输出zErrMsg中的内容*/
+    if( zErrMsg ){/*若不为空，则输出zErrMsg中的内容到stderr文件中*/
       fprintf(stderr,"Error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);/*释放zErrMsg的内存空间*/
       rc = 1;
-    }else if( rc != SQLITE_OK ){
+    }else if( rc != SQLITE_OK ){/*是否成功完成*/
       fprintf(stderr,"Error: querying schema information\n");
       rc = 1;
     }else{
@@ -2268,7 +2268,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     fprintf(p->out,"%9.9s: %s\n","headers", p->showHeader ? "on" : "off");/*是否打开表头*/
     fprintf(p->out,"%9.9s: %s\n","mode", modeDescr[p->mode]);/*mode命令可以设置结果数据的几种输出格式,这些格式存放在modeDescr数组中*/
     fprintf(p->out,"%9.9s: ", "nullvalue");/*空值显示*/
-      output_c_string(p->out, p->nullvalue);
+      output_c_string(p->out, p->nullvalue);/*根据C或TCL引用规则,输出给定的字符串。*/
       fprintf(p->out, "\n");
     fprintf(p->out,"%9.9s: %s\n","output",
             strlen30(p->outfile) ? p->outfile : "stdout");/*标准输出*/
