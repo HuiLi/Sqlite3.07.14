@@ -578,7 +578,7 @@ static void codeDistinct(
   sqlite3ReleaseTempReg(pParse, r1);
 }
 
-#ifndef SQLITE_OMIT_SUBQUERY
+#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
 /*
 ** Generate an error message when a SELECT is used within a subexpression
 ** (example:  "a IN (SELECT * FROM table)") but it has more than 1 result
@@ -603,7 +603,7 @@ static int checkForMultiColumnSelectError(
     return 0;
   }
 }
-#endif
+#endif/*终止if*/
 
 /*
 ** This routine generates the code for the inside of the inner loop
@@ -694,7 +694,7 @@ static void selectInnerLoop(
     ** table iParm.
     **在这种模式下，给临时表iParm写入每个查询结果。
     */
-#ifndef SQLITE_OMIT_COMPOUND_SELECT
+#ifndef SQLITE_OMIT_COMPOUND_SELECT/*测试SQLITE_OMIT_COMPOUND_SELECT是否被宏定义过*/
     case SRT_Union: {/*如果eDest为SRT_Union，则结果作为关键字存储在索引*/
       int r1;
       r1 = sqlite3GetTempReg(pParse);
@@ -713,7 +713,7 @@ static void selectInnerLoop(
       sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn);
       break;
     }
-#endif
+#endif/*终止if*/
 
     /* Store the result as data using a unique key.
     **数据使用唯一关键字存储结果
@@ -737,7 +737,7 @@ static void selectInnerLoop(
       break;
     }
 
-#ifndef SQLITE_OMIT_SUBQUERY
+#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
     /* If we are creating a set for an "expr IN (SELECT ...)" construct,
     ** then there should be a single item on the stack.  Write this
     ** item into the set table with bogus data.
@@ -819,7 +819,7 @@ static void selectInnerLoop(
       break;
     }
 
-#if !defined(SQLITE_OMIT_TRIGGER)
+#if !defined(SQLITE_OMIT_TRIGGER)/*条件编译*/
     /* Discard the results.  This is used for SELECT statements inside
     ** the body of a TRIGGER.  The purpose of such selects is to call
     ** user-defined functions that have side effects.  We do not care
@@ -831,7 +831,7 @@ static void selectInnerLoop(
       assert( eDest==SRT_Discard );
       break;
     }
-#endif
+#endif/*条件编译结束*/
   }
 
   /* Jump to the end of the loop if the LIMIT is reached.  Except, if
@@ -866,51 +866,51 @@ static void selectInnerLoop(
 **保存KeyInfo结构体的空间是由malloc获得。调用函数负责看到这个结构体最终释放。
 **KeyInfo结构添加到使用P4_KEYINFO_HANDOFF P4的一个操作码是通常的处理方式。
 */
-static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){
-  sqlite3 *db = pParse->db;
+static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){/*定义静态的结构体指针函数keyInfoFromExprList*/
+  sqlite3 *db = pParse->db;/*把结构体类型是pParse的成员变量db赋给结构体类型是sqlite3的指针db*/
   int nExpr;
-  KeyInfo *pInfo;
-  struct ExprList_item *pItem;
+  KeyInfo *pInfo;/*定义结构体类型是KeyInfo的指针pInfo*/
+  struct ExprList_item *pItem;/*定义结构体类型是ExprList_item的指针pItem*/
   int i;
 
   nExpr = pList->nExpr;
   pInfo = sqlite3DbMallocZero(db, sizeof(*pInfo) + nExpr*(sizeof(CollSeq*)+1) );
   if( pInfo ){
     pInfo->aSortOrder = (u8*)&pInfo->aColl[nExpr];
-    pInfo->nField = (u16)nExpr;
+    pInfo->nField = (u16)nExpr;/*对整型nExpr进行强制类型转换成u16，赋给 pInfo->nField*/
     pInfo->enc = ENC(db);
     pInfo->db = db;
     for(i=0, pItem=pList->a; i<nExpr; i++, pItem++){
-      CollSeq *pColl;
+      CollSeq *pColl;/*定义结构体类型为CollSeq的指针pColl*/
       pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr); /*为表达式pExpr返回默认排序顺序。如果没有默认排序 类型，返回0.*/
-      if( !pColl ){
+      if( !pColl ){/*如果结构体指针pColl非空*/
         pColl = db->pDfltColl;
       }
       pInfo->aColl[i] = pColl;
-      pInfo->aSortOrder[i] = pItem->sortOrder;
+      pInfo->aSortOrder[i] = pItem->sortOrder;/*把引用的成员pItem->sortOrder赋给pInfo->aSortOrder[i]*/
     }
   }
   return pInfo;
 }
 
-#ifndef SQLITE_OMIT_COMPOUND_SELECT
+#ifndef SQLITE_OMIT_COMPOUND_SELECT/*测试SQLITE_OMIT_COMPOUND_SELECT是否被宏定义过*/
 /*
 ** Name of the connection operator, used for error messages.
 **连接符的名称，用于错误消息。
 */
-static const char *selectOpName(int id){
-  char *z;
-  switch( id ){
-    case TK_ALL:       z = "UNION ALL";   break;
-    case TK_INTERSECT: z = "INTERSECT";   break;
-    case TK_EXCEPT:    z = "EXCEPT";      break;
-    default:           z = "UNION";       break;
+static const char *selectOpName(int id){/*定义静态且是只读的字符型指针selectOpName*/
+  char *z;/*定义字符型指针z*/
+  switch( id ){/*switch函数*/
+    case TK_ALL:       z = "UNION ALL";   break;/*如果参数id为TK_ALL，返回字符"UNION ALL"*/
+    case TK_INTERSECT: z = "INTERSECT";   break;/*如果参数id为TK_INTERSECT，返回字符"INTERSECT"*/
+    case TK_EXCEPT:    z = "EXCEPT";      break;/*如果参数id为TK_EXCEPT，返回字符"EXCEPT"*/
+    default:           z = "UNION";       break;/*默认条件下，返回字符"UNION"*/
   }
   return z;  /*返回连接符的名称*/
 }
 #endif /* SQLITE_OMIT_COMPOUND_SELECT */
 
-#ifndef SQLITE_OMIT_EXPLAIN
+#ifndef SQLITE_OMIT_EXPLAIN/*测试SQLITE_OMIT_EXPLAIN是否被宏定义过*/
 /*
 ** Unless an "EXPLAIN QUERY PLAN" command is being processed, this function
 ** is a no-op. Otherwise, it adds a single row of output to the EQP result,
@@ -927,7 +927,7 @@ static const char *selectOpName(int id){
 **zUsage参数决定。
 */
 static void explainTempTable(Parse *pParse, const char *zUsage){
-  if( pParse->explain==2 ){
+  if( pParse->explain==2 ){/*如果pParse->explain与字符z相同*/
     Vdbe *v = pParse->pVdbe;
     char *zMsg = sqlite3MPrintf(pParse->db, "USE TEMP B-TREE FOR %s", zUsage);
     sqlite3VdbeAddOp4(v, OP_Explain, pParse->iSelectId, 0, 0, zMsg, P4_DYNAMIC); /*添加一个操作码，其中包括作为指针的p4值。*/
@@ -945,7 +945,7 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 **sqlite3Select()的代码给结构体的成员变量分配值，如果SQLITE_OMIT_EXPLAIN没有
 **定义，没有#ifndef 指令的代码其才会存在。
 */
-# define explainSetInteger(a, b) a = b
+# define explainSetInteger(a, b) a = b/*宏定义*/
 
 #else
 /* No-op versions of the explainXXX() functions and macros. 无操作符版本的explainXXX() 函数和宏。*/
@@ -985,7 +985,7 @@ static void explainComposite(
   int bUseTmp                     /* True if a temp table was used 如果临时表被使用就是true*/
 ){
   assert( op==TK_UNION || op==TK_EXCEPT || op==TK_INTERSECT || op==TK_ALL );
-  if( pParse->explain==2 ){
+  if( pParse->explain==2 ){/*如果pParse->explain与字符z相同*/
     Vdbe *v = pParse->pVdbe;
     char *zMsg = sqlite3MPrintf(
         pParse->db, "COMPOUND SUBQUERIES %d AND %d %s(%s)", iSub1, iSub2,
@@ -1027,9 +1027,9 @@ static void generateSortTail(
   int regRow;
   int regRowid;
 
-  iTab = pOrderBy->iECursor;
+  iTab = pOrderBy->iECursor;/*把pOrderBy->iECursor赋给整型iTab*/
   regRow = sqlite3GetTempReg(pParse);
-  if( eDest==SRT_Output || eDest==SRT_Coroutine ){
+  if( eDest==SRT_Output || eDest==SRT_Coroutine ){/*如果输出结果的每一列等于eDest，或者结果生成的一个单列等于eDest*/
     pseudoTab = pParse->nTab++;
     sqlite3VdbeAddOp3(v, OP_OpenPseudo, pseudoTab, regRow, nColumn);
     regRowid = 0;
@@ -1041,18 +1041,18 @@ static void generateSortTail(
     int ptab2 = pParse->nTab++;
     sqlite3VdbeAddOp3(v, OP_OpenPseudo, ptab2, regSortOut, pOrderBy->nExpr+2);
     addr = 1 + sqlite3VdbeAddOp2(v, OP_SorterSort, iTab, addrBreak);
-    codeOffset(v, p, addrContinue);
+    codeOffset(v, p, addrContinue);/*添加代码来实现offset。*/
     sqlite3VdbeAddOp2(v, OP_SorterData, iTab, regSortOut);
     sqlite3VdbeAddOp3(v, OP_Column, ptab2, pOrderBy->nExpr+1, regRow);
     sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE); /*对于最近添加的操作改变p5操作数的值。*/
   }else{
     addr = 1 + sqlite3VdbeAddOp2(v, OP_Sort, iTab, addrBreak);
-    codeOffset(v, p, addrContinue);
+    codeOffset(v, p, addrContinue);/*添加代码来实现offset。*/
     sqlite3VdbeAddOp3(v, OP_Column, iTab, pOrderBy->nExpr+1, regRow);
   }
-  switch( eDest ){
-    case SRT_Table:
-    case SRT_EphemTab: {
+  switch( eDest ){/*switch函数，参数eDest*/
+    case SRT_Table:/*如果eDest为SRT_Table，则结果按照自动的rowid自动保存*/
+    case SRT_EphemTab: {/*如果eDest为SRT_EphemTab，则创建临时表并存储为像SRT_Table的表*/
       testcase( eDest==SRT_Table );
       testcase( eDest==SRT_EphemTab );
       sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, regRowid);
@@ -1060,15 +1060,15 @@ static void generateSortTail(
       sqlite3VdbeChangeP5(v, OPFLAG_APPEND);
       break;
     }
-#ifndef SQLITE_OMIT_SUBQUERY
-    case SRT_Set: {
+#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
+    case SRT_Set: {/*如果eDest为SRT_Set，则结果作为关键字存入索引*/
       assert( nColumn==1 );
       sqlite3VdbeAddOp4(v, OP_MakeRecord, regRow, 1, regRowid, &p->affinity, 1);
       sqlite3ExprCacheAffinityChange(pParse, regRow, 1); /*记录从iStart开始，发生在iCount寄存器中的改变的事实。*/
       sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, regRowid);
       break;
     }
-    case SRT_Mem: {
+    case SRT_Mem: {/*如果eDest为SRT_Mem，则将结果存储在存储单元*/
       assert( nColumn==1 );
       sqlite3ExprCodeMove(pParse, regRow, iParm, 1);
       /* The LIMIT clause will terminate the loop for us 
@@ -1076,8 +1076,8 @@ static void generateSortTail(
       */
       break;
     }
-#endif
-    default: {
+#endif/*终止if*/
+    default: {/*默认条件*/
       int i;
       assert( eDest==SRT_Output || eDest==SRT_Coroutine ); 
       testcase( eDest==SRT_Output );
@@ -1148,12 +1148,12 @@ static void generateSortTail(
 
 **声明类型以外的任何表达式列是空的。
 */
-static const char *columnType(
+static const char *columnType(/*定义静态且是只读的字符型指针columnType*/
   NameContext *pNC, 
   Expr *pExpr,
-  const char **pzOriginDb,
-  const char **pzOriginTab,
-  const char **pzOriginCol
+  const char **pzOriginDb,/*定义只读的字符型二级指针pzOriginDb*/
+  const char **pzOriginTab,/*定义只读的字符型二级指针pzOriginTab*/
+  const char **pzOriginCol,/*定义只读的字符型二级指针pzOriginCol*/
 ){
   char const *zType = 0;
   char const *zOriginDb = 0;
@@ -1263,7 +1263,7 @@ static const char *columnType(
       }
       break;
     }
-#ifndef SQLITE_OMIT_SUBQUERY
+#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是被宏定义过*/
     case TK_SELECT: {
       /* The expression is a sub-select. Return the declaration type and
       ** origin info for the single column in the result set of the SELECT
@@ -1302,7 +1302,7 @@ static void generateColumnTypes(
   SrcList *pTabList,  /* List of tables 表的集合*/
   ExprList *pEList    /* Expressions defining the result set 表达式定义结果集*/
 ){
-#ifndef SQLITE_OMIT_DECLTYPE
+#ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
   Vdbe *v = pParse->pVdbe;
   int i;
   NameContext sNC;
@@ -1311,7 +1311,7 @@ static void generateColumnTypes(
   for(i=0; i<pEList->nExpr; i++){
     Expr *p = pEList->a[i].pExpr;
     const char *zType;
-#ifdef SQLITE_ENABLE_COLUMN_METADATA
+#ifdef SQLITE_ENABLE_COLUMN_METADATA/*测试SQLITE_ENABLE_COLUMN_METADATA是否被宏定义过*/
     const char *zOrigDb = 0;
     const char *zOrigTab = 0;
     const char *zOrigCol = 0;
