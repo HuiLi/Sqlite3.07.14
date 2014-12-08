@@ -991,40 +991,41 @@ void sqlite3RollbackAll(sqlite3 *db, int tripCode){
 /*
 ** Return a static string that describes the kind of error specified in the
 ** argument.
+**SQLite 错误码
 */
-const char *sqlite3ErrStr(int rc){
+const char *sqlite3ErrStr(int rc){    /*此函数主要作用:根据错位类型码返回对应的错误信息*/
   static const char* const aMsg[] = {
-    /* SQLITE_OK          */ "not an error",
-    /* SQLITE_ERROR       */ "SQL logic error or missing database",
+    /* SQLITE_OK          */ "返回OK，没有错误 |not an error",
+    /* SQLITE_ERROR       */ "SQL逻辑错误或者数据库丢失 |SQL logic error or missing database",
     /* SQLITE_INTERNAL    */ 0,
-    /* SQLITE_PERM        */ "access permission denied",
-    /* SQLITE_ABORT       */ "callback requested query abort",
-    /* SQLITE_BUSY        */ "database is locked",
-    /* SQLITE_LOCKED      */ "database table is locked",
-    /* SQLITE_NOMEM       */ "out of memory",
-    /* SQLITE_READONLY    */ "attempt to write a readonly database",
-    /* SQLITE_INTERRUPT   */ "interrupted",
-    /* SQLITE_IOERR       */ "disk I/O error",
-    /* SQLITE_CORRUPT     */ "database disk image is malformed",
-    /* SQLITE_NOTFOUND    */ "unknown operation",
-    /* SQLITE_FULL        */ "database or disk is full",
-    /* SQLITE_CANTOPEN    */ "unable to open database file",
-    /* SQLITE_PROTOCOL    */ "locking protocol",
-    /* SQLITE_EMPTY       */ "table contains no data",
-    /* SQLITE_SCHEMA      */ "database schema has changed",
-    /* SQLITE_TOOBIG      */ "string or blob too big",
-    /* SQLITE_CONSTRAINT  */ "constraint failed",
-    /* SQLITE_MISMATCH    */ "datatype mismatch",
-    /* SQLITE_MISUSE      */ "library routine called out of sequence",
-    /* SQLITE_NOLFS       */ "large file support is disabled",
-    /* SQLITE_AUTH        */ "authorization denied",
-    /* SQLITE_FORMAT      */ "auxiliary database format error",
-    /* SQLITE_RANGE       */ "bind or column index out of range",
-    /* SQLITE_NOTADB      */ "file is encrypted or is not a database",
-  };
-  const char *zErr = "unknown error";
-  switch( rc ){
-    case SQLITE_ABORT_ROLLBACK: {
+    /* SQLITE_PERM        */ "访问权限被拒绝 |access permission denied",
+    /* SQLITE_ABORT       */ "返回请求查询终止 |callback requested query abort",
+    /* SQLITE_BUSY        */ "数据库处于锁定状态 |database is locked",
+    /* SQLITE_LOCKED      */ "数据库表处于锁定状态 |database table is locked",
+    /* SQLITE_NOMEM       */ "内存溢出 |out of memory",
+    /* SQLITE_READONLY    */ "尝试修改只读数据库 |attempt to write a readonly database",
+    /* SQLITE_INTERRUPT   */ "中断 |interrupted",
+    /* SQLITE_IOERR       */ "disk I/O 错误 |disk I/O error",
+    /* SQLITE_CORRUPT     */ "数据库硬盘镜像出现错误，说明SQLite的内部数据格式,已经损坏 |database disk image is malformed",
+    /* SQLITE_NOTFOUND    */ "未定义操作 |unknown operation",
+    /* SQLITE_FULL        */ "数据库或磁盘已满 |database or disk is full",
+    /* SQLITE_CANTOPEN    */ "不能打开数据库文件 |unable to open database file",
+    /* SQLITE_PROTOCOL    */ "封锁协议 |locking protocol",
+    /* SQLITE_EMPTY       */ "表中无数据 |table contains no data",
+    /* SQLITE_SCHEMA      */ "数据库模式已经改变 |database schema has changed",
+    /* SQLITE_TOOBIG      */ "字符串或二进制对象过大 |string or blob too big",
+    /* SQLITE_CONSTRAINT  */ "约束失败 |constraint failed",
+    /* SQLITE_MISMATCH    */ "数据类型不匹配 |datatype mismatch",
+    /* SQLITE_MISUSE      */ "库例程调用未按顺序，这个问题应该是多线程访问数据库 造成资源紧缺引起的 |library routine called out of sequence",
+    /* SQLITE_NOLFS       */ "不支持大文件 |large file support is disabled",
+    /* SQLITE_AUTH        */ "认证失败 |authorization denied",
+    /* SQLITE_FORMAT      */ "附加数据库格式错误 |auxiliary database format error",
+    /* SQLITE_RANGE       */ "下界或列数越界 |bind or column index out of range",
+    /* SQLITE_NOTADB      */ "文件加密或文件不是一个数据库文件|",
+  };	
+  const char *zErr = "unknown error";					 /*定义常量zErr*/
+  switch( rc ){											 /*rc为错误类型*/	
+    case SQLITE_ABORT_ROLLBACK: {		
       zErr = "abort due to ROLLBACK";
       break;
     }
@@ -1040,26 +1041,26 @@ const char *sqlite3ErrStr(int rc){
 }
 
 /*
-** This routine implements a busy callback that sleeps and tries
+** This routine implements a busy callback that sleeps and tries  
 ** again until a timeout value is reached.  The timeout value is
 ** an integer number of milliseconds passed in as the first
-** argument.
+** argument. |这个程序实现一个繁忙的回调，一直调用直到超时才进入睡眠。超时值是一个int型的毫秒数
 */
 static int sqliteDefaultBusyCallback(
- void *ptr,               /* Database connection */
- int count                /* Number of times table has been busy */
+ void *ptr,               /* 数据库连接指针 */
+ int count                /* 表处于忙状态的时间数 */
 ){
 #if SQLITE_OS_WIN || (defined(HAVE_USLEEP) && HAVE_USLEEP)
   static const u8 delays[] =
-     { 1, 2, 5, 10, 15, 20, 25, 25,  25,  50,  50, 100 };
-  static const u8 totals[] =
+     { 1, 2, 5, 10, 15, 20, 25, 25,  25,  50,  50, 100 };		/*常量，定义延迟时间*/
+  static const u8 totals[] =									/*常量，定义总共延迟时间*/
      { 0, 1, 3,  8, 18, 33, 53, 78, 103, 128, 178, 228 };
 # define NDELAY ArraySize(delays)
-  sqlite3 *db = (sqlite3 *)ptr;
-  int timeout = db->busyTimeout;
-  int delay, prior;
+  sqlite3 *db = (sqlite3 *)ptr;									/*将类型为sqlite3的指针*db指向ptr*/
+  int timeout = db->busyTimeout;								/*超时时间为sqlite3的忙超时间*/
+  int delay, prior;												/*定义延迟时间和提前时间*/
 
-  assert( count>=0 );
+  assert( count>=0 );											/*根据count的数值确定延迟和提前的时间*/
   if( count < NDELAY ){
     delay = delays[count];
     prior = totals[count];
@@ -1067,11 +1068,11 @@ static int sqliteDefaultBusyCallback(
     delay = delays[NDELAY-1];
     prior = totals[NDELAY-1] + delay*(count-(NDELAY-1));
   }
-  if( prior + delay > timeout ){
+  if( prior + delay > timeout ){								/*prior+delay值比timeout大时，采取的处理方法*/
     delay = timeout - prior;
     if( delay<=0 ) return 0;
   }
-  sqlite3OsSleep(db->pVfs, delay*1000);
+  sqlite3OsSleep(db->pVfs, delay*1000);							/*睡眠时间delay*1000*/		
   return 1;
 #else
   sqlite3 *db = (sqlite3 *)ptr;
@@ -1085,54 +1086,54 @@ static int sqliteDefaultBusyCallback(
 }
 
 /*
-** Invoke the given busy handler.
+** Invoke the given busy handler.									|调用给定的忙处理程序
 **
-** This routine is called when an operation failed with a lock.
-** If this routine returns non-zero, the lock is retried.  If it
-** returns 0, the operation aborts with an SQLITE_BUSY error.
+** This routine is called when an operation failed with a lock.		|当锁定操作失败时调用这个程序
+** If this routine returns non-zero, the lock is retried.  If it    |当程序返回非0时，重新尝试锁定
+** returns 0, the operation aborts with an SQLITE_BUSY error.		|当返回为0时，操作终止，并报SQLITE_BUSY错误
 */
-int sqlite3InvokeBusyHandler(BusyHandler *p){
+int sqlite3InvokeBusyHandler(BusyHandler *p){						/*定义函数，参数为BusyHandler类型，返回类型为int*/
   int rc;
-  if( NEVER(p==0) || p->xFunc==0 || p->nBusy<0 ) return 0;
-  rc = p->xFunc(p->pArg, p->nBusy);
-  if( rc==0 ){
+  if( NEVER(p==0) || p->xFunc==0 || p->nBusy<0 ) return 0;			/*当参数p为0或p->xFunc为0或 p->nBusy<0时，返回0*/
+  rc = p->xFunc(p->pArg, p->nBusy);									/*否则*/
+  if( rc==0 ){														/*当rc==0时，将p->nBusy赋值为-1*/
     p->nBusy = -1;
-  }else{
+  }else{															/*否则，p->nBusy自增1*/
     p->nBusy++;
   }
   return rc; 
 }
 
 /*
-** This routine sets the busy callback for an Sqlite database to the
+** This routine sets the busy callback for an Sqlite database to the |这个程序完成对给定参数的sqlite数据库回调方法设置忙回调
 ** given callback function with the given argument.
 */
-int sqlite3_busy_handler(
+int sqlite3_busy_handler(						/*定义无参的函数，返回类型为int*/
   sqlite3 *db,
   int (*xBusy)(void*,int),
   void *pArg
-){
-  sqlite3_mutex_enter(db->mutex);
+){		
+  sqlite3_mutex_enter(db->mutex);				/*设置sqlite3对象*db的对应参数*/
   db->busyHandler.xFunc = xBusy;
   db->busyHandler.pArg = pArg;
   db->busyHandler.nBusy = 0;
   sqlite3_mutex_leave(db->mutex);
-  return SQLITE_OK;
+  return SQLITE_OK;								/*设置完成，返回SQLITE_OK标识码*/
 }
 
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
 /*
-** This routine sets the progress callback for an Sqlite database to the
-** given callback function with the given argument. The progress callback will
+** This routine sets the progress callback for an Sqlite database to the		|这个程序完成对给定参数的sqlite数据库回调方法设置进一步回调
+** given callback function with the given argument. The progress callback will	|这个进一步回调将调用每个n0ps操作码
 ** be invoked every nOps opcodes.
 */
-void sqlite3_progress_handler(
-  sqlite3 *db, 
-  int nOps,
+void sqlite3_progress_handler(					/*定义无参的函数，返回类型为空*/
+  sqlite3 *db,									/*对应的变量*/
+  int nOps,											
   int (*xProgress)(void*), 
   void *pArg
 ){
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);				/*　线程安全：加锁保护 */
   if( nOps>0 ){
     db->xProgress = xProgress;
     db->nProgressOps = nOps;
@@ -1142,40 +1143,40 @@ void sqlite3_progress_handler(
     db->nProgressOps = 0;
     db->pProgressArg = 0;
   }
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);				/*处理完毕，解除封锁*/
 }
 #endif
 
 
 /*
-** This routine installs a default busy handler that waits for the
+** This routine installs a default busy handler that waits for the	|这个程序安装一个默认的忙处理程序 ，在返回0之前等待规定的毫秒数
 ** specified number of milliseconds before returning 0.
 */
-int sqlite3_busy_timeout(sqlite3 *db, int ms){
-  if( ms>0 ){
+int sqlite3_busy_timeout(sqlite3 *db, int ms){							/*定义一个毫秒数，当未到达该毫秒数时，sqlite会sleep并重试当前操作如果超过ms毫秒，*/
+  if( ms>0 ){															/* 仍然申请不到需要的锁，当前操作返回sqlite_BUSY*/
     db->busyTimeout = ms;
     sqlite3_busy_handler(db, sqliteDefaultBusyCallback, (void*)db);
-  }else{
+  }else{																/*当ms<=0时，清除busy handle，申请不到锁直接返回*/
     sqlite3_busy_handler(db, 0, 0);
   }
   return SQLITE_OK;
 }
 
 /*
-** Cause any pending operation to stop at its earliest opportunity.
+** Cause any pending operation to stop at its earliest opportunity.		|造成任何挂起的操作在其最早开始时停止
 */
-void sqlite3_interrupt(sqlite3 *db){
+void sqlite3_interrupt(sqlite3 *db){									/*中断*/
   db->u1.isInterrupted = 1;
 }
 
 
 /*
-** This function is exactly the same as sqlite3_create_function(), except
-** that it is designed to be called by internal code. The difference is
-** that if a malloc() fails in sqlite3_create_function(), an error code
+** This function is exactly the same as sqlite3_create_function(), except	|这个方法的功能与sqlite3_create_function()相同
+** that it is designed to be called by internal code. The difference is		 |这个方法是为内部代码调用设计的
+** that if a malloc() fails in sqlite3_create_function(), an error code		 |区别是sqlite3_create_function()的分配内存操作失败时，会返回错误码并清除内存分配错误标示
 ** is returned and the mallocFailed flag cleared. 
 */
-int sqlite3CreateFunc(
+int sqlite3CreateFunc(													  /*一个SQlite内部函数*/
   sqlite3 *db,
   const char *zFunctionName,
   int nArg,
@@ -1200,16 +1201,16 @@ int sqlite3CreateFunc(
   }
   
 #ifndef SQLITE_OMIT_UTF16
-  /* If SQLITE_UTF16 is specified as the encoding type, transform this
-  ** to one of SQLITE_UTF16LE or SQLITE_UTF16BE using the
-  ** SQLITE_UTF16NATIVE macro. SQLITE_UTF16 is not used internally.
+  /* If SQLITE_UTF16 is specified as the encoding type, transform this	  |如果SQLITE_UTF16为一种编码格式，
+  ** to one of SQLITE_UTF16LE or SQLITE_UTF16BE using the				  |将他转换为使用SQLITE_UTF16NATIVE macro的SQLITE_UTF16LE或者SQLITE_UTF16BE
+  ** SQLITE_UTF16NATIVE macro. SQLITE_UTF16 is not used internally.		  |在内部并不使用SQLITE_UTF16，因此需要转换格式
   **
-  ** If SQLITE_ANY is specified, add three versions of the function
+  ** If SQLITE_ANY is specified, add three versions of the function		  |如果是SQLITE_ANY，则在哈希表中添加三种版本的函数
   ** to the hash table.
   */
-  if( enc==SQLITE_UTF16 ){
+  if( enc==SQLITE_UTF16 ){												  /*如果编码格式为SQLITE_UTF16，将其格式转换为SQLITE_UTF16NATIVE*/
     enc = SQLITE_UTF16NATIVE;
-  }else if( enc==SQLITE_ANY ){
+  }else if( enc==SQLITE_ANY ){											  /*如果编码格式为SQLITE_ANY*/
     int rc;
     rc = sqlite3CreateFunc(db, zFunctionName, nArg, SQLITE_UTF8,
          pUserData, xFunc, xStep, xFinal, pDestructor);
@@ -1223,12 +1224,12 @@ int sqlite3CreateFunc(
     enc = SQLITE_UTF16BE;
   }
 #else
-  enc = SQLITE_UTF8;
+  enc = SQLITE_UTF8;												      /*当编码格式既不是SQLITE_UTF16也不是SQLITE_ANY时，指定编码格式为SQLITE_UTF8*/
 #endif
   
-  /* Check if an existing function is being overridden or deleted. If so,
-  ** and there are active VMs, then return SQLITE_BUSY. If a function
-  ** is being overridden/deleted but there are no active VMs, allow the
+  /* Check if an existing function is being overridden or deleted. If so, |检查一个已有的函数是否被重载或者被删除
+  ** and there are active VMs, then return SQLITE_BUSY. If a function	  |若果是的话，并且有激活的虚拟机，返回SQLITE_BUSY
+  ** is being overridden/deleted but there are no active VMs, allow the	  |如果只是被重载或删除但是没有激活的虚拟机，允许操作继续执行，但所有的预编译将不可用
   ** operation to continue but invalidate all precompiled statements.
   */
   p = sqlite3FindFunction(db, zFunctionName, nName, nArg, (u8)enc, 0);
@@ -1249,7 +1250,7 @@ int sqlite3CreateFunc(
     return SQLITE_NOMEM;
   }
 
-  /* If an older version of the function with a configured destructor is
+  /* If an older version of the function with a configured destructor is  |如果已经存在一个旧版本的析构函数被替换，则调用这里的析构函数
   ** being replaced invoke the destructor function here. */
   functionDestroy(db, p);
 
@@ -1267,7 +1268,7 @@ int sqlite3CreateFunc(
 }
 
 /*
-** Create new user functions.
+** Create new user functions.									|创建新的用户函数
 */
 int sqlite3_create_function(
   sqlite3 *db,
@@ -1296,7 +1297,7 @@ int sqlite3_create_function_v2(
 ){
   int rc = SQLITE_ERROR;
   FuncDestructor *pArg = 0;
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);                                                    /*线程安全：加锁保护*/
   if( xDestroy ){
     pArg = (FuncDestructor *)sqlite3DbMallocZero(db, sizeof(FuncDestructor));
     if( !pArg ){
@@ -1315,7 +1316,7 @@ int sqlite3_create_function_v2(
 
  out:
   rc = sqlite3ApiExit(db, rc);
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                                   /*处理完毕，解除封锁*/
   return rc;
 }
 
@@ -1332,31 +1333,31 @@ int sqlite3_create_function16(
 ){
   int rc;
   char *zFunc8;
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);                                                    /*线程安全：加锁保护*/
   assert( !db->mallocFailed );
   zFunc8 = sqlite3Utf16to8(db, zFunctionName, -1, SQLITE_UTF16NATIVE);
   rc = sqlite3CreateFunc(db, zFunc8, nArg, eTextRep, p, xFunc, xStep, xFinal,0);
   sqlite3DbFree(db, zFunc8);
   rc = sqlite3ApiExit(db, rc);
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                                   /*处理完毕，解除封锁*/
   return rc;
 }
 #endif
 
 
 /*
-** Declare that a function has been overloaded by a virtual table.
+** Declare that a function has been overloaded by a virtual table.		  |对一个已经被虚拟表重载的方法
 **
-** If the function already exists as a regular global function, then
-** this routine is a no-op.  If the function does not exist, then create
+** If the function already exists as a regular global function, then      |如果这个函数已经作为一个一般全局函数存在，这个程序就是一个（空操作）no-op
+** this routine is a no-op.  If the function does not exist, then create  |如果这个函数不存在，则创建一个总是抛出run-time错误的新函数
 ** a new one that always throws a run-time error.  
 **
-** When virtual tables intend to provide an overloaded function, they
-** should call this routine to make sure the global function exists.
-** A global function must exist in order for name resolution to work
+** When virtual tables intend to provide an overloaded function, they	  |当虚拟表想要提供一个重载函数时，需要调用这个程序段来确认全局函数的存在
+** should call this routine to make sure the global function exists.      |
+** A global function must exist in order for name resolution to work      |为了名称解析能正常工作，一个全局函数必须存在
 ** properly.
 */
-int sqlite3_overload_function(
+int sqlite3_overload_function(										      /*定义一个重载方法*/
   sqlite3 *db,
   const char *zName,
   int nArg
@@ -1375,14 +1376,14 @@ int sqlite3_overload_function(
 
 #ifndef SQLITE_OMIT_TRACE
 /*
-** Register a trace function.  The pArg from the previously registered trace
+** Register a trace function.  The pArg from the previously registered trace   |注册一个跟踪函数，函数返回pArg
 ** is returned.  
 **
-** A NULL trace function means that no tracing is executes.  A non-NULL
-** trace is a pointer to a function that is invoked at the start of each
+** A NULL trace function means that no tracing is executes.  A non-NULL        |一个空NULL值的跟踪函数表示不存在跟踪
+** trace is a pointer to a function that is invoked at the start of each       |一个非空(non-NULL)的跟踪函数是一个在每个SQL状态开始时被调用的指针
 ** SQL statement.
 */
-void *sqlite3_trace(sqlite3 *db, void (*xTrace)(void*,const char*), void *pArg){
+void *sqlite3_trace(sqlite3 *db, void (*xTrace)(void*,const char*), void *pArg){    /*定义跟踪函数*/
   void *pOld;
   sqlite3_mutex_enter(db->mutex);
   pOld = db->pTraceArg;
@@ -1392,14 +1393,14 @@ void *sqlite3_trace(sqlite3 *db, void (*xTrace)(void*,const char*), void *pArg){
   return pOld;
 }
 /*
-** Register a profile function.  The pArg from the previously registered 
+** Register a profile function.  The pArg from the previously registered	   |定义一个轮廓函数，函数返回pArg
 ** profile function is returned.  
 **
-** A NULL profile function means that no profiling is executes.  A non-NULL
-** profile is a pointer to a function that is invoked at the conclusion of
+** A NULL profile function means that no profiling is executes.  A non-NULL	   |一个空NULL值的轮廓函数表示不存在轮廓
+** profile is a pointer to a function that is invoked at the conclusion of	   |一个非空(non-NULL)的轮廓函数是在正在运行的SQL状态的结尾才被调用的函数
 ** each SQL statement that is run.
 */
-void *sqlite3_profile(
+void *sqlite3_profile(														   /*定义轮廓函数*/
   sqlite3 *db,
   void (*xProfile)(void*,const char*,sqlite_uint64),
   void *pArg
@@ -1412,97 +1413,97 @@ void *sqlite3_profile(
   sqlite3_mutex_leave(db->mutex);
   return pOld;
 }
-#endif /* SQLITE_OMIT_TRACE */
+#endif /* SQLITE_OMIT_TRACE */											       /*结束*/
 
 /*
-** Register a function to be invoked when a transaction commits.
-** If the invoked function returns non-zero, then the commit becomes a
+** Register a function to be invoked when a transaction commits.			   |当一个事物提交时注册这个函数
+** If the invoked function returns non-zero, then the commit becomes a		   |如果调用函数返回非零，则事物回滚
 ** rollback.
 */
 void *sqlite3_commit_hook(
-  sqlite3 *db,              /* Attach the hook to this database */
-  int (*xCallback)(void*),  /* Function to invoke on each commit */
-  void *pArg                /* Argument to the function */
+  sqlite3 *db,              /* Attach the hook to this database */			   /*将hook附件到数据库*/
+  int (*xCallback)(void*),  /* Function to invoke on each commit */            /*提交的每阶段都会调用的函数*/
+  void *pArg                /* Argument to the function */					   /*函数声明*/
 ){
   void *pOld;
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);                                               /*线程安全：加锁保护*/
   pOld = db->pCommitArg;
   db->xCommitCallback = xCallback;
   db->pCommitArg = pArg;
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                              /*处理完毕，解除封锁*/
   return pOld;
 }
 
 /*
-** Register a callback to be invoked each time a row is updated,
-** inserted or deleted using this database connection.
+** Register a callback to be invoked each time a row is updated,			   |当某一行发生更新操作室，调用这个注册回调函数
+** inserted or deleted using this database connection.						   |插入或分离数据库连接
 */
 void *sqlite3_update_hook(
-  sqlite3 *db,              /* Attach the hook to this database */
+  sqlite3 *db,              /* Attach the hook to this database */			   /*将hook附加到数据库*/
   void (*xCallback)(void*,int,char const *,char const *,sqlite_int64),
-  void *pArg                /* Argument to the function */
+  void *pArg                /* Argument to the function */                     /*函数声明*/
 ){
   void *pRet;
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);											   /*线程安全：加锁保护*/
   pRet = db->pUpdateArg;
   db->xUpdateCallback = xCallback;
   db->pUpdateArg = pArg;
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);											   /*处理完毕，解除封锁*/
   return pRet;
 }
 
 /*
-** Register a callback to be invoked each time a transaction is rolled
+** Register a callback to be invoked each time a transaction is rolled         |当处于连接数据库状态的事物发生回滚时调用这个回调注册程序
 ** back by this database connection.
 */
 void *sqlite3_rollback_hook(
-  sqlite3 *db,              /* Attach the hook to this database */
-  void (*xCallback)(void*), /* Callback function */
-  void *pArg                /* Argument to the function */
+  sqlite3 *db,              /* Attach the hook to this database */			   /*将hook附加到数据库*/
+  void (*xCallback)(void*), /* Callback function */                            /*回调函数*/
+  void *pArg                /* Argument to the function */                     /*函数声明*/
 ){
   void *pRet;
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);                                              /*线程安全：加锁保护*/
   pRet = db->pRollbackArg;
   db->xRollbackCallback = xCallback;
   db->pRollbackArg = pArg;
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                              /*处理完毕，解除封锁*/
   return pRet;
 }
 
 #ifndef SQLITE_OMIT_WAL
 /*
-** The sqlite3_wal_hook() callback registered by sqlite3_wal_autocheckpoint().
-** Invoke sqlite3_wal_checkpoint if the number of frames in the log file
-** is greater than sqlite3.pWalArg cast to an integer (the value configured by
+** The sqlite3_wal_hook() callback registered by sqlite3_wal_autocheckpoint(). |sqlite3_wal_hook()回调函数是由sqlite3_wal_autocheckpoint()注册的
+** Invoke sqlite3_wal_checkpoint if the number of frames in the log file	   |当frames的数量比sqlite3大时，调用sqlite3_wal_checkpoint()函数
+** is greater than sqlite3.pWalArg cast to an integer (the value configured by |将pWalArg强制转换为整型，pWalArg是由wal_autocheckpoint()这个函数确定的
 ** wal_autocheckpoint()).
 */ 
 int sqlite3WalDefaultHook(
-  void *pClientData,     /* Argument */
-  sqlite3 *db,           /* Connection */
-  const char *zDb,       /* Database */
-  int nFrame             /* Size of WAL */
+  void *pClientData,     /* Argument */	                                       /*声明*/
+  sqlite3 *db,           /* Connection */                                      /*数据库连接*/
+  const char *zDb,       /* Database */                                        /*数据库*/
+  int nFrame             /* Size of WAL */                                     /*WAL的大小*/
 ){
   if( nFrame>=SQLITE_PTR_TO_INT(pClientData) ){
-    sqlite3BeginBenignMalloc();
-    sqlite3_wal_checkpoint(db, zDb);
-    sqlite3EndBenignMalloc();
+    sqlite3BeginBenignMalloc();                                                /*开始分配内存*/
+    sqlite3_wal_checkpoint(db, zDb);                                           /*检查指针*/
+    sqlite3EndBenignMalloc();                                                  /*分配内存结束*/
   }
   return SQLITE_OK;
 }
 #endif /* SQLITE_OMIT_WAL */
 
-/*
-** Configure an sqlite3_wal_hook() callback to automatically checkpoint
-** a database after committing a transaction if there are nFrame or
-** more frames in the log file. Passing zero or a negative value as the
+/*  
+** Configure an sqlite3_wal_hook() callback to automatically checkpoint        |配置函数sqlite3_wal_hook(),如果日志文件中存在nFrame或跟多的nFrame时,
+** a database after committing a transaction if there are nFrame or			   |在事物提交之后，自动检查数据库事物提交之后
+** more frames in the log file. Passing zero or a negative value as the        |当nFrame是自动检查失败时传递0或者一个负数值  
 ** nFrame parameter disables automatic checkpoints entirely.
 **
-** The callback registered by this function replaces any existing callback
-** registered using sqlite3_wal_hook(). Likewise, registering a callback
+** The callback registered by this function replaces any existing callback	   |这个回调程序可以替代任何由sqlite3_wal_hook()注册的回调函数
+** registered using sqlite3_wal_hook(). Likewise, registering a callback	   |同样地，使用sqlite3_wal_hook()注册的回调程序可以使这个程序的自动检测配置失效
 ** using sqlite3_wal_hook() disables the automatic checkpoint mechanism
 ** configured by this function.
 */
-int sqlite3_wal_autocheckpoint(sqlite3 *db, int nFrame){
+int sqlite3_wal_autocheckpoint(sqlite3 *db, int nFrame){					   /*定义自动检测函数*/
 #ifdef SQLITE_OMIT_WAL
   UNUSED_PARAMETER(db);
   UNUSED_PARAMETER(nFrame);
@@ -1517,21 +1518,21 @@ int sqlite3_wal_autocheckpoint(sqlite3 *db, int nFrame){
 }
 
 /*
-** Register a callback to be invoked each time a transaction is written
+** Register a callback to be invoked each time a transaction is written	       |每当有一个事物写到当前连接数据库的写头日志时，注册一个回调程序
 ** into the write-ahead-log by this database connection.
 */
 void *sqlite3_wal_hook(
-  sqlite3 *db,                    /* Attach the hook to this db handle */
+  sqlite3 *db,                    /* Attach the hook to this db handle */      /*将hook附加到触发器上*/
   int(*xCallback)(void *, sqlite3*, const char*, int),
-  void *pArg                      /* First argument passed to xCallback() */
+  void *pArg                      /* First argument passed to xCallback() */   /*通过函数xCallback()的第一个声明*/
 ){
 #ifndef SQLITE_OMIT_WAL
   void *pRet;
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);											   /*线程安全：加锁保护*/
   pRet = db->pWalArg;
   db->xWalCallback = xCallback;
   db->pWalArg = pArg;
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                              /*处理完毕，解除封锁*/
   return pRet;
 #else
   return 0;
@@ -1539,24 +1540,24 @@ void *sqlite3_wal_hook(
 }
 
 /*
-** Checkpoint database zDb.
+** Checkpoint database zDb.                                                    /*检查数据库zDb*/
 */
 int sqlite3_wal_checkpoint_v2(
-  sqlite3 *db,                    /* Database handle */
-  const char *zDb,                /* Name of attached database (or NULL) */
-  int eMode,                      /* SQLITE_CHECKPOINT_* value */
-  int *pnLog,                     /* OUT: Size of WAL log in frames */
-  int *pnCkpt                     /* OUT: Total number of frames checkpointed */
+  sqlite3 *db,                    /* Database handle */                        /*数据库触发器*/
+  const char *zDb,                /* Name of attached database (or NULL) */    /*附加数据库的名称，可为空*/
+  int eMode,                      /* SQLITE_CHECKPOINT_* value */              /*SQLITE_CHECKPOINT_的值*/
+  int *pnLog,                     /* OUT: Size of WAL log in frames */         /*框架中日志文件的大小*/
+  int *pnCkpt                     /* OUT: Total number of frames checkpointed *//*框架检查结点的总个数*/
 ){
 #ifdef SQLITE_OMIT_WAL
   return SQLITE_OK;
 #else
-  int rc;                         /* Return code */
-  int iDb = SQLITE_MAX_ATTACHED;  /* sqlite3.aDb[] index of db to checkpoint */
+  int rc;                         /* Return code */                            /*返回编码*/
+  int iDb = SQLITE_MAX_ATTACHED;  /* sqlite3.aDb[] index of db to checkpoint *//*在sqlite3.aDb[]中的索引位置，整型*/
 
-  /* Initialize the output variables to -1 in case an error occurs. */
+  /* Initialize the output variables to -1 in case an error occurs. */         /*防止出错，初始化输出值默认为-1*/
   if( pnLog ) *pnLog = -1;
-  if( pnCkpt ) *pnCkpt = -1;
+  if( pnCkpt ) *pnCkpt = -1;												   /*完成初始化*/						
 
   assert( SQLITE_CHECKPOINT_FULL>SQLITE_CHECKPOINT_PASSIVE );
   assert( SQLITE_CHECKPOINT_FULL<SQLITE_CHECKPOINT_RESTART );
@@ -1565,27 +1566,27 @@ int sqlite3_wal_checkpoint_v2(
     return SQLITE_MISUSE;
   }
 
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);											   /*线程安全：加锁保护*/
   if( zDb && zDb[0] ){
     iDb = sqlite3FindDbName(db, zDb);
   }
   if( iDb<0 ){
     rc = SQLITE_ERROR;
-    sqlite3Error(db, SQLITE_ERROR, "unknown database: %s", zDb);
+    sqlite3Error(db, SQLITE_ERROR, "unknown database: %s", zDb);			   /*索引小于0时，报错*/
   }else{
-    rc = sqlite3Checkpoint(db, iDb, eMode, pnLog, pnCkpt);
-    sqlite3Error(db, rc, 0);
+    rc = sqlite3Checkpoint(db, iDb, eMode, pnLog, pnCkpt);  
+    sqlite3Error(db, rc, 0);                                                   
   }
   rc = sqlite3ApiExit(db, rc);
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                              /*处理完毕，解除封锁*/
   return rc;
 #endif
 }
 
 
 /*
-** Checkpoint database zDb. If zDb is NULL, or if the buffer zDb points
-** to contains a zero-length string, all attached databases are 
+** Checkpoint database zDb. If zDb is NULL, or if the buffer zDb points        |检查数据库ZDb，如果Zdb为空或者Zdb的缓冲区包含长度为0的字符串
+** to contains a zero-length string, all attached databases are				   |则所有附加的数据库都是检查点
 ** checkpointed.
 */
 int sqlite3_wal_checkpoint(sqlite3 *db, const char *zDb){
@@ -1594,28 +1595,28 @@ int sqlite3_wal_checkpoint(sqlite3 *db, const char *zDb){
 
 #ifndef SQLITE_OMIT_WAL
 /*
-** Run a checkpoint on database iDb. This is a no-op if database iDb is
+** Run a checkpoint on database iDb. This is a no-op if database iDb is        |在数据库iDb上运行checkpoint，当数据库iDb当前没有在WAL中出现时，不做任何操作
 ** not currently open in WAL mode.
 **
-** If a transaction is open on the database being checkpointed, this 
-** function returns SQLITE_LOCKED and a checkpoint is not attempted. If 
-** an error occurs while running the checkpoint, an SQLite error code is 
+** If a transaction is open on the database being checkpointed, this           |如果的虎踞哭处于检查状态时开启了一个事物
+** function returns SQLITE_LOCKED and a checkpoint is not attempted. If        |这个方法将返回数据库锁定(SQLITE_LOCKED)和尝试检查失败
+** an error occurs while running the checkpoint, an SQLite error code is       |如果在运行checkpoint时发生错误，将会返回SQLite错误码(SQLITE_IOERR),都则返回SQLITE_OK
 ** returned (i.e. SQLITE_IOERR). Otherwise, SQLITE_OK.
 **
-** The mutex on database handle db should be held by the caller. The mutex
-** associated with the specific b-tree being checkpointed is taken by
+** The mutex on database handle db should be held by the caller. The mutex     |访问数据库时应该获取数据库操作互斥信号量
+** associated with the specific b-tree being checkpointed is taken by          |当checkpoint处于运行状态时，与b_tree检测相关的互斥量需要被获取
 ** this function while the checkpoint is running.
 **
-** If iDb is passed SQLITE_MAX_ATTACHED, then all attached databases are
-** checkpointed. If an error is encountered it is returned immediately -
+** If iDb is passed SQLITE_MAX_ATTACHED, then all attached databases are       |如果iDb传递了数据库最大附加值(SQLITE_MAX_ATTACHED),则所有的附加数据库时检查过的。
+** checkpointed. If an error is encountered it is returned immediately -       |当有错误发生时，立即返回，不需做任何尝试去检查剩余的数据库
 ** no attempt is made to checkpoint any remaining databases.
 **
-** Parameter eMode is one of SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART.
+** Parameter eMode is one of SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART.       |eMode是SQLITE_CHECKPOINT_PASSIVE的一个参数，全部或者重新开始
 */
 int sqlite3Checkpoint(sqlite3 *db, int iDb, int eMode, int *pnLog, int *pnCkpt){
-  int rc = SQLITE_OK;             /* Return code */
-  int i;                          /* Used to iterate through attached dbs */
-  int bBusy = 0;                  /* True if SQLITE_BUSY has been encountered */
+  int rc = SQLITE_OK;             /* Return code */                            /*返回码*/
+  int i;                          /* Used to iterate through attached dbs */   /*迭代的附加数据库*/
+  int bBusy = 0;                  /* True if SQLITE_BUSY has been encountered *//*数据库忙，则赋值为真*/
 
   assert( sqlite3_mutex_held(db->mutex) );
   assert( !pnLog || *pnLog==-1 );
@@ -1623,7 +1624,7 @@ int sqlite3Checkpoint(sqlite3 *db, int iDb, int eMode, int *pnLog, int *pnCkpt){
 
   for(i=0; i<db->nDb && rc==SQLITE_OK; i++){
     if( i==iDb || iDb==SQLITE_MAX_ATTACHED ){
-      rc = sqlite3BtreeCheckpoint(db->aDb[i].pBt, eMode, pnLog, pnCkpt);
+      rc = sqlite3BtreeCheckpoint(db->aDb[i].pBt, eMode, pnLog, pnCkpt);       /*调用函数/方法sqlite3BtreeCheckpoint*/
       pnLog = 0;
       pnCkpt = 0;
       if( rc==SQLITE_BUSY ){
@@ -1638,14 +1639,14 @@ int sqlite3Checkpoint(sqlite3 *db, int iDb, int eMode, int *pnLog, int *pnCkpt){
 #endif /* SQLITE_OMIT_WAL */
 
 /*
-** This function returns true if main-memory should be used instead of
+** This function returns true if main-memory should be used instead of         |当使用主存而不是临时文件来保存临时页面和状态时，函数返回真
 ** a temporary file for transient pager files and statement journals.
-** The value returned depends on the value of db->temp_store (runtime
+** The value returned depends on the value of db->temp_store (runtime          |返回值依赖于参数db->temp和SQLITE_TEMP_STORE的编译时间。
 ** parameter) and the compile time value of SQLITE_TEMP_STORE. The
-** following table describes the relationship between these two values
+** following table describes the relationship between these two values		   |下面的表格描述了这两个值和函数返回值之间的关系
 ** and this functions return value.
 **
-**   SQLITE_TEMP_STORE     db->temp_store     Location of temporary database
+**   SQLITE_TEMP_STORE     db->temp_store     Location of temporary database   
 **   -----------------     --------------     ------------------------------
 **   0                     any                file      (return 0)
 **   1                     1                  file      (return 0)
@@ -1672,34 +1673,34 @@ int sqlite3TempInMemory(const sqlite3 *db){
 }
 
 /*
-** Return UTF-8 encoded English language explanation of the most recent
+** Return UTF-8 encoded English language explanation of the most recent        |返回最近发生错误的英语解释，编码合适为UTF-8格式
 ** error.
 */
-const char *sqlite3_errmsg(sqlite3 *db){
+const char *sqlite3_errmsg(sqlite3 *db){                                       /*定义数据库出错时返回的信息，类型为char*/
   const char *z;
   if( !db ){
-    return sqlite3ErrStr(SQLITE_NOMEM);
+    return sqlite3ErrStr(SQLITE_NOMEM);                                        /*数据库不存在*/
   }
-  if( !sqlite3SafetyCheckSickOrOk(db) ){
+  if( !sqlite3SafetyCheckSickOrOk(db) ){                                       /*安全检查*/
     return sqlite3ErrStr(SQLITE_MISUSE_BKPT);
   }
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);                                              /*线程安全：加锁保护*/
   if( db->mallocFailed ){
     z = sqlite3ErrStr(SQLITE_NOMEM);
   }else{
     z = (char*)sqlite3_value_text(db->pErr);
-    assert( !db->mallocFailed );
+    assert( !db->mallocFailed );                                               /*分配内存失败*/
     if( z==0 ){
       z = sqlite3ErrStr(db->errCode);
     }
   }
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                              /*处理完毕，解除封锁*/
   return z;
 }
 
 #ifndef SQLITE_OMIT_UTF16
 /*
-** Return UTF-16 encoded English language explanation of the most recent
+** Return UTF-16 encoded English language explanation of the most recent       |返回最近发生错误的英语解释，编码合适为UTF-16格式  
 ** error.
 */
 const void *sqlite3_errmsg16(sqlite3 *db){
@@ -1722,7 +1723,7 @@ const void *sqlite3_errmsg16(sqlite3 *db){
   if( !sqlite3SafetyCheckSickOrOk(db) ){
     return (void *)misuse;
   }
-  sqlite3_mutex_enter(db->mutex);
+  sqlite3_mutex_enter(db->mutex);                                              /*线程安全：加锁保护*/
   if( db->mallocFailed ){
     z = (void *)outOfMem;
   }else{
@@ -1732,21 +1733,21 @@ const void *sqlite3_errmsg16(sqlite3 *db){
            SQLITE_UTF8, SQLITE_STATIC);
       z = sqlite3_value_text16(db->pErr);
     }
-    /* A malloc() may have failed within the call to sqlite3_value_text16()
-    ** above. If this is the case, then the db->mallocFailed flag needs to
-    ** be cleared before returning. Do this directly, instead of via
+    /* A malloc() may have failed within the call to sqlite3_value_text16()    |当调用上面的sqlite3_value_text16()函数时，可能会发生内存分配malloc()失败的情况
+    ** above. If this is the case, then the db->mallocFailed flag needs to     |如果发生了这种情况，则在返回之前需要清理db->mallocFailed 标志；
+    ** be cleared before returning. Do this directly, instead of via           |直接做这个操作，而不是通过sqlite3ApiExit()，以此避免设置数据库句柄
     ** sqlite3ApiExit(), to avoid setting the database handle error message.
     */
     db->mallocFailed = 0;
   }
-  sqlite3_mutex_leave(db->mutex);
+  sqlite3_mutex_leave(db->mutex);                                              /*处理完毕，解除封锁*/
   return z;
 }
 #endif /* SQLITE_OMIT_UTF16 */
 
 /*
-** Return the most recent error code generated by an SQLite routine. If NULL is
-** passed to this function, we assume a malloc() failed during sqlite3_open().
+** Return the most recent error code generated by an SQLite routine. If NULL is|返回由SQLite程序最近产生的错误代码
+** passed to this function, we assume a malloc() failed during sqlite3_open(). |如果为NULL，则认为在执行sqlite3_open()时内存分配失败
 */
 int sqlite3_errcode(sqlite3 *db){
   if( db && !sqlite3SafetyCheckSickOrOk(db) ){
@@ -1768,30 +1769,30 @@ int sqlite3_extended_errcode(sqlite3 *db){
 }
 
 /*
-** Create a new collating function for database "db".  The name is zName
+** Create a new collating function for database "db".  The name is zName       |为数据库db创建一个新的回收函数，名称为zName，编码格式为enc
 ** and the encoding is enc.
 */
-static int createCollation(
+static int createCollation(                                                    /*定义一个静态的函数*/
   sqlite3* db,
   const char *zName, 
-  u8 enc,
+  u8 enc,                                                                      /*编码格式utf-8*/
   void* pCtx,
   int(*xCompare)(void*,int,const void*,int,const void*),
   void(*xDel)(void*)
 ){
   CollSeq *pColl;
   int enc2;
-  int nName = sqlite3Strlen30(zName);
+  int nName = sqlite3Strlen30(zName); 
   
   assert( sqlite3_mutex_held(db->mutex) );
 
-  /* If SQLITE_UTF16 is specified as the encoding type, transform this
+  /* If SQLITE_UTF16 is specified as the encoding type, transform this         |如果SQLITE_UTF16是指定的编码格式。通过SQLITE_UTF16NATIVE将其转换为SQLITE_UTF16LE或SQLITE_UTF16BE格式
   ** to one of SQLITE_UTF16LE or SQLITE_UTF16BE using the
-  ** SQLITE_UTF16NATIVE macro. SQLITE_UTF16 is not used internally.
+  ** SQLITE_UTF16NATIVE macro. SQLITE_UTF16 is not used internally.            |SQLITE_UTF16并不在函数内部使用
   */
   enc2 = enc;
-  testcase( enc2==SQLITE_UTF16 );
-  testcase( enc2==SQLITE_UTF16_ALIGNED );
+  testcase( enc2==SQLITE_UTF16 );                                              /*检测编码格式是否为SQLITE_UTF16*/
+  testcase( enc2==SQLITE_UTF16_ALIGNED );                                      /*检测格式是否为SQLITE_UTF16_ALIGNED*/
   if( enc2==SQLITE_UTF16 || enc2==SQLITE_UTF16_ALIGNED ){
     enc2 = SQLITE_UTF16NATIVE;
   }
@@ -1799,9 +1800,9 @@ static int createCollation(
     return SQLITE_MISUSE_BKPT;
   }
 
-  /* Check if this call is removing or replacing an existing collation 
-  ** sequence. If so, and there are active VMs, return busy. If there
-  ** are no active VMs, invalidate any pre-compiled statements.
+  /* Check if this call is removing or replacing an existing collation         |检查这个调用是否已经被移出或者替代了一个已经存在的回收序列。 
+  ** sequence. If so, and there are active VMs, return busy. If there          |如果是的话，并且没有激活的虚拟机，返回busy
+  ** are no active VMs, invalidate any pre-compiled statements.                |若果没有激活的虚拟机，所有预编译不可用
   */
   pColl = sqlite3FindCollSeq(db, (u8)enc2, zName, 0);
   if( pColl && pColl->xCmp ){
@@ -1812,10 +1813,10 @@ static int createCollation(
     }
     sqlite3ExpirePreparedStatements(db);
 
-    /* If collation sequence pColl was created directly by a call to
-    ** sqlite3_create_collation, and not generated by synthCollSeq(),
-    ** then any copies made by synthCollSeq() need to be invalidated.
-    ** Also, collation destructor - CollSeq.xDel() - function may need
+    /* If collation sequence pColl was created directly by a call to           |如果回收序列pColl是由sqlite3_create_collation直接创建调用的，而不是由synthCollSeq()产生的。
+    ** sqlite3_create_collation, and not generated by synthCollSeq(),          
+    ** then any copies made by synthCollSeq() need to be invalidated.          |则所有由synthCollSeq()产生的副本都不可用
+    ** Also, collation destructor - CollSeq.xDel() - function may need         |同样，回收析构函数-CollSeq.xDel()可能需要被调用
     ** to be called.
     */ 
     if( (pColl->enc & ~SQLITE_UTF16_ALIGNED)==enc2 ){
@@ -1845,14 +1846,14 @@ static int createCollation(
 
 
 /*
-** This array defines hard upper bounds on limit values.  The
-** initializer must be kept in sync with the SQLITE_LIMIT_*
-** #defines in sqlite3.h.
+** This array defines hard upper bounds on limit values.  The                  |这些数列的定义是用来约束受限值的。
+** initializer must be kept in sync with the SQLITE_LIMIT_*                    |初始化时必须与SQLITE_LIMIT_*保持同步
+** #defines in sqlite3.h.                                                      |具体定义包含在头文件sqlite3.h中
 */
 static const int aHardLimit[] = {
-  SQLITE_MAX_LENGTH,
-  SQLITE_MAX_SQL_LENGTH,
-  SQLITE_MAX_COLUMN,
+  SQLITE_MAX_LENGTH,                                                           /*最大长度*/
+  SQLITE_MAX_SQL_LENGTH,                                                       /*SQL语句最大长度*/
+  SQLITE_MAX_COLUMN,                                                           /*最多列数*/
   SQLITE_MAX_EXPR_DEPTH,
   SQLITE_MAX_COMPOUND_SELECT,
   SQLITE_MAX_VDBE_OP,
@@ -1864,12 +1865,12 @@ static const int aHardLimit[] = {
 };
 
 /*
-** Make sure the hard limits are set to reasonable values
+** Make sure the hard limits are set to reasonable values                      /*确保这些固定的限制值是合理的*/
 */
-#if SQLITE_MAX_LENGTH<100
+#if SQLITE_MAX_LENGTH<100                                                      /*最大长度小于100，给出警告信息SQLITE_MAX_LENGTH must be at least 100*/
 # error SQLITE_MAX_LENGTH must be at least 100
 #endif
-#if SQLITE_MAX_SQL_LENGTH<100
+#if SQLITE_MAX_SQL_LENGTH<100                                                  /*SQL长度最少为100*/                     
 # error SQLITE_MAX_SQL_LENGTH must be at least 100
 #endif
 #if SQLITE_MAX_SQL_LENGTH>SQLITE_MAX_LENGTH
@@ -1899,22 +1900,22 @@ static const int aHardLimit[] = {
 
 
 /*
-** Change the value of a limit.  Report the old value.
-** If an invalid limit index is supplied, report -1.
-** Make no changes but still report the old value if the
+** Change the value of a limit.  Report the old value.                         |改变限制值，报告旧的约束值
+** If an invalid limit index is supplied, report -1.                           |如果一个有效的约束索引是支持的，报告为-1
+** Make no changes but still report the old value if the                       |当新的约束值是负值时，不做任何改变且报告旧值
 ** new limit is negative.
 **
-** A new lower limit does not shrink existing constructs.
-** It merely prevents new constructs that exceed the limit
+** A new lower limit does not shrink existing constructs.                      |一个新的比较低的限制不会缩小原有的构造器
+** It merely prevents new constructs that exceed the limit                     |它仅仅阻止新的构造器超过已经形成的限制
 ** from forming.
 */
-int sqlite3_limit(sqlite3 *db, int limitId, int newLimit){
+int sqlite3_limit(sqlite3 *db, int limitId, int newLimit){                     /*定义限制函数*/
   int oldLimit;
 
 
-  /* EVIDENCE-OF: R-30189-54097 For each limit category SQLITE_LIMIT_NAME
-  ** there is a hard upper bound set at compile-time by a C preprocessor
-  ** macro called SQLITE_MAX_NAME. (The "_LIMIT_" in the name is changed to
+  /* EVIDENCE-OF: R-30189-54097 For each limit category SQLITE_LIMIT_NAME      |对于每一个受限制的类别SQLITE_LIMIT_NAME
+  ** there is a hard upper bound set at compile-time by a C preprocessor       |通过一个被C处理器宏调用SQLITE_MAX_NAME在其编译时间里确定一个固定的上限
+  ** macro called SQLITE_MAX_NAME. (The "_LIMIT_" in the name is changed to    |命名中的“_LIMIT_”会被改为“_MAX_”
   ** "_MAX_".)
   */
   assert( aHardLimit[SQLITE_LIMIT_LENGTH]==SQLITE_MAX_LENGTH );
@@ -1946,36 +1947,36 @@ int sqlite3_limit(sqlite3 *db, int limitId, int newLimit){
 }
 
 /*
-** This function is used to parse both URIs and non-URI filenames passed by the
+** This function is used to parse both URIs and non-URI filenames passed by the     |不管是通过sqlite3_open()的接口产生的的URIs还是sqlite3_open_v2()产生的非URI都可以用这个函数来解析
 ** user to API functions sqlite3_open() or sqlite3_open_v2(), and for database
-** URIs specified as part of ATTACH statements.
+** URIs specified as part of ATTACH statements.                                     |且在数据库中URIs被当做附加声明的一部分
 **
-** The first argument to this function is the name of the VFS to use (or
-** a NULL to signify the default VFS) if the URI does not contain a "vfs=xxx"
-** query parameter. The second argument contains the URI (or non-URI filename)
-** itself. When this function is called the *pFlags variable should contain
-** the default flags to open the database handle with. The value stored in
+** The first argument to this function is the name of the VFS to use (or            |如果URI不包含"vfs=xxx"的查询参数对这个方法的第一个声明是VFS的命名（或默认VFS的NULL值）
+** a NULL to signify the default VFS) if the URI does not contain a "vfs=xxx"       |
+** query parameter. The second argument contains the URI (or non-URI filename)      |第二个声明包含URI或非URI文件名
+** itself. When this function is called the *pFlags variable should contain         |当这个方法调用*pFlags时应该包含默认的标记来打开数据库句柄
+** the default flags to open the database handle with. The value stored in          |如果URI文件名中包含"cache=xxx" 或 "mode=xxx"查询参数时， 则在*pFlags中保存的值在返回时可能需要更新                
 ** *pFlags may be updated before returning if the URI filename contains 
 ** "cache=xxx" or "mode=xxx" query parameters.
 **
-** If successful, SQLITE_OK is returned. In this case *ppVfs is set to point to
-** the VFS that should be used to open the database file. *pzFile is set to
-** point to a buffer containing the name of the file to open. It is the 
-** responsibility of the caller to eventually call sqlite3_free() to release
+** If successful, SQLITE_OK is returned. In this case *ppVfs is set to point to     |如果成功，返回SQLITE_OK
+** the VFS that should be used to open the database file. *pzFile is set to         |在这里*ppVfs用来指向应该被用来打开数据库文件的的VFS
+** point to a buffer containing the name of the file to open. It is the             |*pzFile用来指向包含打开文件名的缓冲区
+** responsibility of the caller to eventually call sqlite3_free() to release        |最后应该调用sqlite3_free() 函数来清除这个缓冲区
 ** this buffer.
 **
-** If an error occurs, then an SQLite error code is returned and *pzErrMsg
-** may be set to point to a buffer containing an English language error 
-** message. It is the responsibility of the caller to eventually release
+** If an error occurs, then an SQLite error code is returned and *pzErrMsg          |如果发生错误
+** may be set to point to a buffer containing an English language error             |返回SQLite错误码，并且*pzErrMsg应该指向包含英语错误提示的缓冲区
+** message. It is the responsibility of the caller to eventually release            |最后应该调用sqlite3_free() 函数来清除这个缓冲区
 ** this buffer by calling sqlite3_free().
 */
-int sqlite3ParseUri(
-  const char *zDefaultVfs,        /* VFS to use if no "vfs=xxx" query option */
-  const char *zUri,               /* Nul-terminated URI to parse */
-  unsigned int *pFlags,           /* IN/OUT: SQLITE_OPEN_XXX flags */
-  sqlite3_vfs **ppVfs,            /* OUT: VFS to use */ 
-  char **pzFile,                  /* OUT: Filename component of URI */
-  char **pzErrMsg                 /* OUT: Error message (if rc!=SQLITE_OK) */
+int sqlite3ParseUri(                                                                /*解析URI*/
+  const char *zDefaultVfs,        /* VFS to use if no "vfs=xxx" query option */     /*如果包含"vfs=xxx"查询选项，则使用VFS*/
+  const char *zUri,               /* Nul-terminated URI to parse */                 /*没有URI需要解析*/
+  unsigned int *pFlags,           /* IN/OUT: SQLITE_OPEN_XXX flags */               /*输入输出：SQLITE_OPEN_XXX 标志*/
+  sqlite3_vfs **ppVfs,            /* OUT: VFS to use */                             /*输出：使用VFS*/
+  char **pzFile,                  /* OUT: Filename component of URI */              /*输出：URI的文件名成分*/
+  char **pzErrMsg                 /* OUT: Error message (if rc!=SQLITE_OK) */       /*输出：当rc!=SQLITE_OK，输出错误信息*/
 ){
   int rc = SQLITE_OK;
   unsigned int flags = *pFlags;
@@ -1990,12 +1991,12 @@ int sqlite3ParseUri(
    && nUri>=5 && memcmp(zUri, "file:", 5)==0 
   ){
     char *zOpt;
-    int eState;                   /* Parser state when parsing URI */
-    int iIn;                      /* Input character index */
-    int iOut = 0;                 /* Output character index */
-    int nByte = nUri+2;           /* Bytes of space to allocate */
+    int eState;                   /* Parser state when parsing URI */               /*加载URI的加载状态*/
+    int iIn;                      /* Input character index */                       /*输入特征索引*/
+    int iOut = 0;                 /* Output character index */                      /*输出特征索引*/
+    int nByte = nUri+2;           /* Bytes of space to allocate */                  /*分配的字节空间数*/
 
-    /* Make sure the SQLITE_OPEN_URI flag is set to indicate to the VFS xOpen 
+    /* Make sure the SQLITE_OPEN_URI flag is set to indicate to the VFS xOpen       |确保SQLITE_OPEN_URI标志是用来表示VFS的方法xOpen，可能有额外的参数连接在文件名后
     ** method that there may be extra parameters following the file-name.  */
     flags |= SQLITE_OPEN_URI;
 
