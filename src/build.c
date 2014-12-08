@@ -2999,30 +2999,30 @@ void sqlite3DefaultRowEst(Index *pIdx){
 ** implements the DROP INDEX statement.
 */
 void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
-  Index *pIndex;
+  Index *pIndex;//定义一个指针
   Vdbe *v;
-  sqlite3 *db = pParse->db;
+  sqlite3 *db = pParse->db;//指针赋值
   int iDb;
 
-  assert( pParse->nErr==0 );   /* Never called with prior errors */
+  assert(pParse->nErr == 0);   /* Never called with prior errors *///之前从来没有使用错误
   if( db->mallocFailed ){
-    goto exit_drop_index;
+    goto exit_drop_index;//
   }
-  assert( pName->nSrc==1 );
+  assert( pName->nSrc==1 );//判断是否为1
   if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){
-    goto exit_drop_index;
+    goto exit_drop_index;//转到exit_drop_index文件
   }
   pIndex = sqlite3FindIndex(db, pName->a[0].zName, pName->a[0].zDatabase);
-  if( pIndex==0 ){
-    if( !ifExists ){
+  if( pIndex==0 ){//判断是否为0
+    if( !ifExists ){//如果成立执行
       sqlite3ErrorMsg(pParse, "no such index: %S", pName, 0);
-    }else{
+    }else{//否则
       sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);
     }
     pParse->checkSchema = 1;
     goto exit_drop_index;
   }
-  if( pIndex->autoIndex ){
+  if( pIndex->autoIndex ){//如果pIndex->autoIndex为真
     sqlite3ErrorMsg(pParse, "index associated with UNIQUE "
       "or PRIMARY KEY constraint cannot be dropped", 0);
     goto exit_drop_index;
@@ -3031,9 +3031,9 @@ void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
 #ifndef SQLITE_OMIT_AUTHORIZATION
   {
     int code = SQLITE_DROP_INDEX;
-    Table *pTab = pIndex->pTable;
-    const char *zDb = db->aDb[iDb].zName;
-    const char *zTab = SCHEMA_TABLE(iDb);
+    Table *pTab = pIndex->pTable;//定义一个表指针pTab 
+    const char *zDb = db->aDb[iDb].zName;//常变量
+    const char *zTab = SCHEMA_TABLE(iDb);//常变量
     if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb) ){
       goto exit_drop_index;
     }
@@ -3044,7 +3044,7 @@ void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
   }
 #endif
 
-  /* Generate code to remove the index and from the master table */
+  /* Generate code to remove the index and from the master table *///生成代码来从主表中删除索引
   v = sqlite3GetVdbe(pParse);
   if( v ){
     sqlite3BeginWriteOperation(pParse, 1, iDb);
@@ -3063,28 +3063,28 @@ exit_drop_index:
 }
 
 /*
-** pArray is a pointer to an array of objects. Each object in the
-** array is szEntry bytes in size. This routine uses sqlite3DbRealloc()
+** pArray is a pointer to an array of objects. Each object in the//pArray是指向一个对象数组的指针，而且数组中的每个对象szEntry字节的大小。
+** array is szEntry bytes in size. This routine uses sqlite3DbRealloc()//这个程序使用了 sqlite3DbRealloc()去扩展数组的大小从而使得在最后对于新的对象还有新的空间。
 ** to extend the array so that there is space for a new object at the end.
 **
-** When this function is called, *pnEntry contains the current size of
+** When this function is called, *pnEntry contains the current size of//当调用这个函数时，*pnEntry包含当前数组的大小（*pnEntry进行分配）
 ** the array (in entries - so the allocation is ((*pnEntry) * szEntry) bytes
-** in total).
+** in total).//总的来说
 **
-** If the realloc() is successful (i.e. if no OOM condition occurs), the
-** space allocated for the new object is zeroed, *pnEntry updated to
+** If the realloc() is successful (i.e. if no OOM condition occurs), the//如果realloc函数调用成功（没有OOM条件发生的话），
+** space allocated for the new object is zeroed, *pnEntry updated to//分配新对象的空间大小为零，*pnEntry就指向数组的新空间，返回一个指针，指向新的分配空间首地址
 ** reflect the new size of the array and a pointer to the new allocation
-** returned. *pIdx is set to the index of the new array entry in this case.
+** returned. *pIdx is set to the index of the new array entry in this case.//*pIdx 设置为新数组的索引条目。
 **
-** Otherwise, if the realloc() fails, *pIdx is set to -1, *pnEntry remains
+** Otherwise, if the realloc() fails, *pIdx is set to -1, *pnEntry remains另外，如果调用realloc()函数失败，*pIdx返回-1，保持 指针*pnEntry不变，复制 pArray并且返回指向的指针。
 ** unchanged and a copy of pArray returned.
 */
 void *sqlite3ArrayAllocate(
-  sqlite3 *db,      /* Connection to notify of malloc failures */
-  void *pArray,     /* Array of objects.  Might be reallocated */
-  int szEntry,      /* Size of each object in the array */
-  int *pnEntry,     /* Number of objects currently in use */
-  int *pIdx         /* Write the index of a new slot here */
+	sqlite3 *db,      /* Connection to notify of malloc failures *///联系到malloc函数错误的通知。
+  void *pArray,     /* Array of objects.  Might be reallocated *///对象数组。可能被重新分配。
+  int szEntry,      /* Size of each object in the array *///表示为数组中的每个对象的大小。
+  int *pnEntry,     /* Number of objects currently in use *///用整数指针代表目前使用的对象数。
+  int *pIdx         /* Write the index of a new slot here *///写索引。
 ){
   char *z;
   int n = *pnEntry;
@@ -3105,10 +3105,10 @@ void *sqlite3ArrayAllocate(
 }
 
 /*
-** Append a new element to the given IdList.  Create a new IdList if
+** Append a new element to the given IdList.  Create a new IdList if//在给定的IdList添加一个新元素。如果需要的话建立一个新的IdList。
 ** need be.
 **
-** A new IdList is returned, or NULL if malloc() fails.
+** A new IdList is returned, or NULL if malloc() fails.//如果调用malloc函数后要么返回一个新的IdList，要么返回一个空值。
 */
 IdList *sqlite3IdListAppend(sqlite3 *db, IdList *pList, Token *pToken){
   int i;
@@ -3132,7 +3132,7 @@ IdList *sqlite3IdListAppend(sqlite3 *db, IdList *pList, Token *pToken){
 }
 
 /*
-** Delete an IdList.
+** Delete an IdList.//删除一个IdList。
 */
 void sqlite3IdListDelete(sqlite3 *db, IdList *pList){
   int i;
@@ -3145,8 +3145,8 @@ void sqlite3IdListDelete(sqlite3 *db, IdList *pList){
 }
 
 /*
-** Return the index in pList of the identifier named zId.  Return -1
-** if not found.
+** Return the index in pList of the identifier named zId.  Return -1//返回 名为zId的标示符中的pList的索引。返回-1值。
+** if not found.//如果没有建立。
 */
 int sqlite3IdListIndex(IdList *pList, const char *zName){
   int i;
@@ -3158,39 +3158,39 @@ int sqlite3IdListIndex(IdList *pList, const char *zName){
 }
 
 /*
-** Expand the space allocated for the given SrcList object by
-** creating nExtra new slots beginning at iStart.  iStart is zero based.
-** New slots are zeroed.
+** Expand the space allocated for the given SrcList object by//通过在iStart创建nExtra 开始，扩大所给SrcList object空间。
+** creating nExtra new slots beginning at iStart.  iStart is zero based.//iStart零基础。
+** New slots are zeroed.//新的slots全置零。
 **
-** For example, suppose a SrcList initially contains two entries: A,B.
-** To append 3 new entries onto the end, do this:
+** For example, suppose a SrcList initially contains two entries: A,B.//例如,假设一个SrcList最初包含两个条目:A，B。
+** To append 3 new entries onto the end, do this://在结束时，添加3个新条目。
 **
-**    sqlite3SrcListEnlarge(db, pSrclist, 3, 2);
+**    sqlite3SrcListEnlarge(db, pSrclist, 3, 2);//声明sqlite3SrcListEnlarge(db, pSrclist, 3, 2)。
 **
-** After the call above it would contain:  A, B, nil, nil, nil.
-** If the iStart argument had been 1 instead of 2, then the result
-** would have been:  A, nil, nil, nil, B.  To prepend the new slots,
-** the iStart value would be 0.  The result then would
+** After the call above it would contain:  A, B, nil, nil, nil.//在上面的调用将包含:A、B,零,零,零。
+** If the iStart argument had been 1 instead of 2, then the result//如果参数一直1而不是2 ，那么结果将是A，0,0,0，B.
+** would have been:  A, nil, nil, nil, B.  To prepend the new slots,//要在前面加上了新的slots，iStart值是0。
+** the iStart value would be 0.  The result then would//然后这个结果将为0,0,0，A，B。
 ** be: nil, nil, nil, A, B.
 **
-** If a memory allocation fails the SrcList is unchanged.  The
-** db->mallocFailed flag will be set to true.
+** If a memory allocation fails the SrcList is unchanged.  The//如果内存分配失败的SrcList不变。
+** db->mallocFailed flag will be set to true.//将DB- > mallocFailed标志设置为true。
 */
 SrcList *sqlite3SrcListEnlarge(
-  sqlite3 *db,       /* Database connection to notify of OOM errors */
-  SrcList *pSrc,     /* The SrcList to be enlarged */
-  int nExtra,        /* Number of new slots to add to pSrc->a[] */
-  int iStart         /* Index in pSrc->a[] of first new slot */
+  sqlite3 *db,       /* Database connection to notify of OOM errors *///数据库连接通知OOM错误。
+  SrcList *pSrc,     /* The SrcList to be enlarged *///该SrcList待放大。
+  int nExtra,        /* Number of new slots to add to pSrc->a[] *///新的slots数量添加到pSrc- > a[ ]中。
+  int iStart         /* Index in pSrc->a[] of first new slot *///在第一个slot中的pSrc->a[]设置索引
 ){
   int i;
 
-  /* Sanity checking on calling parameters */
+  /* Sanity checking on calling parameters *///检查在调用参数时。
   assert( iStart>=0 );
   assert( nExtra>=1 );
   assert( pSrc!=0 );
   assert( iStart<=pSrc->nSrc );
 
-  /* Allocate additional space if needed */
+  /* Allocate additional space if needed *///如果需要，分配额外的空间。
   if( pSrc->nSrc+nExtra>pSrc->nAlloc ){
     SrcList *pNew;
     int nAlloc = pSrc->nSrc+nExtra;
@@ -3206,66 +3206,68 @@ SrcList *sqlite3SrcListEnlarge(
     pSrc->nAlloc = (u16)nGot;
   }
 
-  /* Move existing slots that come after the newly inserted slots
+  /* Move existing slots that come after the newly inserted slots//将新插入slots代替现有的slots。
+
   ** out of the way */
   for(i=pSrc->nSrc-1; i>=iStart; i--){
     pSrc->a[i+nExtra] = pSrc->a[i];
   }
   pSrc->nSrc += (i16)nExtra;
 
-  /* Zero the newly allocated slots */
+  /* Zero the newly allocated slots *///将新分配的slots置为0。
   memset(&pSrc->a[iStart], 0, sizeof(pSrc->a[0])*nExtra);
   for(i=iStart; i<iStart+nExtra; i++){
     pSrc->a[i].iCursor = -1;
   }
 
-  /* Return a pointer to the enlarged SrcList */
+  /* Return a pointer to the enlarged SrcList *///返回一个指向放大SrcList的指针。
   return pSrc;
 }
 
 
 /*
-** Append a new table name to the given SrcList.  Create a new SrcList if
-** need be.  A new entry is created in the SrcList even if pTable is NULL.
+** Append a new table name to the given SrcList.  Create a new SrcList if//追加新的表名到给定SrcList。如果需要的话创建一个新的SrcList。
+** need be.  A new entry is created in the SrcList even if pTable is NULL.//即使PTABLE是NULL，在SrcList创建新条目。
 **
-** A SrcList is returned, or NULL if there is an OOM error.  The returned
-** SrcList might be the same as the SrcList that was input or it might be
-** a new one.  If an OOM error does occurs, then the prior value of pList
+** A SrcList is returned, or NULL if there is an OOM error.  The returned//如果有错误OOM，返回一个SrcList，或NULL。
+** SrcList might be the same as the SrcList that was input or it might be//SrcList可能是相同的，这是输入SrcList或者它可能是一个新的。
+** a new one.  If an OOM error does occurs, then the prior value of pList//如果确实发生了OOM错误， 则自动释放plist中的被输入到本程序前一个值。
 ** that is input to this routine is automatically freed.
 **
-** If pDatabase is not null, it means that the table has an optional
-** database name prefix.  Like this:  "database.table".  The pDatabase
-** points to the table name and the pTable points to the database name.
-** The SrcList.a[].zName field is filled with the table name which might
+** If pDatabase is not null, it means that the table has an optional//如果pDatabase不为空，则意味着该表有一个可选的数据库名称前缀。
+** database name prefix.  Like this:  "database.table".  The pDatabase//像这样："database.table"。
+** points to the table name and the pTable points to the database name.//所述pDatabase指向表名，Ptable指向数据库名称。
+** The SrcList.a[].zName field is filled with the table name which might//所述SrcList.a []。 zName字段填充有表名可能来自PTABLE （如果pDatabase为NULL ）或者从pDatabase（如果pDatabase 是空的话）。
 ** come from pTable (if pDatabase is NULL) or from pDatabase.  
-** SrcList.a[].zDatabase is filled with the database name from pTable,
+** SrcList.a[].zDatabase is filled with the database name from pTable,// 从PTABLE 中填充zDatabase数据库名，如果没有指定数据库用NULL。
 ** or with NULL if no database is specified.
 **
-** In other words, if call like this:
+** In other words, if call like this://换句话说，如果像这样。
 **
 **         sqlite3SrcListAppend(D,A,B,0);
 **
-** Then B is a table name and the database name is unspecified.  If called
-** like this:
+** Then B is a table name and the database name is unspecified.  If called//那么B是一个表名和数据库名是不确定的。
+
+** like this://如果像这样：
 **
 **         sqlite3SrcListAppend(D,A,B,C);
 **
-** Then C is the table name and B is the database name.  If C is defined
-** then so is B.  In other words, we never have a case where:
+** Then C is the table name and B is the database name.  If C is defined//那么C是表名和B是数据库名称。
+** then so is B.  In other words, we never have a case where://如果C被定义，那么这样是B。换句话说，我们从来没有的情况下：
 **
 **         sqlite3SrcListAppend(D,A,0,C);
 **
-** Both pTable and pDatabase are assumed to be quoted.  They are dequoted
-** before being added to the SrcList.
+** Both pTable and pDatabase are assumed to be quoted.  They are dequoted//无论PTABLE和pDatabase假设被引用。
+** before being added to the SrcList.//它们被加入到SrcList之前未用引号引起。
 */
 SrcList *sqlite3SrcListAppend(
-  sqlite3 *db,        /* Connection to notify of malloc failures */
-  SrcList *pList,     /* Append to this SrcList. NULL creates a new SrcList */
-  Token *pTable,      /* Table to append */
-  Token *pDatabase    /* Database of the table */
+  sqlite3 *db,        /* Connection to notify of malloc failures *///连接通知失败的malloc。
+  SrcList *pList,     /* Append to this SrcList. NULL creates a new SrcList *///追加到此SrcList 。 NULL创建一个新的SrcList。
+  Token *pTable,      /* Table to append *///追加表
+  Token *pDatabase    /* Database of the table *///表中的数据库
 ){
   struct SrcList_item *pItem;
-  assert( pDatabase==0 || pTable!=0 );  /* Cannot have C without B */
+  assert( pDatabase==0 || pTable!=0 );  /* Cannot have C without B *///没有哦B时不能有C
   if( pList==0 ){
     pList = sqlite3DbMallocZero(db, sizeof(SrcList) );
     if( pList==0 ) return 0;
@@ -3291,7 +3293,7 @@ SrcList *sqlite3SrcListAppend(
 }
 
 /*
-** Assign VdbeCursor index numbers to all tables in a SrcList
+** Assign VdbeCursor index numbers to all tables in a SrcList//在SrcList中所有表分配VdbeCursor索引号。
 */
 void sqlite3SrcListAssignCursors(Parse *pParse, SrcList *pList){
   int i;
@@ -3309,7 +3311,7 @@ void sqlite3SrcListAssignCursors(Parse *pParse, SrcList *pList){
 }
 
 /*
-** Delete an entire SrcList including all its substructure.
+** Delete an entire SrcList including all its substructure.//删除整个SrcList包括其所有子。
 */
 void sqlite3SrcListDelete(sqlite3 *db, SrcList *pList){
   int i;
@@ -3329,30 +3331,29 @@ void sqlite3SrcListDelete(sqlite3 *db, SrcList *pList){
 }
 
 /*
-** This routine is called by the parser to add a new term to the
-** end of a growing FROM clause.  The "p" parameter is the part of
-** the FROM clause that has already been constructed.  "p" is NULL
-** if this is the first term of the FROM clause.  pTable and pDatabase
+** This routine is called by the parser to add a new term to the//这个程序被一个新的名词加入到调用解析器中。
+** end of a growing FROM clause.  The "p" parameter is the part of//在“P”参数在FROM子句部分已建成。
+** the FROM clause that has already been constructed.  "p" is NULL//如果这是在FROM子句中的第一项“P”是NULL 。
+** if this is the first term of the FROM clause.  pTable and pDatabase//从FROM子句中短期的名字，PTABLE和pDatabase是表和数据库的命名。
 ** are the name of the table and database named in the FROM clause term.
-** pDatabase is NULL if the database name qualifier is missing - the
-** usual case.  If the term has a alias, then pAlias points to the
-** alias token.  If the term is a subquery, then pSubquery is the
-** SELECT statement that the subquery encodes.  The pTable and
-** pDatabase parameters are NULL for subqueries.  The pOn and pUsing
+** pDatabase is NULL if the database name qualifier is missing - the//通常情况下，如果数据库名称限定丢失，pDatabase是NULL 。
+** usual case.  If the term has a alias, then pAlias points to the//如果长期有一个别名，然后pAlias​​指向别名令牌。
+** alias token.  If the term is a subquery, then pSubquery is the//如果长期是一个子查询，那么pSubquery是SELECT语句的子查询编码。
+** SELECT statement that the subquery encodes.  The pTable and//该PTABLE和pDatabase参数是NULL的子查询。
+** pDatabase parameters are NULL for subqueries.  The pOn and pUsing//在PON和参数Pusing是使用条款的内容。
 ** parameters are the content of the ON and USING clauses.
-**
-** Return a new SrcList which encodes is the FROM with the new
+** Return a new SrcList which encodes is the FROM with the new/从与新一届中增加返回一个新的SrcList编码。
 ** term added.
 */
 SrcList *sqlite3SrcListAppendFromTerm(
-  Parse *pParse,          /* Parsing context */
-  SrcList *p,             /* The left part of the FROM clause already seen */
-  Token *pTable,          /* Name of the table to add to the FROM clause */
-  Token *pDatabase,       /* Name of the database containing pTable */
-  Token *pAlias,          /* The right-hand side of the AS subexpression */
-  Select *pSubquery,      /* A subquery used in place of a table name */
-  Expr *pOn,              /* The ON clause of a join */
-  IdList *pUsing          /* The USING clause of a join */
+	Parse *pParse,          /* Parsing context *///解析背景
+  SrcList *p,             /* The left part of the FROM clause already seen *///FROM子句的左侧部分已经看过
+  Token *pTable,          /* Name of the table to add to the FROM clause *///表中的名称添加到FROM子句
+  Token *pDatabase,       /* Name of the database containing pTable *///含PTABLE的数据库的名称
+  Token *pAlias,          /* The right-hand side of the AS subexpression *///在AS子表达式的右侧
+  Select *pSubquery,      /* A subquery used in place of a table name *///代替表名称中使用子查询
+  Expr *pOn,              /* The ON clause of a join *///加入ON子句
+  IdList *pUsing          /* The USING clause of a join *///加入使用条款
 ){
   struct SrcList_item *pItem;
   sqlite3 *db = pParse->db;
@@ -3394,7 +3395,7 @@ void sqlite3SrcListIndexedBy(Parse *pParse, SrcList *p, Token *pIndexedBy){
     struct SrcList_item *pItem = &p->a[p->nSrc-1];
     assert( pItem->notIndexed==0 && pItem->zIndex==0 );
     if( pIndexedBy->n==1 && !pIndexedBy->z ){
-      /* A "NOT INDEXED" clause was supplied. See parse.y 
+      /* A "NOT INDEXED" clause was supplied. See parse.y //添加收录或没有索引子句源列表中传递的（最近添加的元素）第二个参数。
       ** construct "indexed_opt" for details. */
       pItem->notIndexed = 1;
     }else{
@@ -3404,19 +3405,20 @@ void sqlite3SrcListIndexedBy(Parse *pParse, SrcList *p, Token *pIndexedBy){
 }
 
 /*
-** When building up a FROM clause in the parser, the join operator
-** is initially attached to the left operand.  But the code generator
-** expects the join operator to be on the right operand.  This routine
+** When building up a FROM clause in the parser, the join operator//当在分析器建立FROM子句，所述联接运算符最初附着到左操作数。
+** is initially attached to the left operand.  But the code generator//但代码生成期望是在正确的操作数中。
+** expects the join operator to be on the right operand.  This routine//为整个FROMclause 这个程序切换所有参加从左至右运营商。
 ** Shifts all join operators from left to right for an entire FROM
 ** clause.
 **
-** Example: Suppose the join is like this:
+** Example: Suppose the join is like this://例如：假设连接是这样的
 **
-**           A natural cross join B
+**           A natural cross join B//自然交叉连接B
 **
-** The operator is "natural cross join".  The A and B operands are stored
-** in p->a[0] and p->a[1], respectively.  The parser initially stores the
-** operator with A.  This routine shifts that operator over to B.
+** The operator is "natural cross join".  The A and B operands are stored//运营商是“自然交叉联接”。
+** in p->a[0] and p->a[1], respectively.  The parser initially stores the//分别，A和B的操作数被存储在p->一个[0]和对 - >一个[1] 。
+
+** operator with A.  This routine shifts that operator over to B.//这个程序切换的操作交给B。
 */
 void sqlite3SrcListShiftJoinType(SrcList *p){
   if( p ){
@@ -3430,7 +3432,7 @@ void sqlite3SrcListShiftJoinType(SrcList *p){
 }
 
 /*
-** Begin a transaction
+** Begin a transaction//开始交易
 */
 void sqlite3BeginTransaction(Parse *pParse, int type){
   sqlite3 *db;
@@ -3440,7 +3442,7 @@ void sqlite3BeginTransaction(Parse *pParse, int type){
   assert( pParse!=0 );
   db = pParse->db;
   assert( db!=0 );
-/*  if( db->aDb[0].pBt==0 ) return; */
+/*  if( db->aDb[0].pBt==0 ) return; *///如果（ DB- > ADB [ 0 ] .pBt == 0 ）收益
   if( sqlite3AuthCheck(pParse, SQLITE_TRANSACTION, "BEGIN", 0, 0) ){
     return;
   }
@@ -3456,7 +3458,7 @@ void sqlite3BeginTransaction(Parse *pParse, int type){
 }
 
 /*
-** Commit a transaction
+** Commit a transaction//提交事务
 */
 void sqlite3CommitTransaction(Parse *pParse){
   Vdbe *v;
@@ -3473,7 +3475,7 @@ void sqlite3CommitTransaction(Parse *pParse){
 }
 
 /*
-** Rollback a transaction
+** Rollback a transaction//回滚事务
 */
 void sqlite3RollbackTransaction(Parse *pParse){
   Vdbe *v;
@@ -3490,7 +3492,7 @@ void sqlite3RollbackTransaction(Parse *pParse){
 }
 
 /*
-** This function is called by the parser when it parses a command to create,
+** This function is called by the parser when it parses a command to create,//这个函数被调用时，由它解析一个命令来创建解析器，释放或回滚SQL保存点。
 ** release or rollback an SQL savepoint. 
 */
 void sqlite3Savepoint(Parse *pParse, int op, Token *pName){
@@ -3510,8 +3512,8 @@ void sqlite3Savepoint(Parse *pParse, int op, Token *pName){
 }
 
 /*
-** Make sure the TEMP database is open and available for use.  Return
-** the number of errors.  Leave any error messages in the pParse structure.
+** Make sure the TEMP database is open and available for use.  Return//确保TEMP数据库是开放的，可以使用。
+** the number of errors.  Leave any error messages in the pParse structure.//返回错误的数量。丢掉留在pParse结构中的任何错误信息。
 */
 int sqlite3OpenTempDatabase(Parse *pParse){
   sqlite3 *db = pParse->db;
@@ -3543,24 +3545,24 @@ int sqlite3OpenTempDatabase(Parse *pParse){
 }
 
 /*
-** Generate VDBE code that will verify the schema cookie and start
+** Generate VDBE code that will verify the schema cookie and start//生成VDBE代码，这些代码能验证模式的cookie并且对所有命名数据库文件开始一个读事务。
 ** a read-transaction for all named database files.
 **
-** It is important that all schema cookies be verified and all
+** It is important that all schema cookies be verified and all//所有的模式cookies被验证和所有读事务发生在VDBE程序中发生的事务之前是重要的。
 ** read transactions be started before anything else happens in
 ** the VDBE program.  But this routine can be called after much other
-** code has been generated.  So here is what we do:
+** code has been generated.  So here is what we do://但是在许多其它代码被生成之后这个程序能被调度.这是我们所做的 :
 **
-** The first time this routine is called, we code an OP_Goto that
+** The first time this routine is called, we code an OP_Goto that//第一次调用这个程序,我们编码一个OP_Goto在程序结束时将跳转到一个子程序。
 ** will jump to a subroutine at the end of the program.  Then we
-** record every database that needs its schema verified in the
-** pParse->cookieMask field.  Later, after all other code has been
+** record every database that needs its schema verified in the//然后我们记录每个数据库，这个数据库在pParse - > cookieMask字段中需要它的模式验证。
+** pParse->cookieMask field.  Later, after all other code has been//然后，所有其他代码被生成,  做了cookie验证并启动事务的子程序将被编码并且这个OP_Goto P2值将指向子程序。
 ** generated, the subroutine that does the cookie verifications and
 ** starts the transactions will be coded and the OP_Goto P2 value
-** will be made to point to that subroutine.  The generation of the
+** will be made to point to that subroutine.  The generation of the//cookie验证子程序代码的生成发生在sqlite3FinishCoding()中。
 ** cookie verification subroutine code happens in sqlite3FinishCoding().
 **
-** If iDb<0 then code the OP_Goto only - don't set flag to verify the
+** If iDb<0 then code the OP_Goto only - don't set flag to verify the//如果iDb<0 ，然后仅仅给OP_Goto编码 - 不设置标志去验证任何数据库的模式 这可以早点在我们知道之前，如果任何数据库的表都将被用的话，则在编码中用作OP_Goto位置
 ** schema on any databases.  This can be used to position the OP_Goto
 ** early in the code, before we know if any database tables will be used.
 */
@@ -3569,7 +3571,7 @@ void sqlite3CodeVerifySchema(Parse *pParse, int iDb){
 
   if( pToplevel->cookieGoto==0 ){
     Vdbe *v = sqlite3GetVdbe(pToplevel);
-    if( v==0 ) return;  /* This only happens if there was a prior error */
+    if( v==0 ) return;  /* This only happens if there was a prior error *///这仅仅发生在如果之前有一个错误的时候
     pToplevel->cookieGoto = sqlite3VdbeAddOp2(v, OP_Goto, 0, 0)+1;
   }
   if( iDb>=0 ){
@@ -3592,7 +3594,7 @@ void sqlite3CodeVerifySchema(Parse *pParse, int iDb){
 }
 
 /*
-** If argument zDb is NULL, then call sqlite3CodeVerifySchema() for each 
+** If argument zDb is NULL, then call sqlite3CodeVerifySchema() for each //如果论据zDb为空,然后为每个连接数据库调用sqlite3CodeVerifySchema()。否则,只让名叫zDb的数据库调用它。
 ** attached database. Otherwise, invoke it for the database named zDb only.
 */
 void sqlite3CodeVerifyNamedSchema(Parse *pParse, const char *zDb){
@@ -3606,19 +3608,6 @@ void sqlite3CodeVerifyNamedSchema(Parse *pParse, const char *zDb){
   }
 }
 
-/*
-** Generate VDBE code that prepares for doing an operation that
-** might change the database.
-**
-** This routine starts a new transaction if we are not already within
-** a transaction.  If we are already within a transaction, then a checkpoint
-** is set if the setStatement parameter is true.  A checkpoint should
-** be set for operations that might fail (due to a constraint) part of
-** the way through and which will need to undo some writes without having to
-** rollback the whole transaction.  For operations where all constraints
-** can be checked before any changes are made to the database, it is never
-** necessary to undo a write and the checkpoint should not be set.
-*/
 void sqlite3BeginWriteOperation(Parse *pParse, int setStatement, int iDb){
   Parse *pToplevel = sqlite3ParseToplevel(pParse);
   sqlite3CodeVerifySchema(pParse, iDb);
@@ -3627,8 +3616,10 @@ void sqlite3BeginWriteOperation(Parse *pParse, int setStatement, int iDb){
 }
 
 /*
-** Indicate that the statement currently under construction might write
-** more than one entry (example: deleting one row then inserting another,
+** Indicate that the statement currently under construction might write//表明,目前正在建设的语句可以写多个条目(例如:删除一行然后插入另一个表中插入多行,或插入一行和索引条目)。
+如果在这些写完成后发生中止,那么它将需要撤消已经完成的写。
+
+** more than one entry (example: deleting one row then inserting another,//为这些操作应该设置检查点,操作可能会让这种方式的部分失败(由于一个约束),这将需要取消一些写而不需要回滚整个事务。 对于操作,在对数据库进行任何更改之前，所有的约束都可以检查,从来没有需要撤销写和不应设置检查点。
 ** inserting multiple rows in a table, or inserting a row and index entries.)
 ** If an abort occurs after some of these writes have completed, then it will
 ** be necessary to undo the completed writes.
@@ -3638,29 +3629,19 @@ void sqlite3MultiWrite(Parse *pParse){
   pToplevel->isMultiWrite = 1;
 }
 
-/* 
-** The code generator calls this routine if is discovers that it is
-** possible to abort a statement prior to completion.  In order to 
-** perform this abort without corrupting the database, we need to make
-** sure that the statement is protected by a statement transaction.
-**
-** Technically, we only need to set the mayAbort flag if the
-** isMultiWrite flag was previously set.  There is a time dependency
-** such that the abort must occur after the multiwrite.  This makes
-** some statements involving the REPLACE conflict resolution algorithm
-** go a little faster.  But taking advantage of this time dependency
-** makes it more difficult to prove that the code is correct (in 
-** particular, it prevents us from writing an effective
-** implementation of sqlite3AssertMayAbort()) and so we have chosen
-** to take the safe route and skip the optimization.
+/*
+**如果发现有可能终止在声明完成之前，代码生成器调用这个程序。为了执行这个没有破坏数据库的中止,我们需要确保声明通过一个语句事务来保护。
+** 从技术上讲,如果isMultiWrite标志在之前设置了，我们只需要设置mayAbort标志。有时间依赖性,中止multiwrite后必须发生。这使得一些语句涉及REPLACE冲突解决算法运行快一点。但这次利用依赖使它更加难以证明的代码是正确的(特别是,它阻止了我们写的有效实现sqlite3AssertMayAbort()),所以我们选择了安全的路径和跳过优化。
 */
+
 void sqlite3MayAbort(Parse *pParse){
   Parse *pToplevel = sqlite3ParseToplevel(pParse);
   pToplevel->mayAbort = 1;
 }
 
 /*
-** Code an OP_Halt that causes the vdbe to return an SQLITE_CONSTRAINT
+** Code an OP_Halt that causes the vdbe to return an SQLITE_CONSTRAINT//代码OP_Halt导致的VDBE返回一个SQLITE_CONSTRAINT错误。该onerror的参数决定的声明和/或当前事务的哪个（如果有的话）被回滚。
+
 ** error. The onError parameter determines which (if any) of the statement
 ** and/or current transaction is rolled back.
 */
@@ -3673,8 +3654,8 @@ void sqlite3HaltConstraint(Parse *pParse, int onError, char *p4, int p4type){
 }
 
 /*
-** Check to see if pIndex uses the collating sequence pColl.  Return
-** true if it does and false if it does not.
+** Check to see if pIndex uses the collating sequence pColl.  Return//检查是否pIndex使用的排序序列pColl 。
+** true if it does and false if it does not.//如果它没有，返回如果它的真假。
 */
 #ifndef SQLITE_OMIT_REINDEX
 static int collationMatch(const char *zColl, Index *pIndex){
@@ -3692,8 +3673,8 @@ static int collationMatch(const char *zColl, Index *pIndex){
 #endif
 
 /*
-** Recompute all indices of pTab that use the collating sequence pColl.
-** If pColl==0 then recompute all indices of pTab.
+** Recompute all indices of pTab that use the collating sequence pColl.//重新计算PTAB中使用的排序序列的所有指标pColl。
+** If pColl==0 then recompute all indices of pTab.//如果pColl == 0，则重新计算PTAB的各项指标。
 */
 #ifndef SQLITE_OMIT_REINDEX
 static void reindexTable(Parse *pParse, Table *pTab, char const *zColl){
@@ -3710,19 +3691,19 @@ static void reindexTable(Parse *pParse, Table *pTab, char const *zColl){
 #endif
 
 /*
-** Recompute all indices of all tables in all databases where the
-** indices use the collating sequence pColl.  If pColl==0 then recompute
+** Recompute all indices of all tables in all databases where the//重新计算所有在那里的指数使用的排序序列pColl数据库中的所有表的所有指标。
+** indices use the collating sequence pColl.  If pColl==0 then recompute//如果pColl == 0，则重新计算所有指数。
 ** all indices everywhere.
 */
 #ifndef SQLITE_OMIT_REINDEX
 static void reindexDatabases(Parse *pParse, char const *zColl){
-  Db *pDb;                    /* A single database */
-  int iDb;                    /* The database index number */
-  sqlite3 *db = pParse->db;   /* The database connection */
-  HashElem *k;                /* For looping over tables in pDb */
-  Table *pTab;                /* A table in the database */
+  Db *pDb;                    /* A single database *///单个数据库
+  int iDb;                    /* The database index number *///该数据库索引号
+  sqlite3 *db = pParse->db;   /* The database connection *///数据库连接
+  HashElem *k;                /* For looping over tables in pDb *///对于PDB遍历表
+  Table *pTab;                /* A table in the database *///在数据库中的表
 
-  assert( sqlite3BtreeHoldsAllMutexes(db) );  /* Needed for schema access */
+  assert( sqlite3BtreeHoldsAllMutexes(db) );  /* Needed for schema access *///需要接入模式
   for(iDb=0, pDb=db->aDb; iDb<db->nDb; iDb++, pDb++){
     assert( pDb!=0 );
     for(k=sqliteHashFirst(&pDb->pSchema->tblHash);  k; k=sqliteHashNext(k)){
@@ -3734,30 +3715,30 @@ static void reindexDatabases(Parse *pParse, char const *zColl){
 #endif
 
 /*
-** Generate code for the REINDEX command.
+** Generate code for the REINDEX command.//生成的REINDEX命令代码。
 **
-**        REINDEX                            -- 1
-**        REINDEX  <collation>               -- 2
-**        REINDEX  ?<database>.?<tablename>  -- 3
-**        REINDEX  ?<database>.?<indexname>  -- 4
+**        REINDEX                            -- 1//REINDEX - 1
+**        REINDEX  <collation>               -- 2//REINDEX <整理>--2
+**        REINDEX  ?<database>.?<tablename>  -- 3//REINDEX <数据库> <表名> - 3
+**        REINDEX  ?<database>.?<indexname>  -- 4//REINDEX <数据库> < INDEXNAME > - 4
 **
-** Form 1 causes all indices in all attached databases to be rebuilt.
-** Form 2 rebuilds all indices in all databases that use the named
-** collating function.  Forms 3 and 4 rebuild the named index or all
+** Form 1 causes all indices in all attached databases to be rebuilt.//表1导致所有附加的数据库中的所有指标进行重建。
+** Form 2 rebuilds all indices in all databases that use the named//表格2重建在所有使用命名整理功能，数据库中的所有指标。
+** collating function.  Forms 3 and 4 rebuild the named index or all//表格3和4重建命名的索引或与指定表相关联的所有索引。
 ** indices associated with the named table.
 */
 #ifndef SQLITE_OMIT_REINDEX
 void sqlite3Reindex(Parse *pParse, Token *pName1, Token *pName2){
-  CollSeq *pColl;             /* Collating sequence to be reindexed, or NULL */
-  char *z;                    /* Name of a table or index */
-  const char *zDb;            /* Name of the database */
-  Table *pTab;                /* A table in the database */
-  Index *pIndex;              /* An index associated with pTab */
-  int iDb;                    /* The database index number */
-  sqlite3 *db = pParse->db;   /* The database connection */
-  Token *pObjName;            /* Name of the table or index to be reindexed */
+  CollSeq *pColl;             /* Collating sequence to be reindexed, or NULL *///整理序列重建索引，或NULL。
+  char *z;                    /* Name of a table or index *///表或索引的名称
+  const char *zDb;            /* Name of the database *///数据库的名称
+  Table *pTab;                /* A table in the database *///在数据库中的表
+  Index *pIndex;              /* An index associated with pTab *///与PTAB相关联的索引
+  int iDb;                    /* The database index number *///该数据库索引号
+  sqlite3 *db = pParse->db;   /* The database connection *///数据库连接
+  Token *pObjName;            /* Name of the table or index to be reindexed *///要重建索引的表或索引的名称
 
-  /* Read the database schema. If an error occurs, leave an error message
+  /* Read the database schema. If an error occurs, leave an error message//读取数据库架构。如果出现错误，留下一个错误消息和代码在pParse并返回NULL。
   ** and code in pParse and return NULL. */
   if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){
     return;
@@ -3802,12 +3783,12 @@ void sqlite3Reindex(Parse *pParse, Token *pName1, Token *pName2){
 #endif
 
 /*
-** Return a dynamicly allocated KeyInfo structure that can be used
+** Return a dynamicly allocated KeyInfo structure that can be used//返回一个动态地分配的密钥信息的结构，可以使用与OP_OpenRead或OP_OpenWrite访问数据库索引PIDX 。
 ** with OP_OpenRead or OP_OpenWrite to access database index pIdx.
 **
-** If successful, a pointer to the new structure is returned. In this case
-** the caller is responsible for calling sqlite3DbFree(db, ) on the returned 
-** pointer. If an error occurs (out of memory or missing collation 
+** If successful, a pointer to the new structure is returned. In this case//如果成功，则返回一个指向新的结构。
+** the caller is responsible for calling sqlite3DbFree(db, ) on the returned //在这种情况下，呼叫者负责调用sqlite3DbFree 上返回的指针。
+** pointer. If an error occurs (out of memory or missing collation //如果出现错误（内存不足或缺失的排列顺序） ，则返回NULL和pParse的状态更新，以反映错误。
 ** sequence), NULL is returned and the state of pParse updated to reflect
 ** the error.
 */
