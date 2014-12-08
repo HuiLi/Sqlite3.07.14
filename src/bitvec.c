@@ -3,15 +3,19 @@
 **
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
-**
+** 作者本人放弃此代码的版权，在任何有法律的地方，这里给使用SQLite的人以下的祝福：
 **    May you do good and not evil.
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
-**
+**    愿你行善莫行恶。
+      愿你原谅自己宽恕他人。
+      愿你宽心与人分享，不要索取多于给予。
+
 *************************************************************************
 ** This file implements an object that represents a fixed-length
 ** bitmap.  Bits are numbered starting with 1.
-**
+** 这个文件实现了一个对象代表一个固定长度的位图。比特数从1开始。
+
 ** A bitmap is used to record which pages of a database file have been
 ** journalled during a transaction, or which pages have the "dont-write"
 ** property.  Usually only a few pages are meet either condition.
@@ -20,12 +24,18 @@
 ** or all of the pages in a database can get journalled.  In those cases, 
 ** the bitmap becomes dense with high cardinality.  The algorithm needs 
 ** to handle both cases well.
-**
+** 一个位图用来记录在一个事务处理过程中数据库的哪几个页被日志记录，或者哪几个页有
+   "dont-write"的性质。通常只有很少的页满足条件。因此位图通常很稀少，并且基数小。
+   但是有时(比如当丢弃一个大的表时)数据库中绝大多数或所有的页会被日志记录。在这种
+   情况下，位图是稠密的，并且基数大。算法应该能够很好的处理这两种情况。
+  
 ** The size of the bitmap is fixed when the object is created.
-**
+** 当对象被创建时，位图的大小就被固定了。
+
 ** All bits are clear when the bitmap is created.  Individual bits
 ** may be set or cleared one at a time.
-**
+**当位图被创建时所有的位都被清空。单独的位可能会被设置或清除一次。
+
 ** Test operations are about 100 times more common that set operations.
 ** Clear operations are exceedingly rare.  There are usually between
 ** 5 and 500 set operations per Bitvec object, though the number of sets can
@@ -33,37 +43,61 @@
 ** Bitvec object is the number of pages in the database file at the
 ** start of a transaction, and is thus usually less than a few thousand,
 ** but can be as large as 2 billion for a really big database.
+   测试操作比集合操作要通用100倍，也就是说测试操作更加常用。清除操作是极其少见
+   的。尽管集合的数量有时会增长到成千上万或者更多，但是每个Bitvec对象通常有5到
+   500个集合操作。Bitvec对象的大小是在事务开始时数据库文件中的页的数量，因此通
+   常不到几千，但是可以大到像20亿那么大的数据库。
 */
-#include "sqliteInt.h"
+
+#include "sqliteInt.h"      /*sqliteInt头文件（它定义了提供给应用使用的API和数据结构）*/
 
 /* Size of the Bitvec structure in bytes. */
-#define BITVEC_SZ        512
+   /*Bitvec结构的字节大小 */
+#define BITVEC_SZ        512               /*定义BITVEC_SZ大小为512个字节*/
 
 /* Round the union size down to the nearest pointer boundary, since that's how 
-** it will be aligned within the Bitvec struct. */
+** it will be aligned within the Bitvec struct. 
+   使Bitvec结构总的大小，降到最近的指针的边界，来看看这样它是如何排列在bitvec结构之中的。
+*/
 #define BITVEC_USIZE     (((BITVEC_SZ-(3*sizeof(u32)))/sizeof(Bitvec*))*sizeof(Bitvec*))
 
 /* Type of the array "element" for the bitmap representation. 
 ** Should be a power of 2, and ideally, evenly divide into BITVEC_USIZE. 
 ** Setting this to the "natural word" size of your CPU may improve
-** performance. */
+** performance. 
+   数组“元素”，为位图表示的类型。
+   应该是2的幂，并且理想地，均匀地分成BITVEC_USIZE。
+   将其设置为你的CPU的“自然词”大小可以提高性能。
+*/
 #define BITVEC_TELEM     u8
+
 /* Size, in bits, of the bitmap element. */
+/*以位为单位的位图元素的大小。 */
 #define BITVEC_SZELEM    8
+
 /* Number of elements in a bitmap array. */
+/*在一个位图数组元素的编号。 */
 #define BITVEC_NELEM     (BITVEC_USIZE/sizeof(BITVEC_TELEM))
+
 /* Number of bits in the bitmap array. */
+/*位图数组中的位的数目。 */
 #define BITVEC_NBIT      (BITVEC_NELEM*BITVEC_SZELEM)
 
 /* Number of u32 values in hash table. */
+/*在哈希表中U32值的数量。 */
 #define BITVEC_NINT      (BITVEC_USIZE/sizeof(u32))
+
 /* Maximum number of entries in hash table before 
 ** sub-dividing and re-hashing. */
+/*在细分和二度哈希之前在哈希表中条目的最大数量。 */
 #define BITVEC_MXHASH    (BITVEC_NINT/2)
+
 /* Hashing function for the aHash representation.
 ** Empirical testing showed that the *37 multiplier 
 ** (an arbitrary prime)in the hash function provided 
 ** no fewer collisions than the no-op *1. */
+/*哈希函数的aHash表示.实证检验表明，×37乘法器（任意素数）
+  在哈希函数中没有提供比空指令×1更少的冲突*/
 #define BITVEC_HASH(X)   (((X)*1)%BITVEC_NINT)
 
 #define BITVEC_NPTR      (BITVEC_USIZE/sizeof(Bitvec *))
@@ -71,17 +105,22 @@
 
 /*
 ** A bitmap is an instance of the following structure.
-**
+** 下面结构体的一个实例是一个位图。
+
 ** This bitmap records the existance of zero or more bits
 ** with values between 1 and iSize, inclusive.
-**
+** 这个位图记录0或更多位的存在，用在1和iSize之间的值记录，并且包含1和iSize。
+
 ** There are three possible representations of the bitmap.
 ** If iSize<=BITVEC_NBIT, then Bitvec.u.aBitmap[] is a straight
 ** bitmap.  The least significant bit is bit 1.
-**
+** 如果iSize<=BITVEC_NBIT，则Bitvec.u.aBitmap[]是一个直接的位图。最低有效单位是1位。
+
 ** If iSize>BITVEC_NBIT and iDivisor==0 then Bitvec.u.aHash[] is
 ** a hash table that will hold up to BITVEC_MXHASH distinct values.
-**
+** 如果iSize>BITVEC_NBIT并且iDivisor==0，那么Bitvec.u.aHash[]是一个能够
+   容纳BITVEC_MXHASH的不同值的hash表。
+
 ** Otherwise, the value i is redirected into one of BITVEC_NPTR
 ** sub-bitmaps pointed to by Bitvec.u.apSub[].  Each subbitmap
 ** handles up to iDivisor separate values of i.  apSub[0] holds
@@ -89,27 +128,43 @@
 ** iDivisor+1 and 2*iDivisor.  apSub[N] holds values between
 ** N*iDivisor+1 and (N+1)*iDivisor.  Each subbitmap is normalized
 ** to hold deal with values between 1 and iDivisor.
+  否则，值i会被重新传递给由Bitvec.u.apSub[]所指的BITVEC_NPTR子位图。
+  每一个子位图句柄多不同于值i。apSub[0]的值介于1和iDivisor之间。
+  apSub[1]的值介于iDivisor+1和2*iDivisor之间。
+  apSub[N]的值介于N*iDivisor+1和(N+1)*iDivisor之间。
+  每一个子位图都很规范的处理介于1到iDivisor之间的值。
 */
 struct Bitvec {
-  u32 iSize;      /* Maximum bit index.  Max iSize is 4,294,967,296. */
+  u32 iSize;      /* Maximum bit index.  Max iSize is 4,294,967,296.
+                    最大位指数，最大的iSize是4,294,967,296.*/
+  
   u32 nSet;       /* Number of bits that are set - only valid for aHash
                   ** element.  Max is BITVEC_NINT.  For BITVEC_SZ of 512,
-                  ** this would be 125. */
-  u32 iDivisor;   /* Number of bits handled by each apSub[] entry. */
-                  /* Should >=0 for apSub element. */
-                  /* Max iDivisor is max(u32) / BITVEC_NPTR + 1.  */
-                  /* For a BITVEC_SZ of 512, this would be 34,359,739. */
+                  ** this would be 125.
+                    被设置的位的数量仅适用于aHash元素。最大是BITVEC_NINT。
+                    因为BITVEC_SZ 的大小是512，所以这里是125.*/
+                    
+  u32 iDivisor;   /* Number of bits handled by each apSub[] entry.
+                     位的数量由每个apSub[]的记录处理。*/
+                  /* Should >=0 for apSub element.
+                     apSub元素应该>=0*/
+                  /* Max iDivisor is max(u32) / BITVEC_NPTR + 1.  
+                  最大的iDivisor是max(u32) / BITVEC_NPTR + 1.*/
+                  /* For a BITVEC_SZ of 512, this would be 34,359,739.
+                  因为BITVEC_SZ 的大小是512，所以这里是34,359,739.*/
   union {
-    BITVEC_TELEM aBitmap[BITVEC_NELEM];    /* Bitmap representation */
-    u32 aHash[BITVEC_NINT];      /* Hash table representation */
-    Bitvec *apSub[BITVEC_NPTR];  /* Recursive representation */
-  } u;
+    BITVEC_TELEM aBitmap[BITVEC_NELEM];    /* Bitmap representation  位图的表示*/
+    u32 aHash[BITVEC_NINT];      /* Hash table representation   哈希表的表示 */
+    Bitvec *apSub[BITVEC_NPTR];  /* Recursive representation   递归的表示*/
+  } u;      /*联合变量*/
 };
 
 /*
 ** Create a new bitmap object able to handle bits between 0 and iSize,
 ** inclusive.  Return a pointer to the new object.  Return NULL if 
 ** malloc fails.
+   创建一个能过处理0到iSize个位(包含0和iSize)的新位图对象。返回新对象的指针。
+  如果分配失败返回空。
 */
 Bitvec *sqlite3BitvecCreate(u32 iSize){
   Bitvec *p;
@@ -125,6 +180,8 @@ Bitvec *sqlite3BitvecCreate(u32 iSize){
 ** Check to see if the i-th bit is set.  Return true or false.
 ** If p is NULL (if the bitmap has not been created) or if
 ** i is out of range, then return false.
+   检查第i个位是否被分配。返回真或假。
+   如果p为空(如果位图没有被创建)或i溢出返回假。
 */
 int sqlite3BitvecTest(Bitvec *p, u32 i){
   if( p==0 ) return 0;
