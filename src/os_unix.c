@@ -2978,8 +2978,19 @@ static int nfsUnlock(sqlite3_file *id, int eFileLock){
 ** is available.  
 **
 ********************* End of the NFS lock implementation **********************
-******************************************************************************/
+******************************************************************************
 
+///////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+////////////////////////////////////////第三部分////////////////////////////////////////////
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+///////////////////////////////////////////////////////////////////////////////////////////
 /******************************************************************************
 **************** Non-locking sqlite3_file methods *****************************
 **
@@ -4592,6 +4603,17 @@ static const sqlite3_io_methods
 */
 typedef const sqlite3_io_methods *(*finder_type)(const char*,unixFile*);
 
+///////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+////////////////////////////////////////第四部分////////////////////////////////////////////
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+//                                                                                       //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 /****************************************************************************
 **************************** sqlite3_vfs methods ****************************
@@ -4599,16 +4621,17 @@ typedef const sqlite3_io_methods *(*finder_type)(const char*,unixFile*);
 ** This division contains the implementation of methods on the
 ** sqlite3_vfs object.
 */
-
+//这个分部包含在sqlite3_vfs对象上操作的相关实现方法
 /*
 ** Initialize the contents of the unixFile structure pointed to by pId.
+//初始化被pId指向的unixFile的内容。
 */
 static int fillInUnixFile(
-  sqlite3_vfs *pVfs,      /* Pointer to vfs object */
-  int h,                  /* Open file descriptor of file being opened */
-  sqlite3_file *pId,      /* Write to the unixFile structure here */
-  const char *zFilename,  /* Name of the file being opened */
-  int ctrlFlags           /* Zero or more UNIXFILE_* values */
+  sqlite3_vfs *pVfs,      /* Pointer to vfs object 指向vfs对象的指针 */
+  int h,                  /* Open file descriptor of file being opened 被打开文件的打开文件描述器*/
+  sqlite3_file *pId,      /* Write to the unixFile structure here 在这里写入unixFile结构*/
+  const char *zFilename,  /* Name of the file being opened 正在被打开文件的文件名*/
+  int ctrlFlags           /* Zero or more UNIXFILE_* values 零或更多UNIXFILE_*值*/
 ){
   const sqlite3_io_methods *pLockingStyle;
   unixFile *pNew = (unixFile *)pId;
@@ -4619,6 +4642,7 @@ static int fillInUnixFile(
   /* Usually the path zFilename should not be a relative pathname. The
   ** exception is when opening the proxy "conch" file in builds that
   ** include the special Apple locking styles.
+  // 通常zFilename的路径不应是相对路径。例外是当打开内建在包含特殊Apple锁风格的"conch"文件时。
   */
 #if defined(__APPLE__) && SQLITE_ENABLE_LOCKING_STYLE
   assert( zFilename==0 || zFilename[0]=='/' 
@@ -6768,23 +6792,27 @@ static int proxyClose(sqlite3_file *id) {
 ** The proxy locking style is intended for use with AFP filesystems.
 ** And since AFP is only supported on MacOSX, the proxy locking is also
 ** restricted to MacOSX.
-** 
+**
+//代理锁定风格目的是应用在AFP文件系统中，自从AFP只支持苹果MacOSX系统，代理锁定同样限定在MacOSX
 **
 ******************* End of the proxy lock implementation **********************
-******************************************************************************/
-
+*******************************************************************************
 /*
-** Initialize the operating system interface.
+** Initialize the operating system interface.  //初始化操作系统接口
 **
 ** This routine registers all VFS implementations for unix-like operating
 ** systems.  This routine, and the sqlite3_os_end() routine that follows,
 ** should be the only routines in this file that are visible from other
 ** files.
+//这个例程为所有类Unix操作系统的VFS实现注册。
+//这个例程和紧随其后的sqlite3_os_end()例程应该是本文件中对其他文件可见的唯一例程
 **
 ** This routine is called once during SQLite initialization and by a
 ** single thread.  The memory allocation and mutex subsystems have not
 ** necessarily been initialized when this routine is called, and so they
 ** should not be used.
+//这个例程在SQLite初始化时便会通过单线程调用。
+//内存分配和互斥子系统不需要在这个例程被调用时初始化，所以它们不能被使用
 */
 int sqlite3_os_init(void){ 
   /* 
@@ -6795,17 +6823,28 @@ int sqlite3_os_init(void){
   ** and so we have to go through the intermediate pointer to avoid problems
   ** when compiling with -pedantic-errors on GCC.)
   **
+  //接下来的宏为一个sqlite3_vfs对象定义了一个初始化器。
+  //VFS的名字是NAME。pAppData是一个指向指针的指针，指向了"finder"函数。
+    （pAppData之所以是一个指向指针的指针是因为愚蠢地C90规则禁止一个来自正在分配函数指针的void*,因此我门
+      必须通过中间指针以避免GCC编译时报-pedantic-errors错误）
   ** The FINDER parameter to this macro is the name of the pointer to the
   ** finder-function.  The finder-function returns a pointer to the
   ** sqlite_io_methods object that implements the desired locking
   ** behaviors.  See the division above that contains the IOMETHODS
   ** macro for addition information on finder-functions.
   **
+  //FINDER变量对于这个宏时指向finder-function的指针的名字。
+  //finder-function返回一个指向sqlite_io_methods对象的指针，这个对象实现了请求锁的行为。
+  //看这个分部以上包含了在finder-functions上附加信息的IOMETHODS宏。
+  **
   ** Most finders simply return a pointer to a fixed sqlite3_io_methods
   ** object.  But the "autolockIoFinder" available on MacOSX does a little
   ** more than that; it looks at the filesystem type that hosts the 
   ** database file and tries to choose an locking method appropriate for
   ** that filesystem time.
+  //大部分探测器简单的返回指向修改过的sqlite3_io_methods对象的指针。
+  //但是在MacOSX上起作用的"autolockIoFinder"比这个起到很小的作用；
+  //它审视宿主数据库文件并且尝试选择一个适合那个文件系统的上锁方法的文件系统类型
   */
   #define UNIXVFS(VFSNAME, FINDER) {                        \
     3,                    /* iVersion */                    \
@@ -6835,9 +6874,12 @@ int sqlite3_os_init(void){
   /*
   ** All default VFSes for unix are contained in the following array.
   **
+  //所有为Unix的默认VFS都包含了如下数组
+  **
   ** Note that the sqlite3_vfs.pNext field of the VFS object is modified
   ** by the SQLite core when the VFS is registered.  So the following
   ** array cannot be const.
+  //注意VFS对象的sqlite3_vfs.pNext域在VFS被注册时会被SQLite内核修改。所以接下来的数组不能声明为const.
   */
   static sqlite3_vfs aVfs[] = {
 #if SQLITE_ENABLE_LOCKING_STYLE && (OS_VXWORKS || defined(__APPLE__))
@@ -6867,9 +6909,11 @@ int sqlite3_os_init(void){
 
   /* Double-check that the aSyscall[] array has been constructed
   ** correctly.  See ticket [bb3a86e890c8e96ab] */
+  //二次检验 aSyscall[]数组是否被正确构造。看标签[bb3a86e890c8e96ab]
   assert( ArraySize(aSyscall)==22 );
 
   /* Register all VFSes defined in the aVfs[] array */
+  //寄存器所有VFS定义在aVfs[]数组中
   for(i=0; i<(sizeof(aVfs)/sizeof(sqlite3_vfs)); i++){
     sqlite3_vfs_register(&aVfs[i], i==0);
   }
@@ -6879,9 +6923,12 @@ int sqlite3_os_init(void){
 /*
 ** Shutdown the operating system interface.
 **
+//关闭操作系统接口
 ** Some operating systems might need to do some cleanup in this routine,
 ** to release dynamically allocated objects.  But not on unix.
 ** This routine is a no-op for unix.
+//一些操作系统可能需要自这个历程中做一些清理工作，去释放动态分配对象。但是不在Unix。
+//这个例程对Unix不起作用。
 */
 int sqlite3_os_end(void){ 
   return SQLITE_OK; 
