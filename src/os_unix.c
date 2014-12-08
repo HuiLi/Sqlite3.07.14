@@ -4651,7 +4651,7 @@ static int fillInUnixFile(
   assert( zFilename==0 || zFilename[0]=='/' );
 #endif
 
-  /* No locking occurs in temporary files */
+  /* No locking occurs in temporary files */ //在临时文件中没有上锁事件发生
   assert( zFilename!=0 || (ctrlFlags & UNIXFILE_NOLOCK)!=0 );
 
   OSTRACE(("OPEN    %-3d %s\n", h, zFilename));
@@ -4683,6 +4683,8 @@ static int fillInUnixFile(
     /* Cache zFilename in the locking context (AFP and dotlock override) for
     ** proxyLock activation is possible (remote proxy is based on db name)
     ** zFilename remains valid until file is closed, to support */
+    //为了代理锁激活在锁定上下文的（AFP和点锁重写）寄存器zFilename变的可能（远程代理基于数据库名）
+    //zFilename知道文件关闭都保留了有效性
     pNew->lockingContext = (void*)zFilename;
 #endif
   }
@@ -4702,6 +4704,11 @@ static int fillInUnixFile(
       **   (a) A call to fstat() failed.
       **   (b) A malloc failed.
       **
+      //如果一个错误发生在findInodeInfo()，立即关闭文件描述符，之前释放互斥锁。
+      //findInodeInfo()将在两个情境下失败
+      //      (a)对fstat()的调用失败
+      //      (b)一个内存分配失败
+      **
       ** Scenario (b) may only occur if the process is holding no other
       ** file descriptors open on the same file. If there were other file
       ** descriptors on this file, then no malloc would be required by
@@ -4709,10 +4716,16 @@ static int fillInUnixFile(
       ** handle h - as it is guaranteed that no posix locks will be released
       ** by doing so.
       **
+      //情景(b)可能只发生在如果相同文件中此进程没有保持其他文件描述符的情况。
+      //如果没有其他文件描述符在这个文件中，则findInodeInfo()不会被要求分配。
+      //如果在这种情况下，他是非常安全的去关闭h句柄-如果这么做
+      //它会被保证非可移植性操作系统接口锁将会被释放
       ** If scenario (a) caused the error then things are not so safe. The
       ** implicit assumption here is that if fstat() fails, things are in
       ** such bad shape that dropping a lock or two doesn't matter much.
       */
+      //如果情景(a)发生错误将不会如此安全。这里隐含的假设是fstat()调用失败，
+      //在这种抛出一两个锁的坏的模型无关紧要。
       robust_close(pNew, h, __LINE__);
       h = -1;
     }
@@ -4724,6 +4737,7 @@ static int fillInUnixFile(
     /* AFP locking uses the file path so it needs to be included in
     ** the afpLockingContext.
     */
+    //AFP 锁定使用文件路径，所以它需要被包含在afpLockingContext中。
     afpLockingContext *pCtx;
     pNew->lockingContext = pCtx = sqlite3_malloc( sizeof(*pCtx) );
     if( pCtx==0 ){
@@ -4732,6 +4746,7 @@ static int fillInUnixFile(
       /* NB: zFilename exists and remains valid until the file is closed
       ** according to requirement F11141.  So we do not need to make a
       ** copy of the filename. */
+      //附注：
       pCtx->dbPath = zFilename;
       pCtx->reserved = 0;
       srandomdev();
