@@ -103,11 +103,12 @@ struct winFile {
 ** Allowed values for winFile.ctrlFlags
 **允许winFile.ctrlFlags值
 */
-#define WINFILE_PERSIST_WAL     0x04   /* Persistent WAL mode */
+#define WINFILE_PERSIST_WAL     0x04   /* Persistent WAL mode 持续WAL模式*/
 #define WINFILE_PSOW            0x10   /* SQLITE_IOCAP_POWERSAFE_OVERWRITE */
 
 /*
  * The size of the buffer used by sqlite3_win32_write_debug().
+ *sqlite3_win32_write_debug所使用到的缓冲区的大小。
  */
 #ifndef SQLITE_WIN32_DBG_BUF_SIZE
 #  define SQLITE_WIN32_DBG_BUF_SIZE   ((int)(4096-sizeof(DWORD)))
@@ -116,6 +117,8 @@ struct winFile {
 /*
  * The value used with sqlite3_win32_set_directory() to specify that
  * the data directory should be changed.
+ *与sqlite3_win32_set_directory()使用的值指定
+ *数据目录应该有所改变。
  */
 #ifndef SQLITE_WIN32_DATA_DIRECTORY_TYPE
 #  define SQLITE_WIN32_DATA_DIRECTORY_TYPE (1)
@@ -124,6 +127,8 @@ struct winFile {
 /*
  * The value used with sqlite3_win32_set_directory() to specify that
  * the temporary directory should be changed.
+ *与sqlite3_win32_set_directory()中使用的值来指定
+ *临时目录应该改变。
  */
 #ifndef SQLITE_WIN32_TEMP_DIRECTORY_TYPE
 #  define SQLITE_WIN32_TEMP_DIRECTORY_TYPE (2)
@@ -132,6 +137,8 @@ struct winFile {
 /*
  * If compiled with SQLITE_WIN32_MALLOC on Windows, we will use the
  * various Win32 API heap functions instead of our own.
+ *如果有SQLITE_WIN32_MALLOC在Windows上编译，我们将使用
+ *不同的Win32 API堆函数，而不是我们自己的。
  */
 #ifdef SQLITE_WIN32_MALLOC
 
@@ -140,6 +147,9 @@ struct winFile {
  * allocator subsystem; otherwise, the default process heap will be used.  This
  * setting has no effect when compiling for WinRT.  By default, this is enabled
  * and an isolated heap will be created to store all allocated data.
+ * 如果这是非零，独立的堆将由本地的Win32分配器子系统创建； 
+ * 否则，默认的进程堆将被使用。当编译的WinRT的时候此设置不起作用。 
+ * 默认情况下，启用该选项和独立堆将创建用以存储所有分配的数据。
  *
  ******************************************************************************
  * WARNING: It is important to note that when this setting is non-zero and the
@@ -147,6 +157,9 @@ struct winFile {
  *          function), all data that was allocated using the isolated heap will
  *          be freed immediately and any attempt to access any of that freed
  *          data will almost certainly result in an immediate access violation.
+ * 警告: 需要注意的是，当该设置为非零并且winMemShutdown函数被调用
+ * (例如sqlite3_shutdown函数), 所有使用独立堆的被分配数据将会立即被释放，并且任
+ *何企图访问任何的释放数据几乎肯定会导致立即访问冲突 。
  ******************************************************************************
  */
 #ifndef SQLITE_WIN32_HEAP_CREATE
@@ -155,6 +168,7 @@ struct winFile {
 
 /*
  * The initial size of the Win32-specific heap.  This value may be zero.
+ *特定Win32堆的初始大小。这个值可以是零
  */
 #ifndef SQLITE_WIN32_HEAP_INIT_SIZE
 #  define SQLITE_WIN32_HEAP_INIT_SIZE ((SQLITE_DEFAULT_CACHE_SIZE) * \
@@ -163,6 +177,7 @@ struct winFile {
 
 /*
  * The maximum size of the Win32-specific heap.  This value may be zero.
+ *在特定Win32堆的最大大小。这个值可以是零。
  */
 #ifndef SQLITE_WIN32_HEAP_MAX_SIZE
 #  define SQLITE_WIN32_HEAP_MAX_SIZE  (0)
@@ -171,6 +186,7 @@ struct winFile {
 /*
  * The extra flags to use in calls to the Win32 heap APIs.  This value may be
  * zero for the default behavior.
+ * 在调用Win32的堆API中使用额外的标志.  这个值可以默认设置为0；
  */
 #ifndef SQLITE_WIN32_HEAP_FLAGS
 #  define SQLITE_WIN32_HEAP_FLAGS     (0)
@@ -179,14 +195,15 @@ struct winFile {
 /*
 ** The winMemData structure stores information required by the Win32-specific
 ** sqlite3_mem_methods implementation.
+**由特定Win32所要求的winMemData结构存储信息sqlite3_mem_methods实施。
 */
 typedef struct winMemData winMemData;
 struct winMemData {
 #ifndef NDEBUG
-  u32 magic;    /* Magic number to detect structure corruption. */
+  u32 magic;    /* Magic number to detect structure corruption. Magic数值来检测结构损坏 */
 #endif
-  HANDLE hHeap; /* The handle to our heap. */
-  BOOL bOwned;  /* Do we own the heap (i.e. destroy it on shutdown)? */
+  HANDLE hHeap; /* The handle to our heap. 我们堆的句柄 */
+  BOOL bOwned;  /* Do we own the heap (i.e. destroy it on shutdown)? 我们拥有这个堆吗(即关机销毁堆)? */
 };
 
 #ifndef NDEBUG
@@ -223,13 +240,17 @@ const sqlite3_mem_methods *sqlite3MemGetWin32(void);
 ** The following variable is (normally) set once and never changes
 ** thereafter.  It records whether the operating system is Win9x
 ** or WinNT.
+下面的变量（一般）设置一次，其后永远不会改变
+** 它记录的操作系统是否为Win9x的或WinNT。
 **
-** 0:   Operating system unknown.
-** 1:   Operating system is Win9x.
-** 2:   Operating system is WinNT.
+** 0:   Operating system unknown. 操作系统未知。
+** 1:   Operating system is Win9x. 操作系统是Win9x。
+** 2:   Operating system is WinNT. 操作系统是WinNT。
 **
 ** In order to facilitate testing on a WinNT system, the test fixture
 ** can manually set this value to 1 to emulate Win98 behavior.
+** 为了便于在WinNT系统上测试, 测试装置 
+** 可以手动将该值设置为1来模拟Win98的行为。
 */
 #ifdef SQLITE_TEST
 int sqlite3_os_type = 0;
@@ -251,6 +272,7 @@ static int sqlite3_os_type = 0;
 
 /*
 ** This function is not available on Windows CE or WinRT.
+**此功能不适用于Windows CE或WinRT。
  */
 
 #if SQLITE_OS_WINCE || SQLITE_OS_WINRT
@@ -262,11 +284,14 @@ static int sqlite3_os_type = 0;
 ** they may be overridden at runtime to facilitate fault injection during
 ** testing and sandboxing.  The following array holds the names and pointers
 ** to all overrideable system calls.
+** 许多系统调用被访问都是通过指针到功能以便
+** 在测试和沙盒时他们可能会在运行时重写来便于故障注入
+** 下面的数组保存的姓名和指针为所有重载系统所调用。
 */
 static struct win_syscall {
-  const char *zName;            /* Name of the sytem call */
-  sqlite3_syscall_ptr pCurrent; /* Current value of the system call */
-  sqlite3_syscall_ptr pDefault; /* Default value */
+  const char *zName;            /* Name of the sytem call 该系统正调用的名称*/
+  sqlite3_syscall_ptr pCurrent; /* Current value of the system call 系统调用的当前值*/
+  sqlite3_syscall_ptr pDefault; /* Default value 默认值*/
 } aSyscall[] = {
 #if !SQLITE_OS_WINCE && !SQLITE_OS_WINRT
   { "AreFileApisANSI",         (SYSCALL)AreFileApisANSI,         0 },
@@ -474,10 +499,13 @@ static struct win_syscall {
 
 #if SQLITE_OS_WINCE
   /* The GetProcAddressA() routine is only available on Windows CE. */
+  /*该GetProcAddressA（）函数是仅适用于Windows CE。 */
   { "GetProcAddressA",         (SYSCALL)GetProcAddressA,         0 },
 #else
   /* All other Windows platforms expect GetProcAddress() to take
-  ** an ANSI string regardless of the _UNICODE setting */
+  ** an ANSI string regardless of the _UNICODE setting 
+  **所有其他Windows平台预计GetProcAddress函数来使用
+  **一个ANSI字符串不管_UNICODE设置*/
   { "GetProcAddressA",         (SYSCALL)GetProcAddress,          0 },
 #endif
 
@@ -835,18 +863,21 @@ static struct win_syscall {
 #define osCreateFileMappingFromApp ((HANDLE(WINAPI*)(HANDLE, \
         LPSECURITY_ATTRIBUTES,ULONG,ULONG64,LPCWSTR))aSyscall[72].pCurrent)
 
-}; /* End of the overrideable system calls */
+}; /* End of the overrideable system calls 结束重载系统调用*/
 
 /*
 ** This is the xSetSystemCall() method of sqlite3_vfs for all of the
 ** "win32" VFSes.  Return SQLITE_OK opon successfully updating the
 ** system call pointer, or SQLITE_NOTFOUND if there is no configurable
 ** system call named zName.
+**这是对于所有"win32" VFSes的sqlite3_vfs的xSetSystemCall()方法
+**返回SQLITE_OK opon成功更新系统调用指针
+**或者这里SQLITE_NOTFOUND没有被叫做zName系统调用配置 
 */
 static int winSetSystemCall(
-  sqlite3_vfs *pNotUsed,        /* The VFS pointer.  Not used */
-  const char *zName,            /* Name of system call to override */
-  sqlite3_syscall_ptr pNewFunc  /* Pointer to new system call value */
+  sqlite3_vfs *pNotUsed,        /* The VFS pointer.  Not used 该VFS指针。未使用*/
+  const char *zName,            /* Name of system call to override 系统调用的名称覆盖*/
+  sqlite3_syscall_ptr pNewFunc  /* Pointer to new system call value 指向新的系统调用值*/
 ){
   unsigned int i;
   int rc = SQLITE_NOTFOUND;
@@ -855,6 +886,7 @@ static int winSetSystemCall(
   if( zName==0 ){
     /* If no zName is given, restore all system calls to their default
     ** settings and return NULL
+    *如果没有zName给出，恢复所有的系统调用为其默认设置和返回NULL
     */
     rc = SQLITE_OK;
     for(i=0; i<sizeof(aSyscall)/sizeof(aSyscall[0]); i++){
@@ -865,6 +897,7 @@ static int winSetSystemCall(
   }else{
     /* If zName is specified, operate on only the one system call
     ** specified.
+    * 如果zName是指定, 只在指定一个系统调用运行
     */
     for(i=0; i<sizeof(aSyscall)/sizeof(aSyscall[0]); i++){
       if( strcmp(zName, aSyscall[i].zName)==0 ){
@@ -885,6 +918,9 @@ static int winSetSystemCall(
 ** Return the value of a system call.  Return NULL if zName is not a
 ** recognized system call name.  NULL is also returned if the system call
 ** is currently undefined.
+**返回系统调用的数值。返回NULL如果zName不是
+**系统可认识的调用名称。如果系统调用是当前
+**没有定义的也返回NULL。 
 */
 static sqlite3_syscall_ptr winGetSystemCall(
   sqlite3_vfs *pNotUsed,
@@ -904,6 +940,9 @@ static sqlite3_syscall_ptr winGetSystemCall(
 ** then return the name of the first system call.  Return NULL if zName
 ** is the last system call or if zName is not the name of a valid
 ** system call.
+** 返回zName后的第一个系统调用的名称。 如果zName==NULL
+** 就返回第一个系统调用的名称。如果zName是最后一个的系统调用
+**或者如果zName不是一个有效的系统调用名称也返回NULL。
 */
 static const char *winNextSystemCall(sqlite3_vfs *p, const char *zName){
   int i = -1;
@@ -923,12 +962,14 @@ static const char *winNextSystemCall(sqlite3_vfs *p, const char *zName){
 /*
 ** This function outputs the specified (ANSI) string to the Win32 debugger
 ** (if available).
+**此功能输出指定（ANSI）字符串到Win32的调试器
+**（如果可用）。
 */
 
 void sqlite3_win32_write_debug(char *zBuf, int nBuf){
   char zDbgBuf[SQLITE_WIN32_DBG_BUF_SIZE];
-  int nMin = MIN(nBuf, (SQLITE_WIN32_DBG_BUF_SIZE - 1)); /* may be negative. */
-  if( nMin<-1 ) nMin = -1; /* all negative values become -1. */
+  int nMin = MIN(nBuf, (SQLITE_WIN32_DBG_BUF_SIZE - 1)); /* may be negative. 可能是负的。*/
+  if( nMin<-1 ) nMin = -1; /* all negative values become -1. 所有的负值变为-1。*/
   assert( nMin==-1 || nMin==0 || nMin<SQLITE_WIN32_DBG_BUF_SIZE );
 #if defined(SQLITE_WIN32_HAS_ANSI)
   if( nMin>0 ){
@@ -960,6 +1001,8 @@ void sqlite3_win32_write_debug(char *zBuf, int nBuf){
 /*
 ** The following routine suspends the current thread for at least ms
 ** milliseconds.  This is equivalent to the Win32 Sleep() interface.
+**以下常规暂停当前线程，至少毫秒。 
+**这相当于Win32的Sleep()接口
 */
 #if SQLITE_OS_WINRT
 static HANDLE sleepObj = NULL;
@@ -988,6 +1031,13 @@ void sqlite3_win32_sleep(DWORD milliseconds){
 ** this routine is used to determine if the host is Win95/98/ME or
 ** WinNT/2K/XP so that we will know whether or not we can safely call
 ** the LockFileEx() API.
+**返回true（不为零），如果我们在WinNT，Win2K，WinXP或者WinCE下运行的.
+**返回false（0）在Win95，Win98下，WinME下运行。
+**
+**这里有一个有趣的现象：Win95，Win98和WinME的平台下缺乏LockFileEx()的API。
+**但是，我们仍然可以使用静态链接替代 API，只要我们运行WIN95 /98/ME的时候
+**不调用它。一个常规调用则被用来判断是否主机是Win95/ 98 / ME或WinNT/2K/ XP
+**以便于我们能知道我们是否可以安全地调用LockFileEx()的API。
 */
 #if SQLITE_OS_WINCE || SQLITE_OS_WINRT
 # define isNT()  (1)
@@ -1005,7 +1055,7 @@ void sqlite3_win32_sleep(DWORD milliseconds){
 
 #ifdef SQLITE_WIN32_MALLOC
 /*
-** Allocate nBytes of memory.
+** Allocate nBytes of memory.分配内存中的nBytes 
 */
 static void *winMemMalloc(int nBytes){
   HANDLE hHeap;
@@ -1028,7 +1078,7 @@ static void *winMemMalloc(int nBytes){
 }
 
 /*
-** Free memory.
+** Free memory.释放内存。
 */
 static void winMemFree(void *pPrior){
   HANDLE hHeap;
@@ -1040,7 +1090,7 @@ static void winMemFree(void *pPrior){
 #if !SQLITE_OS_WINRT && defined(SQLITE_WIN32_MALLOC_VALIDATE)
   assert ( osHeapValidate(hHeap, SQLITE_WIN32_HEAP_FLAGS, pPrior) );
 #endif
-  if( !pPrior ) return; /* Passing NULL to HeapFree is undefined. */
+  if( !pPrior ) return; /* Passing NULL to HeapFree is undefined. 传递NULL到HeapFree是未定义的。*/
   if( !osHeapFree(hHeap, SQLITE_WIN32_HEAP_FLAGS, pPrior) ){
     sqlite3_log(SQLITE_NOMEM, "failed to HeapFree block %p (%d), heap=%p",
                 pPrior, osGetLastError(), (void*)hHeap);
@@ -1048,7 +1098,7 @@ static void winMemFree(void *pPrior){
 }
 
 /*
-** Change the size of an existing memory allocation
+** Change the size of an existing memory allocation 更改现有的内存分配的大小
 */
 static void *winMemRealloc(void *pPrior, int nBytes){
   HANDLE hHeap;
@@ -1077,6 +1127,7 @@ static void *winMemRealloc(void *pPrior, int nBytes){
 
 /*
 ** Return the size of an outstanding allocation, in bytes.
+**返回一个未完成的分配大小，以字节为单位
 */
 static int winMemSize(void *p){
   HANDLE hHeap;
@@ -1101,6 +1152,7 @@ static int winMemSize(void *p){
 
 /*
 ** Round up a request size to the next valid allocation size.
+**集中一个请求大小到下一个有效的分配大小。
 */
 static int winMemRoundup(int n){
   return n;
