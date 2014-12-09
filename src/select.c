@@ -1341,9 +1341,9 @@ static void generateColumnTypes(
 **生成的代码，会告诉VDBE结果集中列的名字。这些信息用于提供在回调中azCol[] 的值。
 */
 static void generateColumnNames(
-  Parse *pParse,      /* Parser context */
-  SrcList *pTabList,  /* List of tables */
-  ExprList *pEList    /* Expressions defining the result set */
+  Parse *pParse,      /* Parser context   解析上下文 */
+  SrcList *pTabList,  /* List of tables   列表*/
+  ExprList *pEList    /* Expressions defining the result set   定义结果集的表达式*/
 ){
   Vdbe *v = pParse->pVdbe;
   int i, j;
@@ -1351,7 +1351,7 @@ static void generateColumnNames(
   int fullNames, shortNames;
 
 #ifndef SQLITE_OMIT_EXPLAIN
-  /* If this is an EXPLAIN, skip this step */
+  /* If this is an EXPLAIN, skip this step    如果这是一个EXPLAIN, 跳过这一步 */
   if( pParse->explain ){
     return;
   }
@@ -1407,29 +1407,30 @@ static void generateColumnNames(
 ** Given a an expression list (which is really the list of expressions
 ** that form the result set of a SELECT statement) compute appropriate
 ** column names for a table that would hold the expression list.
-**
+**给定一个表达式列表(真正的形成一个SELECT语句结果集的表达式列表)，能计算出一个拥有这些表达式列表的表的合适列名称
 ** All column names will be unique.
-**
+**所有列名将是唯一的
 ** Only the column names are computed.  Column.zType, Column.zColl,
 ** and other fields of Column are zeroed.
-**
+**只计算列名称。zType、zColl列和其他字段的列都被置零。
 ** Return SQLITE_OK on success.  If a memory allocation error occurs,
 ** store NULL in *paCol and 0 in *pnCol and return SQLITE_NOMEM.
+**返回SQLITE_OK成功。如果内存分配发生错误,在*paCol里存储空，在*pnCol里存储0，返回SQLITE_NOMEM
 */
 static int selectColumnsFromExprList(
-  Parse *pParse,          /* Parsing context */
-  ExprList *pEList,       /* Expr list from which to derive column names */
-  int *pnCol,             /* Write the number of columns here */
-  Column **paCol          /* Write the new column list here */
+  Parse *pParse,          /* Parsing context 解析上下文 */
+  ExprList *pEList,       /* Expr list from which to derive column names 源于列名的Expr列表*/
+  int *pnCol,             /* Write the number of columns here 把列的数量写在这里*/
+  Column **paCol          /* Write the new column list here 把新列列表写在这里*/
 ){
-  sqlite3 *db = pParse->db;   /* Database connection */
-  int i, j;                   /* Loop counters */
-  int cnt;                    /* Index added to make the name unique */
-  Column *aCol, *pCol;        /* For looping over result columns */
-  int nCol;                   /* Number of columns in the result set */
-  Expr *p;                    /* Expression for a single result column */
-  char *zName;                /* Column name */
-  int nName;                  /* Size of name in zName[] */
+  sqlite3 *db = pParse->db;   /* Database connection 数据库连接*/
+  int i, j;                   /* Loop counters 循环计数器*/
+  int cnt;                    /* Index added to make the name unique 索引的添加使得名字唯一*/
+  Column *aCol, *pCol;        /* For looping over result columns 循环结束得到的结果列*/
+  int nCol;                   /* Number of columns in the result set 在结果集中的列数*/
+  Expr *p;                    /* Expression for a single result column 一个结果列的表达式*/
+  char *zName;                /* Column name 列名*/
+  int nName;                  /* Size of name in zName[]  在zName[]中名称的大小*/
 
   if( pEList ){
     nCol = pEList->nExpr;
@@ -1443,23 +1444,26 @@ static int selectColumnsFromExprList(
   *paCol = aCol;
 
   for(i=0, pCol=aCol; i<nCol; i++, pCol++){
-    /* Get an appropriate name for the column
+    /* Get an appropriate name for the column   
+    ** 得到一个适当的列的名称 
     */
     p = pEList->a[i].pExpr;
     assert( p->pRight==0 || ExprHasProperty(p->pRight, EP_IntValue)
                || p->pRight->u.zToken==0 || p->pRight->u.zToken[0]!=0 );
     if( (zName = pEList->a[i].zName)!=0 ){
-      /* If the column contains an "AS <name>" phrase, use <name> as the name */
+      /* If the column contains an "AS <name>" phrase, use <name> as the name 
+      **如果列包含一个“AS <name>”短语,使用<name>作为名称
+      */
       zName = sqlite3DbStrDup(db, zName);
     }else{
-      Expr *pColExpr = p;  /* The expression that is the result column name */
-      Table *pTab;         /* Table associated with this expression */
+      Expr *pColExpr = p;  /* The expression that is the result column name 结果列名称的表达式*/
+      Table *pTab;         /* Table associated with this expression 与表达式相关的表*/
       while( pColExpr->op==TK_DOT ){
         pColExpr = pColExpr->pRight;
         assert( pColExpr!=0 );
       }
       if( pColExpr->op==TK_COLUMN && ALWAYS(pColExpr->pTab!=0) ){
-        /* For columns use the column name name */
+        /* For columns use the column name name 对于列使用列名的名字*/
         int iCol = pColExpr->iColumn;
         pTab = pColExpr->pTab;
         if( iCol<0 ) iCol = pTab->iPKey;
@@ -1469,7 +1473,7 @@ static int selectColumnsFromExprList(
         assert( !ExprHasProperty(pColExpr, EP_IntValue) );
         zName = sqlite3MPrintf(db, "%s", pColExpr->u.zToken);
       }else{
-        /* Use the original text of the column expression as its name */
+        /* Use the original text of the column expression as its name 使用的列表达式的原始文本作为它的名字*/
         zName = sqlite3MPrintf(db, "%s", pEList->a[i].zSpan);
       }
     }
@@ -1480,6 +1484,7 @@ static int selectColumnsFromExprList(
 
     /* Make sure the column name is unique.  If the name is not unique,
     ** append a integer to the name so that it becomes unique.
+    ** 确保列名是唯一的。如果名字不是唯一的,给名称附加一个整数,这样就变得唯一了
     */
     nName = sqlite3Strlen30(zName);
     for(j=cnt=0; j<i; j++){
@@ -1510,19 +1515,22 @@ static int selectColumnsFromExprList(
 /*
 ** Add type and collation information to a column list based on
 ** a SELECT statement.
+** 给列列表添加类型和排序信息，基于一个SELECT语句。
 ** 
 ** The column list presumably came from selectColumnNamesFromExprList().
 ** The column list has only names, not types or collations.  This
 ** routine goes through and adds the types and collations.
-**
+**列列表大概来自于selectColumnNamesFromExprList()。列列表只有名字,没有类型或排序。这个程序遍历并添加类型和排序。
+** 
 ** This routine requires that all identifiers in the SELECT
 ** statement be resolved.
+**这个程序在SELECT语句中要求的所有标识符被决定。
 */
 static void selectAddColumnTypeAndCollation(
-  Parse *pParse,        /* Parsing contexts */
-  int nCol,             /* Number of columns */
-  Column *aCol,         /* List of columns */
-  Select *pSelect       /* SELECT used to determine types and collations */
+  Parse *pParse,        /* Parsing contexts 解析上下文*/
+  int nCol,             /* Number of columns 列数*/
+  Column *aCol,         /* List of columns 列列表*/
+  Select *pSelect       /* SELECT used to determine types and collations      SELECT用于确定类型和排序*/
 ){
   sqlite3 *db = pParse->db;
   NameContext sNC;
@@ -1554,6 +1562,7 @@ static void selectAddColumnTypeAndCollation(
 /*
 ** Given a SELECT statement, generate a Table structure that describes
 ** the result set of that SELECT.
+**给定一个SELECT语句,生成一个表结构,来描述那个SELECT的结果集
 */
 Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
   Table *pTab;
@@ -1572,7 +1581,8 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
     return 0;
   }
   /* The sqlite3ResultSetOfSelect() is only used n contexts where lookaside
-  ** is disabled */
+  ** is disabled      
+  **sqlite3ResultSetOfSelect()只被使用n上下文,在那里后备是不能用的*/
   assert( db->lookaside.bEnabled==0 );
   pTab->nRef = 1;
   pTab->zName = 0;
@@ -1590,6 +1600,8 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 /*
 ** Get a VDBE for the given parser context.  Create a new one if necessary.
 ** If an error occurs, return NULL and leave a message in pParse.
+** 对给定的解析器上下文获得一个VDBE，如果需要，创建一个新的VDBE。
+** 如果发生一个错误，返回空并且在pParse里留下信息。
 */
 Vdbe *sqlite3GetVdbe(Parse *pParse){
   Vdbe *v = pParse->pVdbe;
@@ -1613,7 +1625,13 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** are the integer memory register numbers for counters used to compute 
 ** the limit and offset.  If there is no limit and/or offset, then 
 ** iLimit and iOffset are negative.
-**
+**基于pLimit和pOffset表达式计算SELECT中的iLimit和iOffset字段。
+**nLimit和nOffset持有这些表达式，这些表达式出现在原始的SQL语句中，在LIMIT和OFFSET关键字之后。
+**或者为空如果这些关键词被省略。
+**iLimit和iOffset是用来计算限制和偏移量的整数存储寄存器数据计数器 
+**如果没有限制和/或偏移,然后iLimit和iOffset是负的。  
+** 
+** 
 ** This routine changes the values of iLimit and iOffset only if
 ** a limit or offset is defined by pLimit and pOffset.  iLimit and
 ** iOffset should have been preset to appropriate default values
@@ -1622,6 +1640,10 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** redefined.  The UNION ALL operator uses this property to force
 ** the reuse of the same limit and offset registers across multiple
 ** SELECT statements.
+** 这个程序改变了iLimit和 iOffset的值，只有限制或偏移由nLimit和nOffset定义。
+**iLimit和iOffset应该是预设到适当的默认值(通常但不总是-1)之前调用这个程序。
+**只有nLimit>=0或者nOffset>0做限制寄存器得重新定义。
+**这个UNION ALL操作符使用这个属性来迫使相同的限制和偏移暂存器的重用通过多个SELECT语句。 
 */
 static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
   Vdbe *v = 0;
@@ -1635,13 +1657,14 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
   ** contraversy about what the correct behavior should be.
   ** The current implementation interprets "LIMIT 0" to mean
   ** no rows.
+  ** "LIMIT -1" 总是显示所有行。有一些争议关于什么应该是正确的行为。当前实现解释"LIMIT 0"意味着没有行。
   */
   sqlite3ExprCacheClear(pParse);
   assert( p->pOffset==0 || p->pLimit!=0 );
   if( p->pLimit ){
     p->iLimit = iLimit = ++pParse->nMem;
     v = sqlite3GetVdbe(pParse);
-    if( NEVER(v==0) ) return;  /* VDBE should have already been allocated */
+    if( NEVER(v==0) ) return;  /* VDBE should have already been allocated VDBE应该已经分配*/
     if( sqlite3ExprIsInteger(p->pLimit, &n) ){
       sqlite3VdbeAddOp2(v, OP_Integer, n, iLimit);
       VdbeComment((v, "LIMIT counter"));
@@ -1658,7 +1681,7 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
     }
     if( p->pOffset ){
       p->iOffset = iOffset = ++pParse->nMem;
-      pParse->nMem++;   /* Allocate an extra register for limit+offset */
+      pParse->nMem++;   /* Allocate an extra register for limit+offset 给限制+偏移量分配额外的注册*/
       sqlite3ExprCode(pParse, p->pOffset, iOffset);
       sqlite3VdbeAddOp1(v, OP_MustBeInt, iOffset);
       VdbeComment((v, "OFFSET counter"));
@@ -1679,9 +1702,12 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 ** Return the appropriate collating sequence for the iCol-th column of
 ** the result set for the compound-select statement "p".  Return NULL if
 ** the column has no default collating sequence.
-**
+** 返回适当的排序序列，这个排序是针对compound-select语句“p”中的iCol-th列的结果集。 
+** 如果列没有默认的排序序列，返回NULL。
+** 
 ** The collating sequence for the compound select is taken from the
 ** left-most term of the select that has a collating sequence.
+** 复合选择的排序序列来自选择最左边的排序序列。
 */
 static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
   CollSeq *pRet;
@@ -1698,11 +1724,11 @@ static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
 }
 #endif /* SQLITE_OMIT_COMPOUND_SELECT */
 
-/* Forward reference */
+/* Forward reference 向前引用*/
 static int multiSelectOrderBy(
-  Parse *pParse,        /* Parsing context */
-  Select *p,            /* The right-most of SELECTs to be coded */
-  SelectDest *pDest     /* What to do with query results */
+  Parse *pParse,        /* Parsing context 解析上下文*/
+  Select *p,            /* The right-most of SELECTs to be coded SELECTs的最右边被编码*/
+  SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
 );
 
 
@@ -1711,19 +1737,22 @@ static int multiSelectOrderBy(
 ** This routine is called to process a compound query form from
 ** two or more separate queries using UNION, UNION ALL, EXCEPT, or
 ** INTERSECT
-**
+**调用这个程序来处理一个真正的两个的并集或交集查询或者两个以上单独的查询。
+** 
 ** "p" points to the right-most of the two queries.  the query on the
 ** left is p->pPrior.  The left query could also be a compound query
 ** in which case this routine will be called recursively. 
-**
+**“p”指向最右边的两个查询。左边的查询是p->pPrior.在递归地将调用这个程序的情况下，左边的查询也可以是复合查询。
+** 
 ** The results of the total query are to be written into a destination
 ** of type eDest with parameter iParm.
-**
-** Example 1:  Consider a three-way compound SQL statement.
+**总查询的结果将被写入一个带有参数iParm的eDest类型目标。
+** 
+** Example 1:  Consider a three-way compound SQL statement.  例1:  考虑一个三向复合SQL语句。
 **
 **     SELECT a FROM t1 UNION SELECT b FROM t2 UNION SELECT c FROM t3
 **
-** This statement is parsed up as follows:
+** This statement is parsed up as follows:    这句话是解析如下:
 **
 **     SELECT c FROM t3
 **      |
@@ -1734,30 +1763,34 @@ static int multiSelectOrderBy(
 ** The arrows in the diagram above represent the Select.pPrior pointer.
 ** So if this routine is called with p equal to the t3 query, then
 ** pPrior will be the t2 query.  p->op will be TK_UNION in this case.
-**
+**上面图中的箭头代表Select.pPrior指针。所以如果以p等于t3查询来调用这个程序，然后pPrior将会是t2 查询。
+**这种情况下，p- >op将会是 TK_UNION
+** 
 ** Notice that because of the way SQLite parses compound SELECTs, the
 ** individual selects always group from left to right.
+** 注意,因为这种方式的SQLite是解析复合选择,单个选择总是从左到右。
 */
 static int multiSelect(
-  Parse *pParse,        /* Parsing context */
-  Select *p,            /* The right-most of SELECTs to be coded */
-  SelectDest *pDest     /* What to do with query results */
+  Parse *pParse,        /* Parsing context 解析的上下文 */
+  Select *p,            /* The right-most of SELECTs to be coded 最右边的SELECTs将会被编码*/
+  SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
 ){
-  int rc = SQLITE_OK;   /* Success code from a subroutine */
-  Select *pPrior;       /* Another SELECT immediately to our left */
-  Vdbe *v;              /* Generate code to this VDBE */
-  SelectDest dest;      /* Alternative data destination */
-  Select *pDelete = 0;  /* Chain of simple selects to delete */
-  sqlite3 *db;          /* Database connection */
+  int rc = SQLITE_OK;   /* Success code from a subroutine 来自子程序的成功编码 */
+  Select *pPrior;       /* Another SELECT immediately to our left 另一个SELECT立即到我们的左边*/
+  Vdbe *v;              /* Generate code to this VDBE 这个VDBE生成代码*/
+  SelectDest dest;      /* Alternative data destination 供选择的数据目的地*/
+  Select *pDelete = 0;  /* Chain of simple selects to delete 删除简单选择的链*/
+  sqlite3 *db;          /* Database connection 数据库连接*/
 #ifndef SQLITE_OMIT_EXPLAIN
-  int iSub1;            /* EQP id of left-hand query */
-  int iSub2;            /* EQP id of right-hand query */
+  int iSub1;            /* EQP id of left-hand query     EQP id左侧的查询*/
+  int iSub2;            /* EQP id of right-hand query    EQP id右侧的查询*/
 #endif
 
   /* Make sure there is no ORDER BY or LIMIT clause on prior SELECTs.  Only
   ** the last (right-most) SELECT in the series may have an ORDER BY or LIMIT.
+  **确保没有任何ORDER BY 或者LIMIT子句在prior SELECTs中。只有在系列中的最后一个(最右)SELECT可能有ORDER BY或者LIMIT。
   */
-  assert( p && p->pPrior );  /* Calling function guarantees this much */
+  assert( p && p->pPrior );  /* Calling function guarantees this much 调用函数保证这么多*/
   db = pParse->db;
   pPrior = p->pPrior;
   assert( pPrior->pRightmost!=pPrior );
@@ -1777,9 +1810,9 @@ static int multiSelect(
   }
 
   v = sqlite3GetVdbe(pParse);
-  assert( v!=0 );  /* The VDBE already created by calling function */
+  assert( v!=0 );  /* The VDBE already created by calling function    VDBE已经由调用函数创建*/
 
-  /* Create the destination temporary table if necessary
+  /* Create the destination temporary table if necessary   在必要时创建目标临时表
   */
   if( dest.eDest==SRT_EphemTab ){
     assert( p->pEList );
@@ -1790,6 +1823,7 @@ static int multiSelect(
 
   /* Make sure all SELECTs in the statement have the same number of elements
   ** in their result sets.
+  ** 确保所有在声明中SELECTs在他们的结果集中具有相同数量的元素。
   */
   assert( p->pEList && pPrior->pEList );
   if( p->pEList->nExpr!=pPrior->pEList->nExpr ){
@@ -1804,12 +1838,14 @@ static int multiSelect(
   }
 
   /* Compound SELECTs that have an ORDER BY clause are handled separately.
+  ** 有ORDER BY子句的复合的SELECTs被分别处理。
   */
   if( p->pOrderBy ){
     return multiSelectOrderBy(pParse, p, pDest);
   }
 
   /* Generate code for the left and right SELECT statements.
+  **为左边和右边的SELECT语句生成代码。
   */
   switch( p->op ){
     case TK_ALL: {
@@ -1851,10 +1887,10 @@ static int multiSelect(
     }
     case TK_EXCEPT:
     case TK_UNION: {
-      int unionTab;    /* Cursor number of the temporary table holding result */
-      u8 op = 0;       /* One of the SRT_ operations to apply to self */
-      int priorOp;     /* The SRT_ operation to apply to prior selects */
-      Expr *pLimit, *pOffset; /* Saved values of p->nLimit and p->nOffset */
+      int unionTab;    /* Cursor number of the temporary table holding result   有结果的临时表的光标数*/
+      u8 op = 0;       /* One of the SRT_ operations to apply to self        SRT_ operations中的一个指定给自己*/
+      int priorOp;     /* The SRT_ operation to apply to prior selects   这个SRT_ operation 指定给prior selects*/
+      Expr *pLimit, *pOffset; /* Saved values of p->nLimit and p->nOffset    保存p->nLimit和p->nOffset的值*/
       int addr;
       SelectDest uniondest;
 
@@ -1864,15 +1900,16 @@ static int multiSelect(
       if( dest.eDest==priorOp && ALWAYS(!p->pLimit &&!p->pOffset) ){
         /* We can reuse a temporary table generated by a SELECT to our
         ** right.
+        **我们可以重用一个我们右边的选择生成的临时表
         */
-        assert( p->pRightmost!=p );  /* Can only happen for leftward elements
-                                     ** of a 3-way or more compound */
-        assert( p->pLimit==0 );      /* Not allowed on leftward elements */
-        assert( p->pOffset==0 );     /* Not allowed on leftward elements */
+        assert( p->pRightmost!=p );  /* Can only happen for leftward elements   
+                                     ** of a 3-way or more compound    左侧的元素只能发生3种方式或者以上复合*/
+        assert( p->pLimit==0 );      /* Not allowed on leftward elements 不允许在左侧的元素*/
+        assert( p->pOffset==0 );     /* Not allowed on leftward elements 不允许在左侧的元素*/
         unionTab = dest.iSDParm;
       }else{
         /* We will need to create our own temporary table to hold the
-        ** intermediate results.
+        ** intermediate results.   我们需要创建自己的临时表来保存中间结果。
         */
         unionTab = pParse->nTab++;
         assert( p->pOrderBy==0 );
@@ -1883,7 +1920,7 @@ static int multiSelect(
         assert( p->pEList );
       }
 
-      /* Code the SELECT statements to our left
+      /* Code the SELECT statements to our left  给左边的SELECT语句编码  
       */
       assert( !pPrior->pOrderBy );
       sqlite3SelectDestInit(&uniondest, priorOp, unionTab);
@@ -1893,7 +1930,7 @@ static int multiSelect(
         goto multi_select_end;
       }
 
-      /* Code the current SELECT statement
+      /* Code the current SELECT statement    给当前SELECT语句编码 
       */
       if( p->op==TK_EXCEPT ){
         op = SRT_Except;
@@ -1911,7 +1948,9 @@ static int multiSelect(
       rc = sqlite3Select(pParse, p, &uniondest);
       testcase( rc!=SQLITE_OK );
       /* Query flattening in sqlite3Select() might refill p->pOrderBy.
-      ** Be sure to delete p->pOrderBy, therefore, to avoid a memory leak. */
+      ** Be sure to delete p->pOrderBy, therefore, to avoid a memory leak.
+      ** 确保要删除p - > pOrderBy,如此这样,才能避免内存泄漏。
+      */
       sqlite3ExprListDelete(db, p->pOrderBy);
       pDelete = p->pPrior;
       p->pPrior = pPrior;
@@ -1925,6 +1964,7 @@ static int multiSelect(
 
       /* Convert the data in the temporary table into whatever form
       ** it is that we currently need.
+      **将临时表中的数据转换成任何我们目前所需要的形式那就是。
       */
       assert( unionTab==dest.iSDParm || dest.eDest!=priorOp );
       if( dest.eDest!=priorOp ){
@@ -1960,6 +2000,8 @@ static int multiSelect(
       /* INTERSECT is different from the others since it requires
       ** two temporary tables.  Hence it has its own case.  Begin
       ** by allocating the tables we will need.
+      **由于INTERSECT需要两个临时表，所以它是不同于其它的。因此它有自己的案例。  
+      **分配我们需要的表为开始。
       */
       tab1 = pParse->nTab++;
       tab2 = pParse->nTab++;
@@ -1971,7 +2013,7 @@ static int multiSelect(
       p->pRightmost->selFlags |= SF_UsesEphemeral;
       assert( p->pEList );
 
-      /* Code the SELECTs to our left into temporary table "tab1".
+      /* Code the SELECTs to our left into temporary table "tab1".   把我们左边的SELECTs 编码到临时表"tab1"中 
       */
       sqlite3SelectDestInit(&intersectdest, SRT_Union, tab1);
       explainSetInteger(iSub1, pParse->iNextSelectId);
@@ -1980,7 +2022,7 @@ static int multiSelect(
         goto multi_select_end;
       }
 
-      /* Code the current SELECT into temporary table "tab2"
+      /* Code the current SELECT into temporary table "tab2"    把当前的SELECT编码到临时表"tab2"中 
       */
       addr = sqlite3VdbeAddOp2(v, OP_OpenEphemeral, tab2, 0);
       assert( p->addrOpenEphm[1] == -1 );
@@ -2002,7 +2044,7 @@ static int multiSelect(
       p->pOffset = pOffset;
 
       /* Generate code to take the intersection of the two temporary
-      ** tables.
+      ** tables.   给两个临时表的交集生成代码。 
       */
       assert( p->pEList );
       if( dest.eDest==SRT_Output ){
@@ -2034,18 +2076,23 @@ static int multiSelect(
   /* Compute collating sequences used by 
   ** temporary tables needed to implement the compound select.
   ** Attach the KeyInfo structure to all temporary tables.
+  **计算排序序列既使用了ORDER by子句，也使用了需要实现复合选择的任何临时表。把KeyInfo结构附加到所有临时表。
+  **如果有ORDER BY子句，调用ORDER BY处理。
   **
   ** This section is run by the right-most SELECT statement only.
   ** SELECT statements to the left always skip this part.  The right-most
   ** SELECT might also skip this part if it has no ORDER BY clause and
   ** no temp tables are required.
+  **这部分是仅仅通过最右边的SELECT语句运行的。
+  ** 左边的SELECT语句总是跳过这个部分。
+  **最右边的SELECT也可能跳过这个部分，如果它没有ORDER BY 子句并且没有临时需要的表的话
   */
   if( p->selFlags & SF_UsesEphemeral ){
-    int i;                        /* Loop counter */
-    KeyInfo *pKeyInfo;            /* Collating sequence for the result set */
-    Select *pLoop;                /* For looping through SELECT statements */
-    CollSeq **apColl;             /* For looping through pKeyInfo->aColl[] */
-    int nCol;                     /* Number of columns in result set */
+    int i;                        /* Loop counter 循环计数器 */
+    KeyInfo *pKeyInfo;            /* Collating sequence for the result set 结果集的排序序列 */
+    Select *pLoop;                /* For looping through SELECT statements 遍历SELECT语句 */
+    CollSeq **apColl;             /* For looping through pKeyInfo->aColl[] 遍历pKeyInfo - > aColl[]*/
+    int nCol;                     /* Number of columns in result set 在结果集的列数*/
 
     assert( p->pRightmost==p );
     nCol = p->pEList->nExpr;
@@ -2071,7 +2118,9 @@ static int multiSelect(
         int addr = pLoop->addrOpenEphm[i];
         if( addr<0 ){
           /* If [0] is unused then [1] is also unused.  So we can
-          ** always safely abort as soon as the first unused slot is found */
+          ** always safely abort as soon as the first unused slot is found 
+          **如果[0]没有被使用，所以[1]也没有被使用. 所以我们总能尽快安全地终止第一个发现未使用的位置 
+          */
           assert( pLoop->addrOpenEphm[1]<0 );
           break;
         }
