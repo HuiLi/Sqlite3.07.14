@@ -2219,7 +2219,7 @@ static int pager_playback_one_page(
   }
 
   /* When playing back page 1, restore the nReserve setting
-  */  //当回放页面1，回复
+  */  //当回放页面1，恢复nReserve设置
   if( pgno==1 && pPager->nReserve!=((u8*)aData)[20] ){
     pPager->nReserve = ((u8*)aData)[20];
     pagerReportSize(pPager);
@@ -2228,38 +2228,48 @@ static int pager_playback_one_page(
   /* If the pager is in CACHEMOD state, then there must be a copy of this
   ** page in the pager cache. In this case just update the pager cache,
   ** not the database file. The page is left marked dirty in this case.
-  **
+  **如果pager是在CACHEMOD状态，那么在pager缓存中必须有这个页面的副本。
+  ** 在这种情况下仅仅更新pager缓存，而不是数据库文件。这种情况下剩下的页面记为脏数据。
   ** An exception to the above rule: If the database is in no-sync mode
   ** and a page is moved during an incremental vacuum then the page may
   ** not be in the pager cache. Later: if a malloc() or IO error occurs
   ** during a Movepage() call, then the page may not be in the cache
   ** either. So the condition described in the above paragraph is not
   ** assert()able.
-  **
+  **一个例外对于上述规则，如果数据库是在没有同步的模式，页面被移动在一个在增值的真空，则页面将无法在pager缓存中。
+  随后，若在调用Movepage()时，发生malloc()或IO错误，页面也将无法在pager缓存中。
+  因此上个段落描述的条件不是assert()函数可以实现的。
   ** If in WRITER_DBMOD, WRITER_FINISHED or OPEN state, then we update the
   ** pager cache if it exists and the main file. The page is then marked 
   ** not dirty. Since this code is only executed in PAGER_OPEN state for
   ** a hot-journal rollback, it is guaranteed that the page-cache is empty
   ** if the pager is in OPEN state.
-  **
+  **如果在WRITER_DBMOD, WRITER_FINISHED or OPEN状态，那我们要更新pager 缓存（若存在），和主文件。
+  页面不标记为脏。由于hot-journal回滚 ，这个代码仅仅执行在PAGER_OPEN状态，如果pager是在打开状态，要保证页面缓存为空。
   ** Ticket #1171:  The statement journal might contain page content that is
   ** different from the page content at the start of the transaction.
+  标签#1171：日志的状态可能包含页面内容，不同于事务开始时的页面内容。
   ** This occurs when a page is changed prior to the start of a statement
   ** then changed again within the statement.  When rolling back such a
   ** statement we must not write to the original database unless we know
   ** for certain that original page contents are synced into the main rollback
-  ** journal.  Otherwise, a power loss might leave modified data in the
+  ** journal. 这发生在一个页面改变开始之前，然后在声明中 再次改变。当这样的声明回滚，我们不必写进原始数据库，
+  除非我们知道对于某些原始页面的内容同步到主回滚日志上。
+  **Otherwise, a power loss might leave modified data in the
   ** database file without an entry in the rollback journal that can
-  ** restore the database to its original form.  Two conditions must be
-  ** met before writing to the database files. (1) the database must be
+  ** restore the database to its original form. 
+  否则，功率损耗可能会把修改后的数据留在数据库文件没有一个条目在回滚日志上，将数据库恢复到原来的形式。
+  Two conditions must be met before writing to the database files. (1) the database must be
   ** locked.  (2) we know that the original page content is fully synced
   ** in the main journal either because the page is not in cache or else
   ** the page is marked as needSync==0.
-  **
+  **在写进数据库文件之前两种情况必须有，（1）数据库必须有锁（2）我们知道在主日志中原始页面内容完全被同步，
+  因为页面没有在缓存中或者是页面被标记为needSync==0。
   ** 2008-04-14:  When attempting to vacuum a corrupt database file, it
   ** is possible to fail a statement on a database that does not yet exist.
   ** Do not attempt to write if database file has never been opened.
-  */
+  *///2008-04-14： 当试图去消除一个腐败的数据库文件，失败的声明在一个上不存在的数据库中是可能的，
+  // 如果数据库文件从没有被打开，不要试着去写。
   if( pagerUseWal(pPager) ){
     pPg = 0;
   }else{
@@ -2297,8 +2307,7 @@ static int pager_playback_one_page(
     ** the database and the page is not in-memory, there is a potential
     ** problem. When the page is next fetched by the b-tree layer, it 
     ** will be read from the database file, which may or may not be 
-    ** current. 
-    **
+    ** current.如果这是一个保存点回滚,数据不写入数据库和页面不是内存, 这会有一个潜在的问题。
     ** There are a couple of different ways this can happen. All are quite
     ** obscure. When running in synchronous mode, this can only happen 
     ** if the page is on the free-list at the start of the transaction, then
