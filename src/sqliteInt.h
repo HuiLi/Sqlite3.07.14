@@ -852,13 +852,13 @@ struct sqlite3 {
   int nExtension;               /* Number of loaded extensions 加载扩展数*/
   void **aExtension;            /* Array of shared library handles 共享库句柄数组*/
   void (*xTrace)(void*,const char*);        /* Trace function 跟踪功能*/
-  void *pTraceArg;                          /* Argument to the trace function */
-  void (*xProfile)(void*,const char*,u64);  /* Profiling function */
-  void *pProfileArg;                        /* Argument to profile function */
-  void *pCommitArg;                 /* Argument to xCommitCallback() */   
-  int (*xCommitCallback)(void*);    /* Invoked at every commit. */
+  void *pTraceArg;                          /* Argument to the trace function 跟踪功能的参数*/
+  void (*xProfile)(void*,const char*,u64);  /* Profiling function 分析功能*/
+  void *pProfileArg;                        /* Argument to profile function 分析功能的参数*/
+  void *pCommitArg;                 /* Argument to xCommitCallback() 函数xCommitCallback()的参数*/   
+  int (*xCommitCallback)(void*);    /* Invoked at every commit. 每次提交时都会被调用*/
   void *pRollbackArg;               /* Argument to xRollbackCallback() */   
-  void (*xRollbackCallback)(void*); /* Invoked at every commit. */
+  void (*xRollbackCallback)(void*); /* Invoked at every commit. 函数xRollbackCallback()的参数*/
   void *pUpdateArg;
   void (*xUpdateCallback)(void*,int, const char*,const char*,sqlite_int64);
 #ifndef SQLITE_OMIT_WAL
@@ -868,142 +868,145 @@ struct sqlite3 {
   void(*xCollNeeded)(void*,sqlite3*,int eTextRep,const char*);
   void(*xCollNeeded16)(void*,sqlite3*,int eTextRep,const void*);
   void *pCollNeededArg;
-  sqlite3_value *pErr;          /* Most recent error message */
-  char *zErrMsg;                /* Most recent error message (UTF-8 encoded) */
-  char *zErrMsg16;              /* Most recent error message (UTF-16 encoded) */
+  sqlite3_value *pErr;          /* Most recent error message 最近的错误信息*/
+  char *zErrMsg;                /* Most recent error message (UTF-8 encoded) 单字节编码的最近错误信息*/
+  char *zErrMsg16;              /* Most recent error message (UTF-16 encoded) 双字节编码的最近错误信息*/
   union {
-    volatile int isInterrupted; /* True if sqlite3_interrupt has been called */
+    volatile int isInterrupted; /* True if sqlite3_interrupt has been called 若sqlite3_interrupt被调用即为真*/
     double notUsed1;            /* Spacer */
   } u1;
-  Lookaside lookaside;          /* Lookaside malloc configuration */
+  Lookaside lookaside;          /* Lookaside malloc configuration 后备动态内存分配配置*/
 #ifndef SQLITE_OMIT_AUTHORIZATION
   int (*xAuth)(void*,int,const char*,const char*,const char*,const char*);
-                                /* Access authorization function */
-  void *pAuthArg;               /* 1st argument to the access auth function */
+                                /* Access authorization function 访问授权功能*/
+  void *pAuthArg;               /* 1st argument to the access auth function 访问身份验证功能的首个参数*/
 #endif
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
-  int (*xProgress)(void *);     /* The progress callback */
-  void *pProgressArg;           /* Argument to the progress callback */
-  int nProgressOps;             /* Number of opcodes for progress callback */
+  int (*xProgress)(void *);     /* The progress callback 进程回滚*/
+  void *pProgressArg;           /* Argument to the progress callback 进程回滚的参数*/
+  int nProgressOps;             /* Number of opcodes for progress callback 进程回滚所需要的操作码的数目*/
 #endif
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  int nVTrans;                  /* Allocated size of aVTrans */
-  Hash aModule;                 /* populated by sqlite3_create_module() */
-  VtabCtx *pVtabCtx;            /* Context for active vtab connect/create */
-  VTable **aVTrans;             /* Virtual tables with open transactions */
-  VTable *pDisconnect;    /* Disconnect these in next sqlite3_prepare() */
+  int nVTrans;                  /* Allocated size of aVTrans 为aVTrans(开放交易的虚拟表)所分配的大小*/
+  Hash aModule;                 /* populated by sqlite3_create_module() 通过sqlite3_create_module()函数填充*/
+  VtabCtx *pVtabCtx;            /* Context for active vtab connect/create 活跃的未分类连接/创建*/
+  VTable **aVTrans;             /* Virtual tables with open transactions 开放交易的虚拟表*/
+  VTable *pDisconnect;    /* Disconnect these in next sqlite3_prepare() 在接下来的sqlite3_prepare()函数中断开这些链接*/
 #endif
-  FuncDefHash aFunc;            /* Hash table of connection functions */
-  Hash aCollSeq;                /* All collating sequences */
-  BusyHandler busyHandler;      /* Busy callback */
-  Db aDbStatic[2];              /* Static space for the 2 default backends */
-  Savepoint *pSavepoint;        /* List of active savepoints */
-  int busyTimeout;              /* Busy handler timeout, in msec */
-  int nSavepoint;               /* Number of non-transaction savepoints */
-  int nStatement;               /* Number of nested statement-transactions  */
-  i64 nDeferredCons;            /* Net deferred constraints this transaction. */
-  int *pnBytesFreed;            /* If not NULL, increment this in DbFree() */
+  FuncDefHash aFunc;            /* Hash table of connection functions 连接功能哈希表*/
+  Hash aCollSeq;                /* All collating sequences 所有排序序列*/
+  BusyHandler busyHandler;      /* Busy callback 回滚繁忙*/
+  Db aDbStatic[2];              /* Static space for the 2 default backends 2默认后端的静态空间*/
+  Savepoint *pSavepoint;        /* List of active savepoints 活动保存点列表*/
+  int busyTimeout;              /* Busy handler timeout, in msec 忙处理超时，以毫秒为单位*/
+  int nSavepoint;               /* Number of non-transaction savepoints 非交易保存点的数?*/
+  int nStatement;               /* Number of nested statement-transactions  嵌套事务语句的数量*/
+  i64 nDeferredCons;            /* Net deferred constraints this transaction. 网络延迟约束这个交易*/
+  int *pnBytesFreed;            /* If not NULL, increment this in DbFree() 若不为空，将其加入函数DbFree()中*/
 
 #ifdef SQLITE_ENABLE_UNLOCK_NOTIFY
-  /* The following variables are all protected by the STATIC_MASTER 
-  ** mutex, not by sqlite3.mutex. They are used by code in notify.c. 
+  /* The following variables are all protected by the STATIC_MASTER //以下变量是由STATIC_MASTER互斥保护的，而不是sqlite3.mutex。
+  ** mutex, not by sqlite3.mutex. They are used by code in notify.c. //它们被notify.c中的代码所使用
   **
   ** When X.pUnlockConnection==Y, that means that X is waiting for Y to
-  ** unlock so that it can proceed.
+  ** unlock so that it can proceed.//若X.pUnlockConnection==Y,意味着X正在等待Y解锁，以便它可以继续执行
   **
   ** When X.pBlockingConnection==Y, that means that something that X tried
   ** tried to do recently failed with an SQLITE_LOCKED error due to locks
-  ** held by Y.
+  ** held by Y.//当X.pBlockingConnection==Y,这说明X最近试图产生的动作因为Y所持有的所未被释放而引发的SQLITE_LOCKED错误而失败
   */
-  sqlite3 *pBlockingConnection; /* Connection that caused SQLITE_LOCKED */
-  sqlite3 *pUnlockConnection;           /* Connection to watch for unlock */
-  void *pUnlockArg;                     /* Argument to xUnlockNotify */
-  void (*xUnlockNotify)(void **, int);  /* Unlock notify callback */
-  sqlite3 *pNextBlocked;        /* Next in list of all blocked connections */
+  sqlite3 *pBlockingConnection; /* Connection that caused SQLITE_LOCKED 引发SQLITE_LOCKED链接*/
+  sqlite3 *pUnlockConnection;           /* Connection to watch for unlock 等待解锁的链接*/
+  void *pUnlockArg;                     /* Argument to xUnlockNotify ，xUnlockNotify的参数*/
+  void (*xUnlockNotify)(void **, int);  /* Unlock notify callback 解锁通知回调*/
+  sqlite3 *pNextBlocked;        /* Next in list of all blocked connections 加锁链接列表中的下一个*/
 #endif
 };
 
 /*
-** A macro to discover the encoding of a database.
+** A macro to discover the encoding of a database. 检测数据库编码的宏
 */
 #define ENC(db) ((db)->aDb[0].pSchema->enc)
 
 /*
-** Possible values for the sqlite3.flags.
+** Possible values for the sqlite3.flags.    sqlite3.flags的可能的值
 */
-#define SQLITE_VdbeTrace      0x00000100  /* True to trace VDBE execution */
-#define SQLITE_InternChanges  0x00000200  /* Uncommitted Hash table changes */
-#define SQLITE_FullColNames   0x00000400  /* Show full column names on SELECT */
-#define SQLITE_ShortColNames  0x00000800  /* Show short columns names */
+#define SQLITE_VdbeTrace      0x00000100  /* True to trace VDBE execution 跟踪VDBE的执行*/
+#define SQLITE_InternChanges  0x00000200  /* Uncommitted Hash table changes 未提交的哈希表的更改*/
+#define SQLITE_FullColNames   0x00000400  /* Show full column names on SELECT 在select操作时显示列全名*/
+#define SQLITE_ShortColNames  0x00000800  /* Show short columns names 显示列短名*/
 #define SQLITE_CountRows      0x00001000  /* Count rows changed by INSERT, */
                                           /*   DELETE, or UPDATE and return */
-                                          /*   the count using a callback. */
+                                          /*   the count using a callback. 计算因为增删改而变化的行数，并通过回调返回数值*/
 #define SQLITE_NullCallback   0x00002000  /* Invoke the callback once if the */
-                                          /*   result set is empty */
-#define SQLITE_SqlTrace       0x00004000  /* Debug print SQL as it executes */
-#define SQLITE_VdbeListing    0x00008000  /* Debug listings of VDBE programs */
-#define SQLITE_WriteSchema    0x00010000  /* OK to update SQLITE_MASTER */
+                                          /*   result set is empty 若结果集合为空，调用一次回滚*/
+#define SQLITE_SqlTrace       0x00004000  /* Debug print SQL as it executes 当SQL执行时将其调试打印*/
+#define SQLITE_VdbeListing    0x00008000  /* Debug listings of VDBE programs，VDBE程序的调试列表 */
+#define SQLITE_WriteSchema    0x00010000  /* OK to update SQLITE_MASTER 可以更新SQLITE_MASTER*/
                          /*   0x00020000  Unused */
-#define SQLITE_IgnoreChecks   0x00040000  /* Do not enforce check constraints */
-#define SQLITE_ReadUncommitted 0x0080000  /* For shared-cache mode */
-#define SQLITE_LegacyFileFmt  0x00100000  /* Create new databases in format 1 */
-#define SQLITE_FullFSync      0x00200000  /* Use full fsync on the backend */
-#define SQLITE_CkptFullFSync  0x00400000  /* Use full fsync for checkpoint */
-#define SQLITE_RecoveryMode   0x00800000  /* Ignore schema errors */
-#define SQLITE_ReverseOrder   0x01000000  /* Reverse unordered SELECTs */
-#define SQLITE_RecTriggers    0x02000000  /* Enable recursive triggers */
-#define SQLITE_ForeignKeys    0x04000000  /* Enforce foreign key constraints  */
-#define SQLITE_AutoIndex      0x08000000  /* Enable automatic indexes */
-#define SQLITE_PreferBuiltin  0x10000000  /* Preference to built-in funcs */
-#define SQLITE_LoadExtension  0x20000000  /* Enable load_extension */
-#define SQLITE_EnableTrigger  0x40000000  /* True to enable triggers */
+#define SQLITE_IgnoreChecks   0x00040000  /* Do not enforce check constraints 忽略强制检查约束*/
+#define SQLITE_ReadUncommitted 0x0080000  /* For shared-cache mode 对于共享缓存模式*/
+#define SQLITE_LegacyFileFmt  0x00100000  /* Create new databases in format 1 创建格式1的新数据库*/
+#define SQLITE_FullFSync      0x00200000  /* Use full fsync on the backend 在后端使用全fsync(fsync函数同步内存中所有已修改的文件数据到储存设备).*/
+#define SQLITE_CkptFullFSync  0x00400000  /* Use full fsync for checkpoint 对检查点使用全fsync*/
+#define SQLITE_RecoveryMode   0x00800000  /* Ignore schema errors 忽略模式错误*/
+#define SQLITE_ReverseOrder   0x01000000  /* Reverse unordered SELECTs 逆转无序查询*/
+#define SQLITE_RecTriggers    0x02000000  /* Enable recursive triggers 启用递归触发器*/
+#define SQLITE_ForeignKeys    0x04000000  /* Enforce foreign key constraints  执行外键约束*/
+#define SQLITE_AutoIndex      0x08000000  /* Enable automatic indexes 启用自动索引*/
+#define SQLITE_PreferBuiltin  0x10000000  /* Preference to built-in funcs 内置函数优先*/
+#define SQLITE_LoadExtension  0x20000000  /* Enable load_extension 启用load_extension*/
+#define SQLITE_EnableTrigger  0x40000000  /* True to enable triggers 为真以便于启用触发器*/
 
 /*
 ** Bits of the sqlite3.flags field that are used by the
 ** sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...) interface.
 ** These must be the low-order bits of the flags field.
+ sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...)接口所使用的sqlite3.flags字段，必须是这些标志字段的低位信息
 */
-#define SQLITE_QueryFlattener 0x01        /* Disable query flattening */
-#define SQLITE_ColumnCache    0x02        /* Disable the column cache */
-#define SQLITE_IndexSort      0x04        /* Disable indexes for sorting */
-#define SQLITE_IndexSearch    0x08        /* Disable indexes for searching */
-#define SQLITE_IndexCover     0x10        /* Disable index covering table */
-#define SQLITE_GroupByOrder   0x20        /* Disable GROUPBY cover of ORDERBY */
-#define SQLITE_FactorOutConst 0x40        /* Disable factoring out constants */
-#define SQLITE_IdxRealAsInt   0x80        /* Store REAL as INT in indices */
-#define SQLITE_DistinctOpt    0x80        /* DISTINCT using indexes */
-#define SQLITE_OptMask        0xff        /* Mask of all disablable opts */
+#define SQLITE_QueryFlattener 0x01        /* Disable query flattening 关闭查询扁平化*/
+#define SQLITE_ColumnCache    0x02        /* Disable the column cache 禁用列缓存*/
+#define SQLITE_IndexSort      0x04        /* Disable indexes for sorting 禁用索引排序*/
+#define SQLITE_IndexSearch    0x08        /* Disable indexes for searching 禁用索引搜索*/
+#define SQLITE_IndexCover     0x10        /* Disable index covering table 禁用索引覆盖表*/
+#define SQLITE_GroupByOrder   0x20        /* Disable GROUPBY cover of ORDERBY  禁止ORDERBY覆盖GROUPB*/
+#define SQLITE_FactorOutConst 0x40        /* Disable factoring out constants 禁止分解出常数*/
+#define SQLITE_IdxRealAsInt   0x80        /* Store REAL as INT in indices 将REAL存储为下标中的INT*/
+#define SQLITE_DistinctOpt    0x80        /* DISTINCT using indexes 下标不允许重复*/
+#define SQLITE_OptMask        0xff        /* Mask of all disablable opts 屏蔽所有禁止项*/
 
 /*
 ** Possible values for the sqlite.magic field.
 ** The numbers are obtained at random and have no special meaning, other
 ** than being distinct from one another.
+  sqlite.magic 字段的值是随机获得的，除了它们彼此各不相同之外，没有其他特别的含义
 */
-#define SQLITE_MAGIC_OPEN     0xa029a697  /* Database is open */
-#define SQLITE_MAGIC_CLOSED   0x9f3c2d33  /* Database is closed */
-#define SQLITE_MAGIC_SICK     0x4b771290  /* Error and awaiting close */
-#define SQLITE_MAGIC_BUSY     0xf03b7906  /* Database currently in use */
-#define SQLITE_MAGIC_ERROR    0xb5357930  /* An SQLITE_MISUSE error occurred */
-#define SQLITE_MAGIC_ZOMBIE   0x64cffc7f  /* Close with last statement close */
+#define SQLITE_MAGIC_OPEN     0xa029a697  /* Database is open 数据库是打开的*/
+#define SQLITE_MAGIC_CLOSED   0x9f3c2d33  /* Database is closed 数据库是关闭的*/
+#define SQLITE_MAGIC_SICK     0x4b771290  /* Error and awaiting close 错误并等待关闭*/
+#define SQLITE_MAGIC_BUSY     0xf03b7906  /* Database currently in use 当前正在使用的数据库*/
+#define SQLITE_MAGIC_ERROR    0xb5357930  /* An SQLITE_MISUSE error occurred 出现一个数据库滥用错误*/
+#define SQLITE_MAGIC_ZOMBIE   0x64cffc7f  /* Close with last statement close 最后一条语句结束即关闭*/
 
 /*
 ** Each SQL function is defined by an instance of the following
 ** structure.  A pointer to this structure is stored in the sqlite.aFunc
 ** hash table.  When multiple functions have the same name, the hash table
 ** points to a linked list of these structures.
+每个SQL函数都是由以下结构体的一个实例来定义。指向以下结构的指针被存储在sqlite.aFunc哈希表中。当有多个函数重名的时候，哈希表指向的是这些结构体的一个链接列表。
 */
 struct FuncDef {
-  i16 nArg;            /* Number of arguments.  -1 means unlimited */
-  u8 iPrefEnc;         /* Preferred text encoding (SQLITE_UTF8, 16LE, 16BE) */
-  u8 flags;            /* Some combination of SQLITE_FUNC_* */
-  void *pUserData;     /* User data parameter */
-  FuncDef *pNext;      /* Next function with same name */
-  void (*xFunc)(sqlite3_context*,int,sqlite3_value**); /* Regular function */
-  void (*xStep)(sqlite3_context*,int,sqlite3_value**); /* Aggregate step */
-  void (*xFinalize)(sqlite3_context*);                /* Aggregate finalizer */
-  char *zName;         /* SQL name of the function. */
-  FuncDef *pHash;      /* Next with a different name but the same hash */
-  FuncDestructor *pDestructor;   /* Reference counted destructor function */
+  i16 nArg;            /* Number of arguments.  -1 means unlimited 参数的数量，1表示无限制*/
+  u8 iPrefEnc;         /* Preferred text encoding (SQLITE_UTF8, 16LE, 16BE) 所选择的文本编码方式*/
+  u8 flags;            /* Some combination of SQLITE_FUNC_* ， SQLITE_FUNC_*的某种组合*/
+  void *pUserData;     /* User data parameter 用户数据参数*/
+  FuncDef *pNext;      /* Next function with same name 重名的下一个函数*/
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**); /* Regular function 常规功能*/
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**); /* Aggregate step 总步*/
+  void (*xFinalize)(sqlite3_context*);                /* Aggregate finalizer 总终结*/
+  char *zName;         /* SQL name of the function. 函数的SQL名称*/
+  FuncDef *pHash;      /* Next with a different name but the same hash 下一个不重名但是有相同哈希的函数*/
+  FuncDestructor *pDestructor;   /* Reference counted destructor function 引用计数析构函数*/
 };
 
 /*
@@ -1015,10 +1018,14 @@ struct FuncDef {
 ** or not the specified encoding is SQLITE_ANY). The FuncDef.pDestructor
 ** member of each of the new FuncDef objects is set to point to the allocated
 ** FuncDestructor.
+ 这个结构体封装了一个用户功能的析构函数回滚和一个参考计数器。
+ 当create_function_v2（）被调用来利用一个析构函数创建一个函数，这个结构体类型的一个对象就会被分配。
+ FuncDestructor.nRef的值设置为FuncDef对象所被创建的数量。每个新FuncDef对象的FuncDef.pDestructor构件被设置为指向已分配的FuncDestructor。
 **
 ** Thereafter, when one of the FuncDef objects is deleted, the reference
 ** count on this object is decremented. When it reaches 0, the destructor
 ** is invoked and the FuncDestructor structure freed.
+此后，当FuncDef的某一对象被删除时，该对象上的引用计数递减。当它到达0，析构函数被调用，FuncDestructor结构体被释放。
 */
 struct FuncDestructor {
   int nRef;
@@ -1030,6 +1037,8 @@ struct FuncDestructor {
 ** Possible values for FuncDef.flags.  Note that the _LENGTH and _TYPEOF
 ** values must correspond to OPFLAG_LENGTHARG and OPFLAG_TYPEOFARG.  There
 ** are assert() statements in the code to verify this.
+FuncDef.flags的可能的值。需要注意的是_length和_TYPEOF值必须与OPFLAG_LENGTHARG和OPFLAG_TYPEOFARG相对应。
+在代码中有assert()语句来验证这一点。
 */
 #define SQLITE_FUNC_LIKE     0x01 /* Candidate for the LIKE optimization */
 #define SQLITE_FUNC_CASE     0x02 /* Case-sensitive LIKE-type function */
