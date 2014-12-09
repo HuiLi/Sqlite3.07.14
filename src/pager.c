@@ -5812,31 +5812,36 @@ int sqlite3PagerExclusiveLock(Pager *pPager){
 ** 为pager pPager同步数据库文件。zMaster指向一个主日志文件的名字，使它应该被写入个人日志文件。
    zMaster可能为空，它没有主日志被翻译，是一个单一的数据库事务。
 ** This routine ensures that:
-**
+** 这个程序确保：
 **   * The database file change-counter is updated,
+      数据库文件change-counter更新，
 **   * the journal is synced (unless the atomic-write optimization is used),
+      同步日志（除非atomic-write优化被使用）
 **   * all dirty pages are written to the database file, 
+       所有dirty页面写入数据库文件
 **   * the database file is truncated (if required), and
-**   * the database file synced. 
+**   * the database file synced. 数据库文件被截断（如果需要），同步数据库文件。
 **
 ** The only thing that remains to commit the transaction is to finalize 
 ** (delete, truncate or zero the first part of) the journal file (or 
 ** delete the master journal file if specified).
-**
+** 唯一有待完成的是提交事务（删除，截断，第一部分的零）以完成日志文件（如果需要，删除主日志文件）。
 ** Note that if zMaster==NULL, this does not overwrite a previous value
 ** passed to an sqlite3PagerCommitPhaseOne() call.
-**
+** 注意如果zMaster为空，并不覆盖前一个值传递给sqlite3PagerCommitPhaseOne()调用。
 ** If the final parameter - noSync - is true, then the database file itself
 ** is not synced. The caller must call sqlite3PagerSync() directly to
 ** sync the database file before calling CommitPhaseTwo() to delete the
 ** journal file in this case.
+   如果最后一个参数noSync是正确的，那么数据库文件自身不同步。
+   在调用CommitPhaseTwo() 函数删除日志文件的情况下，使用者必须直接调用sqlite3PagerSync() 函数同步数据库文件。
 */
 int sqlite3PagerCommitPhaseOne(
-  Pager *pPager,                  /* Pager object */
-  const char *zMaster,            /* If not NULL, the master journal name */
-  int noSync                      /* True to omit the xSync on the db file */
+  Pager *pPager,                  /* Pager object  Pager对象 */
+  const char *zMaster,            /* If not NULL, the master journal name  如果不为空，主日志名称 */
+  int noSync                      /* True to omit the xSync on the db file  在db文件真正忽略xSync*/
 ){
-  int rc = SQLITE_OK;             /* Return code */
+  int rc = SQLITE_OK;             /* Return code 返回代码*/
 
   assert( pPager->eState==PAGER_WRITER_LOCKED
        || pPager->eState==PAGER_WRITER_CACHEMOD
@@ -5845,19 +5850,23 @@ int sqlite3PagerCommitPhaseOne(
   );
   assert( assert_pager_state(pPager) );
 
-  /* If a prior error occurred, report that error again. */
+  /* If a prior error occurred, report that error again.
+     如果之前发生错误，再次报告错误*/
   if( NEVER(pPager->errCode) ) return pPager->errCode;
 
   PAGERTRACE(("DATABASE SYNC: File=%s zMaster=%s nSize=%d\n", 
       pPager->zFilename, zMaster, pPager->dbSize));
 
-  /* If no database changes have been made, return early. */
+  /* If no database changes have been made, return early. 
+   如果没有数据库更新，早返回。*/
   if( pPager->eState<PAGER_WRITER_CACHEMOD ) return SQLITE_OK;
 
   if( MEMDB ){
     /* If this is an in-memory db, or no pages have been written to, or this
     ** function has already been called, it is mostly a no-op.  However, any
     ** backup in progress needs to be restarted.
+       如果这是个内存db，或者没有页面可写，或者这个函数已经被调用，这主要是个空操作。
+       然而，任何备份在进程中需要重新启动。
     */
     sqlite3BackupRestart(pPager->pBackup);
   }else{
@@ -5866,7 +5875,8 @@ int sqlite3PagerCommitPhaseOne(
       PgHdr *pPageOne = 0;
       if( pList==0 ){
         /* Must have at least one page for the WAL commit flag.
-        ** Ticket [2d1a5c67dfc2363e44f29d9bbd57f] 2011-05-18 */
+        ** Ticket [2d1a5c67dfc2363e44f29d9bbd57f] 2011-05-18 
+        必须至少有一个页面为了WAL提交标记。证明书[2d1a5c67dfc2363e44f29d9bbd57f] 2011-05-18 */
         rc = sqlite3PagerGet(pPager, 1, &pPageOne);
         pList = pPageOne;
         pList->pDirty = 0;
@@ -5884,24 +5894,28 @@ int sqlite3PagerCommitPhaseOne(
       ** does this depends on whether or not the atomic-update optimization
       ** was enabled at compile time, and if this transaction meets the 
       ** runtime criteria to use the operation: 
-      **
+      ** 接下来的块更新change-counter。事实上它如何操作是根据atomic-update 优化是否在编译期被启用，
+         这个事务是否运行时使用操作标准：
       **    * The file-system supports the atomic-write property for
-      **      blocks of size page-size, and 
-      **    * This commit is not part of a multi-file transaction, and
+      **      blocks of size page-size, and 这文件系统支持atomic-write属性为size page-size中的块，
+      **    * This commit is not part of a multi-file transaction,这个提交不是多文件事务里的一部分 and
       **    * Exactly one page has been modified and store in the journal file.
-      **
+      **      事实上页面已经修改并储存在日志文件里。
       ** If the optimization was not enabled at compile time, then the
       ** pager_incr_changecounter() function is called to update the change
       ** counter in 'indirect-mode'. If the optimization is compiled in but
       ** is not applicable to this transaction, call sqlite3JournalCreate()
       ** to make sure the journal file has actually been created, then call
       ** pager_incr_changecounter() to update the change-counter in indirect
-      ** mode. 
-      **
+      ** mode. 如果这个优化没有在编译期被启用，那么在indirect模式下pager_incr_changecounter()函数会被调用去更新改变计数器。
+         如果优化被编译但是不适合这个事务，调用sqlite3JournalCreate()确保日志文件事实上已经被创建，那么在indirect模式下调用pager_incr_changecounter() 
+         函数更新change-counter。
       ** Otherwise, if the optimization is both enabled and applicable,
       ** then call pager_incr_changecounter() to update the change-counter
       ** in 'direct' mode. In this case the journal file will never be
       ** created for this transaction.
+         否则，如果这个优化已经启用并且适合，那么在 'direct'模式下调用pager_incr_changecounter()函数更新change-counter。
+         在这种情况下，这个事务不会创建日志文件。
       */
   #ifdef SQLITE_ENABLE_ATOMIC_WRITE
       PgHdr *pPg;
@@ -5919,6 +5933,8 @@ int sqlite3PagerCommitPhaseOne(
         ** to include the updated change counter and then write page 1 
         ** directly to the database file. Because of the atomic-write 
         ** property of the host file-system, this is safe.
+           更新db文件change counter通过直写方法。接下来的调用将修改page1中的内存表示方法，包括更新改变计数器，
+           接着把Page1写入数据库文件。由于主机文件系统的atomic-write 属性，这是安全的。
         */
         rc = pager_incr_changecounter(pPager, 1);
       }else{
@@ -5935,24 +5951,27 @@ int sqlite3PagerCommitPhaseOne(
       /* If this transaction has made the database smaller, then all pages
       ** being discarded by the truncation must be written to the journal
       ** file. This can only happen in auto-vacuum mode.
-      **
+      ** 如果这个事务使数据库变小，那么通过截断被丢弃的所有页面必须写入日志文件。
+         这只在auto-vacuum模式下发生。
       ** Before reading the pages with page numbers larger than the 
       ** current value of Pager.dbSize, set dbSize back to the value
       ** that it took at the start of the transaction. Otherwise, the
       ** calls to sqlite3PagerGet() return zeroed pages instead of 
       ** reading data from the database file.
+         在阅读大于Pager中当前值的含有页码的页之前。dbSize，设置dbSize返回值，这在事务的开始。
+         否则，调用sqlite3PagerGet()返回零页面，而不是读取数据库文件中的数据。
       */
   #ifndef SQLITE_OMIT_AUTOVACUUM
       if( pPager->dbSize<pPager->dbOrigSize 
        && pPager->journalMode!=PAGER_JOURNALMODE_OFF
       ){
-        Pgno i;                                   /* Iterator variable */
-        const Pgno iSkip = PAGER_MJ_PGNO(pPager); /* Pending lock page */
-        const Pgno dbSize = pPager->dbSize;       /* Database image size */ 
+        Pgno i;                                   /* Iterator variable 迭代器变量*/
+        const Pgno iSkip = PAGER_MJ_PGNO(pPager); /* Pending lock page 等待锁定页面*/
+        const Pgno dbSize = pPager->dbSize;       /* Database image size 数据库图像大小*/ 
         pPager->dbSize = pPager->dbOrigSize;
         for( i=dbSize+1; i<=pPager->dbOrigSize; i++ ){
           if( !sqlite3BitvecTest(pPager->pInJournal, i) && i!=iSkip ){
-            PgHdr *pPage;             /* Page to journal */
+            PgHdr *pPage;             /* Page to journal 页面杂志*/
             rc = sqlite3PagerGet(pPager, i, &pPage);
             if( rc!=SQLITE_OK ) goto commit_phase_one_exit;
             rc = sqlite3PagerWrite(pPage);
@@ -5967,20 +5986,22 @@ int sqlite3PagerCommitPhaseOne(
       /* Write the master journal name into the journal file. If a master 
       ** journal file name has already been written to the journal file, 
       ** or if zMaster is NULL (no master journal), then this call is a no-op.
-      */
+         把主日志名字写入日志文件。如果一个主日志文件名已经写入日志文件，或者如果zMaster为空，那么这个调用是个空操作。      */
       rc = writeMasterJournal(pPager, zMaster);
       if( rc!=SQLITE_OK ) goto commit_phase_one_exit;
   
       /* Sync the journal file and write all dirty pages to the database.
       ** If the atomic-update optimization is being used, this sync will not 
       ** create the journal file or perform any real IO.
-      **
+      ** 同步日志文件并且把所有dirty页面写入数据库。如果atomic-update优化被使用，这同步不会创建日志文件或者执行任何真正的IO。
       ** Because the change-counter page was just modified, unless the
       ** atomic-update optimization is used it is almost certain that the
       ** journal requires a sync here. However, in locking_mode=exclusive
       ** on a system under memory pressure it is just possible that this is 
       ** not the case. In this case it is likely enough that the redundant
-      ** xSync() call will be changed to a no-op by the OS anyhow. 
+      ** xSync() call will be changed to a no-op by the OS anyhow.
+         因为 change-counter页面只是被修改，除非 atomic-update优化被使用，这样肯定了此时日志需要同步。
+         然而，在内存压力下的locking_mode=exclusive系统，这也是有可能的。在这种情况下，xSync()函数调用冗余将改成空操作通过任何OS。
       */
       rc = syncJournal(pPager, 0);
       if( rc!=SQLITE_OK ) goto commit_phase_one_exit;
@@ -5994,6 +6015,7 @@ int sqlite3PagerCommitPhaseOne(
   
       /* If the file on disk is not the same size as the database image,
       ** then use pager_truncate to grow or shrink the file here.
+         如果磁盘文件和数据库图像不一样的大小，那么在这使用pager_truncate扩大或者缩小文件。
       */
       if( pPager->dbSize!=pPager->dbFileSize ){
         Pgno nNew = pPager->dbSize - (pPager->dbSize==PAGER_MJ_PGNO(pPager));
@@ -6002,7 +6024,7 @@ int sqlite3PagerCommitPhaseOne(
         if( rc!=SQLITE_OK ) goto commit_phase_one_exit;
       }
   
-      /* Finally, sync the database file. */
+      /* Finally, sync the database file.最后，同步数据库文件。 */
       if( !noSync ){
         rc = sqlite3PagerSync(pPager);
       }
@@ -6024,21 +6046,25 @@ commit_phase_one_exit:
 ** synced to disk. The journal file still exists in the file-system 
 ** though, and if a failure occurs at this point it will eventually
 ** be used as a hot-journal and the current transaction rolled back.
-**
+** 当这个函数被调用，数据库文件已经完成更新，体现出当前事务和磁盘同步操作的变化。
+   虽然日志文件仍然存在于文件系统，如果此时发生故障，它将最终被当做hot-journal使用或者恢复当前事务。
 ** This function finalizes the journal file, either by deleting, 
 ** truncating or partially zeroing it, so that it cannot be used 
 ** for hot-journal rollback. Once this is done the transaction is
 ** irrevocably committed.
-**
+** 这个函数完成日志文件，通过删除，截断或者部分归零，以便它不被用来恢复 hot-journal。
+  一旦完成，这个事务不可取消提交。
 ** If an error occurs, an IO error code is returned and the pager
-** moves into the error state. Otherwise, SQLITE_OK is returned.
+** moves into the error state. Otherwise,SQLITE_OK is returned.
+   如果发生错误，返回IO错误代码并且pager移入错误状态。否则，返回SQLITE_OK。
 */
 int sqlite3PagerCommitPhaseTwo(Pager *pPager){
-  int rc = SQLITE_OK;                  /* Return code */
+  int rc = SQLITE_OK;                  /* Return code返回代码 */
 
   /* This routine should not be called if a prior error has occurred.
   ** But if (due to a coding error elsewhere in the system) it does get
-  ** called, just return the same error code without doing anything. */
+  ** called, just return the same error code without doing anything.
+     如果之前错误已经发生，这个程序不被调用。但是如果它被调用，只返回一样的错误代码不进行任何操作。*/
   if( NEVER(pPager->errCode) ) return pPager->errCode;
 
   assert( pPager->eState==PAGER_WRITER_LOCKED
@@ -6878,7 +6904,7 @@ static int pagerOpenWal(Pager *pPager){
 /*
 ** The caller must be holding a SHARED lock on the database file to call
 ** this function.
-**
+** 使用者必须在数据库文件保留一个共享锁来调用这个函数。
 ** If the pager passed as the first argument is open on a real database
 ** file (not a temp file or an in-memory database), and the WAL file
 ** is not already open, make an attempt to open it now. If successful,
@@ -6889,12 +6915,13 @@ static int pagerOpenWal(Pager *pPager){
 ** If the pager is open on a temp-file (or in-memory database), or if
 ** the WAL file is already open, set *pbOpen to 1 and return SQLITE_OK
 ** without doing anything.
+   如果pager在内存数据库打开，或许WAL文件是否打开，设置 *pbOpen为1并且返回SQLITE_OK不进行任何操作。
 */
 int sqlite3PagerOpenWal(
-  Pager *pPager,                  /* Pager object */
-  int *pbOpen                     /* OUT: Set to true if call is a no-op */
+  Pager *pPager,                  /* Pager object  Pager对象 */
+  int *pbOpen                     /* OUT: Set to true if call is a no-op 如果调用时隔空操作，设置为TRUE*/
 ){
-  int rc = SQLITE_OK;             /* Return code */
+  int rc = SQLITE_OK;             /* Return code 返回代码 */
 
   assert( assert_pager_state(pPager) );
   assert( pPager->eState==PAGER_OPEN   || pbOpen );
@@ -6905,7 +6932,7 @@ int sqlite3PagerOpenWal(
   if( !pPager->tempFile && !pPager->pWal ){
     if( !sqlite3PagerWalSupported(pPager) ) return SQLITE_CANTOPEN;
 
-    /* Close any rollback journal previously open */
+    /* Close any rollback journal previously open 开放之前关闭任何日志恢复*/
     sqlite3OsClose(pPager->jfd);
 
     rc = pagerOpenWal(pPager);
@@ -6923,11 +6950,13 @@ int sqlite3PagerOpenWal(
 /*
 ** This function is called to close the connection to the log file prior
 ** to switching from WAL to rollback mode.
-**
+**这个函数被调用之前关闭到日志文件的连接，从WAL切换到恢复模式。
 ** Before closing the log file, this function attempts to take an 
 ** EXCLUSIVE lock on the database file. If this cannot be obtained, an
 ** error (SQLITE_BUSY) is returned and the log connection is not closed.
 ** If successful, the EXCLUSIVE lock is not released before returning.
+  在关闭记录文件之前，这个函数企图从数据库文件获取一个排它锁。如果没有获取，返回错误并且记录连接不会关闭。
+  如果成功，排它锁在返回之前不被释放。
 */
 int sqlite3PagerCloseWal(Pager *pPager){
   int rc = SQLITE_OK;
@@ -6937,6 +6966,8 @@ int sqlite3PagerCloseWal(Pager *pPager){
   /* If the log file is not already open, but does exist in the file-system,
   ** it may need to be checkpointed before the connection can switch to
   ** rollback mode. Open it now so this can happen.
+    如果记录文件没有打开，但是它存在于文件系统中，在链接被切换到恢复模式之前它或许需要检查。
+    打开它就可以发生。
   */
   if( !pPager->pWal ){
     int logexists = 0;
@@ -6953,6 +6984,7 @@ int sqlite3PagerCloseWal(Pager *pPager){
     
   /* Checkpoint and close the log. Because an EXCLUSIVE lock is held on
   ** the database file, the log and log-summary files will be deleted.
+    检查并且关闭记录。因为一个排它锁被保留在数据库文件中，这个记录和记录概要文件将被删除。
   */
   if( rc==SQLITE_OK && pPager->pWal ){
     rc = pagerExclusiveLock(pPager);
@@ -6972,6 +7004,8 @@ int sqlite3PagerCloseWal(Pager *pPager){
 ** frames, return the size in bytes of the page images stored within the
 ** WAL frames. Otherwise, if this is not a WAL database or the WAL file
 ** is empty, return 0.
+   当这个函数被调用，读锁必须被保留在pager。如果pager在WAL模式下，WAL文件当前包含一个或者更多的框架，
+   返回储存在WAL框架上页面图像字节的大小。否则，如果这不是一个WAL数据库或者WAL文件为空，返回0。
 */
 int sqlite3PagerWalFramesize(Pager *pPager){
   assert( pPager->eState==PAGER_READER );
@@ -6983,9 +7017,10 @@ int sqlite3PagerWalFramesize(Pager *pPager){
 /*
 ** This function is called by the wal module when writing page content
 ** into the log file.
-**
+** 当写页面满足于日志文件，这个函数被WAL模块调用。
 ** This function returns a pointer to a buffer containing the encrypted
 ** page content. If a malloc fails, this function may return NULL.
+   这个函数返回一个指向一个包含加密的缓冲区页面内容。如果分配内存失败，这个函数会返回空。
 */
 void *sqlite3PagerCodec(PgHdr *pPg){
   void *aData = 0;
