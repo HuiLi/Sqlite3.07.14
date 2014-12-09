@@ -5661,17 +5661,21 @@ void sqlite3PagerDontWrite(PgHdr *pPg){
 ** To avoid excess churning of page 1, the update only happens once.
 ** See also the pager_write_changecounter() routine that does an 
 ** unconditional update of the change counters.
-**
+** 但是这只发生在pPager->changeCountDone标记错误的情况下。为了避免page1交易过剩，更新只发生一次。
+   另请参阅 pager_write_changecounter()程序， 这是一个无条件的更新变化的计数器。  
 ** If the isDirectMode flag is zero, then this is done by calling 
 ** sqlite3PagerWrite() on page 1, then modifying the contents of the
 ** page data. In this case the file will be updated when the current
 ** transaction is committed.
-**
+** 如果DirectMode标记为零，那么它在page1上通过调用sqlite3PagerWrite()完成，
+   然后修改页面数据的内容。在这种情况下,当当前事务被提交文件直接被更新。
 ** The isDirectMode flag may only be non-zero if the library was compiled
 ** with the SQLITE_ENABLE_ATOMIC_WRITE macro defined. In this case,
 ** if isDirect is non-zero, then the database file is updated directly
 ** by writing an updated version of page 1 using a call to the 
 ** sqlite3OsWrite() function.
+   如果库结合SQLITE_ENABLE_ATOMIC_WRITE宏定义被编译，那么DirectMode只能非零。
+   在这种情况下，如果Direct不为零，那么数据库文件直接被更新，通过写升级版调用page1的sqlite3OsWrite()函数。
 */
 static int pager_incr_changecounter(Pager *pPager, int isDirectMode){
   int rc = SQLITE_OK;
@@ -5685,11 +5689,14 @@ static int pager_incr_changecounter(Pager *pPager, int isDirectMode){
   ** atomic-write optimization is enabled in this build, then isDirect
   ** is initialized to the value passed as the isDirectMode parameter
   ** to this function. Otherwise, it is always set to zero.
-  **
+  ** 声明和初始化整型常量isDirect。如果atomic-write优化在构建中被启用，那么
+     isDirect初始化值通过isDirectMode参数传递给这个函数。否则，它总是设置为0。
   ** The idea is that if the atomic-write optimization is not
   ** enabled at compile time, the compiler can omit the tests of
   ** 'isDirect' below, as well as the block enclosed in the
   ** "if( isDirect )" condition.
+     这个思想是在atomic-write优化在编译阶段没有启用，这个编译器可以省略'isDirect'下面的测验，
+     以及"if( isDirect )"条件下块的封闭。
   */
 #ifndef SQLITE_ENABLE_ATOMIC_WRITE
 # define DIRECT_MODE 0
@@ -5700,11 +5707,11 @@ static int pager_incr_changecounter(Pager *pPager, int isDirectMode){
 #endif
 
   if( !pPager->changeCountDone && pPager->dbSize>0 ){
-    PgHdr *pPgHdr;                /* Reference to page 1 */
+    PgHdr *pPgHdr;                /* Reference to page 1 参考第一页*/
 
     assert( !pPager->tempFile && isOpen(pPager->fd) );
 
-    /* Open page 1 of the file for writing. */
+    /* Open page 1 of the file for writing. 打开第一页并进行写操作*/
     rc = sqlite3PagerGet(pPager, 1, &pPgHdr);
     assert( pPgHdr==0 || rc==SQLITE_OK );
 
@@ -5712,16 +5719,19 @@ static int pager_incr_changecounter(Pager *pPager, int isDirectMode){
     ** operating in direct-mode, make page 1 writable.  When not in 
     ** direct mode, page 1 is always held in cache and hence the PagerGet()
     ** above is always successful - hence the ALWAYS on rc==SQLITE_OK.
+      如果页面获取成功，这个函数在direct-mode下没有操作，使page1可写。
+      当不在direct-mode下，第1页总是在缓存,因此PagerGet()总是显示成功，因此总是在rc = = SQLITE_OK。
     */
     if( !DIRECT_MODE && ALWAYS(rc==SQLITE_OK) ){
       rc = sqlite3PagerWrite(pPgHdr);
     }
 
     if( rc==SQLITE_OK ){
-      /* Actually do the update of the change counter */
+      /* Actually do the update of the change counter 事实上一直在更新改变计数器*/
       pager_write_changecounter(pPgHdr);
 
-      /* If running in direct mode, write the contents of page 1 to the file. */
+      /* If running in direct mode, write the contents of page 1 to the file. 
+       如果在direct mode运行，把第一页的内容写入文件。 */
       if( DIRECT_MODE ){
         const void *zBuf;
         assert( pPager->dbFileSize>0 );
@@ -5738,7 +5748,7 @@ static int pager_incr_changecounter(Pager *pPager, int isDirectMode){
       }
     }
 
-    /* Release the page reference. */
+    /* Release the page reference. 释放页面索引*/
     sqlite3PagerUnref(pPgHdr);
   }
   return rc;
@@ -5747,9 +5757,10 @@ static int pager_incr_changecounter(Pager *pPager, int isDirectMode){
 /*
 ** Sync the database file to disk. This is a no-op for in-memory databases
 ** or pages with the Pager.noSync flag set.
-**
+** 同步数据库文件到磁盘。设置noSync标记。这是一个内存数据库的空操作或者Pager的页面。
 ** If successful, or if called on a pager for which it is a no-op, this
 ** function returns SQLITE_OK. Otherwise, an IO error code is returned.
+   如果成功，或者在pager上调用一个空操作，这个函数返回 SQLITE_OK。否则，返回IO错误代码。
 */
 int sqlite3PagerSync(Pager *pPager){
   int rc = SQLITE_OK;
@@ -5771,11 +5782,14 @@ int sqlite3PagerSync(Pager *pPager){
 ** rollback. If the connection is in WAL mode, this call is a no-op. 
 ** Otherwise, if the connection does not already have an EXCLUSIVE lock on 
 ** the database file, an attempt is made to obtain one.
-**
+** 这个函数只能在写事务活跃于回滚的时候调用。如果这个链接在WAL模式，这个调用是个空操作。
+   否则，如果链接在数据库文件中没有一个排它锁，会试图获得一个。
 ** If the EXCLUSIVE lock is already held or the attempt to obtain it is
 ** successful, or the connection is in WAL mode, SQLITE_OK is returned.
 ** Otherwise, either SQLITE_BUSY or an SQLITE_IOERR_XXX error code is 
 ** returned.
+   如果排它锁已经存在或者企图获取成功，这个连接在WAL模式下，返回SQLITE_OK 。
+   否则，返回SQLITE_BUSY 或者 SQLITE_IOERR_XXX 的错误代码。
 */
 int sqlite3PagerExclusiveLock(Pager *pPager){
   int rc = SQLITE_OK;
@@ -5795,7 +5809,8 @@ int sqlite3PagerExclusiveLock(Pager *pPager){
 ** of a master journal file that should be written into the individual
 ** journal file. zMaster may be NULL, which is interpreted as no master
 ** journal (a single database transaction).
-**
+** 为pager pPager同步数据库文件。zMaster指向一个主日志文件的名字，使它应该被写入个人日志文件。
+   zMaster可能为空，它没有主日志被翻译，是一个单一的数据库事务。
 ** This routine ensures that:
 **
 **   * The database file change-counter is updated,
