@@ -44,7 +44,7 @@ struct TableLock {
   u8 isWriteLock;      /* True for write lock.  False for a read lock */
   const char *zName;   /* Name of the table */
 };
-
+//
 /*
 ** Record the fact that we want to lock a table at run-time.  
 **
