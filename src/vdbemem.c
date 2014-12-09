@@ -1,4 +1,5 @@
-/*
+/*   操作”Mem”数据结构的函数
+** VDBE是SQLite的核心：它上面的各模块都是用于创建VDBE程序，它下面的各模块都是用于执行VDBE程序，每次执行一条指令。
 ** 2004 May 26
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -11,7 +12,7 @@
 *************************************************************************
 **
 ** This file contains code use to manipulate "Mem" structure.  A "Mem"
-** stores a single value in the VDBE.  Mem is an opaque structure visible
+** stores a single value in the VDBE[虚拟数据库引擎(Virtual DataBase Engine,VDBE)].  Mem is an opaque(不透明的) structure visible
 ** only within the VDBE.  Interface routines refer to a Mem using the
 ** name sqlite_value
 */
@@ -19,15 +20,15 @@
 #include "vdbeInt.h"
 
 /*
-** If pMem is an object with a valid string representation, this routine
+** If pMem is an object with a valid(有效的) string representation(表示), this routine
 ** ensures the internal encoding for the string representation is
 ** 'desiredEnc', one of SQLITE_UTF8, SQLITE_UTF16LE or SQLITE_UTF16BE.
 **
-** If pMem is not a string object, or the encoding of the string
-** representation is already stored using the requested encoding, then this
-** routine is a no-op.
+** If pMem is not a string object(字符串对象), or the encoding of the string
+** representation is already stored using the requested encoding(被要求的编码方式), then this
+** routine is a no-op(空操作?).
 **
-** SQLITE_OK is returned if the conversion is successful (or not required).
+** SQLITE_OK is returned if the conversion(转变,改变) is successful (or not required).
 ** SQLITE_NOMEM may be returned if a malloc() fails during conversion
 ** between formats.
 */
@@ -56,15 +57,15 @@ int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
 }
 
 /*
-** Make sure pMem->z points to a writable allocation of at least 
+** Make sure pMem->z points to a writable allocation(分配) of at least 
 ** n bytes.
 **
-** If the third argument passed to this function is true, then memory
+** If the third argument(论据,论点) passed to this function is true, then memory
 ** cell pMem must contain a string or blob. In this case the content is
-** preserved. Otherwise, if the third parameter to this function is false,
-** any current string or blob value may be discarded.
+** preserved(被保护). Otherwise, if the third parameter to this function is false,
+** any current string or blob value may be discarded(丢弃).
 **
-** This function sets the MEM_Dyn flag and clears any xDel callback.
+** This function sets the MEM_Dyn flag(旗帜,标志) and clears any xDel callback.
 ** It also clears MEM_Ephem and MEM_Static. If the preserve flag is 
 ** not set, Mem.n is zeroed.
 */
