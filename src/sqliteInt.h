@@ -962,7 +962,7 @@ struct sqlite3 {
 ** Bits of the sqlite3.flags field that are used by the
 ** sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...) interface.
 ** These must be the low-order bits of the flags field.
- sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...)接口所使用的sqlite3.flags字段，必须是这些标志字段的低位信息
+** sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...)接口所使用的sqlite3.flags字段，必须是这些标志字段的低位信息
 */
 #define SQLITE_QueryFlattener 0x01        /* Disable query flattening 关闭查询扁平化*/
 #define SQLITE_ColumnCache    0x02        /* Disable the column cache 禁用列缓存*/
@@ -979,7 +979,7 @@ struct sqlite3 {
 ** Possible values for the sqlite.magic field.
 ** The numbers are obtained at random and have no special meaning, other
 ** than being distinct from one another.
-  sqlite.magic 字段的值是随机获得的，除了它们彼此各不相同之外，没有其他特别的含义
+**sqlite.magic 字段的值是随机获得的，除了它们彼此各不相同之外，没有其他特别的含义
 */
 #define SQLITE_MAGIC_OPEN     0xa029a697  /* Database is open 数据库是打开的*/
 #define SQLITE_MAGIC_CLOSED   0x9f3c2d33  /* Database is closed 数据库是关闭的*/
@@ -993,7 +993,7 @@ struct sqlite3 {
 ** structure.  A pointer to this structure is stored in the sqlite.aFunc
 ** hash table.  When multiple functions have the same name, the hash table
 ** points to a linked list of these structures.
-每个SQL函数都是由以下结构体的一个实例来定义。指向以下结构的指针被存储在sqlite.aFunc哈希表中。当有多个函数重名的时候，哈希表指向的是这些结构体的一个链接列表。
+**每个SQL函数都是由以下结构体的一个实例来定义。指向以下结构的指针被存储在sqlite.aFunc哈希表中。当有多个函数重名的时候，哈希表指向的是这些结构体的一个链接列表。
 */
 struct FuncDef {
   i16 nArg;            /* Number of arguments.  -1 means unlimited 参数的数量，1表示无限制*/
@@ -1018,9 +1018,9 @@ struct FuncDef {
 ** or not the specified encoding is SQLITE_ANY). The FuncDef.pDestructor
 ** member of each of the new FuncDef objects is set to point to the allocated
 ** FuncDestructor.
- 这个结构体封装了一个用户功能的析构函数回滚和一个参考计数器。
- 当create_function_v2（）被调用来利用一个析构函数创建一个函数，这个结构体类型的一个对象就会被分配。
- FuncDestructor.nRef的值设置为FuncDef对象所被创建的数量。每个新FuncDef对象的FuncDef.pDestructor构件被设置为指向已分配的FuncDestructor。
+** 这个结构体封装了一个用户功能的析构函数回滚和一个参考计数器。
+**当create_function_v2（）被调用来利用一个析构函数创建一个函数，这个结构体类型的一个对象就会被分配。
+**FuncDestructor.nRef的值设置为FuncDef对象所被创建的数量。每个新FuncDef对象的FuncDef.pDestructor构件被设置为指向已分配的FuncDestructor。
 **
 ** Thereafter, when one of the FuncDef objects is deleted, the reference
 ** count on this object is decremented. When it reaches 0, the destructor
@@ -1040,18 +1040,19 @@ struct FuncDestructor {
 FuncDef.flags的可能的值。需要注意的是_length和_TYPEOF值必须与OPFLAG_LENGTHARG和OPFLAG_TYPEOFARG相对应。
 在代码中有assert()语句来验证这一点。
 */
-#define SQLITE_FUNC_LIKE     0x01 /* Candidate for the LIKE optimization */
-#define SQLITE_FUNC_CASE     0x02 /* Case-sensitive LIKE-type function */
-#define SQLITE_FUNC_EPHEM    0x04 /* Ephemeral.  Delete with VDBE */
-#define SQLITE_FUNC_NEEDCOLL 0x08 /* sqlite3GetFuncCollSeq() might be called */
-#define SQLITE_FUNC_COUNT    0x10 /* Built-in count(*) aggregate */
-#define SQLITE_FUNC_COALESCE 0x20 /* Built-in coalesce() or ifnull() function */
-#define SQLITE_FUNC_LENGTH   0x40 /* Built-in length() function */
-#define SQLITE_FUNC_TYPEOF   0x80 /* Built-in typeof() function */
+#define SQLITE_FUNC_LIKE     0x01 /* Candidate for the LIKE optimization LIKE优化的候选结果*/
+#define SQLITE_FUNC_CASE     0x02 /* Case-sensitive LIKE-type function LIKE型功能区分大小写*/
+#define SQLITE_FUNC_EPHEM    0x04 /* Ephemeral.  Delete with VDBE 暂时的，和VDBE一起删除*/
+#define SQLITE_FUNC_NEEDCOLL 0x08 /* sqlite3GetFuncCollSeq() might be called ， sqlite3GetFuncCollSeq()函数很可能被调用*/
+#define SQLITE_FUNC_COUNT    0x10 /* Built-in count(*) aggregate 内置计数聚合函数*/
+#define SQLITE_FUNC_COALESCE 0x20 /* Built-in coalesce() or ifnull() function 内置coalesce()或ifnull()函数*/
+#define SQLITE_FUNC_LENGTH   0x40 /* Built-in length() function 内置length()函数*/
+#define SQLITE_FUNC_TYPEOF   0x80 /* Built-in typeof() function 内置typeof()函数*/
 
 /*
 ** The following three macros, FUNCTION(), LIKEFUNC() and AGGREGATE() are
 ** used to create the initializers for the FuncDef structures.
+  以下三个宏定义，FUNCTION(),LIKEFUNC()和AGGREGATE()被用于FuncDef结构体的初始化
 **
 **   FUNCTION(zName, nArg, iArg, bNC, xFunc)
 **     Used to create a scalar function definition of a function zName 
@@ -1094,16 +1095,19 @@ FuncDef.flags的可能的值。需要注意的是_length和_TYPEOF值必须与OP
 ** sqlite3.pSavepoint. The first element in the list is the most recently
 ** opened savepoint. Savepoints are added to the list by the vdbe
 ** OP_Savepoint instruction.
+目前所有的保存点都存储在一个以sqlite3.pSavepoint开始的链接列表中.
+在列表中的第一个元素是最近打开的保存点.保存点通过VDBE OP_Savepoint指令被添加到该列表.
 */
 struct Savepoint {
-  char *zName;                        /* Savepoint name (nul-terminated) */
-  i64 nDeferredCons;                  /* Number of deferred fk violations */
-  Savepoint *pNext;                   /* Parent savepoint (if any) */
+  char *zName;                        /* Savepoint name (nul-terminated) 保存点名称（空终止）*/
+  i64 nDeferredCons;                  /* Number of deferred fk violations 延迟的外键违规的数量*/
+  Savepoint *pNext;                   /* Parent savepoint (if any) 父保存点（如果有的话）*/
 };
 
 /*
 ** The following are used as the second parameter to sqlite3Savepoint(),
 ** and as the P1 argument to the OP_Savepoint instruction.
+**   以下三个变量将作为sqlite3Savepoint()函数的第二参数，并作为P1参数传递给OP_Savepoint指令。
 */
 #define SAVEPOINT_BEGIN      0
 #define SAVEPOINT_RELEASE    1
@@ -1114,29 +1118,31 @@ struct Savepoint {
 ** Each SQLite module (virtual table definition) is defined by an
 ** instance of the following structure, stored in the sqlite3.aModule
 ** hash table.
+每个SQLite的模块（虚拟表定义）由下面的结构体的一个实例来定义，并存储在sqlite3.aModule哈希表中
 */
 struct Module {
-  const sqlite3_module *pModule;       /* Callback pointers */
-  const char *zName;                   /* Name passed to create_module() */
-  void *pAux;                          /* pAux passed to create_module() */
-  void (*xDestroy)(void *);            /* Module destructor function */
+  const sqlite3_module *pModule;       /* Callback pointers 回滚指针*/
+  const char *zName;                   /* Name passed to create_module() 传递给create_module()函数的名字*/
+  void *pAux;                          /* pAux passed to create_module() 将pAux传递给create_module()函数*/
+  void (*xDestroy)(void *);            /* Module destructor function 模块析构函数*/
 };
 
 /*
 ** information about each column of an SQL table is held in an instance
 ** of this structure.
+一个SQL表的任何一个列信息都被保存在如下结构体类型的一个实例中
 */
 struct Column {
-  char *zName;     /* Name of this column */
-  Expr *pDflt;     /* Default value of this column */
-  char *zDflt;     /* Original text of the default value */
-  char *zType;     /* Data type for this column */
-  char *zColl;     /* Collating sequence.  If NULL, use the default */
-  u8 notNull;      /* True if there is a NOT NULL constraint */
-  u8 isPrimKey;    /* True if this column is part of the PRIMARY KEY */
-  char affinity;   /* One of the SQLITE_AFF_... values */
+  char *zName;     /* Name of this column 列名字*/
+  Expr *pDflt;     /* Default value of this column 此列的默认值*/
+  char *zDflt;     /* Original text of the default value 默认值的原始类型*/
+  char *zType;     /* Data type for this column 此列的数据类型*/
+  char *zColl;     /* Collating sequence.  If NULL, use the default 整理序列，如果为NULL，则使用缺省*/
+  u8 notNull;      /* True if there is a NOT NULL constraint 若有一个非空约束的话，则为真*/
+  u8 isPrimKey;    /* True if this column is part of the PRIMARY KEY 如果此列是主键的一部分，则为真*/
+  char affinity;   /* One of the SQLITE_AFF_... values , SQLITE_AFF_...的其中一个值*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  u8 isHidden;     /* True if this column is 'hidden' */
+  u8 isHidden;     /* True if this column is 'hidden'  若此列被隐藏则为真*/
 #endif
 };
 
@@ -1171,18 +1177,19 @@ struct Column {
 ** 索引建立在一个未定义的排序序列可能不会被读或写。
 */
 struct CollSeq {
-  char *zName;          /* Name of the collating sequence, UTF-8 encoded */
-  u8 enc;               /* Text encoding handled by xCmp() */
-  void *pUser;          /* First argument to xCmp() */
+  char *zName;          /* Name of the collating sequence, UTF-8 encoded 排序序列名称，UTF-8编码*/
+  u8 enc;               /* Text encoding handled by xCmp() 通过xCmp()函数处理文本编码*/
+  void *pUser;          /* First argument to xCmp() xCmp()函数的首参*/
   int (*xCmp)(void*,int, const void*, int, const void*);
-  void (*xDel)(void*);  /* Destructor for pUser */
+  void (*xDel)(void*);  /* Destructor for pUser , pUser的析构函数*/
 };
 
 /*
 ** A sort order can be either ASC or DESC.
+ 按照升序或者降序排列
 */
-#define SQLITE_SO_ASC       0  /* Sort in ascending order */
-#define SQLITE_SO_DESC      1  /* Sort in ascending order */
+#define SQLITE_SO_ASC       0  /* Sort in ascending order 升序排列*/
+#define SQLITE_SO_DESC      1  /* Sort in ascending order 升序排列*/
 
 /*
 ** Column affinity types.
@@ -1202,7 +1209,7 @@ struct CollSeq {
 **
 ** Note also that the numeric types are grouped together so that testing
 ** for a numeric type is a single comparison.
-** 还要注意，这些数值类型组合在一起是为了方便对每一个数值类型进行测试，这种测试仅仅是一种比较。
+**还需要注意的是数字类型被分组在一起，所以对于一个数字类型的测试只是一个单一的比较
 */
 #define SQLITE_AFF_TEXT     'a'
 #define SQLITE_AFF_NONE     'b'
@@ -1215,14 +1222,14 @@ struct CollSeq {
 /*
 ** The SQLITE_AFF_MASK values masks off the significant bits of an
 ** affinity value.
-** SQLITE_AFF_MASK相当于一个掩码，与一个代表关联性的二进制位相对应。
+** SQLITE_AFF_MASK的值屏蔽了一个近似值的有效位
 */
 #define SQLITE_AFF_MASK     0x67
 
 /*
 ** Additional bit values that can be ORed with an affinity without
 ** changing the affinity.
-** 另外一些二进制值。
+** 可以与近似值进行或运算，而不改变近似值
 */
 #define SQLITE_JUMPIFNULL   0x08  /* jumps if either operand is NULL 
 								  ** 如果任何一个操作数是空，就跳转
@@ -1235,7 +1242,7 @@ struct CollSeq {
 /*
 ** An object of this type is created for each virtual table present in
 ** the database schema.
-**
+**为数据库模式中存在的每一个虚拟表创建一个该类型的对象
 ** If the database schema is shared, then there is one instance of this
 ** structure for each database connection (sqlite3*) that uses the shared
 ** schema. This is because each database connection requires its own unique
@@ -1249,6 +1256,12 @@ struct CollSeq {
 ** within the database. So that they appear as part of the callers
 ** transaction, these accesses need to be made via the same database
 ** connection as that used to execute SQL operations on the virtual table.
+**若数据库模式是共享的，那么使用这个共享模式的每一个数据库链接都会有一个这个结构体类型的实例.
+**这是因为，每个数据库连接需要其自己的唯一sqlite3_vtab*手柄的实例来访问虚拟表的实现.
+**sqlite3_vtab*手柄不能被数据库连接之间共享，即使当存储器内的数据库模式的其余部分是共享的.因为在内部初始化的时候，通过xConnect() 或 xCreate()将数据库链接句柄传递给其实现
+**这个数据库链接句柄或许将会被虚拟表的实现所用，用于访问在数据库中的实表.
+**所以他们将会作为调用者事务处理的一部分，这些访问需要通过相同的数据库连接来实现，就像在虚拟表上执行SQL操作一样
+**
 **
 ** All VTable objects that correspond to a single table in a shared
 ** database schema are initially stored in a linked-list pointed to by
@@ -1257,7 +1270,8 @@ struct CollSeq {
 ** table, it searches the list for the VTable that corresponds to the
 ** database connection doing the preparing so as to use the correct
 ** sqlite3_vtab* handle in the compiled query.
-**
+**在一个共享数据库模式中对应于单个表的所有VTable对象开始都被储存在由相应表对象的成员变量 Table.pVTable所指向的一个链接表中.
+**当一个sqlite3_prepare()操作需要访问虚拟表，它会查找与数据库链接相对应的的VTable的列表，为在编译查询时使用正确的sqlite3_vtab*句柄做准备
 ** When an in-memory Table object is deleted (for example when the
 ** schema is being reloaded for some reason), the VTable objects are not 
 ** deleted and the sqlite3_vtab* handles are not xDisconnect()ed 
@@ -1269,6 +1283,10 @@ struct CollSeq {
 ** Refer to comments above function sqlite3VtabUnlockList() for an
 ** explanation as to why it is safe to add an entry to an sqlite3.pDisconnect
 ** list without holding the corresponding sqlite3.mutex mutex.
+**
+**
+**
+**
 **
 ** The memory for objects of this type is always allocated by 
 ** sqlite3DbMalloc(), using the connection handle stored in VTable.db as 
