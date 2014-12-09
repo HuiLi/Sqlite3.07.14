@@ -10,11 +10,12 @@
 **
 *************************************************************************
 ** This file contains code used to dynamically load extensions into
-** the SQLite library.
+** the SQLite library.本文件的代码常常自动加载到SQLite扩展库中
 */
 
 #ifndef SQLITE_CORE
-  #define SQLITE_CORE 1  /* Disable the API redefinition in sqlite3ext.h */
+  #define SQLITE_CORE 1  /* Disable the API redefinition in sqlite3ext.h 
+                            避免API在sqlite3ext.h中重定义*/
 #endif
 #include "sqlite3ext.h"
 #include "sqliteInt.h"
@@ -23,8 +24,8 @@
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
 
 /*
-** Some API routines are omitted when various features are
-** excluded from a build of SQLite.  Substitute a NULL pointer
+** Some API routines are omitted when various features are一些API例程被省略了，当多种功能被排在一个建立的SQLite之外
+** excluded from a build of SQLite.  Substitute a NULL pointer对于任何的无效APIs都用空指针代替
 ** for any missing APIs.
 */
 #ifndef SQLITE_ENABLE_COLUMN_METADATA
@@ -117,15 +118,19 @@
 ** A pointer to this structure is passed into extensions when they are
 ** loaded so that the extension can make calls back into the SQLite
 ** library.
-**
+**该函数的结构包含指向所有SQLite的API例程的指针，这个结构被传递到扩展中以至于可以调用的SQLite库
+
 ** When adding new APIs, add them to the bottom of this structure
 ** in order to preserve backwards compatibility.
-**
+**当增加新的API，将它们添加到这个结构的底部为了保持向后兼容。
+
 ** Extensions that use newer APIs should first call the
 ** sqlite3_libversion_number() to make sure that the API they
 ** intend to use is supported by the library.  Extensions should
 ** also check to make sure that the pointer to the function is
 ** not NULL before calling it.
+使用新的API扩展，应首先调用sqlite3_libversion_number（）,以确保该API，他们拟将由库支持。
+扩展应该还检查以确保该指针的函数不调用它之前NULL。
 */
 static const sqlite3_api_routines sqlite3Apis = {
   sqlite3_aggregate_context,
@@ -199,7 +204,8 @@ static const sqlite3_api_routines sqlite3Apis = {
   sqlite3_get_autocommit,
   sqlite3_get_auxdata,
   sqlite3_get_table,
-  0,     /* Was sqlite3_global_recover(), but that function is deprecated */
+  0,      /* Was sqlite3_global_recover(), but that function is deprecated
+		      	是sqlite3全局覆盖函数，但是这个功能不赞成使用*/
   sqlite3_interrupt,
   sqlite3_last_insert_rowid,
   sqlite3_libversion,
@@ -381,22 +387,22 @@ static const sqlite3_api_routines sqlite3Apis = {
 };
 
 /*
-** Attempt to load an SQLite extension library contained in the file
-** zFile.  The entry point is zProc.  zProc may be 0 in which case a
-** default entry point name (sqlite3_extension_init) is used.  Use
+** Attempt to load an SQLite extension library contained in the file   尝试在zFile文件中加载一个SQLite扩展库，这个入口点是zProc。
+** zFile.  The entry point is zProc.  zProc may be 0 in which case a   在一个默认入口点名称（sqlite3_extension_init）被使用的情况下，zProc可能是0
+** default entry point name (sqlite3_extension_init) is used.  Use     建议使用默认的名称
 ** of the default name is recommended.
 **
-** Return SQLITE_OK on success and SQLITE_ERROR if something goes wrong.
+** Return SQLITE_OK on success and SQLITE_ERROR if something goes wrong.返回SQLITE_OK成功，或者如果出现错误，返回SQLITE_ERROR
 **
-** If an error occurs and pzErrMsg is not 0, then fill *pzErrMsg with 
-** error message text.  The calling function should free this memory
+** If an error occurs and pzErrMsg is not 0, then fill *pzErrMsg with 如果发生错误并且pzErrMsg不为0，然后填写* pzErrMsg与错误消息文本。
+** error message text.  The calling function should free this memory  调用函数应该通过调用sqlite3DbFree来释放此内存
 ** by calling sqlite3DbFree(db, ).
 */
 static int sqlite3LoadExtension(
-  sqlite3 *db,          /* Load the extension into this database connection */
-  const char *zFile,    /* Name of the shared library containing extension */
-  const char *zProc,    /* Entry point.  Use "sqlite3_extension_init" if 0 */
-  char **pzErrMsg       /* Put error message here if not 0 */
+  sqlite3 *db,          //建立连接
+  const char *zFile,    //共享库的名称
+  const char *zProc,   //入口点，如果zProc=0，则使用  sqlite3_extension_init
+  char **pzErrMsg       //存放错误信息
 ){
   sqlite3_vfs *pVfs = db->pVfs;
   void *handle;
@@ -412,13 +418,15 @@ static int sqlite3LoadExtension(
   ** ability to run load_extension is turned off by default.  One
   ** must call sqlite3_enable_load_extension() to turn on extension
   ** loading.  Otherwise you get the following error.
+  为了避免旧的应用程序重新链接对新版本的SQLite的造成安全问题，运行load_extension，它的功能是默认关闭的。
+  必须调用sqlite3_enable_load_extension（）打开扩展负载。否则，你得到下面的错误。
   */
   if( (db->flags & SQLITE_LoadExtension)==0 ){
     if( pzErrMsg ){
       *pzErrMsg = sqlite3_mprintf("not authorized");
     }
     return SQLITE_ERROR;
-  }
+  }//产生未授权的错误
 
   if( zProc==0 ){
     zProc = "sqlite3_extension_init";
@@ -459,7 +467,8 @@ static int sqlite3LoadExtension(
     return SQLITE_ERROR;
   }
 
-  /* Append the new shared library handle to the db->aExtension array. */
+  /* Append the new shared library handle to the db->aExtension array. 
+  追加新的共享库句柄DB->扩展阵列*/
   aHandle = sqlite3DbMallocZero(db, sizeof(handle)*(db->nExtension+1));
   if( aHandle==0 ){
     return SQLITE_NOMEM;
@@ -474,10 +483,10 @@ static int sqlite3LoadExtension(
   return SQLITE_OK;
 }
 int sqlite3_load_extension(
-  sqlite3 *db,          /* Load the extension into this database connection */
-  const char *zFile,    /* Name of the shared library containing extension */
-  const char *zProc,    /* Entry point.  Use "sqlite3_extension_init" if 0 */
-  char **pzErrMsg       /* Put error message here if not 0 */
+  sqlite3 *db,          /* Load the extension into this database connection建立连接 */
+  const char *zFile,    /* Name of the shared library containing extension 共享库的名称*/
+  const char *zProc,    /* Entry point.  Use "sqlite3_extension_init" if 0 *入口点，如果zProc=0，则使用  sqlite3_extension_init/
+  char **pzErrMsg       /* Put error message here if not 0 存放错误信息*/
 ){
   int rc;
   sqlite3_mutex_enter(db->mutex);
@@ -489,7 +498,7 @@ int sqlite3_load_extension(
 
 /*
 ** Call this routine when the database connection is closing in order
-** to clean up loaded extensions
+** to clean up loaded extensions该函数用来清理加载扩展项，当数据库连接被关闭时
 */
 void sqlite3CloseExtensions(sqlite3 *db){
   int i;
@@ -503,10 +512,11 @@ void sqlite3CloseExtensions(sqlite3 *db){
 /*
 ** Enable or disable extension loading.  Extension loading is disabled by
 ** default so as not to open security holes in older applications.
+调用这个函数来启用或禁用扩展负载。扩展加载默认是禁用的，以免在旧的应用程序打开安全漏洞。
 */
 int sqlite3_enable_load_extension(sqlite3 *db, int onoff){
   sqlite3_mutex_enter(db->mutex);
-  if( onoff ){
+  if( onoff ){                      //onoff是用来判断的是否禁用的标志
     db->flags |= SQLITE_LoadExtension;
   }else{
     db->flags &= ~SQLITE_LoadExtension;
@@ -522,6 +532,7 @@ int sqlite3_enable_load_extension(sqlite3 *db, int onoff){
 ** loading is supported.  We need a dummy sqlite3Apis pointer for that
 ** code if regular extension loading is not available.  This is that
 ** dummy pointer.
+自动扩展代码必须加上无论扩展装载是否支持。如果经常扩展装载不可用，我们需要一个虚拟sqlite3Apis指针的代码。
 */
 #ifdef SQLITE_OMIT_LOAD_EXTENSION
 static const sqlite3_api_routines sqlite3Apis = { 0 };
@@ -531,9 +542,11 @@ static const sqlite3_api_routines sqlite3Apis = { 0 };
 /*
 ** The following object holds the list of automatically loaded
 ** extensions.
-**
+**定义一个具有自动加载的扩展列表的对象。
+
 ** This list is shared across threads.  The SQLITE_MUTEX_STATIC_MASTER
 ** mutex must be held while accessing this list.
+这个列表是跨线程共享的。其中的SQLITE_MUTEX_STATIC_MASTER互斥必须在访问这个列表时进行
 */
 typedef struct sqlite3AutoExtList sqlite3AutoExtList;
 static SQLITE_WSD struct sqlite3AutoExtList {
@@ -560,6 +573,8 @@ static SQLITE_WSD struct sqlite3AutoExtList {
 /*
 ** Register a statically linked extension that is automatically
 ** loaded by every new database connection.
+此接口使xInit（）函数用于创建的每个新的数据库连接调用。
+xInit（）为入口点的静态链接SQLite的扩展，将被自动加载到所有新的数据库连接
 */
 int sqlite3_auto_extension(void (*xInit)(void)){
   int rc = SQLITE_OK;
@@ -598,7 +613,7 @@ int sqlite3_auto_extension(void (*xInit)(void)){
 }
 
 /*
-** Reset the automatic extension loading mechanism.
+** Reset the automatic extension loading mechanism.重置自动扩展加载机制。
 */
 void sqlite3_reset_auto_extension(void){
 #ifndef SQLITE_OMIT_AUTOINIT
@@ -619,8 +634,10 @@ void sqlite3_reset_auto_extension(void){
 
 /*
 ** Load all automatic extensions.
-**
+**加载所有自动扩展
+
 ** If anything goes wrong, set an error in the database connection.
+如果出现任何错误，在数据库连接设置错误。
 */
 void sqlite3AutoLoadExtensions(sqlite3 *db){
   int i;
@@ -630,7 +647,7 @@ void sqlite3AutoLoadExtensions(sqlite3 *db){
 
   wsdAutoextInit;
   if( wsdAutoext.nExt==0 ){
-    /* Common case: early out without every having to acquire a mutex */
+    /* Common case: early out without every having to acquire a mutex   常见情况：早期的无需获取互斥锁 */
     return;
   }
   for(i=0; go; i++){

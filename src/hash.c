@@ -12,6 +12,8 @@
 ** This is the implementation of generic hash-tables
 ** used in SQLite.
 */
+/*SQLite中哈希表的实现*/
+
 #include "sqliteInt.h"
 #include <assert.h>
 
@@ -20,9 +22,15 @@
 **
 ** "pNew" is a pointer to the hash table that is to be initialized.
 */
-void sqlite3HashInit(Hash *pNew){
-  assert( pNew!=0 );
-  pNew->first = 0;
+
+/*
+把内存变成哈希表的一个对象去初始化哈希表的结构体
+pNew是指针初始化的哈希表。
+*/
+
+void sqlite3HashInit(Hash *pNew){/*hash_table initliaze *///Elaine debug 
+  assert( pNew!=0 );/*如果括号中的值为0，就跳出；如果为1，继续执行*/
+  pNew->first = 0;/*initialize the pointer of pNew *///Elaine debug
   pNew->count = 0;
   pNew->htsize = 0;
   pNew->ht = 0;
@@ -32,15 +40,20 @@ void sqlite3HashInit(Hash *pNew){
 ** Call this routine to delete a hash table or to reset a hash table
 ** to the empty state.
 */
-void sqlite3HashClear(Hash *pH){
-  HashElem *elem;         /* For looping over all elements of the table */
 
-  assert( pH!=0 );
+/*
+删除哈希表中的所有条目，回收内存。使用这个方法删除哈希表或者重置哈希表为空状态。
+*/
+
+void sqlite3HashClear(Hash *pH){
+  HashElem *elem;         /* For looping over all elements of the table *//*循环表中的所有元素*/
+
+  assert( pH!=0 );/*判读PH是否为0,如果为0,则说明HASH为空，程序会中止，否则说明HASH不为空继续执行*/
   elem = pH->first;
   pH->first = 0;
-  sqlite3_free(pH->ht);
+  sqlite3_free(pH->ht);/*释放HASH函数的ht*/
   pH->ht = 0;
-  pH->htsize = 0;
+  pH->htsize = 0;/*htsize is unsigned int,*///Elaine debug
   while( elem ){
     HashElem *next_elem = elem->next;
     sqlite3_free(elem);
@@ -66,13 +79,17 @@ static unsigned int strHash(const char *z, int nKey){
 /* Link pNew element into the hash table pH.  If pEntry!=0 then also
 ** insert pNew into the pEntry hash bucket.
 */
+
+/*
+ 把pNew连接到哈希表pH上，如果pEntry不等于0 则插入语pNew到结构体
+*/
 static void insertElement(
   Hash *pH,              /* The complete hash table */
   struct _ht *pEntry,    /* The entry into which pNew is inserted */
   HashElem *pNew         /* The element to be inserted */
 ){
   HashElem *pHead;       /* First element already in pEntry */
-  if( pEntry ){
+  if( pEntry ){/*determine the pEntry is empty,*///Elaine debug
     pHead = pEntry->count ? pEntry->chain : 0;
     pEntry->count++;
     pEntry->chain = pNew;
@@ -169,6 +186,8 @@ static HashElem *findElementGivenHash(
 /* Remove a single entry from the hash table given a pointer to that
 ** element and a hash on the element's key.
 */
+
+/*按照给定的指针和哈希表的元素值删除一个条目*/
 static void removeElementGivenHash(
   Hash *pH,         /* The pH containing "elem" */
   HashElem* elem,   /* The element to be removed from the pH */
@@ -204,6 +223,12 @@ static void removeElementGivenHash(
 ** that matches pKey,nKey.  Return the data for this element if it is
 ** found, or NULL if there is no match.
 */
+
+/*
+	在哈希表PH中找到与pkey，nkey匹配的key。
+  如果找到返回元素的数据，如果没有找到返回NULL
+*/
+
 void *sqlite3HashFind(const Hash *pH, const char *pKey, int nKey){
   HashElem *elem;    /* The element that matches key */
   unsigned int h;    /* A hash on key */
@@ -234,6 +259,16 @@ void *sqlite3HashFind(const Hash *pH, const char *pKey, int nKey){
 ** If the "data" parameter to this function is NULL, then the
 ** element corresponding to "key" is removed from the hash table.
 */
+
+/*
+插入元素到哈希表PH中，pkey是键值，nkey和data是数据。
+如果哈希表中不存在相同键值的入口项，则插入，然后返回 NULL。
+如果存在相同的入口项，然后替换原来的数据并且返回原数据。
+键值不在这个实例中。如果申请空间失败，则返回新数据并且哈希表不变。
+如果data的参数对于这个函数来说是空的，那么和key对应的元素就要从哈希表中移除
+
+*/
+
 void *sqlite3HashInsert(Hash *pH, const char *pKey, int nKey, void *data){
   unsigned int h;       /* the hash of the key modulo hash table size */
   HashElem *elem;       /* Used to loop thru the element list */
@@ -243,9 +278,9 @@ void *sqlite3HashInsert(Hash *pH, const char *pKey, int nKey, void *data){
   assert( pKey!=0 );
   assert( nKey>=0 );
   if( pH->htsize ){
-    h = strHash(pKey, nKey) % pH->htsize;
+    h = strHash(pKey, nKey) % pH->htsize;/*如果pH的htsize成员变量不为0,即使用哈希表存放数据项那么使用 strHash 函数计算桶号h*/
   }else{
-    h = 0;
+    h = 0;/*如果pH的htsize成员变量为0,那么h=0*/
   }
   elem = findElementGivenHash(pH,pKey,nKey,h);
   if( elem ){

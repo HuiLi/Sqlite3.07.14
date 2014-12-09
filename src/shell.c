@@ -135,10 +135,10 @@ static void endTimer(void){   //表示打印结果的时间
 
 /* Saved resource information for the beginning of an operation */
 static HANDLE hProcess;
-static FILETIME ftKernelBegin;
-static FILETIME ftUserBegin;
+static FILETIME ftKernelBegin; //内核开始时间
+static FILETIME ftUserBegin;  //用户开始时间
 typedef BOOL (WINAPI *GETPROCTIMES)(HANDLE, LPFILETIME, LPFILETIME, LPFILETIME, LPFILETIME);
-static GETPROCTIMES getProcessTimesAddr = NULL;
+static GETPROCTIMES getProcessTimesAddr = NULL;  //表示得到进程时间
 
 /*
 ** Check to see if we have timer support.  Return 1 if necessary
@@ -154,14 +154,15 @@ static int hasTimer(void){    //计时器
     */
     hProcess = GetCurrentProcess();
     if( hProcess ){
-      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件，属于内核级文件。它控制着系统的内存管理、数据的输入输出操作和中断处理
+      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  //加载动态链接库。之后可以访问库内的资源  
+                                                               /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件，属于内核级文件。它控制着系统的内存管理、数据的输入输出操作和中断处理
                                                                 ** 当Windows启动时，kernel32.dll就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  											 ** 就驻留在内存中特定的写保护区域，使别的程序无法占用这个内存区域。*/  
-      if( NULL != hinstLib ){
-        getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");
-        if( NULL != getProcessTimesAddr ){
+       if( NULL != hinstLib ){
+        getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");  //获取动态连接库里的功能函数地址
+        if( NULL != getProcessTimesAddr ){  //如果获取成功，返回1
           return 1;
         }
-        FreeLibrary(hinstLib); 
+        FreeLibrary(hinstLib);  //释放动态连接库。
       }
     }
   }
@@ -173,14 +174,14 @@ static int hasTimer(void){    //计时器
 */
 static void beginTimer(void){
   if( enableTimer && getProcessTimesAddr ){
-    FILETIME ftCreation, ftExit;
+    FILETIME ftCreation, ftExit; //分别定义了表示时间信息的建立和结束的变量
     getProcessTimesAddr(hProcess, &ftCreation, &ftExit, &ftKernelBegin, &ftUserBegin);
   }
 }
 
 /* Return the difference of two FILETIME structs in seconds */
-static double timeDiff(FILETIME *pStart, FILETIME *pEnd){
-  sqlite_int64 i64Start = *((sqlite_int64 *) pStart);
+static double timeDiff(FILETIME *pStart, FILETIME *pEnd){ // 有关返回开始时间和系统时间之间的差异
+  sqlite_int64 i64Start = *((sqlite_int64 *) pStart);  //定义一个新的类型 sqlite_int64
   sqlite_int64 i64End = *((sqlite_int64 *) pEnd);
   return (double) ((i64End - i64Start) / 10000000.0);
 }
@@ -188,8 +189,8 @@ static double timeDiff(FILETIME *pStart, FILETIME *pEnd){
 /*
 ** Print the timing results.
 */
-static void endTimer(void){
-  if( enableTimer && getProcessTimesAddr){
+static void endTimer(void){  //表示打印结果的时间
+  if( enableTimer && getProcessTimesAddr){  //激活成功并且得到函数地址
     FILETIME ftCreation, ftExit, ftKernelEnd, ftUserEnd;
     getProcessTimesAddr(hProcess, &ftCreation, &ftExit, &ftKernelEnd, &ftUserEnd);
     printf("CPU Time: user %f sys %f\n",
@@ -200,7 +201,7 @@ static void endTimer(void){
 
 #define BEGIN_TIMER beginTimer()
 #define END_TIMER endTimer()
-#define HAS_TIMER hasTimer()
+#define HAS_TIMER hasTimer()  //定义哈希时间
 
 #else
 #define BEGIN_TIMER 
@@ -211,42 +212,43 @@ static void endTimer(void){
 /*
 ** Used to prevent warnings about unused parameters
 */
-#define UNUSED_PARAMETER(x) (void)(x)
+#define UNUSED_PARAMETER(x) (void)(x)  //为了防止不使用的参数的警告
 
 /*
 ** If the following flag is set, then command execution stops
 ** at an error if we are not interactive.
 */
-static int bail_on_error = 0;
+static int bail_on_error = 0;//设置下面的标记,如果我们没有交互命令执行就会因为一个错误而停止
 
 /*
 ** Threat stdin as an interactive input if the following variable
 ** is true.  Otherwise, assume stdin is connected to a file or pipe.
 */
-static int stdin_is_interactive = 1;
+static int stdin_is_interactive = 1; //如果这个变量是true，进行交互式输入，否则，假设交互式输入是连接到文件或者管道的。
 
 /*
 ** The following is the open SQLite database.  We make a pointer
 ** to this database a static variable so that it can be accessed
 ** by the SIGINT handler to interrupt database processing.
 */
-static sqlite3 *db = 0;
+static sqlite3 *db = 0; //表示打开的数据库，定义一个静态的指针变量，我们就能够通过中断信号控制来中断数据库操作
 
 /*
 ** True if an interrupt (Control-C) has been received.
 */
-static volatile int seenInterrupt = 0;
+static volatile int seenInterrupt = 0;   //用来检测中断的变量，如果收到中断信号，就将变量赋值为 1
 
 /*
 ** This is the name of our program. It is set in main(), used
 ** in a number of other places, mostly for error messages.
 */
-static char *Argv0;
+static char *Argv0;  //被使用在main（）函数和很多其他场合，表示程序的名字，下面程序中更多被使用在错误信息里。如：fprintf(stderr,"%s: Error: no database filename specified\n", Argv0);
 
 /*
 ** Prompt strings. Initialized in main. Settable with
-**   .prompt main continue
+**   .prompt main continue 
 */
+//提示字符串，在main函数中初始化，用.prompt main continue 设定
 static char mainPrompt[20];     /* First line prompt. default: "sqlite> "*/
 static char continuePrompt[20]; /* Continuation prompt. default: "   ...> " */
 
@@ -254,7 +256,7 @@ static char continuePrompt[20]; /* Continuation prompt. default: "   ...> " */
 ** Write I/O traces to the following stream.
 */
 #ifdef SQLITE_ENABLE_IOTRACE
-static FILE *iotrace = 0;
+static FILE *iotrace = 0;  //表示用于输入输出的流
 #endif
 
 /*
@@ -262,41 +264,41 @@ static FILE *iotrace = 0;
 ** format string and subsequent arguments are values to be substituted
 ** in place of % fields.  The result of formatting this string
 ** is written to iotrace.
-*/
+*/ //输出时，第一个内容是一个格式字符串，后面的内容是%+字段的格式。这个结果是来表示输入输出流的
 #ifdef SQLITE_ENABLE_IOTRACE
-static void iotracePrintf(const char *zFormat, ...){
-  va_list ap;
+static void iotracePrintf(const char *zFormat, ...){ //有一个参数zFormat固定以外,后面跟的参数的个数和类型是可变的（用三个点“…”做参数占位符）
+  va_list ap;  //这个变量是存储参数地址的指针.因为得到参数的地址之后，再结合参数的类型，才能得到参数的值。
   char *z;
-  if( iotrace==0 ) return;
-  va_start(ap, zFormat);
-  z = sqlite3_vmprintf(zFormat, ap);
-  va_end(ap);
-  fprintf(iotrace, "%s", z);
-  sqlite3_free(z);
+  if( iotrace==0 ) return;  //没有输入输出操作，返回
+  va_start(ap, zFormat); //以固定参数的地址为起点确定变参的内存起始地址
+  z = sqlite3_vmprintf(zFormat, ap);//函数返回的字符串被写入通过 malloc() 得到的内存空间，因此，永远不会存在内存泄露的问题。返回的字符串要用sqlite3_free()释放空间。
+  va_end(ap); //结束
+  fprintf(iotrace, "%s", z); // 格式化输出 fprintf(文件指针,格式字符串,输出表列)
+  sqlite3_free(z);  //释放空间
 }
 #endif
 
 
 /*
-** Determines if a string is a number of not.
+** Determines if a string is a number of not.  //如果有很多非数字则终止,z为得到的字符串
 */
 static int isNumber(const char *z, int *realnum){
-  if( *z=='-' || *z=='+' ) z++;
-  if( !IsDigit(*z) ){
+  if( *z=='-' || *z=='+' ) z++;  //判断正负
+  if( !IsDigit(*z) ){ //判断是否是数字，如果不是，返回0
     return 0;
   }
-  z++;
-  if( realnum ) *realnum = 0;
-  while( IsDigit(*z) ){ z++; }
-  if( *z=='.' ){
+  z++;       //指针后移一位
+  if( realnum ) *realnum = 0; //  字符串的实际长度
+  while( IsDigit(*z) ){ z++; } //如果遇到数字，指针后移一位
+  if( *z=='.' ){   //判断是否是小数
     z++;
-    if( !IsDigit(*z) ) return 0;
+    if( !IsDigit(*z) ) return 0; //如果遇到非数字，返回0
     while( IsDigit(*z) ){ z++; }
-    if( realnum ) *realnum = 1;
+    if( realnum ) *realnum = 1; //
   }
-  if( *z=='e' || *z=='E' ){
+  if( *z=='e' || *z=='E' ){ // 判断是否有指数
     z++;
-    if( *z=='+' || *z=='-' ) z++;
+    if( *z=='+' || *z=='-' ) z++; //指数的正负
     if( !IsDigit(*z) ) return 0;
     while( IsDigit(*z) ){ z++; }
     if( realnum ) *realnum = 1;
@@ -311,18 +313,18 @@ static int isNumber(const char *z, int *realnum){
 ** The correct way to do this with sqlite3 is to use the bind API, but
 ** since the shell is built around the callback paradigm it would be a lot
 ** of work. Instead just use this hack, which is quite harmless.
-*/
+*/    //一个全局的char指针变量和一个SQL函数从一个SQL语句中访问它当前的值。这个程序之前使用sqlite_exec_printf() AP代替一个字符串成为SQL语句，sqlite3的正确的方法是使用bind API,但当shell建立在回调模式,将可以完成大量的工作
 static const char *zShellStatic = 0;
-static void shellstaticFunc(
+static void shellstaticFunc(   //
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
   assert( 0==argc );
   assert( zShellStatic );
-  UNUSED_PARAMETER(argc);
+  UNUSED_PARAMETER(argc);  //不使用的参数，根据前面的定义设置为空
   UNUSED_PARAMETER(argv);
-  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC);
+  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC); //
 }
 
 
@@ -332,27 +334,28 @@ static void shellstaticFunc(
 ** to the text.  NULL is returned at end of file, or if malloc()
 ** fails.
 **
-** The interface is like "readline" but no command-line editing
+** The interface is like "readline" but no command-line editing  //readline方法描述从一个textstream文件读取一整行并返回得到的字符串，这个接口是像readline一样，而不是命令行编辑
 ** is done.
-*/
-static char *local_getline(char *zPrompt, FILE *in, int csvFlag){
-  char *zLine;
-  int nLine;
-  int n;
+*/  //从文件的文本中读取一行，将文本存储到从malloc（）中得到的内存空间，并且返回一个指针，如果失败，在文件结束返回NULL,或者如果malloc()失败。
+// 在需要一次读入一整行很长的内容时可以使用此方法
+static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //从文件中读取行的函数定义:*zPrompt表示读取的字符串*in表示打开文件的指针，csvFlag读取的长度
+  char *zLine;  //读取行
+  int nLine;  //指定长度
+  int n; 
   int inQuote = 0;
 
-  if( zPrompt && *zPrompt ){
+  if( zPrompt && *zPrompt ){// 读取成功，则输出字符串
     printf("%s",zPrompt);
     fflush(stdout);
   }
-  nLine = 100;
-  zLine = malloc( nLine );
-  if( zLine==0 ) return 0;
+  nLine = 100;  //赋值指定长度
+  zLine = malloc( nLine ); //分配大小为nLine的内存空间
+  if( zLine==0 ) return 0;  //如果字符串为空，则返回0
   n = 0;
-  while( 1 ){
-    if( n+100>nLine ){
+  while( 1 ){  //设定一个一般字符串的长度限制为缓冲区的大小, 每次读取后, 再判断下是否到达行末, 如果没有到达, 再利用上面的方法动态分配缓冲区
+    if( n+100>nLine ){  
       nLine = nLine*2 + 100;
-      zLine = realloc(zLine, nLine);
+      zLine = realloc(zLine, nLine); //将zLine对象的存储空间改为nLine大小
       if( zLine==0 ) return 0;
     }
     if( fgets(&zLine[n], nLine - n, in)==0 ){
@@ -414,7 +417,7 @@ struct previous_mode_data {  // 定义了结构体，该结构体的作用是在
 ** the main program to the callback.  This is used to communicate
 ** state and mode information.
 */
-struct callback_data {
+struct callback_data {  //定义结构体，用来进行各方法之间的传值与当前状态的获取；如回调，传达声明和模式信息。
   sqlite3 *db;           //表示要打开的数据库                                 /* The database */ 
   int echoOn;                                                                 /* True to echo input commands */
   int statsOn;          //在每次结束之前显示存储器的统计数据                  /* True to display memory stats before each finalize */
@@ -455,20 +458,20 @@ struct callback_data {
 #define MODE_Csv      7  /* Quote strings, numbers are plain */
 #define MODE_Explain  8  /* Like MODE_Column, but do not truncate data */
 
-static const char *modeDescr[] = {
-  "line",
-  "column",
-  "list",
-  "semi",
-  "html",
-  "insert",
-  "tcl",
-  "csv",
-  "explain",
+static const char *modeDescr[] = { //定义允许的模式字符数组；数据显示格式；有好几种显示模式，默认的是 list 显示模式，一般我们使用 column 显示模式
+  "line",    //每行一个值
+  "column",   //以整齐的列显示每一行数据
+  "list",    //分隔符分隔的字符
+  "semi",    //和list模式类似，但是每一行会以“；”结束
+  "html",     //以html代码方式显示
+  "insert",  //显示insert sql语句
+  "tcl",    //TCL列表元素
+  "csv",     //逗号分隔值
+  "explain",  //和column类似，但不截断数据
 };
 
 /*
-** Number of elements in an array
+** Number of elements in an array   //数组中元素的数量
 */
 #define ArraySize(X)  (int)(sizeof(X)/sizeof(X[0]))
 
@@ -476,26 +479,26 @@ static const char *modeDescr[] = {
 ** Compute a string length that is limited to what can be stored in
 ** lower 30 bits of a 32-bit signed integer.
 */
-static int strlen30(const char *z){
+static int strlen30(const char *z){     //能够存储的最大bit数;字符串长度是有限的,可以存储在低30位的32位带符号整数
   const char *z2 = z;
   while( *z2 ){ z2++; }
   return 0x3fffffff & (int)(z2 - z);
 }
 
 /*
-** A callback for the sqlite3_log() interface.
+** A callback for the sqlite3_log() interface.    //sqlite3_log()接口的回调
 */
-static void shellLog(void *pArg, int iErrCode, const char *zMsg){
-  struct callback_data *p = (struct callback_data*)pArg;
-  if( p->pLog==0 ) return;
-  fprintf(p->pLog, "(%d) %s\n", iErrCode, zMsg);
-  fflush(p->pLog);
+static void shellLog(void *pArg, int iErrCode, const char *zMsg){  //生产shell下运行的日志
+  struct callback_data *p = (struct callback_data*)pArg;  
+  if( p->pLog==0 ) return;   //如果没有日志返回
+  fprintf(p->pLog, "(%d) %s\n", iErrCode, zMsg); //输出日志信息
+  fflush(p->pLog); //清空缓存
 }
 
 /*
 ** Output the given string as a hex-encoded blob (eg. X'1234' )
 */
-static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){
+static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){//将字符串以hex二进制编码的方式输出
   int i;
   char *zBlob = (char *)pBlob;
   fprintf(out,"X'");
@@ -506,13 +509,13 @@ static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){
 /*
 ** Output the given string as a quoted string using SQL quoting conventions.
 */
-static void output_quoted_string(FILE *out, const char *z){
+static void output_quoted_string(FILE *out, const char *z){//将字符串以引证字符串的形式输出
   int i;
   int nSingle = 0;
   for(i=0; z[i]; i++){
     if( z[i]=='\'' ) nSingle++;
   }
-  if( nSingle==0 ){
+  if( nSingle==0 ){ //
     fprintf(out,"'%s'",z);
   }else{
     fprintf(out,"'");
@@ -536,7 +539,7 @@ static void output_quoted_string(FILE *out, const char *z){
 /*
 ** Output the given string as a quoted according to C or TCL quoting rules.
 */
-static void output_c_string(FILE *out, const char *z){
+static void output_c_string(FILE *out, const char *z){  //根据C或TCL引用规则输出字符串
   unsigned int c;
   fputc('"', out);
   while( (c = *(z++))!=0 ){
@@ -563,9 +566,9 @@ static void output_c_string(FILE *out, const char *z){
 
 /*
 ** Output the given string with characters that are special to
-** HTML escaped.
+** HTML escaped. 
 */
-static void output_html_string(FILE *out, const char *z){
+static void output_html_string(FILE *out, const char *z){//以特殊的HTML代码方式显示字符串
   int i;
   while( *z ){
     for(i=0;   z[i] 
@@ -597,7 +600,7 @@ static void output_html_string(FILE *out, const char *z){
 
 /*
 ** If a field contains any character identified by a 1 in the following
-** array, then the string must be quoted for CSV.
+** array, then the string must be quoted for CSV.  // 如果一个域包含任何被下面数组的定义的字符，这个字符串必须被引证为CSV
 */
 static const char needCsvQuote[] = {
   1, 1, 1, 1, 1, 1, 1, 1,   1, 1, 1, 1, 1, 1, 1, 1,   
@@ -622,11 +625,11 @@ static const char needCsvQuote[] = {
 ** Output a single term of CSV.  Actually, p->separator is used for
 ** the separator, which may or may not be a comma.  p->nullvalue is
 ** the null value.  Strings are quoted if necessary.
-*/
-static void output_csv(struct callback_data *p, const char *z, int bSep){
+*/  //
+static void output_csv(struct callback_data *p, const char *z, int bSep){//以csv格式输出字符串，其中p->separator被用作表示分隔符，p->nullvalue表示NUll值，字符串只有在必要的时候被引用
   FILE *out = p->out;
   if( z==0 ){
-    fprintf(out,"%s",p->nullvalue);
+    fprintf(out,"%s",p->nullvalue);  //格式化输出 fprintf(文件指针,格式字符串,输出表列)
   }else{
     int i;
     int nSep = strlen30(p->separator);
@@ -656,12 +659,13 @@ static void output_csv(struct callback_data *p, const char *z, int bSep){
 
 #ifdef SIGINT
 /*
-** This routine runs when the user presses Ctrl-C
+** This routine runs when the user presses Ctrl-C 
 */
-static void interrupt_handler(int NotUsed){
-  UNUSED_PARAMETER(NotUsed);
-  seenInterrupt = 1;
-  if( db ) sqlite3_interrupt(db);
+//seenInterrupt是用来检测中断的变量，前面定义初值为0，如果收到中断信号，就将变量赋值为 1
+static void interrupt_handler(int NotUsed){ //中断控制函数，当操作为Ctrl-C的时候调用
+  UNUSED_PARAMETER(NotUsed);   //表示不使用的参数
+  seenInterrupt = 1;   //指示中断信号的变量，此时表示收到中断信号。
+  if( db ) sqlite3_interrupt(db);  //如果数据库被打开，则中断它
 }
 #endif
 
@@ -669,12 +673,12 @@ static void interrupt_handler(int NotUsed){
 ** This is the callback routine that the shell
 ** invokes for each row of a query result.
 */
-static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int *aiType){
+static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int *aiType){ //解释器回调查询结果的每一行
   int i;
-  struct callback_data *p = (struct callback_data*)pArg;
+  struct callback_data *p = (struct callback_data*)pArg; //定义一个callback_data的对象
 
-  switch( p->mode ){
-    case MODE_Line: {
+  switch( p->mode ){  //判断调用的模式，根据调用的模式不同，选择不同的方式输出结果
+    case MODE_Line: {  //Line模式
       int w = 5;
       if( azArg==0 ) break;
       for(i=0; i<nArg; i++){
@@ -684,12 +688,12 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       if( p->cnt++>0 ) fprintf(p->out,"\n");
       for(i=0; i<nArg; i++){
         fprintf(p->out,"%*s = %s\n", w, azCol[i],
-                azArg[i] ? azArg[i] : p->nullvalue);
+                azArg[i] ? azArg[i] : p->nullvalue);  //p->nullvalue表示NUll值
       }
       break;
     }
     case MODE_Explain:
-    case MODE_Column: {
+    case MODE_Column: {  //Explain和Column模式
       if( p->cnt++==0 ){
         for(i=0; i<nArg; i++){
           int w, n;
@@ -743,7 +747,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       break;
     }
     case MODE_Semi:
-    case MODE_List: {
+    case MODE_List: { //Semi和List模式
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           fprintf(p->out,"%s%s",azCol[i], i==nArg-1 ? "\n" : p->separator);
@@ -764,7 +768,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       }
       break;
     }
-    case MODE_Html: {
+    case MODE_Html: {  //Html模式
       if( p->cnt++==0 && p->showHeader ){
         fprintf(p->out,"<TR>");
         for(i=0; i<nArg; i++){
@@ -784,7 +788,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"</TR>\n");
       break;
     }
-    case MODE_Tcl: {
+    case MODE_Tcl: { // Tcl模式
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           output_c_string(p->out,azCol[i] ? azCol[i] : "");
@@ -800,7 +804,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"\n");
       break;
     }
-    case MODE_Csv: {
+    case MODE_Csv: { //Csv模式
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           output_csv(p, azCol[i] ? azCol[i] : "", i<nArg-1);
@@ -814,10 +818,10 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"\n");
       break;
     }
-    case MODE_Insert: {
+    case MODE_Insert: {  //Insert模式
       p->cnt++;
       if( azArg==0 ) break;
-      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);
+      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);//指目的表
       for(i=0; i<nArg; i++){
         char *zSep = i>0 ? ",": "";
         if( (azArg[i]==0) || (aiType && aiType[i]==SQLITE_NULL) ){
@@ -849,10 +853,10 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
 /*
 ** This is the callback routine that the SQLite library
 ** invokes for each row of a query result.
-*/
-static int callback(void *pArg, int nArg, char **azArg, char **azCol){
+*/  
+static int callback(void *pArg, int nArg, char **azArg, char **azCol){   //定义SQLite库调用查询结果的每一行的回调程序
   /* since we don't have type info, call the shell_callback with a NULL value */
-  return shell_callback(pArg, nArg, azArg, azCol, NULL);
+  return shell_callback(pArg, nArg, azArg, azCol, NULL);  //当没有类型信息,使用Null值调用shell_callback 
 }
 
 /*
@@ -860,13 +864,13 @@ static int callback(void *pArg, int nArg, char **azArg, char **azCol){
 ** the name of the table given.  Escape any quote characters in the
 ** table name.
 */
-static void set_table_name(struct callback_data *p, const char *zName){
+static void set_table_name(struct callback_data *p, const char *zName){ //设定的目标表字段callback_data结构的表的名称。任何引用字符转义的表名。zName表示表名
   int i, n;
   int needQuote;
   char *z;
 
-  if( p->zDestTable ){
-    free(p->zDestTable);
+  if( p->zDestTable ){   //p->zDestTable指目的表
+    free(p->zDestTable);  //释放空间
     p->zDestTable = 0;
   }
   if( zName==0 ) return;
@@ -943,162 +947,163 @@ static char *appendText(char *zIn, char const *zAppend, char quote){
 ** Execute a query statement that will generate SQL output.  Print
 ** the result columns, comma-separated, on a line and then add a
 ** semicolon terminator to the end of that line.
-**
+**  //执行一个生成的SQL输出的查询语句。打印结果列,逗号分隔线,以一个分号终结这行
 ** If the number of columns is 1 and that column contains text "--"
 ** then write the semicolon on a separate line.  That way, if a 
 ** "--" comment occurs at the end of the statement, the comment
 ** won't consume the semicolon terminator.
-*/
-static int run_table_dump_query(
-  struct callback_data *p, /* Query context */
-  const char *zSelect,     /* SELECT statement to extract content */
-  const char *zFirstRow    /* Print before first row, if not NULL */
+*/  //如果列的数量是1并且列包含文本”——“，然后输出分号在单独的行中。这样,如果一个”——“出现在声明的最后,则不使用分号
+static int run_table_dump_query(//使用.dump命令可以将数据库对象导出成SQL格式
+  struct callback_data *p, //要查询的内容    /* Query context */  
+  const char *zSelect,     //抽取选择语句的内容  /* SELECT statement to extract content */
+  const char *zFirstRow    //如果不为NUll，则在第一行之前打印   /* Print before first row, if not NULL */
 ){
-  sqlite3_stmt *pSelect;
-  int rc;
+  sqlite3_stmt *pSelect;  //把一个sql语句解析到pSelect中，即存放当前的statement句柄 
+  int rc;     //定义返回值
   int nResult;
   int i;
   const char *z;
-  rc = sqlite3_prepare(p->db, zSelect, -1, &pSelect, 0);
-  if( rc!=SQLITE_OK || !pSelect ){
-    fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db));
-    p->nErr++;
+  rc = sqlite3_prepare(p->db, zSelect, -1, &pSelect, 0); //函数完成 sql 语句的解析。第一个参数跟前面一样，是个 sqlite3 * 类型变量，第二个参数是一个 sql 语句。第三个参数我写的是-1，这个参数含义是前面 sql 语句的长度。如果小于0，sqlite会自动计算它的长度（把sql语句当成以\0结尾的字符串）。第四个参数是 sqlite3_stmt 的指针的指针。解析以后的sql语句就放在这个结构里。
+  if( rc!=SQLITE_OK || !pSelect ){ //如果返回值不是SQLITE_OK或者没有得到当前语句
+    fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db)); //则输出错误信息
+    p->nErr++;  //nErr表示返回的错误信息
     return rc;
   }
-  rc = sqlite3_step(pSelect);
-  nResult = sqlite3_column_count(pSelect);
-  while( rc==SQLITE_ROW ){
-    if( zFirstRow ){
+  rc = sqlite3_step(pSelect); //通过这个语句，pSelect 表示的sql语句就被写到了数据库里。最后，要把 sqlite3_stmt 结构给释放，函数的返回值基于创建sqlite3_stmt参数所使用的函数
+  nResult = sqlite3_column_count(pSelect); //分配空间
+  while( rc==SQLITE_ROW ){ //返回值为SQLITE_ROW
+    if( zFirstRow ){ //如果不为NUll，则打印第一行
       fprintf(p->out, "%s", zFirstRow);
       zFirstRow = 0;
     }
-    z = (const char*)sqlite3_column_text(pSelect, 0);
+    z = (const char*)sqlite3_column_text(pSelect, 0);//提取数据
     fprintf(p->out, "%s", z);
     for(i=1; i<nResult; i++){ 
-      fprintf(p->out, ",%s", sqlite3_column_text(pSelect, i));
+      fprintf(p->out, ",%s", sqlite3_column_text(pSelect, i));//循环输出数据
     }
     if( z==0 ) z = "";
-    while( z[0] && (z[0]!='-' || z[1]!='-') ) z++;
+    while( z[0] && (z[0]!='-' || z[1]!='-') ) z++; //如果列的数量是1并且列包含文本”——“，然后输出分号在单独的行中
     if( z[0] ){
       fprintf(p->out, "\n;\n");
     }else{
       fprintf(p->out, ";\n");
     }    
-    rc = sqlite3_step(pSelect);
+    rc = sqlite3_step(pSelect); //把sql语句写到数据库里
   }
-  rc = sqlite3_finalize(pSelect);
-  if( rc!=SQLITE_OK ){
+  rc = sqlite3_finalize(pSelect);//把刚才分配的内容析构掉，这个过程销毁前面被sqlite3_prepare创建的准备语句，每个准备语句都必须使用这个函数去销毁以防止内存泄露。
+  if( rc!=SQLITE_OK ){ //如果返回值不是SQLITE_OK，则返回错误信息
     fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db));
     p->nErr++;
   }
-  return rc;
+  return rc;  //函数的返回值
 }
 
 /*
-** Allocate space and save off current error string.
+** Allocate space and save off current error string. //分配空间，保存消除当前错误的字符串
 */
-static char *save_err_msg(
-  sqlite3 *db            /* Database to query */
+static char *save_err_msg(  //保存错误信息
+  sqlite3 *db               //要访问的数据库 /* Database to query */
 ){
   int nErrMsg = 1+strlen30(sqlite3_errmsg(db));
-  char *zErrMsg = sqlite3_malloc(nErrMsg);
+  char *zErrMsg = sqlite3_malloc(nErrMsg);//通过sqlite3_malloc()接口，SQLite扩展或应用程序本身都可以使用相同的SQLite的底层分配函数来使用内存
   if( zErrMsg ){
-    memcpy(zErrMsg, sqlite3_errmsg(db), nErrMsg);
+    memcpy(zErrMsg, sqlite3_errmsg(db), nErrMsg);//更新错误信息
   }
   return zErrMsg;
 }
 
 /*
-** Display memory stats.
+** Display memory stats.   //显示内存统计数据
 */
-static int display_stats(
-  sqlite3 *db,                /* Database to query */
-  struct callback_data *pArg, /* Pointer to struct callback_data */
-  int bReset                  /* True to reset the stats */
+static int display_stats(  //显示统计数据
+  sqlite3 *db,                // 要访问的数据库 /* Database to query */
+  struct callback_data *pArg, //定义一个回调函数的指针  /* Pointer to struct callback_data */
+  int bReset                 //对重置操作进行判断 /* True to reset the stats */
 ){
-  int iCur;
-  int iHiwtr;
+  int iCur;  //定义两个指示变量，存储当前的选择值
+  int iHiwtr; //存储历史最高值
 
-  if( pArg && pArg->out ){
+  if( pArg && pArg->out ){  //pArg->out指向用于输出的文件流
     
-    iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MEMORY_USED, &iCur, &iHiwtr, bReset);
+    iHiwtr = iCur = -1;//赋值为-1
+    sqlite3_status(SQLITE_STATUS_MEMORY_USED, &iCur, &iHiwtr, bReset);//SQLITE_STATUS_MEMORY_USED确认当前访问的统计信息，当前选择的值会写入到iCur整型参数，历史最高值会写入到iHiwtr参数中。如果bReset为true，则在调用返回时iHiwtr标志会重置为当前选择的值。
     fprintf(pArg->out, "Memory Used:                         %d (max %d) bytes\n", iCur, iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &iCur, &iHiwtr, bReset);//当前的内存分配信息
     fprintf(pArg->out, "Number of Outstanding Allocations:   %d (max %d)\n", iCur, iHiwtr);
 /*
-** Not currently used by the CLI.
+** Not currently used by the CLI.  // 没有使用命令行界面
 **    iHiwtr = iCur = -1;
-**    sqlite3_status(SQLITE_STATUS_PAGECACHE_USED, &iCur, &iHiwtr, bReset);
-**    fprintf(pArg->out, "Number of Pcache Pages Used:         %d (max %d) pages\n", iCur, iHiwtr);
+**    sqlite3_status(SQLITE_STATUS_PAGECACHE_USED, &iCur, &iHiwtr, bReset);//页面缓存使用信息
+**    fprintf(pArg->out, "Number of Pcache Pages Used:         %d (max %d) pages\n", iCur, iHiwtr);//使用的寄存器页面的数量
 */
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &iCur, &iHiwtr, bReset);//页面缓存溢出信息
     fprintf(pArg->out, "Number of Pcache Overflow Bytes:     %d (max %d) bytes\n", iCur, iHiwtr);
 /*
 ** Not currently used by the CLI.
 **    iHiwtr = iCur = -1;
-**    sqlite3_status(SQLITE_STATUS_SCRATCH_USED, &iCur, &iHiwtr, bReset);
+**    sqlite3_status(SQLITE_STATUS_SCRATCH_USED, &iCur, &iHiwtr, bReset); //记录信息
 **    fprintf(pArg->out, "Number of Scratch Allocations Used:  %d (max %d)\n", iCur, iHiwtr);
 */
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_SCRATCH_OVERFLOW, &iCur, &iHiwtr, bReset);
-    fprintf(pArg->out, "Number of Scratch Overflow Bytes:    %d (max %d) bytes\n", iCur, iHiwtr);
+    sqlite3_status(SQLITE_STATUS_SCRATCH_OVERFLOW, &iCur, &iHiwtr, bReset);//记录信息溢出
+    fprintf(pArg->out, "Number of Scratch Overflow Byt es:    %d (max %d) bytes\n", iCur, iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &iCur, &iHiwtr, bReset);//分配的内存大小
+	.
     fprintf(pArg->out, "Largest Allocation:                  %d bytes\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PAGECACHE_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_PAGECACHE_SIZE, &iCur, &iHiwtr, bReset);//页面缓存的大小信息
     fprintf(pArg->out, "Largest Pcache Allocation:           %d bytes\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_SCRATCH_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_SCRATCH_SIZE, &iCur, &iHiwtr, bReset);//记录信息的大小
     fprintf(pArg->out, "Largest Scratch Allocation:          %d bytes\n", iHiwtr);
 #ifdef YYTRACKMAXSTACKDEPTH
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PARSER_STACK, &iCur, &iHiwtr, bReset);
+    sqlite3_status(SQLITE_STATUS_PARSER_STACK, &iCur, &iHiwtr, bReset); //解析器堆栈
     fprintf(pArg->out, "Deepest Parser Stack:                %d (max %d)\n", iCur, iHiwtr);
 #endif
   }
-
-  if( pArg && pArg->out && db ){
-    iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr, bReset);
+//对于单个数据库连接的统计
+  if( pArg && pArg->out && db ){//如果得到输出文件流和数据库连接成功
+    iHiwtr = iCur = -1;//赋值-1
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr, bReset);//sqlite3_db_status()多一个数据库连接参数，并且返回的是这个连接的内存统计信息，而不是整个SQLite库
     fprintf(pArg->out, "Lookaside Slots Used:                %d (max %d)\n", iCur, iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);//后备命中
     fprintf(pArg->out, "Successful lookaside attempts:       %d\n", iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);//后备缺失大小
     fprintf(pArg->out, "Lookaside failures due to size:      %d\n", iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);//后备失败
     fprintf(pArg->out, "Lookaside failures due to OOM:       %d\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);//页面堆使用
     fprintf(pArg->out, "Pager Heap Usage:                    %d bytes\n", iCur);    iHiwtr = iCur = -1;
     sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &iCur, &iHiwtr, 1);
-    fprintf(pArg->out, "Page cache hits:                     %d\n", iCur);
+    fprintf(pArg->out, "Page cache hits:                     %d\n", iCur);//页面的高速缓存命中
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &iCur, &iHiwtr, 1);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &iCur, &iHiwtr, 1);//页面的缓存丢失
     fprintf(pArg->out, "Page cache misses:                   %d\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_WRITE, &iCur, &iHiwtr, 1);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_WRITE, &iCur, &iHiwtr, 1);//页面高速缓存丢失
     fprintf(pArg->out, "Page cache writes:                   %d\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_SCHEMA_USED, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_SCHEMA_USED, &iCur, &iHiwtr, bReset);//模式的堆使用
     fprintf(pArg->out, "Schema Heap Usage:                   %d bytes\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_STMT_USED, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_STMT_USED, &iCur, &iHiwtr, bReset);//声明的堆和后备使用
     fprintf(pArg->out, "Statement Heap/Lookaside Usage:      %d bytes\n", iCur); 
   }
 
-  if( pArg && pArg->out && db && pArg->pStmt ){
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, bReset);
+  if( pArg && pArg->out && db && pArg->pStmt ){//如果得到输入数据流和当前的声明句柄
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, bReset);//按步扫描
     fprintf(pArg->out, "Fullscan Steps:                      %d\n", iCur);
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_SORT, bReset);
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_SORT, bReset);//排序操作
     fprintf(pArg->out, "Sort Operations:                     %d\n", iCur);
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_AUTOINDEX, bReset);
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_AUTOINDEX, bReset);//自动索引
     fprintf(pArg->out, "Autoindex Inserts:                   %d\n", iCur);
   }
-
+  
   return 0;
 }
 

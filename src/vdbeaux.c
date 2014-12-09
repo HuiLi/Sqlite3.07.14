@@ -1,4 +1,4 @@
-/*
+﻿ /*
 ** 2003 September 6
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -2090,26 +2090,33 @@ int sqlite3VdbeCheckFk(Vdbe *p, int deferred){
 #endif
 
 /*
+这一部分功能用于处理当程序VDBE出现停机的情况，如果VDBE处于开启自动模式时，会自动提交对数据库的改写。
+如果需要事物回滚，就会回滚。
+**这是唯一的方式能够将一个VM的状态从SQLITE_MAGIC_RUN转为SQLITE_MAGIC_HALT
+**因为竞争所的原因造成无法完成数据提交，将返回SQLITE_BUSY，那么将意味着数据库没有关闭需要对前面的代码重复执行一次。
 ** This routine is called the when a VDBE tries to halt.  If the VDBE
 ** has made changes and is in autocommit mode, then commit those
 ** changes.  If a rollback is needed, then do the rollback.
-**
+
 ** This routine is the only way to move the state of a VM from
 ** SQLITE_MAGIC_RUN to SQLITE_MAGIC_HALT.  It is harmless to
 ** call this on a VM that is in the SQLITE_MAGIC_HALT state.
-**
+
 ** Return an error code.  If the commit could not complete because of
 ** lock contention, return SQLITE_BUSY.  If SQLITE_BUSY is returned, it
 ** means the close did not happen and needs to be repeated.
 */
 int sqlite3VdbeHalt(Vdbe *p){
-  int rc;                         /* Used to store transient return codes */
+  int rc;                         /* Used to store transient return codes rc用于存储执行一个事务的返回值*/
   sqlite3 *db = p->db;
 
-  /* This function contains the logic that determines if a statement or
+  /* 在方法中会包含处理逻辑用于判断一个语句或一个事务被虚拟机处理后返回是提交成功还是事务回滚。
+   **如果一下四种任何一种错误发生的话（SQLITE_NOMEM，SQLITE_IOERR，SQLITE_FULL，SQLITE_INTERRUPT），那将会导
+  致内部缓存出现不一致的状态，那么我们需要回滚事务，如果没有完整的事务声明。
+  This function contains the logic that determines if a statement or
   ** transaction will be committed or rolled back as a result of the
   ** execution of this virtual machine. 
-  **
+ 
   ** If any of the following errors occur:
   **
   **     SQLITE_NOMEM
@@ -2122,7 +2129,7 @@ int sqlite3VdbeHalt(Vdbe *p){
   ** one, or the complete transaction if there is no statement transaction.
   */
 
-  if( p->db->mallocFailed ){
+  if( p->db->mallocFailed ){//数据库分配内存失败
     p->rc = SQLITE_NOMEM;
   }
   if( p->aOnceFlag ) memset(p->aOnceFlag, 0, p->nOnceFlag);
@@ -2132,26 +2139,38 @@ int sqlite3VdbeHalt(Vdbe *p){
   }
   checkActiveVdbeCnt(db);
 
-  /* No commit or rollback needed if the program never started */
+  /* No commit or rollback needed if the program never started 
+  如果程序没有开始执行，就不需要提交或者回滚
+  */
   if( p->pc>=0 ){
     int mrc;   /* Primary error code from p->rc */
     int eStatementOp = 0;
     int isSpecialError;            /* Set to true if a 'special' error */
 
-    /* Lock all btrees used by the statement */
+    /* Lock all btrees used by the statement 
+	对所有使用btrees的语句加锁
+	*/
     sqlite3VdbeEnter(p);
 
-    /* Check for one of the special errors */
+    /* Check for one of the special errors 
+	检查是否存在special errors
+	*/
     mrc = p->rc & 0xff;
     assert( p->rc!=SQLITE_IOERR_BLOCKED );  /* This error no longer exists */
+	//mrc出现SQLITE_NOMEM，SQLITE_IOERR，SQLITE_INTERRUPT，SQLITE_FULL这些错误的一个或多个时isSpecialError的值为True
     isSpecialError = mrc==SQLITE_NOMEM || mrc==SQLITE_IOERR
                      || mrc==SQLITE_INTERRUPT || mrc==SQLITE_FULL;
     if( isSpecialError ){
-      /* If the query was read-only and the error code is SQLITE_INTERRUPT, 
+      /* 如果发生isSpecialError是True时，会分到更细的情况来处理。
+	  当查询语句是只读的时候而且错误代码是SQLITE_INTERRUPT不需要回滚，因为没有对数据库有写操作。其他的情况会发生对数据库
+	  改变需要执行数据库事务回滚来达到数据库的一致性。即为写操作回滚到原来数据库一致的状态。
+	  **对于一个简单的读取数据的语句，更重要的是关心一个语句或者事务的回滚操作。如果错误发生在写日志或者一个数据文件做为
+	  释放缓存页面的一个操作时，事务的回滚可以保持页的数据一致性。
+	  If the query was read-only and the error code is SQLITE_INTERRUPT, 
       ** no rollback is necessary. Otherwise, at least a savepoint 
       ** transaction must be rolled back to restore the database to a 
       ** consistent state.
-      **
+   
       ** Even if the statement is read-only, it is important to perform
       ** a statement or transaction rollback operation. If the error 
       ** occured while writing to the journal, sub-journal or database
@@ -2159,11 +2178,12 @@ int sqlite3VdbeHalt(Vdbe *p){
       ** pagerStress() in pager.c), the rollback is required to restore 
       ** the pager to a consistent state.
       */
-      if( !p->readOnly || mrc!=SQLITE_INTERRUPT ){
-        if( (mrc==SQLITE_NOMEM || mrc==SQLITE_FULL) && p->usesStmtJournal ){
-          eStatementOp = SAVEPOINT_ROLLBACK;
+      if( !p->readOnly || mrc!=SQLITE_INTERRUPT ){//只读或者mrc!=SQLITE_INTERRUPT
+        if( (mrc==SQLITE_NOMEM || mrc==SQLITE_FULL) && p->usesStmtJournal ){//mrc没有内存空间或者SQLITE_FULL并且p指向usesStmtJournal
+          eStatementOp = SAVEPOINT_ROLLBACK;//事务回滚到保存点
         }else{
-          /* We are forced to roll back the active transaction. Before doing
+          /* 
+		  We are forced to roll back the active transaction. Before doing
           ** so, abort any other statements this handle currently has active.
           */
           sqlite3RollbackAll(db, SQLITE_ABORT_ROLLBACK);
@@ -2173,12 +2193,16 @@ int sqlite3VdbeHalt(Vdbe *p){
       }
     }
 
-    /* Check for immediate foreign key violations. */
+    /*检查外键约束是否满足约束条件
+	Check for immediate foreign key violations. */
     if( p->rc==SQLITE_OK ){
       sqlite3VdbeCheckFk(p, 0);
     }
   
-    /* If the auto-commit flag is set and this is the only active writer 
+    /* 如果设置了自动提交，而且这是一个处于活动状态的写操作，我们将提交或者是回滚当前的事务。
+	# define sqlite3VtabInSync(db) 0
+	这个功能模块在上面所说的special errors的处理时会用到
+	If the auto-commit flag is set and this is the only active writer 
     ** VM, then we do either a commit or rollback of the current transaction. 
     **
     ** Note: This block also runs if one of the special errors handled 
@@ -2197,28 +2221,31 @@ int sqlite3VdbeHalt(Vdbe *p){
           }
           rc = SQLITE_CONSTRAINT;
         }else{ 
-          /* The auto-commit flag is true, the vdbe program was successful 
+          /* 当设置了自动提交事务市，那么数据库虚拟引擎中的程序会成功提交或者返回一个错误，如果没有额外的外键约束的事务。
+		  这个时候事务的提交是必须的。
+		  The auto-commit flag is true, the vdbe program was successful 
           ** or hit an 'OR FAIL' constraint and there are no deferred foreign
           ** key constraints to hold up the transaction. This means a commit 
           ** is required. */
           rc = vdbeCommit(db, p);
         }
-        if( rc==SQLITE_BUSY && p->readOnly ){
+        if( rc==SQLITE_BUSY && p->readOnly ){//rc返回值为SQLITE_BUSY并且对数据库操作为只读执行下面代码，先释放当前的查询语句，
+			//并返回SQLITE_BUSY
           sqlite3VdbeLeave(p);
           return SQLITE_BUSY;
-        }else if( rc!=SQLITE_OK ){
+        }else if( rc!=SQLITE_OK ){//数据库返回值不等于SQLITE_OK，p->rc赋值为当前rc值，并且执行事务回滚语句
           p->rc = rc;
           sqlite3RollbackAll(db, SQLITE_OK);
-        }else{
+        }else{//rc==SQLITE_BUSY && p->readOnly 和rc!=SQLITE_OK这两个判断条件都不满足时将提交事务
           db->nDeferredCons = 0;
           sqlite3CommitInternalChanges(db);
         }
-      }else{
+      }else{//( p->rc==SQLITE_OK || (p->errorAction==OE_Fail && !isSpecialError)这个判断条件不满足是回滚当前数据库事务
         sqlite3RollbackAll(db, SQLITE_OK);
       }
       db->nStatement = 0;
-    }else if( eStatementOp==0 ){
-      if( p->rc==SQLITE_OK || p->errorAction==OE_Fail ){
+    }else if( eStatementOp==0 ){ //!sqlite3VtabInSync(db) && db->autoCommit && db->writeVdbeCnt==(p->readOnly==0)不满足上述判断，满足eStatementOp==0
+      if( p->rc==SQLITE_OK || p->errorAction==OE_Fail ){//在p->rc==SQLITE_OK || p->errorAction==OE_Fail
         eStatementOp = SAVEPOINT_RELEASE;
       }else if( p->errorAction==OE_Abort ){
         eStatementOp = SAVEPOINT_ROLLBACK;
@@ -2229,39 +2256,47 @@ int sqlite3VdbeHalt(Vdbe *p){
       }
     }
   
-    /* If eStatementOp is non-zero, then a statement transaction needs to
+    /* 如果eStatementOp的值不等于0，那么对于一个声明事务要么提交，要们回滚事务，调用函数sqlite3VdbeCloseStatement(p,eOp)
+	来完成上述描述功能当p->iStatement 的值大于0会关闭当前的声明事务.其中形参eOp必须是SAVEPOINT_ROLLBACK或者
+	SAVEPOINT_RELEASE，不可以取其他的值。如果eOp取值为SAVEPOINT_ROLLBACK，当前的事务会回滚；如果eOp取值为SAVEPOINT_RELEASE
+	会提交当前的事务。如果执行的过程中出现了IO日常错误，形如SQLITE_IOERR_XXX的错误代码会返回给程序的调用，否则程序返回True
+	If eStatementOp is non-zero, then a statement transaction needs to
     ** be committed or rolled back. Call sqlite3VdbeCloseStatement() to
     ** do so. If this operation returns an error, and the current statement
     ** error code is SQLITE_OK or SQLITE_CONSTRAINT, then promote the
     ** current statement error code.
     */
     if( eStatementOp ){
-      rc = sqlite3VdbeCloseStatement(p, eStatementOp);
-      if( rc ){
+      rc = sqlite3VdbeCloseStatement(p, eStatementOp);//局部变量rc接受调用sqlite3VdbeCloseStatement(p, eStatementOp)的值，
+      if( rc ){//rc=调用sqlite3VdbeCloseStatement返回的
         if( p->rc==SQLITE_OK || p->rc==SQLITE_CONSTRAINT ){
-          p->rc = rc;
+          p->rc = rc;//将p->rc的值都赋为sqlite3VdbeCloseStatement返回值
           sqlite3DbFree(db, p->zErrMsg);
           p->zErrMsg = 0;
         }
+		//sqlite3VdbeCloseStatement返回值不等于SQLITE_OK或者SQLITE_CONSTRAINT
         sqlite3RollbackAll(db, SQLITE_ABORT_ROLLBACK);
-        sqlite3CloseSavepoints(db);
+        sqlite3CloseSavepoints(db);//关闭数据库所有的事务保存点，这个操作仅仅关闭数据库句柄对象，
+		//不会关闭任何在Btree和pages中的保存点
         db->autoCommit = 1;
       }
     }
   
-    /* If this was an INSERT, UPDATE or DELETE and no statement transaction
+    /* 如果这是一个插入，更新，删除和没有任何声明式事务回滚，那么就可以对更新数据库连接改变计数器
+	If this was an INSERT, UPDATE or DELETE and no statement transaction
     ** has been rolled back, update the database connection change-counter. 
     */
-    if( p->changeCntOn ){
-      if( eStatementOp!=SAVEPOINT_ROLLBACK ){
-        sqlite3VdbeSetChanges(db, p->nChange);
+    if( p->changeCntOn ){//changeCntOn表示可以更新改变计数器的值
+      if( eStatementOp!=SAVEPOINT_ROLLBACK ){//数据库不处于回滚到保存点
+        sqlite3VdbeSetChanges(db, p->nChange);//更改数据库连接次数
       }else{
         sqlite3VdbeSetChanges(db, 0);
       }
-      p->nChange = 0;
+      p->nChange = 0;//从上一次重置开始，数据库改变的次数
     }
 
-    /* Release the locks */
+    /* 释放数据库锁
+	Release the locks */
     sqlite3VdbeLeave(p);
   }
 
@@ -2279,7 +2314,10 @@ int sqlite3VdbeHalt(Vdbe *p){
     p->rc = SQLITE_NOMEM;
   }
 
-  /* If the auto-commit flag is set to true, then any locks that were held
+  /* 
+  如果自动提交的属性被设置为True，同时对于所有加锁的数据连接都被释放，在这种情况下调用函数sqlite3ConnectionUnlocked来
+  回调所有的释放所功能，得到释放所有的资源。
+  If the auto-commit flag is set to true, then any locks that were held
   ** by connection db have now been released. Call sqlite3ConnectionUnlocked() 
   ** to invoke any required unlock-notify callbacks.
   */
@@ -2292,7 +2330,8 @@ int sqlite3VdbeHalt(Vdbe *p){
 }
 
 
-/*
+/*对于每一个VDBE都会保持最近的sqlite3_step（执行sql语句，得到返回结果的一行）函数得到的p->rc的值，
+在qlite3VdbeResetStepResult这个函数的执行会将p->rc的值重置为SQLITE_OK
 ** Each VDBE holds the result of the most recent sqlite3_step() call
 ** in p->rc.  This routine sets that result back to SQLITE_OK.
 */
@@ -2301,6 +2340,9 @@ void sqlite3VdbeResetStepResult(Vdbe *p){
 }
 
 /*
+将属于VDBE相关的错误代码和错误信息作为第一个参数一起传递给数据库句柄处理函数（因此在调用sqlite3_errcode() 和
+sqlite3_errmsg()两个函数能够得到相应的信息）。sqlite3VdbeTransferError函数并没有处理任何错误的代码和错误信息
+仅仅是将他们复制然后传递给数据库句柄
 ** Copy the error code and error message belonging to the VDBE passed
 ** as the first argument to its database handle (so that they will be 
 ** returned by calls to sqlite3_errcode() and sqlite3_errmsg()).
@@ -2309,7 +2351,7 @@ void sqlite3VdbeResetStepResult(Vdbe *p){
 ** copies them to the database handle.
 */
 int sqlite3VdbeTransferError(Vdbe *p){
-  sqlite3 *db = p->db;
+  sqlite3 *db = p->db;//在Vdbe 结构中有一个sqlite3类型的变量属性
   int rc = p->rc;
   if( p->zErrMsg ){
     u8 mallocFailed = db->mallocFailed;
@@ -2324,7 +2366,10 @@ int sqlite3VdbeTransferError(Vdbe *p){
   return rc;
 }
 
-/*
+/*在一次运行处理后清除这个VDBE的内存资源等信息但是并不是直接将其删除。将任何出现的错误信息
+赋值给参数*pzErrMsg。最后返回结果代码。在这个程序运行过后，VDBE已经准备好被下一次的执行。
+从另一个方面来看，sqlite3VdbeReset函数重新将虚拟机的状态从VDBE_MAGIC_RUN或者VDBE_MAGIC_HALT设置为
+VDBE_MAGIC_INIT状态。
 ** Clean up a VDBE after execution but do not delete the VDBE just yet.
 ** Write any error messages into *pzErrMsg.  Return the result code.
 **
@@ -2339,13 +2384,17 @@ int sqlite3VdbeReset(Vdbe *p){
   sqlite3 *db;
   db = p->db;
 
-  /* If the VM did not run to completion or if it encountered an
+  /* 如果说VM程序没有完全执行结束或者在执行的过程中遇到了一个错误异常，那么可以认为当前VM并没有被很好的
+  停止当前的状态。那么，我们马上将其停机。
+  If the VM did not run to completion or if it encountered an
   ** error, then it might not have been halted properly.  So halt
   ** it now.
   */
   sqlite3VdbeHalt(p);
 
-  /* If the VDBE has be run even partially, then transfer the error code
+  /* 如果VDBE处于部分运行的状态，那么需要将错误代码和错误信息从VDBE中转到主数据库结构中。虽然VDBE已经被
+  设置为运行状态但是没有处理任何程序指令，那么保持主数据库错误信息。
+  If the VDBE has be run even partially, then transfer the error code
   ** and error message from the VDBE into the main database structure.  But
   ** if the VDBE has just been set to run but has not actually executed any
   ** instructions yet, leave the main database error information unchanged.
@@ -2356,7 +2405,9 @@ int sqlite3VdbeReset(Vdbe *p){
     p->zErrMsg = 0;
     if( p->runOnlyOnce ) p->expired = 1;
   }else if( p->rc && p->expired ){
-    /* The expired flag was set on the VDBE before the first call
+    /* 在第一次调用sqlite3_step()函数之前需要设置数据结构VDBE中的属性expired值。为了数据库设置的一致性
+	因为已经调用了sqlite3_step，同样也需要设置数据库错误的相关信息
+	The expired flag was set on the VDBE before the first call
     ** to sqlite3_step(). For consistency (since sqlite3_step() was
     ** called), set the database error in this case as well.
     */
@@ -2366,18 +2417,25 @@ int sqlite3VdbeReset(Vdbe *p){
     p->zErrMsg = 0;
   }
 
-  /* Reclaim all memory used by the VDBE
+  /* 最后回收所有的被VDBE使用的内存资源
+  Reclaim all memory used by the VDBE
   */
   Cleanup(p);
 
-  /* Save profiling information from this VDBE run.
+  /* 保存在VDBE运行是产生的分析信息
+  opcode：表示具体执行什么样的操作
+  cnt：指令会被执行多少次
+  cycles：执行当前执行所花费的所有时间
+  nOp：所有操作指令的个数
+  Save profiling information from this VDBE run.
   */
 #ifdef VDBE_PROFILE
   {
-    FILE *out = fopen("vdbe_profile.out", "a");
+    FILE *out = fopen("vdbe_profile.out", "a");//打开一个只写文件，a 以附加的方式打开只写文件。
+	//若文件不存在，则会建立该文件，如果文件存在，写入的数据会被加到文件尾，即文件原先的内容会被保留
     if( out ){
       int i;
-      fprintf(out, "---- ");
+      fprintf(out, "---- ");//向out中写入信息
       for(i=0; i<p->nOp; i++){
         fprintf(out, "%02x", p->aOp[i].opcode);
       }
@@ -2390,7 +2448,7 @@ int sqlite3VdbeReset(Vdbe *p){
         );
         sqlite3VdbePrintOp(out, i, &p->aOp[i]);
       }
-      fclose(out);
+      fclose(out);//关闭文件输出流
     }
   }
 #endif
@@ -2398,21 +2456,32 @@ int sqlite3VdbeReset(Vdbe *p){
   return p->rc & db->errMask;
 }
  
-/*
+/*在程序执行过后清除VDBE占用的资源并删除这个VDBE。最后返回的代码是一个实数。将整个过程中所有的错误信息
+传递给指针参数pzErrMsg。
 ** Clean up and delete a VDBE after execution.  Return an integer which is
 ** the result code.  Write any error message text into *pzErrMsg.
 */
 int sqlite3VdbeFinalize(Vdbe *p){
   int rc = SQLITE_OK;
-  if( p->magic==VDBE_MAGIC_RUN || p->magic==VDBE_MAGIC_HALT ){
+  if( p->magic==VDBE_MAGIC_RUN || p->magic==VDBE_MAGIC_HALT ){//如果处于DBE_MAGIC_RUN或者VDBE_MAGIC_HALT状态的VDBE重新设置状态
     rc = sqlite3VdbeReset(p);
     assert( (rc & p->db->errMask)==rc );
   }
-  sqlite3VdbeDelete(p);
+  sqlite3VdbeDelete(p);//删除当前的VDBE
   return rc;
 }
 
 /*
+struct VdbeFunc {
+  FuncDef *pFunc;               The definition of the function 
+  int nAux;                      Number of entries allocated for apAux[] 
+  struct AuxData {
+    void *pAux;                   第i个参数的额外数据 
+    void (*xDelete)(void *);       额外参数的析构函数
+  } apAux[1];                    One slot for each function argument 
+}
+为每一个VdbeFunc中的AuxData调用析构函数释放资源而且在mask中有与之对应的位是清楚的。如果VdbeFunc中nAux
+的值超过31时就会调用xDelete函数来删除实例。当mask参数值为0时会删除所有的AuxData
 ** Call the destructor for each auxdata entry in pVdbeFunc for which
 ** the corresponding bit in mask is clear.  Auxdata entries beyond 31
 ** are always destroyed.  To destroy all auxdata entries, call this
@@ -2432,6 +2501,8 @@ void sqlite3VdbeDeleteAuxData(VdbeFunc *pVdbeFunc, int mask){
 }
 
 /*
+将函数sqlite3VdbeDeleteObject的第二个参数关联Vdbe结构相关的资源全部释放掉。sqlite3VdbeDeleteObject和
+sqlite3VdbeDelete最大的不同在于：VdbeDelete仅仅是将从VMs列表和与之对应的数据库连接断开
 ** Free all memory associated with the Vdbe passed as the second argument.
 ** The difference between this function and sqlite3VdbeDelete() is that
 ** VdbeDelete() also unlinks the Vdbe from the list of VMs associated with
@@ -2441,14 +2512,16 @@ void sqlite3VdbeDeleteObject(sqlite3 *db, Vdbe *p){
   SubProgram *pSub, *pNext;
   int i;
   assert( p->db==0 || p->db==db );
+  //释放Vdbe所占用的内存空间
   releaseMemArray(p->aVar, p->nVar);
   releaseMemArray(p->aColName, p->nResColumn*COLNAME_N);
-  for(pSub=p->pProgram; pSub; pSub=pNext){
+  for(pSub=p->pProgram; pSub; pSub=pNext){//pSub,和pNext都是SubProgram类型，开始pSub指向p->pProgram的起始节点，
+	  //一直遍历整个链表，vdbeFreeOpArray和sqlite3DbFree释放资源
     pNext = pSub->pNext;
     vdbeFreeOpArray(db, pSub->aOp, pSub->nOp);
     sqlite3DbFree(db, pSub);
   }
-  for(i=p->nzVar-1; i>=0; i--) sqlite3DbFree(db, p->azVar[i]);
+  for(i=p->nzVar-1; i>=0; i--) sqlite3DbFree(db, p->azVar[i]);//nzVar表示azVar[]数组长度，便利数组azVar[]释放azVar[i]占有的资源
   vdbeFreeOpArray(db, p->aOp, p->nOp);
   sqlite3DbFree(db, p->aLabel);
   sqlite3DbFree(db, p->aColName);
@@ -2458,7 +2531,7 @@ void sqlite3VdbeDeleteObject(sqlite3 *db, Vdbe *p){
   sqlite3DbFree(db, p->zExplain);
   sqlite3DbFree(db, p->pExplain);
 #endif
-  sqlite3DbFree(db, p);
+  sqlite3DbFree(db, p);//释放数据库运行占用的空间
 }
 
 /*
@@ -2467,10 +2540,11 @@ void sqlite3VdbeDeleteObject(sqlite3 *db, Vdbe *p){
 void sqlite3VdbeDelete(Vdbe *p){
   sqlite3 *db;
 
-  if( NEVER(p==0) ) return;
+  if( NEVER(p==0) ) return;//数据库已经为空，不为空时将p->db赋值给db
   db = p->db;
-  assert( sqlite3_mutex_held(db->mutex) );
-  if( p->pPrev ){
+  assert( sqlite3_mutex_held(db->mutex) );//程序互斥
+  
+  if( p->pPrev ){//如果当前的Vdbe的前驱借点存在，将当前节点的后驱与其前驱链接在一起
     p->pPrev->pNext = p->pNext;
   }else{
     assert( db->pVdbe==p );
@@ -2481,10 +2555,14 @@ void sqlite3VdbeDelete(Vdbe *p){
   }
   p->magic = VDBE_MAGIC_DEAD;
   p->db = 0;
-  sqlite3VdbeDeleteObject(db, p);
+  sqlite3VdbeDeleteObject(db, p);//释放资源
 }
 
-/*
+/*确保游标P已经准备好读或者写最近的定位到的行。如果遇到OOM错误或者I/O错误是返回错误代码，阻止我们定位
+光标移动到正确的位置。如果说一个MoveTo指令在给定的光标之前出现，那么我们执行MoveTo指令。如果没有先出现
+p->deferredMoveto指令那么检查在当前游标下的行是否已经被删除了，如果当前行被删除了标记当前行为NULL，
+p->nullRow = 1。
+如果说游标已经指向正确的行并且也没有被删除，那么这个程序就是一个no-op
 ** Make sure the cursor p is ready to read or write the row to which it
 ** was last positioned.  Return an error code if an OOM fault or I/O error
 ** prevents us from positioning the cursor to its correct position.
@@ -2526,7 +2604,12 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
   return SQLITE_OK;
 }
 
-/*
+/*下面的函数用于封装代码的序列化值存储在SQLite的数据和索引记录中。
+每一个序列化的值包括序列化类型和blob类型的数据。序列化类型是一个8-byte无符号整型，被存储为一个变异体。
+在一个数据库索引记录结构中，与序列化类型对应的blob数据类型会首先存储。在一个表存储结构中所有的序列化
+类型数据会在记录的开始就存储，所有的blob类型的数据在记录的最后存储。因此在这些函数允许调用者分开处理
+序列化数据类型和blob类型数据。下面的表详细介绍了不同的数据存储类
+
 ** The following functions:
 **
 ** sqlite3VdbeSerialType()
@@ -2539,14 +2622,21 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
 ** data and index records. Each serialized value consists of a
 ** 'serial-type' and a blob of data. The serial type is an 8-byte unsigned
 ** integer, stored as a varint.
+** 这几个函数封装了这样的功：将存储在SQLite数据库中和索引记录中的数据序列化为对应的值。
+** 每个序列化的值由连续的类型和一个二进制大对象数据组成。这种连续的类型是一个8字节的无符号整形，
+** 存储为varint类型。
 **
 ** In an SQLite index record, the serial type is stored directly before
 ** the blob of data that it corresponds to. In a table record, all serial
 ** types are stored at the start of the record, and the blobs of data at
 ** the end. Hence these functions allow the caller to handle the
 ** serial-type and data blob seperately.
+** 在SQLite索引记录中，序列类型直接存储在与它相对应的blob类型数据之前。在表的记录中，
+** 所有序列类型都存储的记录的开始位置，blob类型的数据在数据的末尾。因此这些函数允许调用者
+** 将串行类型和blob类型的数据分开操作。
 **
 ** The following table describes the various storage classes for data:
+** 下表描述了数据的各种存储类型:
 **
 **   serial type        bytes of data      type
 **   --------------     ---------------    ---------------
@@ -2563,13 +2653,16 @@ int sqlite3VdbeCursorMoveto(VdbeCursor *p){
 **     10,11                               reserved for expansion
 **    N>=12 and even       (N-12)/2        BLOB
 **    N>=13 and odd        (N-13)/2        text
-**
+**序列化类型值N大于等于12且为偶数的，对应的字节数据使用(N-12)/2，存储类型为BLOB
+  序列化类型值N大于等于13且为奇数的，对应的字节数据使用(N-13)/2，存储类型为text
+  序列化类型为8，9的在3.3.0的版本中使用，以前的版本不会识别这两个值
 ** The 8 and 9 types were added in 3.3.0, file format 4.  Prior versions
 ** of SQLite will not understand those serial types.
 */
 
-/*
+/*返回的序列化值存储在pMem中
 ** Return the serial-type for the value stored in pMem.
+** 返回序列类型的值，存储在参数pMem中。
 */
 u32 sqlite3VdbeSerialType(Mem *pMem, int file_format){
   int flags = pMem->flags;
@@ -2578,29 +2671,31 @@ u32 sqlite3VdbeSerialType(Mem *pMem, int file_format){
   if( flags&MEM_Null ){
     return 0;
   }
-  if( flags&MEM_Int ){
-    /* Figure out whether to use 1, 2, 4, 6 or 8 bytes. */
+  if( flags&MEM_Int ){//flags&MEM_Int的值大于0，执行if里面代码
+    /* 找出1, 2, 4, 6 ， 8中使用的一个
+	Figure out whether to use 1, 2, 4, 6 or 8 bytes. */
 #   define MAX_6BYTE ((((i64)0x00008000)<<32)-1)
     i64 i = pMem->u.i;
     u64 u;
-    if( file_format>=4 && (i&1)==i ){
+    if( file_format>=4 && (i&1)==i ){//形参file_format>=4 并且（(i&1)==i）
       return 8+(u32)i;
     }
-    if( i<0 ){
+	
+    if( i<0 ){//i<0是得到u64 u的值
       if( i<(-MAX_6BYTE) ) return 6;
       /* Previous test prevents:  u = -(-9223372036854775808) */
       u = -i;
     }else{
       u = i;
     }
-    if( u<=127 ) return 1;
-    if( u<=32767 ) return 2;
-    if( u<=8388607 ) return 3;
-    if( u<=2147483647 ) return 4;
-    if( u<=MAX_6BYTE ) return 5;
-    return 6;
+    if( u<=127 ) return 1;//u<=127
+    if( u<=32767 ) return 2;//127<u<=32767
+    if( u<=8388607 ) return 3;//32767<u<=8388607
+    if( u<=2147483647 ) return 4;//8388607<u<=2147483647
+    if( u<=MAX_6BYTE ) return 5;//2147483647< u<=MAX_6BYTE
+    return 6;//如果前面关于u值的判断都不符合是返回6
   }
-  if( flags&MEM_Real ){
+  if( flags&MEM_Real ){//flags&MEM_Real的值大于0
     return 7;
   }
   assert( pMem->db->mallocFailed || flags&(MEM_Str|MEM_Blob) );
@@ -2612,7 +2707,8 @@ u32 sqlite3VdbeSerialType(Mem *pMem, int file_format){
   return ((n*2) + 12 + ((flags&MEM_Str)!=0));
 }
 
-/*
+/*返回对应的序列化类型的数据长度，对于u32类型的值大于12时，返回(serial_type-12)/2；其他情况返回
+aSize[] = { 0, 1, 2, 3, 4, 6, 8, 8, 0, 0, 0, 0 }中的aSize[serial_type]
 ** Return the length of the data corresponding to the supplied serial-type.
 */
 u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
@@ -2624,7 +2720,15 @@ u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
   }
 }
 
-/*
+/*如果说我们需要在一个架构上面实现一个混合浮点数（例如：ARM7）那么我们需要讲低四位字节和高四位字节
+  交换。然后在返回我们的结果。对于大多数硬件架构来说，不需要这样处理。
+  混合浮点数问题在ARM7架构上只会出现在使用GCC时，在ARM7芯片上面不会出现异常。出现这样问题的原因是早期
+  GCC版本在存储两个字的64位浮点数出现错误序列。这个错误一直从早先的GCC版本延伸到今。当然也不能全部归
+  于当前的GCC问题，也可能是仅仅是从过去的编译器中复制出来的错误。在新的GCC版本中会使用不同的应用二进制
+  程序接口来获取正确的混合浮点数的二进制序列。
+  sqlite开发者在ARM7的架构上面编译和运行他们的程序，他们多次使用-DSQLITE_DEBUG来调试代码。根据开发者
+  调试的经验来看在DEBUG模式下，一些断言能够保证混合浮点数的二进制序列是正确的。
+  (2007-08-30)  Frank
 ** If we are on an architecture with mixed-endian floating 
 ** points (ex: ARM7) then swap the lower 4 bytes with the 
 ** upper 4 bytes.  Return the result.
@@ -2644,7 +2748,10 @@ u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
 ** application using -DSQLITE_DEBUG=1 at least once.  With DEBUG
 ** enabled, some asserts below will ensure that the byte order of
 ** floating point values is correct.
-**
+**Frank van Vugt对着这个问题做了深入的研究，他向SQLite开发者发来了他的研究成果，他在邮件中写道
+一些Linux内核可以提供浮点数的硬件模拟那么我们可以使用由IEEE标准化定义的32位浮点类型来代替全48位。但是
+在这样的系统中，浮点数字节位的交换会变得异常麻烦。为了避免这样的麻烦对于必须要做的字节交换会使用一个64位
+的整型来代替64位的浮点数来进行交换。
 ** (2007-08-30)  Frank van Vugt has studied this problem closely
 ** and has send his findings to the SQLite developers.  Frank
 ** writes that some Linux kernels offer floating point hardware
@@ -2659,7 +2766,7 @@ u32 sqlite3VdbeSerialTypeLen(u32 serial_type){
 ** so we trust him.
 */
 #ifdef SQLITE_MIXED_ENDIAN_64BIT_FLOAT
-static u64 floatSwap(u64 in){
+static u64 floatSwap(u64 in){//64位字节交换
   union {
     u64 r;
     u32 i[2];
@@ -2677,7 +2784,13 @@ static u64 floatSwap(u64 in){
 # define swapMixedEndianFloat(X)
 #endif
 
-/*
+/*写二进制序列化类型，将这些数据存储在pMem（Mem结构体类型）数据缓存中。这个功能使用的前提是假设调用者
+已经分配了足够的内存空间。返回已经写入的字节数。形参nBuf指定数组buf[]中可以使用的空间大小，同事需要注意
+nBuf的值必须足够大，能够存储所有的数据。如果说存储的数据是一个blob类型数据并且这个数据带有0维数的时候，
+buf[]数组只需要有合适的空间来存储非零的数据。如果数组足够大的空间，那么只能存储二进制数据前面非零的部分
+相应的也只会将前面非零数据写入buf[]缓冲区中。如果说buf[]缓冲区数组空间足够大能够存储前面非零数据和零尾
+我们只需要将前面非零写入缓冲区数组中，后面的数据直接设置为0.
+返回的值是已经全部写入缓冲区buf[]数组中的数据量的大小。
 ** Write the serialized data blob for the value stored in pMem into 
 ** buf. It is assumed that the caller has allocated sufficient space.
 ** Return the number of bytes written.
@@ -2690,7 +2803,7 @@ static u64 floatSwap(u64 in){
 ** prefix into buf[].  But if buf[] is large enough to hold both the
 ** prefix and the tail then write the prefix and set the tail to all
 ** zeros.
-**
+**在buf[]数组中0填充的尾部字节数被包含在返回值中，只有这些字节在数组中都是0.
 ** Return the number of bytes actually written into buf[].  The number
 ** of bytes in the zero-filled tail is included in the return value only
 ** if those bytes were zeroed in buf[].
@@ -2699,85 +2812,95 @@ u32 sqlite3VdbeSerialPut(u8 *buf, int nBuf, Mem *pMem, int file_format){
   u32 serial_type = sqlite3VdbeSerialType(pMem, file_format);
   u32 len;
 
-  /* Integer and Real */
+  /* Integer and Real
+  serial_type的值是整型值
+  */
   if( serial_type<=7 && serial_type>0 ){
     u64 v;
     u32 i;
-    if( serial_type==7 ){
+    if( serial_type==7 ){//serial_type的值等于7时
       assert( sizeof(v)==sizeof(pMem->r) );
       memcpy(&v, &pMem->r, sizeof(v));
-      swapMixedEndianFloat(v);
-    }else{
+      swapMixedEndianFloat(v);//交换混合浮点数的高位和低位字节
+    }else{//serial_type的值不等于7时，u64 v = pMem->u.i
       v = pMem->u.i;
     }
-    len = i = sqlite3VdbeSerialTypeLen(serial_type);
+    len = i = sqlite3VdbeSerialTypeLen(serial_type);//serial_type的长度
     assert( len<=(u32)nBuf );
-    while( i-- ){
+    while( i-- ){/*将数据写入buf[i]数组中，数组的长度为sqlite3VdbeSerialTypeLen(serial_type)*/
       buf[i] = (u8)(v&0xFF);
       v >>= 8;
     }
-    return len;
+    return len;/*返回 u32 len=sqlite3VdbeSerialTypeLen(serial_type)*/
   }
 
-  /* String or blob */
+  /* 如果序列化结构类型是字符串或者二进制文件数据
+  String or blob */
   if( serial_type>=12 ){
     assert( pMem->n + ((pMem->flags & MEM_Zero)?pMem->u.nZero:0)
              == (int)sqlite3VdbeSerialTypeLen(serial_type) );
     assert( pMem->n<=nBuf );
-    len = pMem->n;
+    len = pMem->n;/*n用于存放字符串变量里字符的个数，不包括'\0'，将n的值赋给len*/
     memcpy(buf, pMem->z, len);
+	/*pMem->z是指字符串类型或者二进制文件，memcpy(void *dest, void *src, unsigned int count)
+	由src所指内存区域复制count个字节到dest所指内存区域*/
     if( pMem->flags & MEM_Zero ){
+     /*flags在结构体Mem中起到标记作用，可取MEM_Null, MEM_Str, MEM_Dyn（Mem.z上的内存释放）三者中的一个*/
       len += pMem->u.nZero;
       assert( nBuf>=0 );
       if( len > (u32)nBuf ){
         len = (u32)nBuf;
       }
-      memset(&buf[pMem->n], 0, len-pMem->n);
+      memset(&buf[pMem->n], 0, len-pMem->n);/*对&buf[pMem->n]这一段内存空间全部设置为0*/
     }
     return len;
   }
 
-  /* NULL or constants 0 or 1 */
+  /* serial_type的取值为NULL或者0或者1
+  NULL or constants 0 or 1 */
   return 0;
 }
 
-/*
+/*反序列化数据块所指向的缓冲区的序列化类型，并且存储反序列化的结果在Mem结构中。返回我们读取的数据字节数
 ** Deserialize the data blob pointed to by buf as serial type serial_type
 ** and store the result in pMem.  Return the number of bytes read.
 */ 
 u32 sqlite3VdbeSerialGet(
-  const unsigned char *buf,     /* Buffer to deserialize from */
-  u32 serial_type,              /* Serial type to deserialize */
-  Mem *pMem                     /* Memory cell to write value into */
+  const unsigned char *buf,     /* 从第一个形参*buf进行反序列化 Buffer to deserialize from */
+  u32 serial_type,              /* 序列化类型Serial type to deserialize */
+  Mem *pMem                     /* 反序列化结果存储Memory cell to write value into */
 ){
-  switch( serial_type ){
+  switch( serial_type ){/*serial_type的值为10，11是供将来使用，serial_type的值为0表示NULL，对于
+						serial_type的值等于１０，１１，０时Mem->flags置为MEM_Null*/
+
     case 10:   /* Reserved for future use */
     case 11:   /* Reserved for future use */
     case 0: {  /* NULL */
       pMem->flags = MEM_Null;
       break;
     }
-    case 1: { /* 1-byte signed integer */
-      pMem->u.i = (signed char)buf[0];
-      pMem->flags = MEM_Int;
+    case 1: { /*serial_type为一个字节的无符号整型值 
+			  1-byte signed integer */
+      pMem->u.i = (signed char)/*buf[0];将buf[0]的值转化为signed char，存储在pMem->u.i 中*/
+      pMem->flags = MEM_Int;/*pMem->flags设置为MEM_Int类型*/
       return 1;
     }
-    case 2: { /* 2-byte signed integer */
-      pMem->u.i = (((signed char)buf[0])<<8) | buf[1];
+    case 2: { /*serial_type为２个字节的无符号整型值  2-byte signed integer */
+      pMem->u.i = (((signed char)buf[0])<<8) | buf[1];/*pMem->u.i的值为buf[0]左移８位并转化为(signed char)类型或buf[1]*/
       pMem->flags = MEM_Int;
       return 2;
     }
-    case 3: { /* 3-byte signed integer */
-      pMem->u.i = (((signed char)buf[0])<<16) | (buf[1]<<8) | buf[2];
+    case 3: { /* serial_type为３个字节的无符号整型值 3-byte signed integer */
+      pMem->u.i = (((signed char)buf[0])<<16) | (buf[1]<<8) | buf[2];/*buf[0])<<16的值左移１６位，buf[1]<<8左移８位*/
       pMem->flags = MEM_Int;
       return 3;
     }
-    case 4: { /* 4-byte signed integer */
-      pMem->u.i = (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];
+    case 4: { /* serial_type为４个字节的无符号整型值4-byte signed integer */
+      pMem->u.i = (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];/*buf[0])<<16的值左移２４位*/
       pMem->flags = MEM_Int;
       return 4;
     }
-    case 5: { /* 6-byte signed integer */
+    case 5: { /*serial_type为６个字节的无符号整型值 6-byte signed integer */
       u64 x = (((signed char)buf[0])<<8) | buf[1];
       u32 y = (buf[2]<<24) | (buf[3]<<16) | (buf[4]<<8) | buf[5];
       x = (x<<32) | y;
@@ -2785,12 +2908,14 @@ u32 sqlite3VdbeSerialGet(
       pMem->flags = MEM_Int;
       return 6;
     }
-    case 6:   /* 8-byte signed integer */
-    case 7: { /* IEEE floating point */
+    case 6:   /*serial_type为８个字节的无符号整型值 8-byte signed integer */
+    case 7: { /* serial_type是IEEE定义的标准浮点型数　IEEE floating point */
       u64 x;
       u32 y;
 #if !defined(NDEBUG) && !defined(SQLITE_OMIT_FLOATING_POINT)
-      /* Verify that integers and floating point values use the same
+      /*在验证整型数据和浮点数时可以使用相同的字节验证序列。只有当SQLITE_MIXED_ENDIAN_64BIT_FLOAT被
+	  开始定义了这种类型时，64位浮点数才会被表示成混合浮点数类型。
+	  Verify that integers and floating point values use the same
       ** byte order.  Or, that if SQLITE_MIXED_ENDIAN_64BIT_FLOAT is
       ** defined that 64-bit floating point values really are mixed
       ** endian.
@@ -2798,47 +2923,56 @@ u32 sqlite3VdbeSerialGet(
       static const u64 t1 = ((u64)0x3ff00000)<<32;
       static const double r1 = 1.0;
       u64 t2 = t1;
-      swapMixedEndianFloat(t2);
+      swapMixedEndianFloat(t2);//交换t2的高位和低位字节
       assert( sizeof(r1)==sizeof(t2) && memcmp(&r1, &t2, sizeof(r1))==0 );
 #endif
 
-      x = (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];
+      x = (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];/*buf[0]左移24位或运算buf[1]左移16位或运算buf[2]左移8位或运算buf[3]*/
       y = (buf[4]<<24) | (buf[5]<<16) | (buf[6]<<8) | buf[7];
-      x = (x<<32) | y;
-      if( serial_type==6 ){
+      x = (x<<32) | y;/*x等于X左移32位后与y取或运算*/
+      if( serial_type==6 ){/*serial_type为８个字节的无符号整型值 */
         pMem->u.i = *(i64*)&x;
         pMem->flags = MEM_Int;
       }else{
         assert( sizeof(x)==8 && sizeof(pMem->r)==8 );
-        swapMixedEndianFloat(x);
+        swapMixedEndianFloat(x);//交换x的高位和低位字节
         memcpy(&pMem->r, &x, sizeof(x));
-        pMem->flags = sqlite3IsNaN(pMem->r) ? MEM_Null : MEM_Real;
+		/*memcpy(void *dest, void *src, unsigned int count)
+	由src所指内存区域复制count个字节到dest所指内存区域,将&x中的数据拷贝到&pMem->r*/
+        pMem->flags = sqlite3IsNaN(pMem->r) ? MEM_Null : MEM_Real;/*pMem->r是实数还是空，通过二目运算符判断*/
       }
       return 8;
     }
-    case 8:    /* Integer 0 */
+    case 8:    /* serial_type为8，9时pMem->u.i = serial_type-8Integer 0 */
     case 9: {  /* Integer 1 */
       pMem->u.i = serial_type-8;
       pMem->flags = MEM_Int;
       return 0;
     }
-    default: {
+    default: {/*switch的默认部分，当上门的case判断都为false时执行此部分代码*/
       u32 len = (serial_type-12)/2;
       pMem->z = (char *)buf;
       pMem->n = len;
       pMem->xDel = 0;
+	  /*根据serial_type&0x01的值为真时pMem->flags = MEM_Str | MEM_Ephem，反之pMem->flags = MEM_Blob | MEM_Ephem*/
       if( serial_type&0x01 ){
         pMem->flags = MEM_Str | MEM_Ephem;
       }else{
         pMem->flags = MEM_Blob | MEM_Ephem;
       }
-      return len;
+      return len;/*返回(serial_type-12)/2的值*/
     }
   }
   return 0;
 }
 
-/*
+/* 这个函数被用于给UnpackedRecord结构分配一个足够大的内存空间，分配足够大的空间可以被函数
+sqlite3VdbeRecordUnpack()使用，如果这个函数的第一个形参是KeyInfo的结构体pKeyInfo。
+这个空间的分配也可以使用sqlite3DbMallocRaw()函数或者通过第二个（*pSpace）和第三个形参（szSpace）
+从未被使用的缓存空间中分配（例如空闲栈空间）。如果按照前者的分配内存空间方式形参*ppFree被设置为一个指针
+类型变量。这个变量的最后垃圾回由调用者使用sqlite3DbFree函数来回收垃圾。如果内存空间的分配来自于
+pSpace/szSpace两个参数指定的缓冲空间，*ppFree在程序结束之前被设置为NULL。
+如果程序的运行期间发生了OOM异常，会返回NULL。
 ** This routine is used to allocate sufficient space for an UnpackedRecord
 ** structure large enough to be used with sqlite3VdbeRecordUnpack() if
 ** the first argument is a pointer to KeyInfo structure pKeyInfo.
@@ -2853,20 +2987,22 @@ u32 sqlite3VdbeSerialGet(
 ** If an OOM error occurs, NULL is returned.
 */
 UnpackedRecord *sqlite3VdbeAllocUnpackedRecord(
-  KeyInfo *pKeyInfo,              /* Description of the record */
-  char *pSpace,                   /* Unaligned space available */
-  int szSpace,                    /* Size of pSpace[] in bytes */
-  char **ppFree                   /* OUT: Caller should free this pointer */
+  KeyInfo *pKeyInfo,              /* 用于描述数据记录　Description of the record */
+  char *pSpace,                   /* 可用于分配的空间Unaligned space available */
+  int szSpace,                    /* pSpace中可用于存储的字节数Size of pSpace[] in bytes */
+  char **ppFree                   /* 程序调用者需要释放这个指针指向的资源OUT: Caller should free this pointer */
 ){
-  UnpackedRecord *p;              /* Unpacked record to return */
-  int nOff;                       /* Increment pSpace by nOff to align it */
-  int nByte;                      /* Number of bytes required for *p */
+  UnpackedRecord *p;              /* 返回UnpackedRecord结构体类型变量　Unpacked record to return */
+  int nOff;                       /* 使用nOff来增加pSpace使其对其　Increment pSpace by nOff to align it */
+  int nByte;                      /* UnpackedRecord类型变量所需要的字节数　Number of bytes required for *p */
 
-  /* We want to shift the pointer pSpace up such that it is 8-byte aligned.
+  /* 我们想要移动指针pSpace，使其和８字节对其。因此我们需要计算这样的转换需要移动的位数。如果说pSpace
+  已经是８字节对其的，那么nOff的值为０。
+  We want to shift the pointer pSpace up such that it is 8-byte aligned.
   ** Thus, we need to calculate a value, nOff, between 0 and 7, to shift 
   ** it by.  If pSpace is already 8-byte aligned, nOff should be zero.
   */
-  nOff = (8 - (SQLITE_PTR_TO_INT(pSpace) & 7)) & 7;
+  nOff = (8 - (SQLITE_PTR_TO_INT(pSpace) & 7)) & 7;//计算pSpace成为8字节对其应该移动的值
   nByte = ROUND8(sizeof(UnpackedRecord)) + sizeof(Mem)*(pKeyInfo->nField+1);
   if( nByte>szSpace+nOff ){
     p = (UnpackedRecord *)sqlite3DbMallocRaw(pKeyInfo->db, nByte);
@@ -2883,27 +3019,28 @@ UnpackedRecord *sqlite3VdbeAllocUnpackedRecord(
   return p;
 }
 
-/*
+/* 给定nKey字节大小的一条记录的二进制数据存在pKey[]，通过解码记录的第四个参数来填充UnpackedRecord结构
+实例。
 ** Given the nKey-byte encoding of a record in pKey[], populate the 
 ** UnpackedRecord structure indicated by the fourth argument with the
 ** contents of the decoded record.
 */ 
 void sqlite3VdbeRecordUnpack(
-  KeyInfo *pKeyInfo,     /* Information about the record format */
-  int nKey,              /* Size of the binary record */
-  const void *pKey,      /* The binary record */
-  UnpackedRecord *p      /* Populate this structure before returning. */
+  KeyInfo *pKeyInfo,     /* 关于数据格式的信息 Information about the record format */
+  int nKey,              /* 二进制记录的大小Size of the binary record */
+  const void *pKey,      /* 存储二进制记录The binary record */
+  UnpackedRecord *p      /* 在返回结果之前填充数据Populate this structure before returning. */
 ){
   const unsigned char *aKey = (const unsigned char *)pKey;
   int d; 
-  u32 idx;                        /* Offset in aKey[] to read from */
-  u16 u;                          /* Unsigned loop counter */
+  u32 idx;                        /* aKey[]数组中读取数据的偏移量Offset in aKey[] to read from */
+  u16 u;                          /* 循环计数 Unsigned loop counter */
   u32 szHdr;
-  Mem *pMem = p->aMem;
+  Mem *pMem = p->aMem;//将UnpackedRecord中的aMem实例赋值给 Mem *pMem
 
   p->flags = 0;
   assert( EIGHT_BYTE_ALIGNMENT(pMem) );
-  idx = getVarint32(aKey, szHdr);
+  idx = getVarint32(aKey, szHdr);//获取32位尾整型，Varint是一种紧凑的表示数字的方法。它用一个或多个字节来表示一个数字，值越小的数字使用越少的字节数
   d = szHdr;
   u = 0;
   while( idx<szHdr && u<p->nField && d<=nKey ){
@@ -2912,7 +3049,8 @@ void sqlite3VdbeRecordUnpack(
     idx += getVarint32(&aKey[idx], serial_type);
     pMem->enc = pKeyInfo->enc;
     pMem->db = pKeyInfo->db;
-    /* pMem->flags = 0; // sqlite3VdbeSerialGet() will set this for us */
+    /*sqlite3VdbeSerialGet()函数能够帮助我们设置pMem->flags = 0
+	pMem->flags = 0; // sqlite3VdbeSerialGet() will set this for us */
     pMem->zMalloc = 0;
     d += sqlite3VdbeSerialGet(&aKey[d], serial_type, pMem);
     pMem++;
@@ -2922,7 +3060,14 @@ void sqlite3VdbeRecordUnpack(
   p->nField = u;
 }
 
-/*
+/* 这个函数主要用来比较两个表的行数或者指定的索引记录（例如{nKey1, pKey1} 和 pPKey2）。如果key1小于key2
+   返回时返回一个负数，key1等于key2返回值为0，key1大于key2时返回值为一个正数。{nKey1, pKey1}必须是由
+   OP_MakeRecord关于VDBE的操作码生成的二进制文件数据。pPKey2必须由一个可以被解析的key值这个key值从遵守
+   sqlite3VdbeParseRecord约束。
+   Key1和Key2没有必要包含相同数目的域值。通常来说具有更少的域值的key要比具有更多的域值的key比较的次数
+   更少。如果pPKey2能够满足UNPACKED_INCRKEY能够设置为真并且通用前缀相等，那么key1小于key2的值。
+   或者来说UNPACKED_MATCH_PREFIX flag被设置为真而且前缀相等，那么key1和key2被认为是相等的，超过通用
+   前缀的部分可以认为是忽略掉。
 ** This function compares the two table rows or index records
 ** specified by {nKey1, pKey1} and pPKey2.  It returns a negative, zero
 ** or positive integer if key1 is less than, equal to or 
@@ -2940,26 +3085,32 @@ void sqlite3VdbeRecordUnpack(
 ** the parts beyond the common prefix are ignored.
 */
 int sqlite3VdbeRecordCompare(
-  int nKey1, const void *pKey1, /* Left key */
-  UnpackedRecord *pPKey2        /* Right key */
+  int nKey1, const void *pKey1, /* 左key Left key */
+  UnpackedRecord *pPKey2        /* 右key Right key */
 ){
-  int d1;            /* Offset into aKey[] of next data element */
-  u32 idx1;          /* Offset into aKey[] of next header element */
-  u32 szHdr1;        /* Number of bytes in header */
+  int d1;            /* 下一个数据元素在aKey[]数组中的位置偏移量Offset into aKey[] of next data element */
+  u32 idx1;          /* 下一个头元素在aKey[]数组中的偏移量 Offset into aKey[] of next header element */
+  u32 szHdr1;        /* 在header中的字节数目 Number of bytes in header */
   int i = 0;
   int nField;
   int rc = 0;
-  const unsigned char *aKey1 = (const unsigned char *)pKey1;
+  const unsigned char *aKey1 = (const unsigned char *)pKey1;/*这定义了一个指针pKey1，pKey1可以指向任意类型的值但是必须是一个const*/
   KeyInfo *pKeyInfo;
   Mem mem1;
 
   pKeyInfo = pPKey2->pKeyInfo;
   mem1.enc = pKeyInfo->enc;
   mem1.db = pKeyInfo->db;
-  /* mem1.flags = 0;  // Will be initialized by sqlite3VdbeSerialGet() */
-  VVA_ONLY( mem1.zMalloc = 0; ) /* Only needed by assert() statements */
+  /* 在sqlite3VdbeSerialGet函数初始化中会设置mem1.flags = 0
+  mem1.flags = 0;  // Will be initialized by sqlite3VdbeSerialGet() */
+  VVA_ONLY( mem1.zMalloc = 0; ) /*只有在assert()语句中会用到 Only needed by assert() statements */
 
-  /* Compilers may complain that mem1.u.i is potentially uninitialized.
+  /* 编译器可能会报mem1.u.i未被初始化的异常信息。我们可以初始化这个值，也可以采用我们在这个程序中的处理
+  对这个异常信息不做任何处理，直接忽略掉。但是在实际中，mem1.u.i的中从来不会出现在未被初始化的情况下使用
+  这个变量，做这些其实并不需要的初始化步骤会造成一定的负面影响，因为这个程序的使用会非常的频繁。基于以上
+  的原因，我们直接忽略掉编译器的异常警告，不必去初始化这个变量。
+
+  Compilers may complain that mem1.u.i is potentially uninitialized.
   ** We could initialize it, as shown here, to silence those complaints.
   ** But in fact, mem1.u.i will never actually be used uninitialized, and doing 
   ** the unnecessary initialization has a measurable negative performance
@@ -2974,27 +3125,35 @@ int sqlite3VdbeRecordCompare(
   while( idx1<szHdr1 && i<pPKey2->nField ){
     u32 serial_type1;
 
-    /* Read the serial types for the next element in each key. */
+    /*为每一个key值读取序列化类型的下一个元素值
+	Read the serial types for the next element in each key. */
     idx1 += getVarint32( aKey1+idx1, serial_type1 );
     if( d1>=nKey1 && sqlite3VdbeSerialTypeLen(serial_type1)>0 ) break;
 
-    /* Extract the values to be compared.
+    /* 提取比较的值
+	Extract the values to be compared.
     */
     d1 += sqlite3VdbeSerialGet(&aKey1[d1], serial_type1, &mem1);
 
-    /* Do the comparison
+    /* 
+	做比较
+	Do the comparison
     */
     rc = sqlite3MemCompare(&mem1, &pPKey2->aMem[i],
                            i<nField ? pKeyInfo->aColl[i] : 0);
     if( rc!=0 ){
       assert( mem1.zMalloc==0 );  /* See comment below */
 
-      /* Invert the result if we are using DESC sort order. */
+      /* 我们使用降序的顺序时需要反转最后结果
+	  Invert the result if we are using DESC sort order. */
       if( pKeyInfo->aSortOrder && i<nField && pKeyInfo->aSortOrder[i] ){
         rc = -rc;
       }
     
-      /* If the PREFIX_SEARCH flag is set and all fields except the final
+      /* 如果PREFIX_SEARCH标志被设置为真并且除了最后的rowid域值外其他的值都是相等的，对于这样的情况我们
+	  只需要清空PREFIX_SEARCH的设置同时设置pPKey2->rowid的值等于rowid在(pKey1, nKey1)中的值。
+	  这样的处理方式被用作OP_IsUnique操作码。
+	  If the PREFIX_SEARCH flag is set and all fields except the final
       ** rowid field were equal, then clear the PREFIX_SEARCH flag and set 
       ** pPKey2->rowid to the value of the rowid field in (pKey1, nKey1).
       ** This is used by the OP_IsUnique opcode.
@@ -3011,13 +3170,18 @@ int sqlite3VdbeRecordCompare(
     i++;
   }
 
-  /* No memory allocation is ever used on mem1.  Prove this using
+  /* 可以使用函数assert()来证明是否有给mem1分配过内存空间。如果assert()语句判断为错，那么预示着出现了
+  内存泄漏了需要调用sqlite3VdbeMemRelease释放内存空间。
+  No memory allocation is ever used on mem1.  Prove this using
   ** the following assert().  If the assert() fails, it indicates a
   ** memory leak and a need to call sqlite3VdbeMemRelease(&mem1).
   */
   assert( mem1.zMalloc==0 );
 
-  /* rc==0 here means that one of the keys ran out of fields and
+  /*rc==0意味着有一个key值越过所有领域值和所有领域值到这点是相等的。如果UNPACKED_INCRKEY是设置为真了，
+  那么需要将key2的值变大来打破这种联系。如果UPACKED_PREFIX_MATCH标志被设置为真，那些具有相同前缀的keys
+  就可以被认为是相等的。其他的情况下， pPKey2的值会变得越来越大，如果存在差异的话。
+      rc==0 here means that one of the keys ran out of fields and
   ** all the fields up to that point were equal. If the UNPACKED_INCRKEY
   ** flag is set, then break the tie by treating key2 as larger.
   ** If the UPACKED_PREFIX_MATCH flag is set, then keys with common prefixes
@@ -3037,7 +3201,9 @@ int sqlite3VdbeRecordCompare(
 }
  
 
-/*
+/*指针pCur指向一个由OP_MakeRecord操作码创造的索引项。读取rowid的值（记录中的最后一个域）并且将这个
+rowid的值存在*rowid中。如果所有事情都正常工作返回SQLITE_OK，否则返回一个错误代码。pCur也可能会指向
+一个从损坏的数据库文件中获取的文本。因此这个文本数据并不可信。需要对着个文本进行合适的检查。
 ** pCur points at an index entry created using the OP_MakeRecord opcode.
 ** Read the rowid (the last field in the record) and store it in *rowid.
 ** Return SQLITE_OK if everything works, or an error code otherwise.
@@ -3048,31 +3214,34 @@ int sqlite3VdbeRecordCompare(
 int sqlite3VdbeIdxRowid(sqlite3 *db, BtCursor *pCur, i64 *rowid){
   i64 nCellKey = 0;
   int rc;
-  u32 szHdr;        /* Size of the header */
-  u32 typeRowid;    /* Serial type of the rowid */
-  u32 lenRowid;     /* Size of the rowid */
+  u32 szHdr;        /* 头的长度Size of the header */
+  u32 typeRowid;    /* rowid的序列化值 Serial type of the rowid */
+  u32 lenRowid;     /* rowid的大小 Size of the rowid */
   Mem m, v;
 
   UNUSED_PARAMETER(db);
 
-  /* Get the size of the index entry.  Only indices entries of less
+  /* 获得索引项的大小。sqlite数据库仅仅支持大小在2GiB以下的索引项，任何大于2GiB索引项的存在可以肯定的说
+  这个数据库是损坏的。任何有关数据库损坏的信息可以在sqlite3BtreeParseCellPtr()函数中被发现，nCellKey是
+  32位数据时可以说这个代码是安全的。
+     Get the size of the index entry.  Only indices entries of less
   ** than 2GiB are support - anything large must be database corruption.
   ** Any corruption is detected in sqlite3BtreeParseCellPtr(), though, so
   ** this code can safely assume that nCellKey is 32-bits  
   */
   assert( sqlite3BtreeCursorIsValid(pCur) );
   VVA_ONLY(rc =) sqlite3BtreeKeySize(pCur, &nCellKey);
-  assert( rc==SQLITE_OK );     /* pCur is always valid so KeySize cannot fail */
+  assert( rc==SQLITE_OK );     /* pCur总是有效的因此不会发生KeySize失效的情况。pCur is always valid so KeySize cannot fail */
   assert( (nCellKey & SQLITE_MAX_U32)==(u64)nCellKey );
 
-  /* Read in the complete content of the index entry */
+  /* 读取索引项的所有完整的内容。Read in the complete content of the index entry */
   memset(&m, 0, sizeof(m));
   rc = sqlite3VdbeMemFromBtree(pCur, 0, (int)nCellKey, 1, &m);
   if( rc ){
     return rc;
   }
 
-  /* The index entry must begin with a header size */
+  /* 索引项的开始必须有一个头大小。The index entry must begin with a header size */
   (void)getVarint32((u8*)m.z, szHdr);
   testcase( szHdr==3 );
   testcase( szHdr==m.n );
@@ -3080,7 +3249,8 @@ int sqlite3VdbeIdxRowid(sqlite3 *db, BtCursor *pCur, i64 *rowid){
     goto idx_rowid_corruption;
   }
 
-  /* The last field of the index should be an integer - the ROWID.
+  /* 索引项的最后一个域值必须是一个整型数（ROWID）。验证索引项的最后一个域值是否为一个整型值。
+  The last field of the index should be an integer - the ROWID.
   ** Verify that the last entry really is an integer. */
   (void)getVarint32((u8*)&m.z[szHdr-1], typeRowid);
   testcase( typeRowid==1 );
@@ -3100,13 +3270,16 @@ int sqlite3VdbeIdxRowid(sqlite3 *db, BtCursor *pCur, i64 *rowid){
     goto idx_rowid_corruption;
   }
 
-  /* Fetch the integer off the end of the index record */
+  /* 提取索引项的最后一个整型数据。
+  Fetch the integer off the end of the index record */
   sqlite3VdbeSerialGet((u8*)&m.z[m.n-lenRowid], typeRowid, &v);
   *rowid = v.u.i;
   sqlite3VdbeMemRelease(&m);
   return SQLITE_OK;
 
-  /* Jump here if database corruption is detected after m has been
+  /* 在m被分配内存数据库空间后检测到数据库损坏的异常情况，程序将跳到idx_rowid_corruption:这里来处理异常
+  释放实例m占有的内存空间并返回SQLITE_CORRUPT。
+  Jump here if database corruption is detected after m has been
   ** allocated.  Free the m object and return SQLITE_CORRUPT. */
 idx_rowid_corruption:
   testcase( m.zMalloc!=0 );
@@ -3114,7 +3287,11 @@ idx_rowid_corruption:
   return SQLITE_CORRUPT_BKPT;
 }
 
-/*
+/*比较索引项的key值，VdbeCursor *pC和一个指向一个在pUnpacked中的字符串类型的两个key值做比较。
+如果pC小于pUnpacked的时候向*pRes的值赋值为一个负数，等于的时候赋值为0，大于的时候赋值为一个正数。最后
+在成功时返回SQLITE_OK。pUnpacked是在一个rowid或者末端的时候被创造的，因此他可以咋最后省略rowid。rowid
+在索引项的最后部分会不我们直接忽视掉。所以说这个程序只是比较了keys的前缀到最后的rowid之前部分，不会比较
+整个key。
 ** Compare the key of the index entry that cursor pC is pointing to against
 ** the key string in pUnpacked.  Write into *pRes a number
 ** that is negative, zero, or positive if pC is less than, equal to,
@@ -3126,9 +3303,9 @@ idx_rowid_corruption:
 ** of the keys prior to the final rowid, not the entire key.
 */
 int sqlite3VdbeIdxKeyCompare(
-  VdbeCursor *pC,             /* The cursor to compare against */
+  VdbeCursor *pC,             /* 用于比较The cursor to compare against */
   UnpackedRecord *pUnpacked,  /* Unpacked version of key to compare against */
-  int *res                    /* Write the comparison result here */
+  int *res                    /* 将最后的比较结果写在这个变量中。Write the comparison result here */
 ){
   i64 nCellKey = 0;
   int rc;
@@ -3137,8 +3314,9 @@ int sqlite3VdbeIdxKeyCompare(
 
   assert( sqlite3BtreeCursorIsValid(pCur) );
   VVA_ONLY(rc =) sqlite3BtreeKeySize(pCur, &nCellKey);
-  assert( rc==SQLITE_OK );    /* pCur is always valid so KeySize cannot fail */
-  /* nCellKey will always be between 0 and 0xffffffff because of the say
+  assert( rc==SQLITE_OK );    /* pCur总是有效的所以不会出现KeySize失效的情况。pCur is always valid so KeySize cannot fail */
+  /* nCellKey的值总是在0和0xffffffff，因为是由btreeParseCellPtr()和sqlite3GetVarint32()这两个函数实现的。
+  nCellKey will always be between 0 and 0xffffffff because of the say
   ** that btreeParseCellPtr() and sqlite3GetVarint32() are implemented */
   if( nCellKey<=0 || nCellKey>0x7fffffff ){
     *res = 0;
@@ -3155,7 +3333,7 @@ int sqlite3VdbeIdxKeyCompare(
   return SQLITE_OK;
 }
 
-/*
+/*这个函数可以设置由于后续调用sqlite3_changes()改变数据库句柄产生的值
 ** This routine sets the value to be returned by subsequent calls to
 ** sqlite3_changes() on the database handle 'db'. 
 */
@@ -3165,7 +3343,7 @@ void sqlite3VdbeSetChanges(sqlite3 *db, int nChange){
   db->nTotalChange += nChange;
 }
 
-/*
+/*设置一个标志在vdbe更新计数器当数据库结束或者被重置的时候。
 ** Set a flag in the vdbe to update the change counter when it is finalised
 ** or reset.
 */
@@ -3173,7 +3351,9 @@ void sqlite3VdbeCountChanges(Vdbe *v){
   v->changeCntOn = 1;
 }
 
-/*
+/*将每一个和数据库连接的处于准备状态的语句标记为过期的状态。一个过期状态的语句意味着重新编译这个语句是被推荐的。
+一些事情的发生使得数据库语句过期。移除用户自定义的函数或者排序序列，改变一个授权功能这些都可以使
+准备状态的语句变成过期状态
 ** Mark every prepared statement associated with a database connection
 ** as expired.
 **
@@ -3190,14 +3370,16 @@ void sqlite3ExpirePreparedStatements(sqlite3 *db){
   }
 }
 
-/*
+/*移除数据库和Vdbe的连接关系。
 ** Return the database associated with the Vdbe.
 */
 sqlite3 *sqlite3VdbeDb(Vdbe *v){
   return v->db;
 }
 
-/*
+/*返回一个指向sqlite3_value结构体，这个结构体包括由一个VM的v实例iVar的参数值。如果这个值是一个SQL NULL
+最后返回0代替。除了这个值是一个NULL，在最后返回的时候是一个SQLITE_AFF_*constants。
+最后的返回值必须由函数调用者使用sqlite3ValueFree()来释放内存空间
 ** Return a pointer to an sqlite3_value structure containing the value bound
 ** parameter iVar of VM v. Except, if the value is an SQL NULL, return 
 ** 0 instead. Unless it is NULL, apply affinity aff (one of the SQLITE_AFF_*
@@ -3222,7 +3404,8 @@ sqlite3_value *sqlite3VdbeGetValue(Vdbe *v, int iVar, u8 aff){
   return 0;
 }
 
-/*
+/*配置SQL变量iVar的值使得绑定一个新值来唤醒函数sqlite3_reoptimize()这个函数可以重复准备SQL语句使其能够
+导致一个更好的执行计划
 ** Configure SQL variable iVar so that binding a new value to it signals
 ** to sqlite3_reoptimize() that re-preparing the statement may result
 ** in a better query plan.
