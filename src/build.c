@@ -2997,7 +2997,7 @@ void sqlite3DefaultRowEst(Index *pIdx){
 /*
 ** This routine will drop an existing named index.  This routine
 ** implements the DROP INDEX statement.
-*/
+*///计算机软件与理论  周凯
 void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
   Index *pIndex;//定义一个指针
   Vdbe *v;
