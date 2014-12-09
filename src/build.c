@@ -3816,5 +3816,5 @@ KeyInfo *sqlite3IndexKeyinfo(Parse *pParse, Index *pIdx){
     sqlite3DbFree(db, pKey);
     pKey = 0;
   }
-  return pKey;
+  return pKey；
 }
