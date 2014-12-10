@@ -9,7 +9,7 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** This file contains code for the VdbeSorter object, used in concert with
+** This file contains code for the VdbeSorter object, used in concert with(和..相呼应)
 ** a VdbeCursor to sort large numbers of keys (as may be required, for
 ** example, by CREATE INDEX statements on tables too large to fit in main
 ** memory).
