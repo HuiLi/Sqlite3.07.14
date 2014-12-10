@@ -134,21 +134,22 @@ struct VdbeFrame {
   u8 *aOnceFlag;          /* Array of OP_Once flags for parent frame 父框架的OP_Once标记数组*/
   VdbeCursor **apCsr;     /* Array of Vdbe cursors for parent frame  父框架的vdbe指针数组*/
   void *token;            /* Copy of SubProgram.token */
-  i64 lastRowid;          /* Last insert rowid (sqlite3.lastRowid) */
-  u16 nCursor;            /* Number of entries in apCsr */
-  int pc;                 /* Program Counter in parent (calling) frame */
-  int nOp;                /* Size of aOp array */
-  int nMem;               /* Number of entries in aMem */
+  i64 lastRowid;          /* Last insert rowid (sqlite3.lastRowid) 最后插入的行id*/
+  u16 nCursor;            /* Number of entries in apCsr apCsr的入口数目*/
+  int pc;                 /* Program Counter in parent (calling) frame 父框架调用的程序计数器*/
+  int nOp;                /* Size of aOp array aOp数组的长度*/
+  int nMem;               /* Number of entries in aMem aMem的入口数目*/
   int nOnceFlag;          /* Number of entries in aOnceFlag */
-  int nChildMem;          /* Number of memory cells for child frame */
-  int nChildCsr;          /* Number of cursors for child frame */
-  int nChange;            /* Statement changes (Vdbe.nChanges)     */
+  int nChildMem;          /* Number of memory cells for child frame 子框架的内存单元数目*/
+  int nChildCsr;          /* Number of cursors for child frame 子框架的指针数目*/
+  int nChange;            /* Statement changes (Vdbe.nChanges)     声明改变*/
 };
 
 #define VdbeFrameMem(p) ((Mem *)&((u8 *)p)[ROUND8(sizeof(VdbeFrame))])
 
 /*
 ** A value for VdbeCursor.cacheValid that means the cache is always invalid.
+** vdbe指针的值。cachValid意味着缓存总是无效的。
 */
 #define CACHE_STALE 0
 
@@ -156,41 +157,45 @@ struct VdbeFrame {
 ** Internally, the vdbe manipulates nearly all SQL values as Mem
 ** structures. Each Mem struct may cache multiple representations (string,
 ** integer etc.) of the same value.
+** 在内部，vdbe操作几乎所有的sql值都以Mem的结构来实现。每一个Mem结构可以缓存多种同样的代表值（比如字符串，整形的结构）
 */
 struct Mem {
-  sqlite3 *db;        /* The associated database connection */
-  char *z;            /* String or BLOB value */
-  double r;           /* Real value */
+  sqlite3 *db;        /* The associated database connection 先关联的数据库连接*/
+  char *z;            /* String or BLOB value 字符串或者Blog值*/
+  double r;           /* Real value 真值*/
   union {
-    i64 i;              /* Integer value used when MEM_Int is set in flags */
-    int nZero;          /* Used when bit MEM_Zero is set in flags */
-    FuncDef *pDef;      /* Used only when flags==MEM_Agg */
-    RowSet *pRowSet;    /* Used only when flags==MEM_RowSet */
+    i64 i;              /* Integer value used when MEM_Int is set in flags 整形只在当MEM_Int被设置标记时使用*/
+    int nZero;          /* Used when bit MEM_Zero is set in flags 大致同上*/
+    FuncDef *pDef;      /* Used only when flags==MEM_Agg 仅当标示与MEM_Agg相等时使用*/
+    RowSet *pRowSet;    /* Used only when flags==MEM_RowSet大致同上 */
     VdbeFrame *pFrame;  /* Used when flags==MEM_Frame */
   } u;
-  int n;              /* Number of characters in string value, excluding '\0' */
-  u16 flags;          /* Some combination of MEM_Null, MEM_Str, MEM_Dyn, etc. */
-  u8  type;           /* One of SQLITE_NULL, SQLITE_TEXT, SQLITE_INTEGER, etc */
-  u8  enc;            /* SQLITE_UTF8, SQLITE_UTF16BE, SQLITE_UTF16LE */
+  int n;              /* Number of characters in string value, excluding '\0' 字符串值中出去/0的的字符个数*/
+  u16 flags;          /* Some combination of MEM_Null, MEM_Str, MEM_Dyn, etc. 这几种标示的结合*/
+  u8  type;           /* One of SQLITE_NULL, SQLITE_TEXT, SQLITE_INTEGER, etc 其中的一种数据类型*/
+  u8  enc;            /* SQLITE_UTF8, SQLITE_UTF16BE, SQLITE_UTF16LE 不同的编码方式*/
 #ifdef SQLITE_DEBUG
-  Mem *pScopyFrom;    /* This Mem is a shallow copy of pScopyFrom */
-  void *pFiller;      /* So that sizeof(Mem) is a multiple of 8 */
+  Mem *pScopyFrom;    /* This Mem is a shallow copy of pScopyFrom 这个Mem是对pScopyFrom的浅拷贝*/
+  void *pFiller;      /* So that sizeof(Mem) is a multiple of 8 以便运算符是八的倍数*/
 #endif
-  void (*xDel)(void *);  /* If not null, call this function to delete Mem.z */
-  char *zMalloc;      /* Dynamic buffer allocated by sqlite3_malloc() */
+  void (*xDel)(void *);  /* If not null, call this function to delete Mem.z 如果为空，则调用方法删除Mem.z*/
+  char *zMalloc;      /* Dynamic buffer allocated by sqlite3_malloc() 动态的缓冲区由sqlite3_malloc（）方法去分配*/
 };
 
 /* One or more of the following flags are set to indicate the validOK
 ** representations of the value stored in the Mem struct.
-**
+**一个或者更多的下面的标示被设置是为了证明它有效的正确的代表了Mem结构中存储的值。
 ** If the MEM_Null flag is set, then the value is an SQL NULL value.
 ** No other flags may be set in this case.
-**
+**如果MEM_Null标记被设置，那么这个值是一个空的sql值。当没有其他标记被设置时这种情况才会发生。
 ** If the MEM_Str flag is set then Mem.z points at a string representation.
+**如果MEM——Str这个表示被设置，那么Mem.z指向一个字符串类型的代表。
 ** Usually this is encoded in the same unicode encoding as the main
 ** database (see below for exceptions). If the MEM_Term flag is also
 ** set, then the string is nul terminated. The MEM_Int and MEM_Real 
 ** flags may coexist with the MEM_Str flag.
+**通常这将被编译成和主数据库相同的编码格式。（下面的是特例）如果MEM_Term标示也被设置，那么这个字符串是以空结尾的。
+** MEM_Int和MEM_Real标示可能与MEM_Str标示同时存在。
 */
 #define MEM_Null      0x0001   /* Value is NULL */
 #define MEM_Str       0x0002   /* Value is a string */
