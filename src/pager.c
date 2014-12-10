@@ -6076,13 +6076,15 @@ int sqlite3PagerCommitPhaseTwo(Pager *pPager){
   /* An optimization. If the database was not actually modified during
   ** this transaction, the pager is running in exclusive-mode and is
   ** using persistent journals, then this function is a no-op.
-  **
+  ** 一个最优化。在这个事务中如果数据库事实上没有被修改，pager在排它模式下运行并且使用永久对象日志，那么这是个空操作。
   ** The start of the journal file currently contains a single journal 
   ** header with the nRec field set to 0. If such a journal is used as
   ** a hot-journal during hot-journal rollback, 0 changes will be made
   ** to the database file. So there is no need to zero the journal 
   ** header. Since the pager is in exclusive mode, there is no need
   ** to drop any locks either.
+    当前日志文件的启动包含了一个单一日志头，把nRec字段设置为0。如果这样的日志在恢复hot-journal时被当做hot-journal使用。
+    所以日志头不需要为零。由于pager在排它模式下，那就不需要放弃任何锁。
   */
   if( pPager->eState==PAGER_WRITER_LOCKED 
    && pPager->exclusiveMode 
@@ -6103,26 +6105,30 @@ int sqlite3PagerCommitPhaseTwo(Pager *pPager){
 ** transaction are reverted and the current write-transaction is closed.
 ** The pager falls back to PAGER_READER state if successful, or PAGER_ERROR
 ** state if an error occurs.
-**
+** 如果打开一个写操作，那么事务做出的所有改变被恢复并且关闭写事务。如果成功，pager落回到PAGER_READER状态，
+   或者如果出现错误进入PAGER_ERROR状态。
 ** If the pager is already in PAGER_ERROR state when this function is called,
 ** it returns Pager.errCode immediately. No work is performed in this case.
-**
+** 如果这个函数被调用的时候pager已经处于PAGER_ERROR状态，那么马上返回Pager错误代码。
+   在这种情况下不执行任何操作。
 ** Otherwise, in rollback mode, this function performs two functions:
-**
+** 否则，在回滚模式，这个函数体现两个功能：
 **   1) It rolls back the journal file, restoring all database file and 
 **      in-memory cache pages to the state they were in when the transaction
 **      was opened, and
-**
+**      当打开事务，它将恢复日志文件，储存所有数据库文件并且把内存缓存页面写入它所在的状态。
 **   2) It finalizes the journal file, so that it is not used for hot
 **      rollback at any point in the future.
-**
+**      它结束日志文件，以便在将来不会被用来热回滚。
 ** Finalization of the journal file (task 2) is only performed if the 
 ** rollback is successful.
-**
+** 如果恢复成功，只实现日志文件的结束操作。
 ** In WAL mode, all cache-entries containing data modified within the
 ** current transaction are either expelled from the cache or reverted to
 ** their pre-transaction state by re-reading data from the database or
 ** WAL files. The WAL transaction is then closed.
+   在WAL模式下，所有缓存条目中包含的数据修改在当前事务从缓存中驱逐或恢复他们之前的事务状态，通过在数据库或者WAL文件重读数据。
+   wal事务接着关闭。
 */
 int sqlite3PagerRollback(Pager *pPager){
   int rc = SQLITE_OK;                  /* Return code */
@@ -6131,6 +6137,8 @@ int sqlite3PagerRollback(Pager *pPager){
   /* PagerRollback() is a no-op if called in READER or OPEN state. If
   ** the pager is already in the ERROR state, the rollback is not 
   ** attempted here. Instead, the error code is returned to the caller.
+    如果在READER 或者 OPEN状态下调用，PagerRollback(）是一个空操作。
+    如果pager已经在ERROR状态，没有实现恢复。相反，错误代码返回调用者。
   */
   assert( assert_pager_state(pPager) );
   if( pPager->eState==PAGER_ERROR ) return pPager->errCode;
@@ -6148,6 +6156,8 @@ int sqlite3PagerRollback(Pager *pPager){
       /* This can happen using journal_mode=off. Move the pager to the error 
       ** state to indicate that the contents of the cache may not be trusted.
       ** Any active readers will get SQLITE_ABORT.
+        使用关闭日志模式可能发生。把pager移动到错误状态表明缓存内容不被信任。
+        任何活动读者将得到SQLITE_ABORT。
       */
       pPager->errCode = SQLITE_ABORT;
       pPager->eState = PAGER_ERROR;
