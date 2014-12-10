@@ -22,7 +22,7 @@
 /*
 ** An array of names of all compile-time options.  This array should 
 ** be sorted A-Z.
-**编译时间选择的数据名称，该数组按照A-Z的顺序排序。
+**编译时间选择的数组名称，该数组按照A-Z的顺序排序。
 ** This array looks large, but in a typical installation actually uses
 ** only a handful of compile-time options, so most times this array is usually
 ** rather short and uses little memory space.
@@ -382,8 +382,8 @@ static const char * const azCompileOpt[] = {
 */
 int sqlite3_compileoption_used(const char *zOptName){
   int i, n;
-  if( sqlite3StrNICmp(zOptName, "SQLITE_", 7)==0 ) zOptName += 7;
-  n = sqlite3Strlen30(zOptName);
+  if( sqlite3StrNICmp(zOptName, "SQLITE_", 7)==0 ) zOptName += 7;//sqlite3StrNICmp()是比较函数，如果zOptName的前缀是SQLITE_返回0.
+  n = sqlite3Strlen30(zOptName);//n为一个可以存储在低30位的32位带符号整数
 
   /* Since ArraySize(azCompileOpt) is normally in single digits, a
   ** linear search is adequate.  No need for a binary search. 
