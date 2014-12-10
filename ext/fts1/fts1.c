@@ -1563,17 +1563,18 @@ static void fulltext_vtab_destroy(fulltext_vtab *v){
 
 /*
 ** Token types for parsing the arguments to xConnect or xCreate.
+** 定义令牌类型和对应的值
 */
-#define TOKEN_EOF         0    /* End of file */
-#define TOKEN_SPACE       1    /* Any kind of whitespace */
-#define TOKEN_ID          2    /* An identifier */
-#define TOKEN_STRING      3    /* A string literal */
-#define TOKEN_PUNCT       4    /* A single punctuation character */
+#define TOKEN_EOF         0    /* End of file 文件终点*/
+#define TOKEN_SPACE       1    /* Any kind of whitespace 空格*/
+#define TOKEN_ID          2    /* An identifier 标识符*/
+#define TOKEN_STRING      3    /* A string literal 字符串*/
+#define TOKEN_PUNCT       4    /* A single punctuation character 控制字符*/
 
 /*
 ** If X is a character that can be used in an identifier then
 ** IdChar(X) will be true.  Otherwise it is false.
-**
+** 如果X是一个在标识符中的普通字符，则IdChar(X)的值为真，如果是控制字符，则IdChar(X)值为假。
 ** For ASCII, any character with the high-order bit set is
 ** allowed in an identifier.  For 7-bit characters, 
 ** sqlite3IsIdChar[X] must be 1.
@@ -1582,6 +1583,8 @@ static void fulltext_vtab_destroy(fulltext_vtab *v){
 ** middle of identfiers.  But many SQL implementations do. 
 ** SQLite will allow '$' in identifiers for compatibility.
 ** But the feature is undocumented.
+** SQL标准中不允许标识符中间出现'$'，但很多SQL实现中都存在这种用法。
+** SQLite允许在标识符中出现'$'，但这个特征是非正式的。
 */
 static const char isIdChar[] = {
 /* x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF */
@@ -1593,65 +1596,73 @@ static const char isIdChar[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,  /* 7x */
 };
 #define IdChar(C)  (((c=C)&0x80)!=0 || (c>0x1f && isIdChar[c-0x20]))
-
+/* 如果X是一个在标识符中的普通字符，则IdChar(X)的值为真，如果是控制字符，则IdChar(X)值为假。*/
 
 /*
 ** Return the length of the token that begins at z[0]. 
 ** Store the token type in *tokenType before returning.
+** 返回令牌的长度，从z[0]开始计算。
+** 在函数返回前，用*tokenType记录令牌类型。
 */
 static int getToken(const char *z, int *tokenType){
-  int i, c;
+  int i, c;     //i是一个计数器
   switch( *z ){
+    //z[0]的字符代表文件终点，返回令牌的长度是0
     case 0: {
       *tokenType = TOKEN_EOF;
       return 0;
     }
+    //z[0]的字符是空格
     case ' ': case '\t': case '\n': case '\f': case '\r': {
-      for(i=1; safe_isspace(z[i]); i++){}
+      for(i=1; safe_isspace(z[i]); i++){} //对于连续的空格，返回空格数i
       *tokenType = TOKEN_SPACE;
       return i;
     }
+    //z[0]的字符是'`'、'\''、'"'，代表后面是一串字符，返回这串字符的长度。
     case '`':
     case '\'':
     case '"': {
-      int delim = z[0];
-      for(i=1; (c=z[i])!=0; i++){
-        if( c==delim ){
-          if( z[i+1]==delim ){
-            i++;
-          }else{
-            break;
+      int delim = z[0];  			//delim用来存储z[0]，即代表'`'、'\''、'"'
+      for(i=1; (c=z[i])!=0; i++){ 	//在ASCII编码中0代表空字符，如果z[i]不是空字符，计数器加1
+        if( c==delim ){				//如果z[i]的字符与delim相同
+          if( z[i+1]==delim ){		//如果z[i+1]也与delim相同
+            i++;					//说明这一串字符没有结束，计数器加1
+          }else{					//如果z[i+1]与delim不同
+            break;					//直接跳出for循环
           }
         }
       }
       *tokenType = TOKEN_STRING;
-      return i + (c!=0);
+      return i + (c!=0);            //如果for循环中，z[i]以空字符结束，返回i，否则返回i+1
     }
+    //z[0]的字符是'['，说明是一个标识符，长度计算包括左右方括号
     case '[': {
-      for(i=1, c=z[0]; c!=']' && (c=z[i])!=0; i++){}
+      for(i=1, c=z[0]; c!=']' && (c=z[i])!=0; i++){}//如果c所代表的字符不是']'，且c的下一位字符不是空字符，计数加1
       *tokenType = TOKEN_ID;
       return i;
     }
+    //z[0]是其他字符
     default: {
-      if( !IdChar(*z) ){
+      if( !IdChar(*z) ){            //如果z[0]是控制字符，则跳出switch语句，如果不是则进行下面的for循环
         break;
       }
-      for(i=1; IdChar(z[i]); i++){}
+      for(i=1; IdChar(z[i]); i++){}	//如果z[i]是普通字符，计数器加1，否则结束循环
       *tokenType = TOKEN_ID;
       return i;
     }
   }
-  *tokenType = TOKEN_PUNCT;
+  *tokenType = TOKEN_PUNCT;         //直接跳出switch语句，代表这个字符为控制字符
   return 1;
 }
 
 /*
 ** A token extracted from a string is an instance of the following
 ** structure.
+** 下面的结构体是一个从字符串中提取的令牌的例子
 */
 typedef struct Token {
-  const char *z;       /* Pointer to token text.  Not '\000' terminated */
-  short int n;         /* Length of the token text in bytes. */
+  const char *z;       /* Pointer to token text.  Not '\000' terminated 指向令牌文本的指针，不能使用'\000'作为终结 */
+  short int n;         /* Length of the token text in bytes. 令牌文本的长度 */
 } Token;
 
 /*
@@ -1666,19 +1677,26 @@ typedef struct Token {
 ** malloc and should be freed by passing the return value to free().
 ** The individual strings within the token list are all a part of
 ** the single memory allocation and will all be freed at once.
+**
+** 这个函数的作用是，给定一个字符串，将它分割为用几个令牌表示。
+** 返回一个指针数组指向一个以'\000'结尾的字符串。
+**
+** 返回数组的终结符是一个空指针
+**
+** 保存返回数组的空间有一个单独的分配内存提供，并且使用free函数释放。
 */
 static char **tokenizeString(const char *z, int *pnToken){
   int nToken = 0;
-  Token *aToken = malloc( strlen(z) * sizeof(aToken[0]) );
+  Token *aToken = malloc( strlen(z) * sizeof(aToken[0]) );	//定义一个记录令牌的数组
   int n = 1;
   int e, i;
   int totalSize = 0;
   char **azToken;
   char *zCopy;
   while( n>0 ){
-    n = getToken(z, &e);
-    if( e!=TOKEN_SPACE ){
-      aToken[nToken].z = z;
+    n = getToken(z, &e);		//得到z所指向的字符串长度
+    if( e!=TOKEN_SPACE ){		//如果z所指向的是空格，就跳过空格
+      aToken[nToken].z = z;		//如果不是空格，使用aToken分别记录z和z的长度
       aToken[nToken].n = n;
       nToken++;
       totalSize += n+1;
@@ -1707,6 +1725,8 @@ static char **tokenizeString(const char *z, int *pnToken){
 ** input does not begin with a quote character, then this routine
 ** is a no-op.
 **
+** 将一个SQL风格的引用字符串通过去掉引用字符，转换为一个普通字符串。
+** 这个转换是在原地完成的。如果输入的字符串不是以一个引用字符开头，则无操作。
 ** Examples:
 **
 **     "abc"   becomes   abc
@@ -1717,26 +1737,26 @@ static char **tokenizeString(const char *z, int *pnToken){
 static void dequoteString(char *z){
   int quote;
   int i, j;
-  if( z==0 ) return;
-  quote = z[0];
-  switch( quote ){
+  if( z==0 ) return;				//如果z是空字符则无操作。
+  quote = z[0];						//quote记录z[0]的ASCII码	
+  switch( quote ){					//如果quote所表示的字符是引用字符，则跳出switch执行下面的for循环，否则无操作。
     case '\'':  break;
     case '"':   break;
-    case '`':   break;                /* For MySQL compatibility */
-    case '[':   quote = ']';  break;  /* For MS SqlServer compatibility */
+    case '`':   break;                /* For MySQL compatibility 适用于MySQL */
+    case '[':   quote = ']';  break;  /* For MS SqlServer compatibility 适用于MS SqlServer如果以'['开头，则结尾应是']' */
     default:    return;
   }
-  for(i=1, j=0; z[i]; i++){
-    if( z[i]==quote ){
-      if( z[i+1]==quote ){
-        z[j++] = quote;
-        i++;
+  for(i=1, j=0; z[i]; i++){			//z[0]是引用字符，故循环从z[1]开始
+    if( z[i]==quote ){				//如果z[i]是和quote相同的引用字符，说明此时是字符串结尾
+      if( z[i+1]==quote ){			//如果z[i+1]也是和quote相同的引用字符
+        z[j++] = quote;				//将z[i+1]前移
+        i++;						//这里i++，是为了跳过已知与quote相同的字符。
       }else{
-        z[j++] = 0;
+        z[j++] = 0;					//如果z[i+1]和quote不同，则将z的结尾置空，结束循环。
         break;
       }
-    }else{
-      z[j++] = z[i];
+    }else{							//如果z[i]的字符与quote不相同，说明还未到字符串结尾
+      z[j++] = z[i];				//字符前移一位
     }
   }
 }
@@ -1746,6 +1766,8 @@ static void dequoteString(char *z){
 ** token and all punctuation tokens.  Remove the quotes from
 ** around string literal tokens.
 **
+** 输入的azIn是一个以空结尾的令牌列表。
+** 删除第一个令牌表示的内容以及所有标点符号令牌。删除文字令牌的引用字符。
 ** Example:
 **
 **     input:      tokenize chinese ( 'simplifed' , 'mixed' )
@@ -1760,15 +1782,15 @@ static void tokenListToIdList(char **azIn){
   int i, j;
   if( azIn ){
     for(i=0, j=-1; azIn[i]; i++){
-      if( safe_isalnum(azIn[i][0]) || azIn[i][1] ){
-        dequoteString(azIn[i]);
+      if( safe_isalnum(azIn[i][0]) || azIn[i][1] ){ //如果第i个令牌是数字或字母，并且长度不为0。
+        dequoteString(azIn[i]); //删去引用字符
         if( j>=0 ){
           azIn[j] = azIn[i];
         }
         j++;
       }
     }
-    azIn[j] = 0;
+    azIn[j] = 0;    //使令牌列表以0结尾
   }
 }
 
@@ -1777,20 +1799,21 @@ static void tokenListToIdList(char **azIn){
 ** Find the first alphanumeric token in the string zIn.  Null-terminate
 ** this token.  Remove any quotation marks.  And return a pointer to
 ** the result.
+** 在字符串zIn中找到第一个字母数字令牌，令牌以空结尾。删除所有引用符号，返回一个指向结果的指针。
 */
 static char *firstToken(char *zIn, char **pzTail){
   int n, ttype;
   while(1){
-    n = getToken(zIn, &ttype);
-    if( ttype==TOKEN_SPACE ){
+    n = getToken(zIn, &ttype);		//获得zIn第一个令牌的类型
+    if( ttype==TOKEN_SPACE ){		//如果是空格符，则跳过空格
       zIn += n;
-    }else if( ttype==TOKEN_EOF ){
+    }else if( ttype==TOKEN_EOF ){	//如果是文件结尾符，则返回0
       *pzTail = zIn;
       return 0;
-    }else{
-      zIn[n] = 0;
-      *pzTail = &zIn[1];
-      dequoteString(zIn);
+    }else{				
+      zIn[n] = 0;					//对于其他类型，令zIn最后一个元素为0
+      *pzTail = &zIn[1];			//pzTail指向zIn[1]
+      dequoteString(zIn);			//删除zIn中的引用符号
       return zIn;
     }
   }
@@ -1807,6 +1830,13 @@ static char *firstToken(char *zIn, char **pzTail){
 **
 ** To put it another way, return true if the first token of
 ** s[] is t[].
+**
+** 以下情况返回true
+**	 * s以字符串t开头，忽略大小写
+**   * s的长度比t长
+**   * s的第一个字符除了t没有其他的字母数字符号
+** 忽略s开头的空格
+** 话句话说，如果s中的第一个符号是t，则返回true
 */
 static int startsWith(const char *s, const char *t){
   while( safe_isspace(*s) ){ s++; }
@@ -1820,18 +1850,21 @@ static int startsWith(const char *s, const char *t){
 ** An instance of this structure defines the "spec" of a
 ** full text index.  This structure is populated by parseSpec
 ** and use by fulltextConnect and fulltextCreate.
+** 这个结构体的例子定义了一个全文索引的"说明"
+** 这个结构体由parseSpec构造，并且在函数fulltextConnect和函数fulltextCreate中使用。
 */
 typedef struct TableSpec {
-  const char *zDb;         /* Logical database name */
-  const char *zName;       /* Name of the full-text index */
-  int nColumn;             /* Number of columns to be indexed */
-  char **azColumn;         /* Original names of columns to be indexed */
-  char **azContentColumn;  /* Column names for %_content */
-  char **azTokenizer;      /* Name of tokenizer and its arguments */
+  const char *zDb;         /* Logical database name 逻辑数据库名 */
+  const char *zName;       /* Name of the full-text index 全文索引名 */
+  int nColumn;             /* Number of columns to be indexed 组成索引的列数 */
+  char **azColumn;         /* Original names of columns to be indexed 组成索引的列的原始名 */
+  char **azContentColumn;  /* Column names for %_content 与内容相关的列名 */
+  char **azTokenizer;      /* Name of tokenizer and its arguments 分词器的名称与他的参数 */
 } TableSpec;
 
 /*
 ** Reclaim all of the memory used by a TableSpec
+** 使用一个TableSpec回收内存
 */
 static void clearTableSpec(TableSpec *p) {
   free(p->azColumn);
@@ -1840,19 +1873,19 @@ static void clearTableSpec(TableSpec *p) {
 }
 
 /* Parse a CREATE VIRTUAL TABLE statement, which looks like this:
- *
+ * 解析一个类似如下形式的创建虚拟表的语句
  * CREATE VIRTUAL TABLE email
  *        USING fts1(subject, body, tokenize mytokenizer(myarg))
  *
  * We return parsed information in a TableSpec structure.
- * 
+ * 在结构体TableSpec中返回解析后的信息
  */
 static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
                      char**pzErr){
   int i, n;
   char *z, *zDummy;
   char **azArg;
-  const char *zTokenizer = 0;    /* argv[] entry describing the tokenizer */
+  const char *zTokenizer = 0;    /* argv[] entry describing the tokenizer argv[]接口用来描述分词器 */
 
   assert( argc>=3 );
   /* Current interface:
@@ -1861,38 +1894,48 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
   ** argv[2] - table name
   ** argv[3..] - columns, optionally followed by tokenizer specification
   **             and snippet delimiters specification.
+  **
+  ** 当前接口:
+  ** argv[0] - 模块名
+  ** argv[1] - 数据库名
+  ** argv[2] - 表名
+  ** argv[3..] - 列，以及分词器规则和段分隔符规则
   */
 
   /* Make a copy of the complete argv[][] array in a single allocation.
   ** The argv[][] array is read-only and transient.  We can write to the
   ** copy in order to modify things and the copy is persistent.
+  ** 配置一个独立完整的argv[][]数组的备份。
+  ** argv[][]数组是只读的并且只保存短暂的时间，
+  ** 我们可以再备份中修改内容，并且备份是可以长时间保存的。
   */
-  memset(pSpec, 0, sizeof(*pSpec));
-  for(i=n=0; i<argc; i++){
+  memset(pSpec, 0, sizeof(*pSpec)); //将pSpec所在的内存空间清零
+  for(i=n=0; i<argc; i++){          //计算argv[]所有元素的长度总和，并用n保存
     n += strlen(argv[i]) + 1;
   }
-  azArg = malloc( sizeof(char*)*argc + n );
+  azArg = malloc( sizeof(char*)*argc + n );//为azArg分配一块可以保存argv[]的内存
   if( azArg==0 ){
     return SQLITE_NOMEM;
   }
   z = (char*)&azArg[argc];
-  for(i=0; i<argc; i++){
-    azArg[i] = z;
+  for(i=0; i<argc; i++){    //将argv[]中的数据循环复制进z所指向的内存空间
+    azArg[i] = z;           //azArg[]数组依次保存z中的数据
     strcpy(z, argv[i]);
     z += strlen(z)+1;
   }
 
   /* Identify the column names and the tokenizer and delimiter arguments
   ** in the argv[][] array.
+  ** 在argv[][]数组中确定列名、分词器和分隔符参数
   */
-  pSpec->zDb = azArg[1];
-  pSpec->zName = azArg[2];
-  pSpec->nColumn = 0;
+  pSpec->zDb = azArg[1];			//将azArg[1]中保存的数据库名赋予pSpec->zDb		
+  pSpec->zName = azArg[2];			//将azArg[2]中保存的全文索引名赋予pSpec->aName
+  pSpec->nColumn = 0;				//列数赋值为0
   pSpec->azColumn = azArg;
   zTokenizer = "tokenize simple";
   for(i=3; i<argc; ++i){
-    if( startsWith(azArg[i],"tokenize") ){
-      zTokenizer = azArg[i];
+    if( startsWith(azArg[i],"tokenize") ){  //azArg[i]如果保存的是分词器
+      zTokenizer = azArg[i];                //zTokenizer赋值为azArg[i]
     }else{
       z = azArg[pSpec->nColumn] = firstToken(azArg[i], &zDummy);
       pSpec->nColumn++;
@@ -1915,13 +1958,20 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
   ** The AAAA suffix is not strictly necessary.  It is included
   ** for the convenience of people who might examine the generated
   ** %_content table and wonder what the columns are used for.
+  **  
+  ** 构造内容列名称列表
+  **
+  ** 每一个内容列名称都是cNNAAAA形式，NN是列号，AAAA是经过清理的列名。
+  ** "清理"的意思是指特殊字符转化为了"_"。cNN前缀保证所有的列名是唯一的。
+  **
+  ** AAAA后缀并不是严格必须的
   */
-  pSpec->azContentColumn = malloc( pSpec->nColumn * sizeof(char *) );
-  if( pSpec->azContentColumn==0 ){
-    clearTableSpec(pSpec);
+  pSpec->azContentColumn = malloc( pSpec->nColumn * sizeof(char *) );   //分配一块内存空间给pSpec->azContentColumn
+  if( pSpec->azContentColumn==0 ){  //如果pSpec->azContentColumn的大小为0
+    clearTableSpec(pSpec);          //销毁pSpec
     return SQLITE_NOMEM;
   }
-  for(i=0; i<pSpec->nColumn; i++){
+  for(i=0; i<pSpec->nColumn; i++){  //如果pSpec->azContentColumn的大小不为0，依次赋予列名
     char *p;
     pSpec->azContentColumn[i] = sqlite3_mprintf("c%d%s", i, azArg[i]);
     for (p = pSpec->azContentColumn[i]; *p ; ++p) {
@@ -1931,6 +1981,7 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
 
   /*
   ** Parse the tokenizer specification string.
+  ** 解析分词器规则字符串
   */
   pSpec->azTokenizer = tokenizeString(zTokenizer, &n);
   tokenListToIdList(pSpec->azTokenizer);
@@ -1944,36 +1995,39 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
 **
 ** Space is obtained from sqlite3_mprintf() and should be freed
 ** using sqlite3_free().
+** 通过描述虚拟表的结构，生成一个CREATE TABLE语句，返回一个指向结构字符串的指针。
+** 由函数sqlite3_mprintf()分配空间，使用sqlite3_free()函数释放空间
 */
 static char *fulltextSchema(
-  int nColumn,                  /* Number of columns */
-  const char *const* azColumn,  /* List of columns */
-  const char *zTableName        /* Name of the table */
+  int nColumn,                  /* Number of columns 列数 */
+  const char *const* azColumn,  /* List of columns 用来存储需要添加到表中的列 */
+  const char *zTableName        /* Name of the table 表名 */
 ){
   int i;
   char *zSchema, *zNext;
   const char *zSep = "(";
   zSchema = sqlite3_mprintf("CREATE TABLE x");
-  for(i=0; i<nColumn; i++){
-    zNext = sqlite3_mprintf("%s%s%Q", zSchema, zSep, azColumn[i]);
-    sqlite3_free(zSchema);
-    zSchema = zNext;
-    zSep = ",";
+  for(i=0; i<nColumn; i++){		//循环构造创建表语句
+    zNext = sqlite3_mprintf("%s%s%Q", zSchema, zSep, azColumn[i]);	
+    sqlite3_free(zSchema);		//销毁当前的zSchema
+    zSchema = zNext;			//赋予zSchema新构造的语句
+    zSep = ",";					//列与列之间用逗号隔开
   }
-  zNext = sqlite3_mprintf("%s,%Q)", zSchema, zTableName);
-  sqlite3_free(zSchema);
-  return zNext;
+  zNext = sqlite3_mprintf("%s,%Q)", zSchema, zTableName);	//在语句中加入表名
+  sqlite3_free(zSchema);		//销毁当前的zSchema
+  return zNext;					//返回指向保存语句的内存空间的指针
 }
 
 /*
 ** Build a new sqlite3_vtab structure that will describe the
 ** fulltext index defined by spec.
+** 通过说明描述全文索引的定义，创建一个新的sqlite3_vtab结构体
 */
 static int constructVtab(
-  sqlite3 *db,              /* The SQLite database connection */
-  TableSpec *spec,          /* Parsed spec information from parseSpec() */
-  sqlite3_vtab **ppVTab,    /* Write the resulting vtab structure here */
-  char **pzErr              /* Write any error message here */
+  sqlite3 *db,              /* The SQLite database connection 用连接的SQLite数据库 */
+  TableSpec *spec,          /* Parsed spec information from parseSpec() 通过parseSpec函数解析说明信息 */
+  sqlite3_vtab **ppVTab,    /* Write the resulting vtab structure here 作为结果的vtab结构体 */
+  char **pzErr              /* Write any error message here 错误信息 */
 ){
   int rc;
   int n;
@@ -1981,13 +2035,13 @@ static int constructVtab(
   const sqlite3_tokenizer_module *m = NULL;
   char *schema;
 
-  v = (fulltext_vtab *) malloc(sizeof(fulltext_vtab));
+  v = (fulltext_vtab *) malloc(sizeof(fulltext_vtab));  //为新的fulltext_vtab结构分配内存空间
   if( v==0 ) return SQLITE_NOMEM;
-  memset(v, 0, sizeof(*v));
-  /* sqlite will initialize v->base */
+  memset(v, 0, sizeof(*v));     //将v的内存空间清零
+  /* sqlite will initialize v->base 初始化v的数据成员 */
   v->db = db;
-  v->zDb = spec->zDb;       /* Freed when azColumn is freed */
-  v->zName = spec->zName;   /* Freed when azColumn is freed */
+  v->zDb = spec->zDb;       /* Freed when azColumn is freed 当释放azColumn时同时释放 */
+  v->zName = spec->zName;   /* Freed when azColumn is freed 当释放azColumn时同时释放 */
   v->nColumn = spec->nColumn;
   v->azContentColumn = spec->azContentColumn;
   spec->azContentColumn = 0;
@@ -1998,41 +2052,42 @@ static int constructVtab(
     return SQLITE_NOMEM;
   }
   /* TODO(shess) For now, add new tokenizers as else if clauses. */
-  if( spec->azTokenizer[0]==0 || startsWith(spec->azTokenizer[0], "simple") ){
-    sqlite3Fts1SimpleTokenizerModule(&m);
-  }else if( startsWith(spec->azTokenizer[0], "porter") ){
-    sqlite3Fts1PorterTokenizerModule(&m);
-  }else{
+  if( spec->azTokenizer[0]==0 || startsWith(spec->azTokenizer[0], "simple") ){	//如果分词器以0开头，或者以"simple"开头
+    sqlite3Fts1SimpleTokenizerModule(&m);										//则设置分词器模式为"simple"
+  }else if( startsWith(spec->azTokenizer[0], "porter") ){						//如果分词器以"porter"开头
+    sqlite3Fts1PorterTokenizerModule(&m);										//设置分词器模式为"porter"
+  }else{																		//否则输出错误信息
     *pzErr = sqlite3_mprintf("unknown tokenizer: %s", spec->azTokenizer[0]);
     rc = SQLITE_ERROR;
-    goto err;
+    goto err;   //跳至错误处理
   }
+  //创建一个分词器
   for(n=0; spec->azTokenizer[n]; n++){}
-  if( n ){
+  if( n ){  //n不为0，说明分词器的名称、参数已设定，按设定的参数创建
     rc = m->xCreate(n-1, (const char*const*)&spec->azTokenizer[1],
                     &v->pTokenizer);
   }else{
     rc = m->xCreate(0, 0, &v->pTokenizer);
   }
-  if( rc!=SQLITE_OK ) goto err;
+  if( rc!=SQLITE_OK ) goto err; //如果没有正常运行，跳转到错误处理 
   v->pTokenizer->pModule = m;
 
   /* TODO: verify the existence of backing tables foo_content, foo_term */
 
   schema = fulltextSchema(v->nColumn, (const char*const*)v->azColumn,
-                          spec->zName);
-  rc = sqlite3_declare_vtab(db, schema);
-  sqlite3_free(schema);
-  if( rc!=SQLITE_OK ) goto err;
+                          spec->zName); //生成一个创建表的语句
+  rc = sqlite3_declare_vtab(db, schema);    //根据创建表的语句，设定虚拟表的结构
+  sqlite3_free(schema); //释放schema
+  if( rc!=SQLITE_OK ) goto err; 
 
-  memset(v->pFulltextStatements, 0, sizeof(v->pFulltextStatements));
+  memset(v->pFulltextStatements, 0, sizeof(v->pFulltextStatements));    //将v->pFulltextStatements清零
 
   *ppVTab = &v->base;
   TRACE(("FTS1 Connect %p\n", v));
 
   return rc;
 
-err:
+err:    //错误处理，删除v
   fulltext_vtab_destroy(v);
   return rc;
 }
