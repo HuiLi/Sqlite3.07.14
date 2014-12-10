@@ -12,6 +12,7 @@
 **
 ** This file implements routines used to report what compile-time options
 ** SQLite was built with.
+**本文件实现例程用于报告建立相应的 SQLite编译时间选择。
 */
 
 #ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
@@ -21,15 +22,18 @@
 /*
 ** An array of names of all compile-time options.  This array should 
 ** be sorted A-Z.
-**
+**编译时间选择的数据名称，该数组按照A-Z的顺序排序。
 ** This array looks large, but in a typical installation actually uses
 ** only a handful of compile-time options, so most times this array is usually
 ** rather short and uses little memory space.
+**这个数组看起来很大,但在一个典型的安装实际使用只有少数编译时的选项,
+**所以大多数时候这个数组通常是相当短并且使用小的内存空间。
 */
 static const char * const azCompileOpt[] = {
 
 /* These macros are provided to "stringify" the value of the define
-** for those options in which the value is meaningful. */
+** for those options in which the value is meaningful. 
+**这些宏提供给函数“stringify”定义的值对这些选项的值是有意义的。*/
 #define CTIMEOPT_VAL_(opt) #opt
 #define CTIMEOPT_VAL(opt) CTIMEOPT_VAL_(opt)
 
@@ -370,9 +374,11 @@ static const char * const azCompileOpt[] = {
 /*
 ** Given the name of a compile-time option, return true if that option
 ** was used and false if not.
+**给出编译时间选择名称，如果该选择被使用返回true，否者返回false。
 **
 ** The name can optionally begin with "SQLITE_" but the "SQLITE_" prefix
 ** is not required for a match.
+**这个名称可以任意的以"SQLITE_"开头，但是"SQLITE_"前缀不是一个匹配要求。
 */
 int sqlite3_compileoption_used(const char *zOptName){
   int i, n;
@@ -380,7 +386,8 @@ int sqlite3_compileoption_used(const char *zOptName){
   n = sqlite3Strlen30(zOptName);
 
   /* Since ArraySize(azCompileOpt) is normally in single digits, a
-  ** linear search is adequate.  No need for a binary search. */
+  ** linear search is adequate.  No need for a binary search. 
+  **因为ArraySize(azCompileOpt)的大小通常是个位数字的，线性搜索就能满足，不需要二分查找。*/
   for(i=0; i<ArraySize(azCompileOpt); i++){
     if(   (sqlite3StrNICmp(zOptName, azCompileOpt[i], n)==0)
        && ( (azCompileOpt[i][n]==0) || (azCompileOpt[i][n]=='=') ) ) return 1;
@@ -391,9 +398,10 @@ int sqlite3_compileoption_used(const char *zOptName){
 /*
 ** Return the N-th compile-time option string.  If N is out of range,
 ** return a NULL pointer.
+**返回第N个编译时间选择字符串。如果N超出范围，返回一个NULL指针。
 */
 const char *sqlite3_compileoption_get(int N){
-  if( N>=0 && N<ArraySize(azCompileOpt) ){
+  if( N>=0 && N<ArraySize(azCompileOpt) ){//N大于0并且N越界
     return azCompileOpt[N];
   }
   return 0;
