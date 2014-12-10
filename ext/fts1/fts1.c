@@ -1485,7 +1485,7 @@ static int term_insert(fulltext_vtab *v, sqlite_int64 *piRowid,
   sqlite3_stmt *s;
   int rc = sql_get_statement(v, TERM_INSERT_STMT, &s);
   if( rc!=SQLITE_OK ) return rc;
-  //绑定要对应的要插入的值
+  //绑定对应的要插入的值
   if( piRowid==NULL ){
     rc = sqlite3_bind_null(s, 1);
   }else{
@@ -2056,7 +2056,7 @@ static int constructVtab(
     sqlite3Fts1SimpleTokenizerModule(&m);	//则设置分词器模式为"simple"
   }else if( startsWith(spec->azTokenizer[0], "porter") ){	//如果分词器以"porter"开头
     sqlite3Fts1PorterTokenizerModule(&m);	//设置分词器模式为"porter"
-  }else{																		//否则输出错误信息
+  }else{					//否则输出错误信息
     *pzErr = sqlite3_mprintf("unknown tokenizer: %s", spec->azTokenizer[0]);
     rc = SQLITE_ERROR;
     goto err;   //跳至错误处理
