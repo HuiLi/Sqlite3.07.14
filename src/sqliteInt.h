@@ -2249,72 +2249,72 @@ struct Parse {
   int iCacheLevel;     /* ColCache valid when aColCache[].iLevel<=iCacheLevel 	当aColCache[].iLevel<=iCacheLevel时，ColCache有效*/
   int iCacheCnt;       /* Counter used to generate aColCache[].lru values 	用于生成aColCache[].lru值的计数器*/
   struct yColCache {
-    int iTable;           /* Table cursor number */
-    int iColumn;          /* Table column number */
-    u8 tempReg;           /* iReg is a temp register that needs to be freed */
-    int iLevel;           /* Nesting level */
-    int iReg;             /* Reg with value of this column. 0 means none. */
-    int lru;              /* Least recently used entry has the smallest value */
-  } aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry */
-  yDbMask writeMask;   /* Start a write transaction on these databases */
-  yDbMask cookieMask;  /* Bitmask of schema verified databases */
-  int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine */
-  int cookieValue[SQLITE_MAX_ATTACHED+2];  /* Values of cookies to verify */
-  int regRowid;        /* Register holding rowid of CREATE TABLE entry */
-  int regRoot;         /* Register holding root page number for new objects */
-  int nMaxArg;         /* Max args passed to user function by sub-program */
-  Token constraintName;/* Name of the constraint currently being parsed */
+    int iTable;           /* Table cursor number 				表指针数*/
+    int iColumn;          /* Table column number 				表列号*/
+    u8 tempReg;           /* iReg is a temp register that needs to be freed 	iReg是需要被释放的临时寄存器*/
+    int iLevel;           /* Nesting level 					嵌套层次*/
+    int iReg;             /* Reg with value of this column. 0 means none. 	保存这个column.0的寄存器表示空*/
+    int lru;              /* Least recently used entry has the smallest value 	最近最少使用条目的最小值*/
+  } aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry 		一个用于每列缓存条目*/
+  yDbMask writeMask;   /* Start a write transaction on these databases 		开始对这些数据库进行写事务*/
+  yDbMask cookieMask;  /* Bitmask of schema verified databases 			位掩码模式验证数据库*/
+  int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine 	追踪验证子程序的OP_Goto地址*/
+  int cookieValue[SQLITE_MAX_ATTACHED+2];  /* Values of cookies to verify 	追踪的值来验证*/
+  int regRowid;        /* Register holding rowid of CREATE TABLE entry 		有CREATE TABLE条目的伪列的寄存器*/
+  int regRoot;         /* Register holding root page number for new objects 	有新对象的跟页码的寄存器*/
+  int nMaxArg;         /* Max args passed to user function by sub-program 	Max参数通过子程序传递给用户函数*/
+  Token constraintName;/* Name of the constraint currently being parsed 	目前正在解析的约束的名字*/
 #ifndef SQLITE_OMIT_SHARED_CACHE
-  int nTableLock;        /* Number of locks in aTableLock */
-  TableLock *aTableLock; /* Required table locks for shared-cache mode */
+  int nTableLock;        /* Number of locks in aTableLock 			在aTableLock中锁的数量*/
+  TableLock *aTableLock; /* Required table locks for shared-cache mode 		要求表的共享缓存模式的锁*/
 #endif
-  AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters */
+  AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters 		有关AUTOINCREMENT计数器的信息*/
 
-  /* Information used while coding trigger programs. */
-  Parse *pToplevel;    /* Parse structure for main program (or NULL) */
-  Table *pTriggerTab;  /* Table triggers are being coded for */
-  double nQueryLoop;   /* Estimated number of iterations of a query */
-  u32 oldmask;         /* Mask of old.* columns referenced */
-  u32 newmask;         /* Mask of new.* columns referenced */
+  /* Information used while coding trigger programs. 				当编码触发程序时使用的信息*/
+  Parse *pToplevel;    /* Parse structure for main program (or NULL) 		解析主程序的结构(或空)*/
+  Table *pTriggerTab;  /* Table triggers are being coded for 			表触发器被编码*/
+  double nQueryLoop;   /* Estimated number of iterations of a query 		一个迭代查询的估计数*/
+  u32 oldmask;         /* Mask of old.* columns referenced 			old.*列的隐藏引用*/
+  u32 newmask;         /* Mask of new.* columns referenced 			new.*列的隐藏引用*/
   u8 eTriggerOp;       /* TK_UPDATE, TK_INSERT or TK_DELETE */
-  u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps */
-  u8 disableTriggers;  /* True to disable triggers */
+  u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps 		默认ON CONFICT规则的触发步骤*/
+  u8 disableTriggers;  /* True to disable triggers 				禁用触发器*/
 
-  /* Above is constant between recursions.  Below is reset before and after
+  /* Above is constant between recursions.  Below is reset before and after	以上在每次递归时不变，以下在每次递归前和递归后复位
   ** each recursion */
 
-  int nVar;                 /* Number of '?' variables seen in the SQL so far */
-  int nzVar;                /* Number of available slots in azVar[] */
-  u8 explain;               /* True if the EXPLAIN flag is found on the query */
+  int nVar;                 /* Number of '?' variables seen in the SQL so far 	目前为止在SQL中可见的"?"变量数量*/
+  int nzVar;                /* Number of available slots in azVar[] 		在azVar[]中可用测试器数量*/
+  u8 explain;               /* True if the EXPLAIN flag is found on the query 	如果查询时发现EXPLAIN标志*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  u8 declareVtab;           /* True if inside sqlite3_declare_vtab() */
-  int nVtabLock;            /* Number of virtual tables to lock */
+  u8 declareVtab;           /* True if inside sqlite3_declare_vtab() 		如果在sqlite3_declare_vtab()中*/
+  int nVtabLock;            /* Number of virtual tables to lock 		锁住的虚表数量*/
 #endif
-  int nAlias;               /* Number of aliased result set columns */
-  int nHeight;              /* Expression tree height of current sub-select */
+  int nAlias;               /* Number of aliased result set columns 		设置列的别名结果集数量*/
+  int nHeight;              /* Expression tree height of current sub-select 	表达式数当前子选择的高度*/
 #ifndef SQLITE_OMIT_EXPLAIN
-  int iSelectId;            /* ID of current select for EXPLAIN output */
-  int iNextSelectId;        /* Next available select ID for EXPLAIN output */
+  int iSelectId;            /* ID of current select for EXPLAIN output 		EXPLAIN输出的当前选择的ID*/
+  int iNextSelectId;        /* Next available select ID for EXPLAIN output 	EXPLAIN输出的下一个可用的选择ID*/
 #endif
-  char **azVar;             /* Pointers to names of parameters */
-  Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) */
-  int *aAlias;              /* Register used to hold aliased result */
-  const char *zTail;        /* All SQL text past the last semicolon parsed */
-  Table *pNewTable;         /* A table being constructed by CREATE TABLE */
-  Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER */
-  const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks */
-  Token sNameToken;         /* Token with unqualified schema object name */
-  Token sLastToken;         /* The last token parsed */
+  char **azVar;             /* Pointers to names of parameters 			参数名称的指针*/
+  Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) 	VM被重修(sqlite3Reprepare())*/
+  int *aAlias;              /* Register used to hold aliased result 		用来存储别名结果的寄存器*/
+  const char *zTail;        /* All SQL text past the last semicolon parsed 	所有SQL文本通过最后一个分号解析*/
+  Table *pNewTable;         /* A table being constructed by CREATE TABLE 	一个表由CREATE TABLE构建*/
+  Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER 	根据CREATE TRIGGER结构触发**/
+  const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks 	第六个DB-> XAUTH回调参数*/
+  Token sNameToken;         /* Token with unqualified schema object name 	标记不合格架构对象名称*/
+  Token sLastToken;         /* The last token parsed 				最后一个符号解析*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  Token sArg;               /* Complete text of a module argument */
-  Table **apVtabLock;       /* Pointer to virtual tables needing locking */
+  Token sArg;               /* Complete text of a module argument 		一个模块参数的完整文本*/
+  Table **apVtabLock;       /* Pointer to virtual tables needing locking 	需要锁定的虚表指针*/
 #endif
-  Table *pZombieTab;        /* List of Table objects to delete after code gen */
-  TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers */
+  Table *pZombieTab;        /* List of Table objects to delete after code gen 	代码生成后删除表对象列表*/
+  TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers 			编码触发器链表*/
 };
 
 /*
-** Return true if currently inside an sqlite3_declare_vtab() call.
+** Return true if currently inside an sqlite3_declare_vtab() call.		如果当前的sqlite3_declare_vtab（）调用里面返回真
 */
 #ifdef SQLITE_OMIT_VIRTUALTABLE
   #define IN_DECLARE_VTAB 0
@@ -2323,201 +2323,201 @@ struct Parse {
 #endif
 
 /*
-** An instance of the following structure can be declared on a stack and used
-** to save the Parse.zAuthContext value so that it can be restored later.
+** An instance of the following structure can be declared on a stack and used	以下结构的实例可以在堆栈中声明
+** to save the Parse.zAuthContext value so that it can be restored later.	和用来保存保存Parse.zAuthContext值，以便在以后恢复	
 */
 struct AuthContext {
-  const char *zAuthContext;   /* Put saved Parse.zAuthContext here */
-  Parse *pParse;              /* The Parse structure */
+  const char *zAuthContext;   /* Put saved Parse.zAuthContext here 		把Parse.zAuthContext保存在这里*/
+  Parse *pParse;              /* The Parse structure 				解析结构*/
 };
 
 /*
-** Bitfield flags for P5 value in various opcodes.
+** Bitfield flags for P5 value in various opcodes.				用于各种操作码P5值的位域标志
 */
-#define OPFLAG_NCHANGE       0x01    /* Set to update db->nChange */
-#define OPFLAG_LASTROWID     0x02    /* Set to update db->lastRowid */
-#define OPFLAG_ISUPDATE      0x04    /* This OP_Insert is an sql UPDATE */
-#define OPFLAG_APPEND        0x08    /* This is likely to be an append */
-#define OPFLAG_USESEEKRESULT 0x10    /* Try to avoid a seek in BtreeInsert() */
-#define OPFLAG_CLEARCACHE    0x20    /* Clear pseudo-table cache in OP_Column */
-#define OPFLAG_LENGTHARG     0x40    /* OP_Column only used for length() */
-#define OPFLAG_TYPEOFARG     0x80    /* OP_Column only used for typeof() */
-#define OPFLAG_BULKCSR       0x01    /* OP_Open** used to open bulk cursor */
-#define OPFLAG_P2ISREG       0x02    /* P2 to OP_Open** is a register number */
+#define OPFLAG_NCHANGE       0x01    /* Set to update db->nChange 		设置更新db->nChange*/
+#define OPFLAG_LASTROWID     0x02    /* Set to update db->lastRowid 		设置更新db->lastRowid*/
+#define OPFLAG_ISUPDATE      0x04    /* This OP_Insert is an sql UPDATE 	这OP_Insert是一个SQL UPDATE*/
+#define OPFLAG_APPEND        0x08    /* This is likely to be an append 		这很可能是一个附加*/
+#define OPFLAG_USESEEKRESULT 0x10    /* Try to avoid a seek in BtreeInsert() 	尽量避免寻求BtreeInsert（）*/
+#define OPFLAG_CLEARCACHE    0x20    /* Clear pseudo-table cache in OP_Column 	在OP_Column清除伪表缓存*/
+#define OPFLAG_LENGTHARG     0x40    /* OP_Column only used for length() 	OP_Column仅用于length()*/
+#define OPFLAG_TYPEOFARG     0x80    /* OP_Column only used for typeof() 	OP_Column仅用于typeof()*/
+#define OPFLAG_BULKCSR       0x01    /* OP_Open** used to open bulk cursor 	OP_Open**用于打开大批游标*/
+#define OPFLAG_P2ISREG       0x02    /* P2 to OP_Open** is a register number 	OP_P2到OP_Open**是一个寄存器号*/
 
 /*
- * Each trigger present in the database schema is stored as an instance of
+ * Each trigger present in the database schema is stored as an instance of	在数据库模式中每个现存的触发器存储为一个触发结构的实例
  * struct Trigger. 
  *
- * Pointers to instances of struct Trigger are stored in two ways.
- * 1. In the "trigHash" hash table (part of the sqlite3* that represents the 
- *    database). This allows Trigger structures to be retrieved by name.
- * 2. All triggers associated with a single table form a linked list, using the
- *    pNext member of struct Trigger. A pointer to the first element of the
+ * Pointers to instances of struct Trigger are stored in two ways.		这种触发器实例的指针有两种存储方式
+ * 1. In the "trigHash" hash table (part of the sqlite3* that represents the 	1.在“trigHash”哈希表（代表数据库的sqlite3的*一部分）。
+ *    database). This allows Trigger structures to be retrieved by name.	这允许通过名称检索触发结构。
+ * 2. All triggers associated with a single table form a linked list, using the	2.与一个表相关联的所有触发器形成一个链表,使用触发结构的pNext成员
+ *    pNext member of struct Trigger. A pointer to the first element of the	第一个元素的链表指针存储在与Table相关的"pTrigger"成员中				
  *    linked list is stored as the "pTrigger" member of the associated
  *    struct Table.
  *
- * The "step_list" member points to the first element of a linked list
+ * The "step_list" member points to the first element of a linked list		该“step_list”成员指向含有指定作为触发程序的SQL语句的链表的第一个元素..
  * containing the SQL statements specified as the trigger program.
  */
 struct Trigger {
-  char *zName;            /* The name of the trigger                        */
-  char *table;            /* The table or view to which the trigger applies */
-  u8 op;                  /* One of TK_DELETE, TK_UPDATE, TK_INSERT         */
-  u8 tr_tm;               /* One of TRIGGER_BEFORE, TRIGGER_AFTER */
-  Expr *pWhen;            /* The WHEN clause of the expression (may be NULL) */
-  IdList *pColumns;       /* If this is an UPDATE OF <column-list> trigger,
-                             the <column-list> is stored here */
-  Schema *pSchema;        /* Schema containing the trigger */
-  Schema *pTabSchema;     /* Schema containing the table */
-  TriggerStep *step_list; /* Link list of trigger program steps             */
-  Trigger *pNext;         /* Next trigger associated with the table */
+  char *zName;            /* The name of the trigger                        	触发器名称*/
+  char *table;            /* The table or view to which the trigger applies 	触发器适用的表或视图*/
+  u8 op;                  /* One of TK_DELETE, TK_UPDATE, TK_INSERT         	TK_DELETE, TK_UPDATE, TK_INSERT其中之一*/
+  u8 tr_tm;               /* One of TRIGGER_BEFORE, TRIGGER_AFTER 		TRIGGER_BEFORE, TRIGGER_AFTER其中之一*/
+  Expr *pWhen;            /* The WHEN clause of the expression (may be NULL) 	WHEN子句的表达式(可能为空)*/
+  IdList *pColumns;       /* If this is an UPDATE OF <column-list> trigger,	如果是一个UPDATE OF<列列表>触发器，
+                             the <column-list> is stored here 			<列列表>触发器存储在这里*/
+  Schema *pSchema;        /* Schema containing the trigger 			包含触发器的模式*/
+  Schema *pTabSchema;     /* Schema containing the table 			包含表的模式*/
+  TriggerStep *step_list; /* Link list of trigger program steps             	触发程序步骤的链表*/
+  Trigger *pNext;         /* Next trigger associated with the table 		与表关联的下一个触发器*/
 };
 
 /*
-** A trigger is either a BEFORE or an AFTER trigger.  The following constants
+** A trigger is either a BEFORE or an AFTER trigger.  The following constants	触发器是无论是BEFORE或AFTER触发器。以下常量确定。
 ** determine which. 
 **
-** If there are multiple triggers, you might of some BEFORE and some AFTER.
-** In that cases, the constants below can be ORed together.
+** If there are multiple triggers, you might of some BEFORE and some AFTER.	如果有多个触发器，可能有BEGORE触发器和AFTER触发器
+** In that cases, the constants below can be ORed together.			在这种情况下，下面的常量可以进行或运算
 */
 #define TRIGGER_BEFORE  1
 #define TRIGGER_AFTER   2
 
 /*
- * An instance of struct TriggerStep is used to store a single SQL statement
+ * An instance of struct TriggerStep is used to store a single SQL statement	TriggerStep结构的一个实例用于存储触发器程序一部分的单个SQL语句
  * that is a part of a trigger-program. 
  *
- * Instances of struct TriggerStep are stored in a singly linked list (linked
- * using the "pNext" member) referenced by the "step_list" member of the 
- * associated struct Trigger instance. The first element of the linked list is
+ * Instances of struct TriggerStep are stored in a singly linked list (linked	TriggerStep结构的一个实例存储在一个通过引用与此相关的Trigger结构的
+ * using the "pNext" member) referenced by the "step_list" member of the 	实例的"step_list"成员的单链表(使用"pNext"成员连接) 
+ * associated struct Trigger instance. The first element of the linked list is	该链表的第一个元素是触发程序的第一步。
  * the first step of the trigger-program.
  * 
- * The "op" member indicates whether this is a "DELETE", "INSERT", "UPDATE" or
- * "SELECT" statement. The meanings of the other members is determined by the 
+ * The "op" member indicates whether this is a "DELETE", "INSERT", "UPDATE" or	"op"成员表示这是否是一个"DELETE", "INSERT", "UPDATE" 或"SELECT"	语句	
+ * "SELECT" statement. The meanings of the other members is determined by the 	其他成员的含义是由如下的“OP”的值确定：
  * value of "op" as follows:
  *
  * (op == TK_INSERT)
- * orconf    -> stores the ON CONFLICT algorithm
- * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then
- *              this stores a pointer to the SELECT statement. Otherwise NULL.
- * target    -> A token holding the quoted name of the table to insert into.
- * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then
- *              this stores values to be inserted. Otherwise NULL.
- * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 
- *              statement, then this stores the column-names to be
+ * orconf    -> stores the ON CONFLICT algorithm				orconf->存储ON CONFLICT算法
+ * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then	pSelect->如果这是一个INSERT INTO ... SELECT...语句，
+ *              this stores a pointer to the SELECT statement. Otherwise NULL.	那么这个存储的指针SELECT语句。否则NULL。
+ * target    -> A token holding the quoted name of the table to insert into.	target    -> 标记持有插入表的引用名
+ * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then	pExprList ->如果这是一个 INSERT INTO ... VALUES ... 语句，
+ *              this stores values to be inserted. Otherwise NULL.		那么这个存储要插入的值。否则NULL
+ * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 	pIdList   ->如果这是一个INSERT INTO ... (<column-names>) VALUES ... 语句，
+ *              statement, then this stores the column-names to be		那么这个存储要被插入的列名
  *              inserted into.
  *
  * (op == TK_DELETE)
- * target    -> A token holding the quoted name of the table to delete from.
- * pWhere    -> The WHERE clause of the DELETE statement if one is specified.
+ * target    -> A token holding the quoted name of the table to delete from.	target->标记持有进行删除的表的引用名称
+ * pWhere    -> The WHERE clause of the DELETE statement if one is specified.	pWhere ->指定DELETE语句的WHERE子句
  *              Otherwise NULL.
  * 
  * (op == TK_UPDATE)
- * target    -> A token holding the quoted name of the table to update rows of.
- * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.
+ * target    -> A token holding the quoted name of the table to update rows of.	target->标记持有更新行的表的引用名
+ * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.	pWhere->指定UPDATE语句的WHERE子句
  *              Otherwise NULL.
- * pExprList -> A list of the columns to update and the expressions to update
- *              them to. See sqlite3Update() documentation of "pChanges"
+ * pExprList -> A list of the columns to update and the expressions to update	pExprList -> 更新的列的列表和更新它们的表达式
+ *              them to. See sqlite3Update() documentation of "pChanges"	看sqlite3Update()文档的"pChanges"说法
  *              argument.
  * 
  */
 struct TriggerStep {
-  u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT */
+  u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT 	TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT其中之一*/
   u8 orconf;           /* OE_Rollback etc. */
-  Trigger *pTrig;      /* The trigger that this step is a part of */
+  Trigger *pTrig;      /* The trigger that this step is a part of 		这个触发是这一步的一部分*/
   Select *pSelect;     /* SELECT statment or RHS of INSERT INTO .. SELECT ... */
-  Token target;        /* Target table for DELETE, UPDATE, INSERT */
-  Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps */
-  ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT */
-  IdList *pIdList;     /* Column names for INSERT */
-  TriggerStep *pNext;  /* Next in the link-list */
-  TriggerStep *pLast;  /* Last element in link-list. Valid for 1st elem only */
+  Token target;        /* Target table for DELETE, UPDATE, INSERT 		对于DELETE，UPDATE，INSERT目标表*/
+  Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps 		WHERE子句中DELETE 或UPDATE步骤*/
+  ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT 	UPDATE的SET子句，INSERT的VALUES子句*/
+  IdList *pIdList;     /* Column names for INSERT 				对于INSERT的列名*/
+  TriggerStep *pNext;  /* Next in the link-list 				在链表中后继*/
+  TriggerStep *pLast;  /* Last element in link-list. Valid for 1st elem only 	链表中最后一个元素。只有第一个元素有效*/
 };
 
 /*
-** The following structure contains information used by the sqliteFix...
-** routines as they walk the parse tree to make database references
+** The following structure contains information used by the sqliteFix...	以下结构包含用于例程sqliteFix…的信息
+** routines as they walk the parse tree to make database references		例程解析式行走时数据库引用明确
 ** explicit.  
 */
 typedef struct DbFixer DbFixer;
 struct DbFixer {
-  Parse *pParse;      /* The parsing context.  Error messages written here */
-  const char *zDb;    /* Make sure all objects are contained in this database */
-  const char *zType;  /* Type of the container - used for error messages */
-  const Token *pName; /* Name of the container - used for error messages */
+  Parse *pParse;      /* The parsing context.  Error messages written here 	解析上下文。错误信息写在这里*/
+  const char *zDb;    /* Make sure all objects are contained in this database 	确保所有对象均包含在这个数据库*/
+  const char *zType;  /* Type of the container - used for error messages 	容器的类型-用于错误信息*/
+  const Token *pName; /* Name of the container - used for error messages 	容器的名称-用于错误信息*/
 };
 
 /*
-** An objected used to accumulate the text of a string where we
-** do not necessarily know how big the string will be in the end.
+** An objected used to accumulate the text of a string where we			一个用来积累字符串文本的对象
+** do not necessarily know how big the string will be in the end.		我们不一定知道字符串最终多大
 */
 struct StrAccum {
-  sqlite3 *db;         /* Optional database for lookaside.  Can be NULL */
-  char *zBase;         /* A base allocation.  Not from malloc. */
-  char *zText;         /* The string collected so far */
-  int  nChar;          /* Length of the string so far */
-  int  nAlloc;         /* Amount of space allocated in zText */
-  int  mxAlloc;        /* Maximum allowed string length */
-  u8   mallocFailed;   /* Becomes true if any memory allocation fails */
+  sqlite3 *db;         /* Optional database for lookaside.  Can be NULL 	可选数据库的后备。可以为空*/
+  char *zBase;         /* A base allocation.  Not from malloc. 			一个基本的分配。不是从malloc分配的*/
+  char *zText;         /* The string collected so far 				至今收集的字符串*/
+  int  nChar;          /* Length of the string so far 				到目前字符串的长度*/
+  int  nAlloc;         /* Amount of space allocated in zText 			分配给zText的空间大小*/
+  int  mxAlloc;        /* Maximum allowed string length 			允许字符串的最大长度*/
+  u8   mallocFailed;   /* Becomes true if any memory allocation fails 		如果有内存分配失败则变为真*/
   u8   useMalloc;      /* 0: none,  1: sqlite3DbMalloc,  2: sqlite3_malloc */
-  u8   tooBig;         /* Becomes true if string size exceeds limits */
+  u8   tooBig;         /* Becomes true if string size exceeds limits 		如果字符串大小超过限定值变为真*/
 };
 
 /*
-** A pointer to this structure is used to communicate information
+** A pointer to this structure is used to communicate information		该结构的指针用来从sqlite3Init和OP_ParseSchema到sqlite3InitCallback交流信息
 ** from sqlite3Init and OP_ParseSchema into the sqlite3InitCallback.
 */
 typedef struct {
-  sqlite3 *db;        /* The database being initialized */
-  char **pzErrMsg;    /* Error message stored here */
-  int iDb;            /* 0 for main database.  1 for TEMP, 2.. for ATTACHed */
-  int rc;             /* Result code stored here */
+  sqlite3 *db;        /* The database being initialized 			初始化数据库*/
+  char **pzErrMsg;    /* Error message stored here 				在此存储错误信息*/
+  int iDb;            /* 0 for main database.  1 for TEMP, 2.. for ATTACHed 	0为主数据库，1为临时，2为附加*/
+  int rc;             /* Result code stored here 				存储在此的结果代码*/
 } InitData;
 
 /*
-** Structure containing global configuration data for the SQLite library.
+** Structure containing global configuration data for the SQLite library.	包含SQLite数据库全局配置数据的结构
 **
-** This structure also contains some state information.
+** This structure also contains some state information.				此结构还包含一些状态信息
 */
 struct Sqlite3Config {
-  int bMemstat;                     /* True to enable memory status */
-  int bCoreMutex;                   /* True to enable core mutexing */
-  int bFullMutex;                   /* True to enable full mutexing */
-  int bOpenUri;                     /* True to interpret filenames as URIs */
-  int mxStrlen;                     /* Maximum string length */
-  int szLookaside;                  /* Default lookaside buffer size */
-  int nLookaside;                   /* Default lookaside buffer count */
-  sqlite3_mem_methods m;            /* Low-level memory allocation interface */
-  sqlite3_mutex_methods mutex;      /* Low-level mutex interface */
-  sqlite3_pcache_methods2 pcache2;  /* Low-level page-cache interface */
-  void *pHeap;                      /* Heap storage space */
-  int nHeap;                        /* Size of pHeap[] */
-  int mnReq, mxReq;                 /* Min and max heap requests sizes */
-  void *pScratch;                   /* Scratch memory */
-  int szScratch;                    /* Size of each scratch buffer */
-  int nScratch;                     /* Number of scratch buffers */
-  void *pPage;                      /* Page cache memory */
-  int szPage;                       /* Size of each page in pPage[] */
-  int nPage;                        /* Number of pages in pPage[] */
-  int mxParserStack;                /* maximum depth of the parser stack */
-  int sharedCacheEnabled;           /* true if shared-cache mode enabled */
-  /* The above might be initialized to non-zero.  The following need to always
+  int bMemstat;                     /* True to enable memory status 		启用内存状态为真*/
+  int bCoreMutex;                   /* True to enable core mutexing 		启用核心互斥为真*/
+  int bFullMutex;                   /* True to enable full mutexing 		启用完整的互斥锁为真*/
+  int bOpenUri;                     /* True to interpret filenames as URIs 	解释文件名作为URL*/
+  int mxStrlen;                     /* Maximum string length 			字符串的最大长度*/
+  int szLookaside;                  /* Default lookaside buffer size 		默认的后被缓冲区大小*/
+  int nLookaside;                   /* Default lookaside buffer count 		默认后备缓冲计算器*/
+  sqlite3_mem_methods m;            /* Low-level memory allocation interface 	低级别的内存分配借口*/
+  sqlite3_mutex_methods mutex;      /* Low-level mutex interface 		低层次的互斥借口*/
+  sqlite3_pcache_methods2 pcache2;  /* Low-level page-cache interface 		低级别的页面缓存接口*/
+  void *pHeap;                      /* Heap storage space 			堆存储空间*/
+  int nHeap;                        /* Size of pHeap[] 				pHead[]的大小*/
+  int mnReq, mxReq;                 /* Min and max heap requests sizes 		最小堆和最大堆的要求大小*/
+  void *pScratch;                   /* Scratch memory 				临时内存*/
+  int szScratch;                    /* Size of each scratch buffer 		每个暂用缓存的大小*/
+  int nScratch;                     /* Number of scratch buffers 		暂用缓存的数量*/
+  void *pPage;                      /* Page cache memory 			页面高速缓存存储器*/
+  int szPage;                       /* Size of each page in pPage[] 		pPage[]中每个页面的大小*/
+  int nPage;                        /* Number of pages in pPage[] 		pPage[]中页面的数量*/
+  int mxParserStack;                /* maximum depth of the parser stack 	解析器堆栈的最大深度*/
+  int sharedCacheEnabled;           /* true if shared-cache mode enabled 	如果共享缓存模式为真*/
+  /* The above might be initialized to non-zero.  The following need to always	上面可能会初始化为非零。但是下面始终初始化为零
   ** initially be zero, however. */
-  int isInit;                       /* True after initialization has finished */
-  int inProgress;                   /* True while initialization in progress */
-  int isMutexInit;                  /* True after mutexes are initialized */
-  int isMallocInit;                 /* True after malloc is initialized */
-  int isPCacheInit;                 /* True after malloc is initialized */
-  sqlite3_mutex *pInitMutex;        /* Mutex used by sqlite3_initialize() */
-  int nRefInitMutex;                /* Number of users of pInitMutex */
-  void (*xLog)(void*,int,const char*); /* Function for logging */
-  void *pLogArg;                       /* First argument to xLog() */
-  int bLocaltimeFault;              /* True to fail localtime() calls */
+  int isInit;                       /* True after initialization has finished 	初始化完成后为真*/
+  int inProgress;                   /* True while initialization in progress 	正在进行初始化为真*/
+  int isMutexInit;                  /* True after mutexes are initialized 	互斥体被初始化后为真*/
+  int isMallocInit;                 /* True after malloc is initialized 	malloc被初始化后为真*/
+  int isPCacheInit;                 /* True after malloc is initialized 	malloc被初始化后为真*/
+  sqlite3_mutex *pInitMutex;        /* Mutex used by sqlite3_initialize() 	sqlite3_initialize()使用的互斥*/
+  int nRefInitMutex;                /* Number of users of pInitMutex 		pInitMutex的用户数*/
+  void (*xLog)(void*,int,const char*); /* Function for logging 			功能记录*/
+  void *pLogArg;                       /* First argument to xLog() 		xLog()的第一个参数*/
+  int bLocaltimeFault;              /* True to fail localtime() calls 		调用localtime()失败后为真*/
 };
 
 /*
-** Context pointer passed down through the tree-walk.
+** Context pointer passed down through the tree-walk.				通过数的路径传递下来的上下文指针
 */
 struct Walker {
   int (*xExprCallback)(Walker*, Expr*);     /* Callback for expressions */
