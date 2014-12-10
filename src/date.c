@@ -52,34 +52,35 @@
 
 
 /*
-** A structure for holding a single date and time.
+** A structure for holding a single date and time.//时间和日期结构体
 */
-typedef struct DateTime DateTime;
+typedef struct DateTime DateTime;//定义结构体 struct DateTime 的别名为DateTime
 struct DateTime {
-  sqlite3_int64 iJD; /* The julian day number times 86400000 */
-  int Y, M, D;       /* Year, month, and day */
-  int h, m;          /* Hour and minutes */
-  int tz;            /* Timezone offset in minutes */
-  double s;          /* Seconds */
-  char validYMD;     /* True (1) if Y,M,D are valid */
-  char validHMS;     /* True (1) if h,m,s are valid */
+  sqlite3_int64 iJD; /* The julian day number times 86400000  儒略日86400000毫秒*/
+  int Y, M, D;       /* Year, month, and day 年月日*/
+  int h, m;          /* Hour and minutes 时 分*/
+  int tz;            /* Timezone offset in minutes时区偏移在几分钟内 */
+  double s;          /* Seconds 秒*/
+  char validYMD;     /* True (1) if Y,M,D are valid年月日有效则为真 */
+  char validHMS;     /* True (1) if h,m,s are valid hms有效为真*/
   char validJD;      /* True (1) if iJD is valid */
-  char validTZ;      /* True (1) if tz is valid */
+  char validTZ;      /* True (1) if tz is valid tz有效则为真*/
 };
 
 
 /*
 ** Convert zDate into one or more integers.  Additional arguments
-** come in groups of 5 as follows:
+** come in groups of 5 as follows:zDate转换成一个或多个整数
 **
-**       N       number of digits in the integer
-**       min     minimum allowed value of the integer
-**       max     maximum allowed value of the integer
-**       nextC   first character after the integer
-**       pVal    where to write the integers value.
+**       N       number of digits in the integer 整数位的数量
+**       min     minimum allowed value of the integer整数的最小值
+**       max     maximum allowed value of the integer整数的最大值
+**       nextC   first character after the integer整数后面的第一个字符
+**       pVal    where to write the integers value.写整数的地方
 **
 ** Conversions continue until one with nextC==0 is encountered.
 ** The function returns the number of successful conversions.
+**当nextC==0 时停止转换，返回成功转换的数量
 */
 static int getDigits(const char *zDate, ...){
   va_list ap;
@@ -1018,7 +1019,7 @@ static void ctimeFunc(
   sqlite3_value **NotUsed2
 ){
   UNUSED_PARAMETER2(NotUsed, NotUsed2);
-  timeFunc(context, 0, 0);
+  timeFunc(context, 0, 0);//返回YYYY-MM-DD
 }
 
 /*
