@@ -210,14 +210,19 @@ int sqlite3BitvecTest(Bitvec *p, u32 i){
 /*
 ** Set the i-th bit.  Return 0 on success and an error code if
 ** anything goes wrong.
-**
+** 分配第i个位。成功时返回0，如果出错则返回错误信息。
+
 ** This routine might cause sub-bitmaps to be allocated.  Failing
 ** to get the memory needed to hold the sub-bitmap is the only
 ** that can go wrong with an insert, assuming p and i are valid.
-**
+** 这个程序可能会分配子位图。假设p和i是有效的，那么对于插入来说需要
+   存放子位图却没有获得内存是唯一可能出错的地方。
+
 ** The calling function must ensure that p is a valid Bitvec object
 ** and that the value for "i" is within range of the Bitvec object.
 ** Otherwise the behavior is undefined.
+   调用函数必须确保p是有效的Bitvec对象，并且i的值没有溢出Bitvec对象的范围。
+   否则行为是无效的。
 */
 int sqlite3BitvecSet(Bitvec *p, u32 i){
   u32 h;
@@ -239,9 +244,12 @@ int sqlite3BitvecSet(Bitvec *p, u32 i){
     return SQLITE_OK;
   }
   h = BITVEC_HASH(i++);
+  
   /* if there wasn't a hash collision, and this doesn't */
   /* completely fill the hash, then just add it without */
-  /* worring about sub-dividing and re-hashing. */
+  /* worring about sub-dividing and re-hashing. 
+     如果一个哈希冲突都没有，并且也没有完全填充哈希，这样只要增加
+     它就可以了，而不用担心子划分和二次哈希了。*/
   if( !p->u.aHash[h] ){
     if (p->nSet<(BITVEC_NINT-1)) {
       goto bitvec_set_end;
@@ -249,16 +257,21 @@ int sqlite3BitvecSet(Bitvec *p, u32 i){
       goto bitvec_set_rehash;
     }
   }
+  
   /* there was a collision, check to see if it's already */
-  /* in hash, if not, try to find a spot for it */
+  /* in hash, if not, try to find a spot for it。
+     有一个冲突，检查看看是不是已经在哈希，如果没有，试着找到它的位置。 */
   do {
     if( p->u.aHash[h]==i ) return SQLITE_OK;
     h++;
     if( h>=BITVEC_NINT ) h = 0;
   } while( p->u.aHash[h] );
+  
   /* we didn't find it in the hash.  h points to the first */
   /* available free spot. check to see if this is going to */
-  /* make our hash too "full".  */
+  /* make our hash too "full". 
+     我们没有在哈希找到它。h点到第一个可用的自由点。检查看看是否这会
+     让我们的哈希太“满”。*/
 bitvec_set_rehash:
   if( p->nSet>=BITVEC_MXHASH ){
     unsigned int j;
@@ -286,9 +299,11 @@ bitvec_set_end:
 
 /*
 ** Clear the i-th bit.
-**
+** 清除第i位。
 ** pBuf must be a pointer to at least BITVEC_SZ bytes of temporary storage
 ** that BitvecClear can use to rebuilt its hash table.
+   pBuf必须是一个至少为BITVEC_SZ个字节的指针指向临时存储器，通过临时存储器
+   BitvecClear可以重建hash表。
 */
 void sqlite3BitvecClear(Bitvec *p, u32 i, void *pBuf){
   if( p==0 ) return;
@@ -326,6 +341,7 @@ void sqlite3BitvecClear(Bitvec *p, u32 i, void *pBuf){
 
 /*
 ** Destroy a bitmap object.  Reclaim all memory used.
+   销毁一个位图对象。回收所有可用内存。
 */
 void sqlite3BitvecDestroy(Bitvec *p){
   if( p==0 ) return;
@@ -341,6 +357,7 @@ void sqlite3BitvecDestroy(Bitvec *p){
 /*
 ** Return the value of the iSize parameter specified when Bitvec *p
 ** was created.
+   当Bitvec *p被创建时返回参数iSize指定的值。
 */
 u32 sqlite3BitvecSize(Bitvec *p){
   return p->iSize;
@@ -352,6 +369,9 @@ u32 sqlite3BitvecSize(Bitvec *p){
 ** up to N bits.  Let I be an integer between 0 and N.  0<=I<N.
 ** Then the following macros can be used to set, clear, or test
 ** individual bits within V.
+   令V[]是一个无符号字符数组并有足够的空间容纳N位。
+   令I是一个介于0和N之间的整数，0<=I<N。
+   然后剩下的模块就可以在V中用来分配，清除或测试单独的位。
 */
 #define SETBIT(V,I)      V[I>>3] |= (1<<(I&7))
 #define CLEARBIT(V,I)    V[I>>3] &= ~(1<<(I&7))
@@ -359,33 +379,48 @@ u32 sqlite3BitvecSize(Bitvec *p){
 
 /*
 ** This routine runs an extensive test of the Bitvec code.
-**
+** 这个函数可以广泛的测试Bitvec代码。
+
 ** The input is an array of integers that acts as a program
 ** to test the Bitvec.  The integers are opcodes followed
 ** by 0, 1, or 3 operands, depending on the opcode.  Another
 ** opcode follows immediately after the last operand.
-**
+** 输入是一个可以作为程序检测Bitvec的整型数组。
+   整数是跟有0,1或3个操作数的操作码，这取决于操作码。
+   另一个操作码紧跟在最后一个操作数后面。
+   
 ** There are 6 opcodes numbered from 0 through 5.  0 is the
 ** "halt" opcode and causes the test to end.
-**
+**  有从0到5一共6个操作码。0是”停止”操作码并表示测试结束。
+
 **    0          Halt and return the number of errors
 **    1 N S X    Set N bits beginning with S and incrementing by X
 **    2 N S X    Clear N bits beginning with S and incrementing by X
 **    3 N        Set N randomly chosen bits
 **    4 N        Clear N randomly chosen bits
 **    5 N S X    Set N bits from S increment X in array only, not in bitvec
-**
+**    0          停止并返回错误个数
+      1 N S X    分配N位从S开始递增的X
+      2 N S X    清除N位从S开始递增到X
+      3 N        分配N个随机的位
+      4 N        清除N个随机的位
+      5 N S X    只在数组中分配N位从S递增到X，而不是在bitvec中
+      
 ** The opcodes 1 through 4 perform set and clear operations are performed
 ** on both a Bitvec object and on a linear array of bits obtained from malloc.
 ** Opcode 5 works on the linear array only, not on the Bitvec.
 ** Opcode 5 is used to deliberately induce a fault in order to
 ** confirm that error detection works.
-**
+** 操作码1到4执行分配，清除操作在Bitvec对象和从malloc中得到的位线性数组上都执行。
+   操作码5只在线性数组上起作用，而在Bitvec上不行。
+   操作码5特意用来引导错误，为了确认错误的检测起作用。
+   
 ** At the conclusion of the test the linear array is compared
 ** against the Bitvec object.  If there are any differences,
 ** an error is returned.  If they are the same, zero is returned.
-**
+** 检测线性数组的结论是和Bitvec对象比较。如果有不同，就返回错误。如果相同，则返回0。
 ** If a memory allocation error occurs, return -1.
+   如果内存分配出现错误，返回-1.
 */
 int sqlite3BitvecBuiltinTest(int sz, int *aOp){
   Bitvec *pBitvec = 0;
@@ -395,17 +430,21 @@ int sqlite3BitvecBuiltinTest(int sz, int *aOp){
   void *pTmpSpace;
 
   /* Allocate the Bitvec to be tested and a linear array of
-  ** bits to act as the reference */
+  ** bits to act as the reference.
+     分配bitvec进行测试和一个以位为单位的线性数组作为参考。
+  */
   pBitvec = sqlite3BitvecCreate( sz );
   pV = sqlite3MallocZero( (sz+7)/8 + 1 );
   pTmpSpace = sqlite3_malloc(BITVEC_SZ);
   if( pBitvec==0 || pV==0 || pTmpSpace==0  ) goto bitvec_end;
 
-  /* NULL pBitvec tests */
+  /* NULL pBitvec tests 
+     pBitvec空测试*/
   sqlite3BitvecSet(0, 1);
   sqlite3BitvecClear(0, 1, pTmpSpace);
 
-  /* Run the program */
+  /* Run the program 
+     运行程序*/
   pc = 0;
   while( (op = aOp[pc])!=0 ){
     switch( op ){
@@ -443,6 +482,8 @@ int sqlite3BitvecBuiltinTest(int sz, int *aOp){
   ** Bitvec object.  Start with the assumption that they do
   ** match (rc==0).  Change rc to non-zero if a discrepancy
   ** is found.
+     测试，以确保线性数组完全与Bitvec对象相匹配。开始时假设它们匹配（rc== 0）。
+     如果发现有差异则改变rc为非零值。
   */
   rc = sqlite3BitvecTest(0,0) + sqlite3BitvecTest(pBitvec, sz+1)
           + sqlite3BitvecTest(pBitvec, 0)
@@ -454,11 +495,13 @@ int sqlite3BitvecBuiltinTest(int sz, int *aOp){
     }
   }
 
-  /* Free allocated structure */
+  /* Free allocated structure 
+     释放所分配的结构 */
 bitvec_end:
   sqlite3_free(pTmpSpace);
   sqlite3_free(pV);
   sqlite3BitvecDestroy(pBitvec);
   return rc;
 }
-#endif /* SQLITE_OMIT_BUILTIN_TEST */
+#endif /* SQLITE_OMIT_BUILTIN_TEST  */
+        /* 省略了SQLITE的内测 */
