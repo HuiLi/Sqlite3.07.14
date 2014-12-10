@@ -13,6 +13,8 @@
 ** a VDBE (or an "sqlite3_stmt" as it is known to the outside world.)  Prior
 ** to version 2.8.7, all this code was combined into the vdbe.c source file.
 ** But that file was getting too big so this subroutines were split out.
+此文件包含用于创建、 销毁、 和填充一个VDBE虚拟数据库引擎（或一个已经众所周知的"sqlite3_stmt"。）
+之前的 2.8.7版本，所有这些代码被组合成 vdbe.c 源文件。但该文件变得太大了 ； 所以此子例程被拆分出来。
 */
 #include "sqliteInt.h"
 #include "vdbeInt.h"
