@@ -2607,7 +2607,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         case SQLITE_TESTCTRL_BENIGN_MALLOC_HOOKS: 
         case SQLITE_TESTCTRL_SCRATCHMALLOC:       
         default:
-          fprintf(stderr,"Error: CLI support for testctrl %s not implemented\n",
+          fprintf(stderr,"Error: CLI support for testctrl %s not implemented\n",/*命令行界面尚未实现对其的支持*/
                   azArg[1]);
           break;
       }
@@ -2649,7 +2649,6 @@ static int do_meta_command(char *zLine, struct callback_data *p){
 
   if( c=='v' && strncmp(azArg[0], "vfsname", n)==0 ){/*判断是否输入.vfsname 命令*/
     const char *zDbName = nArg==2 ? azArg[1] : "main";/*如果nArg=2，指针指向常量azArg[1]，否则指向
-
 字符串"main"*/
     char *zVfsName = 0;
     if( p->db ){
@@ -2660,22 +2659,19 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       }
     }
   }else
-
   if( c=='w' && strncmp(azArg[0], "width", n)==0 && nArg>1 ){/*判断是否输入.width命令*/
     int j;
     assert( nArg<=ArraySize(azArg) );/*assert 函数只有在SQLite 被SQLITE_DEBUG 编译时才会启用。*/
     for(j=1; j<nArg && j<ArraySize(p->colWidth); j++){
-      p->colWidth[j-1] = atoi(azArg[j]);
+      p->colWidth[j-1] = atoi(azArg[j]);/*把azArg[j]转化为整型*/
     }
   }else
-
   {
     fprintf(stderr, "Error: unknown command or invalid arguments: "
-      " \"%s\". Enter \".help\" for help\n", azArg[0]);
+      " \"%s\". Enter \".help\" for help\n", azArg[0]);/*不明指令或无效参数*/
     rc = 1;
   }
-
-  return rc;
+  return rc;/*返回rc的值*/
 }
 
 
@@ -2689,14 +2685,14 @@ static int _contains_semicolon(const char *z, int N){/*当分号 出现在字符
 static int _all_whitespace(const char *z){/* 测试行是否为空*/
   for(; *z; z++){
     if( IsSpace(z[0]) ) continue;/*判断z[0]数组是否为空*/
-    if( *z=='/' && z[1]=='*' ){
-      z += 2;
-      while( *z && (*z!='*' || z[1]!='/') ){ z++; }
+    if( *z=='/' && z[1]=='*' ){/*z指向‘/’并且第二个字符为‘*’*/
+      z += 2;/*z=z+2;*/
+      while( *z && (*z!='*' || z[1]!='/') ){ z++; }/*z不指向‘*’或者第二个字符不为‘/’*/
       if( *z==0 ) return 0;
       z++;
       continue;
     }
-    if( *z=='-' && z[1]=='-' ){
+    if( *z=='-' && z[1]=='-' ){/*z指向‘-’并且第二个字符为‘-’*/
       z += 2;
       while( *z && *z!='\n' ){ z++; }/*指针z不指向空或字符串结尾*/
       if( *z==0 ) return 1;
@@ -2708,9 +2704,8 @@ static int _all_whitespace(const char *z){/* 测试行是否为空*/
 }
 
 /*
-** Return TRUE if the line typed in is an SQL command terminator other
-** than a semi-colon.  The SQL Server style "go" command is understood
-** as is the Oracle "/".
+如果键入的是一个SQL命令结尾，其他不是一个分号，则返回TRUE。
+在SQL Server风格的“go”命令被理解为是Oracle“/”。
 */
 static int _is_command_terminator(const char *zLine){
   while( IsSpace(zLine[0]) ){ zLine++; };
@@ -2753,12 +2748,12 @@ static int process_input(struct callback_data *p, FILE *in){
   int startline = 0;
 
   while( errCnt==0 || !bail_on_error || (in==0 && stdin_is_interactive) ){
-    fflush(p->out);
-    free(zLine);
+    fflush(p->out);/*清除读写缓冲区，需要立即把输出缓冲区的数据进行物理写入时*/
+    free(zLine);/*释放zLine内存空间*/
     zLine = one_input_line(zSql, in);
     if( zLine==0 ){
       /* End of input */
-      if( stdin_is_interactive ) printf("\n");
+      if( stdin_is_interactive ) printf("\n");/*交互式标准输入以换行结束*/
       break;
     }
     if( seenInterrupt ){/*中断信息被收到，则其值为true*/
@@ -2768,8 +2763,8 @@ static int process_input(struct callback_data *p, FILE *in){
     lineno++;
     if( (zSql==0 || zSql[0]==0) && _all_whitespace(zLine) ) continue;
     if( zLine && zLine[0]=='.' && nSql==0 ){
-      if( p->echoOn ) printf("%s\n", zLine);
-      rc = do_meta_command(zLine, p);
+      if( p->echoOn ) printf("%s\n", zLine);/*执行回显操作*/
+      rc = do_meta_command(zLine, p);/*返回执行状态给rc*/
       if( rc==2 ){ /* exit requested */
         break;
       }else if( rc ){/*如果rc不为0，则错误数量加1*/
@@ -2785,8 +2780,8 @@ static int process_input(struct callback_data *p, FILE *in){
       int i;
       for(i=0; zLine[i] && IsSpace(zLine[i]); i++){}
       if( zLine[i]!=0 ){
-        nSql = strlen30(zLine);
-        zSql = malloc( nSql+3 );
+        nSql = strlen30(zLine);/*统计zLine字符串长度*/
+        zSql = malloc( nSql+3 );/*为zSql动态分配内存空间*/
         if( zSql==0 ){
           fprintf(stderr, "Error: out of memory\n");
           exit(1);
@@ -2796,14 +2791,14 @@ static int process_input(struct callback_data *p, FILE *in){
       }
     }else{
       int len = strlen30(zLine);
-      zSql = realloc( zSql, nSql + len + 4 );
+      zSql = realloc( zSql, nSql + len + 4 );/*重新分配内存空间，如果重新分配成功则返回指向被分配内存的指针，否则返回空指针NULL。*/
       if( zSql==0 ){
         fprintf(stderr,"Error: out of memory\n");
         exit(1);
       }
       zSql[nSql++] = '\n';
-      memcpy(&zSql[nSql], zLine, len+1);
-      nSql += len;
+      memcpy(&zSql[nSql], zLine, len+1);/*从zLine所指的内存地址的起始位置开始拷贝2个字节到字符串中。*/
+      nSql += len;/* nSql自加len个值*/
     }
     if( zSql && _contains_semicolon(&zSql[nSqlPrior], nSql-nSqlPrior)
                 && sqlite3_complete(zSql) ){
@@ -2811,7 +2806,7 @@ static int process_input(struct callback_data *p, FILE *in){
       open_db(p);
       BEGIN_TIMER;/*开启定时器*/
       rc = shell_exec(p->db, zSql, shell_callback, p, &zErrMsg);/*与sqlite3_exec()函数非常相似*/
-      END_TIMER;
+      END_TIMER;/*关闭定时器*/
       if( rc || zErrMsg ){
         char zPrefix[100];/*声明一个前缀数组*/
         if( in!=0 || !stdin_is_interactive ){
@@ -2822,7 +2817,7 @@ static int process_input(struct callback_data *p, FILE *in){
         }
         if( zErrMsg!=0 ){
           fprintf(stderr, "%s %s\n", zPrefix, zErrMsg);
-          sqlite3_free(zErrMsg);
+          sqlite3_free(zErrMsg);/*释放zErrMsg内存空间*/
           zErrMsg = 0;
         }else{
           fprintf(stderr, "%s %s\n", zPrefix, sqlite3_errmsg(p->db));
@@ -2869,23 +2864,23 @@ defined(_WRS_KERNEL)/*条件编译指令，如果满足要求的编译环境，�
 
 #if defined(_WIN32) || defined(WIN32)
   if (!home_dir) {
-    home_dir = getenv("USERPROFILE");/*获取环境变量的值*/
+    home_dir = getenv("USERPROFILE");/*获取USERPROFILE环境变量的值*/
   }
 #endif
 
   if (!home_dir) {
-    home_dir = getenv("HOME");
+    home_dir = getenv("HOME");/*获取HOME环境变量的值*/
   }
 
 #if defined(_WIN32) || defined(WIN32)
   if (!home_dir) {
     char *zDrive, *zPath;
     int n;
-    zDrive = getenv("HOMEDRIVE");
-    zPath = getenv("HOMEPATH");
+    zDrive = getenv("HOMEDRIVE");/*获取HOMEDRIVE环境变量的值*/
+    zPath = getenv("HOMEPATH");/*获取HOMEPATH环境变量的值*/
     if( zDrive && zPath ){
       n = strlen30(zDrive) + strlen30(zPath) + 1;
-      home_dir = malloc( n );
+      home_dir = malloc( n );/*home_dir指向n个字节的内存空间*/
       if( home_dir==0 ) return 0;
       sqlite3_snprintf(n, home_dir, "%s%s", zDrive, zPath);
       return home_dir;
@@ -2896,7 +2891,7 @@ defined(_WRS_KERNEL)/*条件编译指令，如果满足要求的编译环境，�
 
 #endif /* !_WIN32_WCE */
 
-  if( home_dir ){
+  if( home_dir ){/*home_dir指向的内存空间不为空*/
     int n = strlen30(home_dir) + 1;
     char *z = malloc( n );/* z指向n 个字节的内存空间*/
     if( z ) memcpy(z, home_dir, n);
@@ -2911,12 +2906,12 @@ defined(_WRS_KERNEL)/*条件编译指令，如果满足要求的编译环境，�
 或者如果该参数为NULL，则从~/.sqliterc中输入
 返回错误的数量。
 */
-static int process_sqliterc(
+static int process_sqliterc(/*返回值为静态整型*/
   struct callback_data *p,        /* Configuration data */
   const char *sqliterc_override   /* Name of config file. NULL to use default */
 ){
   char *home_dir = NULL;
-  const char *sqliterc = sqliterc_override;
+  const char *sqliterc = sqliterc_override;/*指向常字符的指针*/
   char *zBuf = 0;
   FILE *in = NULL;
   int rc = 0;
@@ -2950,18 +2945,18 @@ stderr 文件中*/
 /*
 ** Show available command line options
 */
-static const char zOptions[] = 
+static const char zOptions[] = /*定义静态常字符数组*/
   "   -bail                stop after hitting an error\n"//遇到错误即停止
   "   -batch               force batch I/O\n"//批处理I/O
   "   -column              set output mode to 'column'\n"//输出模式设置为按列分开
   "   -cmd command         run \"command\" before reading stdin\n"
   "   -csv                 set output mode to 'csv'\n"//输出格式设置为csv
   "   -echo                print commands before execution\n"//回显设置
-  "   -init filename       read/process named file\n"
+  "   -init filename       read/process named file\n"//初始化文件名
   "   -[no]header          turn headers on or off\n"//是否显示表头
   "   -help                show this message\n"//显示帮助信息
   "   -html                set output mode to HTML\n"//输出模式设置为HTML
-  "   -interactive         force interactive I/O\n"?
+  "   -interactive         force interactive I/O\n"
   "   -line                set output mode to 'line'\n"
   "   -list                set output mode to 'list'\n"
 #ifdef SQLITE_ENABLE_MULTIPLEX
@@ -2992,7 +2987,7 @@ static void usage(int showDetail){
 }
 
 /*初始化数据的状态信息*/
-static void main_init(struct callback_data *data) {
+static void main_init(struct callback_data *data) {/*其参数为结构体回显指针*/
   memset(data, 0, sizeof(*data));
   data->mode = MODE_List;
   memcpy(data->separator,"|", 2);
@@ -3016,14 +3011,14 @@ static void main_init(struct callback_data *data) {
 **5. 关闭数据库
 */
 int main(int argc, char **argv){
-  char *zErrMsg = 0;
+  char *zErrMsg = 0;/*声明一个存放错误信息的指针*/
   struct callback_data data;//声明回显参数
   const char *zInitFile = 0;
   char *zFirstCmd = 0;
   int i;
   int rc = 0;
 
-  if( strcmp(sqlite3_sourceid(),SQLITE_SOURCE_ID)!=0 ){
+  if( strcmp(sqlite3_sourceid(),SQLITE_SOURCE_ID)!=0 ){/*比较数据库版本号是否相同*/
     fprintf(stderr, "SQLite header and source version mismatch\n%s\n%s\n",//数据库版本不匹配
             sqlite3_sourceid(), SQLITE_SOURCE_ID);
     exit(1);
@@ -3032,9 +3027,7 @@ int main(int argc, char **argv){
   main_init(&data);//设置默认的回显形式
   stdin_is_interactive = isatty(0);
 
-  /* 
-   完成以前，确保 有一个有效的信号处理程序
-  */
+  /* 完成以前，确保 有一个有效的信号处理程序 */
 #ifdef SIGINT
   signal(SIGINT, interrupt_handler);//用户按下Ctrl-C键,发出中断信号
 #endif
@@ -3054,7 +3047,7 @@ int main(int argc, char **argv){
      || strcmp(z,"-cmd")==0
     ){//若与上述字符串中的某个匹配，则执行以下程序段
       i++;
-    }else if( strcmp(z,"-init")==0 ){
+    }else if( strcmp(z,"-init")==0 ){/*比较字符串*/
       i++;
       zInitFile = argv[i];
 	  
@@ -3063,9 +3056,9 @@ int main(int argc, char **argv){
 **需要检查批处理模式,
 **以便我们能够避免打印信息（就像来自sqliterc 进程）。
    */
-    }else if( strcmp(z,"-batch")==0 ){
+    }else if( strcmp(z,"-batch")==0 ){/*比较字符串*/
       stdin_is_interactive = 0;
-    }else if( strcmp(z,"-heap")==0 ){
+    }else if( strcmp(z,"-heap")==0 ){/*比较字符串*/
 #if defined(SQLITE_ENABLE_MEMSYS3) || defined(SQLITE_ENABLE_MEMSYS5)
       int j, c;
       const char *zSize;
@@ -3085,9 +3078,9 @@ int main(int argc, char **argv){
 	
 #endif
 #ifdef SQLITE_ENABLE_VFSTRACE
-    }else if( strcmp(z,"-vfstrace")==0 ){
+    }else if( strcmp(z,"-vfstrace")==0 ){/*比较字符串*/
       extern int vfstrace_register(//声明外部函数vfstrace_register
-         const char *zTraceName,
+         const char *zTraceName,/*声明一个指向常字符型的指针*/
          const char *zOldVfsName,
          int (*xOut)(const char*,void*),
          void *pOutArg,
@@ -3096,7 +3089,7 @@ int main(int argc, char **argv){
       vfstrace_register("trace",0,(int(*)(const char*,void*))fputs,stderr,1);
 #endif
 #ifdef SQLITE_ENABLE_MULTIPLEX
-    }else if( strcmp(z,"-multiplex")==0 ){
+    }else if( strcmp(z,"-multiplex")==0 ){/*比较字符串*/
       extern int sqlite3_multiple_initialize(const char*,int);//声明外部函数vfstrace_register
       sqlite3_multiplex_initialize(0, 1);//多重初始化操作
 #endif
