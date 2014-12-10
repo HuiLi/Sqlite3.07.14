@@ -12,7 +12,7 @@
 **
 ** This file implements routines used to report what compile-time options
 ** SQLite was built with.
-**本文件实现例程用于报告建立相应的 SQLite编译时间选择。
+**本文件实现例程用于报告哪一个SQLite编译时间选择被建立。
 */
 
 #ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
