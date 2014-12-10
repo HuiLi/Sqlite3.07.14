@@ -1097,7 +1097,8 @@ struct fulltext_vtab {
   sqlite3_stmt *pFulltextStatements[MAX_STMT];
 };
 
-/*
+/* 当core将要进行查询时，它会使用xOpen创建一个游标,这个结构体就是一个游标的例子
+** 使用xClose销毁游标
 ** When the core wants to do a query, it create a cursor using a
 ** call to xOpen.  This structure is an instance of a cursor.  It
 ** is destroyed by xClose.
@@ -1105,11 +1106,11 @@ struct fulltext_vtab {
 typedef struct fulltext_cursor {
   sqlite3_vtab_cursor base;        /* Base class used by SQLite core */
   QueryType iCursorType;           /* Copy of sqlite3_index_info.idxNum */
-  sqlite3_stmt *pStmt;             /* Prepared statement in use by the cursor */
+  sqlite3_stmt *pStmt;             /* Prepared statement in use by the cursor 游标中使用的语句 */
   int eof;                         /* True if at End Of Results */
-  Query q;                         /* Parsed query string */
-  Snippet snippet;                 /* Cached snippet for the current row */
-  int iColumn;                     /* Column being searched */
+  Query q;                         /* Parsed query string 解析查询语句 */
+  Snippet snippet;                 /* Cached snippet for the current row 存储当前行的段*/
+  int iColumn;                     /* Column being searched 搜索列*/
   DocListReader result;  /* used when iCursorType == QUERY_FULLTEXT */ 
 } fulltext_cursor;
 
@@ -1119,23 +1120,27 @@ static struct fulltext_vtab *cursor_vtab(fulltext_cursor *c){
 
 static const sqlite3_module fulltextModule;   /* forward declaration */
 
-/* Append a list of strings separated by commas to a StringBuffer. */
+/* Append a list of strings separated by commas to a StringBuffer. 
+** 在StringBuffer中附加一个字符串列表,并用逗号隔开
+*/
 static void appendList(StringBuffer *sb, int nString, char **azString){
   int i;
   for(i=0; i<nString; ++i){
-    if( i>0 ) append(sb, ", ");
-    append(sb, azString[i]);
+    if( i>0 ) append(sb, ", "); //添加逗号
+    append(sb, azString[i]);    //添加字符串azString[i]
   }
 }
 
 /* Return a dynamically generated statement of the form
+ * 构造一个插入语句，返回一个如下形式的动态产生的语句
  *   insert into %_content (rowid, ...) values (?, ...)
  */
 static const char *contentInsertStatement(fulltext_vtab *v){
-  StringBuffer sb;
+  StringBuffer sb;      //创建一个StringBuffer变量
   int i;
 
-  initStringBuffer(&sb);
+  initStringBuffer(&sb);//初始化
+  //在sb中添加sqlite插入字符串
   append(&sb, "insert into %_content (rowid, ");
   appendList(&sb, v->nColumn, v->azContentColumn);
   append(&sb, ") values (?");
@@ -1146,6 +1151,7 @@ static const char *contentInsertStatement(fulltext_vtab *v){
 }
 
 /* Return a dynamically generated statement of the form
+ * 构造一个update语句，返回一个如下形式的动态产生的语句
  *   update %_content set [col_0] = ?, [col_1] = ?, ...
  *                    where rowid = ?
  */
@@ -1169,6 +1175,7 @@ static const char *contentUpdateStatement(fulltext_vtab *v){
 /* Puts a freshly-prepared statement determined by iStmt in *ppStmt.
 ** If the indicated statement has never been prepared, it is prepared
 ** and cached, otherwise the cached version is reset.
+** 构造一个新的操作语句，如果语句被创建，则将其储存，否则存储默认值。
 */
 static int sql_get_statement(fulltext_vtab *v, fulltext_statement iStmt,
                              sqlite3_stmt **ppStmt){
@@ -1200,6 +1207,9 @@ static int sql_get_statement(fulltext_vtab *v, fulltext_statement iStmt,
 /* Step the indicated statement, handling errors SQLITE_BUSY (by
 ** retrying) and SQLITE_SCHEMA (by re-preparing and transferring
 ** bindings to the new statement).
+** 执行语句，错误代码处理
+** SQLITE_BUSY  重试
+** SQLITE_SCHEMA  重新配置并且绑定新的语句
 ** TODO(adam): We should extend this function so that it can work with
 ** statements declared locally, not only globally cached statements.
 */
@@ -1219,6 +1229,9 @@ static int sql_step_statement(fulltext_vtab *v, fulltext_statement iStmt,
      * the statement just executed is in the pFulltextStatements[]
      * array, it will be finalized twice. So remove it before
      * calling sqlite3_finalize().
+     * 如果发生SQLITE_SCHEMA错误，最终这个语句将会删除fulltext_vtab结构。
+     * 如果语句恰好在pFulltextStatements[]数组中执行，它将会执行两次。
+     * 因此删除它之前调用sqlite3_finalize()。
      */
     v->pFulltextStatements[iStmt] = NULL;
     rc = sqlite3_finalize(s);
@@ -1233,6 +1246,8 @@ static int sql_step_statement(fulltext_vtab *v, fulltext_statement iStmt,
 
 /* Like sql_step_statement(), but convert SQLITE_DONE to SQLITE_OK.
 ** Useful for statements like UPDATE, where we expect no results.
+** 和sql_step_statement()类似，但是将SQLITE_DONE转换为SQLITE_OK
+** 可用于不会将结果输出的语句，比如update等。
 */
 static int sql_single_step_statement(fulltext_vtab *v,
                                      fulltext_statement iStmt,
@@ -1242,13 +1257,14 @@ static int sql_single_step_statement(fulltext_vtab *v,
 }
 
 /* insert into %_content (rowid, ...) values ([rowid], [pValues]) */
+/* 这个函数用于插入内容 */
 static int content_insert(fulltext_vtab *v, sqlite3_value *rowid,
                           sqlite3_value **pValues){
   sqlite3_stmt *s;
   int i;
-  int rc = sql_get_statement(v, CONTENT_INSERT_STMT, &s);
+  int rc = sql_get_statement(v, CONTENT_INSERT_STMT, &s);//得到插入语句             
   if( rc!=SQLITE_OK ) return rc;
-
+  //绑定对应的值
   rc = sqlite3_bind_value(s, 1, rowid);
   if( rc!=SQLITE_OK ) return rc;
 
@@ -1257,29 +1273,30 @@ static int content_insert(fulltext_vtab *v, sqlite3_value *rowid,
     if( rc!=SQLITE_OK ) return rc;
   }
 
-  return sql_single_step_statement(v, CONTENT_INSERT_STMT, &s);
+  return sql_single_step_statement(v, CONTENT_INSERT_STMT, &s);	//执行语句
 }
 
 /* update %_content set col0 = pValues[0], col1 = pValues[1], ...
  *                  where rowid = [iRowid] */
+/*这个函数用于更新内容*/
 static int content_update(fulltext_vtab *v, sqlite3_value **pValues,
                           sqlite_int64 iRowid){
   sqlite3_stmt *s;
   int i;
-  int rc = sql_get_statement(v, CONTENT_UPDATE_STMT, &s);
+  int rc = sql_get_statement(v, CONTENT_UPDATE_STMT, &s);//得到更新语句
   if( rc!=SQLITE_OK ) return rc;
 
-  for(i=0; i<v->nColumn; ++i){
+  for(i=0; i<v->nColumn; ++i){		//依次绑定每一列的值
     rc = sqlite3_bind_value(s, 1+i, pValues[i]);
     if( rc!=SQLITE_OK ) return rc;
   }
 
-  rc = sqlite3_bind_int64(s, 1+v->nColumn, iRowid);
+  rc = sqlite3_bind_int64(s, 1+v->nColumn, iRowid);	//绑定行编号
   if( rc!=SQLITE_OK ) return rc;
 
-  return sql_single_step_statement(v, CONTENT_UPDATE_STMT, &s);
+  return sql_single_step_statement(v, CONTENT_UPDATE_STMT, &s);//执行语句
 }
-
+/*释放pString占用的资源*/
 static void freeStringArray(int nString, const char **pString){
   int i;
 
@@ -1292,19 +1309,21 @@ static void freeStringArray(int nString, const char **pString){
 /* select * from %_content where rowid = [iRow]
  * The caller must delete the returned array and all strings in it.
  * null fields will be NULL in the returned array.
+ * 执行选择语句的函数，在返回数组中包含所有选择后得到的字符串。
+ * 最后，必须删除函数运行期间临时用来存储的数组。
  *
  * TODO: Perhaps we should return pointer/length strings here for consistency
  * with other code which uses pointer/length. */
 static int content_select(fulltext_vtab *v, sqlite_int64 iRow,
                           const char ***pValues){
   sqlite3_stmt *s;
-  const char **values;
+  const char **values;//用来临时存储返回值
   int i;
   int rc;
 
   *pValues = NULL;
 
-  rc = sql_get_statement(v, CONTENT_SELECT_STMT, &s);
+  rc = sql_get_statement(v, CONTENT_SELECT_STMT, &s); //得到选择语句
   if( rc!=SQLITE_OK ) return rc;
 
   rc = sqlite3_bind_int64(s, 1, iRow);
@@ -1312,7 +1331,7 @@ static int content_select(fulltext_vtab *v, sqlite_int64 iRow,
 
   rc = sql_step_statement(v, CONTENT_SELECT_STMT, &s);
   if( rc!=SQLITE_ROW ) return rc;
-
+  /*返回值用char型数组存储*/
   values = (const char **) malloc(v->nColumn * sizeof(const char *));
   for(i=0; i<v->nColumn; ++i){
     if( sqlite3_column_type(s, i)==SQLITE_NULL ){
@@ -1323,18 +1342,20 @@ static int content_select(fulltext_vtab *v, sqlite_int64 iRow,
   }
 
   /* We expect only one row.  We must execute another sqlite3_step()
-   * to complete the iteration; otherwise the table will remain locked. */
+   * to complete the iteration; otherwise the table will remain locked. 
+   * 预计只有结果为一行，我们必须执行另一个sqlite3_step()函数，否则这个表将会保持锁定。*/
   rc = sqlite3_step(s);
   if( rc==SQLITE_DONE ){
-    *pValues = values;
+    *pValues = values;//用pValues来存储结果
     return SQLITE_OK;
   }
 
-  freeStringArray(v->nColumn, values);
+  freeStringArray(v->nColumn, values);//删除values，释放资源
   return rc;
 }
 
 /* delete from %_content where rowid = [iRow ] */
+/* 这个函数用来删除表中的内容 */
 static int content_delete(fulltext_vtab *v, sqlite_int64 iRow){
   sqlite3_stmt *s;
   int rc = sql_get_statement(v, CONTENT_DELETE_STMT, &s);
@@ -1349,12 +1370,15 @@ static int content_delete(fulltext_vtab *v, sqlite_int64 iRow){
 /* select rowid, doclist from %_term
  *  where term = [pTerm] and segment = [iSegment]
  * If found, returns SQLITE_ROW; the caller must free the
- * returned doclist.  If no rows found, returns SQLITE_DONE. */
+ * returned doclist.  If no rows found, returns SQLITE_DONE. 
+ * 这个函数实现在项中查询
+ * 如果找到所要的数据，返回SQLITE_ROW;函数执行结束后必须删除返回doclist。
+ * 如果没找到，返回SQLITE_DONE */
 static int term_select(fulltext_vtab *v, const char *pTerm, int nTerm,
                        int iSegment,
                        sqlite_int64 *rowid, DocList *out){
   sqlite3_stmt *s;
-  int rc = sql_get_statement(v, TERM_SELECT_STMT, &s);
+  int rc = sql_get_statement(v, TERM_SELECT_STMT, &s);//得到查询语句
   if( rc!=SQLITE_OK ) return rc;
 
   rc = sqlite3_bind_text(s, 1, pTerm, nTerm, SQLITE_STATIC);
@@ -1367,11 +1391,13 @@ static int term_select(fulltext_vtab *v, const char *pTerm, int nTerm,
   if( rc!=SQLITE_ROW ) return rc;
 
   *rowid = sqlite3_column_int64(s, 0);
+  /*用一个DocList类型指针来保存得到的数据*/
   docListInit(out, DL_DEFAULT,
               sqlite3_column_blob(s, 1), sqlite3_column_bytes(s, 1));
 
   /* We expect only one row.  We must execute another sqlite3_step()
-   * to complete the iteration; otherwise the table will remain locked. */
+   * to complete the iteration; otherwise the table will remain locked. 
+   * 预计只有结果为一行，我们必须执行另一个sqlite3_step()函数，否则这个表将会保持锁定。*/
   rc = sqlite3_step(s);
   return rc==SQLITE_DONE ? SQLITE_ROW : rc;
 }
@@ -1380,19 +1406,24 @@ static int term_select(fulltext_vtab *v, const char *pTerm, int nTerm,
 ** appropriate order into out.  Returns SQLITE_OK if successful.  If
 ** there are no segments for pTerm, successfully returns an empty
 ** doclist in out.
+** 载入分段doclists，并且将它们按适当的顺序合并。如果成功返回SQLITE_OK。
+** 如果没有和pTerm合并的段，返回一个空的doclist。
 **
 ** Each document consists of 1 or more "columns".  The number of
 ** columns is v->nColumn.  If iColumn==v->nColumn, then return
 ** position information about all columns.  If iColumn<v->nColumn,
 ** then only return position information about the iColumn-th column
 ** (where the first column is 0).
+** 每个文件都包含有一个或多个列。列的数目等于v->nColumn。
+** 如果iColumn==v->nColumn，则返回所有列的位置信息。
+** 如果iColumn<v->nColumn，则只返回第iColumn列的位置信息。
 */
 static int term_select_all(
-  fulltext_vtab *v,     /* The fulltext index we are querying against */
-  int iColumn,          /* If <nColumn, only look at the iColumn-th column */
-  const char *pTerm,    /* The term whose posting lists we want */
-  int nTerm,            /* Number of bytes in pTerm */
-  DocList *out          /* Write the resulting doclist here */
+  fulltext_vtab *v,     /* The fulltext index we are querying against 正在查询的全文索引*/
+  int iColumn,          /* If <nColumn, only look at the iColumn-th column 如果小于总列数，则仅视为第iColumn列*/
+  const char *pTerm,    /* The term whose posting lists we want 这个项用于记录我们希望得到的内容列表*/
+  int nTerm,            /* Number of bytes in pTerm 用以记录pTerm的字节数*/
+  DocList *out          /* Write the resulting doclist here 用来代表作为结果*/
 ){
   DocList doclist;
   sqlite3_stmt *s;
@@ -1417,12 +1448,13 @@ static int term_select_all(
     docListInit(&old, DL_DEFAULT,
                 sqlite3_column_blob(s, 0), sqlite3_column_bytes(s, 0));
 
-    if( iColumn<v->nColumn ){   /* querying a single column */
+    if( iColumn<v->nColumn ){   /* querying a single column 只查询一列 */
       docListRestrictColumn(&old, iColumn);
     }
 
     /* doclist contains the newer data, so write it over old.  Then
     ** steal accumulated result for doclist.
+    ** doclist里面包含新的数据，所以将它的元素覆盖写入到old中
     */
     docListAccumulate(&old, &doclist);
     docListDestroy(&doclist);
@@ -1444,6 +1476,8 @@ static int term_select_all(
 **
 ** NOTE(shess) piRowid is IN, with values of "space of int64" plus
 ** null, it is not used to pass data back to the caller.
+** 这个函数用来在%_term中插入值。
+** 如果piRowid为NULL，则让sqlite选择一行，否则使用*piRowid所指向的行。
 */
 static int term_insert(fulltext_vtab *v, sqlite_int64 *piRowid,
                        const char *pTerm, int nTerm,
@@ -1451,7 +1485,7 @@ static int term_insert(fulltext_vtab *v, sqlite_int64 *piRowid,
   sqlite3_stmt *s;
   int rc = sql_get_statement(v, TERM_INSERT_STMT, &s);
   if( rc!=SQLITE_OK ) return rc;
-
+  //绑定要对应的要插入的值
   if( piRowid==NULL ){
     rc = sqlite3_bind_null(s, 1);
   }else{
@@ -1472,6 +1506,7 @@ static int term_insert(fulltext_vtab *v, sqlite_int64 *piRowid,
 }
 
 /* update %_term set doclist = [doclist] where rowid = [rowid] */
+/* 这个函数用来更新%_term中的值 */
 static int term_update(fulltext_vtab *v, sqlite_int64 rowid,
                        DocList *doclist){
   sqlite3_stmt *s;
@@ -1486,7 +1521,7 @@ static int term_update(fulltext_vtab *v, sqlite_int64 rowid,
 
   return sql_single_step_statement(v, TERM_UPDATE_STMT, &s);
 }
-
+/* 这个函数用来对%_term中的一行进行删除操作 */
 static int term_delete(fulltext_vtab *v, sqlite_int64 rowid){
   sqlite3_stmt *s;
   int rc = sql_get_statement(v, TERM_DELETE_STMT, &s);
@@ -1500,6 +1535,7 @@ static int term_delete(fulltext_vtab *v, sqlite_int64 rowid){
 
 /*
 ** Free the memory used to contain a fulltext_vtab structure.
+** 销毁一个fulltext_vtab结构，依次置空它的数据成员，释放占用的内存
 */
 static void fulltext_vtab_destroy(fulltext_vtab *v){
   int iStmt, i;
