@@ -6173,6 +6173,7 @@ int sqlite3PagerRollback(Pager *pPager){
 
   /* If an error occurs during a ROLLBACK, we can no longer trust the pager
   ** cache. So call pager_error() on the way out to make any error persistent.
+    如果回滚时发生错误，我们不再相信pager缓存。所以调用pager_error()方法让任何错误持续。
   */
   return pager_error(pPager, rc);
 }
@@ -6180,13 +6181,14 @@ int sqlite3PagerRollback(Pager *pPager){
 /*
 ** Return TRUE if the database file is opened read-only.  Return FALSE
 ** if the database is (in theory) writable.
+  如果打开数据库文件只读返回true。如果数据库可写返回false。
 */
 u8 sqlite3PagerIsreadonly(Pager *pPager){
   return pPager->readOnly;
 }
 
 /*
-** Return the number of references to the pager.
+** Return the number of references to the pager.返回pager引用的数量。
 */
 int sqlite3PagerRefcount(Pager *pPager){
   return sqlite3PcacheRefCount(pPager->pPCache);
@@ -6194,7 +6196,8 @@ int sqlite3PagerRefcount(Pager *pPager){
 
 /*
 ** Return the approximate number of bytes of memory currently
-** used by the pager and its associated cache.
+** used bythe pager and its associated cache.
+  返回pager当前使用的字节的内存近似数和相关的缓存。
 */
 int sqlite3PagerMemUsed(Pager *pPager){
   int perPageSize = pPager->pageSize + pPager->nExtra + sizeof(PgHdr)
@@ -6213,7 +6216,7 @@ int sqlite3PagerPageRefcount(DbPage *pPage){
 
 #ifdef SQLITE_TEST
 /*
-** This routine is used for testing and analysis only.
+** This routine is used for testing and analysis only.这个程序只是用来测试和分析。
 */
 int *sqlite3PagerStats(Pager *pPager){
   static int a[11];
@@ -6225,7 +6228,7 @@ int *sqlite3PagerStats(Pager *pPager){
   a[5] = pPager->errCode;
   a[6] = pPager->aStat[PAGER_STAT_HIT];
   a[7] = pPager->aStat[PAGER_STAT_MISS];
-  a[8] = 0;  /* Used to be pPager->nOvfl */
+  a[8] = 0;  /* Used to be pPager->nOvfl 曾经是pPager->nOvfl */
   a[9] = pPager->nRead;
   a[10] = pPager->aStat[PAGER_STAT_WRITE];
   return a;
@@ -6238,6 +6241,8 @@ int *sqlite3PagerStats(Pager *pPager){
 ** current cache hit or miss count, according to the value of eStat. If the 
 ** reset parameter is non-zero, the cache hit or miss count is zeroed before 
 ** returning.
+   参数eStat必须是SQLITE_DBSTATUS_CACHE_HIT或者SQLITE_DBSTATUS_CACHE_MISS。
+   在返回之前，根据eStat参数的值，通过中击当前缓存或者错过计数，*pnVal的值增加。
 */
 void sqlite3PagerCacheStat(Pager *pPager, int eStat, int reset, int *pnVal){
 
@@ -6257,7 +6262,7 @@ void sqlite3PagerCacheStat(Pager *pPager, int eStat, int reset, int *pnVal){
 }
 
 /*
-** Return true if this is an in-memory pager.
+** Return true if this is an in-memory pager.如果这是个内存pager返回TRUE。
 */
 int sqlite3PagerIsMemdb(Pager *pPager){
   return MEMDB;
@@ -6268,25 +6273,29 @@ int sqlite3PagerIsMemdb(Pager *pPager){
 ** currently less than nSavepoints open, then open one or more savepoints
 ** to make up the difference. If the number of savepoints is already
 ** equal to nSavepoint, then this function is a no-op.
-**
+** 检查至少有nsavepoint保存点打开。如果当前还不到nSavepoints打开，那么打开一个或更多保存点来弥补不同。
 ** If a memory allocation fails, SQLITE_NOMEM is returned. If an error 
 ** occurs while opening the sub-journal file, then an IO error code is
 ** returned. Otherwise, SQLITE_OK.
+   如果一个内存分配失败，返回SQLITE_NOMEM。如果在打开sub-journal文件时出现错误，那么返回IO错误代码。
+   否则，返回SQLITE_OK。
 */
 int sqlite3PagerOpenSavepoint(Pager *pPager, int nSavepoint){
-  int rc = SQLITE_OK;                       /* Return code */
-  int nCurrent = pPager->nSavepoint;        /* Current number of savepoints */
+  int rc = SQLITE_OK;                       /* Return code 返回代码 */
+  int nCurrent = pPager->nSavepoint;        /* Current number of savepoints 当前保存点数量*/
 
   assert( pPager->eState>=PAGER_WRITER_LOCKED );
   assert( assert_pager_state(pPager) );
 
   if( nSavepoint>nCurrent && pPager->useJournal ){
-    int ii;                                 /* Iterator variable */
-    PagerSavepoint *aNew;                   /* New Pager.aSavepoint array */
+    int ii;                                 /* Iterator variable 迭代器变量 */
+    PagerSavepoint *aNew;                   /* New Pager.aSavepoint array 新Pager.aSavepoint数组 */
 
     /* Grow the Pager.aSavepoint array using realloc(). Return SQLITE_NOMEM
     ** if the allocation fails. Otherwise, zero the new portion in case a 
     ** malloc failure occurs while populating it in the for(...) loop below.
+      扩大Pager。aSavepoint 数组使用realloc()函数。如果分配失败，返回SQLITE_NOMEM。
+      否则，在填充下面的for（…）循环时把程序中发生失败的分配内存清零新的部分。
     */
     aNew = (PagerSavepoint *)sqlite3Realloc(
         pPager->aSavepoint, sizeof(PagerSavepoint)*nSavepoint
@@ -6297,7 +6306,7 @@ int sqlite3PagerOpenSavepoint(Pager *pPager, int nSavepoint){
     memset(&aNew[nCurrent], 0, (nSavepoint-nCurrent) * sizeof(PagerSavepoint));
     pPager->aSavepoint = aNew;
 
-    /* Populate the PagerSavepoint structures just allocated. */
+    /* Populate the PagerSavepoint structures just allocated. 填充刚分配的PagerSavepoint结构。*/
     for(ii=nCurrent; ii<nSavepoint; ii++){
       aNew[ii].nOrig = pPager->dbSize;
       if( isOpen(pPager->jfd) && pPager->journalOff>0 ){
@@ -6326,45 +6335,51 @@ int sqlite3PagerOpenSavepoint(Pager *pPager, int nSavepoint){
 ** This function is called to rollback or release (commit) a savepoint.
 ** The savepoint to release or rollback need not be the most recently 
 ** created savepoint.
-**
+** 这个函数调用是用来恢复或者释放一个保存点。这个用来释放或者恢复的保存点不需要是最近新创建的保存点。
 ** Parameter op is always either SAVEPOINT_ROLLBACK or SAVEPOINT_RELEASE.
 ** If it is SAVEPOINT_RELEASE, then release and destroy the savepoint with
 ** index iSavepoint. If it is SAVEPOINT_ROLLBACK, then rollback all changes
 ** that have occurred since the specified savepoint was created.
-**
+** 参数运算始终是SAVEPOINT_ROLLBACK或者SAVEPOINT_RELEASE。如果是SAVEPOINT_RELEASE，那么用iSavepoint指针释放和破坏保存点。
+   如果是 SAVEPOINT_ROLLBACK，那么恢复由于创建指定的保存点发生的所有改变。
 ** The savepoint to rollback or release is identified by parameter 
 ** iSavepoint. A value of 0 means to operate on the outermost savepoint
 ** (the first created). A value of (Pager.nSavepoint-1) means operate
 ** on the most recently created savepoint. If iSavepoint is greater than
 ** (Pager.nSavepoint-1), then this function is a no-op.
-**
+** 恢复或者释放保存点通过参数iSavepoint确认。0表示运行在最外层的保存点。
+   Pager.nSavepoint-1表示在最近创建的保存点操作。如果 iSavepoint大于Pager.nSavepoint-1，那么这是个空操作。
 ** If a negative value is passed to this function, then the current
 ** transaction is rolled back. This is different to calling 
 ** sqlite3PagerRollback() because this function does not terminate
 ** the transaction or unlock the database, it just restores the 
 ** contents of the database to its original state. 
-**
+** 如果一个负数传递给这个函数，那么恢复当前事务。这是不同的调用sqlite3PagerRollback() ，因为这个函数没有终止事务或者打开数据库，
+   它只是将数据库的内容储存到原始状态。
 ** In any case, all savepoints with an index greater than iSavepoint 
 ** are destroyed. If this is a release operation (op==SAVEPOINT_RELEASE),
 ** then savepoint iSavepoint is also destroyed.
-**
+** 无论如何，所有大于 iSavepoint 含索引的保存点被破坏。如果被释放，那么iSavepoint保存点同时被破坏。
 ** This function may return SQLITE_NOMEM if a memory allocation fails,
 ** or an IO error code if an IO error occurs while rolling back a 
 ** savepoint. If no errors occur, SQLITE_OK is returned.
+  如果内存分配失败或者回滚一个保存点时IO发生错误，这个函数会返回SQLITE_NOMEM 。
+  如果没有错误，返回SQLITE_OK。
 */ 
 int sqlite3PagerSavepoint(Pager *pPager, int op, int iSavepoint){
-  int rc = pPager->errCode;       /* Return code */
+  int rc = pPager->errCode;       /* Return code 返回代买*/
 
   assert( op==SAVEPOINT_RELEASE || op==SAVEPOINT_ROLLBACK );
   assert( iSavepoint>=0 || op==SAVEPOINT_ROLLBACK );
 
   if( rc==SQLITE_OK && iSavepoint<pPager->nSavepoint ){
-    int ii;            /* Iterator variable */
-    int nNew;          /* Number of remaining savepoints after this op. */
+    int ii;            /* Iterator variable 迭代器变量 */
+    int nNew;          /* Number of remaining savepoints after this op.操作后的保留的保存点数量。 */
 
     /* Figure out how many savepoints will still be active after this
     ** operation. Store this value in nNew. Then free resources associated 
     ** with any savepoints that are destroyed by this operation.
+      指出此操作之后多少的保存点仍然是活跃。把它储存在nNew。那么所有和保存点相联系的免费资源通过此操作被破坏。
     */
     nNew = iSavepoint + (( op==SAVEPOINT_RELEASE ) ? 0 : 1);
     for(ii=nNew; ii<pPager->nSavepoint; ii++){
