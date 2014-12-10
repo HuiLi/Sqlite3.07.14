@@ -2277,9 +2277,9 @@ static void snippetOffsetsOfColumn(
 }
 
 
-/*
-** Compute all offsets for the current row of the query.  
-** If the offsets have already been computed, this routine is a no-op.
+/* 王旭源码分析段开始
+** Compute all offsets for the current row of the query.  为当前行计算所有查询的偏移量
+** If the offsets have already been computed, this routine is a no-op. 如果偏移量已经计算,这个进程是一个空操作
 */
 static void snippetAllOffsets(fulltext_cursor *p){
   int nColumn;
@@ -2287,7 +2287,7 @@ static void snippetAllOffsets(fulltext_cursor *p){
   int iFirst, iLast;
   fulltext_vtab *pFts;
 
-  if( p->snippet.nMatch ) return;
+  if( p->snippet.nMatch ) return;/**/
   if( p->q.nTerms==0 ) return;
   pFts = p->q.pFts;
   nColumn = pFts->nColumn;
@@ -2309,8 +2309,8 @@ static void snippetAllOffsets(fulltext_cursor *p){
 }
 
 /*
-** Convert the information in the aMatch[] array of the snippet
-** into the string zOffset[0..nOffset-1].
+** Convert the information in the aMatch[] array of the snippet   
+** into the string zOffset[0..nOffset-1]. 转换aMatch[]数组的片段中的信息到字符串的zOffset[0 . . nOffset-1]。
 */
 static void snippetOffsetText(Snippet *p){
   int i;
@@ -2332,21 +2332,25 @@ static void snippetOffsetText(Snippet *p){
 }
 
 /*
-** zDoc[0..nDoc-1] is phrase of text.  aMatch[0..nMatch-1] are a set
+** zDoc[0..nDoc-1] is phrase of text.  aMatch[0..nMatch-1] are a set     
 ** of matching words some of which might be in zDoc.  zDoc is column
-** number iCol.
-**
+** number iCol.   
+** zDoc[0 . .nDoc-1)是文本的短语。
+** aMatch[0 . .nMatch-1)是一组匹配的单词其中一些可能在zDoc。
+** zDoc是列数字iCol。
 ** iBreak is suggested spot in zDoc where we could begin or end an
 ** excerpt.  Return a value similar to iBreak but possibly adjusted
 ** to be a little left or right so that the break point is better.
+** iBreak是在zDoc中的我们可以开始或结束摘录的建议点。
+** 返回一个值类似于iBreak但可能调整有点向左或向右为了让破发点更好。
 */
 static int wordBoundary(
-  int iBreak,                   /* The suggested break point */
-  const char *zDoc,             /* Document text */
-  int nDoc,                     /* Number of bytes in zDoc[] */
-  struct snippetMatch *aMatch,  /* Matching words */
-  int nMatch,                   /* Number of entries in aMatch[] */
-  int iCol                      /* The column number for zDoc[] */
+  int iBreak,                   /* The suggested break point 建议的断点 */
+  const char *zDoc,             /* Document text 文档文本 */
+  int nDoc,                     /* Number of bytes in zDoc[] 在zDoc[]中的字节数 */
+  struct snippetMatch *aMatch,  /* Matching words 匹配单词 */
+  int nMatch,                   /* Number of entries in aMatch[] aMatch[]中的的条目数量 */
+  int iCol                      /* The column number for zDoc[] zDoc[]的列数 */
 ){
   int i;
   if( iBreak<=10 ){
@@ -2379,6 +2383,7 @@ static int wordBoundary(
 /*
 ** If the StringBuffer does not end in white space, add a single
 ** space character to the end.
+** 如果StringBuffer在空白不结束,添加一个空格字符。
 */
 static void appendWhiteSpace(StringBuffer *p){
   if( p->len==0 ) return;
@@ -2388,6 +2393,7 @@ static void appendWhiteSpace(StringBuffer *p){
 
 /*
 ** Remove white space from teh end of the StringBuffer
+** 删除空白囊括StringBuffer的结束
 */
 static void trimWhiteSpace(StringBuffer *p){
   while( p->len>0 && safe_isspace(p->s[p->len-1]) ){
@@ -2399,18 +2405,19 @@ static void trimWhiteSpace(StringBuffer *p){
 
 /*
 ** Allowed values for Snippet.aMatch[].snStatus
+** Snippet.aMatch[].snStatus的允许的值
 */
-#define SNIPPET_IGNORE  0   /* It is ok to omit this match from the snippet */
-#define SNIPPET_DESIRED 1   /* We want to include this match in the snippet */
+#define SNIPPET_IGNORE  0   /* It is ok to omit this match from the snippet 可以省略的这段匹配片段 */
+#define SNIPPET_DESIRED 1   /* We want to include this match in the snippet 我们希望包括这段匹配的片段 */
 
 /*
-** Generate the text of a snippet.
+** Generate the text of a snippet.生成的文本片段。
 */
 static void snippetText(
-  fulltext_cursor *pCursor,   /* The cursor we need the snippet for */
-  const char *zStartMark,     /* Markup to appear before each match */
-  const char *zEndMark,       /* Markup to appear after each match */
-  const char *zEllipsis       /* Ellipsis mark */
+  fulltext_cursor *pCursor,   /* The cursor we need the snippet for 我们需要的片段指针 */
+  const char *zStartMark,     /* Markup to appear before each match 标记出现在每个匹配之前 */
+  const char *zEndMark,       /* Markup to appear after each match 标记出现在每个匹配之后 */
+  const char *zEllipsis       /* Ellipsis mark 省略标记 */
 ){
   int i, j;
   struct snippetMatch *aMatch;
@@ -2520,6 +2527,7 @@ static void snippetText(
 /*
 ** Close the cursor.  For additional information see the documentation
 ** on the xClose method of the virtual table interface.
+** 关闭指针。更多信息请参阅文档xClose虚拟表接口的方法。
 */
 static int fulltextClose(sqlite3_vtab_cursor *pCursor){
   fulltext_cursor *c = (fulltext_cursor *) pCursor;
@@ -2542,7 +2550,7 @@ static int fulltextNext(sqlite3_vtab_cursor *pCursor){
   TRACE(("FTS1 Next %p\n", pCursor));
   snippetClear(&c->snippet);
   if( c->iCursorType < QUERY_FULLTEXT ){
-    /* TODO(shess) Handle SQLITE_SCHEMA AND SQLITE_BUSY. */
+    /* TODO(shess) Handle SQLITE_SCHEMA AND SQLITE_BUSY.待办事项处理SQLITE_SCHEMA和SQLITE_BUSY。 */
     rc = sqlite3_step(c->pStmt);
     switch( rc ){
       case SQLITE_ROW:
@@ -2555,7 +2563,7 @@ static int fulltextNext(sqlite3_vtab_cursor *pCursor){
         c->eof = 1;
         return rc;
     }
-  } else {  /* full-text query */
+  } else {  /* full-text query 全文查询 */
     rc = sqlite3_reset(c->pStmt);
     if( rc!=SQLITE_OK ) return rc;
 
@@ -2566,13 +2574,13 @@ static int fulltextNext(sqlite3_vtab_cursor *pCursor){
     }
     rc = sqlite3_bind_int64(c->pStmt, 1, iDocid);
     if( rc!=SQLITE_OK ) return rc;
-    /* TODO(shess) Handle SQLITE_SCHEMA AND SQLITE_BUSY. */
+    /* TODO(shess) Handle SQLITE_SCHEMA AND SQLITE_BUSY.待办事项处理SQLITE_SCHEMA和SQLITE_BUSY。 */
     rc = sqlite3_step(c->pStmt);
-    if( rc==SQLITE_ROW ){   /* the case we expect */
+    if( rc==SQLITE_ROW ){   /* the case we expect 我们期望的情况 */
       c->eof = 0;
       return SQLITE_OK;
     }
-    /* an error occurred; abort */
+    /* an error occurred; abort 发生错误,中止 */
     return rc==SQLITE_DONE ? SQLITE_ERROR : rc;
   }
 }
@@ -2581,14 +2589,14 @@ static int fulltextNext(sqlite3_vtab_cursor *pCursor){
 /* Return a DocList corresponding to the query term *pTerm.  If *pTerm
 ** is the first term of a phrase query, go ahead and evaluate the phrase
 ** query and return the doclist for the entire phrase query.
-**
-** The result is stored in pTerm->doclist.
+** 返回一个对应DocList * pTerm查询术语。如果* pTerm短语查询的首项,继续和评价短语查询并返回doclist整个短语查询。
+** The result is stored in pTerm->doclist.结果存储在pTerm - > doclist。
 */
 static int docListOfTerm(
-  fulltext_vtab *v,     /* The full text index */
-  int iColumn,          /* column to restrict to.  No restrition if >=nColumn */
-  QueryTerm *pQTerm,    /* Term we are looking for, or 1st term of a phrase */
-  DocList **ppResult    /* Write the result here */
+  fulltext_vtab *v,     /* The full text index 全文索引 */
+  int iColumn,          /* column to restrict to. 列限制。  No restrition if >=nColumn 空，如果> = nColumn restrition */
+  QueryTerm *pQTerm,    /* Term we are looking for, or 1st term of a phrase 我们正在寻找的项或者短语的首项 */
+  DocList **ppResult    /* Write the result here 结果写在这里 */
 ){
   DocList *pLeft, *pRight, *pNew;
   int i, rc;
@@ -2616,7 +2624,7 @@ static int docListOfTerm(
   return SQLITE_OK;
 }
 
-/* Add a new term pTerm[0..nTerm-1] to the query *q.
+/* Add a new term pTerm[0..nTerm-1] to the query *q.添加一个新项pTerm[0 . .nTerm-1)来查询*q。
 */
 static void queryAdd(Query *q, const char *pTerm, int nTerm){
   QueryTerm *t;
@@ -2642,11 +2650,13 @@ static void queryAdd(Query *q, const char *pTerm, int nTerm){
 ** Check to see if the string zToken[0...nToken-1] matches any
 ** column name in the virtual table.   If it does,
 ** return the zero-indexed column number.  If not, return -1.
+** 检查字符串是否zToken[0…nToken-1)匹配任何虚拟表的列名。
+** 如果不匹配,返回zero-indexed列号。如果没有,返回- 1。
 */
 static int checkColumnSpecifier(
-  fulltext_vtab *pVtab,    /* The virtual table */
-  const char *zToken,      /* Text of the token */
-  int nToken               /* Number of characters in the token */
+  fulltext_vtab *pVtab,    /* The virtual table 虚拟表 */
+  const char *zToken,      /* Text of the token token的文本 */
+  int nToken               /* Number of characters in the token token的字符数 */
 ){
   int i;
   for(i=0; i<pVtab->nColumn; i++){
@@ -2661,18 +2671,21 @@ static int checkColumnSpecifier(
 /*
 ** Parse the text at pSegment[0..nSegment-1].  Add additional terms
 ** to the query being assemblied in pQuery.
-**
+** 解析文本pSegment[0 . . nSegment-1]。附加的条款添加到查询在pQuery。
 ** inPhrase is true if pSegment[0..nSegement-1] is contained within
 ** double-quotes.  If inPhrase is true, then the first term
 ** is marked with the number of terms in the phrase less one and
 ** OR and "-" syntax is ignored.  If inPhrase is false, then every
 ** term found is marked with nPhrase=0 and OR and "-" syntax is significant.
+** 如果pSegment[0 . .nSegement-1]是包含在双引号中inPhrase是真的。
+** 如果inPhrase是真的,那么被标记的首项的条款的数量短语少于一,“-”语法被忽略。
+** 如果inPhrase是假的,那么每项发现标有nPhrase = 0,或者和“-”语法意义重大。
 */
 static int tokenizeSegment(
-  sqlite3_tokenizer *pTokenizer,          /* The tokenizer to use */
-  const char *pSegment, int nSegment,     /* Query expression being parsed */
-  int inPhrase,                           /* True if within "..." */
-  Query *pQuery                           /* Append results here */
+  sqlite3_tokenizer *pTokenizer,          /* The tokenizer to use 记号赋予器使用 */
+  const char *pSegment, int nSegment,     /* Query expression being parsed 查询表达式被解析 */
+  int inPhrase,                           /* True if within "..." 真如果含有“……” */
+  Query *pQuery                           /* Append results here 在这里添加结果 */
 ){
   const sqlite3_tokenizer_module *pModule = pTokenizer->pModule;
   sqlite3_tokenizer_cursor *pCursor;
@@ -2721,16 +2734,17 @@ static int tokenizeSegment(
 }
 
 /* Parse a query string, yielding a Query object pQuery.
-**
+** 解析查询字符串,出产查询对象pQuery。
 ** The calling function will need to queryClear() to clean up
 ** the dynamically allocated memory held by pQuery.
+** 调用函数需要queryClear()来清理pQuery持有的动态分配的内存。
 */
 static int parseQuery(
-  fulltext_vtab *v,        /* The fulltext index */
-  const char *zInput,      /* Input text of the query string */
-  int nInput,              /* Size of the input text */
-  int dfltColumn,          /* Default column of the index to match against */
-  Query *pQuery            /* Write the parse results here. */
+  fulltext_vtab *v,        /* The fulltext index 全文索引 */
+  const char *zInput,      /* Input text of the query string 查询字符串的输入文本 */
+  int nInput,              /* Size of the input text 输入文本的大小 */
+  int dfltColumn,          /* Default column of the index to match against 默认索引匹配的列 */
+  Query *pQuery            /* Write the parse results here.在这里写解析结果 */
 ){
   int iInput, inPhrase = 0;
 
@@ -2768,17 +2782,19 @@ static int parseQuery(
 /* Perform a full-text query using the search expression in
 ** zInput[0..nInput-1].  Return a list of matching documents
 ** in pResult.
-**
+** 执行一个全文查询使用的搜索表达式zInput[0 . . nInput-1]。
+** 在pResult返回一个匹配的文档列表。
 ** Queries must match column iColumn.  Or if iColumn>=nColumn
 ** they are allowed to match against any column.
+** 查询必须匹配列iColumn。或者如果iColumn > = nColumn他们可以匹配任何列。
 */
 static int fulltextQuery(
-  fulltext_vtab *v,      /* The full text index */
-  int iColumn,           /* Match against this column by default */
-  const char *zInput,    /* The query string */
-  int nInput,            /* Number of bytes in zInput[] */
-  DocList **pResult,     /* Write the result doclist here */
-  Query *pQuery          /* Put parsed query string here */
+  fulltext_vtab *v,      /* The full text index 全文索引 */
+  int iColumn,           /* Match against this column by default 默认匹配这列 */
+  const char *zInput,    /* The query string 查询字符串 */
+  int nInput,            /* Number of bytes in zInput[] 在zInput[]中的字节数 */
+  DocList **pResult,     /* Write the result doclist here 在这里写doclist结果 */
+  Query *pQuery          /* Put parsed query string here 在这里放解析查询字符串 */
 ){
   int i, iNext, rc;
   DocList *pLeft = NULL;
@@ -2789,11 +2805,11 @@ static int fulltextQuery(
   rc = parseQuery(v, zInput, nInput, iColumn, pQuery);
   if( rc!=SQLITE_OK ) return rc;
 
-  /* Merge AND terms. */
+  /* Merge AND terms.合并和术语。 */
   aTerm = pQuery->pTerms;
   for(i = 0; i<pQuery->nTerms; i=iNext){
     if( aTerm[i].isNot ){
-      /* Handle all NOT terms in a separate pass */
+      /* Handle all NOT terms in a separate pass 处理所有条款在一个单独的传递 */
       nNot++;
       iNext = i + aTerm[i].nPhrase+1;
       continue;
@@ -2829,11 +2845,11 @@ static int fulltextQuery(
   }
 
   if( nNot && pLeft==0 ){
-    /* We do not yet know how to handle a query of only NOT terms */
+    /* We do not yet know how to handle a query of only NOT terms 我们还不知道如何处理一个查询的条款 */
     return SQLITE_ERROR;
   }
 
-  /* Do the EXCEPT terms */
+  /* Do the EXCEPT terms 做除外条款 */
   for(i=0; i<pQuery->nTerms;  i += aTerm[i].nPhrase + 1){
     if( !aTerm[i].isNot ) continue;
     rc = docListOfTerm(v, aTerm[i].iColumn, &aTerm[i], &pRight);
@@ -2857,27 +2873,32 @@ static int fulltextQuery(
 ** This is the xFilter interface for the virtual table.  See
 ** the virtual table xFilter method documentation for additional
 ** information.
-**
+** 这是xFilter虚拟表接口。看到虚拟表xFilter方法文档的附加信息。
 ** If idxNum==QUERY_GENERIC then do a full table scan against
 ** the %_content table.
-**
+** 如果idxNum = = QUERY_GENERIC那么对% _content表做一个全表扫描。
 ** If idxNum==QUERY_ROWID then do a rowid lookup for a single entry
 ** in the %_content table.
-**
+** 如果idxNum = = QUERY_ROWID那么做rowid % _content表中查找一个条目。
 ** If idxNum>=QUERY_FULLTEXT then use the full text index.  The
 ** column on the left-hand side of the MATCH operator is column
 ** number idxNum-QUERY_FULLTEXT, 0 indexed.  argv[0] is the right-hand
 ** side of the MATCH operator.
+** 如果idxNum > = QUERY_FULLTEXT然后使用全文索引。
+** 列匹配操作符的左边列号idxNum-QUERY_FULLTEXT,0索引。
+** argv[0]是匹配操作符的右边。
 */
 /* TODO(shess) Upgrade the cursor initialization and destruction to
 ** account for fulltextFilter() being called multiple times on the
 ** same cursor.  The current solution is very fragile.  Apply fix to
 ** fts2 as appropriate.
+** 待办事项升级指针的初始化和销毁fulltextFilter占()被调用多次在同一指针。
+** 当前的解决方案是非常脆弱的。修复适用于fts2。
 */
 static int fulltextFilter(
-  sqlite3_vtab_cursor *pCursor,     /* The cursor used for this query */
-  int idxNum, const char *idxStr,   /* Which indexing scheme to use */
-  int argc, sqlite3_value **argv    /* Arguments for the indexing scheme */
+  sqlite3_vtab_cursor *pCursor,     /* The cursor used for this query 指针用于该查询 */
+  int idxNum, const char *idxStr,   /* Which indexing scheme to use 使用的索引方案 */
+  int argc, sqlite3_value **argv    /* Arguments for the indexing scheme 参数的索引方案 */
 ){
   fulltext_cursor *c = (fulltext_cursor *) pCursor;
   fulltext_vtab *v = cursor_vtab(c);
@@ -2903,7 +2924,7 @@ static int fulltextFilter(
       if( rc!=SQLITE_OK ) return rc;
       break;
 
-    default:   /* full-text search */
+    default:   /* full-text search 全文搜索 */
     {
       const char *zQuery = (const char *)sqlite3_value_text(argv[0]);
       DocList *pResult;
@@ -2924,6 +2945,7 @@ static int fulltextFilter(
 /* This is the xEof method of the virtual table.  The SQLite core
 ** calls this routine to find out if it has reached the end of
 ** a query's results set.
+** 这是xEof虚拟表的方法。SQLite核心调用这个例程来找出是否已经达成一个查询的结果集。
 */
 static int fulltextEof(sqlite3_vtab_cursor *pCursor){
   fulltext_cursor *c = (fulltext_cursor *) pCursor;
@@ -2935,6 +2957,8 @@ static int fulltextEof(sqlite3_vtab_cursor *pCursor){
 ** of a column from the virtual table.  This method needs to use
 ** one of the sqlite3_result_*() routines to store the requested
 ** value back in the pContext.
+** 这是xColumn虚拟表的方法。SQLite核心调用这个方法在查询时需要从虚拟表列的值。
+** 这种方法需要使用一个sqlite3_result_ *()例程回到pContext存储请求的值。
 */
 static int fulltextColumn(sqlite3_vtab_cursor *pCursor,
                           sqlite3_context *pContext, int idxCol){
@@ -2945,8 +2969,8 @@ static int fulltextColumn(sqlite3_vtab_cursor *pCursor,
     sqlite3_value *pVal = sqlite3_column_value(c->pStmt, idxCol+1);
     sqlite3_result_value(pContext, pVal);
   }else if( idxCol==v->nColumn ){
-    /* The extra column whose name is the same as the table.
-    ** Return a blob which is a pointer to the cursor
+    /* The extra column whose name is the same as the table.额外的列的名称是一样的。
+    ** Return a blob which is a pointer to the cursor 返回一个blob指针
     */
     sqlite3_result_blob(pContext, &c, sizeof(c), SQLITE_TRANSIENT);
   }
@@ -2956,6 +2980,7 @@ static int fulltextColumn(sqlite3_vtab_cursor *pCursor,
 /* This is the xRowid method.  The SQLite core calls this routine to
 ** retrive the rowid for the current row of the result set.  The
 ** rowid should be written to *pRowid.
+** 这是xRowid方法。SQLite核心调用这个例程能够利用rowid的当前行结果集。rowid应被写入* pRowid 。
 */
 static int fulltextRowid(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid){
   fulltext_cursor *c = (fulltext_cursor *) pCursor;
@@ -2966,7 +2991,7 @@ static int fulltextRowid(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid){
 
 /* Add all terms in [zText] to the given hash table.  If [iColumn] > 0,
  * we also store positions and offsets in the hash table using the given
- * column number. */
+ * column number.添加所有条款(zText)给定的哈希表。如果(iColumn)> 0,我们还在哈希表中存储位置和补偿使用给定的列号。 */
 static int buildTerms(fulltext_vtab *v, fts1Hash *terms, sqlite_int64 iDocid,
                       const char *zText, int iColumn){
   sqlite3_tokenizer *pTokenizer = v->pTokenizer;
@@ -2986,7 +3011,7 @@ static int buildTerms(fulltext_vtab *v, fts1Hash *terms, sqlite_int64 iDocid,
                                                &iPosition) ){
     DocList *p;
 
-    /* Positions can't be negative; we use -1 as a terminator internally. */
+    /* Positions can't be negative; we use -1 as a terminator internally.定位不能是负数,我们在内部使用-1作为一个终结者。 */
     if( iPosition<0 ){
       pTokenizer->pModule->xClose(pCursor);
       return SQLITE_ERROR;
@@ -3003,16 +3028,16 @@ static int buildTerms(fulltext_vtab *v, fts1Hash *terms, sqlite_int64 iDocid,
     }
   }
 
-  /* TODO(shess) Check return?  Should this be able to cause errors at
-  ** this point?  Actually, same question about sqlite3_finalize(),
+  /* TODO(shess) Check return?待办事项检查返回?  Should this be able to cause errors at
+  ** this point? 这应该能够导致错误在这一点上吗? Actually, same question about sqlite3_finalize(),
   ** though one could argue that failure there means that the data is
-  ** not durable.  *ponder*
+  ** not durable.事实上,同样的问题关于sqlite3_finalize(),虽然有人会说,失败意味着数据不会持久  *ponder*
   */
   pTokenizer->pModule->xClose(pCursor);
   return rc;
 }
 
-/* Update the %_terms table to map the term [pTerm] to the given rowid. */
+/* Update the %_terms table to map the term [pTerm] to the given rowid.更新% _terms表(pTerm)这一术语映射到给定的rowid。 */
 static int index_insert_term(fulltext_vtab *v, const char *pTerm, int nTerm,
                              DocList *d){
   sqlite_int64 iIndexRow;
@@ -3023,7 +3048,7 @@ static int index_insert_term(fulltext_vtab *v, const char *pTerm, int nTerm,
   if( rc==SQLITE_DONE ){
     docListInit(&doclist, DL_DEFAULT, 0, 0);
     docListUpdate(&doclist, d);
-    /* TODO(shess) Consider length(doclist)>CHUNK_MAX? */
+    /* TODO(shess) Consider length(doclist)>CHUNK_MAX?待办事项考虑长度(doclist)> CHUNK_MAX吗? */
     rc = term_insert(v, NULL, pTerm, nTerm, iSegment, &doclist);
     goto err;
   }
@@ -3036,7 +3061,7 @@ static int index_insert_term(fulltext_vtab *v, const char *pTerm, int nTerm,
   }
 
   /* Doclist doesn't fit, delete what's there, and accumulate
-  ** forward.
+  ** forward. Doclist不适合,删除。
   */
   rc = term_delete(v, iIndexRow);
   if( rc!=SQLITE_OK ) goto err;
@@ -3044,6 +3069,7 @@ static int index_insert_term(fulltext_vtab *v, const char *pTerm, int nTerm,
   /* Try to insert the doclist into a higher segment bucket.  On
   ** failure, accumulate existing doclist with the doclist from that
   ** bucket, and put results in the next bucket.
+  ** 试图插入doclist更高部分桶排序。在失败中失败,积累现有doclist doclist从那部分,并把结果在下一桶排序。
   */
   iSegment++;
   while( (rc=term_insert(v, &iIndexRow, pTerm, nTerm, iSegment,
@@ -3053,7 +3079,7 @@ static int index_insert_term(fulltext_vtab *v, const char *pTerm, int nTerm,
     int rc2;
 
     /* Retain old error in case the term_insert() error was really an
-    ** error rather than a bounced insert.
+    ** error rather than a bounced insert.保留旧的错误,以防term_insert()错误真的是一个错误,而不是一个被插入。
     */
     rc2 = term_select(v, pTerm, nTerm, iSegment, &iSegmentRow, &old);
     if( rc2!=SQLITE_ROW ) goto err;
@@ -3061,11 +3087,11 @@ static int index_insert_term(fulltext_vtab *v, const char *pTerm, int nTerm,
     rc = term_delete(v, iSegmentRow);
     if( rc!=SQLITE_OK ) goto err;
 
-    /* Reusing lowest-number deleted row keeps the index smaller. */
+    /* Reusing lowest-number deleted row keeps the index smaller.重用最低数删除行保持指数较小。 */
     if( iSegmentRow<iIndexRow ) iIndexRow = iSegmentRow;
 
-    /* doclist contains the newer data, so accumulate it over old.
-    ** Then steal accumulated data for doclist.
+    /* doclist contains the newer data, so accumulate it over old.doclist包含更新的数据,所以积累了历史。
+    ** Then steal accumulated data for doclist.然后窃取doclist积累数据。
     */
     docListAccumulate(&old, &doclist);
     docListDestroy(&doclist);
@@ -3079,7 +3105,7 @@ static int index_insert_term(fulltext_vtab *v, const char *pTerm, int nTerm,
   return rc;
 }
 
-/* Add doclists for all terms in [pValues] to the hash table [terms]. */
+/* Add doclists for all terms in [pValues] to the hash table [terms].为所有条款添加doclists[pValues]的哈希表。 */
 static int insertTerms(fulltext_vtab *v, fts1Hash *terms, sqlite_int64 iRowid,
                 sqlite3_value **pValues){
   int i;
@@ -3092,7 +3118,7 @@ static int insertTerms(fulltext_vtab *v, fts1Hash *terms, sqlite_int64 iRowid,
 }
 
 /* Add empty doclists for all terms in the given row's content to the hash
- * table [pTerms]. */
+ * table [pTerms].添加空doclists给定行中的所有条款的内容哈希表。 */
 static int deleteTerms(fulltext_vtab *v, fts1Hash *pTerms, sqlite_int64 iRowid){
   const char **pValues;
   int i;
@@ -3110,48 +3136,52 @@ static int deleteTerms(fulltext_vtab *v, fts1Hash *pTerms, sqlite_int64 iRowid){
 }
 
 /* Insert a row into the %_content table; set *piRowid to be the ID of the
- * new row.  Fill [pTerms] with new doclists for the %_term table. */
+ * new row.  Fill [pTerms] with new doclists for the %_term table.
+ * 将一行插入到% _content表;集* piRowid新行的ID。(pTerms)填入新doclists % _term表。
+ */
 static int index_insert(fulltext_vtab *v, sqlite3_value *pRequestRowid,
                         sqlite3_value **pValues,
                         sqlite_int64 *piRowid, fts1Hash *pTerms){
   int rc;
 
-  rc = content_insert(v, pRequestRowid, pValues);  /* execute an SQL INSERT */
+  rc = content_insert(v, pRequestRowid, pValues);  /* execute an SQL INSERT 执行一条SQL插入 */
   if( rc!=SQLITE_OK ) return rc;
   *piRowid = sqlite3_last_insert_rowid(v->db);
   return insertTerms(v, pTerms, *piRowid, pValues);
 }
 
 /* Delete a row from the %_content table; fill [pTerms] with empty doclists
- * to be written to the %_term table. */
+ * to be written to the %_term table.删除一行从% _content表;(pTerms)填入空doclists写入% _term表。 */
 static int index_delete(fulltext_vtab *v, sqlite_int64 iRow, fts1Hash *pTerms){
   int rc = deleteTerms(v, pTerms, iRow);
   if( rc!=SQLITE_OK ) return rc;
-  return content_delete(v, iRow);  /* execute an SQL DELETE */
+  return content_delete(v, iRow);  /* execute an SQL DELETE 执行一条SQL删除 */
 }
 
 /* Update a row in the %_content table; fill [pTerms] with new doclists for the
- * %_term table. */
+ * %_term table.更新表中的一行% _content;[pTerms]充满新doclists % _term表。 */
 static int index_update(fulltext_vtab *v, sqlite_int64 iRow,
                         sqlite3_value **pValues, fts1Hash *pTerms){
   /* Generate an empty doclist for each term that previously appeared in this
-   * row. */
+   * row.生成一个空doclist为每个术语,之前出现在这一行。 */
   int rc = deleteTerms(v, pTerms, iRow);
   if( rc!=SQLITE_OK ) return rc;
 
-  rc = content_update(v, pValues, iRow);  /* execute an SQL UPDATE */
+  rc = content_update(v, pValues, iRow);  /* execute an SQL UPDATE 执行一条SQL更新 */
   if( rc!=SQLITE_OK ) return rc;
 
-  /* Now add positions for terms which appear in the updated row. */
+  /* Now add positions for terms which appear in the updated row.现在添加位置的术语出现在更新的行。 */
   return insertTerms(v, pTerms, iRow, pValues);
 }
 
 /* This function implements the xUpdate callback; it is the top-level entry
- * point for inserting, deleting or updating a row in a full-text table. */
+ * point for inserting, deleting or updating a row in a full-text table.
+ * 这个函数实现了xUpdate回调;它是顶级入口点插入、删除或更新全文表中的一行。
+ */
 static int fulltextUpdate(sqlite3_vtab *pVtab, int nArg, sqlite3_value **ppArg,
                    sqlite_int64 *pRowid){
   fulltext_vtab *v = (fulltext_vtab *) pVtab;
-  fts1Hash terms;   /* maps term string -> PosList */
+  fts1Hash terms;   /* maps term string -> PosList 映射 string -> PstList */
   int rc;
   fts1HashElem *e;
 
@@ -3162,7 +3192,7 @@ static int fulltextUpdate(sqlite3_vtab *pVtab, int nArg, sqlite3_value **ppArg,
   if( nArg<2 ){
     rc = index_delete(v, sqlite3_value_int64(ppArg[0]), &terms);
   } else if( sqlite3_value_type(ppArg[0]) != SQLITE_NULL ){
-    /* An update:
+    /* An update: 更新:
      * ppArg[0] = old rowid
      * ppArg[1] = new rowid
      * ppArg[2..2+v->nColumn-1] = values
@@ -3187,7 +3217,7 @@ static int fulltextUpdate(sqlite3_vtab *pVtab, int nArg, sqlite3_value **ppArg,
   }
 
   if( rc==SQLITE_OK ){
-    /* Write updated doclists to disk. */
+    /* Write updated doclists to disk.更新doclists写入磁盘。 */
     for(e=fts1HashFirst(&terms); e; e=fts1HashNext(e)){
       DocList *p = fts1HashData(e);
       rc = index_insert_term(v, fts1HashKey(e), fts1HashKeysize(e), p);
@@ -3195,7 +3225,7 @@ static int fulltextUpdate(sqlite3_vtab *pVtab, int nArg, sqlite3_value **ppArg,
     }
   }
 
-  /* clean up */
+  /* clean up 清理 */
   for(e=fts1HashFirst(&terms); e; e=fts1HashNext(e)){
     DocList *p = fts1HashData(e);
     docListDelete(p);
@@ -3206,7 +3236,7 @@ static int fulltextUpdate(sqlite3_vtab *pVtab, int nArg, sqlite3_value **ppArg,
 }
 
 /*
-** Implementation of the snippet() function for FTS1
+** Implementation of the snippet() function for FTS1 FTS1片段()函数的实现
 */
 static void snippetFunc(
   sqlite3_context *pContext,
@@ -3240,7 +3270,7 @@ static void snippetFunc(
 }
 
 /*
-** Implementation of the offsets() function for FTS1
+** Implementation of the offsets() function for FTS1 FTS1偏移量()函数的实现
 */
 static void snippetOffsetsFunc(
   sqlite3_context *pContext,
@@ -3264,7 +3294,7 @@ static void snippetOffsetsFunc(
 
 /*
 ** This routine implements the xFindFunction method for the FTS1
-** virtual table.
+** virtual table.这个例程实现xFindFunction FTS1虚拟方法表。
 */
 static int fulltextFindFunction(
   sqlite3_vtab *pVtab,
@@ -3284,7 +3314,7 @@ static int fulltextFindFunction(
 }
 
 /*
-** Rename an fts1 table.
+** Rename an fts1 table.重命名一个fts1表。
 */
 static int fulltextRename(
   sqlite3_vtab *pVtab,
