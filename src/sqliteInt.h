@@ -1283,36 +1283,38 @@ struct CollSeq {
 ** Refer to comments above function sqlite3VtabUnlockList() for an
 ** explanation as to why it is safe to add an entry to an sqlite3.pDisconnect
 ** list without holding the corresponding sqlite3.mutex mutex.
-**
-**
-**
-**
+**当在内存中的表对象被删除（例如，当模式由于某种原因被重新加载），则虚函数表的对象不会被立刻删除，sqlite3_vtab*句柄也不会立即断开链接.
+**相反，它们会从Table.pVTable列表移动到另一个由相应的sqlite3结构体的sqlite3.pDisconnect成员开头的链接列表中.
+**然后它们会被sqlite3*执行的一条语句在下一次删除或者是断开链接,这样做是为了避免涉及多个sqlite3.mutex互斥死锁问题.
+**请参考上面的函数sqlite3VtabUnlockList（）评论作出解释，为什么它是安全的,不持有相应sqlite3.mutex互斥条目添加到列表sqlite3.pDisconnec.
 **
 ** The memory for objects of this type is always allocated by 
 ** sqlite3DbMalloc(), using the connection handle stored in VTable.db as 
 ** the first argument.
+**这个类型的对象的内存总是通过存储在VTable.db中作为首参的链接句柄通过sqlite3DbMalloc()函数进行分配.
+**
 */
 struct VTable {
-  sqlite3 *db;              /* Database connection associated with this table */
-  Module *pMod;             /* Pointer to module implementation */
-  sqlite3_vtab *pVtab;      /* Pointer to vtab instance */
-  int nRef;                 /* Number of pointers to this structure */
-  u8 bConstraint;           /* True if constraints are supported */
-  int iSavepoint;           /* Depth of the SAVEPOINT stack */
-  VTable *pNext;            /* Next in linked list (see above) */
+  sqlite3 *db;              /* Database connection associated with this table 与此表相关的数据库链接*/
+  Module *pMod;             /* Pointer to module implementation 指向模块实现的指针*/
+  sqlite3_vtab *pVtab;      /* Pointer to vtab instance 指向vtab实例的指针*/
+  int nRef;                 /* Number of pointers to this structure 指向这个结构体的指针的数量*/
+  u8 bConstraint;           /* True if constraints are supported 如果约束支持的话即为真*/
+  int iSavepoint;           /* Depth of the SAVEPOINT stack 保存点栈的深度*/
+  VTable *pNext;            /* Next in linked list (see above)  链接列表中的下一个*/
 };
 
 /*
 ** Each SQL table is represented in memory by an instance of the
 ** following structure.
-**
+**每个SQL表由以下结构的一个实例表示在存储器中.
 ** Table.zName is the name of the table.  The case of the original
 ** CREATE TABLE statement is stored, but case is not significant for
 ** comparisons.
-**
+**Table.zName是这个表的名字.开始的创建表语句的实例被存储，但是比较而言这个实例并不是那样重要.
 ** Table.nCol is the number of columns in this table.  Table.aCol is a
 ** pointer to an array of Column structures, one for each column.
-**
+**Table.nCol是这个表里面列的数量.Table.aCol是一个指向为每一列所有的列结构体数组的指针.
 ** If the table has an INTEGER PRIMARY KEY, then Table.iPKey is the index of
 ** the column that is that key.   Otherwise Table.iPKey is negative.  Note
 ** that the datatype of the PRIMARY KEY must be INTEGER for this field to
@@ -1320,6 +1322,11 @@ struct VTable {
 ** the table.  If a table has no INTEGER PRIMARY KEY, then a random rowid
 ** is generated for each row of the table.  TF_HasPrimaryKey is set if
 ** the table has any PRIMARY KEY, INTEGER or otherwise.
+**如果表中有一个整型主键，那么Table.iPKey是该键所在列的索引。否则Table.iPKey为负.
+**需要注意的是为了这个字段的设置，主键的数据类型必须为整型.
+**主键被用来作为表的每一行的标志.
+**若表没有整型的主键，则为表的每一行随机产生一个随机的行标.
+**若表没有整型或者其它类型的任何主键，则TF_HasPrimaryKey将会被设置.
 **
 ** Table.tnum is the page number for the root BTree page of the table in the
 ** database file.  If Table.iDb is the index of the database table backend
@@ -1331,51 +1338,60 @@ struct VTable {
 ** page number.  Transient tables are used to hold the results of a
 ** sub-query that appears instead of a real table name in the FROM clause 
 ** of a SELECT statement.
+**Table.tnum表的数据库文件中的B树的根页面的页码.
+**如果Table.iD是sqlite.aDb[]中数据库表后端的索引.0是对于主数据库,1是用于保存临时表和索引文件.
+**如果TF_Ephemeral被设置，那么该表将被存储在当VDBE光标移动到表被关闭时，将会被系统自动删除的文件中.
+**在这种情况下，Table.tnum指的是持有打开表权限的VDBE的光标号，而不是根页号.
+**暂存表存储的是出现的子查询的结果，而不是在 select...from语句中所出现的真实的表名.
+**
+**
 */
 struct Table {
-  char *zName;         /* Name of the table or view */
-  int iPKey;           /* If not negative, use aCol[iPKey] as the primary key */
-  int nCol;            /* Number of columns in this table */
-  Column *aCol;        /* Information about each column */
-  Index *pIndex;       /* List of SQL indexes on this table. */
-  int tnum;            /* Root BTree node for this table (see note above) */
-  tRowcnt nRowEst;     /* Estimated rows in table - from sqlite_stat1 table */
-  Select *pSelect;     /* NULL for tables.  Points to definition if a view. */
-  u16 nRef;            /* Number of pointers to this Table */
-  u8 tabFlags;         /* Mask of TF_* values */
-  u8 keyConf;          /* What to do in case of uniqueness conflict on iPKey */
-  FKey *pFKey;         /* Linked list of all foreign keys in this table */
-  char *zColAff;       /* String defining the affinity of each column */
+  char *zName;         /* Name of the table or view 表或者视图的名字*/
+  int iPKey;           /* If not negative, use aCol[iPKey] as the primary key 若不为负，用aCol[iPKey]作为主键*/
+  int nCol;            /* Number of columns in this table 表的列号*/
+  Column *aCol;        /* Information about each column 每一列的信息*/
+  Index *pIndex;       /* List of SQL indexes on this table. 表中的SQL下标列表*/
+  int tnum;            /* Root BTree node for this table (see note above) 表的B树的根节点*/
+  tRowcnt nRowEst;     /* Estimated rows in table - from sqlite_stat1 table 估计在表中的行数- 从sqlite_stat1表*/
+  Select *pSelect;     /* NULL for tables.  Points to definition if a view. 若是表则为空，若是一个视图则指向定义*/
+  u16 nRef;            /* Number of pointers to this Table 指向这个表的指针数目*/
+  u8 tabFlags;         /* Mask of TF_* values 屏蔽TF_*的值*/
+  u8 keyConf;          /* What to do in case of uniqueness conflict on iPKey 若在iPKey上存在唯一性冲突的情况将做什么*/
+  FKey *pFKey;         /* Linked list of all foreign keys in this table 此表的所有外键的链接列表*/
+  char *zColAff;       /* String defining the affinity of each column 每一列近似值的字符串定义*/
 #ifndef SQLITE_OMIT_CHECK
-  ExprList *pCheck;    /* All CHECK constraints */
+  ExprList *pCheck;    /* All CHECK constraints 所有的检查约束*/
 #endif
 #ifndef SQLITE_OMIT_ALTERTABLE
-  int addColOffset;    /* Offset in CREATE TABLE stmt to add a new column */
+  int addColOffset;    /* Offset in CREATE TABLE stmt to add a new column 在创建表语句中添加一列的偏移量*/
 #endif
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  VTable *pVTable;     /* List of VTable objects. */
-  int nModuleArg;      /* Number of arguments to the module */
-  char **azModuleArg;  /* Text of all module args. [0] is module name */
+  VTable *pVTable;     /* List of VTable objects. VTable对象列表*/
+  int nModuleArg;      /* Number of arguments to the module  模块参数的数目*/
+  char **azModuleArg;  /* Text of all module args. [0] is module name 所有模块参数的文本，[0]是模块的名字/
 #endif
-  Trigger *pTrigger;   /* List of triggers stored in pSchema */
-  Schema *pSchema;     /* Schema that contains this table */
-  Table *pNextZombie;  /* Next on the Parse.pZombieTab list */
+  Trigger *pTrigger;   /* List of triggers stored in pSchema 存储在pSchema中的触发器列表*/
+  Schema *pSchema;     /* Schema that contains this table 包含此表的模式*/
+  Table *pNextZombie;  /* Next on the Parse.pZombieTab list 在Parse.pZombieTab列表的下一个*/
 };
 
 /*
 ** Allowed values for Tabe.tabFlags.
+**Tabe.tabFlags的可能值
 */
-#define TF_Readonly        0x01    /* Read-only system table */
-#define TF_Ephemeral       0x02    /* An ephemeral table */
-#define TF_HasPrimaryKey   0x04    /* Table has a primary key */
-#define TF_Autoincrement   0x08    /* Integer primary key is autoincrement */
-#define TF_Virtual         0x10    /* Is a virtual table */
+#define TF_Readonly        0x01    /* Read-only system table 只读系统表*/
+#define TF_Ephemeral       0x02    /* An ephemeral table 一个短暂的表*/
+#define TF_HasPrimaryKey   0x04    /* Table has a primary key 有主键的表*/
+#define TF_Autoincrement   0x08    /* Integer primary key is autoincrement 自增的整型主键*/
+#define TF_Virtual         0x10    /* Is a virtual table 是一个虚表*/
 
 
 /*
 ** Test to see whether or not a table is a virtual table.  This is
 ** done as a macro so that it will be optimized out when virtual
 ** table support is omitted from the build.
+**测试该表是否是一个虚表
 */
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 #  define IsVirtual(X)      (((X)->tabFlags & TF_Virtual)!=0)
@@ -1387,10 +1403,12 @@ struct Table {
 
 /*
 ** Each foreign key constraint is an instance of the following structure.
-**
+**每一个外键约束都是如下结构体的一个实例.
 ** A foreign key is associated with two tables.  The "from" table is
 ** the table that contains the REFERENCES clause that creates the foreign
 ** key.  The "to" table is the table that is named in the REFERENCES clause.
+**外键与两个表关联.“从”表是创建外键并且包含REFERENCES子句的表。在“到”表是在references子句中命名的表.
+**
 ** Consider this example:
 **
 **     CREATE TABLE ex1(
@@ -1399,26 +1417,29 @@ struct Table {
 **     );
 **
 ** For foreign key "fk1", the from-table is "ex1" and the to-table is "ex2".
-**
+**对于外键"fk1"，"ex1"是从表，"ex2"是到表.
 ** Each REFERENCES clause generates an instance of the following structure
 ** which is attached to the from-table.  The to-table need not exist when
 ** the from-table is created.  The existence of the to-table is not checked.
+**每一个REFERENCES字句都会产生一个附属于从表的如下结构体的一个实例.
+**当从表被创建的时候到表是不需要存在的，不检查到表的存在性.
+**
 */
 struct FKey {
-  Table *pFrom;     /* Table containing the REFERENCES clause (aka: Child) */
-  FKey *pNextFrom;  /* Next foreign key in pFrom */
-  char *zTo;        /* Name of table that the key points to (aka: Parent) */
-  FKey *pNextTo;    /* Next foreign key on table named zTo */
-  FKey *pPrevTo;    /* Previous foreign key on table named zTo */
-  int nCol;         /* Number of columns in this key */
+  Table *pFrom;     /* Table containing the REFERENCES clause (aka: Child) 包含REFERENCES子句的表*/
+  FKey *pNextFrom;  /* Next foreign key in pFrom 在pFrom中的下一个外键*/
+  char *zTo;        /* Name of table that the key points to (aka: Parent) 键所指向的表名*/
+  FKey *pNextTo;    /* Next foreign key on table named zTo 在表zTo上的下一个外键*/
+  FKey *pPrevTo;    /* Previous foreign key on table named zTo 表zTo上的先前的外键*/
+  int nCol;         /* Number of columns in this key 在此键上的列的数目*/
   /* EV: R-30323-21917 */
-  u8 isDeferred;    /* True if constraint checking is deferred till COMMIT */
-  u8 aAction[2];          /* ON DELETE and ON UPDATE actions, respectively */
-  Trigger *apTrigger[2];  /* Triggers for aAction[] actions */
-  struct sColMap {  /* Mapping of columns in pFrom to columns in zTo */
-    int iFrom;         /* Index of column in pFrom */
-    char *zCol;        /* Name of column in zTo.  If 0 use PRIMARY KEY */
-  } aCol[1];        /* One entry for each of nCol column s */
+  u8 isDeferred;    /* True if constraint checking is deferred till COMMIT 如果约束检查被推迟到COMMIT，则为真*/
+  u8 aAction[2];          /* ON DELETE and ON UPDATE actions, respectively 分别为ON DELETE，ON UPDATE操作*/
+  Trigger *apTrigger[2];  /* Triggers for aAction[] actions , aAction[]操作的触发器*/
+  struct sColMap {  /* Mapping of columns in pFrom to columns in zTo 从表pFrom到表zTo的列映射*/
+    int iFrom;         /* Index of column in pFrom 表pFrom中的列索引*/
+    char *zCol;        /* Name of column in zTo.  If 0 use PRIMARY KEY 表zTo中列的名字，若为0则使用主键*/
+  } aCol[1];        /* One entry for each of nCol column s 对每个nCol中列加一*/
 };
 
 /*
@@ -1435,6 +1456,14 @@ struct FKey {
 ** is returned.  REPLACE means that preexisting database rows that caused
 ** a UNIQUE constraint violation are removed so that the new insert or
 ** update can proceed.  Processing continues and no error is reported.
+**SQLite支持许多不同的方法来处理约束错误.
+**回滚处理意味着违反约束导致在进程失败的操作和当前事务被回滚.
+**ABORT操作是指正在处理中的操作失败，并且该操作之前的所有更改均回滚，但是事务不回滚.
+**FAIL处理是指正在进行的操作停止，并返回错误代码.
+**但由于同样的操作而造成的之前的更改都不会改变，没有发生回滚.
+**IGNORE是指导致约束错误的特定行不被插入或更新。处理继续，并且不返回错误.
+**REPLACE是指违背唯一性约束的在数据库中先前存在的行被删除，从而新的插入或者更新操作可以进行.
+**操作继续，不报告错误.
 **
 ** RESTRICT, SETNULL, and CASCADE actions apply only to foreign keys.
 ** RESTRICT is the same as ABORT for IMMEDIATE foreign keys and the
@@ -1442,76 +1471,86 @@ struct FKey {
 ** key is set to NULL.  CASCADE means that a DELETE or UPDATE of the
 ** referenced table row is propagated into the row that holds the
 ** foreign key.
+**RESTRICT, SETNULL, 以及CASCADE操作是适用于外键.
+**RESTRICT就像是ABORT对于IMMEDIATE外键，以及ROLLBACK对于DEFERRED键.
+**SETNULL是指外键被置为空.级联意味着所涉及到的表行的删除或更新操同时影响到包含外键的行.
 **
 ** The following symbolic values are used to record which type
 ** of action to take.
+**下面的符号值是用来记录所采取的行动的类型
 */
-#define OE_None     0   /* There is no constraint to check */
-#define OE_Rollback 1   /* Fail the operation and rollback the transaction */
-#define OE_Abort    2   /* Back out changes but do no rollback transaction */
-#define OE_Fail     3   /* Stop the operation but leave all prior changes */
-#define OE_Ignore   4   /* Ignore the error. Do not do the INSERT or UPDATE */
-#define OE_Replace  5   /* Delete existing record, then do INSERT or UPDATE */
+#define OE_None     0   /* There is no constraint to check 没有约束需要检查*/
+#define OE_Rollback 1   /* Fail the operation and rollback the transaction 操作失败，事务回滚*/
+#define OE_Abort    2   /* Back out changes but do no rollback transaction 撤销更改，但是不回滚事务*/
+#define OE_Fail     3   /* Stop the operation but leave all prior changes 停止操作，保持先前更改*/
+#define OE_Ignore   4   /* Ignore the error. Do not do the INSERT or UPDATE 忽略错误，不做插入或者更新*/
+#define OE_Replace  5   /* Delete existing record, then do INSERT or UPDATE 删除存在的记录，然后执行插入或者更新操作*/
 
-#define OE_Restrict 6   /* OE_Abort for IMMEDIATE, OE_Rollback for DEFERRED */
-#define OE_SetNull  7   /* Set the foreign key value to NULL */
-#define OE_SetDflt  8   /* Set the foreign key value to its default */
-#define OE_Cascade  9   /* Cascade the changes */
+#define OE_Restrict 6   /* OE_Abort for IMMEDIATE, OE_Rollback for DEFERRED , OE_Abort针对IMMEDIAT型，OE_Rollback针对DEFERRED型*/
+#define OE_SetNull  7   /* Set the foreign key value to NULL 将外键的值置为空*/
+#define OE_SetDflt  8   /* Set the foreign key value to its default 将外键设置为默认值*/
+#define OE_Cascade  9   /* Cascade the changes 级联更改*/
 
-#define OE_Default  99  /* Do whatever the default action is */
+#define OE_Default  99  /* Do whatever the default action is 执行任何默认操作*/
 
 
 /*
 ** An instance of the following structure is passed as the first
 ** argument to sqlite3VdbeKeyCompare and is used to control the
 ** comparison of the two index keys.
-** 下面这个结构体的实例会作为第一个参数传递给sqlite3VdbeKeyCompare方法，还会被用于控制两个索引键的比较。
+** 以下结构体的一个实例是通过作为首参传递给sqlite3VdbeKeyCompare函数，用于控制这两个索引关键字的比较。
 */
 struct KeyInfo {
-  sqlite3 *db;        /* The database connection */
-  u8 enc;             /* Text encoding - one of the SQLITE_UTF* values */
-  u16 nField;         /* Number of entries in aColl[] */
-  u8 *aSortOrder;     /* Sort order for each column.  May be NULL */
-  CollSeq *aColl[1];  /* Collating sequence for each term of the key */
+  sqlite3 *db;        /* The database connection  数据库链接*/
+  u8 enc;             /* Text encoding - one of the SQLITE_UTF* values 文本编码-SQLITE_UTF*的其中一个值*/
+  u16 nField;         /* Number of entries in aColl[] 加入aColl[]中的数目*/
+  u8 *aSortOrder;     /* Sort order for each column.  May be NULL 每列的排序顺序，可能为空*/
+  CollSeq *aColl[1];  /* Collating sequence for each term of the key 每一个键的术语的整体序列*/
 };
 
 /*
 ** An instance of the following structure holds information about a
 ** single index record that has already been parsed out into individual
 ** values.
+**以下结构的一个实例包含有关已被解析出到单个值的单个索引记录的信息.
 **
 ** A record is an object that contains one or more fields of data.
 ** Records are used to store the content of a table row and to store
 ** the key of an index.  A blob encoding of a record is created by
 ** the OP_MakeRecord opcode of the VDBE and is disassembled by the
 ** OP_Column opcode.
+**一个记录是一个包含数据的一个或多个字段的对象.
+**记录用于存储一个表行的内容，并存储索引的键
+**对于记录的二进制大对象的编码是由VDBE的OP_MakeRecord opcode创建的，并且由OP_Column opcode拆解.
 **
 ** This structure holds a record that has already been disassembled
 ** into its constituent fields.
+**此结构用于保存已被分解成其组成的字段的记录.
 */
 struct UnpackedRecord {
-  KeyInfo *pKeyInfo;  /* Collation and sort-order information */
-  u16 nField;         /* Number of entries in apMem[] */
-  u8 flags;           /* Boolean settings.  UNPACKED_... below */
-  i64 rowid;          /* Used by UNPACKED_PREFIX_SEARCH */
-  Mem *aMem;          /* Values */
+  KeyInfo *pKeyInfo;  /* Collation and sort-order information 整理顺序和排序顺序信息*/
+  u16 nField;         /* Number of entries in apMem[] , apMem[]中存在的数目*/
+  u8 flags;           /* Boolean settings.  UNPACKED_... below 布尔类型的设置信息*/
+  i64 rowid;          /* Used by UNPACKED_PREFIX_SEARCH , 为UNPACKED_PREFIX_SEARCH所使用*/
+  Mem *aMem;          /* Values  值*/
 };
 
 /*
 ** Allowed values of UnpackedRecord.flags
+**UnpackedRecord.flags 所允许的值.
 */
-#define UNPACKED_INCRKEY       0x01  /* Make this key an epsilon larger */
-#define UNPACKED_PREFIX_MATCH  0x02  /* A prefix match is considered OK */
-#define UNPACKED_PREFIX_SEARCH 0x04  /* Ignore final (rowid) field */
+#define UNPACKED_INCRKEY       0x01  /* Make this key an epsilon larger 使这个关键字是一个更大的小量*/
+#define UNPACKED_PREFIX_MATCH  0x02  /* A prefix match is considered OK 前缀匹配合法*/
+#define UNPACKED_PREFIX_SEARCH 0x04  /* Ignore final (rowid) field 忽略最终的行字段*/
 
 /*
 ** Each SQL index is represented in memory by an
 ** instance of the following structure.
-**
+**每个SQL索引由下面结构体的一个实例表示在存储器中.
 ** The columns of the table that are to be indexed are described
 ** by the aiColumn[] field of this structure.  For example, suppose
 ** we have the following table and index:
-**
+**表中的要被索引的列由这种结构的aiColumn[]字段表示.
 **     CREATE TABLE Ex1(c1 int, c2 int, c3 text);
 **     CREATE INDEX Ex2 ON Ex1(c3,c1);
 **
@@ -1522,6 +1561,11 @@ struct UnpackedRecord {
 ** first column to be indexed (c3) has an index of 2 in Ex1.aCol[].
 ** The second column to be indexed (c1) has an index of 0 in
 ** Ex1.aCol[], hence Ex2.aiColumn[1]==0.
+**在所描述的表结构Ex1中，nCol的值为3，因为在该表中存在三列.
+**在所描述的索引结构Ex2中,当Ex1中三列中由两列被索引了之后，nColumn的值为2.
+**aiColumn数组的值为{2, 0}. aiColumn[0]的值为2，因为被索引的第一列c3在Ex1.aCol[]中的下标为2.
+**被索引的第二列c1在Ex1.aCol[]中的下标为0，所以Ex2.aiColumn[1]的值为0.
+**
 **
 ** The Index.onError field determines whether or not the indexed columns
 ** must be unique and what to do if they are not.  When Index.onError=OE_None,
@@ -1529,26 +1573,31 @@ struct UnpackedRecord {
 ** and the value of Index.onError indicate the which conflict resolution 
 ** algorithm to employ whenever an attempt is made to insert a non-unique
 ** element.
+**该Index.onError字段确定索引列是否必须是唯一的，若不是，应该做什么处理.
+**当Index.onError=OE_None,意味着不是一个唯一性索引.否则它就是一个唯一性索引
+**Index.onError的值表明了当试图插入一个非唯一性元素的时候应该采取哪种冲突处理算法.
+**
+**
 */
 struct Index {
-  char *zName;     /* Name of this index */
-  int *aiColumn;   /* Which columns are used by this index.  1st is 0 */
-  tRowcnt *aiRowEst; /* Result of ANALYZE: Est. rows selected by each column */
-  Table *pTable;   /* The SQL table being indexed */
-  char *zColAff;   /* String defining the affinity of each column */
-  Index *pNext;    /* The next index associated with the same table */
-  Schema *pSchema; /* Schema containing this index */
-  u8 *aSortOrder;  /* Array of size Index.nColumn. True==DESC, False==ASC */
-  char **azColl;   /* Array of collation sequence names for index */
-  int nColumn;     /* Number of columns in the table used by this index */
-  int tnum;        /* Page containing root of this index in database file */
+  char *zName;     /* Name of this index 索引的名字*/
+  int *aiColumn;   /* Which columns are used by this index.  1st is 0 通过该索引而被使用的列，0是第一个*/
+  tRowcnt *aiRowEst; /* Result of ANALYZE: Est. rows selected by each column , ANALYZE的结果:Est. rows由每一列选择*/
+  Table *pTable;   /* The SQL table being indexed 被索引的SQL表*/
+  char *zColAff;   /* String defining the affinity of each column 为每一列的近似值做字符串定义*/
+  Index *pNext;    /* The next index associated with the same table 用相同的表相关联的下一个索引*/
+  Schema *pSchema; /* Schema containing this index 含有这种索引的模式*/
+  u8 *aSortOrder;  /* Array of size Index.nColumn. True==DESC, False==ASC , Index.nColumn长度的数组，True==DESC, False==ASC*/
+  char **azColl;   /* Array of collation sequence names for index 为索引名字进行排序的排序序列数组*/
+  int nColumn;     /* Number of columns in the table used by this index 通过该索引使用的表的列数*/
+  int tnum;        /* Page containing root of this index in database file 在数据库文件中包含该索引的根的页*/
   u8 onError;      /* OE_Abort, OE_Ignore, OE_Replace, or OE_None */
-  u8 autoIndex;    /* True if is automatically created (ex: by UNIQUE) */
-  u8 bUnordered;   /* Use this index for == or IN queries only */
+  u8 autoIndex;    /* True if is automatically created (ex: by UNIQUE) 若是系统自动创建则为真*/
+  u8 bUnordered;   /* Use this index for == or IN queries only 对于==使用该索引，或者是仅仅对IN 查询使用*/
 #ifdef SQLITE_ENABLE_STAT3
-  int nSample;             /* Number of elements in aSample[] */
-  tRowcnt avgEq;           /* Average nEq value for key values not in aSample */
-  IndexSample *aSample;    /* Samples of the left-most key */
+  int nSample;             /* Number of elements in aSample[] 数组aSample中的元素数目*/
+  tRowcnt avgEq;           /* Average nEq value for key values not in aSample 不在aSample数组中的键值的平均nEq值*/
+  IndexSample *aSample;    /* Samples of the left-most key 最左边键的值*/
 #endif
 };
 
@@ -1556,6 +1605,8 @@ struct Index {
 ** Each sample stored in the sqlite_stat3 table is represented in memory 
 ** using a structure of this type.  See documentation at the top of the
 ** analyze.c source file for additional information.
+**存储在sqlite_stat3表中的每个样本值均使用这种类型的结构表示在存储器中.
+**更多内容参见analyze.c源文件中顶端的文件信息.
 */
 struct IndexSample {
   union {
@@ -1564,66 +1615,71 @@ struct IndexSample {
     i64 i;          /* Value if eType is SQLITE_INTEGER */
   } u;
   u8 eType;         /* SQLITE_NULL, SQLITE_INTEGER ... etc. */
-  int nByte;        /* Size in byte of text or blob. */
-  tRowcnt nEq;      /* Est. number of rows where the key equals this sample */
-  tRowcnt nLt;      /* Est. number of rows where key is less than this sample */
-  tRowcnt nDLt;     /* Est. number of distinct keys less than this sample */
+  int nByte;        /* Size in byte of text or blob. 文本或者是二进制大对象的字节长度*/
+  tRowcnt nEq;      /* Est. number of rows where the key equals this sample 键与该样本相同的行的Est. number*/
+  tRowcnt nLt;      /* Est. number of rows where key is less than this sample 键少于该样本的行的Est. number*/
+  tRowcnt nDLt;     /* Est. number of distinct keys less than this sample 少于该样本的不重复的键的Est. number*/
 };
 
 /*
 ** Each token coming out of the lexer is an instance of
 ** this structure.  Tokens are also used as part of an expression.
-**
+**来源于词法分析器的每个记号都是这个结构体的一个实例。记号也作为表达式的一部分使用.
 ** Note if Token.z==0 then Token.dyn and Token.n are undefined and
 ** may contain random values.  Do not make any assumptions about Token.dyn
 ** and Token.n when Token.z==0.
+**注意,若Token.z==0，那么Token.dyn和Token.n是未被定义的，并且很可能包含随机值.
+**当 Token.z==0时，不要对Token.dyn和Token.n做任何假设
 */
 struct Token {
-  const char *z;     /* Text of the token.  Not NULL-terminated! */
-  unsigned int n;    /* Number of characters in this token */
+  const char *z;     /* Text of the token.  Not NULL-terminated! 记号的文本，不是空终结*/
+  unsigned int n;    /* Number of characters in this token 在该记号中所包含的字符的数目*/
 };
 
 /*
 ** An instance of this structure contains information needed to generate
 ** code for a SELECT that contains aggregate functions.
-**
+**这种结构体的一个实例包含了需要为选择语句生成代码的信息，这个选择中包含聚合函数.
 ** If Expr.op==TK_AGG_COLUMN or TK_AGG_FUNCTION then Expr.pAggInfo is a
 ** pointer to this structure.  The Expr.iColumn field is the index in
 ** AggInfo.aCol[] or AggInfo.aFunc[] of information needed to generate
 ** code for that node.
-**
+**若Expr.op==TK_AGG_COLUMN，或Expr.op==TK_AGG_FUNCTION，那么Expr.pAggInfo是指向该结构体的指针.
+** Expr.iColumn字段是AggInfo.aCol[]或者AggInfo.aFunc[]中需要为该结点生成代码的信息的索引.
 ** AggInfo.pGroupBy and AggInfo.aFunc.pExpr point to fields within the
 ** original Select structure that describes the SELECT statement.  These
 ** fields do not need to be freed when deallocating the AggInfo structure.
+** AggInfo.pGroupBy以及AggInfo.aFunc.pExpr指向描述选择语句，并包含在原始选择结构中的字段.
+** 当AggInfo结构体被释放的时候，这些字段不需要被释放.
 */
 struct AggInfo {
   u8 directMode;          /* Direct rendering mode means take data directly
                           ** from source tables rather than from accumulators */
   u8 useSortingIdx;       /* In direct mode, reference the sorting index rather
-                          ** than the source table */
-  int sortingIdx;         /* Cursor number of the sorting index */
-  int sortingIdxPTab;     /* Cursor number of pseudo-table */
-  int nSortingColumn;     /* Number of columns in the sorting index */
-  ExprList *pGroupBy;     /* The group by clause */
-  struct AggInfo_col {    /* For each column used in source tables */
-    Table *pTab;             /* Source table */
-    int iTable;              /* Cursor number of the source table */
-    int iColumn;             /* Column number within the source table */
-    int iSorterColumn;       /* Column number in the sorting index */
-    int iMem;                /* Memory location that acts as accumulator */
-    Expr *pExpr;             /* The original expression */
+                          ** than the source table 在直接模式中，参考排序索引而不是源表*/
+  int sortingIdx;         /* Cursor number of the sorting index 排序索引的游标号*/
+  int sortingIdxPTab;     /* Cursor number of pseudo-table , pseudo-table的游标号*/
+  int nSortingColumn;     /* Number of columns in the sorting index 排序索引中的列的数量*/
+  ExprList *pGroupBy;     /* The group by clause , group by 子句*/
+  struct AggInfo_col {    /* For each column used in source tables 对于在源表中使用的每一列*/
+    Table *pTab;             /* Source table  源表*/
+    int iTable;              /* Cursor number of the source table 源表的游标号*/
+    int iColumn;             /* Column number within the source table 源表中所包含的游标数量*/
+    int iSorterColumn;       /* Column number in the sorting index 在排序索引中的列的数量*/
+    int iMem;                /* Memory location that acts as accumulator 充当累加器的存储器位置*/
+    Expr *pExpr;             /* The original expression 原始表达式*/
   } *aCol;
-  int nColumn;            /* Number of used entries in aCol[] */
+  int nColumn;            /* Number of used entries in aCol[] , 数组aCol中被使用的数量*/
   int nAccumulator;       /* Number of columns that show through to the output.
                           ** Additional columns are used only as parameters to
-                          ** aggregate functions */
-  struct AggInfo_func {   /* For each aggregate function */
-    Expr *pExpr;             /* Expression encoding the function */
-    FuncDef *pFunc;          /* The aggregate function implementation */
-    int iMem;                /* Memory location that acts as accumulator */
-    int iDistinct;           /* Ephemeral table used to enforce DISTINCT */
+                          ** aggregate functions 通过输出显示的列的数量，其他的列仅作为参数传递给聚合函数*/
+  struct AggInfo_func {   /* For each aggregate function 对于每一个聚合函数*/
+    Expr *pExpr;             /* Expression encoding the function 编码功能的表达式*/
+    FuncDef *pFunc;          /* The aggregate function implementation 聚合函数的实现*/
+    int iMem;                /* Memory location that acts as accumulator 充当累加器的存储器位置*/
+    int iDistinct;           /* Ephemeral table used to enforce DISTINCT 用于执行DISTINCT操作的临时表*/
   } *aFunc;
-  int nFunc;              /* Number of entries in aFunc[] */
+  int nFunc;              /* Number of entries in aFunc[] 数组aFunc中的数量*/
 };
 
 /*
@@ -1635,6 +1691,12 @@ struct AggInfo {
 ** need more than about 10 or 20 variables.  But some extreme users want
 ** to have prepared statements with over 32767 variables, and for them
 ** the option is available (at compile-time).
+**数据类型ynVar是16位或32位的有符号整数，通常是16位.
+**但是如果SQLITE_MAX_VARIABLE_NUMBER大于32767，必须使用32位.
+**16位是首选，因为在Expr对象中这种方式占用更少的内存，包含很多预处理语句的Expr对象是系统内存使用的大用户.
+**没有应用程序需要10个或者20个以上的变量，但是有些极端用户需要超过32767个变量的预处理语句，并且在编译阶段它们的请求是可被允许的.
+**
+**
 */
 #if SQLITE_MAX_VARIABLE_NUMBER<=32767
 typedef i16 ynVar;
