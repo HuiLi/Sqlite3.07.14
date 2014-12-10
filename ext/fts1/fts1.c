@@ -2053,9 +2053,9 @@ static int constructVtab(
   }
   /* TODO(shess) For now, add new tokenizers as else if clauses. */
   if( spec->azTokenizer[0]==0 || startsWith(spec->azTokenizer[0], "simple") ){	//如果分词器以0开头，或者以"simple"开头
-    sqlite3Fts1SimpleTokenizerModule(&m);										//则设置分词器模式为"simple"
-  }else if( startsWith(spec->azTokenizer[0], "porter") ){						//如果分词器以"porter"开头
-    sqlite3Fts1PorterTokenizerModule(&m);										//设置分词器模式为"porter"
+    sqlite3Fts1SimpleTokenizerModule(&m);	//则设置分词器模式为"simple"
+  }else if( startsWith(spec->azTokenizer[0], "porter") ){	//如果分词器以"porter"开头
+    sqlite3Fts1PorterTokenizerModule(&m);	//设置分词器模式为"porter"
   }else{																		//否则输出错误信息
     *pzErr = sqlite3_mprintf("unknown tokenizer: %s", spec->azTokenizer[0]);
     rc = SQLITE_ERROR;
