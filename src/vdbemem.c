@@ -1,5 +1,5 @@
 /*   操作”Mem”数据结构的函数
-** VDBE是SQLite的核心：它上面的各模块都是用于创建VDBE程序，它下面的各模块都是用于执行VDBE程序，每次执行一条指令。
+** VDBE(虚拟数据库引擎)是SQLite的核心：它上面的各模块都是用于创建VDBE程序，它下面的各模块都是用于执行VDBE程序，每次执行一条指令。
 ** 2004 May 26
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -11,7 +11,7 @@
 **
 *************************************************************************
 **
-** This file contains code use to manipulate "Mem" structure.  A "Mem"
+** This file contains code use to manipulate(操纵) "Mem" structure.  A "Mem"
 ** stores a single value in the VDBE[虚拟数据库引擎(Virtual DataBase Engine,VDBE)].  Mem is an opaque(不透明的) structure visible
 ** only within the VDBE.  Interface routines refer to a Mem using the
 ** name sqlite_value
@@ -20,8 +20,8 @@
 #include "vdbeInt.h"
 
 /*
-** If pMem is an object with a valid(有效的) string representation(表示), this routine
-** ensures the internal encoding for the string representation is
+** If pMem is an object with a valid(有效的) string representation(表示), this routine(常规)
+** ensures the internal(内部的) encoding for the string representation is
 ** 'desiredEnc', one of SQLITE_UTF8, SQLITE_UTF16LE or SQLITE_UTF16BE.
 **
 ** If pMem is not a string object(字符串对象), or the encoding of the string
@@ -32,6 +32,7 @@
 ** SQLITE_NOMEM may be returned if a malloc() fails during conversion
 ** between formats.
 */
+-- sqlite3VdbeChangeEncoding函数用来改变编码方式
 int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
   int rc;
   assert( (pMem->flags&MEM_RowSet)==0 );
@@ -48,7 +49,7 @@ int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
   /* MemTranslate() may return SQLITE_OK or SQLITE_NOMEM. If NOMEM is returned,
   ** then the encoding of the value may not have changed.
   */
-  rc = sqlite3VdbeMemTranslate(pMem, (u8)desiredEnc);
+  rc = sqlite3VdbeMemTranslate(pMem, (u8)desiredEnc);-- 传递函数值
   assert(rc==SQLITE_OK    || rc==SQLITE_NOMEM);
   assert(rc==SQLITE_OK    || pMem->enc!=desiredEnc);
   assert(rc==SQLITE_NOMEM || pMem->enc==desiredEnc);
