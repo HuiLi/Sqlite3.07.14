@@ -1109,50 +1109,60 @@ static int display_stats(
 ** function except it takes a slightly different callback 
 ** and callback data argument.
 */
+
+/*
+**sqlite3_exec()函数一次可以执行多条SQL命令。执行完成后，通过回调函数设置当前模式来返回一个代码。
+**这和SQLITE的内置sqlite3_exec()很像，除了需要一个稍微不同的回调函数和回调函数参数
+**它还会将错误信息写到*pzErrMsg中。
+**如果SQL是查询,查询结果中的每一行都会调用xCallback()函数。
+**pArg为传递给xCallback()的第一个参数。如果xCallback==NULL，即使对查询命令也没有回叫调用。
+/*
+
+
 static int shell_exec(
-  sqlite3 *db,                                /* An open database */
-  const char *zSql,                           /* SQL to be evaluated */
-  int (*xCallback)(void*,int,char**,char**,int*),   /* Callback function */
+  sqlite3 *db,                                /* An open database */ /*一个打开的数据库连接*/
+  const char *zSql,                           /* SQL to be evaluated */ /*要执行的SQL语句*/
+  int (*xCallback)(void*,int,char**,char**,int*),   /* Callback function */ /*回调函数*/
                                               /* (not the same as sqlite3_exec) */
-  struct callback_data *pArg,                 /* Pointer to struct callback_data */
-  char **pzErrMsg                             /* Error msg written here */
+  struct callback_data *pArg,                 /* Pointer to struct callback_data */ /*回调函数的第一个参数*/
+  char **pzErrMsg                             /* Error msg written here */ /*保存错误信息*/
 ){
-  sqlite3_stmt *pStmt = NULL;     /* Statement to execute. */
-  int rc = SQLITE_OK;             /* Return Code */
+  sqlite3_stmt *pStmt = NULL;     /* Statement to execute. */ /*当前SQL语句初始化*/
+  int rc = SQLITE_OK;             /* Return Code */ /*返回码设置为SQLITE_OK*/
   int rc2;
-  const char *zLeftover;          /* Tail of unprocessed SQL */
+  const char *zLeftover;          /* Tail of unprocessed SQL */ /*没有被处理的SQL语句尾部*/
 
   if( pzErrMsg ){
-    *pzErrMsg = NULL;
+    *pzErrMsg = NULL; /*错误信息初始化*/
   }
 
-  while( zSql[0] && (SQLITE_OK == rc) ){
-    rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);
-    if( SQLITE_OK != rc ){
+  while( zSql[0] && (SQLITE_OK == rc) ){/*当没有语句要执行 且返回码是SQLITE_OK*/
+    rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);/*对RC用sqlite3_prepare_v2函数*/
+    if( SQLITE_OK != rc ){/*对RC用sqlite3_prepare_v2函数*/
       if( pzErrMsg ){
-        *pzErrMsg = save_err_msg(db);
+        *pzErrMsg = save_err_msg(db);/*写入错误信息*/
       }
     }else{
       if( !pStmt ){
-        /* this happens for a comment or white-space */
-        zSql = zLeftover;
-        while( IsSpace(zSql[0]) ) zSql++;
+        /* this happens for a comment or white-space *//*遇到注释或者空格时*/
+        zSql = zLeftover;/*将语句指针移到未被处理的语句尾部*/
+        while( IsSpace(zSql[0]) ) zSql++;/*循环处理语句*/
         continue;
       }
 
-      /* save off the prepared statment handle and reset row count */
+      /* save off the prepared statment handle and reset row count */ /*关闭准备好的句柄，重置行数*/
       if( pArg ){
         pArg->pStmt = pStmt;
-        pArg->cnt = 0;
+        pArg->cnt = 0;/*重置行数为0
       }
 
-      /* echo the sql statement if echo on */
+      /* echo the sql statement if echo on *//*如果有回调函数并且需要，则调用回调函数*/
       if( pArg && pArg->echoOn ){
         const char *zStmtSql = sqlite3_sql(pStmt);
         fprintf(pArg->out, "%s\n", zStmtSql ? zStmtSql : zSql);
       }
 
-      /* Output TESTCTRL_EXPLAIN text of requested */
+      /* Output TESTCTRL_EXPLAIN text of requested *//*输出需要的TESTCTRL_EXPLAIN文档*/
       if( pArg && pArg->mode==MODE_Explain ){
         const char *zExplain = 0;
         sqlite3_test_control(SQLITE_TESTCTRL_EXPLAIN_STMT, pStmt, &zExplain);
@@ -1160,32 +1170,32 @@ static int shell_exec(
           fprintf(pArg->out, "%s", zExplain);
         }
       }
-
+/*执行第一步，然后会知道是否有一个结果，以及它的大小*/
       /* perform the first step.  this will tell us if we
       ** have a result set or not and how wide it is.
       */
       rc = sqlite3_step(pStmt);
-      /* if we have a result set... */
+      /* if we have a result set... *//*如果有一个结果集*/
       if( SQLITE_ROW == rc ){
-        /* if we have a callback... */
+        /* if we have a callback... *//*如果有回调函数*/
         if( xCallback ){
-          /* allocate space for col name ptr, value ptr, and type */
+          /* allocate space for col name ptr, value ptr, and type *//*分配空间*/
           int nCol = sqlite3_column_count(pStmt);
           void *pData = sqlite3_malloc(3*nCol*sizeof(const char*) + 1);
           if( !pData ){
             rc = SQLITE_NOMEM;
           }else{
-            char **azCols = (char **)pData;      /* Names of result columns */
-            char **azVals = &azCols[nCol];       /* Results */
-            int *aiTypes = (int *)&azVals[nCol]; /* Result types */
+            char **azCols = (char **)pData;      /* Names of result columns *//*结果集的名字*/
+            char **azVals = &azCols[nCol];       /* Results *//*结果*/
+            int *aiTypes = (int *)&azVals[nCol]; /* Result types *//*结果类型*/
             int i;
             assert(sizeof(int) <= sizeof(char *)); 
-            /* save off ptrs to column names */
+            /* save off ptrs to column names *//* 保存ptrs为列名*/
             for(i=0; i<nCol; i++){
               azCols[i] = (char *)sqlite3_column_name(pStmt, i);
             }
             do{
-              /* extract the data and data types */
+              /* extract the data and data types *//*提取数据和数据类型*/
               for(i=0; i<nCol; i++){
                 azVals[i] = (char *)sqlite3_column_text(pStmt, i);
                 aiTypes[i] = sqlite3_column_type(pStmt, i);
@@ -1195,9 +1205,9 @@ static int shell_exec(
                 }
               } /* end for */
 
-              /* if data and types extracted successfully... */
+              /* if data and types extracted successfully... *//*如果数据以及类型提取成功*/
               if( SQLITE_ROW == rc ){ 
-                /* call the supplied callback with the result row data */
+                /* call the supplied callback with the result row data *//*根据当前数据调用回调函数*/
                 if( xCallback(pArg, nCol, azVals, azCols, aiTypes) ){
                   rc = SQLITE_ABORT;
                 }else{
@@ -1214,7 +1224,7 @@ static int shell_exec(
         }
       }
 
-      /* print usage stats if stats on */
+      /* print usage stats if stats on *//*输入用法统计*/
       if( pArg && pArg->statsOn ){
         display_stats(db, pArg, 0);
       }
@@ -1222,6 +1232,9 @@ static int shell_exec(
       /* Finalize the statement just executed. If this fails, save a 
       ** copy of the error message. Otherwise, set zSql to point to the
       ** next statement to execute. */
+      /*完成语句的执行，如果失败
+       **保存错误信息，否则将
+       **指针指向下一个需要执行的语句*/
       rc2 = sqlite3_finalize(pStmt);
       if( rc!=SQLITE_NOMEM ) rc = rc2;
       if( rc==SQLITE_OK ){
@@ -1231,12 +1244,12 @@ static int shell_exec(
         *pzErrMsg = save_err_msg(db);
       }
 
-      /* clear saved stmt handle */
+      /* clear saved stmt handle *//*清除已保存的句柄*/
       if( pArg ){
         pArg->pStmt = NULL;
       }
     }
-  } /* end while */
+  } /* end while *//*结束循环*/
 
   return rc;
 }
@@ -1349,26 +1362,31 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
 ** If we get a SQLITE_CORRUPT error, rerun the query after appending
 ** "ORDER BY rowid DESC" to the end.
 */
+/*运行zQuery，用dump_callback()作为一个回调程序
+**那么查询的内容就会作为SQL语言输出
+**如果我们得到一个SQLITE_CORRUPT错误， 
+**在末尾加上"ORDER BY rowid DESC"后重新运行查询
+*/
 static int run_schema_dump_query(
-  struct callback_data *p, 
+  struct callback_data *p, /*要查询的内容*/
   const char *zQuery
 ){
-  int rc;
-  char *zErr = 0;
-  rc = sqlite3_exec(p->db, zQuery, dump_callback, p, &zErr);
+  int rc;/*定义返回值*/
+  char *zErr = 0;/*初始化错误信息*/
+  rc = sqlite3_exec(p->db, zQuery, dump_callback, p, &zErr);/*对返回值调用sqlite3_exec函数*/
   if( rc==SQLITE_CORRUPT ){
     char *zQ2;
     int len = strlen30(zQuery);
-    fprintf(p->out, "/****** CORRUPTION ERROR *******/\n");
+    fprintf(p->out, "/****** CORRUPTION ERROR *******/\n");/*如果rc值为SQLITE_CORRUPT 输出CORRUPTION ERROR*/
     if( zErr ){
-      fprintf(p->out, "/****** %s ******/\n", zErr);
-      sqlite3_free(zErr);
+      fprintf(p->out, "/****** %s ******/\n", zErr);/*输出错误信息*/
+      sqlite3_free(zErr);/*重置错误信息*/
       zErr = 0;
     }
-    zQ2 = malloc( len+100 );
-    if( zQ2==0 ) return rc;
-    sqlite3_snprintf(len+100, zQ2, "%s ORDER BY rowid DESC", zQuery);
-    rc = sqlite3_exec(p->db, zQ2, dump_callback, p, &zErr);
+    zQ2 = malloc( len+100 );/*为ZQ2分配空间*/
+    if( zQ2==0 ) return rc;/*如果等于0则返回rc*/
+    sqlite3_snprintf(len+100, zQ2, "%s ORDER BY rowid DESC", zQuery);/*调用sqlite3_snprintf函数*/
+    rc = sqlite3_exec(p->db, zQ2, dump_callback, p, &zErr);/*rc值为sqlite3_exec函数的结果*/
     if( rc ){
       fprintf(p->out, "/****** ERROR: %s ******/\n", zErr);
     }else{
@@ -1377,65 +1395,73 @@ static int run_schema_dump_query(
     sqlite3_free(zErr);
     free(zQ2);
   }
-  return rc;
+  return rc;/*得到返回值*/
 }
 
 /*
 ** Text of a help message
 */
+
+/*
+**帮助信息的文档
+*/
 static char zHelp[] =
-  ".backup ?DB? FILE      Backup DB (default \"main\") to FILE\n"
-  ".bail ON|OFF           Stop after hitting an error.  Default OFF\n"
-  ".databases             List names and files of attached databases\n"
+  ".backup ?DB? FILE      Backup DB (default \"main\") to FILE\n"/*备份数据库文档（默认main文件）*/
+  ".bail ON|OFF           Stop after hitting an error.  Default OFF\n"/*命中一个错误后停止  Bail默认是OFF */
+  ".databases             List names and files of attached databases\n"/*连接数据库后列出名字和文件*/
   ".dump ?TABLE? ...      Dump the database in an SQL text format\n"
+  /*将数据库转储为SQL文件格式，如果制定了表，那就只转储匹配的表，比如表的模板*/
   "                         If TABLE specified, only dump tables matching\n"
   "                         LIKE pattern TABLE.\n"
-  ".echo ON|OFF           Turn command echo on or off\n"
-  ".exit                  Exit this program\n"
+  ".echo ON|OFF           Turn command echo on or off\n"/*命令设置为ON或OFF */
+  ".exit                  Exit this program\n" /*结束程序*/
   ".explain ?ON|OFF?      Turn output mode suitable for EXPLAIN on or off.\n"
   "                         With no args, it turns EXPLAIN on.\n"
-  ".header(s) ON|OFF      Turn display of headers on or off\n"
-  ".help                  Show this message\n"
-  ".import FILE TABLE     Import data from FILE into TABLE\n"
-  ".indices ?TABLE?       Show names of all indices\n"
-  "                         If TABLE specified, only show indices for tables\n"
+  /*根据适合的输出模式将explain设置为ON或OFF ，没有参数就设置为ON */
+  ".header(s) ON|OFF      Turn display of headers on or off\n"/*将头文件显示设置为ON或OFF */
+  ".help                  Show this message\n"/*显示本文档*/
+  ".import FILE TABLE     Import data from FILE into TABLE\n"/*将重要数据从文件提取到表*/
+  ".indices ?TABLE?       Show names of all indices\n"/*显示所有索引的名字*/
+  "                         If TABLE specified, only show indices for tables\n"/*如果制定了表就只显示那个表的索引*/
   "                         matching LIKE pattern TABLE.\n"
 #ifdef SQLITE_ENABLE_IOTRACE
-  ".iotrace FILE          Enable I/O diagnostic logging to FILE\n"
+  ".iotrace FILE          Enable I/O diagnostic logging to FILE\n"/*启用I/O诊断记录到文件*/
 #endif
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
-  ".load FILE ?ENTRY?     Load an extension library\n"
+  ".load FILE ?ENTRY?     Load an extension library\n" /*读取一个扩展库*/
 #endif
-  ".log FILE|off          Turn logging on or off.  FILE can be stderr/stdout\n"
-  ".mode MODE ?TABLE?     Set output mode where MODE is one of:\n"
-  "                         csv      Comma-separated values\n"
-  "                         column   Left-aligned columns.  (See .width)\n"
-  "                         html     HTML <table> code\n"
-  "                         insert   SQL insert statements for TABLE\n"
+  ".log FILE|off          Turn logging on or off.  FILE can be stderr/stdout\n"/*开启或关闭日志文件*/
+  ".mode MODE ?TABLE?     Set output mode where MODE is one of:\n" /*设置输出模式*/
+  "                         csv      Comma-separated values\n" /*分号*/
+  "                         column   Left-aligned columns.  (See .width)\n"/*列左对齐*/
+  "                         html     HTML <table> code\n" /*表代码*/
+  "                         insert   SQL insert statements for TABLE\n"/*为表插入语句*/
   "                         line     One value per line\n"
-  "                         list     Values delimited by .separator string\n"
+  "                         list     Values delimited by .separator string\n"/*分号隔开的串*/
   "                         tabs     Tab-separated values\n"
   "                         tcl      TCL list elements\n"
-  ".nullvalue STRING      Print STRING in place of NULL values\n"
-  ".output FILENAME       Send output to FILENAME\n"
-  ".output stdout         Send output to the screen\n"
-  ".prompt MAIN CONTINUE  Replace the standard prompts\n"
-  ".quit                  Exit this program\n"
-  ".read FILENAME         Execute SQL in FILENAME\n"
-  ".restore ?DB? FILE     Restore content of DB (default \"main\") from FILE\n"
+  ".nullvalue STRING      Print STRING in place of NULL values\n"/*输出串代替NULL */
+  ".output FILENAME       Send output to FILENAME\n"/*输出文件名*/
+  ".output stdout         Send output to the screen\n" /*将输出显示到屏幕*/
+  ".prompt MAIN CONTINUE  Replace the standard prompts\n"/*取代标准提示*/
+  ".quit                  Exit this program\n" /*结束当前项目*/
+  ".read FILENAME         Execute SQL in FILENAME\n"/*执行SQL */
+  ".restore ?DB? FILE     Restore content of DB (default \"main\") from FILE\n"/*还原DB内容*/
   ".schema ?TABLE?        Show the CREATE statements\n"
   "                         If TABLE specified, only show tables matching\n"
   "                         LIKE pattern TABLE.\n"
-  ".separator STRING      Change separator used by output mode and .import\n"
-  ".show                  Show the current values for various settings\n"
+  /*显示创建的表，如果制定表就只显示那个表的语句*/
+  ".separator STRING      Change separator used by output mode and .import\n"/*显示各种设置的当前值*/
+  ".show                  Show the current values for various settings\n" /*设置“stats”的值为ON或OFF*/
   ".stats ON|OFF          Turn stats on or off\n"
   ".tables ?TABLE?        List names of tables\n"
   "                         If TABLE specified, only list tables matching\n"
   "                         LIKE pattern TABLE.\n"
-  ".timeout MS            Try opening locked tables for MS milliseconds\n"
-  ".trace FILE|off        Output each SQL statement as it is run\n"
-  ".vfsname ?AUX?         Print the name of the VFS stack\n"
-  ".width NUM1 NUM2 ...   Set column widths for \"column\" mode\n"
+  /*列举表名 若指定了表就只显示那个表的名字*/
+  ".timeout MS            Try opening locked tables for MS milliseconds\n"/*打开锁住的表*/
+  ".trace FILE|off        Output each SQL statement as it is run\n"/*输出每一个正在运行的语句*/
+  ".vfsname ?AUX?         Print the name of the VFS stack\n"/*输出虚拟堆栈的名字*/
+  ".width NUM1 NUM2 ...   Set column widths for \"column\" mode\n"/*设置列宽*/
 ;
 
 static char zTimerHelp[] =
@@ -1510,22 +1536,29 @@ static void resolve_backslashes(char *z){
 /*
 ** Interpret zArg as a boolean value.  Return either 0 or 1.
 */
+/*
+**将zArg翻译为布尔值，返回1或0
+*/
+
 static int booleanValue(char *zArg){
   int val = atoi(zArg);
   int j;
   for(j=0; zArg[j]; j++){
-    zArg[j] = ToLower(zArg[j]);
+    zArg[j] = ToLower(zArg[j]);/*转换为小写*/
   }
-  if( strcmp(zArg,"on")==0 ){
+  if( strcmp(zArg,"on")==0 ){/*比较函数*/
     val = 1;
-  }else if( strcmp(zArg,"yes")==0 ){
+  }else if( strcmp(zArg,"yes")==0 ){/*比较函数*/
     val = 1;
   }
-  return val;
+  return val;/*返回值*/
 }
 
 /*
 ** Close an output file, assuming it is not stderr or stdout
+*/
+/*
+**关闭一个打开的文件 假设不是标准错误或者标准输出
 */
 static void output_file_close(FILE *f){
   if( f && f!=stdout && f!=stderr ) fclose(f);
@@ -1535,6 +1568,10 @@ static void output_file_close(FILE *f){
 ** Try to open an output file.   The names "stdout" and "stderr" are
 ** recognized and do the right thing.  NULL is returned if the output 
 ** filename is "off".
+*/
+/*
+**试着打开一个输出文件 名字是"stdout" 和 "stderr"是认可的。
+**如果输出的文件名是OFF，返回NULL
 */
 static FILE *output_file_open(const char *zFile){
   FILE *f;
@@ -1556,6 +1593,10 @@ static FILE *output_file_open(const char *zFile){
 /*
 ** A routine for handling output from sqlite3_trace().
 */
+/*
+**一个程序 处理输出sqlite3_trace(
+*/
+
 static void sql_trace_callback(void *pArg, const char *z){
   FILE *f = (FILE*)pArg;
   if( f ) fprintf(f, "%s\n", z);
@@ -1565,6 +1606,11 @@ static void sql_trace_callback(void *pArg, const char *z){
 ** A no-op routine that runs with the ".breakpoint" doc-command.  This is
 ** a useful spot to set a debugger breakpoint.
 */
+/*
+**一个空程序,在断点运行命令,
+**一个有效设置断点调试器的点
+*/
+
 static void test_breakpoint(void){
   static int nCall = 0;
   nCall++;
