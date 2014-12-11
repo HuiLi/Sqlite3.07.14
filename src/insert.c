@@ -1850,4 +1850,4 @@ static int xferOptimization(
     return 1;
   }
 }
-#endif /* SQLITE_OMIT_XFER_OPT */
+#endif /* SQLITE_OMIT_XFER_OPT the end*/
