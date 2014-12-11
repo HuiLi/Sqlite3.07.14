@@ -388,7 +388,7 @@ int sqlite3_compileoption_used(const char *zOptName){
   /* Since ArraySize(azCompileOpt) is normally in single digits, a
   ** linear search is adequate.  No need for a binary search. 
   **因为ArraySize(azCompileOpt)的大小通常是个位数字的，线性搜索就能满足，不需要二分查找。*/
-  for(i=0; i<ArraySize(azCompileOpt); i++){
+  for(i=0; i<ArraySize(azCompileOpt); i++){ /*ArraySize返回azCompileOpt数组元素的数量*/
     if(   (sqlite3StrNICmp(zOptName, azCompileOpt[i], n)==0)
        && ( (azCompileOpt[i][n]==0) || (azCompileOpt[i][n]=='=') ) ) return 1;
   }
