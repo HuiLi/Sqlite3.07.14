@@ -7,7 +7,7 @@
 **    May you do good and not evil.
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
-**    
+**
 *************************************************************************
 ** This is the header file for information that is private to the
 ** VDBE.  This information used to all be at the top of the single
@@ -202,7 +202,7 @@ struct Mem {
 #define MEM_Int       0x0004   /* Value is an integer */
 #define MEM_Real      0x0008   /* Value is a real number */
 #define MEM_Blob      0x0010   /* Value is a BLOB */
-#define MEM_RowSet    0x0020   /* Value is a RowSet object 这个值是一个行集对象。*/
+#define MEM_RowSet    0x0020   /* Value is a RowSet object */
 #define MEM_Frame     0x0040   /* Value is a VdbeFrame object */
 #define MEM_Invalid   0x0080   /* Value is undefined */
 #define MEM_TypeMask  0x00ff   /* Mask of type bits */
@@ -211,15 +211,13 @@ struct Mem {
 ** the following flags must be set to determine the memory management
 ** policy for Mem.z.  The MEM_Term flag tells us whether or not the
 ** string is \000 or \u0000 terminated
-**任何时候Mem含有一个有效的字符串或者一个替代符，下面其中之一的标示必须被设置以决定Mem.z的内存管理策略。
-**MEM_Term标记告诉我们无论是\000或者\u000都将终止。
 */
-#define MEM_Term      0x0200   /* String rep is nul terminated 字符串替代符为空则停止。*/
-#define MEM_Dyn       0x0400   /* Need to call sqliteFree() on Mem.z 调用Mem.z的sqliteFree()方法*/
-#define MEM_Static    0x0800   /* Mem.z points to a static string Mem.z指向一个静态的字符串*/
-#define MEM_Ephem     0x1000   /* Mem.z points to an ephemeral string 指向一个短字符串*/
-#define MEM_Agg       0x2000   /* Mem.z points to an agg function context 指向一个自增的上下文控制函数*/
-#define MEM_Zero      0x4000   /* Mem.i contains count of 0s appended to blob Mem.i包含附加的0s数目*/
+#define MEM_Term      0x0200   /* String rep is nul terminated */
+#define MEM_Dyn       0x0400   /* Need to call sqliteFree() on Mem.z */
+#define MEM_Static    0x0800   /* Mem.z points to a static string */
+#define MEM_Ephem     0x1000   /* Mem.z points to an ephemeral string */
+#define MEM_Agg       0x2000   /* Mem.z points to an agg function context */
+#define MEM_Zero      0x4000   /* Mem.i contains count of 0s appended to blob */
 #ifdef SQLITE_OMIT_INCRBLOB
   #undef MEM_Zero
   #define MEM_Zero 0x0000
@@ -227,7 +225,6 @@ struct Mem {
 
 /*
 ** Clear any existing type flags from a Mem and replace them with f
-**从Mem清空任何存在的标记类型并用f代替
 */
 #define MemSetTypeFlag(p, f) \
    ((p)->flags = ((p)->flags&~(MEM_TypeMask|MEM_Zero))|f)
