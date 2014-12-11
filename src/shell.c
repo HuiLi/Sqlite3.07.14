@@ -962,38 +962,38 @@ static void set_table_name(struct callback_data *p, const char *zName){ //设定
 **
 ** If the third argument, quote, is not '\0', then it is used as a 
 ** quote character for zAppend.
-*/
-static char *appendText(char *zIn, char const *zAppend, char quote){
-  int len;
+*/    //如果zInt不是null，则释放空间
+static char *appendText(char *zIn, char const *zAppend, char quote){//zInt是在malloc()中获得的内存中以NUll字符串结尾的字符串指针或表示NUll指针；zAppend指向的字符串是加到zInt上的，返回的结果来自malloc()；如果第三个参数不是'\0',那么用作zAppend引用字符
+  int len;//定义长度
   int i;
   int nAppend = strlen30(zAppend);
   int nIn = (zIn?strlen30(zIn):0);
 
   len = nAppend+nIn+1;
-  if( quote ){
+  if( quote ){//如果quote不是'\0',那么用作zAppend引用字符
     len += 2;
     for(i=0; i<nAppend; i++){
       if( zAppend[i]==quote ) len++;
     }
   }
 
-  zIn = (char *)realloc(zIn, len);
+  zIn = (char *)realloc(zIn, len);//重新分配内存
   if( !zIn ){
     return 0;
   }
 
-  if( quote ){
+  if( quote ){//如果quote不是'\0'
     char *zCsr = &zIn[nIn];
     *zCsr++ = quote;
     for(i=0; i<nAppend; i++){
       *zCsr++ = zAppend[i];
-      if( zAppend[i]==quote ) *zCsr++ = quote;
+      if( zAppend[i]==quote ) *zCsr++ = quote; //如果zAppend指向的字符串和quote相等
     }
     *zCsr++ = quote;
     *zCsr++ = '\0';
     assert( (zCsr-zIn)==len );
   }else{
-    memcpy(&zIn[nIn], zAppend, nAppend);
+    memcpy(&zIn[nIn], zAppend, nAppend);//字符串拷贝
     zIn[len-1] = '\0';
   }
 
