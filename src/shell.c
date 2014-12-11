@@ -1261,63 +1261,85 @@ static int shell_exec(
 ** the table type ("index" or "table") and SQL to create the table.
 ** This routine should print text sufficient to recreate the table.
 */
+
+/*
+**.dump命令是SQLite备份数据所采取的一种方式，在Shell中，可以将输出重
+**定向到外部文件，执行命令，就可以将数据库以SQL语句形式备份到外部文件。
+*/
+
+
+/*这是一个用于转储数据库的回调函数 ，它会收到由表名、表类
+**型（索引还是表）和创建这表的SQL的行，这程序应输出足够的可以
+**重建表的文档。
+*/
+
+
 static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
-  int rc;
-  const char *zTable;
-  const char *zType;
-  const char *zSql;
+  int rc;/*定义一个rc值*/
+  const char *zTable;/*表名*/
+  const char *zType;/*表类型*/
+  const char *zSql;/*SQL语句*/
   const char *zPrepStmt = 0;
   struct callback_data *p = (struct callback_data *)pArg;
-
+/*这是一个callback_data结构体，用来进行各种程序之间的传值以及获取当前状态*/
   UNUSED_PARAMETER(azCol);
-  if( nArg!=3 ) return 1;
-  zTable = azArg[0];
-  zType = azArg[1];
-  zSql = azArg[2];
+  if( nArg!=3 ) return 1;/* nArg不等于3则返回1*/
+  zTable = azArg[0];/*得到表名*/
+  zType = azArg[1];/*得到表类型*/
+  zSql = azArg[2];/*得到SQL语句*/
   
-  if( strcmp(zTable, "sqlite_sequence")==0 ){
+  if( strcmp(zTable, "sqlite_sequence")==0 ){/*如果zTable的值为"sqlite_sequence"*/
     zPrepStmt = "DELETE FROM sqlite_sequence;\n";
-  }else if( strcmp(zTable, "sqlite_stat1")==0 ){
-    fprintf(p->out, "ANALYZE sqlite_master;\n");
+  }else if( strcmp(zTable, "sqlite_stat1")==0 ){/*如果zTable的值为"sqlite_stat1"*/
+    fprintf(p->out, "ANALYZE sqlite_master;\n");/*格式化输出*/
   }else if( strncmp(zTable, "sqlite_", 7)==0 ){
     return 0;
   }else if( strncmp(zSql, "CREATE VIRTUAL TABLE", 20)==0 ){
     char *zIns;
     if( !p->writableSchema ){
-      fprintf(p->out, "PRAGMA writable_schema=ON;\n");
+      fprintf(p->out, "PRAGMA writable_schema=ON;\n");/*格式化输出*/
       p->writableSchema = 1;
     }
-    zIns = sqlite3_mprintf(
+    zIns = sqlite3_mprintf(/*格式化输入表名 表类型 SQL语句到zIns*/
        "INSERT INTO sqlite_master(type,name,tbl_name,rootpage,sql)"
        "VALUES('table','%q','%q',0,'%q');",
        zTable, zTable, zSql);
-    fprintf(p->out, "%s\n", zIns);
-    sqlite3_free(zIns);
+    fprintf(p->out, "%s\n", zIns);/*格式化输出zIns的内容*/
+    sqlite3_free(zIns);/*释放zIns的内容*/
     return 0;
-  }else{
+  }else{/*否则直接格式化输出zIns的内容*/
     fprintf(p->out, "%s;\n", zSql);
   }
 
-  if( strcmp(zType, "table")==0 ){
+  if( strcmp(zType, "table")==0 ){/*如果zType的值为"table"*/
     sqlite3_stmt *pTableInfo = 0;
     char *zSelect = 0;
     char *zTableInfo = 0;
     char *zTmp = 0;
     int nRow = 0;
-   
+   /*用appendText函数给zTableInfo赋值*/
     zTableInfo = appendText(zTableInfo, "PRAGMA table_info(", 0);
     zTableInfo = appendText(zTableInfo, zTable, '"');
     zTableInfo = appendText(zTableInfo, ");", 0);
-
+/*
+对rc赋值  赋值结果为此函数的值  这个函数用于完成SQL语句的解析。第一
+**个参数是sqlite3*类型变量，第二个参数是sql语句，第三个是-1，意思是前
+**面sql语句的长度，由于小于0，sqlite会自动计算长度。第四个参数是sqlite3_stmt
+**的指针，用于存放解析后的sql语句
+*/
     rc = sqlite3_prepare(p->db, zTableInfo, -1, &pTableInfo, 0);
-    free(zTableInfo);
-    if( rc!=SQLITE_OK || !pTableInfo ){
+    free(zTableInfo);/*释放zTableInfo*/
+    if( rc!=SQLITE_OK || !pTableInfo ){/*如果出现错误，返回1*/
       return 1;
     }
-
+/*用appendText函数给zSelect赋值*/
     zSelect = appendText(zSelect, "SELECT 'INSERT INTO ' || ", 0);
     /* Always quote the table name, even if it appears to be pure ascii,
     ** in case it is a keyword. Ex:  INSERT INTO "table" ... */
+    /*
+    一般引用表名，除非显示为纯ASCII码
+    **如果是关键字 插入表
+    */
     zTmp = appendText(zTmp, zTable, '"');
     if( zTmp ){
       zSelect = appendText(zSelect, zTmp, '\'');
@@ -1329,7 +1351,7 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
       const char *zText = (const char *)sqlite3_column_text(pTableInfo, 1);
       zSelect = appendText(zSelect, "quote(", 0);
       zSelect = appendText(zSelect, zText, '"');
-      rc = sqlite3_step(pTableInfo);
+      rc = sqlite3_step(pTableInfo);/*pTableInfo表示的sql语句将被写入数据库*/
       if( rc==SQLITE_ROW ){
         zSelect = appendText(zSelect, "), ", 0);
       }else{
@@ -1337,7 +1359,7 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
       }
       nRow++;
     }
-    rc = sqlite3_finalize(pTableInfo);
+    rc = sqlite3_finalize(pTableInfo);/*销毁pTableInfoli里分配的内容*/
     if( rc!=SQLITE_OK || nRow==0 ){
       free(zSelect);
       return 1;
@@ -1345,7 +1367,7 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
     zSelect = appendText(zSelect, "|| ')' FROM  ", 0);
     zSelect = appendText(zSelect, zTable, '"');
 
-    rc = run_table_dump_query(p, zSelect, zPrepStmt);
+    rc = run_table_dump_query(p, zSelect, zPrepStmt);/*使用.dump命令可将数据库对象导出为SQL格式 */
     if( rc==SQLITE_CORRUPT ){
       zSelect = appendText(zSelect, " ORDER BY rowid DESC", 0);
       run_table_dump_query(p, zSelect, 0);
@@ -1468,24 +1490,28 @@ static char zTimerHelp[] =
   ".timer ON|OFF          Turn the CPU timer measurement on or off\n"
 ;
 
-/* Forward reference */
+/* Forward reference *//*引用*/
 static int process_input(struct callback_data *p, FILE *in);
 
 /*
 ** Make sure the database is open.  If it is not, then open it.  If
 ** the database fails to open, print an error message and exit.
 */
+/*
+功能：确认数据库是否已经打开。如果已打开，则什么都不做。如果
+**没有，则打开它。如果打开失败，输出一个错误信息。
+*/
 static void open_db(struct callback_data *p){
-  if( p->db==0 ){
-    sqlite3_initialize();
-    sqlite3_open(p->zDbFilename, &p->db);
+  if( p->db==0 ){/*如果数据库为空*/
+    sqlite3_initialize();/*初始化Sqlite数据库*/
+    sqlite3_open(p->zDbFilename, &p->db);/*zDbFilenam为存放数据库文件的名字 */
     db = p->db;
     if( db && sqlite3_errcode(db)==SQLITE_OK ){
       sqlite3_create_function(db, "shellstatic", 0, SQLITE_UTF8, 0,
           shellstaticFunc, 0, 0);
     }
     if( db==0 || SQLITE_OK!=sqlite3_errcode(db) ){
-      fprintf(stderr,"Error: unable to open database \"%s\": %s\n", 
+      fprintf(stderr,"Error: unable to open database \"%s\": %s\n", /*格式化输出*/
           p->zDbFilename, sqlite3_errmsg(db));
       exit(1);
     }
@@ -1504,21 +1530,22 @@ static void open_db(struct callback_data *p){
 **    \NNN  -> ascii character NNN in octal
 **    \\    -> backslash
 */
+/* C语言风格的引用*/
 static void resolve_backslashes(char *z){
   int i, j;
   char c;
   for(i=j=0; (c = z[i])!=0; i++, j++){
-    if( c=='\\' ){
+    if( c=='\\' ){ /*字符值为'\\'，表示自增 */
       c = z[++i];
       if( c=='n' ){
-        c = '\n';
+        c = '\n';/*字符值为'c'，表示换行*/
       }else if( c=='t' ){
-        c = '\t';
+        c = '\t';/* 字符值为't'，表示标签*/
       }else if( c=='r' ){
-        c = '\r';
+        c = '\r';/*字符值为'r'，表示回车*/
       }else if( c>='0' && c<='7' ){
         c -= '0';
-        if( z[i+1]>='0' && z[i+1]<='7' ){
+        if( z[i+1]>='0' && z[i+1]<='7' ){/*如果是八进制*/
           i++;
           c = (c<<3) + z[i] - '0';
           if( z[i+1]>='0' && z[i+1]<='7' ){
