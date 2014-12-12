@@ -4746,7 +4746,7 @@ static int fillInUnixFile(
       /* NB: zFilename exists and remains valid until the file is closed
       ** according to requirement F11141.  So we do not need to make a
       ** copy of the filename. */
-      //附注：
+      //附注：zFilename存在,仍然有效,直到文件根据F11141要求关闭。所以我们不需要文件的副本。
       pCtx->dbPath = zFilename;
       pCtx->reserved = 0;
       srandomdev();
