@@ -3317,18 +3317,19 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
 ** These routines are available for the mem2.c debugging memory allocator
 ** only.  They are used to verify that different "types" of memory
 ** allocations are properly tracked by the system.
-**
+**这些程序只对mem2.c调试内存分配器可用。他们被用来验证不同类型的内存分配是否被系统正确地追踪。
 ** sqlite3MemdebugSetType() sets the "type" of an allocation to one of
 ** the MEMTYPE_* macros defined below.  The type must be a bitmask with
 ** a single bit set.
-**
+**sqlite3MemdebugSetType()设置的“类型”分配给下面定义的 MEMTYPE_* 宏之一。这个类型必须是一个单比特集的掩码。
 ** sqlite3MemdebugHasType() returns true if any of the bits in its second
 ** argument match the type set by the previous sqlite3MemdebugSetType().
 ** sqlite3MemdebugHasType() is intended for use inside assert() statements.
-**
+** 如果在sqlite3MemdebugHasType()第二个参数的位匹配之前 sqlite3MemdebugSetType()设置的类型，那么sqlite3MemdebugHasType() 返回真
+   sqlite3MemdebugHasType()是为了使用assert()内部的语句。
 ** sqlite3MemdebugNoType() returns true if none of the bits in its second
 ** argument match the type set by the previous sqlite3MemdebugSetType().
-**
+**如果sqlite3MemdebugHasType()第二个参数的位没有一个匹配之前 sqlite3MemdebugSetType()设置的类型，那么sqlite3MemdebugNoType() 返回真
 ** Perhaps the most important point is the difference between MEMTYPE_HEAP
 ** and MEMTYPE_LOOKASIDE.  If an allocation is MEMTYPE_LOOKASIDE, that means
 ** it might have been allocated by lookaside, except the allocation was
@@ -3337,7 +3338,8 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
 ** passed back to non-lookaside free() routines.  Asserts such as the
 ** example above are placed on the non-lookaside free() routines to verify
 ** this constraint. 
-**
+**  最重要的一点就是MEMTYPE_HEAP与MEMTYPE_LOOKASIDE的区别。如果一个分配是MEMTYPE_LOOKASIDE，那意味着这可能是由后备分配的，除非分配了太大或后备已经全满了。
+确认后备已经被分配充足不会回传给非后备free()程序是非常重要的。声称如上面的示例中放入非后备 free() 程序来验证此约束。
 ** All of this is no-op for a production build.  It only comes into
 ** play when the SQLITE_MEMDEBUG compile-time option is used.
 */
@@ -3346,14 +3348,14 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
   int sqlite3MemdebugHasType(void*,u8);
   int sqlite3MemdebugNoType(void*,u8);
 #else
-# define sqlite3MemdebugSetType(X,Y)  /* no-op */
+# define sqlite3MemdebugSetType(X,Y)  /* no-op 空操作*/
 # define sqlite3MemdebugHasType(X,Y)  1
 # define sqlite3MemdebugNoType(X,Y)   1
 #endif
-#define MEMTYPE_HEAP       0x01  /* General heap allocations */
-#define MEMTYPE_LOOKASIDE  0x02  /* Might have been lookaside memory */
-#define MEMTYPE_SCRATCH    0x04  /* Scratch allocations */
-#define MEMTYPE_PCACHE     0x08  /* Page cache allocations */
-#define MEMTYPE_DB         0x10  /* Uses sqlite3DbMalloc, not sqlite_malloc */
+#define MEMTYPE_HEAP       0x01  /* General heap allocations 总的堆式分配*/
+#define MEMTYPE_LOOKASIDE  0x02  /* Might have been lookaside memory 可能是后备存储器*/
+#define MEMTYPE_SCRATCH    0x04  /* Scratch allocations 从头开始分配*/
+#define MEMTYPE_PCACHE     0x08  /* Page cache allocations页面缓存分配 */
+#define MEMTYPE_DB         0x10  /* Uses sqlite3DbMalloc, not sqlite_malloc 使用sqlite3DbMalloc，而不是sqlite_malloc*/
 
 #endif /* _SQLITEINT_H_ */
