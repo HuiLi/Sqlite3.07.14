@@ -6388,10 +6388,11 @@ int sqlite3PagerSavepoint(Pager *pPager, int op, int iSavepoint){
     pPager->nSavepoint = nNew;
 
     /* If this is a release of the outermost savepoint, truncate 
-    ** the sub-journal to zero bytes in size. */
+    ** the sub-journal to zero bytes in size. 
+       如果这是对最外层保存点的释放，把sub-journal大小截断到0字节。*/
     if( op==SAVEPOINT_RELEASE ){
       if( nNew==0 && isOpen(pPager->sjfd) ){
-        /* Only truncate if it is an in-memory sub-journal. */
+        /* Only truncate if it is an in-memory sub-journal.只在它是内存sub-journal时截断。 */
         if( sqlite3IsMemJournal(pPager->sjfd) ){
           rc = sqlite3OsTruncate(pPager->sjfd, 0);
           assert( rc==SQLITE_OK );
@@ -6403,6 +6404,7 @@ int sqlite3PagerSavepoint(Pager *pPager, int op, int iSavepoint){
     ** If this is a temp-file, it is possible that the journal file has
     ** not yet been opened. In this case there have been no changes to
     ** the database file, so the playback operation can be skipped.
+       除非这是个回滚操作，回播指定保存点。
     */
     else if( pagerUseWal(pPager) || isOpen(pPager->jfd) ){
       PagerSavepoint *pSavepoint = (nNew==0)?0:&pPager->aSavepoint[nNew-1];
@@ -6416,20 +6418,22 @@ int sqlite3PagerSavepoint(Pager *pPager, int op, int iSavepoint){
 
 /*
 ** Return the full pathname of the database file.
-**
+**返回数据库文件的全路径名。
 ** Except, if the pager is in-memory only, then return an empty string if
 ** nullIfMemDb is true.  This routine is called with nullIfMemDb==1 when
 ** used to report the filename to the user, for compatibility with legacy
 ** behavior.  But when the Btree needs to know the filename for matching to
 ** shared cache, it uses nullIfMemDb==0 so that in-memory databases can
 ** participate in shared-cache.
+  另外，如果pager只是内存，nullIfMemDb正确，那么返回一个空的字符串。当用于向用户报告文件名用来兼容和遗留，
+  调用程序nullIfMemDb==1 。但是，当Btree需要知道匹配共享缓存的文件名时，调用nullIfMemDb==0 以至于内存数据库可以参与共享缓存。
 */
 const char *sqlite3PagerFilename(Pager *pPager, int nullIfMemDb){
   return (nullIfMemDb && pPager->memDb) ? "" : pPager->zFilename;
 }
 
 /*
-** Return the VFS structure for the pager.
+** Return the VFS structure for the pager.返回pager VFS结构。
 */
 const sqlite3_vfs *sqlite3PagerVfs(Pager *pPager){
   return pPager->pVfs;
@@ -6439,13 +6443,14 @@ const sqlite3_vfs *sqlite3PagerVfs(Pager *pPager){
 ** Return the file handle for the database file associated
 ** with the pager.  This might return NULL if the file has
 ** not yet been opened.
+   返回与pager相关的数据库文件文件句柄。如果文件没有被打开，它可能会返回null。
 */
 sqlite3_file *sqlite3PagerFile(Pager *pPager){
   return pPager->fd;
 }
 
 /*
-** Return the full pathname of the journal file.
+** Return the full pathname of the journal file.返回日志文件的全路径名。
 */
 const char *sqlite3PagerJournalname(Pager *pPager){
   return pPager->zJournal;
@@ -6454,6 +6459,7 @@ const char *sqlite3PagerJournalname(Pager *pPager){
 /*
 ** Return true if fsync() calls are disabled for this pager.  Return FALSE
 ** if fsync()s are executed normally.
+   如果pager中fsync()函数调用被禁用返回true。如果fsync()s函数正常执行返回FALSE。
 */
 int sqlite3PagerNosync(Pager *pPager){
   return pPager->noSync;
@@ -6461,7 +6467,7 @@ int sqlite3PagerNosync(Pager *pPager){
 
 #ifdef SQLITE_HAS_CODEC
 /*
-** Set or retrieve the codec for this pager
+** Set or retrieve the codec for this pager设置或检索pager的解码器。
 */
 void sqlite3PagerSetCodec(
   Pager *pPager,
@@ -6485,34 +6491,37 @@ void *sqlite3PagerGetCodec(Pager *pPager){
 #ifndef SQLITE_OMIT_AUTOVACUUM
 /*
 ** Move the page pPg to location pgno in the file.
-**
+** 移动页面pPg到文件中pgno的位置。
 ** There must be no references to the page previously located at
 ** pgno (which we call pPgOld) though that page is allowed to be
 ** in cache.  If the page previously located at pgno is not already
 ** in the rollback journal, it is not put there by by this routine.
-**
+** 尽管那页面允许在缓存中，之前一定没有引用页面位于pgno(我们称之为pPgOld)。
+   如果之前位于pgno的页面没有在回滚日志中，那么它没有使用这个程序。
 ** References to the page pPg remain valid. Updating any
 ** meta-data associated with pPg (i.e. data stored in the nExtra bytes
 ** allocated along with the page) is the responsibility of the caller.
-**
+** 引用pPg页面仍然有效。更新与pPg关联的任何元数据(即数据存储在nExtra字节分配的页)调用者的责任。 
 ** A transaction must be active when this routine is called. It used to be
 ** required that a statement transaction was not active, but this restriction
 ** has been removed (CREATE INDEX needs to move a page when a statement
 ** transaction is active).
-**
+** 当程序被调用事务必须是活跃的。以前要求声明事务并不活跃,但这一限制已被删除(创建索引时需要移动一个页面声明事务活动)。
 ** If the fourth argument, isCommit, is non-zero, then this page is being
 ** moved as part of a database reorganization just before the transaction 
 ** is being committed. In this case, it is guaranteed that the database page 
 ** pPg refers to will not be written to again within this transaction.
-**
+** 如果第四个参数已提交不为0，那么就在事务被提交的时候，这个页面被当做数据库重做的一部分被移动。
+   在这种情况下，它保证数据库page页面指的是不会再写信给这个事务。
 ** This function may return SQLITE_NOMEM or an IO error code if an error
 ** occurs. Otherwise, it returns SQLITE_OK.
+   如果发生错误，这个函数会返回SQLITE_NOMEM或者IO错误代码。否则，返回SQLITE_OK。
 */
 int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
-  PgHdr *pPgOld;               /* The page being overwritten. */
-  Pgno needSyncPgno = 0;       /* Old value of pPg->pgno, if sync is required */
-  int rc;                      /* Return code */
-  Pgno origPgno;               /* The original page number */
+  PgHdr *pPgOld;               /* The page being overwritten.页面被覆盖。 */
+  Pgno needSyncPgno = 0;       /* Old value of pPg->pgno, if sync is required 如果需要同步， pPg->pgno的旧值*/
+  int rc;                      /* Return code返回代码 */
+  Pgno origPgno;               /* The original page number 最初的页码*/
 
   assert( pPg->nRef>0 );
   assert( pPager->eState==PAGER_WRITER_CACHEMOD
@@ -6521,7 +6530,7 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
   assert( assert_pager_state(pPager) );
 
   /* In order to be able to rollback, an in-memory database must journal
-  ** the page we are moving from.
+  ** the page we are moving from.为了回滚操作，内存数据库必须把我们正在移动的页面写入日志。，
   */
   if( MEMDB ){
     rc = sqlite3PagerWrite(pPg);
@@ -6531,20 +6540,22 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
   /* If the page being moved is dirty and has not been saved by the latest
   ** savepoint, then save the current contents of the page into the 
   ** sub-journal now. This is required to handle the following scenario:
-  **
-  **   BEGIN;
-  **     <journal page X, then modify it in memory>
-  **     SAVEPOINT one;
-  **       <Move page X to location Y>
-  **     ROLLBACK TO one;
+  ** 如果正在移动的页面是dirty的并且没有被最后一个保存点保存，那么就把页面的当前内容保存到sub-journal。
+     这需要处理下面的情境：
+  **   BEGIN;开始
+  **     <journal page X, then modify it in memory>杂志页面X，在内存中修改它
+  **     SAVEPOINT one;一个保存点
+  **       <Move page X to location Y>把页面x移动到Y
+  **     ROLLBACK TO one;回滚到保存点
   **
   ** If page X were not written to the sub-journal here, it would not
   ** be possible to restore its contents when the "ROLLBACK TO one"
   ** statement were is processed.
-  **
+  ** 如果页面X没有被写入sub-journal，当处理"ROLLBACK TO one"时它不可能恢复它的内容。
   ** subjournalPage() may need to allocate space to store pPg->pgno into
   ** one or more savepoint bitvecs. This is the reason this function
-  ** may return SQLITE_NOMEM.
+  ** may return SQLITE_NOMEM. subjournalPage()可能需要分配空间来存储pPg->pgno到一个或多个保存点bitvecs。
+     这就是这个函数返回SQLITE_NOMEM的原因。
   */
   if( pPg->flags&PGHDR_DIRTY
    && subjRequiresPage(pPg)
@@ -6559,10 +6570,11 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
 
   /* If the journal needs to be sync()ed before page pPg->pgno can
   ** be written to, store pPg->pgno in local variable needSyncPgno.
-  **
+  ** 如果日志在页面 pPg->pgno可写之前需要同步，那么存储pPg->pgno在本地变量needSyncPgno。
   ** If the isCommit flag is set, there is no need to remember that
   ** the journal needs to be sync()ed before database page pPg->pgno 
   ** can be written to. The caller has already promised not to write to it.
+     如果设置isCommit标记，在数据库页面pPg->pgno可写之前不需要记得这个日志需要同步。调用者已经承诺不写它。
   */
   if( (pPg->flags&PGHDR_NEED_SYNC) && !isCommit ){
     needSyncPgno = pPg->pgno;
@@ -6574,6 +6586,8 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
   ** from its hash chain. Also, if the PGHDR_NEED_SYNC flag was set for 
   ** page pgno before the 'move' operation, it needs to be retained 
   ** for the page moved there.
+    如果缓存包含page-number pgno的页面，从其哈希链移动它。同时，在移动操作之前如果PGHDR_NEED_SYNC标记设置为页面 pgno，
+    那么它需要被保留为页面移动。
   */
   pPg->flags &= ~PGHDR_NEED_SYNC;
   pPgOld = pager_lookup(pPager, pgno);
@@ -6582,7 +6596,9 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
     pPg->flags |= (pPgOld->flags&PGHDR_NEED_SYNC);
     if( MEMDB ){
       /* Do not discard pages from an in-memory database since we might
-      ** need to rollback later.  Just move the page out of the way. */
+      ** need to rollback later.  Just move the page out of the way. 
+        不要从内存数据库丢弃页面，因为我们一会或许会需要回滚操作。只需要移动页面。
+      */
       sqlite3PcacheMove(pPgOld, pPager->dbSize+1);
     }else{
       sqlite3PcacheDrop(pPgOld);
@@ -6596,6 +6612,7 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
   /* For an in-memory database, make sure the original page continues
   ** to exist, in case the transaction needs to roll back.  Use pPgOld
   ** as the original page since it has already been allocated.
+     对于一个内存数据库，确保原始页面继续存在，万一事务需要回滚。使用pPgOld作为原始页面,因为它已经被分配。
   */
   if( MEMDB ){
     assert( pPgOld );
@@ -6610,13 +6627,16 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
     ** "is journaled" bitvec flag has been set. This needs to be remedied by
     ** loading the page into the pager-cache and setting the PGHDR_NEED_SYNC
     ** flag.
-    **
+    ** 如果needSyncPgno不为0，那么在任何数据被写入数据库文件页面needSyncPgno之前，日志文件需要被同步。
+       当前，没有这样的页面存在于页面缓存，并且"is journaled" bitvec标记已经设置。这就需要通过加载页面到页面缓存和设置PGHDR_NEED_SYNC标记
+       当方式来加以弥补。
     ** If the attempt to load the page into the page-cache fails, (due
     ** to a malloc() or IO failure), clear the bit in the pInJournal[]
     ** array. Otherwise, if the page is loaded and written again in
     ** this transaction, it may be written to the database file before
     ** it is synced into the journal file. This way, it may end up in
     ** the journal file twice, but that is not a problem.
+       如果试图把页面加载到页面缓存失败，（由于malloc（）或者IO失败）那么清除pInJournal[]数组中的比特。
     */
     PgHdr *pPgHdr;
     rc = sqlite3PagerGet(pPager, needSyncPgno, &pPgHdr);
@@ -6637,7 +6657,7 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
 #endif
 
 /*
-** Return a pointer to the data for the specified page.
+** Return a pointer to the data for the specified page.返回指定页面的指向数据的指针。
 */
 void *sqlite3PagerGetData(DbPage *pPg){
   assert( pPg->nRef>0 || pPg->pPager->memDb );
@@ -6646,7 +6666,7 @@ void *sqlite3PagerGetData(DbPage *pPg){
 
 /*
 ** Return a pointer to the Pager.nExtra bytes of "extra" space 
-** allocated along with the specified page.
+** allocated along with the specified page.返回Pager的一个指针。指定页面的额外分配空间的nExtra字节。
 */
 void *sqlite3PagerGetExtra(DbPage *pPg){
   return pPg->pExtra;
@@ -6657,10 +6677,11 @@ void *sqlite3PagerGetExtra(DbPage *pPg){
 ** of PAGER_LOCKINGMODE_QUERY, PAGER_LOCKINGMODE_NORMAL or 
 ** PAGER_LOCKINGMODE_EXCLUSIVE. If the parameter is not _QUERY, then
 ** the locking-mode is set to the value specified.
-**
+** 设置pager的锁模式。参数eMode必须为PAGER_LOCKINGMODE_QUERY之一,PAGER_LOCKINGMODE_NORMAL或PAGER_LOCKINGMODE_EXCLUSIVE。如果没有_QUERY参数,那么locking-mode设置为指定的值。
 ** The returned value is either PAGER_LOCKINGMODE_NORMAL or
 ** PAGER_LOCKINGMODE_EXCLUSIVE, indicating the current (possibly updated)
 ** locking-mode.
+   这个返回值是PAGER_LOCKINGMODE_NORMAL或者PAGER_LOCKINGMODE_EXCLUSIVE，表明当前的锁模式。
 */
 int sqlite3PagerLockingMode(Pager *pPager, int eMode){
   assert( eMode==PAGER_LOCKINGMODE_QUERY
@@ -6677,35 +6698,37 @@ int sqlite3PagerLockingMode(Pager *pPager, int eMode){
 
 /*
 ** Set the journal-mode for this pager. Parameter eMode must be one of:
-**
-**    PAGER_JOURNALMODE_DELETE
-**    PAGER_JOURNALMODE_TRUNCATE
-**    PAGER_JOURNALMODE_PERSIST
-**    PAGER_JOURNALMODE_OFF
-**    PAGER_JOURNALMODE_MEMORY
-**    PAGER_JOURNALMODE_WAL
+** 设置pager的日志模式。参数 eMode必须为其中之一：
+**    PAGER_JOURNALMODE_DELETE            PAGER_JOURNALMODE的删除
+**    PAGER_JOURNALMODE_TRUNCATE          PAGER_JOURNALMODE的截断            
+**    PAGER_JOURNALMODE_PERSIST           PAGER_JOURNALMODE的坚持
+**    PAGER_JOURNALMODE_OFF               PAGER_JOURNALMODE的关闭
+**    PAGER_JOURNALMODE_MEMORY            PAGER_JOURNALMODE的记忆
+**    PAGER_JOURNALMODE_WAL               PAGER_JOURNALMODE的预写式日志
 **
 ** The journalmode is set to the value specified if the change is allowed.
 ** The change may be disallowed for the following reasons:
-**
+** 如果允许改变，这个日志模式设置为指定值。不可以改变的原因如下：
 **   *  An in-memory database can only have its journal_mode set to _OFF
 **      or _MEMORY.
-**
+**     一个内存数据库只能把其日志模式设置为关闭或者记忆。
 **   *  Temporary databases cannot have _WAL journalmode.
-**
+**      临时数据库不能有预写式日志模式。
 ** The returned indicate the current (possibly updated) journal-mode.
+    返回值表示当前日志模式。
 */
 int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
-  u8 eOld = pPager->journalMode;    /* Prior journalmode */
+  u8 eOld = pPager->journalMode;    /* Prior journalmode 原先日志模式*/
 
 #ifdef SQLITE_DEBUG
   /* The print_pager_state() routine is intended to be used by the debugger
-  ** only.  We invoke it once here to suppress a compiler warning. */
+  ** only.  We invoke it once here to suppress a compiler warning.
+     print_pager_state()程序目的只是被用来调试。我们调用它来抑制编译器警告。*/
   print_pager_state(pPager);
 #endif
 
 
-  /* The eMode parameter is always valid */
+  /* The eMode parameter is always valid   eMode参数总是有效的。*/
   assert(      eMode==PAGER_JOURNALMODE_DELETE
             || eMode==PAGER_JOURNALMODE_TRUNCATE
             || eMode==PAGER_JOURNALMODE_PERSIST
@@ -6716,11 +6739,13 @@ int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
   /* This routine is only called from the OP_JournalMode opcode, and
   ** the logic there will never allow a temporary file to be changed
   ** to WAL mode.
+     这个程序只从OP_JournalMode获取操作码,逻辑永远不会允许一个临时文件改为WAL模式。
   */
   assert( pPager->tempFile==0 || eMode!=PAGER_JOURNALMODE_WAL );
 
   /* Do allow the journalmode of an in-memory database to be set to
   ** anything other than MEMORY or OFF
+     允许内存数据库的日志模式设置为任意状态除了记忆或者关闭。
   */
   if( MEMDB ){
     assert( eOld==PAGER_JOURNALMODE_MEMORY || eOld==PAGER_JOURNALMODE_OFF );
@@ -6731,13 +6756,14 @@ int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
 
   if( eMode!=eOld ){
 
-    /* Change the journal mode. */
+    /* Change the journal mode. 改变日志模式。 */
     assert( pPager->eState!=PAGER_ERROR );
     pPager->journalMode = (u8)eMode;
 
     /* When transistioning from TRUNCATE or PERSIST to any other journal
     ** mode except WAL, unless the pager is in locking_mode=exclusive mode,
     ** delete the journal file.
+      
     */
     assert( (PAGER_JOURNALMODE_TRUNCATE & 5)==1 );
     assert( (PAGER_JOURNALMODE_PERSIST & 5)==1 );
@@ -6907,6 +6933,7 @@ static int pagerOpenWal(Pager *pPager){
   ** heap-memory for the wal-index instead of the VFS shared-memory 
   ** implementation. Take the exclusive lock now, before opening the WAL
   ** file, to make sure this is safe.
+    如果这个页面已经在排它模式，WAL模块将堆内存的wal-index代替VFS共享内存实现。在打开WAL文件之前确保安全，使用排它锁。
   */
   if( pPager->exclusiveMode ){
     rc = pagerExclusiveLock(pPager);
@@ -6914,6 +6941,7 @@ static int pagerOpenWal(Pager *pPager){
 
   /* Open the connection to the log file. If this operation fails, 
   ** (e.g. due to malloc() failure), return an error code.
+      打开连接到日志文件。如果这个操作事变，返回错误代码。
   */
   if( rc==SQLITE_OK ){
     rc = sqlite3WalOpen(pPager->pVfs, 
