@@ -112,8 +112,8 @@ struct VdbeSorter {
 ** The following type is an iterator for a PMA. It caches the current key in 
 ** variables nKey/aKey. If the iterator is at EOF, pFile==0.
 */
-struct VdbeSorterIter {           /*这个结构体定义了ＰＭＡ的iterator，它把当前的key储存在变量nKey/aKey中，若iterator在EOF处，pFile==0*/
-  i64 iReadOff;                   /* Current read offset ——当前读偏移量*/
+struct VdbeSorterIter {
+  i64 iReadOff;                   /* Current read offset */
   i64 iEof;                       /* 1 byte past EOF for this iterator */
   int nAlloc;                     /* Bytes of space at aAlloc */
   int nKey;                       /* Number of bytes in key */
