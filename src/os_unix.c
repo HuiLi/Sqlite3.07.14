@@ -4766,6 +4766,7 @@ static int fillInUnixFile(
     /* Dotfile locking uses the file path so it needs to be included in
     ** the dotlockLockingContext 
     */
+    //点文件锁定使用文件路径所以它需要被包含在dotlockLockingContext
     char *zLockFile;
     int nFilename;
     assert( zFilename!=0 );
@@ -4784,6 +4785,7 @@ static int fillInUnixFile(
     /* Named semaphore locking uses the file path so it needs to be
     ** included in the semLockingContext
     */
+    //被命名为信号锁的使用文件路径所以它需要被包含在semLockingContext
     unixEnterMutex();
     rc = findInodeInfo(pNew, &pNew->pInode);
     if( (rc==SQLITE_OK) && (pNew->pInode->pSem==NULL) ){
@@ -4826,6 +4828,9 @@ static int fillInUnixFile(
 ** Return the name of a directory in which to put temporary files.
 ** If no suitable temporary file directory can be found, return NULL.
 */
+
+//返回放置临时文件的路径名。
+//如火没有合适的临时文件路径名被找到，返回NULL。
 static const char *unixTempFileDir(void){
   static const char *azDirs[] = {
      0,
@@ -4833,7 +4838,7 @@ static const char *unixTempFileDir(void){
      "/var/tmp",
      "/usr/tmp",
      "/tmp",
-     0        /* List terminator */
+     0        /* List terminator *///列表结束符
   };
   unsigned int i;
   struct stat buf;
@@ -4856,6 +4861,7 @@ static const char *unixTempFileDir(void){
 ** by the calling process and must be big enough to hold at least
 ** pVfs->mxPathname bytes.
 */
+//在zBuf创建临时文件名。zBuf必须通过调用程序被分配，而且必须足够大去承载至少和一样的pVfs->mxPathname字节数
 static int unixGetTempname(int nBuf, char *zBuf){
   static const unsigned char zChars[] =
     "abcdefghijklmnopqrstuvwxyz"
@@ -4868,6 +4874,7 @@ static int unixGetTempname(int nBuf, char *zBuf){
   ** using the io-error infrastructure to test that SQLite handles this
   ** function failing. 
   */
+  //在这里模拟个io-error看似很奇怪，但事实上这仅仅是使用io-error基础架构去测试SQLite持有这个方法是否错误。
   SimulateIOError( return SQLITE_IOERR );
 
   zDir = unixTempFileDir();
@@ -4876,6 +4883,7 @@ static int unixGetTempname(int nBuf, char *zBuf){
   /* Check that the output buffer is large enough for the temporary file 
   ** name. If it is not, return SQLITE_ERROR.
   */
+  //检查输出缓冲对于临时文件名是否足够大。如果不够，返回SQLITE_ERROR。
   if( (strlen(zDir) + strlen(SQLITE_TEMP_FILE_PREFIX) + 18) >= (size_t)nBuf ){
     return SQLITE_ERROR;
   }
@@ -4899,6 +4907,8 @@ static int unixGetTempname(int nBuf, char *zBuf){
 ** Implementation in the proxy-lock division, but used by unixOpen()
 ** if SQLITE_PREFER_PROXY_LOCKING is defined.
 */
+//例程将unixFile转换成proxy-locking unixFile.
+//实现在proxy-lock分块，但是如果SQLITE_PREFER_PROXY_LOCKING被定义，被使用通过unixOpen()。
 static int proxyTransformUnixFile(unixFile*, const char*);
 #endif
 
@@ -4908,6 +4918,8 @@ static int proxyTransformUnixFile(unixFile*, const char*);
 ** zPath with SQLITE_OPEN_XXX flags matching those passed as the second
 ** argument to this function.
 **
+//搜索一个未被使用在数据库文件中被打开的文件描述符（不是日志文件或主日志文件）,
+//这个数据库文件通过带有SQLITE_OPEN_XXX标志的路径名zPath，和在这个函数中传入的第二个参数相匹配。
 ** Such a file descriptor may exist if a database connection was closed
 ** but the associated file descriptor could not be closed because some
 ** other file descriptor open on the same file is holding a file-lock.
@@ -4915,9 +4927,12 @@ static int proxyTransformUnixFile(unixFile*, const char*);
 ** describing "Posix Advisory Locking" at the start of this file for 
 ** further details. Also, ticket #4018.
 **
+//这样一个文件描述符可以如果数据库连接被关闭，但相关的文件描述符不能被关闭，因为在同一个文件打开其它的文件描述符是持有file-lock.
+//在unixclose()功能的评论和描述"冗长的评论存在POSIX咨询锁定"在进一步的细节，该文件的开始。
 ** If a suitable file descriptor is found, then it is returned. If no
 ** such file descriptor is located, -1 is returned.
 */
+//如果合适的文件描述符被找到，然后将它返回。如果描述符被设置，－1被返回。
 static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
   UnixUnusedFd *pUnused = 0;
 
@@ -4926,8 +4941,10 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
   ** but because no way to test it is currently available. It is better 
   ** not to risk breaking vxworks support for the sake of such an obscure 
   ** feature.  */
-#if !OS_VXWORKS
-  struct stat sStat;                   /* Results of stat() call */
+  //在vxworks不会查找一个未被使用的文件描述符。不是因为vxworks不会从改变中受益（这可能，但是我们不确定），
+  //但是因为没有方法去测试当前的可用性。最好不要冒险中断vxworks支持为了这个复杂的特性。
+#if !OS_VXWORK
+  struct stat sStat;                   /* Results of stat() call *///stat()调用的结果。
 
   /* A stat() call may fail for various reasons. If this happens, it is
   ** almost certain that an open() call on the same path will also fail.
@@ -4937,6 +4954,9 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
   **
   ** Even if a subsequent open() call does succeed, the consequences of
   ** not searching for a resusable file descriptor are not dire.  */
+  //一个stat()调用可能因为诸多原因失败。如果这种情况发生，如果几乎确定一个open()调用在同样的路径将也会失败。
+  //由于这个原因，如果一个在stat()调用中错误发生，它将被忽略而且－1返回。
+  //调用器将尝试打开一个新的文件描述符在相同的文件名，失败，然后返回一个错误SQLite。
   if( 0==osStat(zPath, &sStat) ){
     unixInodeInfo *pInode;
 
