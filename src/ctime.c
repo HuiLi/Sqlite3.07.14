@@ -41,16 +41,16 @@ static const char * const azCompileOpt[] = {
 #ifdef SQLITE_32BIT_ROWID  /*如果  SQLITE_32BIT_ROWID 已经被定义过，则执行下面语句，否则什么都不执行*/
   "32BIT_ROWID",/*32位行编号*/
 #endif
-#ifdef SQLITE_4_BYTE_ALIGNED_MALLOC /*如果  SQLITE_4_BYTE_ALIGNED_MALLOC 已经被定义过，则执行下面语句，否则什么都不执行*/
+#ifdef SQLITE_4_BYTE_ALIGNED_MALLOC /*如果  SQLITE_4_BYTE_ALIGNED_MALLOC 已经被#define定义过，则编译下面语句，否则什么都不执行*/
   "4_BYTE_ALIGNED_MALLOC",/* 4字节内存申请  */
 #endif
-#ifdef SQLITE_CASE_SENSITIVE_LIKE /*如果  SQLITE_CASE_SENSITIVE_LIKE 已经被定义过，则执行下面语句，否则什么都不执行*/
+#ifdef SQLITE_CASE_SENSITIVE_LIKE /*如果  SQLITE_CASE_SENSITIVE_LIKE 已经被#define定义过，则编译下面语句，否则什么都不执行*/
   "CASE_SENSITIVE_LIKE",
 #endif
-#ifdef SQLITE_CHECK_PAGES /*如果  SQLITE_CHECK_PAGES 已经被定义过，则执行下面语句，否则什么都不执行*/
+#ifdef SQLITE_CHECK_PAGES /*如果  SQLITE_CHECK_PAGES 已经被#define定义过，则编译下面语句，否则什么都不执行*/
   "CHECK_PAGES",
 #endif
-#ifdef SQLITE_COVERAGE_TEST /*如果  SQLITE_COVERAGE_TEST 已经被定义过，则执行下面语句，否则什么都不执行*/
+#ifdef SQLITE_COVERAGE_TEST /*如果  SQLITE_COVERAGE_TEST 已经被#define定义过，则编译下面语句，否则什么都不执行*/
   "COVERAGE_TEST",
 #endif
 #ifdef SQLITE_CURDIR /*如果  SQLITE_CURDIR 已经被定义过，则执行下面语句，否则什么都不执行*/
