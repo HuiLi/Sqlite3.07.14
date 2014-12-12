@@ -1,12 +1,12 @@
 /*
-** 2010 February 23
+** 2010 February 23 2010年2月23日
 **
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
-**
-**    May you do good and not evil.
-**    May you find forgiveness for yourself and forgive others.
-**    May you share freely, never taking more than you give.
+**作者本人放弃此代码的版权，在任何有法律的地方，这里给使用SQLite的人以下的祝福：
+**    May you do good and not evil. 愿你行善莫行恶。 
+**    May you find forgiveness for yourself and forgive others.愿你原谅自己宽恕他人。 
+**    May you share freely, never taking more than you give.愿你宽心与人分享，索取不多于你所施予。 
 **
 *************************************************************************
 **
@@ -29,6 +29,7 @@
 **这个数组看起来很大,但在一个典型的安装实际使用只有少数编译时的选项,
 **所以大多数时候这个数组通常是相当短并且使用小的内存空间。
 */
+/*定义编译时间选择数组*/
 static const char * const azCompileOpt[] = {
 
 /* These macros are provided to "stringify" the value of the define
@@ -374,7 +375,7 @@ static const char * const azCompileOpt[] = {
 /*
 ** Given the name of a compile-time option, return true if that option
 ** was used and false if not.
-**给出编译时间选择名称，如果该选择被使用返回true，否者返回false。
+**给出编译时间选择名称，如果该编译时间选择名称被使用返回true，否者返回false。
 **
 ** The name can optionally begin with "SQLITE_" but the "SQLITE_" prefix
 ** is not required for a match.
@@ -383,12 +384,15 @@ static const char * const azCompileOpt[] = {
 int sqlite3_compileoption_used(const char *zOptName){
   int i, n;
   if( sqlite3StrNICmp(zOptName, "SQLITE_", 7)==0 ) zOptName += 7;//sqlite3StrNICmp()是比较函数，如果zOptName的前缀是SQLITE_返回0.
-  n = sqlite3Strlen30(zOptName);//n为一个可以存储在低30位的32位带符号整数
+  n = sqlite3Strlen30(zOptName);//sqlite3Strlen30（）函数计算字符串的长度
 
   /* Since ArraySize(azCompileOpt) is normally in single digits, a
   ** linear search is adequate.  No need for a binary search. 
-  **因为ArraySize(azCompileOpt)的大小通常是个位数字的，线性搜索就能满足，不需要二分查找。*/
+  **因为ArraySize(azCompileOpt)的大小通常是个位数字的，线性搜索就能满足，不需要二分查找。
+  */
+  
   for(i=0; i<ArraySize(azCompileOpt); i++){ /*ArraySize返回azCompileOpt数组元素的数量*/
+  /*判断zOptName是否等于azCompileOpt[i]。相等即该编译时间选择名称被使用则返回1.否者返回0*/
     if(   (sqlite3StrNICmp(zOptName, azCompileOpt[i], n)==0)
        && ( (azCompileOpt[i][n]==0) || (azCompileOpt[i][n]=='=') ) ) return 1;
   }
@@ -401,10 +405,10 @@ int sqlite3_compileoption_used(const char *zOptName){
 **返回第N个编译时间选择字符串。如果N超出范围，返回一个NULL指针。
 */
 const char *sqlite3_compileoption_get(int N){
-  if( N>=0 && N<ArraySize(azCompileOpt) ){//N大于0并且N越界
+  if( N>=0 && N<ArraySize(azCompileOpt) ){//N大于0并且N越界则返回第N个编译时间选择字符串
     return azCompileOpt[N];
   }
-  return 0;
+  return 0;//返回NULL指针
 }
 
 #endif /* SQLITE_OMIT_COMPILEOPTION_DIAGS */
