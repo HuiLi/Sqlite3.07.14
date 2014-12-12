@@ -55,16 +55,16 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*函数sqli
 **分配一个新的选择结构和返回一个结构的指针.
 */
 Select *sqlite3SelectNew(
-  Parse *pParse,        /* Parsing context  解析上下文*/
-  ExprList *pEList,     /* which columns to include in the result  列包含在结果中*/
-  SrcList *pSrc,        /* the FROM clause -- which tables to scan  from字句----表扫描 */
-  Expr *pWhere,         /* the WHERE clause  where字句*/
-  ExprList *pGroupBy,   /* the GROUP BY clause  group by字句*/
-  Expr *pHaving,        /* the HAVING clause  having字句*/
-  ExprList *pOrderBy,   /* the ORDER BY clause  order by字句*/
-  int isDistinct,       /* true if the DISTINCT keyword is present  如果关键字distinct存在，则为true*/
+  Parse *pParse,        /* Parsing context  语义分析*/
+  ExprList *pEList,     /* which columns to include in the result  输出结果列的语法树*/
+  SrcList *pSrc,        /* the FROM clause -- which tables to scan  from语法树---扫描表 */
+  Expr *pWhere,         /* the WHERE clause  where部分的语法树*/
+  ExprList *pGroupBy,   /* the GROUP BY clause   group by语句的语法树*/
+  Expr *pHaving,        /* the HAVING clause  having语句的语法树*/
+  ExprList *pOrderBy,   /* the ORDER BY clause  order by语句的语法树*/
+  int isDistinct,       /* true if the DISTINCT keyword is present  如果关键字distinct存在，则返回true*/
   Expr *pLimit,         /* LIMIT value.  NULL means not used  limit值，如果值为空意味着limit未使用*/
-  Expr *pOffset         /* OFFSET value.  NULL means no offset  offset值，如果值为空意味着没有offset*/
+  Expr *pOffset         /* OFFSET value.  NULL means no offset  offset值，如果值为空意味着offset未使用*/
 ){
   Select *pNew;/*定义结构体指针pNew*/
   Select standin;/*定义结构体类型变量standin*/
@@ -277,7 +277,7 @@ static int tableAndColumnIndex(
 **tab2的iColRight列
 */
 static void addWhereTerm(
-  Parse *pParse,                  /* Parsing context  解析上下文*/
+  Parse *pParse,                  /* Parsing context  语义分析*/
   SrcList *pSrc,                  /* List of tables in FROM clause   from字句中的列表 */
   int iLeft,                      /* Index of first table to join in pSrc  第一个表的索引加入pSrc */
   int iColLeft,                   /* Index of column in first table  第一个表的列的索引*/
@@ -486,8 +486,8 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){
 **插入代码"v"，在分选机将会推进记录到栈的顶部。
 */
 static void pushOntoSorter(
-  Parse *pParse,         /* Parser context  解析上下文*/
-  ExprList *pOrderBy,    /* The ORDER BY clause   order by子句*/
+  Parse *pParse,         /* Parser context  语义分析*/
+  ExprList *pOrderBy,    /* The ORDER BY clause   order by语句语法树*/
   Select *pSelect,       /* The whole SELECT statement  整个select语句*/
   int regData            /* Register holding data to be sorted  注册数据进行排序*/
 ){
@@ -499,7 +499,8 @@ static void pushOntoSorter(
   int regRecord = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果。*/
   int op;
   sqlite3ExprCacheClear(pParse); /*清除所有列的缓存条目*/
-  sqlite3ExprCodeExprList(pParse, pOrderBy, regBase, 0);
+  sqlite3ExprCodeExprList(pParse, pOrderBy, regBase, 0);/*生成代码，将给定的表达式列表的每个元素的值放到寄存器开始的
+                                                          目标序列。返回元素评估的数量。*/
   sqlite3VdbeAddOp2(v, OP_Sequence, pOrderBy->iECursor, regBase+nExpr);
   sqlite3ExprCodeMove(pParse, regData, regBase+nExpr+1, 1);
   sqlite3VdbeAddOp3(v, OP_MakeRecord, regBase, nExpr + 2, regRecord);
@@ -509,7 +510,8 @@ static void pushOntoSorter(
     op = OP_IdxInsert;
   }
   sqlite3VdbeAddOp2(v, op, pOrderBy->iECursor, regRecord);
-  sqlite3ReleaseTempReg(pParse, regRecord);
+  sqlite3ReleaseTempReg(pParse, regRecord); /*释放寄存器，使其可以从用于其他目的。如果一个寄存器当前被用于列缓存，
+                                              则dallocation被推迟，直到使用的列寄存器变的陈旧*/ 
   sqlite3ReleaseTempRange(pParse, regBase, nExpr+2);
   if( pSelect->iLimit ){
     int addr1, addr2;
@@ -525,7 +527,7 @@ static void pushOntoSorter(
     sqlite3VdbeJumpHere(v, addr1); /*改变指令地址的p2操作，使其指向下一条指令的地址编码。*/
     sqlite3VdbeAddOp1(v, OP_Last, pOrderBy->iECursor);
     sqlite3VdbeAddOp1(v, OP_Delete, pOrderBy->iECursor);
-    sqlite3VdbeJumpHere(v, addr2);
+    sqlite3VdbeJumpHere(v, addr2);/*改变指定地址的操作，使其指向下一条指令的地址编码*/
   }
 }
 
@@ -544,7 +546,7 @@ static void codeOffset(
     addr = sqlite3VdbeAddOp1(v, OP_IfNeg, p->iOffset);
     sqlite3VdbeAddOp2(v, OP_Goto, 0, iContinue);
     VdbeComment((v, "skip OFFSET records"));
-    sqlite3VdbeJumpHere(v, addr);
+    sqlite3VdbeJumpHere(v, addr);/*改变指定地址的操作，使其指向下一条指令的地址编码*/
   }
 }
 
@@ -561,7 +563,7 @@ static void codeOffset(
 **如果前N个元素不明显，跳转到addrRepeat，N+1个值从栈中弹出。
 */
 static void codeDistinct(
-  Parse *pParse,     /* Parsing and code generating context 解析和代码生成上下文*/
+  Parse *pParse,     /* Parsing and code generating context 语义和代码生成*/
   int iTab,          /* A sorting index used to test for distinctness 一个索引用于不同的测试*/
   int addrRepeat,    /* Jump to here if not distinct 如果不明显跳转到这里*/
   int N,             /* Number of elements 元素数目*/
@@ -575,7 +577,7 @@ static void codeDistinct(
   sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N); /*添加一个操作值，包括整型的p4值。*/
   sqlite3VdbeAddOp3(v, OP_MakeRecord, iMem, N, r1);
   sqlite3VdbeAddOp2(v, OP_IdxInsert, iTab, r1);
-  sqlite3ReleaseTempReg(pParse, r1);
+  sqlite3ReleaseTempReg(pParse, r1);/*生成代码，将给定的表达式列表的每个元素的值放到寄存器开始的目标序列。返回元素评估的数量。*/
 }
 
 #ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
@@ -590,14 +592,15 @@ static void codeDistinct(
 **(现在错误只发生在一个地方，但是我们保留中断的子程序将代码错误减少到最小。)
 */
 static int checkForMultiColumnSelectError(
-  Parse *pParse,       /* Parse context. 解析上下文 */
+  Parse *pParse,       /* Parse context. 语义分析 */
   SelectDest *pDest,   /* Destination of SELECT results   select结果的最终目的*/
   int nExpr            /* Number of result columns returned by SELECT  结果列的数目由select返回*/
 ){
   int eDest = pDest->eDest;
   if( nExpr>1 && (eDest==SRT_Mem || eDest==SRT_Set) ){
     sqlite3ErrorMsg(pParse, "only a single result allowed for "
-       "a SELECT that is part of an expression");
+       "a SELECT that is part of an expression");/*为pParse- > zErrMsg和增量pParse- > NERR添加一条错误消息 */
+
     return 1;
   }else{
     return 0;
@@ -618,9 +621,9 @@ static int checkForMultiColumnSelectError(
 **如果nColumn>0 那么数据从srcTab中拉出，pEList只用于从每一列获得数据类型。
 */
 static void selectInnerLoop(
-  Parse *pParse,          /* The parser context 解析上下文*/
+  Parse *pParse,          /* The parser context 语义分析*/
   Select *p,              /* The complete select statement being coded 完整的select语句被编码*/
-  ExprList *pEList,       /* List of values being extracted  列表值被提取*/
+  ExprList *pEList,       /* List of values being extracted  输出结果列的语法树*/
   int srcTab,             /* Pull data from this table 从这个表中提取数据*/
   int nColumn,            /* Number of columns in the source table  源表中列的数目*/
   ExprList *pOrderBy,     /* If not NULL, sort results using this key 如果不是NULL，使用这个key对结果进行排序*/
@@ -671,7 +674,8 @@ static void selectInnerLoop(
     **如果目标是一个EXISTS(...)表达式，由select返回的实际值是不需要的。
     */
     sqlite3ExprCacheClear(pParse);  /*清除所有列的缓存条目。*/
-    sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest==SRT_Output);
+    sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest==SRT_Output);/*生成代码，将给定的表达式列表的每个元素的值
+                                                                       放到寄存器开始的目标序列。返回元素评估的数量。*/
   }
   nColumn = nResultCol;
 
@@ -697,10 +701,11 @@ static void selectInnerLoop(
 #ifndef SQLITE_OMIT_COMPOUND_SELECT/*测试SQLITE_OMIT_COMPOUND_SELECT是否被宏定义过*/
     case SRT_Union: {/*如果eDest为SRT_Union，则结果作为关键字存储在索引*/
       int r1;
-      r1 = sqlite3GetTempReg(pParse);
+      r1 = sqlite3GetTempReg(pParse);/*分配一个新的寄存器控制中间结果，返回值赋给r1*/
       sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);
       sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);
-      sqlite3ReleaseTempReg(pParse, r1);
+      sqlite3ReleaseTempReg(pParse, r1);/*释放寄存器，使其可以从用于其他目的。如果一个寄存器当前被用于列缓存，
+                                          则dallocation被推迟，直到使用的列寄存器变的陈旧*/
       break;
     }
 
@@ -710,7 +715,7 @@ static void selectInnerLoop(
     **构建一个记录的查询结果，但不是保存该记录，将其作为从临时表iParm删除元素的一个键。
     */
     case SRT_Except: {/*如果eDest为SRT_Except，则从union索引中移除结果*/
-      sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn);
+      sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn); /*添加一个新的指令VDBE指示当前的列表。返回新指令的地址。*/
       break;
     }
 #endif/*终止if*/
@@ -720,18 +725,18 @@ static void selectInnerLoop(
     */
     case SRT_Table:/*如果eDest为SRT_Table，则结果按照自动的rowid自动保存*/
     case SRT_EphemTab: {/*如果eDest为SRT_EphemTab，则创建临时表并存储为像SRT_Table的表*/
-      int r1 = sqlite3GetTempReg(pParse);
+      int r1 = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果，并把返回值赋给r1*/
       testcase( eDest==SRT_Table );
       testcase( eDest==SRT_EphemTab );
-      sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);
+      sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*添加一个新的指令VDBE指示当前的列表。返回新指令的地址。*/
       if( pOrderBy ){
-        pushOntoSorter(pParse, pOrderBy, p, r1);
+        pushOntoSorter(pParse, pOrderBy, p, r1);/*插入代码"V"，在分选机将会推进记录到栈的顶部*/
       }else{
-        int r2 = sqlite3GetTempReg(pParse);
+        int r2 = sqlite3GetTempReg(pParse);/*分配一个新的寄存器用于控制中间结果，并把返回值赋给r2*/
         sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, r2);
         sqlite3VdbeAddOp3(v, OP_Insert, iParm, r1, r2);
         sqlite3VdbeChangeP5(v, OPFLAG_APPEND);  /*对于最新添加的操作，改变p5操作数的值。*/
-        sqlite3ReleaseTempReg(pParse, r2);
+        sqlite3ReleaseTempReg(pParse, r2);/*释放寄存器，使其可以从用于其他目的。如果一个寄存器当前被用于列缓存，则dallocation被推迟，直到使用的列寄存器变的陈旧*/
       }
       sqlite3ReleaseTempReg(pParse, r1);
       break;
@@ -759,7 +764,7 @@ static void selectInnerLoop(
       }else{
         int r1 = sqlite3GetTempReg(pParse);
         sqlite3VdbeAddOp4(v, OP_MakeRecord, regResult, 1, r1, &p->affinity, 1); /*添加一个操作码，其中包括作为指针的p4值。*/
-        sqlite3ExprCacheAffinityChange(pParse, regResult, 1);
+        sqlite3ExprCacheAffinityChange(pParse, regResult, 1);/*记录从istart开始发生icount寄存器中的改变的事实*/
         sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);
         sqlite3ReleaseTempReg(pParse, r1);
       }
@@ -978,7 +983,7 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 **如果参数bUseTmp是false就使用第一种形式，或者如果是true就使用第二种形式。
 */
 static void explainComposite(
-  Parse *pParse,                  /* Parse context 解析上下文*/
+  Parse *pParse,                  /* Parse context 语义分析*/
   int op,                         /* One of TK_UNION, TK_EXCEPT etc.   TK_UNION, TK_EXCEPT等之一*/
   int iSub1,                      /* Subquery id 1 子查询id 1*/
   int iSub2,                      /* Subquery id 2 子查询id 2*/
@@ -1008,7 +1013,7 @@ static void explainComposite(
 **循环终止后我们需要运行分选机和输出结果。下面的例程生成所需的代码。 
 */
 static void generateSortTail(
-  Parse *pParse,    /* Parsing context 解析上下文*/
+  Parse *pParse,    /* Parsing context 语义分析*/
   Select *p,        /* The SELECT statement   select语句*/
   Vdbe *v,          /* Generate code into this VDBE  在VDBE中生成代码**/
   int nColumn,      /* Number of columns of data 数据的列数目*/
@@ -1298,9 +1303,9 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 **生成的代码会告诉VDBE在结果集中的列的声明类型。
 */
 static void generateColumnTypes(
-  Parse *pParse,      /* Parser context 解析上下文*/
-  SrcList *pTabList,  /* List of tables 表的集合*/
-  ExprList *pEList    /* Expressions defining the result set 表达式定义结果集*/
+  Parse *pParse,      /* Parser context 语义分析*/
+  SrcList *pTabList,  /* List of tables 输出表的集合的语法树*/
+  ExprList *pEList    /* Expressions defining the result set 输出结果列的语法树*/
 ){
 #ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
   Vdbe *v = pParse->pVdbe;
