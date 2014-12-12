@@ -6052,6 +6052,8 @@ static int proxyGetHostID(unsigned char *pHostID, int *pError){
 ** it back.  The newly created file's file descriptor is assigned to the
 ** conch file structure and finally the original conch file descriptor is 
 ** closed.  Returns zero if successful.
+**需要一个打开的壳文件,将内容复制到一个新的路径,然后移回。新创建的文件的文件
+描述符被分配给壳文件结构体并，最后原始壳文件描述符关闭。如果成功返回0
 */
 static int proxyBreakConchLock(unixFile *pFile, uuid_t myHostID){
   proxyLockingContext *pCtx = (proxyLockingContext *)pFile->lockingContext; 
@@ -6067,19 +6069,20 @@ static int proxyBreakConchLock(unixFile *pFile, uuid_t myHostID){
   UNUSED_PARAMETER(myHostID);
 
   /* create a new path by replace the trailing '-conch' with '-break' */
+  /*通过更换后缀 '-conch' 与 '-break'创建新的路径*/
   pathLen = strlcpy(tPath, cPath, MAXPATHLEN);
   if( pathLen>MAXPATHLEN || pathLen<6 || 
      (strlcpy(&tPath[pathLen-5], "break", 6) != 5) ){
     sqlite3_snprintf(sizeof(errmsg),errmsg,"path error (len %d)",(int)pathLen);
     goto end_breaklock;
   }
-  /* read the conch content */
+  /* read the conch content */    //读取壳文件内容
   readLen = osPread(conchFile->h, buf, PROXY_MAXCONCHLEN, 0);
   if( readLen<PROXY_PATHINDEX ){
     sqlite3_snprintf(sizeof(errmsg),errmsg,"read error (len %d)",(int)readLen);
     goto end_breaklock;
   }
-  /* write it out to the temporary break file */
+  /* write it out to the temporary break file */  //将他写出到临时中断文件
   fd = robust_open(tPath, (O_RDWR|O_CREAT|O_EXCL), 0);
   if( fd<0 ){
     sqlite3_snprintf(sizeof(errmsg), errmsg, "create failed (%d)", errno);
@@ -6112,6 +6115,7 @@ end_breaklock:
 
 /* Take the requested lock on the conch file and break a stale lock if the 
 ** host id matches.
+**给壳文件加上请求的锁，并打破旧的锁，如果主机ID匹配的话
 */
 static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
   proxyLockingContext *pCtx = (proxyLockingContext *)pFile->lockingContext; 
@@ -6130,6 +6134,10 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
        * 2nd try: fail if the mod time changed or host id is different, wait 
        *           10 sec and try again
        * 3rd try: break the lock unless the mod time has changed.
+     *如果锁定失败（忙）：
+     *第一次尝试：获得壳文件当前的时间，等待0.5秒，然后重试。
+     *第二次尝试：失败，如果当前时间改变或主机标识是不同，等待10秒，然后重试
+       *第三次尝试：打破锁，除非当前时间已经改变了。
        */
       struct stat buf;
       if( osFstat(conchFile->h, &buf) ){
@@ -6139,7 +6147,7 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
       
       if( nTries==1 ){
         conchModTime = buf.st_mtimespec;
-        usleep(500000); /* wait 0.5 sec and try the lock again*/
+        usleep(500000); /* wait 0.5 sec and try the lock again*/   //等待5秒，然后重试
         continue;  
       }
 
@@ -6157,15 +6165,15 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
           return SQLITE_IOERR_LOCK;
         }
         if( len>PROXY_PATHINDEX && tBuf[0]==(char)PROXY_CONCHVERSION){
-          /* don't break the lock if the host id doesn't match */
+          /* don't break the lock if the host id doesn't match */ //如果主机表示不匹配不要打破锁
           if( 0!=memcmp(&tBuf[PROXY_HEADERLEN], myHostID, PROXY_HOSTIDLEN) ){
             return SQLITE_BUSY;
           }
         }else{
-          /* don't break the lock on short read or a version mismatch */
+          /* don't break the lock on short read or a version mismatch */  //不要在短暂读取或版本不匹配时打破锁
           return SQLITE_BUSY;
         }
-        usleep(10000000); /* wait 10 sec and try the lock again */
+        usleep(10000000); /* wait 10 sec and try the lock again */  //等待10秒，在尝试这个锁
         continue; 
       }
       
@@ -6190,6 +6198,7 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
 ** lockPath means that the lockPath in the conch file will be used if the 
 ** host IDs match, or a new lock path will be generated automatically 
 ** and written to the conch file.
+**通过采用共享锁获得壳文件并读取其内容，如果lockPath非NULL，主机ID和锁定文件路径必须匹配。一个NULL lockPath意味着壳文件的**lockPath将被使用，如果主机ID相匹配，或者一个新的锁路径将自动生成并写入海螺文件。
 */
 static int proxyTakeConch(unixFile *pFile){
   proxyLockingContext *pCtx = (proxyLockingContext *)pFile->lockingContext; 
@@ -6222,10 +6231,10 @@ static int proxyTakeConch(unixFile *pFile){
     if( rc!=SQLITE_OK ){
       goto end_takeconch;
     }
-    /* read the existing conch file */
+    /* read the existing conch file */    //读取现有的壳文件
     readLen = seekAndRead((unixFile*)conchFile, 0, readBuf, PROXY_MAXCONCHLEN);
     if( readLen<0 ){
-      /* I/O error: lastErrno set by seekAndRead */
+      /* I/O error: lastErrno set by seekAndRead */   // I/O 错误：seekAndRead设定的lastErrno
       pFile->lastErrno = conchFile->lastErrno;
       rc = SQLITE_IOERR_READ;
       goto end_takeconch;
@@ -6233,22 +6242,25 @@ static int proxyTakeConch(unixFile *pFile){
              readBuf[0]!=(char)PROXY_CONCHVERSION ){
       /* a short read or version format mismatch means we need to create a new 
       ** conch file. 
+    **短暂读取或者版本格式不匹配意味着我们需要建立一个新的壳文件
       */
       createConch = 1;
     }
     /* if the host id matches and the lock path already exists in the conch
     ** we'll try to use the path there, if we can't open that path, we'll 
     ** retry with a new auto-generated path 
+  **如果主机标识匹配，并且这个壳文件中已经存在加锁路径，我们就试着使用这个路径，如果我们打不开这个路径，就使用自动生成的路径  **重试
     */
-    do { /* in case we need to try again for an :auto: named lock file */
+    do { /* in case we need to try again for an :auto: named lock file */ //以防我们需要再试一次:自动:命名的锁定文件
 
       if( !createConch && !forceNewLockPath ){
         hostIdMatch = !memcmp(&readBuf[PROXY_HEADERLEN], myHostID, 
                                   PROXY_HOSTIDLEN);
-        /* if the conch has data compare the contents */
+        /* if the conch has data compare the contents */    //如果壳文件有数据比较的内容
         if( !pCtx->lockProxyPath ){
           /* for auto-named local lock file, just check the host ID and we'll
            ** use the local lock file path that's already in there
+       **对于自动命名的本地锁文件，只需检查主机ID，我们将使用已经在那里的本地锁定文件路径
            */
           if( hostIdMatch ){
             size_t pathLen = (readLen - PROXY_PATHINDEX);
@@ -6260,40 +6272,43 @@ static int proxyTakeConch(unixFile *pFile){
             lockPath[pathLen] = 0;
             tempLockPath = lockPath;
             tryOldLockPath = 1;
-            /* create a copy of the lock path if the conch is taken */
+            /* create a copy of the lock path if the conch is taken */  //创建锁路径的副本，如果获得了壳文件
             goto end_takeconch;
           }
         }else if( hostIdMatch
                && !strncmp(pCtx->lockProxyPath, &readBuf[PROXY_PATHINDEX],
                            readLen-PROXY_PATHINDEX)
         ){
-          /* conch host and lock path match */
+          /* conch host and lock path match */  //壳主机和锁路径匹配
           goto end_takeconch; 
         }
       }
       
-      /* if the conch isn't writable and doesn't match, we can't take it */
+      /* if the conch isn't writable and doesn't match, we can't take it */   //如果海螺不可写，不匹配，我们不能用它
       if( (conchFile->openFlags&O_RDWR) == 0 ){
         rc = SQLITE_BUSY;
         goto end_takeconch;
       }
       
-      /* either the conch didn't match or we need to create a new one */
+      /* either the conch didn't match or we need to create a new one */  //不是壳文件不匹配，就是我们需要创建一个新的
       if( !pCtx->lockProxyPath ){
         proxyGetLockPath(pCtx->dbPath, lockPath, MAXPATHLEN);
         tempLockPath = lockPath;
-        /* create a copy of the lock path _only_ if the conch is taken */
+        /* create a copy of the lock path _only_ if the conch is taken */ //创建锁路径_only_的副本，如果使用这个壳文件
       }
       
       /* update conch with host and path (this will fail if other process
       ** has a shared lock already), if the host id matches, use the big
       ** stick.
+    ** 更新壳的主机和路径(如果其他进程已经共享锁这将会失败),如果主机id匹配,使用stick。
       */
       futimes(conchFile->h, NULL);
       if( hostIdMatch && !createConch ){
         if( conchFile->pInode && conchFile->pInode->nShared>1 ){
           /* We are trying for an exclusive lock but another thread in this
-           ** same process is still holding a shared lock. */
+           ** same process is still holding a shared lock.
+       **我们正在尝试获得独占锁,但统一进程的另一个线程仍然持有共享锁
+      */
           rc = SQLITE_BUSY;
         } else {          
           rc = proxyConchLock(pFile, myHostID, EXCLUSIVE_LOCK);
@@ -6318,6 +6333,7 @@ static int proxyTakeConch(unixFile *pFile){
         fsync(conchFile->h);
         /* If we created a new conch file (not just updated the contents of a 
          ** valid conch file), try to match the permissions of the database 
+     ** 如果我们创建了一个新的壳文件（而不仅仅是更新有效壳文件的内容），尝试匹配数据库的权限
          */
         if( rc==SQLITE_OK && createConch ){
           struct stat buf;
@@ -6325,7 +6341,7 @@ static int proxyTakeConch(unixFile *pFile){
           if( err==0 ){
             mode_t cmode = buf.st_mode&(S_IRUSR|S_IWUSR | S_IRGRP|S_IWGRP |
                                         S_IROTH|S_IWOTH);
-            /* try to match the database file R/W permissions, ignore failure */
+            /* try to match the database file R/W permissions, ignore failure */  //尝试匹配的数据库文件读/写权限，忽略失败
 #ifndef SQLITE_PROXY_DEBUG
             osFchmod(conchFile->h, cmode);
 #else
@@ -6363,7 +6379,7 @@ static int proxyTakeConch(unixFile *pFile){
           pFile->h = fd;
         }else{
           rc=SQLITE_CANTOPEN_BKPT; /* SQLITE_BUSY? proxyTakeConch called
-           during locking */
+           during locking */  //返回SQLITE_BUSY的话，在加锁期间调用proxyTakeConch
         }
       }
       if( rc==SQLITE_OK && !pCtx->lockProxy ){
@@ -6372,15 +6388,17 @@ static int proxyTakeConch(unixFile *pFile){
         if( rc!=SQLITE_OK && rc!=SQLITE_NOMEM && tryOldLockPath ){
           /* we couldn't create the proxy lock file with the old lock file path
            ** so try again via auto-naming 
+       ** 我们无法通过旧的锁文件路径创建代理锁文件，就通过自动命名再试一次
            */
           forceNewLockPath = 1;
           tryOldLockPath = 0;
-          continue; /* go back to the do {} while start point, try again */
+          continue; /* go back to the do {} while start point, try again */  //回到do {} while的起点再试一次
         }
       }
       if( rc==SQLITE_OK ){
         /* Need to make a copy of path if we extracted the value
          ** from the conch file or the path was allocated on the stack
+     ** 需要复制路径，如果我们提取的值来自壳文件或者路径被分配在堆栈上。
          */
         if( tempLockPath ){
           pCtx->lockProxyPath = sqlite3DbStrDup(0, tempLockPath);
@@ -6404,17 +6422,17 @@ static int proxyTakeConch(unixFile *pFile){
                rc==SQLITE_OK?"ok":"failed"));
       return rc;
     } while (1); /* in case we need to retry the :auto: lock file - 
-                 ** we should never get here except via the 'continue' call. */
+                 ** we should never get here except via the 'continue' call. */   //以防我们需要重试自动加锁文件——我们就应该不要执行到这里，除了通过continue调用
   }
 }
 
 /*
-** If pFile holds a lock on a conch file, then release that lock.
+** If pFile holds a lock on a conch file, then release that lock.       如果pFile在一个壳文件上持有锁，然后释放这个锁
 */
 static int proxyReleaseConch(unixFile *pFile){
-  int rc = SQLITE_OK;         /* Subroutine return code */
-  proxyLockingContext *pCtx;  /* The locking context for the proxy lock */
-  unixFile *conchFile;        /* Name of the conch file */
+  int rc = SQLITE_OK;         /* Subroutine return code */    //子程序的返回码
+  proxyLockingContext *pCtx;  /* The locking context for the proxy lock */  //proxy lockde 的锁定内容
+  unixFile *conchFile;        /* Name of the conch file */    //壳文件的名字
 
   pCtx = (proxyLockingContext *)pFile->lockingContext;
   conchFile = pCtx->conchFile;
@@ -6435,26 +6453,31 @@ static int proxyReleaseConch(unixFile *pFile){
 ** Store the conch filename in memory obtained from sqlite3_malloc().
 ** Make *pConchPath point to the new name.  Return SQLITE_OK on success
 ** or SQLITE_NOMEM if unable to obtain memory.
+**给定一个数据库文件的名称,计算其壳文件的名称。将壳文件名存储在sqlite3_malloc()获得的内存。使* pConchPath指向新名字。成功返回SQLITE_OK或者返回SQLITE_NOMEM，如果无法获得内存。
 **
 ** The caller is responsible for ensuring that the allocated memory
 ** space is eventually freed.
+** 调用者负责确认分配的内存空间是完全释放的
 **
 ** *pConchPath is set to NULL if a memory allocation error occurs.
+** *pConchPath设置为NULL，如果出现内存分配错误
 */
 static int proxyCreateConchPathname(char *dbPath, char **pConchPath){
-  int i;                        /* Loop counter */
-  int len = (int)strlen(dbPath); /* Length of database filename - dbPath */
-  char *conchPath;              /* buffer in which to construct conch name */
+  int i;                        /* Loop counter */    //循环计数器
+  int len = (int)strlen(dbPath); /* Length of database filename - dbPath */   //数据库文件名的长度—dbPath
+  char *conchPath;              /* buffer in which to construct conch name */ //构建壳文件的缓冲区
 
   /* Allocate space for the conch filename and initialize the name to
-  ** the name of the original database file. */  
+  ** the name of the original database file.
+  **给壳文件名称分配空间并初始化名称为原始数据库文件的名称
+  */  
   *pConchPath = conchPath = (char *)sqlite3_malloc(len + 8);
   if( conchPath==0 ){
     return SQLITE_NOMEM;
   }
   memcpy(conchPath, dbPath, len+1);
   
-  /* now insert a "." before the last / character */
+  /* now insert a "." before the last / character */    //在最后一个/符号前插入一个“.”
   for( i=(len-1); i>=0; i-- ){
     if( conchPath[i]=='/' ){
       i++;
@@ -6467,7 +6490,7 @@ static int proxyCreateConchPathname(char *dbPath, char **pConchPath){
     i++;
   }
 
-  /* append the "-conch" suffix to the file */
+  /* append the "-conch" suffix to the file */    //给文件添加了"-conch"后缀
   memcpy(&conchPath[i+1], "-conch", 7);
   assert( (int)strlen(conchPath) == len+7 );
 
@@ -6477,6 +6500,7 @@ static int proxyCreateConchPathname(char *dbPath, char **pConchPath){
 
 /* Takes a fully configured proxy locking-style unix file and switches
 ** the local lock file path 
+**需要完全配置的proxy加锁风格的Unix文件，并改变本地锁文件路径
 */
 static int switchLockProxyPath(unixFile *pFile, const char *path) {
   proxyLockingContext *pCtx = (proxyLockingContext*)pFile->lockingContext;
@@ -6487,7 +6511,7 @@ static int switchLockProxyPath(unixFile *pFile, const char *path) {
     return SQLITE_BUSY;
   }  
 
-  /* nothing to do if the path is NULL, :auto: or matches the existing path */
+  /* nothing to do if the path is NULL, :auto: or matches the existing path */  //如果路径为NULL就什么都不用做，自动或者匹配现有路径
   if( !path || path[0]=='\0' || !strcmp(path, ":auto:") ||
     (oldPath && !strncmp(oldPath, path, MAXPATHLEN)) ){
     return SQLITE_OK;
@@ -6510,26 +6534,32 @@ static int switchLockProxyPath(unixFile *pFile, const char *path) {
 /*
 ** pFile is a file that has been opened by a prior xOpen call.  dbPath
 ** is a string buffer at least MAXPATHLEN+1 characters in size.
+** pFile是由之前xOpen调用打开的一个文件。dbPath是一个大小至少为MAXPATHLEN+1个字符的字符串缓冲区
 **
 ** This routine find the filename associated with pFile and writes it
 ** int dbPath.
+** 这个程序是发现与pFile关联的文件名，并将其写入整型的dbPath
 */
 static int proxyGetDbPathForUnixFile(unixFile *pFile, char *dbPath){
 #if defined(__APPLE__)
   if( pFile->pMethod == &afpIoMethods ){
     /* afp style keeps a reference to the db path in the filePath field 
-    ** of the struct */
+    ** of the struct
+  ** afp风格保持了一个这个结构中文件路径域中的数据库路径的引用
+  */
     assert( (int)strlen((char*)pFile->lockingContext)<=MAXPATHLEN );
     strlcpy(dbPath, ((afpLockingContext *)pFile->lockingContext)->dbPath, MAXPATHLEN);
   } else
 #endif
   if( pFile->pMethod == &dotlockIoMethods ){
     /* dot lock style uses the locking context to store the dot lock
-    ** file path */
+    ** file path 
+  ** 点锁形式使用锁定内容来存储点锁文件路径
+  */
     int len = strlen((char *)pFile->lockingContext) - strlen(DOTLOCK_SUFFIX);
     memcpy(dbPath, (char *)pFile->lockingContext, len + 1);
   }else{
-    /* all other styles use the locking context to store the db file path */
+    /* all other styles use the locking context to store the db file path */  //所有其他的锁定形式使用锁定内容来存储这个数据库文件路径
     assert( strlen((char*)pFile->lockingContext)<=MAXPATHLEN );
     strlcpy(dbPath, (char *)pFile->lockingContext, MAXPATHLEN);
   }
@@ -6543,10 +6573,14 @@ static int proxyGetDbPathForUnixFile(unixFile *pFile, char *dbPath){
 ** the unix structure properly cleaned up at close time:
 **  ->lockingContext
 **  ->pMethod
+** 需要一个已经填写unix文件并改变它，这样所有文件锁定将本地proxy锁文件上执行。以下字段保存在锁定环境,这样他们可以恢复并且unix结构在最短的时间内正确清理:
+** ->lockingContext
+** ->pMethod
+
 */
 static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
   proxyLockingContext *pCtx;
-  char dbPath[MAXPATHLEN+1];       /* Name of the database file */
+  char dbPath[MAXPATHLEN+1];       /* Name of the database file */  //数据库文件的名字
   char *lockPath=NULL;
   int rc = SQLITE_OK;
   
@@ -6577,6 +6611,10 @@ static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
       ** (c) the file system is read-only, then enable no-locking access.
       ** Ugh, since O_RDONLY==0x0000 we test for !O_RDWR since unixOpen asserts
       ** that openFlags will have only one of O_RDONLY or O_RDWR.
+    ** 如果（a）如果打开的标示符不是O_RDWR，（b）壳文件不在这，并且（c）文件
+    系统是只读的，然后启用没有锁定的访问。
+    Ugh，由于我们测试的O_RDONLY==0x0000！O_RDWR由于unixOpen判断打开标志将仅有
+    一个O_RDONLY或者O_RDWR。
       */
       struct statfs fsInfo;
       struct stat conchInfo;
@@ -6607,6 +6645,7 @@ static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
   if( rc==SQLITE_OK ){
     /* all memory is allocated, proxys are created and assigned, 
     ** switch the locking context and pMethod then return.
+    所有内存被分配，代理被创建和分配，转换锁定内容和pMethod，然后返回。
     */
     pCtx->oldLockingContext = pFile->lockingContext;
     pFile->lockingContext = pCtx;
@@ -6629,7 +6668,7 @@ static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
 
 /*
 ** This routine handles sqlite3_file_control() calls that are specific
-** to proxy locking.
+** to proxy locking.这个程序处理特定的代理锁定的sqlite3_file_control()调用。
 */
 static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
   switch( op ){
@@ -6654,10 +6693,11 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
       int isProxyStyle = (pFile->pMethod == &proxyIoMethods);
       if( pArg==NULL || (const char *)pArg==0 ){
         if( isProxyStyle ){
-          /* turn off proxy locking - not supported */
-          rc = SQLITE_ERROR /*SQLITE_PROTOCOL? SQLITE_MISUSE?*/;
+          /* turn off proxy locking - not supported 关闭代理锁定-不支持*/
+          rc = SQLITE_ERROR /*SQLITE_PROTOCOL? SQLITE_MISUSE? 协议，误用*/;
         }else{
           /* turn off proxy locking - already off - NOOP */
+            /*关闭代理锁定-已经关闭-等待*/
           rc = SQLITE_OK;
         }
       }else{
@@ -6674,7 +6714,7 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
             rc = switchLockProxyPath(pFile, proxyPath);
           }
         }else{
-          /* turn on proxy file locking */
+          /* turn on proxy file locking 打开代理文件锁定*/
           rc = proxyTransformUnixFile(pFile, proxyPath);
         }
       }
@@ -6682,9 +6722,9 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
     }
     default: {
       assert( 0 );  /* The call assures that only valid opcodes are sent */
-    }
+    }                  /*该调用确保只有有用的操作码被发送*/
   }
-  /*NOTREACHED*/
+  /*NOTREACHED 未达*/
   return SQLITE_ERROR;
 }
 
@@ -6692,6 +6732,8 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
 ** Within this division (the proxying locking implementation) the procedures
 ** above this point are all utilities.  The lock-related methods of the
 ** proxy-locking sqlite3_io_method object follow.
+在这个部分（代理锁定实现）以上者一点的程序都是公用的。代理锁定
+sqlite3_io_method对象的lock-related方法如下：
 */
 
 
@@ -6700,6 +6742,9 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
 ** file by this or any other process. If such a lock is held, set *pResOut
 ** to a non-zero value otherwise *pResOut is set to zero.  The return value
 ** is set to SQLITE_OK unless an I/O error occurs during lock checking.
+这个程序检查是否在这个或任何其他进程指定的文件持有一个未决锁。如果持有这样的锁，
+设置*pResOut为一个非零值，否则设置*pResOut为0.设置返回值为SQLITE_OK，除非在
+锁检查期间发生一个I/O错误。
 */
 static int proxyCheckReservedLock(sqlite3_file *id, int *pResOut) {
   unixFile *pFile = (unixFile*)id;
@@ -6719,26 +6764,31 @@ static int proxyCheckReservedLock(sqlite3_file *id, int *pResOut) {
 /*
 ** Lock the file with the lock specified by parameter eFileLock - one
 ** of the following:
+用参数eFileLock指定的锁锁定文件 - 以下之一：
 **
-**     (1) SHARED_LOCK
-**     (2) RESERVED_LOCK
-**     (3) PENDING_LOCK
-**     (4) EXCLUSIVE_LOCK
+**     (1) SHARED_LOCK             共享锁
+**     (2) RESERVED_LOCK           保留锁
+**     (3) PENDING_LOCK            未决锁
+**     (4) EXCLUSIVE_LOCK          排它锁
 **
 ** Sometimes when requesting one lock state, additional lock states
 ** are inserted in between.  The locking might fail on one of the later
 ** transitions leaving the lock state different from what it started but
 ** still short of its goal.  The following chart shows the allowed
 ** transitions and the inserted intermediate states:
+有时当请求一个锁状态，额外的锁状态会被插入在之间。在之后的一个转换锁定可能会
+失败，这个转换让锁状态与它开始不同但是仍然缺乏它的目标。下面的表显示了允许的
+转换和插入的中间状态。
 **
-**    UNLOCKED -> SHARED
-**    SHARED -> RESERVED
+**    UNLOCKED -> SHARED               
+**    SHARED -> RESERVED 
 **    SHARED -> (PENDING) -> EXCLUSIVE
 **    RESERVED -> (PENDING) -> EXCLUSIVE
 **    PENDING -> EXCLUSIVE
 **
 ** This routine will only increase a lock.  Use the sqlite3OsUnlock()
 ** routine to lower a locking level.
+这个程序将仅增加一个锁。使用sqlite3OsUnlock()程序来降低一个锁定级别。
 */
 static int proxyLock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
@@ -6760,9 +6810,11 @@ static int proxyLock(sqlite3_file *id, int eFileLock) {
 /*
 ** Lower the locking level on file descriptor pFile to eFileLock.  eFileLock
 ** must be either NO_LOCK or SHARED_LOCK.
+降低在文件描述符pFile到eFileLock上的锁定级别。eFileLock必须是无锁或者共享锁。
 **
 ** If the locking level of the file descriptor is already at or below
 ** the requested locking level, this routine is a no-op.
+如果文件描述符锁定的级别已经在或者低于请求锁定级别，这个例程是一个空操作。
 */
 static int proxyUnlock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
@@ -6774,7 +6826,7 @@ static int proxyUnlock(sqlite3_file *id, int eFileLock) {
       rc = proxy->pMethod->xUnlock((sqlite3_file*)proxy, eFileLock);
       pFile->eFileLock = proxy->eFileLock;
     }else{
-      /* conchHeld < 0 is lockless */
+      /* conchHeld < 0 is lockless conchHeld<0则无锁*/
     }
   }
   return rc;
@@ -6782,6 +6834,7 @@ static int proxyUnlock(sqlite3_file *id, int eFileLock) {
 
 /*
 ** Close a file that uses proxy locks.
+    关闭一个文件,使用代理锁
 */
 static int proxyClose(sqlite3_file *id) {
   if( id ){
