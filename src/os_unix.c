@@ -5075,8 +5075,10 @@ static int findCreateFileMode(
 
 /*
 ** Open the file zPath.
+//打开文件zPath
 ** 
 ** Previously, the SQLite OS layer used three functions in place of this
+//在此前，SQLite操作系统层使用三个函数在这里
 ** one:
 **
 **     sqlite3OsOpenReadWrite();
@@ -5084,6 +5086,7 @@ static int findCreateFileMode(
 **     sqlite3OsOpenExclusive();
 **
 ** These calls correspond to the following combinations of flags:
+//这些调用和下面的混合体的标志相符合
 **
 **     ReadWrite() ->     (READWRITE | CREATE)
 **     ReadOnly()  ->     (READONLY) 
@@ -5095,20 +5098,23 @@ static int findCreateFileMode(
 ** interface, add the DELETEONCLOSE flag to those specified above for 
 ** OpenExclusive().
 */
+//老的OpenExclusive()接受一个布尔变量- "delFlag"。如果为真，这个文件被自动配置为当文件句柄关闭时删除。
+//为了在使用新的接口达到相同的效果，添加DELETEONCLOSE标记在以上对OpenExclusive()具体说明OpenExclusive()。
 static int unixOpen(
   sqlite3_vfs *pVfs,           /* The VFS for which this is the xOpen method */
-  const char *zPath,           /* Pathname of file to be opened */
-  sqlite3_file *pFile,         /* The file descriptor to be filled in */
-  int flags,                   /* Input flags to control the opening */
-  int *pOutFlags               /* Output flags returned to SQLite core */
+                                //xOpen方法的VFS
+  const char *zPath,           /* Pathname of file to be opened */ //被打开文件的路径名
+  sqlite3_file *pFile,         /* The file descriptor to be filled in */ //被装满的文件描述符
+  int flags,                   /* Input flags to control the opening */ //控制打开的输入标记
+  int *pOutFlags               /* Output flags returned to SQLite core */ //返回SQLite内核的输出标记
 ){
   unixFile *p = (unixFile *)pFile;
-  int fd = -1;                   /* File descriptor returned by open() */
-  int openFlags = 0;             /* Flags to pass to open() */
-  int eType = flags&0xFFFFFF00;  /* Type of file to open */
-  int noLock;                    /* True to omit locking primitives */
-  int rc = SQLITE_OK;            /* Function Return Code */
-  int ctrlFlags = 0;             /* UNIXFILE_* flags */
+  int fd = -1;                   /* File descriptor returned by open() */ //open()返回的文件描述符
+  int openFlags = 0;             /* Flags to pass to open() */ //传入open()的标记
+  int eType = flags&0xFFFFFF00;  /* Type of file to open */  //打开文件的类型
+  int noLock;                    /* True to omit locking primitives */ //为真则删除原始锁
+  int rc = SQLITE_OK;            /* Function Return Code */  //函数返回代码
+  int ctrlFlags = 0;             /* UNIXFILE_* flags */    //UNIXFILE_*标记
 
   int isExclusive  = (flags & SQLITE_OPEN_EXCLUSIVE);
   int isDelete     = (flags & SQLITE_OPEN_DELETEONCLOSE);
@@ -5126,6 +5132,8 @@ static int unixOpen(
   ** a file-descriptor on the directory too. The first time unixSync()
   ** is called the directory file descriptor will be fsync()ed and close()d.
   */
+  //如果创建一个主的或主文件日志，这个方法也会打开一个在本目录的文件描述符。第一次unixSync()被调用，
+  //这个目录文件描述符将被fsync()或close()d。
   int syncDir = (isCreate && (
         eType==SQLITE_OPEN_MASTER_JOURNAL 
      || eType==SQLITE_OPEN_MAIN_JOURNAL 
@@ -5135,16 +5143,23 @@ static int unixOpen(
   /* If argument zPath is a NULL pointer, this function is required to open
   ** a temporary file. Use this buffer to store the file name in.
   */
+  //如果变量zPath是一个空指针，这个方法被要求去打开一个临时文件。使用这个缓冲区存储文件名。
   char zTmpname[MAX_PATHNAME+2];
   const char *zName = zPath;
 
   /* Check the following statements are true: 
+  //检查一下句子为真
   **
   **   (a) Exactly one of the READWRITE and READONLY flags must be set, and 
   **   (b) if CREATE is set, then READWRITE must also be set, and
   **   (c) if EXCLUSIVE is set, then CREATE must also be set.
   **   (d) if DELETEONCLOSE is set, then CREATE must also be set.
   */
+  //   (a)事实上一个READWRITE和READONLY标记必须被设置，
+  //   (b)如果CREATE被设置，则READWRITE也必须被设置，
+  //   (c)如果EXCLUSIVE被设置，则CREATE也必须被设置，
+  //   (d)如果DELETEONCLOSE被设置，则CREATE也必须被设置，
+
   assert((isReadonly==0 || isReadWrite==0) && (isReadWrite || isReadonly));
   assert(isCreate==0 || isReadWrite);
   assert(isExclusive==0 || isCreate);
@@ -5152,12 +5167,14 @@ static int unixOpen(
 
   /* The main DB, main journal, WAL file and master journal are never 
   ** automatically deleted. Nor are they ever temporary files.  */
+  //主DB，主日志，WAL文件和主日志永远不会自动删除。临时文件也不会。
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_DB );
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_JOURNAL );
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MASTER_JOURNAL );
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_WAL );
 
   /* Assert that the upper layer has set one of the "file-type" flags. */
+  //断言上层被设置一个"file-type"标记。
   assert( eType==SQLITE_OPEN_MAIN_DB      || eType==SQLITE_OPEN_TEMP_DB 
        || eType==SQLITE_OPEN_MAIN_JOURNAL || eType==SQLITE_OPEN_TEMP_JOURNAL 
        || eType==SQLITE_OPEN_SUBJOURNAL   || eType==SQLITE_OPEN_MASTER_JOURNAL 
@@ -5182,10 +5199,12 @@ static int unixOpen(
     /* Database filenames are double-zero terminated if they are not
     ** URIs with parameters.  Hence, they can always be passed into
     ** sqlite3_uri_parameter(). */
+    //数据库文件名会双零终止如果它们没有URIs参数。因此，它们总可以传入sqlite3_uri_parameter()。
     assert( (flags & SQLITE_OPEN_URI) || zName[strlen(zName)+1]==0 );
 
   }else if( !zName ){
     /* If zName is NULL, the upper layer is requesting a temp file. */
+    //如果zName为空，则上层被要求一个临时文件。
     assert(isDelete && !syncDir);
     rc = unixGetTempname(MAX_PATHNAME+2, zTmpname);
     if( rc!=SQLITE_OK ){
@@ -5195,6 +5214,7 @@ static int unixOpen(
 
     /* Generated temporary filenames are always double-zero terminated
     ** for use by sqlite3_uri_parameter(). */
+    //使用sqlite3_uri_parameter()产生的临时文件总是双零终止。
     assert( zName[strlen(zName)+1]==0 );
   }
 
@@ -5202,6 +5222,8 @@ static int unixOpen(
   ** open(). These must be calculated even if open() is not called, as
   ** they may be stored as part of the file handle and used by the 
   ** 'conch file' locking functions later on.  */
+  //查明标记参数传入POSIX方法open()的标记值。这必须被计算即使open()没有被调用，如同他们可能被存储为文件句柄的一部分
+  //并且被用作后来的壳文件锁定方法。
   if( isReadonly )  openFlags |= O_RDONLY;
   if( isReadWrite ) openFlags |= O_RDWR;
   if( isCreate )    openFlags |= O_CREAT;
@@ -5209,9 +5231,9 @@ static int unixOpen(
   openFlags |= (O_LARGEFILE|O_BINARY);
 
   if( fd<0 ){
-    mode_t openMode;              /* Permissions to create file with */
-    uid_t uid;                    /* Userid for the file */
-    gid_t gid;                    /* Groupid for the file */
+    mode_t openMode;              /* Permissions to create file with */ //创建文件的权限
+    uid_t uid;                    /* Userid for the file */ //文件的用户id
+    gid_t gid;                    /* Groupid for the file */ //文件的组id
     rc = findCreateFileMode(zName, flags, &openMode, &uid, &gid);
     if( rc!=SQLITE_OK ){
       assert( !p->pUnused );
@@ -5222,6 +5244,7 @@ static int unixOpen(
     OSTRACE(("OPENX   %-3d %s 0%o\n", fd, zName, openFlags));
     if( fd<0 && errno!=EISDIR && isReadWrite && !isExclusive ){
       /* Failed to open the file for read/write access. Try read-only. */
+      //打开文件去读／写存取失败。尝试只读。
       flags &= ~(SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE);
       openFlags &= ~(O_RDWR|O_CREAT);
       flags |= SQLITE_OPEN_READONLY;
@@ -5238,6 +5261,7 @@ static int unixOpen(
     ** journal or WAL file, set the ownership of the journal or WAL to be
     ** the same as the original database.
     */
+    //如果这个进程被当作启动运行，并且如果创建一个新的或调日志或WAL文件，设置日志或者WAL的所有权作为和原数据库相同的。
     if( flags & (SQLITE_OPEN_WAL|SQLITE_OPEN_MAIN_JOURNAL) ){
       osFchown(fd, uid, gid);
     }
@@ -5280,6 +5304,7 @@ static int unixOpen(
 #endif
 
   /* Set up appropriate ctrlFlags */
+  //设置合适的ctrlFlags
   if( isDelete )                ctrlFlags |= UNIXFILE_DELETE;
   if( isReadonly )              ctrlFlags |= UNIXFILE_RDONLY;
   if( noLock )                  ctrlFlags |= UNIXFILE_NOLOCK;
@@ -5296,6 +5321,7 @@ static int unixOpen(
 
     /* SQLITE_FORCE_PROXY_LOCKING==1 means force always use proxy, 0 means 
     ** never use proxy, NULL means use proxy for non-local files only.  */
+    //SQLITE_FORCE_PROXY_LOCKING==1意味着总是强制使用代理，0意味着从不使用代理，NULL只意味着以未定为文件使用代理
     if( envforce!=NULL ){
       useProxy = atoi(envforce)>0;
     }else{
@@ -5689,6 +5715,7 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** been defined - so that the primitive locking methods are available
 ** as services to help with the implementation of proxy locking.
 **
+//代理锁在这个场景下是一个"超级锁定方法"：它在附属锁定文件上使用其他锁定方法。代理锁是一个元层
 ****
 **
 ** The default locking schemes in SQLite use byte-range locks on the
