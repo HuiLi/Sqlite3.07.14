@@ -2708,7 +2708,7 @@ char *sqlite3MAppendf(sqlite3*,char*,const char*,...);
   void *sqlite3TestTextToPtr(const char*);
 #endif
 
-/* Output formatting for SQLITE_TESTCTRL_EXPLAIN */
+/* Output formatting for SQLITE_TESTCTRL_EXPLAIN*/ /*SQLITE_TESTCTRL_EXPLAIN的格式化输出*/
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
   void sqlite3ExplainBegin(Vdbe*);
   void sqlite3ExplainPrintf(Vdbe*, const char*, ...);
@@ -3006,8 +3006,11 @@ int sqlite3VarintLen(u64 v);
 ** and decode of the integers in a record header.  It is faster for the common
 ** case where the integer is a single byte.  It is a little slower when the
 ** integer is two or more bytes.  But overall it is faster.
-**
+**记录的头部由一系列可变长度的整数组成。这些整数几乎都很小并且被编码为一个单字节。下面的宏利用了这个优点
+提供了一种对记录头里的整数快速编解码的方式。当整数是单字节时这种方式就比较快，当整数是双字节或者多字节它
+就会慢一些，但是不管怎样，它都更快了。
 ** The following expressions are equivalent:
+      下面的式子是相等的
 **
 **     x = sqlite3GetVarint32( A, &B );
 **     x = sqlite3PutVarint32( A, B );
@@ -3128,6 +3131,7 @@ void sqlite3BackupUpdate(sqlite3_backup *, Pgno, const u8 *);
 
 /*
 ** The interface to the LEMON-generated parser
+ LEMON-generated解析器的接口
 */
 void *sqlite3ParserAlloc(void*(*)(size_t));
 void sqlite3ParserFree(void*, void(*)(void*));
@@ -3204,6 +3208,9 @@ int sqlite3WalDefaultHook(void*,sqlite3*,const char*,int);
 ** OMIT_FOREIGN_KEY is not, only some of the functions are no-oped. In
 ** this case foreign keys are parsed, but no other functionality is 
 ** provided (enforcement of FK constraints requires the triggers sub-system).
+fkey.c文件中的函数声明。如果 OMIT_FOREIGN_KEY没有被定义那所有的函数声明就会被无操作宏所取代。
+在这种情况下，外键的功能不可用。如果OMIT_TRIGGER被定义但是OMIT_FOREIGN_KEY没有被定义,那就会有部分的功能不被启用。
+在这种情况下，外键会被解析，但是不会提供别的功能。（实施FK约束要求触发器子系统）。
 */
 #if !defined(SQLITE_OMIT_FOREIGN_KEY) && !defined(SQLITE_OMIT_TRIGGER)
   void sqlite3FkCheck(Parse*, Table*, int, int);
@@ -3228,6 +3235,7 @@ int sqlite3WalDefaultHook(void*,sqlite3*,const char*,int);
 
 /*
 ** Available fault injectors.  Should be numbered beginning with 0.
+可用的错误注射器，应该从0开始编号
 */
 #define SQLITE_FAULTINJECTOR_MALLOC     0
 #define SQLITE_FAULTINJECTOR_COUNT      1
@@ -3236,6 +3244,7 @@ int sqlite3WalDefaultHook(void*,sqlite3*,const char*,int);
 ** The interface to the code in fault.c used for identifying "benign"
 ** malloc failures. This is only present if SQLITE_OMIT_BUILTIN_TEST
 ** is not defined.
+fault.c中的代码的接口用于识别“良性的”malloc的故障，只有当SQLITE_OMIT_BUILTIN_TEST没有定义时才会出现这种情况。
 */
 #ifndef SQLITE_OMIT_BUILTIN_TEST
   void sqlite3BeginBenignMalloc(void);
@@ -3293,6 +3302,7 @@ void sqlite3Put4byte(u8*, u32);
 ** If the SQLITE_ENABLE IOTRACE exists then the global variable
 ** sqlite3IoTrace is a pointer to a printf-like routine used to
 ** print I/O tracing messages. 
+如果SQLITE_ENABLE IOTRACE存在，那么那么全局变量sqlite3的IoTrace是一个指向用于打印I / O跟踪消息的类printf程序。
 */
 #ifdef SQLITE_ENABLE_IOTRACE
 # define IOTRACE(A)  if( sqlite3IoTrace ){ sqlite3IoTrace A; }
