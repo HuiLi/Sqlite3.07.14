@@ -38,176 +38,176 @@ static const char * const azCompileOpt[] = {
 #define CTIMEOPT_VAL_(opt) #opt
 #define CTIMEOPT_VAL(opt) CTIMEOPT_VAL_(opt)
 
-#ifdef SQLITE_32BIT_ROWID
-  "32BIT_ROWID",
+#ifdef SQLITE_32BIT_ROWID  /*如果  SQLITE_32BIT_ROWID 已经被定义过，则执行下面语句，否则什么都不执行*/
+  "32BIT_ROWID",/*32位行编号*/
 #endif
-#ifdef SQLITE_4_BYTE_ALIGNED_MALLOC
-  "4_BYTE_ALIGNED_MALLOC",
+#ifdef SQLITE_4_BYTE_ALIGNED_MALLOC /*如果  SQLITE_4_BYTE_ALIGNED_MALLOC 已经被定义过，则执行下面语句，否则什么都不执行*/
+  "4_BYTE_ALIGNED_MALLOC",/* 4字节内存申请  */
 #endif
-#ifdef SQLITE_CASE_SENSITIVE_LIKE
+#ifdef SQLITE_CASE_SENSITIVE_LIKE /*如果  SQLITE_CASE_SENSITIVE_LIKE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "CASE_SENSITIVE_LIKE",
 #endif
-#ifdef SQLITE_CHECK_PAGES
+#ifdef SQLITE_CHECK_PAGES /*如果  SQLITE_CHECK_PAGES 已经被定义过，则执行下面语句，否则什么都不执行*/
   "CHECK_PAGES",
 #endif
-#ifdef SQLITE_COVERAGE_TEST
+#ifdef SQLITE_COVERAGE_TEST /*如果  SQLITE_COVERAGE_TEST 已经被定义过，则执行下面语句，否则什么都不执行*/
   "COVERAGE_TEST",
 #endif
-#ifdef SQLITE_CURDIR
+#ifdef SQLITE_CURDIR /*如果  SQLITE_CURDIR 已经被定义过，则执行下面语句，否则什么都不执行*/
   "CURDIR",
 #endif
-#ifdef SQLITE_DEBUG
+#ifdef SQLITE_DEBUG /*如果  SQLITE_DEBUG 已经被定义过，则执行下面语句，否则什么都不执行*/
   "DEBUG",
 #endif
-#ifdef SQLITE_DEFAULT_LOCKING_MODE
+#ifdef SQLITE_DEFAULT_LOCKING_MODE /*如果  SQLITE_DEFAULT_LOCKING_MODE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "DEFAULT_LOCKING_MODE=" CTIMEOPT_VAL(SQLITE_DEFAULT_LOCKING_MODE),
 #endif
-#ifdef SQLITE_DISABLE_DIRSYNC
+#ifdef SQLITE_DISABLE_DIRSYNC /*如果  SQLITE_DISABLE_DIRSYNC 已经被定义过，则执行下面语句，否则什么都不执行*/
   "DISABLE_DIRSYNC",
 #endif
-#ifdef SQLITE_DISABLE_LFS
+#ifdef SQLITE_DISABLE_LFS /*如果  SQLITE_DISABLE_LFS 已经被定义过，则执行下面语句，否则什么都不执行*/
   "DISABLE_LFS",
 #endif
-#ifdef SQLITE_ENABLE_ATOMIC_WRITE
+#ifdef SQLITE_ENABLE_ATOMIC_WRITE /*如果  SQLITE_ENABLE_ATOMIC_WRITE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_ATOMIC_WRITE",
 #endif
-#ifdef SQLITE_ENABLE_CEROD
+#ifdef SQLITE_ENABLE_CEROD /*如果  SQLITE_ENABLE_CEROD 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_CEROD",
 #endif
-#ifdef SQLITE_ENABLE_COLUMN_METADATA
+#ifdef SQLITE_ENABLE_COLUMN_METADATA /*如果  SQLITE_ENABLE_COLUMN_METADATA 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_COLUMN_METADATA",
 #endif
-#ifdef SQLITE_ENABLE_EXPENSIVE_ASSERT
+#ifdef SQLITE_ENABLE_EXPENSIVE_ASSERT /*如果  SQLITE_ENABLE_EXPENSIVE_ASSERT 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_EXPENSIVE_ASSERT",
 #endif
-#ifdef SQLITE_ENABLE_FTS1
+#ifdef SQLITE_ENABLE_FTS1 /*如果  SQLITE_ENABLE_FTS1 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_FTS1",
 #endif
-#ifdef SQLITE_ENABLE_FTS2
+#ifdef SQLITE_ENABLE_FTS2 /*如果  SQLITE_ENABLE_FTS2 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_FTS2",
 #endif
-#ifdef SQLITE_ENABLE_FTS3
+#ifdef SQLITE_ENABLE_FTS3 /*如果  SQLITE_ENABLE_FTS3 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_FTS3",
 #endif
-#ifdef SQLITE_ENABLE_FTS3_PARENTHESIS
+#ifdef SQLITE_ENABLE_FTS3_PARENTHESIS /*如果  SQLITE_ENABLE_FTS3_PARENTHESIS 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_FTS3_PARENTHESIS",
 #endif
-#ifdef SQLITE_ENABLE_FTS4
+#ifdef SQLITE_ENABLE_FTS4 /*如果  SQLITE_ENABLE_FTS4 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_FTS4",
 #endif
-#ifdef SQLITE_ENABLE_ICU
+#ifdef SQLITE_ENABLE_ICU /*如果  SQLITE_ENABLE_ICU 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_ICU",
 #endif
-#ifdef SQLITE_ENABLE_IOTRACE
+#ifdef SQLITE_ENABLE_IOTRACE /*如果  SQLITE_ENABLE_IOTRACE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_IOTRACE",
 #endif
-#ifdef SQLITE_ENABLE_LOAD_EXTENSION
+#ifdef SQLITE_ENABLE_LOAD_EXTENSION /*如果  SQLITE_ENABLE_LOAD_EXTENSION 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_LOAD_EXTENSION",
 #endif
-#ifdef SQLITE_ENABLE_LOCKING_STYLE
+#ifdef SQLITE_ENABLE_LOCKING_STYLE /*如果  SQLITE_ENABLE_LOCKING_STYLE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_LOCKING_STYLE=" CTIMEOPT_VAL(SQLITE_ENABLE_LOCKING_STYLE),
 #endif
-#ifdef SQLITE_ENABLE_MEMORY_MANAGEMENT
+#ifdef SQLITE_ENABLE_MEMORY_MANAGEMENT /*如果  SQLITE_ENABLE_MEMORY_MANAGEMENT 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_MEMORY_MANAGEMENT",
 #endif
-#ifdef SQLITE_ENABLE_MEMSYS3
+#ifdef SQLITE_ENABLE_MEMSYS3 /*如果  SQLITE_ENABLE_MEMSYS3 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_MEMSYS3",
 #endif
-#ifdef SQLITE_ENABLE_MEMSYS5
+#ifdef SQLITE_ENABLE_MEMSYS5 /*如果  SQLITE_ENABLE_MEMSYS5 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_MEMSYS5",
 #endif
-#ifdef SQLITE_ENABLE_OVERSIZE_CELL_CHECK
+#ifdef SQLITE_ENABLE_OVERSIZE_CELL_CHECK /*如果  SQLITE_ENABLE_OVERSIZE_CELL_CHECK 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_OVERSIZE_CELL_CHECK",
 #endif
-#ifdef SQLITE_ENABLE_RTREE
+#ifdef SQLITE_ENABLE_RTREE /*如果  SQLITE_ENABLE_RTREE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_RTREE",
 #endif
-#ifdef SQLITE_ENABLE_STAT3
+#ifdef SQLITE_ENABLE_STAT3 /*如果  SQLITE_ENABLE_STAT3 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_STAT3",
 #endif
-#ifdef SQLITE_ENABLE_UNLOCK_NOTIFY
+#ifdef SQLITE_ENABLE_UNLOCK_NOTIFY /*如果  SQLITE_ENABLE_UNLOCK_NOTIFY 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_UNLOCK_NOTIFY",
 #endif
-#ifdef SQLITE_ENABLE_UPDATE_DELETE_LIMIT
+#ifdef SQLITE_ENABLE_UPDATE_DELETE_LIMIT /*如果  SQLITE_ENABLE_UPDATE_DELETE_LIMIT 已经被定义过，则执行下面语句，否则什么都不执行*/
   "ENABLE_UPDATE_DELETE_LIMIT",
 #endif
-#ifdef SQLITE_HAS_CODEC
+#ifdef SQLITE_HAS_CODEC /*如果  SQLITE_HAS_CODEC 已经被定义过，则执行下面语句，否则什么都不执行*/
   "HAS_CODEC",
 #endif
-#ifdef SQLITE_HAVE_ISNAN
+#ifdef SQLITE_HAVE_ISNAN /*如果  SQLITE_HAVE_ISNAN 已经被定义过，则执行下面语句，否则什么都不执行*/
   "HAVE_ISNAN",
 #endif
-#ifdef SQLITE_HOMEGROWN_RECURSIVE_MUTEX
+#ifdef SQLITE_HOMEGROWN_RECURSIVE_MUTEX /*如果  SQLITE_HOMEGROWN_RECURSIVE_MUTEX 已经被定义过，则执行下面语句，否则什么都不执行*/
   "HOMEGROWN_RECURSIVE_MUTEX",
 #endif
-#ifdef SQLITE_IGNORE_AFP_LOCK_ERRORS
+#ifdef SQLITE_IGNORE_AFP_LOCK_ERRORS /*如果  SQLITE_IGNORE_AFP_LOCK_ERRORS 已经被定义过，则执行下面语句，否则什么都不执行*/
   "IGNORE_AFP_LOCK_ERRORS",
 #endif
-#ifdef SQLITE_IGNORE_FLOCK_LOCK_ERRORS
+#ifdef SQLITE_IGNORE_FLOCK_LOCK_ERRORS /*如果  SQLITE_IGNORE_FLOCK_LOCK_ERRORS 已经被定义过，则执行下面语句，否则什么都不执行*/
   "IGNORE_FLOCK_LOCK_ERRORS",
 #endif
-#ifdef SQLITE_INT64_TYPE
+#ifdef SQLITE_INT64_TYPE /*如果  SQLITE_INT64_TYPE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "INT64_TYPE",
 #endif
-#ifdef SQLITE_LOCK_TRACE
+#ifdef SQLITE_LOCK_TRACE /*如果  SQLITE_LOCK_TRACE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "LOCK_TRACE",
 #endif
-#ifdef SQLITE_MAX_SCHEMA_RETRY
+#ifdef SQLITE_MAX_SCHEMA_RETRY /*如果  SQLITE_MAX_SCHEMA_RETRY 已经被定义过，则执行下面语句，否则什么都不执行*/
   "MAX_SCHEMA_RETRY=" CTIMEOPT_VAL(SQLITE_MAX_SCHEMA_RETRY),
 #endif
-#ifdef SQLITE_MEMDEBUG
+#ifdef SQLITE_MEMDEBUG /*如果  SQLITE_MEMDEBUG 已经被定义过，则执行下面语句，否则什么都不执行*/
   "MEMDEBUG",
 #endif
-#ifdef SQLITE_MIXED_ENDIAN_64BIT_FLOAT
-  "MIXED_ENDIAN_64BIT_FLOAT",
+#ifdef SQLITE_MIXED_ENDIAN_64BIT_FLOAT /*如果  SQLITE_MIXED_ENDIAN_64BIT_FLOAT 已经被定义过，则执行下面语句，否则什么都不执行*/
+  "MIXED_ENDIAN_64BIT_FLOAT",/*混合字节顺序的64位浮点型*/
 #endif
-#ifdef SQLITE_NO_SYNC
+#ifdef SQLITE_NO_SYNC /*如果  SQLITE_NO_SYNC 已经被定义过，则执行下面语句，否则什么都不执行*/
   "NO_SYNC",
 #endif
-#ifdef SQLITE_OMIT_ALTERTABLE
+#ifdef SQLITE_OMIT_ALTERTABLE /*如果  SQLITE_OMIT_ALTERTABLE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_ALTERTABLE",
 #endif
-#ifdef SQLITE_OMIT_ANALYZE
+#ifdef SQLITE_OMIT_ANALYZE /*如果  SQLITE_OMIT_ANALYZE 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_ANALYZE",
 #endif
-#ifdef SQLITE_OMIT_ATTACH
+#ifdef SQLITE_OMIT_ATTACH /*如果  SQLITE_OMIT_ATTACH 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_ATTACH",
 #endif
-#ifdef SQLITE_OMIT_AUTHORIZATION
+#ifdef SQLITE_OMIT_AUTHORIZATION /*如果  SQLITE_OMIT_AUTHORIZATION 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_AUTHORIZATION",
 #endif
-#ifdef SQLITE_OMIT_AUTOINCREMENT
+#ifdef SQLITE_OMIT_AUTOINCREMENT /*如果  SQLITE_OMIT_AUTOINCREMENT 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_AUTOINCREMENT",
 #endif
-#ifdef SQLITE_OMIT_AUTOINIT
+#ifdef SQLITE_OMIT_AUTOINIT /*如果  SQLITE_OMIT_AUTOINIT 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_AUTOINIT",
 #endif
-#ifdef SQLITE_OMIT_AUTOMATIC_INDEX
+#ifdef SQLITE_OMIT_AUTOMATIC_INDEX /*如果  SQLITE_OMIT_AUTOMATIC_INDEX 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_AUTOMATIC_INDEX",
 #endif
-#ifdef SQLITE_OMIT_AUTORESET
+#ifdef SQLITE_OMIT_AUTORESET /*如果  SQLITE_OMIT_AUTORESET 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_AUTORESET",
 #endif
-#ifdef SQLITE_OMIT_AUTOVACUUM
+#ifdef SQLITE_OMIT_AUTOVACUUM /*如果  SQLITE_OMIT_AUTOVACUUM 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_AUTOVACUUM",
 #endif
-#ifdef SQLITE_OMIT_BETWEEN_OPTIMIZATION
+#ifdef SQLITE_OMIT_BETWEEN_OPTIMIZATION /*如果  SQLITE_OMIT_BETWEEN_OPTIMIZATION 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_BETWEEN_OPTIMIZATION",
 #endif
-#ifdef SQLITE_OMIT_BLOB_LITERAL
+#ifdef SQLITE_OMIT_BLOB_LITERAL /*如果  SQLITE_OMIT_BLOB_LITERAL 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_BLOB_LITERAL",
 #endif
-#ifdef SQLITE_OMIT_BTREECOUNT
+#ifdef SQLITE_OMIT_BTREECOUNT /*如果  SQLITE_OMIT_BTREECOUNT 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_BTREECOUNT",
 #endif
-#ifdef SQLITE_OMIT_BUILTIN_TEST
+#ifdef SQLITE_OMIT_BUILTIN_TEST /*如果  SQLITE_OMIT_BUILTIN_TEST 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_BUILTIN_TEST",
 #endif
-#ifdef SQLITE_OMIT_CAST
+#ifdef SQLITE_OMIT_CAST /*如果  SQLITE_OMIT_CAST 已经被定义过，则执行下面语句，否则什么都不执行*/
   "OMIT_CAST",
 #endif
-#ifdef SQLITE_OMIT_CHECK
-  "OMIT_CHECK",
+#ifdef SQLITE_OMIT_CHECK /*如果  SQLITE_OMIT_CHECK 已经被定义过，则执行下面语句，否则什么都不执行*/
+  "OMIT_CHECK", /*省略核对*/
 #endif
 /* // redundant
 ** #ifdef SQLITE_OMIT_COMPILEOPTION_DIAGS
