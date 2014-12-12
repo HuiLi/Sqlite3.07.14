@@ -1,4 +1,24 @@
 
+/*
+** 2001 September 15
+**
+** The author disclaims copyright to this source code.  In place of
+** a legal notice, here is a blessing:
+**
+**    May you do good and not evil.
+**    May you find forgiveness for yourself and forgive others.
+**    May you share freely, never taking more than you give.
+**
+*************************************************************************
+** Main file for the SQLite library.  The routines in this file
+** implement the programmer interface to the library.  Routines in
+** other files are for internal use by SQLite and should not be
+** accessed by users of the library.
+main.c函数主要是SQLit Library的大部分接口,这个文件中的程序执行这些程序接口进入library.
+在其他的文件中的程序是被sqlite在内部应用，不应该被library的用户接受。
+
+*/
+//包含必要的头文件
 #include "sqliteInt.h"
 
 #ifdef SQLITE_ENABLE_FTS3
@@ -15,29 +35,35 @@
 /* IMPLEMENTATION-OF: R-46656-45156 The sqlite3_version[] string constant
 ** contains the text of SQLITE_VERSION macro. 
 */
+//sqlite3_version[]被赋值为字符串常量，包含SQLITE_VERSION macro。
 const char sqlite3_version[] = SQLITE_VERSION;
 #endif
 
 /* IMPLEMENTATION-OF: R-53536-42575 The sqlite3_libversion() function returns
 ** a pointer to the to the sqlite3_version[] string constant. 
 */
+//这个sqlite3_libversion()函数返回一个指针给 qlite3_version[] 字符串常量。
+
 const char *sqlite3_libversion(void){ return sqlite3_version; }
 
 /* IMPLEMENTATION-OF: R-63124-39300 The sqlite3_sourceid() function returns a
 ** pointer to a string constant whose value is the same as the
 ** SQLITE_SOURCE_ID C preprocessor macro. 
 */
+//这个sqlite3_sourceid()函数返回一个指针给一个值是SQLITE_SOURCE_ID C的字符串常量
 const char *sqlite3_sourceid(void){ return SQLITE_SOURCE_ID; }
 
 /* IMPLEMENTATION-OF: R-35210-63508 The sqlite3_libversion_number() function
 ** returns an integer equal to SQLITE_VERSION_NUMBER.
 */
+//这个函数返回一个整型值SQLITE_VERSION_NUMBER.
 int sqlite3_libversion_number(void){ return SQLITE_VERSION_NUMBER; }
 
 /* IMPLEMENTATION-OF: R-20790-14025 The sqlite3_threadsafe() function returns
 ** zero if and only if SQLite was compiled with mutexing code omitted due to
 ** the SQLITE_THREADSAFE compile-time option being set to 0.
 */
+//如果sqlite是被互斥体编译，函数返回0，因为值SQLITE_THREADSAFE的编译时间·被设定为0.
 int sqlite3_threadsafe(void){ return SQLITE_THREADSAFE; }
 
 #if !defined(SQLITE_OMIT_TRACE) && defined(SQLITE_ENABLE_IOTRACE)
@@ -47,6 +73,8 @@ int sqlite3_threadsafe(void){ return SQLITE_THREADSAFE; }
 ** I/O active are written using this function.  These messages
 ** are intended for debugging activity only.
 */
+//如果下面的函数不为空并且如果SQLITE_ENABLE_IOTRACE可用，i/o信息的描述活动可以被写入这个函数，
+//这些信息的目的是为了调试。
 void (*sqlite3IoTrace)(const char*, ...) = 0;
 #endif
 
@@ -57,6 +85,7 @@ void (*sqlite3IoTrace)(const char*, ...) = 0;
 **
 ** See also the "PRAGMA temp_store_directory" SQL command.
 */
+//如果下面的全局变量指向一个字符串（是一个目录的名字），这个目录会被存储在临时文件。
 char *sqlite3_temp_directory = 0;
 
 /*
@@ -66,6 +95,8 @@ char *sqlite3_temp_directory = 0;
 **
 ** See also the "PRAGMA data_store_directory" SQL command.
 */
+//如果下面的全局变量指向一个字符串（是一个目录的名字），
+//这个目录会被存储在所有的数据文件中（以一个相对的路径名）
 char *sqlite3_data_directory = 0;
 
 /*
@@ -99,6 +130,10 @@ char *sqlite3_data_directory = 0;
 **    *  Recursive calls to this routine from thread X return immediately
 **       without blocking.
 */
+/*这是个主要的互斥体。
+初始化sqlite
+这个函数是被用来进行初始化存储分配。
+*/
 int sqlite3_initialize(void){
   MUTEX_LOGIC( sqlite3_mutex *pMaster; )       /* The main static mutex */
   int rc;                                      /* Result code */
@@ -115,6 +150,8 @@ int sqlite3_initialize(void){
   ** must be complete.  So isInit must not be set until the very end
   ** of this routine.
   */
+  //如果sqlite已经初始化，sqlite3_initialize()不被执行，但是初始化一定的完成。
+  //所以isInit一直没设定知道每个函数都结束。
   if( sqlite3GlobalConfig.isInit ) return SQLITE_OK;
 
   /* Make sure the mutex subsystem is initialized.  If unable to 
@@ -125,6 +162,9 @@ int sqlite3_initialize(void){
   ** The mutex subsystem must take care of serializing its own
   ** initialization.
   */
+  //要确保互斥子系统是被初始化的，如果没有初始化互斥子系统，返回错误，
+  //如果这个系统太不正常，我们不能去分配互斥体，就没有sqlite去做
+  //这个互斥子系统一定要进行自己的一系类初始化。
   rc = sqlite3MutexInit();
   if( rc ) return rc;
 
@@ -134,6 +174,9 @@ int sqlite3_initialize(void){
   ** malloc subsystem - this implies that the allocation of a static
   ** mutex must not require support from the malloc subsystem.
   */
+  //初始化malloc()函数和递归pInitMutex互斥体。这个操作是被the STATIC_MASTER mutex所保护。
+  //标记MutexAlloc()，为了一个静态互斥体在互斥子系统之前初始化，这指出了静态互斥体的分配
+  //一定不能得到互斥子系统的支持。
   MUTEX_LOGIC( pMaster = sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MASTER); )
   sqlite3_mutex_enter(pMaster);
   sqlite3GlobalConfig.isMutexInit = 1;
@@ -158,6 +201,8 @@ int sqlite3_initialize(void){
   /* If rc is not SQLITE_OK at this point, then either the malloc
   ** subsystem could not be initialized or the system failed to allocate
   ** the pInitMutex mutex. Return an error in either case.  */
+  //如果rc不是值SQLITE_OK，返回rc。子系统就不会被初始化，系统分配就失败。
+  //返回一个错误
   if( rc!=SQLITE_OK ){
     return rc;
   }
@@ -174,7 +219,12 @@ int sqlite3_initialize(void){
   ** The following mutex is what serializes access to the appdef pcache xInit
   ** methods.  The sqlite3_pcache_methods.xInit() all is embedded in the
   ** call to sqlite3PcacheInitialize().
+  在递归互斥体下进行剩余的初始化。目的是我们能够去处理递归进入sqlite3_initialize()
+  当递归触发了sqlite3_vfs_register()时就会进入sqlite3_os_init()，但是其他的递归也有可能性。
+  sqlite会自动的序列化调用入xInit方法，所以xInit方法不需要线程安全。
+  下面的互斥体是
   */
+  
   sqlite3_mutex_enter(sqlite3GlobalConfig.pInitMutex);
   if( sqlite3GlobalConfig.isInit==0 && sqlite3GlobalConfig.inProgress==0 ){
     FuncDefHash *pHash = &GLOBAL(FuncDefHash, sqlite3GlobalFunctions);
@@ -200,6 +250,7 @@ int sqlite3_initialize(void){
   /* Go back under the static mutex and clean up the recursive
   ** mutex to prevent a resource leak.
   */
+  //返回静态互斥体并且清除递归防止资源泄漏。
   sqlite3_mutex_enter(pMaster);
   sqlite3GlobalConfig.nRefInitMutex--;
   if( sqlite3GlobalConfig.nRefInitMutex<=0 ){
@@ -214,9 +265,12 @@ int sqlite3_initialize(void){
   ** we don't want to run it too often and soak up CPU cycles for no
   ** reason.  So we run it once during initialization.
   */
+  //下面是检查确保sqlite已经被正确编译。这对运行程序很重要。但是我们不能去经常运行它
+  //所以在初始化之后就运行。
 #ifndef NDEBUG
 #ifndef SQLITE_OMIT_FLOATING_POINT
   /* This section of code's only "output" is via assert() statements. */
+  //这部分仅仅是输出是通过assert（）来声明。
   if ( rc==SQLITE_OK ){
     u64 x = (((u64)1)<<63)-1;
     double y;
@@ -231,6 +285,7 @@ int sqlite3_initialize(void){
   /* Do extra initialization steps requested by the SQLITE_EXTRA_INIT
   ** compile-time option.
   */
+  //SQLITE_EXTRA_INIT要求做一些额外的初始化步骤。
 #ifdef SQLITE_EXTRA_INIT
   if( rc==SQLITE_OK && sqlite3GlobalConfig.isInit ){
     int SQLITE_EXTRA_INIT(const char*);
@@ -249,6 +304,9 @@ int sqlite3_initialize(void){
 ** on when SQLite is already shut down.  If SQLite is already shut down
 ** when this routine is invoked, then this routine is a harmless no-op.
 */
+//消除了sqlite3_initialize()的影响。有一些外数据连接或者是存储分配，sqlite的任何一部分
+//都可以用，否则就用在任何线程里。这个函数不是线程安全。但是它是安全的当sqlite准备关闭的
+//时候。如果sqlite已经关闭这个函数就不能运行。
 int sqlite3_shutdown(void){
   if( sqlite3GlobalConfig.isInit ){
 #ifdef SQLITE_EXTRA_SHUTDOWN
@@ -275,6 +333,9 @@ int sqlite3_shutdown(void){
     ** heap subsystem was shutdown.  This is only done if the current call to
     ** this function resulted in the heap subsystem actually being shutdown.
     */
+	//堆子系统已经关闭，这些值假设是null或者指向包括qlite3_malloc()的存储，
+	//这主要是依赖堆子系统，因此，确保这些值不会放入无效的堆子系统，当它关闭的时候，
+	//如果目前对于这个函数的调用引起在堆子系统，确实会关闭。
     sqlite3_data_directory = 0;
     sqlite3_temp_directory = 0;
 #endif
@@ -296,12 +357,16 @@ int sqlite3_shutdown(void){
 ** threadsafe.  Failure to heed these warnings can lead to unpredictable
 ** behavior.
 */
+//这个api对于修改sqlite图书馆在运行的时候全局配置允许应用。
+//这个程序可以被调用只有当有一些好的数据连接或者是内存分配。
+//这个程序不是线程安全。留心这些可以引起不可预料的行为警告
 int sqlite3_config(int op, ...){
   va_list ap;
   int rc = SQLITE_OK;
 
   /* sqlite3_config() shall return SQLITE_MISUSE if it is invoked while
   ** the SQLite library is in use. */
+  //当sqlite图书馆被唤起是可以的
   if( sqlite3GlobalConfig.isInit ) return SQLITE_MISUSE_BKPT;
 
   va_start(ap, op);
@@ -310,9 +375,11 @@ int sqlite3_config(int op, ...){
     /* Mutex configuration options are only available in a threadsafe
     ** compile. 
     */
+	//互斥配置选项仅仅是在线程安全编译的时候有效。
 #if defined(SQLITE_THREADSAFE) && SQLITE_THREADSAFE>0
     case SQLITE_CONFIG_SINGLETHREAD: {
       /* Disable all mutexing */
+	  //互斥都不可用
       sqlite3GlobalConfig.bCoreMutex = 0;
       sqlite3GlobalConfig.bFullMutex = 0;
       break;
@@ -320,23 +387,27 @@ int sqlite3_config(int op, ...){
     case SQLITE_CONFIG_MULTITHREAD: {
       /* Disable mutexing of database connections */
       /* Enable mutexing of core data structures */
+	  //禁用关于数据连接互斥，可以使用核心数据结构。
       sqlite3GlobalConfig.bCoreMutex = 1;
       sqlite3GlobalConfig.bFullMutex = 0;
       break;
     }
     case SQLITE_CONFIG_SERIALIZED: {
       /* Enable all mutexing */
+	  //可以使用所有的互斥
       sqlite3GlobalConfig.bCoreMutex = 1;
       sqlite3GlobalConfig.bFullMutex = 1;
       break;
     }
     case SQLITE_CONFIG_MUTEX: {
       /* Specify an alternative mutex implementation */
+	  //指定另一个互斥的实现
       sqlite3GlobalConfig.mutex = *va_arg(ap, sqlite3_mutex_methods*);
       break;
     }
     case SQLITE_CONFIG_GETMUTEX: {
       /* Retrieve the current mutex implementation */
+	  //检索当前的互斥的实现
       *va_arg(ap, sqlite3_mutex_methods*) = sqlite3GlobalConfig.mutex;
       break;
     }
@@ -345,22 +416,26 @@ int sqlite3_config(int op, ...){
 
     case SQLITE_CONFIG_MALLOC: {
       /* Specify an alternative malloc implementation */
+	  //指定一个替代的malloc实现
       sqlite3GlobalConfig.m = *va_arg(ap, sqlite3_mem_methods*);
       break;
     }
     case SQLITE_CONFIG_GETMALLOC: {
       /* Retrieve the current malloc() implementation */
+	  //检索当前的malloc()实现
       if( sqlite3GlobalConfig.m.xMalloc==0 ) sqlite3MemSetDefault();
       *va_arg(ap, sqlite3_mem_methods*) = sqlite3GlobalConfig.m;
       break;
     }
     case SQLITE_CONFIG_MEMSTATUS: {
       /* Enable or disable the malloc status collection */
+	  //启用或禁用malloc状态采集
       sqlite3GlobalConfig.bMemstat = va_arg(ap, int);
       break;
     }
     case SQLITE_CONFIG_SCRATCH: {
       /* Designate a buffer for scratch memory space */
+	  //对于内存的空间要指定一个缓存
       sqlite3GlobalConfig.pScratch = va_arg(ap, void*);
       sqlite3GlobalConfig.szScratch = va_arg(ap, int);
       sqlite3GlobalConfig.nScratch = va_arg(ap, int);
@@ -368,6 +443,7 @@ int sqlite3_config(int op, ...){
     }
     case SQLITE_CONFIG_PAGECACHE: {
       /* Designate a buffer for page cache memory space */
+	  //对于内存的空间要致命一个缓存
       sqlite3GlobalConfig.pPage = va_arg(ap, void*);
       sqlite3GlobalConfig.szPage = va_arg(ap, int);
       sqlite3GlobalConfig.nPage = va_arg(ap, int);
@@ -376,16 +452,19 @@ int sqlite3_config(int op, ...){
 
     case SQLITE_CONFIG_PCACHE: {
       /* no-op */
+	  //不操作
       break;
     }
     case SQLITE_CONFIG_GETPCACHE: {
       /* now an error */
+	  //一个错误
       rc = SQLITE_ERROR;
       break;
     }
 
     case SQLITE_CONFIG_PCACHE2: {
       /* Specify an alternative page cache implementation */
+	  //指定一个可选择的页缓存也实现
       sqlite3GlobalConfig.pcache2 = *va_arg(ap, sqlite3_pcache_methods2*);
       break;
     }
@@ -400,6 +479,7 @@ int sqlite3_config(int op, ...){
 #if defined(SQLITE_ENABLE_MEMSYS3) || defined(SQLITE_ENABLE_MEMSYS5)
     case SQLITE_CONFIG_HEAP: {
       /* Designate a buffer for heap memory space */
+	  //对于堆的空间要指定一个缓存
       sqlite3GlobalConfig.pHeap = va_arg(ap, void*);
       sqlite3GlobalConfig.nHeap = va_arg(ap, int);
       sqlite3GlobalConfig.mnReq = va_arg(ap, int);
@@ -408,6 +488,7 @@ int sqlite3_config(int op, ...){
         sqlite3GlobalConfig.mnReq = 1;
       }else if( sqlite3GlobalConfig.mnReq>(1<<12) ){
         /* cap min request size at 2^12 */
+		//左移2的12次方
         sqlite3GlobalConfig.mnReq = (1<<12);
       }
 
@@ -417,12 +498,16 @@ int sqlite3_config(int op, ...){
         ** back to its default implementation when sqlite3_initialize() is
         ** run.
         */
+		//如果堆指针为空，恢复malloc实现返回空指针，这将导致malloc去回到默认的实现
+		//当sqlite3_initialize()运行的时候。
         memset(&sqlite3GlobalConfig.m, 0, sizeof(sqlite3GlobalConfig.m));
       }else{
         /* The heap pointer is not NULL, then install one of the
         ** mem5.c/mem3.c methods. If neither ENABLE_MEMSYS3 nor
         ** ENABLE_MEMSYS5 is defined, return an error.
         */
+		//堆指针不是空的，用一个mem5.c/mem3.c方法，如果没有定义ENABLE_MEMSYS3和
+        //ENABLE_MEMSYS5，返回一个错误
 #ifdef SQLITE_ENABLE_MEMSYS3
         sqlite3GlobalConfig.m = *sqlite3MemGetMemsys3();
 #endif
@@ -444,11 +529,13 @@ int sqlite3_config(int op, ...){
     ** The default is NULL.  Logging is disabled if the function pointer is
     ** NULL.
     */
+	//记录一个指针给日志函数并且他的第一个值。默认是空的。禁用日志记录，如果这个函数的指针式空类型的。
     case SQLITE_CONFIG_LOG: {
       /* MSVC is picky about pulling func ptrs from va lists.
       ** http://support.microsoft.com/kb/47961
       ** sqlite3GlobalConfig.xLog = va_arg(ap, void(*)(void*,int,const char*));
       */
+	  
       typedef void(*LOGFUNC_t)(void*,int,const char*);
       sqlite3GlobalConfig.xLog = va_arg(ap, LOGFUNC_t);
       sqlite3GlobalConfig.pLogArg = va_arg(ap, void*);
@@ -480,6 +567,7 @@ int sqlite3_config(int op, ...){
 ** If pStart is not NULL then it is sz*cnt bytes of memory to use for
 ** the lookaside memory.
 */
+//设置一个后贝缓冲区为了数据的连接、成功了返回SQLITE_OK
 static int setupLookaside(sqlite3 *db, void *pBuf, int sz, int cnt){
   void *pStart;
   if( db->lookaside.nOut ){
@@ -489,12 +577,15 @@ static int setupLookaside(sqlite3 *db, void *pBuf, int sz, int cnt){
   ** allocating a new one so we don't have to have space for 
   ** both at the same time.
   */
+  //为了接下来的处理，再分配新的一个要释放所有存在的后备缓存，
+  //所以我们不能在同一时刻拥有空间
   if( db->lookaside.bMalloced ){
     sqlite3_free(db->lookaside.pStart);
   }
   /* The size of a lookaside slot after ROUNDDOWN8 needs to be larger
   ** than a pointer to be useful.
   */
+  //ROUNDDOWN8 需要比一个指针大的一个后备槽
   sz = ROUNDDOWN8(sz);  /* IMP: R-33038-09382 */
   if( sz<=(int)sizeof(LookasideSlot*) ) sz = 0;
   if( cnt<0 ) cnt = 0;
@@ -536,6 +627,7 @@ static int setupLookaside(sqlite3 *db, void *pBuf, int sz, int cnt){
 /*
 ** Return the mutex associated with a database connection.
 */
+//返回一个数据库连接相关的互斥
 sqlite3_mutex *sqlite3_db_mutex(sqlite3 *db){
   return db->mutex;
 }
@@ -544,6 +636,7 @@ sqlite3_mutex *sqlite3_db_mutex(sqlite3 *db){
 ** Free up as much memory as we can from the given database
 ** connection.
 */
+//尽可能从已给的数据连接中清理内存
 int sqlite3_db_release_memory(sqlite3 *db){
   int i;
   sqlite3_mutex_enter(db->mutex);
@@ -563,6 +656,7 @@ int sqlite3_db_release_memory(sqlite3 *db){
 /*
 ** Configuration settings for an individual database connection
 */
+//为私有数据连接配置设定
 int sqlite3_db_config(sqlite3 *db, int op, ...){
   va_list ap;
   int rc;
@@ -616,6 +710,7 @@ int sqlite3_db_config(sqlite3 *db, int op, ...){
 /*
 ** Return true if the buffer z[0..n-1] contains all spaces.
 */
+//如果缓存z[0..n-1]包含所有的空间，返回真值
 static int allSpaces(const char *z, int n){
   while( n>0 && z[n-1]==' ' ){ n--; }
   return n==0;
@@ -628,6 +723,9 @@ static int allSpaces(const char *z, int n){
 ** If the padFlag argument is not NULL then space padding at the end
 ** of strings is ignored.  This implements the RTRIM collation.
 */
+//这是一个默认称为"BINARY"的总是可用的排序函数，
+//如果padflag argument不是空值，空间的空隙在字符串最后被忽略。
+//这实现了RTRTM的核对。
 static int binCollFunc(
   void *padFlag,
   int nKey1, const void *pKey1,
@@ -642,6 +740,7 @@ static int binCollFunc(
      && allSpaces(((char*)pKey2)+n, nKey2-n)
     ){
       /* Leave rc unchanged at 0 */
+	  //留给如此一个不可改变的0值。
     }else{
       rc = nKey1 - nKey2;
     }
@@ -658,6 +757,9 @@ static int binCollFunc(
 **
 ** At the moment there is only a UTF-8 implementation.
 */
+//其他内置的排序序列：
+//这个排序序列目的是被独立比较应用，sqlite高低识积极扩大到26个特点，在英语语言中
+//此时，这只有TF-8 的编码格式
 static int nocaseCollatingFunc(
   void *NotUsed,
   int nKey1, const void *pKey1,
@@ -675,6 +777,7 @@ static int nocaseCollatingFunc(
 /*
 ** Return the ROWID of the most recent insert
 */
+//返回这个最近的插入
 sqlite_int64 sqlite3_last_insert_rowid(sqlite3 *db){
   return db->lastRowid;
 }
@@ -682,6 +785,7 @@ sqlite_int64 sqlite3_last_insert_rowid(sqlite3 *db){
 /*
 ** Return the number of changes in the most recent call to sqlite3_exec().
 */
+//对于sqlite3_exec().在最近的调用中返回改变的数量
 int sqlite3_changes(sqlite3 *db){
   return db->nChange;
 }
@@ -689,6 +793,7 @@ int sqlite3_changes(sqlite3 *db){
 /*
 ** Return the number of changes since the database handle was opened.
 */
+//从数据库处理开始，返回改变的数量
 int sqlite3_total_changes(sqlite3 *db){
   return db->nTotalChange;
 }
@@ -698,6 +803,9 @@ int sqlite3_total_changes(sqlite3 *db){
 ** database handle object, it does not close any savepoints that may be open
 ** at the b-tree/pager level.
 */
+//关闭所有打开的存储指针，这个函数仅仅是创建一个数据处理项目文件。
+//这不能够关闭任何可能开着的 b-tree/pager level存储指针。
+
 void sqlite3CloseSavepoints(sqlite3 *db){
   while( db->pSavepoint ){
     Savepoint *pTmp = db->pSavepoint;
@@ -715,6 +823,8 @@ void sqlite3CloseSavepoints(sqlite3 *db){
 ** copies of a single function are created when create_function() is called
 ** with SQLITE_ANY as the encoding.
 */
+//运行破坏函数。如果这不是最近复制的函数，不要唤醒他，多个复制这个函数
+//将会被创造。当when create_function()被QLITE_ANY 调用的时候。
 static void functionDestroy(sqlite3 *db, FuncDef *p){
   FuncDestructor *pDestructor = p->pDestructor;
   if( pDestructor ){
@@ -730,6 +840,7 @@ static void functionDestroy(sqlite3 *db, FuncDef *p){
 ** Disconnect all sqlite3_vtab objects that belong to database connection
 ** db. This is called when db is being closed.
 */
+//断开属于数据连接的所有sqlite3_vtab 项目。当db被关闭的时候。
 static void disconnectAllVtab(sqlite3 *db){
 #ifndef SQLITE_OMIT_VIRTUALTABLE
   int i;
@@ -754,6 +865,7 @@ static void disconnectAllVtab(sqlite3 *db){
 ** Return TRUE if database connection db has unfinalized prepared
 ** statements or unfinished sqlite3_backup objects.  
 */
+//如火数据连接db没有准备陈述或者没完成sqlite3_backup 项目，返回真值。
 static int connectionIsBusy(sqlite3 *db){
   int j;
   assert( sqlite3_mutex_held(db->mutex) );
@@ -768,6 +880,7 @@ static int connectionIsBusy(sqlite3 *db){
 /*
 ** Close an existing SQLite database
 */
+//关闭已经存在的数据库数据
 static int sqlite3Close(sqlite3 *db, int forceZombie){
   if( !db ){
     return SQLITE_OK;
@@ -778,6 +891,7 @@ static int sqlite3Close(sqlite3 *db, int forceZombie){
   sqlite3_mutex_enter(db->mutex);
 
   /* Force xDisconnect calls on all virtual tables */
+  //在虚拟表中集中xDisconnect的调用
   disconnectAllVtab(db);
 
   /* If a transaction is open, the disconnectAllVtab() call above
@@ -787,11 +901,15 @@ static int sqlite3Close(sqlite3 *db, int forceZombie){
   ** SQL statements below, as the v-table implementation may be storing
   ** some prepared statements internally.
   */
+  //如果交易正在打开， disconnectAllVtab()调用就不会被xDisconnect()方法所调用，在db->aVTrans[]
+  //的虚拟表中，接下来的qlite3VtabRollback()调用也是如此，在检查sql声明之前，我们需要这些
+  // v-table implementation 可能被存储在一些内部声明中。
   sqlite3VtabRollback(db);
 
   /* Legacy behavior (sqlite3_close() behavior) is to return
   ** SQLITE_BUSY if the connection can not be closed immediately.
   */
+  //遗传行为是会返回SQLITE_BUSY ，如果这个链接没有被立即关闭。
   if( !forceZombie && connectionIsBusy(db) ){
     sqlite3Error(db, SQLITE_BUSY, "unable to close due to unfinalized "
        "statements or unfinished backups");
@@ -801,6 +919,7 @@ static int sqlite3Close(sqlite3 *db, int forceZombie){
 
   /* Convert the connection into a zombie and then close it.
   */
+  //改变连接进入僵尸模式并且关闭它。
   db->magic = SQLITE_MAGIC_ZOMBIE;
   sqlite3LeaveMutexAndCloseZombie(db);
   return SQLITE_OK;
@@ -815,6 +934,10 @@ static int sqlite3Close(sqlite3 *db, int forceZombie){
 ** unclosed resources, and arranges for deallocation when the last
 ** prepare statement or sqlite3_backup closes.
 */
+//对于关闭数据连接在公用接口上，有两种样式。sqlite3_close() version 返回 SQLITE_BUSY
+//sqlite3_close()版本返回SQLITE_BUSY和离开连接选项，如果有未完成的声明或者sqlite3_backups
+//sqlite3_close_v2()目的是把链接变成僵尸模式，如果有未关闭的资源，并且解除分配，当最后的准备声明或
+//sqlite3_backup关闭。
 int sqlite3_close(sqlite3 *db){ return sqlite3Close(db,0); }
 int sqlite3_close_v2(sqlite3 *db){ return sqlite3Close(db,1); }
 
@@ -827,6 +950,7 @@ int sqlite3_close_v2(sqlite3 *db){ return sqlite3Close(db,1); }
 ** every sqlite3_stmt has now been finalized and every sqlite3_backup has
 ** finished, then free all resources.
 */
+//关闭在数据连接db上的互斥体
 void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
   HashElem *i;                    /* Hash table iterator */
   int j;
@@ -835,6 +959,8 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
   ** or if the connection has not yet been closed by sqlite3_close_v2(),
   ** then just leave the mutex and return.
   */
+  //如果有外在的sqlite3_stmt 或者是sqlite3_backup 项目，如果这个链接至今还没被sqlite3_close_v2()
+  //关闭，然后释放和回收。
   if( db->magic!=SQLITE_MAGIC_ZOMBIE || connectionIsBusy(db) ){
     sqlite3_mutex_leave(db->mutex);
     return;
@@ -845,11 +971,13 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
   ** pased to sqlite3_close (meaning that it is a zombie).  Therefore,
   ** go ahead and free all resources.
   */
-
+//如果我们获得这个指针，这意味着数据库连接已经关闭所有的sqlite3_stmt 和 sqlite3_backup项目
+//意味着他是僵尸状态，因此，放在前面，释放所有的资源。 
   /* Free any outstanding Savepoint structures. */
   sqlite3CloseSavepoints(db);
 
   /* Close all database connections */
+  //关闭所有的数据库连接
   for(j=0; j<db->nDb; j++){
     struct Db *pDb = &db->aDb[j];
     if( pDb->pBt ){
@@ -861,12 +989,14 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
     }
   }
   /* Clear the TEMP schema separately and last */
+  //清除TEMP表
   if( db->aDb[1].pSchema ){
     sqlite3SchemaClear(db->aDb[1].pSchema);
   }
   sqlite3VtabUnlockList(db);
 
   /* Free up the array of auxiliary databases */
+  //释放这组辅助数据库
   sqlite3CollapseDatabaseArray(db);
   assert( db->nDb<=2 );
   assert( db->aDb==db->aDbStatic );
@@ -874,6 +1004,7 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
   /* Tell the code in notify.c that the connection no longer holds any
   ** locks and does not require any further unlock-notify callbacks.
   */
+  //区别notify.c的编码。这个链接没有任何锁也没有要求任何更远的解锁通知
   sqlite3ConnectionClosed(db);
 
   for(j=0; j<ArraySize(db->aFunc.a); j++){
@@ -891,6 +1022,7 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
   for(i=sqliteHashFirst(&db->aCollSeq); i; i=sqliteHashNext(i)){
     CollSeq *pColl = (CollSeq *)sqliteHashData(i);
     /* Invoke any destructors registered for collation sequence user data. */
+	//触发任何注册表序列用户数据
     for(j=0; j<3; j++){
       if( pColl[j].xDel ){
         pColl[j].xDel(pColl[j].pUser);
@@ -910,7 +1042,7 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
   sqlite3HashClear(&db->aModule);
 #endif
 
-  sqlite3Error(db, SQLITE_OK, 0); /* Deallocates any cached error strings. */
+  sqlite3Error(db, SQLITE_OK, 0); /* Deallocates any cached error strings. 释放任何错误的字符串缓存*/
   if( db->pErr ){
     sqlite3ValueFree(db->pErr);
   }
@@ -924,11 +1056,13 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
   ** the same sqliteMalloc() as the one that allocates the database 
   ** structure?
   */
+  //这个临时数据库数据表示来自其他表项目所分配，不是sqlite3BtreeSchema()
+  //所以他需要被释放。为什么不滚动临时数据表进入sqliteMalloc()作为分配数据库结构。
   sqlite3DbFree(db, db->aDb[1].pSchema);
   sqlite3_mutex_leave(db->mutex);
   db->magic = SQLITE_MAGIC_CLOSED;
   sqlite3_mutex_free(db->mutex);
-  assert( db->lookaside.nOut==0 );  /* Fails on a lookaside memory leak */
+  assert( db->lookaside.nOut==0 );  /* Fails on a lookaside memory leak 释放后备内存*/
   if( db->lookaside.bMalloced ){
     sqlite3_free(db->lookaside.pStart);
   }
@@ -941,6 +1075,8 @@ void sqlite3LeaveMutexAndCloseZombie(sqlite3 *db){
 ** breaker") and made to return tripCode if there are any further
 ** attempts to use that cursor.
 */
+//回滚所有的数据库文件，如果tripCode不是SQLITE_OK，任何打开的游标都是可利用的。
+//如果有任何更进一步企图用这个游标返回tripCode，
 void sqlite3RollbackAll(sqlite3 *db, int tripCode){
   int i;
   int inTrans = 0;
@@ -965,13 +1101,21 @@ void sqlite3RollbackAll(sqlite3 *db, int tripCode){
   }
 
   /* Any deferred constraint violations have now been resolved. */
+  //何延迟约束违反已被解决
   db->nDeferredCons = 0;
 
   /* If one has been configured, invoke the rollback-hook callback */
+  //如果已经被定义，调用回滚的回调函数
   if( db->xRollbackCallback && (inTrans || !db->autoCommit) ){
     db->xRollbackCallback(db->pRollbackArg);
   }
 }
+
+/*
+** Return a static string that describes the kind of error specified in the
+** argument.
+*/
+//返回一个静态字符串，用来描述这种指定的错误
 
 /*
 ** Return a static string that describes the kind of error specified in the
