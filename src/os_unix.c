@@ -4987,6 +4987,9 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
 ** written to *pMode. If an IO error occurs, an SQLite error code is 
 ** returned and the value of *pMode is not modified.
 **
+//这个方法被unixOpen()调用，用来决定unix创建新文件时的许可。如果没有错误发生，则SQLITE_OK被返回，
+//并且一个适合的值传入open(2)的第三个参数被写到*pMode。如果一个IO错误发生，
+//一个SQLite错误代码被返回并且*pMode的值不会被修改
 ** In most cases cases, this routine sets *pMode to 0, which will become
 ** an indication to robust_open() to create the file using
 ** SQLITE_DEFAULT_FILE_PERMISSIONS adjusted by the umask.
@@ -4996,31 +4999,44 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
 ** possible, WAL and journal files are created using the same permissions 
 ** as the associated database file.
 **
+//在大多数的情况下，这个历程会设置*pMode为0，这个将会成为使用SQLITE_DEFAULT_FILE_PERMISSIONS适应umask的
+//robust_open()的迹象。但是如果被打开的文件是一个WAL或者通常的日志文件，
+//则这个方法问询文件系统的许可在相应的数据库文件，并且设置*pMode为这个值。不论何时可能，
+//WAL和日志文件被创建使用相同的许可像相关联的数据库文件。
 ** If the SQLITE_ENABLE_8_3_NAMES option is enabled, then the
 ** original filename is unavailable.  But 8_3_NAMES is only used for
 ** FAT filesystems and permissions do not matter there, so just use
 ** the default permissions.
 */
+//如果SQLITE_ENABLE_8_3_NAMES选项可用，则这个原始文件名将不可用。
+//但是8_3_NAMES只被用作FAT文件系统并且许可在这里没关系，所以紧紧使用默认许可。
 static int findCreateFileMode(
   const char *zPath,              /* Path of file (possibly) being created */
+                                  //正在被创建文件(可能)的路径
   int flags,                      /* Flags passed as 4th argument to xOpen() */
-  mode_t *pMode,                  /* OUT: Permissions to open file with */
+                                  //传入xOpen()的第四个参数的标记
+  mode_t *pMode,                  /* OUT: Permissions to open file with */、
+                                  //打开文件的许可
   uid_t *pUid,                    /* OUT: uid to set on the file */
+                                  //设置到此文件的uid
   gid_t *pGid                     /* OUT: gid to set on the file */
+                                  //设置到此文件的gid
 ){
   int rc = SQLITE_OK;             /* Return Code */
+                                  //返回代码
   *pMode = 0;
   *pUid = 0;
   *pGid = 0;
   if( flags & (SQLITE_OPEN_WAL|SQLITE_OPEN_MAIN_JOURNAL) ){
-    char zDb[MAX_PATHNAME+1];     /* Database file path */
-    int nDb;                      /* Number of valid bytes in zDb */
-    struct stat sStat;            /* Output of stat() on database file */
+    char zDb[MAX_PATHNAME+1];     /* Database file path */ //数据库文件路径
+    int nDb;                      /* Number of valid bytes in zDb */ //zDb中的可用字节数
+    struct stat sStat;            /* Output of stat() on database file *///stat()在数据库文件上的输出
 
     /* zPath is a path to a WAL or journal file. The following block derives
     ** the path to the associated database file from zPath. This block handles
     ** the following naming conventions:
     **
+    //zPath时一个指向WAL的路径活着一个日志文件。接下来的块源自从zPath相关联数据库。这个块持有接下多命名大会
     **   "<path to db>-journal"
     **   "<path to db>-wal"
     **   "<path to db>-journalNN"
@@ -5029,6 +5045,7 @@ static int findCreateFileMode(
     ** where NN is a decimal number. The NN naming schemes are 
     ** used by the test_multiplex.c module.
     */
+    //NN是一个小数。NN命名模式使用test_multiplex.c模块。
     nDb = sqlite3Strlen30(zPath) - 1; 
 #ifdef SQLITE_ENABLE_8_3_NAMES
     while( nDb>0 && sqlite3Isalnum(zPath[nDb]) ) nDb--;
@@ -5813,22 +5830,26 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 /*
 ** Proxy locking is only available on MacOSX 
 */
+//代理锁定只在MacOSX上可用
 #if defined(__APPLE__) && SQLITE_ENABLE_LOCKING_STYLE
 
 /*
 ** The proxyLockingContext has the path and file structures for the remote 
 ** and local proxy files in it
 */
+//为了将远程和本地代理文件纳入其中，proxyLockingContext有路径和文件结构
 typedef struct proxyLockingContext proxyLockingContext;
 struct proxyLockingContext {
-  unixFile *conchFile;         /* Open conch file */
-  char *conchFilePath;         /* Name of the conch file */
-  unixFile *lockProxy;         /* Open proxy lock file */
-  char *lockProxyPath;         /* Name of the proxy lock file */
-  char *dbPath;                /* Name of the open file */
-  int conchHeld;               /* 1 if the conch is held, -1 if lockless */
+  unixFile *conchFile;         /* Open conch file */ //打开壳文件
+  char *conchFilePath;         /* Name of the conch file */ //壳文件名
+  unixFile *lockProxy;         /* Open proxy lock file */  //打来代理锁文件
+  char *lockProxyPath;         /* Name of the proxy lock file */ //代理锁文件名
+  char *dbPath;                /* Name of the open file */  //打开文件名
+  int conchHeld;               /* 1 if the conch is held, -1 if lockless */ //1如果壳文件被持有，－1如果无限锁
   void *oldLockingContext;     /* Original lockingcontext to restore on close */
+                               //在关闭时原始锁定上下文修复
   sqlite3_io_methods const *pOldMethod;     /* Original I/O methods for close */
+                                            //关闭时原始I/O方法
 };
 
 /* 
@@ -5836,6 +5857,7 @@ struct proxyLockingContext {
 ** which must point to valid, writable memory large enough for a maxLen length
 ** file path. 
 */
+//在dbPath数据库所属的代理锁文件路径被写入到lPath，它必须指向有效，可写入的足够大的内存为maxLen长度的文件路径
 static int proxyGetLockPath(const char *dbPath, char *lPath, size_t maxLen){
   int len;
   int dbLen;
@@ -5863,6 +5885,7 @@ static int proxyGetLockPath(const char *dbPath, char *lPath, size_t maxLen){
   }
   
   /* transform the db path to a unique cache name */
+  //将db路径转换为唯一的寄存器名称
   dbLen = (int)strlen(dbPath);
   for( i=0; i<dbLen && (i+len+7)<(int)maxLen; i++){
     char c = dbPath[i];
@@ -5877,6 +5900,7 @@ static int proxyGetLockPath(const char *dbPath, char *lPath, size_t maxLen){
 /* 
  ** Creates the lock file and any missing directories in lockPath
  */
+ //创建锁文件和任何在lockPath中丢失的目录
 static int proxyCreateLockPath(const char *lockPath){
   int i, len;
   char buf[MAXPATHLEN];
@@ -5884,6 +5908,7 @@ static int proxyCreateLockPath(const char *lockPath){
   
   assert(lockPath!=NULL);
   /* try to create all the intermediate directories */
+  //尝试创建所有中间路径
   len = (int)strlen(lockPath);
   buf[0] = lockPath[0];
   for( i=1; i<len; i++ ){
@@ -5914,13 +5939,16 @@ static int proxyCreateLockPath(const char *lockPath){
 ** Create a new VFS file descriptor (stored in memory obtained from
 ** sqlite3_malloc) and open the file named "path" in the file descriptor.
 **
+//创建一个新的VFS文件描述符(存书在通过sqlite3_malloc获得的内存)，并且在文件描述符中打开名为"path"
 ** The caller is responsible not only for closing the file descriptor
 ** but also for freeing the memory associated with the file descriptor.
 */
+//调用器不仅想关闭文件描述符负责，而且负责释放此文件描述符的关联内存
 static int proxyCreateUnixFile(
-    const char *path,        /* path for the new unixFile */
-    unixFile **ppFile,       /* unixFile created and returned by ref */
+    const char *path,        /* path for the new unixFile *///新unixFile的路径
+    unixFile **ppFile,       /* unixFile created and returned by ref *///unixFile创建和返回通过ref
     int islockfile           /* if non zero missing dirs will be created */
+                            //如果非零丢失路径，则它将被创建
 ) {
   int fd = -1;
   unixFile *pNew;
@@ -5936,6 +5964,9 @@ static int proxyCreateUnixFile(
   ** 3. if that fails, try to open the file read-only
   ** otherwise return BUSY (if lock file) or CANTOPEN for the conch file
   */
+  //1.首先测试打开/创建次文件
+  //2.如果失败，并且它是一个锁文件(不是壳)，尝试创建父级目录然后重新尝试
+  //3.如果它失败了，尝试打开只读文件，在其他情况下返回BUSY(如果文件锁定)或者为了壳文件的CANTOPEN
   pUnused = findReusableFd(path, openFlags);
   if( pUnused ){
     fd = pUnused->fd;
@@ -5967,7 +5998,7 @@ static int proxyCreateUnixFile(
       case EACCES:
         return SQLITE_PERM;
       case EIO: 
-        return SQLITE_IOERR_LOCK; /* even though it is the conch */
+        return SQLITE_IOERR_LOCK; /* even though it is the conch *///虽然它是壳
       default:
         return SQLITE_CANTOPEN_BKPT;
     }
@@ -6001,24 +6032,27 @@ end_create_proxy:
 
 #ifdef SQLITE_TEST
 /* simulate multiple hosts by creating unique hostid file paths */
+//通过创建唯一的宿主id文件路径模拟多宿主
 int sqlite3_hostid_num = 0;
 #endif
 
-#define PROXY_HOSTIDLEN    16  /* conch file host id length */
+#define PROXY_HOSTIDLEN    16  /* conch file host id length *///壳文件宿主id长度
 
 /* Not always defined in the headers as it ought to be */
+//不总是在头文件中像它应该的那样定义
 extern int gethostuuid(uuid_t id, const struct timespec *wait);
 
 /* get the host ID via gethostuuid(), pHostID must point to PROXY_HOSTIDLEN 
 ** bytes of writable memory.
 */
+//通过gethostuuid()得到宿主ID，pHostID必须指向可写内存的PROXY_HOSTIDLEN字节
 static int proxyGetHostID(unsigned char *pHostID, int *pError){
   assert(PROXY_HOSTIDLEN == sizeof(uuid_t));
   memset(pHostID, 0, PROXY_HOSTIDLEN);
 #if defined(__MAX_OS_X_VERSION_MIN_REQUIRED)\
                && __MAC_OS_X_VERSION_MIN_REQUIRED<1050
   {
-    static const struct timespec timeout = {1, 0}; /* 1 sec timeout */
+    static const struct timespec timeout = {1, 0}; /* 1 sec timeout *///一秒延时
     if( gethostuuid(pHostID, &timeout) ){
       int err = errno;
       if( pError ){
@@ -6032,6 +6066,7 @@ static int proxyGetHostID(unsigned char *pHostID, int *pError){
 #endif
 #ifdef SQLITE_TEST
   /* simulate multiple hosts by creating unique hostid file paths */
+  //通过唯一的宿主id文件路径模拟多宿主
   if( sqlite3_hostid_num != 0){
     pHostID[0] = (char)(pHostID[0] + (char)(sqlite3_hostid_num & 0xFF));
   }
@@ -6042,8 +6077,9 @@ static int proxyGetHostID(unsigned char *pHostID, int *pError){
 
 /* The conch file contains the header, host id and lock file path
  */
-#define PROXY_CONCHVERSION 2   /* 1-byte header, 16-byte host id, path */
-#define PROXY_HEADERLEN    1   /* conch file header length */
+//壳文件包含头部，宿主id和锁文件路径
+#define PROXY_CONCHVERSION 2   /* 1-byte header, 16-byte host id, path *///一字节头，16字节宿主id，路径
+#define PROXY_HEADERLEN    1   /* conch file header length */ //壳文件头长度
 #define PROXY_PATHINDEX    (PROXY_HEADERLEN+PROXY_HOSTIDLEN)
 #define PROXY_MAXCONCHLEN  (PROXY_HEADERLEN+PROXY_HOSTIDLEN+MAXPATHLEN)
 
