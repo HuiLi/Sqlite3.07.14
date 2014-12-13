@@ -5322,7 +5322,7 @@ int sqlite3PagerBegin(Pager *pPager, int exFlag, int subjInMemory){
       ** WAL mode.
          WAL设置Pager。当有一个打开的事务没有DAMOD、FINISHED，那么eState 变成 PAGER_WRITER_LOCKED or CACHEMOD。
          这是因为在这些状态中代码回滚保存点事务，可能会将sub-journal数据复制到数据库文件以及页面缓存。
-         在WAL模式下，这将是不正确的。
+         在WAL模式下，这是不正确的。
       */
       pPager->eState = PAGER_WRITER_LOCKED;
       pPager->dbHintSize = pPager->dbSize;
@@ -5384,7 +5384,7 @@ static int pager_write(PgHdr *pPg){
   ** obtained the necessary locks to begin the write-transaction, but the
   ** rollback journal might not yet be open. Open it now if this is the case.
   ** 日志文件需要被打开。高级程序已经获得必要锁开始这个写事务，但是恢复日志可能不会开放。
-      如果是这种情况，现在打开它。
+     如果是这种情况，现在打开它。
   ** This is done before calling sqlite3PcacheMakeDirty() on the page. 
   ** Otherwise, if it were done after calling sqlite3PcacheMakeDirty(), then
   ** an error might occur and the pager would end up in WRITER_LOCKED state
@@ -5424,7 +5424,7 @@ static int pager_write(PgHdr *pPg){
         /* We should never write to the journal file the page that
         ** contains the database locks.  The following assert verifies
         ** that we do not.
-           我们不应该把包含数据库锁的页面写入事务日志。下面的声明证实我们不能。
+           我们不应该把包含数据库锁的页面写入事务日志。下面的声明证实我们不可以这样操作。。
         */
         assert( pPg->pgno!=PAGER_MJ_PGNO(pPager) );
 
@@ -5858,7 +5858,7 @@ int sqlite3PagerCommitPhaseOne(
       pPager->zFilename, zMaster, pPager->dbSize));
 
   /* If no database changes have been made, return early. 
-   如果没有数据库更新，早返回。*/
+    如果没有数据库更新，提前返回。*/
   if( pPager->eState<PAGER_WRITER_CACHEMOD ) return SQLITE_OK;
 
   if( MEMDB ){
@@ -6131,7 +6131,7 @@ int sqlite3PagerCommitPhaseTwo(Pager *pPager){
    wal事务接着关闭。
 */
 int sqlite3PagerRollback(Pager *pPager){
-  int rc = SQLITE_OK;                  /* Return code */
+  int rc = SQLITE_OK;                  /* Return code 返回代码*/
   PAGERTRACE(("ROLLBACK %d\n", PAGERID(pPager)));
 
   /* PagerRollback() is a no-op if called in READER or OPEN state. If
@@ -6208,7 +6208,7 @@ int sqlite3PagerMemUsed(Pager *pPager){
 }
 
 /*
-** Return the number of references to the specified page.
+** Return the number of references to the specified page.返回引用指定页面的数量。
 */
 int sqlite3PagerPageRefcount(DbPage *pPage){
   return sqlite3PcachePageRefcount(pPage);
@@ -6367,7 +6367,7 @@ int sqlite3PagerOpenSavepoint(Pager *pPager, int nSavepoint){
   如果没有错误，返回SQLITE_OK。
 */ 
 int sqlite3PagerSavepoint(Pager *pPager, int op, int iSavepoint){
-  int rc = pPager->errCode;       /* Return code 返回代买*/
+  int rc = pPager->errCode;       /* Return code 返回代码*/
 
   assert( op==SAVEPOINT_RELEASE || op==SAVEPOINT_ROLLBACK );
   assert( iSavepoint>=0 || op==SAVEPOINT_ROLLBACK );
@@ -6404,7 +6404,8 @@ int sqlite3PagerSavepoint(Pager *pPager, int op, int iSavepoint){
     ** If this is a temp-file, it is possible that the journal file has
     ** not yet been opened. In this case there have been no changes to
     ** the database file, so the playback operation can be skipped.
-       除非这是个回滚操作，回播指定保存点。
+       除非这是个回滚操作，回放指定保存点。如果这是个空文件，可能是日志文件没有被打开。
+       在这种情况下，数据库文件没有变化，所以回放操作可以跳过。
     */
     else if( pagerUseWal(pPager) || isOpen(pPager->jfd) ){
       PagerSavepoint *pSavepoint = (nNew==0)?0:&pPager->aSavepoint[nNew-1];
@@ -6511,8 +6512,8 @@ void *sqlite3PagerGetCodec(Pager *pPager){
 ** moved as part of a database reorganization just before the transaction 
 ** is being committed. In this case, it is guaranteed that the database page 
 ** pPg refers to will not be written to again within this transaction.
-** 如果第四个参数已提交不为0，那么就在事务被提交的时候，这个页面被当做数据库重做的一部分被移动。
-   在这种情况下，它保证数据库page页面指的是不会再写信给这个事务。
+** 如果第四个参数已提交并且不为0，那么就在事务被提交的时候，这个页面被当做数据库重做的一部分被移动。
+   在这种情况下，它保证数据库page页面指的是不会再对这个事务进行写操作。
 ** This function may return SQLITE_NOMEM or an IO error code if an error
 ** occurs. Otherwise, it returns SQLITE_OK.
    如果发生错误，这个函数会返回SQLITE_NOMEM或者IO错误代码。否则，返回SQLITE_OK。
@@ -6637,6 +6638,8 @@ int sqlite3PagerMovepage(Pager *pPager, DbPage *pPg, Pgno pgno, int isCommit){
     ** it is synced into the journal file. This way, it may end up in
     ** the journal file twice, but that is not a problem.
        如果试图把页面加载到页面缓存失败，（由于malloc（）或者IO失败）那么清除pInJournal[]数组中的比特。
+       否则，如果在这个事务中加载页面再次书写，那么在它同步到日志文件之前它会被写入数据库文件。
+       通过这种方式，它可能在日志文件中结束两次，但这不是问题。
     */
     PgHdr *pPgHdr;
     rc = sqlite3PagerGet(pPager, needSyncPgno, &pPgHdr);
@@ -6677,7 +6680,8 @@ void *sqlite3PagerGetExtra(DbPage *pPg){
 ** of PAGER_LOCKINGMODE_QUERY, PAGER_LOCKINGMODE_NORMAL or 
 ** PAGER_LOCKINGMODE_EXCLUSIVE. If the parameter is not _QUERY, then
 ** the locking-mode is set to the value specified.
-** 设置pager的锁模式。参数eMode必须为PAGER_LOCKINGMODE_QUERY之一,PAGER_LOCKINGMODE_NORMAL或PAGER_LOCKINGMODE_EXCLUSIVE。如果没有_QUERY参数,那么locking-mode设置为指定的值。
+** 设置pager的锁模式。参数eMode必须为PAGER_LOCKINGMODE_QUERY之一,PAGER_LOCKINGMODE_NORMAL或PAGER_LOCKINGMODE_EXCLUSIVE。
+   如果没有_QUERY参数,那么locking-mode设置为指定的值。
 ** The returned value is either PAGER_LOCKINGMODE_NORMAL or
 ** PAGER_LOCKINGMODE_EXCLUSIVE, indicating the current (possibly updated)
 ** locking-mode.
@@ -6703,7 +6707,7 @@ int sqlite3PagerLockingMode(Pager *pPager, int eMode){
 **    PAGER_JOURNALMODE_TRUNCATE          PAGER_JOURNALMODE的截断            
 **    PAGER_JOURNALMODE_PERSIST           PAGER_JOURNALMODE的坚持
 **    PAGER_JOURNALMODE_OFF               PAGER_JOURNALMODE的关闭
-**    PAGER_JOURNALMODE_MEMORY            PAGER_JOURNALMODE的记忆
+**    PAGER_JOURNALMODE_MEMORY            PAGER_JOURNALMODE的内存
 **    PAGER_JOURNALMODE_WAL               PAGER_JOURNALMODE的预写式日志
 **
 ** The journalmode is set to the value specified if the change is allowed.
@@ -6711,11 +6715,11 @@ int sqlite3PagerLockingMode(Pager *pPager, int eMode){
 ** 如果允许改变，这个日志模式设置为指定值。不可以改变的原因如下：
 **   *  An in-memory database can only have its journal_mode set to _OFF
 **      or _MEMORY.
-**     一个内存数据库只能把其日志模式设置为关闭或者记忆。
+**     一个内存数据库只能把其日志模式设置为关闭或者存储。
 **   *  Temporary databases cannot have _WAL journalmode.
 **      临时数据库不能有预写式日志模式。
 ** The returned indicate the current (possibly updated) journal-mode.
-    返回值表示当前日志模式。
+   返回值表示当前日志模式。
 */
 int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
   u8 eOld = pPager->journalMode;    /* Prior journalmode 原先日志模式*/
@@ -6745,7 +6749,7 @@ int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
 
   /* Do allow the journalmode of an in-memory database to be set to
   ** anything other than MEMORY or OFF
-     允许内存数据库的日志模式设置为任意状态除了记忆或者关闭。
+     允许内存数据库的日志模式设置为任意状态除了存储或者关闭。
   */
   if( MEMDB ){
     assert( eOld==PAGER_JOURNALMODE_MEMORY || eOld==PAGER_JOURNALMODE_OFF );
@@ -6763,7 +6767,7 @@ int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
     /* When transistioning from TRUNCATE or PERSIST to any other journal
     ** mode except WAL, unless the pager is in locking_mode=exclusive mode,
     ** delete the journal file.
-      
+       当transistioning截断或存在其他日志模式除了WAL,除非pager在排它锁模式,那么删除日志文件。
     */
     assert( (PAGER_JOURNALMODE_TRUNCATE & 5)==1 );
     assert( (PAGER_JOURNALMODE_PERSIST & 5)==1 );
@@ -6778,10 +6782,11 @@ int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
       /* In this case we would like to delete the journal file. If it is
       ** not possible, then that is not a problem. Deleting the journal file
       ** here is an optimization only.
-      **
+      ** 在这种情况下，我们要删除日志文件。如果它是不可能的，那么那不是个问题。在这删除日志文件只是个优化。
       ** Before deleting the journal file, obtain a RESERVED lock on the
       ** database file. This ensures that the journal file is not deleted
       ** while it is in use by some other client.
+         在删除日志文件之前，在数据库文件中获取一个保留锁。这将确保在其他客户端使用的时候，日志文件不会被删除。
       */
       sqlite3OsClose(pPager->jfd);
       if( pPager->eLock>=RESERVED_LOCK ){
@@ -6810,12 +6815,12 @@ int sqlite3PagerSetJournalMode(Pager *pPager, int eMode){
     }
   }
 
-  /* Return the new journal mode */
+  /* Return the new journal mode 返回新的日志模式*/
   return (int)pPager->journalMode;
 }
 
 /*
-** Return the current journal mode.
+** Return the current journal mode.返回当前日志模式。
 */
 int sqlite3PagerGetJournalMode(Pager *pPager){
   return (int)pPager->journalMode;
@@ -6825,6 +6830,7 @@ int sqlite3PagerGetJournalMode(Pager *pPager){
 ** Return TRUE if the pager is in a state where it is OK to change the
 ** journalmode.  Journalmode changes can only happen when the database
 ** is unmodified.
+   如果pager在可以改变日志模式的状态，那么返回TRUE。当数据库不被修改，日志模式只发生变化。
 */
 int sqlite3PagerOkToChangeJournalMode(Pager *pPager){
   assert( assert_pager_state(pPager) );
@@ -6835,9 +6841,10 @@ int sqlite3PagerOkToChangeJournalMode(Pager *pPager){
 
 /*
 ** Get/set the size-limit used for persistent journal files.
-**
+** 获取/设置用于持久化日志文件的大小限制。
 ** Setting the size limit to -1 means no limit is enforced.
 ** An attempt to set a limit smaller than -1 is a no-op.
+   设置大小限制为1意味着执行没有限制。试图设置一个限制小于1是个空操作。
 */
 i64 sqlite3PagerJournalSizeLimit(Pager *pPager, i64 iLimit){
   if( iLimit>=-1 ){
@@ -6852,6 +6859,8 @@ i64 sqlite3PagerJournalSizeLimit(Pager *pPager, i64 iLimit){
 ** in backup.c maintains the content of this variable. This module
 ** uses it opaquely as an argument to sqlite3BackupRestart() and
 ** sqlite3BackupUpdate() only.
+   返回pPager - > pBackup的一个指针变量。backup.c中的backup模块维持这个变量的内容。
+   这个模块只是使用它不透明地作为sqlite3BackupRestart()和sqlite3BackupUpdate()函数的参数。
 */
 sqlite3_backup **sqlite3PagerBackupPtr(Pager *pPager){
   return &pPager->pBackup;
@@ -6860,6 +6869,7 @@ sqlite3_backup **sqlite3PagerBackupPtr(Pager *pPager){
 #ifndef SQLITE_OMIT_VACUUM
 /*
 ** Unless this is an in-memory or temporary database, clear the pager cache.
+   清除pager缓存，除非这是个内存或者临时数据库。
 */
 void sqlite3PagerClearCache(Pager *pPager){
   if( !MEMDB && pPager->tempFile==0 ) pager_reset(pPager);
@@ -6870,9 +6880,11 @@ void sqlite3PagerClearCache(Pager *pPager){
 /*
 ** This function is called when the user invokes "PRAGMA wal_checkpoint",
 ** "PRAGMA wal_blocking_checkpoint" or calls the sqlite3_wal_checkpoint()
-** or wal_blocking_checkpoint() API functions.
-**
+** or  wal_blocking_checkpoint() API functions.
+** 当用户调用"PRAGMA wal_checkpoint、"PRAGMA wal_blocking_checkpoint"或者
+调用 sqlite3_wal_checkpoint()、wal_blocking_checkpoint() API 函数时，这个函数被调用。
 ** Parameter eMode is one of SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART.
+   eMode是SQLITE_CHECKPOINT_PASSIVE、FULL或者RESTART其中的一个参数。
 */
 int sqlite3PagerCheckpoint(Pager *pPager, int eMode, int *pnLog, int *pnCkpt){
   int rc = SQLITE_OK;
@@ -6893,6 +6905,7 @@ int sqlite3PagerWalCallback(Pager *pPager){
 /*
 ** Return true if the underlying VFS for the given pager supports the
 ** primitives necessary for write-ahead logging.
+   如果给定pager的底层VFS支持预写式日志记录的必要基元，则返回TRUE。
 */
 int sqlite3PagerWalSupported(Pager *pPager){
   const sqlite3_io_methods *pMethods = pPager->fd->pMethods;
@@ -6902,15 +6915,17 @@ int sqlite3PagerWalSupported(Pager *pPager){
 /*
 ** Attempt to take an exclusive lock on the database file. If a PENDING lock
 ** is obtained instead, immediately release it.
+   尝试在数据库文件中获取一个排它锁。如果获取的是一个PENDING锁，立马释放它。
 */
 static int pagerExclusiveLock(Pager *pPager){
-  int rc;                         /* Return code */
+  int rc;                         /* Return code 返回代码 */
 
   assert( pPager->eLock==SHARED_LOCK || pPager->eLock==EXCLUSIVE_LOCK );
   rc = pagerLockDb(pPager, EXCLUSIVE_LOCK);
   if( rc!=SQLITE_OK ){
     /* If the attempt to grab the exclusive lock failed, release the 
-    ** pending lock that may have been obtained instead.  */
+    ** pending lock that may have been obtained instead. 
+       如果尝试抓取排它锁失败，释放已经获取的等待锁。*/
     pagerUnlockDb(pPager, SHARED_LOCK);
   }
 
@@ -6922,6 +6937,8 @@ static int pagerExclusiveLock(Pager *pPager){
 ** exclusive-locking mode when this function is called, take an EXCLUSIVE
 ** lock on the database file and use heap-memory to store the wal-index
 ** in. Otherwise, use the normal shared-memory.
+   调用sqlite3WalOpen()函数打开WAL句柄。如果在这个函数被调用的时候pager在排它锁模式下，
+   那么在数据库文件获取一个排它锁，使用堆内存存储wal-index。否则，使用正常的共享内存。
 */
 static int pagerOpenWal(Pager *pPager){
   int rc = SQLITE_OK;
@@ -6941,7 +6958,7 @@ static int pagerOpenWal(Pager *pPager){
 
   /* Open the connection to the log file. If this operation fails, 
   ** (e.g. due to malloc() failure), return an error code.
-      打开连接到日志文件。如果这个操作事变，返回错误代码。
+      打开连接到日志文件。如果这个操作失败，返回错误代码。
   */
   if( rc==SQLITE_OK ){
     rc = sqlite3WalOpen(pPager->pVfs, 
@@ -6964,7 +6981,9 @@ static int pagerOpenWal(Pager *pPager){
 ** return SQLITE_OK. If an error occurs or the VFS used by the pager does 
 ** not support the xShmXXX() methods, return an error code. *pbOpen is
 ** not modified in either case.
-**
+** 如果在打开的真正的数据库文件中(不是临时文件或内存中的数据库），
+   pager作为第一个参数传递,WAL文件没有打开,现在试图打开它。如果成功，返回SQLITE_O。
+   如果发生错误或者pager使用的VFS不支持xShmXXX()方法，返回错误代码。在任何情况下，*pbOpen不被修改。
 ** If the pager is open on a temp-file (or in-memory database), or if
 ** the WAL file is already open, set *pbOpen to 1 and return SQLITE_OK
 ** without doing anything.
