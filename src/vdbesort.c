@@ -794,16 +794,16 @@ static int vdbeSorterListToPMA(sqlite3 *db, const VdbeCursor *pCsr){
 }
 
 /*
-** Add a record to the sorter.
+** Add a record to the sorter.把一个记录添加到sorter
 */
 int sqlite3VdbeSorterWrite(
-  sqlite3 *db,                    /* Database handle */
-  const VdbeCursor *pCsr,               /* Sorter cursor */
-  Mem *pVal                       /* Memory cell containing record */
+  sqlite3 *db,                    /* Database handle 数据库句柄*/
+  const VdbeCursor *pCsr,               /* Sorter cursor 游标*/
+  Mem *pVal                       /* Memory cell containing record 含有记录的内存单元*/
 ){
   VdbeSorter *pSorter = pCsr->pSorter;
-  int rc = SQLITE_OK;             /* Return Code */
-  SorterRecord *pNew;             /* New list element */
+  int rc = SQLITE_OK;             /* Return Code 返回码*/
+  SorterRecord *pNew;             /* New list element 新列表元素*/
 
   assert( pSorter );
   pSorter->nInMemory += sqlite3VarintLen(pVal->n) + pVal->n;
@@ -821,13 +821,13 @@ int sqlite3VdbeSorterWrite(
 
   /* See if the contents of the sorter should now be written out. They
   ** are written out when either of the following are true:
-  **
+  ** 判断sorter的内容是不是现在就写出去，只要满足下面的条件之一就可写出
   **   * The total memory allocated for the in-memory list is greater 
   **     than (page-size * cache-size), or
-  **
+  **		已经为内存中的列表分配的内存大于page-size * cache-size时
   **   * The total memory allocated for the in-memory list is greater 
   **     than (page-size * 10) and sqlite3HeapNearlyFull() returns true.
-  */
+  */			//已经为内存中的列表分配的内存大于page-size * 10并且函数sqlite3HeapNearlyFull()返回真时
   if( rc==SQLITE_OK && pSorter->mxPmaSize>0 && (
         (pSorter->nInMemory>pSorter->mxPmaSize)
      || (pSorter->nInMemory>pSorter->mnPmaSize && sqlite3HeapNearlyFull())
@@ -846,19 +846,20 @@ int sqlite3VdbeSorterWrite(
 }
 
 /*
-** Helper function for sqlite3VdbeSorterRewind(). 
+** Helper function for sqlite3VdbeSorterRewind().
+   下面的函数是函数sqlite3VdbeSorterRewind()的辅助函数
 */
 static int vdbeSorterInitMerge(
-  sqlite3 *db,                    /* Database handle */
-  const VdbeCursor *pCsr,         /* Cursor handle for this sorter */
-  i64 *pnByte                     /* Sum of bytes in all opened PMAs */
+  sqlite3 *db,                    /* Database handle 数据库句柄*/
+  const VdbeCursor *pCsr,         /* Cursor handle for this sorter 此sorter的游标句柄*/
+  i64 *pnByte                     /* Sum of bytes in all opened PMAs 所有PMA中的字节总和*/
 ){
   VdbeSorter *pSorter = pCsr->pSorter;
-  int rc = SQLITE_OK;             /* Return code */
-  int i;                          /* Used to iterator through aIter[] */
-  i64 nByte = 0;                  /* Total bytes in all opened PMAs */
+  int rc = SQLITE_OK;             /* Return code 返回码*/
+  int i;                          /* Used to iterator through aIter[] 循环变量*/
+  i64 nByte = 0;                  /* Total bytes in all opened PMAs 所有PMA中的字节总和*/
 
-  /* Initialize the iterators. */
+  /* Initialize the iterators. 初始化iterators*/
   for(i=0; i<SORTER_MAX_MERGE_COUNT; i++){
     VdbeSorterIter *pIter = &pSorter->aIter[i];
     rc = vdbeSorterIterInit(db, pSorter, pSorter->iReadOff, pIter, &nByte);
@@ -867,7 +868,7 @@ static int vdbeSorterInitMerge(
     if( rc!=SQLITE_OK || pSorter->iReadOff>=pSorter->iWriteOff ) break;
   }
 
-  /* Initialize the aTree[] array. */
+  /* Initialize the aTree[] array. 初始化aTree[]数组*/
   for(i=pSorter->nTree-1; rc==SQLITE_OK && i>0; i--){
     rc = vdbeSorterDoCompare(pCsr, i);
   }
@@ -879,32 +880,35 @@ static int vdbeSorterInitMerge(
 /*
 ** Once the sorter has been populated, this function is called to prepare
 ** for iterating through its contents in sorted order.
+   一旦这个sorter被增添，下面这个函数就被调用以排好的顺序遍历sorter的内容
 */
 int sqlite3VdbeSorterRewind(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
   VdbeSorter *pSorter = pCsr->pSorter;
-  int rc;                         /* Return code */
-  sqlite3_file *pTemp2 = 0;       /* Second temp file to use */
-  i64 iWrite2 = 0;                /* Write offset for pTemp2 */
-  int nIter;                      /* Number of iterators used */
-  int nByte;                      /* Bytes of space required for aIter/aTree */
-  int N = 2;                      /* Power of 2 >= nIter */
+  int rc;                         /* Return code 返回码*/
+  sqlite3_file *pTemp2 = 0;       /* Second temp file to use 要使用的第二个临时文件*/
+  i64 iWrite2 = 0;                /* Write offset for pTemp2 为pTemp2定义偏移量*/
+  int nIter;                      /* Number of iterators used 被使用的迭代器的个数*/
+  int nByte;                      /* Bytes of space required for aIter/aTree ——aIter/aTree需要的空间的字节数*/
+  int N = 2;                      /* Power of 2 >= nIter ；2的幂>= nIter*/
 
   assert( pSorter );
 
   /* If no data has been written to disk, then do not do so now. Instead,
   ** sort the VdbeSorter.pRecord list. The vdbe layer will read data directly
-  ** from the in-memory list.  */
+  ** from the in-memory list.  
+     如果还没有数据被写到磁盘，现在就先暂时不做。而是对VdbeSorter.pRecord list进行排序，vdbe层将直接从内存列表里读数据
+  */
   if( pSorter->nPMA==0 ){
     *pbEof = !pSorter->pRecord;
     assert( pSorter->aTree==0 );
     return vdbeSorterSort(pCsr);
   }
 
-  /* Write the current in-memory list to a PMA. */
+  /* Write the current in-memory list to a PMA. 把当前内存中的列表写到PMA中去*/
   rc = vdbeSorterListToPMA(db, pCsr);
   if( rc!=SQLITE_OK ) return rc;
 
-  /* Allocate space for aIter[] and aTree[]. */
+  /* Allocate space for aIter[] and aTree[]. 为aIter[] 和 aTree[]分配空间*/
   nIter = pSorter->nPMA;
   if( nIter>SORTER_MAX_MERGE_COUNT ) nIter = SORTER_MAX_MERGE_COUNT;
   assert( nIter>0 );
@@ -916,15 +920,15 @@ int sqlite3VdbeSorterRewind(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
   pSorter->nTree = N;
 
   do {
-    int iNew;                     /* Index of new, merged, PMA */
+    int iNew;                     /* Index of new, merged, PMA 新合并进来的PMA的下标*/
 
     for(iNew=0; 
         rc==SQLITE_OK && iNew*SORTER_MAX_MERGE_COUNT<pSorter->nPMA; 
         iNew++
     ){
-      int rc2;                    /* Return code from fileWriterFinish() */
-      FileWriter writer;          /* Object used to write to disk */
-      i64 nWrite;                 /* Number of bytes in new PMA */
+      int rc2;                    /* Return code from fileWriterFinish() ；从函数fileWriterFinish()返回的返回码*/
+      FileWriter writer;          /* Object used to write to disk 用来往磁盘里写数据的实例*/
+      i64 nWrite;                 /* Number of bytes in new PMA 新PMA中的字节数目*/
 
       memset(&writer, 0, sizeof(FileWriter));
 
@@ -932,10 +936,13 @@ int sqlite3VdbeSorterRewind(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
       ** initialize an iterator for each of them and break out of the loop.
       ** These iterators will be incrementally merged as the VDBE layer calls
       ** sqlite3VdbeSorterNext().
-      **
+      ** 如果文件pTemp1中有SORTER_MAX_MERGE_COUNT个或者更少的PMA，就为他们各初始化一个迭代器，
+		 然后跳出循环。
       ** Otherwise, if pTemp1 contains more than SORTER_MAX_MERGE_COUNT PMAs,
       ** initialize interators for SORTER_MAX_MERGE_COUNT of them. These PMAs
       ** are merged into a single PMA that is written to file pTemp2.
+		 否则，如果文件pTemp1中有多于SORTER_MAX_MERGE_COUNT个的PMA，就为其中的SORTER_MAX_MERGE_COUNT个PMA各初始化一个迭代器，
+		 把这些PMA合并成一个PMA，并把它写入文件pTemp2中
       */
       rc = vdbeSorterInitMerge(db, pCsr, &nWrite);
       assert( rc!=SQLITE_OK || pSorter->aIter[ pSorter->aTree[1] ].pFile );
@@ -943,7 +950,7 @@ int sqlite3VdbeSorterRewind(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
         break;
       }
 
-      /* Open the second temp file, if it is not already open. */
+      /* Open the second temp file, if it is not already open. 如果第二个临时文件还没打开的话，则现在就打开*/
       if( pTemp2==0 ){
         assert( iWrite2==0 );
         rc = vdbeSorterOpenTempFile(db, &pTemp2);
@@ -987,15 +994,15 @@ int sqlite3VdbeSorterRewind(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
 }
 
 /*
-** Advance to the next element in the sorter.
+** Advance to the next element in the sorter.——前进到sorter中的下一个元素
 */
 int sqlite3VdbeSorterNext(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
   VdbeSorter *pSorter = pCsr->pSorter;
-  int rc;                         /* Return code */
+  int rc;                         /* 返回码 Return code */
 
   if( pSorter->aTree ){
-    int iPrev = pSorter->aTree[1];/* Index of iterator to advance */
-    int i;                        /* Index of aTree[] to recalculate */
+    int iPrev = pSorter->aTree[1];/* Index of iterator to advance 要前进的迭代器的下标*/
+    int i;                        /* Index of aTree[] to recalculate 要重算的数组aTree[]中元素的下标*/
 
     rc = vdbeSorterIterNext(db, &pSorter->aIter[iPrev]);
     for(i=(pSorter->nTree+iPrev)/2; rc==SQLITE_OK && i>0; i=i/2){
@@ -1015,12 +1022,13 @@ int sqlite3VdbeSorterNext(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
 }
 
 /*
-** Return a pointer to a buffer owned by the sorter that contains the 
-** current key.
+** Return a pointer to a buffer owned by the sorter that contains the current key.
+   返回一个指针给buffer，这个buffer是包含当前key的sorter的
+** 
 */
 static void *vdbeSorterRowkey(
-  const VdbeSorter *pSorter,      /* Sorter object */
-  int *pnKey                      /* OUT: Size of current key in bytes */
+  const VdbeSorter *pSorter,      /* Sorter object ——sorter实例*/
+  int *pnKey                      /* OUT: Size of current key in bytes 输出：当前值得字节数大小*/
 ){
   void *pKey;
   if( pSorter->aTree ){
@@ -1036,7 +1044,7 @@ static void *vdbeSorterRowkey(
 }
 
 /*
-** Copy the current sorter key into the memory cell pOut.
+** Copy the current sorter key into the memory cell pOut.把当前sorter key复制到内存单元pOut中
 */
 int sqlite3VdbeSorterRowkey(const VdbeCursor *pCsr, Mem *pOut){
   VdbeSorter *pSorter = pCsr->pSorter;
@@ -1057,23 +1065,24 @@ int sqlite3VdbeSorterRowkey(const VdbeCursor *pCsr, Mem *pOut){
 ** Compare the key in memory cell pVal with the key that the sorter cursor
 ** passed as the first argument currently points to. For the purposes of
 ** the comparison, ignore the rowid field at the end of each record.
-**
+** 把内存单元pVal中的key和由sorter cursor当做第一个参数传出来的key相比较；忽略每条记录末尾处的rowid域
 ** If an error occurs, return an SQLite error code (i.e. SQLITE_NOMEM).
 ** Otherwise, set *pRes to a negative, zero or positive value if the
 ** key in pVal is smaller than, equal to or larger than the current sorter
 ** key.
+	如有错误发生，就返回一个SQLite错误码；否则把*pRes设置成一个负数，0，或正数，分别对应pVal中的key比当前sorter key小、相等或大。	
 */
 int sqlite3VdbeSorterCompare(
-  const VdbeCursor *pCsr,         /* Sorter cursor */
-  Mem *pVal,                      /* Value to compare to current sorter key */
-  int *pRes                       /* OUT: Result of comparison */
+  const VdbeCursor *pCsr,         /* Sorter cursor ——sorter游标*/
+  Mem *pVal,                      /* Value to compare to current sorter key 要和当前sorter key相比较的值*/
+  int *pRes                       /* OUT: Result of comparison 输出：比较的结果*/
 ){
   VdbeSorter *pSorter = pCsr->pSorter;
-  void *pKey; int nKey;           /* Sorter key to compare pVal with */
+  void *pKey; int nKey;           /* Sorter key to compare pVal with 要和pVal相比较的sorter key*/
 
   pKey = vdbeSorterRowkey(pSorter, &nKey);
   vdbeSorterCompare(pCsr, 1, pVal->z, pVal->n, pKey, nKey, pRes);
   return SQLITE_OK;
 }
 
-#endif /* #ifndef SQLITE_OMIT_MERGE_SORT */
+#endif /* #ifndef SQLITE_OMIT_MERGE_SORT 结束宏定义*/
