@@ -739,18 +739,20 @@ static void fileWriterWriteVarint(FileWriter *p, u64 iVal){
 /*
 ** Write the current contents of the in-memory linked-list to a PMA. Return
 ** SQLITE_OK if successful, or an SQLite error code otherwise.
-**
+**　把内存中的链表的当前内容写到一个PMA中。成功就返回SQLITE_OK，否则就返回一个错误码
 ** The format of a PMA is:
-**
+**　ＰＭＡ的格式如下：
 **     * A varint. This varint contains the total number of bytes of content
 **       in the PMA (not including the varint itself).
-**
+**　　　一个可变长的整数变量，这个变量包含ＰＭＡ中所有内容的字节数
 **     * One or more records packed end-to-end in order of ascending keys. 
 **       Each record consists of a varint followed by a blob of data (the 
 **       key). The varint is the number of bytes in the blob of data.
+		　一个或多个记录以尾对尾的方式、按照ｋｅｙｓ的递增顺序排序。每条记录都由一个可变长整数和其后的一系列数据组成。
+		　可变长变量的值等于其后一系列的数据占用的字节的数目
 */
 static int vdbeSorterListToPMA(sqlite3 *db, const VdbeCursor *pCsr){
-  int rc = SQLITE_OK;             /* Return code */
+  int rc = SQLITE_OK;             /* Return code 返回代码*/
   VdbeSorter *pSorter = pCsr->pSorter;
   FileWriter writer;
 
@@ -763,7 +765,7 @@ static int vdbeSorterListToPMA(sqlite3 *db, const VdbeCursor *pCsr){
 
   rc = vdbeSorterSort(pCsr);
 
-  /* If the first temporary PMA file has not been opened, open it now. */
+  /* If the first temporary PMA file has not been opened, open it now. 如果第一个临时ＰＭＡ文件没有打开，现在就打开*/
   if( rc==SQLITE_OK && pSorter->pTemp1==0 ){
     rc = vdbeSorterOpenTempFile(db, &pSorter->pTemp1);
     assert( rc!=SQLITE_OK || pSorter->pTemp1 );
