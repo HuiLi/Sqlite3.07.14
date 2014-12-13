@@ -18,9 +18,9 @@
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
-#ifndef SQLITE_OMIT_MERGE_SORT
+#ifndef SQLITE_OMIT_MERGE_SORT//宏定义
 
-typedef struct VdbeSorterIter VdbeSorterIter;
+typedef struct VdbeSorterIter VdbeSorterIter;//an iterator for a PMA
 typedef struct SorterRecord SorterRecord;
 typedef struct FileWriter FileWriter;
 
@@ -112,16 +112,16 @@ struct VdbeSorter {
 ** The following type is an iterator for a PMA. It caches the current key in 
 ** variables nKey/aKey. If the iterator is at EOF, pFile==0.
 */
-struct VdbeSorterIter {           /*这个结构体定义了ＰＭＡ的iterator，它把当前的key储存在变量nKey/aKey中，若iterator在EOF处，pFile==0*/
+struct VdbeSorterIter {           /*这个结构体定义了PMA的iterator，它把当前的key储存在变量nKey/aKey中，若iterator在EOF处，pFile==0*/
   i64 iReadOff;                   /* Current read offset ——当前读偏移量*/
-  i64 iEof;                       /* 1 byte past EOF for this iterator */
-  int nAlloc;                     /* Bytes of space at aAlloc */
-  int nKey;                       /* Number of bytes in key */
-  sqlite3_file *pFile;            /* File iterator is reading from */
-  u8 *aAlloc;                     /* Allocated space */
-  u8 *aKey;                       /* Pointer to current key */
-  u8 *aBuffer;                    /* Current read buffer */
-  int nBuffer;                    /* Size of read buffer in bytes */
+  i64 iEof;                       /* 1 byte past EOF for this iterator 此变量的值比１个字节大１*/
+  int nAlloc;                     /* Bytes of space at aAlloc ——aAlloc处的字节数*/
+  int nKey;                       /* Number of bytes in key ——变量Ｋｅｙ中的字节数*/
+  sqlite3_file *pFile;            /* File iterator is reading from ——此指针所指的地方是ｉｔｅｒａｔｏｒ开始的地方*/
+  u8 *aAlloc;                     /* Allocated space ——已经分配出去的空间*/
+  u8 *aKey;                       /* Pointer to current key ——指向当前ｋｅｙ的指针*/
+  u8 *aBuffer;                    /* Current read buffer ——当前的读缓存*/
+  int nBuffer;                    /* Size of read buffer in bytes 读缓存的字节数*/
 };
 
 /*
@@ -129,21 +129,23 @@ struct VdbeSorterIter {           /*这个结构体定义了ＰＭＡ的iterator
 ** being written to files by the merge-sort code into aligned, page-sized
 ** blocks.  Doing all I/O in aligned page-sized blocks helps I/O to go
 ** faster on many operating systems.
+   下面这个结构体的实例用来组织记录流，这些记录流将按照mergecod的算法写入到文件中的对齐的、页面大小的块中。
 */
 struct FileWriter {
-  int eFWErr;                     /* Non-zero if in an error state */
-  u8 *aBuffer;                    /* Pointer to write buffer */
-  int nBuffer;                    /* Size of write buffer in bytes */
-  int iBufStart;                  /* First byte of buffer to write */
-  int iBufEnd;                    /* Last byte of buffer to write */
-  i64 iWriteOff;                  /* Offset of start of buffer in file */
-  sqlite3_file *pFile;            /* File to write to */
+  int eFWErr;                     /* Non-zero if in an error state 当处于错误状态时是个非零值*/
+  u8 *aBuffer;                    /* Pointer to write buffer 指向写缓存的指针*/
+  int nBuffer;                    /* Size of write buffer in bytes 写缓存的字节数*/
+  int iBufStart;                  /* First byte of buffer to write 缓存中要写入的第一个字节*/
+  int iBufEnd;                    /* Last byte of buffer to write 缓存中要写入的最后一个缓存*/
+  i64 iWriteOff;                  /* Offset of start of buffer in file 缓存开始出在文件中的偏移量*/
+  sqlite3_file *pFile;            /* File to write to 指向将被写入的文件的指针*/
 };
 
 /*
 ** A structure to store a single record. All in-memory records are connected
 ** together into a linked list headed at VdbeSorter.pRecord using the 
 ** SorterRecord.pNext pointer.
+   下面这个结构体用来存储一个单独的记录。所有内存中的记录被连接成一个链表，链表的头由指针SorterRecord *pNext指向SorterRecord *pRecord
 */
 struct SorterRecord {
   void *pVal;
@@ -151,15 +153,16 @@ struct SorterRecord {
   SorterRecord *pNext;
 };
 
-/* Minimum allowable value for the VdbeSorter.nWorking variable */
+/* Minimum allowable value for the VdbeSorter.nWorking variable 变量VdbeSorter.nWorking所允许的最小值*/
 #define SORTER_MIN_WORKING 10
 
-/* Maximum number of segments to merge in a single pass. */
+/* Maximum number of segments to merge in a single pass. 一趟算法里所允许归并的最大段数*/
 #define SORTER_MAX_MERGE_COUNT 16
 
 /*
 ** Free all memory belonging to the VdbeSorterIter object passed as the second
 ** argument. All structure fields are set to zero before returning.
+   释放由第二个参数VdbeSorterIter *pIter确定的所有属于VdbeSorterIter对象的内存空间
 */
 static void vdbeSorterIterZero(sqlite3 *db, VdbeSorterIter *pIter){
   sqlite3DbFree(db, pIter->aAlloc);
@@ -172,34 +175,41 @@ static void vdbeSorterIterZero(sqlite3 *db, VdbeSorterIter *pIter){
 ** If successful, set *ppOut to point to a buffer containing the data
 ** and return SQLITE_OK. Otherwise, if an error occurs, return an SQLite
 ** error code.
-**
+** 从由对象p迭代的数据流中读出nByte字节的数据
+   如果读取成功的话，令指针ppout指向包含读出数据的缓存并返回SQLITE_OK。否则，如果出现错误，返回一个SQLite error代号
 ** The buffer indicated by *ppOut may only be considered valid until the
 ** next call to this function.
+   由ppOut指向的缓存只在下次调用该函数之前是有效地
 */
+//下面是函数vdbeSorterIterRead()
 static int vdbeSorterIterRead(
-  sqlite3 *db,                    /* Database handle (for malloc) */
-  VdbeSorterIter *p,              /* Iterator */
-  int nByte,                      /* Bytes of data to read */
-  u8 **ppOut                      /* OUT: Pointer to buffer containing data */
-){
-  int iBuf;                       /* Offset within buffer to read from */
-  int nAvail;                     /* Bytes of data available in buffer */
+  sqlite3 *db,                    /* Database handle (for malloc)针对malloc的数据库句柄 */
+  VdbeSorterIter *p,              /* Iterator 迭代器的指针*/
+  int nByte,                      /* Bytes of data to read 要读的数据的字节数*/
+  u8 **ppOut                      /* OUT: Pointer to buffer containing data 指向包含数据的缓存的指针 */
+)
+{
+  int iBuf;                       /* Offset within buffer to read from 缓存内部，读开始处的偏移量*/
+  int nAvail;                     /* Bytes of data available in buffer 缓存中可用的数据的字节数*/
   assert( p->aBuffer );
 
   /* If there is no more data to be read from the buffer, read the next 
   ** p->nBuffer bytes of data from the file into it. Or, if there are less
-  ** than p->nBuffer bytes remaining in the PMA, read all remaining data.  */
-  iBuf = p->iReadOff % p->nBuffer;
+  ** than p->nBuffer bytes remaining in the PMA, read all remaining data.  
+     如果缓存中没有数据可读了，就从文件中读出接下来的大小等于nBuffer字节的数据存入缓存中，
+	 如果PMA中的字节数小于nBuffer，就把剩下的所有数据读出来。
+  */
+  iBuf = p->iReadOff % p->nBuffer;//当前读偏移量 模上 读缓存的字节数
   if( iBuf==0 ){
-    int nRead;                    /* Bytes to read from disk */
+    int nRead;                    /* Bytes to read from disk ——要从硬盘上读的字节数*/
     int rc;                       /* sqlite3OsRead() return code */
 
-    /* Determine how many bytes of data to read. */
+    /* Determine how many bytes of data to read. 决定要读的字节数*/
     nRead = (int)(p->iEof - p->iReadOff);
     if( nRead>p->nBuffer ) nRead = p->nBuffer;
     assert( nRead>0 );
 
-    /* Read data from the file. Return early if an error occurs. */
+    /* Read data from the file. Return early if an error occurs. 从文件中读数据，如果发生错误就提前返回*/
     rc = sqlite3OsRead(p->pFile, p->aBuffer, nRead, p->iReadOff);
     assert( rc!=SQLITE_IOERR_SHORT_READ );
     if( rc!=SQLITE_OK ) return rc;
@@ -209,16 +219,21 @@ static int vdbeSorterIterRead(
   if( nByte<=nAvail ){
     /* The requested data is available in the in-memory buffer. In this
     ** case there is no need to make a copy of the data, just return a 
-    ** pointer into the buffer to the caller.  */
+    ** pointer into the buffer to the caller.  
+	** 需要的数据全都在内存的缓存中，这种情况下，就没必要在对数据进行备份，只需把指向缓存的一个指针返回给调用者即可
+	*/
     *ppOut = &p->aBuffer[iBuf];
     p->iReadOff += nByte;
   }else{
     /* The requested data is not all available in the in-memory buffer.
     ** In this case, allocate space at p->aAlloc[] to copy the requested
-    ** range into. Then return a copy of pointer p->aAlloc to the caller.  */
-    int nRem;                     /* Bytes remaining to copy */
+    ** range into. Then return a copy of pointer p->aAlloc to the caller.  
+	** 需要的数据不全在内存的缓存中，这种情况下，在p->aAlloc[]中分配空间，用来把需要的数据拷贝进来
+	** 最后，返回指针p->aAlloc的一个副本给调用者
+	*/
+    int nRem;                     /* Bytes remaining to copy 余下的、要复制的字节数目*/
 
-    /* Extend the p->aAlloc[] allocation if required. */
+    /* Extend the p->aAlloc[] allocation if required. 若有必要，扩展p->aAlloc[]的大小*/
     if( p->nAlloc<nByte ){
       int nNew = p->nAlloc*2;
       while( nByte>nNew ) nNew = nNew*2;
@@ -228,17 +243,18 @@ static int vdbeSorterIterRead(
     }
 
     /* Copy as much data as is available in the buffer into the start of
-    ** p->aAlloc[].  */
+    ** p->aAlloc[].  尽量多的把buffer中的可用数据复制到p->aAlloc[]开始处*/
     memcpy(p->aAlloc, &p->aBuffer[iBuf], nAvail);
     p->iReadOff += nAvail;
     nRem = nByte - nAvail;
 
     /* The following loop copies up to p->nBuffer bytes per iteration into
-    ** the p->aAlloc[] buffer.  */
-    while( nRem>0 ){
+    ** the p->aAlloc[] buffer.  
+	下面这个循环，在每次迭代过程中，都把至多p->nBuffer（写缓存字节数）个字节拷贝到p->aAlloc[]缓存中*/
+    while( nRem>0 ){//只要余下的、要复制的字节数目大于零就循环
       int rc;                     /* vdbeSorterIterRead() return code */
-      int nCopy;                  /* Number of bytes to copy */
-      u8 *aNext;                  /* Pointer to buffer to copy data from */
+      int nCopy;                  /* Number of bytes to copy 要拷贝的字节的个数*/
+      u8 *aNext;                  /* Pointer to buffer to copy data from 指向缓存的指针，要从相应缓存中复制数据*/
 
       nCopy = nRem;
       if( nRem>p->nBuffer ) nCopy = p->nBuffer;
@@ -254,10 +270,14 @@ static int vdbeSorterIterRead(
 
   return SQLITE_OK;
 }
+//函数vdbeSorterIterRead()结束了
+
 
 /*
 ** Read a varint from the stream of data accessed by p. Set *pnOut to
 ** the value read.
+   下面这个函数的功能是：从和参变量VdbeSorterIter *p相对应的数据流中读一个varint（可变长整数），
+   并使指针pnOut指向读出来的这个数
 */
 static int vdbeSorterIterVarint(sqlite3 *db, VdbeSorterIter *p, u64 *pnOut){
   int iBuf;
@@ -283,16 +303,19 @@ static int vdbeSorterIterVarint(sqlite3 *db, VdbeSorterIter *p, u64 *pnOut){
 /*
 ** Advance iterator pIter to the next key in its PMA. Return SQLITE_OK if
 ** no error occurs, or an SQLite error code if one does.
+** 使迭代器pIter前进到对应PMA的下一个key，
+** 如果没有错误发生就返回SQLITE_OK，如果有错误发生，就返回SQLite error。
 */
 static int vdbeSorterIterNext(
-  sqlite3 *db,                    /* Database handle (for sqlite3DbMalloc() ) */
-  VdbeSorterIter *pIter           /* Iterator to advance */
-){
+  sqlite3 *db,                    /* Database handle (for sqlite3DbMalloc() ) 针对sqlite3DbMalloc()的数据库句柄*/
+  VdbeSorterIter *pIter           /* Iterator to advance 要前进的迭代器*/
+)
+{
   int rc;                         /* Return Code */
-  u64 nRec = 0;                   /* Size of record in bytes */
+  u64 nRec = 0;                   /* Size of record in bytes 记录的字节数大小*/
 
   if( pIter->iReadOff>=pIter->iEof ){
-    /* This is an EOF condition */
+    /* This is an EOF condition 这是一个EOF条件*/
     vdbeSorterIterZero(db, pIter);
     return SQLITE_OK;
   }
@@ -308,16 +331,17 @@ static int vdbeSorterIterNext(
 
 /*
 ** Initialize iterator pIter to scan through the PMA stored in file pFile
-** starting at offset iStart and ending at offset iEof-1. This function 
-** leaves the iterator pointing to the first key in the PMA (or EOF if the 
-** PMA is empty).
+** starting at offset iStart and ending at offset iEof-1. 
+** 初始化一个用来扫描对应PMA的迭代器pIter，PMA存在文件中的位置是：开始于偏移量位iStart的位置，结束于偏移量为iEof-1的位置    
+** This function leaves the iterator pointing to the first key in the PMA (or EOF if the PMA is empty).
+** 这个函数最后使迭代器指向对应PMA的第一个位置（或EOF位置，如果ＰＭＡ＼是空的话）。
 */
 static int vdbeSorterIterInit(
-  sqlite3 *db,                    /* Database handle */
-  const VdbeSorter *pSorter,      /* Sorter object */
-  i64 iStart,                     /* Start offset in pFile */
-  VdbeSorterIter *pIter,          /* Iterator to populate */
-  i64 *pnByte                     /* IN/OUT: Increment this value by PMA size */
+  sqlite3 *db,                    /* Database handle 数据库句柄*/
+  const VdbeSorter *pSorter,      /* Sorter object ——VdbeSorter的一个实例*/
+  i64 iStart,                     /* Start offset in pFile ——ｐＦｉｌｅ中的初始偏移量*/
+  VdbeSorterIter *pIter,          /* Iterator to populate 要增添的迭代器*/
+  i64 *pnByte                     /* IN/OUT: Increment this value by PMA size 以ＰＭＡ的大小为单位增加变量pnByte的值*/
 ){
   int rc = SQLITE_OK;
   int nBuf;
@@ -352,7 +376,7 @@ static int vdbeSorterIterInit(
     }
 
     if( rc==SQLITE_OK ){
-      u64 nByte;                       /* Size of PMA in bytes */
+      u64 nByte;                       /* Size of PMA in bytes ——PMA的字节数大小*/
       pIter->iEof = pSorter->iWriteOff;
       rc = vdbeSorterIterVarint(db, pIter, &nByte);
       pIter->iEof = pIter->iReadOff + nByte;
@@ -373,28 +397,32 @@ static int vdbeSorterIterInit(
 ** used by the comparison. If an error occurs, return an SQLite error code.
 ** Otherwise, return SQLITE_OK and set *pRes to a negative, zero or positive
 ** value, depending on whether key1 is smaller, equal to or larger than key2.
-**
-** If the bOmitRowid argument is non-zero, assume both keys end in a rowid
-** field. For the purposes of the comparison, ignore it. Also, if bOmitRowid
-** is true and key1 contains even a single NULL value, it is considered to
-** be less than key2. Even if key2 also contains NULL values.
-**
+**　下面的函数用来比较key1和key2。参数pKeyInfo提供比较时要使用的校对功能。如果有错误发生就返回一个SQLite错误码，
+　　否则就返回SQLITE_OK，并给*pRes赋值，如果ｋｅｙ１小，就赋负值，如果二者相等就赋０，若ｋｅｙ１大，就赋正值。
+** If the bOmitRowid argument is non-zero, assume both keys end in a rowid　field. 
+　　如果函数的参数bOmitRowid是非零的，就假设两个ｋｅｙｓ在ｒｏｗｉｄ域结尾。
+** For the purposes of the comparison, ignore it. 
+　　基于比较的目的，忽略这种情况。
+**　Also, if bOmitRowid　is true and key1 contains even a single NULL value,
+**  it is considered to　be less than key2. Even if key2 also contains NULL values.
+** 如果bOmitRowid是真值，ｋｅｙ１仅含有一个单独的ＮＵＬＬ值，那么ｋｅｙ１小于ｋｅｙ２，甚至在ｋｅｙ２也包含一个ＮＵＬＬ值得情况下。
 ** If pKey2 is passed a NULL pointer, then it is assumed that the pCsr->aSpace
 ** has been allocated and contains an unpacked record that is used as key2.
+**　如果ｐＫｅｙ２由一个空指针代表，则假设pCsr->aSpace已经被分配并包含一个未被解包的记录，被当做ｋｅｙ２使用。
 */
 static void vdbeSorterCompare(
-  const VdbeCursor *pCsr,         /* Cursor object (for pKeyInfo) */
-  int bOmitRowid,                 /* Ignore rowid field at end of keys */
-  const void *pKey1, int nKey1,   /* Left side of comparison */
-  const void *pKey2, int nKey2,   /* Right side of comparison */
-  int *pRes                       /* OUT: Result of comparison */
+  const VdbeCursor *pCsr,         /* Cursor object (for pKeyInfo) 针对pKeyInfo的游标实例*/
+  int bOmitRowid,                 /* Ignore rowid field at end of keys 忽略ｋｅｙｓ结尾处的ｒｏｗｉｄ域*/
+  const void *pKey1, int nKey1,   /* Left side of comparison 要比较的一方*/
+  const void *pKey2, int nKey2,   /* Right side of comparison 要比较的另一方*/
+  int *pRes                       /* OUT: Result of comparison 比较后所得结果*/
 ){
   KeyInfo *pKeyInfo = pCsr->pKeyInfo;
   VdbeSorter *pSorter = pCsr->pSorter;
   UnpackedRecord *r2 = pSorter->pUnpacked;
   int i;
 
-  if( pKey2 ){
+  if( pKey2 ){　
     sqlite3VdbeRecordUnpack(pKeyInfo, nKey2, pKey2, r2);
   }
 
@@ -417,6 +445,7 @@ static void vdbeSorterCompare(
 ** This function is called to compare two iterator keys when merging 
 ** multiple b-tree segments. Parameter iOut is the index of the aTree[] 
 ** value to recalculate.
+　　这个函数在ｍｅｒｇｅ多元ｂ树段时被调用。参数iOut是ａＴｒｅｅ中要被重新计算值得元素的下标值。
 */
 static int vdbeSorterDoCompare(const VdbeCursor *pCsr, int iOut){
   VdbeSorter *pSorter = pCsr->pSorter;
@@ -445,7 +474,7 @@ static int vdbeSorterDoCompare(const VdbeCursor *pCsr, int iOut){
     iRes = i1;
   }else{
     int res;
-    assert( pCsr->pSorter->pUnpacked!=0 );  /* allocated in vdbeSorterMerge() */
+    assert( pCsr->pSorter->pUnpacked!=0 );  /* allocated in vdbeSorterMerge()部署在函数vdbeSorterMerge()中 */
     vdbeSorterCompare(
         pCsr, 0, p1->aKey, p1->nKey, p2->aKey, p2->nKey, &res
     );
@@ -461,12 +490,12 @@ static int vdbeSorterDoCompare(const VdbeCursor *pCsr, int iOut){
 }
 
 /*
-** Initialize the temporary index cursor just opened as a sorter cursor.
+** Initialize the temporary index cursor just opened as a sorter cursor.——初始化临时索引游标，使之作为ｓｏｒｔｅｒ游标
 */
 int sqlite3VdbeSorterInit(sqlite3 *db, VdbeCursor *pCsr){
-  int pgsz;                       /* Page size of main database */
-  int mxCache;                    /* Cache size */
-  VdbeSorter *pSorter;            /* The new sorter */
+  int pgsz;                       /* Page size of main database 主数据库的页大小*/
+  int mxCache;                    /* Cache size ——Ｃａｃｈｅ缓存大小*/
+  VdbeSorter *pSorter;            /* The new sorter 指向新ｓｏｒｔｅｒ的指针*/
   char *d;                        /* Dummy */
 
   assert( pCsr->pKeyInfo && pCsr->pBt==0 );
@@ -491,7 +520,7 @@ int sqlite3VdbeSorterInit(sqlite3 *db, VdbeCursor *pCsr){
 }
 
 /*
-** Free the list of sorted records starting at pRecord.
+** Free the list of sorted records starting at pRecord.——下面的函数的功能：从ｐＲｅｃｏｒｄ所指的地方开始释放已排序的记录列表
 */
 static void vdbeSorterRecordFree(sqlite3 *db, SorterRecord *pRecord){
   SorterRecord *p;
@@ -504,6 +533,7 @@ static void vdbeSorterRecordFree(sqlite3 *db, SorterRecord *pRecord){
 
 /*
 ** Free any cursor components allocated by sqlite3VdbeSorterXXX routines.
+	释放任何一个由sqlite3VdbeSorterXXX routine部署的游标元素
 */
 void sqlite3VdbeSorterClose(sqlite3 *db, VdbeCursor *pCsr){
   VdbeSorter *pSorter = pCsr->pSorter;
@@ -529,6 +559,7 @@ void sqlite3VdbeSorterClose(sqlite3 *db, VdbeCursor *pCsr){
 ** Allocate space for a file-handle and open a temporary file. If successful,
 ** set *ppFile to point to the malloc'd file-handle and return SQLITE_OK.
 ** Otherwise, set *ppFile to 0 and return an SQLite error code.
+	下面这个函数用来为文件句柄分配空间，并开辟一个临时文件。如果成功了，设置指针ppFile 指向 malloc的文件句柄并返回SQLITE_OK
 */
 static int vdbeSorterOpenTempFile(sqlite3 *db, sqlite3_file **ppFile){
   int dummy;
@@ -542,12 +573,13 @@ static int vdbeSorterOpenTempFile(sqlite3 *db, sqlite3_file **ppFile){
 /*
 ** Merge the two sorted lists p1 and p2 into a single list.
 ** Set *ppOut to the head of the new list.
+　　下面这个函数把两个已经排好序的列表合并成一个，并把ｐｐＯｕｔ指向新列表的表头
 */
 static void vdbeSorterMerge(
   const VdbeCursor *pCsr,         /* For pKeyInfo */
-  SorterRecord *p1,               /* First list to merge */
-  SorterRecord *p2,               /* Second list to merge */
-  SorterRecord **ppOut            /* OUT: Head of merged list */
+  SorterRecord *p1,               /* First list to merge 参与合并的第一个列表*/
+  SorterRecord *p2,               /* Second list to merge 参与合并的第二个列表*/
+  SorterRecord **ppOut            /* OUT: Head of merged list 返回的：指向合并后的列表的头的指针*/
 ){
   SorterRecord *pFinal = 0;
   SorterRecord **pp = &pFinal;
@@ -577,6 +609,7 @@ static void vdbeSorterMerge(
 ** Sort the linked list of records headed at pCsr->pRecord. Return SQLITE_OK
 ** if successful, or an SQLite error code (i.e. SQLITE_NOMEM) if an error
 ** occurs.
+　　对头在pCsr->pRecord处的记录链表排序。成功就返回SQLITE_OK；否则，返回SQLite错误码
 */
 static int vdbeSorterSort(const VdbeCursor *pCsr){
   int i;
@@ -612,13 +645,13 @@ static int vdbeSorterSort(const VdbeCursor *pCsr){
 }
 
 /*
-** Initialize a file-writer object.
+** Initialize a file-writer object.初始化一个file-writer的实例
 */
 static void fileWriterInit(
-  sqlite3 *db,                    /* Database (for malloc) */
-  sqlite3_file *pFile,            /* File to write to */
-  FileWriter *p,                  /* Object to populate */
-  i64 iStart                      /* Offset of pFile to begin writing at */
+  sqlite3 *db,                    /* Database (for malloc) 针对malloc的数据库*/
+  sqlite3_file *pFile,            /* File to write to 指向写入文件的指针*/
+  FileWriter *p,                  /* Object to populate 要增添的对象*/
+  i64 iStart                      /* Offset of pFile to begin writing at 文件中，开始写的位置的偏移量*/
 ){
   int nBuf = sqlite3BtreeGetPageSize(db->aDb[0].pBt);
 
@@ -637,6 +670,8 @@ static void fileWriterInit(
 /*
 ** Write nData bytes of data to the file-write object. Return SQLITE_OK
 ** if successful, or an SQLite error code if an error occurs.
+	下面的函数往file-write实例中写nData字节的数据，成功就返回SQLITE_OK
+	否则返回SQLite错误码
 */
 static void fileWriterWrite(FileWriter *p, u8 *pData, int nData){
   int nRem = nData;
@@ -663,13 +698,15 @@ static void fileWriterWrite(FileWriter *p, u8 *pData, int nData){
 }
 
 /*
-** Flush any buffered data to disk and clean up the file-writer object.
-** The results of using the file-writer after this call are undefined.
-** Return SQLITE_OK if flushing the buffered data succeeds or is not 
-** required. Otherwise, return an SQLite error code.
+** Flush any buffered data to disk and clean up the file-writer object.把所有缓存的数据都存到磁盘上，并清空file-writer实例
+** The results of using the file-writer after this call are undefined.调用完下面的函数后再使用file-writer的结果还没有定义
+** Return SQLITE_OK if flushing the buffered data succeeds or is not 成功就返回SQLITE_OK
+** required. Otherwise, return an SQLite error code.失败就返回错误码
 **
 ** Before returning, set *piEof to the offset immediately following the
 ** last byte written to the file.
+　　在ｒｅｔｕｒｎ之前，把最后写入的一个字节后面所对应的偏移量赋给*piEof
+
 */
 static int fileWriterFinish(sqlite3 *db, FileWriter *p, i64 *piEof){
   int rc;
@@ -689,6 +726,8 @@ static int fileWriterFinish(sqlite3 *db, FileWriter *p, i64 *piEof){
 /*
 ** Write value iVal encoded as a varint to the file-write object. Return 
 ** SQLITE_OK if successful, or an SQLite error code if an error occurs.
+	下面这个函数把形参iVal（编码成一个可变长整数变量）的值传到一个file-write实例中
+	成功返回SQLITE_OK，失败则返回错误码
 */
 static void fileWriterWriteVarint(FileWriter *p, u64 iVal){
   int nByte; 
