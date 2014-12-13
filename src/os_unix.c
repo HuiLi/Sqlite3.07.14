@@ -4875,7 +4875,7 @@ static int unixGetTempname(int nBuf, char *zBuf){
   ** function failing. 
   */
   //在这里模拟个io-error看似很奇怪，但事实上这仅仅是使用io-error基础架构去测试SQLite持有这个方法是否错误。
-  SimulateIOError( return SQLITE_IOERR );
+  SimulateIOError( return SQLITE_IOERR );使用io错误
 
   zDir = unixTempFileDir();
   if( zDir==0 ) zDir = ".";
@@ -5349,6 +5349,8 @@ static int unixOpen(
           ** and clear all the structure's references.  Specifically, 
           ** pFile->pMethods will be NULL so sqlite3OsClose will be a no-op 
           */
+          //使用unixClose清理添加进fillInUnixFile的资源而且清理所有的结构参照。特别地，
+          //pFile->pMethods将被制为NULL，所以sqlite3OsClose将被误操作。
           unixClose(pFile);
           return rc;
         }
@@ -5372,6 +5374,7 @@ open_finished:
 ** Delete the file at zPath. If the dirSync argument is true, fsync()
 ** the directory after deleting the file.
 */
+//在zPath删除文件。如果dirSync参数为真，删除此文件后fsync()这个目录。
 static int unixDelete(
   sqlite3_vfs *NotUsed,     /* VFS containing this as the xDelete method */
   const char *zPath,        /* Name of file to be deleted */
@@ -5409,17 +5412,19 @@ static int unixDelete(
 ** Test the existance of or access permissions of file zPath. The
 ** test performed depends on the value of flags:
 **
-**     SQLITE_ACCESS_EXISTS: Return 1 if the file exists
-**     SQLITE_ACCESS_READWRITE: Return 1 if the file is read and writable.
-**     SQLITE_ACCESS_READONLY: Return 1 if the file is readable.
+//测试存取文件zPath权限的存在性。测试的表现以标记值为依据。
+**     SQLITE_ACCESS_EXISTS: Return 1 if the file exists//SQLITE_ACCESS_EXISTS:返回1如果文件存在
+**     SQLITE_ACCESS_READWRITE: Return 1 if the file is read and writable.//SQLITE_ACCESS_READWRITE:返回1如果文件被读取且可写。
+**     SQLITE_ACCESS_READONLY: Return 1 if the file is readable.//SQLITE_ACCESS_READONLY:返回1如果文件可读。
 **
 ** Otherwise return 0.
+//否则返回0.
 */
 static int unixAccess(
-  sqlite3_vfs *NotUsed,   /* The VFS containing this xAccess method */
-  const char *zPath,      /* Path of the file to examine */
-  int flags,              /* What do we want to learn about the zPath file? */
-  int *pResOut            /* Write result boolean here */
+  sqlite3_vfs *NotUsed,   /* The VFS containing this xAccess method *///VFS包含xAccess方法
+  const char *zPath,      /* Path of the file to examine *///要检查文件的路径
+  int flags,              /* What do we want to learn about the zPath file? *///我们将从zPath文件得到什么？
+  int *pResOut            /* Write result boolean here *///自这里写布尔结果
 ){
   int amode = 0;
   UNUSED_PARAMETER(NotUsed);
@@ -5454,15 +5459,18 @@ static int unixAccess(
 ** is stored as a nul-terminated string in the buffer pointed to by
 ** zPath. 
 **
+//将一个相对路径转换为绝对路径。这个相对路径在zPath指向的缓冲区内被存储为nul-terminated字符串。
 ** zOut points to a buffer of at least sqlite3_vfs.mxPathname bytes 
 ** (in this case, MAX_PATHNAME bytes). The full-path is written to
 ** this buffer before returning.
 */
+//zOut指向的缓冲区至少有sqlite3_vfs.mxPathname字节(在这种情况下，为MAX_PATHNAME字节数)。
+//返回前绝对路径被写到缓冲区。
 static int unixFullPathname(
-  sqlite3_vfs *pVfs,            /* Pointer to vfs object */
-  const char *zPath,            /* Possibly relative input path */
-  int nOut,                     /* Size of output buffer in bytes */
-  char *zOut                    /* Output buffer */
+  sqlite3_vfs *pVfs,            /* Pointer to vfs object */ //指向vfs对象的指针
+  const char *zPath,            /* Possibly relative input path */ //可能的输入相对路径
+  int nOut,                     /* Size of output buffer in bytes */  //输出缓冲区的自己数
+  char *zOut                    /* Output buffer */  //输出缓冲区
 ){
 
   /* It's odd to simulate an io-error here, but really this is just
@@ -5470,6 +5478,8 @@ static int unixFullPathname(
   ** function failing. This function could fail if, for example, the
   ** current working directory has been unlinked.
   */
+  //在这模拟io错误看似很奇怪，但是实际上只是使用io错误基础架构来测试SQLite持有这个函数是否失败。这个函数有可能失败
+  //例如，当前工作目录被断开连接。
   SimulateIOError( return SQLITE_ERROR );
 
   assert( pVfs->mxPathname==MAX_PATHNAME );
@@ -5495,6 +5505,7 @@ static int unixFullPathname(
 ** Interfaces for opening a shared library, finding entry points
 ** within the shared library, and closing the shared library.
 */
+//打开共享库的接口，寻找共享库的入口点，并且关闭共享库。
 #include <dlfcn.h>
 static void *unixDlOpen(sqlite3_vfs *NotUsed, const char *zFilename){
   UNUSED_PARAMETER(NotUsed);
@@ -5508,6 +5519,8 @@ static void *unixDlOpen(sqlite3_vfs *NotUsed, const char *zFilename){
 ** is available, zBufOut is left unmodified and SQLite uses a default
 ** error message.
 */
+//SQLite在unixDlSym()或unixDlOpen()函数失败时立即调用这个函数(返回空指针)。
+//如果更多错误细节信息可用，它将被写到zBufOut。如果没有错误信息可用，zBufOut被留下不修改并且SQLite使用一个默认的错误信息。
 static void unixDlError(sqlite3_vfs *NotUsed, int nBuf, char *zBufOut){
   const char *zErr;
   UNUSED_PARAMETER(NotUsed);
@@ -5525,17 +5538,23 @@ static void (*unixDlSym(sqlite3_vfs *NotUsed, void *p, const char*zSym))(void){
   ** returns a void* which is really a pointer to a function.  So how do we
   ** use dlsym() with -pedantic-errors?
   **
+  //有-pedantic-errors的GCC表示C90不允许一个void*被分配到一个指向函数的指针。
+  //即使库dlsym()例程返回一个真正指向函数的void*。所以伴随-pedantic-errors怎样使用dlsym()？
   ** Variable x below is defined to be a pointer to a function taking
   ** parameters void* and const char* and returning a pointer to a function.
   ** We initialize x by assigning it a pointer to the dlsym() function.
   ** (That assignment requires a cast.)  Then we call the function that
   ** x points to.  
   **
+  //一下变量x被定义成一个指针指向一个持有void*参数和const char*参数并返回指向函数的指针的函数。
+  //我们通过分配指向dlsym()函数的指针初始化x(这个任务被要求一个分配)。接着我们调用x指向的函数。
   ** This work-around is unlikely to work correctly on any system where
   ** you really cannot cast a function pointer into void*.  But then, on the
   ** other hand, dlsym() will not work on such a system either, so we have
   ** not really lost anything.
   */
+  //这个work-around不太可能正确的工作在任何你不能分配给void*的函数指针的系统。
+  //但是，另一方面看，dlsym()也不会工作在这样一个系统上，所以我们不会损失什么东西。
   void (*(*x)(void*,const char*))(void);
   UNUSED_PARAMETER(NotUsed);
   x = (void(*(*)(void*,const char*))(void))dlsym;
@@ -5545,7 +5564,7 @@ static void unixDlClose(sqlite3_vfs *NotUsed, void *pHandle){
   UNUSED_PARAMETER(NotUsed);
   dlclose(pHandle);
 }
-#else /* if SQLITE_OMIT_LOAD_EXTENSION is defined: */
+#else /* if SQLITE_OMIT_LOAD_EXTENSION is defined: */ //如果SQLITE_OMIT_LOAD_EXTENSION被定义
   #define unixDlOpen  0
   #define unixDlError 0
   #define unixDlSym   0
@@ -5555,6 +5574,7 @@ static void unixDlClose(sqlite3_vfs *NotUsed, void *pHandle){
 /*
 ** Write nBuf bytes of random data to the supplied buffer zBuf.
 */
+//将nBuf字节的随机数据写入被支持的zBuf缓冲。
 static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
   UNUSED_PARAMETER(NotUsed);
   assert((size_t)nBuf>=(sizeof(time_t)+sizeof(int)));
@@ -5567,6 +5587,7 @@ static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
   ** the whole array and silence valgrind, even if that means less randomness
   ** in the random seed.
   **
+  //
   ** When testing, initializing zBuf[] to zero is all we do.  That means
   ** that we always use the same random number sequence.  This makes the
   ** tests repeatable.
