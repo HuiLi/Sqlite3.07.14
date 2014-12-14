@@ -254,7 +254,6 @@ struct Mem {
 ** This allows functions such as "regexp" to compile their constant regular
 ** expression argument once and reused the compiled code for multiple
 ** invocations.
-** 这就允许了像regexp的方法马上编译其恒定的正则表达式的参数并且再重复调用方法时可以重复利用这些编译代码。
 */
 struct VdbeFunc {
   FuncDef *pFunc;               /* The definition of the function */
