@@ -9,58 +9,69 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** This file contains code for the VdbeSorter object, used in concert with(和..相呼应)
-** a VdbeCursor to sort large numbers of keys (as may be required, for
+** This file contains code for the VdbeSorter object(vdbesorter的实例), used in concert with(和..相呼应)
+** a VdbeCursor to sort large numbers of keys （对大量的key值排序）(as may be required, for
 ** example, by CREATE INDEX statements on tables too large to fit in main
-** memory).
+** memory  例如在为一个太大以致于不能完全放到内存中的表建立索引时，就需要key).
 */
 
-#include "sqliteInt.h"
-#include "vdbeInt.h"
+#include "sqliteInt.h"//定义了SQLite的内部接口和数据结构
+#include "vdbeInt.h"//vdbeInt.h 定义了虚拟机私有的数据结构
 
 #ifndef SQLITE_OMIT_MERGE_SORT//宏定义
 
 typedef struct VdbeSorterIter VdbeSorterIter;//an iterator for a PMA
-typedef struct SorterRecord SorterRecord;
-typedef struct FileWriter FileWriter;
+typedef struct SorterRecord SorterRecord;//sorter记录
+typedef struct FileWriter FileWriter;//用来往文件中写的结构体
 
 /*
 ** NOTES ON DATA STRUCTURE USED FOR N-WAY MERGES:——N路归并算法及数据结构说明
 **
 ** As keys are added to the sorter, they are written to disk in a series
-** of sorted packed-memory-arrays (PMAs). The size of each PMA is roughly
-** the same as the cache-size allowed for temporary databases. In order
-** to allow the caller to extract keys from the sorter in sorted order,
-** all PMAs currently stored on disk must be merged together. This comment
-** describes the data structure used to do so. The structure supports 
-** merging any number of arrays in a single pass with no redundant comparison 
-** operations.
-**
+** of sorted packed-memory-arrays (PMAs). 
+   当key值加到sorter后，sorter就会被写到磁盘上的一些列排好序的PMA中
+** The size of each PMA is roughly the same as the cache-size allowed for temporary databases. 
+   每个PMA的大小大约和暂时数据库的Cache大小差不多
+** In order to allow the caller to extract keys from the sorter in sorted order,
+** all PMAs currently stored on disk must be merged together. 
+   This comment describes the data structure used to do so. 
+   为了能使调用者按照排好的顺序从sorter中提取key值，所有磁盘上的PMA需要合并到一起。
+   这段说明描述了做这些事所需要的数据结构
+** The structure supports merging any number of arrays in a single pass with no redundant comparison operations.
+** 所描述的数据结构支持通过一趟算法就把任意数量的数组合并起来，并且没有冗余比较
+** 
+** 
 ** The aIter[] array contains an iterator for each of the PMAs being merged.
-** An aIter[] iterator either points to a valid key or else is at EOF. For 
-** the purposes of the paragraphs below, we assume that the array is actually 
+   数组aIter[]包含为需要合并的所有PMA准备的迭代器（应该是有多少需要合并的ＰＭＡ，就有多少迭代器，数组aIter[]中的元素就是一个个的迭代器）。
+** An aIter[] iterator either points to a valid key or else is at EOF. 
+   一个aIter[]中的迭代器，要么指向一个有效的key值，要么就位于EOF
+** For the purposes of the paragraphs below, we assume that the array is actually 
 ** N elements in size, where N is the smallest power of 2 greater to or equal 
 ** to the number of iterators being merged. The extra aIter[] elements are 
 ** treated as if they are empty (always at EOF).
+   为方便下面的举例说明，我们假设数组aIter[]有N个元素，N是2的幂，N>=需要被合并的迭代器。多余的aIter[]元素被认为是空的，假设它们位于ＥＯＦ
 **
-** The aTree[] array is also N elements in size. The value of N is stored in
-** the VdbeSorter.nTree variable.
+** The aTree[] array is also N elements in size. The value of N is stored in　the VdbeSorter.nTree variable.
+** 数组aTree[]也是有Ｎ个元素，Ｎ的值存储在变量VdbeSorter.nTree中。
 **
 ** The final (N/2) elements of aTree[] contain the results of comparing
-** pairs of iterator keys together. Element i contains the result of 
-** comparing aIter[2*i-N] and aIter[2*i-N+1]. Whichever key is smaller, the
+** pairs of iterator keys together. 
+　　数组aTree[]的最后(N/2)个元素包含对迭代器Ｋｅｙ值的比较结果
+　　 
+** Element i contains the result of comparing aIter[2*i-N] and aIter[2*i-N+1]. Whichever key is smaller, the
 ** aTree element is set to the index of it. 
-**
+**　数组aTree[]的第ｉ个元素保存的是aIter[2*i-N]和 aIter[2*i-N+1]大小比较结果，二者中，谁更小，就把谁的下标存在数组aTree[]的第ｉ个元素里。
 ** For the purposes of this comparison, EOF is considered greater than any
 ** other key value. If the keys are equal (only possible with two EOF
 ** values), it doesn't matter which index is stored.
-**
+**　因为上面的比较方法，我们认为ＥＯＦ大于任何ＫＥＹ值。如果两个相比较的ｋｅｙ值一样大，则存二者中任意一个所对应的迭代器的下标。
 ** The (N/4) elements of aTree[] that preceed the final (N/2) described 
 ** above contains the index of the smallest of each block of 4 iterators.
 ** And so on. So that aTree[1] contains the index of the iterator that 
 ** currently points to the smallest key value. aTree[0] is unused.
-**
-** Example:
+**　数组aTree[]中有(N/4)个元素存的是每四个迭代器所组成的一组中ｋｅｙ值最小的那个迭代器的下标。
+	所以aTree[1]中存有指向最小的ｋｅｙ值的迭代器的下标。aTree[0]没有被使用。
+** Example:举例：
 **
 **     aIter[0] -> Banana
 **     aIter[1] -> Feijoa
@@ -73,13 +84,15 @@ typedef struct FileWriter FileWriter;
 **
 **     aTree[] = { X, 5   0, 5    0, 3, 5, 6 }
 **
-** The current element is "Apple" (the value of the key indicated by 
-** iterator 5). When the Next() operation is invoked, iterator 5 will
+** The current element is "Apple" (the value of the key indicated by iterator 5).
+** 当前的元素（最小的ｋｅｙ值）是Ａｐｐｌｅ，它是迭代器５所指的ｋｅｙ的值。 
+	
+	When the Next() operation is invoked, iterator 5 will
 ** be advanced to the next key in its segment. Say the next key is
-** "Eggplant":
-**
-**     aIter[5] -> Eggplant
-**
+** "Eggplant":　aIter[5] -> Eggplant
+**当函数Next()被调用时，迭代器５将会前进到它的段中的下一个ｋｅｙ值，假设下一个ｋｅｙ是"Eggplant"，则有：aIter[5] -> Eggplant
+**     
+**　
 ** The contents of aTree[] are updated first by comparing the new iterator
 ** 5 key to the current key of iterator 4 (still "Grapefruit"). The iterator
 ** 5 value is still smaller, so aTree[6] is set to 5. And so on up the tree.
@@ -88,10 +101,16 @@ typedef struct FileWriter FileWriter;
 ** so the value written into element 1 of the array is 0. As follows:
 **
 **     aTree[] = { X, 0   0, 6    0, 3, 5, 6 }
-**
+**　数组aTree[]的内容按如下方式更新：首先，比较迭代器５所指向的ｋｅｙ的值和迭代器４的当前所指向的ｋｅｙ值（仍然是"Grapefruit"）
+　　这时，迭代器５所指向的ｋｅｙ的值仍然是更小的，所以aTree[6]的值被设置为５.
+　　迭代器６所指向的ｋｅｙ的值——"Durian"——比迭代器５所指向的ｋｅｙ值小，，则aTree[3]被设置为6.
+　　而迭代器０所指的ｋｅｙ的值又比迭代器６所指的ｋｅｙ的值小，即Banana<Durian，所以aTree[１]被设置成０.结果如下：
+		aTree[] = { X, 0   0, 6    0, 3, 5, 6 }
 ** In other words, each time we advance to the next sorter element, log2(N)
 ** key comparison operations are required, where N is the number of segments
 ** being merged (rounded up to the next power of 2)nnn.
+　　也就是说，我们每次前进到ｓｏｒｔｅｒ的下一个元素，需要做log2(N)次ｋｅｙ值比较，这里Ｎ是要被合并的段的数量
+　　
 */
 struct VdbeSorter {
   i64 iWriteOff;                  /* Current write offset within file pTemp1 ——文件ptemp1中，当前的写偏移量*/
