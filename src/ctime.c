@@ -383,8 +383,11 @@ static const char * const azCompileOpt[] = {
 */
 int sqlite3_compileoption_used(const char *zOptName){
   int i, n;
-  if( sqlite3StrNICmp(zOptName, "SQLITE_", 7)==0 ) zOptName += 7;//sqlite3StrNICmp()是比较函数，如果zOptName的前缀是SQLITE_返回0.
-  n = sqlite3Strlen30(zOptName);//sqlite3Strlen30（）函数计算字符串的长度
+  /*sqlite3StrNICmp()是比较函数，如果zOptName的前缀是SQLITE_返回0.
+  **如果zOptName是以"SQLITE_"开头，则zOptName指向zOptName+7，即忽略"SQLITE_"开头。
+  */
+  if( sqlite3StrNICmp(zOptName, "SQLITE_", 7)==0 ) zOptName += 7;
+  n = sqlite3Strlen30(zOptName);//sqlite3Strlen30（）函数计算字符串zOptName的长度
 
   /* Since ArraySize(azCompileOpt) is normally in single digits, a
   ** linear search is adequate.  No need for a binary search. 
