@@ -1795,412 +1795,412 @@ struct Expr {
 ** field is not used.
 */
 struct ExprList {
-  int nExpr;             /* Number of expressions on the list */
-  int iECursor;          /* VDBE Cursor associated with this ExprList */
-  struct ExprList_item { /* For each expression in the list */
-    Expr *pExpr;           /* The list of expressions */
-    char *zName;           /* Token associated with this expression */
-    char *zSpan;           /* Original text of the expression */
-    u8 sortOrder;          /* 1 for DESC or 0 for ASC */
-    u8 done;               /* A flag to indicate when processing is finished */
-    u16 iOrderByCol;       /* For ORDER BY, column number in result set */
-    u16 iAlias;            /* Index into Parse.aAlias[] for zName */
-  } *a;                  /* Alloc a power of two greater or equal to nExpr */
+  int nExpr;             /* Number of expressions on the list 			列表中的表达式数目*/
+  int iECursor;          /* VDBE Cursor associated with this ExprList 		与ExprList相关的VDBE游标*/
+  struct ExprList_item { /* For each expression in the list 			对于列表中的每个表达式*/
+    Expr *pExpr;           /* The list of expressions 				表达式列表*/
+    char *zName;           /* Token associated with this expression 		与此表达式相关的符号*/
+    char *zSpan;           /* Original text of the expression 			原文的表达*/
+    u8 sortOrder;          /* 1 for DESC or 0 for ASC 				1为降序或0为升序*/
+    u8 done;               /* A flag to indicate when processing is finished 	一个指示何时处理完毕的标志*/
+    u16 iOrderByCol;       /* For ORDER BY, column number in result set 	对于ORDER BY，结果集中的列数*/
+    u16 iAlias;            /* Index into Parse.aAlias[] for zName 		zName在Parse.aAlias[]中的索引 */
+  } *a;                  /* Alloc a power of two greater or equal to nExpr 	分配两个大于或等于nExpr空间*/
 };
 
 /*
-** An instance of this structure is used by the parser to record both
-** the parse tree for an expression and the span of input text for an
+** An instance of this structure is used by the parser to record both		解析器用这种结构的一个实例来记录
+** the parse tree for an expression and the span of input text for an		表达式的解析树和表达式输入文本的跨度
 ** expression.
 */
 struct ExprSpan {
-  Expr *pExpr;          /* The expression parse tree */
-  const char *zStart;   /* First character of input text */
-  const char *zEnd;     /* One character past the end of input text */
+  Expr *pExpr;          /* The expression parse tree 				表达式解析树*/
+  const char *zStart;   /* First character of input text 			输入文本的第一个字符*/
+  const char *zEnd;     /* One character past the end of input text 		输入文本的最后一个字符*/
 };
 
 /*
-** An instance of this structure can hold a simple list of identifiers,
-** such as the list "a,b,c" in the following statements:
+** An instance of this structure can hold a simple list of identifiers,		这种结构的一个实例可以容纳一个简单的标识符列表
+** such as the list "a,b,c" in the following statements:			如在下面这些语句中的"a,b,c"列表:
 **
 **      INSERT INTO t(a,b,c) VALUES ...;
 **      CREATE INDEX idx ON t(a,b,c);
 **      CREATE TRIGGER trig BEFORE UPDATE ON t(a,b,c) ...;
 **
-** The IdList.a.idx field is used when the IdList represents the list of
+** The IdList.a.idx field is used when the IdList represents the list of	表名在INSERT语句中IdList代表列名的列表时，IdList.a.idx被使用
 ** column names after a table name in an INSERT statement.  In the statement
 **
 **     INSERT INTO t(a,b,c) ...
 **
-** If "a" is the k-th column of table "t", then IdList.a[0].idx==k.
+** If "a" is the k-th column of table "t", then IdList.a[0].idx==k.		如果"a"是表"t"的第k列，那么IdList.a[0].idx==k
 */
 struct IdList {
   struct IdList_item {
-    char *zName;      /* Name of the identifier */
-    int idx;          /* Index in some Table.aCol[] of a column named zName */
+    char *zName;      /* Name of the identifier 				标识符的名称*/
+    int idx;          /* Index in some Table.aCol[] of a column named zName 	在一些Table.aCol[]中列称为zName*/
   } *a;
-  int nId;         /* Number of identifiers on the list */
+  int nId;         /* Number of identifiers on the list 			列表中标识符的数目*/
 };
 
 /*
-** The bitmask datatype defined below is used for various optimizations.
+** The bitmask datatype defined below is used for various optimizations.	下面定义的位掩码数据类型被用于各种优化
 **
-** Changing this from a 64-bit to a 32-bit type limits the number of
-** tables in a join to 32 instead of 64.  But it also reduces the size
+** Changing this from a 64-bit to a 32-bit type limits the number of		从64位到32位的类型改变限制了连接到的表的个数是32不是64
+** tables in a join to 32 instead of 64.  But it also reduces the size		但是也减少了库的大小到738字节在ix86上
 ** of the library by 738 bytes on ix86.
 */
 typedef u64 Bitmask;
 
 /*
-** The number of bits in a Bitmask.  "BMS" means "BitMask Size".
+** The number of bits in a Bitmask.  "BMS" means "BitMask Size".		位掩码的比特数，"BMS"表示"掩码大小"
 */
 #define BMS  ((int)(sizeof(Bitmask)*8))
 
 /*
-** The following structure describes the FROM clause of a SELECT statement.
-** Each table or subquery in the FROM clause is a separate element of
+** The following structure describes the FROM clause of a SELECT statement.	下面的结构描述了一个SELECT语句中的FORM子句
+** Each table or subquery in the FROM clause is a separate element of		在FORM子句中的每个表或子查询是SrcList.a[].array的一个独立元素
 ** the SrcList.a[] array.
 **
-** With the addition of multiple database support, the following structure
-** can also be used to describe a particular table such as the table that
-** is modified by an INSERT, DELETE, or UPDATE statement.  In standard SQL,
-** such a table must be a simple name: ID.  But in SQLite, the table can
+** With the addition of multiple database support, the following structure	在多个数据库的支持下，下面的结构也可以用来描述一个特定的表
+** can also be used to describe a particular table such as the table that	如由一个INSERT,DELETE,UPDATE子句修改的表
+** is modified by an INSERT, DELETE, or UPDATE statement.  In standard SQL,	在标准的SQL中，这样的表必须有一个简单的名字:ID
+** such a table must be a simple name: ID.  But in SQLite, the table can	但是在SQLite中，表现在可以通过一个数据库名，一个点甚至表名来确认
 ** now be identified by a database name, a dot, then the table name: ID.ID.
 **
-** The jointype starts out showing the join type between the current table
-** and the next table on the list.  The parser builds the list this way.
-** But sqlite3SrcListShiftJoinType() later shifts the jointypes so that each
-** jointype expresses the join between the table and the previous table.
+** The jointype starts out showing the join type between the current table	jointype开始表明在列表中这个表和下个表的连接类型
+** and the next table on the list.  The parser builds the list this way.	解析器用这种方式构建列表
+** But sqlite3SrcListShiftJoinType() later shifts the jointypes so that each	但是sqlite3SrcListShiftJoinType()以后改变jointypes使得
+** jointype expresses the join between the table and the previous table.	每个jointype表示这个表和上个表之间的联系
 **
-** In the colUsed field, the high-order bit (bit 63) is set if the table
+** In the colUsed field, the high-order bit (bit 63) is set if the table	在colUsed字段，如果表包含多于63列和64列或更高列被使用，高位(63位)被设置
 ** contains more than 63 columns and the 64-th or later column is used.
 */
 struct SrcList {
-  i16 nSrc;        /* Number of tables or subqueries in the FROM clause */
-  i16 nAlloc;      /* Number of entries allocated in a[] below */
+  i16 nSrc;        /* Number of tables or subqueries in the FROM clause 	表或子查询的FORM子句数*/
+  i16 nAlloc;      /* Number of entries allocated in a[] below 			分配在a[]下面的输入的数目*/
   struct SrcList_item {
-    char *zDatabase;  /* Name of database holding this table */
-    char *zName;      /* Name of the table */
-    char *zAlias;     /* The "B" part of a "A AS B" phrase.  zName is the "A" */
-    Table *pTab;      /* An SQL table corresponding to zName */
-    Select *pSelect;  /* A SELECT statement used in place of a table name */
-    int addrFillSub;  /* Address of subroutine to manifest a subquery */
-    int regReturn;    /* Register holding return address of addrFillSub */
-    u8 jointype;      /* Type of join between this able and the previous */
-    u8 notIndexed;    /* True if there is a NOT INDEXED clause */
-    u8 isCorrelated;  /* True if sub-query is correlated */
+    char *zDatabase;  /* Name of database holding this table 			持有这个表的数据库名称*/
+    char *zName;      /* Name of the table 					表的名称*/
+    char *zAlias;     /* The "B" part of a "A AS B" phrase.  zName is the "A" 	"A AS B"子句中"B"部分，zName是"A"*/
+    Table *pTab;      /* An SQL table corresponding to zName 			对应zName的SQL表*/
+    Select *pSelect;  /* A SELECT statement used in place of a table name 	代替表名使用SELECT语句*/
+    int addrFillSub;  /* Address of subroutine to manifest a subquery 		实现子查询的子程序地址*/
+    int regReturn;    /* Register holding return address of addrFillSub 	寄存器保存addrFillSub返回地址*/
+    u8 jointype;      /* Type of join between this able and the previous 	这个表和之前表的的连接类型*/
+    u8 notIndexed;    /* True if there is a NOT INDEXED clause 			是否有一个NOT INDEXED子句*/
+    u8 isCorrelated;  /* True if sub-query is correlated 			是否相关子查询*/
 #ifndef SQLITE_OMIT_EXPLAIN
-    u8 iSelectId;     /* If pSelect!=0, the id of the sub-select in EQP */
+    u8 iSelectId;     /* If pSelect!=0, the id of the sub-select in EQP 	如果pSelect!=0,EQP中子选择的id*/
 #endif
-    int iCursor;      /* The VDBE cursor number used to access this table */
-    Expr *pOn;        /* The ON clause of a join */
-    IdList *pUsing;   /* The USING clause of a join */
-    Bitmask colUsed;  /* Bit N (1<<N) set if column N of pTab is used */
-    char *zIndex;     /* Identifier from "INDEXED BY <zIndex>" clause */
-    Index *pIndex;    /* Index structure corresponding to zIndex, if any */
-  } a[1];             /* One entry for each identifier on the list */
+    int iCursor;      /* The VDBE cursor number used to access this table 	用来访问此表的VDBE光标号*/
+    Expr *pOn;        /* The ON clause of a join 				ON子句的加入*/
+    IdList *pUsing;   /* The USING clause of a join 				USING子句的加入*/
+    Bitmask colUsed;  /* Bit N (1<<N) set if column N of pTab is used 		设置位N(1<<N)如果表p的列N被使用*/
+    char *zIndex;     /* Identifier from "INDEXED BY <zIndex>" clause 		"INDEXED BY<zIndex>"子句的识别码*/
+    Index *pIndex;    /* Index structure corresponding to zIndex, if any 	对应于zIndex的索引结构*/
+  } a[1];             /* One entry for each identifier on the list 		列表上每个标识符的一个条目*/
 };
 
 /*
-** Permitted values of the SrcList.a.jointype field
+** Permitted values of the SrcList.a.jointype field				SrcList.a.jointype字段的允许值
 */
-#define JT_INNER     0x0001    /* Any kind of inner or cross join */
-#define JT_CROSS     0x0002    /* Explicit use of the CROSS keyword */
-#define JT_NATURAL   0x0004    /* True for a "natural" join */
-#define JT_LEFT      0x0008    /* Left outer join */
-#define JT_RIGHT     0x0010    /* Right outer join */
-#define JT_OUTER     0x0020    /* The "OUTER" keyword is present */
-#define JT_ERROR     0x0040    /* unknown or unsupported join type */
+#define JT_INNER     0x0001    /* Any kind of inner or cross join 		任何内部或交叉连接*/
+#define JT_CROSS     0x0002    /* Explicit use of the CROSS keyword 		明确使用了CROSS关键字*/
+#define JT_NATURAL   0x0004    /* True for a "natural" join 			真正的"自然"连接*/
+#define JT_LEFT      0x0008    /* Left outer join 				左外连接*/
+#define JT_RIGHT     0x0010    /* Right outer join 				右外连接*/
+#define JT_OUTER     0x0020    /* The "OUTER" keyword is present 		存在"OUTER"关键字*/
+#define JT_ERROR     0x0040    /* unknown or unsupported join type 		未知或不支持的连接类型*/
 
 
 /*
-** A WherePlan object holds information that describes a lookup
+** A WherePlan object holds information that describes a lookup			WherePlan对象包含如下信息，描述一个查找策略
 ** strategy.
 **
-** This object is intended to be opaque outside of the where.c module.
-** It is included here only so that that compiler will know how big it
-** is.  None of the fields in this object should be used outside of
+** This object is intended to be opaque outside of the where.c module.		这个对象是在不透明的where.c模块外的。
+** It is included here only so that that compiler will know how big it		它只包括这里所以编译器会知道它的大小
+** is.  None of the fields in this object should be used outside of		没有在此对象中的字段应在where.c模块外使用
 ** the where.c module.
 **
-** Within the union, pIdx is only used when wsFlags&WHERE_INDEXED is true.
-** pTerm is only used when wsFlags&WHERE_MULTI_OR is true.  And pVtabIdx
-** is only used when wsFlags&WHERE_VIRTUALTABLE is true.  It is never the
-** case that more than one of these conditions is true.
+** Within the union, pIdx is only used when wsFlags&WHERE_INDEXED is true.	在连接中，pIdx仅用于当wsFlag和WHERE_INDEXED是真
+** pTerm is only used when wsFlags&WHERE_MULTI_OR is true.  And pVtabIdx	pTerm仅用于当wsFlags和WHERE_MULTI_OR是真
+** is only used when wsFlags&WHERE_VIRTUALTABLE is true.  It is never the	pVtabIdx仅用于当wsFlags和WHERE_VIRTUALTABLE是真
+** case that more than one of these conditions is true.				永远不会多于一个条件为真
 */
 struct WherePlan {
-  u32 wsFlags;                   /* WHERE_* flags that describe the strategy */
-  u32 nEq;                       /* Number of == constraints */
-  double nRow;                   /* Estimated number of rows (for EQP) */
+  u32 wsFlags;                   /* WHERE_* flags that describe the strategy 	描述战略的WHERE_*标志*/
+  u32 nEq;                       /* Number of == constraints 			==的数量限制*/
+  double nRow;                   /* Estimated number of rows (for EQP) 		估计的行数*/
   union {
-    Index *pIdx;                   /* Index when WHERE_INDEXED is true */
-    struct WhereTerm *pTerm;       /* WHERE clause term for OR-search */
-    sqlite3_index_info *pVtabIdx;  /* Virtual table index to use */
+    Index *pIdx;                   /* Index when WHERE_INDEXED is true 		当WHERE_INDEXED是真时的索引*/
+    struct WhereTerm *pTerm;       /* WHERE clause term for OR-search 		OR搜索中WHERE子句术语*/
+    sqlite3_index_info *pVtabIdx;  /* Virtual table index to use 		使用虚表索引*/
   } u;
 };
 
 /*
-** For each nested loop in a WHERE clause implementation, the WhereInfo
-** structure contains a single instance of this structure.  This structure
-** is intended to be private to the where.c module and should not be
-** access or modified by other modules.
+** For each nested loop in a WHERE clause implementation, the WhereInfo		对于在WHERE子句中实现的每个嵌套循环中，
+** structure contains a single instance of this structure.  This structure	Whereinfo结构包含一个单一实例的结构
+** is intended to be private to the where.c module and should not be		这个结构对where.c模块是私有的，
+** access or modified by other modules.						不应该访问或通过其他模块进行修改
 **
-** The pIdxInfo field is used to help pick the best index on a
-** virtual table.  The pIdxInfo pointer contains indexing
-** information for the i-th table in the FROM clause before reordering.
-** All the pIdxInfo pointers are freed by whereInfoFree() in where.c.
-** All other information in the i-th WhereLevel object for the i-th table
+** The pIdxInfo field is used to help pick the best index on a			pIdxInfo字段用于帮助挑选最好的虚拟表索引
+** virtual table.  The pIdxInfo pointer contains indexing			pIdxInfo指针包含FORM子句第i个表重新排序前的索引信息
+** information for the i-th table in the FROM clause before reordering.	
+** All the pIdxInfo pointers are freed by whereInfoFree() in where.c.		whereInfoFree()在where.c中时释放所有pIdxInfo指针	
+** All other information in the i-th WhereLevel object for the i-th table	在FORM子句排序后第i个表的第i个WhereLevel对象的所有其他信息
 ** after FROM clause ordering.
 */
 struct WhereLevel {
-  WherePlan plan;       /* query plan for this element of the FROM clause */
-  int iLeftJoin;        /* Memory cell used to implement LEFT OUTER JOIN */
-  int iTabCur;          /* The VDBE cursor used to access the table */
-  int iIdxCur;          /* The VDBE cursor used to access pIdx */
-  int addrBrk;          /* Jump here to break out of the loop */
-  int addrNxt;          /* Jump here to start the next IN combination */
-  int addrCont;         /* Jump here to continue with the next loop cycle */
-  int addrFirst;        /* First instruction of interior of the loop */
-  u8 iFrom;             /* Which entry in the FROM clause */
-  u8 op, p5;            /* Opcode and P5 of the opcode that ends the loop */
-  int p1, p2;           /* Operands of the opcode used to ends the loop */
-  union {               /* Information that depends on plan.wsFlags */
+  WherePlan plan;       /* query plan for this element of the FROM clause 	FORM子句这个元素的查询计划*/
+  int iLeftJoin;        /* Memory cell used to implement LEFT OUTER JOIN 	存储单元用于实现LEFT OUTER JOIN*/
+  int iTabCur;          /* The VDBE cursor used to access the table 		访问表的VDBE光标*/
+  int iIdxCur;          /* The VDBE cursor used to access pIdx 			访问pIdx的VDBE光标*/
+  int addrBrk;          /* Jump here to break out of the loop 			跳转到这里跳出循环*/
+  int addrNxt;          /* Jump here to start the next IN combination 		跳转到这里开始下一个IN连接*/
+  int addrCont;         /* Jump here to continue with the next loop cycle 	跳转到这里继续下一个循环周期*/
+  int addrFirst;        /* First instruction of interior of the loop 		循环内部的第一条指令*/
+  u8 iFrom;             /* Which entry in the FROM clause 			FORM子句中的条目*/
+  u8 op, p5;            /* Opcode and P5 of the opcode that ends the loop 	操作码和循环结束的操作码P5*/
+  int p1, p2;           /* Operands of the opcode used to ends the loop 	用于结束循环的操作码的操作数*/
+  union {               /* Information that depends on plan.wsFlags 		取决于plan.wsFlags的信息*/
     struct {
-      int nIn;              /* Number of entries in aInLoop[] */
+      int nIn;              /* Number of entries in aInLoop[] 			在alnLoop[]条目数*/
       struct InLoop {
-        int iCur;              /* The VDBE cursor used by this IN operator */
-        int addrInTop;         /* Top of the IN loop */
-      } *aInLoop;           /* Information about each nested IN operator */
-    } in;                 /* Used when plan.wsFlags&WHERE_IN_ABLE */
-    Index *pCovidx;       /* Possible covering index for WHERE_MULTI_OR */
+        int iCur;              /* The VDBE cursor used by this IN operator 	IN操作符使用的VDBE游标*/
+        int addrInTop;         /* Top of the IN loop 				IN循环顶部*/
+      } *aInLoop;           /* Information about each nested IN operator 	每个嵌套IN操作符的信息*/
+    } in;                 /* Used when plan.wsFlags&WHERE_IN_ABLE 		plan.wsFlags和WHERE_IN_ABLE是使用*/
+    Index *pCovidx;       /* Possible covering index for WHERE_MULTI_OR 	对于WHERE_MULTI_OR可能覆盖索引*/
   } u;
 
-  /* The following field is really not part of the current level.  But
-  ** we need a place to cache virtual table index information for each
+  /* The following field is really not part of the current level.  But		以下字段真的不是当前级别的一部分
+  ** we need a place to cache virtual table index information for each		但是我们需要一个地方来缓存在FORM子句的每个虚拟表的虚拟表索引信息
   ** virtual table in the FROM clause and the WhereLevel structure is
-  ** a convenient place since there is one WhereLevel for each FROM clause
+  ** a convenient place since there is one WhereLevel for each FROM clause	WhereLevel结构是一个方便的地方因为每个FORM子句元素都有一个WhereLevel
   ** element.
   */
-  sqlite3_index_info *pIdxInfo;  /* Index info for n-th source table */
+  sqlite3_index_info *pIdxInfo;  /* Index info for n-th source table 		第n个源表的索引信息*/
 };
 
 /*
-** Flags appropriate for the wctrlFlags parameter of sqlite3WhereBegin()
+** Flags appropriate for the wctrlFlags parameter of sqlite3WhereBegin()	标志适合sqlite3WhereBegin()的wctrlFlags参数和WhereInfo.wctrFlags成员
 ** and the WhereInfo.wctrlFlags member.
 */
-#define WHERE_ORDERBY_NORMAL   0x0000 /* No-op */
-#define WHERE_ORDERBY_MIN      0x0001 /* ORDER BY processing for min() func */
-#define WHERE_ORDERBY_MAX      0x0002 /* ORDER BY processing for max() func */
-#define WHERE_ONEPASS_DESIRED  0x0004 /* Want to do one-pass UPDATE/DELETE */
-#define WHERE_DUPLICATES_OK    0x0008 /* Ok to return a row more than once */
-#define WHERE_OMIT_OPEN_CLOSE  0x0010 /* Table cursors are already open */
-#define WHERE_FORCE_TABLE      0x0020 /* Do not use an index-only search */
-#define WHERE_ONETABLE_ONLY    0x0040 /* Only code the 1st table in pTabList */
-#define WHERE_AND_ONLY         0x0080 /* Don't use indices for OR terms */
+#define WHERE_ORDERBY_NORMAL   0x0000 /* No-op 					无操作*/
+#define WHERE_ORDERBY_MIN      0x0001 /* ORDER BY processing for min() func 	ORDER BY 处理min()函数*/
+#define WHERE_ORDERBY_MAX      0x0002 /* ORDER BY processing for max() func 	ORDER BY处理max()函数*/
+#define WHERE_ONEPASS_DESIRED  0x0004 /* Want to do one-pass UPDATE/DELETE 	想一次通过的UPDATE/DELETE*/
+#define WHERE_DUPLICATES_OK    0x0008 /* Ok to return a row more than once 	不止一次确认返回的行*/
+#define WHERE_OMIT_OPEN_CLOSE  0x0010 /* Table cursors are already open 	表指针已经打开*/
+#define WHERE_FORCE_TABLE      0x0020 /* Do not use an index-only search 	不要仅使用索引搜索*/
+#define WHERE_ONETABLE_ONLY    0x0040 /* Only code the 1st table in pTabList 	仅对pTable的第一个表进行编码*/
+#define WHERE_AND_ONLY         0x0080 /* Don't use indices for OR terms 	不要对OR使用指数*/
 
 /*
-** The WHERE clause processing routine has two halves.  The
-** first part does the start of the WHERE loop and the second
-** half does the tail of the WHERE loop.  An instance of
-** this structure is returned by the first half and passed
-** into the second half to give some continuity.
+** The WHERE clause processing routine has two halves.  The			WHERE子句处理程序有两个部分
+** first part does the start of the WHERE loop and the second			第一部分确实在WHERE循环的开始
+** half does the tail of the WHERE loop.  An instance of			第二部分确实在WHERE循环的尾部
+** this structure is returned by the first half and passed			这种结构的实例是由上半部分返回
+** into the second half to give some continuity.				进入下半部分给一些连续性
 */
 struct WhereInfo {
-  Parse *pParse;       /* Parsing and code generating context */
-  u16 wctrlFlags;      /* Flags originally passed to sqlite3WhereBegin() */
-  u8 okOnePass;        /* Ok to use one-pass algorithm for UPDATE or DELETE */
-  u8 untestedTerms;    /* Not all WHERE terms resolved by outer loop */
+  Parse *pParse;       /* Parsing and code generating context 			解析和编码生成环境*/
+  u16 wctrlFlags;      /* Flags originally passed to sqlite3WhereBegin() 	最初的标志传递给sqlite3WhereBegin()*/
+  u8 okOnePass;        /* Ok to use one-pass algorithm for UPDATE or DELETE 	可以使用一次通过的算法更新或删除*/
+  u8 untestedTerms;    /* Not all WHERE terms resolved by outer loop 		并不是所有的WHERE条件解决外部循环*/
   u8 eDistinct;
-  SrcList *pTabList;             /* List of tables in the join */
-  int iTop;                      /* The very beginning of the WHERE loop */
-  int iContinue;                 /* Jump here to continue with next record */
-  int iBreak;                    /* Jump here to break out of the loop */
-  int nLevel;                    /* Number of nested loop */
-  struct WhereClause *pWC;       /* Decomposition of the WHERE clause */
-  double savedNQueryLoop;        /* pParse->nQueryLoop outside the WHERE loop */
-  double nRowOut;                /* Estimated number of output rows */
-  WhereLevel a[1];               /* Information about each nest loop in WHERE */
+  SrcList *pTabList;             /* List of tables in the join 			连接表的列表*/
+  int iTop;                      /* The very beginning of the WHERE loop 	WHERE循环的最开始处*/
+  int iContinue;                 /* Jump here to continue with next record 	跳转到这里继续下一个记录*/
+  int iBreak;                    /* Jump here to break out of the loop 		跳转到这里跳出循环*/
+  int nLevel;                    /* Number of nested loop 			嵌套循环数*/
+  struct WhereClause *pWC;       /* Decomposition of the WHERE clause 		分解WHERE子句*/
+  double savedNQueryLoop;        /* pParse->nQueryLoop outside the WHERE loop 	外循环之外pParse->nQueryLoop*/
+  double nRowOut;                /* Estimated number of output rows 		输出行的估计数*/
+  WhereLevel a[1];               /* Information about each nest loop in WHERE 	WHERE中每个嵌套循环的信息*/
 };
 
 #define WHERE_DISTINCT_UNIQUE 1
 #define WHERE_DISTINCT_ORDERED 2
 
 /*
-** A NameContext defines a context in which to resolve table and column
-** names.  The context consists of a list of tables (the pSrcList) field and
-** a list of named expression (pEList).  The named expression list may
-** be NULL.  The pSrc corresponds to the FROM clause of a SELECT or
-** to the table being operated on by INSERT, UPDATE, or DELETE.  The
-** pEList corresponds to the result set of a SELECT and is NULL for
+** A NameContext defines a context in which to resolve table and column		一个NameContext定义了解决表和列名的上下文
+** names.  The context consists of a list of tables (the pSrcList) field and	上下文包含了表(pSrcList)的列表字段和命名表达式列表(pEList)
+** a list of named expression (pEList).  The named expression list may		命名表达式列表有可能是空
+** be NULL.  The pSrc corresponds to the FROM clause of a SELECT or		pSrc对应于一个SELECT中的FROM子句
+** to the table being operated on by INSERT, UPDATE, or DELETE.  The		或者表正由INSERT,UPDATE,DELETE操作
+** pEList corresponds to the result set of a SELECT and is NULL for		pEList对应于SELECT的结果集，对其他声明来说是空
 ** other statements.
 **
-** NameContexts can be nested.  When resolving names, the inner-most 
-** context is searched first.  If no match is found, the next outer
-** context is checked.  If there is still no match, the next context
-** is checked.  This process continues until either a match is found
-** or all contexts are check.  When a match is found, the nRef member of
+** NameContexts can be nested.  When resolving names, the inner-most 		NameContexts可以嵌套。当解析名称时，在最里面的上下文将被第一搜索
+** context is searched first.  If no match is found, the next outer		如果没有找到匹配，下一个外部环境进行检查
+** context is checked.  If there is still no match, the next context		如果仍然没有匹配，检查下一个上下文
+** is checked.  This process continues until either a match is found		这一过程继续直到找到一个匹配或者所有上下文都检查
+** or all contexts are check.  When a match is found, the nRef member of	当找到一个匹配，包含该匹配上下文的nRef成员增加
 ** the context containing the match is incremented. 
 **
-** Each subquery gets a new NameContext.  The pNext field points to the
-** NameContext in the parent query.  Thus the process of scanning the
+** Each subquery gets a new NameContext.  The pNext field points to the		每个子查询得到一个新的NameContext.在父查询中pNext字段指向NameContext
+** NameContext in the parent query.  Thus the process of scanning the		因此扫描NameContext列表的过程对应于通过依次外子查询查找匹配的搜索
 ** NameContext list corresponds to searching through successively outer
 ** subqueries looking for a match.
 */
 struct NameContext {
-  Parse *pParse;       /* The parser */
-  SrcList *pSrcList;   /* One or more tables used to resolve names */
-  ExprList *pEList;    /* Optional list of named expressions */
-  AggInfo *pAggInfo;   /* Information about aggregates at this level */
-  NameContext *pNext;  /* Next outer name context.  NULL for outermost */
-  int nRef;            /* Number of names resolved by this context */
-  int nErr;            /* Number of errors encountered while resolving names */
-  u8 ncFlags;          /* Zero or more NC_* flags defined below */
+  Parse *pParse;       /* The parser 						解析器*/
+  SrcList *pSrcList;   /* One or more tables used to resolve names 		用于解析名称的一个或多个表*/
+  ExprList *pEList;    /* Optional list of named expressions 			命名表达式的可选列表*/
+  AggInfo *pAggInfo;   /* Information about aggregates at this level 		在这个级别有关聚集的信息*/
+  NameContext *pNext;  /* Next outer name context.  NULL for outermost 		下一个外部名字的上下文，最外层为空*/
+  int nRef;            /* Number of names resolved by this context 		上下文解决的名字的数量*/
+  int nErr;            /* Number of errors encountered while resolving names 	解析名称时遇到的错误数*/
+  u8 ncFlags;          /* Zero or more NC_* flags defined below 		零个或多个NC_*标志定义如下*/
 };
 
 /*
-** Allowed values for the NameContext, ncFlags field.
+** Allowed values for the NameContext, ncFlags field.				NameContext,ncFlags字段的允许值
 */
-#define NC_AllowAgg  0x01    /* Aggregate functions are allowed here */
-#define NC_HasAgg    0x02    /* One or more aggregate functions seen */
-#define NC_IsCheck   0x04    /* True if resolving names in a CHECK constraint */
-#define NC_InAggFunc 0x08    /* True if analyzing arguments to an agg func */
+#define NC_AllowAgg  0x01    /* Aggregate functions are allowed here 		这里允许聚合函数*/
+#define NC_HasAgg    0x02    /* One or more aggregate functions seen 		一个或多个聚合函数可见*/
+#define NC_IsCheck   0x04    /* True if resolving names in a CHECK constraint 	在CHECK约束中解析名称为真*/
+#define NC_InAggFunc 0x08    /* True if analyzing arguments to an agg func 	如果分析参数*/
 
 /*
-** An instance of the following structure contains all information
+** An instance of the following structure contains all information		以下结构的一个实例包含需要生成代码的一个SELECT语句的所有信息
 ** needed to generate code for a single SELECT statement.
 **
-** nLimit is set to -1 if there is no LIMIT clause.  nOffset is set to 0.
-** If there is a LIMIT clause, the parser sets nLimit to the value of the
-** limit and nOffset to the value of the offset (or 0 if there is not
-** offset).  But later on, nLimit and nOffset become the memory locations
+** nLimit is set to -1 if there is no LIMIT clause.  nOffset is set to 0.	如果没有LIMIT子句，nLimit设置为-1.nOffset设置为0
+** If there is a LIMIT clause, the parser sets nLimit to the value of the	如果有一个LIMIT子句，分析器设置nLimit为限制的值
+** limit and nOffset to the value of the offset (or 0 if there is not		nOffset为偏移值(如果没有偏移为0)
+** offset).  But later on, nLimit and nOffset become the memory locations	但后来，nLimit和nOffset成为在VDBE中记录限制和偏移计数器的内存位置
 ** in the VDBE that record the limit and offset counters.
 **
-** addrOpenEphm[] entries contain the address of OP_OpenEphemeral opcodes.
-** These addresses must be stored so that we can go back and fill in
-** the P4_KEYINFO and P2 parameters later.  Neither the KeyInfo nor
-** the number of columns in P2 can be computed at the same time
-** as the OP_OpenEphm instruction is coded because not
-** enough information about the compound query is known at that point.
-** The KeyInfo for addrOpenTran[0] and [1] contains collating sequences
-** for the result set.  The KeyInfo for addrOpenTran[2] contains collating
+** addrOpenEphm[] entries contain the address of OP_OpenEphemeral opcodes.	addrOpenEphm[]包含OP_OpenEphemeral操作码的地址
+** These addresses must be stored so that we can go back and fill in		这些地址必须存储，
+** the P4_KEYINFO and P2 parameters later.  Neither the KeyInfo nor		这样我们就可以回去填写P4_KEYINFO和P2参数
+** the number of columns in P2 can be computed at the same time			因为没有足够的关于符合查询的信息是已知的，
+** as the OP_OpenEphm instruction is coded because not				所以不仅KeyInfo而且P2中列的数目可以计算出来
+** enough information about the compound query is known at that point.		同时OP_OpenEphm被编码
+** The KeyInfo for addrOpenTran[0] and [1] contains collating sequences		addrOpenTran[0]和[1]的KeyInfo包含结果集的排序序列
+** for the result set.  The KeyInfo for addrOpenTran[2] contains collating	addrOpenTran[2]的KeyInfo包含ORDER BY子句的排序序列
 ** sequences for the ORDER BY clause.
 */
 struct Select {
-  ExprList *pEList;      /* The fields of the result */
-  u8 op;                 /* One of: TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT */
-  char affinity;         /* MakeRecord with this affinity for SRT_Set */
-  u16 selFlags;          /* Various SF_* values */
-  int iLimit, iOffset;   /* Memory registers holding LIMIT & OFFSET counters */
-  int addrOpenEphm[3];   /* OP_OpenEphem opcodes related to this select */
-  double nSelectRow;     /* Estimated number of result rows */
-  SrcList *pSrc;         /* The FROM clause */
-  Expr *pWhere;          /* The WHERE clause */
-  ExprList *pGroupBy;    /* The GROUP BY clause */
-  Expr *pHaving;         /* The HAVING clause */
-  ExprList *pOrderBy;    /* The ORDER BY clause */
-  Select *pPrior;        /* Prior select in a compound select statement */
-  Select *pNext;         /* Next select to the left in a compound */
-  Select *pRightmost;    /* Right-most select in a compound select statement */
-  Expr *pLimit;          /* LIMIT expression. NULL means not used. */
-  Expr *pOffset;         /* OFFSET expression. NULL means not used. */
+  ExprList *pEList;      /* The fields of the result 				结果的字段*/
+  u8 op;                 /* One of: TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT 	TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT 之一*/
+  char affinity;         /* MakeRecord with this affinity for SRT_Set 		*/
+  u16 selFlags;          /* Various SF_* values 				各种SF_*值*/
+  int iLimit, iOffset;   /* Memory registers holding LIMIT & OFFSET counters 	内存寄存器持有LIMIT和OFFSET计数器*/
+  int addrOpenEphm[3];   /* OP_OpenEphem opcodes related to this select 	与此选择相关的OP_OpenEphem操作码*/
+  double nSelectRow;     /* Estimated number of result rows 			结果行的估计数*/
+  SrcList *pSrc;         /* The FROM clause 					FORM子句*/
+  Expr *pWhere;          /* The WHERE clause 					WHERE子句*/
+  ExprList *pGroupBy;    /* The GROUP BY clause 				GROUP BY子句*/
+  Expr *pHaving;         /* The HAVING clause 					HAVING子句*/
+  ExprList *pOrderBy;    /* The ORDER BY clause 				ORDER BY子句*/
+  Select *pPrior;        /* Prior select in a compound select statement 	在复合SELECT语句之前选择*/
+  Select *pNext;         /* Next select to the left in a compound 		接下来在复合语句中选择左侧*/
+  Select *pRightmost;    /* Right-most select in a compound select statement 	最右边一个SELECT语句的select*/
+  Expr *pLimit;          /* LIMIT expression. NULL means not used. 		LIMIT表达式，NULL表示未使用*/
+  Expr *pOffset;         /* OFFSET expression. NULL means not used. 		OFFSET表达式，NULL表示未使用*/
 };
 
 /*
-** Allowed values for Select.selFlags.  The "SF" prefix stands for
+** Allowed values for Select.selFlags.  The "SF" prefix stands for		Select.setFlags的允许值。"SF"前缀代表"Select Flag"
 ** "Select Flag".
 */
-#define SF_Distinct        0x01  /* Output should be DISTINCT */
-#define SF_Resolved        0x02  /* Identifiers have been resolved */
-#define SF_Aggregate       0x04  /* Contains aggregate functions */
-#define SF_UsesEphemeral   0x08  /* Uses the OpenEphemeral opcode */
-#define SF_Expanded        0x10  /* sqlite3SelectExpand() called on this */
-#define SF_HasTypeInfo     0x20  /* FROM subqueries have Table metadata */
-#define SF_UseSorter       0x40  /* Sort using a sorter */
-#define SF_Values          0x80  /* Synthesized from VALUES clause */
+#define SF_Distinct        0x01  /* Output should be DISTINCT 			输出应该不同*/
+#define SF_Resolved        0x02  /* Identifiers have been resolved 		标识符已经解析*/
+#define SF_Aggregate       0x04  /* Contains aggregate functions 		包含聚合函数*/
+#define SF_UsesEphemeral   0x08  /* Uses the OpenEphemeral opcode 		使用OpenEphemeral操作码*/
+#define SF_Expanded        0x10  /* sqlite3SelectExpand() called on this 	sqlite3SelectExpand()调用这个*/
+#define SF_HasTypeInfo     0x20  /* FROM subqueries have Table metadata 	FORM子查询有Table元数据*/
+#define SF_UseSorter       0x40  /* Sort using a sorter 			排序使用分拣机**/
+#define SF_Values          0x80  /* Synthesized from VALUES clause 		从VALUES子句合成*/
 
 
 /*
-** The results of a select can be distributed in several ways.  The
-** "SRT" prefix means "SELECT Result Type".
+** The results of a select can be distributed in several ways.  The		结果的选择可以分布在几个方面
+** "SRT" prefix means "SELECT Result Type".					"SRT"前缀表示"SELECT Result Type"
 */
-#define SRT_Union        1  /* Store result as keys in an index */
-#define SRT_Except       2  /* Remove result from a UNION index */
-#define SRT_Exists       3  /* Store 1 if the result is not empty */
-#define SRT_Discard      4  /* Do not save the results anywhere */
+#define SRT_Union        1  /* Store result as keys in an index 		结果以索引键存储*/
+#define SRT_Except       2  /* Remove result from a UNION index 		从UNION索引中删除的结果*/
+#define SRT_Exists       3  /* Store 1 if the result is not empty 		如果结果不为空存储1*/
+#define SRT_Discard      4  /* Do not save the results anywhere 		不在任何地方保存结果*/
 
-/* The ORDER BY clause is ignored for all of the above */
+/* The ORDER BY clause is ignored for all of the above 				在ORDER BY 子句忽略上述所有*/
 #define IgnorableOrderby(X) ((X->eDest)<=SRT_Discard)
 
-#define SRT_Output       5  /* Output each row of result */
-#define SRT_Mem          6  /* Store result in a memory cell */
-#define SRT_Set          7  /* Store results as keys in an index */
-#define SRT_Table        8  /* Store result as data with an automatic rowid */
-#define SRT_EphemTab     9  /* Create transient tab and store like SRT_Table */
-#define SRT_Coroutine   10  /* Generate a single row of result */
+#define SRT_Output       5  /* Output each row of result 			输出结果的每一行*/
+#define SRT_Mem          6  /* Store result in a memory cell 			将结果存储在存储单元*/
+#define SRT_Set          7  /* Store results as keys in an index 		结果以索引键存储*/
+#define SRT_Table        8  /* Store result as data with an automatic rowid 	存储结果为自动rowid数据*/
+#define SRT_EphemTab     9  /* Create transient tab and store like SRT_Table 	创建瞬时标签，存储像SRT_Table*/
+#define SRT_Coroutine   10  /* Generate a single row of result 			生成结果的一个单列*/
 
 /*
-** A structure used to customize the behavior of sqlite3Select(). See
-** comments above sqlite3Select() for details.
+** A structure used to customize the behavior of sqlite3Select(). See		用来制定sqlite3Select()行为的结构
+** comments above sqlite3Select() for details.					见上面sqlite3Select()的注释连接详细信息
 */
 typedef struct SelectDest SelectDest;
 struct SelectDest {
-  u8 eDest;         /* How to dispose of the results */
+  u8 eDest;         /* How to dispose of the results 				如何处理结果*/
   u8 affSdst;       /* Affinity used when eDest==SRT_Set */
-  int iSDParm;      /* A parameter used by the eDest disposal method */
-  int iSdst;        /* Base register where results are written */
-  int nSdst;        /* Number of registers allocated */
+  int iSDParm;      /* A parameter used by the eDest disposal method 		eDest方法所用的参数*/
+  int iSdst;        /* Base register where results are written 			结果被写入基址寄存器**/
+  int nSdst;        /* Number of registers allocated 				分配寄存器的数量*/
 };
 
 /*
-** During code generation of statements that do inserts into AUTOINCREMENT 
-** tables, the following information is attached to the Table.u.autoInc.p
+** During code generation of statements that do inserts into AUTOINCREMENT 	在代码生成声明中插入到AUTOINCREMENT 表
+** tables, the following information is attached to the Table.u.autoInc.p	以下信息被附加到每个自动增量表的Table.u.authoInc.p指针记录代码生成需要的一些侧面信息
 ** pointer of each autoincrement table to record some side information that
-** the code generator needs.  We have to keep per-table autoincrement
-** information in case inserts are down within triggers.  Triggers do not
-** normally coordinate their activities, but we do need to coordinate the
-** loading and saving of autoincrement information.
+** the code generator needs.  We have to keep per-table autoincrement		我们必须有每个表的自动增量信息	，以防插入数在触发器内下降
+** information in case inserts are down within triggers.  Triggers do not	以防插入数在触发器内下降
+** normally coordinate their activities, but we do need to coordinate the	触发器通常不会协调它们的活动
+** loading and saving of autoincrement information.				但是我们确实需要加载和保存自动增量信息
 */
 struct AutoincInfo {
-  AutoincInfo *pNext;   /* Next info block in a list of them all */
-  Table *pTab;          /* Table this info block refers to */
-  int iDb;              /* Index in sqlite3.aDb[] of database holding pTab */
-  int regCtr;           /* Memory register holding the rowid counter */
+  AutoincInfo *pNext;   /* Next info block in a list of them all 		在他们所有列表的下一个信息块*/
+  Table *pTab;          /* Table this info block refers to 			表信息块的指向*/
+  int iDb;              /* Index in sqlite3.aDb[] of database holding pTab 	数据库中sqlite3.aDb[]的索引保存pTab*/
+  int regCtr;           /* Memory register holding the rowid counter 		用于保存ROWID计算器的内存寄存器*/
 };
 
 /*
-** Size of the column cache
+** Size of the column cache							列缓存大小
 */
 #ifndef SQLITE_N_COLCACHE
 # define SQLITE_N_COLCACHE 10
 #endif
 
 /*
-** At least one instance of the following structure is created for each 
-** trigger that may be fired while parsing an INSERT, UPDATE or DELETE
-** statement. All such objects are stored in the linked list headed at
-** Parse.pTriggerPrg and deleted once statement compilation has been
+** At least one instance of the following structure is created for each 	至少一个以下结构体的实例为每个触发器创建
+** trigger that may be fired while parsing an INSERT, UPDATE or DELETE		当执行INSERT,UPDATE,DELETE是有可能触发触发器。
+** statement. All such objects are stored in the linked list headed at		所有这些对象存储在Parse.pTriggerPrg为首的链表，
+** Parse.pTriggerPrg and deleted once statement compilation has been		一旦语句编译完成就删除这些对象。
 ** completed.
 **
-** A Vdbe sub-program that implements the body and WHEN clause of trigger
-** TriggerPrg.pTrigger, assuming a default ON CONFLICT clause of
-** TriggerPrg.orconf, is stored in the TriggerPrg.pProgram variable.
-** The Parse.pTriggerPrg list never contains two entries with the same
+** A Vdbe sub-program that implements the body and WHEN clause of trigger	一个实现了体和WHEN子句触发器TriggerPrg.pTrigger的VDBE分程序
+** TriggerPrg.pTrigger, assuming a default ON CONFLICT clause of		假设一个TriggerPrg.orconf默认ON CONFLICT子句
+** TriggerPrg.orconf, is stored in the TriggerPrg.pProgram variable.		存储在TriggerPrg.pProgram变量中
+** The Parse.pTriggerPrg list never contains two entries with the same		Parse.pTriggerPrg列表从未包含pTrigger和orconf值相同的两个条目
 ** values for both pTrigger and orconf.
 **
-** The TriggerPrg.aColmask[0] variable is set to a mask of old.* columns
-** accessed (or set to 0 for triggers fired as a result of INSERT 
-** statements). Similarly, the TriggerPrg.aColmask[1] variable is set to
+** The TriggerPrg.aColmask[0] variable is set to a mask of old.* columns	TriggerPrg.aColmask[0]变量被设置为一个隐藏的old.*列存储
+** accessed (or set to 0 for triggers fired as a result of INSERT 		(或设置为0当INSERT结果触发了触发器)
+** statements). Similarly, the TriggerPrg.aColmask[1] variable is set to	同样，TriggerPrg.aColmask[1]变量设置为一个隐藏的由程序使用new.*列
 ** a mask of new.* columns used by the program.
 */
 struct TriggerPrg {
-  Trigger *pTrigger;      /* Trigger this program was coded from */
-  TriggerPrg *pNext;      /* Next entry in Parse.pTriggerPrg list */
-  SubProgram *pProgram;   /* Program implementing pTrigger/orconf */
-  int orconf;             /* Default ON CONFLICT policy */
-  u32 aColmask[2];        /* Masks of old.*, new.* columns accessed */
+  Trigger *pTrigger;      /* Trigger this program was coded from 		触发这个程序的代码*/
+  TriggerPrg *pNext;      /* Next entry in Parse.pTriggerPrg list 		Parse.pTriggerPrg列表的下一个条目*/
+  SubProgram *pProgram;   /* Program implementing pTrigger/orconf 		项目实施pTrigger/orconf*/
+  int orconf;             /* Default ON CONFLICT policy 			默认ON CONFLICT政策*/
+  u32 aColmask[2];        /* Masks of old.*, new.* columns accessed 		old.*,new.*列的隐藏访问*/
 };
 
 /*
-** The yDbMask datatype for the bitmask of all attached databases.
+** The yDbMask datatype for the bitmask of all attached databases.		所有附加数据库的位掩码的yDbMask数据类型
 */
 #if SQLITE_MAX_ATTACHED>30
   typedef sqlite3_uint64 yDbMask;
@@ -2209,113 +2209,113 @@ struct TriggerPrg {
 #endif
 
 /*
-** An SQL parser context.  A copy of this structure is passed through
-** the parser and down into all the parser action routine in order to
-** carry around information that is global to the entire parse.
+** An SQL parser context.  A copy of this structure is passed through		一个SQL解析器上下文。
+** the parser and down into all the parser action routine in order to		这种结构的副本通过解析器和分解为所有解析器操作例程
+** carry around information that is global to the entire parse.			以携带整个全局解析信息
 **
-** The structure is divided into two parts.  When the parser and code
-** generate call themselves recursively, the first part of the structure
-** is constant but the second part is reset at the beginning and end of
+** The structure is divided into two parts.  When the parser and code		结构分为两部分。当解析器和代码生成递归调用它们自身，
+** generate call themselves recursively, the first part of the structure	该结构的第一部分是不变的
+** is constant but the second part is reset at the beginning and end of		但是第二部分在每个递归开始和结束时被复位
 ** each recursion.
 **
-** The nTableLock and aTableLock variables are only used if the shared-cache 
-** feature is enabled (if sqlite3Tsd()->useSharedData is true). They are
-** used to store the set of table-locks required by the statement being
-** compiled. Function sqlite3TableLock() is used to add entries to the
+** The nTableLock and aTableLock variables are only used if the shared-cache 	nTableLock和TableLock变量仅当启用共享缓存特性(当sq	lite3Ted()->useShareDate为真)时使用
+** feature is enabled (if sqlite3Tsd()->useSharedData is true). They are	(当sq	lite3Ted()->useShareDate为真)时使用
+** used to store the set of table-locks required by the statement being		它们用来存储一组表锁需要的被编译语句
+** compiled. Function sqlite3TableLock() is used to add entries to the		sqlite3TableLock()函数用于将条目添加到列表中
 ** list.
 */
 struct Parse {
-  sqlite3 *db;         /* The main database structure */
-  char *zErrMsg;       /* An error message */
-  Vdbe *pVdbe;         /* An engine for executing database bytecode */
-  int rc;              /* Return code from execution */
-  u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued to pVdbe */
-  u8 checkSchema;      /* Causes schema cookie check after an error */
-  u8 nested;           /* Number of nested calls to the parser/code generator */
-  u8 nTempReg;         /* Number of temporary registers in aTempReg[] */
-  u8 nTempInUse;       /* Number of aTempReg[] currently checked out */
-  u8 nColCache;        /* Number of entries in aColCache[] */
-  u8 iColCache;        /* Next entry in aColCache[] to replace */
-  u8 isMultiWrite;     /* True if statement may modify/insert multiple rows */
-  u8 mayAbort;         /* True if statement may throw an ABORT exception */
-  int aTempReg[8];     /* Holding area for temporary registers */
-  int nRangeReg;       /* Size of the temporary register block */
-  int iRangeReg;       /* First register in temporary register block */
-  int nErr;            /* Number of errors seen */
-  int nTab;            /* Number of previously allocated VDBE cursors */
-  int nMem;            /* Number of memory cells used so far */
-  int nSet;            /* Number of sets used so far */
-  int nOnce;           /* Number of OP_Once instructions so far */
-  int ckBase;          /* Base register of data during check constraints */
-  int iCacheLevel;     /* ColCache valid when aColCache[].iLevel<=iCacheLevel */
-  int iCacheCnt;       /* Counter used to generate aColCache[].lru values */
+  sqlite3 *db;         /* The main database structure 				主数据结构*/
+  char *zErrMsg;       /* An error message 					错误消息*/
+  Vdbe *pVdbe;         /* An engine for executing database bytecode 		执行数据库字节码的引擎*/
+  int rc;              /* Return code from execution 				返回代码的执行*/
+  u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued to pVdbe 	OP_ColumnName已处理给pVdbe后*/
+  u8 checkSchema;      /* Causes schema cookie check after an error 		错误后引起的模式cookie检查*/
+  u8 nested;           /* Number of nested calls to the parser/code generator 	嵌套调用解析器/代码生成器的数量*/
+  u8 nTempReg;         /* Number of temporary registers in aTempReg[] 		aTempReg[]的临时寄存器数量*/
+  u8 nTempInUse;       /* Number of aTempReg[] currently checked out 		当前被检查的TempReg[]数量*/
+  u8 nColCache;        /* Number of entries in aColCache[] 			在aColCache[]的条目数*/
+  u8 iColCache;        /* Next entry in aColCache[] to replace 			在aColCache[]中被取代的下一个条目*/
+  u8 isMultiWrite;     /* True if statement may modify/insert multiple rows 	如果语句可以修改/插入多行*/
+  u8 mayAbort;         /* True if statement may throw an ABORT exception 	如果语句可能会抛出一个ABORT异常*/
+  int aTempReg[8];     /* Holding area for temporary registers 			为临时寄存器保留地方*/
+  int nRangeReg;       /* Size of the temporary register block 			临时寄存器块的大小*/
+  int iRangeReg;       /* First register in temporary register block 		在临时寄存器块的第一个寄存器*/
+  int nErr;            /* Number of errors seen 				看到错误数*/
+  int nTab;            /* Number of previously allocated VDBE cursors 		以前分配VDBE光标的数量*/
+  int nMem;            /* Number of memory cells used so far 			到目前为止使用的内存单元的数量*/
+  int nSet;            /* Number of sets used so far 				到目前为止使用的设置数量*/
+  int nOnce;           /* Number of OP_Once instructions so far 		到目前为止OP_Once指令的数量*/
+  int ckBase;          /* Base register of data during check constraints 	在检查约束时基址寄存器的数据*/
+  int iCacheLevel;     /* ColCache valid when aColCache[].iLevel<=iCacheLevel 	当aColCache[].iLevel<=iCacheLevel时，ColCache有效*/
+  int iCacheCnt;       /* Counter used to generate aColCache[].lru values 	用于生成aColCache[].lru值的计数器*/
   struct yColCache {
-    int iTable;           /* Table cursor number */
-    int iColumn;          /* Table column number */
-    u8 tempReg;           /* iReg is a temp register that needs to be freed */
-    int iLevel;           /* Nesting level */
-    int iReg;             /* Reg with value of this column. 0 means none. */
-    int lru;              /* Least recently used entry has the smallest value */
-  } aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry */
-  yDbMask writeMask;   /* Start a write transaction on these databases */
-  yDbMask cookieMask;  /* Bitmask of schema verified databases */
-  int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine */
-  int cookieValue[SQLITE_MAX_ATTACHED+2];  /* Values of cookies to verify */
-  int regRowid;        /* Register holding rowid of CREATE TABLE entry */
-  int regRoot;         /* Register holding root page number for new objects */
-  int nMaxArg;         /* Max args passed to user function by sub-program */
-  Token constraintName;/* Name of the constraint currently being parsed */
+    int iTable;           /* Table cursor number 				表指针数*/
+    int iColumn;          /* Table column number 				表列号*/
+    u8 tempReg;           /* iReg is a temp register that needs to be freed 	iReg是需要被释放的临时寄存器*/
+    int iLevel;           /* Nesting level 					嵌套层次*/
+    int iReg;             /* Reg with value of this column. 0 means none. 	保存这个column.0的寄存器表示空*/
+    int lru;              /* Least recently used entry has the smallest value 	最近最少使用条目的最小值*/
+  } aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry 		一个用于每列缓存条目*/
+  yDbMask writeMask;   /* Start a write transaction on these databases 		开始对这些数据库进行写事务*/
+  yDbMask cookieMask;  /* Bitmask of schema verified databases 			位掩码模式验证数据库*/
+  int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine 	追踪验证子程序的OP_Goto地址*/
+  int cookieValue[SQLITE_MAX_ATTACHED+2];  /* Values of cookies to verify 	追踪的值来验证*/
+  int regRowid;        /* Register holding rowid of CREATE TABLE entry 		有CREATE TABLE条目的伪列的寄存器*/
+  int regRoot;         /* Register holding root page number for new objects 	有新对象的跟页码的寄存器*/
+  int nMaxArg;         /* Max args passed to user function by sub-program 	Max参数通过子程序传递给用户函数*/
+  Token constraintName;/* Name of the constraint currently being parsed 	目前正在解析的约束的名字*/
 #ifndef SQLITE_OMIT_SHARED_CACHE
-  int nTableLock;        /* Number of locks in aTableLock */
-  TableLock *aTableLock; /* Required table locks for shared-cache mode */
+  int nTableLock;        /* Number of locks in aTableLock 			在aTableLock中锁的数量*/
+  TableLock *aTableLock; /* Required table locks for shared-cache mode 		要求表的共享缓存模式的锁*/
 #endif
-  AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters */
+  AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters 		有关AUTOINCREMENT计数器的信息*/
 
-  /* Information used while coding trigger programs. */
-  Parse *pToplevel;    /* Parse structure for main program (or NULL) */
-  Table *pTriggerTab;  /* Table triggers are being coded for */
-  double nQueryLoop;   /* Estimated number of iterations of a query */
-  u32 oldmask;         /* Mask of old.* columns referenced */
-  u32 newmask;         /* Mask of new.* columns referenced */
+  /* Information used while coding trigger programs. 				当编码触发程序时使用的信息*/
+  Parse *pToplevel;    /* Parse structure for main program (or NULL) 		解析主程序的结构(或空)*/
+  Table *pTriggerTab;  /* Table triggers are being coded for 			表触发器被编码*/
+  double nQueryLoop;   /* Estimated number of iterations of a query 		一个迭代查询的估计数*/
+  u32 oldmask;         /* Mask of old.* columns referenced 			old.*列的隐藏引用*/
+  u32 newmask;         /* Mask of new.* columns referenced 			new.*列的隐藏引用*/
   u8 eTriggerOp;       /* TK_UPDATE, TK_INSERT or TK_DELETE */
-  u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps */
-  u8 disableTriggers;  /* True to disable triggers */
+  u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps 		默认ON CONFICT规则的触发步骤*/
+  u8 disableTriggers;  /* True to disable triggers 				禁用触发器*/
 
-  /* Above is constant between recursions.  Below is reset before and after
+  /* Above is constant between recursions.  Below is reset before and after	以上在每次递归时不变，以下在每次递归前和递归后复位
   ** each recursion */
 
-  int nVar;                 /* Number of '?' variables seen in the SQL so far */
-  int nzVar;                /* Number of available slots in azVar[] */
-  u8 explain;               /* True if the EXPLAIN flag is found on the query */
+  int nVar;                 /* Number of '?' variables seen in the SQL so far 	目前为止在SQL中可见的"?"变量数量*/
+  int nzVar;                /* Number of available slots in azVar[] 		在azVar[]中可用测试器数量*/
+  u8 explain;               /* True if the EXPLAIN flag is found on the query 	如果查询时发现EXPLAIN标志*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  u8 declareVtab;           /* True if inside sqlite3_declare_vtab() */
-  int nVtabLock;            /* Number of virtual tables to lock */
+  u8 declareVtab;           /* True if inside sqlite3_declare_vtab() 		如果在sqlite3_declare_vtab()中*/
+  int nVtabLock;            /* Number of virtual tables to lock 		锁住的虚表数量*/
 #endif
-  int nAlias;               /* Number of aliased result set columns */
-  int nHeight;              /* Expression tree height of current sub-select */
+  int nAlias;               /* Number of aliased result set columns 		设置列的别名结果集数量*/
+  int nHeight;              /* Expression tree height of current sub-select 	表达式数当前子选择的高度*/
 #ifndef SQLITE_OMIT_EXPLAIN
-  int iSelectId;            /* ID of current select for EXPLAIN output */
-  int iNextSelectId;        /* Next available select ID for EXPLAIN output */
+  int iSelectId;            /* ID of current select for EXPLAIN output 		EXPLAIN输出的当前选择的ID*/
+  int iNextSelectId;        /* Next available select ID for EXPLAIN output 	EXPLAIN输出的下一个可用的选择ID*/
 #endif
-  char **azVar;             /* Pointers to names of parameters */
-  Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) */
-  int *aAlias;              /* Register used to hold aliased result */
-  const char *zTail;        /* All SQL text past the last semicolon parsed */
-  Table *pNewTable;         /* A table being constructed by CREATE TABLE */
-  Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER */
-  const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks */
-  Token sNameToken;         /* Token with unqualified schema object name */
-  Token sLastToken;         /* The last token parsed */
+  char **azVar;             /* Pointers to names of parameters 			参数名称的指针*/
+  Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) 	VM被重修(sqlite3Reprepare())*/
+  int *aAlias;              /* Register used to hold aliased result 		用来存储别名结果的寄存器*/
+  const char *zTail;        /* All SQL text past the last semicolon parsed 	所有SQL文本通过最后一个分号解析*/
+  Table *pNewTable;         /* A table being constructed by CREATE TABLE 	一个表由CREATE TABLE构建*/
+  Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER 	根据CREATE TRIGGER结构触发**/
+  const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks 	第六个DB-> XAUTH回调参数*/
+  Token sNameToken;         /* Token with unqualified schema object name 	标记不合格架构对象名称*/
+  Token sLastToken;         /* The last token parsed 				最后一个符号解析*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  Token sArg;               /* Complete text of a module argument */
-  Table **apVtabLock;       /* Pointer to virtual tables needing locking */
+  Token sArg;               /* Complete text of a module argument 		一个模块参数的完整文本*/
+  Table **apVtabLock;       /* Pointer to virtual tables needing locking 	需要锁定的虚表指针*/
 #endif
-  Table *pZombieTab;        /* List of Table objects to delete after code gen */
-  TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers */
+  Table *pZombieTab;        /* List of Table objects to delete after code gen 	代码生成后删除表对象列表*/
+  TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers 			编码触发器链表*/
 };
 
 /*
-** Return true if currently inside an sqlite3_declare_vtab() call.
+** Return true if currently inside an sqlite3_declare_vtab() call.		如果当前的sqlite3_declare_vtab（）调用里面返回真
 */
 #ifdef SQLITE_OMIT_VIRTUALTABLE
   #define IN_DECLARE_VTAB 0
@@ -2324,201 +2324,201 @@ struct Parse {
 #endif
 
 /*
-** An instance of the following structure can be declared on a stack and used
-** to save the Parse.zAuthContext value so that it can be restored later.
+** An instance of the following structure can be declared on a stack and used	以下结构的实例可以在堆栈中声明
+** to save the Parse.zAuthContext value so that it can be restored later.	和用来保存保存Parse.zAuthContext值，以便在以后恢复	
 */
 struct AuthContext {
-  const char *zAuthContext;   /* Put saved Parse.zAuthContext here */
-  Parse *pParse;              /* The Parse structure */
+  const char *zAuthContext;   /* Put saved Parse.zAuthContext here 		把Parse.zAuthContext保存在这里*/
+  Parse *pParse;              /* The Parse structure 				解析结构*/
 };
 
 /*
-** Bitfield flags for P5 value in various opcodes.
+** Bitfield flags for P5 value in various opcodes.				用于各种操作码P5值的位域标志
 */
-#define OPFLAG_NCHANGE       0x01    /* Set to update db->nChange */
-#define OPFLAG_LASTROWID     0x02    /* Set to update db->lastRowid */
-#define OPFLAG_ISUPDATE      0x04    /* This OP_Insert is an sql UPDATE */
-#define OPFLAG_APPEND        0x08    /* This is likely to be an append */
-#define OPFLAG_USESEEKRESULT 0x10    /* Try to avoid a seek in BtreeInsert() */
-#define OPFLAG_CLEARCACHE    0x20    /* Clear pseudo-table cache in OP_Column */
-#define OPFLAG_LENGTHARG     0x40    /* OP_Column only used for length() */
-#define OPFLAG_TYPEOFARG     0x80    /* OP_Column only used for typeof() */
-#define OPFLAG_BULKCSR       0x01    /* OP_Open** used to open bulk cursor */
-#define OPFLAG_P2ISREG       0x02    /* P2 to OP_Open** is a register number */
+#define OPFLAG_NCHANGE       0x01    /* Set to update db->nChange 		设置更新db->nChange*/
+#define OPFLAG_LASTROWID     0x02    /* Set to update db->lastRowid 		设置更新db->lastRowid*/
+#define OPFLAG_ISUPDATE      0x04    /* This OP_Insert is an sql UPDATE 	这OP_Insert是一个SQL UPDATE*/
+#define OPFLAG_APPEND        0x08    /* This is likely to be an append 		这很可能是一个附加*/
+#define OPFLAG_USESEEKRESULT 0x10    /* Try to avoid a seek in BtreeInsert() 	尽量避免寻求BtreeInsert（）*/
+#define OPFLAG_CLEARCACHE    0x20    /* Clear pseudo-table cache in OP_Column 	在OP_Column清除伪表缓存*/
+#define OPFLAG_LENGTHARG     0x40    /* OP_Column only used for length() 	OP_Column仅用于length()*/
+#define OPFLAG_TYPEOFARG     0x80    /* OP_Column only used for typeof() 	OP_Column仅用于typeof()*/
+#define OPFLAG_BULKCSR       0x01    /* OP_Open** used to open bulk cursor 	OP_Open**用于打开大批游标*/
+#define OPFLAG_P2ISREG       0x02    /* P2 to OP_Open** is a register number 	OP_P2到OP_Open**是一个寄存器号*/
 
 /*
- * Each trigger present in the database schema is stored as an instance of
+ * Each trigger present in the database schema is stored as an instance of	在数据库模式中每个现存的触发器存储为一个触发结构的实例
  * struct Trigger. 
  *
- * Pointers to instances of struct Trigger are stored in two ways.
- * 1. In the "trigHash" hash table (part of the sqlite3* that represents the 
- *    database). This allows Trigger structures to be retrieved by name.
- * 2. All triggers associated with a single table form a linked list, using the
- *    pNext member of struct Trigger. A pointer to the first element of the
+ * Pointers to instances of struct Trigger are stored in two ways.		这种触发器实例的指针有两种存储方式
+ * 1. In the "trigHash" hash table (part of the sqlite3* that represents the 	1.在“trigHash”哈希表（代表数据库的sqlite3的*一部分）。
+ *    database). This allows Trigger structures to be retrieved by name.	这允许通过名称检索触发结构。
+ * 2. All triggers associated with a single table form a linked list, using the	2.与一个表相关联的所有触发器形成一个链表,使用触发结构的pNext成员
+ *    pNext member of struct Trigger. A pointer to the first element of the	第一个元素的链表指针存储在与Table相关的"pTrigger"成员中				
  *    linked list is stored as the "pTrigger" member of the associated
  *    struct Table.
  *
- * The "step_list" member points to the first element of a linked list
+ * The "step_list" member points to the first element of a linked list		该“step_list”成员指向含有指定作为触发程序的SQL语句的链表的第一个元素..
  * containing the SQL statements specified as the trigger program.
  */
 struct Trigger {
-  char *zName;            /* The name of the trigger                        */
-  char *table;            /* The table or view to which the trigger applies */
-  u8 op;                  /* One of TK_DELETE, TK_UPDATE, TK_INSERT         */
-  u8 tr_tm;               /* One of TRIGGER_BEFORE, TRIGGER_AFTER */
-  Expr *pWhen;            /* The WHEN clause of the expression (may be NULL) */
-  IdList *pColumns;       /* If this is an UPDATE OF <column-list> trigger,
-                             the <column-list> is stored here */
-  Schema *pSchema;        /* Schema containing the trigger */
-  Schema *pTabSchema;     /* Schema containing the table */
-  TriggerStep *step_list; /* Link list of trigger program steps             */
-  Trigger *pNext;         /* Next trigger associated with the table */
+  char *zName;            /* The name of the trigger                        	触发器名称*/
+  char *table;            /* The table or view to which the trigger applies 	触发器适用的表或视图*/
+  u8 op;                  /* One of TK_DELETE, TK_UPDATE, TK_INSERT         	TK_DELETE, TK_UPDATE, TK_INSERT其中之一*/
+  u8 tr_tm;               /* One of TRIGGER_BEFORE, TRIGGER_AFTER 		TRIGGER_BEFORE, TRIGGER_AFTER其中之一*/
+  Expr *pWhen;            /* The WHEN clause of the expression (may be NULL) 	WHEN子句的表达式(可能为空)*/
+  IdList *pColumns;       /* If this is an UPDATE OF <column-list> trigger,	如果是一个UPDATE OF<列列表>触发器，
+                             the <column-list> is stored here 			<列列表>触发器存储在这里*/
+  Schema *pSchema;        /* Schema containing the trigger 			包含触发器的模式*/
+  Schema *pTabSchema;     /* Schema containing the table 			包含表的模式*/
+  TriggerStep *step_list; /* Link list of trigger program steps             	触发程序步骤的链表*/
+  Trigger *pNext;         /* Next trigger associated with the table 		与表关联的下一个触发器*/
 };
 
 /*
-** A trigger is either a BEFORE or an AFTER trigger.  The following constants
+** A trigger is either a BEFORE or an AFTER trigger.  The following constants	触发器是无论是BEFORE或AFTER触发器。以下常量确定。
 ** determine which. 
 **
-** If there are multiple triggers, you might of some BEFORE and some AFTER.
-** In that cases, the constants below can be ORed together.
+** If there are multiple triggers, you might of some BEFORE and some AFTER.	如果有多个触发器，可能有BEGORE触发器和AFTER触发器
+** In that cases, the constants below can be ORed together.			在这种情况下，下面的常量可以进行或运算
 */
 #define TRIGGER_BEFORE  1
 #define TRIGGER_AFTER   2
 
 /*
- * An instance of struct TriggerStep is used to store a single SQL statement
+ * An instance of struct TriggerStep is used to store a single SQL statement	TriggerStep结构的一个实例用于存储触发器程序一部分的单个SQL语句
  * that is a part of a trigger-program. 
  *
- * Instances of struct TriggerStep are stored in a singly linked list (linked
- * using the "pNext" member) referenced by the "step_list" member of the 
- * associated struct Trigger instance. The first element of the linked list is
+ * Instances of struct TriggerStep are stored in a singly linked list (linked	TriggerStep结构的一个实例存储在一个通过引用与此相关的Trigger结构的
+ * using the "pNext" member) referenced by the "step_list" member of the 	实例的"step_list"成员的单链表(使用"pNext"成员连接) 
+ * associated struct Trigger instance. The first element of the linked list is	该链表的第一个元素是触发程序的第一步。
  * the first step of the trigger-program.
  * 
- * The "op" member indicates whether this is a "DELETE", "INSERT", "UPDATE" or
- * "SELECT" statement. The meanings of the other members is determined by the 
+ * The "op" member indicates whether this is a "DELETE", "INSERT", "UPDATE" or	"op"成员表示这是否是一个"DELETE", "INSERT", "UPDATE" 或"SELECT"	语句	
+ * "SELECT" statement. The meanings of the other members is determined by the 	其他成员的含义是由如下的“OP”的值确定：
  * value of "op" as follows:
  *
  * (op == TK_INSERT)
- * orconf    -> stores the ON CONFLICT algorithm
- * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then
- *              this stores a pointer to the SELECT statement. Otherwise NULL.
- * target    -> A token holding the quoted name of the table to insert into.
- * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then
- *              this stores values to be inserted. Otherwise NULL.
- * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 
- *              statement, then this stores the column-names to be
+ * orconf    -> stores the ON CONFLICT algorithm				orconf->存储ON CONFLICT算法
+ * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then	pSelect->如果这是一个INSERT INTO ... SELECT...语句，
+ *              this stores a pointer to the SELECT statement. Otherwise NULL.	那么这个存储的指针SELECT语句。否则NULL。
+ * target    -> A token holding the quoted name of the table to insert into.	target    -> 标记持有插入表的引用名
+ * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then	pExprList ->如果这是一个 INSERT INTO ... VALUES ... 语句，
+ *              this stores values to be inserted. Otherwise NULL.		那么这个存储要插入的值。否则NULL
+ * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 	pIdList   ->如果这是一个INSERT INTO ... (<column-names>) VALUES ... 语句，
+ *              statement, then this stores the column-names to be		那么这个存储要被插入的列名
  *              inserted into.
  *
  * (op == TK_DELETE)
- * target    -> A token holding the quoted name of the table to delete from.
- * pWhere    -> The WHERE clause of the DELETE statement if one is specified.
+ * target    -> A token holding the quoted name of the table to delete from.	target->标记持有进行删除的表的引用名称
+ * pWhere    -> The WHERE clause of the DELETE statement if one is specified.	pWhere ->指定DELETE语句的WHERE子句
  *              Otherwise NULL.
  * 
  * (op == TK_UPDATE)
- * target    -> A token holding the quoted name of the table to update rows of.
- * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.
+ * target    -> A token holding the quoted name of the table to update rows of.	target->标记持有更新行的表的引用名
+ * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.	pWhere->指定UPDATE语句的WHERE子句
  *              Otherwise NULL.
- * pExprList -> A list of the columns to update and the expressions to update
- *              them to. See sqlite3Update() documentation of "pChanges"
+ * pExprList -> A list of the columns to update and the expressions to update	pExprList -> 更新的列的列表和更新它们的表达式
+ *              them to. See sqlite3Update() documentation of "pChanges"	看sqlite3Update()文档的"pChanges"说法
  *              argument.
  * 
  */
 struct TriggerStep {
-  u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT */
+  u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT 	TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT其中之一*/
   u8 orconf;           /* OE_Rollback etc. */
-  Trigger *pTrig;      /* The trigger that this step is a part of */
+  Trigger *pTrig;      /* The trigger that this step is a part of 		这个触发是这一步的一部分*/
   Select *pSelect;     /* SELECT statment or RHS of INSERT INTO .. SELECT ... */
-  Token target;        /* Target table for DELETE, UPDATE, INSERT */
-  Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps */
-  ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT */
-  IdList *pIdList;     /* Column names for INSERT */
-  TriggerStep *pNext;  /* Next in the link-list */
-  TriggerStep *pLast;  /* Last element in link-list. Valid for 1st elem only */
+  Token target;        /* Target table for DELETE, UPDATE, INSERT 		对于DELETE，UPDATE，INSERT目标表*/
+  Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps 		WHERE子句中DELETE 或UPDATE步骤*/
+  ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT 	UPDATE的SET子句，INSERT的VALUES子句*/
+  IdList *pIdList;     /* Column names for INSERT 				对于INSERT的列名*/
+  TriggerStep *pNext;  /* Next in the link-list 				在链表中后继*/
+  TriggerStep *pLast;  /* Last element in link-list. Valid for 1st elem only 	链表中最后一个元素。只有第一个元素有效*/
 };
 
 /*
-** The following structure contains information used by the sqliteFix...
-** routines as they walk the parse tree to make database references
+** The following structure contains information used by the sqliteFix...	以下结构包含用于例程sqliteFix…的信息
+** routines as they walk the parse tree to make database references		例程解析式行走时数据库引用明确
 ** explicit.  
 */
 typedef struct DbFixer DbFixer;
 struct DbFixer {
-  Parse *pParse;      /* The parsing context.  Error messages written here */
-  const char *zDb;    /* Make sure all objects are contained in this database */
-  const char *zType;  /* Type of the container - used for error messages */
-  const Token *pName; /* Name of the container - used for error messages */
+  Parse *pParse;      /* The parsing context.  Error messages written here 	解析上下文。错误信息写在这里*/
+  const char *zDb;    /* Make sure all objects are contained in this database 	确保所有对象均包含在这个数据库*/
+  const char *zType;  /* Type of the container - used for error messages 	容器的类型-用于错误信息*/
+  const Token *pName; /* Name of the container - used for error messages 	容器的名称-用于错误信息*/
 };
 
 /*
-** An objected used to accumulate the text of a string where we
-** do not necessarily know how big the string will be in the end.
+** An objected used to accumulate the text of a string where we			一个用来积累字符串文本的对象
+** do not necessarily know how big the string will be in the end.		我们不一定知道字符串最终多大
 */
 struct StrAccum {
-  sqlite3 *db;         /* Optional database for lookaside.  Can be NULL */
-  char *zBase;         /* A base allocation.  Not from malloc. */
-  char *zText;         /* The string collected so far */
-  int  nChar;          /* Length of the string so far */
-  int  nAlloc;         /* Amount of space allocated in zText */
-  int  mxAlloc;        /* Maximum allowed string length */
-  u8   mallocFailed;   /* Becomes true if any memory allocation fails */
+  sqlite3 *db;         /* Optional database for lookaside.  Can be NULL 	可选数据库的后备。可以为空*/
+  char *zBase;         /* A base allocation.  Not from malloc. 			一个基本的分配。不是从malloc分配的*/
+  char *zText;         /* The string collected so far 				至今收集的字符串*/
+  int  nChar;          /* Length of the string so far 				到目前字符串的长度*/
+  int  nAlloc;         /* Amount of space allocated in zText 			分配给zText的空间大小*/
+  int  mxAlloc;        /* Maximum allowed string length 			允许字符串的最大长度*/
+  u8   mallocFailed;   /* Becomes true if any memory allocation fails 		如果有内存分配失败则变为真*/
   u8   useMalloc;      /* 0: none,  1: sqlite3DbMalloc,  2: sqlite3_malloc */
-  u8   tooBig;         /* Becomes true if string size exceeds limits */
+  u8   tooBig;         /* Becomes true if string size exceeds limits 		如果字符串大小超过限定值变为真*/
 };
 
 /*
-** A pointer to this structure is used to communicate information
+** A pointer to this structure is used to communicate information		该结构的指针用来从sqlite3Init和OP_ParseSchema到sqlite3InitCallback交流信息
 ** from sqlite3Init and OP_ParseSchema into the sqlite3InitCallback.
 */
 typedef struct {
-  sqlite3 *db;        /* The database being initialized */
-  char **pzErrMsg;    /* Error message stored here */
-  int iDb;            /* 0 for main database.  1 for TEMP, 2.. for ATTACHed */
-  int rc;             /* Result code stored here */
+  sqlite3 *db;        /* The database being initialized 			初始化数据库*/
+  char **pzErrMsg;    /* Error message stored here 				在此存储错误信息*/
+  int iDb;            /* 0 for main database.  1 for TEMP, 2.. for ATTACHed 	0为主数据库，1为临时，2为附加*/
+  int rc;             /* Result code stored here 				存储在此的结果代码*/
 } InitData;
 
 /*
-** Structure containing global configuration data for the SQLite library.
+** Structure containing global configuration data for the SQLite library.	包含SQLite数据库全局配置数据的结构
 **
-** This structure also contains some state information.
+** This structure also contains some state information.				此结构还包含一些状态信息
 */
 struct Sqlite3Config {
-  int bMemstat;                     /* True to enable memory status */
-  int bCoreMutex;                   /* True to enable core mutexing */
-  int bFullMutex;                   /* True to enable full mutexing */
-  int bOpenUri;                     /* True to interpret filenames as URIs */
-  int mxStrlen;                     /* Maximum string length */
-  int szLookaside;                  /* Default lookaside buffer size */
-  int nLookaside;                   /* Default lookaside buffer count */
-  sqlite3_mem_methods m;            /* Low-level memory allocation interface */
-  sqlite3_mutex_methods mutex;      /* Low-level mutex interface */
-  sqlite3_pcache_methods2 pcache2;  /* Low-level page-cache interface */
-  void *pHeap;                      /* Heap storage space */
-  int nHeap;                        /* Size of pHeap[] */
-  int mnReq, mxReq;                 /* Min and max heap requests sizes */
-  void *pScratch;                   /* Scratch memory */
-  int szScratch;                    /* Size of each scratch buffer */
-  int nScratch;                     /* Number of scratch buffers */
-  void *pPage;                      /* Page cache memory */
-  int szPage;                       /* Size of each page in pPage[] */
-  int nPage;                        /* Number of pages in pPage[] */
-  int mxParserStack;                /* maximum depth of the parser stack */
-  int sharedCacheEnabled;           /* true if shared-cache mode enabled */
-  /* The above might be initialized to non-zero.  The following need to always
+  int bMemstat;                     /* True to enable memory status 		启用内存状态为真*/
+  int bCoreMutex;                   /* True to enable core mutexing 		启用核心互斥为真*/
+  int bFullMutex;                   /* True to enable full mutexing 		启用完整的互斥锁为真*/
+  int bOpenUri;                     /* True to interpret filenames as URIs 	解释文件名作为URL*/
+  int mxStrlen;                     /* Maximum string length 			字符串的最大长度*/
+  int szLookaside;                  /* Default lookaside buffer size 		默认的后被缓冲区大小*/
+  int nLookaside;                   /* Default lookaside buffer count 		默认后备缓冲计算器*/
+  sqlite3_mem_methods m;            /* Low-level memory allocation interface 	低级别的内存分配借口*/
+  sqlite3_mutex_methods mutex;      /* Low-level mutex interface 		低层次的互斥借口*/
+  sqlite3_pcache_methods2 pcache2;  /* Low-level page-cache interface 		低级别的页面缓存接口*/
+  void *pHeap;                      /* Heap storage space 			堆存储空间*/
+  int nHeap;                        /* Size of pHeap[] 				pHead[]的大小*/
+  int mnReq, mxReq;                 /* Min and max heap requests sizes 		最小堆和最大堆的要求大小*/
+  void *pScratch;                   /* Scratch memory 				临时内存*/
+  int szScratch;                    /* Size of each scratch buffer 		每个暂用缓存的大小*/
+  int nScratch;                     /* Number of scratch buffers 		暂用缓存的数量*/
+  void *pPage;                      /* Page cache memory 			页面高速缓存存储器*/
+  int szPage;                       /* Size of each page in pPage[] 		pPage[]中每个页面的大小*/
+  int nPage;                        /* Number of pages in pPage[] 		pPage[]中页面的数量*/
+  int mxParserStack;                /* maximum depth of the parser stack 	解析器堆栈的最大深度*/
+  int sharedCacheEnabled;           /* true if shared-cache mode enabled 	如果共享缓存模式为真*/
+  /* The above might be initialized to non-zero.  The following need to always	上面可能会初始化为非零。但是下面始终初始化为零
   ** initially be zero, however. */
-  int isInit;                       /* True after initialization has finished */
-  int inProgress;                   /* True while initialization in progress */
-  int isMutexInit;                  /* True after mutexes are initialized */
-  int isMallocInit;                 /* True after malloc is initialized */
-  int isPCacheInit;                 /* True after malloc is initialized */
-  sqlite3_mutex *pInitMutex;        /* Mutex used by sqlite3_initialize() */
-  int nRefInitMutex;                /* Number of users of pInitMutex */
-  void (*xLog)(void*,int,const char*); /* Function for logging */
-  void *pLogArg;                       /* First argument to xLog() */
-  int bLocaltimeFault;              /* True to fail localtime() calls */
+  int isInit;                       /* True after initialization has finished 	初始化完成后为真*/
+  int inProgress;                   /* True while initialization in progress 	正在进行初始化为真*/
+  int isMutexInit;                  /* True after mutexes are initialized 	互斥体被初始化后为真*/
+  int isMallocInit;                 /* True after malloc is initialized 	malloc被初始化后为真*/
+  int isPCacheInit;                 /* True after malloc is initialized 	malloc被初始化后为真*/
+  sqlite3_mutex *pInitMutex;        /* Mutex used by sqlite3_initialize() 	sqlite3_initialize()使用的互斥*/
+  int nRefInitMutex;                /* Number of users of pInitMutex 		pInitMutex的用户数*/
+  void (*xLog)(void*,int,const char*); /* Function for logging 			功能记录*/
+  void *pLogArg;                       /* First argument to xLog() 		xLog()的第一个参数*/
+  int bLocaltimeFault;              /* True to fail localtime() calls 		调用localtime()失败后为真*/
 };
 
 /*
-** Context pointer passed down through the tree-walk.
+** Context pointer passed down through the tree-walk.				通过数的路径传递下来的上下文指针
 */
 struct Walker {
   int (*xExprCallback)(Walker*, Expr*);     /* Callback for expressions *回调函数表达式/
@@ -2708,7 +2708,7 @@ char *sqlite3MAppendf(sqlite3*,char*,const char*,...);
   void *sqlite3TestTextToPtr(const char*);
 #endif
 
-/* Output formatting for SQLITE_TESTCTRL_EXPLAIN */
+/* Output formatting for SQLITE_TESTCTRL_EXPLAIN*/ /*SQLITE_TESTCTRL_EXPLAIN的格式化输出*/
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
   void sqlite3ExplainBegin(Vdbe*);
   void sqlite3ExplainPrintf(Vdbe*, const char*, ...);
@@ -3006,8 +3006,11 @@ int sqlite3VarintLen(u64 v);
 ** and decode of the integers in a record header.  It is faster for the common
 ** case where the integer is a single byte.  It is a little slower when the
 ** integer is two or more bytes.  But overall it is faster.
-**
+**记录的头部由一系列可变长度的整数组成。这些整数几乎都很小并且被编码为一个单字节。下面的宏利用了这个优点
+提供了一种对记录头里的整数快速编解码的方式。当整数是单字节时这种方式就比较快，当整数是双字节或者多字节它
+就会慢一些，但是不管怎样，它都更快了。
 ** The following expressions are equivalent:
+      下面的式子是相等的
 **
 **     x = sqlite3GetVarint32( A, &B );
 **     x = sqlite3PutVarint32( A, B );
@@ -3128,6 +3131,7 @@ void sqlite3BackupUpdate(sqlite3_backup *, Pgno, const u8 *);
 
 /*
 ** The interface to the LEMON-generated parser
+ LEMON-generated解析器的接口
 */
 void *sqlite3ParserAlloc(void*(*)(size_t));
 void sqlite3ParserFree(void*, void(*)(void*));
@@ -3204,6 +3208,9 @@ int sqlite3WalDefaultHook(void*,sqlite3*,const char*,int);
 ** OMIT_FOREIGN_KEY is not, only some of the functions are no-oped. In
 ** this case foreign keys are parsed, but no other functionality is 
 ** provided (enforcement of FK constraints requires the triggers sub-system).
+fkey.c文件中的函数声明。如果 OMIT_FOREIGN_KEY没有被定义那所有的函数声明就会被无操作宏所取代。
+在这种情况下，外键的功能不可用。如果OMIT_TRIGGER被定义但是OMIT_FOREIGN_KEY没有被定义,那就会有部分的功能不被启用。
+在这种情况下，外键会被解析，但是不会提供别的功能。（实施FK约束要求触发器子系统）。
 */
 #if !defined(SQLITE_OMIT_FOREIGN_KEY) && !defined(SQLITE_OMIT_TRIGGER)
   void sqlite3FkCheck(Parse*, Table*, int, int);
@@ -3228,6 +3235,7 @@ int sqlite3WalDefaultHook(void*,sqlite3*,const char*,int);
 
 /*
 ** Available fault injectors.  Should be numbered beginning with 0.
+可用的错误注射器，应该从0开始编号
 */
 #define SQLITE_FAULTINJECTOR_MALLOC     0
 #define SQLITE_FAULTINJECTOR_COUNT      1
@@ -3236,6 +3244,7 @@ int sqlite3WalDefaultHook(void*,sqlite3*,const char*,int);
 ** The interface to the code in fault.c used for identifying "benign"
 ** malloc failures. This is only present if SQLITE_OMIT_BUILTIN_TEST
 ** is not defined.
+fault.c中的代码的接口用于识别“良性的”malloc的故障，只有当SQLITE_OMIT_BUILTIN_TEST没有定义时才会出现这种情况。
 */
 #ifndef SQLITE_OMIT_BUILTIN_TEST
   void sqlite3BeginBenignMalloc(void);
@@ -3293,6 +3302,7 @@ void sqlite3Put4byte(u8*, u32);
 ** If the SQLITE_ENABLE IOTRACE exists then the global variable
 ** sqlite3IoTrace is a pointer to a printf-like routine used to
 ** print I/O tracing messages. 
+如果SQLITE_ENABLE IOTRACE存在，那么那么全局变量sqlite3的IoTrace是一个指向用于打印I / O跟踪消息的类printf程序。
 */
 #ifdef SQLITE_ENABLE_IOTRACE
 # define IOTRACE(A)  if( sqlite3IoTrace ){ sqlite3IoTrace A; }
@@ -3307,18 +3317,19 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
 ** These routines are available for the mem2.c debugging memory allocator
 ** only.  They are used to verify that different "types" of memory
 ** allocations are properly tracked by the system.
-**
+**这些程序只对mem2.c调试内存分配器可用。他们被用来验证不同类型的内存分配是否被系统正确地追踪。
 ** sqlite3MemdebugSetType() sets the "type" of an allocation to one of
 ** the MEMTYPE_* macros defined below.  The type must be a bitmask with
 ** a single bit set.
-**
+**sqlite3MemdebugSetType()设置的“类型”分配给下面定义的 MEMTYPE_* 宏之一。这个类型必须是一个单比特集的掩码。
 ** sqlite3MemdebugHasType() returns true if any of the bits in its second
 ** argument match the type set by the previous sqlite3MemdebugSetType().
 ** sqlite3MemdebugHasType() is intended for use inside assert() statements.
-**
+** 如果在sqlite3MemdebugHasType()第二个参数的位匹配之前 sqlite3MemdebugSetType()设置的类型，那么sqlite3MemdebugHasType() 返回真
+   sqlite3MemdebugHasType()是为了使用assert()内部的语句。
 ** sqlite3MemdebugNoType() returns true if none of the bits in its second
 ** argument match the type set by the previous sqlite3MemdebugSetType().
-**
+**如果sqlite3MemdebugHasType()第二个参数的位没有一个匹配之前 sqlite3MemdebugSetType()设置的类型，那么sqlite3MemdebugNoType() 返回真
 ** Perhaps the most important point is the difference between MEMTYPE_HEAP
 ** and MEMTYPE_LOOKASIDE.  If an allocation is MEMTYPE_LOOKASIDE, that means
 ** it might have been allocated by lookaside, except the allocation was
@@ -3327,7 +3338,8 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
 ** passed back to non-lookaside free() routines.  Asserts such as the
 ** example above are placed on the non-lookaside free() routines to verify
 ** this constraint. 
-**
+**  最重要的一点就是MEMTYPE_HEAP与MEMTYPE_LOOKASIDE的区别。如果一个分配是MEMTYPE_LOOKASIDE，那意味着这可能是由后备分配的，除非分配了太大或后备已经全满了。
+确认后备已经被分配充足不会回传给非后备free()程序是非常重要的。声称如上面的示例中放入非后备 free() 程序来验证此约束。
 ** All of this is no-op for a production build.  It only comes into
 ** play when the SQLITE_MEMDEBUG compile-time option is used.
 */
@@ -3336,14 +3348,14 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
   int sqlite3MemdebugHasType(void*,u8);
   int sqlite3MemdebugNoType(void*,u8);
 #else
-# define sqlite3MemdebugSetType(X,Y)  /* no-op */
+# define sqlite3MemdebugSetType(X,Y)  /* no-op 空操作*/
 # define sqlite3MemdebugHasType(X,Y)  1
 # define sqlite3MemdebugNoType(X,Y)   1
 #endif
-#define MEMTYPE_HEAP       0x01  /* General heap allocations */
-#define MEMTYPE_LOOKASIDE  0x02  /* Might have been lookaside memory */
-#define MEMTYPE_SCRATCH    0x04  /* Scratch allocations */
-#define MEMTYPE_PCACHE     0x08  /* Page cache allocations */
-#define MEMTYPE_DB         0x10  /* Uses sqlite3DbMalloc, not sqlite_malloc */
+#define MEMTYPE_HEAP       0x01  /* General heap allocations 总的堆式分配*/
+#define MEMTYPE_LOOKASIDE  0x02  /* Might have been lookaside memory 可能是后备存储器*/
+#define MEMTYPE_SCRATCH    0x04  /* Scratch allocations 从头开始分配*/
+#define MEMTYPE_PCACHE     0x08  /* Page cache allocations页面缓存分配 */
+#define MEMTYPE_DB         0x10  /* Uses sqlite3DbMalloc, not sqlite_malloc 使用sqlite3DbMalloc，而不是sqlite_malloc*/
 
 #endif /* _SQLITEINT_H_ */

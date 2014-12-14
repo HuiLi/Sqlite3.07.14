@@ -185,6 +185,7 @@ struct WhereAndInfo {
 ** cursors:  4, 5, 8, 29, 57, 73.  Then the  WhereMaskSet structure
 ** would map those cursor numbers into bits 0 through 5.
 **
+** 映射是无顺序的
 ** Note that the mapping is not necessarily ordered.  In the example
 ** above, the mapping might go like this:  4->3, 5->1, 8->2, 29->0,
 ** 57->5, 73->4.  Or one of 719 other combinations might be used. It
@@ -221,8 +222,8 @@ struct WhereCost {
 #define WO_GE     (WO_EQ<<(TK_GE-TK_EQ))
 #define WO_MATCH  0x040
 #define WO_ISNULL 0x080
-#define WO_OR     0x100       /* Two or more OR-connected terms */
-#define WO_AND    0x200       /* Two or more AND-connected terms */
+#define WO_OR     0x100       /* 两个或多个OR相连的项 Two or more OR-connected terms */
+#define WO_AND    0x200       /* 两个或多个AND相连的项 Two or more AND-connected terms */
 #define WO_NOOP   0x800       /* This term does not restrict search space */
 
 #define WO_ALL    0xfff       /* Mask of all possible WO_* values */
@@ -232,6 +233,7 @@ struct WhereCost {
 ** Value for wsFlags returned by bestIndex() and stored in
 ** WhereLevel.wsFlags.  These flags determine which search
 ** strategies are appropriate.
+** bestIndex()函数返回的存储在WhereLevel.wsFlags中的值，这个标志表示哪个查询策略更合适
 **
 ** The least significant 12 bits is reserved as a mask for WO_ values above.
 ** WhereLevel.wsFlags 字段的值通常是 WO_IN|WO_EQ|WO_ISNULL.
@@ -248,7 +250,7 @@ struct WhereCost {
 #define WHERE_COLUMN_IN    0x00040000  /* x IN (...) */
 #define WHERE_COLUMN_NULL  0x00080000  /* x IS NULL */
 #define WHERE_INDEXED      0x000f0000  /* Anything that uses an index */
-#define WHERE_NOT_FULLSCAN 0x100f3000  /* Does not do a full table scan */
+#define WHERE_NOT_FULLSCAN 0x100f3000  /* 不做全表扫描 */
 #define WHERE_IN_ABLE      0x000f1000  /* Able to support an IN operator */
 #define WHERE_TOP_LIMIT    0x00100000  /* x<EXPR or x<=EXPR constraint */
 #define WHERE_BTM_LIMIT    0x00200000  /* x>EXPR or x>=EXPR constraint */
@@ -348,7 +350,7 @@ static void whereClauseClear(WhereClause *pWC){
 ** the pWC->a[] array.
 */
 static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
-  WhereTerm *pTerm;
+  WhereTerm *pTerm;   /* 新建一个WhereTerm */
   int idx;
   testcase( wtFlags & TERM_VIRTUAL );  /* EV: R-00211-15100 */
   if( pWC->nTerm>=pWC->nSlot ){
@@ -385,7 +387,8 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
 **    WHERE  a=='hello' AND coalesce(b,11)<10 AND (c+12!=d OR c==22)
 **           \________/     \_______________/     \________________/
 **            slot[0]            slot[1]               slot[2]
-**
+** 
+** 分离以AND隔开的WHERE子句
 ** The original WHERE clause in pExpr is unaltered.  All this routine
 ** does is make slot[] entries point to substructure within pExpr.
 **
@@ -397,7 +400,7 @@ static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
   pWC->op = (u8)op;
   if( pExpr==0 ) return;
   if( pExpr->op!=op ){
-    whereClauseInsert(pWC, pExpr, 0);
+    whereClauseInsert(pWC, pExpr, 0);  /* 子句不为AND分开的子句，插入新WhereTerm到WhereClause中 */
   }else{
     whereSplit(pWC, pExpr->pLeft, op);
     whereSplit(pWC, pExpr->pRight, op);
@@ -406,10 +409,12 @@ static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
 
 /*
 ** Initialize an expression mask set (a WhereMaskSet object)
+** 初始化表达式掩码
 */
 #define initMaskSet(P)  memset(P, 0, sizeof(*P))
 
 /*
+** 根据给出的光标值返回位掩码bitmask，不存在则返回0
 ** Return the bitmask for the given cursor number.  Return 0 if
 ** iCursor is not in the set.
 */
@@ -426,7 +431,9 @@ static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
 
 /*
 ** Create a new mask for cursor iCursor.
+** 为ICursor创建一个新的mask
 **
+** 在sqlite3WhereBegin()中已经限制了FROM语句的表个数
 ** There is one cursor per table in the FROM clause.  The number of
 ** tables in the FROM clause is limited by a test early in the
 ** sqlite3WhereBegin() routine.  So we know that the pMaskSet->ix[]
@@ -441,6 +448,7 @@ static void createMask(WhereMaskSet *pMaskSet, int iCursor){
 ** This routine walks (recursively) an expression tree and generates
 ** a bitmask indicating which tables are used in that expression
 ** tree.
+** 这个程序（递归）一个表达式树和产生的位掩码指示哪些表中使用的表达式树。
 **
 ** In order for this routine to work, the calling function must have
 ** previously invoked sqlite3ResolveExprNames() on the expression.  See
@@ -504,6 +512,7 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
 ** Return TRUE if the given operator is one of the operators that is
 ** allowed for an indexable WHERE clause term.  The allowed operators are
 ** "=", "<", ">", "<=", ">=", and "IN".
+** 若操作符使用在一个可可以使用索引的WhereClause term上则返回True
 **
 ** IMPLEMENTATION-OF: R-59926-26393 To be usable by an index a term must be
 ** of one of the following forms: column = expression column > expression
@@ -522,12 +531,14 @@ static int allowedOp(int op){
 
 /*
 ** Swap two objects of type TYPE.
+** 转换A，B值
 */
 #define SWAP(TYPE,A,B) {TYPE t=A; A=B; B=t;}
 
 /*
 ** Commute a comparison operator.  Expressions of the form "X op Y"
 ** are converted into "Y op X".
+** 转换对照操作符。
 **
 ** If a collation sequence is associated with either the left or right
 ** side of the comparison, it remains associated with the same side after
@@ -559,6 +570,7 @@ static void exprCommute(Parse *pParse, Expr *pExpr){
 
 /*
 ** Translate from TK_xx operator to WO_xx bitmask.
+** 转换TK_xx操作符到WO_xx位掩码
 */
 static u16 operatorMask(int op){
   u16 c;
@@ -586,13 +598,16 @@ static u16 operatorMask(int op){
 ** where X is a reference to the iColumn of table iCur and <op> is one of
 ** the WO_xx operator codes specified by the op parameter.
 ** Return a pointer to the term.  Return 0 if not found.
+** 在WhereClause中搜索通过WO_xx指定操作符，iColumn和iCur指定表和列的WhereTerm
+** 搜索成功则返回WhereTerm的指针，否则返回0
+**
 */
 static WhereTerm *findTerm(
-  WhereClause *pWC,     /* The WHERE clause to be searched */
+  WhereClause *pWC,     /* 需要搜索的WhereClause The WHERE clause to be searched */
   int iCur,             /* Cursor number of LHS */
   int iColumn,          /* Column number of LHS */
   Bitmask notReady,     /* RHS must not overlap with this mask */
-  u32 op,               /* Mask of WO_xx values describing operator */
+  u32 op,               /* 通过WO_xx描述的操作符 Mask of WO_xx values describing operator */
   Index *pIdx           /* Must be compatible with this index, if not NULL */
 ){
   WhereTerm *pTerm;
@@ -641,12 +656,12 @@ static void exprAnalyze(SrcList*, WhereClause*, int);
 
 /*
 ** Call exprAnalyze on all terms in a WHERE clause.  
-**
+** 对所有WhereClause中的WhereTerm执行exprAnalyze
 **
 */
 static void exprAnalyzeAll(
   SrcList *pTabList,       /* the FROM clause */
-  WhereClause *pWC         /* the WHERE clause to be analyzed */
+  WhereClause *pWC         /* 待分析的WhereClause the WHERE clause to be analyzed */
 ){
   int i;
   for(i=pWC->nTerm-1; i>=0; i--){
@@ -659,13 +674,14 @@ static void exprAnalyzeAll(
 ** Check to see if the given expression is a LIKE or GLOB operator that
 ** can be optimized using inequality constraints.  Return TRUE if it is
 ** so and false if not.
+** 检查给定的表达式是否是可以使用不等式优化的LIKE或GLOB操作符。
 **
 ** In order for the operator to be optimizible, the RHS must be a string
 ** literal that does not begin with a wildcard.  
 */
 static int isLikeOrGlob(
-  Parse *pParse,    /* Parsing and code generating context */
-  Expr *pExpr,      /* Test this expression */
+  Parse *pParse,    /* 词法分析及代码生成器上下文 Parsing and code generating context */
+  Expr *pExpr,      /* 待测试表达式 Test this expression */
   Expr **ppPrefix,  /* Pointer to TK_STRING expression with pattern prefix */
   int *pisComplete, /* True if the only wildcard is % in the last character */
   int *pnoCase      /* True if uppercase is equivalent to lowercase */
@@ -794,8 +810,9 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 
 #if !defined(SQLITE_OMIT_OR_OPTIMIZATION) && !defined(SQLITE_OMIT_SUBQUERY)
 /*
+** 分析一个包含多个OR连接的子term的term
 ** Analyze a term that consists of two or more OR-connected
-** subterms.  So in:
+** subterms.  例如下面这种形式:
 **
 **     ... WHERE  (a=5) AND (b=7 OR c=9 OR d=13) AND (d=13)
 **                          ^^^^^^^^^^^^^^^^^^^^
@@ -808,6 +825,7 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 **     WhereTerm.u.pOrInfo  =  a dynamically allocated WhereOrTerm object
 **
 ** The term being analyzed must have two or more of OR-connected subterms.
+** 分析的term必须包含多个OR连接的子term，一个term应该是AND连接的子term
 ** A single subterm might be a set of AND-connected sub-subterms.
 ** Examples of terms under analysis:
 **
