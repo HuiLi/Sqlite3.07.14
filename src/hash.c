@@ -52,27 +52,28 @@ void sqlite3HashClear(Hash *pH){
   elem = pH->first;
   pH->first = 0;
   sqlite3_free(pH->ht);/*释放HASH函数的ht*/
-  pH->ht = 0;
+  pH->ht = 0;//使哈希表的ht为0
   pH->htsize = 0;/*htsize is unsigned int,*///Elaine debug
-  while( elem ){
+  while( elem ){//判断elem是否还存在，如果存在继续做释放的动作
     HashElem *next_elem = elem->next;
-    sqlite3_free(elem);
-    elem = next_elem;
+    sqlite3_free(elem);//释放elem
+    elem = next_elem;//elam等于他的下一个elem，依次后移
   }
-  pH->count = 0;
+  pH->count = 0;//表中的count置为0
 }
 
 /*
 ** The hashing function.
 */
+/*散列函数*/
 static unsigned int strHash(const char *z, int nKey){
   int h = 0;
-  assert( nKey>=0 );
-  while( nKey > 0  ){
+  assert( nKey>=0 );//如果nKey不大于0，则程序终止，如果大于0，则程序继续执行.
+  while( nKey > 0  ){//循环nKey的值，当等于0时，跳出循环.
     h = (h<<3) ^ h ^ sqlite3UpperToLower[(unsigned char)*z++];
-    nKey--;
+    nKey--;//nKEY=nKey-1
   }
-  return h;
+  return h;//返回h的数值
 }
 
 
@@ -84,27 +85,27 @@ static unsigned int strHash(const char *z, int nKey){
  把pNew连接到哈希表pH上，如果pEntry不等于0 则插入语pNew到结构体
 */
 static void insertElement(
-  Hash *pH,              /* The complete hash table */
+  Hash *pH,              /* The complete hash table *///完整的哈希表
   struct _ht *pEntry,    /* The entry into which pNew is inserted */
-  HashElem *pNew         /* The element to be inserted */
+  HashElem *pNew         /* The element to be inserted *///被插入的元素
 ){
   HashElem *pHead;       /* First element already in pEntry */
   if( pEntry ){/*determine the pEntry is empty,*///Elaine debug
-    pHead = pEntry->count ? pEntry->chain : 0;
+    pHead = pEntry->count ? pEntry->chain : 0;/*如果pEntry不空，则为pEntry结构赋值*/
     pEntry->count++;
     pEntry->chain = pNew;
   }else{
-    pHead = 0;
+    pHead = 0;//如果pEntry为0，则pHead为0
   }
-  if( pHead ){
-    pNew->next = pHead;
-    pNew->prev = pHead->prev;
-    if( pHead->prev ){ pHead->prev->next = pNew; }
+  if( pHead ){//判断pHead的值
+    pNew->next = pHead;//pNew的next指向pHead
+    pNew->prev = pHead->prev;//pNew的prev指向pHead的prev
+    if( pHead->prev ){ pHead->prev->next = pNew; }//pHead的prev的next指向pNew
     else             { pH->first = pNew; }
     pHead->prev = pNew;
   }else{
-    pNew->next = pH->first;
-    if( pH->first ){ pH->first->prev = pNew; }
+    pNew->next = pH->first;//如果pHead为0，则pNew的下一个指向pH的first
+    if( pH->first ){ pH->first->prev = pNew; }//pH的first的prev指向pNew  
     pNew->prev = 0;
     pH->first = pNew;
   }
@@ -117,11 +118,17 @@ static void insertElement(
 ** if the new size is the same as the prior size.
 ** Return TRUE if the resize occurs and false if not.
 */
+
+/*
+调整哈希表的大小，使它可以包含new_size
+如果哈希表申请空间失败或者新申请的大小和之前是一样的，哈希表重新改变大小是失败的。
+如果重新改变大小发生或者失败没有发生，返回true
+*/
 static int rehash(Hash *pH, unsigned int new_size){
   struct _ht *new_ht;            /* The new hash table */
   HashElem *elem, *next_elem;    /* For looping over existing elements */
 
-#if SQLITE_MALLOC_SOFT_LIMIT>0
+#if SQLITE_MALLOC_SOFT_LIMIT>0 //如果定义的SQLITE_MALLOC_SOFT_LIMIT大于0，则执行下面的if语句，否则不执行
   if( new_size*sizeof(struct _ht)>SQLITE_MALLOC_SOFT_LIMIT ){
     new_size = SQLITE_MALLOC_SOFT_LIMIT/sizeof(struct _ht);
   }
@@ -136,19 +143,26 @@ static int rehash(Hash *pH, unsigned int new_size){
   ** use the actual amount of space allocated for the hash table (which
   ** may be larger than the requested amount).
   */
-  sqlite3BeginBenignMalloc();
-  new_ht = (struct _ht *)sqlite3Malloc( new_size*sizeof(struct _ht) );
+  
+   /*
+  无法分配一个较大的哈希表空间是一个性能损失，但这不是一个致命的错误。所以标记分配作为一种有利的。
+  使用sqlite3Malloc()/memset(0)而不是sqlite3malloczero()进行分配，sqlite3malloczero()是零请
+  求的字节数，这个模块将实际使用量的空间分配哈希表（可大于所要求的数量）。   
+  */
+  
+  sqlite3BeginBenignMalloc();//在src/fault中有这个函数的函数体，必须与sqlite3EndBenignMalloc()配合使用
+  new_ht = (struct _ht *)sqlite3Malloc( new_size*sizeof(struct _ht) );//申请新的大小
   sqlite3EndBenignMalloc();
 
   if( new_ht==0 ) return 0;
   sqlite3_free(pH->ht);
   pH->ht = new_ht;
-  pH->htsize = new_size = sqlite3MallocSize(new_ht)/sizeof(struct _ht);
-  memset(new_ht, 0, new_size*sizeof(struct _ht));
+  pH->htsize = new_size = sqlite3MallocSize(new_ht)/sizeof(struct _ht);/*htsize的大小等于申请空间大小/ht结构体所占字节大小*/
+  memset(new_ht, 0, new_size*sizeof(struct _ht));/*将新开辟空间new_ht设置为0*/
   for(elem=pH->first, pH->first=0; elem; elem = next_elem){
     unsigned int h = strHash(elem->pKey, elem->nKey) % new_size;
     next_elem = elem->next;
-    insertElement(pH, &new_ht[h], elem);
+    insertElement(pH, &new_ht[h], elem);/*把elem连接到PH的哈希表的后面*/
   }
   return 1;
 }
@@ -157,9 +171,13 @@ static int rehash(Hash *pH, unsigned int new_size){
 ** hash table that matches the given key.  The hash for this key has
 ** already been computed and is passed as the 4th parameter.
 */
+
+/*这个函数（仅供内部使用）位于一个元素在一个哈希表相匹配的给定的键值。
+这个键值已被计算并作为第四个参数传递。*/
+
 static HashElem *findElementGivenHash(
-  const Hash *pH,     /* The pH to be searched */
-  const char *pKey,   /* The key we are searching for */
+  const Hash *pH,     /* The pH to be searched *//*被搜索的哈希表*/
+  const char *pKey,   /* The key we are searching for *//*被查找的键值*/
   int nKey,           /* Bytes in key (not counting zero terminator) */
   unsigned int h      /* The hash for this key. */
 ){
@@ -213,9 +231,9 @@ static void removeElementGivenHash(
   sqlite3_free( elem );
   pH->count--;
   if( pH->count<=0 ){
-    assert( pH->first==0 );
-    assert( pH->count==0 );
-    sqlite3HashClear(pH);
+    assert( pH->first==0 );/*pH->first为真，继续执行，否则推出执行*/ 
+    assert( pH->count==0 );/*pH->count为真，继续执行，否则推出执行*/
+    sqlite3HashClear(pH);/*清空PH哈希表中的值*/
   }
 }
 
@@ -225,17 +243,17 @@ static void removeElementGivenHash(
 */
 
 /*
-	在哈希表PH中找到与pkey，nkey匹配的key。
+  在哈希表PH中找到与pkey，nkey匹配的key。
   如果找到返回元素的数据，如果没有找到返回NULL
 */
 
 void *sqlite3HashFind(const Hash *pH, const char *pKey, int nKey){
-  HashElem *elem;    /* The element that matches key */
+  HashElem *elem;    /* The element that matches key *//*匹配的元素*/
   unsigned int h;    /* A hash on key */
 
-  assert( pH!=0 );
-  assert( pKey!=0 );
-  assert( nKey>=0 );
+  assert( pH!=0 );/*pH!=0为真，继续执行，否则推出执行*/
+  assert( pKey!=0 );/*pKey!=0为真，继续执行，否则推出执行*/
+  assert( nKey>=0 );/*nKey!=0为真，继续执行，否则推出执行*/
   if( pH->ht ){
     h = strHash(pKey, nKey) % pH->htsize;
   }else{
@@ -274,9 +292,9 @@ void *sqlite3HashInsert(Hash *pH, const char *pKey, int nKey, void *data){
   HashElem *elem;       /* Used to loop thru the element list */
   HashElem *new_elem;   /* New element added to the pH */
 
-  assert( pH!=0 );
-  assert( pKey!=0 );
-  assert( nKey>=0 );
+  assert( pH!=0 );/*pH!=0为真，继续执行，否则推出执行*/ 
+  assert( pKey!=0 );/*pKey!=0为真，继续执行，否则推出执行*/ 
+  assert( nKey>=0 );/*nKey!=0为真，继续执行，否则推出执行*/ 
   if( pH->htsize ){
     h = strHash(pKey, nKey) % pH->htsize;/*如果pH的htsize成员变量不为0,即使用哈希表存放数据项那么使用 strHash 函数计算桶号h*/
   }else{
