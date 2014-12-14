@@ -29,14 +29,14 @@ typedef struct FileWriter FileWriter;//用来往文件中写的结构体
 **
 ** As keys are added to the sorter, they are written to disk in a series
 ** of sorted packed-memory-arrays (PMAs). 
-   当key值加到sorter后，sorter就会被写到磁盘上的一些列排好序的PMA中
+   当key值加到sorter后，sorter就会被写到磁盘上的一系列排好序的PMA中
 ** The size of each PMA is roughly the same as the cache-size allowed for temporary databases. 
    每个PMA的大小大约和暂时数据库的Cache大小差不多
 ** In order to allow the caller to extract keys from the sorter in sorted order,
 ** all PMAs currently stored on disk must be merged together. 
    This comment describes the data structure used to do so. 
    为了能使调用者按照排好的顺序从sorter中提取key值，所有磁盘上的PMA需要合并到一起。
-   这段说明描述了做这些事所需要的数据结构
+   这段说明描述了做这件事所需要的数据结构
 ** The structure supports merging any number of arrays in a single pass with no redundant comparison operations.
 ** 所描述的数据结构支持通过一趟算法就把任意数量的数组合并起来，并且没有冗余比较
 ** 
@@ -60,7 +60,8 @@ typedef struct FileWriter FileWriter;//用来往文件中写的结构体
 　　 
 ** Element i contains the result of comparing aIter[2*i-N] and aIter[2*i-N+1]. Whichever key is smaller, the
 ** aTree element is set to the index of it. 
-**　数组aTree[]的第ｉ个元素保存的是aIter[2*i-N]和 aIter[2*i-N+1]大小比较结果，二者中，谁更小，就把谁的下标存在数组aTree[]的第ｉ个元素里。
+**　数组aTree[]的第ｉ个元素保存的是aIter[2*i-N]和 aIter[2*i-N+1]大小比较结果（这句话说明了数组aTree[]和数组aIter[]中元素的对应关系），
+　　aIter[2*i-N]和 aIter[2*i-N+1]二者中，谁更小，就把谁的下标存在数组aTree[]的第ｉ个元素里。
 ** For the purposes of this comparison, EOF is considered greater than any
 ** other key value. If the keys are equal (only possible with two EOF
 ** values), it doesn't matter which index is stored.
@@ -101,15 +102,15 @@ typedef struct FileWriter FileWriter;//用来往文件中写的结构体
 ** so the value written into element 1 of the array is 0. As follows:
 **
 **     aTree[] = { X, 0   0, 6    0, 3, 5, 6 }
-**　数组aTree[]的内容按如下方式更新：首先，比较迭代器５所指向的ｋｅｙ的值和迭代器４的当前所指向的ｋｅｙ值（仍然是"Grapefruit"）
+**　数组aTree[]的内容按如下方式更新：首先，比较迭代器５所指向的ｋｅｙ的值和迭代器４的当前所指向的ｋｅｙ值（其ｋｅｙ值仍然是"Grapefruit"）
 　　这时，迭代器５所指向的ｋｅｙ的值仍然是更小的，所以aTree[6]的值被设置为５.
-　　迭代器６所指向的ｋｅｙ的值——"Durian"——比迭代器５所指向的ｋｅｙ值小，，则aTree[3]被设置为6.
-　　而迭代器０所指的ｋｅｙ的值又比迭代器６所指的ｋｅｙ的值小，即Banana<Durian，所以aTree[１]被设置成０.结果如下：
+　　迭代器６所指向的ｋｅｙ的值——"Durian"——比迭代器５所指向的ｋｅｙ值（Eggplant）小，则aTree[3]被设置为6.
+　　而迭代器０所指的ｋｅｙ的值（Banana）又比迭代器６所指的ｋｅｙ的值小，即Banana<Durian，所以aTree[１]被设置成０.结果如下：
 		aTree[] = { X, 0   0, 6    0, 3, 5, 6 }
 ** In other words, each time we advance to the next sorter element, log2(N)
 ** key comparison operations are required, where N is the number of segments
 ** being merged (rounded up to the next power of 2)nnn.
-　　也就是说，我们每次前进到ｓｏｒｔｅｒ的下一个元素，需要做log2(N)次ｋｅｙ值比较，这里Ｎ是要被合并的段的数量
+　　也就是说，我们每次前进到ｓｏｒｔｅｒ的下一个元素，需要做log2(N)次的ｋｅｙ值比较，这里Ｎ是要被合并的段的数量
 　　
 */
 struct VdbeSorter {
