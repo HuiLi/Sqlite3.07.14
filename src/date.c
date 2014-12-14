@@ -11,16 +11,17 @@
 *************************************************************************
 ** This file contains the C functions that implement date and time
 ** functions for SQLite.  
-**
+**这个文件包含为SQLite实现的C函数日期和时间函数。 
 ** There is only one exported symbol in this file - the function
 ** sqlite3RegisterDateTimeFunctions() found at the bottom of the file.
+**这个文件只有一个出口标志——函数sqlite3RegisterDateTimeFunctions()，在文件的末尾。
 ** All other code has file scope.
 **
 ** SQLite processes all times and dates as Julian Day numbers.  The
 ** dates and times are stored as the number of days since noon
 ** in Greenwich on November 24, 4714 B.C. according to the Gregorian
 ** calendar system. 
-**
+**SQLite处理所有时间和日期为儒略日数字。存储日期和时间的天数因为中午11月24日,在格林威治公元前4714年根据公历系统。
 ** 1970-01-01 00:00:00 is JD 2440587.5
 ** 2000-01-01 00:00:00 is JD 2451544.5
 **
@@ -28,20 +29,20 @@
 ** which means that only dates between 0000-01-01 and 9999-12-31 can
 ** be represented, even though julian day numbers allow a much wider
 ** range of dates.
-**
+**这种实现需要把年表示为一个4位数的号码这意味着只能代表日期之间的0000-01-01和0000-01-01,尽管儒略日数字允许更大范围的日期。
 ** The Gregorian calendar system is used for all dates and times,
 ** even those that predate the Gregorian calendar.  Historians usually
 ** use the Julian calendar for dates prior to 1582-10-15 and for some
 ** dates afterwards, depending on locale.  Beware of this difference.
-**
+**公历系统是用于所有日期和时间,即使是那些早在公历。历史学家通常使用的公历日期之前1582-10-15和一些日期之后,根据语言环境。当心这种差异。
 ** The conversion algorithms are implemented based on descriptions
 ** in the following text:
-**
-**      Jean Meeus
-**      Astronomical Algorithms, 2nd Edition, 1998
-**      ISBM 0-943396-61-1
-**      Willmann-Bell, Inc
-**      Richmond, Virginia (USA)
+**转换算法实现基于描述在以下文本:
+**      Jean Meeus Jean Meeus
+**      Astronomical Algorithms, 2nd Edition, 1998《天文算法》，第二版，1998 
+**      ISBM 0-943396-61-1 ISBM 0-943396-61-1
+**      Willmann-Bell, Inc Willmann钟，
+**      Richmond, Virginia (USA) 有限公司里士满，弗吉尼亚州（美国）
 */
 #include "sqliteInt.h"
 #include <stdlib.h>
@@ -130,9 +131,10 @@ end_getDigits:
 **
 ** If the parse is successful, write the number of minutes
 ** of change in p->tz and return 0.  If a parser error occurs,
-** return non-zero.
+** return non-zero.如果分析是成功的，把改变后的分钟数写到偏移量P - > TZ中和返回0。
+** 如果发生一个分析器错误时，返回非零。
 **
-** A missing specifier is not considered an error.
+** A missing specifier is not considered an error.丢失的说明符不认为是一个错误
 */
 static int parseTimezone(const char *zDate, DateTime *p){
   int sgn = 0;
