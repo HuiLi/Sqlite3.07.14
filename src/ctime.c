@@ -15,7 +15,7 @@
 **本文件实现例程用于报告哪一个SQLite编译时间选择被建立。
 */
 
-#ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
+#ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS /*如果没有定义SQLITE_OMIT_COMPILEOPTION_DIAGS ，则执行下面语句知道文件结尾。如果SQLITE_OMIT_COMPILEOPTION_DIAGS被定义则什么都不编译*/
 
 #include "sqliteInt.h"
 
