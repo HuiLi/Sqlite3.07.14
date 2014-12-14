@@ -5587,11 +5587,14 @@ static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
   ** the whole array and silence valgrind, even if that means less randomness
   ** in the random seed.
   **
-  //
+  // 我们必须初始化zBuf以阻止错误报告中的valgrind。这个通过valgrind报告的问题不正确－
+  //我们更倾向于使用通过未被初始化空间的zBuf增长随机性－但是valgrind错误趋向于打扰一些用户。
+  //更多的争议，它貌似更容易初始化所有数组和寂静valgrind，甚至在随机种中更少的随机性。
   ** When testing, initializing zBuf[] to zero is all we do.  That means
   ** that we always use the same random number sequence.  This makes the
   ** tests repeatable.
   */
+  //当测试，我们所有做的事初始化zBuf[]为零。那意味着我们总是使用相同的随机数队列。这样使测试可重复。
   memset(zBuf, 0, nBuf);
 #if !defined(SQLITE_TEST)
   {
@@ -5623,6 +5626,8 @@ static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
 ** might be greater than or equal to the argument, but not less
 ** than the argument.
 */
+//休眠一会儿。返回睡眠时间。这个我们想去休眠的参数是以微秒计算。返回值是从底层操作系统请求的微秒数。
+//这个数值可能大于或等于这个参数，但是不会小于此参数。
 static int unixSleep(sqlite3_vfs *NotUsed, int microseconds){
 #if OS_VXWORKS
   struct timespec sp;
@@ -5649,8 +5654,10 @@ static int unixSleep(sqlite3_vfs *NotUsed, int microseconds){
 ** the number of seconds since 1970 and is used to set the result of
 ** sqlite3OsCurrentTime() during testing.
 */
+//以下变量，如果被设置为非零值，则被解释为自从1970年后的秒数，并且被设置为测试过程中sqlite3OsCurrentTime()的结果。
 #ifdef SQLITE_TEST
 int sqlite3_current_time = 0;  /* Fake system time in seconds since 1970. */
+                              //假系统时间，从1970年至今的秒数算起
 #endif
 
 /*
@@ -5660,9 +5667,10 @@ int sqlite3_current_time = 0;  /* Fake system time in seconds since 1970. */
 ** epoch of noon in Greenwich on November 24, 4714 B.C according to the
 ** proleptic Gregorian calendar.
 **
+//查询当前时间(在通用坐标系时间)。写入*piNow当前时间和日期作为一个Julian Day次数86_400_000。
 ** On success, return SQLITE_OK.  Return SQLITE_ERROR if the time and date 
 ** cannot be found.
-*/
+*///如果成功，返回SQLITE_OK。如果时间和日期不能被找到则返回SQLITE_ERROR。
 static int unixCurrentTimeInt64(sqlite3_vfs *NotUsed, sqlite3_int64 *piNow){
   static const sqlite3_int64 unixEpoch = 24405875*(sqlite3_int64)8640000;
   int rc = SQLITE_OK;
@@ -5697,6 +5705,8 @@ static int unixCurrentTimeInt64(sqlite3_vfs *NotUsed, sqlite3_int64 *piNow){
 ** current time and date as a Julian Day number into *prNow and
 ** return 0.  Return 1 if the time and date cannot be found.
 */
+//查找当前时间（世界标准时间）。
+//写当前的时间和日期作为儒略日数为* prNow并返回0返回1，如果时间和日期不能被发现。
 static int unixCurrentTime(sqlite3_vfs *NotUsed, double *prNow){
   sqlite3_int64 i = 0;
   int rc;
@@ -5713,6 +5723,9 @@ static int unixCurrentTime(sqlite3_vfs *NotUsed, double *prNow){
 ** in the core.  So this routine is never called.  For now, it is merely
 ** a place-holder.
 */
+//我们与提供更好的低级错误信息的打算加入xGetLastError（）方法时，运行系统的问题上来
+//在SQLite的操作。但到目前为止，没有任何已经在内核中实现。因此，这个程序不会被调用。就目前而言，它仅仅是一个占位符。
+在SQLite的操作。但到目前为止，没有任何已经在内核中实现。因此，这个程序不会被调用。就目前而言，它仅仅是一个占位符。
 static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
   UNUSED_PARAMETER(NotUsed);
   UNUSED_PARAMETER(NotUsed2);
@@ -5736,7 +5749,9 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** been defined - so that the primitive locking methods are available
 ** as services to help with the implementation of proxy locking.
 **
-//代理锁在这个场景下是一个"超级锁定方法"：它在附属锁定文件上使用其他锁定方法。代理锁是一个元层
+//代理锁在这个场景下是一个"超级锁定方法"：它使用辅助锁定装置的文件的其他锁定的方法。
+//代理锁定是一种元层上方以上实施原始锁定的顶部。出于这个原因，
+//实现代理锁定的分工推迟到年底文件（这里）后，所有的其他I/O的方法已被定义 - 使原始锁定方法都可以作为服务来帮助实施代理锁定。
 ****
 **
 ** The default locking schemes in SQLite use byte-range locks on the
@@ -5750,6 +5765,10 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** address in the shared range is taken for a SHARED lock, the entire
 ** shared range is taken for an EXCLUSIVE lock):
 **
+//默认锁定在SQLite的使用字节范围锁方案对数据库文件进行协调多个读者和作者[http://sqlite.org/lockingv3.html]安全，并发访问。
+//这五个文件锁定状态（UNLOCKED，待共享，保留，EXCLUSIVE）实现为POSIX读及以上组固定的位置（通过FSCTL）写锁，
+//对AFP和SMB独享的字节范围锁通过FSCTL与_IOWR（'Z'可23，结构ByteRangeLockPB2）来跟踪同一5个州。为了模拟在共享范围F_RDLCK，
+//对AFP在共享范围内随机选择的地址是一个共享锁，整个共享范围采取的排它锁):
 **      PENDING_BYTE        0x40000000
 **      RESERVED_BYTE       0x40000001
 **      SHARED_RANGE        0x40000002 -> 0x40000200
@@ -5765,11 +5784,18 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** readers and writers
 ** [http://www.nabble.com/SQLite-on-NFS-cache-coherency-td15655701.html].
 **
+//这可以很好的本地文件系统上，但显示了近100倍放缓对AFP读取性能，因为AFP客户端禁用读取高速缓存，当字节范围锁都存在。
+//使读高速缓存公开一个高速缓存一致性问题，即存在于所有OS X上支持的网络文件系统。
+//NFS和AFP均遵守贴近开放语义确保高速缓存一致性[http://nfs.sourceforge.net/#faq_a8]，
+//这并不能有效地解决了多个读者和作家的并发访问数据库的要求[HTTP：//www.nabble.com/SQLite-on-NFS-cache-coherency-td15655701.html。
 ** To address the performance and cache coherency issues, proxy file locking
 ** changes the way database access is controlled by limiting access to a
 ** single host at a time and moving file locks off of the database file
 ** and onto a proxy file on the local file system.  
 **
+//为了解决性能和高速缓存一致性的问题，
+//代理文件锁定改变的方式访问数据库是通过限制访问一台主机的时间和移动文件锁关闭的数据库文件，
+//并到本地文件系统上的代理文件控制。
 **
 ** Using proxy locks
 ** -----------------
@@ -5793,6 +5819,9 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** actual proxy file name is generated from the name and path of the
 ** database file.  For example:
 **
+//指定“：自动”意味着，如果存在与它匹配的主机ID的壳文件，在壳文件的代理路径将被使用，
+//否则基于所述用户的临时目录（经由confstr代理路径（_CS_DARWIN_USER_TEMP_DIR,...））
+//将被用于与实际代理文件名从名称和数据库文件的路径中产生的。例如：
 **       For database path "/Users/me/foo.db" 
 **       The lock path will be "<tmpdir>/sqliteplocks/_Users_me_foo.db:auto:")
 **
@@ -5826,11 +5855,18 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** is held by another process (with a shared lock), the exclusive lock
 ** will fail and SQLITE_BUSY is returned.
 **
+//壳文件 - 通过在壳文件以一个SQLite式共享锁，阅读内容和比较主机的唯一的主机ID（见下文），
+//并锁定代理路径对使用代理文件，sqlite的必须先“持有壳”存储在壳的值。
+//壳文件存储在同一目录下的数据库文件和数据库文件名后的文件名进行构图。“<数据库>-壳”。
+//如果壳文件不存在，或者它的内容不匹配的主机ID和/或代理的路径，那么锁升级为独占锁，壳文件内容与主机ID和代理路径更新和锁再次降级为共享锁。
+//如果壳被另一个进程举行（与共享锁），排它锁将失败，SQLITE_BUSY返回。
 ** The proxy file - a single-byte file used for all advisory file locks
 ** normally taken on the database file.   This allows for safe sharing
 ** of the database file for multiple readers and writers on the same
 ** host (the conch ensures that they all use the same local lock file).
 **
+//代理文件 - 用于所有的咨询文件锁定一个单字节的文件，通常采取数据库文件。
+//这使得安全共享多个读者和作家在同一台主机上的数据库文件（壳确保它们都使用相同的本地锁定文件）。
 ** Requesting the lock proxy does not immediately take the conch, it is
 ** only taken when the first request to lock database file is made.  
 ** This matches the semantics of the traditional locking behavior, where
@@ -5838,8 +5874,12 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** The shared lock and an open file descriptor are maintained until 
 ** the connection to the database is closed. 
 **
+//请求锁代理不立即采取海螺，它仅取当第一请求锁定数据库文件被制成。
+//这与传统的锁定行为，在打开的数据库文件的连接不上采取锁的语义。
+//共享锁和一个打开的文件描述符被保持到数据库连接被关闭。
 ** The proxy file and the lock file are never deleted so they only need
 ** to be created the first time they are used.
+//代理文件和锁定文件不会被删除，这样他们只需要创建首次使用它们。
 **
 ** Configuration options
 ** ---------------------
@@ -5874,6 +5914,9 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** files (explicity calling the SQLITE_SET_LOCKPROXYFILE pragma or
 ** sqlite_file_control API is not affected by SQLITE_FORCE_PROXY_LOCKING).
 */
+//如上所述，当与SQLITE_PREFER_PROXY_LOCKING编译，环境变量SQLITE_FORCE_PROXY_LOCKING设置为1，
+//将迫使锁定代理将用于每个数据库文件打开，0将迫使自动代理锁定所有数据库文件
+//（显式调用SQLITE_SET_LOCKPROXYFILE杂或禁用sqlite_file_control API不受SQLITE_FORCE_PROXY_LOCKING）。
 
 /*
 ** Proxy locking is only available on MacOSX 
@@ -6282,7 +6325,7 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
 ** lockPath means that the lockPath in the conch file will be used if the 
 ** host IDs match, or a new lock path will be generated automatically 
 ** and written to the conch file.
-**通过采用共享锁获得壳文件并读取其内容，如果lockPath非NULL，主机ID和锁定文件路径必须匹配。一个NULL lockPath意味着壳文件的**lockPath将被使用，如果主机ID相匹配，或者一个新的锁路径将自动生成并写入海螺文件。
+**通过采用共享锁获得壳文件并读取其内容，如果lockPath非NULL，主机ID和锁定文件路径必须匹配。一个NULL lockPath意味着壳文件的**lockPath将被使用，如果主机ID相匹配，或者一个新的锁路径将自动生成并写入壳文件。
 */
 static int proxyTakeConch(unixFile *pFile){
   proxyLockingContext *pCtx = (proxyLockingContext *)pFile->lockingContext; 
@@ -6368,7 +6411,7 @@ static int proxyTakeConch(unixFile *pFile){
         }
       }
       
-      /* if the conch isn't writable and doesn't match, we can't take it */   //如果海螺不可写，不匹配，我们不能用它
+      /* if the conch isn't writable and doesn't match, we can't take it */   //如果壳不可写，不匹配，我们不能用它
       if( (conchFile->openFlags&O_RDWR) == 0 ){
         rc = SQLITE_BUSY;
         goto end_takeconch;
