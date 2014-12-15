@@ -9,58 +9,70 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** This file contains code for the VdbeSorter object, used in concert with(和..相呼应)
-** a VdbeCursor to sort large numbers of keys (as may be required, for
+** This file contains code for the VdbeSorter object(vdbesorter的实例), used in concert with(和..相呼应)
+** a VdbeCursor to sort large numbers of keys （对大量的key值排序）(as may be required, for
 ** example, by CREATE INDEX statements on tables too large to fit in main
-** memory).
+** memory  例如在为一个太大以致于不能完全放到内存中的表建立索引时，就需要key).
 */
 
-#include "sqliteInt.h"
-#include "vdbeInt.h"
+#include "sqliteInt.h"//该头文件定义了SQLite的内部接口和数据结构
+#include "vdbeInt.h"//vdbeInt.h 定义了虚拟机私有的数据结构
 
 #ifndef SQLITE_OMIT_MERGE_SORT//宏定义
 
 typedef struct VdbeSorterIter VdbeSorterIter;//an iterator for a PMA
-typedef struct SorterRecord SorterRecord;
-typedef struct FileWriter FileWriter;
+typedef struct SorterRecord SorterRecord;//sorter记录
+typedef struct FileWriter FileWriter;//用来往文件中写的结构体
 
 /*
 ** NOTES ON DATA STRUCTURE USED FOR N-WAY MERGES:——N路归并算法及数据结构说明
 **
 ** As keys are added to the sorter, they are written to disk in a series
-** of sorted packed-memory-arrays (PMAs). The size of each PMA is roughly
-** the same as the cache-size allowed for temporary databases. In order
-** to allow the caller to extract keys from the sorter in sorted order,
-** all PMAs currently stored on disk must be merged together. This comment
-** describes the data structure used to do so. The structure supports 
-** merging any number of arrays in a single pass with no redundant comparison 
-** operations.
-**
+** of sorted packed-memory-arrays (PMAs). 
+   当key值加到sorter后，sorter就会被写到磁盘上的一系列排好序的PMA中
+** The size of each PMA is roughly the same as the cache-size allowed for temporary databases. 
+   每个PMA的大小大约和暂时数据库的Cache大小差不多
+** In order to allow the caller to extract keys from the sorter in sorted order,
+** all PMAs currently stored on disk must be merged together. 
+   This comment describes the data structure used to do so. 
+   为了能使调用者按照排好的顺序从sorter中提取key值，所有磁盘上的PMA需要合并到一起。
+   这段说明描述了做这件事（归并排序）所需要的数据结构。
+** The structure supports merging any number of arrays in a single pass with no redundant comparison operations.
+** 所描述的数据结构支持通过一趟算法就把任意数量的数组合并起来，并且没有冗余的比较
+** 
+** 
 ** The aIter[] array contains an iterator for each of the PMAs being merged.
-** An aIter[] iterator either points to a valid key or else is at EOF. For 
-** the purposes of the paragraphs below, we assume that the array is actually 
+   数组aIter[]包含了为需要合并的所有PMA准备的迭代器（应该是有多少需要合并的ＰＭＡ，就有多少迭代器，数组aIter[]中的元素就是一个个的迭代器）。
+** An aIter[] iterator either points to a valid key or else is at EOF. 
+   一个aIter[]中的迭代器，要么指向一个有效的key值，要么就位于EOF
+** For the purposes of the paragraphs below, we assume that the array is actually 
 ** N elements in size, where N is the smallest power of 2 greater to or equal 
 ** to the number of iterators being merged. The extra aIter[] elements are 
 ** treated as if they are empty (always at EOF).
+   为方便下面的举例说明，我们假设数组aIter[]有N个元素，N是2的幂，N>=需要被合并的迭代器。多余的aIter[]元素被认为是空的，假设它们位于ＥＯＦ
 **
-** The aTree[] array is also N elements in size. The value of N is stored in
-** the VdbeSorter.nTree variable.
+** The aTree[] array is also N elements in size. The value of N is stored in　the VdbeSorter.nTree variable.
+** 数组aTree[]也是有Ｎ个元素，Ｎ的值存储在变量VdbeSorter.nTree中。
 **
 ** The final (N/2) elements of aTree[] contain the results of comparing
-** pairs of iterator keys together. Element i contains the result of 
-** comparing aIter[2*i-N] and aIter[2*i-N+1]. Whichever key is smaller, the
+** pairs of iterator keys together. 
+　　数组aTree[]的最后(N/2)个元素包含对迭代器Ｋｅｙ值的比较结果
+　　 
+** Element i contains the result of comparing aIter[2*i-N] and aIter[2*i-N+1]. Whichever key is smaller, the
 ** aTree element is set to the index of it. 
-**
+**　数组aTree[]的第ｉ个元素保存的是aIter[2*i-N]和 aIter[2*i-N+1]大小比较结果（这句话说明了数组aTree[]和数组aIter[]中元素的对应关系），
+　　aIter[2*i-N]和 aIter[2*i-N+1]二者中，谁更小，就把谁的下标存在数组aTree[]的第ｉ个元素里。
 ** For the purposes of this comparison, EOF is considered greater than any
 ** other key value. If the keys are equal (only possible with two EOF
 ** values), it doesn't matter which index is stored.
-**
+**　因为上面的比较方法，我们认为ＥＯＦ大于任何ＫＥＹ值。如果两个相比较的ｋｅｙ值一样大，则存二者中任意一个所对应的迭代器的下标。
 ** The (N/4) elements of aTree[] that preceed the final (N/2) described 
 ** above contains the index of the smallest of each block of 4 iterators.
 ** And so on. So that aTree[1] contains the index of the iterator that 
 ** currently points to the smallest key value. aTree[0] is unused.
-**
-** Example:
+**　数组aTree[]中有(N/4)个元素存的是每四个迭代器所组成的一组中ｋｅｙ值最小的那个迭代器的下标。
+	所以aTree[1]中存有指向最小的ｋｅｙ值的迭代器的下标。aTree[0]没有被使用。
+** Example:举例：
 **
 **     aIter[0] -> Banana
 **     aIter[1] -> Feijoa
@@ -73,13 +85,15 @@ typedef struct FileWriter FileWriter;
 **
 **     aTree[] = { X, 5   0, 5    0, 3, 5, 6 }
 **
-** The current element is "Apple" (the value of the key indicated by 
-** iterator 5). When the Next() operation is invoked, iterator 5 will
+** The current element is "Apple" (the value of the key indicated by iterator 5).
+** 根据前文所述的算法，由aTree[1]中存的是5，这说明当前的元素（最小的ｋｅｙ值）是Ａｐｐｌｅ，它是迭代器５所指的ｋｅｙ的值。 
+	
+	When the Next() operation is invoked, iterator 5 will
 ** be advanced to the next key in its segment. Say the next key is
-** "Eggplant":
-**
-**     aIter[5] -> Eggplant
-**
+** "Eggplant":　aIter[5] -> Eggplant
+**当函数Next()被调用时，迭代器５将会前进到它的段中的下一个ｋｅｙ值，假设下一个ｋｅｙ是"Eggplant"，则有：aIter[5] -> Eggplant
+**     
+**　
 ** The contents of aTree[] are updated first by comparing the new iterator
 ** 5 key to the current key of iterator 4 (still "Grapefruit"). The iterator
 ** 5 value is still smaller, so aTree[6] is set to 5. And so on up the tree.
@@ -88,36 +102,45 @@ typedef struct FileWriter FileWriter;
 ** so the value written into element 1 of the array is 0. As follows:
 **
 **     aTree[] = { X, 0   0, 6    0, 3, 5, 6 }
-**
+**　数组aTree[]的内容按如下方式更新：首先，比较迭代器５所指向的ｋｅｙ的值和迭代器４的当前所指向的ｋｅｙ值
+   （迭代器4指向的ｋｅｙ值仍然是"Grapefruit"）
+　　这时，迭代器５所指向的ｋｅｙ的值仍然是更小的，所以aTree[6]的值被设置为５.
+　　迭代器６所指向的ｋｅｙ的值——"Durian"——比迭代器５所指向的ｋｅｙ值（Eggplant）小，则aTree[3]被设置为6.
+　　而迭代器０所指的ｋｅｙ的值（Banana）又比迭代器６所指的ｋｅｙ的值小，即Banana<Durian，所以aTree[１]被设置成０.结果如下：
+		aTree[] = { X, 0   0, 6    0, 3, 5, 6 }
 ** In other words, each time we advance to the next sorter element, log2(N)
 ** key comparison operations are required, where N is the number of segments
 ** being merged (rounded up to the next power of 2)nnn.
+　　也就是说，我们每次前进到ｓｏｒｔｅｒ的下一个元素，需要做log2(N)次的ｋｅｙ值比较，这里Ｎ是要被合并的段的数量
+　　
 */
+//结构体定义1：
 struct VdbeSorter {
-  i64 iWriteOff;                  /* Current write offset within file pTemp1 ——文件ptemp1中，当前的写偏移量*/
-  i64 iReadOff;                   /* Current read offset within file pTemp1 ——文件ptemp1中，当前的读偏移量*/
-  int nInMemory;                  /* Current size of pRecord list as PMA ——pRecord list的当前大小*/
+  i64 iWriteOff;                  /* Current write offset WITHIN FILE PTEMP1 ——文件ptemp1（存储PMA的文件）中，当前的写偏移量*/
+  i64 iReadOff;                   /* Current read offset within file pTemp1 ——文件ptemp1（PMA file 1）中，当前的读偏移量*/
+  int nInMemory;                  /* Current size of pRecord list as PMA ——作为PMA的pRecord list的当前大小*/
   int nTree;                      /* Used size of aTree/aIter (power of 2) ——aTree/aIter的已用大小（2的幂）*/
-  int nPMA;                       /* Number of PMAs stored in pTemp1 ——文件pTemp1中PMA的数量*/
+  int nPMA;                       /* Number of PMAs stored in pTemp1 ——文件pTemp1中存储的PMA的数量*/
   int mnPmaSize;                  /* Minimum PMA size, in bytes */
   int mxPmaSize;                  /* Maximum PMA size, in bytes.  0==no limit */
-  VdbeSorterIter *aIter;          /* Array of iterators to merge ——存储要合并到一起的iterator的数组*/
+  VdbeSorterIter *aIter;          /* Array of iterators to merge ——存储要合并到一起的iterator的VdbeSorterIter类型的数组*/
   int *aTree;                     /* Current state of incremental merge ——增量合并的当前状态*/
-  sqlite3_file *pTemp1;           /* PMA file 1 ——的指针*/
-  SorterRecord *pRecord;          /* Head of in-memory record list ——内存中record list的头*/
+  sqlite3_file *pTemp1;           /* PMA file 1 ——指向存储PMA的文件的指针*/
+  SorterRecord *pRecord;          /* Head of in-memory record list ——内存中记录列表的头*/
   UnpackedRecord *pUnpacked;      /* Used to unpack keys ——用来解包keys*/
 };
 
 /*
 ** The following type is an iterator for a PMA. It caches the current key in 
-** variables nKey/aKey. If the iterator is at EOF, pFile==0.
+** variables nKey/aKey. If the iterator is at EOF, pFile（此指针所指的地方是ｉｔｅｒａｔｏｒ开始读的地方）==0.
 */
-struct VdbeSorterIter {           /*这个结构体定义了PMA的iterator，它把当前的key储存在变量nKey/aKey中，若iterator在EOF处，pFile==0*/
+//结构体定义2：
+struct VdbeSorterIter {           /*★这是本源文件开头处声明的第1个结构体的定义，定义了PMA的iterator，把当前的key储存在变量nKey/aKey中，若iterator在EOF处，sqlite3_file类型的指针pFile==0*/
   i64 iReadOff;                   /* Current read offset ——当前读偏移量*/
-  i64 iEof;                       /* 1 byte past EOF for this iterator 此变量的值比１个字节大１*/
-  int nAlloc;                     /* Bytes of space at aAlloc ——aAlloc处的字节数*/
-  int nKey;                       /* Number of bytes in key ——变量Ｋｅｙ中的字节数*/
-  sqlite3_file *pFile;            /* File iterator is reading from ——此指针所指的地方是ｉｔｅｒａｔｏｒ开始的地方*/
+  i64 iEof;                       /* 1 byte past EOF for this iterator 此变量位于EoF后面，距离EoF一个字节*/
+  int nAlloc;                     /* Bytes of space at aAlloc ——aAlloc处空间的字节数*/
+  int nKey;                       /* Number of bytes in key ——key占用的字节数*/
+  sqlite3_file *pFile;            /* File iterator is reading from ——此指针所指的地方是ｉｔｅｒａｔｏｒ开始读的地方*/
   u8 *aAlloc;                     /* Allocated space ——已经分配出去的空间*/
   u8 *aKey;                       /* Pointer to current key ——指向当前ｋｅｙ的指针*/
   u8 *aBuffer;                    /* Current read buffer ——当前的读缓存*/
@@ -130,40 +153,43 @@ struct VdbeSorterIter {           /*这个结构体定义了PMA的iterator，它
 ** blocks.  Doing all I/O in aligned page-sized blocks helps I/O to go
 ** faster on many operating systems.
    下面这个结构体的实例用来组织记录流，这些记录流将按照mergecod的算法写入到文件中的对齐的、页面大小的块中。
-*/
-struct FileWriter {
+*/ 
+//结构体定义3：
+struct FileWriter {               /*★这是本源文件开头处声明的第3个结构体的定义
   int eFWErr;                     /* Non-zero if in an error state 当处于错误状态时是个非零值*/
   u8 *aBuffer;                    /* Pointer to write buffer 指向写缓存的指针*/
   int nBuffer;                    /* Size of write buffer in bytes 写缓存的字节数*/
   int iBufStart;                  /* First byte of buffer to write 缓存中要写入的第一个字节*/
   int iBufEnd;                    /* Last byte of buffer to write 缓存中要写入的最后一个缓存*/
-  i64 iWriteOff;                  /* Offset of start of buffer in file 缓存开始出在文件中的偏移量*/
-  sqlite3_file *pFile;            /* File to write to 指向将被写入的文件的指针*/
+  i64 iWriteOff;                  /* Offset of start of buffer in file 缓存开始处在文件中的偏移量*/
+  sqlite3_file *pFile;            /* File to write to 此指针指向将被写入数据的文件的指针*/
 };
 
 /*
 ** A structure to store a single record. All in-memory records are connected
 ** together into a linked list headed at VdbeSorter.pRecord using the 
 ** SorterRecord.pNext pointer.
-   下面这个结构体用来存储一个单独的记录。所有内存中的记录被连接成一个链表，链表的头由指针SorterRecord *pNext指向SorterRecord *pRecord
+   下面这个结构体用来存储一个单独的记录。所有内存中的记录被连接成一个链表，链表的头SorterRecord *pRecord由指针SorterRecord *pNext指向。
 */
-struct SorterRecord {
+//结构体定义4：
+struct SorterRecord {//*★这是本源文件开头处声明的第2个结构体的定义
   void *pVal;
   int nVal;
   SorterRecord *pNext;
 };
 
-/* Minimum allowable value for the VdbeSorter.nWorking variable 变量VdbeSorter.nWorking所允许的最小值*/
-#define SORTER_MIN_WORKING 10
+/* Minimum allowable value for the VdbeSorter.nWorking variable */
+#define SORTER_MIN_WORKING 10//变量VdbeSorter.nWorking所允许的最小值
 
 /* Maximum number of segments to merge in a single pass. 一趟算法里所允许归并的最大段数*/
-#define SORTER_MAX_MERGE_COUNT 16
+#define SORTER_MAX_MERGE_COUNT 16//一趟算法里所允许归并的最大段数
 
 /*
 ** Free all memory belonging to the VdbeSorterIter object passed as the second
 ** argument. All structure fields are set to zero before returning.
-   释放由第二个参数VdbeSorterIter *pIter确定的所有属于VdbeSorterIter对象的内存空间
+   释放由第二个参数VdbeSorterIter *pIter指向的VdbeSorterIter对象的内存空间
 */
+//函数定义1：该方法的功能就是释放由第二个参数VdbeSorterIter *pIter指向的VdbeSorterIter对象的内存空间
 static void vdbeSorterIterZero(sqlite3 *db, VdbeSorterIter *pIter){
   sqlite3DbFree(db, pIter->aAlloc);
   sqlite3DbFree(db, pIter->aBuffer);
@@ -175,13 +201,14 @@ static void vdbeSorterIterZero(sqlite3 *db, VdbeSorterIter *pIter){
 ** If successful, set *ppOut to point to a buffer containing the data
 ** and return SQLITE_OK. Otherwise, if an error occurs, return an SQLite
 ** error code.
-** 从由对象p迭代的数据流中读出nByte字节的数据
-   如果读取成功的话，令指针ppout指向包含读出数据的缓存并返回SQLITE_OK。否则，如果出现错误，返回一个SQLite error代号
+** 从由迭代器对象p迭代的数据流中读出nByte字节的数据
+   如果读取成功的话，令指针ppout指向包含读出的数据的缓存并返回SQLITE_OK。否则，如果出现错误，返回一个SQLite error代号
 ** The buffer indicated by *ppOut may only be considered valid until the
 ** next call to this function.
    由ppOut指向的缓存只在下次调用该函数之前是有效地
 */
 //下面是函数vdbeSorterIterRead()
+//函数定义2：
 static int vdbeSorterIterRead(
   sqlite3 *db,                    /* Database handle (for malloc)针对malloc的数据库句柄 */
   VdbeSorterIter *p,              /* Iterator 迭代器的指针*/
@@ -279,6 +306,7 @@ static int vdbeSorterIterRead(
    下面这个函数的功能是：从和参变量VdbeSorterIter *p相对应的数据流中读一个varint（可变长整数），
    并使指针pnOut指向读出来的这个数
 */
+//函数定义3：
 static int vdbeSorterIterVarint(sqlite3 *db, VdbeSorterIter *p, u64 *pnOut){
   int iBuf;
 
@@ -306,6 +334,7 @@ static int vdbeSorterIterVarint(sqlite3 *db, VdbeSorterIter *p, u64 *pnOut){
 ** 使迭代器pIter前进到对应PMA的下一个key，
 ** 如果没有错误发生就返回SQLITE_OK，如果有错误发生，就返回SQLite error。
 */
+//函数定义4：
 static int vdbeSorterIterNext(
   sqlite3 *db,                    /* Database handle (for sqlite3DbMalloc() ) 针对sqlite3DbMalloc()的数据库句柄*/
   VdbeSorterIter *pIter           /* Iterator to advance 要前进的迭代器*/
@@ -336,6 +365,7 @@ static int vdbeSorterIterNext(
 ** This function leaves the iterator pointing to the first key in the PMA (or EOF if the PMA is empty).
 ** 这个函数最后使迭代器指向对应PMA的第一个位置（或EOF位置，如果ＰＭＡ＼是空的话）。
 */
+//函数定义5：
 static int vdbeSorterIterInit(
   sqlite3 *db,                    /* Database handle 数据库句柄*/
   const VdbeSorter *pSorter,      /* Sorter object ——VdbeSorter的一个实例*/
@@ -410,6 +440,7 @@ static int vdbeSorterIterInit(
 ** has been allocated and contains an unpacked record that is used as key2.
 **　如果ｐＫｅｙ２由一个空指针代表，则假设pCsr->aSpace已经被分配并包含一个未被解包的记录，被当做ｋｅｙ２使用。
 */
+//函数定义6：
 static void vdbeSorterCompare(
   const VdbeCursor *pCsr,         /* Cursor object (for pKeyInfo) 针对pKeyInfo的游标实例*/
   int bOmitRowid,                 /* Ignore rowid field at end of keys 忽略ｋｅｙｓ结尾处的ｒｏｗｉｄ域*/
@@ -447,6 +478,7 @@ static void vdbeSorterCompare(
 ** value to recalculate.
 　　这个函数在ｍｅｒｇｅ多元ｂ树段时被调用。参数iOut是ａＴｒｅｅ中要被重新计算值得元素的下标值。
 */
+//函数定义7：
 static int vdbeSorterDoCompare(const VdbeCursor *pCsr, int iOut){
   VdbeSorter *pSorter = pCsr->pSorter;
   int i1;
@@ -492,6 +524,7 @@ static int vdbeSorterDoCompare(const VdbeCursor *pCsr, int iOut){
 /*
 ** Initialize the temporary index cursor just opened as a sorter cursor.——初始化临时索引游标，使之作为ｓｏｒｔｅｒ游标
 */
+//函数定义8：
 int sqlite3VdbeSorterInit(sqlite3 *db, VdbeCursor *pCsr){
   int pgsz;                       /* Page size of main database 主数据库的页大小*/
   int mxCache;                    /* Cache size ——Ｃａｃｈｅ缓存大小*/
@@ -522,6 +555,7 @@ int sqlite3VdbeSorterInit(sqlite3 *db, VdbeCursor *pCsr){
 /*
 ** Free the list of sorted records starting at pRecord.——下面的函数的功能：从ｐＲｅｃｏｒｄ所指的地方开始释放已排序的记录列表
 */
+//函数定义9：
 static void vdbeSorterRecordFree(sqlite3 *db, SorterRecord *pRecord){
   SorterRecord *p;
   SorterRecord *pNext;
@@ -535,6 +569,7 @@ static void vdbeSorterRecordFree(sqlite3 *db, SorterRecord *pRecord){
 ** Free any cursor components allocated by sqlite3VdbeSorterXXX routines.
 	释放任何一个由sqlite3VdbeSorterXXX routine部署的游标元素
 */
+//函数定义10：
 void sqlite3VdbeSorterClose(sqlite3 *db, VdbeCursor *pCsr){
   VdbeSorter *pSorter = pCsr->pSorter;
   if( pSorter ){
@@ -561,6 +596,7 @@ void sqlite3VdbeSorterClose(sqlite3 *db, VdbeCursor *pCsr){
 ** Otherwise, set *ppFile to 0 and return an SQLite error code.
 	下面这个函数用来为文件句柄分配空间，并开辟一个临时文件。如果成功了，设置指针ppFile 指向 malloc的文件句柄并返回SQLITE_OK
 */
+//函数定义11：
 static int vdbeSorterOpenTempFile(sqlite3 *db, sqlite3_file **ppFile){
   int dummy;
   return sqlite3OsOpenMalloc(db->pVfs, 0, ppFile,
@@ -575,6 +611,7 @@ static int vdbeSorterOpenTempFile(sqlite3 *db, sqlite3_file **ppFile){
 ** Set *ppOut to the head of the new list.
 　　下面这个函数把两个已经排好序的列表合并成一个，并把ｐｐＯｕｔ指向新列表的表头
 */
+//函数定义12：
 static void vdbeSorterMerge(
   const VdbeCursor *pCsr,         /* For pKeyInfo */
   SorterRecord *p1,               /* First list to merge 参与合并的第一个列表*/
@@ -611,6 +648,7 @@ static void vdbeSorterMerge(
 ** occurs.
 　　对头在pCsr->pRecord处的记录链表排序。成功就返回SQLITE_OK；否则，返回SQLite错误码
 */
+//函数定义13：
 static int vdbeSorterSort(const VdbeCursor *pCsr){
   int i;
   SorterRecord **aSlot;
@@ -647,6 +685,7 @@ static int vdbeSorterSort(const VdbeCursor *pCsr){
 /*
 ** Initialize a file-writer object.初始化一个file-writer的实例
 */
+//函数定义14：
 static void fileWriterInit(
   sqlite3 *db,                    /* Database (for malloc) 针对malloc的数据库*/
   sqlite3_file *pFile,            /* File to write to 指向写入文件的指针*/
@@ -673,6 +712,7 @@ static void fileWriterInit(
 	下面的函数往file-write实例中写nData字节的数据，成功就返回SQLITE_OK
 	否则返回SQLite错误码
 */
+//函数定义15：
 static void fileWriterWrite(FileWriter *p, u8 *pData, int nData){
   int nRem = nData;
   while( nRem>0 && p->eFWErr==0 ){
@@ -708,6 +748,7 @@ static void fileWriterWrite(FileWriter *p, u8 *pData, int nData){
 　　在ｒｅｔｕｒｎ之前，把最后写入的一个字节后面所对应的偏移量赋给*piEof
 
 */
+//函数定义16：
 static int fileWriterFinish(sqlite3 *db, FileWriter *p, i64 *piEof){
   int rc;
   if( p->eFWErr==0 && ALWAYS(p->aBuffer) && p->iBufEnd>p->iBufStart ){
@@ -729,6 +770,7 @@ static int fileWriterFinish(sqlite3 *db, FileWriter *p, i64 *piEof){
 	下面这个函数把形参iVal（编码成一个可变长整数变量）的值传到一个file-write实例中
 	成功返回SQLITE_OK，失败则返回错误码
 */
+//函数定义17：
 static void fileWriterWriteVarint(FileWriter *p, u64 iVal){
   int nByte; 
   u8 aByte[10];
@@ -751,6 +793,7 @@ static void fileWriterWriteVarint(FileWriter *p, u64 iVal){
 		　一个或多个记录以尾对尾的方式、按照ｋｅｙｓ的递增顺序排序。每条记录都由一个可变长整数和其后的一系列数据组成。
 		　可变长变量的值等于其后一系列的数据占用的字节的数目
 */
+//函数定义18：
 static int vdbeSorterListToPMA(sqlite3 *db, const VdbeCursor *pCsr){
   int rc = SQLITE_OK;             /* Return code 返回代码*/
   VdbeSorter *pSorter = pCsr->pSorter;
@@ -796,6 +839,7 @@ static int vdbeSorterListToPMA(sqlite3 *db, const VdbeCursor *pCsr){
 /*
 ** Add a record to the sorter.把一个记录添加到sorter
 */
+//函数定义19：
 int sqlite3VdbeSorterWrite(
   sqlite3 *db,                    /* Database handle 数据库句柄*/
   const VdbeCursor *pCsr,               /* Sorter cursor 游标*/
@@ -849,6 +893,7 @@ int sqlite3VdbeSorterWrite(
 ** Helper function for sqlite3VdbeSorterRewind().
    下面的函数是函数sqlite3VdbeSorterRewind()的辅助函数
 */
+//函数定义20：
 static int vdbeSorterInitMerge(
   sqlite3 *db,                    /* Database handle 数据库句柄*/
   const VdbeCursor *pCsr,         /* Cursor handle for this sorter 此sorter的游标句柄*/
@@ -882,6 +927,7 @@ static int vdbeSorterInitMerge(
 ** for iterating through its contents in sorted order.
    一旦这个sorter被增添，下面这个函数就被调用以排好的顺序遍历sorter的内容
 */
+//函数定义21：
 int sqlite3VdbeSorterRewind(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
   VdbeSorter *pSorter = pCsr->pSorter;
   int rc;                         /* Return code 返回码*/
@@ -996,6 +1042,7 @@ int sqlite3VdbeSorterRewind(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
 /*
 ** Advance to the next element in the sorter.——前进到sorter中的下一个元素
 */
+//函数定义22：
 int sqlite3VdbeSorterNext(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
   VdbeSorter *pSorter = pCsr->pSorter;
   int rc;                         /* 返回码 Return code */
@@ -1026,6 +1073,7 @@ int sqlite3VdbeSorterNext(sqlite3 *db, const VdbeCursor *pCsr, int *pbEof){
    返回一个指针给buffer，这个buffer是包含当前key的sorter的
 ** 
 */
+//函数定义23：
 static void *vdbeSorterRowkey(
   const VdbeSorter *pSorter,      /* Sorter object ——sorter实例*/
   int *pnKey                      /* OUT: Size of current key in bytes 输出：当前值得字节数大小*/
@@ -1046,6 +1094,7 @@ static void *vdbeSorterRowkey(
 /*
 ** Copy the current sorter key into the memory cell pOut.把当前sorter key复制到内存单元pOut中
 */
+//函数定义24：
 int sqlite3VdbeSorterRowkey(const VdbeCursor *pCsr, Mem *pOut){
   VdbeSorter *pSorter = pCsr->pSorter;
   void *pKey; int nKey;           /* Sorter key to copy into pOut */
@@ -1072,6 +1121,7 @@ int sqlite3VdbeSorterRowkey(const VdbeCursor *pCsr, Mem *pOut){
 ** key.
 	如有错误发生，就返回一个SQLite错误码；否则把*pRes设置成一个负数，0，或正数，分别对应pVal中的key比当前sorter key小、相等或大。	
 */
+//函数定义25：
 int sqlite3VdbeSorterCompare(
   const VdbeCursor *pCsr,         /* Sorter cursor ——sorter游标*/
   Mem *pVal,                      /* Value to compare to current sorter key 要和当前sorter key相比较的值*/
