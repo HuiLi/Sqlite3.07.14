@@ -15,7 +15,7 @@
 ** memory  例如在为一个太大以致于不能完全放到内存中的表建立索引时，就需要key).
 */
 
-#include "sqliteInt.h"//定义了SQLite的内部接口和数据结构
+#include "sqliteInt.h"//该头文件定义了SQLite的内部接口和数据结构
 #include "vdbeInt.h"//vdbeInt.h 定义了虚拟机私有的数据结构
 
 #ifndef SQLITE_OMIT_MERGE_SORT//宏定义
