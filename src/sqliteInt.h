@@ -1018,8 +1018,8 @@ struct FuncDef {
 ** or not the specified encoding is SQLITE_ANY). The FuncDef.pDestructor
 ** member of each of the new FuncDef objects is set to point to the allocated
 ** FuncDestructor.
-** 这个结构体封装了一个用户功能的析构函数回滚和一个参考计数器。
-**当create_function_v2（）被调用来利用一个析构函数创建一个函数，这个结构体类型的一个对象就会被分配。
+** 这个结构体封装了一个用户功能的析构函数回滚和一个参照计数器.
+**当create_function_v2（）被调用来利用一个析构函数创建一个函数，这个结构体类型的一个对象就会被分配.
 **FuncDestructor.nRef的值设置为FuncDef对象所被创建的数量。每个新FuncDef对象的FuncDef.pDestructor构件被设置为指向已分配的FuncDestructor。
 **
 ** Thereafter, when one of the FuncDef objects is deleted, the reference
@@ -1060,12 +1060,17 @@ FuncDef.flags的可能的值。需要注意的是_length和_TYPEOF值必须与OP
 **     value passed as iArg is cast to a (void*) and made available
 **     as the user-data (sqlite3_user_data()) for the function. If 
 **     argument bNC is true, then the SQLITE_FUNC_NEEDCOLL flag is set.
-**
-**   AGGREGATE(zName, nArg, iArg, bNC, xStep, xFinal)
+**FUNCTION(zName, nArg, iArg, bNC, xFunc)创建了功能zName的标量函数定义，zName函数由接受nArg参数的C函数xFunc来实现.
+**作为iArg参数被传递的值被转换成无类型，并且通过函数sqlite3_user_data()成为函数可以使用的用户数据.
+**若参数bNC 为真，那么将会设置SQLITE_FUNC_NEEDCOLL标志的值.
+**     AGGREGATE(zName, nArg, iArg, bNC, xStep, xFinal)
 **     Used to create an aggregate function definition implemented by
 **     the C functions xStep and xFinal. The first four parameters
 **     are interpreted in the same way as the first 4 parameters to
 **     FUNCTION().
+**AGGREGATE(zName, nArg, iArg, bNC, xStep, xFinal)用于创建聚合函数定义，这个是由函数xStep和xFinal实现的.
+**前四个参数将以相同的方式被解释成为FUNCTION()函数的前四个参数.
+**
 **
 **   LIKEFUNC(zName, nArg, pArg, flags)
 **     Used to create a scalar function definition of a function zName 
@@ -1074,6 +1079,10 @@ FuncDef.flags的可能的值。需要注意的是_length和_TYPEOF值必须与OP
 **     available as the function user-data (sqlite3_user_data()). The
 **     FuncDef.flags variable is set to the value passed as the flags
 **     parameter.
+**LIKEFUNC(zName, nArg, pArg, flags)用于创建函数zName的标量函数定义，zName接受参数nArg并且通过调用函数likeFunc来实现.
+**参数pArg被转换成一个无类型数据，后通过函数sqlite3_user_data()转换成用户可利用的数据.
+**FuncDef.flags变量被设置为传递的标志参数的值.
+**
 */
 #define FUNCTION(zName, nArg, iArg, bNC, xFunc) \
   {nArg, SQLITE_UTF8, (bNC*SQLITE_FUNC_NEEDCOLL), \
