@@ -5333,6 +5333,10 @@ static int unixOpen(
         ** we're assuming that statfs() doesn't fail very often. At least
         ** not while other file descriptors opened by the same process on
         ** the same file are working.  */
+        //理论上，close(fd)调用是次佳的。如果伴随fd的被打开文件是数据库文件，
+        //并且没有其他打开在正在持有问询锁的链接，则这个调用close()会取消这些锁。
+        //实际上，我们假定statfs()不会经常失败。
+        //至少不当被同样进程打开的其他文件描述符在同一文件上正在工作。
         p->lastErrno = errno;
         robust_close(p, fd, __LINE__);
         rc = SQLITE_IOERR_ACCESS;
