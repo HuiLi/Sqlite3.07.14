@@ -1,6 +1,6 @@
 /*
 ** 2007 October 14
-**
+**此文件是可选的底层内存分配器,通用分配器(memsys5)
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
 **
@@ -78,6 +78,8 @@ struct Mem5Link {
   int next;       /* Index of next free chunk *//*下一个空闲块的索引*/
   int prev;       /* Index of previous free chunk *//*前一个空闲块的索引*/
 };
+/*next指向下一个空闲chunk的地址，prev指向上一个空闲chunk的
+地址， prev = -1 表示该chunk在双向链表的表头位置，没有prev；*/
 
 /*
 ** Maximum size of any allocation is ((1<<LOGMAX)*mem5.szAtom). Since
@@ -129,7 +131,7 @@ static SQLITE_WSD struct Mem5Global {
   u32 maxOut;         /* Maximum instantaneous currentOut *//*currentOut瞬时最大值*/
   u32 maxCount;       /* Maximum instantaneous currentCount *//*currentCount 瞬时最大值*/
   u32 maxRequest;     /* Largest allocation (exclusive of internal frag) *//*最大配置 （不包括内部碎片）*/
-  /*
+  /*整体思想为buddy算法
   ** Lists of free blocks.  aiFreelist[0] is a list of free blocks of
   ** size mem5.szAtom.  aiFreelist[1] holds blocks of size szAtom*2.
   ** and so forth.
@@ -137,6 +139,11 @@ static SQLITE_WSD struct Mem5Global {
   /*
   **空闲块数组。 aiFreelist[0]是大小为mem5.szAtom空闲块数组。 aiFreelist[1]大小为szAtom*2，以此类推。
   */
+/*使用了一个大小为31个字节的空闲链表来保存空闲的block，
+ 值为 -1 表示是空链表；
+ aiFreelist[0] 保存了大小为 mem5.szAtom个字节的空闲block  
+ aiFreelist[1] 保存了大小为 mem5.szAtom * 2 个字节的空闲block  
+ 等等；*/
   int aiFreelist[LOGMAX+1];
 
   /*
@@ -145,6 +152,8 @@ static SQLITE_WSD struct Mem5Global {
   */
   u8 *aCtrl;
 /*aCtrl是无符号类型的指针用于追踪哪些内存块被划出，检查了每块的大小。*/
+/*aCtrl是一个字符数组，保存了每个block的控制信息，当前block的大小，  
+  以及是否checkout，等等，每个大小为szAtom的block 占一个位置；*/
 } mem5;
 
 /*
@@ -188,6 +197,7 @@ static void memsys5Unlink(int i, int iLogsize){
 ** Link the chunk at mem5.aPool[i] so that is on the iLogsize
 ** free list.
 */
+/*将 mem5.aPool[i] 位置的chunk， 插入到iLogSize链表的头部*/
 /*链接可用内存分配aPool中的块，此块在空闲块数组中*/
 static void memsys5Link(int i, int iLogsize){
   int x;
@@ -196,7 +206,7 @@ static void memsys5Link(int i, int iLogsize){
   assert( iLogsize>=0 && iLogsize<=LOGMAX );
   assert( (mem5.aCtrl[i] & CTRL_LOGSIZE)==iLogsize );
 
-  x = MEM5LINK(i)->next = mem5.aiFreelist[iLogsize];
+  x = MEM5LINK(i)->next = mem5.aiFreelist[iLogsize];  /*将 mem5.aPool[i] 位置的chunk， 插入到iLogSize链表的头部*/
   MEM5LINK(i)->prev = -1;
   if( x>=0 ){
     assert( x<mem5.nBlock );
@@ -241,10 +251,12 @@ static int memsys5Size(void *p){
 ** entry and return its index. 
 */
 /*查找空闲链表中的第一项条目，并返回其索引。*/
+/*找到freelist链表中的第iLogSize项指向的链表中的，
+下标最小的那一项的下标，返回这个下标*/
 static int memsys5UnlinkFirst(int iLogsize){
   int i;
   int iFirst;
-
+/*iFirst指向 下标最小的那一项*/
   assert( iLogsize>=0 && iLogsize<=LOGMAX );   /*判断传入参数的合法性*/
   i = iFirst = mem5.aiFreelist[iLogsize];
   assert( iFirst>=0 );
@@ -255,6 +267,7 @@ static int memsys5UnlinkFirst(int iLogsize){
   memsys5Unlink(iFirst, iLogsize);
   return iFirst;
 }
+/*将 iLogSize链表中的下标最小的那一项，也就是第iFirst 个从链表中删除*/
 
 /*
 ** Return a block of memory of at least nBytes in size.
@@ -300,13 +313,20 @@ static void *memsys5MallocUnsafe(int nByte){
   */
   /*aiFreelist[iLogsize]至少包含一个空闲块。
   如果没有，那么就从下一个大小为2的幂的内存块中划出iLogsize大小的内存块，作为的新的空闲块。*/
+/*找到FreeList链表中的第iLogsize项指向的链表，如果为空，则向上找，
+  直到找到第一个不为空的项为止*/
   for(iBin=iLogsize; mem5.aiFreelist[iBin]<0 && iBin<=LOGMAX; iBin++){}
-  if( iBin>LOGMAX ){
+  if( iBin>LOGMAX ){      /*没有找到这样的项，则返回失败*/
     testcase( sqlite3GlobalConfig.xLog!=0 );
     sqlite3_log(SQLITE_NOMEM, "failed to allocate %u bytes", nByte);
     return 0;
   }
-  i = memsys5UnlinkFirst(iBin);
+  i = memsys5UnlinkFirst(iBin);    /*找到了这样的项，则从freelist中删除*/
+/*
+  将最大的块iBin 大小切分成  iBin / 2 , 链入对应的iBin链表；
+  然后切分成  iBin / 4 , 链入对应的iBin（此时iBin已经--了，指向上一项）链表，然后切分成  iBin / 8 ,等等，
+  直到 剩余到的iBin可以放得下 iLogSize为止
+  */
   while( iBin>iLogsize ){
     int newSize;
 
@@ -341,6 +361,7 @@ static void memsys5FreeUnsafe(void *pOld){
   /* Set iBlock to the index of the block pointed to by pOld in 
   ** the array of mem5.szAtom byte blocks pointed to by mem5.zPool.
   */
+/*iBlock 为当前要释放的块在pool中的下标*/
   iBlock = ((u8 *)pOld-mem5.zPool)/mem5.szAtom;   /*设置iBlock为内存块的索引指向 mem5.zPool与mem5.szAtom的比值*/
 
   /* Check that the pointer pOld points to a valid, non-free block. */
@@ -363,6 +384,14 @@ static void memsys5FreeUnsafe(void *pOld){
   assert( mem5.currentCount>0 || mem5.currentOut==0 );
 
   mem5.aCtrl[iBlock] = CTRL_FREE | iLogsize;
+/*
+  由于分配都是按照 iLogsize的整数倍来分配的，所以iBlock有可能落在
+  单数倍和偶数倍上，则需要按照是单数倍还是偶数倍来向前或者向后合并，  
+  例如 iBlock   = 4 ， iLogSize  = 2， 这时iBlock就落在单数倍上了，需要向前合并；   
+  iBuddy =  iBlock - size;
+  iBlock  = 8， iLogSize  = 2， 这是iBlock就落在偶数倍上，需要向后合并；
+iBuddy =  iBlock  + size;  
+  */
   while( ALWAYS(iLogsize<LOGMAX) ){
     int iBuddy;
     if( (iBlock>>iLogsize) & 1 ){
