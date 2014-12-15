@@ -1207,18 +1207,18 @@ struct CollSeq {
 ** These used to have mnemonic name like 'i' for SQLITE_AFF_INTEGER and
 ** 't' for SQLITE_AFF_TEXT.  But we can save a little space and improve
 ** the speed a little by numbering the values consecutively.
-** 这些宏定义的作用是让我们有一个便于记忆的名字，比如‘i’对应SQLITE_AFF_INTEGER，‘t’对应SQLITE_AFF_TEXT。
-** 但是我们可以通过给变量连续编号来节省一些内存空间，同时提升一点运行速度
+** 这些定义曾也有助记的名字，就像'i'对于SQLITE_AFF_INTEGER，'t'对于SQLITE_AFF_TEXT.
+** 但是，我们可以通过将这些值进行连续地编号节省一点空间，提高一点速度.
 **
 ** But rather than start with 0 or 1, we begin with 'a'.  That way,
 ** when multiple affinity types are concatenated into a string and
 ** used as the P4 operand, they will be more readable.
-** 不过，这里我们从“a”开始编号，而不是从0或1开始。这样,当多个关联类型连接成一个字符串,
-** 并且被用作P4操作数时，他们将更具可读性。
+** 但是,我们以'a'开始编号的，而不是先从0或1。通过这种方式，当多个关联类型连接成一个字符串，并作为P4操作数，他们会更易读
+** 还需要注意的是数字类型被分组在一起，所以对于一个数字类型的测试只是一个单一的比较.
 **
 ** Note also that the numeric types are grouped together so that testing
 ** for a numeric type is a single comparison.
-**还需要注意的是数字类型被分组在一起，所以对于一个数字类型的测试只是一个单一的比较
+**还需要注意的是数字类型被分组在一起，所以对于一个数字类型的测试只是一个单一的比较.
 */
 #define SQLITE_AFF_TEXT     'a'
 #define SQLITE_AFF_NONE     'b'
@@ -1241,10 +1241,10 @@ struct CollSeq {
 ** 可以与近似值进行或运算，而不改变近似值
 */
 #define SQLITE_JUMPIFNULL   0x08  /* jumps if either operand is NULL 
-								  ** 如果任何一个操作数是空，就跳转
+								  ** 若操作数为空则跳转
 								  */
 #define SQLITE_STOREP2      0x10  /* Store result in reg[P2] rather than jump */
-								  ** 结果存储在寄存器P2中，不进行跳转
+								  ** 将结果保存到reg[P2]而不是跳转
 								  */
 #define SQLITE_NULLEQ       0x80  /* NULL=NULL */
 
