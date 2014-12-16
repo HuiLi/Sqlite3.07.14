@@ -632,7 +632,7 @@ struct BusyHandler {
 #define UNUSED_PARAMETER2(x,y) UNUSED_PARAMETER(x),UNUSED_PARAMETER(y)
 
 /*
-** Forward references to structures   结构体的前置声明
+** Forward references to structures   结构体的前向引用
 */
 typedef struct AggInfo AggInfo;
 typedef struct AuthContext AuthContext;
