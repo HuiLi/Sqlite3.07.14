@@ -408,7 +408,8 @@ int sqlite3_compileoption_used(const char *zOptName){
 **返回第N个编译时间选择字符串。如果N超出范围，返回一个NULL指针。
 */
 const char *sqlite3_compileoption_get(int N){
-  if( N>=0 && N<ArraySize(azCompileOpt) ){//N大于0并且N小于数组ArraySize长度时，返回第N个编译时间选择字符串
+  if( N>=0 && N<ArraySize(azCompileOpt) ){
+    //N大于0并且N小于数组ArraySize长度时，返回第N个编译时间选择字符串
     return azCompileOpt[N];
   }
   return 0;//返回NULL指针
