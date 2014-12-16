@@ -3131,11 +3131,11 @@ void sqlite3BackupUpdate(sqlite3_backup *, Pgno, const u8 *);
 
 /*
 ** The interface to the LEMON-generated parser
- LEMON-generated解析器的接口
+ LEMON-generated分析器的接口（Lemon的主要功能就是根据上下文无关文法(CFG)，生成支持该文法的分析器。）
 */
-void *sqlite3ParserAlloc(void*(*)(size_t));
-void sqlite3ParserFree(void*, void(*)(void*));
-void sqlite3Parser(void*, int, Token, Parse*);
+void *sqlite3ParserAlloc(void*(*)(size_t));   /*ParseAlloc为分析器分配空间，然后初始化它，返回一个指向分析器的指针*/
+void sqlite3ParserFree(void*, void(*)(void*));  /*当程序不再使用分析器时，应该回收为其分配的内存*/
+void sqlite3Parser(void*, int, Token, Parse*); /*Parse是Lemon生成的分析器的核心例程。在分析器调用ParseAlloc后，分词器就可以将切分的词传递给Parse，进行语法分析,该函数由sqlite3RunParser调用*/
 #ifdef YYTRACKMAXSTACKDEPTH
   int sqlite3ParserStackPeak(void*);
 #endif
