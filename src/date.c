@@ -1105,7 +1105,11 @@ static void currentTimeFunc(
 ** external linkage.
 */
 void sqlite3RegisterDateTimeFunctions(void){
+  /*定义aDateTimeFuncs数组*/
   static SQLITE_WSD FuncDef aDateTimeFuncs[] = {
+    /*先测试SQLITE_OMIT_DATETIME_FUNCS是否被宏定义过，
+    **如果没有被定义了就执行下面的语句，否则就执行else下面的语句。
+    */
 #ifndef SQLITE_OMIT_DATETIME_FUNCS
     FUNCTION(julianday,        -1, 0, 0, juliandayFunc ),
     FUNCTION(date,             -1, 0, 0, dateFunc      ),
@@ -1115,7 +1119,7 @@ void sqlite3RegisterDateTimeFunctions(void){
     FUNCTION(current_time,      0, 0, 0, ctimeFunc     ),
     FUNCTION(current_timestamp, 0, 0, 0, ctimestampFunc),
     FUNCTION(current_date,      0, 0, 0, cdateFunc     ),
-#else
+#else /*如果SQLITE_OMIT_DATETIME_FUNCS被宏定义过，执行下面语句*/
     STR_FUNCTION(current_time,      0, "%H:%M:%S",          0, currentTimeFunc),
     STR_FUNCTION(current_date,      0, "%Y-%m-%d",          0, currentTimeFunc),
     STR_FUNCTION(current_timestamp, 0, "%Y-%m-%d %H:%M:%S", 0, currentTimeFunc),
@@ -1124,7 +1128,7 @@ void sqlite3RegisterDateTimeFunctions(void){
   int i;
   FuncDefHash *pHash = &GLOBAL(FuncDefHash, sqlite3GlobalFunctions);
   FuncDef *aFunc = (FuncDef*)&GLOBAL(FuncDef, aDateTimeFuncs);
-
+   /*遍历aDateTimeFuncs数组。*/
   for(i=0; i<ArraySize(aDateTimeFuncs); i++){
     sqlite3FuncDefInsert(pHash, &aFunc[i]);
   }
