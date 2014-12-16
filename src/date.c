@@ -1126,9 +1126,9 @@ void sqlite3RegisterDateTimeFunctions(void){
 #endif
   };
   int i;
-  FuncDefHash *pHash = &GLOBAL(FuncDefHash, sqlite3GlobalFunctions);
-  FuncDef *aFunc = (FuncDef*)&GLOBAL(FuncDef, aDateTimeFuncs);
-   /*遍历aDateTimeFuncs数组。*/
+  FuncDefHash *pHash = &GLOBAL(FuncDefHash, sqlite3GlobalFunctions); /*定义一个函数定义的哈希表*pHash*/
+  FuncDef *aFunc = (FuncDef*)&GLOBAL(FuncDef, aDateTimeFuncs); /*定义一个指向FuncDef结构体的指针*aFunc*/
+   /*遍历aDateTimeFuncs数组。把Func[i]插入到pHash哈希表*/
   for(i=0; i<ArraySize(aDateTimeFuncs); i++){
     sqlite3FuncDefInsert(pHash, &aFunc[i]);
   }
