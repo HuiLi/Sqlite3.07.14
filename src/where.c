@@ -827,7 +827,7 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 ** The term being analyzed must have two or more of OR-connected subterms.
 ** 分析的term必须包含多个OR连接的子term，一个term应该是AND连接的子term
 ** A single subterm might be a set of AND-connected sub-subterms.
-** term分析的例子:
+** Examples of terms under analysis:
 **
 **     (A)     t1.x=t2.y OR t1.x=t2.z OR t1.y=15 OR t1.z=t3.a+5
 **     (B)     x=expr1 OR expr2=x OR x=expr3
