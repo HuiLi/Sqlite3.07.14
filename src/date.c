@@ -865,18 +865,18 @@ static void dateFunc(
 **
 ** Return a string described by FORMAT.  Conversions as follows:
 **
-**   %d  day of month
-**   %f  ** fractional seconds  SS.SSS
-**   %H  hour 00-24
-**   %j  day of year 000-366
-**   %J  ** Julian day number
-**   %m  month 01-12
-**   %M  minute 00-59
-**   %s  seconds since 1970-01-01
-**   %S  seconds 00-59
-**   %w  day of week 0-6  sunday==0
-**   %W  week of year 00-53
-**   %Y  year 0000-9999
+**   %d  day of month                    %d是月中的某一天的格式 
+**   %f  ** fractional seconds  SS.SSS   %f是秒的小数部分SS.SSS的格式 
+**   %H  hour 00-24                      %H是用00到24表示小时的格式 
+**   %j  day of year 000-366             %j是用000到366表示一年当中的某一天的格式 
+**   %J  ** Julian day number            %J是儒略日数的格式 
+**   %m  month 01-12                     %m是用01到12表示月的格式 
+**   %M  minute 00-59                    %M是用00到59表示分钟的格式 
+**   %s  seconds since 1970-01-01        %s是从1970-01-01来秒的格式 
+**   %S  seconds 00-59                   %S是用00到59表示秒的格式 
+**   %w  day of week 0-6  sunday==0      %w是用0到6表示一周的格式，其中0表示sunday（星期天） 
+**   %W  week of year 00-53              %W是用00到53表示一年当中的周数的格式 
+**   %Y  year 0000-9999                  %Y是用0000到9999表示年的格式 
 **   %%  %
 */
 static void strftimeFunc(
@@ -891,7 +891,7 @@ static void strftimeFunc(
   sqlite3 *db;
   const char *zFmt = (const char*)sqlite3_value_text(argv[0]);
   char zBuf[100];
-  if( zFmt==0 || isDate(context, argc-1, argv+1, &x) ) return;
+  if( zFmt==0 || isDate(context, argc-1, argv+1, &x) ) return;/*如果zFmt为0，或者isDate不能转换成日期。则退出*/
   db = sqlite3_context_db_handle(context);
   for(i=0, n=1; zFmt[i]; i++, n++){
     if( zFmt[i]=='%' ){
@@ -1111,7 +1111,7 @@ void sqlite3RegisterDateTimeFunctions(void){
     **如果没有被定义了就执行下面的语句，否则就执行else下面的语句。
     */
 #ifndef SQLITE_OMIT_DATETIME_FUNCS
-    FUNCTION(julianday,        -1, 0, 0, juliandayFunc ),
+    FUNCTION(julianday,        -1, 0, 0, juliandayFunc ),/*用于创建一个标量函数的函数定义julianday由C函数juliandayFunc实现。*/
     FUNCTION(date,             -1, 0, 0, dateFunc      ),
     FUNCTION(time,             -1, 0, 0, timeFunc      ),
     FUNCTION(datetime,         -1, 0, 0, datetimeFunc  ),
