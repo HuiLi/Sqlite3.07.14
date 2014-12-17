@@ -308,40 +308,42 @@ struct Explain {
 ** 一个虚拟机的实体。这个结构包含了虚拟机完整的状态。
 ** The "sqlite3_stmt" structure pointer that is returned by sqlite3_prepare()
 ** is really a pointer to an instance of this structure.
-** 
+** sqlite3_stmt这个结构的指针由sqlite3_prepare()方法返回，它是这个结构实体的一个真实指针。
 ** The Vdbe.inVtabMethod variable is set to non-zero for the duration of
 ** any virtual table method invocations made by the vdbe program. It is
-** set to 2 for xDestroy method calls and 1 for all other methods. This
-** variable is used for two purposes: to allow xDestroy methods to execute
+** set to 2 for xDestroy method calls and 1 for all other methods.
+** Vdbe.inVtab方法的变量在vdbe程序产生的任何虚拟表方法调用期间被置为零。
+**  This variable is used for two purposes: to allow xDestroy methods to execute
 ** "DROP TABLE" statements and to prevent some nasty side effects of
 ** malloc failure when SQLite is invoked recursively by a virtual table 
 ** method function.
+** 这个变量主要用于两个目的：允许xDestroy方法实现删除表的声明以及为了防止分配内存失败产生的副作用。
 */
 struct Vdbe {
-  sqlite3 *db;            /* The database connection that owns this statement */
-  Op *aOp;                /* Space to hold the virtual machine's program */
-  Mem *aMem;              /* The memory locations */
-  Mem **apArg;            /* Arguments to currently executing user function */
-  Mem *aColName;          /* Column names to return */
-  Mem *pResultSet;        /* Pointer to an array of results */
-  int nMem;               /* Number of memory locations currently allocated */
-  int nOp;                /* Number of instructions in the program */
-  int nOpAlloc;           /* Number of slots allocated for aOp[] */
-  int nLabel;             /* Number of labels used */
-  int *aLabel;            /* Space to hold the labels */
-  u16 nResColumn;         /* Number of columns in one row of the result set */
-  u16 nCursor;            /* Number of slots in apCsr[] */
-  u32 magic;              /* Magic number for sanity checking */
-  char *zErrMsg;          /* Error message written here */
-  Vdbe *pPrev,*pNext;     /* Linked list of VDBEs with the same Vdbe.db */
-  VdbeCursor **apCsr;     /* One element of this array for each open cursor */
-  Mem *aVar;              /* Values for the OP_Variable opcode. */
-  char **azVar;           /* Name of variables */
-  ynVar nVar;             /* Number of entries in aVar[] */
+  sqlite3 *db;            /* The database connection that owns this statement 数据库连接拥有这个声明。*/
+  Op *aOp;                /* Space to hold the virtual machine's program 存储虚拟机的空间*/
+  Mem *aMem;              /* The memory locations 内存地址存储单元*/
+  Mem **apArg;            /* Arguments to currently executing user function 实现当前用户方法需要的参数*/
+  Mem *aColName;          /* Column names to return 返回的列名*/
+  Mem *pResultSet;        /* Pointer to an array of results 一个数组类结果的指针*/
+  int nMem;               /* Number of memory locations currently allocated 通常分配的内存单元数目*/
+  int nOp;                /* Number of instructions in the program 程序中的指令数目*/
+  int nOpAlloc;           /* Number of slots allocated for aOp[] 为这个方法分配的扩充单元*/
+  int nLabel;             /* Number of labels used 使用的标签数目*/
+  int *aLabel;            /* Space to hold the labels 保存标签的位置*/
+  u16 nResColumn;         /* Number of columns in one row of the result set 列数目在某一行的结果设置*/
+  u16 nCursor;            /* Number of slots in apCsr[] 这个方法中的扩充单元数目*/
+  u32 magic;              /* Magic number for sanity checking 用于版本健全性检查的幻数*/
+  char *zErrMsg;          /* Error message written here 错误信息*/
+  Vdbe *pPrev,*pNext;     /* Linked list of VDBEs with the same Vdbe.db 把vdbes的列表与同一个Vdbe.db联系起来*/
+  VdbeCursor **apCsr;     /* One element of this array for each open cursor对每一个开放的游标的数组其中之一的元素 */
+  Mem *aVar;              /* Values for the OP_Variable opcode. 这个操作码的值*/
+  char **azVar;           /* Name of variables 变量名*/
+  ynVar nVar;             /* Number of entries in aVar[]方法入口数目 */
   ynVar nzVar;            /* Number of entries in azVar[] */
-  u32 cacheCtr;           /* VdbeCursor row cache generation counter */
-  int pc;                 /* The program counter */
-  int rc;                 /* Value to return */
+  u32 cacheCtr;           /* VdbeCursor row cache generation counter Vdbe游标行缓存生成计数器*/
+  int pc;                 /* The program counter 程序计数器*/
+  int rc;                 /* Value to return 返回值*/
   u8 errorAction;         /* Recovery action to do in case of an error */
   u8 explain;             /* True if EXPLAIN present on SQL command */
   u8 changeCntOn;         /* True to update the change-counter */
