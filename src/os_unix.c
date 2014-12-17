@@ -5162,16 +5162,17 @@ typedef const sqlite3_io_methods *(*finder_type)(const char*,unixFile*);
 ** This division contains the implementation of methods on the
 ** sqlite3_vfs object.
 */
-
+//这个分部包含在sqlite3_vfs对象上操作的相关实现方法
 /*
 ** Initialize the contents of the unixFile structure pointed to by pId.
+//初始化被pId指向的unixFile的内容。
 */
 static int fillInUnixFile(
-  sqlite3_vfs *pVfs,      /* Pointer to vfs object */
-  int h,                  /* Open file descriptor of file being opened */
-  sqlite3_file *pId,      /* Write to the unixFile structure here */
-  const char *zFilename,  /* Name of the file being opened */
-  int ctrlFlags           /* Zero or more UNIXFILE_* values */
+  sqlite3_vfs *pVfs,      /* Pointer to vfs object 指向vfs对象的指针 */
+  int h,                  /* Open file descriptor of file being opened 被打开文件的打开文件描述器*/
+  sqlite3_file *pId,      /* Write to the unixFile structure here 在这里写入unixFile结构*/
+  const char *zFilename,  /* Name of the file being opened 正在被打开文件的文件名*/
+  int ctrlFlags           /* Zero or more UNIXFILE_* values 零或更多UNIXFILE_*值*/
 ){
   const sqlite3_io_methods *pLockingStyle;
   unixFile *pNew = (unixFile *)pId;
@@ -5182,6 +5183,7 @@ static int fillInUnixFile(
   /* Usually the path zFilename should not be a relative pathname. The
   ** exception is when opening the proxy "conch" file in builds that
   ** include the special Apple locking styles.
+  // 通常zFilename的路径不应是相对路径。例外是当打开内建在包含特殊Apple锁风格的"conch"文件时。
   */
 #if defined(__APPLE__) && SQLITE_ENABLE_LOCKING_STYLE
   assert( zFilename==0 || zFilename[0]=='/' 
@@ -5190,7 +5192,7 @@ static int fillInUnixFile(
   assert( zFilename==0 || zFilename[0]=='/' );
 #endif
 
-  /* No locking occurs in temporary files */
+  /* No locking occurs in temporary files */ //在临时文件中没有上锁事件发生
   assert( zFilename!=0 || (ctrlFlags & UNIXFILE_NOLOCK)!=0 );
 
   OSTRACE(("OPEN    %-3d %s\n", h, zFilename));
@@ -5222,6 +5224,8 @@ static int fillInUnixFile(
     /* Cache zFilename in the locking context (AFP and dotlock override) for
     ** proxyLock activation is possible (remote proxy is based on db name)
     ** zFilename remains valid until file is closed, to support */
+    //为了代理锁激活在锁定上下文的（AFP和点锁重写）寄存器zFilename变的可能（远程代理基于数据库名）
+    //zFilename知道文件关闭都保留了有效性
     pNew->lockingContext = (void*)zFilename;
 #endif
   }
@@ -5241,6 +5245,11 @@ static int fillInUnixFile(
       **   (a) A call to fstat() failed.
       **   (b) A malloc failed.
       **
+      //如果一个错误发生在findInodeInfo()，立即关闭文件描述符，之前释放互斥锁。
+      //findInodeInfo()将在两个情境下失败
+      //      (a)对fstat()的调用失败
+      //      (b)一个内存分配失败
+      **
       ** Scenario (b) may only occur if the process is holding no other
       ** file descriptors open on the same file. If there were other file
       ** descriptors on this file, then no malloc would be required by
@@ -5248,10 +5257,16 @@ static int fillInUnixFile(
       ** handle h - as it is guaranteed that no posix locks will be released
       ** by doing so.
       **
+      //情景(b)可能只发生在如果相同文件中此进程没有保持其他文件描述符的情况。
+      //如果没有其他文件描述符在这个文件中，则findInodeInfo()不会被要求分配。
+      //如果在这种情况下，他是非常安全的去关闭h句柄-如果这么做
+      //它会被保证非可移植性操作系统接口锁将会被释放
       ** If scenario (a) caused the error then things are not so safe. The
       ** implicit assumption here is that if fstat() fails, things are in
       ** such bad shape that dropping a lock or two doesn't matter much.
       */
+      //如果情景(a)发生错误将不会如此安全。这里隐含的假设是fstat()调用失败，
+      //在这种抛出一两个锁的坏的模型无关紧要。
       robust_close(pNew, h, __LINE__);
       h = -1;
     }
@@ -5263,6 +5278,7 @@ static int fillInUnixFile(
     /* AFP locking uses the file path so it needs to be included in
     ** the afpLockingContext.
     */
+    //AFP 锁定使用文件路径，所以它需要被包含在afpLockingContext中。
     afpLockingContext *pCtx;
     pNew->lockingContext = pCtx = sqlite3_malloc( sizeof(*pCtx) );
     if( pCtx==0 ){
@@ -5271,6 +5287,7 @@ static int fillInUnixFile(
       /* NB: zFilename exists and remains valid until the file is closed
       ** according to requirement F11141.  So we do not need to make a
       ** copy of the filename. */
+      //附注：zFilename存在,仍然有效,直到文件根据F11141要求关闭。所以我们不需要文件的副本。
       pCtx->dbPath = zFilename;
       pCtx->reserved = 0;
       srandomdev();
@@ -5290,6 +5307,7 @@ static int fillInUnixFile(
     /* Dotfile locking uses the file path so it needs to be included in
     ** the dotlockLockingContext 
     */
+    //点文件锁定使用文件路径所以它需要被包含在dotlockLockingContext
     char *zLockFile;
     int nFilename;
     assert( zFilename!=0 );
@@ -5308,6 +5326,7 @@ static int fillInUnixFile(
     /* Named semaphore locking uses the file path so it needs to be
     ** included in the semLockingContext
     */
+    //被命名为信号锁的使用文件路径所以它需要被包含在semLockingContext
     unixEnterMutex();
     rc = findInodeInfo(pNew, &pNew->pInode);
     if( (rc==SQLITE_OK) && (pNew->pInode->pSem==NULL) ){
@@ -5350,6 +5369,9 @@ static int fillInUnixFile(
 ** Return the name of a directory in which to put temporary files.
 ** If no suitable temporary file directory can be found, return NULL.
 */
+
+//返回放置临时文件的路径名。
+//如火没有合适的临时文件路径名被找到，返回NULL。
 static const char *unixTempFileDir(void){
   static const char *azDirs[] = {
      0,
@@ -5357,7 +5379,7 @@ static const char *unixTempFileDir(void){
      "/var/tmp",
      "/usr/tmp",
      "/tmp",
-     0        /* List terminator */
+     0        /* List terminator *///列表结束符
   };
   unsigned int i;
   struct stat buf;
@@ -5380,6 +5402,7 @@ static const char *unixTempFileDir(void){
 ** by the calling process and must be big enough to hold at least
 ** pVfs->mxPathname bytes.
 */
+//在zBuf创建临时文件名。zBuf必须通过调用程序被分配，而且必须足够大去承载至少和一样的pVfs->mxPathname字节数
 static int unixGetTempname(int nBuf, char *zBuf){
   static const unsigned char zChars[] =
     "abcdefghijklmnopqrstuvwxyz"
@@ -5392,7 +5415,8 @@ static int unixGetTempname(int nBuf, char *zBuf){
   ** using the io-error infrastructure to test that SQLite handles this
   ** function failing. 
   */
-  SimulateIOError( return SQLITE_IOERR );
+  //在这里模拟个io-error看似很奇怪，但事实上这仅仅是使用io-error基础架构去测试SQLite持有这个方法是否错误。
+  SimulateIOError( return SQLITE_IOERR );使用io错误
 
   zDir = unixTempFileDir();
   if( zDir==0 ) zDir = ".";
@@ -5400,6 +5424,7 @@ static int unixGetTempname(int nBuf, char *zBuf){
   /* Check that the output buffer is large enough for the temporary file 
   ** name. If it is not, return SQLITE_ERROR.
   */
+  //检查输出缓冲对于临时文件名是否足够大。如果不够，返回SQLITE_ERROR。
   if( (strlen(zDir) + strlen(SQLITE_TEMP_FILE_PREFIX) + 18) >= (size_t)nBuf ){
     return SQLITE_ERROR;
   }
@@ -5423,6 +5448,8 @@ static int unixGetTempname(int nBuf, char *zBuf){
 ** Implementation in the proxy-lock division, but used by unixOpen()
 ** if SQLITE_PREFER_PROXY_LOCKING is defined.
 */
+//例程将unixFile转换成proxy-locking unixFile.
+//实现在proxy-lock分块，但是如果SQLITE_PREFER_PROXY_LOCKING被定义，被使用通过unixOpen()。
 static int proxyTransformUnixFile(unixFile*, const char*);
 #endif
 
@@ -5432,6 +5459,8 @@ static int proxyTransformUnixFile(unixFile*, const char*);
 ** zPath with SQLITE_OPEN_XXX flags matching those passed as the second
 ** argument to this function.
 **
+//搜索一个未被使用在数据库文件中被打开的文件描述符（不是日志文件或主日志文件）,
+//这个数据库文件通过带有SQLITE_OPEN_XXX标志的路径名zPath，和在这个函数中传入的第二个参数相匹配。
 ** Such a file descriptor may exist if a database connection was closed
 ** but the associated file descriptor could not be closed because some
 ** other file descriptor open on the same file is holding a file-lock.
@@ -5439,9 +5468,12 @@ static int proxyTransformUnixFile(unixFile*, const char*);
 ** describing "Posix Advisory Locking" at the start of this file for 
 ** further details. Also, ticket #4018.
 **
+//这样一个文件描述符可以如果数据库连接被关闭，但相关的文件描述符不能被关闭，因为在同一个文件打开其它的文件描述符是持有file-lock.
+//在unixclose()功能的评论和描述"冗长的评论存在POSIX咨询锁定"在进一步的细节，该文件的开始。
 ** If a suitable file descriptor is found, then it is returned. If no
 ** such file descriptor is located, -1 is returned.
 */
+//如果合适的文件描述符被找到，然后将它返回。如果描述符被设置，－1被返回。
 static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
   UnixUnusedFd *pUnused = 0;
 
@@ -5450,8 +5482,10 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
   ** but because no way to test it is currently available. It is better 
   ** not to risk breaking vxworks support for the sake of such an obscure 
   ** feature.  */
-#if !OS_VXWORKS
-  struct stat sStat;                   /* Results of stat() call */
+  //在vxworks不会查找一个未被使用的文件描述符。不是因为vxworks不会从改变中受益（这可能，但是我们不确定），
+  //但是因为没有方法去测试当前的可用性。最好不要冒险中断vxworks支持为了这个复杂的特性。
+#if !OS_VXWORK
+  struct stat sStat;                   /* Results of stat() call *///stat()调用的结果。
 
   /* A stat() call may fail for various reasons. If this happens, it is
   ** almost certain that an open() call on the same path will also fail.
@@ -5461,6 +5495,9 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
   **
   ** Even if a subsequent open() call does succeed, the consequences of
   ** not searching for a resusable file descriptor are not dire.  */
+  //一个stat()调用可能因为诸多原因失败。如果这种情况发生，如果几乎确定一个open()调用在同样的路径将也会失败。
+  //由于这个原因，如果一个在stat()调用中错误发生，它将被忽略而且－1返回。
+  //调用器将尝试打开一个新的文件描述符在相同的文件名，失败，然后返回一个错误SQLite。
   if( 0==osStat(zPath, &sStat) ){
     unixInodeInfo *pInode;
 
@@ -5491,6 +5528,9 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
 ** written to *pMode. If an IO error occurs, an SQLite error code is 
 ** returned and the value of *pMode is not modified.
 **
+//这个方法被unixOpen()调用，用来决定unix创建新文件时的许可。如果没有错误发生，则SQLITE_OK被返回，
+//并且一个适合的值传入open(2)的第三个参数被写到*pMode。如果一个IO错误发生，
+//一个SQLite错误代码被返回并且*pMode的值不会被修改
 ** In most cases cases, this routine sets *pMode to 0, which will become
 ** an indication to robust_open() to create the file using
 ** SQLITE_DEFAULT_FILE_PERMISSIONS adjusted by the umask.
@@ -5500,31 +5540,44 @@ static UnixUnusedFd *findReusableFd(const char *zPath, int flags){
 ** possible, WAL and journal files are created using the same permissions 
 ** as the associated database file.
 **
+//在大多数的情况下，这个历程会设置*pMode为0，这个将会成为使用SQLITE_DEFAULT_FILE_PERMISSIONS适应umask的
+//robust_open()的迹象。但是如果被打开的文件是一个WAL或者通常的日志文件，
+//则这个方法问询文件系统的许可在相应的数据库文件，并且设置*pMode为这个值。不论何时可能，
+//WAL和日志文件被创建使用相同的许可像相关联的数据库文件。
 ** If the SQLITE_ENABLE_8_3_NAMES option is enabled, then the
 ** original filename is unavailable.  But 8_3_NAMES is only used for
 ** FAT filesystems and permissions do not matter there, so just use
 ** the default permissions.
 */
+//如果SQLITE_ENABLE_8_3_NAMES选项可用，则这个原始文件名将不可用。
+//但是8_3_NAMES只被用作FAT文件系统并且许可在这里没关系，所以紧紧使用默认许可。
 static int findCreateFileMode(
   const char *zPath,              /* Path of file (possibly) being created */
+                                  //正在被创建文件(可能)的路径
   int flags,                      /* Flags passed as 4th argument to xOpen() */
-  mode_t *pMode,                  /* OUT: Permissions to open file with */
+                                  //传入xOpen()的第四个参数的标记
+  mode_t *pMode,                  /* OUT: Permissions to open file with */、
+                                  //打开文件的许可
   uid_t *pUid,                    /* OUT: uid to set on the file */
+                                  //设置到此文件的uid
   gid_t *pGid                     /* OUT: gid to set on the file */
+                                  //设置到此文件的gid
 ){
   int rc = SQLITE_OK;             /* Return Code */
+                                  //返回代码
   *pMode = 0;
   *pUid = 0;
   *pGid = 0;
   if( flags & (SQLITE_OPEN_WAL|SQLITE_OPEN_MAIN_JOURNAL) ){
-    char zDb[MAX_PATHNAME+1];     /* Database file path */
-    int nDb;                      /* Number of valid bytes in zDb */
-    struct stat sStat;            /* Output of stat() on database file */
+    char zDb[MAX_PATHNAME+1];     /* Database file path */ //数据库文件路径
+    int nDb;                      /* Number of valid bytes in zDb */ //zDb中的可用字节数
+    struct stat sStat;            /* Output of stat() on database file *///stat()在数据库文件上的输出
 
     /* zPath is a path to a WAL or journal file. The following block derives
     ** the path to the associated database file from zPath. This block handles
     ** the following naming conventions:
     **
+    //zPath时一个指向WAL的路径活着一个日志文件。接下来的块源自从zPath相关联数据库。这个块持有接下多命名大会
     **   "<path to db>-journal"
     **   "<path to db>-wal"
     **   "<path to db>-journalNN"
@@ -5533,6 +5586,7 @@ static int findCreateFileMode(
     ** where NN is a decimal number. The NN naming schemes are 
     ** used by the test_multiplex.c module.
     */
+    //NN是一个小数。NN命名模式使用test_multiplex.c模块。
     nDb = sqlite3Strlen30(zPath) - 1; 
 #ifdef SQLITE_ENABLE_8_3_NAMES
     while( nDb>0 && sqlite3Isalnum(zPath[nDb]) ) nDb--;
@@ -5562,8 +5616,10 @@ static int findCreateFileMode(
 
 /*
 ** Open the file zPath.
+//打开文件zPath
 ** 
 ** Previously, the SQLite OS layer used three functions in place of this
+//在此前，SQLite操作系统层使用三个函数在这里
 ** one:
 **
 **     sqlite3OsOpenReadWrite();
@@ -5571,6 +5627,7 @@ static int findCreateFileMode(
 **     sqlite3OsOpenExclusive();
 **
 ** These calls correspond to the following combinations of flags:
+//这些调用和下面的混合体的标志相符合
 **
 **     ReadWrite() ->     (READWRITE | CREATE)
 **     ReadOnly()  ->     (READONLY) 
@@ -5582,20 +5639,23 @@ static int findCreateFileMode(
 ** interface, add the DELETEONCLOSE flag to those specified above for 
 ** OpenExclusive().
 */
+//老的OpenExclusive()接受一个布尔变量- "delFlag"。如果为真，这个文件被自动配置为当文件句柄关闭时删除。
+//为了在使用新的接口达到相同的效果，添加DELETEONCLOSE标记在以上对OpenExclusive()具体说明OpenExclusive()。
 static int unixOpen(
   sqlite3_vfs *pVfs,           /* The VFS for which this is the xOpen method */
-  const char *zPath,           /* Pathname of file to be opened */
-  sqlite3_file *pFile,         /* The file descriptor to be filled in */
-  int flags,                   /* Input flags to control the opening */
-  int *pOutFlags               /* Output flags returned to SQLite core */
+                                //xOpen方法的VFS
+  const char *zPath,           /* Pathname of file to be opened */ //被打开文件的路径名
+  sqlite3_file *pFile,         /* The file descriptor to be filled in */ //被装满的文件描述符
+  int flags,                   /* Input flags to control the opening */ //控制打开的输入标记
+  int *pOutFlags               /* Output flags returned to SQLite core */ //返回SQLite内核的输出标记
 ){
   unixFile *p = (unixFile *)pFile;
-  int fd = -1;                   /* File descriptor returned by open() */
-  int openFlags = 0;             /* Flags to pass to open() */
-  int eType = flags&0xFFFFFF00;  /* Type of file to open */
-  int noLock;                    /* True to omit locking primitives */
-  int rc = SQLITE_OK;            /* Function Return Code */
-  int ctrlFlags = 0;             /* UNIXFILE_* flags */
+  int fd = -1;                   /* File descriptor returned by open() */ //open()返回的文件描述符
+  int openFlags = 0;             /* Flags to pass to open() */ //传入open()的标记
+  int eType = flags&0xFFFFFF00;  /* Type of file to open */  //打开文件的类型
+  int noLock;                    /* True to omit locking primitives */ //为真则删除原始锁
+  int rc = SQLITE_OK;            /* Function Return Code */  //函数返回代码
+  int ctrlFlags = 0;             /* UNIXFILE_* flags */    //UNIXFILE_*标记
 
   int isExclusive  = (flags & SQLITE_OPEN_EXCLUSIVE);
   int isDelete     = (flags & SQLITE_OPEN_DELETEONCLOSE);
@@ -5613,6 +5673,8 @@ static int unixOpen(
   ** a file-descriptor on the directory too. The first time unixSync()
   ** is called the directory file descriptor will be fsync()ed and close()d.
   */
+  //如果创建一个主的或主文件日志，这个方法也会打开一个在本目录的文件描述符。第一次unixSync()被调用，
+  //这个目录文件描述符将被fsync()或close()d。
   int syncDir = (isCreate && (
         eType==SQLITE_OPEN_MASTER_JOURNAL 
      || eType==SQLITE_OPEN_MAIN_JOURNAL 
@@ -5622,16 +5684,23 @@ static int unixOpen(
   /* If argument zPath is a NULL pointer, this function is required to open
   ** a temporary file. Use this buffer to store the file name in.
   */
+  //如果变量zPath是一个空指针，这个方法被要求去打开一个临时文件。使用这个缓冲区存储文件名。
   char zTmpname[MAX_PATHNAME+2];
   const char *zName = zPath;
 
   /* Check the following statements are true: 
+  //检查一下句子为真
   **
   **   (a) Exactly one of the READWRITE and READONLY flags must be set, and 
   **   (b) if CREATE is set, then READWRITE must also be set, and
   **   (c) if EXCLUSIVE is set, then CREATE must also be set.
   **   (d) if DELETEONCLOSE is set, then CREATE must also be set.
   */
+  //   (a)事实上一个READWRITE和READONLY标记必须被设置，
+  //   (b)如果CREATE被设置，则READWRITE也必须被设置，
+  //   (c)如果EXCLUSIVE被设置，则CREATE也必须被设置，
+  //   (d)如果DELETEONCLOSE被设置，则CREATE也必须被设置，
+
   assert((isReadonly==0 || isReadWrite==0) && (isReadWrite || isReadonly));
   assert(isCreate==0 || isReadWrite);
   assert(isExclusive==0 || isCreate);
@@ -5639,12 +5708,14 @@ static int unixOpen(
 
   /* The main DB, main journal, WAL file and master journal are never 
   ** automatically deleted. Nor are they ever temporary files.  */
+  //主DB，主日志，WAL文件和主日志永远不会自动删除。临时文件也不会。
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_DB );
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_JOURNAL );
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MASTER_JOURNAL );
   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_WAL );
 
   /* Assert that the upper layer has set one of the "file-type" flags. */
+  //断言上层被设置一个"file-type"标记。
   assert( eType==SQLITE_OPEN_MAIN_DB      || eType==SQLITE_OPEN_TEMP_DB 
        || eType==SQLITE_OPEN_MAIN_JOURNAL || eType==SQLITE_OPEN_TEMP_JOURNAL 
        || eType==SQLITE_OPEN_SUBJOURNAL   || eType==SQLITE_OPEN_MASTER_JOURNAL 
@@ -5669,10 +5740,12 @@ static int unixOpen(
     /* Database filenames are double-zero terminated if they are not
     ** URIs with parameters.  Hence, they can always be passed into
     ** sqlite3_uri_parameter(). */
+    //数据库文件名会双零终止如果它们没有URIs参数。因此，它们总可以传入sqlite3_uri_parameter()。
     assert( (flags & SQLITE_OPEN_URI) || zName[strlen(zName)+1]==0 );
 
   }else if( !zName ){
     /* If zName is NULL, the upper layer is requesting a temp file. */
+    //如果zName为空，则上层被要求一个临时文件。
     assert(isDelete && !syncDir);
     rc = unixGetTempname(MAX_PATHNAME+2, zTmpname);
     if( rc!=SQLITE_OK ){
@@ -5682,6 +5755,7 @@ static int unixOpen(
 
     /* Generated temporary filenames are always double-zero terminated
     ** for use by sqlite3_uri_parameter(). */
+    //使用sqlite3_uri_parameter()产生的临时文件总是双零终止。
     assert( zName[strlen(zName)+1]==0 );
   }
 
@@ -5689,6 +5763,8 @@ static int unixOpen(
   ** open(). These must be calculated even if open() is not called, as
   ** they may be stored as part of the file handle and used by the 
   ** 'conch file' locking functions later on.  */
+  //查明标记参数传入POSIX方法open()的标记值。这必须被计算即使open()没有被调用，如同他们可能被存储为文件句柄的一部分
+  //并且被用作后来的壳文件锁定方法。
   if( isReadonly )  openFlags |= O_RDONLY;
   if( isReadWrite ) openFlags |= O_RDWR;
   if( isCreate )    openFlags |= O_CREAT;
@@ -5696,9 +5772,9 @@ static int unixOpen(
   openFlags |= (O_LARGEFILE|O_BINARY);
 
   if( fd<0 ){
-    mode_t openMode;              /* Permissions to create file with */
-    uid_t uid;                    /* Userid for the file */
-    gid_t gid;                    /* Groupid for the file */
+    mode_t openMode;              /* Permissions to create file with */ //创建文件的权限
+    uid_t uid;                    /* Userid for the file */ //文件的用户id
+    gid_t gid;                    /* Groupid for the file */ //文件的组id
     rc = findCreateFileMode(zName, flags, &openMode, &uid, &gid);
     if( rc!=SQLITE_OK ){
       assert( !p->pUnused );
@@ -5709,6 +5785,7 @@ static int unixOpen(
     OSTRACE(("OPENX   %-3d %s 0%o\n", fd, zName, openFlags));
     if( fd<0 && errno!=EISDIR && isReadWrite && !isExclusive ){
       /* Failed to open the file for read/write access. Try read-only. */
+      //打开文件去读／写存取失败。尝试只读。
       flags &= ~(SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE);
       openFlags &= ~(O_RDWR|O_CREAT);
       flags |= SQLITE_OPEN_READONLY;
@@ -5725,6 +5802,7 @@ static int unixOpen(
     ** journal or WAL file, set the ownership of the journal or WAL to be
     ** the same as the original database.
     */
+    //如果这个进程被当作启动运行，并且如果创建一个新的或调日志或WAL文件，设置日志或者WAL的所有权作为和原数据库相同的。
     if( flags & (SQLITE_OPEN_WAL|SQLITE_OPEN_MAIN_JOURNAL) ){
       osFchown(fd, uid, gid);
     }
@@ -5767,6 +5845,7 @@ static int unixOpen(
 #endif
 
   /* Set up appropriate ctrlFlags */
+  //设置合适的ctrlFlags
   if( isDelete )                ctrlFlags |= UNIXFILE_DELETE;
   if( isReadonly )              ctrlFlags |= UNIXFILE_RDONLY;
   if( noLock )                  ctrlFlags |= UNIXFILE_NOLOCK;
@@ -5783,6 +5862,7 @@ static int unixOpen(
 
     /* SQLITE_FORCE_PROXY_LOCKING==1 means force always use proxy, 0 means 
     ** never use proxy, NULL means use proxy for non-local files only.  */
+    //SQLITE_FORCE_PROXY_LOCKING==1意味着总是强制使用代理，0意味着从不使用代理，NULL只意味着以未定为文件使用代理
     if( envforce!=NULL ){
       useProxy = atoi(envforce)>0;
     }else{
@@ -5810,6 +5890,8 @@ static int unixOpen(
           ** and clear all the structure's references.  Specifically, 
           ** pFile->pMethods will be NULL so sqlite3OsClose will be a no-op 
           */
+          //使用unixClose清理添加进fillInUnixFile的资源而且清理所有的结构参照。特别地，
+          //pFile->pMethods将被制为NULL，所以sqlite3OsClose将被误操作。
           unixClose(pFile);
           return rc;
         }
@@ -5833,6 +5915,7 @@ open_finished:
 ** Delete the file at zPath. If the dirSync argument is true, fsync()
 ** the directory after deleting the file.
 */
+//在zPath删除文件。如果dirSync参数为真，删除此文件后fsync()这个目录。
 static int unixDelete(
   sqlite3_vfs *NotUsed,     /* VFS containing this as the xDelete method */
   const char *zPath,        /* Name of file to be deleted */
@@ -5870,17 +5953,19 @@ static int unixDelete(
 ** Test the existance of or access permissions of file zPath. The
 ** test performed depends on the value of flags:
 **
-**     SQLITE_ACCESS_EXISTS: Return 1 if the file exists
-**     SQLITE_ACCESS_READWRITE: Return 1 if the file is read and writable.
-**     SQLITE_ACCESS_READONLY: Return 1 if the file is readable.
+//测试存取文件zPath权限的存在性。测试的表现以标记值为依据。
+**     SQLITE_ACCESS_EXISTS: Return 1 if the file exists//SQLITE_ACCESS_EXISTS:返回1如果文件存在
+**     SQLITE_ACCESS_READWRITE: Return 1 if the file is read and writable.//SQLITE_ACCESS_READWRITE:返回1如果文件被读取且可写。
+**     SQLITE_ACCESS_READONLY: Return 1 if the file is readable.//SQLITE_ACCESS_READONLY:返回1如果文件可读。
 **
 ** Otherwise return 0.
+//否则返回0.
 */
 static int unixAccess(
-  sqlite3_vfs *NotUsed,   /* The VFS containing this xAccess method */
-  const char *zPath,      /* Path of the file to examine */
-  int flags,              /* What do we want to learn about the zPath file? */
-  int *pResOut            /* Write result boolean here */
+  sqlite3_vfs *NotUsed,   /* The VFS containing this xAccess method *///VFS包含xAccess方法
+  const char *zPath,      /* Path of the file to examine *///要检查文件的路径
+  int flags,              /* What do we want to learn about the zPath file? *///我们将从zPath文件得到什么？
+  int *pResOut            /* Write result boolean here *///自这里写布尔结果
 ){
   int amode = 0;
   UNUSED_PARAMETER(NotUsed);
@@ -5915,15 +6000,18 @@ static int unixAccess(
 ** is stored as a nul-terminated string in the buffer pointed to by
 ** zPath. 
 **
+//将一个相对路径转换为绝对路径。这个相对路径在zPath指向的缓冲区内被存储为nul-terminated字符串。
 ** zOut points to a buffer of at least sqlite3_vfs.mxPathname bytes 
 ** (in this case, MAX_PATHNAME bytes). The full-path is written to
 ** this buffer before returning.
 */
+//zOut指向的缓冲区至少有sqlite3_vfs.mxPathname字节(在这种情况下，为MAX_PATHNAME字节数)。
+//返回前绝对路径被写到缓冲区。
 static int unixFullPathname(
-  sqlite3_vfs *pVfs,            /* Pointer to vfs object */
-  const char *zPath,            /* Possibly relative input path */
-  int nOut,                     /* Size of output buffer in bytes */
-  char *zOut                    /* Output buffer */
+  sqlite3_vfs *pVfs,            /* Pointer to vfs object */ //指向vfs对象的指针
+  const char *zPath,            /* Possibly relative input path */ //可能的输入相对路径
+  int nOut,                     /* Size of output buffer in bytes */  //输出缓冲区的自己数
+  char *zOut                    /* Output buffer */  //输出缓冲区
 ){
 
   /* It's odd to simulate an io-error here, but really this is just
@@ -5931,6 +6019,8 @@ static int unixFullPathname(
   ** function failing. This function could fail if, for example, the
   ** current working directory has been unlinked.
   */
+  //在这模拟io错误看似很奇怪，但是实际上只是使用io错误基础架构来测试SQLite持有这个函数是否失败。这个函数有可能失败
+  //例如，当前工作目录被断开连接。
   SimulateIOError( return SQLITE_ERROR );
 
   assert( pVfs->mxPathname==MAX_PATHNAME );
@@ -5956,6 +6046,7 @@ static int unixFullPathname(
 ** Interfaces for opening a shared library, finding entry points
 ** within the shared library, and closing the shared library.
 */
+//打开共享库的接口，寻找共享库的入口点，并且关闭共享库。
 #include <dlfcn.h>
 static void *unixDlOpen(sqlite3_vfs *NotUsed, const char *zFilename){
   UNUSED_PARAMETER(NotUsed);
@@ -5969,6 +6060,8 @@ static void *unixDlOpen(sqlite3_vfs *NotUsed, const char *zFilename){
 ** is available, zBufOut is left unmodified and SQLite uses a default
 ** error message.
 */
+//SQLite在unixDlSym()或unixDlOpen()函数失败时立即调用这个函数(返回空指针)。
+//如果更多错误细节信息可用，它将被写到zBufOut。如果没有错误信息可用，zBufOut被留下不修改并且SQLite使用一个默认的错误信息。
 static void unixDlError(sqlite3_vfs *NotUsed, int nBuf, char *zBufOut){
   const char *zErr;
   UNUSED_PARAMETER(NotUsed);
@@ -5986,17 +6079,23 @@ static void (*unixDlSym(sqlite3_vfs *NotUsed, void *p, const char*zSym))(void){
   ** returns a void* which is really a pointer to a function.  So how do we
   ** use dlsym() with -pedantic-errors?
   **
+  //有-pedantic-errors的GCC表示C90不允许一个void*被分配到一个指向函数的指针。
+  //即使库dlsym()例程返回一个真正指向函数的void*。所以伴随-pedantic-errors怎样使用dlsym()？
   ** Variable x below is defined to be a pointer to a function taking
   ** parameters void* and const char* and returning a pointer to a function.
   ** We initialize x by assigning it a pointer to the dlsym() function.
   ** (That assignment requires a cast.)  Then we call the function that
   ** x points to.  
   **
+  //一下变量x被定义成一个指针指向一个持有void*参数和const char*参数并返回指向函数的指针的函数。
+  //我们通过分配指向dlsym()函数的指针初始化x(这个任务被要求一个分配)。接着我们调用x指向的函数。
   ** This work-around is unlikely to work correctly on any system where
   ** you really cannot cast a function pointer into void*.  But then, on the
   ** other hand, dlsym() will not work on such a system either, so we have
   ** not really lost anything.
   */
+  //这个work-around不太可能正确的工作在任何你不能分配给void*的函数指针的系统。
+  //但是，另一方面看，dlsym()也不会工作在这样一个系统上，所以我们不会损失什么东西。
   void (*(*x)(void*,const char*))(void);
   UNUSED_PARAMETER(NotUsed);
   x = (void(*(*)(void*,const char*))(void))dlsym;
@@ -6006,7 +6105,7 @@ static void unixDlClose(sqlite3_vfs *NotUsed, void *pHandle){
   UNUSED_PARAMETER(NotUsed);
   dlclose(pHandle);
 }
-#else /* if SQLITE_OMIT_LOAD_EXTENSION is defined: */
+#else /* if SQLITE_OMIT_LOAD_EXTENSION is defined: */ //如果SQLITE_OMIT_LOAD_EXTENSION被定义
   #define unixDlOpen  0
   #define unixDlError 0
   #define unixDlSym   0
@@ -6016,6 +6115,7 @@ static void unixDlClose(sqlite3_vfs *NotUsed, void *pHandle){
 /*
 ** Write nBuf bytes of random data to the supplied buffer zBuf.
 */
+//将nBuf字节的随机数据写入被支持的zBuf缓冲。
 static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
   UNUSED_PARAMETER(NotUsed);
   assert((size_t)nBuf>=(sizeof(time_t)+sizeof(int)));
@@ -6028,10 +6128,14 @@ static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
   ** the whole array and silence valgrind, even if that means less randomness
   ** in the random seed.
   **
+  // 我们必须初始化zBuf以阻止错误报告中的valgrind。这个通过valgrind报告的问题不正确－
+  //我们更倾向于使用通过未被初始化空间的zBuf增长随机性－但是valgrind错误趋向于打扰一些用户。
+  //更多的争议，它貌似更容易初始化所有数组和寂静valgrind，甚至在随机种中更少的随机性。
   ** When testing, initializing zBuf[] to zero is all we do.  That means
   ** that we always use the same random number sequence.  This makes the
   ** tests repeatable.
   */
+  //当测试，我们所有做的事初始化zBuf[]为零。那意味着我们总是使用相同的随机数队列。这样使测试可重复。
   memset(zBuf, 0, nBuf);
 #if !defined(SQLITE_TEST)
   {
@@ -6063,6 +6167,8 @@ static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
 ** might be greater than or equal to the argument, but not less
 ** than the argument.
 */
+//休眠一会儿。返回睡眠时间。这个我们想去休眠的参数是以微秒计算。返回值是从底层操作系统请求的微秒数。
+//这个数值可能大于或等于这个参数，但是不会小于此参数。
 static int unixSleep(sqlite3_vfs *NotUsed, int microseconds){
 #if OS_VXWORKS
   struct timespec sp;
@@ -6089,8 +6195,10 @@ static int unixSleep(sqlite3_vfs *NotUsed, int microseconds){
 ** the number of seconds since 1970 and is used to set the result of
 ** sqlite3OsCurrentTime() during testing.
 */
+//以下变量，如果被设置为非零值，则被解释为自从1970年后的秒数，并且被设置为测试过程中sqlite3OsCurrentTime()的结果。
 #ifdef SQLITE_TEST
 int sqlite3_current_time = 0;  /* Fake system time in seconds since 1970. */
+                              //假系统时间，从1970年至今的秒数算起
 #endif
 
 /*
@@ -6100,9 +6208,10 @@ int sqlite3_current_time = 0;  /* Fake system time in seconds since 1970. */
 ** epoch of noon in Greenwich on November 24, 4714 B.C according to the
 ** proleptic Gregorian calendar.
 **
+//查询当前时间(在通用坐标系时间)。写入*piNow当前时间和日期作为一个Julian Day次数86_400_000。
 ** On success, return SQLITE_OK.  Return SQLITE_ERROR if the time and date 
 ** cannot be found.
-*/
+*///如果成功，返回SQLITE_OK。如果时间和日期不能被找到则返回SQLITE_ERROR。
 static int unixCurrentTimeInt64(sqlite3_vfs *NotUsed, sqlite3_int64 *piNow){
   static const sqlite3_int64 unixEpoch = 24405875*(sqlite3_int64)8640000;
   int rc = SQLITE_OK;
@@ -6137,6 +6246,8 @@ static int unixCurrentTimeInt64(sqlite3_vfs *NotUsed, sqlite3_int64 *piNow){
 ** current time and date as a Julian Day number into *prNow and
 ** return 0.  Return 1 if the time and date cannot be found.
 */
+//查找当前时间（世界标准时间）。
+//写当前的时间和日期作为儒略日数为* prNow并返回0返回1，如果时间和日期不能被发现。
 static int unixCurrentTime(sqlite3_vfs *NotUsed, double *prNow){
   sqlite3_int64 i = 0;
   int rc;
@@ -6153,6 +6264,9 @@ static int unixCurrentTime(sqlite3_vfs *NotUsed, double *prNow){
 ** in the core.  So this routine is never called.  For now, it is merely
 ** a place-holder.
 */
+//我们与提供更好的低级错误信息的打算加入xGetLastError（）方法时，运行系统的问题上来
+//在SQLite的操作。但到目前为止，没有任何已经在内核中实现。因此，这个程序不会被调用。就目前而言，它仅仅是一个占位符。
+在SQLite的操作。但到目前为止，没有任何已经在内核中实现。因此，这个程序不会被调用。就目前而言，它仅仅是一个占位符。
 static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
   UNUSED_PARAMETER(NotUsed);
   UNUSED_PARAMETER(NotUsed2);
@@ -6176,6 +6290,9 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** been defined - so that the primitive locking methods are available
 ** as services to help with the implementation of proxy locking.
 **
+//代理锁在这个场景下是一个"超级锁定方法"：它使用辅助锁定装置的文件的其他锁定的方法。
+//代理锁定是一种元层上方以上实施原始锁定的顶部。出于这个原因，
+//实现代理锁定的分工推迟到年底文件（这里）后，所有的其他I/O的方法已被定义 - 使原始锁定方法都可以作为服务来帮助实施代理锁定。
 ****
 **
 ** The default locking schemes in SQLite use byte-range locks on the
@@ -6189,6 +6306,10 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** address in the shared range is taken for a SHARED lock, the entire
 ** shared range is taken for an EXCLUSIVE lock):
 **
+//默认锁定在SQLite的使用字节范围锁方案对数据库文件进行协调多个读者和作者[http://sqlite.org/lockingv3.html]安全，并发访问。
+//这五个文件锁定状态（UNLOCKED，待共享，保留，EXCLUSIVE）实现为POSIX读及以上组固定的位置（通过FSCTL）写锁，
+//对AFP和SMB独享的字节范围锁通过FSCTL与_IOWR（'Z'可23，结构ByteRangeLockPB2）来跟踪同一5个州。为了模拟在共享范围F_RDLCK，
+//对AFP在共享范围内随机选择的地址是一个共享锁，整个共享范围采取的排它锁):
 **      PENDING_BYTE        0x40000000
 **      RESERVED_BYTE       0x40000001
 **      SHARED_RANGE        0x40000002 -> 0x40000200
@@ -6204,11 +6325,18 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** readers and writers
 ** [http://www.nabble.com/SQLite-on-NFS-cache-coherency-td15655701.html].
 **
+//这可以很好的本地文件系统上，但显示了近100倍放缓对AFP读取性能，因为AFP客户端禁用读取高速缓存，当字节范围锁都存在。
+//使读高速缓存公开一个高速缓存一致性问题，即存在于所有OS X上支持的网络文件系统。
+//NFS和AFP均遵守贴近开放语义确保高速缓存一致性[http://nfs.sourceforge.net/#faq_a8]，
+//这并不能有效地解决了多个读者和作家的并发访问数据库的要求[HTTP：//www.nabble.com/SQLite-on-NFS-cache-coherency-td15655701.html。
 ** To address the performance and cache coherency issues, proxy file locking
 ** changes the way database access is controlled by limiting access to a
 ** single host at a time and moving file locks off of the database file
 ** and onto a proxy file on the local file system.  
 **
+//为了解决性能和高速缓存一致性的问题，
+//代理文件锁定改变的方式访问数据库是通过限制访问一台主机的时间和移动文件锁关闭的数据库文件，
+//并到本地文件系统上的代理文件控制。
 **
 ** Using proxy locks
 ** -----------------
@@ -6232,6 +6360,9 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** actual proxy file name is generated from the name and path of the
 ** database file.  For example:
 **
+//指定“：自动”意味着，如果存在与它匹配的主机ID的壳文件，在壳文件的代理路径将被使用，
+//否则基于所述用户的临时目录（经由confstr代理路径（_CS_DARWIN_USER_TEMP_DIR,...））
+//将被用于与实际代理文件名从名称和数据库文件的路径中产生的。例如：
 **       For database path "/Users/me/foo.db" 
 **       The lock path will be "<tmpdir>/sqliteplocks/_Users_me_foo.db:auto:")
 **
@@ -6265,11 +6396,18 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** is held by another process (with a shared lock), the exclusive lock
 ** will fail and SQLITE_BUSY is returned.
 **
+//壳文件 - 通过在壳文件以一个SQLite式共享锁，阅读内容和比较主机的唯一的主机ID（见下文），
+//并锁定代理路径对使用代理文件，sqlite的必须先“持有壳”存储在壳的值。
+//壳文件存储在同一目录下的数据库文件和数据库文件名后的文件名进行构图。“<数据库>-壳”。
+//如果壳文件不存在，或者它的内容不匹配的主机ID和/或代理的路径，那么锁升级为独占锁，壳文件内容与主机ID和代理路径更新和锁再次降级为共享锁。
+//如果壳被另一个进程举行（与共享锁），排它锁将失败，SQLITE_BUSY返回。
 ** The proxy file - a single-byte file used for all advisory file locks
 ** normally taken on the database file.   This allows for safe sharing
 ** of the database file for multiple readers and writers on the same
 ** host (the conch ensures that they all use the same local lock file).
 **
+//代理文件 - 用于所有的咨询文件锁定一个单字节的文件，通常采取数据库文件。
+//这使得安全共享多个读者和作家在同一台主机上的数据库文件（壳确保它们都使用相同的本地锁定文件）。
 ** Requesting the lock proxy does not immediately take the conch, it is
 ** only taken when the first request to lock database file is made.  
 ** This matches the semantics of the traditional locking behavior, where
@@ -6277,8 +6415,12 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** The shared lock and an open file descriptor are maintained until 
 ** the connection to the database is closed. 
 **
+//请求锁代理不立即采取海螺，它仅取当第一请求锁定数据库文件被制成。
+//这与传统的锁定行为，在打开的数据库文件的连接不上采取锁的语义。
+//共享锁和一个打开的文件描述符被保持到数据库连接被关闭。
 ** The proxy file and the lock file are never deleted so they only need
 ** to be created the first time they are used.
+//代理文件和锁定文件不会被删除，这样他们只需要创建首次使用它们。
 **
 ** Configuration options
 ** ---------------------
@@ -6313,26 +6455,33 @@ static int unixGetLastError(sqlite3_vfs *NotUsed, int NotUsed2, char *NotUsed3){
 ** files (explicity calling the SQLITE_SET_LOCKPROXYFILE pragma or
 ** sqlite_file_control API is not affected by SQLITE_FORCE_PROXY_LOCKING).
 */
+//如上所述，当与SQLITE_PREFER_PROXY_LOCKING编译，环境变量SQLITE_FORCE_PROXY_LOCKING设置为1，
+//将迫使锁定代理将用于每个数据库文件打开，0将迫使自动代理锁定所有数据库文件
+//（显式调用SQLITE_SET_LOCKPROXYFILE杂或禁用sqlite_file_control API不受SQLITE_FORCE_PROXY_LOCKING）。
 
 /*
 ** Proxy locking is only available on MacOSX 
 */
+//代理锁定只在MacOSX上可用
 #if defined(__APPLE__) && SQLITE_ENABLE_LOCKING_STYLE
 
 /*
 ** The proxyLockingContext has the path and file structures for the remote 
 ** and local proxy files in it
 */
+//为了将远程和本地代理文件纳入其中，proxyLockingContext有路径和文件结构
 typedef struct proxyLockingContext proxyLockingContext;
 struct proxyLockingContext {
-  unixFile *conchFile;         /* Open conch file */
-  char *conchFilePath;         /* Name of the conch file */
-  unixFile *lockProxy;         /* Open proxy lock file */
-  char *lockProxyPath;         /* Name of the proxy lock file */
-  char *dbPath;                /* Name of the open file */
-  int conchHeld;               /* 1 if the conch is held, -1 if lockless */
+  unixFile *conchFile;         /* Open conch file */ //打开壳文件
+  char *conchFilePath;         /* Name of the conch file */ //壳文件名
+  unixFile *lockProxy;         /* Open proxy lock file */  //打来代理锁文件
+  char *lockProxyPath;         /* Name of the proxy lock file */ //代理锁文件名
+  char *dbPath;                /* Name of the open file */  //打开文件名
+  int conchHeld;               /* 1 if the conch is held, -1 if lockless */ //1如果壳文件被持有，－1如果无限锁
   void *oldLockingContext;     /* Original lockingcontext to restore on close */
+                               //在关闭时原始锁定上下文修复
   sqlite3_io_methods const *pOldMethod;     /* Original I/O methods for close */
+                                            //关闭时原始I/O方法
 };
 
 /* 
@@ -6340,6 +6489,7 @@ struct proxyLockingContext {
 ** which must point to valid, writable memory large enough for a maxLen length
 ** file path. 
 */
+//在dbPath数据库所属的代理锁文件路径被写入到lPath，它必须指向有效，可写入的足够大的内存为maxLen长度的文件路径
 static int proxyGetLockPath(const char *dbPath, char *lPath, size_t maxLen){
   int len;
   int dbLen;
@@ -6367,6 +6517,7 @@ static int proxyGetLockPath(const char *dbPath, char *lPath, size_t maxLen){
   }
   
   /* transform the db path to a unique cache name */
+  //将db路径转换为唯一的寄存器名称
   dbLen = (int)strlen(dbPath);
   for( i=0; i<dbLen && (i+len+7)<(int)maxLen; i++){
     char c = dbPath[i];
@@ -6381,6 +6532,7 @@ static int proxyGetLockPath(const char *dbPath, char *lPath, size_t maxLen){
 /* 
  ** Creates the lock file and any missing directories in lockPath
  */
+ //创建锁文件和任何在lockPath中丢失的目录
 static int proxyCreateLockPath(const char *lockPath){
   int i, len;
   char buf[MAXPATHLEN];
@@ -6388,6 +6540,7 @@ static int proxyCreateLockPath(const char *lockPath){
   
   assert(lockPath!=NULL);
   /* try to create all the intermediate directories */
+  //尝试创建所有中间路径
   len = (int)strlen(lockPath);
   buf[0] = lockPath[0];
   for( i=1; i<len; i++ ){
@@ -6418,13 +6571,16 @@ static int proxyCreateLockPath(const char *lockPath){
 ** Create a new VFS file descriptor (stored in memory obtained from
 ** sqlite3_malloc) and open the file named "path" in the file descriptor.
 **
+//创建一个新的VFS文件描述符(存书在通过sqlite3_malloc获得的内存)，并且在文件描述符中打开名为"path"
 ** The caller is responsible not only for closing the file descriptor
 ** but also for freeing the memory associated with the file descriptor.
 */
+//调用器不仅想关闭文件描述符负责，而且负责释放此文件描述符的关联内存
 static int proxyCreateUnixFile(
-    const char *path,        /* path for the new unixFile */
-    unixFile **ppFile,       /* unixFile created and returned by ref */
+    const char *path,        /* path for the new unixFile *///新unixFile的路径
+    unixFile **ppFile,       /* unixFile created and returned by ref *///unixFile创建和返回通过ref
     int islockfile           /* if non zero missing dirs will be created */
+                            //如果非零丢失路径，则它将被创建
 ) {
   int fd = -1;
   unixFile *pNew;
@@ -6440,6 +6596,9 @@ static int proxyCreateUnixFile(
   ** 3. if that fails, try to open the file read-only
   ** otherwise return BUSY (if lock file) or CANTOPEN for the conch file
   */
+  //1.首先测试打开/创建次文件
+  //2.如果失败，并且它是一个锁文件(不是壳)，尝试创建父级目录然后重新尝试
+  //3.如果它失败了，尝试打开只读文件，在其他情况下返回BUSY(如果文件锁定)或者为了壳文件的CANTOPEN
   pUnused = findReusableFd(path, openFlags);
   if( pUnused ){
     fd = pUnused->fd;
@@ -6471,7 +6630,7 @@ static int proxyCreateUnixFile(
       case EACCES:
         return SQLITE_PERM;
       case EIO: 
-        return SQLITE_IOERR_LOCK; /* even though it is the conch */
+        return SQLITE_IOERR_LOCK; /* even though it is the conch *///虽然它是壳
       default:
         return SQLITE_CANTOPEN_BKPT;
     }
@@ -6505,24 +6664,27 @@ end_create_proxy:
 
 #ifdef SQLITE_TEST
 /* simulate multiple hosts by creating unique hostid file paths */
+//通过创建唯一的宿主id文件路径模拟多宿主
 int sqlite3_hostid_num = 0;
 #endif
 
-#define PROXY_HOSTIDLEN    16  /* conch file host id length */
+#define PROXY_HOSTIDLEN    16  /* conch file host id length *///壳文件宿主id长度
 
 /* Not always defined in the headers as it ought to be */
+//不总是在头文件中像它应该的那样定义
 extern int gethostuuid(uuid_t id, const struct timespec *wait);
 
 /* get the host ID via gethostuuid(), pHostID must point to PROXY_HOSTIDLEN 
 ** bytes of writable memory.
 */
+//通过gethostuuid()得到宿主ID，pHostID必须指向可写内存的PROXY_HOSTIDLEN字节
 static int proxyGetHostID(unsigned char *pHostID, int *pError){
   assert(PROXY_HOSTIDLEN == sizeof(uuid_t));
   memset(pHostID, 0, PROXY_HOSTIDLEN);
 #if defined(__MAX_OS_X_VERSION_MIN_REQUIRED)\
                && __MAC_OS_X_VERSION_MIN_REQUIRED<1050
   {
-    static const struct timespec timeout = {1, 0}; /* 1 sec timeout */
+    static const struct timespec timeout = {1, 0}; /* 1 sec timeout *///一秒延时
     if( gethostuuid(pHostID, &timeout) ){
       int err = errno;
       if( pError ){
@@ -6536,6 +6698,7 @@ static int proxyGetHostID(unsigned char *pHostID, int *pError){
 #endif
 #ifdef SQLITE_TEST
   /* simulate multiple hosts by creating unique hostid file paths */
+  //通过唯一的宿主id文件路径模拟多宿主
   if( sqlite3_hostid_num != 0){
     pHostID[0] = (char)(pHostID[0] + (char)(sqlite3_hostid_num & 0xFF));
   }
@@ -6546,8 +6709,9 @@ static int proxyGetHostID(unsigned char *pHostID, int *pError){
 
 /* The conch file contains the header, host id and lock file path
  */
-#define PROXY_CONCHVERSION 2   /* 1-byte header, 16-byte host id, path */
-#define PROXY_HEADERLEN    1   /* conch file header length */
+//壳文件包含头部，宿主id和锁文件路径
+#define PROXY_CONCHVERSION 2   /* 1-byte header, 16-byte host id, path *///一字节头，16字节宿主id，路径
+#define PROXY_HEADERLEN    1   /* conch file header length */ //壳文件头长度
 #define PROXY_PATHINDEX    (PROXY_HEADERLEN+PROXY_HOSTIDLEN)
 #define PROXY_MAXCONCHLEN  (PROXY_HEADERLEN+PROXY_HOSTIDLEN+MAXPATHLEN)
 
@@ -6556,6 +6720,8 @@ static int proxyGetHostID(unsigned char *pHostID, int *pError){
 ** it back.  The newly created file's file descriptor is assigned to the
 ** conch file structure and finally the original conch file descriptor is 
 ** closed.  Returns zero if successful.
+**需要一个打开的壳文件,将内容复制到一个新的路径,然后移回。新创建的文件的文件
+描述符被分配给壳文件结构体并，最后原始壳文件描述符关闭。如果成功返回0
 */
 static int proxyBreakConchLock(unixFile *pFile, uuid_t myHostID){
   proxyLockingContext *pCtx = (proxyLockingContext *)pFile->lockingContext; 
@@ -6571,19 +6737,20 @@ static int proxyBreakConchLock(unixFile *pFile, uuid_t myHostID){
   UNUSED_PARAMETER(myHostID);
 
   /* create a new path by replace the trailing '-conch' with '-break' */
+  /*通过更换后缀 '-conch' 与 '-break'创建新的路径*/
   pathLen = strlcpy(tPath, cPath, MAXPATHLEN);
   if( pathLen>MAXPATHLEN || pathLen<6 || 
      (strlcpy(&tPath[pathLen-5], "break", 6) != 5) ){
     sqlite3_snprintf(sizeof(errmsg),errmsg,"path error (len %d)",(int)pathLen);
     goto end_breaklock;
   }
-  /* read the conch content */
+  /* read the conch content */    //读取壳文件内容
   readLen = osPread(conchFile->h, buf, PROXY_MAXCONCHLEN, 0);
   if( readLen<PROXY_PATHINDEX ){
     sqlite3_snprintf(sizeof(errmsg),errmsg,"read error (len %d)",(int)readLen);
     goto end_breaklock;
   }
-  /* write it out to the temporary break file */
+  /* write it out to the temporary break file */  //将他写出到临时中断文件
   fd = robust_open(tPath, (O_RDWR|O_CREAT|O_EXCL), 0);
   if( fd<0 ){
     sqlite3_snprintf(sizeof(errmsg), errmsg, "create failed (%d)", errno);
@@ -6616,6 +6783,7 @@ end_breaklock:
 
 /* Take the requested lock on the conch file and break a stale lock if the 
 ** host id matches.
+**给壳文件加上请求的锁，并打破旧的锁，如果主机ID匹配的话
 */
 static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
   proxyLockingContext *pCtx = (proxyLockingContext *)pFile->lockingContext; 
@@ -6634,6 +6802,10 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
        * 2nd try: fail if the mod time changed or host id is different, wait 
        *           10 sec and try again
        * 3rd try: break the lock unless the mod time has changed.
+     *如果锁定失败（忙）：
+     *第一次尝试：获得壳文件当前的时间，等待0.5秒，然后重试。
+     *第二次尝试：失败，如果当前时间改变或主机标识是不同，等待10秒，然后重试
+       *第三次尝试：打破锁，除非当前时间已经改变了。
        */
       struct stat buf;
       if( osFstat(conchFile->h, &buf) ){
@@ -6643,7 +6815,7 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
       
       if( nTries==1 ){
         conchModTime = buf.st_mtimespec;
-        usleep(500000); /* wait 0.5 sec and try the lock again*/
+        usleep(500000); /* wait 0.5 sec and try the lock again*/   //等待5秒，然后重试
         continue;  
       }
 
@@ -6661,15 +6833,15 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
           return SQLITE_IOERR_LOCK;
         }
         if( len>PROXY_PATHINDEX && tBuf[0]==(char)PROXY_CONCHVERSION){
-          /* don't break the lock if the host id doesn't match */
+          /* don't break the lock if the host id doesn't match */ //如果主机表示不匹配不要打破锁
           if( 0!=memcmp(&tBuf[PROXY_HEADERLEN], myHostID, PROXY_HOSTIDLEN) ){
             return SQLITE_BUSY;
           }
         }else{
-          /* don't break the lock on short read or a version mismatch */
+          /* don't break the lock on short read or a version mismatch */  //不要在短暂读取或版本不匹配时打破锁
           return SQLITE_BUSY;
         }
-        usleep(10000000); /* wait 10 sec and try the lock again */
+        usleep(10000000); /* wait 10 sec and try the lock again */  //等待10秒，在尝试这个锁
         continue; 
       }
       
@@ -6694,6 +6866,7 @@ static int proxyConchLock(unixFile *pFile, uuid_t myHostID, int lockType){
 ** lockPath means that the lockPath in the conch file will be used if the 
 ** host IDs match, or a new lock path will be generated automatically 
 ** and written to the conch file.
+**通过采用共享锁获得壳文件并读取其内容，如果lockPath非NULL，主机ID和锁定文件路径必须匹配。一个NULL lockPath意味着壳文件的**lockPath将被使用，如果主机ID相匹配，或者一个新的锁路径将自动生成并写入壳文件。
 */
 static int proxyTakeConch(unixFile *pFile){
   proxyLockingContext *pCtx = (proxyLockingContext *)pFile->lockingContext; 
@@ -6726,10 +6899,10 @@ static int proxyTakeConch(unixFile *pFile){
     if( rc!=SQLITE_OK ){
       goto end_takeconch;
     }
-    /* read the existing conch file */
+    /* read the existing conch file */    //读取现有的壳文件
     readLen = seekAndRead((unixFile*)conchFile, 0, readBuf, PROXY_MAXCONCHLEN);
     if( readLen<0 ){
-      /* I/O error: lastErrno set by seekAndRead */
+      /* I/O error: lastErrno set by seekAndRead */   // I/O 错误：seekAndRead设定的lastErrno
       pFile->lastErrno = conchFile->lastErrno;
       rc = SQLITE_IOERR_READ;
       goto end_takeconch;
@@ -6737,22 +6910,25 @@ static int proxyTakeConch(unixFile *pFile){
              readBuf[0]!=(char)PROXY_CONCHVERSION ){
       /* a short read or version format mismatch means we need to create a new 
       ** conch file. 
+    **短暂读取或者版本格式不匹配意味着我们需要建立一个新的壳文件
       */
       createConch = 1;
     }
     /* if the host id matches and the lock path already exists in the conch
     ** we'll try to use the path there, if we can't open that path, we'll 
     ** retry with a new auto-generated path 
+  **如果主机标识匹配，并且这个壳文件中已经存在加锁路径，我们就试着使用这个路径，如果我们打不开这个路径，就使用自动生成的路径  **重试
     */
-    do { /* in case we need to try again for an :auto: named lock file */
+    do { /* in case we need to try again for an :auto: named lock file */ //以防我们需要再试一次:自动:命名的锁定文件
 
       if( !createConch && !forceNewLockPath ){
         hostIdMatch = !memcmp(&readBuf[PROXY_HEADERLEN], myHostID, 
                                   PROXY_HOSTIDLEN);
-        /* if the conch has data compare the contents */
+        /* if the conch has data compare the contents */    //如果壳文件有数据比较的内容
         if( !pCtx->lockProxyPath ){
           /* for auto-named local lock file, just check the host ID and we'll
            ** use the local lock file path that's already in there
+       **对于自动命名的本地锁文件，只需检查主机ID，我们将使用已经在那里的本地锁定文件路径
            */
           if( hostIdMatch ){
             size_t pathLen = (readLen - PROXY_PATHINDEX);
@@ -6764,40 +6940,43 @@ static int proxyTakeConch(unixFile *pFile){
             lockPath[pathLen] = 0;
             tempLockPath = lockPath;
             tryOldLockPath = 1;
-            /* create a copy of the lock path if the conch is taken */
+            /* create a copy of the lock path if the conch is taken */  //创建锁路径的副本，如果获得了壳文件
             goto end_takeconch;
           }
         }else if( hostIdMatch
                && !strncmp(pCtx->lockProxyPath, &readBuf[PROXY_PATHINDEX],
                            readLen-PROXY_PATHINDEX)
         ){
-          /* conch host and lock path match */
+          /* conch host and lock path match */  //壳主机和锁路径匹配
           goto end_takeconch; 
         }
       }
       
-      /* if the conch isn't writable and doesn't match, we can't take it */
+      /* if the conch isn't writable and doesn't match, we can't take it */   //如果壳不可写，不匹配，我们不能用它
       if( (conchFile->openFlags&O_RDWR) == 0 ){
         rc = SQLITE_BUSY;
         goto end_takeconch;
       }
       
-      /* either the conch didn't match or we need to create a new one */
+      /* either the conch didn't match or we need to create a new one */  //不是壳文件不匹配，就是我们需要创建一个新的
       if( !pCtx->lockProxyPath ){
         proxyGetLockPath(pCtx->dbPath, lockPath, MAXPATHLEN);
         tempLockPath = lockPath;
-        /* create a copy of the lock path _only_ if the conch is taken */
+        /* create a copy of the lock path _only_ if the conch is taken */ //创建锁路径_only_的副本，如果使用这个壳文件
       }
       
       /* update conch with host and path (this will fail if other process
       ** has a shared lock already), if the host id matches, use the big
       ** stick.
+    ** 更新壳的主机和路径(如果其他进程已经共享锁这将会失败),如果主机id匹配,使用stick。
       */
       futimes(conchFile->h, NULL);
       if( hostIdMatch && !createConch ){
         if( conchFile->pInode && conchFile->pInode->nShared>1 ){
           /* We are trying for an exclusive lock but another thread in this
-           ** same process is still holding a shared lock. */
+           ** same process is still holding a shared lock.
+       **我们正在尝试获得独占锁,但统一进程的另一个线程仍然持有共享锁
+      */
           rc = SQLITE_BUSY;
         } else {          
           rc = proxyConchLock(pFile, myHostID, EXCLUSIVE_LOCK);
@@ -6822,6 +7001,7 @@ static int proxyTakeConch(unixFile *pFile){
         fsync(conchFile->h);
         /* If we created a new conch file (not just updated the contents of a 
          ** valid conch file), try to match the permissions of the database 
+     ** 如果我们创建了一个新的壳文件（而不仅仅是更新有效壳文件的内容），尝试匹配数据库的权限
          */
         if( rc==SQLITE_OK && createConch ){
           struct stat buf;
@@ -6829,7 +7009,7 @@ static int proxyTakeConch(unixFile *pFile){
           if( err==0 ){
             mode_t cmode = buf.st_mode&(S_IRUSR|S_IWUSR | S_IRGRP|S_IWGRP |
                                         S_IROTH|S_IWOTH);
-            /* try to match the database file R/W permissions, ignore failure */
+            /* try to match the database file R/W permissions, ignore failure */  //尝试匹配的数据库文件读/写权限，忽略失败
 #ifndef SQLITE_PROXY_DEBUG
             osFchmod(conchFile->h, cmode);
 #else
@@ -6867,7 +7047,7 @@ static int proxyTakeConch(unixFile *pFile){
           pFile->h = fd;
         }else{
           rc=SQLITE_CANTOPEN_BKPT; /* SQLITE_BUSY? proxyTakeConch called
-           during locking */
+           during locking */  //返回SQLITE_BUSY的话，在加锁期间调用proxyTakeConch
         }
       }
       if( rc==SQLITE_OK && !pCtx->lockProxy ){
@@ -6876,15 +7056,17 @@ static int proxyTakeConch(unixFile *pFile){
         if( rc!=SQLITE_OK && rc!=SQLITE_NOMEM && tryOldLockPath ){
           /* we couldn't create the proxy lock file with the old lock file path
            ** so try again via auto-naming 
+       ** 我们无法通过旧的锁文件路径创建代理锁文件，就通过自动命名再试一次
            */
           forceNewLockPath = 1;
           tryOldLockPath = 0;
-          continue; /* go back to the do {} while start point, try again */
+          continue; /* go back to the do {} while start point, try again */  //回到do {} while的起点再试一次
         }
       }
       if( rc==SQLITE_OK ){
         /* Need to make a copy of path if we extracted the value
          ** from the conch file or the path was allocated on the stack
+     ** 需要复制路径，如果我们提取的值来自壳文件或者路径被分配在堆栈上。
          */
         if( tempLockPath ){
           pCtx->lockProxyPath = sqlite3DbStrDup(0, tempLockPath);
@@ -6908,17 +7090,17 @@ static int proxyTakeConch(unixFile *pFile){
                rc==SQLITE_OK?"ok":"failed"));
       return rc;
     } while (1); /* in case we need to retry the :auto: lock file - 
-                 ** we should never get here except via the 'continue' call. */
+                 ** we should never get here except via the 'continue' call. */   //以防我们需要重试自动加锁文件——我们就应该不要执行到这里，除了通过continue调用
   }
 }
 
 /*
-** If pFile holds a lock on a conch file, then release that lock.
+** If pFile holds a lock on a conch file, then release that lock.       如果pFile在一个壳文件上持有锁，然后释放这个锁
 */
 static int proxyReleaseConch(unixFile *pFile){
-  int rc = SQLITE_OK;         /* Subroutine return code */
-  proxyLockingContext *pCtx;  /* The locking context for the proxy lock */
-  unixFile *conchFile;        /* Name of the conch file */
+  int rc = SQLITE_OK;         /* Subroutine return code */    //子程序的返回码
+  proxyLockingContext *pCtx;  /* The locking context for the proxy lock */  //proxy lockde 的锁定内容
+  unixFile *conchFile;        /* Name of the conch file */    //壳文件的名字
 
   pCtx = (proxyLockingContext *)pFile->lockingContext;
   conchFile = pCtx->conchFile;
@@ -6939,26 +7121,31 @@ static int proxyReleaseConch(unixFile *pFile){
 ** Store the conch filename in memory obtained from sqlite3_malloc().
 ** Make *pConchPath point to the new name.  Return SQLITE_OK on success
 ** or SQLITE_NOMEM if unable to obtain memory.
+**给定一个数据库文件的名称,计算其壳文件的名称。将壳文件名存储在sqlite3_malloc()获得的内存。使* pConchPath指向新名字。成功返回SQLITE_OK或者返回SQLITE_NOMEM，如果无法获得内存。
 **
 ** The caller is responsible for ensuring that the allocated memory
 ** space is eventually freed.
+** 调用者负责确认分配的内存空间是完全释放的
 **
 ** *pConchPath is set to NULL if a memory allocation error occurs.
+** *pConchPath设置为NULL，如果出现内存分配错误
 */
 static int proxyCreateConchPathname(char *dbPath, char **pConchPath){
-  int i;                        /* Loop counter */
-  int len = (int)strlen(dbPath); /* Length of database filename - dbPath */
-  char *conchPath;              /* buffer in which to construct conch name */
+  int i;                        /* Loop counter */    //循环计数器
+  int len = (int)strlen(dbPath); /* Length of database filename - dbPath */   //数据库文件名的长度—dbPath
+  char *conchPath;              /* buffer in which to construct conch name */ //构建壳文件的缓冲区
 
   /* Allocate space for the conch filename and initialize the name to
-  ** the name of the original database file. */  
+  ** the name of the original database file.
+  **给壳文件名称分配空间并初始化名称为原始数据库文件的名称
+  */  
   *pConchPath = conchPath = (char *)sqlite3_malloc(len + 8);
   if( conchPath==0 ){
     return SQLITE_NOMEM;
   }
   memcpy(conchPath, dbPath, len+1);
   
-  /* now insert a "." before the last / character */
+  /* now insert a "." before the last / character */    //在最后一个/符号前插入一个“.”
   for( i=(len-1); i>=0; i-- ){
     if( conchPath[i]=='/' ){
       i++;
@@ -6971,7 +7158,7 @@ static int proxyCreateConchPathname(char *dbPath, char **pConchPath){
     i++;
   }
 
-  /* append the "-conch" suffix to the file */
+  /* append the "-conch" suffix to the file */    //给文件添加了"-conch"后缀
   memcpy(&conchPath[i+1], "-conch", 7);
   assert( (int)strlen(conchPath) == len+7 );
 
@@ -6981,6 +7168,7 @@ static int proxyCreateConchPathname(char *dbPath, char **pConchPath){
 
 /* Takes a fully configured proxy locking-style unix file and switches
 ** the local lock file path 
+**需要完全配置的proxy加锁风格的Unix文件，并改变本地锁文件路径
 */
 static int switchLockProxyPath(unixFile *pFile, const char *path) {
   proxyLockingContext *pCtx = (proxyLockingContext*)pFile->lockingContext;
@@ -6991,7 +7179,7 @@ static int switchLockProxyPath(unixFile *pFile, const char *path) {
     return SQLITE_BUSY;
   }  
 
-  /* nothing to do if the path is NULL, :auto: or matches the existing path */
+  /* nothing to do if the path is NULL, :auto: or matches the existing path */  //如果路径为NULL就什么都不用做，自动或者匹配现有路径
   if( !path || path[0]=='\0' || !strcmp(path, ":auto:") ||
     (oldPath && !strncmp(oldPath, path, MAXPATHLEN)) ){
     return SQLITE_OK;
@@ -7014,26 +7202,32 @@ static int switchLockProxyPath(unixFile *pFile, const char *path) {
 /*
 ** pFile is a file that has been opened by a prior xOpen call.  dbPath
 ** is a string buffer at least MAXPATHLEN+1 characters in size.
+** pFile是由之前xOpen调用打开的一个文件。dbPath是一个大小至少为MAXPATHLEN+1个字符的字符串缓冲区
 **
 ** This routine find the filename associated with pFile and writes it
 ** int dbPath.
+** 这个程序是发现与pFile关联的文件名，并将其写入整型的dbPath
 */
 static int proxyGetDbPathForUnixFile(unixFile *pFile, char *dbPath){
 #if defined(__APPLE__)
   if( pFile->pMethod == &afpIoMethods ){
     /* afp style keeps a reference to the db path in the filePath field 
-    ** of the struct */
+    ** of the struct
+  ** afp风格保持了一个这个结构中文件路径域中的数据库路径的引用
+  */
     assert( (int)strlen((char*)pFile->lockingContext)<=MAXPATHLEN );
     strlcpy(dbPath, ((afpLockingContext *)pFile->lockingContext)->dbPath, MAXPATHLEN);
   } else
 #endif
   if( pFile->pMethod == &dotlockIoMethods ){
     /* dot lock style uses the locking context to store the dot lock
-    ** file path */
+    ** file path 
+  ** 点锁形式使用锁定内容来存储点锁文件路径
+  */
     int len = strlen((char *)pFile->lockingContext) - strlen(DOTLOCK_SUFFIX);
     memcpy(dbPath, (char *)pFile->lockingContext, len + 1);
   }else{
-    /* all other styles use the locking context to store the db file path */
+    /* all other styles use the locking context to store the db file path */  //所有其他的锁定形式使用锁定内容来存储这个数据库文件路径
     assert( strlen((char*)pFile->lockingContext)<=MAXPATHLEN );
     strlcpy(dbPath, (char *)pFile->lockingContext, MAXPATHLEN);
   }
@@ -7047,10 +7241,14 @@ static int proxyGetDbPathForUnixFile(unixFile *pFile, char *dbPath){
 ** the unix structure properly cleaned up at close time:
 **  ->lockingContext
 **  ->pMethod
+** 需要一个已经填写unix文件并改变它，这样所有文件锁定将本地proxy锁文件上执行。以下字段保存在锁定环境,这样他们可以恢复并且unix结构在最短的时间内正确清理:
+** ->lockingContext
+** ->pMethod
+
 */
 static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
   proxyLockingContext *pCtx;
-  char dbPath[MAXPATHLEN+1];       /* Name of the database file */
+  char dbPath[MAXPATHLEN+1];       /* Name of the database file */  //数据库文件的名字
   char *lockPath=NULL;
   int rc = SQLITE_OK;
   
@@ -7081,6 +7279,10 @@ static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
       ** (c) the file system is read-only, then enable no-locking access.
       ** Ugh, since O_RDONLY==0x0000 we test for !O_RDWR since unixOpen asserts
       ** that openFlags will have only one of O_RDONLY or O_RDWR.
+    ** 如果（a）如果打开的标示符不是O_RDWR，（b）壳文件不在这，并且（c）文件
+    系统是只读的，然后启用没有锁定的访问。
+    Ugh，由于我们测试的O_RDONLY==0x0000！O_RDWR由于unixOpen判断打开标志将仅有
+    一个O_RDONLY或者O_RDWR。
       */
       struct statfs fsInfo;
       struct stat conchInfo;
@@ -7111,6 +7313,7 @@ static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
   if( rc==SQLITE_OK ){
     /* all memory is allocated, proxys are created and assigned, 
     ** switch the locking context and pMethod then return.
+    所有内存被分配，代理被创建和分配，转换锁定内容和pMethod，然后返回。
     */
     pCtx->oldLockingContext = pFile->lockingContext;
     pFile->lockingContext = pCtx;
@@ -7133,7 +7336,7 @@ static int proxyTransformUnixFile(unixFile *pFile, const char *path) {
 
 /*
 ** This routine handles sqlite3_file_control() calls that are specific
-** to proxy locking.
+** to proxy locking.这个程序处理特定的代理锁定的sqlite3_file_control()调用。
 */
 static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
   switch( op ){
@@ -7158,10 +7361,11 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
       int isProxyStyle = (pFile->pMethod == &proxyIoMethods);
       if( pArg==NULL || (const char *)pArg==0 ){
         if( isProxyStyle ){
-          /* turn off proxy locking - not supported */
-          rc = SQLITE_ERROR /*SQLITE_PROTOCOL? SQLITE_MISUSE?*/;
+          /* turn off proxy locking - not supported 关闭代理锁定-不支持*/
+          rc = SQLITE_ERROR /*SQLITE_PROTOCOL? SQLITE_MISUSE? 协议，误用*/;
         }else{
           /* turn off proxy locking - already off - NOOP */
+            /*关闭代理锁定-已经关闭-等待*/
           rc = SQLITE_OK;
         }
       }else{
@@ -7178,7 +7382,7 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
             rc = switchLockProxyPath(pFile, proxyPath);
           }
         }else{
-          /* turn on proxy file locking */
+          /* turn on proxy file locking 打开代理文件锁定*/
           rc = proxyTransformUnixFile(pFile, proxyPath);
         }
       }
@@ -7186,9 +7390,9 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
     }
     default: {
       assert( 0 );  /* The call assures that only valid opcodes are sent */
-    }
+    }                  /*该调用确保只有有用的操作码被发送*/
   }
-  /*NOTREACHED*/
+  /*NOTREACHED 未达*/
   return SQLITE_ERROR;
 }
 
@@ -7196,6 +7400,8 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
 ** Within this division (the proxying locking implementation) the procedures
 ** above this point are all utilities.  The lock-related methods of the
 ** proxy-locking sqlite3_io_method object follow.
+在这个部分（代理锁定实现）以上者一点的程序都是公用的。代理锁定
+sqlite3_io_method对象的lock-related方法如下：
 */
 
 
@@ -7204,6 +7410,9 @@ static int proxyFileControl(sqlite3_file *id, int op, void *pArg){
 ** file by this or any other process. If such a lock is held, set *pResOut
 ** to a non-zero value otherwise *pResOut is set to zero.  The return value
 ** is set to SQLITE_OK unless an I/O error occurs during lock checking.
+这个程序检查是否在这个或任何其他进程指定的文件持有一个未决锁。如果持有这样的锁，
+设置*pResOut为一个非零值，否则设置*pResOut为0.设置返回值为SQLITE_OK，除非在
+锁检查期间发生一个I/O错误。
 */
 static int proxyCheckReservedLock(sqlite3_file *id, int *pResOut) {
   unixFile *pFile = (unixFile*)id;
@@ -7223,26 +7432,31 @@ static int proxyCheckReservedLock(sqlite3_file *id, int *pResOut) {
 /*
 ** Lock the file with the lock specified by parameter eFileLock - one
 ** of the following:
+用参数eFileLock指定的锁锁定文件 - 以下之一：
 **
-**     (1) SHARED_LOCK
-**     (2) RESERVED_LOCK
-**     (3) PENDING_LOCK
-**     (4) EXCLUSIVE_LOCK
+**     (1) SHARED_LOCK             共享锁
+**     (2) RESERVED_LOCK           保留锁
+**     (3) PENDING_LOCK            未决锁
+**     (4) EXCLUSIVE_LOCK          排它锁
 **
 ** Sometimes when requesting one lock state, additional lock states
 ** are inserted in between.  The locking might fail on one of the later
 ** transitions leaving the lock state different from what it started but
 ** still short of its goal.  The following chart shows the allowed
 ** transitions and the inserted intermediate states:
+有时当请求一个锁状态，额外的锁状态会被插入在之间。在之后的一个转换锁定可能会
+失败，这个转换让锁状态与它开始不同但是仍然缺乏它的目标。下面的表显示了允许的
+转换和插入的中间状态。
 **
-**    UNLOCKED -> SHARED
-**    SHARED -> RESERVED
+**    UNLOCKED -> SHARED               
+**    SHARED -> RESERVED 
 **    SHARED -> (PENDING) -> EXCLUSIVE
 **    RESERVED -> (PENDING) -> EXCLUSIVE
 **    PENDING -> EXCLUSIVE
 **
 ** This routine will only increase a lock.  Use the sqlite3OsUnlock()
 ** routine to lower a locking level.
+这个程序将仅增加一个锁。使用sqlite3OsUnlock()程序来降低一个锁定级别。
 */
 static int proxyLock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
@@ -7264,9 +7478,11 @@ static int proxyLock(sqlite3_file *id, int eFileLock) {
 /*
 ** Lower the locking level on file descriptor pFile to eFileLock.  eFileLock
 ** must be either NO_LOCK or SHARED_LOCK.
+降低在文件描述符pFile到eFileLock上的锁定级别。eFileLock必须是无锁或者共享锁。
 **
 ** If the locking level of the file descriptor is already at or below
 ** the requested locking level, this routine is a no-op.
+如果文件描述符锁定的级别已经在或者低于请求锁定级别，这个例程是一个空操作。
 */
 static int proxyUnlock(sqlite3_file *id, int eFileLock) {
   unixFile *pFile = (unixFile*)id;
@@ -7278,7 +7494,7 @@ static int proxyUnlock(sqlite3_file *id, int eFileLock) {
       rc = proxy->pMethod->xUnlock((sqlite3_file*)proxy, eFileLock);
       pFile->eFileLock = proxy->eFileLock;
     }else{
-      /* conchHeld < 0 is lockless */
+      /* conchHeld < 0 is lockless conchHeld<0则无锁*/
     }
   }
   return rc;
@@ -7286,6 +7502,7 @@ static int proxyUnlock(sqlite3_file *id, int eFileLock) {
 
 /*
 ** Close a file that uses proxy locks.
+    关闭一个文件,使用代理锁
 */
 static int proxyClose(sqlite3_file *id) {
   if( id ){
@@ -7331,23 +7548,27 @@ static int proxyClose(sqlite3_file *id) {
 ** The proxy locking style is intended for use with AFP filesystems.
 ** And since AFP is only supported on MacOSX, the proxy locking is also
 ** restricted to MacOSX.
-** 
+**
+//代理锁定风格目的是应用在AFP文件系统中，自从AFP只支持苹果MacOSX系统，代理锁定同样限定在MacOSX
 **
 ******************* End of the proxy lock implementation **********************
-******************************************************************************/
-
+*******************************************************************************
 /*
-** Initialize the operating system interface.
+** Initialize the operating system interface.  //初始化操作系统接口
 **
 ** This routine registers all VFS implementations for unix-like operating
 ** systems.  This routine, and the sqlite3_os_end() routine that follows,
 ** should be the only routines in this file that are visible from other
 ** files.
+//这个例程为所有类Unix操作系统的VFS实现注册。
+//这个例程和紧随其后的sqlite3_os_end()例程应该是本文件中对其他文件可见的唯一例程
 **
 ** This routine is called once during SQLite initialization and by a
 ** single thread.  The memory allocation and mutex subsystems have not
 ** necessarily been initialized when this routine is called, and so they
 ** should not be used.
+//这个例程在SQLite初始化时便会通过单线程调用。
+//内存分配和互斥子系统不需要在这个例程被调用时初始化，所以它们不能被使用
 */
 int sqlite3_os_init(void){ 
   /* 
@@ -7358,17 +7579,28 @@ int sqlite3_os_init(void){
   ** and so we have to go through the intermediate pointer to avoid problems
   ** when compiling with -pedantic-errors on GCC.)
   **
+  //接下来的宏为一个sqlite3_vfs对象定义了一个初始化器。
+  //VFS的名字是NAME。pAppData是一个指向指针的指针，指向了"finder"函数。
+    （pAppData之所以是一个指向指针的指针是因为愚蠢地C90规则禁止一个来自正在分配函数指针的void*,因此我门
+      必须通过中间指针以避免GCC编译时报-pedantic-errors错误）
   ** The FINDER parameter to this macro is the name of the pointer to the
   ** finder-function.  The finder-function returns a pointer to the
   ** sqlite_io_methods object that implements the desired locking
   ** behaviors.  See the division above that contains the IOMETHODS
   ** macro for addition information on finder-functions.
   **
+  //FINDER变量对于这个宏时指向finder-function的指针的名字。
+  //finder-function返回一个指向sqlite_io_methods对象的指针，这个对象实现了请求锁的行为。
+  //看这个分部以上包含了在finder-functions上附加信息的IOMETHODS宏。
+  **
   ** Most finders simply return a pointer to a fixed sqlite3_io_methods
   ** object.  But the "autolockIoFinder" available on MacOSX does a little
   ** more than that; it looks at the filesystem type that hosts the 
   ** database file and tries to choose an locking method appropriate for
   ** that filesystem time.
+  //大部分探测器简单的返回指向修改过的sqlite3_io_methods对象的指针。
+  //但是在MacOSX上起作用的"autolockIoFinder"比这个起到很小的作用；
+  //它审视宿主数据库文件并且尝试选择一个适合那个文件系统的上锁方法的文件系统类型
   */
   #define UNIXVFS(VFSNAME, FINDER) {                        \
     3,                    /* iVersion */                    \
@@ -7398,9 +7630,12 @@ int sqlite3_os_init(void){
   /*
   ** All default VFSes for unix are contained in the following array.
   **
+  //所有为Unix的默认VFS都包含了如下数组
+  **
   ** Note that the sqlite3_vfs.pNext field of the VFS object is modified
   ** by the SQLite core when the VFS is registered.  So the following
   ** array cannot be const.
+  //注意VFS对象的sqlite3_vfs.pNext域在VFS被注册时会被SQLite内核修改。所以接下来的数组不能声明为const.
   */
   static sqlite3_vfs aVfs[] = {
 #if SQLITE_ENABLE_LOCKING_STYLE && (OS_VXWORKS || defined(__APPLE__))
@@ -7430,9 +7665,11 @@ int sqlite3_os_init(void){
 
   /* Double-check that the aSyscall[] array has been constructed
   ** correctly.  See ticket [bb3a86e890c8e96ab] */
+  //二次检验 aSyscall[]数组是否被正确构造。看标签[bb3a86e890c8e96ab]
   assert( ArraySize(aSyscall)==22 );
 
   /* Register all VFSes defined in the aVfs[] array */
+  //寄存器所有VFS定义在aVfs[]数组中
   for(i=0; i<(sizeof(aVfs)/sizeof(sqlite3_vfs)); i++){
     sqlite3_vfs_register(&aVfs[i], i==0);
   }
@@ -7442,9 +7679,12 @@ int sqlite3_os_init(void){
 /*
 ** Shutdown the operating system interface.
 **
+//关闭操作系统接口
 ** Some operating systems might need to do some cleanup in this routine,
 ** to release dynamically allocated objects.  But not on unix.
 ** This routine is a no-op for unix.
+//一些操作系统可能需要自这个历程中做一些清理工作，去释放动态分配对象。但是不在Unix。
+//这个例程对Unix不起作用。
 */
 int sqlite3_os_end(void){ 
   return SQLITE_OK; 
