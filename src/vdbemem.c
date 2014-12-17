@@ -15,6 +15,10 @@
 ** stores a single value in the VDBE[虚拟数据库引擎(Virtual DataBase Engine,VDBE)].  Mem is an opaque(不透明的) structure visible
 ** only within the VDBE.  Interface routines refer to a Mem using the
 ** name sqlite_value
+** 这个文件包含的代码是用于操纵"Mem"这个数据结构.
+** 一个"Mem"存储VDBE中的一个单一的数据.
+** Mem 是一个不透明的数据结构,它只对于VDBE是可见的.
+** 
 */
 #include "sqliteInt.h"
 #include "vdbeInt.h"
@@ -23,16 +27,22 @@
 ** If pMem is an object with a valid(有效的) string representation(表示), this routine(常规)
 ** ensures the internal(内部的) encoding for the string representation is
 ** 'desiredEnc', one of SQLITE_UTF8, SQLITE_UTF16LE or SQLITE_UTF16BE.
-**
+** 如果pMem是一个对象,这个对象有着有效的字符串表示,
+** 这个routine确保对字符串表示的内部编码是"desiredEnc"
 ** If pMem is not a string object(字符串对象), or the encoding of the string
 ** representation is already stored using the requested encoding(被要求的编码方式), then this
 ** routine is a no-op(空操作?).
-**
+** 如果pMem不是一个字符串对象,或者字符串表示的编码方式已经用被要求的编码方式存储过了,那么这个routine是一个no-op.
 ** SQLITE_OK is returned if the conversion(转变,改变) is successful (or not required).
 ** SQLITE_NOMEM may be returned if a malloc() fails during conversion
 ** between formats.
+** 如果这个转变成功了(或者没有被要求转变)那么SQLITE_OK将被返回.
+** 如果一个malloc()在格式化转换过程中失败了,那么SQLITE_NOMEM也许会被返回.
 */
--- sqlite3VdbeChangeEncoding函数用来改变编码方式
+/* sqlite3VdbeChangeEncoding函数用来改变编码方式
+** Mem结构会给出同一个值的多种表示法(string、integer等)。因此Mem结构有时需要转化为另一种表示方式
+** 如字符串U8转为U16，整数转为实数或二进制数
+*/
 int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
   int rc;
   assert( (pMem->flags&MEM_RowSet)==0 );
@@ -65,7 +75,8 @@ int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
 ** cell pMem must contain a string or blob. In this case the content is
 ** preserved(被保护). Otherwise, if the third parameter to this function is false,
 ** any current string or blob value may be discarded(丢弃).
-**
+** 如果被传到这个函数的第三方论点是真的,那么存储单元pMem必须包含一个字符串或者blob.
+** 在这种情况下,内容十倍保护的.否则,如果这个函数的第三方参数是错误的,任何当前的string或者blob值也许会被丢弃.
 ** This function sets the MEM_Dyn flag(旗帜,标志) and clears any xDel callback.
 ** It also clears MEM_Ephem and MEM_Static. If the preserve flag is 
 ** not set, Mem.n is zeroed.
