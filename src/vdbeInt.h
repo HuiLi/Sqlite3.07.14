@@ -258,55 +258,57 @@ struct Mem {
 */
 struct VdbeFunc {
   FuncDef *pFunc;               /* The definition of the function */
-  int nAux;                     /* Number of entries allocated for apAux[] */
+  int nAux;                     /* Number of entries allocated for apAux[] apAux[]方法的入口分配数量*/
   struct AuxData {
-    void *pAux;                   /* Aux data for the i-th argument */
-    void (*xDelete)(void *);      /* Destructor for the aux data */
-  } apAux[1];                   /* One slot for each function argument */
+    void *pAux;                   /* Aux data for the i-th argument i-th的参数结构体*/
+    void (*xDelete)(void *);      /* Destructor for the aux data 这个结构体的析构函数*/
+  } apAux[1];                   /* One slot for each function argument 对每一个函数的参数的分配一个位置*/
 };
 
 /*
 ** The "context" argument for a installable function.  A pointer to an
 ** instance of this structure is the first argument to the routines used
 ** implement the SQL functions.
-**
+** 一个可安装函数的上下文参数。这个结构体实例的指针是这个程序实现SQL语句查询方法的第一个参数。
 ** There is a typedef for this structure in sqlite.h.  So all routines,
 ** even the public interface to SQLite, can use a pointer to this structure.
 ** But this file is the only place where the internal details of this
 ** structure are known.
-**
+** 对于这个结构体在sqlite.h有里面有一个定义类型。因此所有的程序，即便是sqlite的公有接口也能够对这个结构体用指针。
 ** This structure is defined inside of vdbeInt.h because it uses substructures
 ** (Mem) which are only defined there.
+**这个结构体在本文件中的内部被定义，因为使用了Mem的底部构造，这些构造仅被在这里定义。
 */
 struct sqlite3_context {
   FuncDef *pFunc;       /* Pointer to function information.  MUST BE FIRST */
-  VdbeFunc *pVdbeFunc;  /* Auxilary data, if created. */
-  Mem s;                /* The return value is stored here */
-  Mem *pMem;            /* Memory cell used to store aggregate context */
-  CollSeq *pColl;       /* Collating sequence */
-  int isError;          /* Error code returned by the function. */
-  int skipFlag;         /* Skip skip accumulator loading if true */
+  VdbeFunc *pVdbeFunc;  /* Auxilary data, if created. 辅助数据*/
+  Mem s;                /* The return value is stored here 返回值被存在这里*/
+  Mem *pMem;            /* Memory cell used to store aggregate context 用来存储上下文集合的内存空间*/
+  CollSeq *pColl;       /* Collating sequence 核对结果*/
+  int isError;          /* Error code returned by the function. 方法返回的错误代码*/
+  int skipFlag;         /* Skip skip accumulator loading if true 如果为真则跳过累加器加载*/
 };
 
 /*
 ** An Explain object accumulates indented output which is helpful
 ** in describing recursive data structures.
+** 一个解释对象积聚收约束的缩进，这有利于描述递归的数据结构。
 */
 struct Explain {
-  Vdbe *pVdbe;       /* Attach the explanation to this Vdbe */
-  StrAccum str;      /* The string being accumulated */
-  int nIndent;       /* Number of elements in aIndent */
-  u16 aIndent[100];  /* Levels of indentation */
-  char zBase[100];   /* Initial space */
+  Vdbe *pVdbe;       /* Attach the explanation to this Vdbe 附加上对VDBE的解释*/
+  StrAccum str;      /* The string being accumulated 被累积的字符串*/
+  int nIndent;       /* Number of elements in aIndent缩进中的元素数目 */
+  u16 aIndent[100];  /* Levels of indentation 缩进级别*/
+  char zBase[100];   /* Initial space 初始空间*/
 };
 
 /*
 ** An instance of the virtual machine.  This structure contains the complete
 ** state of the virtual machine.
-**
+** 一个虚拟机的实体。这个结构包含了虚拟机完整的状态。
 ** The "sqlite3_stmt" structure pointer that is returned by sqlite3_prepare()
 ** is really a pointer to an instance of this structure.
-**
+** 
 ** The Vdbe.inVtabMethod variable is set to non-zero for the duration of
 ** any virtual table method invocations made by the vdbe program. It is
 ** set to 2 for xDestroy method calls and 1 for all other methods. This
