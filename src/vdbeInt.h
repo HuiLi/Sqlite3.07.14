@@ -344,11 +344,11 @@ struct Vdbe {
   u32 cacheCtr;           /* VdbeCursor row cache generation counter Vdbe游标行缓存生成计数器*/
   int pc;                 /* The program counter 程序计数器*/
   int rc;                 /* Value to return 返回值*/
-  u8 errorAction;         /* Recovery action to do in case of an error */
-  u8 explain;             /* True if EXPLAIN present on SQL command */
-  u8 changeCntOn;         /* True to update the change-counter */
-  u8 expired;             /* True if the VM needs to be recompiled */
-  u8 runOnlyOnce;         /* Automatically expire on reset */
+  u8 errorAction;         /* Recovery action to do in case of an error防止错误的恢复操作 */
+  u8 explain;             /* True if EXPLAIN present on SQL command 如果解释当前的sql命令则为真。*/
+  u8 changeCntOn;         /* True to update the change-counter 更新改变数目为真*/
+  u8 expired;             /* True if the VM needs to be recompiled 如果虚拟机需要被编译则为真。*/
+  u8 runOnlyOnce;         /* Automatically expire on reset 重置时自动失效*/
   u8 minWriteFileFormat;  /* Minimum file format for writable database files */
   u8 inVtabMethod;        /* See comments above */
   u8 usesStmtJournal;     /* True if uses a statement journal */
@@ -370,7 +370,7 @@ struct Vdbe {
   FILE *trace;            /* Write an execution trace here, if not NULL */
 #endif
 #ifdef SQLITE_ENABLE_TREE_EXPLAIN
-  Explain *pExplain;      /* The explainer */
+  Explain *pExplain;      /* The explainer解释器 */
   char *zExplain;         /* Explanation of data structures */
 #endif
   VdbeFrame *pFrame;      /* Parent frame */
@@ -379,19 +379,19 @@ struct Vdbe {
   u32 expmask;            /* Binding to these vars invalidates VM */
   SubProgram *pProgram;   /* Linked list of all sub-programs used by VM */
   int nOnceFlag;          /* Size of array aOnceFlag[] */
-  u8 *aOnceFlag;          /* Flags for OP_Once */
+  u8 *aOnceFlag;          /* Flags for OP_Once OP_Once的标记*/
 };
 
 /*
 ** The following are allowed values for Vdbe.magic
 */
-#define VDBE_MAGIC_INIT     0x26bceaa5    /* Building a VDBE program */
-#define VDBE_MAGIC_RUN      0xbdf20da3    /* VDBE is ready to execute */
-#define VDBE_MAGIC_HALT     0x519c2973    /* VDBE has completed execution */
-#define VDBE_MAGIC_DEAD     0xb606c3c8    /* The VDBE has been deallocated */
+#define VDBE_MAGIC_INIT     0x26bceaa5    /* Building a VDBE program 构造一个vdbe程序*/
+#define VDBE_MAGIC_RUN      0xbdf20da3    /* VDBE is ready to execute 准备被实现的vdbe*/
+#define VDBE_MAGIC_HALT     0x519c2973    /* VDBE has completed execution vdbe完成实现*/
+#define VDBE_MAGIC_DEAD     0xb606c3c8    /* The VDBE has been deallocated vdbe内存空间被释放*/
 
 /*
-** Function prototypes
+** Function prototypes函数原型
 */
 void sqlite3VdbeFreeCursor(Vdbe *, VdbeCursor*);
 void sqliteVdbePopStack(Vdbe*,int);
