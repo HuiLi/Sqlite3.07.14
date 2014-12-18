@@ -28,8 +28,8 @@
 /*
 ** This is the maximum number of
 **
-**    * Columns in a table   视图中的表的最大数
-**    * Columns in an index  视图中的索引的最大数
+**    * Columns in a table   表中的列的最大数
+**    * Columns in an index  索引中的列的最大数
 **    * Columns in a view    视图中的列的最大数
 **    * Terms in the SET clause of an UPDATE statement   更新语句中SET子句的最大数
 **    * Terms in the result set of a SELECT statement    选择语句中结果集的最大数
@@ -72,7 +72,7 @@
 #endif
 
 /*
-** The maximum number of terms in a compound SELECT statement.       复合的选择语句的最大项数。
+** The maximum number of terms in a compound SELECT statement.       复合的选择语句的最大项数。(一个select语句是一个term)
 ** The code generator for compound SELECT statements does one        复合的选择语句一级递归的每个项的代码生成器。
 ** level of recursion for each term.  A stack overflow can result    项数太大会导致堆栈溢出
 ** if the number of terms is too large.  In practice, most SQL       实际上，大部分的SQL从来没有超过3或者4个项的。
@@ -190,7 +190,7 @@
 #endif
 
 /*
-** Maximum length (in bytes) of the pattern in a LIKE or GLOB     LIKE或者GLOB中pattern的最大字节长度
+** Maximum length (in bytes) of the pattern in a LIKE or GLOB     LIKE或者GLOB中pattern的最大字节长度  比如  select * from 表 where 姓名 like '%李%' 中  '%李%' 就是pattern
 ** operator.
 */
 #ifndef SQLITE_MAX_LIKE_PATTERN_LENGTH
