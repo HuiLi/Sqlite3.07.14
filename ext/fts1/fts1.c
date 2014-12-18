@@ -1291,7 +1291,7 @@ static int content_update(fulltext_vtab *v, sqlite3_value **pValues,
     if( rc!=SQLITE_OK ) return rc;
   }
 
-  rc = sqlite3_bind_int64(s, 1+v->nColumn, iRowid);	//绑定行编号
+  rc = sqlite3_bind_int64(s, 1+v->nColumn, iRowid);	//绑定伪列
   if( rc!=SQLITE_OK ) return rc;
 
   return sql_single_step_statement(v, CONTENT_UPDATE_STMT, &s);//执行语句
@@ -1477,7 +1477,7 @@ static int term_select_all(
 ** NOTE(shess) piRowid is IN, with values of "space of int64" plus
 ** null, it is not used to pass data back to the caller.
 ** 这个函数用来在%_term中插入值。
-** 如果piRowid为NULL，则让sqlite选择一行，否则使用*piRowid所指向的行。
+** 如果piRowid为NULL，则让sqlite选择伪列，否则使用*piRowid所指向的伪列。
 */
 static int term_insert(fulltext_vtab *v, sqlite_int64 *piRowid,
                        const char *pTerm, int nTerm,
@@ -2111,7 +2111,7 @@ static int fulltextConnect(
 
   /* The %_content table holds the text of each document, with
   ** the rowid used as the docid.
-  ** %_content表保存每一个文件的文本，并使用行号作为文档编号。
+  ** %_content表保存每一个文件的文本，并使用伪列作为文档编号。
   **
   ** The %_term table maps each term to a document list blob
   ** containing elements sorted by ascending docid, each element
