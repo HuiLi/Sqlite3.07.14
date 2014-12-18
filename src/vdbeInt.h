@@ -349,41 +349,42 @@ struct Vdbe {
   u8 changeCntOn;         /* True to update the change-counter 更新改变数目为真*/
   u8 expired;             /* True if the VM needs to be recompiled 如果虚拟机需要被编译则为真。*/
   u8 runOnlyOnce;         /* Automatically expire on reset 重置时自动失效*/
-  u8 minWriteFileFormat;  /* Minimum file format for writable database files */
+  u8 minWriteFileFormat;  /* Minimum file format for writable database files 对于可写数据库文件的最小的文件格式*/
   u8 inVtabMethod;        /* See comments above */
-  u8 usesStmtJournal;     /* True if uses a statement journal */
-  u8 readOnly;            /* True for read-only statements */
-  u8 isPrepareV2;         /* True if prepared with prepare_v2() */
-  int nChange;            /* Number of db changes made since last reset */
-  yDbMask btreeMask;      /* Bitmask of db->aDb[] entries referenced */
-  yDbMask lockMask;       /* Subset of btreeMask that requires a lock */
-  int iStatement;         /* Statement number (or 0 if has not opened stmt) */
-  int aCounter[3];        /* Counters used by sqlite3_stmt_status() */
+  u8 usesStmtJournal;     /* True if uses a statement journal 如果使用这个声明日志则为真*/
+  u8 readOnly;            /* True for read-only statements 只读声明则为真*/
+  u8 isPrepareV2;         /* True if prepared with prepare_v2()用此方法准备则为真 */
+  int nChange;            /* Number of db changes made since last reset 自上一次重置数据库引起的数据库变化数目*/
+  yDbMask btreeMask;      /* Bitmask of db->aDb[] entries referenced 被引用的数组入口的位掩码*/
+  yDbMask lockMask;       /* Subset of btreeMask that requires a lock 位掩码的子集需要一个锁。*/
+  int iStatement;         /* Statement number (or 0 if has not opened stmt) 声明编号（如果没被公开声明则为0）*/
+  int aCounter[3];        /* Counters used by sqlite3_stmt_status() sqlite状态声明方法使用的计数器*/
 #ifndef SQLITE_OMIT_TRACE
-  i64 startTime;          /* Time when query started - used for profiling */
+  i64 startTime;          /* Time when query started - used for profiling 查询开始的时间，用于程序分析*/
 #endif
-  i64 nFkConstraint;      /* Number of imm. FK constraints this VM */
-  i64 nStmtDefCons;       /* Number of def. constraints when stmt started */
-  char *zSql;             /* Text of the SQL statement that generated this */
-  void *pFree;            /* Free this when deleting the vdbe */
+  i64 nFkConstraint;      /* Number of imm. FK constraints this VM 虚拟机的约束条件*/
+  i64 nStmtDefCons;       /* Number of def. constraints when stmt started 声明开始的约束条件*/
+  char *zSql;             /* Text of the SQL statement that generated this sql语句声明的文档生成这些。*/
+  void *pFree;            /* Free this when deleting the vdbe 删除vdbe时释放它*/
 #ifdef SQLITE_DEBUG
-  FILE *trace;            /* Write an execution trace here, if not NULL */
+  FILE *trace;            /* Write an execution trace here, if not NULL如果不为空则写一个实现追踪的函数 */
 #endif
 #ifdef SQLITE_ENABLE_TREE_EXPLAIN
   Explain *pExplain;      /* The explainer解释器 */
-  char *zExplain;         /* Explanation of data structures */
+  char *zExplain;         /* Explanation of data structures 数据结构的解释*/
 #endif
-  VdbeFrame *pFrame;      /* Parent frame */
-  VdbeFrame *pDelFrame;   /* List of frame objects to free on VM reset */
-  int nFrame;             /* Number of frames in pFrame list */
-  u32 expmask;            /* Binding to these vars invalidates VM */
-  SubProgram *pProgram;   /* Linked list of all sub-programs used by VM */
-  int nOnceFlag;          /* Size of array aOnceFlag[] */
+  VdbeFrame *pFrame;      /* Parent frame 父框架*/
+  VdbeFrame *pDelFrame;   /* List of frame objects to free on VM reset 虚拟机重置时需要释放的框架对象列表*/
+  int nFrame;             /* Number of frames in pFrame list 在pFrame列表中的框架数目*/
+  u32 expmask;            /* Binding to these vars invalidates VM 虚拟机绑定这些无效变量*/
+  SubProgram *pProgram;   /* Linked list of all sub-programs used by VM虚拟机使用的所有的子程序的关联列表 */
+  int nOnceFlag;          /* Size of array aOnceFlag[] 数组的大小*/
   u8 *aOnceFlag;          /* Flags for OP_Once OP_Once的标记*/
 };
 
 /*
 ** The following are allowed values for Vdbe.magic
+**下面的是vdbe标示符被允许取的值
 */
 #define VDBE_MAGIC_INIT     0x26bceaa5    /* Building a VDBE program 构造一个vdbe程序*/
 #define VDBE_MAGIC_RUN      0xbdf20da3    /* VDBE is ready to execute 准备被实现的vdbe*/
