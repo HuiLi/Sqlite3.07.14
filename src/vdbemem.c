@@ -58,6 +58,8 @@ int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
 
   /* MemTranslate() may return SQLITE_OK or SQLITE_NOMEM. If NOMEM is returned,
   ** then the encoding of the value may not have changed.
+  ** MemTranslate()函数也许会返回SQLITE_OK 或者 SQLITE_NOMEM
+  ** 如果NOMEM返回了,那么值的编码方式不会改变.
   */
   rc = sqlite3VdbeMemTranslate(pMem, (u8)desiredEnc);-- 传递函数值
   assert(rc==SQLITE_OK    || rc==SQLITE_NOMEM);
@@ -91,7 +93,9 @@ int sqlite3VdbeMemGrow(Mem *pMem, int n, int preserve){
   assert( (pMem->flags&MEM_RowSet)==0 );
 
   /* If the preserve flag is set to true, then the memory cell must already
-  ** contain a valid string or blob value.  */
+  ** contain a valid string or blob value.
+  ** 如果被保护的标志设置成真,那么内存单元必须已经包含一个有效的字符串或者blob值.
+  */
   assert( preserve==0 || pMem->flags&(MEM_Blob|MEM_Str) );
 
   if( n<32 ) n = 32;
@@ -128,7 +132,7 @@ int sqlite3VdbeMemGrow(Mem *pMem, int n, int preserve){
 ** that any TEXT or BLOB content is stored in memory obtained from
 ** malloc().  In this way, we know that the memory is safe to be
 ** overwritten or altered.
-**
+** malloc()执行成功返回SQLITE_OK 执行失败返回SQLITE_NOMEM.
 ** Return SQLITE_OK on success or SQLITE_NOMEM if malloc fails.
 */
 int sqlite3VdbeMemMakeWriteable(Mem *pMem){
@@ -155,6 +159,7 @@ int sqlite3VdbeMemMakeWriteable(Mem *pMem){
 /*
 ** If the given Mem* has a zero-filled tail, turn it into an ordinary
 ** blob stored in dynamically allocated space.
+** 如果给出的
 */
 #ifndef SQLITE_OMIT_INCRBLOB
 int sqlite3VdbeMemExpandBlob(Mem *pMem){
