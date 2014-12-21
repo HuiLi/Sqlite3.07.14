@@ -673,8 +673,10 @@ int sqlite3VdbeMemCopy(Mem *pTo, const Mem *pFrom){
 /*
 ** Transfer the contents of pFrom to pTo. Any existing value in pTo is
 ** freed. If pFrom contains ephemeral data, a copy is made.
-**
+** 移动pFrom内存中的数据到pTo.在pTo数据单元中的任何存在的数据都会被释放.
+** 如果pFrom包含短暂的数据,一份复制就生成了.
 ** pFrom contains an SQL NULL when this routine returns.
+** 
 */
 void sqlite3VdbeMemMove(Mem *pTo, Mem *pFrom){
   assert( pFrom->db==0 || sqlite3_mutex_held(pFrom->db->mutex) );
@@ -690,22 +692,27 @@ void sqlite3VdbeMemMove(Mem *pTo, Mem *pFrom){
 
 /*
 ** Change the value of a Mem to be a string or a BLOB.
-**
+** 把Mem结构中的数据转换成string或者BLOB类型.
 ** The memory management strategy depends on the value of the xDel
 ** parameter. If the value passed is SQLITE_TRANSIENT, then the 
 ** string is copied into a (possibly existing) buffer managed by the 
 ** Mem structure. Otherwise, any existing buffer is freed and the
 ** pointer copied.
-**
+** 内存管理策略依赖于xDel参数的值.
+** 如果通过的数据是SQLITE_TRANSIENT,那么string被拷贝到一个被Mem结构所管理的缓冲区(很可能存在).
+** 否则,任何存在的缓冲区被释放并且被拷贝.
 ** If the string is too large (if it exceeds the SQLITE_LIMIT_LENGTH
 ** size limit) then no memory allocation occurs.  If the string can be
 ** stored without allocating memory, then it is.  If a memory allocation
 ** is required to store the string, then value of pMem is unchanged.  In
 ** either case, SQLITE_TOOBIG is returned.
+** 如果那个string类型的数据太大(如果它超过SQLITE_LIMIT_LENGTH所限定的长度)那么任何内存分配发生.
+** 如果那个string类型的数据不用被分配的内存单元就能被存储,then it is.--!
+** 如果一个内存战友单元被要求存储string类型的数据,那么pMem的值不会被改变.否则返回SQLITE_TOOBIG
 */
 int sqlite3VdbeMemSetStr(
-  Mem *pMem,          /* Memory cell to set to string value */
-  const char *z,      /* String pointer */
+  Mem *pMem,          /* Memory cell to set to string value 内存单元被设置成string数据类型 */
+  const char *z,      /* String pointer string类型的指针 */
   int n,              /* Bytes in string, or negative */
   u8 enc,             /* Encoding of z.  0 for BLOBs */
   void (*xDel)(void*) /* Destructor function */
@@ -790,8 +797,10 @@ int sqlite3VdbeMemSetStr(
 ** than pMem2. Sorting order is NULL's first, followed by numbers (integers
 ** and reals) sorted numerically, followed by text ordered by the collating
 ** sequence pColl and finally blob's ordered by memcmp().
-**
+** 比较两个内存单元里的数据,如果pMem1小于,等于,或者大于pMem2,返回否定.
+** 排序的顺序首先是空的,然后数据(整型或者实型)按照大小排序,
 ** Two NULL values are considered equal by this function.
+** 两个空数据在这个函数里面被认为是相等的.
 */
 int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
   int rc;
@@ -805,6 +814,8 @@ int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
  
   /* If one value is NULL, it is less than the other. If both values
   ** are NULL, return 0.
+  ** 如果一个数据是空的,那么认为它比任何一个数据都要小.
+  ** 如果两个数据都是空的,返回0.
   */
   if( combined_flags&MEM_Null ){
     return (f2&MEM_Null) - (f1&MEM_Null);
@@ -813,6 +824,9 @@ int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
   /* If one value is a number and the other is not, the number is less.
   ** If both are numbers, compare as reals if one is a real, or as integers
   ** if both values are integers.
+  ** 如果其中一个数据是数字并且另一个不是,那么是数字的那个数据更小.
+  ** 如果两个数据都是数字,如果其中一个是实型,那么按照实型来比较,
+  ** 如果两个都是整型,那么按照整型来比较.
   */
   if( combined_flags&(MEM_Int|MEM_Real) ){
     if( !(f1&(MEM_Int|MEM_Real)) ){
@@ -847,6 +861,8 @@ int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
 
   /* If one value is a string and the other is a blob, the string is less.
   ** If both are strings, compare using the collating functions.
+  ** 如果其中一个数据是string类型,另一个是blob类型,string类型的更小.
+  ** 如果两个都是string类型,用collatin函数来比较.
   */
   if( combined_flags&MEM_Str ){
     if( (f1 & MEM_Str)==0 ){
@@ -863,13 +879,17 @@ int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
     /* The collation sequence must be defined at this point, even if
     ** the user deletes the collation sequence after the vdbe program is
     ** compiled (this was not always the case).
+    ** the collation sequence在这点上必须被定义,即使在vdbe程序被编译之后用户删除了the collation sequence
+    ** (这种情况并不常见)
     */
     assert( !pColl || pColl->xCmp );
 
     if( pColl ){
       if( pMem1->enc==pColl->enc ){
         /* The strings are already in the correct encoding.  Call the
-        ** comparison function directly */
+        ** comparison function directly 
+        ** 字符串类型已经被正确的编码了,就直接调用比较函数.
+        */
         return pColl->xCmp(pColl->pUser,pMem1->n,pMem1->z,pMem2->n,pMem2->z);
       }else{
         const void *v1, *v2;
@@ -894,7 +914,9 @@ int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
     ** to the blob case and use memcmp().  */
   }
  
-  /* Both values must be blobs.  Compare using memcmp().  */
+  /* Both values must be blobs.  Compare using memcmp().  
+  ** 如果两个数据都是blob类型,那么调用memcmp()函数来比较大小.
+  */
   rc = memcmp(pMem1->z, pMem2->z, (pMem1->n>pMem2->n)?pMem2->n:pMem1->n);
   if( rc==0 ){
     rc = pMem1->n - pMem2->n;
