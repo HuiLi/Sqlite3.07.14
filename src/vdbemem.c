@@ -43,6 +43,8 @@
 ** Mem结构会给出同一个值的多种表示法(string、integer等)。因此Mem结构有时需要转化为另一种表示方式
 ** 如字符串U8转为U16，整数转为实数或二进制数
 */
+/*Mem结构会给出同一个值的多种表示法(string、integer等)。因此Mem结构有时需要转化为另一种表示方式，
+如字符串U8转为U16，整数转为实数或二进制数*/
 int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
   int rc;
   assert( (pMem->flags&MEM_RowSet)==0 );
@@ -78,7 +80,7 @@ int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
 ** preserved(被保护). Otherwise, if the third parameter to this function is false,
 ** any current string or blob value may be discarded(丢弃).
 ** 如果被传到这个函数的第三方论点是真的,那么存储单元pMem必须包含一个字符串或者blob.
-** 在这种情况下,内容十倍保护的.否则,如果这个函数的第三方参数是错误的,任何当前的string或者blob值也许会被丢弃.
+** 在这种情况下,内容是被保护的.否则,如果这个函数的第三方参数是错误的,任何当前的string或者blob值也许会被丢弃.
 ** This function sets the MEM_Dyn flag(旗帜,标志) and clears any xDel callback.
 ** It also clears MEM_Ephem and MEM_Static. If the preserve flag is 
 ** not set, Mem.n is zeroed.
@@ -285,6 +287,8 @@ int sqlite3VdbeMemFinalize(Mem *pMem, FuncDef *pFunc){
 ** If the memory cell contains a string value that must be freed by
 ** invoking an external callback, free it now. Calling this function
 ** does not free any Mem.zMalloc buffer.
+** 如果一个存储单元包含一个字符串值,这个值必须通过条用外部的回调函数才能释放,那就现在释放了.
+** 
 */
 void sqlite3VdbeMemReleaseExternal(Mem *p){
   assert( p->db==0 || sqlite3_mutex_held(p->db->mutex) );
@@ -502,6 +506,7 @@ int sqlite3VdbeMemNumerify(Mem *pMem){
 
 /*
 ** Delete any previous value and set the value stored in *pMem to NULL.
+** 删除所有先前的值,并且把在*pMem中存储的值置空.
 */
 void sqlite3VdbeMemSetNull(Mem *pMem){
   if( pMem->flags & MEM_Frame ){
@@ -519,6 +524,7 @@ void sqlite3VdbeMemSetNull(Mem *pMem){
 /*
 ** Delete any previous value and set the value to be a BLOB of length
 ** n containing all zeros.
+** 删除任何先前的值,并且把值设置成BLOB的长度n(包含所有的空值???)
 */
 void sqlite3VdbeMemSetZeroBlob(Mem *pMem, int n){
   sqlite3VdbeMemRelease(pMem);
@@ -569,6 +575,7 @@ void sqlite3VdbeMemSetDouble(Mem *pMem, double val){
 /*
 ** Delete any previous value and set the value of pMem to be an
 ** empty boolean index.
+** 删除任何先前的值并且把pMem的值设置成一个空的boolean类型的索引.
 */
 void sqlite3VdbeMemSetRowSet(Mem *pMem){
   sqlite3 *db = pMem->db;
@@ -635,6 +642,9 @@ void sqlite3VdbeMemAboutToChange(Vdbe *pVdbe, Mem *pMem){
 ** pTo are freed.  The pFrom->z field is not duplicated.  If
 ** pFrom->z is used, then pTo->z points to the same thing as pFrom->z
 ** and flags gets srcType (either MEM_Ephem or MEM_Static).
+** 把pFrom浅拷贝到pTo里面.pTo中原先存储的内容被释放.
+** pFrom->z区域没有被复制.
+** 如果pFrom->z被使用了,那么pTo->z指向和pFrom->z一样的相同的东西并且....??
 */
 void sqlite3VdbeMemShallowCopy(Mem *pTo, const Mem *pFrom, int srcType){
   assert( (pFrom->flags & MEM_RowSet)==0 );
@@ -651,6 +661,7 @@ void sqlite3VdbeMemShallowCopy(Mem *pTo, const Mem *pFrom, int srcType){
 /*
 ** Make a full copy of pFrom into pTo.  Prior contents of pTo are
 ** freed before the copy is made.
+** 把pFrom完全复制到pTo里面.pTo里以前的内容在复制完成之前被释放.
 */
 int sqlite3VdbeMemCopy(Mem *pTo, const Mem *pFrom){
   int rc = SQLITE_OK;
@@ -715,7 +726,7 @@ int sqlite3VdbeMemSetStr(
   const char *z,      /* String pointer string类型的指针 */
   int n,              /* Bytes in string, or negative */
   u8 enc,             /* Encoding of z.  0 for BLOBs */
-  void (*xDel)(void*) /* Destructor function */
+  void (*xDel)(void*) /* Destructor function 析构函数*/
 ){
   int nByte = n;      /* New value for pMem->n */
   int iLimit;         /* Maximum allowed string or blob size */
