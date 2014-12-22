@@ -31,7 +31,7 @@
 ** 这个routine确保对字符串表示的内部编码是"desiredEnc"
 ** If pMem is not a string object(字符串对象), or the encoding of the string
 ** representation is already stored using the requested encoding(被要求的编码方式), then this
-** routine is a no-op(空操作?).
+** routine is a no-op(空操作).
 ** 如果pMem不是一个字符串对象,或者字符串表示的编码方式已经用被要求的编码方式存储过了,那么这个routine是一个no-op.
 ** SQLITE_OK is returned if the conversion(转变,改变) is successful (or not required).
 ** SQLITE_NOMEM may be returned if a malloc() fails during conversion
@@ -43,8 +43,6 @@
 ** Mem结构会给出同一个值的多种表示法(string、integer等)。因此Mem结构有时需要转化为另一种表示方式
 ** 如字符串U8转为U16，整数转为实数或二进制数
 */
-/*Mem结构会给出同一个值的多种表示法(string、integer等)。因此Mem结构有时需要转化为另一种表示方式，
-如字符串U8转为U16，整数转为实数或二进制数*/
 int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
   int rc;
   assert( (pMem->flags&MEM_RowSet)==0 );
@@ -74,7 +72,7 @@ int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
 /*
 ** Make sure pMem->z points to a writable allocation(分配) of at least 
 ** n bytes.
-**
+** 确保pMem->z指向一个可写的至少有n个字节的分配单元.
 ** If the third argument(论据,论点) passed to this function is true, then memory
 ** cell pMem must contain a string or blob. In this case the content is
 ** preserved(被保护). Otherwise, if the third parameter to this function is false,
@@ -134,6 +132,7 @@ int sqlite3VdbeMemGrow(Mem *pMem, int n, int preserve){
 ** that any TEXT or BLOB content is stored in memory obtained from
 ** malloc().  In this way, we know that the memory is safe to be
 ** overwritten or altered.
+
 ** malloc()执行成功返回SQLITE_OK 执行失败返回SQLITE_NOMEM.
 ** Return SQLITE_OK on success or SQLITE_NOMEM if malloc fails.
 */
@@ -559,6 +558,7 @@ void sqlite3VdbeMemSetInt64(Mem *pMem, i64 val){
 /*
 ** Delete any previous value and set the value stored in *pMem to val,
 ** manifest type REAL.
+** 删除任何先前存在的值,并且把在*pMem中存在的值设置成val
 */
 void sqlite3VdbeMemSetDouble(Mem *pMem, double val){
   if( sqlite3IsNaN(val) ){
