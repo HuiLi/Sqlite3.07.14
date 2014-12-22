@@ -890,28 +890,29 @@ int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
 ** to.  offset and amt determine what portion of the data or key to retrieve.
 ** key is true to get the key or false to get data.  The result is written
 ** into the pMem element.
-**
+** 将数据从一个b树的键或者值空间中移入一个Mem结构体当中。这个值或者键是从pCur通常指向的入口获取的。
 ** The pMem structure is assumed to be uninitialized.  Any prior content
 ** is overwritten without being freed.
-**
+** pMem结构体被假定没有被初始化，任何之前的内容都将被重写而不是被释放。
 ** If this routine fails for any reason (malloc returns NULL or unable
 ** to read from the disk) then the pMem is left in an inconsistent state.
 */
 int sqlite3VdbeMemFromBtree(
-  BtCursor *pCur,   /* Cursor pointing at record to retrieve. */
-  int offset,       /* Offset from the start of data to return bytes from. */
-  int amt,          /* Number of bytes to return. */
-  int key,          /* If true, retrieve from the btree key, not data. */
-  Mem *pMem         /* OUT: Return data in this Mem structure. */
+  BtCursor *pCur,   /* Cursor pointing at record to retrieve. 只想恢复记录的游标*/
+  int offset,       /* Offset from the start of data to return bytes from.从开始数据到返回字节数的相位差 */
+  int amt,          /* Number of bytes to return. 返回字节数的数目*/
+  int key,          /* If true, retrieve from the btree key, not data. 如果为真，不是从数值而是从b树的键检索，*/
+  Mem *pMem         /* OUT: Return data in this Mem structure. 这个mem结构的返回数据*/
 ){
-  char *zData;        /* Data from the btree layer */
-  int available = 0;  /* Number of bytes available on the local btree page */
-  int rc = SQLITE_OK; /* Return code */
+  char *zData;        /* Data from the btree layer 来自b树层的数据*/
+  int available = 0;  /* Number of bytes available on the local btree page 本地b树页面的可用字节数*/
+  int rc = SQLITE_OK; /* Return code 返回标示符*/
 
   assert( sqlite3BtreeCursorIsValid(pCur) );
 
   /* Note: the calls to BtreeKeyFetch() and DataFetch() below assert() 
-  ** that both the BtShared and database handle mutexes are held. */
+  ** that both the BtShared and database handle mutexes are held. 
+  ** 在assert()方法下面调用b树取键和取数据的方法。共享b树和数据库控制互斥*/
   assert( (pMem->flags & MEM_RowSet)==0 );
   if( key ){
     zData = (char *)sqlite3BtreeKeyFetch(pCur, &available);
@@ -949,10 +950,11 @@ int sqlite3VdbeMemFromBtree(
 ** except the data returned is in the encoding specified by the second
 ** parameter, which must be one of SQLITE_UTF16BE, SQLITE_UTF16LE or
 ** SQLITE_UTF8.
-**
+** 这个方法仅在内部可用，它不是外部API的部分。它的作用类似sqlite3_value_text（）方法，
+** 除了返回数据通过第二个参数以特殊的方式编码，其他的必须是以下三种编码方式之一。
 ** (2006-02-16:)  The enc value can be or-ed with SQLITE_UTF16_ALIGNED.
 ** If that is the case, then the result must be aligned on an even byte
-** boundary.
+** boundary.编码值以此方式那么结果必须在字符边界对齐。
 */
 const void *sqlite3ValueText(sqlite3_value* pVal, u8 enc){
   if( !pVal ) return 0;
@@ -991,7 +993,7 @@ const void *sqlite3ValueText(sqlite3_value* pVal, u8 enc){
 }
 
 /*
-** Create a new sqlite3_value object.
+** Create a new sqlite3_value object.创建这个对象
 */
 sqlite3_value *sqlite3ValueNew(sqlite3 *db){
   Mem *p = sqlite3DbMallocZero(db, sizeof(*p));
@@ -1005,20 +1007,24 @@ sqlite3_value *sqlite3ValueNew(sqlite3 *db){
 
 /*
 ** Create a new sqlite3_value object, containing the value of pExpr.
-**
+**创建一个新的对象，这个对象包含pExpr的值
 ** This only works for very simple expressions that consist of one constant
 ** token (i.e. "5", "5.1", "'a string'"). If the expression can
 ** be converted directly into a value, then the value is allocated and
-** a pointer written to *ppVal. The caller is responsible for deallocating
+** a pointer written to *ppVal. 
+** 这仅对几个简单的包含以下常量的表达式起作用，如果表示被直接改变为一个值，
+** 这个只被分配内存，并写入指针ppval。
+**The caller is responsible for deallocating
 ** the value by passing it to sqlite3ValueFree() later on. If the expression
 ** cannot be converted to a value, then *ppVal is set to NULL.
+** 调用者负责为传递给sqlite3ValueFree()方法的值重新分配内存。如果这个表达式不能被修改，则将指针值为空。
 */
 int sqlite3ValueFromExpr(
-  sqlite3 *db,              /* The database connection */
-  Expr *pExpr,              /* The expression to evaluate */
-  u8 enc,                   /* Encoding to use */
-  u8 affinity,              /* Affinity to use */
-  sqlite3_value **ppVal     /* Write the new value here */
+  sqlite3 *db,              /* The database connection 数据库连接*/
+  Expr *pExpr,              /* The expression to evaluate求值表达式 */
+  u8 enc,                   /* Encoding to use 用于编码*/
+  u8 affinity,              /* Affinity to use 想死的使用*/
+  sqlite3_value **ppVal     /* Write the new value here 写入新的值*/
 ){
   int op;
   char *zVal = 0;
@@ -1035,6 +1041,8 @@ int sqlite3ValueFromExpr(
   /* op can only be TK_REGISTER if we have compiled with SQLITE_ENABLE_STAT3.
   ** The ifdef here is to enable us to achieve 100% branch test coverage even
   ** when SQLITE_ENABLE_STAT3 is omitted.
+  ** 如果我们编译了SQLITE_ENABLE_STAT3，op只能被放入寄存器。
+  ** 这个定义使我们完成所有的测试分值的覆盖即便当SQLITE_ENABLE_STAT3被省去。
   */
 #ifdef SQLITE_ENABLE_STAT3
   if( op==TK_REGISTER ) op = pExpr->op2;
@@ -1044,6 +1052,7 @@ int sqlite3ValueFromExpr(
 
   /* Handle negative integers in a single step.  This is needed in the
   ** case when the value is -9223372036854775808.
+  ** 单步处理非负整数集。当值为-9223372036854775808时需要这样做。
   */
   if( op==TK_UMINUS
    && (pExpr->pLeft->op==TK_INTEGER || pExpr->pLeft->op==TK_FLOAT) ){
@@ -1074,7 +1083,7 @@ int sqlite3ValueFromExpr(
       sqlite3VdbeChangeEncoding(pVal, enc);
     }
   }else if( op==TK_UMINUS ) {
-    /* This branch happens for multiple negative signs.  Ex: -(-5) */
+    /* This branch happens for multiple negative signs. 这个分支用于处理多重负号。 Ex: -(-5) */
     if( SQLITE_OK==sqlite3ValueFromExpr(db,pExpr->pLeft,enc,affinity,&pVal) ){
       sqlite3VdbeMemNumerify(pVal);
       if( pVal->u.i==SMALLEST_INT64 ){
@@ -1121,20 +1130,20 @@ no_mem:
 }
 
 /*
-** Change the string value of an sqlite3_value object
+** Change the string value of an sqlite3_value object改变这个对象的字符串值
 */
 void sqlite3ValueSetStr(
-  sqlite3_value *v,     /* Value to be set */
-  int n,                /* Length of string z */
-  const void *z,        /* Text of the new string */
-  u8 enc,               /* Encoding to use */
-  void (*xDel)(void*)   /* Destructor for the string */
+  sqlite3_value *v,     /* Value to be set 值被设置*/
+  int n,                /* Length of string z 字符串z的长度*/
+  const void *z,        /* Text of the new string 新的字符串文本*/
+  u8 enc,               /* Encoding to use 用于编码*/
+  void (*xDel)(void*)   /* Destructor for the string 解除字符串*/
 ){
   if( v ) sqlite3VdbeMemSetStr((Mem *)v, z, n, enc, xDel);
 }
 
 /*
-** Free an sqlite3_value object
+** Free an sqlite3_value object释放对象
 */
 void sqlite3ValueFree(sqlite3_value *v){
   if( !v ) return;
@@ -1144,7 +1153,7 @@ void sqlite3ValueFree(sqlite3_value *v){
 
 /*
 ** Return the number of bytes in the sqlite3_value object assuming
-** that it uses the encoding "enc"
+** that it uses the encoding "enc"返回对象假设的字节数，它用于编码。
 */
 int sqlite3ValueBytes(sqlite3_value *pVal, u8 enc){
   Mem *p = (Mem*)pVal;
