@@ -11,6 +11,8 @@
 ******************************************************************************
 **
 ** Implementation of the "simple" full-text-search tokenizer.
+
+**简单的全文检索分词器的实现
 */
 
 /*
@@ -36,16 +38,21 @@ typedef struct simple_tokenizer {
   sqlite3_tokenizer base;
   char delim[128];             /* flag ASCII delimiters */
 } simple_tokenizer;
-
+/*
+定义simple_tokenizer结构体
+*/
 typedef struct simple_tokenizer_cursor {
   sqlite3_tokenizer_cursor base;
-  const char *pInput;          /* input we are tokenizing */
-  int nBytes;                  /* size of the input */
+  const char *pInput;          /* input we are tokenizing 定义输入变量*/
+  int nBytes;                  /* size of the input 输入的变量的长度*/
   int iOffset;                 /* current position in pInput */
-  int iToken;                  /* index of next token to be returned */
-  char *pToken;                /* storage for current token */
-  int nTokenAllocated;         /* space allocated to zToken buffer */
+  int iToken;                  /* index of next token to be returned 表征下一个返回值的指数*/
+  char *pToken;                /* storage for current token 当前表征的指数*/
+  int nTokenAllocated;         /* space allocated to zToken buffer 根据Token的缓冲区分配空间*/
 } simple_tokenizer_cursor;
+/*
+定义simple_tokenizer_cursor结构体
+*/
 
 
 static int simpleDelim(simple_tokenizer *t, unsigned char c){
@@ -73,11 +80,19 @@ static int simpleCreate(
   ** track such information in the database, then we'd only want this
   ** information on the initial create.
   */
+  /*
+**在两次转换之后，分隔符需要保留相同
+**另外我们需要去变化符号。一种解决方案是在数据库中利用一个中间表去追踪
+**一些信息。
+*/
   if( argc>1 ){
     int i, n = (int)strlen(argv[1]);
     for(i=0; i<n; i++){
       unsigned char ch = argv[1][i];
-      /* We explicitly don't support UTF-8 delimiters for now. */
+      /*
+	  We explicitly don't support UTF-8 delimiters for now.
+	  我们现在已经明确不支持UTF-8分隔符
+	  */
       if( ch>=0x80 ){
         sqlite3_free(t);
         return SQLITE_ERROR;
@@ -85,7 +100,10 @@ static int simpleCreate(
       t->delim[ch] = 1;
     }
   } else {
-    /* Mark non-alphanumeric ASCII characters as delimiters */
+    /* 
+	 ** Mark non-alphanumeric ASCII characters as delimiters
+	 ** 标记非字母数字的ASCII字符作为分隔符
+	  */
     int i;
     for(i=1; i<0x80; i++){
       t->delim[i] = !fts3_isalnum(i) ? -1 : 0;
@@ -98,6 +116,7 @@ static int simpleCreate(
 
 /*
 ** Destroy a tokenizer
+这里销毁一个分隔符
 */
 static int simpleDestroy(sqlite3_tokenizer *pTokenizer){
   sqlite3_free(pTokenizer);
@@ -109,9 +128,11 @@ static int simpleDestroy(sqlite3_tokenizer *pTokenizer){
 ** string to be tokenized is pInput[0..nBytes-1].  A cursor
 ** used to incrementally tokenize this string is returned in 
 ** *ppCursor.
+准备去标记一个特定字符串。这个刚输入的字符串被标记成另一个字符串[0..nBytes-1].
+定义一个游标去渐增的标记这个字符串被返回值在*ppCursor中
 */
 static int simpleOpen(
-  sqlite3_tokenizer *pTokenizer,         /* The tokenizer */
+  sqlite3_tokenizer *pTokenizer,         /* The tokenizer编译器 */
   const char *pInput, int nBytes,        /* String to be tokenized */
   sqlite3_tokenizer_cursor **ppCursor    /* OUT: Tokenization cursor */
 ){
@@ -142,6 +163,7 @@ static int simpleOpen(
 /*
 ** Close a tokenization cursor previously opened by a call to
 ** simpleOpen() above.
+关闭一个预先标记化（被上面simpleOpen()这个函数调用过）的游标
 */
 static int simpleClose(sqlite3_tokenizer_cursor *pCursor){
   simple_tokenizer_cursor *c = (simple_tokenizer_cursor *) pCursor;
@@ -153,6 +175,7 @@ static int simpleClose(sqlite3_tokenizer_cursor *pCursor){
 /*
 ** Extract the next token from a tokenization cursor.  The cursor must
 ** have been opened by a prior call to simpleOpen().
+从一个标记化的游标中提取下一个标记。这个游标必须被先前的函数simpleOpen()调用过
 */
 static int simpleNext(
   sqlite3_tokenizer_cursor *pCursor,  /* Cursor returned by simpleOpen */
@@ -169,12 +192,18 @@ static int simpleNext(
   while( c->iOffset<c->nBytes ){
     int iStartOffset;
 
-    /* Scan past delimiter characters */
+    /* 
+	Scan past delimiter characters
+	扫描以往的定界字符
+	*/
     while( c->iOffset<c->nBytes && simpleDelim(t, p[c->iOffset]) ){
       c->iOffset++;
     }
 
-    /* Count non-delimiter characters. */
+    /*
+	Count non-delimiter characters.
+	计算非定界字符
+	*/
     iStartOffset = c->iOffset;
     while( c->iOffset<c->nBytes && !simpleDelim(t, p[c->iOffset]) ){
       c->iOffset++;
@@ -192,6 +221,7 @@ static int simpleNext(
       for(i=0; i<n; i++){
         /* TODO(shess) This needs expansion to handle UTF-8
         ** case-insensitivity.
+		这需要去扩展到不灵敏的UTF-8编码	
         */
         unsigned char ch = p[iStartOffset+i];
         c->pToken[i] = (char)((ch>='A' && ch<='Z') ? ch-'A'+'a' : ch);
@@ -210,6 +240,7 @@ static int simpleNext(
 
 /*
 ** The set of routines that implement the simple tokenizer
+这一系列的程序就是为执行简单的编译器。
 */
 static const sqlite3_tokenizer_module simpleTokenizerModule = {
   0,
@@ -224,6 +255,9 @@ static const sqlite3_tokenizer_module simpleTokenizerModule = {
 /*
 ** Allocate a new simple tokenizer.  Return a pointer to the new
 ** tokenizer in *ppModule
+*/
+/*
+分配一个新的简单的编译器。返回一个指针指向心的编译器在*ppModule中
 */
 void sqlite3Fts3SimpleTokenizerModule(
   sqlite3_tokenizer_module const**ppModule
