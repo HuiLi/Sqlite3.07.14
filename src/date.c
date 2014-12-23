@@ -748,6 +748,7 @@ static int parseModifier(sqlite3_context *pCtx, const char *zMod, DateTime *p){
 **
 ** If there are zero parameters (if even argv[0] is undefined)
 ** then assume a default value of "now" for argv[0].
+**分析DateTime结构体p中的所有和被写入的时间，成功就返回0，如果有任何一个错误就返回1.
 */
 static int isDate(
   sqlite3_context *context, 
@@ -787,7 +788,7 @@ static int isDate(
 
 /*
 **    julianday( TIMESTRING, MOD, MOD, ...)
-**
+**把参数中的日期转换成儒略日数。
 ** Return the julian day number of the date specified in the arguments
 */
 static void juliandayFunc(
@@ -804,7 +805,7 @@ static void juliandayFunc(
 
 /*
 **    datetime( TIMESTRING, MOD, MOD, ...)
-**
+**将参数转换成YYYY-MM-DD HH:MM:SS形式的日期时间
 ** Return YYYY-MM-DD HH:MM:SS
 */
 static void datetimeFunc(
@@ -824,7 +825,7 @@ static void datetimeFunc(
 
 /*
 **    time( TIMESTRING, MOD, MOD, ...)
-**
+**将参数转换成HH:MM:SS形式的时间
 ** Return HH:MM:SS
 */
 static void timeFunc(
@@ -843,7 +844,7 @@ static void timeFunc(
 
 /*
 **    date( TIMESTRING, MOD, MOD, ...)
-**
+**将参数转换成YYYY-MM-DD形式的日期
 ** Return YYYY-MM-DD
 */
 static void dateFunc(
@@ -862,7 +863,7 @@ static void dateFunc(
 
 /*
 **    strftime( FORMAT, TIMESTRING, MOD, MOD, ...)
-**
+**返回一个字符串
 ** Return a string described by FORMAT.  Conversions as follows:
 **
 **   %d  day of month                    %d是月中的某一天的格式 
@@ -1012,7 +1013,7 @@ static void strftimeFunc(
 
 /*
 ** current_time()
-**
+**获取当前时间
 ** This function returns the same value as time('now').
 */
 static void ctimeFunc(
@@ -1026,7 +1027,7 @@ static void ctimeFunc(
 
 /*
 ** current_date()
-**
+**获取当前日期
 ** This function returns the same value as date('now').
 */
 static void cdateFunc(
@@ -1040,7 +1041,7 @@ static void cdateFunc(
 
 /*
 ** current_timestamp()
-**
+**获取当前日期时间
 ** This function returns the same value as datetime('now').
 */
 static void ctimestampFunc(
@@ -1064,6 +1065,8 @@ static void ctimestampFunc(
 ** This function uses the C-library functions time(), gmtime()
 ** and strftime(). The format string to pass to strftime() is supplied
 ** as the user-data for the function.
+**函数这个函数使用C-library中time()，gmtime()和strftime()函数。
+**这个格式字符串被作为用户数据提供给strftime()函数。
 */
 static void currentTimeFunc(
   sqlite3_context *context,
@@ -1102,7 +1105,7 @@ static void currentTimeFunc(
 /*
 ** This function registered all of the above C functions as SQL
 ** functions.  This should be the only routine in this file with
-** external linkage.
+** external linkage.函数注册所有上述C函数作为SQL的函数。
 */
 void sqlite3RegisterDateTimeFunctions(void){
   /*定义aDateTimeFuncs数组*/
