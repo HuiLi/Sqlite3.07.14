@@ -468,6 +468,7 @@ int sqlite3VdbeMemIntegerify(Mem *pMem){
 /*
 ** Convert pMem so that it is of type MEM_Real.
 ** Invalidate any prior representations.
+** 转化pMem 以便它是MEM_Ral类型的,使任何先前的表示都失效
 */
 int sqlite3VdbeMemRealify(Mem *pMem){
   assert( pMem->db==0 || sqlite3_mutex_held(pMem->db->mutex) );
@@ -481,10 +482,12 @@ int sqlite3VdbeMemRealify(Mem *pMem){
 /*
 ** Convert pMem so that it has types MEM_Real or MEM_Int or both.
 ** Invalidate any prior representations.
-**
+** 把pMem对象转化为MEM_Real 类型或者 MEM_Int类型,或者两者兼有.使任何先前的类型都失效.
 ** Every effort is made to force the conversion, even if the input
 ** is a string that does not look completely like a number.  Convert
 ** as much of the string as we can and ignore the rest.
+** 任何的努力都是为了强制类型转化,即使输入的是一点也不像一个数字的字符串类型,
+** 也要尽可能的把字符串类型转换成目标类型并忽视不能转换的字符串.
 */
 int sqlite3VdbeMemNumerify(Mem *pMem){
   if( (pMem->flags & (MEM_Int|MEM_Real|MEM_Null))==0 ){
@@ -684,10 +687,10 @@ int sqlite3VdbeMemCopy(Mem *pTo, const Mem *pFrom){
 /*
 ** Transfer the contents of pFrom to pTo. Any existing value in pTo is
 ** freed. If pFrom contains ephemeral data, a copy is made.
-** 移动pFrom内存中的数据到pTo.在pTo数据单元中的任何存在的数据都会被释放.
+** 移动pFrom内存单元中的数据到pTo.在pTo数据单元中的任何存在的数据都会被释放.
 ** 如果pFrom包含短暂的数据,一份复制就生成了.
 ** pFrom contains an SQL NULL when this routine returns.
-** 
+** 当这个操作返回时,pFrom单元中的就只包含一个空的SQL语句.
 */
 void sqlite3VdbeMemMove(Mem *pTo, Mem *pFrom){
   assert( pFrom->db==0 || sqlite3_mutex_held(pFrom->db->mutex) );
