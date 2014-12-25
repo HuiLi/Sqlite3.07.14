@@ -862,23 +862,26 @@ void sqlite3Insert(Parse *pParse, SrcList *pTabList, ExprList *pList, Select *pS
     }
     autoIncStep(pParse, regAutoinc, regRowid);
 
-    /* Push onto the stack, data for all columns of the new entry, beginning
-    ** with the first column.
+
+
+    /* 新记录的所有列的数据，
+    ** 从第一列开始写入栈中
     */
     nHidden = 0;
+	//循环数据库列数
     for(i=0; i<pTab->nCol; i++){
       int iRegStore = regRowid+1+i;
-      if( i==pTab->iPKey ){
-        /* The value of the INTEGER PRIMARY KEY column is always a NULL.
-        ** Whenever this column is read, the record number will be substituted
-        ** in its place.  So will fill this column with a NULL to avoid
-        ** taking up data space with information that will never be used. */
-        sqlite3VdbeAddOp2(v, OP_Null, 0, iRegStore);
+      if( i==pTab->iPKey ){//在原始表中的主键索引是pTab->iPKey（列是主键列时）
+        /* INTEGER主键列的值总是为NULL,时sqlite将会使用默认的替代方法代替此NULL，
+        ** 使用自增长的策略产生值，这里是iRegStore的值
+        ** 所以将填补这一列空来避免出错
+		*/
+        sqlite3VdbeAddOp2(v, OP_Null, 0, iRegStore);//调用Vdbeaux.c文件中的sqlite3VdbeAddOp2函数
         continue;
       }
       if( pColumn==0 ){
-        if( IsHiddenColumn(&pTab->aCol[i]) ){
-          assert( IsVirtual(pTab) );
+        if( IsHiddenColumn(&pTab->aCol[i]) ){//判断是否是隐藏列
+          assert( IsVirtual(pTab) );//调用断言函数pTab是否是一个虚拟表
           j = -1;
           nHidden++;
         }else{
@@ -890,9 +893,9 @@ void sqlite3Insert(Parse *pParse, SrcList *pTabList, ExprList *pList, Select *pS
         }
       }
       if( j<0 || nColumn==0 || (pColumn && j>=pColumn->nId) ){
-        sqlite3ExprCode(pParse, pTab->aCol[i].pDflt, iRegStore);
+        sqlite3ExprCode(pParse, pTab->aCol[i].pDflt, iRegStore);//将表达式解析并存储到对应的寄存器中，sqlite3ExprCode函数的三个参数是，1解析，2表达式，3目标寄存器
       }else if( useTempTable ){
-        sqlite3VdbeAddOp3(v, OP_Column, srcTab, j, iRegStore); 
+        sqlite3VdbeAddOp3(v, OP_Column, srcTab, j, iRegStore); //Sqlite3vdbeAddOp函数有三个参数：（1）VDBE实例（它将添加指令），（2）操作码（一条指令），（3）两个操作数。
       }else if( pSelect ){
         sqlite3VdbeAddOp2(v, OP_SCopy, regFromSelect+j, iRegStore);
       }else{
@@ -900,49 +903,49 @@ void sqlite3Insert(Parse *pParse, SrcList *pTabList, ExprList *pList, Select *pS
       }
     }
 
-    /* Generate code to check constraints and generate index keys and
-    ** do the insertion.
+    /* 此代码生成检查约束并产生索引并进行插入。
+    ** 如果不存在则定义如下
     */
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-    if( IsVirtual(pTab) ){
-      const char *pVTab = (const char *)sqlite3GetVTable(db, pTab);
-      sqlite3VtabMakeWritable(pParse, pTab);
-      sqlite3VdbeAddOp4(v, OP_VUpdate, 1, pTab->nCol+2, regIns, pVTab, P4_VTAB);
-      sqlite3VdbeChangeP5(v, onError==OE_Default ? OE_Abort : onError);
-      sqlite3MayAbort(pParse);
+    if( IsVirtual(pTab) ){//是否是虚拟表（视图）
+      const char *pVTab = (const char *)sqlite3GetVTable(db, pTab);  //产生一个常量指针指定pTab（pTab放入到相应的数组中）
+      sqlite3VtabMakeWritable(pParse, pTab);  //pTab写入到内存数组中， 判定pParse->apVirtualLock[]是否存在，然后进行处理
+      sqlite3VdbeAddOp4(v, OP_VUpdate, 1, pTab->nCol+2, regIns, pVTab, P4_VTAB);//向虚拟机代码中添加新的执行语句
+      sqlite3VdbeChangeP5(v, onError==OE_Default ? OE_Abort : onError);//p5操作，将改变最多的加入其中
+      sqlite3MayAbort(pParse);//改变解析，通过标志位来避免事务的交叉。
     }else
 #endif
     {
-      int isReplace;    /* Set to true if constraints may cause a replace */
+      int isReplace;  //如果约束可能导致替换设置为true
       sqlite3GenerateConstraintChecks(pParse, pTab, baseCur, regIns, aRegIdx,
           keyColumn>=0, 0, onError, endOfLoop, &isReplace
-      );
-      sqlite3FkCheck(pParse, pTab, 0, regIns);
+      );//约束检查
+      sqlite3FkCheck(pParse, pTab, 0, regIns);//外检检查
       sqlite3CompleteInsertion(
           pParse, pTab, baseCur, regIns, aRegIdx, 0, appendFlag, isReplace==0
-      );
+      );//来完成更新或插入操作
     }
   }
 
-  /* Update the count of rows that are inserted
+  /* 更新插入的行数				
   */
   if( (db->flags & SQLITE_CountRows)!=0 ){
     sqlite3VdbeAddOp2(v, OP_AddImm, regRowCount, 1);
   }
 
   if( pTrigger ){
-    /* Code AFTER triggers */
+    //这段代码在触发器之后执行
     sqlite3CodeRowTrigger(pParse, pTrigger, TK_INSERT, 0, TRIGGER_AFTER, 
-        pTab, regData-2-pTab->nCol, onError, endOfLoop);
+        pTab, regData-2-pTab->nCol, onError, endOfLoop);//行触发器，参数是（解析，触发代码，触发器的表，注册的值（有的话就是用老的，没有就新建，这里给出0），冲突策略，结束跳转）
   }
 
-  /* The bottom of the main insertion loop, if the data source
-  ** is a SELECT statement.
+  /*  如果数据源是一条select语句,则这是insert循环的底部
+  **  意味着不需要去循环读取insert语句之后的列（因为没有列名）
   */
-  sqlite3VdbeResolveLabel(v, endOfLoop);
+  sqlite3VdbeResolveLabel(v, endOfLoop);//确定下一步的指令地址
   if( useTempTable ){
     sqlite3VdbeAddOp2(v, OP_Next, srcTab, addrCont);
-    sqlite3VdbeJumpHere(v, addrInsTop);
+    sqlite3VdbeJumpHere(v, addrInsTop);//改变指令操作数p2，下一个指令的地址编码
     sqlite3VdbeAddOp1(v, OP_Close, srcTab);
   }else if( pSelect ){
     sqlite3VdbeAddOp2(v, OP_Goto, 0, addrCont);
@@ -950,7 +953,7 @@ void sqlite3Insert(Parse *pParse, SrcList *pTabList, ExprList *pList, Select *pS
   }
 
   if( !IsVirtual(pTab) && !isView ){
-    /* Close all tables opened */
+    //关闭所有打开的表
     sqlite3VdbeAddOp1(v, OP_Close, baseCur);
     for(idx=1, pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext, idx++){
       sqlite3VdbeAddOp1(v, OP_Close, idx+baseCur);
@@ -958,36 +961,36 @@ void sqlite3Insert(Parse *pParse, SrcList *pTabList, ExprList *pList, Select *pS
   }
 
 insert_end:
-  /* Update the sqlite_sequence table by storing the content of the
-  ** maximum rowid counter values recorded while inserting into
-  ** autoincrement tables.
+
+  /* 通过存储rowid的最大值来更新sqlite_sequence表相关字段
+  ** 这也属于自增长的表（其字段是自增长的）
   */
   if( pParse->nested==0 && pParse->pTriggerTab==0 ){
-    sqlite3AutoincrementEnd(pParse);
+    sqlite3AutoincrementEnd(pParse);//最大rowid回sqlite_sequence中
   }
 
   /*
-  ** Return the number of rows inserted. If this routine is 
-  ** generating code because of a call to sqlite3NestedParse(), do not
-  ** invoke the callback function.
+  ** 返回插入的行数。如果这个程序返回值由于调用了
+  ** 函数sqlite3NestedParse()，将不会唤醒回调函数。
+  ** 
   */
-  if( (db->flags&SQLITE_CountRows) && !pParse->nested && !pParse->pTriggerTab ){
+  if( (db->flags&SQLITE_CountRows) && !pParse->nested && !pParse->pTriggerTab ){//判断解析嵌套，触发器，行数等，来判定生成操作语句
     sqlite3VdbeAddOp2(v, OP_ResultRow, regRowCount, 1);
     sqlite3VdbeSetNumCols(v, 1);
     sqlite3VdbeSetColName(v, 0, COLNAME_NAME, "rows inserted", SQLITE_STATIC);
   }
 
-insert_cleanup:
-  sqlite3SrcListDelete(db, pTabList);
-  sqlite3ExprListDelete(db, pList);
-  sqlite3SelectDelete(db, pSelect);
-  sqlite3IdListDelete(db, pColumn);
-  sqlite3DbFree(db, aRegIdx);
+insert_cleanup://清理
+  sqlite3SrcListDelete(db, pTabList);//删除整个SrcList包括所有的子结构
+  sqlite3ExprListDelete(db, pList); //删除整个表达式结构
+  sqlite3SelectDelete(db, pSelect);//删除整个select包括所有的子结构
+  sqlite3IdListDelete(db, pColumn);//删除IdList
+  sqlite3DbFree(db, aRegIdx);//空闲内存,可能会被关联到一个特定的数据库
 }
 
-/* Make sure "isView" and other macros defined above are undefined. Otherwise
-** thely may interfere with compilation of other functions in this file
-** (or in another file, if this file becomes part of the amalgamation).  */
+/* 确保“isView”和其他上面宏定义是未定义的
+** 否则在这个文件中编辑其他功能会产生干扰
+** （或在另一个文件,如果这个文件成为融合的一部分）
 #ifdef isView
  #undef isView
 #endif
@@ -1000,113 +1003,107 @@ insert_cleanup:
 
 
 /*
-** Generate code to do constraint checks prior to an INSERT or an UPDATE.
+**  此代码做约束检查当一个插入或更新操作。
 **
-** The input is a range of consecutive registers as follows:
+**  输入的范围的连贯性表现为以下：
 **
-**    1.  The rowid of the row after the update.
+**    1.   行ID更新在行更新之后
 **
-**    2.  The data in the first column of the entry after the update.
+**    2.   数据的第一列在整个记录更新之后更新
 **
-**    i.  Data from middle columns...
+**    i.   数据来自中间的列的...
 **
-**    N.  The data in the last column of the entry after the update.
+**    N.  最后一列的数据在整个记录更新之后更新
 **
-** The regRowid parameter is the index of the register containing (1).
+**  那个regRowid参数是寄存器包含的索引
 **
-** If isUpdate is true and rowidChng is non-zero, then rowidChng contains
-** the address of a register containing the rowid before the update takes
-** place. isUpdate is true for UPDATEs and false for INSERTs. If isUpdate
-** is false, indicating an INSERT statement, then a non-zero rowidChng 
-** indicates that the rowid was explicitly specified as part of the
-** INSERT statement. If rowidChng is false, it means that  the rowid is
-** computed automatically in an insert or that the rowid value is not 
-** modified by an update.
+** 如果参数isUpdate是TRUE并且参数rowidChng不为零
+** 则rowidChng包含一个寄存器地址包含rowid 在更新之前发生
+** isUpdate参数是true表示更新操作，false表示插入操作，
+** 如果isUpdate是false，表明一个insert语句，然而非零的rowidChng
+** 参数表明rowid被显示的为insert语句的一部分，如果rowidChng是false
+** 意味着rowid是自动计算的在一个插入或是rowid不需要修改的更新操作。
+** 
 **
-** The code generated by this routine store new index entries into
-** registers identified by aRegIdx[].  No index entry is created for
-** indices where aRegIdx[i]==0.  The order of indices in aRegIdx[] is
-** the same as the order of indices on the linked list of indices
-** attached to the table.
 **
-** This routine also generates code to check constraints.  NOT NULL,
-** CHECK, and UNIQUE constraints are all checked.  If a constraint fails,
-** then the appropriate action is performed.  There are five possible
-** actions: ROLLBACK, ABORT, FAIL, REPLACE, and IGNORE.
+** 这些代码产生由程序，存储新的索引记录到寄存器中通过
+** aRegIdx[]数组来识别。没有记录索引被创建在aRegIdx[i]==0
+** 时。指示的顺序在aRegIdx[]与链表（依附于表）的顺序一致，
+** 
 **
-**  Constraint type  Action       What Happens
-**  ---------------  ----------   ----------------------------------------
-**  any              ROLLBACK     The current transaction is rolled back and
-**                                sqlite3_exec() returns immediately with a
-**                                return code of SQLITE_CONSTRAINT.
+** 这个程序也会产生代码去检查约束。非空，
+** 检查，唯一约束都会被检查。如果约束失效，
+** 然后适当的动作被执行。有五种可能的动作
+**  ROLLBACK（回滚）, ABORT（终止）, FAIL（失败）, REPLACE（代替）, and IGNORE（忽略）.
 **
-**  any              ABORT        Back out changes from the current command
-**                                only (do not do a complete rollback) then
-**                                cause sqlite3_exec() to return immediately
-**                                with SQLITE_CONSTRAINT.
+**        约束类型      动作       说明
+**    ---------------------------------------------------------  
+**     任何           回滚     当前的事务被回滚并且 sqlite3_exec()
+**                                返回立即QLITE_CONSTRAINT的代码
+**                                
 **
-**  any              FAIL         Sqlite3_exec() returns immediately with a
-**                                return code of SQLITE_CONSTRAINT.  The
-**                                transaction is not rolled back and any
-**                                prior changes are retained.
+**     任何           终止     撤销更改从当前的命令中，只（对于已完成的不进行回滚）
+**                                然而 由于sqlite3_exec()会立即返回SQLITE_CONSTRAINT代码
+**                               
 **
-**  any              IGNORE       The record number and data is popped from
-**                                the stack and there is an immediate jump
-**                                to label ignoreDest.
+**     任何          失败      Sqlite3_exec()立即返回一个SQLITE_CONSTRAINT
+**                                   代码，事务不会回滚，并且任何之前的改变都会保留 
+**                                
 **
-**  NOT NULL         REPLACE      The NULL value is replace by the default
-**                                value for that column.  If the default value
-**                                is NULL, the action is the same as ABORT.
+**     任何           忽略      记录的数量和数据出现在堆中，并且
+**                                立即跳到标签 忽略其他。 
+**                              
+**     非空          代替       空值被默认值代替在那列值中，如果默认值为空   
+**                                  这动作与终止相同。     
+**                               
+**     唯一           代替       其他行的冲突是被查入行被删掉
+**                               
 **
-**  UNIQUE           REPLACE      The other row that conflicts with the row
-**                                being inserted is removed.
+**     检查          代替        非法的，结果集是一个异常。 
 **
-**  CHECK            REPLACE      Illegal.  The results in an exception.
+** 哪一个动作被执行取决于被重写的错误的参数。
+** 或者如果overrideError==OE_Default，则pParse->onError 参数被使用
+** 或者如果pParse->onError==OE_Default则onError的值将被约束使用
 **
-** Which action to take is determined by the overrideError parameter.
-** Or if overrideError==OE_Default, then the pParse->onError parameter
-** is used.  Or if pParse->onError==OE_Default then the onError value
-** for the constraint is used.
-**
-** The calling routine must open a read/write cursor for pTab with
-** cursor number "baseCur".  All indices of pTab must also have open
-** read/write cursors with cursor number baseCur+i for the i-th cursor.
-** Except, if there is no possibility of a REPLACE action then
-** cursors do not need to be open for indices where aRegIdx[i]==0.
+** 调用程序必须打开读/写游标，pTab随着游标的数目计入到baseCur中。
+** 所有的pTab指标必须打开读/写游标随着游标数目baseCur+i对第i个游标
+*   
+** 此外，如果不可能有一个代替动作，则游标不需要打开，在aRegIdx[i]==0。
+.
 */
 void sqlite3GenerateConstraintChecks(
-  Parse *pParse,      /* The parser context */
-  Table *pTab,        /* the table into which we are inserting */
-  int baseCur,        /* Index of a read/write cursor pointing at pTab */
-  int regRowid,       /* Index of the range of input registers */
-  int *aRegIdx,       /* Register used by each index.  0 for unused indices */
-  int rowidChng,      /* True if the rowid might collide with existing entry */
-  int isUpdate,       /* True for UPDATE, False for INSERT */
-  int overrideError,  /* Override onError to this if not OE_Default */
-  int ignoreDest,     /* Jump to this label on an OE_Ignore resolution */
-  int *pbMayReplace   /* OUT: Set to true if constraint may cause a replace */
+  Parse *pParse,      //分析上下文环境
+  Table *pTab,        //要进行插入的表
+  int baseCur,        //读/写游标的索引在pTab
+  int regRowid,       //输入寄存器的下标的范围
+  int *aRegIdx,       //寄存器使用的下标，0是未被使用的指标
+  int rowidChng,     //true如果rowid和存在记录冲突时
+  int isUpdate,       //true是更新操作，false是插入操作
+  int overrideError,  //重写onError到这，如果不是OE_Default
+  int ignoreDest,     //跳到这个标签在一个OE_Ignore解决
+  int *pbMayReplace   //输出，如果限制可能引起一个代替动作则设置真
 ){
-  int i;              /* loop counter */
-  Vdbe *v;            /* VDBE under constrution */
-  int nCol;           /* Number of columns */
-  int onError;        /* Conflict resolution strategy */
-  int j1;             /* Addresss of jump instruction */
-  int j2 = 0, j3;     /* Addresses of jump instructions */
-  int regData;        /* Register containing first data column */
-  int iCur;           /* Table cursor number */
-  Index *pIdx;         /* Pointer to one of the indices */
-  sqlite3 *db;         /* Database connection */
-  int seenReplace = 0; /* True if REPLACE is used to resolve INT PK conflict */
+  int i;              //循环计数器i
+  Vdbe *v;            //虚拟数据库引擎的构建
+  int nCol;           //列的数量 
+  int onError;        //冲突的解决策略
+  int j1;             //地址跳跃指令
+  int j2 = 0, j3;     //地址跳跃指令  
+  int regData;        //寄存器包含第一个数据列
+  int iCur;           //表游标数量
+  Index *pIdx;         //指针的一个指示   
+  sqlite3 *db;         //数据库连接
+  int seenReplace = 0;//如果代替被使用解决INT主键冲突则设为真值
   int regOldRowid = (rowidChng && isUpdate) ? rowidChng : regRowid;
 
   db = pParse->db;
-  v = sqlite3GetVdbe(pParse);
+  v = sqlite3GetVdbe(pParse);//得到虚拟数据库引擎
   assert( v!=0 );
-  assert( pTab->pSelect==0 );  /* This table is not a VIEW */
+  assert( pTab->pSelect==0 );  //这个表不是视图（通过assert判定）
   nCol = pTab->nCol;
   regData = regRowid + 1;
 
-  /* Test all NOT NULL constraints.
+  /* 测试所有非空约束    
   */
   for(i=0; i<nCol; i++){
     if( i==pTab->iPKey ){
@@ -1133,7 +1130,7 @@ void sqlite3GenerateConstraintChecks(
         sqlite3VdbeAddOp3(v, OP_HaltIfNull,
                                   SQLITE_CONSTRAINT, onError, regData+i);
         zMsg = sqlite3MPrintf(db, "%s.%s may not be NULL",
-                              pTab->zName, pTab->aCol[i].zName);
+                              pTab->zName, pTab->aCol[i].zName);//查看从sqliteMalloc()中取得的内存大小
         sqlite3VdbeChangeP4(v, -1, zMsg, P4_DYNAMIC);
         break;
       }
@@ -1144,18 +1141,18 @@ void sqlite3GenerateConstraintChecks(
       default: {
         assert( onError==OE_Replace );
         j1 = sqlite3VdbeAddOp1(v, OP_NotNull, regData+i);
-        sqlite3ExprCode(pParse, pTab->aCol[i].pDflt, regData+i);
+        sqlite3ExprCode(pParse, pTab->aCol[i].pDflt, regData+i);//评估解析到的语句，并存储到内存中
         sqlite3VdbeJumpHere(v, j1);
         break;
       }
     }
   }
 
-  /* Test all CHECK constraints
+  /* 测试所有检查约束
   */
 #ifndef SQLITE_OMIT_CHECK
   if( pTab->pCheck && (db->flags & SQLITE_IgnoreChecks)==0 ){
-    ExprList *pCheck = pTab->pCheck;
+    ExprList *pCheck = pTab->pCheck; //表达式列表（需要check的）
     pParse->ckBase = regData;
     onError = overrideError!=OE_Default ? overrideError : OE_Abort;
     for(i=0; i<pCheck->nExpr; i++){
@@ -1165,22 +1162,22 @@ void sqlite3GenerateConstraintChecks(
         sqlite3VdbeAddOp2(v, OP_Goto, 0, ignoreDest);
       }else{
         char *zConsName = pCheck->a[i].zName;
-        if( onError==OE_Replace ) onError = OE_Abort; /* IMP: R-15569-63625 */
+        if( onError==OE_Replace ) onError = OE_Abort; /* IMP: R-15569-63625 */        //
         if( zConsName ){
           zConsName = sqlite3MPrintf(db, "constraint %s failed", zConsName);
         }else{
           zConsName = 0;
         }
-        sqlite3HaltConstraint(pParse, onError, zConsName, P4_DYNAMIC);
+        sqlite3HaltConstraint(pParse, onError, zConsName, P4_DYNAMIC);//OP_Halt 使得虚拟数据库引擎返回一个SQLITE_CONSTRAINT的错误
       }
       sqlite3VdbeResolveLabel(v, allOk);
     }
   }
 #endif /* !defined(SQLITE_OMIT_CHECK) */
 
-  /* If we have an INTEGER PRIMARY KEY, make sure the primary key
-  ** of the new record does not previously exist.  Except, if this
-  ** is an UPDATE and the primary key is not changing, that is OK.
+  /* 如果我们有INTEGER主键，确定新记录的主键之前是不存在
+  ** 除了，如果这是一个更新并且主键不改变这是可以的
+  ** 
   */
   if( rowidChng ){
     onError = pTab->keyConf;
@@ -1197,8 +1194,8 @@ void sqlite3GenerateConstraintChecks(
     switch( onError ){
       default: {
         onError = OE_Abort;
-        /* Fall thru into the next case */
-      }
+         //执行下面的分支语句找到适合的执行
+		 }
       case OE_Rollback:
       case OE_Abort:
       case OE_Fail: {
@@ -1207,31 +1204,31 @@ void sqlite3GenerateConstraintChecks(
         break;
       }
       case OE_Replace: {
-        /* If there are DELETE triggers on this table and the
-        ** recursive-triggers flag is set, call GenerateRowDelete() to
-        ** remove the conflicting row from the table. This will fire
-        ** the triggers and remove both the table and index b-tree entries.
+        /* 如果有删除触发器在这个表上并且
+        ** 循环触发器标志设置了，调用GenerateRowDelete()
+        ** 从表中删除冲突的数据行，这将启动触发器并且
+        ** 删除表和b树索引的记录
         **
-        ** Otherwise, if there are no triggers or the recursive-triggers
-        ** flag is not set, but the table has one or more indexes, call 
-        ** GenerateRowIndexDelete(). This removes the index b-tree entries 
-        ** only. The table b-tree entry will be replaced by the new entry 
-        ** when it is inserted.  
+        ** 另外，如果没有触发器或是循环触发器标志没有设置
+        ** 但是表有一个或多个索引，调用GenerateRowIndexDelete()
+        ** 这将只删除b树索引记录，
+        ** 当记录被插入时，表的b树记录将被新记录替换
+        ** 
         **
-        ** If either GenerateRowDelete() or GenerateRowIndexDelete() is called,
-        ** also invoke MultiWrite() to indicate that this VDBE may require
-        ** statement rollback (if the statement is aborted after the delete
-        ** takes place). Earlier versions called sqlite3MultiWrite() regardless,
-        ** but being more selective here allows statements like:
+        ** 如果GenerateRowDelete()或者GenerateRowIndexDelete()被调用
+        ** 并且调用MultiWrite()去指出哪一个虚拟数据库引擎要求声明
+        ** 回滚（如果那个声明在删除发生后被终止）
+        ** 早期版本调用sqlite3MultiWrite()无论什么情况，
+        ** 但是存在更多的可选择在这，允许一下声明： 
         **
-        **   REPLACE INTO t(rowid) VALUES($newrowid)
+        **   REPLACE INTO t(rowid) VALUES($newrowid)                                    
         **
-        ** to run without a statement journal if there are no indexes on the
-        ** table.
+        ** 运行没有声明日志，如果没有索引在表上。
+        ** 
         */
         Trigger *pTrigger = 0;
         if( db->flags&SQLITE_RecTriggers ){
-          pTrigger = sqlite3TriggersExist(pParse, pTab, TK_DELETE, 0, 0);
+          pTrigger = sqlite3TriggersExist(pParse, pTab, TK_DELETE, 0, 0);//返回这张表上的触发器的列表
         }
         if( pTrigger || sqlite3FkRequired(pParse, pTab, 0, 0) ){
           sqlite3MultiWrite(pParse);
@@ -1239,8 +1236,8 @@ void sqlite3GenerateConstraintChecks(
               pParse, pTab, baseCur, regRowid, 0, pTrigger, OE_Replace
           );
         }else if( pTab->pIndex ){
-          sqlite3MultiWrite(pParse);
-          sqlite3GenerateRowIndexDelete(pParse, pTab, baseCur, 0);
+          sqlite3MultiWrite(pParse);//多重操作写记录
+          sqlite3GenerateRowIndexDelete(pParse, pTab, baseCur, 0);//引起vdbe删除所有单一索引，邮编所在的当前记录
         }
         seenReplace = 1;
         break;
@@ -1257,18 +1254,18 @@ void sqlite3GenerateConstraintChecks(
     }
   }
 
-  /* Test all UNIQUE constraints by creating entries for each UNIQUE
-  ** index and making sure that duplicate entries do not already exist.
-  ** Add the new records to the indices as we go.
+  /* 测试所有唯一约束，通过创建记录为每一个唯一的
+  ** 索引并且确定， 重复的记录不会存在  
+  ** 添加新的记录
   */
   for(iCur=0, pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext, iCur++){
     int regIdx;
     int regR;
 
-    if( aRegIdx[iCur]==0 ) continue;  /* Skip unused indices */
+    if( aRegIdx[iCur]==0 ) continue;     //跳过不用的指标
 
-    /* Create a key for accessing the index entry */
-    regIdx = sqlite3GetTempRange(pParse, pIdx->nColumn+1);
+   //创建一个键来访问索引记录
+    regIdx = sqlite3GetTempRange(pParse, pIdx->nColumn+1);//连续分配或释放一块pIdx->nColumn+1寄存器给pParse
     for(i=0; i<pIdx->nColumn; i++){
       int idx = pIdx->aiColumn[i];
       if( idx==pTab->iPKey ){
@@ -1280,9 +1277,9 @@ void sqlite3GenerateConstraintChecks(
     sqlite3VdbeAddOp2(v, OP_SCopy, regRowid, regIdx+i);
     sqlite3VdbeAddOp3(v, OP_MakeRecord, regIdx, pIdx->nColumn+1, aRegIdx[iCur]);
     sqlite3VdbeChangeP4(v, -1, sqlite3IndexAffinityStr(v, pIdx), P4_TRANSIENT);
-    sqlite3ExprCacheAffinityChange(pParse, regIdx, pIdx->nColumn+1);
+    sqlite3ExprCacheAffinityChange(pParse, regIdx, pIdx->nColumn+1);//记录变化的寄存器
 
-    /* Find out what action to take in case there is an indexing conflict */
+    //找出什么动作会引起索引冲突
     onError = pIdx->onError;
     if( onError==OE_None ){ 
       sqlite3ReleaseTempRange(pParse, regIdx, pIdx->nColumn+1);
@@ -1298,15 +1295,15 @@ void sqlite3GenerateConstraintChecks(
       else if( onError==OE_Fail ) onError = OE_Abort;
     }
     
-    /* Check to see if the new index entry will be unique */
-    regR = sqlite3GetTempReg(pParse);
+    // 查看是新的索引记录是否是唯一的
+    regR = sqlite3GetTempReg(pParse);//分配一个寄存器使其暂存相关的中间结果
     sqlite3VdbeAddOp2(v, OP_SCopy, regOldRowid, regR);
     j3 = sqlite3VdbeAddOp4(v, OP_IsUnique, baseCur+iCur+1, 0,
                            regR, SQLITE_INT_TO_PTR(regIdx),
                            P4_INT32);
-    sqlite3ReleaseTempRange(pParse, regIdx, pIdx->nColumn+1);
+    sqlite3ReleaseTempRange(pParse, regIdx, pIdx->nColumn+1);//释放所占用的寄存器
 
-    /* Generate code that executes if the new index entry is not unique */
+    // 如果新索引记录不是唯一的，此代码将执行
     assert( onError==OE_Rollback || onError==OE_Abort || onError==OE_Fail
         || onError==OE_Ignore || onError==OE_Replace );
     switch( onError ){
@@ -1318,18 +1315,18 @@ void sqlite3GenerateConstraintChecks(
         const char *zSep;
         char *zErr;
 
-        sqlite3StrAccumInit(&errMsg, 0, 0, 200);
+        sqlite3StrAccumInit(&errMsg, 0, 0, 200);  //初始化字符串池，（在此应该是用来生成一些错误信息）
         errMsg.db = db;
         zSep = pIdx->nColumn>1 ? "columns " : "column ";
         for(j=0; j<pIdx->nColumn; j++){
           char *zCol = pTab->aCol[pIdx->aiColumn[j]].zName;
-          sqlite3StrAccumAppend(&errMsg, zSep, -1);
+          sqlite3StrAccumAppend(&errMsg, zSep, -1);  //构造错误信息
           zSep = ", ";
           sqlite3StrAccumAppend(&errMsg, zCol, -1);
         }
         sqlite3StrAccumAppend(&errMsg,
             pIdx->nColumn>1 ? " are not unique" : " is not unique", -1);
-        zErr = sqlite3StrAccumFinish(&errMsg);
+        zErr = sqlite3StrAccumFinish(&errMsg);  //构造完成，返回准确地错误信息
         sqlite3HaltConstraint(pParse, onError, zErr, 0);
         sqlite3DbFree(errMsg.db, zErr);
         break;
@@ -1363,23 +1360,23 @@ void sqlite3GenerateConstraintChecks(
 }
 
 /*
-** This routine generates code to finish the INSERT or UPDATE operation
-** that was started by a prior call to sqlite3GenerateConstraintChecks.
-** A consecutive range of registers starting at regRowid contains the
-** rowid and the content to be inserted.
+** 程序产生代码来完成插入或者更新操作
+** 开始通过之前称为sqlite3GenerateConstraintChecks
+** 寄存器连续的范围开始在regRowid	
+** 包含rowid和要被插入的数据
 **
-** The arguments to this routine should be the same as the first six
-** arguments to sqlite3GenerateConstraintChecks.
+** 程序的参数应该和sqlite3GenerateConstraintChecks的前六个参数一样
+** 
 */
 void sqlite3CompleteInsertion(
-  Parse *pParse,      /* The parser context */
-  Table *pTab,        /* the table into which we are inserting */
-  int baseCur,        /* Index of a read/write cursor pointing at pTab */
-  int regRowid,       /* Range of content */
-  int *aRegIdx,       /* Register used by each index.  0 for unused indices */
-  int isUpdate,       /* True for UPDATE, False for INSERT */
-  int appendBias,     /* True if this is likely to be an append */
-  int useSeekResult   /* True to set the USESEEKRESULT flag on OP_[Idx]Insert */
+  Parse *pParse,      //分析上下文环境
+  Table *pTab,       //我们要插入的表
+  int baseCur,        //读/写指针指向pTab指数
+  int regRowid,       //内容的范围
+  int *aRegIdx,       //寄存器使用的每一个索引，0表示未被使用索引 
+  int isUpdate,       //TRUE是更新，FALSE是插入  
+  int appendBias,     //如果这可能是一个附加，则值为TRUE
+  int useSeekResult   //在OP_[Idx]插入，TRUE设置USESEEKRESULT标记
 ){
   int i;
   Vdbe *v;
@@ -1391,7 +1388,7 @@ void sqlite3CompleteInsertion(
 
   v = sqlite3GetVdbe(pParse);
   assert( v!=0 );
-  assert( pTab->pSelect==0 );  /* This table is not a VIEW */
+  assert( pTab->pSelect==0 );  /* 这不是视图（此标志判断）*/
   for(nIdx=0, pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext, nIdx++){}
   for(i=nIdx-1; i>=0; i--){
     if( aRegIdx[i]==0 ) continue;
@@ -1403,13 +1400,13 @@ void sqlite3CompleteInsertion(
   regData = regRowid + 1;
   regRec = sqlite3GetTempReg(pParse);
   sqlite3VdbeAddOp3(v, OP_MakeRecord, regData, pTab->nCol, regRec);
-  sqlite3TableAffinityStr(v, pTab);
-  sqlite3ExprCacheAffinityChange(pParse, regData, pTab->nCol);
+  sqlite3TableAffinityStr(v, pTab);  //表和与列相关的字符关联在一起。
+  sqlite3ExprCacheAffinityChange(pParse, regData, pTab->nCol);//记录一些真实地变化
   if( pParse->nested ){
     pik_flags = 0;
   }else{
     pik_flags = OPFLAG_NCHANGE;
-    pik_flags |= (isUpdate?OPFLAG_ISUPDATE:OPFLAG_LASTROWID);
+    pik_flags |= (isUpdate?OPFLAG_ISUPDATE:OPFLAG_LASTROWID);//更新标志，如果是更新则是更新的rowid，否者是最后的rowid表示插入
   }
   if( appendBias ){
     pik_flags |= OPFLAG_APPEND;
@@ -1425,17 +1422,17 @@ void sqlite3CompleteInsertion(
 }
 
 /*
-** Generate code that will open cursors for a table and for all
-** indices of that table.  The "baseCur" parameter is the cursor number used
-** for the table.  Indices are opened on subsequent cursors.
+** 此代码将打开一个表的游标并且表的所有指标
+** baseCur参数是表所使用的游标的数量
+** 在随后的游标索引被打开。
 **
-** Return the number of indices on the table.
+** 返回表的指标的数量
 */
 int sqlite3OpenTableAndIndices(
-  Parse *pParse,   /* Parsing context */
-  Table *pTab,     /* Table to be opened */
-  int baseCur,     /* Cursor number assigned to the table */
-  int op           /* OP_OpenRead or OP_OpenWrite */
+  Parse *pParse,   //分析上下文
+  Table *pTab,     //表被打开
+  int baseCur,     //游标数量分配到表
+  int op           //OP_OpenRead 或者 OP_OpenWrite
 ){
   int i;
   int iDb;
@@ -1443,9 +1440,9 @@ int sqlite3OpenTableAndIndices(
   Vdbe *v;
 
   if( IsVirtual(pTab) ) return 0;
-  iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);
+  iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);//转变指针模式，变成pParse->db的模式
   v = sqlite3GetVdbe(pParse);
-  assert( v!=0 );
+  assert( v!=0 );//判断得到vdbe
   sqlite3OpenTable(pParse, baseCur, iDb, pTab, op);
   for(i=1, pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext, i++){
     KeyInfo *pKey = sqlite3IndexKeyinfo(pParse, pIdx);
@@ -1463,10 +1460,10 @@ int sqlite3OpenTableAndIndices(
 
 #ifdef SQLITE_TEST
 /*
-** The following global variable is incremented whenever the
-** transfer optimization is used.  This is used for testing
-** purposes only - to make sure the transfer optimization really
-** is happening when it is suppose to.
+** 下一个全局变量被增加，当转移优化被使用时
+** 在这被用来测试目标
+** 确保转移最优真正存在这假设的时候出现
+** 
 */
 int sqlite3_xferopt_count;
 #endif /* SQLITE_TEST */
@@ -1474,7 +1471,7 @@ int sqlite3_xferopt_count;
 
 #ifndef SQLITE_OMIT_XFER_OPT
 /*
-** Check to collation names to see if they are compatible.
+** 检查校对名字看他们是否可兼容的
 */
 static int xferCompatibleCollation(const char *z1, const char *z2){
   if( z1==0 ){
@@ -1488,177 +1485,174 @@ static int xferCompatibleCollation(const char *z1, const char *z2){
 
 
 /*
-** Check to see if index pSrc is compatible as a source of data
-** for index pDest in an insert transfer optimization.  The rules
-** for a compatible index:
+** 查看索引pSrc是否是可兼容的作为数据源
+** 为了索引pDest在一个插入转移最优中。 
+** 可兼容的索引规则： 
 **
-**    *   The index is over the same set of columns
-**    *   The same DESC and ASC markings occurs on all columns
-**    *   The same onError processing (OE_Abort, OE_Ignore, etc)
-**    *   The same collating sequence on each column
+**    *   该索引是在相同的列集合中
+**    *   DESC 和 ASC 相同标记在所有列上
+**    *   相同的onError加工过程  
+**    *   相同的校准顺序在每一列上
 */
 static int xferCompatibleIndex(Index *pDest, Index *pSrc){
   int i;
   assert( pDest && pSrc );
   assert( pDest->pTable!=pSrc->pTable );
   if( pDest->nColumn!=pSrc->nColumn ){
-    return 0;   /* Different number of columns */
+    return 0;   //不同数量的列
   }
   if( pDest->onError!=pSrc->onError ){
-    return 0;   /* Different conflict resolution strategies */
+    return 0;   //不同的碰撞解决策略
   }
   for(i=0; i<pSrc->nColumn; i++){
     if( pSrc->aiColumn[i]!=pDest->aiColumn[i] ){
-      return 0;   /* Different columns indexed */
+      return 0;   //不同的列索引
     }
     if( pSrc->aSortOrder[i]!=pDest->aSortOrder[i] ){
-      return 0;   /* Different sort orders */
+      return 0;   //不同的排序
     }
     if( !xferCompatibleCollation(pSrc->azColl[i],pDest->azColl[i]) ){
-      return 0;   /* Different collating sequences */
+      return 0;   //不同的核对序列 
     }
   }
 
-  /* If no test above fails then the indices must be compatible */
+  //如果以上的测试不出错则 索引是可兼容的  
   return 1;
 }
 
 /*
-** Attempt the transfer optimization on INSERTs of the form
+** 试图以最优化的方法插入表单中
 **
-**     INSERT INTO tab1 SELECT * FROM tab2;
+**     INSERT INTO tab1 SELECT * FROM tab2; 例如语句
 **
-** The xfer optimization transfers raw records from tab2 over to tab1.  
-** Columns are not decoded and reassemblied, which greatly improves
-** performance.  Raw index records are transferred in the same way.
+** 从tab2中传行记录较优
+** 列不用解析和重新聚集，这样有很大的性能提升。  
+** 未加索引的也是这样进行记录插入的
 **
-** The xfer optimization is only attempted if tab1 and tab2 are compatible.
-** There are lots of rules for determining compatibility - see comments
-** embedded in the code for details.
+** 这种最优化只是试图tab1与tab2可兼容的
+** 有许多规则决定兼容性（详细请看代码详解）
 **
-** This routine returns TRUE if the optimization is guaranteed to be used.
-** Sometimes the xfer optimization will only work if the destination table
-** is empty - a factor that can only be determined at run-time.  In that
-** case, this routine generates code for the xfer optimization but also
-** does a test to see if the destination table is empty and jumps over the
-** xfer optimization code if the test fails.  In that case, this routine
-** returns FALSE so that the caller will know to go ahead and generate
-** an unoptimized transfer.  This routine also returns FALSE if there
-** is no chance that the xfer optimization can be applied.
+** 如果最优化被使用，这套程序返回true
+** 有时转移（xfer）最优化只会在目标table为空时才工作，
+** 一个因素是只有在运行时才能被检测到。由于这个原因，本程序
+** 编码为了转移（xfer）最优,但是做一个测试来看是否目标table
+** 为空，并且跳过xfer最优的代码，表明测试失败。在这种情，程序返回
+** FALSE，所以调用者将知道往下执行，调用一个不优化的转移。这个程序返回  
+** FALSE，是没有机会让xfer最优被使用。
 **
-** This optimization is particularly useful at making VACUUM run faster.
+** 这种最优在making VACUUM执行快速尤其有用
 */
 static int xferOptimization(
-  Parse *pParse,        /* Parser context */
-  Table *pDest,         /* The table we are inserting into */
-  Select *pSelect,      /* A SELECT statement to use as the data source */
-  int onError,          /* How to handle constraint errors */
-  int iDbDest           /* The database of pDest */
+  Parse *pParse,        // 分析程序上下文
+  Table *pDest,         //插入的table
+  Select *pSelect,      //一个select语句用来作为数据源
+  int onError,          //怎样控制约束错误
+  int iDbDest           //pdest数据库，（即插入表的数据库）  
 ){
-  ExprList *pEList;                /* The result set of the SELECT */
-  Table *pSrc;                     /* The table in the FROM clause of SELECT */
-  Index *pSrcIdx, *pDestIdx;       /* Source and destination indices */
-  struct SrcList_item *pItem;      /* An element of pSelect->pSrc */
-  int i;                           /* Loop counter */
-  int iDbSrc;                      /* The database of pSrc */
-  int iSrc, iDest;                 /* Cursors from source and destination */
-  int addr1, addr2;                /* Loop addresses */
-  int emptyDestTest;               /* Address of test for empty pDest */
-  int emptySrcTest;                /* Address of test for empty pSrc */
-  Vdbe *v;                         /* The VDBE we are building */
-  KeyInfo *pKey;                   /* Key information for an index */
-  int regAutoinc;                  /* Memory register used by AUTOINC */
-  int destHasUniqueIdx = 0;        /* True if pDest has a UNIQUE index */
-  int regData, regRowid;           /* Registers holding data and rowid */
+  ExprList *pEList;                //select的结果集
+  Table *pSrc;                     //from子句的select table 
+  Index *pSrcIdx, *pDestIdx;       //源和目标目录
+  struct SrcList_item *pItem;      //元素，pSelect->pSrc（from子句的select table ）
+  int i;                           //遍历变量计数i
+  int iDbSrc;                      //psrc的数据库
+  int iSrc, iDest;                 //游标从源到目标
+  int addr1, addr2;                //遍历地址  
+  int emptyDestTest;               //空pDest的测试地址
+  int emptySrcTest;                //空pSrc的测试地址
+  Vdbe *v;                         //虚拟数据库引擎建立
+  KeyInfo *pKey;                   //索引的关键信息
+  int regAutoinc;                  //存储寄存器使用AUTOINC
+  int destHasUniqueIdx = 0;        //true 如果pDest有唯一索引
+  int regData, regRowid;           //寄存器持有数据和行id（data和rowid）
 
   if( pSelect==0 ){
-    return 0;   /* Must be of the form  INSERT INTO ... SELECT ... */
+    return 0;   //必须是INSERT INTO ... SELECT ...的形式
   }
   if( sqlite3TriggerList(pParse, pDest) ){
-    return 0;   /* tab1 must not have triggers */
+    return 0;   //tab1不可以有触发器
   }
 #ifndef SQLITE_OMIT_VIRTUALTABLE
   if( pDest->tabFlags & TF_Virtual ){
-    return 0;   /* tab1 must not be a virtual table */
+    return 0;   //tab1不可以是虚表
   }
 #endif
   if( onError==OE_Default ){
     if( pDest->iPKey>=0 ) onError = pDest->keyConf;
     if( onError==OE_Default ) onError = OE_Abort;
   }
-  assert(pSelect->pSrc);   /* allocated even if there is no FROM clause */
+  assert(pSelect->pSrc);   //分配即使没有from子句 
   if( pSelect->pSrc->nSrc!=1 ){
-    return 0;   /* FROM clause must have exactly one term */
+    return 0;   //from子句必须有有一项
   }
   if( pSelect->pSrc->a[0].pSelect ){
-    return 0;   /* FROM clause cannot contain a subquery */
+    return 0;   //from子句不含有子查询
   }
   if( pSelect->pWhere ){
-    return 0;   /* SELECT may not have a WHERE clause */
+    return 0;   //select 没有一个where子句
   }
   if( pSelect->pOrderBy ){
-    return 0;   /* SELECT may not have an ORDER BY clause */
+    return 0;   //select 没有一个order by子句
   }
-  /* Do not need to test for a HAVING clause.  If HAVING is present but
-  ** there is no ORDER BY, we will get an error. */
+  /* 不需要测试having子句，如果having子句出现，但是没有orderby
+  ** 我们将得到一个错误。*/                                
   if( pSelect->pGroupBy ){
-    return 0;   /* SELECT may not have a GROUP BY clause */
+    return 0;   select 没有一个group by子句
   }
   if( pSelect->pLimit ){
-    return 0;   /* SELECT may not have a LIMIT clause */
+    return 0;   //select 没有一个limit子句
   }
-  assert( pSelect->pOffset==0 );  /* Must be so if pLimit==0 */
+  assert( pSelect->pOffset==0 );  //一定如此如果pLimit==0
   if( pSelect->pPrior ){
-    return 0;   /* SELECT may not be a compound query */
+    return 0;   //select 不可能有复合查询
   }
   if( pSelect->selFlags & SF_Distinct ){
-    return 0;   /* SELECT may not be DISTINCT */
+    return 0;   //select 不可能有distinct
   }
   pEList = pSelect->pEList;
   assert( pEList!=0 );
   if( pEList->nExpr!=1 ){
-    return 0;   /* The result set must have exactly one column */
+    return 0;   //结果集必须恰好只有一列
   }
   assert( pEList->a[0].pExpr );
   if( pEList->a[0].pExpr->op!=TK_ALL ){
-    return 0;   /* The result set must be the special operator "*" */
+    return 0;   //结果集一定有特别的操作符“*”
   }
 
-  /* At this point we have established that the statement is of the
-  ** correct syntactic form to participate in this optimization.  Now
-  ** we have to check the semantics.
+  /* 此时我们建立的声明正确的语法形式
+  ** 添加到这种最优，现在我们必须检查语义。
+  ** 
   */
   pItem = pSelect->pSrc->a;
   pSrc = sqlite3LocateTable(pParse, 0, pItem->zName, pItem->zDatabase);
   if( pSrc==0 ){
-    return 0;   /* FROM clause does not contain a real table */
+    return 0;       //from子句不含有真实的表
   }
   if( pSrc==pDest ){
-    return 0;   /* tab1 and tab2 may not be the same table */
+    return 0;      //tab1和tab2可能不是相同的表
   }
 #ifndef SQLITE_OMIT_VIRTUALTABLE
   if( pSrc->tabFlags & TF_Virtual ){
-    return 0;   /* tab2 must not be a virtual table */
+    return 0;      //tab2一定不能是虚拟表
   }
 #endif
   if( pSrc->pSelect ){
-    return 0;   /* tab2 may not be a view */
+    return 0;   //tab2不可能是视图
   }
   if( pDest->nCol!=pSrc->nCol ){
-    return 0;   /* Number of columns must be the same in tab1 and tab2 */
+    return 0;   //tab1和tab2的列的数目一定是相同的
   }
   if( pDest->iPKey!=pSrc->iPKey ){
-    return 0;   /* Both tables must have the same INTEGER PRIMARY KEY */
+    return 0;   //两张表一定有相同的INTEGER PRIMARY KEY（INTEGER主键）
   }
   for(i=0; i<pDest->nCol; i++){
     if( pDest->aCol[i].affinity!=pSrc->aCol[i].affinity ){
-      return 0;    /* Affinity must be the same on all columns */
+      return 0;    //类型，一定是相同在所有的列上对应相同
     }
     if( !xferCompatibleCollation(pDest->aCol[i].zColl, pSrc->aCol[i].zColl) ){
-      return 0;    /* Collating sequence must be the same on all columns */
+      return 0;    //核对列的序列一定是在所有列上是一致的
     }
     if( pDest->aCol[i].notNull && !pSrc->aCol[i].notNull ){
-      return 0;    /* tab2 must be NOT NULL if tab1 is */
+      return 0;    //tab2一定是非空如果tab1是    
     }
   }
   for(pDestIdx=pDest->pIndex; pDestIdx; pDestIdx=pDestIdx->pNext){
@@ -1669,61 +1663,57 @@ static int xferOptimization(
       if( xferCompatibleIndex(pDestIdx, pSrcIdx) ) break;
     }
     if( pSrcIdx==0 ){
-      return 0;    /* pDestIdx has no corresponding index in pSrc */
+      return 0;      //目标目录没有相应的索引在源处
     }
   }
 #ifndef SQLITE_OMIT_CHECK
   if( pDest->pCheck && sqlite3ExprListCompare(pSrc->pCheck, pDest->pCheck) ){
-    return 0;   /* Tables have different CHECK constraints.  Ticket #2252 */
+    return 0;     //表有不同的的检查约束，Ticket #2252
   }
 #endif
 #ifndef SQLITE_OMIT_FOREIGN_KEY
-  /* Disallow the transfer optimization if the destination table constains
-  ** any foreign key constraints.  This is more restrictive than necessary.
-  ** But the main beneficiary of the transfer optimization is the VACUUM 
-  ** command, and the VACUUM command disables foreign key constraints.  So
-  ** the extra complication to make this rule less restrictive is probably
-  ** not worth the effort.  Ticket [6284df89debdfa61db8073e062908af0c9b6118e]
+  /* 如果目标表中含有外键约束，不允许传递优化。
+  ** 这是必要的限制
+  ** 但是主要的转移优化的受益者是VACUUM指令，
+  ** 但是VACUUM指令不能够有外键约束。 
+  ** 所以额外的复杂使得这个规则少的限制可能不值得这样的花费
+  ** Ticket [6284df89debdfa61db8073e062908af0c9b6118e]
   */
   if( (pParse->db->flags & SQLITE_ForeignKeys)!=0 && pDest->pFKey!=0 ){
     return 0;
   }
 #endif
   if( (pParse->db->flags & SQLITE_CountRows)!=0 ){
-    return 0;  /* xfer opt does not play well with PRAGMA count_changes */
+    return 0;  //xfer最优化不会表现好的 随着 PRAGMA count_changes
   }
 
-  /* If we get this far, it means that the xfer optimization is at
-  ** least a possibility, though it might only work if the destination
-  ** table (tab1) is initially empty.
+  /* 如果我们达到这个，这意味着xfer最优化至少是有可能的，
+  ** 尽管可能生效如果目标表（tab1）最初是空。
+  ** 
   */
 #ifdef SQLITE_TEST
   sqlite3_xferopt_count++;
 #endif
   iDbSrc = sqlite3SchemaToIndex(pParse->db, pSrc->pSchema);
   v = sqlite3GetVdbe(pParse);
-  sqlite3CodeVerifySchema(pParse, iDbSrc);
+  sqlite3CodeVerifySchema(pParse, iDbSrc);//模式验证在顶级的vdbe验证iDbSrc
   iSrc = pParse->nTab++;
   iDest = pParse->nTab++;
-  regAutoinc = autoIncBegin(pParse, iDbDest, pDest);
+  regAutoinc = autoIncBegin(pParse, iDbDest, pDest);//找到或创建一个表pTab AutoincInfo结构联系在一起,在数据库iDb。返回注册的注册号码,即最大rowid。
   sqlite3OpenTable(pParse, iDest, iDbDest, pDest, OP_OpenWrite);
   if( (pDest->iPKey<0 && pDest->pIndex!=0)          /* (1) */
    || destHasUniqueIdx                              /* (2) */
    || (onError!=OE_Abort && onError!=OE_Rollback)   /* (3) */
   ){
-    /* In some circumstances, we are able to run the xfer optimization
-    ** only if the destination table is initially empty.  This code makes
-    ** that determination.  Conditions under which the destination must
-    ** be empty:
+    /* 在某些环境，我们能够使用xfer来最优化，只要目标表初始化为空即可，
+    ** 由这些编码作出决定.但是条件是目标表必须是空。      
     **
-    ** (1) There is no INTEGER PRIMARY KEY but there are indices.
-    **     (If the destination is not initially empty, the rowid fields
-    **     of index entries might need to change.)
+    ** (1) 没有INTEGER主键但是有其他索引
+    **     （如果目标初始化不是为空，行的ID字段的索引可能需要改变）
     **
-    ** (2) The destination has a unique index.  (The xfer optimization 
-    **     is unable to test uniqueness.)
+    ** (2) 目标有唯一索引（xfer最优化不能检测唯一性）
     **
-    ** (3) onError is something other than OE_Abort and OE_Rollback.
+    ** (3) 出错是有一些东西除了OE_Abort 和 OE_Rollback
     */
     addr1 = sqlite3VdbeAddOp2(v, OP_Rewind, iDest, 0);
     emptyDestTest = sqlite3VdbeAddOp2(v, OP_Goto, 0, 0);
@@ -1741,7 +1731,7 @@ static int xferOptimization(
     sqlite3HaltConstraint(
         pParse, onError, "PRIMARY KEY must be unique", P4_STATIC);
     sqlite3VdbeJumpHere(v, addr2);
-    autoIncStep(pParse, regAutoinc, regRowid);
+    autoIncStep(pParse, regAutoinc, regRowid);//更新的最大rowid自动增量计算
   }else if( pDest->pIndex==0 ){
     addr1 = sqlite3VdbeAddOp2(v, OP_NewRowid, iDest, regRowid);
   }else{
@@ -1755,7 +1745,7 @@ static int xferOptimization(
   sqlite3VdbeAddOp2(v, OP_Next, iSrc, addr1);
   for(pDestIdx=pDest->pIndex; pDestIdx; pDestIdx=pDestIdx->pNext){
     for(pSrcIdx=pSrc->pIndex; ALWAYS(pSrcIdx); pSrcIdx=pSrcIdx->pNext){
-      if( xferCompatibleIndex(pDestIdx, pSrcIdx) ) break;
+      if( xferCompatibleIndex(pDestIdx, pSrcIdx) ) break; //判断两种索引是否是可以兼容的
     }
     assert( pSrcIdx );
     sqlite3VdbeAddOp2(v, OP_Close, iSrc, 0);
