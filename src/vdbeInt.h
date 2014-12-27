@@ -14,7 +14,8 @@
 ** source code file "vdbe.c".  When that file became too big (over
 ** 6000 lines long) it was split up into several smaller files and
 ** this header information was factored out.
-**这是一个头文件，文件中包含的信息对于VDBE（）是私有的。这些信息全部都**用在vdbe.c这个资源文件之上。当这个文件太大时（超过6000行时）将会被分成几个较小的文件，这个文件就是被分解出来的。
+**这是一个头文件，文件中包含的信息对于VDBE是私有的。这些信息全部都用在vdbe.c这个资源文件之上。
+**当这个文件太大时（超过6000行时）将会被分成几个较小的文件，这个文件就是被分解出来的。
 */
 #ifndef _VDBEINT_H_
 #define _VDBEINT_H_
@@ -394,6 +395,7 @@ struct Vdbe {
 /*
 ** Function prototypes函数原型
 */
+/*以下是一些方法的声明和预定义*/
 void sqlite3VdbeFreeCursor(Vdbe *, VdbeCursor*);
 void sqliteVdbePopStack(Vdbe*,int);
 int sqlite3VdbeCursorMoveto(VdbeCursor*);
