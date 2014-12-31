@@ -916,11 +916,11 @@ void sqlite3Insert(Parse *pParse, SrcList *pTabList, ExprList *pList, Select *pS
     }else
 #endif
     {
-      int isReplace;  //如果约束可能导致替换设置为true
+      int isReplace;  //如果约束可能导致替换等其他操作则设置为true
       sqlite3GenerateConstraintChecks(pParse, pTab, baseCur, regIns, aRegIdx,
           keyColumn>=0, 0, onError, endOfLoop, &isReplace
       );//约束检查
-      sqlite3FkCheck(pParse, pTab, 0, regIns);//外检检查
+      sqlite3FkCheck(pParse, pTab, 0, regIns);//外键检查
       sqlite3CompleteInsertion(
           pParse, pTab, baseCur, regIns, aRegIdx, 0, appendFlag, isReplace==0
       );//来完成更新或插入操作
@@ -1072,7 +1072,7 @@ insert_cleanup://清理
 .
 */
 void sqlite3GenerateConstraintChecks(
-  Parse *pParse,      //分析上下文环境
+  Parse *pParse,      //从词法分析器中获取指针，取词用
   Table *pTab,        //要进行插入的表
   int baseCur,        //读/写游标的索引在pTab
   int regRowid,       //输入寄存器的下标的范围
@@ -1369,7 +1369,7 @@ void sqlite3GenerateConstraintChecks(
 ** 
 */
 void sqlite3CompleteInsertion(
-  Parse *pParse,      //分析上下文环境
+  Parse *pParse,      //从词法分析器获取词
   Table *pTab,       //我们要插入的表
   int baseCur,        //读/写指针指向pTab指数
   int regRowid,       //内容的范围
@@ -1429,7 +1429,7 @@ void sqlite3CompleteInsertion(
 ** 返回表的指标的数量
 */
 int sqlite3OpenTableAndIndices(
-  Parse *pParse,   //分析上下文
+  Parse *pParse,   //从词法分析器获取词
   Table *pTab,     //表被打开
   int baseCur,     //游标数量分配到表
   int op           //OP_OpenRead 或者 OP_OpenWrite
@@ -1543,7 +1543,7 @@ static int xferCompatibleIndex(Index *pDest, Index *pSrc){
 ** 这种最优在making VACUUM执行快速尤其有用
 */
 static int xferOptimization(
-  Parse *pParse,        // 分析程序上下文
+  Parse *pParse,        //从词法分析器获取词
   Table *pDest,         //插入的table
   Select *pSelect,      //一个select语句用来作为数据源
   int onError,          //怎样控制约束错误
