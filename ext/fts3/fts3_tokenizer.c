@@ -13,6 +13,8 @@
 ** This is part of an SQLite module implementing full-text search.
 ** This particular file implements the generic tokenizer interface.
 */
+/*这是SQLite模块的一部分执行全文搜索。
+这个特殊的文件实现了通用的分词器接口。*/
 
 /*
 ** The code in this file is only compiled if:
@@ -22,6 +24,14 @@
 **
 **     * The FTS3 module is being built into the core of
 **       SQLite (in which case SQLITE_ENABLE_FTS3 is defined).
+*/
+/*    该文件中的代码在下列条件下才编译:
+
+    * FTS3模块正在建设成为一个扩展
+     (在这种情况下SQLITE_CORE没有定义),或
+
+    * FTS3模块正在建设成SQLite的核心
+      (在这种情况下SQLITE_ENABLE_FTS3定义)。
 */
 #include "fts3Int.h"
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
@@ -49,6 +59,20 @@
 ** is a blob containing the pointer stored as the hash data corresponding
 ** to string <key-name> (after the hash-table is updated, if applicable).
 */
+
+/* 执行SQL标量函数来访问底层的哈希表。这个函数可以表示为如下形式:
+   
+     SELECT <function-name>(<key-name>);
+     SELECT <function-name>(<key-name>, <pointer>);
+
+   把<function-name>的名称作为第二个参数传递给sqlite3Fts3InitHashTable()函数(如。“fts3_tokenizer”)。
+   如果指定<pointer>参数,它必须是一个blob值，并且包含一个被存储为散列数据对应字符串<key-name>的指针。
+   如果没有指定<pointer>,那么字符串<key-name>必须存在于已有表中。否则,返回一个错误。
+
+   是否指定<pointer>参数,返回值是一个blob值，其包含被存储为散列数据对应字符串<key-name>的指针(如果适用的话,在哈希表被更新后)。
+   
+*/
+
 static void scalarFunc(
   sqlite3_context *context,
   int argc,
@@ -110,12 +134,12 @@ const char *sqlite3Fts3NextToken(const char *zStr, int *pn){
   const char *z1;
   const char *z2 = 0;
 
-  /* Find the start of the next token. */
+  /* Find the start of the next token. */       /* 寻找下一个符号的开端 */
   z1 = zStr;
   while( z2==0 ){
     char c = *z1;
     switch( c ){
-      case '\0': return 0;        /* No more tokens here */
+      case '\0': return 0;        /* No more tokens here */              /* 这里没有更多的符号 */
       case '\'':
       case '"':
       case '`': {
@@ -144,16 +168,16 @@ const char *sqlite3Fts3NextToken(const char *zStr, int *pn){
 }
 
 int sqlite3Fts3InitTokenizer(
-  Fts3Hash *pHash,                /* Tokenizer hash table */
-  const char *zArg,               /* Tokenizer name */
-  sqlite3_tokenizer **ppTok,      /* OUT: Tokenizer (if applicable) */
-  char **pzErr                    /* OUT: Set to malloced error message */
+  Fts3Hash *pHash,                /* Tokenizer hash table */                       /* 分词器哈希表 */
+  const char *zArg,               /* Tokenizer name */                             /* 分词器名 */
+  sqlite3_tokenizer **ppTok,      /* OUT: Tokenizer (if applicable) */             /* 输出：分词器（如果可以） */
+  char **pzErr                    /* OUT: Set to malloced error message */         /* 输出：设置为malloc错误消息 */
 ){
   int rc;
   char *z = (char *)zArg;
   int n = 0;
   char *zCopy;
-  char *zEnd;                     /* Pointer to nul-term of zCopy */
+  char *zEnd;                     /* Pointer to nul-term of zCopy */               /* 指向zCopy中的空项指针 */
   sqlite3_tokenizer_module *m;
 
   zCopy = sqlite3_mprintf("%s", zArg);
@@ -230,6 +254,19 @@ int sqlite3Fts3InitTokenizer(
 **
 **   "{0 i I 1 dont don't 2 see see 3 how how}"
 **   
+*/
+/*  实现特殊的SQL标量函数的测试分词器设计使用和Tcl测试框架一致。调用这
+    个函数必须使用两个或两个以上的参数:
+	    SELECT <function-name>(<key-name>, ..., <input-string>);
+    在<函数名>的名称作为第二个参数传递给sqlite3Fts3InitHashTable()函数
+	(如。“fts3_tokenizer”)连接的字符串“_test”(如。“fts3_tokenizer_test”)。
+
+    返回值是一个可以被看作为Tcl列表的字符串。对于<input-string>为中的每一个词汇,三个
+	元素被添加到返回的列表中。第一个是词汇的位置,第二个是象征性的文本(折叠、遏制等。),
+	第三是和词汇有关系的<input-string>子串。例如,使用内置的“简单”分词器:
+	  SELECT fts_tokenizer_test('simple', 'I don't see how');
+	将返回如下字符串:
+	    "{0 i I 1 dont don't 2 see see 3 how how}"
 */
 static void testFunc(
   sqlite3_context *context,
@@ -390,6 +427,18 @@ void sqlite3Fts3SimpleTokenizerModule(sqlite3_tokenizer_module const**ppModule);
 **     SELECT fts3_tokenizer_internal_test();
 **
 */
+
+/*  
+    标量函数fts3_tokenizer_inte rnal_test()的实现。这个函数只用于测试,它不包括在构建过程中，
+    除非SQLITE_TEST被定义了。
+    
+	这个函数的目的是测试在上述queryTokenizer和registerTokenizer()函数中用c设计的fts3_tokenizer()函数。
+	这两个函数在README中重复。分词器文件作为一个例子,所以重要的是要测试它们。
+
+    为了运行测试,在没有参数的情况下，评估fts3_tokenizer_internal_test()标量函数。
+	如果检测到一个问题assert()将会调用失败。例如:
+	   SELECT fts3_tokenizer_internal_test();
+*/
 static void intTestFunc(
   sqlite3_context *context,
   int argc,
@@ -403,7 +452,7 @@ static void intTestFunc(
   UNUSED_PARAMETER(argc);
   UNUSED_PARAMETER(argv);
 
-  /* Test the query function */
+  /* Test the query function */           /* 测试查询函数 */
   sqlite3Fts3SimpleTokenizerModule(&p1);
   rc = queryTokenizer(db, "simple", &p2);
   assert( rc==SQLITE_OK );
@@ -413,7 +462,7 @@ static void intTestFunc(
   assert( p2==0 );
   assert( 0==strcmp(sqlite3_errmsg(db), "unknown tokenizer: nosuchtokenizer") );
 
-  /* Test the storage function */
+  /* Test the storage function */         /* 测试存储函数 */
   rc = registerTokenizer(db, "nosuchtokenizer", p1);
   assert( rc==SQLITE_OK );
   rc = queryTokenizer(db, "nosuchtokenizer", &p2);
@@ -442,10 +491,23 @@ static void intTestFunc(
 ** The third argument to this function, zName, is used as the name
 ** of both the scalar and, if created, the virtual table.
 */
+
+/* 
+   在数据库db中设置SQL对象用于访问由pHash论点指出哈希表的内容。哈希表必须
+   初始化并用用字符串键表示,并在插入值时采取码的私有副本。即由一个类似于:
+     
+       sqlite3Fts3HashInit(pHash, FTS3_HASH_STRING, 1);
+
+   这个函数添加了一个标量函数(参见上文scalarFunc（）函数在该文件中的详细头注释),
+   如果ENABLE_TABLE定义在编译时间内,在数据库模式上的临时虚拟表(参见上面的头注释
+   struct HashTableVtab)。可以读写* pHash的内容。
+
+   如果创建虚拟表,这个函数的第三个参数zName作为标量和的名字。
+*/
 int sqlite3Fts3InitHashTable(
   sqlite3 *db, 
   Fts3Hash *pHash, 
-  const char *zName
+  const char *zName  
 ){
   int rc = SQLITE_OK;
   void *p = (void *)pHash;
