@@ -11,6 +11,7 @@
 *************************************************************************
 **
 ** This file contains definitions of global variables and contants.
+**这个文件包含定义全局变量和常数。
 */
 #include "sqliteInt.h"
 
@@ -102,7 +103,11 @@ const unsigned char sqlite3UpperToLower[] = {
 
 /*
 下面的256字节的查找表用于支持sqlite的内置的标准库函数。
-
+ isspace()    0x01  查询语句与十六进制是相等的
+ isalpha()    0x02  用来查询是否为数字
+ isdigit()    0x04  用来查询是否为数字
+ toupper()    0x20  主要是用来转换成为大写字母
+ SQLite identifier character      0x40 用来识别是否一个字符
 如果是小写字母需要转换成大写字母的ASCII值，则bit 0x20 被设置为有效。如果X是小写字母的ASCII，
 那么与其相对应的大写字母ASCII值为(x-0x20)。因此toupper()的实现是：(x&~(map[x]&0x20)).
 
@@ -167,12 +172,12 @@ const unsigned char sqlite3CtypeMap[256] = {
 /*
 以下struct 包含SQLite库的全局配置。
 */
-SQLITE_WSD struct Sqlite3Config sqlite3Config = {
+SQLITE_WSD struct Sqlite3Config sqlite3Config = { //用来存储各种字符
    SQLITE_DEFAULT_MEMSTATUS,  /* bMemstat */
    1,                         /* bCoreMutex */
-   SQLITE_THREADSAFE==1,      /* bFullMutex */
+   SQLITE_THREADSAFE==1,      /* bFullMutex */ //以下的设置只要一个数据库连接不被多个线程同时使用就是安全的
    SQLITE_USE_URI,            /* bOpenUri */
-   0x7ffffffe,                /* mxStrlen */
+   0x7ffffffe,                /* mxStrlen */ //最大长度
    128,                       /* szLookaside */
    500,                       /* nLookaside */
    {0,0,0,0,0,0,0,0},         /* m */
@@ -189,7 +194,7 @@ SQLITE_WSD struct Sqlite3Config sqlite3Config = {
    0,                         /* nPage */
    0,                         /* mxParserStack */
    0,                         /* sharedCacheEnabled */
-   /* All the rest should always be initialized to zero */
+   /* All the rest should always be initialized to zero */ /*所有空闲都被初始化为0*/
    0,                         /* isInit */
    0,                         /* inProgress */
    0,                         /* isMutexInit */
@@ -253,6 +258,8 @@ pending byte 页面被用来作为VFS层文件管理使用
 
 在不兼容的数据可文件中，改变pending byte的值而不是0x40000000.
 
+重要： 将挂起字节改以外的任何值 0x40000000 结果在一个不兼容的数据库的文件格式 ！
+过程中未定义的经营业绩变化的挂起的字节和有害的行为。
 */
 #ifndef SQLITE_OMIT_WSD
 int sqlite3PendingByte = 0x40000000;
@@ -265,4 +272,8 @@ int sqlite3PendingByte = 0x40000000;
 ** from the comments following the "case OP_xxxx:" statements in
 ** the vdbe.c file.  
 */
-const unsigned char sqlite3OpcodeProperty[] = OPFLG_INITIALIZER;
+
+/*性能操作码，该opflg_initializer宏在编译过程中产生mkopcodeh.awk，数据是从
+在vdbe.c中声明的case OP_xxxx中获得
+*/
+const unsigned char sqlite3OpcodeProperty[] = OPFLG_INITIALIZER; /*不可改变的无符号的字符数组*/
