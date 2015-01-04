@@ -11,6 +11,7 @@
 *************************************************************************
 ** Implementation of the full-text-search tokenizer that implements
 ** a Porter stemmer.
+**实现的是全文检索分词器，运用的是一个porter分词算法
 */
 
 /*
@@ -34,13 +35,14 @@
 
 /*
 ** Class derived from sqlite3_tokenizer
+**类来源于sqlite3_tokenizer
 */
 typedef struct porter_tokenizer {
   sqlite3_tokenizer base;      /* Base class */
 } porter_tokenizer;
 
 /*
-** Class derived from sqlite3_tokenizer_cursor
+** Class derived from sqlite3_tokenizer_cursor 
 */
 typedef struct porter_tokenizer_cursor {
   sqlite3_tokenizer_cursor base;
@@ -74,6 +76,9 @@ static int porterCreate(
 
 /*
 ** Destroy a tokenizer
+**引入头函数fts3_tokenizer.h首先定义两个结构体变量，在变量中定义了
+要输入的词，输入词的大小和当前指针zinput的位置，下一个返回值的标记，
+定义存储当前编译器然后创建一个新的编译器。
 */
 static int porterDestroy(sqlite3_tokenizer *pTokenizer){
   sqlite3_free(pTokenizer);
@@ -85,6 +90,9 @@ static int porterDestroy(sqlite3_tokenizer *pTokenizer){
 ** string to be tokenized is zInput[0..nInput-1].  A cursor
 ** used to incrementally tokenize this string is returned in 
 ** *ppCursor.
+**准备初始化一个特定的字符串。输入的字符串被编译为另一个的输入[0..nBytes-1]，
+**一个游标被用来递增的编译这个字符串返回到*ppCursor中。
+
 */
 static int porterOpen(
   sqlite3_tokenizer *pTokenizer,         /* The tokenizer */
@@ -118,6 +126,7 @@ static int porterOpen(
 /*
 ** Close a tokenization cursor previously opened by a call to
 ** porterOpen() above.
+通过上面porterOpen()函数的调用，关闭刚才打开的标记化游标
 */
 static int porterClose(sqlite3_tokenizer_cursor *pCursor){
   porter_tokenizer_cursor *c = (porter_tokenizer_cursor *) pCursor;
@@ -138,13 +147,19 @@ static const char cType[] = {
 ** the string they point to is a consonant or a vowel, according
 ** to Porter ruls.  
 **
-** A consonate is any letter other than 'a', 'e', 'i', 'o', or 'u'.
+** A consonant is any letter other than 'a', 'e', 'i', 'o', or 'u'.
 ** 'Y' is a consonant unless it follows another consonant,
 ** in which case it is a vowel.
 **
 ** In these routine, the letters are in reverse order.  So the 'y' rule
 ** is that 'y' is a consonant unless it is followed by another
 ** consonent.
+isConsonant() and isVowel()用法，根据波特规则，如果字符串中的第一个字母（它们指向的是一个
+辅音或者元音）；
+除了'a', 'e', 'i', 'o', or 'u'.之外的任何一个辅音都属于字母，‘Y’是一个辅音，除非它在
+另一个辅音的后面，否则他就是一个元音。在以上算法中，字母是以倒序排列，因此‘y’的规则就是
+‘y’除非它在另一个辅音后面，才是辅音，否则就是一个元音
+
 */
 static int isVowel(const char*);
 static int isConsonant(const char *z){
@@ -169,7 +184,7 @@ static int isVowel(const char *z){
 /*
 ** Let any sequence of one or more vowels be represented by V and let
 ** C be sequence of one or more consonants.  Then every word can be
-** represented as:
+** represented as
 **
 **           [C] (VC){m} [V]
 **
@@ -184,6 +199,13 @@ static int isVowel(const char *z){
 **
 ** In this routine z[] is in reverse order.  So we are really looking
 ** for an instance of of a consonant followed by a vowel.
+
+一个或者更多的元音按顺序排好通过V表现，让一个或多个元音按照C的顺序排好。
+然后每个词可能代表[C] (VC){m} [V]
+在散文中：一个词是一个可选的在0后面的辅音或者是在一个可选元音后面的一堆
+元辅音。这个程序就是计算m的值为了第一个i位或者一个字。
+如果z的m值是1或者其他值就返回真。换句话说，如z包含至少一个跟在辅音后面的元音
+在这个程序中，z[]数组元素师倒序的。因此，我们能找到一个跟在元音后面的辅音。
 */
 static int m_gt_0(const char *z){
   while( isVowel(z) ){ z++; }
@@ -242,9 +264,12 @@ static int doubleConsonant(const char *z){
 ** Return TRUE if the word ends with three letters which
 ** are consonant-vowel-consonent and where the final consonant
 ** is not 'w', 'x', or 'y'.
-**
+**若这个词末尾以三个（辅音-元音-辅音且最后一个辅音不是‘w’‘x’‘y’）
+**的字母结尾就返回为真
 ** The word is reversed here.  So we are really checking the
 ** first three letters and the first one cannot be in [wxy].
+**这个词被取消了，因此我们真的检测出第一个三字母的但第一个
+不是[xyz]的词
 */
 static int star_oh(const char *z){
   return
@@ -265,7 +290,12 @@ static int star_oh(const char *z){
 ** Return TRUE if zFrom matches.  Return FALSE if zFrom does not
 ** match.  Not that TRUE is returned even if xCond() fails and
 ** no substitution occurs.
+
+**如果这个词以zFrom（） 和 xCond()函数结尾为真的话进展成为zFrom函数的话，然后
+改变zTo的结束。*pz和zFrom函数的输入都是相反顺序。zTo以正常顺序。如果zForm匹配
+返回真，不匹配返回假。并不是真就是返回的，即使xCond（）失败，没有替换发生。
 */
+
 static int stem(
   char **pz,             /* The word being stemmed (Reversed) */
   const char *zFrom,     /* If the ending matches this... (Reversed) */
@@ -290,6 +320,14 @@ static int stem(
 ** than 20 bytes if it contains no digits or more than 6 bytes if
 ** it contains digits) then word is truncated to 20 or 6 bytes
 ** by taking 10 or 3 bytes from the beginning and end.
+
+**当波特抽梗机不适应的时候这是一个回退抽梗机。词的输入被拷入被拷贝到
+**US-ASCII的输出进行大小写转换。如果这个输入的词太长（如果它包含的不
+仅仅是数字课超过20个词或者若包含的仅仅是数字则可超过6位）然后这个词就
+通过取开始到结尾的13或者三个词缩短为20--6个词长度。
+**
+
+
 */
 static void copy_stemmer(const char *zIn, int nIn, char *zOut, int *pnOut){
   int i, mx, j;
@@ -336,7 +374,15 @@ static void copy_stemmer(const char *zIn, int nIn, char *zOut, int *pnOut){
 ** case folding.
 **
 ** Stemming never increases the length of the word.  So there is
-** no chance of overflowing the zOut buffer.
+** no chance of overflowing the zOut buffer.、
+**词干的输入词zIn[0..n[n-1].储存输出给zOut.zOut至少是大到足够去nIn的位。打印出
+**输出词的确定尺寸（不包括'\0'终止符）给*pnOut。
+**在US-ASCII码字符集中，任何[A-Z]之间的大写字母都被转变为响应的小写字母。UTF格式
+**的大写字母不变化。
+**那些超过20个字节的词从这个词的开头到结尾被保留几位然后提取出来.如果这个词包含数字，
+**那这个词的前三位和后三位提取。对于那些不含有数字的长词，词的后10位被提取。使用US-ASCII
+**编码的情况统一适用。
+**提取从来都不会增加词的长度，因此就不会发生zOut数组的溢出。
 */
 static void porter_stemmer(const char *zIn, int nIn, char *zOut, int *pnOut){
   int i, j;
@@ -560,6 +606,8 @@ static void porter_stemmer(const char *zIn, int nIn, char *zOut, int *pnOut){
 ** whose value is greater than 0x80 (any UTF character) can be
 ** part of a token.  In other words, delimiters all must have
 ** values of 0x7f or lower.
+那些可能成为标记部分的字符，我们假设任何词的值都要比0X80（任何UTF字符）大的
+都可能成为标记的部分。换句话说，分隔符必须有0X7fDE或者更小的值。
 */
 static const char porterIdChar[] = {
 /* x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF */
@@ -574,6 +622,7 @@ static const char porterIdChar[] = {
 /*
 ** Extract the next token from a tokenization cursor.  The cursor must
 ** have been opened by a prior call to porterOpen().
+**从分词器游标中提取下一个被标记的词。这个游标一定会被先前函数porterOpen()的调用打开
 */
 static int porterNext(
   sqlite3_tokenizer_cursor *pCursor,  /* Cursor returned by porterOpen */

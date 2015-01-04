@@ -8,8 +8,10 @@
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
 **
+**
 *************************************************************************
 ** This file implements a tokenizer for fts3 based on the ICU library.
+**这个文件实现了一个编译器基于ICU库的fts3
 */
 #include "fts3Int.h"
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
@@ -48,10 +50,11 @@ struct IcuCursor {
 
 /*
 ** Create a new tokenizer instance.
+**创建一个新的实例编译器
 */
 static int icuCreate(
   int argc,                            /* Number of entries in argv[] */
-  const char * const *argv,            /* Tokenizer creation arguments */
+  const char * const *argv,            /* Tokenizer creation arguments定义编译器的创建参数 */
   sqlite3_tokenizer **ppTokenizer      /* OUT: Created tokenizer */
 ){
   IcuTokenizer *p;
@@ -88,8 +91,10 @@ static int icuDestroy(sqlite3_tokenizer *pTokenizer){
 /*
 ** Prepare to begin tokenizing a particular string.  The input
 ** string to be tokenized is pInput[0..nBytes-1].  A cursor
-** used to incrementally tokenize this string is returned in 
+** used to incrementally tokenize this string is returned in
 ** *ppCursor.
+**准备初始化一个特定的字符串。输入的字符串被编译为另一个的输入[0..nBytes-1]，
+**一个游标被用来递增的编译这个字符串返回到*ppCursor中。
 */
 static int icuOpen(
   sqlite3_tokenizer *pTokenizer,         /* The tokenizer */
@@ -130,7 +135,7 @@ static int icuOpen(
   pCsr->aOffset = (int *)&pCsr->aChar[nChar];
 
   pCsr->aOffset[iOut] = iInput;
-  U8_NEXT(zInput, iInput, nInput, c); 
+  U8_NEXT(zInput, iInput, nInput, c);
   while( c>0 ){
     int isError = 0;
     c = u_foldCase(c, opt);
@@ -162,6 +167,7 @@ static int icuOpen(
 
 /*
 ** Close a tokenization cursor previously opened by a call to icuOpen().
+**关闭先前被函数icuOpen()调用打开的编译器游标
 */
 static int icuClose(sqlite3_tokenizer_cursor *pCursor){
   IcuCursor *pCsr = (IcuCursor *)pCursor;
@@ -173,6 +179,7 @@ static int icuClose(sqlite3_tokenizer_cursor *pCursor){
 
 /*
 ** Extract the next token from a tokenization cursor.
+**抽取来自编译器游标的下一个标记
 */
 static int icuNext(
   sqlite3_tokenizer_cursor *pCursor,  /* Cursor returned by simpleOpen */
@@ -250,6 +257,7 @@ static const sqlite3_tokenizer_module icuTokenizerModule = {
 
 /*
 ** Set *ppModule to point at the implementation of the ICU tokenizer.
+**创建*ppModule 去指向ICU编译器的执行
 */
 void sqlite3Fts3IcuTokenizerModule(
   sqlite3_tokenizer_module const**ppModule
