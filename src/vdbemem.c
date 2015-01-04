@@ -3,7 +3,7 @@
 **
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
-**
+**版权属作者所有，下面的祝福写的真好：
 **    May you do good and not evil.
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
