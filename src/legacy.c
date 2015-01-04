@@ -36,7 +36,7 @@ SQLite库的主文件。这个文件中的例程使程序接口对库生效。�
 int sqlite3_exec(             /* sqlite3执行函数*/
   sqlite3 *db,                /* The database on which the SQL executes SQL的执行数据库*/
   const char *zSql,           /* The SQL to be executed 被执行的SQL*/
-  sqlite3_callback xCallback, /* Invoke this callback routine 唤醒callback例程*/
+  sqlite3_callback xCallback, /* Invoke this callback routine 调用callback例程*/
   void *pArg,                 /* First argument to xCallback() xCallback()的第一个参数*/
   char **pzErrMsg             /* Write error messages here 错误信息写入**pzErrMsg*/
 ){
@@ -45,7 +45,7 @@ int sqlite3_exec(             /* sqlite3执行函数*/
   sqlite3_stmt *pStmt = 0;    /* The current SQL statement 当前SQL的状态*/
   char **azCols = 0;          /* Names of result columns 结果列的名称*/
   int nRetry = 0;             /* Number of retry attempts 重试次数*/
-  int callbackIsInit;         /* True if callback data is initialized 初始化callback*/
+  int callbackIsInit;         /* True if callback data is initialized 如果调用的数据已经被初始化,则该值为TRUE*/
 
   if( !sqlite3SafetyCheckOk(db) ) return SQLITE_MISUSE_BKPT;
   if( zSql==0 ) zSql = "";
