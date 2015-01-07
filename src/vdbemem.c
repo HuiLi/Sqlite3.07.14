@@ -160,7 +160,7 @@ int sqlite3VdbeMemMakeWriteable(Mem *pMem){
 /*
 ** If the given Mem* has a zero-filled tail, turn it into an ordinary
 ** blob stored in dynamically allocated space.
-** 如果给出的
+** 如果给出的Mem*包含一个零填充的--,那就吧Mem*转换成一个普通的blob对象,这个blob对象是在动态分配的空间存储着的.
 */
 #ifndef SQLITE_OMIT_INCRBLOB
 int sqlite3VdbeMemExpandBlob(Mem *pMem){
@@ -190,6 +190,7 @@ int sqlite3VdbeMemExpandBlob(Mem *pMem){
 
 /*
 ** Make sure the given Mem is \u0000 terminated.
+** 确保给出的Mem对象是以\u0000结尾的.
 */
 int sqlite3VdbeMemNulTerminate(Mem *pMem){
   assert( pMem->db==0 || sqlite3_mutex_held(pMem->db->mutex) );
@@ -211,12 +212,14 @@ int sqlite3VdbeMemNulTerminate(Mem *pMem){
 ** is a no-op.
 **
 ** Existing representations MEM_Int and MEM_Real are *not* invalidated.
-**
+** 存在的
 ** A MEM_Null value will never be passed to this function. This function is
 ** used for converting values to text for returning to the user (i.e. via
 ** sqlite3_value_text()), or for ensuring that values to be used as btree
 ** keys are strings. In the former case a NULL pointer is returned the
 ** user and the later is an internal programming error.
+** 一个MEM_NULL值永远不会被传递到这个函数.这个函数是用来把值转换成文本,然后反馈给用户(比如说sqlite3_value_text()函数).
+** 或者确保 这些值将被用作b树的关键字.在前一种情况,一个空指针被返回给用户,后一种情况是一种内部的编码错误.
 */
 int sqlite3VdbeMemStringify(Mem *pMem, int enc){
   int rc = SQLITE_OK;
@@ -238,7 +241,8 @@ int sqlite3VdbeMemStringify(Mem *pMem, int enc){
   /* For a Real or Integer, use sqlite3_mprintf() to produce the UTF-8
   ** string representation of the value. Then, if the required encoding
   ** is UTF-16le or UTF-16be do a translation.
-  ** 
+  ** 对于一个整数或者实数,使用sqlite3_mprintf()函数来产生代表这个值的UTF-8编码方式的字符串表示.
+  ** 然后,如果这个被要求的编码方式是UTF-16le或者UTF-16be那就做一个转换.
   ** FIX ME: It would be better if sqlite3_snprintf() could do UTF-16.
   */
   if( fg & MEM_Int ){
@@ -258,9 +262,10 @@ int sqlite3VdbeMemStringify(Mem *pMem, int enc){
 ** Memory cell pMem contains the context of an aggregate function.
 ** This routine calls the finalize method for that function.  The
 ** result of the aggregate is stored back into pMem.
-**
+** 内存单元pMem包含一个合并的函数内容.这个routine为那个函数调用完成的方法.
+** 这个合集的结果被存储到pMem中.
 ** Return SQLITE_ERROR if the finalizer reports an error.  SQLITE_OK
-** otherwise.
+** otherwise.如果完成函数报告了一个错误那么返回SQLITE_ERROR,否则返回SQLITE_OK.
 */
 int sqlite3VdbeMemFinalize(Mem *pMem, FuncDef *pFunc){
   int rc = SQLITE_OK;
@@ -311,6 +316,7 @@ void sqlite3VdbeMemReleaseExternal(Mem *p){
 ** Release any memory held by the Mem. This may leave the Mem in an
 ** inconsistent state, for example with (Mem.z==0) and
 ** (Mem.type==SQLITE_TEXT).
+** 释放被Mem存储的任何内存单元.这也许会使得Mem处于一种不一致的状态.
 */
 void sqlite3VdbeMemRelease(Mem *p){
   VdbeMemRelease(p);
@@ -331,6 +337,9 @@ void sqlite3VdbeMemRelease(Mem *p){
 ** Because we do not completely understand the problem, we will
 ** take the conservative approach and always do range tests
 ** before attempting the conversion.
+** 大部分的系统似乎仅仅通过分配变量并且不需要额外的范围测试.
+** 如果floating指针值超出了范围,....
+** 因为我们并没有完全理解这个问题,我们必须take保守的途径并且总是做范围测试在...之前.
 */
 static i64 doubleToInt64(double r){
 #ifdef SQLITE_OMIT_FLOATING_POINT
@@ -343,6 +352,9 @@ static i64 doubleToInt64(double r){
   ** inconsistently.  And many do not understand the "LL" notation.
   ** So we define our own static constants here using nothing
   ** larger than a 32-bit integer constant.
+  ** 我们面对的许多编译器并没有为最小值和最大的64位整数定义常量,或者并没有定义成常量.
+  ** 并且许多人并不理解"LL"符号的含义.
+  ** 所以我们用不多于32位整数的常量定义我们自己的静态常量
   */
   static const i64 maxInt = LARGEST_INT64;
   static const i64 minInt = SMALLEST_INT64;
@@ -369,8 +381,13 @@ static i64 doubleToInt64(double r){
 ** If pMem is a string or blob, then we make an attempt to convert
 ** it into a integer and return that.  If pMem represents an
 ** an SQL-NULL value, return 0.
-**
+** 返回某些整型值,这些整型值是我们在表示用  把*pMem描述为一个整数时 最好的方法.
+** 如果pMem是一个整数,那么这个值是准确的.
+** 如果pMem一个浮点型的数那么被返还的值是整数部分.
+** 如果pMem是一个string类型或者blob类型,那么我们尽力把它转变成一个interger类型并且返回它.
+** 如果pMem代表一个SQL-NULL值,那么返回0.
 ** If pMem represents a string value, its encoding might be changed.
+** 如果pMem代表一个string值,它的编码方式必须被改变.
 */
 i64 sqlite3VdbeIntValue(Mem *pMem){
   int flags;
@@ -397,6 +414,7 @@ i64 sqlite3VdbeIntValue(Mem *pMem){
 ** double.  If pMem is already a double or an integer, return its
 ** value.  If it is a string or blob, try to convert it to a double.
 ** If it is a NULL, return 0.0.
+** 返回最能代表pMem的表示值,
 */
 double sqlite3VdbeRealValue(Mem *pMem){
   assert( pMem->db==0 || sqlite3_mutex_held(pMem->db->mutex) );
