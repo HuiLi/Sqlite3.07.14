@@ -65,9 +65,9 @@ typedef struct winShmNode winShmNode;   /* A region of shared-memory 一个共�
 #if SQLITE_OS_WINCE
 typedef struct winceLock {
   int nReaders;       /* Number of reader locks obtained 一些阅读器锁定所获取内容 */
-  BOOL bPending;      /* Indicates a pending lock has been obtained 指定一个已经获得的等待锁*/
+  BOOL bPending;      /* Indicates a pending lock has been obtained 指定一个已经获得未决锁*/
   BOOL bReserved;     /* Indicates a reserved lock has been obtained 指定一个已经获得的保留锁*/
-  BOOL bExclusive;    /* Indicates an exclusive lock has been obtained 指定一个已经获得的专用锁*/
+  BOOL bExclusive;    /* Indicates an exclusive lock has been obtained 指定一个已经获得的排他锁*/
 } winceLock;
 #endif
 
