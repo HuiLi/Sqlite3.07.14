@@ -2183,12 +2183,12 @@ static int winWrite(
   {
 #endif
 #if !SQLITE_OS_WINCE
-    OVERLAPPED overlapped;        /* The offset for WriteFile. */
+    OVERLAPPED overlapped;        /* WriteFile的偏移. */
 #endif
-    u8 *aRem = (u8 *)pBuf;        /* Data yet to be written */
-    int nRem = amt;               /* Number of bytes yet to be written */
-    DWORD nWrite;                 /* Bytes written by each WriteFile() call */
-    DWORD lastErrno = NO_ERROR;   /* Value returned by GetLastError() */
+    u8 *aRem = (u8 *)pBuf;        /* 数据还可以写 */
+    int nRem = amt;               /* 写入的字节数 */
+    DWORD nWrite;                 /* 通过WriteFile()调用写入字节 */
+    DWORD lastErrno = NO_ERROR;   /* 通过GetLastError()函数返回值 */
 
 #if !SQLITE_OS_WINCE
     memset(&overlapped, 0, sizeof(OVERLAPPED));
@@ -2237,27 +2237,25 @@ static int winWrite(
 }
 
 /*
-** Truncate an open file to a specified size
+** 截断一个打开的文件到指定的大小
 */
 static int winTruncate(sqlite3_file *id, sqlite3_int64 nByte){
-  winFile *pFile = (winFile*)id;  /* File handle object */
-  int rc = SQLITE_OK;             /* Return code for this function */
+  winFile *pFile = (winFile*)id;  /* 文件操作对象 */
+  int rc = SQLITE_OK;             /* 返回这个函数的代码 */
 
   assert( pFile );
 
   OSTRACE(("TRUNCATE %d %lld\n", pFile->h, nByte));
   SimulateIOError(return SQLITE_IOERR_TRUNCATE);
 
-  /* If the user has configured a chunk-size for this file, truncate the
-  ** file so that it consists of an integer number of chunks (i.e. the
-  ** actual file size after the operation may be larger than the requested
-  ** size).
+  /* 如果用户设置了此文件块的大小, 截断文件会导致
+  它是整数块的组成部分（即在操作后的实际文件的大小可能比所要求的尺寸大）
   */
   if( pFile->szChunk>0 ){
     nByte = ((nByte + pFile->szChunk - 1)/pFile->szChunk) * pFile->szChunk;
   }
 
-  /* SetEndOfFile() returns non-zero when successful, or zero when it fails. */
+  /* SetEndOfFile()函数成功时返回非零，失败则返回零 */
   if( seekWinFile(pFile, nByte) ){
     rc = winLogError(SQLITE_IOERR_TRUNCATE, pFile->lastErrno,
              "winTruncate1", pFile->zPath);
@@ -2273,28 +2271,26 @@ static int winTruncate(sqlite3_file *id, sqlite3_int64 nByte){
 
 #ifdef SQLITE_TEST
 /*
-** Count the number of fullsyncs and normal syncs.  This is used to test
-** that syncs and fullsyncs are occuring at the right times.
+计数不同步和正常同步的次数。这是用于测试同步和不同步在正确的时间是存在的。
 */
 int sqlite3_sync_count = 0;
 int sqlite3_fullsync_count = 0;
 #endif
 
 /*
-** Make sure all writes to a particular file are committed to disk.
+确保所有写入到一个特定的文件被提交到磁盘.
 */
 static int winSync(sqlite3_file *id, int flags){
 #ifndef SQLITE_NO_SYNC
   /*
-  ** Used only when SQLITE_NO_SYNC is not defined.
+  ** 只有用于当SQLITE_NO_SYNC没有定义时.
    */
   BOOL rc;
 #endif
 #if !defined(NDEBUG) || !defined(SQLITE_NO_SYNC) || \
     (defined(SQLITE_TEST) && defined(SQLITE_DEBUG))
   /*
-  ** Used when SQLITE_NO_SYNC is not defined and by the assert() and/or
-  ** OSTRACE() macros.
+   用于SQLITE_NO_SYNC没有定义并assert()和/或OSTRACE()的宏。
    */
   winFile *pFile = (winFile*)id;
 #else
@@ -2302,15 +2298,15 @@ static int winSync(sqlite3_file *id, int flags){
 #endif
 
   assert( pFile );
-  /* Check that one of SQLITE_SYNC_NORMAL or FULL was passed */
+  /* 检查SQLITE_SYNC_NORMAL或FULL是否被传递 */
   assert((flags&0x0F)==SQLITE_SYNC_NORMAL
       || (flags&0x0F)==SQLITE_SYNC_FULL
   );
 
   OSTRACE(("SYNC %d lock=%d\n", pFile->h, pFile->locktype));
 
-  /* Unix cannot, but some systems may return SQLITE_FULL from here. This
-  ** line is to test that doing so does not cause any problems.
+  /* Unix不能，但是一些系统能从这返回SQLITE_FULL . 这
+  一行是测试，不会引起任何问题.
   */
   SimulateDiskfullError( return SQLITE_FULL );
 
@@ -2323,9 +2319,7 @@ static int winSync(sqlite3_file *id, int flags){
   sqlite3_sync_count++;
 #endif
 
-  /* If we compiled with the SQLITE_NO_SYNC flag, then syncing is a
-  ** no-op
-  */
+  /* 如果用SQLITE_NO_SYNC标志编译，那么同步是一个空操作 */
 #ifdef SQLITE_NO_SYNC
   return SQLITE_OK;
 #else
@@ -2342,9 +2336,9 @@ static int winSync(sqlite3_file *id, int flags){
 }
 
 /*
-** Determine the current size of a file in bytes
+** 确定字节的文件的当前大小
 */
-static int winFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
+static int wio nFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
   winFile *pFile = (winFile*)id;
   int rc = SQLITE_OK;
 
@@ -2382,7 +2376,7 @@ static int winFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
 }
 
 /*
-** LOCKFILE_FAIL_IMMEDIATELY is undefined on some Windows systems.
+** LOCKFILE_FAIL_IMMEDIATELY在一些Windows系统中没有定义.
 */
 #ifndef LOCKFILE_FAIL_IMMEDIATELY
 # define LOCKFILE_FAIL_IMMEDIATELY 1
@@ -2393,11 +2387,11 @@ static int winFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
 #endif
 
 /*
-** Historically, SQLite has used both the LockFile and LockFileEx functions.
-** When the LockFile function was used, it was always expected to fail
-** immediately if the lock could not be obtained.  Also, it always expected to
-** obtain an exclusive lock.  These flags are used with the LockFileEx function
-** and reflect those expectations; therefore, they should not be changed.
+ 从之前看，SQLite的采用既与LockFile和LockFileEx功能。
+当和LockFile功能被使用时，它总是期望失败
+立即如果不能获得锁。此外，它总是期望
+获取排它锁。这些标志使用的LockFileEx功能
+并反映这些预期;因此，它们不应该被改变.
 */
 #ifndef SQLITE_LOCKFILE_FLAGS
 # define SQLITE_LOCKFILE_FLAGS   (LOCKFILE_FAIL_IMMEDIATELY | \
@@ -2405,25 +2399,24 @@ static int winFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
 #endif
 
 /*
-** Currently, SQLite never calls the LockFileEx function without wanting the
-** call to fail immediately if the lock cannot be obtained.
+** 目前，SQLite永不调用LockFileEx功能，不想要的
+** 调用立即失败，如果无法获得该锁.
 */
 #ifndef SQLITE_LOCKFILEEX_FLAGS
 # define SQLITE_LOCKFILEEX_FLAGS (LOCKFILE_FAIL_IMMEDIATELY)
 #endif
 
 /*
-** Acquire a reader lock.
-** Different API routines are called depending on whether or not this
-** is Win9x or WinNT.
+** 获得读取锁定.
+** 不同的API程序被调用根据这个是否是Win9x或WinNT.
 */
 static int getReadLock(winFile *pFile){
   int res;
   if( isNT() ){
 #if SQLITE_OS_WINCE
     /*
-    ** NOTE: Windows CE is handled differently here due its lack of the Win32
-    **       API LockFileEx.
+    ** Windows CE是不同的处理方式，由于这里缺乏Win32 API
+	** 的LockFileEx.
     */
     res = winceLockFile(&pFile->h, SHARED_FIRST, 0, 1, 0);
 #else
@@ -2442,13 +2435,13 @@ static int getReadLock(winFile *pFile){
 #endif
   if( res == 0 ){
     pFile->lastErrno = osGetLastError();
-    /* No need to log a failure to lock */
+    /* 无需登录失败锁定 */
   }
   return res;
 }
 
 /*
-** Undo a readlock
+** 撤消readlock
 */
 static int unlockReadLock(winFile *pFile){
   int res;
@@ -2470,60 +2463,41 @@ static int unlockReadLock(winFile *pFile){
 }
 
 /*
-** Lock the file with the lock specified by parameter locktype - one
-** of the following:
+** 锁定该文件与参数的LockType指定的锁:
 **
 **     (1) SHARED_LOCK
 **     (2) RESERVED_LOCK
 **     (3) PENDING_LOCK
 **     (4) EXCLUSIVE_LOCK
 **
-** Sometimes when requesting one lock state, additional lock states
-** are inserted in between.  The locking might fail on one of the later
-** transitions leaving the lock state different from what it started but
-** still short of its goal.  The following chart shows the allowed
-** transitions and the inserted intermediate states:
-**
-**    UNLOCKED -> SHARED
-**    SHARED -> RESERVED
-**    SHARED -> (PENDING) -> EXCLUSIVE
-**    RESERVED -> (PENDING) -> EXCLUSIVE
-**    PENDING -> EXCLUSIVE
-**
-** This routine will only increase a lock.  The winUnlock() routine
-** erases all locks at once and returns us immediately to locking level 0.
-** It is not possible to lower the locking level one step at a time.  You
-** must go straight to locking level 0.
 */
 static int winLock(sqlite3_file *id, int locktype){
-  int rc = SQLITE_OK;    /* Return code from subroutines */
-  int res = 1;           /* Result of a Windows lock call */
-  int newLocktype;       /* Set pFile->locktype to this value before exiting */
-  int gotPendingLock = 0;/* True if we acquired a PENDING lock this time */
+  int rc = SQLITE_OK;    /* 从子程序返回代码 */
+  int res = 1;           /* Windows锁调用结果 */
+  int newLocktype;       /* 在退出前设置pFile->locktype这个值 */
+  int gotPendingLock = 0;/* 获取一个PENDING锁 */
   winFile *pFile = (winFile*)id;
   DWORD lastErrno = NO_ERROR;
 
   assert( id!=0 );
   OSTRACE(("LOCK %d %d was %d(%d)\n",
-           pFile->h, locktype, pFile->locktype, pFile->sharedLockByte));
+           pFile->h, locktype, pFile->locktype, pFile->sharedLockByte));						  
 
-  /* If there is already a lock of this type or more restrictive on the
-  ** OsFile, do nothing. Don't use the end_lock: exit path, as
-  ** sqlite3OsEnterMutex() hasn't been called yet.
+  /* 如果已经有这种类型的锁或OsFile更具限制性，什么也不做。
+     不要使用end_lock：退出路径因为sqlite3OsEnterMutex（）没有被调用.
   */
   if( pFile->locktype>=locktype ){
     return SQLITE_OK;
   }
 
-  /* Make sure the locking sequence is correct
+  /* 确保锁定顺序是正确的
   */
   assert( pFile->locktype!=NO_LOCK || locktype==SHARED_LOCK );
   assert( locktype!=PENDING_LOCK );
   assert( locktype!=RESERVED_LOCK || pFile->locktype==SHARED_LOCK );
 
-  /* Lock the PENDING_LOCK byte if we need to acquire a PENDING lock or
-  ** a SHARED lock.  If we are acquiring a SHARED lock, the acquisition of
-  ** the PENDING_LOCK byte is temporary.
+  /* 锁定PENDING_LOCK字节，如果我们需要获得一个PENDING锁或共享锁。
+  ** 如果我们获得一个共享锁，获取PENDING_LOCK字节是暂时的.
   */
   newLocktype = pFile->locktype;
   if(   (pFile->locktype==NO_LOCK)
@@ -2533,12 +2507,6 @@ static int winLock(sqlite3_file *id, int locktype){
     int cnt = 3;
     while( cnt-->0 && (res = winLockFile(&pFile->h, SQLITE_LOCKFILE_FLAGS,
                                          PENDING_BYTE, 0, 1, 0))==0 ){
-      /* Try 3 times to get the pending lock.  This is needed to work
-      ** around problems caused by indexing and/or anti-virus software on
-      ** Windows systems.
-      ** If you are using this code as a model for alternative VFSes, do not
-      ** copy this retry logic.  It is a hack intended for Windows only.
-      */
       OSTRACE(("could not get a PENDING lock. cnt=%d\n", cnt));
       if( cnt ) sqlite3_win32_sleep(1);
     }
@@ -2548,7 +2516,7 @@ static int winLock(sqlite3_file *id, int locktype){
     }
   }
 
-  /* Acquire a shared lock
+  /* 获取共享锁
   */
   if( locktype==SHARED_LOCK && res ){
     assert( pFile->locktype==NO_LOCK );
@@ -2560,7 +2528,7 @@ static int winLock(sqlite3_file *id, int locktype){
     }
   }
 
-  /* Acquire a RESERVED lock
+  /* 获得保留的锁
   */
   if( locktype==RESERVED_LOCK && res ){
     assert( pFile->locktype==SHARED_LOCK );
@@ -2572,14 +2540,14 @@ static int winLock(sqlite3_file *id, int locktype){
     }
   }
 
-  /* Acquire a PENDING lock
+  /* 获取PENDING锁
   */
   if( locktype==EXCLUSIVE_LOCK && res ){
     newLocktype = PENDING_LOCK;
     gotPendingLock = 0;
   }
 
-  /* Acquire an EXCLUSIVE lock
+  /* 获得独占锁
   */
   if( locktype==EXCLUSIVE_LOCK && res ){
     assert( pFile->locktype>=SHARED_LOCK );
@@ -2596,15 +2564,13 @@ static int winLock(sqlite3_file *id, int locktype){
     }
   }
 
-  /* If we are holding a PENDING lock that ought to be released, then
-  ** release it now.
+  /* 如果我们都占用一个PENDING锁应该被释放，那么现在将其释放。
   */
   if( gotPendingLock && locktype==SHARED_LOCK ){
     winUnlockFile(&pFile->h, PENDING_BYTE, 0, 1, 0);
   }
 
-  /* Update the state of the lock has held in the file descriptor then
-  ** return the appropriate result code.
+  /* 更新锁的状态已经在文件描述符保持，则返回相应的结果代码.
   */
   if( res ){
     rc = SQLITE_OK;
@@ -2619,9 +2585,8 @@ static int winLock(sqlite3_file *id, int locktype){
 }
 
 /*
-** This routine checks if there is a RESERVED lock held on the specified
-** file by this or any other process. If such a lock is held, return
-** non-zero, otherwise zero.
+ 这是否有这个或任何其他进程占用指定的文件保留锁，
+ 如果这样的锁被保持，返回非零，否则为零.
 */
 static int winCheckReservedLock(sqlite3_file *id, int *pResOut){
   int rc;
@@ -2646,15 +2611,11 @@ static int winCheckReservedLock(sqlite3_file *id, int *pResOut){
 }
 
 /*
-** Lower the locking level on file descriptor id to locktype.  locktype
-** must be either NO_LOCK or SHARED_LOCK.
+** 如果文件描述符的锁定水平已经达到或低于所需的水平锁定，
+** 此例程是一个空操作.
 **
-** If the locking level of the file descriptor is already at or below
-** the requested locking level, this routine is a no-op.
-**
-** It is not possible for this routine to fail if the second argument
-** is NO_LOCK.  If the second argument is SHARED_LOCK then this routine
-** might return SQLITE_IOERR;
+** 因此不可能对这一例程，如果第二参数是NO_LOCK则失败。
+** 如果第二个参数是SHARED_LOCK那么这个程序可能返回SQLITE_IOERR;
 */
 static int winUnlock(sqlite3_file *id, int locktype){
   int type;
@@ -2668,8 +2629,7 @@ static int winUnlock(sqlite3_file *id, int locktype){
   if( type>=EXCLUSIVE_LOCK ){
     winUnlockFile(&pFile->h, SHARED_FIRST, 0, SHARED_SIZE, 0);
     if( locktype==SHARED_LOCK && !getReadLock(pFile) ){
-      /* This should never happen.  We should always be able to
-      ** reacquire the read lock */
+      /* 这应该不会发生，应该始终能够重新获取读取锁 */
       rc = winLogError(SQLITE_IOERR_UNLOCK, osGetLastError(),
                "winUnlock", pFile->zPath);
     }
@@ -2688,10 +2648,10 @@ static int winUnlock(sqlite3_file *id, int locktype){
 }
 
 /*
-** If *pArg is inititially negative then this is a query.  Set *pArg to
-** 1 or 0 depending on whether or not bit mask of pFile->ctrlFlags is set.
+** 如果* PARG是负，那么这是一个查询。
+** 置* PARG为1或0取决于pFile-> ctrlFlags掩码设置与否.
 **
-** If *pArg is 0 or 1, then clear or set the mask bit of pFile->ctrlFlags.
+** 如果* PARG是0或1，然后清除或设置pFile-> ctrlFlags的屏蔽位.
 */
 static void winModeBit(winFile *pFile, unsigned char mask, int *pArg){
   if( *pArg<0 ){
@@ -2704,7 +2664,7 @@ static void winModeBit(winFile *pFile, unsigned char mask, int *pArg){
 }
 
 /*
-** Control and query of the open file handle.
+** 控制和查询打开文件的操作.
 */
 static int winFileControl(sqlite3_file *id, int op, void *pArg){
   winFile *pFile = (winFile*)id;
@@ -2768,14 +2728,8 @@ static int winFileControl(sqlite3_file *id, int op, void *pArg){
 }
 
 /*
-** Return the sector size in bytes of the underlying block device for
-** the specified file. This is almost always 512 bytes, but may be
-** larger for some devices.
-**
-** SQLite code assumes this function cannot fail. It also assumes that
-** if two files are created in the same file-system directory (i.e.
-** a database and its journal file) that the sector size will be the
-** same for both.
+** 返回扇区大小的基本块设备的字节用于指定的文件。
+** 这几乎总是为512字节，但对一些设备也可以更大.
 */
 static int winSectorSize(sqlite3_file *id){
   (void)id;
@@ -2783,7 +2737,7 @@ static int winSectorSize(sqlite3_file *id){
 }
 
 /*
-** Return a vector of device characteristics.
+** 返回器件特性的矢量.
 */
 static int winDeviceCharacteristics(sqlite3_file *id){
   winFile *p = (winFile*)id;
@@ -2794,25 +2748,16 @@ static int winDeviceCharacteristics(sqlite3_file *id){
 #ifndef SQLITE_OMIT_WAL
 
 /* 
-** Windows will only let you create file view mappings
-** on allocation size granularity boundaries.
-** During sqlite3_os_init() we do a GetSystemInfo()
-** to get the granularity size.
+** Windows将只允许创建的分配大小粒度边界文件视图映射。
+** 在sqlite3_os_init（），
+** 调用GetSystemInfo（）来获得粒度大小.
 */
 SYSTEM_INFO winSysInfo;
 
 /*
-** Helper functions to obtain and relinquish the global mutex. The
-** global mutex is used to protect the winLockInfo objects used by 
-** this file, all of which may be shared by multiple threads.
-**
-** Function winShmMutexHeld() is used to assert() that the global mutex 
-** is held when required. This function is only used as part of assert() 
-** statements. e.g.
-**
-**   winShmEnterMutex()
-**     assert( winShmMutexHeld() );
-**   winShmLeaveMutex()
+** 辅助函数来获取和放弃全局互斥。
+** 全局互斥用于保护使用该文件中的winLockInfo目的，
+** 所有这些都可能被多个线程共享的.
 */
 static void winShmEnterMutex(void){
   sqlite3_mutex_enter(sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MASTER));
@@ -2826,109 +2771,73 @@ static int winShmMutexHeld(void) {
 }
 #endif
 
-/*
-** Object used to represent a single file opened and mmapped to provide
-** shared memory.  When multiple threads all reference the same
-** log-summary, each thread has its own winFile object, but they all
-** point to a single instance of this object.  In other words, each
-** log-summary is opened only once per process.
-**
-** winShmMutexHeld() must be true when creating or destroying
-** this object or while reading or writing the following fields:
-**
-**      nRef
-**      pNext 
-**
-** The following fields are read-only after the object is created:
-** 
-**      fid
-**      zFilename
-**
-** Either winShmNode.mutex must be held or winShmNode.nRef==0 and
-** winShmMutexHeld() is true when reading or writing any other field
-** in this structure.
-**
-*/
 struct winShmNode {
-  sqlite3_mutex *mutex;      /* Mutex to access this object */
-  char *zFilename;           /* Name of the file */
-  winFile hFile;             /* File handle from winOpen */
+  sqlite3_mutex *mutex;      /* 互斥访问该对象 */
+  char *zFilename;           /* 文件的名称 */
+  winFile hFile;             /* 来自winOpen的文件操作 */
 
-  int szRegion;              /* Size of shared-memory regions */
-  int nRegion;               /* Size of array apRegion */
+  int szRegion;              /* 共享存储器区域的大小 */
+  int nRegion;               /* 数组apRegion的字节数 */
   struct ShmRegion {
-    HANDLE hMap;             /* File handle from CreateFileMapping */
+    HANDLE hMap;             /* CreateFileMapping的文件操作 */
     void *pMap;
   } *aRegion;
-  DWORD lastErrno;           /* The Windows errno from the last I/O error */
+  DWORD lastErrno;           /* 最后一个I/O错误的Windows的错误号 */
 
-  int nRef;                  /* Number of winShm objects pointing to this */
-  winShm *pFirst;            /* All winShm objects pointing to this */
-  winShmNode *pNext;         /* Next in list of all winShmNode objects */
+  int nRef;                  /* winShm对象指向这个数目 */
+  winShm *pFirst;            /* 所有winShm对象指向此 */
+  winShmNode *pNext;         /* 所有winShmNode对象列表 */
 #ifdef SQLITE_DEBUG
-  u8 nextShmId;              /* Next available winShm.id value */
+  u8 nextShmId;              /* 下一个可用winShm.id值 */
 #endif
 };
 
 /*
-** A global array of all winShmNode objects.
+** 所有winShmNode对象的全局数组.
 **
-** The winShmMutexHeld() must be true while reading or writing this list.
+** 同时读取或写入这个表格的winShmMutexHeld（）必须是真实的.
 */
 static winShmNode *winShmNodeList = 0;
 
-/*
-** Structure used internally by this VFS to record the state of an
-** open shared memory connection.
-**
-** The following fields are initialized when this object is created and
-** are read-only thereafter:
-**
-**    winShm.pShmNode
-**    winShm.id
-**
-** All other fields are read/write.  The winShm.pShmNode->mutex must be held
-** while accessing any read/write fields.
-*/
 struct winShm {
-  winShmNode *pShmNode;      /* The underlying winShmNode object */
-  winShm *pNext;             /* Next winShm with the same winShmNode */
-  u8 hasMutex;               /* True if holding the winShmNode mutex */
-  u16 sharedMask;            /* Mask of shared locks held */
-  u16 exclMask;              /* Mask of exclusive locks held */
+  winShmNode *pShmNode;      /* 底层winShmNode对象 */
+  winShm *pNext;             /* 下一步winShm具有相同winShmNode */
+  u8 hasMutex;               /* 如此，如果持有winShmNode互斥 */
+  u16 sharedMask;            /* 共享锁掩码 */
+  u16 exclMask;              /* 排他锁掩码 */
 #ifdef SQLITE_DEBUG
-  u8 id;                     /* Id of this connection with its winShmNode */
+  u8 id;                     /* winShmNode此连接的标识 */
 #endif
 };
 
 /*
-** Constants used for locking
+** 用于锁定的常数
 */
-#define WIN_SHM_BASE   ((22+SQLITE_SHM_NLOCK)*4)        /* first lock byte */
-#define WIN_SHM_DMS    (WIN_SHM_BASE+SQLITE_SHM_NLOCK)  /* deadman switch */
+#define WIN_SHM_BASE   ((22+SQLITE_SHM_NLOCK)*4)        /* 首先锁定字节 */
+#define WIN_SHM_DMS    (WIN_SHM_BASE+SQLITE_SHM_NLOCK)  /* 安全开关 */
 
 /*
-** Apply advisory locks for all n bytes beginning at ofst.
+** 申请咨询锁对所有的n个字节开始在OFST.
 */
 #define _SHM_UNLCK  1
 #define _SHM_RDLCK  2
 #define _SHM_WRLCK  3
 static int winShmSystemLock(
-  winShmNode *pFile,    /* Apply locks to this open shared-memory segment */
+  winShmNode *pFile,    /* 申请锁打开共享内存段 */
   int lockType,         /* _SHM_UNLCK, _SHM_RDLCK, or _SHM_WRLCK */
-  int ofst,             /* Offset to first byte to be locked/unlocked */
-  int nByte             /* Number of bytes to lock or unlock */
+  int ofst,             /* 偏移第一个字节被锁定/解锁 */
+  int nByte             /* 字节数来锁定或解锁 */
 ){
-  int rc = 0;           /* Result code form Lock/UnlockFileEx() */
+  int rc = 0;           /* 从Lock/UnlockFileEx()返回代码 */
 
-  /* Access to the winShmNode object is serialized by the caller */
+  /* 访问winShmNode的对象被调用者连载 */
   assert( sqlite3_mutex_held(pFile->mutex) || pFile->nRef==0 );
 
-  /* Release/Acquire the system-level lock */
+  /* 释放/采集系统级的锁 */
   if( lockType==_SHM_UNLCK ){
     rc = winUnlockFile(&pFile->hFile.h, ofst, 0, nByte, 0);
   }else{
-    /* Initialize the locking parameters */
+    /* 初始化参数锁定 */
     DWORD dwFlags = LOCKFILE_FAIL_IMMEDIATELY;
     if( lockType == _SHM_WRLCK ) dwFlags |= LOCKFILE_EXCLUSIVE_LOCK;
     rc = winLockFile(&pFile->hFile.h, dwFlags, ofst, 0, nByte, 0);
@@ -2950,15 +2859,12 @@ static int winShmSystemLock(
   return rc;
 }
 
-/* Forward references to VFS methods */
+/* 引用VFS方法 */
 static int winOpen(sqlite3_vfs*,const char*,sqlite3_file*,int,int*);
 static int winDelete(sqlite3_vfs *,const char*,int);
 
 /*
-** Purge the winShmNodeList list of all entries with winShmNode.nRef==0.
-**
-** This is not a VFS shared-memory method; it is a utility function called
-** by VFS shared-memory methods.
+** 清除winShmNodeList表单所有条目以及winShmNode.nRef==0.
 */
 static void winShmPurge(sqlite3_vfs *pVfs, int deleteFlag){
   winShmNode **pp;
@@ -3002,23 +2908,19 @@ static void winShmPurge(sqlite3_vfs *pVfs, int deleteFlag){
 }
 
 /*
-** Open the shared-memory area associated with database file pDbFd.
-**
-** When opening a new shared-memory file, if no other instances of that
-** file are currently open, in this process or in other processes, then
-** the file must be truncated to zero length or have its header cleared.
+** 打开与数据库文件相关联的共享存储器区域pDbFd.
 */
 static int winOpenSharedMemory(winFile *pDbFd){
-  struct winShm *p;                  /* The connection to be opened */
-  struct winShmNode *pShmNode = 0;   /* The underlying mmapped file */
-  int rc;                            /* Result code */
-  struct winShmNode *pNew;           /* Newly allocated winShmNode */
-  int nName;                         /* Size of zName in bytes */
+  struct winShm *p;                  /* 要打开的连接 */
+  struct winShmNode *pShmNode = 0;   /* 底层mmapped文件 */
+  int rc;                            /* 返回代码 */
+  struct winShmNode *pNew;           /* 新分配winShmNode */
+  int nName;                         /* zName的字节大小 */
 
-  assert( pDbFd->pShm==0 );    /* Not previously opened */
+  assert( pDbFd->pShm==0 );    /* 以前没有开 */
 
-  /* Allocate space for the new sqlite3_shm object.  Also speculatively
-  ** allocate space for a new winShmNode and filename.
+  /* 分配空间的新sqlite3_shm对象，
+     还推测分配空间用于新winShmNode和文件名.
   */
   p = sqlite3_malloc( sizeof(*p) );
   if( p==0 ) return SQLITE_IOERR_NOMEM;
@@ -3034,13 +2936,13 @@ static int winOpenSharedMemory(winFile *pDbFd){
   sqlite3_snprintf(nName+15, pNew->zFilename, "%s-shm", pDbFd->zPath);
   sqlite3FileSuffix3(pDbFd->zPath, pNew->zFilename); 
 
-  /* Look to see if there is an existing winShmNode that can be used.
-  ** If no matching winShmNode currently exists, create a new one.
+  /* 看看是否存在现有winShmNode可以使用.
+  ** 看看是否存在现有winShmNode可以使用.
   */
   winShmEnterMutex();
   for(pShmNode = winShmNodeList; pShmNode; pShmNode=pShmNode->pNext){
-    /* TBD need to come up with better match here.  Perhaps
-    ** use FILE_ID_BOTH_DIR_INFO Structure.
+    /* TBD这里需要拿出更好的匹配.  也许
+       使用FILE_ID_BOTH_DIR_INFO结构.
     */
     if( sqlite3StrICmp(pShmNode->zFilename, pNew->zFilename)==0 ) break;
   }
@@ -3060,16 +2962,16 @@ static int winOpenSharedMemory(winFile *pDbFd){
     }
 
     rc = winOpen(pDbFd->pVfs,
-                 pShmNode->zFilename,             /* Name of the file (UTF-8) */
-                 (sqlite3_file*)&pShmNode->hFile,  /* File handle here */
-                 SQLITE_OPEN_WAL | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, /* Mode flags */
+                 pShmNode->zFilename,             /* 文件名（UTF-8） */
+                 (sqlite3_file*)&pShmNode->hFile,  /* 这里的文件操作 */
+                 SQLITE_OPEN_WAL | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, /* 模式的标志 */
                  0);
     if( SQLITE_OK!=rc ){
       goto shm_open_err;
     }
 
-    /* Check to see if another process is holding the dead-man switch.
-    ** If not, truncate the file to zero length. 
+    /* 检查是否另一个进程进入死循环.
+    ** 如果不是这样，截断该文件以零长度. 
     */
     if( winShmSystemLock(pShmNode, _SHM_WRLCK, WIN_SHM_DMS, 1)==SQLITE_OK ){
       rc = winTruncate((sqlite3_file *)&pShmNode->hFile, 0);
@@ -3085,7 +2987,7 @@ static int winOpenSharedMemory(winFile *pDbFd){
     if( rc ) goto shm_open_err;
   }
 
-  /* Make the new connection a child of the winShmNode */
+  /* 使新的连接winShmNode的孩子 */
   p->pShmNode = pShmNode;
 #ifdef SQLITE_DEBUG
   p->id = pShmNode->nextShmId++;
@@ -3094,12 +2996,12 @@ static int winOpenSharedMemory(winFile *pDbFd){
   pDbFd->pShm = p;
   winShmLeaveMutex();
 
-  /* The reference count on pShmNode has already been incremented under
-  ** the cover of the winShmEnterMutex() mutex and the pointer from the
-  ** new (struct winShm) object to the pShmNode has been set. All that is
-  ** left to do is to link the new object into the linked list starting
-  ** at pShmNode->pFirst. This must be done while holding the pShmNode->mutex 
-  ** mutex.
+  /* 在pShmNode引用计数已经在增加
+  ** 在winShmEnterMutex（）互斥的覆盖，从指针
+  ** 新（结构winShm）对象的pShmNode已定。所有这一切都
+  ** 剩下要做的就是到新对象链接到链表出发
+  ** 在pShmNode-> pFirst。这必须同时持有pShmNode->互斥量来实现
+  ** 互斥.
   */
   sqlite3_mutex_enter(pShmNode->mutex);
   p->pNext = pShmNode->pFirst;
@@ -3107,10 +3009,10 @@ static int winOpenSharedMemory(winFile *pDbFd){
   sqlite3_mutex_leave(pShmNode->mutex);
   return SQLITE_OK;
 
-  /* Jump here on any error */
+  /* 跳转这里的任何错误 */
 shm_open_err:
   winShmSystemLock(pShmNode, _SHM_UNLCK, WIN_SHM_DMS, 1);
-  winShmPurge(pDbFd->pVfs, 0);      /* This call frees pShmNode if required */
+  winShmPurge(pDbFd->pVfs, 0);      /* 此调用释放pShmNode，如果需要的话 */
   sqlite3_free(p);
   sqlite3_free(pNew);
   winShmLeaveMutex();
@@ -3118,36 +3020,34 @@ shm_open_err:
 }
 
 /*
-** Close a connection to shared-memory.  Delete the underlying 
-** storage if deleteFlag is true.
+** 关闭共享内存的连接.  
+** 删除底层存储，如果deleteFlag是真.
 */
 static int winShmUnmap(
-  sqlite3_file *fd,          /* Database holding shared memory */
-  int deleteFlag             /* Delete after closing if true */
+  sqlite3_file *fd,          /* 数据库保存共享内存 */
+  int deleteFlag             /* 如果为真，关闭后后删除 */
 ){
-  winFile *pDbFd;       /* Database holding shared-memory */
-  winShm *p;            /* The connection to be closed */
-  winShmNode *pShmNode; /* The underlying shared-memory file */
-  winShm **pp;          /* For looping over sibling connections */
+  winFile *pDbFd;       /* 数据库占用共享存储器 */
+  winShm *p;            /* 连接被关闭 */
+  winShmNode *pShmNode; /* 底层的共享内存文件 */
+  winShm **pp;          /* 对于遍历同级连接 */
 
   pDbFd = (winFile*)fd;
   p = pDbFd->pShm;
   if( p==0 ) return SQLITE_OK;
   pShmNode = p->pShmNode;
 
-  /* Remove connection p from the set of connections associated
-  ** with pShmNode */
+  /* 从与pShmNode相关的一组连接删除连接P */
   sqlite3_mutex_enter(pShmNode->mutex);
   for(pp=&pShmNode->pFirst; (*pp)!=p; pp = &(*pp)->pNext){}
   *pp = p->pNext;
 
-  /* Free the connection p */
+  /* 释放连接P */
   sqlite3_free(p);
   pDbFd->pShm = 0;
   sqlite3_mutex_leave(pShmNode->mutex);
 
-  /* If pShmNode->nRef has reached 0, then close the underlying
-  ** shared-memory file, too */
+  /* 如果pShmNode-> NREF为0，然后关闭底层的共享内存中的文件 */
   winShmEnterMutex();
   assert( pShmNode->nRef>0 );
   pShmNode->nRef--;
@@ -3160,20 +3060,20 @@ static int winShmUnmap(
 }
 
 /*
-** Change the lock state for a shared-memory segment.
+** 更改锁定状态的共享内存段.
 */
 static int winShmLock(
-  sqlite3_file *fd,          /* Database file holding the shared memory */
-  int ofst,                  /* First lock to acquire or release */
-  int n,                     /* Number of locks to acquire or release */
-  int flags                  /* What to do with the lock */
+  sqlite3_file *fd,          /* 数据库文件占用共享内存 */
+  int ofst,                  /* 首先锁定获取或释放 */
+  int n,                     /* 锁获取或释放数 */
+  int flags                  /* 锁标志 */
 ){
-  winFile *pDbFd = (winFile*)fd;        /* Connection holding shared memory */
-  winShm *p = pDbFd->pShm;              /* The shared memory being locked */
-  winShm *pX;                           /* For looping over all siblings */
+  winFile *pDbFd = (winFile*)fd;        /* 连接占用共享内存 */
+  winShm *p = pDbFd->pShm;              /* 共享内存被锁定 */
+  winShm *pX;                           /* 遍历所有的兄弟 */
   winShmNode *pShmNode = p->pShmNode;
-  int rc = SQLITE_OK;                   /* Result code */
-  u16 mask;                             /* Mask of locks to take or release */
+  int rc = SQLITE_OK;                   /* 结果代码 */
+  u16 mask;                             /* 锁获取或释放 */
 
   assert( ofst>=0 && ofst+n<=SQLITE_SHM_NLOCK );
   assert( n>=1 );
@@ -3187,14 +3087,15 @@ static int winShmLock(
   assert( n>1 || mask==(1<<ofst) );
   sqlite3_mutex_enter(pShmNode->mutex);
   if( flags & SQLITE_SHM_UNLOCK ){
-    u16 allMask = 0; /* Mask of locks held by siblings */
+    u16 allMask = 0; /* 锁被其兄弟占用 */
 
-    /* See if any siblings hold this same lock */
+    /* 看看是否有兄弟占用同样的锁 */
     for(pX=pShmNode->pFirst; pX; pX=pX->pNext){
       if( pX==p ) continue;
       assert( (pX->exclMask & (p->exclMask|p->sharedMask))==0 );
       allMask |= pX->sharedMask;
     }
+
 
     /* Unlock the system-level locks */
     if( (mask & allMask)==0 ){
