@@ -977,12 +977,12 @@ begin_table_error:
 }
 
 /*
-** This macro is used to compare two strings in a case-insensitive manner.
+** This macro is used to compare two strings in a case-insensitive manner.【这个宏是用来比较两个字符串用不区分大小写的方式。】
 ** It is slightly faster than calling sqlite3StrICmp() directly, but
-** produces larger code.
+** produces larger code.【他是比直接调用sqlite3StrICmp()稍微快一点，但是会产生大量代码。】
 **
 ** WARNING: This macro is not compatible with the strcmp() family. It
-** returns true if the two strings are equal, otherwise false.
+** returns true if the two strings are equal, otherwise false.【这个宏不兼容strcmp()的家庭。如果两个字符串相等，则返回true,否则返回false】
 */
 #define STRICMP(x, y) (\
 sqlite3UpperToLower[*(unsigned char *)(x)]==   \
@@ -990,79 +990,79 @@ sqlite3UpperToLower[*(unsigned char *)(y)]     \
 && sqlite3StrICmp((x)+1,(y)+1)==0 )
 
 /*
-** Add a new column to the table currently being constructed.
+** Add a new column to the table currently being constructed.【向当前正在构建的表中添加新的一列。】
 **
 ** The parser calls this routine once for each column declaration
 ** in a CREATE TABLE statement.  sqlite3StartTable() gets called
 ** first to get things going.  Then this routine is called for each
-** column.
+** column.【一旦每一列在一个CREATE TABLE语句中声明，解析器就会调用这个例程。首先被调用做一些事情，然后为每一列调用这个例程。】
 */
 void sqlite3AddColumn(Parse *pParse, Token *pName){
-  Table *p;
-  int i;
-  char *z;
-  Column *pCol;
-  sqlite3 *db = pParse->db;
-  if( (p = pParse->pNewTable)==0 ) return;
-#if SQLITE_MAX_COLUMN
-  if( p->nCol+1>db->aLimit[SQLITE_LIMIT_COLUMN] ){
-    sqlite3ErrorMsg(pParse, "too many columns on %s", p->zName);
-    return;
-  }
+	Table *p;
+	int i;
+	char *z;
+	Column *pCol;
+	sqlite3 *db = pParse->db;
+	if ((p = pParse->pNewTable) == 0) return;
+#if SQLITE_MAX_COLUMN//表的列总数已经达到最大值
+	if (p->nCol + 1>db->aLimit[SQLITE_LIMIT_COLUMN]){
+		sqlite3ErrorMsg(pParse, "too many columns on %s", p->zName);
+		return;
+	}
 #endif
-  z = sqlite3NameFromToken(db, pName);
-  if( z==0 ) return;
-  for(i=0; i<p->nCol; i++){
-    if( STRICMP(z, p->aCol[i].zName) ){
-      sqlite3ErrorMsg(pParse, "duplicate column name: %s", z);
-      sqlite3DbFree(db, z);
-      return;
-    }
-  }
-  if( (p->nCol & 0x7)==0 ){
-    Column *aNew;
-    aNew = sqlite3DbRealloc(db,p->aCol,(p->nCol+8)*sizeof(p->aCol[0]));
-    if( aNew==0 ){
-      sqlite3DbFree(db, z);
-      return;
-    }
-    p->aCol = aNew;
-  }
-  pCol = &p->aCol[p->nCol];
-  memset(pCol, 0, sizeof(p->aCol[0]));
-  pCol->zName = z;
- 
-  /* If there is no type specified, columns have the default affinity
-  ** 'NONE'. If there is a type specified, then sqlite3AddColumnType() will
-  ** be called next to set pCol->affinity correctly.
-  */
-  pCol->affinity = SQLITE_AFF_NONE;
-  p->nCol++;
+	z = sqlite3NameFromToken(db, pName);
+	if (z == 0) return;
+	for (i = 0; i<p->nCol; i++){//循环的检测新插入的一列的名字，是不是已经存在
+		if (STRICMP(z, p->aCol[i].zName)){//比较两个字符串用不区分大小写的方式
+			sqlite3ErrorMsg(pParse, "duplicate column name: %s", z);
+			sqlite3DbFree(db, z);
+			return;
+		}
+	}
+	if ((p->nCol & 0x7) == 0){
+		Column *aNew;
+		aNew = sqlite3DbRealloc(db, p->aCol, (p->nCol + 8)*sizeof(p->aCol[0]));//为新的一列分配内存
+		if (aNew == 0){//没有分配成功
+			sqlite3DbFree(db, z);
+			return;
+		}
+		p->aCol = aNew;//添加一列
+	}
+	pCol = &p->aCol[p->nCol];//改变原来的列数组的地址
+	memset(pCol, 0, sizeof(p->aCol[0]));
+	pCol->zName = z;
+
+	/* If there is no type specified, columns have the default affinity
+	** 'NONE'. If there is a type specified, then sqlite3AddColumnType() will
+	** be called next to set pCol->affinity correctly.【如果没有类型指定，列默认关联“NONE”。如果有类型指定，那么sqlite3AddColumnType()就会被调用，接着正确地设定pCol->affinity的值。】
+	*/
+	pCol->affinity = SQLITE_AFF_NONE;//设置列队数据类型，默认为NONE
+	p->nCol++;//对列队总数进行修改
 }
 
 /*
 ** This routine is called by the parser while in the middle of
 ** parsing a CREATE TABLE statement.  A "NOT NULL" constraint has
 ** been seen on a column.  This routine sets the notNull flag on
-** the column currently under construction.
+** the column currently under construction.【调用这个例程的解析器当解析CREATE TABLE语句的时候。会看到列不能为空的约束。这个例程为当前构建的列设定不能为空的标志。】
 */
 void sqlite3AddNotNull(Parse *pParse, int onError){
-  Table *p;
-  p = pParse->pNewTable;
-  if( p==0 || NEVER(p->nCol<1) ) return;
-  p->aCol[p->nCol-1].notNull = (u8)onError;
+	Table *p;
+	p = pParse->pNewTable;
+	if (p == 0 || NEVER(p->nCol<1)) return;//没有新建的表或者是还没有添加一个列
+	p->aCol[p->nCol - 1].notNull = (u8)onError;//对当前添加的列进行“NOT NULL”设置
 }
 
 /*
 ** Scan the column type name zType (length nType) and return the
-** associated affinity type.
+** associated affinity type.【扫描列类型名称zType(长度nType)并返回相关的关联类型。】
 **
-** This routine does a case-independent search of zType for the 
+** This routine does a case-independent search of zType for the
 ** substrings in the following table. If one of the substrings is
 ** found, the corresponding affinity is returned. If zType contains
-** more than one of the substrings, entries toward the top of 
-** the table take priority. For example, if zType is 'BLOBINT', 
-** SQLITE_AFF_INTEGER is returned.
+** more than one of the substrings, entries toward the top of
+** the table take priority. For example, if zType is 'BLOBINT',
+** SQLITE_AFF_INTEGER is returned.【这个例程做一次与案例无关的zType搜索对表下的子字符串。如果找到一个子字符串，返回相应的关系。如果zType包含不止一个子字符串，表头的条目优先。】
 **
 ** Substring     | Affinity
 ** --------------------------------
@@ -1076,42 +1076,49 @@ void sqlite3AddNotNull(Parse *pParse, int onError){
 ** 'DOUB'        | SQLITE_AFF_REAL
 **
 ** If none of the substrings in the above table are found,
-** SQLITE_AFF_NUMERIC is returned.
+** SQLITE_AFF_NUMERIC is returned.【如果在以上所述的表中没有找到子字符串，则返回SQLITE_AFF_NUMERIC。】
 */
 char sqlite3AffinityType(const char *zIn){
-  u32 h = 0;
-  char aff = SQLITE_AFF_NUMERIC;
+	u32 h = 0;
+	char aff = SQLITE_AFF_NUMERIC;
 
-  if( zIn ) while( zIn[0] ){
-    h = (h<<8) + sqlite3UpperToLower[(*zIn)&0xff];
-    zIn++;
-    if( h==(('c'<<24)+('h'<<16)+('a'<<8)+'r') ){             /* CHAR */
-      aff = SQLITE_AFF_TEXT; 
-    }else if( h==(('c'<<24)+('l'<<16)+('o'<<8)+'b') ){       /* CLOB */
-      aff = SQLITE_AFF_TEXT;
-    }else if( h==(('t'<<24)+('e'<<16)+('x'<<8)+'t') ){       /* TEXT */
-      aff = SQLITE_AFF_TEXT;
-    }else if( h==(('b'<<24)+('l'<<16)+('o'<<8)+'b')          /* BLOB */
-        && (aff==SQLITE_AFF_NUMERIC || aff==SQLITE_AFF_REAL) ){
-      aff = SQLITE_AFF_NONE;
+	if (zIn) while (zIn[0]){//只取第一个字符串
+		h = (h << 8) + sqlite3UpperToLower[(*zIn) & 0xff];//把大写转换成小写字母
+		zIn++;
+		if (h == (('c' << 24) + ('h' << 16) + ('a' << 8) + 'r')){             /*拼接CHAR */
+			aff = SQLITE_AFF_TEXT;
+		}
+		else if (h == (('c' << 24) + ('l' << 16) + ('o' << 8) + 'b')){       /* CLOB */
+			aff = SQLITE_AFF_TEXT;
+		}
+		else if (h == (('t' << 24) + ('e' << 16) + ('x' << 8) + 't')){       /* TEXT */
+			aff = SQLITE_AFF_TEXT;
+		}
+		else if (h == (('b' << 24) + ('l' << 16) + ('o' << 8) + 'b')          /* BLOB */
+			&& (aff == SQLITE_AFF_NUMERIC || aff == SQLITE_AFF_REAL)){
+			aff = SQLITE_AFF_NONE;
 #ifndef SQLITE_OMIT_FLOATING_POINT
-    }else if( h==(('r'<<24)+('e'<<16)+('a'<<8)+'l')          /* REAL */
-        && aff==SQLITE_AFF_NUMERIC ){
-      aff = SQLITE_AFF_REAL;
-    }else if( h==(('f'<<24)+('l'<<16)+('o'<<8)+'a')          /* FLOA */
-        && aff==SQLITE_AFF_NUMERIC ){
-      aff = SQLITE_AFF_REAL;
-    }else if( h==(('d'<<24)+('o'<<16)+('u'<<8)+'b')          /* DOUB */
-        && aff==SQLITE_AFF_NUMERIC ){
-      aff = SQLITE_AFF_REAL;
+		}
+		else if (h == (('r' << 24) + ('e' << 16) + ('a' << 8) + 'l')          /* REAL */
+			&& aff == SQLITE_AFF_NUMERIC){
+			aff = SQLITE_AFF_REAL;
+		}
+		else if (h == (('f' << 24) + ('l' << 16) + ('o' << 8) + 'a')          /* FLOA */
+			&& aff == SQLITE_AFF_NUMERIC){
+			aff = SQLITE_AFF_REAL;
+		}
+		else if (h == (('d' << 24) + ('o' << 16) + ('u' << 8) + 'b')          /* DOUB */
+			&& aff == SQLITE_AFF_NUMERIC){
+			aff = SQLITE_AFF_REAL;
 #endif
-    }else if( (h&0x00FFFFFF)==(('i'<<16)+('n'<<8)+'t') ){    /* INT */
-      aff = SQLITE_AFF_INTEGER;
-      break;
-    }
-  }
+		}
+		else if ((h & 0x00FFFFFF) == (('i' << 16) + ('n' << 8) + 't')){    /* INT */
+			aff = SQLITE_AFF_INTEGER;
+			break;
+		}
+	}
 
-  return aff;
+	return aff;
 }
 
 /*
@@ -1121,203 +1128,214 @@ char sqlite3AffinityType(const char *zIn){
 ** column currently under construction.   pLast is the last token
 ** in the sequence.  Use this information to construct a string
 ** that contains the typename of the column and store that string
-** in zType.
-*/ 
+** in zType.【当解析CREATE TABLE语句的时候就会调用这个例程的解析器。会看到列不能为空的约束。这个例程为当前构建的列设定不能为空的标志。这个pFirst代表了符号序列的第一个符号，
+这序列符号描述的是当前正在创建的列。pLast代表的是符号序列的最后一个符号。用此信息构造一个字符串，这个字符串包含列的类名和用zType存储的字符串。】
+*/
 void sqlite3AddColumnType(Parse *pParse, Token *pType){
-  Table *p;
-  Column *pCol;
+	Table *p;
+	Column *pCol;
 
-  p = pParse->pNewTable;
-  if( p==0 || NEVER(p->nCol<1) ) return;
-  pCol = &p->aCol[p->nCol-1];
-  assert( pCol->zType==0 );
-  pCol->zType = sqlite3NameFromToken(pParse->db, pType);
-  pCol->affinity = sqlite3AffinityType(pCol->zType);
+	p = pParse->pNewTable;
+	if (p == 0 || NEVER(p->nCol<1)) return;
+	pCol = &p->aCol[p->nCol - 1];//找到当前创建的列
+	assert(pCol->zType == 0);
+	pCol->zType = sqlite3NameFromToken(pParse->db, pType);//列的类型
+	pCol->affinity = sqlite3AffinityType(pCol->zType);//相关联的类型
 }
 
 /*
 ** The expression is the default value for the most recently added column
-** of the table currently under construction.
+** of the table currently under construction.【这个表达式是一个默认值对于当前正在创建的表的最近增添的列。】
 **
 ** Default value expressions must be constant.  Raise an exception if this
-** is not the case.
+** is not the case.【默认值表达式必须是常量。如果不是这种情况引发一个异常。】
 **
 ** This routine is called by the parser while in the middle of
-** parsing a CREATE TABLE statement.
+** parsing a CREATE TABLE statement.【当解析CREATE TABLE语句的时候就会调用这个例程的解析器。】
 */
 void sqlite3AddDefaultValue(Parse *pParse, ExprSpan *pSpan){
-  Table *p;
-  Column *pCol;
-  sqlite3 *db = pParse->db;
-  p = pParse->pNewTable;
-  if( p!=0 ){
-    pCol = &(p->aCol[p->nCol-1]);
-    if( !sqlite3ExprIsConstantOrFunction(pSpan->pExpr) ){
-      sqlite3ErrorMsg(pParse, "default value of column [%s] is not constant",
-          pCol->zName);
-    }else{
-      /* A copy of pExpr is used instead of the original, as pExpr contains
-      ** tokens that point to volatile memory. The 'span' of the expression
-      ** is required by pragma table_info.
-      */
-      sqlite3ExprDelete(db, pCol->pDflt);
-      pCol->pDflt = sqlite3ExprDup(db, pSpan->pExpr, EXPRDUP_REDUCE);
-      sqlite3DbFree(db, pCol->zDflt);
-      pCol->zDflt = sqlite3DbStrNDup(db, (char*)pSpan->zStart,
-                                     (int)(pSpan->zEnd - pSpan->zStart));
-    }
-  }
-  sqlite3ExprDelete(db, pSpan->pExpr);
+	Table *p;
+	Column *pCol;
+	sqlite3 *db = pParse->db;
+	p = pParse->pNewTable;
+	if (p != 0){
+		pCol = &(p->aCol[p->nCol - 1]);
+		if (!sqlite3ExprIsConstantOrFunction(pSpan->pExpr)){//默认值表达式必须是常量。如果不是这种情况引发一个异常
+			sqlite3ErrorMsg(pParse, "default value of column [%s] is not constant",
+				pCol->zName);
+		}
+		else{
+			/* A copy of pExpr is used instead of the original, as pExpr contains
+			** tokens that point to volatile memory. The 'span' of the expression
+			** is required by pragma table_info.【pExpr用于代替原来的副本，当pExpr包含指向易失存储器的符号时。
+			'span'表达式需要编译table_info。】
+			*/
+			sqlite3ExprDelete(db, pCol->pDflt);//先删除，默认值
+			pCol->pDflt = sqlite3ExprDup(db, pSpan->pExpr, EXPRDUP_REDUCE);//在复制
+			sqlite3DbFree(db, pCol->zDflt);//释放原始默认值
+			pCol->zDflt = sqlite3DbStrNDup(db, (char*)pSpan->zStart,
+				(int)(pSpan->zEnd - pSpan->zStart));//把(char*)pSpan->zStart中的值复制给pCol->zDflt 
+		}
+	}
+	sqlite3ExprDelete(db, pSpan->pExpr);
 }
 
 /*
-** Designate the PRIMARY KEY for the table.  pList is a list of names 
+** Designate the PRIMARY KEY for the table.  pList is a list of names
 ** of columns that form the primary key.  If pList is NULL, then the
-** most recently added column of the table is the primary key.
+** most recently added column of the table is the primary key.【给表指派外键。pList代表的是一系列构成主键列的名字。如果pList为空，则表的最近增加的列为主键。】
 **
 ** A table can have at most one primary key.  If the table already has
 ** a primary key (and this is the second primary key) then create an
-** error.
+** error.【一个表最多有一个主键。如果表已经存在一个主键（并且这是第二个主键）然后建立一个错误。】
 **
 ** If the PRIMARY KEY is on a single column whose datatype is INTEGER,
 ** then we will try to use that column as the rowid.  Set the Table.iPKey
 ** field of the table under construction to be the index of the
 ** INTEGER PRIMARY KEY column.  Table.iPKey is set to -1 if there is
-** no INTEGER PRIMARY KEY.
+** no INTEGER PRIMARY KEY.【如果这个主键是建立在单一列上，这一列的数据类型是INTEGER，那么我们将会试图用这一列作为rowid.
+为正在创建的表设置Table.iPKey字段，作为INTEGER PRIMARY KEY列的索引。如果没有INTEGER PRIMARY KEY，则Table.iPKey设定为-1.】
 **
 ** If the key is not an INTEGER PRIMARY KEY, then create a unique
-** index for the key.  No index is created for INTEGER PRIMARY KEYs.
+** index for the key.  No index is created for INTEGER PRIMARY KEYs.【如果这个键不是INTEGER PRIMARY KEY，那么为这个键创建一个唯一的索引。 INTEGER PRIMARY KEYs是不创建索引的。】
 */
 void sqlite3AddPrimaryKey(
-  Parse *pParse,    /* Parsing context */
-  ExprList *pList,  /* List of field names to be indexed */
-  int onError,      /* What to do with a uniqueness conflict */
-  int autoInc,      /* True if the AUTOINCREMENT keyword is present */
-  int sortOrder     /* SQLITE_SO_ASC or SQLITE_SO_DESC */
-){
-  Table *pTab = pParse->pNewTable;
-  char *zType = 0;
-  int iCol = -1, i;
-  if( pTab==0 || IN_DECLARE_VTAB ) goto primary_key_exit;
-  if( pTab->tabFlags & TF_HasPrimaryKey ){
-    sqlite3ErrorMsg(pParse, 
-      "table \"%s\" has more than one primary key", pTab->zName);
-    goto primary_key_exit;
-  }
-  pTab->tabFlags |= TF_HasPrimaryKey;
-  if( pList==0 ){
-    iCol = pTab->nCol - 1;
-    pTab->aCol[iCol].isPrimKey = 1;
-  }else{
-    for(i=0; i<pList->nExpr; i++){
-      for(iCol=0; iCol<pTab->nCol; iCol++){
-        if( sqlite3StrICmp(pList->a[i].zName, pTab->aCol[iCol].zName)==0 ){
-          break;
-        }
-      }
-      if( iCol<pTab->nCol ){
-        pTab->aCol[iCol].isPrimKey = 1;
-      }
-    }
-    if( pList->nExpr>1 ) iCol = -1;
-  }
-  if( iCol>=0 && iCol<pTab->nCol ){
-    zType = pTab->aCol[iCol].zType;
-  }
-  if( zType && sqlite3StrICmp(zType, "INTEGER")==0
-        && sortOrder==SQLITE_SO_ASC ){
-    pTab->iPKey = iCol;
-    pTab->keyConf = (u8)onError;
-    assert( autoInc==0 || autoInc==1 );
-    pTab->tabFlags |= autoInc*TF_Autoincrement;
-  }else if( autoInc ){
+	Parse *pParse,    /* Parsing context */
+	ExprList *pList,  /* List of field names to be indexed【被编入索引的一系列名称】 */
+	int onError,      /* What to do with a uniqueness conflict【如何处理唯一型冲突】 */
+	int autoInc,      /* True if the AUTOINCREMENT keyword is present 【如果关键字AUTOINCREMENT存在，则为true】*/
+	int sortOrder     /* SQLITE_SO_ASC or SQLITE_SO_DESC */
+	){
+	Table *pTab = pParse->pNewTable;
+	char *zType = 0;
+	int iCol = -1, i;
+	if (pTab == 0 || IN_DECLARE_VTAB) goto primary_key_exit;
+	if (pTab->tabFlags & TF_HasPrimaryKey){
+		sqlite3ErrorMsg(pParse,
+			"table \"%s\" has more than one primary key", pTab->zName);
+		goto primary_key_exit;
+	}
+	pTab->tabFlags |= TF_HasPrimaryKey;
+	if (pList == 0){
+		iCol = pTab->nCol - 1;
+		pTab->aCol[iCol].isPrimKey = 1;
+	}
+	else{
+		for (i = 0; i<pList->nExpr; i++){
+			for (iCol = 0; iCol<pTab->nCol; iCol++){
+				if (sqlite3StrICmp(pList->a[i].zName, pTab->aCol[iCol].zName) == 0){
+					break;
+				}
+			}
+			if (iCol<pTab->nCol){
+				pTab->aCol[iCol].isPrimKey = 1;
+			}
+		}
+		if (pList->nExpr>1) iCol = -1;
+	}
+	if (iCol >= 0 && iCol<pTab->nCol){
+		zType = pTab->aCol[iCol].zType;
+	}
+	if (zType && sqlite3StrICmp(zType, "INTEGER") == 0
+		&& sortOrder == SQLITE_SO_ASC){
+		pTab->iPKey = iCol;
+		pTab->keyConf = (u8)onError;
+		assert(autoInc == 0 || autoInc == 1);
+		pTab->tabFlags |= autoInc*TF_Autoincrement;
+	}
+	else if (autoInc){
 #ifndef SQLITE_OMIT_AUTOINCREMENT
-    sqlite3ErrorMsg(pParse, "AUTOINCREMENT is only allowed on an "
-       "INTEGER PRIMARY KEY");
+		sqlite3ErrorMsg(pParse, "AUTOINCREMENT is only allowed on an "
+			"INTEGER PRIMARY KEY");
 #endif
-  }else{
-    Index *p;
-    p = sqlite3CreateIndex(pParse, 0, 0, 0, pList, onError, 0, 0, sortOrder, 0);
-    if( p ){
-      p->autoIndex = 2;
-    }
-    pList = 0;
-  }
+	}
+	else{
+		Index *p;
+		p = sqlite3CreateIndex(pParse, 0, 0, 0, pList, onError, 0, 0, sortOrder, 0);
+		if (p){
+			p->autoIndex = 2;
+		}
+		pList = 0;
+	}
 
 primary_key_exit:
-  sqlite3ExprListDelete(pParse->db, pList);
-  return;
+	sqlite3ExprListDelete(pParse->db, pList);
+	return;
 }
 
 /*
-** Add a new CHECK constraint to the table currently under construction.
+** Add a new CHECK constraint to the table currently under construction.【为当前正在创建的表添加一个新的CHECK约束。】
 */
 void sqlite3AddCheckConstraint(
-  Parse *pParse,    /* Parsing context */
-  Expr *pCheckExpr  /* The check expression */
-){
+	Parse *pParse,    /* Parsing context */
+	Expr *pCheckExpr  /* The check expression */
+	){
 #ifndef SQLITE_OMIT_CHECK
-  Table *pTab = pParse->pNewTable;
-  if( pTab && !IN_DECLARE_VTAB ){
-    pTab->pCheck = sqlite3ExprListAppend(pParse, pTab->pCheck, pCheckExpr);
-    if( pParse->constraintName.n ){
-      sqlite3ExprListSetName(pParse, pTab->pCheck, &pParse->constraintName, 1);
-    }
-  }else
+	Table *pTab = pParse->pNewTable;
+	if (pTab && !IN_DECLARE_VTAB){
+		pTab->pCheck = sqlite3ExprListAppend(pParse, pTab->pCheck, pCheckExpr);
+		if (pParse->constraintName.n){
+			sqlite3ExprListSetName(pParse, pTab->pCheck, &pParse->constraintName, 1);
+		}
+	}
+	else
 #endif
-  {
-    sqlite3ExprDelete(pParse->db, pCheckExpr);
-  }
+	{
+		sqlite3ExprDelete(pParse->db, pCheckExpr);
+	}
 }
 
 /*
 ** Set the collation function of the most recently parsed table column
-** to the CollSeq given.
+** to the CollSeq given.【设置最近的排序函数解析CollSeq给定的表列。】
 */
 void sqlite3AddCollateType(Parse *pParse, Token *pToken){
-  Table *p;
-  int i;
-  char *zColl;              /* Dequoted name of collation sequence */
-  sqlite3 *db;
+	Table *p;
+	int i;
+	char *zColl;              /* Dequoted name of collation sequence */
+	sqlite3 *db;
 
-  if( (p = pParse->pNewTable)==0 ) return;
-  i = p->nCol-1;
-  db = pParse->db;
-  zColl = sqlite3NameFromToken(db, pToken);
-  if( !zColl ) return;
+	if ((p = pParse->pNewTable) == 0) return;
+	i = p->nCol - 1;
+	db = pParse->db;
+	zColl = sqlite3NameFromToken(db, pToken);
+	if (!zColl) return;
 
-  if( sqlite3LocateCollSeq(pParse, zColl) ){
-    Index *pIdx;
-    p->aCol[i].zColl = zColl;
-  
-    /* If the column is declared as "<name> PRIMARY KEY COLLATE <type>",
-    ** then an index may have been created on this column before the
-    ** collation type was added. Correct this if it is the case.
-    */
-    for(pIdx=p->pIndex; pIdx; pIdx=pIdx->pNext){
-      assert( pIdx->nColumn==1 );
-      if( pIdx->aiColumn[0]==i ){
-        pIdx->azColl[0] = p->aCol[i].zColl;
-      }
-    }
-  }else{
-    sqlite3DbFree(db, zColl);
-  }
+	if (sqlite3LocateCollSeq(pParse, zColl)){
+		Index *pIdx;
+		p->aCol[i].zColl = zColl;
+
+		/* If the column is declared as "<name> PRIMARY KEY COLLATE <type>",
+		** then an index may have been created on this column before the
+		** collation type was added. Correct this if it is the case.【如果这一列被声明称为"<name> PRIMARY KEY COLLATE <type>"这样的列，
+		那么在排序模式增加之前，在这个列上一个索引也许就要被创建。】
+		*/
+		for (pIdx = p->pIndex; pIdx; pIdx = pIdx->pNext){
+			assert(pIdx->nColumn == 1);
+			if (pIdx->aiColumn[0] == i){
+				pIdx->azColl[0] = p->aCol[i].zColl;
+			}
+		}
+	}
+	else{
+		sqlite3DbFree(db, zColl);
+	}
 }
 
 /*
 ** This function returns the collation sequence for database native text
-** encoding identified by the string zName, length nName.
+** encoding identified by the string zName, length nName.【这个函数返回的是数据库本地文件编码的排序序列，用字符串zName识别，长度由nName识别。】
 **
 ** If the requested collation sequence is not available, or not available
 ** in the database native encoding, the collation factory is invoked to
 ** request it. If the collation factory does not supply such a sequence,
 ** and the sequence is available in another text encoding, then that is
-** returned instead.
+** returned instead.【如果这个所需的对照序列是无效的，或者是在数据库本地编码中无效，那么这个序列工厂就会被唤醒为了请求这个序列。
+如果这个序列工厂没有提供这样的一个序列和这个序列是无效的在另一个文本编码中，那么这将被代替返回。】
 **
 ** If no versions of the requested collations sequence are available, or
 ** another error occurs, NULL is returned and an error message written into
-** pParse.
+** pParse.【如果没有所需对照序列的版本可用，或是出现另一个错误，返回NULL，并且把错误信息写入pParse中。】
 **
 ** This routine is a wrapper around sqlite3FindCollSeq().  This routine
 ** invokes the collation factory if the named collation cannot be found
@@ -1326,471 +1344,486 @@ void sqlite3AddCollateType(Parse *pParse, Token *pToken){
 ** See also: sqlite3FindCollSeq(), sqlite3GetCollSeq()
 */
 CollSeq *sqlite3LocateCollSeq(Parse *pParse, const char *zName){
-  sqlite3 *db = pParse->db;
-  u8 enc = ENC(db);
-  u8 initbusy = db->init.busy;
-  CollSeq *pColl;
+	sqlite3 *db = pParse->db;
+	u8 enc = ENC(db);
+	u8 initbusy = db->init.busy;
+	CollSeq *pColl;
 
-  pColl = sqlite3FindCollSeq(db, enc, zName, initbusy);
-  if( !initbusy && (!pColl || !pColl->xCmp) ){
-    pColl = sqlite3GetCollSeq(db, enc, pColl, zName);
-    if( !pColl ){
-      sqlite3ErrorMsg(pParse, "no such collation sequence: %s", zName);
-    }
-  }
+	pColl = sqlite3FindCollSeq(db, enc, zName, initbusy);
+	if (!initbusy && (!pColl || !pColl->xCmp)){
+		pColl = sqlite3GetCollSeq(db, enc, pColl, zName);
+		if (!pColl){
+			sqlite3ErrorMsg(pParse, "no such collation sequence: %s", zName);
+		}
+	}
 
-  return pColl;
+	return pColl;
 }
 
 
+
 /*
-** Generate code that will increment the schema cookie.
+** Generate code that will increment the schema cookie.【产生代码将增加模式cookie.】
 **
 ** The schema cookie is used to determine when the schema for the
 ** database changes.  After each schema change, the cookie value
 ** changes.  When a process first reads the schema it records the
 ** cookie.  Thereafter, whenever it goes to access the database,
 ** it checks the cookie to make sure the schema has not changed
-** since it was last read.
+** since it was last read.【这个模式cookie是用于确定数据库模式改变时间。没有模式改变以后，这个cookie属性就会改变。当一个进程首先读取这个cookie时，
+这个进程就会记录这个cookie值。因此，无论这个进程什么时候访问数据库，它都会检查这个cookie值确定这个模式没有被改变，这个过程直到进程读取到最后。】
 **
 ** This plan is not completely bullet-proof.  It is possible for
 ** the schema to change multiple times and for the cookie to be
 ** set back to prior value.  But schema changes are infrequent
 ** and the probability of hitting the same cookie value is only
-** 1 chance in 2^32.  So we're safe enough.
+** 1 chance in 2^32.  So we're safe enough.【这个计划是不完全防护的。对于这个模式可能改变了多次和也可能这个cookie设定会原来的属性值。但是模式改变时很少的，
+并且一样的cookie属性值碰撞的可能性仅仅一次在2^32下。因此我们是比较安全的。】
 */
 void sqlite3ChangeCookie(Parse *pParse, int iDb){
-  int r1 = sqlite3GetTempReg(pParse);
-  sqlite3 *db = pParse->db;
-  Vdbe *v = pParse->pVdbe;
-  assert( sqlite3SchemaMutexHeld(db, iDb, 0) );
-  sqlite3VdbeAddOp2(v, OP_Integer, db->aDb[iDb].pSchema->schema_cookie+1, r1);
-  sqlite3VdbeAddOp3(v, OP_SetCookie, iDb, BTREE_SCHEMA_VERSION, r1);
-  sqlite3ReleaseTempReg(pParse, r1);
+	int r1 = sqlite3GetTempReg(pParse);
+	sqlite3 *db = pParse->db;
+	Vdbe *v = pParse->pVdbe;
+	assert(sqlite3SchemaMutexHeld(db, iDb, 0));
+	sqlite3VdbeAddOp2(v, OP_Integer, db->aDb[iDb].pSchema->schema_cookie + 1, r1);
+	sqlite3VdbeAddOp3(v, OP_SetCookie, iDb, BTREE_SCHEMA_VERSION, r1);
+	sqlite3ReleaseTempReg(pParse, r1);
 }
 
 /*
 ** Measure the number of characters needed to output the given
 ** identifier.  The number returned includes any quotes used
-** but does not include the null terminator.
+** but does not include the null terminator.【衡量一下输出所需的字符数、给出的标识符。包括使用的任何引用返回的数量，但是包含的空终结器不返回。】
 **
 ** The estimate is conservative.  It might be larger that what is
-** really needed.
+** really needed.【这个估量是保守的。也许比真实所需的更大。】
 */
 static int identLength(const char *z){
-  int n;
-  for(n=0; *z; n++, z++){
-    if( *z=='"' ){ n++; }
-  }
-  return n + 2;
+	int n;
+	for (n = 0; *z; n++, z++){
+		if (*z == '"'){ n++; }
+	}
+	return n + 2;
 }
 
 /*
-** The first parameter is a pointer to an output buffer. The second 
+** The first parameter is a pointer to an output buffer. The second
 ** parameter is a pointer to an integer that contains the offset at
 ** which to write into the output buffer. This function copies the
 ** nul-terminated string pointed to by the third parameter, zSignedIdent,
 ** to the specified offset in the buffer and updates *pIdx to refer
-** to the first byte after the last byte written before returning.
-** 
+** to the first byte after the last byte written before returning.【第一个参数指向一个输出缓冲区指针。
+第二个参数是一个指向一个整数的指针,这个整数包含的抵消编写到输出缓冲区。这个函数复制第三个参数（zSignedIdent）指向的空终止字符串，
+这个指定的zSignedIdent在缓冲器总抵消和更新*pIdx参照第一个字符在最后一个字符写入之后，而且在返回之前。】
+**
 ** If the string zSignedIdent consists entirely of alpha-numeric
 ** characters, does not begin with a digit and is not an SQL keyword,
 ** then it is copied to the output buffer exactly as it is. Otherwise,
-** it is quoted using double-quotes.
+** it is quoted using double-quotes.【如果这个字符串完全由文字数字组成，不是以一个数字符号开头，也不是以一个SQL关键字开头，
+那么这个字符串就会被完全拷贝到输出缓冲区。否则，这个字符串就用双引号引住。】
 */
 static void identPut(char *z, int *pIdx, char *zSignedIdent){
-  unsigned char *zIdent = (unsigned char*)zSignedIdent;
-  int i, j, needQuote;
-  i = *pIdx;
+	unsigned char *zIdent = (unsigned char*)zSignedIdent;
+	int i, j, needQuote;
+	i = *pIdx;
 
-  for(j=0; zIdent[j]; j++){
-    if( !sqlite3Isalnum(zIdent[j]) && zIdent[j]!='_' ) break;
-  }
-  needQuote = sqlite3Isdigit(zIdent[0]) || sqlite3KeywordCode(zIdent, j)!=TK_ID;
-  if( !needQuote ){
-    needQuote = zIdent[j];
-  }
+	for (j = 0; zIdent[j]; j++){
+		if (!sqlite3Isalnum(zIdent[j]) && zIdent[j] != '_') break;
+	}
+	needQuote = sqlite3Isdigit(zIdent[0]) || sqlite3KeywordCode(zIdent, j) != TK_ID;
+	if (!needQuote){
+		needQuote = zIdent[j];
+	}
 
-  if( needQuote ) z[i++] = '"';
-  for(j=0; zIdent[j]; j++){
-    z[i++] = zIdent[j];
-    if( zIdent[j]=='"' ) z[i++] = '"';
-  }
-  if( needQuote ) z[i++] = '"';
-  z[i] = 0;
-  *pIdx = i;
+	if (needQuote) z[i++] = '"';
+	for (j = 0; zIdent[j]; j++){
+		z[i++] = zIdent[j];
+		if (zIdent[j] == '"') z[i++] = '"';
+	}
+	if (needQuote) z[i++] = '"';
+	z[i] = 0;
+	*pIdx = i;
 }
 
 /*
 ** Generate a CREATE TABLE statement appropriate for the given
 ** table.  Memory to hold the text of the statement is obtained
-** from sqliteMalloc() and must be freed by the calling function.
+** from sqliteMalloc() and must be freed by the calling function.【生产一个CREATE TABLE语句适合给定的表。
+内存保存从sqliteMalloc()获得的文本声明，并且内存必须是通过调用函数释放。】
 */
 static char *createTableStmt(sqlite3 *db, Table *p){
-  int i, k, n;
-  char *zStmt;
-  char *zSep, *zSep2, *zEnd;
-  Column *pCol;
-  n = 0;
-  for(pCol = p->aCol, i=0; i<p->nCol; i++, pCol++){
-    n += identLength(pCol->zName) + 5;
-  }
-  n += identLength(p->zName);
-  if( n<50 ){ 
-    zSep = "";
-    zSep2 = ",";
-    zEnd = ")";
-  }else{
-    zSep = "\n  ";
-    zSep2 = ",\n  ";
-    zEnd = "\n)";
-  }
-  n += 35 + 6*p->nCol;
-  zStmt = sqlite3DbMallocRaw(0, n);
-  if( zStmt==0 ){
-    db->mallocFailed = 1;
-    return 0;
-  }
-  sqlite3_snprintf(n, zStmt, "CREATE TABLE ");
-  k = sqlite3Strlen30(zStmt);
-  identPut(zStmt, &k, p->zName);
-  zStmt[k++] = '(';
-  for(pCol=p->aCol, i=0; i<p->nCol; i++, pCol++){
-    static const char * const azType[] = {
-        /* SQLITE_AFF_TEXT    */ " TEXT",
-        /* SQLITE_AFF_NONE    */ "",
-        /* SQLITE_AFF_NUMERIC */ " NUM",
-        /* SQLITE_AFF_INTEGER */ " INT",
-        /* SQLITE_AFF_REAL    */ " REAL"
-    };
-    int len;
-    const char *zType;
+	int i, k, n;
+	char *zStmt;
+	char *zSep, *zSep2, *zEnd;
+	Column *pCol;
+	n = 0;
+	for (pCol = p->aCol, i = 0; i<p->nCol; i++, pCol++){
+		n += identLength(pCol->zName) + 5;
+	}
+	n += identLength(p->zName);
+	if (n<50){
+		zSep = "";
+		zSep2 = ",";
+		zEnd = ")";
+	}
+	else{
+		zSep = "\n  ";
+		zSep2 = ",\n  ";
+		zEnd = "\n)";
+	}
+	n += 35 + 6 * p->nCol;
+	zStmt = sqlite3DbMallocRaw(0, n);
+	if (zStmt == 0){
+		db->mallocFailed = 1;
+		return 0;
+	}
+	sqlite3_snprintf(n, zStmt, "CREATE TABLE ");
+	k = sqlite3Strlen30(zStmt);
+	identPut(zStmt, &k, p->zName);
+	zStmt[k++] = '(';
+	for (pCol = p->aCol, i = 0; i<p->nCol; i++, pCol++){
+		static const char * const azType[] = {
+			/* SQLITE_AFF_TEXT    */ " TEXT",
+			/* SQLITE_AFF_NONE    */ "",
+			/* SQLITE_AFF_NUMERIC */ " NUM",
+			/* SQLITE_AFF_INTEGER */ " INT",
+			/* SQLITE_AFF_REAL    */ " REAL"
+		};
+		int len;
+		const char *zType;
 
-    sqlite3_snprintf(n-k, &zStmt[k], zSep);
-    k += sqlite3Strlen30(&zStmt[k]);
-    zSep = zSep2;
-    identPut(zStmt, &k, pCol->zName);
-    assert( pCol->affinity-SQLITE_AFF_TEXT >= 0 );
-    assert( pCol->affinity-SQLITE_AFF_TEXT < ArraySize(azType) );
-    testcase( pCol->affinity==SQLITE_AFF_TEXT );
-    testcase( pCol->affinity==SQLITE_AFF_NONE );
-    testcase( pCol->affinity==SQLITE_AFF_NUMERIC );
-    testcase( pCol->affinity==SQLITE_AFF_INTEGER );
-    testcase( pCol->affinity==SQLITE_AFF_REAL );
-    
-    zType = azType[pCol->affinity - SQLITE_AFF_TEXT];
-    len = sqlite3Strlen30(zType);
-    assert( pCol->affinity==SQLITE_AFF_NONE 
-            || pCol->affinity==sqlite3AffinityType(zType) );
-    memcpy(&zStmt[k], zType, len);
-    k += len;
-    assert( k<=n );
-  }
-  sqlite3_snprintf(n-k, &zStmt[k], "%s", zEnd);
-  return zStmt;
+		sqlite3_snprintf(n - k, &zStmt[k], zSep);
+		k += sqlite3Strlen30(&zStmt[k]);
+		zSep = zSep2;
+		identPut(zStmt, &k, pCol->zName);
+		assert(pCol->affinity - SQLITE_AFF_TEXT >= 0);
+		assert(pCol->affinity - SQLITE_AFF_TEXT < ArraySize(azType));
+		testcase(pCol->affinity == SQLITE_AFF_TEXT);
+		testcase(pCol->affinity == SQLITE_AFF_NONE);
+		testcase(pCol->affinity == SQLITE_AFF_NUMERIC);
+		testcase(pCol->affinity == SQLITE_AFF_INTEGER);
+		testcase(pCol->affinity == SQLITE_AFF_REAL);
+
+		zType = azType[pCol->affinity - SQLITE_AFF_TEXT];
+		len = sqlite3Strlen30(zType);
+		assert(pCol->affinity == SQLITE_AFF_NONE
+			|| pCol->affinity == sqlite3AffinityType(zType));
+		memcpy(&zStmt[k], zType, len);
+		k += len;
+		assert(k <= n);
+	}
+	sqlite3_snprintf(n - k, &zStmt[k], "%s", zEnd);
+	return zStmt;
 }
 
 /*
 ** This routine is called to report the final ")" that terminates
-** a CREATE TABLE statement.
+** a CREATE TABLE statement.这段代码被调用去报告最终一个CREATE TABLE语句“）”。
 **
 ** The table structure that other action routines have been building
 ** is added to the internal hash tables, assuming no errors have
-** occurred.
+** occurred.【其他操作例程的表结构建立被添加到内部哈希表，这些操作例程假设没有发生错误。】
 **
 ** An entry for the table is made in the master table on disk, unless
 ** this is a temporary table or db->init.busy==1.  When db->init.busy==1
 ** it means we are reading the sqlite_master table because we just
 ** connected to the database or because the sqlite_master table has
 ** recently changed, so the entry for this table already exists in
-** the sqlite_master table.  We do not want to create it again.
+** the sqlite_master table.  We do not want to create it again.【一个表的条目是被建立在主表磁盘上，临时表或db->init.busy==1情况除外。
+当db->init.busy==1时意思是我们正在读取这个sqlite主表，因为我们只是连接到数据库或是因为这个sqlite主表最近发生了改变，
+因此这个表的条目在sqlite主表中已经存在。我们不限再次重建这个表的条目。】
 **
 ** If the pSelect argument is not NULL, it means that this routine
-** was called to create a table generated from a 
+** was called to create a table generated from a
 ** "CREATE TABLE ... AS SELECT ..." statement.  The column names of
-** the new table will match the result set of the SELECT.
+** the new table will match the result set of the SELECT.【如果pSelect的内容是NULL，意思是这个例程被调用去创建一个产生于 "CREATE TABLE ... AS SELECT ..." 语句的表。
+新建表的列名将与这个SELECT设定的结果相匹配。】
 */
 void sqlite3EndTable(
-  Parse *pParse,          /* Parse context */
-  Token *pCons,           /* The ',' token after the last column defn. */
-  Token *pEnd,            /* The final ')' token in the CREATE TABLE */
-  Select *pSelect         /* Select from a "CREATE ... AS SELECT" */
-){
-  Table *p;
-  sqlite3 *db = pParse->db;
-  int iDb;
+	Parse *pParse,          /* Parse context */
+	Token *pCons,           /* The ',' token after the last column defn. */
+	Token *pEnd,            /* The final ')' token in the CREATE TABLE */
+	Select *pSelect         /* Select from a "CREATE ... AS SELECT" */
+	){
+	Table *p;
+	sqlite3 *db = pParse->db;
+	int iDb;
 
-  if( (pEnd==0 && pSelect==0) || db->mallocFailed ){
-    return;
-  }
-  p = pParse->pNewTable;
-  if( p==0 ) return;
+	if ((pEnd == 0 && pSelect == 0) || db->mallocFailed){
+		return;
+	}
+	p = pParse->pNewTable;
+	if (p == 0) return;
 
-  assert( !db->init.busy || !pSelect );
+	assert(!db->init.busy || !pSelect);
 
-  iDb = sqlite3SchemaToIndex(db, p->pSchema);
+	iDb = sqlite3SchemaToIndex(db, p->pSchema);
 
 #ifndef SQLITE_OMIT_CHECK
-  /* Resolve names in all CHECK constraint expressions.
-  */
-  if( p->pCheck ){
-    SrcList sSrc;                   /* Fake SrcList for pParse->pNewTable */
-    NameContext sNC;                /* Name context for pParse->pNewTable */
-    ExprList *pList;                /* List of all CHECK constraints */
-    int i;                          /* Loop counter */
+	/* Resolve names in all CHECK constraint expressions.【用所有的CHECK约束表达式确定名字。】
+	*/
+	if (p->pCheck){
+		SrcList sSrc;                   /* Fake SrcList for pParse->pNewTable【为 pParse->pNewTable假设SrcList】 */
+		NameContext sNC;                /* Name context for pParse->pNewTable  【为pParse->pNewTable记录名称上下文】*/
+		ExprList *pList;                /* List of all CHECK constraints【所有CHECK约束的列表】 */
+		int i;                          /* Loop counter【循环计数器】 */
 
-    memset(&sNC, 0, sizeof(sNC));
-    memset(&sSrc, 0, sizeof(sSrc));
-    sSrc.nSrc = 1;
-    sSrc.a[0].zName = p->zName;
-    sSrc.a[0].pTab = p;
-    sSrc.a[0].iCursor = -1;
-    sNC.pParse = pParse;
-    sNC.pSrcList = &sSrc;
-    sNC.ncFlags = NC_IsCheck;
-    pList = p->pCheck;
-    for(i=0; i<pList->nExpr; i++){
-      if( sqlite3ResolveExprNames(&sNC, pList->a[i].pExpr) ){
-        return;
-      }
-    }
-  }
+		memset(&sNC, 0, sizeof(sNC));
+		memset(&sSrc, 0, sizeof(sSrc));
+		sSrc.nSrc = 1;
+		sSrc.a[0].zName = p->zName;
+		sSrc.a[0].pTab = p;
+		sSrc.a[0].iCursor = -1;
+		sNC.pParse = pParse;
+		sNC.pSrcList = &sSrc;
+		sNC.ncFlags = NC_IsCheck;
+		pList = p->pCheck;
+		for (i = 0; i<pList->nExpr; i++){
+			if (sqlite3ResolveExprNames(&sNC, pList->a[i].pExpr)){
+				return;
+			}
+		}
+	}
 #endif /* !defined(SQLITE_OMIT_CHECK) */
 
-  /* If the db->init.busy is 1 it means we are reading the SQL off the
-  ** "sqlite_master" or "sqlite_temp_master" table on the disk.
-  ** So do not write to the disk again.  Extract the root page number
-  ** for the table from the db->init.newTnum field.  (The page number
-  ** should have been put there by the sqliteOpenCb routine.)
-  */
-  if( db->init.busy ){
-    p->tnum = db->init.newTnum;
-  }
+	/* If the db->init.busy is 1 it means we are reading the SQL off the
+	** "sqlite_master" or "sqlite_temp_master" table on the disk.
+	** So do not write to the disk again.  Extract the root page number
+	** for the table from the db->init.newTnum field.  (The page number
+	** should have been put there by the sqliteOpenCb routine.)【如果db->init.busy是1意思是我们正在读取SQL语句"sqlite_master"或磁盘上的"sqlite_temp_master"表。
+	从 db->init.newTnum 中提取出这个表根页码数。（这个页码数应该是通过sqliteOpenCb例程放在db->init.newTnum那里的。）】
+	*/
+	if (db->init.busy){
+		p->tnum = db->init.newTnum;
+	}
 
-  /* If not initializing, then create a record for the new table
-  ** in the SQLITE_MASTER table of the database.
-  **
-  ** If this is a TEMPORARY table, write the entry into the auxiliary
-  ** file instead of into the main database file.
-  */
-  if( !db->init.busy ){
-    int n;
-    Vdbe *v;
-    char *zType;    /* "view" or "table" */
-    char *zType2;   /* "VIEW" or "TABLE" */
-    char *zStmt;    /* Text of the CREATE TABLE or CREATE VIEW statement */
+	/* If not initializing, then create a record for the new table
+	** in the SQLITE_MASTER table of the database.【如果没有初始化，那么在数据库的SQLITE_MASTER表中创建一个新表记录。】
+	**
+	** If this is a TEMPORARY table, write the entry into the auxiliary
+	** file instead of into the main database file.【如果是一个临时表，则把这个表条目写入辅助文件而不是写入主数据库文件。】
+	*/
+	if (!db->init.busy){
+		int n;
+		Vdbe *v;
+		char *zType;    /* "view" or "table" */
+		char *zType2;   /* "VIEW" or "TABLE" */
+		char *zStmt;    /* Text of the CREATE TABLE or CREATE VIEW statement */
 
-    v = sqlite3GetVdbe(pParse);
-    if( NEVER(v==0) ) return;
+		v = sqlite3GetVdbe(pParse);
+		if (NEVER(v == 0)) return;
 
-    sqlite3VdbeAddOp1(v, OP_Close, 0);
+		sqlite3VdbeAddOp1(v, OP_Close, 0);
 
-    /* 
-    ** Initialize zType for the new view or table.
-    */
-    if( p->pSelect==0 ){
-      /* A regular table */
-      zType = "table";
-      zType2 = "TABLE";
+		/*
+		** Initialize zType for the new view or table.【为新视图或表初始化zType】
+		*/
+		if (p->pSelect == 0){
+			/* A regular table【一个常规表】 */
+			zType = "table";
+			zType2 = "TABLE";
 #ifndef SQLITE_OMIT_VIEW
-    }else{
-      /* A view */
-      zType = "view";
-      zType2 = "VIEW";
+		}
+		else{
+			/* A view */
+			zType = "view";
+			zType2 = "VIEW";
 #endif
-    }
+		}
 
-    /* If this is a CREATE TABLE xx AS SELECT ..., execute the SELECT
-    ** statement to populate the new table. The root-page number for the
-    ** new table is in register pParse->regRoot.
-    **
-    ** Once the SELECT has been coded by sqlite3Select(), it is in a
-    ** suitable state to query for the column names and types to be used
-    ** by the new table.
-    **
-    ** A shared-cache write-lock is not required to write to the new table,
-    ** as a schema-lock must have already been obtained to create it. Since
-    ** a schema-lock excludes all other database users, the write-lock would
-    ** be redundant.
-    */
-    if( pSelect ){
-      SelectDest dest;
-      Table *pSelTab;
+		/* If this is a CREATE TABLE xx AS SELECT ..., execute the SELECT
+		** statement to populate the new table. The root-page number for the
+		** new table is in register pParse->regRoot.【如果这是一个CREATE TABLE xx AS SELECT ...，执行SELECT语句填充新表。新表的根页码数保存在寄存器pParse->regRoot中。】
+		**
+		** Once the SELECT has been coded by sqlite3Select(), it is in a
+		** suitable state to query for the column names and types to be used
+		** by the new table.【一旦这个SELECT被编译通过sqlite3Select()，它就会在合适的状态下去计算用于这个新表的列名和属性。】
+		**
+		** A shared-cache write-lock is not required to write to the new table,
+		** as a schema-lock must have already been obtained to create it. Since
+		** a schema-lock excludes all other database users, the write-lock would
+		** be redundant.【不需要共享缓存写锁,写新表,作为一个schema-lock必须已经获得创建它。一旦一个schema-lock包含所有其他的数据库用户，这个写入锁将是多余的。】
+		*/
+		if (pSelect){
+			SelectDest dest;
+			Table *pSelTab;
 
-      assert(pParse->nTab==1);
-      sqlite3VdbeAddOp3(v, OP_OpenWrite, 1, pParse->regRoot, iDb);
-      sqlite3VdbeChangeP5(v, OPFLAG_P2ISREG);
-      pParse->nTab = 2;
-      sqlite3SelectDestInit(&dest, SRT_Table, 1);
-      sqlite3Select(pParse, pSelect, &dest);
-      sqlite3VdbeAddOp1(v, OP_Close, 1);
-      if( pParse->nErr==0 ){
-        pSelTab = sqlite3ResultSetOfSelect(pParse, pSelect);
-        if( pSelTab==0 ) return;
-        assert( p->aCol==0 );
-        p->nCol = pSelTab->nCol;
-        p->aCol = pSelTab->aCol;
-        pSelTab->nCol = 0;
-        pSelTab->aCol = 0;
-        sqlite3DeleteTable(db, pSelTab);
-      }
-    }
+			assert(pParse->nTab == 1);
+			sqlite3VdbeAddOp3(v, OP_OpenWrite, 1, pParse->regRoot, iDb);
+			sqlite3VdbeChangeP5(v, OPFLAG_P2ISREG);
+			pParse->nTab = 2;
+			sqlite3SelectDestInit(&dest, SRT_Table, 1);
+			sqlite3Select(pParse, pSelect, &dest);
+			sqlite3VdbeAddOp1(v, OP_Close, 1);
+			if (pParse->nErr == 0){
+				pSelTab = sqlite3ResultSetOfSelect(pParse, pSelect);
+				if (pSelTab == 0) return;
+				assert(p->aCol == 0);
+				p->nCol = pSelTab->nCol;
+				p->aCol = pSelTab->aCol;
+				pSelTab->nCol = 0;
+				pSelTab->aCol = 0;
+				sqlite3DeleteTable(db, pSelTab);
+			}
+		}
 
-    /* Compute the complete text of the CREATE statement */
-    if( pSelect ){
-      zStmt = createTableStmt(db, p);
-    }else{
-      n = (int)(pEnd->z - pParse->sNameToken.z) + 1;
-      zStmt = sqlite3MPrintf(db, 
-          "CREATE %s %.*s", zType2, n, pParse->sNameToken.z
-      );
-    }
+		/* Compute the complete text of the CREATE statement【计算这个CREATE语句的全文】 */
+		if (pSelect){
+			zStmt = createTableStmt(db, p);
+		}
+		else{
+			n = (int)(pEnd->z - pParse->sNameToken.z) + 1;
+			zStmt = sqlite3MPrintf(db,
+				"CREATE %s %.*s", zType2, n, pParse->sNameToken.z
+				);
+		}
 
-    /* A slot for the record has already been allocated in the 
-    ** SQLITE_MASTER table.  We just need to update that slot with all
-    ** the information we've collected.
-    */
-    sqlite3NestedParse(pParse,
-      "UPDATE %Q.%s "
-         "SET type='%s', name=%Q, tbl_name=%Q, rootpage=#%d, sql=%Q "
-       "WHERE rowid=#%d",
-      db->aDb[iDb].zName, SCHEMA_TABLE(iDb),
-      zType,
-      p->zName,
-      p->zName,
-      pParse->regRoot,
-      zStmt,
-      pParse->regRowid
-    );
-    sqlite3DbFree(db, zStmt);
-    sqlite3ChangeCookie(pParse, iDb);
+		/* A slot for the record has already been allocated in the
+		** SQLITE_MASTER table.  We just need to update that slot with all
+		** the information we've collected.【记录的位置已经被分派到SQLITE_MASTER表中。我们仅仅需要用我们收集的所有信息去更新位置。】
+		*/
+		sqlite3NestedParse(pParse,
+			"UPDATE %Q.%s "
+			"SET type='%s', name=%Q, tbl_name=%Q, rootpage=#%d, sql=%Q "
+			"WHERE rowid=#%d",
+			db->aDb[iDb].zName, SCHEMA_TABLE(iDb),
+			zType,
+			p->zName,
+			p->zName,
+			pParse->regRoot,
+			zStmt,
+			pParse->regRowid
+			);
+		sqlite3DbFree(db, zStmt);
+		sqlite3ChangeCookie(pParse, iDb);
 
 #ifndef SQLITE_OMIT_AUTOINCREMENT
-    /* Check to see if we need to create an sqlite_sequence table for
-    ** keeping track of autoincrement keys.
-    */
-    if( p->tabFlags & TF_Autoincrement ){
-      Db *pDb = &db->aDb[iDb];
-      assert( sqlite3SchemaMutexHeld(db, iDb, 0) );
-      if( pDb->pSchema->pSeqTab==0 ){
-        sqlite3NestedParse(pParse,
-          "CREATE TABLE %Q.sqlite_sequence(name,seq)",
-          pDb->zName
-        );
-      }
-    }
+		/* Check to see if we need to create an sqlite_sequence table for
+		** keeping track of autoincrement keys.【检查看看我们是否需要创建一个sqlite_sequence table表为了跟踪自动增量键。】
+		*/
+		if (p->tabFlags & TF_Autoincrement){
+			Db *pDb = &db->aDb[iDb];
+			assert(sqlite3SchemaMutexHeld(db, iDb, 0));
+			if (pDb->pSchema->pSeqTab == 0){
+				sqlite3NestedParse(pParse,
+					"CREATE TABLE %Q.sqlite_sequence(name,seq)",
+					pDb->zName
+					);
+			}
+		}
 #endif
 
-    /* Reparse everything to update our internal data structures */
-    sqlite3VdbeAddParseSchemaOp(v, iDb,
-               sqlite3MPrintf(db, "tbl_name='%q'", p->zName));
-  }
+		/* Reparse everything to update our internal data structures【重新解析一切更新我们的内部数据结构】 */
+		sqlite3VdbeAddParseSchemaOp(v, iDb,
+			sqlite3MPrintf(db, "tbl_name='%q'", p->zName));
+	}
 
 
-  /* Add the table to the in-memory representation of the database.
-  */
-  if( db->init.busy ){
-    Table *pOld;
-    Schema *pSchema = p->pSchema;
-    assert( sqlite3SchemaMutexHeld(db, iDb, 0) );
-    pOld = sqlite3HashInsert(&pSchema->tblHash, p->zName,
-                             sqlite3Strlen30(p->zName),p);
-    if( pOld ){
-      assert( p==pOld );  /* Malloc must have failed inside HashInsert() */
-      db->mallocFailed = 1;
-      return;
-    }
-    pParse->pNewTable = 0;
-    db->flags |= SQLITE_InternChanges;
+	/* Add the table to the in-memory representation of the database.【将表添加到数据库的内存中表示】
+	*/
+	if (db->init.busy){
+		Table *pOld;
+		Schema *pSchema = p->pSchema;
+		assert(sqlite3SchemaMutexHeld(db, iDb, 0));
+		pOld = sqlite3HashInsert(&pSchema->tblHash, p->zName,
+			sqlite3Strlen30(p->zName), p);
+		if (pOld){
+			assert(p == pOld);  /* Malloc must have failed inside HashInsert()【内存分配一定发生了错误在HashInsert()内】 */
+			db->mallocFailed = 1;
+			return;
+		}
+		pParse->pNewTable = 0;
+		db->flags |= SQLITE_InternChanges;
 
 #ifndef SQLITE_OMIT_ALTERTABLE
-    if( !p->pSelect ){
-      const char *zName = (const char *)pParse->sNameToken.z;
-      int nName;
-      assert( !pSelect && pCons && pEnd );
-      if( pCons->z==0 ){
-        pCons = pEnd;
-      }
-      nName = (int)((const char *)pCons->z - zName);
-      p->addColOffset = 13 + sqlite3Utf8CharLen(zName, nName);
-    }
+		if (!p->pSelect){
+			const char *zName = (const char *)pParse->sNameToken.z;
+			int nName;
+			assert(!pSelect && pCons && pEnd);
+			if (pCons->z == 0){
+				pCons = pEnd;
+			}
+			nName = (int)((const char *)pCons->z - zName);
+			p->addColOffset = 13 + sqlite3Utf8CharLen(zName, nName);
+		}
 #endif
-  }
+	}
 }
 
 #ifndef SQLITE_OMIT_VIEW
 /*
-** The parser calls this routine in order to create a new VIEW
+** The parser calls this routine in order to create a new VIEW【解析器跳动这个例程为了创建一个新视图。】
 */
 void sqlite3CreateView(
-  Parse *pParse,     /* The parsing context */
-  Token *pBegin,     /* The CREATE token that begins the statement */
-  Token *pName1,     /* The token that holds the name of the view */
-  Token *pName2,     /* The token that holds the name of the view */
-  Select *pSelect,   /* A SELECT statement that will become the new view */
-  int isTemp,        /* TRUE for a TEMPORARY view */
-  int noErr          /* Suppress error messages if VIEW already exists */
-){
-  Table *p;
-  int n;
-  const char *z;
-  Token sEnd;
-  DbFixer sFix;
-  Token *pName = 0;
-  int iDb;
-  sqlite3 *db = pParse->db;
+	Parse *pParse,     /* The parsing context */
+	Token *pBegin,     /* The CREATE token that begins the statement    【CREATE语句开始的标志】*/
+	Token *pName1,     /* The token that holds the name of the view   【符号包含视图的名称】*/
+	Token *pName2,     /* The token that holds the name of the view 【符号包含视图的名称】*/
+	Select *pSelect,   /* A SELECT statement that will become the new view 【】*/
+	int isTemp,        /* TRUE for a TEMPORARY view */
+	int noErr          /* Suppress error messages if VIEW already exists【如果视图已经存在抑制错误消息】 */
+	){
+	Table *p;
+	int n;
+	const char *z;
+	Token sEnd;
+	DbFixer sFix;
+	Token *pName = 0;
+	int iDb;
+	sqlite3 *db = pParse->db;
 
-  if( pParse->nVar>0 ){
-    sqlite3ErrorMsg(pParse, "parameters are not allowed in views");
-    sqlite3SelectDelete(db, pSelect);
-    return;
-  }
-  sqlite3StartTable(pParse, pName1, pName2, isTemp, 1, 0, noErr);
-  p = pParse->pNewTable;
-  if( p==0 || pParse->nErr ){
-    sqlite3SelectDelete(db, pSelect);
-    return;
-  }
-  sqlite3TwoPartName(pParse, pName1, pName2, &pName);
-  iDb = sqlite3SchemaToIndex(db, p->pSchema);
-  if( sqlite3FixInit(&sFix, pParse, iDb, "view", pName)
-    && sqlite3FixSelect(&sFix, pSelect)
-  ){
-    sqlite3SelectDelete(db, pSelect);
-    return;
-  }
+	if (pParse->nVar>0){
+		sqlite3ErrorMsg(pParse, "parameters are not allowed in views");
+		sqlite3SelectDelete(db, pSelect);
+		return;
+	}
+	sqlite3StartTable(pParse, pName1, pName2, isTemp, 1, 0, noErr);
+	p = pParse->pNewTable;
+	if (p == 0 || pParse->nErr){
+		sqlite3SelectDelete(db, pSelect);
+		return;
+	}
+	sqlite3TwoPartName(pParse, pName1, pName2, &pName);
+	iDb = sqlite3SchemaToIndex(db, p->pSchema);
+	if (sqlite3FixInit(&sFix, pParse, iDb, "view", pName)
+		&& sqlite3FixSelect(&sFix, pSelect)
+		){
+		sqlite3SelectDelete(db, pSelect);
+		return;
+	}
 
-  /* Make a copy of the entire SELECT statement that defines the view.
-  ** This will force all the Expr.token.z values to be dynamically
-  ** allocated rather than point to the input string - which means that
-  ** they will persist after the current sqlite3_exec() call returns.
-  */
-  p->pSelect = sqlite3SelectDup(db, pSelect, EXPRDUP_REDUCE);
-  sqlite3SelectDelete(db, pSelect);
-  if( db->mallocFailed ){
-    return;
-  }
-  if( !db->init.busy ){
-    sqlite3ViewGetColumnNames(pParse, p);
-  }
+	/* Make a copy of the entire SELECT statement that defines the view.
+	** This will force all the Expr.token.z values to be dynamically
+	** allocated rather than point to the input string - which means that
+	** they will persist after the current sqlite3_exec() call returns.【复制全部的SELECT语句,定义视图。
+	这将使所有的Expr.token.z值被动态的分配，而不是单单指向输入的字符串。意思是当前的sqlite3_exec()调用返回值之后这些Expr.token.z值将保持不变。】
+	*/
+	p->pSelect = sqlite3SelectDup(db, pSelect, EXPRDUP_REDUCE);
+	sqlite3SelectDelete(db, pSelect);
+	if (db->mallocFailed){
+		return;
+	}
+	if (!db->init.busy){
+		sqlite3ViewGetColumnNames(pParse, p);
+	}
 
-  /* Locate the end of the CREATE VIEW statement.  Make sEnd point to
-  ** the end.
-  */
-  sEnd = pParse->sLastToken;
-  if( ALWAYS(sEnd.z[0]!=0) && sEnd.z[0]!=';' ){
-    sEnd.z += sEnd.n;
-  }
-  sEnd.n = 0;
-  n = (int)(sEnd.z - pBegin->z);
-  z = pBegin->z;
-  while( ALWAYS(n>0) && sqlite3Isspace(z[n-1]) ){ n--; }
-  sEnd.z = &z[n-1];
-  sEnd.n = 1;
+	/* Locate the end of the CREATE VIEW statement.  Make sEnd point to
+	** the end.【定位CREATE VIEW语句最后，确保sEnd指向最后。】
+	*/
+	sEnd = pParse->sLastToken;
+	if (ALWAYS(sEnd.z[0] != 0) && sEnd.z[0] != ';'){
+		sEnd.z += sEnd.n;
+	}
+	sEnd.n = 0;
+	n = (int)(sEnd.z - pBegin->z);
+	z = pBegin->z;
+	while (ALWAYS(n>0) && sqlite3Isspace(z[n - 1])){ n--; }
+	sEnd.z = &z[n - 1];
+	sEnd.n = 1;
 
-  /* Use sqlite3EndTable() to add the view to the SQLITE_MASTER table */
-  sqlite3EndTable(pParse, 0, &sEnd, 0);
-  return;
+	/* Use sqlite3EndTable() to add the view to the SQLITE_MASTER table */
+	sqlite3EndTable(pParse, 0, &sEnd, 0);
+	return;
 }
 #endif /* SQLITE_OMIT_VIEW */
 
@@ -1798,116 +1831,128 @@ void sqlite3CreateView(
 /*
 ** The Table structure pTable is really a VIEW.  Fill in the names of
 ** the columns of the view in the pTable structure.  Return the number
-** of errors.  If an error is seen leave an error message in pParse->zErrMsg.
+** of errors.  If an error is seen leave an error message in pParse->zErrMsg.【表结构pTable真是一个视图。】
 */
 int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
-  Table *pSelTab;   /* A fake table from which we get the result set */
-  Select *pSel;     /* Copy of the SELECT that implements the view */
-  int nErr = 0;     /* Number of errors encountered */
-  int n;            /* Temporarily holds the number of cursors assigned */
-  sqlite3 *db = pParse->db;  /* Database connection for malloc errors */
-  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*);
+	Table *pSelTab;   /* A fake table from which we get the result set 【】*/
+	Select *pSel;     /* Copy of the SELECT that implements the view */
+	int nErr = 0;     /* Number of errors encountered【遇到的错误数量】 */
+	int n;            /* Temporarily holds the number of cursors assigned【暂时持有游标的数量分配】 */
+	sqlite3 *db = pParse->db;  /* Database connection for malloc errors 【内存分配中数据库连接错误】*/
+	int(*xAuth)(void*, int, const char*, const char*, const char*, const char*);
 
-  assert( pTable );
+	assert(pTable);
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  if( sqlite3VtabCallConnect(pParse, pTable) ){
-    return SQLITE_ERROR;
-  }
-  if( IsVirtual(pTable) ) return 0;
+	if (sqlite3VtabCallConnect(pParse, pTable)){
+		return SQLITE_ERROR;
+	}
+	if (IsVirtual(pTable)) return 0;
 #endif
 
 #ifndef SQLITE_OMIT_VIEW
-  /* A positive nCol means the columns names for this view are
-  ** already known.
-  */
-  if( pTable->nCol>0 ) return 0;
+	/* A positive nCol means the columns names for this view are
+	** already known.【正数nCol意思是这个视图的列名已经是知道的。】
+	*/
+	if (pTable->nCol>0) return 0;
 
-  /* A negative nCol is a special marker meaning that we are currently
-  ** trying to compute the column names.  If we enter this routine with
-  ** a negative nCol, it means two or more views form a loop, like this:
-  **
-  **     CREATE VIEW one AS SELECT * FROM two;
-  **     CREATE VIEW two AS SELECT * FROM one;
-  **
-  ** Actually, the error above is now caught prior to reaching this point.
-  ** But the following test is still important as it does come up
-  ** in the following:
-  ** 
-  **     CREATE TABLE main.ex1(a);
-  **     CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
-  **     SELECT * FROM temp.ex1;
-  */
-  if( pTable->nCol<0 ){
-    sqlite3ErrorMsg(pParse, "view %s is circularly defined", pTable->zName);
-    return 1;
-  }
-  assert( pTable->nCol>=0 );
+	/* A negative nCol is a special marker meaning that we are currently
+	** trying to compute the column names.  If we enter this routine with
+	** a negative nCol, it means two or more views form a loop, like this:
+	**
+	**     CREATE VIEW one AS SELECT * FROM two;
+	**     CREATE VIEW two AS SELECT * FROM one;
+	**
+	** Actually, the error above is now caught prior to reaching this point.
+	** But the following test is still important as it does come up
+	** in the following:
+	**
+	**     CREATE TABLE main.ex1(a);
+	**     CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
+	**     SELECT * FROM temp.ex1;
+	【负数nCol是一个特殊的标记，意思是我们目前试着去计算列名。如果我们带着这个负数进入这个例程，它的意思是来自于一个循环的两个或更多的视图，就像下面这样：
+	CREATE VIEW one AS SELECT * FROM two;
+	CREATE VIEW two AS SELECT * FROM one;
+	实际上，上面这个错误先在是被捕获了在达到这个点之前。但是接下来的测试任然很重要，因为接下来这个情况那个错误会发生的。
+	CREATE TABLE main.ex1(a);
+	CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
+	SELECT * FROM temp.ex1;
+	】
+	*/
+	if (pTable->nCol<0){
+		sqlite3ErrorMsg(pParse, "view %s is circularly defined", pTable->zName);
+		return 1;
+	}
+	assert(pTable->nCol >= 0);
 
-  /* If we get this far, it means we need to compute the table names.
-  ** Note that the call to sqlite3ResultSetOfSelect() will expand any
-  ** "*" elements in the results set of the view and will assign cursors
-  ** to the elements of the FROM clause.  But we do not want these changes
-  ** to be permanent.  So the computation is done on a copy of the SELECT
-  ** statement that defines the view.
-  */
-  assert( pTable->pSelect );
-  pSel = sqlite3SelectDup(db, pTable->pSelect, 0);
-  if( pSel ){
-    u8 enableLookaside = db->lookaside.bEnabled;
-    n = pParse->nTab;
-    sqlite3SrcListAssignCursors(pParse, pSel->pSrc);
-    pTable->nCol = -1;
-    db->lookaside.bEnabled = 0;
+	/* If we get this far, it means we need to compute the table names.
+	** Note that the call to sqlite3ResultSetOfSelect() will expand any
+	** "*" elements in the results set of the view and will assign cursors
+	** to the elements of the FROM clause.  But we do not want these changes
+	** to be permanent.  So the computation is done on a copy of the SELECT
+	** statement that defines the view.【如果我们打到了这个最大极限，意味着我们需要计算这个表名。
+	要注意的是，调用sqlite3ResultSetOfSelect()将增加一些"*"元素在设定视图的结果中，并且将分派光标对这些FROM条款的元素。
+	但是我们不想这些改变时永久的。因此计算是要做的在这个SELECT语句的副本上，用它来定义视图。】
+	*/
+	assert(pTable->pSelect);
+	pSel = sqlite3SelectDup(db, pTable->pSelect, 0);
+	if (pSel){
+		u8 enableLookaside = db->lookaside.bEnabled;
+		n = pParse->nTab;
+		sqlite3SrcListAssignCursors(pParse, pSel->pSrc);
+		pTable->nCol = -1;
+		db->lookaside.bEnabled = 0;
 #ifndef SQLITE_OMIT_AUTHORIZATION
-    xAuth = db->xAuth;
-    db->xAuth = 0;
-    pSelTab = sqlite3ResultSetOfSelect(pParse, pSel);
-    db->xAuth = xAuth;
+		xAuth = db->xAuth;
+		db->xAuth = 0;
+		pSelTab = sqlite3ResultSetOfSelect(pParse, pSel);
+		db->xAuth = xAuth;
 #else
-    pSelTab = sqlite3ResultSetOfSelect(pParse, pSel);
+		pSelTab = sqlite3ResultSetOfSelect(pParse, pSel);
 #endif
-    db->lookaside.bEnabled = enableLookaside;
-    pParse->nTab = n;
-    if( pSelTab ){
-      assert( pTable->aCol==0 );
-      pTable->nCol = pSelTab->nCol;
-      pTable->aCol = pSelTab->aCol;
-      pSelTab->nCol = 0;
-      pSelTab->aCol = 0;
-      sqlite3DeleteTable(db, pSelTab);
-      assert( sqlite3SchemaMutexHeld(db, 0, pTable->pSchema) );
-      pTable->pSchema->flags |= DB_UnresetViews;
-    }else{
-      pTable->nCol = 0;
-      nErr++;
-    }
-    sqlite3SelectDelete(db, pSel);
-  } else {
-    nErr++;
-  }
+		db->lookaside.bEnabled = enableLookaside;
+		pParse->nTab = n;
+		if (pSelTab){
+			assert(pTable->aCol == 0);
+			pTable->nCol = pSelTab->nCol;
+			pTable->aCol = pSelTab->aCol;
+			pSelTab->nCol = 0;
+			pSelTab->aCol = 0;
+			sqlite3DeleteTable(db, pSelTab);
+			assert(sqlite3SchemaMutexHeld(db, 0, pTable->pSchema));
+			pTable->pSchema->flags |= DB_UnresetViews;
+		}
+		else{
+			pTable->nCol = 0;
+			nErr++;
+		}
+		sqlite3SelectDelete(db, pSel);
+	}
+	else {
+		nErr++;
+	}
 #endif /* SQLITE_OMIT_VIEW */
-  return nErr;  
+	return nErr;
 }
 #endif /* !defined(SQLITE_OMIT_VIEW) || !defined(SQLITE_OMIT_VIRTUALTABLE) */
 
 #ifndef SQLITE_OMIT_VIEW
 /*
-** Clear the column names from every VIEW in database idx.
+** Clear the column names from every VIEW in database idx.【清除数据库idx每个视图的列名称。】
 */
 static void sqliteViewResetAll(sqlite3 *db, int idx){
-  HashElem *i;
-  assert( sqlite3SchemaMutexHeld(db, idx, 0) );
-  if( !DbHasProperty(db, idx, DB_UnresetViews) ) return;
-  for(i=sqliteHashFirst(&db->aDb[idx].pSchema->tblHash); i;i=sqliteHashNext(i)){
-    Table *pTab = sqliteHashData(i);
-    if( pTab->pSelect ){
-      sqliteDeleteColumnNames(db, pTab);
-      pTab->aCol = 0;
-      pTab->nCol = 0;
-    }
-  }
-  DbClearProperty(db, idx, DB_UnresetViews);
+	HashElem *i;
+	assert(sqlite3SchemaMutexHeld(db, idx, 0));
+	if (!DbHasProperty(db, idx, DB_UnresetViews)) return;
+	for (i = sqliteHashFirst(&db->aDb[idx].pSchema->tblHash); i; i = sqliteHashNext(i)){
+		Table *pTab = sqliteHashData(i);
+		if (pTab->pSelect){
+			sqliteDeleteColumnNames(db, pTab);
+			pTab->aCol = 0;
+			pTab->nCol = 0;
+		}
+	}
+	DbClearProperty(db, idx, DB_UnresetViews);
 }
 #else
 # define sqliteViewResetAll(A,B)
@@ -1917,41 +1962,45 @@ static void sqliteViewResetAll(sqlite3 *db, int idx){
 ** This function is called by the VDBE to adjust the internal schema
 ** used by SQLite when the btree layer moves a table root page. The
 ** root-page of a table or index in database iDb has changed from iFrom
-** to iTo.
+** to iTo.【当btree层移动一个表根页时，这个函数是由VDBE调整内部模式调用。一个表的root-page或数据库中的索引由iFrom改变到iTo。】
 **
 ** Ticket #1728:  The symbol table might still contain information
 ** on tables and/or indices that are the process of being deleted.
 ** If you are unlucky, one of those deleted indices or tables might
 ** have the same rootpage number as the real table or index that is
-** being moved.  So we cannot stop searching after the first match 
+** being moved.  So we cannot stop searching after the first match
 ** because the first match might be for one of the deleted indices
 ** or tables and not the table/index that is actually being moved.
 ** We must continue looping until all tables and indices with
 ** rootpage==iFrom have been converted to have a rootpage of iTo
 ** in order to be certain that we got the right one.
+【标签#1728：符号表仍可能包含信息表和/或索引，在它们存在的过程中被删除了。
+如果你是不幸的，那些中的一个删除索引或表，它们也许有相同的根页码数，正如这个真实的被迁移的表或索引。
+因此我们不能停止搜索第一个相匹配后，因为第一个相匹配项可能是被删除的索引或表中的其中一个和不是事实上正在移动的表/索引。
+我们必须继续循环直到所有的满足rootpage==iFrom条件的表和索引被转换为有一个iTo的页码，这样做是为了确保我们得到正确的一个结果。】
 */
 #ifndef SQLITE_OMIT_AUTOVACUUM
 void sqlite3RootPageMoved(sqlite3 *db, int iDb, int iFrom, int iTo){
-  HashElem *pElem;
-  Hash *pHash;
-  Db *pDb;
+	HashElem *pElem;
+	Hash *pHash;
+	Db *pDb;
 
-  assert( sqlite3SchemaMutexHeld(db, iDb, 0) );
-  pDb = &db->aDb[iDb];
-  pHash = &pDb->pSchema->tblHash;
-  for(pElem=sqliteHashFirst(pHash); pElem; pElem=sqliteHashNext(pElem)){
-    Table *pTab = sqliteHashData(pElem);
-    if( pTab->tnum==iFrom ){
-      pTab->tnum = iTo;
-    }
-  }
-  pHash = &pDb->pSchema->idxHash;
-  for(pElem=sqliteHashFirst(pHash); pElem; pElem=sqliteHashNext(pElem)){
-    Index *pIdx = sqliteHashData(pElem);
-    if( pIdx->tnum==iFrom ){
-      pIdx->tnum = iTo;
-    }
-  }
+	assert(sqlite3SchemaMutexHeld(db, iDb, 0));
+	pDb = &db->aDb[iDb];
+	pHash = &pDb->pSchema->tblHash;
+	for (pElem = sqliteHashFirst(pHash); pElem; pElem = sqliteHashNext(pElem)){
+		Table *pTab = sqliteHashData(pElem);
+		if (pTab->tnum == iFrom){
+			pTab->tnum = iTo;
+		}
+	}
+	pHash = &pDb->pSchema->idxHash;
+	for (pElem = sqliteHashFirst(pHash); pElem; pElem = sqliteHashNext(pElem)){
+		Index *pIdx = sqliteHashData(pElem);
+		if (pIdx->tnum == iFrom){
+			pIdx->tnum = iTo;
+		}
+	}
 }
 #endif
 
@@ -1959,61 +2008,24 @@ void sqlite3RootPageMoved(sqlite3 *db, int iDb, int iFrom, int iTo){
 ** Write code to erase the table with root-page iTable from database iDb.
 ** Also write code to modify the sqlite_master table and internal schema
 ** if a root-page of another table is moved by the btree-layer whilst
-** erasing iTable (this can happen with an auto-vacuum database).
-*/ 
-static void destroyRootPage(Parse *pParse, int iTable, int iDb){
-  Vdbe *v = sqlite3GetVdbe(pParse);
-  int r1 = sqlite3GetTempReg(pParse);
-  sqlite3VdbeAddOp3(v, OP_Destroy, iTable, r1, iDb);
-  sqlite3MayAbort(pParse);
-#ifndef SQLITE_OMIT_AUTOVACUUM
-  /* OP_Destroy stores an in integer r1. If this integer
-  ** is non-zero, then it is the root page number of a table moved to
-  ** location iTable. The following code modifies the sqlite_master table to
-  ** reflect this.
-  **
-  ** The "#NNN" in the SQL is a special constant that means whatever value
-  ** is in register NNN.  See grammar rules associated with the TK_REGISTER
-  ** token for additional information.
-  */
-  sqlite3NestedParse(pParse, 
-     "UPDATE %Q.%s SET rootpage=%d WHERE #%d AND rootpage=#%d",
-     pParse->db->aDb[iDb].zName, SCHEMA_TABLE(iDb), iTable, r1, r1);
-#endif
-  sqlite3ReleaseTempReg(pParse, r1);
-}
-
-/*
-** Write VDBE code to erase table pTab and all associated indices on disk.
-** Code to update the sqlite_master tables and internal schema definitions
-** in case a root-page belonging to another table is moved by the btree layer
-** is also added (this can happen with an auto-vacuum database).
+** erasing iTable (this can happen with an auto-vacuum database).【编写代码来删除这个表与来自于数据库iDb的根页iTable。
+并且编写代码来更新sqlite_master表和内部模式，如果另一个表的一个跟页被btree-layer迁移，则将清除页码iTable（这可能在一个auto-vacuum数据库中发生）】
 */
-static void destroyTable(Parse *pParse, Table *pTab){
-#ifdef SQLITE_OMIT_AUTOVACUUM
-  Index *pIdx;
-  int iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);
-  destroyRootPage(pParse, pTab->tnum, iDb);
-  for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){
-    destroyRootPage(pParse, pIdx->tnum, iDb);
-  }
-#else
-  /* If the database may be auto-vacuum capable (if SQLITE_OMIT_AUTOVACUUM
-  ** is not defined), then it is important to call OP_Destroy on the
-  ** table and index root-pages in order, starting with the numerically 
-  ** largest root-page number. This guarantees that none of the root-pages
-  ** to be destroyed is relocated by an earlier OP_Destroy. i.e. if the
-  ** following were coded:
-  **
-  ** OP_Destroy 4 0
-  ** ...
-  ** OP_Destroy 5 0
-  **
-  ** and root page 5 happened to be the largest root-page number in the
-  ** database, then root page 5 would be moved to page 4 by the 
-  ** "OP_Destroy 4 0" opcode. The subsequent "OP_Destroy 5 0" would hit
-  ** a free-list page.
-  */
+static void destroyRootPage(Parse *pParse, int iTable, int iDb){
+	Vdbe *v = sqlite3GetVdbe(pParse);
+	int r1 = sqlite3GetTempReg(pParse);
+	sqlite3VdbeAddOp3(v, OP_Destroy, iTable, r1, iDb);
+	sqlite3MayAbort(pParse);
+#ifndef SQLITE_OMIT_AUTOVACUUM
+	/* OP_Destroy stores an in integer r1. If this integer
+	** is non-zero, then it is the root page number of a table moved to
+	** location iTable. The following code modifies the sqlite_master table to
+	** reflect this.【OP_Destroy存储一个整数r1.如果这个整数不为0，那么它是一个表的根页码号移动到位置iTable。接下来的代码更新sqlite_master表来反映这种情况。】
+	**
+	** The "#NNN" in the SQL is a special constant that means whatever value
+	** is in register NNN.  See grammar rules associated with the TK_REGISTER
+	** token for additional information.【SQL中的“#NNN”是一种特殊的常数，它的意思是无论什么属性值都是在寄存器NNN中。看到与TK_REGISTER符号相关的语法规则额外的信息。】
+	*/
   int iTab = pTab->tnum;
   int iDestroyed = 0;
 
