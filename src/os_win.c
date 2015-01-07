@@ -2397,8 +2397,8 @@ static int winLock(sqlite3_file *id, int locktype){
   OSTRACE(("LOCK %d %d was %d(%d)\n",
            pFile->h, locktype, pFile->locktype, pFile->sharedLockByte));						  
 
-  /* 如果已经有这种类型的锁或OsFile更具限制性，什么也不做。
-     不要使用end_lock：退出路径因为sqlite3OsEnterMutex（）没有被调用.
+  /* 如果已经有这种类型的锁，什么也不做。
+     不要使用end_lock：因为sqlite3OsEnterMutex（）没有被调用.
   */
   if( pFile->locktype>=locktype ){
     return SQLITE_OK;
@@ -2410,8 +2410,8 @@ static int winLock(sqlite3_file *id, int locktype){
   assert( locktype!=PENDING_LOCK );
   assert( locktype!=RESERVED_LOCK || pFile->locktype==SHARED_LOCK );
 
-  /* 锁定PENDING_LOCK字节，如果我们需要获得一个PENDING锁或共享锁。
-  ** 如果我们获得一个共享锁，获取PENDING_LOCK字节是暂时的.
+  /* 如果需要获得一个PENDING锁或共享锁,就锁定PENDING_LOCK字节，。
+  ** 如果获得一个共享锁，暂时获取PENDING_LOCK字节.
   */
   newLocktype = pFile->locktype;
   if(   (pFile->locktype==NO_LOCK)
@@ -2442,7 +2442,7 @@ static int winLock(sqlite3_file *id, int locktype){
     }
   }
 
-  /* 获得保留的锁
+  /* 获得保留锁
   */
   if( locktype==RESERVED_LOCK && res ){
     assert( pFile->locktype==SHARED_LOCK );
@@ -2478,13 +2478,13 @@ static int winLock(sqlite3_file *id, int locktype){
     }
   }
 
-  /* 如果我们都占用一个PENDING锁应该被释放，那么现在将其释放。
+  /* 如果占用一个PENDING锁，应该被释放，那么现在将其释放。
   */
   if( gotPendingLock && locktype==SHARED_LOCK ){
     winUnlockFile(&pFile->h, PENDING_BYTE, 0, 1, 0);
   }
 
-  /* 更新锁的状态已经在文件描述符保持，则返回相应的结果代码.
+  /* 更新锁的状态已经在文件描述符中保持，则返回相应的结果代码.
   */
   if( res ){
     rc = SQLITE_OK;
@@ -2499,8 +2499,7 @@ static int winLock(sqlite3_file *id, int locktype){
 }
 
 /*
- 这是否有这个或任何其他进程占用指定的文件保留锁，
- 如果这样的锁被保持，返回非零，否则为零.
+ 如果保留锁被保持，返回非零，否则为零.
 */
 static int winCheckReservedLock(sqlite3_file *id, int *pResOut){
   int rc;
@@ -2525,10 +2524,10 @@ static int winCheckReservedLock(sqlite3_file *id, int *pResOut){
 }
 
 /*
-** 如果文件描述符的锁定水平已经达到或低于所需的水平锁定，
-** 此例程是一个空操作.
+** 如果文件描述符的锁定水平已经达到或低于所需的锁定水平，
+** 则此例程是一个空操作，因此不可能对这一例程。
 **
-** 因此不可能对这一例程，如果第二参数是NO_LOCK则失败。
+** 如果第二参数是NO_LOCK则失败。
 ** 如果第二个参数是SHARED_LOCK那么这个程序可能返回SQLITE_IOERR;
 */
 static int winUnlock(sqlite3_file *id, int locktype){
@@ -2565,7 +2564,7 @@ static int winUnlock(sqlite3_file *id, int locktype){
 ** 如果* PARG是负，那么这是一个查询。
 ** 置* PARG为1或0取决于pFile-> ctrlFlags掩码设置与否.
 **
-** 如果* PARG是0或1，然后清除或设置pFile-> ctrlFlags的屏蔽位.
+** 如果* PARG是0或1，则清除或设置pFile-> ctrlFlags的屏蔽位.
 */
 static void winModeBit(winFile *pFile, unsigned char mask, int *pArg){
   if( *pArg<0 ){
@@ -2642,8 +2641,8 @@ static int winFileControl(sqlite3_file *id, int op, void *pArg){
 }
 
 /*
-** 返回扇区大小的基本块设备的字节用于指定的文件。
-** 这几乎总是为512字节，但对一些设备也可以更大.
+** 返回扇区大小的基本块设备的字节，用于指定的文件。
+** 几乎总是为512字节，但对于一些设备也可以更大.
 */
 static int winSectorSize(sqlite3_file *id){
   (void)id;
@@ -2662,15 +2661,14 @@ static int winDeviceCharacteristics(sqlite3_file *id){
 #ifndef SQLITE_OMIT_WAL
 
 /* 
-** Windows将只允许创建的分配大小粒度边界文件视图映射。
-** 在sqlite3_os_init（），
-** 调用GetSystemInfo（）来获得粒度大小.
+** Windows只允许创建分配大小粒度边界文件的视图映射。
+** 在sqlite3_os_init（）调用GetSystemInfo（）来获得粒度大小.
 */
 SYSTEM_INFO winSysInfo;
 
 /*
 ** 辅助函数来获取和放弃全局互斥。
-** 全局互斥用于保护使用该文件中的winLockInfo目的，
+** 全局互斥用于保护使用该文件中的winLockInfo，
 ** 所有这些都可能被多个线程共享的.
 */
 static void winShmEnterMutex(void){
@@ -2709,18 +2707,18 @@ struct winShmNode {
 /*
 ** 所有winShmNode对象的全局数组.
 **
-** 同时读取或写入这个表格的winShmMutexHeld（）必须是真实的.
+** 同时读取或写入这个表格的winShmMutexHeld（）必须为真.
 */
 static winShmNode *winShmNodeList = 0;
 
 struct winShm {
   winShmNode *pShmNode;      /* 底层winShmNode对象 */
-  winShm *pNext;             /* 下一步winShm具有相同winShmNode */
-  u8 hasMutex;               /* 如此，如果持有winShmNode互斥 */
+  winShm *pNext;             /* 下一步winShm具有相同的winShmNode */
+  u8 hasMutex;               /* 如果持有winShmNode互斥 */
   u16 sharedMask;            /* 共享锁掩码 */
   u16 exclMask;              /* 排他锁掩码 */
 #ifdef SQLITE_DEBUG
-  u8 id;                     /* winShmNode此连接的标识 */
+  u8 id;                     /* winShmNode连接的标识 */
 #endif
 };
 
@@ -2731,7 +2729,7 @@ struct winShm {
 #define WIN_SHM_DMS    (WIN_SHM_BASE+SQLITE_SHM_NLOCK)  /* 安全开关 */
 
 /*
-** 申请咨询锁对所有的n个字节开始在OFST.
+** 申请咨询锁对所有的n个字节.
 */
 #define _SHM_UNLCK  1
 #define _SHM_RDLCK  2
@@ -2740,7 +2738,7 @@ static int winShmSystemLock(
   winShmNode *pFile,    /* 申请锁打开共享内存段 */
   int lockType,         /* _SHM_UNLCK, _SHM_RDLCK, or _SHM_WRLCK */
   int ofst,             /* 偏移第一个字节被锁定/解锁 */
-  int nByte             /* 字节数来锁定或解锁 */
+  int nByte             /* 字节数锁定或解锁 */
 ){
   int rc = 0;           /* 从Lock/UnlockFileEx()返回代码 */
 
@@ -2778,7 +2776,7 @@ static int winOpen(sqlite3_vfs*,const char*,sqlite3_file*,int,int*);
 static int winDelete(sqlite3_vfs *,const char*,int);
 
 /*
-** 清除winShmNodeList表单所有条目以及winShmNode.nRef==0.
+** 清除winShmNodeList表单所有条目以及使winShmNode.nRef==0.
 */
 static void winShmPurge(sqlite3_vfs *pVfs, int deleteFlag){
   winShmNode **pp;
@@ -2833,8 +2831,8 @@ static int winOpenSharedMemory(winFile *pDbFd){
 
   assert( pDbFd->pShm==0 );    /* 以前没有开 */
 
-  /* 分配空间的新sqlite3_shm对象，
-     还推测分配空间用于新winShmNode和文件名.
+  /* 分配空间的sqlite3_shm对象，
+     还推测分配空间用于winShmNode和文件名.
   */
   p = sqlite3_malloc( sizeof(*p) );
   if( p==0 ) return SQLITE_IOERR_NOMEM;
@@ -2850,8 +2848,8 @@ static int winOpenSharedMemory(winFile *pDbFd){
   sqlite3_snprintf(nName+15, pNew->zFilename, "%s-shm", pDbFd->zPath);
   sqlite3FileSuffix3(pDbFd->zPath, pNew->zFilename); 
 
-  /* 看看是否存在现有winShmNode可以使用.
-  ** 看看是否存在现有winShmNode可以使用.
+  /* 看看是否存在现有的winShmNode可以使用.
+  ** 看看是否存在现有的winShmNode可以使用.
   */
   winShmEnterMutex();
   for(pShmNode = winShmNodeList; pShmNode; pShmNode=pShmNode->pNext){
@@ -2912,7 +2910,7 @@ static int winOpenSharedMemory(winFile *pDbFd){
 
   /* 在pShmNode引用计数已经在增加
   ** 在winShmEnterMutex（）互斥的覆盖，从指针
-  ** 新（结构winShm）对象的pShmNode已定。所有这一切都
+  ** （结构winShm）对象的pShmNode已定。
   ** 剩下要做的就是到新对象链接到链表出发
   ** 在pShmNode-> pFirst。这必须同时持有pShmNode->互斥量来实现
   ** 互斥.
@@ -2935,7 +2933,7 @@ shm_open_err:
 
 /*
 ** 关闭共享内存的连接.  
-** 删除底层存储，如果deleteFlag是真.
+** 删除底层存储，如果deleteFlag为真.
 */
 static int winShmUnmap(
   sqlite3_file *fd,          /* 数据库保存共享内存 */
@@ -2961,7 +2959,7 @@ static int winShmUnmap(
   pDbFd->pShm = 0;
   sqlite3_mutex_leave(pShmNode->mutex);
 
-  /* 如果pShmNode-> NREF为0，然后关闭底层的共享内存中的文件 */
+  /* 如果pShmNode-> NREF为0，则关闭底层的共享内存中的文件 */
   winShmEnterMutex();
   assert( pShmNode->nRef>0 );
   pShmNode->nRef--;
@@ -2984,7 +2982,7 @@ static int winShmLock(
 ){
   winFile *pDbFd = (winFile*)fd;        /* 连接占用共享内存 */
   winShm *p = pDbFd->pShm;              /* 共享内存被锁定 */
-  winShm *pX;                           /* 遍历所有的兄弟 */
+  winShm *pX;                           /* 遍历 */
   winShmNode *pShmNode = p->pShmNode;
   int rc = SQLITE_OK;                   /* 结果代码 */
   u16 mask;                             /* 锁获取或释放 */
@@ -3001,9 +2999,9 @@ static int winShmLock(
   assert( n>1 || mask==(1<<ofst) );
   sqlite3_mutex_enter(pShmNode->mutex);
   if( flags & SQLITE_SHM_UNLOCK ){
-    u16 allMask = 0; /* 锁被其兄弟占用 */
+    u16 allMask = 0; /* 锁被占用 */
 
-    /* 看看是否有兄弟占用同样的锁 */
+    /* 是否占用同样的锁 */
     for(pX=pShmNode->pFirst; pX; pX=pX->pNext){
       if( pX==p ) continue;
       assert( (pX->exclMask & (p->exclMask|p->sharedMask))==0 );
