@@ -13,7 +13,7 @@
 ** We've modified it slightly to serve as a standalone hash table
 ** implementation for the full-text indexing module.
 */
-//这是在SQLite中使用的一般哈希表的实现，我们为了实现全文本索引模块做了一定的修改add by guancan 20141209
+//这是在SQLite中FTS使用的一般哈希表的实现，我们为了实现全文本索引模块做了一定的修改add by guancan 20141209
 /*
 ** The code in this file is only compiled if:
 **
