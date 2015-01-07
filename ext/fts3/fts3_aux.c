@@ -21,29 +21,29 @@ typedef struct Fts3auxTable Fts3auxTable;
 typedef struct Fts3auxCursor Fts3auxCursor;
 
 struct Fts3auxTable {
-  sqlite3_vtab base;              /* Base class used by SQLite core */
+  sqlite3_vtab base;              /* Base class used by SQLite core */     /* 基类使用SQLite核心 */
   Fts3Table *pFts3Tab;
 };
 
 struct Fts3auxCursor {
-  sqlite3_vtab_cursor base;       /* Base class used by SQLite core */
-  Fts3MultiSegReader csr;        /* Must be right after "base" */
+  sqlite3_vtab_cursor base;       /* Base class used by SQLite core */      /* 基类使用SQLite核心 */
+  Fts3MultiSegReader csr;        /* Must be right after "base" */          
   Fts3SegFilter filter;
   char *zStop;
-  int nStop;                      /* Byte-length of string zStop */
-  int isEof;                      /* True if cursor is at EOF */
-  sqlite3_int64 iRowid;           /* Current rowid */
+  int nStop;                      /* Byte-length of string zStop */       /* 字符串zStop的字节长度 */  
+  int isEof;                      /* True if cursor is at EOF */          /* 如果cursor的值是EOF 则是真的 */
+  sqlite3_int64 iRowid;           /* Current rowid */                     /* 当前行号 */  
 
-  int iCol;                       /* Current value of 'col' column */
-  int nStat;                      /* Size of aStat[] array */
+  int iCol;                       /* Current value of 'col' column */     /* 'col'列的当前值 */
+  int nStat;                      /* Size of aStat[] array */             /* aStat[]矩阵的大小 */
   struct Fts3auxColstats {
-    sqlite3_int64 nDoc;           /* 'documents' values for current csr row */
-    sqlite3_int64 nOcc;           /* 'occurrences' values for current csr row */
+    sqlite3_int64 nDoc;           /* 'documents' values for current csr row */      /* 当前游标行的'documents'值 */
+    sqlite3_int64 nOcc;           /* 'occurrences' values for current csr row */    /* 当前游标行的'occurrences'值 */
   } *aStat;
 };
 
 /*
-** Schema of the terms table.
+** Schema of the terms table.     /* 术语表的模式 */
 */
 #define FTS3_TERMS_SCHEMA "CREATE TABLE x(term, col, documents, occurrences)"
 
@@ -52,25 +52,30 @@ struct Fts3auxCursor {
 ** These tables have no persistent representation of their own, so xConnect
 ** and xCreate are identical operations.
 */
+
+/*
+   这个函数为xConnect和xCreate方法做所有的工作。
+   这些表没有自己持续的表现，所以xConnect和xCreate是相同的操作。
+*/
 static int fts3auxConnectMethod(
-  sqlite3 *db,                    /* Database connection */
+  sqlite3 *db,                    /* Database connection */                        /* 数据库连接 */
   void *pUnused,                  /* Unused */
-  int argc,                       /* Number of elements in argv array */
-  const char * const *argv,       /* xCreate/xConnect argument array */
-  sqlite3_vtab **ppVtab,          /* OUT: New sqlite3_vtab object */
-  char **pzErr                    /* OUT: sqlite3_malloc'd error message */
+  int argc,                       /* Number of elements in argv array */           /* argv矩阵中的元素数目 */
+  const char * const *argv,       /* xCreate/xConnect argument array */            /* xCreate/xConnect 论证矩阵 */
+  sqlite3_vtab **ppVtab,          /* OUT: New sqlite3_vtab object */               /* 输出：sqlite3_vtab新对象 */
+  char **pzErr                    /* OUT: sqlite3_malloc'd error message */        /* 输出：sqlite3_malloc的错误信息 */
 ){
-  char const *zDb;                /* Name of database (e.g. "main") */
-  char const *zFts3;              /* Name of fts3 table */
-  int nDb;                        /* Result of strlen(zDb) */
-  int nFts3;                      /* Result of strlen(zFts3) */
-  int nByte;                      /* Bytes of space to allocate here */
-  int rc;                         /* value returned by declare_vtab() */
-  Fts3auxTable *p;                /* Virtual table object to return */
+  char const *zDb;                /* Name of database (e.g. "main") */             /* 数据库名 */
+  char const *zFts3;              /* Name of fts3 table */                         /* fts3表名 */
+  int nDb;                        /* Result of strlen(zDb) */                      /* zDb的长度 */
+  int nFts3;                      /* Result of strlen(zFts3) */                    /* zFts3的长度 */
+  int nByte;                      /* Bytes of space to allocate here */            /* 字节的空间分配长度 */
+  int rc;                         /* value returned by declare_vtab() */           /* 由declare_vtab()返回的值 */
+  Fts3auxTable *p;                /* Virtual table object to return */             /* 虚拟表对象返回 */
 
   UNUSED_PARAMETER(pUnused);
 
-  /* The user should specify a single argument - the name of an fts3 table. */
+  /* The user should specify a single argument - the name of an fts3 table. */      /* 用户应该指定一个参数——fts3表的名称。 */
   if( argc!=4 ){
     *pzErr = sqlite3_mprintf(
         "wrong number of arguments to fts4aux constructor"
@@ -110,12 +115,17 @@ static int fts3auxConnectMethod(
 ** These tables have no persistent representation of their own, so xDisconnect
 ** and xDestroy are identical operations.
 */
+
+/*
+   这个函数为xDisconnect和xDestroy方法做所有的工作。
+   这些表没有自己持续的表现，所以xDisconnect和xDestroy是相同的操作
+*/
 static int fts3auxDisconnectMethod(sqlite3_vtab *pVtab){
   Fts3auxTable *p = (Fts3auxTable *)pVtab;
   Fts3Table *pFts3 = p->pFts3Tab;
   int i;
 
-  /* Free any prepared statements held */
+  /* Free any prepared statements held */     /* 释放所有拥有的预处理声明 */   
   for(i=0; i<SizeofArray(pFts3->aStmt); i++){
     sqlite3_finalize(pFts3->aStmt[i]);
   }
@@ -129,7 +139,7 @@ static int fts3auxDisconnectMethod(sqlite3_vtab *pVtab){
 #define FTS4AUX_LE_CONSTRAINT 4
 
 /*
-** xBestIndex - Analyze a WHERE and ORDER BY clause.
+** xBestIndex - Analyze a WHERE and ORDER BY clause.    /* xBestIndex-分析WHERE和ORDER BY子句 */
 */
 static int fts3auxBestIndexMethod(
   sqlite3_vtab *pVTab, 
@@ -142,7 +152,7 @@ static int fts3auxBestIndexMethod(
 
   UNUSED_PARAMETER(pVTab);
 
-  /* This vtab delivers always results in "ORDER BY term ASC" order. */
+  /* This vtab delivers always results in "ORDER BY term ASC" order. */      /* 这个vtab delivers总是有类似“ORDER BY term ASC”的顺序 */
   if( pInfo->nOrderBy==1 
    && pInfo->aOrderBy[0].iColumn==0 
    && pInfo->aOrderBy[0].desc==0
@@ -150,7 +160,7 @@ static int fts3auxBestIndexMethod(
     pInfo->orderByConsumed = 1;
   }
 
-  /* Search for equality and range constraints on the "term" column. */
+  /* Search for equality and range constraints on the "term" column. */       /* 在“term列上寻找相等和范围约束” */
   for(i=0; i<pInfo->nConstraint; i++){
     if( pInfo->aConstraint[i].usable && pInfo->aConstraint[i].iColumn==0 ){
       int op = pInfo->aConstraint[i].op;
@@ -185,10 +195,10 @@ static int fts3auxBestIndexMethod(
 }
 
 /*
-** xOpen - Open a cursor.
+** xOpen - Open a cursor.           /* xOpen-打开一个游标 */
 */
 static int fts3auxOpenMethod(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCsr){
-  Fts3auxCursor *pCsr;            /* Pointer to cursor object to return */
+  Fts3auxCursor *pCsr;            /* Pointer to cursor object to return */            /* 指针游标对象 */
 
   UNUSED_PARAMETER(pVTab);
 
@@ -233,14 +243,14 @@ static int fts3auxGrowStatArray(Fts3auxCursor *pCsr, int nSize){
 }
 
 /*
-** xNext - Advance the cursor to the next row, if any.
+** xNext - Advance the cursor to the next row, if any.    /* xNext-如果有的话，将游标移向下一行 */
 */
 static int fts3auxNextMethod(sqlite3_vtab_cursor *pCursor){
   Fts3auxCursor *pCsr = (Fts3auxCursor *)pCursor;
   Fts3Table *pFts3 = ((Fts3auxTable *)pCursor->pVtab)->pFts3Tab;
   int rc;
 
-  /* Increment our pretend rowid value. */
+  /* Increment our pretend rowid value. */       /* 增加虚拟行号值 */
   pCsr->iRowid++;
 
   for(pCsr->iCol++; pCsr->iCol<pCsr->nStat; pCsr->iCol++){
@@ -274,21 +284,28 @@ static int fts3auxNextMethod(sqlite3_vtab_cursor *pCursor){
 
       i += sqlite3Fts3GetVarint(&aDoclist[i], &v);
       switch( eState ){
-        /* State 0. In this state the integer just read was a docid. */
+        /* State 0. In this state the integer just read was a docid. */     /* State 0.在这个状态下数值读取是个文档编号 */
         case 0:
           pCsr->aStat[0].nDoc++;
           eState = 1;
           iCol = 0;
           break;
 
-        /* State 1. In this state we are expecting either a 1, indicating
-        ** that the following integer will be a column number, or the
+        /* State 1. In this state we are expecting either a 1, in
+		`````dicating
+        ** that the following integer will be a column number, or the             
         ** start of a position list for column 0.  
         ** 
         ** The only difference between state 1 and state 2 is that if the
         ** integer encountered in state 1 is not 0 or 1, then we need to
         ** increment the column 0 "nDoc" count for this term.
         */
+
+		/* 状态1.在这个状态下我们期待要么表明其后的数值是个列数，要么位置列表的开头是第0列
+		   
+		   状态1和2之间唯一的区别是，如果数值在状态一下不是0或1，我们需要为这个term增加第0列的‘nDoc’值
+
+		*/
         case 1:
           assert( iCol==0 );
           if( v>1 ){
@@ -298,17 +315,17 @@ static int fts3auxNextMethod(sqlite3_vtab_cursor *pCursor){
           /* fall through */
 
         case 2:
-          if( v==0 ){       /* 0x00. Next integer will be a docid. */
+          if( v==0 ){       /* 0x00. Next integer will be a docid. */            /* 如果v值为0，下一个数将是一个文档编号 */
             eState = 0;
-          }else if( v==1 ){ /* 0x01. Next integer will be a column number. */
+          }else if( v==1 ){ /* 0x01. Next integer will be a column number. */    /* 如果v值为1，下一个数将是一个列编号 */
             eState = 3;
-          }else{            /* 2 or greater. A position. */
+          }else{            /* 2 or greater. A position. */                      /* v大于等于2时，是一个位置 */ 
             pCsr->aStat[iCol+1].nOcc++;
             pCsr->aStat[0].nOcc++;
           }
           break;
 
-        /* State 3. The integer just read is a column number. */
+        /* State 3. The integer just read is a column number. */                 /* 状态3.读取的数值只是一个列编号 */
         default: assert( eState==3 );
           iCol = (int)v;
           if( fts3auxGrowStatArray(pCsr, iCol+2) ) return SQLITE_NOMEM;
@@ -327,14 +344,14 @@ static int fts3auxNextMethod(sqlite3_vtab_cursor *pCursor){
 }
 
 /*
-** xFilter - Initialize a cursor to point at the start of its data.
+** xFilter - Initialize a cursor to point at the start of its data.    /* 初始化一个指向数据开头的游标 */
 */
 static int fts3auxFilterMethod(
-  sqlite3_vtab_cursor *pCursor,   /* The cursor used for this query */
-  int idxNum,                     /* Strategy index */
+  sqlite3_vtab_cursor *pCursor,   /* The cursor used for this query */     /* 这个游标用于本次查询 */
+  int idxNum,                     /* Strategy index */                     /* 策略索引 */
   const char *idxStr,             /* Unused */
-  int nVal,                       /* Number of elements in apVal */
-  sqlite3_value **apVal           /* Arguments for the indexing scheme */
+  int nVal,                       /* Number of elements in apVal */        /* apVal中的元素数 */
+  sqlite3_value **apVal           /* Arguments for the indexing scheme */    /* 索引模式的参数 */
 ){
   Fts3auxCursor *pCsr = (Fts3auxCursor *)pCursor;
   Fts3Table *pFts3 = ((Fts3auxTable *)pCursor->pVtab)->pFts3Tab;
@@ -351,7 +368,7 @@ static int fts3auxFilterMethod(
   );
   isScan = (idxNum!=FTS4AUX_EQ_CONSTRAINT);
 
-  /* In case this cursor is being reused, close and zero it. */
+  /* In case this cursor is being reused, close and zero it. */     /* 防止这个游标被再度使用，关闭并且将其置零 */
   testcase(pCsr->filter.zTerm);
   sqlite3Fts3SegReaderFinish(&pCsr->csr);
   sqlite3_free((void *)pCsr->filter.zTerm);
@@ -388,7 +405,7 @@ static int fts3auxFilterMethod(
 }
 
 /*
-** xEof - Return true if the cursor is at EOF, or false otherwise.
+** xEof - Return true if the cursor is at EOF, or false otherwise.        /* xEOF-如果游标指在EOF，返回1，否则返回0 */
 */
 static int fts3auxEofMethod(sqlite3_vtab_cursor *pCursor){
   Fts3auxCursor *pCsr = (Fts3auxCursor *)pCursor;
@@ -396,12 +413,12 @@ static int fts3auxEofMethod(sqlite3_vtab_cursor *pCursor){
 }
 
 /*
-** xColumn - Return a column value.
+** xColumn - Return a column value.            /* xColumn-返回一个列值 */
 */
 static int fts3auxColumnMethod(
-  sqlite3_vtab_cursor *pCursor,   /* Cursor to retrieve value from */
-  sqlite3_context *pContext,      /* Context for sqlite3_result_xxx() calls */
-  int iCol                        /* Index of column to read value from */
+  sqlite3_vtab_cursor *pCursor,   /* Cursor to retrieve value from */                 /* 检索的游标值 */
+  sqlite3_context *pContext,      /* Context for sqlite3_result_xxx() calls */        /* sqlite3_result_xxx()调用的context */
+  int iCol                        /* Index of column to read value from */            /* 索引的列值 */
 ){
   Fts3auxCursor *p = (Fts3auxCursor *)pCursor;
 
@@ -424,11 +441,11 @@ static int fts3auxColumnMethod(
 }
 
 /*
-** xRowid - Return the current rowid for the cursor.
+** xRowid - Return the current rowid for the cursor.        /* 返回游标的当前行值 */
 */
 static int fts3auxRowidMethod(
   sqlite3_vtab_cursor *pCursor,   /* Cursor to retrieve value from */
-  sqlite_int64 *pRowid            /* OUT: Rowid value */
+  sqlite_int64 *pRowid            /* OUT: Rowid value */      /* 输出行值 */
 ){
   Fts3auxCursor *pCsr = (Fts3auxCursor *)pCursor;
   *pRowid = pCsr->iRowid;
@@ -438,6 +455,10 @@ static int fts3auxRowidMethod(
 /*
 ** Register the fts3aux module with database connection db. Return SQLITE_OK
 ** if successful or an error code if sqlite3_create_module() fails.
+*/
+
+/* 通过数据库db连接注册fts3aux模块。如果注册成功返回SQLITE_OK，
+   sqlite3_create_module()创建失败提示错误。
 */
 int sqlite3Fts3InitAux(sqlite3 *db){
   static const sqlite3_module fts3aux_module = {

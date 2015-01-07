@@ -9,10 +9,12 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** Main file for the SQLite library.  The routines in this file
+** Main file for the SQLite library.  The routines in this file  
 ** implement the programmer interface to the library.  Routines in
 ** other files are for internal use by SQLite and should not be
 ** accessed by users of the library.
+SQLite库的主文件。这个文件中的例程使程序接口对库生效。其他文件中的例程被SQLite内部使用，
+而不应该使库中的其他用户获得权限。
 */
 
 #include "sqliteInt.h"
@@ -26,20 +28,24 @@
 ** the xCallback() function is called.  pArg becomes the first
 ** argument to xCallback().  If xCallback=NULL then no callback
 ** is invoked, even for queries.
+执行SQL代码。返回SQLITE_ success/failure码中的其中一个。从malloc函数中得到
+错误信息，并且写入到内存，并且使*pzErrMsg指针指向那个错误信息。
+如果是查询语句，对查询结果的每一行调用xCallback()函数，pArg成为xCallback()函数的
+第一个论证。如果xCallback为空，即使有查询，也不调用callback函数，
 */
-int sqlite3_exec(
-  sqlite3 *db,                /* The database on which the SQL executes */
-  const char *zSql,           /* The SQL to be executed */
-  sqlite3_callback xCallback, /* Invoke this callback routine */
-  void *pArg,                 /* First argument to xCallback() */
-  char **pzErrMsg             /* Write error messages here */
+int sqlite3_exec(             /* sqlite3执行函数*/
+  sqlite3 *db,                /* The database on which the SQL executes SQL的执行数据库*/
+  const char *zSql,           /* The SQL to be executed 被执行的SQL*/
+  sqlite3_callback xCallback, /* Invoke this callback routine 调用callback例程*/
+  void *pArg,                 /* First argument to xCallback() xCallback()的第一个参数*/
+  char **pzErrMsg             /* Write error messages here 错误信息写入**pzErrMsg*/
 ){
-  int rc = SQLITE_OK;         /* Return code */
-  const char *zLeftover;      /* Tail of unprocessed SQL */
-  sqlite3_stmt *pStmt = 0;    /* The current SQL statement */
-  char **azCols = 0;          /* Names of result columns */
-  int nRetry = 0;             /* Number of retry attempts */
-  int callbackIsInit;         /* True if callback data is initialized */
+  int rc = SQLITE_OK;         /* Return code 返回码*/
+  const char *zLeftover;      /* Tail of unprocessed SQL 跟踪未被执行的SQL*/
+  sqlite3_stmt *pStmt = 0;    /* The current SQL statement 当前SQL的状态*/
+  char **azCols = 0;          /* Names of result columns 结果列的名称*/
+  int nRetry = 0;             /* Number of retry attempts 重试次数*/
+  int callbackIsInit;         /* True if callback data is initialized 如果调用的数据已经被初始化,则该值为TRUE*/
 
   if( !sqlite3SafetyCheckOk(db) ) return SQLITE_MISUSE_BKPT;
   if( zSql==0 ) zSql = "";
@@ -57,7 +63,7 @@ int sqlite3_exec(
       continue;
     }
     if( !pStmt ){
-      /* this happens for a comment or white-space */
+      /* this happens for a comment or white-space 触发了一个事件或者空操作*/
       zSql = zLeftover;
       continue;
     }
@@ -69,7 +75,8 @@ int sqlite3_exec(
       int i;
       rc = sqlite3_step(pStmt);
 
-      /* Invoke the callback function if required */
+      /* Invoke the callback function if required 
+	  如果需要就唤醒callback函数*/
       if( xCallback && (SQLITE_ROW==rc || 
           (SQLITE_DONE==rc && !callbackIsInit
                            && db->flags&SQLITE_NullCallback)) ){
@@ -81,7 +88,8 @@ int sqlite3_exec(
           for(i=0; i<nCol; i++){
             azCols[i] = (char *)sqlite3_column_name(pStmt, i);
             /* sqlite3VdbeSetColName() installs column names as UTF8
-            ** strings so there is no way for sqlite3_column_name() to fail. */
+            ** strings so there is no way for sqlite3_column_name() to fail. 
+			sqlite3VdbeSetColName函数安装了UTF8字符名称列，所以sqlite3_column_name()函数不会失败*/
             assert( azCols[i]!=0 );
           }
           callbackIsInit = 1;

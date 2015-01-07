@@ -11,6 +11,8 @@
 *************************************************************************
 ** This file contains code for implementations of the r-tree and r*-tree
 ** algorithms packaged as an SQLite virtual table module.
+** 这个文件包含了用SQLite虚表实现rtree和r*tree的代码,即将R树的结构放在虚表
+** 中,不仅便于存取,也便于查询.
 */
 
 /*
@@ -21,7 +23,9 @@
 ** native SQLite tables declared as follows. In each case, the '%' character
 ** in the table name is replaced with the user-supplied name of the r-tree
 ** table.
-**
+** 一个虚拟的rtree表的数据结构存储在三个SQLite表中
+** 在每个表中%替换为用户支持的rtree表名
+
 **   CREATE TABLE %_node(nodeno INTEGER PRIMARY KEY, data BLOB)
 **   CREATE TABLE %_parent(nodeno INTEGER PRIMARY KEY, parentnode INTEGER)
 **   CREATE TABLE %_rowid(rowid INTEGER PRIMARY KEY, nodeno INTEGER)
@@ -37,20 +41,28 @@
 ** empty. The nodeno of the root node is always 1. All other nodes in the
 ** table must be the same size as the root node. The content of each node
 ** is formatted as follows:
-**
+** rtree根结点一直都存在，不论R树表是否为空,根结点的id一直为1.其他所有结点
+** 的大小应该与根结点大小相同。其他结点应该满足下面条件
 **   1. If the node is the root node (node 1), then the first 2 bytes
 **      of the node contain the tree depth as a big-endian integer.
 **      For non-root nodes, the first 2 bytes are left unused.
-**
+**   1.如果结点是根结点，则前2个byte包含树的高度信息，对于非根结点，前两
+**   个字节未被使用。
 **   2. The next 2 bytes contain the number of entries currently 
 **      stored in the node.
-**
+**   2.接下来的2byte包含了结点所对应的指针数量。
 **   3. The remainder of the node contains the node entries. Each entry
 **      consists of a single 8-byte integer followed by an even number
 **      of 4-byte coordinates. For leaf nodes the integer is the rowid
 **      of a record. For internal nodes it is the node number of a
 **      child page.
+**   3.结点剩下的部分包含了结点记录。每个记录包含4byte的坐标信息和8byte的
+**   整型信息。对于叶子结点8byte整型信息是记录的行号。对于内部结点整型信息
+**   是孩子页的结点号。
 */
+
+
+
 
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_RTREE)
 
@@ -58,41 +70,45 @@
 ** This file contains an implementation of a couple of different variants
 ** of the r-tree algorithm. See the README file for further details. The 
 ** same data-structure is used for all, but the algorithms for insert and
-** delete operations vary. The variants used are selected at compile time 
+** delete operations vary. The variants used re selected at compile time 
 ** by defining the following symbols:
+** 这个文件包含R树两种不同算法的实现.readme文件中有更详细的说明.两种算法的
+** 数据结构是一样的,但是插入和删除操作过程不一样.通过定义下面两个标志来选择
+** 需要编译的算法.
 */
 
 /* Either, both or none of the following may be set to activate 
 ** r*tree variant algorithms.
+** 激活R*树算法
 */
-#define VARIANT_RSTARTREE_CHOOSESUBTREE 0
-#define VARIANT_RSTARTREE_REINSERT      1
+#define VARIANT_RSTARTREE_CHOOSESUBTREE 0 //R*树的选择子树算法
+#define VARIANT_RSTARTREE_REINSERT      1 //R*树的重插入算法
 
 /* 
 ** Exactly one of the following must be set to 1.
 */
-#define VARIANT_GUTTMAN_QUADRATIC_SPLIT 0
-#define VARIANT_GUTTMAN_LINEAR_SPLIT    0
-#define VARIANT_RSTARTREE_SPLIT         1
+#define VARIANT_GUTTMAN_QUADRATIC_SPLIT 0  //平方分裂
+#define VARIANT_GUTTMAN_LINEAR_SPLIT    0  //线性分裂
+#define VARIANT_RSTARTREE_SPLIT         1  //R*树分裂算法
 
 #define VARIANT_GUTTMAN_SPLIT \
         (VARIANT_GUTTMAN_LINEAR_SPLIT||VARIANT_GUTTMAN_QUADRATIC_SPLIT)
 
-#if VARIANT_GUTTMAN_QUADRATIC_SPLIT
+#if VARIANT_GUTTMAN_QUADRATIC_SPLIT    //平方分裂算法
   #define PickNext QuadraticPickNext
   #define PickSeeds QuadraticPickSeeds
   #define AssignCells splitNodeGuttman
 #endif
-#if VARIANT_GUTTMAN_LINEAR_SPLIT
+#if VARIANT_GUTTMAN_LINEAR_SPLI         //线性分裂算法
   #define PickNext LinearPickNext
   #define PickSeeds LinearPickSeeds
   #define AssignCells splitNodeGuttman
 #endif
-#if VARIANT_RSTARTREE_SPLIT
+#if VARIANT_RSTARTREE_SPLIT    //定义R*树分裂算法,R*树分裂算法与R树分裂算法不同
   #define AssignCells splitNodeStartree
 #endif
 
-#if !defined(NDEBUG) && !defined(SQLITE_DEBUG) 
+#if !defined(NDEBUG) && !defined(SQLITE_DEBUG)  //是否支持调试
 # define NDEBUG 1
 #endif
 
@@ -129,11 +145,13 @@ typedef struct RtreeGeomCallback RtreeGeomCallback;
 typedef union RtreeCoord RtreeCoord;
 
 /* The rtree may have between 1 and RTREE_MAX_DIMENSIONS dimensions. */
+/* R树最大维数为5*/
 #define RTREE_MAX_DIMENSIONS 5
 
 /* Size of hash table Rtree.aHash. This hash table is not expected to
 ** ever contain very many entries, so a fixed number of buckets is 
 ** used.
+** R树的hash表的大小.该hash表不会包含所有记录.所以hash桶有确定的大小.
 */
 #define HASHSIZE 128
 
@@ -142,25 +160,28 @@ typedef union RtreeCoord RtreeCoord;
 */
 struct Rtree {
   sqlite3_vtab base;
-  sqlite3 *db;                /* Host database connection */
-  int iNodeSize;              /* Size in bytes of each node in the node table */
-  int nDim;                   /* Number of dimensions */
-  int nBytesPerCell;          /* Bytes consumed per cell */
-  int iDepth;                 /* Current depth of the r-tree structure */
-  char *zDb;                  /* Name of database containing r-tree table */
-  char *zName;                /* Name of r-tree table */ 
-  RtreeNode *aHash[HASHSIZE]; /* Hash table of in-memory nodes. */ 
-  int nBusy;                  /* Current number of users of this structure */
+  sqlite3 *db;                /* Host database connection 数据库连接*/
+  int iNodeSize;              /* Size in bytes of each node in the node table 表中每个节点的大小*/
+  int nDim;                   /* Number of dimensions 维数*/
+  int nBytesPerCell;          /* Bytes consumed per cell 每个单元所包含的byte数*/
+  int iDepth;                 /* Current depth of the r-tree structure 当前rtree的高度*/
+  char *zDb;                  /* Name of database containing r-tree table 包含rtree表的数据库名称*/
+  char *zName;                /* Name of r-tree table  rtree表的名称*/ 
+  RtreeNode *aHash[HASHSIZE]; /* Hash table of in-memory nodes. 内存节点的hash表*/ 
+  int nBusy;                  /* Current number of users of this structure  使用该结构的当前用户数*/
 
   /* List of nodes removed during a CondenseTree operation. List is
   ** linked together via the pointer normally used for hash chains -
   ** RtreeNode.pNext. RtreeNode.iNode stores the depth of the sub-tree 
   ** headed by the node (leaf nodes have RtreeNode.iNode==0).
+  ** 当对树进行压缩时结点链表将移除.链表用hash链的RtreeNode.pNext指针将每个
+  ** 结点连接起来，RtreeNode.iNode存放了子树的高度信息。
+  **（叶结点的RtreeNode.iNode=0）
   */
   RtreeNode *pDeleted;
-  int iReinsertHeight;        /* Height of sub-trees Reinsert() has run on */
+  int iReinsertHeight;        /* Height of sub-trees Reinsert() has run on 运行重插入函数的子树高度*/
 
-  /* Statements to read/write/delete a record from xxx_node */
+  /* Statements to read/write/delete a record from xxx_node XXX结点记录的CRUD语句*/
   sqlite3_stmt *pReadNode;
   sqlite3_stmt *pWriteNode;
   sqlite3_stmt *pDeleteNode;
@@ -186,6 +207,7 @@ struct Rtree {
 ** If SQLITE_RTREE_INT_ONLY is defined, then this virtual table will
 ** only deal with integer coordinates.  No floating point operations
 ** will be done.
+** 如果SQLITE_RTREE_INT_ONLY未被定义，则虚表将只支持整型数据
 */
 #ifdef SQLITE_RTREE_INT_ONLY
   typedef sqlite3_int64 RtreeDValue;       /* High accuracy coordinate */
@@ -203,8 +225,11 @@ struct Rtree {
 **
 ** If an R*-tree "Reinsert" operation is required, the same number of
 ** cells are removed from the overfull node and reinserted into the tree.
+** 一个结点所存储的最大单元数是最小单元数的3倍。即m=M/3,这是Guttman论文实
+** 验测试的最佳参数值，如果rtree可以进行重插入操作，在进行重插入的过程中,
+** 结点单元数如果超过最大值,结点将重新插入到树中。
 */
-#define RTREE_MINCELLS(p) ((((p)->iNodeSize-4)/(p)->nBytesPerCell)/3)
+#define RTREE_MINCELLS(p) ((((p)->iNodeSize-4)/(p)->nBytesPerCell)/3) //获得结点最小单元数
 #define RTREE_REINSERT(p) RTREE_MINCELLS(p)
 #define RTREE_MAXCELLS 51
 
@@ -214,19 +239,23 @@ struct Rtree {
 ** Therefore all non-root nodes must contain at least 3 entries. Since 
 ** 2^40 is greater than 2^64, an r-tree structure always has a depth of
 ** 40 or less.
+** 最小结点的大小为512-64=448byte，最大的单元大小为48byte（8 byte行号+10 4坐标）
+** 所有非根结点应该包含最少3个记录
+** 由于2^40<2^64，所以一个rtree的高度一般小于40
 */
 #define RTREE_MAX_DEPTH 40
 
 /* 
 ** An rtree cursor object.
+** 一个Rtree结点游标对象结构
 */
 struct RtreeCursor {
   sqlite3_vtab_cursor base;
-  RtreeNode *pNode;                 /* Node cursor is currently pointing at */
-  int iCell;                        /* Index of current cell in pNode */
-  int iStrategy;                    /* Copy of idxNum search parameter */
-  int nConstraint;                  /* Number of entries in aConstraint */
-  RtreeConstraint *aConstraint;     /* Search constraints. */
+  RtreeNode *pNode;                 /* Node cursor is currently pointing at 结点游标当前指向的节点*/
+  int iCell;                        /* Index of current cell in pNode pNode 结点当前单元的索引号*/
+  int iStrategy;                    /* Copy of idxNum search parameter idxNum搜索参数的复制*/
+  int nConstraint;                  /* Number of entries in aConstraint 在aconstraint约束中的记录数*/
+  RtreeConstraint *aConstraint;     /* Search constraints. 搜索约束*/
 };
 
 union RtreeCoord {
@@ -239,8 +268,9 @@ union RtreeCoord {
 ** formatted as a RtreeDValue (double or int64). This macro assumes that local
 ** variable pRtree points to the Rtree structure associated with the
 ** RtreeCoord.
+** 参数类型是RtreeCoord.返回将RtreeCoor转换为RtreeDvalue的值.
 */
-#ifdef SQLITE_RTREE_INT_ONLY
+#ifdef SQLITE_RTREE_INT_ONLY   //R树是否只支持整型数据
 # define DCOORD(coord) ((RtreeDValue)coord.i)
 #else
 # define DCOORD(coord) (                           \
@@ -254,14 +284,14 @@ union RtreeCoord {
 ** A search constraint.
 */
 struct RtreeConstraint {
-  int iCoord;                     /* Index of constrained coordinate */
-  int op;                         /* Constraining operation */
-  RtreeDValue rValue;             /* Constraint value. */
+  int iCoord;                     /* Index of constrained coordinate 约束坐标的索引*/
+  int op;                         /* Constraining operation 约束操作*/
+  RtreeDValue rValue;             /* Constraint value. 约束值*/
   int (*xGeom)(sqlite3_rtree_geometry*, int, RtreeDValue*, int*);
-  sqlite3_rtree_geometry *pGeom;  /* Constraint callback argument for a MATCH */
+  sqlite3_rtree_geometry *pGeom;  /* Constraint callback argument for a MATCH 匹配的回调约束参数*/
 };
 
-/* Possible values for RtreeConstraint.op */
+/* Possible values for RtreeConstraint.op 约束操作的可能值*/
 #define RTREE_EQ    0x41
 #define RTREE_LE    0x42
 #define RTREE_LT    0x43
@@ -283,7 +313,7 @@ struct RtreeNode {
 #define NCELL(pNode) readInt16(&(pNode)->zData[2])
 
 /* 
-** Structure to store a deserialized rtree record.
+** Structure to store a deserialized rtree record.存储反序列化R树记录的结构
 */
 struct RtreeCell {
   i64 iRowid;
@@ -295,6 +325,8 @@ struct RtreeCell {
 ** Value for the first field of every RtreeMatchArg object. The MATCH
 ** operator tests that the first field of a blob operand matches this
 ** value to avoid operating on invalid blobs (which could cause a segfault).
+** 每个rtreematcharg对象第一个区域的值，匹配运算符验证第一区域二进制大对象是否
+** 为匹配值类型，以避免在无效的二进制大对象上进行运算
 */
 #define RTREE_GEOMETRY_MAGIC 0x891245AB
 
@@ -302,6 +334,7 @@ struct RtreeCell {
 ** An instance of this structure must be supplied as a blob argument to
 ** the right-hand-side of an SQL MATCH operator used to constrain an
 ** r-tree query.
+** 该结构的一个实例必须支持一个二进制大对象参数在SQL匹配操作符的右边来约束R树语句
 */
 struct RtreeMatchArg {
   u32 magic;                      /* Always RTREE_GEOMETRY_MAGIC */
@@ -318,22 +351,30 @@ struct RtreeMatchArg {
 ** is eventually deleted by the destructor mechanism provided by
 ** sqlite3_create_function_v2() (which is called by s_r_g_c() to create
 ** the geometry callback function).
+** 当一个几何回调被创建(见sqlite3_rtree_geometry_callback)时，后面结构的单个实例
+** 将被分配。它将作为用户函数s_r_g_c()被创建，这个函数最终被sqlite3_create_function_v2()
+** 回收机制回收（调用s_r_g_c()创建几何回调函数）
 */
-struct RtreeGeomCallback {
+struct RtreeGeomCallback {  //在R树中一般是深度优先搜索
   int (*xGeom)(sqlite3_rtree_geometry*, int, RtreeDValue*, int*);
   void *pContext;
 };
+/*
+** xGeom是一种函回调形式,sqlite3_rtree_geometry是一个结构体
+** 它提供了SQL函数如果回调的信息,其中包括如何执行和析构
+*/
 
 #ifndef MAX
-# define MAX(x,y) ((x) < (y) ? (y) : (x))
+# define MAX(x,y) ((x) < (y) ? (y) : (x))   //求最大值
 #endif
 #ifndef MIN
-# define MIN(x,y) ((x) > (y) ? (y) : (x))
+# define MIN(x,y) ((x) > (y) ? (y) : (x))    //求最小值
 #endif
 
 /*
 ** Functions to deserialize a 16 bit integer, 32 bit real number and
 ** 64 bit integer. The deserialized value is returned.
+** 该函数反序列化一个16bit的整型，32bit真值和64bit整型数，并返回反序列化的值
 */
 static int readInt16(u8 *p){
   return (p[0]<<8) + p[1];
@@ -364,6 +405,7 @@ static i64 readInt64(u8 *p){
 ** Functions to serialize a 16 bit integer, 32 bit real number and
 ** 64 bit integer. The value returned is the number of bytes written
 ** to the argument buffer (always 2, 4 and 8 respectively).
+** 该函数序列化16bit整型,32bit真值和64bit整型数.返回值放在参数流中.
 */
 static int writeInt16(u8 *p, int i){
   p[0] = (i>> 8)&0xFF;
@@ -395,6 +437,7 @@ static int writeInt64(u8 *p, i64 i){
 
 /*
 ** Increment the reference count of node p.
+** 指向结点p的指针数量加1
 */
 static void nodeReference(RtreeNode *p){
   if( p ){
@@ -404,6 +447,7 @@ static void nodeReference(RtreeNode *p){
 
 /*
 ** Clear the content of node p (set all bytes to 0x00).
+** 清除结点p的内容
 */
 static void nodeZero(Rtree *pRtree, RtreeNode *p){
   memset(&p->zData[2], 0, pRtree->iNodeSize-2);
@@ -413,6 +457,7 @@ static void nodeZero(Rtree *pRtree, RtreeNode *p){
 /*
 ** Given a node number iNode, return the corresponding key to use
 ** in the Rtree.aHash table.
+** 输入一个结点号iNode，返回相应的hash表值
 */
 static int nodeHash(i64 iNode){
   return (
@@ -424,8 +469,9 @@ static int nodeHash(i64 iNode){
 /*
 ** Search the node hash table for node iNode. If found, return a pointer
 ** to it. Otherwise, return 0.
+** 搜索结点iNode在hash表中的位置，如果找到，就返回一个指向它的指针，否则返回0
 */
-static RtreeNode *nodeHashLookup(Rtree *pRtree, i64 iNode){
+static RtreeNode *nodeHashLookup(Rtree *pRtree, i64 iNode){ //查找结点iNode的hash值
   RtreeNode *p;
   for(p=pRtree->aHash[nodeHash(iNode)]; p && p->iNode!=iNode; p=p->pNext);
   return p;
@@ -433,6 +479,7 @@ static RtreeNode *nodeHashLookup(Rtree *pRtree, i64 iNode){
 
 /*
 ** Add node pNode to the node hash table.
+** 将结点pNode插入到pRtree的hash表中
 */
 static void nodeHashInsert(Rtree *pRtree, RtreeNode *pNode){
   int iHash;
@@ -444,6 +491,7 @@ static void nodeHashInsert(Rtree *pRtree, RtreeNode *pNode){
 
 /*
 ** Remove node pNode from the node hash table.
+** 将结点pNode从hash表中删除
 */
 static void nodeHashDelete(Rtree *pRtree, RtreeNode *pNode){
   RtreeNode **pp;
@@ -460,6 +508,8 @@ static void nodeHashDelete(Rtree *pRtree, RtreeNode *pNode){
 ** indicating that node has not yet been assigned a node number. It is
 ** assigned a node number when nodeWrite() is called to write the
 ** node contents out to the database.
+** 分配并返回一个新的rtree结点。初始时结点数为1，要求该结点未被指派一个
+** 结点id当它被要求写入内容时才指派一个结点id
 */
 static RtreeNode *nodeNew(Rtree *pRtree, RtreeNode *pParent){
   RtreeNode *pNode;
@@ -476,7 +526,7 @@ static RtreeNode *nodeNew(Rtree *pRtree, RtreeNode *pParent){
 }
 
 /*
-** Obtain a reference to an r-tree node.
+** Obtain a reference to an r-tree node.得到指向rtree结点的指针
 */
 static int
 nodeAcquire(
@@ -491,6 +541,7 @@ nodeAcquire(
 
   /* Check if the requested node is already in the hash table. If so,
   ** increase its reference count and return it.
+  ** 检查所要请求的结点是否在hash表中，如果在，则增加指向它的指针数量并返回
   */
   if( (pNode = nodeHashLookup(pRtree, iNode)) ){
     assert( !pParent || !pNode->pParent || pNode->pParent==pParent );
@@ -531,6 +582,9 @@ nodeAcquire(
   ** the root node. A height of one means the children of the root node
   ** are the leaves, and so on. If the depth as specified on the root node
   ** is greater than RTREE_MAX_DEPTH, the r-tree structure must be corrupt.
+  ** 如果根结点刚载入，设置pRtree->iDepth 参数值即rtree的高度。高度为0表示所
+  ** 有的数据都存放在根结点，高度为1表示根结点的孩子节点为叶结点。如果根结点
+  ** 的高度超过了最大值(RTREE_MAX_DEPTH)，这棵树将会崩溃。
   */
   if( pNode && iNode==1 ){
     pRtree->iDepth = readInt16(pNode->zData);
@@ -542,6 +596,8 @@ nodeAcquire(
   /* If no error has occurred so far, check if the "number of entries"
   ** field on the node is too large. If so, set the return code to 
   ** SQLITE_CORRUPT_VTAB.
+  ** 如果到此时还没错误发生，检查结点的记录数是否太大，如果是这样，设置
+  ** 返回代码为SQLITE_CORRUPT_VTAB
   */
   if( pNode && rc==SQLITE_OK ){
     if( NCELL(pNode)>((pRtree->iNodeSize-4)/pRtree->nBytesPerCell) ){
@@ -566,6 +622,7 @@ nodeAcquire(
 
 /*
 ** Overwrite cell iCell of node pNode with the contents of pCell.
+** 用pCell中的内容重写pNode的iCell单元的内容
 */
 static void nodeOverwriteCell(
   Rtree *pRtree, 
@@ -584,6 +641,7 @@ static void nodeOverwriteCell(
 
 /*
 ** Remove cell the cell with index iCell from node pNode.
+** 移除结点pNode中索引为iCell的单元
 */
 static void nodeDeleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell){
   u8 *pDst = &pNode->zData[4 + pRtree->nBytesPerCell*iCell];
@@ -597,8 +655,9 @@ static void nodeDeleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell){
 /*
 ** Insert the contents of cell pCell into node pNode. If the insert
 ** is successful, return SQLITE_OK.
-**
+** 插入pCell中的内容到结点pNode，如果插入成功，返回SQLITE_OK
 ** If there is not enough free space in pNode, return SQLITE_FULL.
+** 如果结点pNode已满，返回SQLITE_FULL
 */
 static int
 nodeInsertCell(
@@ -624,6 +683,7 @@ nodeInsertCell(
 
 /*
 ** If the node is dirty, write it out to the database.
+** 如果结点是脏的，将结点写入到数据库
 */
 static int
 nodeWrite(Rtree *pRtree, RtreeNode *pNode){
@@ -650,6 +710,7 @@ nodeWrite(Rtree *pRtree, RtreeNode *pNode){
 /*
 ** Release a reference to a node. If the node is dirty and the reference
 ** count drops to zero, the node data is written to the database.
+** 释放指向结点pNode的指针.如果该结点是脏的，且指向它的指针数为0，表明结点数据已经写入到数据库
 */
 static int
 nodeRelease(Rtree *pRtree, RtreeNode *pNode){
@@ -678,6 +739,8 @@ nodeRelease(Rtree *pRtree, RtreeNode *pNode){
 ** Return the 64-bit integer value associated with cell iCell of
 ** node pNode. If pNode is a leaf node, this is a rowid. If it is
 ** an internal node, then the 64-bit integer is a child page number.
+** 返回结点pNode的iCell单元的整型rowid，如果pNode结点是叶结点，则该值
+** 为行号rowid，如果pNode为内部结点，那么该值为其子结点的页号
 */
 static i64 nodeGetRowid(
   Rtree *pRtree, 
@@ -690,13 +753,14 @@ static i64 nodeGetRowid(
 
 /*
 ** Return coordinate iCoord from cell iCell in node pNode.
+** 返回pNode结点iCell单元的iCoord坐标
 */
 static void nodeGetCoord(
   Rtree *pRtree, 
   RtreeNode *pNode, 
   int iCell,
   int iCoord,
-  RtreeCoord *pCoord           /* Space to write result to */
+  RtreeCoord *pCoord           /* Space to write result to 保存单元的坐标*/
 ){
   readCoord(&pNode->zData[12 + pRtree->nBytesPerCell*iCell + 4*iCoord], pCoord);
 }
@@ -704,6 +768,7 @@ static void nodeGetCoord(
 /*
 ** Deserialize cell iCell of node pNode. Populate the structure pointed
 ** to by pCell with the results.
+** 反序列化pNode结点iCell单元.并将结果写入到pCell
 */
 static void nodeGetCell(
   Rtree *pRtree, 
@@ -721,11 +786,12 @@ static void nodeGetCell(
 
 /* Forward declaration for the function that does the work of
 ** the virtual table module xCreate() and xConnect() methods.
+** 对虚表xCreate() 和xConnect()方法的前置说明
 */
 static int rtreeInit(
   sqlite3 *, void *, int, const char *const*, sqlite3_vtab **, char **, int
 );
-
+//虚表模块Create()和Connect()方法均调用rtreeInit()来实现其过程
 /* 
 ** Rtree virtual table module xCreate method.
 */
@@ -754,6 +820,7 @@ static int rtreeConnect(
 
 /*
 ** Increment the r-tree reference count.
+** rtree引用数量+1
 */
 static void rtreeReference(Rtree *pRtree){
   pRtree->nBusy++;
@@ -762,6 +829,7 @@ static void rtreeReference(Rtree *pRtree){
 /*
 ** Decrement the r-tree reference count. When the reference count reaches
 ** zero the structure is deleted.
+** rtree引用数量减1，当引用为0时，删除该结构
 */
 static void rtreeRelease(Rtree *pRtree){
   pRtree->nBusy--;
@@ -781,6 +849,7 @@ static void rtreeRelease(Rtree *pRtree){
 
 /* 
 ** Rtree virtual table module xDisconnect method.
+** rtree虚表断开连接xDisconnect方法
 */
 static int rtreeDisconnect(sqlite3_vtab *pVtab){
   rtreeRelease((Rtree *)pVtab);
@@ -789,6 +858,7 @@ static int rtreeDisconnect(sqlite3_vtab *pVtab){
 
 /* 
 ** Rtree virtual table module xDestroy method.
+** rtree虚表销毁xDestory方法
 */
 static int rtreeDestroy(sqlite3_vtab *pVtab){
   Rtree *pRtree = (Rtree *)pVtab;
@@ -816,6 +886,7 @@ static int rtreeDestroy(sqlite3_vtab *pVtab){
 
 /* 
 ** Rtree virtual table module xOpen method.
+** Rtree虚表打开xOpen方法
 */
 static int rtreeOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
   int rc = SQLITE_NOMEM;
@@ -835,6 +906,7 @@ static int rtreeOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 
 /*
 ** Free the RtreeCursor.aConstraint[] array and its contents.
+** 释放RtreeCursor约束数组和其内容
 */
 static void freeCursorConstraints(RtreeCursor *pCsr){
   if( pCsr->aConstraint ){
@@ -853,6 +925,7 @@ static void freeCursorConstraints(RtreeCursor *pCsr){
 
 /* 
 ** Rtree virtual table module xClose method.
+** Rtree虚表关闭xClose方法
 */
 static int rtreeClose(sqlite3_vtab_cursor *cur){
   Rtree *pRtree = (Rtree *)(cur->pVtab);
@@ -866,9 +939,10 @@ static int rtreeClose(sqlite3_vtab_cursor *cur){
 
 /*
 ** Rtree virtual table module xEof method.
-**
+** Rtree虚表结束xEOF方法
 ** Return non-zero if the cursor does not currently point to a valid 
 ** record (i.e if the scan has finished), or zero otherwise.
+** 如果当前指针没有指向一个有效的记录(已完成扫描)则返回非空值,否则返回0
 */
 static int rtreeEof(sqlite3_vtab_cursor *cur){
   RtreeCursor *pCsr = (RtreeCursor *)cur;
@@ -878,6 +952,7 @@ static int rtreeEof(sqlite3_vtab_cursor *cur){
 /*
 ** The r-tree constraint passed as the second argument to this function is
 ** guaranteed to be a MATCH constraint.
+** Rtree约束通过该函数的第二个参数保证匹配约束
 */
 static int testRtreeGeom(
   Rtree *pRtree,                  /* R-Tree object */
@@ -903,9 +978,12 @@ static int testRtreeGeom(
 ** Set *pbEof to true if the sub-tree headed by the cell is filtered
 ** (excluded) by the constraints in the pCursor->aConstraint[] 
 ** array, or false otherwise.
-**
+** 游标pCursor指向一个非叶子结点页的，如果子树中单元是被约束集
+** pCursor->aConstraint[]滤过的，则设置pbEof为true，否则设为false
+
 ** Return SQLITE_OK if successful or an SQLite error code if an error
 ** occurs within a geometry callback.
+** 如果成功返回SQLITE_OK，如果发生错误返回SQLite error
 */
 static int testRtreeCell(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
   RtreeCell cell;
@@ -955,11 +1033,13 @@ static int testRtreeCell(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
 ** pCursor->aConstraint[] array. If so, set *pbEof to true before
 ** returning. If the cell is not filtered (excluded) by the constraints,
 ** set pbEof to zero.
-**
+** 验证pCursor指针所指向的单元是否满足约束集pCursor->aConstraint[] array
+** 约束条件，如果满足设置*pbEof为真，否则设为0
 ** Return SQLITE_OK if successful or an SQLite error code if an error
 ** occurs within a geometry callback.
-**
+** 如果成功返回SQLITE_OK,如果发生错误返回SQLite error
 ** This function assumes that the cell is part of a leaf node.
+** 这个函数假设单元是叶结点的一部分
 */
 static int testRtreeEntry(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
   RtreeCell cell;
@@ -1005,6 +1085,8 @@ static int testRtreeEntry(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
 ** height iHeight (if iHeight==0, then the node is a leaf). Descend
 ** to point to the left-most cell of the sub-tree that matches the 
 ** configured constraints.
+** 指针pCursor当前所指向的结点头部存放着子树高度信息，测试最左边子树是否
+** 满足约束信息
 */
 static int descendToCell(
   Rtree *pRtree, 
@@ -1065,6 +1147,7 @@ descend_to_cell_out:
 /*
 ** One of the cells in node pNode is guaranteed to have a 64-bit 
 ** integer value equal to iRowid. Return the index of this cell.
+** 保证结点pNode的一个单元的iRowid为64位整数，并返回该单元的索引
 */
 static int nodeRowidIndex(
   Rtree *pRtree, 
@@ -1086,6 +1169,7 @@ static int nodeRowidIndex(
 /*
 ** Return the index of the cell containing a pointer to node pNode
 ** in its parent. If pNode is the root node, return -1.
+** 返回结点pNode中指向其父结点指针的单元的索引，如果pNode为根结点则返回-1
 */
 static int nodeParentIndex(Rtree *pRtree, RtreeNode *pNode, int *piIndex){
   RtreeNode *pParent = pNode->pParent;
@@ -1098,6 +1182,7 @@ static int nodeParentIndex(Rtree *pRtree, RtreeNode *pNode, int *piIndex){
 
 /* 
 ** Rtree virtual table module xNext method.
+** 虚表Next()函数
 */
 static int rtreeNext(sqlite3_vtab_cursor *pVtabCursor){
   Rtree *pRtree = (Rtree *)(pVtabCursor->pVtab);
@@ -1107,15 +1192,20 @@ static int rtreeNext(sqlite3_vtab_cursor *pVtabCursor){
   /* RtreeCursor.pNode must not be NULL. If is is NULL, then this cursor is
   ** already at EOF. It is against the rules to call the xNext() method of
   ** a cursor that has already reached EOF.
+  ** RtreeCursor.pNode必须不为空,如果为空,表明指针已经到达结尾,该方法已结束.
   */
   assert( pCsr->pNode );
 
   if( pCsr->iStrategy==1 ){
-    /* This "scan" is a direct lookup by rowid. There is no next entry. */
+    /* This "scan" is a direct lookup by rowid. There is no next entry. 
+    ** rowid的扫描已完成,不存在下一条记录.
+    */
     nodeRelease(pRtree, pCsr->pNode);
     pCsr->pNode = 0;
   }else{
-    /* Move to the next entry that matches the configured constraints. */
+    /* Move to the next entry that matches the configured constraints. 
+    ** 移动到下一条满足约束的记录.
+    */
     int iHeight = 0;
     while( pCsr->pNode ){
       RtreeNode *pNode = pCsr->pNode;
@@ -1143,6 +1233,7 @@ static int rtreeNext(sqlite3_vtab_cursor *pVtabCursor){
 
 /* 
 ** Rtree virtual table module xRowid method.
+** rowid()方法
 */
 static int rtreeRowid(sqlite3_vtab_cursor *pVtabCursor, sqlite_int64 *pRowid){
   Rtree *pRtree = (Rtree *)pVtabCursor->pVtab;
@@ -1156,6 +1247,7 @@ static int rtreeRowid(sqlite3_vtab_cursor *pVtabCursor, sqlite_int64 *pRowid){
 
 /* 
 ** Rtree virtual table module xColumn method.
+** 虚表列方法
 */
 static int rtreeColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
   Rtree *pRtree = (Rtree *)cur->pVtab;
@@ -1187,6 +1279,9 @@ static int rtreeColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
 ** return SQLITE_OK. If there is no such record in the table, set
 ** *ppLeaf to 0 and return SQLITE_OK. If an error occurs, set *ppLeaf
 ** to zero and return an SQLite error code.
+** 根据记录的iRowid调用nodeAcquire()函数得到叶结点，如果成功，设置*ppLeaf
+** 指向该结点并返回SQLITE_OK，如果没有该记录，设置*ppLeaf指向0并返回
+** SQLite error，如果有错误产生，则设置*ppLeaf为zero，并返回SQLite error
 */
 static int findLeafNode(Rtree *pRtree, i64 iRowid, RtreeNode **ppLeaf){
   int rc;
@@ -1207,6 +1302,7 @@ static int findLeafNode(Rtree *pRtree, i64 iRowid, RtreeNode **ppLeaf){
 ** as the second argument for a MATCH constraint. The value passed as the
 ** first argument to this function is the right-hand operand to the MATCH
 ** operator.
+** 这个函数的第二个参数配置匹配的约束。第一个参数用来作为右边匹配符的操作对象
 */
 static int deserializeGeometry(sqlite3_value *pValue, RtreeConstraint *pCons){
   RtreeMatchArg *p;
@@ -1250,6 +1346,7 @@ static int deserializeGeometry(sqlite3_value *pValue, RtreeConstraint *pCons){
 
 /* 
 ** Rtree virtual table module xFilter method.
+** 虚表过滤器方法
 */
 static int rtreeFilter(
   sqlite3_vtab_cursor *pVtabCursor, 
@@ -1299,6 +1396,7 @@ static int rtreeFilter(
             /* A MATCH operator. The right-hand-side must be a blob that
             ** can be cast into an RtreeMatchArg object. One created using
             ** an sqlite3_rtree_geometry_callback() SQL user function.
+            ** 匹配操作符右边必须是blob类型数据
             */
             rc = deserializeGeometry(argv[ii], p);
             if( rc!=SQLITE_OK ){
@@ -1347,7 +1445,7 @@ static int rtreeFilter(
 ** Rtree virtual table module xBestIndex method. There are three
 ** table scan strategies to choose from (in order from most to 
 ** least desirable):
-**
+** 有三种表扫描策略可选择
 **   idxNum     idxStr        Strategy
 **   ------------------------------------------------
 **     1        Unused        Direct lookup by rowid.
@@ -1359,10 +1457,11 @@ static int rtreeFilter(
 ** constraint used. The first two bytes of idxStr correspond to 
 ** the constraint in sqlite3_index_info.aConstraintUsage[] with
 ** (argvIndex==1) etc.
-**
+** 如果策略1被使用，那么idxstr是没有意义的，如果策略2被使用，idxstr的
+** 2byte将作为约束使用，前2byte相当于sqlite3_index_info（索引信息）
 ** The first of each pair of bytes in idxStr identifies the constraint
 ** operator as follows:
-**
+** 前2byte可以表示以下几种形式：
 **   Operator    Byte Value
 **   ----------------------
 **      =        0x41 ('A')
@@ -1376,6 +1475,7 @@ static int rtreeFilter(
 ** The second of each pair of bytes identifies the coordinate column
 ** to which the constraint applies. The leftmost coordinate column
 ** is 'a', the second from the left 'b' etc.
+** 后面的2byte确定哪种约束被使用在坐标列上，最左边的列为a，接下来的为b，等等
 */
 static int rtreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
   int rc = SQLITE_OK;
@@ -1392,6 +1492,7 @@ static int rtreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 
     if( p->usable && p->iColumn==0 && p->op==SQLITE_INDEX_CONSTRAINT_EQ ){
       /* We have an equality constraint on the rowid. Use strategy 1. */
+      //如果在rowid上有等价约束,则使用策略1
       int jj;
       for(jj=0; jj<ii; jj++){
         pIdxInfo->aConstraintUsage[jj].argvIndex = 0;
@@ -1405,6 +1506,7 @@ static int rtreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
       ** and then a linear search of an R-Tree node. This should be 
       ** considered almost as quick as a direct rowid lookup (for which 
       ** sqlite uses an internal cost of 0.0).
+      ** 这个策略包含了两种rowid在B树结构和在R树结点的线性搜索方式，这种直接在rowid搜索是非常迅速的。
       */ 
       pIdxInfo->estimatedCost = 10.0;
       return SQLITE_OK;
@@ -1442,6 +1544,7 @@ static int rtreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 
 /*
 ** Return the N-dimensional volumn of the cell stored in *p.
+** 返回单元p中存放的N维数据
 */
 static RtreeDValue cellArea(Rtree *pRtree, RtreeCell *p){
   RtreeDValue area = (RtreeDValue)1;
@@ -1455,6 +1558,7 @@ static RtreeDValue cellArea(Rtree *pRtree, RtreeCell *p){
 /*
 ** Return the margin length of cell p. The margin length is the sum
 ** of the objects size in each dimension.
+** 返回单元p的边界长度，该边界长度是所有维度值的总和。即计算周长
 */
 static RtreeDValue cellMargin(Rtree *pRtree, RtreeCell *p){
   RtreeDValue margin = (RtreeDValue)0;
@@ -1467,6 +1571,7 @@ static RtreeDValue cellMargin(Rtree *pRtree, RtreeCell *p){
 
 /*
 ** Store the union of cells p1 and p2 in p1.
+** 将单元p1和p2合并到单元p1,需要计算维度坐标值
 */
 static void cellUnion(Rtree *pRtree, RtreeCell *p1, RtreeCell *p2){
   int ii;
@@ -1486,6 +1591,7 @@ static void cellUnion(Rtree *pRtree, RtreeCell *p1, RtreeCell *p2){
 /*
 ** Return true if the area covered by p2 is a subset of the area covered
 ** by p1. False otherwise.
+** 如果单元p2所指向区域是单元p1所指向的子集，则返回true,否则返回false
 */
 static int cellContains(Rtree *pRtree, RtreeCell *p1, RtreeCell *p2){
   int ii;
@@ -1504,6 +1610,7 @@ static int cellContains(Rtree *pRtree, RtreeCell *p1, RtreeCell *p2){
 
 /*
 ** Return the amount cell p would grow by if it were unioned with pCell.
+** 返回单元p与单元pCell合并后的区域增长值,用于计算合并代价
 */
 static RtreeDValue cellGrowth(Rtree *pRtree, RtreeCell *p, RtreeCell *pCell){
   RtreeDValue area;
@@ -1554,8 +1661,9 @@ static RtreeDValue cellOverlap(
 }
 #endif
 
-#if VARIANT_RSTARTREE_CHOOSESUBTREE
+#if VARIANT_RSTARTREE_CHOOSESUBTREE  //R*树选择子树算法
 static RtreeDValue cellOverlapEnlargement(
+        //返回插入单元pInsert后单元p和单元aCell区域的重叠值增量
   Rtree *pRtree, 
   RtreeCell *p, 
   RtreeCell *pInsert, 
@@ -1575,6 +1683,8 @@ static RtreeDValue cellOverlapEnlargement(
 /*
 ** This function implements the ChooseLeaf algorithm from Gutman[84].
 ** ChooseSubTree in r*tree terminology.
+** 这个函数实现了Gutman[84]中选择叶结点算法
+** 选择子树算法是R*树的算法
 */
 static int ChooseLeaf(
   Rtree *pRtree,               /* Rtree table */
@@ -1623,6 +1733,7 @@ static int ChooseLeaf(
     /* Select the child node which will be enlarged the least if pCell
     ** is inserted into it. Resolve ties by choosing the entry with
     ** the smallest area.
+    ** 选择插入pCell单元代价最小子结点，选择增量最小区域的情况分裂结点
     */
     for(iCell=0; iCell<nCell; iCell++){
       int bBest = 0;
@@ -1672,6 +1783,7 @@ static int ChooseLeaf(
 ** A cell with the same content as pCell has just been inserted into
 ** the node pNode. This function updates the bounding box cells in
 ** all ancestor elements.
+** 与单元pCell相同内容插入到结点pNode中，这个函数在原来的基础更新了所有的边界框。
 */
 static int AdjustTree(
   Rtree *pRtree,                    /* Rtree table */
@@ -1711,6 +1823,7 @@ static int rowidWrite(Rtree *pRtree, sqlite3_int64 iRowid, sqlite3_int64 iNode){
 
 /*
 ** Write mapping (iNode->iPar) to the <rtree>_parent table.
+** 写入(iRowid->iNode) 的映射到the <rtree>_rowid table,将R树结构存放到虚表中
 */
 static int parentWrite(Rtree *pRtree, sqlite3_int64 iNode, sqlite3_int64 iPar){
   sqlite3_bind_int64(pRtree->pWriteParent, 1, iNode);
@@ -1720,11 +1833,13 @@ static int parentWrite(Rtree *pRtree, sqlite3_int64 iNode, sqlite3_int64 iPar){
 }
 
 static int rtreeInsertCell(Rtree *, RtreeNode *, RtreeCell *, int);
+// 将单元pCell插入到结点pNode中，结点pNode是高度为iHeight子树的首结点
 
 #if VARIANT_GUTTMAN_LINEAR_SPLIT
 /*
 ** Implementation of the linear variant of the PickNext() function from
 ** Guttman[84].
+** 线性分裂算法中PickNext()
 */
 static RtreeCell *LinearPickNext(
   Rtree *pRtree,
@@ -1743,6 +1858,7 @@ static RtreeCell *LinearPickNext(
 /*
 ** Implementation of the linear variant of the PickSeeds() function from
 ** Guttman[84].
+** 线性分裂算法中PickSeeds()
 */
 static void LinearPickSeeds(
   Rtree *pRtree,
@@ -1760,6 +1876,8 @@ static void LinearPickSeeds(
   ** here is the LinearPickSeeds algorithm from Gutman[1984]. The 
   ** indices of the two seed cells in the array are stored in local
   ** variables iLeftSeek and iRightSeed.
+  ** 从单元数组中选择两个种子单元，该算法是Gutman[84]中的算法，这两个种
+  ** 子存储在变量iLeftSeek和iRightSeed中
   */
   for(i=0; i<pRtree->nDim; i++){
     RtreeDValue x1 = DCOORD(aCell[0].aCoord[i*2]);
@@ -1801,10 +1919,11 @@ static void LinearPickSeeds(
 }
 #endif /* VARIANT_GUTTMAN_LINEAR_SPLIT */
 
-#if VARIANT_GUTTMAN_QUADRATIC_SPLIT
+#if VARIANT_GUTTMAN_QUADRATIC_SPLIT　
 /*
 ** Implementation of the quadratic variant of the PickNext() function from
 ** Guttman[84].
+** 平方分裂算法
 */
 static RtreeCell *QuadraticPickNext(
   Rtree *pRtree,
@@ -1887,6 +2006,9 @@ static void QuadraticPickSeeds(
 **
 ** The aSpare array is used as temporary working space by the
 ** sorting algorithm.
+** 参数aIdx，aDistance和aSpare都指向nIdx数组，aIdx数组中值为0-（nIdx-1）
+** 任意值，该函数实现对aIdx中值排序来索引aDistance中的值，aSpare作为
+** 临时空间来实现排序算法。
 */
 static void SortByDistance(
   int *aIdx, 
@@ -1953,6 +2075,9 @@ static void SortByDistance(
 **
 ** The aSpare array is used as temporary working space by the
 ** sorting algorithm.
+** aIdx，aCell和aSpare都指向nIdx数组，aIdx数组的值为0-（nIdx-1）的
+** 任意值，这个函数根据aCell单元中坐标iDim来排序aIdx数组中的索引，
+** 坐标iDim最小值被首先考虑，最大值通常用来破坏结点。
 */
 static void SortByDimension(
   Rtree *pRtree,
@@ -2010,7 +2135,7 @@ static void SortByDimension(
   }
 }
 
-#if VARIANT_RSTARTREE_SPLIT
+#if VARIANT_RSTARTREE_SPLIT　//R*树结点分裂算法
 /*
 ** Implementation of the R*-tree variant of SplitNode from Beckman[1990].
 */
@@ -2112,7 +2237,7 @@ static int splitNodeStartree(
 }
 #endif
 
-#if VARIANT_GUTTMAN_SPLIT
+#if VARIANT_GUTTMAN_SPLIT //R树结点分裂算法
 /*
 ** Implementation of the regular R-tree SplitNode from Guttman[1984].
 */
@@ -2168,7 +2293,7 @@ static int splitNodeGuttman(
 }
 #endif
 
-static int updateMapping(
+static int updateMapping( //更新pNode结点与iRowid映射关系
   Rtree *pRtree, 
   i64 iRowid, 
   RtreeNode *pNode, 
@@ -2209,6 +2334,7 @@ static int SplitNode(
 
   /* Allocate an array and populate it with a copy of pCell and 
   ** all cells from node pLeft. Then zero the original node.
+  ** 分配一个数组，将结点pLeft所有单元pCell放到数组中，后将原结点置0,即删除原结点
   */
   aCell = sqlite3_malloc((sizeof(RtreeCell)+sizeof(int))*(nCell+1));
   if( !aCell ){
@@ -2253,6 +2379,9 @@ static int SplitNode(
   ** nodeWrite(). Node pRight always needs a node number, as it was created
   ** by nodeNew() above. But node pLeft sometimes already has a node number.
   ** In this case avoid the all to nodeWrite().
+  ** 调用nodeWrite()确保所有孩子结点有结点号分配给它们，由于结点pRight一般被
+  ** nodeNew()创建，所以需要一个结点号，但是结点pLeft一般都有结点号。这样需要
+  ** 避免所有的结点都调用nodeWrite().
   */
   if( SQLITE_OK!=(rc = nodeWrite(pRtree, pRight))
    || (0==pLeft->iNode && SQLITE_OK!=(rc = nodeWrite(pRtree, pLeft)))
@@ -2332,6 +2461,10 @@ splitnode_out:
 ** rowid of the row to delete, which can be used to find the leaf on which
 ** the entry resides (argument pLeaf). Once the leaf is located, this 
 ** function is called to determine its ancestry.
+** 如果结点pLeaf不是根结点并且它的父结点为空，导入所有pLeaf的祖先结点到内存，
+** 将直到根结点的结点分配pLeaf父结点链中这个操作在一行被删除（或者在插入后进
+** 行删除）后发生。SQLite提供一行的行号的删除，这可以用来找到叶结点的入口。
+** 当一个叶结点被找到时，这个函数将被调用来确定其父结点。
 */
 static int fixLeafParent(Rtree *pRtree, RtreeNode *pLeaf){
   int rc = SQLITE_OK;
@@ -2348,6 +2481,8 @@ static int fixLeafParent(Rtree *pRtree, RtreeNode *pLeaf){
       ** loop of references (as we would if, say, pChild==pParent). We don't
       ** want to do this as it leads to a memory leak when trying to delete
       ** the referenced counted node structures.
+      ** 在设置pLeaf的父结点之前，验证是否产生了指针环，环结构会导致当尝试删除结点指针
+      ** 计数结构时会产生内存泄露。
       */
       iNode = sqlite3_column_int64(pRtree->pReadParent, 0);
       for(pTest=pLeaf; pTest && pTest->iNode!=iNode; pTest=pTest->pParent);
@@ -2404,6 +2539,7 @@ static int removeNode(Rtree *pRtree, RtreeNode *pNode, int iHeight){
   
   /* Remove the node from the in-memory hash table and link it into
   ** the Rtree.pDeleted list. Its contents will be re-inserted later on.
+  ** 从内存hash表中移除结点并将其链接到删除链表中,它内容会在后续进行重插入
   */
   nodeHashDelete(pRtree, pNode);
   pNode->iNode = iHeight;
@@ -2440,6 +2576,7 @@ static int fixBoundingBox(Rtree *pRtree, RtreeNode *pNode){
 /*
 ** Delete the cell at index iCell of node pNode. After removing the
 ** cell, adjust the r-tree data structure if required.
+** 删除结点pNode的索引为iCell的单元，删除后如果有需要会调整rtree结构
 */
 static int deleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell, int iHeight){
   RtreeNode *pParent;
@@ -2451,6 +2588,7 @@ static int deleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell, int iHeight){
 
   /* Remove the cell from the node. This call just moves bytes around
   ** the in-memory node image, so it cannot fail.
+  ** 移除结点的单元，这个操作只会在内存产生标记，所以不会失败
   */
   nodeDeleteCell(pRtree, pNode, iCell);
 
@@ -2458,6 +2596,8 @@ static int deleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell, int iHeight){
   ** number of cells, remove it from the tree. Otherwise, update the
   ** cell in the parent node so that it tightly contains the updated
   ** node.
+  ** 如果结点不是根结点并且单元数小于最小单元数，将它从Rtree中移出，另外，
+  ** 将单元更新到父结点中以便结点更加紧凑。
   */
   pParent = pNode->pParent;
   assert( pParent || pNode->iNode==1 );
@@ -2472,7 +2612,7 @@ static int deleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell, int iHeight){
   return rc;
 }
 
-static int Reinsert(
+static int Reinsert(  // 进行重插入操作
   Rtree *pRtree, 
   RtreeNode *pNode, 
   RtreeCell *pCell, 
@@ -2496,6 +2636,7 @@ static int Reinsert(
 
   /* Allocate the buffers used by this operation. The allocation is
   ** relinquished before this function returns.
+  ** 通过这个操作分配缓冲区，在函数返回前这个缓冲区将会被废弃。
   */
   aCell = (RtreeCell *)sqlite3_malloc(n * (
     sizeof(RtreeCell)     +         /* aCell array */
@@ -2555,6 +2696,7 @@ static int Reinsert(
   for(; rc==SQLITE_OK && ii<nCell; ii++){
     /* Find a node to store this cell in. pNode->iNode currently contains
     ** the height of the sub-tree headed by the cell.
+    ** 找到一个结点来存储这个单元。pNode->iNode包含了拥有此单元的子树的高度
     */
     RtreeNode *pInsert;
     RtreeCell *p = &aCell[aOrder[ii]];
@@ -2576,6 +2718,7 @@ static int Reinsert(
 /*
 ** Insert cell pCell into node pNode. Node pNode is the head of a 
 ** subtree iHeight high (leaf nodes have iHeight==0).
+** 插入单元pCell到结点pNode中.结点pNode的高度为iHeight
 */
 static int rtreeInsertCell(
   Rtree *pRtree,
@@ -2644,6 +2787,7 @@ static int reinsertNodeContent(Rtree *pRtree, RtreeNode *pNode){
 
 /*
 ** Select a currently unused rowid for a new r-tree record.
+** 为新的Rtree记录选择一个当前未使用的rowid
 */
 static int newRowid(Rtree *pRtree, i64 *piRowid){
   int rc;
@@ -2657,6 +2801,7 @@ static int newRowid(Rtree *pRtree, i64 *piRowid){
 
 /*
 ** Remove the entry with rowid=iDelete from the r-tree structure.
+** 从Rtree中删除rowid=iDelete的记录
 */
 static int rtreeDeleteRowid(Rtree *pRtree, sqlite3_int64 iDelete){
   int rc;                         /* Return code */
@@ -2665,17 +2810,22 @@ static int rtreeDeleteRowid(Rtree *pRtree, sqlite3_int64 iDelete){
   RtreeNode *pRoot;               /* Root node of rtree structure */
 
 
-  /* Obtain a reference to the root node to initialise Rtree.iDepth */
-  rc = nodeAcquire(pRtree, 1, 0, &pRoot);
+  /* Obtain a reference to the root node to initialise Rtree.iDepth 
+  ** 得到指向根结点的指针并初始化Rtree的高度
+  */
+    rc = nodeAcquire(pRtree, 1, 0, &pRoot);
 
   /* Obtain a reference to the leaf node that contains the entry 
   ** about to be deleted. 
+  ** 得到指向包含删除标记的叶结点的指针
   */
   if( rc==SQLITE_OK ){
     rc = findLeafNode(pRtree, iDelete, &pLeaf);
   }
 
-  /* Delete the cell in question from the leaf node. */
+  /* Delete the cell in question from the leaf node. 
+  ** 从叶结点中删除单元
+  */
   if( rc==SQLITE_OK ){
     int rc2;
     rc = nodeRowidIndex(pRtree, pLeaf, iDelete, &iCell);
@@ -2688,7 +2838,9 @@ static int rtreeDeleteRowid(Rtree *pRtree, sqlite3_int64 iDelete){
     }
   }
 
-  /* Delete the corresponding entry in the <rtree>_rowid table. */
+  /* Delete the corresponding entry in the <rtree>_rowid table. 
+  ** 在Rtree_rowid表中删除对应的记录
+  */
   if( rc==SQLITE_OK ){
     sqlite3_bind_int64(pRtree->pDeleteRowid, 1, iDelete);
     sqlite3_step(pRtree->pDeleteRowid);
@@ -2702,6 +2854,9 @@ static int rtreeDeleteRowid(Rtree *pRtree, sqlite3_int64 iDelete){
   ** This is equivalent to copying the contents of the child into
   ** the root node (the operation that Gutman's paper says to perform 
   ** in this scenario).
+  ** 验证根结点是否只有一个子结点，如果满足，移除它，将子结点的内容重
+  ** 插入到Rtree中用来Rtree的高度,这个步骤相当于复制子结点的内容到根结
+  ** 点,即用子结点代替根结点
   */
   if( rc==SQLITE_OK && pRtree->iDepth>0 && NCELL(pRoot)==1 ){
     int rc2;
@@ -2721,6 +2876,7 @@ static int rtreeDeleteRowid(Rtree *pRtree, sqlite3_int64 iDelete){
   }
 
   /* Re-insert the contents of any underfull nodes removed from the tree. */
+  /* 重插入被移除的Rtree结点的内容 */
   for(pLeaf=pRtree->pDeleted; pLeaf; pLeaf=pRtree->pDeleted){
     if( rc==SQLITE_OK ){
       rc = reinsertNodeContent(pRtree, pLeaf);
@@ -2730,6 +2886,7 @@ static int rtreeDeleteRowid(Rtree *pRtree, sqlite3_int64 iDelete){
   }
 
   /* Release the reference to the root node. */
+  /* 释放指向根结点的指针 */
   if( rc==SQLITE_OK ){
     rc = nodeRelease(pRtree, pRoot);
   }else{
@@ -2749,6 +2906,7 @@ static int rtreeDeleteRowid(Rtree *pRtree, sqlite3_int64 iDelete){
 /*
 ** Convert an sqlite3_value into an RtreeValue (presumably a float)
 ** while taking care to round toward negative or positive, respectively.
+** 将sqlite3_value转换为RtreeValue
 */
 static RtreeValue rtreeValueDown(sqlite3_value *v){
   double d = sqlite3_value_double(v);
@@ -2788,23 +2946,28 @@ static int rtreeUpdate(
 
   /* Constraint handling. A write operation on an r-tree table may return
   ** SQLITE_CONSTRAINT for two reasons:
-  **
+  ** 约束处理，Rtree上的写入操作必须返回SQLITE_CONSTRAINT：
   **   1. A duplicate rowid value, or
+  **   1. 一个重复的rowid
   **   2. The supplied data violates the "x2>=x1" constraint.
-  **
+  **   2. 违反数据约束
   ** In the first case, if the conflict-handling mode is REPLACE, then
   ** the conflicting row can be removed before proceeding. In the second
   ** case, SQLITE_CONSTRAINT must be returned regardless of the
   ** conflict-handling mode specified by the user.
+  ** 在第一个情况中，如果冲突模式设置为REPLACE，冲突的行将被替换，在第二
+  ** 种情况中，不论冲突模式设置为何值，SQLITE_CONSTRAINT都必须返回
   */
   if( nData>1 ){
     int ii;
 
-    /* Populate the cell.aCoord[] array. The first coordinate is azData[3]. */
+    /* Populate the cell.aCoord[] array. The first coordinate is azData[3]. 
+    ** 将单元排列到aCoord数组中，第一个维度为azData[3],azData[0]用来作为删除标记
+    */
     assert( nData==(pRtree->nDim*2 + 3) );
 #ifndef SQLITE_RTREE_INT_ONLY
     if( pRtree->eCoordType==RTREE_COORD_REAL32 ){
-      for(ii=0; ii<(pRtree->nDim*2); ii+=2){
+      for(ii=0; ii<(pRtree->nDim*2); ii+=2){ //一个维度有两个值
         cell.aCoord[ii].f = rtreeValueDown(azData[ii+3]);
         cell.aCoord[ii+1].f = rtreeValueUp(azData[ii+4]);
         if( cell.aCoord[ii].f>cell.aCoord[ii+1].f ){
@@ -2826,7 +2989,9 @@ static int rtreeUpdate(
     }
 
     /* If a rowid value was supplied, check if it is already present in 
-    ** the table. If so, the constraint has failed. */
+    ** the table. If so, the constraint has failed. 
+    ** 如果提供了rowid，验证它在表中是否存在，如果存在，约束将失效
+    */
     if( sqlite3_value_type(azData[2])!=SQLITE_NULL ){
       cell.iRowid = sqlite3_value_int64(azData[2]);
       if( sqlite3_value_type(azData[0])==SQLITE_NULL
@@ -2852,6 +3017,8 @@ static int rtreeUpdate(
   /* If azData[0] is not an SQL NULL value, it is the rowid of a
   ** record to delete from the r-tree table. The following block does
   ** just that.
+  ** 如果azData[0]不是SQL空值，它是Rtree表中删除的记录的rowid
+  ** 下面的数据块同样操作
   */
   if( sqlite3_value_type(azData[0])!=SQLITE_NULL ){
     rc = rtreeDeleteRowid(pRtree, sqlite3_value_int64(azData[0]));
@@ -2860,6 +3027,8 @@ static int rtreeUpdate(
   /* If the azData[] array contains more than one element, elements
   ** (azData[2]..azData[argc-1]) contain a new record to insert into
   ** the r-tree structure.
+  ** 如果azData[]数组包含了不止一个元素，则azData[2]..azData[argc-1]
+  ** 含了需要插入到R树中的新记录
   */
   if( rc==SQLITE_OK && nData>1 ){
     /* Insert the new record into the r-tree */
@@ -2892,6 +3061,7 @@ constraint:
 
 /*
 ** The xRename method for rtree module virtual tables.
+** 表的重命名方法
 */
 static int rtreeRename(sqlite3_vtab *pVtab, const char *zNewName){
   Rtree *pRtree = (Rtree *)pVtab;
@@ -2912,32 +3082,32 @@ static int rtreeRename(sqlite3_vtab *pVtab, const char *zNewName){
 }
 
 static sqlite3_module rtreeModule = {
-  0,                          /* iVersion */
-  rtreeCreate,                /* xCreate - create a table */
-  rtreeConnect,               /* xConnect - connect to an existing table */
-  rtreeBestIndex,             /* xBestIndex - Determine search strategy */
-  rtreeDisconnect,            /* xDisconnect - Disconnect from a table */
-  rtreeDestroy,               /* xDestroy - Drop a table */
-  rtreeOpen,                  /* xOpen - open a cursor */
-  rtreeClose,                 /* xClose - close a cursor */
-  rtreeFilter,                /* xFilter - configure scan constraints */
-  rtreeNext,                  /* xNext - advance a cursor */
+  0,                          /* iVersion 版本号 */
+  rtreeCreate,                /* xCreate - create a table 创建一个表 */
+  rtreeConnect,               /* xConnect - connect to an existing table 连接一个存在的表 */
+  rtreeBestIndex,             /* xBestIndex - Determine search strategy 确定搜索策略*/
+  rtreeDisconnect,            /* xDisconnect - Disconnect from a table 断开表的连接*/
+  rtreeDestroy,               /* xDestroy - Drop a table 删除一个表*/
+  rtreeOpen,                  /* xOpen - open a cursor 打开一个游标*/
+  rtreeClose,                 /* xClose - close a cursor 关闭一个游标*/
+  rtreeFilter,                /* xFilter - configure scan constraints 配置扫描约束条件*/
+  rtreeNext,                  /* xNext - advance a cursor 指针前进一格*/
   rtreeEof,                   /* xEof */
-  rtreeColumn,                /* xColumn - read data */
-  rtreeRowid,                 /* xRowid - read data */
-  rtreeUpdate,                /* xUpdate - write data */
-  0,                          /* xBegin - begin transaction */
-  0,                          /* xSync - sync transaction */
-  0,                          /* xCommit - commit transaction */
-  0,                          /* xRollback - rollback transaction */
-  0,                          /* xFindFunction - function overloading */
-  rtreeRename,                /* xRename - rename the table */
-  0,                          /* xSavepoint */
-  0,                          /* xRelease */
-  0                           /* xRollbackTo */
+  rtreeColumn,                /* xColumn - read data 读取列数据*/
+  rtreeRowid,                 /* xRowid - read data 读取行数据*/
+  rtreeUpdate,                /* xUpdate - write data 写入数据*/
+  0,                          /* xBegin - begin transaction 事务开始*/
+  0,                          /* xSync - sync transaction 事务同步*/
+  0,                          /* xCommit - commit transaction 提交事务*/
+  0,                          /* xRollback - rollback transaction 回滚事务*/
+  0,                          /* xFindFunction - function overloading 函数重载*/
+  rtreeRename,                /* xRename - rename the table 重命名表*/
+  0,                          /* xSavepoint 设置保存点*/
+  0,                          /* xRelease 释放*/
+  0                           /* xRollbackTo 回滚到*/
 };
 
-static int rtreeSqlInit(
+static int rtreeSqlInit(   //RtreeSQL语句初始化
   Rtree *pRtree, 
   sqlite3 *db, 
   const char *zDb, 
@@ -3015,6 +3185,9 @@ static int rtreeSqlInit(
 ** using database connection db. If successful, the integer value returned
 ** is written to *piVal and SQLITE_OK returned. Otherwise, an SQLite error
 ** code is returned and the value of *piVal after returning is not defined.
+** 函数的第二个参数包含了一个SQL语句,对于该语句返回一个整型值，这个语句是用数据库db
+** 来编译和执行的，如果成功整型值将返回。将值写入到pival，SQLITE_OK将返回。否则返回
+** 一个SQLite error，piVal在返回前都是未定义的。
 */
 static int getIntFromStmt(sqlite3 *db, const char *zSql, int *piVal){
   int rc = SQLITE_NOMEM;
@@ -3045,6 +3218,12 @@ static int getIntFromStmt(sqlite3 *db, const char *zSql, int *piVal){
 ** This ensures that each node is stored on a single database page. If the 
 ** database page-size is so large that more than RTREE_MAXCELLS entries 
 ** would fit in a single node, use a smaller node-size.
+** 在Rtree虚表创建或者连接时这个函数调用xConnect() o或者 xCreate()方法来定义结点
+** 的大小，如果成功，pRtree的结点大小将被分配并返回SQLITE_OK，否则，返回SQLITE 
+** error,如果调用xConnect()函数，Rtree表已经存在，在这种情况下通过根结点来定义结
+** 点大小.否则，对于xCreate()函数，用少于64byte作为数据库页大小，这可以保证每个结
+** 点都可以存储在单张数据页中，如果数据库页远大于单个结点的最大单元数，则使用较小
+** 的结点大小
 */
 static int getNodeSize(
   sqlite3 *db,                    /* Database handle */
@@ -3079,10 +3258,10 @@ static int getNodeSize(
 ** This function is the implementation of both the xConnect and xCreate
 ** methods of the r-tree virtual table.
 **
-**   argv[0]   -> module name
-**   argv[1]   -> database name
-**   argv[2]   -> table name
-**   argv[...] -> column names...
+**   argv[0]   -> module name    //模块名称
+**   argv[1]   -> database name  //数据库名称
+**   argv[2]   -> table name     // 表名 
+**   argv[...] -> column names...  ///列名
 */
 static int rtreeInit(
   sqlite3 *db,                        /* Database connection */
@@ -3188,6 +3367,12 @@ static int rtreeInit(
 ** entry for each cell in the r-tree node. Each entry is itself a
 ** list, containing the 8-byte rowid/pageno followed by the 
 ** <num-dimension>*2 coordinates.
+** 实现可读的查询Rtree结点标量函数，以用来调试和分析
+**　这个标量函数有两个参数，一个blob类型的Rtree结点，另一个是Rtree的维度索引数。
+** 比如：一个名称为rt的二维Rtree结构，为查询所有结点，语句可以为：
+** SELECT rtreenode(2, data) FROM rt_node;
+** 这个可读的语句为Rtree结点的每个单元采用了一种TCL链形式，每个入口本身是一条链，
+** 包含维度数*2的坐标和8byte的rowid或者页码
 */
 static void rtreenode(sqlite3_context *ctx, int nArg, sqlite3_value **apArg){
   char *zText = 0;
@@ -3250,6 +3435,7 @@ static void rtreedepth(sqlite3_context *ctx, int nArg, sqlite3_value **apArg){
 ** Register the r-tree module with database handle db. This creates the
 ** virtual table module "rtree" and the debugging/analysis scalar 
 ** function "rtreenode".
+** 为数据库db注册一个Rtree模块，这将创建一个虚表模块Rtree和调试、分析函数rtreenode
 */
 int sqlite3RtreeInit(sqlite3 *db){
   const int utf8 = SQLITE_UTF8;
@@ -3280,6 +3466,7 @@ int sqlite3RtreeInit(sqlite3 *db){
 ** in two places - as the destructor for the blob value returned by the
 ** invocation of a geometry function, and as the destructor for the geometry
 ** functions themselves.
+** sqlite3_free()可以用来回调，这被用在两个地方：一种是函数的返回值的释放，一种是释放函数本身。
 */
 static void doSqlite3Free(void *p){
   sqlite3_free(p);
@@ -3289,9 +3476,12 @@ static void doSqlite3Free(void *p){
 ** Each call to sqlite3_rtree_geometry_callback() creates an ordinary SQLite
 ** scalar user function. This C function is the callback used for all such
 ** registered SQL functions.
-**
+** 每次调用sqlite3_rtree_geometry_callback()将创建一个普通的用户函数，
+** 这个函数回调注册的所有SQL功能
+
 ** The scalar user functions return a blob that is interpreted by r-tree
 ** table MATCH operators.
+** 用户函数返回一个blob数据来确认rtree匹配操作情况
 */
 static void geomCallback(sqlite3_context *ctx, int nArg, sqlite3_value **aArg){
   RtreeGeomCallback *pGeomCtx = (RtreeGeomCallback *)sqlite3_user_data(ctx);
@@ -3321,6 +3511,7 @@ static void geomCallback(sqlite3_context *ctx, int nArg, sqlite3_value **aArg){
 
 /*
 ** Register a new geometry function for use with the r-tree MATCH operator.
+** 注册一个新的函数以便rtree匹配运算符使用
 */
 int sqlite3_rtree_geometry_callback(
   sqlite3 *db,
@@ -3328,16 +3519,18 @@ int sqlite3_rtree_geometry_callback(
   int (*xGeom)(sqlite3_rtree_geometry *, int, RtreeDValue *, int *),
   void *pContext
 ){
-  RtreeGeomCallback *pGeomCtx;      /* Context object for new user-function */
+  RtreeGeomCallback *pGeomCtx;      /* Context object for new user-function 用户函数的上下文对象*/
 
-  /* Allocate and populate the context object. */
+  /* Allocate and populate the context object. 分配并设置上下文对象*/
   pGeomCtx = (RtreeGeomCallback *)sqlite3_malloc(sizeof(RtreeGeomCallback));
   if( !pGeomCtx ) return SQLITE_NOMEM;
   pGeomCtx->xGeom = xGeom;
   pGeomCtx->pContext = pContext;
 
   /* Create the new user-function. Register a destructor function to delete
-  ** the context object when it is no longer required.  */
+  ** the context object when it is no longer required. 
+  ** 创建新的用户函数,注册一个析构函数来删除无用的对象.
+  */
   return sqlite3_create_function_v2(db, zGeom, -1, SQLITE_ANY, 
       (void *)pGeomCtx, geomCallback, 0, 0, doSqlite3Free
   );
