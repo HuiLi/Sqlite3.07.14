@@ -2163,7 +2163,7 @@ static int winTruncate(sqlite3_file *id, sqlite3_int64 nByte){
   SimulateIOError(return SQLITE_IOERR_TRUNCATE);
 
   /* 如果用户设置了此文件块的大小, 截断文件会导致
-  它是整数块的组成部分（即在操作后的实际文件的大小可能比所要求的尺寸大）
+  整数块的组成部分变大（即在操作后的实际文件的大小可能比所要求的尺寸大）
   */
   if( pFile->szChunk>0 ){
     nByte = ((nByte + pFile->szChunk - 1)/pFile->szChunk) * pFile->szChunk;
@@ -2185,14 +2185,14 @@ static int winTruncate(sqlite3_file *id, sqlite3_int64 nByte){
 
 #ifdef SQLITE_TEST
 /*
-计数不同步和正常同步的次数。这是用于测试同步和不同步在正确的时间是存在的。
+计数不同步和正常同步的次数。这是用于测试同步和不同步在同一时间是正确的。
 */
 int sqlite3_sync_count = 0;
 int sqlite3_fullsync_count = 0;
 #endif
 
 /*
-确保所有写入到一个特定的文件被提交到磁盘.
+确保所有的写入写到一个特定的文件并被提交到磁盘.
 */
 static int winSync(sqlite3_file *id, int flags){
 #ifndef SQLITE_NO_SYNC
@@ -2204,7 +2204,7 @@ static int winSync(sqlite3_file *id, int flags){
 #if !defined(NDEBUG) || !defined(SQLITE_NO_SYNC) || \
     (defined(SQLITE_TEST) && defined(SQLITE_DEBUG))
   /*
-   用于SQLITE_NO_SYNC没有定义并assert()和/或OSTRACE()的宏。
+   用于SQLITE_NO_SYNC没有定义并且定义了assert()和OSTRACE()里的宏。
    */
   winFile *pFile = (winFile*)id;
 #else
@@ -2212,14 +2212,14 @@ static int winSync(sqlite3_file *id, int flags){
 #endif
 
   assert( pFile );
-  /* 检查SQLITE_SYNC_NORMAL或FULL是否被传递 */
+  /* 检查SQLITE_SYNC_NORMAL或FULL是否被改变 */
   assert((flags&0x0F)==SQLITE_SYNC_NORMAL
       || (flags&0x0F)==SQLITE_SYNC_FULL
   );
 
   OSTRACE(("SYNC %d lock=%d\n", pFile->h, pFile->locktype));
 
-  /* Unix不能，但是一些系统能从这返回SQLITE_FULL . 这
+  /* Unix不会返回，但是一些系统能从这返回SQLITE_FULL . 这
   一行是测试，不会引起任何问题.
   */
   SimulateDiskfullError( return SQLITE_FULL );
@@ -2233,7 +2233,7 @@ static int winSync(sqlite3_file *id, int flags){
   sqlite3_sync_count++;
 #endif
 
-  /* 如果用SQLITE_NO_SYNC标志编译，那么同步是一个空操作 */
+  /* 如果用SQLITE_NO_SYNC被编译，那么同步是一个空操作 */
 #ifdef SQLITE_NO_SYNC
   return SQLITE_OK;
 #else
@@ -2250,7 +2250,7 @@ static int winSync(sqlite3_file *id, int flags){
 }
 
 /*
-** 确定字节的文件的当前大小
+** 确定文件的当前字节大小
 */
 static int wio nFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
   winFile *pFile = (winFile*)id;
@@ -2301,11 +2301,11 @@ static int wio nFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
 #endif
 
 /*
- 从之前看，SQLite的采用既与LockFile和LockFileEx功能。
-当和LockFile功能被使用时，它总是期望失败
-立即如果不能获得锁。此外，它总是期望
-获取排它锁。这些标志使用的LockFileEx功能
-并反映这些预期;因此，它们不应该被改变.
+ 从之前看，SQLite使用LockFile和LockFileEx函数。
+当LockFile功能被使用时，立即如果不能获得锁，
+它总会失败。此外，它总会
+获取排它锁。这些标志使用LockFileEx函数
+并反映预期结果;因此，它们不应该被改变.
 */
 #ifndef SQLITE_LOCKFILE_FLAGS
 # define SQLITE_LOCKFILE_FLAGS   (LOCKFILE_FAIL_IMMEDIATELY | \
@@ -2313,16 +2313,16 @@ static int wio nFileSize(sqlite3_file *id, sqlite3_int64 *pSize){
 #endif
 
 /*
-** 目前，SQLite永不调用LockFileEx功能，不想要的
-** 调用立即失败，如果无法获得该锁.
+** 目前，SQLite不调用LockFileEx函数，如果无法获得该锁，
+** 调用立即失败，
 */
 #ifndef SQLITE_LOCKFILEEX_FLAGS
 # define SQLITE_LOCKFILEEX_FLAGS (LOCKFILE_FAIL_IMMEDIATELY)
 #endif
 
 /*
-** 获得读取锁定.
-** 不同的API程序被调用根据这个是否是Win9x或WinNT.
+** 获得读取锁.
+** 根据这个是否是Win9x或WinNT让不同的API程序被调用.
 */
 static int getReadLock(winFile *pFile){
   int res;
@@ -2330,7 +2330,7 @@ static int getReadLock(winFile *pFile){
 #if SQLITE_OS_WINCE
     /*
     ** Windows CE是不同的处理方式，由于这里缺乏Win32 API
-	** 的LockFileEx.
+    ** LockFileEx.
     */
     res = winceLockFile(&pFile->h, SHARED_FIRST, 0, 1, 0);
 #else
@@ -2349,13 +2349,13 @@ static int getReadLock(winFile *pFile){
 #endif
   if( res == 0 ){
     pFile->lastErrno = osGetLastError();
-    /* 无需登录失败锁定 */
+    /* 登录失败无需锁定 */
   }
   return res;
 }
 
 /*
-** 撤消readlock
+** 撤消读取锁
 */
 static int unlockReadLock(winFile *pFile){
   int res;
@@ -2377,7 +2377,7 @@ static int unlockReadLock(winFile *pFile){
 }
 
 /*
-** 锁定该文件与参数的LockType指定的锁:
+** 锁定该文件与参数LockType指定的锁:
 **
 **     (1) SHARED_LOCK
 **     (2) RESERVED_LOCK
