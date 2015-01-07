@@ -17,17 +17,25 @@
 ** As of March 2012, it also contains a version 1 tokenizer used for testing
 ** that the sqlite3_tokenizer_module.xLanguage() method is invoked correctly.
 */
-
+/*¸该文档并不是FTS代码的一部分，它仅仅是用来做测试用。它包含一个Tcl命令，该Tcl命令可以用来
+** 测试一个文档是否适合全局搜索（FTS ful text search）。其中Tcl的基本知识
+**可以参考http://xiongjk.blog.163.com/blog/static/108652712010210943337/所描述的内容
+** add by guancan 20141209
+*/
 #include <tcl.h>
 #include <string.h>
 #include <assert.h>
-
+/*
+ ** 宏定义入口，只有在SQLITE_TEST宏的值为1，并且SQLITE_ENABLE_FTS3或者SQLITE_ENABLE_FTS4值为1
+ ** 的时候才会执行该部分程序add by guancan 20141209
+*/
 #if defined(SQLITE_TEST)
 #if defined(SQLITE_ENABLE_FTS3) || defined(SQLITE_ENABLE_FTS4)
 
 /* Required so that the "ifdef SQLITE_ENABLE_FTS3" below works */
 #include "fts3Int.h"
-
+//定义最大的token数目，其中token为令牌可以理解为一种暗号里面包含有验证权限操作等方面的信息
+ //add by guancan 20141209
 #define NM_MAX_TOKEN 12
 
 typedef struct NearPhrase NearPhrase;
@@ -35,12 +43,16 @@ typedef struct NearDocument NearDocument;
 typedef struct NearToken NearToken;
 
 struct NearDocument {
+  //token的长度(按照字节数计算)add by guancan 20141216
   int nToken;                     /* Length of token in bytes */
+  //存储token的数组 add by guancan 20141216
   NearToken *aToken;              /* Token array */
 };
-
+//NearToken结构体的定义 add by guancan 20141209
 struct NearToken {
+  //在字节中token的长度add by guancan 20141209
   int n;                          /* Length of token in bytes */
+  //指向token字符串的指针add by guancan 20141209
   const char *z;                  /* Pointer to token string */
 };
 
@@ -49,7 +61,7 @@ struct NearPhrase {
   int nToken;                     /* Number of tokens in this phrase */
   NearToken aToken[NM_MAX_TOKEN]; /* Array of tokens in this phrase */
 };
-
+//match函数 add by guancan 20141216
 static int nm_phrase_match(
   NearPhrase *p,
   NearToken *aToken
@@ -113,7 +125,7 @@ static int nm_near_chain(
 
   return 0;
 }
-
+//统计match的数目 add by guancan 20141216
 static int nm_match_count(
   NearDocument *pDoc,             /* Document to match against */
   int nPhrase,                    /* Size of phrase array */
@@ -143,6 +155,9 @@ static int nm_match_count(
 /*
 ** Tclcmd: fts3_near_match DOCUMENT EXPR ?OPTIONS?
 */
+/* 
+**
+*/
 static int fts3_near_match_cmd(
   ClientData clientData,
   Tcl_Interp *interp,
@@ -163,7 +178,7 @@ static int fts3_near_match_cmd(
   int nExprToken;
 
   UNUSED_PARAMETER(clientData);
-
+ //必须有3个或者大于三个arguments add by guancan 20141216
   /* Must have 3 or more arguments. */
   if( objc<3 || (objc%2)==0 ){
     Tcl_WrongNumArgs(interp, 1, objv, "DOCUMENT EXPR ?OPTION VALUE?...");
@@ -278,6 +293,11 @@ static int fts3_near_match_cmd(
 **    # Restore initial incr-load settings:
 **    eval fts3_configure_incr_load $cfg
 */
+/*正常情况下，FTS使用硬编码的值去决定最小的合适的用来增加的加载两的大小，以及
+**当需要增加的加载两增加的时候被加载的块内存的大小。该命令允许该值因为测试需要
+**而被重载。add by guancan 20141216
+**
+*/
 static int fts3_configure_incr_load_cmd(
   ClientData clientData,
   Tcl_Interp *interp,
@@ -336,6 +356,9 @@ static int fts3_configure_incr_load_cmd(
 ** The implementation assumes that the input contains only ASCII characters
 ** (i.e. those that may be encoded in UTF-8 using a single byte).
 */
+/*测试tokenizer的开始代码
+**对于语言种类为‘0’,该tokenizer
+*/
 typedef struct test_tokenizer {
   sqlite3_tokenizer base;
 } test_tokenizer;
@@ -350,7 +373,7 @@ typedef struct test_tokenizer_cursor {
   int nBuffer;                 /* Number of bytes allocated at pToken */
   int iLangid;                 /* Configured language id */
 } test_tokenizer_cursor;
-
+//测试Tokenizer的创建，返回是否创建成功 add by guancan 20141216
 static int testTokenizerCreate(
   int argc, const char * const *argv,
   sqlite3_tokenizer **ppTokenizer
@@ -358,7 +381,7 @@ static int testTokenizerCreate(
   test_tokenizer *pNew;
   UNUSED_PARAMETER(argc);
   UNUSED_PARAMETER(argv);
-
+//内存空间分配并且初始化值为0 add by guancan 20141216
   pNew = sqlite3_malloc(sizeof(test_tokenizer));
   if( !pNew ) return SQLITE_NOMEM;
   memset(pNew, 0, sizeof(test_tokenizer));
@@ -366,13 +389,14 @@ static int testTokenizerCreate(
   *ppTokenizer = (sqlite3_tokenizer *)pNew;
   return SQLITE_OK;
 }
-
+//Tokenizer的销毁函数 add by guancan 20141216
 static int testTokenizerDestroy(sqlite3_tokenizer *pTokenizer){
   test_tokenizer *p = (test_tokenizer *)pTokenizer;
+  //内存空间的释放add by guancan 20141216
   sqlite3_free(p);
   return SQLITE_OK;
 }
-
+//打开Tokenizer add by guancan 20141216
 static int testTokenizerOpen(
   sqlite3_tokenizer *pTokenizer,         /* The tokenizer */
   const char *pInput, int nBytes,        /* String to be tokenized */
@@ -399,23 +423,24 @@ static int testTokenizerOpen(
   *ppCursor = (sqlite3_tokenizer_cursor *)pCsr;
   return rc;
 }
-
+//关闭token释放内存空间 add by guancan 20141215
 static int testTokenizerClose(sqlite3_tokenizer_cursor *pCursor){
   test_tokenizer_cursor *pCsr = (test_tokenizer_cursor *)pCursor;
   sqlite3_free(pCsr->aBuffer);
   sqlite3_free(pCsr);
   return SQLITE_OK;
 }
-
+//
 static int testIsTokenChar(char c){
   return (c>='a' && c<='z') || (c>='A' && c<='Z');
 }
+//测试字符串变为小写 add by guancan 20141215
 static int testTolower(char c){
   char ret = c;
   if( ret>='A' && ret<='Z') ret = ret - ('A'-'a');
   return ret;
 }
-
+//测试下一个分词 add by guancan 20141215
 static int testTokenizerNext(
   sqlite3_tokenizer_cursor *pCursor,  /* Cursor returned by testTokenizerOpen */
   const char **ppToken,               /* OUT: *ppToken is the token text */
@@ -433,6 +458,7 @@ static int testTokenizerNext(
   pEnd = &pCsr->aInput[pCsr->nInput];
 
   /* Skip past any white-space */
+  //跳过所有的空白符 add by guancan 20141215
   assert( p<=pEnd );
   while( p<pEnd && testIsTokenChar(*p)==0 ) p++;
 
@@ -440,12 +466,14 @@ static int testTokenizerNext(
     rc = SQLITE_DONE;
   }else{
     /* Advance to the end of the token */
+    //判断token的结束 add by guancan 20141215
     const char *pToken = p;
     int nToken;
     while( p<pEnd && testIsTokenChar(*p) ) p++;
     nToken = (int)(p-pToken);
 
     /* Copy the token into the buffer */
+    //将token拷贝进入缓冲区 add by guancan 20141215
     if( nToken>pCsr->nBuffer ){
       sqlite3_free(pCsr->aBuffer);
       pCsr->aBuffer = sqlite3_malloc(nToken);
@@ -473,7 +501,7 @@ static int testTokenizerNext(
 
   return rc;
 }
-
+//分词语言的测试函数 add by guancan 20141215
 static int testTokenizerLanguage(
   sqlite3_tokenizer_cursor *pCursor,
   int iLangid
@@ -487,7 +515,7 @@ static int testTokenizerLanguage(
   return rc;
 }
 #endif
-
+//分词命令的测试函数 add by guancan 20141215
 static int fts3_test_tokenizer_cmd(
   ClientData clientData,
   Tcl_Interp *interp,
@@ -520,7 +548,8 @@ static int fts3_test_tokenizer_cmd(
 /* 
 ** End of tokenizer code.
 **************************************************************************/ 
-
+//分词编码结束标志 add by guancan 20141215
+//初始化函数 add by guancan 20141215
 int Sqlitetestfts3_Init(Tcl_Interp *interp){
   Tcl_CreateObjCommand(interp, "fts3_near_match", fts3_near_match_cmd, 0, 0);
   Tcl_CreateObjCommand(interp, 
