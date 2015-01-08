@@ -50,7 +50,7 @@ static int vacuumFinalize(sqlite3 *db, sqlite3_stmt *pStmt, char **pzErrMsg){
 
 /* 
 ** Execute zSql on database db. Return an error code.
-**在数据库db执行zSql。返回一个错误代码。
+**在数据库db执行zSql。返回一个错误代码.
 
 */
 static int execSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
@@ -77,7 +77,7 @@ static int execSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
 static int execExecSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
   sqlite3_stmt *pStmt;
   int rc;
-
+  
   rc = sqlite3_prepare(db, zSql, -1, &pStmt, 0);
   if( rc!=SQLITE_OK ) return rc;
 
