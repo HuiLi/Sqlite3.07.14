@@ -3196,1272 +3196,573 @@ static int winShmLock(
       allMask |= pX->sharedMask;
     }
 
-    /* Unlock the system-level locks */
-    if( (mask & allMask)==0 ){
-      rc = winShmSystemLock(pShmNode, _SHM_UNLCK, ofst+WIN_SHM_BASE, n);
-    }else{
-      rc = SQLITE_OK;
-    }
+    
+     /* 解锁系统级别的锁 */
 
-    /* Undo the local locks */
-    if( rc==SQLITE_OK ){
-      p->exclMask &= ~mask;
-      p->sharedMask &= ~mask;
-    } 
-  }else if( flags & SQLITE_SHM_SHARED ){
-    u16 allShared = 0;  /* Union of locks held by connections other than "p" */
+     if( (mask & allMask)==0 ){
+       rc = winShmSystemLock(pShmNode, _SHM_UNLCK, ofst+WIN_SHM_BASE, n);
+     }else{
+       rc = SQLITE_OK;
+     }
+ 
+   /* 撤消本地锁  */
+ 
+     if( rc==SQLITE_OK ){
+       p->exclMask &= ~mask;
+       p->sharedMask &= ~mask;
+     } 
+   }else if( flags & SQLITE_SHM_SHARED ){
+    u16 allShared = 0;   /*将通过"p"以外连接的锁链接起来*/
+    u16 allShared = 0;  
+ 
+    /* 找出已经就绪的由同级连接的共享锁。
+     如果有任何一个已经具有独占的锁，则往下执行，并且返回SQLITE_BUSY。
+     */
+     for(pX=pShmNode->pFirst; pX; pX=pX->pNext){
+ @@ -3137,7 +3138,7 @@ static int winShmLock(
+       allShared |= pX->sharedMask;
+     }
+ 
+   /* 如果有必要的话得到在系统级的共享锁*/
 
-    /* Find out which shared locks are already held by sibling connections.
-    ** If any sibling already holds an exclusive lock, go ahead and return
-    ** SQLITE_BUSY.
-    */
-    for(pX=pShmNode->pFirst; pX; pX=pX->pNext){
-      if( (pX->exclMask & mask)!=0 ){
-        rc = SQLITE_BUSY;
-        break;
-      }
-      allShared |= pX->sharedMask;
-    }
+     if( rc==SQLITE_OK ){
+       if( (allShared & mask)==0 ){
+         rc = winShmSystemLock(pShmNode, _SHM_RDLCK, ofst+WIN_SHM_BASE, n);
+ @@ -3146,13 +3147,14 @@ static int winShmLock(
+       }
+     }
+ 
+   /*获取本地的共享锁*/
+    
+     if( rc==SQLITE_OK ){
+       p->sharedMask |= mask;
+     }
+   }else{
+     /* 
+    确保没有一个连接持有的锁阻止这个锁，如果有，则立刻返回SQLITE_BUSY。
+     */
+     for(pX=pShmNode->pFirst; pX; pX=pX->pNext){
+       if( (pX->exclMask & mask)!=0 || (pX->sharedMask & mask)!=0 ){
+ @@ -3161,8 +3163,8 @@ static int winShmLock(
+       }
+     }
+   
+    /*    获取系统级的独占锁。如果找到则标记本地连接为被锁定的。
+     */
+     if( rc==SQLITE_OK ){
+       rc = winShmSystemLock(pShmNode, _SHM_WRLCK, ofst+WIN_SHM_BASE, n);
+ @@ -3180,13 +3182,13 @@ static int winShmLock(
+ }
+ 
+  /*
+实现共享内存的内存屏障或内存界定。
+所有加载和存储开始前所用的内存界定必须完成其他任何负载或存储开始运行后的障碍。
+ */
+ static void winShmBarrier(
+  sqlite3_file *fd          /*数据库正在占用共享存储器 */
+  sqlite3_file *fd          
+ ){
+   UNUSED_PARAMETER(fd);
+   /* MemoryBarrier(); // MemoryBarrier()函数不起作用 -- 不知道为什么不起作用 */
+ @@ -3195,29 +3197,28 @@ static void winShmBarrier(
+ }
+ 
+  /*
+此函数被调用，以获得一个指针的区域IREGION
+与数据库文件FD关联的共享内存。共享内存区域
+编号从零开始。每个共享存储器区域是szRegion
+字节大小。
+如果发生错误，则返回错误代码和*页设置为NULL。
+否则，如果isWrite参数是0，所请求的共享存储器
+区域尚未分配（由任何客户端，其中包括一个运行
+独立的进程），那么*页设置为NULL，并返回SQLITE_OK。如果
+isWrite是非零并且请求的共享存储器区域尚未被分配，则由该功能分配。
+如果共享存储器区域已经被分配或者按照如上所述被分配，则它被映射到该进程的地址空间（如果它尚未就绪），*页被设定为指向映射
+内存，并且返回SQLITE_OK。
+ */
+ static int winShmMap(
+  sqlite3_file *fd,                /*处理打开的数据库文件 */
+  int iRegion,                    /*区域检索*/
+  int szRegion,                     /*区域规模 */
+ int isWrite,                     /* 如果有必要确保要扩展文件的大小*/
+  sqlite3_file *fd,               /* OUT: 内存映射 */
+  int iRegion,                   
+  int szRegion,                  
+  int isWrite,                    
+   void volatile **pp             
+ ){
+   winFile *pDbFd = (winFile*)fd;
+ @@ -3236,15 +3237,14 @@ static int winShmMap(
+   assert( szRegion==pShmNode->szRegion || pShmNode->nRegion==0 );
+ 
+   if( pShmNode->nRegion<=iRegion ){
+    struct ShmRegion *apNew;            /* 新的aRegion[]数组 */
+    int nByte = (iRegion+1)*szRegion;  /* 最小所需文件的大小 */
+    sqlite3_int64 sz;                  /* 当前wal-index文件的大小 */
+   struct ShmRegion *apNew;           
+    int nByte = (iRegion+1)*szRegion;  
+    sqlite3_int64 sz;                  
+ 
+     pShmNode->szRegion = szRegion;
+ 
+    /* 
+     所请求的区域没有被映射到这个进程的地址空间。
+检查，看它是否已被分配（即wal-index文件是否足够大来包含所请求的区域）。
+     */
+     rc = winFileSize((sqlite3_file *)&pShmNode->hFile, &sz);
+     if( rc!=SQLITE_OK ){
+ @@ -3254,11 +3254,8 @@ static int winShmMap(
+     }
+ 
+     if( sz<nByte ){
+      /* 
+ 所请求的存储区域不存在。如果isWrite设置为零，退出。 *页将被设置为NULL，并返回SQLITE_OK。或者，如果isWrite非零，使用ftruncate（）分配所请求的存储区域。
+       */
+       if( !isWrite ) goto shmpage_out;
+       rc = winTruncate((sqlite3_file *)&pShmNode->hFile, nByte);
+ @@ -3269,7 +3266,7 @@ static int winShmMap(
+       }
+     }
+ 
+    /* 将请求的内存区域分配到这个进程的地址空间。*/
+ 
+     apNew = (struct ShmRegion *)sqlite3_realloc(
+         pShmNode->aRegion, (iRegion+1)*sizeof(apNew[0])
+     );
+ @@ -3280,8 +3277,8 @@ static int winShmMap(
+     pShmNode->aRegion = apNew;
+ 
+     while( pShmNode->nRegion<=iRegion ){
+      HANDLE hMap;                /* 文件映射处理 */
+     void *pMap = 0;             /* 映射的内存区域 */
+      HANDLE hMap;                
+      void *pMap = 0;             
+      
+ #if SQLITE_OS_WINRT
+       hMap = osCreateFileMappingFromApp(pShmNode->hFile.h,
+ @@ -3346,14 +3343,13 @@ static int winShmMap(
+ #endif /* #ifndef SQLITE_OMIT_WAL */
+ 
+ /*
+在这里，结束所有sqlite3_file方法的实现。
+ */
+ ********************** End sqlite3_file Methods *******************************
+ ******************************************************************************/
+ 
+ /*
+ 此向量定义了所有能在sqlite3_file文件上被Win32操作的方法。
+ */
+ static const sqlite3_io_methods winIoMethod = {
+   2,                              /* iVersion */
+ @@ -3378,15 +3374,11 @@ static const sqlite3_io_methods winIoMethod = {
+ /****************************************************************************
+ **************************** sqlite3_vfs methods ****************************
+ **这个模块包含对sqlite3_vfs对象方法的实现
+ */
+ 
+ /*
+将一个UTF-8文件名转换成任何形式的底层操作系统希望的文件名。
+从malloc的获得的结果由空间来容纳，并且空间必须由calling function被释放。
+ */
+ static void *convertUtf8Filename(const char *zFilename){
+   void *zConverted = 0;
+ @@ -3398,13 +3390,12 @@ static void *convertUtf8Filename(const char *zFilename){
+     zConverted = sqlite3_win32_utf8_to_mbcs(zFilename);
+   }
+ #endif
+ /* 调用者将处理的内存 */
 
-    /* Get shared locks at the system level, if necessary */
-    if( rc==SQLITE_OK ){
-      if( (allShared & mask)==0 ){
-        rc = winShmSystemLock(pShmNode, _SHM_RDLCK, ofst+WIN_SHM_BASE, n);
-      }else{
-        rc = SQLITE_OK;
-      }
-    }
-
-    /* Get the local shared locks */
-    if( rc==SQLITE_OK ){
-      p->sharedMask |= mask;
-    }
-  }else{
-    /* Make sure no sibling connections hold locks that will block this
-    ** lock.  If any do, return SQLITE_BUSY right away.
-    */
-    for(pX=pShmNode->pFirst; pX; pX=pX->pNext){
-      if( (pX->exclMask & mask)!=0 || (pX->sharedMask & mask)!=0 ){
-        rc = SQLITE_BUSY;
-        break;
-      }
-    }
-  
-    /* Get the exclusive locks at the system level.  Then if successful
-    ** also mark the local connection as being locked.
-    */
-    if( rc==SQLITE_OK ){
-      rc = winShmSystemLock(pShmNode, _SHM_WRLCK, ofst+WIN_SHM_BASE, n);
-      if( rc==SQLITE_OK ){
-        assert( (p->sharedMask & mask)==0 );
-        p->exclMask |= mask;
-      }
-    }
-  }
-  sqlite3_mutex_leave(pShmNode->mutex);
-  OSTRACE(("SHM-LOCK shmid-%d, pid-%d got %03x,%03x %s\n",
-           p->id, (int)osGetCurrentProcessId(), p->sharedMask, p->exclMask,
-           rc ? "failed" : "ok"));
-  return rc;
-}
-
-/*
-** Implement a memory barrier or memory fence on shared memory.  
-**
-** All loads and stores begun before the barrier must complete before
-** any load or store begun after the barrier.
-*/
-static void winShmBarrier(
-  sqlite3_file *fd          /* Database holding the shared memory */
-){
-  UNUSED_PARAMETER(fd);
-  /* MemoryBarrier(); // does not work -- do not know why not */
-  winShmEnterMutex();
-  winShmLeaveMutex();
-}
-
-/*
-** This function is called to obtain a pointer to region iRegion of the 
-** shared-memory associated with the database file fd. Shared-memory regions 
-** are numbered starting from zero. Each shared-memory region is szRegion 
-** bytes in size.
-**
-** If an error occurs, an error code is returned and *pp is set to NULL.
-**
-** Otherwise, if the isWrite parameter is 0 and the requested shared-memory
-** region has not been allocated (by any client, including one running in a
-** separate process), then *pp is set to NULL and SQLITE_OK returned. If 
-** isWrite is non-zero and the requested shared-memory region has not yet 
-** been allocated, it is allocated by this function.
-**
-** If the shared-memory region has already been allocated or is allocated by
-** this call as described above, then it is mapped into this processes 
-** address space (if it is not already), *pp is set to point to the mapped 
-** memory and SQLITE_OK returned.
-*/
-static int winShmMap(
-  sqlite3_file *fd,               /* Handle open on database file */
-  int iRegion,                    /* Region to retrieve */
-  int szRegion,                   /* Size of regions */
-  int isWrite,                    /* True to extend file if necessary */
-  void volatile **pp              /* OUT: Mapped memory */
-){
-  winFile *pDbFd = (winFile*)fd;
-  winShm *p = pDbFd->pShm;
-  winShmNode *pShmNode;
-  int rc = SQLITE_OK;
-
-  if( !p ){
-    rc = winOpenSharedMemory(pDbFd);
-    if( rc!=SQLITE_OK ) return rc;
-    p = pDbFd->pShm;
-  }
-  pShmNode = p->pShmNode;
-
-  sqlite3_mutex_enter(pShmNode->mutex);
-  assert( szRegion==pShmNode->szRegion || pShmNode->nRegion==0 );
-
-  if( pShmNode->nRegion<=iRegion ){
-    struct ShmRegion *apNew;           /* New aRegion[] array */
-    int nByte = (iRegion+1)*szRegion;  /* Minimum required file size */
-    sqlite3_int64 sz;                  /* Current size of wal-index file */
-
-    pShmNode->szRegion = szRegion;
-
-    /* The requested region is not mapped into this processes address space.
-    ** Check to see if it has been allocated (i.e. if the wal-index file is
-    ** large enough to contain the requested region).
-    */
-    rc = winFileSize((sqlite3_file *)&pShmNode->hFile, &sz);
-    if( rc!=SQLITE_OK ){
-      rc = winLogError(SQLITE_IOERR_SHMSIZE, osGetLastError(),
-               "winShmMap1", pDbFd->zPath);
-      goto shmpage_out;
-    }
-
-    if( sz<nByte ){
-      /* The requested memory region does not exist. If isWrite is set to
-      ** zero, exit early. *pp will be set to NULL and SQLITE_OK returned.
-      **
-      ** Alternatively, if isWrite is non-zero, use ftruncate() to allocate
-      ** the requested memory region.
-      */
-      if( !isWrite ) goto shmpage_out;
-      rc = winTruncate((sqlite3_file *)&pShmNode->hFile, nByte);
-      if( rc!=SQLITE_OK ){
-        rc = winLogError(SQLITE_IOERR_SHMSIZE, osGetLastError(),
-                 "winShmMap2", pDbFd->zPath);
-        goto shmpage_out;
-      }
-    }
-
-    /* Map the requested memory region into this processes address space. */
-    apNew = (struct ShmRegion *)sqlite3_realloc(
-        pShmNode->aRegion, (iRegion+1)*sizeof(apNew[0])
-    );
-    if( !apNew ){
-      rc = SQLITE_IOERR_NOMEM;
-      goto shmpage_out;
-    }
-    pShmNode->aRegion = apNew;
-
-    while( pShmNode->nRegion<=iRegion ){
-      HANDLE hMap;                /* file-mapping handle */
-      void *pMap = 0;             /* Mapped memory region */
-     
-#if SQLITE_OS_WINRT
-      hMap = osCreateFileMappingFromApp(pShmNode->hFile.h,
-          NULL, PAGE_READWRITE, nByte, NULL
-      );
-#else
-      hMap = osCreateFileMappingW(pShmNode->hFile.h, 
-          NULL, PAGE_READWRITE, 0, nByte, NULL
-      );
-#endif
-      OSTRACE(("SHM-MAP pid-%d create region=%d nbyte=%d %s\n",
-               (int)osGetCurrentProcessId(), pShmNode->nRegion, nByte,
-               hMap ? "ok" : "failed"));
-      if( hMap ){
-        int iOffset = pShmNode->nRegion*szRegion;
-        int iOffsetShift = iOffset % winSysInfo.dwAllocationGranularity;
-#if SQLITE_OS_WINRT
-        pMap = osMapViewOfFileFromApp(hMap, FILE_MAP_WRITE | FILE_MAP_READ,
-            iOffset - iOffsetShift, szRegion + iOffsetShift
-        );
-#else
-        pMap = osMapViewOfFile(hMap, FILE_MAP_WRITE | FILE_MAP_READ,
-            0, iOffset - iOffsetShift, szRegion + iOffsetShift
-        );
-#endif
-        OSTRACE(("SHM-MAP pid-%d map region=%d offset=%d size=%d %s\n",
-                 (int)osGetCurrentProcessId(), pShmNode->nRegion, iOffset,
-                 szRegion, pMap ? "ok" : "failed"));
-      }
-      if( !pMap ){
-        pShmNode->lastErrno = osGetLastError();
-        rc = winLogError(SQLITE_IOERR_SHMMAP, pShmNode->lastErrno,
-                 "winShmMap3", pDbFd->zPath);
-        if( hMap ) osCloseHandle(hMap);
-        goto shmpage_out;
-      }
-
-      pShmNode->aRegion[pShmNode->nRegion].pMap = pMap;
-      pShmNode->aRegion[pShmNode->nRegion].hMap = hMap;
-      pShmNode->nRegion++;
-    }
-  }
-
-shmpage_out:
-  if( pShmNode->nRegion>iRegion ){
-    int iOffset = iRegion*szRegion;
-    int iOffsetShift = iOffset % winSysInfo.dwAllocationGranularity;
-    char *p = (char *)pShmNode->aRegion[iRegion].pMap;
-    *pp = (void *)&p[iOffsetShift];
-  }else{
-    *pp = 0;
-  }
-  sqlite3_mutex_leave(pShmNode->mutex);
-  return rc;
-}
-
-#else
-# define winShmMap     0
-# define winShmLock    0
-# define winShmBarrier 0
-# define winShmUnmap   0
-#endif /* #ifndef SQLITE_OMIT_WAL */
-
-/*
-** Here ends the implementation of all sqlite3_file methods.
-**
-********************** End sqlite3_file Methods *******************************
-******************************************************************************/
-
-/*
-** This vector defines all the methods that can operate on an
-** sqlite3_file for win32.
-*/
-static const sqlite3_io_methods winIoMethod = {
-  2,                              /* iVersion */
-  winClose,                       /* xClose */
-  winRead,                        /* xRead */
-  winWrite,                       /* xWrite */
-  winTruncate,                    /* xTruncate */
-  winSync,                        /* xSync */
-  winFileSize,                    /* xFileSize */
-  winLock,                        /* xLock */
-  winUnlock,                      /* xUnlock */
-  winCheckReservedLock,           /* xCheckReservedLock */
-  winFileControl,                 /* xFileControl */
-  winSectorSize,                  /* xSectorSize */
-  winDeviceCharacteristics,       /* xDeviceCharacteristics */
-  winShmMap,                      /* xShmMap */
-  winShmLock,                     /* xShmLock */
-  winShmBarrier,                  /* xShmBarrier */
-  winShmUnmap                     /* xShmUnmap */
-};
-
-/****************************************************************************
-**************************** sqlite3_vfs methods ****************************
-**
-** This division contains the implementation of methods on the
-** sqlite3_vfs object.
-*/
-
-/*
-** Convert a UTF-8 filename into whatever form the underlying
-** operating system wants filenames in.  Space to hold the result
-** is obtained from malloc and must be freed by the calling
-** function.
-*/
-static void *convertUtf8Filename(const char *zFilename){
-  void *zConverted = 0;
-  if( isNT() ){
-    zConverted = utf8ToUnicode(zFilename);
-  }
-#ifdef SQLITE_WIN32_HAS_ANSI
-  else{
-    zConverted = sqlite3_win32_utf8_to_mbcs(zFilename);
-  }
-#endif
-  /* caller will handle out of memory */
-  return zConverted;
-}
-
-/*
-** Create a temporary file name in zBuf.  zBuf must be big enough to
-** hold at pVfs->mxPathname characters.
-*/
-static int getTempname(int nBuf, char *zBuf){
-  static char zChars[] =
-    "abcdefghijklmnopqrstuvwxyz"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "0123456789";
-  size_t i, j;
-  int nTempPath;
-  char zTempPath[MAX_PATH+2];
-
-  /* It's odd to simulate an io-error here, but really this is just
-  ** using the io-error infrastructure to test that SQLite handles this
-  ** function failing. 
-  */
-  SimulateIOError( return SQLITE_IOERR );
-
-  memset(zTempPath, 0, MAX_PATH+2);
-
-  if( sqlite3_temp_directory ){
-    sqlite3_snprintf(MAX_PATH-30, zTempPath, "%s", sqlite3_temp_directory);
-  }
-#if !SQLITE_OS_WINRT
-  else if( isNT() ){
-    char *zMulti;
-    WCHAR zWidePath[MAX_PATH];
-    osGetTempPathW(MAX_PATH-30, zWidePath);
-    zMulti = unicodeToUtf8(zWidePath);
-    if( zMulti ){
-      sqlite3_snprintf(MAX_PATH-30, zTempPath, "%s", zMulti);
-      sqlite3_free(zMulti);
-    }else{
-      return SQLITE_IOERR_NOMEM;
-    }
-  }
-#ifdef SQLITE_WIN32_HAS_ANSI
-  else{
-    char *zUtf8;
-    char zMbcsPath[MAX_PATH];
-    osGetTempPathA(MAX_PATH-30, zMbcsPath);
-    zUtf8 = sqlite3_win32_mbcs_to_utf8(zMbcsPath);
-    if( zUtf8 ){
-      sqlite3_snprintf(MAX_PATH-30, zTempPath, "%s", zUtf8);
-      sqlite3_free(zUtf8);
-    }else{
-      return SQLITE_IOERR_NOMEM;
-    }
-  }
-#endif
-#endif
-
+   return zConverted;
+ }
+ 
+ /*
+创建一个名字为zBuf的临时文件。zBuf必须足够大以容纳pVfs-> mxPathname字符。
+ */
+ static int getTempname(int nBuf, char *zBuf){
+   static char zChars[] =
+ @@ -3415,9 +3406,8 @@ static int getTempname(int nBuf, char *zBuf){
+   int nTempPath;
+   char zTempPath[MAX_PATH+2];
+ 
+  /*
+这里模拟一个IO错误，但实际上这只是使用IO-误差的基础，以测试SQLite的处理失败的功能。
+   */
+   SimulateIOError( return SQLITE_IOERR );
+ 
+ @@ -3455,8 +3445,8 @@ static int getTempname(int nBuf, char *zBuf){
+ #endif
+ #endif
+ 
   /* Check that the output buffer is large enough for the temporary file 
   ** name. If it is not, return SQLITE_ERROR.
-  */
-  nTempPath = sqlite3Strlen30(zTempPath);
+  /* 
+检查输出缓冲区对于临时文件是否足够大。如果不是，则返回SQLITE_ERROR。
+   */
+   nTempPath = sqlite3Strlen30(zTempPath);
+ 
+ @@ -3483,9 +3473,8 @@ static int getTempname(int nBuf, char *zBuf){
+ }
+ 
+ /*
+ 如果指定的文件实际上是目录，则返回true。
+如果不是目录，或者有任何类型的存储器分配失败，则返回false。
+ */
+ static int winIsDir(const void *zConverted){
+   DWORD attr;
+ @@ -3512,7 +3501,7 @@ static int winIsDir(const void *zConverted){
+ }
+ 
+ /*
+ 打开一个文件。
+ */
+ static int winOpen(
+   sqlite3_vfs *pVfs,        /* 未使用 */
+ @@ -3535,14 +3524,14 @@ static int winOpen(
+   const char *zUtf8Name = zName; /* 文件名中的UTF-8编码 */
+   int cnt = 0;
+  /* 
+如果参数zPath是一个NULL指针，该功能需要打开一个临时文件。使用该缓冲器来存储在文件名中。
+   */
+  char zTmpname[MAX_PATH+2];     /*缓冲区用于创建临时文件名 */
+  char zTmpname[MAX_PATH+2];    
+ 
+  int rc = SQLITE_OK;            /* 函数返回代码 */
+  int rc = SQLITE_OK;            
+ #if !defined(NDEBUG) || SQLITE_OS_WINCE
+  int eType = flags&0xFFFFFF00;  /*文件类型打开 */
+  int eType = flags&0xFFFFFF00;  
+ #endif
+ 
+   int isExclusive  = (flags & SQLITE_OPEN_EXCLUSIVE);
+ @@ -3561,20 +3550,19 @@ static int winOpen(
+   ));
+ #endif
 
-  if( (nTempPath + sqlite3Strlen30(SQLITE_TEMP_FILE_PREFIX) + 18) >= nBuf ){
-    return SQLITE_ERROR;
-  }
+  /*请检查下面的语句是否正确：
+（一）必须设置READWRITE和READONLY其中之一标志，
+（二）如果CREATE被设置，然后READWRITE也必须被设置，
+（三）如果EXCLUSIVE被设置，然后CREATE也必须被设置。
+（四）如果DELETEONCLOSE被设置，然后CREATE也必须被设置。
+   */
+   assert((isReadonly==0 || isReadWrite==0) && (isReadWrite || isReadonly));
+   assert(isCreate==0 || isReadWrite);
+   assert(isExclusive==0 || isCreate);
+   assert(isDelete==0 || isCreate);
 
-  for(i=nTempPath; i>0 && zTempPath[i-1]=='\\'; i--){}
-  zTempPath[i] = 0;
+  /* 主要的数据库,WAL文件不会自动地删除。他们也没有临时文件。  */
+   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_DB );
+   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_JOURNAL );
+   assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MASTER_JOURNAL );
+ @@ -3599,8 +3587,8 @@ static int winOpen(
+ 
+   pFile->h = INVALID_HANDLE_VALUE;
+ 
+  /* 如果该函数的第二个参数是NULL,生成一个
+临时文件名称来使用
+   */
+   if( !zUtf8Name ){
+     assert(isDelete && !isOpenJournal);
+ @@ -3611,9 +3599,9 @@ static int winOpen(
+     zUtf8Name = zTmpname;
+   }
+ 
+  /*，如果他们不用的URI参数，则数据库文件名是双零终止的。因此，他们总是可以传递到
+sqlite3_uri_parameter（）。
+   */
+   assert( (eType!=SQLITE_OPEN_MAIN_DB) || (flags & SQLITE_OPEN_URI) ||
+         zUtf8Name[strlen(zUtf8Name)+1]==0 );
+ @@ -3635,19 +3623,20 @@ static int winOpen(
+     dwDesiredAccess = GENERIC_READ;
+   }
+ 
+  /* 
+SQLITE_OPEN_EXCLUSIVE用于确保新的文件被创建。SQLite不使用它来显示“独占访问”,因为它通常是被理解的。
+   */
+   if( isExclusive ){
+    /* 只有当它不存在时，创建一个新文件。*/
+    /* 如果该文件存在，则失败。 */
+   
+   
+     dwCreationDisposition = CREATE_NEW;
+   }else if( isCreate ){
+    /*打开现有文件或创建如果它不存在 */
+    
+     dwCreationDisposition = OPEN_ALWAYS;
+   }else{
+    /* 只有当文件存在时，打开文件 */
+   
+     dwCreationDisposition = OPEN_EXISTING;
+   }
+ 
+ @@ -3665,8 +3654,7 @@ static int winOpen(
+   }else{
+     dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL;
+   }
+ 
+  /*报告来自互联网,如果使用FILE_FLAG_RANDOM_ACCESS性能总是更好。Ticket #2699. */
+ #if SQLITE_OS_WINCE
+   dwFlagsAndAttributes |= FILE_FLAG_RANDOM_ACCESS;
+ #endif
+ @@ -3710,7 +3698,7 @@ static int winOpen(
+                               dwFlagsAndAttributes,
+                               NULL))==INVALID_HANDLE_VALUE &&
+                               retryIoerr(&cnt, &lastErrno) ){
+               /* 空操作 */
+               
+     }
+   }
+ #endif
+ @@ -3774,16 +3762,15 @@ static int winOpen(
+ }
+ 
+ /*
+ 删除指定的文件。
+注意,如果其他进程已经打开，窗口不允许一个文件被删除。
+有时病毒扫描器或索引程序将打开一个创建后不久的日志文件。
+虽然这其他过程是把文件打开,我们将无法删除它。
+为了解决这个问题,我们又推迟100毫秒,试着删除。
+在放弃前MX_DELETION_ATTEMPTs删除尝试运行并返回一个错误。
+ */
+ static int winDelete(
+   sqlite3_vfs *pVfs,          /* 不在win32上使用 */
+ @@ -3871,7 +3858,7 @@ static int winDelete(
+ }
+ 
+ /*
+ 检查文件的存在和状态.
+ */
+ static int winAccess(
+   sqlite3_vfs *pVfs,         /* 不在win32上使用 */
+ @@ -3898,8 +3885,7 @@ static int winAccess(
+                              GetFileExInfoStandard, 
+                              &sAttrData)) && retryIoerr(&cnt, &lastErrno) ){}
+     if( rc ){
 
-  sqlite3_snprintf(nBuf-18, zBuf, (nTempPath > 0) ?
-                       "%s\\"SQLITE_TEMP_FILE_PREFIX : SQLITE_TEMP_FILE_PREFIX,
-                   zTempPath);
-  j = sqlite3Strlen30(zBuf);
-  sqlite3_randomness(15, &zBuf[j]);
-  for(i=0; i<15; i++, j++){
-    zBuf[j] = (char)zChars[ ((unsigned char)zBuf[j])%(sizeof(zChars)-1) ];
-  }
-  zBuf[j] = 0;
-  zBuf[j+1] = 0;
-
-  OSTRACE(("TEMP FILENAME: %s\n", zBuf));
-  return SQLITE_OK; 
-}
-
-/*
-** Return TRUE if the named file is really a directory.  Return false if
-** it is something other than a directory, or if there is any kind of memory
-** allocation failure.
+      /* 
+对于一个SQLITE_ACCESS_EXISTS查询来说，处理一个零长度文件，就好像它不存在一样.
+       */
+       if(    flags==SQLITE_ACCESS_EXISTS
+           && sAttrData.nFileSizeHigh==0 
+ @@ -3943,52 +3929,51 @@ static int winAccess(
+ 
+ 
+ /*
+如果指定的路径名被逐字使用则返回非零。
+如果该函数返回非零，调用函数必须简单地逐字使用所提供的路径名 - 或 - 使用GetFullPathName的Win32 API函数（如果可用）解析成一个完整的路径名。
+ */
+ static BOOL winIsVerbatimPathname(
+   const char *zPathname
+ ){
+   /*
+如果路径名始于一个正斜杠或反斜杠,
+它要么是一个合法的UNC名称、体积相对路径或绝对路径名的“Unix格式窗口。
+没有简单的方法来区分最后2例;因此,我们返回真正安全的返回值,这个函数的调用者只会逐字地使用它。
+   */
+   if ( zPathname[0]=='/' || zPathname[0]=='\\' ){
+     return TRUE;
+   }
+ 
+   /*
+如果路径名始于一个字母和一个冒号，是体积相对路径或绝对路径。
+这个函数的调用者不能企图把它当作一个相对路径名(即他们应该简单地使用逐字)。
+   */
+   if ( sqlite3Isalpha(zPathname[0]) && zPathname[1]==':' ){
+     return TRUE;
+   }
+ 
+   /*
+如果我们到了这一点，路径名应几乎可以肯定是一个纯粹的
+相对的（即不是一个UNC名称，也不是绝对的）。
+   */
+   return FALSE;
+ }
+ 
+ /*
+把一个相对路径名变成为一个完整的路径名。把全路径写进入ZOUT[]。 
+ZOUT[]的大小将至少为pVfs-> mxPathname字节大小。
+ */
+ static int winFullPathname(
+  sqlite3_vfs *pVfs,            /* 指针VFS对象 */
+  const char *zRelative,        /* 可能是相对输入路径 */
+  int nFull,                    /* 输出缓冲区大小 */
+  char *zFull                   /* 输出缓冲 */
+  sqlite3_vfs *pVfs,            
+  const char *zRelative,        
+  int nFull,                    
+  char *zFull                   
+ ){
+   
+ #if defined(__CYGWIN__)
+ @@ -3998,10 +3983,10 @@ static int winFullPathname(
+   assert( nFull>=pVfs->mxPathname );
+   if ( sqlite3_data_directory && !winIsVerbatimPathname(zRelative) ){
+     /*
+注意:我们正在处理一个相对路径名称和数据目录设置。
+因此,使用它作为基础通过将数据目录和一个斜杠将相对路径名转换为一个绝对的。
+     */
+     char zOut[MAX_PATH+1];
+     memset(zOut, 0, MAX_PATH+1);
+ @@ -4010,9 +3995,9 @@ static int winFullPathname(
+                      sqlite3_data_directory, zOut);
+   }else{
+     /*
+注意:Cygwin文档状态所需的最大长度缓冲区传递给cygwin_conv_to_full_win32_path MAX_PATH。
+     */
+     cygwin_conv_to_full_win32_path(zRelative, zFull);
+   }
+ @@ -4025,10 +4010,10 @@ static int winFullPathname(
+   /* WinRT无法转换为一个绝对的相对路径。 */
+   if ( sqlite3_data_directory && !winIsVerbatimPathname(zRelative) ){
+     /*
+注意:我们正在处理一个相对路径名称和数据目录设置。
+因此,使用它作为基础通过将数据目录和一个斜杠将相对路径名转换为一个绝对的。
+     */
+     sqlite3_snprintf(MIN(nFull, pVfs->mxPathname), zFull, "%s\\%s",
+                      sqlite3_data_directory, zRelative);
+ @@ -4043,25 +4028,26 @@ static int winFullPathname(
+   void *zConverted;
+   char *zOut;
+ 
+  /* 
+如果这个路径名以“/ X:”开始,“X”是任何字母字符,抛弃最初的“/”的路径名。
+   */
+   if( zRelative[0]=='/' && sqlite3Isalpha(zRelative[1]) && zRelative[2]==':' ){
+     zRelative++;
+   }
+ 
+ /* 
+这里模拟一个IO错误，但实际上这只是使用IO-误差的基础，以测试SQLite的处理失败的功能。
+如果，例如，在当前工作目录已被解除链接，此功能可能会失败。
 */
-static int winIsDir(const void *zConverted){
-  DWORD attr;
-  int rc = 0;
-  DWORD lastErrno;
+   SimulateIOError( return SQLITE_ERROR );
+   if ( sqlite3_data_directory && !winIsVerbatimPathname(zRelative) ){
+     /*
+注：我们正在处理的相对路径名称和数据目录已设置。
+因此，用它为基础通过预先的数据目录和一个反斜杠将相对路径名转换为绝对的。
+     */
+     sqlite3_snprintf(MIN(nFull, pVfs->mxPathname), zFull, "%s\\%s",
+                      sqlite3_data_directory, zRelative);
+ @@ -4111,12 +4097,12 @@ static int winFullPathname(
+ 
+ #ifndef SQLITE_OMIT_LOAD_EXTENSION
+ /*
+打开共享库的接口，共享库中找到切入点，并关闭共享库。
+ */
 
-  if( isNT() ){
-    int cnt = 0;
-    WIN32_FILE_ATTRIBUTE_DATA sAttrData;
-    memset(&sAttrData, 0, sizeof(sAttrData));
-    while( !(rc = osGetFileAttributesExW((LPCWSTR)zConverted,
-                             GetFileExInfoStandard,
-                             &sAttrData)) && retryIoerr(&cnt, &lastErrno) ){}
-    if( !rc ){
-      return 0; /* Invalid name? */
-    }
-    attr = sAttrData.dwFileAttributes;
-#if SQLITE_OS_WINCE==0
-  }else{
-    attr = osGetFileAttributesA((char*)zConverted);
-#endif
-  }
-  return (attr!=INVALID_FILE_ATTRIBUTES) && (attr&FILE_ATTRIBUTE_DIRECTORY);
-}
+ /*
+打开共享库的接口，共享库中找到切入点，并关闭共享库。
+ */
+ static void *winDlOpen(sqlite3_vfs *pVfs, const char *zFilename){
+   HANDLE h;
+ @@ -4152,7 +4138,7 @@ static void winDlClose(sqlite3_vfs *pVfs, void *pHandle){
+   UNUSED_PARAMETER(pVfs);
+   osFreeLibrary((HANDLE)pHandle);
+ }
+-#else /* if SQLITE_OMIT_LOAD_EXTENSION is defined: */
++#else /* 如果SQLITE_OMIT_LOAD_EXTENSION定义： */
+   #define winDlOpen  0
+   #define winDlError 0
+   #define winDlSym   0
+ @@ -4161,7 +4147,7 @@ static void winDlClose(sqlite3_vfs *pVfs, void *pHandle){
+ 
+ 
+ /*
+ 随机将nBuf写入到zBuf中
+ */
+ static int winRandomness(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
+   int n = 0;
+ @@ -4206,7 +4192,7 @@ static int winRandomness(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
+ 
+ 
+ /*
+睡了一小会儿。返回睡觉的时间。
+ */
+ static int winSleep(sqlite3_vfs *pVfs, int microsec){
+   sqlite3_win32_sleep((microsec+999)/1000);
+ @@ -4215,23 +4201,24 @@ static int winSleep(sqlite3_vfs *pVfs, int microsec){
+ }
+ 
+ /*
+以下变量，如果设置为非零值时，自1970年以来解释为秒数，
+并用于在测试期间，设置sqlite3OsCurrentTime（）的结果。。
+ */
+ #ifdef SQLITE_TEST
+ int sqlite3_current_time = 0;  /* Fake system time in seconds since 1970. */
+ #endif
+ 
+ /*
+查找当前时间（世界标准时间）。
+写入* piNow当前时间和日期的儒略日数乘以86_400_000。
+换句话说，写入* piNow因为中午在格林威治11月24日的儒略历元的毫秒数，
+公元前4714根据proleptic公历。
 
-/*
-** Open a file.
-*/
-static int winOpen(
-  sqlite3_vfs *pVfs,        /* Not used */
-  const char *zName,        /* Name of the file (UTF-8) */
-  sqlite3_file *id,         /* Write the SQLite file handle here */
-  int flags,                /* Open mode flags */
-  int *pOutFlags            /* Status return flags */
-){
-  HANDLE h;
-  DWORD lastErrno;
-  DWORD dwDesiredAccess;
-  DWORD dwShareMode;
-  DWORD dwCreationDisposition;
-  DWORD dwFlagsAndAttributes = 0;
-#if SQLITE_OS_WINCE
-  int isTemp = 0;
-#endif
-  winFile *pFile = (winFile*)id;
-  void *zConverted;              /* Filename in OS encoding */
-  const char *zUtf8Name = zName; /* Filename in UTF-8 encoding */
-  int cnt = 0;
+如果成功，返回SQLITE_OK。如果时间和日期无法找到则返回SQLITE_ERROR
+ */
+ static int winCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *piNow){
+   /* FILETIME structure is a 64-bit value representing the number of 
+ @@ -4242,7 +4229,7 @@ static int winCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *piNow){
+ #ifdef SQLITE_TEST
+   static const sqlite3_int64 unixEpoch = 24405875*(sqlite3_int64)8640000;
+ #endif
+-  /* 2^32 - to avoid use of LL and warnings in gcc */
++  /* 2^32 - 避免使用LL和警告，在gcc */
+   static const sqlite3_int64 max32BitValue = 
+       (sqlite3_int64)2000000000 + (sqlite3_int64)2000000000 + (sqlite3_int64)294967296;
+ 
+ @@ -4271,9 +4258,9 @@ static int winCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *piNow){
+ }
+ 
+ /*
+查找当前时间（世界标准时间）。写当前的时间和日期作为儒略日数为* prNow并返回0。
+如果时间和日期不能被发现则返回1。
+ */
+ static int winCurrentTime(sqlite3_vfs *pVfs, double *prNow){
+   int rc;
+ @@ -4286,34 +4273,35 @@ static int winCurrentTime(sqlite3_vfs *pVfs, double *prNow){
+ }
+ 
+ /*
+我们的想法是，
+这个功能就像GetLastError函数（）和的FormatMessage（）在Windows的组合（或errno和strerror_r（）在Unix）。
+之后由OS函数返回一个错误，SQLite的调用这个函数Zbuf成立指着NBUF字节的缓冲区。
+在OS层应填充描述调用线程内发生的最后一个IO错误空终止的UTF-8编码的错误消息的缓冲区。
 
-  /* If argument zPath is a NULL pointer, this function is required to open
-  ** a temporary file. Use this buffer to store the file name in.
-  */
-  char zTmpname[MAX_PATH+2];     /* Buffer used to create temp filename */
+如果错误消息是提供的缓冲区太大，它应该被裁剪。
+xGetLastError的返回值是零，如果错误消息在缓冲器适合，或非零否则（如果消息被截断）。
+如果返回为非零，则没有必要对包含在输出缓冲器的NUL-终止字符。
 
-  int rc = SQLITE_OK;            /* Function Return Code */
-#if !defined(NDEBUG) || SQLITE_OS_WINCE
-  int eType = flags&0xFFFFFF00;  /* Type of file to open */
-#endif
+不提供错误消息将在SQLite没有不利影响。好的实现永不返回一个错误信息
 
-  int isExclusive  = (flags & SQLITE_OPEN_EXCLUSIVE);
-  int isDelete     = (flags & SQLITE_OPEN_DELETEONCLOSE);
-  int isCreate     = (flags & SQLITE_OPEN_CREATE);
-#ifndef NDEBUG
-  int isReadonly   = (flags & SQLITE_OPEN_READONLY);
-#endif
-  int isReadWrite  = (flags & SQLITE_OPEN_READWRITE);
-
-#ifndef NDEBUG
-  int isOpenJournal = (isCreate && (
-        eType==SQLITE_OPEN_MASTER_JOURNAL 
-     || eType==SQLITE_OPEN_MAIN_JOURNAL 
-     || eType==SQLITE_OPEN_WAL
-  ));
-#endif
-
-  /* Check the following statements are true: 
-  **
-  **   (a) Exactly one of the READWRITE and READONLY flags must be set, and 
-  **   (b) if CREATE is set, then READWRITE must also be set, and
-  **   (c) if EXCLUSIVE is set, then CREATE must also be set.
-  **   (d) if DELETEONCLOSE is set, then CREATE must also be set.
-  */
-  assert((isReadonly==0 || isReadWrite==0) && (isReadWrite || isReadonly));
-  assert(isCreate==0 || isReadWrite);
-  assert(isExclusive==0 || isCreate);
-  assert(isDelete==0 || isCreate);
-
-  /* The main DB, main journal, WAL file and master journal are never 
-  ** automatically deleted. Nor are they ever temporary files.  */
-  assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_DB );
-  assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MAIN_JOURNAL );
-  assert( (!isDelete && zName) || eType!=SQLITE_OPEN_MASTER_JOURNAL );
-  assert( (!isDelete && zName) || eType!=SQLITE_OPEN_WAL );
-
-  /* Assert that the upper layer has set one of the "file-type" flags. */
-  assert( eType==SQLITE_OPEN_MAIN_DB      || eType==SQLITE_OPEN_TEMP_DB 
-       || eType==SQLITE_OPEN_MAIN_JOURNAL || eType==SQLITE_OPEN_TEMP_JOURNAL 
-       || eType==SQLITE_OPEN_SUBJOURNAL   || eType==SQLITE_OPEN_MASTER_JOURNAL 
-       || eType==SQLITE_OPEN_TRANSIENT_DB || eType==SQLITE_OPEN_WAL
-  );
-
-  assert( id!=0 );
-  UNUSED_PARAMETER(pVfs);
-
-#if SQLITE_OS_WINRT
-  if( !sqlite3_temp_directory ){
-    sqlite3_log(SQLITE_ERROR,
-        "sqlite3_temp_directory variable should be set for WinRT");
-  }
-#endif
-
-  pFile->h = INVALID_HANDLE_VALUE;
-
-  /* If the second argument to this function is NULL, generate a 
-  ** temporary file name to use 
-  */
-  if( !zUtf8Name ){
-    assert(isDelete && !isOpenJournal);
-    rc = getTempname(MAX_PATH+2, zTmpname);
-    if( rc!=SQLITE_OK ){
-      return rc;
-    }
-    zUtf8Name = zTmpname;
-  }
-
-  /* Database filenames are double-zero terminated if they are not
-  ** URIs with parameters.  Hence, they can always be passed into
-  ** sqlite3_uri_parameter().
-  */
-  assert( (eType!=SQLITE_OPEN_MAIN_DB) || (flags & SQLITE_OPEN_URI) ||
-        zUtf8Name[strlen(zUtf8Name)+1]==0 );
-
-  /* Convert the filename to the system encoding. */
-  zConverted = convertUtf8Filename(zUtf8Name);
-  if( zConverted==0 ){
-    return SQLITE_IOERR_NOMEM;
-  }
-
-  if( winIsDir(zConverted) ){
-    sqlite3_free(zConverted);
-    return SQLITE_CANTOPEN_ISDIR;
-  }
-
-  if( isReadWrite ){
-    dwDesiredAccess = GENERIC_READ | GENERIC_WRITE;
-  }else{
-    dwDesiredAccess = GENERIC_READ;
-  }
-
-  /* SQLITE_OPEN_EXCLUSIVE is used to make sure that a new file is 
-  ** created. SQLite doesn't use it to indicate "exclusive access" 
-  ** as it is usually understood.
-  */
-  if( isExclusive ){
-    /* Creates a new file, only if it does not already exist. */
-    /* If the file exists, it fails. */
-    dwCreationDisposition = CREATE_NEW;
-  }else if( isCreate ){
-    /* Open existing file, or create if it doesn't exist */
-    dwCreationDisposition = OPEN_ALWAYS;
-  }else{
-    /* Opens a file, only if it exists. */
-    dwCreationDisposition = OPEN_EXISTING;
-  }
-
-  dwShareMode = FILE_SHARE_READ | FILE_SHARE_WRITE;
-
-  if( isDelete ){
-#if SQLITE_OS_WINCE
-    dwFlagsAndAttributes = FILE_ATTRIBUTE_HIDDEN;
-    isTemp = 1;
-#else
-    dwFlagsAndAttributes = FILE_ATTRIBUTE_TEMPORARY
-                               | FILE_ATTRIBUTE_HIDDEN
-                               | FILE_FLAG_DELETE_ON_CLOSE;
-#endif
-  }else{
-    dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL;
-  }
-  /* Reports from the internet are that performance is always
-  ** better if FILE_FLAG_RANDOM_ACCESS is used.  Ticket #2699. */
-#if SQLITE_OS_WINCE
-  dwFlagsAndAttributes |= FILE_FLAG_RANDOM_ACCESS;
-#endif
-
-  if( isNT() ){
-#if SQLITE_OS_WINRT
-    CREATEFILE2_EXTENDED_PARAMETERS extendedParameters;
-    extendedParameters.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
-    extendedParameters.dwFileAttributes =
-            dwFlagsAndAttributes & FILE_ATTRIBUTE_MASK;
-    extendedParameters.dwFileFlags = dwFlagsAndAttributes & FILE_FLAG_MASK;
-    extendedParameters.dwSecurityQosFlags = SECURITY_ANONYMOUS;
-    extendedParameters.lpSecurityAttributes = NULL;
-    extendedParameters.hTemplateFile = NULL;
-    while( (h = osCreateFile2((LPCWSTR)zConverted,
-                              dwDesiredAccess,
-                              dwShareMode,
-                              dwCreationDisposition,
-                              &extendedParameters))==INVALID_HANDLE_VALUE &&
-                              retryIoerr(&cnt, &lastErrno) ){
-               /* Noop */
-    }
-#else
-    while( (h = osCreateFileW((LPCWSTR)zConverted,
-                              dwDesiredAccess,
-                              dwShareMode, NULL,
-                              dwCreationDisposition,
-                              dwFlagsAndAttributes,
-                              NULL))==INVALID_HANDLE_VALUE &&
-                              retryIoerr(&cnt, &lastErrno) ){
-               /* Noop */
-    }
-#endif
-  }
-#ifdef SQLITE_WIN32_HAS_ANSI
-  else{
-    while( (h = osCreateFileA((LPCSTR)zConverted,
-                              dwDesiredAccess,
-                              dwShareMode, NULL,
-                              dwCreationDisposition,
-                              dwFlagsAndAttributes,
-                              NULL))==INVALID_HANDLE_VALUE &&
-                              retryIoerr(&cnt, &lastErrno) ){
-               /* Noop */
-    }
-  }
-#endif
-  logIoerr(cnt);
-
-  OSTRACE(("OPEN %d %s 0x%lx %s\n", 
-           h, zName, dwDesiredAccess, 
-           h==INVALID_HANDLE_VALUE ? "failed" : "ok"));
-
-  if( h==INVALID_HANDLE_VALUE ){
-    pFile->lastErrno = lastErrno;
-    winLogError(SQLITE_CANTOPEN, pFile->lastErrno, "winOpen", zUtf8Name);
-    sqlite3_free(zConverted);
-    if( isReadWrite && !isExclusive ){
-      return winOpen(pVfs, zName, id, 
-             ((flags|SQLITE_OPEN_READONLY)&~(SQLITE_OPEN_CREATE|SQLITE_OPEN_READWRITE)), pOutFlags);
-    }else{
-      return SQLITE_CANTOPEN_BKPT;
-    }
-  }
-
-  if( pOutFlags ){
-    if( isReadWrite ){
-      *pOutFlags = SQLITE_OPEN_READWRITE;
-    }else{
-      *pOutFlags = SQLITE_OPEN_READONLY;
-    }
-  }
-
-  memset(pFile, 0, sizeof(*pFile));
-  pFile->pMethod = &winIoMethod;
-  pFile->h = h;
-  pFile->lastErrno = NO_ERROR;
-  pFile->pVfs = pVfs;
-#ifndef SQLITE_OMIT_WAL
-  pFile->pShm = 0;
-#endif
-  pFile->zPath = zName;
-  if( sqlite3_uri_boolean(zName, "psow", SQLITE_POWERSAFE_OVERWRITE) ){
-    pFile->ctrlFlags |= WINFILE_PSOW;
-  }
-
-#if SQLITE_OS_WINCE
-  if( isReadWrite && eType==SQLITE_OPEN_MAIN_DB
-       && !winceCreateLock(zName, pFile)
-  ){
-    osCloseHandle(h);
-    sqlite3_free(zConverted);
-    return SQLITE_CANTOPEN_BKPT;
-  }
-  if( isTemp ){
-    pFile->zDeleteOnClose = zConverted;
-  }else
-#endif
-  {
-    sqlite3_free(zConverted);
-  }
-
-  OpenCounter(+1);
-  return rc;
-}
-
-/*
-** Delete the named file.
-**
-** Note that Windows does not allow a file to be deleted if some other
-** process has it open.  Sometimes a virus scanner or indexing program
-** will open a journal file shortly after it is created in order to do
-** whatever it does.  While this other process is holding the
-** file open, we will be unable to delete it.  To work around this
-** problem, we delay 100 milliseconds and try to delete again.  Up
-** to MX_DELETION_ATTEMPTs deletion attempts are run before giving
-** up and returning an error.
-*/
-static int winDelete(
-  sqlite3_vfs *pVfs,          /* Not used on win32 */
-  const char *zFilename,      /* Name of file to delete */
-  int syncDir                 /* Not used on win32 */
-){
-  int cnt = 0;
-  int rc;
-  DWORD attr;
-  DWORD lastErrno;
-  void *zConverted;
-  UNUSED_PARAMETER(pVfs);
-  UNUSED_PARAMETER(syncDir);
-
-  SimulateIOError(return SQLITE_IOERR_DELETE);
-  zConverted = convertUtf8Filename(zFilename);
-  if( zConverted==0 ){
-    return SQLITE_IOERR_NOMEM;
-  }
-  if( isNT() ){
-    do {
-#if SQLITE_OS_WINRT
-      WIN32_FILE_ATTRIBUTE_DATA sAttrData;
-      memset(&sAttrData, 0, sizeof(sAttrData));
-      if ( osGetFileAttributesExW(zConverted, GetFileExInfoStandard,
-                                  &sAttrData) ){
-        attr = sAttrData.dwFileAttributes;
-      }else{
-        rc = SQLITE_OK; /* Already gone? */
-        break;
-      }
-#else
-      attr = osGetFileAttributesW(zConverted);
-#endif
-      if ( attr==INVALID_FILE_ATTRIBUTES ){
-        rc = SQLITE_OK; /* Already gone? */
-        break;
-      }
-      if ( attr&FILE_ATTRIBUTE_DIRECTORY ){
-        rc = SQLITE_ERROR; /* Files only. */
-        break;
-      }
-      if ( osDeleteFileW(zConverted) ){
-        rc = SQLITE_OK; /* Deleted OK. */
-        break;
-      }
-      if ( !retryIoerr(&cnt, &lastErrno) ){
-        rc = SQLITE_ERROR; /* No more retries. */
-        break;
-      }
-    } while(1);
-  }
-#ifdef SQLITE_WIN32_HAS_ANSI
-  else{
-    do {
-      attr = osGetFileAttributesA(zConverted);
-      if ( attr==INVALID_FILE_ATTRIBUTES ){
-        rc = SQLITE_OK; /* Already gone? */
-        break;
-      }
-      if ( attr&FILE_ATTRIBUTE_DIRECTORY ){
-        rc = SQLITE_ERROR; /* Files only. */
-        break;
-      }
-      if ( osDeleteFileA(zConverted) ){
-        rc = SQLITE_OK; /* Deleted OK. */
-        break;
-      }
-      if ( !retryIoerr(&cnt, &lastErrno) ){
-        rc = SQLITE_ERROR; /* No more retries. */
-        break;
-      }
-    } while(1);
-  }
-#endif
-  if( rc ){
-    rc = winLogError(SQLITE_IOERR_DELETE, lastErrno,
-             "winDelete", zFilename);
-  }else{
-    logIoerr(cnt);
-  }
-  sqlite3_free(zConverted);
-  OSTRACE(("DELETE \"%s\" %s\n", zFilename, (rc ? "failed" : "ok" )));
-  return rc;
-}
-
-/*
-** Check the existance and status of a file.
-*/
-static int winAccess(
-  sqlite3_vfs *pVfs,         /* Not used on win32 */
-  const char *zFilename,     /* Name of file to check */
-  int flags,                 /* Type of test to make on this file */
-  int *pResOut               /* OUT: Result */
-){
-  DWORD attr;
-  int rc = 0;
-  DWORD lastErrno;
-  void *zConverted;
-  UNUSED_PARAMETER(pVfs);
-
-  SimulateIOError( return SQLITE_IOERR_ACCESS; );
-  zConverted = convertUtf8Filename(zFilename);
-  if( zConverted==0 ){
-    return SQLITE_IOERR_NOMEM;
-  }
-  if( isNT() ){
-    int cnt = 0;
-    WIN32_FILE_ATTRIBUTE_DATA sAttrData;
-    memset(&sAttrData, 0, sizeof(sAttrData));
-    while( !(rc = osGetFileAttributesExW((LPCWSTR)zConverted,
-                             GetFileExInfoStandard, 
-                             &sAttrData)) && retryIoerr(&cnt, &lastErrno) ){}
-    if( rc ){
-      /* For an SQLITE_ACCESS_EXISTS query, treat a zero-length file
-      ** as if it does not exist.
-      */
-      if(    flags==SQLITE_ACCESS_EXISTS
-          && sAttrData.nFileSizeHigh==0 
-          && sAttrData.nFileSizeLow==0 ){
-        attr = INVALID_FILE_ATTRIBUTES;
-      }else{
-        attr = sAttrData.dwFileAttributes;
-      }
-    }else{
-      logIoerr(cnt);
-      if( lastErrno!=ERROR_FILE_NOT_FOUND && lastErrno!=ERROR_PATH_NOT_FOUND ){
-        winLogError(SQLITE_IOERR_ACCESS, lastErrno, "winAccess", zFilename);
-        sqlite3_free(zConverted);
-        return SQLITE_IOERR_ACCESS;
-      }else{
-        attr = INVALID_FILE_ATTRIBUTES;
-      }
-    }
-  }
-#ifdef SQLITE_WIN32_HAS_ANSI
-  else{
-    attr = osGetFileAttributesA((char*)zConverted);
-  }
-#endif
-  sqlite3_free(zConverted);
-  switch( flags ){
-    case SQLITE_ACCESS_READ:
-    case SQLITE_ACCESS_EXISTS:
-      rc = attr!=INVALID_FILE_ATTRIBUTES;
-      break;
-    case SQLITE_ACCESS_READWRITE:
-      rc = attr!=INVALID_FILE_ATTRIBUTES &&
-             (attr & FILE_ATTRIBUTE_READONLY)==0;
-      break;
-    default:
-      assert(!"Invalid flags argument");
-  }
-  *pResOut = rc;
-  return SQLITE_OK;
-}
-
-
-/*
-** Returns non-zero if the specified path name should be used verbatim.  If
-** non-zero is returned from this function, the calling function must simply
-** use the provided path name verbatim -OR- resolve it into a full path name
-** using the GetFullPathName Win32 API function (if available).
-*/
-static BOOL winIsVerbatimPathname(
-  const char *zPathname
-){
-  /*
-  ** If the path name starts with a forward slash or a backslash, it is either
-  ** a legal UNC name, a volume relative path, or an absolute path name in the
-  ** "Unix" format on Windows.  There is no easy way to differentiate between
-  ** the final two cases; therefore, we return the safer return value of TRUE
-  ** so that callers of this function will simply use it verbatim.
-  */
-  if ( zPathname[0]=='/' || zPathname[0]=='\\' ){
-    return TRUE;
-  }
-
-  /*
-  ** If the path name starts with a letter and a colon it is either a volume
-  ** relative path or an absolute path.  Callers of this function must not
-  ** attempt to treat it as a relative path name (i.e. they should simply use
-  ** it verbatim).
-  */
-  if ( sqlite3Isalpha(zPathname[0]) && zPathname[1]==':' ){
-    return TRUE;
-  }
-
-  /*
-  ** If we get to this point, the path name should almost certainly be a purely
-  ** relative one (i.e. not a UNC name, not absolute, and not volume relative).
-  */
-  return FALSE;
-}
-
-/*
-** Turn a relative pathname into a full pathname.  Write the full
-** pathname into zOut[].  zOut[] will be at least pVfs->mxPathname
-** bytes in size.
-*/
-static int winFullPathname(
-  sqlite3_vfs *pVfs,            /* Pointer to vfs object */
-  const char *zRelative,        /* Possibly relative input path */
-  int nFull,                    /* Size of output buffer in bytes */
-  char *zFull                   /* Output buffer */
-){
-  
-#if defined(__CYGWIN__)
-  SimulateIOError( return SQLITE_ERROR );
-  UNUSED_PARAMETER(nFull);
-  assert( pVfs->mxPathname>=MAX_PATH );
-  assert( nFull>=pVfs->mxPathname );
-  if ( sqlite3_data_directory && !winIsVerbatimPathname(zRelative) ){
-    /*
-    ** NOTE: We are dealing with a relative path name and the data
-    **       directory has been set.  Therefore, use it as the basis
-    **       for converting the relative path name to an absolute
-    **       one by prepending the data directory and a slash.
-    */
-    char zOut[MAX_PATH+1];
-    memset(zOut, 0, MAX_PATH+1);
-    cygwin_conv_to_win32_path(zRelative, zOut); /* POSIX to Win32 */
-    sqlite3_snprintf(MIN(nFull, pVfs->mxPathname), zFull, "%s\\%s",
-                     sqlite3_data_directory, zOut);
-  }else{
-    /*
-    ** NOTE: The Cygwin docs state that the maximum length needed
-    **       for the buffer passed to cygwin_conv_to_full_win32_path
-    **       is MAX_PATH.
-    */
-    cygwin_conv_to_full_win32_path(zRelative, zFull);
-  }
-  return SQLITE_OK;
-#endif
-
-#if (SQLITE_OS_WINCE || SQLITE_OS_WINRT) && !defined(__CYGWIN__)
-  SimulateIOError( return SQLITE_ERROR );
-  /* WinCE has no concept of a relative pathname, or so I am told. */
-  /* WinRT has no way to convert a relative path to an absolute one. */
-  if ( sqlite3_data_directory && !winIsVerbatimPathname(zRelative) ){
-    /*
-    ** NOTE: We are dealing with a relative path name and the data
-    **       directory has been set.  Therefore, use it as the basis
-    **       for converting the relative path name to an absolute
-    **       one by prepending the data directory and a backslash.
-    */
-    sqlite3_snprintf(MIN(nFull, pVfs->mxPathname), zFull, "%s\\%s",
-                     sqlite3_data_directory, zRelative);
-  }else{
-    sqlite3_snprintf(MIN(nFull, pVfs->mxPathname), zFull, "%s", zRelative);
-  }
-  return SQLITE_OK;
-#endif
-
-#if !SQLITE_OS_WINCE && !SQLITE_OS_WINRT && !defined(__CYGWIN__)
-  int nByte;
-  void *zConverted;
-  char *zOut;
-
-  /* If this path name begins with "/X:", where "X" is any alphabetic
-  ** character, discard the initial "/" from the pathname.
-  */
-  if( zRelative[0]=='/' && sqlite3Isalpha(zRelative[1]) && zRelative[2]==':' ){
-    zRelative++;
-  }
-
-  /* It's odd to simulate an io-error here, but really this is just
-  ** using the io-error infrastructure to test that SQLite handles this
-  ** function failing. This function could fail if, for example, the
-  ** current working directory has been unlinked.
-  */
-  SimulateIOError( return SQLITE_ERROR );
-  if ( sqlite3_data_directory && !winIsVerbatimPathname(zRelative) ){
-    /*
-    ** NOTE: We are dealing with a relative path name and the data
-    **       directory has been set.  Therefore, use it as the basis
-    **       for converting the relative path name to an absolute
-    **       one by prepending the data directory and a backslash.
-    */
-    sqlite3_snprintf(MIN(nFull, pVfs->mxPathname), zFull, "%s\\%s",
-                     sqlite3_data_directory, zRelative);
-    return SQLITE_OK;
-  }
-  zConverted = convertUtf8Filename(zRelative);
-  if( zConverted==0 ){
-    return SQLITE_IOERR_NOMEM;
-  }
-  if( isNT() ){
-    LPWSTR zTemp;
-    nByte = osGetFullPathNameW((LPCWSTR)zConverted, 0, 0, 0) + 3;
-    zTemp = sqlite3_malloc( nByte*sizeof(zTemp[0]) );
-    if( zTemp==0 ){
-      sqlite3_free(zConverted);
-      return SQLITE_IOERR_NOMEM;
-    }
-    osGetFullPathNameW((LPCWSTR)zConverted, nByte, zTemp, 0);
-    sqlite3_free(zConverted);
-    zOut = unicodeToUtf8(zTemp);
-    sqlite3_free(zTemp);
-  }
-#ifdef SQLITE_WIN32_HAS_ANSI
-  else{
-    char *zTemp;
-    nByte = osGetFullPathNameA((char*)zConverted, 0, 0, 0) + 3;
-    zTemp = sqlite3_malloc( nByte*sizeof(zTemp[0]) );
-    if( zTemp==0 ){
-      sqlite3_free(zConverted);
-      return SQLITE_IOERR_NOMEM;
-    }
-    osGetFullPathNameA((char*)zConverted, nByte, zTemp, 0);
-    sqlite3_free(zConverted);
-    zOut = sqlite3_win32_mbcs_to_utf8(zTemp);
-    sqlite3_free(zTemp);
-  }
-#endif
-  if( zOut ){
-    sqlite3_snprintf(MIN(nFull, pVfs->mxPathname), zFull, "%s", zOut);
-    sqlite3_free(zOut);
-    return SQLITE_OK;
-  }else{
-    return SQLITE_IOERR_NOMEM;
-  }
-#endif
-}
-
-#ifndef SQLITE_OMIT_LOAD_EXTENSION
-/*
-** Interfaces for opening a shared library, finding entry points
-** within the shared library, and closing the shared library.
-*/
-/*
-** Interfaces for opening a shared library, finding entry points
-** within the shared library, and closing the shared library.
-*/
-static void *winDlOpen(sqlite3_vfs *pVfs, const char *zFilename){
-  HANDLE h;
-  void *zConverted = convertUtf8Filename(zFilename);
-  UNUSED_PARAMETER(pVfs);
-  if( zConverted==0 ){
+   int xGetLastError(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
+    assert(zBuf[0]=='\0');
     return 0;
   }
-  if( isNT() ){
-#if SQLITE_OS_WINRT
-    h = osLoadPackagedLibrary((LPCWSTR)zConverted, 0);
-#else
-    h = osLoadLibraryW((LPCWSTR)zConverted);
-#endif
-  }
-#ifdef SQLITE_WIN32_HAS_ANSI
-  else{
-    h = osLoadLibraryA((char*)zConverted);
-  }
-#endif
-  sqlite3_free(zConverted);
-  return (void*)h;
-}
-static void winDlError(sqlite3_vfs *pVfs, int nBuf, char *zBufOut){
-  UNUSED_PARAMETER(pVfs);
-  getLastErrorMsg(osGetLastError(), nBuf, zBufOut);
-}
-static void (*winDlSym(sqlite3_vfs *pVfs, void *pHandle, const char *zSymbol))(void){
-  UNUSED_PARAMETER(pVfs);
-  return (void(*)(void))osGetProcAddressA((HANDLE)pHandle, zSymbol);
-}
-static void winDlClose(sqlite3_vfs *pVfs, void *pHandle){
-  UNUSED_PARAMETER(pVfs);
-  osFreeLibrary((HANDLE)pHandle);
-}
-#else /* if SQLITE_OMIT_LOAD_EXTENSION is defined: */
-  #define winDlOpen  0
-  #define winDlError 0
-  #define winDlSym   0
-  #define winDlClose 0
-#endif
 
 
-/*
-** Write up to nBuf bytes of randomness into zBuf.
-*/
-static int winRandomness(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
-  int n = 0;
-  UNUSED_PARAMETER(pVfs);
-#if defined(SQLITE_TEST)
-  n = nBuf;
-  memset(zBuf, 0, nBuf);
-#else
-  if( sizeof(SYSTEMTIME)<=nBuf-n ){
-    SYSTEMTIME x;
-    osGetSystemTime(&x);
-    memcpy(&zBuf[n], &x, sizeof(x));
-    n += sizeof(x);
-  }
-  if( sizeof(DWORD)<=nBuf-n ){
-    DWORD pid = osGetCurrentProcessId();
-    memcpy(&zBuf[n], &pid, sizeof(pid));
-    n += sizeof(pid);
-  }
-#if SQLITE_OS_WINRT
-  if( sizeof(ULONGLONG)<=nBuf-n ){
-    ULONGLONG cnt = osGetTickCount64();
-    memcpy(&zBuf[n], &cnt, sizeof(cnt));
-    n += sizeof(cnt);
-  }
-#else
-  if( sizeof(DWORD)<=nBuf-n ){
-    DWORD cnt = osGetTickCount();
-    memcpy(&zBuf[n], &cnt, sizeof(cnt));
-    n += sizeof(cnt);
-  }
-#endif
-  if( sizeof(LARGE_INTEGER)<=nBuf-n ){
-    LARGE_INTEGER i;
-    osQueryPerformanceCounter(&i);
-    memcpy(&zBuf[n], &i, sizeof(i));
-    n += sizeof(i);
-  }
-#endif
-  return n;
-}
+然而，如果一个错误消息被提供时，它会通过源码使用sqlite3_errmsg（）掺入到提供给用户的错误消息，可能使IO错误容易调试。
+ */
+ static int winGetLastError(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
+   UNUSED_PARAMETER(pVfs);
+ @@ -4321,7 +4309,7 @@ static int winGetLastError(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
+ }
+ 
+ /*
+初始化和取消初始化操作系统接口.
+ */
+ int sqlite3_os_init(void){
+   static sqlite3_vfs winVfs = {
+ @@ -4349,12 +4337,12 @@ int sqlite3_os_init(void){
+     winNextSystemCall,   /* xNextSystemCall */
+   };
+ 
 
+ /* 仔细检查aSyscall[]数组是否已建
+正确。见票[bb3a86e890c8e96ab] */
+   assert( ArraySize(aSyscall)==73 );
+ 
+ #ifndef SQLITE_OMIT_WAL
 
-/*
-** Sleep for a little while.  Return the amount of time slept.
-*/
-static int winSleep(sqlite3_vfs *pVfs, int microsec){
-  sqlite3_win32_sleep((microsec+999)/1000);
-  UNUSED_PARAMETER(pVfs);
-  return ((microsec+999)/1000)*1000;
-}
-
-/*
-** The following variable, if set to a non-zero value, is interpreted as
-** the number of seconds since 1970 and is used to set the result of
-** sqlite3OsCurrentTime() during testing.
-*/
-#ifdef SQLITE_TEST
-int sqlite3_current_time = 0;  /* Fake system time in seconds since 1970. */
-#endif
-
-/*
-** Find the current time (in Universal Coordinated Time).  Write into *piNow
-** the current time and date as a Julian Day number times 86_400_000.  In
-** other words, write into *piNow the number of milliseconds since the Julian
-** epoch of noon in Greenwich on November 24, 4714 B.C according to the
-** proleptic Gregorian calendar.
-**
-** On success, return SQLITE_OK.  Return SQLITE_ERROR if the time and date 
-** cannot be found.
-*/
-static int winCurrentTimeInt64(sqlite3_vfs *pVfs, sqlite3_int64 *piNow){
-  /* FILETIME structure is a 64-bit value representing the number of 
-     100-nanosecond intervals since January 1, 1601 (= JD 2305813.5). 
-  */
-  FILETIME ft;
-  static const sqlite3_int64 winFiletimeEpoch = 23058135*(sqlite3_int64)8640000;
-#ifdef SQLITE_TEST
-  static const sqlite3_int64 unixEpoch = 24405875*(sqlite3_int64)8640000;
-#endif
-  /* 2^32 - to avoid use of LL and warnings in gcc */
-  static const sqlite3_int64 max32BitValue = 
-      (sqlite3_int64)2000000000 + (sqlite3_int64)2000000000 + (sqlite3_int64)294967296;
-
-#if SQLITE_OS_WINCE
-  SYSTEMTIME time;
-  osGetSystemTime(&time);
-  /* if SystemTimeToFileTime() fails, it returns zero. */
-  if (!osSystemTimeToFileTime(&time,&ft)){
-    return SQLITE_ERROR;
-  }
-#else
-  osGetSystemTimeAsFileTime( &ft );
-#endif
-
-  *piNow = winFiletimeEpoch +
-            ((((sqlite3_int64)ft.dwHighDateTime)*max32BitValue) + 
-               (sqlite3_int64)ft.dwLowDateTime)/(sqlite3_int64)10000;
-
-#ifdef SQLITE_TEST
-  if( sqlite3_current_time ){
-    *piNow = 1000*(sqlite3_int64)sqlite3_current_time + unixEpoch;
-  }
-#endif
-  UNUSED_PARAMETER(pVfs);
-  return SQLITE_OK;
-}
-
-/*
-** Find the current time (in Universal Coordinated Time).  Write the
-** current time and date as a Julian Day number into *prNow and
-** return 0.  Return 1 if the time and date cannot be found.
-*/
-static int winCurrentTime(sqlite3_vfs *pVfs, double *prNow){
-  int rc;
-  sqlite3_int64 i;
-  rc = winCurrentTimeInt64(pVfs, &i);
-  if( !rc ){
-    *prNow = i/86400000.0;
-  }
-  return rc;
-}
-
-/*
-** The idea is that this function works like a combination of
-** GetLastError() and FormatMessage() on Windows (or errno and
-** strerror_r() on Unix). After an error is returned by an OS
-** function, SQLite calls this function with zBuf pointing to
-** a buffer of nBuf bytes. The OS layer should populate the
-** buffer with a nul-terminated UTF-8 encoded error message
-** describing the last IO error to have occurred within the calling
-** thread.
-**
-** If the error message is too large for the supplied buffer,
-** it should be truncated. The return value of xGetLastError
-** is zero if the error message fits in the buffer, or non-zero
-** otherwise (if the message was truncated). If non-zero is returned,
-** then it is not necessary to include the nul-terminator character
-** in the output buffer.
-**
-** Not supplying an error message will have no adverse effect
-** on SQLite. It is fine to have an implementation that never
-** returns an error message:
-**
-**   int xGetLastError(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
-**     assert(zBuf[0]=='\0');
-**     return 0;
-**   }
-**
-** However if an error message is supplied, it will be incorporated
-** by sqlite into the error message available to the user using
-** sqlite3_errmsg(), possibly making IO errors easier to debug.
-*/
-static int winGetLastError(sqlite3_vfs *pVfs, int nBuf, char *zBuf){
-  UNUSED_PARAMETER(pVfs);
-  return getLastErrorMsg(osGetLastError(), nBuf, zBuf);
-}
-
-/*
-** Initialize and deinitialize the operating system interface.
-*/
-int sqlite3_os_init(void){
-  static sqlite3_vfs winVfs = {
-    3,                   /* iVersion */
-    sizeof(winFile),     /* szOsFile */
-    MAX_PATH,            /* mxPathname */
-    0,                   /* pNext */
-    "win32",             /* zName */
-    0,                   /* pAppData */
-    winOpen,             /* xOpen */
-    winDelete,           /* xDelete */
-    winAccess,           /* xAccess */
-    winFullPathname,     /* xFullPathname */
-    winDlOpen,           /* xDlOpen */
-    winDlError,          /* xDlError */
-    winDlSym,            /* xDlSym */
-    winDlClose,          /* xDlClose */
-    winRandomness,       /* xRandomness */
-    winSleep,            /* xSleep */
-    winCurrentTime,      /* xCurrentTime */
-    winGetLastError,     /* xGetLastError */
-    winCurrentTimeInt64, /* xCurrentTimeInt64 */
-    winSetSystemCall,    /* xSetSystemCall */
-    winGetSystemCall,    /* xGetSystemCall */
-    winNextSystemCall,   /* xNextSystemCall */
-  };
-
-  /* Double-check that the aSyscall[] array has been constructed
-  ** correctly.  See ticket [bb3a86e890c8e96ab] */
-  assert( ArraySize(aSyscall)==73 );
-
-#ifndef SQLITE_OMIT_WAL
-  /* get memory map allocation granularity */
-  memset(&winSysInfo, 0, sizeof(SYSTEM_INFO));
-#if SQLITE_OS_WINRT
-  osGetNativeSystemInfo(&winSysInfo);
-#else
-  osGetSystemInfo(&winSysInfo);
-#endif
-  assert(winSysInfo.dwAllocationGranularity > 0);
-#endif
-
-  sqlite3_vfs_register(&winVfs, 1);
-  return SQLITE_OK; 
-}
-
-int sqlite3_os_end(void){ 
-#if SQLITE_OS_WINRT
-  if( sleepObj != NULL ){
-    osCloseHandle(sleepObj);
-    sleepObj = NULL;
-  }
-#endif
-  return SQLITE_OK;
-}
-
-#endif /* SQLITE_OS_WIN */
+ /* 获取内存映射分配 */
+   memset(&winSysInfo, 0, sizeof(SYSTEM_INFO));
+ #if SQLITE_OS_WINRT
+   osGetNativeSystemInfo(&winSysInfo);
