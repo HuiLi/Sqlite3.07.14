@@ -13,6 +13,9 @@
 ** implement the programmer interface to the library.  Routines in
 ** other files are for internal use by SQLite and should not be
 ** accessed by users of the library.
+main.c函数主要是SQLit Library的大部分接口,这个文件中的程序执行这些程序接口进入library.
+在其他的文件中的程序是被sqlite在内部应用，不应该被library的用户接受。
+
 */
 //包含必要的头文件
 #include "sqliteInt.h"
@@ -1111,8 +1114,8 @@ void sqlite3RollbackAll(sqlite3 *db, int tripCode){
 /*
 ** Return a static string that describes the kind of error specified in the
 ** argument.
-**SQLite 错误码
 */
+//返回一个静态字符串，用来描述这种指定的错误
 const char *sqlite3ErrStr(int rc){    /*此函数主要作用:根据错位类型码返回对应的错误信息*/
   static const char* const aMsg[] = {
     /* SQLITE_OK          */ "返回OK，没有错误 |not an error",
