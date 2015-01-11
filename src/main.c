@@ -18,6 +18,7 @@ main.c函数主要是SQLit Library的大部分接口,这个文件中的程序执
 在其他的文件中的程序是被sqlite在内部应用，不应该被library的用户接受。
 
 */
+
 //包含必要的头文件
 #include "sqliteInt.h"
 
