@@ -842,6 +842,8 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 ** term that is an equivalent IN expression.  In other words, if the term
 ** being analyzed is:
 **
+** 同一个属性多个等值条件用OR连接的处理
+**
 **      x = expr1  OR  expr2 = x  OR  x = expr3
 **
 ** then create a new virtual term like this:
@@ -987,6 +989,8 @@ static void exprAnalyzeOrTerm(
   ** chngToIN holds a set of tables that *might* satisfy case 1.  But
   ** we have to do some additional checking to see if case 1 really
   ** is satisfied.
+  ** 
+  ** 出现第一种情况时的处理
   **
   ** chngToIN will hold either 0, 1, or 2 bits.  The 0-bit case means
   ** that there is no possibility of transforming the OR clause into an
@@ -1244,6 +1248,7 @@ static void exprAnalyze(
   ** term.  That means that if the BETWEEN term is coded, the children are
   ** skipped.  Or, if the children are satisfied by an index, the original
   ** BETWEEN term is skipped.
+  ** BETWEEN语句处理部分
   */
   else if( pExpr->op==TK_BETWEEN && pWC->op==TK_AND ){
     ExprList *pList = pExpr->x.pList;
@@ -1288,6 +1293,7 @@ static void exprAnalyze(
   **
   ** The last character of the prefix "abc" is incremented to form the
   ** termination condition "abd".
+  ** LIKE语句处理部分
   */
   if( pWC->op==TK_AND 
    && isLikeOrGlob(pParse, pExpr, &pStr1, &isComplete, &noCase)
@@ -1540,11 +1546,15 @@ static int isDistinctIndex(
 }
 
 
-/*
+
+/*毕赣斌开始
 ** Return true if the DISTINCT expression-list passed as the third argument
 ** is redundant. A DISTINCT list is redundant if the database contains a
 ** UNIQUE index that guarantees that the result of the query will be distinct
 ** anyway.
+*/
+/* 如果DISTINCT表达式列表是作为第三参数是传递冗余，则返回1。如果数据库中包含一
+** 个保证查询结果完全不同的唯一索引存在，则这个DISTINCT列表是冗余的。
 */
 static int isDistinctRedundant(
   Parse *pParse,
@@ -1560,6 +1570,9 @@ static int isDistinctRedundant(
   /* If there is more than one table or sub-select in the FROM clause of
   ** this query, then it will not be possible to show that the DISTINCT 
   ** clause is redundant. */
+  /* 如果此次查询的FROM子句中有多个表格或子查询，则不会显示DISTINCT子句是
+  ** 冗余的。
+  */
   if( pTabList->nSrc!=1 ) return 0;
   iBase = pTabList->a[0].iCursor;
   pTab = pTabList->a[0].pTab;
@@ -1567,6 +1580,9 @@ static int isDistinctRedundant(
   /* If any of the expressions is an IPK column on table iBase, then return 
   ** true. Note: The (p->iTable==iBase) part of this test may be false if the
   ** current SELECT is a correlated sub-query.
+  */
+  /* 如果表格iBase中有任意表达式是IPK容量，则返回真。注：如果当前SELECT是一个
+  ** 相关子查询，则此次测试中（p->iTable==iBase）部分可能为假。
   */
   for(i=0; i<pDistinct->nExpr; i++){
     Expr *p = pDistinct->a[i].pExpr;
@@ -1586,6 +1602,17 @@ static int isDistinctRedundant(
   **   3. All of those index columns for which the WHERE clause does not
   **      contain a "col=X" term are subject to a NOT NULL constraint.
   */
+  /* 遍历表上的所有指标,检查每个指针是否使DISTINCT限定符冗余。当且仅当满足以下
+  ** 条件:
+  **
+  ** 1、这个索引本身含UNIQUE约束，并且
+  **
+  ** 2、这个索引中所有的列或者是pDistinct列表中的部分，或者WHERE子句中包含形如
+  ** “col=X”的项，其中X是常量。比较和选择列表的排序序列表达式必须匹配这些索引
+  ** 。
+  ** 
+  ** 3、所有不包含“col=X”项的WHERE子句的索引列都满足NOT NULL约束条件。
+  */
   for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){
     if( pIdx->onError==OE_None ) continue;
     for(i=0; i<pIdx->nColumn; i++){
@@ -1599,6 +1626,7 @@ static int isDistinctRedundant(
     }
     if( i==pIdx->nColumn ){
       /* This index implies that the DISTINCT qualifier is redundant. */
+	  /* 这个索引意味着DISTINCT限定符是冗余的。*/
       return 1;
     }
   }
@@ -1625,20 +1653,34 @@ static int isDistinctRedundant(
 ** set to 1 if the ORDER BY clause is all DESC and it is set to 0 if
 ** the ORDER BY clause is all ASC.
 */
+/* 这个例程决定于p索引是否满足ORDER BY的子句。如果满足，则返回1，如果不满
+** 足，则返回0。
+**
+** pOrderBy是SELECT语句中的一个ORDER BY子句形式。pTab是同一个SELECT语句中
+** 的FROM子句的最左边一个表格，并且这个表格在库中有指针。p索引是pTab上的
+** 一个索引。
+**
+** nEqCol是用作等式约束的p索引的容量数字。这些ORDER BY子句中的任意容量都有
+** 可能丢失，但匹配仍然可以成功。
+**
+** 所有ORDER BY子句中不匹配索引的项都必须是ASC或者DESC码。(ORDER BY子句的
+** 过去的唯一索引不需要满足这个约束。)如果ORDER BY子句全部是DESC码则*pbRev
+** 的值设为1，如果ORDER BY子句全部是ASC码则*pbRev的值设为0。
+*/
 static int isSortingIndex(
-  Parse *pParse,          /* Parsing context */
-  WhereMaskSet *pMaskSet, /* Mapping from table cursor numbers to bitmaps */
-  Index *pIdx,            /* The index we are testing */
-  int base,               /* Cursor number for the table to be sorted */
-  ExprList *pOrderBy,     /* The ORDER BY clause */
-  int nEqCol,             /* Number of index columns with == constraints */
-  int wsFlags,            /* Index usages flags */
-  int *pbRev              /* Set to 1 if ORDER BY is DESC */
+	Parse *pParse,          /* Parsing context *//*解析上下文*/
+	WhereMaskSet *pMaskSet, /* Mapping from table cursor numbers to bitmaps *//* 从表格指针映射到位图*/
+	Index *pIdx,            /* The index we are testing *//* 正在测试的索引*/
+	int base,               /* Cursor number for the table to be sorted *//* 排序用表的指针*/
+	ExprList *pOrderBy,     /* The ORDER BY clause *//*ORDER BY子句*/
+	int nEqCol,             /* Number of index columns with == constraints *//* 满足==约束条件的索引容量数字*/
+	int wsFlags,            /* Index usages flags *//*索引使用标记*/
+	int *pbRev              /* Set to 1 if ORDER BY is DESC *//* 如果ORDER BY子句全部是DESC码则设值为1*/
 ){
-  int i, j;                       /* Loop counters */
-  int sortOrder = 0;              /* XOR of index and ORDER BY sort direction */
-  int nTerm;                      /* Number of ORDER BY terms */
-  struct ExprList_item *pTerm;    /* A term of the ORDER BY clause */
+	int i, j;                       /* Loop counters *//* 循环计数器*/
+	int sortOrder = 0;              /* XOR of index and ORDER BY sort direction *//* 索引中的或运算以及ORDER BY排序方向*/
+  int nTerm;                      /* Number of ORDER BY terms *//* ORDER BY项的数字*/
+  struct ExprList_item *pTerm;    /* A term of the ORDER BY clause *//* ORDER BY子句中的一个项*/
   sqlite3 *db = pParse->db;
 
   if( !pOrderBy ) return 0;
@@ -1651,6 +1693,9 @@ static int isSortingIndex(
   /* Argument pIdx must either point to a 'real' named index structure, 
   ** or an index structure allocated on the stack by bestBtreeIndex() to
   ** represent the rowid index that is part of every table.  */
+  /* p索引参数必须或者指向一个“真实的”命名索引结构，或者一个分配到
+  ** bestBtreeIndex栈的索引结构，来表示rowid指数是每个表中的一部分。
+  */
   assert( pIdx->zName || (pIdx->nColumn==1 && pIdx->aiColumn[0]==-1) );
 
   /* Match terms of the ORDER BY clause against columns of
@@ -1661,18 +1706,25 @@ static int isSortingIndex(
   ** of the index is also allowed to match against the ORDER BY
   ** clause.
   */
+  /* 匹配与索引中的列不同的ORDER BY子句中的项。
+  **
+  ** 注：指数pIdx - > nColumn常规列加一个额外的列包含rowid。rowid
+  ** 列的索引也允许匹配ORDER BY子句。
+  */
   for(i=j=0, pTerm=pOrderBy->a; j<nTerm && i<=pIdx->nColumn; i++){
-    Expr *pExpr;       /* The expression of the ORDER BY pTerm */
-    CollSeq *pColl;    /* The collating sequence of pExpr */
-    int termSortOrder; /* Sort order for this term */
-    int iColumn;       /* The i-th column of the index.  -1 for rowid */
-    int iSortOrder;    /* 1 for DESC, 0 for ASC on the i-th index term */
-    const char *zColl; /* Name of the collating sequence for i-th index term */
+	  Expr *pExpr;       /* The expression of the ORDER BY pTerm *//* ORDER BY子句中的表达式pTerm*/
+	  CollSeq *pColl;    /* The collating sequence of pExpr *//* 排序序列pExpr*/
+	  int termSortOrder; /* Sort order for this term *//*对此项进行排序*/
+	  int iColumn;       /* The i-th column of the index.  -1 for rowid *//* 索引中的第i列*/
+	  int iSortOrder;    /* 1 for DESC, 0 for ASC on the i-th index term *//* 第i个索引项中，DESC码为1，ASC码为0*/
+	  const char *zColl; /* Name of the collating sequence for i-th index term *//* 第i个索引项中排序序列的名称*/
 
     pExpr = pTerm->pExpr;
     if( pExpr->op!=TK_COLUMN || pExpr->iTable!=base ){
       /* Can not use an index sort on anything that is not a column in the
       ** left-most table of the FROM clause */
+	  /*  如果不是FROM子句中最左边表格的一个列则不能对任意项使用索引排序。
+	  */
       break;
     }
     pColl = sqlite3ExprCollSeq(pParse, pExpr);
@@ -1693,18 +1745,28 @@ static int isSortingIndex(
     }
     if( pExpr->iColumn!=iColumn || sqlite3StrICmp(pColl->zName, zColl) ){
       /* Term j of the ORDER BY clause does not match column i of the index */
+      /* ORDER BY子句中的j项不匹配索引中的i列。
+	  */
       if( i<nEqCol ){
         /* If an index column that is constrained by == fails to match an
         ** ORDER BY term, that is OK.  Just ignore that column of the index
         */
+		/* 如果被==所约束的索引列不能匹配ORDER BY项，那么这也是可以的，只需要
+		** 忽略这个索引。
+		*/
         continue;
       }else if( i==pIdx->nColumn ){
         /* Index column i is the rowid.  All other terms match. */
+		/* 索引列i是rowid变量，所有其他项匹配。
+		*/
         break;
       }else{
         /* If an index column fails to match and is not constrained by ==
         ** then the index cannot satisfy the ORDER BY constraint.
         */
+	    /* 如果一个索引列不匹配，并且没有==约束条件，则这个索引不满足ORDER
+		** BY约束条件。
+		*/
         return 0;
       }
     }
@@ -1716,6 +1778,9 @@ static int isSortingIndex(
       if( termSortOrder!=sortOrder ){
         /* Indices can only be used if all ORDER BY terms past the
         ** equality constraints are all either DESC or ASC. */
+		  /* 只有ORDER BY子句满足等式约束条件的项都是DESC码或者ASC码
+		  ** 才可以使用指数。
+		  */
         return 0;
       }
     }else{
@@ -1730,6 +1795,10 @@ static int isSortingIndex(
       ** to sort because the primary key is unique and so none of the other
       ** columns will make any difference
       */
+	  /* 如果索引列是主键，并且目前为止所有项都匹配，并且ORDER BY到右边的项
+	  ** 在联合中指向其他的表，那么可以保证索引可以被用来排序，因为主键是唯
+	  ** 一的而且没有其他的列会起作用。
+	  */
       j = nTerm;
     }
   }
@@ -1738,6 +1807,9 @@ static int isSortingIndex(
   if( j>=nTerm ){
     /* All terms of the ORDER BY clause are covered by this index so
     ** this index can be used for sorting. */
+	  /* 所有ORDER BY子句中的项都被这个这个索引包含，所以这个索引可以
+	  ** 用来排序。
+	  */
     return 1;
   }
   if( pIdx->onError!=OE_None && i==pIdx->nColumn
@@ -1757,6 +1829,10 @@ static int isSortingIndex(
     ** not be true). So if all remaining index columns have NOT NULL 
     ** constaints attached to them, we can be confident that the visited
     ** index entries are free of NULLs.  */
+	/* 这个索引中的所有项都满足ORDER BY子句的一些前缀、索引是唯一的、没有
+	** ORDER BY子句中尾部的项指向其他的表。所以，假设索引条目访问不包含NULL
+	** 值,那么这个索引提供行所需的顺序。
+	*/
     for(i=nEqCol; i<pIdx->nColumn; i++){
       if( aCol[pIdx->aiColumn[i]].notNull==0 ) break;
     }
@@ -1771,6 +1847,10 @@ static int isSortingIndex(
 ** the total cost of performing operations with O(logN) or O(NlogN)
 ** complexity.  Because N is just a guess, it is no great tragedy if
 ** logN is a little off.
+*/
+/* 准备一个输入值的对数的粗略估计。结果不需要很精确。这仅仅是用于估
+** 计执行操作的总代价与O(logN)或O(NlogN)复杂性。因为N仅仅是一个猜测值
+** 即使logN有些误差也问题不大。
 */
 static double estLog(double N){
   double logN = 1;
@@ -1787,6 +1867,9 @@ static double estLog(double N){
 ** structure.  Used for testing and debugging only.  If neither
 ** SQLITE_TEST or SQLITE_DEBUG are defined, then these routines
 ** are no-ops.
+*/
+/* sqlite3索引信息结构中用于打印目录的两个例程。只用于测试和调试。
+** 如果SQLITE_TEST和SQLITE_DEBUG都被定义了，则这两个例程执行空操作。
 */
 #if !defined(SQLITE_OMIT_VIRTUALTABLE) && defined(SQLITE_DEBUG)
 static void TRACE_IDX_INPUTS(sqlite3_index_info *p){
@@ -1829,6 +1912,8 @@ static void TRACE_IDX_OUTPUTS(sqlite3_index_info *p){
 /* 
 ** Required because bestIndex() is called by bestOrClauseIndex() 
 */
+/* 以下是需要的，因为bstIndex()被bestOrClauseIndex()调用。
+*/
 static void bestIndex(
     Parse*, WhereClause*, struct SrcList_item*,
     Bitmask, Bitmask, ExprList*, WhereCost*);
@@ -1840,23 +1925,31 @@ static void bestIndex(
 ** The table associated with FROM clause term pSrc may be either a
 ** regular B-Tree table or a virtual table.
 */
+/* 此例程用于找到一个扫描策略，这个策略可以用来优化一个WHERE子句中的
+** “或”表达式。
+**
+** 与子句FROM中的pScr项相关的表可能是个普通的B树表或者是一个虚表。
+*/
 static void bestOrClauseIndex(
-  Parse *pParse,              /* The parsing context */
-  WhereClause *pWC,           /* The WHERE clause */
-  struct SrcList_item *pSrc,  /* The FROM clause term to search */
-  Bitmask notReady,           /* Mask of cursors not available for indexing */
-  Bitmask notValid,           /* Cursors not available for any purpose */
-  ExprList *pOrderBy,         /* The ORDER BY clause */
-  WhereCost *pCost            /* Lowest cost query plan */
+	Parse *pParse,              /* The parsing context *//* 解析文档*/
+	WhereClause *pWC,           /* The WHERE clause *//* WHERE子句*/
+struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索的FROM子句项*/
+	Bitmask notReady,           /* Mask of cursors not available for indexing *//* 不能用来索引的游标掩码*/
+	Bitmask notValid,           /* Cursors not available for any purpose *//* 不用于任何目的的光标*/
+  ExprList *pOrderBy,         /* The ORDER BY clause *//* ORDER BY子句*/
+  WhereCost *pCost            /* Lowest cost query plan *//* 最小化查询计划的代价*/
 ){
 #ifndef SQLITE_OMIT_OR_OPTIMIZATION
-  const int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed */
-  const Bitmask maskSrc = getMask(pWC->pMaskSet, iCur);  /* Bitmask for pSrc */
-  WhereTerm * const pWCEnd = &pWC->a[pWC->nTerm];        /* End of pWC->a[] */
-  WhereTerm *pTerm;                 /* A single term of the WHERE clause */
+	const int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed *//* 可使用的表格光标*/
+	const Bitmask maskSrc = getMask(pWC->pMaskSet, iCur);  /* Bitmask for pSrc *//* pSrc的位掩码*/
+	WhereTerm * const pWCEnd = &pWC->a[pWC->nTerm];        /* End of pWC->a[] *//* pWC->a[]结束*/
+	WhereTerm *pTerm;                 /* A single term of the WHERE clause *//* WHERE子句的一个单一项*/
 
   /* The OR-clause optimization is disallowed if the INDEXED BY or
   ** NOT INDEXED clauses are used or if the WHERE_AND_ONLY bit is set. */
+  /* 如果INDEXED BY子句或者NOT INDEXED子句已经设置了WHERE_AND_ONLY位，那么
+  ** OR子句的优化无效。
+  */
   if( pSrc->notIndexed || pSrc->pIndex!=0 ){
     return;
   }
@@ -1864,7 +1957,7 @@ static void bestOrClauseIndex(
     return;
   }
 
-  /* Search the WHERE clause terms for a usable WO_OR term. */
+  /* Search the WHERE clause terms for a usable WO_OR term. *//* 为一个不可用的WO_OR项搜索WHERE子句项*/
   for(pTerm=pWC->a; pTerm<pWCEnd; pTerm++){
     if( pTerm->eOperator==WO_OR 
      && ((pTerm->prereqAll & ~maskSrc) & notReady)==0
@@ -1907,6 +2000,8 @@ static void bestOrClauseIndex(
 
       /* If there is an ORDER BY clause, increase the scan cost to account 
       ** for the cost of the sort. */
+	  /* 如果存在一个ORDER BY子句，则为此次排序的代价账户增加一次浏览代价。
+	  */
       if( pOrderBy!=0 ){
         WHERETRACE(("... sorting increases OR cost %.9g to %.9g\n",
                     rTotal, rTotal+nRow*estLog(nRow)));
@@ -1916,6 +2011,9 @@ static void bestOrClauseIndex(
       /* If the cost of scanning using this OR term for optimization is
       ** less than the current cost stored in pCost, replace the contents
       ** of pCost. */
+	  /* 如果用于优化而使用此次OR项的浏览代价少于pCost中当前的排序代价，
+	  ** 则替换pCost中的内容。
+	  */
       WHERETRACE(("... multi-index OR cost=%.9g nrow=%.9g\n", rTotal, nRow));
       if( rTotal<pCost->rCost ){
         pCost->rCost = rTotal;
@@ -1926,7 +2024,7 @@ static void bestOrClauseIndex(
       }
     }
   }
-#endif /* SQLITE_OMIT_OR_OPTIMIZATION */
+#endif /* SQLITE_OMIT_OR_OPTIMIZATION *//* SQLITE_OMIT_OR_OPTIMIZATION结束*/
 }
 
 #ifndef SQLITE_OMIT_AUTOMATIC_INDEX
@@ -1935,10 +2033,13 @@ static void bestOrClauseIndex(
 ** could be used with an index to access pSrc, assuming an appropriate
 ** index existed.
 */
+/* 如果WHERE子句项pTerm是可以用于和一个索引共同链接到pSrc的一种形式则
+** 返回真，假设一个合适的索引是存在的。
+*/
 static int termCanDriveIndex(
-  WhereTerm *pTerm,              /* WHERE clause term to check */
-  struct SrcList_item *pSrc,     /* Table we are trying to access */
-  Bitmask notReady               /* Tables in outer loops of the join */
+	WhereTerm *pTerm,              /* WHERE clause term to check *//* 用于检查的WHERE子句项*/
+struct SrcList_item *pSrc,     /* Table we are trying to access *//* 尝试登陆的表格*/
+	Bitmask notReady               /* Tables in outer loops of the join *//* 连接的外部循环表格*/
 ){
   char aff;
   if( pTerm->leftCursor!=pSrc->iCursor ) return 0;
@@ -1959,38 +2060,52 @@ static int termCanDriveIndex(
 ** is taken into account, then alter the query plan to use the
 ** transient index.
 */
+/* 如果pCost中pSrc详细说明的查询计划是一个满表查询并且索引是允许的
+** （如果没有NOT INDEXED子句存在）并且可以构建一个瞬态指数,将执行比全
+** 表扫描即使构建索引的代价考虑进去,然后改变查询计划使用瞬态指数。
+*/
 static void bestAutomaticIndex(
-  Parse *pParse,              /* The parsing context */
-  WhereClause *pWC,           /* The WHERE clause */
-  struct SrcList_item *pSrc,  /* The FROM clause term to search */
-  Bitmask notReady,           /* Mask of cursors that are not available */
-  WhereCost *pCost            /* Lowest cost query plan */
+	Parse *pParse,              /* The parsing context *//* 解析文档*/
+	WhereClause *pWC,           /* The WHERE clause *//* WHERE子句*/
+struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索的FROM子句项*/
+	Bitmask notReady,           /* Mask of cursors that are not available *//* 不能用来索引的游标掩码*/
+	WhereCost *pCost            /* Lowest cost query plan *//* 最小化查询计划的代价*/
 ){
-  double nTableRow;           /* Rows in the input table */
-  double logN;                /* log(nTableRow) */
-  double costTempIdx;         /* per-query cost of the transient index */
-  WhereTerm *pTerm;           /* A single term of the WHERE clause */
-  WhereTerm *pWCEnd;          /* End of pWC->a[] */
-  Table *pTable;              /* Table tht might be indexed */
+	double nTableRow;           /* Rows in the input table *//* 输入表的行*/
+	double logN;                /* log(nTableRow) */
+	double costTempIdx;         /* per-query cost of the transient index *//* 瞬态指数的每个查询代价*/
+	WhereTerm *pTerm;           /* A single term of the WHERE clause *//* 一个WHERE子句的单一项*/
+	WhereTerm *pWCEnd;          /* End of pWC->a[] *//*pWC->a[]结束*/
+	Table *pTable;              /* Table tht might be indexed *//* tht表可能被索引了*/
 
   if( pParse->nQueryLoop<=(double)1 ){
     /* There is no point in building an automatic index for a single scan */
+    /* 为单词扫描建立一个自动索引是没有意义的。
+    */
     return;
   }
   if( (pParse->db->flags & SQLITE_AutoIndex)==0 ){
     /* Automatic indices are disabled at run-time */
+	  /* 在运行时自动指数是禁用的。
+	  */
     return;
   }
   if( (pCost->plan.wsFlags & WHERE_NOT_FULLSCAN)!=0 ){
     /* We already have some kind of index in use for this query. */
+	  /* 这类查询中我们已经有了一些在使用中的索引。
+	  */
     return;
   }
   if( pSrc->notIndexed ){
     /* The NOT INDEXED clause appears in the SQL. */
+	  /* SQL中出现的NOT INDEXED子句。
+	  */
     return;
   }
   if( pSrc->isCorrelated ){
     /* The source is a correlated sub-query. No point in indexing it. */
+	  /* 这个源是一个相关子查询，对其索引是没有意义的。
+	  */
     return;
   }
 
@@ -2002,10 +2117,14 @@ static void bestAutomaticIndex(
   if( costTempIdx>=pCost->rCost ){
     /* The cost of creating the transient table would be greater than
     ** doing the full table scan */
+	  /* 创建临时表的代价会比全表扫描高。
+	  */
     return;
   }
 
   /* Search for any equality comparison term */
+  /* 搜索任意的等值比较项。
+  */
   pWCEnd = &pWC->a[pWC->nTerm];
   for(pTerm=pWC->a; pTerm<pWCEnd; pTerm++){
     if( termCanDriveIndex(pTerm, pSrc, notReady) ){
@@ -2020,8 +2139,8 @@ static void bestAutomaticIndex(
   }
 }
 #else
-# define bestAutomaticIndex(A,B,C,D,E)  /* no-op */
-#endif /* SQLITE_OMIT_AUTOMATIC_INDEX */
+# define bestAutomaticIndex(A,B,C,D,E)  /* no-op *//* 空操作*/
+#endif /* SQLITE_OMIT_AUTOMATIC_INDEX *//* SQLITE_OMIT_AUTOMATIC_INDEX结束。*/
 
 
 #ifndef SQLITE_OMIT_AUTOMATIC_INDEX
@@ -2030,39 +2149,46 @@ static void bestAutomaticIndex(
 ** and to set up the WhereLevel object pLevel so that the code generator
 ** makes use of the automatic index.
 */
+/* 为索引对象生成代码构造自动索引，并且设置WhereLevel对象pLevel，这样代
+** 码生成器可以利用自动索引。
+*/
 static void constructAutomaticIndex(
-  Parse *pParse,              /* The parsing context */
-  WhereClause *pWC,           /* The WHERE clause */
-  struct SrcList_item *pSrc,  /* The FROM clause term to get the next index */
-  Bitmask notReady,           /* Mask of cursors that are not available */
-  WhereLevel *pLevel          /* Write new index here */
+	Parse *pParse,              /* The parsing context *//* 解析文档*/
+	WhereClause *pWC,           /* The WHERE clause *//* WHERE子句*/
+struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* 用于连接下一个索引的FROM子句项*/
+  Bitmask notReady,           /* Mask of cursors that are not available *//* 不能用来索引的游标掩码*/
+  WhereLevel *pLevel          /* Write new index here *//* 在此写新索引*/
 ){
-  int nColumn;                /* Number of columns in the constructed index */
-  WhereTerm *pTerm;           /* A single term of the WHERE clause */
-  WhereTerm *pWCEnd;          /* End of pWC->a[] */
-  int nByte;                  /* Byte of memory needed for pIdx */
-  Index *pIdx;                /* Object describing the transient index */
-  Vdbe *v;                    /* Prepared statement under construction */
-  int addrInit;               /* Address of the initialization bypass jump */
-  Table *pTable;              /* The table being indexed */
-  KeyInfo *pKeyinfo;          /* Key information for the index */   
-  int addrTop;                /* Top of the index fill loop */
-  int regRecord;              /* Register holding an index record */
-  int n;                      /* Column counter */
-  int i;                      /* Loop counter */
-  int mxBitCol;               /* Maximum column in pSrc->colUsed */
-  CollSeq *pColl;             /* Collating sequence to on a column */
-  Bitmask idxCols;            /* Bitmap of columns used for indexing */
-  Bitmask extraCols;          /* Bitmap of additional columns */
+	int nColumn;                /* Number of columns in the constructed index *//* 建立索引的列数*/
+	WhereTerm *pTerm;           /* A single term of the WHERE clause *//* WHERE子句的一个单一项*/
+	WhereTerm *pWCEnd;          /* End of pWC->a[] *//*pWC->a[]结束*/
+	int nByte;                  /* Byte of memory needed for pIdx *//* pIdx所需的内存大小*/
+	Index *pIdx;                /* Object describing the transient index *//* 描述瞬态索引的目标*/
+	Vdbe *v;                    /* Prepared statement under construction *//* 准备好处于建立当中的声明*/
+	int addrInit;               /* Address of the initialization bypass jump *//* 跳开初始化的地址*/
+	Table *pTable;              /* The table being indexed *//* 正被索引的表*/
+	KeyInfo *pKeyinfo;          /* Key information for the index */   /* 索引中的关键信息*/
+	int addrTop;                /* Top of the index fill loop *//* 索引填充循环的顶部*/
+	int regRecord;              /* Register holding an index record *//* 注册保留一个索引记录*/
+	int n;                      /* Column counter *//* 列数计数器*/
+	int i;                      /* Loop counter *//* 循环计数器*/
+	int mxBitCol;               /* Maximum column in pSrc->colUsed *//* pSrc-》colUsed的最大列数*/
+	CollSeq *pColl;             /* Collating sequence to on a column *//* 按列排序*/
+	Bitmask idxCols;            /* Bitmap of columns used for indexing *//* 用于索引的列的位图*/
+	Bitmask extraCols;          /* Bitmap of additional columns *//* 添加列的位图*/
 
   /* Generate code to skip over the creation and initialization of the
   ** transient index on 2nd and subsequent iterations of the loop. */
+	/* 生成代码来跳过循环第二个及之后的迭代中瞬态索引的创建和初始化。
+	*/
   v = pParse->pVdbe;
   assert( v!=0 );
   addrInit = sqlite3CodeOnce(pParse);
 
   /* Count the number of columns that will be added to the index
   ** and used to match WHERE clause constraints */
+  /* 对将要加入索引和用于满足WHERE子句条件的列数计数。
+  */
   nColumn = 0;
   pTable = pSrc->pTab;
   pWCEnd = &pWC->a[pWC->nTerm];
@@ -2090,6 +2216,11 @@ static void constructAutomaticIndex(
   ** original table changes and the index and table cannot both be used
   ** if they go out of sync.
   */
+  /* 计算额外的列的数量需要创建一个覆盖索引。“覆盖索引”是指一个包含所
+  ** 有查询所需的列的索引。有了覆盖索引，那么原始表就不需要被访问。自动
+  ** 索引必须是一个覆盖索引，因为如果它们被用于同步的话，原始表格就会变
+  ** 化，表也同时不能被使用，那么这个索引就不能被更新。
+  */
   extraCols = pSrc->colUsed & (~idxCols | (((Bitmask)1)<<(BMS-1)));
   mxBitCol = (pTable->nCol >= BMS-1) ? BMS-1 : pTable->nCol;
   testcase( pTable->nCol==BMS-1 );
@@ -2103,6 +2234,8 @@ static void constructAutomaticIndex(
   pLevel->plan.wsFlags |= WHERE_COLUMN_EQ | WHERE_IDX_ONLY | WO_EQ;
 
   /* Construct the Index object to describe this index */
+  /* 构建索引对象来描述这个索引。
+  */
   nByte = sizeof(Index);
   nByte += nColumn*sizeof(int);     /* Index.aiColumn */
   nByte += nColumn*sizeof(char*);   /* Index.azColl */
@@ -2136,6 +2269,8 @@ static void constructAutomaticIndex(
 
   /* Add additional columns needed to make the automatic index into
   ** a covering index */
+  /* 添加一个额外但必须的列来保证自动索引是一个覆盖索引。
+  */
   for(i=0; i<mxBitCol; i++){
     if( extraCols & (((Bitmask)1)<<i) ){
       pIdx->aiColumn[n] = i;
@@ -2153,6 +2288,7 @@ static void constructAutomaticIndex(
   assert( n==nColumn );
 
   /* Create the automatic index */
+  /* 生成一个自动索引*/
   pKeyinfo = sqlite3IndexKeyinfo(pParse, pIdx);
   assert( pLevel->iIdxCur>=0 );
   sqlite3VdbeAddOp4(v, OP_OpenAutoindex, pLevel->iIdxCur, nColumn+1, 0,
@@ -2160,6 +2296,7 @@ static void constructAutomaticIndex(
   VdbeComment((v, "for %s", pTable->zName));
 
   /* Fill the automatic index with content */
+  /* 填上自动索引的内容*/
   addrTop = sqlite3VdbeAddOp1(v, OP_Rewind, pLevel->iTabCur);
   regRecord = sqlite3GetTempReg(pParse);
   sqlite3GenerateIndexKey(pParse, pIdx, pLevel->iTabCur, regRecord, 1);
@@ -2171,15 +2308,19 @@ static void constructAutomaticIndex(
   sqlite3ReleaseTempReg(pParse, regRecord);
   
   /* Jump here when skipping the initialization */
+  /* 跳过初始化时则跳到此处*/
   sqlite3VdbeJumpHere(v, addrInit);
 }
-#endif /* SQLITE_OMIT_AUTOMATIC_INDEX */
+#endif /* SQLITE_OMIT_AUTOMATIC_INDEX *//* SQLITE_OMIT_AUTOMATIC_INDEX结束*/
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 /*
 ** Allocate and populate an sqlite3_index_info structure. It is the 
 ** responsibility of the caller to eventually release the structure
 ** by passing the pointer returned by this function to sqlite3_free().
+*/
+/* 分配和填充一个sqlite3_index_info结构。通过sqlite3_free()函数返回的
+** 指针的最终释放是由它的调用者负责的。
 */
 static sqlite3_index_info *allocateIndexInfo(
   Parse *pParse, 
@@ -2200,6 +2341,8 @@ static sqlite3_index_info *allocateIndexInfo(
 
   /* Count the number of possible WHERE clause constraints referring
   ** to this virtual table */
+  /* 计算指向这个虚表的可能的WHERE子句约束的数量。
+  */
   for(i=nTerm=0, pTerm=pWC->a; i<pWC->nTerm; i++, pTerm++){
     if( pTerm->leftCursor != pSrc->iCursor ) continue;
     assert( (pTerm->eOperator&(pTerm->eOperator-1))==0 );
@@ -2214,6 +2357,9 @@ static sqlite3_index_info *allocateIndexInfo(
   ** virtual table then allocate space for the aOrderBy part of
   ** the sqlite3_index_info structure.
   */
+  /* 如果ORDER BY子句只包含当前虚表的列，那么为sqlite3_index_info
+  ** 结构中的aOrderby部分分配空间。
+  */
   nOrderBy = 0;
   if( pOrderBy ){
     for(i=0; i<pOrderBy->nExpr; i++){
@@ -2226,6 +2372,8 @@ static sqlite3_index_info *allocateIndexInfo(
   }
 
   /* Allocate the sqlite3_index_info structure
+  */
+  /* 分配sqlite3_index_info结构。
   */
   pIdxInfo = sqlite3DbMallocZero(pParse->db, sizeof(*pIdxInfo)
                            + (sizeof(*pIdxCons) + sizeof(*pUsage))*nTerm
@@ -2240,6 +2388,9 @@ static sqlite3_index_info *allocateIndexInfo(
   ** many fields that are declared "const" to prevent xBestIndex from
   ** changing them.  We have to do some funky casting in order to
   ** initialize those fields.
+  */
+  /* 初始化结构。sqlite3_index_info结构包含许多字段声明“常量”,以防止
+  ** xBestIndex改变他们。我们必须做一些操作来初始化这些字段。
   */
   pIdxCons = (struct sqlite3_index_constraint*)&pIdxInfo[1];
   pIdxOrderBy = (struct sqlite3_index_orderby*)&pIdxCons[nTerm];
@@ -2264,6 +2415,9 @@ static sqlite3_index_info *allocateIndexInfo(
     /* The direct assignment in the previous line is possible only because
     ** the WO_ and SQLITE_INDEX_CONSTRAINT_ codes are identical.  The
     ** following asserts verify this fact. */
+	/* 在前一行直接赋值可能是由于WO_和SQLITE_INDEX_CONSTRAINT_代码都是相同
+	** 的。以下假设用于验证这个额情况。
+	*/
     assert( WO_EQ==SQLITE_INDEX_CONSTRAINT_EQ );
     assert( WO_LT==SQLITE_INDEX_CONSTRAINT_LT );
     assert( WO_LE==SQLITE_INDEX_CONSTRAINT_LE );
@@ -2295,6 +2449,15 @@ static sqlite3_index_info *allocateIndexInfo(
 ** Whether or not an error is returned, it is the responsibility of the
 ** caller to eventually free p->idxStr if p->needToFreeIdxStr indicates
 ** that this is required.
+*/
+/* 表对象引用作为第二个参数传递给该函数必须代表一个虚表。这个函数调用
+** xBestIndex()方法的虚表sqlite3_index_info指针作为参数传递。
+**
+** 如果出现错误，pParse填充一个错误消息,则返回非零值。并且
+** sqlite3_index_info中输出的部分被留下填充。
+**
+** 如果p->needToFreeIdxStr这是必须的话，那么不管是否返回了一个错误，那
+** 么都应该由调用者最终释放p->idxStr指针。
 */
 static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
   sqlite3_vtab *pVtab = sqlite3GetVTable(pParse->db, pTab)->pVtab;
@@ -2345,15 +2508,27 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
 ** routine takes care of freeing the sqlite3_index_info structure after
 ** everybody has finished with it.
 */
+/*
+** 计算虚表的最佳索引。
+** 
+** 最佳索引是使用虚表模块的xBestIndex函数来计算的。这个例程实际上只是建立
+** sqlite3_index_info结构的包装，这个结构用来与xBestIndex通信。
+** 
+** 在一次连接当中，这个例程可能会被同一个虚表调用若干次。sqlite3_index_info
+** 结构是在第一次调用时创建和初始化的，并且在所有的子调用中都会重复使用。
+** sqlite3_index_info结构同样也在生成代码来进入虚表时被使用。
+** whereInfoDelete()例程用来处理在所有操作都完成后对sqlite3_index_info结构的
+** 释放。
+*/
 static void bestVirtualIndex(
-  Parse *pParse,                  /* The parsing context */
-  WhereClause *pWC,               /* The WHERE clause */
-  struct SrcList_item *pSrc,      /* The FROM clause term to search */
-  Bitmask notReady,               /* Mask of cursors not available for index */
-  Bitmask notValid,               /* Cursors not valid for any purpose */
-  ExprList *pOrderBy,             /* The order by clause */
-  WhereCost *pCost,               /* Lowest cost query plan */
-  sqlite3_index_info **ppIdxInfo  /* Index information passed to xBestIndex */
+	Parse *pParse,                  /* The parsing context *//* 解析上下文*/
+	WhereClause *pWC,               /* The WHERE clause *//* WHERE子句*/
+struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜索的FROM子句项*/
+	Bitmask notReady,               /* Mask of cursors not available for index *//* 索引不可用的指针掩码*/
+	Bitmask notValid,               /* Cursors not valid for any purpose *//* 所有无效的指针*/
+	ExprList *pOrderBy,             /* The order by clause *//* 子句排序*/
+	WhereCost *pCost,               /* Lowest cost query plan *//* 查询计划的最小代价*/
+	sqlite3_index_info **ppIdxInfo  /* Index information passed to xBestIndex *//* 传送到xBestIndex的索引信息*/
 ){
   Table *pTab = pSrc->pTab;
   sqlite3_index_info *pIdxInfo;
@@ -2368,11 +2543,20 @@ static void bestVirtualIndex(
   ** malloc in allocateIndexInfo() fails and this function returns leaving
   ** wsFlags in an uninitialized state, the caller may behave unpredictably.
   */
+  /*
+  ** 确保wsFlags是以有意义的值初始化的。否则的话，如果allocateIndexInfo()的
+  ** 内存失败，并且这个函数返回值，wsFlags处于未初始化状态，那么调用者可能会
+  ** 有不可预计的操作。
+  */
   memset(pCost, 0, sizeof(*pCost));
   pCost->plan.wsFlags = WHERE_VIRTUALTABLE;
 
   /* If the sqlite3_index_info structure has not been previously
   ** allocated and initialized, then allocate and initialize it now.
+  */
+  /*
+  ** 如果sqlite3_index_info结构没有被预先分配和初始化，那么可以现在进行分配
+  ** 和初始化。
   */
   pIdxInfo = *ppIdxInfo;
   if( pIdxInfo==0 ){
@@ -2388,10 +2572,18 @@ static void bestVirtualIndex(
   ** details of pIdxInfo for the current invocation and pass it to
   ** xBestIndex.
   */
+  /* 此时，pIdxInfo指向的sqlite3_index_info结构已被初始化，可能是在当前调用
+  ** 或者在之前的调用中完成初始化。我们现在只需要为当前调用定制pIdxInfo定制
+  ** 细节，并把它传送到xBestIndex。
+  */
 
   /* The module name must be defined. Also, by this point there must
   ** be a pointer to an sqlite3_vtab structure. Otherwise
   ** sqlite3ViewGetColumnNames() would have picked up the error. 
+  */
+  /*
+  ** 定义模块名。同时，必须有一个指针指向sqlite3_vtab结构，否则
+  ** sqlite3ViewColumnNames()可能会出现错误。
   */
   assert( pTab->azModuleArg && pTab->azModuleArg[0] );
   assert( sqlite3GetVTable(pParse->db, pTab) );
@@ -2409,12 +2601,26 @@ static void bestVirtualIndex(
   ** only valid if all tables referenced in expr occur to the left
   ** of the table containing column.
   **
-  ** The aConstraints[] array contains entries for all constraints
+  ** The aConstraints[] array contains for all constraints
   ** on the current table.  That way we only have to compute it once
   ** even though we might try to pick the best index multiple times.
   ** For each attempt at picking an index, the order of tables in the
   ** join might be different so we have to recompute the usable flag
   ** each time.
+  */
+  /*
+  ** 设置aConstraint[].usable域并初始化所有输出变量为0。
+  **
+  ** 当右边只包含指向当前表中指向左边的表时，满足约束条件的
+  ** aConstraint[].usable为真。换句话说，如果约束条件是如下形式：
+  **
+  **           column = expr
+  ** 并且正在评估一个连接，那么如果所有expr中提及的表指向表的左边包含列
+  ** 那么列的约束条件为有效的。
+  **
+  ** aConstraints数组包含所有当前当前表的约束条件。这样一来，即使我们多
+  ** 次试图只取最优索引，也只需要计算一次。每次取索引的过程中，连接的表
+  ** 的顺序可能有所不同，所以我们需要每次都重复计算可用标志。
   */
   pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint;
   pUsage = pIdxInfo->aConstraintUsage;
@@ -2453,6 +2659,9 @@ static void bestVirtualIndex(
   ** does not satisfy it, increase the cost of the scan accordingly. This
   ** matches the processing for non-virtual tables in bestBtreeIndex().
   */
+  /* 如果存在一个ORDER BY子句，并且选择的虚表索引不满足它，则根据情况增加
+  ** 扫描的代价。这个过程匹配bestBtreeIndex()中的非虚表中的过程。
+  */
   rCost = pIdxInfo->estimatedCost;
   if( pOrderBy && pIdxInfo->orderByConsumed==0 ){
     rCost += estLog(rCost)*rCost;
@@ -2464,6 +2673,11 @@ static void bestVirtualIndex(
   ** 
   ** Use "(double)2" instead of "2.0" in case OMIT_FLOATING_POINT 
   ** is defined.
+  */
+  /* 代价不允许大于SQLITE_BIG_DBL(此循环中的lowestCost的初始值)。
+  ** 如果大于，则下面的(cost<lowestCost)测试值永远不会为真。
+  **
+  ** 在定义OMIT_FLOATING_POINT时使用"(double)2"来替换"2.0"。
   */
   if( (SQLITE_BIG_DBL/((double)2))<rCost ){
     pCost->rCost = (SQLITE_BIG_DBL/((double)2));
@@ -2480,6 +2694,8 @@ static void bestVirtualIndex(
   /* Try to find a more efficient access pattern by using multiple indexes
   ** to optimize an OR expression within the WHERE clause. 
   */
+  /* 使用多索引来试图查找一个更有效率的模式，以优化WHERE子句中的OR表达式。
+  */
   bestOrClauseIndex(pParse, pWC, pSrc, notReady, notValid, pOrderBy, pCost);
 }
 #endif /* SQLITE_OMIT_VIRTUALTABLE */
@@ -2494,12 +2710,18 @@ static void bestVirtualIndex(
 **
 ** Return SQLITE_OK on success.
 */
+/* 估计一个索引中所有关键字中某个特殊关键字的位置。用以下格式来储存结果：
+**    aStat[0]      估计小于pVal的行数
+**    aStat[1]      估计等于pVal的行数
+**
+** 返回成功的SQLITE_OK值。
+*/
 static int whereKeyStats(
-  Parse *pParse,              /* Database connection */
-  Index *pIdx,                /* Index to consider domain of */
-  sqlite3_value *pVal,        /* Value to consider */
-  int roundUp,                /* Round up if true.  Round down if false */
-  tRowcnt *aStat              /* OUT: stats written here */
+	Parse *pParse,              /* Database connection *//*数据库连接*/
+	Index *pIdx,                /* Index to consider domain of *//*待考虑域的索引*/
+	sqlite3_value *pVal,        /* Value to consider *//*待考虑的值*/
+	int roundUp,                /* Round up if true.  Round down if false *//*如果为真则上舍入，如果为假则下舍入*/
+	tRowcnt *aStat              /* OUT: stats written here *//*输出:数据写在此处*/
 ){
   tRowcnt n;
   IndexSample *aSample;
@@ -2616,6 +2838,10 @@ static int whereKeyStats(
   ** or equal to pVal.  Or if i==pIdx->nSample, then all samples are less
   ** than pVal.  If aSample[i]==pVal, then isEq==1.
   */
+  /* 此时，aSample[i]是大于或者等于pVal值的第一个样本。或者当指针
+  ** i==pIdx->nSample时，所有的样本值都小于pVal。如果aSample[i]=pVal，则
+  ** isEq的值为1.
+  */
   if( isEq ){
     assert( i<pIdx->nSample );
     aStat[0] = aSample[i].nLt;
@@ -2661,6 +2887,18 @@ static int whereKeyStats(
 ** If neither of the above apply, set *pp to NULL.
 **
 ** If an error occurs, return an error code. Otherwise, SQLITE_OK.
+*/
+/* 如果表达式pExpr表示一个文本值，那么设*pp是指向包含相同值的sqlite3_value
+** 结构的指针，并且在返回之前与它紧密相关。最终把它传递到sqlite3ValueFree()
+** 中时，由调用者来释放此结构。
+**
+** 如果当前语法分析是重新编译的(sqlite3Reprepare())并且pExpr是一个SQL变量，
+** 当前没有非空值与之相关，则生成一个包含此值的sqlite3_value结构，同样的要
+** 与之紧密相关。
+**
+** 如果没有以上应用，则设*pp指针为空。
+**
+** 如果发生错误，则返回错误代码。否则返回SQLITE_OK。
 */
 #ifdef SQLITE_ENABLE_STAT3
 static int valueFromExpr(
@@ -2720,13 +2958,41 @@ static int valueFromExpr(
 ** results in a return of 4 and a range constraint (x>? AND x<?) results
 ** in a return of 16.
 */
+/* 此函数用来估计扫描一定范围数值的索引中，将会访问到的行数。这个范围可能会有
+** 一个上限，一个下限，或者两者都有。WHERE子句项中，用pLower和pUpper来表示设定
+** 的上下边界。例如，假设p索引在t1(a):
+**
+**   ... FROM t1 WHERE a > ? AND a < ? ...
+**                    |_____|   |_____|
+**                       |         |
+**                     pLower    pUpper
+**
+** 如果上限和下限中的任意一个不存在，则WhereTerm中对应的项用空值来替换。
+**
+** 参数nEq是通过索引列的索引范围来约束的。或者同样地，由提出的索引扫描来优化等
+** 值约束。例如，假设索引p在t1(a,b),则SQL查询为：
+**
+**   ... FROM t1 WHERE a = ? AND b > ? AND b < ? ...
+**
+** 那么nEq的值为1(范围限制列b，是第二个指数最左边的列)。或者，如果查询为：
+**
+**   ... FROM t1 WHERE a > ? AND a < ? ...
+**
+** 那么nEq的值为0。
+**
+** 返回值是一个整数因子用来减少估计的搜索空间。返回值为1意味着范围约束是没有意义。
+** 返回值为2意味着范围约束预计将减少一半的搜索空间。等等……
+**
+** 在缺乏sqlite_stat3分析数据的情况下，每个不平等因素减少了搜索空间的范围4。因此
+** 一个约束(x>?)结果的返回4和一系列约束(x>?和x<?)结果返回16。
+*/
 static int whereRangeScanEst(
-  Parse *pParse,       /* Parsing & code generating context */
-  Index *p,            /* The index containing the range-compared column; "x" */
-  int nEq,             /* index into p->aCol[] of the range-compared column */
-  WhereTerm *pLower,   /* Lower bound on the range. ex: "x>123" Might be NULL */
-  WhereTerm *pUpper,   /* Upper bound on the range. ex: "x<455" Might be NULL */
-  double *pRangeDiv   /* OUT: Reduce search space by this divisor */
+	Parse *pParse,       /* Parsing & code generating context *//*解析上下文并且生成代码*/
+	Index *p,            /* The index containing the range-compared column; "x" *//*索引包含对比范围列"x"*/
+	int nEq,             /* index into p->aCol[] of the range-compared column *//*指向对比范围列的索引指针p_>aCol[]*/
+	WhereTerm *pLower,   /* Lower bound on the range. ex: "x>123" Might be NULL *//*范围的下界：例如"x>123"可能为空*/
+	WhereTerm *pUpper,   /* Upper bound on the range. ex: "x<455" Might be NULL *//*范围的上界：例如"x<455"可能为空*/
+	double *pRangeDiv   /* OUT: Reduce search space by this divisor *//*输出：减少这个因子引起的搜索空间*/
 ){
   int rc = SQLITE_OK;
 
@@ -2804,16 +3070,28 @@ static int whereRangeScanEst(
 ** for a UTF conversion required for comparison.  The error is stored
 ** in the pParse structure.
 */
+/* 
+** 估计基于等值约束条件x=VALUE返回的列数，此VALUE值在柱状图数据中出现。
+** 这个只在x是索引中最左边的列并且sqlite_stat3柱状数据对于此列表是可用
+** 的情况下才起作用。当pExpr值为空时，意味着约束条件是"x为空"而不是"x的
+** 值为VALUE"。
+** 
+** 记录估计的行数，将数值写书*pnRow然后返回SQLITE_OK。如果不能做出估计，
+** 则保持*pnRow原数值并且返回非零。
+**
+** 如果不能够载入字符串比较所需的排序序列，或者不能够比较时所需的UTF会话
+** 分配内存空间，则此例程可以算做失败。错误结果储存在pParse结构中。
+*/
 static int whereEqualScanEst(
-  Parse *pParse,       /* Parsing & code generating context */
-  Index *p,            /* The index whose left-most column is pTerm */
-  Expr *pExpr,         /* Expression for VALUE in the x=VALUE constraint */
-  double *pnRow        /* Write the revised row estimate here */
+	Parse *pParse,       /* Parsing & code generating context *//*解析上下文并且生成代码*/
+	Index *p,            /* The index whose left-most column is pTerm *//*最左列是pTerm的索引*/
+	Expr *pExpr,         /* Expression for VALUE in the x=VALUE constraint *//*x=VALUE约束条件中VALUE的表达式*/
+	double *pnRow        /* Write the revised row estimate here *//*在此写下最终修改的行的估计值*/
 ){
-  sqlite3_value *pRhs = 0;  /* VALUE on right-hand side of pTerm */
-  u8 aff;                   /* Column affinity */
-  int rc;                   /* Subfunction return code */
-  tRowcnt a[2];             /* Statistics */
+	sqlite3_value *pRhs = 0;  /* VALUE on right-hand side of pTerm *//*pTerm右边项的值*/
+	u8 aff;                   /* Column affinity *//*同类列*/
+	int rc;                   /* Subfunction return code *//*子函数返回代码*/
+	tRowcnt a[2];             /* Statistics *//*统计数据*/
 
   assert( p->aSample!=0 );
   assert( p->nSample>0 );
@@ -2834,7 +3112,7 @@ whereEqualScanEst_cancel:
   sqlite3ValueFree(pRhs);
   return rc;
 }
-#endif /* defined(SQLITE_ENABLE_STAT3) */
+#endif /* defined(SQLITE_ENABLE_STAT3) *//*定义(SQLITE_ENABLE_STAT3)函数*/
 
 #ifdef SQLITE_ENABLE_STAT3
 /*
@@ -2853,16 +3131,28 @@ whereEqualScanEst_cancel:
 ** for a UTF conversion required for comparison.  The error is stored
 ** in the pParse structure.
 */
+/*
+** 估计基于IN约束条件的返回的行数，这个约束条件是IN操作码的右边为一串
+** 值。例如：
+**
+**        WHERE x IN (1,2,3,4)
+**
+** 对估计行数计数并且写入*pnRow，然后返回SQLITE_OK。如果不能作出估计，
+** 则保持*pnRow为原值并且返回非零。
+**
+** 如果不能够载入字符串比较所需的排序序列，或者不能够比较时所需的UTF会话
+** 分配内存空间，则此例程可以算做失败。错误结果储存在pParse结构中。
+*/
 static int whereInScanEst(
-  Parse *pParse,       /* Parsing & code generating context */
-  Index *p,            /* The index whose left-most column is pTerm */
-  ExprList *pList,     /* The value list on the RHS of "x IN (v1,v2,v3,...)" */
-  double *pnRow        /* Write the revised row estimate here */
+	Parse *pParse,       /* Parsing & code generating context *//*解析上下文并且生成代码*/
+	Index *p,            /* The index whose left-most column is pTerm *//*最左边列为pTerm的索引*/
+	ExprList *pList,     /* The value list on the RHS of "x IN (v1,v2,v3,...)" *//*x取值(v1,v2,v3...)的RHS的值的列表*/
+  double *pnRow        /* Write the revised row estimate here *//*在此写下最终修改的行的估计值*/
 ){
-  int rc = SQLITE_OK;         /* Subfunction return code */
-  double nEst;                /* Number of rows for a single term */
-  double nRowEst = (double)0; /* New estimate of the number of rows */
-  int i;                      /* Loop counter */
+	int rc = SQLITE_OK;         /* Subfunction return code *//*子函数返回代码*/
+	double nEst;                /* Number of rows for a single term *//*单一项的行数*/
+	double nRowEst = (double)0; /* New estimate of the number of rows *//*行数的新估计值*/
+	int i;                      /* Loop counter *//*循环计数器*/
 
   assert( p->aSample!=0 );
   for(i=0; rc==SQLITE_OK && i<pList->nExpr; i++){
@@ -2877,8 +3167,7 @@ static int whereInScanEst(
   }
   return rc;
 }
-#endif /* defined(SQLITE_ENABLE_STAT3) */
-
+//毕赣斌结束
 
 /*王秀超 从此开始
 ** Find the best query plan for accessing a particular table.  Write the

@@ -3,7 +3,7 @@
 **
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
-**
+**1
 **    May you do good and not evil.
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
@@ -14,7 +14,7 @@
 ** (the right-hand argument to the MATCH operator). Because the supported 
 ** syntax is relatively simple, the whole tokenizer/parser system is
 ** hand-coded. 
-** 这个模块包含了一个使用FTS3解析器实现查询字符串的代码（MATCH操作的右侧操作）。
+** 这个模块包含了一个使用FTS3解析器实现解析查询字符串的代码（MATCH操作的右侧操作）。
 ** 因为支持的语法比较简单，整个标记生成器/分析器系统都是手工编码
 */
 #include "fts3Int.h"
@@ -53,8 +53,16 @@
 ** operator in a similar format to that used by the lemon parser
 ** generator. This module does not use actually lemon, it uses a
 ** custom parser.
-**  下面描述了和LEMON词法生成器格式相似的FTS3MATCH操作所支持的语法，
-**  该模块没有真正的使用LEMON，采用了自定义分析器
+**  下面描述了和LEMON语法分析生成器格式相似的FTS3MATCH操作所支持的语法，
+**  该模块没有真正的使用LEMON语法分析生成器，采用了自定义语法分析生成器。
+
+Lemon语法分析生成器:
+此文件所描述的FTS3MATCH操作所支持的语法与Lemon语法分析生成器的语法相似。
+但是没有完全引用，语法分析器是自定义的。Lemon操作原理：lemon的主要目标
+是把一个特定语言的上下文无关文法（CFG）翻译成C语言实现的该语言的语法分
+析器。相对其他分析器生成工具Lemon比yacc和bison更精致、更快，而且是可重
+入的，也是线程安全的——这对于支持多线程的程序是非常重要的。
+
 **   query ::= andexpr (OR andexpr)*.
 **
 **   andexpr ::= notexpr (AND? notexpr)*.
@@ -104,7 +112,7 @@ int sqlite3_fts3_enable_parentheses = 0;
 */
 typedef struct ParseContext ParseContext;
 struct ParseContext {
-  sqlite3_tokenizer *pTokenizer;      /* Tokenizer module  标记生成器模块*/
+  sqlite3_tokenizer *pTokenizer;      /* Tokenizer module  分词器模块*/
   int iLangid;                        /* Language id used with tokenizer 标记生成器使用的语言ID */
   const char **azCol;                 /* Array of column names for fts3 table 自定义名字的fts3表的数组*/
   int bFts4;                          /* True to allow FTS4-only syntax 允许只使用FTS4的语法 */
@@ -129,6 +137,7 @@ struct ParseContext {
 **　超出无符号字符类型范围的整数时，它的行为未定义的（有时，”未定义“意味着段错误），这个封装
 ** 是定义来接收字符型参数的，并且总是返回0当有参数数值超出了无符号字符类型的范围时（负值）
 */
+//以下函数为检查参数c是否为空格字符。
 static int fts3isspace(char c){
   return c==' ' || c=='\t' || c=='\n' || c=='\r' || c=='\v' || c=='\f';
 }
@@ -145,13 +154,12 @@ static void *fts3MallocZero(int nByte){
   if( pRet ) memset(pRet, 0, nByte);
   return pRet;
 }
-
+//打开分词器
 int sqlite3Fts3OpenTokenizer(
-  sqlite3_tokenizer *pTokenizer,
-  int iLangid,
-  const char *z,
-  int n,
-  sqlite3_tokenizer_cursor **ppCsr
+sqlite3_tokenizer *pTokenizer,
+int iLangid,const char *z,
+int n,
+sqlite3_tokenizer_cursor **ppCsr
 ){
   sqlite3_tokenizer_module const *pModule = pTokenizer->pModule;
   sqlite3_tokenizer_cursor *pCsr = 0;
@@ -185,7 +193,7 @@ int sqlite3Fts3OpenTokenizer(
 **
 ** Return SQLITE_OK if successful, or SQLITE_NOMEM if a memory allocation
 ** fails.
-** 从正在使用标记生成器的缓冲器z（长度n）中提取下一个标记和其他语法分析的信息（列名等），
+** 从正在使用分词器的缓冲器z（长度n）中提取下一个标记和其他语法分析的信息（列名等），
 ** 创造一个FTSQUERY_PHRASE类型包含一个由单一标记组成的短语的Fts3Expr结构然后令*ppExpr指向它。如果
 ** 缓冲器在找到标记之前到达结尾的话，令*ppExpr为0。这是通过让其进入sqlite3_free()函数从而完
 ** 全释放被分配的Fts3Expr结构的caller的责任
@@ -284,7 +292,7 @@ static void *fts3ReallocOrFree(void *pOrig, int nNew){
 ** error) or SQLITE_ERROR (tokenization error) is returned and *ppExpr set
 ** to 0.
 ** 如果成功，返回SQLITE_OK并且*ppExpr会指向分配好的Fts3Expr结构体，否则，不论是SQLITE_NOMEM（内存溢出错误）
-** 还是SQLITE_ERROR（标记化错误）都会返回并且ppExpr指针指向0
+** 还是SQLITE_ERROR（标记化错误）都会返回并且ppExpr指针设为空。
 */
 static int getNextString(
   ParseContext *pParse,                   /* fts3 query parse context */
@@ -298,7 +306,7 @@ static int getNextString(
   sqlite3_tokenizer_cursor *pCursor = 0;
   char *zTemp = 0;
   int nTemp = 0;
-
+“
   const int nSpace = sizeof(Fts3Expr) + sizeof(Fts3Phrase);
   int nToken = 0;
 
@@ -489,7 +497,7 @@ static int getNextNode(
       ** the next byte must contain either whitespace, an open or close
       ** parenthesis, a quote character, or EOF. 
 	  ** 在这个点上很可能是一个关键词，但是要确定的话，下一个字节必须包含另一个分隔符，一个
-	  ** 开或关的扩话，一个引用字符，或者文件结束符号
+	  ** 开或关的括号，一个引用字符，或者文件结束符号
       */
       cNext = zInput[nKey];
       if( fts3isspace(cNext) 
@@ -526,7 +534,7 @@ static int getNextNode(
       return rc;
     }
   
-    /* Check for a close bracket. */
+    /* Check for a close bracket. 检查一个关闭的括号*/
     if( *zInput==')' ){
       pParse->nNest--;
       *pnConsumed = (int)((zInput - z) + 1);
@@ -664,7 +672,7 @@ static void insertBinaryOperator(
 ** bytes read from buffer z. Otherwise, *ppExpr is set to 0 and SQLITE_NOMEM
 ** (out of memory error) or SQLITE_ERROR (parse error) is returned.
 ** 如果成功，则返回SQLITE_OK,*ppExpr指向被解析过的form，*pnConsumed 指向，从缓冲区
-** z读来的字节数，另外，*ppExpr设为空指针，并且返回SQLITE_NOMEM（当内存溢出时）
+** z读来的字节数，否则，*ppExpr设为空指针，并且返回SQLITE_NOMEM（当内存溢出时）
 **  或SQLITE_ERROR（解析错误）
 */
 static int fts3ExprParse(
@@ -745,7 +753,7 @@ static int fts3ExprParse(
         **    (bracketed expression 一个有括号的表达式) NEAR phrase
         **    phrase NEAR (bracketed expression)
         **
-        ** Return an error in either case 任一例子都返回错误.
+        ** Return an error in either case 以上任一例子都返回错误.
         */
         if( pPrev && (
             (eType==FTSQUERY_NEAR && !isPhrase && pPrev->eType!=FTSQUERY_PHRASE)
