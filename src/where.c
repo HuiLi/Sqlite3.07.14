@@ -842,6 +842,8 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 ** term that is an equivalent IN expression.  In other words, if the term
 ** being analyzed is:
 **
+** 同一个属性多个等值条件用OR连接的处理
+**
 **      x = expr1  OR  expr2 = x  OR  x = expr3
 **
 ** then create a new virtual term like this:
@@ -987,6 +989,8 @@ static void exprAnalyzeOrTerm(
   ** chngToIN holds a set of tables that *might* satisfy case 1.  But
   ** we have to do some additional checking to see if case 1 really
   ** is satisfied.
+  ** 
+  ** 出现第一种情况时的处理
   **
   ** chngToIN will hold either 0, 1, or 2 bits.  The 0-bit case means
   ** that there is no possibility of transforming the OR clause into an
@@ -1244,6 +1248,7 @@ static void exprAnalyze(
   ** term.  That means that if the BETWEEN term is coded, the children are
   ** skipped.  Or, if the children are satisfied by an index, the original
   ** BETWEEN term is skipped.
+  ** BETWEEN语句处理部分
   */
   else if( pExpr->op==TK_BETWEEN && pWC->op==TK_AND ){
     ExprList *pList = pExpr->x.pList;
@@ -1288,6 +1293,7 @@ static void exprAnalyze(
   **
   ** The last character of the prefix "abc" is incremented to form the
   ** termination condition "abd".
+  ** LIKE语句处理部分
   */
   if( pWC->op==TK_AND 
    && isLikeOrGlob(pParse, pExpr, &pStr1, &isComplete, &noCase)
