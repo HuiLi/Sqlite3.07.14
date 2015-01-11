@@ -10,12 +10,14 @@
 **
 * * 2003年4月6日
 * *
-* *作者放弃这个源代码的版权。不再是
-* *一个合法的通知,而是一个祝福:
+* *作者放弃这个源代码的版权。
+* *不是在发布一个合法的通知,而是在传递一种祝福。
 * *
-* *祝你做好事,而不是邪恶的。
-* *愿你可以原谅自己,原谅他人。
-* *愿你自由地分享,永远不会超过你分享的。
+* *希望你能做些好事,不要做让别人讨厌事。
+* *希望你可以原谅自己还有他人。
+* *希望你能自由地分享这些东西,而不受限制。
+
+
 * *
 
 *************************************************************************
@@ -23,9 +25,10 @@
 **
 ** Most of the code in this file may be omitted by defining the
 ** SQLITE_OMIT_VACUUM macro.
-* *这个文件包含代码用于实现VACCUM命令。
+* *这个文件包含的代码可用于实现VACCUM命令。
 * *
-* *在这个文件中大多数的代码通过定义的SQLITE_OMIT_VACUUM宏可以省略。
+* *通过定义SQLITE_OMIT_VACUUM，在这个文件中大多数的代码可以省略。
+
 
 */
 #include "sqliteInt.h"
@@ -35,8 +38,8 @@
 /*
 ** Finalize a prepared statement.  If there was an error, store the
 ** text of the error message in *pzErrMsg.  Return the result code.
-**完成一份事先准备好的声明中。如果有一个错误,在* pzErrMsg当中，存储
-**错误消息的文本。返回结果代码。
+**在已经完成的一份事先准备好的声明中。如果,在* pzErrMsg当中有一个错误，那么
+**存储错误消息的文本将返回一些结果代码。
 
 */
 static int vacuumFinalize(sqlite3 *db, sqlite3_stmt *pStmt, char **pzErrMsg){
@@ -50,7 +53,8 @@ static int vacuumFinalize(sqlite3 *db, sqlite3_stmt *pStmt, char **pzErrMsg){
 
 /* 
 ** Execute zSql on database db. Return an error code.
-**在数据库db执行zSql。返回一个错误代码.
+**在数据库db中执行zSql，将返回一个错误的代码。
+
 
 */
 static int execSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
@@ -71,13 +75,13 @@ static int execSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
 /*
 ** Execute zSql on database db. The statement returns exactly
 ** one column. Execute this as SQL on the same database.
-**在数据库db上执行zSql。在同一个数据库执行此SQL。该语句返回到底一列。
+**在数据库db上执行zSql。在同一个数据库执行此SQL，该语句返回到最后一列。
 
 */
 static int execExecSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
   sqlite3_stmt *pStmt;
   int rc;
-  
+
   rc = sqlite3_prepare(db, zSql, -1, &pStmt, 0);
   if( rc!=SQLITE_OK ) return rc;
 
@@ -101,8 +105,8 @@ static int execExecSql(sqlite3 *db, char **pzErrMsg, const char *zSql){
 ** gdbm_reorganize() on all the database tables.  But beginning
 ** with 2.0.0, SQLite no longer uses GDBM so this command has
 ** become a no-op.
-**非标准空命令是用来清理数据库,在自由空间释放等等。这是在PostgreSQL中，仿效真空的命令在SQLite的版本1.0x,真空命令调用gdbm_reorganize()在所有数据库
-**表。但开始与2.0.0 SQLite不再使用GDBM所以这个命令成为一个空操作。
+**非标准空命令是用来清理数据库的,在自由空间中释放。在PostgreSQL中，已知SQLite用的是的版本1.0x，仿效真空的命令,真空命令将调用gdbm_reorganize()所有的数据库
+**中的表。但2.0.0 SQLite版本不再使用GDBM，所以这个命令成为一个空操作。
 
 */
 void sqlite3Vacuum(Parse *pParse){
@@ -120,7 +124,7 @@ void sqlite3Vacuum(Parse *pParse){
 */
 int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   int rc = SQLITE_OK;     /* 从服务例程返回的代码 */
-  Btree *pMain;           /* 数据库被用去除 */
+  Btree *pMain;           /* 数据库被去除 */
   Btree *pTemp;           /* 我们清空临时数据库 */
   char *zSql = 0;         /* SQL语句 */
   int saved_flags;        /* 保存db - >标记的值 */
@@ -128,7 +132,7 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   int saved_nTotalChange; /*保存db - > nTotalChange的值 */
   void (*saved_xTrace)(void*,const char*);  /* 保存db - > xTrace */
   Db *pDb = 0;            /*数据库在vaccum结束处分离 */
-  int isMemDb;            /* 真的如果vaccum:内存:数据库 */
+  int isMemDb;            /* 如果vaccum有内存，数据库被调用 */
   int nRes;               /* 在每个页面结尾有字节的预留空间 */
   int nDb;                /*一定数量的附加数据库 */
 
@@ -144,7 +148,7 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   /* Save the current value of the database flags so that it can be 
   ** restored before returning. Then set the writable-schema flag, and
   ** disable CHECK and foreign key constraints. 
-  **保存当前值数据库标志的当前值,可以
+ **保存当前数据库标志的值,可以在
   **恢复之前存储。然后设置writable-schema标志,
   **不设置外键约束。
 
@@ -166,8 +170,9 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   ** occurs anyway. The integrity of the database is maintained by a
   ** (possibly synchronous) transaction opened on the main database before
   ** sqlite3BtreeCopyFile() is called.
-  **附加的临时数据库作为“vacuum_db”。对这个文件同步编译指示可以设置为“关闭”,因为如果崩溃随时发生
-  **它不能恢复.sqlite3BtreeCopyFile()被调用之前数据库的完整性被在主数据库上打开的(可能是同步的)事务维持。
+  **附加的临时数据库是“vacuum_db”。对这个文件同步编译指示可以设置为“关闭”, 
+  **因为如果崩溃发生，它将不能恢复.sqlite3BtreeCopyFile()被调用之前的状态，数据库的完整性被在主数据库中打开的(可能是同步的)事务维持。
+
 
   **
   ** An optimisation would be to use a non-journaled pager.
@@ -178,10 +183,11 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   ** time to parse and run the PRAGMA to turn journalling off than it does
   ** to write the journal header file.
   * *一种优化是使用non-journaled页。
-* *(后:)我试着设置"PRAGMA vacuum_db.journal_mode=OFF"但
-* *实际上使vaccum运行得更慢。vacuum_db最初是空的很少的日志
-* *会实际上发生。只写日志头会被写。显然需要更多的
-* *时间解析和运行编译指示关闭日志而不是编写头文件。
+  * *(后:)我试着设置"PRAGMA vacuum_db.journal_mode=OFF"但
+  * *实际上使vaccum运行得更慢。vacuum_db最初是空的日志集合
+  * *且日志头会被写。显然需要更多的
+  * *时间解析和运行编译指示，是在这里关闭日志而不是编写头文件。
+
   */
   nDb = db->nDb;
   if( sqlite3TempInMemory(db) ){
@@ -201,15 +207,16 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   ** locked (as there was more than one active statement when the transaction
   ** to read the schema was concluded. Unlock it here so that this doesn't
   ** cause problems for the call to BtreeSetPageSize() below. 
-  **将execSql()的调用到这个临时数据库已经残存文件
-  * *锁(阅读模式得出结论时，有多个事务时主动声明
-  * *在这里解锁,这并不造成以后问题的调用BtreeSetPageSize()。
+  **execSql()被调用时，这个临时数据库已经存在文件
+  * *锁(在阅读模式状态下得出结论时，有多个事务的主动声明
+  * *在这里解锁,但这并不造成以后问题来调用BtreeSetPageSize()。
+
   */
   sqlite3BtreeCommit(pTemp);
 
   nRes = sqlite3BtreeGetReserve(pMain);
 
-  /*VACCUM不能改变一个加密数据库的页大小。 */
+  /* VACCUM不能改变一个加密数据库的页的大小。 */
 #ifdef SQLITE_HAS_CODEC
   if( db->nextPagesize ){
     extern void sqlite3CodecGetKey(sqlite3*, int, void**, int*);
@@ -226,9 +233,10 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   /* Begin a transaction and take an exclusive lock on the main database
   ** file. This is done before the sqlite3BtreeGetPageSize(pMain) call below,
   ** to ensure that we do not try to change the page-size on a WAL database。
-  * *开始一个事务并将独占锁在主数据库中
-  * *文件。这样做是在sqlite3BtreeGetPageSize(pMain)调用下面,
-  * *,以确保WAL数据库上我们不试图改变页面大小。
+  * *此时开始一个事务和他将独占锁在主数据库中的
+  * *文件。这样做是为了在sqlite3BtreeGetPageSize(pMain)调用之后使用,
+  * *,以确保在WAL数据库上不改变页面大小。
+
   */
   rc = execSql(db, pzErrMsg, "BEGIN;");
   if( rc!=SQLITE_OK ) goto end_of_vacuum;
@@ -276,8 +284,9 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   /* Loop through the tables in the main database. For each, do
   ** an "INSERT INTO vacuum_db.xxx SELECT * FROM main.xxx;" to copy
   ** the contents to the temporary database.
-  **在主数据库遍历表。对于每一个, 做"INSERT INTO vacuum_db.xxx SELECT * FROM main.xxx;"
-  **去复制内容到临时数据库。
+  **在主数据库遍历表。对于其中的每一个表, 用"INSERT INTO vacuum_db.xxx 
+  **SELECT * FROM main.xxx;"把内容复制到临时数据库中。
+
   */
   rc = execExecSql(db, pzErrMsg,
       "SELECT 'INSERT INTO vacuum_db.' || quote(name) "
@@ -307,9 +316,10 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   ** over to the temporary database.  None of these objects has any
   ** associated storage, so all we have to do is copy their entries
   ** from the SQLITE_MASTER table.
-  **复制触发器、视图和虚拟表从主数据库中
-* *到临时数据库。这些对象没有和任何
-* *存储有关,所以我们要做的就是从SQLITE_MASTER表复制他们的条目。
+  **把触发器、视图和虚拟表从主数据库中
+  * *复制到临时数据库中。这些对象不和任何
+  * *存储有关,所以我们要做的就是从SQLITE_MASTER表中复制他们的条目。
+
   */
   rc = execSql(db, pzErrMsg,
       "INSERT INTO vacuum_db.sqlite_master "
@@ -325,11 +335,12 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
   ** both transactions are closed by this block - the main database
   ** transaction by sqlite3BtreeCopyFile() and the other by an explicit
   ** call to sqlite3BtreeCommit().
-  **在这一点上,有一个写事务上在
-* *vaccum数据库和主要数据库都开放。如果没有错误发生,
-* *交易都关闭这个块——主要的数据库
-* *事务由sqlite3BtreeCopyFile()和另一个显式的
-* *调用sqlite3BtreeCommit()。
+  **在这一点上,有一个事务上在
+  * *vaccum数据库和主要数据库中都开放。如果没有错误发生,
+  * *关闭这个块——主要的数据库
+  * *事务被sqlite3BtreeCopyFile()和另一个显式的
+  * *sqlite3BtreeCommit()调用。
+
   */
   {
     u32 meta;
@@ -340,11 +351,11 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
     ** are an increment to apply to the meta value after the vacuum.
     ** The increment is used to increase the schema cookie so that other
     ** connections to the same database will know to reread the schema.
-    这个数组保存在确定哪些meta元值
-* *被保留在vaccum上。在vaccum后，甚至条目元值和奇怪的条目数量
-* *是一个增量应用到的元价值。
-* *使用增量增加主题cookie,这样其他的模式
-* *连接到同一个数据库会知道重读模式。
+    * * 这个数组以确定的meta元值的形式
+    * *保留在vaccum上。在vaccum被保存后，条目元值和条目数量
+    * *值作为一个增量被应用到元值中。
+    * *用增量增加主题cookie,这样其他的模式
+    * *被连接到同一个数据库中?
     */
     static const unsigned char aCopy[] = {
        BTREE_SCHEMA_VERSION,     1,  /* 添加一个旧模式的cookie*/
@@ -358,8 +369,8 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
 
     /* 复制Btree元值 */
     for(i=0; i<ArraySize(aCopy); i+=2){
-      /* 在这个上下文GetMeta()和UpdateMeta()不能失败,
-  * *因为我们已经有第1页加载到缓存和标记为废弃。 */
+    /* 在这个上下文中，GetMeta()和UpdateMeta()不能失败,
+   * *因为第一页加载到了缓存和被标记为废弃。 */
       sqlite3BtreeGetMeta(pMain, aCopy[i], &meta);
       rc = sqlite3BtreeUpdateMeta(pTemp, aCopy[i], meta+aCopy[i+1]);
       if( NEVER(rc!=SQLITE_OK) ) goto end_of_vacuum;
@@ -392,9 +403,10 @@ end_of_vacuum:
   ** vacuum database. The vacuum_db journal file is deleted when the pager
   ** is closed by the DETACH.
   **目前有一个SQL级事务在vaccum数据库中打开。没有锁在任何其他文件
-  * *(因为没有任何锁的主要文件承诺在btree级别)。所以安全结束事务
-  * *通过手动将autoCommit标志设置为true,分离
-  * *vaccum数据库。当分离关闭，vacuum_db日志文件被删除。
+  * *中(因为没有任何锁的主要文件在btree级别上)。所以安全结束事务
+  * *通过手动的方式将autoCommit标志设置为true,分离
+  * *vaccum数据库。当分离关闭时，vacuum_db日志文件被删除。
+
   */
   db->autoCommit = 1;
 
