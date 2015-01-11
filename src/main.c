@@ -77,8 +77,9 @@ int sqlite3_threadsafe(void){ return SQLITE_THREADSAFE; }
 //这些信息的目的是为了调试。
 void (*sqlite3IoTrace)(const char*, ...) = 0;
 #endif
-
-/*
+ 
+ 
+ /*
 ** If the following global variable points to a string which is the
 ** name of a directory, then that directory will be used to store
 ** temporary files.
