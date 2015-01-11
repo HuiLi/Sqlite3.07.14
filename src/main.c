@@ -1,4 +1,3 @@
-
 /*
 ** 2001 September 15
 **
@@ -14,7 +13,6 @@
 ** implement the programmer interface to the library.  Routines in
 ** other files are for internal use by SQLite and should not be
 ** accessed by users of the library.
-
 */
 
 //包含必要的头文件
