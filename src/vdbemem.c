@@ -414,7 +414,10 @@ i64 sqlite3VdbeIntValue(Mem *pMem){
 ** double.  If pMem is already a double or an integer, return its
 ** value.  If it is a string or blob, try to convert it to a double.
 ** If it is a NULL, return 0.0.
-** 返回最能代表pMem的表示值,
+** 返回最能代表pMem的表示值,这个pMem是一个double类型的值.
+** 如果pMem已经是一个double类型或者整型值,那么就返回它的值.
+** 如果它是一个string或者blob类型,那么试着把它转化成一个double类型的值.
+** 如果它是一个空值,那么返回0.0
 */
 double sqlite3VdbeRealValue(Mem *pMem){
   assert( pMem->db==0 || sqlite3_mutex_held(pMem->db->mutex) );
@@ -437,6 +440,7 @@ double sqlite3VdbeRealValue(Mem *pMem){
 /*
 ** The MEM structure is already a MEM_Real.  Try to also make it a
 ** MEM_Int if we can.
+** MEM结构已经是一个实类型的值.如果可以的话那么我们试着把它变成一个int类型的值.
 */
 void sqlite3VdbeIntegerAffinity(Mem *pMem){
   assert( pMem->flags & MEM_Real );
@@ -457,6 +461,7 @@ void sqlite3VdbeIntegerAffinity(Mem *pMem){
   ** values to wrap around.  On x86 hardware, the third term is always
   ** true and could be omitted.  But we leave it in because other
   ** architectures might behave differently.
+  ** 第二个或者第三个
   */
   if( pMem->r==(double)pMem->u.i
    && pMem->u.i>SMALLEST_INT64
@@ -472,6 +477,7 @@ void sqlite3VdbeIntegerAffinity(Mem *pMem){
 
 /*
 ** Convert pMem to type integer.  Invalidate any prior representations.
+** 把pMem类型转化成integer类型. 使任何先前的表示值都失效.
 */
 int sqlite3VdbeMemIntegerify(Mem *pMem){
   assert( pMem->db==0 || sqlite3_mutex_held(pMem->db->mutex) );
@@ -567,6 +573,7 @@ void sqlite3VdbeMemSetZeroBlob(Mem *pMem, int n){
 /*
 ** Delete any previous value and set the value stored in *pMem to val,
 ** manifest type INTEGER.
+** 删除任何原先存在的值,并且把在*pMem中存储的值设置成val,它表示integer类型.
 */
 void sqlite3VdbeMemSetInt64(Mem *pMem, i64 val){
   sqlite3VdbeMemRelease(pMem);
@@ -618,6 +625,7 @@ void sqlite3VdbeMemSetRowSet(Mem *pMem){
 /*
 ** Return true if the Mem object contains a TEXT or BLOB that is
 ** too large - whose size exceeds SQLITE_MAX_LENGTH.
+** 如果Mem对象包含的TEXT或者BLOB太大--他们所占的存储空间超过了SQLITE_MAX_LENGTH.那么就返回真.
 */
 int sqlite3VdbeMemTooBig(Mem *p){
   assert( p->db!=0 );
@@ -636,9 +644,10 @@ int sqlite3VdbeMemTooBig(Mem *p){
 ** This routine prepares a memory cell for modication by breaking
 ** its link to a shallow copy and by marking any current shallow
 ** copies of this cell as invalid.
-**
+** 
 ** This is used for testing and debugging only - to make sure shallow
 ** copies are not misused.
+** 这个函数仅仅是用来测试和调试的--来确保这个浅拷贝不会被误用.
 */
 void sqlite3VdbeMemAboutToChange(Vdbe *pVdbe, Mem *pMem){
   int i;
@@ -781,6 +790,7 @@ int sqlite3VdbeMemSetStr(
   /* The following block sets the new values of Mem.z and Mem.xDel. It
   ** also sets a flag in local variable "flags" to indicate the memory
   ** management (one of MEM_Dyn or MEM_Static).
+  ** 接下来的块是用来设置Mem.z和Mem.xDel的新值.它也用来在当前的变量"flags"设置一个标志以表明存储管理
   */
   if( xDel==SQLITE_TRANSIENT ){
     int nAlloc = nByte;
@@ -956,7 +966,7 @@ int sqlite3MemCompare(const Mem *pMem1, const Mem *pMem2, const CollSeq *pColl){
   return rc;
 }
 
-/*
+/* 其他
 ** Move data out of a btree key or data field and into a Mem structure.
 ** The data or key is taken from the entry that pCur is currently pointing
 ** to.  offset and amt determine what portion of the data or key to retrieve.
