@@ -14,8 +14,6 @@
 ** implement the programmer interface to the library.  Routines in
 ** other files are for internal use by SQLite and should not be
 ** accessed by users of the library.
-main.c函数主要是SQLit Library的大部分接口,这个文件中的程序执行这些程序接口进入library.
-在其他的文件中的程序是被sqlite在内部应用，不应该被library的用户接受。
 
 */
 
