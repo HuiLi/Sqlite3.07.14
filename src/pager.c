@@ -17,8 +17,15 @@
 ** locking to prevent two processes from writing the same database
 ** file simultaneously, or one process from reading the database while
 ** another is writing.
+<<<<<<< HEAD
     Pager是用于访问数据库的磁盘文件。它通过使用独立于数据库文件的日志文件实现原子提交和恢复。
     Pager同样实现利用文件锁防止两个进程同时编写相同的数据库，或者防止一个进程读取正在被编写的数据库。
+=======
+**Pager是用来实现数据库磁盘文件的代码段。它实现了原子性的事务提交和回滚。
+**这些功能是使用从数据库文件中分离的日志文件实现的。Pager也实现了文件锁来
+**防止两个进程同时对相同的数据库进行写操作或者一个进程进行写操作时，另一个
+**另一个进程在进行度操作。
+>>>>>>> da6e9bfe7165b689ad9006b67395edebe64ecd6c
 */
 #ifndef SQLITE_OMIT_DISKIO
 #include "sqliteInt.h"
@@ -109,6 +116,30 @@
 ** (13) A SHARED lock is held on the database file while reading any
 **      content out of the database file.
 **
+**这个注释块描述了使用回滚日志时的不变量。这些不变量没有声明journal_mode=WAL,
+** journal_mode=MEMORY, 或者 journal_mode=OFF.这个注释块中，当synchronous=OFF时
+**一个页面被写入的同时自动同步。否则直到包含这个页面的文件在xSync中VFS方法执行的
+**时候才会同步。
+**定义：数据库文件中一页只有当下面的条件有一个成立时被称为溢出：
+**（a）食物刚开始页面目录就被写入回滚日志文件并且被同步
+**（b）在事务的开始这页是空闲的列表子页
+**（c）在事务的开始这页的页码大雨存在数据库文件中的最大页数
+**（1）数据库的任何一页决定不会被重写，除非下面任一个条件为真：
+**  （a）这一页或者其它页在相同的扇区都被覆盖
+**  （b）原子页最优化读写是可能的，全部的事务由单页变化组成而不是跟新的事务序列
+**（2）一个页面的目录写进回滚日志。正确匹配着回滚日志被写入的目录和当前事务开始时的目录
+**（3）写入数据库文件在长度上是整数倍
+**（4）从数据库文件读取页面，页面大小是整数或者从数据库文件前100b开始
+**（5）数据库文件优化同步回滚日志被删除，缩短，清零
+**（6）如果一个日志文件被使用，所有对数据库文件的读写优先同步日志被删除
+**定义：两个数据库如果他们对所有等值的问题给出相同的答案叫逻辑等价
+**（7）在任意时刻，如果任何子集包括空集合和总的集合，日志文件中未同步的修改会溢出，日志会回滚，数据库会回到事务刚开始时的状态
+**（8）当事务回滚，xTruncate的VFs方法会将数据库文件恢复到事务开始时的大小
+**（9）无论何时数据库被修改，至少1b，从24到39位的空间被释放，EXCLUSIVE锁将被释并且发信号放运作他们的高速缓存
+**（10）24列新的模式不会重写至少100万次
+**（11）在每一个事务的开始和结束时一个数据库文件是结构良好的
+**（12）当写入数据库时EXCLUSIVE锁保存在数据文件中
+**（13）当读人已不在数据文件的目录时，SHARED锁保存在数据库文件中
 ******************************************************************************/
 
 /*
@@ -137,6 +168,7 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 ** The Pager.eState variable stores the current 'state' of a pager. A
 ** pager may be in any one of the seven states shown in the following
 ** state diagram.
+**该Pager.eState变量存储寻呼机的当前“状态”。一个Pager可能在七个状态的下面所示的任何一个状态图。
 **
 **                            OPEN <------+------+
 **                              |         |      |
@@ -157,6 +189,7 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **
 **
 ** List of state transitions and the C [function] that performs each:
+**状态转换和C [function]执行每个列表
 ** 
 **   OPEN              -> READER              [sqlite3PagerSharedLock]
 **   READER            -> OPEN                [pager_unlock]
@@ -173,6 +206,7 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **
 **  OPEN:
 **
+**pager在该状态下启动。没有保证这个状态 - 该文件可能或不可能被锁定，并且数据库的大小是未知的。该数据库可以不进行读或写。
 **    The pager starts up in this state. Nothing is guaranteed in this
 **    state - the file may or may not be locked and the database size is
 **    unknown. The database may not be read or written.
@@ -181,6 +215,7 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    * Any lock, or no lock at all, may be held on the database file.
 **    * The dbSize, dbOrigSize and dbFileSize variables may not be trusted.
 **
+**没有读或写的动作。任何锁或无锁，可能被追究的数据库文件。dbSize，dbOrigSize和dbFileSize变量可能不被信任
 **  READER:
 **
 **    In this state all the requirements for reading the database in 
@@ -188,6 +223,16 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    was) in exclusive-locking mode, a user-level read transaction is 
 **    open. The database size is known in this state.
 **
+**在这种状态下所有用于读取数据库中的规定，回滚（非WAL）模式得到满足。
+**除非该pager是（或最近是）在独占锁模式，用户级读取状态是打开。这种状态下，该数据库的大小是已知的
+**
+**与locking_mode运行的连接=正常进入此状态时，
+**它会打开一个读事务中的数据库，并返回状态
+**读成交后OPEN完成。然而，一个连接
+**在locking_mode运行=独占（包括临时数据库）保持
+**即使在读取事务被关闭这个状态。唯一的办法
+**一个locking_mode=独占连接可以从READER过渡到OPEN
+**是通过错误状态（见下文）。
 **    A connection running with locking_mode=normal enters this state when
 **    it opens a read-transaction on the database and returns to state
 **    OPEN after the read-transaction is completed. However a connection
@@ -196,6 +241,11 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    a locking_mode=exclusive connection can transition from READER to OPEN
 **    is via the ERROR state (see below).
 ** 
+**一个读事务可能是积活的（但写事务不能）。
+**共享或以上持有锁的数据库文件。
+**该dbSize变量可以信任（即使用户级读交易不活跃）。该dbOrigSize和dbFileSize变量可能不被信任在此点。
+**如果数据库是WAL数据库，那么WAL连接打开。
+**即使一个读事务不打开，这保证没有在文件系统中没有hot-journal。
 **    * A read transaction may be active (but a write-transaction cannot).
 **    * A SHARED or greater lock is held on the database file.
 **    * The dbSize variable may be trusted (even if a user-level read 
@@ -207,11 +257,17 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **
 **  WRITER_LOCKED:
 **
+**当进行写事务时，pager从准备状态转移到这个状态
+**第一次打开的数据库。在WRITER_LOCKED状态下，所有的锁需要启动一个写事务处理被保持，但没有实际的修改高速缓存或数据库已经发生。
 **    The pager moves to this state from READER when a write-transaction
 **    is first opened on the database. In WRITER_LOCKED state, all locks 
 **    required to start a write-transaction are held, but no actual 
 **    modifications to the cache or database have taken place.
 **
+**在回滚模式中保留或（如打开了BEGIN EXCLUSIVE）上的数据库文件时获得EXCLUSIVE锁
+**移动到这个状态，但日志文件不写入或打开
+**对处于这种状态。如果事务被提交或回滚时
+**在WRITER_LOCKED状态，所有需要的是解锁数据库文件。
 **    In rollback mode, a RESERVED or (if the transaction was opened with 
 **    BEGIN EXCLUSIVE) EXCLUSIVE lock is obtained on the database file when
 **    moving to this state, but the journal file is not written to or opened 
@@ -219,10 +275,19 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    in WRITER_LOCKED state, all that is required is to unlock the database 
 **    file.
 **
+**在WAL模式，WalBeginWriteTransaction（）被调用来锁定日志文件。
+**如果连接与locking_mode运行=独占，由获取对数据库文件的独占锁定。
 **    IN WAL mode, WalBeginWriteTransaction() is called to lock the log file.
 **    If the connection is running with locking_mode=exclusive, an attempt
 **    is made to obtain an EXCLUSIVE lock on the database file.
 **
+**写事务处于活动状态。
+**如果连接在回滚模式打开，保留或更大持有锁的数据库文件。
+**如果连接是打开的WAL-模式下，WAL写交易是开放的（即**sqlite3WalBeginWriteTransaction（）已成功唤醒）。
+*** dbSize，dbOrigSize和dbFileSize变量都是有效的。
+** *pager缓存的内容没有被修改。
+** *该日志文件可能会或可能不会被打开。
+** 没有东西（不连在第一报头）被写入日志。
 **    * A write transaction is active.
 **    * If the connection is open in rollback-mode, a RESERVED or greater 
 **      lock is held on the database file.
@@ -236,17 +301,27 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **
 **  WRITER_CACHEMOD:
 **
+**当页面首先由上层修改时，pager从WRITER_LOCKED状态转移到这种状态。在回滚模**式下，日志文件被打开（如果尚未打开）和一个首标写入到
+**它的开始。磁盘上的数据库文件还没有被修改。
 **    A pager moves from WRITER_LOCKED state to this state when a page is
 **    first modified by the upper layer. In rollback mode the journal file
 **    is opened (if it is not already open) and a header written to the
 **    start of it. The database file on disk has not been modified.
 **
+**写事务处于活动状态。
+** 保留或更大的锁被保留在数据库文件。
+**日志文件是开放的，第一头已被写入
+**但标题尚未同步到磁盘。
+**页面缓存的内容已被修改。
 **    * A write transaction is active.
 **    * A RESERVED or greater lock is held on the database file.
 **    * The journal file is open and the first header has been written 
 **      to it, but the header has not been synced to disk.
 **    * The contents of the page cache have been modified.
 **
+**当它修改了数据库文件的内容时，pager从过渡到WRITER_CACHEMOD状态**WRITER_DBMOD。 WAL连接
+**永远不会进入这种状态（因为它们不修改数据库文件，
+**仅仅是日志文件）。
 **  WRITER_DBMOD:
 **
 **    The pager transitions from WRITER_CACHEMOD into WRITER_DBMOD state
@@ -254,6 +329,12 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    never enter this state (since they do not modify the database file,
 **    just the log file).
 **
+***写事务处于活动状态。
+**独占或更高的锁持有的数据库文件。
+**日志文件是开放的，第一头已被写入
+**并同步到磁盘。
+**页面缓存的内容已被修改（并且可能
+**写入到磁盘）。
 **    * A write transaction is active.
 **    * An EXCLUSIVE or greater lock is held on the database file.
 **    * The journal file is open and the first header has been written 
@@ -265,6 +346,12 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **
 **    It is not possible for a WAL connection to enter this state.
 **
+**回滚模式pager的变化，从WRITER_DBMOD WRITER_FINISHED状态
+**整个交易后状态已成功写进
+**数据库文件。在这种状态下，事务可以简单地致力于
+**被敲定日志文件。一旦在WRITER_FINISHED状态时，它是
+**不能够进一步修改数据库。在这一点上，上
+**层必须提交或回滚事务。
 **    A rollback-mode pager changes to WRITER_FINISHED state from WRITER_DBMOD
 **    state after the entire transaction has been successfully written into the
 **    database file. In this state the transaction may be committed simply
@@ -272,6 +359,12 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    not possible to modify the database further. At this point, the upper 
 **    layer must either commit or rollback the transaction.
 **
+**写事务处于活动状态。
+**独占或更高的锁持有的数据库文件。
+**所有写日志和数据库中的数据，并同步完成。
+**如果没有出错，所有剩下的工作就是敲定为日志
+**提交事务。如果没有出现错误，主叫方将需要
+**回滚事务
 **    * A write transaction is active.
 **    * An EXCLUSIVE or greater lock is held on the database file.
 **    * All writing and syncing of journal and database data has finished.
@@ -281,14 +374,27 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **
 **  ERROR:
 **
+**错误状态时输入的IO或磁盘已满错误（包括
+** SQLITE_IOERR_NOMEM）发生在代码中的点，使得它
+**难以确保该内存pager状态（高速缓存内容，
+**db大小等）都与文件系统中的内容是一致的。
 **    The ERROR state is entered when an IO or disk-full error (including
 **    SQLITE_IOERR_NOMEM) occurs at a point in the code that makes it 
 **    difficult to be sure that the in-memory pager state (cache contents, 
 **    db size etc.) are consistent with the contents of the file-system.
 **
+**临时pager文件可能进入错误状态，但在内存中的pager不能。
 **    Temporary pager files may enter the ERROR state, but in-memory pagers
 **    cannot.
 **
+**例如，如果在执行一个回滚时IO错误，
+**页面缓存的内容可能会处于不一致的状态。
+**在这一点上是有危险的变回READER状态
+**（如通常回滚之后发生）。任何后续的读取可能
+**报告数据库损坏（由于不一致的高速缓存），如果
+**他们升级到写入，他们可能会在无意中损坏数据库
+**文件。为避免这种危害，pager切换到错误状态
+**而不是写入以下这样的错误。
 **    For example, if an IO error occurs while performing a rollback, 
 **    the contents of the page-cache may be left in an inconsistent state.
 **    At this point it would be dangerous to change back to READER state
@@ -298,6 +404,14 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    file. To avoid this hazard, the pager switches into the ERROR state
 **    instead of READER following such an error.
 **
+**一旦进入错误状态，任何企图利用该pager
+**读取或写入数据返回一个错误。最后，一旦所有
+**好的事务已被抛弃，pager能
+**过渡回打开状态，丢弃的内容
+**页面缓存和其他内存状态在同一时间。一切
+**从磁盘重新装入（如果需要的话，回滚peformed）
+**当读事务打开旁边的pager（过渡
+**pager进入读取状态）。在这一点上，系统已经从错误中恢复
 **    Once it has entered the ERROR state, any attempt to use the pager
 **    to read or write data returns an error. Eventually, once all 
 **    outstanding transactions have been abandoned, the pager is able to
@@ -308,22 +422,39 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    the pager into READER state). At that point the system has recovered 
 **    from the error.
 **
+**具体来说，pager跳进错误状态，如果：
 **    Specifically, the pager jumps into the ERROR state if:
 **
+**试图在回滚时
+**1.错误。这种情况发生在
+** 功能sqlite3PagerRollback（）。
 **      1. An error occurs while attempting a rollback. This happens in
 **         function sqlite3PagerRollback().
 **
+**2.试图完成一个日志文件时出错
 **      2. An error occurs while attempting to finalize a journal file
 **         following a commit in function sqlite3PagerCommitPhaseTwo().
 **
+**3.在尝试写日记或发生错误
+**在功能pagerStress（），以便释放数据库文件
+**内存。
 **      3. An error occurs while attempting to write to the journal or
 **         database file in function pagerStress() in order to free up
 **         memory.
 **
+**在其他情况下，返回到b树层的误差。 B树
+**层，然后试图回滚操作。如果错误状况
+**仍然存在，pager通过条件进入ERROR状态上述（1）
 **    In other cases, the error is returned to the b-tree layer. The b-tree
 **    layer then attempts a rollback operation. If the error condition 
 **    persists, the pager enters the ERROR state via condition (1) above.
 **
+**条件（3）是必要的，因为它可以由一个只读触发
+**在一个事务中执行的语句。在这种情况下，如果错误
+**代码进行简单的返回给用户，B树层不会
+**自动尝试回滚，因为它假设的误差在一
+**只读语句不能离开pager在内部不一致
+**状态。
 **    Condition (3) is necessary because it can be triggered by a read-only
 **    statement executed within a transaction. In this case, if the error
 **    code were simply returned to the user, the b-tree layer would not
@@ -331,6 +462,10 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **    read-only statement cannot leave the pager in an internally inconsistent 
 **    state.
 **
+**Pager.errCode变量设置为比SQLITE_OK其他的东西。
+**有后一个或多个未完成的引用页（
+**最后引用被丢弃的pager应该搬回打开状态）。
+** pager不是一个内存pager。
 **    * The Pager.errCode variable is set to something other than SQLITE_OK.
 **    * There are one or more outstanding references to pages (after the
 **      last reference is dropped the pager should move back to OPEN state).
@@ -339,10 +474,17 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 **
 ** Notes:
 **
+**如果
+**连接在WAL模式打开，pager从来没有在WRITER_DBMOD或WRITER_FINISHED状**态，WAL一直在一个
+**前四个状态
 **   * A pager is never in WRITER_DBMOD or WRITER_FINISHED state if the
 **     connection is open in WAL mode. A WAL connection is always in one
 **     of the first four states.
 **
+**通常情况下，以独占模式连接打开从来没有在PAGER_OPEN
+**状态。有两个例外：后独占模式有
+**被打开（和之前的任何读或写交易
+**执行），并且当pager被留下“错误状态”。
 **   * Normally, a connection open in exclusive mode is never in PAGER_OPEN
 **     state. There are two exceptions: immediately after exclusive-mode has
 **     been turned on (and before any read or write transactions are 
@@ -359,12 +501,25 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 #define PAGER_ERROR                 6
 
 /*
+**所述Pager.eLock变量几乎总是设置为所述一个
+**下面的锁定状态，根据当前持有的锁
+**数据库文件：NO_LOCK，SHARED_LOCK，RESERVED_LOCK或EXCLUSIVE_LOCK。
+**此变量保持最新的锁被采取并通过释放
+**的pagerLockDb（）和pagerUnlockDb（）封装。
 ** The Pager.eLock variable is almost always set to one of the 
 ** following locking-states, according to the lock currently held on
 ** the database file: NO_LOCK, SHARED_LOCK, RESERVED_LOCK or EXCLUSIVE_LOCK.
 ** This variable is kept up to date as locks are taken and released by
 ** the pagerLockDb() and pagerUnlockDb() wrappers.
 **
+**如果VFS XLOCK（）或xUnlock（）返回一个错误比其他SQLITE_BUSY
+**（即SQLITE_IOERR亚型之一），它是不明确是否
+**操作成功。在这些情况下pagerLockDb（）和
+** pagerUnlockDb（）采取保守态度 - eLock总是更新
+**解锁文件时，并且仅当所述锁定的文件时，更新
+** VFS调用成功。通过这种方式，Pager.eLock变量可以被设置
+**到少独占（低）值比锁实际上是举行
+**在系统级，但它从未设置为更独占值。
 ** If the VFS xLock() or xUnlock() returns an error other than SQLITE_BUSY
 ** (i.e. one of the SQLITE_IOERR subtypes), it is not clear whether or not
 ** the operation was successful. In these circumstances pagerLockDb() and
@@ -374,10 +529,19 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 ** to a less exclusive (lower) value than the lock that is actually held
 ** at the system level, but it is never set to a more exclusive value.
 **
+**这通常是安全的。如果xUnlock失败或出现故障，也有可能
+**是几冗余XLOCK（）调用或锁可举办长于
+**必需的，但没有什么错误
 ** This is usually safe. If an xUnlock fails or appears to fail, there may 
 ** be a few redundant xLock() calls or a lock may be held for longer than
 ** required, but nothing really goes wrong.
 **
+**当数据库文件被锁定为pager移动的例外是
+**从错误到开状态。在这一点上，可能有hot-journal文件
+**在文件系统需要被回滚（作为开的一部分> SHARED
+**过渡，用相同的pager或任何其他）。如果调用xUnlock（）
+**失败，在这一点上和pager左边一个排它锁，这
+**可以混淆调用xCheckReservedLock（），后来由于部分调用hot-journal 的最后部分xCheckReservedLock()
 ** The exception is when the database file is unlocked as the pager moves
 ** from ERROR to OPEN state. At this point there may be a hot-journal file 
 ** in the file-system that needs to be rolled back (as part of a OPEN->SHARED
@@ -386,6 +550,13 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 ** can confuse the call to xCheckReservedLock() call made later as part
 ** of hot-journal detection.
 **
+** xCheckReservedLock（）被定义为返回真“，如果有一个RESERVED
+**通过这个过程或任何其他人“设定的锁，所以xCheckReservedLock可能
+**返回true，因为调用者本身持有的排他锁（但
+**不知道，因为在xUnlock前一个错误的话）。如果发生这种情况
+**通过积极创建hot-journal可能被误认为是日记
+**交易在另一个过程中，引起的SQLite从数据库读
+**不回滚。
 ** xCheckReservedLock() is defined as returning true "if there is a RESERVED 
 ** lock held by this process or any others". So xCheckReservedLock may 
 ** return true because the caller itself is holding an EXCLUSIVE lock (but
@@ -394,6 +565,14 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 ** transaction in another process, causing SQLite to read from the database
 ** without rolling it back.
 **
+**要解决这个问题，如果解锁时调用xUnlock（）失败
+**数据库中的错误状态，Pager.eLock设置为UNKNOWN_LOCK。它
+**只变回真正的锁定状态成功调用后
+**与XLOCK（EXCLUSIVE）。此外，该代码做开>共享状态过渡
+**忽略了检查hot-journal，如果Pager.eLock设置为UNKNOWN_LOCK
+**锁。相反，它假定存在一个热杂志并获得独家
+**在试图回滚之前数据库文件锁。见功能
+** PagerSharedLock（）的更多细节。
 ** To work around this, if a call to xUnlock() fails when unlocking the
 ** database in the ERROR state, Pager.eLock is set to UNKNOWN_LOCK. It
 ** is only changed back to a real locking state after a successful call
@@ -403,6 +582,8 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 ** lock on the database file before attempting to roll it back. See function
 ** PagerSharedLock() for more detail.
 **
+** Pager.eLock仅可设定为UNKNOWN_LOCK当pager在
+** PAGER_OPEN状态。
 ** Pager.eLock may only be set to UNKNOWN_LOCK when the pager is in 
 ** PAGER_OPEN state.
 */
@@ -427,6 +608,7 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 ** returns a value larger than this, then MAX_SECTOR_SIZE is used instead.
 ** This could conceivably cause corruption following a power failure on
 ** such a system. This is currently an undocumented limit.
+**扇区最大允许大小为64kib。如果xSectorsize()方法返回大于这个值,然后使用MAX_SECTOR_SIZE代替这个值。
 */
 #define MAX_SECTOR_SIZE 0x10000
 
@@ -436,12 +618,18 @@ int sqlite3PagerTrace=1;  /* True to enable tracing */
 ** are stored in the Pager.aSavepoint[] array, which is allocated and
 ** resized using sqlite3Realloc().
 **
+**以下结构的实例分配给每个活动系统中保存点和语句的事务。所有结构都被保存在Pager。
+**aSavepoint[]数组将会使用sqlite3Realloc()。
+**
 ** When a savepoint is created, the PagerSavepoint.iHdrOffset field is
 ** set to 0. If a journal-header is written into the main journal while
 ** the savepoint is active, then iHdrOffset is set to the byte offset 
 ** immediately following the last journal record written into the main
 ** journal before the journal-header. This is required during savepoint
 ** rollback (see pagerPlaybackSavepoint()).
+**当创建一个保存点,iHdrOffset字段设置为0。如果写入journal-header主日志而保存点是活跃的,
+**则设置iHdrOffset字节抵消后，立即将过去的日志记录写入journal-header前的主日志里。这是需要在保存点回滚。
+**
 */
 typedef struct PagerSavepoint PagerSavepoint;
 struct PagerSavepoint {
@@ -459,47 +647,67 @@ struct PagerSavepoint {
 ** A open page cache is an instance of struct Pager. A description of
 ** some of the more important member variables follows:
 **
+**一个打开的页面缓存是Pager结构体的一个实例。一些更重要的成员变量的描述如下:
 ** eState
 **
 **   The current 'state' of the pager object. See the comment and state
 **   diagram above for a description of the pager state.
 **
+**Pager的对象的当前状态可以看看到上面的评论和状态图的描述。
 ** eLock
 **
 **   For a real on-disk database, the current lock held on the database file -
 **   NO_LOCK, SHARED_LOCK, RESERVED_LOCK or EXCLUSIVE_LOCK.
 **
+**对于一个真正的磁盘数据库,数据库文件状态包括没有锁,共享锁,保留锁或独占锁。
 **   For a temporary or in-memory database (neither of which require any
 **   locks), this variable is always set to EXCLUSIVE_LOCK. Since such
 **   databases always have Pager.exclusiveMode==1, this tricks the pager
 **   logic into thinking that it already has all the locks it will ever
 **   need (and no reason to release them).
 **
+**临时或内存数据库(既不需要一个锁),该变量总是设置为独占锁。因为这类数据库
+总是有页面。当exclusiveMode = = 1,逻辑上认为它已经有了所有需要的锁（没有理由释放)。
 **   In some (obscure) circumstances, this variable may also be set to
 **   UNKNOWN_LOCK. See the comment above the #define of UNKNOWN_LOCK for
 **   details.
 **
+**在某些(模糊的)情况下,这个变量也可以被设置为未知的锁。看到上面的解释是关于定义不明的锁的细节。
 ** changeCountDone
 **
 **   This boolean variable is used to make sure that the change-counter 
 **   (the 4-byte header field at byte offset 24 of the database file) is 
 **   not updated more often than necessary. 
+<<<<<<< HEAD
+=======
+**
+**这个布尔变量用于确保change-counter(4字节的头字段在数据库文件中代替24字节)不超过必要的更新
+>>>>>>> da6e9bfe7165b689ad9006b67395edebe64ecd6c
 **   It is set to true when the change-counter field is updated, which 
 **   can only happen if an exclusive lock is held on the database file.
 **   It is cleared (set to false) whenever an exclusive lock is 
 **   relinquished on the database file. Each time a transaction is committed,
 **   The changeCountDone flag is inspected. If it is true, the work of
 **   updating the change-counter is omitted for the current transaction.
+<<<<<<< HEAD
+=======
+**
+**当change-counter字段更新时它被设置为true,仅仅当独占锁在数据库文件中。
+**它被清除(设置为false)独占锁时放弃了数据库文件。每次提交一个事务,
+**changeCountDone标志被检查。如果它是真的,更新change-counter的工作省略了对当前事务的操作。
+>>>>>>> da6e9bfe7165b689ad9006b67395edebe64ecd6c
 **   This mechanism means that when running in exclusive mode, a connection 
 **   need only update the change-counter once, for the first transaction
 **   committed.
 **
+**这种机制意味着以独占模式运行时,只需要更新连接change-counter一次,第一次事务提交。
 ** setMaster
 **
 **   When PagerCommitPhaseOne() is called to commit a transaction, it may
 **   (or may not) specify a master-journal name to be written into the 
 **   journal file before it is synced to disk.
 **
+**　当PagerCommitPhaseOne()提交一个事务,它可能(也可能不)指定一个master-journal名字被写入日志文件在它被同步到磁盘之前。
 **   Whether or not a journal file contains a master-journal pointer affects 
 **   the way in which the journal file is finalized after the transaction is 
 **   committed or rolled back when running in "journal_mode=PERSIST" mode.
@@ -509,49 +717,65 @@ struct PagerSavepoint {
 **   by truncating it to zero bytes, just as if the connection were 
 **   running in "journal_mode=truncate" mode.
 **
+**日志文件包含一个master-journal指针是否影响
+**在事务提交或回滚之后日志文件的完成,在“journal_mode =PERSIST”模式下运行。
+**如果日志文件不包含master-journal指针,它最终通过用0覆盖日志文件头。
+**如果它包含master-journal指针，文件通过删除零字节,正如如果连接在“journal_mode =truncate”模式下运行。
 **   Journal files that contain master journal pointers cannot be finalized
 **   simply by overwriting the first journal-header with zeroes, as the
 **   master journal pointer could interfere with hot-journal rollback of any
 **   subsequently interrupted transaction that reuses the journal file.
 **
+**包含指针的日志文件不能通过用0覆盖journal-header,因为指针可能干扰hot-journal中断事务的回滚或重用日志文件。
 **   The flag is cleared as soon as the journal file is finalized (either
 **   by PagerCommitPhaseTwo or PagerRollback). If an IO error prevents the
 **   journal file from being successfully finalized, the setMaster flag
 **   is cleared anyway (and the pager will move to ERROR state).
 **
+**当日志文件一被定义标志之会立刻被清除。如果输入错误导致日志文件不能正确的定义，setMaster无论如何都会被清除。
 ** doNotSpill, doNotSyncSpill
 **
 **   These two boolean variables control the behaviour of cache-spills
 **   (calls made by the pcache module to the pagerStress() routine to
 **   write cached data to the file-system in order to free up memory).
 **
+**这两个布尔变量控制cache-spills的行为
 **   When doNotSpill is non-zero, writing to the database from pagerStress()
 **   is disabled altogether. This is done in a very obscure case that
 **   comes up during savepoint rollback that requires the pcache module
 **   to allocate a new page to prevent the journal file from being written
 **   while it is being traversed by code in pager_playback().
 ** 
+**当doNotSpill不等于0时,从pagerStress()写入数据库完全是禁用的。这样做是在一个非常
+**模糊的情况下,在保存点回滚,要求pcache模块分配一个新页面防止日志文件被写入，虽然
+**是由pager_playback()遍历代码。
 **   If doNotSyncSpill is non-zero, writing to the database from pagerStress()
 **   is permitted, but syncing the journal file is not. This flag is set
 **   by sqlite3PagerWrite() when the file-system sector-size is larger than
 **   the database page-size in order to prevent a journal sync from happening 
 **   in between the journalling of two pages on the same sector. 
 **
+**如果doNotSyncSpill不为0,从pagerStress()写入数据库是允许的,但同步文件是不与允许的。
+**设定这个标志的是sqlite3PagerWrite(),当文件系统扇区大小是大于数据库页面大小以防止
+**同步日志之间的发生在两个页面在同一个扇区。
 ** subjInMemory
 **
 **   This is a boolean variable. If true, then any required sub-journal
 **   is opened as an in-memory journal file. If false, then in-memory
 **   sub-journals are only used for in-memory pager files.
 **
+**这是一个布尔变量。如果这是真的,那么任何需要sub-journal打开内存中的一个日志文件。如果错误,那么内存sub-journals只是用于内存页面文件。
 **   This variable is updated by the upper layer each time a new 
 **   write-transaction is opened.
 **
+**这个变量是由上层更新，每次跟新都会有一个新的写事务被打开。
 ** dbSize, dbOrigSize, dbFileSize
 **
 **   Variable dbSize is set to the number of pages in the database file.
 **   It is valid in PAGER_READER and higher states (all states except for
 **   OPEN and ERROR). 
 **
+**变量dbSize将被设置成数据库文件的页面数量。
 **   dbSize is set based on the size of the database file, which may be 
 **   larger than the size of the database (the value stored at offset
 **   28 of the database header by the btree). If the size of the file
@@ -561,22 +785,27 @@ struct PagerSavepoint {
 **   to have at least one page. (i.e. a 1KB file with 2K page-size leads
 **   to dbSize==1).
 **
+**dbSize设置基于数据库文件的大小,可能比数据库的大小大。如果文件的大小不是一个
+**页面大小的整数倍数的值存储在dbSize则四舍五入。任何文件大小大于0字节被认为至少有一页。
 **   During a write-transaction, if pages with page-numbers greater than
 **   dbSize are modified in the cache, dbSize is updated accordingly.
 **   Similarly, if the database is truncated using PagerTruncateImage(), 
 **   dbSize is updated.
 **
+**在写事务,在缓存中如果页面的页码数大于dbSize将会修改修,dbSize相应更新。同样,如果数据库是使用PagerTruncateImage(),dbSize更新。
 **   Variables dbOrigSize and dbFileSize are valid in states 
 **   PAGER_WRITER_LOCKED and higher. dbOrigSize is a copy of the dbSize
 **   variable at the start of the transaction. It is used during rollback,
 **   and to determine whether or not pages need to be journalled before
 **   being modified.
 **
+**变量dbOrigSize和dbFileSize PAGER_WRITER_LOCKED在这些部分中最有效。dbOrigSize dbSize变量的副本在事务开始的时候被创建。期间使用回滚,并确定是否需要日志页面之前修改
 **   Throughout a write-transaction, dbFileSize contains the size of
 **   the file on disk in pages. It is set to a copy of dbSize when the
 **   write-transaction is first opened, and updated when VFS calls are made
 **   to write or truncate the database file on disk. 
 **
+**在写事务,dbFileSize包含页面的磁盘上的文件的大小。它将一份dbSize写事务是第一次打开时,和更新VFS调用时写或截断磁盘上的数据库文件。
 **   The only reason the dbFileSize variable is required is to suppress 
 **   unnecessary calls to xTruncate() after committing a transaction. If, 
 **   when a transaction is committed, the dbFileSize variable indicates 
@@ -588,6 +817,11 @@ struct PagerSavepoint {
 **   a call to xFilesize() that is not strictly required). In either case,
 **   pager_truncate() may cause the file to become smaller or larger.
 **
+**dbFileSize变量的作用是是不必调用xTruncate()在提交一个事务之后。
+**事务提交之后,如果dbFileSize变量表明数据库文件大于数据库映像。
+**pager_truncate()调用xFilesize()来测量磁盘上的数据库文件。
+**当事务回滚时dbFileSize不使用。
+**在这两种情况下,pager_truncate()可能会导致文件变得更小或更大。
 ** dbHintSize
 **
 **   The dbHintSize variable is used to limit the number of calls made to
@@ -599,7 +833,9 @@ struct PagerSavepoint {
 **   dbHintSize is increased to the number of pages that correspond to the
 **   size-hint passed to the method call. See pager_write_pagelist() for 
 **   details.
-**
+** 
+**dbHintSiz将复制dbSize变量当写事务打开时。如果xFileControl(FCNTL_SIZE_HINT)方法
+**被调用时,dbHintSize增加的页数,对应size-hint传递到方法调用。详情见pager_write_pagelist()。
 ** errCode
 **
 **   The Pager.errCode variable is only ever used in PAGER_ERROR state. It
@@ -629,6 +865,8 @@ struct Pager {
   ** or the journal_mode).  From another view, these class members describe
   ** the "state" of the pager, while other class members describe the
   ** "configuration" of the pager.
+  下面的代码块包含了在程序运行时会改变的成员变量。当页面第一次被创建或者有重要的状态改变了（例如页面的大小，锁，或者日志模式）。
+  换句话说，这些成员变量描述了页面的状态，其他的成员变量描述了页面的结构。
   */
   u8 eState;                  /* Pager state (OPEN, READER, WRITER_LOCKED..) */
   u8 eLock;                   /* Current lock held on database file */
@@ -693,6 +931,7 @@ struct Pager {
 ** Indexes for use with Pager.aStat[]. The Pager.aStat[] array contains
 ** the values accessed by passing SQLITE_DBSTATUS_CACHE_HIT, CACHE_MISS 
 ** or CACHE_WRITE to sqlite3_db_status().
+**索引是和Pager.aStat[]一起使用。
 */
 #define PAGER_STAT_HIT   0
 #define PAGER_STAT_MISS  1
@@ -702,6 +941,7 @@ struct Pager {
 ** The following global variables hold counters used for
 ** testing purposes only.  These variables do not exist in
 ** a non-testing build.  These variables are not thread-safe.
+**下面的全局变量保存计数器仅用于测试目的。在非测试构建这些变量不存在。这些变量不是线程安全的
 */
 #ifdef SQLITE_TEST
 int sqlite3_pager_readdb_count = 0;    /* Number of full pages read from DB */
@@ -718,6 +958,7 @@ int sqlite3_pager_writej_count = 0;    /* Number of pages written to journal */
 ** Journal files begin with the following magic string.  The data
 ** was obtained from /dev/random.  It is used only as a sanity check.
 **
+**日志文件从以下字符串开始。从/dev/random.获得的数据它仅作为一个检查。
 ** Since version 2.8.0, the journal format contains additional sanity
 ** checking information.  If the power fails while the journal is being
 ** written, semi-random garbage data might appear in the journal
@@ -744,12 +985,14 @@ static const unsigned char aJournalMagic[] = {
 /*
 ** The size of the of each page record in the journal is given by
 ** the following macro.
+**每一页记录的大小在由以下宏给出。
 */
 #define JOURNAL_PG_SZ(pPager)  ((pPager->pageSize) + 8)
 
 /*
 ** The journal header size for this pager. This is usually the same 
 ** size as a single disk sector. See also setSectorSize().
+**该页面日志文件头的大小通畅和单个单曲一样大。参见setSectorSize()。
 */
 #define JOURNAL_HDR_SZ(pPager) (pPager->sectorSize)
 
@@ -758,6 +1001,7 @@ static const unsigned char aJournalMagic[] = {
 ** We do this as a macro so that if the SQLITE_OMIT_MEMORYDB macro is set,
 ** the value of MEMDB will be a constant and the compiler will optimize
 ** out code that would never execute.
+**宏MEMDB值是真的，如果我们正在处理一个内存中的数据库。我们这样做作为一个宏,如果设置SQLITE_OMIT_MEMORYDB宏,MEMDB的价值将是一个常量,编译器会优化代码不会执行。
 */
 #ifdef SQLITE_OMIT_MEMORYDB
 # define MEMDB 0
@@ -767,6 +1011,7 @@ static const unsigned char aJournalMagic[] = {
 
 /*
 ** The maximum legal page number is (2^31 - 1).
+**最大合法的页面大小是2^31 - 1
 */
 #define PAGER_MAX_PGNO 2147483647
 
@@ -787,6 +1032,7 @@ static const unsigned char aJournalMagic[] = {
 /*
 ** Return true if this pager uses a write-ahead log instead of the usual
 ** rollback journal. Otherwise false.
+**如果这个页面使用写日志而不是通常的回滚日志，返回ture。否则返回false。
 */
 #ifndef SQLITE_OMIT_WAL
 static int pagerUseWal(Pager *pPager){
@@ -808,6 +1054,7 @@ static int pagerUseWal(Pager *pPager){
 **
 ** This function runs many asserts to try to find inconsistencies in
 ** the internal state of the Pager object.
+**这个函数运行许多断点,试图发现页面对象的内部状态的不一致。
 */
 static int assert_pager_state(Pager *p){
   Pager *pPager = p;
@@ -945,6 +1192,7 @@ static int assert_pager_state(Pager *p){
 ** is intended to be used within debuggers. For example, as an alternative
 ** to "print *pPager" in gdb:
 **
+**返回一个指向一个可读的字符串的指针在静态缓冲区包含页面的状态对象作为参数传递。这是打算在调试器使用。
 ** (gdb) printf "%s", print_pager_state(pPager)
 */
 static char *print_pager_state(Pager *p){
@@ -1058,6 +1306,10 @@ static int write32bits(sqlite3_file *fd, i64 offset, u32 val){
 ** Except, if Pager.eLock is set to UNKNOWN_LOCK when this function is
 ** called, do not modify it. See the comment above the #define of 
 ** UNKNOWN_LOCK for an explanation of this.
+**打开数据库文件eLock,必须使用NO_LOCK或SHARED_LOCK。
+**不管是否调用xUnlock()成功,eLock变量匹配新锁。
+**UNKNOWN_LOCK调用这个函数时,不要修改elock。
+**# define UNKNOWN_LOCK作出定义。
 */
 static int pagerUnlockDb(Pager *pPager, int eLock){
   int rc = SQLITE_OK;
@@ -1081,6 +1333,7 @@ static int pagerUnlockDb(Pager *pPager, int eLock){
 ** RESERVED_LOCK or EXCLUSIVE_LOCK. If the caller is successful, set the
 ** Pager.eLock variable to the new locking state. 
 **
+**锁定数据库文件eLock,必须要有SHARED_LOCK,RESERVED_LOCK或EXCLUSIVE_LOCK。如果调用成功,设置页面的eLock变量为新的锁定状态。
 ** Except, if Pager.eLock is set to UNKNOWN_LOCK when this function is 
 ** called, do not modify it unless the new locking state is EXCLUSIVE_LOCK. 
 ** See the comment above the #define of UNKNOWN_LOCK for an explanation 
@@ -1191,6 +1444,9 @@ static void checkPage(PgHdr *pPg){
 ** by the caller. See comments above writeMasterJournal() for the format
 ** used to store a master journal file name at the end of a journal file.
 **
+**当日志文件被执行pPager必须处于打开状态。这个函数尝试从文件末尾读取主日志文件名
+**，如果成功将其调入内存中。看上面writeMasterJournal评论（）的格式常常在一个日志文
+**件的末尾存储一个主日志文件名。
 ** zMaster must point to a buffer of at least nMaster bytes allocated by
 ** the caller. This should be sqlite3_vfs.mxPathname+1 (to ensure there is
 ** enough space to write the master journal name). If the master journal
@@ -1198,16 +1454,22 @@ static void checkPage(PgHdr *pPg){
 ** nul-terminator), then this is handled as if no master journal name
 ** were present in the journal.
 **
+**zMaster必须指向至少nnMaster字节的缓冲区。如果主日志名字比 nMaster字节还长，那么
+**如果没有主日志名已经存在日志中这将被处理。
 ** If a master journal file name is present at the end of the journal
 ** file, then it is copied into the buffer pointed to by zMaster. A
 ** nul-terminator byte is appended to the buffer following the master
 ** journal file name.
 **
+**如果主日志文件名已经存在日志文件的末尾，然后然后将其复制到缓冲区指向ZMASTER。
+**一个终止字符将被添加到缓存区中日志文件的末尾。
 ** If it is determined that no master journal file name is present 
 ** zMaster[0] is set to 0 and SQLITE_OK returned.
 **
+**如果没有确定没有主日志文件名存在，zMaster[0]将被设置成0并且返回SQLITE_OK。
 ** If an error occurs while reading from the journal file, an SQLite
 ** error code is returned.
+**如果从日志文件读取时发生错误，那么错误代码将被返回。
 */
 static int readMasterJournal(sqlite3_file *pJrnl, char *zMaster, u32 nMaster){
   int rc;                    /* Return code */
@@ -1261,6 +1523,13 @@ static int readMasterJournal(sqlite3_file *pJrnl, char *zMaster, u32 nMaster){
 **   100                       512
 **   2000                      2048
 ** 
+**立即返回扇区边界的偏移量或pPager - > journalOff值后,假设pPager - > sectorSize字节是扇区大小。
+**   Pager.journalOff          Return value
+**   ---------------------------------------
+**   0                         0
+**   512                       512
+**   100                       512
+**   2000                      2048
 */
 static i64 journalHdrOffset(Pager *pPager){
   i64 offset = 0;
@@ -1277,21 +1546,26 @@ static i64 journalHdrOffset(Pager *pPager){
 /*
 ** The journal file must be open when this function is called.
 **
+**文件必须打开当调用此函数时。
 ** This function is a no-op if the journal file has not been written to
 ** within the current transaction (i.e. if Pager.journalOff==0).
 **
+**这个函数是一个空操作如果日志文件没有被写入当前事务的文件。
 ** If doTruncate is non-zero or the Pager.journalSizeLimit variable is
 ** set to 0, then truncate the journal file to zero bytes in size. Otherwise,
 ** zero the 28-byte header at the start of the journal file. In either case, 
 ** if the pager is not in no-sync mode, sync the journal file immediately 
 ** after writing or truncating it.
 **
+**如果doTruncate非零。journalSizeLimit变量设置为0,然后将日志文件变成零字节。
+**否则,28-byte的头日志文件在这两种情况下,在页面转变成no-sync模式后立即同步日志文件写或删除它。
 ** If Pager.journalSizeLimit is set to a positive, non-zero value, and
 ** following the truncation or zeroing described above the size of the 
 ** journal file in bytes is larger than this value, then truncate the
 ** journal file to Pager.journalSizeLimit bytes. The journal file does
 ** not need to be synced following this operation.
 **
+**如果Pager.journalSizeLimit被设置成私有的，非零值。上述日志文件的大小大于这个值,然后截断页面的日志文件上journalSizeLimit字节。
 ** If an IO error occurs, abandon processing and return the IO error code.
 ** Otherwise, return SQLITE_OK.
 */
@@ -1334,6 +1608,7 @@ static int zeroJournalHdr(Pager *pPager, int doTruncate){
 ** header (JOURNAL_HDR_SZ bytes) is written into the journal file at the
 ** current location.
 **
+**必须打开日志文件时,调用这个例程。日记头写入日志文件的当前位置。
 ** The format for the journal header is as follows:
 ** - 8 bytes: Magic identifying journal format.
 ** - 4 bytes: Number of records in journal, or -1 no-sync mode is on.
@@ -1343,6 +1618,7 @@ static int zeroJournalHdr(Pager *pPager, int doTruncate){
 ** - 4 bytes: Database page size.
 ** 
 ** Followed by (JOURNAL_HDR_SZ - 28) bytes of unused space.
+**紧随其后的是字节的未使用空间.
 */
 static int writeJournalHdr(Pager *pPager){
   int rc = SQLITE_OK;                 /* Return code */
@@ -1452,6 +1728,9 @@ static int writeJournalHdr(Pager *pPager){
 ** pPager->journalOff. See comments above function writeJournalHdr() for
 ** a description of the journal header format.
 **
+**日志文件必须打开当调用这个函数的时候。日记头文件
+**从当前位置读取日志文件。的当前位置在《文件pPager - > journalOff。
+**参见上面的评论writeJournalHdr()函数描述的日志标题格式。
 ** If the header is read successfully, *pNRec is set to the number of
 ** page records following this header and *pDbSize is set to the size of the
 ** database before the transaction began, in pages. Also, pPager->cksumInit
@@ -1461,6 +1740,8 @@ static int writeJournalHdr(Pager *pPager){
 ** If the journal header file appears to be corrupted, SQLITE_DONE is
 ** returned and *pNRec and *PDbSize are undefined.  If JOURNAL_HDR_SZ bytes
 ** cannot be read from the journal file an error code is returned.
+**如果头读取成功,记录下* pNRec设置页面的数量和* pDbSize，设置数据库的大小在事务开始前。
+**此外,pPager - > cksumInit设置为值读取日志标题。在这种情况下SQLITE_OK返回。
 */
 static int readJournalHdr(
   Pager *pPager,               /* Pager object */
@@ -1575,17 +1856,27 @@ static int readJournalHdr(
 ** journal file descriptor is advanced to the next sector boundary before
 ** anything is written. The format is:
 **
+**将主日志文件名写入之日文件中pPager所指向的当前所在的位置。
+**主日志必须最后写入一个日志文件。如果页面处于同步模式，在一切被写入之前，日志文件的描述符前进到下一个扇区边界。
+**格式如下：
 **   + 4 bytes: PAGER_MJ_PGNO.
 **   + N bytes: Master journal filename in utf-8.
 **   + 4 bytes: N (length of master journal name in bytes, no nul-terminator).
 **   + 4 bytes: Master journal name checksum.
 **   + 8 bytes: aJournalMagic[].
 **
+**   4个字节：PAGER_MJ_PGNO
+**   N个字节：主日志文件名必须使用utf-8
+**   4个字节：主日志文件名的长度，没有终止符
+**   4个字符：主主日志名校验
+**   8个字节：aJournalMagic[]
 ** The master journal page checksum is the sum of the bytes in the master
 ** journal name, where each byte is interpreted as a signed 8-bit integer.
 **
+**主日志校验是所有日志文件名的字节总和，其中每个字节被解释为一个有符号的8位整数。
 ** If zMaster is a NULL pointer (occurs for a single database transaction), 
 ** this call is a no-op.
+**如果zMaster是一个空指针，这被称为一个无用的操作。
 */
 static int writeMasterJournal(Pager *pPager, const char *zMaster){
   int rc;                          /* Return code */
@@ -1679,6 +1970,8 @@ static void pager_reset(Pager *pPager){
 ** Free all structures in the Pager.aSavepoint[] array and set both
 ** Pager.aSavepoint and Pager.nSavepoint to zero. Close the sub-journal
 ** if it is open and the pager is not in exclusive mode.
+释放页面里的所有结构体。aSavepoint[]数组和集合并Pager.aSavepoint 和 Pager.nSavepoint清零。
+如果sub-journal打开或者页面没有加上排它锁关闭sub-journal。
 */
 static void releaseAllSavepoints(Pager *pPager){
   int ii;               /* Iterator for looping through Pager.aSavepoint */
