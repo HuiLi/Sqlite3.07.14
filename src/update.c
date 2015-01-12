@@ -17,7 +17,7 @@
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 /* Forward declaration */
 static void updateVirtualTable(
-  Parse *pParse,       /* The parsing context解析指针 */
+  Parse *pParse,       /* The parsing context 解析指针 */
   SrcList *pSrc,       /* The virtual table to be modified 要修改的虚拟表 */
   Table *pTab,         /* The virtual table 虚拟表*/
   ExprList *pChanges,  /* The columns to change in the UPDATE statement  处理UPDATE语句中的列变化 */
