@@ -19,7 +19,7 @@
 ** (as in the FROM clause of a SELECT statement) in this case it contains
 ** the name of a single table, as one might find in an INSERT, DELETE,
 ** or UPDATE statement.  Look up that table in the symbol table and
-** return a pointer.  Set an error message and return NULL if the table 
+** return a pointer.  Set an error message and return NULL if the table  
 ** name is not found or if any other error occurs.
 **而SrcList可以在代表多个表和子查询（如在从SELECT语句的子句）在此情况下，它含有（如在FROM SELECT语句的子句）在此情况下，它包含单个表的名称，因为可能会发现一个INSERT，DELETE或UPDATE语句。查找该表中的符号表，并返回一个指针。设置一个错误信息，如果表名没有找到返回NULL，或如果发生任何错误。
 ** The following fields are initialized appropriate in pSrc:
