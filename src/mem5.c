@@ -39,6 +39,9 @@
 ** This algorithm is described in: J. M. Robson. "Bounds for Some Functions
 ** Concerning Dynamic Storage Allocation". Journal of the Association for
 ** Computing Machinery, Volume 21, Number 8, July 1974, pages 491-499.
+** 该算法描述为: J. M. Robson. "关于一些函数动态存储分配的界".。
+**Journal of the Association forComputing Machinery, Volume 21,
+**Number 8, July 1974, pages 491-499.
 ** 
 ** Let n be the size of the largest allocation divided by the minimum
 ** allocation size (after rounding all sizes up to a power of 2.)  Let M
@@ -46,7 +49,9 @@
 ** N be the total amount of memory available for allocation.  Robson
 ** proved that this memory allocator will never breakdown due to 
 ** fragmentation as long as the following constraint holds:
-**让n是最大内存分配与最小分配的比值(四舍五入至 2 的幂)， 让M是应用程序曾经在任何时间点取出的最大内存数量。设 N 是内存的的可供分配总量。
+**设n是最大内存分配与最小分配的比值(四舍五入至 2 的幂)。
+**设M是应用程序曾经在任何时间点取出的最大内存数量。
+**设N 是内存的的可供分配总量。
 **罗布森证明了这个内存分配器将不会因为内存碎片崩溃，只要满足以下约束
 **      N >=  M*(1 + log2(n)/2) - n + 1
 **函数Sqlite3_status() 逻辑追踪 n 和 M 的最大值所以应用程序可以在任何时间，验证此约束。
@@ -86,7 +91,8 @@ struct Mem5Link {
 ** mem5.szAtom is always at least 8 and 32-bit integers are used,
 ** it is not actually possible to reach this limit.
 */
-/*任何分配的最大尺寸为（（1<< LOGMAX）* mem5.azAtom）。因为mem5.Atom总是至少8位和32位的整数时，它实际上不可能达到这个限度。*/
+/*任何分配的最大尺寸为（（1<< LOGMAX）* mem5.azAtom）。
+因为mem5.Atom总是至少8位和32位的整数时，它实际上不可能达到这个限度。*/
 #define LOGMAX 30             /*宏定义LOGMAX为30*/
 
 /*
@@ -137,7 +143,8 @@ static SQLITE_WSD struct Mem5Global {
   ** and so forth.
   */
   /*
-  **空闲块数组。 aiFreelist[0]是大小为mem5.szAtom空闲块数组。 aiFreelist[1]大小为szAtom*2，以此类推。
+  **空闲块数组。 aiFreelist[0]是大小为mem5.szAtom空闲块数组。 
+  aiFreelist[1]大小为szAtom*2，以此类推。
   */
 /*使用了一个大小为31个字节的空闲链表来保存空闲的block，
  值为 -1 表示是空链表；
@@ -275,10 +282,10 @@ static int memsys5UnlinkFirst(int iLogsize){
 **返回一个大小至少为nBytes的内存块。如果不能或nBytes等于0，返回空值NULL.。
 ** The caller guarantees that nByte positive.
 **调用方需保证nByte 为正。
-**调用方在调用这个线程前会加上互斥锁，所以不可能有两个或多个该线程同时发生。
 ** The caller has obtained a mutex prior to invoking this
 ** routine so there is never any chance that two or more
 ** threads can be in this routine at the same time.
+**调用方在调用这个线程前会加上互斥锁，所以不可能有两个或多个该线程同时发生。
 */
 static void *memsys5MallocUnsafe(int nByte){
   int i;           /* Index of a mem5.aPool[] slot */  /*aPool的索引*/
@@ -310,6 +317,9 @@ static void *memsys5MallocUnsafe(int nByte){
   /* Make sure mem5.aiFreelist[iLogsize] contains at least one free
   ** block.  If not, then split a block of the next larger power of
   ** two in order to create a new free block of size iLogsize.
+  确保mem5.aiFreelist[iLogsize] 中至少包含一个空闲块。
+  如果没有，那就把两块中效益更大的一块分裂
+  以创建一个新的大小iLogsize空闲块。
   */
   /*aiFreelist[iLogsize]至少包含一个空闲块。
   如果没有，那么就从下一个大小为2的幂的内存块中划出iLogsize大小的内存块，作为的新的空闲块。*/
@@ -337,7 +347,8 @@ static void *memsys5MallocUnsafe(int nByte){
   }
   mem5.aCtrl[i] = iLogsize;
 
-  /* Update allocator performance statistics. *//*更新内存分配器性能统计数据。*/
+  /* Update allocator performance statistics. */
+  /*更新内存分配器性能统计数据。*/
   mem5.nAlloc++;
   mem5.totalAlloc += iFullSz;
   mem5.totalExcess += iFullSz - nByte;
@@ -390,8 +401,7 @@ static void memsys5FreeUnsafe(void *pOld){
   例如 iBlock   = 4 ， iLogSize  = 2， 这时iBlock就落在单数倍上了，需要向前合并；   
   iBuddy =  iBlock - size;
   iBlock  = 8， iLogSize  = 2， 这是iBlock就落在偶数倍上，需要向后合并；
-iBuddy =  iBlock  + size;  
-  */
+  iBuddy =  iBlock  + size;*/
   while( ALWAYS(iLogsize<LOGMAX) ){
     int iBuddy;
     if( (iBlock>>iLogsize) & 1 ){
@@ -434,9 +444,9 @@ static void *memsys5Malloc(int nBytes){
 /*
 ** Free memory.
 **可用内存
-**当pPrior==0，防止外层内存分配器调用此程序
 ** The outer layer memory allocator prevents this routine from
 ** being called with pPrior==0.
+**当pPrior==0，防止外层内存分配器调用此程序
 */
 static void memsys5Free(void *pPrior){
   assert( pPrior!=0 );
@@ -494,8 +504,7 @@ static void *memsys5Realloc(void *pPrior, int nBytes){
 ** All allocations must be a power of two and must be expressed by a
 ** 32-bit signed integer.  Hence the largest allocation is 0x40000000
 ** or 1073741824 bytes.
-*/
-/*所有的内存分配大小必须是2的幂，并且必须由一个32位有符号整数表示。
+**所有的内存分配大小必须是2的幂，并且必须由一个32位有符号整数表示。
 因此，最大的内存分配是0x40000000或1073741824字节。*/
 static int memsys5Roundup(int n){
   int iFullSz;
@@ -596,8 +605,7 @@ static void memsys5Shutdown(void *NotUsed){
 /*
 ** Open the file indicated and write a log of all unfreed memory 
 ** allocations into that log.
-*/
-/*打开日志文件显示并写入所有非空闲内存分配*/
+**打开日志文件显示并写入所有非空闲内存分配*/
 void sqlite3Memsys5Dump(const char *zFilename){
   FILE *out;
   int i, j, n;
