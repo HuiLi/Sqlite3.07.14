@@ -21,24 +21,27 @@
 ** or UPDATE statement.  Look up that table in the symbol table and
 ** return a pointer.  Set an error message and return NULL if the table 
 ** name is not found or if any other error occurs.
-**
+**而SrcList可以在代表多个表和子查询（如在从SELECT语句的子句）在此情况下，它含有（如在FROM SELECT语句的子句）在此情况下，它包含单个表的名称，因为可能会发现一个INSERT，DELETE或UPDATE语句。查找该表中的符号表，并返回一个指针。设置一个错误信息，如果表名没有找到返回NULL，或如果发生任何错误。
 ** The following fields are initialized appropriate in pSrc:
-**
-**    pSrc->a[0].pTab       Pointer to the Table object
-**    pSrc->a[0].pIndex     Pointer to the INDEXED BY index, if there is one
+**在pSrc初始化以下字段:
+**    pSrc->a[0].pTab       Pointer to the Table object  指向目标表
+**    pSrc->a[0].pIndex     Pointer to the INDEXED BY index, if there is one  有INDEXED BY语句的指向INDEXED BY 索引
 **
 */
 Table *sqlite3SrcListLookup(Parse *pParse, SrcList *pSrc){
+  //函数的作用查找所有名字为pSrc的表，如果没有找到任何表，添加一个错误消息pParse - > zErrMsg并返回NULL。如果所有的表都找到，返回一个指针，指向最后一个表。
   struct SrcList_item *pItem = pSrc->a;
   Table *pTab;
   assert( pItem && pSrc->nSrc==1 );
   pTab = sqlite3LocateTable(pParse, 0, pItem->zName, pItem->zDatabase);
+  //这个函数定位pItem所指的表所在的数据库，表的名字，并用指针pTab指向该定位的表 
   sqlite3DeleteTable(pParse->db, pItem->pTab);
+  //功能：删除该表 ，但是还没有调用该函数 
   pItem->pTab = pTab;
-  if( pTab ){
+  if( pTab ){//如果这个表存在，则逐一检查这个表中的参数   
     pTab->nRef++;
   }
-  if( sqlite3IndexedByLookup(pParse, pItem) ){
+  if( sqlite3IndexedByLookup(pParse, pItem) ){//如果通过查找索引和该表匹配，则0表示要找的就是这个表 
     pTab = 0;
   }
   return pTab;
@@ -48,30 +51,31 @@ Table *sqlite3SrcListLookup(Parse *pParse, SrcList *pSrc){
 ** Check to make sure the given table is writable.  If it is not
 ** writable, generate an error message and return 1.  If it is
 ** writable return 0;
+检查以确保给定的表是可写的。如果不写，产生错误信息，并返回1。如果它是可写的返回0;
 */
 int sqlite3IsReadOnly(Parse *pParse, Table *pTab, int viewOk){
-  /* A table is not writable under the following circumstances:
+  /* A table is not writable under the following circumstances:表在以下情况下是可写的:
   **
   **   1) It is a virtual table and no implementation of the xUpdate method
-  **      has been provided, or
+  **      has been provided, or（它是一个虚拟表，没有提供xUpdate的实现方法） 
   **   2) It is a system table (i.e. sqlite_master), this call is not
   **      part of a nested parse and writable_schema pragma has not 
-  **      been specified.
+  **      been specified.（它是系统表（即SQLITE_MASTER），此调用不是嵌套解析的一部分，并且writable_schema 没有指定) 
   **
-  ** In either case leave an error message in pParse and return non-zero.
+  ** In either case leave an error message in pParse and return non-zero.以上这两种情况在解析指针中会留下一个错误信息并返回非零
   */
-  if( ( IsVirtual(pTab) 
-     && sqlite3GetVTable(pParse->db, pTab)->pMod->pModule->xUpdate==0 )
+  if( ( IsVirtual(pTab)  //xUpdate==0表示没有提供xUpdate的实现方法 
+     && sqlite3GetVTable(pParse->db, pTab)->pMod->pModule->xUpdate==0 )//一层一层的关系db->tab->mod->module->xUpdate 
    || ( (pTab->tabFlags & TF_Readonly)!=0
      && (pParse->db->flags & SQLITE_WriteSchema)==0
      && pParse->nested==0 )
-  ){
+  ){//说明给定的表示不可写的，生成一条错误信息，并返回1 
     sqlite3ErrorMsg(pParse, "table %s may not be modified", pTab->zName);
     return 1;
   }
 
 #ifndef SQLITE_OMIT_VIEW
-  if( !viewOk && pTab->pSelect ){
+  if( !viewOk && pTab->pSelect ){//该表不是view是系统表（i.e.sqlite_master表是只读的，不能对它使用uodate,insert,delete） 
     sqlite3ErrorMsg(pParse,"cannot modify %s because it is a view",pTab->zName);
     return 1;
   }
@@ -85,18 +89,20 @@ int sqlite3IsReadOnly(Parse *pParse, Table *pTab, int viewOk){
 ** Evaluate a view and store its result in an ephemeral table.  The
 ** pWhere argument is an optional WHERE clause that restricts the
 ** set of rows in the view that are to be added to the ephemeral table.
+评估一个视图，它的结果存储在一个短暂的表，pWhere指针所指的where子句限制设定在认为将被添加到临时表中的行。
 */
 void sqlite3MaterializeView(
-  Parse *pParse,       /* Parsing context */
-  Table *pView,        /* View definition */
-  Expr *pWhere,        /* Optional WHERE clause to be added */
-  int iCur             /* Cursor number for ephemerial table */
+  该函数的作用：把视图存放在一个临时的表空间中，然后通过 Expr *sqlite3LimitWhere（）函数产生一个表达树来实现DELETE和UPDATE中的where,order by,limit/offset 部分
+  Parse *pParse,       /* Parsing context 解析文本*/
+  Table *pView,        /* View definition 视图定义*/
+  Expr *pWhere,        /* Optional WHERE clause to be added 选择where语句中的一部分添加到表中*/
+  int iCur             /* Cursor number for ephemerial table 临时表的游标号*/
 ){
   SelectDest dest;
   Select *pDup;
   sqlite3 *db = pParse->db;
 
-  pDup = sqlite3SelectDup(db, pView->pSelect, 0);
+  pDup = sqlite3SelectDup(db, pView->pSelect, 0);//db->pView->pSelete(从视图中选择语句)
   if( pWhere ){
     SrcList *pFrom;
     
@@ -129,22 +135,23 @@ void sqlite3MaterializeView(
 **                               pLimitWhere (pInClause)
 */
 Expr *sqlite3LimitWhere(
-  Parse *pParse,               /* The parser context */
-  SrcList *pSrc,               /* the FROM clause -- which tables to scan */
-  Expr *pWhere,                /* The WHERE clause.  May be null */
-  ExprList *pOrderBy,          /* The ORDER BY clause.  May be null */
-  Expr *pLimit,                /* The LIMIT clause.  May be null */
-  Expr *pOffset,               /* The OFFSET clause.  May be null */
-  char *zStmtType              /* Either DELETE or UPDATE.  For error messages. */
+  Parse *pParse,               /* The parser context解析指针 */
+  SrcList *pSrc,               /* the FROM clause -- which tables to scan指向要查看的表 */
+  Expr *pWhere,                /* The WHERE clause.  May be null  WHERE 语句指针.  可以为空*/
+  ExprList *pOrderBy,          /* The ORDER BY clause.  May be null ORDER BY语句，可以为空 */
+  Expr *pLimit,                /* The LIMIT clause.  May be null LIMIT语句，可以为空*/
+  Expr *pOffset,               /* The OFFSET clause.  May be null   OFFSET语句，可以为空*/
+  char *zStmtType              /* Either DELETE or UPDATE.  For error messages. 错误信息*/
 ){
-  Expr *pWhereRowid = NULL;    /* WHERE rowid .. */
-  Expr *pInClause = NULL;      /* WHERE rowid IN ( select ) */
+  Expr *pWhereRowid = NULL;    /* WHERE rowid ..  where字句所处的行 */
+  Expr *pInClause = NULL;      /* WHERE rowid IN ( select )  指向where字句所在的表达式*/
   Expr *pSelectRowid = NULL;   /* SELECT rowid ... */
   ExprList *pEList = NULL;     /* Expression list contaning only pSelectRowid */
   SrcList *pSelectSrc = NULL;  /* SELECT rowid FROM x ... (dup of pSrc) */
   Select *pSelect = NULL;      /* Complete SELECT tree */
 
   /* Check that there isn't an ORDER BY without a LIMIT clause.
+  order by没有limit就输出错误信息
   */
   if( pOrderBy && (pLimit == 0) ) {
     sqlite3ErrorMsg(pParse, "ORDER BY without LIMIT on %s", zStmtType);
@@ -153,9 +160,10 @@ Expr *sqlite3LimitWhere(
 
   /* We only need to generate a select expression if there
   ** is a limit/offset term to enforce.
+  如果执行LIMIT/OFFSET语句.我们只需要生成一个选择表达式
   */
   if( pLimit == 0 ) {
-    /* if pLimit is null, pOffset will always be null as well. */
+    /* if pLimit is null, pOffset will always be null as well. 如果LIMIT语句为空，OFFSET语句也为空*/
     assert( pOffset == 0 );
     return pWhere;
   }
@@ -166,6 +174,7 @@ Expr *sqlite3LimitWhere(
   ** becomes:
   **   DELETE FROM table_a WHERE rowid IN ( 
   **     SELECT rowid FROM table_a WHERE col1=1 ORDER BY col2 LIMIT 1 OFFSET 1
+  生成一个选择表达式树来执行DELETE或UPDATE中的LIMIT/OFFSET语句
   **   );
   */
 
@@ -175,19 +184,20 @@ Expr *sqlite3LimitWhere(
   if( pEList == 0 ) goto limit_where_cleanup_2;
 
   /* duplicate the FROM clause as it is needed by both the DELETE/UPDATE tree
-  ** and the SELECT subtree. */
+  ** and the SELECT subtree.
+  当需要DELETE/UPDATE树和SELECT子树时，复制FROM子句*/
   pSelectSrc = sqlite3SrcListDup(pParse->db, pSrc, 0);
   if( pSelectSrc == 0 ) {
     sqlite3ExprListDelete(pParse->db, pEList);
     goto limit_where_cleanup_2;
   }
 
-  /* generate the SELECT expression tree. */
+  /* generate the SELECT expression tree.生成SELECT表达式树 */
   pSelect = sqlite3SelectNew(pParse,pEList,pSelectSrc,pWhere,0,0,
                              pOrderBy,0,pLimit,pOffset);
   if( pSelect == 0 ) return 0;
 
-  /* now generate the new WHERE rowid IN clause for the DELETE/UDPATE */
+  /* now generate the new WHERE rowid IN clause for the DELETE/UDPATE  为DELETE/UPDATE生成新的WHERE ROWID IN子句*/
   pWhereRowid = sqlite3PExpr(pParse, TK_ROW, 0, 0, 0);
   if( pWhereRowid == 0 ) goto limit_where_cleanup_1;
   pInClause = sqlite3PExpr(pParse, TK_IN, pWhereRowid, 0, 0);
@@ -198,7 +208,7 @@ Expr *sqlite3LimitWhere(
   sqlite3ExprSetHeight(pParse, pInClause);
   return pInClause;
 
-  /* something went wrong. clean up anything allocated. */
+  /* something went wrong. clean up anything allocated.出现错误，清理分配的东西 */
 limit_where_cleanup_1:
   sqlite3SelectDelete(pParse->db, pSelect);
   return 0;
@@ -214,34 +224,34 @@ limit_where_cleanup_2:
 
 /*
 ** Generate code for a DELETE FROM statement.
-**
+**生成一个DELETE FROM语句代码
 **     DELETE FROM table_wxyz WHERE a<5 AND b NOT NULL;
 **                 \________/       \________________/
 **                  pTabList              pWhere
 */
 void sqlite3DeleteFrom(
-  Parse *pParse,         /* The parser context */
-  SrcList *pTabList,     /* The table from which we should delete things */
-  Expr *pWhere           /* The WHERE clause.  May be null */
+  Parse *pParse,         /* The parser context   解析指针*/
+  SrcList *pTabList,     /* The table from which we should delete things  表中指向要删去内容的指针 */
+  Expr *pWhere           /* The WHERE clause.  May be null  WHERE 语句指针.  可以为空 */
 ){
-  Vdbe *v;               /* The virtual database engine */
-  Table *pTab;           /* The table from which records will be deleted */
-  const char *zDb;       /* Name of database holding pTab */
-  int end, addr = 0;     /* A couple addresses of generated code */
-  int i;                 /* Loop counter */
-  WhereInfo *pWInfo;     /* Information about the WHERE clause */
-  Index *pIdx;           /* For looping over indices of the table */
-  int iCur;              /* VDBE Cursor number for pTab */
-  sqlite3 *db;           /* Main database structure */
-  AuthContext sContext;  /* Authorization context */
+  Vdbe *v;               /* The virtual database engine   虚拟数据库引擎指针*/
+  Table *pTab;           /* The table from which records will be deleted   要被删去内容的表的指针*/
+  const char *zDb;       /* Name of database holding pTab   pTab名字为pTab数据库 */
+  int end, addr = 0;     /* A couple addresses of generated code   代码地址*/
+  int i;                 /* Loop counter    循环计数值*/
+  WhereInfo *pWInfo;     /* Information about the WHERE clause  WHERE 语句信息*/
+  Index *pIdx;           /* For looping over indices of the table 遍历索引的指针*/
+  int iCur;              /* VDBE Cursor number for pTab  pTab的VDBE指针*/
+  sqlite3 *db;           /* Main database structure 主数据库指针*/
+  AuthContext sContext;  /* Authorization context 授权内容*/
   NameContext sNC;       /* Name context to resolve expressions in */
   int iDb;               /* Database number */
-  int memCnt = -1;       /* Memory cell used for change counting */
-  int rcauth;            /* Value returned by authorization callback */
+  int memCnt = -1;       /* Memory cell used for change counting  改变计数器变量 */
+  int rcauth;            /* Value returned by authorization callback  返回值*/
 
 #ifndef SQLITE_OMIT_TRIGGER
-  int isView;                  /* True if attempting to delete from a view */
-  Trigger *pTrigger;           /* List of table triggers, if required */
+  int isView;                  /* True if attempting to delete from a view  视图变量*/
+  Trigger *pTrigger;           /* List of table triggers, if required 触发器指针*/
 #endif
 
   memset(&sContext, 0, sizeof(sContext));
@@ -255,12 +265,14 @@ void sqlite3DeleteFrom(
   ** put in an SrcList structure because some of the subroutines we
   ** will be calling are designed to work with multiple tables and expect
   ** an SrcList* parameter instead of just a Table* parameter.
+  找到我们想要删除的表。该表必须被放在一个SrcList结构，因为一些为多个表服务的子程序将被调用并且用Srclist参数来代替Table参数
   */
   pTab = sqlite3SrcListLookup(pParse, pTabList);
   if( pTab==0 )  goto delete_from_cleanup;
 
   /* Figure out if we have any triggers and if the table being
   ** deleted from is a view
+  弄清楚是否有触发器，是否删除的这个表是一个视图
   */
 #ifndef SQLITE_OMIT_TRIGGER
   pTrigger = sqlite3TriggersExist(pParse, pTab, TK_DELETE, 0, 0);
@@ -274,7 +286,7 @@ void sqlite3DeleteFrom(
 # define isView 0
 #endif
 
-  /* If pTab is really a view, make sure it has been initialized.
+  /* If pTab is really a view, make sure it has been initialized.如果pTab所指的是一个视图，确保它已经初始化
   */
   if( sqlite3ViewGetColumnNames(pParse, pTab) ){
     goto delete_from_cleanup;
@@ -293,7 +305,7 @@ void sqlite3DeleteFrom(
   }
   assert(!isView || pTrigger);
 
-  /* Assign  cursor number to the table and all its indices.
+  /* Assign  cursor number to the table and all its indices.为表分配游标号和所有的索引
   */
   assert( pTabList->nSrc==1 );
   iCur = pTabList->a[0].iCursor = pParse->nTab++;
@@ -301,13 +313,13 @@ void sqlite3DeleteFrom(
     pParse->nTab++;
   }
 
-  /* Start the view context
+  /* Start the view context  开始解析上下文 
   */
   if( isView ){
     sqlite3AuthContextPush(pParse, &sContext, pTab->zName);
   }
 
-  /* Begin generating code.
+  /* Begin generating code. 开始生成代码
   */
   v = sqlite3GetVdbe(pParse);
   if( v==0 ){
@@ -318,6 +330,7 @@ void sqlite3DeleteFrom(
 
   /* If we are trying to delete from a view, realize that view into
   ** a ephemeral table.
+  如果我们尝试去删除一个视图，该视图必须在一个临时表中
   */
 #if !defined(SQLITE_OMIT_VIEW) && !defined(SQLITE_OMIT_TRIGGER)
   if( isView ){
@@ -325,7 +338,7 @@ void sqlite3DeleteFrom(
   }
 #endif
 
-  /* Resolve the column names in the WHERE clause.
+  /* Resolve the column names in the WHERE clause. 在WHERE子句中解决列名
   */
   memset(&sNC, 0, sizeof(sNC));
   sNC.pParse = pParse;
@@ -336,6 +349,7 @@ void sqlite3DeleteFrom(
 
   /* Initialize the counter of the number of rows deleted, if
   ** we are counting rows.
+  如果要统计行数，初始化要删除行的编号的计数器
   */
   if( db->flags & SQLITE_CountRows ){
     memCnt = ++pParse->nMem;
@@ -346,7 +360,8 @@ void sqlite3DeleteFrom(
   /* Special case: A DELETE without a WHERE clause deletes everything.
   ** It is easier just to erase the whole table. Prior to version 3.6.5,
   ** this optimization caused the row change count (the value returned by 
-  ** API function sqlite3_count_changes) to be set incorrectly.  */
+  ** API function sqlite3_count_changes) to be set incorrectly. 
+  特殊情况:DELETE语句中没有WHERE子句将删除所有的行，这样很容易删除整个表，在之前的3.6.5版本，这个优化导致行被改变的计数器(由函数sqlite3_count_changes返回的值)*/
   if( rcauth==SQLITE_OK && pWhere==0 && !pTrigger && !IsVirtual(pTab) 
    && 0==sqlite3FkRequired(pParse, pTab, 0, 0)
   ){
@@ -361,13 +376,14 @@ void sqlite3DeleteFrom(
 #endif /* SQLITE_OMIT_TRUNCATE_OPTIMIZATION */
   /* The usual case: There is a WHERE clause so we have to scan through
   ** the table and pick which records to delete.
+  通常情况下有一个WHERE子句使得我们通过扫描表并挑选其中的记录去删除
   */
   {
-    int iRowSet = ++pParse->nMem;   /* Register for rowset of rows to delete */
-    int iRowid = ++pParse->nMem;    /* Used for storing rowid values. */
-    int regRowid;                   /* Actual register containing rowids */
+    int iRowSet = ++pParse->nMem;   /* Register for rowset of rows to delete  记录要删除的行 */
+    int iRowid = ++pParse->nMem;    /* Used for storing rowid values.储存rowid的值*/
+    int regRowid;                   /* Actual register containing rowids  含有rowids实际值的计数器 */
 
-    /* Collect rowids of every row to be deleted.
+    /* Collect rowids of every row to be deleted.收集要删除行的rowid
     */
     sqlite3VdbeAddOp2(v, OP_Null, 0, iRowSet);
     pWInfo = sqlite3WhereBegin(
@@ -383,20 +399,22 @@ void sqlite3DeleteFrom(
 
     /* Delete every item whose key was written to the list during the
     ** database scan.  We have to delete items after the scan is complete
-    ** because deleting an item can change the scan order.  */
+    ** because deleting an item can change the scan order. 
+    在数据库扫描的过程中删除主键写入到列表中的每一个项目，在扫描完成后删除这些项目，因为删除的项目可以更改扫描的顺序*/
     end = sqlite3VdbeMakeLabel(v);
 
     /* Unless this is a view, open cursors for the table we are 
     ** deleting from and all its indices. If this is a view, then the
     ** only effect this statement has is to fire the INSTEAD OF 
-    ** triggers.  */
+    ** triggers. 
+    除非这是一个视图，打开要删除表的游标和它的所有索引。如果是一个视图，唯一的影响就是要解除INSTEAD OF触发器*/
     if( !isView ){
       sqlite3OpenTableAndIndices(pParse, pTab, iCur, OP_OpenWrite);
     }
 
     addr = sqlite3VdbeAddOp3(v, OP_RowSetRead, iRowSet, end, iRowid);
 
-    /* Delete the row */
+    /* Delete the row 删除行*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
     if( IsVirtual(pTab) ){
       const char *pVTab = (const char *)sqlite3GetVTable(db, pTab);
@@ -411,11 +429,11 @@ void sqlite3DeleteFrom(
       sqlite3GenerateRowDelete(pParse, pTab, iCur, iRowid, count, pTrigger, OE_Default);
     }
 
-    /* End of the delete loop */
+    /* End of the delete loop 结束DELETE循环*/
     sqlite3VdbeAddOp2(v, OP_Goto, 0, addr);
     sqlite3VdbeResolveLabel(v, end);
 
-    /* Close the cursors open on the table and its indexes. */
+    /* Close the cursors open on the table and its indexes. 关闭表上打开的游标和它所有的索引*/
     if( !isView && !IsVirtual(pTab) ){
       for(i=1, pIdx=pTab->pIndex; pIdx; i++, pIdx=pIdx->pNext){
         sqlite3VdbeAddOp2(v, OP_Close, iCur + i, pIdx->tnum);
@@ -427,6 +445,7 @@ void sqlite3DeleteFrom(
   /* Update the sqlite_sequence table by storing the content of the
   ** maximum rowid counter values recorded while inserting into
   ** autoincrement tables.
+  通过存储在插入到自动增量的表记录到的最大的rowid计数器值的内容更新sqlite_sequence表。
   */
   if( pParse->nested==0 && pParse->pTriggerTab==0 ){
     sqlite3AutoincrementEnd(pParse);
@@ -435,6 +454,7 @@ void sqlite3DeleteFrom(
   /* Return the number of rows that were deleted. If this routine is 
   ** generating code because of a call to sqlite3NestedParse(), do not
   ** invoke the callback function.
+  返回被删除行的编号，如果这个过程正在生成代码是因为调用了函数sqlite3NestedParse(),没有调用回滚函数
   */
   if( (db->flags&SQLITE_CountRows) && !pParse->nested && !pParse->pTriggerTab ){
     sqlite3VdbeAddOp2(v, OP_ResultRow, memCnt, 1);
@@ -450,7 +470,8 @@ delete_from_cleanup:
 }
 /* Make sure "isView" and other macros defined above are undefined. Otherwise
 ** thely may interfere with compilation of other functions in this file
-** (or in another file, if this file becomes part of the amalgamation).  */
+** (or in another file, if this file becomes part of the amalgamation). 
+确保它是一个视图以及它上边没有定义的其他宏定义，要不然它们这个文件中其他功能的汇编(或者在另一文件中，如果这个文件成为合并的一部分)*/
 #ifdef isView
  #undef isView
 #endif
@@ -460,53 +481,57 @@ delete_from_cleanup:
 
 /*
 ** This routine generates VDBE code that causes a single row of a
-** single table to be deleted.
+** single table to be deleted.这个例程产生VDBE代码导致单表的单行要被删除
 **
-** The VDBE must be in a particular state when this routine is called.
+** The VDBE must be in a particular state when this routine is called.当这个例程被调用的时候VDBE 必须处于特定的状态
 ** These are the requirements:
 **
 **   1.  A read/write cursor pointing to pTab, the table containing the row
 **       to be deleted, must be opened as cursor number $iCur.
-**
+**   读/写指针指向pTab，这个表包含要删除的行，该表必须通过游标号码iCur 打开
 **   2.  Read/write cursors for all indices of pTab must be open as
 **       cursor number base+i for the i-th index.
-**
+**   pTab所有索引的读写游标必须用游标号码iCur+i (i 表示第几个索引)打开
 **   3.  The record number of the row to be deleted must be stored in
 **       memory cell iRowid.
-**
+**   要被删除的行的记录号必须被存储在存储器单元iRowid。
 ** This routine generates code to remove both the table record and all 
 ** index entries that point to that record.
+//这个程序生成代码来删除这两个表中的记录和指向该记录的所有索引条目。
 */
 void sqlite3GenerateRowDelete(
-  Parse *pParse,     /* Parsing context */
-  Table *pTab,       /* Table containing the row to be deleted */
-  int iCur,          /* Cursor number for the table */
-  int iRowid,        /* Memory cell that contains the rowid to delete */
-  int count,         /* If non-zero, increment the row change counter */
-  Trigger *pTrigger, /* List of triggers to (potentially) fire */
-  int onconf         /* Default ON CONFLICT policy for triggers */
+  Parse *pParse,     /* Parsing context 解析指针*/
+  Table *pTab,       /* Table containing the row to be deleted 要被删去内容的表的指针*/
+  int iCur,          /* Cursor number for the table  pTab的VDBE指针*/
+  int iRowid,        /* Memory cell that contains the rowid to delete 储存rowid的值 */
+  int count,         /* If non-zero, increment the row change counter 如果不为0，递增行改变计数器 */
+  Trigger *pTrigger, /* List of triggers to (potentially) fire 触发器指针*/
+  int onconf         /* Default ON CONFLICT policy for triggers 触发器的冲突策略*/
 ){
-  Vdbe *v = pParse->pVdbe;        /* Vdbe */
-  int iOld = 0;                   /* First register in OLD.* array */
-  int iLabel;                     /* Label resolved to end of generated code */
+  Vdbe *v = pParse->pVdbe;        /* Vdbe 虚拟数据库引擎  */
+  int iOld = 0;                   /* First register in OLD.* array   OLD.* array 中的第一个寄存器*/
+  int iLabel;                     /* Label resolved to end of generated code  生成代码结束的标签 */
 
-  /* Vdbe is guaranteed to have been allocated by this stage. */
+  /* Vdbe is guaranteed to have been allocated by this stage.虚拟数据库引擎保证在这这个阶段已分配  */
   assert( v );
 
   /* Seek cursor iCur to the row to delete. If this row no longer exists 
   ** (this can happen if a trigger program has already deleted it), do
-  ** not attempt to delete it or fire any DELETE triggers.  */
+  ** not attempt to delete it or fire any DELETE triggers. 
+  //寻找游标iCur 来删除行，如果该行不存在(如果触发器程序已经删除它，这种情况会发生)，不要尝试去删除它或解除任何的DELETE触发器*/
   iLabel = sqlite3VdbeMakeLabel(v);
   sqlite3VdbeAddOp3(v, OP_NotExists, iCur, iLabel, iRowid);
  
   /* If there are any triggers to fire, allocate a range of registers to
-  ** use for the old.* references in the triggers.  */
+  ** use for the old.* references in the triggers. 
+  //如果任何触发器被解除，分配一些寄存器来使用旧的触发器*/
   if( sqlite3FkRequired(pParse, pTab, 0, 0) || pTrigger ){
     u32 mask;                     /* Mask of OLD.* columns in use */
-    int iCol;                     /* Iterator used while populating OLD.* */
+    int iCol;                     /* Iterator used while populating OLD.*  当填充OLD是用迭代器*/
 
     /* TODO: Could use temporary registers here. Also could attempt to
-    ** avoid copying the contents of the rowid register.  */
+    ** avoid copying the contents of the rowid register. 
+    //可以在这使用临时的寄存器，也可以尝试避免复制rowid 寄存器的内容*/
     mask = sqlite3TriggerColmask(
         pParse, pTrigger, 0, 0, TRIGGER_BEFORE|TRIGGER_AFTER, pTab, onconf
     );
@@ -515,7 +540,8 @@ void sqlite3GenerateRowDelete(
     pParse->nMem += (1 + pTab->nCol);
 
     /* Populate the OLD.* pseudo-table register array. These values will be 
-    ** used by any BEFORE and AFTER triggers that exist.  */
+    ** used by any BEFORE and AFTER triggers that exist.  
+     //填充OLD 伪表寄存器数组，这些值将被存在的BEFORE 和AFTER寄存器使用*/
     sqlite3VdbeAddOp2(v, OP_Copy, iRowid, iOld);
     for(iCol=0; iCol<pTab->nCol; iCol++){
       if( mask==0xffffffff || mask&(1<<iCol) ){
@@ -523,7 +549,7 @@ void sqlite3GenerateRowDelete(
       }
     }
 
-    /* Invoke BEFORE DELETE trigger programs. */
+    /* Invoke BEFORE DELETE trigger programs.用BEFORE DELETE 触发器程序 */
     sqlite3CodeRowTrigger(pParse, pTrigger, 
         TK_DELETE, 0, TRIGGER_BEFORE, pTab, iOld, onconf, iLabel
     );
@@ -531,18 +557,21 @@ void sqlite3GenerateRowDelete(
     /* Seek the cursor to the row to be deleted again. It may be that
     ** the BEFORE triggers coded above have already removed the row
     ** being deleted. Do not attempt to delete the row a second time, and 
-    ** do not fire AFTER triggers.  */
+    ** do not fire AFTER triggers. 
+    	//在此寻找要删除行的游标，这可能是BEFORE 触发器代码已经移除了要删除的行，不要尝试去第二次删除该行，不要解除AFTER 触发器*/
     sqlite3VdbeAddOp3(v, OP_NotExists, iCur, iLabel, iRowid);
 
     /* Do FK processing. This call checks that any FK constraints that
     ** refer to this table (i.e. constraints attached to other tables) 
-    ** are not violated by deleting this row.  */
+    ** are not violated by deleting this row. 
+    	//执行外键约束过程，该调用将检查与本表有关的任何外键约束，该调用不会影响删除行*/
     sqlite3FkCheck(pParse, pTab, iOld, 0);
   }
 
   /* Delete the index and table entries. Skip this step if pTab is really
   ** a view (in which case the only effect of the DELETE statement is to
-  ** fire the INSTEAD OF triggers).  */ 
+  ** fire the INSTEAD OF triggers). 
+  	//删除索引和表条目，如果pTab所指的表是一个视图(在这个情况下对DELETE 语句唯一的影响是解除INSTEAD OF 触发器) 跳过这一步*/ 
   if( pTab->pSelect==0 ){
     sqlite3GenerateRowIndexDelete(pParse, pTab, iCur, 0);
     sqlite3VdbeAddOp2(v, OP_Delete, iCur, (count?OPFLAG_NCHANGE:0));
@@ -553,41 +582,45 @@ void sqlite3GenerateRowDelete(
 
   /* Do any ON CASCADE, SET NULL or SET DEFAULT operations required to
   ** handle rows (possibly in other tables) that refer via a foreign key
-  ** to the row just deleted. */ 
+  ** to the row just deleted.
+  	//通过引用被删除行的外键执行任何处理行 (可能在其他表中)  的CASCADE,SET NULL 或SET DEFAULT 操作*/ 
   sqlite3FkActions(pParse, pTab, 0, iOld);
 
-  /* Invoke AFTER DELETE trigger programs. */
+  /* Invoke AFTER DELETE trigger programs.调用AFTER DELETE触发器程序 */
   sqlite3CodeRowTrigger(pParse, pTrigger, 
       TK_DELETE, 0, TRIGGER_AFTER, pTab, iOld, onconf, iLabel
   );
 
   /* Jump here if the row had already been deleted before any BEFORE
   ** trigger programs were invoked. Or if a trigger program throws a 
-  ** RAISE(IGNORE) exception.  */
+  ** RAISE(IGNORE) exception. 
+  在调用BEFORE 触发器之前已经删除跳转到这里。或者一个触发器程序抛出了一个RAISE(IGNORE) 异常*/
   sqlite3VdbeResolveLabel(v, iLabel);
 }
 
 /*
 ** This routine generates VDBE code that causes the deletion of all
 ** index entries associated with a single row of a single table.
+此过程生成VDBE代码导致与单个表的单个行相关联的所有的索引条目被删除
 **
-** The VDBE must be in a particular state when this routine is called.
+** The VDBE must be in a particular state when this routine is called.当这个例程被调用的时候VDBE 必须处于特定的状态
 ** These are the requirements:
 **
 **   1.  A read/write cursor pointing to pTab, the table containing the row
 **       to be deleted, must be opened as cursor number "iCur".
-**
+**       读/写指针指向pTab，这个表包含要删除的行，该表必须通过游标号码iCur 打开
 **   2.  Read/write cursors for all indices of pTab must be open as
 **       cursor number iCur+i for the i-th index.
-**
+**        pTab所有索引的读写游标必须用游标号码iCur+i (i 表示第几个索引)打开
 **   3.  The "iCur" cursor must be pointing to the row that is to be
 **       deleted.
+         iCur 游标必须指向要删除的行
 */
 void sqlite3GenerateRowIndexDelete(
-  Parse *pParse,     /* Parsing and code generating context */
-  Table *pTab,       /* Table containing the row to be deleted */
-  int iCur,          /* Cursor number for the table */
-  int *aRegIdx       /* Only delete if aRegIdx!=0 && aRegIdx[i]>0 */
+  Parse *pParse,     /* Parsing and code generating context  解析和生成代码*/
+  Table *pTab,       /* Table containing the row to be deleted 要被删去内容的表的指针*/
+  int iCur,          /* Cursor number for the table表的游标号码 */
+  int *aRegIdx       /* Only delete if aRegIdx!=0 && aRegIdx[i]>0  只删除  aRegIdx!=0 && aRegIdx[i]>0 的aRegIdx */
 ){
   int i;
   Index *pIdx;
@@ -605,18 +638,20 @@ void sqlite3GenerateRowIndexDelete(
 ** regOut.  The key with be for index pIdx which is an index on pTab.
 ** iCur is the index of a cursor open on the pTab table and pointing to
 ** the entry that needs indexing.
+//生成代码将会产生索引值并把它放在寄存器regOut中，pIdex所指的索引值是通过pTab 打开的表iCur 游标所指的索引并且指向需要需索引的条目
 **
 ** Return a register number which is the first in a block of
 ** registers that holds the elements of the index key.  The
 ** block of registers has already been deallocated by the time
 ** this routine returns.
+//返回寄存器块(掌握着索引关键字的元素) 中第一个寄存器的编号，当这个例程返回的时候寄存器块已经被释放了
 */
 int sqlite3GenerateIndexKey(
-  Parse *pParse,     /* Parsing context */
-  Index *pIdx,       /* The index for which to generate a key */
-  int iCur,          /* Cursor number for the pIdx->pTable table */
-  int regOut,        /* Write the new index key to this register */
-  int doMakeRec      /* Run the OP_MakeRecord instruction if true */
+  Parse *pParse,     /* Parsing context  解析指针*/
+  Index *pIdx,       /* The index for which to generate a key 索引的指针 */
+  int iCur,          /* Cursor number for the pIdx->pTable table游标号码 */
+  int regOut,        /* Write the new index key to this register 向寄存器中写入新的索引键*/
+  int doMakeRec      /* Run the OP_MakeRecord instruction if true如果为真 执行  OP_MakeRecord 指令 */
 ){
   Vdbe *v = pParse->pVdbe;
   int j;
