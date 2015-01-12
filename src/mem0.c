@@ -17,7 +17,10 @@
 ** sqlite3_config() before SQLite will operate.
 */
 /*
-文件包含一个使用空操作内存分配驱动程序，当SQLITE_ZERO_MALLOC 被宏定义。在这里配置驱动程序总是失败。SQLite将不会使用这些驱动程序。这些都只是占位符。在SQLite操作之前，使用sqlite3_config()会取代真正的驱动程序。
+这个文件包含一个空操作SQLITE_ZERO_MALLOC定义时内存分配使用的驱动程序。
+配置驱动程序实现在这里总是失败。
+SQLite 不引用这些驱动程序。这些仅是些占位符。
+真正有效的驱动程序必须使用sqlite3_config()将之前的SQLite代替
 */
 #include "sqliteInt.h"
 
@@ -52,8 +55,7 @@ static void sqlite3MemShutdown(void *NotUsed){ return; }
 ** sqlite3GlobalConfig.m with pointers to the routines in this file.
 */
 /*
-该例程是外部链接这个文件的唯一的例程。
-在sqlite3GlobalConfig.m与这个文件指针的例程中填充底层内存分配函数指针。
+这个例程是唯一在这个文件与外部联系。填充在sqlite3GlobalConfig底层内存分配函数指针。指针的例程在这个文件中。
 */
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {
