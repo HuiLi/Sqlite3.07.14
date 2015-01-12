@@ -5131,16 +5131,23 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** information needed to terminate the loop.  Later, the calling routine
 ** should invoke sqlite3WhereEnd() with the return value of this function
 ** in order to complete the WHERE clause processing.
+产生用于循环的开始WHERE子句工艺加工的返回值是一个指向一个不透明的结构，它包含
+?所需的信息，以终止该循环。后来，主叫例程应该为了完成WHERE子句处理调用sqlite3WhereEnd（）这个函数的返回值。
 **
 ** If an error occurs, this routine returns NULL.
+如果出现错误，这个例程返回null。
 **
-** 基本理念是嵌套循环, 针对SELECT中FROM语句后的每一个表有一个循环体。
-** 在INSERT和UPDATE语句中类似，只不过这两个语句FROM只包含一个表。
-** 举个栗子，如果过有这样的一条SQL语句:
+** The basic idea is to do a nested loop, one loop for each table in
+** the FROM clause of a select.  (INSERT and UPDATE statements are the
+** same as a SELECT with only a single table in the FROM clause.)  For
+** example, if the SQL is this:
+其基本思路是做一个嵌套的循环，一个循环在每个表从一个选择像。
+（INSERT和UPDATE语句相同的SELECT与在仅单个表FROM子句）。
+例如，如果SQL是这样的：
 **
 **       SELECT * FROM t1, t2, t3 WHERE ...;
 **
-** 则代码生成器在概念上如下:
+** Then the code generated is conceptually like the following:
 **
 **      foreach row1 in t1 do       \    Code generated
 **        foreach row2 in t2 do      |-- by sqlite3WhereBegin()
@@ -5155,16 +5162,25 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** use of indices.  Note also that when the IN operator appears in
 ** the WHERE clause, it might result in additional nested loops for
 ** scanning through all values on the right-hand side of the IN.
+注意，该环可能不会被嵌套在它们出现在FROM子句如果以不同的顺序是
+能够更好地利用索引的顺序。还要注意的是，当在操作者显示的WHERE子句中，
+它可能会导致透过的IN的右手侧的所有值的附加的嵌套循环进行扫描。
 **
 ** There are Btree cursors associated with each table.  t1 uses cursor
 ** number pTabList->a[0].iCursor.  t2 uses the cursor pTabList->a[1].iCursor.
 ** And so forth.  This routine generates code to open those VDBE cursors
 ** and sqlite3WhereEnd() generates the code to close them.
+有与每个表相关联的B树游标。T1使用光标号pTabList->一个[0].iCursor。
+T2使用光标pTabList->一[1].iCursor。
+这个程序生成代码来打开这些VDBE光标和sqlite3WhereEnd（）生成的代码来关闭它们。
 **
 ** The code that sqlite3WhereBegin() generates leaves the cursors named
 ** in pTabList pointing at their appropriate entries.  The [...] code
 ** can use OP_Column and OP_Rowid opcodes on these cursors to extract
 ** data from the various tables of the loop.
+这sqlite3WhereBegin（）生成的代码叶pTabList命名指着自己的相
+应条目的光标。的[...]的代码可以使用OP_Column和OP_Rowid操作码
+对这些光标从环路的各种表中提取数据
 **
 ** If the WHERE clause is empty, the foreach loops must each scan their
 ** entire tables.  Thus a three-way join is an O(N^3) operation.  But if
@@ -5172,13 +5188,22 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** refer to those indices, a complete table scan can be avoided and the
 ** code will run much faster.  Most of the work of this routine is checking
 ** to see if there are indices that can be used to speed up the loop.
-**
+**如果WHERE子句是空的，foreach循环必须在每次扫描他们的整个表。
+因此，一个三路连接是O（N^3）操作。但是，如果表有索引并有在
+WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
+运行得更快。大部分该程序的工作是检查
+以查看是否有索引可以用来加速循环。
 ** Terms of the WHERE clause are also used to limit which rows actually
 ** make it to the "..." in the middle of the loop.  After each "foreach",
 ** terms of the WHERE clause that use only terms in that loop and outer
 ** loops are evaluated and if false a jump is made around all subsequent
 ** inner loops (or around the "..." if the test occurs within the inner-
 ** most loop)
+像WHER集也用来限制哪些行实际上使它的“...”，在循环的中间。
+每一个“的foreach”后，使用在循环和外循环只计算WHERE子句中的项
+进行评估，如果假跳转围绕所有后续内环取得（或围绕“......”如果
+测试中出现的inner-最回路）
+
 **
 ** OUTER JOINS
 **
@@ -5198,58 +5223,57 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 **    end
 **
 ** ORDER BY CLAUSE PROCESSING
+ORDER BY集处理
 **
 ** *ppOrderBy is a pointer to the ORDER BY clause of a SELECT statement,
 ** if there is one.  If there is no ORDER BY clause or if this routine
 ** is called from an UPDATE or DELETE statement, then ppOrderBy is NULL.
-**
+**ppOrderBy是一个指向ORDER BY的SELECT语句的WHERE集，
+如果有一个。如果没有ORDER BY子句，或者如果这个程序被
+称为从UPDATE或DELETE语句，然后ppOrderBy为NULL。
 ** If an index can be used so that the natural output order of the table
 ** scan is correct for the ORDER BY clause, then that index is used and
 ** *ppOrderBy is set to NULL.  This is an optimization that prevents an
 ** unnecessary sort of the result set if an index appropriate for the
 ** ORDER BY clause already exists.
+如果一个索引可以用来使表扫描的自然输出顺序是正确的ORDER BY集，
+则该索引的使用和ppOrderBy设置为NULL。这是阻止的结果，如果已经存
+在的指数适合于ORDER BY子句中设置的不必要的排序优化..
 **
 ** If the where clause loops cannot be arranged to provide the correct
 ** output order, then the *ppOrderBy is unchanged.
-*/
-/*
-** 在Sqlite中查询优化的基本概念是嵌套循环（nested loop），在本函数中完成所有的查询优化。
-** 而对于每一层的优化，基本的理念就是对于该层循环的表，分析WHERE子句中是否有表达式能够使用其索引。
-** Sqlite有三种基本的扫描策略：
-** (1)全表扫描，这种情况通常出现在没有WHERE子句时；
-** (2)基于索引扫描，这种情况通常出现在表有索引，而且WHERE中的表达式又能够使用该索引的情况；
-** (3)基本rowid的扫描，这种情况通常出现在WHERE表达式中含有rowid的条件。
-**    该情况实际上也是对表进行的扫描。可以说，Sqlite以rowid为聚簇索引。
+如果where子句循环无法安排提供正确的
+输出顺序，那么* ppOrderBy不变。
 */
 WhereInfo *sqlite3WhereBegin(
-  Parse *pParse,        /* 语法分析器上下文 */
-  SrcList *pTabList,    /* 需要被扫描的table列表（即From语句后跟的Table的信息列表） */
-  Expr *pWhere,         /* Where语法树 */
-  ExprList **ppOrderBy, /* An ORDER BY clause, or NULL */
-  ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL */
-  u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h */
-  int iIdxCur           /* 如果设置了WHERE_ONETABLE_ONLY,这个是表的索引值 */
+  Parse *pParse,        /* The parser context  解析器的环境*/
+  SrcList *pTabList,    /* A list of all tables to be scanned  要扫描的所有表的列表*/
+  Expr *pWhere,         /* The WHERE clause  WHERE集*/
+  ExprList **ppOrderBy, /* An ORDER BY clause, or NULL  ORDER BY集，或NULL*/
+  ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL  选择列表中的DISTINCT查询 - 或NULL*/
+  u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h  一个在sqliteInt.h定义的WHERE_*标志 */
+  int iIdxCur           /* If WHERE_ONETABLE_ONLY is set, index cursor number 如果WHERE_ONETABLE_ONLY被设置，索引光标号*/
 ){
-  int i;                     /* 循环计数器 */
-  int nByteWInfo;            /* 为WhereInfo结构体分配的字节数 */
-  int nTabList;              /* pTabList中元素的个数 */
-  WhereInfo *pWInfo;         /* 函数返回变量 */
-  Vdbe *v = pParse->pVdbe;   /* VDBE引擎 */
-  Bitmask notReady;          /* Cursors that are not yet positioned */
-  WhereMaskSet *pMaskSet;    /* The expression mask set */
-  WhereClause *pWC;               /* WHERE语句的分解 */
-  struct SrcList_item *pTabItem;  /* A single entry from pTabList */
-  WhereLevel *pLevel;             /* A single level in the pWInfo list */
-  int iFrom;                      /* First unused FROM clause element */
+  int i;                     /* Loop counter  循环计数器*/
+  int nByteWInfo;            /* Num. bytes allocated for WhereInfo struct 分配给WhereInfo结构字节*/
+  int nTabList;              /* Number of elements in pTabList  在pTabList元素的数量*/
+  WhereInfo *pWInfo;         /* Will become the return value of this function  将成为该函数的返回值*/
+  Vdbe *v = pParse->pVdbe;   /* The virtual database engine  虚拟数据库引擎*/
+  Bitmask notReady;          /* Cursors that are not yet positioned  那些尚未定位游标*/
+  WhereMaskSet *pMaskSet;    /* The expression mask set  表达mask组*/
+  WhereClause *pWC;               /* Decomposition of the WHERE clause  WHERE集分解*/
+  struct SrcList_item *pTabItem;  /* A single entry from pTabList  从pTabList单个条目*/
+  WhereLevel *pLevel;             /* A single level in the pWInfo list  在pWInfo列表中的单个水平*/
+  int iFrom;                      /* First unused FROM clause element 第一个未使用FROM子句中的元素 */
   int andFlags;              /* AND-ed combination of all pWC->a[].wtFlags */
-  sqlite3 *db;               /* 数据库的连接 */
+  sqlite3 *db;               /* Database connection  数据库连接*/
 
   /* The number of tables in the FROM clause is limited by the number of
   ** bits in a Bitmask 
+  在from子集中表的数量被bitmask中的比特数量
   */
   testcase( pTabList->nSrc==BMS );
   if( pTabList->nSrc>BMS ){
-    /* From语句后面的表数量超过Bitmask的比特数量限制 */
     sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);
     return 0;
   }
@@ -5258,6 +5282,9 @@ WhereInfo *sqlite3WhereBegin(
   ** pTabList.  But if the WHERE_ONETABLE_ONLY flag is set, then we should
   ** only generate code for the first table in pTabList and assume that
   ** any cursors associated with subsequent tables are uninitialized.
+  该功能通常会产生一个嵌套循环中pTabList所有表。
+  但如果WHERE_ONETABLE_ONLY标志设置，那么我们应该只
+  生成代码为pTabList第一个表，并假定随后表相关的任何游标初始化。
   */
   nTabList = (wctrlFlags & WHERE_ONETABLE_ONLY) ? 1 : pTabList->nSrc;
 
@@ -5267,6 +5294,11 @@ WhereInfo *sqlite3WhereBegin(
   ** and the WhereMaskSet structure. Since WhereClause contains an 8-byte
   ** field (type Bitmask) it must be aligned on an 8-byte boundary on
   ** some architectures. Hence the ROUND8() below.
+  分配和初始化WhereInfo结构将成为返回值。
+  单个分配用于存储所述WhereInfo结构，WhereInfo.a[]中，
+  WhereClause结构的内容和WhereMaskSet结构。
+  因为WhereClause包含一个8字节的字段（类型位掩码）
+  它必须对某些体系结构的8字节边界对齐。因此ROUND8（）以下。
   */
   db = pParse->db;
   nByteWInfo = ROUND8(sizeof(WhereInfo)+(nTabList-1)*sizeof(WhereLevel));
@@ -5290,11 +5322,15 @@ WhereInfo *sqlite3WhereBegin(
   pMaskSet = (WhereMaskSet*)&pWC[1];
 
   /* Disable the DISTINCT optimization if SQLITE_DistinctOpt is set via
-  ** sqlite3_test_ctrl(SQLITE_TESTCTRL_OPTIMIZATIONS,...) */
+  ** sqlite3_test_ctrl(SQLITE_TESTCTRL_OPTIMIZATIONS,...) 
+  禁用DISTINCT的优化，如果SQLITE_DistinctOpt通过sqlite3_test_ctrl设置
+  （SQLITE_TESTCTRL_OPTIMIZATIONS，...）*/
   if( db->flags & SQLITE_DistinctOpt ) pDistinct = 0;
 
   /* Split the WHERE clause into separate subexpressions where each
   ** subexpression is separated by an AND operator.
+
+  分裂WHERE集成独立的集表达式，其中每个集表达式由一个AND运算分离。
   */
   initMaskSet(pMaskSet);
   whereClauseInit(pWC, pParse, pMaskSet, wctrlFlags);
@@ -5303,6 +5339,7 @@ WhereInfo *sqlite3WhereBegin(
     
   /* Special case: a WHERE clause that is constant.  Evaluate the
   ** expression and either jump over all of the code or fall thru.
+  特殊情况：一个WHERE子集是恒定的。计算表达式，要么跳过所有的代码或下降。
   */
   if( pWhere && (nTabList==0 || sqlite3ExprIsConstantNotJoin(pWhere)) ){
     sqlite3ExprIfFalse(pParse, pWhere, pWInfo->iBreak, SQLITE_JUMPIFNULL);
@@ -5310,7 +5347,7 @@ WhereInfo *sqlite3WhereBegin(
   }
 
   /* Assign a bit from the bitmask to every term in the FROM clause.
-  **
+  **分配一个位的掩码在每个象FROM子集。
   ** When assigning bitmask values to FROM clause cursors, it must be
   ** the case that if X is the bitmask for the N-th FROM clause term then
   ** the bitmask for all FROM clause terms to the left of the N-th term
@@ -5319,16 +5356,28 @@ WhereInfo *sqlite3WhereBegin(
   ** of the join.  Subtracting one from the right table bitmask gives a
   ** bitmask for all tables to the left of the join.  Knowing the bitmask
   ** for all tables to the left of a left join is important.  Ticket #3015.
+  当指定位掩码值FROM子句光标，它一定是这样的，
+  如果X是位掩码N个FROM子集中短期的，则掩码为所有FROM子集条件的N个任期的左
+为（X-1）。从LEFT的ON子句表达式JOIN可以使用它Expr.iRightJoinTable
+价值发现的加入右表的掩码。来自右表位掩码中减去1给出了一个
+位掩码为所有表的加盟左侧。知道位掩码对于所有表左连接的左侧
+是重要的。票务＃3015
   **
   ** Configure the WhereClause.vmask variable so that bits that correspond
   ** to virtual table cursors are set. This is used to selectively disable 
   ** the OR-to-IN transformation in exprAnalyzeOrTerm(). It is not helpful 
   ** with virtual tables.
+  配置WhereClause.vmask变量，以便对应于虚表指针位设置。
+  这是用来选择性地禁用exprAnalyzeOrTerm的或到IN变换（）。
+  这对虚拟表是没有帮助的。
   **
   ** Note that bitmasks are created for all pTabList->nSrc tables in
   ** pTabList, not just the first nTabList tables.  nTabList is normally
   ** equal to pTabList->nSrc but might be shortened to 1 if the
   ** WHERE_ONETABLE_ONLY flag is set.
+  需要注意的是位掩码为所有pTabList-> NSRC表中pTabList，
+  不只是第一个nTabList表创建。nTabList通常等于pTabList-> NSRC但可能缩短为1，
+  如果该WHERE_ONETABLE_ONLY标志被设置。
   */
   assert( pWC->vmask==0 && pMaskSet->n==0 );
   for(i=0; i<pTabList->nSrc; i++){
@@ -5354,6 +5403,9 @@ WhereInfo *sqlite3WhereBegin(
   ** add new virtual terms onto the end of the WHERE clause.  We do not
   ** want to analyze these virtual terms, so start analyzing at the end
   ** and work forward so that the added virtual terms are never processed.
+  分析所有的子表达式。需要注意的是exprAnalyze（）可能会添加新的虚拟
+  条件到WHERE子句的末尾。我们不希望来分析这些虚拟象，所以开始在端
+  分析和工作向前，以使增加了从未处理的虚拟象。
   */
   exprAnalyzeAll(pTabList, pWC);
   if( db->mallocFailed ){
@@ -5363,6 +5415,8 @@ WhereInfo *sqlite3WhereBegin(
   /* Check if the DISTINCT qualifier, if there is one, is redundant. 
   ** If it is, then set pDistinct to NULL and WhereInfo.eDistinct to
   ** WHERE_DISTINCT_UNIQUE to tell the caller to ignore the DISTINCT.
+  检查是否DISTINCT限定符，如果有一个，是多余的。如果是，则设置pDistinct为NULL，
+  WhereInfo.eDistinct到WHERE_DISTINCT_UNIQUE告诉调用者忽略DISTINCT。
   */
   if( pDistinct && isDistinctRedundant(pParse, pTabList, pWC, pDistinct) ){
     pDistinct = 0;
@@ -5370,32 +5424,34 @@ WhereInfo *sqlite3WhereBegin(
   }
 
   /* Chose the best index to use for each table in the FROM clause.
-  **
+  **选择在为每个表使用FROM子集中的最好索引。
   ** This loop fills in the following fields:
+  循环填写以下字段：
   **
-  **   pWInfo->a[].pIdx      The index to use for this level of the loop.
-  **   pWInfo->a[].wsFlags   WHERE_xxx flags associated with pIdx
-  **   pWInfo->a[].nEq       The number of == and IN constraints
-  **   pWInfo->a[].iFrom     Which term of the FROM clause is being coded
-  **   pWInfo->a[].iTabCur   The VDBE cursor for the database table
-  **   pWInfo->a[].iIdxCur   The VDBE cursor for the index
-  **   pWInfo->a[].pTerm     When wsFlags==WO_OR, the OR-clause term
+  **   pWInfo->a[].pIdx      The index to use for this level of the loop.该指数用于循环的这个水平
+  **   pWInfo->a[].wsFlags   WHERE_xxx flags associated with pIdx WHERE_xxx与PIDX相关的标志
+  **   pWInfo->a[].nEq       The number of == and IN constraints ==和IN限制数量
+  **   pWInfo->a[].iFrom     Which term of the FROM clause is being coded 其中的FROM子集中被编码的象
+  **   pWInfo->a[].iTabCur   The VDBE cursor for the database table 该VDBE光标数据库表
+  **   pWInfo->a[].iIdxCur   The VDBE cursor for the index 该VDBE光标索引
+  **   pWInfo->a[].pTerm     When wsFlags==WO_OR, the OR-clause term 当wsFlags== WO_OR时，OR-象
   **
   ** This loop also figures out the nesting order of tables in the FROM
   ** clause.
+  这个循环也可以计算表在FROM子集中的嵌套顺序。
   */
   notReady = ~(Bitmask)0;
   andFlags = ~0;
   WHERETRACE(("*** Optimizer Start ***\n"));
   for(i=iFrom=0, pLevel=pWInfo->a; i<nTabList; i++, pLevel++){
-    WhereCost bestPlan;         /* Most efficient plan seen so far */
-    Index *pIdx;                /* Index for FROM table at pTabItem */
-    int j;                      /* For looping over FROM tables */
-    int bestJ = -1;             /* The value of j */
-    Bitmask m;                  /* Bitmask value for j or bestJ */
-    int isOptimal;              /* Iterator for optimal/non-optimal search */
-    int nUnconstrained;         /* Number tables without INDEXED BY */
-    Bitmask notIndexed;         /* Mask of tables that cannot use an index */
+    WhereCost bestPlan;         /* Most efficient plan seen so far  迄今看到最有效的计划*/
+    Index *pIdx;                /* Index for FROM table at pTabItem  从表中pTabItem索引*/
+    int j;                      /* For looping over FROM tables  对于遍历FROM表*/
+    int bestJ = -1;             /* The value of j j的值*/
+    Bitmask m;                  /* Bitmask value for j or bestJ  对于J或bestJ位掩码值*/
+    int isOptimal;              /* Iterator for optimal/non-optimal search  迭代最佳/非最佳搜索*/
+    int nUnconstrained;         /* Number tables without INDEXED BY  INT nUnconstrained; /*号码表没有收录*/*/
+    Bitmask notIndexed;         /* Mask of tables that cannot use an index  mask的表可以不使用索引*/
 
     memset(&bestPlan, 0, sizeof(bestPlan));
     bestPlan.rCost = SQLITE_BIG_DBL;
@@ -5404,6 +5460,8 @@ WhereInfo *sqlite3WhereBegin(
     /* Loop through the remaining entries in the FROM clause to find the
     ** next nested loop. The loop tests all FROM clause entries
     ** either once or twice. 
+	通过在FROM子句中的剩余项循环寻找下一个嵌套循环。
+	循环测试所有的FROM子句中的象一次或两次。
     **
     ** The first test is always performed if there are two or more entries
     ** remaining and never performed if there is only one FROM clause entry
@@ -5417,25 +5475,42 @@ WhereInfo *sqlite3WhereBegin(
     ** its query plan, then checking to see if that query plan uses any
     ** other FROM clause terms that are notReady.  If no notReady terms are
     ** used then the "optimal" query plan works.
-    **
+    **总是执行第一测试，如果有剩余的两个或更多个条目，
+	并从未执行，如果仅存在一个FROM子集条目选择。第一个
+	测试寻找一个“最佳”的扫描。在这种情况下的最佳的扫描
+	是一个使用相同的策略用于给定FROM子集的象作为会如果
+	条目被用作最内层嵌套循环来选择。换言之，一个表被选
+	择为使得在运行该表的成本无法通过等待其它表先运行减少。
+	首先假设FROM子句是在内部循环，并找到自己的查询计划，
+	然后检查，看看是否能查询计划使用任何其他FROM子集条
+	件是未就绪这个“最佳”的测试工作。如果没有使用未就绪条款，
+	然后在“最佳”的查询计划的运作。
     ** Note that the WhereCost.nRow parameter for an optimal scan might
     ** not be as small as it would be if the table really were the innermost
     ** join.  The nRow value can be reduced by WHERE clause constraints
     ** that do not use indices.  But this nRow reduction only happens if the
     ** table really is the innermost join.  
+	注意，对于一个最佳扫描WhereCost.nRow参数可能不小，因为它是，
+	如果表真的是最里面的联接。该nRow值可以通过WHERE子句约束不使
+	用指数减少。但这nRow降低只发生如果表真的是最里面的加入的情况下。
     **
     ** The second loop iteration is only performed if no optimal scan
     ** strategies were found by the first iteration. This second iteration
     ** is used to search for the lowest cost scan overall.
+	仅执行第二循环迭代如果由第一迭代没有找到最佳的扫描策略。
+	这第二次迭代被用于搜索成本最低扫描整体。
+
     **
     ** Previous versions of SQLite performed only the second iteration -
     ** the next outermost loop was always that with the lowest overall
     ** cost. However, this meant that SQLite could select the wrong plan
     ** for scripts such as the following:
-    **   
-    **   CREATE TABLE t1(a, b); 
-    **   CREATE TABLE t2(c, d);
+    **   以前版本的SQLite只进行了第二次迭代-The接下来最外层循环总是与最低的总成本。但是，这意味着SQLite的可能选择了错误的计划
+为脚本，如以下几点：
+    **   CREATE TABLE t1(a, b); 创建表t1（a,b）
+    **   CREATE TABLE t2(c, d);创建表t2(c,d)
     **   SELECT * FROM t2, t1 WHERE t2.rowid = t1.a;
+	从t1，t2中查询，条件是t2的rowid的值等于t1的a值
     **
     ** The best strategy is to iterate through table t1 first. However it
     ** is not possible to determine this with a simple greedy algorithm.
@@ -5443,6 +5518,9 @@ WhereInfo *sqlite3WhereBegin(
     ** as the cost of a linear scan through table t1, a simple greedy 
     ** algorithm may choose to use t2 for the outer loop, which is a much
     ** costlier approach.
+	最好的策略是通过表T1迭代第一。然而，它是无法确定这用一个简单的贪婪算法。
+	由于通过表t2线性扫描的成本是相同的，通过表t1线性扫描的成本，
+	简单的贪婪算法可以选择使用t2的用于外循环，这是一种更昂贵的方法。
     */
     nUnconstrained = 0;
     notIndexed = 0;
@@ -5493,12 +5571,18 @@ WhereInfo *sqlite3WhereBegin(
         }
 
         /* Conditions under which this table becomes the best so far:
+		条件下这个表成为迄今为止最好的
+
         **
         **   (1) The table must not depend on other tables that have not
-        **       yet run.
+        **       yet run.该表必须不依赖于有没有其他表
+?但运行。
         **
         **   (2) A full-table-scan plan cannot supercede indexed plan unless
         **       the full-table-scan is an "optimal" plan as defined above.
+		全表扫描计划无法supercede索引的计划，除非
+全表扫描是“最优”的计划定义如上。
+	
         **
         **   (3) All tables have an INDEXED BY clause or this table lacks an
         **       INDEXED BY clause or this table uses the specific
@@ -5508,9 +5592,13 @@ WhereInfo *sqlite3WhereBegin(
         **       will be detected and relayed back to the application later.
         **       The NEVER() comes about because rule (2) above prevents
         **       An indexable full-table-scan from reaching rule (3).
-        **
+        **所有的表都索引BY子集或该表中没有索引BY子句或该表使用其收录子句
+		指定的特定索引。此规则确保了最佳的那么远总是选择即使一个不可能的
+		组合收录条款给出。将被检测并传回给应用程序后的误差。
+该NEVER（）来约，因为规则（2）上述防止可转位全表扫描到达规则（3）。
         **   (4) The plan cost must be lower than prior plans or else the
         **       cost must be the same and the number of rows must be lower.
+		该计划的成本必须比现有的计划是低级否则成本必须是相同的，并行的数目必须是较低的。
         */
         if( (sCost.used&notReady)==0                       /* (1) */
             && (bestJ<0 || (notIndexed&m)!=0               /* (2) */
@@ -5569,6 +5657,9 @@ WhereInfo *sqlite3WhereBegin(
     ** INDEXED BY clause attached to it, that the named index is being
     ** used for the scan. If not, then query compilation has failed.
     ** Return an error.
+	检查，如果通过此循环迭代扫描的表已索引BY子句连接到它，
+	已命名的索引被用于扫描。如果没有，那么在查询编译失败。
+?返回一个错误。
     */
     pIdx = pTabList->a[bestJ].pIndex;
     if( pIdx ){
@@ -5578,7 +5669,10 @@ WhereInfo *sqlite3WhereBegin(
       }else{
         /* If an INDEXED BY clause is used, the bestIndex() function is
         ** guaranteed to find the index specified in the INDEXED BY clause
-        ** if it find an index at all. */
+        ** if it find an index at all. 
+		如果一个索引BY子集，该bestIndex（）函数保证找到指定的索引
+		收录条款如果找到一个索引的。
+		*/
         assert( bestPlan.plan.u.pIdx==pIdx );
       }
     }
@@ -5590,6 +5684,8 @@ WhereInfo *sqlite3WhereBegin(
 
   /* If the total query only selects a single row, then the ORDER BY
   ** clause is irrelevant.
+  如果总查询仅选择一个行，然后在ORDER BY
+子集是不相关的。
   */
   if( (andFlags & WHERE_UNIQUE)!=0 && ppOrderBy ){
     *ppOrderBy = 0;
@@ -5599,6 +5695,8 @@ WhereInfo *sqlite3WhereBegin(
   ** to use a one-pass algorithm, determine if this is appropriate.
   ** The one-pass algorithm only works if the WHERE clause constraints
   ** the statement to update a single row.
+  如果调用者是一个UPDATE或DELETE语句请求，使用一个通算法，
+  确定这是否是适量。一个合格的算法只能如果WHERE子句限制的语句更新一行。
   */
   assert( (wctrlFlags & WHERE_ONEPASS_DESIRED)==0 || pWInfo->nLevel==1 );
   if( (wctrlFlags & WHERE_ONEPASS_DESIRED)!=0 && (andFlags & WHERE_UNIQUE)!=0 ){
@@ -5608,13 +5706,14 @@ WhereInfo *sqlite3WhereBegin(
 
   /* Open all tables in the pTabList and any indices selected for
   ** searching those tables.
+  打开所选搜索这些表中的pTabList所有表和索引的任何
   */
   sqlite3CodeVerifySchema(pParse, -1); /* Insert the cookie verifier Goto */
   notReady = ~(Bitmask)0;
   pWInfo->nRowOut = (double)1;
   for(i=0, pLevel=pWInfo->a; i<nTabList; i++, pLevel++){
-    Table *pTab;     /* Table to open */
-    int iDb;         /* Index of database containing table/index */
+    Table *pTab;     /* Table to open 打开表*/
+    int iDb;         /* Index of database containing table/index  数据库包含的表/索引的索引*/
 
     pTabItem = &pTabList->a[pLevel->iFrom];
     pTab = pTabItem->pTab;
@@ -5687,6 +5786,10 @@ WhereInfo *sqlite3WhereBegin(
   ** is not used, its name is just '{}'.  If no index is used
   ** the index is listed as "{}".  If the primary key is used the
   ** index name is '*'.
+  对于测试和调试只用记录在有关当前表的查询计划信息
+和所用的索引来访问它（如果有的话）。如果表本身不使用时，
+它的名字只是“{}”。如果没有使用索引的索引被列为“{}”。
+如果主键使用的索引的名字是'*'。
   */
   for(i=0; i<nTabList; i++){
     char *z;
@@ -5732,10 +5835,11 @@ WhereInfo *sqlite3WhereBegin(
 
   /* Record the continuation address in the WhereInfo structure.  Then
   ** clean up and return.
+  记录在WhereInfo结构延续的地址。然后清理，并返回。
   */
   return pWInfo;
 
-  /* Jump here if malloc fails */
+  /* Jump here if malloc fails  如果malloc失败，跳转到这里*/
 whereBeginError:
   if( pWInfo ){
     pParse->nQueryLoop = pWInfo->savedNQueryLoop;
@@ -5747,6 +5851,7 @@ whereBeginError:
 /*
 ** Generate the end of the WHERE loop.  See comments on 
 ** sqlite3WhereBegin() for additional information.
+生成在WHERE循环的结束。查看sqlite3WhereBegin评论（）了解更多信息。
 */
 void sqlite3WhereEnd(WhereInfo *pWInfo){
   Parse *pParse = pWInfo->pParse;
@@ -5757,6 +5862,7 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
   sqlite3 *db = pParse->db;
 
   /* Generate loop termination code.
+  产生循环终止代码
   */
   sqlite3ExprCacheClear(pParse);
   for(i=pWInfo->nLevel-1; i>=0; i--){
@@ -5800,10 +5906,13 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
 
   /* The "break" point is here, just past the end of the outer loop.
   ** Set it.
+  在“break”的一点是在这里，刚刚过去的外循环的结束。
+设置它。
   */
   sqlite3VdbeResolveLabel(v, pWInfo->iBreak);
 
   /* Close all of the cursors that were opened by sqlite3WhereBegin.
+  关闭所有sqlite3WhereBegin被打开的游标。
   */
   assert( pWInfo->nLevel==1 || pWInfo->nLevel==pTabList->nSrc );
   for(i=0, pLevel=pWInfo->a; i<pWInfo->nLevel; i++, pLevel++){
@@ -5830,12 +5939,16 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
     ** as the vdbe level waits until the table is read before actually
     ** seeking the table cursor to the record corresponding to the current
     ** position in the index.
-    ** 
+    ** 如果该扫描使用索引，使代码替换以从表中的索引优先读取数据。
+	有时，这意味着该表不需要永远不会被从读出。这是一个性能提升，
+	因为VDBE水平等待直到表实际进行求表，光标对应于索引的当前位置记录之前读出。
     ** Calls to the code generator in between sqlite3WhereBegin and
     ** sqlite3WhereEnd will have created code that references the table
     ** directly.  This loop scans all that code looking for opcodes
     ** that reference the table and converts them into opcodes that
     ** reference the index.
+	调用代码生成器在sqlite3WhereBegin和sqlite3WhereEnd之间将有直接引用的表创建的代码。
+	这个循环扫描所有的代码寻找操作码引用表，将它们转换成引用索引操作码。
     */
     if( pLevel->plan.wsFlags & WHERE_INDEXED ){
       pIdx = pLevel->plan.u.pIdx;
@@ -5868,7 +5981,7 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
     }
   }
 
-  /* Final cleanup
+  /* Final cleanup 最后清理
   */
   pParse->nQueryLoop = pWInfo->savedNQueryLoop;
   whereInfoFree(db, pWInfo);
