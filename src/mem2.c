@@ -20,9 +20,10 @@
 ** routines specified in the sqlite3_mem_methods object.
 */
 /*
-该文件包含低级内存分配驱动程序用于当 SQLite 将使用标准 C 库的malloc/realloc/free接口来获取所需的内存，同时，以帮助检测和修复内存泄漏和内存使用错误增加许多额外的调试信息到以每次的分配。
+该文件包含了底层内存分配时，SQLite的驱动程序将使用标准的c-library malloc /realloc /free interface获取内存需求，同时，
+添加很多额外的调试信息，每个分配以帮助检测和修复内存泄漏和内存使用错误。
 
-此文件包含在 sqlite3_mem_methods 对象中指定的底层内存分配例程的实现。
+该文件包含的低级别的内存分配例程在sqlite3_mem_methods指定对象的实现。
 */
 #include "sqliteInt.h"
 
@@ -30,13 +31,13 @@
 ** This version of the memory allocator is used only if the
 ** SQLITE_MEMDEBUG macro is defined
 */
-/*只有在SQLITE MEMDEBUG宏被定义后，这个版本的内存分配器才会被使用。*/
+/*这个版本的内存分配器是只有SQLITE_MEMDEBUG 宏定义时使用。*/
 #ifdef SQLITE_MEMDEBUG
 
 /*
 ** The backtrace functionality is only available with GLIBC
 */
-/*回溯功能只适用于GLIBC*/
+/*回溯功能仅可使用GLIBC*/
 #ifdef __GLIBC__
   extern int backtrace(void**,int);
   extern void backtrace_symbols_fd(void*const*,int,int);
@@ -60,6 +61,16 @@
 ** MemBlockHdr.
 */
 /*
+每个内存分配看起来像这样：
+**
+**  ------------------------------------------------------------------------
+**  | 标题 |  回溯指针 | 内存块内HDR |  配置|  尾|
+**  ------------------------------------------------------------------------
+**
+** 应用程序代码只看到一个指向分配。我们必须再从分配指针
+找到内存块内HDR。该HDR告诉我们分配的大小和回溯的指针数。
+这也有保护语句在内存块内HDR的尾端。
+
 Title：用于描述这段内存，在出错时可以打印出来
 backtrace pointer：用于保留调用堆栈
 MemBlockHdr：负责这片内存的管理，以及串联未释放的MemBlock
@@ -78,7 +89,7 @@ struct MemBlockHdr {
 };
 
 /*
-** Guard words
+** Guard words  保护字段
 */
 #define FOREGUARD 0x80F5E153
 #define REARGUARD 0xE4676B53
@@ -96,7 +107,8 @@ struct MemBlockHdr {
 ** when this module is combined with other in the amalgamation.
 */
 /*
-所有使用该模块静态变量都收集到一个名为“mem”的单一结构。这是为了保持组织的静态变量和减少命名空间污染时，该模块结合其他的融合。
+所有通过该模块使用的静态变量被收集到一个单一的结构，命名为“mem”
+这是保持静态变量的组织和减少该模块结合其他的时产生的命名空间污染。
 */
 static struct {
   
@@ -182,8 +194,8 @@ static void adjustStats(int iSize, int increment){
 ** if they are incorrect it asserts.
 */
 /*
-鉴于分配，找到该分配的MemBlockHdr。
-这个程序检查保护分配的两端，如果他们断言是不正确的。
+给定一个配置，寻找并配置MemBlockHdr
+如果不是正确的声明，这个例程将检查配置的任意一段保护。
 */
 static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
   struct MemBlockHdr *p;
@@ -230,7 +242,7 @@ static int sqlite3MemInit(void *NotUsed){
   if( !sqlite3GlobalConfig.bMemstat ){
     /* If memory status is enabled, then the malloc.c wrapper will already
     ** hold the STATIC_MEM mutex when the routines here are invoked. */
-    /*如果内存状态被激活，那么这里的例程被调用时，malloc.c包装将已持有的STATIC_MEM互斥。*/
+    /*如果内存状态为已启动, 那么例程将在malloc.c封装于已持有的ATATIC_MEM互斥体里时调用。*/
     mem.mutex = sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MEM);
   }
   return SQLITE_OK;
@@ -391,8 +403,9 @@ static void sqlite3MemFree(void *pPrior){
 */
 /*
 更改现有的内存分配的大小。
-
-对于此调试实现，我们始终使分配的副本到内存中的一个新的地方。以这种方式，如果上级代码使用指向旧分配，这是更容易断裂，我们更喜欢以查找错误。
+对于这种调试的实现，我们总是做一分配副本储存在内存的新位置。
+用这种方法，如果更高级别的代码将用指针回到旧配置上， 
+这样更易中断并且我们更容易找出错误
 */
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
   struct MemBlockHdr *pOldHdr;
@@ -455,8 +468,10 @@ void sqlite3MemdebugSetType(void *p, u8 eType){
 **     assert( sqlite3MemdebugHasType(p, MEMTYPE_DB) );
 */
 /*
-返回 TRUE，如果在 eType 类型的掩码匹配的类型。如果p== NULL也返回true。
-这个例程被设计用于在assert（）语句中验证分配的类型。
+如果eType的类型与分配P类型相匹配，则返回真。
+如果p==NULL则也返回真。
+这个程序被设计用于在assert（）验证配置类型的一个声明。
+举例如：assert( sqlite3MemdebugHasType(p, MEMTYPE_DB) );
 */
 int sqlite3MemdebugHasType(void *p, u8 eType){
   int rc = 1;
@@ -481,8 +496,10 @@ int sqlite3MemdebugHasType(void *p, u8 eType){
 **     assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
 */
 /*
-如果在 eType 类型掩码分配 p 的类型没有位，返回 TRUE。如果p== NULL也返回true。
-这个例程被设计用于在 assert() 语句中验证分配的类型。
+如果eType的字节掩码与分配的P无相匹配字节则返回真。
+如果p为空则也为真。
+这个程序被设计用于在一个assert（）声明里，用于验证配置类型。
+举个例子：assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
 */
 int sqlite3MemdebugNoType(void *p, u8 eType){
   int rc = 1;
