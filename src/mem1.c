@@ -13,7 +13,7 @@
 ** This file contains low-level memory allocation drivers for when
 ** SQLite will use the standard C-library malloc/realloc/free interface
 ** to obtain the memory it needs.
-**此文件包含低级内存分配驱动程序，当 SQLite使用标准 C 库中的 malloc/realloc/free 接口来获取所需的内存。
+**这个文件包含当SQLite将使用标准C库malloc/realloc/自由接口获得所需要的内存时的底层内存分配驱动程序。
 ** This file contains implementations of the low-level memory allocation
 ** routines specified in the sqlite3_mem_methods object.  The content of
 ** this file is only used if SQLITE_SYSTEM_MALLOC is defined.  The
@@ -21,9 +21,10 @@
 ** SQLITE_MEMDEBUG nor the SQLITE_WIN32_MALLOC macros are defined.  The
 ** default configuration is to use memory allocation routines in this
 ** file.
-**此文件包含在sqlite3_mem_methods对象指定的低级别的内存分配程序的实现。当SQLITE_SYSTEM_MALLOC被定义，
-这个文件的内容将会被使用。如果SQLITE MEMDEBUG或者SQLITE WIN32 MALLOC的宏被定义，那么SQLITE_SYSTEM_MALLOC
-的宏也会被自动定义。在这个文件中缺省配置是使用内存分配例程。
+**这个文件包含实现的低级sqlite3_mem_methods对象中指定的内存分配例程。
+这个文件的内容仅是如果SQLITE_SYSTEM_MALLOC定义使用。
+当SQLITE_MEMDEBUG 和 the SQLITE_WIN32_MALLOC 宏命令都没有被定义时，就会自动定义为 SQLITE_SYSTEM_MALLOC宏命令。
+缺省配置是使用内存分配例程在这个文件中。
 ** C-preprocessor macro summary:
 **
 **    HAVE_MALLOC_USABLE_SIZE     The configure script sets this symbol if
@@ -33,17 +34,28 @@
 **                                If an equivalent interface exists by
 **                                a different name, using a separate -D
 **                                option to rename it.
-**如果malloc_usable_size()接口存在在目标平台上, 配置脚本设置这个符号。或者, 如果需要的话，这个符号可以手动设置。
-如果一个等效接口存在一个不同的名称,使用一个单独的- D选项来重命名它
+**c预处理器宏简介:
+**    HAVE_MALLOC_USABLE_SIZE      如果malloc_usable_size()接口的存在
+**                                 在目标平台上，配置脚本设置这个符号。
+**                                 或者需要的话，这个符号可以手动配置。
+**                                 如果一个等效界面存在一个不同的名称,
+**                                 使用一个单独的- d选项来重命名它。
+**
 **    SQLITE_WITHOUT_ZONEMALLOC   Some older macs lack support for the zone
 **                                memory allocator.  Set this symbol to enable
 **                                building on older macs.
-**•一些旧的mac缺乏区域内存分配器的支持。设置此标志能够构建旧的mac。
+**
+**    SQLITE_WITHOUT_ZONEMALLOC   一些旧的mac缺乏支持空间内存分配器。
+                                  设置此标志,使其可在在旧mac建造。
+**
 **    SQLITE_WITHOUT_MSIZE        Set this symbol to disable the use of
 **                                _msize() on windows systems.  This might
 **                                be necessary when compiling for Delphi,
 **                                for example.
-**在windows系统中，设置这个符号为禁用_msize()。例如，当编译Delphi时，这可能是必要的。
+**
+**    SQLITE_WITHOUT_MSIZE         这个符号设置为在windows系统内禁用msize()。
+**                                 举个例子，当为Delphi翻译时可能有必要的。
+**
 */
 #include "sqliteInt.h"
 
@@ -53,7 +65,7 @@
 ** macros.
 */
 /*
-这个版本的内存分配器是默认的。当没有其他内存分配器指定使用时， SQLITE_SYSTEM_MALLOC被宏定义时，它就会被使用。
+这个版本默认内存分配器。使用时编译时间指定宏没有使用其他内存分配器使用。
 */
 #ifdef SQLITE_SYSTEM_MALLOC
 
@@ -63,8 +75,8 @@
 ** with -DSQLITE_WITHOUT_MSIZE
 */
 /*
-该MSVCRT有 malloc_usable_size(),但这被称为_msize()。
-使用msize()是自动的,但是通过编译-DSQLITE_WITHOUT_MSIZE时，可以被禁用。
+MSVCRT 有malloc_usable_size()，但被称为_msize().
+使用_msize() 是自动的, 但是可以通过编译-DSQLITE_WITHOUT_MSIZE命令禁用。
 */
 #if defined(_MSC_VER) && !defined(SQLITE_WITHOUT_MSIZE)
 # define SQLITE_MALLOCSIZE _msize
@@ -77,7 +89,7 @@
 ** SQLITE_WITHOUT_ZONEMALLOC symbol is defined.
 */
 /*
-如果SQLITE_WITHOUT_ZONEMALLOC符号被定义，那么可在苹果的产品使用区域分配器。
+除非SQLITE_WITHOUT_ZONEMALLOC符号被定义，不然就用苹果产品上的区域内存分配器。
 */
 #include <sys/sysctl.h>
 #include <malloc/malloc.h>
@@ -127,9 +139,8 @@ static malloc_zone_t* _sqliteZone_;
 **
 */
 /*
-像函数malloc()，但是记住分配的大小,这样我们之后使用函数sqlite3MemSize()能找到它。
-
-对于这个低级的例程,我们保证nByte > 0,因为当nByte < = 0将会被截取，并通过更高层次的程序处理。
+像 malloc(),但记忆分配大小，这样我们可以在找到它之后使用sqlite3MemSize().
+对于这个低级的例程，我们保证nByte>0,因为例nByte<=0将被截获和处理更高级别的例程。
 */
 static void *sqlite3MemMalloc(int nByte){
 #ifdef SQLITE_MALLOCSIZE
@@ -164,9 +175,8 @@ static void *sqlite3MemMalloc(int nByte){
 ** by higher-level routines.
 */
 /*
-像函数free()，但在分配工作获得sqlite3MemMalloc()或sqlite3MemRealloc()。
-
-对于这个低级的例程,我们已经知道pPrior!=0，因为当pPrior==0 将将被拦截和更高级别的程序处理。
+像free() 当在工作时被分配到sqlite3MemMalloc()或者sqlite3MemRealloc().
+对于这个低级程序, 我们已知在pPrior==0情况时pPrior!=0将被更高级别的例程截取和处理。
 */
 static void sqlite3MemFree(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
@@ -184,7 +194,7 @@ static void sqlite3MemFree(void *pPrior){
 ** or xRealloc().
 */
 /*
-报告从的xmalloc（）或xRealloc（）提前归还分配的大小。
+报告来自于xMalloc()或xRealloc()之前的分配大小。
 */
 static int sqlite3MemSize(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
@@ -209,10 +219,9 @@ static int sqlite3MemSize(void *pPrior){
 ** routines and redirected to xFree.
 */
 /*
-像函数realloc()，调整之前从sqlite3MemMalloc()获得分配。
-
-对于这个低级的接口,我们知道pPrior!=0，当pPrior==0虽然已经被更高级的例程拦截了和重定向到xMalloc。同样,我们知道
-nByte > 0是因为当nByte < = 0，将会被更高级的例程拦截和重定向到xFree。
+像 realloc()，调整分配之前获取sqlite3MemMalloc()。
+对于低级别接口，我们已知pPrior!=0。在pPrior==0已拦截了更高级别的例程和重定向到xMalloc. 
+同样，我们知道nByte>0，因为nByte<=0的情况会被更高级别的例程拦截和重定向到xFree。
 */
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
 #ifdef SQLITE_MALLOCSIZE
@@ -275,7 +284,7 @@ static int sqlite3MemInit(void *NotUsed){
   }else{
     /* only 1 core, use our own zone to contention over global locks, 
     ** e.g. we have our own dedicated locks */
-    /*只有一个核心，用我们自己的区域，以争夺全局锁，例如，我们有自己的专用锁*/
+    /*仅有一个核心，使用我们的区域在争用全局锁，例如，我们只有自己的专用锁*/
     bool success;
     malloc_zone_t* newzone = malloc_create_zone(4096, 0);
     malloc_set_zone_name(newzone, "Sqlite_Heap");
@@ -285,6 +294,7 @@ static int sqlite3MemInit(void *NotUsed){
     }while(!_sqliteZone_);
     if( !success ){
       /* somebody registered a zone first */
+      /*有人已先注册区域*/
       malloc_destroy_zone(newzone);
     }
   }
@@ -310,7 +320,6 @@ static void sqlite3MemShutdown(void *NotUsed){
 */
 /*
 该例程是外部链接这个文件的唯一的例程。
-
 在sqlite3GlobalConfig.m与这个文件指针的例程中填充底层内存分配函数指针。
 */
 void sqlite3MemSetDefault(void){
