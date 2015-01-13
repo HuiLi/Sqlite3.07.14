@@ -2,6 +2,10 @@
 ** below).  It is recommended not to use it any longer, instead use
 ** fts3 (or higher).  If you believe that your use of fts1 is safe,
 ** add -DSQLITE_ENABLE_BROKEN_FTS1=1 to your CFLAGS.
+**fts1有一个设计缺陷,可能导致崩溃。
+**建议不要再使用它,而是使用fts3(或更高版本)。
+**如果你认为你使用fts1是安全的,
+**请在CFLAGS添加“-DSQLITE_ENABLE_BROKEN_FTS1 = 1”。
 */
 #if (!defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS1)) \
         && !defined(SQLITE_ENABLE_BROKEN_FTS1)
@@ -18,11 +22,22 @@
 **
 ** fts1 should be safe even across VACUUM if you only insert documents
 ** and never delete.
+**
+**这个缺陷是：fts1将内容表不可替代的伪列作为文档ID。
+**fts1把伪列嵌入索引的创建并希望伪列不改变。
+**SQLite的空操作将重编号伪列,从而破坏fts1。
+**如果你使用fts1的系统禁用了空操作，那么你可以继续安全的使用。
+**注意：预处理命令PRAGMA auto_vacuum并没有禁用空操作，
+**虽然使用PRAGMA auto_vacuum不大可能调用空操作。
 */
 
 /* The author disclaims copyright to this source code.
  *
  * This is an SQLite module implementing full-text search.
+**
+**作者放弃这个源代码的版权。
+**
+**这是一个执行全文搜索的SQLite模块
  */
 
 /*
@@ -33,6 +48,14 @@
 **
 **     * The FTS1 module is being built into the core of
 **       SQLite (in which case SQLITE_ENABLE_FTS1 is defined).
+**
+**该文件中的代码只在如下情况编译：
+** 
+**     *FTS1模块正被创建为一个扩展
+**      （在这种情况下SQLITE_CORE没有定义）或者
+**
+**     *FTS1模块正被建为SQLite的核心
+**       （在这种情况下SQLITE_ENABLE_FTS1已经定义）
 */
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS1)
 
@@ -61,11 +84,15 @@ SQLITE_EXTENSION_INIT1
 #endif
 
 /* utility functions */
+/*效用函数*/
 
 typedef struct StringBuffer {
   int len;      /* length, not including null terminator */
+  /*长度，不包括结束字元/终端子*/
   int alloced;  /* Space allocated for s[] */ 
+  /*对s的空间分配*/
   char *s;      /* Content of the string */
+  /*字符串的内容*/
 } StringBuffer;
 
 static void initStringBuffer(StringBuffer *sb){
@@ -103,14 +130,22 @@ static void append(StringBuffer *sb, const char *zFrom){
 ** 14 bits - BA
 ** 21 bits - BBA
 ** and so on.
+**
+**我们以7位每字节低位优先顺序编码长整型变量
 */
 
 /* We may need up to VARINT_MAX bytes to store an encoded 64-bit integer. */
+/*我们可能需要VARINT_MAX字节来存储一个64位整数编码。*/
 #define VARINT_MAX 10
 
 /* Write a 64-bit variable-length integer to memory starting at p[0].
  * The length of data written will be between 1 and VARINT_MAX bytes.
- * The number of bytes written is returned. */
+ * The number of bytes written is returned.
+**
+**64位变长整数从p[0]写入内存。
+**写的数据长度将介于1和VARINT_MAX字节之间。
+**返回写入的字节数。
+ */
 static int putVarint(char *p, sqlite_int64 v){
   unsigned char *q = (unsigned char *) p;
   sqlite_uint64 vu = v;
@@ -119,13 +154,20 @@ static int putVarint(char *p, sqlite_int64 v){
     vu >>= 7;
   }while( vu!=0 );
   q[-1] &= 0x7f;  /* turn off high bit in final byte */
+  /*在最后一个字节关掉高位*/
   assert( q - (unsigned char *)p <= VARINT_MAX );
   return (int) (q - (unsigned char *)p);
 }
 
 /* Read a 64-bit variable-length integer from memory starting at p[0].
  * Return the number of bytes read, or 0 on error.
- * The value is stored in *v. */
+ * The value is stored in *v.
+**
+**以p[0]起从内存中读取一个64位长整型变量。
+**返回读取的字节数，或者错误时返回0。
+**返回值存储在*V里。
+ */
+
 static int getVarint(const char *p, sqlite_int64 *v){
   const unsigned char *q = (const unsigned char *) p;
   sqlite_uint64 x = 0, y = 1;
@@ -133,6 +175,7 @@ static int getVarint(const char *p, sqlite_int64 *v){
     x += y * (*q++ & 0x7f);
     y <<= 7;
     if( q - (unsigned char *)p >= VARINT_MAX ){  /* bad data */
+		/*错误的数据*/
       assert( 0 );
       return 0;
     }
@@ -195,13 +238,56 @@ static int getVarint32(const char *p, int *pi){
  * the previous token to make the estimate a tiny bit more precise.
 */
 
+/*** 文档表 ***
+ *
+ *文档表有没有被显式声明编译的docID的存储表。
+ *
+ *  如DL_POSITIONS_OFFSETS的文档表，以如下方式存储:
+ *
+ * array {
+ *   varint docid;
+ *   array {
+ *     varint position;     (delta from previous position plus POS_BASE)
+ *     varint startOffset;  (delta from previous startOffset)
+ *     varint endOffset;    (delta from startOffset)
+ *   }
+ * }
+ *
+ *这里array { X }意思是在相邻的内存中有零个或者多个X出现
+ *
+ * 位置表可能含有多个列在文本中的位置  A position
+ * 是紧随在不显式包含在索引中的列的位置。
+ * 任何出现在POS_COLUMN位置之前的位置都是0列
+ *
+ * DL_POSITIONS类型的列表一般在表的顶端 
+ * 但是只含有docID和位置，没有偏移量信息
+ *
+ *
+ *在硬盘上,每一个文档表都有位置和偏移量
+ * 所以我们没必要去序列化doclist的类型
+ * 
+ *我们现在还没有delta-encode document ID。解决了这个问题将会比较成功。
+ *
+ * NOTE(shess) 我想过一个略好的偏移编码。
+ * 在第一个偏移量之后，估计下一个抵消使用当前令牌位置和前面的标记位置和补偿,
+ *抵消处理一些差异。这样估计将是 (iPosition*w->iStartOffset/w->iPosition-64)
+ * 偏移量超过64字符编码为delta的估计的前开始抵消+ 128。
+ * 一个额外的小增量可以通过使用先前的令牌的结束偏移量获得更精确一点点的估计。
+*/
+
 /* It is not safe to call isspace(), tolower(), or isalnum() on
 ** hi-bit-set characters.  This is the same solution used in the
 ** tokenizer.
+**
+**用hi-bit-set字符调用isspace(), tolower(),  isalnum()函数式不安全的
+**在tokenizer中使用的和这个解决方法一样
 */
 /* TODO(shess) The snippet-generation code should be using the
 ** tokenizer-generated tokens rather than doing its own local
 ** tokenization.
+**
+**snippet-generation代码应该使用tokenizer-generated令牌,
+**而不是做自己的地方标记。
 */
 /* TODO(shess) Is __isascii() a portable version of (c&0x80)==0? */
 static int safe_isspace(char c){
@@ -216,8 +302,11 @@ static int safe_isalnum(char c){
 
 typedef enum DocListType {
   DL_DOCIDS,              /* docids only */
+  /*文档ID*/
   DL_POSITIONS,           /* docids + positions */
-  DL_POSITIONS_OFFSETS    /* docids + positions + offsets */
+  /*文档ID+位置*/
+  DL_POSITIONS_OFFSETS    /* docids + positions+ offsets */
+  /*文档ID+位置+偏移量*/
 } DocListType;
 
 /*
@@ -226,6 +315,10 @@ typedef enum DocListType {
 **
 **          -DDL_DEFAULT=DL_POSITIONS_OFFSETS
 **
+**默认情况下，只有位置而不是偏移量存储在doclists。
+**要想将位置也存储在doclist，加上
+**
+**   -DDL_DEFAULT=DL_POSITIONS_OFFSETS
 */
 #ifndef DL_DEFAULT
 # define DL_DEFAULT DL_POSITIONS
@@ -236,17 +329,23 @@ typedef struct DocList {
   int nData;
   DocListType iType;
   int iLastColumn;    /* the last column written */
+  /*写最后一列*/
   int iLastPos;       /* the last position written */
+  /*写最后位置*/
   int iLastOffset;    /* the last start offset written */
+  /*写最后的偏移量*/
 } DocList;
 
 enum {
   POS_END = 0,        /* end of this position list */
+  /*这个位置表的结尾*/
   POS_COLUMN,         /* followed by new column number */
+  /*其次是新列号*/
   POS_BASE
 };
 
 /* Initialize a new DocList to hold the given data. */
+/*初始化一个新的DocList保存给定的数据。*/
 static void docListInit(DocList *d, DocListType iType,
                         const char *pData, int nData){
   d->nData = nData;
@@ -262,6 +361,7 @@ static void docListInit(DocList *d, DocListType iType,
 }
 
 /* Create a new dynamically-allocated DocList. */
+/*创建一个新的动态DocList*/
 static DocList *docListNew(DocListType iType){
   DocList *d = (DocList *) malloc(sizeof(DocList));
   docListInit(d, iType, 0, 0);
@@ -285,6 +385,7 @@ static char *docListEnd(DocList *d){
 }
 
 /* Append a varint to a DocList's data. */
+/*给DocList的数据附加一个变量。*/
 static void appendVarint(DocList *d, sqlite_int64 i){
   char c[VARINT_MAX];
   int n = putVarint(c, i);
@@ -297,15 +398,18 @@ static void docListAddDocid(DocList *d, sqlite_int64 iDocid){
   appendVarint(d, iDocid);
   if( d->iType>=DL_POSITIONS ){
     appendVarint(d, POS_END);  /* initially empty position list */
+	/*最初空位置列表*/
     d->iLastColumn = 0;
     d->iLastPos = d->iLastOffset = 0;
   }
 }
 
 /* helper function for docListAddPos and docListAddPosOffset */
+/*docListAddPos和docListAddPosOffset的helper函数*/
 static void addPos(DocList *d, int iColumn, int iPos){
   assert( d->nData>0 );
   --d->nData;  /* remove previous terminator */
+  /*删除以前的结束字元*/
   if( iColumn!=d->iLastColumn ){
     assert( iColumn>d->iLastColumn );
     appendVarint(d, POS_COLUMN);
@@ -319,10 +423,12 @@ static void addPos(DocList *d, int iColumn, int iPos){
 }
 
 /* Add a position to the last position list in a doclist. */
+/*将位置添加到doclist的最后位置列表*/
 static void docListAddPos(DocList *d, int iColumn, int iPos){
   assert( d->iType==DL_POSITIONS );
   addPos(d, iColumn, iPos);
   appendVarint(d, POS_END);  /* add new terminator */
+  /*添加新的结束字元*/
 }
 
 /*
@@ -330,13 +436,23 @@ static void docListAddPos(DocList *d, int iColumn, int iPos){
 **
 ** If the doclist is setup to handle only positions, then insert
 ** the position only and ignore the offsets.
+**
+**将位置及起始和结束偏移量添加到doclist
+**
+**如果doclist设置为只处理位置，
+**那么只会插入位置而忽略偏移量。
 */
 static void docListAddPosOffset(
   DocList *d,             /* Doclist under construction */
+  /*Doclist在建*/
   int iColumn,            /* Column the inserted term is part of */
+  /*列插入词的一部分*/
   int iPos,               /* Position of the inserted term */
+  /*词插入的位置*/
   int iStartOffset,       /* Starting offset of inserted term */
+  /*插入词的起始偏移量*/
   int iEndOffset          /* Ending offset of inserted term */
+  /*结束偏移量的插入*/
 ){
   assert( d->iType>=DL_POSITIONS );
   addPos(d, iColumn, iPos);
@@ -348,6 +464,7 @@ static void docListAddPosOffset(
     appendVarint(d, iEndOffset-iStartOffset);
   }
   appendVarint(d, POS_END);  /* add new terminator */
+  /*添加新的结束字元*/
 }
 
 /*
@@ -363,16 +480,26 @@ static void docListAddPosOffset(
 **
 ** to read information out of the doclist.  When we reach the end
 ** of the doclist, atEnd() returns TRUE.
+**
+**
+** 
+**
+**
+**
 */
 typedef struct DocListReader {
   DocList *pDoclist;  /* The document list we are stepping through */
+  /*我们逐步记录文档列表*/
   char *p;            /* Pointer to next unread byte in the doclist */
+  /*doclist指针移至下一个未读的字节*/
   int iLastColumn;
   int iLastPos;  /* the last position read, or -1 when not in a position list */
+  /*读的最后已知位置,若等于-1时则不在位置列表上*/
 } DocListReader;
 
 /*
 ** Initialize the DocListReader r to point to the beginning of pDoclist.
+**初始化DocListReader， r指pDoclist的开始。
 */
 static void readerInit(DocListReader *r, DocList *pDoclist){
   r->pDoclist = pDoclist;
@@ -386,12 +513,14 @@ static void readerInit(DocListReader *r, DocList *pDoclist){
 /*
 ** Return TRUE if we have reached then end of pReader and there is
 ** nothing else left to read.
+**如果我们达到达了pReader的结尾并且还有没有别的阅读返回，那么返回TRUE。
 */
 static int atEnd(DocListReader *pReader){
   return pReader->pDoclist==0 || (pReader->p >= docListEnd(pReader->pDoclist));
 }
 
 /* Peek at the next docid without advancing the read pointer. 
+**看一下下一个docID而不推进读指针。
 */
 static sqlite_int64 peekDocid(DocListReader *pReader){
   sqlite_int64 ret;
@@ -402,6 +531,7 @@ static sqlite_int64 peekDocid(DocListReader *pReader){
 }
 
 /* Read the next docid.   See also nextDocid().
+**读下一个docID。
 */
 static sqlite_int64 readDocid(DocListReader *pReader){
   sqlite_int64 ret;
@@ -416,7 +546,10 @@ static sqlite_int64 readDocid(DocListReader *pReader){
 }
 
 /* Read the next position and column index from a position list.
- * Returns the position, or -1 at the end of the list. */
+ * Returns the position, or -1 at the end of the list.
+ **从位置表读取下一个位置和列索引。
+ **返回位置，若返回-1则到了表的末端。
+ */
 static int readPosition(DocListReader *pReader, int *iColumn){
   int i;
   int iType = pReader->pDoclist->iType;
@@ -444,6 +577,7 @@ static int readPosition(DocListReader *pReader, int *iColumn){
   pReader->iLastPos += ((int) i)-POS_BASE;
   if( iType>=DL_POSITIONS_OFFSETS ){
     /* Skip over offsets, ignoring them for now. */
+	  /* 跳过偏移量,忽视他们。*/
     int iStart, iEnd;
     pReader->p += getVarint32(pReader->p, &iStart);
     pReader->p += getVarint32(pReader->p, &iEnd);
@@ -453,6 +587,7 @@ static int readPosition(DocListReader *pReader, int *iColumn){
 }
 
 /* Skip past the end of a position list. */
+/*跳过位置表的末端*/
 static void skipPositionList(DocListReader *pReader){
   DocList *p = pReader->pDoclist;
   if( p && p->iType>=DL_POSITIONS ){
@@ -461,15 +596,23 @@ static void skipPositionList(DocListReader *pReader){
   }
 }
 
-/* Skip over a docid, including its position list if the doclist has
- * positions. */
+/* 
+**Skip over a docid, including its position list if the doclist has
+** positions. 
+**如果docID有位置，那么跳过docID包括它的位置表。
+*/
 static void skipDocument(DocListReader *pReader){
   readDocid(pReader);
   skipPositionList(pReader);
 }
 
-/* Skip past all docids which are less than [iDocid].  Returns 1 if a docid
- * matching [iDocid] was found.  */
+/* 
+**Skip past all docids which are less than [iDocid].  Returns 1 if a docid
+** matching [iDocid] was found.  
+**
+**跳过所有docids不到[iDocid]。
+**返回1如果发现docid匹配(iDocid)。
+*/
 static int skipToDocid(DocListReader *pReader, sqlite_int64 iDocid){
   sqlite_int64 d = 0;
   while( !atEnd(pReader) && (d=peekDocid(pReader))<iDocid ){
@@ -478,7 +621,9 @@ static int skipToDocid(DocListReader *pReader, sqlite_int64 iDocid){
   return !atEnd(pReader) && d==iDocid;
 }
 
-/* Return the first document in a document list.
+/*
+**Return the first document in a document list.
+**返回第一个文档的文档列表。
 */
 static sqlite_int64 firstDocid(DocList *d){
   DocListReader r;
@@ -491,6 +636,9 @@ static sqlite_int64 firstDocid(DocList *d){
 ** This routine is used for debugging purpose only.
 **
 ** Write the content of a doclist to standard output.
+**
+**这个例程仅用于调试的目的。
+**doclist写入的内容标准输出。
 */
 static void printDoclist(DocList *p){
   DocListReader r;
@@ -521,8 +669,11 @@ static void printDoclist(DocList *p){
 }
 #endif /* SQLITE_DEBUG */
 
-/* Trim the given doclist to contain only positions in column
- * [iRestrictColumn]. */
+/*
+**Trim the given doclist to contain only positions in column
+**[iRestrictColumn]. 
+**修剪给定只包含位置的列[iRestrictColumn]的doclist。
+ */
 static void docListRestrictColumn(DocList *in, int iRestrictColumn){
   DocListReader r;
   DocList out;
@@ -547,14 +698,20 @@ static void docListRestrictColumn(DocList *in, int iRestrictColumn){
   *in = out;
 }
 
-/* Trim the given doclist by discarding any docids without any remaining
- * positions. */
+/*Trim the given doclist by discarding any docids without any remaining
+**positions. 
+**
+**修剪给定的没有任何剩余的位置丢弃所有docID的doclist。
+ */
 static void docListDiscardEmpty(DocList *in) {
   DocListReader r;
   DocList out;
 
   /* TODO: It would be nice to implement this operation in place; that
-   * could save a significant amount of memory in queries with long doclists. */
+  **could save a significant amount of memory in queries with long doclists.
+  **
+  **在查询长的doclist时，可以节省大量的内存，是非常棒的操作。
+   */
   assert( in->iType>=DL_POSITIONS );
   readerInit(&r, in);
   docListInit(&out, DL_POSITIONS, NULL, 0);
@@ -579,6 +736,9 @@ static void docListDiscardEmpty(DocList *in) {
 /* Helper function for docListUpdate() and docListAccumulate().
 ** Splices a doclist element into the doclist represented by r,
 ** leaving r pointing after the newly spliced element.
+**
+**docListUpdate() 的docListAccumulate()的Helper函数。
+**将doclist的元素拼接在由r表示的doclist中。
 */
 static void docListSpliceElement(DocListReader *r, sqlite_int64 iDocid,
                                  const char *pSource, int nSource){
@@ -589,6 +749,7 @@ static void docListSpliceElement(DocListReader *r, sqlite_int64 iDocid,
   found = skipToDocid(r, iDocid);
 
   /* Describe slice in d to place pSource/nSource. */
+  /*用在d里描述切片来代替pSource/nSource*/
   pTarget = r->p;
   if( found ){
     skipDocument(r);
@@ -601,6 +762,11 @@ static void docListSpliceElement(DocListReader *r, sqlite_int64 iDocid,
   ** If nTarget==nSource, we should not move any memory nor realloc.
   ** If nTarget>nSource, trim target and realloc.
   ** If nTarget<nSource, realloc then expand target.
+  **
+  **感觉有以下情况：
+  **1.如果 nTarget==nSource,我们不需要移动任何内存也不需要从新分配给定指针；
+  **2.如果 nTarget>nSource,削减目标并从新分配给定指针；
+  **3.如果 nTarget<nSource,从新分配指针然后扩展目标。
   */
   if( nTarget>nSource ){
     memmove(pTarget+nSource, pTarget+nTarget, docListEnd(d)-(pTarget+nTarget));
@@ -620,6 +786,7 @@ static void docListSpliceElement(DocListReader *r, sqlite_int64 iDocid,
 }
 
 /* Insert/update pUpdate into the doclist. */
+/*插入/更新pUpdate至doclist。*/
 static void docListUpdate(DocList *d, DocList *pUpdate){
   DocListReader reader;
 
@@ -633,11 +800,15 @@ static void docListUpdate(DocList *d, DocList *pUpdate){
 
 /* Propagate elements from pUpdate to pAcc, overwriting elements with
 ** matching docids.
+**
+**将元素从pUpdate传播至pAcc，
+**将与docID匹配的元素覆盖。
 */
 static void docListAccumulate(DocList *pAcc, DocList *pUpdate){
   DocListReader accReader, updateReader;
 
   /* Handle edge cases where one doclist is empty. */
+  /*当doclist是空的时候，处理边界情况 */
   assert( pAcc!=NULL );
   if( pUpdate==NULL || pUpdate->nData==0 ) return;
   if( pAcc->nData==0 ){
@@ -661,8 +832,12 @@ static void docListAccumulate(DocList *pAcc, DocList *pUpdate){
 /*
 ** Read the next docid off of pIn.  Return 0 if we reach the end.
 *
-* TODO: This assumes that docids are never 0, but they may actually be 0 since
-* users can choose docids when inserting into a full-text table.  Fix this.
+**TODO: This assumes that docids are never 0, but they may actually be 0 since
+**users can choose docids when inserting into a full-text table.  Fix this.
+**
+**读取下一个pIn的docID，如果到尾部则返回0。
+**假设docID从不为0，但是当插入到一个全文表用户可以选择docids，
+**这时它确实有可能是0，修复它。
 */
 static sqlite_int64 nextDocid(DocListReader *pIn){
   skipPositionList(pIn);
@@ -676,7 +851,7 @@ static sqlite_int64 nextDocid(DocListReader *pIn){
 ** If there are no instances in pLeft or pRight where the position
 ** of pLeft is one less than the position of pRight, then this
 ** routine adds nothing to pOut.
-**
+**li
 ** If there are one or more instances where positions from pLeft
 ** are exactly one less than positions from pRight, then add a new
 ** document record to pOut.  If pOut wants to hold positions, then
@@ -684,18 +859,32 @@ static sqlite_int64 nextDocid(DocListReader *pIn){
 ** position in pLeft.  In other words:  pRight.iPos==pLeft.iPos+1.
 **
 ** pLeft and pRight are left pointing at the next document record.
+**
+** pLeft和pRight都是指向位置列表相同的文档:iDocid的DocListReaders。
+**
+**若在pLeft和pRight里不存在：pLeft没有到达pRight，那么这个不向pOut添加任何东西。
+**
+**若在pLeft和pRight里存在：pLeft没有到达pRight，那么向pOut中添加新的记录。
+**若pOut想保持位置，
+**话句话说：pRight.iPos==pLeft.iPos+1。
+**pLeft和pRight左指向下一个文档记录。
 */
 static void mergePosList(
   DocListReader *pLeft,    /* Left position list */
+  /*左位置表*/
   DocListReader *pRight,   /* Right position list */
+  /*右位置表*/
   sqlite_int64 iDocid,     /* The docid from pLeft and pRight */
+  /*pLeft和pRight的docID*/
   DocList *pOut            /* Write the merged document record here */
+  /*在这里写合并文档记录*/
 ){
   int iLeftCol, iLeftPos = readPosition(pLeft, &iLeftCol);
   int iRightCol, iRightPos = readPosition(pRight, &iRightCol);
   int match = 0;
 
   /* Loop until we've reached the end of both position lists. */
+  /*循环,直到我们到达最终位置的列表。*/
   while( iLeftPos!=-1 && iRightPos!=-1 ){
     if( iLeftCol==iRightCol && iLeftPos+1==iRightPos ){
       if( !match ){
@@ -726,11 +915,22 @@ static void mergePosList(
 **
 ** The output pOut may or may not contain positions.  If pOut
 ** does contain positions, they are the positions of pRight.
+**
+**我们有两个doclist：pLeft和pRight。
+**将pLeft和pRight的交叉短语写入pOut。
+**
+**交叉短语的意思是：只有当 pLeft.iPos+1==pRight.iPos时，两个文档才匹配。
+**
+**pOut的输出可能包含或不含位置。
+**如果pOut包含位置，那么就是pRight的位置。
 */
 static void docListPhraseMerge(
   DocList *pLeft,    /* Doclist resulting from the words on the left */
+  /*Doclist从左边的字产生*/
   DocList *pRight,   /* Doclist for the next word to the right */
+  /*下一个字右边的Doclist*/
   DocList *pOut      /* Write the combined doclist here */
+  /*此处写下合并的Doclist*/
 ){
   DocListReader left, right;
   sqlite_int64 docidLeft, docidRight;
@@ -758,11 +958,20 @@ static void docListPhraseMerge(
 ** Only docids are matched.  Position information is ignored.
 **
 ** The output pOut never holds positions.
+**
+**我们有pLeft和pRight两个Doclist。
+**将这两个doclist的交叉写入pOut。
+**只有在docID匹配时，位置信息才能省略。
+**
+**pOut的输出不含有位置。
 */
 static void docListAndMerge(
   DocList *pLeft,    /* Doclist resulting from the words on the left */
+  /*Doclist从左边的字产生*/
   DocList *pRight,   /* Doclist for the next word to the right */
+  /*下一个字右边的Doclist*/
   DocList *pOut      /* Write the combined doclist here */
+  /*此处写下合并的Doclist*/
 ){
   DocListReader left, right;
   sqlite_int64 docidLeft, docidRight;
@@ -792,11 +1001,20 @@ static void docListAndMerge(
 ** Only docids are matched.  Position information is ignored.
 **
 ** The output pOut never holds positions.
+**
+**我们有pLeft和pRight两个Doclist。
+**将pLeft和pRight的结合写入pOut。
+**只有在docID匹配时，位置信息才能省略。
+**
+**pOut的输出不含有位置。
 */
 static void docListOrMerge(
   DocList *pLeft,    /* Doclist resulting from the words on the left */
+  /*Doclist从左边的字产生*/
   DocList *pRight,   /* Doclist for the next word to the right */
+  /*下一个字右边的Doclist*/
   DocList *pOut      /* Write the combined doclist here */
+  /*此处写下合并的Doclist*/
 ){
   DocListReader left, right;
   sqlite_int64 docidLeft, docidRight, priorLeft;
@@ -837,11 +1055,21 @@ static void docListOrMerge(
 ** Only docids are matched.  Position information is ignored.
 **
 ** The output pOut never holds positions.
+**
+**我们有pLeft和pRight两个Doclist。
+**将全部在pLeft但pRight中没有的文档写入pOut。
+**
+**只有在docID匹配时，位置信息才能省略。
+**
+**pOut的输出不含有位置。
 */
 static void docListExceptMerge(
   DocList *pLeft,    /* Doclist resulting from the words on the left */
+  /*Doclist从左边的字产生*/
   DocList *pRight,   /* Doclist for the next word to the right */
+  /*下一个字右边的Doclist*/
   DocList *pOut      /* Write the combined doclist here */
+  /*此处写下合并的Doclist*/
 ){
   DocListReader left, right;
   sqlite_int64 docidLeft, docidRight, priorLeft;
@@ -878,7 +1106,13 @@ static char *string_dup_n(const char *s, int n){
 
 /* Duplicate a string; the caller must free() the returned string.
  * (We don't use strdup() since it is not part of the standard C library and
- * may not be available everywhere.) */
+ * may not be available everywhere.) 
+ **
+ **复制一个字符串；
+ **调用者必须释放malloc（）函数给指针变量分配的内存空间的函数
+ **（因为strdup() 不再包含在C标准库中，而且可能不是到处都兼容，
+ **所以我们就不再使用它了。）
+ */
 static char *string_dup(const char *s){
   return string_dup_n(s, strlen(s));
 }
@@ -886,7 +1120,13 @@ static char *string_dup(const char *s){
 /* Format a string, replacing each occurrence of the % character with
  * zDb.zName.  This may be more convenient than sqlite_mprintf()
  * when one string is used repeatedly in a format string.
- * The caller must free() the returned string. */
+ * The caller must free() the returned string. 
+ **
+ **格式字符串,以zDb.zName取代每个出现的%字符，
+ **这可能比sqlite_mprintf()更方便。
+ **如果字符串反复被格式化，
+ **调用者必须释放返回值。
+ */
 static char *string_format(const char *zFormat,
                            const char *zDb, const char *zName){
   const char *p;
@@ -898,10 +1138,12 @@ static char *string_format(const char *zFormat,
   char *r;
 
   /* first compute length needed */
+  /*首先计算所需长度*/
   for(p = zFormat ; *p ; ++p){
     len += (*p=='%' ? nFullTableName : 1);
   }
   len += 1;  /* for null terminator */
+  /*空的终结字元*/
 
   r = result = malloc(len);
   for(p = zFormat; *p; ++p){
@@ -941,21 +1183,32 @@ static int sql_prepare(sqlite3 *db, const char *zDb, const char *zName,
 }
 
 /* end utility functions */
+/*结束公用功能*/
 
 /* Forward reference */
+/*向前引用*/
 typedef struct fulltext_vtab fulltext_vtab;
 
 /* A single term in a query is represented by an instances of
 ** the following structure.
+**
+**在查询里一个条款被表示为以下结果的实例。
 */
 typedef struct QueryTerm {
   short int nPhrase; /* How many following terms are part of the same phrase */
+  /*有多少一下条款都是同样短语的一部分*/
   short int iPhrase; /* This is the i-th term of a phrase. */
+  /*这是i-th短语条款*/
   short int iColumn; /* Column of the index that must match this term */
+  /*与条款匹配的列索引*/
   signed char isOr;  /* this term is preceded by "OR" */
+  /*"OR"之前的条款*/
   signed char isNot; /* this term is preceded by "-" */
+  /* "-" 之前的条款*/
   char *pTerm;       /* text of the term.  '\000' terminated.  malloced */
+  /*条款的文本，'\000' 终止，动态内存分配*/
   int nTerm;         /* Number of bytes in pTerm[] */
+  /* pTerm[] 的字节数*/
 } QueryTerm;
 
 
@@ -990,10 +1243,15 @@ typedef struct QueryTerm {
 typedef struct Query {
   fulltext_vtab *pFts;  /* The full text index */
   int nTerms;           /* Number of terms in the query */
+  /*条款数量的查询*/
   QueryTerm *pTerms;    /* Array of terms.  Space obtained from malloc() */
+  /*条款的数组。动态分配空间*/
   int nextIsOr;         /* Set the isOr flag on the next inserted term */
+  /*将isOr标志设置在下个一个插入的条款中*/
   int nextColumn;       /* Next word parsed must be in this column */
+  /*下一个字必须在本列中解析*/
   int dfltColumn;       /* The default column */
+  /*默认的列*/
 } Query;
 
 
@@ -1003,25 +1261,40 @@ typedef struct Query {
 */
 typedef struct Snippet {
   int nMatch;     /* Total number of matches */
+  /*匹配的总数*/
   int nAlloc;     /* Space allocated for aMatch[] */
   struct snippetMatch { /* One entry for each matching term */
+	  /*每个匹配的条款的条目*/
     char snStatus;       /* Status flag for use while constructing snippets */
+	/*构建片段时使用状态标记*/
     short int iCol;      /* The column that contains the match */
+	/*包含匹配的列*/
     short int iTerm;     /* The index in Query.pTerms[] of the matching term */
+	/*匹配词在Query.pTerms[]中的索引*/
     short int nByte;     /* Number of bytes in the term */
+	/*条款中的字节数*/
     int iStart;          /* The offset to the first character of the term */
+	/*条款中第一个字符的偏移*/
   } *aMatch;      /* Points to space obtained from malloc */
+  /*指出空间分配获得的空间*/
   char *zOffset;  /* Text rendering of aMatch[] */
+  /* aMatch[]的文本呈现*/
   int nOffset;    /* strlen(zOffset) */
+  /*对zOffset计数*/
   char *zSnippet; /* Snippet text */
+  /*Snippet文本*/
   int nSnippet;   /* strlen(zSnippet) */
+  /*对zSnippet计数*/
 } Snippet;
 
 
 typedef enum QueryType {
   QUERY_GENERIC,   /* table scan */
+  /*表的扫描*/
   QUERY_ROWID,     /* lookup by rowid */
+  /*伪列的查找*/
   QUERY_FULLTEXT   /* QUERY_FULLTEXT + [i] is a full-text search for column i*/
+  /*QUERY_FULLTEXT +[i] 就是column i的全文搜索 */
 } QueryType;
 
 /* TODO(shess) CHUNK_MAX controls how much data we allow in segment 0
@@ -1034,6 +1307,11 @@ typedef enum QueryType {
 ** was chosen by measuring insertion times for a certain input (first
 ** 10k documents of Enron corpus), though including query performance
 ** in the decision may argue for a larger value.
+**
+**？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
+**更低的CHUNK_MAX意味着对于每一个给定输入我们每个条目有了更多的独立段，
+**也就是说表行的增多和更大的索引（由于更多的行和更大的伪列）。
+**
 */
 #define CHUNK_MAX 256
 
@@ -1050,6 +1328,7 @@ typedef enum fulltext_statement {
   TERM_DELETE_STMT,
 
   MAX_STMT                     /* Always at end! */
+  /*总是在结束的地方!*/
 } fulltext_statement;
 
 /* These must exactly match the enum above. */
@@ -1057,6 +1336,8 @@ typedef enum fulltext_statement {
 ** pTermSelectStmt) will be used in two cursors at once, e.g.  if a
 ** query joins a virtual table to itself?  If so perhaps we should
 ** move some of these to the cursor object.
+**如果查询连接本身的虚拟表，声明将用于两个游标（特别是pTermSelectStmt）这样有害吗？
+**如果是这样也许我们应该将一些移动至光标对象。
 */
 static const char *const fulltext_zStatement[MAX_STMT] = {
   /* CONTENT_INSERT */ NULL,  /* generated in contentInsertStatement() */
@@ -1077,22 +1358,35 @@ static const char *const fulltext_zStatement[MAX_STMT] = {
 /*
 ** A connection to a fulltext index is an instance of the following
 ** structure.  The xCreate and xConnect methods create an instance
-** of this structure and xDestroy and xDisconnect free that instance.
+** of this structure and and xDisconnect free that instance.
 ** All other methods receive a pointer to the structure as one of their
 ** arguments.
+**
+**连接到一个全文索引是下列结构的一个实例。
+**xCreate、xConnect方法创建的结构实例、xDestroy 和xDisconnect 释放实例
+**所有其他方法接受一个指向结构的指针作为参数。
 */
 struct fulltext_vtab {
   sqlite3_vtab base;               /* Base class used by SQLite core */
+  /*SQLite核心使用的基本类*/
   sqlite3 *db;                     /* The database connection */
+  /*数据库的连接*/
   const char *zDb;                 /* logical database name */
+  /*逻辑数据库的名字*/
   const char *zName;               /* virtual table name */
+  /*虚拟表名*/
   int nColumn;                     /* number of columns in virtual table */
+  /*虚拟表中的列数*/
   char **azColumn;                 /* column names.  malloced */
+  /*列名；动态内存分配*/
   char **azContentColumn;          /* column names in content table; malloced */
+  /*内容表里的列名；动态内存分配*/
   sqlite3_tokenizer *pTokenizer;   /* tokenizer for inserts and queries */
+  /*插入和查询的记号赋予器*/
 
   /* Precompiled statements which we keep as long as the table is
   ** open.
+  **当我们保持表开放时，预编译语句。
   */
   sqlite3_stmt *pFulltextStatements[MAX_STMT];
 };
@@ -1126,23 +1420,23 @@ static const sqlite3_module fulltextModule;   /* forward declaration */
 static void appendList(StringBuffer *sb, int nString, char **azString){
   int i;
   for(i=0; i<nString; ++i){
-    if( i>0 ) append(sb, ", "); //添加逗号
-    append(sb, azString[i]);    //添加字符串azString[i]
+    if( i>0 ) append(sb, ", ");	//添加逗号
+    append(sb, azString[i]);	//添加字符串azString[i]
   }
 }
 
-/* Return a dynamically generated statement of the form
+/* Return a dynamically generated statement of the form 
  * 构造一个插入语句，返回一个如下形式的动态产生的语句
  *   insert into %_content (rowid, ...) values (?, ...)
  */
 static const char *contentInsertStatement(fulltext_vtab *v){
-  StringBuffer sb;      //创建一个StringBuffer变量
+  StringBuffer sb; //创建一个StringBuffer变量
   int i;
 
-  initStringBuffer(&sb);//初始化
+  initStringBuffer(&sb); //初始化
   //在sb中添加sqlite插入字符串
-  append(&sb, "insert into %_content (rowid, ");
-  appendList(&sb, v->nColumn, v->azContentColumn);
+  append(&sb, "insert into %_content (rowid, "); 	
+  appendList(&sb, v->nColumn, v->azContentColumn);	
   append(&sb, ") values (?");
   for(i=0; i<v->nColumn; ++i)
     append(&sb, ", ?");
@@ -1156,7 +1450,7 @@ static const char *contentInsertStatement(fulltext_vtab *v){
  *                    where rowid = ?
  */
 static const char *contentUpdateStatement(fulltext_vtab *v){
-  StringBuffer sb;
+  StringBuffer sb; 
   int i;
 
   initStringBuffer(&sb);
@@ -1183,7 +1477,8 @@ static int sql_get_statement(fulltext_vtab *v, fulltext_statement iStmt,
   if( v->pFulltextStatements[iStmt]==NULL ){
     const char *zStmt;
     int rc;
-    switch( iStmt ){
+	//根据iStmt的值构造语句
+    switch( iStmt ){ 
       case CONTENT_INSERT_STMT:
         zStmt = contentInsertStatement(v); break;
       case CONTENT_UPDATE_STMT:
@@ -1207,11 +1502,11 @@ static int sql_get_statement(fulltext_vtab *v, fulltext_statement iStmt,
 /* Step the indicated statement, handling errors SQLITE_BUSY (by
 ** retrying) and SQLITE_SCHEMA (by re-preparing and transferring
 ** bindings to the new statement).
+** TODO(adam): We should extend this function so that it can work with
+** statements declared locally, not only globally cached statements.
 ** 执行语句，错误代码处理
 ** SQLITE_BUSY  重试
 ** SQLITE_SCHEMA  重新配置并且绑定新的语句
-** TODO(adam): We should extend this function so that it can work with
-** statements declared locally, not only globally cached statements.
 */
 static int sql_step_statement(fulltext_vtab *v, fulltext_statement iStmt,
                               sqlite3_stmt **ppStmt){
@@ -1247,7 +1542,8 @@ static int sql_step_statement(fulltext_vtab *v, fulltext_statement iStmt,
 /* Like sql_step_statement(), but convert SQLITE_DONE to SQLITE_OK.
 ** Useful for statements like UPDATE, where we expect no results.
 ** 和sql_step_statement()类似，但是将SQLITE_DONE转换为SQLITE_OK
-** 可用于不会将结果输出的语句，比如update等。
+** 可用于不会将结果输出的语句，比如update等
+** 
 */
 static int sql_single_step_statement(fulltext_vtab *v,
                                      fulltext_statement iStmt,
@@ -1262,7 +1558,7 @@ static int content_insert(fulltext_vtab *v, sqlite3_value *rowid,
                           sqlite3_value **pValues){
   sqlite3_stmt *s;
   int i;
-  int rc = sql_get_statement(v, CONTENT_INSERT_STMT, &s);//得到插入语句             
+  int rc = sql_get_statement(v, CONTENT_INSERT_STMT, &s);//得到插入语句
   if( rc!=SQLITE_OK ) return rc;
   //绑定对应的值
   rc = sqlite3_bind_value(s, 1, rowid);
@@ -1272,7 +1568,7 @@ static int content_insert(fulltext_vtab *v, sqlite3_value *rowid,
     rc = sqlite3_bind_value(s, 2+i, pValues[i]);
     if( rc!=SQLITE_OK ) return rc;
   }
-
+ 
   return sql_single_step_statement(v, CONTENT_INSERT_STMT, &s);	//执行语句
 }
 
@@ -1291,11 +1587,12 @@ static int content_update(fulltext_vtab *v, sqlite3_value **pValues,
     if( rc!=SQLITE_OK ) return rc;
   }
 
-  rc = sqlite3_bind_int64(s, 1+v->nColumn, iRowid);	//绑定伪列
+  rc = sqlite3_bind_int64(s, 1+v->nColumn, iRowid);	//绑定行编号
   if( rc!=SQLITE_OK ) return rc;
 
-  return sql_single_step_statement(v, CONTENT_UPDATE_STMT, &s);//执行语句
+  return sql_single_step_statement(v, CONTENT_UPDATE_STMT, &s);	//执行语句
 }
+
 /*释放pString占用的资源*/
 static void freeStringArray(int nString, const char **pString){
   int i;
@@ -1311,7 +1608,6 @@ static void freeStringArray(int nString, const char **pString){
  * null fields will be NULL in the returned array.
  * 执行选择语句的函数，在返回数组中包含所有选择后得到的字符串。
  * 最后，必须删除函数运行期间临时用来存储的数组。
- *
  * TODO: Perhaps we should return pointer/length strings here for consistency
  * with other code which uses pointer/length. */
 static int content_select(fulltext_vtab *v, sqlite_int64 iRow,
@@ -1342,8 +1638,9 @@ static int content_select(fulltext_vtab *v, sqlite_int64 iRow,
   }
 
   /* We expect only one row.  We must execute another sqlite3_step()
-   * to complete the iteration; otherwise the table will remain locked. 
-   * 预计只有结果为一行，我们必须执行另一个sqlite3_step()函数，否则这个表将会保持锁定。*/
+   * to complete the iteration; otherwise the table will remain locked.
+   * 预计只有结果为一行，我们必须执行另一个sqlite3_step()函数，否则这个表将会保持锁定。
+   */
   rc = sqlite3_step(s);
   if( rc==SQLITE_DONE ){
     *pValues = values;//用pValues来存储结果
@@ -1358,12 +1655,12 @@ static int content_select(fulltext_vtab *v, sqlite_int64 iRow,
 /* 这个函数用来删除表中的内容 */
 static int content_delete(fulltext_vtab *v, sqlite_int64 iRow){
   sqlite3_stmt *s;
-  int rc = sql_get_statement(v, CONTENT_DELETE_STMT, &s);
+  int rc = sql_get_statement(v, CONTENT_DELETE_STMT, &s);//得到删除语句
   if( rc!=SQLITE_OK ) return rc;
 
   rc = sqlite3_bind_int64(s, 1, iRow);
   if( rc!=SQLITE_OK ) return rc;
-
+/* 执行语句 */
   return sql_single_step_statement(v, CONTENT_DELETE_STMT, &s);
 }
 
@@ -1373,7 +1670,8 @@ static int content_delete(fulltext_vtab *v, sqlite_int64 iRow){
  * returned doclist.  If no rows found, returns SQLITE_DONE. 
  * 这个函数实现在项中查询
  * 如果找到所要的数据，返回SQLITE_ROW;函数执行结束后必须删除返回doclist。
- * 如果没找到，返回SQLITE_DONE */
+ * 如果没找到，返回SQLITE_DONE
+ */
 static int term_select(fulltext_vtab *v, const char *pTerm, int nTerm,
                        int iSegment,
                        sqlite_int64 *rowid, DocList *out){
@@ -1397,7 +1695,8 @@ static int term_select(fulltext_vtab *v, const char *pTerm, int nTerm,
 
   /* We expect only one row.  We must execute another sqlite3_step()
    * to complete the iteration; otherwise the table will remain locked. 
-   * 预计只有结果为一行，我们必须执行另一个sqlite3_step()函数，否则这个表将会保持锁定。*/
+   * 预计只有结果为一行，我们必须执行另一个sqlite3_step()函数，否则这个表将会保持锁定。
+   */
   rc = sqlite3_step(s);
   return rc==SQLITE_DONE ? SQLITE_ROW : rc;
 }
@@ -1408,7 +1707,6 @@ static int term_select(fulltext_vtab *v, const char *pTerm, int nTerm,
 ** doclist in out.
 ** 载入分段doclists，并且将它们按适当的顺序合并。如果成功返回SQLITE_OK。
 ** 如果没有和pTerm合并的段，返回一个空的doclist。
-**
 ** Each document consists of 1 or more "columns".  The number of
 ** columns is v->nColumn.  If iColumn==v->nColumn, then return
 ** position information about all columns.  If iColumn<v->nColumn,
@@ -1448,7 +1746,7 @@ static int term_select_all(
     docListInit(&old, DL_DEFAULT,
                 sqlite3_column_blob(s, 0), sqlite3_column_bytes(s, 0));
 
-    if( iColumn<v->nColumn ){   /* querying a single column 只查询一列 */
+    if( iColumn<v->nColumn ){   /* querying a single column 只查询一列*/
       docListRestrictColumn(&old, iColumn);
     }
 
@@ -1473,11 +1771,10 @@ static int term_select_all(
 /* insert into %_term (rowid, term, segment, doclist)
                values ([piRowid], [pTerm], [iSegment], [doclist])
 ** Lets sqlite select rowid if piRowid is NULL, else uses *piRowid.
-**
 ** NOTE(shess) piRowid is IN, with values of "space of int64" plus
 ** null, it is not used to pass data back to the caller.
 ** 这个函数用来在%_term中插入值。
-** 如果piRowid为NULL，则让sqlite选择伪列，否则使用*piRowid所指向的伪列。
+** 如果piRowid为NULL，则让sqlite选择一行，否则使用*piRowid所指向的行。
 */
 static int term_insert(fulltext_vtab *v, sqlite_int64 *piRowid,
                        const char *pTerm, int nTerm,
@@ -1578,7 +1875,6 @@ static void fulltext_vtab_destroy(fulltext_vtab *v){
 ** For ASCII, any character with the high-order bit set is
 ** allowed in an identifier.  For 7-bit characters, 
 ** sqlite3IsIdChar[X] must be 1.
-**
 ** Ticket #1066.  the SQL standard does not allow '$' in the
 ** middle of identfiers.  But many SQL implementations do. 
 ** SQLite will allow '$' in identifiers for compatibility.
@@ -1605,45 +1901,45 @@ static const char isIdChar[] = {
 ** 在函数返回前，用*tokenType记录令牌类型。
 */
 static int getToken(const char *z, int *tokenType){
-  int i, c;     //i是一个计数器
-  switch( *z ){
-    //z[0]的字符代表文件终点，返回令牌的长度是0
-    case 0: {
+  int i, c; 	//i是一个计数器
+  switch( *z ){ 
+  	//z[0]的字符代表文件终点，返回令牌的长度是0
+    case 0: { 		
       *tokenType = TOKEN_EOF;
       return 0;
     }
-    //z[0]的字符是空格
+	//z[0]的字符是空格
     case ' ': case '\t': case '\n': case '\f': case '\r': {
       for(i=1; safe_isspace(z[i]); i++){} //对于连续的空格，返回空格数i
       *tokenType = TOKEN_SPACE;
       return i;
     }
-    //z[0]的字符是'`'、'\''、'"'，代表后面是一串字符，返回这串字符的长度。
+	//z[0]的字符是'`'、'\''、'"'，代表后面是一串字符，返回这串字符的长度。
     case '`':
     case '\'':
     case '"': {
-      int delim = z[0];  		//delim用来存储z[0]，即代表'`'、'\''、'"'
+      int delim = z[0];  			//delim用来存储z[0]，即代表'`'、'\''、'"'
       for(i=1; (c=z[i])!=0; i++){ 	//在ASCII编码中0代表空字符，如果z[i]不是空字符，计数器加1
-        if( c==delim ){			//如果z[i]的字符与delim相同
+        if( c==delim ){				//如果z[i]的字符与delim相同
           if( z[i+1]==delim ){		//如果z[i+1]也与delim相同
-            i++;			//说明这一串字符没有结束，计数器加1
-          }else{			//如果z[i+1]与delim不同
-            break;			//直接跳出for循环
+            i++;					//说明这一串字符没有结束，计数器加1
+          }else{					//如果z[i+1]与delim不同
+            break;					//直接跳出for循环
           }
         }
       }
-      *tokenType = TOKEN_STRING;
-      return i + (c!=0);                //如果for循环中，z[i]以空字符结束，返回i，否则返回i+1
+      *tokenType = TOKEN_STRING;	
+      return i + (c!=0);			//如果for循环中，z[i]以空字符结束，返回i，否则返回i+1
     }
-    //z[0]的字符是'['，说明是一个标识符，长度计算包括左右方括号
+	//z[0]的字符是'['，说明是一个标识符，长度计算包括左右方括号
     case '[': {
-      for(i=1, c=z[0]; c!=']' && (c=z[i])!=0; i++){}//如果c所代表的字符不是']'，且c的下一位字符不是空字符，计数加1
+      for(i=1, c=z[0]; c!=']' && (c=z[i])!=0; i++){}	//如果c所代表的字符不是']'，且c的下一位字符不是空字符，计数加1
       *tokenType = TOKEN_ID;
       return i;
     }
-    //z[0]是其他字符
+	//z[0]是其他字符
     default: {
-      if( !IdChar(*z) ){        //如果z[0]是控制字符，则跳出switch语句，如果不是则进行下面的for循环
+      if( !IdChar(*z) ){			//如果z[0]是控制字符，则跳出switch语句，如果不是则进行下面的for循环
         break;
       }
       for(i=1; IdChar(z[i]); i++){}	//如果z[i]是普通字符，计数器加1，否则结束循环
@@ -1651,7 +1947,7 @@ static int getToken(const char *z, int *tokenType){
       return i;
     }
   }
-  *tokenType = TOKEN_PUNCT;         //直接跳出switch语句，代表这个字符为控制字符
+  *tokenType = TOKEN_PUNCT;			//直接跳出switch语句，代表这个字符为控制字符
   return 1;
 }
 
@@ -1687,16 +1983,16 @@ typedef struct Token {
 */
 static char **tokenizeString(const char *z, int *pnToken){
   int nToken = 0;
-  Token *aToken = malloc( strlen(z) * sizeof(aToken[0]) );	//定义一个记录令牌的数组
+  Token *aToken = malloc( strlen(z) * sizeof(aToken[0]) ); 	//定义一个记录令牌的数组
   int n = 1;
   int e, i;
   int totalSize = 0;
   char **azToken;
   char *zCopy;
-  while( n>0 ){
-    n = getToken(z, &e);	//得到z所指向的字符串长度
-    if( e!=TOKEN_SPACE ){	//如果z所指向的是空格，就跳过空格
-      aToken[nToken].z = z;	//如果不是空格，使用aToken分别记录z和z的长度
+  while( n>0 ){					
+    n = getToken(z, &e);		//得到z所指向的字符串长度
+    if( e!=TOKEN_SPACE ){		//如果z所指向的是空格，就跳过空格
+      aToken[nToken].z = z;		//如果不是空格，使用aToken分别记录z和z的长度
       aToken[nToken].n = n;
       nToken++;
       totalSize += n+1;
@@ -1737,26 +2033,26 @@ static char **tokenizeString(const char *z, int *pnToken){
 static void dequoteString(char *z){
   int quote;
   int i, j;
-  if( z==0 ) return;		//如果z是空字符则无操作。
-  quote = z[0];			//quote记录z[0]的ASCII码	
-  switch( quote ){		//如果quote所表示的字符是引用字符，则跳出switch执行下面的for循环，否则无操作。
+  if( z==0 ) return;				//如果z是空字符则无操作。
+  quote = z[0];						//quote记录z[0]的ASCII码	
+  switch( quote ){					//如果quote所表示的字符是引用字符，则跳出switch执行下面的for循环，否则无操作。
     case '\'':  break;
     case '"':   break;
     case '`':   break;                /* For MySQL compatibility 适用于MySQL */
     case '[':   quote = ']';  break;  /* For MS SqlServer compatibility 适用于MS SqlServer如果以'['开头，则结尾应是']' */
     default:    return;
   }
-  for(i=1, j=0; z[i]; i++){	//z[0]是引用字符，故循环从z[1]开始
-    if( z[i]==quote ){		//如果z[i]是和quote相同的引用字符，说明此时是字符串结尾
-      if( z[i+1]==quote ){	//如果z[i+1]也是和quote相同的引用字符
-        z[j++] = quote;		//将z[i+1]前移
-        i++;			//这里i++，是为了跳过已知与quote相同的字符。
+  for(i=1, j=0; z[i]; i++){			//z[0]是引用字符，故循环从z[1]开始
+    if( z[i]==quote ){				//如果z[i]是和quote相同的引用字符，说明此时是字符串结尾
+      if( z[i+1]==quote ){			//如果z[i+1]也是和quote相同的引用字符
+        z[j++] = quote;				//将z[i+1]前移
+        i++;						//这里i++，是为了跳过已知与quote相同的字符。
       }else{
-        z[j++] = 0;		//如果z[i+1]和quote不同，则将z的结尾置空，结束循环。
+        z[j++] = 0;					//如果z[i+1]和quote不同，则将z的结尾置空，结束循环。
         break;
       }
-    }else{			//如果z[i]的字符与quote不相同，说明还未到字符串结尾
-      z[j++] = z[i];		//字符前移一位
+    }else{							//如果z[i]的字符与quote不相同，说明还未到字符串结尾
+      z[j++] = z[i];				//字符前移一位
     }
   }
 }
@@ -1765,7 +2061,6 @@ static void dequoteString(char *z){
 ** The input azIn is a NULL-terminated list of tokens.  Remove the first
 ** token and all punctuation tokens.  Remove the quotes from
 ** around string literal tokens.
-**
 ** 输入的azIn是一个以空结尾的令牌列表。
 ** 删除第一个令牌表示的内容以及所有标点符号令牌。删除文字令牌的引用字符。
 ** Example:
@@ -1782,15 +2077,15 @@ static void tokenListToIdList(char **azIn){
   int i, j;
   if( azIn ){
     for(i=0, j=-1; azIn[i]; i++){
-      if( safe_isalnum(azIn[i][0]) || azIn[i][1] ){ //如果第i个令牌是数字或字母，并且长度不为0。
-        dequoteString(azIn[i]); //删去引用字符
+      if( safe_isalnum(azIn[i][0]) || azIn[i][1] ){  	//如果第i个令牌是数字或字母，并且长度不为0。
+        dequoteString(azIn[i]);						 	//删去引用字符
         if( j>=0 ){
           azIn[j] = azIn[i];
         }
         j++;
       }
     }
-    azIn[j] = 0;    //使令牌列表以0结尾
+    azIn[j] = 0;										//使令牌列表以0结尾
   }
 }
 
@@ -1811,9 +2106,9 @@ static char *firstToken(char *zIn, char **pzTail){
       *pzTail = zIn;
       return 0;
     }else{				
-      zIn[n] = 0;		//对于其他类型，令zIn最后一个元素为0
-      *pzTail = &zIn[1];	//pzTail指向zIn[1]
-      dequoteString(zIn);	//删除zIn中的引用符号
+      zIn[n] = 0;					//对于其他类型，令zIn最后一个元素为0
+      *pzTail = &zIn[1];			//pzTail指向zIn[1]
+      dequoteString(zIn);			//删除zIn中的引用符号
       return zIn;
     }
   }
@@ -1830,11 +2125,11 @@ static char *firstToken(char *zIn, char **pzTail){
 **
 ** To put it another way, return true if the first token of
 ** s[] is t[].
-**
+** 
 ** 以下情况返回true
-**   *  s以字符串t开头，忽略大小写
-**   *  s的长度比t长
-**   *  s的第一个字符除了t没有其他的字母数字符号
+**	 * s以字符串t开头，忽略大小写
+**   * s的长度比t长
+**   * s的第一个字符除了t没有其他的字母数字符号
 ** 忽略s开头的空格
 ** 话句话说，如果s中的第一个符号是t，则返回true
 */
@@ -1909,17 +2204,17 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
   ** argv[][]数组是只读的并且只保存短暂的时间，
   ** 我们可以再备份中修改内容，并且备份是可以长时间保存的。
   */
-  memset(pSpec, 0, sizeof(*pSpec)); //将pSpec所在的内存空间清零
-  for(i=n=0; i<argc; i++){          //计算argv[]所有元素的长度总和，并用n保存
+  memset(pSpec, 0, sizeof(*pSpec));			//将pSpec所在的内存空间清零
+  for(i=n=0; i<argc; i++){					//计算argv[]所有元素的长度总和，并用n保存
     n += strlen(argv[i]) + 1;
   }
-  azArg = malloc( sizeof(char*)*argc + n );//为azArg分配一块可以保存argv[]的内存
+  azArg = malloc( sizeof(char*)*argc + n );	//为azArg分配一块可以保存argv[]的内存
   if( azArg==0 ){
     return SQLITE_NOMEM;
   }
-  z = (char*)&azArg[argc];
-  for(i=0; i<argc; i++){    //将argv[]中的数据循环复制进z所指向的内存空间
-    azArg[i] = z;           //azArg[]数组依次保存z中的数据
+  z = (char*)&azArg[argc];					
+  for(i=0; i<argc; i++){					//将argv[]中的数据循环复制进z所指向的内存空间
+    azArg[i] = z;							//azArg[]数组依次保存z中的数据
     strcpy(z, argv[i]);
     z += strlen(z)+1;
   }
@@ -1928,14 +2223,14 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
   ** in the argv[][] array.
   ** 在argv[][]数组中确定列名、分词器和分隔符参数
   */
-  pSpec->zDb = azArg[1];	//将azArg[1]中保存的数据库名赋予pSpec->zDb		
-  pSpec->zName = azArg[2];	//将azArg[2]中保存的全文索引名赋予pSpec->aName
-  pSpec->nColumn = 0;		//列数赋值为0
-  pSpec->azColumn = azArg;
+  pSpec->zDb = azArg[1];			//将azArg[1]中保存的数据库名赋予pSpec->zDb		
+  pSpec->zName = azArg[2];			//将azArg[2]中保存的全文索引名赋予pSpec->aName
+  pSpec->nColumn = 0;				//列数赋值为0
+  pSpec->azColumn = azArg;			
   zTokenizer = "tokenize simple";
   for(i=3; i<argc; ++i){
-    if( startsWith(azArg[i],"tokenize") ){  //azArg[i]如果保存的是分词器
-      zTokenizer = azArg[i];                //zTokenizer赋值为azArg[i]
+    if( startsWith(azArg[i],"tokenize") ){	//azArg[i]如果保存的是分词器
+      zTokenizer = azArg[i];				//zTokenizer赋值为azArg[i]
     }else{
       z = azArg[pSpec->nColumn] = firstToken(azArg[i], &zDummy);
       pSpec->nColumn++;
@@ -1958,7 +2253,7 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
   ** The AAAA suffix is not strictly necessary.  It is included
   ** for the convenience of people who might examine the generated
   ** %_content table and wonder what the columns are used for.
-  **  
+  **
   ** 构造内容列名称列表
   **
   ** 每一个内容列名称都是cNNAAAA形式，NN是列号，AAAA是经过清理的列名。
@@ -1966,12 +2261,12 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
   **
   ** AAAA后缀并不是严格必须的
   */
-  pSpec->azContentColumn = malloc( pSpec->nColumn * sizeof(char *) );   //分配一块内存空间给pSpec->azContentColumn
-  if( pSpec->azContentColumn==0 ){  //如果pSpec->azContentColumn的大小为0
-    clearTableSpec(pSpec);          //销毁pSpec
+  pSpec->azContentColumn = malloc( pSpec->nColumn * sizeof(char *) ); //分配一块内存空间给pSpec->azContentColumn
+  if( pSpec->azContentColumn==0 ){	//如果pSpec->azContentColumn的大小为0
+    clearTableSpec(pSpec);			//销毁pSpec
     return SQLITE_NOMEM;
   }
-  for(i=0; i<pSpec->nColumn; i++){  //如果pSpec->azContentColumn的大小不为0，依次赋予列名
+  for(i=0; i<pSpec->nColumn; i++){	//如果pSpec->azContentColumn的大小不为0，依次赋予列名
     char *p;
     pSpec->azContentColumn[i] = sqlite3_mprintf("c%d%s", i, azArg[i]);
     for (p = pSpec->azContentColumn[i]; *p ; ++p) {
@@ -1980,10 +2275,9 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
   }
 
   /*
-  ** Parse the tokenizer specification string.
-  ** 解析分词器规则字符串
+  ** Parse the tokenizer specification string. 解析分词器规则字符串
   */
-  pSpec->azTokenizer = tokenizeString(zTokenizer, &n);
+  pSpec->azTokenizer = tokenizeString(zTokenizer, &n); 
   tokenListToIdList(pSpec->azTokenizer);
 
   return SQLITE_OK;
@@ -1995,6 +2289,7 @@ static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
 **
 ** Space is obtained from sqlite3_mprintf() and should be freed
 ** using sqlite3_free().
+** 
 ** 通过描述虚拟表的结构，生成一个CREATE TABLE语句，返回一个指向结构字符串的指针。
 ** 由函数sqlite3_mprintf()分配空间，使用sqlite3_free()函数释放空间
 */
@@ -2005,17 +2300,17 @@ static char *fulltextSchema(
 ){
   int i;
   char *zSchema, *zNext;
-  const char *zSep = "(";
+  const char *zSep = "(";		
   zSchema = sqlite3_mprintf("CREATE TABLE x");
-  for(i=0; i<nColumn; i++){	//循环构造创建表语句
+  for(i=0; i<nColumn; i++){		//循环构造创建表语句
     zNext = sqlite3_mprintf("%s%s%Q", zSchema, zSep, azColumn[i]);	
-    sqlite3_free(zSchema);	//销毁当前的zSchema
-    zSchema = zNext;		//赋予zSchema新构造的语句
-    zSep = ",";			//列与列之间用逗号隔开
+    sqlite3_free(zSchema);		//销毁当前的zSchema
+    zSchema = zNext;			//赋予zSchema新构造的语句
+    zSep = ",";					//列与列之间用逗号隔开
   }
   zNext = sqlite3_mprintf("%s,%Q)", zSchema, zTableName);	//在语句中加入表名
-  sqlite3_free(zSchema);	//销毁当前的zSchema
-  return zNext;			//返回指向保存语句的内存空间的指针
+  sqlite3_free(zSchema);		//销毁当前的zSchema
+  return zNext;					//返回指向保存语句的内存空间的指针
 }
 
 /*
@@ -2035,9 +2330,9 @@ static int constructVtab(
   const sqlite3_tokenizer_module *m = NULL;
   char *schema;
 
-  v = (fulltext_vtab *) malloc(sizeof(fulltext_vtab));  //为新的fulltext_vtab结构分配内存空间
+  v = (fulltext_vtab *) malloc(sizeof(fulltext_vtab));	//为新的fulltext_vtab结构分配内存空间
   if( v==0 ) return SQLITE_NOMEM;
-  memset(v, 0, sizeof(*v));     //将v的内存空间清零
+  memset(v, 0, sizeof(*v));			//将v的内存空间清零
   /* sqlite will initialize v->base 初始化v的数据成员 */
   v->db = db;
   v->zDb = spec->zDb;       /* Freed when azColumn is freed 当释放azColumn时同时释放 */
@@ -2053,41 +2348,41 @@ static int constructVtab(
   }
   /* TODO(shess) For now, add new tokenizers as else if clauses. */
   if( spec->azTokenizer[0]==0 || startsWith(spec->azTokenizer[0], "simple") ){	//如果分词器以0开头，或者以"simple"开头
-    sqlite3Fts1SimpleTokenizerModule(&m);	//则设置分词器模式为"simple"
-  }else if( startsWith(spec->azTokenizer[0], "porter") ){	//如果分词器以"porter"开头
-    sqlite3Fts1PorterTokenizerModule(&m);	//设置分词器模式为"porter"
-  }else{					//否则输出错误信息
+    sqlite3Fts1SimpleTokenizerModule(&m);										//则设置分词器模式为"simple"
+  }else if( startsWith(spec->azTokenizer[0], "porter") ){						//如果分词器以"porter"开头
+    sqlite3Fts1PorterTokenizerModule(&m);										//设置分词器模式为"porter"
+  }else{																		//否则输出错误信息
     *pzErr = sqlite3_mprintf("unknown tokenizer: %s", spec->azTokenizer[0]);
     rc = SQLITE_ERROR;
-    goto err;   //跳至错误处理
+    goto err;	//跳至错误处理
   }
   //创建一个分词器
   for(n=0; spec->azTokenizer[n]; n++){}
-  if( n ){  //n不为0，说明分词器的名称、参数已设定，按设定的参数创建
+  if( n ){		//n不为0，说明分词器的名称、参数已设定，按设定的参数创建
     rc = m->xCreate(n-1, (const char*const*)&spec->azTokenizer[1],
                     &v->pTokenizer);
-  }else{
+  }else{		
     rc = m->xCreate(0, 0, &v->pTokenizer);
   }
-  if( rc!=SQLITE_OK ) goto err; //如果没有正常运行，跳转到错误处理 
+  if( rc!=SQLITE_OK ) goto err;	//如果没有正常运行，跳转到错误处理
   v->pTokenizer->pModule = m;
 
   /* TODO: verify the existence of backing tables foo_content, foo_term */
 
-  schema = fulltextSchema(v->nColumn, (const char*const*)v->azColumn,
-                          spec->zName); //生成一个创建表的语句
-  rc = sqlite3_declare_vtab(db, schema);    //根据创建表的语句，设定虚拟表的结构
-  sqlite3_free(schema); //释放schema
-  if( rc!=SQLITE_OK ) goto err; 
+  schema = fulltextSchema(v->nColumn, (const char*const*)v->azColumn,	//生成一个创建表的语句
+                          spec->zName);		
+  rc = sqlite3_declare_vtab(db, schema);	//根据创建表的语句，设定虚拟表的结构
+  sqlite3_free(schema);	//释放schema
+  if( rc!=SQLITE_OK ) goto err;
 
-  memset(v->pFulltextStatements, 0, sizeof(v->pFulltextStatements));    //将v->pFulltextStatements清零
+  memset(v->pFulltextStatements, 0, sizeof(v->pFulltextStatements));	//将v->pFulltextStatements清零
 
   *ppVTab = &v->base;
   TRACE(("FTS1 Connect %p\n", v));
 
   return rc;
 
-err:    //错误处理，删除v
+err:	//错误处理，删除v
   fulltext_vtab_destroy(v);
   return rc;
 }
@@ -2100,18 +2395,18 @@ static int fulltextConnect(
   sqlite3_vtab **ppVTab,
   char **pzErr
 ){
-  TableSpec spec;       //将argv中的内容解析后记录到一个TableSpec结构中
+  TableSpec spec;	//将argv中的内容解析后记录到一个TableSpec结构中
   int rc = parseSpec(&spec, argc, argv, pzErr);
   if( rc!=SQLITE_OK ) return rc;
-
-  rc = constructVtab(db, &spec, ppVTab, pzErr); //构造一个sqlite3_vtab结构保存spec中的全文索引的定义
+  
+  rc = constructVtab(db, &spec, ppVTab, pzErr);	//构造一个sqlite3_vtab结构保存spec中的全文索引的定义
   clearTableSpec(&spec);
   return rc;
 }
 
   /* The %_content table holds the text of each document, with
   ** the rowid used as the docid.
-  ** %_content表保存每一个文件的文本，并使用伪列作为文档编号。
+  ** %_content表保存每一个文件的文本，并使用行号作为文档编号。
   **
   ** The %_term table maps each term to a document list blob
   ** containing elements sorted by ascending docid, each element
@@ -2122,6 +2417,7 @@ static int fulltextConnect(
   **     position+1 varint-encoded as delta from previous position
   **     start offset varint-encoded as delta from previous start offset
   **     end offset varint-encoded as delta from start offset
+  **   
   **
   ** %_term表映射每个项到一个文档列表对象，并且其中包括的元素按文档编号升序排列
   ** 每一个元素按如下方式编码:
@@ -2130,7 +2426,7 @@ static int fulltextConnect(
   **   令牌元素:
   **     前一个位置的增量作为后一个位置的变形编码
   **	 之前的起始偏移量的增量作为起始偏移量的变形编码
-  **	 起始偏移量的增量作为结尾偏移量的变形编码  
+  **	 起始偏移量的增量作为结尾偏移量的变形编码  		
   **
   ** The sentinel position of 0 indicates the end of the token list.
   ** 0的位置标志着令牌列表的结束
@@ -2155,7 +2451,7 @@ static int fulltextConnect(
   ** information in preference to higher-segment information.
   ** 由于这种结构不允许我们在原始的位置更新元素。
   ** 要删除或更新，只能写入到段0中(使用空的令牌列表进行删除操作)，
-  ** 使用docListAccumulate()函数要注意，低段的信息优先于高端信息?
+  ** 使用docListAccumulate()函数要注意，低段的信息优先于高端信息。
   */
   /* TODO(shess) Provide a VACUUM type operation which both removes
   ** deleted elements which are no longer necessary, and duplicated
@@ -2179,7 +2475,7 @@ static int fulltextCreate(sqlite3 *db, void *pAux,
   appendList(&schema, spec.nColumn, spec.azContentColumn);	//向schema中的语句中添加要创建的列
   append(&schema, ")");
   rc = sql_exec(db, spec.zDb, spec.zName, schema.s);	//执行schema中存储的语句
-  free(schema.s);	//释放schema中语句
+  free(schema.s);		//释放schema中语句
   if( rc!=SQLITE_OK ) goto out;	//如果没有成功运行，跳至处理语句
   //执行创建%_term表的语句，并指定其中的列
   rc = sql_exec(db, spec.zDb, spec.zName,
@@ -2202,17 +2498,17 @@ static int fulltextBestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pInfo){
   for(i=0; i<pInfo->nConstraint; ++i){
     const struct sqlite3_index_constraint *pConstraint; //新建一个sqlite3_index_constraint指针指向查询约束
     pConstraint = &pInfo->aConstraint[i];
-    if( pConstraint->usable ) {	//如果约束为可用状态
+    if( pConstraint->usable ) {		//如果约束为可用状态
       if( pConstraint->iColumn==-1 &&	//满足条件则按行查找
           pConstraint->op==SQLITE_INDEX_CONSTRAINT_EQ ){
         pInfo->idxNum = QUERY_ROWID;      /* lookup by rowid */
         TRACE(("FTS1 QUERY_ROWID\n"));
-      } else if( pConstraint->iColumn>=0 &&	//满足条件则全文本查找
+      } else if( pConstraint->iColumn>=0 &&		//满足条件则全文本查找
                  pConstraint->op==SQLITE_INDEX_CONSTRAINT_MATCH ){
         /* full-text search */
         pInfo->idxNum = QUERY_FULLTEXT + pConstraint->iColumn;
         TRACE(("FTS1 QUERY_FULLTEXT %d\n", pConstraint->iColumn));
-      } else continue;	//约束为不可用，函数继续
+      } else continue;		//约束为不可用，函数继续
 
       pInfo->aConstraintUsage[i].argvIndex = 1;
       pInfo->aConstraintUsage[i].omit = 1;
@@ -2228,10 +2524,11 @@ static int fulltextBestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pInfo){
   pInfo->idxNum = QUERY_GENERIC;
   return SQLITE_OK;
 }
+
 //这个函数用来使全文检索与虚拟表断开连接
 static int fulltextDisconnect(sqlite3_vtab *pVTab){
   TRACE(("FTS1 Disconnect %p\n", pVTab));
-  fulltext_vtab_destroy((fulltext_vtab *)pVTab);//断开后销毁pVTab
+  fulltext_vtab_destroy((fulltext_vtab *)pVTab);	//断开后销毁pVTab
   return SQLITE_OK;
 }
 //这个函数用来执行全文检索中的删除语句
@@ -2246,7 +2543,7 @@ static int fulltextDestroy(sqlite3_vtab *pVTab){
                 );	//执行删除语句
   if( rc!=SQLITE_OK ) return rc;
 
-  fulltext_vtab_destroy((fulltext_vtab *)pVTab);//函数结束后销毁pVTab
+  fulltext_vtab_destroy((fulltext_vtab *)pVTab);	//函数结束后销毁pVTab
   return SQLITE_OK;
 }
 //当开始全文检索式，使用这个函数创建一个游标
@@ -2267,11 +2564,11 @@ static int fulltextOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 */
 static void queryClear(Query *q){
   int i;
-  for(i = 0; i < q->nTerms; ++i){//依次释放q中的项
+  for(i = 0; i < q->nTerms; ++i){	//依次释放q中的项
     free(q->pTerms[i].pTerm);
   }
   free(q->pTerms);
-  memset(q, 0, sizeof(*q));     //将q所指向的内存清零
+  memset(q, 0, sizeof(*q));			//将q所指向的内存清零
 }
 
 /* Free all of the dynamically allocated memory held by the
@@ -2279,11 +2576,10 @@ static void queryClear(Query *q){
 ** 释放所有Snippet的动态分配内存
 */
 static void snippetClear(Snippet *p){
-  //依次释放p所指向的Snippet的数据成员
-  free(p->aMatch);
+  free(p->aMatch);			//依次释放p所指向的Snippet的数据成员
   free(p->zOffset);
   free(p->zSnippet);
-  memset(p, 0, sizeof(*p));//将保存Snippet的内存空间清零
+  memset(p, 0, sizeof(*p));	//将保存Snippet的内存空间清零
 }
 /*
 ** Append a single entry to the p->aMatch[] log.
@@ -2296,16 +2592,16 @@ static void snippetAppendMatch(
 ){
   int i;
   struct snippetMatch *pMatch;
-  if( p->nMatch+1>=p->nAlloc ){	        //如果Snippet中的aMatch[]已没有空闲的空间
-    p->nAlloc = p->nAlloc*2 + 10;       //增加分配给aMatch[]的空间
+  if( p->nMatch+1>=p->nAlloc ){		//如果Snippet中的aMatch[]已没有空闲的空间
+    p->nAlloc = p->nAlloc*2 + 10;	//增加分配给aMatch[]的空间
     p->aMatch = realloc(p->aMatch, p->nAlloc*sizeof(p->aMatch[0]) );	//扩大aMatch[]在内存中所占的空间
-    if( p->aMatch==0 ){		        //如果aMatch[]本来就是空的，则恢复原状，不做操作
+    if( p->aMatch==0 ){				//如果aMatch[]本来就是空的，则恢复原状，不做操作
       p->nMatch = 0;
       p->nAlloc = 0;
       return;
     }
   }
-  i = p->nMatch++;		//match总数加1
+  i = p->nMatch++;			//match总数加1
   pMatch = &p->aMatch[i];	//pMatch指向新添加的条目
   pMatch->iCol = iCol;		//记录新添加条目的信息
   pMatch->iTerm = iTerm;
@@ -2348,7 +2644,7 @@ static void snippetOffsetsOfColumn(
   int iBegin, iEnd, iPos;              /* Offsets of beginning and end 起始与结尾的偏移量 */
 
   /* The following variables keep a circular buffer of the last
-  ** few tokens 
+  ** few tokens
   ** 下面的几个变量保存着剩下的令牌的循环缓冲区
   */
   unsigned int iRotor = 0;             /* Index of current token 当前令牌的索引 */
@@ -2359,7 +2655,7 @@ static void snippetOffsetsOfColumn(
   nColumn = pVtab->nColumn;
   pTokenizer = pVtab->pTokenizer;
   pTModule = pTokenizer->pModule;
-  rc = pTModule->xOpen(pTokenizer, zDoc, nDoc, &pTCursor);//准备分词器
+  rc = pTModule->xOpen(pTokenizer, zDoc, nDoc, &pTCursor);	//准备分词器
   if( rc ) return;
   pTCursor->pTokenizer = pTokenizer;
   aTerm = pQuery->pTerms;
@@ -2371,22 +2667,22 @@ static void snippetOffsetsOfColumn(
   while(1){
     rc = pTModule->xNext(pTCursor, &zToken, &nToken, &iBegin, &iEnd, &iPos); //依次载入令牌
     if( rc ) break;
-    iRotorBegin[iRotor&FTS1_ROTOR_MASK] = iBegin;       //记录令牌起始偏移量
-    iRotorLen[iRotor&FTS1_ROTOR_MASK] = iEnd-iBegin;    //记录令牌长度
+    iRotorBegin[iRotor&FTS1_ROTOR_MASK] = iBegin;		//记录令牌起始偏移量
+    iRotorLen[iRotor&FTS1_ROTOR_MASK] = iEnd-iBegin;	//记录令牌长度
     match = 0;
-    for(i=0; i<nTerm; i++){     //依次操作每一个查询语句项
+    for(i=0; i<nTerm; i++){		//依次操作每一个查询语句项
       int iCol;
-      iCol = aTerm[i].iColumn;  //当前查询语句项的索引列
-      if( iCol>=0 && iCol<nColumn && iCol!=iColumn ) continue;//列不同，跳出for循环
-      if( aTerm[i].nTerm!=nToken ) continue;    //当前查询语句项的大小与令牌大小不同，跳出for循环
-      if( memcmp(aTerm[i].pTerm, zToken, nToken) ) continue;    //比较当前查询语句项和令牌，如果不同，跳出for循环
-      if( aTerm[i].iPhrase>1 && (prevMatch & (1<<i))==0 ) continue;
+      iCol = aTerm[i].iColumn;	//当前查询语句项的索引列
+      if( iCol>=0 && iCol<nColumn && iCol!=iColumn ) continue;		//列不同，跳出for循环
+      if( aTerm[i].nTerm!=nToken ) continue;						//当前查询语句项的大小与令牌大小不同，跳出for循环
+      if( memcmp(aTerm[i].pTerm, zToken, nToken) ) continue;		//比较当前查询语句项和令牌，如果不同，跳出for循环
+      if( aTerm[i].iPhrase>1 && (prevMatch & (1<<i))==0 ) continue;	
       match |= 1<<i;
       if( i==nTerm-1 || aTerm[i+1].iPhrase==1 ){
         for(j=aTerm[i].iPhrase-1; j>=0; j--){
           int k = (iRotor-j) & FTS1_ROTOR_MASK;
-          snippetAppendMatch(pSnippet, iColumn, i-j,
-                iRotorBegin[k], iRotorLen[k]);//为pSnippet添加一个match条目
+          snippetAppendMatch(pSnippet, iColumn, i-j,	//为pSnippet添加一个match条目
+                iRotorBegin[k], iRotorLen[k]);
         }
       }
     }
