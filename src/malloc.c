@@ -288,7 +288,7 @@ static void sqlite3MallocAlarm(int nByte){
 ** Do a memory allocation with statistics and alarms.  Assume the
 ** lock is already held.
 */
-/*统计和警报内存分配 锁已经被执行*/
+/*根据统计和警报来进行内存分配 锁已经被执行*/
 static int mallocWithAlarm(int n, void **pp){
   int nFull;
   void *p;
