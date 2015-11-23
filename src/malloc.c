@@ -325,7 +325,7 @@ static int mallocWithAlarm(int n, void **pp){
 ** assumes the memory subsystem has already been initialized.
 */
 /*
-重新分配内存 这个例子像sqlite3_malloc() 除非内存子系统已经被初始化
+重新分配内存，这个函数想sqlite3_malloc()，但不必初始化内存子系统
 */
 void *sqlite3Malloc(int n){
   void *p;
@@ -355,7 +355,7 @@ void *sqlite3Malloc(int n){
 ** First make sure the memory subsystem is initialized, then do the
 ** allocation.
 */
-/*内存分配的版本通过应用 第一次确定内存子系统被初始化，然后分配*/
+/*这个版本的内存分配是由应用程序使用，使用前需要确保内存分配子系统要初始化，之后再进行内存分配*/
 void *sqlite3_malloc(int n){
 #ifndef SQLITE_OMIT_AUTOINIT
   if( sqlite3_initialize() ) return 0;
@@ -488,7 +488,7 @@ static int isLookaside(sqlite3 *db, void *p){
 ** Return the size of a memory allocation previously obtained from
 ** sqlite3Malloc() or sqlite3_malloc().
 */
-//返回从sqlite3Malloc() or sqlite3_malloc()函数中得到的内存分配的大小
+//返回利用sqlite3Malloc()和sqlite3_malloc()函数分配得到的内存大小。
 int sqlite3MallocSize(void *p){
   assert( sqlite3MemdebugHasType(p, MEMTYPE_HEAP) );
   assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
@@ -713,7 +713,7 @@ void *sqlite3DbMallocRaw(sqlite3 *db, int n){
 ** resize fails, set the mallocFailed flag in the connection object.
 */
 /*
-重置内存块 如果重置失败，设置失败标志
+重置内存块 如果重置失败，在连接对象中设置失败标志
 */
 void *sqlite3DbRealloc(sqlite3 *db, void *p, int n){
   void *pNew = 0;
@@ -753,7 +753,7 @@ void *sqlite3DbRealloc(sqlite3 *db, void *p, int n){
 ** and set the mallocFailed flag in the database connection.
 */
 /*
-试着重新分配p ，如果跟配失败 就开始释放
+试着重新分配p，如果分配失败，就释放，并且在数据库连接中设置失败标志
 */
 void *sqlite3DbReallocOrFree(sqlite3 *db, void *p, int n){
   void *pNew;
