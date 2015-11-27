@@ -42,96 +42,96 @@
 ** list.
 **
 */
-struct Parse {
-	sqlite3 *db;         /* The main database structure   主要的数据库结构*/
-	char *zErrMsg;       /* An error message   错误信息 */
-	Vdbe *pVdbe;         /* An engine for executing database bytecode   执行数据库字节码的引擎*/
-	int rc;              /* Return code from execution   返回 */
-	//typedef UINT8_TYPE u8;             /* 1-byte unsigned integer */
-	u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued(发送) to pVdbe  OP_ColumnName被发送给字节码执行引擎之后为真 */
-	u8 checkSchema;      /* Causes schema cookie check after an error   检查模式错误*/
-	u8 nested;           /* Number of nested calls to the parser/code generator  嵌套的调用解析器或者代码生成器的数目*/
-	u8 nTempReg;         /* Number of temporary registers in aTempReg[] 在临时寄存器数组中临时寄存器的数目*/
-	u8 nTempInUse;       /* Number of aTempReg[] currently checked out  在临时寄存器数组中当前被检出的数目 */
-	u8 nColCache;        /* Number of entries in aColCache[] */
-	u8 iColCache;        /* Next entry in aColCache[] to replace */
-	u8 isMultiWrite;     /* True if statement may modify/insert multiple rows   如果语句有修改或者插入多行的操作时为真*/
-	u8 mayAbort;         /* True if statement may throw an ABORT exception   抛出一个放弃的异常时为真 */
-	int aTempReg[8];     /* Holding area for temporary registers    保持临时寄存器区域 */
-	int nRangeReg;       /* Size of the temporary register block */
-	int iRangeReg;       /* First register in temporary register block */
-	int nErr;            /* Number of errors seen   错误数*/
-	int nTab;            /* Number of previously allocated VDBE cursors   VDBE游标的数目*/
-	int nMem;            /* Number of memory cells used so far   到目前为止被使用的内存数目*/
-	int nSet;            /* Number of sets used so far */
-	int nOnce;           /* Number of OP_Once instructions so far */
-	int ckBase;          /* Base register of data during check constraints */
-	int iCacheLevel;     /* ColCache valid when aColCache[].iLevel<=iCacheLevel */
-	int iCacheCnt;       /* Counter used to generate aColCache[].lru values */
-	struct yColCache {
-		int iTable;           /* Table cursor number  表中的游标数目*/
-		int iColumn;          /* Table column number   表中的列数目*/
-		u8 tempReg;           /* iReg is a temp register that needs to be freed */
-		int iLevel;           /* Nesting level  嵌套额深度*/
-		int iReg;             /* Reg with value of this column. 0 means none. */
-		int lru;              /* Least recently used entry has the smallest value   最近最少使用实体的最小值*/
-	} aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry */
-	yDbMask writeMask;   /* Start a write transaction on these databases   在数据库中开始一个写事务*/
-	yDbMask cookieMask;  /* Bitmask of schema verified databases */
-	int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine */
-	int cookieValue[SQLITE_MAX_ATTACHED + 2];  /* Values of cookies to verify */
-	int regRowid;        /* Register holding rowid of CREATE TABLE entry */
-	int regRoot;         /* Register holding root page number for new objects */
-	int nMaxArg;         /* Max args passed to user function by sub-program  用户函数的最大个数*/
-	Token constraintName;/* Name of the constraint currently being parsed */
-#ifndef SQLITE_OMIT_SHARED_CACHE
-	int nTableLock;        /* Number of locks in aTableLock   早锁表数组中锁的数目*/
-	TableLock *aTableLock; /* Required table locks for shared-cache mode  共享缓存要求锁表*/
-#endif
-	AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters  自动增量计数器的信息 */
-
-	/* Information used while coding trigger（触发器） programs.  下面的信息是当用户编写触发器程序时用到的*/
-	Parse *pToplevel;    /* Parse structure for main program (or NULL) */
-	Table *pTriggerTab;  /* Table triggers are being coded for */
-	double nQueryLoop;   /* Estimated number of iterations of a query */
-	u32 oldmask;         /* Mask of old.* columns referenced */
-	u32 newmask;         /* Mask of new.* columns referenced */
-	u8 eTriggerOp;       /* TK_UPDATE, TK_INSERT or TK_DELETE */
-	u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps */
-	u8 disableTriggers;  /* True to disable triggers */
-
-	/* Above is constant between recursions.  Below is reset before and after
-	** each recursion */
-
-	int nVar;                 /* Number of '?' variables seen in the SQL so far */
-	int nzVar;                /* Number of available slots in azVar[] */
-	u8 explain;               /* True if the EXPLAIN flag is found on the query  如果在查询中解释标志被找到（发现）时为真*/
-#ifndef SQLITE_OMIT_VIRTUALTABLE
-	u8 declareVtab;           /* True if inside sqlite3_declare_vtab() */
-	int nVtabLock;            /* Number of virtual tables to lock */
-#endif
-	int nAlias;               /* Number of aliased result set columns  设置列别名*/
-	int nHeight;              /* Expression tree height of current sub-select  当前子选择结构树的高度 */
-#ifndef SQLITE_OMIT_EXPLAIN
-	int iSelectId;            /* ID of current select for EXPLAIN output */
-	int iNextSelectId;        /* Next available select ID for EXPLAIN output */
-#endif
-	char **azVar;             /* Pointers to names of parameters */
-	Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) */
-	int *aAlias;              /* Register used to hold aliased result */
-	const char *zTail;        /* All SQL text past the last semicolon parsed */
-	Table *pNewTable;         /* A table being constructed by CREATE TABLE   通过CREATE TABLE语法一个表就被构建成功*/
-	Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER  通过CREATE TRIGGER语法触发器被成功创建 */
-	const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks */
-	Token sNameToken;         /* Token with unqualified schema object name */
-	Token sLastToken;         /* The last token parsed */
-#ifndef SQLITE_OMIT_VIRTUALTABLE
-	Token sArg;               /* Complete text of a module argument */
-	Table **apVtabLock;       /* Pointer to virtual tables needing locking */
-#endif
-	Table *pZombieTab;        /* List of Table objects to delete after code gen */
-	TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers */
-};
+//struct Parse {
+//	sqlite3 *db;         /* The main database structure   主要的数据库结构*/
+//	char *zErrMsg;       /* An error message   错误信息 */
+//	Vdbe *pVdbe;         /* An engine for executing database bytecode   执行数据库字节码的引擎*/
+//	int rc;              /* Return code from execution   返回 */
+//	//typedef UINT8_TYPE u8;             /* 1-byte unsigned integer */
+//	u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued(发送) to pVdbe  OP_ColumnName被发送给字节码执行引擎之后为真 */
+//	u8 checkSchema;      /* Causes schema cookie check after an error   检查模式错误*/
+//	u8 nested;           /* Number of nested calls to the parser/code generator  嵌套的调用解析器或者代码生成器的数目*/
+//	u8 nTempReg;         /* Number of temporary registers in aTempReg[] 在临时寄存器数组中临时寄存器的数目*/
+//	u8 nTempInUse;       /* Number of aTempReg[] currently checked out  在临时寄存器数组中当前被检出的数目 */
+//	u8 nColCache;        /* Number of entries in aColCache[] */
+//	u8 iColCache;        /* Next entry in aColCache[] to replace */
+//	u8 isMultiWrite;     /* True if statement may modify/insert multiple rows   如果语句有修改或者插入多行的操作时为真*/
+//	u8 mayAbort;         /* True if statement may throw an ABORT exception   抛出一个放弃的异常时为真 */
+//	int aTempReg[8];     /* Holding area for temporary registers    保持临时寄存器区域 */
+//	int nRangeReg;       /* Size of the temporary register block */
+//	int iRangeReg;       /* First register in temporary register block */
+//	int nErr;            /* Number of errors seen   错误数*/
+//	int nTab;            /* Number of previously allocated VDBE cursors   VDBE游标的数目*/
+//	int nMem;            /* Number of memory cells used so far   到目前为止被使用的内存数目*/
+//	int nSet;            /* Number of sets used so far */
+//	int nOnce;           /* Number of OP_Once instructions so far */
+//	int ckBase;          /* Base register of data during check constraints */
+//	int iCacheLevel;     /* ColCache valid when aColCache[].iLevel<=iCacheLevel */
+//	int iCacheCnt;       /* Counter used to generate aColCache[].lru values */
+//	struct yColCache {
+//		int iTable;           /* Table cursor number  表中的游标数目*/
+//		int iColumn;          /* Table column number   表中的列数目*/
+//		u8 tempReg;           /* iReg is a temp register that needs to be freed */
+//		int iLevel;           /* Nesting level  嵌套额深度*/
+//		int iReg;             /* Reg with value of this column. 0 means none. */
+//		int lru;              /* Least recently used entry has the smallest value   最近最少使用实体的最小值*/
+//	} aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry */
+//	yDbMask writeMask;   /* Start a write transaction on these databases   在数据库中开始一个写事务*/
+//	yDbMask cookieMask;  /* Bitmask of schema verified databases */
+//	int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine */
+//	int cookieValue[SQLITE_MAX_ATTACHED + 2];  /* Values of cookies to verify */
+//	int regRowid;        /* Register holding rowid of CREATE TABLE entry */
+//	int regRoot;         /* Register holding root page number for new objects */
+//	int nMaxArg;         /* Max args passed to user function by sub-program  用户函数的最大个数*/
+//	Token constraintName;/* Name of the constraint currently being parsed */
+//#ifndef SQLITE_OMIT_SHARED_CACHE
+//	int nTableLock;        /* Number of locks in aTableLock   早锁表数组中锁的数目*/
+//	TableLock *aTableLock; /* Required table locks for shared-cache mode  共享缓存要求锁表*/
+//#endif
+//	AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters  自动增量计数器的信息 */
+//
+//	/* Information used while coding trigger（触发器） programs.  下面的信息是当用户编写触发器程序时用到的*/
+//	Parse *pToplevel;    /* Parse structure for main program (or NULL) */
+//	Table *pTriggerTab;  /* Table triggers are being coded for */
+//	double nQueryLoop;   /* Estimated number of iterations of a query */
+//	u32 oldmask;         /* Mask of old.* columns referenced */
+//	u32 newmask;         /* Mask of new.* columns referenced */
+//	u8 eTriggerOp;       /* TK_UPDATE, TK_INSERT or TK_DELETE */
+//	u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps */
+//	u8 disableTriggers;  /* True to disable triggers */
+//
+//	/* Above is constant between recursions.  Below is reset before and after
+//	** each recursion */
+//
+//	int nVar;                 /* Number of '?' variables seen in the SQL so far */
+//	int nzVar;                /* Number of available slots in azVar[] */
+//	u8 explain;               /* True if the EXPLAIN flag is found on the query  如果在查询中解释标志被找到（发现）时为真*/
+//#ifndef SQLITE_OMIT_VIRTUALTABLE
+//	u8 declareVtab;           /* True if inside sqlite3_declare_vtab() */
+//	int nVtabLock;            /* Number of virtual tables to lock */
+//#endif
+//	int nAlias;               /* Number of aliased result set columns  设置列别名*/
+//	int nHeight;              /* Expression tree height of current sub-select  当前子选择结构树的高度 */
+//#ifndef SQLITE_OMIT_EXPLAIN
+//	int iSelectId;            /* ID of current select for EXPLAIN output */
+//	int iNextSelectId;        /* Next available select ID for EXPLAIN output */
+//#endif
+//	char **azVar;             /* Pointers to names of parameters */
+//	Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) */
+//	int *aAlias;              /* Register used to hold aliased result */
+//	const char *zTail;        /* All SQL text past the last semicolon parsed */
+//	Table *pNewTable;         /* A table being constructed by CREATE TABLE   通过CREATE TABLE语法一个表就被构建成功*/
+//	Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER  通过CREATE TRIGGER语法触发器被成功创建 */
+//	const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks */
+//	Token sNameToken;         /* Token with unqualified schema object name */
+//	Token sLastToken;         /* The last token parsed */
+//#ifndef SQLITE_OMIT_VIRTUALTABLE
+//	Token sArg;               /* Complete text of a module argument */
+//	Table **apVtabLock;       /* Pointer to virtual tables needing locking */
+//#endif
+//	Table *pZombieTab;        /* List of Table objects to delete after code gen */
+//	TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers */
+//};
 
 /*
 ** This routine is called when a new SQL statement is beginning to
@@ -170,20 +170,21 @@ struct TableLock {
 **这段代码在调用codeTableLocks()之后使锁发生，而codeTableLocks()发生于sqlite3FinishCoding()之中。
 */
 void sqlite3TableLock(
-	Parse *pParse,     /*索引上下文 */
-	int iDb,           /* Index of the database containing the table to lock （索引数据库包含表的锁）*/
-	int iTab,          /* Root page number of the table to be locked（根表的页码是锁着的） */
-	u8 isWriteLock,    /* True for a write lock 【对一个写入锁是true】*/
-	const char *zName  /* Name of the table to be locked[【加锁的表名】*/
+	Parse *pParse,     /*Parsing context 语法分析上下文  函数的第一个参数*/
+	int iDb,           /* Index of the database containing the table to lock  数据库中被锁定的表的索引，实际上就是表的索引，只不过这个表已经被锁定。所谓的被锁定就是指相应的标记位置1*/
+	int iTab,          /* Root page number of the table to be locked   被锁定的表的根页面 */
+	u8 isWriteLock,    /* True for a write lock 如果加了一个写操作锁则将该位置位为true*/
+	const char *zName  /* Name of the table to be locked  被加锁的表的名字  函数的最后一个参数*/
 	){
-	Parse *pToplevel = sqlite3ParseToplevel(pParse);
+	Parse *pToplevel = sqlite3ParseToplevel(pParse);   //指向语法树顶层的指针
 	int i;
 	int nBytes;
-	TableLock *p;
-	assert(iDb >= 0);
+	TableLock *p;    //锁表指针
+	assert(iDb >= 0);    //断言数据库中包含这个被锁定的表的索引，也就说已经给这个被锁定的表建立了相应的索引，并且这个表能在数据库中被找到
 
-	for (i = 0; i<pToplevel->nTableLock; i++){
-		p = &pToplevel->aTableLock[i];
+	//下面的for循环是在检索锁表，并且决定是置成读锁还是写锁
+	for (i = 0; i < pToplevel->nTableLock; i++){
+		p = &pToplevel->aTableLock[i];   //去锁表数组的第i个单元的地址，将地址赋值给p（p指针实际上是锁表指针TableLock *p）指针
 		if (p->iDb == iDb && p->iTab == iTab){
 			p->isWriteLock = (p->isWriteLock || isWriteLock);
 			return;
