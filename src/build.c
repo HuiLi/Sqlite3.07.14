@@ -171,7 +171,7 @@ struct TableLock {
 */
 void sqlite3TableLock(
 	Parse *pParse,     /*Parsing context 语法分析上下文  函数的第一个参数*/
-	int iDb,           /* Index of the database containing the table to lock  数据库中被锁定的表的索引，实际上就是表的索引，只不过这个表已经被锁定。所谓的被锁定就是指相应的标记位置1*/
+	int iDb,           /* Index of the database containing the table to lock  数据库中被锁定的表的索引，实际上就是表的索引，只不过这个表已经被锁定。所谓的被锁定就是指相应的标记为值1*/
 	int iTab,          /* Root page number of the table to be locked   被锁定的表的根页面 */
 	u8 isWriteLock,    /* True for a write lock 如果加了一个写操作锁则将该位置位为true*/
 	const char *zName  /* Name of the table to be locked  被加锁的表的名字  函数的最后一个参数*/
@@ -210,7 +210,7 @@ void sqlite3TableLock(
 /*
 ** Code an OP_TableLock instruction for each table locked by the
 ** statement (configured by calls to sqlite3TableLock()).
-【通过这个声明（这个声明是通过调用sqlite3TableLock()配置的）为每一个加锁表编写一个OP_TableLock指令。】
+**通过调用sqlite3TableLock()，为每一个已经加锁的表编写一条OP_TableLock指令
 */
 static void codeTableLocks(Parse *pParse){
 	int i;
