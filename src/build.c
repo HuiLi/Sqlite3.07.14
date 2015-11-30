@@ -184,7 +184,7 @@ void sqlite3TableLock(
 
 	//下面的for循环是在检索锁表，并且决定是置成读锁还是写锁
 	for (i = 0; i < pToplevel->nTableLock; i++){
-		p = &pToplevel->aTableLock[i];   //去锁表数组的第i个单元的地址，将地址赋值给p（p指针实际上是锁表指针TableLock *p）指针
+		p = &pToplevel->aTableLock[i];   //取锁表数组的第i个单元的地址，将地址赋值给p（p指针实际上是锁表指针TableLock *p）指针
 		if (p->iDb == iDb && p->iTab == iTab){
 			p->isWriteLock = (p->isWriteLock || isWriteLock);
 			return;
