@@ -233,38 +233,40 @@ static void codeTableLocks(Parse *pParse){
 /*
 ** This routine is called after a single SQL statement has been
 ** parsed and a VDBE program to execute that statement has been
-** prepared.  This routine puts the finishing touches on the
+** prepared.  当一个SQL语句被解析之后，sqlite3FinishCoding(Parse *pParse)将被调用，接着VDBE程序将执行这个已经准备好的语句
+** This routine puts the finishing touches on the
 ** VDBE program and resets the pParse structure for the next
 ** parse.
-**【单个SQL语句被解析之后调用这个例程，VDBE程序执行的语句应经准备。这个例程为VDBE项目做收尾工作，为下一个parse重置pParse结构。】
+**sqlite3FinishCoding(Parse *pParse)程序重置了pParse结构，为下一个parse做好准备，并且使VDBE程序结束。
 ** Note that if an error occurred, it might be the case that
-** no VDBE code was generated.【请注意，如果有错误发生，可能是这样的情况：VDBE代码没有发生。】
+** no VDBE code was generated.请注意，如果有错误发生，可能是这样的情况：VDBE代码没有生成。
 */
 void sqlite3FinishCoding(Parse *pParse){
 	sqlite3 *db;
-	Vdbe *v;
+	Vdbe *v;      //VDBE指针v，后面的程序中多次用到这个指针，用于指向VDBE，看到这里请去熟悉在sqlite数据库中为什么药使用VDBE以及VDBE的功能是什么？否则不能正确的理解下面的代码
 
-	db = pParse->db;
-	if (db->mallocFailed) return;
-	if (pParse->nested) return;
-	if (pParse->nErr) return;
+	db = pParse->db;               //将pParse中的db指针指向sqlite3的db指针
+	if (db->mallocFailed) return;  //如果内存申请失败，则退出
+	if (pParse->nested) return;    //如果发生嵌套，则退出
+	if (pParse->nErr) return;      //如果发生错误，则退出
 
 	/* Begin by generating some termination code at the end of the
-	** vdbe program【首先，生成一些终止代码在VDBE项目最后。】
+	** vdbe program  
+	**在VDBE程序的结束阶段生成一些终端代码
 	*/
 	v = sqlite3GetVdbe(pParse);
 	assert(!pParse->isMultiWrite
 		|| sqlite3VdbeAssertMayAbort(v, pParse->mayAbort));
 	if (v){
-		sqlite3VdbeAddOp0(v, OP_Halt);
+		sqlite3VdbeAddOp0(v, OP_Halt);    //增加指令OP_Halt
 
 		/* The cookie mask contains one bit for each database file open.
 		** (Bit 0 is for main, bit 1 is for temp, and so forth.)  Bits are
 		** set for each database that is used.  Generate code to start a
 		** transaction on each used database and to verify the schema cookie
-		** on each used database.【这个cookie隐含一个bit值为每一个数据库打开文件。
-		（bit==0时意思是：主数据库文件，bit==0时意思是：临时数据库文件等等。）
-		bit值是为每一个已经用过的数据库设置。每个使用过的数据库产生代码来开启一个事务，并验证模式cookie。】
+		** on each used database.【这个cookie隐含一个bit值为每一个已经打开的数据库文件。
+		（bit==0时意思是：主数据库文件，bit==1时意思是：临时数据库文件，等等。）
+		bit值是为每一个被使用数据库设置。每个使用过的数据库产生代码来开启一个事务，并验证模式cookie。】
 		*/
 		if (pParse->cookieGoto>0){
 			yDbMask mask;
@@ -272,21 +274,21 @@ void sqlite3FinishCoding(Parse *pParse){
 			sqlite3VdbeJumpHere(v, pParse->cookieGoto - 1);
 			for (iDb = 0, mask = 1; iDb<db->nDb; mask <<= 1, iDb++){
 				if ((mask & pParse->cookieMask) == 0) continue;
-				sqlite3VdbeUsesBtree(v, iDb);
-				sqlite3VdbeAddOp2(v, OP_Transaction, iDb, (mask & pParse->writeMask) != 0);
+				sqlite3VdbeUsesBtree(v, iDb);      //使用Btree
+				sqlite3VdbeAddOp2(v, OP_Transaction, iDb, (mask & pParse->writeMask) != 0);  //增加指令OP_Transaction
 				if (db->init.busy == 0){
-					assert(sqlite3SchemaMutexHeld(db, iDb, 0));
-					sqlite3VdbeAddOp3(v, OP_VerifyCookie,
+					assert(sqlite3SchemaMutexHeld(db, iDb, 0));    //已经占用临界区，因为数据库模式互斥量已经被得到
+					sqlite3VdbeAddOp3(v, OP_VerifyCookie,   
 						iDb, pParse->cookieValue[iDb],
 						db->aDb[iDb].pSchema->iGeneration);
-				}
+				}   //增加了第三个操作OP_VerifyCookie，并且模式已经生成
 			}
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 	  {
 		  int i;
 		  for (i = 0; i<pParse->nVtabLock; i++){
 			  char *vtab = (char *)sqlite3GetVTable(db, pParse->apVtabLock[i]);
-			  sqlite3VdbeAddOp4(v, OP_VBegin, 0, 0, 0, vtab, P4_VTAB);
+			  sqlite3VdbeAddOp4(v, OP_VBegin, 0, 0, 0, vtab, P4_VTAB);     //增加操作OP_VBegin
 		  }
 		  pParse->nVtabLock = 0;
 	  }
@@ -294,22 +296,29 @@ void sqlite3FinishCoding(Parse *pParse){
 
 	  /* Once all the cookies have been verified and transactions opened,
 	  ** obtain the required table-locks. This is a no-op unless the
-	  ** shared-cache feature is enabled.【一旦所有的cookies被验证完，所有的事务被打开，就会获得所需的表锁。这是一个空操作，除非启用共享缓存特性。】
+	  ** shared-cache feature is enabled.
+	  **一旦所有的cookies被验证完，所有的事务被打开，并且获得所需的锁表。这是一个空操作，除非启用共享缓存特性。
 	  */
 	  codeTableLocks(pParse);
 
-	  /* Initialize any AUTOINCREMENT data structures required.【初始化一些 AUTOINCREMENT（自动增量） 数据结构是必须的。】
-	  */
-	  sqlite3AutoincrementBegin(pParse);
+	  /* Initialize any AUTOINCREMENT data structures required.
+	  **初始化一些被需要的自增的数据结构 
+	  *
+	  sqlite3AutoincrementBegin(pParse);    //自动开始下一个SQL语句的解析
 
-	  /* Finally, jump back to the beginning of the executable code. 【最后，跳回到可执行代码的开端。】*/
-	  sqlite3VdbeAddOp2(v, OP_Goto, 0, pParse->cookieGoto);
-		}
+	  /* Finally, jump back to the beginning of the executable code. 
+	  **最后，跳回到可执行代码的开端。
+	  */
+	  sqlite3VdbeAddOp2(v, OP_Goto, 0, pParse->cookieGoto);   //给VDBE增加指令OP_Goto
+		}   
 	}
 
 
-	/* Get the VDBE program ready for execution【获取VDBE项目为运行做准备。】
+	/* Get the VDBE program ready for execution
+	**获取VDBE项目为运行做准备。
 	*/
+
+	//在正确的获得VDBE指针，并且pParse没有错误，且内存申请成功的情况下，进行下面的操作
 	if (v && ALWAYS(pParse->nErr == 0) && !db->mallocFailed){
 #ifdef SQLITE_DEBUG
 		FILE *trace = (db->flags & SQLITE_VdbeTrace) != 0 ? stdout : 0;
