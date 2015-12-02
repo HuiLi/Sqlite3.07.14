@@ -10,7 +10,9 @@
 **
 *************************************************************************
 **
-** Memory allocation functions used throughout sqlite./*内存分配函数贯穿整个sqlite*/
+** Memory allocation functions used throughout sqlite.
+**
+** 内存分配函数贯穿整个sqlite
 */
 #include "sqliteInt.h"
 #include <stdarg.h>
@@ -19,10 +21,9 @@
 ** Attempt to release up to n bytes of non-essential memory currently
 ** held by SQLite. An example of non-essential memory is memory used to
 ** cache database pages that are not currently in use.
-/*
-**试图释放不重要当前被执行的n字节内存
-**不重要的内存就是没有用到的缓存数据库页
-*/
+** 
+** 试图释放当前不重要的被sqlite占有的内存，
+** 一个例子不重要的内存的例子就是没有用到的缓存数据库页
 */
 int sqlite3_release_memory(int n){/*释放内存*/
 #ifdef SQLITE_ENABLE_MEMORY_MANAGEMENT//编译时使用SQLITE_ENABLE_MEMORY_MANAGEMENT
@@ -40,18 +41,19 @@ int sqlite3_release_memory(int n){/*释放内存*/
 /*
 ** An instance of the following object records the location of   
 ** each unused scratch buffer.
-*/
-/*
-**接下来的例子记录了每一个没有用到的缓冲区的位置
+**
+** 接下来的例子记录了每一个没有用到的缓冲区的位置
 */
 typedef struct ScratchFreeslot {		/*结构体  记录空闲缓冲区*/
   struct ScratchFreeslot *pNext;   /* Next unused scratch buffer *//*结构指针*/
 } ScratchFreeslot;
 
 /*
-** State information local to the memory allocation subsystem./*内存分配子系统的状态信息
+** State information local to the memory allocation subsystem.
+**
+** 内存分配子系统的状态信息
 */
-static SQLITE_WSD struct Mem0Global {/* SQLITE_WSD 是const* MemGlobal结构体/
+static SQLITE_WSD struct Mem0Global {/* SQLITE_WSD 是const* MemGlobal结构体 */
   sqlite3_mutex *mutex;         /* Mutex to serialize access *//*串行访问的变量的锁*/
 
   /*
@@ -59,10 +61,9 @@ static SQLITE_WSD struct Mem0Global {/* SQLITE_WSD 是const* MemGlobal结构体/
   ** be held while the callback is running.  Recursive calls into
   ** the memory subsystem are allowed, but no new callbacks will be
   ** issued.
-  */
-  /*
-  回凋和参数
-  当回调函数被执行，mem0.mutex加锁，进入内存子系统的递归调用将会被执行，但是不能执行新的回调
+  **
+  ** 回凋和参数
+  ** 当回调函数被执行，mem0.mutex加锁，进入内存子系统的递归调用将会被执行，但是不能执行新的回调
   */
   sqlite3_int64 alarmThreshold;//申明长整型的变量 预警值
   void (*alarmCallback)(void*, sqlite3_int64,int);//互斥锁的回调函数
@@ -129,7 +130,9 @@ static int sqlite3MemoryAlarm(
 #ifndef SQLITE_OMIT_DEPRECATE
 /*
 ** Deprecated external interface.  Internal/core SQLite code
-** should call sqlite3MemoryAlarm./*废弃的额外的接口*/
+** should call sqlite3MemoryAlarm.
+**
+** 废弃的额外的接口
 */
 int sqlite3_memory_alarm(
   void(*xCallback)(void *pArg, sqlite3_int64 used,int N),/*回调函数*/
@@ -173,7 +176,9 @@ void sqlite3_soft_heap_limit(int n){/*堆限制*/
 }
 
 /*
-** Initialize the memory allocation subsystem /*初始化内存分配子系统*/
+** Initialize the memory allocation subsystem 
+** 
+** 初始化内存分配子系统
 */
 int sqlite3MallocInit(void){
   if( sqlite3GlobalConfig.m.xMalloc==0 ){/*没有分配*/
@@ -226,7 +231,9 @@ int sqlite3HeapNearlyFull(void){
 }
 
 /*
-** Deinitialize the memory allocation subsystem./*重新初始化内存分配子系统*/
+** Deinitialize the memory allocation subsystem.
+** 
+** 重新初始化内存分配子系统
 */
 void sqlite3MallocEnd(void){
   if( sqlite3GlobalConfig.m.xShutdown ){
@@ -236,7 +243,9 @@ void sqlite3MallocEnd(void){
 }
 
 /*
-** Return the amount of memory currently checked out./*返回当前空出的内存数量*/
+** Return the amount of memory currently checked out.
+** 
+** 返回当前空出的内存数量
 */
 sqlite3_int64 sqlite3_memory_used(void){
   int n, mx;
@@ -250,9 +259,8 @@ sqlite3_int64 sqlite3_memory_used(void){
 ** Return the maximum amount of memory that has ever been 
 ** checked out since either the beginning of this process
 ** or since the most recent reset.
-*/
-/*
-返回曾经使用的空间的最大值
+**
+** 返回曾经使用的内的存最大值
 */
 sqlite3_int64 sqlite3_memory_highwater(int resetFlag){
   int n, mx;
@@ -264,9 +272,8 @@ sqlite3_int64 sqlite3_memory_highwater(int resetFlag){
 
 /*
 ** Trigger the alarm 
-*/
-/*
-触发警告
+**
+** 触发警告
 */
 static void sqlite3MallocAlarm(int nByte){
   void (*xCallback)(void*,sqlite3_int64,int);
@@ -287,8 +294,9 @@ static void sqlite3MallocAlarm(int nByte){
 /*
 ** Do a memory allocation with statistics and alarms.  Assume the
 ** lock is already held.
+**
+** 根据统计和警报来进行内存分配，假设锁已经被执行
 */
-/*根据统计和警报来进行内存分配 锁已经被执行*/
 static int mallocWithAlarm(int n, void **pp){
   int nFull;
   void *p;
@@ -323,9 +331,8 @@ static int mallocWithAlarm(int n, void **pp){
 /*
 ** Allocate memory.  This routine is like sqlite3_malloc() except that it
 ** assumes the memory subsystem has already been initialized.
-*/
-/*
-重新分配内存，这个函数想sqlite3_malloc()，但不必初始化内存子系统
+**
+** 分配内存，这个函数像sqlite3_malloc()，但不必初始化内存子系统
 */
 void *sqlite3Malloc(int n){
   void *p;
@@ -354,8 +361,9 @@ void *sqlite3Malloc(int n){
 ** This version of the memory allocation is for use by the application.
 ** First make sure the memory subsystem is initialized, then do the
 ** allocation.
+**
+** 这个版本的内存分配是由应用程序使用，使用前需要确保内存分配子系统要初始化，之后再进行内存分配
 */
-/*这个版本的内存分配是由应用程序使用，使用前需要确保内存分配子系统要初始化，之后再进行内存分配*/
 void *sqlite3_malloc(int n){
 #ifndef SQLITE_OMIT_AUTOINIT
   if( sqlite3_initialize() ) return 0;
@@ -368,8 +376,9 @@ void *sqlite3_malloc(int n){
 ** xScratchMalloc().  We verify this constraint in the single-threaded
 ** case by setting scratchAllocOut to 1 when an allocation
 ** is outstanding clearing it when the allocation is freed.
+** 
+** 每个线程可能只有一个单独的分配，我们通过设置scratchAllocOut=1在单线程验证这个约束
 */
-/*每个线程可能只有一个单独的分配，我们通过设置scratchAllocOut=1在单线程验证这个约束*/
 #if SQLITE_THREADSAFE==0 && !defined(NDEBUG)
 static int scratchAllocOut = 0;
 #endif
@@ -382,10 +391,9 @@ static int scratchAllocOut = 0;
 ** routine is intended to get memory to old large transient data
 ** structures that would not normally fit on the stack of an
 ** embedded processor.
-*/
-/*
-分配内存就是使用内存和释放内存，该例程是类似于了alloc()，因为目的不是为了内存被长期执行
-例子是为了用了很久的内存，大内存，临时内存的数据结构，该数据结构不能满足嵌入式处理器的堆栈
+**
+**　分配内存就是使用内存和释放内存，该例程是类似于了alloc()，因为目的不是为了内存被长期执行
+**　例子是为了用了很久的内存，大内存，临时内存的数据结构，该数据结构不能满足嵌入式处理器的堆栈
 */
 void *sqlite3ScratchMalloc(int n){
   void *p;
