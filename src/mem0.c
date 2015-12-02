@@ -15,12 +15,11 @@
 ** here always fail.  SQLite will not operate with these drivers.  These
 ** are merely placeholders.  Real drivers must be substituted using
 ** sqlite3_config() before SQLite will operate.
-*/
-/*
-这个文件包含一个空操作SQLITE_ZERO_MALLOC定义时内存分配使用的驱动程序。
-配置驱动程序实现在这里总是失败。
-SQLite 不引用这些驱动程序。这些仅是些占位符。
-真正有效的驱动程序必须使用sqlite3_config()将之前的SQLite代替
+**
+** 这个文件包含一个空操作SQLITE_ZERO_MALLOC定义时内存分配使用的驱动程序。
+** 配置驱动程序实现在这里总是失败。
+** SQLite 不引用这些驱动程序。这些仅是些占位符。
+** 真正有效的驱动程序必须使用sqlite3_config()将之前的SQLite代替
 */
 #include "sqliteInt.h"
 
@@ -28,17 +27,15 @@ SQLite 不引用这些驱动程序。这些仅是些占位符。
 ** This version of the memory allocator is the default.  It is
 ** used when no other memory allocator is specified using compile-time
 ** macros.
-*/
-/*
-此版本的内存分配器是默认的。当没有其他内存分配器指定使用时，如果使用SQLITE_ZERO_MALLOC宏定义时，它就会被使用。
+**
+** 此版本的内存分配器是默认的。当没有其他内存分配器指定使用时，如果使用SQLITE_ZERO_MALLOC宏定义时，它就会被使用
 */
 #ifdef SQLITE_ZERO_MALLOC
 
 /*
 ** No-op versions of all memory allocation routines
-*/
-/*
-空操作版本的所有内存分配例程
+**
+** 空操作版本的所有内存分配例程
 */
 static void *sqlite3MemMalloc(int nByte){ return 0; }
 static void sqlite3MemFree(void *pPrior){ return; }
@@ -53,9 +50,8 @@ static void sqlite3MemShutdown(void *NotUsed){ return; }
 **
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file.
-*/
-/*
-这个例程是唯一在这个文件与外部联系。填充在sqlite3GlobalConfig底层内存分配函数指针。指针的例程在这个文件中。
+** 
+** 这个例程是唯一在这个文件与外部联系。填充在sqlite3GlobalConfig底层内存分配函数指针。指针的例程在这个文件中。
 */
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {
