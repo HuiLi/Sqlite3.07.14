@@ -21,10 +21,11 @@
 ** SQLITE_MEMDEBUG nor the SQLITE_WIN32_MALLOC macros are defined.  The
 ** default configuration is to use memory allocation routines in this
 ** file.
-**这个文件包含实现的低级sqlite3_mem_methods对象中指定的内存分配例程。
-这个文件的内容仅是如果SQLITE_SYSTEM_MALLOC定义使用。
-当SQLITE_MEMDEBUG 和 the SQLITE_WIN32_MALLOC 宏命令都没有被定义时，就会自动定义为 SQLITE_SYSTEM_MALLOC宏命令。
-缺省配置是使用内存分配例程在这个文件中。
+**
+** 这个文件包含实现的低级sqlite3_mem_methods对象中指定的内存分配例程。
+** 这个文件的内容仅是如果SQLITE_SYSTEM_MALLOC定义使用。
+**当SQLITE_MEMDEBUG 和 the SQLITE_WIN32_MALLOC 宏命令都没有被定义时，就会自动定义为 SQLITE_SYSTEM_MALLOC宏命令。
+** 缺省配置是使用内存分配例程在这个文件中。
 ** C-preprocessor macro summary:
 **
 **    HAVE_MALLOC_USABLE_SIZE     The configure script sets this symbol if
@@ -63,9 +64,8 @@
 ** This version of the memory allocator is the default.  It is
 ** used when no other memory allocator is specified using compile-time
 ** macros.
-*/
-/*
-这个版本默认内存分配器。使用时编译时间指定宏没有使用其他内存分配器使用。
+**
+** 这个版本默认内存分配器。使用时编译时间指定宏没有使用其他内存分配器使用。
 */
 #ifdef SQLITE_SYSTEM_MALLOC
 
@@ -73,10 +73,9 @@
 ** The MSVCRT has malloc_usable_size() but it is called _msize().
 ** The use of _msize() is automatic, but can be disabled by compiling
 ** with -DSQLITE_WITHOUT_MSIZE
-*/
-/*
-MSVCRT 有malloc_usable_size()，但被称为_msize().
-使用_msize() 是自动的, 但是可以通过编译-DSQLITE_WITHOUT_MSIZE命令禁用。
+**
+** MSVCRT 有malloc_usable_size()，但被称为_msize().
+** 使用_msize() 是自动的, 但是可以通过编译-DSQLITE_WITHOUT_MSIZE命令禁用。
 */
 #if defined(_MSC_VER) && !defined(SQLITE_WITHOUT_MSIZE)
 # define SQLITE_MALLOCSIZE _msize
@@ -87,9 +86,8 @@ MSVCRT 有malloc_usable_size()，但被称为_msize().
 /*
 ** Use the zone allocator available on apple products unless the
 ** SQLITE_WITHOUT_ZONEMALLOC symbol is defined.
-*/
-/*
-除非SQLITE_WITHOUT_ZONEMALLOC符号被定义，不然就用苹果产品上的区域内存分配器。
+**
+** 除非SQLITE_WITHOUT_ZONEMALLOC符号被定义，不然就用苹果产品上的区域内存分配器。
 */
 #include <sys/sysctl.h>
 #include <malloc/malloc.h>
@@ -106,10 +104,9 @@ static malloc_zone_t* _sqliteZone_;
 /*
 ** Use standard C library malloc and free on non-Apple systems.  
 ** Also used by Apple systems if SQLITE_WITHOUT_ZONEMALLOC is defined.
-*/
-/*
-非苹果系统上，使用标准C库中malloc和free函数。
-如果SQLITE_WITHOUT_ZONEMALLOC被定义，还可以使用苹果系统。
+**
+** 非苹果系统上，使用标准C库中malloc和free函数。
+** 如果SQLITE_WITHOUT_ZONEMALLOC被定义，还可以使用苹果系统。
 */
 #define SQLITE_MALLOC(x)    malloc(x)
 #define SQLITE_FREE(x)      free(x)
@@ -137,10 +134,8 @@ static malloc_zone_t* _sqliteZone_;
 ** cases of nByte<=0 will be intercepted and dealt with by higher level
 ** routines.
 **
-*/
-/*
-像 malloc(),但记忆分配大小，这样我们可以在找到它之后使用sqlite3MemSize().
-对于这个低级的例程，我们保证nByte>0,因为例nByte<=0将被截获和处理更高级别的例程。
+** 像 malloc(),但记忆分配大小，这样我们可以在找到它之后使用sqlite3MemSize().
+** 对于这个低级的例程，我们保证nByte>0,因为例nByte<=0将被截获和处理更高级别的例程。
 */
 static void *sqlite3MemMalloc(int nByte){
 #ifdef SQLITE_MALLOCSIZE
@@ -173,10 +168,9 @@ static void *sqlite3MemMalloc(int nByte){
 ** For this low-level routine, we already know that pPrior!=0 since
 ** cases where pPrior==0 will have been intecepted and dealt with
 ** by higher-level routines.
-*/
-/*
-像free() 当在工作时被分配到sqlite3MemMalloc()或者sqlite3MemRealloc().
-对于这个低级程序, 我们已知在pPrior==0情况时pPrior!=0将被更高级别的例程截取和处理。
+**
+** 像free() 当在工作时被分配到sqlite3MemMalloc()或者sqlite3MemRealloc().
+** 对于这个低级程序, 我们已知在pPrior==0情况时pPrior!=0将被更高级别的例程截取和处理。
 */
 static void sqlite3MemFree(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
@@ -192,9 +186,8 @@ static void sqlite3MemFree(void *pPrior){
 /*
 ** Report the allocated size of a prior return from xMalloc()
 ** or xRealloc().
-*/
-/*
-报告来自于xMalloc()或xRealloc()之前的分配大小。
+**
+** 报告来自于xMalloc()或xRealloc()之前的分配大小。
 */
 static int sqlite3MemSize(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
@@ -217,11 +210,10 @@ static int sqlite3MemSize(void *pPrior){
 ** redirected to xMalloc.  Similarly, we know that nByte>0 becauses
 ** cases where nByte<=0 will have been intercepted by higher-level
 ** routines and redirected to xFree.
-*/
-/*
-像 realloc()，调整分配之前获取sqlite3MemMalloc()。
-对于低级别接口，我们已知pPrior!=0。在pPrior==0已拦截了更高级别的例程和重定向到xMalloc. 
-同样，我们知道nByte>0，因为nByte<=0的情况会被更高级别的例程拦截和重定向到xFree。
+**
+** 像 realloc()，调整分配之前获取sqlite3MemMalloc()。
+** 对于低级别接口，我们已知pPrior!=0。在pPrior==0已拦截了更高级别的例程和重定向到xMalloc. 
+** 同样，我们知道nByte>0，因为nByte<=0的情况会被更高级别的例程拦截和重定向到xFree。
 */
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
 #ifdef SQLITE_MALLOCSIZE
@@ -254,9 +246,8 @@ static void *sqlite3MemRealloc(void *pPrior, int nByte){
 
 /*
 ** Round up a request size to the next valid allocation size.
-*/
-/*
-集合一个请求大小到下一个有效分配的大小。
+**
+** 集合一个请求大小到下一个有效分配的大小。
 */
 static int sqlite3MemRoundup(int n){
   return ROUND8(n);
@@ -264,7 +255,8 @@ static int sqlite3MemRoundup(int n){
 
 /*
 ** Initialize this module.
-**初始化这个模块。
+**
+** 初始化这个模块。
 */
 static int sqlite3MemInit(void *NotUsed){
 #if defined(__APPLE__) && !defined(SQLITE_WITHOUT_ZONEMALLOC)
@@ -305,7 +297,8 @@ static int sqlite3MemInit(void *NotUsed){
 
 /*
 ** Deinitialize this module.
-**取消初始化这个模块
+**
+** 取消初始化这个模块
 */
 static void sqlite3MemShutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
@@ -317,10 +310,9 @@ static void sqlite3MemShutdown(void *NotUsed){
 **
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file.
-*/
-/*
-该例程是外部链接这个文件的唯一的例程。
-在sqlite3GlobalConfig.m与这个文件指针的例程中填充底层内存分配函数指针。
+** 
+** 该例程是外部链接这个文件的唯一的例程。
+** 在sqlite3GlobalConfig.m与这个文件指针的例程中填充底层内存分配函数指针。
 */
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {

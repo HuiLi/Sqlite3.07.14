@@ -51,7 +51,8 @@ static void sqlite3MemShutdown(void *NotUsed){ return; }
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file.
 ** 
-** 这个例程是唯一在这个文件与外部联系。填充在sqlite3GlobalConfig底层内存分配函数指针。指针的例程在这个文件中。
+** 这个例程是唯一在这个文件与外部联系。
+** 填充在sqlite3GlobalConfig底层内存分配函数指针。指针的例程在这个文件中。
 */
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {
