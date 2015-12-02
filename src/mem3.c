@@ -23,10 +23,12 @@
 ** This version of the memory allocation subsystem is included
 ** in the build only if SQLITE_ENABLE_MEMSYS3 is defined.
 **
-** 此文件包含C函数实现使用SQLite存储分配子系统。 这个版本的内存分配子系统省去了所有使用malloc()。
-** SQLite用户提供了一个内存块用于sqlite3_initialize()之前调用和返回xMalloc() 和 xRealloc()的分配实现。
-** 一旦sqlite3_initialize()被命名为可用内存，则SQLite的可用内存量是固定的，不可改变的SQLITE_ENABLE_MEMSYS3被定义建立
-** 包含了这个版本的内存分配子系统。
+** 此文件包含C函数实现使用SQLite存储分配子系统。 
+** 这个版本的内存分配子系统没有使用malloc()。
+** SQLite用户提供了一个内存块用于sqlite3_initialize()之前调用和返回xMalloc()和xRealloc()的分配实现。
+** 一旦sqlite3_initialize()被调用，则SQLite的可用内存量是固定的，不能改变。
+** 
+** 这个内存分配器需要定义SQLITE_ENABLE_MEMSYS3来将其加入构建中。
 */
 #include "sqliteInt.h"           //SQLite初始化
 
@@ -39,7 +41,7 @@
 **
 ** 这个版本的内存分配器是由数据字典里的SQLITE_ENABLE_MEMSYS3定义建成的。
 ** 定义该符号并不意味着字典将默认使用内存池，它只是可用的。
-** Mem池分配器被调用称之为sqlite3_config()
+** 内存池分配器需要sqlite3_config()来激活。
 */
 
 #ifdef SQLITE_ENABLE_MEMSYS3   //宏定义触发该内存分配子系统被组建到库中
@@ -100,7 +102,7 @@
 ** 我们经常定义一个块的索引在 mem3.aPool[]中。这样做时，这块的索引与第二块相关。
 ** 用这种方法，第一个块有了1索引。一个块索引为0意味着“无这样的块”和等效为一个空指针u.list由第二块为自由块组成。
 ** 这两块领域形成一个双链表的相关尺寸块。  较小的块将头指针储存在mem3.aiSmall[]，较大的块将头指针储存在mem3.aiHash[]
-**如果chunk被检查，那么chunk中的第二个块是用户数据。如果chunk被检验,那么用户数据将会被延生至下一个chunk的u.hdr.prevSize值内。
+** 如果chunk被检查，那么chunk中的第二个块是用户数据。如果chunk被检验,那么用户数据将会被延生至下一个chunk的u.hdr.prevSize值内。
 */
 typedef struct Mem3Block Mem3Block;   //定义一个任意类型的数据块结构体
 struct Mem3Block {

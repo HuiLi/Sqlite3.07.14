@@ -11,7 +11,9 @@
 *************************************************************************
 ** This file contains the C functions that implement a memory
 ** allocation subsystem for use by SQLite. 
-**此文件包含SQLite使用的实现内存分配子系统的C函数。
+**
+** 此文件包含SQLite使用的实现内存分配子系统的C函数。
+**
 ** This version of the memory allocation subsystem omits all
 ** use of malloc(). The application gives SQLite a block of memory
 ** before calling sqlite3_initialize() from which allocations
@@ -19,16 +21,17 @@
 ** implementations. Once sqlite3_initialize() has been called,
 ** the amount of memory available to SQLite is fixed and cannot
 ** be changed.
-**此版本的内存分配子系统省略了所有malloc()函数的使用，
-**该应用程序在调用sqlite3_initialize() 前提供给Sqlite一个内存块，这个分配通过xMalloc() 和 xRealloc() 实现，
-**一旦sqlite3_initialize（）被调用，可用的内存SQLite的量是固定的，不能被改变。
+**
+** 此版本的内存分配子系统省略了所有malloc()函数的使用，
+** 该应用程序在调用sqlite3_initialize()前提供给Sqlite一个内存块，这个分配通过xMalloc()和xRealloc()实现，
+** 一旦sqlite3_initialize（被调用，可用的内存SQLite的量是固定的，不能被改变。
+** 
 ** This version of the memory allocation subsystem is included
 ** in the build only if SQLITE_ENABLE_MEMSYS5 is defined.
-**此版本的内存分配子系统仅包含在SQLITE_ENABLE_MEMSYS5的定义构建中。
+**
+** 此版本的内存分配子系统仅包含在SQLITE_ENABLE_MEMSYS5的定义构建中。
+** 
 ** This memory allocator uses the following algorithm:
-**该内存分配器使用下面的算法
-**1.所有的内存分配大小四舍五入至 2 的幂。2.如果两个相邻的自由块是一个大块的两部分，那么这两个块会被合并成一个大的单独的块。
-**3.从第一个可用的空闲块分配新的内存
 **   1.  All memory allocations sizes are rounded up to a power of 2.
 **
 **   2.  If two adjacent free blocks are the halves of a larger block,
@@ -36,12 +39,14 @@
 **
 **   3.  New memory is allocated from the first available free block.
 **
+** 该内存分配器使用下面的算法
+** 1.所有的内存分配大小四舍五入至 2 的幂。
+** 2.如果两个相邻的自由块是一个大块的两部分，那么这两个块会被合并成一个大的单独的块。
+** 3.从第一个可用的空闲块分配新的内存
+**
 ** This algorithm is described in: J. M. Robson. "Bounds for Some Functions
 ** Concerning Dynamic Storage Allocation". Journal of the Association for
 ** Computing Machinery, Volume 21, Number 8, July 1974, pages 491-499.
-** 该算法描述为: J. M. Robson. "关于一些函数动态存储分配的界".。
-**Journal of the Association forComputing Machinery, Volume 21,
-**Number 8, July 1974, pages 491-499.
 ** 
 ** Let n be the size of the largest allocation divided by the minimum
 ** allocation size (after rounding all sizes up to a power of 2.)  Let M
@@ -49,14 +54,18 @@
 ** N be the total amount of memory available for allocation.  Robson
 ** proved that this memory allocator will never breakdown due to 
 ** fragmentation as long as the following constraint holds:
+**
+**      N >=  M*(1 + log2(n)/2) - n + 1
+**
+** The sqlite3_status() logic tracks the maximum values of n and M so
+** that an application can, at any time, verify this constraint.
+**
 ** 设n是最大内存分配与最小分配的比值(四舍五入至 2 的幂)。
 ** 设M是应用程序曾经在任何时间点取出的最大内存数量。
 ** 设N 是内存的的可供分配总量。
 ** 罗布森证明了这个内存分配器将不会因为内存碎片崩溃，只要满足以下约束
 **      N >=  M*(1 + log2(n)/2) - n + 1
 ** 函数Sqlite3_status() 逻辑追踪 n 和 M 的最大值所以应用程序可以在任何时间，验证此约束。
-** The sqlite3_status() logic tracks the maximum values of n and M so
-** that an application can, at any time, verify this constraint.
 */
 #include "sqliteInt.h"
 

@@ -19,10 +19,10 @@
 ** This file contains implementations of the low-level memory allocation
 ** routines specified in the sqlite3_mem_methods object.
 **
-** 该文件包含了底层内存分配时，SQLite的驱动程序将使用标准的c-library malloc /realloc /free interface获取内存需求，同时，
-** 添加很多额外的调试信息，每个分配以帮助检测和修复内存泄漏和内存使用错误。
+** 该文件包含了底层内存分配时，SQLite的驱动程序将使用标准的c-library malloc /realloc /free interface获取内存需求，
+** 同时，添加很多额外的调试信息，每个分配以帮助检测和修复内存泄漏和内存使用错误。
 
-** 该文件包含的低级别的内存分配例程在sqlite3_mem_methods指定对象的实现。
+** 该文件包含的底层的内存分配例程在sqlite3_mem_methods指定对象的实现。
 */
 #include "sqliteInt.h"
 

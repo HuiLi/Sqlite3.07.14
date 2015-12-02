@@ -13,7 +13,9 @@
 ** This file contains low-level memory allocation drivers for when
 ** SQLite will use the standard C-library malloc/realloc/free interface
 ** to obtain the memory it needs.
-**这个文件包含当SQLite将使用标准C库malloc/realloc/自由接口获得所需要的内存时的底层内存分配驱动程序。
+**
+** 这个文件包含当SQLite将使用标准C库malloc/realloc/自由接口获得所需要的内存时的底层内存分配驱动程序。
+**
 ** This file contains implementations of the low-level memory allocation
 ** routines specified in the sqlite3_mem_methods object.  The content of
 ** this file is only used if SQLITE_SYSTEM_MALLOC is defined.  The
@@ -22,9 +24,9 @@
 ** default configuration is to use memory allocation routines in this
 ** file.
 **
-** 这个文件包含实现的低级sqlite3_mem_methods对象中指定的内存分配例程。
+** 这个文件包含实现的底层sqlite3_mem_methods对象中指定的内存分配例程。
 ** 这个文件的内容仅是如果SQLITE_SYSTEM_MALLOC定义使用。
-**当SQLITE_MEMDEBUG 和 the SQLITE_WIN32_MALLOC 宏命令都没有被定义时，就会自动定义为 SQLITE_SYSTEM_MALLOC宏命令。
+** 当SQLITE_MEMDEBUG 和 the SQLITE_WIN32_MALLOC 宏命令都没有被定义时，就会自动定义为 SQLITE_SYSTEM_MALLOC宏命令。
 ** 缺省配置是使用内存分配例程在这个文件中。
 ** C-preprocessor macro summary:
 **
@@ -35,7 +37,7 @@
 **                                If an equivalent interface exists by
 **                                a different name, using a separate -D
 **                                option to rename it.
-**c预处理器宏简介:
+** c预处理器宏简介:
 **    HAVE_MALLOC_USABLE_SIZE      如果malloc_usable_size()接口的存在
 **                                 在目标平台上，配置脚本设置这个符号。
 **                                 或者需要的话，这个符号可以手动配置。
