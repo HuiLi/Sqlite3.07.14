@@ -392,8 +392,9 @@ static int scratchAllocOut = 0;
 ** structures that would not normally fit on the stack of an
 ** embedded processor.
 **
-**　分配内存就是使用内存和释放内存，该例程是类似于了alloc()，因为目的不是为了内存被长期执行
-**　例子是为了用了很久的内存，大内存，临时内存的数据结构，该数据结构不能满足嵌入式处理器的堆栈
+** 分配一些立即使用并释放的内存，
+** 该例程类似于alloc()，即适用于内存不被长期占有的情形
+** 例子是为了用了很久的内存，大内存，临时内存的数据结构，该数据结构不能满足嵌入式处理器的堆栈
 */
 void *sqlite3ScratchMalloc(int n){
   void *p;
@@ -482,8 +483,9 @@ void sqlite3ScratchFree(void *p){/*释放缓冲区*/
 
 /*
 ** TRUE if p is a lookaside memory allocation from db
+**
+** p是否是后备内存
 */
-//p是否是后备内存
 #ifndef SQLITE_OMIT_LOOKASIDE
 static int isLookaside(sqlite3 *db, void *p){
   return p && p>=db->lookaside.pStart && p<db->lookaside.pEnd;
@@ -495,8 +497,9 @@ static int isLookaside(sqlite3 *db, void *p){
 /*
 ** Return the size of a memory allocation previously obtained from
 ** sqlite3Malloc() or sqlite3_malloc().
+** 
+** 返回利用sqlite3Malloc()和sqlite3_malloc()函数分配得到的内存大小。
 */
-//返回利用sqlite3Malloc()和sqlite3_malloc()函数分配得到的内存大小。
 int sqlite3MallocSize(void *p){
   assert( sqlite3MemdebugHasType(p, MEMTYPE_HEAP) );
   assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
@@ -516,8 +519,9 @@ int sqlite3DbMallocSize(sqlite3 *db, void *p){
 
 /*
 ** Free memory previously obtained from sqlite3Malloc().
+** 
+** 释放从sqlite3Malloc函数中得到的内存
 */
-//释放从sqlite3Malloc函数中得到的内存
 void sqlite3_free(void *p){
   if( p==0 ) return;  /* IMP: R-49053-54554 */
   assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
@@ -536,8 +540,9 @@ void sqlite3_free(void *p){
 /*
 ** Free memory that might be associated with a particular database
 ** connection.
+**
+** 释放数据库连接关联的内存
 */
-//释放数据库连接关联的内存
 void sqlite3DbFree(sqlite3 *db, void *p){
   assert( db==0 || sqlite3_mutex_held(db->mutex) );
   if( db ){
@@ -566,8 +571,9 @@ void sqlite3DbFree(sqlite3 *db, void *p){
 
 /*
 ** Change the size of an existing memory allocation
+** 
+** 改变存在内存分配的大小
 */
-//改变存在内存分配的大小
 void *sqlite3Realloc(void *pOld, int nBytes){
   int nOld, nNew, nDiff;
   void *pNew;
@@ -619,8 +625,9 @@ void *sqlite3Realloc(void *pOld, int nBytes){
 /*
 ** The public interface to sqlite3Realloc.  Make sure that the memory
 ** subsystem is initialized prior to invoking sqliteRealloc.
+**
+** sqlite3Realloc公共接口，确保内存子系统在调用sqliteRealloc前已经初始化
 */
-//sqlite3Realloc公共接口，确保内存子系统在调用sqliteRealloc前已经初始化
 void *sqlite3_realloc(void *pOld, int n){
 #ifndef SQLITE_OMIT_AUTOINIT
   if( sqlite3_initialize() ) return 0;
@@ -631,8 +638,9 @@ void *sqlite3_realloc(void *pOld, int n){
 
 /*
 ** Allocate and zero memory.
+**
+** 分配0内存
 */ 
-//分配0内存
 void *sqlite3MallocZero(int n){
   void *p = sqlite3Malloc(n);
   if( p ){
@@ -644,7 +652,9 @@ void *sqlite3MallocZero(int n){
 /*
 ** Allocate and zero memory.  If the allocation fails, make
 ** the mallocFailed flag in the connection pointer.
-*///分配0内存 如果分配失败 确保在连接指针分配失败的标志
+**
+** 分配0内存，如果分配失败，就在连接指针中置分配失败的标志。
+*/
 void *sqlite3DbMallocZero(sqlite3 *db, int n){
   void *p = sqlite3DbMallocRaw(db, n);
   if( p ){
@@ -670,12 +680,12 @@ void *sqlite3DbMallocZero(sqlite3 *db, int n){
 **
 ** In other words, if a subsequent malloc (ex: "b") worked, it is assumed
 ** that all prior mallocs (ex: "a") worked too.
+**
+** 分配0内存，如果分配失败了，在数据库连接中置分配失败的标志
+** 如果db不存在 或者失败分配 那就返回0
+** 因此一个特定的数据库连接，只要分配失败他就全部失败
+** 这是很重要的假设，代码中很多地方都是这样的
 */
-/*分配0内存 如果分配失败了 确保在连接指针中分配失败的标志
-**如果db不存在 或者失败分配 那就返回0
-**因此一个特殊的数据库连接，只要分配失败他就全部失败
-**这是很重要的假设，代码中很多地方都是这样的
-***/
 void *sqlite3DbMallocRaw(sqlite3 *db, int n){
   void *p;
   assert( db==0 || sqlite3_mutex_held(db->mutex) );
@@ -719,9 +729,8 @@ void *sqlite3DbMallocRaw(sqlite3 *db, int n){
 /*
 ** Resize the block of memory pointed to by p to n bytes. If the
 ** resize fails, set the mallocFailed flag in the connection object.
-*/
-/*
-重置内存块 如果重置失败，在连接对象中设置失败标志
+**
+** 重新调整内存块，把p调整成n bytes，如果调整失败，在连接对象中设置失败标志
 */
 void *sqlite3DbRealloc(sqlite3 *db, void *p, int n){
   void *pNew = 0;
@@ -759,9 +768,8 @@ void *sqlite3DbRealloc(sqlite3 *db, void *p, int n){
 /*
 ** Attempt to reallocate p.  If the reallocation fails, then free p
 ** and set the mallocFailed flag in the database connection.
-*/
-/*
-试着重新分配p，如果分配失败，就释放，并且在数据库连接中设置失败标志
+**
+** 试着重新分配p，如果分配失败，就释放，并且在数据库连接中设置失败标志
 */
 void *sqlite3DbReallocOrFree(sqlite3 *db, void *p, int n){
   void *pNew;
@@ -778,8 +786,7 @@ void *sqlite3DbReallocOrFree(sqlite3 *db, void *p, int n){
 ** is because when memory debugging is turned on, these two functions are 
 ** called via macros that record the current file and line number in the
 ** ThreadData structure.
-*/
-/*
+** 
 ** 从sqliteMalloc函数拷贝一个字符串，这些函数直接调用sqlite3MallocRaw，
 ** 这是因为内存调试开关打开了，两个函数调用了宏，在线程数据结构中
 ** 这些宏记录了当前的文件和行号
@@ -816,11 +823,8 @@ char *sqlite3DbStrNDup(sqlite3 *db, const char *z, int n){
 ** Create a string from the zFromat argument and the va_list that follows.
 ** Store the string in memory obtained from sqliteMalloc() and make *pz
 ** point to that string.
-*/
-/*
-**  设置字符串*pz 指向zFromat这个字符串
-** 
 **
+** 设置字符串*pz 指向zFromat这个字符串
 */
 void sqlite3SetString(char **pz, sqlite3 *db, const char *zFormat, ...){
   va_list ap;
@@ -846,8 +850,7 @@ void sqlite3SetString(char **pz, sqlite3 *db, const char *zFormat, ...){
 ** If the first argument, db, is not NULL and a malloc() error has occurred,
 ** then the connection error-code (the value returned by sqlite3_errcode())
 ** is set to SQLITE_NOMEM.
-*/
-/*
+**
 ** 在退出任何API这个函数必须被调用
 ** 返回类型是第二个参数的复制 如果malloc()失败 系统返回SQLITE_NOMEM
 ** 如果db 不空 并且分配错误 然后连接错误码被设置为SQLITE_NOMEM
