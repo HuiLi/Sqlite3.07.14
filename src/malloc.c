@@ -10,7 +10,10 @@
 **
 *************************************************************************
 **
-** sqlite3GlobalConfig的结构体
+** sqlite3GlobalConfig的结构体 
+** Structure containing global configuration data for the SQLite library.
+** This structure also contains some state information.
+** 全局配置数据，也包括一些状态信息
 ** struct Sqlite3Config {
 **  int bMemstat;                     //True to enable memory status  为真则开启内存状态
 **  int bCoreMutex;                   // True to enable core mutexing  为真，则开启核互斥
