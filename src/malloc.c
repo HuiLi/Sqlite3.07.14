@@ -10,6 +10,45 @@
 **
 *************************************************************************
 **
+** sqlite3GlobalConfig的结构体
+** struct Sqlite3Config {
+**  int bMemstat;                     //True to enable memory status  为真则开启内存状态
+**  int bCoreMutex;                   // True to enable core mutexing  为真，则开启核互斥
+**  int bFullMutex;                   // True to enable full mutexing  为真，则开启全互斥
+**  int bOpenUri;                     // True to interpret filenames as URIs  为真，则将文件名转化为URI
+**  int mxStrlen;                     // Maximum string length  最大字符串长度
+**  int szLookaside;                  // Default lookaside buffer size  默认后备缓存大小
+**  int nLookaside;                   // Default lookaside buffer count  默认后备缓存数目
+**  sqlite3_mem_methods m;            // Low-level memory allocation interface  底层内存分配器接口
+**  sqlite3_mutex_methods mutex;      // Low-level mutex interface  底层互斥接口
+**  sqlite3_pcache_methods2 pcache2;  // Low-level page-cache interface  底层页缓存接口
+**  void *pHeap;                      // Heap storage space  堆存储空间
+**  int nHeap;                        // Size of pHeap[]  pHeadp[]大小
+**  int mnReq, mxReq;                 // Min and max heap requests sizes  最小和最大堆请求大小 
+**  void *pScratch;                   // Scratch memory  临时内存
+**  int szScratch;                    // Size of each scratch buffer  每个临时缓存的大小 
+**  int nScratch;                     // Number of scratch buffers  临时缓存大数目
+**  void *pPage;                      // Page cache memory 页缓存
+**  int szPage;                       // Size of each page in pPage[]  每个页缓存的大小
+**  int nPage;                        // Number of pages in pPage[]  页的数目
+**  int mxParserStack;                // maximum depth of the parser stack  解析栈的最大深度
+**  int sharedCacheEnabled;           // true if shared-cache mode enabled  如果共享缓存模式开启了，则为真
+**  // The above might be initialized to non-zero.  The following need to always
+**  ** initially be zero, however. 
+**  //以上的变量的初始值可为非零值，以下的变量则必须初始化为零
+**  int isInit;                       // True after initialization has finished  初始化完成以后置为真
+**  int inProgress;                   // True while initialization in progress  初始化过程中则为真
+**  int isMutexInit;                  // True after mutexes are initialized  互斥锁初始化以后为真
+**  int isMallocInit;                 // True after malloc is initialized  分配初始化以后为真
+**  int isPCacheInit;                 // True after malloc is initialized   分配初始化以后为真
+**  sqlite3_mutex *pInitMutex;        // Mutex used by sqlite3_initialize()  初始化函数中使用的锁
+**  int nRefInitMutex;                // Number of users of pInitMutex  用户使用的pInitMutex的数量
+**  void (*xLog)(void*,int,const char*); // Function for logging  记录日志函数
+**  void *pLogArg;                       // First argument to xLog()  xLog()函数的第一个参数
+**  int bLocaltimeFault;              // True to fail localtime() calls  localtime()函数调用失败为真
+** };
+**
+**
 ** Memory allocation functions used throughout sqlite.
 **
 ** 内存分配函数贯穿整个sqlite
@@ -23,7 +62,7 @@
 ** cache database pages that are not currently in use.
 ** 
 ** 试图释放当前不重要的被sqlite占有的内存，
-** 一个例子不重要的内存的例子就是没有用到的缓存数据库页
+** 一个例子不重要的内存的例子就是当前没有用到的缓存数据库页
 */
 int sqlite3_release_memory(int n){/*释放内存*/
 #ifdef SQLITE_ENABLE_MEMORY_MANAGEMENT//编译时使用SQLITE_ENABLE_MEMORY_MANAGEMENT
@@ -93,10 +132,9 @@ static SQLITE_WSD struct Mem0Global {/* SQLITE_WSD 是const* MemGlobal结构体 
 ** This routine runs when the memory allocator sees that the
 ** total memory allocation is about to exceed the soft heap
 ** limit.
-*/
-/*
-**当内存分配器
-**知道所有的内存分配是否超越了软堆的限制
+**
+** 当内存分配器
+** 知道所有的内存分配是否超越了软堆的限制
 */
 static void softHeapLimitEnforcer(/*当堆内存已经满了，执行程序*/
   void *NotUsed, //是否被占用用
@@ -109,8 +147,9 @@ static void softHeapLimitEnforcer(/*当堆内存已经满了，执行程序*/
 
 /*
 ** Change the alarm callback
+**
+** 改变警告回调
 */
-/*改变警告回调*/
 static int sqlite3MemoryAlarm(
   void(*xCallback)(void *pArg, sqlite3_int64 used,int N),//回调函数
   void *pArg,
@@ -146,10 +185,11 @@ int sqlite3_memory_alarm(
 /*
 ** Set the soft heap-size limit for the library. Passing a zero or 
 ** negative value indicates no limit.
+**
+** 内存使用限制。
+** sqlite3_soft_heap_limit64()机制可以让应用程序设置SQLite的内存使用限制。
+** SQLite会从缓存中重用内存，而不是分配新的内存，以满足设置的限制。
 */
-/*内存使用限制。
-**sqlite3_soft_heap_limit64()机制可以让应用程序设置SQLite的内存使用限制。
-**SQLite会从缓存中重用内存，而不是分配新的内存，以满足设置的限制。*/
 sqlite3_int64 sqlite3_soft_heap_limit64(sqlite3_int64 n){
   sqlite3_int64 priorLimit;
   sqlite3_int64 excess;
@@ -224,7 +264,8 @@ int sqlite3MallocInit(void){
 ** Return true if the heap is currently under memory pressure - in other
 ** words if the amount of heap used is close to the limit set by
 ** sqlite3_soft_heap_limit().
-**如果堆内存没有满  返回真
+**
+** 如果堆内存没有满  返回真
 */
 int sqlite3HeapNearlyFull(void){
   return mem0.nearlyFull;/*内存是否满*/
@@ -245,7 +286,7 @@ void sqlite3MallocEnd(void){
 /*
 ** Return the amount of memory currently checked out.
 ** 
-** 返回当前空出的内存数量
+** 返回当前使用的内存数量
 */
 sqlite3_int64 sqlite3_memory_used(void){
   int n, mx;
@@ -260,7 +301,7 @@ sqlite3_int64 sqlite3_memory_used(void){
 ** checked out since either the beginning of this process
 ** or since the most recent reset.
 **
-** 返回曾经使用的内的存最大值
+** 返回曾经使用的内存最大值
 */
 sqlite3_int64 sqlite3_memory_highwater(int resetFlag){
   int n, mx;
