@@ -1,6 +1,6 @@
 /*
 ** 2007 October 14
-**此文件是可选的底层内存分配器,通用分配器(memsys5)
+**
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
 **
