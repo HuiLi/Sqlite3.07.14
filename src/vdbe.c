@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** 2001 September 15
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -44,7 +44,7 @@
 **
 ** 这个文件中的大部分代码被sqlite3VdbeExec()函数用于解析VDBE程序。
 ** 但是要建立一个程序指令的指令还需要其他例程(例程的作用类似于函数，但含义更为丰富一些。
-** 例程是某个系统对外提供的功能接口或服务的集合)的帮助和支撑。
+** 例程是某个系统对外提供的功能接口或服务的集合)的帮助和支撑。打断
 ** Most of the code in this file is taken up by the sqlite3VdbeExec()
 ** function which does the work of interpreting a VDBE program.
 ** But other routines are also provided to help in building up
