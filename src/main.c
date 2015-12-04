@@ -355,10 +355,11 @@ int sqlite3_shutdown(void){
 ** database connections or memory allocations.  This routine is not
 ** threadsafe.  Failure to heed these warnings can lead to unpredictable
 ** behavior.
+**
+** 这个api对于修改sqlite图书馆在运行的时候全局配置允许应用。
+** 这个序可以被程调用只有当有一些好的数据连接或者是内存分配。
+** 这个程序不是线程安全。留心这些可以引起不可预料的行为警告
 */
-//这个api对于修改sqlite图书馆在运行的时候全局配置允许应用。
-//这个程序可以被调用只有当有一些好的数据连接或者是内存分配。
-//这个程序不是线程安全。留心这些可以引起不可预料的行为警告
 int sqlite3_config(int op, ...){
   va_list ap;
   int rc = SQLITE_OK;
