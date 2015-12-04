@@ -834,32 +834,32 @@ const void *sqlite3_column_blob(sqlite3_stmt *pStmt, int i){
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_bytes(sqlite3_stmt *pStmt, int i){
+int sqlite3_column_bytes(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte）
   int val = sqlite3_value_bytes( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_bytes16(sqlite3_stmt *pStmt, int i){
+int sqlite3_column_bytes16(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte16）
   int val = sqlite3_value_bytes16( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-double sqlite3_column_double(sqlite3_stmt *pStmt, int i){
+double sqlite3_column_double(sqlite3_stmt *pStmt, int i){//获取每一列数据值（double型）
   double val = sqlite3_value_double( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_int(sqlite3_stmt *pStmt, int i){
+int sqlite3_column_int(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int类型）
   int val = sqlite3_value_int( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-sqlite_int64 sqlite3_column_int64(sqlite3_stmt *pStmt, int i){
+sqlite_int64 sqlite3_column_int64(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int64 8位有符号整型）
   sqlite_int64 val = sqlite3_value_int64( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-const unsigned char *sqlite3_column_text(sqlite3_stmt *pStmt, int i){
+const unsigned char *sqlite3_column_text(sqlite3_stmt *pStmt, int i){//获取每一列数据值（文本数据text）
   const unsigned char *val = sqlite3_value_text( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
@@ -887,32 +887,40 @@ int sqlite3_column_type(sqlite3_stmt *pStmt, int i){
 }
 
 /* The following function is experimental and subject to change or
-** removal */
-/*int sqlite3_column_numeric_type(sqlite3_stmt *pStmt, int i){
-**  return sqlite3_value_numeric_type( columnMem(pStmt,i) );
-**}
+** removal
+** 下面的函数是实验的，并随时更改或删除
+** */
+/*  int sqlite3_column_numeric_type(sqlite3_stmt *pStmt, int i)
+ * {
+**  	return sqlite3_value_numeric_type( columnMem(pStmt,i) );
+** }
 */
 
 /*
 ** Convert the N-th element of pStmt->pColName[] into a string using
 ** xFunc() then return that string.  If N is out of range, return 0.
-**
+** 使用xFunc()函数转换pStmt->pColName[]数组里面的第N个元素为string类型并返回string字符。
+** 如果N超出了数组的大小，返回0.
+
 ** There are up to 5 names for each column.  useType determines which
 ** name is returned.  Here are the names:
+** 每一列有五个命名，使用useType来决定那种名称被返回。下面是它的名称：
 **
-**    0      The column name as it should be displayed for output
-**    1      The datatype name for the column
-**    2      The name of the database that the column derives from
-**    3      The name of the table that the column derives from
-**    4      The name of the table column that the result column derives from
+**
+**    0      The column name as it should be displayed for output 列名应该要被输出显示
+**    1      The datatype name for the column 这列数据的类型名
+**    2      The name of the database that the column derives from 数据库的列名称来源
+**    3      The name of the table that the column derives from 表列名称来源
+**    4      The name of the table column that the result column derives from 表列的数据来源
 **
 ** If the result is not a simple column reference (if it is an expression
 ** or a constant) then useTypes 2, 3, and 4 return NULL.
+** 如果结果不是简单的列数据引用（如果它只是一个表达式或者常量），于是以上2，3，4三种情况会返回NULL
 */
 static const void *columnName(
-  sqlite3_stmt *pStmt,
+  sqlite3_stmt *pStmt,//预处理语句
   int N,
-  const void *(*xFunc)(Mem*),
+  const void *(*xFunc)(Mem*),/*使用xFunc()函数转换pStmt->pColName[]数组里面的第N个元素为string类型并返回string字符*/
   int useType
 ){
   const void *ret = 0;
