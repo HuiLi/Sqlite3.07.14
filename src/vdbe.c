@@ -1,4 +1,4 @@
-﻿/*
+/*
 ** 2001 September 15
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -17,7 +17,8 @@
 ** VDBE instances.  This file is solely interested in executing
 ** the VDBE program.
 **
-** 在与外部通讯时，sqlite3_stmt*是一个指向VDBE的不透明的指针
+** 在与外部接口处，sqlite3_stmt*是一个指向VDBE的不透明的指针（解释：不透明数据类型隐藏了它们内部格式或结构。在C语言中，它们就像黑盒一样。
+** 支持它们的语言不是很多。作为替代，开发者们利用typedef声明一个类型，把它叫做不透明类型，希望其他人别去把它重新转化回对应的那个标准C类型。）
 ** In the external interface, an "sqlite3_stmt*" is an opaque pointer
 ** to a VDBE.
 **
@@ -32,7 +33,6 @@
 ** and 5 operands.  Operands P1, P2, and P3 are integers.  Operand P4
 ** is a null-terminated string.  Operand P5 is an unsigned character.
 ** Few opcodes use all 5 operands.
-**
 ** 计算结果存储在一组寄存器当中,这组寄存器的编号从1开始,寄存器存放在的内存地址为Vdbe.nMem(nMem是整型)。
 ** 每个寄存器可以存储一个整数，一个以NULL结尾的字符串，一个浮点数，或者是一个值为“NULL”的SQL。
 ** 发生这种从一种类型到另一种类型的隐式转换是必要的。
@@ -44,7 +44,7 @@
 **
 ** 这个文件中的大部分代码被sqlite3VdbeExec()函数用于解析VDBE程序。
 ** 但是要建立一个程序指令的指令还需要其他例程(例程的作用类似于函数，但含义更为丰富一些。
-** 例程是某个系统对外提供的功能接口或服务的集合)的帮助和支撑。打断
+** 例程是某个系统对外提供的功能接口或服务的集合)的帮助和支撑。
 ** Most of the code in this file is taken up by the sqlite3VdbeExec()
 ** function which does the work of interpreting a VDBE program.
 ** But other routines are also provided to help in building up
@@ -238,8 +238,8 @@ void sqlite3VdbeMemStoreType(Mem *pMem){
 ** 分配Vdbe游标数 iCur,返回一个指针给它,如果内存用尽就返回NULL.
 */
 static VdbeCursor *allocateCursor(
-  Vdbe *p,              /* The virtual machine */
-  int iCur,             /* Index of the new VdbeCursor 虚拟机游标的索引值*/
+  Vdbe *p,              /* The virtual machine 虚拟机指针*/
+  int iCur,             /* Index of the new VdbeCursor 新建的虚拟机游标索引值*/
   int nField,           /* Number of fields in the table or index 
                         ** 表中字段或索引的数量
                         */
@@ -613,7 +613,6 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 ** close the program with a final OP_Halt and to set up the callbacks
 ** and the error message pointer.
 **
-**
 ** Whenever a row or result data is available, this routine will either
 ** invoke the result callback (if there is one) or return with
 ** SQLITE_ROW.
@@ -649,16 +648,17 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 ** 导致p->rc被设置为SQLITE_NOMEM,程序也会返回SQLITE_ERROR,其他一些致命
 ** 错误也会返回SQLITE_ERROR,这个程序执行结束,sqlite3VdbeFinalize()会执行
 ** 用来清除刚刚留下的垃圾
-
 */
+
+
 int sqlite3VdbeExec(
   Vdbe *p                    /* The VDBE */
 ){
-  int pc=0;                  /* The program counter */
-  Op *aOp = p->aOp;          /* Copy of p->aOp */
-  Op *pOp;                   /* Current operation */
+  int pc=0;                  /* The program counter 指令计数器*/
+  Op *aOp = p->aOp;          /* Copy of p->aOp  */
+  Op *pOp;                   /* Current operation 当前指令*/
   int rc = SQLITE_OK;        /* Value to return */
-  sqlite3 *db = p->db;       /* The database */
+  sqlite3 *db = p->db;       /* The database 数据库*/
   u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive */
   u8 encoding = ENC(db);     /* The database encoding 
                              ** 数据库编码格式。
@@ -959,7 +959,7 @@ case OP_HaltIfNull: {      /* in3 */
 ** VDBE, but do not rollback the transaction. 
 **
 ** If P4 is not null then it is an error message string.
-**
+**TODO p1 p2 p4值简介
 ** There is an implied "Halt 0 0 0" instruction inserted at the very end of
 ** every program.  So a jump past the last instruction of the program
 ** is the same as executing Halt.
@@ -1289,7 +1289,8 @@ case OP_ResultRow: {
     break;
   }
 
-  /* If the SQLITE_CountRows flag is set in sqlite3.flags mask, then 
+  /*
+  ** If the SQLITE_CountRows flag is set in sqlite3.flags mask, then
   ** DML statements invoke this opcode to return the number of rows 
   ** modified to the user. This is the only way that a VM that
   ** opens a statement transaction may invoke this opcode.
@@ -1554,6 +1555,7 @@ case OP_CollSeq: {
 ** See also: AggStep and AggFinal
 ** 在P5的参数(从P2和继承者得到的)的参与下,调用一个自定义函数(P4是一个指向一
 ** 个定义函数的功能结构的指针).这个函数的结果存储在P3中,P3必须不是方法的输入参数.
+**
 ** P1是一个32位的位掩码,用于指示在编译时每一个传递给这个函数的参数是否是常量.如果
 ** 第一个参数是常量,那么P1的0位被设置.这是用于决定元数据(与一个使用了
 ** sqlite3_set-auxdata()API的自定义函数的参数有关联)是否被安全的保留着直到这个
@@ -1712,6 +1714,7 @@ case OP_ShiftRight: {           /* same as TK_RSHIFT, in1, in2, out3 */
   u8 op;
 
   pIn1 = &aMem[pOp->p1];
+
   pIn2 = &aMem[pOp->p2];
   pOut = &aMem[pOp->p3];
   if( (pIn1->flags | pIn2->flags) & MEM_Null ){
@@ -1760,7 +1763,7 @@ case OP_ShiftRight: {           /* same as TK_RSHIFT, in1, in2, out3 */
 ** The result is always an integer.
 **
 ** To force any register to be an integer, just add 0.
-** 添加一个常量P2给P1里的值,结果是一个整数.
+** 把p2常量添加给p1寄存器值,结果是一个整数.
 ** 把每个寄存器的值改为整形的话就添加0.
 */
 case OP_AddImm: {            /* in1 */
@@ -1777,8 +1780,8 @@ case OP_AddImm: {            /* in1 */
 ** in P1 is not an integer and cannot be converted into an integer
 ** without data loss, then jump immediately to P2, or if P2==0
 ** raise an SQLITE_MISMATCH exception.
-** 强制把P1里的值转换为整形,如果P1的值不是整形而且在不丢失数据的前
-** 提下也不能转换为整形,那就立即跳转到P2,或者P2==0时抛出一个SQLITE_MISMATCH异常
+** 强行将P1寄存器内的值转换成整形数据。如果p1里面的值不是整形而且还不能在数据不丢失的情况下转化成整形数据时，
+** 立即跳转到p2，或者说如果p2==0，抛出一个SQLITE_MISMATCH异常。
 */
 case OP_MustBeInt: {            /* jump, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1797,15 +1800,16 @@ case OP_MustBeInt: {            /* jump, in1 */
 }
 
 #ifndef SQLITE_OMIT_FLOATING_POINT
+
 /* Opcode: RealAffinity P1 * * * *
 **
 ** If register P1 holds an integer convert it to a real value.
-**
 ** This opcode is used when extracting information from a column that
 ** has REAL affinity.  Such column values may still be stored as
 ** integers, for space efficiency, but after extraction we want them
 ** to have only a real value.
-** 如果P1是整数就转换为浮点型,这个操作码用于从拥有REAL affinity的一行
+** Author: 吴小全
+** 如果P1寄存器里是整型就把它转换为实数,当从这个操作码用于从拥有REAL affinity的一行
 ** 提取信息.为了空间利用率,这一行的值可能还是存储为整形,但是提取后我们
 ** 想让它只有一个浮点数.
 */
@@ -1827,8 +1831,7 @@ case OP_RealAffinity: {                  /* in1 */
 ** are afterwards simply interpreted as text.
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
-** 强制P1里的值为文本，如果这个值正好是数字类型的,使用printf()的等价物把它
-** 转换为字符串,二进制大文件的值是不变的,只是用文本表示.
+** 强制P1里的值为文本，如果这个值是数字类型，将它转换成与printf()等效的字符串。二进制大文件的值是不变的,只是简单地把它转成文本表示.
 ** 此程序无法改变NULL值,它就是NULL.
 */
 case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
@@ -1854,7 +1857,7 @@ case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
 ** 强制P1里的值为一个二进制大文件值，如果这个值正好是数字类型的，
-** 转换为字符串,字符串是对二进制大文件进行重新解释,它所代表的数据是不变的
+** 转换为字符串,字符串是对二进制大文件简单地进行重新解释,它所代表的数据是不变的
 ** 此程序无法改变NULL值,它就是NULL.
 */
 case OP_ToBlob: {                  /* same as TK_TO_BLOB, in1 */
@@ -2140,7 +2143,6 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
 ** immediately prior to the OP_Compare.
 ** 这个数组是唯一一个在操作码OP_Permutation OP_Compare,OP_Halt或OP_ResultRow中都有效的值。
 ** 通常OP_Permutation操作发生在OP_Compare之前。
-**
 */
 case OP_Permutation: {
   assert( pOp->p4type==P4_INTARRAY );
@@ -2162,7 +2164,6 @@ case OP_Permutation: {
 ** only.  The KeyInfo elements are used sequentially.
 ** P4是一个KeyInfo类型的结构体，它定义了排序序列和排序方式。这个序列只应用于寄存器。
 ** 这些KeyInfo类型的元素按顺序使用。
-**
 ** The comparison is a sort comparison, so NULLs compare equal,
 ** NULLs are less than numbers, numbers are less than strings,
 ** and strings are less than blobs.
@@ -2635,8 +2636,10 @@ case OP_Column: {
     ** them, respectively.  So the maximum header length results from a
     ** 3-byte type for each of the maximum of 32768 columns plus three
     ** extra bytes for the header length itself.  32768*3 + 3 = 98307.
-    ** 类型的总条目可以介于1到5个字节。但是4和5字节类型使用如此多的数据空间,
-    ** (后面的看不懂什么意思)
+    ** 类型的总条目可以介于1到5个字节。但是4和5字节类型使用如此多的数据空间,他们是32位并且每行有4096列
+    ** @author wxq
+    ** 所以，最大的头长度结果是3-字节类型，每行最大有32768列加上每个头自己额外占用字节，结果就是32768*3 + 3 = 98307
+    **
     */
     if( offset > 98307 ){
       rc = SQLITE_CORRUPT_BKPT;
@@ -2655,8 +2658,9 @@ case OP_Column: {
     ** will likely be much smaller since nField will likely be less than
     ** 20 or so.  This insures that Robson memory allocation limits are
     ** not exceeded even for corrupt database files.
-    ** 为了获取变量nFiedld的类型值，我们需要读取数据的字节个数，并计算。在这里，
-    ** 变量offset的值是一个上界。但变量nField的值可能明显少于数据表中真正的列数，
+    ** @wxq 修改
+    ** 为了获取变量nFiedld的类型值，需要计算我们读取的数据的字节长度。在这里，
+    ** 变量offset是一个上限值。但变量nField的值可能明显少于数据表中真正的列数，
     ** 如果真是那样，5*nField+3可能小于变量offset的值。为了限制内存分配的大小，我们要
     ** 使len(数据长度)尽量小，特别是当损坏的数据库文件已经引起offset的值过大的时候。
     ** 变量Offset的极限值是98307。但98307可能还是超过了Robson内存分配在某些配置上的限制。
@@ -3010,11 +3014,12 @@ case OP_MakeRecord: {
   break;
 }
 
-/* Opcode: Count P1 P2 * * *
+/* Opcode: Count P1 P2 **
 **
 ** Store the number of entries (an integer value) in the table or index
 ** opened by cursor P1 in register P2
-** 存储表中或索引中已经被条目的数量(一个整数值)在表或索引打开游标P1在寄存器P2
+** @author wxq
+** 把记录的数量或者是已经被p1游标打开的索引存储在p2里面
 */
 #ifndef SQLITE_OMIT_BTREECOUNT
 case OP_Count: {         /* out2-prerelease */
@@ -4898,6 +4903,9 @@ case OP_Sort: {        /* jump */
 ** If P2 is 0 or if the table or index is not empty, fall through
 ** to the following instruction.
 */
+/*移动当前游标到表或索引的第一条记录.
+**如果表为空且p2>0,则跳到p2处;如果p2为0且表不空，则执行下一条指令.
+*/
 case OP_Rewind: {        /* jump */
   VdbeCursor *pC;
   BtCursor *pCrsr;
@@ -5560,7 +5568,7 @@ case OP_Program: {        /* jump */
   **如果p5标志是明确的,那么递归调用触发器
 * *禁用向后兼容(p5设置如果这个子程序
 * *真是一个触发器,没有外键操作,标记集
-* *,通过“杂注recursive_triggers”命令是显而易见的)。 
+* *,通过“杂注recursive_triggers”命令是显而易见的)。
 
   ** It is recursive invocation of triggers, at the SQL level, that is 
   ** disabled. In some cases a single trigger may generate more than one 
@@ -5934,7 +5942,7 @@ case OP_AggStep: {
 * * P4 FuncDef这个函数指针。P2
 * *的论点是不习惯操作码。只有消除歧义
 * *函数可以有不同数量的参数。的
-* * P4的论点只是所需的退化情况
+* *P4的论点只是所需的退化情况
 * *阶梯函数不是之前调用。
 */
 case OP_AggFinal: {
@@ -6074,9 +6082,9 @@ case OP_JournalMode: {    /* out2-prerelease */
         ** file. An EXCLUSIVE lock may still be held on the database file 
         ** after a successful return. 
 		如果离开WAL模式,关闭日志文件。如果成功,调用
-* * PagerCloseWal()write-ahead-log检查点和删除
-* *文件。独占锁可能仍在数据库文件中
-* *成功后返回。
+        ** PagerCloseWal()write-ahead-log检查点和删除
+        **文件。独占锁可能仍在数据库文件中
+        **成功后返回。
         */
         rc = sqlite3PagerCloseWal(pPager);
         if( rc==SQLITE_OK ){
@@ -6086,7 +6094,7 @@ case OP_JournalMode: {    /* out2-prerelease */
         /* Cannot transition directly from MEMORY to WAL.  Use mode OFF
         ** as an intermediate
 		不能直接从Memory模式过渡到WAL模式。使用模式OFF
-* *作为中间
+        **作为中间
 		*/
         sqlite3PagerSetJournalMode(pPager, PAGER_JOURNALMODE_OFF);
       }
@@ -6161,8 +6169,8 @@ case OP_IncrVacuum: {        /* jump */
 ** fails with an error code of SQLITE_SCHEMA if it is ever executed 
 ** (via sqlite3_step()).
 导致预编译语句变得过期了。一个过期的语句
-* *失败的错误代码SQLITE_SCHEMA如果它执行
-* *(通过sqlite3_step())。
+**失败的错误代码SQLITE_SCHEMA如果它执行
+**(通过sqlite3_step())。
 
 ** 
 ** If P1 is 0, then all SQL statements become expired. If P1 is non-zero,
@@ -6318,7 +6326,7 @@ case OP_VOpen: {
 ** P1 is a cursor opened using VOpen.  P2 is an address to jump to if
 ** the filtered result set is empty.
 **P1是使用VOpen打开游标。P2是跳转到一个地址
-* *过滤结果集是空的。
+**过滤结果集是空的。
 
 ** P4 is either NULL or a string that was generated by the xBestIndex
 ** method of the module.  The interpretation of the P4 string is left
@@ -6452,9 +6460,8 @@ case OP_VColumn: {
   /* Copy the result of the function to the P3 register. We
   ** do this regardless of whether or not an error occurred to ensure any
   ** dynamic allocation in sContext.s (a Mem struct) is  released.
-  函数的结果复制到P3登记。我们
-* *这样做无论是否发生错误,以确保任何
-* *在sContext动态分配。年代(Mem结构)。
+      函数的结果复制到P3登记。我们这样做无论是否发生错误,以确保任何
+  **在sContext动态分配。年代(Mem结构)。
   */
   sqlite3VdbeChangeEncoding(&sContext.s, encoding);
   sqlite3VdbeMemMove(pDest, &sContext.s);
@@ -6562,7 +6569,7 @@ case OP_VRename: {
 ** are contiguous memory cells starting at P3 to pass to the xUpdate 
 ** invocation. The value in register (P3+P2-1) corresponds to the 
 ** p2th element of the argv array passed to xUpdate.
-P4是一个虚表指针对象,一个sqlite3_vtab结构。
+   P4是一个虚表指针对象,一个sqlite3_vtab结构。
 * *此操作码调用相应的xUpdate方法。P2值
 * *是连续的记忆细胞从xUpdate P3通过
 * *调用。寄存器中的值(P3 + P2-1)对应
