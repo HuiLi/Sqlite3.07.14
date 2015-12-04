@@ -17,8 +17,8 @@
 ** sqlite3_config() before SQLite will operate.
 **
 ** 这个文件包含一个空操作SQLITE_ZERO_MALLOC定义时内存分配使用的驱动程序。
-** 配置驱动程序实现在这里总是失败。
-** SQLite 不引用这些驱动程序。这些仅是些占位符。
+** 这里实现分配器驱动程序总是失败的。
+** SQLite不引用这些驱动程序。这些仅是些占位符。
 ** 真正有效的驱动程序必须使用sqlite3_config()将之前的SQLite代替
 */
 #include "sqliteInt.h"

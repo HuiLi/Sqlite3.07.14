@@ -25,9 +25,10 @@
 ** file.
 **
 ** 这个文件包含实现的底层sqlite3_mem_methods对象中指定的内存分配例程。
-** 这个文件的内容仅是如果SQLITE_SYSTEM_MALLOC定义使用。
-** 当SQLITE_MEMDEBUG 和 the SQLITE_WIN32_MALLOC 宏命令都没有被定义时，就会自动定义为 SQLITE_SYSTEM_MALLOC宏命令。
-** 缺省配置是使用内存分配例程在这个文件中。
+** 这个文件的内容仅是如果SQLITE_SYSTEM_MALLOC被定义使用。
+** 当SQLITE_MEMDEBUG和SQLITE_WIN32_MALLOC宏命令都没有被定义时，就会自动定义为 SQLITE_SYSTEM_MALLOC宏命令。
+** 缺省配置是使用这个文件中的例程
+** 
 ** C-preprocessor macro summary:
 **
 **    HAVE_MALLOC_USABLE_SIZE     The configure script sets this symbol if
@@ -37,27 +38,28 @@
 **                                If an equivalent interface exists by
 **                                a different name, using a separate -D
 **                                option to rename it.
-** c预处理器宏简介:
-**    HAVE_MALLOC_USABLE_SIZE      如果malloc_usable_size()接口的存在
-**                                 在目标平台上，配置脚本设置这个符号。
-**                                 或者需要的话，这个符号可以手动配置。
-**                                 如果一个等效界面存在一个不同的名称,
-**                                 使用一个单独的- d选项来重命名它。
+** 
+**
+**                                如果malloc_usable_size()接口的存在
+**                                在目标平台上，配置脚本设置这个符号。
+**                                或者需要的话，这个符号可以手动配置。
+**                                如果一个等效界面存在一个不同的名称,
+**                                使用一个单独的- d选项来重命名它。
 **
 **    SQLITE_WITHOUT_ZONEMALLOC   Some older macs lack support for the zone
 **                                memory allocator.  Set this symbol to enable
 **                                building on older macs.
 **
-**    SQLITE_WITHOUT_ZONEMALLOC   一些旧的mac缺乏支持空间内存分配器。
-                                  设置此标志,使其可在在旧mac建造。
+**                                一些旧的mac缺乏支持空间内存分配器。
+                                  设置此标志,使其可在在旧的mac构建。
 **
 **    SQLITE_WITHOUT_MSIZE        Set this symbol to disable the use of
 **                                _msize() on windows systems.  This might
 **                                be necessary when compiling for Delphi,
 **                                for example.
 **
-**    SQLITE_WITHOUT_MSIZE         这个符号设置为在windows系统内禁用msize()。
-**                                 举个例子，当为Delphi翻译时可能有必要的。
+**                                这个符号设置为在windows系统上禁用msize()。
+**                                例如，当要为Delphi编译时可能有必要的。
 **
 */
 #include "sqliteInt.h"
@@ -67,7 +69,7 @@
 ** used when no other memory allocator is specified using compile-time
 ** macros.
 **
-** 这个版本默认内存分配器。使用时编译时间指定宏没有使用其他内存分配器使用。
+** 这是默认的内存分配器。使用时编译时间指定宏没有使用其他内存分配器使用。
 */
 #ifdef SQLITE_SYSTEM_MALLOC
 
@@ -77,7 +79,7 @@
 ** with -DSQLITE_WITHOUT_MSIZE
 **
 ** MSVCRT 有malloc_usable_size()，但被称为_msize().
-** 使用_msize() 是自动的, 但是可以通过编译-DSQLITE_WITHOUT_MSIZE命令禁用。
+** _msize()是自动使用的, 但是可以通过编译是-DSQLITE_WITHOUT_MSIZE选项禁用。
 */
 #if defined(_MSC_VER) && !defined(SQLITE_WITHOUT_MSIZE)
 # define SQLITE_MALLOCSIZE _msize
@@ -89,7 +91,7 @@
 ** Use the zone allocator available on apple products unless the
 ** SQLITE_WITHOUT_ZONEMALLOC symbol is defined.
 **
-** 除非SQLITE_WITHOUT_ZONEMALLOC符号被定义，不然就用苹果产品上的区域内存分配器。
+** 除非SQLITE_WITHOUT_ZONEMALLOC被定义，不然就用苹果产品上的区域内存分配器。
 */
 #include <sys/sysctl.h>
 #include <malloc/malloc.h>
@@ -136,8 +138,8 @@ static malloc_zone_t* _sqliteZone_;
 ** cases of nByte<=0 will be intercepted and dealt with by higher level
 ** routines.
 **
-** 像 malloc(),但记忆分配大小，这样我们可以在找到它之后使用sqlite3MemSize().
-** 对于这个低级的例程，我们保证nByte>0,因为例nByte<=0将被截获和处理更高级别的例程。
+** 像malloc(),但记忆分配大小，这样我们可以在之后使用sqlite3MemSize()来找到它.
+** 对于这个低级的例程，我们必须保证nByte>0,因为如果nByte<=0，则将被打断和被更高级别的例程处理。
 */
 static void *sqlite3MemMalloc(int nByte){
 #ifdef SQLITE_MALLOCSIZE
@@ -172,7 +174,7 @@ static void *sqlite3MemMalloc(int nByte){
 ** by higher-level routines.
 **
 ** 像free() 当在工作时被分配到sqlite3MemMalloc()或者sqlite3MemRealloc().
-** 对于这个低级程序, 我们已知在pPrior==0情况时pPrior!=0将被更高级别的例程截取和处理。
+** 对于这个底层程序, 我们已知pPrior!=0，因为如果pPrior==0时，将被高层程序获取和处理。
 */
 static void sqlite3MemFree(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
@@ -214,8 +216,8 @@ static int sqlite3MemSize(void *pPrior){
 ** routines and redirected to xFree.
 **
 ** 像 realloc()，调整分配之前获取sqlite3MemMalloc()。
-** 对于低级别接口，我们已知pPrior!=0。在pPrior==0已拦截了更高级别的例程和重定向到xMalloc. 
-** 同样，我们知道nByte>0，因为nByte<=0的情况会被更高级别的例程拦截和重定向到xFree。
+** 对于底层接口，我们已知pPrior!=0，因为如果pPrior==0已拦截了高层的例程和重定向到xMalloc. 
+** 同样，我们知道nByte>0，因为nByte<=0的情况会被高层的例程拦截和重定向到xFree。
 */
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
 #ifdef SQLITE_MALLOCSIZE
