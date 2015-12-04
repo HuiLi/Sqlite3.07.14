@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 ** 2001 September 15
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -17,15 +17,15 @@
 ** so is applicable.  Because this module is responsible for selecting
 ** indices, you might also think of this module as the "query optimizer".
 **
-** Õâ¸öÄ£¿é°üº¬CÓïÑÔ´úÂë£¬¸Ã´úÂëÉú³ÉÓÃÀ´Ö´ĞĞSQLÓï¾äµÄWHERE×Ó¾äµÄVDBE±àÂë¡£Õâ¸öÄ£¿é¸ºÔğÉú³É´úÂë£¬À´ÒÀ´ÎÉ¨ÃèÒ»¸ö±íÀ´²éÕÒºÏÊÊµÄĞĞ¡£
-** µ±Ë÷Òı¿ÉÓÃÊ±£¬Ñ¡Ôñ²¢Ê¹ÓÃË÷ÒıÀ´¼Ó¿ì²éÑ¯¡£ÒòÎªÕâ¸öÄ£¿é¸ºÔğË÷ÒıÑ¡Ôñ£¬ÄãÒ²¿ÉÒÔ°ÑÕâ¸öÄ£¿éµ±×ö"²éÑ¯ÓÅ»¯"¡£
+** è¿™ä¸ªæ¨¡å—åŒ…å«Cè¯­è¨€ä»£ç ï¼Œè¯¥ä»£ç ç”Ÿæˆç”¨æ¥æ‰§è¡ŒSQLè¯­å¥çš„WHEREå­å¥çš„VDBEç¼–ç ã€‚è¿™ä¸ªæ¨¡å—è´Ÿè´£ç”Ÿæˆä»£ç ï¼Œæ¥ä¾æ¬¡æ‰«æä¸€ä¸ªè¡¨æ¥æŸ¥æ‰¾åˆé€‚çš„è¡Œã€‚
+** å½“ç´¢å¼•å¯ç”¨æ—¶ï¼Œé€‰æ‹©å¹¶ä½¿ç”¨ç´¢å¼•æ¥åŠ å¿«æŸ¥è¯¢ã€‚å› ä¸ºè¿™ä¸ªæ¨¡å—è´Ÿè´£ç´¢å¼•é€‰æ‹©ï¼Œä½ ä¹Ÿå¯ä»¥æŠŠè¿™ä¸ªæ¨¡å—å½“åš"æŸ¥è¯¢ä¼˜åŒ–"ã€‚
 */
 #include "sqliteInt.h"
 
 
 /*
 ** Trace output macros
-** ¸ú×ÙÊä³öºê,ÓÃÓÚ²âÊÔºÍµ÷ÊÔ
+** è·Ÿè¸ªè¾“å‡ºå®,ç”¨äºæµ‹è¯•å’Œè°ƒè¯•
 */
 #if defined(SQLITE_TEST) || defined(SQLITE_DEBUG)
 int sqlite3WhereTrace = 0;
@@ -38,8 +38,8 @@ int sqlite3WhereTrace = 0;
 
 
 /* Forward reference
-** Ç°ÖÃÒıÓÃ 
-** ¾ßÌå½á¹¹ÌåÔÚÏÂÃæ
+** å‰ç½®å¼•ç”¨ 
+** å…·ä½“ç»“æ„ä½“åœ¨ä¸‹é¢
 */
 typedef struct WhereClause WhereClause;
 typedef struct WhereMaskSet WhereMaskSet;
@@ -47,124 +47,124 @@ typedef struct WhereOrInfo WhereOrInfo;
 typedef struct WhereAndInfo WhereAndInfo;
 typedef struct WhereCost WhereCost;
 
-/*  ****************** WhereTerm¶¨ÒåËµÃ÷ *********************
+/*  ****************** WhereTermå®šä¹‰è¯´æ˜ *********************
 **
 ** The query generator uses an array of instances of this structure to
-** help it analyze the subexpressions(×ÓÓï¾ä) of the WHERE clause.  Each WHERE
+** help it analyze the subexpressions(å­è¯­å¥) of the WHERE clause.  Each WHERE
 ** clause subexpression is separated from the others by AND operators,
 ** usually, or sometimes subexpressions separated by OR.
 **
-** ²éÑ¯Éú³ÉÆ÷Ê¹ÓÃÒ»×éÕâ¸öÊı¾İ½á¹¹µÄÊµÀıÀ´°ïÖúËü·ÖÎöWHERE×Ó¾äµÄ×Ó±í´ïÊ½¡£
-** Ã¿¸öWHERE×Ó¾ä×Ó±í´ïÊ½Í¨³£ÊÇ¸ù¾İANDÔËËã·û·Ö¸ôµÄ£¬ÓĞÊ±Ò²»á¸ù¾İOR·Ö¸ô¡£
+** æŸ¥è¯¢ç”Ÿæˆå™¨ä½¿ç”¨ä¸€ç»„è¿™ä¸ªæ•°æ®ç»“æ„çš„å®ä¾‹æ¥å¸®åŠ©å®ƒåˆ†æWHEREå­å¥çš„å­è¡¨è¾¾å¼ã€‚
+** æ¯ä¸ªWHEREå­å¥å­è¡¨è¾¾å¼é€šå¸¸æ˜¯æ ¹æ®ANDè¿ç®—ç¬¦åˆ†éš”çš„ï¼Œæœ‰æ—¶ä¹Ÿä¼šæ ¹æ®ORåˆ†éš”ã€‚
 **
 ** All WhereTerms are collected into a single WhereClause structure.  
 ** The following identity holds:
 ** 
-** ËùÓĞWhereTerms»ã×Üµ½Ò»¸öµ¥Ò»µÄWhereClause½á¹¹ÌåÖĞ.  
-** Ê¹ÓÃÒÔÏÂ·½Ê½±£´æ: 
+** æ‰€æœ‰WhereTermsæ±‡æ€»åˆ°ä¸€ä¸ªå•ä¸€çš„WhereClauseç»“æ„ä½“ä¸­.  
+** ä½¿ç”¨ä»¥ä¸‹æ–¹å¼ä¿å­˜: 
 **
 **        WhereTerm.pWC->a[WhereTerm.idx] == WhereTerm
 **
-** Èç¹ûtermÈçÏÂĞÎÊ½:
+** å¦‚æœtermå¦‚ä¸‹å½¢å¼:
 **
 **              X <op> <expr>
 **
 ** where X is a column name and <op> is one of certain operators,
-** then WhereTerm.leftCursor(×óÓÎ±ê) and WhereTerm.u.leftColumn record the
+** then WhereTerm.leftCursor(å·¦æ¸¸æ ‡) and WhereTerm.u.leftColumn record the
 ** cursor number and column number for X.  WhereTerm.eOperator records
-** the <op> using a bitmask(Î»ÑÚÂë) encoding defined by WO_xxx below.  The
+** the <op> using a bitmask(ä½æ©ç ) encoding defined by WO_xxx below.  The
 ** use of a bitmask encoding for the operator allows us to search
 ** quickly for terms that match any of several different operators.
 **
-** XÊÇÒ»¸öÁĞÃû£¬<op>ÊÇÄ³¸öÔËËã·û£¬WhereTerm.leftCursorandºÍWhereTerm.u.leftColumn¼ÇÂ¼XµÄÓÎ±êÊıºÍÁĞÊı¡£
-** WhereTerm.eOperatorÊ¹ÓÃÓÉÏÂÃæµÄWO_xxx¶¨ÒåµÄÎ»ÑÚÂë¼ÇÂ¼<op>¡£
-** ÔËËã·ûÊ¹ÓÃÎ»ÑÚÂëÊ¹µÃÎÒÃÇÄÜ¿ìËÙ²éÕÒÄÜ¹»Æ¥ÅäÈÎÒâ²»Í¬ÔËËã·ûµÄterms¡£
+** Xæ˜¯ä¸€ä¸ªåˆ—åï¼Œ<op>æ˜¯æŸä¸ªè¿ç®—ç¬¦ï¼ŒWhereTerm.leftCursorandå’ŒWhereTerm.u.leftColumnè®°å½•Xçš„æ¸¸æ ‡æ•°å’Œåˆ—æ•°ã€‚
+** WhereTerm.eOperatorä½¿ç”¨ç”±ä¸‹é¢çš„WO_xxxå®šä¹‰çš„ä½æ©ç è®°å½•<op>ã€‚
+** è¿ç®—ç¬¦ä½¿ç”¨ä½æ©ç ä½¿å¾—æˆ‘ä»¬èƒ½å¿«é€ŸæŸ¥æ‰¾èƒ½å¤ŸåŒ¹é…ä»»æ„ä¸åŒè¿ç®—ç¬¦çš„termsã€‚
 **
 ** A WhereTerm might also be two or more subterms connected by OR:
 **
 **         (t1.X <op> <expr>) OR (t1.Y <op> <expr>) OR ....
 **
 ** In this second case, wtFlag as the TERM_ORINFO set and eOperator==WO_OR
-** and the WhereTerm.u.pOrInfo field points to auxiliary information(¸¨ÖúĞÅÏ¢) that
+** and the WhereTerm.u.pOrInfo field points to auxiliary information(è¾…åŠ©ä¿¡æ¯) that
 ** is collected about the OR clause.
 **
-** Ò»¸öWhereTerm½á¹¹Ò²¿ÉÒÔÊÇÓÉORÁ¬½ÓµÄ2¸ö»ò¶à¸ösubterms
+** ä¸€ä¸ªWhereTermç»“æ„ä¹Ÿå¯ä»¥æ˜¯ç”±ORè¿æ¥çš„2ä¸ªæˆ–å¤šä¸ªsubterms
 **         (t1.X <op> <expr>) OR (t1.Y <op> <expr>) OR ....
-** ÔÚÕâÖÖÇé¿öÏÂ£¬wtFlagÉèÎªTERM_ORINFO£¬eOperator==WO_OR²¢ÇÒWhereTerm.u.pOrInfoÖ¸ÏòÊÕ¼¯µÄ¹ØÓÚOR×Ó¾äµÄ¸¨ÖúĞÅÏ¢¡£
+** åœ¨è¿™ç§æƒ…å†µä¸‹ï¼ŒwtFlagè®¾ä¸ºTERM_ORINFOï¼ŒeOperator==WO_ORå¹¶ä¸”WhereTerm.u.pOrInfoæŒ‡å‘æ”¶é›†çš„å…³äºORå­å¥çš„è¾…åŠ©ä¿¡æ¯ã€‚
 **
 ** If a term in the WHERE clause does not match either of the two previous
-** categories(Ç°Á½Àà), then eOperator==0.  The WhereTerm.pExpr field is still set
-** to the original subexpression content and wtFlags is set up(½¨Á¢) appropriately(ÊÊµ±µÄ)
+** categories(å‰ä¸¤ç±»), then eOperator==0.  The WhereTerm.pExpr field is still set
+** to the original subexpression content and wtFlags is set up(å»ºç«‹) appropriately(é€‚å½“çš„)
 ** but no other fields in the WhereTerm object are meaningful.
 **
-** Èç¹ûÔÚWHERE×Ó¾äÖĞµÄÒ»¸ötermÓëÇ°ÃæÁ½Àà¶¼²»Æ¥Åä£¬ÄÇÃ´eOperator==0¡£WhereTerm.pExprÈÔ¾ÉÉèÎªÔ­Ê¼×Ó±í´ïÊ½µÄÄÚÈİ£¬
-** ²¢ÇÒwtFlagsÉèÖÃÎªÊÊµ±µÄÖµ£¬µ«ÊÇ,whereTerm¶ÔÏóÖĞµÄÆäËû×Ö¶Î¶¼ÊÇÎŞÒâÒåµÄ¡£
+** å¦‚æœåœ¨WHEREå­å¥ä¸­çš„ä¸€ä¸ªtermä¸å‰é¢ä¸¤ç±»éƒ½ä¸åŒ¹é…ï¼Œé‚£ä¹ˆeOperator==0ã€‚WhereTerm.pExprä»æ—§è®¾ä¸ºåŸå§‹å­è¡¨è¾¾å¼çš„å†…å®¹ï¼Œ
+** å¹¶ä¸”wtFlagsè®¾ç½®ä¸ºé€‚å½“çš„å€¼ï¼Œä½†æ˜¯,whereTermå¯¹è±¡ä¸­çš„å…¶ä»–å­—æ®µéƒ½æ˜¯æ— æ„ä¹‰çš„ã€‚
 **
 ** When eOperator!=0, prereqRight and prereqAll record sets of cursor numbers,
-** but they do so indirectly(¼ä½ÓµØ).  
+** but they do so indirectly(é—´æ¥åœ°).  
 ** A single WhereMaskSet structure translates cursor number 
-** into bits and the translated bit is stored in the prereq fields(Óò¡¢×Ö¶Î).  
-** The translation is used in order to(ÎªÁË) maximize the number of
-** bits that will fit in(ÊÊÓ¦¡¢×°ÅäºÃ) a Bitmask(Î»ÑÚÂë).  
-** The VDBE cursor numbers might be spread out(·ÖÎª) over the non-negative(·Ç¸ºµÄ) integers.  
+** into bits and the translated bit is stored in the prereq fields(åŸŸã€å­—æ®µ).  
+** The translation is used in order to(ä¸ºäº†) maximize the number of
+** bits that will fit in(é€‚åº”ã€è£…é…å¥½) a Bitmask(ä½æ©ç ).  
+** The VDBE cursor numbers might be spread out(åˆ†ä¸º) over the non-negative(éè´Ÿçš„) integers.  
 ** For example, the cursor numbers might be 3, 8, 9, 10, 20, 23, 41, and 45.  
-** The WhereMaskSet translates these sparse(Ï¡ÊèµÄ£¬Ï¡ÉÙµÄ) cursor numbers into consecutive integers(Á¬ĞøÕûĞÍ)
+** The WhereMaskSet translates these sparse(ç¨€ç–çš„ï¼Œç¨€å°‘çš„) cursor numbers into consecutive integers(è¿ç»­æ•´å‹)
 ** beginning with 0 in order to make the best possible use of the available bits in the Bitmask.  
 ** So, in the example above, the cursor numbers would be mapped into integers 0 through 7.
 ** 
-** µ±eOperator != 0,prereqRightºÍprereqAll¼ä½ÓµØ¼ÇÂ¼ÓÎ±êÊı¼¯¡£
-** Ò»¸öµ¥¶ÀµÄWhereMaskSet½á¹¹Ìå°ÑÓÎ±êÊı×ª»¯Îªbits²¢ÇÒ×ª»¯ºóµÄbit´æ´¢ÔÚprereq×Ö¶ÎÖĞ¡£
-** Ê¹ÓÃ×ª»¯ÊÇÎªÁË×î´ó»¯bitsÊ¹Ö®ÊÊÓ¦Ò»¸öÎ»ÑÚÂë¡£VDBEÓÎ±êÊı·ÖÉ¢Îª·Ç¸ºÕûÊı¡£
-** ÀıÈç£¬ÓÎ±êÊı¿ÉÄÜÊÇ3,8,9,10,20,23,41,45.
-** WhereMaskSet°ÑÕâĞ©·ÖÉ¢µÄÓÎ±êÊı×ª»»Îª´Ó0¿ªÊ¼µÄÁ¬ĞøÕûÊı£¬ÊÇÎªÁË¾¡×î´ó¿ÉÄÜÀûÓÃÔÚÎ»ÑÚÂëÖĞµÄ¿ÉÓÃÎ»¡£
-** ËùÒÔ£¬ÔÚÉÏÃæµÄÀı×ÓÖĞ£¬ÓÎ±êÊı±»Ó³ÉäÎª´Ó0-7µÄÕûÊı¡£
+** å½“eOperator != 0,prereqRightå’ŒprereqAllé—´æ¥åœ°è®°å½•æ¸¸æ ‡æ•°é›†ã€‚
+** ä¸€ä¸ªå•ç‹¬çš„WhereMaskSetç»“æ„ä½“æŠŠæ¸¸æ ‡æ•°è½¬åŒ–ä¸ºbitså¹¶ä¸”è½¬åŒ–åçš„bitå­˜å‚¨åœ¨prereqå­—æ®µä¸­ã€‚
+** ä½¿ç”¨è½¬åŒ–æ˜¯ä¸ºäº†æœ€å¤§åŒ–bitsä½¿ä¹‹é€‚åº”ä¸€ä¸ªä½æ©ç ã€‚VDBEæ¸¸æ ‡æ•°åˆ†æ•£ä¸ºéè´Ÿæ•´æ•°ã€‚
+** ä¾‹å¦‚ï¼Œæ¸¸æ ‡æ•°å¯èƒ½æ˜¯3,8,9,10,20,23,41,45.
+** WhereMaskSetæŠŠè¿™äº›åˆ†æ•£çš„æ¸¸æ ‡æ•°è½¬æ¢ä¸ºä»0å¼€å§‹çš„è¿ç»­æ•´æ•°ï¼Œæ˜¯ä¸ºäº†å°½æœ€å¤§å¯èƒ½åˆ©ç”¨åœ¨ä½æ©ç ä¸­çš„å¯ç”¨ä½ã€‚
+** æ‰€ä»¥ï¼Œåœ¨ä¸Šé¢çš„ä¾‹å­ä¸­ï¼Œæ¸¸æ ‡æ•°è¢«æ˜ å°„ä¸ºä»0-7çš„æ•´æ•°ã€‚
 **
-** The number of terms(ÏîÊı) in a join is limited by(ÊÜÏŞÓÚ) the number of bits
-** in prereqRight and prereqAll.  The default is 64 bits, hence(Òò´Ë) SQLite
-** is only able to process(´¦Àí) joins with 64 or fewer tables.
+** The number of terms(é¡¹æ•°) in a join is limited by(å—é™äº) the number of bits
+** in prereqRight and prereqAll.  The default is 64 bits, hence(å› æ­¤) SQLite
+** is only able to process(å¤„ç†) joins with 64 or fewer tables.
 ** 
-** Ò»¸öÁ¬½ÓÖĞµÄtermsÊıÄ¿ÊÜprereqRight and prereqAllÖĞµÄbitsÊıÏŞÖÆ¡£
-** Ä¬ÈÏÊÇ64Î»£¬Òò´ËSQLiteÖ»ÄÜ´¦Àí64¸ö»ò¸üÉÙ¸ö±íµÄÁ¬½Ó¡£ 
+** ä¸€ä¸ªè¿æ¥ä¸­çš„termsæ•°ç›®å—prereqRight and prereqAllä¸­çš„bitsæ•°é™åˆ¶ã€‚
+** é»˜è®¤æ˜¯64ä½ï¼Œå› æ­¤SQLiteåªèƒ½å¤„ç†64ä¸ªæˆ–æ›´å°‘ä¸ªè¡¨çš„è¿æ¥ã€‚ 
 */
 
-/* WhereTerm ½á¹¹ÌåÓÃÀ´´æ´¢ where ×Ó¾ä¸ù¾İ <op>(AND¡¢OR)·Ö¸ôºóµÄ¸÷¸ö×Ó¾ä */
-/*Expr ½á¹¹Ìå£¬±íÊ¾ Óï·¨·ÖÎöÊ÷ÖĞµÄÒ»¸ö±í´ïÊ½µÄÃ¿¸ö½ÚµãÊÇ¸Ã½á¹¹µÄÒ»¸öÊµÀı¡£ ³ö×ÔsqliteInit.h 1829ĞĞ*/
+/* WhereTerm ç»“æ„ä½“ç”¨æ¥å­˜å‚¨ where å­å¥æ ¹æ® <op>(ANDã€OR)åˆ†éš”åçš„å„ä¸ªå­å¥ */
+/*Expr ç»“æ„ä½“ï¼Œè¡¨ç¤º è¯­æ³•åˆ†ææ ‘ä¸­çš„ä¸€ä¸ªè¡¨è¾¾å¼çš„æ¯ä¸ªèŠ‚ç‚¹æ˜¯è¯¥ç»“æ„çš„ä¸€ä¸ªå®ä¾‹ã€‚ å‡ºè‡ªsqliteInit.h 1829è¡Œ*/
 typedef struct WhereTerm WhereTerm;
 struct WhereTerm {
-  Expr *pExpr;            /* Pointer to the subexpression(×Ó±í´ïÊ½) that is this term Ö¸ÏòÕâ¸ö×Ó±í´ïÊ½µÄÖ¸Õë */
-  int iParent;            /* Disable pWC->a[iParent] when this term disabled µ±Õâ¸ötermÏú»ÙÊ±½ûÓÃpWC->a[iParent] */
-  int leftCursor;         /* Cursor number of X in "X <op> <expr>"  ÔÚ"X <op> <expr>"ÖĞµÄXµÄÓÎ±êÊı */
+  Expr *pExpr;            /* Pointer to the subexpression(å­è¡¨è¾¾å¼) that is this term æŒ‡å‘è¿™ä¸ªå­è¡¨è¾¾å¼çš„æŒ‡é’ˆ */
+  int iParent;            /* Disable pWC->a[iParent] when this term disabled å½“è¿™ä¸ªtermé”€æ¯æ—¶ç¦ç”¨pWC->a[iParent] */
+  int leftCursor;         /* Cursor number of X in "X <op> <expr>"  åœ¨"X <op> <expr>"ä¸­çš„Xçš„æ¸¸æ ‡æ•° */
   union {
-    int leftColumn;         /* Column number of X in "X <op> <expr>"  ÔÚ"X <op> <expr>"ÖĞµÄXµÄÁĞÊı */
-    WhereOrInfo *pOrInfo;   /* Extra information if eOperator==WO_OR Èç¹ûeOperator==WO_ORÊ±µÄ¶îÍâĞÅÏ¢ */
-    WhereAndInfo *pAndInfo; /* Extra information if eOperator==WO_AND Èç¹ûeOperator==WO_ANDÊ±µÄ¶îÍâĞÅÏ¢ */
+    int leftColumn;         /* Column number of X in "X <op> <expr>"  åœ¨"X <op> <expr>"ä¸­çš„Xçš„åˆ—æ•° */
+    WhereOrInfo *pOrInfo;   /* Extra information if eOperator==WO_OR å¦‚æœeOperator==WO_ORæ—¶çš„é¢å¤–ä¿¡æ¯ */
+    WhereAndInfo *pAndInfo; /* Extra information if eOperator==WO_AND å¦‚æœeOperator==WO_ANDæ—¶çš„é¢å¤–ä¿¡æ¯ */
   } u;
-  u16 eOperator;          /* A WO_xx value describing <op>  ÃèÊö<op>µÄÒ»¸ö WO_xx */
-  u8 wtFlags;             /* TERM_xxx bit flags.  See below   TERM_xxx bit±êÖ¾£¬ÏÂÃæµÄTERM_xxx¶¨ÒåÁË¾ßÌåÖµ */
-  u8 nChild;              /* Number of children that must disable us ±ØĞë½ûÓÃµÄº¢×ÓÊı */
-  WhereClause *pWC;       /* The clause this term is part of  Õâ¸ötermÊÇÄÄ¸ö×Ó¾äµÄÒ»²¿·Ö  */
-  Bitmask prereqRight;    /* Bitmask of tables used by pExpr->pRight  pExpr->pRightÊ¹ÓÃµÄ±íÎ»ÑÚÂë */
-  Bitmask prereqAll;      /* Bitmask of tables referenced by pExpr  ÓÉpExprÒıÓÃµÄ±íÎ»ÑÚÂë */
+  u16 eOperator;          /* A WO_xx value describing <op>  æè¿°<op>çš„ä¸€ä¸ª WO_xx */
+  u8 wtFlags;             /* TERM_xxx bit flags.  See below   TERM_xxx bitæ ‡å¿—ï¼Œä¸‹é¢çš„TERM_xxxå®šä¹‰äº†å…·ä½“å€¼ */
+  u8 nChild;              /* Number of children that must disable us å¿…é¡»ç¦ç”¨çš„å­©å­æ•° */
+  WhereClause *pWC;       /* The clause this term is part of  è¿™ä¸ªtermæ˜¯å“ªä¸ªå­å¥çš„ä¸€éƒ¨åˆ†  */
+  Bitmask prereqRight;    /* Bitmask of tables used by pExpr->pRight  pExpr->pRightä½¿ç”¨çš„è¡¨ä½æ©ç  */
+  Bitmask prereqAll;      /* Bitmask of tables referenced by pExpr  ç”±pExprå¼•ç”¨çš„è¡¨ä½æ©ç  */
 };
 /*
 ** Allowed values of WhereTerm.wtFlags
-** wtFlagsµÄ¿ÉÓÃÖµ
+** wtFlagsçš„å¯ç”¨å€¼
 */
-#define TERM_DYNAMIC    0x01   /* Need to call sqlite3ExprDelete(db, pExpr)  ĞèÒªµ÷ÓÃsqlite3ExprDelete(db, pExpr) */
-#define TERM_VIRTUAL    0x02   /* Added by the optimizer.  Do not code  ÓÉÓÅ»¯Æ÷Ìí¼Ó£¬²»ĞèÒª±àÂë*/
-#define TERM_CODED      0x04   /* This term(Ïî) is already coded  Õâ¸ötermÒÑ¾­±»±àÂëÁË */
-#define TERM_COPIED     0x08   /* Has a child  ÓĞÒ»¸ö×Óterm */
-#define TERM_ORINFO     0x10   /* Need to free the WhereTerm.u.pOrInfo object  ĞèÒªÊÍ·ÅWhereTerm.u.pOrInfo¶ÔÏó */
-#define TERM_ANDINFO    0x20   /* Need to free the WhereTerm.u.pAndInfo obj  ĞèÒªÊÍ·ÅWhereTerm.u.pAndInfo¶ÔÏó */
-#define TERM_OR_OK      0x40   /* Used during OR-clause processing  µ±OR×Ó¾äÖ´ĞĞÊ±Ê¹ÓÃ */
+#define TERM_DYNAMIC    0x01   /* Need to call sqlite3ExprDelete(db, pExpr)  éœ€è¦è°ƒç”¨sqlite3ExprDelete(db, pExpr) */
+#define TERM_VIRTUAL    0x02   /* Added by the optimizer.  Do not code  ç”±ä¼˜åŒ–å™¨æ·»åŠ ï¼Œä¸éœ€è¦ç¼–ç */
+#define TERM_CODED      0x04   /* This term(é¡¹) is already coded  è¿™ä¸ªtermå·²ç»è¢«ç¼–ç äº† */
+#define TERM_COPIED     0x08   /* Has a child  æœ‰ä¸€ä¸ªå­term */
+#define TERM_ORINFO     0x10   /* Need to free the WhereTerm.u.pOrInfo object  éœ€è¦é‡Šæ”¾WhereTerm.u.pOrInfoå¯¹è±¡ */
+#define TERM_ANDINFO    0x20   /* Need to free the WhereTerm.u.pAndInfo obj  éœ€è¦é‡Šæ”¾WhereTerm.u.pAndInfoå¯¹è±¡ */
+#define TERM_OR_OK      0x40   /* Used during OR-clause processing  å½“ORå­å¥æ‰§è¡Œæ—¶ä½¿ç”¨ */
 
 #ifdef SQLITE_ENABLE_STAT3
-#  define TERM_VNULL    0x80   /* Manufactured x>NULL or x<=NULL term  Éú³É x>NULL or x<=NULL µÄterm */
+#  define TERM_VNULL    0x80   /* Manufactured x>NULL or x<=NULL term  ç”Ÿæˆ x>NULL or x<=NULL çš„term */
 #else
-#  define TERM_VNULL    0x00   /* Disabled if not using stat3  Èç¹û²»Ê¹ÓÃstat3Ôò½ûÓÃ */
+#  define TERM_VNULL    0x00   /* Disabled if not using stat3  å¦‚æœä¸ä½¿ç”¨stat3åˆ™ç¦ç”¨ */
 #endif
 
-/* ****************** WhereClause¶¨ÒåËµÃ÷ *********************
+/* ****************** WhereClauseå®šä¹‰è¯´æ˜ *********************
 ** Explanation of pOuter:  For a WHERE clause of the form
 **
 **           a AND ((b AND c) OR (d AND e)) AND f
@@ -173,237 +173,237 @@ struct WhereTerm {
 ** the subclauses "(b AND c)" and "(d AND e)".
 ** The pOuter field of the subclauses points to the WhereClause object for the whole clause.
 **
-** ½âÊÍÒ»ÏÂpOuter: ¶ÔÓÚÈçÏÂĞÎÊ½µÄWHERE×Ó¾ä:
+** è§£é‡Šä¸€ä¸‹pOuter: å¯¹äºå¦‚ä¸‹å½¢å¼çš„WHEREå­å¥:
 ** 			a AND ((b AND c) OR (d AND e)) AND f
 ** 
-** ¶ÔÓÚÕû¸öwhere×Ó¾äºÍ·Ö×Ó¾ä "(b AND c)" and "(d AND e)"£¬´æÔÚ·Ö¿ªµÄWhereClause¶ÔÏó¡£
-** ×Ó¾äµÄpOuter×Ö¶ÎÖ¸ÏòÕû¸öwhere×Ó¾äµÄWhereClause¶ÔÏó
+** å¯¹äºæ•´ä¸ªwhereå­å¥å’Œåˆ†å­å¥ "(b AND c)" and "(d AND e)"ï¼Œå­˜åœ¨åˆ†å¼€çš„WhereClauseå¯¹è±¡ã€‚
+** å­å¥çš„pOuterå­—æ®µæŒ‡å‘æ•´ä¸ªwhereå­å¥çš„WhereClauseå¯¹è±¡
 */
 
-/*WhereClause½á¹¹ÌåÓÃÓÚ´æ´¢sqlÓï¾äÖĞµÄÕû¸öµÄwhere×Ó¾ä£¬¿ÉÄÜ°üº¬Ò»¸ö»ò¶à¸öWhereTerm¡£*/
+/*WhereClauseç»“æ„ä½“ç”¨äºå­˜å‚¨sqlè¯­å¥ä¸­çš„æ•´ä¸ªçš„whereå­å¥ï¼Œå¯èƒ½åŒ…å«ä¸€ä¸ªæˆ–å¤šä¸ªWhereTermã€‚*/
 struct WhereClause {
-  Parse *pParse;           /* The parser context  ½âÎöÆ÷ÉÏÏÂÎÄ */
-  WhereMaskSet *pMaskSet;  /* Mapping of table cursor numbers to bitmasks  ±íµÄÓÎ±êÊıºÍÎ»ÑÚÂëÖ®¼äµÄÓ³Éä */
-  Bitmask vmask;           /* Bitmask identifying(Ê¶±ğ) virtual table cursors  Ê¶±ğĞé±íÓÎ±êµÄÎ»ÑÚÂë */
-  WhereClause *pOuter;     /* Outer conjunction  ÍâÁ¬½Ó */
-  u8 op;                   /* Split operator. TK_AND or TK_OR  ·Ö¸ô·ûÈçTK_AND or TK_OR  */
-  u16 wctrlFlags;          /* Might include WHERE_AND_ONLY  ¿ÉÄÜ°üº¬WHERE_AND_ONLY */
-  int nTerm;               /* Number of terms  termsµÄÊıÄ¿ */
-  int nSlot;               /* Number of entries(ÌõÄ¿Êı) in a[](153ĞĞ)  ÔÚÒ»¸öWhereTermÖĞµÄ¼ÇÂ¼Êı  */
-  WhereTerm *a;            /* Each a[] describes(ÃèÊö) a term of the WHERE cluase  Ã¿¸öa[]ÃèÊöWHERE×Ó¾äÖĞµÄÒ»¸öterm */
+  Parse *pParse;           /* The parser context  è§£æå™¨ä¸Šä¸‹æ–‡ */
+  WhereMaskSet *pMaskSet;  /* Mapping of table cursor numbers to bitmasks  è¡¨çš„æ¸¸æ ‡æ•°å’Œä½æ©ç ä¹‹é—´çš„æ˜ å°„ */
+  Bitmask vmask;           /* Bitmask identifying(è¯†åˆ«) virtual table cursors  è¯†åˆ«è™šè¡¨æ¸¸æ ‡çš„ä½æ©ç  */
+  WhereClause *pOuter;     /* Outer conjunction  å¤–è¿æ¥ */
+  u8 op;                   /* Split operator. TK_AND or TK_OR  åˆ†éš”ç¬¦å¦‚TK_AND or TK_OR  */
+  u16 wctrlFlags;          /* Might include WHERE_AND_ONLY  å¯èƒ½åŒ…å«WHERE_AND_ONLY */
+  int nTerm;               /* Number of terms  termsçš„æ•°ç›® */
+  int nSlot;               /* Number of entries(æ¡ç›®æ•°) in a[](153è¡Œ)  åœ¨ä¸€ä¸ªWhereTermä¸­çš„è®°å½•æ•°  */
+  WhereTerm *a;            /* Each a[] describes(æè¿°) a term of the WHERE cluase  æ¯ä¸ªa[]æè¿°WHEREå­å¥ä¸­çš„ä¸€ä¸ªterm */
   
 #if defined(SQLITE_SMALL_STACK)
-  WhereTerm aStatic[1];    /* Initial static space for a[] ³õÊ¼»¯a[]¾²Ì¬¿Õ¼ä */
+  WhereTerm aStatic[1];    /* Initial static space for a[] åˆå§‹åŒ–a[]é™æ€ç©ºé—´ */
 #else
-  WhereTerm aStatic[8];    /* Initial static space for a[] ³õÊ¼»¯a[]¾²Ì¬¿Õ¼ä */
+  WhereTerm aStatic[8];    /* Initial static space for a[] åˆå§‹åŒ–a[]é™æ€ç©ºé—´ */
 #endif
 };
 
-/* ****************** WhereOrInfo ¶¨ÒåËµÃ÷ *********************
+/* ****************** WhereOrInfo å®šä¹‰è¯´æ˜ *********************
 ** A WhereTerm with eOperator==WO_OR has its u.pOrInfo pointer set to
 ** a dynamically allocated instance of the following structure.
 **
-** WhereTermµÄeOperator×Ö¶ÎÎªWO_OR£¬Ôò¸ÃWhereTermµÄu.pOrInfoÖ¸ÕëÉèÖÃÎª
-** ÏÂÁĞ½á¹¹ÌåµÄÒ»¸ö¶¯Ì¬·ÖÅäµÄÊµÀı¡£
+** WhereTermçš„eOperatorå­—æ®µä¸ºWO_ORï¼Œåˆ™è¯¥WhereTermçš„u.pOrInfoæŒ‡é’ˆè®¾ç½®ä¸º
+** ä¸‹åˆ—ç»“æ„ä½“çš„ä¸€ä¸ªåŠ¨æ€åˆ†é…çš„å®ä¾‹ã€‚
 */
 struct WhereOrInfo {
-  WhereClause wc;          /* Decomposition(·Ö½â) into subterms  ·Ö½âÎª×Óterms */
-  Bitmask indexable;       /* Bitmask of all indexable tables in the clause  where×Ó¾äÖĞµÄËùÓĞ¿É¼ÓË÷ÒıµÄ±íµÄÎ»ÑÚÂë */
+  WhereClause wc;          /* Decomposition(åˆ†è§£) into subterms  åˆ†è§£ä¸ºå­terms */
+  Bitmask indexable;       /* Bitmask of all indexable tables in the clause  whereå­å¥ä¸­çš„æ‰€æœ‰å¯åŠ ç´¢å¼•çš„è¡¨çš„ä½æ©ç  */
 };
 
-/* ****************** WhereAndInfo ¶¨ÒåËµÃ÷ *********************
+/* ****************** WhereAndInfo å®šä¹‰è¯´æ˜ *********************
 ** A WhereTerm with eOperator==WO_AND has its u.pAndInfo pointer set to
 ** a dynamically allocated instance of the following structure.
 **
-** ÈôWhereTermµÄeOperator×Ö¶ÎÎªWO_AND£¬Ôò¸ÃWhereTermµÄu.pAndInfoÖ¸ÕëÉèÖÃÎª
-** ÏÂÁĞ½á¹¹ÌåµÄÒ»¸ö¶¯Ì¬·ÖÅäµÄÊµÀı¡£
+** è‹¥WhereTermçš„eOperatorå­—æ®µä¸ºWO_ANDï¼Œåˆ™è¯¥WhereTermçš„u.pAndInfoæŒ‡é’ˆè®¾ç½®ä¸º
+** ä¸‹åˆ—ç»“æ„ä½“çš„ä¸€ä¸ªåŠ¨æ€åˆ†é…çš„å®ä¾‹ã€‚
 */
 struct WhereAndInfo {
-  WhereClause wc;          /* The subexpression broken out ·Ö½âµÄ×Ó±í´ïÊ½*/
+  WhereClause wc;          /* The subexpression broken out åˆ†è§£çš„å­è¡¨è¾¾å¼*/
 };
 
-/* ****************** WhereMaskSet ¶¨ÒåËµÃ÷ *********************
+/* ****************** WhereMaskSet å®šä¹‰è¯´æ˜ *********************
 **
 ** An instance of the following structure keeps track of a mapping
 ** between VDBE cursor numbers and bits of the bitmasks in WhereTerm.
 **
-** ÏÂÁĞÊı¾İ½á¹¹µÄÊµÀı¼ÇÂ¼VDBEÓÎ±êÊıºÍWhereTermÖĞµÄÎ»ÑÚÂëbitsÖ®¼äµÄÓ³Éä
+** ä¸‹åˆ—æ•°æ®ç»“æ„çš„å®ä¾‹è®°å½•VDBEæ¸¸æ ‡æ•°å’ŒWhereTermä¸­çš„ä½æ©ç bitsä¹‹é—´çš„æ˜ å°„
 **
 ** SrcList_item.iCursor and Expr.iTable fields.  For any given WHERE 
 ** clause, the cursor numbers might not begin with 0 and they might
 ** contain gaps in the numbering sequence.  But we want to make maximum
 ** use of the bits in our bitmasks.  This structure provides a mapping
-** from the sparse(Ï¡ÉÙµÄ) cursor numbers into consecutive integers(Á¬ĞøÕûÊı) beginning
+** from the sparse(ç¨€å°‘çš„) cursor numbers into consecutive integers(è¿ç»­æ•´æ•°) beginning
 ** with 0.
 **
-** °üº¬ÔÚSrcList_item.iCursor ºÍ Expr.iTable×Ö¶ÎµÄVDBEÓÎ±êÊıÊÇsmallÕûĞÍ¡£
-** ¶ÔÓÚÈÎºÎ¸ø¶¨µÄWHERE×Ó¾ä£¬ÓÎ±êÊı¿ÉÄÜ²»ÊÇ´Ó0¿ªÊ¼µÄ£¬¶øÇÒ¿ÉÄÜÔÚ±àºÅÊıÁĞÖĞÓĞ¿Õ°×¡£
-** µ«ÎÒÃÇÏ£Íû×î´ó»¯µÄÊ¹ÓÃÎ»ÑÚÂëÖĞµÄbits¡£Õâ¸öÊı¾İ½á¹¹Ìá¹©ÁËÒ»ÖÖÓÉ·ÖÉ¢µÄÓÎ±êÊıµ½´Ó0¿ªÊ¼µÄÁ¬ĞøÕûÊıÖ®¼äµÄÓ³Éä
+** åŒ…å«åœ¨SrcList_item.iCursor å’Œ Expr.iTableå­—æ®µçš„VDBEæ¸¸æ ‡æ•°æ˜¯smallæ•´å‹ã€‚
+** å¯¹äºä»»ä½•ç»™å®šçš„WHEREå­å¥ï¼Œæ¸¸æ ‡æ•°å¯èƒ½ä¸æ˜¯ä»0å¼€å§‹çš„ï¼Œè€Œä¸”å¯èƒ½åœ¨ç¼–å·æ•°åˆ—ä¸­æœ‰ç©ºç™½ã€‚
+** ä½†æˆ‘ä»¬å¸Œæœ›æœ€å¤§åŒ–çš„ä½¿ç”¨ä½æ©ç ä¸­çš„bitsã€‚è¿™ä¸ªæ•°æ®ç»“æ„æä¾›äº†ä¸€ç§ç”±åˆ†æ•£çš„æ¸¸æ ‡æ•°åˆ°ä»0å¼€å§‹çš„è¿ç»­æ•´æ•°ä¹‹é—´çš„æ˜ å°„
 **
 ** If WhereMaskSet.ix[A]==B it means that The A-th bit of a Bitmask
-** corresponds(·ûºÏ) VDBE cursor number B.  The A-th bit of a bitmask is 1<<A.
+** corresponds(ç¬¦åˆ) VDBE cursor number B.  The A-th bit of a bitmask is 1<<A.
 **
-** Èç¹ûWhereMaskSet.ix[A]==B£¬ËüÒâÎ¶×ÅÎ»ÑÚÂëµÄA-th bitÓëVDBEÓÎ±êÊıBÏà¶ÔÓ¦¡£
-** Î»ÑÚÂëA-th bitÊÇ1<<A
+** å¦‚æœWhereMaskSet.ix[A]==Bï¼Œå®ƒæ„å‘³ç€ä½æ©ç çš„A-th bitä¸VDBEæ¸¸æ ‡æ•°Bç›¸å¯¹åº”ã€‚
+** ä½æ©ç A-th bitæ˜¯1<<A
 **
 ** For example, if the WHERE clause expression used these VDBE
 ** cursors:  4, 5, 8, 29, 57, 73.  Then the  WhereMaskSet structure
 ** would map those cursor numbers into bits 0 through 5.
 **
-** ÀıÈç£¬Èç¹ûWHERE×Ó¾ä±í´ïÊ½Ê¹ÓÃÕâĞ©VDBEÓÎ±ê: 4, 5, 8, 29, 57, 73.
-** ÄÇÃ´WhereMaskSet½á¹¹»á°ÑÕâĞ©ÓÎ±êÊıÓ³ÉäÎª0µ½5¡£
+** ä¾‹å¦‚ï¼Œå¦‚æœWHEREå­å¥è¡¨è¾¾å¼ä½¿ç”¨è¿™äº›VDBEæ¸¸æ ‡: 4, 5, 8, 29, 57, 73.
+** é‚£ä¹ˆWhereMaskSetç»“æ„ä¼šæŠŠè¿™äº›æ¸¸æ ‡æ•°æ˜ å°„ä¸º0åˆ°5ã€‚
 **
 ** Note that the mapping is not necessarily ordered.  In the example
 ** above, the mapping might go like this:  4->3, 5->1, 8->2, 29->0,
-** 57->5, 73->4.  Or one of 719 other combinations(×éºÏ) might be used. It
+** 57->5, 73->4.  Or one of 719 other combinations(ç»„åˆ) might be used. It
 ** does not really matter.  What is important is that sparse cursor
 ** numbers all get mapped into bit numbers that begin with 0 and contain
 ** no gaps.
 **
-** ×¢Òâ:Ó³Éä²»Ò»¶¨ÓĞĞò¡£ÔÚÉÏÃæµÄÀı×ÓÖĞÓ³Éä¿ÉÄÜÊÇÕâÑùµÄ:4->3, 5->1, 8->2, 29->0, 57->5, 73->4.
-** »ò×ÅÊÇÆäËû719ÖÖ×éºÏÖĞµÄÒ»ÖÖ¡£Êµ¼ÊÉÏ£¬Õâ²¢²»ÖØÒª¡£
-** ÖØÒªµÄÊÇ·ÖÉ¢µÄÓÎ±êÊıÄÜÈ«²¿Ó³Éäµ½´Ó0¿ªÊ¼µÄbitÊı£¬¶øÇÒ²»ÄÜ°üº¬¿Õ°×.
+** æ³¨æ„:æ˜ å°„ä¸ä¸€å®šæœ‰åºã€‚åœ¨ä¸Šé¢çš„ä¾‹å­ä¸­æ˜ å°„å¯èƒ½æ˜¯è¿™æ ·çš„:4->3, 5->1, 8->2, 29->0, 57->5, 73->4.
+** æˆ–ç€æ˜¯å…¶ä»–719ç§ç»„åˆä¸­çš„ä¸€ç§ã€‚å®é™…ä¸Šï¼Œè¿™å¹¶ä¸é‡è¦ã€‚
+** é‡è¦çš„æ˜¯åˆ†æ•£çš„æ¸¸æ ‡æ•°èƒ½å…¨éƒ¨æ˜ å°„åˆ°ä»0å¼€å§‹çš„bitæ•°ï¼Œè€Œä¸”ä¸èƒ½åŒ…å«ç©ºç™½.
 */
 struct WhereMaskSet {
-  int n;                        /* Number of assigned(ÒÑ·ÖÅäµÄ) cursor values  ÒÑ·ÖÅäÓÎ±êÖµµÄÊıÄ¿ */
-  int ix[BMS];                  /* Cursor assigned to each bit  ÓÎ±ê±»·ÖÅä¸øÃ¿Ò»¸öbit */
+  int n;                        /* Number of assigned(å·²åˆ†é…çš„) cursor values  å·²åˆ†é…æ¸¸æ ‡å€¼çš„æ•°ç›® */
+  int ix[BMS];                  /* Cursor assigned to each bit  æ¸¸æ ‡è¢«åˆ†é…ç»™æ¯ä¸€ä¸ªbit */
 };
 
 /*
 ** A WhereCost object records a lookup strategy and the estimated
 ** cost of pursuing that strategy.
-** WhereCost ¶ÔÏó¼ÇÂ¼Ò»¸ö²éÑ¯²ßÂÔÒÔ¼°Ö´ĞĞ¸Ã²ßÂÔµÄÔ¤¹À³É±¾¡£
+** WhereCost å¯¹è±¡è®°å½•ä¸€ä¸ªæŸ¥è¯¢ç­–ç•¥ä»¥åŠæ‰§è¡Œè¯¥ç­–ç•¥çš„é¢„ä¼°æˆæœ¬ã€‚
 */
 struct WhereCost {
-  WherePlan plan;    /* The lookup strategy ²éÑ¯²ßÂÔ */
-  double rCost;      /* Overall cost(×Ü³É±¾) of pursuing this search strategy Ö´ĞĞ¸Ã²éÑ¯²ßÂÔµÄ×Ü³É±¾ */
-  Bitmask used;      /* Bitmask of cursors used by this plan Õâ¸ö²ßÂÔÊ¹ÓÃµÄÓÎ±êµÄÎ»ÑÚÂë */
+  WherePlan plan;    /* The lookup strategy æŸ¥è¯¢ç­–ç•¥ */
+  double rCost;      /* Overall cost(æ€»æˆæœ¬) of pursuing this search strategy æ‰§è¡Œè¯¥æŸ¥è¯¢ç­–ç•¥çš„æ€»æˆæœ¬ */
+  Bitmask used;      /* Bitmask of cursors used by this plan è¿™ä¸ªç­–ç•¥ä½¿ç”¨çš„æ¸¸æ ‡çš„ä½æ©ç  */
 };
 
 /*
-** Bitmasks for the operators that indices(index¸´Êı£¬Ä¿Â¼) are able to exploit(¿ª·¢).  
-** An OR-ed combination of(...µÄ×éºÏ) these values can be used when searching for
+** Bitmasks for the operators that indices(indexå¤æ•°ï¼Œç›®å½•) are able to exploit(å¼€å‘).  
+** An OR-ed combination of(...çš„ç»„åˆ) these values can be used when searching for
 ** terms in the where clause.
 **
-** ÔËËã·ûµÄÎ»ÑÚÂë£¬Ë÷Òı¿ÉÒÔ½øĞĞ¿ª·¢¡£ÕâĞ©ÖµµÄOR-ed×éºÏ¿ÉÒÔÔÚ²éÕÒwhere×Ó¾äµÄtermsÊ±±»Ê¹ÓÃ.
+** è¿ç®—ç¬¦çš„ä½æ©ç ï¼Œç´¢å¼•å¯ä»¥è¿›è¡Œå¼€å‘ã€‚è¿™äº›å€¼çš„OR-edç»„åˆå¯ä»¥åœ¨æŸ¥æ‰¾whereå­å¥çš„termsæ—¶è¢«ä½¿ç”¨.
 */
-#define WO_IN     0x001	//16½øÖÆ0000 0000 0001
-#define WO_EQ     0x002	//16½øÖÆ0000 0000 0010
-#define WO_LT     (WO_EQ<<(TK_LT-TK_EQ))	//(WO_EQ ×óÒÆ TK_LT-TK_EQ)
-#define WO_LE     (WO_EQ<<(TK_LE-TK_EQ))	//(WO_EQ ×óÒÆ TK_LE-TK_EQ)
-#define WO_GT     (WO_EQ<<(TK_GT-TK_EQ))	//(WO_EQ ×óÒÆ TK_GT-TK_EQ)
-#define WO_GE     (WO_EQ<<(TK_GE-TK_EQ))	//(WO_EQ ×óÒÆ TK_GE-TK_EQ)
-#define WO_MATCH  0x040	//16½øÖÆ0000 0100 0000
-#define WO_ISNULL 0x080	//16½øÖÆ0000 1000 0000
-#define WO_OR     0x100 //16½øÖÆ0001 0000 0000  /* Two or more OR-connected terms  Á½¸ö»ò¸ü¶à¸öOR-connected terms */
-#define WO_AND    0x200 //16½øÖÆ0010 0000 0000  /* Two or more AND-connected terms  Á½¸ö»ò¸ü¶à¸öAND-connected terms */
-#define WO_NOOP   0x800 //16½øÖÆ1000 0000 0000  /* This term does not restrict(ÏŞÖÆ) search space Õâ¸öterm²»ÏŞÖÆËÑË÷¿Õ¼ä */
-#define WO_ALL    0xfff //16½øÖÆ1111 1111 1111  /* Mask of all possible WO_* values  ËùÓĞ¿ÉÄÜµÄWO_*ÖµµÄÑÚÂë */
-#define WO_SINGLE 0x0ff //16½øÖÆ0000 1111 1111  /* Mask of all non-compound(²»»ìºÏµÄ) WO_* values  ËùÓĞ²»»ìºÏµÄWO_*ÖµµÄÑÚÂë */
+#define WO_IN     0x001	//16è¿›åˆ¶0000 0000 0001
+#define WO_EQ     0x002	//16è¿›åˆ¶0000 0000 0010
+#define WO_LT     (WO_EQ<<(TK_LT-TK_EQ))	//(WO_EQ å·¦ç§» TK_LT-TK_EQ)
+#define WO_LE     (WO_EQ<<(TK_LE-TK_EQ))	//(WO_EQ å·¦ç§» TK_LE-TK_EQ)
+#define WO_GT     (WO_EQ<<(TK_GT-TK_EQ))	//(WO_EQ å·¦ç§» TK_GT-TK_EQ)
+#define WO_GE     (WO_EQ<<(TK_GE-TK_EQ))	//(WO_EQ å·¦ç§» TK_GE-TK_EQ)
+#define WO_MATCH  0x040	//16è¿›åˆ¶0000 0100 0000
+#define WO_ISNULL 0x080	//16è¿›åˆ¶0000 1000 0000
+#define WO_OR     0x100 //16è¿›åˆ¶0001 0000 0000  /* Two or more OR-connected terms  ä¸¤ä¸ªæˆ–æ›´å¤šä¸ªOR-connected terms */
+#define WO_AND    0x200 //16è¿›åˆ¶0010 0000 0000  /* Two or more AND-connected terms  ä¸¤ä¸ªæˆ–æ›´å¤šä¸ªAND-connected terms */
+#define WO_NOOP   0x800 //16è¿›åˆ¶1000 0000 0000  /* This term does not restrict(é™åˆ¶) search space è¿™ä¸ªtermä¸é™åˆ¶æœç´¢ç©ºé—´ */
+#define WO_ALL    0xfff //16è¿›åˆ¶1111 1111 1111  /* Mask of all possible WO_* values  æ‰€æœ‰å¯èƒ½çš„WO_*å€¼çš„æ©ç  */
+#define WO_SINGLE 0x0ff //16è¿›åˆ¶0000 1111 1111  /* Mask of all non-compound(ä¸æ··åˆçš„) WO_* values  æ‰€æœ‰ä¸æ··åˆçš„WO_*å€¼çš„æ©ç  */
 
 /*
 ** Value for wsFlags returned by bestIndex() and stored in WhereLevel.wsFlags.  
 ** These flags determine which search strategies are appropriate.
 ** 
-** wsFlagsµÄÖµÓÉbestIndex()·µ»Ø£¬²¢ÇÒ´æ´¢ÔÚWhereLevel.wsFlagsÖĞ¡£
-** ÕâĞ©wsFlagsÖµ¾ö¶¨ÄÄĞ©²éÑ¯²ßÂÔÊÇºÏÊÊµÄ¡£
+** wsFlagsçš„å€¼ç”±bestIndex()è¿”å›ï¼Œå¹¶ä¸”å­˜å‚¨åœ¨WhereLevel.wsFlagsä¸­ã€‚
+** è¿™äº›wsFlagså€¼å†³å®šå“ªäº›æŸ¥è¯¢ç­–ç•¥æ˜¯åˆé€‚çš„ã€‚
 **
-** The least significant(×îµÍÓĞĞ§µÄ) 12 bits is reserved as(±»±£ÁôµÄ) a mask for WO_ values above(ÉÏÎÄ).
+** The least significant(æœ€ä½æœ‰æ•ˆçš„) 12 bits is reserved as(è¢«ä¿ç•™çš„) a mask for WO_ values above(ä¸Šæ–‡).
 ** The WhereLevel.wsFlags field is usually set to WO_IN|WO_EQ|WO_ISNULL.
 ** But if the table is the right table of a left join, WhereLevel.wsFlags
 ** is set to WO_IN|WO_EQ. 
 **
-** µÍÎ»µÄ12Î»±£ÁôÉÏÎÄÖĞµÄWO_ ÖµµÄÑÚÂë¡£
-** WhereLevel.wsFlags×Ö¶ÎÍ¨³£ÉèÖÃÎªWO_IN|WO_EQ|WO_ISNULL.
-** µ«ÊÇÈç¹ûÕâ¸ö±íÊ¾×óÁª½ÓµÄÓÒ±í£¬WhereLevel.wsFlagsÉèÖÃÎªWO_IN|WO_EQ.
+** ä½ä½çš„12ä½ä¿ç•™ä¸Šæ–‡ä¸­çš„WO_ å€¼çš„æ©ç ã€‚
+** WhereLevel.wsFlagså­—æ®µé€šå¸¸è®¾ç½®ä¸ºWO_IN|WO_EQ|WO_ISNULL.
+** ä½†æ˜¯å¦‚æœè¿™ä¸ªè¡¨ç¤ºå·¦è”æ¥çš„å³è¡¨ï¼ŒWhereLevel.wsFlagsè®¾ç½®ä¸ºWO_IN|WO_EQ.
 **
 ** The WhereLevel.wsFlags field can then be used as
-** the "op" parameter(²ÎÊı) to findTerm when we are resolving(·ÖÎö) equality constraints(µÈÊ½Ô¼Êø).
-** ISNULL constraints(Ô¼Êø) will then not be used on the right table of a left join.
+** the "op" parameter(å‚æ•°) to findTerm when we are resolving(åˆ†æ) equality constraints(ç­‰å¼çº¦æŸ).
+** ISNULL constraints(çº¦æŸ) will then not be used on the right table of a left join.
 **
-** µ±ÎÒÃÇ·ÖÎöµÈÊ½Ô¼ÊøÊ±£¬WhereLevel.wsFlags×Ö¶Îµ±×öfindTermµÄ"op"²ÎÊıÊ¹ÓÃ
-** ÔÚ×óÁª½ÓµÄÓÒ±íÉÏ²»»áÊ¹ÓÃISNULLÔ¼Êø
+** å½“æˆ‘ä»¬åˆ†æç­‰å¼çº¦æŸæ—¶ï¼ŒWhereLevel.wsFlagså­—æ®µå½“åšfindTermçš„"op"å‚æ•°ä½¿ç”¨
+** åœ¨å·¦è”æ¥çš„å³è¡¨ä¸Šä¸ä¼šä½¿ç”¨ISNULLçº¦æŸ
 ** Tickets #2177 and #2189.
 */
-#define WHERE_ROWID_EQ     0x00001000  /* rowid=EXPR or rowid IN (...)  rowid=EXPR»òrowid IN(...) */
-#define WHERE_ROWID_RANGE  0x00002000  /* rowid<EXPR and/or rowid>EXPR  rowid<EXPR ÇÒ/»ò rowid>EXPR */
-#define WHERE_COLUMN_EQ    0x00010000  /* x=EXPR or x IN (...) or x IS NULL  x=EXPR »ò x IN (...) »ò x IS NULL  */
+#define WHERE_ROWID_EQ     0x00001000  /* rowid=EXPR or rowid IN (...)  rowid=EXPRæˆ–rowid IN(...) */
+#define WHERE_ROWID_RANGE  0x00002000  /* rowid<EXPR and/or rowid>EXPR  rowid<EXPR ä¸”/æˆ– rowid>EXPR */
+#define WHERE_COLUMN_EQ    0x00010000  /* x=EXPR or x IN (...) or x IS NULL  x=EXPR æˆ– x IN (...) æˆ– x IS NULL  */
 #define WHERE_COLUMN_RANGE 0x00020000  /* x<EXPR and/or x>EXPR */
 #define WHERE_COLUMN_IN    0x00040000  /* x IN (...) */
 #define WHERE_COLUMN_NULL  0x00080000  /* x IS NULL */
-#define WHERE_INDEXED      0x000f0000  /* Anything that uses an index  ÈÎºÎÊ¹ÓÃË÷Òı */
-#define WHERE_NOT_FULLSCAN 0x100f3000  /* Does not do a full table scan  ²»ĞèÒªÈ«±íÉ¨Ãè */
-#define WHERE_IN_ABLE      0x000f1000  /* Able to support an IN operator  Ö§³ÖIN²Ù×÷ */
-#define WHERE_TOP_LIMIT    0x00100000  /* x<EXPR or x<=EXPR constraint  x<EXPR or x<=EXPRÔ¼Êø */
-#define WHERE_BTM_LIMIT    0x00200000  /* x>EXPR or x>=EXPR constraint  x>EXPR or x>=EXPRÔ¼Êø */
+#define WHERE_INDEXED      0x000f0000  /* Anything that uses an index  ä»»ä½•ä½¿ç”¨ç´¢å¼• */
+#define WHERE_NOT_FULLSCAN 0x100f3000  /* Does not do a full table scan  ä¸éœ€è¦å…¨è¡¨æ‰«æ */
+#define WHERE_IN_ABLE      0x000f1000  /* Able to support an IN operator  æ”¯æŒINæ“ä½œ */
+#define WHERE_TOP_LIMIT    0x00100000  /* x<EXPR or x<=EXPR constraint  x<EXPR or x<=EXPRçº¦æŸ */
+#define WHERE_BTM_LIMIT    0x00200000  /* x>EXPR or x>=EXPR constraint  x>EXPR or x>=EXPRçº¦æŸ */
 #define WHERE_BOTH_LIMIT   0x00300000  /* Both x>EXPR and x<EXPR */
-#define WHERE_IDX_ONLY     0x00800000  /* Use index only - omit table  Ö»ÓÃË÷Òı£¬Ê¡ÂÔ±í */
-#define WHERE_ORDERBY      0x01000000  /* Output will appear in correct order  ÒÔÇ¡µ±µÄË³ĞòÊä³ö */
-#define WHERE_REVERSE      0x02000000  /* Scan in reverse order  µ¹ĞòÉ¨Ãè */
-#define WHERE_UNIQUE       0x04000000  /* Selects no more than(Ö»ÊÇ£¬½ö½ö) one row  Ö»Ñ¡ÔñÒ»ĞĞ */
-#define WHERE_VIRTUALTABLE 0x08000000  /* Use virtual-table processing(´¦Àí)  Ê¹ÓÃĞéÄâ±í´¦Àí */
-#define WHERE_MULTI_OR     0x10000000  /* OR using multiple indices  ORÊ¹ÓÃ¶àÖØË÷Òı */
-#define WHERE_TEMP_INDEX   0x20000000  /* Uses an ephemeral index  Ê¹ÓÃÁÙÊ±Ë÷Òı */
-#define WHERE_DISTINCT     0x40000000  /* Correct order for DISTINCT  DISTINCTµÄÕıÈ·Ë³Ğò */
+#define WHERE_IDX_ONLY     0x00800000  /* Use index only - omit table  åªç”¨ç´¢å¼•ï¼Œçœç•¥è¡¨ */
+#define WHERE_ORDERBY      0x01000000  /* Output will appear in correct order  ä»¥æ°å½“çš„é¡ºåºè¾“å‡º */
+#define WHERE_REVERSE      0x02000000  /* Scan in reverse order  å€’åºæ‰«æ */
+#define WHERE_UNIQUE       0x04000000  /* Selects no more than(åªæ˜¯ï¼Œä»…ä»…) one row  åªé€‰æ‹©ä¸€è¡Œ */
+#define WHERE_VIRTUALTABLE 0x08000000  /* Use virtual-table processing(å¤„ç†)  ä½¿ç”¨è™šæ‹Ÿè¡¨å¤„ç† */
+#define WHERE_MULTI_OR     0x10000000  /* OR using multiple indices  ORä½¿ç”¨å¤šé‡ç´¢å¼• */
+#define WHERE_TEMP_INDEX   0x20000000  /* Uses an ephemeral index  ä½¿ç”¨ä¸´æ—¶ç´¢å¼• */
+#define WHERE_DISTINCT     0x40000000  /* Correct order for DISTINCT  DISTINCTçš„æ­£ç¡®é¡ºåº */
 
 /*
-** Initialize a preallocated(Ô¤·ÖÅä) WhereClause structure.
-** ³õÊ¼»¯Ò»¸öÔ¤·ÖÅäµÄWhereClauseÊı¾İ½á¹¹
+** Initialize a preallocated(é¢„åˆ†é…) WhereClause structure.
+** åˆå§‹åŒ–ä¸€ä¸ªé¢„åˆ†é…çš„WhereClauseæ•°æ®ç»“æ„
 */
 static void whereClauseInit(
-  WhereClause *pWC,        /* The WhereClause to be initialized  ½«±»³õÊ¼»¯Where×Ó¾ä */
-  Parse *pParse,           /* The parsing context  ½âÎöÆ÷ÉÏÏÂÎÄ */
-  WhereMaskSet *pMaskSet,  /* Mapping from table cursor numbers to bitmasks  ±íµÄÓÎ±êÊıµ½Î»ÑÚÂëµÄÓ³Éä */
-  u16 wctrlFlags           /* Might include WHERE_AND_ONLY  ¿ÉÄÜ°üº¬WHERE_AND_ONLY */
+  WhereClause *pWC,        /* The WhereClause to be initialized  å°†è¢«åˆå§‹åŒ–Whereå­å¥ */
+  Parse *pParse,           /* The parsing context  è§£æå™¨ä¸Šä¸‹æ–‡ */
+  WhereMaskSet *pMaskSet,  /* Mapping from table cursor numbers to bitmasks  è¡¨çš„æ¸¸æ ‡æ•°åˆ°ä½æ©ç çš„æ˜ å°„ */
+  u16 wctrlFlags           /* Might include WHERE_AND_ONLY  å¯èƒ½åŒ…å«WHERE_AND_ONLY */
 ){
-  pWC->pParse = pParse;	 /*³õÊ¼»¯½âÎöÆ÷ÉÏÏÂÎÄ*/
-  pWC->pMaskSet = pMaskSet;	 /*³õÊ¼»¯pMaskSet*/
-  pWC->pOuter = 0;	 /*ÍâÁ¬½ÓÎª¿Õ*/
-  pWC->nTerm = 0;	/*where×Ó¾äµÄÏîÊıÎª0*/
-  pWC->nSlot = ArraySize(pWC->aStatic);	//³õÊ¼»¯a[]¾²Ì¬¿Õ¼äµÄÔªËØ¸öÊı¡£ArraySize·µ»ØÊı×éµÄÔªËØ¸öÊı¡£
-  pWC->a = pWC->aStatic;	/*³õÊ¼»¯where×Ó¾äÖĞµÄWhereTermÊı¾İ½á¹¹*/
-  pWC->vmask = 0;	/*³õÊ¼»¯Ğé±íÓÎ±êµÄÎ»ÑÚÂë*/
-  pWC->wctrlFlags = wctrlFlags;		/*³õÊ¼»¯wctrlFlags*/
+  pWC->pParse = pParse;	 /*åˆå§‹åŒ–è§£æå™¨ä¸Šä¸‹æ–‡*/
+  pWC->pMaskSet = pMaskSet;	 /*åˆå§‹åŒ–pMaskSet*/
+  pWC->pOuter = 0;	 /*å¤–è¿æ¥ä¸ºç©º*/
+  pWC->nTerm = 0;	/*whereå­å¥çš„é¡¹æ•°ä¸º0*/
+  pWC->nSlot = ArraySize(pWC->aStatic);	//åˆå§‹åŒ–a[]é™æ€ç©ºé—´çš„å…ƒç´ ä¸ªæ•°ã€‚ArraySizeè¿”å›æ•°ç»„çš„å…ƒç´ ä¸ªæ•°ã€‚
+  pWC->a = pWC->aStatic;	/*åˆå§‹åŒ–whereå­å¥ä¸­çš„WhereTermæ•°æ®ç»“æ„*/
+  pWC->vmask = 0;	/*åˆå§‹åŒ–è™šè¡¨æ¸¸æ ‡çš„ä½æ©ç */
+  pWC->wctrlFlags = wctrlFlags;		/*åˆå§‹åŒ–wctrlFlags*/
 }
 
-/* Forward reference(Ç°ÖÃÒıÓÃ) ¾ßÌåº¯ÊıÔÚÏÂÃæ */
+/* Forward reference(å‰ç½®å¼•ç”¨) å…·ä½“å‡½æ•°åœ¨ä¸‹é¢ */
 static void whereClauseClear(WhereClause*);
 
 /*
 ** Deallocate all memory associated with a WhereAndInfo object.
-** ÊÍ·ÅÓëWhereAndInfo¶ÔÏóÏà¹ØÁªµÄËùÓĞÄÚ´æ
+** é‡Šæ”¾ä¸WhereAndInfoå¯¹è±¡ç›¸å…³è”çš„æ‰€æœ‰å†…å­˜
 */
 static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
-  whereClauseClear(&p->wc);	 /*½â³ı·ÖÅä*/
-  sqlite3DbFree(db, p);	 /*ÊÍ·Å±»¹ØÁªµ½Ò»¸öÌØ¶¨Êı¾İ¿âÁ¬½ÓµÄÄÚ´æ*/
+  whereClauseClear(&p->wc);	 /*è§£é™¤åˆ†é…*/
+  sqlite3DbFree(db, p);	 /*é‡Šæ”¾è¢«å…³è”åˆ°ä¸€ä¸ªç‰¹å®šæ•°æ®åº“è¿æ¥çš„å†…å­˜*/
 }
 
 /*
 ** Deallocate a WhereClause structure.  The WhereClause structure
 ** itself is not freed.  This routine is the inverse of whereClauseInit().
-** ½â³ıÒ»¸öWhereClauseÊı¾İ½á¹¹µÄ·ÖÅä¡£WhereClause±¾Éí²»±»ÊÍ·Å¡£Õâ¸ö³ÌĞòÊÇwhereClauseInit()µÄ·´ÏòÖ´ĞĞ
+** è§£é™¤ä¸€ä¸ªWhereClauseæ•°æ®ç»“æ„çš„åˆ†é…ã€‚WhereClauseæœ¬èº«ä¸è¢«é‡Šæ”¾ã€‚è¿™ä¸ªç¨‹åºæ˜¯whereClauseInit()çš„åå‘æ‰§è¡Œ
 */
 static void whereClauseClear(WhereClause *pWC){
   int i;
   WhereTerm *a;
-  sqlite3 *db = pWC->pParse->db;	/*Êı¾İ¿âÁ¬½ÓµÄÊµÀıÉèÎªwhere×Ó¾äËùÔÚµÄÊı¾İ¿â*/
-  for(i=pWC->nTerm-1, a=pWC->a; i>=0; i--, a++){	/*Ñ­»·±éÀúwhere×Ó¾äµÄÃ¿¸ötermÏî*/
-    if( a->wtFlags & TERM_DYNAMIC ){	/*Èç¹ûµ±Ç°µÄtermÊÇ¶¯Ì¬µÄ*/
-      sqlite3ExprDelete(db, a->pExpr);	/*µ÷ÓÃsqlite3ExprDelete()µİ¹éÉ¾³ıtermÖĞµÄ±í´ïÊ½Ê÷*/
+  sqlite3 *db = pWC->pParse->db;	/*æ•°æ®åº“è¿æ¥çš„å®ä¾‹è®¾ä¸ºwhereå­å¥æ‰€åœ¨çš„æ•°æ®åº“*/
+  for(i=pWC->nTerm-1, a=pWC->a; i>=0; i--, a++){	/*å¾ªç¯éå†whereå­å¥çš„æ¯ä¸ªtermé¡¹*/
+    if( a->wtFlags & TERM_DYNAMIC ){	/*å¦‚æœå½“å‰çš„termæ˜¯åŠ¨æ€çš„*/
+      sqlite3ExprDelete(db, a->pExpr);	/*è°ƒç”¨sqlite3ExprDelete()é€’å½’åˆ é™¤termä¸­çš„è¡¨è¾¾å¼æ ‘*/
     }
-    if( a->wtFlags & TERM_ORINFO ){		/*Èç¹ûµ±Ç°µÄterm´æ´¢µÄÊÇOR×Ó¾äµÄĞÅÏ¢*/
-      whereOrInfoDelete(db, a->u.pOrInfo);	/*½â³ıµ±Ç°termÖĞµÄpOrInfo¶ÔÏóµÄËùÓĞÄÚ´æ·ÖÅä*/
-    }else if( a->wtFlags & TERM_ANDINFO ){	/*Èç¹ûµ±Ç°µÄterm´æ´¢µÄÊÇAND×Ó¾äµÄĞÅÏ¢*/
-      whereAndInfoDelete(db, a->u.pAndInfo);  /*½â³ıµ±Ç°termÖĞµÄpAndInfo¶ÔÏóµÄËùÓĞÄÚ´æ·ÖÅä*/
+    if( a->wtFlags & TERM_ORINFO ){		/*å¦‚æœå½“å‰çš„termå­˜å‚¨çš„æ˜¯ORå­å¥çš„ä¿¡æ¯*/
+      whereOrInfoDelete(db, a->u.pOrInfo);	/*è§£é™¤å½“å‰termä¸­çš„pOrInfoå¯¹è±¡çš„æ‰€æœ‰å†…å­˜åˆ†é…*/
+    }else if( a->wtFlags & TERM_ANDINFO ){	/*å¦‚æœå½“å‰çš„termå­˜å‚¨çš„æ˜¯ANDå­å¥çš„ä¿¡æ¯*/
+      whereAndInfoDelete(db, a->u.pAndInfo);  /*è§£é™¤å½“å‰termä¸­çš„pAndInfoå¯¹è±¡çš„æ‰€æœ‰å†…å­˜åˆ†é…*/
     }
   }
-  if( pWC->a!=pWC->aStatic ){	/*Èç¹ûwhere×Ó¾äµÄtermÏî²»ÊÇ³õÊ¼¾²Ì¬¿Õ¼ä*/
-    sqlite3DbFree(db, pWC->a);	/*ÊÍ·Å±»¹ØÁªµ½Ò»¸öÌØ¶¨Êı¾İ¿âÁ¬½ÓµÄÄÚ´æ*/
+  if( pWC->a!=pWC->aStatic ){	/*å¦‚æœwhereå­å¥çš„termé¡¹ä¸æ˜¯åˆå§‹é™æ€ç©ºé—´*/
+    sqlite3DbFree(db, pWC->a);	/*é‡Šæ”¾è¢«å…³è”åˆ°ä¸€ä¸ªç‰¹å®šæ•°æ®åº“è¿æ¥çš„å†…å­˜*/
   }
 }
 
 /*
-** Ìí¼Óµ¥¸öĞÂ WhereTerm ¶ÔÏóµ½ WhereClause ¶ÔÏó pWCÖĞ¡£
+** æ·»åŠ å•ä¸ªæ–° WhereTerm å¯¹è±¡åˆ° WhereClause å¯¹è±¡ pWCä¸­ã€‚
 **
 ** The new WhereTerm object is constructed from Expr p and with wtFlags.
 ** The index in pWC->a[] of the new WhereTerm is returned on success.
@@ -411,48 +411,48 @@ static void whereClauseClear(WhereClause *pWC){
 ** allocation error.  The memory allocation failure will be recorded in
 ** the db->mallocFailed flag so that higher-level functions can detect it.
 **
-** ĞÂµÄWhereTerm¶ÔÏó¸ù¾İExprºÍwtFlags¹¹½¨¡£
-** Èô³É¹¦£¬·µ»ØĞÂWhereTermÖĞpWC->a[]µÄË÷Òı¡£
-** Èç¹ûÓÉÓÚÄÚ´æ·ÖÅä´íÎó£¬ĞÂµÄWhereTerm²»ÄÜÌí¼Óµ½WhereClauseÖĞ£¬Ôò·µ»Ø0.
-** ÄÚ´æ·ÖÅäÊ§°Ü»á±»¼ÇÂ¼ÔÚdb->mallocFailed±êÖ¾ÖĞ£¬ÒÔ±ã¸ü¸ß¼¶µÄº¯Êı¼ì²âµ½Ëü¡£
+** æ–°çš„WhereTermå¯¹è±¡æ ¹æ®Exprå’ŒwtFlagsæ„å»ºã€‚
+** è‹¥æˆåŠŸï¼Œè¿”å›æ–°WhereTermä¸­pWC->a[]çš„ç´¢å¼•ã€‚
+** å¦‚æœç”±äºå†…å­˜åˆ†é…é”™è¯¯ï¼Œæ–°çš„WhereTermä¸èƒ½æ·»åŠ åˆ°WhereClauseä¸­ï¼Œåˆ™è¿”å›0.
+** å†…å­˜åˆ†é…å¤±è´¥ä¼šè¢«è®°å½•åœ¨db->mallocFailedæ ‡å¿—ä¸­ï¼Œä»¥ä¾¿æ›´é«˜çº§çš„å‡½æ•°æ£€æµ‹åˆ°å®ƒã€‚
 **
 ** This routine will increase the size of the pWC->a[] array as necessary.
 **
-** Èç¹ûĞèÒªµÄ»°£¬³ÌĞò»áÔö¼ÓpWC->a[]Êı×éµÄ´óĞ¡¡£
+** å¦‚æœéœ€è¦çš„è¯ï¼Œç¨‹åºä¼šå¢åŠ pWC->a[]æ•°ç»„çš„å¤§å°ã€‚
 **
 ** If the wtFlags argument includes TERM_DYNAMIC, then responsibility
 ** for freeing the expression p is assumed by the WhereClause object pWC.
 ** This is true even if this routine fails to allocate a new WhereTerm.
 **
-** Èç¹ûwtFlags°üº¬TERM_DYNAMIC£¬ÄÇÃ´WhereClauseµÄ¶ÔÏópWC»á¸ºÔğÊÍ·Å±í´ïÊ½p¡£
-** ¾¡¹ÜÕâ¸ö³ÌĞòÃ»ÄÜ³É¹¦·ÖÅäÒ»¸öĞÂµÄWhereTerm£¬ÕâÒ²ÊÇÕıÈ·µÄ¡£
+** å¦‚æœwtFlagsåŒ…å«TERM_DYNAMICï¼Œé‚£ä¹ˆWhereClauseçš„å¯¹è±¡pWCä¼šè´Ÿè´£é‡Šæ”¾è¡¨è¾¾å¼pã€‚
+** å°½ç®¡è¿™ä¸ªç¨‹åºæ²¡èƒ½æˆåŠŸåˆ†é…ä¸€ä¸ªæ–°çš„WhereTermï¼Œè¿™ä¹Ÿæ˜¯æ­£ç¡®çš„ã€‚
 **
 ** WARNING:  This routine might reallocate the space used to store
 ** WhereTerms.  All pointers to WhereTerms should be invalidated after
 ** calling this routine.  Such pointers may be reinitialized by referencing
 ** the pWC->a[] array.
 **
-** ¾¯¸æ:Õâ¸ö³ÌĞò¿ÉÄÜ»áÖØĞÂ·ÖÅäÓÃÓÚ´æ´¢WhereTermsµÄ¿Õ¼ä¡£ËùÓĞÖ¸ÏòWhereTermsµÄÖ¸ÕëÔÚµ÷ÓÃÕâ¸ö³ÌĞòºó¶¼»áÊ§Ğ§¡£
-** ÕâĞ©Ö¸Õë¿ÉÄÜ»áÍ¨¹ıÒıÓÃpWC->a[]±»ÖØĞÂÆôÓÃ
+** è­¦å‘Š:è¿™ä¸ªç¨‹åºå¯èƒ½ä¼šé‡æ–°åˆ†é…ç”¨äºå­˜å‚¨WhereTermsçš„ç©ºé—´ã€‚æ‰€æœ‰æŒ‡å‘WhereTermsçš„æŒ‡é’ˆåœ¨è°ƒç”¨è¿™ä¸ªç¨‹åºåéƒ½ä¼šå¤±æ•ˆã€‚
+** è¿™äº›æŒ‡é’ˆå¯èƒ½ä¼šé€šè¿‡å¼•ç”¨pWC->a[]è¢«é‡æ–°å¯ç”¨
 */
 static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
-  WhereTerm *pTerm;   /* ĞÂ½¨Ò»¸öWhereTerm */
+  WhereTerm *pTerm;   /* æ–°å»ºä¸€ä¸ªWhereTerm */
   int idx;
   testcase( wtFlags & TERM_VIRTUAL );  /* EV: R-00211-15100 */
-  if( pWC->nTerm>=pWC->nSlot ){	 /*Èç¹ûWhereClauseÖĞµÄtermÊı´óÓÚ»òµÈÓÚÔÚÒ»¸öWhereTermsÖĞµÄ¼ÇÂ¼Êı*/
-    WhereTerm *pOld = pWC->a;	/*¶¨Òåµ±Ç°µÄtermÎªpOld*/
-    sqlite3 *db = pWC->pParse->db;	/*¶¨Òåµ±Ç°where×Ó¾äµÄÊı¾İ¿âÁ¬½Ó*/
-    pWC->a = sqlite3DbMallocRaw(db, sizeof(pWC->a[0])*pWC->nSlot*2 );	/*·ÖÅäÄÚ´æ*/
-    if( pWC->a==0 ){	/*Èç¹û·ÖÅäÄÚ´æÊ§°Ü*/
-      if( wtFlags & TERM_DYNAMIC ){	 /*Èç¹ûµ±Ç°termÊÇ¶¯Ì¬·ÖÅäµÄ*/
-        sqlite3ExprDelete(db, p);	/*µİ¹éÉ¾³ıtermÖĞµÄ±í´ïÊ½Ê÷*/
+  if( pWC->nTerm>=pWC->nSlot ){	 /*å¦‚æœWhereClauseä¸­çš„termæ•°å¤§äºæˆ–ç­‰äºåœ¨ä¸€ä¸ªWhereTermsä¸­çš„è®°å½•æ•°*/
+    WhereTerm *pOld = pWC->a;	/*å®šä¹‰å½“å‰çš„termä¸ºpOld*/
+    sqlite3 *db = pWC->pParse->db;	/*å®šä¹‰å½“å‰whereå­å¥çš„æ•°æ®åº“è¿æ¥*/
+    pWC->a = sqlite3DbMallocRaw(db, sizeof(pWC->a[0])*pWC->nSlot*2 );	/*åˆ†é…å†…å­˜*/
+    if( pWC->a==0 ){	/*å¦‚æœåˆ†é…å†…å­˜å¤±è´¥*/
+      if( wtFlags & TERM_DYNAMIC ){	 /*å¦‚æœå½“å‰termæ˜¯åŠ¨æ€åˆ†é…çš„*/
+        sqlite3ExprDelete(db, p);	/*é€’å½’åˆ é™¤termä¸­çš„è¡¨è¾¾å¼æ ‘*/
       }
-      pWC->a = pOld;	/*°ÑtermÉèÖÃÎªÖ®Ç°¼ÇÂ¼µÄterm*/
-      return 0;	 /*·µ»Ø0*/
+      pWC->a = pOld;	/*æŠŠtermè®¾ç½®ä¸ºä¹‹å‰è®°å½•çš„term*/
+      return 0;	 /*è¿”å›0*/
     }
     memcpy(pWC->a, pOld, sizeof(pWC->a[0])*pWC->nTerm); 
     if( pOld!=pWC->aStatic ){
-      sqlite3DbFree(db, pOld);	/*ÊÍ·Å¿ÉÄÜ±»¹ØÁªµ½Ò»¸öÌØ¶¨Êı¾İ¿âÁ¬½ÓµÄÄÚ´æ*/
+      sqlite3DbFree(db, pOld);	/*é‡Šæ”¾å¯èƒ½è¢«å…³è”åˆ°ä¸€ä¸ªç‰¹å®šæ•°æ®åº“è¿æ¥çš„å†…å­˜*/
     }
     pWC->nSlot = sqlite3DbMallocSize(db, pWC->a)/sizeof(pWC->a[0]);
   }
@@ -470,8 +470,8 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
 ** operator specified in the op parameter.  The WhereClause structure
 ** is filled with pointers to subexpressions.  
 **
-** Õâ¸ö³ÌĞòÊ¶±ğÔÚWHERE×Ó¾äÖĞµÄ×Ó±í´ïÊ½£¬ÕâĞ©×Ó±í´ïÊ½¸ù¾İANDÔËËã·û»òÔÚop²ÎÊıÖĞ¶¨ÒåµÄÆäËûÔËËã·û·Ö¸ô¡£
-** WhereClauseÊı¾İ½á¹¹´æ´¢Ö¸Ïò¸÷×Ó±í´ïÊ½µÄÖ¸Õë¡£
+** è¿™ä¸ªç¨‹åºè¯†åˆ«åœ¨WHEREå­å¥ä¸­çš„å­è¡¨è¾¾å¼ï¼Œè¿™äº›å­è¡¨è¾¾å¼æ ¹æ®ANDè¿ç®—ç¬¦æˆ–åœ¨opå‚æ•°ä¸­å®šä¹‰çš„å…¶ä»–è¿ç®—ç¬¦åˆ†éš”ã€‚
+** WhereClauseæ•°æ®ç»“æ„å­˜å‚¨æŒ‡å‘å„å­è¡¨è¾¾å¼çš„æŒ‡é’ˆã€‚
 **
 ** For example:
 **
@@ -482,35 +482,35 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
 ** The original WHERE clause in pExpr is unaltered.  All this routine
 ** does is make slot[] entries point to substructure within pExpr.
 **
-** ÀıÈç:
+** ä¾‹å¦‚:
 **    WHERE  a=='hello' AND coalesce(b,11)<10 AND (c+12!=d OR c==22)
 **           \________/     \_______________/     \________________/
 **            slot[0]            slot[1]               slot[2]
 **
-** ÔÚpExprÖĞµÄÔ­Ê¼µÄWHERE×Ó¾äÊÇ²»±äµÄ¡£Õâ¸ö³ÌĞò¾ÍÊÇÈÃslot[]µÄ¼ÇÂ¼Ö¸ÏòÔÚpExprÖĞµÄ×Ó½á¹¹
+** åœ¨pExprä¸­çš„åŸå§‹çš„WHEREå­å¥æ˜¯ä¸å˜çš„ã€‚è¿™ä¸ªç¨‹åºå°±æ˜¯è®©slot[]çš„è®°å½•æŒ‡å‘åœ¨pExprä¸­çš„å­ç»“æ„
 **
 ** In the previous sentence and in the diagram, "slot[]" refers to
 ** the WhereClause.a[] array.  The slot[] array grows as needed to contain
 ** all terms of the WHERE clause.
 **
-** ÔÚÇ°ÃæµÄ¾ä×ÓºÍÔÚÍ¼±íÖĞ£¬"slot[]"Ö¸µÄÊÇWhereClause.a[]Êı×é¡£slotÊı×é¸ù¾İĞèÒªÀ©´ó£¬Òª°üº¬WHERE×Ó¾äµÄËùÓĞterms
+** åœ¨å‰é¢çš„å¥å­å’Œåœ¨å›¾è¡¨ä¸­ï¼Œ"slot[]"æŒ‡çš„æ˜¯WhereClause.a[]æ•°ç»„ã€‚slotæ•°ç»„æ ¹æ®éœ€è¦æ‰©å¤§ï¼Œè¦åŒ…å«WHEREå­å¥çš„æ‰€æœ‰terms
 **
 */
 static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
-  pWC->op = (u8)op;  /*³õÊ¼»¯WHERE×Ó¾ä½øĞĞ·Ö¸îµÄÔËËã·û*/
+  pWC->op = (u8)op;  /*åˆå§‹åŒ–WHEREå­å¥è¿›è¡Œåˆ†å‰²çš„è¿ç®—ç¬¦*/
   if( pExpr==0 ) return;
-  if( pExpr->op!=op ){  /*Èç¹û±í´ïÊ½µÄ²Ù×÷·û²»ÊÇÖ¸¶¨µÄÔËËã·û*/
-    whereClauseInsert(pWC, pExpr, 0); /*ÏòpWC×Ó¾äÖĞ²åÈëÒ»¸öWhereTerm*/
+  if( pExpr->op!=op ){  /*å¦‚æœè¡¨è¾¾å¼çš„æ“ä½œç¬¦ä¸æ˜¯æŒ‡å®šçš„è¿ç®—ç¬¦*/
+    whereClauseInsert(pWC, pExpr, 0); /*å‘pWCå­å¥ä¸­æ’å…¥ä¸€ä¸ªWhereTerm*/
   }else{
-    whereSplit(pWC, pExpr->pLeft, op);	/*µİ¹é·Ö¸ôWHERE×Ó¾äµÄ×ó±í´ïÊ½*/
-    whereSplit(pWC, pExpr->pRight, op);	 /*µİ¹é·Ö¸ôWHERE×Ó¾äµÄÓÒ±í´ïÊ½*/
+    whereSplit(pWC, pExpr->pLeft, op);	/*é€’å½’åˆ†éš”WHEREå­å¥çš„å·¦è¡¨è¾¾å¼*/
+    whereSplit(pWC, pExpr->pRight, op);	 /*é€’å½’åˆ†éš”WHEREå­å¥çš„å³è¡¨è¾¾å¼*/
   }
 }
 
 /*
 ** Initialize an expression mask set (a WhereMaskSet object)
 **
-** ³õÊ¼»¯Ò»¸ö±í´ïÊ½ÑÚÂëÉèÖÃ(Ò»¸öWhereMaskSet¶ÔÏó)
+** åˆå§‹åŒ–ä¸€ä¸ªè¡¨è¾¾å¼æ©ç è®¾ç½®(ä¸€ä¸ªWhereMaskSetå¯¹è±¡)
 */
 #define initMaskSet(P)  memset(P, 0, sizeof(*P))
 
@@ -518,11 +518,11 @@ static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
 ** Return the bitmask for the given cursor number.  Return 0 if
 ** iCursor is not in the set.
 **
-** ·µ»Ø¸ø³öµÄÓÎ±êÊıµÄÎ»ÑÚÂë¡£Èç¹ûiCursorÎ´ÉèÖÃ£¬Ôò·µ»Ø0
+** è¿”å›ç»™å‡ºçš„æ¸¸æ ‡æ•°çš„ä½æ©ç ã€‚å¦‚æœiCursoræœªè®¾ç½®ï¼Œåˆ™è¿”å›0
 */
 static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
   int i;
-  assert( pMaskSet->n<=(int)sizeof(Bitmask)*8 );  /*ÅĞ¶¨*/
+  assert( pMaskSet->n<=(int)sizeof(Bitmask)*8 );  /*åˆ¤å®š*/
   for(i=0; i<pMaskSet->n; i++){
     if( pMaskSet->ix[i]==iCursor ){
       return ((Bitmask)1)<<i;
@@ -533,15 +533,15 @@ static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
 
 /*
 ** Create a new mask for cursor iCursor.
-** ÎªÓÎ±êiCursor´´½¨Ò»¸öĞÂµÄÑÚÂë
+** ä¸ºæ¸¸æ ‡iCursoråˆ›å»ºä¸€ä¸ªæ–°çš„æ©ç 
 ** 
 ** There is one cursor per table in the FROM clause.  The number of
 ** tables in the FROM clause is limited by a test early in the
 ** sqlite3WhereBegin() routine.  So we know that the pMaskSet->ix[]
 ** array will never overflow.
 **
-** ÔÚFROM×Ó¾äÖĞµÄÃ¿¸ö±íÓĞÒ»¸öÓÎ±ê¡£ÔÚFROM×Ó¾äÖĞµÄ±íµÄ¸öÊıÓÉsqlite3WhereBegin()³ÌĞòµÄÒ»¸ö²âÊÔÏŞÖÆ¡£
-** ËùÒÔÎÒÃÇÖªµÀpMaskSet->ix[]ÓÀÔ¶²»»áÒç³ö¡£
+** åœ¨FROMå­å¥ä¸­çš„æ¯ä¸ªè¡¨æœ‰ä¸€ä¸ªæ¸¸æ ‡ã€‚åœ¨FROMå­å¥ä¸­çš„è¡¨çš„ä¸ªæ•°ç”±sqlite3WhereBegin()ç¨‹åºçš„ä¸€ä¸ªæµ‹è¯•é™åˆ¶ã€‚
+** æ‰€ä»¥æˆ‘ä»¬çŸ¥é“pMaskSet->ix[]æ°¸è¿œä¸ä¼šæº¢å‡ºã€‚
 **
 */
 static void createMask(WhereMaskSet *pMaskSet, int iCursor){
@@ -554,7 +554,7 @@ static void createMask(WhereMaskSet *pMaskSet, int iCursor){
 ** a bitmask indicating which tables are used in that expression
 ** tree.
 **
-** Õâ¸ö³ÌĞò(µİ¹éµØ)·ÃÎÊÒ»¸ö±í´ïÊ½Ê÷£¬²¢Éú³ÉÒ»¸öÎ»ÑÚÂëÖ¸Ê¾¸Ã±í´ïÊ½Ê÷Ê¹ÓÃÁËÄÄĞ©±í¡£
+** è¿™ä¸ªç¨‹åº(é€’å½’åœ°)è®¿é—®ä¸€ä¸ªè¡¨è¾¾å¼æ ‘ï¼Œå¹¶ç”Ÿæˆä¸€ä¸ªä½æ©ç æŒ‡ç¤ºè¯¥è¡¨è¾¾å¼æ ‘ä½¿ç”¨äº†å“ªäº›è¡¨ã€‚
 **
 ** In order for this routine to work, the calling function must have
 ** previously invoked sqlite3ResolveExprNames() on the expression.  
@@ -565,10 +565,10 @@ static void createMask(WhereMaskSet *pMaskSet, int iCursor){
 ** translate the cursor numbers into bitmask values and OR all
 ** the bitmasks together.
 **
-** ÎªÁËÈÃÕâ¸ö³ÌĞò¹¤×÷£¬µ÷ÓÃº¯Êı±ØĞëÔ¤ÏÈ»½ĞÑ±í´ïÊ½ÖĞµÄsqlite3ResolveExprNames()¡£
-** ²é¿´sqlite3ResolveExprNames()³ÌĞòÍ·²¿µÄ×¢ÊÍĞÅÏ¢¡£
-** sqlite3ResolveExprNames()³ÌĞò²éÕÒÁĞÃû£¬°ÑÕâĞ©ÁĞµÄopcodesÉèÖÃÎªTK_COLUMN£¬²¢°ÑËüÃÇµÄExpr.iTable×Ö¶ÎÉèÎª±íµÄVDBEÓÎ±êÊı¡£
-** Õâ¸ö³ÌĞòÖ»ÊÇ°ÑÓÎ±êÊı×ª»»ÎªÎ»ÑÚÂë£¬½«ËùÓĞµÄÎ»ÑÚÂë¼¯ºÏÆğÀ´¡£
+** ä¸ºäº†è®©è¿™ä¸ªç¨‹åºå·¥ä½œï¼Œè°ƒç”¨å‡½æ•°å¿…é¡»é¢„å…ˆå”¤é†’è¡¨è¾¾å¼ä¸­çš„sqlite3ResolveExprNames()ã€‚
+** æŸ¥çœ‹sqlite3ResolveExprNames()ç¨‹åºå¤´éƒ¨çš„æ³¨é‡Šä¿¡æ¯ã€‚
+** sqlite3ResolveExprNames()ç¨‹åºæŸ¥æ‰¾åˆ—åï¼ŒæŠŠè¿™äº›åˆ—çš„opcodesè®¾ç½®ä¸ºTK_COLUMNï¼Œå¹¶æŠŠå®ƒä»¬çš„Expr.iTableå­—æ®µè®¾ä¸ºè¡¨çš„VDBEæ¸¸æ ‡æ•°ã€‚
+** è¿™ä¸ªç¨‹åºåªæ˜¯æŠŠæ¸¸æ ‡æ•°è½¬æ¢ä¸ºä½æ©ç ï¼Œå°†æ‰€æœ‰çš„ä½æ©ç é›†åˆèµ·æ¥ã€‚
 */
 static Bitmask exprListTableUsage(WhereMaskSet*, ExprList*);
 static Bitmask exprSelectTableUsage(WhereMaskSet*, Select*);
@@ -627,8 +627,8 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
 ** allowed for an indexable WHERE clause term.  The allowed operators are
 ** "=", "<", ">", "<=", ">=", and "IN".
 **
-** Èç¹û¸ø³öµÄÔËËã·ûÊÇÒ»¸ö´øË÷ÒıµÄWHERE×Ó¾äµÄterm¿ÉÒÔÊ¹ÓÃµÄÔËËã·û£¬ÄÇÃ´¾Í·µ»ØTRUE.
-** ÔÊĞíµÄÔËËã·ûÓĞ"=", "<", ">", "<=", ">=", and "IN"
+** å¦‚æœç»™å‡ºçš„è¿ç®—ç¬¦æ˜¯ä¸€ä¸ªå¸¦ç´¢å¼•çš„WHEREå­å¥çš„termå¯ä»¥ä½¿ç”¨çš„è¿ç®—ç¬¦ï¼Œé‚£ä¹ˆå°±è¿”å›TRUE.
+** å…è®¸çš„è¿ç®—ç¬¦æœ‰"=", "<", ">", "<=", ">=", and "IN"
 **
 ** IMPLEMENTATION-OF: R-59926-26393 To be usable by an index a term must be
 ** of one of the following forms: column = expression column > expression
@@ -637,7 +637,7 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
 ** expression < column expression <= column column IN
 ** (expression-list) column IN (subquery) column IS NULL
 **
-** IMPLEMENTATION-OF: R-59926-26393 Ò»¸öterm¿ÉÊ¹ÓÃË÷Òı±ØĞëÊÇÒÔÏÂÇé¿öÖ®Ò»:
+** IMPLEMENTATION-OF: R-59926-26393 ä¸€ä¸ªtermå¯ä½¿ç”¨ç´¢å¼•å¿…é¡»æ˜¯ä»¥ä¸‹æƒ…å†µä¹‹ä¸€:
 ** column = expression 
 ** column > expression
 ** column >= expression 
@@ -663,14 +663,14 @@ static int allowedOp(int op){
 /*
 ** Swap two objects of type TYPE.
 **
-** ½»»»TYPEÀàĞÍµÄÁ½¸ö¶ÔÏó
+** äº¤æ¢TYPEç±»å‹çš„ä¸¤ä¸ªå¯¹è±¡
 */
 #define SWAP(TYPE,A,B) {TYPE t=A; A=B; B=t;}
 
 /*
 ** Commute a comparison operator.  Expressions of the form "X op Y"
 ** are converted into "Y op X".
-** ½»»»Ò»¸ö±È½Ï²Ù×÷·û¡£"X op Y"±í´ïÊ½×ª»»Îª"Y op X"
+** äº¤æ¢ä¸€ä¸ªæ¯”è¾ƒæ“ä½œç¬¦ã€‚"X op Y"è¡¨è¾¾å¼è½¬æ¢ä¸º"Y op X"
 **
 ** If a collation sequence is associated with either the left or right
 ** side of the comparison, it remains associated with the same side after
@@ -680,21 +680,21 @@ static int allowedOp(int op){
 ** attached to the right. For the same reason the EP_ExpCollate flag
 ** is not commuted.
 **
-** Èç¹ûÒ»¸öÅÅĞòĞòÁĞÓë±È½ÏÊ½µÄ×ó±ß»òÓÒ±ßÏà¹Ø£¬½»»»ºóËüÈÔÓëÏàÍ¬±ßÓĞ¹Ø¡£
-** Òò´Ë "Y collate NOCASE op X" ±ä³ÉÁË "X collate NOCASE op Y" ¡£
-** ÕâÊÇÒòÎªÈÎºÎÔÚ±È½ÏÊ½×ó±ßµÄÅÅĞòĞòÁĞÖØĞ´ÓÒ±ßµÄÈÎºÎÅÅĞòĞòÁĞ¡£
-** Ò²ÓÉ´Ë£¬EP_ExpCollate±êÖ¾²»½»»»¡£
+** å¦‚æœä¸€ä¸ªæ’åºåºåˆ—ä¸æ¯”è¾ƒå¼çš„å·¦è¾¹æˆ–å³è¾¹ç›¸å…³ï¼Œäº¤æ¢åå®ƒä»ä¸ç›¸åŒè¾¹æœ‰å…³ã€‚
+** å› æ­¤ "Y collate NOCASE op X" å˜æˆäº† "X collate NOCASE op Y" ã€‚
+** è¿™æ˜¯å› ä¸ºä»»ä½•åœ¨æ¯”è¾ƒå¼å·¦è¾¹çš„æ’åºåºåˆ—é‡å†™å³è¾¹çš„ä»»ä½•æ’åºåºåˆ—ã€‚
+** ä¹Ÿç”±æ­¤ï¼ŒEP_ExpCollateæ ‡å¿—ä¸äº¤æ¢ã€‚
 */
 static void exprCommute(Parse *pParse, Expr *pExpr){
-  u16 expRight = (pExpr->pRight->flags & EP_ExpCollate);  /*pLeft±íÊ¾×ó×Ó½Úµã£¬pRight±íÊ¾ÓÒ×Ó½Úµã¡£*/
-  u16 expLeft = (pExpr->pLeft->flags & EP_ExpCollate);  /*EP_ExpCollate±íÊ¾Ã÷È·¹æ¶¨µÄÅÅĞòĞòÁĞ*/
-  assert( allowedOp(pExpr->op) && pExpr->op!=TK_IN );  /*ÅĞ¶¨±í´ïÊ½µÄÔËËã·û£¬"=", "<", ">", "<=", ">=", and "IN"µÄÒ»ÖÖ*/
-  pExpr->pRight->pColl = sqlite3ExprCollSeq(pParse, pExpr->pRight);  /*pColl±íÊ¾ÁĞµÄÅÅĞòÀàĞÍ»òÕßÎª0*/
-  pExpr->pLeft->pColl = sqlite3ExprCollSeq(pParse, pExpr->pLeft);  /*sqlite3ExprCollSeq()·½·¨·µ»Ø±í´ïÊ½pExprµÄÄ¬ÈÏÅÅĞòĞòÁĞ¡£Èç¹ûÃ»ÓĞÄ¬ÈÏÅÅĞòÀàĞÍ£¬·µ»Ø0¡£*/
-  SWAP(CollSeq*,pExpr->pRight->pColl,pExpr->pLeft->pColl);  /*½»»»×óÓÒÁ½¸ö½ÚµãµÄÅÅĞòÀàĞÍ*/
+  u16 expRight = (pExpr->pRight->flags & EP_ExpCollate);  /*pLeftè¡¨ç¤ºå·¦å­èŠ‚ç‚¹ï¼ŒpRightè¡¨ç¤ºå³å­èŠ‚ç‚¹ã€‚*/
+  u16 expLeft = (pExpr->pLeft->flags & EP_ExpCollate);  /*EP_ExpCollateè¡¨ç¤ºæ˜ç¡®è§„å®šçš„æ’åºåºåˆ—*/
+  assert( allowedOp(pExpr->op) && pExpr->op!=TK_IN );  /*åˆ¤å®šè¡¨è¾¾å¼çš„è¿ç®—ç¬¦ï¼Œ"=", "<", ">", "<=", ">=", and "IN"çš„ä¸€ç§*/
+  pExpr->pRight->pColl = sqlite3ExprCollSeq(pParse, pExpr->pRight);  /*pCollè¡¨ç¤ºåˆ—çš„æ’åºç±»å‹æˆ–è€…ä¸º0*/
+  pExpr->pLeft->pColl = sqlite3ExprCollSeq(pParse, pExpr->pLeft);  /*sqlite3ExprCollSeq()æ–¹æ³•è¿”å›è¡¨è¾¾å¼pExprçš„é»˜è®¤æ’åºåºåˆ—ã€‚å¦‚æœæ²¡æœ‰é»˜è®¤æ’åºç±»å‹ï¼Œè¿”å›0ã€‚*/
+  SWAP(CollSeq*,pExpr->pRight->pColl,pExpr->pLeft->pColl);  /*äº¤æ¢å·¦å³ä¸¤ä¸ªèŠ‚ç‚¹çš„æ’åºç±»å‹*/
   pExpr->pRight->flags = (pExpr->pRight->flags & ~EP_ExpCollate) | expLeft;  
   pExpr->pLeft->flags = (pExpr->pLeft->flags & ~EP_ExpCollate) | expRight;
-  SWAP(Expr*,pExpr->pRight,pExpr->pLeft);  /*½»»»Á½¸ö×óÓÒ×Ó½Úµã*/
+  SWAP(Expr*,pExpr->pRight,pExpr->pLeft);  /*äº¤æ¢ä¸¤ä¸ªå·¦å³å­èŠ‚ç‚¹*/
   if( pExpr->op>=TK_GT ){
     assert( TK_LT==TK_GT+2 );
     assert( TK_GE==TK_LE+2 );
@@ -708,7 +708,7 @@ static void exprCommute(Parse *pParse, Expr *pExpr){
 /*
 ** Translate from TK_xx operator to WO_xx bitmask.
 **
-** °ÑTK_xx²Ù×÷·û×ª»¯ÎªWO_xxÎ»ÑÚÂë
+** æŠŠTK_xxæ“ä½œç¬¦è½¬åŒ–ä¸ºWO_xxä½æ©ç 
 */
 static u16 operatorMask(int op){
   u16 c;
@@ -737,19 +737,19 @@ static u16 operatorMask(int op){
 ** the WO_xx operator codes specified by the op parameter.
 ** Return a pointer to the term.  Return 0 if not found.
 **
-** ÔÚWHERE×Ó¾äÖĞ²éÕÒÒ»¸öterm£¬Õâ¸ötermÓÉ"X <op> <expr>"ĞÎÊ½¹¹³É¡£
-** ÆäÖĞXÊÇÓë±íiCurµÄiColumnÏà¹ØµÄ,<op>ÊÇÓÉop²ÎÊıÖ¸¶¨µÄWO_xxÔËËã·ûµÄÒ»ÖÖ¡£
-** ·µ»ØÒ»¸öÖ¸ÏòtermµÄÖ¸Õë¡£Èç¹ûÃ»ÓĞÕÒµ½¾Í·µ»Ø0¡£
+** åœ¨WHEREå­å¥ä¸­æŸ¥æ‰¾ä¸€ä¸ªtermï¼Œè¿™ä¸ªtermç”±"X <op> <expr>"å½¢å¼æ„æˆã€‚
+** å…¶ä¸­Xæ˜¯ä¸è¡¨iCurçš„iColumnç›¸å…³çš„,<op>æ˜¯ç”±opå‚æ•°æŒ‡å®šçš„WO_xxè¿ç®—ç¬¦çš„ä¸€ç§ã€‚
+** è¿”å›ä¸€ä¸ªæŒ‡å‘termçš„æŒ‡é’ˆã€‚å¦‚æœæ²¡æœ‰æ‰¾åˆ°å°±è¿”å›0ã€‚
 */
 static WhereTerm *findTerm(
-  WhereClause *pWC,     /* The WHERE clause to be searched  Òª±»²éÕÒµÄWHERE×Ó¾ä */
-  int iCur,             /* Cursor number of LHS  LHS(µÈÊ½µÄ×ó±ß)µÄÓÎ±êÊı */
-  int iColumn,          /* Column number of LHS  LHS(µÈÊ½µÄ×ó±ß)µÄÁĞÊı */
-  Bitmask notReady,     /* RHS must not overlap with this mask  µÈÊ½µÄÓÒ±ß²»ÄÜÓëÑÚÂëÖØµş */
-  u32 op,               /* Mask of WO_xx values describing operator  ÃèÊöÔËËã·ûµÄWO_xxÖµµÄÑÚÂë */
-  Index *pIdx           /* Must be compatible with this index, if not NULL  ±ØĞëÓëË÷ÒıÏàÒ»ÖÂ£¬²»ÄÜÎª¿Õ */
+  WhereClause *pWC,     /* The WHERE clause to be searched  è¦è¢«æŸ¥æ‰¾çš„WHEREå­å¥ */
+  int iCur,             /* Cursor number of LHS  LHS(ç­‰å¼çš„å·¦è¾¹)çš„æ¸¸æ ‡æ•° */
+  int iColumn,          /* Column number of LHS  LHS(ç­‰å¼çš„å·¦è¾¹)çš„åˆ—æ•° */
+  Bitmask notReady,     /* RHS must not overlap with this mask  ç­‰å¼çš„å³è¾¹ä¸èƒ½ä¸æ©ç é‡å  */
+  u32 op,               /* Mask of WO_xx values describing operator  æè¿°è¿ç®—ç¬¦çš„WO_xxå€¼çš„æ©ç  */
+  Index *pIdx           /* Must be compatible with this index, if not NULL  å¿…é¡»ä¸ç´¢å¼•ç›¸ä¸€è‡´ï¼Œä¸èƒ½ä¸ºç©º */
 ){
-  WhereTerm *pTerm;  /* ĞÂ½¨Ò»¸öWhereTerm */
+  WhereTerm *pTerm;  /* æ–°å»ºä¸€ä¸ªWhereTerm */
   int k;
   assert( iCur>=0 );
   op &= WO_ALL;
@@ -774,10 +774,10 @@ static WhereTerm *findTerm(
           ** it to be useful for optimising expression pX. Store this
           ** value in variable pColl.
 		  **
-		  ** ´ÓÒ»¸öË÷ÒıÖĞÕÒ³öËùĞèµÄÅÅĞòĞòÁĞ£¬ÓÃÓÚÓÅ»¯±í´ïÊ½pX¡£ ½«Õâ¸öÖµ´æ´¢ÔÚ±äÁ¿pCollÖĞ¡£ 
+		  ** ä»ä¸€ä¸ªç´¢å¼•ä¸­æ‰¾å‡ºæ‰€éœ€çš„æ’åºåºåˆ—ï¼Œç”¨äºä¼˜åŒ–è¡¨è¾¾å¼pXã€‚ å°†è¿™ä¸ªå€¼å­˜å‚¨åœ¨å˜é‡pCollä¸­ã€‚ 
           */
           assert(pX->pLeft);
-		  /*sqlite3BinaryCompareCollSeq()·µ»ØÖ¸ÏòÅÅĞòĞòÁĞµÄÖ¸Õë£¬¸ÃÅÅĞòĞòÁĞÓÉÒ»¸ö¶ş½øÖÆ±È½ÏÔËËã·ûÊ¹ÓÃ£¬À´±È½ÏpLeftºÍpRight¡£³ö×Ôexpr.c 222ĞĞ*/
+		  /*sqlite3BinaryCompareCollSeq()è¿”å›æŒ‡å‘æ’åºåºåˆ—çš„æŒ‡é’ˆï¼Œè¯¥æ’åºåºåˆ—ç”±ä¸€ä¸ªäºŒè¿›åˆ¶æ¯”è¾ƒè¿ç®—ç¬¦ä½¿ç”¨ï¼Œæ¥æ¯”è¾ƒpLeftå’ŒpRightã€‚å‡ºè‡ªexpr.c 222è¡Œ*/
           pColl = sqlite3BinaryCompareCollSeq(pParse, pX->pLeft, pX->pRight);
           assert(pColl || pParse->nErr);
   
@@ -793,17 +793,17 @@ static WhereTerm *findTerm(
   return 0;
 }
 
-/* Forward reference Ç°ÖÃÒıÓÃ */
+/* Forward reference å‰ç½®å¼•ç”¨ */
 static void exprAnalyze(SrcList*, WhereClause*, int);
 
 /*
 ** Call exprAnalyze on all terms in a WHERE clause.  
 **
-** ÔÚÒ»¸öWHERE×Ó¾äµÄËùÓĞtermsÉÏµ÷ÓÃexprAnalyze
+** åœ¨ä¸€ä¸ªWHEREå­å¥çš„æ‰€æœ‰termsä¸Šè°ƒç”¨exprAnalyze
 */
 static void exprAnalyzeAll(
-  SrcList *pTabList,       /* the FROM clause  FROM×Ó¾ä */
-  WhereClause *pWC         /* the WHERE clause to be analyzed  ±»·ÖÎöµÄWHERE×Ó¾ä */
+  SrcList *pTabList,       /* the FROM clause  FROMå­å¥ */
+  WhereClause *pWC         /* the WHERE clause to be analyzed  è¢«åˆ†æçš„WHEREå­å¥ */
 ){
   int i;
   for(i=pWC->nTerm-1; i>=0; i--){
@@ -817,35 +817,35 @@ static void exprAnalyzeAll(
 ** can be optimized using inequality constraints.  Return TRUE if it is
 ** so and false if not.
 **
-** ²é¿´±í´ïÊ½ÊÇ·ñÊÇ¿ÉÒÔÊ¹ÓÃ²»µÈÊ½Ô¼Êø½øĞĞÓÅ»¯µÄLIKE»òGLOBÔËËã·û¡£
-** Èç¹ûËüÊÇÔò·µ»ØTRUE£¬Èç¹û²»ÊÇÔò·µ»ØFALSE.
+** æŸ¥çœ‹è¡¨è¾¾å¼æ˜¯å¦æ˜¯å¯ä»¥ä½¿ç”¨ä¸ç­‰å¼çº¦æŸè¿›è¡Œä¼˜åŒ–çš„LIKEæˆ–GLOBè¿ç®—ç¬¦ã€‚
+** å¦‚æœå®ƒæ˜¯åˆ™è¿”å›TRUEï¼Œå¦‚æœä¸æ˜¯åˆ™è¿”å›FALSE.
 **
 ** In order for the operator to be optimizible, the RHS must be a string
 ** literal that does not begin with a wildcard.  
 **
-** ÎªÁËÄÜ¹»ÓÅ»¯´ËÔËËã·û£¬µÈÊ½µÄÓÒ±ß±ØĞëÊÇÒ»¸ö×Ö·û´®ÇÒ²»ÄÜÒÔÍ¨Åä·û¿ªÍ·¡£
+** ä¸ºäº†èƒ½å¤Ÿä¼˜åŒ–æ­¤è¿ç®—ç¬¦ï¼Œç­‰å¼çš„å³è¾¹å¿…é¡»æ˜¯ä¸€ä¸ªå­—ç¬¦ä¸²ä¸”ä¸èƒ½ä»¥é€šé…ç¬¦å¼€å¤´ã€‚
 **
 */
 
-/*Expr½á¹¹Ìå£¬Óï·¨·ÖÎöÊ÷ÖĞµÄÒ»¸ö±í´ïÊ½µÄÃ¿¸ö½ÚµãÊÇ¸Ã½á¹¹µÄÒ»¸öÊµÀı¡£ ³ö×ÔsqliteInit.h 1829ĞĞ*/
+/*Exprç»“æ„ä½“ï¼Œè¯­æ³•åˆ†ææ ‘ä¸­çš„ä¸€ä¸ªè¡¨è¾¾å¼çš„æ¯ä¸ªèŠ‚ç‚¹æ˜¯è¯¥ç»“æ„çš„ä¸€ä¸ªå®ä¾‹ã€‚ å‡ºè‡ªsqliteInit.h 1829è¡Œ*/
 static int isLikeOrGlob(
-  Parse *pParse,    /* Parsing and code generating context ·ÖÎöºÍ±àÂëÉú³ÉÉÏÏÂÎÄ */
-  Expr *pExpr,      /* Test this expression  ½«²âÊÔÕâ¸ö±í´ïÊ½ */
-  Expr **ppPrefix,  /* Pointer to TK_STRING expression with pattern prefix  Ö¸ÕëÖ¸ÏòÓĞÄ£Ê½Ç°×ºµÄTK_STRING±í´ïÊ½ */
-  int *pisComplete, /* True if the only wildcard is % in the last character  Èç¹ûÖ»ÓĞÒ»¸öÍ¨Åä·û"%"ÇÒÔÚ×îºó£¬Ôò·µ»ØTrue */
-  int *pnoCase      /* True if uppercase is equivalent to lowercase  Èç¹û²»·Ö´óĞ¡Ğ´Ôò·µ»ØTrue */
+  Parse *pParse,    /* Parsing and code generating context åˆ†æå’Œç¼–ç ç”Ÿæˆä¸Šä¸‹æ–‡ */
+  Expr *pExpr,      /* Test this expression  å°†æµ‹è¯•è¿™ä¸ªè¡¨è¾¾å¼ */
+  Expr **ppPrefix,  /* Pointer to TK_STRING expression with pattern prefix  æŒ‡é’ˆæŒ‡å‘æœ‰æ¨¡å¼å‰ç¼€çš„TK_STRINGè¡¨è¾¾å¼ */
+  int *pisComplete, /* True if the only wildcard is % in the last character  å¦‚æœåªæœ‰ä¸€ä¸ªé€šé…ç¬¦"%"ä¸”åœ¨æœ€åï¼Œåˆ™è¿”å›True */
+  int *pnoCase      /* True if uppercase is equivalent to lowercase  å¦‚æœä¸åˆ†å¤§å°å†™åˆ™è¿”å›True */
 ){
-  const char *z = 0;         /* String on RHS of LIKE operator  LIKEÔËËã·ûÓÒ±ßµÄ×Ö·û´® */
-  Expr *pRight, *pLeft;      /* Right and left size of LIKE operator  LIKEÔËËã·ûÓÒ±ßºÍ×ó±ßµÄ´óĞ¡ */
-  ExprList *pList;           /* List of operands to the LIKE operator  LIKEÔËËã·ûµÄ²Ù×÷¶ÔÏóÁĞ±í */
-  int c;                     /* One character in z[]  z[]Êı×éÖĞµÄÒ»¸ö×Ö·û */
-  int cnt;                   /* Number of non-wildcard prefix characters  ÎŞÍ¨Åä·ûÇ°×ºµÄ×Ö·ûµÄÊıÄ¿ */
-  char wc[3];                /* Wildcard characters  Í¨Åä·û */
-  sqlite3 *db = pParse->db;  /* Database connection  Êı¾İ¿âÁ¬½Ó */
+  const char *z = 0;         /* String on RHS of LIKE operator  LIKEè¿ç®—ç¬¦å³è¾¹çš„å­—ç¬¦ä¸² */
+  Expr *pRight, *pLeft;      /* Right and left size of LIKE operator  LIKEè¿ç®—ç¬¦å³è¾¹å’Œå·¦è¾¹çš„å¤§å° */
+  ExprList *pList;           /* List of operands to the LIKE operator  LIKEè¿ç®—ç¬¦çš„æ“ä½œå¯¹è±¡åˆ—è¡¨ */
+  int c;                     /* One character in z[]  z[]æ•°ç»„ä¸­çš„ä¸€ä¸ªå­—ç¬¦ */
+  int cnt;                   /* Number of non-wildcard prefix characters  æ— é€šé…ç¬¦å‰ç¼€çš„å­—ç¬¦çš„æ•°ç›® */
+  char wc[3];                /* Wildcard characters  é€šé…ç¬¦ */
+  sqlite3 *db = pParse->db;  /* Database connection  æ•°æ®åº“è¿æ¥ */
   sqlite3_value *pVal = 0;
-  int op;                    /* Opcode of pRight  pRightµÄOpcode */
+  int op;                    /* Opcode of pRight  pRightçš„Opcode */
 
-  if( !sqlite3IsLikeFunction(db, pExpr, pnoCase, wc) ){  /*ÅĞ¶ÏÊÇ·ñÊÇLIKEº¯Êı*/
+  if( !sqlite3IsLikeFunction(db, pExpr, pnoCase, wc) ){  /*åˆ¤æ–­æ˜¯å¦æ˜¯LIKEå‡½æ•°*/
     return 0;
   }
 #ifdef SQLITE_EBCDIC
@@ -854,50 +854,50 @@ static int isLikeOrGlob(
   pList = pExpr->x.pList;  
   pLeft = pList->a[1].pExpr;  
   if( pLeft->op!=TK_COLUMN 
-	/*sqlite3ExprAffinity()·½·¨·µ»Ø±í´ïÊ½pExpr´æÔÚ¹ØÁªĞÔ 'affinity'*/	  
-   || sqlite3ExprAffinity(pLeft)!=SQLITE_AFF_TEXT   /*SQLITE_AFF_TEXT±íÊ¾ÁĞ¹ØÁªÀàĞÍ¡£*/
-   || IsVirtual(pLeft->pTab)  /*²âÊÔ¸Ã±íÊÇ·ñÊÇÒ»¸öĞé±í¡£ pTab±íÊ¾±í´ïÊ½TK_COLUMNµÄ±í*/
+	/*sqlite3ExprAffinity()æ–¹æ³•è¿”å›è¡¨è¾¾å¼pExprå­˜åœ¨å…³è”æ€§ 'affinity'*/	  
+   || sqlite3ExprAffinity(pLeft)!=SQLITE_AFF_TEXT   /*SQLITE_AFF_TEXTè¡¨ç¤ºåˆ—å…³è”ç±»å‹ã€‚*/
+   || IsVirtual(pLeft->pTab)  /*æµ‹è¯•è¯¥è¡¨æ˜¯å¦æ˜¯ä¸€ä¸ªè™šè¡¨ã€‚ pTabè¡¨ç¤ºè¡¨è¾¾å¼TK_COLUMNçš„è¡¨*/
   ){
     /* IMP: R-02065-49465 The left-hand side of the LIKE or GLOB operator must
     ** be the name of an indexed column with TEXT affinity. 
     **
-	**IMP: R-02065-49465 LIKE»òGLOBÔËËã·ûµÄ×ó±ß±ØĞëÊÇÒ»¸öTEXTÇ×ºÍĞÔµÄ´øË÷ÒıµÄÁĞÃû
+	**IMP: R-02065-49465 LIKEæˆ–GLOBè¿ç®—ç¬¦çš„å·¦è¾¹å¿…é¡»æ˜¯ä¸€ä¸ªTEXTäº²å’Œæ€§çš„å¸¦ç´¢å¼•çš„åˆ—å
 	*/
     return 0;
   }
-  assert( pLeft->iColumn!=(-1) );  /* Because IPK never has AFF_TEXT ÒòÎªIPK´ÓÃ»ÓĞTEXTÇ×ºÍĞÔ */
+  assert( pLeft->iColumn!=(-1) );  /* Because IPK never has AFF_TEXT å› ä¸ºIPKä»æ²¡æœ‰TEXTäº²å’Œæ€§ */
 
   pRight = pList->a[0].pExpr; 
   op = pRight->op;
   /*
-  ** int iTable;            // TK_COLUMN: cursor number of table holding column	  TK_COLUMN:±íÁĞ³ÖÓĞ¹â±êÊı
-  **				           TK_REGISTER: register number			TK_REGISTER:¼Ä´æÆ÷ºÅÂë
-  **				           TK_TRIGGER: 1 -> new, 0 -> old 			TK_TRIGGER:1->ĞÂ,0->¾É
-  ** ynVar iColumn;         // TK_COLUMN: column index.  -1 for rowid.		TK_COLUMN:ÁĞË÷Òı¡£-1ÎªROWID
-  **				           TK_VARIABLE: variable number (always >= 1). 	TK_VARIABLE: ±äÁ¿Êı(×ÜÊÇ´óÓÚµÈÓÚ1)
-  ** u8 op2;                // TK_REGISTER: original value of Expr.op		TK_REGISTER:Expr.opµÄÔ­Ê¼Öµ
-  **				           TK_COLUMN: the value of p5 for OP_Column		TK_COLUMN: ¶ÔÓÚOP_Column£¬P5µÄÖµ
-  **				           TK_AGG_FUNCTION: nesting depth 			TK_AGG_FUNCTION: Ç¶Ì×Éî¶È
-  ** AggInfo *pAggInfo;     // Used by TK_AGG_COLUMN and TK_AGG_FUNCTION 		TK_AGG_COLUMNºÍTK_AGG_FUNCTIONÊ¹ÓÃ
-  ** Table *pTab;           // Table for TK_COLUMN expressions. 			±í´ïÊ½TK_COLUMNµÄ±í
+  ** int iTable;            // TK_COLUMN: cursor number of table holding column	  TK_COLUMN:è¡¨åˆ—æŒæœ‰å…‰æ ‡æ•°
+  **				           TK_REGISTER: register number			TK_REGISTER:å¯„å­˜å™¨å·ç 
+  **				           TK_TRIGGER: 1 -> new, 0 -> old 			TK_TRIGGER:1->æ–°,0->æ—§
+  ** ynVar iColumn;         // TK_COLUMN: column index.  -1 for rowid.		TK_COLUMN:åˆ—ç´¢å¼•ã€‚-1ä¸ºROWID
+  **				           TK_VARIABLE: variable number (always >= 1). 	TK_VARIABLE: å˜é‡æ•°(æ€»æ˜¯å¤§äºç­‰äº1)
+  ** u8 op2;                // TK_REGISTER: original value of Expr.op		TK_REGISTER:Expr.opçš„åŸå§‹å€¼
+  **				           TK_COLUMN: the value of p5 for OP_Column		TK_COLUMN: å¯¹äºOP_Columnï¼ŒP5çš„å€¼
+  **				           TK_AGG_FUNCTION: nesting depth 			TK_AGG_FUNCTION: åµŒå¥—æ·±åº¦
+  ** AggInfo *pAggInfo;     // Used by TK_AGG_COLUMN and TK_AGG_FUNCTION 		TK_AGG_COLUMNå’ŒTK_AGG_FUNCTIONä½¿ç”¨
+  ** Table *pTab;           // Table for TK_COLUMN expressions. 			è¡¨è¾¾å¼TK_COLUMNçš„è¡¨
   */
   if( op==TK_REGISTER ){
     op = pRight->op2;
   }
   if( op==TK_VARIABLE ){
-    Vdbe *pReprepare = pParse->pReprepare;  /*pRepreparevia±íÊ¾VM±»ÖØĞŞ£¬sqlite3Reprepare()º¯Êı*/
+    Vdbe *pReprepare = pParse->pReprepare;  /*pReprepareviaè¡¨ç¤ºVMè¢«é‡ä¿®ï¼Œsqlite3Reprepare()å‡½æ•°*/
     int iCol = pRight->iColumn;
-	/*sqlite3VdbeGetValue()·½·¨·µ»ØÒ»¸öÖ¸Ïòsqlite3_value½á¹¹Ìå£¬Õâ¸ö½á¹¹Ìå°üÀ¨ÓÉÒ»¸öĞéÄâ»úvÊµÀıµÄiVar²ÎÊıÖµ¡£*/
-    pVal = sqlite3VdbeGetValue(pReprepare, iCol, SQLITE_AFF_NONE);  /*SQLITE_AFF_NONE±íÊ¾ÁĞ¹ØÁªÀàĞÍ*/
+	/*sqlite3VdbeGetValue()æ–¹æ³•è¿”å›ä¸€ä¸ªæŒ‡å‘sqlite3_valueç»“æ„ä½“ï¼Œè¿™ä¸ªç»“æ„ä½“åŒ…æ‹¬ç”±ä¸€ä¸ªè™šæ‹Ÿæœºvå®ä¾‹çš„iVarå‚æ•°å€¼ã€‚*/
+    pVal = sqlite3VdbeGetValue(pReprepare, iCol, SQLITE_AFF_NONE);  /*SQLITE_AFF_NONEè¡¨ç¤ºåˆ—å…³è”ç±»å‹*/
     if( pVal && sqlite3_value_type(pVal)==SQLITE_TEXT ){
       z = (char *)sqlite3_value_text(pVal);
     }
-	/* sqlite3VdbeSetVarmask()·½·¨ÅäÖÃSQL±äÁ¿iVarµÄÖµÊ¹µÃ°ó¶¨Ò»¸öĞÂÖµÀ´»½ĞÑº¯Êısqlite3_reoptimize(),
-	Õâ¸öº¯Êı¿ÉÒÔÖØ¸´×¼±¸SQLÓï¾ä²úÉúÒ»¸ö¸üºÃµÄ²éÑ¯¼Æ»®¡£*/  
+	/* sqlite3VdbeSetVarmask()æ–¹æ³•é…ç½®SQLå˜é‡iVarçš„å€¼ä½¿å¾—ç»‘å®šä¸€ä¸ªæ–°å€¼æ¥å”¤é†’å‡½æ•°sqlite3_reoptimize(),
+	è¿™ä¸ªå‡½æ•°å¯ä»¥é‡å¤å‡†å¤‡SQLè¯­å¥äº§ç”Ÿä¸€ä¸ªæ›´å¥½çš„æŸ¥è¯¢è®¡åˆ’ã€‚*/  
     sqlite3VdbeSetVarmask(pParse->pVdbe, iCol);         
     assert( pRight->op==TK_VARIABLE || pRight->op==TK_REGISTER );
   }else if( op==TK_STRING ){
-    z = pRight->u.zToken;  /*zToken±íÊ¾ ±ê¼ÇÖµ£¬ÁãÖÕÖ¹£¬Î´ÒıÓÃ*/
+    z = pRight->u.zToken;  /*zTokenè¡¨ç¤º æ ‡è®°å€¼ï¼Œé›¶ç»ˆæ­¢ï¼Œæœªå¼•ç”¨*/
   }
   if( z ){
     cnt = 0;
@@ -907,7 +907,7 @@ static int isLikeOrGlob(
     if( cnt!=0 && 255!=(u8)z[cnt-1] ){
       Expr *pPrefix;
       *pisComplete = c==wc[0] && z[cnt+1]==0;
-      pPrefix = sqlite3Expr(db, TK_STRING, z);  /*SQLÊı¾İÀàĞÍ(TK_INTEGER,TK_FLOAT,TK_BLOB»òTK_STRING)*/
+      pPrefix = sqlite3Expr(db, TK_STRING, z);  /*SQLæ•°æ®ç±»å‹(TK_INTEGER,TK_FLOAT,TK_BLOBæˆ–TK_STRING)*/
       if( pPrefix ) pPrefix->u.zToken[cnt] = 0;
       *ppPrefix = pPrefix;
       if( op==TK_VARIABLE ){
@@ -920,17 +920,17 @@ static int isLikeOrGlob(
           ** This causes problems for the sqlite3_bind_parameter_name()
           ** API. To workaround them, add a dummy OP_Variable here.
           **
-          ** Èç¹ûLIKE±í´ïÊ½µÄÓÒ±ßÊÇÒ»¸ö±äÁ¿£¬²¢ÇÒµ±Ç°±äÁ¿µÄÖµ´ú±íÃ»ÓĞ±ØÒª»½ĞÑLIKEº¯Êı¡£ÄÇÃ´OP_Variable²»»á±»Ìí¼Óµ½³ÌĞòÖĞ¡£
-          ** Õâ»áÒıÆğsqlite3_bind_parameter_name() APIµÄÒ»Ğ©ÎÊÌâ¡£ÎªÁË½â¾öÕâĞ©ÎÊÌâ£¬ÔÚÕâÌí¼ÓÒ»¸öĞéÄâµÄOP_Variable.
+          ** å¦‚æœLIKEè¡¨è¾¾å¼çš„å³è¾¹æ˜¯ä¸€ä¸ªå˜é‡ï¼Œå¹¶ä¸”å½“å‰å˜é‡çš„å€¼ä»£è¡¨æ²¡æœ‰å¿…è¦å”¤é†’LIKEå‡½æ•°ã€‚é‚£ä¹ˆOP_Variableä¸ä¼šè¢«æ·»åŠ åˆ°ç¨‹åºä¸­ã€‚
+          ** è¿™ä¼šå¼•èµ·sqlite3_bind_parameter_name() APIçš„ä¸€äº›é—®é¢˜ã€‚ä¸ºäº†è§£å†³è¿™äº›é—®é¢˜ï¼Œåœ¨è¿™æ·»åŠ ä¸€ä¸ªè™šæ‹Ÿçš„OP_Variable.
           **
           */ 
-          int r1 = sqlite3GetTempReg(pParse);  /*·ÖÅäÒ»¸öĞÂµÄ¼Ä´æÆ÷£¬À´´æ´¢Ò»Ğ©ÖĞ¼ä½á¹û¡£*/
-		  /*Éú³É´úÂëµ½µ±Ç°VDBE£¬ÆÀ¹À¸ø¶¨±í´ïÊ½¡£½«½á¹û´æ´¢ÔÚ¡°target¡±¼Ä´æÆ÷ÖĞ¡£·µ»Ø´æ´¢½á¹ûµÄ¼Ä´æÆ÷¡£*/
+          int r1 = sqlite3GetTempReg(pParse);  /*åˆ†é…ä¸€ä¸ªæ–°çš„å¯„å­˜å™¨ï¼Œæ¥å­˜å‚¨ä¸€äº›ä¸­é—´ç»“æœã€‚*/
+		  /*ç”Ÿæˆä»£ç åˆ°å½“å‰VDBEï¼Œè¯„ä¼°ç»™å®šè¡¨è¾¾å¼ã€‚å°†ç»“æœå­˜å‚¨åœ¨â€œtargetâ€å¯„å­˜å™¨ä¸­ã€‚è¿”å›å­˜å‚¨ç»“æœçš„å¯„å­˜å™¨ã€‚*/
           sqlite3ExprCodeTarget(pParse, pRight, r1);
-		  /*sqlite3VdbeChangeP3()·½·¨ÎªÒ»¸öÌØ¶¨µÄÖ¸Áî¸Ä±ä²Ù×÷ÊıP3µÄÖµ¡£*/
-		  /*sqlite3VdbeCurrentAddr()·½·¨·µ»Ø²åÈëÏÂÒ»ÌõÖ¸ÁîµÄµØÖ·*/
+		  /*sqlite3VdbeChangeP3()æ–¹æ³•ä¸ºä¸€ä¸ªç‰¹å®šçš„æŒ‡ä»¤æ”¹å˜æ“ä½œæ•°P3çš„å€¼ã€‚*/
+		  /*sqlite3VdbeCurrentAddr()æ–¹æ³•è¿”å›æ’å…¥ä¸‹ä¸€æ¡æŒ‡ä»¤çš„åœ°å€*/
           sqlite3VdbeChangeP3(v, sqlite3VdbeCurrentAddr(v)-1, 0);
-		  /*ÊÍ·ÅÒ»¸ö¼Ä´æÆ÷£¬Ê¹ËüÄÜ±»ÆäËûÄ¿µÄÖØĞÂÊ¹ÓÃ¡£*/
+		  /*é‡Šæ”¾ä¸€ä¸ªå¯„å­˜å™¨ï¼Œä½¿å®ƒèƒ½è¢«å…¶ä»–ç›®çš„é‡æ–°ä½¿ç”¨ã€‚*/
           sqlite3ReleaseTempReg(pParse, r1);
         }
       }
@@ -939,7 +939,7 @@ static int isLikeOrGlob(
     }
   }
 
-  sqlite3ValueFree(pVal);  /*ÊÍ·Åsqlite3_value¶ÔÏó*/
+  sqlite3ValueFree(pVal);  /*é‡Šæ”¾sqlite3_valueå¯¹è±¡*/
   return (z!=0);
 }
 #endif /* SQLITE_OMIT_LIKE_OPTIMIZATION */
@@ -953,33 +953,33 @@ static int isLikeOrGlob(
 **
 ** If it is then return TRUE.  If not, return FALSE.
 **
-** ²é¿´±í´ïÊ½ÊÇ·ñÊÇcolumn MATCH exprĞÎÊ½£¬Èç¹ûÊÇÔò·µ»ØTRUE£¬·ñÔò·µ»ØFALSE
+** æŸ¥çœ‹è¡¨è¾¾å¼æ˜¯å¦æ˜¯column MATCH exprå½¢å¼ï¼Œå¦‚æœæ˜¯åˆ™è¿”å›TRUEï¼Œå¦åˆ™è¿”å›FALSE
 **
 */
 static int isMatchOfColumn(
-  Expr *pExpr      /* Test this expression ²âÊÔÕâ¸ö±í´ïÊ½*/
+  Expr *pExpr      /* Test this expression æµ‹è¯•è¿™ä¸ªè¡¨è¾¾å¼*/
 ){
-  ExprList *pList;  /*¶¨ÒåÒ»¸ö±í´ïÊ½ÁĞ±í½á¹¹ÌåµÄÊµÀı*/
+  ExprList *pList;  /*å®šä¹‰ä¸€ä¸ªè¡¨è¾¾å¼åˆ—è¡¨ç»“æ„ä½“çš„å®ä¾‹*/
 
-  if( pExpr->op!=TK_FUNCTION ){   /*TK_FUNCTION±íÊ¾±í´ïÊ½ÊÇÒ»¸öSQLº¯Êı*/
+  if( pExpr->op!=TK_FUNCTION ){   /*TK_FUNCTIONè¡¨ç¤ºè¡¨è¾¾å¼æ˜¯ä¸€ä¸ªSQLå‡½æ•°*/
     return 0;
   }
-  /*sqlite3StrICmpÎªºê¶¨Òå£¬±íÊ¾ÄÚ²¿º¯ÊıÔ­ĞÍ*/
-  if( sqlite3StrICmp(pExpr->u.zToken,"match")!=0 ){  /*zToken±íÊ¾ ±ê¼ÇÖµ¡£ÁãÖÕÖ¹£¬Î´ÒıÓÃ*/
+  /*sqlite3StrICmpä¸ºå®å®šä¹‰ï¼Œè¡¨ç¤ºå†…éƒ¨å‡½æ•°åŸå‹*/
+  if( sqlite3StrICmp(pExpr->u.zToken,"match")!=0 ){  /*zTokenè¡¨ç¤º æ ‡è®°å€¼ã€‚é›¶ç»ˆæ­¢ï¼Œæœªå¼•ç”¨*/
     return 0;
   }
   /*
   union {
-    ExprList *pList;      Function arguments or in "<expr> IN (<expr-list)" 	º¯Êı²ÎÊı»òÕß"<±í´ïÊ½>IN(<±í´ïÊ½ÁĞ±í>)
-    Select *pSelect;      Used for sub-selects and "<expr> IN (<select>)" 	ÓÃÓÚ×ÓÑ¡ÔñºÍ"<±í´ïÊ½>IN(<Ñ¡Ôñ>)"
+    ExprList *pList;      Function arguments or in "<expr> IN (<expr-list)" 	å‡½æ•°å‚æ•°æˆ–è€…"<è¡¨è¾¾å¼>IN(<è¡¨è¾¾å¼åˆ—è¡¨>)
+    Select *pSelect;      Used for sub-selects and "<expr> IN (<select>)" 	ç”¨äºå­é€‰æ‹©å’Œ"<è¡¨è¾¾å¼>IN(<é€‰æ‹©>)"
   } x;
-  xÎªExpr½á¹¹Ìå¶¨ÒåÖĞµÄ¹²Í¬Ìå£¬³ö×ÔsqliteInt.h 1845ĞĞ
+  xä¸ºExprç»“æ„ä½“å®šä¹‰ä¸­çš„å…±åŒä½“ï¼Œå‡ºè‡ªsqliteInt.h 1845è¡Œ
   */
   pList = pExpr->x.pList;
-  if( pList->nExpr!=2 ){   /*nExpr±íÊ¾ÁĞ±íÖĞ±í´ïÊ½µÄÊıÄ¿*/
+  if( pList->nExpr!=2 ){   /*nExprè¡¨ç¤ºåˆ—è¡¨ä¸­è¡¨è¾¾å¼çš„æ•°ç›®*/
     return 0;
   }
-  if( pList->a[1].pExpr->op != TK_COLUMN ){  /*TK_COLUMN±íÊ¾±í´ïÊ½ÊÇÒ»¸öÁĞ*/
+  if( pList->a[1].pExpr->op != TK_COLUMN ){  /*TK_COLUMNè¡¨ç¤ºè¡¨è¾¾å¼æ˜¯ä¸€ä¸ªåˆ—*/
     return 0;
   }
   return 1;
@@ -990,40 +990,40 @@ static int isMatchOfColumn(
 ** If the pBase expression originated in the ON or USING clause of
 ** a join, then transfer the appropriate markings over to derived.
 **
-** Èç¹ûpBase±í´ïÊ½ÆğÔ´ÓÚÒ»¸öÁ¬½ÓµÄON»òUSING×Ó¾ä£¬ÄÇÃ´½«ÊÊµ±µÄÁ¬½Ó±ê¼Ç×ªÒÆ¸øÅÉÉúµÄ±í´ïÊ½ pDerived¡£
+** å¦‚æœpBaseè¡¨è¾¾å¼èµ·æºäºä¸€ä¸ªè¿æ¥çš„ONæˆ–USINGå­å¥ï¼Œé‚£ä¹ˆå°†é€‚å½“çš„è¿æ¥æ ‡è®°è½¬ç§»ç»™æ´¾ç”Ÿçš„è¡¨è¾¾å¼ pDerivedã€‚
 **
 */
 static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
-  pDerived->flags |= pBase->flags & EP_FromJoin;  /*EP_FromJoin±íÊ¾ÆğÔ´ÓÚÁ¬½ÓµÄON»òUSING×Ó¾ä*/
-  pDerived->iRightJoinTable = pBase->iRightJoinTable;  /*iRightJoinTable±íÊ¾ÓÒÁ¬½Ó±í±àºÅ*/
+  pDerived->flags |= pBase->flags & EP_FromJoin;  /*EP_FromJoinè¡¨ç¤ºèµ·æºäºè¿æ¥çš„ONæˆ–USINGå­å¥*/
+  pDerived->iRightJoinTable = pBase->iRightJoinTable;  /*iRightJoinTableè¡¨ç¤ºå³è¿æ¥è¡¨ç¼–å·*/
 }
 
 #if !defined(SQLITE_OMIT_OR_OPTIMIZATION) && !defined(SQLITE_OMIT_SUBQUERY)
 /*
 ** Analyze a term that consists of two or more OR-connected
 ** subterms.  
-** ÀıÈçÏÂÃæÕâÖÖĞÎÊ½:
+** ä¾‹å¦‚ä¸‹é¢è¿™ç§å½¢å¼:
 **
 **     ... WHERE  (a=5) AND (b=7 OR c=9 OR d=13) AND (d=13)
 **                          ^^^^^^^^^^^^^^^^^^^^
-** ·ÖÎöÒ»¸ö°üº¬Á½¸ö»ò¸ü¶àORÁ¬½ÓµÄ×ÓtermµÄterm¡£
+** åˆ†æä¸€ä¸ªåŒ…å«ä¸¤ä¸ªæˆ–æ›´å¤šORè¿æ¥çš„å­termçš„termã€‚
 **
 ** This routine analyzes terms such as the middle term in the above example.
 ** A WhereOrTerm object is computed and attached to the term under
 ** analysis, regardless of the outcome of the analysis.  Hence:
 **
 **     WhereTerm.wtFlags |= TERM_ORINFO
-**     WhereTerm.u.pOrInfo = a dynamically allocated WhereOrTerm object  ¶¯Ì¬µØ·ÖÅäWhereOrTerm¶ÔÏó
+**     WhereTerm.u.pOrInfo = a dynamically allocated WhereOrTerm object  åŠ¨æ€åœ°åˆ†é…WhereOrTermå¯¹è±¡
 **
-** Õâ¸ö³ÌĞò·ÖÎöÈçÉÏÃæÀı×ÓµÄÖĞ²¿termµÄterms¡£
-** Ò»¸öWhereOrTerm¶ÔÏó±»¼ÆËã£¬²¢¸½¼Óµ½Õı±»·ÖÎöµÄtermÖĞ£¬²»¹Ü·ÖÎöµÄ½á¹ûÈçºÎ¡£
+** è¿™ä¸ªç¨‹åºåˆ†æå¦‚ä¸Šé¢ä¾‹å­çš„ä¸­éƒ¨termçš„termsã€‚
+** ä¸€ä¸ªWhereOrTermå¯¹è±¡è¢«è®¡ç®—ï¼Œå¹¶é™„åŠ åˆ°æ­£è¢«åˆ†æçš„termä¸­ï¼Œä¸ç®¡åˆ†æçš„ç»“æœå¦‚ä½•ã€‚
 **
 ** The term being analyzed must have two or more of OR-connected subterms.
 ** A single subterm might be a set of AND-connected sub-subterms.
 **
-** ·ÖÎöµÄterm±ØĞë°üº¬¶à¸öORÁ¬½ÓµÄ×Óterm£¬Ò»¸öµ¥¶ÀµÄ×Óterm¿ÉÄÜÊÇÒ»×éANDÁ¬½ÓµÄ×Óterm£¨ÈçÏÂÃæµÄÀı×Ó C¡¢D¡¢E£©
+** åˆ†æçš„termå¿…é¡»åŒ…å«å¤šä¸ªORè¿æ¥çš„å­termï¼Œä¸€ä¸ªå•ç‹¬çš„å­termå¯èƒ½æ˜¯ä¸€ç»„ANDè¿æ¥çš„å­termï¼ˆå¦‚ä¸‹é¢çš„ä¾‹å­ Cã€Dã€Eï¼‰
 **
-** Examples of terms under analysis(Àı×ÓÈçÏÂ):
+** Examples of terms under analysis(ä¾‹å­å¦‚ä¸‹):
 **
 **     (A)     t1.x=t2.y OR t1.x=t2.z OR t1.y=15 OR t1.z=t3.a+5
 **     (B)     x=expr1 OR expr2=x OR x=expr3
@@ -1038,22 +1038,22 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 ** term that is an equivalent IN expression.  In other words, if the term
 ** being analyzed is:
 **
-** Èç¹ûËùÓĞ×ÓtermsÊÇ¶ÔÓÚµ¥±íTµÄÍ¬Ò»ÁĞ CµÄµÈÊ½±í´ïÊ½ T.C=exprĞÎÊ½£¨ÈçÉÏÃæµÄÀı×Ó B£©£¬
-** Ôò´´½¨Ò»¸öĞÂµÄĞéÄâterm£¬µÈÍ¬ÓÚIN±í´ïÊ½¡£»»¾ä»°Ëµ£¬Èç¹û±»·ÖÎöµÄtermÈçÏÂ£º  
+** å¦‚æœæ‰€æœ‰å­termsæ˜¯å¯¹äºå•è¡¨Tçš„åŒä¸€åˆ— Cçš„ç­‰å¼è¡¨è¾¾å¼ T.C=exprå½¢å¼ï¼ˆå¦‚ä¸Šé¢çš„ä¾‹å­ Bï¼‰ï¼Œ
+** åˆ™åˆ›å»ºä¸€ä¸ªæ–°çš„è™šæ‹Ÿtermï¼Œç­‰åŒäºINè¡¨è¾¾å¼ã€‚æ¢å¥è¯è¯´ï¼Œå¦‚æœè¢«åˆ†æçš„termå¦‚ä¸‹ï¼š  
 **
 **      x = expr1  OR  expr2 = x  OR  x = expr3
 **
 ** then create a new virtual term like this:
-** Ôò´´½¨Ò»¸öĞÂµÄĞéÄâtermÈçÏÂ£º 
+** åˆ™åˆ›å»ºä¸€ä¸ªæ–°çš„è™šæ‹Ÿtermå¦‚ä¸‹ï¼š 
 **
 **      x IN (expr1,expr2,expr3)
 **
-** CASE 2:  Èç¹ûÊÇÍ¬Ò»±íÖĞµÄÁĞ£¬ÇÒÈç¹ûÊÇ"=", "<", "<=", ">", ">=", "IS NULL", or "IN"£¬Ôò¿ÉÒÔÊ¹ÓÃË÷ÒıÓÅ»¯
+** CASE 2:  å¦‚æœæ˜¯åŒä¸€è¡¨ä¸­çš„åˆ—ï¼Œä¸”å¦‚æœæ˜¯"=", "<", "<=", ">", ">=", "IS NULL", or "IN"ï¼Œåˆ™å¯ä»¥ä½¿ç”¨ç´¢å¼•ä¼˜åŒ–
 **
 ** If all subterms are indexable by a single table T, then set
 **
 **     WhereTerm.eOperator              =  WO_OR
-**     WhereTerm.u.pOrInfo->indexable  |=  the cursor number for table T   //T±íµÄÓÎ±êÊı
+**     WhereTerm.u.pOrInfo->indexable  |=  the cursor number for table T   //Tè¡¨çš„æ¸¸æ ‡æ•°
 **
 ** A subterm is "indexable" if it is of the form
 ** "T.C <op> <expr>" where C is any column of table T and 
@@ -1063,16 +1063,16 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 ** subterms have their eOperator set to WO_AND and they have
 ** u.pAndInfo set to a dynamically allocated WhereAndTerm object.
 **
-** Èç¹ûËùÓĞµÄ×Óterms¶¼ÊÇ¿É¼ÓË÷ÒıµÄ£¬²¢ÇÒ¶¼ÊôÓÚÍ¬Ò»¸ö±íT£¬ÄÇÃ´ÉèÖÃ
+** å¦‚æœæ‰€æœ‰çš„å­termséƒ½æ˜¯å¯åŠ ç´¢å¼•çš„ï¼Œå¹¶ä¸”éƒ½å±äºåŒä¸€ä¸ªè¡¨Tï¼Œé‚£ä¹ˆè®¾ç½®
 **     WhereTerm.eOperator              =  WO_OR
-**     WhereTerm.u.pOrInfo->indexable  |=  the cursor number for table T  //T±íµÄÓÎ±êÊı
+**     WhereTerm.u.pOrInfo->indexable  |=  the cursor number for table T  //Tè¡¨çš„æ¸¸æ ‡æ•°
 **  
-** Èç¹ûÒ»¸ötermÊÇ"T.C <op> <expr>"µÄĞÎÊ½£¬ÆäÖĞCÊÇ±íTÖĞµÄÈÎÒâÁĞ£¬
-** <op>ÊÇ"=", "<", "<=", ">", ">=", "IS NULL", or "IN"ÖĞµÄÒ»¸ö£¬
-** ÄÇÃ´Õâ¸ö×ÓtermÊÇ"indexable"¡£
-** Èç¹ûÒ»¸ö×ÓtermÊÇÓÉÒ»¸öANDÁ¬½ÓµÄÁ½¸ö»ò¸ü¶à×Ó×Óterms£¬²¢ÇÒÆäÖĞµÄ×ÓtermsÖÁÉÙÓĞÒ»¸öÊÇindexable£¬
-** ÄÇÃ´Õâ¸ö×ÓtermÒ²ÊÇ¿É¼ÓË÷ÒıµÄ¡£
-** ¿É¼ÓË÷ÒıµÄAND×Óterms°ÑËüÃÇµÄeOperatorÉèÖÃÎªWO_AND£¬°Ñu.pAndInfoÉèÖÃÎªÒ»¸ö¶¯Ì¬·ÖÅäµÄWhereAndTerm¶ÔÏó¡£
+** å¦‚æœä¸€ä¸ªtermæ˜¯"T.C <op> <expr>"çš„å½¢å¼ï¼Œå…¶ä¸­Cæ˜¯è¡¨Tä¸­çš„ä»»æ„åˆ—ï¼Œ
+** <op>æ˜¯"=", "<", "<=", ">", ">=", "IS NULL", or "IN"ä¸­çš„ä¸€ä¸ªï¼Œ
+** é‚£ä¹ˆè¿™ä¸ªå­termæ˜¯"indexable"ã€‚
+** å¦‚æœä¸€ä¸ªå­termæ˜¯ç”±ä¸€ä¸ªANDè¿æ¥çš„ä¸¤ä¸ªæˆ–æ›´å¤šå­å­termsï¼Œå¹¶ä¸”å…¶ä¸­çš„å­termsè‡³å°‘æœ‰ä¸€ä¸ªæ˜¯indexableï¼Œ
+** é‚£ä¹ˆè¿™ä¸ªå­termä¹Ÿæ˜¯å¯åŠ ç´¢å¼•çš„ã€‚
+** å¯åŠ ç´¢å¼•çš„ANDå­termsæŠŠå®ƒä»¬çš„eOperatorè®¾ç½®ä¸ºWO_ANDï¼ŒæŠŠu.pAndInfoè®¾ç½®ä¸ºä¸€ä¸ªåŠ¨æ€åˆ†é…çš„WhereAndTermå¯¹è±¡ã€‚
 **
 ** From another point of view, "indexable" means that the subterm could
 ** potentially be used with an index if an appropriate index exists.
@@ -1080,136 +1080,136 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 ** is something the bestIndex() routine will determine.  This analysis
 ** only looks at whether subterms appropriate for indexing exist.
 **
-** ´ÓÁíÒ»·½Ãæ¿´£¬"¿É¼ÓË÷ÒıµÄ"ÒâÎ¶×ÅÈç¹ûÒ»¸öÊÊµ±µÄË÷Òı´æÔÚ£¬ÄÇÃ´×Óterm¿ÉÒÔÍ¨¹ıÒ»¸öË÷Òı±»Ê¹ÓÃ¡£
-** Õâ¸ö·ÖÎö²»¿¼ÂÇË÷ÒıÊÇ·ñ´æÔÚ£¬ÕâÊÇbestIndex()³ÌĞò¿¼ÂÇµÄÊÂ¡£Õâ¸ö·ÖÎöÖ»¹Ø×¢×ÓtermsÊÇ·ñÓĞºÏÊÊµÄË÷Òı´æÔÚ¡£
+** ä»å¦ä¸€æ–¹é¢çœ‹ï¼Œ"å¯åŠ ç´¢å¼•çš„"æ„å‘³ç€å¦‚æœä¸€ä¸ªé€‚å½“çš„ç´¢å¼•å­˜åœ¨ï¼Œé‚£ä¹ˆå­termå¯ä»¥é€šè¿‡ä¸€ä¸ªç´¢å¼•è¢«ä½¿ç”¨ã€‚
+** è¿™ä¸ªåˆ†æä¸è€ƒè™‘ç´¢å¼•æ˜¯å¦å­˜åœ¨ï¼Œè¿™æ˜¯bestIndex()ç¨‹åºè€ƒè™‘çš„äº‹ã€‚è¿™ä¸ªåˆ†æåªå…³æ³¨å­termsæ˜¯å¦æœ‰åˆé€‚çš„ç´¢å¼•å­˜åœ¨ã€‚
 **
 ** All examples A through E above all satisfy case 2.  But if a term
 ** also statisfies case 1 (such as B) we know that the optimizer will
 ** always prefer case 1, so in that case we pretend that case 2 is not
 ** satisfied.
 ** 
-** ÉÏÃæµÄAµ½EËùÓĞÀı×Ó¶¼Âú×ãCASE 2¡£µ«ÊÇ£¬Èç¹ûÒ»¸ötermÒ²Âú×ãCASE 1£¨ÈçÀı×Ó B£©£¬
-** ÓÉÓÚÓÅ»¯Æ÷×ÜÊÇÇãÏòÓÚCASE 1£¬Òò´Ë£¬ÔÚÕâÖÖÇé¿öÏÂ£¬ÎÒÃÇÈÏÎªCASE 2²»ÊÊºÏ¡£  
-** £¨Èç¹ûÇé¿ö1ºÍÇé¿ö2¶¼Âú×ã£¬ÔòÄ¬ÈÏÊ¹ÓÃÇé¿ö1ÓÅ»¯£©
+** ä¸Šé¢çš„Aåˆ°Eæ‰€æœ‰ä¾‹å­éƒ½æ»¡è¶³CASE 2ã€‚ä½†æ˜¯ï¼Œå¦‚æœä¸€ä¸ªtermä¹Ÿæ»¡è¶³CASE 1ï¼ˆå¦‚ä¾‹å­ Bï¼‰ï¼Œ
+** ç”±äºä¼˜åŒ–å™¨æ€»æ˜¯å€¾å‘äºCASE 1ï¼Œå› æ­¤ï¼Œåœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œæˆ‘ä»¬è®¤ä¸ºCASE 2ä¸é€‚åˆã€‚  
+** ï¼ˆå¦‚æœæƒ…å†µ1å’Œæƒ…å†µ2éƒ½æ»¡è¶³ï¼Œåˆ™é»˜è®¤ä½¿ç”¨æƒ…å†µ1ä¼˜åŒ–ï¼‰
 **
 ** It might be the case that multiple tables are indexable.  For example,
 ** (E) above is indexable on tables P, Q, and R.  
 ** 
-** ¿ÉÄÜÓĞÕâÖÖÇé¿ö£¬ÔÚ¶à¸ö±íÉÏÊÇ¿ÉË÷ÒıµÄ£¬ÈçÀı×Ó E ÔÚ±íP¡¢Q¡¢RÉÏ¶¼¿ÉË÷Òı¡£
+** å¯èƒ½æœ‰è¿™ç§æƒ…å†µï¼Œåœ¨å¤šä¸ªè¡¨ä¸Šæ˜¯å¯ç´¢å¼•çš„ï¼Œå¦‚ä¾‹å­ E åœ¨è¡¨Pã€Qã€Rä¸Šéƒ½å¯ç´¢å¼•ã€‚
 ** 
 ** Terms that satisfy case 2 are candidates for lookup by using
 ** separate indices to find rowids for each subterm and composing
 ** the union of all rowids using a RowSet object.  This is similar
 ** to "bitmap indices" in other database engines.
 **
-** Âú×ãÇé¿ö2µÄterms¿ÉÒÔÊ¹ÓÃ¸÷×ÔµÄË÷ÒıÎªÃ¿¸ösubtermÕÒµ½rowid²¢ÇÒÊ¹ÓÃRowSet¶ÔÏó×éºÏËùÓĞrowid¡£
-** ÕâÀàËÆÓÚÆäËûÊı¾İ¿âÒıÇæµÄ¡°bitmap indices¡± 
+** æ»¡è¶³æƒ…å†µ2çš„termså¯ä»¥ä½¿ç”¨å„è‡ªçš„ç´¢å¼•ä¸ºæ¯ä¸ªsubtermæ‰¾åˆ°rowidå¹¶ä¸”ä½¿ç”¨RowSetå¯¹è±¡ç»„åˆæ‰€æœ‰rowidã€‚
+** è¿™ç±»ä¼¼äºå…¶ä»–æ•°æ®åº“å¼•æ“çš„â€œbitmap indicesâ€ 
 **
 ** OTHERWISE:
 **
 ** If neither case 1 nor case 2 apply, then leave the eOperator set to
 ** zero.  This term is not useful for search.
 **
-** ·ñÔò£º Èç¹û¼È²»Âú×ãCASE 1£¬Ò²²»Âú×ãCASE 2£¬Ôò½«eOperatorÉèÖÃÎª0. Õâ¸öterm¶ÔÓÚ²éÑ¯ÊÇÃ»ÓĞÓÃµÄ¡£  
+** å¦åˆ™ï¼š å¦‚æœæ—¢ä¸æ»¡è¶³CASE 1ï¼Œä¹Ÿä¸æ»¡è¶³CASE 2ï¼Œåˆ™å°†eOperatorè®¾ç½®ä¸º0. è¿™ä¸ªtermå¯¹äºæŸ¥è¯¢æ˜¯æ²¡æœ‰ç”¨çš„ã€‚  
 */
 static void exprAnalyzeOrTerm(
-  SrcList *pSrc,            /* the FROM clause  FROM×Ó¾ä */
-  WhereClause *pWC,         /* the complete WHERE clause  ÍêÕûµÄWHERE×Ó¾ä */
-  int idxTerm               /* Index of the OR-term to be analyzed  ½«±»·ÖÎöµÄOR-termË÷Òı */
+  SrcList *pSrc,            /* the FROM clause  FROMå­å¥ */
+  WhereClause *pWC,         /* the complete WHERE clause  å®Œæ•´çš„WHEREå­å¥ */
+  int idxTerm               /* Index of the OR-term to be analyzed  å°†è¢«åˆ†æçš„OR-termç´¢å¼• */
 ){
-  Parse *pParse = pWC->pParse;            /* Parser context ½âÎöÆ÷ÉÏÏÂÎÄ */
-  sqlite3 *db = pParse->db;               /* Database connection Êı¾İ¿âÁ¬½Ó */
-  WhereTerm *pTerm = &pWC->a[idxTerm];    /* The term to be analyzed Òª·ÖÎöµÄterm */
-  Expr *pExpr = pTerm->pExpr;             /* The expression of the term  termµÄ±í´ïÊ½ */
-  WhereMaskSet *pMaskSet = pWC->pMaskSet; /* Table use masks  ±íÊ¹ÓÃµÄÑÚÂë */
-  int i;                                  /* Loop counters   Ñ­»·¼ÆÊıÆ÷ */
-  WhereClause *pOrWc;       /* Breakup of pTerm into subterms  £¨ORÔËËã·û£©·Ö½â³É×ÓtermsµÄwhere×Ó¾ä pTerm */
-  WhereTerm *pOrTerm;       /* A Sub-term within the pOrWc  Ò»¸öÔÚpOrWcÖĞµÄ×Óterm */
-  WhereOrInfo *pOrInfo;     /* Additional information associated with pTerm  Óë£¨ORÔËËã·û£©pTermÏà¹ØµÄ¸½¼ÓĞÅÏ¢ */
-  Bitmask chngToIN;         /* Tables that might satisfy case 1  Âú×ãÇé¿ö1µÄ±í */
-  Bitmask indexable;        /* Tables that are indexable, satisfying case 2  ¿É¼ÓË÷ÒıÇÒÂú×ãÇé¿ö2µÄ±í */
+  Parse *pParse = pWC->pParse;            /* Parser context è§£æå™¨ä¸Šä¸‹æ–‡ */
+  sqlite3 *db = pParse->db;               /* Database connection æ•°æ®åº“è¿æ¥ */
+  WhereTerm *pTerm = &pWC->a[idxTerm];    /* The term to be analyzed è¦åˆ†æçš„term */
+  Expr *pExpr = pTerm->pExpr;             /* The expression of the term  termçš„è¡¨è¾¾å¼ */
+  WhereMaskSet *pMaskSet = pWC->pMaskSet; /* Table use masks  è¡¨ä½¿ç”¨çš„æ©ç  */
+  int i;                                  /* Loop counters   å¾ªç¯è®¡æ•°å™¨ */
+  WhereClause *pOrWc;       /* Breakup of pTerm into subterms  ï¼ˆORè¿ç®—ç¬¦ï¼‰åˆ†è§£æˆå­termsçš„whereå­å¥ pTerm */
+  WhereTerm *pOrTerm;       /* A Sub-term within the pOrWc  ä¸€ä¸ªåœ¨pOrWcä¸­çš„å­term */
+  WhereOrInfo *pOrInfo;     /* Additional information associated with pTerm  ä¸ï¼ˆORè¿ç®—ç¬¦ï¼‰pTermç›¸å…³çš„é™„åŠ ä¿¡æ¯ */
+  Bitmask chngToIN;         /* Tables that might satisfy case 1  æ»¡è¶³æƒ…å†µ1çš„è¡¨ */
+  Bitmask indexable;        /* Tables that are indexable, satisfying case 2  å¯åŠ ç´¢å¼•ä¸”æ»¡è¶³æƒ…å†µ2çš„è¡¨ */
 
   /*
   ** Break the OR clause into its separate subterms.  The subterms are
   ** stored in a WhereClause structure containing within the WhereOrInfo
   ** object that is attached to the original OR clause term.
   **
-  ** °ÑOR×Ó¾ä·Ö½â³Éµ¥¶ÀµÄ×Óterms¡£×Óterms´æ´¢ÔÚÒ»¸ö°üº¬ÔÚWhereOrInfo¶ÔÏóµÄWhereClause½á¹¹ÖĞ£¬
-  ** WhereOrInfo¶ÔÏó¸½¼Óµ½Ô­Ê¼µÄOR×Ó¾ätermÖĞ¡£
+  ** æŠŠORå­å¥åˆ†è§£æˆå•ç‹¬çš„å­termsã€‚å­termså­˜å‚¨åœ¨ä¸€ä¸ªåŒ…å«åœ¨WhereOrInfoå¯¹è±¡çš„WhereClauseç»“æ„ä¸­ï¼Œ
+  ** WhereOrInfoå¯¹è±¡é™„åŠ åˆ°åŸå§‹çš„ORå­å¥termä¸­ã€‚
   */
   /*
-  ** wtFlags±íÊ¾TERM_xxx bit±êÖ¾£¬TERM_DYNAMIC±íÊ¾ĞèÒªµ÷ÓÃsqlite3ExprDelete(db, pExpr)£¬
-  ** TERM_ORINFO±íÊ¾ĞèÒªÊÍ·ÅWhereTerm.u.pOrInfo¶ÔÏó£¬TERM_ANDINFO±íÊ¾ĞèÒªÊÍ·ÅWhereTerm.u.pAndInfo¶ÔÏó¡£
+  ** wtFlagsè¡¨ç¤ºTERM_xxx bitæ ‡å¿—ï¼ŒTERM_DYNAMICè¡¨ç¤ºéœ€è¦è°ƒç”¨sqlite3ExprDelete(db, pExpr)ï¼Œ
+  ** TERM_ORINFOè¡¨ç¤ºéœ€è¦é‡Šæ”¾WhereTerm.u.pOrInfoå¯¹è±¡ï¼ŒTERM_ANDINFOè¡¨ç¤ºéœ€è¦é‡Šæ”¾WhereTerm.u.pAndInfoå¯¹è±¡ã€‚
   */
   assert( (pTerm->wtFlags & (TERM_DYNAMIC|TERM_ORINFO|TERM_ANDINFO))==0 );
-  assert( pExpr->op==TK_OR );  /*ÅĞ¶¨Îª OR±í´ïÊ½*/
-  pTerm->u.pOrInfo = pOrInfo = sqlite3DbMallocZero(db, sizeof(*pOrInfo));  /*·ÖÅäÄÚ´æ*/
-  if( pOrInfo==0 ) return;  /*·ÖÅäÄÚ´æÊ§°Ü£¬½áÊø*/
+  assert( pExpr->op==TK_OR );  /*åˆ¤å®šä¸º ORè¡¨è¾¾å¼*/
+  pTerm->u.pOrInfo = pOrInfo = sqlite3DbMallocZero(db, sizeof(*pOrInfo));  /*åˆ†é…å†…å­˜*/
+  if( pOrInfo==0 ) return;  /*åˆ†é…å†…å­˜å¤±è´¥ï¼Œç»“æŸ*/
   pTerm->wtFlags |= TERM_ORINFO;
-  pOrWc = &pOrInfo->wc;  /* wc±íÊ¾where×Ó¾ä·Ö½âÎª×Óterms */
-  whereClauseInit(pOrWc, pWC->pParse, pMaskSet, pWC->wctrlFlags);  /*³õÊ¼»¯Ò»¸öÔ¤·ÖÅäµÄWhereClauseÊı¾İ½á¹¹*/
-  whereSplit(pOrWc, pExpr, TK_OR);  /*Ê¶±ğÔÚWHERE×Ó¾äÖĞµÄ×Ó±í´ïÊ½£¬¸ù¾İORÔËËã·û*/
-  exprAnalyzeAll(pSrc, pOrWc);  /*·ÖÎöËùÓĞ×Ó¾ä*/
-  if( db->mallocFailed ) return;  /*¶¯Ì¬ÄÚ´æ·ÖÅäÊ§°Ü£¬½áÊø*/
-  assert( pOrWc->nTerm>=2 );  /*ÅĞ¶¨×Ó¾äµÄ×Óterm´óÓÚµÈÓÚ2¸ö£¬ORÔËËã·û*/
+  pOrWc = &pOrInfo->wc;  /* wcè¡¨ç¤ºwhereå­å¥åˆ†è§£ä¸ºå­terms */
+  whereClauseInit(pOrWc, pWC->pParse, pMaskSet, pWC->wctrlFlags);  /*åˆå§‹åŒ–ä¸€ä¸ªé¢„åˆ†é…çš„WhereClauseæ•°æ®ç»“æ„*/
+  whereSplit(pOrWc, pExpr, TK_OR);  /*è¯†åˆ«åœ¨WHEREå­å¥ä¸­çš„å­è¡¨è¾¾å¼ï¼Œæ ¹æ®ORè¿ç®—ç¬¦*/
+  exprAnalyzeAll(pSrc, pOrWc);  /*åˆ†ææ‰€æœ‰å­å¥*/
+  if( db->mallocFailed ) return;  /*åŠ¨æ€å†…å­˜åˆ†é…å¤±è´¥ï¼Œç»“æŸ*/
+  assert( pOrWc->nTerm>=2 );  /*åˆ¤å®šå­å¥çš„å­termå¤§äºç­‰äº2ä¸ªï¼ŒORè¿ç®—ç¬¦*/
   /*
   ** Compute the set of tables that might satisfy cases 1 or 2.
   **
-  ** ¼ÆËã¿ÉÄÜÂú×ãÇé¿ö1»òÇé¿ö2µÄ±í
+  ** è®¡ç®—å¯èƒ½æ»¡è¶³æƒ…å†µ1æˆ–æƒ…å†µ2çš„è¡¨
   */
-  indexable = ~(Bitmask)0;  /*¿É¼ÓË÷ÒıÇÒÂú×ãÇé¿ö2µÄ±í*/
-  chngToIN = ~(pWC->vmask);  /*Âú×ãÇé¿ö1µÄ±í*/
-  /*¿¼ÂÇÀı×Ó E ĞÎÊ½*/
-  for(i=pOrWc->nTerm-1, pOrTerm=pOrWc->a; i>=0 && indexable; i--, pOrTerm++){  /*Ñ­»·where×Ó¾äµÄÃ¿¸ö×Óterm£¬×Óterm£¨ORÔËËã·û£©µÄÃ¿Ò»Ïî*/
-	/*WO_XX±íÊ¾ÔËËã·ûµÄÎ»ÑÚÂë£¬Ë÷Òı¿ÉÒÔ½øĞĞ¿ª·¢¡£ÕâĞ©ÖµµÄOR-ed×éºÏ¿ÉÒÔÔÚ²éÕÒwhere×Ó¾äµÄ×ÓtermsÊ±±»Ê¹ÓÃ.*/  
-    if( (pOrTerm->eOperator & WO_SINGLE)==0 ){  /*WO_SINGLE±íÊ¾ËùÓĞµ¥Ò»µÄWO_XXÖµµÄÑÚÂë*/
-      WhereAndInfo *pAndInfo;  /*ANDÔËËã·û*/
-      assert( pOrTerm->eOperator==0 );  /*eOperator±íÊ¾ÃèÊö<op>µÄÒ»¸öWO_XX*/
+  indexable = ~(Bitmask)0;  /*å¯åŠ ç´¢å¼•ä¸”æ»¡è¶³æƒ…å†µ2çš„è¡¨*/
+  chngToIN = ~(pWC->vmask);  /*æ»¡è¶³æƒ…å†µ1çš„è¡¨*/
+  /*è€ƒè™‘ä¾‹å­ E å½¢å¼*/
+  for(i=pOrWc->nTerm-1, pOrTerm=pOrWc->a; i>=0 && indexable; i--, pOrTerm++){  /*å¾ªç¯whereå­å¥çš„æ¯ä¸ªå­termï¼Œå­termï¼ˆORè¿ç®—ç¬¦ï¼‰çš„æ¯ä¸€é¡¹*/
+	/*WO_XXè¡¨ç¤ºè¿ç®—ç¬¦çš„ä½æ©ç ï¼Œç´¢å¼•å¯ä»¥è¿›è¡Œå¼€å‘ã€‚è¿™äº›å€¼çš„OR-edç»„åˆå¯ä»¥åœ¨æŸ¥æ‰¾whereå­å¥çš„å­termsæ—¶è¢«ä½¿ç”¨.*/  
+    if( (pOrTerm->eOperator & WO_SINGLE)==0 ){  /*WO_SINGLEè¡¨ç¤ºæ‰€æœ‰å•ä¸€çš„WO_XXå€¼çš„æ©ç */
+      WhereAndInfo *pAndInfo;  /*ANDè¿ç®—ç¬¦*/
+      assert( pOrTerm->eOperator==0 );  /*eOperatorè¡¨ç¤ºæè¿°<op>çš„ä¸€ä¸ªWO_XX*/
       assert( (pOrTerm->wtFlags & (TERM_ANDINFO|TERM_ORINFO))==0 );
       chngToIN = 0;  
-      pAndInfo = sqlite3DbMallocRaw(db, sizeof(*pAndInfo));  /*·ÖÅäÄÚ´æ*/
+      pAndInfo = sqlite3DbMallocRaw(db, sizeof(*pAndInfo));  /*åˆ†é…å†…å­˜*/
       if( pAndInfo ){
-        WhereClause *pAndWC;  /*£¨ANDÔËËã·û£©·Ö½â³É×ÓtermsµÄpTerm£¬pTermÎªORÔËËã·ûµÄ×Óterm*/
-        WhereTerm *pAndTerm;  /*Ò»¸öÔÚpOrWcÖĞµÄ×Óterm*/
-        int j;  /*Ñ­»·¼ÆÊıÆ÷*/
+        WhereClause *pAndWC;  /*ï¼ˆANDè¿ç®—ç¬¦ï¼‰åˆ†è§£æˆå­termsçš„pTermï¼ŒpTermä¸ºORè¿ç®—ç¬¦çš„å­term*/
+        WhereTerm *pAndTerm;  /*ä¸€ä¸ªåœ¨pOrWcä¸­çš„å­term*/
+        int j;  /*å¾ªç¯è®¡æ•°å™¨*/
         Bitmask b = 0;  
-        pOrTerm->u.pAndInfo = pAndInfo;  /*Óë£¨ANDÔËËã·û£©pTermÏà¹ØµÄ¸½¼ÓĞÅÏ¢*/
-        pOrTerm->wtFlags |= TERM_ANDINFO;  /*¸³ÖµÎªTERM_ANDINFO±êÖ¾*/
-        pOrTerm->eOperator = WO_AND;  /*ÔËËã·û¸³ÖµÎªWO_AND*/
+        pOrTerm->u.pAndInfo = pAndInfo;  /*ä¸ï¼ˆANDè¿ç®—ç¬¦ï¼‰pTermç›¸å…³çš„é™„åŠ ä¿¡æ¯*/
+        pOrTerm->wtFlags |= TERM_ANDINFO;  /*èµ‹å€¼ä¸ºTERM_ANDINFOæ ‡å¿—*/
+        pOrTerm->eOperator = WO_AND;  /*è¿ç®—ç¬¦èµ‹å€¼ä¸ºWO_AND*/
         pAndWC = &pAndInfo->wc;
-        whereClauseInit(pAndWC, pWC->pParse, pMaskSet, pWC->wctrlFlags);   /*³õÊ¼»¯Ò»¸öÔ¤·ÖÅäµÄWhereClauseÊı¾İ½á¹¹*/
-        whereSplit(pAndWC, pOrTerm->pExpr, TK_AND);  /*Ê¶±ğÔÚWHERE×Ó¾äÖĞµÄ×Ó±í´ïÊ½£¬¸ù¾İANDÔËËã·û*/
-        exprAnalyzeAll(pSrc, pAndWC);  /*·ÖÎöËùÓĞ×Ó¾ä*/
-        pAndWC->pOuter = pWC;  /*ÍâÁ¬½Ó*/
-        testcase( db->mallocFailed );  /*ºêtestcase()ÓÃÓÚ°ïÖú¸²¸Ç²âÊÔ¡£*/
+        whereClauseInit(pAndWC, pWC->pParse, pMaskSet, pWC->wctrlFlags);   /*åˆå§‹åŒ–ä¸€ä¸ªé¢„åˆ†é…çš„WhereClauseæ•°æ®ç»“æ„*/
+        whereSplit(pAndWC, pOrTerm->pExpr, TK_AND);  /*è¯†åˆ«åœ¨WHEREå­å¥ä¸­çš„å­è¡¨è¾¾å¼ï¼Œæ ¹æ®ANDè¿ç®—ç¬¦*/
+        exprAnalyzeAll(pSrc, pAndWC);  /*åˆ†ææ‰€æœ‰å­å¥*/
+        pAndWC->pOuter = pWC;  /*å¤–è¿æ¥*/
+        testcase( db->mallocFailed );  /*å®testcase()ç”¨äºå¸®åŠ©è¦†ç›–æµ‹è¯•ã€‚*/
         if( !db->mallocFailed ){
-          for(j=0, pAndTerm=pAndWC->a; j<pAndWC->nTerm; j++, pAndTerm++){  /*Ñ­»·ORÔËËã·ûµÄÃ¿¸ö×Óterm£¬×Óterm£¨ANDÔËËã·û£©µÄÃ¿Ò»Ïî*/
+          for(j=0, pAndTerm=pAndWC->a; j<pAndWC->nTerm; j++, pAndTerm++){  /*å¾ªç¯ORè¿ç®—ç¬¦çš„æ¯ä¸ªå­termï¼Œå­termï¼ˆANDè¿ç®—ç¬¦ï¼‰çš„æ¯ä¸€é¡¹*/
             assert( pAndTerm->pExpr );  
-            if( allowedOp(pAndTerm->pExpr->op) ){  /*ÔËËã·û"=", "<", "<=", ">", ">=", "IS NULL", or "IN"µÄÒ»ÖÖ*/
-              b |= getMask(pMaskSet, pAndTerm->leftCursor);  /*·µ»Ø¸ø³öµÄÓÎ±êÊıµÄÎ»ÑÚÂë£¬ANDÔËËã·ûµÄ×óÓÎ±ê*/
+            if( allowedOp(pAndTerm->pExpr->op) ){  /*è¿ç®—ç¬¦"=", "<", "<=", ">", ">=", "IS NULL", or "IN"çš„ä¸€ç§*/
+              b |= getMask(pMaskSet, pAndTerm->leftCursor);  /*è¿”å›ç»™å‡ºçš„æ¸¸æ ‡æ•°çš„ä½æ©ç ï¼ŒANDè¿ç®—ç¬¦çš„å·¦æ¸¸æ ‡*/
             }
           }
         }
-        indexable &= b;  /*»ñµÃÂú×ãÇé¿ö2µÄ±í*/
+        indexable &= b;  /*è·å¾—æ»¡è¶³æƒ…å†µ2çš„è¡¨*/
       }
-    }else if( pOrTerm->wtFlags & TERM_COPIED ){  /*TERM_COPIED±íÊ¾ÓĞÒ»¸öchild*/
+    }else if( pOrTerm->wtFlags & TERM_COPIED ){  /*TERM_COPIEDè¡¨ç¤ºæœ‰ä¸€ä¸ªchild*/
       /* Skip this term for now.  We revisit it when we process the 
       ** corresponding TERM_VIRTUAL term 
 	  **
-	  ** ÔİÊ±Ìø¹ıÕâ¸öterm.µ±Ö´ĞĞ¶ÔÓ¦µÄµÄTERM_VIRTUAL termÊ±»áÖØĞÂ·ÃÎÊËü¡£	
+	  ** æš‚æ—¶è·³è¿‡è¿™ä¸ªterm.å½“æ‰§è¡Œå¯¹åº”çš„çš„TERM_VIRTUAL termæ—¶ä¼šé‡æ–°è®¿é—®å®ƒã€‚	
 	  */
     }else{
       Bitmask b;
-      b = getMask(pMaskSet, pOrTerm->leftCursor);  /*·µ»Ø¸ø³öµÄÓÎ±êÊıµÄÎ»ÑÚÂë£¬ORÔËËã·ûµÄ×óÓÎ±ê*/
-      if( pOrTerm->wtFlags & TERM_VIRTUAL ){  /*TERM_VIRTUAL±íÊ¾ÓÉÓÅ»¯Æ÷Ìí¼Ó£¬²»ĞèÒª±àÂë*/
-        WhereTerm *pOther = &pOrWc->a[pOrTerm->iParent];  /*¶¨Òåwhere×Ó¾äµÄ×Óterm*/
+      b = getMask(pMaskSet, pOrTerm->leftCursor);  /*è¿”å›ç»™å‡ºçš„æ¸¸æ ‡æ•°çš„ä½æ©ç ï¼ŒORè¿ç®—ç¬¦çš„å·¦æ¸¸æ ‡*/
+      if( pOrTerm->wtFlags & TERM_VIRTUAL ){  /*TERM_VIRTUALè¡¨ç¤ºç”±ä¼˜åŒ–å™¨æ·»åŠ ï¼Œä¸éœ€è¦ç¼–ç */
+        WhereTerm *pOther = &pOrWc->a[pOrTerm->iParent];  /*å®šä¹‰whereå­å¥çš„å­term*/
         b |= getMask(pMaskSet, pOther->leftCursor);
       }
-      indexable &= b;  /*»ñµÃÂú×ãÇé¿ö2µÄ±í*/
-      if( pOrTerm->eOperator!=WO_EQ ){  /*ORÔËËã·û×ÓtermµÄÔËËã·ûµÄÎ»ÑÚÂë²»ÊÇWO_EQ*/
+      indexable &= b;  /*è·å¾—æ»¡è¶³æƒ…å†µ2çš„è¡¨*/
+      if( pOrTerm->eOperator!=WO_EQ ){  /*ORè¿ç®—ç¬¦å­termçš„è¿ç®—ç¬¦çš„ä½æ©ç ä¸æ˜¯WO_EQ*/
         chngToIN = 0;
       }else{
-        chngToIN &= b;  /*»ñµÃÂú×ãÇé¿ö1µÄ±í*/
+        chngToIN &= b;  /*è·å¾—æ»¡è¶³æƒ…å†µ1çš„è¡¨*/
       }
     }
   }
@@ -1217,7 +1217,7 @@ static void exprAnalyzeOrTerm(
   /*
   ** Record the set of tables that satisfy case 2.  The set might be
   ** empty. 
-  ** ¼ÇÂ¼Âú×ãÇé¿ö2µÄ±í¡£Õâ¸ö¿ÉÄÜÎª¿Õ¡£
+  ** è®°å½•æ»¡è¶³æƒ…å†µ2çš„è¡¨ã€‚è¿™ä¸ªå¯èƒ½ä¸ºç©ºã€‚
   */
   pOrInfo->indexable = indexable;
   pTerm->eOperator = indexable==0 ? 0 : WO_OR;  
@@ -1226,8 +1226,8 @@ static void exprAnalyzeOrTerm(
   ** we have to do some additional checking to see if case 1 really
   ** is satisfied.
   ** 
-  ** ³öÏÖµÚÒ»ÖÖÇé¿öÊ±µÄ´¦Àí
-  ** chngToIN±£´æ¿ÉÄÜÂú×ãÇé¿ö1µÄ±í¡£µ«ÎÒÃÇĞèÒª×öÒ»Ğ©¸½¼Ó¼ì²é¿´¿´ÊÇ²»ÊÇÕæµÄÂú×ãÇé¿ö1
+  ** å‡ºç°ç¬¬ä¸€ç§æƒ…å†µæ—¶çš„å¤„ç†
+  ** chngToINä¿å­˜å¯èƒ½æ»¡è¶³æƒ…å†µ1çš„è¡¨ã€‚ä½†æˆ‘ä»¬éœ€è¦åšä¸€äº›é™„åŠ æ£€æŸ¥çœ‹çœ‹æ˜¯ä¸æ˜¯çœŸçš„æ»¡è¶³æƒ…å†µ1
   **
   ** chngToIN will hold either 0, 1, or 2 bits.  
   ** The 0-bit case means that there is no possibility of transforming 
@@ -1241,22 +1241,22 @@ static void exprAnalyzeOrTerm(
   ** It might be possible to form an IN operator with either table1.column or table2.column 
   ** as the LHS if either is common to every term of the OR clause.
   **
-  ** chngToIN½«±£´æ0,1»ò2 bits.
-  ** 0-bitÇé¿öÒâÎ¶×ÅÎŞ·¨°ÑOR×Ó¾ä×ª»¯ÎªINÔËËã·û(ÈçÀı×ÓB),ÒòÎªOR×Ó¾äÖĞµÄÒ»¸ö»ò¶à¸ötermsÔÚµ¥¸ö±íµÄÒ»ÁĞÉÏ°üº¬³ı==ÔËËã·ûÒÔÍâµÄÆäËû¶«Î÷¡£
-  ** 1-bitÇé¿öÒâÎ¶×ÅOR×Ó¾äµÄÃ¿¸öterm¶ÔÓÚÄ³¸öµ¥±í¶¼ÊÇ"table.column=expr"ĞÎÊ½¡£ÎÒÃÇ»¹ĞèÒª½øÒ»²½ÑéÖ¤ËùÓĞtermsÊ¹ÓÃµÄÍ¬Ò»ÁĞ¡£
-  ** 2-bitÇé¿öÒâÎ¶×ÅËùÓĞµÄterms¶¼ÊÇ"table1.column=table2.column"ĞÎÊ½¡£Ëü¿ÉÄÜĞÎ³ÉÒ»¸ötable1.column»òtable2.column×÷Îª×ó±ß²Ù×÷ÊıµÄINÔËËã·û¡£
-  ** Èç¹ûÈÎºÎÒ»¸ö£¨table1.column»òtable2.column£©¶ÔOR×Ó¾äµÄÃ¿¸öterm¶¼ÊÇ¹²ÓÃµÄ¡£
+  ** chngToINå°†ä¿å­˜0,1æˆ–2 bits.
+  ** 0-bitæƒ…å†µæ„å‘³ç€æ— æ³•æŠŠORå­å¥è½¬åŒ–ä¸ºINè¿ç®—ç¬¦(å¦‚ä¾‹å­B),å› ä¸ºORå­å¥ä¸­çš„ä¸€ä¸ªæˆ–å¤šä¸ªtermsåœ¨å•ä¸ªè¡¨çš„ä¸€åˆ—ä¸ŠåŒ…å«é™¤==è¿ç®—ç¬¦ä»¥å¤–çš„å…¶ä»–ä¸œè¥¿ã€‚
+  ** 1-bitæƒ…å†µæ„å‘³ç€ORå­å¥çš„æ¯ä¸ªtermå¯¹äºæŸä¸ªå•è¡¨éƒ½æ˜¯"table.column=expr"å½¢å¼ã€‚æˆ‘ä»¬è¿˜éœ€è¦è¿›ä¸€æ­¥éªŒè¯æ‰€æœ‰termsä½¿ç”¨çš„åŒä¸€åˆ—ã€‚
+  ** 2-bitæƒ…å†µæ„å‘³ç€æ‰€æœ‰çš„termséƒ½æ˜¯"table1.column=table2.column"å½¢å¼ã€‚å®ƒå¯èƒ½å½¢æˆä¸€ä¸ªtable1.columnæˆ–table2.columnä½œä¸ºå·¦è¾¹æ“ä½œæ•°çš„INè¿ç®—ç¬¦ã€‚
+  ** å¦‚æœä»»ä½•ä¸€ä¸ªï¼ˆtable1.columnæˆ–table2.columnï¼‰å¯¹ORå­å¥çš„æ¯ä¸ªterméƒ½æ˜¯å…±ç”¨çš„ã€‚
   **
   ** Note that terms of the form "table.column1=table.column2" (the
   ** same table on both sizes of the ==) cannot be optimized.
   ** 
-  ** ×¢Òâ:"table.column1=table.column2"(ÔÚ==µÄÁ½±ß¶¼ÊÇÍ¬Ò»¸ö±í)ĞÎÊ½ÊÇ²»ÄÜÓÅ»¯µÄ
+  ** æ³¨æ„:"table.column1=table.column2"(åœ¨==çš„ä¸¤è¾¹éƒ½æ˜¯åŒä¸€ä¸ªè¡¨)å½¢å¼æ˜¯ä¸èƒ½ä¼˜åŒ–çš„
   */
-  if( chngToIN ){  /*Âú×ãÇé¿ö1*/
-    int okToChngToIN = 0;     /* True if the conversion to IN is valid  Èç¹û¿ÉÒÔ×ª»»ÎªIN²Ù×÷·ûÔòÎªTRUE */
-    int iColumn = -1;         /* Column index on lhs of IN operator  INÔËËã·û×ó±ßµÄÁĞË÷Òı */
-    int iCursor = -1;         /* Table cursor common to all terms  ËùÓĞterms¹²Í¬µÄ±íÓÎ±ê */
-    int j = 0;                /* Loop counter  Ñ­»·¼ÆÊıÆ÷ */
+  if( chngToIN ){  /*æ»¡è¶³æƒ…å†µ1*/
+    int okToChngToIN = 0;     /* True if the conversion to IN is valid  å¦‚æœå¯ä»¥è½¬æ¢ä¸ºINæ“ä½œç¬¦åˆ™ä¸ºTRUE */
+    int iColumn = -1;         /* Column index on lhs of IN operator  INè¿ç®—ç¬¦å·¦è¾¹çš„åˆ—ç´¢å¼• */
+    int iCursor = -1;         /* Table cursor common to all terms  æ‰€æœ‰termså…±åŒçš„è¡¨æ¸¸æ ‡ */
+    int j = 0;                /* Loop counter  å¾ªç¯è®¡æ•°å™¨ */
 
     /* Search for a table and column that appears on one side or the
     ** other of the == operator in every subterm.  That table and column
@@ -1264,19 +1264,19 @@ static void exprAnalyzeOrTerm(
     ** such table and column.  Set okToChngToIN if an appropriate table
     ** and column is found but leave okToChngToIN false if not found.
     **
-    ** ²éÕÒÒ»¸ö±íºÍÁĞ£¬Ëü³öÏÖÔÚÃ¿¸ö×ÓtermÖĞ==ÔËËã·ûµÄÆäÖĞÒ»±ß¡£Õâ¸ö±íºÍÁĞ±»¼ÇÂ¼ÔÚiCursorºÍiColumnÖĞ¡£
-    ** Ò²¿ÉÄÜÃ»ÓĞÈÎºÎÕâÑùµÄ±íºÍÁĞ¡£Èç¹ûÒ»¸öÊÊµ±µÄ±íºÍÁĞ±»²éÕÒµ½£¬ÔòÉèÖÃokToChngToINÎªTRUE£¬·ñÔò£¬ÉèÖÃokToChngToINÎªFALSE¡£
+    ** æŸ¥æ‰¾ä¸€ä¸ªè¡¨å’Œåˆ—ï¼Œå®ƒå‡ºç°åœ¨æ¯ä¸ªå­termä¸­==è¿ç®—ç¬¦çš„å…¶ä¸­ä¸€è¾¹ã€‚è¿™ä¸ªè¡¨å’Œåˆ—è¢«è®°å½•åœ¨iCursorå’ŒiColumnä¸­ã€‚
+    ** ä¹Ÿå¯èƒ½æ²¡æœ‰ä»»ä½•è¿™æ ·çš„è¡¨å’Œåˆ—ã€‚å¦‚æœä¸€ä¸ªé€‚å½“çš„è¡¨å’Œåˆ—è¢«æŸ¥æ‰¾åˆ°ï¼Œåˆ™è®¾ç½®okToChngToINä¸ºTRUEï¼Œå¦åˆ™ï¼Œè®¾ç½®okToChngToINä¸ºFALSEã€‚
     */
     for(j=0; j<2 && !okToChngToIN; j++){
-      pOrTerm = pOrWc->a;  /*where×Ó¾äORÔËËã·û·Ö¸ôµÄÒ»¸öterm*/
+      pOrTerm = pOrWc->a;  /*whereå­å¥ORè¿ç®—ç¬¦åˆ†éš”çš„ä¸€ä¸ªterm*/
       for(i=pOrWc->nTerm-1; i>=0; i--, pOrTerm++){
-        assert( pOrTerm->eOperator==WO_EQ );  /*ÅĞ¶¨termÔËËã·ûÎªWO_EQ*/
-        pOrTerm->wtFlags &= ~TERM_OR_OK;  /*ORÔËËã·û*/
-        if( pOrTerm->leftCursor==iCursor ){  /*iCursor±íÊ¾Âú×ãÇé¿ö1µÄ±í*/
+        assert( pOrTerm->eOperator==WO_EQ );  /*åˆ¤å®štermè¿ç®—ç¬¦ä¸ºWO_EQ*/
+        pOrTerm->wtFlags &= ~TERM_OR_OK;  /*ORè¿ç®—ç¬¦*/
+        if( pOrTerm->leftCursor==iCursor ){  /*iCursorè¡¨ç¤ºæ»¡è¶³æƒ…å†µ1çš„è¡¨*/
           /* This is the 2-bit case and we are on the second iteration and   	
           ** current term is from the first iteration.  So skip this term. 
 		  **
-		  ** ÕâÊÇ2-bitµÄÇé¿ö£¬ÎÒÃÇÊÇÔÚµÚ¶ş´Îµü´úÏÂ£¬µ±Ç°termÊÇÀ´×ÔÓÚµÚÒ»´Îµü´ú¡£ËùÒÔÌø¹ıÕâ¸öterm¡£	
+		  ** è¿™æ˜¯2-bitçš„æƒ…å†µï¼Œæˆ‘ä»¬æ˜¯åœ¨ç¬¬äºŒæ¬¡è¿­ä»£ä¸‹ï¼Œå½“å‰termæ˜¯æ¥è‡ªäºç¬¬ä¸€æ¬¡è¿­ä»£ã€‚æ‰€ä»¥è·³è¿‡è¿™ä¸ªtermã€‚	
 		  */
           assert( j==1 );
           continue;
@@ -1286,22 +1286,22 @@ static void exprAnalyzeOrTerm(
           ** chngToIN set but t1 is not.  This term will be either preceeded or
           ** follwed by an inverted copy (t2.b==t1.a).  Skip this term and use its inversion. 
 		  **
-		  ** Õâ¸öterm±ØĞëÊÇt1.a==t2.bĞÎÊ½£¬ÆäÖĞt2ÊÇchngToINÖĞµÄ±í£¬µ«t1²»ÊÇ¡£
-		  ** Õâ¸öterm½«±»Ö´ĞĞ»ò½øĞĞ·´×ª¸´ÖÆ(t2.b==t1.a)¡£Ìø¹ıÕâ¸öterm£¬Ê¹ÓÃËüµÄ·´×ªĞÎÊ½¡£	
+		  ** è¿™ä¸ªtermå¿…é¡»æ˜¯t1.a==t2.bå½¢å¼ï¼Œå…¶ä¸­t2æ˜¯chngToINä¸­çš„è¡¨ï¼Œä½†t1ä¸æ˜¯ã€‚
+		  ** è¿™ä¸ªtermå°†è¢«æ‰§è¡Œæˆ–è¿›è¡Œåè½¬å¤åˆ¶(t2.b==t1.a)ã€‚è·³è¿‡è¿™ä¸ªtermï¼Œä½¿ç”¨å®ƒçš„åè½¬å½¢å¼ã€‚	
 		  */
-          testcase( pOrTerm->wtFlags & TERM_COPIED );  /*ºêtestcase()ÓÃÓÚ°ïÖú¸²¸Ç²âÊÔ¡£*/
+          testcase( pOrTerm->wtFlags & TERM_COPIED );  /*å®testcase()ç”¨äºå¸®åŠ©è¦†ç›–æµ‹è¯•ã€‚*/
           testcase( pOrTerm->wtFlags & TERM_VIRTUAL );
           assert( pOrTerm->wtFlags & (TERM_COPIED|TERM_VIRTUAL) );
           continue;
         }
-        iColumn = pOrTerm->u.leftColumn;  /*È·¶¨ÁĞ*/
-        iCursor = pOrTerm->leftCursor;  /*È·¶¨±í*/
+        iColumn = pOrTerm->u.leftColumn;  /*ç¡®å®šåˆ—*/
+        iCursor = pOrTerm->leftCursor;  /*ç¡®å®šè¡¨*/
         break;
       }
       if( i<0 ){
         /* No candidate table+column was found.  This can only occur on the second iteration.
         **  
-		** Ã»ÓĞÕÒµ½ÈçÉÏËùÊöµÄºòÑ¡±íºÍÁĞ¡£ÕâÖ»ÄÜ·¢ÉúÔÚµÚ¶ş´ÎÑ­»·¡£
+		** æ²¡æœ‰æ‰¾åˆ°å¦‚ä¸Šæ‰€è¿°çš„å€™é€‰è¡¨å’Œåˆ—ã€‚è¿™åªèƒ½å‘ç”Ÿåœ¨ç¬¬äºŒæ¬¡å¾ªç¯ã€‚
 		*/
         assert( j==1 );
         assert( (chngToIN&(chngToIN-1))==0 );
@@ -1313,29 +1313,29 @@ static void exprAnalyzeOrTerm(
       /* We have found a candidate table and column.  Check to see if that 
       ** table and column is common to every term in the OR clause 
 	  ** 
-	  ** ÒÑ¾­·¢ÏÖÁËÒ»¸öºòÑ¡±íºÍÁĞ¡£ÔÙ²é¿´±íºÍÁĞÊÇ·ñ¶ÔOR×Ó¾äÖĞµÄËùÓĞterm¶¼ÊÇ¹²Í¬µÄ¡£
+	  ** å·²ç»å‘ç°äº†ä¸€ä¸ªå€™é€‰è¡¨å’Œåˆ—ã€‚å†æŸ¥çœ‹è¡¨å’Œåˆ—æ˜¯å¦å¯¹ORå­å¥ä¸­çš„æ‰€æœ‰terméƒ½æ˜¯å…±åŒçš„ã€‚
 	  */
       okToChngToIN = 1;
       for(; i>=0 && okToChngToIN; i--, pOrTerm++){
         assert( pOrTerm->eOperator==WO_EQ );
-        if( pOrTerm->leftCursor!=iCursor ){  /*±í²»ÊÇ*/
-          pOrTerm->wtFlags &= ~TERM_OR_OK;  /*·ÇTERM_OR_OK*/
-        }else if( pOrTerm->u.leftColumn!=iColumn ){  /*ÁĞ²»ÊÇ*/
-          okToChngToIN = 0;  /*ºòÑ¡±íºÍÁĞ²»ÊÇ£¬²»ÄÜ×ª»»ÎªIN²Ù×÷·û*/
+        if( pOrTerm->leftCursor!=iCursor ){  /*è¡¨ä¸æ˜¯*/
+          pOrTerm->wtFlags &= ~TERM_OR_OK;  /*éTERM_OR_OK*/
+        }else if( pOrTerm->u.leftColumn!=iColumn ){  /*åˆ—ä¸æ˜¯*/
+          okToChngToIN = 0;  /*å€™é€‰è¡¨å’Œåˆ—ä¸æ˜¯ï¼Œä¸èƒ½è½¬æ¢ä¸ºINæ“ä½œç¬¦*/
         }else{
           int affLeft, affRight;
           /* If the right-hand side is also a column, then the affinities  
           ** of both right and left sides must be such that no type 
           ** conversions are required on the right.  (Ticket #2249)
           ** 
-		  ** Èç¹ûÓÒ±ßÒ²ÊÇÒ»¸öÁĞ£¬ÄÇÃ´×óÓÒÁ½±ßµÄ¹ØÁªĞÔÊÇ±ØĞëµÄÕâÑùµÄ£¬ÓÒ±ß²»ĞèÒªÀàĞÍ×ª»»¡£
+		  ** å¦‚æœå³è¾¹ä¹Ÿæ˜¯ä¸€ä¸ªåˆ—ï¼Œé‚£ä¹ˆå·¦å³ä¸¤è¾¹çš„å…³è”æ€§æ˜¯å¿…é¡»çš„è¿™æ ·çš„ï¼Œå³è¾¹ä¸éœ€è¦ç±»å‹è½¬æ¢ã€‚
 		  */
-          affRight = sqlite3ExprAffinity(pOrTerm->pExpr->pRight);  /*·µ»Ø±í´ïÊ½pExprµÄÓÒ±ß´æÔÚµÄ¹ØÁªĞÔ 'affinity'*/
-          affLeft = sqlite3ExprAffinity(pOrTerm->pExpr->pLeft);  /*·µ»Ø±í´ïÊ½pExprµÄ×ó±ß´æÔÚµÄ¹ØÁªĞÔ 'affinity'*/
-          if( affRight!=0 && affRight!=affLeft ){  /*Á½±ßÎå¹ØÁªĞÔ*/
+          affRight = sqlite3ExprAffinity(pOrTerm->pExpr->pRight);  /*è¿”å›è¡¨è¾¾å¼pExprçš„å³è¾¹å­˜åœ¨çš„å…³è”æ€§ 'affinity'*/
+          affLeft = sqlite3ExprAffinity(pOrTerm->pExpr->pLeft);  /*è¿”å›è¡¨è¾¾å¼pExprçš„å·¦è¾¹å­˜åœ¨çš„å…³è”æ€§ 'affinity'*/
+          if( affRight!=0 && affRight!=affLeft ){  /*ä¸¤è¾¹äº”å…³è”æ€§*/
             okToChngToIN = 0;
           }else{
-            pOrTerm->wtFlags |= TERM_OR_OK;  /*ÓĞ¹ØÁªĞÔ*/
+            pOrTerm->wtFlags |= TERM_OR_OK;  /*æœ‰å…³è”æ€§*/
           }
         }
       }
@@ -1344,42 +1344,42 @@ static void exprAnalyzeOrTerm(
     /* At this point, okToChngToIN is true if original pTerm satisfies case 1.
     ** In that case, construct a new virtual term that is pTerm converted into an IN operator.
     **
-    ** ÕâÊ±£¬Èç¹ûÔ­Ê¼µÄpTermÂú×ãÇé¿ö1£¬ÔòokToChngToINÎªTRUE¡£ÕâÖÖÇé¿öÏÂ£¬ĞèÒª¹¹ÔìÒ»¸öĞÂµÄĞéÄâµÄterm£¬°ÑpTerm×ª»»ÎªIN²Ù×÷·û¡£
+    ** è¿™æ—¶ï¼Œå¦‚æœåŸå§‹çš„pTermæ»¡è¶³æƒ…å†µ1ï¼Œåˆ™okToChngToINä¸ºTRUEã€‚è¿™ç§æƒ…å†µä¸‹ï¼Œéœ€è¦æ„é€ ä¸€ä¸ªæ–°çš„è™šæ‹Ÿçš„termï¼ŒæŠŠpTermè½¬æ¢ä¸ºINæ“ä½œç¬¦ã€‚
     */
     if( okToChngToIN ){
-      Expr *pDup;            /* A transient duplicate expression  Ò»¸öÁÙÊ±µÄ¸´ÖÆ±í´ïÊ½ */
-      ExprList *pList = 0;   /* The RHS of the IN operator  IN²Ù×÷·ûÓÒ±ß */
-      Expr *pLeft = 0;       /* The LHS of the IN operator  IN²Ù×÷·û×ó±ß */
-      Expr *pNew;            /* The complete IN operator  ÍêÕûµÄIN²Ù×÷·û */
+      Expr *pDup;            /* A transient duplicate expression  ä¸€ä¸ªä¸´æ—¶çš„å¤åˆ¶è¡¨è¾¾å¼ */
+      ExprList *pList = 0;   /* The RHS of the IN operator  INæ“ä½œç¬¦å³è¾¹ */
+      Expr *pLeft = 0;       /* The LHS of the IN operator  INæ“ä½œç¬¦å·¦è¾¹ */
+      Expr *pNew;            /* The complete IN operator  å®Œæ•´çš„INæ“ä½œç¬¦ */
 
       for(i=pOrWc->nTerm-1, pOrTerm=pOrWc->a; i>=0; i--, pOrTerm++){
         if( (pOrTerm->wtFlags & TERM_OR_OK)==0 ) continue;
         assert( pOrTerm->eOperator==WO_EQ );
         assert( pOrTerm->leftCursor==iCursor );
-        assert( pOrTerm->u.leftColumn==iColumn );  /*ÅĞ¶¨ÊÇÂú×ãÇé¿ö1µÄ±íºÍÁĞ£¬²Ù×÷·û*/
-        pDup = sqlite3ExprDup(db, pOrTerm->pExpr->pRight, 0);  /*¸´ÖÆ±í´ïÊ½ÓÒ±ß¡£ ³ö×Ôexpr.c 900ĞĞ*/
-		/*ÔÚ±í´ïÊ½ÁĞ±íÄ©Î²Ìí¼ÓÒ»¸öĞÂµÄÔªËØ¡£Èç¹ûpList×î³õÊÇ¿ÕµÄ£¬Ôò´´½¨Ò»¸öĞÂµÄ±í´ïÊ½ÁĞ±í¡£*/
+        assert( pOrTerm->u.leftColumn==iColumn );  /*åˆ¤å®šæ˜¯æ»¡è¶³æƒ…å†µ1çš„è¡¨å’Œåˆ—ï¼Œæ“ä½œç¬¦*/
+        pDup = sqlite3ExprDup(db, pOrTerm->pExpr->pRight, 0);  /*å¤åˆ¶è¡¨è¾¾å¼å³è¾¹ã€‚ å‡ºè‡ªexpr.c 900è¡Œ*/
+		/*åœ¨è¡¨è¾¾å¼åˆ—è¡¨æœ«å°¾æ·»åŠ ä¸€ä¸ªæ–°çš„å…ƒç´ ã€‚å¦‚æœpListæœ€åˆæ˜¯ç©ºçš„ï¼Œåˆ™åˆ›å»ºä¸€ä¸ªæ–°çš„è¡¨è¾¾å¼åˆ—è¡¨ã€‚*/
         pList = sqlite3ExprListAppend(pWC->pParse, pList, pDup);
         pLeft = pOrTerm->pExpr->pLeft;
       }
       assert( pLeft!=0 );
-      pDup = sqlite3ExprDup(db, pLeft, 0);  /*¸´ÖÆ±í´ïÊ½×ó±ß*/
-      pNew = sqlite3PExpr(pParse, TK_IN, pDup, 0, 0);  /*·ÖÅäÒ»¸öExpr±í´ïÊ½½Úµã£¬Á¬½ÓÁ½¸ö×ÓÊ÷½Úµã¡£ ³ö×Ôexpr.c 496ĞĞ*/
-      if( pNew ){  /*ÍêÕûµÄIN²Ù×÷·û¸´ÖÆ³É¹¦*/
-        int idxNew;  /*ÓÃÓÚË÷Òı*/
+      pDup = sqlite3ExprDup(db, pLeft, 0);  /*å¤åˆ¶è¡¨è¾¾å¼å·¦è¾¹*/
+      pNew = sqlite3PExpr(pParse, TK_IN, pDup, 0, 0);  /*åˆ†é…ä¸€ä¸ªExprè¡¨è¾¾å¼èŠ‚ç‚¹ï¼Œè¿æ¥ä¸¤ä¸ªå­æ ‘èŠ‚ç‚¹ã€‚ å‡ºè‡ªexpr.c 496è¡Œ*/
+      if( pNew ){  /*å®Œæ•´çš„INæ“ä½œç¬¦å¤åˆ¶æˆåŠŸ*/
+        int idxNew;  /*ç”¨äºç´¢å¼•*/
         transferJoinMarkings(pNew, pExpr);
-        assert( !ExprHasProperty(pNew, EP_xIsSelect) );  /*ExprHasPropertyºêÔÚExpr.flags×Ö¶ÎÓÃÓÚ²âÊÔ*/
+        assert( !ExprHasProperty(pNew, EP_xIsSelect) );  /*ExprHasPropertyå®åœ¨Expr.flagså­—æ®µç”¨äºæµ‹è¯•*/
         pNew->x.pList = pList;
-        idxNew = whereClauseInsert(pWC, pNew, TERM_VIRTUAL|TERM_DYNAMIC);  /*·µ»ØĞÂWhereTermÖĞpWC->a[]µÄË÷Òı*/
-        testcase( idxNew==0 );  /*¸²¸Ç²âÊÔ*/
-        exprAnalyze(pSrc, pWC, idxNew);  /*·ÖÎö×Ó±í´ïÊ½£¬¼´whereterm*/
+        idxNew = whereClauseInsert(pWC, pNew, TERM_VIRTUAL|TERM_DYNAMIC);  /*è¿”å›æ–°WhereTermä¸­pWC->a[]çš„ç´¢å¼•*/
+        testcase( idxNew==0 );  /*è¦†ç›–æµ‹è¯•*/
+        exprAnalyze(pSrc, pWC, idxNew);  /*åˆ†æå­è¡¨è¾¾å¼ï¼Œå³whereterm*/
         pTerm = &pWC->a[idxTerm];  
         pWC->a[idxNew].iParent = idxTerm;
         pTerm->nChild = 1;
       }else{
-        sqlite3ExprListDelete(db, pList);  /*É¾³ı¿½±´ÁĞ±í*/
+        sqlite3ExprListDelete(db, pList);  /*åˆ é™¤æ‹·è´åˆ—è¡¨*/
       }
-      pTerm->eOperator = WO_NOOP;   /* case 1 trumps case 2  Çé¿ö1Ê¤¹ıÇé¿ö2¡£  WO_NOOP±íÊ¾Õâ¸öterm²»ÏŞÖÆËÑË÷¿Õ¼ä*/
+      pTerm->eOperator = WO_NOOP;   /* case 1 trumps case 2  æƒ…å†µ1èƒœè¿‡æƒ…å†µ2ã€‚  WO_NOOPè¡¨ç¤ºè¿™ä¸ªtermä¸é™åˆ¶æœç´¢ç©ºé—´*/
     }
   }
 }
@@ -1392,13 +1392,13 @@ static void exprAnalyzeOrTerm(
 ** subexpression and populate all the other fields of the WhereTerm
 ** structure.
 **
-** Õâ¸ö³ÌĞòµÄÊäÈëÊÇÒ»¸öÖ»ÓĞ"pExpr"×Ö¶Î±»Ìî³äµÄWhereTermÊı¾İ½á¹¹¡£
-** Õâ¸ö³ÌĞòµÄ×÷ÓÃÊÇ·ÖÎö×Ó±í´ïÊ½ºÍÌî³äWhereTermÊı¾İ½á¹¹µÄÆäËû×Ö¶Î¡£
+** è¿™ä¸ªç¨‹åºçš„è¾“å…¥æ˜¯ä¸€ä¸ªåªæœ‰"pExpr"å­—æ®µè¢«å¡«å……çš„WhereTermæ•°æ®ç»“æ„ã€‚
+** è¿™ä¸ªç¨‹åºçš„ä½œç”¨æ˜¯åˆ†æå­è¡¨è¾¾å¼å’Œå¡«å……WhereTermæ•°æ®ç»“æ„çš„å…¶ä»–å­—æ®µã€‚
 **
 ** If the expression is of the form "<expr> <op> X" it gets commuted
 ** to the standard form of "X <op> <expr>".
 **
-** Èç¹û±í´ïÊ½ÊÇ"<expr> <op> X"ĞÎÊ½£¬°ÑËû×ª»¯Îª±ê×¼ĞÎÊ½"X <op> <expr>".
+** å¦‚æœè¡¨è¾¾å¼æ˜¯"<expr> <op> X"å½¢å¼ï¼ŒæŠŠä»–è½¬åŒ–ä¸ºæ ‡å‡†å½¢å¼"X <op> <expr>".
 **
 ** If the expression is of the form "X <op> Y" where both X and Y are
 ** columns, then the original expression is unchanged and a new virtual
@@ -1409,29 +1409,29 @@ static void exprAnalyzeOrTerm(
 ** is a commuted copy of a prior term.)  The original term has nChild=1
 ** and the copy has idxParent set to the index of the original term.
 **
-** Èç¹û±í´ïÊ½ÊÇ"X <op> Y"ĞÎÊ½£¬ÆäÖĞXºÍY¶¼ÊÇÁĞ£¬
-** È»ºó£¬Ô­Ê¼µÄ±í´ïÊ½²»»á¸Ä±ä²¢ÇÒ»áÔÚWHERE×Ó¾äÖĞÌí¼ÓÒ»¸öĞÂµÄĞéÄâµÄterm--"Y <op> X"²¢ÇÒ·Ö±ğ±»·ÖÎö¡£
-** Ô­Ê¼µÄterm±»±êÉÏTERM_COPIED£¬²¢ÇÒĞÂµÄterm±»±êÉÏTERM_DYNAMIC(ÒòÎªËüÊÇpExpr£¬ĞèÒªÔÚWhereClauseÉÏÊÍ·Å)
-** ºÍTERM_VIRTUAL(ÒòÎªËüÒ»¸öÏÈÇ°µÄtermµÄ¸´ÖÆ)¡£
-** Ô­Ê¼µÄtermÓĞnChild=1£¬²¢ÇÒ¸´±¾ÓĞidxParent£¬²¢ÇÒ°ÑidxParentÉèÖÃÎªÔ­Ê¼termµÄÏÂ±ê
+** å¦‚æœè¡¨è¾¾å¼æ˜¯"X <op> Y"å½¢å¼ï¼Œå…¶ä¸­Xå’ŒYéƒ½æ˜¯åˆ—ï¼Œ
+** ç„¶åï¼ŒåŸå§‹çš„è¡¨è¾¾å¼ä¸ä¼šæ”¹å˜å¹¶ä¸”ä¼šåœ¨WHEREå­å¥ä¸­æ·»åŠ ä¸€ä¸ªæ–°çš„è™šæ‹Ÿçš„term--"Y <op> X"å¹¶ä¸”åˆ†åˆ«è¢«åˆ†æã€‚
+** åŸå§‹çš„termè¢«æ ‡ä¸ŠTERM_COPIEDï¼Œå¹¶ä¸”æ–°çš„termè¢«æ ‡ä¸ŠTERM_DYNAMIC(å› ä¸ºå®ƒæ˜¯pExprï¼Œéœ€è¦åœ¨WhereClauseä¸Šé‡Šæ”¾)
+** å’ŒTERM_VIRTUAL(å› ä¸ºå®ƒä¸€ä¸ªå…ˆå‰çš„termçš„å¤åˆ¶)ã€‚
+** åŸå§‹çš„termæœ‰nChild=1ï¼Œå¹¶ä¸”å¤æœ¬æœ‰idxParentï¼Œå¹¶ä¸”æŠŠidxParentè®¾ç½®ä¸ºåŸå§‹termçš„ä¸‹æ ‡
 */
 static void exprAnalyze(
-  SrcList *pSrc,            /* the FROM clause FROM×Ó¾ä */
-  WhereClause *pWC,         /* the WHERE clause WHERE×Ó¾ä */
-  int idxTerm               /* Index of the term to be analyzed ĞèÒª·ÖÎöµÄtermÏÂ±ê */
+  SrcList *pSrc,            /* the FROM clause FROMå­å¥ */
+  WhereClause *pWC,         /* the WHERE clause WHEREå­å¥ */
+  int idxTerm               /* Index of the term to be analyzed éœ€è¦åˆ†æçš„termä¸‹æ ‡ */
 ){
-  WhereTerm *pTerm;                /* The term to be analyzed ĞèÒª·ÖÎöµÄterm  */
-  WhereMaskSet *pMaskSet;          /* Set of table index masks ÉèÖÃ±íË÷ÒıÑÚÂë */
-  Expr *pExpr;                     /* The expression to be analyzed ĞèÒª·ÖÎöµÄ±í´ïÊ½ */
-  Bitmask prereqLeft;              /* Prerequesites of the pExpr->pLeft pExpr->pLeftµÄÇ°ÌáÌõ¼ş  */
-  Bitmask prereqAll;               /* Prerequesites of pExpr pExprµÄÇ°ÌáÌõ¼ş */
-  Bitmask extraRight = 0;          /* Extra dependencies on LEFT JOIN ÔÚ×óÁª½ÓÖĞµÄ¶îÍâµÄÒÀÀµ */
-  Expr *pStr1 = 0;                 /* RHS of LIKE/GLOB operator LIKE/GLOBÔËËã·ûµÄÓÒ±ß */
-  int isComplete = 0;              /* RHS of LIKE/GLOB ends with wildcard LIKE/GLOBÓÒ±ßÊÇÓÉÍ¨Åä·û½áÊø */
-  int noCase = 0;                  /* LIKE/GLOB distinguishes case LIKE/GLOBÇø·Ö´óĞ¡Ğ´ */
+  WhereTerm *pTerm;                /* The term to be analyzed éœ€è¦åˆ†æçš„term  */
+  WhereMaskSet *pMaskSet;          /* Set of table index masks è®¾ç½®è¡¨ç´¢å¼•æ©ç  */
+  Expr *pExpr;                     /* The expression to be analyzed éœ€è¦åˆ†æçš„è¡¨è¾¾å¼ */
+  Bitmask prereqLeft;              /* Prerequesites of the pExpr->pLeft pExpr->pLeftçš„å‰ææ¡ä»¶  */
+  Bitmask prereqAll;               /* Prerequesites of pExpr pExprçš„å‰ææ¡ä»¶ */
+  Bitmask extraRight = 0;          /* Extra dependencies on LEFT JOIN åœ¨å·¦è”æ¥ä¸­çš„é¢å¤–çš„ä¾èµ– */
+  Expr *pStr1 = 0;                 /* RHS of LIKE/GLOB operator LIKE/GLOBè¿ç®—ç¬¦çš„å³è¾¹ */
+  int isComplete = 0;              /* RHS of LIKE/GLOB ends with wildcard LIKE/GLOBå³è¾¹æ˜¯ç”±é€šé…ç¬¦ç»“æŸ */
+  int noCase = 0;                  /* LIKE/GLOB distinguishes case LIKE/GLOBåŒºåˆ†å¤§å°å†™ */
   int op;                          /* Top-level operator.  pExpr->op */
-  Parse *pParse = pWC->pParse;     /* Parsing context ·ÖÎöÉÏÏÂÎÄ */
-  sqlite3 *db = pParse->db;        /* Database connection Êı¾İ¿âÁ¬½Ó */
+  Parse *pParse = pWC->pParse;     /* Parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  sqlite3 *db = pParse->db;        /* Database connection æ•°æ®åº“è¿æ¥ */
 
   if( db->mallocFailed ){
     return;
@@ -1457,7 +1457,7 @@ static void exprAnalyze(
   if( ExprHasProperty(pExpr, EP_FromJoin) ){
     Bitmask x = getMask(pMaskSet, pExpr->iRightJoinTable);
     prereqAll |= x;
-    extraRight = x-1;  /* ON clause terms may not be used with an index ÔÚ×óÁ¬½ÓµÄ×ó±íÖĞµÄON×Ó¾äterms¿ÉÄÜ²»ÄÜÓëË÷ÒıÒ»Æğ±»Ê¹ÓÃ
+    extraRight = x-1;  /* ON clause terms may not be used with an index åœ¨å·¦è¿æ¥çš„å·¦è¡¨ä¸­çš„ONå­å¥termså¯èƒ½ä¸èƒ½ä¸ç´¢å¼•ä¸€èµ·è¢«ä½¿ç”¨
                        ** on left table of a LEFT JOIN.  Ticket #3015 */
   }
   pTerm->prereqAll = prereqAll;
@@ -1520,18 +1520,18 @@ static void exprAnalyze(
   ** skipped.  Or, if the children are satisfied by an index, the original
   ** BETWEEN term is skipped.
 <<<<<<< HEAD
-  ** BETWEENÓï¾ä´¦Àí²¿·Ö
+  ** BETWEENè¯­å¥å¤„ç†éƒ¨åˆ†
 =======
   **
-  ** Èç¹ûÒ»¸ötermÊÇBETWEENÔËËã·û£¬´´½¨Á½¸öĞÂµÄĞéÄâtermsÀ´¶¨ÒåBETWEENµÄ·¶Î§¡£
-  ** ÀıÈç:
+  ** å¦‚æœä¸€ä¸ªtermæ˜¯BETWEENè¿ç®—ç¬¦ï¼Œåˆ›å»ºä¸¤ä¸ªæ–°çš„è™šæ‹Ÿtermsæ¥å®šä¹‰BETWEENçš„èŒƒå›´ã€‚
+  ** ä¾‹å¦‚:
   **      a BETWEEN b AND c
-  ** ×ª»¯Îª:
+  ** è½¬åŒ–ä¸º:
   **      (a BETWEEN b AND c) AND (a>=b) AND (a<=c)
-  ** Á½¸öĞÂµÄterms±»Ìí¼Óµ½WhereClause¶ÔÏóµÄ×îºó¡£
-  ** ĞÂµÄtermsÊÇ"dynamic"²¢ÇÒÊÇÔ­Ê¼BETWEEN termµÄ×Óterm.
-  ** ÕâÒâÎ¶×ÅÈç¹ûBETWEEN termÒÑ¾­±àÂë£¬ÄÇÃ´º¢×Óterm½«±»Ìø¹ı.
-  ** »òÕß£¬Èç¹ûº¢×ÓtermÂú×ã¿ÉÒÔÊ¹ÓÃË÷Òı£¬ÄÇÃ´Ô­Ê¼µÄBETWEEN term½«±»Ìø¹ı¡£
+  ** ä¸¤ä¸ªæ–°çš„termsè¢«æ·»åŠ åˆ°WhereClauseå¯¹è±¡çš„æœ€åã€‚
+  ** æ–°çš„termsæ˜¯"dynamic"å¹¶ä¸”æ˜¯åŸå§‹BETWEEN termçš„å­term.
+  ** è¿™æ„å‘³ç€å¦‚æœBETWEEN termå·²ç»ç¼–ç ï¼Œé‚£ä¹ˆå­©å­termå°†è¢«è·³è¿‡.
+  ** æˆ–è€…ï¼Œå¦‚æœå­©å­termæ»¡è¶³å¯ä»¥ä½¿ç”¨ç´¢å¼•ï¼Œé‚£ä¹ˆåŸå§‹çš„BETWEEN termå°†è¢«è·³è¿‡ã€‚
   **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
@@ -1542,16 +1542,16 @@ static void exprAnalyze(
     assert( pList!=0 );
     assert( pList->nExpr==2 );
     for(i=0; i<2; i++){
-      Expr *pNewExpr; //ÓÃÓÚ±£´æ×ª»»ºóµÄĞÂ±í´ïÊ½
-      int idxNew;  //ĞÂ²åÈëµÄ±í´ïÊ½µÄÔÚWhereClauseÖĞµÄÏÂ±ê
-      pNewExpr = sqlite3PExpr(pParse, ops[i], 	//´´½¨>=ºÍ<=±í´ïÊ½
+      Expr *pNewExpr; //ç”¨äºä¿å­˜è½¬æ¢åçš„æ–°è¡¨è¾¾å¼
+      int idxNew;  //æ–°æ’å…¥çš„è¡¨è¾¾å¼çš„åœ¨WhereClauseä¸­çš„ä¸‹æ ‡
+      pNewExpr = sqlite3PExpr(pParse, ops[i], 	//åˆ›å»º>=å’Œ<=è¡¨è¾¾å¼
                              sqlite3ExprDup(db, pExpr->pLeft, 0),
                              sqlite3ExprDup(db, pList->a[i].pExpr, 0), 0);
       idxNew = whereClauseInsert(pWC, pNewExpr, TERM_VIRTUAL|TERM_DYNAMIC);
-      testcase( idxNew==0 ); //¼ì²âÊÇ·ñ×ª»»³É¹¦
+      testcase( idxNew==0 ); //æ£€æµ‹æ˜¯å¦è½¬æ¢æˆåŠŸ
       exprAnalyze(pSrc, pWC, idxNew);
       pTerm = &pWC->a[idxTerm];
-      pWC->a[idxNew].iParent = idxTerm; //±íÊ¾ĞÂ½¨µÄ×Ó¾äÊÇbetweenµÄ×Ó¾äµÄ×ª»¯
+      pWC->a[idxNew].iParent = idxTerm; //è¡¨ç¤ºæ–°å»ºçš„å­å¥æ˜¯betweençš„å­å¥çš„è½¬åŒ–
     }
     pTerm->nChild = 2;
   }
@@ -1559,11 +1559,11 @@ static void exprAnalyze(
 
 #if !defined(SQLITE_OMIT_OR_OPTIMIZATION) && !defined(SQLITE_OMIT_SUBQUERY)
   /* Analyze a term that is composed of two or more subterms connected by
-  ** an OR operator.  ·ÖÎöÓÉORÔËËã·ûÁ¬½ÓµÄÁ½¸ö»ò¸ü¶àµÄ×Óterms×é³É
+  ** an OR operator.  åˆ†æç”±ORè¿ç®—ç¬¦è¿æ¥çš„ä¸¤ä¸ªæˆ–æ›´å¤šçš„å­termsç»„æˆ
   */
-  else if( pExpr->op==TK_OR ){  //Èç¹û¸Ã±í´ïÊ½ÊÇÓÉORÔËËã·ûÁ¬½Ó
-    assert( pWC->op==TK_AND ); //Èç¹ûwhere×Ó¾äÊÇÓÉand·Ö¸ôµÄ
-    exprAnalyzeOrTerm(pSrc, pWC, idxTerm); //ÓÅ»¯¸Ã×Ó¾ä
+  else if( pExpr->op==TK_OR ){  //å¦‚æœè¯¥è¡¨è¾¾å¼æ˜¯ç”±ORè¿ç®—ç¬¦è¿æ¥
+    assert( pWC->op==TK_AND ); //å¦‚æœwhereå­å¥æ˜¯ç”±andåˆ†éš”çš„
+    exprAnalyzeOrTerm(pSrc, pWC, idxTerm); //ä¼˜åŒ–è¯¥å­å¥
     pTerm = &pWC->a[idxTerm];
   }
 #endif /* SQLITE_OMIT_OR_OPTIMIZATION */
@@ -1579,43 +1579,43 @@ static void exprAnalyze(
   ** The last character of the prefix "abc" is incremented to form the
   ** termination condition "abd".
 <<<<<<< HEAD
-  ** LIKEÓï¾ä´¦Àí²¿·Ö
+  ** LIKEè¯­å¥å¤„ç†éƒ¨åˆ†
 =======
   **
-  ** Ìí¼ÓÔ¼ÊøÀ´¼õÉÙLIKE»òGLOBÔËËã·ûµÄËÑË÷¿Õ¼ä¡£
-  ** likeÄ£Ê½"x LIKE 'abc%'"¿ÉÒÔ×ª±äÎªÔ¼Êø
+  ** æ·»åŠ çº¦æŸæ¥å‡å°‘LIKEæˆ–GLOBè¿ç®—ç¬¦çš„æœç´¢ç©ºé—´ã€‚
+  ** likeæ¨¡å¼"x LIKE 'abc%'"å¯ä»¥è½¬å˜ä¸ºçº¦æŸ
   **          x>='abc' AND x<'abd' AND x LIKE 'abc%'
-  ** Ç°×º"abc"µÄ×îºóÒ»¸ö×Ö·ûÒ»Ö±Ôö¼Ó£¬½áÊøÌõ¼şÎª"abd".
+  ** å‰ç¼€"abc"çš„æœ€åä¸€ä¸ªå­—ç¬¦ä¸€ç›´å¢åŠ ï¼Œç»“æŸæ¡ä»¶ä¸º"abd".
   **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( pWC->op==TK_AND 
-   && isLikeOrGlob(pParse, pExpr, &pStr1, &isComplete, &noCase) //ÅĞ¶ÏÊÇ·ñÊÇ¿ÉÒÔÓÅ»¯µÄLIKE»òGLOB²Ù×÷
+   && isLikeOrGlob(pParse, pExpr, &pStr1, &isComplete, &noCase) //åˆ¤æ–­æ˜¯å¦æ˜¯å¯ä»¥ä¼˜åŒ–çš„LIKEæˆ–GLOBæ“ä½œ
   ){
-    Expr *pLeft;       /* LHS of LIKE/GLOB operator LIKE/GLOBÔËËã·ûµÄ×ó±ß */
-    Expr *pStr2;       /* Copy of pStr1 - RHS of LIKE/GLOB operator LIKE/GLOBÔËËã·ûµÄpStr1 - RHSµÄ¸´±¾ */
+    Expr *pLeft;       /* LHS of LIKE/GLOB operator LIKE/GLOBè¿ç®—ç¬¦çš„å·¦è¾¹ */
+    Expr *pStr2;       /* Copy of pStr1 - RHS of LIKE/GLOB operator LIKE/GLOBè¿ç®—ç¬¦çš„pStr1 - RHSçš„å¤æœ¬ */
     Expr *pNewExpr1;
     Expr *pNewExpr2;
     int idxNew1;
     int idxNew2;
-    CollSeq *pColl;    /* Collating sequence to use Ê¹ÓÃÅÅĞòĞòÁĞ */
+    CollSeq *pColl;    /* Collating sequence to use ä½¿ç”¨æ’åºåºåˆ— */
 
     pLeft = pExpr->x.pList->a[1].pExpr;
     pStr2 = sqlite3ExprDup(db, pStr1, 0);
-    if( !db->mallocFailed ){ //Èç¹û³õÊ¼»¯³É¹¦
-      u8 c, *pC;       /* Last character before the first wildcard ÔÚµÚÒ»¸öÍ¨Åä·ûÇ°µÄ×îºóÒ»¸ö×Ö·û */
+    if( !db->mallocFailed ){ //å¦‚æœåˆå§‹åŒ–æˆåŠŸ
+      u8 c, *pC;       /* Last character before the first wildcard åœ¨ç¬¬ä¸€ä¸ªé€šé…ç¬¦å‰çš„æœ€åä¸€ä¸ªå­—ç¬¦ */
       pC = (u8*)&pStr2->u.zToken[sqlite3Strlen30(pStr2->u.zToken)-1];
       c = *pC;
-      if( noCase ){  //Èç¹ûlike»òglobÇø·Ö´óĞ¡Ğ´
+      if( noCase ){  //å¦‚æœlikeæˆ–globåŒºåˆ†å¤§å°å†™
         /* The point is to increment the last character before the first
         ** wildcard.  But if we increment '@', that will push it into the
         ** alphabetic range where case conversions will mess up the 
         ** inequality.  To avoid this, make sure to also run the full
         ** LIKE on all candidate expressions by clearing the isComplete flag
         **
-        ** Ä¿µÄÊÇÔÚµÚÒ»¸öÍ¨Åä·ûÇ°Ôö¼Ó×îºóÒ»¸ö×Ö·û¡£
-        ** µ«Èç¹ûÎÒÃÇÔö¼Ó'@',ÄÇ½«»á°ÑËüÒÆ³ö×ÖÄ¸±íµÄ·¶Î§£¬ÄÇÃ´×Ö·û×ª»»½«ÏİÈë²»Æ½µÈµÄ»ìÂÒ¡£
-        ** ÎªÁË±ÜÃâÕâÖÖÇé¿ö£¬Ê¹ÓÃÇå³ıisComplete±êÖ¾À´È·±£ÔÚËùÓĞºòÑ¡±í´ïÊ½ÉÏÒ²ÔËĞĞÍêÕûµÄLIKE
+        ** ç›®çš„æ˜¯åœ¨ç¬¬ä¸€ä¸ªé€šé…ç¬¦å‰å¢åŠ æœ€åä¸€ä¸ªå­—ç¬¦ã€‚
+        ** ä½†å¦‚æœæˆ‘ä»¬å¢åŠ '@',é‚£å°†ä¼šæŠŠå®ƒç§»å‡ºå­—æ¯è¡¨çš„èŒƒå›´ï¼Œé‚£ä¹ˆå­—ç¬¦è½¬æ¢å°†é™·å…¥ä¸å¹³ç­‰çš„æ··ä¹±ã€‚
+        ** ä¸ºäº†é¿å…è¿™ç§æƒ…å†µï¼Œä½¿ç”¨æ¸…é™¤isCompleteæ ‡å¿—æ¥ç¡®ä¿åœ¨æ‰€æœ‰å€™é€‰è¡¨è¾¾å¼ä¸Šä¹Ÿè¿è¡Œå®Œæ•´çš„LIKE
         **
         */
         if( c=='A'-1 ) isComplete = 0; /* EV: R-64339-08207 */
@@ -1623,23 +1623,23 @@ static void exprAnalyze(
 
         c = sqlite3UpperToLower[c];
       }
-      *pC = c + 1;	//ÉèÖÃ<±í´ïÊ½µÄ×Ö·û´®µÄ×îºóÒ»¸ö×Ö·û
+      *pC = c + 1;	//è®¾ç½®<è¡¨è¾¾å¼çš„å­—ç¬¦ä¸²çš„æœ€åä¸€ä¸ªå­—ç¬¦
     }
-    pColl = sqlite3FindCollSeq(db, SQLITE_UTF8, noCase ? "NOCASE" : "BINARY",0); //ÅÅĞòµÄ·½Ê½
+    pColl = sqlite3FindCollSeq(db, SQLITE_UTF8, noCase ? "NOCASE" : "BINARY",0); //æ’åºçš„æ–¹å¼
     pNewExpr1 = sqlite3PExpr(pParse, TK_GE, 
                      sqlite3ExprSetColl(sqlite3ExprDup(db,pLeft,0), pColl),
-                     pStr1, 0);  //´´½¨>=±í´ïÊ½
-    idxNew1 = whereClauseInsert(pWC, pNewExpr1, TERM_VIRTUAL|TERM_DYNAMIC); //²åÈë>=±í´ïÊ½µ½where×Ó¾äÖĞ
-    testcase( idxNew1==0 ); //²âÊÔÊÇ·ñ²åÈë³É¹¦
-    exprAnalyze(pSrc, pWC, idxNew1); //·ÖÎö±í´ïÊ½¸ñÊ½ÊÇ·ñÎªx <op> <expr>£¬Èç¹û²»ÊÇÔò×ª»¯ÎªÕâÖÖĞÎÊ½
+                     pStr1, 0);  //åˆ›å»º>=è¡¨è¾¾å¼
+    idxNew1 = whereClauseInsert(pWC, pNewExpr1, TERM_VIRTUAL|TERM_DYNAMIC); //æ’å…¥>=è¡¨è¾¾å¼åˆ°whereå­å¥ä¸­
+    testcase( idxNew1==0 ); //æµ‹è¯•æ˜¯å¦æ’å…¥æˆåŠŸ
+    exprAnalyze(pSrc, pWC, idxNew1); //åˆ†æè¡¨è¾¾å¼æ ¼å¼æ˜¯å¦ä¸ºx <op> <expr>ï¼Œå¦‚æœä¸æ˜¯åˆ™è½¬åŒ–ä¸ºè¿™ç§å½¢å¼
     pNewExpr2 = sqlite3PExpr(pParse, TK_LT,
                      sqlite3ExprSetColl(sqlite3ExprDup(db,pLeft,0), pColl),
-                     pStr2, 0);  //´´½¨<±í´ïÊ½
-    idxNew2 = whereClauseInsert(pWC, pNewExpr2, TERM_VIRTUAL|TERM_DYNAMIC); //²åÈë<±í´ïÊ½µ½where×Ó¾äÖĞ
-    testcase( idxNew2==0 ); //²âÊÔÊÇ·ñ²åÈë³É¹¦
-    exprAnalyze(pSrc, pWC, idxNew2); //·ÖÎö±í´ïÊ½¸ñÊ½ÊÇ·ñÎªx <op> <expr>£¬Èç¹û²»ÊÇÔò×ª»¯ÎªÕâÖÖĞÎÊ½
+                     pStr2, 0);  //åˆ›å»º<è¡¨è¾¾å¼
+    idxNew2 = whereClauseInsert(pWC, pNewExpr2, TERM_VIRTUAL|TERM_DYNAMIC); //æ’å…¥<è¡¨è¾¾å¼åˆ°whereå­å¥ä¸­
+    testcase( idxNew2==0 ); //æµ‹è¯•æ˜¯å¦æ’å…¥æˆåŠŸ
+    exprAnalyze(pSrc, pWC, idxNew2); //åˆ†æè¡¨è¾¾å¼æ ¼å¼æ˜¯å¦ä¸ºx <op> <expr>ï¼Œå¦‚æœä¸æ˜¯åˆ™è½¬åŒ–ä¸ºè¿™ç§å½¢å¼
     pTerm = &pWC->a[idxTerm];
-    if( isComplete ){  //Èç¹ûlike»òglobÓÒ±ßÊÇÓÉÍ¨Åä·û½áÊø£¬ÉèÖÃĞÂ´´½¨µÄ×Ó¾äÊôÓÚlikeÓï¾ä
+    if( isComplete ){  //å¦‚æœlikeæˆ–globå³è¾¹æ˜¯ç”±é€šé…ç¬¦ç»“æŸï¼Œè®¾ç½®æ–°åˆ›å»ºçš„å­å¥å±äºlikeè¯­å¥
       pWC->a[idxNew1].iParent = idxTerm;
       pWC->a[idxNew2].iParent = idxTerm;
       pTerm->nChild = 2;
@@ -1654,8 +1654,8 @@ static void exprAnalyze(
   ** virtual tables.  The native query optimizer does not attempt
   ** to do anything with MATCH functions.
   **
-  ** Èç¹ûµ±Ç°±í´ïÊ½ÊÇcolumn MATCH exprĞÎÊ½Ê±£¬Ìí¼ÓÒ»¸öWO_MATCH¸¨ÖútermÔ¼Êø¼¯ºÏ¡£
-  ** Õâ¸öĞÅÏ¢ÊÇÍ¨¹ıĞé±íµÄxBestIndex·½·¨Ê¹ÓÃµÄ¡£±¾µØµÄ²éÑ¯ÓÅ»¯²»³¢ÊÔÊ¹ÓÃMATCHº¯Êı×öÈÎºÎÊÂÇé
+  ** å¦‚æœå½“å‰è¡¨è¾¾å¼æ˜¯column MATCH exprå½¢å¼æ—¶ï¼Œæ·»åŠ ä¸€ä¸ªWO_MATCHè¾…åŠ©termçº¦æŸé›†åˆã€‚
+  ** è¿™ä¸ªä¿¡æ¯æ˜¯é€šè¿‡è™šè¡¨çš„xBestIndexæ–¹æ³•ä½¿ç”¨çš„ã€‚æœ¬åœ°çš„æŸ¥è¯¢ä¼˜åŒ–ä¸å°è¯•ä½¿ç”¨MATCHå‡½æ•°åšä»»ä½•äº‹æƒ…
   */
   if( isMatchOfColumn(pExpr) ){
     int idxNew;
@@ -1698,10 +1698,10 @@ static void exprAnalyze(
   ** of the loop.  Without the TERM_VNULL flag, the not-null check at
   ** the start of the loop will prevent any results from being returned.
   **
-  ** µ±sqlite_stat3Ö±·½Í¼Êı¾İÊÇÓĞĞ§µÄÒ»¸ö"x IS NOT NULL"ĞÎÊ½µÄÔËËã·û£¬
-  ** Èç¹ûx²»ÊÇINTEGER PRIMARY KEY£¬ÄÇÃ´"x IS NOT NULL"ĞÎÊ½±»ÈÏÎª'x>NULL'ÊÇ¸ü¼ÓÓĞĞ§µÄ¡£ËùÒÔ¹¹½¨Ò»¸öÄÇ¸öĞÎÊ½µÄĞéÄâterm
-  ** ×¢Òâ:ĞéÄâµÄterm±ØĞë±ê¼ÇÎªTERM_VNULL.TERM_VNULL±ê¼Ç½«ÔÚÑ­»·Ò»¿ªÊ¼¾Í·ÏÖ¹not-null¼ì²é¡£
-  ** Ã»ÓĞTERM_VNULL±êÖ¾£¬ÔÚÑ­»·¿ªÊ¼µÄnot-null¼ì²é½«×èÖ¹ÈçºÎ½á¹ûµÄ·µ»Ø¡£
+  ** å½“sqlite_stat3ç›´æ–¹å›¾æ•°æ®æ˜¯æœ‰æ•ˆçš„ä¸€ä¸ª"x IS NOT NULL"å½¢å¼çš„è¿ç®—ç¬¦ï¼Œ
+  ** å¦‚æœxä¸æ˜¯INTEGER PRIMARY KEYï¼Œé‚£ä¹ˆ"x IS NOT NULL"å½¢å¼è¢«è®¤ä¸º'x>NULL'æ˜¯æ›´åŠ æœ‰æ•ˆçš„ã€‚æ‰€ä»¥æ„å»ºä¸€ä¸ªé‚£ä¸ªå½¢å¼çš„è™šæ‹Ÿterm
+  ** æ³¨æ„:è™šæ‹Ÿçš„termå¿…é¡»æ ‡è®°ä¸ºTERM_VNULL.TERM_VNULLæ ‡è®°å°†åœ¨å¾ªç¯ä¸€å¼€å§‹å°±åºŸæ­¢not-nullæ£€æŸ¥ã€‚
+  ** æ²¡æœ‰TERM_VNULLæ ‡å¿—ï¼Œåœ¨å¾ªç¯å¼€å§‹çš„not-nullæ£€æŸ¥å°†é˜»æ­¢å¦‚ä½•ç»“æœçš„è¿”å›ã€‚
   **
   */
   if( pExpr->op==TK_NOTNULL
@@ -1737,7 +1737,7 @@ static void exprAnalyze(
   /* Prevent ON clause terms of a LEFT JOIN from being used to drive
   ** an index for tables to the left of the join.
   **
-  ** ·ÀÖ¹Ò»¸ö×óÁ¬½ÓµÄON×Ó¾ätermsÓÃÓÚÇı¶¯Ò»¸ö±íµÄË÷Òıµ½Á¬½ÓµÄ×ó±ß
+  ** é˜²æ­¢ä¸€ä¸ªå·¦è¿æ¥çš„ONå­å¥termsç”¨äºé©±åŠ¨ä¸€ä¸ªè¡¨çš„ç´¢å¼•åˆ°è¿æ¥çš„å·¦è¾¹
   */
   pTerm->prereqRight |= extraRight;
 }
@@ -1746,14 +1746,14 @@ static void exprAnalyze(
 ** Return TRUE if any of the expressions in pList->a[iFirst...] contain
 ** a reference to any table other than the iBase table.
 **
-** Èç¹ûÔÚpList->a[iFirst...]ÖĞµÄÈÎºÎµÄ±í´ïÊ½Óë³ıÁËiBase±íÖ®ÍâµÄÈÎºÎ±íÓĞ¹ØÁª£¬ÄÇÃ´·µ»ØTRUE
+** å¦‚æœåœ¨pList->a[iFirst...]ä¸­çš„ä»»ä½•çš„è¡¨è¾¾å¼ä¸é™¤äº†iBaseè¡¨ä¹‹å¤–çš„ä»»ä½•è¡¨æœ‰å…³è”ï¼Œé‚£ä¹ˆè¿”å›TRUE
 **
 */
 static int referencesOtherTables(
-  ExprList *pList,          /* Search expressions in ths list ÔÚÕâ¸ölistÖĞ²éÕÒ±í´ïÊ½ */
-  WhereMaskSet *pMaskSet,   /* Mapping from tables to bitmaps ±íºÍÎ»Í¼Ö®¼äµÄÓ³Éä */
-  int iFirst,               /* Be searching with the iFirst-th expression ÓëiFirst-thÒ»ÆğËÑË÷±í´ïÊ½ */
-  int iBase                 /* Ignore references to this table ºöÂÔ¶ÔÕâ¸ö±íµÄÒıÓÃ */
+  ExprList *pList,          /* Search expressions in ths list åœ¨è¿™ä¸ªlistä¸­æŸ¥æ‰¾è¡¨è¾¾å¼ */
+  WhereMaskSet *pMaskSet,   /* Mapping from tables to bitmaps è¡¨å’Œä½å›¾ä¹‹é—´çš„æ˜ å°„ */
+  int iFirst,               /* Be searching with the iFirst-th expression ä¸iFirst-thä¸€èµ·æœç´¢è¡¨è¾¾å¼ */
+  int iBase                 /* Ignore references to this table å¿½ç•¥å¯¹è¿™ä¸ªè¡¨çš„å¼•ç”¨ */
 ){
   Bitmask allowed = ~getMask(pMaskSet, iBase);
   while( iFirst<pList->nExpr ){
@@ -1771,21 +1771,21 @@ static int referencesOtherTables(
 ** Argument iBase is the cursor number used for the table that pIdx refers
 ** to.
 **
-** Õâ¸öº¯Êı²éÑ¯±í´ïÊ½ÁĞ±í×÷ÎªµÚ¶ş¸ö²ÎÊı´«µİ¸øÀàĞÍTK_COLUMNµÄ±í´ïÊ½£¬
-** ±í´ïÊ½ÒıÓÃÏàÍ¬µÄÁĞ²¢ÇÒÊ¹ÓÃÏàÍ¬µÄÅÅĞòĞòÁĞ×÷ÎªË÷ÒıpIdxµÄiCol'thÁĞ¡£
-** ²ÎÊıiBase´ú±íÓÎ±êÊı±»ÓÃÔÚpIdxÒıÓÃµÄ±íÉÏ¡£
+** è¿™ä¸ªå‡½æ•°æŸ¥è¯¢è¡¨è¾¾å¼åˆ—è¡¨ä½œä¸ºç¬¬äºŒä¸ªå‚æ•°ä¼ é€’ç»™ç±»å‹TK_COLUMNçš„è¡¨è¾¾å¼ï¼Œ
+** è¡¨è¾¾å¼å¼•ç”¨ç›¸åŒçš„åˆ—å¹¶ä¸”ä½¿ç”¨ç›¸åŒçš„æ’åºåºåˆ—ä½œä¸ºç´¢å¼•pIdxçš„iCol'thåˆ—ã€‚
+** å‚æ•°iBaseä»£è¡¨æ¸¸æ ‡æ•°è¢«ç”¨åœ¨pIdxå¼•ç”¨çš„è¡¨ä¸Šã€‚
 **
 ** If such an expression is found, its index in pList->a[] is returned. If
 ** no expression is found, -1 is returned.
 **
-** ÈôÒ»¸ö±í´ïÊ½±»²éµ½£¬·µ»ØËüµÄÔÚpList->a[]ÏÂ±ê¡£Èç¹ûÃ»ÓĞ²éµ½£¬Ôò·µ»Ø-1.
+** è‹¥ä¸€ä¸ªè¡¨è¾¾å¼è¢«æŸ¥åˆ°ï¼Œè¿”å›å®ƒçš„åœ¨pList->a[]ä¸‹æ ‡ã€‚å¦‚æœæ²¡æœ‰æŸ¥åˆ°ï¼Œåˆ™è¿”å›-1.
 */
 static int findIndexCol(
-  Parse *pParse,                  /* Parse context ·ÖÎöÉÏÏÂÎÄ */
-  ExprList *pList,                /* Expression list to search ÓÃÓÚ²éÕÒµÄ±í´ïÊ½ÁĞ±í */
-  int iBase,                      /* Cursor for table associated with pIdx ÓëpIdxÏà¹ØµÄ±íÓÎ±ê */
-  Index *pIdx,                    /* Index to match column of ÏàÆ¥ÅäµÄË÷ÒıÁĞ */
-  int iCol                        /* Column of index to match Æ¥ÅäµÄË÷ÒıÁĞ */
+  Parse *pParse,                  /* Parse context åˆ†æä¸Šä¸‹æ–‡ */
+  ExprList *pList,                /* Expression list to search ç”¨äºæŸ¥æ‰¾çš„è¡¨è¾¾å¼åˆ—è¡¨ */
+  int iBase,                      /* Cursor for table associated with pIdx ä¸pIdxç›¸å…³çš„è¡¨æ¸¸æ ‡ */
+  Index *pIdx,                    /* Index to match column of ç›¸åŒ¹é…çš„ç´¢å¼•åˆ— */
+  int iCol                        /* Column of index to match åŒ¹é…çš„ç´¢å¼•åˆ— */
 ){
   int i;
   const char *zColl = pIdx->azColl[iCol];
@@ -1818,19 +1818,19 @@ static int findIndexCol(
 **
 ** can benefit from any index on columns "b" and "c".
 **
-** Õâ¸ö³ÌĞò¾ö¶¨Èç¹ûpIdxÄÜ±»ÓÃÓÚ¸¨ÖúÔÚ³ÌĞòÖ´ĞĞÖĞµÄDISTINCTÏŞ¶¨¡£
-** »»¾ä»°Ëµ£¬Ëü²âÊÔÊÇ·ñÎªÁËÍâ²¿Ñ­»·Ê¹ÓÃÕâ¸öË÷ÒıÀ´±£Ö¤ÔÚpDistinctÁĞ±íÖĞËùÓĞ±í´ïÊ½ÖĞµÈÖµµÄĞĞÊÇ×éºÏÔÚÒ»Æğ½»¸¶µÄ
+** è¿™ä¸ªç¨‹åºå†³å®šå¦‚æœpIdxèƒ½è¢«ç”¨äºè¾…åŠ©åœ¨ç¨‹åºæ‰§è¡Œä¸­çš„DISTINCTé™å®šã€‚
+** æ¢å¥è¯è¯´ï¼Œå®ƒæµ‹è¯•æ˜¯å¦ä¸ºäº†å¤–éƒ¨å¾ªç¯ä½¿ç”¨è¿™ä¸ªç´¢å¼•æ¥ä¿è¯åœ¨pDistinctåˆ—è¡¨ä¸­æ‰€æœ‰è¡¨è¾¾å¼ä¸­ç­‰å€¼çš„è¡Œæ˜¯ç»„åˆåœ¨ä¸€èµ·äº¤ä»˜çš„
 */
 static int isDistinctIndex(
-  Parse *pParse,                  /* Parsing context ·ÖÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,               /* The WHERE clause WHERE×Ó¾ä */
-  Index *pIdx,                    /* The index being considered ±»¿¼ÂÇµÄË÷Òı */
-  int base,                       /* Cursor number for the table pIdx is on pIdxÊ¹ÓÃµÄ±íÓÎ±êÊı */
-  ExprList *pDistinct,            /* The DISTINCT expressions DISTINCT±í´ïÊ½ */
-  int nEqCol                      /* Number of index columns with == ==ÖĞË÷ÒıÁĞµÄÊıÄ¿ */
+  Parse *pParse,                  /* Parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,               /* The WHERE clause WHEREå­å¥ */
+  Index *pIdx,                    /* The index being considered è¢«è€ƒè™‘çš„ç´¢å¼• */
+  int base,                       /* Cursor number for the table pIdx is on pIdxä½¿ç”¨çš„è¡¨æ¸¸æ ‡æ•° */
+  ExprList *pDistinct,            /* The DISTINCT expressions DISTINCTè¡¨è¾¾å¼ */
+  int nEqCol                      /* Number of index columns with == ==ä¸­ç´¢å¼•åˆ—çš„æ•°ç›® */
 ){
-  Bitmask mask = 0;               /* Mask of unaccounted for pDistinct exprs Î´½âÊÍµÄpDistinct exprsÑÚÂë */
-  int i;                          /* Iterator variable µü´ú±äÁ¿ */
+  Bitmask mask = 0;               /* Mask of unaccounted for pDistinct exprs æœªè§£é‡Šçš„pDistinct exprsæ©ç  */
+  int i;                          /* Iterator variable è¿­ä»£å˜é‡ */
 
   if( pIdx->zName==0 || pDistinct==0 || pDistinct->nExpr>=BMS ) return 0;
   testcase( pDistinct->nExpr==BMS-1 );
@@ -1843,10 +1843,10 @@ static int isDistinctIndex(
   ** matching "col=X" expression and the column is on the same table as pIdx,
   ** set the corresponding bit in variable mask.
   **
-  ** Ñ­»·±éÀúÔÚdistinct listÖĞµÄËùÓĞµÄ±í´ïÊ½¡£Èç¹ûËûÃÇÖĞµÄÈÎºÎÒ»¸ö²»ÊÇ¼òµ¥µÄÁĞÒıÓÃ£¬ÔòÌáÇ°·µ»Ø¡£
-  ** ·ñÔò£¬Èç¹ûWHERE×Ó¾ä°üº¬"col=X"×Ó¾ä£¬ÄÇÃ´¾Í²âÊÔ¡£
-  ** Èç¹û°üº¬£¬±í´ïÊ½¾ÍÄÜ±»ºöÂÔ¡£Èç¹ûÃ»ÓĞ°üº¬£¬²¢ÇÒÁĞ×÷ÎªË÷ÒıpIdxÒ²²»ÊôÓÚÍ¬Ò»±í£¬ÌáÇ°·µ»Ø¡£
-  ** ×îºó£¬Èç¹ûÃ»ÓĞÓë"col=X"±í´ïÊ½Æ¥Åä²¢ÇÒÁĞ×÷ÎªpIdx²»ÔÚÍ¬Ò»±íÖĞ£¬ÔÚ±äÁ¿ÑÚÂëÖĞÉèÖÃÏàÓ¦µÄÎ»
+  ** å¾ªç¯éå†åœ¨distinct listä¸­çš„æ‰€æœ‰çš„è¡¨è¾¾å¼ã€‚å¦‚æœä»–ä»¬ä¸­çš„ä»»ä½•ä¸€ä¸ªä¸æ˜¯ç®€å•çš„åˆ—å¼•ç”¨ï¼Œåˆ™æå‰è¿”å›ã€‚
+  ** å¦åˆ™ï¼Œå¦‚æœWHEREå­å¥åŒ…å«"col=X"å­å¥ï¼Œé‚£ä¹ˆå°±æµ‹è¯•ã€‚
+  ** å¦‚æœåŒ…å«ï¼Œè¡¨è¾¾å¼å°±èƒ½è¢«å¿½ç•¥ã€‚å¦‚æœæ²¡æœ‰åŒ…å«ï¼Œå¹¶ä¸”åˆ—ä½œä¸ºç´¢å¼•pIdxä¹Ÿä¸å±äºåŒä¸€è¡¨ï¼Œæå‰è¿”å›ã€‚
+  ** æœ€åï¼Œå¦‚æœæ²¡æœ‰ä¸"col=X"è¡¨è¾¾å¼åŒ¹é…å¹¶ä¸”åˆ—ä½œä¸ºpIdxä¸åœ¨åŒä¸€è¡¨ä¸­ï¼Œåœ¨å˜é‡æ©ç ä¸­è®¾ç½®ç›¸åº”çš„ä½
   **
   */
   for(i=0; i<pDistinct->nExpr; i++){
@@ -1875,17 +1875,17 @@ static int isDistinctIndex(
 
 
 
-/*±Ï¸Ó±ó¿ªÊ¼
+/*æ¯•èµ£æ–Œå¼€å§‹
 ** Return true if the DISTINCT expression-list passed as the third argument
 ** is redundant. A DISTINCT list is redundant if the database contains a
 ** UNIQUE index that guarantees that the result of the query will be distinct
 ** anyway.
 **
-** Èç¹ûDISTINCT±í´ïÊ½listµ±×öµÚÈı¸ö²ÎÊıÊÇ¶àÓàµÄ£¬¾Í·µ»Øtrue.
-** Èç¹ûÊı¾İ¿â°üº¬Ò»¸öUNIQUEË÷Òı±£Ö¤²éÑ¯µÄ½á¹ûÒ²×ÜÊÇÎ¨Ò»µÄ£¬ÄÇÃ´Ò»¸öDISTINCT listÊÇ¶àÓàµÄ£¬
+** å¦‚æœDISTINCTè¡¨è¾¾å¼listå½“åšç¬¬ä¸‰ä¸ªå‚æ•°æ˜¯å¤šä½™çš„ï¼Œå°±è¿”å›true.
+** å¦‚æœæ•°æ®åº“åŒ…å«ä¸€ä¸ªUNIQUEç´¢å¼•ä¿è¯æŸ¥è¯¢çš„ç»“æœä¹Ÿæ€»æ˜¯å”¯ä¸€çš„ï¼Œé‚£ä¹ˆä¸€ä¸ªDISTINCT listæ˜¯å¤šä½™çš„ï¼Œ
 */
-/* Èç¹ûDISTINCT±í´ïÊ½ÁĞ±íÊÇ×÷ÎªµÚÈı²ÎÊıÊÇ´«µİÈßÓà£¬Ôò·µ»Ø1¡£Èç¹ûÊı¾İ¿âÖĞ°üº¬Ò»
-** ¸ö±£Ö¤²éÑ¯½á¹ûÍêÈ«²»Í¬µÄÎ¨Ò»Ë÷Òı´æÔÚ£¬ÔòÕâ¸öDISTINCTÁĞ±íÊÇÈßÓàµÄ¡£
+/* å¦‚æœDISTINCTè¡¨è¾¾å¼åˆ—è¡¨æ˜¯ä½œä¸ºç¬¬ä¸‰å‚æ•°æ˜¯ä¼ é€’å†—ä½™ï¼Œåˆ™è¿”å›1ã€‚å¦‚æœæ•°æ®åº“ä¸­åŒ…å«ä¸€
+** ä¸ªä¿è¯æŸ¥è¯¢ç»“æœå®Œå…¨ä¸åŒçš„å”¯ä¸€ç´¢å¼•å­˜åœ¨ï¼Œåˆ™è¿™ä¸ªDISTINCTåˆ—è¡¨æ˜¯å†—ä½™çš„ã€‚
 */
 static int isDistinctRedundant(
   Parse *pParse,
@@ -1902,13 +1902,13 @@ static int isDistinctRedundant(
   ** this query, then it will not be possible to show that the DISTINCT 
 <<<<<<< HEAD
   ** clause is redundant. */
-  /* Èç¹û´Ë´Î²éÑ¯µÄFROM×Ó¾äÖĞÓĞ¶à¸ö±í¸ñ»ò×Ó²éÑ¯£¬Ôò²»»áÏÔÊ¾DISTINCT×Ó¾äÊÇ
-  ** ÈßÓàµÄ¡£
+  /* å¦‚æœæ­¤æ¬¡æŸ¥è¯¢çš„FROMå­å¥ä¸­æœ‰å¤šä¸ªè¡¨æ ¼æˆ–å­æŸ¥è¯¢ï¼Œåˆ™ä¸ä¼šæ˜¾ç¤ºDISTINCTå­å¥æ˜¯
+  ** å†—ä½™çš„ã€‚
   */
 =======
   ** clause is redundant.
-  ** Èç¹ûÔÚÕâ¸ö²éÑ¯µÄFORM×Ó¾äÖĞÓĞ¶àÓàÒ»¸ö±í»òsub-select
-  ** ÄÇÃ´Ëü½«²»¿ÉÄÜÖ¸Ê¾DISTINCT×Ó¾äÊÇ¶àÓàµÄ */
+  ** å¦‚æœåœ¨è¿™ä¸ªæŸ¥è¯¢çš„FORMå­å¥ä¸­æœ‰å¤šä½™ä¸€ä¸ªè¡¨æˆ–sub-select
+  ** é‚£ä¹ˆå®ƒå°†ä¸å¯èƒ½æŒ‡ç¤ºDISTINCTå­å¥æ˜¯å¤šä½™çš„ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   if( pTabList->nSrc!=1 ) return 0;
   iBase = pTabList->a[0].iCursor;
@@ -1917,11 +1917,11 @@ static int isDistinctRedundant(
   /* If any of the expressions is an IPK column on table iBase, then return 
   ** true. Note: The (p->iTable==iBase) part of this test may be false if the
   ** current SELECT is a correlated sub-query.
-  ** Èç¹ûÈÎºÎÒ»¸ö±í´ïÊ½ÔÚ±íiBaseÖĞÊÇÒ»¸öIPKÁĞ£¬ÄÇÃ´¾Í·µ»Øtrue.
-  ** ×¢Òâ:Èç¹ûµ±Ç°µÄSELECTÊÇÒ»¸öÓĞÏà»¥¹ØÏµµÄ×Ó²éÑ¯£¬ÄÇÃ´Õâ¸ö²âÊÔµÄ²¿·Ö(p->iTable==iBase)¿ÉÄÜÊÇ´íµÄ¡£
+  ** å¦‚æœä»»ä½•ä¸€ä¸ªè¡¨è¾¾å¼åœ¨è¡¨iBaseä¸­æ˜¯ä¸€ä¸ªIPKåˆ—ï¼Œé‚£ä¹ˆå°±è¿”å›true.
+  ** æ³¨æ„:å¦‚æœå½“å‰çš„SELECTæ˜¯ä¸€ä¸ªæœ‰ç›¸äº’å…³ç³»çš„å­æŸ¥è¯¢ï¼Œé‚£ä¹ˆè¿™ä¸ªæµ‹è¯•çš„éƒ¨åˆ†(p->iTable==iBase)å¯èƒ½æ˜¯é”™çš„ã€‚
   */
-  /* Èç¹û±í¸ñiBaseÖĞÓĞÈÎÒâ±í´ïÊ½ÊÇIPKÈİÁ¿£¬Ôò·µ»ØÕæ¡£×¢£ºÈç¹ûµ±Ç°SELECTÊÇÒ»¸ö
-  ** Ïà¹Ø×Ó²éÑ¯£¬Ôò´Ë´Î²âÊÔÖĞ£¨p->iTable==iBase£©²¿·Ö¿ÉÄÜÎª¼Ù¡£
+  /* å¦‚æœè¡¨æ ¼iBaseä¸­æœ‰ä»»æ„è¡¨è¾¾å¼æ˜¯IPKå®¹é‡ï¼Œåˆ™è¿”å›çœŸã€‚æ³¨ï¼šå¦‚æœå½“å‰SELECTæ˜¯ä¸€ä¸ª
+  ** ç›¸å…³å­æŸ¥è¯¢ï¼Œåˆ™æ­¤æ¬¡æµ‹è¯•ä¸­ï¼ˆp->iTable==iBaseï¼‰éƒ¨åˆ†å¯èƒ½ä¸ºå‡ã€‚
   */
   for(i=0; i<pDistinct->nExpr; i++){
     Expr *p = pDistinct->a[i].pExpr;
@@ -1941,23 +1941,23 @@ static int isDistinctRedundant(
   **   3. All of those index columns for which the WHERE clause does not
   **      contain a "col=X" term are subject to a NOT NULL constraint.
   **
-  ** Ñ­»·±éÀúÔÚ±íÖĞµÄËùÓĞË÷Òı£¬¼ì²éÃ¿¸öË÷Òı²é¿´ËüÊÇ·ñ»áÊ¹DISTINCTÏŞÖÆ³ÉÎª¶àÓàµÄ¡£
-  ** Èç¹ûÂú×ãÏÂÃæÌõ¼şÄÇÃ´¾Í»áÊ¹DISTINCTÏŞÖÆ³ÉÎª¶àÓàµÄ:
-  ** 	1.Ë÷Òı±¾ÉíÊÇUNIQUE,²¢ÇÒ
-  **		2.ÔÚË÷ÒıÖĞµÄËùÓĞµÄÁĞÒªÃ´ÊÇpDistinctÁĞ±íµÄÒ»²¿·Ö£¬ÒªÃ´ÊÇ°üº¬ĞÎÊ½Îª"col=X"µÄtermµÄWHERE×Ó¾ä(ÆäÖĞXÊÇÒ»¸ö³£Á¿)¡£
-  **		  ±È½Ï¹ØÏµµÄÅÅĞòĞòÁĞºÍselect-list±í´ïÊ½±ØĞëÒ²ÕâĞ©Ë÷ÒıÏàÆ¥Åä
-  **		3.WHERE×Ó¾äµÄËùÓĞµÄÕâĞ©Ë÷ÒıÁĞ²»°üº¬ÓĞÒ»¸öNOT NULLÔ¼ÊøµÄ"col=X"term
+  ** å¾ªç¯éå†åœ¨è¡¨ä¸­çš„æ‰€æœ‰ç´¢å¼•ï¼Œæ£€æŸ¥æ¯ä¸ªç´¢å¼•æŸ¥çœ‹å®ƒæ˜¯å¦ä¼šä½¿DISTINCTé™åˆ¶æˆä¸ºå¤šä½™çš„ã€‚
+  ** å¦‚æœæ»¡è¶³ä¸‹é¢æ¡ä»¶é‚£ä¹ˆå°±ä¼šä½¿DISTINCTé™åˆ¶æˆä¸ºå¤šä½™çš„:
+  ** 	1.ç´¢å¼•æœ¬èº«æ˜¯UNIQUE,å¹¶ä¸”
+  **		2.åœ¨ç´¢å¼•ä¸­çš„æ‰€æœ‰çš„åˆ—è¦ä¹ˆæ˜¯pDistinctåˆ—è¡¨çš„ä¸€éƒ¨åˆ†ï¼Œè¦ä¹ˆæ˜¯åŒ…å«å½¢å¼ä¸º"col=X"çš„termçš„WHEREå­å¥(å…¶ä¸­Xæ˜¯ä¸€ä¸ªå¸¸é‡)ã€‚
+  **		  æ¯”è¾ƒå…³ç³»çš„æ’åºåºåˆ—å’Œselect-listè¡¨è¾¾å¼å¿…é¡»ä¹Ÿè¿™äº›ç´¢å¼•ç›¸åŒ¹é…
+  **		3.WHEREå­å¥çš„æ‰€æœ‰çš„è¿™äº›ç´¢å¼•åˆ—ä¸åŒ…å«æœ‰ä¸€ä¸ªNOT NULLçº¦æŸçš„"col=X"term
   */
-  /* ±éÀú±íÉÏµÄËùÓĞÖ¸±ê,¼ì²éÃ¿¸öÖ¸ÕëÊÇ·ñÊ¹DISTINCTÏŞ¶¨·ûÈßÓà¡£µ±ÇÒ½öµ±Âú×ãÒÔÏÂ
-  ** Ìõ¼ş:
+  /* éå†è¡¨ä¸Šçš„æ‰€æœ‰æŒ‡æ ‡,æ£€æŸ¥æ¯ä¸ªæŒ‡é’ˆæ˜¯å¦ä½¿DISTINCTé™å®šç¬¦å†—ä½™ã€‚å½“ä¸”ä»…å½“æ»¡è¶³ä»¥ä¸‹
+  ** æ¡ä»¶:
   **
-  ** 1¡¢Õâ¸öË÷Òı±¾Éíº¬UNIQUEÔ¼Êø£¬²¢ÇÒ
+  ** 1ã€è¿™ä¸ªç´¢å¼•æœ¬èº«å«UNIQUEçº¦æŸï¼Œå¹¶ä¸”
   **
-  ** 2¡¢Õâ¸öË÷ÒıÖĞËùÓĞµÄÁĞ»òÕßÊÇpDistinctÁĞ±íÖĞµÄ²¿·Ö£¬»òÕßWHERE×Ó¾äÖĞ°üº¬ĞÎÈç
-  ** ¡°col=X¡±µÄÏî£¬ÆäÖĞXÊÇ³£Á¿¡£±È½ÏºÍÑ¡ÔñÁĞ±íµÄÅÅĞòĞòÁĞ±í´ïÊ½±ØĞëÆ¥ÅäÕâĞ©Ë÷Òı
-  ** ¡£
+  ** 2ã€è¿™ä¸ªç´¢å¼•ä¸­æ‰€æœ‰çš„åˆ—æˆ–è€…æ˜¯pDistinctåˆ—è¡¨ä¸­çš„éƒ¨åˆ†ï¼Œæˆ–è€…WHEREå­å¥ä¸­åŒ…å«å½¢å¦‚
+  ** â€œcol=Xâ€çš„é¡¹ï¼Œå…¶ä¸­Xæ˜¯å¸¸é‡ã€‚æ¯”è¾ƒå’Œé€‰æ‹©åˆ—è¡¨çš„æ’åºåºåˆ—è¡¨è¾¾å¼å¿…é¡»åŒ¹é…è¿™äº›ç´¢å¼•
+  ** ã€‚
   ** 
-  ** 3¡¢ËùÓĞ²»°üº¬¡°col=X¡±ÏîµÄWHERE×Ó¾äµÄË÷ÒıÁĞ¶¼Âú×ãNOT NULLÔ¼ÊøÌõ¼ş¡£
+  ** 3ã€æ‰€æœ‰ä¸åŒ…å«â€œcol=Xâ€é¡¹çš„WHEREå­å¥çš„ç´¢å¼•åˆ—éƒ½æ»¡è¶³NOT NULLçº¦æŸæ¡ä»¶ã€‚
   */
   for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){
     if( pIdx->onError==OE_None ) continue;
@@ -1973,9 +1973,9 @@ static int isDistinctRedundant(
     if( i==pIdx->nColumn ){
 <<<<<<< HEAD
       /* This index implies that the DISTINCT qualifier is redundant. */
-	  /* Õâ¸öË÷ÒıÒâÎ¶×ÅDISTINCTÏŞ¶¨·ûÊÇÈßÓàµÄ¡£*/
+	  /* è¿™ä¸ªç´¢å¼•æ„å‘³ç€DISTINCTé™å®šç¬¦æ˜¯å†—ä½™çš„ã€‚*/
 =======
-      /* This index implies that the DISTINCT qualifier is redundant. Õâ¸öË÷Òı°µÊ¾DISTINCTÊÇ¶àÓàµÄ */
+      /* This index implies that the DISTINCT qualifier is redundant. è¿™ä¸ªç´¢å¼•æš—ç¤ºDISTINCTæ˜¯å¤šä½™çš„ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       return 1;
     }
@@ -1989,21 +1989,21 @@ static int isDistinctRedundant(
 ** clause.  If it can, it returns 1.  If pIdx cannot satisfy the
 ** ORDER BY clause, this routine returns 0.
 **
-** Õâ¸ö³ÌĞò¾ö¶¨ORDER BY×Ó¾äÊÇ·ñÄÜÊ¹ÓÃpIdx.Èç¹û¿ÉÒÔÔò·µ»Ø1£¬Èç¹û²»ĞĞÔò·µ»Ø0¡£
+** è¿™ä¸ªç¨‹åºå†³å®šORDER BYå­å¥æ˜¯å¦èƒ½ä½¿ç”¨pIdx.å¦‚æœå¯ä»¥åˆ™è¿”å›1ï¼Œå¦‚æœä¸è¡Œåˆ™è¿”å›0ã€‚
 **
 ** pOrderBy is an ORDER BY clause from a SELECT statement.  pTab is the
 ** left-most table in the FROM clause of that same SELECT statement and
 ** the table has a cursor number of "base".  pIdx is an index on pTab.
 **
-** pOrderByÊÇSELECTÃüÁîÖĞµÄÒ»¸öORDER BY×Ó¾ä.
-** pTabÊÇÔÚÏàÍ¬µÄSELECTÃüÁîÖĞµÄFROM×Ó¾äÖĞ×î×ó±ßµÄ±í¡£²¢ÇÒÕâ¸ö±íÓĞÒ»¸ö»ù±¾µÄÓÎ±êÊı--"base".
-** pIdxÊÇÔÚpTabÉÏµÄÒ»¸öË÷Òı
+** pOrderByæ˜¯SELECTå‘½ä»¤ä¸­çš„ä¸€ä¸ªORDER BYå­å¥.
+** pTabæ˜¯åœ¨ç›¸åŒçš„SELECTå‘½ä»¤ä¸­çš„FROMå­å¥ä¸­æœ€å·¦è¾¹çš„è¡¨ã€‚å¹¶ä¸”è¿™ä¸ªè¡¨æœ‰ä¸€ä¸ªåŸºæœ¬çš„æ¸¸æ ‡æ•°--"base".
+** pIdxæ˜¯åœ¨pTabä¸Šçš„ä¸€ä¸ªç´¢å¼•
 **
 ** nEqCol is the number of columns of pIdx that are used as equality
 ** constraints.  Any of these columns may be missing from the ORDER BY
 ** clause and the match can still be a success.
 **
-** nEqColÊÇ±»ÓÃÓÚµÈÊ½±í´ïÊ½ÖĞµÄpIdxµÄÁĞÊı.ÈÎºÎµÄÕâĞ©ÁĞ¶¼¿ÉÄÜÔÚORDER BY×Ó¾äÖĞÏûÊ§£¬µ«Æ¥ÅäÒÀ¾É¿ÉÒÔ³É¹¦¡£
+** nEqColæ˜¯è¢«ç”¨äºç­‰å¼è¡¨è¾¾å¼ä¸­çš„pIdxçš„åˆ—æ•°.ä»»ä½•çš„è¿™äº›åˆ—éƒ½å¯èƒ½åœ¨ORDER BYå­å¥ä¸­æ¶ˆå¤±ï¼Œä½†åŒ¹é…ä¾æ—§å¯ä»¥æˆåŠŸã€‚
 **
 ** All terms of the ORDER BY that match against the index must be either
 ** ASC or DESC.  (Terms of the ORDER BY clause past the end of a UNIQUE
@@ -2011,52 +2011,52 @@ static int isDistinctRedundant(
 ** set to 1 if the ORDER BY clause is all DESC and it is set to 0 if
 ** the ORDER BY clause is all ASC.
 **
-** ORDER BYµÄËùÓĞtermsÆ¥ÅäË÷Òı±ØĞëÊÇASC or DESC.(ORDER BY×Ó¾äµÄterms¹ıÁËUNIQUEË÷ÒıÄ©Î²Ö®ºó²»ĞèÒªÂú×ãÕâ¸öÔ¼Êø)
-** Èç¹ûORDER BY×Ó¾äÊÇDESC£¬Ôò*pbRevÖµÉèÖÃÎª1£¬Èç¹ûÊÇASCÔòÉèÎª0.
+** ORDER BYçš„æ‰€æœ‰termsåŒ¹é…ç´¢å¼•å¿…é¡»æ˜¯ASC or DESC.(ORDER BYå­å¥çš„termsè¿‡äº†UNIQUEç´¢å¼•æœ«å°¾ä¹‹åä¸éœ€è¦æ»¡è¶³è¿™ä¸ªçº¦æŸ)
+** å¦‚æœORDER BYå­å¥æ˜¯DESCï¼Œåˆ™*pbRevå€¼è®¾ç½®ä¸º1ï¼Œå¦‚æœæ˜¯ASCåˆ™è®¾ä¸º0.
 */
-/* Õâ¸öÀı³Ì¾ö¶¨ÓÚpË÷ÒıÊÇ·ñÂú×ãORDER BYµÄ×Ó¾ä¡£Èç¹ûÂú×ã£¬Ôò·µ»Ø1£¬Èç¹û²»Âú
-** ×ã£¬Ôò·µ»Ø0¡£
+/* è¿™ä¸ªä¾‹ç¨‹å†³å®šäºpç´¢å¼•æ˜¯å¦æ»¡è¶³ORDER BYçš„å­å¥ã€‚å¦‚æœæ»¡è¶³ï¼Œåˆ™è¿”å›1ï¼Œå¦‚æœä¸æ»¡
+** è¶³ï¼Œåˆ™è¿”å›0ã€‚
 **
-** pOrderByÊÇSELECTÓï¾äÖĞµÄÒ»¸öORDER BY×Ó¾äĞÎÊ½¡£pTabÊÇÍ¬Ò»¸öSELECTÓï¾äÖĞ
-** µÄFROM×Ó¾äµÄ×î×ó±ßÒ»¸ö±í¸ñ£¬²¢ÇÒÕâ¸ö±í¸ñÔÚ¿âÖĞÓĞÖ¸Õë¡£pË÷ÒıÊÇpTabÉÏµÄ
-** Ò»¸öË÷Òı¡£
+** pOrderByæ˜¯SELECTè¯­å¥ä¸­çš„ä¸€ä¸ªORDER BYå­å¥å½¢å¼ã€‚pTabæ˜¯åŒä¸€ä¸ªSELECTè¯­å¥ä¸­
+** çš„FROMå­å¥çš„æœ€å·¦è¾¹ä¸€ä¸ªè¡¨æ ¼ï¼Œå¹¶ä¸”è¿™ä¸ªè¡¨æ ¼åœ¨åº“ä¸­æœ‰æŒ‡é’ˆã€‚pç´¢å¼•æ˜¯pTabä¸Šçš„
+** ä¸€ä¸ªç´¢å¼•ã€‚
 **
-** nEqColÊÇÓÃ×÷µÈÊ½Ô¼ÊøµÄpË÷ÒıµÄÈİÁ¿Êı×Ö¡£ÕâĞ©ORDER BY×Ó¾äÖĞµÄÈÎÒâÈİÁ¿¶¼ÓĞ
-** ¿ÉÄÜ¶ªÊ§£¬µ«Æ¥ÅäÈÔÈ»¿ÉÒÔ³É¹¦¡£
+** nEqColæ˜¯ç”¨ä½œç­‰å¼çº¦æŸçš„pç´¢å¼•çš„å®¹é‡æ•°å­—ã€‚è¿™äº›ORDER BYå­å¥ä¸­çš„ä»»æ„å®¹é‡éƒ½æœ‰
+** å¯èƒ½ä¸¢å¤±ï¼Œä½†åŒ¹é…ä»ç„¶å¯ä»¥æˆåŠŸã€‚
 **
-** ËùÓĞORDER BY×Ó¾äÖĞ²»Æ¥ÅäË÷ÒıµÄÏî¶¼±ØĞëÊÇASC»òÕßDESCÂë¡£(ORDER BY×Ó¾äµÄ
-** ¹ıÈ¥µÄÎ¨Ò»Ë÷Òı²»ĞèÒªÂú×ãÕâ¸öÔ¼Êø¡£)Èç¹ûORDER BY×Ó¾äÈ«²¿ÊÇDESCÂëÔò*pbRev
-** µÄÖµÉèÎª1£¬Èç¹ûORDER BY×Ó¾äÈ«²¿ÊÇASCÂëÔò*pbRevµÄÖµÉèÎª0¡£
+** æ‰€æœ‰ORDER BYå­å¥ä¸­ä¸åŒ¹é…ç´¢å¼•çš„é¡¹éƒ½å¿…é¡»æ˜¯ASCæˆ–è€…DESCç ã€‚(ORDER BYå­å¥çš„
+** è¿‡å»çš„å”¯ä¸€ç´¢å¼•ä¸éœ€è¦æ»¡è¶³è¿™ä¸ªçº¦æŸã€‚)å¦‚æœORDER BYå­å¥å…¨éƒ¨æ˜¯DESCç åˆ™*pbRev
+** çš„å€¼è®¾ä¸º1ï¼Œå¦‚æœORDER BYå­å¥å…¨éƒ¨æ˜¯ASCç åˆ™*pbRevçš„å€¼è®¾ä¸º0ã€‚
 */
 static int isSortingIndex(
 <<<<<<< HEAD
-	Parse *pParse,          /* Parsing context *//*½âÎöÉÏÏÂÎÄ*/
-	WhereMaskSet *pMaskSet, /* Mapping from table cursor numbers to bitmaps *//* ´Ó±í¸ñÖ¸ÕëÓ³Éäµ½Î»Í¼*/
-	Index *pIdx,            /* The index we are testing *//* ÕıÔÚ²âÊÔµÄË÷Òı*/
-	int base,               /* Cursor number for the table to be sorted *//* ÅÅĞòÓÃ±íµÄÖ¸Õë*/
-	ExprList *pOrderBy,     /* The ORDER BY clause *//*ORDER BY×Ó¾ä*/
-	int nEqCol,             /* Number of index columns with == constraints *//* Âú×ã==Ô¼ÊøÌõ¼şµÄË÷ÒıÈİÁ¿Êı×Ö*/
-	int wsFlags,            /* Index usages flags *//*Ë÷ÒıÊ¹ÓÃ±ê¼Ç*/
-	int *pbRev              /* Set to 1 if ORDER BY is DESC *//* Èç¹ûORDER BY×Ó¾äÈ«²¿ÊÇDESCÂëÔòÉèÖµÎª1*/
+	Parse *pParse,          /* Parsing context *//*è§£æä¸Šä¸‹æ–‡*/
+	WhereMaskSet *pMaskSet, /* Mapping from table cursor numbers to bitmaps *//* ä»è¡¨æ ¼æŒ‡é’ˆæ˜ å°„åˆ°ä½å›¾*/
+	Index *pIdx,            /* The index we are testing *//* æ­£åœ¨æµ‹è¯•çš„ç´¢å¼•*/
+	int base,               /* Cursor number for the table to be sorted *//* æ’åºç”¨è¡¨çš„æŒ‡é’ˆ*/
+	ExprList *pOrderBy,     /* The ORDER BY clause *//*ORDER BYå­å¥*/
+	int nEqCol,             /* Number of index columns with == constraints *//* æ»¡è¶³==çº¦æŸæ¡ä»¶çš„ç´¢å¼•å®¹é‡æ•°å­—*/
+	int wsFlags,            /* Index usages flags *//*ç´¢å¼•ä½¿ç”¨æ ‡è®°*/
+	int *pbRev              /* Set to 1 if ORDER BY is DESC *//* å¦‚æœORDER BYå­å¥å…¨éƒ¨æ˜¯DESCç åˆ™è®¾å€¼ä¸º1*/
 ){
-	int i, j;                       /* Loop counters *//* Ñ­»·¼ÆÊıÆ÷*/
-	int sortOrder = 0;              /* XOR of index and ORDER BY sort direction *//* Ë÷ÒıÖĞµÄ»òÔËËãÒÔ¼°ORDER BYÅÅĞò·½Ïò*/
-  int nTerm;                      /* Number of ORDER BY terms *//* ORDER BYÏîµÄÊı×Ö*/
-  struct ExprList_item *pTerm;    /* A term of the ORDER BY clause *//* ORDER BY×Ó¾äÖĞµÄÒ»¸öÏî*/
+	int i, j;                       /* Loop counters *//* å¾ªç¯è®¡æ•°å™¨*/
+	int sortOrder = 0;              /* XOR of index and ORDER BY sort direction *//* ç´¢å¼•ä¸­çš„æˆ–è¿ç®—ä»¥åŠORDER BYæ’åºæ–¹å‘*/
+  int nTerm;                      /* Number of ORDER BY terms *//* ORDER BYé¡¹çš„æ•°å­—*/
+  struct ExprList_item *pTerm;    /* A term of the ORDER BY clause *//* ORDER BYå­å¥ä¸­çš„ä¸€ä¸ªé¡¹*/
 =======
-  Parse *pParse,          /* Parsing context ·ÖÎöÉÏÏÂÎÄ */
-  WhereMaskSet *pMaskSet, /* Mapping from table cursor numbers to bitmaps ±íÓÎ±êÊıµ½Î»Í¼µÄÓ³Éä */
-  Index *pIdx,            /* The index we are testing ÎÒÃÇ²âÊÔµÄË÷Òı */
-  int base,               /* Cursor number for the table to be sorted ĞèÒªÅÅĞòµÄ±íÓÎ±êÊı */
-  ExprList *pOrderBy,     /* The ORDER BY clause ORDER BY×Ó¾ä */
-  int nEqCol,             /* Number of index columns with == constraints ==Ô¼ÊøµÄË÷ÒıÁĞÊı */
-  int wsFlags,            /* Index usages flags Ë÷ÒıÊ¹ÓÃ±êÖ¾ */
-  int *pbRev              /* Set to 1 if ORDER BY is DESC Èç¹ûORDER BYÊÇDESCÔòÉèÎª1 */
+  Parse *pParse,          /* Parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  WhereMaskSet *pMaskSet, /* Mapping from table cursor numbers to bitmaps è¡¨æ¸¸æ ‡æ•°åˆ°ä½å›¾çš„æ˜ å°„ */
+  Index *pIdx,            /* The index we are testing æˆ‘ä»¬æµ‹è¯•çš„ç´¢å¼• */
+  int base,               /* Cursor number for the table to be sorted éœ€è¦æ’åºçš„è¡¨æ¸¸æ ‡æ•° */
+  ExprList *pOrderBy,     /* The ORDER BY clause ORDER BYå­å¥ */
+  int nEqCol,             /* Number of index columns with == constraints ==çº¦æŸçš„ç´¢å¼•åˆ—æ•° */
+  int wsFlags,            /* Index usages flags ç´¢å¼•ä½¿ç”¨æ ‡å¿— */
+  int *pbRev              /* Set to 1 if ORDER BY is DESC å¦‚æœORDER BYæ˜¯DESCåˆ™è®¾ä¸º1 */
 ){
-  int i, j;                       /* Loop counters Ñ­»·¼ÆÊıÆ÷ */
-  int sortOrder = 0;              /* XOR of index and ORDER BY sort direction Ë÷ÒıµÄXORºÍORDER BYÅÅĞòÇ÷ÊÆ */
-  int nTerm;                      /* Number of ORDER BY terms ORDER BY termsÊı */
-  struct ExprList_item *pTerm;    /* A term of the ORDER BY clause ORDER BY×Ó¾äµÄÒ»¸öterm */
+  int i, j;                       /* Loop counters å¾ªç¯è®¡æ•°å™¨ */
+  int sortOrder = 0;              /* XOR of index and ORDER BY sort direction ç´¢å¼•çš„XORå’ŒORDER BYæ’åºè¶‹åŠ¿ */
+  int nTerm;                      /* Number of ORDER BY terms ORDER BY termsæ•° */
+  struct ExprList_item *pTerm;    /* A term of the ORDER BY clause ORDER BYå­å¥çš„ä¸€ä¸ªterm */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   sqlite3 *db = pParse->db;
 
@@ -2071,48 +2071,48 @@ static int isSortingIndex(
   ** or an index structure allocated on the stack by bestBtreeIndex() to
 <<<<<<< HEAD
   ** represent the rowid index that is part of every table.  */
-  /* pË÷Òı²ÎÊı±ØĞë»òÕßÖ¸ÏòÒ»¸ö¡°ÕæÊµµÄ¡±ÃüÃûË÷Òı½á¹¹£¬»òÕßÒ»¸ö·ÖÅäµ½
-  ** bestBtreeIndexÕ»µÄË÷Òı½á¹¹£¬À´±íÊ¾rowidÖ¸ÊıÊÇÃ¿¸ö±íÖĞµÄÒ»²¿·Ö¡£
+  /* pç´¢å¼•å‚æ•°å¿…é¡»æˆ–è€…æŒ‡å‘ä¸€ä¸ªâ€œçœŸå®çš„â€å‘½åç´¢å¼•ç»“æ„ï¼Œæˆ–è€…ä¸€ä¸ªåˆ†é…åˆ°
+  ** bestBtreeIndexæ ˆçš„ç´¢å¼•ç»“æ„ï¼Œæ¥è¡¨ç¤ºrowidæŒ‡æ•°æ˜¯æ¯ä¸ªè¡¨ä¸­çš„ä¸€éƒ¨åˆ†ã€‚
   */
 =======
   ** represent the rowid index that is part of every table.  
-  ** ²ÎÊıpIdx±ØĞëÖ¸ÏòÒ»¸ö'real'ÃüÃûµÄË÷ÒıÊı¾İ½á¹¹
-  ** »òÕßÔÚ¶ÑÕ»ÖĞÓÉbestBtreeIndex()·ÖÅäÒ»¸öË÷ÒıÊı¾İ½á¹¹ÓÃÓÚ±íÊ¾Ã¿¸ö±íµÄrowidË÷ÒıÕâ¸ö²¿·Ö */
+  ** å‚æ•°pIdxå¿…é¡»æŒ‡å‘ä¸€ä¸ª'real'å‘½åçš„ç´¢å¼•æ•°æ®ç»“æ„
+  ** æˆ–è€…åœ¨å †æ ˆä¸­ç”±bestBtreeIndex()åˆ†é…ä¸€ä¸ªç´¢å¼•æ•°æ®ç»“æ„ç”¨äºè¡¨ç¤ºæ¯ä¸ªè¡¨çš„rowidç´¢å¼•è¿™ä¸ªéƒ¨åˆ† */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   assert( pIdx->zName || (pIdx->nColumn==1 && pIdx->aiColumn[0]==-1) );
 
   /* Match terms of the ORDER BY clause against columns of
   ** the index.
   **
-  ** ÓëORDER BY×Ó¾ätermsÏàÆ¥ÅäµÄË÷ÒıÁĞ
+  ** ä¸ORDER BYå­å¥termsç›¸åŒ¹é…çš„ç´¢å¼•åˆ—
   **
   ** Note that indices have pIdx->nColumn regular columns plus
   ** one additional column containing the rowid.  The rowid column
   ** of the index is also allowed to match against the ORDER BY
   ** clause.
-  ** ×¢Òâ:Ë÷ÒıÓĞpIdx->nColumn¹æÔòÁĞ¼ÓÉÏÒ»¸ö°üº¬rowidµÄ¸½¼ÓÁĞ.
-  ** Ë÷ÒırowidÁĞÒ²ÊÇÄÜ¹»ÓëORDER BY×Ó¾äÏàÆ¥Åä
+  ** æ³¨æ„:ç´¢å¼•æœ‰pIdx->nColumnè§„åˆ™åˆ—åŠ ä¸Šä¸€ä¸ªåŒ…å«rowidçš„é™„åŠ åˆ—.
+  ** ç´¢å¼•rowidåˆ—ä¹Ÿæ˜¯èƒ½å¤Ÿä¸ORDER BYå­å¥ç›¸åŒ¹é…
   */
-  /* Æ¥ÅäÓëË÷ÒıÖĞµÄÁĞ²»Í¬µÄORDER BY×Ó¾äÖĞµÄÏî¡£
+  /* åŒ¹é…ä¸ç´¢å¼•ä¸­çš„åˆ—ä¸åŒçš„ORDER BYå­å¥ä¸­çš„é¡¹ã€‚
   **
-  ** ×¢£ºÖ¸ÊıpIdx - > nColumn³£¹æÁĞ¼ÓÒ»¸ö¶îÍâµÄÁĞ°üº¬rowid¡£rowid
-  ** ÁĞµÄË÷ÒıÒ²ÔÊĞíÆ¥ÅäORDER BY×Ó¾ä¡£
+  ** æ³¨ï¼šæŒ‡æ•°pIdx - > nColumnå¸¸è§„åˆ—åŠ ä¸€ä¸ªé¢å¤–çš„åˆ—åŒ…å«rowidã€‚rowid
+  ** åˆ—çš„ç´¢å¼•ä¹Ÿå…è®¸åŒ¹é…ORDER BYå­å¥ã€‚
   */
   for(i=j=0, pTerm=pOrderBy->a; j<nTerm && i<=pIdx->nColumn; i++){
 <<<<<<< HEAD
-	  Expr *pExpr;       /* The expression of the ORDER BY pTerm *//* ORDER BY×Ó¾äÖĞµÄ±í´ïÊ½pTerm*/
-	  CollSeq *pColl;    /* The collating sequence of pExpr *//* ÅÅĞòĞòÁĞpExpr*/
-	  int termSortOrder; /* Sort order for this term *//*¶Ô´ËÏî½øĞĞÅÅĞò*/
-	  int iColumn;       /* The i-th column of the index.  -1 for rowid *//* Ë÷ÒıÖĞµÄµÚiÁĞ*/
-	  int iSortOrder;    /* 1 for DESC, 0 for ASC on the i-th index term *//* µÚi¸öË÷ÒıÏîÖĞ£¬DESCÂëÎª1£¬ASCÂëÎª0*/
-	  const char *zColl; /* Name of the collating sequence for i-th index term *//* µÚi¸öË÷ÒıÏîÖĞÅÅĞòĞòÁĞµÄÃû³Æ*/
+	  Expr *pExpr;       /* The expression of the ORDER BY pTerm *//* ORDER BYå­å¥ä¸­çš„è¡¨è¾¾å¼pTerm*/
+	  CollSeq *pColl;    /* The collating sequence of pExpr *//* æ’åºåºåˆ—pExpr*/
+	  int termSortOrder; /* Sort order for this term *//*å¯¹æ­¤é¡¹è¿›è¡Œæ’åº*/
+	  int iColumn;       /* The i-th column of the index.  -1 for rowid *//* ç´¢å¼•ä¸­çš„ç¬¬iåˆ—*/
+	  int iSortOrder;    /* 1 for DESC, 0 for ASC on the i-th index term *//* ç¬¬iä¸ªç´¢å¼•é¡¹ä¸­ï¼ŒDESCç ä¸º1ï¼ŒASCç ä¸º0*/
+	  const char *zColl; /* Name of the collating sequence for i-th index term *//* ç¬¬iä¸ªç´¢å¼•é¡¹ä¸­æ’åºåºåˆ—çš„åç§°*/
 =======
-    Expr *pExpr;       /* The expression of the ORDER BY pTerm ORDER BY±í´ïÊ½pTerm */
-    CollSeq *pColl;    /* The collating sequence of pExpr pExprµÄÅÅĞòĞòÁĞ */
-    int termSortOrder; /* Sort order for this term Õâ¸ötermµÄÅÅĞò´ÎĞò */
-    int iColumn;       /* The i-th column of the index.  -1 for rowid Ë÷ÒıµÄi-thÁĞ */
-    int iSortOrder;    /* 1 for DESC, 0 for ASC on the i-th index term ÔÚi-thË÷ÒıtermÖĞ£¬0±íÊ¾ASC£¬1±íÊ¾DESC */
-    const char *zColl; /* Name of the collating sequence for i-th index term i-thË÷ÒıtermµÄÅÅĞòĞòÁĞÃû */
+    Expr *pExpr;       /* The expression of the ORDER BY pTerm ORDER BYè¡¨è¾¾å¼pTerm */
+    CollSeq *pColl;    /* The collating sequence of pExpr pExprçš„æ’åºåºåˆ— */
+    int termSortOrder; /* Sort order for this term è¿™ä¸ªtermçš„æ’åºæ¬¡åº */
+    int iColumn;       /* The i-th column of the index.  -1 for rowid ç´¢å¼•çš„i-thåˆ— */
+    int iSortOrder;    /* 1 for DESC, 0 for ASC on the i-th index term åœ¨i-thç´¢å¼•termä¸­ï¼Œ0è¡¨ç¤ºASCï¼Œ1è¡¨ç¤ºDESC */
+    const char *zColl; /* Name of the collating sequence for i-th index term i-thç´¢å¼•termçš„æ’åºåºåˆ—å */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
     pExpr = pTerm->pExpr;
@@ -2120,11 +2120,11 @@ static int isSortingIndex(
       /* Can not use an index sort on anything that is not a column in the
 <<<<<<< HEAD
       ** left-most table of the FROM clause */
-	  /*  Èç¹û²»ÊÇFROM×Ó¾äÖĞ×î×ó±ß±í¸ñµÄÒ»¸öÁĞÔò²»ÄÜ¶ÔÈÎÒâÏîÊ¹ÓÃË÷ÒıÅÅĞò¡£
+	  /*  å¦‚æœä¸æ˜¯FROMå­å¥ä¸­æœ€å·¦è¾¹è¡¨æ ¼çš„ä¸€ä¸ªåˆ—åˆ™ä¸èƒ½å¯¹ä»»æ„é¡¹ä½¿ç”¨ç´¢å¼•æ’åºã€‚
 	  */
 =======
       ** left-most table of the FROM clause
-      ** ²»ÄÜÔÚ²»ÊÇFROM×Ó¾äÖĞµÄ×î×ó±ßµÄ±íµÄÒ»ÁĞÉÏÊ¹ÓÃÒ»¸öË÷ÒıÅÅĞò */
+      ** ä¸èƒ½åœ¨ä¸æ˜¯FROMå­å¥ä¸­çš„æœ€å·¦è¾¹çš„è¡¨çš„ä¸€åˆ—ä¸Šä½¿ç”¨ä¸€ä¸ªç´¢å¼•æ’åº */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       break;
     }
@@ -2147,36 +2147,36 @@ static int isSortingIndex(
     if( pExpr->iColumn!=iColumn || sqlite3StrICmp(pColl->zName, zColl) ){
 <<<<<<< HEAD
       /* Term j of the ORDER BY clause does not match column i of the index */
-      /* ORDER BY×Ó¾äÖĞµÄjÏî²»Æ¥ÅäË÷ÒıÖĞµÄiÁĞ¡£
+      /* ORDER BYå­å¥ä¸­çš„jé¡¹ä¸åŒ¹é…ç´¢å¼•ä¸­çš„iåˆ—ã€‚
 	  */
 =======
-      /* Term j of the ORDER BY clause does not match column i of the index ORDER BY×Ó¾äµÄTerm j²»Æ¥ÅäË÷ÒıÁĞi */
+      /* Term j of the ORDER BY clause does not match column i of the index ORDER BYå­å¥çš„Term jä¸åŒ¹é…ç´¢å¼•åˆ—i */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       if( i<nEqCol ){
         /* If an index column that is constrained by == fails to match an
         ** ORDER BY term, that is OK.  Just ignore that column of the index
-        ** Èç¹ûÒ»¸öÓÉ==Ô¼ÊøµÄË÷ÒıÁĞ²»Æ¥ÅäÒ»¸öORDER BYterm£¬ÊÇ¿ÉÒÔµÄ¡£Ö»ÒªºöÂÔÕâ¸öË÷ÒıÁĞ
+        ** å¦‚æœä¸€ä¸ªç”±==çº¦æŸçš„ç´¢å¼•åˆ—ä¸åŒ¹é…ä¸€ä¸ªORDER BYtermï¼Œæ˜¯å¯ä»¥çš„ã€‚åªè¦å¿½ç•¥è¿™ä¸ªç´¢å¼•åˆ—
         */
-		/* Èç¹û±»==ËùÔ¼ÊøµÄË÷ÒıÁĞ²»ÄÜÆ¥ÅäORDER BYÏî£¬ÄÇÃ´ÕâÒ²ÊÇ¿ÉÒÔµÄ£¬Ö»ĞèÒª
-		** ºöÂÔÕâ¸öË÷Òı¡£
+		/* å¦‚æœè¢«==æ‰€çº¦æŸçš„ç´¢å¼•åˆ—ä¸èƒ½åŒ¹é…ORDER BYé¡¹ï¼Œé‚£ä¹ˆè¿™ä¹Ÿæ˜¯å¯ä»¥çš„ï¼Œåªéœ€è¦
+		** å¿½ç•¥è¿™ä¸ªç´¢å¼•ã€‚
 		*/
         continue;
       }else if( i==pIdx->nColumn ){
 <<<<<<< HEAD
         /* Index column i is the rowid.  All other terms match. */
-		/* Ë÷ÒıÁĞiÊÇrowid±äÁ¿£¬ËùÓĞÆäËûÏîÆ¥Åä¡£
+		/* ç´¢å¼•åˆ—iæ˜¯rowidå˜é‡ï¼Œæ‰€æœ‰å…¶ä»–é¡¹åŒ¹é…ã€‚
 		*/
 =======
-        /* Index column i is the rowid.  All other terms match. Ë÷ÒıÁĞiÊÇrowid.ËùÓĞÆäËûtermsÆ¥Åä */
+        /* Index column i is the rowid.  All other terms match. ç´¢å¼•åˆ—iæ˜¯rowid.æ‰€æœ‰å…¶ä»–termsåŒ¹é… */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         break;
       }else{
         /* If an index column fails to match and is not constrained by ==
         ** then the index cannot satisfy the ORDER BY constraint.
-        ** Èç¹ûÒ»¸öË÷ÒıÁĞÎ´ÄÜÆ¥Åä²¢ÇÒ²»ÊÇÓÉ==Ô¼ÊøµÄ£¬ÄÇÃ´Ë÷Òı²»ÄÜÊÊÓÃÓÚORDER BYÔ¼Êø
+        ** å¦‚æœä¸€ä¸ªç´¢å¼•åˆ—æœªèƒ½åŒ¹é…å¹¶ä¸”ä¸æ˜¯ç”±==çº¦æŸçš„ï¼Œé‚£ä¹ˆç´¢å¼•ä¸èƒ½é€‚ç”¨äºORDER BYçº¦æŸ
         */
-	    /* Èç¹ûÒ»¸öË÷ÒıÁĞ²»Æ¥Åä£¬²¢ÇÒÃ»ÓĞ==Ô¼ÊøÌõ¼ş£¬ÔòÕâ¸öË÷Òı²»Âú×ãORDER
-		** BYÔ¼ÊøÌõ¼ş¡£
+	    /* å¦‚æœä¸€ä¸ªç´¢å¼•åˆ—ä¸åŒ¹é…ï¼Œå¹¶ä¸”æ²¡æœ‰==çº¦æŸæ¡ä»¶ï¼Œåˆ™è¿™ä¸ªç´¢å¼•ä¸æ»¡è¶³ORDER
+		** BYçº¦æŸæ¡ä»¶ã€‚
 		*/
         return 0;
       }
@@ -2187,10 +2187,10 @@ static int isSortingIndex(
     termSortOrder = iSortOrder ^ pTerm->sortOrder;
     if( i>nEqCol ){
       if( termSortOrder!=sortOrder ){
-        /* Indices can only be used if all ORDER BY terms past the Ë÷ÒıÖ»ÄÜÔÚËùÓĞµÄORDER BYterms¹ıÈ¥µÄµÈÊ½Ô¼ÊøÊÇDESC»òASCÊÇ²Å±»Ê¹ÓÃ
+        /* Indices can only be used if all ORDER BY terms past the ç´¢å¼•åªèƒ½åœ¨æ‰€æœ‰çš„ORDER BYtermsè¿‡å»çš„ç­‰å¼çº¦æŸæ˜¯DESCæˆ–ASCæ˜¯æ‰è¢«ä½¿ç”¨
         ** equality constraints are all either DESC or ASC. */
-		  /* Ö»ÓĞORDER BY×Ó¾äÂú×ãµÈÊ½Ô¼ÊøÌõ¼şµÄÏî¶¼ÊÇDESCÂë»òÕßASCÂë
-		  ** ²Å¿ÉÒÔÊ¹ÓÃÖ¸Êı¡£
+		  /* åªæœ‰ORDER BYå­å¥æ»¡è¶³ç­‰å¼çº¦æŸæ¡ä»¶çš„é¡¹éƒ½æ˜¯DESCç æˆ–è€…ASCç 
+		  ** æ‰å¯ä»¥ä½¿ç”¨æŒ‡æ•°ã€‚
 		  */
         return 0;
       }
@@ -2206,12 +2206,12 @@ static int isSortingIndex(
       ** to sort because the primary key is unique and so none of the other
       ** columns will make any difference
       **
-      ** Èç¹ûË÷ÒıÁĞÊÇÖ÷¼ü²¢ÇÒµ½Ä¿Ç°ÎªÖ¹¶¼Æ¥Åä²¢ÇÒÃ»ÓĞORDER BY termsÓëÁ¬½ÓµÄÆäËû±íÓÒÏà¹Ø£¬
-      ** ÄÇÃ´ÎÒÃÇ±£Ö¤Ë÷Òı¿ÉÒÔ±»ÅÅĞòËùÊ¹ÓÃ£¬ÒòÎªÖ÷¼üÊÇÎ¨Ò»µÄËùÒÔÆäËûµÄÁĞÃ»ÓĞÈÎºÎÓ°Ïì
+      ** å¦‚æœç´¢å¼•åˆ—æ˜¯ä¸»é”®å¹¶ä¸”åˆ°ç›®å‰ä¸ºæ­¢éƒ½åŒ¹é…å¹¶ä¸”æ²¡æœ‰ORDER BY termsä¸è¿æ¥çš„å…¶ä»–è¡¨å³ç›¸å…³ï¼Œ
+      ** é‚£ä¹ˆæˆ‘ä»¬ä¿è¯ç´¢å¼•å¯ä»¥è¢«æ’åºæ‰€ä½¿ç”¨ï¼Œå› ä¸ºä¸»é”®æ˜¯å”¯ä¸€çš„æ‰€ä»¥å…¶ä»–çš„åˆ—æ²¡æœ‰ä»»ä½•å½±å“
       */
-	  /* Èç¹ûË÷ÒıÁĞÊÇÖ÷¼ü£¬²¢ÇÒÄ¿Ç°ÎªÖ¹ËùÓĞÏî¶¼Æ¥Åä£¬²¢ÇÒORDER BYµ½ÓÒ±ßµÄÏî
-	  ** ÔÚÁªºÏÖĞÖ¸ÏòÆäËûµÄ±í£¬ÄÇÃ´¿ÉÒÔ±£Ö¤Ë÷Òı¿ÉÒÔ±»ÓÃÀ´ÅÅĞò£¬ÒòÎªÖ÷¼üÊÇÎ¨
-	  ** Ò»µÄ¶øÇÒÃ»ÓĞÆäËûµÄÁĞ»áÆğ×÷ÓÃ¡£
+	  /* å¦‚æœç´¢å¼•åˆ—æ˜¯ä¸»é”®ï¼Œå¹¶ä¸”ç›®å‰ä¸ºæ­¢æ‰€æœ‰é¡¹éƒ½åŒ¹é…ï¼Œå¹¶ä¸”ORDER BYåˆ°å³è¾¹çš„é¡¹
+	  ** åœ¨è”åˆä¸­æŒ‡å‘å…¶ä»–çš„è¡¨ï¼Œé‚£ä¹ˆå¯ä»¥ä¿è¯ç´¢å¼•å¯ä»¥è¢«ç”¨æ¥æ’åºï¼Œå› ä¸ºä¸»é”®æ˜¯å”¯
+	  ** ä¸€çš„è€Œä¸”æ²¡æœ‰å…¶ä»–çš„åˆ—ä¼šèµ·ä½œç”¨ã€‚
 	  */
       j = nTerm;
     }
@@ -2219,10 +2219,10 @@ static int isSortingIndex(
 
   *pbRev = sortOrder!=0;
   if( j>=nTerm ){
-    /* All terms of the ORDER BY clause are covered by this index so ORDER BY×Ó¾äµÄËùÓĞterms±»Õâ¸öË÷Òı¸²¸Ç£¬ËùÒÔÕâ¸öË÷Òı¿ÉÒÔÓÃÓÚÅÅĞò
+    /* All terms of the ORDER BY clause are covered by this index so ORDER BYå­å¥çš„æ‰€æœ‰termsè¢«è¿™ä¸ªç´¢å¼•è¦†ç›–ï¼Œæ‰€ä»¥è¿™ä¸ªç´¢å¼•å¯ä»¥ç”¨äºæ’åº
     ** this index can be used for sorting. */
-	  /* ËùÓĞORDER BY×Ó¾äÖĞµÄÏî¶¼±»Õâ¸öÕâ¸öË÷Òı°üº¬£¬ËùÒÔÕâ¸öË÷Òı¿ÉÒÔ
-	  ** ÓÃÀ´ÅÅĞò¡£
+	  /* æ‰€æœ‰ORDER BYå­å¥ä¸­çš„é¡¹éƒ½è¢«è¿™ä¸ªè¿™ä¸ªç´¢å¼•åŒ…å«ï¼Œæ‰€ä»¥è¿™ä¸ªç´¢å¼•å¯ä»¥
+	  ** ç”¨æ¥æ’åºã€‚
 	  */
     return 1;
   }
@@ -2238,9 +2238,9 @@ static int isSortingIndex(
     ** visited contain no NULL values, then this index delivers rows in
     ** the required order.
     **
-    ** Õâ¸öË÷ÒıµÄËùÓĞtermsÓëÒ»Ğ©ORDER BY×Ó¾äÇ°×ºÏàÆ¥Åä£¬Ë÷ÒıÊÇUNIQUE,
-    ** ²¢ÇÒÔÚORDER BYÎ²²¿Ã»ÓĞtermsÓëÁ¬½ÓÖĞµÄÆäËû±íÏà¹Ø¡£
-    ** ËùÒÔ£¬¼Ù¶¨Ë÷ÒıÏî·ÃÎÊ°üº¬ÎŞNULLÖµ£¬ÄÇÃ´Õâ¸öË÷ÒıÌá¹©ĞĞËùĞèµÄË³Ğò
+    ** è¿™ä¸ªç´¢å¼•çš„æ‰€æœ‰termsä¸ä¸€äº›ORDER BYå­å¥å‰ç¼€ç›¸åŒ¹é…ï¼Œç´¢å¼•æ˜¯UNIQUE,
+    ** å¹¶ä¸”åœ¨ORDER BYå°¾éƒ¨æ²¡æœ‰termsä¸è¿æ¥ä¸­çš„å…¶ä»–è¡¨ç›¸å…³ã€‚
+    ** æ‰€ä»¥ï¼Œå‡å®šç´¢å¼•é¡¹è®¿é—®åŒ…å«æ— NULLå€¼ï¼Œé‚£ä¹ˆè¿™ä¸ªç´¢å¼•æä¾›è¡Œæ‰€éœ€çš„é¡ºåº
     **
     ** It is not possible for any of the first nEqCol index fields to be
     ** NULL (since the corresponding "=" operator in the WHERE clause would 
@@ -2248,15 +2248,15 @@ static int isSortingIndex(
     ** constaints attached to them, we can be confident that the visited
 <<<<<<< HEAD
     ** index entries are free of NULLs.  */
-	/* Õâ¸öË÷ÒıÖĞµÄËùÓĞÏî¶¼Âú×ãORDER BY×Ó¾äµÄÒ»Ğ©Ç°×º¡¢Ë÷ÒıÊÇÎ¨Ò»µÄ¡¢Ã»ÓĞ
-	** ORDER BY×Ó¾äÖĞÎ²²¿µÄÏîÖ¸ÏòÆäËûµÄ±í¡£ËùÒÔ£¬¼ÙÉèË÷ÒıÌõÄ¿·ÃÎÊ²»°üº¬NULL
-	** Öµ,ÄÇÃ´Õâ¸öË÷ÒıÌá¹©ĞĞËùĞèµÄË³Ğò¡£
+	/* è¿™ä¸ªç´¢å¼•ä¸­çš„æ‰€æœ‰é¡¹éƒ½æ»¡è¶³ORDER BYå­å¥çš„ä¸€äº›å‰ç¼€ã€ç´¢å¼•æ˜¯å”¯ä¸€çš„ã€æ²¡æœ‰
+	** ORDER BYå­å¥ä¸­å°¾éƒ¨çš„é¡¹æŒ‡å‘å…¶ä»–çš„è¡¨ã€‚æ‰€ä»¥ï¼Œå‡è®¾ç´¢å¼•æ¡ç›®è®¿é—®ä¸åŒ…å«NULL
+	** å€¼,é‚£ä¹ˆè¿™ä¸ªç´¢å¼•æä¾›è¡Œæ‰€éœ€çš„é¡ºåºã€‚
 	*/
 =======
     ** index entries are free of NULLs.  
     **
-    ** ÈÎºÎµÄµÚÒ»¸önEqColË÷Òı×Ö¶ÎÎªNULLÖµÊÇ²»¿ÉÄÜµÄ(ÒòÎªÔÚWHERE×Ó¾äÖĞÏàÓ¦"="ÔËËã·û²»»áÕıÈ·)¡£
-    ** ËùÒÔ£¬Èç¹ûËùÓĞÉíÏÂµÄË÷ÒıÁĞÓĞNOT NULLÔ¼Êø£¬ÎÒÃÇ¿ÉÒÔÈ·ĞÅË÷ÒıÏîÊÇÃ»ÓĞNULLÖµµÄ
+    ** ä»»ä½•çš„ç¬¬ä¸€ä¸ªnEqColç´¢å¼•å­—æ®µä¸ºNULLå€¼æ˜¯ä¸å¯èƒ½çš„(å› ä¸ºåœ¨WHEREå­å¥ä¸­ç›¸åº”"="è¿ç®—ç¬¦ä¸ä¼šæ­£ç¡®)ã€‚
+    ** æ‰€ä»¥ï¼Œå¦‚æœæ‰€æœ‰èº«ä¸‹çš„ç´¢å¼•åˆ—æœ‰NOT NULLçº¦æŸï¼Œæˆ‘ä»¬å¯ä»¥ç¡®ä¿¡ç´¢å¼•é¡¹æ˜¯æ²¡æœ‰NULLå€¼çš„
     */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     for(i=nEqCol; i<pIdx->nColumn; i++){
@@ -2274,12 +2274,12 @@ static int isSortingIndex(
 ** complexity.  Because N is just a guess, it is no great tragedy if
 ** logN is a little off.
 **
-** ´Ö²ÚµÄ¹À¼ÆÒ»¸öÊäÈëÖµµÄ¶ÔÊı£¬½á¹û²»ĞèÒªÈ·ÇĞµØ¡£
-** ÕâÖ»ÊÇÓÃÓÚÆÀ¼ÛÖ´ĞĞ¸´ÔÓ¶ÈÎªO(logN)»òO(NlogN)µÄ²Ù×÷µÄ×Ü³É±¾¡£
+** ç²—ç³™çš„ä¼°è®¡ä¸€ä¸ªè¾“å…¥å€¼çš„å¯¹æ•°ï¼Œç»“æœä¸éœ€è¦ç¡®åˆ‡åœ°ã€‚
+** è¿™åªæ˜¯ç”¨äºè¯„ä»·æ‰§è¡Œå¤æ‚åº¦ä¸ºO(logN)æˆ–O(NlogN)çš„æ“ä½œçš„æ€»æˆæœ¬ã€‚
 */
-/* ×¼±¸Ò»¸öÊäÈëÖµµÄ¶ÔÊıµÄ´ÖÂÔ¹À¼Æ¡£½á¹û²»ĞèÒªºÜ¾«È·¡£Õâ½ö½öÊÇÓÃÓÚ¹À
-** ¼ÆÖ´ĞĞ²Ù×÷µÄ×Ü´ú¼ÛÓëO(logN)»òO(NlogN)¸´ÔÓĞÔ¡£ÒòÎªN½ö½öÊÇÒ»¸ö²Â²âÖµ
-** ¼´Ê¹logNÓĞĞ©Îó²îÒ²ÎÊÌâ²»´ó¡£
+/* å‡†å¤‡ä¸€ä¸ªè¾“å…¥å€¼çš„å¯¹æ•°çš„ç²—ç•¥ä¼°è®¡ã€‚ç»“æœä¸éœ€è¦å¾ˆç²¾ç¡®ã€‚è¿™ä»…ä»…æ˜¯ç”¨äºä¼°
+** è®¡æ‰§è¡Œæ“ä½œçš„æ€»ä»£ä»·ä¸O(logN)æˆ–O(NlogN)å¤æ‚æ€§ã€‚å› ä¸ºNä»…ä»…æ˜¯ä¸€ä¸ªçŒœæµ‹å€¼
+** å³ä½¿logNæœ‰äº›è¯¯å·®ä¹Ÿé—®é¢˜ä¸å¤§ã€‚
 */
 static double estLog(double N){
   double logN = 1;
@@ -2297,12 +2297,12 @@ static double estLog(double N){
 ** SQLITE_TEST or SQLITE_DEBUG are defined, then these routines
 ** are no-ops.
 **
-** Á½¸öÓÃÓÚÊä³öÒ»¸ösqlite3_index_infoÊı¾İ½á¹¹µÄ³ÌĞò¡£
-** Ö»ÊÇÓÃÓÚ²âÊÔºÍµ÷ÊÔ¡£Èç¹ûSQLITE_TESTºÍSQLITE_DEBUG¶¼Ã»¶¨Òå£¬ÄÇÃ´ÕâĞ©³ÌĞòÊÇno-ops(ÎŞ²Ù×÷)¡£
+** ä¸¤ä¸ªç”¨äºè¾“å‡ºä¸€ä¸ªsqlite3_index_infoæ•°æ®ç»“æ„çš„ç¨‹åºã€‚
+** åªæ˜¯ç”¨äºæµ‹è¯•å’Œè°ƒè¯•ã€‚å¦‚æœSQLITE_TESTå’ŒSQLITE_DEBUGéƒ½æ²¡å®šä¹‰ï¼Œé‚£ä¹ˆè¿™äº›ç¨‹åºæ˜¯no-ops(æ— æ“ä½œ)ã€‚
 **
 */
-/* sqlite3Ë÷ÒıĞÅÏ¢½á¹¹ÖĞÓÃÓÚ´òÓ¡Ä¿Â¼µÄÁ½¸öÀı³Ì¡£Ö»ÓÃÓÚ²âÊÔºÍµ÷ÊÔ¡£
-** Èç¹ûSQLITE_TESTºÍSQLITE_DEBUG¶¼±»¶¨ÒåÁË£¬ÔòÕâÁ½¸öÀı³ÌÖ´ĞĞ¿Õ²Ù×÷¡£
+/* sqlite3ç´¢å¼•ä¿¡æ¯ç»“æ„ä¸­ç”¨äºæ‰“å°ç›®å½•çš„ä¸¤ä¸ªä¾‹ç¨‹ã€‚åªç”¨äºæµ‹è¯•å’Œè°ƒè¯•ã€‚
+** å¦‚æœSQLITE_TESTå’ŒSQLITE_DEBUGéƒ½è¢«å®šä¹‰äº†ï¼Œåˆ™è¿™ä¸¤ä¸ªä¾‹ç¨‹æ‰§è¡Œç©ºæ“ä½œã€‚
 */
 #if !defined(SQLITE_OMIT_VIRTUALTABLE) && defined(SQLITE_DEBUG)
 static void TRACE_IDX_INPUTS(sqlite3_index_info *p){
@@ -2344,9 +2344,9 @@ static void TRACE_IDX_OUTPUTS(sqlite3_index_info *p){
 
 /* 
 ** Required because bestIndex() is called by bestOrClauseIndex() 
-** ÒòÎªbestIndex()±»bestOrClauseIndex()µ÷ÓÃ¶ø±»ÇëÇó
+** å› ä¸ºbestIndex()è¢«bestOrClauseIndex()è°ƒç”¨è€Œè¢«è¯·æ±‚
 */
-/* ÒÔÏÂÊÇĞèÒªµÄ£¬ÒòÎªbstIndex()±»bestOrClauseIndex()µ÷ÓÃ¡£
+/* ä»¥ä¸‹æ˜¯éœ€è¦çš„ï¼Œå› ä¸ºbstIndex()è¢«bestOrClauseIndex()è°ƒç”¨ã€‚
 */
 static void bestIndex(
     Parse*, WhereClause*, struct SrcList_item*,
@@ -2356,56 +2356,56 @@ static void bestIndex(
 ** This routine attempts to find an scanning strategy that can be used 
 ** to optimize an 'OR' expression that is part of a WHERE clause. 
 **
-** Õâ¸ö³ÌĞòÆóÍ¼·¢ÏÖÒ»¸öÄÜÓÃÀ´ÓÅ»¯Ò»¸öWHERE×Ó¾äÖĞµÄÒ»¸ö'OR'±í´ïÊ½µÄÉ¨Ãè²ßÂÔ
+** è¿™ä¸ªç¨‹åºä¼å›¾å‘ç°ä¸€ä¸ªèƒ½ç”¨æ¥ä¼˜åŒ–ä¸€ä¸ªWHEREå­å¥ä¸­çš„ä¸€ä¸ª'OR'è¡¨è¾¾å¼çš„æ‰«æç­–ç•¥
 **
 ** The table associated with FROM clause term pSrc may be either a
 ** regular B-Tree table or a virtual table.
 **
-** ÓëFROM×Ó¾äterm pSrcÓĞ¹ØµÄ±í¿ÉÄÜÊÇÒ»¸ö¹æÔòµÄB-Tree±í»òÒ»¸öĞéÄâ±í
+** ä¸FROMå­å¥term pSrcæœ‰å…³çš„è¡¨å¯èƒ½æ˜¯ä¸€ä¸ªè§„åˆ™çš„B-Treeè¡¨æˆ–ä¸€ä¸ªè™šæ‹Ÿè¡¨
 */
-/* ´ËÀı³ÌÓÃÓÚÕÒµ½Ò»¸öÉ¨Ãè²ßÂÔ£¬Õâ¸ö²ßÂÔ¿ÉÒÔÓÃÀ´ÓÅ»¯Ò»¸öWHERE×Ó¾äÖĞµÄ
-** ¡°»ò¡±±í´ïÊ½¡£
+/* æ­¤ä¾‹ç¨‹ç”¨äºæ‰¾åˆ°ä¸€ä¸ªæ‰«æç­–ç•¥ï¼Œè¿™ä¸ªç­–ç•¥å¯ä»¥ç”¨æ¥ä¼˜åŒ–ä¸€ä¸ªWHEREå­å¥ä¸­çš„
+** â€œæˆ–â€è¡¨è¾¾å¼ã€‚
 **
-** Óë×Ó¾äFROMÖĞµÄpScrÏîÏà¹ØµÄ±í¿ÉÄÜÊÇ¸öÆÕÍ¨µÄBÊ÷±í»òÕßÊÇÒ»¸öĞé±í¡£
+** ä¸å­å¥FROMä¸­çš„pScré¡¹ç›¸å…³çš„è¡¨å¯èƒ½æ˜¯ä¸ªæ™®é€šçš„Bæ ‘è¡¨æˆ–è€…æ˜¯ä¸€ä¸ªè™šè¡¨ã€‚
 */
 static void bestOrClauseIndex(
 <<<<<<< HEAD
-	Parse *pParse,              /* The parsing context *//* ½âÎöÎÄµµ*/
-	WhereClause *pWC,           /* The WHERE clause *//* WHERE×Ó¾ä*/
-struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFROM×Ó¾äÏî*/
-	Bitmask notReady,           /* Mask of cursors not available for indexing *//* ²»ÄÜÓÃÀ´Ë÷ÒıµÄÓÎ±êÑÚÂë*/
-	Bitmask notValid,           /* Cursors not available for any purpose *//* ²»ÓÃÓÚÈÎºÎÄ¿µÄµÄ¹â±ê*/
-  ExprList *pOrderBy,         /* The ORDER BY clause *//* ORDER BY×Ó¾ä*/
-  WhereCost *pCost            /* Lowest cost query plan *//* ×îĞ¡»¯²éÑ¯¼Æ»®µÄ´ú¼Û*/
+	Parse *pParse,              /* The parsing context *//* è§£ææ–‡æ¡£*/
+	WhereClause *pWC,           /* The WHERE clause *//* WHEREå­å¥*/
+struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ç”¨äºæœç´¢çš„FROMå­å¥é¡¹*/
+	Bitmask notReady,           /* Mask of cursors not available for indexing *//* ä¸èƒ½ç”¨æ¥ç´¢å¼•çš„æ¸¸æ ‡æ©ç */
+	Bitmask notValid,           /* Cursors not available for any purpose *//* ä¸ç”¨äºä»»ä½•ç›®çš„çš„å…‰æ ‡*/
+  ExprList *pOrderBy,         /* The ORDER BY clause *//* ORDER BYå­å¥*/
+  WhereCost *pCost            /* Lowest cost query plan *//* æœ€å°åŒ–æŸ¥è¯¢è®¡åˆ’çš„ä»£ä»·*/
 ){
 #ifndef SQLITE_OMIT_OR_OPTIMIZATION
-	const int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed *//* ¿ÉÊ¹ÓÃµÄ±í¸ñ¹â±ê*/
-	const Bitmask maskSrc = getMask(pWC->pMaskSet, iCur);  /* Bitmask for pSrc *//* pSrcµÄÎ»ÑÚÂë*/
-	WhereTerm * const pWCEnd = &pWC->a[pWC->nTerm];        /* End of pWC->a[] *//* pWC->a[]½áÊø*/
-	WhereTerm *pTerm;                 /* A single term of the WHERE clause *//* WHERE×Ó¾äµÄÒ»¸öµ¥Ò»Ïî*/
+	const int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed *//* å¯ä½¿ç”¨çš„è¡¨æ ¼å…‰æ ‡*/
+	const Bitmask maskSrc = getMask(pWC->pMaskSet, iCur);  /* Bitmask for pSrc *//* pSrcçš„ä½æ©ç */
+	WhereTerm * const pWCEnd = &pWC->a[pWC->nTerm];        /* End of pWC->a[] *//* pWC->a[]ç»“æŸ*/
+	WhereTerm *pTerm;                 /* A single term of the WHERE clause *//* WHEREå­å¥çš„ä¸€ä¸ªå•ä¸€é¡¹*/
 
   /* The OR-clause optimization is disallowed if the INDEXED BY or
   ** NOT INDEXED clauses are used or if the WHERE_AND_ONLY bit is set. */
-  /* Èç¹ûINDEXED BY×Ó¾ä»òÕßNOT INDEXED×Ó¾äÒÑ¾­ÉèÖÃÁËWHERE_AND_ONLYÎ»£¬ÄÇÃ´
-  ** OR×Ó¾äµÄÓÅ»¯ÎŞĞ§¡£
+  /* å¦‚æœINDEXED BYå­å¥æˆ–è€…NOT INDEXEDå­å¥å·²ç»è®¾ç½®äº†WHERE_AND_ONLYä½ï¼Œé‚£ä¹ˆ
+  ** ORå­å¥çš„ä¼˜åŒ–æ— æ•ˆã€‚
 =======
-  Parse *pParse,              /* The parsing context ½âÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,           /* The WHERE clause WHERE×Ó¾ä */
-  struct SrcList_item *pSrc,  /* The FROM clause term to search ÒªËÑË÷µÄFROM×Ó¾äterm */
-  Bitmask notReady,           /* Mask of cursors not available for indexing ÓÎ±êµÄÑÚÂë¶ÔÓÚË÷ÒıÎŞĞ§ */
-  Bitmask notValid,           /* Cursors not available for any purpose ÓÎ±êÔÚÈÎºÎÓÃÍ¾ÏÂ¶¼ÎŞĞ§ */
-  ExprList *pOrderBy,         /* The ORDER BY clause ORDER BY×Ó¾ä */
-  WhereCost *pCost            /* Lowest cost query plan ×îĞ¡´ú¼ÛµÄ²éÑ¯¼Æ»® */
+  Parse *pParse,              /* The parsing context è§£æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,           /* The WHERE clause WHEREå­å¥ */
+  struct SrcList_item *pSrc,  /* The FROM clause term to search è¦æœç´¢çš„FROMå­å¥term */
+  Bitmask notReady,           /* Mask of cursors not available for indexing æ¸¸æ ‡çš„æ©ç å¯¹äºç´¢å¼•æ— æ•ˆ */
+  Bitmask notValid,           /* Cursors not available for any purpose æ¸¸æ ‡åœ¨ä»»ä½•ç”¨é€”ä¸‹éƒ½æ— æ•ˆ */
+  ExprList *pOrderBy,         /* The ORDER BY clause ORDER BYå­å¥ */
+  WhereCost *pCost            /* Lowest cost query plan æœ€å°ä»£ä»·çš„æŸ¥è¯¢è®¡åˆ’ */
 ){
 #ifndef SQLITE_OMIT_OR_OPTIMIZATION
-  const int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed ĞèÒª´æÈ¡µÄ±íÓÎ±ê */
-  const Bitmask maskSrc = getMask(pWC->pMaskSet, iCur);  /* Bitmask for pSrc pSrcµÄÎ»ÑÚÂë */
-  WhereTerm * const pWCEnd = &pWC->a[pWC->nTerm];        /* End of pWC->a[] pWC->a[]µÄÄ©Î² */
-  WhereTerm *pTerm;                 /* A single term of the WHERE clause WHERE×Ó¾äµÄÒ»¸öµ¥¶Àterm */
+  const int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed éœ€è¦å­˜å–çš„è¡¨æ¸¸æ ‡ */
+  const Bitmask maskSrc = getMask(pWC->pMaskSet, iCur);  /* Bitmask for pSrc pSrcçš„ä½æ©ç  */
+  WhereTerm * const pWCEnd = &pWC->a[pWC->nTerm];        /* End of pWC->a[] pWC->a[]çš„æœ«å°¾ */
+  WhereTerm *pTerm;                 /* A single term of the WHERE clause WHEREå­å¥çš„ä¸€ä¸ªå•ç‹¬term */
 
   /* The OR-clause optimization is disallowed if the INDEXED BY or
   ** NOT INDEXED clauses are used or if the WHERE_AND_ONLY bit is set.
-  ** Èç¹ûÊ¹ÓÃINDEXED BY»òNOT INDEXED×Ó¾ä»òÉèÖÃÁËWHERE_AND_ONLY bit£¬ÄÇÃ´OR×Ó¾äÊÇ²»ÔÊĞíÓÅ»¯µÄ
+  ** å¦‚æœä½¿ç”¨INDEXED BYæˆ–NOT INDEXEDå­å¥æˆ–è®¾ç½®äº†WHERE_AND_ONLY bitï¼Œé‚£ä¹ˆORå­å¥æ˜¯ä¸å…è®¸ä¼˜åŒ–çš„
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( pSrc->notIndexed || pSrc->pIndex!=0 ){
@@ -2416,9 +2416,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
   }
 
 <<<<<<< HEAD
-  /* Search the WHERE clause terms for a usable WO_OR term. *//* ÎªÒ»¸ö²»¿ÉÓÃµÄWO_ORÏîËÑË÷WHERE×Ó¾äÏî*/
+  /* Search the WHERE clause terms for a usable WO_OR term. *//* ä¸ºä¸€ä¸ªä¸å¯ç”¨çš„WO_ORé¡¹æœç´¢WHEREå­å¥é¡¹*/
 =======
-  /* Search the WHERE clause terms for a usable WO_OR term. ²éÕÒWHERE×Ó¾äterms */
+  /* Search the WHERE clause terms for a usable WO_OR term. æŸ¥æ‰¾WHEREå­å¥terms */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   for(pTerm=pWC->a; pTerm<pWCEnd; pTerm++){
     if( pTerm->eOperator==WO_OR 
@@ -2462,7 +2462,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
 
       /* If there is an ORDER BY clause, increase the scan cost to account 
       ** for the cost of the sort. */
-	  /* Èç¹û´æÔÚÒ»¸öORDER BY×Ó¾ä£¬ÔòÎª´Ë´ÎÅÅĞòµÄ´ú¼ÛÕË»§Ôö¼ÓÒ»´Îä¯ÀÀ´ú¼Û¡£
+	  /* å¦‚æœå­˜åœ¨ä¸€ä¸ªORDER BYå­å¥ï¼Œåˆ™ä¸ºæ­¤æ¬¡æ’åºçš„ä»£ä»·è´¦æˆ·å¢åŠ ä¸€æ¬¡æµè§ˆä»£ä»·ã€‚
 	  */
       if( pOrderBy!=0 ){
         WHERETRACE(("... sorting increases OR cost %.9g to %.9g\n",
@@ -2474,12 +2474,12 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
       ** less than the current cost stored in pCost, replace the contents
 <<<<<<< HEAD
       ** of pCost. */
-	  /* Èç¹ûÓÃÓÚÓÅ»¯¶øÊ¹ÓÃ´Ë´ÎORÏîµÄä¯ÀÀ´ú¼ÛÉÙÓÚpCostÖĞµ±Ç°µÄÅÅĞò´ú¼Û£¬
-	  ** ÔòÌæ»»pCostÖĞµÄÄÚÈİ¡£
+	  /* å¦‚æœç”¨äºä¼˜åŒ–è€Œä½¿ç”¨æ­¤æ¬¡ORé¡¹çš„æµè§ˆä»£ä»·å°‘äºpCostä¸­å½“å‰çš„æ’åºä»£ä»·ï¼Œ
+	  ** åˆ™æ›¿æ¢pCostä¸­çš„å†…å®¹ã€‚
 	  */
 =======
       ** of pCost. 
-      ** Èç¹ûÊ¹ÓÃÓÅ»¯µÄORtermµÄÉ¨Ãè´ú¼Û±È´æ´¢ÔÚpCostµÄµ±Ç°´ú¼Û¸üÉÙ£¬Ìæ»»pCostµÄÄÚÈİ
+      ** å¦‚æœä½¿ç”¨ä¼˜åŒ–çš„ORtermçš„æ‰«æä»£ä»·æ¯”å­˜å‚¨åœ¨pCostçš„å½“å‰ä»£ä»·æ›´å°‘ï¼Œæ›¿æ¢pCostçš„å†…å®¹
       */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       WHERETRACE(("... multi-index OR cost=%.9g nrow=%.9g\n", rTotal, nRow));
@@ -2492,7 +2492,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
       }
     }
   }
-#endif /* SQLITE_OMIT_OR_OPTIMIZATION *//* SQLITE_OMIT_OR_OPTIMIZATION½áÊø*/
+#endif /* SQLITE_OMIT_OR_OPTIMIZATION *//* SQLITE_OMIT_OR_OPTIMIZATIONç»“æŸ*/
 }
 
 #ifndef SQLITE_OMIT_AUTOMATIC_INDEX
@@ -2501,21 +2501,21 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
 ** could be used with an index to access pSrc, assuming an appropriate
 ** index existed.
 **
-** Èç¹ûWHERE×Ó¾äterm pTermÊÇÕâÑùÒ»ÖÖĞÎÊ½£¬¿ÉÒÔÓëÒ»¸öË÷ÒıÒ»ÆğÊ¹ÓÃÀ´·ÃÎÊpSrc£¬¼ÙÉè´æÔÚÒ»¸öÊÊµ±µÄË÷Òı£¬Ôò·µ»ØTRUE
+** å¦‚æœWHEREå­å¥term pTermæ˜¯è¿™æ ·ä¸€ç§å½¢å¼ï¼Œå¯ä»¥ä¸ä¸€ä¸ªç´¢å¼•ä¸€èµ·ä½¿ç”¨æ¥è®¿é—®pSrcï¼Œå‡è®¾å­˜åœ¨ä¸€ä¸ªé€‚å½“çš„ç´¢å¼•ï¼Œåˆ™è¿”å›TRUE
 **
 */
-/* Èç¹ûWHERE×Ó¾äÏîpTermÊÇ¿ÉÒÔÓÃÓÚºÍÒ»¸öË÷Òı¹²Í¬Á´½Óµ½pSrcµÄÒ»ÖÖĞÎÊ½Ôò
-** ·µ»ØÕæ£¬¼ÙÉèÒ»¸öºÏÊÊµÄË÷ÒıÊÇ´æÔÚµÄ¡£
+/* å¦‚æœWHEREå­å¥é¡¹pTermæ˜¯å¯ä»¥ç”¨äºå’Œä¸€ä¸ªç´¢å¼•å…±åŒé“¾æ¥åˆ°pSrcçš„ä¸€ç§å½¢å¼åˆ™
+** è¿”å›çœŸï¼Œå‡è®¾ä¸€ä¸ªåˆé€‚çš„ç´¢å¼•æ˜¯å­˜åœ¨çš„ã€‚
 */
 static int termCanDriveIndex(
 <<<<<<< HEAD
-	WhereTerm *pTerm,              /* WHERE clause term to check *//* ÓÃÓÚ¼ì²éµÄWHERE×Ó¾äÏî*/
-struct SrcList_item *pSrc,     /* Table we are trying to access *//* ³¢ÊÔµÇÂ½µÄ±í¸ñ*/
-	Bitmask notReady               /* Tables in outer loops of the join *//* Á¬½ÓµÄÍâ²¿Ñ­»·±í¸ñ*/
+	WhereTerm *pTerm,              /* WHERE clause term to check *//* ç”¨äºæ£€æŸ¥çš„WHEREå­å¥é¡¹*/
+struct SrcList_item *pSrc,     /* Table we are trying to access *//* å°è¯•ç™»é™†çš„è¡¨æ ¼*/
+	Bitmask notReady               /* Tables in outer loops of the join *//* è¿æ¥çš„å¤–éƒ¨å¾ªç¯è¡¨æ ¼*/
 =======
-  WhereTerm *pTerm,              /* WHERE clause term to check ĞèÒª¼ì²âµÄWHERE×Ó¾ä */
-  struct SrcList_item *pSrc,     /* Table we are trying to access ÎÒÃÇÊÔÍ¼·ÃÎÊµÄ±í */
-  Bitmask notReady               /* Tables in outer loops of the join ÔÚÁ¬½ÓµÄÍâ²¿Ñ­»·µÄ±í */
+  WhereTerm *pTerm,              /* WHERE clause term to check éœ€è¦æ£€æµ‹çš„WHEREå­å¥ */
+  struct SrcList_item *pSrc,     /* Table we are trying to access æˆ‘ä»¬è¯•å›¾è®¿é—®çš„è¡¨ */
+  Bitmask notReady               /* Tables in outer loops of the join åœ¨è¿æ¥çš„å¤–éƒ¨å¾ªç¯çš„è¡¨ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
   char aff;
@@ -2537,89 +2537,89 @@ struct SrcList_item *pSrc,     /* Table we are trying to access *//* ³¢ÊÔµÇÂ½µÄ±
 ** is taken into account, then alter the query plan to use the
 ** transient index.
 **
-** Èç¹ûÔÚpCostÖĞÖ¸¶¨µÄpSrcµÄ²éÑ¯¼Æ»®ÊÇÒ»¸öÈ«±íÉ¨Ãè²¢ÇÒ¿ÉÒÔÊ¹ÓÃË÷Òı(Èç¹ûÃ»ÓĞINDEXED×Ó¾ä)
-** ²¢ÇÒËû¿ÉÄÜ´´½¨Ò»¸öÁÙÊ±µÄË÷Òı£¬¼´Ê¹µ±´´½¨Ë÷ÒıµÄ´ú¼ÛÒ²±»¿¼ÂÇ½øÈ¥ÒÀ¾É±ÈÈ«±íÉ¨Ãè¸üºÃ£¬
-** ÄÇÃ´¸Ä±ä²éÑ¯¼Æ»®£¬Ê¹ÓÃÁÙÊ±Ë÷Òı¡£
+** å¦‚æœåœ¨pCostä¸­æŒ‡å®šçš„pSrcçš„æŸ¥è¯¢è®¡åˆ’æ˜¯ä¸€ä¸ªå…¨è¡¨æ‰«æå¹¶ä¸”å¯ä»¥ä½¿ç”¨ç´¢å¼•(å¦‚æœæ²¡æœ‰INDEXEDå­å¥)
+** å¹¶ä¸”ä»–å¯èƒ½åˆ›å»ºä¸€ä¸ªä¸´æ—¶çš„ç´¢å¼•ï¼Œå³ä½¿å½“åˆ›å»ºç´¢å¼•çš„ä»£ä»·ä¹Ÿè¢«è€ƒè™‘è¿›å»ä¾æ—§æ¯”å…¨è¡¨æ‰«ææ›´å¥½ï¼Œ
+** é‚£ä¹ˆæ”¹å˜æŸ¥è¯¢è®¡åˆ’ï¼Œä½¿ç”¨ä¸´æ—¶ç´¢å¼•ã€‚
 */
-/* Èç¹ûpCostÖĞpSrcÏêÏ¸ËµÃ÷µÄ²éÑ¯¼Æ»®ÊÇÒ»¸öÂú±í²éÑ¯²¢ÇÒË÷ÒıÊÇÔÊĞíµÄ
-** £¨Èç¹ûÃ»ÓĞNOT INDEXED×Ó¾ä´æÔÚ£©²¢ÇÒ¿ÉÒÔ¹¹½¨Ò»¸öË²Ì¬Ö¸Êı,½«Ö´ĞĞ±ÈÈ«
-** ±íÉ¨Ãè¼´Ê¹¹¹½¨Ë÷ÒıµÄ´ú¼Û¿¼ÂÇ½øÈ¥,È»ºó¸Ä±ä²éÑ¯¼Æ»®Ê¹ÓÃË²Ì¬Ö¸Êı¡£
+/* å¦‚æœpCostä¸­pSrcè¯¦ç»†è¯´æ˜çš„æŸ¥è¯¢è®¡åˆ’æ˜¯ä¸€ä¸ªæ»¡è¡¨æŸ¥è¯¢å¹¶ä¸”ç´¢å¼•æ˜¯å…è®¸çš„
+** ï¼ˆå¦‚æœæ²¡æœ‰NOT INDEXEDå­å¥å­˜åœ¨ï¼‰å¹¶ä¸”å¯ä»¥æ„å»ºä¸€ä¸ªç¬æ€æŒ‡æ•°,å°†æ‰§è¡Œæ¯”å…¨
+** è¡¨æ‰«æå³ä½¿æ„å»ºç´¢å¼•çš„ä»£ä»·è€ƒè™‘è¿›å»,ç„¶åæ”¹å˜æŸ¥è¯¢è®¡åˆ’ä½¿ç”¨ç¬æ€æŒ‡æ•°ã€‚
 */
 static void bestAutomaticIndex(
 <<<<<<< HEAD
-	Parse *pParse,              /* The parsing context *//* ½âÎöÎÄµµ*/
-	WhereClause *pWC,           /* The WHERE clause *//* WHERE×Ó¾ä*/
-struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFROM×Ó¾äÏî*/
-	Bitmask notReady,           /* Mask of cursors that are not available *//* ²»ÄÜÓÃÀ´Ë÷ÒıµÄÓÎ±êÑÚÂë*/
-	WhereCost *pCost            /* Lowest cost query plan *//* ×îĞ¡»¯²éÑ¯¼Æ»®µÄ´ú¼Û*/
+	Parse *pParse,              /* The parsing context *//* è§£ææ–‡æ¡£*/
+	WhereClause *pWC,           /* The WHERE clause *//* WHEREå­å¥*/
+struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ç”¨äºæœç´¢çš„FROMå­å¥é¡¹*/
+	Bitmask notReady,           /* Mask of cursors that are not available *//* ä¸èƒ½ç”¨æ¥ç´¢å¼•çš„æ¸¸æ ‡æ©ç */
+	WhereCost *pCost            /* Lowest cost query plan *//* æœ€å°åŒ–æŸ¥è¯¢è®¡åˆ’çš„ä»£ä»·*/
 ){
-	double nTableRow;           /* Rows in the input table *//* ÊäÈë±íµÄĞĞ*/
+	double nTableRow;           /* Rows in the input table *//* è¾“å…¥è¡¨çš„è¡Œ*/
 	double logN;                /* log(nTableRow) */
-	double costTempIdx;         /* per-query cost of the transient index *//* Ë²Ì¬Ö¸ÊıµÄÃ¿¸ö²éÑ¯´ú¼Û*/
-	WhereTerm *pTerm;           /* A single term of the WHERE clause *//* Ò»¸öWHERE×Ó¾äµÄµ¥Ò»Ïî*/
-	WhereTerm *pWCEnd;          /* End of pWC->a[] *//*pWC->a[]½áÊø*/
-	Table *pTable;              /* Table tht might be indexed *//* tht±í¿ÉÄÜ±»Ë÷ÒıÁË*/
+	double costTempIdx;         /* per-query cost of the transient index *//* ç¬æ€æŒ‡æ•°çš„æ¯ä¸ªæŸ¥è¯¢ä»£ä»·*/
+	WhereTerm *pTerm;           /* A single term of the WHERE clause *//* ä¸€ä¸ªWHEREå­å¥çš„å•ä¸€é¡¹*/
+	WhereTerm *pWCEnd;          /* End of pWC->a[] *//*pWC->a[]ç»“æŸ*/
+	Table *pTable;              /* Table tht might be indexed *//* thtè¡¨å¯èƒ½è¢«ç´¢å¼•äº†*/
 
   if( pParse->nQueryLoop<=(double)1 ){
     /* There is no point in building an automatic index for a single scan */
-    /* Îªµ¥´ÊÉ¨Ãè½¨Á¢Ò»¸ö×Ô¶¯Ë÷ÒıÊÇÃ»ÓĞÒâÒåµÄ¡£
+    /* ä¸ºå•è¯æ‰«æå»ºç«‹ä¸€ä¸ªè‡ªåŠ¨ç´¢å¼•æ˜¯æ²¡æœ‰æ„ä¹‰çš„ã€‚
     */
     return;
   }
   if( (pParse->db->flags & SQLITE_AutoIndex)==0 ){
     /* Automatic indices are disabled at run-time */
-	  /* ÔÚÔËĞĞÊ±×Ô¶¯Ö¸ÊıÊÇ½ûÓÃµÄ¡£
+	  /* åœ¨è¿è¡Œæ—¶è‡ªåŠ¨æŒ‡æ•°æ˜¯ç¦ç”¨çš„ã€‚
 	  */
     return;
   }
   if( (pCost->plan.wsFlags & WHERE_NOT_FULLSCAN)!=0 ){
     /* We already have some kind of index in use for this query. */
-	  /* ÕâÀà²éÑ¯ÖĞÎÒÃÇÒÑ¾­ÓĞÁËÒ»Ğ©ÔÚÊ¹ÓÃÖĞµÄË÷Òı¡£
+	  /* è¿™ç±»æŸ¥è¯¢ä¸­æˆ‘ä»¬å·²ç»æœ‰äº†ä¸€äº›åœ¨ä½¿ç”¨ä¸­çš„ç´¢å¼•ã€‚
 	  */
     return;
   }
   if( pSrc->notIndexed ){
     /* The NOT INDEXED clause appears in the SQL. */
-	  /* SQLÖĞ³öÏÖµÄNOT INDEXED×Ó¾ä¡£
+	  /* SQLä¸­å‡ºç°çš„NOT INDEXEDå­å¥ã€‚
 	  */
     return;
   }
   if( pSrc->isCorrelated ){
     /* The source is a correlated sub-query. No point in indexing it. */
-	  /* Õâ¸öÔ´ÊÇÒ»¸öÏà¹Ø×Ó²éÑ¯£¬¶ÔÆäË÷ÒıÊÇÃ»ÓĞÒâÒåµÄ¡£
+	  /* è¿™ä¸ªæºæ˜¯ä¸€ä¸ªç›¸å…³å­æŸ¥è¯¢ï¼Œå¯¹å…¶ç´¢å¼•æ˜¯æ²¡æœ‰æ„ä¹‰çš„ã€‚
 	  */
 =======
-  Parse *pParse,              /* The parsing context ½âÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,           /* The WHERE clause WHERE×Ó¾ä */
-  struct SrcList_item *pSrc,  /* The FROM clause term to search ÓÃÓÚ²éÑ¯µÄFROM×Ó¾äterm */
-  Bitmask notReady,           /* Mask of cursors that are not available ÓÎ±êµÄÑÚÂëÊÇÎŞĞ§µÄ */
-  WhereCost *pCost            /* Lowest cost query plan ×îĞ¡´ú¼Û²éÑ¯¼Æ»® */
+  Parse *pParse,              /* The parsing context è§£æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,           /* The WHERE clause WHEREå­å¥ */
+  struct SrcList_item *pSrc,  /* The FROM clause term to search ç”¨äºæŸ¥è¯¢çš„FROMå­å¥term */
+  Bitmask notReady,           /* Mask of cursors that are not available æ¸¸æ ‡çš„æ©ç æ˜¯æ— æ•ˆçš„ */
+  WhereCost *pCost            /* Lowest cost query plan æœ€å°ä»£ä»·æŸ¥è¯¢è®¡åˆ’ */
 ){
-  double nTableRow;           /* Rows in the input table ÔÚÊäÈë±íÖĞµÄĞĞ */
+  double nTableRow;           /* Rows in the input table åœ¨è¾“å…¥è¡¨ä¸­çš„è¡Œ */
   double logN;                /* log(nTableRow) */
-  double costTempIdx;         /* per-query cost of the transient index ÁÙÊ±Ë÷ÒıµÄper-query´ú¼Û */
-  WhereTerm *pTerm;           /* A single term of the WHERE clause WHERE×Ó¾äµÄÒ»¸öµ¥¶Àterm */
-  WhereTerm *pWCEnd;          /* End of pWC->a[] pWC->a[]µÄÄ©Î² */
-  Table *pTable;              /* Table tht might be indexed ¿ÉÄÜÓĞË÷ÒıµÄ±ítht */
+  double costTempIdx;         /* per-query cost of the transient index ä¸´æ—¶ç´¢å¼•çš„per-queryä»£ä»· */
+  WhereTerm *pTerm;           /* A single term of the WHERE clause WHEREå­å¥çš„ä¸€ä¸ªå•ç‹¬term */
+  WhereTerm *pWCEnd;          /* End of pWC->a[] pWC->a[]çš„æœ«å°¾ */
+  Table *pTable;              /* Table tht might be indexed å¯èƒ½æœ‰ç´¢å¼•çš„è¡¨tht */
 
   if( pParse->nQueryLoop<=(double)1 ){
-    /* There is no point in building an automatic index for a single scan ÎªÒ»¸öµ¥Ò»µÄÉ¨Ãè¹¹½¨Ò»¸ö×Ô¶¯Ë÷ÒıÊÇ²»±ØÒªµÄ */
+    /* There is no point in building an automatic index for a single scan ä¸ºä¸€ä¸ªå•ä¸€çš„æ‰«ææ„å»ºä¸€ä¸ªè‡ªåŠ¨ç´¢å¼•æ˜¯ä¸å¿…è¦çš„ */
     return;
   }
   if( (pParse->db->flags & SQLITE_AutoIndex)==0 ){
-    /* Automatic indices are disabled at run-time ÔÚÔËĞĞÊ±¼äÄÚ×Ô¶¯Ë÷Òı½«ÎŞĞ§µÄ */
+    /* Automatic indices are disabled at run-time åœ¨è¿è¡Œæ—¶é—´å†…è‡ªåŠ¨ç´¢å¼•å°†æ— æ•ˆçš„ */
     return;
   }
   if( (pCost->plan.wsFlags & WHERE_NOT_FULLSCAN)!=0 ){
-    /* We already have some kind of index in use for this query. ÔÚÊ¹ÓÃÕâ¸ö²éÑ¯Ê±ÒÑ¾­ÓĞ²»´íµÄË÷Òı */
+    /* We already have some kind of index in use for this query. åœ¨ä½¿ç”¨è¿™ä¸ªæŸ¥è¯¢æ—¶å·²ç»æœ‰ä¸é”™çš„ç´¢å¼• */
     return;
   }
   if( pSrc->notIndexed ){
-    /* The NOT INDEXED clause appears in the SQL. ÔÚSQLÖĞ³öÏÖNOT INDEXED×Ó¾ä */
+    /* The NOT INDEXED clause appears in the SQL. åœ¨SQLä¸­å‡ºç°NOT INDEXEDå­å¥ */
     return;
   }
   if( pSrc->isCorrelated ){
-    /* The source is a correlated sub-query. No point in indexing it. À´Ô´ÊÇÒ»¸öÓĞ¹ØÁªµÄ×Ó²éÑ¯¡£²»ĞèÒªÊ¹ÓÃË÷Òı */
+    /* The source is a correlated sub-query. No point in indexing it. æ¥æºæ˜¯ä¸€ä¸ªæœ‰å…³è”çš„å­æŸ¥è¯¢ã€‚ä¸éœ€è¦ä½¿ç”¨ç´¢å¼• */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     return;
   }
@@ -2627,26 +2627,26 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
   assert( pParse->nQueryLoop >= (double)1 );
   pTable = pSrc->pTab;
   nTableRow = pTable->nRowEst;
-  logN = estLog(nTableRow); //ÆÀ¼ÛÖ´ĞĞ¸´ÔÓ¶È
-  costTempIdx = 2*logN*(nTableRow/pParse->nQueryLoop + 1); //ÁÙÊ±Ë÷ÒıµÄ´ú¼Û
-  if( costTempIdx>=pCost->rCost ){//´´½¨ÁÙÊ±±íµÄ´ú¼Û´óÓÚÈ«±íÉ¨ÃèµÄ´ú¼Û
-    /* The cost of creating the transient table would be greater than ´´½¨ÁÙÊ±±íµÄ´ú¼Û´óÓÚÈ«±íÉ¨ÃèµÄ´ú¼Û
+  logN = estLog(nTableRow); //è¯„ä»·æ‰§è¡Œå¤æ‚åº¦
+  costTempIdx = 2*logN*(nTableRow/pParse->nQueryLoop + 1); //ä¸´æ—¶ç´¢å¼•çš„ä»£ä»·
+  if( costTempIdx>=pCost->rCost ){//åˆ›å»ºä¸´æ—¶è¡¨çš„ä»£ä»·å¤§äºå…¨è¡¨æ‰«æçš„ä»£ä»·
+    /* The cost of creating the transient table would be greater than åˆ›å»ºä¸´æ—¶è¡¨çš„ä»£ä»·å¤§äºå…¨è¡¨æ‰«æçš„ä»£ä»·
     ** doing the full table scan */
-	  /* ´´½¨ÁÙÊ±±íµÄ´ú¼Û»á±ÈÈ«±íÉ¨Ãè¸ß¡£
+	  /* åˆ›å»ºä¸´æ—¶è¡¨çš„ä»£ä»·ä¼šæ¯”å…¨è¡¨æ‰«æé«˜ã€‚
 	  */
     return;
   }
 
 <<<<<<< HEAD
   /* Search for any equality comparison term */
-  /* ËÑË÷ÈÎÒâµÄµÈÖµ±È½ÏÏî¡£
+  /* æœç´¢ä»»æ„çš„ç­‰å€¼æ¯”è¾ƒé¡¹ã€‚
   */
 =======
-  /* Search for any equality comparison term ²éÕÒÈÎºÎµÈÊ½±È½ÏµÄterm */
+  /* Search for any equality comparison term æŸ¥æ‰¾ä»»ä½•ç­‰å¼æ¯”è¾ƒçš„term */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   pWCEnd = &pWC->a[pWC->nTerm];
-  for(pTerm=pWC->a; pTerm<pWCEnd; pTerm++){ //Ñ­»·±éÀúwhere×Ó¾äÖĞµÄÃ¿¸öterm
-    if( termCanDriveIndex(pTerm, pSrc, notReady) ){	//Èç¹ûterm¿ÉÒÔÊ¹ÓÃË÷Òı
+  for(pTerm=pWC->a; pTerm<pWCEnd; pTerm++){ //å¾ªç¯éå†whereå­å¥ä¸­çš„æ¯ä¸ªterm
+    if( termCanDriveIndex(pTerm, pSrc, notReady) ){	//å¦‚æœtermå¯ä»¥ä½¿ç”¨ç´¢å¼•
       WHERETRACE(("auto-index reduces cost from %.1f to %.1f\n",
                     pCost->rCost, costTempIdx));
       pCost->rCost = costTempIdx;
@@ -2658,8 +2658,8 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
   }
 }
 #else
-# define bestAutomaticIndex(A,B,C,D,E)  /* no-op *//* ¿Õ²Ù×÷*/
-#endif /* SQLITE_OMIT_AUTOMATIC_INDEX *//* SQLITE_OMIT_AUTOMATIC_INDEX½áÊø¡£*/
+# define bestAutomaticIndex(A,B,C,D,E)  /* no-op *//* ç©ºæ“ä½œ*/
+#endif /* SQLITE_OMIT_AUTOMATIC_INDEX *//* SQLITE_OMIT_AUTOMATIC_INDEXç»“æŸã€‚*/
 
 
 #ifndef SQLITE_OMIT_AUTOMATIC_INDEX
@@ -2668,78 +2668,78 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFRO
 ** and to set up the WhereLevel object pLevel so that the code generator
 ** makes use of the automatic index.
 **
-** Éú³É´úÂëÀ´´´½¨Ë÷Òı¶ÔÏóÓÃÓÚ×Ô¶¯Ë÷Òı²¢ÇÒÓÃÓÚÉèÖÃWhereLevel¶ÔÏópLevelÒÔ±ã´úÂëÉú³ÉÆ÷Ê¹ÓÃ×Ô¶¯Ë÷Òı
+** ç”Ÿæˆä»£ç æ¥åˆ›å»ºç´¢å¼•å¯¹è±¡ç”¨äºè‡ªåŠ¨ç´¢å¼•å¹¶ä¸”ç”¨äºè®¾ç½®WhereLevelå¯¹è±¡pLevelä»¥ä¾¿ä»£ç ç”Ÿæˆå™¨ä½¿ç”¨è‡ªåŠ¨ç´¢å¼•
 */
-/* ÎªË÷Òı¶ÔÏóÉú³É´úÂë¹¹Ôì×Ô¶¯Ë÷Òı£¬²¢ÇÒÉèÖÃWhereLevel¶ÔÏópLevel£¬ÕâÑù´ú
-** ÂëÉú³ÉÆ÷¿ÉÒÔÀûÓÃ×Ô¶¯Ë÷Òı¡£
+/* ä¸ºç´¢å¼•å¯¹è±¡ç”Ÿæˆä»£ç æ„é€ è‡ªåŠ¨ç´¢å¼•ï¼Œå¹¶ä¸”è®¾ç½®WhereLevelå¯¹è±¡pLevelï¼Œè¿™æ ·ä»£
+** ç ç”Ÿæˆå™¨å¯ä»¥åˆ©ç”¨è‡ªåŠ¨ç´¢å¼•ã€‚
 */
 static void constructAutomaticIndex(
 <<<<<<< HEAD
-	Parse *pParse,              /* The parsing context *//* ½âÎöÎÄµµ*/
-	WhereClause *pWC,           /* The WHERE clause *//* WHERE×Ó¾ä*/
-struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* ÓÃÓÚÁ¬½ÓÏÂÒ»¸öË÷ÒıµÄFROM×Ó¾äÏî*/
-  Bitmask notReady,           /* Mask of cursors that are not available *//* ²»ÄÜÓÃÀ´Ë÷ÒıµÄÓÎ±êÑÚÂë*/
-  WhereLevel *pLevel          /* Write new index here *//* ÔÚ´ËĞ´ĞÂË÷Òı*/
+	Parse *pParse,              /* The parsing context *//* è§£ææ–‡æ¡£*/
+	WhereClause *pWC,           /* The WHERE clause *//* WHEREå­å¥*/
+struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* ç”¨äºè¿æ¥ä¸‹ä¸€ä¸ªç´¢å¼•çš„FROMå­å¥é¡¹*/
+  Bitmask notReady,           /* Mask of cursors that are not available *//* ä¸èƒ½ç”¨æ¥ç´¢å¼•çš„æ¸¸æ ‡æ©ç */
+  WhereLevel *pLevel          /* Write new index here *//* åœ¨æ­¤å†™æ–°ç´¢å¼•*/
 ){
-	int nColumn;                /* Number of columns in the constructed index *//* ½¨Á¢Ë÷ÒıµÄÁĞÊı*/
-	WhereTerm *pTerm;           /* A single term of the WHERE clause *//* WHERE×Ó¾äµÄÒ»¸öµ¥Ò»Ïî*/
-	WhereTerm *pWCEnd;          /* End of pWC->a[] *//*pWC->a[]½áÊø*/
-	int nByte;                  /* Byte of memory needed for pIdx *//* pIdxËùĞèµÄÄÚ´æ´óĞ¡*/
-	Index *pIdx;                /* Object describing the transient index *//* ÃèÊöË²Ì¬Ë÷ÒıµÄÄ¿±ê*/
-	Vdbe *v;                    /* Prepared statement under construction *//* ×¼±¸ºÃ´¦ÓÚ½¨Á¢µ±ÖĞµÄÉùÃ÷*/
-	int addrInit;               /* Address of the initialization bypass jump *//* Ìø¿ª³õÊ¼»¯µÄµØÖ·*/
-	Table *pTable;              /* The table being indexed *//* Õı±»Ë÷ÒıµÄ±í*/
-	KeyInfo *pKeyinfo;          /* Key information for the index */   /* Ë÷ÒıÖĞµÄ¹Ø¼üĞÅÏ¢*/
-	int addrTop;                /* Top of the index fill loop *//* Ë÷ÒıÌî³äÑ­»·µÄ¶¥²¿*/
-	int regRecord;              /* Register holding an index record *//* ×¢²á±£ÁôÒ»¸öË÷Òı¼ÇÂ¼*/
-	int n;                      /* Column counter *//* ÁĞÊı¼ÆÊıÆ÷*/
-	int i;                      /* Loop counter *//* Ñ­»·¼ÆÊıÆ÷*/
-	int mxBitCol;               /* Maximum column in pSrc->colUsed *//* pSrc-¡·colUsedµÄ×î´óÁĞÊı*/
-	CollSeq *pColl;             /* Collating sequence to on a column *//* °´ÁĞÅÅĞò*/
-	Bitmask idxCols;            /* Bitmap of columns used for indexing *//* ÓÃÓÚË÷ÒıµÄÁĞµÄÎ»Í¼*/
-	Bitmask extraCols;          /* Bitmap of additional columns *//* Ìí¼ÓÁĞµÄÎ»Í¼*/
+	int nColumn;                /* Number of columns in the constructed index *//* å»ºç«‹ç´¢å¼•çš„åˆ—æ•°*/
+	WhereTerm *pTerm;           /* A single term of the WHERE clause *//* WHEREå­å¥çš„ä¸€ä¸ªå•ä¸€é¡¹*/
+	WhereTerm *pWCEnd;          /* End of pWC->a[] *//*pWC->a[]ç»“æŸ*/
+	int nByte;                  /* Byte of memory needed for pIdx *//* pIdxæ‰€éœ€çš„å†…å­˜å¤§å°*/
+	Index *pIdx;                /* Object describing the transient index *//* æè¿°ç¬æ€ç´¢å¼•çš„ç›®æ ‡*/
+	Vdbe *v;                    /* Prepared statement under construction *//* å‡†å¤‡å¥½å¤„äºå»ºç«‹å½“ä¸­çš„å£°æ˜*/
+	int addrInit;               /* Address of the initialization bypass jump *//* è·³å¼€åˆå§‹åŒ–çš„åœ°å€*/
+	Table *pTable;              /* The table being indexed *//* æ­£è¢«ç´¢å¼•çš„è¡¨*/
+	KeyInfo *pKeyinfo;          /* Key information for the index */   /* ç´¢å¼•ä¸­çš„å…³é”®ä¿¡æ¯*/
+	int addrTop;                /* Top of the index fill loop *//* ç´¢å¼•å¡«å……å¾ªç¯çš„é¡¶éƒ¨*/
+	int regRecord;              /* Register holding an index record *//* æ³¨å†Œä¿ç•™ä¸€ä¸ªç´¢å¼•è®°å½•*/
+	int n;                      /* Column counter *//* åˆ—æ•°è®¡æ•°å™¨*/
+	int i;                      /* Loop counter *//* å¾ªç¯è®¡æ•°å™¨*/
+	int mxBitCol;               /* Maximum column in pSrc->colUsed *//* pSrc-ã€‹colUsedçš„æœ€å¤§åˆ—æ•°*/
+	CollSeq *pColl;             /* Collating sequence to on a column *//* æŒ‰åˆ—æ’åº*/
+	Bitmask idxCols;            /* Bitmap of columns used for indexing *//* ç”¨äºç´¢å¼•çš„åˆ—çš„ä½å›¾*/
+	Bitmask extraCols;          /* Bitmap of additional columns *//* æ·»åŠ åˆ—çš„ä½å›¾*/
 
   /* Generate code to skip over the creation and initialization of the
   ** transient index on 2nd and subsequent iterations of the loop. */
-	/* Éú³É´úÂëÀ´Ìø¹ıÑ­»·µÚ¶ş¸ö¼°Ö®ºóµÄµü´úÖĞË²Ì¬Ë÷ÒıµÄ´´½¨ºÍ³õÊ¼»¯¡£
+	/* ç”Ÿæˆä»£ç æ¥è·³è¿‡å¾ªç¯ç¬¬äºŒä¸ªåŠä¹‹åçš„è¿­ä»£ä¸­ç¬æ€ç´¢å¼•çš„åˆ›å»ºå’Œåˆå§‹åŒ–ã€‚
 	*/
 =======
-  Parse *pParse,              /* The parsing context ½âÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,           /* The WHERE clause WHERE×Ó¾ä */
-  struct SrcList_item *pSrc,  /* The FROM clause term to get the next index FROM×Ó¾ätermÎªÁËµÃµ½ÏÂÒ»¸öË÷Òı */
-  Bitmask notReady,           /* Mask of cursors that are not available ÓÎ±êµÄÑÚÂëÊÇÎŞĞ§µÄ */
-  WhereLevel *pLevel          /* Write new index here Ğ´ÈëĞÂµÄË÷Òı */
+  Parse *pParse,              /* The parsing context è§£æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,           /* The WHERE clause WHEREå­å¥ */
+  struct SrcList_item *pSrc,  /* The FROM clause term to get the next index FROMå­å¥termä¸ºäº†å¾—åˆ°ä¸‹ä¸€ä¸ªç´¢å¼• */
+  Bitmask notReady,           /* Mask of cursors that are not available æ¸¸æ ‡çš„æ©ç æ˜¯æ— æ•ˆçš„ */
+  WhereLevel *pLevel          /* Write new index here å†™å…¥æ–°çš„ç´¢å¼• */
 ){
-  int nColumn;                /* Number of columns in the constructed index ÔÚ¹¹ÔìµÄË÷ÒıÖĞµÄÁĞÊı */
-  WhereTerm *pTerm;           /* A single term of the WHERE clause WHERE×Ó¾äµÄÒ»¸öµ¥Ò»µÄterm */
-  WhereTerm *pWCEnd;          /* End of pWC->a[] pWC->a[]µÄÄ©Î² */
-  int nByte;                  /* Byte of memory needed for pIdx pIdxĞèÒªµÄÄÚ´æ×Ö½Ú */
-  Index *pIdx;                /* Object describing the transient index ÃèÊöÁÙÊ±Ë÷ÒıµÄ¶ÔÏó */
-  Vdbe *v;                    /* Prepared statement under construction ÔÚ½¨ÔìÖĞ×¼±¸ºÃµÄÃüÁî */
-  int addrInit;               /* Address of the initialization bypass jump ³õÊ¼»¯µØÖ·ºöÂÔÌø¹ı */
-  Table *pTable;              /* The table being indexed ÓĞË÷ÒıµÄ±í */
-  KeyInfo *pKeyinfo;          /* Key information for the index Ë÷ÒıµÄ¹Ø¼üĞÅÏ¢ */   
-  int addrTop;                /* Top of the index fill loop Ìî³äÑ­»·µÄË÷Òı¶¥²¿ */
-  int regRecord;              /* Register holding an index record ¼ÇÂ¼±£´æÒ»¸öË÷Òı¼ÇÂ¼ */
-  int n;                      /* Column counter ÁĞ¼ÆÊıÆ÷ */
-  int i;                      /* Loop counter Ñ­»·¼ÆÊıÆ÷ */
-  int mxBitCol;               /* Maximum column in pSrc->colUsed ÔÚpSrc->colUsedÖĞµÄ×î´óµÄÁĞ */
-  CollSeq *pColl;             /* Collating sequence to on a column ÔÚÒ»¸öÁĞÖĞµÄÅÅĞòĞòÁĞ */
-  Bitmask idxCols;            /* Bitmap of columns used for indexing ÓÃÓÚË÷ÒıµÄÁĞµÄÎ»ÑÚÂë */
-  Bitmask extraCols;          /* Bitmap of additional columns ¸½¼ÓÁĞµÄÎ»ÑÚÂë */
+  int nColumn;                /* Number of columns in the constructed index åœ¨æ„é€ çš„ç´¢å¼•ä¸­çš„åˆ—æ•° */
+  WhereTerm *pTerm;           /* A single term of the WHERE clause WHEREå­å¥çš„ä¸€ä¸ªå•ä¸€çš„term */
+  WhereTerm *pWCEnd;          /* End of pWC->a[] pWC->a[]çš„æœ«å°¾ */
+  int nByte;                  /* Byte of memory needed for pIdx pIdxéœ€è¦çš„å†…å­˜å­—èŠ‚ */
+  Index *pIdx;                /* Object describing the transient index æè¿°ä¸´æ—¶ç´¢å¼•çš„å¯¹è±¡ */
+  Vdbe *v;                    /* Prepared statement under construction åœ¨å»ºé€ ä¸­å‡†å¤‡å¥½çš„å‘½ä»¤ */
+  int addrInit;               /* Address of the initialization bypass jump åˆå§‹åŒ–åœ°å€å¿½ç•¥è·³è¿‡ */
+  Table *pTable;              /* The table being indexed æœ‰ç´¢å¼•çš„è¡¨ */
+  KeyInfo *pKeyinfo;          /* Key information for the index ç´¢å¼•çš„å…³é”®ä¿¡æ¯ */   
+  int addrTop;                /* Top of the index fill loop å¡«å……å¾ªç¯çš„ç´¢å¼•é¡¶éƒ¨ */
+  int regRecord;              /* Register holding an index record è®°å½•ä¿å­˜ä¸€ä¸ªç´¢å¼•è®°å½• */
+  int n;                      /* Column counter åˆ—è®¡æ•°å™¨ */
+  int i;                      /* Loop counter å¾ªç¯è®¡æ•°å™¨ */
+  int mxBitCol;               /* Maximum column in pSrc->colUsed åœ¨pSrc->colUsedä¸­çš„æœ€å¤§çš„åˆ— */
+  CollSeq *pColl;             /* Collating sequence to on a column åœ¨ä¸€ä¸ªåˆ—ä¸­çš„æ’åºåºåˆ— */
+  Bitmask idxCols;            /* Bitmap of columns used for indexing ç”¨äºç´¢å¼•çš„åˆ—çš„ä½æ©ç  */
+  Bitmask extraCols;          /* Bitmap of additional columns é™„åŠ åˆ—çš„ä½æ©ç  */
 
   /* Generate code to skip over the creation and initialization of the
   ** transient index on 2nd and subsequent iterations of the loop. 
-  ** Éú³É´úÂëÓÃÓÚÌø¹ıÔÚÑ­»·µÄ2ndºÍÁ¬Ğøµü´úÊ±µÄÁÙÊ±Ë÷ÒıµÄ´´½¨ºÍ³õÊ¼»¯
+  ** ç”Ÿæˆä»£ç ç”¨äºè·³è¿‡åœ¨å¾ªç¯çš„2ndå’Œè¿ç»­è¿­ä»£æ—¶çš„ä¸´æ—¶ç´¢å¼•çš„åˆ›å»ºå’Œåˆå§‹åŒ–
   */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   v = pParse->pVdbe;
   assert( v!=0 );
   addrInit = sqlite3CodeOnce(pParse);
 
-  /* Count the number of columns that will be added to the index ¼ÆËã½«ÒªÌí¼Óµ½Ë÷ÒıµÄÁĞÊıºÍÓÃÓÚÆ¥ÅäWHERE×Ó¾äµÄÔ¼Êø
+  /* Count the number of columns that will be added to the index è®¡ç®—å°†è¦æ·»åŠ åˆ°ç´¢å¼•çš„åˆ—æ•°å’Œç”¨äºåŒ¹é…WHEREå­å¥çš„çº¦æŸ
   ** and used to match WHERE clause constraints */
-  /* ¶Ô½«Òª¼ÓÈëË÷ÒıºÍÓÃÓÚÂú×ãWHERE×Ó¾äÌõ¼şµÄÁĞÊı¼ÆÊı¡£
+  /* å¯¹å°†è¦åŠ å…¥ç´¢å¼•å’Œç”¨äºæ»¡è¶³WHEREå­å¥æ¡ä»¶çš„åˆ—æ•°è®¡æ•°ã€‚
   */
   nColumn = 0;
   pTable = pSrc->pTab;
@@ -2768,15 +2768,15 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* Ó
   ** original table changes and the index and table cannot both be used
   ** if they go out of sync.
   **
-  ** ¼ÆËãĞèÒª´´½¨Ò»¸ö¸²¸ÇË÷ÒıµÄ¸½¼ÓÁĞµÄÊıÖµ¡£Ò»¸ö"¸²¸ÇË÷Òı"ÊÇÒ»¸ö°üº¬ËùÓĞ±»²éÑ¯µÄÁĞµÄË÷Òı¡£
-  ** ÓĞÁËÒ»¸ö¸²¸ÇË÷Òı£¬Ô­Ê¼±í½«²»ĞèÒªÔÙ±»·ÃÎÊ¡£
-  ** ÒòÎªÈç¹ûÔ­Ê¼±í±ä»¯,Ë÷Òı½«²»»á¸üĞÂ£¬×Ô¶¯Ë÷Òı±ØĞèÊÇÒ»¸ö¸²¸ÇË÷Òı£¬²¢ÇÒÈç¹ûË÷ÒıºÍ±í²»Í¬²½µÄ»°£¬ËûÃÇ¶¼½«²»»á±»Ê¹ÓÃ¡£
+  ** è®¡ç®—éœ€è¦åˆ›å»ºä¸€ä¸ªè¦†ç›–ç´¢å¼•çš„é™„åŠ åˆ—çš„æ•°å€¼ã€‚ä¸€ä¸ª"è¦†ç›–ç´¢å¼•"æ˜¯ä¸€ä¸ªåŒ…å«æ‰€æœ‰è¢«æŸ¥è¯¢çš„åˆ—çš„ç´¢å¼•ã€‚
+  ** æœ‰äº†ä¸€ä¸ªè¦†ç›–ç´¢å¼•ï¼ŒåŸå§‹è¡¨å°†ä¸éœ€è¦å†è¢«è®¿é—®ã€‚
+  ** å› ä¸ºå¦‚æœåŸå§‹è¡¨å˜åŒ–,ç´¢å¼•å°†ä¸ä¼šæ›´æ–°ï¼Œè‡ªåŠ¨ç´¢å¼•å¿…éœ€æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•ï¼Œå¹¶ä¸”å¦‚æœç´¢å¼•å’Œè¡¨ä¸åŒæ­¥çš„è¯ï¼Œä»–ä»¬éƒ½å°†ä¸ä¼šè¢«ä½¿ç”¨ã€‚
   **
   */
-  /* ¼ÆËã¶îÍâµÄÁĞµÄÊıÁ¿ĞèÒª´´½¨Ò»¸ö¸²¸ÇË÷Òı¡£¡°¸²¸ÇË÷Òı¡±ÊÇÖ¸Ò»¸ö°üº¬Ëù
-  ** ÓĞ²éÑ¯ËùĞèµÄÁĞµÄË÷Òı¡£ÓĞÁË¸²¸ÇË÷Òı£¬ÄÇÃ´Ô­Ê¼±í¾Í²»ĞèÒª±»·ÃÎÊ¡£×Ô¶¯
-  ** Ë÷Òı±ØĞëÊÇÒ»¸ö¸²¸ÇË÷Òı£¬ÒòÎªÈç¹ûËüÃÇ±»ÓÃÓÚÍ¬²½µÄ»°£¬Ô­Ê¼±í¸ñ¾Í»á±ä
-  ** »¯£¬±íÒ²Í¬Ê±²»ÄÜ±»Ê¹ÓÃ£¬ÄÇÃ´Õâ¸öË÷Òı¾Í²»ÄÜ±»¸üĞÂ¡£
+  /* è®¡ç®—é¢å¤–çš„åˆ—çš„æ•°é‡éœ€è¦åˆ›å»ºä¸€ä¸ªè¦†ç›–ç´¢å¼•ã€‚â€œè¦†ç›–ç´¢å¼•â€æ˜¯æŒ‡ä¸€ä¸ªåŒ…å«æ‰€
+  ** æœ‰æŸ¥è¯¢æ‰€éœ€çš„åˆ—çš„ç´¢å¼•ã€‚æœ‰äº†è¦†ç›–ç´¢å¼•ï¼Œé‚£ä¹ˆåŸå§‹è¡¨å°±ä¸éœ€è¦è¢«è®¿é—®ã€‚è‡ªåŠ¨
+  ** ç´¢å¼•å¿…é¡»æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•ï¼Œå› ä¸ºå¦‚æœå®ƒä»¬è¢«ç”¨äºåŒæ­¥çš„è¯ï¼ŒåŸå§‹è¡¨æ ¼å°±ä¼šå˜
+  ** åŒ–ï¼Œè¡¨ä¹ŸåŒæ—¶ä¸èƒ½è¢«ä½¿ç”¨ï¼Œé‚£ä¹ˆè¿™ä¸ªç´¢å¼•å°±ä¸èƒ½è¢«æ›´æ–°ã€‚
   */
   extraCols = pSrc->colUsed & (~idxCols | (((Bitmask)1)<<(BMS-1)));
   mxBitCol = (pTable->nCol >= BMS-1) ? BMS-1 : pTable->nCol;
@@ -2792,10 +2792,10 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* Ó
 
 <<<<<<< HEAD
   /* Construct the Index object to describe this index */
-  /* ¹¹½¨Ë÷Òı¶ÔÏóÀ´ÃèÊöÕâ¸öË÷Òı¡£
+  /* æ„å»ºç´¢å¼•å¯¹è±¡æ¥æè¿°è¿™ä¸ªç´¢å¼•ã€‚
   */
 =======
-  /* Construct the Index object to describe this index ´´½¨Ë÷Òı¶ÔÏóÀ´ÃèÊöÕâ¸öË÷Òı */
+  /* Construct the Index object to describe this index åˆ›å»ºç´¢å¼•å¯¹è±¡æ¥æè¿°è¿™ä¸ªç´¢å¼• */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   nByte = sizeof(Index);
   nByte += nColumn*sizeof(int);     /* Index.aiColumn */
@@ -2828,9 +2828,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* Ó
   }
   assert( (u32)n==pLevel->plan.nEq );
 
-  /* Add additional columns needed to make the automatic index into ĞèÒªÌí¼Ó¸½¼ÓÁĞÊ¹×Ô¶¯Ë÷Òı±äÎª¸²¸ÇË÷Òı
+  /* Add additional columns needed to make the automatic index into éœ€è¦æ·»åŠ é™„åŠ åˆ—ä½¿è‡ªåŠ¨ç´¢å¼•å˜ä¸ºè¦†ç›–ç´¢å¼•
   ** a covering index */
-  /* Ìí¼ÓÒ»¸ö¶îÍâµ«±ØĞëµÄÁĞÀ´±£Ö¤×Ô¶¯Ë÷ÒıÊÇÒ»¸ö¸²¸ÇË÷Òı¡£
+  /* æ·»åŠ ä¸€ä¸ªé¢å¤–ä½†å¿…é¡»çš„åˆ—æ¥ä¿è¯è‡ªåŠ¨ç´¢å¼•æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•ã€‚
   */
   for(i=0; i<mxBitCol; i++){
     if( extraCols & (((Bitmask)1)<<i) ){
@@ -2850,9 +2850,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* Ó
 
 <<<<<<< HEAD
   /* Create the automatic index */
-  /* Éú³ÉÒ»¸ö×Ô¶¯Ë÷Òı*/
+  /* ç”Ÿæˆä¸€ä¸ªè‡ªåŠ¨ç´¢å¼•*/
 =======
-  /* Create the automatic index ´´½¨×Ô¶¯Ë÷Òı */
+  /* Create the automatic index åˆ›å»ºè‡ªåŠ¨ç´¢å¼• */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   pKeyinfo = sqlite3IndexKeyinfo(pParse, pIdx);
   assert( pLevel->iIdxCur>=0 );
@@ -2862,9 +2862,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* Ó
 
 <<<<<<< HEAD
   /* Fill the automatic index with content */
-  /* ÌîÉÏ×Ô¶¯Ë÷ÒıµÄÄÚÈİ*/
+  /* å¡«ä¸Šè‡ªåŠ¨ç´¢å¼•çš„å†…å®¹*/
 =======
-  /* Fill the automatic index with content Ìî³ä×Ô¶¯Ë÷ÒıµÄÄÚÈİ */
+  /* Fill the automatic index with content å¡«å……è‡ªåŠ¨ç´¢å¼•çš„å†…å®¹ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   addrTop = sqlite3VdbeAddOp1(v, OP_Rewind, pLevel->iTabCur);
   regRecord = sqlite3GetTempReg(pParse);
@@ -2878,13 +2878,13 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* Ó
   
 <<<<<<< HEAD
   /* Jump here when skipping the initialization */
-  /* Ìø¹ı³õÊ¼»¯Ê±ÔòÌøµ½´Ë´¦*/
+  /* è·³è¿‡åˆå§‹åŒ–æ—¶åˆ™è·³åˆ°æ­¤å¤„*/
 =======
-  /* Jump here when skipping the initialization µ±Ìø¹ı³õÊ¼»¯Ê±Ìø¹ıÕâÀï */
+  /* Jump here when skipping the initialization å½“è·³è¿‡åˆå§‹åŒ–æ—¶è·³è¿‡è¿™é‡Œ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   sqlite3VdbeJumpHere(v, addrInit);
 }
-#endif /* SQLITE_OMIT_AUTOMATIC_INDEX *//* SQLITE_OMIT_AUTOMATIC_INDEX½áÊø*/
+#endif /* SQLITE_OMIT_AUTOMATIC_INDEX *//* SQLITE_OMIT_AUTOMATIC_INDEXç»“æŸ*/
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 /*
@@ -2892,12 +2892,12 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* Ó
 ** responsibility of the caller to eventually release the structure
 ** by passing the pointer returned by this function to sqlite3_free().
 **
-** ·ÖÅäºÍÌî³äÒ»¸ösqlite3_index_infoÊı¾İ½á¹¹¡£
-** ËüµÄ×÷ÓÃÊÇÈÃµ÷ÓÃÕßÍ¨¹ıÕâ¸öº¯Êı·µ»Ø¸øsqlite3_free()µÄÖ¸Õë×îÖÕÊÍ·ÅÊı¾İ½á¹¹
+** åˆ†é…å’Œå¡«å……ä¸€ä¸ªsqlite3_index_infoæ•°æ®ç»“æ„ã€‚
+** å®ƒçš„ä½œç”¨æ˜¯è®©è°ƒç”¨è€…é€šè¿‡è¿™ä¸ªå‡½æ•°è¿”å›ç»™sqlite3_free()çš„æŒ‡é’ˆæœ€ç»ˆé‡Šæ”¾æ•°æ®ç»“æ„
 **
 */
-/* ·ÖÅäºÍÌî³äÒ»¸ösqlite3_index_info½á¹¹¡£Í¨¹ısqlite3_free()º¯Êı·µ»ØµÄ
-** Ö¸ÕëµÄ×îÖÕÊÍ·ÅÊÇÓÉËüµÄµ÷ÓÃÕß¸ºÔğµÄ¡£
+/* åˆ†é…å’Œå¡«å……ä¸€ä¸ªsqlite3_index_infoç»“æ„ã€‚é€šè¿‡sqlite3_free()å‡½æ•°è¿”å›çš„
+** æŒ‡é’ˆçš„æœ€ç»ˆé‡Šæ”¾æ˜¯ç”±å®ƒçš„è°ƒç”¨è€…è´Ÿè´£çš„ã€‚
 */
 static sqlite3_index_info *allocateIndexInfo(
   Parse *pParse, 
@@ -2916,9 +2916,9 @@ static sqlite3_index_info *allocateIndexInfo(
 
   WHERETRACE(("Recomputing index info for %s...\n", pSrc->pTab->zName));
 
-  /* Count the number of possible WHERE clause constraints referring Í³¼ÆÓëÕâ¸öĞéÄâ±í¿ÉÄÜÏà¹ØÁªµÄWHERE×Ó¾äµÄ¸öÊı
+  /* Count the number of possible WHERE clause constraints referring ç»Ÿè®¡ä¸è¿™ä¸ªè™šæ‹Ÿè¡¨å¯èƒ½ç›¸å…³è”çš„WHEREå­å¥çš„ä¸ªæ•°
   ** to this virtual table */
-  /* ¼ÆËãÖ¸ÏòÕâ¸öĞé±íµÄ¿ÉÄÜµÄWHERE×Ó¾äÔ¼ÊøµÄÊıÁ¿¡£
+  /* è®¡ç®—æŒ‡å‘è¿™ä¸ªè™šè¡¨çš„å¯èƒ½çš„WHEREå­å¥çº¦æŸçš„æ•°é‡ã€‚
   */
   for(i=nTerm=0, pTerm=pWC->a; i<pWC->nTerm; i++, pTerm++){
     if( pTerm->leftCursor != pSrc->iCursor ) continue;
@@ -2934,10 +2934,10 @@ static sqlite3_index_info *allocateIndexInfo(
   ** virtual table then allocate space for the aOrderBy part of
   ** the sqlite3_index_info structure.
   **
-  ** Èç¹ûORDER BY×Ó¾äÖ»°üº¬ÔÚµ±Ç°Ğé±íµÄÁĞ£¬ÄÇÃ´Îªsqlite3_index_infoÊı¾İ½á¹¹µÄaOrderBy²¿·Ö·ÖÅä¿Õ¼ä
+  ** å¦‚æœORDER BYå­å¥åªåŒ…å«åœ¨å½“å‰è™šè¡¨çš„åˆ—ï¼Œé‚£ä¹ˆä¸ºsqlite3_index_infoæ•°æ®ç»“æ„çš„aOrderByéƒ¨åˆ†åˆ†é…ç©ºé—´
   */
-  /* Èç¹ûORDER BY×Ó¾äÖ»°üº¬µ±Ç°Ğé±íµÄÁĞ£¬ÄÇÃ´Îªsqlite3_index_info
-  ** ½á¹¹ÖĞµÄaOrderby²¿·Ö·ÖÅä¿Õ¼ä¡£
+  /* å¦‚æœORDER BYå­å¥åªåŒ…å«å½“å‰è™šè¡¨çš„åˆ—ï¼Œé‚£ä¹ˆä¸ºsqlite3_index_info
+  ** ç»“æ„ä¸­çš„aOrderbyéƒ¨åˆ†åˆ†é…ç©ºé—´ã€‚
   */
   nOrderBy = 0;
   if( pOrderBy ){
@@ -2950,9 +2950,9 @@ static sqlite3_index_info *allocateIndexInfo(
     }
   }
 
-  /* Allocate the sqlite3_index_info structure ·ÖÅäsqlite3_index_infoÊı¾İ½á¹¹
+  /* Allocate the sqlite3_index_info structure åˆ†é…sqlite3_index_infoæ•°æ®ç»“æ„
   */
-  /* ·ÖÅäsqlite3_index_info½á¹¹¡£
+  /* åˆ†é…sqlite3_index_infoç»“æ„ã€‚
   */
   pIdxInfo = sqlite3DbMallocZero(pParse->db, sizeof(*pIdxInfo)
                            + (sizeof(*pIdxCons) + sizeof(*pUsage))*nTerm
@@ -2968,11 +2968,11 @@ static sqlite3_index_info *allocateIndexInfo(
   ** changing them.  We have to do some funky casting in order to
   ** initialize those fields.
   **
-  ** ³õÊ¼»¯Êı¾İ½á¹¹¡£sqlite3_index_infoÊı¾İ½á¹¹°üº¬Ğí¶à±»ÉùÃ÷Îª"const"´Ó¶øÓÃÓÚ×èÖ¹xBestIndexÀ´¸Ä±äµÄ×Ö¶Î¡£
-  ** ÎªÁË³õÊ¼»¯ÕâĞ©×Ö¶Î£¬ÎÒÃÇ²»µÃ²»×öÒ»Ğ©ÌØ±ğµÄ×ª»¯¡£
+  ** åˆå§‹åŒ–æ•°æ®ç»“æ„ã€‚sqlite3_index_infoæ•°æ®ç»“æ„åŒ…å«è®¸å¤šè¢«å£°æ˜ä¸º"const"ä»è€Œç”¨äºé˜»æ­¢xBestIndexæ¥æ”¹å˜çš„å­—æ®µã€‚
+  ** ä¸ºäº†åˆå§‹åŒ–è¿™äº›å­—æ®µï¼Œæˆ‘ä»¬ä¸å¾—ä¸åšä¸€äº›ç‰¹åˆ«çš„è½¬åŒ–ã€‚
   */
-  /* ³õÊ¼»¯½á¹¹¡£sqlite3_index_info½á¹¹°üº¬Ğí¶à×Ö¶ÎÉùÃ÷¡°³£Á¿¡±,ÒÔ·ÀÖ¹
-  ** xBestIndex¸Ä±äËûÃÇ¡£ÎÒÃÇ±ØĞë×öÒ»Ğ©²Ù×÷À´³õÊ¼»¯ÕâĞ©×Ö¶Î¡£
+  /* åˆå§‹åŒ–ç»“æ„ã€‚sqlite3_index_infoç»“æ„åŒ…å«è®¸å¤šå­—æ®µå£°æ˜â€œå¸¸é‡â€,ä»¥é˜²æ­¢
+  ** xBestIndexæ”¹å˜ä»–ä»¬ã€‚æˆ‘ä»¬å¿…é¡»åšä¸€äº›æ“ä½œæ¥åˆå§‹åŒ–è¿™äº›å­—æ®µã€‚
   */
   pIdxCons = (struct sqlite3_index_constraint*)&pIdxInfo[1];
   pIdxOrderBy = (struct sqlite3_index_orderby*)&pIdxCons[nTerm];
@@ -2998,14 +2998,14 @@ static sqlite3_index_info *allocateIndexInfo(
     ** the WO_ and SQLITE_INDEX_CONSTRAINT_ codes are identical.  The
 <<<<<<< HEAD
     ** following asserts verify this fact. */
-	/* ÔÚÇ°Ò»ĞĞÖ±½Ó¸³Öµ¿ÉÄÜÊÇÓÉÓÚWO_ºÍSQLITE_INDEX_CONSTRAINT_´úÂë¶¼ÊÇÏàÍ¬
-	** µÄ¡£ÒÔÏÂ¼ÙÉèÓÃÓÚÑéÖ¤Õâ¸ö¶îÇé¿ö¡£
+	/* åœ¨å‰ä¸€è¡Œç›´æ¥èµ‹å€¼å¯èƒ½æ˜¯ç”±äºWO_å’ŒSQLITE_INDEX_CONSTRAINT_ä»£ç éƒ½æ˜¯ç›¸åŒ
+	** çš„ã€‚ä»¥ä¸‹å‡è®¾ç”¨äºéªŒè¯è¿™ä¸ªé¢æƒ…å†µã€‚
 	*/
 =======
     ** following asserts verify this fact. 
     **
-    ** Ö»ÒòÎªWO_ºÍSQLITE_INDEX_CONSTRAINT_´úÂëÊÇÍêÈ«ÏàÍ¬µÄ£¬ËùÒÔÔÚÇ°Ò»ĞĞÖ±½Ó·ÖÅäÊÇ¿ÉÄÜµÄ¡£
-    ** ÏÂÃæassertsÑéÖ¤Õâ¸öÊÂÊµ
+    ** åªå› ä¸ºWO_å’ŒSQLITE_INDEX_CONSTRAINT_ä»£ç æ˜¯å®Œå…¨ç›¸åŒçš„ï¼Œæ‰€ä»¥åœ¨å‰ä¸€è¡Œç›´æ¥åˆ†é…æ˜¯å¯èƒ½çš„ã€‚
+    ** ä¸‹é¢assertséªŒè¯è¿™ä¸ªäº‹å®
     */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     assert( WO_EQ==SQLITE_INDEX_CONSTRAINT_EQ );
@@ -3032,30 +3032,30 @@ static sqlite3_index_info *allocateIndexInfo(
 ** method of the virtual table with the sqlite3_index_info pointer passed
 ** as the argument.
 **
-** ÔÚÕâ¸öº¯ÊıÖĞµÄµÚ¶ş¸ö²ÎÊı--±í¶ÔÏóÒıÓÃ±ØĞë±íÊ¾Ò»¸öĞéÄâ±í¡£
-** Õâ¸öº¯Êı»½ĞÑĞéÄâ±íÖĞÓĞsqlite3_index_infoÖ¸ÕëµÄxBestIndex()·½·¨×÷Îª²ÎÊı
+** åœ¨è¿™ä¸ªå‡½æ•°ä¸­çš„ç¬¬äºŒä¸ªå‚æ•°--è¡¨å¯¹è±¡å¼•ç”¨å¿…é¡»è¡¨ç¤ºä¸€ä¸ªè™šæ‹Ÿè¡¨ã€‚
+** è¿™ä¸ªå‡½æ•°å”¤é†’è™šæ‹Ÿè¡¨ä¸­æœ‰sqlite3_index_infoæŒ‡é’ˆçš„xBestIndex()æ–¹æ³•ä½œä¸ºå‚æ•°
 **
 ** If an error occurs, pParse is populated with an error message and a
 ** non-zero value is returned. Otherwise, 0 is returned and the output
 ** part of the sqlite3_index_info structure is left populated.
 **
-** Èç¹ûÒ»¸ö´íÎó³öÏÖ£¬pParseÓÃÒ»¸ö´íÎóĞÅÏ¢Ìî³ä²¢ÇÒÒ»¸ö·Ç0Öµ½«»á±»·µ»Ø¡£
-** ·ñÔò£¬¾Í·µ»Ø0²¢ÇÒÌî³äÊ£ÏÂµÄsqlite3_index_infoÊı¾İ½á¹¹µÄÊä³ö²¿·Ö¡£
+** å¦‚æœä¸€ä¸ªé”™è¯¯å‡ºç°ï¼ŒpParseç”¨ä¸€ä¸ªé”™è¯¯ä¿¡æ¯å¡«å……å¹¶ä¸”ä¸€ä¸ªé0å€¼å°†ä¼šè¢«è¿”å›ã€‚
+** å¦åˆ™ï¼Œå°±è¿”å›0å¹¶ä¸”å¡«å……å‰©ä¸‹çš„sqlite3_index_infoæ•°æ®ç»“æ„çš„è¾“å‡ºéƒ¨åˆ†ã€‚
 **
 ** Whether or not an error is returned, it is the responsibility of the
 ** caller to eventually free p->idxStr if p->needToFreeIdxStr indicates
 ** that this is required.
 **
-** ²»¹ÜÊÇ·ñ·µ»ØÒ»¸ö´íÎóĞÅÏ¢£¬Èç¹ûp->needToFreeIdxStrË÷ÒıÊÇ±ØĞëµÄ£¬ÄÇÃ´Ëü×îÖÕ»áÓÃ»§µ÷ÓÃÕßÊÍ·Åp->idxStr
+** ä¸ç®¡æ˜¯å¦è¿”å›ä¸€ä¸ªé”™è¯¯ä¿¡æ¯ï¼Œå¦‚æœp->needToFreeIdxStrç´¢å¼•æ˜¯å¿…é¡»çš„ï¼Œé‚£ä¹ˆå®ƒæœ€ç»ˆä¼šç”¨æˆ·è°ƒç”¨è€…é‡Šæ”¾p->idxStr
 */
-/* ±í¶ÔÏóÒıÓÃ×÷ÎªµÚ¶ş¸ö²ÎÊı´«µİ¸ø¸Ãº¯Êı±ØĞë´ú±íÒ»¸öĞé±í¡£Õâ¸öº¯Êıµ÷ÓÃ
-** xBestIndex()·½·¨µÄĞé±ísqlite3_index_infoÖ¸Õë×÷Îª²ÎÊı´«µİ¡£
+/* è¡¨å¯¹è±¡å¼•ç”¨ä½œä¸ºç¬¬äºŒä¸ªå‚æ•°ä¼ é€’ç»™è¯¥å‡½æ•°å¿…é¡»ä»£è¡¨ä¸€ä¸ªè™šè¡¨ã€‚è¿™ä¸ªå‡½æ•°è°ƒç”¨
+** xBestIndex()æ–¹æ³•çš„è™šè¡¨sqlite3_index_infoæŒ‡é’ˆä½œä¸ºå‚æ•°ä¼ é€’ã€‚
 **
-** Èç¹û³öÏÖ´íÎó£¬pParseÌî³äÒ»¸ö´íÎóÏûÏ¢,Ôò·µ»Ø·ÇÁãÖµ¡£²¢ÇÒ
-** sqlite3_index_infoÖĞÊä³öµÄ²¿·Ö±»ÁôÏÂÌî³ä¡£
+** å¦‚æœå‡ºç°é”™è¯¯ï¼ŒpParseå¡«å……ä¸€ä¸ªé”™è¯¯æ¶ˆæ¯,åˆ™è¿”å›éé›¶å€¼ã€‚å¹¶ä¸”
+** sqlite3_index_infoä¸­è¾“å‡ºçš„éƒ¨åˆ†è¢«ç•™ä¸‹å¡«å……ã€‚
 **
-** Èç¹ûp->needToFreeIdxStrÕâÊÇ±ØĞëµÄ»°£¬ÄÇÃ´²»¹ÜÊÇ·ñ·µ»ØÁËÒ»¸ö´íÎó£¬ÄÇ
-** Ã´¶¼Ó¦¸ÃÓÉµ÷ÓÃÕß×îÖÕÊÍ·Åp->idxStrÖ¸Õë¡£
+** å¦‚æœp->needToFreeIdxStrè¿™æ˜¯å¿…é¡»çš„è¯ï¼Œé‚£ä¹ˆä¸ç®¡æ˜¯å¦è¿”å›äº†ä¸€ä¸ªé”™è¯¯ï¼Œé‚£
+** ä¹ˆéƒ½åº”è¯¥ç”±è°ƒç”¨è€…æœ€ç»ˆé‡Šæ”¾p->idxStræŒ‡é’ˆã€‚
 */
 static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
   sqlite3_vtab *pVtab = sqlite3GetVTable(pParse->db, pTab)->pVtab;
@@ -3093,15 +3093,15 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
 /*
 ** Compute the best index for a virtual table.
 **
-** ¼ÆËãĞéÄâ±íµÄ×î¼ÑË÷Òı
+** è®¡ç®—è™šæ‹Ÿè¡¨çš„æœ€ä½³ç´¢å¼•
 **
 ** The best index is computed by the xBestIndex method of the virtual
 ** table module.  This routine is really just a wrapper that sets up
 ** the sqlite3_index_info structure that is used to communicate with
 ** xBestIndex.
 **
-** Í¨¹ıĞéÄâ±íÄ£¿éµÄxBestIndex·½·¨À´¼ÆËã×î¼ÑË÷Òı¡£
-** Õâ¸ö³ÌĞòÊµ¼ÊÉÏÖ»ÊÇÒ»¸ö°ü×°£¬´´Á¢sqlite3_index_infoÊı¾İ½á¹¹£¬²¢ÇÒ±»ÓÃÓÚÓëxBestIndexÏàÁªÏµ
+** é€šè¿‡è™šæ‹Ÿè¡¨æ¨¡å—çš„xBestIndexæ–¹æ³•æ¥è®¡ç®—æœ€ä½³ç´¢å¼•ã€‚
+** è¿™ä¸ªç¨‹åºå®é™…ä¸Šåªæ˜¯ä¸€ä¸ªåŒ…è£…ï¼Œåˆ›ç«‹sqlite3_index_infoæ•°æ®ç»“æ„ï¼Œå¹¶ä¸”è¢«ç”¨äºä¸xBestIndexç›¸è”ç³»
 **
 ** In a join, this routine might be called multiple times for the
 ** same virtual table.  The sqlite3_index_info structure is created
@@ -3111,86 +3111,86 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
 ** routine takes care of freeing the sqlite3_index_info structure after
 ** everybody has finished with it.
 **
-** ÔÚÒ»¸öÁ¬½ÓÖĞ£¬Õâ¸ö³ÌĞò¿ÉÄÜ±»ÏàÍ¬µÄĞéÄâ±íµ÷ÓÃ¶à´Î¡£
-** ÔÚµÚÒ»´Îµ÷ÓÃºÍ´´½¨ºÍ³õÊ¼»¯sqlite3_index_infoÊı¾İ½á¹¹²¢ÇÒÔÚËùÓĞµÄËæºóµÄµ÷ÓÃÖĞÖØÓÃ¡£
-** µ±Éú³É·ÃÎÊĞéÄâ±íµÄ´úÂëÊ±£¬Ò²»áÊ¹ÓÃsqlite3_index_infoÊı¾İ½á¹¹£¬
-** µ±ËùÓĞµÄÈË¶¼Ö´ĞĞÍê³É£¬ÄÇÃ´whereInfoDelete()³ÌĞò»áÊÍ·Åsqlite3_index_infoÊı¾İ½á¹¹
+** åœ¨ä¸€ä¸ªè¿æ¥ä¸­ï¼Œè¿™ä¸ªç¨‹åºå¯èƒ½è¢«ç›¸åŒçš„è™šæ‹Ÿè¡¨è°ƒç”¨å¤šæ¬¡ã€‚
+** åœ¨ç¬¬ä¸€æ¬¡è°ƒç”¨å’Œåˆ›å»ºå’Œåˆå§‹åŒ–sqlite3_index_infoæ•°æ®ç»“æ„å¹¶ä¸”åœ¨æ‰€æœ‰çš„éšåçš„è°ƒç”¨ä¸­é‡ç”¨ã€‚
+** å½“ç”Ÿæˆè®¿é—®è™šæ‹Ÿè¡¨çš„ä»£ç æ—¶ï¼Œä¹Ÿä¼šä½¿ç”¨sqlite3_index_infoæ•°æ®ç»“æ„ï¼Œ
+** å½“æ‰€æœ‰çš„äººéƒ½æ‰§è¡Œå®Œæˆï¼Œé‚£ä¹ˆwhereInfoDelete()ç¨‹åºä¼šé‡Šæ”¾sqlite3_index_infoæ•°æ®ç»“æ„
 */
 /*
-** ¼ÆËãĞé±íµÄ×î¼ÑË÷Òı¡£
+** è®¡ç®—è™šè¡¨çš„æœ€ä½³ç´¢å¼•ã€‚
 ** 
-** ×î¼ÑË÷ÒıÊÇÊ¹ÓÃĞé±íÄ£¿éµÄxBestIndexº¯ÊıÀ´¼ÆËãµÄ¡£Õâ¸öÀı³ÌÊµ¼ÊÉÏÖ»ÊÇ½¨Á¢
-** sqlite3_index_info½á¹¹µÄ°ü×°£¬Õâ¸ö½á¹¹ÓÃÀ´ÓëxBestIndexÍ¨ĞÅ¡£
+** æœ€ä½³ç´¢å¼•æ˜¯ä½¿ç”¨è™šè¡¨æ¨¡å—çš„xBestIndexå‡½æ•°æ¥è®¡ç®—çš„ã€‚è¿™ä¸ªä¾‹ç¨‹å®é™…ä¸Šåªæ˜¯å»ºç«‹
+** sqlite3_index_infoç»“æ„çš„åŒ…è£…ï¼Œè¿™ä¸ªç»“æ„ç”¨æ¥ä¸xBestIndexé€šä¿¡ã€‚
 ** 
-** ÔÚÒ»´ÎÁ¬½Óµ±ÖĞ£¬Õâ¸öÀı³Ì¿ÉÄÜ»á±»Í¬Ò»¸öĞé±íµ÷ÓÃÈô¸É´Î¡£sqlite3_index_info
-** ½á¹¹ÊÇÔÚµÚÒ»´Îµ÷ÓÃÊ±´´½¨ºÍ³õÊ¼»¯µÄ£¬²¢ÇÒÔÚËùÓĞµÄ×Óµ÷ÓÃÖĞ¶¼»áÖØ¸´Ê¹ÓÃ¡£
-** sqlite3_index_info½á¹¹Í¬ÑùÒ²ÔÚÉú³É´úÂëÀ´½øÈëĞé±íÊ±±»Ê¹ÓÃ¡£
-** whereInfoDelete()Àı³ÌÓÃÀ´´¦ÀíÔÚËùÓĞ²Ù×÷¶¼Íê³Éºó¶Ôsqlite3_index_info½á¹¹µÄ
-** ÊÍ·Å¡£
+** åœ¨ä¸€æ¬¡è¿æ¥å½“ä¸­ï¼Œè¿™ä¸ªä¾‹ç¨‹å¯èƒ½ä¼šè¢«åŒä¸€ä¸ªè™šè¡¨è°ƒç”¨è‹¥å¹²æ¬¡ã€‚sqlite3_index_info
+** ç»“æ„æ˜¯åœ¨ç¬¬ä¸€æ¬¡è°ƒç”¨æ—¶åˆ›å»ºå’Œåˆå§‹åŒ–çš„ï¼Œå¹¶ä¸”åœ¨æ‰€æœ‰çš„å­è°ƒç”¨ä¸­éƒ½ä¼šé‡å¤ä½¿ç”¨ã€‚
+** sqlite3_index_infoç»“æ„åŒæ ·ä¹Ÿåœ¨ç”Ÿæˆä»£ç æ¥è¿›å…¥è™šè¡¨æ—¶è¢«ä½¿ç”¨ã€‚
+** whereInfoDelete()ä¾‹ç¨‹ç”¨æ¥å¤„ç†åœ¨æ‰€æœ‰æ“ä½œéƒ½å®Œæˆåå¯¹sqlite3_index_infoç»“æ„çš„
+** é‡Šæ”¾ã€‚
 */
 static void bestVirtualIndex(
 <<<<<<< HEAD
-	Parse *pParse,                  /* The parsing context *//* ½âÎöÉÏÏÂÎÄ*/
-	WhereClause *pWC,               /* The WHERE clause *//* WHERE×Ó¾ä*/
-struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µÄFROM×Ó¾äÏî*/
-	Bitmask notReady,               /* Mask of cursors not available for index *//* Ë÷Òı²»¿ÉÓÃµÄÖ¸ÕëÑÚÂë*/
-	Bitmask notValid,               /* Cursors not valid for any purpose *//* ËùÓĞÎŞĞ§µÄÖ¸Õë*/
-	ExprList *pOrderBy,             /* The order by clause *//* ×Ó¾äÅÅĞò*/
-	WhereCost *pCost,               /* Lowest cost query plan *//* ²éÑ¯¼Æ»®µÄ×îĞ¡´ú¼Û*/
-	sqlite3_index_info **ppIdxInfo  /* Index information passed to xBestIndex *//* ´«ËÍµ½xBestIndexµÄË÷ÒıĞÅÏ¢*/
+	Parse *pParse,                  /* The parsing context *//* è§£æä¸Šä¸‹æ–‡*/
+	WhereClause *pWC,               /* The WHERE clause *//* WHEREå­å¥*/
+struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ç”¨äºæœç´¢çš„FROMå­å¥é¡¹*/
+	Bitmask notReady,               /* Mask of cursors not available for index *//* ç´¢å¼•ä¸å¯ç”¨çš„æŒ‡é’ˆæ©ç */
+	Bitmask notValid,               /* Cursors not valid for any purpose *//* æ‰€æœ‰æ— æ•ˆçš„æŒ‡é’ˆ*/
+	ExprList *pOrderBy,             /* The order by clause *//* å­å¥æ’åº*/
+	WhereCost *pCost,               /* Lowest cost query plan *//* æŸ¥è¯¢è®¡åˆ’çš„æœ€å°ä»£ä»·*/
+	sqlite3_index_info **ppIdxInfo  /* Index information passed to xBestIndex *//* ä¼ é€åˆ°xBestIndexçš„ç´¢å¼•ä¿¡æ¯*/
 =======
-  Parse *pParse,                  /* The parsing context ·ÖÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,               /* The WHERE clause WHERE×Ó¾ä */
-  struct SrcList_item *pSrc,      /* The FROM clause term to search ĞèÒª²éÑ¯µÄFROM×Ó¾ä */
-  Bitmask notReady,               /* Mask of cursors not available for index ÓÎ±êÑÚÂë¶ÔÓÚË÷ÒıÎŞĞ§ */
-  Bitmask notValid,               /* Cursors not valid for any purpose ÓÎ±ê¶ÔÓÚÈÎºÎÓÃÍ¾¶¼ÎŞĞ§ */
-  ExprList *pOrderBy,             /* The order by clause ORDER BY×Ó¾ä */
-  WhereCost *pCost,               /* Lowest cost query plan ×îĞ¡´ú¼Û²åĞğ¼Æ»® */
-  sqlite3_index_info **ppIdxInfo  /* Index information passed to xBestIndex ´«ÈËxBestIndexµÄË÷ÒıĞÅÏ¢ */
+  Parse *pParse,                  /* The parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,               /* The WHERE clause WHEREå­å¥ */
+  struct SrcList_item *pSrc,      /* The FROM clause term to search éœ€è¦æŸ¥è¯¢çš„FROMå­å¥ */
+  Bitmask notReady,               /* Mask of cursors not available for index æ¸¸æ ‡æ©ç å¯¹äºç´¢å¼•æ— æ•ˆ */
+  Bitmask notValid,               /* Cursors not valid for any purpose æ¸¸æ ‡å¯¹äºä»»ä½•ç”¨é€”éƒ½æ— æ•ˆ */
+  ExprList *pOrderBy,             /* The order by clause ORDER BYå­å¥ */
+  WhereCost *pCost,               /* Lowest cost query plan æœ€å°ä»£ä»·æ’å™è®¡åˆ’ */
+  sqlite3_index_info **ppIdxInfo  /* Index information passed to xBestIndex ä¼ äººxBestIndexçš„ç´¢å¼•ä¿¡æ¯ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
-  Table *pTab = pSrc->pTab; //³õÊ¼»¯±í½á¹¹
-  sqlite3_index_info *pIdxInfo; //ÓÃÓÚ´æ´¢Ñ¡³öµÄË÷ÒıĞÅÏ¢
-  struct sqlite3_index_constraint *pIdxCons;  //ÓÃÓÚ´æ´¢Ë÷ÒıÔ¼ÊøĞÅÏ¢
-  struct sqlite3_index_constraint_usage *pUsage; //ÓÃÓÚÓĞÓÃµÄË÷ÒıÔ¼Êø
+  Table *pTab = pSrc->pTab; //åˆå§‹åŒ–è¡¨ç»“æ„
+  sqlite3_index_info *pIdxInfo; //ç”¨äºå­˜å‚¨é€‰å‡ºçš„ç´¢å¼•ä¿¡æ¯
+  struct sqlite3_index_constraint *pIdxCons;  //ç”¨äºå­˜å‚¨ç´¢å¼•çº¦æŸä¿¡æ¯
+  struct sqlite3_index_constraint_usage *pUsage; //ç”¨äºæœ‰ç”¨çš„ç´¢å¼•çº¦æŸ
   WhereTerm *pTerm;
-  int i, j; //iÊÇÑ­»·¼ÆÊıÆ÷£¬jÓÃÓÚ´æ´¢
-  int nOrderBy; //Order ByÖĞµÄtermsÊı
-  double rCost; //ËùĞè´ú¼Û
+  int i, j; //iæ˜¯å¾ªç¯è®¡æ•°å™¨ï¼Œjç”¨äºå­˜å‚¨
+  int nOrderBy; //Order Byä¸­çš„termsæ•°
+  double rCost; //æ‰€éœ€ä»£ä»·
 
   /* Make sure wsFlags is initialized to some sane value. Otherwise, if the 
   ** malloc in allocateIndexInfo() fails and this function returns leaving
   ** wsFlags in an uninitialized state, the caller may behave unpredictably.
   **
-  ** È·±£³õÊ¼»¯wsFlagsÎªÒ»Ğ©ÀíÏëµÄÖµ¡£ÁíÍâ£¬Èç¹ûÔÚallocateIndexInfo()ÖĞ·ÖÅäÄÚ´æÊ§°Ü£¬
-  ** ²¢ÇÒÕâ¸öº¯Êı·µ»ØÊ£ÓàµÄ´¦ÓÚÎ´³õÊ¼»¯×´Ì¬µÄwsFlags£¬µ÷ÓÃÕßµÄĞĞÎªÊÇ²»¿ÉÔ¤¼ûµØ¡£
+  ** ç¡®ä¿åˆå§‹åŒ–wsFlagsä¸ºä¸€äº›ç†æƒ³çš„å€¼ã€‚å¦å¤–ï¼Œå¦‚æœåœ¨allocateIndexInfo()ä¸­åˆ†é…å†…å­˜å¤±è´¥ï¼Œ
+  ** å¹¶ä¸”è¿™ä¸ªå‡½æ•°è¿”å›å‰©ä½™çš„å¤„äºæœªåˆå§‹åŒ–çŠ¶æ€çš„wsFlagsï¼Œè°ƒç”¨è€…çš„è¡Œä¸ºæ˜¯ä¸å¯é¢„è§åœ°ã€‚
   */
 <<<<<<< HEAD
   /*
-  ** È·±£wsFlagsÊÇÒÔÓĞÒâÒåµÄÖµ³õÊ¼»¯µÄ¡£·ñÔòµÄ»°£¬Èç¹ûallocateIndexInfo()µÄ
-  ** ÄÚ´æÊ§°Ü£¬²¢ÇÒÕâ¸öº¯Êı·µ»ØÖµ£¬wsFlags´¦ÓÚÎ´³õÊ¼»¯×´Ì¬£¬ÄÇÃ´µ÷ÓÃÕß¿ÉÄÜ»á
-  ** ÓĞ²»¿ÉÔ¤¼ÆµÄ²Ù×÷¡£
+  ** ç¡®ä¿wsFlagsæ˜¯ä»¥æœ‰æ„ä¹‰çš„å€¼åˆå§‹åŒ–çš„ã€‚å¦åˆ™çš„è¯ï¼Œå¦‚æœallocateIndexInfo()çš„
+  ** å†…å­˜å¤±è´¥ï¼Œå¹¶ä¸”è¿™ä¸ªå‡½æ•°è¿”å›å€¼ï¼ŒwsFlagså¤„äºæœªåˆå§‹åŒ–çŠ¶æ€ï¼Œé‚£ä¹ˆè°ƒç”¨è€…å¯èƒ½ä¼š
+  ** æœ‰ä¸å¯é¢„è®¡çš„æ“ä½œã€‚
   */
   memset(pCost, 0, sizeof(*pCost));
   pCost->plan.wsFlags = WHERE_VIRTUALTABLE;
 =======
-  memset(pCost, 0, sizeof(*pCost)); //·ÖÅäÄÚ´æ
-  pCost->plan.wsFlags = WHERE_VIRTUALTABLE; //±êÖ¾¼Æ»®ÊÇÊ¹ÓÃĞéÄâ±í´¦Àí
+  memset(pCost, 0, sizeof(*pCost)); //åˆ†é…å†…å­˜
+  pCost->plan.wsFlags = WHERE_VIRTUALTABLE; //æ ‡å¿—è®¡åˆ’æ˜¯ä½¿ç”¨è™šæ‹Ÿè¡¨å¤„ç†
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
   /* If the sqlite3_index_info structure has not been previously
   ** allocated and initialized, then allocate and initialize it now.
-  ** Èç¹ûsqlite3_index_info½á¹¹ÌåÃ»±»Ô¤ÏÈ·ÖÅäºÍ³õÊ¼»¯£¬ÄÇÃ´ÏÖÔÚ¾Í·ÖÅäºÍ³õÊ¼»¯¡£
+  ** å¦‚æœsqlite3_index_infoç»“æ„ä½“æ²¡è¢«é¢„å…ˆåˆ†é…å’Œåˆå§‹åŒ–ï¼Œé‚£ä¹ˆç°åœ¨å°±åˆ†é…å’Œåˆå§‹åŒ–ã€‚
   */
   /*
-  ** Èç¹ûsqlite3_index_info½á¹¹Ã»ÓĞ±»Ô¤ÏÈ·ÖÅäºÍ³õÊ¼»¯£¬ÄÇÃ´¿ÉÒÔÏÖÔÚ½øĞĞ·ÖÅä
-  ** ºÍ³õÊ¼»¯¡£
+  ** å¦‚æœsqlite3_index_infoç»“æ„æ²¡æœ‰è¢«é¢„å…ˆåˆ†é…å’Œåˆå§‹åŒ–ï¼Œé‚£ä¹ˆå¯ä»¥ç°åœ¨è¿›è¡Œåˆ†é…
+  ** å’Œåˆå§‹åŒ–ã€‚
   */
   pIdxInfo = *ppIdxInfo;
-  if( pIdxInfo==0 ){//Èç¹ûË÷ÒıĞÅÏ¢Îª±»³õÊ¼»¯
-    *ppIdxInfo = pIdxInfo = allocateIndexInfo(pParse, pWC, pSrc, pOrderBy);//·ÖÅäºÍ³õÊ¼»¯Ë÷ÒıĞÅÏ¢
+  if( pIdxInfo==0 ){//å¦‚æœç´¢å¼•ä¿¡æ¯ä¸ºè¢«åˆå§‹åŒ–
+    *ppIdxInfo = pIdxInfo = allocateIndexInfo(pParse, pWC, pSrc, pOrderBy);//åˆ†é…å’Œåˆå§‹åŒ–ç´¢å¼•ä¿¡æ¯
   }
-  if( pIdxInfo==0 ){//Èç¹û·ÖÅäºÍ³õÊ¼»¯Ë÷ÒıĞÅÏ¢Ê§°Ü
+  if( pIdxInfo==0 ){//å¦‚æœåˆ†é…å’Œåˆå§‹åŒ–ç´¢å¼•ä¿¡æ¯å¤±è´¥
     return;
   }
 
@@ -3200,36 +3200,36 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µ
   ** details of pIdxInfo for the current invocation and pass it to
   ** xBestIndex.
   ** 
-  ** ´ËÊ±£¬ÔÚµ±Ç°µ÷ÓÃ»òÔÚÒ»Ğ©ÏÈÇ°µÄµ÷ÓÃÆÚ¼ä£¬pIdxInfoÖ¸ÏòµÄsqlite3_index_infoÊı¾İ½á¹¹½«±»³õÊ¼»¯¡£
-  ** ÏÖÔÚĞèÒªÎªµ±Ç°µ÷ÓÃ×Ô¶¨ÒåpIdxInfoµÄÏêÇé£¬²¢ÇÒ°ÑËü´«µİ¸øxBestIndex
+  ** æ­¤æ—¶ï¼Œåœ¨å½“å‰è°ƒç”¨æˆ–åœ¨ä¸€äº›å…ˆå‰çš„è°ƒç”¨æœŸé—´ï¼ŒpIdxInfoæŒ‡å‘çš„sqlite3_index_infoæ•°æ®ç»“æ„å°†è¢«åˆå§‹åŒ–ã€‚
+  ** ç°åœ¨éœ€è¦ä¸ºå½“å‰è°ƒç”¨è‡ªå®šä¹‰pIdxInfoçš„è¯¦æƒ…ï¼Œå¹¶ä¸”æŠŠå®ƒä¼ é€’ç»™xBestIndex
   */
-  /* ´ËÊ±£¬pIdxInfoÖ¸ÏòµÄsqlite3_index_info½á¹¹ÒÑ±»³õÊ¼»¯£¬¿ÉÄÜÊÇÔÚµ±Ç°µ÷ÓÃ
-  ** »òÕßÔÚÖ®Ç°µÄµ÷ÓÃÖĞÍê³É³õÊ¼»¯¡£ÎÒÃÇÏÖÔÚÖ»ĞèÒªÎªµ±Ç°µ÷ÓÃ¶¨ÖÆpIdxInfo¶¨ÖÆ
-  ** Ï¸½Ú£¬²¢°ÑËü´«ËÍµ½xBestIndex¡£
+  /* æ­¤æ—¶ï¼ŒpIdxInfoæŒ‡å‘çš„sqlite3_index_infoç»“æ„å·²è¢«åˆå§‹åŒ–ï¼Œå¯èƒ½æ˜¯åœ¨å½“å‰è°ƒç”¨
+  ** æˆ–è€…åœ¨ä¹‹å‰çš„è°ƒç”¨ä¸­å®Œæˆåˆå§‹åŒ–ã€‚æˆ‘ä»¬ç°åœ¨åªéœ€è¦ä¸ºå½“å‰è°ƒç”¨å®šåˆ¶pIdxInfoå®šåˆ¶
+  ** ç»†èŠ‚ï¼Œå¹¶æŠŠå®ƒä¼ é€åˆ°xBestIndexã€‚
   */
 
   /* The module name must be defined. Also, by this point there must
   ** be a pointer to an sqlite3_vtab structure. Otherwise
   ** sqlite3ViewGetColumnNames() would have picked up the error. 
   **
-  ** ±ØĞë¶¨ÒåÄ£¿éÃû¡£Í¨¹ıÕâµã£¬±ØĞëÓĞ¸öÖ¸ÕëÖ¸Ïòsqlite3_vtabÊı¾İ½á¹¹¡£
-  ** ÁíÍâsqlite3ViewGetColumnNames()½«»á´¦Àí´íÎó
+  ** å¿…é¡»å®šä¹‰æ¨¡å—åã€‚é€šè¿‡è¿™ç‚¹ï¼Œå¿…é¡»æœ‰ä¸ªæŒ‡é’ˆæŒ‡å‘sqlite3_vtabæ•°æ®ç»“æ„ã€‚
+  ** å¦å¤–sqlite3ViewGetColumnNames()å°†ä¼šå¤„ç†é”™è¯¯
   */
 <<<<<<< HEAD
   /*
-  ** ¶¨ÒåÄ£¿éÃû¡£Í¬Ê±£¬±ØĞëÓĞÒ»¸öÖ¸ÕëÖ¸Ïòsqlite3_vtab½á¹¹£¬·ñÔò
-  ** sqlite3ViewColumnNames()¿ÉÄÜ»á³öÏÖ´íÎó¡£
+  ** å®šä¹‰æ¨¡å—åã€‚åŒæ—¶ï¼Œå¿…é¡»æœ‰ä¸€ä¸ªæŒ‡é’ˆæŒ‡å‘sqlite3_vtabç»“æ„ï¼Œå¦åˆ™
+  ** sqlite3ViewColumnNames()å¯èƒ½ä¼šå‡ºç°é”™è¯¯ã€‚
   */
   assert( pTab->azModuleArg && pTab->azModuleArg[0] );
 =======
-  assert( pTab->azModuleArg && pTab->azModuleArg[0] ); //¼ìÑéÊÇ·ñ¶¨ÒåÁËÄ£¿éÃû
+  assert( pTab->azModuleArg && pTab->azModuleArg[0] ); //æ£€éªŒæ˜¯å¦å®šä¹‰äº†æ¨¡å—å
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   assert( sqlite3GetVTable(pParse->db, pTab) );
 
   /* Set the aConstraint[].usable fields and initialize all 
   ** output variables to zero.
   **
-  ** ÉèÖÃaConstraint[].usable×Ö¶Î²¢ÇÒËùÓĞÊä³ö±äÁ¿³õÊ¼»¯Îª0
+  ** è®¾ç½®aConstraint[].usableå­—æ®µå¹¶ä¸”æ‰€æœ‰è¾“å‡ºå˜é‡åˆå§‹åŒ–ä¸º0
   **
   ** aConstraint[].usable is true for constraints where the right-hand
   ** side contains only references to tables to the left of the current
@@ -3244,9 +3244,9 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µ
 <<<<<<< HEAD
   ** The aConstraints[] array contains for all constraints
 =======
-  ** aConstraint[].usable¶ÔÓÚÓÒ±ßÖ»°üº¬ÒıÓÃ±íµ½µ±Ç°±íµÄ×ó±ßµÄÔ¼ÊøÊÇTRUE.
-  ** »»¾ä»°Ëµ£¬Èç¹ûÔ¼ÊøÊÇcolumn = exprÕâÖÖĞÎÊ½²¢ÇÒÎÒÃÇÆÀ¹ÀÒ»¸öÁ¬½Ó£¬
-  ** ÄÇÃ´ÔÚÁĞÉÏµÄÔ¼ÊøÖ»ÔÚËùÓĞµÄ±íÓëÔÚexpr³öÏÖµÄ±í°üº¬µÄ×ó±ßµÄÁĞÏà¹ØÊ±²ÅÓĞĞ§¡£
+  ** aConstraint[].usableå¯¹äºå³è¾¹åªåŒ…å«å¼•ç”¨è¡¨åˆ°å½“å‰è¡¨çš„å·¦è¾¹çš„çº¦æŸæ˜¯TRUE.
+  ** æ¢å¥è¯è¯´ï¼Œå¦‚æœçº¦æŸæ˜¯column = exprè¿™ç§å½¢å¼å¹¶ä¸”æˆ‘ä»¬è¯„ä¼°ä¸€ä¸ªè¿æ¥ï¼Œ
+  ** é‚£ä¹ˆåœ¨åˆ—ä¸Šçš„çº¦æŸåªåœ¨æ‰€æœ‰çš„è¡¨ä¸åœ¨exprå‡ºç°çš„è¡¨åŒ…å«çš„å·¦è¾¹çš„åˆ—ç›¸å…³æ—¶æ‰æœ‰æ•ˆã€‚
   **
   ** The aConstraints[] array contains entries for all constraints
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -3256,33 +3256,33 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µ
   ** join might be different so we have to recompute the usable flag
   ** each time.
   **
-  ** aConstraints[]Êı×é°üº¬ÔÚµ±Ç°±íÉÏµÄËùÓĞÔ¼ÊøµÄ¼ÇÂ¼¡£
-  ** ÄÇÑù¼´Ê¹ÎÒÃÇÓ¦¸Ã³¢ÊÔ¶à´ÎÈ¥Ñ¡Ôñ×îºÃµÄË÷Òı£¬µ«ÎÒÃÇÖ»Òª¼ÆËãÒ»´Î¡£
-  ** ¶ÔÓÚÃ¿´Î³¢ÊÔÑ¡È¡Ò»¸öË÷Òı£¬ÒòÎªÔÚÁ¬½ÓÖĞµÄ±íµÄË³Ğò¿ÉÄÜ²»Í¬£¬ËùÒÔÃ¿´ÎÎÒÃÇĞèÒªÖØ¸´¼ÆËã¿ÉÓÃµÄ¼ÆËã
+  ** aConstraints[]æ•°ç»„åŒ…å«åœ¨å½“å‰è¡¨ä¸Šçš„æ‰€æœ‰çº¦æŸçš„è®°å½•ã€‚
+  ** é‚£æ ·å³ä½¿æˆ‘ä»¬åº”è¯¥å°è¯•å¤šæ¬¡å»é€‰æ‹©æœ€å¥½çš„ç´¢å¼•ï¼Œä½†æˆ‘ä»¬åªè¦è®¡ç®—ä¸€æ¬¡ã€‚
+  ** å¯¹äºæ¯æ¬¡å°è¯•é€‰å–ä¸€ä¸ªç´¢å¼•ï¼Œå› ä¸ºåœ¨è¿æ¥ä¸­çš„è¡¨çš„é¡ºåºå¯èƒ½ä¸åŒï¼Œæ‰€ä»¥æ¯æ¬¡æˆ‘ä»¬éœ€è¦é‡å¤è®¡ç®—å¯ç”¨çš„è®¡ç®—
   */
 <<<<<<< HEAD
   /*
-  ** ÉèÖÃaConstraint[].usableÓò²¢³õÊ¼»¯ËùÓĞÊä³ö±äÁ¿Îª0¡£
+  ** è®¾ç½®aConstraint[].usableåŸŸå¹¶åˆå§‹åŒ–æ‰€æœ‰è¾“å‡ºå˜é‡ä¸º0ã€‚
   **
-  ** µ±ÓÒ±ßÖ»°üº¬Ö¸Ïòµ±Ç°±íÖĞÖ¸Ïò×ó±ßµÄ±íÊ±£¬Âú×ãÔ¼ÊøÌõ¼şµÄ
-  ** aConstraint[].usableÎªÕæ¡£»»¾ä»°Ëµ£¬Èç¹ûÔ¼ÊøÌõ¼şÊÇÈçÏÂĞÎÊ½£º
+  ** å½“å³è¾¹åªåŒ…å«æŒ‡å‘å½“å‰è¡¨ä¸­æŒ‡å‘å·¦è¾¹çš„è¡¨æ—¶ï¼Œæ»¡è¶³çº¦æŸæ¡ä»¶çš„
+  ** aConstraint[].usableä¸ºçœŸã€‚æ¢å¥è¯è¯´ï¼Œå¦‚æœçº¦æŸæ¡ä»¶æ˜¯å¦‚ä¸‹å½¢å¼ï¼š
   **
   **           column = expr
-  ** ²¢ÇÒÕıÔÚÆÀ¹ÀÒ»¸öÁ¬½Ó£¬ÄÇÃ´Èç¹ûËùÓĞexprÖĞÌá¼°µÄ±íÖ¸Ïò±íµÄ×ó±ß°üº¬ÁĞ
-  ** ÄÇÃ´ÁĞµÄÔ¼ÊøÌõ¼şÎªÓĞĞ§µÄ¡£
+  ** å¹¶ä¸”æ­£åœ¨è¯„ä¼°ä¸€ä¸ªè¿æ¥ï¼Œé‚£ä¹ˆå¦‚æœæ‰€æœ‰exprä¸­æåŠçš„è¡¨æŒ‡å‘è¡¨çš„å·¦è¾¹åŒ…å«åˆ—
+  ** é‚£ä¹ˆåˆ—çš„çº¦æŸæ¡ä»¶ä¸ºæœ‰æ•ˆçš„ã€‚
   **
-  ** aConstraintsÊı×é°üº¬ËùÓĞµ±Ç°µ±Ç°±íµÄÔ¼ÊøÌõ¼ş¡£ÕâÑùÒ»À´£¬¼´Ê¹ÎÒÃÇ¶à
-  ** ´ÎÊÔÍ¼Ö»È¡×îÓÅË÷Òı£¬Ò²Ö»ĞèÒª¼ÆËãÒ»´Î¡£Ã¿´ÎÈ¡Ë÷ÒıµÄ¹ı³ÌÖĞ£¬Á¬½ÓµÄ±í
-  ** µÄË³Ğò¿ÉÄÜÓĞËù²»Í¬£¬ËùÒÔÎÒÃÇĞèÒªÃ¿´Î¶¼ÖØ¸´¼ÆËã¿ÉÓÃ±êÖ¾¡£
+  ** aConstraintsæ•°ç»„åŒ…å«æ‰€æœ‰å½“å‰å½“å‰è¡¨çš„çº¦æŸæ¡ä»¶ã€‚è¿™æ ·ä¸€æ¥ï¼Œå³ä½¿æˆ‘ä»¬å¤š
+  ** æ¬¡è¯•å›¾åªå–æœ€ä¼˜ç´¢å¼•ï¼Œä¹Ÿåªéœ€è¦è®¡ç®—ä¸€æ¬¡ã€‚æ¯æ¬¡å–ç´¢å¼•çš„è¿‡ç¨‹ä¸­ï¼Œè¿æ¥çš„è¡¨
+  ** çš„é¡ºåºå¯èƒ½æœ‰æ‰€ä¸åŒï¼Œæ‰€ä»¥æˆ‘ä»¬éœ€è¦æ¯æ¬¡éƒ½é‡å¤è®¡ç®—å¯ç”¨æ ‡å¿—ã€‚
   */
   pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint;
   pUsage = pIdxInfo->aConstraintUsage;
   for(i=0; i<pIdxInfo->nConstraint; i++, pIdxCons++){
     j = pIdxCons->iTermOffset;
 =======
-  pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint; //³õÊ¼»¯pIdxCons
-  pUsage = pIdxInfo->aConstraintUsage; //³õÊ¼»¯pUsage
-  for(i=0; i<pIdxInfo->nConstraint; i++, pIdxCons++){ //Ñ­»·±éÀú
+  pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint; //åˆå§‹åŒ–pIdxCons
+  pUsage = pIdxInfo->aConstraintUsage; //åˆå§‹åŒ–pUsage
+  for(i=0; i<pIdxInfo->nConstraint; i++, pIdxCons++){ //å¾ªç¯éå†
     j = pIdxCons->iTermOffset; 
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     pTerm = &pWC->a[j];
@@ -3317,11 +3317,11 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µ
   /* If there is an ORDER BY clause, and the selected virtual table index
   ** does not satisfy it, increase the cost of the scan accordingly. This
   ** matches the processing for non-virtual tables in bestBtreeIndex().
-  ** Èç¹ûÓĞÒ»¸öORDER BY×Ó¾ä£¬²¢ÇÒÑ¡³öµÄĞéÄâ±íË÷Òı²»ÄÜ±»ORDER BYÊ¹ÓÃ£¬²éÕÒµÄ´ú¼ÛÏàÓ¦µÄÔö¼Ó¡£
-  ** ÕâÓëÔÚbestBtreeIndex()ÖĞµÄ·ÇĞéÄâ±íµÄ´¦Àí¹ı³ÌÏàÆ¥Åä¡£
+  ** å¦‚æœæœ‰ä¸€ä¸ªORDER BYå­å¥ï¼Œå¹¶ä¸”é€‰å‡ºçš„è™šæ‹Ÿè¡¨ç´¢å¼•ä¸èƒ½è¢«ORDER BYä½¿ç”¨ï¼ŒæŸ¥æ‰¾çš„ä»£ä»·ç›¸åº”çš„å¢åŠ ã€‚
+  ** è¿™ä¸åœ¨bestBtreeIndex()ä¸­çš„éè™šæ‹Ÿè¡¨çš„å¤„ç†è¿‡ç¨‹ç›¸åŒ¹é…ã€‚
   */
-  /* Èç¹û´æÔÚÒ»¸öORDER BY×Ó¾ä£¬²¢ÇÒÑ¡ÔñµÄĞé±íË÷Òı²»Âú×ãËü£¬Ôò¸ù¾İÇé¿öÔö¼Ó
-  ** É¨ÃèµÄ´ú¼Û¡£Õâ¸ö¹ı³ÌÆ¥ÅäbestBtreeIndex()ÖĞµÄ·ÇĞé±íÖĞµÄ¹ı³Ì¡£
+  /* å¦‚æœå­˜åœ¨ä¸€ä¸ªORDER BYå­å¥ï¼Œå¹¶ä¸”é€‰æ‹©çš„è™šè¡¨ç´¢å¼•ä¸æ»¡è¶³å®ƒï¼Œåˆ™æ ¹æ®æƒ…å†µå¢åŠ 
+  ** æ‰«æçš„ä»£ä»·ã€‚è¿™ä¸ªè¿‡ç¨‹åŒ¹é…bestBtreeIndex()ä¸­çš„éè™šè¡¨ä¸­çš„è¿‡ç¨‹ã€‚
   */
   rCost = pIdxInfo->estimatedCost;
   if( pOrderBy && pIdxInfo->orderByConsumed==0 ){
@@ -3332,18 +3332,18 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µ
   ** inital value of lowestCost in this loop. If it is, then the
   ** (cost<lowestCost) test below will never be true.
   ** 
-  ** ´ú¼Û²»ÔÊĞí´óÓÚSQLITE_BIG_DBL(ÔÚÕâ¸öÑ­»·ÖĞ×îµÍ´ú¼ÛµÄ³õÊ¼Öµ)¡£
-  ** Èç¹ûËü±ÈSQLITE_BIG_DBL´ó£¬ÄÇÃ´ÏÂÃæµÄ±È½Ï(cost<lowestCost)½«ÓÀÔ¶ÊÇ´íµÄ
+  ** ä»£ä»·ä¸å…è®¸å¤§äºSQLITE_BIG_DBL(åœ¨è¿™ä¸ªå¾ªç¯ä¸­æœ€ä½ä»£ä»·çš„åˆå§‹å€¼)ã€‚
+  ** å¦‚æœå®ƒæ¯”SQLITE_BIG_DBLå¤§ï¼Œé‚£ä¹ˆä¸‹é¢çš„æ¯”è¾ƒ(cost<lowestCost)å°†æ°¸è¿œæ˜¯é”™çš„
   **
   ** Use "(double)2" instead of "2.0" in case OMIT_FLOATING_POINT 
   ** is defined.
   **
-  ** ¼ÓÈë¶¨ÒåÁËOMIT_FLOATING_POINT£¬Ê¹ÓÃ"(double)2"´úÌæ"2.0"
+  ** åŠ å…¥å®šä¹‰äº†OMIT_FLOATING_POINTï¼Œä½¿ç”¨"(double)2"ä»£æ›¿"2.0"
   */
-  /* ´ú¼Û²»ÔÊĞí´óÓÚSQLITE_BIG_DBL(´ËÑ­»·ÖĞµÄlowestCostµÄ³õÊ¼Öµ)¡£
-  ** Èç¹û´óÓÚ£¬ÔòÏÂÃæµÄ(cost<lowestCost)²âÊÔÖµÓÀÔ¶²»»áÎªÕæ¡£
+  /* ä»£ä»·ä¸å…è®¸å¤§äºSQLITE_BIG_DBL(æ­¤å¾ªç¯ä¸­çš„lowestCostçš„åˆå§‹å€¼)ã€‚
+  ** å¦‚æœå¤§äºï¼Œåˆ™ä¸‹é¢çš„(cost<lowestCost)æµ‹è¯•å€¼æ°¸è¿œä¸ä¼šä¸ºçœŸã€‚
   **
-  ** ÔÚ¶¨ÒåOMIT_FLOATING_POINTÊ±Ê¹ÓÃ"(double)2"À´Ìæ»»"2.0"¡£
+  ** åœ¨å®šä¹‰OMIT_FLOATING_POINTæ—¶ä½¿ç”¨"(double)2"æ¥æ›¿æ¢"2.0"ã€‚
   */
   if( (SQLITE_BIG_DBL/((double)2))<rCost ){
     pCost->rCost = (SQLITE_BIG_DBL/((double)2));
@@ -3360,9 +3360,9 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µ
   /* Try to find a more efficient access pattern by using multiple indexes
   ** to optimize an OR expression within the WHERE clause. 
   **
-  ** ³¢ÊÔÍ¨¹ı¶àÖØË÷Òı²éÕÒÒ»¸ö¸ü¼ÓÓĞĞ§µÄ·ÃÎÊÄ£Ê½È¥ÓÅ»¯Ò»¸öWHERE×Ó¾äÖĞµÄOR±í´ïÊ½
+  ** å°è¯•é€šè¿‡å¤šé‡ç´¢å¼•æŸ¥æ‰¾ä¸€ä¸ªæ›´åŠ æœ‰æ•ˆçš„è®¿é—®æ¨¡å¼å»ä¼˜åŒ–ä¸€ä¸ªWHEREå­å¥ä¸­çš„ORè¡¨è¾¾å¼
   */
-  /* Ê¹ÓÃ¶àË÷ÒıÀ´ÊÔÍ¼²éÕÒÒ»¸ö¸üÓĞĞ§ÂÊµÄÄ£Ê½£¬ÒÔÓÅ»¯WHERE×Ó¾äÖĞµÄOR±í´ïÊ½¡£
+  /* ä½¿ç”¨å¤šç´¢å¼•æ¥è¯•å›¾æŸ¥æ‰¾ä¸€ä¸ªæ›´æœ‰æ•ˆç‡çš„æ¨¡å¼ï¼Œä»¥ä¼˜åŒ–WHEREå­å¥ä¸­çš„ORè¡¨è¾¾å¼ã€‚
   */
   bestOrClauseIndex(pParse, pWC, pSrc, notReady, notValid, pOrderBy, pCost);
 }
@@ -3377,29 +3377,29 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* ÓÃÓÚËÑË÷µ
 **    aStat[1]      Est. number of rows equal to pVal
 **
 ** Return SQLITE_OK on success.
-** ¹À¼ÆÔÚÒ»¸öË÷ÒıµÄËùÓĞ¼üÖĞµÄÒ»¸öÌØ±ğ¼üµÄÎ»ÖÃ¡£ÔÚaStatÖĞÏñÏÂÃæÕâÑù±£´æ½á¹û:
-**    aStat[0]      ĞĞµÄEst. numberĞ¡ÓÚpVal
-**    aStat[1]      ĞĞµÄEst. numberµÈÓÚpVal
+** ä¼°è®¡åœ¨ä¸€ä¸ªç´¢å¼•çš„æ‰€æœ‰é”®ä¸­çš„ä¸€ä¸ªç‰¹åˆ«é”®çš„ä½ç½®ã€‚åœ¨aStatä¸­åƒä¸‹é¢è¿™æ ·ä¿å­˜ç»“æœ:
+**    aStat[0]      è¡Œçš„Est. numberå°äºpVal
+**    aStat[1]      è¡Œçš„Est. numberç­‰äºpVal
 ** 
 */
-/* ¹À¼ÆÒ»¸öË÷ÒıÖĞËùÓĞ¹Ø¼ü×ÖÖĞÄ³¸öÌØÊâ¹Ø¼ü×ÖµÄÎ»ÖÃ¡£ÓÃÒÔÏÂ¸ñÊ½À´´¢´æ½á¹û£º
-**    aStat[0]      ¹À¼ÆĞ¡ÓÚpValµÄĞĞÊı
-**    aStat[1]      ¹À¼ÆµÈÓÚpValµÄĞĞÊı
+/* ä¼°è®¡ä¸€ä¸ªç´¢å¼•ä¸­æ‰€æœ‰å…³é”®å­—ä¸­æŸä¸ªç‰¹æ®Šå…³é”®å­—çš„ä½ç½®ã€‚ç”¨ä»¥ä¸‹æ ¼å¼æ¥å‚¨å­˜ç»“æœï¼š
+**    aStat[0]      ä¼°è®¡å°äºpValçš„è¡Œæ•°
+**    aStat[1]      ä¼°è®¡ç­‰äºpValçš„è¡Œæ•°
 **
-** ·µ»Ø³É¹¦µÄSQLITE_OKÖµ¡£
+** è¿”å›æˆåŠŸçš„SQLITE_OKå€¼ã€‚
 */
 static int whereKeyStats(
 <<<<<<< HEAD
-	Parse *pParse,              /* Database connection *//*Êı¾İ¿âÁ¬½Ó*/
-	Index *pIdx,                /* Index to consider domain of *//*´ı¿¼ÂÇÓòµÄË÷Òı*/
-	sqlite3_value *pVal,        /* Value to consider *//*´ı¿¼ÂÇµÄÖµ*/
-	int roundUp,                /* Round up if true.  Round down if false *//*Èç¹ûÎªÕæÔòÉÏÉáÈë£¬Èç¹ûÎª¼ÙÔòÏÂÉáÈë*/
-	tRowcnt *aStat              /* OUT: stats written here *//*Êä³ö:Êı¾İĞ´ÔÚ´Ë´¦*/
+	Parse *pParse,              /* Database connection *//*æ•°æ®åº“è¿æ¥*/
+	Index *pIdx,                /* Index to consider domain of *//*å¾…è€ƒè™‘åŸŸçš„ç´¢å¼•*/
+	sqlite3_value *pVal,        /* Value to consider *//*å¾…è€ƒè™‘çš„å€¼*/
+	int roundUp,                /* Round up if true.  Round down if false *//*å¦‚æœä¸ºçœŸåˆ™ä¸Šèˆå…¥ï¼Œå¦‚æœä¸ºå‡åˆ™ä¸‹èˆå…¥*/
+	tRowcnt *aStat              /* OUT: stats written here *//*è¾“å‡º:æ•°æ®å†™åœ¨æ­¤å¤„*/
 =======
-  Parse *pParse,              /* Database connection Êı¾İ¿âÁ¬½Ó */
-  Index *pIdx,                /* Index to consider domain of ĞèÒª¿¼ÂÇµÄË÷ÒıÓò */
-  sqlite3_value *pVal,        /* Value to consider ĞèÒª¿¼ÂÇµÄÖµ */
-  int roundUp,                /* Round up if true.  Round down if false Èç¹ûTRUE£¬ÔòÉÏÉáÈë£¬Èç¹ûFALSE£¬ÔòÏÂÉáÈë */
+  Parse *pParse,              /* Database connection æ•°æ®åº“è¿æ¥ */
+  Index *pIdx,                /* Index to consider domain of éœ€è¦è€ƒè™‘çš„ç´¢å¼•åŸŸ */
+  sqlite3_value *pVal,        /* Value to consider éœ€è¦è€ƒè™‘çš„å€¼ */
+  int roundUp,                /* Round up if true.  Round down if false å¦‚æœTRUEï¼Œåˆ™ä¸Šèˆå…¥ï¼Œå¦‚æœFALSEï¼Œåˆ™ä¸‹èˆå…¥ */
   tRowcnt *aStat              /* OUT: stats written here */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
@@ -3500,7 +3500,7 @@ static int whereKeyStats(
             return SQLITE_NOMEM;
           }
           c = pColl->xCmp(pColl->pUser, nSample, zSample, n, z);
-          sqlite3DbFree(db, zSample);	//ÊÍ·Å¿ÉÄÜ±»¹ØÁªµ½Ò»¸öÌØ¶¨Êı¾İ¿âÁ¬½ÓµÄÄÚ´æ
+          sqlite3DbFree(db, zSample);	//é‡Šæ”¾å¯èƒ½è¢«å…³è”åˆ°ä¸€ä¸ªç‰¹å®šæ•°æ®åº“è¿æ¥çš„å†…å­˜
         }else
 #endif
         {
@@ -3518,13 +3518,13 @@ static int whereKeyStats(
   ** or equal to pVal.  Or if i==pIdx->nSample, then all samples are less
   ** than pVal.  If aSample[i]==pVal, then isEq==1.
   ** 
-  ** ÕâÊ±£¬aSample[i]ÊÇµÚÒ»¸ö´óÓÚ»òµÈÓÚpValµÄÑù±¾¡£
-  ** »òÕßÈç¹ûi==pIdx->nSample£¬ÄÇÃ´ËùÓĞµÄÑù±¾¶¼±ÈpValĞ¡¡£
-  ** Èç¹ûaSample[i]==pVal£¬ÄÇÃ´isEq==1.
+  ** è¿™æ—¶ï¼ŒaSample[i]æ˜¯ç¬¬ä¸€ä¸ªå¤§äºæˆ–ç­‰äºpValçš„æ ·æœ¬ã€‚
+  ** æˆ–è€…å¦‚æœi==pIdx->nSampleï¼Œé‚£ä¹ˆæ‰€æœ‰çš„æ ·æœ¬éƒ½æ¯”pValå°ã€‚
+  ** å¦‚æœaSample[i]==pValï¼Œé‚£ä¹ˆisEq==1.
   */
-  /* ´ËÊ±£¬aSample[i]ÊÇ´óÓÚ»òÕßµÈÓÚpValÖµµÄµÚÒ»¸öÑù±¾¡£»òÕßµ±Ö¸Õë
-  ** i==pIdx->nSampleÊ±£¬ËùÓĞµÄÑù±¾Öµ¶¼Ğ¡ÓÚpVal¡£Èç¹ûaSample[i]=pVal£¬Ôò
-  ** isEqµÄÖµÎª1.
+  /* æ­¤æ—¶ï¼ŒaSample[i]æ˜¯å¤§äºæˆ–è€…ç­‰äºpValå€¼çš„ç¬¬ä¸€ä¸ªæ ·æœ¬ã€‚æˆ–è€…å½“æŒ‡é’ˆ
+  ** i==pIdx->nSampleæ—¶ï¼Œæ‰€æœ‰çš„æ ·æœ¬å€¼éƒ½å°äºpValã€‚å¦‚æœaSample[i]=pValï¼Œåˆ™
+  ** isEqçš„å€¼ä¸º1.
   */
   if( isEq ){
     assert( i<pIdx->nSample );
@@ -3563,36 +3563,36 @@ static int whereKeyStats(
 ** caller to eventually release this structure by passing it to 
 ** sqlite3ValueFree().
 **
-** Èç¹ûpExpr±í´ïÊ½´ú±íÒ»¸öÎÄ×ÖÖµ£¬ÔÚ·µ»ØÇ°£¬ÉèÖÃ*ppÖ¸ÏòÒ»¸ö°üº¬ÏàÍ¬ÖµµÄ´øÓĞÇ×ºÍĞÔaffÓ¦ÓÃÓÚsqlite3_valueÊı¾İ½á¹¹
-** ÕâÊÇÎªÁËÈÃµ÷ÓÃÕßÍ¨¹ı°ÑËü´«µİ¸øsqlite3ValueFree()²¢×îÖÕÊÍ·ÅÕâ¸öÊı¾İ½á¹¹¡£
+** å¦‚æœpExprè¡¨è¾¾å¼ä»£è¡¨ä¸€ä¸ªæ–‡å­—å€¼ï¼Œåœ¨è¿”å›å‰ï¼Œè®¾ç½®*ppæŒ‡å‘ä¸€ä¸ªåŒ…å«ç›¸åŒå€¼çš„å¸¦æœ‰äº²å’Œæ€§affåº”ç”¨äºsqlite3_valueæ•°æ®ç»“æ„
+** è¿™æ˜¯ä¸ºäº†è®©è°ƒç”¨è€…é€šè¿‡æŠŠå®ƒä¼ é€’ç»™sqlite3ValueFree()å¹¶æœ€ç»ˆé‡Šæ”¾è¿™ä¸ªæ•°æ®ç»“æ„ã€‚
 **
 ** If the current parse is a recompile (sqlite3Reprepare()) and pExpr
 ** is an SQL variable that currently has a non-NULL value bound to it,
 ** create an sqlite3_value structure containing this value, again with
 ** affinity aff applied to it, instead.
 **
-** Èç¹ûµ±Ç°·ÖÎöÊÇÒ»¸öÖØĞÂ±àÒë(sqlite3Reprepare())²¢ÇÒpExprÊÇÒ»¸öµ±Ç°Ã»ÓĞ·ÇNULLÖµ°ó¶¨µÄSQL±äÁ¿£¬
-** ´´½¨Ò»¸ö°üº¬Õâ¸öÖµµÄ´øÓĞÇ×ºÍĞÔaffÓ¦ÓÃÓÚsqlite3_valueÊı¾İ½á¹¹¡£
+** å¦‚æœå½“å‰åˆ†ææ˜¯ä¸€ä¸ªé‡æ–°ç¼–è¯‘(sqlite3Reprepare())å¹¶ä¸”pExpræ˜¯ä¸€ä¸ªå½“å‰æ²¡æœ‰éNULLå€¼ç»‘å®šçš„SQLå˜é‡ï¼Œ
+** åˆ›å»ºä¸€ä¸ªåŒ…å«è¿™ä¸ªå€¼çš„å¸¦æœ‰äº²å’Œæ€§affåº”ç”¨äºsqlite3_valueæ•°æ®ç»“æ„ã€‚
 **
 ** If neither of the above apply, set *pp to NULL.
 **
-** Èç¹ûÉÏÊö¶¼²»Âú×ã£¬°Ñ*ppÉèÖÃÎªNULLÖµ
+** å¦‚æœä¸Šè¿°éƒ½ä¸æ»¡è¶³ï¼ŒæŠŠ*ppè®¾ç½®ä¸ºNULLå€¼
 **
 ** If an error occurs, return an error code. Otherwise, SQLITE_OK.
 **
-** Èç¹û³öÏÖÒ»¸ö´íÎó£¬ÄÇÃ´·µ»ØÒ»¸ö´íÎó´úÂë£¬·ñÔò£¬SQLITE_OK.
+** å¦‚æœå‡ºç°ä¸€ä¸ªé”™è¯¯ï¼Œé‚£ä¹ˆè¿”å›ä¸€ä¸ªé”™è¯¯ä»£ç ï¼Œå¦åˆ™ï¼ŒSQLITE_OK.
 */
-/* Èç¹û±í´ïÊ½pExpr±íÊ¾Ò»¸öÎÄ±¾Öµ£¬ÄÇÃ´Éè*ppÊÇÖ¸Ïò°üº¬ÏàÍ¬ÖµµÄsqlite3_value
-** ½á¹¹µÄÖ¸Õë£¬²¢ÇÒÔÚ·µ»ØÖ®Ç°ÓëËü½ôÃÜÏà¹Ø¡£×îÖÕ°ÑËü´«µİµ½sqlite3ValueFree()
-** ÖĞÊ±£¬ÓÉµ÷ÓÃÕßÀ´ÊÍ·Å´Ë½á¹¹¡£
+/* å¦‚æœè¡¨è¾¾å¼pExprè¡¨ç¤ºä¸€ä¸ªæ–‡æœ¬å€¼ï¼Œé‚£ä¹ˆè®¾*ppæ˜¯æŒ‡å‘åŒ…å«ç›¸åŒå€¼çš„sqlite3_value
+** ç»“æ„çš„æŒ‡é’ˆï¼Œå¹¶ä¸”åœ¨è¿”å›ä¹‹å‰ä¸å®ƒç´§å¯†ç›¸å…³ã€‚æœ€ç»ˆæŠŠå®ƒä¼ é€’åˆ°sqlite3ValueFree()
+** ä¸­æ—¶ï¼Œç”±è°ƒç”¨è€…æ¥é‡Šæ”¾æ­¤ç»“æ„ã€‚
 **
-** Èç¹ûµ±Ç°Óï·¨·ÖÎöÊÇÖØĞÂ±àÒëµÄ(sqlite3Reprepare())²¢ÇÒpExprÊÇÒ»¸öSQL±äÁ¿£¬
-** µ±Ç°Ã»ÓĞ·Ç¿ÕÖµÓëÖ®Ïà¹Ø£¬ÔòÉú³ÉÒ»¸ö°üº¬´ËÖµµÄsqlite3_value½á¹¹£¬Í¬ÑùµÄÒª
-** ÓëÖ®½ôÃÜÏà¹Ø¡£
+** å¦‚æœå½“å‰è¯­æ³•åˆ†ææ˜¯é‡æ–°ç¼–è¯‘çš„(sqlite3Reprepare())å¹¶ä¸”pExpræ˜¯ä¸€ä¸ªSQLå˜é‡ï¼Œ
+** å½“å‰æ²¡æœ‰éç©ºå€¼ä¸ä¹‹ç›¸å…³ï¼Œåˆ™ç”Ÿæˆä¸€ä¸ªåŒ…å«æ­¤å€¼çš„sqlite3_valueç»“æ„ï¼ŒåŒæ ·çš„è¦
+** ä¸ä¹‹ç´§å¯†ç›¸å…³ã€‚
 **
-** Èç¹ûÃ»ÓĞÒÔÉÏÓ¦ÓÃ£¬ÔòÉè*ppÖ¸ÕëÎª¿Õ¡£
+** å¦‚æœæ²¡æœ‰ä»¥ä¸Šåº”ç”¨ï¼Œåˆ™è®¾*ppæŒ‡é’ˆä¸ºç©ºã€‚
 **
-** Èç¹û·¢Éú´íÎó£¬Ôò·µ»Ø´íÎó´úÂë¡£·ñÔò·µ»ØSQLITE_OK¡£
+** å¦‚æœå‘ç”Ÿé”™è¯¯ï¼Œåˆ™è¿”å›é”™è¯¯ä»£ç ã€‚å¦åˆ™è¿”å›SQLITE_OKã€‚
 */
 #ifdef SQLITE_ENABLE_STAT3
 static int valueFromExpr(
@@ -3628,14 +3628,14 @@ static int valueFromExpr(
 ** If either of the upper or lower bound is not present, then NULL is passed in
 ** place of the corresponding WhereTerm.
 **
-** Õâ¸öº¯ÊıÓÃÓÚ¹À¼ÆÍ¨¹ıÉ¨ÃèÒ»¸öË÷Òı»ñÈ¡Ò»ÏµÁĞÖµ¶øĞèÒª·ÃÎÊµÄĞĞÊı¡£
-** Õâ¸ö·¶Î§¿ÉÄÜÓĞÉÏÏŞ£¬ÏÂÏŞ»òÕß¶¼ÓĞ¡£WHERE×Ó¾ätermsÍ¨¹ıpLowerºÍpUpper·Ö±ğÉèÖÃÉÏÏŞºÍÏÂÏŞµÄÖµ¡£
-** ÁĞÈë£¬¼ÙÉèË÷ÒıpÊÇÔÚt1(a)ÉÏ:
+** è¿™ä¸ªå‡½æ•°ç”¨äºä¼°è®¡é€šè¿‡æ‰«æä¸€ä¸ªç´¢å¼•è·å–ä¸€ç³»åˆ—å€¼è€Œéœ€è¦è®¿é—®çš„è¡Œæ•°ã€‚
+** è¿™ä¸ªèŒƒå›´å¯èƒ½æœ‰ä¸Šé™ï¼Œä¸‹é™æˆ–è€…éƒ½æœ‰ã€‚WHEREå­å¥termsé€šè¿‡pLowerå’ŒpUpperåˆ†åˆ«è®¾ç½®ä¸Šé™å’Œä¸‹é™çš„å€¼ã€‚
+** åˆ—å…¥ï¼Œå‡è®¾ç´¢å¼•pæ˜¯åœ¨t1(a)ä¸Š:
 **   ... FROM t1 WHERE a > ? AND a < ? ...
 **                    |_____|   |_____|
 **                       |         |
 **                     pLower    pUpper
-** Èç¹ûÃ»¸ø³öÉÏÏŞ»òÏÂÏŞ£¬ÄÇÃ´´«µİNULLÖµ´úÌæÏàÓ¦µÄWhereTerm.
+** å¦‚æœæ²¡ç»™å‡ºä¸Šé™æˆ–ä¸‹é™ï¼Œé‚£ä¹ˆä¼ é€’NULLå€¼ä»£æ›¿ç›¸åº”çš„WhereTerm.
 **
 ** The nEq parameter is passed the index of the index column subject to the
 ** range constraint. Or, equivalently, the number of equality constraints
@@ -3651,73 +3651,73 @@ static int valueFromExpr(
 **
 ** then nEq should be passed 0.
 **
-** nEq²ÎÊıĞèÒª´«µİÎªË÷ÒıÁĞµÄÏÂ±ê·ş´Ó·¶Î§Ô¼Êø¡£»òµÈ¼ÛµØ£¬Í¨¹ıÍÆ¼öµÄË÷ÒıÉ¨ÃèÓÅ»¯µÈÊ½Ô¼ÊøµÄ¸öÊı¡£
-** ÀıÈç£¬¼ÙÉèË÷ÒıpÊÇÔÚt1(a, b)ÖĞ£¬SQL²éÑ¯ÊÇ:
+** nEqå‚æ•°éœ€è¦ä¼ é€’ä¸ºç´¢å¼•åˆ—çš„ä¸‹æ ‡æœä»èŒƒå›´çº¦æŸã€‚æˆ–ç­‰ä»·åœ°ï¼Œé€šè¿‡æ¨èçš„ç´¢å¼•æ‰«æä¼˜åŒ–ç­‰å¼çº¦æŸçš„ä¸ªæ•°ã€‚
+** ä¾‹å¦‚ï¼Œå‡è®¾ç´¢å¼•pæ˜¯åœ¨t1(a, b)ä¸­ï¼ŒSQLæŸ¥è¯¢æ˜¯:
 **   ... FROM t1 WHERE a = ? AND b > ? AND b < ? ...
-** ÄÇÃ´nEq´«µİÎªÖµ1(×÷Îª·¶Î§ÊÜÏŞµÄÁĞ£¬b£¬ÊÇË÷ÒıµÚ¶ş¸ö×î×ó±ßµÄÁĞ).»ò£¬Èç¹û²éÑ¯ÊÇ:
+** é‚£ä¹ˆnEqä¼ é€’ä¸ºå€¼1(ä½œä¸ºèŒƒå›´å—é™çš„åˆ—ï¼Œbï¼Œæ˜¯ç´¢å¼•ç¬¬äºŒä¸ªæœ€å·¦è¾¹çš„åˆ—).æˆ–ï¼Œå¦‚æœæŸ¥è¯¢æ˜¯:
 **   ... FROM t1 WHERE a > ? AND a < ? ...
-** ÄÇÃ´nEq´«µİÎªÖµ0¡£
+** é‚£ä¹ˆnEqä¼ é€’ä¸ºå€¼0ã€‚
 **
 ** The returned value is an integer divisor to reduce the estimated
 ** search space.  A return value of 1 means that range constraints are
 ** no help at all.  A return value of 2 means range constraints are
 ** expected to reduce the search space by half.  And so forth...
 **
-** ·µ»ØÖµÊÇÒ»¸öÕûÊıÒò×ÓÀ´¼õÉÙÔ¤¼ÆµÄËÑË÷¿Õ¼ä¡£
-** Ò»¸öÖµÎª1µÄ·µ»ØÖµÒâÎ¶×Å·¶Î§Ô¼ÊøÊÇÃ»ÓĞ°ïÖúµÄ¡£
-** Ò»¸öÖµÎª2µÄ·µ»ØÖµÒâÎ¶×Å·¶Î§Ô¼ÊøÊÇÆÚÍû¼õÉÙÒ»°ëµÄËÑË÷¿Õ¼ä¡£µÈµÈ...
+** è¿”å›å€¼æ˜¯ä¸€ä¸ªæ•´æ•°å› å­æ¥å‡å°‘é¢„è®¡çš„æœç´¢ç©ºé—´ã€‚
+** ä¸€ä¸ªå€¼ä¸º1çš„è¿”å›å€¼æ„å‘³ç€èŒƒå›´çº¦æŸæ˜¯æ²¡æœ‰å¸®åŠ©çš„ã€‚
+** ä¸€ä¸ªå€¼ä¸º2çš„è¿”å›å€¼æ„å‘³ç€èŒƒå›´çº¦æŸæ˜¯æœŸæœ›å‡å°‘ä¸€åŠçš„æœç´¢ç©ºé—´ã€‚ç­‰ç­‰...
 **
 ** In the absence of sqlite_stat3 ANALYZE data, each range inequality
 ** reduces the search space by a factor of 4.  Hence a single constraint (x>?)
 ** results in a return of 4 and a range constraint (x>? AND x<?) results
 ** in a return of 16.
 **
-** È±ÉÙsqlite_stat3 ANALYZEÊı¾İ£¬Ã¿¸ö·¶Î§²»µÈÊ½½«¼õÉÙ4±¶µÄËÑË÷¿Õ¼ä¡£
-** Òò´ËÒ»¸öµ¥¶ÀµÄÔ¼Êø(x>?)µ¼ÖÂ·µ»Ø4²¢ÇÒÒ»¸ö·¶Î§Ô¼Êø(x>? AND x<?)µ¼ÖÂ·µ»Ø16¡£
+** ç¼ºå°‘sqlite_stat3 ANALYZEæ•°æ®ï¼Œæ¯ä¸ªèŒƒå›´ä¸ç­‰å¼å°†å‡å°‘4å€çš„æœç´¢ç©ºé—´ã€‚
+** å› æ­¤ä¸€ä¸ªå•ç‹¬çš„çº¦æŸ(x>?)å¯¼è‡´è¿”å›4å¹¶ä¸”ä¸€ä¸ªèŒƒå›´çº¦æŸ(x>? AND x<?)å¯¼è‡´è¿”å›16ã€‚
 */
-/* ´Ëº¯ÊıÓÃÀ´¹À¼ÆÉ¨ÃèÒ»¶¨·¶Î§ÊıÖµµÄË÷ÒıÖĞ£¬½«»á·ÃÎÊµ½µÄĞĞÊı¡£Õâ¸ö·¶Î§¿ÉÄÜ»áÓĞ
-** Ò»¸öÉÏÏŞ£¬Ò»¸öÏÂÏŞ£¬»òÕßÁ½Õß¶¼ÓĞ¡£WHERE×Ó¾äÏîÖĞ£¬ÓÃpLowerºÍpUpperÀ´±íÊ¾Éè¶¨
-** µÄÉÏÏÂ±ß½ç¡£ÀıÈç£¬¼ÙÉèpË÷ÒıÔÚt1(a):
+/* æ­¤å‡½æ•°ç”¨æ¥ä¼°è®¡æ‰«æä¸€å®šèŒƒå›´æ•°å€¼çš„ç´¢å¼•ä¸­ï¼Œå°†ä¼šè®¿é—®åˆ°çš„è¡Œæ•°ã€‚è¿™ä¸ªèŒƒå›´å¯èƒ½ä¼šæœ‰
+** ä¸€ä¸ªä¸Šé™ï¼Œä¸€ä¸ªä¸‹é™ï¼Œæˆ–è€…ä¸¤è€…éƒ½æœ‰ã€‚WHEREå­å¥é¡¹ä¸­ï¼Œç”¨pLowerå’ŒpUpperæ¥è¡¨ç¤ºè®¾å®š
+** çš„ä¸Šä¸‹è¾¹ç•Œã€‚ä¾‹å¦‚ï¼Œå‡è®¾pç´¢å¼•åœ¨t1(a):
 **
 **   ... FROM t1 WHERE a > ? AND a < ? ...
 **                    |_____|   |_____|
 **                       |         |
 **                     pLower    pUpper
 **
-** Èç¹ûÉÏÏŞºÍÏÂÏŞÖĞµÄÈÎÒâÒ»¸ö²»´æÔÚ£¬ÔòWhereTermÖĞ¶ÔÓ¦µÄÏîÓÃ¿ÕÖµÀ´Ìæ»»¡£
+** å¦‚æœä¸Šé™å’Œä¸‹é™ä¸­çš„ä»»æ„ä¸€ä¸ªä¸å­˜åœ¨ï¼Œåˆ™WhereTermä¸­å¯¹åº”çš„é¡¹ç”¨ç©ºå€¼æ¥æ›¿æ¢ã€‚
 **
-** ²ÎÊınEqÊÇÍ¨¹ıË÷ÒıÁĞµÄË÷Òı·¶Î§À´Ô¼ÊøµÄ¡£»òÕßÍ¬ÑùµØ£¬ÓÉÌá³öµÄË÷ÒıÉ¨ÃèÀ´ÓÅ»¯µÈ
-** ÖµÔ¼Êø¡£ÀıÈç£¬¼ÙÉèË÷ÒıpÔÚt1(a,b),ÔòSQL²éÑ¯Îª£º
+** å‚æ•°nEqæ˜¯é€šè¿‡ç´¢å¼•åˆ—çš„ç´¢å¼•èŒƒå›´æ¥çº¦æŸçš„ã€‚æˆ–è€…åŒæ ·åœ°ï¼Œç”±æå‡ºçš„ç´¢å¼•æ‰«ææ¥ä¼˜åŒ–ç­‰
+** å€¼çº¦æŸã€‚ä¾‹å¦‚ï¼Œå‡è®¾ç´¢å¼•påœ¨t1(a,b),åˆ™SQLæŸ¥è¯¢ä¸ºï¼š
 **
 **   ... FROM t1 WHERE a = ? AND b > ? AND b < ? ...
 **
-** ÄÇÃ´nEqµÄÖµÎª1(·¶Î§ÏŞÖÆÁĞb£¬ÊÇµÚ¶ş¸öÖ¸Êı×î×ó±ßµÄÁĞ)¡£»òÕß£¬Èç¹û²éÑ¯Îª£º
+** é‚£ä¹ˆnEqçš„å€¼ä¸º1(èŒƒå›´é™åˆ¶åˆ—bï¼Œæ˜¯ç¬¬äºŒä¸ªæŒ‡æ•°æœ€å·¦è¾¹çš„åˆ—)ã€‚æˆ–è€…ï¼Œå¦‚æœæŸ¥è¯¢ä¸ºï¼š
 **
 **   ... FROM t1 WHERE a > ? AND a < ? ...
 **
-** ÄÇÃ´nEqµÄÖµÎª0¡£
+** é‚£ä¹ˆnEqçš„å€¼ä¸º0ã€‚
 **
-** ·µ»ØÖµÊÇÒ»¸öÕûÊıÒò×ÓÓÃÀ´¼õÉÙ¹À¼ÆµÄËÑË÷¿Õ¼ä¡£·µ»ØÖµÎª1ÒâÎ¶×Å·¶Î§Ô¼ÊøÊÇÃ»ÓĞÒâÒå¡£
-** ·µ»ØÖµÎª2ÒâÎ¶×Å·¶Î§Ô¼ÊøÔ¤¼Æ½«¼õÉÙÒ»°ëµÄËÑË÷¿Õ¼ä¡£µÈµÈ¡­¡­
+** è¿”å›å€¼æ˜¯ä¸€ä¸ªæ•´æ•°å› å­ç”¨æ¥å‡å°‘ä¼°è®¡çš„æœç´¢ç©ºé—´ã€‚è¿”å›å€¼ä¸º1æ„å‘³ç€èŒƒå›´çº¦æŸæ˜¯æ²¡æœ‰æ„ä¹‰ã€‚
+** è¿”å›å€¼ä¸º2æ„å‘³ç€èŒƒå›´çº¦æŸé¢„è®¡å°†å‡å°‘ä¸€åŠçš„æœç´¢ç©ºé—´ã€‚ç­‰ç­‰â€¦â€¦
 **
-** ÔÚÈ±·¦sqlite_stat3·ÖÎöÊı¾İµÄÇé¿öÏÂ£¬Ã¿¸ö²»Æ½µÈÒòËØ¼õÉÙÁËËÑË÷¿Õ¼äµÄ·¶Î§4¡£Òò´Ë
-** Ò»¸öÔ¼Êø(x>?)½á¹ûµÄ·µ»Ø4ºÍÒ»ÏµÁĞÔ¼Êø(x>?ºÍx<?)½á¹û·µ»Ø16¡£
+** åœ¨ç¼ºä¹sqlite_stat3åˆ†ææ•°æ®çš„æƒ…å†µä¸‹ï¼Œæ¯ä¸ªä¸å¹³ç­‰å› ç´ å‡å°‘äº†æœç´¢ç©ºé—´çš„èŒƒå›´4ã€‚å› æ­¤
+** ä¸€ä¸ªçº¦æŸ(x>?)ç»“æœçš„è¿”å›4å’Œä¸€ç³»åˆ—çº¦æŸ(x>?å’Œx<?)ç»“æœè¿”å›16ã€‚
 */
 static int whereRangeScanEst(
 <<<<<<< HEAD
-	Parse *pParse,       /* Parsing & code generating context *//*½âÎöÉÏÏÂÎÄ²¢ÇÒÉú³É´úÂë*/
-	Index *p,            /* The index containing the range-compared column; "x" *//*Ë÷Òı°üº¬¶Ô±È·¶Î§ÁĞ"x"*/
-	int nEq,             /* index into p->aCol[] of the range-compared column *//*Ö¸Ïò¶Ô±È·¶Î§ÁĞµÄË÷ÒıÖ¸Õëp_>aCol[]*/
-	WhereTerm *pLower,   /* Lower bound on the range. ex: "x>123" Might be NULL *//*·¶Î§µÄÏÂ½ç£ºÀıÈç"x>123"¿ÉÄÜÎª¿Õ*/
-	WhereTerm *pUpper,   /* Upper bound on the range. ex: "x<455" Might be NULL *//*·¶Î§µÄÉÏ½ç£ºÀıÈç"x<455"¿ÉÄÜÎª¿Õ*/
-	double *pRangeDiv   /* OUT: Reduce search space by this divisor *//*Êä³ö£º¼õÉÙÕâ¸öÒò×ÓÒıÆğµÄËÑË÷¿Õ¼ä*/
+	Parse *pParse,       /* Parsing & code generating context *//*è§£æä¸Šä¸‹æ–‡å¹¶ä¸”ç”Ÿæˆä»£ç */
+	Index *p,            /* The index containing the range-compared column; "x" *//*ç´¢å¼•åŒ…å«å¯¹æ¯”èŒƒå›´åˆ—"x"*/
+	int nEq,             /* index into p->aCol[] of the range-compared column *//*æŒ‡å‘å¯¹æ¯”èŒƒå›´åˆ—çš„ç´¢å¼•æŒ‡é’ˆp_>aCol[]*/
+	WhereTerm *pLower,   /* Lower bound on the range. ex: "x>123" Might be NULL *//*èŒƒå›´çš„ä¸‹ç•Œï¼šä¾‹å¦‚"x>123"å¯èƒ½ä¸ºç©º*/
+	WhereTerm *pUpper,   /* Upper bound on the range. ex: "x<455" Might be NULL *//*èŒƒå›´çš„ä¸Šç•Œï¼šä¾‹å¦‚"x<455"å¯èƒ½ä¸ºç©º*/
+	double *pRangeDiv   /* OUT: Reduce search space by this divisor *//*è¾“å‡ºï¼šå‡å°‘è¿™ä¸ªå› å­å¼•èµ·çš„æœç´¢ç©ºé—´*/
 =======
-  Parse *pParse,       /* Parsing & code generating context ·ÖÎö²¢ÇÒ´úÂëÉú³ÉÉÏÏÂÎÄ */
-  Index *p,            /* The index containing the range-compared column; "x" Ë÷Òı°üº¬·¶Î§¶ÔÕÕµÄÁĞ:"x" */
-  int nEq,             /* index into p->aCol[] of the range-compared column Ë÷ÒıÖ¸Ïò·¶Î§¶ÔÕÕÁĞµÄp->aCol[] */
-  WhereTerm *pLower,   /* Lower bound on the range. ex: "x>123" Might be NULL ÔÚ·¶Î§ÖĞµÄÏÂÏŞ:ex: "x>123"¿ÉÄÜÊÇNULL */
-  WhereTerm *pUpper,   /* Upper bound on the range. ex: "x<455" Might be NULL ÔÚ·¶Î§ÖĞµÄÉÏÏŞ:ex: "x<455"¿ÉÄÜÊÇNULL */
-  double *pRangeDiv   /* OUT: Reduce search space by this divisor OUT:Í¨¹ıÕâ¸öÒò×ÓÀ´¼õÉÙËÑË÷¿Õ¼ä */
+  Parse *pParse,       /* Parsing & code generating context åˆ†æå¹¶ä¸”ä»£ç ç”Ÿæˆä¸Šä¸‹æ–‡ */
+  Index *p,            /* The index containing the range-compared column; "x" ç´¢å¼•åŒ…å«èŒƒå›´å¯¹ç…§çš„åˆ—:"x" */
+  int nEq,             /* index into p->aCol[] of the range-compared column ç´¢å¼•æŒ‡å‘èŒƒå›´å¯¹ç…§åˆ—çš„p->aCol[] */
+  WhereTerm *pLower,   /* Lower bound on the range. ex: "x>123" Might be NULL åœ¨èŒƒå›´ä¸­çš„ä¸‹é™:ex: "x>123"å¯èƒ½æ˜¯NULL */
+  WhereTerm *pUpper,   /* Upper bound on the range. ex: "x<455" Might be NULL åœ¨èŒƒå›´ä¸­çš„ä¸Šé™:ex: "x<455"å¯èƒ½æ˜¯NULL */
+  double *pRangeDiv   /* OUT: Reduce search space by this divisor OUT:é€šè¿‡è¿™ä¸ªå› å­æ¥å‡å°‘æœç´¢ç©ºé—´ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
   int rc = SQLITE_OK;
@@ -3787,59 +3787,59 @@ static int whereRangeScanEst(
 ** for that index.  When pExpr==NULL that means the constraint is
 ** "x IS NULL" instead of "x=VALUE".
 **
-** ¹À¼Æ½«»á·µ»ØµÄĞĞÊı£¬ËüÊÇ»ùÓÚÒ»¸öµÈÊ½Ô¼Êøx=VALUE²¢ÇÒVALUE³öÏÖÔÚÖ±·½Í¼ÖĞµÄ.
-** ÕâÖ»ÊÇÔÚµ±xÊÇÒ»¸öË÷ÒıµÄ×î×ó±ßµÄÁĞ²¢ÇÒsqlite_stat3Ö±·½Í¼Êı¾İ¶ÔÓÚË÷ÒıÊÇÓĞĞ§Ê±²ÅÆğ×÷ÓÃ¡£
-** µ±pExpr==NULLÒâÎ¶×ÅÔ¼ÊøÊÇÓÃ"x IS NULL"´úÌæ"x=VALUE".
+** ä¼°è®¡å°†ä¼šè¿”å›çš„è¡Œæ•°ï¼Œå®ƒæ˜¯åŸºäºä¸€ä¸ªç­‰å¼çº¦æŸx=VALUEå¹¶ä¸”VALUEå‡ºç°åœ¨ç›´æ–¹å›¾ä¸­çš„.
+** è¿™åªæ˜¯åœ¨å½“xæ˜¯ä¸€ä¸ªç´¢å¼•çš„æœ€å·¦è¾¹çš„åˆ—å¹¶ä¸”sqlite_stat3ç›´æ–¹å›¾æ•°æ®å¯¹äºç´¢å¼•æ˜¯æœ‰æ•ˆæ—¶æ‰èµ·ä½œç”¨ã€‚
+** å½“pExpr==NULLæ„å‘³ç€çº¦æŸæ˜¯ç”¨"x IS NULL"ä»£æ›¿"x=VALUE".
 **
 ** Write the estimated row count into *pnRow and return SQLITE_OK. 
 ** If unable to make an estimate, leave *pnRow unchanged and return
 ** non-zero.
 **
-** °Ñ¹À¼ÆµÄĞĞÊıĞ´Èëµ½*pnRowÖĞ²¢ÇÒ·µ»ØSQLITE_OK.
-** Èç¹û²»ÄÜ×öÒ»¸ö¹À¼Æ£¬±£³Ö*pnRow²»±ä²¢ÇÒ·µ»Ø·Ç0Öµ¡£
+** æŠŠä¼°è®¡çš„è¡Œæ•°å†™å…¥åˆ°*pnRowä¸­å¹¶ä¸”è¿”å›SQLITE_OK.
+** å¦‚æœä¸èƒ½åšä¸€ä¸ªä¼°è®¡ï¼Œä¿æŒ*pnRowä¸å˜å¹¶ä¸”è¿”å›é0å€¼ã€‚
 **
 ** This routine can fail if it is unable to load a collating sequence
 ** required for string comparison, or if unable to allocate memory
 ** for a UTF conversion required for comparison.  The error is stored
 ** in the pParse structure.
 **
-** Èç¹ûÕâ¸ö³ÌĞò²»ÄÜ´Ó×Ö·û´®±È½ÏÖĞÇëÇó¼ÓÔØµ½Ò»¸öË³ĞòĞòÁĞ£¬
-** »òÕßÈç¹û²»ÄÜ´Ó±È½ÏÖĞÇëÇóÒ»¸öUTF(Unicode×ª»¯Ä£Ê½)×ª»¯£¬ÄÇÃ´Õâ¸ö³ÌĞò»áÊ§°Ü¡£
-** ´íÎóĞÅÏ¢»á´æ´¢ÔÚpParseÊı¾İ½á¹¹ÖĞ
+** å¦‚æœè¿™ä¸ªç¨‹åºä¸èƒ½ä»å­—ç¬¦ä¸²æ¯”è¾ƒä¸­è¯·æ±‚åŠ è½½åˆ°ä¸€ä¸ªé¡ºåºåºåˆ—ï¼Œ
+** æˆ–è€…å¦‚æœä¸èƒ½ä»æ¯”è¾ƒä¸­è¯·æ±‚ä¸€ä¸ªUTF(Unicodeè½¬åŒ–æ¨¡å¼)è½¬åŒ–ï¼Œé‚£ä¹ˆè¿™ä¸ªç¨‹åºä¼šå¤±è´¥ã€‚
+** é”™è¯¯ä¿¡æ¯ä¼šå­˜å‚¨åœ¨pParseæ•°æ®ç»“æ„ä¸­
 */
 /* 
-** ¹À¼Æ»ùÓÚµÈÖµÔ¼ÊøÌõ¼şx=VALUE·µ»ØµÄÁĞÊı£¬´ËVALUEÖµÔÚÖù×´Í¼Êı¾İÖĞ³öÏÖ¡£
-** Õâ¸öÖ»ÔÚxÊÇË÷ÒıÖĞ×î×ó±ßµÄÁĞ²¢ÇÒsqlite_stat3Öù×´Êı¾İ¶ÔÓÚ´ËÁĞ±íÊÇ¿ÉÓÃ
-** µÄÇé¿öÏÂ²ÅÆğ×÷ÓÃ¡£µ±pExprÖµÎª¿ÕÊ±£¬ÒâÎ¶×ÅÔ¼ÊøÌõ¼şÊÇ"xÎª¿Õ"¶ø²»ÊÇ"xµÄ
-** ÖµÎªVALUE"¡£
+** ä¼°è®¡åŸºäºç­‰å€¼çº¦æŸæ¡ä»¶x=VALUEè¿”å›çš„åˆ—æ•°ï¼Œæ­¤VALUEå€¼åœ¨æŸ±çŠ¶å›¾æ•°æ®ä¸­å‡ºç°ã€‚
+** è¿™ä¸ªåªåœ¨xæ˜¯ç´¢å¼•ä¸­æœ€å·¦è¾¹çš„åˆ—å¹¶ä¸”sqlite_stat3æŸ±çŠ¶æ•°æ®å¯¹äºæ­¤åˆ—è¡¨æ˜¯å¯ç”¨
+** çš„æƒ…å†µä¸‹æ‰èµ·ä½œç”¨ã€‚å½“pExprå€¼ä¸ºç©ºæ—¶ï¼Œæ„å‘³ç€çº¦æŸæ¡ä»¶æ˜¯"xä¸ºç©º"è€Œä¸æ˜¯"xçš„
+** å€¼ä¸ºVALUE"ã€‚
 ** 
-** ¼ÇÂ¼¹À¼ÆµÄĞĞÊı£¬½«ÊıÖµĞ´Êé*pnRowÈ»ºó·µ»ØSQLITE_OK¡£Èç¹û²»ÄÜ×ö³ö¹À¼Æ£¬
-** Ôò±£³Ö*pnRowÔ­ÊıÖµ²¢ÇÒ·µ»Ø·ÇÁã¡£
+** è®°å½•ä¼°è®¡çš„è¡Œæ•°ï¼Œå°†æ•°å€¼å†™ä¹¦*pnRowç„¶åè¿”å›SQLITE_OKã€‚å¦‚æœä¸èƒ½åšå‡ºä¼°è®¡ï¼Œ
+** åˆ™ä¿æŒ*pnRowåŸæ•°å€¼å¹¶ä¸”è¿”å›éé›¶ã€‚
 **
-** Èç¹û²»ÄÜ¹»ÔØÈë×Ö·û´®±È½ÏËùĞèµÄÅÅĞòĞòÁĞ£¬»òÕß²»ÄÜ¹»±È½ÏÊ±ËùĞèµÄUTF»á»°
-** ·ÖÅäÄÚ´æ¿Õ¼ä£¬Ôò´ËÀı³Ì¿ÉÒÔËã×öÊ§°Ü¡£´íÎó½á¹û´¢´æÔÚpParse½á¹¹ÖĞ¡£
+** å¦‚æœä¸èƒ½å¤Ÿè½½å…¥å­—ç¬¦ä¸²æ¯”è¾ƒæ‰€éœ€çš„æ’åºåºåˆ—ï¼Œæˆ–è€…ä¸èƒ½å¤Ÿæ¯”è¾ƒæ—¶æ‰€éœ€çš„UTFä¼šè¯
+** åˆ†é…å†…å­˜ç©ºé—´ï¼Œåˆ™æ­¤ä¾‹ç¨‹å¯ä»¥ç®—åšå¤±è´¥ã€‚é”™è¯¯ç»“æœå‚¨å­˜åœ¨pParseç»“æ„ä¸­ã€‚
 */
 static int whereEqualScanEst(
 <<<<<<< HEAD
-	Parse *pParse,       /* Parsing & code generating context *//*½âÎöÉÏÏÂÎÄ²¢ÇÒÉú³É´úÂë*/
-	Index *p,            /* The index whose left-most column is pTerm *//*×î×óÁĞÊÇpTermµÄË÷Òı*/
-	Expr *pExpr,         /* Expression for VALUE in the x=VALUE constraint *//*x=VALUEÔ¼ÊøÌõ¼şÖĞVALUEµÄ±í´ïÊ½*/
-	double *pnRow        /* Write the revised row estimate here *//*ÔÚ´ËĞ´ÏÂ×îÖÕĞŞ¸ÄµÄĞĞµÄ¹À¼ÆÖµ*/
+	Parse *pParse,       /* Parsing & code generating context *//*è§£æä¸Šä¸‹æ–‡å¹¶ä¸”ç”Ÿæˆä»£ç */
+	Index *p,            /* The index whose left-most column is pTerm *//*æœ€å·¦åˆ—æ˜¯pTermçš„ç´¢å¼•*/
+	Expr *pExpr,         /* Expression for VALUE in the x=VALUE constraint *//*x=VALUEçº¦æŸæ¡ä»¶ä¸­VALUEçš„è¡¨è¾¾å¼*/
+	double *pnRow        /* Write the revised row estimate here *//*åœ¨æ­¤å†™ä¸‹æœ€ç»ˆä¿®æ”¹çš„è¡Œçš„ä¼°è®¡å€¼*/
 ){
-	sqlite3_value *pRhs = 0;  /* VALUE on right-hand side of pTerm *//*pTermÓÒ±ßÏîµÄÖµ*/
-	u8 aff;                   /* Column affinity *//*Í¬ÀàÁĞ*/
-	int rc;                   /* Subfunction return code *//*×Óº¯Êı·µ»Ø´úÂë*/
-	tRowcnt a[2];             /* Statistics *//*Í³¼ÆÊı¾İ*/
+	sqlite3_value *pRhs = 0;  /* VALUE on right-hand side of pTerm *//*pTermå³è¾¹é¡¹çš„å€¼*/
+	u8 aff;                   /* Column affinity *//*åŒç±»åˆ—*/
+	int rc;                   /* Subfunction return code *//*å­å‡½æ•°è¿”å›ä»£ç */
+	tRowcnt a[2];             /* Statistics *//*ç»Ÿè®¡æ•°æ®*/
 =======
-  Parse *pParse,       /* Parsing & code generating context ·ÖÎöÉÏÏÂÎÄºÍÉú³É´úÂë */
-  Index *p,            /* The index whose left-most column is pTerm pTermµÄ×î×óÁĞµÄË÷Òı */
-  Expr *pExpr,         /* Expression for VALUE in the x=VALUE constraint ÔÚx=VALUEÔ¼ÊøÖĞµÄVALUE±í´ïÊ½ */
-  double *pnRow        /* Write the revised row estimate here Ğ´ÈëĞŞ¸ÄºóµÄ¹À¼ÆµÄĞĞ */
+  Parse *pParse,       /* Parsing & code generating context åˆ†æä¸Šä¸‹æ–‡å’Œç”Ÿæˆä»£ç  */
+  Index *p,            /* The index whose left-most column is pTerm pTermçš„æœ€å·¦åˆ—çš„ç´¢å¼• */
+  Expr *pExpr,         /* Expression for VALUE in the x=VALUE constraint åœ¨x=VALUEçº¦æŸä¸­çš„VALUEè¡¨è¾¾å¼ */
+  double *pnRow        /* Write the revised row estimate here å†™å…¥ä¿®æ”¹åçš„ä¼°è®¡çš„è¡Œ */
 ){
-  sqlite3_value *pRhs = 0;  /* VALUE on right-hand side of pTerm ÔÚpTermÓÒ±ßµÄVALUE */
-  u8 aff;                   /* Column affinity ÁĞÇ×ºÍĞÔ */
-  int rc;                   /* Subfunction return code ·µ»Ø´úÂëµÄ×Óº¯Êı */
-  tRowcnt a[2];             /* Statistics Í³¼ÆĞÅÏ¢ */
+  sqlite3_value *pRhs = 0;  /* VALUE on right-hand side of pTerm åœ¨pTermå³è¾¹çš„VALUE */
+  u8 aff;                   /* Column affinity åˆ—äº²å’Œæ€§ */
+  int rc;                   /* Subfunction return code è¿”å›ä»£ç çš„å­å‡½æ•° */
+  tRowcnt a[2];             /* Statistics ç»Ÿè®¡ä¿¡æ¯ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
   assert( p->aSample!=0 );
@@ -3861,7 +3861,7 @@ whereEqualScanEst_cancel:
   sqlite3ValueFree(pRhs);
   return rc;
 }
-#endif /* defined(SQLITE_ENABLE_STAT3) *//*¶¨Òå(SQLITE_ENABLE_STAT3)º¯Êı*/
+#endif /* defined(SQLITE_ENABLE_STAT3) *//*å®šä¹‰(SQLITE_ENABLE_STAT3)å‡½æ•°*/
 
 #ifdef SQLITE_ENABLE_STAT3
 /*
@@ -3875,54 +3875,54 @@ whereEqualScanEst_cancel:
 ** If unable to make an estimate, leave *pnRow unchanged and return
 ** non-zero.
 **
-** ¹À¼Æ½«Òª·µ»ØµÄĞĞÊı£¬ÊÇ»ùÓÚÒ»¸öINÔ¼Êø£¬INÔ¤Ëã·ûµÄÓÒ±ßÊÇÒ»ÏµÁĞÖµ¡£ÀıÈç:
+** ä¼°è®¡å°†è¦è¿”å›çš„è¡Œæ•°ï¼Œæ˜¯åŸºäºä¸€ä¸ªINçº¦æŸï¼ŒINé¢„ç®—ç¬¦çš„å³è¾¹æ˜¯ä¸€ç³»åˆ—å€¼ã€‚ä¾‹å¦‚:
 **        WHERE x IN (1,2,3,4)
-** °Ñ¹À¼ÆµÄĞĞÊıĞ´Èëµ½*pnRow²¢ÇÒ·µ»ØSQLITE_OK¡£
-** Èç¹û²»ÄÜ×öÒ»¸ö¹À¼Æ£¬±£³Ö*pnRow²»±ä²¢ÇÒ·µ»Ø·Ç0Öµ¡£
+** æŠŠä¼°è®¡çš„è¡Œæ•°å†™å…¥åˆ°*pnRowå¹¶ä¸”è¿”å›SQLITE_OKã€‚
+** å¦‚æœä¸èƒ½åšä¸€ä¸ªä¼°è®¡ï¼Œä¿æŒ*pnRowä¸å˜å¹¶ä¸”è¿”å›é0å€¼ã€‚
 **
 ** This routine can fail if it is unable to load a collating sequence
 ** required for string comparison, or if unable to allocate memory
 ** for a UTF conversion required for comparison.  The error is stored
 ** in the pParse structure.
 **
-** Èç¹ûÕâ¸ö³ÌĞò²»ÄÜ´Ó×Ö·û´®±È½ÏÖĞÇëÇó¼ÓÔØµ½Ò»¸öË³ĞòĞòÁĞ£¬
-** »òÕßÈç¹û²»ÄÜ´Ó±È½ÏÖĞÇëÇóÒ»¸öUTF(Unicode×ª»¯Ä£Ê½)×ª»¯£¬ÄÇÃ´Õâ¸ö³ÌĞò»áÊ§°Ü¡£
-** ´íÎóĞÅÏ¢»á´æ´¢ÔÚpParseÊı¾İ½á¹¹ÖĞ
+** å¦‚æœè¿™ä¸ªç¨‹åºä¸èƒ½ä»å­—ç¬¦ä¸²æ¯”è¾ƒä¸­è¯·æ±‚åŠ è½½åˆ°ä¸€ä¸ªé¡ºåºåºåˆ—ï¼Œ
+** æˆ–è€…å¦‚æœä¸èƒ½ä»æ¯”è¾ƒä¸­è¯·æ±‚ä¸€ä¸ªUTF(Unicodeè½¬åŒ–æ¨¡å¼)è½¬åŒ–ï¼Œé‚£ä¹ˆè¿™ä¸ªç¨‹åºä¼šå¤±è´¥ã€‚
+** é”™è¯¯ä¿¡æ¯ä¼šå­˜å‚¨åœ¨pParseæ•°æ®ç»“æ„ä¸­
 
 */
 /*
-** ¹À¼Æ»ùÓÚINÔ¼ÊøÌõ¼şµÄ·µ»ØµÄĞĞÊı£¬Õâ¸öÔ¼ÊøÌõ¼şÊÇIN²Ù×÷ÂëµÄÓÒ±ßÎªÒ»´®
-** Öµ¡£ÀıÈç£º
+** ä¼°è®¡åŸºäºINçº¦æŸæ¡ä»¶çš„è¿”å›çš„è¡Œæ•°ï¼Œè¿™ä¸ªçº¦æŸæ¡ä»¶æ˜¯INæ“ä½œç çš„å³è¾¹ä¸ºä¸€ä¸²
+** å€¼ã€‚ä¾‹å¦‚ï¼š
 **
 **        WHERE x IN (1,2,3,4)
 **
-** ¶Ô¹À¼ÆĞĞÊı¼ÆÊı²¢ÇÒĞ´Èë*pnRow£¬È»ºó·µ»ØSQLITE_OK¡£Èç¹û²»ÄÜ×÷³ö¹À¼Æ£¬
-** Ôò±£³Ö*pnRowÎªÔ­Öµ²¢ÇÒ·µ»Ø·ÇÁã¡£
+** å¯¹ä¼°è®¡è¡Œæ•°è®¡æ•°å¹¶ä¸”å†™å…¥*pnRowï¼Œç„¶åè¿”å›SQLITE_OKã€‚å¦‚æœä¸èƒ½ä½œå‡ºä¼°è®¡ï¼Œ
+** åˆ™ä¿æŒ*pnRowä¸ºåŸå€¼å¹¶ä¸”è¿”å›éé›¶ã€‚
 **
-** Èç¹û²»ÄÜ¹»ÔØÈë×Ö·û´®±È½ÏËùĞèµÄÅÅĞòĞòÁĞ£¬»òÕß²»ÄÜ¹»±È½ÏÊ±ËùĞèµÄUTF»á»°
-** ·ÖÅäÄÚ´æ¿Õ¼ä£¬Ôò´ËÀı³Ì¿ÉÒÔËã×öÊ§°Ü¡£´íÎó½á¹û´¢´æÔÚpParse½á¹¹ÖĞ¡£
+** å¦‚æœä¸èƒ½å¤Ÿè½½å…¥å­—ç¬¦ä¸²æ¯”è¾ƒæ‰€éœ€çš„æ’åºåºåˆ—ï¼Œæˆ–è€…ä¸èƒ½å¤Ÿæ¯”è¾ƒæ—¶æ‰€éœ€çš„UTFä¼šè¯
+** åˆ†é…å†…å­˜ç©ºé—´ï¼Œåˆ™æ­¤ä¾‹ç¨‹å¯ä»¥ç®—åšå¤±è´¥ã€‚é”™è¯¯ç»“æœå‚¨å­˜åœ¨pParseç»“æ„ä¸­ã€‚
 */
 static int whereInScanEst(
 <<<<<<< HEAD
-	Parse *pParse,       /* Parsing & code generating context *//*½âÎöÉÏÏÂÎÄ²¢ÇÒÉú³É´úÂë*/
-	Index *p,            /* The index whose left-most column is pTerm *//*×î×ó±ßÁĞÎªpTermµÄË÷Òı*/
-	ExprList *pList,     /* The value list on the RHS of "x IN (v1,v2,v3,...)" *//*xÈ¡Öµ(v1,v2,v3...)µÄRHSµÄÖµµÄÁĞ±í*/
-  double *pnRow        /* Write the revised row estimate here *//*ÔÚ´ËĞ´ÏÂ×îÖÕĞŞ¸ÄµÄĞĞµÄ¹À¼ÆÖµ*/
+	Parse *pParse,       /* Parsing & code generating context *//*è§£æä¸Šä¸‹æ–‡å¹¶ä¸”ç”Ÿæˆä»£ç */
+	Index *p,            /* The index whose left-most column is pTerm *//*æœ€å·¦è¾¹åˆ—ä¸ºpTermçš„ç´¢å¼•*/
+	ExprList *pList,     /* The value list on the RHS of "x IN (v1,v2,v3,...)" *//*xå–å€¼(v1,v2,v3...)çš„RHSçš„å€¼çš„åˆ—è¡¨*/
+  double *pnRow        /* Write the revised row estimate here *//*åœ¨æ­¤å†™ä¸‹æœ€ç»ˆä¿®æ”¹çš„è¡Œçš„ä¼°è®¡å€¼*/
 ){
-	int rc = SQLITE_OK;         /* Subfunction return code *//*×Óº¯Êı·µ»Ø´úÂë*/
-	double nEst;                /* Number of rows for a single term *//*µ¥Ò»ÏîµÄĞĞÊı*/
-	double nRowEst = (double)0; /* New estimate of the number of rows *//*ĞĞÊıµÄĞÂ¹À¼ÆÖµ*/
-	int i;                      /* Loop counter *//*Ñ­»·¼ÆÊıÆ÷*/
+	int rc = SQLITE_OK;         /* Subfunction return code *//*å­å‡½æ•°è¿”å›ä»£ç */
+	double nEst;                /* Number of rows for a single term *//*å•ä¸€é¡¹çš„è¡Œæ•°*/
+	double nRowEst = (double)0; /* New estimate of the number of rows *//*è¡Œæ•°çš„æ–°ä¼°è®¡å€¼*/
+	int i;                      /* Loop counter *//*å¾ªç¯è®¡æ•°å™¨*/
 =======
-  Parse *pParse,       /* Parsing & code generating context ½âÎöºÍÉú³É´úÂëÉÏÏÂÎÄ */
-  Index *p,            /* The index whose left-most column is pTerm pTermµÄ×î×óÁĞµÄË÷Òı */
-  ExprList *pList,     /* The value list on the RHS of "x IN (v1,v2,v3,...)" "x IN (v1,v2,v3,...)"ÓÒ±ßµÄÒ»ÏµÁĞÖµ */
-  double *pnRow        /* Write the revised row estimate here Ğ´ÈëĞŞ¸ÄºóµÄ¹À¼ÆµÄĞĞ */
+  Parse *pParse,       /* Parsing & code generating context è§£æå’Œç”Ÿæˆä»£ç ä¸Šä¸‹æ–‡ */
+  Index *p,            /* The index whose left-most column is pTerm pTermçš„æœ€å·¦åˆ—çš„ç´¢å¼• */
+  ExprList *pList,     /* The value list on the RHS of "x IN (v1,v2,v3,...)" "x IN (v1,v2,v3,...)"å³è¾¹çš„ä¸€ç³»åˆ—å€¼ */
+  double *pnRow        /* Write the revised row estimate here å†™å…¥ä¿®æ”¹åçš„ä¼°è®¡çš„è¡Œ */
 ){
-  int rc = SQLITE_OK;         /* Subfunction return code ·µ»Ø´úÂëµÄ×Óº¯Êı */
-  double nEst;                /* Number of rows for a single term ¶ÔÓÚÒ»¸ötermµÄĞĞÊı */
-  double nRowEst = (double)0; /* New estimate of the number of rows ĞÂ¹À¼ÆµÄĞĞÊı */
-  int i;                      /* Loop counter Ñ­»·¼ÆÊıÆ÷ */
+  int rc = SQLITE_OK;         /* Subfunction return code è¿”å›ä»£ç çš„å­å‡½æ•° */
+  double nEst;                /* Number of rows for a single term å¯¹äºä¸€ä¸ªtermçš„è¡Œæ•° */
+  double nRowEst = (double)0; /* New estimate of the number of rows æ–°ä¼°è®¡çš„è¡Œæ•° */
+  int i;                      /* Loop counter å¾ªç¯è®¡æ•°å™¨ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
   assert( p->aSample!=0 );
@@ -3938,45 +3938,45 @@ static int whereInScanEst(
   }
   return rc;
 }
-//±Ï¸Ó±ó½áÊø
+//æ¯•èµ£æ–Œç»“æŸ
 
-/*ÍõĞã³¬ ´Ó´Ë¿ªÊ¼
+/*ç‹ç§€è¶… ä»æ­¤å¼€å§‹
 ** Find the best query plan for accessing a particular table.  Write the
 ** best query plan and its cost into the WhereCost object supplied as the
 ** last parameter.
 <<<<<<< HEAD
-**ÎªÄ³¸öÌØ¶¨µÄ±íÑ°ÕÒ×î¼Ñ²éÑ¯¼Æ»®¡£È·¶¨×îºÃµÄ²éÑ¯¼Æ»®ºÍ³É±¾£¬
-Ğ´ÈëWhereCost¶ÔÏó×÷Îª×îºóÒ»¸ö²ÎÊıÌá¹©
+**ä¸ºæŸä¸ªç‰¹å®šçš„è¡¨å¯»æ‰¾æœ€ä½³æŸ¥è¯¢è®¡åˆ’ã€‚ç¡®å®šæœ€å¥½çš„æŸ¥è¯¢è®¡åˆ’å’Œæˆæœ¬ï¼Œ
+å†™å…¥WhereCostå¯¹è±¡ä½œä¸ºæœ€åä¸€ä¸ªå‚æ•°æä¾›
 =======
 **
-** Ñ¡Ôñ·ÃÎÊÒ»¸öÌØ±ğ±íµÄ×îºÃµÄ²éÑ¯¼Æ»®¡£
-** °Ñ×îºÃµÄ²éÑ¯ÓÅ»¯ºÍËüµÄ´ú¼ÛĞ´ÈëWhereCost¶ÔÏó£¬²¢ÇÒ×÷Îª×îºóµÄ²ÎÊıÌá¹©¡£
+** é€‰æ‹©è®¿é—®ä¸€ä¸ªç‰¹åˆ«è¡¨çš„æœ€å¥½çš„æŸ¥è¯¢è®¡åˆ’ã€‚
+** æŠŠæœ€å¥½çš„æŸ¥è¯¢ä¼˜åŒ–å’Œå®ƒçš„ä»£ä»·å†™å…¥WhereCostå¯¹è±¡ï¼Œå¹¶ä¸”ä½œä¸ºæœ€åçš„å‚æ•°æä¾›ã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** The lowest cost plan wins.  The cost is an estimate of the amount of
 ** CPU and disk I/O needed to process the requested result.
-×îµÍ´ú¼ÛÔ­Ôò£¬´ú¼ÛÊÇµÄÒ»¸ö¹À¼ÆµÄ CPU ºÍ´ÅÅÌ I/O ´¦Àí¹ı³ÌµÄ½á¹ûËùĞè×ÜºÍ
+æœ€ä½ä»£ä»·åŸåˆ™ï¼Œä»£ä»·æ˜¯çš„ä¸€ä¸ªä¼°è®¡çš„ CPU å’Œç£ç›˜ I/O å¤„ç†è¿‡ç¨‹çš„ç»“æœæ‰€éœ€æ€»å’Œ
 ** Factors that influence cost include:
-Ó°Ïì´ú¼ÛµÄÒòËØÓĞ:
+å½±å“ä»£ä»·çš„å› ç´ æœ‰:
 **
 **    *  The estimated number of rows that will be retrieved.  (The
 **       fewer the better.)
-**²éÑ¯¶ÁÈ¡µÄ¼ÇÂ¼Êı (Ô½ÉÙÔ½ºÃ)
+**æŸ¥è¯¢è¯»å–çš„è®°å½•æ•° (è¶Šå°‘è¶Šå¥½)
 **    *  Whether or not sorting must occur.
-** ½á¹ûÊÇ·ñÅÅĞò.
+** ç»“æœæ˜¯å¦æ’åº.
 **    *  Whether or not there must be separate lookups in the
 **       index and in the main table.
 <<<<<<< HEAD
-**ÊÇ·ñĞèÒª·ÃÎÊË÷ÒıºÍÔ­±í
+**æ˜¯å¦éœ€è¦è®¿é—®ç´¢å¼•å’ŒåŸè¡¨
 =======
 **
-** ×îĞ¡´ú¼ÛµÄ¼Æ»®±»²ÉÓÃ¡£´ú¼ÛÊÇ¶ÔĞèÒª´¦ÀíÇëÇóµÄCPUºÍ´ÅÅÌI/OµÄ×ÜÁ¿µÄ¹ÀËã¡£
-** Ó°Ïì´ú¼ÛµÄÒòËØ°üÀ¨:
-**    *  ¹ÀËã½«ÖØĞÂÈ¡»ØµÄĞĞÊı
+** æœ€å°ä»£ä»·çš„è®¡åˆ’è¢«é‡‡ç”¨ã€‚ä»£ä»·æ˜¯å¯¹éœ€è¦å¤„ç†è¯·æ±‚çš„CPUå’Œç£ç›˜I/Oçš„æ€»é‡çš„ä¼°ç®—ã€‚
+** å½±å“ä»£ä»·çš„å› ç´ åŒ…æ‹¬:
+**    *  ä¼°ç®—å°†é‡æ–°å–å›çš„è¡Œæ•°
 **
-**    *  ÅÅĞòÊÇ·ñÓ¦¸Ã·¢Éú
+**    *  æ’åºæ˜¯å¦åº”è¯¥å‘ç”Ÿ
 **
-**    *  ÔÚË÷ÒıºÍÖ÷±íÖĞÊÇ·ñÓ¦¸Ã·Ö¿ª²éÕÒ
+**    *  åœ¨ç´¢å¼•å’Œä¸»è¡¨ä¸­æ˜¯å¦åº”è¯¥åˆ†å¼€æŸ¥æ‰¾
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** If there was an INDEXED BY clause (pSrc->pIndex) attached to the table in
@@ -3985,15 +3985,15 @@ static int whereInScanEst(
 ** SQLITE_BIG_DBL. If a plan is found that uses the named index, 
 ** then the cost is calculated in the usual way.
 <<<<<<< HEAD
-**Èç¹ûÃ»ÓĞË÷Òı BY ×Ó¾ä £¨pSrc->pIndex£© ¸½¼Óµ½ SQL Óï¾äÖĞµÄ±í£¬
-´Ëº¯ÊıÖ»¿¼ÂÇ¼Æ»®Ê¹ÓÃÖ¸¶¨µÄË÷Òı¡£
-Èç¹ûÃ»ÓĞÕâÑùµÄ¼Æ»®ÕÒµ½£¬ÄÇÃ´·µ»ØµÄ³É±¾¾ÍÊÇ SQLITE_BIG_DBL¡£
-Èç¹ûÒ»Ïî¼Æ»®£¬ÕÒµ½Ê¹ÓÃÖ¸¶¨µÄË÷Òı£¬È»ºó°´Í¨³£·½Ê½¼ÆËã´ú¼Û¡£
+**å¦‚æœæ²¡æœ‰ç´¢å¼• BY å­å¥ ï¼ˆpSrc->pIndexï¼‰ é™„åŠ åˆ° SQL è¯­å¥ä¸­çš„è¡¨ï¼Œ
+æ­¤å‡½æ•°åªè€ƒè™‘è®¡åˆ’ä½¿ç”¨æŒ‡å®šçš„ç´¢å¼•ã€‚
+å¦‚æœæ²¡æœ‰è¿™æ ·çš„è®¡åˆ’æ‰¾åˆ°ï¼Œé‚£ä¹ˆè¿”å›çš„æˆæœ¬å°±æ˜¯ SQLITE_BIG_DBLã€‚
+å¦‚æœä¸€é¡¹è®¡åˆ’ï¼Œæ‰¾åˆ°ä½¿ç”¨æŒ‡å®šçš„ç´¢å¼•ï¼Œç„¶åæŒ‰é€šå¸¸æ–¹å¼è®¡ç®—ä»£ä»·ã€‚
 =======
 **
-** Èç¹ûÔÚSQLÃüÁîÖĞ±í°üº¬Ò»¸öINDEXED BY(pSrc->pIndex)£¬ÄÇÃ´Õâ¸öº¯ÊıÖµÖ»¿¼ÂÇÊ¹ÓÃÖ¸¶¨µÄË÷Òı¡£
-** Èç¹ûÃ»ÓĞÕÒµ½ÕâÑùµÄ¼Æ»®£¬ÄÇÃ´·µ»ØµÄ´ú¼ÛÊÇSQLITE_BIG_DBL.
-** Èç¹ûÕÒµ½ÁËÊ¹ÓÃÖ¸¶¨Ë÷ÒıµÄ¼Æ»®£¬ÄÇÃ´ÓÃÆ½³£µÄ·½Ê½¼ÆËã´ú¼Û¡£
+** å¦‚æœåœ¨SQLå‘½ä»¤ä¸­è¡¨åŒ…å«ä¸€ä¸ªINDEXED BY(pSrc->pIndex)ï¼Œé‚£ä¹ˆè¿™ä¸ªå‡½æ•°å€¼åªè€ƒè™‘ä½¿ç”¨æŒ‡å®šçš„ç´¢å¼•ã€‚
+** å¦‚æœæ²¡æœ‰æ‰¾åˆ°è¿™æ ·çš„è®¡åˆ’ï¼Œé‚£ä¹ˆè¿”å›çš„ä»£ä»·æ˜¯SQLITE_BIG_DBL.
+** å¦‚æœæ‰¾åˆ°äº†ä½¿ç”¨æŒ‡å®šç´¢å¼•çš„è®¡åˆ’ï¼Œé‚£ä¹ˆç”¨å¹³å¸¸çš„æ–¹å¼è®¡ç®—ä»£ä»·ã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** If a NOT INDEXED clause (pSrc->notIndexed!=0) was attached to the table 
@@ -4001,60 +4001,60 @@ static int whereInScanEst(
 ** selected plan may still take advantage of the built-in rowid primary key
 ** index.
 <<<<<<< HEAD
-Èç¹ûÃ»ÓĞË÷Òı×Ó¾ä £¨pSrc->notIndexed!=0£© ¸½¼Óµ½µÄ±íÖĞµÄ SELECT Óï¾ä£¬ÈÏÎªÃ»ÓĞË÷Òı¡£
-È»¶ø£¬ËùÑ¡µÄ¼Æ»®ÈÔÈ»¿ÉÒÔÀûÓÃÄÚÖÃµÄ rowid Ö÷¼üË÷Òı¡£
+å¦‚æœæ²¡æœ‰ç´¢å¼•å­å¥ ï¼ˆpSrc->notIndexed!=0ï¼‰ é™„åŠ åˆ°çš„è¡¨ä¸­çš„ SELECT è¯­å¥ï¼Œè®¤ä¸ºæ²¡æœ‰ç´¢å¼•ã€‚
+ç„¶è€Œï¼Œæ‰€é€‰çš„è®¡åˆ’ä»ç„¶å¯ä»¥åˆ©ç”¨å†…ç½®çš„ rowid ä¸»é”®ç´¢å¼•ã€‚
 =======
 **
-** Èç¹ûÔÚSELECTÃüÁîÖĞ±í°üº¬Ò»¸öNOT INDEXED×Ó¾ä(pSrc->notIndexed!=0)£¬ÄÇÃ´ÈÏÎªÊÇÃ»ÓĞË÷ÒıµÄ¡£
-** È»¶ø£¬²éÑ¯¼Æ»®¿ÉÄÜÈÔ¾ÉÀûÓÃ´´½¨ÔÚrowidÉÏµÄÖ÷¼üË÷Òı
+** å¦‚æœåœ¨SELECTå‘½ä»¤ä¸­è¡¨åŒ…å«ä¸€ä¸ªNOT INDEXEDå­å¥(pSrc->notIndexed!=0)ï¼Œé‚£ä¹ˆè®¤ä¸ºæ˜¯æ²¡æœ‰ç´¢å¼•çš„ã€‚
+** ç„¶è€Œï¼ŒæŸ¥è¯¢è®¡åˆ’å¯èƒ½ä»æ—§åˆ©ç”¨åˆ›å»ºåœ¨rowidä¸Šçš„ä¸»é”®ç´¢å¼•
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
-//Êä³öpCost£¬bestBtreeIndexº¯Êı°üº¬²éÑ¯²ßÂÔĞÅÏ¢¼°ÏàÓ¦µÄ´ú¼Û
+//è¾“å‡ºpCostï¼ŒbestBtreeIndexå‡½æ•°åŒ…å«æŸ¥è¯¢ç­–ç•¥ä¿¡æ¯åŠç›¸åº”çš„ä»£ä»·
 static void bestBtreeIndex(
 <<<<<<< HEAD
-  Parse *pParse,              /* ½âÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,           /* where×Ó¾ä  */
-  struct SrcList_item *pSrc,  /*  FROM×Ó¾äµÄËÑË÷Ïî */
-  Bitmask notReady,           /* ²»ÊÊÓÃÓÚË÷ÒıµÄÓÎ±êÑÚÂë */
-  Bitmask notValid,           /* ²»ÊÊÓÃÓÚÈÎºÎÓÃÍ¾µÄÓÎ±ê */
-  ExprList *pOrderBy,         /* ORDER BY ×Ó¾ä */
-  ExprList *pDistinct,        /* ¶¨ÒåDISTINCTµÄÑ¡ÔñÁĞ±í  */
-  WhereCost *pCost            /* ´ú¼Û×îĞ¡²éÑ¯·½·¨ */
+  Parse *pParse,              /* è§£æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,           /* whereå­å¥  */
+  struct SrcList_item *pSrc,  /*  FROMå­å¥çš„æœç´¢é¡¹ */
+  Bitmask notReady,           /* ä¸é€‚ç”¨äºç´¢å¼•çš„æ¸¸æ ‡æ©ç  */
+  Bitmask notValid,           /* ä¸é€‚ç”¨äºä»»ä½•ç”¨é€”çš„æ¸¸æ ‡ */
+  ExprList *pOrderBy,         /* ORDER BY å­å¥ */
+  ExprList *pDistinct,        /* å®šä¹‰DISTINCTçš„é€‰æ‹©åˆ—è¡¨  */
+  WhereCost *pCost            /* ä»£ä»·æœ€å°æŸ¥è¯¢æ–¹æ³• */
 ){
-  int iCur = pSrc->iCursor;   /* Òª·ÃÎÊ±íµÄÓÎ±ê */
-  Index *pProbe;              /* ÎÒÃÇÕıÔÚ²âÊÔµÄË÷Òı */
-  Index *pIdx;                /* pProbeµÄ¸±±¾£¬»òÕßÊÇIPKË÷Òı*/
-  int eqTermMask;             /* µ±Ç°ÑÚÂëµÄÓĞĞ§µÄÏàÍ¬²Ù×÷·û */
-  int idxEqTermMask;          /* ÓĞĞ§µÄÏàÍ¬²Ù×÷·ûµÄË÷ÒıÑÚÂë */
-  Index sPk;                  /* Ò»¸öĞéË÷Òı¶ÔÏóµÄÖ÷¼ü */
-  tRowcnt aiRowEstPk[2];      /* sPk Ë÷ÒıµÄaiRowEst[] Öµ*/
-  int aiColumnPk = -1;        /* sPk Ë÷ÒıµÄaColumn[]Öµ */
-  int wsFlagMask;             /* pCost->plan.wsFlagÖĞµÄÔÊĞí±êÖ¾ */
+  int iCur = pSrc->iCursor;   /* è¦è®¿é—®è¡¨çš„æ¸¸æ ‡ */
+  Index *pProbe;              /* æˆ‘ä»¬æ­£åœ¨æµ‹è¯•çš„ç´¢å¼• */
+  Index *pIdx;                /* pProbeçš„å‰¯æœ¬ï¼Œæˆ–è€…æ˜¯IPKç´¢å¼•*/
+  int eqTermMask;             /* å½“å‰æ©ç çš„æœ‰æ•ˆçš„ç›¸åŒæ“ä½œç¬¦ */
+  int idxEqTermMask;          /* æœ‰æ•ˆçš„ç›¸åŒæ“ä½œç¬¦çš„ç´¢å¼•æ©ç  */
+  Index sPk;                  /* ä¸€ä¸ªè™šç´¢å¼•å¯¹è±¡çš„ä¸»é”® */
+  tRowcnt aiRowEstPk[2];      /* sPk ç´¢å¼•çš„aiRowEst[] å€¼*/
+  int aiColumnPk = -1;        /* sPk ç´¢å¼•çš„aColumn[]å€¼ */
+  int wsFlagMask;             /* pCost->plan.wsFlagä¸­çš„å…è®¸æ ‡å¿— */
 
   /* Initialize the cost to a worst-case value 
-  ³õÊ¼»¯¿ªÏúµÄ×î»µÇé¿öÖµ
+  åˆå§‹åŒ–å¼€é”€çš„æœ€åæƒ…å†µå€¼
   */
 =======
-  Parse *pParse,              /* The parsing context ½âÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,           /* The WHERE clause WHERE×Ó¾ä */
-  struct SrcList_item *pSrc,  /* The FROM clause term to search ½øĞĞ²éÕÒµÄFROM×Ó¾äterm */
-  Bitmask notReady,           /* Mask of cursors not available for indexing ÓÎ±êÑÚÂë¶ÔÓÚË÷ÒıÊÇÎŞĞ§µÄ */
-  Bitmask notValid,           /* Cursors not available for any purpose ¶ÔÓÚÈÎºÎÄ¿µÄÓÎ±ê¶¼ÎŞĞ§ */
-  ExprList *pOrderBy,         /* The ORDER BY clause ORDER BY×Ó¾ä */
-  ExprList *pDistinct,        /* The select-list if query is DISTINCT Èç¹û²éÑ¯ÊÇDISTINCTÊ±£¬select-list */
-  WhereCost *pCost            /* Lowest cost query plan ×îĞ¡µÄ´ú¼Û²éÑ¯¼Æ»® */
+  Parse *pParse,              /* The parsing context è§£æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,           /* The WHERE clause WHEREå­å¥ */
+  struct SrcList_item *pSrc,  /* The FROM clause term to search è¿›è¡ŒæŸ¥æ‰¾çš„FROMå­å¥term */
+  Bitmask notReady,           /* Mask of cursors not available for indexing æ¸¸æ ‡æ©ç å¯¹äºç´¢å¼•æ˜¯æ— æ•ˆçš„ */
+  Bitmask notValid,           /* Cursors not available for any purpose å¯¹äºä»»ä½•ç›®çš„æ¸¸æ ‡éƒ½æ— æ•ˆ */
+  ExprList *pOrderBy,         /* The ORDER BY clause ORDER BYå­å¥ */
+  ExprList *pDistinct,        /* The select-list if query is DISTINCT å¦‚æœæŸ¥è¯¢æ˜¯DISTINCTæ—¶ï¼Œselect-list */
+  WhereCost *pCost            /* Lowest cost query plan æœ€å°çš„ä»£ä»·æŸ¥è¯¢è®¡åˆ’ */
 ){
-  int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed ´æÈ¡µÄ±íÓÎ±ê */
-  Index *pProbe;              /* An index we are evaluating ÎÒÃÇÒªÆÀ¹ÀµÄÒ»¸öË÷Òı */
-  Index *pIdx;                /* Copy of pProbe, or zero for IPK index °ÑpProbeµÄ¸´±¾»ò0¸øIPKË÷Òı */
-  int eqTermMask;             /* Current mask of valid equality operators µ±Ç°ÓĞĞ§µÈÊ½ÔËËã·ûµÄÑÚÂë */
-  int idxEqTermMask;          /* Index mask of valid equality operators µ±Ç°ÓĞĞ§µÈÊ½ÔËËã·ûµÄË÷ÒıÑÚÂë */
-  Index sPk;                  /* A fake index object for the primary key Ò»¸öÖ÷¼üµÄÎ±ÔìµÄË÷Òı¶ÔÏó */
-  tRowcnt aiRowEstPk[2];      /* The aiRowEst[] value for the sPk index sPkË÷ÒıµÄaiRowEst[]Öµ */
-  int aiColumnPk = -1;        /* The aColumn[] value for the sPk index sPkË÷ÒıµÄaColumn[]Öµ */
-  int wsFlagMask;             /* Allowed flags in pCost->plan.wsFlag ÔÚpCost->plan.wsFlagÔÊĞíµÄ±êÖ¾ */
+  int iCur = pSrc->iCursor;   /* The cursor of the table to be accessed å­˜å–çš„è¡¨æ¸¸æ ‡ */
+  Index *pProbe;              /* An index we are evaluating æˆ‘ä»¬è¦è¯„ä¼°çš„ä¸€ä¸ªç´¢å¼• */
+  Index *pIdx;                /* Copy of pProbe, or zero for IPK index æŠŠpProbeçš„å¤æœ¬æˆ–0ç»™IPKç´¢å¼• */
+  int eqTermMask;             /* Current mask of valid equality operators å½“å‰æœ‰æ•ˆç­‰å¼è¿ç®—ç¬¦çš„æ©ç  */
+  int idxEqTermMask;          /* Index mask of valid equality operators å½“å‰æœ‰æ•ˆç­‰å¼è¿ç®—ç¬¦çš„ç´¢å¼•æ©ç  */
+  Index sPk;                  /* A fake index object for the primary key ä¸€ä¸ªä¸»é”®çš„ä¼ªé€ çš„ç´¢å¼•å¯¹è±¡ */
+  tRowcnt aiRowEstPk[2];      /* The aiRowEst[] value for the sPk index sPkç´¢å¼•çš„aiRowEst[]å€¼ */
+  int aiColumnPk = -1;        /* The aColumn[] value for the sPk index sPkç´¢å¼•çš„aColumn[]å€¼ */
+  int wsFlagMask;             /* Allowed flags in pCost->plan.wsFlag åœ¨pCost->plan.wsFlagå…è®¸çš„æ ‡å¿— */
 
-  /* Initialize the cost to a worst-case value ³õÊ¼»¯³É±¾Îªworst-caseÖµ */
+  /* Initialize the cost to a worst-case value åˆå§‹åŒ–æˆæœ¬ä¸ºworst-caseå€¼ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   memset(pCost, 0, sizeof(*pCost));
   pCost->rCost = SQLITE_BIG_DBL;
@@ -4064,12 +4064,12 @@ static void bestBtreeIndex(
   ** because columns might end up being NULL if the table does not match -
   ** a circumstance which the index cannot help us discover.  Ticket #2177.
 <<<<<<< HEAD
-  Èç¹ûpSrc±íÊÇ×óÁ¬½Ó£¬ÎÒÃÇ¾Í²»ÄÜÈÃË÷ÒıÎª¿ÕÔÚÕâ¸ö±íÉÏ£¬ÕâÊÇÒòÎªÈç¹û±í²»Æ¥Åä£¬
-  ÁĞ¿ÉÄÜ×îÖÕ»á±»¸³NULLÖµ£¬ÕâÖÖÇé¿öÏÂË÷Òı¾Í²»ÄÜ°ïÖúÎÒÃÇ½øĞĞ²éÕÒ¡£
+  å¦‚æœpSrcè¡¨æ˜¯å·¦è¿æ¥ï¼Œæˆ‘ä»¬å°±ä¸èƒ½è®©ç´¢å¼•ä¸ºç©ºåœ¨è¿™ä¸ªè¡¨ä¸Šï¼Œè¿™æ˜¯å› ä¸ºå¦‚æœè¡¨ä¸åŒ¹é…ï¼Œ
+  åˆ—å¯èƒ½æœ€ç»ˆä¼šè¢«èµ‹NULLå€¼ï¼Œè¿™ç§æƒ…å†µä¸‹ç´¢å¼•å°±ä¸èƒ½å¸®åŠ©æˆ‘ä»¬è¿›è¡ŒæŸ¥æ‰¾ã€‚
 =======
   **
-  ** Èç¹ûpSrc±íÊ¾Ò»¸ö×óÁ¬½ÓµÄÓÒ±í£¬ÄÇÃ´ÎÒÃÇÔÚÄÇ¸ö±íÉÏ¿ÉÄÜ²»Ê¹ÓÃË÷ÒıÔÚIS NULLÔ¼ÊøÉÏ¡£
-  ** ÕâÊÇÒòÎªÈç¹û±íÓëË÷Òı²»ÄÜ°ïÖúÎÒÃÇ·¢ÏÖÒ»ÖÖÇé¿öÏòÆ¥ÅäÊÇ£¬ÄÇÃ´ÁĞ¿ÉÄÜÒÔNULL½áÎ²¡£ Ticket #2177.
+  ** å¦‚æœpSrcè¡¨ç¤ºä¸€ä¸ªå·¦è¿æ¥çš„å³è¡¨ï¼Œé‚£ä¹ˆæˆ‘ä»¬åœ¨é‚£ä¸ªè¡¨ä¸Šå¯èƒ½ä¸ä½¿ç”¨ç´¢å¼•åœ¨IS NULLçº¦æŸä¸Šã€‚
+  ** è¿™æ˜¯å› ä¸ºå¦‚æœè¡¨ä¸ç´¢å¼•ä¸èƒ½å¸®åŠ©æˆ‘ä»¬å‘ç°ä¸€ç§æƒ…å†µå‘åŒ¹é…æ˜¯ï¼Œé‚£ä¹ˆåˆ—å¯èƒ½ä»¥NULLç»“å°¾ã€‚ Ticket #2177.
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   //
@@ -4081,9 +4081,9 @@ static void bestBtreeIndex(
 
   if( pSrc->pIndex ){
 <<<<<<< HEAD
-    /* Ë÷ÒıBY×Ó¾äÖ¸¶¨ÁËÒ»¸öÌØ¶¨µÄË÷ÒıÀ´Ê¹ÓÃ */
+    /* ç´¢å¼•BYå­å¥æŒ‡å®šäº†ä¸€ä¸ªç‰¹å®šçš„ç´¢å¼•æ¥ä½¿ç”¨ */
 =======
-    /* An INDEXED BY clause specifies a particular index to use Ò»¸öINDEXED BY×Ó¾äÖ¸¶¨Ê¹ÓÃÒ»¸öÌØ±ğµÄË÷Òı */
+    /* An INDEXED BY clause specifies a particular index to use ä¸€ä¸ªINDEXED BYå­å¥æŒ‡å®šä½¿ç”¨ä¸€ä¸ªç‰¹åˆ«çš„ç´¢å¼• */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     pIdx = pProbe = pSrc->pIndex;
     wsFlagMask = ~(WHERE_ROWID_EQ|WHERE_ROWID_RANGE);
@@ -4094,17 +4094,17 @@ static void bestBtreeIndex(
     ** fake index the first in a chain of Index objects with all of the real
     ** indices to follow 
 <<<<<<< HEAD
-    ÕâÀïÃ»ÓĞË÷ÒıBY×Ó¾ä¡£ÔÚ¾Ö²¿±äÁ¿´´½¨Ò»¸öĞéµÄË÷Òı¶ÔÏó
-    sPk´ú±írowidÖ÷¼üË÷Òı¡£
-    Ê¹Õâ¸öĞéµÄË÷Òı¶ÔÏóµÄµÚÒ»¸öË÷Òı¶ÔÏóµÄÕæÊµ¡£
+    è¿™é‡Œæ²¡æœ‰ç´¢å¼•BYå­å¥ã€‚åœ¨å±€éƒ¨å˜é‡åˆ›å»ºä¸€ä¸ªè™šçš„ç´¢å¼•å¯¹è±¡
+    sPkä»£è¡¨rowidä¸»é”®ç´¢å¼•ã€‚
+    ä½¿è¿™ä¸ªè™šçš„ç´¢å¼•å¯¹è±¡çš„ç¬¬ä¸€ä¸ªç´¢å¼•å¯¹è±¡çš„çœŸå®ã€‚
     */
-    Index *pFirst;                  /* ±íÖĞµÚÒ»¸öÕæµÄË÷Òı¶ÔÏó */
+    Index *pFirst;                  /* è¡¨ä¸­ç¬¬ä¸€ä¸ªçœŸçš„ç´¢å¼•å¯¹è±¡ */
 =======
     ** 
-    ** Ã»ÓĞINDEXED BY×Ó¾ä¡£ÔÚ¾Ö²¿±äÁ¿sPkÖĞ´´½¨Ò»¸ö±íÊ¾rowidÖ÷¼üµÄÎ±Ë÷Òı¡£
-    ** Ê¹Õâ¸öÎ±Ë÷Òı´¦ÓÚÒ»Á¬´®ÕæÊµË÷Òı¶ÔÏóµÄµÚÒ»¸öÎ»ÖÃ
+    ** æ²¡æœ‰INDEXED BYå­å¥ã€‚åœ¨å±€éƒ¨å˜é‡sPkä¸­åˆ›å»ºä¸€ä¸ªè¡¨ç¤ºrowidä¸»é”®çš„ä¼ªç´¢å¼•ã€‚
+    ** ä½¿è¿™ä¸ªä¼ªç´¢å¼•å¤„äºä¸€è¿ä¸²çœŸå®ç´¢å¼•å¯¹è±¡çš„ç¬¬ä¸€ä¸ªä½ç½®
     */
-    Index *pFirst;                  /* First of real indices on the table ÔÚ±íÖĞÕæÊµË÷ÒıµÄµÚÒ»¸ö */
+    Index *pFirst;                  /* First of real indices on the table åœ¨è¡¨ä¸­çœŸå®ç´¢å¼•çš„ç¬¬ä¸€ä¸ª */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     memset(&sPk, 0, sizeof(Index));
     sPk.nColumn = 1;
@@ -4119,9 +4119,9 @@ static void bestBtreeIndex(
       /* The real indices of the table are only considered if the
       ** NOT INDEXED qualifier is omitted from the FROM clause
 <<<<<<< HEAD
-      Èç¹ûFROM×Ó¾äÃ»ÓĞÏŞ¶¨·û£¬ÔòÖ»¿¼ÂÇÊµ¼ÊµÄË÷Òı */
+      å¦‚æœFROMå­å¥æ²¡æœ‰é™å®šç¬¦ï¼Œåˆ™åªè€ƒè™‘å®é™…çš„ç´¢å¼• */
 =======
-      ** ±íµÄÕæÊµË÷ÒıÖ»ÊÇÔÚååNOT INDEXEDÏŞ¶¨ÔÚFROM×Ó¾äÖĞ±»É¾³ıÊ±²Å¿¼ÂÇ¡£
+      ** è¡¨çš„çœŸå®ç´¢å¼•åªæ˜¯åœ¨é‚‹NOT INDEXEDé™å®šåœ¨FROMå­å¥ä¸­è¢«åˆ é™¤æ—¶æ‰è€ƒè™‘ã€‚
       */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       sPk.pNext = pFirst;
@@ -4136,23 +4136,23 @@ static void bestBtreeIndex(
 
   /* Loop over all indices looking for the best one to use
 <<<<<<< HEAD
-  ±éÀúÆäËùÓĞË÷Òı,ÕÒµ½Ò»¸ö´ú¼Û×îĞ¡µÄË÷Òı
+  éå†å…¶æ‰€æœ‰ç´¢å¼•,æ‰¾åˆ°ä¸€ä¸ªä»£ä»·æœ€å°çš„ç´¢å¼•
 =======
-  ** Ñ­»·ËùÓĞµÄË÷ÒıÀ´²éÕÒ×îºÃµÄÒ»¸öÀ´Ê¹ÓÃ
+  ** å¾ªç¯æ‰€æœ‰çš„ç´¢å¼•æ¥æŸ¥æ‰¾æœ€å¥½çš„ä¸€ä¸ªæ¥ä½¿ç”¨
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  for(; pProbe; pIdx=pProbe=pProbe->pNext){ //Ñ­»·ËùÓĞË÷Òı
+  for(; pProbe; pIdx=pProbe=pProbe->pNext){ //å¾ªç¯æ‰€æœ‰ç´¢å¼•
     const tRowcnt * const aiRowEst = pProbe->aiRowEst;
 <<<<<<< HEAD
-    double cost;                /* Ê¹ÓÃpProbeµÄ´ú¼Û */
-    double nRow;                /* Ô¤¼Æ½á¹û¼¯ÖĞµÄ¼ÇÂ¼Êı */
-    double log10N = (double)1;  /*Ê®½øÖÆ»ã×Ü (²»¾«È·) */
-    int rev;                    /* ÄæÏòÕıÈ·É¨Ãè */
+    double cost;                /* ä½¿ç”¨pProbeçš„ä»£ä»· */
+    double nRow;                /* é¢„è®¡ç»“æœé›†ä¸­çš„è®°å½•æ•° */
+    double log10N = (double)1;  /*åè¿›åˆ¶æ±‡æ€» (ä¸ç²¾ç¡®) */
+    int rev;                    /* é€†å‘æ­£ç¡®æ‰«æ */
 =======
-    double cost;                /* Cost of using pProbe pProbeÊ¹ÓÃµÄ´ú¼Û */
-    double nRow;                /* Estimated number of rows in result set ÔÚ½á¹û¼¯ÖĞ¹À¼ÆĞĞÊı */
-    double log10N = (double)1;  /* base-10 logarithm of nRow (inexact) nRowµÄÒÔ10Îªµ×µÄ¶ÔÊı(²»¾«È·µÄ) */
-    int rev;                    /* True to scan in reverse order ÔÚµ¹ĞòÖĞÕıÈ·µÄÉ¨Ãè */
+    double cost;                /* Cost of using pProbe pProbeä½¿ç”¨çš„ä»£ä»· */
+    double nRow;                /* Estimated number of rows in result set åœ¨ç»“æœé›†ä¸­ä¼°è®¡è¡Œæ•° */
+    double log10N = (double)1;  /* base-10 logarithm of nRow (inexact) nRowçš„ä»¥10ä¸ºåº•çš„å¯¹æ•°(ä¸ç²¾ç¡®çš„) */
+    int rev;                    /* True to scan in reverse order åœ¨å€’åºä¸­æ­£ç¡®çš„æ‰«æ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     int wsFlags = 0;
     Bitmask used = 0;
@@ -4161,11 +4161,11 @@ static void bestBtreeIndex(
     ** index being evaluated. They are then used to determine the expected
     ** cost and number of rows returned.
 <<<<<<< HEAD
-    **Ìî³äÏÂÃæµÄ±äÁ¿±»ÆÀ¹ÀµÄ»ùÓÚË÷ÒıµÄÊôĞÔ¡£
-    ËûÃÇÈ»ºóÊ¹ÓÃÈ·¶¨µÄÔ¤ÆÚ´ú¼ÛºÍ·µ»ØµÄ¼ÇÂ¼Êı¡£
+    **å¡«å……ä¸‹é¢çš„å˜é‡è¢«è¯„ä¼°çš„åŸºäºç´¢å¼•çš„å±æ€§ã€‚
+    ä»–ä»¬ç„¶åä½¿ç”¨ç¡®å®šçš„é¢„æœŸä»£ä»·å’Œè¿”å›çš„è®°å½•æ•°ã€‚
 =======
     **
-    ** ÏÂÁĞµÄ±äÁ¿ÊÇ»ùÓÚÒÑÆÀ¹ÀµÄË÷ÒıµÄĞÔÄÜÀ´Ìî³äµÄ¡£ËûÃÇ¾­³£¾ö¶¨·µ»ØÔ¤ÆÚµÄ´ú¼ÛºÍĞĞÊı¡£
+    ** ä¸‹åˆ—çš„å˜é‡æ˜¯åŸºäºå·²è¯„ä¼°çš„ç´¢å¼•çš„æ€§èƒ½æ¥å¡«å……çš„ã€‚ä»–ä»¬ç»å¸¸å†³å®šè¿”å›é¢„æœŸçš„ä»£ä»·å’Œè¡Œæ•°ã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **  nEq: 
@@ -4173,28 +4173,28 @@ static void bestBtreeIndex(
     **    In other words, the number of initial fields in the index that
     **    are used in == or IN or NOT NULL constraints of the WHERE clause.
 <<<<<<< HEAD
-    **Êı×ÖÏàµÈ¿ÉÒÔÓÃÓÚË÷ÒıÀ´ÊµÏÖ¡£
-    »»¾ä»°Ëµ,×î³õµÄÊı×ÖÒıÓÃÓÚ==
-    »òÔÚWHERE×Ó¾ä»òNOT NULLÔ¼Êø
+    **æ•°å­—ç›¸ç­‰å¯ä»¥ç”¨äºç´¢å¼•æ¥å®ç°ã€‚
+    æ¢å¥è¯è¯´,æœ€åˆçš„æ•°å­—å¼•ç”¨äº==
+    æˆ–åœ¨WHEREå­å¥æˆ–NOT NULLçº¦æŸ
 =======
     **
     **  nEq:
-    **	 ÄÜÊ¹ÓÃË÷ÒıµÄµÈÊ½termsµÄ¸öÊı¡£»»¾ä»°Ëµ£¬ÔÚË÷ÒıÖĞµÄ³õÊ¼»¯µÄ×Ö¶ÎÊıÓÃÓÚWHERE×Ó¾äÖĞµÄ==»òIN»òNOT NULL
+    **	 èƒ½ä½¿ç”¨ç´¢å¼•çš„ç­‰å¼termsçš„ä¸ªæ•°ã€‚æ¢å¥è¯è¯´ï¼Œåœ¨ç´¢å¼•ä¸­çš„åˆå§‹åŒ–çš„å­—æ®µæ•°ç”¨äºWHEREå­å¥ä¸­çš„==æˆ–INæˆ–NOT NULL
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **  nInMul:  
     **    The "in-multiplier". This is an estimate of how many seek operations 
     **    SQLite must perform on the index in question. For example, if the 
     **    WHERE clause is:
-    **¡°in-multiplier¡±¡£ÕâÊÇÒ»¸ö¹À¼ÆÓĞ¶àÉÙ²Ù×÷µÄSQLite±ØĞëÖ´ĞĞË÷ÒıµÄÎÊÌâ£¬
-    ÀıÈç where×Ó¾ä
+    **â€œin-multiplierâ€ã€‚è¿™æ˜¯ä¸€ä¸ªä¼°è®¡æœ‰å¤šå°‘æ“ä½œçš„SQLiteå¿…é¡»æ‰§è¡Œç´¢å¼•çš„é—®é¢˜ï¼Œ
+    ä¾‹å¦‚ whereå­å¥
     **      WHERE a IN (1, 2, 3) AND b IN (4, 5, 6)
     **
     **    SQLite must perform 9 lookups on an index on (a, b), so nInMul is 
     **    set to 9. Given the same schema and either of the following WHERE 
     **    clauses:
-    **SQLite±ØĞëÖ´ĞĞ9´Î²éÕÒÔÚ°É£¬a£¬b±íÖĞ¡£ËùÒÔnInMulÉèÎª9¡£
-    ÏÂÃæ¸ø³öÒ»¸öÏàÍ¬²éÕÒµÄwhere×Ó¾ä
+    **SQLiteå¿…é¡»æ‰§è¡Œ9æ¬¡æŸ¥æ‰¾åœ¨å§ï¼Œaï¼Œbè¡¨ä¸­ã€‚æ‰€ä»¥nInMulè®¾ä¸º9ã€‚
+    ä¸‹é¢ç»™å‡ºä¸€ä¸ªç›¸åŒæŸ¥æ‰¾çš„whereå­å¥
     **      WHERE a =  1
     **      WHERE a >= 2
     **
@@ -4204,20 +4204,20 @@ static void bestBtreeIndex(
     **    the sub-select is assumed to return 25 rows for the purposes of 
     **    determining nInMul.
 <<<<<<< HEAD
-    **Èç¹ûÕâÀï´æÔÚÒ»¸öwhere×Ó¾ä£¨x IN (SELECT ...))¡£ÄÇÃ´×Ó²éÑ¯½«ÉèÎª25ĞĞ,¼´nInMulµÄÖµ
+    **å¦‚æœè¿™é‡Œå­˜åœ¨ä¸€ä¸ªwhereå­å¥ï¼ˆx IN (SELECT ...))ã€‚é‚£ä¹ˆå­æŸ¥è¯¢å°†è®¾ä¸º25è¡Œ,å³nInMulçš„å€¼
 =======
     **
     **
     **  nInMul:
-    **    "in-multiplier".ÕâÊÇ¹À¼ÆSQLiteÔÚÌÖÂÛÖĞµÄË÷ÒıÉÏÖ´ĞĞÁË¶àÉÙËÑË÷²Ù×÷¡£
-    **	 ÀıÈç£¬Èç¹ûWHERE×Ó¾äÊÇ;
+    **    "in-multiplier".è¿™æ˜¯ä¼°è®¡SQLiteåœ¨è®¨è®ºä¸­çš„ç´¢å¼•ä¸Šæ‰§è¡Œäº†å¤šå°‘æœç´¢æ“ä½œã€‚
+    **	 ä¾‹å¦‚ï¼Œå¦‚æœWHEREå­å¥æ˜¯;
     **      WHERE a IN (1, 2, 3) AND b IN (4, 5, 6)
-    **    SQLite±ØĞëÔÚ(a, b)ÉÏµÄË÷ÒıÖ´ĞĞ9´Î²éÕÒ£¬Òò´ËnInMulÉèÎª9.ÏÂÃæ¸øÒ»¸öÏàËÆµÄÀı×Ó;
+    **    SQLiteå¿…é¡»åœ¨(a, b)ä¸Šçš„ç´¢å¼•æ‰§è¡Œ9æ¬¡æŸ¥æ‰¾ï¼Œå› æ­¤nInMulè®¾ä¸º9.ä¸‹é¢ç»™ä¸€ä¸ªç›¸ä¼¼çš„ä¾‹å­;
     **      WHERE a =  1
     **      WHERE a >= 2
-    **    nInMulÉèÖÃÎª1.
+    **    nInMulè®¾ç½®ä¸º1.
     **
-    **    Èç¹û´æÔÚÒ»¸öĞÎÊ½Îª"x IN (SELECT ...)"µÄWHERE term£¬ÄÇÃ´×Ó²éÑ¯ÎªÁËÈ·¶¨nInMul¾Í¼Ù¶¨·µ»Ø25ĞĞ¡£
+    **    å¦‚æœå­˜åœ¨ä¸€ä¸ªå½¢å¼ä¸º"x IN (SELECT ...)"çš„WHERE termï¼Œé‚£ä¹ˆå­æŸ¥è¯¢ä¸ºäº†ç¡®å®šnInMulå°±å‡å®šè¿”å›25è¡Œã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **  bInEst:  
@@ -4226,13 +4226,13 @@ static void bestBtreeIndex(
     **    IN operator must be a SELECT, not a value list, for this variable
     **    to be true.
 <<<<<<< HEAD
-    **ÉèÖÃÎªÕæ,Èç¹ûÖÁÉÙÓĞÒ»¸ö²éÑ¯×Ó¾äÊõÓïÔÚ¾ö¶¨nInMulµÄÖµ¡£
-    ×¢Òâ,ÔÚ²Ù×÷·û±ØĞëÊÇÒ»¸öÑ¡Ôñ,¶ø²»ÊÇÒ»¸öÖµÁĞ±í,Õâ¸ö±äÁ¿ÊÇÕæÊµµÄ¡£
+    **è®¾ç½®ä¸ºçœŸ,å¦‚æœè‡³å°‘æœ‰ä¸€ä¸ªæŸ¥è¯¢å­å¥æœ¯è¯­åœ¨å†³å®šnInMulçš„å€¼ã€‚
+    æ³¨æ„,åœ¨æ“ä½œç¬¦å¿…é¡»æ˜¯ä¸€ä¸ªé€‰æ‹©,è€Œä¸æ˜¯ä¸€ä¸ªå€¼åˆ—è¡¨,è¿™ä¸ªå˜é‡æ˜¯çœŸå®çš„ã€‚
 =======
     **
     **  bInEst:  
-    **    Èç¹ûÖÁÉÙÓĞÒ»¸ö"x IN (SELECT ...)" termÓÃÓÚ¾ö¶¨nInMulµÄÖµ£¬ÄÇÃ´¾ÍÉèÖÃÎªTRUE.
-    **    ×¢Òâ:INÔËËã·ûµÄÓÒ±ß¶ÔÓÚÕâ¸ö±äÁ¿±ØĞëÊÇÒ»¸öÕæÊµµÄSELECT£¬¶ø²»ÊÇÒ»¸öÖµÁĞ±í¡£
+    **    å¦‚æœè‡³å°‘æœ‰ä¸€ä¸ª"x IN (SELECT ...)" termç”¨äºå†³å®šnInMulçš„å€¼ï¼Œé‚£ä¹ˆå°±è®¾ç½®ä¸ºTRUE.
+    **    æ³¨æ„:INè¿ç®—ç¬¦çš„å³è¾¹å¯¹äºè¿™ä¸ªå˜é‡å¿…é¡»æ˜¯ä¸€ä¸ªçœŸå®çš„SELECTï¼Œè€Œä¸æ˜¯ä¸€ä¸ªå€¼åˆ—è¡¨ã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **  rangeDiv:
@@ -4242,16 +4242,16 @@ static void bestBtreeIndex(
     **    original size (rangeDiv==4).  Two inequalities reduce the search
     **    space to 1/16th of its original size (rangeDiv==16).
 <<<<<<< HEAD
-    **¹À¼ÆµÄÒ»¸öÒò×Ó,¼õÉÙËÑË÷¿Õ¼äÈ¡¾öÓÚ²»µÈÊ½Ô¼Êø¡£
-    ÔÚÈ±·¦sqlite_stat3·ÖÎöÊı¾İµÄÇé¿öÏÂ,
-    µ¥Ò»²»Æ½µÈµÄ½µµÍËÑË÷¿Õ¼äÊÇÔ­Ê¼´óĞ¡1/4(rangeDiv = = 4)¡£
-    Á½¸ö²»Æ½µÈ½µµÍËÑË÷¿Õ¼ä´ó¸ÅµÄÔ­Ê¼´óĞ¡µÄ1/16(rangeDiv = = 16)
+    **ä¼°è®¡çš„ä¸€ä¸ªå› å­,å‡å°‘æœç´¢ç©ºé—´å–å†³äºä¸ç­‰å¼çº¦æŸã€‚
+    åœ¨ç¼ºä¹sqlite_stat3åˆ†ææ•°æ®çš„æƒ…å†µä¸‹,
+    å•ä¸€ä¸å¹³ç­‰çš„é™ä½æœç´¢ç©ºé—´æ˜¯åŸå§‹å¤§å°1/4(rangeDiv = = 4)ã€‚
+    ä¸¤ä¸ªä¸å¹³ç­‰é™ä½æœç´¢ç©ºé—´å¤§æ¦‚çš„åŸå§‹å¤§å°çš„1/16(rangeDiv = = 16)
 =======
     **
     **  rangeDiv:
-    **    Ò»¸öÓÉÓÚ²»µÈÊ½Ô¼Êø¶ø¼õÉÙËÑË÷¿Õ¼äµÄÒò×ÓÆÀ¹À¡£
-    **    È±ÉÙsqlite_stat3 ANALYZEµÄÊı¾İ£¬Ò»¸öµ¥¶ÀµÄ²»µÈÊ½°ÑËÑË÷¿Õ¼ä¼õÉÙµ½Ô­Ê¼µÄ´óĞ¡µÄ1/4(rangeDiv==4).
-    **    Á½¸ö²»µÈÊ½°ÑËÑË÷¿Õ¼ä¼õÉÙµ½Ô­Ê¼´óĞ¡µÄ1/16(rangeDiv==16).
+    **    ä¸€ä¸ªç”±äºä¸ç­‰å¼çº¦æŸè€Œå‡å°‘æœç´¢ç©ºé—´çš„å› å­è¯„ä¼°ã€‚
+    **    ç¼ºå°‘sqlite_stat3 ANALYZEçš„æ•°æ®ï¼Œä¸€ä¸ªå•ç‹¬çš„ä¸ç­‰å¼æŠŠæœç´¢ç©ºé—´å‡å°‘åˆ°åŸå§‹çš„å¤§å°çš„1/4(rangeDiv==4).
+    **    ä¸¤ä¸ªä¸ç­‰å¼æŠŠæœç´¢ç©ºé—´å‡å°‘åˆ°åŸå§‹å¤§å°çš„1/16(rangeDiv==16).
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **  bSort:   
@@ -4259,78 +4259,78 @@ static void bestBtreeIndex(
     **    external sort (i.e. scanning the index being evaluated will not 
     **    correctly order records).
 <<<<<<< HEAD
-    **²¼¶ûÖµÎªÕæ£¬Èç¹ûÓĞÒ»¸öORDER BY×Ó¾ä,ĞèÒªÒ»¸öÍâ²¿ÅÅĞò(¼´É¨ÃèË÷Òı±»ÆÀ¹À²»ÕıÈ·ÅÅĞò¼ÇÂ¼)¡£
+    **å¸ƒå°”å€¼ä¸ºçœŸï¼Œå¦‚æœæœ‰ä¸€ä¸ªORDER BYå­å¥,éœ€è¦ä¸€ä¸ªå¤–éƒ¨æ’åº(å³æ‰«æç´¢å¼•è¢«è¯„ä¼°ä¸æ­£ç¡®æ’åºè®°å½•)ã€‚
 =======
     **
     **  bSort:  
-    **    BooleanÀàĞÍ.Èç¹ûÓĞÒ»¸öORDER BY×Ó¾äÒªÇóÒ»¸öÍâ²¿ÅÅĞò(Ò²¾ÍÊÇËµ£¬É¨ÃèÆÀ¹ÀµÄË÷Òı½«²»ÄÜÕıÈ·µØÅÅĞò¼ÇÂ¼)Ôò·µ»ØTRUE
+    **    Booleanç±»å‹.å¦‚æœæœ‰ä¸€ä¸ªORDER BYå­å¥è¦æ±‚ä¸€ä¸ªå¤–éƒ¨æ’åº(ä¹Ÿå°±æ˜¯è¯´ï¼Œæ‰«æè¯„ä¼°çš„ç´¢å¼•å°†ä¸èƒ½æ­£ç¡®åœ°æ’åºè®°å½•)åˆ™è¿”å›TRUE
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **  bLookup: 
     **    Boolean. True if a table lookup is required for each index entry
     **    visited.  In other words, true if this is not a covering index.
-    ²¼¶ûÖµÎªÕæ£¬Èç¹ûÒ»¸ö±í²éÕÒĞèÒª·ÃÎÊÃ¿¸öË÷ÒıÏî¡£
-    »»¾ä»°Ëµ,Èç¹ûÕâ²»ÊÇÒ»¸öÕæÕıµÄ¸²¸ÇË÷Òı¡£
+    å¸ƒå°”å€¼ä¸ºçœŸï¼Œå¦‚æœä¸€ä¸ªè¡¨æŸ¥æ‰¾éœ€è¦è®¿é—®æ¯ä¸ªç´¢å¼•é¡¹ã€‚
+    æ¢å¥è¯è¯´,å¦‚æœè¿™ä¸æ˜¯ä¸€ä¸ªçœŸæ­£çš„è¦†ç›–ç´¢å¼•ã€‚
     **    This is always false for the rowid primary key index of a table.
     **    For other indexes, it is true unless all the columns of the table
     **    used by the SELECT statement are present in the index (such an
     **    index is sometimes described as a covering index).
-    Õâ×ÜÊÇ´íÎóµÄrowidÖ÷¼üË÷Òı±í¡£
-    ÆäËûË÷Òı,ÕâÊÇÕæµÄ,³ı·ÇÊ¹ÓÃµÄ±íµÄËùÓĞÁĞµÄSELECTÓï¾ä´æÔÚË÷Òı
-    (Ë÷ÒıÓĞÊ±±»ÃèÊöÎªÒ»¸ö¸²¸ÇË÷Òı)¡£
+    è¿™æ€»æ˜¯é”™è¯¯çš„rowidä¸»é”®ç´¢å¼•è¡¨ã€‚
+    å…¶ä»–ç´¢å¼•,è¿™æ˜¯çœŸçš„,é™¤éä½¿ç”¨çš„è¡¨çš„æ‰€æœ‰åˆ—çš„SELECTè¯­å¥å­˜åœ¨ç´¢å¼•
+    (ç´¢å¼•æœ‰æ—¶è¢«æè¿°ä¸ºä¸€ä¸ªè¦†ç›–ç´¢å¼•)ã€‚
     **    For example, given the index on (a, b), the second of the following 
     **    two queries requires table b-tree lookups in order to find the value
     **    of column c, but the first does not because columns a and b are
     **    both available in the index.
-    **ÀıÈç£¬¸ø³ö±ía£¬b¡£µÚ¶ş¸ö²éÑ¯ĞèÒª½¨Á¢bÊ÷²éÕÒ£¬ÎªÁËÕÒµ½ÁĞcµÄÖµ,
-    µ«µÚÒ»²éÑ¯²¢²»ĞèÒª¡£ÒòÎªÁĞaºÍb¶¼ÊÇ¿ÉÓÃµÄË÷Òı¡£
+    **ä¾‹å¦‚ï¼Œç»™å‡ºè¡¨aï¼Œbã€‚ç¬¬äºŒä¸ªæŸ¥è¯¢éœ€è¦å»ºç«‹bæ ‘æŸ¥æ‰¾ï¼Œä¸ºäº†æ‰¾åˆ°åˆ—cçš„å€¼,
+    ä½†ç¬¬ä¸€æŸ¥è¯¢å¹¶ä¸éœ€è¦ã€‚å› ä¸ºåˆ—aå’Œbéƒ½æ˜¯å¯ç”¨çš„ç´¢å¼•ã€‚
     **             SELECT a, b    FROM tbl WHERE a = 1;
     **             SELECT a, b, c FROM tbl WHERE a = 1;
     **
     **  bLookup: 
-    **    BooleanÀàĞÍ.Èç¹ûÒ»¸ö±í²éÑ¯ĞèÒª·ÃÎÊÃ¿Ò»¸öË÷ÒıÌõÄ¿£¬ÔòbLookup¾ÍÊÇTRUE.
-    **    »»¾ä»°Ëµ£¬Èç¹ûÕâ²»ÊÇÒ»¸ö¸²¸ÇË÷Òı£¬Ôò·µ»ØTRUE.¶ÔÓÚÒ»¸ö±íµÄrowidÖ÷¼üË÷Òı×ÜÊÇ´íÎóµÄ¡£
-    **    ¶ÔÓÚÆäËûµÄË÷Òı£¬
-    **    ³ı·ÇÔÚSELECTÃüÁîÖĞ±íµÄËùÓĞÁĞ¶¼³öÏÖÔÚË÷ÒıÖĞ(ÕâÖÖË÷ÒıÓĞÊ±±»Ëµ³ÉÊÇÒ»¸ö¸²¸ÇË÷Òı)£¬ÄÇÃ´bLookup¾ÍÊÇTRUE
-    **    ÀıÈç£¬ÔÚ(a, b)ÉÏÓĞË÷Òı£¬ÏÂÃæÁ½¸ö²éÑ¯Óï¾äÇëÇó±íb-tree²éÕÒÎªÁË²éÕÒÁĞcµÄÖµ£¬
-    **    ²¢ÇÒÒòÎªÁĞaºÍb¶¼ÊÇÔÚË÷ÒıÖĞµÄ±äÁ¿£¬ËùÒÔµÚÒ»¸öÓï¾ä²»ÄÜÇëÇóµ½¡£
+    **    Booleanç±»å‹.å¦‚æœä¸€ä¸ªè¡¨æŸ¥è¯¢éœ€è¦è®¿é—®æ¯ä¸€ä¸ªç´¢å¼•æ¡ç›®ï¼Œåˆ™bLookupå°±æ˜¯TRUE.
+    **    æ¢å¥è¯è¯´ï¼Œå¦‚æœè¿™ä¸æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•ï¼Œåˆ™è¿”å›TRUE.å¯¹äºä¸€ä¸ªè¡¨çš„rowidä¸»é”®ç´¢å¼•æ€»æ˜¯é”™è¯¯çš„ã€‚
+    **    å¯¹äºå…¶ä»–çš„ç´¢å¼•ï¼Œ
+    **    é™¤éåœ¨SELECTå‘½ä»¤ä¸­è¡¨çš„æ‰€æœ‰åˆ—éƒ½å‡ºç°åœ¨ç´¢å¼•ä¸­(è¿™ç§ç´¢å¼•æœ‰æ—¶è¢«è¯´æˆæ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•)ï¼Œé‚£ä¹ˆbLookupå°±æ˜¯TRUE
+    **    ä¾‹å¦‚ï¼Œåœ¨(a, b)ä¸Šæœ‰ç´¢å¼•ï¼Œä¸‹é¢ä¸¤ä¸ªæŸ¥è¯¢è¯­å¥è¯·æ±‚è¡¨b-treeæŸ¥æ‰¾ä¸ºäº†æŸ¥æ‰¾åˆ—cçš„å€¼ï¼Œ
+    **    å¹¶ä¸”å› ä¸ºåˆ—aå’Œbéƒ½æ˜¯åœ¨ç´¢å¼•ä¸­çš„å˜é‡ï¼Œæ‰€ä»¥ç¬¬ä¸€ä¸ªè¯­å¥ä¸èƒ½è¯·æ±‚åˆ°ã€‚
     **             SELECT a, b    FROM tbl WHERE a = 1;
     **             SELECT a, b, c FROM tbl WHERE a = 1;
     **
     **
     */
 <<<<<<< HEAD
-    int nEq;                      /* ¿ÉÒÔÊ¹ÓÃË÷ÒıµÄµÈÖµ±í´ïÊ½µÄ¸öÊı*/
-    int bInEst = 0;               /* Èç¹û´æÔÚ x IN (SELECT...),ÔòÉèÎªtrue*/
-    int nInMul = 1;               /* ´¦Àíin×Ó¾ä */
-    double rangeDiv = (double)1;  /* ¹À¼Æ¼õÉÙËÑË÷¿Õ¼ä */
-    int nBound = 0;               /* ¹À¼ÆĞèÒªÉ¨ÃèµÄ±í */
-    int bSort = !!pOrderBy;       /* µ±ĞèÒªÍâ²¿ÅÅĞòÊ±ÎªÕæ */
-    int bDist = !!pDistinct;      /* µ±Ë÷Òı²»ÊÇdistinctÊ±ÎªÕæ */
-    int bLookup = 0;              /* µ±²»ÊÇ¸²¸ÇË÷ÒıÎªÕæ */
-    WhereTerm *pTerm;             /* Ò»¸öWHERE×Ó¾ä */
+    int nEq;                      /* å¯ä»¥ä½¿ç”¨ç´¢å¼•çš„ç­‰å€¼è¡¨è¾¾å¼çš„ä¸ªæ•°*/
+    int bInEst = 0;               /* å¦‚æœå­˜åœ¨ x IN (SELECT...),åˆ™è®¾ä¸ºtrue*/
+    int nInMul = 1;               /* å¤„ç†inå­å¥ */
+    double rangeDiv = (double)1;  /* ä¼°è®¡å‡å°‘æœç´¢ç©ºé—´ */
+    int nBound = 0;               /* ä¼°è®¡éœ€è¦æ‰«æçš„è¡¨ */
+    int bSort = !!pOrderBy;       /* å½“éœ€è¦å¤–éƒ¨æ’åºæ—¶ä¸ºçœŸ */
+    int bDist = !!pDistinct;      /* å½“ç´¢å¼•ä¸æ˜¯distinctæ—¶ä¸ºçœŸ */
+    int bLookup = 0;              /* å½“ä¸æ˜¯è¦†ç›–ç´¢å¼•ä¸ºçœŸ */
+    WhereTerm *pTerm;             /* ä¸€ä¸ªWHEREå­å¥ */
 #ifdef SQLITE_ENABLE_STAT3
-    WhereTerm *pFirstTerm = 0;    /* µÚÒ»¸ö²éÑ¯Æ¥ÅäµÄË÷Òı*/
+    WhereTerm *pFirstTerm = 0;    /* ç¬¬ä¸€ä¸ªæŸ¥è¯¢åŒ¹é…çš„ç´¢å¼•*/
 #endif
 
     /* Determine the values of nEq and nInMul 
-    ¼ÆËãnEqºÍnInMulÖµ
+    è®¡ç®—nEqå’ŒnInMulå€¼
     */
 =======
-    int nEq;                      /* Number of == or IN terms matching index Æ¥ÅäË÷ÒıµÄ==»òIN termsÊıÄ¿ */
-    int bInEst = 0;               /* True if "x IN (SELECT...)" seen Èç¹û·¢ÏÖ"x IN (SELECT...)"ÔòÎªTRUE */
-    int nInMul = 1;               /* Number of distinct equalities to lookup ²éÕÒµÄDISTINCTµÈÊ½µÄÊıÄ¿ */
-    double rangeDiv = (double)1;  /* Estimated reduction in search space ¹À¼ÆÔÚËÑË÷¿Õ¼äÉÏµÄ¼õÉÙÁ¿ */
-    int nBound = 0;               /* Number of range constraints seen ·¢ÏÖµÄ·¶Î§Ô¼ÊøÊıÄ¿ */
-    int bSort = !!pOrderBy;       /* True if external sort required Èç¹ûĞèÒªÍâ²¿²éÑ¯ÔòÎªTRUE */
-    int bDist = !!pDistinct;      /* True if index cannot help with DISTINCT Èç¹ûË÷Òı¶ÔDISTINCTÃ»ÓĞ°ïÖú£¬ÔòÎªTRUE */
-    int bLookup = 0;              /* True if not a covering index Èç¹û²»ÊÇÒ»¸ö¸²¸ÇË÷ÒıÔòÎªTRUE */
-    WhereTerm *pTerm;             /* A single term of the WHERE clause WHERE×Ó¾äµÄÒ»¸öµ¥¶ÀµÄterm */
+    int nEq;                      /* Number of == or IN terms matching index åŒ¹é…ç´¢å¼•çš„==æˆ–IN termsæ•°ç›® */
+    int bInEst = 0;               /* True if "x IN (SELECT...)" seen å¦‚æœå‘ç°"x IN (SELECT...)"åˆ™ä¸ºTRUE */
+    int nInMul = 1;               /* Number of distinct equalities to lookup æŸ¥æ‰¾çš„DISTINCTç­‰å¼çš„æ•°ç›® */
+    double rangeDiv = (double)1;  /* Estimated reduction in search space ä¼°è®¡åœ¨æœç´¢ç©ºé—´ä¸Šçš„å‡å°‘é‡ */
+    int nBound = 0;               /* Number of range constraints seen å‘ç°çš„èŒƒå›´çº¦æŸæ•°ç›® */
+    int bSort = !!pOrderBy;       /* True if external sort required å¦‚æœéœ€è¦å¤–éƒ¨æŸ¥è¯¢åˆ™ä¸ºTRUE */
+    int bDist = !!pDistinct;      /* True if index cannot help with DISTINCT å¦‚æœç´¢å¼•å¯¹DISTINCTæ²¡æœ‰å¸®åŠ©ï¼Œåˆ™ä¸ºTRUE */
+    int bLookup = 0;              /* True if not a covering index å¦‚æœä¸æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•åˆ™ä¸ºTRUE */
+    WhereTerm *pTerm;             /* A single term of the WHERE clause WHEREå­å¥çš„ä¸€ä¸ªå•ç‹¬çš„term */
 #ifdef SQLITE_ENABLE_STAT3
-    WhereTerm *pFirstTerm = 0;    /* First term matching the index Æ¥ÅäË÷ÒıµÄµÚÒ»¸öterm */
+    WhereTerm *pFirstTerm = 0;    /* First term matching the index åŒ¹é…ç´¢å¼•çš„ç¬¬ä¸€ä¸ªterm */
 #endif
 
-    /* Determine the values of nEq and nInMul È·¶¨nEqºÍnInMulµÄÖµ  */
+    /* Determine the values of nEq and nInMul ç¡®å®šnEqå’ŒnInMulçš„å€¼  */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     for(nEq=0; nEq<pProbe->nColumn; nEq++){
       int j = pProbe->aiColumn[nEq];
@@ -4342,7 +4342,7 @@ static void bestBtreeIndex(
         Expr *pExpr = pTerm->pExpr;
         wsFlags |= WHERE_COLUMN_IN;
         if( ExprHasProperty(pExpr, EP_xIsSelect) ){
-          /* "x IN (SELECT ...)":  Assume the SELECT returns 25 rows "x IN (SELECT ...)": ¼Ù¶¨SELECT·µ»Ø25ĞĞ */
+          /* "x IN (SELECT ...)":  Assume the SELECT returns 25 rows "x IN (SELECT ...)": å‡å®šSELECTè¿”å›25è¡Œ */
           nInMul *= 25;
           bInEst = 1;
         }else if( ALWAYS(pExpr->x.pList && pExpr->x.pList->nExpr) ){
@@ -4363,27 +4363,27 @@ static void bestBtreeIndex(
     ** at most a single row. In this case set the WHERE_UNIQUE flag to 
     ** indicate this to the caller.
 <<<<<<< HEAD
-    **Èç¹ûÊÇÎ¨Ò»Ë÷Òı,ÓĞÒ»¸öÏàµÈÔ¼ÊøÔÚËùÓĞË÷Òı¼¯,
-    ÄÇÃ´Õâ¸öËÑË÷×î¶à·¢ÏÖµ¥ĞĞ¡£
-    ÔÚÕâÖÖÇé¿öÏÂÉèÖÃWHERE_UNIQUE±êÖ¾À´±íÊ¾Õâ¸øµ÷ÓÃÕß
+    **å¦‚æœæ˜¯å”¯ä¸€ç´¢å¼•,æœ‰ä¸€ä¸ªç›¸ç­‰çº¦æŸåœ¨æ‰€æœ‰ç´¢å¼•é›†,
+    é‚£ä¹ˆè¿™ä¸ªæœç´¢æœ€å¤šå‘ç°å•è¡Œã€‚
+    åœ¨è¿™ç§æƒ…å†µä¸‹è®¾ç½®WHERE_UNIQUEæ ‡å¿—æ¥è¡¨ç¤ºè¿™ç»™è°ƒç”¨è€…
     ** Otherwise, if the search may find more than one row, test to see if
     ** there is a range constraint on indexed column (nEq+1) that can be 
     ** optimized using the index. 
-  ·ñÔò,Èç¹ûËÑË÷¿ÉÄÜ»á³¬¹ıÒ»ĞĞ,
-  ²âÊÔÊÇ·ñÓĞÒ»ÏµÁĞÏŞÖÆË÷ÒıÁĞ(nEq + 1),¿ÉÒÔÊ¹ÓÃË÷Òı½øĞĞÁËÓÅ»¯¡£
+  å¦åˆ™,å¦‚æœæœç´¢å¯èƒ½ä¼šè¶…è¿‡ä¸€è¡Œ,
+  æµ‹è¯•æ˜¯å¦æœ‰ä¸€ç³»åˆ—é™åˆ¶ç´¢å¼•åˆ—(nEq + 1),å¯ä»¥ä½¿ç”¨ç´¢å¼•è¿›è¡Œäº†ä¼˜åŒ–ã€‚
 =======
     **
-    ** Èç¹ûË÷ÒıÊÇUNIQUEË÷Òı£¬²¢ÇÒ¶ÔÓÚÔÚË÷ÒıÖĞµÄËùÓĞÁĞ¶¼ÓĞÒ»¸öµÈÊ½Ô¼Êø£¬ÄÇÃ´Õâ¸öË÷ÒıÖÁ¶à½«·¢ÏÖÒ»¸öµ¥¶ÀµÄĞĞ
-    ** ÔÚÕâÖÖÇé¿öÏÂÉèÖÃWHERE_UNIQUE±êÖ¾¸øµ÷ÓÃÕßÖ¸³öÕâÖÖÇé¿ö
+    ** å¦‚æœç´¢å¼•æ˜¯UNIQUEç´¢å¼•ï¼Œå¹¶ä¸”å¯¹äºåœ¨ç´¢å¼•ä¸­çš„æ‰€æœ‰åˆ—éƒ½æœ‰ä¸€ä¸ªç­‰å¼çº¦æŸï¼Œé‚£ä¹ˆè¿™ä¸ªç´¢å¼•è‡³å¤šå°†å‘ç°ä¸€ä¸ªå•ç‹¬çš„è¡Œ
+    ** åœ¨è¿™ç§æƒ…å†µä¸‹è®¾ç½®WHERE_UNIQUEæ ‡å¿—ç»™è°ƒç”¨è€…æŒ‡å‡ºè¿™ç§æƒ…å†µ
     **
     ** Otherwise, if the search may find more than one row, test to see if
     ** there is a range constraint on indexed column (nEq+1) that can be 
     ** optimized using the index. 
     **
-    ** ·ñÔò£¬Èç¹û²éÑ¯¿ÉÄÜ²éÕÒµ½µÄ½á¹û²»Ö»Ò»ĞĞ£¬²âÊÔÊÇ·ñÔÚË÷ÒıÁĞÉÏÓĞÒ»¸ö·¶Î§Ë÷Òı¿ÉÒÔÊ¹ÓÃË÷Òı½øĞĞÓÅ»¯¡£
+    ** å¦åˆ™ï¼Œå¦‚æœæŸ¥è¯¢å¯èƒ½æŸ¥æ‰¾åˆ°çš„ç»“æœä¸åªä¸€è¡Œï¼Œæµ‹è¯•æ˜¯å¦åœ¨ç´¢å¼•åˆ—ä¸Šæœ‰ä¸€ä¸ªèŒƒå›´ç´¢å¼•å¯ä»¥ä½¿ç”¨ç´¢å¼•è¿›è¡Œä¼˜åŒ–ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
-    //¼ÆËãnBoundÖµ
+    //è®¡ç®—nBoundå€¼
     if( nEq==pProbe->nColumn && pProbe->onError!=OE_None ){
       testcase( wsFlags & WHERE_COLUMN_IN );
       testcase( wsFlags & WHERE_COLUMN_NULL );
@@ -4395,7 +4395,7 @@ static void bestBtreeIndex(
       if( findTerm(pWC, iCur, j, notReady, WO_LT|WO_LE|WO_GT|WO_GE, pIdx) ){
         WhereTerm *pTop = findTerm(pWC, iCur, j, notReady, WO_LT|WO_LE, pIdx);
         WhereTerm *pBtm = findTerm(pWC, iCur, j, notReady, WO_GT|WO_GE, pIdx);
-        //¹À¼Æ·¶Î§Ìõ¼şµÄ´ú¼Û
+        //ä¼°è®¡èŒƒå›´æ¡ä»¶çš„ä»£ä»·
         whereRangeScanEst(pParse, pProbe, nEq, pBtm, pTop, &rangeDiv);
         if( pTop ){
           nBound = 1;
@@ -4418,13 +4418,13 @@ static void bestBtreeIndex(
     ** in wsFlags. Otherwise, if there is an ORDER BY clause but the index
     ** will scan rows in a different order, set the bSort variable.  
 <<<<<<< HEAD
-    Èç¹ûÓĞÒ»¸öORDER BY×Ó¾äºÍË÷ÒıÕıÔÚ¿¼ÂÇ×ÔÈ»»áÉ¨ÃèĞĞËùĞèµÄË³Ğò,
-    ÔÚwsFlagsÉèÖÃÏàÓ¦µÄ±êÖ¾¡£
-    ·ñÔò,Èç¹ûÓĞÒ»¸öORDER BY×Ó¾äµ«¸ÃË÷Òı½«É¨ÃèĞĞË³Ğò²»Í¬,ÉèÖÃbSort±äÁ¿¡£
+    å¦‚æœæœ‰ä¸€ä¸ªORDER BYå­å¥å’Œç´¢å¼•æ­£åœ¨è€ƒè™‘è‡ªç„¶ä¼šæ‰«æè¡Œæ‰€éœ€çš„é¡ºåº,
+    åœ¨wsFlagsè®¾ç½®ç›¸åº”çš„æ ‡å¿—ã€‚
+    å¦åˆ™,å¦‚æœæœ‰ä¸€ä¸ªORDER BYå­å¥ä½†è¯¥ç´¢å¼•å°†æ‰«æè¡Œé¡ºåºä¸åŒ,è®¾ç½®bSortå˜é‡ã€‚
 =======
     **
-    ** Èç¹ûÓĞÒ»¸öORDER BY×Ó¾ä²¢ÇÒË÷Òı½«ÔÚÏàÓ¦µÄĞòÁĞÖĞÉ¨ÃèĞĞ£¬ÔÚwsFlagsÖĞÉèÖÃÊÊµ±µÄ±êÖ¾¡£
-    ** ·ñÔòÈç¹ûÓĞÒ»¸öORDER BY×Ó¾äµ«ÊÇË÷Òı½«ÔÚÆäËûĞòÁĞÉÏÉ¨ÃèĞĞ£¬ÉèÖÃbSort±äÁ¿
+    ** å¦‚æœæœ‰ä¸€ä¸ªORDER BYå­å¥å¹¶ä¸”ç´¢å¼•å°†åœ¨ç›¸åº”çš„åºåˆ—ä¸­æ‰«æè¡Œï¼Œåœ¨wsFlagsä¸­è®¾ç½®é€‚å½“çš„æ ‡å¿—ã€‚
+    ** å¦åˆ™å¦‚æœæœ‰ä¸€ä¸ªORDER BYå­å¥ä½†æ˜¯ç´¢å¼•å°†åœ¨å…¶ä»–åºåˆ—ä¸Šæ‰«æè¡Œï¼Œè®¾ç½®bSortå˜é‡
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( isSortingIndex(
@@ -4439,13 +4439,13 @@ static void bestBtreeIndex(
     ** order of the DISTINCT expressions, clear bDist and set the appropriate
     ** flags in wsFlags.
 <<<<<<< HEAD
-    Èç¹ûÓĞÏŞ¶¨·ûDISTINCT,¸ÃËùË÷Òı½«É¨ÃèĞĞÓÃ²»Í¬µÄDISTINCT±í´ïÊ½,
-    Ã÷È·wsFlags bDistºÍÉèÖÃÊÊµ±µÄ±êÖ¾¡£
+    å¦‚æœæœ‰é™å®šç¬¦DISTINCT,è¯¥æ‰€ç´¢å¼•å°†æ‰«æè¡Œç”¨ä¸åŒçš„DISTINCTè¡¨è¾¾å¼,
+    æ˜ç¡®wsFlags bDistå’Œè®¾ç½®é€‚å½“çš„æ ‡å¿—ã€‚
      */
 =======
     **
-    ** Èç¹ûÓĞÒ»¸öDISTINCTÏŞ¶¨·û²¢ÇÒÕâ¸öË÷Òı½«ÔÚDISTINCT±í´ïÊ½µÄĞòÁĞÖĞÉ¨ÃèĞĞ£¬
-    ** Çå³ıbDist²¢ÇÒÔÚwsFlagsÖĞÉè¶¨ÊÊµ±µÄ±êÖ¾¡£
+    ** å¦‚æœæœ‰ä¸€ä¸ªDISTINCTé™å®šç¬¦å¹¶ä¸”è¿™ä¸ªç´¢å¼•å°†åœ¨DISTINCTè¡¨è¾¾å¼çš„åºåˆ—ä¸­æ‰«æè¡Œï¼Œ
+    ** æ¸…é™¤bDistå¹¶ä¸”åœ¨wsFlagsä¸­è®¾å®šé€‚å½“çš„æ ‡å¿—ã€‚
     */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     if( isDistinctIndex(pParse, pWC, pProbe, iCur, pDistinct, nEq)
@@ -4461,10 +4461,10 @@ static void bestBtreeIndex(
     ** index for this query). If it is, set the WHERE_IDX_ONLY flag in
 <<<<<<< HEAD
     ** wsFlags. Otherwise, set the bLookup variable to true.  
-    //Èç¹ûÄ¿Ç°µÄ¼ÆËãÊ¹ÓÃË÷Òı(²»ÊÇIPKË÷Òı)´ú¼Û,
-    È·¶¨ËùĞèµÄËùÓĞÁĞÊı¾İ¿ÉÒÔ»ñµÃ²»Ê¹ÓÃÖ÷±í(¼´Èç¹û¸Ã²éÑ¯µÄË÷ÒıÊÇÒ»¸ö¸²¸ÇË÷Òı)¡£
-    Èç¹ûÊÇ,ÔÚwsFlagsÉèÖÃ WHERE_IDX_ONLY±êÖ¾¡£
-    ·ñÔò,ÉèÖÃbLookup±äÁ¿Îªtrue¡£
+    //å¦‚æœç›®å‰çš„è®¡ç®—ä½¿ç”¨ç´¢å¼•(ä¸æ˜¯IPKç´¢å¼•)ä»£ä»·,
+    ç¡®å®šæ‰€éœ€çš„æ‰€æœ‰åˆ—æ•°æ®å¯ä»¥è·å¾—ä¸ä½¿ç”¨ä¸»è¡¨(å³å¦‚æœè¯¥æŸ¥è¯¢çš„ç´¢å¼•æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•)ã€‚
+    å¦‚æœæ˜¯,åœ¨wsFlagsè®¾ç½® WHERE_IDX_ONLYæ ‡å¿—ã€‚
+    å¦åˆ™,è®¾ç½®bLookupå˜é‡ä¸ºtrueã€‚
     */
     if( pIdx && wsFlags ){
       Bitmask m = pSrc->colUsed;
@@ -4473,26 +4473,26 @@ static void bestBtreeIndex(
 =======
     ** wsFlags. Otherwise, set the bLookup variable to true.
     **
-    ** Èç¹û¼ÆËãµ±Ç°Ê¹ÓÃÒ»¸öË÷ÒıµÄ´ú¼Û(²»ÊÇIPKË÷Òı)£¬
-    ** ¾ö¶¨Èç¹û²»Í¨¹ıÊ¹ÓÃÖ÷±í¶ø»ñµÃËùÓĞµÄÇëÇóÁĞÊı¾İ(Ò²¾ÍÊÇËµ£¬Èç¹û¶ÔÓÚÕâ¸ö²éÑ¯Ë÷ÒıÊÇÒ»¸ö¸²¸ÇË÷Òı)¡£
-    ** Èç¹ûËüÊÇÒ»¸ö¸²¸ÇË÷Òı£¬ÔÚwsFlagsÖĞÉèÖÃWHERE_IDX_ONLY±êÖ¾¡£
-    ** ·ñÔò£¬°Ñ±äÁ¿bLookupÉèÖÃÎªTRUE.
+    ** å¦‚æœè®¡ç®—å½“å‰ä½¿ç”¨ä¸€ä¸ªç´¢å¼•çš„ä»£ä»·(ä¸æ˜¯IPKç´¢å¼•)ï¼Œ
+    ** å†³å®šå¦‚æœä¸é€šè¿‡ä½¿ç”¨ä¸»è¡¨è€Œè·å¾—æ‰€æœ‰çš„è¯·æ±‚åˆ—æ•°æ®(ä¹Ÿå°±æ˜¯è¯´ï¼Œå¦‚æœå¯¹äºè¿™ä¸ªæŸ¥è¯¢ç´¢å¼•æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•)ã€‚
+    ** å¦‚æœå®ƒæ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•ï¼Œåœ¨wsFlagsä¸­è®¾ç½®WHERE_IDX_ONLYæ ‡å¿—ã€‚
+    ** å¦åˆ™ï¼ŒæŠŠå˜é‡bLookupè®¾ç½®ä¸ºTRUE.
     */
-    if( pIdx && wsFlags ){ //Èç¹ûË÷Òı´æÔÚ
-      Bitmask m = pSrc->colUsed; //±íÖĞÊ¹ÓÃË÷ÒıµÄÁĞ
-      int j; //Ñ­»·¼ÆÊıÆ÷
+    if( pIdx && wsFlags ){ //å¦‚æœç´¢å¼•å­˜åœ¨
+      Bitmask m = pSrc->colUsed; //è¡¨ä¸­ä½¿ç”¨ç´¢å¼•çš„åˆ—
+      int j; //å¾ªç¯è®¡æ•°å™¨
       for(j=0; j<pIdx->nColumn; j++){  
-	  	//±éÀúËùÓĞÊ¹ÓÃ¸ÃË÷ÒıµÄÁĞ£¬ÅĞ¶ÏÊÇ·ñËùÓĞÁĞ¶¼ÔÚË÷ÒıÖĞ
+	  	//éå†æ‰€æœ‰ä½¿ç”¨è¯¥ç´¢å¼•çš„åˆ—ï¼Œåˆ¤æ–­æ˜¯å¦æ‰€æœ‰åˆ—éƒ½åœ¨ç´¢å¼•ä¸­
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         int x = pIdx->aiColumn[j];
         if( x<BMS-1 ){
           m &= ~(((Bitmask)1)<<x);
         }
       }
-      if( m==0 ){	//Èç¹ûËùÓĞ¶¼ÔÚË÷ÒıÖĞ
-        wsFlags |= WHERE_IDX_ONLY; //ÉèÖÃWHERE_IDX_ONLY£¬±êÖ¾ÊÇÒ»¸ö¸²¸ÇË÷Òı
+      if( m==0 ){	//å¦‚æœæ‰€æœ‰éƒ½åœ¨ç´¢å¼•ä¸­
+        wsFlags |= WHERE_IDX_ONLY; //è®¾ç½®WHERE_IDX_ONLYï¼Œæ ‡å¿—æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•
       }else{
-        bLookup = 1; //²»ÊÇÒ»¸ö¸²¸ÇË÷Òı
+        bLookup = 1; //ä¸æ˜¯ä¸€ä¸ªè¦†ç›–ç´¢å¼•
       }
     }
 
@@ -4500,10 +4500,10 @@ static void bestBtreeIndex(
     ** Estimate the number of rows of output.  For an "x IN (SELECT...)"
     ** constraint, do not let the estimate exceed half the rows in the table.
 <<<<<<< HEAD
-    ¹À¼ÆµÄÊä³öµÄĞĞÊı¡£¶ÔÓÚÒ»¸ö¡°x(Ñ¡Ôñ¡­)¡°Ô¼Êø,²»ÒªÈÃ¹À¼Æ³¬¹ıÒ»°ëµÄ±íÖĞµÄĞĞ¡£
+    ä¼°è®¡çš„è¾“å‡ºçš„è¡Œæ•°ã€‚å¯¹äºä¸€ä¸ªâ€œx(é€‰æ‹©â€¦)â€œçº¦æŸ,ä¸è¦è®©ä¼°è®¡è¶…è¿‡ä¸€åŠçš„è¡¨ä¸­çš„è¡Œã€‚
 =======
     **
-    ** ¹À¼ÆÊı¾İµÄĞĞÊı¡£¶ÔÓÚÒ»¸ö"x IN (SELECT...)"Ô¼Êø£¬²»ÒªÈÃ¹À¼ÆÖµ³¬¹ı±íÖĞĞĞµÄÒ»°ë¡£
+    ** ä¼°è®¡æ•°æ®çš„è¡Œæ•°ã€‚å¯¹äºä¸€ä¸ª"x IN (SELECT...)"çº¦æŸï¼Œä¸è¦è®©ä¼°è®¡å€¼è¶…è¿‡è¡¨ä¸­è¡Œçš„ä¸€åŠã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
@@ -4520,14 +4520,14 @@ static void bestBtreeIndex(
     ** to get a better estimate on the number of rows based on
     ** VALUE and how common that value is according to the histogram.
 <<<<<<< HEAD
-    Èç¹û±íµÄÔ¼ÊøÊÇx = xÖµ»ò(E1,E2,¡­),ÎÒÃÇ²»ÈÏÎªxµÄÖµÊÇÎ¨Ò»µÄ,
-    Èç¹ûÖ±·½Í¼Êı¾İ¿ÉÁĞx,ÄÇÃ´Ëü¿ÉÄÜµÃµ½¸üºÃµÄ¹À¼Æ»ùÓÚÖµµÄĞĞÊı,
-    ÒÔ¼°³£¼ûµÄÖµÊÇ¸ù¾İÖ±·½Í¼¡£
+    å¦‚æœè¡¨çš„çº¦æŸæ˜¯x = xå€¼æˆ–(E1,E2,â€¦),æˆ‘ä»¬ä¸è®¤ä¸ºxçš„å€¼æ˜¯å”¯ä¸€çš„,
+    å¦‚æœç›´æ–¹å›¾æ•°æ®å¯åˆ—x,é‚£ä¹ˆå®ƒå¯èƒ½å¾—åˆ°æ›´å¥½çš„ä¼°è®¡åŸºäºå€¼çš„è¡Œæ•°,
+    ä»¥åŠå¸¸è§çš„å€¼æ˜¯æ ¹æ®ç›´æ–¹å›¾ã€‚
 =======
     **
-    ** Èç¹ûÔ¼ÊøÊÇx=VALUE or x IN (E1,E2,...)ÕâÖÖĞÎÊ½
-    ** ²¢ÇÒÎÒÃÇ²»ÈÏÎªxµÄÖµÊÇÎ¨Ò»µÄ²¢ÇÒÈç¹û¶ÔÓÚxÁĞÀ´ËµÖ±·½Í¼Êı¾İÊÇ±äÁ¿£¬
-    ** ÄÇÃ´Ëü¿ÉÄÜ»ùÓÚVALLUEÔÚĞĞÊıÉÏ»ñµÃÒ»¸ö¸üºÃµÄ¹À¼ÆÖµ£¬ÈçºÎ¸ù¾İÖ±·½Í¼µÃµ½¹²Í¬µÄÖµ¡£
+    ** å¦‚æœçº¦æŸæ˜¯x=VALUE or x IN (E1,E2,...)è¿™ç§å½¢å¼
+    ** å¹¶ä¸”æˆ‘ä»¬ä¸è®¤ä¸ºxçš„å€¼æ˜¯å”¯ä¸€çš„å¹¶ä¸”å¦‚æœå¯¹äºxåˆ—æ¥è¯´ç›´æ–¹å›¾æ•°æ®æ˜¯å˜é‡ï¼Œ
+    ** é‚£ä¹ˆå®ƒå¯èƒ½åŸºäºVALLUEåœ¨è¡Œæ•°ä¸Šè·å¾—ä¸€ä¸ªæ›´å¥½çš„ä¼°è®¡å€¼ï¼Œå¦‚ä½•æ ¹æ®ç›´æ–¹å›¾å¾—åˆ°å…±åŒçš„å€¼ã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
@@ -4547,10 +4547,10 @@ static void bestBtreeIndex(
     /* Adjust the number of output rows and downward to reflect rows
     ** that are excluded by range constraints.
 <<<<<<< HEAD
-    µ÷ÕûÊä³öĞĞºÍ½µĞòĞĞËùÅÅ³ıµÄ·¶Î§ÏŞÖÆ¡£
+    è°ƒæ•´è¾“å‡ºè¡Œå’Œé™åºè¡Œæ‰€æ’é™¤çš„èŒƒå›´é™åˆ¶ã€‚
 =======
     **
-    ** µ÷ÕûÊä³öĞĞµÄÊıÄ¿²¢ÇÒÏòÏÂ·´Ó³Í¨¹ı·¶Î§Ô¼Êø¾Ü¾øµÄĞĞ¡£
+    ** è°ƒæ•´è¾“å‡ºè¡Œçš„æ•°ç›®å¹¶ä¸”å‘ä¸‹åæ˜ é€šè¿‡èŒƒå›´çº¦æŸæ‹’ç»çš„è¡Œã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     nRow = nRow/rangeDiv;
@@ -4564,17 +4564,17 @@ static void bestBtreeIndex(
     ** slower with larger records, presumably because fewer records fit
     ** on one page and hence more pages have to be fetched.
 <<<<<<< HEAD
-    **ÊµÑéÔËĞĞÔÚÕæÕıµÄSQLiteÊı¾İ¿âÏÔÊ¾£º
-    ËùĞèµÄÊ±¼ä×öÒ»¸ö¶ş½øÖÆËÑË÷¶¨Î»±íÖĞµÄÒ»ĞĞ»òË÷Òılog10(N)±¶Ê±¼ä´ÓÒ»ĞĞµ½ÏÂÒ»ĞĞÔÚÒ»¸ö±í»òË÷Òı¡£
-    Êµ¼ÊÊ±¼ä¿ÉÄÜ»áÓĞËù²»Í¬,¼ÇÂ¼µÄ´óĞ¡ÊÇÒ»¸öÖØÒªÒòËØ¡£
-    ¼ÇÂ¼¶àÔòÒÆ¶¯ºÍËÑË÷¶¼ÊÇÂıµÄ,´ó¸ÅÊÇÒòÎªÉÙ¼ÇÂ¼ÊÊºÏÔÚÒ»¸öÒ³ÃæÉÏ,Òò´Ë±ØĞë»ñÈ¡¸ü¶àÒ³¡£
+    **å®éªŒè¿è¡Œåœ¨çœŸæ­£çš„SQLiteæ•°æ®åº“æ˜¾ç¤ºï¼š
+    æ‰€éœ€çš„æ—¶é—´åšä¸€ä¸ªäºŒè¿›åˆ¶æœç´¢å®šä½è¡¨ä¸­çš„ä¸€è¡Œæˆ–ç´¢å¼•log10(N)å€æ—¶é—´ä»ä¸€è¡Œåˆ°ä¸‹ä¸€è¡Œåœ¨ä¸€ä¸ªè¡¨æˆ–ç´¢å¼•ã€‚
+    å®é™…æ—¶é—´å¯èƒ½ä¼šæœ‰æ‰€ä¸åŒ,è®°å½•çš„å¤§å°æ˜¯ä¸€ä¸ªé‡è¦å› ç´ ã€‚
+    è®°å½•å¤šåˆ™ç§»åŠ¨å’Œæœç´¢éƒ½æ˜¯æ…¢çš„,å¤§æ¦‚æ˜¯å› ä¸ºå°‘è®°å½•é€‚åˆåœ¨ä¸€ä¸ªé¡µé¢ä¸Š,å› æ­¤å¿…é¡»è·å–æ›´å¤šé¡µã€‚
 =======
     **
-    ** ÊÔÑéÔËĞĞÔÚÕæÊµµÄSQLiteÊı¾İÏÔÊ¾ÔÚ±í»òË÷ÒıÖĞ×öÒ»¸ö¶ş·Ö²éÕÒÀ´¶¨Î»Ò»ĞĞËùĞèµÄÊ±¼ä£¬
-    ** ÔÚ±í»òË÷ÒıÖĞ£¬´ÓÒ»ĞĞÒÆ¶¯µ½ÏÂÒ»ĞĞµÄÊ±¼ä´óÖÂÎªlog10(N).
-    ** Ëæ×Å¼ÇÂ¼µÄÊı¾İ³ÉÎªÒ»¸öÖØÒªÒòËØ£¬Êµ¼ÊÊ±¼ä¿ÉÒÔ±ä»¯¡£
-    ** ¶ÔÓÚÊıÁ¿¶àµÄ¼ÇÂ¼£¬ÒÆ¶¯ºÍ²éÕÒ¶¼±È½ÏÂı£¬
-    ** ¿ÉÄÜÊÇÒòÎªÔÚÒ»¸öÒ³ÃæÖĞ×°ÈëµÄ¼ÇÂ¼½ÏÉÙ£¬Òò´ËĞèÒª»ñÈ¡ºÜ¶àµÄÒ³Ãæ
+    ** è¯•éªŒè¿è¡Œåœ¨çœŸå®çš„SQLiteæ•°æ®æ˜¾ç¤ºåœ¨è¡¨æˆ–ç´¢å¼•ä¸­åšä¸€ä¸ªäºŒåˆ†æŸ¥æ‰¾æ¥å®šä½ä¸€è¡Œæ‰€éœ€çš„æ—¶é—´ï¼Œ
+    ** åœ¨è¡¨æˆ–ç´¢å¼•ä¸­ï¼Œä»ä¸€è¡Œç§»åŠ¨åˆ°ä¸‹ä¸€è¡Œçš„æ—¶é—´å¤§è‡´ä¸ºlog10(N).
+    ** éšç€è®°å½•çš„æ•°æ®æˆä¸ºä¸€ä¸ªé‡è¦å› ç´ ï¼Œå®é™…æ—¶é—´å¯ä»¥å˜åŒ–ã€‚
+    ** å¯¹äºæ•°é‡å¤šçš„è®°å½•ï¼Œç§»åŠ¨å’ŒæŸ¥æ‰¾éƒ½æ¯”è¾ƒæ…¢ï¼Œ
+    ** å¯èƒ½æ˜¯å› ä¸ºåœ¨ä¸€ä¸ªé¡µé¢ä¸­è£…å…¥çš„è®°å½•è¾ƒå°‘ï¼Œå› æ­¤éœ€è¦è·å–å¾ˆå¤šçš„é¡µé¢
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** The ANALYZE command and the sqlite_stat1 and sqlite_stat3 tables do
@@ -4582,22 +4582,22 @@ static void bestBtreeIndex(
     ** So this computation assumes table records are about twice as big
     ** as index records
 <<<<<<< HEAD
-    ·ÖÎöÃüÁîºÍsqlite_stat1 sqlite_stat3±í²»¸øÎÒÃÇÊı¾İ±íºÍË÷Òı¼ÇÂ¼µÄÏà¶Ô´óĞ¡¡£
-    ËùÒÔÕâ¸ö¼Ù¶¨±í¼ÇÂ¼´óÔ¼Á½±¶Ë÷Òı¼ÇÂ¼
+    åˆ†æå‘½ä»¤å’Œsqlite_stat1 sqlite_stat3è¡¨ä¸ç»™æˆ‘ä»¬æ•°æ®è¡¨å’Œç´¢å¼•è®°å½•çš„ç›¸å¯¹å¤§å°ã€‚
+    æ‰€ä»¥è¿™ä¸ªå‡å®šè¡¨è®°å½•å¤§çº¦ä¸¤å€ç´¢å¼•è®°å½•
 =======
     **
-    ** ANALYZEÃüÁîºÍsqlite_stat1£¬sqlite_stat3±íÔÚ±íºÍË÷ÒıµÄ¼ÇÂ¼ÉÏÃ»ÓĞ¸øÎÒÃÇÌá¹©Ïà¶Ô´óĞ¡¡£
-    ** ËùÒÔÕâ¸ö¼ÆËã¼ÙÉè±í¼ÇÂ¼´ó¸ÅÊÇË÷Òı¼ÇÂ¼µÄÁ½±¶¡£
+    ** ANALYZEå‘½ä»¤å’Œsqlite_stat1ï¼Œsqlite_stat3è¡¨åœ¨è¡¨å’Œç´¢å¼•çš„è®°å½•ä¸Šæ²¡æœ‰ç»™æˆ‘ä»¬æä¾›ç›¸å¯¹å¤§å°ã€‚
+    ** æ‰€ä»¥è¿™ä¸ªè®¡ç®—å‡è®¾è¡¨è®°å½•å¤§æ¦‚æ˜¯ç´¢å¼•è®°å½•çš„ä¸¤å€ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (wsFlags & WHERE_NOT_FULLSCAN)==0 ){
       /* The cost of a full table scan is a number of move operations equal
       ** to the number of rows in the table.
 <<<<<<< HEAD
-      **È«±íÉ¨ÃèµÄ´ú¼ÛÊÇÒ»¸öÊı¾İÒÆ¶¯²Ù×÷Ïàµ±ÓÚ±íÖĞµÄĞĞÊı¡£
+      **å…¨è¡¨æ‰«æçš„ä»£ä»·æ˜¯ä¸€ä¸ªæ•°æ®ç§»åŠ¨æ“ä½œç›¸å½“äºè¡¨ä¸­çš„è¡Œæ•°ã€‚
 =======
       **
-      ** Ò»¸öÈ«±íÉ¨ÃèµÄ´ú¼ÛÊÇÒ»¶¨ÊıÁ¿µÄÒÆ¶¯²Ù×÷Ïàµ±ÓÚÔÚ±íÖĞµÄĞĞÊı
+      ** ä¸€ä¸ªå…¨è¡¨æ‰«æçš„ä»£ä»·æ˜¯ä¸€å®šæ•°é‡çš„ç§»åŠ¨æ“ä½œç›¸å½“äºåœ¨è¡¨ä¸­çš„è¡Œæ•°
       **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       ** We add an additional 4x penalty to full table scans.  This causes
@@ -4606,15 +4606,15 @@ static void bestBtreeIndex(
       ** decision and one which we expect to revisit in the future.  But
       ** it seems to be working well enough at the moment.
 <<<<<<< HEAD
-      ÎÒÃÇÌí¼ÓÒ»¸ö¶îÍâµÄ4±¶´ú¼ÛÀ´È«±íÉ¨Ãè¡£
-      Õâµ¼ÖÂµÄ´ú¼Ûº¯ÊıÄşÔÚÑ¡ÔñÒ»¸öË÷ÒıÔÚÑ¡ÔñÒ»¸öÍêÕûµÄÉ¨Ãè¡£
-      Õâ4±¶È«É¨Ãè´ú¼ÛÊÇÒ»¸öÓĞÕùÒéµÄ¾ö¶¨,ÎÒÃÇÏ£ÍûÖØĞÂ¿¼ÂÇÎ´À´¡£
-      µ«Ä¿Ç°ËÆºõ¹¤×÷µÃ×ã¹»ºÃ
+      æˆ‘ä»¬æ·»åŠ ä¸€ä¸ªé¢å¤–çš„4å€ä»£ä»·æ¥å…¨è¡¨æ‰«æã€‚
+      è¿™å¯¼è‡´çš„ä»£ä»·å‡½æ•°å®åœ¨é€‰æ‹©ä¸€ä¸ªç´¢å¼•åœ¨é€‰æ‹©ä¸€ä¸ªå®Œæ•´çš„æ‰«æã€‚
+      è¿™4å€å…¨æ‰«æä»£ä»·æ˜¯ä¸€ä¸ªæœ‰äº‰è®®çš„å†³å®š,æˆ‘ä»¬å¸Œæœ›é‡æ–°è€ƒè™‘æœªæ¥ã€‚
+      ä½†ç›®å‰ä¼¼ä¹å·¥ä½œå¾—è¶³å¤Ÿå¥½
 =======
       **
-      ** Ìí¼ÓÒ»¸ö¸½¼ÓµÄ4x³Í·£ÓÃÓÚÈ«±íÉ¨Ãè¡£Õâ»áÒıÆğ´ú¼Ûº¯ÊıÄş¿ÉÑ¡ÔñÒ»¸öË÷ÒıÀ´´úÌæÈ«±íÉ¨Ãè¡£
-      ** Õâ¸ö4xÈ«±íÉ¨Ãè³Í·£ÊÇÒ»¸ö¿ÉÂÛÖ¤µÄ¾ö¶¨²¢ÇÒÏ£ÍûÔÚº¯ÊıÖĞÔÙ·ÃÎÊ¡£
-      ** µ«ÊÇËü¿´ÆğÀ´ºÃÏñ´ËÊ±ÔËĞĞµÄ»¹²»´í¡£
+      ** æ·»åŠ ä¸€ä¸ªé™„åŠ çš„4xæƒ©ç½šç”¨äºå…¨è¡¨æ‰«æã€‚è¿™ä¼šå¼•èµ·ä»£ä»·å‡½æ•°å®å¯é€‰æ‹©ä¸€ä¸ªç´¢å¼•æ¥ä»£æ›¿å…¨è¡¨æ‰«æã€‚
+      ** è¿™ä¸ª4xå…¨è¡¨æ‰«ææƒ©ç½šæ˜¯ä¸€ä¸ªå¯è®ºè¯çš„å†³å®šå¹¶ä¸”å¸Œæœ›åœ¨å‡½æ•°ä¸­å†è®¿é—®ã€‚
+      ** ä½†æ˜¯å®ƒçœ‹èµ·æ¥å¥½åƒæ­¤æ—¶è¿è¡Œçš„è¿˜ä¸é”™ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       */
       cost = aiRowEst[0]*4;
@@ -4628,14 +4628,14 @@ static void bestBtreeIndex(
           **  + nRow steps through the index
           **  + nRow table searches to lookup the table entry using the rowid
 <<<<<<< HEAD
-          Ò»¸öË÷Òı²éÕÒÔÚ±í²éÕÒºó£º
-          nInMulË÷ÒıËÑË÷ÊÇÃ¿¸öË÷Òı·¶Î§
-          + nRow²½ÖèÍ¨¹ıË÷Òı+ nRow±íËÑË÷²éÕÒÊ¹ÓÃrowidµÄ±íÌõÄ¿
+          ä¸€ä¸ªç´¢å¼•æŸ¥æ‰¾åœ¨è¡¨æŸ¥æ‰¾åï¼š
+          nInMulç´¢å¼•æœç´¢æ˜¯æ¯ä¸ªç´¢å¼•èŒƒå›´
+          + nRowæ­¥éª¤é€šè¿‡ç´¢å¼•+ nRowè¡¨æœç´¢æŸ¥æ‰¾ä½¿ç”¨rowidçš„è¡¨æ¡ç›®
 =======
           **
-          ** ¶ÔÓÚÒ»¸ö±í²éÕÒºóµÄË÷Òı²éÕÒ:
-          ** + nRowÖğ¾äÍ¨¹ıË÷Òı
-          ** + nRow±í¼ìË÷À´²éÊ¹ÓÃrowidÕÒ±íÏîÄ¿
+          ** å¯¹äºä¸€ä¸ªè¡¨æŸ¥æ‰¾åçš„ç´¢å¼•æŸ¥æ‰¾:
+          ** + nRowé€å¥é€šè¿‡ç´¢å¼•
+          ** + nRowè¡¨æ£€ç´¢æ¥æŸ¥ä½¿ç”¨rowidæ‰¾è¡¨é¡¹ç›®
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
           cost += (nInMul + nRow)*log10N;
@@ -4644,13 +4644,13 @@ static void bestBtreeIndex(
           **     nInMul index searches to find the initial entry 
           **   + nRow steps through the index
 <<<<<<< HEAD
-          Ò»¸ö¸²¸ÇË÷Òı£º
-          nInMulË÷ÒıËÑË÷ÊÇ×î³õµÄÈë¿ÚÍ¨¹ıË÷Òı+ nRow²½Öè
+          ä¸€ä¸ªè¦†ç›–ç´¢å¼•ï¼š
+          nInMulç´¢å¼•æœç´¢æ˜¯æœ€åˆçš„å…¥å£é€šè¿‡ç´¢å¼•+ nRowæ­¥éª¤
 =======
           **
-          ** ¶ÔÓÚÒ»¸ö¸²¸ÇË÷Òı:
-          **     nInMulË÷Òı¼ìË÷À´²éÕÒ×î³õµÄÏî
-          **   + nRowÖğ¾äÍ¨¹ıË÷Òı
+          ** å¯¹äºä¸€ä¸ªè¦†ç›–ç´¢å¼•:
+          **     nInMulç´¢å¼•æ£€ç´¢æ¥æŸ¥æ‰¾æœ€åˆçš„é¡¹
+          **   + nRowé€å¥é€šè¿‡ç´¢å¼•
           **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
@@ -4661,13 +4661,13 @@ static void bestBtreeIndex(
         **    nInMult table searches to find the initial entry for each range
         **  + nRow steps through the table
 <<<<<<< HEAD
-        rowidÖ÷¼ü²éÕÒ£º
-        nInMult±íËÑË÷ÊÇ³õÊ¼ÌõÄ¿Í¨¹ı±í·¶Î§+ nRowÃ¿¸ö²½Öè
+        rowidä¸»é”®æŸ¥æ‰¾ï¼š
+        nInMultè¡¨æœç´¢æ˜¯åˆå§‹æ¡ç›®é€šè¿‡è¡¨èŒƒå›´+ nRowæ¯ä¸ªæ­¥éª¤
 =======
         **
-        ** ¶ÔÓÚÒ»¸örowidÖ÷¼ü²éÕÒ:
-        **	nInMul±í¼ìË÷À´²éÕÒÃ¿¸ö·¶Î§µÄ×î³õµÄÏî
-        **  + nRowÖğ¾äÍ¨¹ı±í
+        ** å¯¹äºä¸€ä¸ªrowidä¸»é”®æŸ¥æ‰¾:
+        **	nInMulè¡¨æ£€ç´¢æ¥æŸ¥æ‰¾æ¯ä¸ªèŒƒå›´çš„æœ€åˆçš„é¡¹
+        **  + nRowé€å¥é€šè¿‡è¡¨
         **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         */
@@ -4681,15 +4681,15 @@ static void bestBtreeIndex(
     ** sorted and C is a factor between 1.95 and 4.3.  We will split the
     ** difference and select C of 3.0.
 <<<<<<< HEAD
-    Ìí¼ÓÅÅĞò½á¹ûµÄ´ú¼Û¹ÀËã¡£
-    ÔÚSQLiteÅÅĞòĞÔÄÜµÄÊµ¼ÊÊµÑé²âÁ¿±íÃ÷,ÅÅĞòÊ±¼äÔö¼ÓÁËC * N * log10(N)µÄ´ú¼Û,
-    ÆäÖĞNÊÇÒªÅÅĞòµÄĞĞÊıºÍCÊÇÒ»¸öÒòËØÔÚ1.95ºÍ4.3Ö®¼ä¡£ÎÒÃÇ½«ºöÂÔÇø±ğ£¬Ñ¡ÔñC 3.0¡£
+    æ·»åŠ æ’åºç»“æœçš„ä»£ä»·ä¼°ç®—ã€‚
+    åœ¨SQLiteæ’åºæ€§èƒ½çš„å®é™…å®éªŒæµ‹é‡è¡¨æ˜,æ’åºæ—¶é—´å¢åŠ äº†C * N * log10(N)çš„ä»£ä»·,
+    å…¶ä¸­Næ˜¯è¦æ’åºçš„è¡Œæ•°å’ŒCæ˜¯ä¸€ä¸ªå› ç´ åœ¨1.95å’Œ4.3ä¹‹é—´ã€‚æˆ‘ä»¬å°†å¿½ç•¥åŒºåˆ«ï¼Œé€‰æ‹©C 3.0ã€‚
 =======
     **
-    ** Ìí¼ÓÅÅĞò½á¹ûµÄ¹À¼Æ³É±¾¡£
-    ** ÔÚSQLiteÖĞÅÅĞòĞÔÄÜµÄÊµ¼ÊÊµÑéµÄ²âÁ¿±íÃ÷ÅÅĞòÊ±¼äÌí¼ÓC*N*log10(N)µ½´ú¼ÛÖĞ£¬
-    ** ÆäÖĞNÊÇĞèÒªÅÅĞòµÄĞĞÊı£¬CÊÇÒ»¸öÔÚ1.95µ½4.3Ö®¼äµÄÒòËØ¡£
-    ** ÎÒÃÇ½«·ÖÀëÇø±ğºÍÑ¡ÔñÖµÎª3.0µÄC
+    ** æ·»åŠ æ’åºç»“æœçš„ä¼°è®¡æˆæœ¬ã€‚
+    ** åœ¨SQLiteä¸­æ’åºæ€§èƒ½çš„å®é™…å®éªŒçš„æµ‹é‡è¡¨æ˜æ’åºæ—¶é—´æ·»åŠ C*N*log10(N)åˆ°ä»£ä»·ä¸­ï¼Œ
+    ** å…¶ä¸­Næ˜¯éœ€è¦æ’åºçš„è¡Œæ•°ï¼ŒCæ˜¯ä¸€ä¸ªåœ¨1.95åˆ°4.3ä¹‹é—´çš„å› ç´ ã€‚
+    ** æˆ‘ä»¬å°†åˆ†ç¦»åŒºåˆ«å’Œé€‰æ‹©å€¼ä¸º3.0çš„C
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
@@ -4702,9 +4702,9 @@ static void bestBtreeIndex(
 
 <<<<<<< HEAD
     /**** Cost of using this index has now been computed ****/
-    //Ê¹ÓÃ¸ÃË÷ÒıµÄ´ú¼ÛÒÑ¾­ÊÇ¿É¼ÆËãµÄ
+    //ä½¿ç”¨è¯¥ç´¢å¼•çš„ä»£ä»·å·²ç»æ˜¯å¯è®¡ç®—çš„
 =======
-    /**** Cost of using this index has now been computed ÏÖÔÚ¼ÆËãÊ¹ÓÃÕâ¸öË÷ÒıµÄ´ú¼Û ****/
+    /**** Cost of using this index has now been computed ç°åœ¨è®¡ç®—ä½¿ç”¨è¿™ä¸ªç´¢å¼•çš„ä»£ä»· ****/
 
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     /* If there are additional constraints on this table that cannot
@@ -4714,17 +4714,17 @@ static void bestBtreeIndex(
     ** with this step if we already know this index will not be chosen.
     ** Also, never reduce the output row count below 2 using this step.
 <<<<<<< HEAD
-    **Èç¹ûÓĞ¶îÍâµÄÏŞÖÆÕâ¸ö±í,²»ÄÜÓÃÓÚµ±Ç°Ë÷Òı,
-    µ«Õâ¿ÉÄÜ»á½µµÍÊä³öµÄĞĞÊı,ÏàÓ¦µØµ÷ÕûnRowÖµ¡£
-    ÕâÖ»ºÜÖØÒªÈç¹ûµ±Ç°Ë÷ÒıÊÇ×î°º¹óµÄ,
-    ËùÒÔ²»Òª´òÈÅÕâÒ»²½Èç¹ûÎÒÃÇÒÑ¾­ÖªµÀÕâ¸öË÷Òı²»»á±»Ñ¡ÖĞ¡£
-    Ò²´ÓÀ´Ã»ÓĞ¼õÉÙÊä³öĞĞÊıµÍÓÚ2Ê¹ÓÃÕâ¸ö²½Öè¡£
+    **å¦‚æœæœ‰é¢å¤–çš„é™åˆ¶è¿™ä¸ªè¡¨,ä¸èƒ½ç”¨äºå½“å‰ç´¢å¼•,
+    ä½†è¿™å¯èƒ½ä¼šé™ä½è¾“å‡ºçš„è¡Œæ•°,ç›¸åº”åœ°è°ƒæ•´nRowå€¼ã€‚
+    è¿™åªå¾ˆé‡è¦å¦‚æœå½“å‰ç´¢å¼•æ˜¯æœ€æ˜‚è´µçš„,
+    æ‰€ä»¥ä¸è¦æ‰“æ‰°è¿™ä¸€æ­¥å¦‚æœæˆ‘ä»¬å·²ç»çŸ¥é“è¿™ä¸ªç´¢å¼•ä¸ä¼šè¢«é€‰ä¸­ã€‚
+    ä¹Ÿä»æ¥æ²¡æœ‰å‡å°‘è¾“å‡ºè¡Œæ•°ä½äº2ä½¿ç”¨è¿™ä¸ªæ­¥éª¤ã€‚
 =======
     **
-    ** Èç¹ûÔÚÕâ¸ö±íÉÏÓĞ¸½¼ÓµÄÔ¼Êø²»ÄÜ±»ÓÃÔÚµ±Ç°Ë÷ÒıÉÏ£¬
-    ** µ«ÊÇÕâ¸öÔ¼Êø¿ÉÄÜ»á¼õÉÙÊä³öĞĞµÄÊıÄ¿£¬ÄÇÃ´¾Íµ÷ÕûÏàÓ¦µÄnRowÖµ¡£
-    ** ÕâÖ»ÊÇÒòÎªµ±Ç°Ë÷ÒıÊÇ×îĞ¡´ú¼Û£¬Ë÷ÒıÈç¹ûÎÒÃÇ¶¼ÖªµÀÕâ¸öË÷Òı¶¼²»»á±»Ñ¡ÖĞ£¬ÄÇÃ´¾Í²»ÒªÀí»áÕâÒ»²½¡£
-    ** ÁíÍâ£¬Ê¹ÓÃÕâ²½´Ó²»°ÑÊä³öĞĞÊı¼õÉÙµ½µÍÓÚ2¡£
+    ** å¦‚æœåœ¨è¿™ä¸ªè¡¨ä¸Šæœ‰é™„åŠ çš„çº¦æŸä¸èƒ½è¢«ç”¨åœ¨å½“å‰ç´¢å¼•ä¸Šï¼Œ
+    ** ä½†æ˜¯è¿™ä¸ªçº¦æŸå¯èƒ½ä¼šå‡å°‘è¾“å‡ºè¡Œçš„æ•°ç›®ï¼Œé‚£ä¹ˆå°±è°ƒæ•´ç›¸åº”çš„nRowå€¼ã€‚
+    ** è¿™åªæ˜¯å› ä¸ºå½“å‰ç´¢å¼•æ˜¯æœ€å°ä»£ä»·ï¼Œç´¢å¼•å¦‚æœæˆ‘ä»¬éƒ½çŸ¥é“è¿™ä¸ªç´¢å¼•éƒ½ä¸ä¼šè¢«é€‰ä¸­ï¼Œé‚£ä¹ˆå°±ä¸è¦ç†ä¼šè¿™ä¸€æ­¥ã€‚
+    ** å¦å¤–ï¼Œä½¿ç”¨è¿™æ­¥ä»ä¸æŠŠè¾“å‡ºè¡Œæ•°å‡å°‘åˆ°ä½äº2ã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** It is critical that the notValid mask be used here instead of
@@ -4736,31 +4736,31 @@ static void bestBtreeIndex(
     ** might be selected even when there exists an optimal index that has
     ** no such dependency.
 <<<<<<< HEAD
-    ¹Ø¼üÊÇÒ²ĞínotValidÑÚÂëÔÚÕâÀïÊ¹ÓÃµÄnotReadyÑÚÂë¡£
-    µ±Ñ°ÕÒÒ»¸ö×î¼ÑË÷Òı,notReadyÑÚÂëÒ²ĞíÖ»»áÓĞÒ»¸öÉèÖÃÎªµ±Ç°±í¡£
-    notValidÑÚÂë,ÁíÒ»·½Ãæ,×ÜÊÇÓĞÒ»Ğ©ÉèÖÃ±í,²»ÔÚÍâÑ­»·¡£
-    Èç¹ûÒ²ĞíÊÇÕâÀïÊ¹ÓÃnotReady¶ø²»ÊÇnotValid,
-    ÄÇÃ´×îÓÅË÷ÒıÕâÈ¡¾öÓÚÄÚÔÚÁ¬½ÓÑ­»·ÉõÖÁ¿ÉÄÜ±»Ñ¡ÖĞÊ±,
-    µ±´æÔÚÒ»¸ö×î¼ÑµÄÖ¸Êı,Ã»ÓĞÕâÑùµÄÒÀÀµ¡£
+    å…³é”®æ˜¯ä¹Ÿè®¸notValidæ©ç åœ¨è¿™é‡Œä½¿ç”¨çš„notReadyæ©ç ã€‚
+    å½“å¯»æ‰¾ä¸€ä¸ªæœ€ä½³ç´¢å¼•,notReadyæ©ç ä¹Ÿè®¸åªä¼šæœ‰ä¸€ä¸ªè®¾ç½®ä¸ºå½“å‰è¡¨ã€‚
+    notValidæ©ç ,å¦ä¸€æ–¹é¢,æ€»æ˜¯æœ‰ä¸€äº›è®¾ç½®è¡¨,ä¸åœ¨å¤–å¾ªç¯ã€‚
+    å¦‚æœä¹Ÿè®¸æ˜¯è¿™é‡Œä½¿ç”¨notReadyè€Œä¸æ˜¯notValid,
+    é‚£ä¹ˆæœ€ä¼˜ç´¢å¼•è¿™å–å†³äºå†…åœ¨è¿æ¥å¾ªç¯ç”šè‡³å¯èƒ½è¢«é€‰ä¸­æ—¶,
+    å½“å­˜åœ¨ä¸€ä¸ªæœ€ä½³çš„æŒ‡æ•°,æ²¡æœ‰è¿™æ ·çš„ä¾èµ–ã€‚
     */
     if( nRow>2 && cost<=pCost->rCost ){
-      int k;                       /* Ñ­»·¼ÆÊıÆ÷*/
-      int nSkipEq = nEq;           /* =Ô¼ÊøÌøÔ¾*/
-      int nSkipRange = nBound;     /* <Ô¼ÊøÌøÔ¾*/
-      Bitmask thisTab;             /* ÉèÖÃpSrc */
+      int k;                       /* å¾ªç¯è®¡æ•°å™¨*/
+      int nSkipEq = nEq;           /* =çº¦æŸè·³è·ƒ*/
+      int nSkipRange = nBound;     /* <çº¦æŸè·³è·ƒ*/
+      Bitmask thisTab;             /* è®¾ç½®pSrc */
 =======
     **
-    ** Ê¹ÓÃÎŞĞ§µÄÑÚÂëÀ´Ìæ»»Î´×¼±¸ºÃµÄÑÚÂëÊÇºÜ½ôÒªµÄ¡£
-    ** µ±¼ÆËãÒ»¸ö"×îÓÅµÄ"Ë÷Òı£¬Î´×¼±¸ºÃµÄÑÚÂëÖ»ÓĞÒ»¸öÎ»ÉèÖÃÎªµ±Ç°±í¡£
-    ** ÁíÒ»·½Ãæ£¬ÎŞĞ§ÑÚÂë×ÜÊÇËùÓĞÎ»ÉèÖÃÎªÃ»ÔÚÍâ²¿Ñ­»·µÄ±í¡£
-    ** Èç¹ûÓÃÎ´×¼±¸ºÃµÄÑÚÂëÀ´´úÌæÎŞĞ§µÄÑÚÂë£¬
-    ** ÄÇÃ´Ñ¡ÔñÒ»¸öÒÀÀµÄÚ²¿Á¬½ÓÑ­»·µÄ×î¼ÑµÄË÷Òı¼´Ê¹µ±´æÔÚÒ»¸öÃ»ÓĞÒÀÀµµÄ×î¼ÑµÄË÷Òı
+    ** ä½¿ç”¨æ— æ•ˆçš„æ©ç æ¥æ›¿æ¢æœªå‡†å¤‡å¥½çš„æ©ç æ˜¯å¾ˆç´§è¦çš„ã€‚
+    ** å½“è®¡ç®—ä¸€ä¸ª"æœ€ä¼˜çš„"ç´¢å¼•ï¼Œæœªå‡†å¤‡å¥½çš„æ©ç åªæœ‰ä¸€ä¸ªä½è®¾ç½®ä¸ºå½“å‰è¡¨ã€‚
+    ** å¦ä¸€æ–¹é¢ï¼Œæ— æ•ˆæ©ç æ€»æ˜¯æ‰€æœ‰ä½è®¾ç½®ä¸ºæ²¡åœ¨å¤–éƒ¨å¾ªç¯çš„è¡¨ã€‚
+    ** å¦‚æœç”¨æœªå‡†å¤‡å¥½çš„æ©ç æ¥ä»£æ›¿æ— æ•ˆçš„æ©ç ï¼Œ
+    ** é‚£ä¹ˆé€‰æ‹©ä¸€ä¸ªä¾èµ–å†…éƒ¨è¿æ¥å¾ªç¯çš„æœ€ä½³çš„ç´¢å¼•å³ä½¿å½“å­˜åœ¨ä¸€ä¸ªæ²¡æœ‰ä¾èµ–çš„æœ€ä½³çš„ç´¢å¼•
     */
     if( nRow>2 && cost<=pCost->rCost ){
-      int k;                       /* Loop counter Ñ­»·¼ÆÊıÆ÷ */
-      int nSkipEq = nEq;           /* Number of == constraints to skip ĞèÒªÌø¹ıµÄ==Ô¼ÊøÊı */
-      int nSkipRange = nBound;     /* Number of < constraints to skip ĞèÒªÌø¹ıµÄ<Ô¼ÊøÊı */
-      Bitmask thisTab;             /* Bitmap for pSrc ÓÃÓÚpSrcµÄÎ»Í¼ */
+      int k;                       /* Loop counter å¾ªç¯è®¡æ•°å™¨ */
+      int nSkipEq = nEq;           /* Number of == constraints to skip éœ€è¦è·³è¿‡çš„==çº¦æŸæ•° */
+      int nSkipRange = nBound;     /* Number of < constraints to skip éœ€è¦è·³è¿‡çš„<çº¦æŸæ•° */
+      Bitmask thisTab;             /* Bitmap for pSrc ç”¨äºpSrcçš„ä½å›¾ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
       thisTab = getMask(pWC->pMaskSet, iCur);
@@ -4772,11 +4772,11 @@ static void bestBtreeIndex(
             /* Ignore the first nEq equality matches since the index
 <<<<<<< HEAD
             ** has already accounted for these 
-            ºöÂÔµÚÒ»¸önEqÏàµÈÆ¥ÅäÖ¸ÊıÒòÎªË÷ÒıÒÑ¾­Õ¼ÁËÕâĞ©
+            å¿½ç•¥ç¬¬ä¸€ä¸ªnEqç›¸ç­‰åŒ¹é…æŒ‡æ•°å› ä¸ºç´¢å¼•å·²ç»å äº†è¿™äº›
 =======
             ** has already accounted for these
             **
-            ** ºöÂÔµÚÒ»¸önEqµÈÊ½Æ¥Åä×ÔÈç¹ûË÷ÒıÒÑ¾­ËµÃ÷ÁËÕâĞ©
+            ** å¿½ç•¥ç¬¬ä¸€ä¸ªnEqç­‰å¼åŒ¹é…è‡ªå¦‚æœç´¢å¼•å·²ç»è¯´æ˜äº†è¿™äº›
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
             */
             nSkipEq--;
@@ -4784,11 +4784,11 @@ static void bestBtreeIndex(
             /* Assume each additional equality match reduces the result
 <<<<<<< HEAD
             ** set size by a factor of 10 
-            ¼ÙÉèÃ¿¸ö¶îÍâµÄÏàµÈÆ¥Åä½á¹û¼¯´óĞ¡½µµÍ10±¶
+            å‡è®¾æ¯ä¸ªé¢å¤–çš„ç›¸ç­‰åŒ¹é…ç»“æœé›†å¤§å°é™ä½10å€
 =======
             ** set size by a factor of 10
             **
-            ** ¼ÙÉèÃ¿¸ö¸½¼ÓµÄµÈÊ½Æ¥Åä½á¹û¼¯´óĞ¡½µµÍ10±¶
+            ** å‡è®¾æ¯ä¸ªé™„åŠ çš„ç­‰å¼åŒ¹é…ç»“æœé›†å¤§å°é™ä½10å€
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
             */
             nRow /= 10;
@@ -4798,12 +4798,12 @@ static void bestBtreeIndex(
             /* Ignore the first nSkipRange range constraints since the index
 <<<<<<< HEAD
             ** has already accounted for these
-            ºöÂÔµÚÒ»¸önSkipRangeÏàµÈÆ¥ÅäÖ¸ÊıÒòÎªË÷ÒıÒÑ¾­Õ¼ÁËÕâĞ©
+            å¿½ç•¥ç¬¬ä¸€ä¸ªnSkipRangeç›¸ç­‰åŒ¹é…æŒ‡æ•°å› ä¸ºç´¢å¼•å·²ç»å äº†è¿™äº›
              */
 =======
             ** has already accounted for these 
             **
-            ** ºöÂÔµÚÒ»¸önSkipRange·¶Î§Ô¼ÊøÈç¹ûË÷ÒıÒÑ¾­ËµÃ÷ÁËÕâĞ©
+            ** å¿½ç•¥ç¬¬ä¸€ä¸ªnSkipRangeèŒƒå›´çº¦æŸå¦‚æœç´¢å¼•å·²ç»è¯´æ˜äº†è¿™äº›
             */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
             nSkipRange--;
@@ -4815,21 +4815,21 @@ static void bestBtreeIndex(
             ** observation that indexed range constraints really are more
             ** selective in practice, on average. 
 <<<<<<< HEAD
-            ¼ÙÉèÃ¿¸ö¶îÍâµÄÔ¼Êø·¶Î§¼õÉÙÁË½á¹û¼¯´óĞ¡µÄ3±¶¡£
-            Ë÷Òı·¶Î§Ô¼Êø¼õÉÙËÑË÷¿Õ¼ä½Ï´óµÄÒòËØ4±¶¡£
-            ÎÒÃÇ¹ÊÒâÊ¹Ë÷Òı·¶Î§¸üÓĞÑ¡ÔñĞÔ,
-            ÒòÎªË÷Òı·¶Î§Ô¼ÊøµÄÖ÷¹Û¹Û²ìÍ¨³£¸üÓĞÑ¡ÔñĞÔµÄÔÚÊµ¼ùÖĞ¡£
+            å‡è®¾æ¯ä¸ªé¢å¤–çš„çº¦æŸèŒƒå›´å‡å°‘äº†ç»“æœé›†å¤§å°çš„3å€ã€‚
+            ç´¢å¼•èŒƒå›´çº¦æŸå‡å°‘æœç´¢ç©ºé—´è¾ƒå¤§çš„å› ç´ 4å€ã€‚
+            æˆ‘ä»¬æ•…æ„ä½¿ç´¢å¼•èŒƒå›´æ›´æœ‰é€‰æ‹©æ€§,
+            å› ä¸ºç´¢å¼•èŒƒå›´çº¦æŸçš„ä¸»è§‚è§‚å¯Ÿé€šå¸¸æ›´æœ‰é€‰æ‹©æ€§çš„åœ¨å®è·µä¸­ã€‚
 =======
             **
-            ** ¼ÙÉèÃ¿¸ö¸½¼ÓµÄ·¶Î§Ô¼Êø°Ñ½á¹û¼¯¼õÉÙÁË3±¶¡£
-            ** ÓĞË÷ÒıµÄ·¶Î§Ô¼Êø°ÑËÑË÷¿Õ¼ä¼õÉÙÁË4±¶¡£
-            ** ÎÒÃÇ¹ÊÒâµØÊ¹·¶Î§Ë÷Òı¸üÓĞÑ¡ÔñĞÔ£¬ÒòÎªÆ½¾ù¶øÑÔ£¬Ë÷Òı·¶Î§Ô¼ÊøµÄÖ÷¹Û¹Û²ìÔÚÑ¡ÔñÖĞÕæµÄ¸ü¾ßÓĞÑ¡ÔñĞÔ¡£
+            ** å‡è®¾æ¯ä¸ªé™„åŠ çš„èŒƒå›´çº¦æŸæŠŠç»“æœé›†å‡å°‘äº†3å€ã€‚
+            ** æœ‰ç´¢å¼•çš„èŒƒå›´çº¦æŸæŠŠæœç´¢ç©ºé—´å‡å°‘äº†4å€ã€‚
+            ** æˆ‘ä»¬æ•…æ„åœ°ä½¿èŒƒå›´ç´¢å¼•æ›´æœ‰é€‰æ‹©æ€§ï¼Œå› ä¸ºå¹³å‡è€Œè¨€ï¼Œç´¢å¼•èŒƒå›´çº¦æŸçš„ä¸»è§‚è§‚å¯Ÿåœ¨é€‰æ‹©ä¸­çœŸçš„æ›´å…·æœ‰é€‰æ‹©æ€§ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
             */
             nRow /= 3;
           }
         }else if( pTerm->eOperator!=WO_NOOP ){
-          /* Any other expression lowers the output row count by half ÆäËûµÄ±í´ïÊ½°ÑÊä³öĞĞÊı¼õÉÙÁËÒ»°ë */
+          /* Any other expression lowers the output row count by half å…¶ä»–çš„è¡¨è¾¾å¼æŠŠè¾“å‡ºè¡Œæ•°å‡å°‘äº†ä¸€åŠ */
           nRow /= 2;
         }
       }
@@ -4848,11 +4848,11 @@ static void bestBtreeIndex(
     /* If this index is the best we have seen so far, then record this
     ** index and its cost in the pCost structure.
 <<<<<<< HEAD
-    Èç¹ûÕâ¸öË÷ÒıÊÇ×îºÃµÄÎÒÃÇÒÑ¾­¿´µ½Æù½ñÎªÖ¹,
-    È»ºóÔÚpCost¼ÇÂ¼Õâ¸öË÷ÒıºÍËüµÄ´ú¼Û
+    å¦‚æœè¿™ä¸ªç´¢å¼•æ˜¯æœ€å¥½çš„æˆ‘ä»¬å·²ç»çœ‹åˆ°è¿„ä»Šä¸ºæ­¢,
+    ç„¶ååœ¨pCostè®°å½•è¿™ä¸ªç´¢å¼•å’Œå®ƒçš„ä»£ä»·
 =======
     **
-    ** Èç¹ûÕâ¸öË÷ÒıÊÇµ½Ä¿Ç°ÎªÖ¹×îºÃµÄ£¬ÄÇÃ´ÔÚpCostÊı¾İ½á¹¹ÖĞ¼ÇÂ¼Õâ¸öË÷ÒıºÍËüµÄ´ú¼Û¡£
+    ** å¦‚æœè¿™ä¸ªç´¢å¼•æ˜¯åˆ°ç›®å‰ä¸ºæ­¢æœ€å¥½çš„ï¼Œé‚£ä¹ˆåœ¨pCostæ•°æ®ç»“æ„ä¸­è®°å½•è¿™ä¸ªç´¢å¼•å’Œå®ƒçš„ä»£ä»·ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (!pIdx || wsFlags)
@@ -4869,19 +4869,19 @@ static void bestBtreeIndex(
     /* If there was an INDEXED BY clause, then only that one index is
     ** considered. 
 <<<<<<< HEAD
-    Èç¹ûÓĞÒ»¸öË÷ÒıBY×Ó¾ä,ÄÇÃ´±»ÈÏÎªÊÇÎ¨Ò»Ë÷Òı¡£
+    å¦‚æœæœ‰ä¸€ä¸ªç´¢å¼•BYå­å¥,é‚£ä¹ˆè¢«è®¤ä¸ºæ˜¯å”¯ä¸€ç´¢å¼•ã€‚
     */
     if( pSrc->pIndex ) break;
 
     /* Reset masks for the next index in the loop */
-    //ÖØÖÃÑ­»·ÖĞµÄÏÂÒ»¸öË÷ÒıµÄÑÚÂë
+    //é‡ç½®å¾ªç¯ä¸­çš„ä¸‹ä¸€ä¸ªç´¢å¼•çš„æ©ç 
 =======
     **
-    ** Èç¹ûÓĞÒ»¸öINDEXED BY×Ó¾ä£¬ÄÇÃ´Ö»ÓĞ¿¼ÂÇÒ»¸öË÷Òı¡£
+    ** å¦‚æœæœ‰ä¸€ä¸ªINDEXED BYå­å¥ï¼Œé‚£ä¹ˆåªæœ‰è€ƒè™‘ä¸€ä¸ªç´¢å¼•ã€‚
     */
     if( pSrc->pIndex ) break;
 
-    /* Reset masks for the next index in the loop ÎªÁËÑ­»·ÖĞµÄÏÂÒ»¸öË÷Òı¶øÖØĞÂÉèÖÃÑÚÂë */
+    /* Reset masks for the next index in the loop ä¸ºäº†å¾ªç¯ä¸­çš„ä¸‹ä¸€ä¸ªç´¢å¼•è€Œé‡æ–°è®¾ç½®æ©ç  */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     wsFlagMask = ~(WHERE_ROWID_EQ|WHERE_ROWID_RANGE);
     eqTermMask = idxEqTermMask;
@@ -4893,14 +4893,14 @@ static void bestBtreeIndex(
   ** where application behaviour depends on the (undefined) order that
   ** SQLite outputs rows in in the absence of an ORDER BY clause.  
 <<<<<<< HEAD
-  Èç¹ûÃ»ÓĞÉèÖÃORDER BY×Ó¾äµ«ÉèÖÃSQLITE_ReverseOrder±êÖ¾,
-  È»ºó·´ÏòË÷ÒıµÄË³Ğò½«±»É¨Ãè¡£
-  ÕâÊÇÓÃÓÚÓ¦ÓÃ³ÌĞò²âÊÔ,°ïÖúÕÒµ½µÄÇé¿öÏÂ,
-  ÕâÊÇÓ¦ÓÃ³ÌĞòµÄĞĞÎªÈ¡¾öÓÚ(Î´¶¨Òå)£¬SQLiteÊä³öĞĞÃ»ÓĞÒ»¸öorder BY×Ó¾ä¡£
+  å¦‚æœæ²¡æœ‰è®¾ç½®ORDER BYå­å¥ä½†è®¾ç½®SQLITE_ReverseOrderæ ‡å¿—,
+  ç„¶ååå‘ç´¢å¼•çš„é¡ºåºå°†è¢«æ‰«æã€‚
+  è¿™æ˜¯ç”¨äºåº”ç”¨ç¨‹åºæµ‹è¯•,å¸®åŠ©æ‰¾åˆ°çš„æƒ…å†µä¸‹,
+  è¿™æ˜¯åº”ç”¨ç¨‹åºçš„è¡Œä¸ºå–å†³äº(æœªå®šä¹‰)ï¼ŒSQLiteè¾“å‡ºè¡Œæ²¡æœ‰ä¸€ä¸ªorder BYå­å¥ã€‚
 =======
   **
-  ** Èç¹ûÃ»ÓĞORDER BY×Ó¾ä²¢ÇÒÉèÖÃÁËSQLITE_ReverseOrder±êÖ¾£¬ÄÇÃ´Ë÷ÒıµÄ·´ÏòË³Ğò½«±»É¨Ãè¡£
-  ** ÕâÖ»ÓÃÀ´Ó¦ÓÃ²âÊÔ£¬ÓÃÓÚ°ïÖú²éÕÒÕâÖÖÇé¿ö--Ó¦ÓÃ³ÌĞòµÄĞĞÎªÈ¡¾öÓÚSQLiteÔÚÈ±ÉÙORDER BY×Ó¾äµÄÊä³öĞĞµÄ(Î´¶¨ÒåµÄ)ĞòÁĞ¡£
+  ** å¦‚æœæ²¡æœ‰ORDER BYå­å¥å¹¶ä¸”è®¾ç½®äº†SQLITE_ReverseOrderæ ‡å¿—ï¼Œé‚£ä¹ˆç´¢å¼•çš„åå‘é¡ºåºå°†è¢«æ‰«æã€‚
+  ** è¿™åªç”¨æ¥åº”ç”¨æµ‹è¯•ï¼Œç”¨äºå¸®åŠ©æŸ¥æ‰¾è¿™ç§æƒ…å†µ--åº”ç”¨ç¨‹åºçš„è¡Œä¸ºå–å†³äºSQLiteåœ¨ç¼ºå°‘ORDER BYå­å¥çš„è¾“å‡ºè¡Œçš„(æœªå®šä¹‰çš„)åºåˆ—ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( !pOrderBy && pParse->db->flags & SQLITE_ReverseOrder ){
@@ -4930,38 +4930,38 @@ static void bestBtreeIndex(
 ** as the last parameter. This function may calculate the cost of
 ** both real and virtual table scans.
 **
-** ²éÕÒ·ÃÎÊ±ípSrc->pTabµÄ²éÑ¯¼Æ»®¡£ÔÚWhereCost¶ÔÏóÖĞĞ´Èë×îºÃµÄ²éÑ¯¼Æ»®ºÍËüµÄ´ú¼Û£¬²¢ÇÒ×÷Îª×îºÃµÄ²ÎÊı´«µİ¸øbestIndexº¯Êı¡£
-** Õâ¸öº¯Êı¿ÉÄÜ»á¼ÆËã±íÉ¨ÃèºÍĞéÄâ±íÉ¨ÃèµÄ´ú¼Û
+** æŸ¥æ‰¾è®¿é—®è¡¨pSrc->pTabçš„æŸ¥è¯¢è®¡åˆ’ã€‚åœ¨WhereCostå¯¹è±¡ä¸­å†™å…¥æœ€å¥½çš„æŸ¥è¯¢è®¡åˆ’å’Œå®ƒçš„ä»£ä»·ï¼Œå¹¶ä¸”ä½œä¸ºæœ€å¥½çš„å‚æ•°ä¼ é€’ç»™bestIndexå‡½æ•°ã€‚
+** è¿™ä¸ªå‡½æ•°å¯èƒ½ä¼šè®¡ç®—è¡¨æ‰«æå’Œè™šæ‹Ÿè¡¨æ‰«æçš„ä»£ä»·
 **
 */
 static void bestIndex(
 <<<<<<< HEAD
-  Parse *pParse,              /* ½âÎöÉÏÏÂÎÄ*/
-  WhereClause *pWC,           /* WHERE×Ó¾ä*/
-  struct SrcList_item *pSrc,  /* form²éÑ¯×Ó¾ä */
-  Bitmask notReady,           /* ²»ÊÊÓÃÓÚË÷ÒıµÄÓÎ±êÑÚÂë */
-  Bitmask notValid,           /* ²»¿ÉÓÃÓÚÈÎºÎÓÃÍ¾µÄÓÎ±ê */
-  ExprList *pOrderBy,         /* ORDER BY ×Ó¾ä */
-  WhereCost *pCost            /* ¿ªÏú×îĞ¡µÄ²éÑ¯·½·¨ */
+  Parse *pParse,              /* è§£æä¸Šä¸‹æ–‡*/
+  WhereClause *pWC,           /* WHEREå­å¥*/
+  struct SrcList_item *pSrc,  /* formæŸ¥è¯¢å­å¥ */
+  Bitmask notReady,           /* ä¸é€‚ç”¨äºç´¢å¼•çš„æ¸¸æ ‡æ©ç  */
+  Bitmask notValid,           /* ä¸å¯ç”¨äºä»»ä½•ç”¨é€”çš„æ¸¸æ ‡ */
+  ExprList *pOrderBy,         /* ORDER BY å­å¥ */
+  WhereCost *pCost            /* å¼€é”€æœ€å°çš„æŸ¥è¯¢æ–¹æ³• */
 =======
-  Parse *pParse,              /* The parsing context ·ÖÎöÉÏÏÂÎÄ */
-  WhereClause *pWC,           /* The WHERE clause WHERE×Ó¾ä */
-  struct SrcList_item *pSrc,  /* The FROM clause term to search ÓÃÓÚ²éÕÒµÄFROM×Ó¾äterm */
-  Bitmask notReady,           /* Mask of cursors not available for indexing ¶ÔÓÚË÷ÒıÎŞĞ§µÄÓÎ±êÑÚÂë */
-  Bitmask notValid,           /* Cursors not available for any purpose ÓÎ±ê¶ÔÓÚÈÎºÎÇé¿ö¶¼ÎŞĞ§ */
-  ExprList *pOrderBy,         /* The ORDER BY clause ORDER BY×Ó¾ä */
-  WhereCost *pCost            /* Lowest cost query plan ×îµÍ´ú¼ÛµÄ²éÑ¯¼Æ»® */
+  Parse *pParse,              /* The parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  WhereClause *pWC,           /* The WHERE clause WHEREå­å¥ */
+  struct SrcList_item *pSrc,  /* The FROM clause term to search ç”¨äºæŸ¥æ‰¾çš„FROMå­å¥term */
+  Bitmask notReady,           /* Mask of cursors not available for indexing å¯¹äºç´¢å¼•æ— æ•ˆçš„æ¸¸æ ‡æ©ç  */
+  Bitmask notValid,           /* Cursors not available for any purpose æ¸¸æ ‡å¯¹äºä»»ä½•æƒ…å†µéƒ½æ— æ•ˆ */
+  ExprList *pOrderBy,         /* The ORDER BY clause ORDER BYå­å¥ */
+  WhereCost *pCost            /* Lowest cost query plan æœ€ä½ä»£ä»·çš„æŸ¥è¯¢è®¡åˆ’ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  if( IsVirtual(pSrc->pTab) ){ //Èç¹ûÊÇĞé±í
+  if( IsVirtual(pSrc->pTab) ){ //å¦‚æœæ˜¯è™šè¡¨
     sqlite3_index_info *p = 0;
     bestVirtualIndex(pParse, pWC, pSrc, notReady, notValid, pOrderBy, pCost,&p);
     if( p->needToFreeIdxStr ){
       sqlite3_free(p->idxStr);
     }
-    sqlite3DbFree(pParse->db, p);	//ÊÍ·Å¿ÉÄÜ±»¹ØÁªµ½Ò»¸öÌØ¶¨Êı¾İ¿âÁ¬½ÓµÄÄÚ´æ
-  }else //Èç¹û²»ÊÇĞé±í
+    sqlite3DbFree(pParse->db, p);	//é‡Šæ”¾å¯èƒ½è¢«å…³è”åˆ°ä¸€ä¸ªç‰¹å®šæ•°æ®åº“è¿æ¥çš„å†…å­˜
+  }else //å¦‚æœä¸æ˜¯è™šè¡¨
 #endif
   {
     bestBtreeIndex(pParse, pWC, pSrc, notReady, notValid, pOrderBy, 0, pCost);
@@ -4973,16 +4973,16 @@ static void bestIndex(
 ** if it controls a LEFT OUTER JOIN and it did not originate in the ON
 ** or USING clause of that join.
 <<<<<<< HEAD
-**½ûÓÃÒ»¸öÊõÓïÔÚWHERE×Ó¾äÖĞ¡£
-³ıÁË,²»Òª½ûÓÃ´ÊÈç¹û¿ØÖÆ×óÍâÁ¬½Ó,
-Ëü²¢²»ÊÇÀ´Ô´ÓÚON»òUSING×Ó¾äÊ¹ÓÃ¡£
+**ç¦ç”¨ä¸€ä¸ªæœ¯è¯­åœ¨WHEREå­å¥ä¸­ã€‚
+é™¤äº†,ä¸è¦ç¦ç”¨è¯å¦‚æœæ§åˆ¶å·¦å¤–è¿æ¥,
+å®ƒå¹¶ä¸æ˜¯æ¥æºäºONæˆ–USINGå­å¥ä½¿ç”¨ã€‚
 =======
 **
-** ÔÚWHERE×Ó¾äÖĞ½ûÖ¹Ò»¸öterm.Èç¹ûËü¿ØÖÆÒ»¸öLEFT OUTER JOIN²¢ÇÒËü²»À´Ô´ÓÚÄÇ¸öÁ¬½ÓµÄON»òUSING×Ó¾äÊ±²»½ûÖ¹term.
+** åœ¨WHEREå­å¥ä¸­ç¦æ­¢ä¸€ä¸ªterm.å¦‚æœå®ƒæ§åˆ¶ä¸€ä¸ªLEFT OUTER JOINå¹¶ä¸”å®ƒä¸æ¥æºäºé‚£ä¸ªè¿æ¥çš„ONæˆ–USINGå­å¥æ—¶ä¸ç¦æ­¢term.
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** Consider the term t2.z='ok' in the following queries:
-**¿¼ÂÇÕâ¸öÁ¬½Ót2.z=¡°ok¡±ÔÚÏÂÃæµÄ²éÑ¯ÖĞ
+**è€ƒè™‘è¿™ä¸ªè¿æ¥t2.z=â€œokâ€åœ¨ä¸‹é¢çš„æŸ¥è¯¢ä¸­
 **   (1)  SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.x WHERE t2.z='ok'
 **   (2)  SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.x AND t2.z='ok'
 **   (3)  SELECT * FROM t1, t2 WHERE t1.a=t2.x AND t2.z='ok'
@@ -4991,26 +4991,26 @@ static void bestIndex(
 ** in the ON clause.  The term is disabled in (3) because it is not part
 ** of a LEFT OUTER JOIN.  In (1), the term is not disabled.
 <<<<<<< HEAD
-**t2.z='ok'ÊÇ´íÎóµÄÔÚ£¨2£©ÖĞ£¬ÒòÎªËü³õ´Î³öÏÖ²»ÔÚon×Ó¾äÖĞ¡£
-t2.z='ok'ÊÇ´íÎóµÄÔÚ£¨3£©ÖĞ£¬ÒòÎªËü²»ÊÇ×óÁ¬½ÓµÄÒ»²¿·Ö¡£
-ÔÚ£¨1£©ÖĞ¡£ËüÊÇÕıÈ·µÄ
+**t2.z='ok'æ˜¯é”™è¯¯çš„åœ¨ï¼ˆ2ï¼‰ä¸­ï¼Œå› ä¸ºå®ƒåˆæ¬¡å‡ºç°ä¸åœ¨onå­å¥ä¸­ã€‚
+t2.z='ok'æ˜¯é”™è¯¯çš„åœ¨ï¼ˆ3ï¼‰ä¸­ï¼Œå› ä¸ºå®ƒä¸æ˜¯å·¦è¿æ¥çš„ä¸€éƒ¨åˆ†ã€‚
+åœ¨ï¼ˆ1ï¼‰ä¸­ã€‚å®ƒæ˜¯æ­£ç¡®çš„
 ** IMPLEMENTATION-OF: R-24597-58655 No tests are done for terms that are
 ** completely satisfied by indices.
-**²»×ö²âÊÔµÄÌõ¿îÍêÈ«ÂúÒâÖ¸Êı
+**ä¸åšæµ‹è¯•çš„æ¡æ¬¾å®Œå…¨æ»¡æ„æŒ‡æ•°
 =======
 **
-** ¿¼ÂÇÏÂÃæ²éÑ¯ÖĞµÄt2.z='ok'
+** è€ƒè™‘ä¸‹é¢æŸ¥è¯¢ä¸­çš„t2.z='ok'
 **   (1)  SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.x WHERE t2.z='ok'
 **   (2)  SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.x AND t2.z='ok'
 **   (3)  SELECT * FROM t1, t2 WHERE t1.a=t2.x AND t2.z='ok'
-** ÒòÎªt2.z='ok'ÆğÔ´ÓÚON×Ó¾ä£¬ËùÒÔÔÚ(2)ÖĞ½ûÓÃt2.z='ok'.
-** ÒòÎªt2.z='ok'²»ÊÇLEFT OUTER JOINµÄÒ»²¿·Ö£¬ËùÒÔÔÚ(3)ÖĞ½ûÓÃt2.z='ok'.
-** ÔÚ(1)ÖĞ£¬termÎ´±»½ûÖ¹¡£
+** å› ä¸ºt2.z='ok'èµ·æºäºONå­å¥ï¼Œæ‰€ä»¥åœ¨(2)ä¸­ç¦ç”¨t2.z='ok'.
+** å› ä¸ºt2.z='ok'ä¸æ˜¯LEFT OUTER JOINçš„ä¸€éƒ¨åˆ†ï¼Œæ‰€ä»¥åœ¨(3)ä¸­ç¦ç”¨t2.z='ok'.
+** åœ¨(1)ä¸­ï¼Œtermæœªè¢«ç¦æ­¢ã€‚
 ** 
 ** IMPLEMENTATION-OF: R-24597-58655 No tests are done for terms that are
 ** completely satisfied by indices. 
 **
-** ²»×ö²âÊÔµÄtermsÊÇÍêÈ«¿ÉÒÔÊ¹ÓÃË÷ÒıµÄ¡£
+** ä¸åšæµ‹è¯•çš„termsæ˜¯å®Œå…¨å¯ä»¥ä½¿ç”¨ç´¢å¼•çš„ã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** Disabling a term causes that term to not be tested in the inner loop
@@ -5021,17 +5021,17 @@ t2.z='ok'ÊÇ´íÎóµÄÔÚ£¨3£©ÖĞ£¬ÒòÎªËü²»ÊÇ×óÁ¬½ÓµÄÒ»²¿·Ö¡£
 ** as we can without disabling too much.  If we disabled in (1), we'd get
 ** the wrong answer.  See ticket #813.
 <<<<<<< HEAD
-½ûÓÃÒ»¸öÊõÓïÊ¹Õâ¸ö´Ê²»»á¼ÓÈëµÄÄÚÑ­»·²âÊÔ¡£½ûÓÃÊÇÒ»¸öÓÅ»¯¡£
-µ±Ìõ¼şÂú×ãË÷Òı,ÎÒÃÇ½ûÓÃËüÃÇ,·ÀÖ¹ÄÚ²¿Ñ­»·ÈßÓà²âÊÔ¡£
-ÎÒÃÇ¿ÉÒÔµÃµ½ÕıÈ·µÄ½á¹ûÈç¹ûÃ»ÓĞ±»½ûÓÃ,µ«Á¬½Ó¿ÉÄÜÔËĞĞÓĞµãÂı¡£
-¾÷ÇÏÊÇ½ûÓÃÒ»ÑùÎÒÃÇ¿ÉÒÔÃ»ÓĞ½ûÓÃÌ«¶à¡£
-Èç¹ûÎÒÃÇÔÚ(1)½ûÓÃ,ÎÒÃÇ»áµÃµ½´íÎóµÄ´ğ°¸£¬Ïê¼û813ĞĞ
+ç¦ç”¨ä¸€ä¸ªæœ¯è¯­ä½¿è¿™ä¸ªè¯ä¸ä¼šåŠ å…¥çš„å†…å¾ªç¯æµ‹è¯•ã€‚ç¦ç”¨æ˜¯ä¸€ä¸ªä¼˜åŒ–ã€‚
+å½“æ¡ä»¶æ»¡è¶³ç´¢å¼•,æˆ‘ä»¬ç¦ç”¨å®ƒä»¬,é˜²æ­¢å†…éƒ¨å¾ªç¯å†—ä½™æµ‹è¯•ã€‚
+æˆ‘ä»¬å¯ä»¥å¾—åˆ°æ­£ç¡®çš„ç»“æœå¦‚æœæ²¡æœ‰è¢«ç¦ç”¨,ä½†è¿æ¥å¯èƒ½è¿è¡Œæœ‰ç‚¹æ…¢ã€‚
+è¯€çªæ˜¯ç¦ç”¨ä¸€æ ·æˆ‘ä»¬å¯ä»¥æ²¡æœ‰ç¦ç”¨å¤ªå¤šã€‚
+å¦‚æœæˆ‘ä»¬åœ¨(1)ç¦ç”¨,æˆ‘ä»¬ä¼šå¾—åˆ°é”™è¯¯çš„ç­”æ¡ˆï¼Œè¯¦è§813è¡Œ
 =======
 **
-** ½ûÖ¹Ò»¸öterm»áÒıÆğÔÚÁ¬½ÓÖĞµÄÄÚ²¿Ñ­»·ÖĞ²»²âÊÔterm.
-** ½ûÖ¹ÊÇÒ»ÖÖÓÅ»¯²ßÂÔ¡£µ±terms¿ÉÒÔÊ¹ÓÃË÷ÒıÊ±£¬ÎÒÃÇ½ûÓÃËüÀ´×èÖ¹ÔÚÄÚ²¿Ñ­»·ÖĞµÄ¶àÓà²âÊÔ¡£
-** Èç¹ûÃ»ÓĞÓÀÔ¶±»½ûÓÃµÄterm£¬ÎÒÃÇ»áµÃµ½ÕıÈ·µÄ½á¹¹£¬µ«ÊÇÁ¬½Ó¿ÉÄÜ»áÔËĞĞµÄ½ÏÂı¡£
-** ¾÷ÇÏÊÇ½ûÓÃÎÒÃÇ¿ÉÒÔ½ûÓÃµÄ£¬µ«²»Òª½ûÓÃÌ«¶à¡£Èç¹ûÎÒÃÇÔÚ(1)ÖĞ½ûÓÃÁË£¬ÄÇÃ´ÎÒÃÇ¿ÉÄÜ»áµÃµ½´íÎóµÄ½á¹û¡£
+** ç¦æ­¢ä¸€ä¸ªtermä¼šå¼•èµ·åœ¨è¿æ¥ä¸­çš„å†…éƒ¨å¾ªç¯ä¸­ä¸æµ‹è¯•term.
+** ç¦æ­¢æ˜¯ä¸€ç§ä¼˜åŒ–ç­–ç•¥ã€‚å½“termså¯ä»¥ä½¿ç”¨ç´¢å¼•æ—¶ï¼Œæˆ‘ä»¬ç¦ç”¨å®ƒæ¥é˜»æ­¢åœ¨å†…éƒ¨å¾ªç¯ä¸­çš„å¤šä½™æµ‹è¯•ã€‚
+** å¦‚æœæ²¡æœ‰æ°¸è¿œè¢«ç¦ç”¨çš„termï¼Œæˆ‘ä»¬ä¼šå¾—åˆ°æ­£ç¡®çš„ç»“æ„ï¼Œä½†æ˜¯è¿æ¥å¯èƒ½ä¼šè¿è¡Œçš„è¾ƒæ…¢ã€‚
+** è¯€çªæ˜¯ç¦ç”¨æˆ‘ä»¬å¯ä»¥ç¦ç”¨çš„ï¼Œä½†ä¸è¦ç¦ç”¨å¤ªå¤šã€‚å¦‚æœæˆ‘ä»¬åœ¨(1)ä¸­ç¦ç”¨äº†ï¼Œé‚£ä¹ˆæˆ‘ä»¬å¯èƒ½ä¼šå¾—åˆ°é”™è¯¯çš„ç»“æœã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
@@ -5054,31 +5054,31 @@ static void disableTerm(WhereLevel *pLevel, WhereTerm *pTerm){
 ** Code an OP_Affinity opcode to apply the column affinity string zAff
 ** to the n registers starting at base. 
 <<<<<<< HEAD
-**´úÂëÒ»¸öOP_Affinity²Ù×÷ÂëºÍ×Ö·û´®zAff¼Ä´æÆ÷´Ó»ù´¡¿ªÊ¼ÓĞÕâÃÜÇĞ¹ØÏµ
+**ä»£ç ä¸€ä¸ªOP_Affinityæ“ä½œç å’Œå­—ç¬¦ä¸²zAffå¯„å­˜å™¨ä»åŸºç¡€å¼€å§‹æœ‰è¿™å¯†åˆ‡å…³ç³»
 ** As an optimization, SQLITE_AFF_NONE entries (which are no-ops) at the
 ** beginning and end of zAff are ignored.  If all entries in zAff are
 ** SQLITE_AFF_NONE, then no code gets generated.
-**×÷ÎªÒ»¸öÓÅ»¯,SQLITE_AFF_NONEÌõÄ¿(ÎŞ²Ù×÷)µÄ¿ªÊ¼ºÍ½áÊøzAff±»ºöÂÔ¡£
-Èç¹ûËùÓĞÌõÄ¿zAff ×´Ì¬ÊÇSQLITE_AFF_NONE,ÄÇÃ´Ã»ÓĞ´úÂëÉú³É¡£
+**ä½œä¸ºä¸€ä¸ªä¼˜åŒ–,SQLITE_AFF_NONEæ¡ç›®(æ— æ“ä½œ)çš„å¼€å§‹å’Œç»“æŸzAffè¢«å¿½ç•¥ã€‚
+å¦‚æœæ‰€æœ‰æ¡ç›®zAff çŠ¶æ€æ˜¯SQLITE_AFF_NONE,é‚£ä¹ˆæ²¡æœ‰ä»£ç ç”Ÿæˆã€‚
 ** This routine makes its own copy of zAff so that the caller is free
 ** to modify zAff after this routine returns.
-Õâ¸öÀı³ÌzAff×Ô¼ºµÄ¸±±¾,
-ÒÔ±ãµ÷ÓÃÕß¿ÉÒÔ×ÔÓÉµØĞŞ¸ÄºózAffÕâ¸öÀı³Ì·µ»Ø¡£
+è¿™ä¸ªä¾‹ç¨‹zAffè‡ªå·±çš„å‰¯æœ¬,
+ä»¥ä¾¿è°ƒç”¨è€…å¯ä»¥è‡ªç”±åœ°ä¿®æ”¹åzAffè¿™ä¸ªä¾‹ç¨‹è¿”å›ã€‚
 =======
 **
-** ±àĞ´Ò»¸öOP_Affinity²Ù×÷ÂëÓ¦ÓÃÓÚ°ÑÁĞÇ×ºÍstringÀàĞÍµÄzAffÓ³Éäµ½´Ó»ùÖ·µ½nµÄ¼Ä´æÆ÷ÉÏ¡£
+** ç¼–å†™ä¸€ä¸ªOP_Affinityæ“ä½œç åº”ç”¨äºæŠŠåˆ—äº²å’Œstringç±»å‹çš„zAffæ˜ å°„åˆ°ä»åŸºå€åˆ°nçš„å¯„å­˜å™¨ä¸Šã€‚
 **
 ** As an optimization, SQLITE_AFF_NONE entries (which are no-ops) at the
 ** beginning and end of zAff are ignored.  If all entries in zAff are
 ** SQLITE_AFF_NONE, then no code gets generated.
 **
-** ×÷ÎªÒ»¸öÓÅ»¯£¬ºöÂÔÔÚzAffµÄ¿ªÊ¼ºÍ½áÎ²ÖĞµÄSQLITE_AFF_NONEÌõÄ¿¡£
-** Èç¹ûÔÚzAffËùÓĞÌõÄ¿¶¼ÊÇSQLITE_AFF_NONE£¬ÄÇÃ´²»»áÉú³É´úÂë¡£
+** ä½œä¸ºä¸€ä¸ªä¼˜åŒ–ï¼Œå¿½ç•¥åœ¨zAffçš„å¼€å§‹å’Œç»“å°¾ä¸­çš„SQLITE_AFF_NONEæ¡ç›®ã€‚
+** å¦‚æœåœ¨zAffæ‰€æœ‰æ¡ç›®éƒ½æ˜¯SQLITE_AFF_NONEï¼Œé‚£ä¹ˆä¸ä¼šç”Ÿæˆä»£ç ã€‚
 **
 ** This routine makes its own copy of zAff so that the caller is free
 ** to modify zAff after this routine returns.
 **
-** Õâ¸ö³ÌĞò¸´ÖÆËü×Ô¼ºµÄzAffÒÔ±ãÔÚÕâ¸ö³ÌĞò·µ»Øºóµ÷ÓÃÕß¿ÉÒÔ×ÔÓÉĞŞ¸ÄzAff¡£
+** è¿™ä¸ªç¨‹åºå¤åˆ¶å®ƒè‡ªå·±çš„zAffä»¥ä¾¿åœ¨è¿™ä¸ªç¨‹åºè¿”å›åè°ƒç”¨è€…å¯ä»¥è‡ªç”±ä¿®æ”¹zAffã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
 static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
@@ -5092,10 +5092,10 @@ static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
   /* Adjust base and n to skip over SQLITE_AFF_NONE entries at the beginning
   ** and end of the affinity string.
 <<<<<<< HEAD
-  µ÷Õû»ù´¡ºÍn,Ìø¹ıSQLITE_AFF_NONEÌõÄ¿ÔÚ¿ªÊ¼ºÍ½áÊø¡£
+  è°ƒæ•´åŸºç¡€å’Œn,è·³è¿‡SQLITE_AFF_NONEæ¡ç›®åœ¨å¼€å§‹å’Œç»“æŸã€‚
 =======
   **
-  ** µ÷Õû»ùÖ·ºÍnÌø¹ıÔÚstringÇ×ºÍĞÔµÄ¿ªÊ¼ºÍ½áÎ²´¦µÄSQLITE_AFF_NONEÌõÄ¿
+  ** è°ƒæ•´åŸºå€å’Œnè·³è¿‡åœ¨stringäº²å’Œæ€§çš„å¼€å§‹å’Œç»“å°¾å¤„çš„SQLITE_AFF_NONEæ¡ç›®
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   while( n>0 && zAff[0]==SQLITE_AFF_NONE ){
@@ -5109,10 +5109,10 @@ static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
 
 <<<<<<< HEAD
   /* Code the OP_Affinity opcode if there is anything left to do. 
-  ´úÂëOP_Affinity²Ù×÷Âë,Èç¹ûÓĞÊ²Ã´ĞèÒªÈ¥×ö
+  ä»£ç OP_Affinityæ“ä½œç ,å¦‚æœæœ‰ä»€ä¹ˆéœ€è¦å»åš
   */
 =======
-  /* Code the OP_Affinity opcode if there is anything left to do. ±àĞ´OP_Affinity²Ù×÷Âë */
+  /* Code the OP_Affinity opcode if there is anything left to do. ç¼–å†™OP_Affinityæ“ä½œç  */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   if( n>0 ){
     sqlite3VdbeAddOp2(v, OP_Affinity, base, n);
@@ -5127,49 +5127,49 @@ static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
 ** term can be either X=expr or X IN (...).   pTerm is the term to be 
 ** coded.
 <<<<<<< HEAD
-**Éú³É´úÂëÎªÒ»¸öÏàµÈµÄWHERE×Ó¾ä¡£Ò»¸öÏàµÈµÄÊõÓï¿ÉÒÔÊÇX = expr»òX IN(¡­)¡£pTermÊÇ±»±àÒëµÄ
+**ç”Ÿæˆä»£ç ä¸ºä¸€ä¸ªç›¸ç­‰çš„WHEREå­å¥ã€‚ä¸€ä¸ªç›¸ç­‰çš„æœ¯è¯­å¯ä»¥æ˜¯X = expræˆ–X IN(â€¦)ã€‚pTermæ˜¯è¢«ç¼–è¯‘çš„
 ** The current value for the constraint is left in register iReg.
-**µ±Ç°ÖµµÄÔ¼Êø±»ÁôÔÚiReg¼Ä´æÆ÷ÖĞ
+**å½“å‰å€¼çš„çº¦æŸè¢«ç•™åœ¨iRegå¯„å­˜å™¨ä¸­
 ** For a constraint of the form X=expr, the expression is evaluated and its
 ** result is left on the stack.  For constraints of the form X IN (...)
 ** this routine sets up a loop that will iterate over all values of X.
-X = exprÔ¼ÊøµÄĞÎÊ½,¼ÆËã±í´ïÊ½,Æä½á¹ûÊÇÔÚ¶ÑÕ»ÉÏ¡£
-X IN (...)¡¡Ô¼ÊøµÄĞÎÊ½ÎªXÕâ¸öÀı³ÌÉèÖÃÒ»¸öÑ­»·±éÀúËùÓĞµÄXÖµ
+X = exprçº¦æŸçš„å½¢å¼,è®¡ç®—è¡¨è¾¾å¼,å…¶ç»“æœæ˜¯åœ¨å †æ ˆä¸Šã€‚
+X IN (...)ã€€çº¦æŸçš„å½¢å¼ä¸ºXè¿™ä¸ªä¾‹ç¨‹è®¾ç½®ä¸€ä¸ªå¾ªç¯éå†æ‰€æœ‰çš„Xå€¼
 */
 static int codeEqualityTerm(
-  Parse *pParse,      /* ½âÎöÉÏÏÂÎÄt */
-  WhereTerm *pTerm,   /* TWHERE×Ó¾ä±»±àÒë */
-  WhereLevel *pLevel, /* µ±Ç°ÕıÔÚÔËĞĞµÄ£æ£ï£ò£í×Ó¾ä*/
-  int iTarget         /* ÊÔÍ¼°Ñ½á¹ûÀë¿ªÕâ¸ö¼Ä´æÆ÷ */
+  Parse *pParse,      /* è§£æä¸Šä¸‹æ–‡t */
+  WhereTerm *pTerm,   /* TWHEREå­å¥è¢«ç¼–è¯‘ */
+  WhereLevel *pLevel, /* å½“å‰æ­£åœ¨è¿è¡Œçš„ï½†ï½ï½’ï½å­å¥*/
+  int iTarget         /* è¯•å›¾æŠŠç»“æœç¦»å¼€è¿™ä¸ªå¯„å­˜å™¨ */
 ){
   Expr *pX = pTerm->pExpr;
   Vdbe *v = pParse->pVdbe;
-  int iReg;                  /* ¼Ä´æÆ÷´æ·Å½á¹û */
+  int iReg;                  /* å¯„å­˜å™¨å­˜æ”¾ç»“æœ */
 =======
 **
-** ÎªÒ»¸öWHERE×Ó¾äµÄµÈÊ½termÉú³É´úÂë¡£Ò»¸öµÈÊ½term¿ÉÒÔÊÇX=expr»òX IN (...).
-** pTermÊÇĞèÒª±àÂëµÄterm.
+** ä¸ºä¸€ä¸ªWHEREå­å¥çš„ç­‰å¼termç”Ÿæˆä»£ç ã€‚ä¸€ä¸ªç­‰å¼termå¯ä»¥æ˜¯X=expræˆ–X IN (...).
+** pTermæ˜¯éœ€è¦ç¼–ç çš„term.
 **
 ** The current value for the constraint is left in register iReg.
 **
-** ÔÚ¼Ä´æÆ÷iRegÖĞ¼ÇÂ¼Ô¼ÊøµÄµ±Ç°Öµ
+** åœ¨å¯„å­˜å™¨iRegä¸­è®°å½•çº¦æŸçš„å½“å‰å€¼
 **
 ** For a constraint of the form X=expr, the expression is evaluated and its
 ** result is left on the stack.  For constraints of the form X IN (...)
 ** this routine sets up a loop that will iterate over all values of X.
 **
-** ¶ÔÓÚÒ»¸öĞÎÊ½ÎªX=exprµÄÔ¼Êø£¬¼ÆËã±í´ïÊ½²¢ÇÒÔÚ¶ÑÕ»ÖĞ´æ´¢ËüµÄ½á¹û¡£
-** ¶ÔÓÚX IN (...)ĞÎÊ½µÄÔ¼Êø£¬Õâ¸ö³ÌĞò´´½¨Ò»¸öÑ­»·À´±éÀúXµÄËùÓĞÖµ¡£
+** å¯¹äºä¸€ä¸ªå½¢å¼ä¸ºX=exprçš„çº¦æŸï¼Œè®¡ç®—è¡¨è¾¾å¼å¹¶ä¸”åœ¨å †æ ˆä¸­å­˜å‚¨å®ƒçš„ç»“æœã€‚
+** å¯¹äºX IN (...)å½¢å¼çš„çº¦æŸï¼Œè¿™ä¸ªç¨‹åºåˆ›å»ºä¸€ä¸ªå¾ªç¯æ¥éå†Xçš„æ‰€æœ‰å€¼ã€‚
 */
 static int codeEqualityTerm(
-  Parse *pParse,      /* The parsing context ·ÖÎöÉÏÏÂÎÄ */
-  WhereTerm *pTerm,   /* The term of the WHERE clause to be coded ĞèÒª±àÂëµÄWHERE×Ó¾äµÄterm */
-  WhereLevel *pLevel, /* When level of the FROM clause we are working on FROM×Ó¾äµÄµÈ¼¶ */
-  int iTarget         /* Attempt to leave results in this register ³¢ÊÔÔÚÕâ¸ö¼Ä´æÆ÷ÖĞ´æ´¢½á¹û */
+  Parse *pParse,      /* The parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  WhereTerm *pTerm,   /* The term of the WHERE clause to be coded éœ€è¦ç¼–ç çš„WHEREå­å¥çš„term */
+  WhereLevel *pLevel, /* When level of the FROM clause we are working on FROMå­å¥çš„ç­‰çº§ */
+  int iTarget         /* Attempt to leave results in this register å°è¯•åœ¨è¿™ä¸ªå¯„å­˜å™¨ä¸­å­˜å‚¨ç»“æœ */
 ){
   Expr *pX = pTerm->pExpr;
   Vdbe *v = pParse->pVdbe;
-  int iReg;                  /* Register holding results ¼Ä´æÆ÷±£´æ½á¹û */
+  int iReg;                  /* Register holding results å¯„å­˜å™¨ä¿å­˜ç»“æœ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
   assert( iTarget>0 );
@@ -5220,10 +5220,10 @@ static int codeEqualityTerm(
 ** Generate code that will evaluate all == and IN constraints for an
 ** index.
 <<<<<<< HEAD
-**Éú³ÉµÄ´úÂë½«ÆÀ¹ÀËùÓĞ= =ºÍIIN ¶ÔÓÚÒ»¸öË÷Òı
+**ç”Ÿæˆçš„ä»£ç å°†è¯„ä¼°æ‰€æœ‰= =å’ŒIIN å¯¹äºä¸€ä¸ªç´¢å¼•
 =======
 **
-** ÎªÒ»¸öË÷ÒıÉú³ÉÒ»¸öÆÀ¼ÛËùÓĞ==ºÍINÔ¼ÊøµÄ´úÂë¡£
+** ä¸ºä¸€ä¸ªç´¢å¼•ç”Ÿæˆä¸€ä¸ªè¯„ä»·æ‰€æœ‰==å’ŒINçº¦æŸçš„ä»£ç ã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** For example, consider table t1(a,b,c,d,e,f) with index i1(a,b,c).
@@ -5234,18 +5234,18 @@ static int codeEqualityTerm(
 ** a==5 and b IN (1,2,3).  The current values for a and b will be stored
 ** in consecutive registers and the index of the first register is returned.
 <<<<<<< HEAD
-**ÀıÈç£¬¿¼ÂÇ´øÓĞË÷Òı i1(a,b,c)µÄ±ít1(a,b,c,d,e,f)
-¼ÙÉèwhere×Ó¾äÊÇ£º a==5 AND b IN (1,2,3) AND c>5 AND c<10
-Õâ¸öË÷ÒıÓĞ3¸öµÈÊ½Ô¼Êø¡£µ«ÊÇÔÚÕâÀïÀı×ÓÖĞ¡£µÚÈı¸ö¡°c¡±µÄÖµÊÇ²»µÈ¡£
-ËùÒÔÖ»ÓĞÁ½¸öµÈÊ½Ô¼Êø±»±àÒë¡£
-ÕâÍ¬ÑùÊÊÓÃÓÚ±àÒëa==5 and b IN (1,2,3)Ä¿Ç°Öµ¶ÔÓÚaºÍb´æ´¢ÔÚÁ¬ĞøµÄ¼Ä´æÆ÷ÖĞ£¬
-¶øÇÒµÚÒ»¸öË÷ÒıÖµ±»·µ»Ø¡£
+**ä¾‹å¦‚ï¼Œè€ƒè™‘å¸¦æœ‰ç´¢å¼• i1(a,b,c)çš„è¡¨t1(a,b,c,d,e,f)
+å‡è®¾whereå­å¥æ˜¯ï¼š a==5 AND b IN (1,2,3) AND c>5 AND c<10
+è¿™ä¸ªç´¢å¼•æœ‰3ä¸ªç­‰å¼çº¦æŸã€‚ä½†æ˜¯åœ¨è¿™é‡Œä¾‹å­ä¸­ã€‚ç¬¬ä¸‰ä¸ªâ€œcâ€çš„å€¼æ˜¯ä¸ç­‰ã€‚
+æ‰€ä»¥åªæœ‰ä¸¤ä¸ªç­‰å¼çº¦æŸè¢«ç¼–è¯‘ã€‚
+è¿™åŒæ ·é€‚ç”¨äºç¼–è¯‘a==5 and b IN (1,2,3)ç›®å‰å€¼å¯¹äºaå’Œbå­˜å‚¨åœ¨è¿ç»­çš„å¯„å­˜å™¨ä¸­ï¼Œ
+è€Œä¸”ç¬¬ä¸€ä¸ªç´¢å¼•å€¼è¢«è¿”å›ã€‚
 =======
 **
-** ÀıÈç£¬¿¼ÂÇÒ»¸öÓĞË÷Òıi1(a,b,c)µÄ±ít1(a,b,c,d,e,f).
-** ¼ÙÉèWHERE×Ó¾äÊÇÕâÑùµÄ:a==5 AND b IN (1,2,3) AND c>5 AND c<10¡£
-** Ë÷ÒıÓĞ3¸öµÈÊ½Ô¼Êø£¬µ«ÊÇÔÚÕâ¸öÀı×ÓÖĞ£¬µÚÈı¸öÖµ"c"ÊÇÒ»¸ö²»µÈÊ½Ô¼Êø¡£ËùÒÔÖ»»áÓĞÁ½¸öÔ¼Êø±»±àÂë¡£
-** Õâ¸ö³ÌĞò½«Éú³É¼ÆËãa==5ºÍb IN (1,2,3)µÄ´úÂë¡£µ±Ç°aºÍbµÄÖµ½«±»´æ´¢ÔÚÁ¬ĞøµÄ¼Ä´æÆ÷ÖĞ²¢ÇÒ·µ»ØµÚÒ»¸ö¼Ä´æÆ÷µÄÖ¸Õë¡£
+** ä¾‹å¦‚ï¼Œè€ƒè™‘ä¸€ä¸ªæœ‰ç´¢å¼•i1(a,b,c)çš„è¡¨t1(a,b,c,d,e,f).
+** å‡è®¾WHEREå­å¥æ˜¯è¿™æ ·çš„:a==5 AND b IN (1,2,3) AND c>5 AND c<10ã€‚
+** ç´¢å¼•æœ‰3ä¸ªç­‰å¼çº¦æŸï¼Œä½†æ˜¯åœ¨è¿™ä¸ªä¾‹å­ä¸­ï¼Œç¬¬ä¸‰ä¸ªå€¼"c"æ˜¯ä¸€ä¸ªä¸ç­‰å¼çº¦æŸã€‚æ‰€ä»¥åªä¼šæœ‰ä¸¤ä¸ªçº¦æŸè¢«ç¼–ç ã€‚
+** è¿™ä¸ªç¨‹åºå°†ç”Ÿæˆè®¡ç®—a==5å’Œb IN (1,2,3)çš„ä»£ç ã€‚å½“å‰aå’Œbçš„å€¼å°†è¢«å­˜å‚¨åœ¨è¿ç»­çš„å¯„å­˜å™¨ä¸­å¹¶ä¸”è¿”å›ç¬¬ä¸€ä¸ªå¯„å­˜å™¨çš„æŒ‡é’ˆã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** In the example above nEq==2.  But this subroutine works for any value
@@ -5253,13 +5253,13 @@ static int codeEqualityTerm(
 ** The only thing it does is allocate the pLevel->iMem memory cell and
 ** compute the affinity string.
 <<<<<<< HEAD
-**ÔÚÉÏÃæÊ¾ÀıÖĞnEq==2.µ«ÊÇÕâ¸ö×Ó³ÌĞòÊÊºÏÓÚÈÎºÎnEqÖµ£¬°üº¬0¡£
-Èç¹ûnEq==0£¬Õâ¸ö³ÌĞò¼¸ºõÊÇÎŞ²Ù×÷¡£
-ËüµÄÎ¨Ò»µÄ²Ù×÷¾ÍÊÇ·ÖÅäpLevel - > iMemµÄ´æ´¢µ¥ÔªºÍ¼ÆËã¹ØÁªµÄ×Ö·û´®
+**åœ¨ä¸Šé¢ç¤ºä¾‹ä¸­nEq==2.ä½†æ˜¯è¿™ä¸ªå­ç¨‹åºé€‚åˆäºä»»ä½•nEqå€¼ï¼ŒåŒ…å«0ã€‚
+å¦‚æœnEq==0ï¼Œè¿™ä¸ªç¨‹åºå‡ ä¹æ˜¯æ— æ“ä½œã€‚
+å®ƒçš„å”¯ä¸€çš„æ“ä½œå°±æ˜¯åˆ†é…pLevel - > iMemçš„å­˜å‚¨å•å…ƒå’Œè®¡ç®—å…³è”çš„å­—ç¬¦ä¸²
 =======
 **
-** ÔÚÉÏÃæµÄÀı×ÓÖĞnEq==2.µ«Õâ¸ö×Ó³ÌĞòÎªnEqËùÓĞÖµ¹¤×÷(°üÀ¨0).Èç¹ûnEq==0,Õâ¸ö³ÌĞò²î²»¶àÊÇÒ»¸ö¿Õ²Ù×÷¡£
-** ËüÖ»»áÎªpLevel->iMem·ÖÅä´æ´¢µ¥ÔªºÍ¼ÆËãÇ×ºÍ×Ö·û´®
+** åœ¨ä¸Šé¢çš„ä¾‹å­ä¸­nEq==2.ä½†è¿™ä¸ªå­ç¨‹åºä¸ºnEqæ‰€æœ‰å€¼å·¥ä½œ(åŒ…æ‹¬0).å¦‚æœnEq==0,è¿™ä¸ªç¨‹åºå·®ä¸å¤šæ˜¯ä¸€ä¸ªç©ºæ“ä½œã€‚
+** å®ƒåªä¼šä¸ºpLevel->iMemåˆ†é…å­˜å‚¨å•å…ƒå’Œè®¡ç®—äº²å’Œå­—ç¬¦ä¸²
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** This routine always allocates at least one memory cell and returns
@@ -5269,14 +5269,14 @@ static int codeEqualityTerm(
 ** this routine allocates an additional nEq memory cells for internal
 ** use.
 <<<<<<< HEAD
-**Õâ¸öÊ¾Àı×ÜÊÇÖÁÉÙ·ÖÅäÒ»¸ö´æ´¢µ¥Ôª²¢·µ»ØË÷ÒıµÄ´æ´¢µ¥Ôª¡£
-Õâ¸ö±àÒë½Ğ×öµ÷ÓÃÕâ¸öÀı³ÌµÄ´úÂë½«Ê¹ÓÃ¸Ã´æ´¢µ¥Ôª´æ´¢ÖÕÖ¹Ñ­»·µÄ¼üÖµ¡£
-Èç¹ûÒ»¸ö»ò¶à¸öIN ²Ù×÷³öÏÖ,ÄÇÃ´Õâ¸öÀı³Ì·ÖÅä¶îÍânEq´æ´¢µ¥Ôª¹©ÄÚ²¿Ê¹ÓÃ¡£
+**è¿™ä¸ªç¤ºä¾‹æ€»æ˜¯è‡³å°‘åˆ†é…ä¸€ä¸ªå­˜å‚¨å•å…ƒå¹¶è¿”å›ç´¢å¼•çš„å­˜å‚¨å•å…ƒã€‚
+è¿™ä¸ªç¼–è¯‘å«åšè°ƒç”¨è¿™ä¸ªä¾‹ç¨‹çš„ä»£ç å°†ä½¿ç”¨è¯¥å­˜å‚¨å•å…ƒå­˜å‚¨ç»ˆæ­¢å¾ªç¯çš„é”®å€¼ã€‚
+å¦‚æœä¸€ä¸ªæˆ–å¤šä¸ªIN æ“ä½œå‡ºç°,é‚£ä¹ˆè¿™ä¸ªä¾‹ç¨‹åˆ†é…é¢å¤–nEqå­˜å‚¨å•å…ƒä¾›å†…éƒ¨ä½¿ç”¨ã€‚
 =======
 **
-** Õâ¸ö³ÌĞò×ÜÊÇ·ÖÅäÖÁÉÙÒ»¸öÄÚ´æµ¥ÔªºÍ·µ»ØÄÚ´æµ¥ÔªµÄµØÖ·¡£
-** ±àÂëµ÷ÓÃÕâ¸ö³ÌĞò½«Ê¹ÓÃÄÚ´æµ¥ÔªÀ´´æ´¢Ñ­»·ÖÕ¶ËµÄ¹Ø¼üÖµ¡£
-** Èç¹û³öÏÖÒ»¸ö»ò¶à¸öIN²Ù×÷·û£¬ÄÇÃ´Õâ¸ö³ÌĞò·ÇÅäÒ»¸ö¸½¼ÓµÄnEqÄÚ´æµ¥Ôª¹©ÄÚ²¿Ê¹ÓÃ¡£
+** è¿™ä¸ªç¨‹åºæ€»æ˜¯åˆ†é…è‡³å°‘ä¸€ä¸ªå†…å­˜å•å…ƒå’Œè¿”å›å†…å­˜å•å…ƒçš„åœ°å€ã€‚
+** ç¼–ç è°ƒç”¨è¿™ä¸ªç¨‹åºå°†ä½¿ç”¨å†…å­˜å•å…ƒæ¥å­˜å‚¨å¾ªç¯ç»ˆç«¯çš„å…³é”®å€¼ã€‚
+** å¦‚æœå‡ºç°ä¸€ä¸ªæˆ–å¤šä¸ªINæ“ä½œç¬¦ï¼Œé‚£ä¹ˆè¿™ä¸ªç¨‹åºéé…ä¸€ä¸ªé™„åŠ çš„nEqå†…å­˜å•å…ƒä¾›å†…éƒ¨ä½¿ç”¨ã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** Before returning, *pzAff is set to point to a buffer containing a
@@ -5284,10 +5284,10 @@ static int codeEqualityTerm(
 ** sqlite3DbMalloc(). Except, entries in the copy of the string associated
 ** with equality constraints that use NONE affinity are set to
 ** SQLITE_AFF_NONE. This is to deal with SQL such as the following:
-**ÔÚ·µ»ØÇ°£¬* pzAffÉèÖÃÎªÖ¸Ïò»º³åÇø°üº¬Ë÷ÒıµÄ
-ÁĞ¹ØÁªµÄ×Ö·û´®µÄ¸±±¾£¬·ÖÅäÊ¹ÓÃsqlite3DbMalloc()¡£
-³ıÁËÌõÄ¿Ïà¹ØÁªµÄ×Ö·û´®µÄ¸±±¾¾ßÓĞµÈÊ½Ô¼Êø£¬ÕâÀïÊ¹ÓÃ½«SQLITE_AFF_NONE±íÊ¾Ã»¹ØÁª¡£
-ÕâÊÇSQL´¦ÀíÈçÒÔÏÂ:
+**åœ¨è¿”å›å‰ï¼Œ* pzAffè®¾ç½®ä¸ºæŒ‡å‘ç¼“å†²åŒºåŒ…å«ç´¢å¼•çš„
+åˆ—å…³è”çš„å­—ç¬¦ä¸²çš„å‰¯æœ¬ï¼Œåˆ†é…ä½¿ç”¨sqlite3DbMalloc()ã€‚
+é™¤äº†æ¡ç›®ç›¸å…³è”çš„å­—ç¬¦ä¸²çš„å‰¯æœ¬å…·æœ‰ç­‰å¼çº¦æŸï¼Œè¿™é‡Œä½¿ç”¨å°†SQLITE_AFF_NONEè¡¨ç¤ºæ²¡å…³è”ã€‚
+è¿™æ˜¯SQLå¤„ç†å¦‚ä»¥ä¸‹:
 **   CREATE TABLE t1(a TEXT PRIMARY KEY, b);
 **   SELECT ... FROM t1 AS t2, t1 WHERE t1.a = t2.b;
 **
@@ -5297,70 +5297,70 @@ static int codeEqualityTerm(
 ** a key to search the index. Hence the first byte in the returned affinity
 ** string in this example would be set to SQLITE_AFF_NONE.
 <<<<<<< HEAD
-ÔÚÉÏÃæµÄÀı×ÓÖĞ¡£±ít1(a)ÓĞÒ»¸öTEXTË÷Òı¡£µ«ÊÇÒòÎªµÈÊ½ÓÒ±ßt2.bÃ»ÓĞ¹ØÁª¡£
-ÔÚÊ¹ÓÃt2.bÖµ×÷ÎªËÑË÷Ë÷ÒıµÄ¹Ø¼üµÄÒ»²¿·Ö£¬Ã»ÓĞ×ª»»Ó¦¸Ã³¢ÊÔ¡£
-Òò´ËÔÚÕâ¸öÀı×Ó£¬·µ»Ø×Ö·û´®ÖĞµÚÒ»¸ö×Ö½Ú½«»áÉèÖÃÎªSQLITE_AFF_NONE¡£
+åœ¨ä¸Šé¢çš„ä¾‹å­ä¸­ã€‚è¡¨t1(a)æœ‰ä¸€ä¸ªTEXTç´¢å¼•ã€‚ä½†æ˜¯å› ä¸ºç­‰å¼å³è¾¹t2.bæ²¡æœ‰å…³è”ã€‚
+åœ¨ä½¿ç”¨t2.bå€¼ä½œä¸ºæœç´¢ç´¢å¼•çš„å…³é”®çš„ä¸€éƒ¨åˆ†ï¼Œæ²¡æœ‰è½¬æ¢åº”è¯¥å°è¯•ã€‚
+å› æ­¤åœ¨è¿™ä¸ªä¾‹å­ï¼Œè¿”å›å­—ç¬¦ä¸²ä¸­ç¬¬ä¸€ä¸ªå­—èŠ‚å°†ä¼šè®¾ç½®ä¸ºSQLITE_AFF_NONEã€‚
 */
 static int codeAllEqualityTerms(
-  Parse *pParse,        /* ½âÎöÉÏÏÂÎÄ */
-  WhereLevel *pLevel,   /*±àÒëFROMÇ¶Ì×Ñ­»· */
-  WhereClause *pWC,     /* where×Ó¾ä*/
-  Bitmask notReady,     /* ²¿·ÖFROMÃ»ÓĞ±àÒë */
-  int nExtraReg,        /* ·ÖÅä´óÁ¿¶îÍâµÄ¼Ä´æÆ÷ */
-  char **pzAff          /*ÉèÖÃÎªÖ¸Ïò¹ØÁªµÄ×Ö·û´® */
+  Parse *pParse,        /* è§£æä¸Šä¸‹æ–‡ */
+  WhereLevel *pLevel,   /*ç¼–è¯‘FROMåµŒå¥—å¾ªç¯ */
+  WhereClause *pWC,     /* whereå­å¥*/
+  Bitmask notReady,     /* éƒ¨åˆ†FROMæ²¡æœ‰ç¼–è¯‘ */
+  int nExtraReg,        /* åˆ†é…å¤§é‡é¢å¤–çš„å¯„å­˜å™¨ */
+  char **pzAff          /*è®¾ç½®ä¸ºæŒ‡å‘å…³è”çš„å­—ç¬¦ä¸² */
 ){
-  int nEq = pLevel->plan.nEq;   /* ±àÂë º¬ÓĞ== »òÕß INÔ¼ÊøµÄ×Ó¾ä */
-  Vdbe *v = pParse->pVdbe;      /*½¨Á¢vm */
-  Index *pIdx;                  /* Ë÷Òı±»ÓÃÓÚÕâ¸öÑ­»·*/
-  int iCur = pLevel->iTabCur;   /* ±íµÄÓÎ±ê */
-  WhereTerm *pTerm;             /* Ò»¸ö¼òµ¥µÄÔ¼Êø²éÑ¯ */
-  int j;                        /* Ñ­»·¼ÆÊıÆ÷ */
-  int regBase;                  /* »ùÖ·¼Ä´æÆ÷*/
-  int nReg;                     /* ·ÖÅä¼Ä´æÆ÷ÊıÄ¿ */
-  char *zAff;                   /* ·µ»Ø¹ØÁª×Ö·û´® */
+  int nEq = pLevel->plan.nEq;   /* ç¼–ç  å«æœ‰== æˆ–è€… INçº¦æŸçš„å­å¥ */
+  Vdbe *v = pParse->pVdbe;      /*å»ºç«‹vm */
+  Index *pIdx;                  /* ç´¢å¼•è¢«ç”¨äºè¿™ä¸ªå¾ªç¯*/
+  int iCur = pLevel->iTabCur;   /* è¡¨çš„æ¸¸æ ‡ */
+  WhereTerm *pTerm;             /* ä¸€ä¸ªç®€å•çš„çº¦æŸæŸ¥è¯¢ */
+  int j;                        /* å¾ªç¯è®¡æ•°å™¨ */
+  int regBase;                  /* åŸºå€å¯„å­˜å™¨*/
+  int nReg;                     /* åˆ†é…å¯„å­˜å™¨æ•°ç›® */
+  char *zAff;                   /* è¿”å›å…³è”å­—ç¬¦ä¸² */
 
   /* This module is only called on query plans that use an index. 
-  Õâ¸öÄ£¿éÖ»ÊÇÓÃÓÚÊ¹ÓÃË÷ÒıµÄ²éÑ¯¼Æ»®¡£
+  è¿™ä¸ªæ¨¡å—åªæ˜¯ç”¨äºä½¿ç”¨ç´¢å¼•çš„æŸ¥è¯¢è®¡åˆ’ã€‚
   */
 =======
 **
-** ÔÚ·µ»ØÇ°£¬ÉèÖÃ*pzAffÖ¸ÏòÒ»¸öÊ¹ÓÃsqlite3DbMalloc()·ÖÅäµÄ°üº¬Ë÷ÒıµÄÁĞÇ×ºÍ×Ö·û´®µÄ¸±±¾µÄ»º³åÇø¡£
-** ÔÚÓëµÈÊ½Ô¼ÊøÏà¹ØµÄstringµÄ¸±±¾ÖĞµÄÌõÄ¿Ê¹ÓÃÎŞÇ×ºÍĞÔ±»ÉèÖÃÎªSQLITE_AFF_NONE.
-** ÏÂÃæÕâÑù´¦ÀíSQL:
+** åœ¨è¿”å›å‰ï¼Œè®¾ç½®*pzAffæŒ‡å‘ä¸€ä¸ªä½¿ç”¨sqlite3DbMalloc()åˆ†é…çš„åŒ…å«ç´¢å¼•çš„åˆ—äº²å’Œå­—ç¬¦ä¸²çš„å‰¯æœ¬çš„ç¼“å†²åŒºã€‚
+** åœ¨ä¸ç­‰å¼çº¦æŸç›¸å…³çš„stringçš„å‰¯æœ¬ä¸­çš„æ¡ç›®ä½¿ç”¨æ— äº²å’Œæ€§è¢«è®¾ç½®ä¸ºSQLITE_AFF_NONE.
+** ä¸‹é¢è¿™æ ·å¤„ç†SQL:
 **   CREATE TABLE t1(a TEXT PRIMARY KEY, b);
 **   SELECT ... FROM t1 AS t2, t1 WHERE t1.a = t2.b;
-** ÔÚÉÏÃæµÄÀı×ÓÖĞ£¬ÔÚt1(a)ÉÏµÄË÷ÒıÓĞTEXTÇ×ºÍĞÔ¡£µ«ÊÇÓÉÓÚµÈÊ½Ô¼ÊøµÄÓÒ±ß(t2.b)Ã»ÓĞÇ×ºÍĞÔ,
-** ÔÚÊ¹ÓÃÒ»¸öt2.b×ùÎ»Ò»¸öËÑË÷Ë÷Òı¹Ø¼üµÄÒ»²¿·ÖÖ®Ç°£¬³¢ÊÔ²»¶ÔµÈÊ½Ô¼Êø½øĞĞ×ª»»¡£
-** ÒòÎªÔÚÕâ¸öÀı×ÓÖĞ·µ»ØµÄÇ×ºÍ×Ö·û´®µÄµÚÒ»¸ö×Ö½Ú½«±»ÉèÎªSQLITE_AFF_NONE.
+** åœ¨ä¸Šé¢çš„ä¾‹å­ä¸­ï¼Œåœ¨t1(a)ä¸Šçš„ç´¢å¼•æœ‰TEXTäº²å’Œæ€§ã€‚ä½†æ˜¯ç”±äºç­‰å¼çº¦æŸçš„å³è¾¹(t2.b)æ²¡æœ‰äº²å’Œæ€§,
+** åœ¨ä½¿ç”¨ä¸€ä¸ªt2.båº§ä½ä¸€ä¸ªæœç´¢ç´¢å¼•å…³é”®çš„ä¸€éƒ¨åˆ†ä¹‹å‰ï¼Œå°è¯•ä¸å¯¹ç­‰å¼çº¦æŸè¿›è¡Œè½¬æ¢ã€‚
+** å› ä¸ºåœ¨è¿™ä¸ªä¾‹å­ä¸­è¿”å›çš„äº²å’Œå­—ç¬¦ä¸²çš„ç¬¬ä¸€ä¸ªå­—èŠ‚å°†è¢«è®¾ä¸ºSQLITE_AFF_NONE.
 */
 static int codeAllEqualityTerms(
-  Parse *pParse,        /* Parsing context ·ÖÎöÉÏÏÂÎÄ */
-  WhereLevel *pLevel,   /* Which nested loop of the FROM we are coding ÎÒÃÇ¶ÔFROMµÄÇ¶Ì×Ñ­»·½øĞĞ±àÂë */
-  WhereClause *pWC,     /* The WHERE clause WHERE×Ó¾ä */
-  Bitmask notReady,     /* Which parts of FROM have not yet been coded FROMÖĞ»¹Î´±àÂëµÄ²¿·Ö */
-  int nExtraReg,        /* Number of extra registers to allocate ĞèÒª¶îÍâ·ÖÅäµÄ¼Ä´æÆ÷Êı */
-  char **pzAff          /* OUT: Set to point to affinity string ÉèÖÃÖ¸ÏòÇ×ºÍ×Ö·û´® */
+  Parse *pParse,        /* Parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  WhereLevel *pLevel,   /* Which nested loop of the FROM we are coding æˆ‘ä»¬å¯¹FROMçš„åµŒå¥—å¾ªç¯è¿›è¡Œç¼–ç  */
+  WhereClause *pWC,     /* The WHERE clause WHEREå­å¥ */
+  Bitmask notReady,     /* Which parts of FROM have not yet been coded FROMä¸­è¿˜æœªç¼–ç çš„éƒ¨åˆ† */
+  int nExtraReg,        /* Number of extra registers to allocate éœ€è¦é¢å¤–åˆ†é…çš„å¯„å­˜å™¨æ•° */
+  char **pzAff          /* OUT: Set to point to affinity string è®¾ç½®æŒ‡å‘äº²å’Œå­—ç¬¦ä¸² */
 ){
-  int nEq = pLevel->plan.nEq;   /* The number of == or IN constraints to code Ğè±àÂëµÄ==»òINÔ¼ÊøÊı */
-  Vdbe *v = pParse->pVdbe;      /* The vm under construction ÕıÔÚ´´½¨µÄVM */
-  Index *pIdx;                  /* The index being used for this loop ÓÃÓÚÕâ¸öÑ­»·µÄË÷Òı */
-  int iCur = pLevel->iTabCur;   /* The cursor of the table ±íÓÎ±ê */
-  WhereTerm *pTerm;             /* A single constraint term Ò»¸öµ¥¶ÀµÄÔ¼Êøterm */
-  int j;                        /* Loop counter Ñ­»·¼ÆÊıÆ÷ */
-  int regBase;                  /* Base register »ùÖ·¼Ä´æÆ÷ */
-  int nReg;                     /* Number of registers to allocate ÓÃÓÚ·ÖÅäµÄ¼Ä´æÆ÷Êı */
-  char *zAff;                   /* Affinity string to return ·µ»ØµÄÇ×ºÍ×Ö·û´® */
+  int nEq = pLevel->plan.nEq;   /* The number of == or IN constraints to code éœ€ç¼–ç çš„==æˆ–INçº¦æŸæ•° */
+  Vdbe *v = pParse->pVdbe;      /* The vm under construction æ­£åœ¨åˆ›å»ºçš„VM */
+  Index *pIdx;                  /* The index being used for this loop ç”¨äºè¿™ä¸ªå¾ªç¯çš„ç´¢å¼• */
+  int iCur = pLevel->iTabCur;   /* The cursor of the table è¡¨æ¸¸æ ‡ */
+  WhereTerm *pTerm;             /* A single constraint term ä¸€ä¸ªå•ç‹¬çš„çº¦æŸterm */
+  int j;                        /* Loop counter å¾ªç¯è®¡æ•°å™¨ */
+  int regBase;                  /* Base register åŸºå€å¯„å­˜å™¨ */
+  int nReg;                     /* Number of registers to allocate ç”¨äºåˆ†é…çš„å¯„å­˜å™¨æ•° */
+  char *zAff;                   /* Affinity string to return è¿”å›çš„äº²å’Œå­—ç¬¦ä¸² */
 
-  /* This module is only called on query plans that use an index. Õâ¸öÄ£¿éÖ»ÊÇÔÚ²éÑ¯¼Æ»®Ê¹ÓÃË÷ÒıÊ±±»µ÷ÓÃ */
+  /* This module is only called on query plans that use an index. è¿™ä¸ªæ¨¡å—åªæ˜¯åœ¨æŸ¥è¯¢è®¡åˆ’ä½¿ç”¨ç´¢å¼•æ—¶è¢«è°ƒç”¨ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   assert( pLevel->plan.wsFlags & WHERE_INDEXED );
   pIdx = pLevel->plan.u.pIdx;
 
   /* Figure out how many memory cells we will need then allocate them.
 <<<<<<< HEAD
-  ÕÒ³öÎÒÃÇĞèÒª¶àÉÙ´æ´¢µ¥ÔªÈ»ºó·ÖÅäËüÃÇ
+  æ‰¾å‡ºæˆ‘ä»¬éœ€è¦å¤šå°‘å­˜å‚¨å•å…ƒç„¶ååˆ†é…å®ƒä»¬
 =======
-  ** ½â¾öÎÒÃÇĞèÒª·ÖÅä¶àÉÙÄÚ´æµ¥Ôª
+  ** è§£å†³æˆ‘ä»¬éœ€è¦åˆ†é…å¤šå°‘å†…å­˜å•å…ƒ
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   regBase = pParse->nMem + 1;
@@ -5374,9 +5374,9 @@ static int codeAllEqualityTerms(
 
   /* Evaluate the equality constraints
 <<<<<<< HEAD
-  ¼ÆËãÆ½µÈÔ¼Êø
+  è®¡ç®—å¹³ç­‰çº¦æŸ
 =======
-  ** ¼ÆËãµÈÊ½Ô¼Êø
+  ** è®¡ç®—ç­‰å¼çº¦æŸ
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   assert( pIdx->nColumn>=nEq );
@@ -5387,11 +5387,11 @@ static int codeAllEqualityTerms(
     if( pTerm==0 ) break;
     /* The following true for indices with redundant columns. 
 <<<<<<< HEAD
-    ÒÔÏÂÊÊÓÃÓÚË÷ÒıºÍÈßÓàÁĞ¡£
+    ä»¥ä¸‹é€‚ç”¨äºç´¢å¼•å’Œå†—ä½™åˆ—ã€‚
 =======
     ** Ex: CREATE INDEX i1 ON t1(a,b,a); SELECT * FROM t1 WHERE a=0 AND b=0; 
     **
-    ** ¶ÔÓÚÓĞÈßÓàµÄÁĞµÄË÷ÒıÀ´Ëµ£¬ÏÂÃæÊÇÕıÈ·µÄ¡£
+    ** å¯¹äºæœ‰å†—ä½™çš„åˆ—çš„ç´¢å¼•æ¥è¯´ï¼Œä¸‹é¢æ˜¯æ­£ç¡®çš„ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Ex: CREATE INDEX i1 ON t1(a,b,a); SELECT * FROM t1 WHERE a=0 AND b=0; 
     */
@@ -5429,10 +5429,10 @@ static int codeAllEqualityTerms(
 /*
 ** This routine is a helper for explainIndexRange() below
 <<<<<<< HEAD
-**ÏÂÃæµÄÀı×ÓÊÇ explainIndexRange()µÄ°ïÖú
+**ä¸‹é¢çš„ä¾‹å­æ˜¯ explainIndexRange()çš„å¸®åŠ©
 =======
 **
-** Õâ¸ö³ÌĞò¸¨ÖúexplainIndexRange()
+** è¿™ä¸ªç¨‹åºè¾…åŠ©explainIndexRange()
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** pStr holds the text of an expression that we are building up one term
@@ -5440,25 +5440,25 @@ static int codeAllEqualityTerms(
 ** Terms are separated by AND so add the "AND" text for second and subsequent
 ** terms only.
 <<<<<<< HEAD
-pStr³ÖÓĞÒ»¸ö±í´ïÊ½µÄÎÄ±¾,ÎÒÃÇÕıÔÚ½¨Á¢Ò»¸ö²éÑ¯¡£
-Õâ¸öÀı³ÌÌí¼ÓÒ»¸öĞÂÊõÓïµÄ±í´ï¡£
-²éÑ¯ÊÇ±»AND¸ô¿ª,ËùÒÔÌí¼Ó¡±AND¡°ÎÄ±¾½ö¹©µÚ¶şºÍËæºóµÄ²éÑ¯
+pStræŒæœ‰ä¸€ä¸ªè¡¨è¾¾å¼çš„æ–‡æœ¬,æˆ‘ä»¬æ­£åœ¨å»ºç«‹ä¸€ä¸ªæŸ¥è¯¢ã€‚
+è¿™ä¸ªä¾‹ç¨‹æ·»åŠ ä¸€ä¸ªæ–°æœ¯è¯­çš„è¡¨è¾¾ã€‚
+æŸ¥è¯¢æ˜¯è¢«ANDéš”å¼€,æ‰€ä»¥æ·»åŠ â€ANDâ€œæ–‡æœ¬ä»…ä¾›ç¬¬äºŒå’Œéšåçš„æŸ¥è¯¢
 */
 static void explainAppendTerm(
-  StrAccum *pStr,             /* ½¨Á¢ÎÄ±¾±í´ï */
-  int iTerm,                  /*Õâ¸öÀı³ÌµÄË÷Òı¡£´Ó0¿ªÊ¼ */
-  const char *zColumn,        /* ÁĞÃû */
-  const char *zOp             /* ²Ù×÷Ãû */
+  StrAccum *pStr,             /* å»ºç«‹æ–‡æœ¬è¡¨è¾¾ */
+  int iTerm,                  /*è¿™ä¸ªä¾‹ç¨‹çš„ç´¢å¼•ã€‚ä»0å¼€å§‹ */
+  const char *zColumn,        /* åˆ—å */
+  const char *zOp             /* æ“ä½œå */
 =======
 **
-** µ±ÎÒÃÇÃ¿´Î¹¹½¨Ò»¸ötermÊ±£¬ÓÃpStr±£´æ±í´ïÊ½µÄÄÚÈİ¡£Õâ¸ö³ÌĞòÔÚ±í´ïÊ½µÄ×îºóÔöÌíÒ»¸öĞÂµÄterm.
-** TermsÊÇ¸ù¾İAND·Ö¸ôµÄ£¬ËùÒÔÖ»ÎªµÚ¶ş¸öºÍËæºóµÄtermsÌí¼ÓÒ»¸ö"AND".
+** å½“æˆ‘ä»¬æ¯æ¬¡æ„å»ºä¸€ä¸ªtermæ—¶ï¼Œç”¨pSträ¿å­˜è¡¨è¾¾å¼çš„å†…å®¹ã€‚è¿™ä¸ªç¨‹åºåœ¨è¡¨è¾¾å¼çš„æœ€åå¢æ·»ä¸€ä¸ªæ–°çš„term.
+** Termsæ˜¯æ ¹æ®ANDåˆ†éš”çš„ï¼Œæ‰€ä»¥åªä¸ºç¬¬äºŒä¸ªå’Œéšåçš„termsæ·»åŠ ä¸€ä¸ª"AND".
 */
 static void explainAppendTerm(
-  StrAccum *pStr,             /* The text expression being built ¹¹½¨µÄÎÄ±¾±í´ïÊ½ */
-  int iTerm,                  /* Index of this term.  First is zero Õâ¸ötermµÄÏÂ±ê£¬µÚÒ»¸öÊÇ0 */
-  const char *zColumn,        /* Name of the column ÁĞÃû */
-  const char *zOp             /* Name of the operator ²Ù×÷ÕßÃû */
+  StrAccum *pStr,             /* The text expression being built æ„å»ºçš„æ–‡æœ¬è¡¨è¾¾å¼ */
+  int iTerm,                  /* Index of this term.  First is zero è¿™ä¸ªtermçš„ä¸‹æ ‡ï¼Œç¬¬ä¸€ä¸ªæ˜¯0 */
+  const char *zColumn,        /* Name of the column åˆ—å */
+  const char *zOp             /* Name of the operator æ“ä½œè€…å */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
   if( iTerm ) sqlite3StrAccumAppend(pStr, " AND ", 5);
@@ -5473,14 +5473,14 @@ static void explainAppendTerm(
 ** of the subset of table rows scanned by the strategy in the form of an
 ** SQL expression. Or, if all rows are scanned, NULL is returned.
 <<<<<<< HEAD
-**²ÎÊıÉ¨Ãè±ípTab pLevelÃèÊöÕ½ÂÔ¡£
-Õâ¸öº¯Êı·µ»ØÒ»¸öÖ¸ÏòÒ»¸ö×Ö·û´®»º³åÇø,
-ÆäÖĞ°üº¬Ò»¸öÃèÊöµÄ×Ó¼¯µÄ±íĞĞÉ¨Ãè²ßÂÔµÄĞÎÊ½Ò»¸öSQL±í´ïÊ½
+**å‚æ•°æ‰«æè¡¨pTab pLevelæè¿°æˆ˜ç•¥ã€‚
+è¿™ä¸ªå‡½æ•°è¿”å›ä¸€ä¸ªæŒ‡å‘ä¸€ä¸ªå­—ç¬¦ä¸²ç¼“å†²åŒº,
+å…¶ä¸­åŒ…å«ä¸€ä¸ªæè¿°çš„å­é›†çš„è¡¨è¡Œæ‰«æç­–ç•¥çš„å½¢å¼ä¸€ä¸ªSQLè¡¨è¾¾å¼
 =======
 **
-** ²ÎÊıpLevelÃèÊöÒ»¸öÉ¨Ãè±ípTabµÄ²ßÂÔ¡£Õâ¸öº¯Êı·µ»ØÒ»¸öÖ¸Õë£¬Ö¸ÏòÒ»¸ö×Ö·û´®»º³åÇø¡£
-** ÆäÖĞ×Ö·û´®»º³åÇø°üº¬Ò»¸öÍ¨¹ıÒÔÒ»¸öSQL±í´ïÊ½ĞÎÊ½µÄ²ßÂÔÉ¨Ãè±íµÄĞĞµÄ×Ó¼¯µÄÃèÊö¡£
-** »òÕß£¬Èç¹ûÉ¨ÃèËùÓĞĞĞ£¬·µ»ØNULL.
+** å‚æ•°pLevelæè¿°ä¸€ä¸ªæ‰«æè¡¨pTabçš„ç­–ç•¥ã€‚è¿™ä¸ªå‡½æ•°è¿”å›ä¸€ä¸ªæŒ‡é’ˆï¼ŒæŒ‡å‘ä¸€ä¸ªå­—ç¬¦ä¸²ç¼“å†²åŒºã€‚
+** å…¶ä¸­å­—ç¬¦ä¸²ç¼“å†²åŒºåŒ…å«ä¸€ä¸ªé€šè¿‡ä»¥ä¸€ä¸ªSQLè¡¨è¾¾å¼å½¢å¼çš„ç­–ç•¥æ‰«æè¡¨çš„è¡Œçš„å­é›†çš„æè¿°ã€‚
+** æˆ–è€…ï¼Œå¦‚æœæ‰«ææ‰€æœ‰è¡Œï¼Œè¿”å›NULL.
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** For example, if the query:
@@ -5496,14 +5496,14 @@ static void explainAppendTerm(
 ** It is the responsibility of the caller to free the buffer when it is
 ** no longer required.
 <<<<<<< HEAD
-·µ»ØµÄÖ¸ÕëÖ¸ÏòµÄÄÚ´æ´Ósqlite3DbMalloc()»ñµÃ¡£
-µ÷ÓÃÕßµÄÔğÈÎÊÇ×ÔÓÉ»º³åÇøÊ±,Ëü²»ÔÙÊÇ±ØĞèµÄ
+è¿”å›çš„æŒ‡é’ˆæŒ‡å‘çš„å†…å­˜ä»sqlite3DbMalloc()è·å¾—ã€‚
+è°ƒç”¨è€…çš„è´£ä»»æ˜¯è‡ªç”±ç¼“å†²åŒºæ—¶,å®ƒä¸å†æ˜¯å¿…éœ€çš„
 =======
 **
-** ÀıÈç£¬Èç¹û²éÑ¯:
+** ä¾‹å¦‚ï¼Œå¦‚æœæŸ¥è¯¢:
 **   SELECT * FROM t1 WHERE a=1 AND b>2;
-** ÔËĞĞ²¢ÇÒÓĞÒ»¸öÔÚ(a, b)ÉÏµÄË÷Òı£¬ÄÇÃ´Õâ¸öº¯Êı·µ»ØÒ»¸öÀàËÆ"a=? AND b>?"µÄ×Ö·û´®¡£
-** ·µ»ØµÄÖ¸ÕëÖ¸Ïò´Ósqlite3DbMalloc()µÃµ½µÄÄÚ´æ¡£µ÷ÓÃÕßµÄÔğÈÎ¾ÍÊÇµ±Ëü²»ÔÙ±»ÇëÇóÊ±¾ÍÊÍ·Å»º³åÇø¡£
+** è¿è¡Œå¹¶ä¸”æœ‰ä¸€ä¸ªåœ¨(a, b)ä¸Šçš„ç´¢å¼•ï¼Œé‚£ä¹ˆè¿™ä¸ªå‡½æ•°è¿”å›ä¸€ä¸ªç±»ä¼¼"a=? AND b>?"çš„å­—ç¬¦ä¸²ã€‚
+** è¿”å›çš„æŒ‡é’ˆæŒ‡å‘ä»sqlite3DbMalloc()å¾—åˆ°çš„å†…å­˜ã€‚è°ƒç”¨è€…çš„è´£ä»»å°±æ˜¯å½“å®ƒä¸å†è¢«è¯·æ±‚æ—¶å°±é‡Šæ”¾ç¼“å†²åŒºã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
 static char *explainIndexRange(sqlite3 *db, WhereLevel *pLevel, Table *pTab){
@@ -5544,48 +5544,48 @@ static char *explainIndexRange(sqlite3 *db, WhereLevel *pLevel, Table *pTab){
 ** record is added to the output to describe the table scan strategy in 
 ** pLevel.
 <<<<<<< HEAD
-Õâ¸öº¯ÊıÊÇÎŞ²Ù×÷,³ı·ÇÄ¿Ç°´¦Àí½âÊÍ²éÑ¯¼Æ»®ÃüÁî¡£
-Èç¹û²éÑ¯±àÒëÊÇÒ»¸ö½âÊÍ²éÑ¯¼Æ»®,
-µ¥¸ö¼ÇÂ¼Ìí¼Óµ½Êä³öÓÃÓÚÃèÊö±íÉ¨Ãè²ßÂÔ
+è¿™ä¸ªå‡½æ•°æ˜¯æ— æ“ä½œ,é™¤éç›®å‰å¤„ç†è§£é‡ŠæŸ¥è¯¢è®¡åˆ’å‘½ä»¤ã€‚
+å¦‚æœæŸ¥è¯¢ç¼–è¯‘æ˜¯ä¸€ä¸ªè§£é‡ŠæŸ¥è¯¢è®¡åˆ’,
+å•ä¸ªè®°å½•æ·»åŠ åˆ°è¾“å‡ºç”¨äºæè¿°è¡¨æ‰«æç­–ç•¥
 */
 static void explainOneScan(
-  Parse *pParse,                  /* ½âÎöÉÏÏÂÎÄ*/
-  SrcList *pTabList,              /* Õâ¸öÑ­»·ÊÇ±íµÄÁĞÑ­»·*/
-  WhereLevel *pLevel,             /* É¨Ãè²¢Ğ´OP_Explain²Ù×÷Âë*/
-  int iLevel,                     /* ÖµµÃ¼ÇÂ¼Êä³ö */
-  int iFrom,                      /* ÖµµÃform¼¯Êä³ö */
-  u16 wctrlFlags                  /* sqlite3WhereBegin() µÄ±ê¼Ç*/
+  Parse *pParse,                  /* è§£æä¸Šä¸‹æ–‡*/
+  SrcList *pTabList,              /* è¿™ä¸ªå¾ªç¯æ˜¯è¡¨çš„åˆ—å¾ªç¯*/
+  WhereLevel *pLevel,             /* æ‰«æå¹¶å†™OP_Explainæ“ä½œç */
+  int iLevel,                     /* å€¼å¾—è®°å½•è¾“å‡º */
+  int iFrom,                      /* å€¼å¾—formé›†è¾“å‡º */
+  u16 wctrlFlags                  /* sqlite3WhereBegin() çš„æ ‡è®°*/
 =======
 **
-** Õâ¸öº¯ÊıÊÇÒ»¸ö¿Õ²Ù×÷£¬³ı·Çµ±Ç°Ö´ĞĞÒ»¸öEXPLAIN QUERY PLANÃüÁî¡£
-** Èç¹û¿ªÊ¼±àÒëµÄ²éÑ¯ÊÇÒ»¸öEXPLAIN QUERY PLAN£¬Êä³öÊÇ»áÌí¼ÓÒ»¸ö¼ÇÂ¼À´ÃèÊöÔÚpLevelÖĞµÄ±íÉ¨Ãè²ßÂÔ¡£
+** è¿™ä¸ªå‡½æ•°æ˜¯ä¸€ä¸ªç©ºæ“ä½œï¼Œé™¤éå½“å‰æ‰§è¡Œä¸€ä¸ªEXPLAIN QUERY PLANå‘½ä»¤ã€‚
+** å¦‚æœå¼€å§‹ç¼–è¯‘çš„æŸ¥è¯¢æ˜¯ä¸€ä¸ªEXPLAIN QUERY PLANï¼Œè¾“å‡ºæ˜¯ä¼šæ·»åŠ ä¸€ä¸ªè®°å½•æ¥æè¿°åœ¨pLevelä¸­çš„è¡¨æ‰«æç­–ç•¥ã€‚
 */
 static void explainOneScan(
-  Parse *pParse,                  /* Parse context ·ÖÎöÉÏÏÂÎÄ */
-  SrcList *pTabList,              /* Table list this loop refers to Õâ¸öÑ­»·ÒıÓÃµÄ±íÁĞ±í */
-  WhereLevel *pLevel,             /* Scan to write OP_Explain opcode for É¨ÃèĞ´ÈëµÄOP_Explain²Ù×÷Âë */
-  int iLevel,                     /* Value for "level" column of output Êä³öµÄ"level"ÁĞµÄÖµ */
-  int iFrom,                      /* Value for "from" column of output Êä³öµÄ"from"ÁĞµÄÖµ */
-  u16 wctrlFlags                  /* Flags passed to sqlite3WhereBegin() ´«¸øsqlite3WhereBegin()µÄ±êÖ¾ */
+  Parse *pParse,                  /* Parse context åˆ†æä¸Šä¸‹æ–‡ */
+  SrcList *pTabList,              /* Table list this loop refers to è¿™ä¸ªå¾ªç¯å¼•ç”¨çš„è¡¨åˆ—è¡¨ */
+  WhereLevel *pLevel,             /* Scan to write OP_Explain opcode for æ‰«æå†™å…¥çš„OP_Explainæ“ä½œç  */
+  int iLevel,                     /* Value for "level" column of output è¾“å‡ºçš„"level"åˆ—çš„å€¼ */
+  int iFrom,                      /* Value for "from" column of output è¾“å‡ºçš„"from"åˆ—çš„å€¼ */
+  u16 wctrlFlags                  /* Flags passed to sqlite3WhereBegin() ä¼ ç»™sqlite3WhereBegin()çš„æ ‡å¿— */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
   if( pParse->explain==2 ){
     u32 flags = pLevel->plan.wsFlags;
     struct SrcList_item *pItem = &pTabList->a[pLevel->iFrom];
 <<<<<<< HEAD
-    Vdbe *v = pParse->pVdbe;      /* ½¨Á¢VM  */
-    sqlite3 *db = pParse->db;     /* Êı¾İ¿â¾ä±ú */
-    char *zMsg;                   /* ÎÄ±¾Ìí¼Óµ½EQPÊä³ö */
-    sqlite3_int64 nRow;           /* Ô¤ÆÚµÄ·ÃÎÊÍ¨¹ıÉ¨ÃèµÄĞĞÊı */
+    Vdbe *v = pParse->pVdbe;      /* å»ºç«‹VM  */
+    sqlite3 *db = pParse->db;     /* æ•°æ®åº“å¥æŸ„ */
+    char *zMsg;                   /* æ–‡æœ¬æ·»åŠ åˆ°EQPè¾“å‡º */
+    sqlite3_int64 nRow;           /* é¢„æœŸçš„è®¿é—®é€šè¿‡æ‰«æçš„è¡Œæ•° */
     int iId = pParse->iSelectId;  /* Select id (left-most output column) */
     int isSearch;                 /* True for a SEARCH. False for SCAN. */
 =======
-    Vdbe *v = pParse->pVdbe;      /* VM being constructed ´´½¨VM */
-    sqlite3 *db = pParse->db;     /* Database handle Êı¾İ¿â¾ä±ú */
-    char *zMsg;                   /* Text to add to EQP output Ìí¼Óµ½EQPÊä³öµÄÎÄ±¾ */
-    sqlite3_int64 nRow;           /* Expected number of rows visited by scan Í¨¹ıÉ¨Ãè·ÃÎÊµÄÔ¤ÆÚµÄĞĞÊı */
-    int iId = pParse->iSelectId;  /* Select id (left-most output column) Ñ¡ÖĞµÄid(×î×ó±ßµÄÊä³öÁĞ) */
-    int isSearch;                 /* True for a SEARCH. False for SCAN. ÊÇÒ»¸ö²éÕÒÔòÎªTRUE£¬É¨ÃèÔòÎªFALSE */
+    Vdbe *v = pParse->pVdbe;      /* VM being constructed åˆ›å»ºVM */
+    sqlite3 *db = pParse->db;     /* Database handle æ•°æ®åº“å¥æŸ„ */
+    char *zMsg;                   /* Text to add to EQP output æ·»åŠ åˆ°EQPè¾“å‡ºçš„æ–‡æœ¬ */
+    sqlite3_int64 nRow;           /* Expected number of rows visited by scan é€šè¿‡æ‰«æè®¿é—®çš„é¢„æœŸçš„è¡Œæ•° */
+    int iId = pParse->iSelectId;  /* Select id (left-most output column) é€‰ä¸­çš„id(æœ€å·¦è¾¹çš„è¾“å‡ºåˆ—) */
+    int isSearch;                 /* True for a SEARCH. False for SCAN. æ˜¯ä¸€ä¸ªæŸ¥æ‰¾åˆ™ä¸ºTRUEï¼Œæ‰«æåˆ™ä¸ºFALSE */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
     if( (flags&WHERE_MULTI_OR) || (wctrlFlags&WHERE_ONETABLE_ONLY) ) return;
@@ -5653,54 +5653,54 @@ static void explainOneScan(
 ** Generate code for the start of the iLevel-th loop in the WHERE clause
 ** implementation described by pWInfo.
 <<<<<<< HEAD
-Éú³É´úÂë£¬iLevel-thÑ­»·¿ªÊ¼±»pWInfoÔÚWHERE×Ó¾äÖĞÊµÏÖ
+ç”Ÿæˆä»£ç ï¼ŒiLevel-thå¾ªç¯å¼€å§‹è¢«pWInfoåœ¨WHEREå­å¥ä¸­å®ç°
 */
 static Bitmask codeOneLoopStart(
-  WhereInfo *pWInfo,   /*ÍêÕûµÄWHERE×Ó¾äµÄĞÅÏ¢ */
-  int iLevel,          /*±àÂëpWInfo->a[]*/
-  u16 wctrlFlags,      /*sqliteInt.hÖĞ¶¨ÒåµÄWHERE_ *±êÖ¾Ö®Ò»*/
-  Bitmask notReady     /* µ±Ç°±êµÄÓĞĞ§¿Õ¼ä */
+  WhereInfo *pWInfo,   /*å®Œæ•´çš„WHEREå­å¥çš„ä¿¡æ¯ */
+  int iLevel,          /*ç¼–ç pWInfo->a[]*/
+  u16 wctrlFlags,      /*sqliteInt.hä¸­å®šä¹‰çš„WHERE_ *æ ‡å¿—ä¹‹ä¸€*/
+  Bitmask notReady     /* å½“å‰æ ‡çš„æœ‰æ•ˆç©ºé—´ */
 ){
-  int j, k;            /* Ñ­»·¼ÆÊıÆ÷ */
-  int iCur;            /* ±íµÄÓÎ±ê */
-  int addrNxt;         /* ÔÚÊ²Ã´Ê±ºòÌø³öÑ­»·½øÈëÏÂÒ»¸öin */
-  int omitTable;       /* ÖµÎªÕæ£¬Èç¹ûÎÒÃÇÖ»Ê¹ÓÃË÷Òı */
-  int bRev;            /* ÖµÎªÕæ£¬Èç¹ûÎÒÃÇµ¹ĞòÉ¨Ãè */
-  WhereLevel *pLevel;  /* Ë®Æ½±àÂë*/
-  WhereClause *pWC;    /*Õû¸öwhere×Ó¾äµÄ·Ö½â */
-  WhereTerm *pTerm;               /* where×Ó¾ä */
-  Parse *pParse;                  /* ½âÎöÉÏÏÂÎÄ */
-  Vdbe *v;                        /* ×¼±¸Ö§³Å½á¹¹ */
-  struct SrcList_item *pTabItem;  /* FROM×Ó¾ä±àÒë */
-  int addrBrk;                    /* Ìø³öÑ­»·*/
-  int addrCont;                   /* Ìø³öÑ­»·½øÈëÏÂÒ»ÖÜÆÚ */
-  int iRowidReg = 0;        /*Rowid´æ´¢ÔÚÕâ¸ö¼Ä´æÆ÷,Èç¹û²»ÊÇÁã*/
-  int iReleaseReg = 0;      /* ÔÚ·µ»ØÇ°£¬ÊÍ·ÅÁÙÊ±¼Ä´æÆ÷ */
+  int j, k;            /* å¾ªç¯è®¡æ•°å™¨ */
+  int iCur;            /* è¡¨çš„æ¸¸æ ‡ */
+  int addrNxt;         /* åœ¨ä»€ä¹ˆæ—¶å€™è·³å‡ºå¾ªç¯è¿›å…¥ä¸‹ä¸€ä¸ªin */
+  int omitTable;       /* å€¼ä¸ºçœŸï¼Œå¦‚æœæˆ‘ä»¬åªä½¿ç”¨ç´¢å¼• */
+  int bRev;            /* å€¼ä¸ºçœŸï¼Œå¦‚æœæˆ‘ä»¬å€’åºæ‰«æ */
+  WhereLevel *pLevel;  /* æ°´å¹³ç¼–ç */
+  WhereClause *pWC;    /*æ•´ä¸ªwhereå­å¥çš„åˆ†è§£ */
+  WhereTerm *pTerm;               /* whereå­å¥ */
+  Parse *pParse;                  /* è§£æä¸Šä¸‹æ–‡ */
+  Vdbe *v;                        /* å‡†å¤‡æ”¯æ’‘ç»“æ„ */
+  struct SrcList_item *pTabItem;  /* FROMå­å¥ç¼–è¯‘ */
+  int addrBrk;                    /* è·³å‡ºå¾ªç¯*/
+  int addrCont;                   /* è·³å‡ºå¾ªç¯è¿›å…¥ä¸‹ä¸€å‘¨æœŸ */
+  int iRowidReg = 0;        /*Rowidå­˜å‚¨åœ¨è¿™ä¸ªå¯„å­˜å™¨,å¦‚æœä¸æ˜¯é›¶*/
+  int iReleaseReg = 0;      /* åœ¨è¿”å›å‰ï¼Œé‡Šæ”¾ä¸´æ—¶å¯„å­˜å™¨ */
 =======
 **
-** Í¨¹ıpWInfoµÄÃèÊö£¬ÎªWHERE×Ó¾äÖĞÊµÏÖµÄµÄµÚi¼¶Ñ­»·µÄ¿ªÊ¼Éú³É´úÂë
+** é€šè¿‡pWInfoçš„æè¿°ï¼Œä¸ºWHEREå­å¥ä¸­å®ç°çš„çš„ç¬¬içº§å¾ªç¯çš„å¼€å§‹ç”Ÿæˆä»£ç 
 */
 static Bitmask codeOneLoopStart(
-  WhereInfo *pWInfo,   /* Complete information about the WHERE clause WHERE×Ó¾äµÄÍêÕûĞÅÏ¢ */
-  int iLevel,          /* Which level of pWInfo->a[] should be coded ĞèÒª±àÂëµÄpWInfo->a[]µÄµÈ¼¶ */
-  u16 wctrlFlags,      /* One of the WHERE_* flags defined in sqliteInt.h ÔÚsqliteInt.hÖĞ¶¨ÒåµÄWHERE_*±êÖ¾ÖĞµÄÒ»¸ö */
-  Bitmask notReady     /* Which tables are currently available ÄÄ¸ö±íÊ¾µ±Ç°ÓĞĞ§µÄ */
+  WhereInfo *pWInfo,   /* Complete information about the WHERE clause WHEREå­å¥çš„å®Œæ•´ä¿¡æ¯ */
+  int iLevel,          /* Which level of pWInfo->a[] should be coded éœ€è¦ç¼–ç çš„pWInfo->a[]çš„ç­‰çº§ */
+  u16 wctrlFlags,      /* One of the WHERE_* flags defined in sqliteInt.h åœ¨sqliteInt.hä¸­å®šä¹‰çš„WHERE_*æ ‡å¿—ä¸­çš„ä¸€ä¸ª */
+  Bitmask notReady     /* Which tables are currently available å“ªä¸ªè¡¨ç¤ºå½“å‰æœ‰æ•ˆçš„ */
 ){
-  int j, k;            /* Loop counters Ñ­»·¼ÆÊıÆ÷ */
-  int iCur;            /* The VDBE cursor for the table ±íµÄVDBEÓÎ±ê */
-  int addrNxt;         /* Where to jump to continue with the next IN case Ìø×ª¼ÌĞøÏÂÒ»¸öIN */
-  int omitTable;       /* True if we use the index only Èç¹ûÎÒÃÇÖ»Ê¹ÓÃË÷ÒıÔòÎªTRUE */
-  int bRev;            /* True if we need to scan in reverse order Èç¹ûÎÒÃÇĞèÒªÔÚµ¹ĞòÖĞÉ¨ÃèÔòÎªTRUE */
-  WhereLevel *pLevel;  /* The where level to be coded ±»±àÂëµÄwhereµÈ¼¶ */
-  WhereClause *pWC;    /* Decomposition of the entire WHERE clause Õû¸öWHERE×Ó¾äµÄ·Ö½â */
-  WhereTerm *pTerm;               /* A WHERE clause term Ò»¸öWHERE×Ó¾äµÄterm */
-  Parse *pParse;                  /* Parsing context ·ÖÎöÉÏÏÂÎÄ */
-  Vdbe *v;                        /* The prepared stmt under constructions ÔÚ¹¹½¨ÖĞ×¼±¸ºÃµÄstmt */
-  struct SrcList_item *pTabItem;  /* FROM clause term being coded ÕıÔÚ±àÂëµÄFROM×Ó¾äterm */
-  int addrBrk;                    /* Jump here to break out of the loop Ìø³öÑ­»·Ê±µÄÎ»ÖÃ */
-  int addrCont;                   /* Jump here to continue with next cycle ¼ÌĞøÏÂÒ»´ÎÑ­»·µÄÎ»ÖÃ */
-  int iRowidReg = 0;        /* Rowid is stored in this register, if not zero Èç¹û²»Îª0£¬Rowid´æ´¢ÔÚÕâ¸ö¼Ä´æÆ÷ÖĞ */
-  int iReleaseReg = 0;      /* Temp register to free before returning ÔÚ·µ»ØÇ°ÊÍ·ÅÁÙÊ±¼Ä´æÆ÷ */
+  int j, k;            /* Loop counters å¾ªç¯è®¡æ•°å™¨ */
+  int iCur;            /* The VDBE cursor for the table è¡¨çš„VDBEæ¸¸æ ‡ */
+  int addrNxt;         /* Where to jump to continue with the next IN case è·³è½¬ç»§ç»­ä¸‹ä¸€ä¸ªIN */
+  int omitTable;       /* True if we use the index only å¦‚æœæˆ‘ä»¬åªä½¿ç”¨ç´¢å¼•åˆ™ä¸ºTRUE */
+  int bRev;            /* True if we need to scan in reverse order å¦‚æœæˆ‘ä»¬éœ€è¦åœ¨å€’åºä¸­æ‰«æåˆ™ä¸ºTRUE */
+  WhereLevel *pLevel;  /* The where level to be coded è¢«ç¼–ç çš„whereç­‰çº§ */
+  WhereClause *pWC;    /* Decomposition of the entire WHERE clause æ•´ä¸ªWHEREå­å¥çš„åˆ†è§£ */
+  WhereTerm *pTerm;               /* A WHERE clause term ä¸€ä¸ªWHEREå­å¥çš„term */
+  Parse *pParse;                  /* Parsing context åˆ†æä¸Šä¸‹æ–‡ */
+  Vdbe *v;                        /* The prepared stmt under constructions åœ¨æ„å»ºä¸­å‡†å¤‡å¥½çš„stmt */
+  struct SrcList_item *pTabItem;  /* FROM clause term being coded æ­£åœ¨ç¼–ç çš„FROMå­å¥term */
+  int addrBrk;                    /* Jump here to break out of the loop è·³å‡ºå¾ªç¯æ—¶çš„ä½ç½® */
+  int addrCont;                   /* Jump here to continue with next cycle ç»§ç»­ä¸‹ä¸€æ¬¡å¾ªç¯çš„ä½ç½® */
+  int iRowidReg = 0;        /* Rowid is stored in this register, if not zero å¦‚æœä¸ä¸º0ï¼ŒRowidå­˜å‚¨åœ¨è¿™ä¸ªå¯„å­˜å™¨ä¸­ */
+  int iReleaseReg = 0;      /* Temp register to free before returning åœ¨è¿”å›å‰é‡Šæ”¾ä¸´æ—¶å¯„å­˜å™¨ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
   pParse = pWInfo->pParse;
@@ -5718,13 +5718,13 @@ static Bitmask codeOneLoopStart(
   ** Jump to cont to go immediately to the next iteration of the
   ** loop.
 <<<<<<< HEAD
-  **½¨±êÇ©µÄ¡°break¡±ºÍ¡°continue¡±Îªµ±Ç°Ñ­»·¡£
-  Ìø×ªµ½addrBrkÎªÁË´òÆÆÑ­»·¡£
-  Á¢¼´Ìøµ½ÏÂÒ»¸öµü´úÑ­»·
+  **å»ºæ ‡ç­¾çš„â€œbreakâ€å’Œâ€œcontinueâ€ä¸ºå½“å‰å¾ªç¯ã€‚
+  è·³è½¬åˆ°addrBrkä¸ºäº†æ‰“ç ´å¾ªç¯ã€‚
+  ç«‹å³è·³åˆ°ä¸‹ä¸€ä¸ªè¿­ä»£å¾ªç¯
 =======
   **
-  ** Îªµ±Ç°Ñ­»·µÄ"break"ºÍ"continue"Ö¸ÁîµÄ´´½¨±êÇ©¡£Ìøµ½addrBrkÀ´Ìø³öÑ­»·¡£
-  ** Ìøµ½addrCont¾ÍÁ¢¼´Ö´ĞĞÏÂÒ»¸öÑ­»·
+  ** ä¸ºå½“å‰å¾ªç¯çš„"break"å’Œ"continue"æŒ‡ä»¤çš„åˆ›å»ºæ ‡ç­¾ã€‚è·³åˆ°addrBrkæ¥è·³å‡ºå¾ªç¯ã€‚
+  ** è·³åˆ°addrContå°±ç«‹å³æ‰§è¡Œä¸‹ä¸€ä¸ªå¾ªç¯
   **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   ** When there is an IN operator, we also have a "addrNxt" label that
@@ -5732,12 +5732,12 @@ static Bitmask codeOneLoopStart(
   ** there are no IN operators in the constraints, the "addrNxt" label
   ** is the same as "addrBrk".
 <<<<<<< HEAD
-  µ±ÓĞÒ»¸öIN operator,ÎÒÃÇÒ²ÓĞÒ»¸ö¡°addrNxt¡±µÄ±êÇ©,
-  ÕâÒâÎ¶×Å,¼ÌĞø´¦ÀíÏÂÒ»¸öIN value×éºÏ¡£
-  µ±Ã»ÓĞIN operatorsµÄÏŞÖÆ,¡°addrNxt¡±±êÇ©ºÍ¡°addrBrk¡±Ò»Ñù
+  å½“æœ‰ä¸€ä¸ªIN operator,æˆ‘ä»¬ä¹Ÿæœ‰ä¸€ä¸ªâ€œaddrNxtâ€çš„æ ‡ç­¾,
+  è¿™æ„å‘³ç€,ç»§ç»­å¤„ç†ä¸‹ä¸€ä¸ªIN valueç»„åˆã€‚
+  å½“æ²¡æœ‰IN operatorsçš„é™åˆ¶,â€œaddrNxtâ€æ ‡ç­¾å’Œâ€œaddrBrkâ€ä¸€æ ·
 =======
-  ** µ±ÓĞÒ»¸öINÔËËã·û£¬"addrNxt"±êÇ©±êÊ¾¼ÌĞøÏÂÒ»¸öINÖµ×éºÏ¡£
-  ** µ±Ô¼ÊøÖĞÃ»ÓĞINÔËËã·ûÊ±£¬"addrNxt"±êÇ©ºÍ"addrBrk"×÷ÓÃÏàÍ¬¡£
+  ** å½“æœ‰ä¸€ä¸ªINè¿ç®—ç¬¦ï¼Œ"addrNxt"æ ‡ç­¾æ ‡ç¤ºç»§ç»­ä¸‹ä¸€ä¸ªINå€¼ç»„åˆã€‚
+  ** å½“çº¦æŸä¸­æ²¡æœ‰INè¿ç®—ç¬¦æ—¶ï¼Œ"addrNxt"æ ‡ç­¾å’Œ"addrBrk"ä½œç”¨ç›¸åŒã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   addrBrk = pLevel->addrBrk = pLevel->addrNxt = sqlite3VdbeMakeLabel(v);
@@ -5747,11 +5747,11 @@ static Bitmask codeOneLoopStart(
   ** initialize a memory cell that records if this table matches any
   ** row of the left table of the join.
 <<<<<<< HEAD
-  Èç¹ûÕâÊÇÕıÈ·µÄ×óÍâÁ¬½Ó±í,·ÖÅäºÍ³õÊ¼»¯Ò»¸ö´æ´¢µ¥Ôª,
-  ¼ÇÂ¼´Ë±íÆ¥ÅäÈÎºÎĞĞ×ó±íµÄÁ¬½Ó¡£
+  å¦‚æœè¿™æ˜¯æ­£ç¡®çš„å·¦å¤–è¿æ¥è¡¨,åˆ†é…å’Œåˆå§‹åŒ–ä¸€ä¸ªå­˜å‚¨å•å…ƒ,
+  è®°å½•æ­¤è¡¨åŒ¹é…ä»»ä½•è¡Œå·¦è¡¨çš„è¿æ¥ã€‚
 =======
   **
-  ** Èç¹ûÕâÊÇÒ»¸öLEFT OUTER JOINµÄÓÒ±í£¬·ÖÅä²¢³õÊ¼»¯Ò»¸öÄÚ´æµ¥ÔªÀ´¼ÇÂ¼´Ë±íÆ¥ÅäµÄjoinÖĞµÄ×ó±íµÄĞĞ
+  ** å¦‚æœè¿™æ˜¯ä¸€ä¸ªLEFT OUTER JOINçš„å³è¡¨ï¼Œåˆ†é…å¹¶åˆå§‹åŒ–ä¸€ä¸ªå†…å­˜å•å…ƒæ¥è®°å½•æ­¤è¡¨åŒ¹é…çš„joinä¸­çš„å·¦è¡¨çš„è¡Œ
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( pLevel->iFrom>0 && (pTabItem[0].jointype & JT_LEFT)!=0 ){
@@ -5765,13 +5765,13 @@ static Bitmask codeOneLoopStart(
     /* Case 0:  The table is a virtual-table.  Use the VFilter and VNext
     **          to access the data.
 <<<<<<< HEAD
-    ±íÊÇÒ»¸öĞéÄâ±í¡£Ê¹ÓÃVFilterºÍVNext·ÃÎÊÊı¾İ
+    è¡¨æ˜¯ä¸€ä¸ªè™šæ‹Ÿè¡¨ã€‚ä½¿ç”¨VFilterå’ŒVNextè®¿é—®æ•°æ®
 =======
     **
-    ** Çé¿ö0:±íÊÇÒ»¸öĞéÄâ±í¡£Ê¹ÓÃVFilterºÍVNextÀ´·ÃÎÊÊı¾İ¡£
+    ** æƒ…å†µ0:è¡¨æ˜¯ä¸€ä¸ªè™šæ‹Ÿè¡¨ã€‚ä½¿ç”¨VFilterå’ŒVNextæ¥è®¿é—®æ•°æ®ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
-    int iReg;   /* P3 Value for OP_VFilter OP_VFilterµÄP3Öµ */
+    int iReg;   /* P3 Value for OP_VFilter OP_VFilterçš„P3å€¼ */
     sqlite3_index_info *pVtabIdx = pLevel->plan.u.pVtabIdx;
     int nConstraint = pVtabIdx->nConstraint;
     struct sqlite3_index_constraint_usage *aUsage =
@@ -5816,12 +5816,12 @@ static Bitmask codeOneLoopStart(
     **          we reference multiple rows using a "rowid IN (...)"
     **          construct.
 <<<<<<< HEAD
-    ÎÒÃÇ¿ÉÒÔÖ±½ÓÒıÓÃÒ»¸öµ¥ĞĞ¶ÔROWID×Ö¶ÎÊ¹ÓÃÏàµÈµÄ±È½Ï¡£
-    »òÕßÎÒÃÇÊ¹ÓÃÒıÓÃ¶à¸öĞĞ¡°rowid(¡­)IN¡±¹¹Ôì¡£
+    æˆ‘ä»¬å¯ä»¥ç›´æ¥å¼•ç”¨ä¸€ä¸ªå•è¡Œå¯¹ROWIDå­—æ®µä½¿ç”¨ç›¸ç­‰çš„æ¯”è¾ƒã€‚
+    æˆ–è€…æˆ‘ä»¬ä½¿ç”¨å¼•ç”¨å¤šä¸ªè¡Œâ€œrowid(â€¦)INâ€æ„é€ ã€‚
 =======
     **
-    ** Çé¿ö1:ÎÒÃÇ¿ÉÒÔÖ±½ÓÒıÓÃÒ»¸öµ¥ĞĞÊ¹ÓÃµÈÊ½ÓëROWID×Ö¶Î±È½Ï¡£
-    **       »òÒıÓÃ¶àĞĞÊ¹ÓÃ"rowid IN (...)"½á¹¹¡£
+    ** æƒ…å†µ1:æˆ‘ä»¬å¯ä»¥ç›´æ¥å¼•ç”¨ä¸€ä¸ªå•è¡Œä½¿ç”¨ç­‰å¼ä¸ROWIDå­—æ®µæ¯”è¾ƒã€‚
+    **       æˆ–å¼•ç”¨å¤šè¡Œä½¿ç”¨"rowid IN (...)"ç»“æ„ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     iReleaseReg = sqlite3GetTempReg(pParse);
@@ -5841,10 +5841,10 @@ static Bitmask codeOneLoopStart(
   }else if( pLevel->plan.wsFlags & WHERE_ROWID_RANGE ){
     /* Case 2:  We have an inequality comparison against the ROWID field.
 <<<<<<< HEAD
-    ÎÒÃÇ¶ÔROWID×Ö¶ÎÓĞ²»ÏàµÈµÄ±È½Ï
+    æˆ‘ä»¬å¯¹ROWIDå­—æ®µæœ‰ä¸ç›¸ç­‰çš„æ¯”è¾ƒ
 =======
     **
-    ** Çé¿ö2:ÓĞÒ»¸öÓëROWID×Ö¶Î½øĞĞµÄ²»µÈÊ½±È½Ï
+    ** æƒ…å†µ2:æœ‰ä¸€ä¸ªä¸ROWIDå­—æ®µè¿›è¡Œçš„ä¸ç­‰å¼æ¯”è¾ƒ
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     int testOp = OP_Noop;
@@ -5862,21 +5862,21 @@ static Bitmask codeOneLoopStart(
     }
     if( pStart ){
 <<<<<<< HEAD
-      Expr *pX;             /* ±í´ïÊ½,¶¨ÒåÁË¿ªÊ¼*/
-      int r1, rTemp;        /* ¼Ä´æÆ÷¿ªÊ¼ÈİÄÉ±ß½ç */
+      Expr *pX;             /* è¡¨è¾¾å¼,å®šä¹‰äº†å¼€å§‹*/
+      int r1, rTemp;        /* å¯„å­˜å™¨å¼€å§‹å®¹çº³è¾¹ç•Œ */
 
       /* The following constant maps TK_xx codes into corresponding 
       ** seek opcodes.  It depends on a particular ordering of TK_xx
-      ÏÂÁĞ³£ÊıTK_xx´úÂëÓ³Éäµ½ÏàÓ¦µÄ²Ù×÷Âë¡£
-      ÕâÈ¡¾öÓÚÒ»¸öÌØ¶¨TK_xxÖ¸Ê¾
+      ä¸‹åˆ—å¸¸æ•°TK_xxä»£ç æ˜ å°„åˆ°ç›¸åº”çš„æ“ä½œç ã€‚
+      è¿™å–å†³äºä¸€ä¸ªç‰¹å®šTK_xxæŒ‡ç¤º
 =======
-      Expr *pX;             /* The expression that defines the start bound ±í´ïÊ½¶¨ÒåÁË¿ªÊ¼·¶Î§ */
-      int r1, rTemp;        /* Registers for holding the start boundary ±£´æ¿ªÊ¼·¶Î§µÄ¼Ä´æÆ÷ */
+      Expr *pX;             /* The expression that defines the start bound è¡¨è¾¾å¼å®šä¹‰äº†å¼€å§‹èŒƒå›´ */
+      int r1, rTemp;        /* Registers for holding the start boundary ä¿å­˜å¼€å§‹èŒƒå›´çš„å¯„å­˜å™¨ */
 
       /* The following constant maps TK_xx codes into corresponding 
       ** seek opcodes.  It depends on a particular ordering of TK_xx
       **
-      ** ÏÂÃæµÄ³£Á¿¸ù¾İTK_xxÌØÊâµÄË³Ğò£¬°ÑTK_xxÓ³Éäµ½ÏàÓ¦µÄËÑË÷²Ù×÷Âë¡£
+      ** ä¸‹é¢çš„å¸¸é‡æ ¹æ®TK_xxç‰¹æ®Šçš„é¡ºåºï¼ŒæŠŠTK_xxæ˜ å°„åˆ°ç›¸åº”çš„æœç´¢æ“ä½œç ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       */
       const u8 aMoveOp[] = {
@@ -5885,7 +5885,7 @@ static Bitmask codeOneLoopStart(
            /* TK_LT */  OP_SeekLt,
            /* TK_GE */  OP_SeekGe
       };
-      assert( TK_LE==TK_GT+1 );      /* Make sure the ordering.. È·±£Ë³Ğò */
+      assert( TK_LE==TK_GT+1 );      /* Make sure the ordering.. ç¡®ä¿é¡ºåº */
       assert( TK_LT==TK_GT+2 );      /*  ... of the TK_xx values...  */
       assert( TK_GE==TK_GT+3 );      /*  ... is correcct. */
 
@@ -5965,19 +5965,19 @@ static Bitmask codeOneLoopStart(
     **         constraints but an index is selected anyway, in order
     **         to force the output order to conform to an ORDER BY.
 <<<<<<< HEAD
-    where×Ó¾ä¿ÉÄÜÓĞ0¸ö»òÕß¶à¸öÏàµÈ¹ØÏµ£¨"==" or "IN" £©Éæ¼°µ½N¸ö×î×óÁ¬½ÓË÷Òı
-    Ëü¿ÉÄÜÒ²ÓĞ²»µÈ¹ØÏµ(>, <, >= or <=)ÔÚË÷Òı¼¯ÖĞ½ô¸ú×Å£ÎÏàµÈ¹ØÏµ¡£
-    Ö»ÓĞ×îÓÒÁ¬½Ó¼¯²Å¿ÉÒÔ³ÉÎªÏàµÈ£¬Ê£ÓàµÄ±ØĞëÓÃÓÚ "==" and "IN" ¡£
-    ÀıÈçÒÔ(x,y,z)½¨Á¢Ë÷Òı¡£ÏÂÃæËùÓĞµÄ×Ó¾ä¶¼ÊÇ×îÓÅµÄ¡£
-    ¡¡¡¡¡¡¡¡¡¡¡¡¡¡x=5
+    whereå­å¥å¯èƒ½æœ‰0ä¸ªæˆ–è€…å¤šä¸ªç›¸ç­‰å…³ç³»ï¼ˆ"==" or "IN" ï¼‰æ¶‰åŠåˆ°Nä¸ªæœ€å·¦è¿æ¥ç´¢å¼•
+    å®ƒå¯èƒ½ä¹Ÿæœ‰ä¸ç­‰å…³ç³»(>, <, >= or <=)åœ¨ç´¢å¼•é›†ä¸­ç´§è·Ÿç€ï¼®ç›¸ç­‰å…³ç³»ã€‚
+    åªæœ‰æœ€å³è¿æ¥é›†æ‰å¯ä»¥æˆä¸ºç›¸ç­‰ï¼Œå‰©ä½™çš„å¿…é¡»ç”¨äº "==" and "IN" ã€‚
+    ä¾‹å¦‚ä»¥(x,y,z)å»ºç«‹ç´¢å¼•ã€‚ä¸‹é¢æ‰€æœ‰çš„å­å¥éƒ½æ˜¯æœ€ä¼˜çš„ã€‚
+    ã€€ã€€ã€€ã€€ã€€ã€€ã€€x=5
 =======
     **
-    ** Çé¿ö3:Ê¹ÓÃË÷ÒıµÄÉ¨Ãè
-    **         WHERE×Ó¾ä¿ÉÄÜ°üº¬0»ò¶à¸öµÈÊ½
-    **         terms ("=="»ò"IN"ÔËËã·û)Éæ¼°µ½N¸öË÷Òı×î×ó±ßµÄÁĞ.
-    **         Ëü¿ÉÄÜÔÚË÷ÒıÁĞÉÏÒ²°üº¬²»µÈÊ½Ô¼Êø(>, <, >= or <=)£¬½ôËæÆäºóÓĞN¸öµÈÊ½¡£
-    **         Ö»ÓĞ×îÓÒ±ßµÄÁĞ¿ÉÒÔÎªÒ»¸ö²»µÈÊ½--ÆäÓàµÄ±ØĞëÊ¹ÓÃ"=="ºÍ"IN"ÔËËã·û¡£
-    **         ÀıÈç£¬Èç¹ıÓĞÒ»¸öÔÚ(x,y,z)µÄË÷Òı£¬ÏÂÃæµÄ×Ó¾ä¶¼¿ÉÒÔ½øĞĞÓÅ»¯:
+    ** æƒ…å†µ3:ä½¿ç”¨ç´¢å¼•çš„æ‰«æ
+    **         WHEREå­å¥å¯èƒ½åŒ…å«0æˆ–å¤šä¸ªç­‰å¼
+    **         terms ("=="æˆ–"IN"è¿ç®—ç¬¦)æ¶‰åŠåˆ°Nä¸ªç´¢å¼•æœ€å·¦è¾¹çš„åˆ—.
+    **         å®ƒå¯èƒ½åœ¨ç´¢å¼•åˆ—ä¸Šä¹ŸåŒ…å«ä¸ç­‰å¼çº¦æŸ(>, <, >= or <=)ï¼Œç´§éšå…¶åæœ‰Nä¸ªç­‰å¼ã€‚
+    **         åªæœ‰æœ€å³è¾¹çš„åˆ—å¯ä»¥ä¸ºä¸€ä¸ªä¸ç­‰å¼--å…¶ä½™çš„å¿…é¡»ä½¿ç”¨"=="å’Œ"IN"è¿ç®—ç¬¦ã€‚
+    **         ä¾‹å¦‚ï¼Œå¦‚è¿‡æœ‰ä¸€ä¸ªåœ¨(x,y,z)çš„ç´¢å¼•ï¼Œä¸‹é¢çš„å­å¥éƒ½å¯ä»¥è¿›è¡Œä¼˜åŒ–:
     **            x=5
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **            x=5 AND y=10
@@ -5985,18 +5985,18 @@ static Bitmask codeOneLoopStart(
     **            x=5 AND y>5 AND y<10
     **            x=5 AND y=5 AND z<=10
 <<<<<<< HEAD
-    ÏÂÃæµÄz<10ÊÇÎŞÓÃµÄ¡£ÒòÎªËüÓĞx=5Ô¼Êø
-    N¿ÉÄÜÊÇ0Èç¹ûÕâ¸öÓĞ²»µÈÔ¼Êø¡£
-    Èç¹ûÕâÀïÃ»ÓĞ²»µÈÌõ¼şÄÇÃ´NÖÁÉÙÎª1.
+    ä¸‹é¢çš„z<10æ˜¯æ— ç”¨çš„ã€‚å› ä¸ºå®ƒæœ‰x=5çº¦æŸ
+    Nå¯èƒ½æ˜¯0å¦‚æœè¿™ä¸ªæœ‰ä¸ç­‰çº¦æŸã€‚
+    å¦‚æœè¿™é‡Œæ²¡æœ‰ä¸ç­‰æ¡ä»¶é‚£ä¹ˆNè‡³å°‘ä¸º1.
     
-    ÕâÖÖÇé¿öÏÂÒ²Ã»ÓĞWHERE×Ó¾äÔ¼Êøµ«Ë÷ÒıÑ¡ÔñÊ¹ÓÃ,
-    ÎªÁËÆÈÊ¹Êä³öË³Ğò·ûºÏORDER BY¡£
+    è¿™ç§æƒ…å†µä¸‹ä¹Ÿæ²¡æœ‰WHEREå­å¥çº¦æŸä½†ç´¢å¼•é€‰æ‹©ä½¿ç”¨,
+    ä¸ºäº†è¿«ä½¿è¾“å‡ºé¡ºåºç¬¦åˆORDER BYã€‚
 =======
-    **         ÏÂÃæµÄÀı×ÓÖĞz<10²»ÄÜÓÅ»¯£¬Ö»ÓĞx=5¿ÉÒÔ:
+    **         ä¸‹é¢çš„ä¾‹å­ä¸­z<10ä¸èƒ½ä¼˜åŒ–ï¼Œåªæœ‰x=5å¯ä»¥:
     **            x=5 AND z<10
-    **         Èç¹ûÓĞ²»µÈÊ½Ô¼ÊøÄÇÃ´N¿ÉÄÜÎª0.Èç¹ûÃ»ÓĞ²»µÈÊ½Ô¼Êø£¬NÖÁÉÙÎª1.
+    **         å¦‚æœæœ‰ä¸ç­‰å¼çº¦æŸé‚£ä¹ˆNå¯èƒ½ä¸º0.å¦‚æœæ²¡æœ‰ä¸ç­‰å¼çº¦æŸï¼ŒNè‡³å°‘ä¸º1.
     **         
-    **         µ±Ã»ÓĞWHERE×Ó¾äÔ¼Êø£¬µ«Ñ¡³öÁËÒ»¸öË÷Òı²¢ÇÒÎªÁËÇ¿ĞĞÈÃÊä³ö·ûºÏORDER BYË³ĞòÊ±£¬ÕâÖÖÇé¿öÒ²ÊÇÊÊÓÃµÄ¡£
+    **         å½“æ²¡æœ‰WHEREå­å¥çº¦æŸï¼Œä½†é€‰å‡ºäº†ä¸€ä¸ªç´¢å¼•å¹¶ä¸”ä¸ºäº†å¼ºè¡Œè®©è¾“å‡ºç¬¦åˆORDER BYé¡ºåºæ—¶ï¼Œè¿™ç§æƒ…å†µä¹Ÿæ˜¯é€‚ç”¨çš„ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */  
     static const u8 aStartOp[] = {
@@ -6016,38 +6016,38 @@ static Bitmask codeOneLoopStart(
     };
 <<<<<<< HEAD
     int nEq = pLevel->plan.nEq;  /* Number of == or IN terms */
-    int isMinQuery = 0;          /* Èç¹ûÕâÊÇÒ»¸ö SELECT min(x)..µÄÓÅ»¯ */
-    int regBase;                 /* »ùÖ·¼Ä´æÆ÷Ô¼ÊøÖµ */
-    int r1;                      /* ÁÙÊ±¼Ä´æÆ÷  */
-    WhereTerm *pRangeStart = 0;  /* ²»µÈÔ¼Êø¿ªÊ¼*/
-    WhereTerm *pRangeEnd = 0;    /* ²»µÈÔ¼ÊøµÄ·¶Î§ */
+    int isMinQuery = 0;          /* å¦‚æœè¿™æ˜¯ä¸€ä¸ª SELECT min(x)..çš„ä¼˜åŒ– */
+    int regBase;                 /* åŸºå€å¯„å­˜å™¨çº¦æŸå€¼ */
+    int r1;                      /* ä¸´æ—¶å¯„å­˜å™¨  */
+    WhereTerm *pRangeStart = 0;  /* ä¸ç­‰çº¦æŸå¼€å§‹*/
+    WhereTerm *pRangeEnd = 0;    /* ä¸ç­‰çº¦æŸçš„èŒƒå›´ */
     int startEq;                 /* True if range start uses ==, >= or <= */
     int endEq;                   /* True if range end uses ==, >= or <= */
-    int start_constraints;       /* ÊÜÏŞ·¶Î§µÄ¿ªÊ¼ */
-    int nConstraint;             /* Ô¼ÊøÌõ¼şÊıÁ¿*/
-    Index *pIdx;                 /* ÎÒÃÇ½«Ê¹ÓÃË÷Òı */
-    int iIdxCur;                 /* VDBEÓÎ±êµÄË÷Òı*/
-    int nExtraReg = 0;           /* ËùĞèµÄ¶îÍâµÄ¼Ä´æÆ÷ÊıÁ¿ */
-    int op;                      /* Ö¸Áî²Ù×÷Âë  */
-    char *zStartAff;             /*AffinityÔ¼Êø·¶Î§µÄ¿ªÊ¼ */
-    char *zEndAff;               /* AffinityÔ¼Êø·¶Î§µÄ½áÊø */
+    int start_constraints;       /* å—é™èŒƒå›´çš„å¼€å§‹ */
+    int nConstraint;             /* çº¦æŸæ¡ä»¶æ•°é‡*/
+    Index *pIdx;                 /* æˆ‘ä»¬å°†ä½¿ç”¨ç´¢å¼• */
+    int iIdxCur;                 /* VDBEæ¸¸æ ‡çš„ç´¢å¼•*/
+    int nExtraReg = 0;           /* æ‰€éœ€çš„é¢å¤–çš„å¯„å­˜å™¨æ•°é‡ */
+    int op;                      /* æŒ‡ä»¤æ“ä½œç   */
+    char *zStartAff;             /*Affinityçº¦æŸèŒƒå›´çš„å¼€å§‹ */
+    char *zEndAff;               /* Affinityçº¦æŸèŒƒå›´çš„ç»“æŸ */
 =======
-    int nEq = pLevel->plan.nEq;  /* Number of == or IN terms ==»òINtermsµÄÊıÄ¿ */
-    int isMinQuery = 0;          /* If this is an optimized SELECT min(x).. Èç¹ûÕâÊÇÒ»¸öÓÅ»¯µÄSELECT min(x)Óï¾ä */
-    int regBase;                 /* Base register holding constraint values »ùÖ·¼Ä´æÆ÷±£´æÔ¼ÊøÖµ */
-    int r1;                      /* Temp register ÁÙÊ±¼Ä´æÆ÷ */
-    WhereTerm *pRangeStart = 0;  /* Inequality constraint at range start ÔÚ·¶Î§³õÊ¼µÄ²»µÈÊ½Ô¼Êø */
-    WhereTerm *pRangeEnd = 0;    /* Inequality constraint at range end ÔÚ·¶Î§Ä©Î²µÄ²»µÈÊ½Ô¼Êø */
-    int startEq;                 /* True if range start uses ==, >= or <= Èç¹û·¶Î§³õÊ¼Ê¹ÓÃ==, >= or <=,ÄÇÃ´ÎªTRUE */
-    int endEq;                   /* True if range end uses ==, >= or <= Èç¹û·¶Î§Ä©Î²Ê¹ÓÃ==, >= or <=,ÄÇÃ´ÎªTRUE */
-    int start_constraints;       /* Start of range is constrained ·¶Î§³õÊ¼ÊÇÓĞÔ¼ÊøµÄ */
-    int nConstraint;             /* Number of constraint terms Ô¼ÊøtermsµÄÊıÄ¿ */
-    Index *pIdx;                 /* The index we will be using ½«Ê¹ÓÃµÄË÷Òı */
-    int iIdxCur;                 /* The VDBE cursor for the index Ë÷ÒıµÄVDBEÓÎ±ê */
-    int nExtraReg = 0;           /* Number of extra registers needed ĞèÒªµÄ¶îÍâµÄ¼Ä´æÆ÷ÊıÁ¿ */
-    int op;                      /* Instruction opcode Ö¸Ê¾²Ù×÷Âë */
-    char *zStartAff;             /* Affinity for start of range constraint ·¶Î§³õÊ¼µÄÔ¼ÊøµÄÇ×ºÍĞÔ */
-    char *zEndAff;               /* Affinity for end of range constraint ·¶Î§Ä©Î²µÄÔ¼ÊøµÄÇ×ºÍĞÔ */
+    int nEq = pLevel->plan.nEq;  /* Number of == or IN terms ==æˆ–INtermsçš„æ•°ç›® */
+    int isMinQuery = 0;          /* If this is an optimized SELECT min(x).. å¦‚æœè¿™æ˜¯ä¸€ä¸ªä¼˜åŒ–çš„SELECT min(x)è¯­å¥ */
+    int regBase;                 /* Base register holding constraint values åŸºå€å¯„å­˜å™¨ä¿å­˜çº¦æŸå€¼ */
+    int r1;                      /* Temp register ä¸´æ—¶å¯„å­˜å™¨ */
+    WhereTerm *pRangeStart = 0;  /* Inequality constraint at range start åœ¨èŒƒå›´åˆå§‹çš„ä¸ç­‰å¼çº¦æŸ */
+    WhereTerm *pRangeEnd = 0;    /* Inequality constraint at range end åœ¨èŒƒå›´æœ«å°¾çš„ä¸ç­‰å¼çº¦æŸ */
+    int startEq;                 /* True if range start uses ==, >= or <= å¦‚æœèŒƒå›´åˆå§‹ä½¿ç”¨==, >= or <=,é‚£ä¹ˆä¸ºTRUE */
+    int endEq;                   /* True if range end uses ==, >= or <= å¦‚æœèŒƒå›´æœ«å°¾ä½¿ç”¨==, >= or <=,é‚£ä¹ˆä¸ºTRUE */
+    int start_constraints;       /* Start of range is constrained èŒƒå›´åˆå§‹æ˜¯æœ‰çº¦æŸçš„ */
+    int nConstraint;             /* Number of constraint terms çº¦æŸtermsçš„æ•°ç›® */
+    Index *pIdx;                 /* The index we will be using å°†ä½¿ç”¨çš„ç´¢å¼• */
+    int iIdxCur;                 /* The VDBE cursor for the index ç´¢å¼•çš„VDBEæ¸¸æ ‡ */
+    int nExtraReg = 0;           /* Number of extra registers needed éœ€è¦çš„é¢å¤–çš„å¯„å­˜å™¨æ•°é‡ */
+    int op;                      /* Instruction opcode æŒ‡ç¤ºæ“ä½œç  */
+    char *zStartAff;             /* Affinity for start of range constraint èŒƒå›´åˆå§‹çš„çº¦æŸçš„äº²å’Œæ€§ */
+    char *zEndAff;               /* Affinity for end of range constraint èŒƒå›´æœ«å°¾çš„çº¦æŸçš„äº²å’Œæ€§ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
     pIdx = pLevel->plan.u.pIdx;
@@ -6062,16 +6062,16 @@ static Bitmask codeOneLoopStart(
     ** the first one after the nEq equality constraints in the index,
     ** this requires some special handling.
 <<<<<<< HEAD
-    Èç¹ûÕâ¸öÑ­»·Âú×ãÅÅĞòË³Ğò(pOrderBy)
-    ÇëÇó´«µİ¸øÕâ¸öº¯ÊıÊµÏÖÒ»¸ö¡°Ñ¡Ôñmin(x)¡­¡°²éÑ¯,
-    ÄÇÃ´µ÷ÓÃÕß½«Ö»ÔÊĞíÎªÒ»¸öµü´úÑ­»·ÔËĞĞ¡£
-    ÕâÒâÎ¶×ÅµÚÒ»ĞĞ²»Ó¦¸Ã·µ»ØNULLÖµ´æ´¢ÔÚ¡°x¡±¡£
-    Èç¹ûÁĞ¡°x¡±ºóµÄµÚÒ»¸önEqµÈÊ½Ô¼ÊøµÄÖ¸Êı,ÕâĞèÒªÒ»Ğ©ÌØÊâµÄ´¦Àí¡£
+    å¦‚æœè¿™ä¸ªå¾ªç¯æ»¡è¶³æ’åºé¡ºåº(pOrderBy)
+    è¯·æ±‚ä¼ é€’ç»™è¿™ä¸ªå‡½æ•°å®ç°ä¸€ä¸ªâ€œé€‰æ‹©min(x)â€¦â€œæŸ¥è¯¢,
+    é‚£ä¹ˆè°ƒç”¨è€…å°†åªå…è®¸ä¸ºä¸€ä¸ªè¿­ä»£å¾ªç¯è¿è¡Œã€‚
+    è¿™æ„å‘³ç€ç¬¬ä¸€è¡Œä¸åº”è¯¥è¿”å›NULLå€¼å­˜å‚¨åœ¨â€œxâ€ã€‚
+    å¦‚æœåˆ—â€œxâ€åçš„ç¬¬ä¸€ä¸ªnEqç­‰å¼çº¦æŸçš„æŒ‡æ•°,è¿™éœ€è¦ä¸€äº›ç‰¹æ®Šçš„å¤„ç†ã€‚
 =======
     **
-    ** Èç¹ûÕâ¸öÑ­»·Âú×ãÒ»¸öÅÅĞòË³Ğò(pOrderBy)µÄÇëÇó£¬´«µİ¸øÕâ¸öº¯ÊıÊµÏÖÒ»¸ö"SELECT min(x) ..."²éÑ¯£¬
-    ** ÄÇÃ´µ÷ÓÃÕßÖ»ÔÊĞíÑ­»·ÎªÒ»¸öµü´úÔËĞĞ¡£ÕâÒâÎ¶×Å·µ»ØµÄµÚÒ»ĞĞ²»ÄÜÓĞNULLÖµ´æ´¢ÔÚ'x'ÖĞ¡£
-    ** Èç¹ûÁĞ'x'ÊÇË÷ÒıÖĞnEq¸öµÈÊ½Ô¼ÊøºóµÚÒ»¸ö£¬Õâ»áÇëÇóÒ»Ğ©ÌØ±ğ´¦Àí¡£
+    ** å¦‚æœè¿™ä¸ªå¾ªç¯æ»¡è¶³ä¸€ä¸ªæ’åºé¡ºåº(pOrderBy)çš„è¯·æ±‚ï¼Œä¼ é€’ç»™è¿™ä¸ªå‡½æ•°å®ç°ä¸€ä¸ª"SELECT min(x) ..."æŸ¥è¯¢ï¼Œ
+    ** é‚£ä¹ˆè°ƒç”¨è€…åªå…è®¸å¾ªç¯ä¸ºä¸€ä¸ªè¿­ä»£è¿è¡Œã€‚è¿™æ„å‘³ç€è¿”å›çš„ç¬¬ä¸€è¡Œä¸èƒ½æœ‰NULLå€¼å­˜å‚¨åœ¨'x'ä¸­ã€‚
+    ** å¦‚æœåˆ—'x'æ˜¯ç´¢å¼•ä¸­nEqä¸ªç­‰å¼çº¦æŸåç¬¬ä¸€ä¸ªï¼Œè¿™ä¼šè¯·æ±‚ä¸€äº›ç‰¹åˆ«å¤„ç†ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (wctrlFlags&WHERE_ORDERBY_MIN)!=0
@@ -6087,10 +6087,10 @@ static Bitmask codeOneLoopStart(
     /* Find any inequality constraint terms for the start and end 
     ** of the range. 
 <<<<<<< HEAD
-    ÕÒµ½ÈÎºÎ²»µÈÊ½Ô¼ÊøÌõ¼ş·¶Î§µÄ¿ªÊ¼ºÍ½áÊø¡£
+    æ‰¾åˆ°ä»»ä½•ä¸ç­‰å¼çº¦æŸæ¡ä»¶èŒƒå›´çš„å¼€å§‹å’Œç»“æŸã€‚
 =======
     **
-    ** Îª·¶Î§µÄ¿ªÊ¼ºÍ½áÎ²²éÕÒ²»µÈÊ½Ô¼Êøterms
+    ** ä¸ºèŒƒå›´çš„å¼€å§‹å’Œç»“å°¾æŸ¥æ‰¾ä¸ç­‰å¼çº¦æŸterms
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_TOP_LIMIT ){
@@ -6106,11 +6106,11 @@ static Bitmask codeOneLoopStart(
     ** and store the values of those terms in an array of registers
     ** starting at regBase.
 <<<<<<< HEAD
-    Ê¹ÓÃ= = enerate´úÂëÀ´ÆÀ¹ÀËùÓĞÔ¼ÊøÌõ¼ş»òÔÚÕâĞ©Ìõ¼ş
-    µÄÖµ´æ´¢ÔÚÒ»¸öÊı×éÔÚregBase¼Ä´æÆ÷µÄ¿ªÊ¼¡£
+    ä½¿ç”¨= = enerateä»£ç æ¥è¯„ä¼°æ‰€æœ‰çº¦æŸæ¡ä»¶æˆ–åœ¨è¿™äº›æ¡ä»¶
+    çš„å€¼å­˜å‚¨åœ¨ä¸€ä¸ªæ•°ç»„åœ¨regBaseå¯„å­˜å™¨çš„å¼€å§‹ã€‚
 =======
     **
-    ** Éú³É´úÂëÀ´¼ÆËãËùÓĞÊ¹ÓÃ==»òINÔ¼Êøterms²¢ÇÒ°ÑÕâĞ©termsµÄÖµ´æ´¢ÔÚÓÉregBase¿ªÊ¼µÄÒ»×é¼Ä´æÆ÷ÖĞ¡£
+    ** ç”Ÿæˆä»£ç æ¥è®¡ç®—æ‰€æœ‰ä½¿ç”¨==æˆ–INçº¦æŸtermså¹¶ä¸”æŠŠè¿™äº›termsçš„å€¼å­˜å‚¨åœ¨ç”±regBaseå¼€å§‹çš„ä¸€ç»„å¯„å­˜å™¨ä¸­ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     regBase = codeAllEqualityTerms(
@@ -6123,12 +6123,12 @@ static Bitmask codeOneLoopStart(
     ** a forward order scan on a descending index, interchange the 
     ** start and end terms (pRangeStart and pRangeEnd).
 <<<<<<< HEAD
-    Èç¹ûÎÒÃÇ×öÒ»¸öÄæĞòÉ¨ÃèÒ»¸öÉıĞòË÷Òı,
-    »ò×ª·¢Ë³Ğò½µĞòË÷ÒıÉ¨Ãè,
-    ½»»»µÄ¿ªÊ¼ºÍ½áÊøÌõ¼ş(pRangeStartºÍpRangeEnd)
+    å¦‚æœæˆ‘ä»¬åšä¸€ä¸ªé€†åºæ‰«æä¸€ä¸ªå‡åºç´¢å¼•,
+    æˆ–è½¬å‘é¡ºåºé™åºç´¢å¼•æ‰«æ,
+    äº¤æ¢çš„å¼€å§‹å’Œç»“æŸæ¡ä»¶(pRangeStartå’ŒpRangeEnd)
 =======
     **
-    ** Èç¹ûÎÒÃÇÔÚÉıĞòË÷ÒıÉÏ×öÒ»¸öµ¹ĞòÉ¨Ãè£¬»òÕßÔÚÒ»¸ö½µĞòË÷ÒıÉÏ×öÒ»¸öÏÈĞòÉ¨Ãè£¬½»»»¿ªÊ¼ºÍ½áÊøµÄterms(pRangeStart and pRangeEnd).
+    ** å¦‚æœæˆ‘ä»¬åœ¨å‡åºç´¢å¼•ä¸Šåšä¸€ä¸ªå€’åºæ‰«æï¼Œæˆ–è€…åœ¨ä¸€ä¸ªé™åºç´¢å¼•ä¸Šåšä¸€ä¸ªå…ˆåºæ‰«æï¼Œäº¤æ¢å¼€å§‹å’Œç»“æŸçš„terms(pRangeStart and pRangeEnd).
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (nEq<pIdx->nColumn && bRev==(pIdx->aSortOrder[nEq]==SQLITE_SO_ASC))
@@ -6147,10 +6147,10 @@ static Bitmask codeOneLoopStart(
 
 <<<<<<< HEAD
     /* Seek the index cursor to the start of the range.
-    Ñ°ÇóË÷ÒıÖ¸Õë·¶Î§µÄ¿ªÊ¼¡£
+    å¯»æ±‚ç´¢å¼•æŒ‡é’ˆèŒƒå›´çš„å¼€å§‹ã€‚
      */
 =======
-    /* Seek the index cursor to the start of the range. ²éÑ¯Ë÷ÒıÓÎ±ê·¶Î§µÄ¿ªÊ¼ */
+    /* Seek the index cursor to the start of the range. æŸ¥è¯¢ç´¢å¼•æ¸¸æ ‡èŒƒå›´çš„å¼€å§‹ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     nConstraint = nEq;
     if( pRangeStart ){
@@ -6165,13 +6165,13 @@ static Bitmask codeOneLoopStart(
           ** applied to the operands, set the affinity to apply to pRight to 
 <<<<<<< HEAD
           ** SQLITE_AFF_NONE.
-          ÓÉÓÚ±È½ÏÊÇÃ»ÓĞÖ´ĞĞ×ª»»Ó¦ÓÃÓÚ²Ù×÷Êı,
-          ÉèÖÃ¹ØÁªÓ¦ÓÃpRight SQLITE_AFF_NONE¡£
+          ç”±äºæ¯”è¾ƒæ˜¯æ²¡æœ‰æ‰§è¡Œè½¬æ¢åº”ç”¨äºæ“ä½œæ•°,
+          è®¾ç½®å…³è”åº”ç”¨pRight SQLITE_AFF_NONEã€‚
             */
 =======
           ** SQLITE_AFF_NONE.  
           **
-          ** ÓÉÓÚÓ¦ÓÃÔÚÔËËã¶ÔÏóÉÏµÄ±È½ÏÊÇÎ´×ª»»µÄ£¬ÉèÖÃpRightµÄÇ×ºÍĞÔÎªSQLITE_AFF_NONE
+          ** ç”±äºåº”ç”¨åœ¨è¿ç®—å¯¹è±¡ä¸Šçš„æ¯”è¾ƒæ˜¯æœªè½¬æ¢çš„ï¼Œè®¾ç½®pRightçš„äº²å’Œæ€§ä¸ºSQLITE_AFF_NONE
           */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           zStartAff[nEq] = SQLITE_AFF_NONE;
@@ -6202,10 +6202,10 @@ static Bitmask codeOneLoopStart(
     /* Load the value for the inequality constraint at the end of the
     ** range (if any).
 <<<<<<< HEAD
-    ¼ÓÔØ²»µÈÊ½Ô¼ÊøµÄ·¶Î§µÄÖµ(Èç¹ûÓĞµÄ»°)
+    åŠ è½½ä¸ç­‰å¼çº¦æŸçš„èŒƒå›´çš„å€¼(å¦‚æœæœ‰çš„è¯)
 =======
     **
-    ** Îª·¶Î§µÄÄ©Î²µÄ²»µÈÊ½Ô¼Êø¼ÓÔØÖµ¡£
+    ** ä¸ºèŒƒå›´çš„æœ«å°¾çš„ä¸ç­‰å¼çº¦æŸåŠ è½½å€¼ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     nConstraint = nEq;
@@ -6222,13 +6222,13 @@ static Bitmask codeOneLoopStart(
           ** applied to the operands, set the affinity to apply to pRight to 
 <<<<<<< HEAD
           ** SQLITE_AFF_NONE. 
-          ÓÉÓÚ±È½ÏÊÇÃ»ÓĞÖ´ĞĞ×ª»»Ó¦ÓÃÓÚ²Ù×÷Êı,
-          ÉèÖÃ¹ØÁªÉêÇëpRight SQLITE_AFF_NONE¡£
+          ç”±äºæ¯”è¾ƒæ˜¯æ²¡æœ‰æ‰§è¡Œè½¬æ¢åº”ç”¨äºæ“ä½œæ•°,
+          è®¾ç½®å…³è”ç”³è¯·pRight SQLITE_AFF_NONEã€‚
            */
 =======
           ** SQLITE_AFF_NONE.  
           **
-          ** ÓÉÓÚÓ¦ÓÃÔÚÔËËã¶ÔÏóÉÏµÄ±È½ÏÊÇÎ´×ª»»µÄ£¬ÉèÖÃpRightµÄÇ×ºÍĞÔÎªSQLITE_AFF_NONE
+          ** ç”±äºåº”ç”¨åœ¨è¿ç®—å¯¹è±¡ä¸Šçš„æ¯”è¾ƒæ˜¯æœªè½¬æ¢çš„ï¼Œè®¾ç½®pRightçš„äº²å’Œæ€§ä¸ºSQLITE_AFF_NONE
           */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           zEndAff[nEq] = SQLITE_AFF_NONE;
@@ -6244,15 +6244,15 @@ static Bitmask codeOneLoopStart(
     sqlite3DbFree(pParse->db, zStartAff);
     sqlite3DbFree(pParse->db, zEndAff);
 
-    /* Top of the loop body Ñ­»·ÌåµÄ¶¥²¿ */
+    /* Top of the loop body å¾ªç¯ä½“çš„é¡¶éƒ¨ */
     pLevel->p2 = sqlite3VdbeCurrentAddr(v);
 
 <<<<<<< HEAD
     /* Check if the index cursor is past the end of the range. 
-    ¼ì²éË÷ÒıÖ¸ÕëÊÇ·ñ½áÊø¹ıÈ¥µÄ·¶Î§¡£
+    æ£€æŸ¥ç´¢å¼•æŒ‡é’ˆæ˜¯å¦ç»“æŸè¿‡å»çš„èŒƒå›´ã€‚
     */
 =======
-    /* Check if the index cursor is past the end of the range. ¼ì²éË÷ÒıÓÎ±êÊÇ·ñ¾­¹ı·¶Î§µÄÄ©Î² */
+    /* Check if the index cursor is past the end of the range. æ£€æŸ¥ç´¢å¼•æ¸¸æ ‡æ˜¯å¦ç»è¿‡èŒƒå›´çš„æœ«å°¾ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     op = aEndOp[(pRangeEnd || nEq) * (1 + bRev)];
     testcase( op==OP_Noop );
@@ -6267,13 +6267,13 @@ static Bitmask codeOneLoopStart(
     ** of the table column that the inequality contrains is not NULL.
     ** If it is, jump to the next iteration of the loop.
 <<<<<<< HEAD
-    Èç¹ûÓĞ²»µÈÊ½Ô¼Êø,¼ì²é±íÁĞµÄÖµ,
-    ²»Æ½µÈcontrains²»ÊÇ¿ÕµÄ¡£
-    Èç¹ûÊÇ,Ìø×ªµ½ÏÂÒ»¸öµü´úµÄÑ­»·¡£
+    å¦‚æœæœ‰ä¸ç­‰å¼çº¦æŸ,æ£€æŸ¥è¡¨åˆ—çš„å€¼,
+    ä¸å¹³ç­‰contrainsä¸æ˜¯ç©ºçš„ã€‚
+    å¦‚æœæ˜¯,è·³è½¬åˆ°ä¸‹ä¸€ä¸ªè¿­ä»£çš„å¾ªç¯ã€‚
 =======
     **
-    ** Èç¹ûÓĞ²»µÈÊ½Ô¼Êø£¬¼ì²é±íÖĞÓĞ²»µÈÊ½Ô¼ÊøµÄÁĞµÄÖµÊÇ·ñ²»ÎªNULL.
-    ** Èç¹û²»ÎªNULL£¬Ìøµ½ÏÂÒ»¸öÑ­»·µü´ú
+    ** å¦‚æœæœ‰ä¸ç­‰å¼çº¦æŸï¼Œæ£€æŸ¥è¡¨ä¸­æœ‰ä¸ç­‰å¼çº¦æŸçš„åˆ—çš„å€¼æ˜¯å¦ä¸ä¸ºNULL.
+    ** å¦‚æœä¸ä¸ºNULLï¼Œè·³åˆ°ä¸‹ä¸€ä¸ªå¾ªç¯è¿­ä»£
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     r1 = sqlite3GetTempReg(pParse);
@@ -6287,10 +6287,10 @@ static Bitmask codeOneLoopStart(
 
 <<<<<<< HEAD
     /* Seek the table cursor, if required 
-    Ñ°Çó±íÖ¸Õë,Èç¹ûĞèÒªµÄ»°
+    å¯»æ±‚è¡¨æŒ‡é’ˆ,å¦‚æœéœ€è¦çš„è¯
     */
 =======
-    /* Seek the table cursor, if required Èç¹ûĞèÒª£¬²éÑ¯±íÓÎ±ê */
+    /* Seek the table cursor, if required å¦‚æœéœ€è¦ï¼ŒæŸ¥è¯¢è¡¨æ¸¸æ ‡ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     disableTerm(pLevel, pRangeStart);
     disableTerm(pLevel, pRangeEnd);
@@ -6304,10 +6304,10 @@ static Bitmask codeOneLoopStart(
     /* Record the instruction used to terminate the loop. Disable 
     ** WHERE clause terms made redundant by the index range scan.
 <<<<<<< HEAD
-    ¼ÇÂ¼Ê¹ÓÃµÄÖ¸ÁîÖÕÖ¹Ñ­»·¡£½ûÓÃWHERE×Ó¾äÓÉË÷Òı·¶Î§É¨ÃèÔì³ÉµÄÈßÓà¡£
+    è®°å½•ä½¿ç”¨çš„æŒ‡ä»¤ç»ˆæ­¢å¾ªç¯ã€‚ç¦ç”¨WHEREå­å¥ç”±ç´¢å¼•èŒƒå›´æ‰«æé€ æˆçš„å†—ä½™ã€‚
 =======
     **
-    ** ¼ÇÂ¼ÓÃÓÚ½áÊøÑ­»·µÄÖ¸Áî¡£
+    ** è®°å½•ç”¨äºç»“æŸå¾ªç¯çš„æŒ‡ä»¤ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_UNIQUE ){
@@ -6323,7 +6323,7 @@ static Bitmask codeOneLoopStart(
 #ifndef SQLITE_OMIT_OR_OPTIMIZATION
   if( pLevel->plan.wsFlags & WHERE_MULTI_OR ){
     /* Case 4:  Two or more separately indexed terms connected by OR
-    **Á½¸ö»òÁ½¸öÒÔÉÏµÄ¶ÀÁ¢Ë÷ÒıÊõÓï»òÁ¬½Ó
+    **ä¸¤ä¸ªæˆ–ä¸¤ä¸ªä»¥ä¸Šçš„ç‹¬ç«‹ç´¢å¼•æœ¯è¯­æˆ–è¿æ¥
     ** Example:
     **
     **   CREATE TABLE t1(a,b,c,d);
@@ -6335,16 +6335,16 @@ static Bitmask codeOneLoopStart(
     **
     ** In the example, there are three indexed terms connected by OR.
     ** The top of the loop looks like this:
-    **ÔÚÕâ¸öÀı×ÓÖĞ,ÓĞÈı¸öË÷ÒıÊõÓï»òÁ¬½Ó¡£
+    **åœ¨è¿™ä¸ªä¾‹å­ä¸­,æœ‰ä¸‰ä¸ªç´¢å¼•æœ¯è¯­æˆ–è¿æ¥ã€‚
     **          Null       1                # Zero the rowset in reg 1
     **
     ** Then, for each indexed term, the following. The arguments to
     ** RowSetTest are such that the rowid of the current row is inserted
     ** into the RowSet. If it is already present, control skips the
     ** Gosub opcode and jumps straight to the code generated by WhereEnd().
-    **È»ºó,ÎªÃ¿¸öË÷ÒıÊõÓï,ÏÂÃæ¡£
-    RowSetµÄ²ÎÊı,rowidµ±Ç°ĞĞ²åÈëµ½ĞĞ¼¯¡£
-    Èç¹ûËüÒÑ¾­´æÔÚ,ÓÉWhereEnd()¿ØÖÆÌø¹ıGosub²Ù×÷ÂëºÍÌøÔ¾Ö±½ÓÉú³ÉµÄ´úÂë¡£
+    **ç„¶å,ä¸ºæ¯ä¸ªç´¢å¼•æœ¯è¯­,ä¸‹é¢ã€‚
+    RowSetçš„å‚æ•°,rowidå½“å‰è¡Œæ’å…¥åˆ°è¡Œé›†ã€‚
+    å¦‚æœå®ƒå·²ç»å­˜åœ¨,ç”±WhereEnd()æ§åˆ¶è·³è¿‡Gosubæ“ä½œç å’Œè·³è·ƒç›´æ¥ç”Ÿæˆçš„ä»£ç ã€‚
     **        sqlite3WhereBegin(<term>)
     **          RowSetTest                  # Insert rowid into rowset
     **          Gosub      2 A
@@ -6352,7 +6352,7 @@ static Bitmask codeOneLoopStart(
     **
     ** Following the above, code to terminate the loop. Label A, the target
     ** of the Gosub above, jumps to the instruction right after the Goto.
-    **ÓĞÉÏÃæµÄ¿ÉÖª£¬ÏÂÃæµÄ´úÂëÖÕÖ¹Ñ­»·¡£±êÇ©AÉÏÃæGosubµÄÄ¿±ê,Ìø×ªÖ¸ÁîÖ®ºó×ªµ½¡£
+    **æœ‰ä¸Šé¢çš„å¯çŸ¥ï¼Œä¸‹é¢çš„ä»£ç ç»ˆæ­¢å¾ªç¯ã€‚æ ‡ç­¾Aä¸Šé¢Gosubçš„ç›®æ ‡,è·³è½¬æŒ‡ä»¤ä¹‹åè½¬åˆ°ã€‚
     **          Null       1                # Zero the rowset in reg 1
     **          Goto       B                # The loop is finished.
     **
@@ -6362,8 +6362,8 @@ static Bitmask codeOneLoopStart(
     **
     **       B: <after the loop>
     **
-    ** Çé¿ö4:  ÓÉORÁ¬½ÓµÄÁ½¸ö»ò¸ü¶àµÄ¶ÀÁ¢Ë÷Òıterms.
-    ** ÀıÈç:
+    ** æƒ…å†µ4:  ç”±ORè¿æ¥çš„ä¸¤ä¸ªæˆ–æ›´å¤šçš„ç‹¬ç«‹ç´¢å¼•terms.
+    ** ä¾‹å¦‚:
     **
     **   CREATE TABLE t1(a,b,c,d);
     **   CREATE INDEX i1 ON t1(a);
@@ -6372,26 +6372,26 @@ static Bitmask codeOneLoopStart(
     **
     **   SELECT * FROM t1 WHERE a=5 OR b=7 OR (c=11 AND d=13)
     **
-    ** ÔÚÕâ¸öÀı×ÓÖĞ£¬ÓĞ3¸ö´øË÷ÒıµÄterms±»ORÁ¬½Ó¡£
-    ** Ñ­»·µÄ¶¥²¿ÏñÕâÑù:
+    ** åœ¨è¿™ä¸ªä¾‹å­ä¸­ï¼Œæœ‰3ä¸ªå¸¦ç´¢å¼•çš„termsè¢«ORè¿æ¥ã€‚
+    ** å¾ªç¯çš„é¡¶éƒ¨åƒè¿™æ ·:
     **
-    **          Null       1                # ÔÚ¼Ä´æÆ÷1ÖĞ°ÑrowsetÇåÁã
+    **          Null       1                # åœ¨å¯„å­˜å™¨1ä¸­æŠŠrowsetæ¸…é›¶
     **
-    ** ÄÇÃ´£¬¶ÔÓÚ½ÓÏÂÀ´µÄÃ¿¸öÓĞË÷ÒıµÄterm.´«µİ¸øRowSetTestµÄ²ÎÊıÊÇµ±Ç°²åÈëµ½RowSetµÄĞĞµÄrowid. 
-    ** Èç¹ûÒÑ¾­´æÔÚ£¬¿ØÖÆÌø¹ıÕâ¸öGosub²Ù×÷Âë²¢ÇÒÖ±½ÓÌøµ½ÓÉWhereEnd()Ö±½ÓÉú³ÉµÄ´úÂë¡£
+    ** é‚£ä¹ˆï¼Œå¯¹äºæ¥ä¸‹æ¥çš„æ¯ä¸ªæœ‰ç´¢å¼•çš„term.ä¼ é€’ç»™RowSetTestçš„å‚æ•°æ˜¯å½“å‰æ’å…¥åˆ°RowSetçš„è¡Œçš„rowid. 
+    ** å¦‚æœå·²ç»å­˜åœ¨ï¼Œæ§åˆ¶è·³è¿‡è¿™ä¸ªGosubæ“ä½œç å¹¶ä¸”ç›´æ¥è·³åˆ°ç”±WhereEnd()ç›´æ¥ç”Ÿæˆçš„ä»£ç ã€‚
     **
     **        sqlite3WhereBegin(<term>)
-    **          RowSetTest                  # °Ñrowid²åÈëµ½rowset
+    **          RowSetTest                  # æŠŠrowidæ’å…¥åˆ°rowset
     **          Gosub      2 A
     **        sqlite3WhereEnd()
     **
-    ** ½ÓÏÂÀ´£¬Éú³ÉÖÕÖ¹Ñ­»·µÄ´úÂë¡£Label A, ÉÏÃæGosubµÄÄ¿±ê, ÔÚGotoÖ®ºóÌøµ½ÏàÓ¦µÄÖ¸Áî¡£
-    **          Null       1                # ÔÚ¼Ä´æÆ÷1ÖĞ°ÑrowsetÇåÁã
-    **          Goto       B                # Ñ­»·½áÊø.
+    ** æ¥ä¸‹æ¥ï¼Œç”Ÿæˆç»ˆæ­¢å¾ªç¯çš„ä»£ç ã€‚Label A, ä¸Šé¢Gosubçš„ç›®æ ‡, åœ¨Gotoä¹‹åè·³åˆ°ç›¸åº”çš„æŒ‡ä»¤ã€‚
+    **          Null       1                # åœ¨å¯„å­˜å™¨1ä¸­æŠŠrowsetæ¸…é›¶
+    **          Goto       B                # å¾ªç¯ç»“æŸ.
     **
     **       A: <loop body>                 # Return data, whatever.
     **
-    **          Return     2                # Ìø»Øµ½Gosub
+    **          Return     2                # è·³å›åˆ°Gosub
     **
     **       B: <after the loop>
     **
@@ -6399,31 +6399,31 @@ static Bitmask codeOneLoopStart(
 <<<<<<< HEAD
     WhereClause *pOrWc;    /* The OR-clause broken out into subterms */
     SrcList *pOrTab;       /* Shortened table list or OR-clause generation */
-    Index *pCov = 0;             /* ¿ÉÄÜ¸²¸ÇË÷Òı(»òÕßÎª¿Õ) */
-    int iCovCur = pParse->nTab++;  /* ÓÎ±êÓÃÓÚË÷ÒıÉ¨Ãè(Èç¹ûÓĞµÄ»°) */
+    Index *pCov = 0;             /* å¯èƒ½è¦†ç›–ç´¢å¼•(æˆ–è€…ä¸ºç©º) */
+    int iCovCur = pParse->nTab++;  /* æ¸¸æ ‡ç”¨äºç´¢å¼•æ‰«æ(å¦‚æœæœ‰çš„è¯) */
 
-    int regReturn = ++pParse->nMem;           /* ¼Ä´æÆ÷Ê¹ÓÃOP_Gosub*/
-    int regRowset = 0;                        /* ¼Ä´æRowSet¶ÔÏó */
-    int regRowid = 0;                         /* ¼Ä´æÆ÷´æ·Årowid*/
-    int iLoopBody = sqlite3VdbeMakeLabel(v);  /* Ñ­»·Ìå¿ªÊ¼ */
-    int iRetInit;                             /* regReturnµÄµØÖ· */
-    int untestedTerms = 0;             /* Ò»Ğ©×Ó¾ä²»ÄÜÍêÈ«²âÊÔ */
-    int ii;                            /* Ñ­»·¼ÆÊıÆ÷ */
+    int regReturn = ++pParse->nMem;           /* å¯„å­˜å™¨ä½¿ç”¨OP_Gosub*/
+    int regRowset = 0;                        /* å¯„å­˜RowSetå¯¹è±¡ */
+    int regRowid = 0;                         /* å¯„å­˜å™¨å­˜æ”¾rowid*/
+    int iLoopBody = sqlite3VdbeMakeLabel(v);  /* å¾ªç¯ä½“å¼€å§‹ */
+    int iRetInit;                             /* regReturnçš„åœ°å€ */
+    int untestedTerms = 0;             /* ä¸€äº›å­å¥ä¸èƒ½å®Œå…¨æµ‹è¯• */
+    int ii;                            /* å¾ªç¯è®¡æ•°å™¨ */
     Expr *pAndExpr = 0;                /* An ".. AND (...)" expression */
 =======
-    WhereClause *pOrWc;    /* The OR-clause broken out into subterms ORi×Ó¾ä·ÖÁÑµÄ×Óterms */
-    SrcList *pOrTab;       /* Shortened table list or OR-clause generation ËõĞ¡±íÁĞ±í»òOR×Ó¾äµÄÉú²ú */
-    Index *pCov = 0;             /* Potential covering index (or NULL) ¿ÉÄÜµÄ¸²¸ÇË÷Òı(»òNULL) */
-    int iCovCur = pParse->nTab++;  /* Cursor used for index scans (if any) ÓÃÓÚË÷ÒıÉ¨ÃèµÄÓÎ±ê */
+    WhereClause *pOrWc;    /* The OR-clause broken out into subterms ORiå­å¥åˆ†è£‚çš„å­terms */
+    SrcList *pOrTab;       /* Shortened table list or OR-clause generation ç¼©å°è¡¨åˆ—è¡¨æˆ–ORå­å¥çš„ç”Ÿäº§ */
+    Index *pCov = 0;             /* Potential covering index (or NULL) å¯èƒ½çš„è¦†ç›–ç´¢å¼•(æˆ–NULL) */
+    int iCovCur = pParse->nTab++;  /* Cursor used for index scans (if any) ç”¨äºç´¢å¼•æ‰«æçš„æ¸¸æ ‡ */
 
-    int regReturn = ++pParse->nMem;           /* Register used with OP_Gosub ¼Ä´æÆ÷Ê¹ÓÃOP_Gosub */
-    int regRowset = 0;                        /* Register for RowSet object ÓÃÓÚRowSet¶ÔÏóµÄ¼Ä´æÆ÷ */
-    int regRowid = 0;                         /* Register holding rowid ±£´ærowidµÄ¼Ä´æÆ÷ */
-    int iLoopBody = sqlite3VdbeMakeLabel(v);  /* Start of loop body Ñ­»·ÌåµÄ¿ªÊ¼ */
-    int iRetInit;                             /* Address of regReturn init regReturnµØÖ·³õÊ¼»¯ */
-    int untestedTerms = 0;             /* Some terms not completely tested Ò»Ğ©Ã»ÍêÈ«²âÊÔµÄterms */
-    int ii;                            /* Loop counter Ñ­»·¼ÆÊıÆ÷ */
-    Expr *pAndExpr = 0;                /* An ".. AND (...)" expression Ò»¸ö".. AND (...)"±í´ïÊ½ */
+    int regReturn = ++pParse->nMem;           /* Register used with OP_Gosub å¯„å­˜å™¨ä½¿ç”¨OP_Gosub */
+    int regRowset = 0;                        /* Register for RowSet object ç”¨äºRowSetå¯¹è±¡çš„å¯„å­˜å™¨ */
+    int regRowid = 0;                         /* Register holding rowid ä¿å­˜rowidçš„å¯„å­˜å™¨ */
+    int iLoopBody = sqlite3VdbeMakeLabel(v);  /* Start of loop body å¾ªç¯ä½“çš„å¼€å§‹ */
+    int iRetInit;                             /* Address of regReturn init regReturnåœ°å€åˆå§‹åŒ– */
+    int untestedTerms = 0;             /* Some terms not completely tested ä¸€äº›æ²¡å®Œå…¨æµ‹è¯•çš„terms */
+    int ii;                            /* Loop counter å¾ªç¯è®¡æ•°å™¨ */
+    Expr *pAndExpr = 0;                /* An ".. AND (...)" expression ä¸€ä¸ª".. AND (...)"è¡¨è¾¾å¼ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
    
     pTerm = pLevel->plan.u.pTerm;
@@ -6438,19 +6438,19 @@ static Bitmask codeOneLoopStart(
     ** by this loop in the a[0] slot and all notReady tables in a[1..] slots.
     ** This becomes the SrcList in the recursive call to sqlite3WhereBegin().
 <<<<<<< HEAD
-    ½¨Á¢Ò»¸öĞÂµÄSrcList pOrTab°üº¬±íÕâ¸ö±íÍ¨¹ıa[0]ºÍa[1..]½øĞĞÉ¨Ãè¡£
-    Õâ¾ÍÊÇSrcListµİ¹éµ÷ÓÃsqlite3WhereBegin()¡£
+    å»ºç«‹ä¸€ä¸ªæ–°çš„SrcList pOrTabåŒ…å«è¡¨è¿™ä¸ªè¡¨é€šè¿‡a[0]å’Œa[1..]è¿›è¡Œæ‰«æã€‚
+    è¿™å°±æ˜¯SrcListé€’å½’è°ƒç”¨sqlite3WhereBegin()ã€‚
     */
     if( pWInfo->nLevel>1 ){
-      int nNotReady;                 /* notReady ±íµÄÊıÄ¿ */
-      struct SrcList_item *origSrc;     /* Ô­Ê¼µÄ±íÁĞ±í */
+      int nNotReady;                 /* notReady è¡¨çš„æ•°ç›® */
+      struct SrcList_item *origSrc;     /* åŸå§‹çš„è¡¨åˆ—è¡¨ */
 =======
     **
-    ** ÔÚpOrTabÖĞ´´½¨ĞÂµÄSrcList£¬Õâ¸öSrcList°üº¬Í¨¹ıÕâ¸öÑ­»·É¨Ãèµ½ÔÚa[0]Î»ÖÃµÄ±íºÍÔÚa[1..]Î»ÖÃËùÓĞnotReadyµÄ±í
+    ** åœ¨pOrTabä¸­åˆ›å»ºæ–°çš„SrcListï¼Œè¿™ä¸ªSrcListåŒ…å«é€šè¿‡è¿™ä¸ªå¾ªç¯æ‰«æåˆ°åœ¨a[0]ä½ç½®çš„è¡¨å’Œåœ¨a[1..]ä½ç½®æ‰€æœ‰notReadyçš„è¡¨
     */
     if( pWInfo->nLevel>1 ){
-      int nNotReady;                 /* The number of notReady tables notReady±íµÄÊıÄ¿ */
-      struct SrcList_item *origSrc;     /* Original list of tables ±íµÄÔ­Ê¼ÁĞ±í */
+      int nNotReady;                 /* The number of notReady tables notReadyè¡¨çš„æ•°ç›® */
+      struct SrcList_item *origSrc;     /* Original list of tables è¡¨çš„åŸå§‹åˆ—è¡¨ */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       nNotReady = pWInfo->nLevel - iLevel - 1;
       pOrTab = sqlite3StackAllocRaw(pParse->db,
@@ -6470,10 +6470,10 @@ static Bitmask codeOneLoopStart(
     /* Initialize the rowset register to contain NULL. An SQL NULL is 
     ** equivalent to an empty rowset.
 <<<<<<< HEAD
-    **³õÊ¼»¯ĞĞ¼¯¼Ä´æÆ÷°üº¬NULL¡£Ò»¸öSQL¿ÕÏàµ±ÓÚÒ»¸ö¿ÕĞĞ¼¯¡£
+    **åˆå§‹åŒ–è¡Œé›†å¯„å­˜å™¨åŒ…å«NULLã€‚ä¸€ä¸ªSQLç©ºç›¸å½“äºä¸€ä¸ªç©ºè¡Œé›†ã€‚
 =======
     **
-    ** ³õÊ¼»¯rowset¼Ä´æÆ÷°üº¬NULL.Ò»¸öSQL NULLÊÇµÈ¼ÛÓÚÒ»¸ö¿ÕµÄrowset.
+    ** åˆå§‹åŒ–rowsetå¯„å­˜å™¨åŒ…å«NULL.ä¸€ä¸ªSQL NULLæ˜¯ç­‰ä»·äºä¸€ä¸ªç©ºçš„rowset.
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Also initialize regReturn to contain the address of the instruction 
@@ -6484,15 +6484,15 @@ static Bitmask codeOneLoopStart(
     ** fall through to the next instruction, just as an OP_Next does if
     ** called on an uninitialized cursor.
 <<<<<<< HEAD
-    ³õÊ¼»¯regReturn°üº¬Ö¸ÁîµØÖ·ºÍOP_Returnµ×²¿Ñ­»·¡£
-    ÕâÊÇĞèÒªÔÚ¼¸¸öÄ£ºı×óÁ¬½ÓÇé¿öÔÚ¿ØÖÆÌø¹ıÑ­»·µÄ¶¥²¿½øÈëÌåÇé¿öÏÂ¡£
-    ÔÚÕâÖÖÇé¿öÏÂÕıÈ·µÄÏìÓ¦end-of-loop´úÂë(OP_Return)ÏÂ½µµ½ÏÂÒ»¸öÖ¸Áî,
-    ÕıÈçÒ»¸öOP_NextËù×÷Èç¹ûÒªÇóÎ´³õÊ¼»¯µÄÖ¸Õë¡£
+    åˆå§‹åŒ–regReturnåŒ…å«æŒ‡ä»¤åœ°å€å’ŒOP_Returnåº•éƒ¨å¾ªç¯ã€‚
+    è¿™æ˜¯éœ€è¦åœ¨å‡ ä¸ªæ¨¡ç³Šå·¦è¿æ¥æƒ…å†µåœ¨æ§åˆ¶è·³è¿‡å¾ªç¯çš„é¡¶éƒ¨è¿›å…¥ä½“æƒ…å†µä¸‹ã€‚
+    åœ¨è¿™ç§æƒ…å†µä¸‹æ­£ç¡®çš„å“åº”end-of-loopä»£ç (OP_Return)ä¸‹é™åˆ°ä¸‹ä¸€ä¸ªæŒ‡ä»¤,
+    æ­£å¦‚ä¸€ä¸ªOP_Nextæ‰€ä½œå¦‚æœè¦æ±‚æœªåˆå§‹åŒ–çš„æŒ‡é’ˆã€‚
 =======
     **
-    ** Í¬Ê±Ò²³õÊ¼»¯regReturn°üº¬Ö¸ÁîµØÖ·£¬Õâ¸öregReturnÊÇ½ô¸ú×ÅÑ­»·µ×²¿µÄOP_Return.
-    ** ÔÚÕâÖÖÇé¿ö¶ÔÓÚÑ­»·½áÊø±àÂëµÄÕıÈ·ÏìÓ¦ÊÇÒªÌø¹ıÏÂÒ»¸öÖ¸Áî£¬
-    ** ¾ÍÏñÔÚÒ»¸öÎª³õÊ¼»¯µÄÓÎ±êÖĞµ÷ÓÃÒ»¸öOP_NextÄÇÑù
+    ** åŒæ—¶ä¹Ÿåˆå§‹åŒ–regReturnåŒ…å«æŒ‡ä»¤åœ°å€ï¼Œè¿™ä¸ªregReturnæ˜¯ç´§è·Ÿç€å¾ªç¯åº•éƒ¨çš„OP_Return.
+    ** åœ¨è¿™ç§æƒ…å†µå¯¹äºå¾ªç¯ç»“æŸç¼–ç çš„æ­£ç¡®å“åº”æ˜¯è¦è·³è¿‡ä¸‹ä¸€ä¸ªæŒ‡ä»¤ï¼Œ
+    ** å°±åƒåœ¨ä¸€ä¸ªä¸ºåˆå§‹åŒ–çš„æ¸¸æ ‡ä¸­è°ƒç”¨ä¸€ä¸ªOP_Nexté‚£æ ·
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (wctrlFlags & WHERE_DUPLICATES_OK)==0 ){
@@ -6507,12 +6507,12 @@ static Bitmask codeOneLoopStart(
     ** That way, terms in y that are factored into the disjunction will
     ** be picked up by the recursive calls to sqlite3WhereBegin() below.
 <<<<<<< HEAD
-    **Èç¹ûÔ­Ê¼WHERE×Ó¾äµÄzĞÎÊ½:(x1»òx2»ò¡­)ºÍy¡£È»ºóÃ¿¸ö×Ó¾äxN,
-    ÆÀ¹À×Ó±í´ïÊ½:xNºÍz,×Ó¾äµÄy·Ö½â³ÉÎöÈ¡½«±»µİ¹éµ÷ÓÃsqlite3WhereBegin()¡£
+    **å¦‚æœåŸå§‹WHEREå­å¥çš„zå½¢å¼:(x1æˆ–x2æˆ–â€¦)å’Œyã€‚ç„¶åæ¯ä¸ªå­å¥xN,
+    è¯„ä¼°å­è¡¨è¾¾å¼:xNå’Œz,å­å¥çš„yåˆ†è§£æˆæå–å°†è¢«é€’å½’è°ƒç”¨sqlite3WhereBegin()ã€‚
 =======
     **
-    ** Èç¹ûÔ­Ê¼µÄWHERE×Ó¾äÊÇzÕâÖÖĞÎÊ½:(x1 OR x2 OR ...) AND y.ÄÇÃ´¶ÔÓÚÃ¿Ò»¸öterm xN,¼ÆËã×Ö±í´ïÊ½:xN AND z.
-    ** ÄÇÑù£¬ÔÚyÖĞµÄtermsÍ¨¹ıµ÷ÓÃÏÂÃæµÄsqlite3WhereBegin()À´½øĞĞ·Ö½â¡£
+    ** å¦‚æœåŸå§‹çš„WHEREå­å¥æ˜¯zè¿™ç§å½¢å¼:(x1 OR x2 OR ...) AND y.é‚£ä¹ˆå¯¹äºæ¯ä¸€ä¸ªterm xN,è®¡ç®—å­—è¡¨è¾¾å¼:xN AND z.
+    ** é‚£æ ·ï¼Œåœ¨yä¸­çš„termsé€šè¿‡è°ƒç”¨ä¸‹é¢çš„sqlite3WhereBegin()æ¥è¿›è¡Œåˆ†è§£ã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Actually, each subexpression is converted to "xN AND w" where w is
@@ -6520,12 +6520,12 @@ static Bitmask codeOneLoopStart(
     ** ON or USING clause of a LEFT JOIN, and terms that are usable as 
     ** indices.
 <<<<<<< HEAD
-    Êµ¼ÊÉÏ,Ã¿¸ö×Ó±í´ïÊ½×ª»»Îª¡°xNºÍw¡±,wÊÇ¡°ÓĞÈ¤¡±µÄz -
-    ÊõÓï¡£²¢²»ÆğÔ´ÓÚ×óÁ¬½Ó»òÊ¹ÓÃÌõ¿î,Õâ¸ö¿ÉÓÃË÷Òı¡£
+    å®é™…ä¸Š,æ¯ä¸ªå­è¡¨è¾¾å¼è½¬æ¢ä¸ºâ€œxNå’Œwâ€,wæ˜¯â€œæœ‰è¶£â€çš„z -
+    æœ¯è¯­ã€‚å¹¶ä¸èµ·æºäºå·¦è¿æ¥æˆ–ä½¿ç”¨æ¡æ¬¾,è¿™ä¸ªå¯ç”¨ç´¢å¼•ã€‚
 =======
     **
-    ** ÊÂÊµÉÏ£¬Ã¿¸ö×Ó±í´ïÊ½×ª»¯Îª"xN AND w"£¬
-    ** ÆäÖĞwÊÇzµÄ"interesting" terms-terms²»ÊÇÔ´ÓÚLEFT JOINµÄON»òUSING×Ó¾ä,²¢ÇÒterms¿ÉÒÔ±»µ±×öË÷ÒıÊ¹ÓÃ¡£
+    ** äº‹å®ä¸Šï¼Œæ¯ä¸ªå­è¡¨è¾¾å¼è½¬åŒ–ä¸º"xN AND w"ï¼Œ
+    ** å…¶ä¸­wæ˜¯zçš„"interesting" terms-termsä¸æ˜¯æºäºLEFT JOINçš„ONæˆ–USINGå­å¥,å¹¶ä¸”termså¯ä»¥è¢«å½“åšç´¢å¼•ä½¿ç”¨ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pWC->nTerm>1 ){
@@ -6546,7 +6546,7 @@ static Bitmask codeOneLoopStart(
     for(ii=0; ii<pOrWc->nTerm; ii++){
       WhereTerm *pOrTerm = &pOrWc->a[ii];
       if( pOrTerm->leftCursor==iCur || pOrTerm->eOperator==WO_AND ){
-        WhereInfo *pSubWInfo;          /* Info for single OR-term scan OR-termÉ¨ÃèµÄĞÅÏ¢ */
+        WhereInfo *pSubWInfo;          /* Info for single OR-term scan OR-termæ‰«æçš„ä¿¡æ¯ */
         Expr *pOrExpr = pOrTerm->pExpr;
         if( pAndExpr ){
           pAndExpr->pLeft = pOrExpr;
@@ -6554,10 +6554,10 @@ static Bitmask codeOneLoopStart(
         }
 <<<<<<< HEAD
         /* Loop through table entries that match term pOrTerm.
-        ±éÀú±íÓëÊõÓïpOrTermÏàÆ¥ÅäµÄÌõÄ¿¡£
+        éå†è¡¨ä¸æœ¯è¯­pOrTermç›¸åŒ¹é…çš„æ¡ç›®ã€‚
          */
 =======
-        /* Loop through table entries that match term pOrTerm. Ñ­»·±éÀú±íÖĞÆ¥ÅäpOrTermµÄÌõÄ¿ */
+        /* Loop through table entries that match term pOrTerm. å¾ªç¯éå†è¡¨ä¸­åŒ¹é…pOrTermçš„æ¡ç›® */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         pSubWInfo = sqlite3WhereBegin(pParse, pOrTab, pOrExpr, 0, 0,
                         WHERE_OMIT_OPEN_CLOSE | WHERE_AND_ONLY |
@@ -6583,12 +6583,12 @@ static Bitmask codeOneLoopStart(
           ** terms from the notReady table could not be tested and will
           ** need to be tested later.
 <<<<<<< HEAD
-          pSubWInfo - > untestedTerms±êÖ¾ÒâÎ¶×ÅÕâORÁ¬½Ó´Ê°üº¬Ò»¸ö»ò¶à¸ö¹Ø¼ü±í¡£
-          notReady ±í²»ÄÜ²âÊÔ,ÉÔºóĞèÒª²âÊÔ¡£
+          pSubWInfo - > untestedTermsæ ‡å¿—æ„å‘³ç€è¿™ORè¿æ¥è¯åŒ…å«ä¸€ä¸ªæˆ–å¤šä¸ªå…³é”®è¡¨ã€‚
+          notReady è¡¨ä¸èƒ½æµ‹è¯•,ç¨åéœ€è¦æµ‹è¯•ã€‚
 =======
           **
-          ** pSubWInfo->untestedTerms±êÖ¾´ú±íÕâ¸öOR term°üº¬ÁËÀ´×ÔÒ»¸önotReady±íµÄÒ»¸ö»ò¶à¸öAND term.
-          ** À´×ÔnotReady±íµÄterms²»ÄÜ±»²âÊÔ²¢ÇÒÉÔºó½«ĞèÒª²âÊÔ¡£
+          ** pSubWInfo->untestedTermsæ ‡å¿—ä»£è¡¨è¿™ä¸ªOR termåŒ…å«äº†æ¥è‡ªä¸€ä¸ªnotReadyè¡¨çš„ä¸€ä¸ªæˆ–å¤šä¸ªAND term.
+          ** æ¥è‡ªnotReadyè¡¨çš„termsä¸èƒ½è¢«æµ‹è¯•å¹¶ä¸”ç¨åå°†éœ€è¦æµ‹è¯•ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
           if( pSubWInfo->untestedTerms ) untestedTerms = 1;
@@ -6598,14 +6598,14 @@ static Bitmask codeOneLoopStart(
           ** by each call to sqlite3WhereBegin() made by this loop, it may
           ** be possible to use that index as a covering index.
 <<<<<<< HEAD
-          **Èç¹ûËùÓĞµÄORÁ¬½Ó´Ê¶¼ÊÇÒÑ¾­ÓÅ»¯µÄ¶øÇÒÊ¹ÓÃÏàÍ¬µÄÖ¸Êı,
-          Ë÷ÒıÊ¹ÓÃÏàÍ¬µÄÓÎ±ê´ò¿ªË÷ÒıºÅÓÉÃ¿¸öµ÷ÓÃsqlite3WhereBegin()ÓÉÕâ¸öÑ­»·,
-          Ëü¿ÉÄÜ»áÊ¹ÓÃ¸ÃÖ¸Êı×÷Îª¸²¸ÇË÷Òı¡£
+          **å¦‚æœæ‰€æœ‰çš„ORè¿æ¥è¯éƒ½æ˜¯å·²ç»ä¼˜åŒ–çš„è€Œä¸”ä½¿ç”¨ç›¸åŒçš„æŒ‡æ•°,
+          ç´¢å¼•ä½¿ç”¨ç›¸åŒçš„æ¸¸æ ‡æ‰“å¼€ç´¢å¼•å·ç”±æ¯ä¸ªè°ƒç”¨sqlite3WhereBegin()ç”±è¿™ä¸ªå¾ªç¯,
+          å®ƒå¯èƒ½ä¼šä½¿ç”¨è¯¥æŒ‡æ•°ä½œä¸ºè¦†ç›–ç´¢å¼•ã€‚
 =======
           **
-          ** Èç¹ûÊ¹ÓÃÏàÍ¬µÄË÷ÒıÓÅ»¯ËùÓĞORÁ¬½ÓµÄterms£¬
-          ** ²¢ÇÒÍ¨¹ıÃ¿´Îµ÷ÓÃÓÉÑ­»·ÖÆÔìµÄsqlite3WhereBegin()À´Ê¹ÓÃÏàÍ¬µÄÓÎ±êÊı¾İ´ò¿ªË÷Òı,
-          ** ÄÇÃ´¿ÉÄÜ»á°ÑÕâ¸öË÷Òı×÷Îª¸²¸ÇË÷ÒıÊ¹ÓÃ¡£
+          ** å¦‚æœä½¿ç”¨ç›¸åŒçš„ç´¢å¼•ä¼˜åŒ–æ‰€æœ‰ORè¿æ¥çš„termsï¼Œ
+          ** å¹¶ä¸”é€šè¿‡æ¯æ¬¡è°ƒç”¨ç”±å¾ªç¯åˆ¶é€ çš„sqlite3WhereBegin()æ¥ä½¿ç”¨ç›¸åŒçš„æ¸¸æ ‡æ•°æ®æ‰“å¼€ç´¢å¼•,
+          ** é‚£ä¹ˆå¯èƒ½ä¼šæŠŠè¿™ä¸ªç´¢å¼•ä½œä¸ºè¦†ç›–ç´¢å¼•ä½¿ç”¨ã€‚
           **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           ** If the call to sqlite3WhereBegin() above resulted in a scan that
@@ -6615,14 +6615,14 @@ static Bitmask codeOneLoopStart(
           ** pCov to NULL to indicate that no candidate covering index will 
           ** be available.
 <<<<<<< HEAD
-          Èç¹ûµ÷ÓÃsqlite3WhereBegin()µ¼ÖÂÒ»¸öÊ¹ÓÃË÷ÒıÉ¨Ãè,
-          ÕâÊÇµÚÒ»¸öORÁ¬½Ó´Ê´¦Àí»òÊ¹ÓÃµÄË÷ÒıÊÇÒ»ÑùµÄ,ÉèÖÃpCovºòÑ¡¸²¸ÇË÷Òı ¡£
-          ·ñÔò,pCovÉèÖÃÎª¿Õ,±íÊ¾Ã»ÓĞºòÑ¡¸²¸ÇË÷Òı½«ÊÇ¿ÉÓÃµÄ
+          å¦‚æœè°ƒç”¨sqlite3WhereBegin()å¯¼è‡´ä¸€ä¸ªä½¿ç”¨ç´¢å¼•æ‰«æ,
+          è¿™æ˜¯ç¬¬ä¸€ä¸ªORè¿æ¥è¯å¤„ç†æˆ–ä½¿ç”¨çš„ç´¢å¼•æ˜¯ä¸€æ ·çš„,è®¾ç½®pCovå€™é€‰è¦†ç›–ç´¢å¼• ã€‚
+          å¦åˆ™,pCovè®¾ç½®ä¸ºç©º,è¡¨ç¤ºæ²¡æœ‰å€™é€‰è¦†ç›–ç´¢å¼•å°†æ˜¯å¯ç”¨çš„
 =======
           **
-          ** Èç¹ûµ÷ÓÃsqlite3WhereBegin()µ¼ÖÂÊ¹ÓÃË÷ÒıÉ¨Ãè£¬
-          ** ²¢ÇÒÕâÊÇµÚÒ»´ÎÖ´ĞĞOR-connected term»òÊ¹ÓÃµÄË÷ÒıÓëÇ°ÃæËùÓĞµÄtermsĞÎÌ¬,°ÑpCovÉèÖÃÎªºòÑ¡µÄ¸²¸ÇË÷Òı¡£
-          ** ·ñÔò£¬°ÑpCovÉèÖÃÎªNULLÀ´ËµÃ÷Ã»ÓĞºòÑ¡µÄ¸²¸ÇË÷Òı¿É¹©Ê¹ÓÃ¡£
+          ** å¦‚æœè°ƒç”¨sqlite3WhereBegin()å¯¼è‡´ä½¿ç”¨ç´¢å¼•æ‰«æï¼Œ
+          ** å¹¶ä¸”è¿™æ˜¯ç¬¬ä¸€æ¬¡æ‰§è¡ŒOR-connected termæˆ–ä½¿ç”¨çš„ç´¢å¼•ä¸å‰é¢æ‰€æœ‰çš„termså½¢æ€,æŠŠpCovè®¾ç½®ä¸ºå€™é€‰çš„è¦†ç›–ç´¢å¼•ã€‚
+          ** å¦åˆ™ï¼ŒæŠŠpCovè®¾ç½®ä¸ºNULLæ¥è¯´æ˜æ²¡æœ‰å€™é€‰çš„è¦†ç›–ç´¢å¼•å¯ä¾›ä½¿ç”¨ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
           pLvl = &pSubWInfo->a[0];
@@ -6638,10 +6638,10 @@ static Bitmask codeOneLoopStart(
 
 <<<<<<< HEAD
           /* Finish the loop through table entries that match term pOrTerm.
-          Íê³É±éÀú±íÓëÊõÓïpOrTermÏàÆ¥ÅäµÄÌõÄ¿¡£
+          å®Œæˆéå†è¡¨ä¸æœ¯è¯­pOrTermç›¸åŒ¹é…çš„æ¡ç›®ã€‚
            */
 =======
-          /* Finish the loop through table entries that match term pOrTerm. Íê³É±íÖĞÆ¥ÅäpOrTermµÄÌõÄ¿µÄÑ­»·±éÀú */
+          /* Finish the loop through table entries that match term pOrTerm. å®Œæˆè¡¨ä¸­åŒ¹é…pOrTermçš„æ¡ç›®çš„å¾ªç¯éå† */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           sqlite3WhereEnd(pSubWInfo);
         }
@@ -6666,10 +6666,10 @@ static Bitmask codeOneLoopStart(
     /* Case 5:  There is no usable index.  We must do a complete
     **          scan of the entire table.
 <<<<<<< HEAD
-    Ã»ÓĞ¿ÉÓÃµÄË÷Òı¡£ÎÒÃÇ±ØĞë×öÒ»¸öÍêÕûµÄÉ¨ÃèÕû¸ö±í¡£
+    æ²¡æœ‰å¯ç”¨çš„ç´¢å¼•ã€‚æˆ‘ä»¬å¿…é¡»åšä¸€ä¸ªå®Œæ•´çš„æ‰«ææ•´ä¸ªè¡¨ã€‚
 =======
     **
-    ** Çé¿ö5:Ã»ÓĞ¿ÉÓÃµÄË÷Òı¡£ÎÒÃÇ×öÒ»¸öÈ«±íÉ¨Ãè¡£
+    ** æƒ…å†µ5:æ²¡æœ‰å¯ç”¨çš„ç´¢å¼•ã€‚æˆ‘ä»¬åšä¸€ä¸ªå…¨è¡¨æ‰«æã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     static const u8 aStep[] = { OP_Next, OP_Prev };
@@ -6686,19 +6686,19 @@ static Bitmask codeOneLoopStart(
   /* Insert code to test every subexpression that can be completely
   ** computed using the current set of tables.
 <<<<<<< HEAD
-  **Ê¹ÓÃµ±Ç°µÄÒ»×é±íÀ´ÍêÈ«²åÈë´úÂëÀ´²âÊÔ¼ÆËãÃ¿¸ö×Ó±í´ïÊ½¡£
+  **ä½¿ç”¨å½“å‰çš„ä¸€ç»„è¡¨æ¥å®Œå…¨æ’å…¥ä»£ç æ¥æµ‹è¯•è®¡ç®—æ¯ä¸ªå­è¡¨è¾¾å¼ã€‚
   ** IMPLEMENTATION-OF: R-49525-50935 Terms that cannot be satisfied through
   ** the use of indices become tests that are evaluated against each row of
   ** the relevant input tables.
-  Ìõ¼ş²»ÄÜÂú×ãÍ¨¹ıÊ¹ÓÃÖ¸Êı³ÉÎª²âÊÔÆÀ¹ÀÏà¹ØµÄÊäÈë±íµÄÃ¿Ò»ĞĞ¡£
+  æ¡ä»¶ä¸èƒ½æ»¡è¶³é€šè¿‡ä½¿ç”¨æŒ‡æ•°æˆä¸ºæµ‹è¯•è¯„ä¼°ç›¸å…³çš„è¾“å…¥è¡¨çš„æ¯ä¸€è¡Œã€‚
 =======
   **
-  ** ²åÈë´úÂëÀ´²âÊÔÃ¿Ò»¸ö¿ÉÒÔÊ¹ÓÃµ±Ç°Ò»ÏµÁĞµÄ±íÀ´ÍêÕû¼ÆËãµÄ×Ó±í´ïÊ½
+  ** æ’å…¥ä»£ç æ¥æµ‹è¯•æ¯ä¸€ä¸ªå¯ä»¥ä½¿ç”¨å½“å‰ä¸€ç³»åˆ—çš„è¡¨æ¥å®Œæ•´è®¡ç®—çš„å­è¡¨è¾¾å¼
   **
   ** IMPLEMENTATION-OF: R-49525-50935 Terms that cannot be satisfied through
   ** the use of indices become tests that are evaluated against each row of
   ** the relevant input tables.
-  ** IMPLEMENTATION-OF: R-49525-50935 ²»ÄÜÊ¹ÓÃË÷ÒıµÄterms³ÉÎª¼ÆËãÏà¹ØÊäÈë±íµÄÃ¿ĞĞµÄ²âÊÔ
+  ** IMPLEMENTATION-OF: R-49525-50935 ä¸èƒ½ä½¿ç”¨ç´¢å¼•çš„termsæˆä¸ºè®¡ç®—ç›¸å…³è¾“å…¥è¡¨çš„æ¯è¡Œçš„æµ‹è¯•
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   for(pTerm=pWC->a, j=pWC->nTerm; j>0; j--, pTerm++){
@@ -6724,11 +6724,11 @@ static Bitmask codeOneLoopStart(
   /* For a LEFT OUTER JOIN, generate code that will record the fact that
 <<<<<<< HEAD
   ** at least one row of the right table has matched the left table.  
-  ¶ÔÓÚÒ»¸ö×óÍâÁ¬½Ó,Éú³ÉµÄ´úÂë½«¼ÇÂ¼µÄÊÂÊµÖÁÉÙ¶Ô±íµÄÒ»ĞĞÆ¥Åä×ó±í¡£
+  å¯¹äºä¸€ä¸ªå·¦å¤–è¿æ¥,ç”Ÿæˆçš„ä»£ç å°†è®°å½•çš„äº‹å®è‡³å°‘å¯¹è¡¨çš„ä¸€è¡ŒåŒ¹é…å·¦è¡¨ã€‚
 =======
   ** at least one row of the right table has matched the left table. 
   **
-  ** ¶ÔÓÚÒ»¸öLEFT OUTER JOIN,Éú³É´úÂëÀ´¼ÇÂ¼ÓÒ±íÖÁÉÙÓĞÒ»ĞĞÓë×ó±íÏàÆ¥ÅäµÄÊÂÊµ¡£
+  ** å¯¹äºä¸€ä¸ªLEFT OUTER JOIN,ç”Ÿæˆä»£ç æ¥è®°å½•å³è¡¨è‡³å°‘æœ‰ä¸€è¡Œä¸å·¦è¡¨ç›¸åŒ¹é…çš„äº‹å®ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( pLevel->iLeftJoin ){
@@ -6761,20 +6761,20 @@ static Bitmask codeOneLoopStart(
 ** overwrites the previous.  This information is used for testing and
 ** analysis only.
 <<<<<<< HEAD
-ÒÔÏÂ±äÁ¿±£´æµÄÎÄ±¾ÃèÊöÉú³É²éÑ¯¼Æ»®¡¡¡¡
-Í¨¹ı×î½üµÄµ÷ÓÃqlite3WhereBegin()¡£
-Ã¿¸öµ÷ÓÃWhereBegin¸²¸ÇÇ°ÃæµÄ¡£
-ÕâĞ©ĞÅÏ¢½öÓÃÓÚ²âÊÔºÍ·ÖÎö¡£
+ä»¥ä¸‹å˜é‡ä¿å­˜çš„æ–‡æœ¬æè¿°ç”ŸæˆæŸ¥è¯¢è®¡åˆ’ã€€ã€€
+é€šè¿‡æœ€è¿‘çš„è°ƒç”¨qlite3WhereBegin()ã€‚
+æ¯ä¸ªè°ƒç”¨WhereBeginè¦†ç›–å‰é¢çš„ã€‚
+è¿™äº›ä¿¡æ¯ä»…ç”¨äºæµ‹è¯•å’Œåˆ†æã€‚
 */
-char sqlite3_query_plan[BMS*2*40];  /*¼ÓÈëÎÄ±¾ */
-static int nQPlan = 0;              /*ÊÍ·ÅÏÂÒ»¸öin _query_plan[] */
-//ÍõĞã³¬ ´Ó´Ë½áÊø
+char sqlite3_query_plan[BMS*2*40];  /*åŠ å…¥æ–‡æœ¬ */
+static int nQPlan = 0;              /*é‡Šæ”¾ä¸‹ä¸€ä¸ªin _query_plan[] */
+//ç‹ç§€è¶… ä»æ­¤ç»“æŸ
 =======
 **
-** ÏÂÃæµÄ±äÁ¿±£´æÒ»¸öÃèÊöÍ¨¹ı×îĞÂµÄµ÷ÓÃsqlite3WhereBegin()Éú³ÉµÄ²éÑ¯¼Æ»®µÄÎÄ±¾¡£
-** Ã¿´Îµ÷ÓÃWhereBeginÖØĞ´ÏÈÇ°µÄĞÅÏ¢¡£Õâ¸öĞÅÏ¢Ö»ÓÃÓÚ²âÊÔºÍ·ÖÎö¡£
+** ä¸‹é¢çš„å˜é‡ä¿å­˜ä¸€ä¸ªæè¿°é€šè¿‡æœ€æ–°çš„è°ƒç”¨sqlite3WhereBegin()ç”Ÿæˆçš„æŸ¥è¯¢è®¡åˆ’çš„æ–‡æœ¬ã€‚
+** æ¯æ¬¡è°ƒç”¨WhereBeginé‡å†™å…ˆå‰çš„ä¿¡æ¯ã€‚è¿™ä¸ªä¿¡æ¯åªç”¨äºæµ‹è¯•å’Œåˆ†æã€‚
 */
-char sqlite3_query_plan[BMS*2*40];  /* Text of the join Á¬½ÓµÄÄÚÈİ */
+char sqlite3_query_plan[BMS*2*40];  /* Text of the join è¿æ¥çš„å†…å®¹ */
 static int nQPlan = 0;              /* Next free slow in _query_plan[] */
 
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -6785,7 +6785,7 @@ static int nQPlan = 0;              /* Next free slow in _query_plan[] */
 
 ** Free a WhereInfo structure
 **
-** ÊÍ·ÅÒ»¸öWhereInfoÊı¾İ½á¹¹
+** é‡Šæ”¾ä¸€ä¸ªWhereInfoæ•°æ®ç»“æ„
 */
 static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
   if( ALWAYS(pWInfo) ){
@@ -6819,25 +6819,25 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** information needed to terminate the loop.  Later, the calling routine
 ** should invoke sqlite3WhereEnd() with the return value of this function
 ** in order to complete the WHERE clause processing.
-²úÉúÓÃÓÚÑ­»·µÄ¿ªÊ¼WHERE×Ó¾ä¹¤ÒÕ¼Ó¹¤µÄ·µ»ØÖµÊÇÒ»¸öÖ¸ÏòÒ»¸ö²»Í¸Ã÷µÄ½á¹¹£¬Ëü°üº¬
-?ËùĞèµÄĞÅÏ¢£¬ÒÔÖÕÖ¹¸ÃÑ­»·¡£ºóÀ´£¬Ö÷½ĞÀı³ÌÓ¦¸ÃÎªÁËÍê³ÉWHERE×Ó¾ä´¦Àíµ÷ÓÃsqlite3WhereEnd£¨£©Õâ¸öº¯ÊıµÄ·µ»ØÖµ¡£
+äº§ç”Ÿç”¨äºå¾ªç¯çš„å¼€å§‹WHEREå­å¥å·¥è‰ºåŠ å·¥çš„è¿”å›å€¼æ˜¯ä¸€ä¸ªæŒ‡å‘ä¸€ä¸ªä¸é€æ˜çš„ç»“æ„ï¼Œå®ƒåŒ…å«
+?æ‰€éœ€çš„ä¿¡æ¯ï¼Œä»¥ç»ˆæ­¢è¯¥å¾ªç¯ã€‚åæ¥ï¼Œä¸»å«ä¾‹ç¨‹åº”è¯¥ä¸ºäº†å®ŒæˆWHEREå­å¥å¤„ç†è°ƒç”¨sqlite3WhereEndï¼ˆï¼‰è¿™ä¸ªå‡½æ•°çš„è¿”å›å€¼ã€‚
 **
-** Éú³ÉÑ­»·µÄ¿ªÊ¼ÓÃÓÚWHERE×Ó¾äµÄ´¦Àí¡£
-** ·µ»ØÖµÊÇÒ»¸öÖ¸Õë,ËüÖ¸ÏòÒ»¸ö°üº¬ÖÕÖ¹Ñ­»·ËùĞèµÄĞÅÏ¢µÄ²»Í¸Ã÷µÄ½á¹¹Ìå¡£
-** ÉÔºó£¬µ÷ÓÃ³ÌĞò»á¸ù¾İÕâ¸öº¯ÊıµÄ·µ»ØÖµ»½ĞÑsqlite3WhereEnd()À´Íê³ÉWHERE×Ó¾äµÄ´¦Àí¡£
+** ç”Ÿæˆå¾ªç¯çš„å¼€å§‹ç”¨äºWHEREå­å¥çš„å¤„ç†ã€‚
+** è¿”å›å€¼æ˜¯ä¸€ä¸ªæŒ‡é’ˆ,å®ƒæŒ‡å‘ä¸€ä¸ªåŒ…å«ç»ˆæ­¢å¾ªç¯æ‰€éœ€çš„ä¿¡æ¯çš„ä¸é€æ˜çš„ç»“æ„ä½“ã€‚
+** ç¨åï¼Œè°ƒç”¨ç¨‹åºä¼šæ ¹æ®è¿™ä¸ªå‡½æ•°çš„è¿”å›å€¼å”¤é†’sqlite3WhereEnd()æ¥å®ŒæˆWHEREå­å¥çš„å¤„ç†ã€‚
 **
 ** If an error occurs, this routine returns NULL.
-Èç¹û³öÏÖ´íÎó£¬Õâ¸öÀı³Ì·µ»Ønull¡£
+å¦‚æœå‡ºç°é”™è¯¯ï¼Œè¿™ä¸ªä¾‹ç¨‹è¿”å›nullã€‚
 **
-** Èç¹û·¢Éú´íÎó£¬Õâ¸ö³ÌĞò½«·µ»ØNULL.
+** å¦‚æœå‘ç”Ÿé”™è¯¯ï¼Œè¿™ä¸ªç¨‹åºå°†è¿”å›NULL.
 **
 ** The basic idea is to do a nested loop, one loop for each table in
 ** the FROM clause of a select.  (INSERT and UPDATE statements are the
 ** same as a SELECT with only a single table in the FROM clause.)  For
 ** example, if the SQL is this:
-Æä»ù±¾Ë¼Â·ÊÇ×öÒ»¸öÇ¶Ì×µÄÑ­»·£¬Ò»¸öÑ­»·ÔÚÃ¿¸ö±í´ÓÒ»¸öÑ¡ÔñÏñ¡£
-£¨INSERTºÍUPDATEÓï¾äÏàÍ¬µÄSELECTÓëÔÚ½öµ¥¸ö±íFROM×Ó¾ä£©¡£
-ÀıÈç£¬Èç¹ûSQLÊÇÕâÑùµÄ£º
+å…¶åŸºæœ¬æ€è·¯æ˜¯åšä¸€ä¸ªåµŒå¥—çš„å¾ªç¯ï¼Œä¸€ä¸ªå¾ªç¯åœ¨æ¯ä¸ªè¡¨ä»ä¸€ä¸ªé€‰æ‹©åƒã€‚
+ï¼ˆINSERTå’ŒUPDATEè¯­å¥ç›¸åŒçš„SELECTä¸åœ¨ä»…å•ä¸ªè¡¨FROMå­å¥ï¼‰ã€‚
+ä¾‹å¦‚ï¼Œå¦‚æœSQLæ˜¯è¿™æ ·çš„ï¼š
 **
 **       SELECT * FROM t1, t2, t3 WHERE ...;
 **
@@ -6852,16 +6852,16 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 **      end                         /
 **
 **
-** »ù±¾µÄË¼Â·ÊÇ½øĞĞÑ­»·Ç¶Ì×£¬ÎªÒ»¸ö²éÑ¯Óï¾äµÄFROM×Ó¾äÖĞµÄÃ¿¸ö±í×öÒ»¸öÑ­»·¡£
-** (INSERTºÍUPDATEÃüÁîÓëÔÚFROMÓï¾äÖĞÖ»ÓĞÒ»¸ö±íµÄSELECTÏàÍ¬)¡£ÀıÈç:Èç¹ûSQLÊÇ:
+** åŸºæœ¬çš„æ€è·¯æ˜¯è¿›è¡Œå¾ªç¯åµŒå¥—ï¼Œä¸ºä¸€ä¸ªæŸ¥è¯¢è¯­å¥çš„FROMå­å¥ä¸­çš„æ¯ä¸ªè¡¨åšä¸€ä¸ªå¾ªç¯ã€‚
+** (INSERTå’ŒUPDATEå‘½ä»¤ä¸åœ¨FROMè¯­å¥ä¸­åªæœ‰ä¸€ä¸ªè¡¨çš„SELECTç›¸åŒ)ã€‚ä¾‹å¦‚:å¦‚æœSQLæ˜¯:
 **       SELECT * FROM t1, t2, t3 WHERE ...;
-** ÄÇÃ´»á¸ÅÄîµØÉú³ÉÒÔÏÂ´úÂë:
+** é‚£ä¹ˆä¼šæ¦‚å¿µåœ°ç”Ÿæˆä»¥ä¸‹ä»£ç :
 **      foreach row1 in t1 do       \
-**        foreach row2 in t2 do      |-- ÓÉsqlite3WhereBegin()Éú³É
+**        foreach row2 in t2 do      |-- ç”±sqlite3WhereBegin()ç”Ÿæˆ
 **          foreach row3 in t3 do   /
 **            ...
 **          end                     \
-**        end                        |-- ÓÉsqlite3WhereEnd()Éú³É
+**        end                        |-- ç”±sqlite3WhereEnd()ç”Ÿæˆ
 **      end                         /
 **
 **
@@ -6870,34 +6870,34 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** use of indices.  Note also that when the IN operator appears in
 ** the WHERE clause, it might result in additional nested loops for
 ** scanning through all values on the right-hand side of the IN.
-×¢Òâ£¬¸Ã»·¿ÉÄÜ²»»á±»Ç¶Ì×ÔÚËüÃÇ³öÏÖÔÚFROM×Ó¾äÈç¹ûÒÔ²»Í¬µÄË³ĞòÊÇ
-ÄÜ¹»¸üºÃµØÀûÓÃË÷ÒıµÄË³Ğò¡£»¹Òª×¢ÒâµÄÊÇ£¬µ±ÔÚ²Ù×÷ÕßÏÔÊ¾µÄWHERE×Ó¾äÖĞ£¬
-Ëü¿ÉÄÜ»áµ¼ÖÂÍ¸¹ıµÄINµÄÓÒÊÖ²àµÄËùÓĞÖµµÄ¸½¼ÓµÄÇ¶Ì×Ñ­»·½øĞĞÉ¨Ãè¡£
+æ³¨æ„ï¼Œè¯¥ç¯å¯èƒ½ä¸ä¼šè¢«åµŒå¥—åœ¨å®ƒä»¬å‡ºç°åœ¨FROMå­å¥å¦‚æœä»¥ä¸åŒçš„é¡ºåºæ˜¯
+èƒ½å¤Ÿæ›´å¥½åœ°åˆ©ç”¨ç´¢å¼•çš„é¡ºåºã€‚è¿˜è¦æ³¨æ„çš„æ˜¯ï¼Œå½“åœ¨æ“ä½œè€…æ˜¾ç¤ºçš„WHEREå­å¥ä¸­ï¼Œ
+å®ƒå¯èƒ½ä¼šå¯¼è‡´é€è¿‡çš„INçš„å³æ‰‹ä¾§çš„æ‰€æœ‰å€¼çš„é™„åŠ çš„åµŒå¥—å¾ªç¯è¿›è¡Œæ‰«æã€‚
 **
-** ×¢Òâ:Ñ­»·¿ÉÄÜ²»ÊÇ°´FROM×Ó¾äÖĞËûÃÇ³öÏÖµÄË³Ğò½øĞĞÇ¶Ì×£¬ÒòÎª¿ÉÄÜÒ»¸öÆäËûµÄÇ¶Ì×Ë³Ğò¸üÊÊºÏÊ¹ÓÃË÷Òı¡£
-** »¹Òª×¢Òâ;µ±WHERE×Ó¾äÖĞ³öÏÖÁËIN²Ù×÷·û£¬Ëü¿ÉÄÜµ¼ÖÂÌí¼ÓÇ¶Ì×Ñ­»·À´É¨ÃèINÓÒ±ßµÄËùÓĞÖµ¡£
+** æ³¨æ„:å¾ªç¯å¯èƒ½ä¸æ˜¯æŒ‰FROMå­å¥ä¸­ä»–ä»¬å‡ºç°çš„é¡ºåºè¿›è¡ŒåµŒå¥—ï¼Œå› ä¸ºå¯èƒ½ä¸€ä¸ªå…¶ä»–çš„åµŒå¥—é¡ºåºæ›´é€‚åˆä½¿ç”¨ç´¢å¼•ã€‚
+** è¿˜è¦æ³¨æ„;å½“WHEREå­å¥ä¸­å‡ºç°äº†INæ“ä½œç¬¦ï¼Œå®ƒå¯èƒ½å¯¼è‡´æ·»åŠ åµŒå¥—å¾ªç¯æ¥æ‰«æINå³è¾¹çš„æ‰€æœ‰å€¼ã€‚
 **
 ** There are Btree cursors associated with each table.  t1 uses cursor
 ** number pTabList->a[0].iCursor.  t2 uses the cursor pTabList->a[1].iCursor.
 ** And so forth.  This routine generates code to open those VDBE cursors
 ** and sqlite3WhereEnd() generates the code to close them.
-ÓĞÓëÃ¿¸ö±íÏà¹ØÁªµÄBÊ÷ÓÎ±ê¡£T1Ê¹ÓÃ¹â±êºÅpTabList->Ò»¸ö[0].iCursor¡£
-T2Ê¹ÓÃ¹â±êpTabList->Ò»[1].iCursor¡£
-Õâ¸ö³ÌĞòÉú³É´úÂëÀ´´ò¿ªÕâĞ©VDBE¹â±êºÍsqlite3WhereEnd£¨£©Éú³ÉµÄ´úÂëÀ´¹Ø±ÕËüÃÇ¡£
+æœ‰ä¸æ¯ä¸ªè¡¨ç›¸å…³è”çš„Bæ ‘æ¸¸æ ‡ã€‚T1ä½¿ç”¨å…‰æ ‡å·pTabList->ä¸€ä¸ª[0].iCursorã€‚
+T2ä½¿ç”¨å…‰æ ‡pTabList->ä¸€[1].iCursorã€‚
+è¿™ä¸ªç¨‹åºç”Ÿæˆä»£ç æ¥æ‰“å¼€è¿™äº›VDBEå…‰æ ‡å’Œsqlite3WhereEndï¼ˆï¼‰ç”Ÿæˆçš„ä»£ç æ¥å…³é—­å®ƒä»¬ã€‚
 **
-** ÓĞBtreeÓÎ±êÓëÃ¿¸ö±íÏà¹ØÁª¡£t1Ê¹ÓÃÓÎ±êÊıpTabList->a[0].iCursor.t2Ê¹ÓÃÓÎ±êpTabList->a[1].iCursor.µÈµÈ
-** Õâ¸ö³ÌĞòÉú³É´úÂëÀ´´ò¿ªÕâĞ©VDBEÓÎ±ê£¬sqlite3WhereEnd()Éú³É´úÂëÀ´¹Ø±ÕËûÃÇ¡£
+** æœ‰Btreeæ¸¸æ ‡ä¸æ¯ä¸ªè¡¨ç›¸å…³è”ã€‚t1ä½¿ç”¨æ¸¸æ ‡æ•°pTabList->a[0].iCursor.t2ä½¿ç”¨æ¸¸æ ‡pTabList->a[1].iCursor.ç­‰ç­‰
+** è¿™ä¸ªç¨‹åºç”Ÿæˆä»£ç æ¥æ‰“å¼€è¿™äº›VDBEæ¸¸æ ‡ï¼Œsqlite3WhereEnd()ç”Ÿæˆä»£ç æ¥å…³é—­ä»–ä»¬ã€‚
 **
 ** The code that sqlite3WhereBegin() generates leaves the cursors named
 ** in pTabList pointing at their appropriate entries.  The [...] code
 ** can use OP_Column and OP_Rowid opcodes on these cursors to extract
 ** data from the various tables of the loop.
-Õâsqlite3WhereBegin£¨£©Éú³ÉµÄ´úÂëÒ¶pTabListÃüÃûÖ¸×Å×Ô¼ºµÄÏà
-Ó¦ÌõÄ¿µÄ¹â±ê¡£µÄ[...]µÄ´úÂë¿ÉÒÔÊ¹ÓÃOP_ColumnºÍOP_Rowid²Ù×÷Âë
-¶ÔÕâĞ©¹â±ê´Ó»·Â·µÄ¸÷ÖÖ±íÖĞÌáÈ¡Êı¾İ
+è¿™sqlite3WhereBeginï¼ˆï¼‰ç”Ÿæˆçš„ä»£ç å¶pTabListå‘½åæŒ‡ç€è‡ªå·±çš„ç›¸
+åº”æ¡ç›®çš„å…‰æ ‡ã€‚çš„[...]çš„ä»£ç å¯ä»¥ä½¿ç”¨OP_Columnå’ŒOP_Rowidæ“ä½œç 
+å¯¹è¿™äº›å…‰æ ‡ä»ç¯è·¯çš„å„ç§è¡¨ä¸­æå–æ•°æ®
 **
-** sqlite3WhereBegin()Éú³ÉµÄ´úÂëÔÚpTabListÖĞÁôÏÂÖ¸¶¨µÄÓÎ±êÖ¸ÏòËûÃÇÇ¡µ±µÄÌõÄ¿¡£
-** [...]±àÂë¿ÉÒÔÊ¹ÓÃÔÚÕâĞ©ÓÎ±êÖĞµÄOP_ColumnºÍOP_Rowid²Ù×÷ÂëÀ´´ÓÑ­»·µÄ¸÷¸ö±íÖĞÌáÈ¡Êı¾İ¡£
+** sqlite3WhereBegin()ç”Ÿæˆçš„ä»£ç åœ¨pTabListä¸­ç•™ä¸‹æŒ‡å®šçš„æ¸¸æ ‡æŒ‡å‘ä»–ä»¬æ°å½“çš„æ¡ç›®ã€‚
+** [...]ç¼–ç å¯ä»¥ä½¿ç”¨åœ¨è¿™äº›æ¸¸æ ‡ä¸­çš„OP_Columnå’ŒOP_Rowidæ“ä½œç æ¥ä»å¾ªç¯çš„å„ä¸ªè¡¨ä¸­æå–æ•°æ®ã€‚
 **
 ** If the WHERE clause is empty, the foreach loops must each scan their
 ** entire tables.  Thus a three-way join is an O(N^3) operation.  But if
@@ -6906,16 +6906,16 @@ T2Ê¹ÓÃ¹â±êpTabList->Ò»[1].iCursor¡£
 ** code will run much faster.  Most of the work of this routine is checking
 ** to see if there are indices that can be used to speed up the loop.
 <<<<<<< HEAD
-**Èç¹ûWHERE×Ó¾äÊÇ¿ÕµÄ£¬foreachÑ­»·±ØĞëÔÚÃ¿´ÎÉ¨ÃèËûÃÇµÄÕû¸ö±í¡£
-Òò´Ë£¬Ò»¸öÈıÂ·Á¬½ÓÊÇO£¨N^3£©²Ù×÷¡£µ«ÊÇ£¬Èç¹û±íÓĞË÷Òı²¢ÓĞÔÚ
-WHERE¼¯ÖĞÏñÖ¸ÄÇĞ©Ë÷Òı£¬Ò»¸öÍêÕûµÄ±íÉ¨Ãè£¬¿É±ÜÃâºÍ´úÂë½«
-ÔËĞĞµÃ¸ü¿ì¡£´ó²¿·Ö¸Ã³ÌĞòµÄ¹¤×÷ÊÇ¼ì²é
-ÒÔ²é¿´ÊÇ·ñÓĞË÷Òı¿ÉÒÔÓÃÀ´¼ÓËÙÑ­»·¡£
+**å¦‚æœWHEREå­å¥æ˜¯ç©ºçš„ï¼Œforeachå¾ªç¯å¿…é¡»åœ¨æ¯æ¬¡æ‰«æä»–ä»¬çš„æ•´ä¸ªè¡¨ã€‚
+å› æ­¤ï¼Œä¸€ä¸ªä¸‰è·¯è¿æ¥æ˜¯Oï¼ˆN^3ï¼‰æ“ä½œã€‚ä½†æ˜¯ï¼Œå¦‚æœè¡¨æœ‰ç´¢å¼•å¹¶æœ‰åœ¨
+WHEREé›†ä¸­åƒæŒ‡é‚£äº›ç´¢å¼•ï¼Œä¸€ä¸ªå®Œæ•´çš„è¡¨æ‰«æï¼Œå¯é¿å…å’Œä»£ç å°†
+è¿è¡Œå¾—æ›´å¿«ã€‚å¤§éƒ¨åˆ†è¯¥ç¨‹åºçš„å·¥ä½œæ˜¯æ£€æŸ¥
+ä»¥æŸ¥çœ‹æ˜¯å¦æœ‰ç´¢å¼•å¯ä»¥ç”¨æ¥åŠ é€Ÿå¾ªç¯ã€‚
 =======
 **
-** Èç¹ûWHERE×Ó¾äÊÇ¿ÕµÄ£¬Ã¿Ò»¸öÑ­»·±ØĞëÃ¿´ÎÉ¨ÃèÕû¸ö±í¡£Òò´ËÒ»¸ö3±íÁ¬½ÓÊÇÒ»¸öO(N^3)²Ù×÷¡£
-** µ«ÊÇÈç¹û±íÓĞË÷Òı²¢ÇÒÔÚWHERE×Ó¾äÖĞÓĞtermsÓëÄÇĞ©Ë÷ÒıÏà¹ØÁª£¬Ò»¸ö¿ÉÒÔ±ÜÃâÍêÕûµÄ±íÉ¨Ãè²¢ÇÒ´úÂëÔËĞĞµÄ¸ü¿ì¡£
-** Õâ¸ö³ÌĞò´ó²¿·ÖµÄ¹¤×÷ÊÇ¼ì²éÊÇ·ñÓĞ¿ÉÒÔÊ¹ÓÃµÄË÷ÒıÀ´¼ÓËÙÑ­»·¡£
+** å¦‚æœWHEREå­å¥æ˜¯ç©ºçš„ï¼Œæ¯ä¸€ä¸ªå¾ªç¯å¿…é¡»æ¯æ¬¡æ‰«ææ•´ä¸ªè¡¨ã€‚å› æ­¤ä¸€ä¸ª3è¡¨è¿æ¥æ˜¯ä¸€ä¸ªO(N^3)æ“ä½œã€‚
+** ä½†æ˜¯å¦‚æœè¡¨æœ‰ç´¢å¼•å¹¶ä¸”åœ¨WHEREå­å¥ä¸­æœ‰termsä¸é‚£äº›ç´¢å¼•ç›¸å…³è”ï¼Œä¸€ä¸ªå¯ä»¥é¿å…å®Œæ•´çš„è¡¨æ‰«æå¹¶ä¸”ä»£ç è¿è¡Œçš„æ›´å¿«ã€‚
+** è¿™ä¸ªç¨‹åºå¤§éƒ¨åˆ†çš„å·¥ä½œæ˜¯æ£€æŸ¥æ˜¯å¦æœ‰å¯ä»¥ä½¿ç”¨çš„ç´¢å¼•æ¥åŠ é€Ÿå¾ªç¯ã€‚
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** Terms of the WHERE clause are also used to limit which rows actually
@@ -6924,15 +6924,15 @@ WHERE¼¯ÖĞÏñÖ¸ÄÇĞ©Ë÷Òı£¬Ò»¸öÍêÕûµÄ±íÉ¨Ãè£¬¿É±ÜÃâºÍ´úÂë½«
 ** loops are evaluated and if false a jump is made around all subsequent
 ** inner loops (or around the "..." if the test occurs within the inner-
 ** most loop)
-ÏñWHER¼¯Ò²ÓÃÀ´ÏŞÖÆÄÄĞ©ĞĞÊµ¼ÊÉÏÊ¹ËüµÄ¡°...¡±£¬ÔÚÑ­»·µÄÖĞ¼ä¡£
-Ã¿Ò»¸ö¡°µÄforeach¡±ºó£¬Ê¹ÓÃÔÚÑ­»·ºÍÍâÑ­»·Ö»¼ÆËãWHERE×Ó¾äÖĞµÄÏî
-½øĞĞÆÀ¹À£¬Èç¹û¼ÙÌø×ªÎ§ÈÆËùÓĞºóĞøÄÚ»·È¡µÃ£¨»òÎ§ÈÆ¡°......¡±Èç¹û
-²âÊÔÖĞ³öÏÖµÄinner-×î»ØÂ·£©
+åƒWHERé›†ä¹Ÿç”¨æ¥é™åˆ¶å“ªäº›è¡Œå®é™…ä¸Šä½¿å®ƒçš„â€œ...â€ï¼Œåœ¨å¾ªç¯çš„ä¸­é—´ã€‚
+æ¯ä¸€ä¸ªâ€œçš„foreachâ€åï¼Œä½¿ç”¨åœ¨å¾ªç¯å’Œå¤–å¾ªç¯åªè®¡ç®—WHEREå­å¥ä¸­çš„é¡¹
+è¿›è¡Œè¯„ä¼°ï¼Œå¦‚æœå‡è·³è½¬å›´ç»•æ‰€æœ‰åç»­å†…ç¯å–å¾—ï¼ˆæˆ–å›´ç»•â€œ......â€å¦‚æœ
+æµ‹è¯•ä¸­å‡ºç°çš„inner-æœ€å›è·¯ï¼‰
 
 **
-** WHERE×Ó¾äµÄtermsÒ²±»ÓÃÓÚÏŞÖÆÔÚÑ­»·µÄÖĞ²¿ÄÄĞ©ĞĞÊ¹Ëü³ÉÎª"...".
-** Ã¿´ÎÑ­»·ºó£¬WHERE×Ó¾äµÄtermsÖ»Ê¹ÓÃÔÚÄÇ¸öÑ­»·ºÍÍâ²¿Ñ­»·ÆÀ¹À¹ıµÄterms.
-** ²¢ÇÒÈç¹û´íÎó¾ÍÌø¹ıËùÓĞºóĞøµÄÄÚ²¿Ñ­»·(»òÈç¹û²âÊÔ·¢ÉúÔÚ×îÄÚ²¿Ñ­»·ÖĞ£¬ÄÇÃ´¾ÍÌø¹ı"...")
+** WHEREå­å¥çš„termsä¹Ÿè¢«ç”¨äºé™åˆ¶åœ¨å¾ªç¯çš„ä¸­éƒ¨å“ªäº›è¡Œä½¿å®ƒæˆä¸º"...".
+** æ¯æ¬¡å¾ªç¯åï¼ŒWHEREå­å¥çš„termsåªä½¿ç”¨åœ¨é‚£ä¸ªå¾ªç¯å’Œå¤–éƒ¨å¾ªç¯è¯„ä¼°è¿‡çš„terms.
+** å¹¶ä¸”å¦‚æœé”™è¯¯å°±è·³è¿‡æ‰€æœ‰åç»­çš„å†…éƒ¨å¾ªç¯(æˆ–å¦‚æœæµ‹è¯•å‘ç”Ÿåœ¨æœ€å†…éƒ¨å¾ªç¯ä¸­ï¼Œé‚£ä¹ˆå°±è·³è¿‡"...")
 **
 ** OUTER JOINS
 **
@@ -6953,7 +6953,7 @@ WHERE¼¯ÖĞÏñÖ¸ÄÇĞ©Ë÷Òı£¬Ò»¸öÍêÕûµÄ±íÉ¨Ãè£¬¿É±ÜÃâºÍ´úÂë½«
 **
 **
 ** OUTER JOINS
-** Ò»¸ö±ít1ºÍt2µÄÍâ²¿Á´½Ó»áÔÚ¸ÅÄîÉÏÉú³ÉÈçÏÂ´úÂë:
+** ä¸€ä¸ªè¡¨t1å’Œt2çš„å¤–éƒ¨é“¾æ¥ä¼šåœ¨æ¦‚å¿µä¸Šç”Ÿæˆå¦‚ä¸‹ä»£ç :
 **    foreach row1 in t1 do
 **      flag = 0
 **      foreach row2 in t2 do
@@ -6969,97 +6969,97 @@ WHERE¼¯ÖĞÏñÖ¸ÄÇĞ©Ë÷Òı£¬Ò»¸öÍêÕûµÄ±íÉ¨Ãè£¬¿É±ÜÃâºÍ´úÂë½«
 **
 **
 ** ORDER BY CLAUSE PROCESSING
-ORDER BY¼¯´¦Àí
+ORDER BYé›†å¤„ç†
 **
 ** *ppOrderBy is a pointer to the ORDER BY clause of a SELECT statement,
 ** if there is one.  If there is no ORDER BY clause or if this routine
 ** is called from an UPDATE or DELETE statement, then ppOrderBy is NULL.
-**ppOrderByÊÇÒ»¸öÖ¸ÏòORDER BYµÄSELECTÓï¾äµÄWHERE¼¯£¬
-Èç¹ûÓĞÒ»¸ö¡£Èç¹ûÃ»ÓĞORDER BY×Ó¾ä£¬»òÕßÈç¹ûÕâ¸ö³ÌĞò±»
-³ÆÎª´ÓUPDATE»òDELETEÓï¾ä£¬È»ºóppOrderByÎªNULL¡£
+**ppOrderByæ˜¯ä¸€ä¸ªæŒ‡å‘ORDER BYçš„SELECTè¯­å¥çš„WHEREé›†ï¼Œ
+å¦‚æœæœ‰ä¸€ä¸ªã€‚å¦‚æœæ²¡æœ‰ORDER BYå­å¥ï¼Œæˆ–è€…å¦‚æœè¿™ä¸ªç¨‹åºè¢«
+ç§°ä¸ºä»UPDATEæˆ–DELETEè¯­å¥ï¼Œç„¶åppOrderByä¸ºNULLã€‚
 ** If an index can be used so that the natural output order of the table
 ** scan is correct for the ORDER BY clause, then that index is used and
 ** *ppOrderBy is set to NULL.  This is an optimization that prevents an
 ** unnecessary sort of the result set if an index appropriate for the
 ** ORDER BY clause already exists.
-Èç¹ûÒ»¸öË÷Òı¿ÉÒÔÓÃÀ´Ê¹±íÉ¨ÃèµÄ×ÔÈ»Êä³öË³ĞòÊÇÕıÈ·µÄORDER BY¼¯£¬
-Ôò¸ÃË÷ÒıµÄÊ¹ÓÃºÍppOrderByÉèÖÃÎªNULL¡£ÕâÊÇ×èÖ¹µÄ½á¹û£¬Èç¹ûÒÑ¾­´æ
-ÔÚµÄÖ¸ÊıÊÊºÏÓÚORDER BY×Ó¾äÖĞÉèÖÃµÄ²»±ØÒªµÄÅÅĞòÓÅ»¯..
+å¦‚æœä¸€ä¸ªç´¢å¼•å¯ä»¥ç”¨æ¥ä½¿è¡¨æ‰«æçš„è‡ªç„¶è¾“å‡ºé¡ºåºæ˜¯æ­£ç¡®çš„ORDER BYé›†ï¼Œ
+åˆ™è¯¥ç´¢å¼•çš„ä½¿ç”¨å’ŒppOrderByè®¾ç½®ä¸ºNULLã€‚è¿™æ˜¯é˜»æ­¢çš„ç»“æœï¼Œå¦‚æœå·²ç»å­˜
+åœ¨çš„æŒ‡æ•°é€‚åˆäºORDER BYå­å¥ä¸­è®¾ç½®çš„ä¸å¿…è¦çš„æ’åºä¼˜åŒ–..
 **
 ** If the where clause loops cannot be arranged to provide the correct
 ** output order, then the *ppOrderBy is unchanged.
 <<<<<<< HEAD
-Èç¹ûwhere×Ó¾äÑ­»·ÎŞ·¨°²ÅÅÌá¹©ÕıÈ·µÄ
-Êä³öË³Ğò£¬ÄÇÃ´* ppOrderBy²»±ä¡£
+å¦‚æœwhereå­å¥å¾ªç¯æ— æ³•å®‰æ’æä¾›æ­£ç¡®çš„
+è¾“å‡ºé¡ºåºï¼Œé‚£ä¹ˆ* ppOrderByä¸å˜ã€‚
 */
 WhereInfo *sqlite3WhereBegin(
-  Parse *pParse,        /* The parser context  ½âÎöÆ÷µÄ»·¾³*/
-  SrcList *pTabList,    /* A list of all tables to be scanned  ÒªÉ¨ÃèµÄËùÓĞ±íµÄÁĞ±í*/
-  Expr *pWhere,         /* The WHERE clause  WHERE¼¯*/
-  ExprList **ppOrderBy, /* An ORDER BY clause, or NULL  ORDER BY¼¯£¬»òNULL*/
-  ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL  Ñ¡ÔñÁĞ±íÖĞµÄDISTINCT²éÑ¯ - »òNULL*/
-  u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h  Ò»¸öÔÚsqliteInt.h¶¨ÒåµÄWHERE_*±êÖ¾ */
-  int iIdxCur           /* If WHERE_ONETABLE_ONLY is set, index cursor number Èç¹ûWHERE_ONETABLE_ONLY±»ÉèÖÃ£¬Ë÷Òı¹â±êºÅ*/
+  Parse *pParse,        /* The parser context  è§£æå™¨çš„ç¯å¢ƒ*/
+  SrcList *pTabList,    /* A list of all tables to be scanned  è¦æ‰«æçš„æ‰€æœ‰è¡¨çš„åˆ—è¡¨*/
+  Expr *pWhere,         /* The WHERE clause  WHEREé›†*/
+  ExprList **ppOrderBy, /* An ORDER BY clause, or NULL  ORDER BYé›†ï¼Œæˆ–NULL*/
+  ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL  é€‰æ‹©åˆ—è¡¨ä¸­çš„DISTINCTæŸ¥è¯¢ - æˆ–NULL*/
+  u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h  ä¸€ä¸ªåœ¨sqliteInt.hå®šä¹‰çš„WHERE_*æ ‡å¿— */
+  int iIdxCur           /* If WHERE_ONETABLE_ONLY is set, index cursor number å¦‚æœWHERE_ONETABLE_ONLYè¢«è®¾ç½®ï¼Œç´¢å¼•å…‰æ ‡å·*/
 ){
-  int i;                     /* Loop counter  Ñ­»·¼ÆÊıÆ÷*/
-  int nByteWInfo;            /* Num. bytes allocated for WhereInfo struct ·ÖÅä¸øWhereInfo½á¹¹×Ö½Ú*/
-  int nTabList;              /* Number of elements in pTabList  ÔÚpTabListÔªËØµÄÊıÁ¿*/
-  WhereInfo *pWInfo;         /* Will become the return value of this function  ½«³ÉÎª¸Ãº¯ÊıµÄ·µ»ØÖµ*/
-  Vdbe *v = pParse->pVdbe;   /* The virtual database engine  ĞéÄâÊı¾İ¿âÒıÇæ*/
-  Bitmask notReady;          /* Cursors that are not yet positioned  ÄÇĞ©ÉĞÎ´¶¨Î»ÓÎ±ê*/
-  WhereMaskSet *pMaskSet;    /* The expression mask set  ±í´ïmask×é*/
-  WhereClause *pWC;               /* Decomposition of the WHERE clause  WHERE¼¯·Ö½â*/
-  struct SrcList_item *pTabItem;  /* A single entry from pTabList  ´ÓpTabListµ¥¸öÌõÄ¿*/
-  WhereLevel *pLevel;             /* A single level in the pWInfo list  ÔÚpWInfoÁĞ±íÖĞµÄµ¥¸öË®Æ½*/
-  int iFrom;                      /* First unused FROM clause element µÚÒ»¸öÎ´Ê¹ÓÃFROM×Ó¾äÖĞµÄÔªËØ */
+  int i;                     /* Loop counter  å¾ªç¯è®¡æ•°å™¨*/
+  int nByteWInfo;            /* Num. bytes allocated for WhereInfo struct åˆ†é…ç»™WhereInfoç»“æ„å­—èŠ‚*/
+  int nTabList;              /* Number of elements in pTabList  åœ¨pTabListå…ƒç´ çš„æ•°é‡*/
+  WhereInfo *pWInfo;         /* Will become the return value of this function  å°†æˆä¸ºè¯¥å‡½æ•°çš„è¿”å›å€¼*/
+  Vdbe *v = pParse->pVdbe;   /* The virtual database engine  è™šæ‹Ÿæ•°æ®åº“å¼•æ“*/
+  Bitmask notReady;          /* Cursors that are not yet positioned  é‚£äº›å°šæœªå®šä½æ¸¸æ ‡*/
+  WhereMaskSet *pMaskSet;    /* The expression mask set  è¡¨è¾¾maskç»„*/
+  WhereClause *pWC;               /* Decomposition of the WHERE clause  WHEREé›†åˆ†è§£*/
+  struct SrcList_item *pTabItem;  /* A single entry from pTabList  ä»pTabListå•ä¸ªæ¡ç›®*/
+  WhereLevel *pLevel;             /* A single level in the pWInfo list  åœ¨pWInfoåˆ—è¡¨ä¸­çš„å•ä¸ªæ°´å¹³*/
+  int iFrom;                      /* First unused FROM clause element ç¬¬ä¸€ä¸ªæœªä½¿ç”¨FROMå­å¥ä¸­çš„å…ƒç´  */
   int andFlags;              /* AND-ed combination of all pWC->a[].wtFlags */
-  sqlite3 *db;               /* Database connection  Êı¾İ¿âÁ¬½Ó*/
+  sqlite3 *db;               /* Database connection  æ•°æ®åº“è¿æ¥*/
 
   /* The number of tables in the FROM clause is limited by the number of
   ** bits in a Bitmask 
-  ÔÚfrom×Ó¼¯ÖĞ±íµÄÊıÁ¿±»bitmaskÖĞµÄ±ÈÌØÊıÁ¿
+  åœ¨fromå­é›†ä¸­è¡¨çš„æ•°é‡è¢«bitmaskä¸­çš„æ¯”ç‰¹æ•°é‡
 =======
 **
-** ORDER BY×Ó¾ä´¦Àí
-** Èç¹ûÓĞORDER BY×Ó¾ä£¬ÄÇÃ´*ppOrderByÊÇÒ»¸öÖ¸Õë£¬Ö¸ÏòÒ»¸öSELECTÃüÁîµÄORDER BY×Ó¾ä¡£
-** Èç¹ûÃ»ÓĞORDER BY×Ó¾ä»òÊÇUPDATE£¬DELETEµ÷ÓÃµÄÕâ¸ö³ÌĞò£¬ÄÇÃ´ppOrderByÎªNULL.
-** Èç¹û¿ÉÒÔÊ¹ÓÃË÷ÒıÒÔ±ãÉ¨ÃèµÄ×ÔÈ»Êä³öË³ĞòÊÇ¸ù¾İORDER BY×Ó¾ä½ÃÕıµÄ£¬ÄÇÃ´Ê¹ÓÃË÷Òı²¢ÇÒ*ppOrderByÉèÖÃÎªNULL.
-** Èç¹ûÒ»¸öÊÊÓÃÓÚORDER BY×Ó¾äµÄË÷ÒıÒÑ¾­´æÔÚ£¬ÊÇÒ»¸ö·ÀÖ¹½á¹û¼¯²»±ØÒªµÄÅÅĞòµÄÓÅ»¯
-** Èç¹û²»ÄÜ°²ÅÅWHERE×Ó¾äÑ­»·Ìá¹©ÕıÈ·µÄÊä³öË³Ğò£¬ÄÇÃ´²»¸Ä±ä*ppOrderByµÄÖµ¡£
+** ORDER BYå­å¥å¤„ç†
+** å¦‚æœæœ‰ORDER BYå­å¥ï¼Œé‚£ä¹ˆ*ppOrderByæ˜¯ä¸€ä¸ªæŒ‡é’ˆï¼ŒæŒ‡å‘ä¸€ä¸ªSELECTå‘½ä»¤çš„ORDER BYå­å¥ã€‚
+** å¦‚æœæ²¡æœ‰ORDER BYå­å¥æˆ–æ˜¯UPDATEï¼ŒDELETEè°ƒç”¨çš„è¿™ä¸ªç¨‹åºï¼Œé‚£ä¹ˆppOrderByä¸ºNULL.
+** å¦‚æœå¯ä»¥ä½¿ç”¨ç´¢å¼•ä»¥ä¾¿æ‰«æçš„è‡ªç„¶è¾“å‡ºé¡ºåºæ˜¯æ ¹æ®ORDER BYå­å¥çŸ«æ­£çš„ï¼Œé‚£ä¹ˆä½¿ç”¨ç´¢å¼•å¹¶ä¸”*ppOrderByè®¾ç½®ä¸ºNULL.
+** å¦‚æœä¸€ä¸ªé€‚ç”¨äºORDER BYå­å¥çš„ç´¢å¼•å·²ç»å­˜åœ¨ï¼Œæ˜¯ä¸€ä¸ªé˜²æ­¢ç»“æœé›†ä¸å¿…è¦çš„æ’åºçš„ä¼˜åŒ–
+** å¦‚æœä¸èƒ½å®‰æ’WHEREå­å¥å¾ªç¯æä¾›æ­£ç¡®çš„è¾“å‡ºé¡ºåºï¼Œé‚£ä¹ˆä¸æ”¹å˜*ppOrderByçš„å€¼ã€‚
 **
 */
 WhereInfo *sqlite3WhereBegin(
-  Parse *pParse,        /* The parser context ·ÖÎöÉÏÏÂÎÄ */
-  SrcList *pTabList,    /* A list of all tables to be scanned ±»É¨ÃèµÄËùÓĞ±íµÄÒ»¸öÁĞ±í */
-  Expr *pWhere,         /* The WHERE clause WHERE×Ó¾ä */
-  ExprList **ppOrderBy, /* An ORDER BY clause, or NULL Ò»¸öORDER BY×Ó¾ä»òNULL*/
-  ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL DISTINCT²éÑ¯µÄ²éÑ¯ÁĞ±í»òNULL */
-  u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h ÔÚsqliteInt.hÖĞ¶¨ÒåµÄWHERE_*ÖĞµÄÒ»¸ö */
-  int iIdxCur           /* If WHERE_ONETABLE_ONLY is set, index cursor number Èç¹ûÉèÖÃÁËWHERE_ONETABLE_ONLY£¬ÔòÎªË÷ÒıÓÎ±êÊı */
+  Parse *pParse,        /* The parser context åˆ†æä¸Šä¸‹æ–‡ */
+  SrcList *pTabList,    /* A list of all tables to be scanned è¢«æ‰«æçš„æ‰€æœ‰è¡¨çš„ä¸€ä¸ªåˆ—è¡¨ */
+  Expr *pWhere,         /* The WHERE clause WHEREå­å¥ */
+  ExprList **ppOrderBy, /* An ORDER BY clause, or NULL ä¸€ä¸ªORDER BYå­å¥æˆ–NULL*/
+  ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL DISTINCTæŸ¥è¯¢çš„æŸ¥è¯¢åˆ—è¡¨æˆ–NULL */
+  u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h åœ¨sqliteInt.hä¸­å®šä¹‰çš„WHERE_*ä¸­çš„ä¸€ä¸ª */
+  int iIdxCur           /* If WHERE_ONETABLE_ONLY is set, index cursor number å¦‚æœè®¾ç½®äº†WHERE_ONETABLE_ONLYï¼Œåˆ™ä¸ºç´¢å¼•æ¸¸æ ‡æ•° */
 ){
-  int i;                     /* Loop counter Ñ­»·¼ÆÊıÆ÷ */
-  int nByteWInfo;            /* Num. bytes allocated for WhereInfo struct ÎªWhereInfo½á¹¹·ÖÅäµÄ×Ö½ÚÊı */
-  int nTabList;              /* Number of elements in pTabList ÔÚpTabListÖĞµÄÔªËØÊı */
-  WhereInfo *pWInfo;         /* Will become the return value of this function ½«±ä³ÉÕâ¸öº¯ÊıµÄ·µ»ØÖµ */
-  Vdbe *v = pParse->pVdbe;   /* The virtual database engine ĞéÄâÊı¾İ¿âÒıÇæ */
-  Bitmask notReady;          /* Cursors that are not yet positioned »¹Î´È·¶¨Î»ÖÃµÄÓÎ±ê */
-  WhereMaskSet *pMaskSet;    /* The expression mask set ÉèÖÃ±í´ïÊ½ÑÚÂë */
-  WhereClause *pWC;               /* Decomposition of the WHERE clause WHERE×Ó¾äµÄ·Ö½â */
-  struct SrcList_item *pTabItem;  /* A single entry from pTabList À´×ÔÓÚpTabListµÄÒ»¸öÌõÄ¿ */
-  WhereLevel *pLevel;             /* A single level in the pWInfo list ÔÚpWInfoÁĞ±íÖĞµÄÒ»¸öµÇ¼Ç */
-  int iFrom;                      /* First unused FROM clause element µÚÒ»¸öÎ´Ê¹ÓÃµÄFROM×Ó¾äÔªËØ */
-  int andFlags;              /* AND-ed combination of all pWC->a[].wtFlags AND-edËùÓĞµÄpWC->a[].wtFlags×éºÏ */
-  sqlite3 *db;               /* Database connection Êı¾İ¿âÁ¬½Ó */
+  int i;                     /* Loop counter å¾ªç¯è®¡æ•°å™¨ */
+  int nByteWInfo;            /* Num. bytes allocated for WhereInfo struct ä¸ºWhereInfoç»“æ„åˆ†é…çš„å­—èŠ‚æ•° */
+  int nTabList;              /* Number of elements in pTabList åœ¨pTabListä¸­çš„å…ƒç´ æ•° */
+  WhereInfo *pWInfo;         /* Will become the return value of this function å°†å˜æˆè¿™ä¸ªå‡½æ•°çš„è¿”å›å€¼ */
+  Vdbe *v = pParse->pVdbe;   /* The virtual database engine è™šæ‹Ÿæ•°æ®åº“å¼•æ“ */
+  Bitmask notReady;          /* Cursors that are not yet positioned è¿˜æœªç¡®å®šä½ç½®çš„æ¸¸æ ‡ */
+  WhereMaskSet *pMaskSet;    /* The expression mask set è®¾ç½®è¡¨è¾¾å¼æ©ç  */
+  WhereClause *pWC;               /* Decomposition of the WHERE clause WHEREå­å¥çš„åˆ†è§£ */
+  struct SrcList_item *pTabItem;  /* A single entry from pTabList æ¥è‡ªäºpTabListçš„ä¸€ä¸ªæ¡ç›® */
+  WhereLevel *pLevel;             /* A single level in the pWInfo list åœ¨pWInfoåˆ—è¡¨ä¸­çš„ä¸€ä¸ªç™»è®° */
+  int iFrom;                      /* First unused FROM clause element ç¬¬ä¸€ä¸ªæœªä½¿ç”¨çš„FROMå­å¥å…ƒç´  */
+  int andFlags;              /* AND-ed combination of all pWC->a[].wtFlags AND-edæ‰€æœ‰çš„pWC->a[].wtFlagsç»„åˆ */
+  sqlite3 *db;               /* Database connection æ•°æ®åº“è¿æ¥ */
 
   /* The number of tables in the FROM clause is limited by the number of
   ** bits in a Bitmask 
   **
-  ** ÔÚÒ»¸öÎ»ÑÚÂëÖĞµÄÎ»ÊıÏŞÖÆÁËÔÚFROM×Ó¾äÖĞµÄ±íÊıÄ¿
+  ** åœ¨ä¸€ä¸ªä½æ©ç ä¸­çš„ä½æ•°é™åˆ¶äº†åœ¨FROMå­å¥ä¸­çš„è¡¨æ•°ç›®
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  testcase( pTabList->nSrc==BMS );	//ÓÃÓÚ¸²¸Ç²âÊÔ
-  if( pTabList->nSrc>BMS ){	//Èç¹ûÔÚFROMÖĞµÄ±íÊıÄ¿´óÓÚÎ»ÑÚÂëÖĞµÄÎ»Êı
-    sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);	//ÌáÊ¾Á¬½ÓÖĞ×î¶àÖ»ÄÜÓĞBMS¸ö±í
+  testcase( pTabList->nSrc==BMS );	//ç”¨äºè¦†ç›–æµ‹è¯•
+  if( pTabList->nSrc>BMS ){	//å¦‚æœåœ¨FROMä¸­çš„è¡¨æ•°ç›®å¤§äºä½æ©ç ä¸­çš„ä½æ•°
+    sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);	//æç¤ºè¿æ¥ä¸­æœ€å¤šåªèƒ½æœ‰BMSä¸ªè¡¨
     return 0;
   }
 
@@ -7068,17 +7068,17 @@ WhereInfo *sqlite3WhereBegin(
   ** only generate code for the first table in pTabList and assume that
   ** any cursors associated with subsequent tables are uninitialized.
 <<<<<<< HEAD
-  ¸Ã¹¦ÄÜÍ¨³£»á²úÉúÒ»¸öÇ¶Ì×Ñ­»·ÖĞpTabListËùÓĞ±í¡£
-  µ«Èç¹ûWHERE_ONETABLE_ONLY±êÖ¾ÉèÖÃ£¬ÄÇÃ´ÎÒÃÇÓ¦¸ÃÖ»
-  Éú³É´úÂëÎªpTabListµÚÒ»¸ö±í£¬²¢¼Ù¶¨Ëæºó±íÏà¹ØµÄÈÎºÎÓÎ±ê³õÊ¼»¯¡£
+  è¯¥åŠŸèƒ½é€šå¸¸ä¼šäº§ç”Ÿä¸€ä¸ªåµŒå¥—å¾ªç¯ä¸­pTabListæ‰€æœ‰è¡¨ã€‚
+  ä½†å¦‚æœWHERE_ONETABLE_ONLYæ ‡å¿—è®¾ç½®ï¼Œé‚£ä¹ˆæˆ‘ä»¬åº”è¯¥åª
+  ç”Ÿæˆä»£ç ä¸ºpTabListç¬¬ä¸€ä¸ªè¡¨ï¼Œå¹¶å‡å®šéšåè¡¨ç›¸å…³çš„ä»»ä½•æ¸¸æ ‡åˆå§‹åŒ–ã€‚
 =======
   **
-  ** Õâ¸öº¯ÊıÒ»°ãÊÇÎªÔÚpTabListÖĞµÄËùÓĞ±íÉú³ÉÒ»¸öÇ¶Ì×Ñ­»·¡£
-  ** µ«ÊÇÈç¹ûÉèÖÃÁËWHERE_ONETABLE_ONLY±êÖ¾£¬
-  ** ÄÇÃ´ÎÒÃÇÖ»ĞèÒªÎªpTabListÖĞµÄµÚÒ»¸ö±íÉú³É´úÂë²¢ÇÒ¼ÙÉèÈÎºÎÓëºóĞøµÄ±íÏà¹ØµÄÓÎ±ê¶¼ÊÇÎ´³õÊ¼»¯µÄ¡£
+  ** è¿™ä¸ªå‡½æ•°ä¸€èˆ¬æ˜¯ä¸ºåœ¨pTabListä¸­çš„æ‰€æœ‰è¡¨ç”Ÿæˆä¸€ä¸ªåµŒå¥—å¾ªç¯ã€‚
+  ** ä½†æ˜¯å¦‚æœè®¾ç½®äº†WHERE_ONETABLE_ONLYæ ‡å¿—ï¼Œ
+  ** é‚£ä¹ˆæˆ‘ä»¬åªéœ€è¦ä¸ºpTabListä¸­çš„ç¬¬ä¸€ä¸ªè¡¨ç”Ÿæˆä»£ç å¹¶ä¸”å‡è®¾ä»»ä½•ä¸åç»­çš„è¡¨ç›¸å…³çš„æ¸¸æ ‡éƒ½æ˜¯æœªåˆå§‹åŒ–çš„ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  nTabList = (wctrlFlags & WHERE_ONETABLE_ONLY) ? 1 : pTabList->nSrc;//Èç¹ûÖ»ÓĞÒ»¸ö±í£¬ÄÇÃ´nTabList¾ÍÎª1£¬·ñÔòµÈÓÚpTabList->nSrc
+  nTabList = (wctrlFlags & WHERE_ONETABLE_ONLY) ? 1 : pTabList->nSrc;//å¦‚æœåªæœ‰ä¸€ä¸ªè¡¨ï¼Œé‚£ä¹ˆnTabListå°±ä¸º1ï¼Œå¦åˆ™ç­‰äºpTabList->nSrc
 
   /* Allocate and initialize the WhereInfo structure that will become the
   ** return value. A single allocation is used to store the WhereInfo
@@ -7087,47 +7087,47 @@ WhereInfo *sqlite3WhereBegin(
   ** field (type Bitmask) it must be aligned on an 8-byte boundary on
   ** some architectures. Hence the ROUND8() below.
 <<<<<<< HEAD
-  ·ÖÅäºÍ³õÊ¼»¯WhereInfo½á¹¹½«³ÉÎª·µ»ØÖµ¡£
-  µ¥¸ö·ÖÅäÓÃÓÚ´æ´¢ËùÊöWhereInfo½á¹¹£¬WhereInfo.a[]ÖĞ£¬
-  WhereClause½á¹¹µÄÄÚÈİºÍWhereMaskSet½á¹¹¡£
-  ÒòÎªWhereClause°üº¬Ò»¸ö8×Ö½ÚµÄ×Ö¶Î£¨ÀàĞÍÎ»ÑÚÂë£©
-  Ëü±ØĞë¶ÔÄ³Ğ©ÌåÏµ½á¹¹µÄ8×Ö½Ú±ß½ç¶ÔÆë¡£Òò´ËROUND8£¨£©ÒÔÏÂ¡£
+  åˆ†é…å’Œåˆå§‹åŒ–WhereInfoç»“æ„å°†æˆä¸ºè¿”å›å€¼ã€‚
+  å•ä¸ªåˆ†é…ç”¨äºå­˜å‚¨æ‰€è¿°WhereInfoç»“æ„ï¼ŒWhereInfo.a[]ä¸­ï¼Œ
+  WhereClauseç»“æ„çš„å†…å®¹å’ŒWhereMaskSetç»“æ„ã€‚
+  å› ä¸ºWhereClauseåŒ…å«ä¸€ä¸ª8å­—èŠ‚çš„å­—æ®µï¼ˆç±»å‹ä½æ©ç ï¼‰
+  å®ƒå¿…é¡»å¯¹æŸäº›ä½“ç³»ç»“æ„çš„8å­—èŠ‚è¾¹ç•Œå¯¹é½ã€‚å› æ­¤ROUND8ï¼ˆï¼‰ä»¥ä¸‹ã€‚
 =======
   **
-  ** ·ÖÅäºÍ³õÊ¼»¯WhereInfoÊı¾İ½á¹¹½«±ä³É·µ»ØÖµ¡£
-  ** Ò»¸öµ¥¶ÀµÄ·ÖÅä±»ÓÃÓÚ´æ´¢WhereInfo½á¹¹£¬WhereInfo.a[]µÄÄÚÈİ£¬WhereClauseÊı¾İ½á¹¹ºÍWhereMaskSetÊı¾İ½á¹¹¡£
-  ** ÒòÎªWhereClause°üº¬Ò»¸ö8×Ö½ÚµÄ×Ö¶Î±ØĞëÔÚ½á¹¹ÉÏÓëÒ»¸ö8×Ö½Ú±ß½ç¶ÔÆë¡£
+  ** åˆ†é…å’Œåˆå§‹åŒ–WhereInfoæ•°æ®ç»“æ„å°†å˜æˆè¿”å›å€¼ã€‚
+  ** ä¸€ä¸ªå•ç‹¬çš„åˆ†é…è¢«ç”¨äºå­˜å‚¨WhereInfoç»“æ„ï¼ŒWhereInfo.a[]çš„å†…å®¹ï¼ŒWhereClauseæ•°æ®ç»“æ„å’ŒWhereMaskSetæ•°æ®ç»“æ„ã€‚
+  ** å› ä¸ºWhereClauseåŒ…å«ä¸€ä¸ª8å­—èŠ‚çš„å­—æ®µå¿…é¡»åœ¨ç»“æ„ä¸Šä¸ä¸€ä¸ª8å­—èŠ‚è¾¹ç•Œå¯¹é½ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  db = pParse->db;	//Á¬½ÓÊı¾İ¿â
-  nByteWInfo = ROUND8(sizeof(WhereInfo)+(nTabList-1)*sizeof(WhereLevel));	//ÎªWhereInfo·ÖÅäÏàÓ¦µÄ×Ö½ÚÊı
+  db = pParse->db;	//è¿æ¥æ•°æ®åº“
+  nByteWInfo = ROUND8(sizeof(WhereInfo)+(nTabList-1)*sizeof(WhereLevel));	//ä¸ºWhereInfoåˆ†é…ç›¸åº”çš„å­—èŠ‚æ•°
   pWInfo = sqlite3DbMallocZero(db, 
       nByteWInfo + 
       sizeof(WhereClause) +
       sizeof(WhereMaskSet)
-  );	//ÎªWhereInfo·ÖÅä¿Õ¼ä
-  if( db->mallocFailed ){	//Èç¹ûÊı¾İ¿âÄÚ´æ·ÖÅäÊ§°Ü
-    sqlite3DbFree(db, pWInfo);	//ÊÍ·ÅÊı¾İ¿âÁ¬½ÓµÄÄÚ´æ
-    pWInfo = 0;	//Çå¿Õ·ÖÅäµÄ¿Õ¼ä¡£
-    goto whereBeginError;	//Ìø×ªµ½whereBeginError´¦Àí´íÎó
+  );	//ä¸ºWhereInfoåˆ†é…ç©ºé—´
+  if( db->mallocFailed ){	//å¦‚æœæ•°æ®åº“å†…å­˜åˆ†é…å¤±è´¥
+    sqlite3DbFree(db, pWInfo);	//é‡Šæ”¾æ•°æ®åº“è¿æ¥çš„å†…å­˜
+    pWInfo = 0;	//æ¸…ç©ºåˆ†é…çš„ç©ºé—´ã€‚
+    goto whereBeginError;	//è·³è½¬åˆ°whereBeginErrorå¤„ç†é”™è¯¯
   }
-  pWInfo->nLevel = nTabList;//Ñ­»·Ç¶Ì×ÊıÎª±íµÄÊıÄ¿
+  pWInfo->nLevel = nTabList;//å¾ªç¯åµŒå¥—æ•°ä¸ºè¡¨çš„æ•°ç›®
   pWInfo->pParse = pParse;
-  pWInfo->pTabList = pTabList;	//WhereInfoÖĞµÄ±íÁĞ±íÓëpTabListÏàÍ¬
-  pWInfo->iBreak = sqlite3VdbeMakeLabel(v);	//ÖÕÖ¹Ñ­»·µÄ±êÖ¾
+  pWInfo->pTabList = pTabList;	//WhereInfoä¸­çš„è¡¨åˆ—è¡¨ä¸pTabListç›¸åŒ
+  pWInfo->iBreak = sqlite3VdbeMakeLabel(v);	//ç»ˆæ­¢å¾ªç¯çš„æ ‡å¿—
   pWInfo->pWC = pWC = (WhereClause *)&((u8 *)pWInfo)[nByteWInfo];
   pWInfo->wctrlFlags = wctrlFlags;
-  pWInfo->savedNQueryLoop = pParse->nQueryLoop;	//Ò»¸ö²éÑ¯µÄµü´úÊı
+  pWInfo->savedNQueryLoop = pParse->nQueryLoop;	//ä¸€ä¸ªæŸ¥è¯¢çš„è¿­ä»£æ•°
   pMaskSet = (WhereMaskSet*)&pWC[1];
 
   /* Disable the DISTINCT optimization if SQLITE_DistinctOpt is set via
   ** sqlite3_test_ctrl(SQLITE_TESTCTRL_OPTIMIZATIONS,...) 
 <<<<<<< HEAD
-  ½ûÓÃDISTINCTµÄÓÅ»¯£¬Èç¹ûSQLITE_DistinctOptÍ¨¹ısqlite3_test_ctrlÉèÖÃ
-  £¨SQLITE_TESTCTRL_OPTIMIZATIONS£¬...£©*/
+  ç¦ç”¨DISTINCTçš„ä¼˜åŒ–ï¼Œå¦‚æœSQLITE_DistinctOpté€šè¿‡sqlite3_test_ctrlè®¾ç½®
+  ï¼ˆSQLITE_TESTCTRL_OPTIMIZATIONSï¼Œ...ï¼‰*/
 =======
   **
-  ** Èç¹ûÍ¨¹ısqlite3_test_ctrl(SQLITE_TESTCTRL_OPTIMIZATIONS,...)ÉèÖÃSQLITE_DistinctOptÄÇÃ´¾Í½ûÓÃDISTINCTÓÅ»¯
+  ** å¦‚æœé€šè¿‡sqlite3_test_ctrl(SQLITE_TESTCTRL_OPTIMIZATIONS,...)è®¾ç½®SQLITE_DistinctOpté‚£ä¹ˆå°±ç¦ç”¨DISTINCTä¼˜åŒ–
   */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   if( db->flags & SQLITE_DistinctOpt ) pDistinct = 0;
@@ -7136,24 +7136,24 @@ WhereInfo *sqlite3WhereBegin(
   ** subexpression is separated by an AND operator.
 <<<<<<< HEAD
 
-  ·ÖÁÑWHERE¼¯³É¶ÀÁ¢µÄ¼¯±í´ïÊ½£¬ÆäÖĞÃ¿¸ö¼¯±í´ïÊ½ÓÉÒ»¸öANDÔËËã·ÖÀë¡£
+  åˆ†è£‚WHEREé›†æˆç‹¬ç«‹çš„é›†è¡¨è¾¾å¼ï¼Œå…¶ä¸­æ¯ä¸ªé›†è¡¨è¾¾å¼ç”±ä¸€ä¸ªANDè¿ç®—åˆ†ç¦»ã€‚
 =======
   **
-  ** °ÑWHERE×Ó¾äÍ¨¹ıANDÔËËã·û·Ö¸î³É¶à¸ö×Ó±í´ïÊ½¡£
+  ** æŠŠWHEREå­å¥é€šè¿‡ANDè¿ç®—ç¬¦åˆ†å‰²æˆå¤šä¸ªå­è¡¨è¾¾å¼ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  initMaskSet(pMaskSet);	//³õÊ¼»¯WhereMaskSet¶ÔÏó
-  whereClauseInit(pWC, pParse, pMaskSet, wctrlFlags);	//³õÊ¼»¯pWC
-  sqlite3ExprCodeConstants(pParse, pWhere); //Ô¤ÏÈ¼ÆËãÔÚpWhereÖĞµÄ³£Á¿×Ö±í´ïÊ½
-  whereSplit(pWC, pWhere, TK_AND);  //°ÑWHERE×Ó¾äÍ¨¹ıANDÔËËã·û·Ö¸î³É¶à¸ö×Ó±í´ïÊ½¡£ /* IMP: R-15842-53296 */
+  initMaskSet(pMaskSet);	//åˆå§‹åŒ–WhereMaskSetå¯¹è±¡
+  whereClauseInit(pWC, pParse, pMaskSet, wctrlFlags);	//åˆå§‹åŒ–pWC
+  sqlite3ExprCodeConstants(pParse, pWhere); //é¢„å…ˆè®¡ç®—åœ¨pWhereä¸­çš„å¸¸é‡å­—è¡¨è¾¾å¼
+  whereSplit(pWC, pWhere, TK_AND);  //æŠŠWHEREå­å¥é€šè¿‡ANDè¿ç®—ç¬¦åˆ†å‰²æˆå¤šä¸ªå­è¡¨è¾¾å¼ã€‚ /* IMP: R-15842-53296 */
     
   /* Special case: a WHERE clause that is constant.  Evaluate the
   ** expression and either jump over all of the code or fall thru.
 <<<<<<< HEAD
-  ÌØÊâÇé¿ö£ºÒ»¸öWHERE×Ó¼¯ÊÇºã¶¨µÄ¡£¼ÆËã±í´ïÊ½£¬ÒªÃ´Ìø¹ıËùÓĞµÄ´úÂë»òÏÂ½µ¡£
+  ç‰¹æ®Šæƒ…å†µï¼šä¸€ä¸ªWHEREå­é›†æ˜¯æ’å®šçš„ã€‚è®¡ç®—è¡¨è¾¾å¼ï¼Œè¦ä¹ˆè·³è¿‡æ‰€æœ‰çš„ä»£ç æˆ–ä¸‹é™ã€‚
 =======
   **
-  ** ÌØÊâÇé¿ö:Ò»¸öWHERE×Ó¾äÊÇºã¶¨µÄ¡£¶Ô±í´ïÊ½ÇóÖµÊ±£¬ÒªÃ´Ìø¹ıËùÓĞµÄ´úÂë£¬ÒªÃ´Í¨¹ı
+  ** ç‰¹æ®Šæƒ…å†µ:ä¸€ä¸ªWHEREå­å¥æ˜¯æ’å®šçš„ã€‚å¯¹è¡¨è¾¾å¼æ±‚å€¼æ—¶ï¼Œè¦ä¹ˆè·³è¿‡æ‰€æœ‰çš„ä»£ç ï¼Œè¦ä¹ˆé€šè¿‡
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( pWhere && (nTabList==0 || sqlite3ExprIsConstantNotJoin(pWhere)) ){
@@ -7163,10 +7163,10 @@ WhereInfo *sqlite3WhereBegin(
 
   /* Assign a bit from the bitmask to every term in the FROM clause.
 <<<<<<< HEAD
-  **·ÖÅäÒ»¸öÎ»µÄÑÚÂëÔÚÃ¿¸öÏóFROM×Ó¼¯¡£
+  **åˆ†é…ä¸€ä¸ªä½çš„æ©ç åœ¨æ¯ä¸ªè±¡FROMå­é›†ã€‚
 =======
   **
-  ** ½«Î»ÑÚÂëÖĞµÄÒ»bit·ÖÅä¸øFROM×Ó¾äµÄÃ¿¸öterm¡£
+  ** å°†ä½æ©ç ä¸­çš„ä¸€bitåˆ†é…ç»™FROMå­å¥çš„æ¯ä¸ªtermã€‚
   **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   ** When assigning bitmask values to FROM clause cursors, it must be
@@ -7177,60 +7177,60 @@ WhereInfo *sqlite3WhereBegin(
   ** of the join.  Subtracting one from the right table bitmask gives a
   ** bitmask for all tables to the left of the join.  Knowing the bitmask
   ** for all tables to the left of a left join is important.  Ticket #3015.
-  µ±Ö¸¶¨Î»ÑÚÂëÖµFROM×Ó¾ä¹â±ê£¬ËüÒ»¶¨ÊÇÕâÑùµÄ£¬
-  Èç¹ûXÊÇÎ»ÑÚÂëN¸öFROM×Ó¼¯ÖĞ¶ÌÆÚµÄ£¬ÔòÑÚÂëÎªËùÓĞFROM×Ó¼¯Ìõ¼şµÄN¸öÈÎÆÚµÄ×ó
-Îª£¨X-1£©¡£´ÓLEFTµÄON×Ó¾ä±í´ïÊ½JOIN¿ÉÒÔÊ¹ÓÃËüExpr.iRightJoinTable
-¼ÛÖµ·¢ÏÖµÄ¼ÓÈëÓÒ±íµÄÑÚÂë¡£À´×ÔÓÒ±íÎ»ÑÚÂëÖĞ¼õÈ¥1¸ø³öÁËÒ»¸ö
-Î»ÑÚÂëÎªËùÓĞ±íµÄ¼ÓÃË×ó²à¡£ÖªµÀÎ»ÑÚÂë¶ÔÓÚËùÓĞ±í×óÁ¬½ÓµÄ×ó²à
-ÊÇÖØÒªµÄ¡£Æ±Îñ££3015
+  å½“æŒ‡å®šä½æ©ç å€¼FROMå­å¥å…‰æ ‡ï¼Œå®ƒä¸€å®šæ˜¯è¿™æ ·çš„ï¼Œ
+  å¦‚æœXæ˜¯ä½æ©ç Nä¸ªFROMå­é›†ä¸­çŸ­æœŸçš„ï¼Œåˆ™æ©ç ä¸ºæ‰€æœ‰FROMå­é›†æ¡ä»¶çš„Nä¸ªä»»æœŸçš„å·¦
+ä¸ºï¼ˆX-1ï¼‰ã€‚ä»LEFTçš„ONå­å¥è¡¨è¾¾å¼JOINå¯ä»¥ä½¿ç”¨å®ƒExpr.iRightJoinTable
+ä»·å€¼å‘ç°çš„åŠ å…¥å³è¡¨çš„æ©ç ã€‚æ¥è‡ªå³è¡¨ä½æ©ç ä¸­å‡å»1ç»™å‡ºäº†ä¸€ä¸ª
+ä½æ©ç ä¸ºæ‰€æœ‰è¡¨çš„åŠ ç›Ÿå·¦ä¾§ã€‚çŸ¥é“ä½æ©ç å¯¹äºæ‰€æœ‰è¡¨å·¦è¿æ¥çš„å·¦ä¾§
+æ˜¯é‡è¦çš„ã€‚ç¥¨åŠ¡ï¼ƒ3015
   **
-  ** µ±°ÑÎ»ÑÚÂëÖµ·ÖÅä¸øFROM×Ó¾äÓÎ±êÊ±£¬Èç¹ûXÊÇN-th FROM×Ó¾äÏîµÄÎ»ÑÚÂë£¬
-  ** ÄÇÃ´ËùÓĞFROM×Ó¾ätermsµÄ×ó±ßµÄµÚNÏîµÄÎ»ÑÚÂëÊÇ(X-1)¡£
-  ** Ò»¸öÀ´×ÔÓÚLEFT JOINµÄON×Ó¾äµÄ±í´ïÊ½¿ÉÒÔÊ¹ÓÃËü×Ô¼ºµÄExpr.iRightJoinTableÖµÀ´²éÕÒÕâ¸öÁ¬½ÓµÄÓÒ±íµÄÎ»ÑÚÂë¡£
-  ** ´ÓÓÒ±ß±íµÄÎ»ÑÚÂëÖĞ¼õÈ¥Ò»£¬°ÑÕâ¸öÎ»ÑÚÂë¸øÁ¬½ÓµÄ×ó±ßµÄËùÓĞµÄ±í¡£
-  ** ÒªÖªµÀÒ»¸ö×óÁª½Ó×ó±ßµÄËùÓĞ±íµÄÎ»ÑÚÂëÊÇºÜÖØÒªµÄ¡£
+  ** å½“æŠŠä½æ©ç å€¼åˆ†é…ç»™FROMå­å¥æ¸¸æ ‡æ—¶ï¼Œå¦‚æœXæ˜¯N-th FROMå­å¥é¡¹çš„ä½æ©ç ï¼Œ
+  ** é‚£ä¹ˆæ‰€æœ‰FROMå­å¥termsçš„å·¦è¾¹çš„ç¬¬Né¡¹çš„ä½æ©ç æ˜¯(X-1)ã€‚
+  ** ä¸€ä¸ªæ¥è‡ªäºLEFT JOINçš„ONå­å¥çš„è¡¨è¾¾å¼å¯ä»¥ä½¿ç”¨å®ƒè‡ªå·±çš„Expr.iRightJoinTableå€¼æ¥æŸ¥æ‰¾è¿™ä¸ªè¿æ¥çš„å³è¡¨çš„ä½æ©ç ã€‚
+  ** ä»å³è¾¹è¡¨çš„ä½æ©ç ä¸­å‡å»ä¸€ï¼ŒæŠŠè¿™ä¸ªä½æ©ç ç»™è¿æ¥çš„å·¦è¾¹çš„æ‰€æœ‰çš„è¡¨ã€‚
+  ** è¦çŸ¥é“ä¸€ä¸ªå·¦è”æ¥å·¦è¾¹çš„æ‰€æœ‰è¡¨çš„ä½æ©ç æ˜¯å¾ˆé‡è¦çš„ã€‚
   **
   ** Configure the WhereClause.vmask variable so that bits that correspond
   ** to virtual table cursors are set. This is used to selectively disable 
   ** the OR-to-IN transformation in exprAnalyzeOrTerm(). It is not helpful
   ** with virtual tables.
-  ÅäÖÃWhereClause.vmask±äÁ¿£¬ÒÔ±ã¶ÔÓ¦ÓÚĞé±íÖ¸ÕëÎ»ÉèÖÃ¡£
-  ÕâÊÇÓÃÀ´Ñ¡ÔñĞÔµØ½ûÓÃexprAnalyzeOrTermµÄ»òµ½IN±ä»»£¨£©¡£
-  Õâ¶ÔĞéÄâ±íÊÇÃ»ÓĞ°ïÖúµÄ¡£
+  é…ç½®WhereClause.vmaskå˜é‡ï¼Œä»¥ä¾¿å¯¹åº”äºè™šè¡¨æŒ‡é’ˆä½è®¾ç½®ã€‚
+  è¿™æ˜¯ç”¨æ¥é€‰æ‹©æ€§åœ°ç¦ç”¨exprAnalyzeOrTermçš„æˆ–åˆ°INå˜æ¢ï¼ˆï¼‰ã€‚
+  è¿™å¯¹è™šæ‹Ÿè¡¨æ˜¯æ²¡æœ‰å¸®åŠ©çš„ã€‚
   **
-  ** ÉèÖÃWhereClause.vmask±äÁ¿ÒÔ±ãbitsÓëÉèÖÃºÃµÄĞéÄâ±íµÄÓÎ±êÏàÒ»ÖÂ¡£
-  ** ÕâÓÃÓÚÔÚexprAnalyzeOrTerm()ÖĞÓĞÑ¡ÔñĞÔµØ½ûÓÃOR-to-IN×ª»¯¡£Ëü¶ÔĞéÄâ±íÊ¾ÎŞÓÃµÄ¡£
+  ** è®¾ç½®WhereClause.vmaskå˜é‡ä»¥ä¾¿bitsä¸è®¾ç½®å¥½çš„è™šæ‹Ÿè¡¨çš„æ¸¸æ ‡ç›¸ä¸€è‡´ã€‚
+  ** è¿™ç”¨äºåœ¨exprAnalyzeOrTerm()ä¸­æœ‰é€‰æ‹©æ€§åœ°ç¦ç”¨OR-to-INè½¬åŒ–ã€‚å®ƒå¯¹è™šæ‹Ÿè¡¨ç¤ºæ— ç”¨çš„ã€‚
   **
   ** Note that bitmasks are created for all pTabList->nSrc tables in
   ** pTabList, not just the first nTabList tables.  nTabList is normally
   ** equal to pTabList->nSrc but might be shortened to 1 if the
   ** WHERE_ONETABLE_ONLY flag is set.
 <<<<<<< HEAD
-  ĞèÒª×¢ÒâµÄÊÇÎ»ÑÚÂëÎªËùÓĞpTabList-> NSRC±íÖĞpTabList£¬
-  ²»Ö»ÊÇµÚÒ»¸önTabList±í´´½¨¡£nTabListÍ¨³£µÈÓÚpTabList-> NSRCµ«¿ÉÄÜËõ¶ÌÎª1£¬
-  Èç¹û¸ÃWHERE_ONETABLE_ONLY±êÖ¾±»ÉèÖÃ¡£
+  éœ€è¦æ³¨æ„çš„æ˜¯ä½æ©ç ä¸ºæ‰€æœ‰pTabList-> NSRCè¡¨ä¸­pTabListï¼Œ
+  ä¸åªæ˜¯ç¬¬ä¸€ä¸ªnTabListè¡¨åˆ›å»ºã€‚nTabListé€šå¸¸ç­‰äºpTabList-> NSRCä½†å¯èƒ½ç¼©çŸ­ä¸º1ï¼Œ
+  å¦‚æœè¯¥WHERE_ONETABLE_ONLYæ ‡å¿—è¢«è®¾ç½®ã€‚
 =======
   **
-  ** ×¢Òâ:²»Ö»ÊÇÎªµÚÒ»¸önTabList±í´´½¨Î»ÑÚÂë£¬¶øÊÇÎªÔÚpTabListÖĞµÄËùÓĞpTabList->nSrc±í´´½¨¡£
-  ** nTabListÒ»°ãµÈÍ¬ÓÚpTabList->nSrc£¬µ«Èç¹ûÉèÖÃÁËWHERE_ONETABLE_ONLY±êÖ¾£¬ÄÇÃ´Ëü¿ÉÄÜËõ¶ÌÎª1¡£
+  ** æ³¨æ„:ä¸åªæ˜¯ä¸ºç¬¬ä¸€ä¸ªnTabListè¡¨åˆ›å»ºä½æ©ç ï¼Œè€Œæ˜¯ä¸ºåœ¨pTabListä¸­çš„æ‰€æœ‰pTabList->nSrcè¡¨åˆ›å»ºã€‚
+  ** nTabListä¸€èˆ¬ç­‰åŒäºpTabList->nSrcï¼Œä½†å¦‚æœè®¾ç½®äº†WHERE_ONETABLE_ONLYæ ‡å¿—ï¼Œé‚£ä¹ˆå®ƒå¯èƒ½ç¼©çŸ­ä¸º1ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   assert( pWC->vmask==0 && pMaskSet->n==0 );
-  for(i=0; i<pTabList->nSrc; i++){	//±éÀú±í£¬ÎªFROMÖĞµÄÃ¿¸ö±íÓÎ±êiCursor´´½¨ÑÚÂë
+  for(i=0; i<pTabList->nSrc; i++){	//éå†è¡¨ï¼Œä¸ºFROMä¸­çš„æ¯ä¸ªè¡¨æ¸¸æ ‡iCursoråˆ›å»ºæ©ç 
     createMask(pMaskSet, pTabList->a[i].iCursor);
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-    if( ALWAYS(pTabList->a[i].pTab) && IsVirtual(pTabList->a[i].pTab) ){	//Èç¹û±íÊÇĞé±í
-      pWC->vmask |= ((Bitmask)1 << i);	//ÉèÖÃÊ¶±ğĞé±íÓÎ±êµÄµÄÎ»ÑÚÂë
+    if( ALWAYS(pTabList->a[i].pTab) && IsVirtual(pTabList->a[i].pTab) ){	//å¦‚æœè¡¨æ˜¯è™šè¡¨
+      pWC->vmask |= ((Bitmask)1 << i);	//è®¾ç½®è¯†åˆ«è™šè¡¨æ¸¸æ ‡çš„çš„ä½æ©ç 
     }
 #endif
   }
 #ifndef NDEBUG
   {
     Bitmask toTheLeft = 0;
-    for(i=0; i<pTabList->nSrc; i++){ //Ñ­»·±éÀúFROM×Ó¾äÖĞµÄ±í»ò×Ó²éÑ¯
+    for(i=0; i<pTabList->nSrc; i++){ //å¾ªç¯éå†FROMå­å¥ä¸­çš„è¡¨æˆ–å­æŸ¥è¯¢
       Bitmask m = getMask(pMaskSet, pTabList->a[i].iCursor);
       assert( (m-1)==toTheLeft );
-      toTheLeft |= m; //ÉèÖÃtoTheLeft
+      toTheLeft |= m; //è®¾ç½®toTheLeft
     }
   }
 #endif
@@ -7240,113 +7240,113 @@ WhereInfo *sqlite3WhereBegin(
   ** want to analyze these virtual terms, so start analyzing at the end
   ** and work forward so that the added virtual terms are never processed.
 <<<<<<< HEAD
-  ·ÖÎöËùÓĞµÄ×Ó±í´ïÊ½¡£ĞèÒª×¢ÒâµÄÊÇexprAnalyze£¨£©¿ÉÄÜ»áÌí¼ÓĞÂµÄĞéÄâ
-  Ìõ¼şµ½WHERE×Ó¾äµÄÄ©Î²¡£ÎÒÃÇ²»Ï£ÍûÀ´·ÖÎöÕâĞ©ĞéÄâÏó£¬ËùÒÔ¿ªÊ¼ÔÚ¶Ë
-  ·ÖÎöºÍ¹¤×÷ÏòÇ°£¬ÒÔÊ¹Ôö¼ÓÁË´ÓÎ´´¦ÀíµÄĞéÄâÏó¡£
+  åˆ†ææ‰€æœ‰çš„å­è¡¨è¾¾å¼ã€‚éœ€è¦æ³¨æ„çš„æ˜¯exprAnalyzeï¼ˆï¼‰å¯èƒ½ä¼šæ·»åŠ æ–°çš„è™šæ‹Ÿ
+  æ¡ä»¶åˆ°WHEREå­å¥çš„æœ«å°¾ã€‚æˆ‘ä»¬ä¸å¸Œæœ›æ¥åˆ†æè¿™äº›è™šæ‹Ÿè±¡ï¼Œæ‰€ä»¥å¼€å§‹åœ¨ç«¯
+  åˆ†æå’Œå·¥ä½œå‘å‰ï¼Œä»¥ä½¿å¢åŠ äº†ä»æœªå¤„ç†çš„è™šæ‹Ÿè±¡ã€‚
 =======
   **
-  ** ·ÖÎöËùÓĞµÄ×Ó±í´ïÊ½¡£×¢ÒâexprAnalyze()¿ÉÄÜÌí¼ÓĞÂµÄĞéÄâÏîµ½WHERE×Ó¾äµÄÄ©Î²¡£
-  ** ÎÒÃÇ²»Ïë·ÖÎöÕâĞ©ĞéÄâÏî£¬ËùÒÔ×îºó¿ªÊ¼·ÖÎö²¢ÇÒ½ÏÔçµÄÊ¹ÓÃ£¬ËùÒÔ±»Ìí¼ÓµÄĞéÄâÏî´ÓÎ´±»´¦Àí¡£
+  ** åˆ†ææ‰€æœ‰çš„å­è¡¨è¾¾å¼ã€‚æ³¨æ„exprAnalyze()å¯èƒ½æ·»åŠ æ–°çš„è™šæ‹Ÿé¡¹åˆ°WHEREå­å¥çš„æœ«å°¾ã€‚
+  ** æˆ‘ä»¬ä¸æƒ³åˆ†æè¿™äº›è™šæ‹Ÿé¡¹ï¼Œæ‰€ä»¥æœ€åå¼€å§‹åˆ†æå¹¶ä¸”è¾ƒæ—©çš„ä½¿ç”¨ï¼Œæ‰€ä»¥è¢«æ·»åŠ çš„è™šæ‹Ÿé¡¹ä»æœªè¢«å¤„ç†ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  exprAnalyzeAll(pTabList, pWC);//·ÖÎöwhere×Ó¾äÖĞµÄËùÓĞterms
-  if( db->mallocFailed ){  //Èç¹ûÊı¾İ¿âÄÚ´æ·ÖÅä´íÎó
-    goto whereBeginError; //Ìø×ªµ½whereBeginError´¦Àí´íÎó
+  exprAnalyzeAll(pTabList, pWC);//åˆ†æwhereå­å¥ä¸­çš„æ‰€æœ‰terms
+  if( db->mallocFailed ){  //å¦‚æœæ•°æ®åº“å†…å­˜åˆ†é…é”™è¯¯
+    goto whereBeginError; //è·³è½¬åˆ°whereBeginErrorå¤„ç†é”™è¯¯
   }
 
   /* Check if the DISTINCT qualifier, if there is one, is redundant. 
   ** If it is, then set pDistinct to NULL and WhereInfo.eDistinct to
   ** WHERE_DISTINCT_UNIQUE to tell the caller to ignore the DISTINCT.
 <<<<<<< HEAD
-  ¼ì²éÊÇ·ñDISTINCTÏŞ¶¨·û£¬Èç¹ûÓĞÒ»¸ö£¬ÊÇ¶àÓàµÄ¡£Èç¹ûÊÇ£¬ÔòÉèÖÃpDistinctÎªNULL£¬
-  WhereInfo.eDistinctµ½WHERE_DISTINCT_UNIQUE¸æËßµ÷ÓÃÕßºöÂÔDISTINCT¡£
+  æ£€æŸ¥æ˜¯å¦DISTINCTé™å®šç¬¦ï¼Œå¦‚æœæœ‰ä¸€ä¸ªï¼Œæ˜¯å¤šä½™çš„ã€‚å¦‚æœæ˜¯ï¼Œåˆ™è®¾ç½®pDistinctä¸ºNULLï¼Œ
+  WhereInfo.eDistinctåˆ°WHERE_DISTINCT_UNIQUEå‘Šè¯‰è°ƒç”¨è€…å¿½ç•¥DISTINCTã€‚
 =======
   **
-  ** ¼ì²éDISTINCTÏŞ¶¨´ÊÊÇ·ñÊÇ¶àÓàµÄ¡£Èç¹ûÊÇ£¬
-  ** ÄÇÃ´°ÑpDistinctÉèÖÃÎªNULL²¢ÇÒ°ÑWhereInfo.eDistinctÉèÖÃÎªWHERE_DISTINCT_UNIQUEÀ´¸æËßµ÷ÓÃÕßºöÂÔDISTINCT.
+  ** æ£€æŸ¥DISTINCTé™å®šè¯æ˜¯å¦æ˜¯å¤šä½™çš„ã€‚å¦‚æœæ˜¯ï¼Œ
+  ** é‚£ä¹ˆæŠŠpDistinctè®¾ç½®ä¸ºNULLå¹¶ä¸”æŠŠWhereInfo.eDistinctè®¾ç½®ä¸ºWHERE_DISTINCT_UNIQUEæ¥å‘Šè¯‰è°ƒç”¨è€…å¿½ç•¥DISTINCT.
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  if( pDistinct && isDistinctRedundant(pParse, pTabList, pWC, pDistinct) ){ //Èç¹ûDistinctÊÇ¶àÓàµÄ
-    pDistinct = 0; //Çå¿ÕpDistinct
-    pWInfo->eDistinct = WHERE_DISTINCT_UNIQUE; //ÉèÖÃWhereInfo£¬¸æËßµ÷ÓÃÕßºöÂÔDISTINCT
+  if( pDistinct && isDistinctRedundant(pParse, pTabList, pWC, pDistinct) ){ //å¦‚æœDistinctæ˜¯å¤šä½™çš„
+    pDistinct = 0; //æ¸…ç©ºpDistinct
+    pWInfo->eDistinct = WHERE_DISTINCT_UNIQUE; //è®¾ç½®WhereInfoï¼Œå‘Šè¯‰è°ƒç”¨è€…å¿½ç•¥DISTINCT
   }
 
   /* Chose the best index to use for each table in the FROM clause.
 <<<<<<< HEAD
-  **Ñ¡ÔñÔÚÎªÃ¿¸ö±íÊ¹ÓÃFROM×Ó¼¯ÖĞµÄ×îºÃË÷Òı¡£
+  **é€‰æ‹©åœ¨ä¸ºæ¯ä¸ªè¡¨ä½¿ç”¨FROMå­é›†ä¸­çš„æœ€å¥½ç´¢å¼•ã€‚
 =======
   **
-  ** ÔÚFROM×Ó¾äÖĞÎªÃ¿¸ö±íÑ¡ÔñÊ¹ÓÃ×îºÃµÄË÷Òı
+  ** åœ¨FROMå­å¥ä¸­ä¸ºæ¯ä¸ªè¡¨é€‰æ‹©ä½¿ç”¨æœ€å¥½çš„ç´¢å¼•
   **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   ** This loop fills in the following fields:
-  Ñ­»·ÌîĞ´ÒÔÏÂ×Ö¶Î£º
+  å¾ªç¯å¡«å†™ä»¥ä¸‹å­—æ®µï¼š
   **
-  **   pWInfo->a[].pIdx      The index to use for this level of the loop.¸ÃÖ¸ÊıÓÃÓÚÑ­»·µÄÕâ¸öË®Æ½
-  **   pWInfo->a[].wsFlags   WHERE_xxx flags associated with pIdx WHERE_xxxÓëPIDXÏà¹ØµÄ±êÖ¾
-  **   pWInfo->a[].nEq       The number of == and IN constraints ==ºÍINÏŞÖÆÊıÁ¿
-  **   pWInfo->a[].iFrom     Which term of the FROM clause is being coded ÆäÖĞµÄFROM×Ó¼¯ÖĞ±»±àÂëµÄÏó
-  **   pWInfo->a[].iTabCur   The VDBE cursor for the database table ¸ÃVDBE¹â±êÊı¾İ¿â±í
-  **   pWInfo->a[].iIdxCur   The VDBE cursor for the index ¸ÃVDBE¹â±êË÷Òı
-  **   pWInfo->a[].pTerm     When wsFlags==WO_OR, the OR-clause term µ±wsFlags== WO_ORÊ±£¬OR-Ïó
+  **   pWInfo->a[].pIdx      The index to use for this level of the loop.è¯¥æŒ‡æ•°ç”¨äºå¾ªç¯çš„è¿™ä¸ªæ°´å¹³
+  **   pWInfo->a[].wsFlags   WHERE_xxx flags associated with pIdx WHERE_xxxä¸PIDXç›¸å…³çš„æ ‡å¿—
+  **   pWInfo->a[].nEq       The number of == and IN constraints ==å’ŒINé™åˆ¶æ•°é‡
+  **   pWInfo->a[].iFrom     Which term of the FROM clause is being coded å…¶ä¸­çš„FROMå­é›†ä¸­è¢«ç¼–ç çš„è±¡
+  **   pWInfo->a[].iTabCur   The VDBE cursor for the database table è¯¥VDBEå…‰æ ‡æ•°æ®åº“è¡¨
+  **   pWInfo->a[].iIdxCur   The VDBE cursor for the index è¯¥VDBEå…‰æ ‡ç´¢å¼•
+  **   pWInfo->a[].pTerm     When wsFlags==WO_OR, the OR-clause term å½“wsFlags== WO_ORæ—¶ï¼ŒOR-è±¡
   **
   ** This loop also figures out the nesting order of tables in the FROM
   ** clause.
 <<<<<<< HEAD
-  Õâ¸öÑ­»·Ò²¿ÉÒÔ¼ÆËã±íÔÚFROM×Ó¼¯ÖĞµÄÇ¶Ì×Ë³Ğò¡£
+  è¿™ä¸ªå¾ªç¯ä¹Ÿå¯ä»¥è®¡ç®—è¡¨åœ¨FROMå­é›†ä¸­çš„åµŒå¥—é¡ºåºã€‚
 =======
   **
-  ** Õâ¸öÑ­»·ÓÉÒÔÏÂÓòÌî³ä:
-  **   pWInfo->a[].pIdx      ÎªÑ­»·µÈ¼¶Ê¹ÓÃµÄË÷Òı
-  **   pWInfo->a[].wsFlags   ÓëpIdxÓĞ¹ØµÄWHERE_xxx±êÖ¾
-  **   pWInfo->a[].nEq       ==ºÍINÔ¼ÊøµÄÊıÄ¿
-  **   pWInfo->a[].iFrom     ±»±àÒëµÄFROM×Ó¾äÏî
-  **   pWInfo->a[].iTabCur   ÓÉÓÚÊı¾İ¿â±íµÄVDBEÓÎ±ê
-  **   pWInfo->a[].iIdxCur   ÓÃÓÚË÷ÒıµÄVDBEÓÎ±ê
-  **   pWInfo->a[].pTerm     µ±wsFlags==WO_ORÊ±£¬OR×Ó¾äÏî
-  ** Õâ¸öÑ­»·Ò²½â¾öÔÚFROM×Ó¾äÖĞµÄ±íµÄÇ¶Ì×Ë³Ğò¡£
+  ** è¿™ä¸ªå¾ªç¯ç”±ä»¥ä¸‹åŸŸå¡«å……:
+  **   pWInfo->a[].pIdx      ä¸ºå¾ªç¯ç­‰çº§ä½¿ç”¨çš„ç´¢å¼•
+  **   pWInfo->a[].wsFlags   ä¸pIdxæœ‰å…³çš„WHERE_xxxæ ‡å¿—
+  **   pWInfo->a[].nEq       ==å’ŒINçº¦æŸçš„æ•°ç›®
+  **   pWInfo->a[].iFrom     è¢«ç¼–è¯‘çš„FROMå­å¥é¡¹
+  **   pWInfo->a[].iTabCur   ç”±äºæ•°æ®åº“è¡¨çš„VDBEæ¸¸æ ‡
+  **   pWInfo->a[].iIdxCur   ç”¨äºç´¢å¼•çš„VDBEæ¸¸æ ‡
+  **   pWInfo->a[].pTerm     å½“wsFlags==WO_ORæ—¶ï¼ŒORå­å¥é¡¹
+  ** è¿™ä¸ªå¾ªç¯ä¹Ÿè§£å†³åœ¨FROMå­å¥ä¸­çš„è¡¨çš„åµŒå¥—é¡ºåºã€‚
   **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  notReady = ~(Bitmask)0;//~È¡·´£¬
+  notReady = ~(Bitmask)0;//~å–åï¼Œ
   andFlags = ~0;
   WHERETRACE(("*** Optimizer Start ***\n"));
 <<<<<<< HEAD
   for(i=iFrom=0, pLevel=pWInfo->a; i<nTabList; i++, pLevel++){
-    WhereCost bestPlan;         /* Most efficient plan seen so far  Æù½ñ¿´µ½×îÓĞĞ§µÄ¼Æ»®*/
-    Index *pIdx;                /* Index for FROM table at pTabItem  ´Ó±íÖĞpTabItemË÷Òı*/
-    int j;                      /* For looping over FROM tables  ¶ÔÓÚ±éÀúFROM±í*/
-    int bestJ = -1;             /* The value of j jµÄÖµ*/
-    Bitmask m;                  /* Bitmask value for j or bestJ  ¶ÔÓÚJ»òbestJÎ»ÑÚÂëÖµ*/
-    int isOptimal;              /* Iterator for optimal/non-optimal search  µü´ú×î¼Ñ/·Ç×î¼ÑËÑË÷*/
-    int nUnconstrained;         /* Number tables without INDEXED BY  INT nUnconstrained; /*ºÅÂë±íÃ»ÓĞÊÕÂ¼*/*/
-    Bitmask notIndexed;         /* Mask of tables that cannot use an index  maskµÄ±í¿ÉÒÔ²»Ê¹ÓÃË÷Òı*/
+    WhereCost bestPlan;         /* Most efficient plan seen so far  è¿„ä»Šçœ‹åˆ°æœ€æœ‰æ•ˆçš„è®¡åˆ’*/
+    Index *pIdx;                /* Index for FROM table at pTabItem  ä»è¡¨ä¸­pTabItemç´¢å¼•*/
+    int j;                      /* For looping over FROM tables  å¯¹äºéå†FROMè¡¨*/
+    int bestJ = -1;             /* The value of j jçš„å€¼*/
+    Bitmask m;                  /* Bitmask value for j or bestJ  å¯¹äºJæˆ–bestJä½æ©ç å€¼*/
+    int isOptimal;              /* Iterator for optimal/non-optimal search  è¿­ä»£æœ€ä½³/éæœ€ä½³æœç´¢*/
+    int nUnconstrained;         /* Number tables without INDEXED BY  INT nUnconstrained; /*å·ç è¡¨æ²¡æœ‰æ”¶å½•*/*/
+    Bitmask notIndexed;         /* Mask of tables that cannot use an index  maskçš„è¡¨å¯ä»¥ä¸ä½¿ç”¨ç´¢å¼•*/
 
     memset(&bestPlan, 0, sizeof(bestPlan));
     bestPlan.rCost = SQLITE_BIG_DBL;
 =======
-  for(i=iFrom=0, pLevel=pWInfo->a; i<nTabList; i++, pLevel++){	//Ñ­»·±éÀúFROM×Ó¾äÖĞµÄ±íÁĞ±í
-    WhereCost bestPlan;         /* Most efficient plan seen so far µ½Ä¿Ç°ÎªÖ¹ÕÒµ½µÄ×îÓĞĞ§µÄ¼Æ»® */
-    Index *pIdx;                /* Index for FROM table at pTabItem ÔÚpTabItemÖĞFROM×Ó¾äÖĞ±íÊ¹ÓÃµÄË÷Òı */
-    int j;                      /* For looping over FROM tables Ñ­»·±éÀúFROM×Ó¾äÖĞµÄ±í */
-    int bestJ = -1;             /* The value of j jµÄÖµ */
-    Bitmask m;                  /* Bitmask value for j or bestJ j»òbestJµÄÎ»ÑÚÂëµÄÖµ */
-    int isOptimal;              /* Iterator for optimal/non-optimal search ×î¼Ñ/·Ç×î¼ÑËÑË÷µÄµü´ú */
-    int nUnconstrained;         /* Number tables without INDEXED BY Ã»ÓĞINDEXED BYµÄ±íÊıÄ¿ */
-    Bitmask notIndexed;         /* Mask of tables that cannot use an index ²»ÄÜÊ¹ÓÃÒ»¸öË÷ÒıµÄ±íÑÚÂë */
+  for(i=iFrom=0, pLevel=pWInfo->a; i<nTabList; i++, pLevel++){	//å¾ªç¯éå†FROMå­å¥ä¸­çš„è¡¨åˆ—è¡¨
+    WhereCost bestPlan;         /* Most efficient plan seen so far åˆ°ç›®å‰ä¸ºæ­¢æ‰¾åˆ°çš„æœ€æœ‰æ•ˆçš„è®¡åˆ’ */
+    Index *pIdx;                /* Index for FROM table at pTabItem åœ¨pTabItemä¸­FROMå­å¥ä¸­è¡¨ä½¿ç”¨çš„ç´¢å¼• */
+    int j;                      /* For looping over FROM tables å¾ªç¯éå†FROMå­å¥ä¸­çš„è¡¨ */
+    int bestJ = -1;             /* The value of j jçš„å€¼ */
+    Bitmask m;                  /* Bitmask value for j or bestJ jæˆ–bestJçš„ä½æ©ç çš„å€¼ */
+    int isOptimal;              /* Iterator for optimal/non-optimal search æœ€ä½³/éæœ€ä½³æœç´¢çš„è¿­ä»£ */
+    int nUnconstrained;         /* Number tables without INDEXED BY æ²¡æœ‰INDEXED BYçš„è¡¨æ•°ç›® */
+    Bitmask notIndexed;         /* Mask of tables that cannot use an index ä¸èƒ½ä½¿ç”¨ä¸€ä¸ªç´¢å¼•çš„è¡¨æ©ç  */
 
-    memset(&bestPlan, 0, sizeof(bestPlan)); //ÎªbestPlan·ÖÅäÄÚ´æ
-    bestPlan.rCost = SQLITE_BIG_DBL; //³õÊ¼»¯Ö´ĞĞbestPlanµÄ×ÜÌå³É±¾
+    memset(&bestPlan, 0, sizeof(bestPlan)); //ä¸ºbestPlanåˆ†é…å†…å­˜
+    bestPlan.rCost = SQLITE_BIG_DBL; //åˆå§‹åŒ–æ‰§è¡ŒbestPlançš„æ€»ä½“æˆæœ¬
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     WHERETRACE(("*** Begin search for loop %d ***\n", i));
 
     /* Loop through the remaining entries in the FROM clause to find the
     ** next nested loop. The loop tests all FROM clause entries
     ** either once or twice. 
-	Í¨¹ıÔÚFROM×Ó¾äÖĞµÄÊ£ÓàÏîÑ­»·Ñ°ÕÒÏÂÒ»¸öÇ¶Ì×Ñ­»·¡£
-	Ñ­»·²âÊÔËùÓĞµÄFROM×Ó¾äÖĞµÄÏóÒ»´Î»òÁ½´Î¡£
+	é€šè¿‡åœ¨FROMå­å¥ä¸­çš„å‰©ä½™é¡¹å¾ªç¯å¯»æ‰¾ä¸‹ä¸€ä¸ªåµŒå¥—å¾ªç¯ã€‚
+	å¾ªç¯æµ‹è¯•æ‰€æœ‰çš„FROMå­å¥ä¸­çš„è±¡ä¸€æ¬¡æˆ–ä¸¤æ¬¡ã€‚
     **
-    ** Ñ­»·Í¨¹ıÔÚFROM×Ó¾äµÄÏîÀ´²éÕÒÏÂÒ»¸öÇ¶Ì×Ñ­»·¡£Ñ­»·²âÊÔÒ»´Î»òÁ½´ÎËùÓĞµÄFROM×Ó¾äÏî¡£
+    ** å¾ªç¯é€šè¿‡åœ¨FROMå­å¥çš„é¡¹æ¥æŸ¥æ‰¾ä¸‹ä¸€ä¸ªåµŒå¥—å¾ªç¯ã€‚å¾ªç¯æµ‹è¯•ä¸€æ¬¡æˆ–ä¸¤æ¬¡æ‰€æœ‰çš„FROMå­å¥é¡¹ã€‚
     **
     ** The first test is always performed if there are two or more entries
     ** remaining and never performed if there is only one FROM clause entry
@@ -7361,25 +7361,25 @@ WhereInfo *sqlite3WhereBegin(
     ** other FROM clause terms that are notReady.  If no notReady terms are
     ** used then the "optimal" query plan works.
 <<<<<<< HEAD
-    **×ÜÊÇÖ´ĞĞµÚÒ»²âÊÔ£¬Èç¹ûÓĞÊ£ÓàµÄÁ½¸ö»ò¸ü¶à¸öÌõÄ¿£¬
-	²¢´ÓÎ´Ö´ĞĞ£¬Èç¹û½ö´æÔÚÒ»¸öFROM×Ó¼¯ÌõÄ¿Ñ¡Ôñ¡£µÚÒ»¸ö
-	²âÊÔÑ°ÕÒÒ»¸ö¡°×î¼Ñ¡±µÄÉ¨Ãè¡£ÔÚÕâÖÖÇé¿öÏÂµÄ×î¼ÑµÄÉ¨Ãè
-	ÊÇÒ»¸öÊ¹ÓÃÏàÍ¬µÄ²ßÂÔÓÃÓÚ¸ø¶¨FROM×Ó¼¯µÄÏó×÷Îª»áÈç¹û
-	ÌõÄ¿±»ÓÃ×÷×îÄÚ²ãÇ¶Ì×Ñ­»·À´Ñ¡Ôñ¡£»»ÑÔÖ®£¬Ò»¸ö±í±»Ñ¡
-	ÔñÎªÊ¹µÃÔÚÔËĞĞ¸Ã±íµÄ³É±¾ÎŞ·¨Í¨¹ıµÈ´ıÆäËü±íÏÈÔËĞĞ¼õÉÙ¡£
-	Ê×ÏÈ¼ÙÉèFROM×Ó¾äÊÇÔÚÄÚ²¿Ñ­»·£¬²¢ÕÒµ½×Ô¼ºµÄ²éÑ¯¼Æ»®£¬
-	È»ºó¼ì²é£¬¿´¿´ÊÇ·ñÄÜ²éÑ¯¼Æ»®Ê¹ÓÃÈÎºÎÆäËûFROM×Ó¼¯Ìõ
-	¼şÊÇÎ´¾ÍĞ÷Õâ¸ö¡°×î¼Ñ¡±µÄ²âÊÔ¹¤×÷¡£Èç¹ûÃ»ÓĞÊ¹ÓÃÎ´¾ÍĞ÷Ìõ¿î£¬
-	È»ºóÔÚ¡°×î¼Ñ¡±µÄ²éÑ¯¼Æ»®µÄÔË×÷¡£
+    **æ€»æ˜¯æ‰§è¡Œç¬¬ä¸€æµ‹è¯•ï¼Œå¦‚æœæœ‰å‰©ä½™çš„ä¸¤ä¸ªæˆ–æ›´å¤šä¸ªæ¡ç›®ï¼Œ
+	å¹¶ä»æœªæ‰§è¡Œï¼Œå¦‚æœä»…å­˜åœ¨ä¸€ä¸ªFROMå­é›†æ¡ç›®é€‰æ‹©ã€‚ç¬¬ä¸€ä¸ª
+	æµ‹è¯•å¯»æ‰¾ä¸€ä¸ªâ€œæœ€ä½³â€çš„æ‰«æã€‚åœ¨è¿™ç§æƒ…å†µä¸‹çš„æœ€ä½³çš„æ‰«æ
+	æ˜¯ä¸€ä¸ªä½¿ç”¨ç›¸åŒçš„ç­–ç•¥ç”¨äºç»™å®šFROMå­é›†çš„è±¡ä½œä¸ºä¼šå¦‚æœ
+	æ¡ç›®è¢«ç”¨ä½œæœ€å†…å±‚åµŒå¥—å¾ªç¯æ¥é€‰æ‹©ã€‚æ¢è¨€ä¹‹ï¼Œä¸€ä¸ªè¡¨è¢«é€‰
+	æ‹©ä¸ºä½¿å¾—åœ¨è¿è¡Œè¯¥è¡¨çš„æˆæœ¬æ— æ³•é€šè¿‡ç­‰å¾…å…¶å®ƒè¡¨å…ˆè¿è¡Œå‡å°‘ã€‚
+	é¦–å…ˆå‡è®¾FROMå­å¥æ˜¯åœ¨å†…éƒ¨å¾ªç¯ï¼Œå¹¶æ‰¾åˆ°è‡ªå·±çš„æŸ¥è¯¢è®¡åˆ’ï¼Œ
+	ç„¶åæ£€æŸ¥ï¼Œçœ‹çœ‹æ˜¯å¦èƒ½æŸ¥è¯¢è®¡åˆ’ä½¿ç”¨ä»»ä½•å…¶ä»–FROMå­é›†æ¡
+	ä»¶æ˜¯æœªå°±ç»ªè¿™ä¸ªâ€œæœ€ä½³â€çš„æµ‹è¯•å·¥ä½œã€‚å¦‚æœæ²¡æœ‰ä½¿ç”¨æœªå°±ç»ªæ¡æ¬¾ï¼Œ
+	ç„¶ååœ¨â€œæœ€ä½³â€çš„æŸ¥è¯¢è®¡åˆ’çš„è¿ä½œã€‚
 =======
     **
-    ** Èç¹ûÓĞÁ½¸ö»ò¸ü¶àµÄÏîÊ£ÓàÄÇÃ´×ÜÊÇÖ´ĞĞµÚÒ»´Î²âÊÔ£¬Èç¹ûÖ»ÓĞÒ»¸öFROM×Ó¾äÏî¿É¹©Ñ¡Ôñ£¬ÄÇÃ´¾Í´Ó²»Ö´ĞĞ¡£
-    ** µÚÒ»´Î²âÊÔ²éÕÒÒ»¸ö"×î¼ÑµÄ"É¨Ãè¡£ÔÚÕâÖÖÇé¿öÏÂÈç¹ûÌõÄ¿±»ÓÃ×÷×îÄÚ²ãÇ¶Ì×Ñ­»·£¬
-    ** ÄÇÃ´×îÓÅÉ¨Ãè»áÎª¸ø¶¨µÄFROM×Ó¾äÊ¹ÓÃÏàÍ¬µÄ²ßÂÔÌõÄ¿¡£
-    ** »»¾ä»°Ëµ£¬Ñ¡ÖĞÒ»¸ö±í£¬¸Ã±í²»ÄÜÍ¨¹ıµÈ´ıÆäËû±íÏÈÔËĞĞÀ´¼õÉÙÔËĞĞ´ú¼Û¡£
-    ** Õâ¸ö"×î¼ÑµÄ"²âÊÔÍ¨¹ıµÚÒ»´Î¼Ù¶¨FROM×Ó¾äÊÇÔÚÄÚ²¿Ñ­»·ºÍ²éÕÒËüµÄ²éÑ¯¼Æ»®Ê±Æğ×÷ÓÃ£¬
-    ** ÄÇÃ´¼ì²éÊÇ·ñ²éÑ¯ÓÅ»¯Ê¹ÓÃµÄÆäËûµÄËùÓĞFROM×Ó¾äÊÇÎ´×¼±¸µÄ¡£
-    ** Èç¹ûÃ»ÓĞÊ¹ÓÃÎ´×¼±¸µÄÌõÄ¿£¬ÄÇÃ´"×î¼ÑµÄ"²éÑ¯¼Æ»®»áÆğ×÷ÓÃ¡£
+    ** å¦‚æœæœ‰ä¸¤ä¸ªæˆ–æ›´å¤šçš„é¡¹å‰©ä½™é‚£ä¹ˆæ€»æ˜¯æ‰§è¡Œç¬¬ä¸€æ¬¡æµ‹è¯•ï¼Œå¦‚æœåªæœ‰ä¸€ä¸ªFROMå­å¥é¡¹å¯ä¾›é€‰æ‹©ï¼Œé‚£ä¹ˆå°±ä»ä¸æ‰§è¡Œã€‚
+    ** ç¬¬ä¸€æ¬¡æµ‹è¯•æŸ¥æ‰¾ä¸€ä¸ª"æœ€ä½³çš„"æ‰«æã€‚åœ¨è¿™ç§æƒ…å†µä¸‹å¦‚æœæ¡ç›®è¢«ç”¨ä½œæœ€å†…å±‚åµŒå¥—å¾ªç¯ï¼Œ
+    ** é‚£ä¹ˆæœ€ä¼˜æ‰«æä¼šä¸ºç»™å®šçš„FROMå­å¥ä½¿ç”¨ç›¸åŒçš„ç­–ç•¥æ¡ç›®ã€‚
+    ** æ¢å¥è¯è¯´ï¼Œé€‰ä¸­ä¸€ä¸ªè¡¨ï¼Œè¯¥è¡¨ä¸èƒ½é€šè¿‡ç­‰å¾…å…¶ä»–è¡¨å…ˆè¿è¡Œæ¥å‡å°‘è¿è¡Œä»£ä»·ã€‚
+    ** è¿™ä¸ª"æœ€ä½³çš„"æµ‹è¯•é€šè¿‡ç¬¬ä¸€æ¬¡å‡å®šFROMå­å¥æ˜¯åœ¨å†…éƒ¨å¾ªç¯å’ŒæŸ¥æ‰¾å®ƒçš„æŸ¥è¯¢è®¡åˆ’æ—¶èµ·ä½œç”¨ï¼Œ
+    ** é‚£ä¹ˆæ£€æŸ¥æ˜¯å¦æŸ¥è¯¢ä¼˜åŒ–ä½¿ç”¨çš„å…¶ä»–çš„æ‰€æœ‰FROMå­å¥æ˜¯æœªå‡†å¤‡çš„ã€‚
+    ** å¦‚æœæ²¡æœ‰ä½¿ç”¨æœªå‡†å¤‡çš„æ¡ç›®ï¼Œé‚£ä¹ˆ"æœ€ä½³çš„"æŸ¥è¯¢è®¡åˆ’ä¼šèµ·ä½œç”¨ã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Note that the WhereCost.nRow parameter for an optimal scan might
@@ -7387,32 +7387,32 @@ WhereInfo *sqlite3WhereBegin(
     ** join.  The nRow value can be reduced by WHERE clause constraints
     ** that do not use indices.  But this nRow reduction only happens if the
     ** table really is the innermost join.  
-	×¢Òâ£¬¶ÔÓÚÒ»¸ö×î¼ÑÉ¨ÃèWhereCost.nRow²ÎÊı¿ÉÄÜ²»Ğ¡£¬ÒòÎªËüÊÇ£¬
-	Èç¹û±íÕæµÄÊÇ×îÀïÃæµÄÁª½Ó¡£¸ÃnRowÖµ¿ÉÒÔÍ¨¹ıWHERE×Ó¾äÔ¼Êø²»Ê¹
-	ÓÃÖ¸Êı¼õÉÙ¡£µ«ÕânRow½µµÍÖ»·¢ÉúÈç¹û±íÕæµÄÊÇ×îÀïÃæµÄ¼ÓÈëµÄÇé¿öÏÂ¡£
+	æ³¨æ„ï¼Œå¯¹äºä¸€ä¸ªæœ€ä½³æ‰«æWhereCost.nRowå‚æ•°å¯èƒ½ä¸å°ï¼Œå› ä¸ºå®ƒæ˜¯ï¼Œ
+	å¦‚æœè¡¨çœŸçš„æ˜¯æœ€é‡Œé¢çš„è”æ¥ã€‚è¯¥nRowå€¼å¯ä»¥é€šè¿‡WHEREå­å¥çº¦æŸä¸ä½¿
+	ç”¨æŒ‡æ•°å‡å°‘ã€‚ä½†è¿™nRowé™ä½åªå‘ç”Ÿå¦‚æœè¡¨çœŸçš„æ˜¯æœ€é‡Œé¢çš„åŠ å…¥çš„æƒ…å†µä¸‹ã€‚
     **
-    ** ×¢Òâ:¶ÔÓÚÒ»¸ö×î¼Ñ²éÑ¯µÄWhereCost.nRow²ÎÊı¿ÉÄÜ²»»áÏñ±íÔÚ×îÀï²ãÁ¬½ÓÊ±ÄÇÑùĞ¡¡£
-    ** nRowÖµ¿ÉÒÔÍ¨¹ı²»Ê¹ÓÃË÷ÒıµÄWHERE×Ó¾äÔ¼ÊøÀ´¼õĞ¡¡£µ«ÊÇÕâ¸ö¼õĞ¡µÄnRowÖµ·¢ÉúÔÚ±íÕæµÄÊÇ×îÀïÃæµÄÁ¬½Ó¡£
+    ** æ³¨æ„:å¯¹äºä¸€ä¸ªæœ€ä½³æŸ¥è¯¢çš„WhereCost.nRowå‚æ•°å¯èƒ½ä¸ä¼šåƒè¡¨åœ¨æœ€é‡Œå±‚è¿æ¥æ—¶é‚£æ ·å°ã€‚
+    ** nRowå€¼å¯ä»¥é€šè¿‡ä¸ä½¿ç”¨ç´¢å¼•çš„WHEREå­å¥çº¦æŸæ¥å‡å°ã€‚ä½†æ˜¯è¿™ä¸ªå‡å°çš„nRowå€¼å‘ç”Ÿåœ¨è¡¨çœŸçš„æ˜¯æœ€é‡Œé¢çš„è¿æ¥ã€‚
     **
     ** The second loop iteration is only performed if no optimal scan
     ** strategies were found by the first iteration. This second iteration
     ** is used to search for the lowest cost scan overall.
-	½öÖ´ĞĞµÚ¶şÑ­»·µü´úÈç¹ûÓÉµÚÒ»µü´úÃ»ÓĞÕÒµ½×î¼ÑµÄÉ¨Ãè²ßÂÔ¡£
-	ÕâµÚ¶ş´Îµü´ú±»ÓÃÓÚËÑË÷³É±¾×îµÍÉ¨ÃèÕûÌå¡£
+	ä»…æ‰§è¡Œç¬¬äºŒå¾ªç¯è¿­ä»£å¦‚æœç”±ç¬¬ä¸€è¿­ä»£æ²¡æœ‰æ‰¾åˆ°æœ€ä½³çš„æ‰«æç­–ç•¥ã€‚
+	è¿™ç¬¬äºŒæ¬¡è¿­ä»£è¢«ç”¨äºæœç´¢æˆæœ¬æœ€ä½æ‰«ææ•´ä½“ã€‚
 
     **
-    ** Èç¹ûµÚÒ»´ÎÃ»ÓĞ·¢ÏÖ×îÓÅÉ¨Ãè²ßÂÔÄÇÃ´²ÅÖ´ĞĞµÚ¶ş´ÎÑ­»·µü´ú¡£µÚ¶ş´Îµü´úÓÃÓÚ²éÕÒÈ«ÌåÉ¨ÃèµÄ×îµÍ´ú¼Û¡£
+    ** å¦‚æœç¬¬ä¸€æ¬¡æ²¡æœ‰å‘ç°æœ€ä¼˜æ‰«æç­–ç•¥é‚£ä¹ˆæ‰æ‰§è¡Œç¬¬äºŒæ¬¡å¾ªç¯è¿­ä»£ã€‚ç¬¬äºŒæ¬¡è¿­ä»£ç”¨äºæŸ¥æ‰¾å…¨ä½“æ‰«æçš„æœ€ä½ä»£ä»·ã€‚
     **
     ** Previous versions of SQLite performed only the second iteration -
     ** the next outermost loop was always that with the lowest overall
     ** cost. However, this meant that SQLite could select the wrong plan
     ** for scripts such as the following:
-    **   ÒÔÇ°°æ±¾µÄSQLiteÖ»½øĞĞÁËµÚ¶ş´Îµü´ú-The½ÓÏÂÀ´×îÍâ²ãÑ­»·×ÜÊÇÓë×îµÍµÄ×Ü³É±¾¡£µ«ÊÇ£¬ÕâÒâÎ¶×ÅSQLiteµÄ¿ÉÄÜÑ¡ÔñÁË´íÎóµÄ¼Æ»®
-Îª½Å±¾£¬ÈçÒÔÏÂ¼¸µã£º
-    **   CREATE TABLE t1(a, b); ´´½¨±ít1£¨a,b£©
-    **   CREATE TABLE t2(c, d);´´½¨±ít2(c,d)
+    **   ä»¥å‰ç‰ˆæœ¬çš„SQLiteåªè¿›è¡Œäº†ç¬¬äºŒæ¬¡è¿­ä»£-Theæ¥ä¸‹æ¥æœ€å¤–å±‚å¾ªç¯æ€»æ˜¯ä¸æœ€ä½çš„æ€»æˆæœ¬ã€‚ä½†æ˜¯ï¼Œè¿™æ„å‘³ç€SQLiteçš„å¯èƒ½é€‰æ‹©äº†é”™è¯¯çš„è®¡åˆ’
+ä¸ºè„šæœ¬ï¼Œå¦‚ä»¥ä¸‹å‡ ç‚¹ï¼š
+    **   CREATE TABLE t1(a, b); åˆ›å»ºè¡¨t1ï¼ˆa,bï¼‰
+    **   CREATE TABLE t2(c, d);åˆ›å»ºè¡¨t2(c,d)
     **   SELECT * FROM t2, t1 WHERE t2.rowid = t1.a;
-	´Ót1£¬t2ÖĞ²éÑ¯£¬Ìõ¼şÊÇt2µÄrowidµÄÖµµÈÓÚt1µÄaÖµ
+	ä»t1ï¼Œt2ä¸­æŸ¥è¯¢ï¼Œæ¡ä»¶æ˜¯t2çš„rowidçš„å€¼ç­‰äºt1çš„aå€¼
     **
     ** The best strategy is to iterate through table t1 first. However it
     ** is not possible to determine this with a simple greedy algorithm.
@@ -7421,31 +7421,31 @@ WhereInfo *sqlite3WhereBegin(
     ** algorithm may choose to use t2 for the outer loop, which is a much
     ** costlier approach.
 <<<<<<< HEAD
-	×îºÃµÄ²ßÂÔÊÇÍ¨¹ı±íT1µü´úµÚÒ»¡£È»¶ø£¬ËüÊÇÎŞ·¨È·¶¨ÕâÓÃÒ»¸ö¼òµ¥µÄÌ°À·Ëã·¨¡£
-	ÓÉÓÚÍ¨¹ı±ít2ÏßĞÔÉ¨ÃèµÄ³É±¾ÊÇÏàÍ¬µÄ£¬Í¨¹ı±ít1ÏßĞÔÉ¨ÃèµÄ³É±¾£¬
-	¼òµ¥µÄÌ°À·Ëã·¨¿ÉÒÔÑ¡ÔñÊ¹ÓÃt2µÄÓÃÓÚÍâÑ­»·£¬ÕâÊÇÒ»ÖÖ¸ü°º¹óµÄ·½·¨¡£
+	æœ€å¥½çš„ç­–ç•¥æ˜¯é€šè¿‡è¡¨T1è¿­ä»£ç¬¬ä¸€ã€‚ç„¶è€Œï¼Œå®ƒæ˜¯æ— æ³•ç¡®å®šè¿™ç”¨ä¸€ä¸ªç®€å•çš„è´ªå©ªç®—æ³•ã€‚
+	ç”±äºé€šè¿‡è¡¨t2çº¿æ€§æ‰«æçš„æˆæœ¬æ˜¯ç›¸åŒçš„ï¼Œé€šè¿‡è¡¨t1çº¿æ€§æ‰«æçš„æˆæœ¬ï¼Œ
+	ç®€å•çš„è´ªå©ªç®—æ³•å¯ä»¥é€‰æ‹©ä½¿ç”¨t2çš„ç”¨äºå¤–å¾ªç¯ï¼Œè¿™æ˜¯ä¸€ç§æ›´æ˜‚è´µçš„æ–¹æ³•ã€‚
 =======
     **
-    ** SQLiteÒÔÇ°µÄ°æ±¾Ö»Ö´ĞĞµÚ¶ş´Îµü´ú--ÏÂÒ»¸ö×îÍâ²ãµÄÑ­»·×ÜÊÇ×Ü³É±¾×îµÍµÄ¡£
-    ** È»¶ø£¬ÕâÒâÎ¶×ÅSQLite¿ÉÄÜÑ¡Ôñ´íÎóµÄ¼Æ»®£¬ÀıÈçÏÂÃæÕâ¸öÀı×Ó:
+    ** SQLiteä»¥å‰çš„ç‰ˆæœ¬åªæ‰§è¡Œç¬¬äºŒæ¬¡è¿­ä»£--ä¸‹ä¸€ä¸ªæœ€å¤–å±‚çš„å¾ªç¯æ€»æ˜¯æ€»æˆæœ¬æœ€ä½çš„ã€‚
+    ** ç„¶è€Œï¼Œè¿™æ„å‘³ç€SQLiteå¯èƒ½é€‰æ‹©é”™è¯¯çš„è®¡åˆ’ï¼Œä¾‹å¦‚ä¸‹é¢è¿™ä¸ªä¾‹å­:
     **   CREATE TABLE t1(a, b); 
     **   CREATE TABLE t2(c, d);
     **   SELECT * FROM t2, t1 WHERE t2.rowid = t1.a;
-    ** ×îºÃµÄ²ßÂÔÊÇÏÈÑ­»··ÃÎÊ±ít1¡£È»¶ø£¬Ê¹ÓÃÒ»¸ö¼òµ¥µÄÌ°ĞÄËã·¨ÊÇ²»ÄÜ¾ö¶¨Õâ¸öµÄ¡£
-    ** ÓÉÓÚÏßĞÔÉ¨Ãè±ít2µÄ´ú¼ÛºÍÏßĞÔÉ¨Ãè±ít1µÄ´ú¼ÛÏàÍ¬£¬ËùÒÔÒ»¸ö¼òµ¥µÄÌ°ĞÄËã·¨¿ÉÄÜ°Ñ±ít2·ÅÔÚÍâ²¿Ñ­»·¡£(ÕâÖÖ²ßÂÔ´ú¼Û½Ï¸ß)
+    ** æœ€å¥½çš„ç­–ç•¥æ˜¯å…ˆå¾ªç¯è®¿é—®è¡¨t1ã€‚ç„¶è€Œï¼Œä½¿ç”¨ä¸€ä¸ªç®€å•çš„è´ªå¿ƒç®—æ³•æ˜¯ä¸èƒ½å†³å®šè¿™ä¸ªçš„ã€‚
+    ** ç”±äºçº¿æ€§æ‰«æè¡¨t2çš„ä»£ä»·å’Œçº¿æ€§æ‰«æè¡¨t1çš„ä»£ä»·ç›¸åŒï¼Œæ‰€ä»¥ä¸€ä¸ªç®€å•çš„è´ªå¿ƒç®—æ³•å¯èƒ½æŠŠè¡¨t2æ”¾åœ¨å¤–éƒ¨å¾ªç¯ã€‚(è¿™ç§ç­–ç•¥ä»£ä»·è¾ƒé«˜)
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
-    nUnconstrained = 0; //³õÊ¼»¯nUnconstrained
-    notIndexed = 0; //³õÊ¼»¯notIndexed
-    for(isOptimal=(iFrom<nTabList-1); isOptimal>=0 && bestJ<0; isOptimal--){ //Ñ­»·Ò»´Î»òÁ½´ÎÀ´²âÊÔËùÓĞµÄFROM×Ó¾äÏî
-      Bitmask mask;             /* Mask of tables not yet ready »¹Î´×¼±¸µÄ±íÑÚÂë */
-      for(j=iFrom, pTabItem=&pTabList->a[j]; j<nTabList; j++, pTabItem++){ //Ñ­»·±éÀúFROM×Ó¾äÖĞµÄ±í
-        int doNotReorder;    /* True if this table should not be reordered Èç¹û²»ÄÜ¼ÇÂ¼Õâ¸ö±í£¬ÄÇÃ´ÎªTRUE */
-        WhereCost sCost;     /* Cost information from best[Virtual]Index() best[Virtual]Index()ÖĞµÄ´ú¼ÛĞÅÏ¢ */
-        ExprList *pOrderBy;  /* ORDER BY clause for index to optimize Ë÷ÒıÓÅ»¯µÄORDER BY×Ó¾ä */
-        ExprList *pDist;     /* DISTINCT clause for index to optimize Ë÷ÒıÓÅ»¯µÄDISTINCT×Ó¾ä */
+    nUnconstrained = 0; //åˆå§‹åŒ–nUnconstrained
+    notIndexed = 0; //åˆå§‹åŒ–notIndexed
+    for(isOptimal=(iFrom<nTabList-1); isOptimal>=0 && bestJ<0; isOptimal--){ //å¾ªç¯ä¸€æ¬¡æˆ–ä¸¤æ¬¡æ¥æµ‹è¯•æ‰€æœ‰çš„FROMå­å¥é¡¹
+      Bitmask mask;             /* Mask of tables not yet ready è¿˜æœªå‡†å¤‡çš„è¡¨æ©ç  */
+      for(j=iFrom, pTabItem=&pTabList->a[j]; j<nTabList; j++, pTabItem++){ //å¾ªç¯éå†FROMå­å¥ä¸­çš„è¡¨
+        int doNotReorder;    /* True if this table should not be reordered å¦‚æœä¸èƒ½è®°å½•è¿™ä¸ªè¡¨ï¼Œé‚£ä¹ˆä¸ºTRUE */
+        WhereCost sCost;     /* Cost information from best[Virtual]Index() best[Virtual]Index()ä¸­çš„ä»£ä»·ä¿¡æ¯ */
+        ExprList *pOrderBy;  /* ORDER BY clause for index to optimize ç´¢å¼•ä¼˜åŒ–çš„ORDER BYå­å¥ */
+        ExprList *pDist;     /* DISTINCT clause for index to optimize ç´¢å¼•ä¼˜åŒ–çš„DISTINCTå­å¥ */
   
-        doNotReorder =  (pTabItem->jointype & (JT_LEFT|JT_CROSS))!=0; //Èç¹ûÊÇ×óÁ¬½Ó»òCROSSÁ¬½Ó£¬Ôò¼ÇÂ¼Õâ¸ö±í
+        doNotReorder =  (pTabItem->jointype & (JT_LEFT|JT_CROSS))!=0; //å¦‚æœæ˜¯å·¦è¿æ¥æˆ–CROSSè¿æ¥ï¼Œåˆ™è®°å½•è¿™ä¸ªè¡¨
         if( j!=iFrom && doNotReorder ) break;
         m = getMask(pMaskSet, pTabItem->iCursor);
         if( (m & notReady)==0 ){
@@ -7455,28 +7455,28 @@ WhereInfo *sqlite3WhereBegin(
         mask = (isOptimal ? m : notReady);
         pOrderBy = ((i==0 && ppOrderBy )?*ppOrderBy:0);
         pDist = (i==0 ? pDistinct : 0);
-        if( pTabItem->pIndex==0 ) nUnconstrained++;  //¼ÆËãÃ»ÓĞÊ¹ÓÃINDEXED BY×Ó¾äµÄ±íÊıÄ¿
+        if( pTabItem->pIndex==0 ) nUnconstrained++;  //è®¡ç®—æ²¡æœ‰ä½¿ç”¨INDEXED BYå­å¥çš„è¡¨æ•°ç›®
   
         WHERETRACE(("=== trying table %d with isOptimal=%d ===\n",
                     j, isOptimal));
-        assert( pTabItem->pTab ); //ÅĞ¶ÏpTabItem->pTabÊÇ·ñÎªNULL
+        assert( pTabItem->pTab ); //åˆ¤æ–­pTabItem->pTabæ˜¯å¦ä¸ºNULL
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-        if( IsVirtual(pTabItem->pTab) ){ //ÅĞ¶Ï±íÊÇ·ñÎªĞé±í
-          sqlite3_index_info **pp = &pWInfo->a[j].pIdxInfo; //³õÊ¼»¯**pp
+        if( IsVirtual(pTabItem->pTab) ){ //åˆ¤æ–­è¡¨æ˜¯å¦ä¸ºè™šè¡¨
+          sqlite3_index_info **pp = &pWInfo->a[j].pIdxInfo; //åˆå§‹åŒ–**pp
           bestVirtualIndex(pParse, pWC, pTabItem, mask, notReady, pOrderBy,
-                           &sCost, pp); //»ñµÃĞé±íµÄ×î¼ÑË÷Òı
+                           &sCost, pp); //è·å¾—è™šè¡¨çš„æœ€ä½³ç´¢å¼•
         }else 
 #endif
         {
           bestBtreeIndex(pParse, pWC, pTabItem, mask, notReady, pOrderBy,
-              pDist, &sCost); //×îºÃµÄBtreeË÷Òı
+              pDist, &sCost); //æœ€å¥½çš„Btreeç´¢å¼•
         }
         assert( isOptimal || (sCost.used&notReady)==0 );
 
         /* If an INDEXED BY clause is present, then the plan must use that
         ** index if it uses any index at all 
         **
-        ** Èç¹û³öÏÖÒ»¸öINDEXED BY×Ó¾ä£¬ÄÇÃ´¼Æ»®±ØĞëÊ¹ÓÃORDER BY×Ó¾äÊ¹ÓÃµÄË÷Òı¡£
+        ** å¦‚æœå‡ºç°ä¸€ä¸ªINDEXED BYå­å¥ï¼Œé‚£ä¹ˆè®¡åˆ’å¿…é¡»ä½¿ç”¨ORDER BYå­å¥ä½¿ç”¨çš„ç´¢å¼•ã€‚
         */
         assert( pTabItem->pIndex==0 
                   || (sCost.plan.wsFlags & WHERE_NOT_FULLSCAN)==0
@@ -7487,17 +7487,17 @@ WhereInfo *sqlite3WhereBegin(
         }
 
         /* Conditions under which this table becomes the best so far:
-		Ìõ¼şÏÂÕâ¸ö±í³ÉÎªÆù½ñÎªÖ¹×îºÃµÄ
+		æ¡ä»¶ä¸‹è¿™ä¸ªè¡¨æˆä¸ºè¿„ä»Šä¸ºæ­¢æœ€å¥½çš„
 
         **
         **   (1) The table must not depend on other tables that have not
-        **       yet run.¸Ã±í±ØĞë²»ÒÀÀµÓÚÓĞÃ»ÓĞÆäËû±í
-?µ«ÔËĞĞ¡£
+        **       yet run.è¯¥è¡¨å¿…é¡»ä¸ä¾èµ–äºæœ‰æ²¡æœ‰å…¶ä»–è¡¨
+?ä½†è¿è¡Œã€‚
         **
         **   (2) A full-table-scan plan cannot supercede indexed plan unless
         **       the full-table-scan is an "optimal" plan as defined above.
-		È«±íÉ¨Ãè¼Æ»®ÎŞ·¨supercedeË÷ÒıµÄ¼Æ»®£¬³ı·Ç
-È«±íÉ¨ÃèÊÇ¡°×îÓÅ¡±µÄ¼Æ»®¶¨ÒåÈçÉÏ¡£
+		å…¨è¡¨æ‰«æè®¡åˆ’æ— æ³•supercedeç´¢å¼•çš„è®¡åˆ’ï¼Œé™¤é
+å…¨è¡¨æ‰«ææ˜¯â€œæœ€ä¼˜â€çš„è®¡åˆ’å®šä¹‰å¦‚ä¸Šã€‚
 	
         **
         **   (3) All tables have an INDEXED BY clause or this table lacks an
@@ -7508,24 +7508,24 @@ WhereInfo *sqlite3WhereBegin(
         **       will be detected and relayed back to the application later.
         **       The NEVER() comes about because rule (2) above prevents
         **       An indexable full-table-scan from reaching rule (3).
-        **ËùÓĞµÄ±í¶¼Ë÷ÒıBY×Ó¼¯»ò¸Ã±íÖĞÃ»ÓĞË÷ÒıBY×Ó¾ä»ò¸Ã±íÊ¹ÓÃÆäÊÕÂ¼×Ó¾ä
-		Ö¸¶¨µÄÌØ¶¨Ë÷Òı¡£´Ë¹æÔòÈ·±£ÁË×î¼ÑµÄÄÇÃ´Ô¶×ÜÊÇÑ¡Ôñ¼´Ê¹Ò»¸ö²»¿ÉÄÜµÄ
-		×éºÏÊÕÂ¼Ìõ¿î¸ø³ö¡£½«±»¼ì²â²¢´«»Ø¸øÓ¦ÓÃ³ÌĞòºóµÄÎó²î¡£
-¸ÃNEVER£¨£©À´Ô¼£¬ÒòÎª¹æÔò£¨2£©ÉÏÊö·ÀÖ¹¿É×ªÎ»È«±íÉ¨Ãèµ½´ï¹æÔò£¨3£©¡£
+        **æ‰€æœ‰çš„è¡¨éƒ½ç´¢å¼•BYå­é›†æˆ–è¯¥è¡¨ä¸­æ²¡æœ‰ç´¢å¼•BYå­å¥æˆ–è¯¥è¡¨ä½¿ç”¨å…¶æ”¶å½•å­å¥
+		æŒ‡å®šçš„ç‰¹å®šç´¢å¼•ã€‚æ­¤è§„åˆ™ç¡®ä¿äº†æœ€ä½³çš„é‚£ä¹ˆè¿œæ€»æ˜¯é€‰æ‹©å³ä½¿ä¸€ä¸ªä¸å¯èƒ½çš„
+		ç»„åˆæ”¶å½•æ¡æ¬¾ç»™å‡ºã€‚å°†è¢«æ£€æµ‹å¹¶ä¼ å›ç»™åº”ç”¨ç¨‹åºåçš„è¯¯å·®ã€‚
+è¯¥NEVERï¼ˆï¼‰æ¥çº¦ï¼Œå› ä¸ºè§„åˆ™ï¼ˆ2ï¼‰ä¸Šè¿°é˜²æ­¢å¯è½¬ä½å…¨è¡¨æ‰«æåˆ°è¾¾è§„åˆ™ï¼ˆ3ï¼‰ã€‚
         **   (4) The plan cost must be lower than prior plans or else the
         **       cost must be the same and the number of rows must be lower.
 <<<<<<< HEAD
-		¸Ã¼Æ»®µÄ³É±¾±ØĞë±ÈÏÖÓĞµÄ¼Æ»®ÊÇµÍ¼¶·ñÔò³É±¾±ØĞëÊÇÏàÍ¬µÄ£¬²¢ĞĞµÄÊıÄ¿±ØĞëÊÇ½ÏµÍµÄ¡£
+		è¯¥è®¡åˆ’çš„æˆæœ¬å¿…é¡»æ¯”ç°æœ‰çš„è®¡åˆ’æ˜¯ä½çº§å¦åˆ™æˆæœ¬å¿…é¡»æ˜¯ç›¸åŒçš„ï¼Œå¹¶è¡Œçš„æ•°ç›®å¿…é¡»æ˜¯è¾ƒä½çš„ã€‚
 =======
         **
         **
-        **  ÏÂÃæÊÇËµÃ÷Õâ¸ö±íµ½Ä¿Ç°ÎªÖ¹ÊÇ×îºÃµÄµÄÌõ¼ş:
-        **   (1) ±í²»ÄÜÒÀÀµÓÚÆäËû»¹Î´ÔËĞĞµÄ±í
-        **   (2) Ò»¸öÈ«±íÉ¨Ãè¼Æ»®²»ÄÜÈ¡´úÓĞË÷ÒıµÄ¼Æ»®£¬³ı·ÇÈ«±íÉ¨ÃèÊÇÒ»¸öÉÏÃæ¶¨ÒåµÄ"×î¼ÑµÄ"¼Æ»®
-        **   (3) ËùÓĞµÄ±í¶¼ÓĞÒ»¸öINDEXED BY×Ó¾ä»òÕâ¸ö±íÈ±·¦Ò»¸öINDEXED BY×Ó¾ä»òÕâ¸ö±íÊ¹ÓÃÌØÊâµÄÍ¨¹ıËüµÄINDEXED BY×Ó¾äËµÃ÷µÄÌØÊâË÷Òı¡£
-        **       Õâ¸ö¹æ¶¨È·±£×ÜÊÇÑ¡¶¨Ò»¸öÄ¿Ç°ÎªÖ¹×îºÃµÄ£¬¼´±ãÊÇ¸ø³öÒ»¸ö²»¿ÉÄÜµÄINDEXED BY×Ó¾ä×éºÏ¡£
-        **       ¼ì²éµ½´íÎó²¢ÇÒÉÔºó½«´«ËÍ»ØÓ¦ÓÃ¡£NEVER()³öÏÖÊÇÒòÎªÉÏÃæµÄ¹æÔò(2)×èÖ¹Ò»¸ö¿É¼ÓË÷ÒıµÄÈ«±íÉ¨ÃèÀ´Âú×ã¹æÔò(3)¡£
-        **   (4) ¼Æ»®µÄ´ú¼Û±ØĞëĞ¡ÓÚÇ°Ò»¸ö¼Æ»®£¬»ò´ú¼ÛÏàÍ¬²¢ÇÒĞĞÊı±È½ÏÉÙ¡£
+        **  ä¸‹é¢æ˜¯è¯´æ˜è¿™ä¸ªè¡¨åˆ°ç›®å‰ä¸ºæ­¢æ˜¯æœ€å¥½çš„çš„æ¡ä»¶:
+        **   (1) è¡¨ä¸èƒ½ä¾èµ–äºå…¶ä»–è¿˜æœªè¿è¡Œçš„è¡¨
+        **   (2) ä¸€ä¸ªå…¨è¡¨æ‰«æè®¡åˆ’ä¸èƒ½å–ä»£æœ‰ç´¢å¼•çš„è®¡åˆ’ï¼Œé™¤éå…¨è¡¨æ‰«ææ˜¯ä¸€ä¸ªä¸Šé¢å®šä¹‰çš„"æœ€ä½³çš„"è®¡åˆ’
+        **   (3) æ‰€æœ‰çš„è¡¨éƒ½æœ‰ä¸€ä¸ªINDEXED BYå­å¥æˆ–è¿™ä¸ªè¡¨ç¼ºä¹ä¸€ä¸ªINDEXED BYå­å¥æˆ–è¿™ä¸ªè¡¨ä½¿ç”¨ç‰¹æ®Šçš„é€šè¿‡å®ƒçš„INDEXED BYå­å¥è¯´æ˜çš„ç‰¹æ®Šç´¢å¼•ã€‚
+        **       è¿™ä¸ªè§„å®šç¡®ä¿æ€»æ˜¯é€‰å®šä¸€ä¸ªç›®å‰ä¸ºæ­¢æœ€å¥½çš„ï¼Œå³ä¾¿æ˜¯ç»™å‡ºä¸€ä¸ªä¸å¯èƒ½çš„INDEXED BYå­å¥ç»„åˆã€‚
+        **       æ£€æŸ¥åˆ°é”™è¯¯å¹¶ä¸”ç¨åå°†ä¼ é€å›åº”ç”¨ã€‚NEVER()å‡ºç°æ˜¯å› ä¸ºä¸Šé¢çš„è§„åˆ™(2)é˜»æ­¢ä¸€ä¸ªå¯åŠ ç´¢å¼•çš„å…¨è¡¨æ‰«ææ¥æ»¡è¶³è§„åˆ™(3)ã€‚
+        **   (4) è®¡åˆ’çš„ä»£ä»·å¿…é¡»å°äºå‰ä¸€ä¸ªè®¡åˆ’ï¼Œæˆ–ä»£ä»·ç›¸åŒå¹¶ä¸”è¡Œæ•°æ¯”è¾ƒå°‘ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         */
         if( (sCost.used&notReady)==0                       /* (1) */
@@ -7541,7 +7541,7 @@ WhereInfo *sqlite3WhereBegin(
           WHERETRACE(("=== table %d is best so far"
                       " with cost=%g and nRow=%g\n",
                       j, sCost.rCost, sCost.plan.nRow));
-          bestPlan = sCost; //×îÓĞĞ§µÄ¼Æ»®µÄ´ú¼Û
+          bestPlan = sCost; //æœ€æœ‰æ•ˆçš„è®¡åˆ’çš„ä»£ä»·
           bestJ = j;
         }
         if( doNotReorder ) break;
@@ -7552,7 +7552,7 @@ WhereInfo *sqlite3WhereBegin(
     WHERETRACE(("*** Optimizer selects table %d for loop %d"
                 " with cost=%g and nRow=%g\n",
                 bestJ, pLevel-pWInfo->a, bestPlan.rCost, bestPlan.plan.nRow));
-    /* The ALWAYS() that follows was added to hush up clang scan-build ÏÂÃæÌí¼ÓALWAYS()ÓÃÓÚÑÚ¸Çclang scan-build */
+    /* The ALWAYS() that follows was added to hush up clang scan-build ä¸‹é¢æ·»åŠ ALWAYS()ç”¨äºæ©ç›–clang scan-build */
     if( (bestPlan.plan.wsFlags & WHERE_ORDERBY)!=0 && ALWAYS(ppOrderBy) ){
       *ppOrderBy = 0;
     }
@@ -7586,13 +7586,13 @@ WhereInfo *sqlite3WhereBegin(
     ** used for the scan. If not, then query compilation has failed.
     ** Return an error.
 <<<<<<< HEAD
-	¼ì²é£¬Èç¹ûÍ¨¹ı´ËÑ­»·µü´úÉ¨ÃèµÄ±íÒÑË÷ÒıBY×Ó¾äÁ¬½Óµ½Ëü£¬
-	ÒÑÃüÃûµÄË÷Òı±»ÓÃÓÚÉ¨Ãè¡£Èç¹ûÃ»ÓĞ£¬ÄÇÃ´ÔÚ²éÑ¯±àÒëÊ§°Ü¡£
-?·µ»ØÒ»¸ö´íÎó¡£
+	æ£€æŸ¥ï¼Œå¦‚æœé€šè¿‡æ­¤å¾ªç¯è¿­ä»£æ‰«æçš„è¡¨å·²ç´¢å¼•BYå­å¥è¿æ¥åˆ°å®ƒï¼Œ
+	å·²å‘½åçš„ç´¢å¼•è¢«ç”¨äºæ‰«æã€‚å¦‚æœæ²¡æœ‰ï¼Œé‚£ä¹ˆåœ¨æŸ¥è¯¢ç¼–è¯‘å¤±è´¥ã€‚
+?è¿”å›ä¸€ä¸ªé”™è¯¯ã€‚
 =======
     **
-    ** ±íÍ¨¹ıÕâ¸öÑ­»·µü´úÉ¨ÃèÊ±£¬¼ì²éËüÊÇ·ñÓĞÒ»¸öINDEXED BY×Ó¾ä£¬Èç¹ûÓĞ£¬ÄÇÃ´¾ÍÊ¹ÓÃÕâ¸öÖ¸¶¨µÄË÷ÒıÀ´ÓÃÓÚÉ¨Ãè¡£
-    ** Èç¹ûÃ»ÓĞ£¬ÄÇÃ´²éÑ¯±à¼­½«Ê§°Ü¡£·µ»ØÒ»¸ö´íÎó¡£
+    ** è¡¨é€šè¿‡è¿™ä¸ªå¾ªç¯è¿­ä»£æ‰«ææ—¶ï¼Œæ£€æŸ¥å®ƒæ˜¯å¦æœ‰ä¸€ä¸ªINDEXED BYå­å¥ï¼Œå¦‚æœæœ‰ï¼Œé‚£ä¹ˆå°±ä½¿ç”¨è¿™ä¸ªæŒ‡å®šçš„ç´¢å¼•æ¥ç”¨äºæ‰«æã€‚
+    ** å¦‚æœæ²¡æœ‰ï¼Œé‚£ä¹ˆæŸ¥è¯¢ç¼–è¾‘å°†å¤±è´¥ã€‚è¿”å›ä¸€ä¸ªé”™è¯¯ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     pIdx = pTabList->a[bestJ].pIndex;
@@ -7605,13 +7605,13 @@ WhereInfo *sqlite3WhereBegin(
         ** guaranteed to find the index specified in the INDEXED BY clause
         ** if it find an index at all. 
 <<<<<<< HEAD
-		Èç¹ûÒ»¸öË÷ÒıBY×Ó¼¯£¬¸ÃbestIndex£¨£©º¯Êı±£Ö¤ÕÒµ½Ö¸¶¨µÄË÷Òı
-		ÊÕÂ¼Ìõ¿îÈç¹ûÕÒµ½Ò»¸öË÷ÒıµÄ¡£
+		å¦‚æœä¸€ä¸ªç´¢å¼•BYå­é›†ï¼Œè¯¥bestIndexï¼ˆï¼‰å‡½æ•°ä¿è¯æ‰¾åˆ°æŒ‡å®šçš„ç´¢å¼•
+		æ”¶å½•æ¡æ¬¾å¦‚æœæ‰¾åˆ°ä¸€ä¸ªç´¢å¼•çš„ã€‚
 		*/
 =======
         **
-        ** Èç¹ûÊ¹ÓÃÒ»¸öINDEXED BY×Ó¾ä£¬Èç¹ûbestIndex()º¯ÊıÄÜÕÒµ½Ò»¸öË÷Òı£¬
-        ** ÄÇÃ´±£Ö¤ËüÄÜÕÒµ½ÔÚINDEXED BY×Ó¾äÖĞµÄÖ¸¶¨Ë÷Òı¡£
+        ** å¦‚æœä½¿ç”¨ä¸€ä¸ªINDEXED BYå­å¥ï¼Œå¦‚æœbestIndex()å‡½æ•°èƒ½æ‰¾åˆ°ä¸€ä¸ªç´¢å¼•ï¼Œ
+        ** é‚£ä¹ˆä¿è¯å®ƒèƒ½æ‰¾åˆ°åœ¨INDEXED BYå­å¥ä¸­çš„æŒ‡å®šç´¢å¼•ã€‚
         */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         assert( bestPlan.plan.u.pIdx==pIdx );
@@ -7626,11 +7626,11 @@ WhereInfo *sqlite3WhereBegin(
   /* If the total query only selects a single row, then the ORDER BY
   ** clause is irrelevant.
 <<<<<<< HEAD
-  Èç¹û×Ü²éÑ¯½öÑ¡ÔñÒ»¸öĞĞ£¬È»ºóÔÚORDER BY
-×Ó¼¯ÊÇ²»Ïà¹ØµÄ¡£
+  å¦‚æœæ€»æŸ¥è¯¢ä»…é€‰æ‹©ä¸€ä¸ªè¡Œï¼Œç„¶ååœ¨ORDER BY
+å­é›†æ˜¯ä¸ç›¸å…³çš„ã€‚
 =======
   **
-  ** Èç¹û²éÑ¯Ö»ÊÇÑ¡ÔñÒ»ĞĞ£¬ÄÇÃ´ORDER BY×Ó¾ä¾ÍÊÇÎŞ¹ØÍ´Ñ÷µÄ¡£
+  ** å¦‚æœæŸ¥è¯¢åªæ˜¯é€‰æ‹©ä¸€è¡Œï¼Œé‚£ä¹ˆORDER BYå­å¥å°±æ˜¯æ— å…³ç—›ç—’çš„ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( (andFlags & WHERE_UNIQUE)!=0 && ppOrderBy ){
@@ -7642,12 +7642,12 @@ WhereInfo *sqlite3WhereBegin(
   ** The one-pass algorithm only works if the WHERE clause constraints
   ** the statement to update a single row.
 <<<<<<< HEAD
-  Èç¹ûµ÷ÓÃÕßÊÇÒ»¸öUPDATE»òDELETEÓï¾äÇëÇó£¬Ê¹ÓÃÒ»¸öÍ¨Ëã·¨£¬
-  È·¶¨ÕâÊÇ·ñÊÇÊÊÁ¿¡£Ò»¸öºÏ¸ñµÄËã·¨Ö»ÄÜÈç¹ûWHERE×Ó¾äÏŞÖÆµÄÓï¾ä¸üĞÂÒ»ĞĞ¡£
+  å¦‚æœè°ƒç”¨è€…æ˜¯ä¸€ä¸ªUPDATEæˆ–DELETEè¯­å¥è¯·æ±‚ï¼Œä½¿ç”¨ä¸€ä¸ªé€šç®—æ³•ï¼Œ
+  ç¡®å®šè¿™æ˜¯å¦æ˜¯é€‚é‡ã€‚ä¸€ä¸ªåˆæ ¼çš„ç®—æ³•åªèƒ½å¦‚æœWHEREå­å¥é™åˆ¶çš„è¯­å¥æ›´æ–°ä¸€è¡Œã€‚
 =======
   **
-  ** Èç¹ûµ÷ÓÃ·½Ê½Ò»¸öUPDATE»òDELETEÃüÁîÇëÇóÒ»¸öÒ»´ÎÍ¨¹ıµÄËã·¨£¬È·¶¨ÕâÊÇºÏÊÊµÄ¡£
-  ** Ò»´ÎÍ¨¹ıËã·¨ÖµÔÚWHERE×Ó×Ó¾äÔ¼ÊøÃüÁîÈ¥¸üĞÂÒ»ĞĞÊ±²ÅÆğ×÷ÓÃ¡£
+  ** å¦‚æœè°ƒç”¨æ–¹å¼ä¸€ä¸ªUPDATEæˆ–DELETEå‘½ä»¤è¯·æ±‚ä¸€ä¸ªä¸€æ¬¡é€šè¿‡çš„ç®—æ³•ï¼Œç¡®å®šè¿™æ˜¯åˆé€‚çš„ã€‚
+  ** ä¸€æ¬¡é€šè¿‡ç®—æ³•å€¼åœ¨WHEREå­å­å¥çº¦æŸå‘½ä»¤å»æ›´æ–°ä¸€è¡Œæ—¶æ‰èµ·ä½œç”¨ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   assert( (wctrlFlags & WHERE_ONEPASS_DESIRED)==0 || pWInfo->nLevel==1 );
@@ -7659,22 +7659,22 @@ WhereInfo *sqlite3WhereBegin(
   /* Open all tables in the pTabList and any indices selected for
   ** searching those tables.
 <<<<<<< HEAD
-  ´ò¿ªËùÑ¡ËÑË÷ÕâĞ©±íÖĞµÄpTabListËùÓĞ±íºÍË÷ÒıµÄÈÎºÎ
+  æ‰“å¼€æ‰€é€‰æœç´¢è¿™äº›è¡¨ä¸­çš„pTabListæ‰€æœ‰è¡¨å’Œç´¢å¼•çš„ä»»ä½•
 =======
   **
-  ** ÔÚpTabList´ò¿ªËùÓĞµÄ±íºÍÓÃÓÚËÑË÷ÕâĞ©±í¶øÌôÑ¡³öµÄËùÓĞË÷Òı¡£
+  ** åœ¨pTabListæ‰“å¼€æ‰€æœ‰çš„è¡¨å’Œç”¨äºæœç´¢è¿™äº›è¡¨è€ŒæŒ‘é€‰å‡ºçš„æ‰€æœ‰ç´¢å¼•ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  sqlite3CodeVerifySchema(pParse, -1); /* Insert the cookie verifier Goto ÑéÖ¤ÕßGoto²åÈëcookie */
+  sqlite3CodeVerifySchema(pParse, -1); /* Insert the cookie verifier Goto éªŒè¯è€…Gotoæ’å…¥cookie */
   notReady = ~(Bitmask)0;
   pWInfo->nRowOut = (double)1;
   for(i=0, pLevel=pWInfo->a; i<nTabList; i++, pLevel++){
 <<<<<<< HEAD
-    Table *pTab;     /* Table to open ´ò¿ª±í*/
-    int iDb;         /* Index of database containing table/index  Êı¾İ¿â°üº¬µÄ±í/Ë÷ÒıµÄË÷Òı*/
+    Table *pTab;     /* Table to open æ‰“å¼€è¡¨*/
+    int iDb;         /* Index of database containing table/index  æ•°æ®åº“åŒ…å«çš„è¡¨/ç´¢å¼•çš„ç´¢å¼•*/
 =======
-    Table *pTab;     /* Table to open ĞèÒª´ò¿ªµÄ±í */
-    int iDb;         /* Index of database containing table/index Êı¾İ¿âË÷Òı°üº¬±í/Ë÷Òı */
+    Table *pTab;     /* Table to open éœ€è¦æ‰“å¼€çš„è¡¨ */
+    int iDb;         /* Index of database containing table/index æ•°æ®åº“ç´¢å¼•åŒ…å«è¡¨/ç´¢å¼• */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
     pTabItem = &pTabList->a[pLevel->iFrom];
@@ -7683,7 +7683,7 @@ WhereInfo *sqlite3WhereBegin(
     pWInfo->nRowOut *= pLevel->plan.nRow;
     iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
     if( (pTab->tabFlags & TF_Ephemeral)!=0 || pTab->pSelect ){
-      /* Do nothing Ê²Ã´¶¼²»×ö */
+      /* Do nothing ä»€ä¹ˆéƒ½ä¸åš */
     }else
 #ifndef SQLITE_OMIT_VIRTUALTABLE
     if( (pLevel->plan.wsFlags & WHERE_VIRTUALTABLE)!=0 ){
@@ -7734,7 +7734,7 @@ WhereInfo *sqlite3WhereBegin(
   ** loop below generates code for a single nested loop of the VM
   ** program.
   **
-  ** Éú³É´úÂëÀ´½øĞĞËÑË÷¡£ÏÂÃæµÄforÑ­»·Ã¿´Îµü´úÎªVM³ÌĞòµÄÒ»¸öÇ¶Ì×Ñ­»·Éú³É´úÂë¡£
+  ** ç”Ÿæˆä»£ç æ¥è¿›è¡Œæœç´¢ã€‚ä¸‹é¢çš„forå¾ªç¯æ¯æ¬¡è¿­ä»£ä¸ºVMç¨‹åºçš„ä¸€ä¸ªåµŒå¥—å¾ªç¯ç”Ÿæˆä»£ç ã€‚
   */
   notReady = ~(Bitmask)0;
   for(i=0; i<nTabList; i++){
@@ -7744,21 +7744,21 @@ WhereInfo *sqlite3WhereBegin(
     pWInfo->iContinue = pLevel->addrCont;
   }
 
-#ifdef SQLITE_TEST  /* For testing and debugging use only Ö»ÓÃÓÚ²âÊÔºÍµ÷ÊÔ */
+#ifdef SQLITE_TEST  /* For testing and debugging use only åªç”¨äºæµ‹è¯•å’Œè°ƒè¯• */
   /* Record in the query plan information about the current table
   ** and the index used to access it (if any).  If the table itself
   ** is not used, its name is just '{}'.  If no index is used
   ** the index is listed as "{}".  If the primary key is used the
   ** index name is '*'.
 <<<<<<< HEAD
-  ¶ÔÓÚ²âÊÔºÍµ÷ÊÔÖ»ÓÃ¼ÇÂ¼ÔÚÓĞ¹Øµ±Ç°±íµÄ²éÑ¯¼Æ»®ĞÅÏ¢
-ºÍËùÓÃµÄË÷ÒıÀ´·ÃÎÊËü£¨Èç¹ûÓĞµÄ»°£©¡£Èç¹û±í±¾Éí²»Ê¹ÓÃÊ±£¬
-ËüµÄÃû×ÖÖ»ÊÇ¡°{}¡±¡£Èç¹ûÃ»ÓĞÊ¹ÓÃË÷ÒıµÄË÷Òı±»ÁĞÎª¡°{}¡±¡£
-Èç¹ûÖ÷¼üÊ¹ÓÃµÄË÷ÒıµÄÃû×ÖÊÇ'*'¡£
+  å¯¹äºæµ‹è¯•å’Œè°ƒè¯•åªç”¨è®°å½•åœ¨æœ‰å…³å½“å‰è¡¨çš„æŸ¥è¯¢è®¡åˆ’ä¿¡æ¯
+å’Œæ‰€ç”¨çš„ç´¢å¼•æ¥è®¿é—®å®ƒï¼ˆå¦‚æœæœ‰çš„è¯ï¼‰ã€‚å¦‚æœè¡¨æœ¬èº«ä¸ä½¿ç”¨æ—¶ï¼Œ
+å®ƒçš„åå­—åªæ˜¯â€œ{}â€ã€‚å¦‚æœæ²¡æœ‰ä½¿ç”¨ç´¢å¼•çš„ç´¢å¼•è¢«åˆ—ä¸ºâ€œ{}â€ã€‚
+å¦‚æœä¸»é”®ä½¿ç”¨çš„ç´¢å¼•çš„åå­—æ˜¯'*'ã€‚
 =======
   **
-  ** ¼ÇÂ¼ÔÚ²éÑ¯¼Æ»®ÖĞÓĞ¹Øµ±Ç°±íºÍË÷Òı·ÃÎÊµÄĞÅÏ¢¡£Èç¹ûÎ´Ê¹ÓÃ±í±¾Éí£¬ÄÇÃ´ËüµÄÃû×ÖÖ»ÊÇ'{}'¡£
-  ** Èç¹ûÃ»ÓĞË÷Òı±»Ê¹ÓÃ£¬Ë÷Òı±»ÁĞÎª"{}".Èç¹ûÊ¹ÓÃÁËÖ÷¼ü£¬ÄÇÃ´Ë÷ÒıÃûÊÇ'*'
+  ** è®°å½•åœ¨æŸ¥è¯¢è®¡åˆ’ä¸­æœ‰å…³å½“å‰è¡¨å’Œç´¢å¼•è®¿é—®çš„ä¿¡æ¯ã€‚å¦‚æœæœªä½¿ç”¨è¡¨æœ¬èº«ï¼Œé‚£ä¹ˆå®ƒçš„åå­—åªæ˜¯'{}'ã€‚
+  ** å¦‚æœæ²¡æœ‰ç´¢å¼•è¢«ä½¿ç”¨ï¼Œç´¢å¼•è¢«åˆ—ä¸º"{}".å¦‚æœä½¿ç”¨äº†ä¸»é”®ï¼Œé‚£ä¹ˆç´¢å¼•åæ˜¯'*'
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   for(i=0; i<nTabList; i++){
@@ -7802,23 +7802,23 @@ WhereInfo *sqlite3WhereBegin(
   sqlite3_query_plan[nQPlan] = 0;
   nQPlan = 0;
 #endif 
-  /* SQLITE_TEST // Testing and debugging use only Ö»ÓÃÓÚ²âÊÔºÍµ÷ÊÔ */
+  /* SQLITE_TEST // Testing and debugging use only åªç”¨äºæµ‹è¯•å’Œè°ƒè¯• */
 
   /* Record the continuation address in the WhereInfo structure.  Then
   ** clean up and return.
 <<<<<<< HEAD
-  ¼ÇÂ¼ÔÚWhereInfo½á¹¹ÑÓĞøµÄµØÖ·¡£È»ºóÇåÀí£¬²¢·µ»Ø¡£
+  è®°å½•åœ¨WhereInfoç»“æ„å»¶ç»­çš„åœ°å€ã€‚ç„¶åæ¸…ç†ï¼Œå¹¶è¿”å›ã€‚
   */
   return pWInfo;
 
-  /* Jump here if malloc fails  Èç¹ûmallocÊ§°Ü£¬Ìø×ªµ½ÕâÀï*/
+  /* Jump here if malloc fails  å¦‚æœmallocå¤±è´¥ï¼Œè·³è½¬åˆ°è¿™é‡Œ*/
 =======
   **
-  ** ¼ÇÂ¼ÔÚWhereInfoÊı¾İ½á¹¹ÖĞµÄÁ¬ĞøµØÖ·¡£È»ºóÇå³ı²¢·µ»Ø¡£
+  ** è®°å½•åœ¨WhereInfoæ•°æ®ç»“æ„ä¸­çš„è¿ç»­åœ°å€ã€‚ç„¶åæ¸…é™¤å¹¶è¿”å›ã€‚
   */
   return pWInfo;
 
-  /* Jump here if malloc fails Èç¹û·ÖÅäÄÚ´æÊ§°Ü¾ÍÌø³ö */
+  /* Jump here if malloc fails å¦‚æœåˆ†é…å†…å­˜å¤±è´¥å°±è·³å‡º */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 whereBeginError:
   if( pWInfo ){
@@ -7832,10 +7832,10 @@ whereBeginError:
 ** Generate the end of the WHERE loop.  See comments on 
 ** sqlite3WhereBegin() for additional information.
 <<<<<<< HEAD
-Éú³ÉÔÚWHEREÑ­»·µÄ½áÊø¡£²é¿´sqlite3WhereBeginÆÀÂÛ£¨£©ÁË½â¸ü¶àĞÅÏ¢¡£
+ç”Ÿæˆåœ¨WHEREå¾ªç¯çš„ç»“æŸã€‚æŸ¥çœ‹sqlite3WhereBeginè¯„è®ºï¼ˆï¼‰äº†è§£æ›´å¤šä¿¡æ¯ã€‚
 =======
 **
-** Éú³ÉWHEREÑ­»·µÄ½áÊø´úÂë¡£²é¿´ÔÚsqlite3WhereBegin()ÉÏµÄ¸½¼ÓĞÅÏ¢µÄÆÀÂÛ¡£
+** ç”ŸæˆWHEREå¾ªç¯çš„ç»“æŸä»£ç ã€‚æŸ¥çœ‹åœ¨sqlite3WhereBegin()ä¸Šçš„é™„åŠ ä¿¡æ¯çš„è¯„è®ºã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
 void sqlite3WhereEnd(WhereInfo *pWInfo){
@@ -7848,9 +7848,9 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
 
   /* Generate loop termination code.
 <<<<<<< HEAD
-  ²úÉúÑ­»·ÖÕÖ¹´úÂë
+  äº§ç”Ÿå¾ªç¯ç»ˆæ­¢ä»£ç 
 =======
-  ** Éú³ÉÑ­»·ÖÕÖ¹´úÂë
+  ** ç”Ÿæˆå¾ªç¯ç»ˆæ­¢ä»£ç 
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   sqlite3ExprCacheClear(pParse);
@@ -7896,19 +7896,19 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
   /* The "break" point is here, just past the end of the outer loop.
   ** Set it.
 <<<<<<< HEAD
-  ÔÚ¡°break¡±µÄÒ»µãÊÇÔÚÕâÀï£¬¸Õ¸Õ¹ıÈ¥µÄÍâÑ­»·µÄ½áÊø¡£
-ÉèÖÃËü¡£
+  åœ¨â€œbreakâ€çš„ä¸€ç‚¹æ˜¯åœ¨è¿™é‡Œï¼Œåˆšåˆšè¿‡å»çš„å¤–å¾ªç¯çš„ç»“æŸã€‚
+è®¾ç½®å®ƒã€‚
 =======
-  ** "break"Ö¸Õë¡£¸Õ¸Õ½áÊøÍâÑ­»·¡£ÉèÖÃËü¡£
+  ** "break"æŒ‡é’ˆã€‚åˆšåˆšç»“æŸå¤–å¾ªç¯ã€‚è®¾ç½®å®ƒã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   sqlite3VdbeResolveLabel(v, pWInfo->iBreak);
 
   /* Close all of the cursors that were opened by sqlite3WhereBegin.
 <<<<<<< HEAD
-  ¹Ø±ÕËùÓĞsqlite3WhereBegin±»´ò¿ªµÄÓÎ±ê¡£
+  å…³é—­æ‰€æœ‰sqlite3WhereBeginè¢«æ‰“å¼€çš„æ¸¸æ ‡ã€‚
 =======
-  ** ¹Ø±ÕËùÓĞÓÉsqlite3WhereBegin´ò¿ªµÄÓÎ±ê
+  ** å…³é—­æ‰€æœ‰ç”±sqlite3WhereBeginæ‰“å¼€çš„æ¸¸æ ‡
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   assert( pWInfo->nLevel==1 || pWInfo->nLevel==pTabList->nSrc );
@@ -7937,14 +7937,14 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
     ** seeking the table cursor to the record corresponding to the current
     ** position in the index.
 <<<<<<< HEAD
-    ** Èç¹û¸ÃÉ¨ÃèÊ¹ÓÃË÷Òı£¬Ê¹´úÂëÌæ»»ÒÔ´Ó±íÖĞµÄË÷ÒıÓÅÏÈ¶ÁÈ¡Êı¾İ¡£
-	ÓĞÊ±£¬ÕâÒâÎ¶×Å¸Ã±í²»ĞèÒªÓÀÔ¶²»»á±»´Ó¶Á³ö¡£ÕâÊÇÒ»¸öĞÔÄÜÌáÉı£¬
-	ÒòÎªVDBEË®Æ½µÈ´ıÖ±µ½±íÊµ¼Ê½øĞĞÇó±í£¬¹â±ê¶ÔÓ¦ÓÚË÷ÒıµÄµ±Ç°Î»ÖÃ¼ÇÂ¼Ö®Ç°¶Á³ö¡£
+    ** å¦‚æœè¯¥æ‰«æä½¿ç”¨ç´¢å¼•ï¼Œä½¿ä»£ç æ›¿æ¢ä»¥ä»è¡¨ä¸­çš„ç´¢å¼•ä¼˜å…ˆè¯»å–æ•°æ®ã€‚
+	æœ‰æ—¶ï¼Œè¿™æ„å‘³ç€è¯¥è¡¨ä¸éœ€è¦æ°¸è¿œä¸ä¼šè¢«ä»è¯»å‡ºã€‚è¿™æ˜¯ä¸€ä¸ªæ€§èƒ½æå‡ï¼Œ
+	å› ä¸ºVDBEæ°´å¹³ç­‰å¾…ç›´åˆ°è¡¨å®é™…è¿›è¡Œæ±‚è¡¨ï¼Œå…‰æ ‡å¯¹åº”äºç´¢å¼•çš„å½“å‰ä½ç½®è®°å½•ä¹‹å‰è¯»å‡ºã€‚
 =======
     ** 
-    ** Èç¹ûÕâ¸öÉ¨ÃèÊ¹ÓÃÁËÒ»¸öË÷Òı£¬±àĞ´´úÂë´Ó±íÖĞ¶ÁÈ¡Êı¾İÈ¡´úÓÅÏÈ´ÓË÷ÒıÖĞ¶ÁÈ¡Êı¾İ¡£
-    ** ÓĞÊ±£¬ÕâÒâÎ¶×Å±íÓÃÓÚ²»ĞèÒª±»¶ÁÈ¡¡£
-    ** ÕâÊÇÒ»¸öĞÔÄÜÍÆ½ø£¬ÔÚÑ°ÕÒ¶ÔÓ¦µÄ±íµÄÓÎ±êÀ´¼ÇÂ¼µ±Ç°Ë÷ÒıµÄÎ»ÖÃÖ®Ç°£¬vdbeË®Æ½Ò»Ö±µÈ´ı¶ÁÈ¡±í¡£
+    ** å¦‚æœè¿™ä¸ªæ‰«æä½¿ç”¨äº†ä¸€ä¸ªç´¢å¼•ï¼Œç¼–å†™ä»£ç ä»è¡¨ä¸­è¯»å–æ•°æ®å–ä»£ä¼˜å…ˆä»ç´¢å¼•ä¸­è¯»å–æ•°æ®ã€‚
+    ** æœ‰æ—¶ï¼Œè¿™æ„å‘³ç€è¡¨ç”¨äºä¸éœ€è¦è¢«è¯»å–ã€‚
+    ** è¿™æ˜¯ä¸€ä¸ªæ€§èƒ½æ¨è¿›ï¼Œåœ¨å¯»æ‰¾å¯¹åº”çš„è¡¨çš„æ¸¸æ ‡æ¥è®°å½•å½“å‰ç´¢å¼•çš„ä½ç½®ä¹‹å‰ï¼Œvdbeæ°´å¹³ä¸€ç›´ç­‰å¾…è¯»å–è¡¨ã€‚
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Calls to the code generator in between sqlite3WhereBegin and
@@ -7953,12 +7953,12 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
     ** that reference the table and converts them into opcodes that
     ** reference the index.
 <<<<<<< HEAD
-	µ÷ÓÃ´úÂëÉú³ÉÆ÷ÔÚsqlite3WhereBeginºÍsqlite3WhereEndÖ®¼ä½«ÓĞÖ±½ÓÒıÓÃµÄ±í´´½¨µÄ´úÂë¡£
-	Õâ¸öÑ­»·É¨ÃèËùÓĞµÄ´úÂëÑ°ÕÒ²Ù×÷ÂëÒıÓÃ±í£¬½«ËüÃÇ×ª»»³ÉÒıÓÃË÷Òı²Ù×÷Âë¡£
+	è°ƒç”¨ä»£ç ç”Ÿæˆå™¨åœ¨sqlite3WhereBeginå’Œsqlite3WhereEndä¹‹é—´å°†æœ‰ç›´æ¥å¼•ç”¨çš„è¡¨åˆ›å»ºçš„ä»£ç ã€‚
+	è¿™ä¸ªå¾ªç¯æ‰«ææ‰€æœ‰çš„ä»£ç å¯»æ‰¾æ“ä½œç å¼•ç”¨è¡¨ï¼Œå°†å®ƒä»¬è½¬æ¢æˆå¼•ç”¨ç´¢å¼•æ“ä½œç ã€‚
 =======
     **
-    ** ÔÚsqlite3WhereBeginºÍsqlite3WhereEndÖ®¼äµ÷ÓÃ´úÂëÉú³ÉÆ÷Ö±½ÓµØ´´½¨Óë±íÏà¹ØµÄ´úÂë¡£
-    ** Õâ¸öÑ­»·É¨ÃèËùÓĞÕâĞ©´úÂëÀ´Ñ°ÕÒÓë±íÏà¹ØµÄ²Ù×÷Âë²¢½«ËüÃÇ×ª»¯ÎªÓëË÷ÒıÏà¹ØµÄ²Ù×÷Âë¡£
+    ** åœ¨sqlite3WhereBeginå’Œsqlite3WhereEndä¹‹é—´è°ƒç”¨ä»£ç ç”Ÿæˆå™¨ç›´æ¥åœ°åˆ›å»ºä¸è¡¨ç›¸å…³çš„ä»£ç ã€‚
+    ** è¿™ä¸ªå¾ªç¯æ‰«ææ‰€æœ‰è¿™äº›ä»£ç æ¥å¯»æ‰¾ä¸è¡¨ç›¸å…³çš„æ“ä½œç å¹¶å°†å®ƒä»¬è½¬åŒ–ä¸ºä¸ç´¢å¼•ç›¸å…³çš„æ“ä½œç ã€‚
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_INDEXED ){
@@ -7992,7 +7992,7 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
     }
   }
   /* Final cleanup 
-  ** ×îºóÇå³ıÊı¾İ
+  ** æœ€åæ¸…é™¤æ•°æ®
   */
   pParse->nQueryLoop = pWInfo->savedNQueryLoop;
   whereInfoFree(db, pWInfo);

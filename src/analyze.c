@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 ** 2005 July 8
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -133,25 +133,25 @@
 ** to delete all stat table entries.
 */
 
-/*¸Ãº¯ÊıµÄÊÇÓÃÓÚ´ò¿ª sqlite_stat1 ±í£¬ÔÚiStatCurÓÎ±êÎ»ÖÃ½øĞĞĞ´²Ù×÷£¬Èç¹û¿âÖĞ
-**ÓĞSQLITE_ENABLE_STAT3µÄºê¶¨Òå£¬ÄÇÃ´sqlite_stat3 ±í½«±»´ò¿ª´ÓiStatCur+1Î»ÖÃ¿ªÊ¼Ğ´¡£
+/*è¯¥å‡½æ•°çš„æ˜¯ç”¨äºæ‰“å¼€ sqlite_stat1 è¡¨ï¼Œåœ¨iStatCuræ¸¸æ ‡ä½ç½®è¿›è¡Œå†™æ“ä½œï¼Œå¦‚æœåº“ä¸­
+**æœ‰SQLITE_ENABLE_STAT3çš„å®å®šä¹‰ï¼Œé‚£ä¹ˆsqlite_stat3 è¡¨å°†è¢«æ‰“å¼€ä»iStatCur+1ä½ç½®å¼€å§‹å†™ã€‚
 **
-**Èç¹ûsqlite_stat1±íÖ®Ç°²»´æÔÚ²¢ÇÒ¿âÖĞÒÔSQLITE_ENABLE_STAT3ºê¶¨Òå±àÒëµÄ£¬ÄÇÃ´¸Ã±í±»´´½¨¡£
+**å¦‚æœsqlite_stat1è¡¨ä¹‹å‰ä¸å­˜åœ¨å¹¶ä¸”åº“ä¸­ä»¥SQLITE_ENABLE_STAT3å®å®šä¹‰ç¼–è¯‘çš„ï¼Œé‚£ä¹ˆè¯¥è¡¨è¢«åˆ›å»ºã€‚
 **
-**²ÎÊızWhere¿ÉÄÜÊÇÒ»¸öÖ¸Ïò°üº¬Ò»¸ö±íÃûµÄ»º´æµÄÖ¸Õë£¬»òÕßÊÇÒ»¸ö¿ÕÖ¸Õë£¬Èç¹û²»Îª¿Õ£¬ÄÇÃ´
-**ËùÓĞÔÚ±ísqlite_stat1ºÍsqlite_stat3Ö®ÖĞÏà¹ØÁªµÄ±íµÄÌõÄ¿½«±»É¾³ı¡£Èç¹ûzWhere==0,ÄÇÃ´½«
-**É¾³ıËùÓĞstat±íÖĞµÄÌõÄ¿¡£
+**å‚æ•°zWhereå¯èƒ½æ˜¯ä¸€ä¸ªæŒ‡å‘åŒ…å«ä¸€ä¸ªè¡¨åçš„ç¼“å­˜çš„æŒ‡é’ˆï¼Œæˆ–è€…æ˜¯ä¸€ä¸ªç©ºæŒ‡é’ˆï¼Œå¦‚æœä¸ä¸ºç©ºï¼Œé‚£ä¹ˆ
+**æ‰€æœ‰åœ¨è¡¨sqlite_stat1å’Œsqlite_stat3ä¹‹ä¸­ç›¸å…³è”çš„è¡¨çš„æ¡ç›®å°†è¢«åˆ é™¤ã€‚å¦‚æœzWhere==0,é‚£ä¹ˆå°†
+**åˆ é™¤æ‰€æœ‰statè¡¨ä¸­çš„æ¡ç›®ã€‚
 */
 static void openStatTable(
-  Parse *pParse,          /* Parsing context */ /*½âÎöÉÏÏÂÎÄ*/
-  int iDb,                /* The database we are looking in */ /*²Ù×÷µÄÊı¾İ¿â*/
-  int iStatCur,           /* Open the sqlite_stat1 table on this cursor */ /*´ò¿ªsqlite_stat1±í£¬ÓÎ±êÍ£ÁôÔÚiStatCur*/
-  const char *zWhere,     /* Delete entries for this table or index*/ /* É¾³ıÕâ¸ö±í»òË÷ÒıµÄÌõÄ¿*/
-  const char *zWhereType  /* Either "tbl" or "idx" */ /*ÀàĞÍÊÇ"tbl" »òÕß "idx"*/
+  Parse *pParse,          /* Parsing context */ /*è§£æä¸Šä¸‹æ–‡*/
+  int iDb,                /* The database we are looking in */ /*æ“ä½œçš„æ•°æ®åº“*/
+  int iStatCur,           /* Open the sqlite_stat1 table on this cursor */ /*æ‰“å¼€sqlite_stat1è¡¨ï¼Œæ¸¸æ ‡åœç•™åœ¨iStatCur*/
+  const char *zWhere,     /* Delete entries for this table or index*/ /* åˆ é™¤è¿™ä¸ªè¡¨æˆ–ç´¢å¼•çš„æ¡ç›®*/
+  const char *zWhereType  /* Either "tbl" or "idx" */ /*ç±»å‹æ˜¯"tbl" æˆ–è€… "idx"*/
 ){
   static const struct {
-    const char *zName;  /*±íµÄÃû×Ö*/
-    const char *zCols;  /*±íÖĞÁĞ±àºÅ*/
+    const char *zName;  /*è¡¨çš„åå­—*/
+    const char *zCols;  /*è¡¨ä¸­åˆ—ç¼–å·*/
   } aTable[] = {
     { "sqlite_stat1", "tbl,idx,stat" },
 #ifdef SQLITE_ENABLE_STAT3
@@ -163,62 +163,62 @@ static void openStatTable(
   u8 aCreateTbl[] = {0, 0};
 
   int i;
-  sqlite3 *db = pParse->db;  /*¶¨ÒåÊı¾İ¿â¾ä±ú*/
-  Db *pDb;  /*±íÊ¾Êı¾İ¿â*/
-  Vdbe *v = sqlite3GetVdbe(pParse);  /*½¨Á¢µÄĞéÄâ»ú*/
+  sqlite3 *db = pParse->db;  /*å®šä¹‰æ•°æ®åº“å¥æŸ„*/
+  Db *pDb;  /*è¡¨ç¤ºæ•°æ®åº“*/
+  Vdbe *v = sqlite3GetVdbe(pParse);  /*å»ºç«‹çš„è™šæ‹Ÿæœº*/
   if( v==0 ) return;
-  assert( sqlite3BtreeHoldsAllMutexes(db) );//»¥³âÅĞ¶Ï
-  assert( sqlite3VdbeDb(v)==db );  /*sqlite3Vdbe·½·¨ ·µ»ØÓë¸ÃvdbeÏà¹ØÁªµÄÊı¾İ¿â*/
-  pDb = &db->aDb[iDb];  /*aDb±íÊ¾ËùÓĞºó¶Ë*/
+  assert( sqlite3BtreeHoldsAllMutexes(db) );//äº’æ–¥åˆ¤æ–­
+  assert( sqlite3VdbeDb(v)==db );  /*sqlite3Vdbeæ–¹æ³• è¿”å›ä¸è¯¥vdbeç›¸å…³è”çš„æ•°æ®åº“*/
+  pDb = &db->aDb[iDb];  /*aDbè¡¨ç¤ºæ‰€æœ‰åç«¯*/
 
   /* Create new statistic tables if they do not exist, or clear them
   ** if they do already exist.
   */
-  /*ÈôÕâĞ©±í²»´æÔÚ£¬ÔòĞÂ½¨±í£»·ñÔò£¬ÈôÕâĞ©±í´æÔÚ£¬ÔòÇå¿ÕËüÃÇ¡£
+  /*è‹¥è¿™äº›è¡¨ä¸å­˜åœ¨ï¼Œåˆ™æ–°å»ºè¡¨ï¼›å¦åˆ™ï¼Œè‹¥è¿™äº›è¡¨å­˜åœ¨ï¼Œåˆ™æ¸…ç©ºå®ƒä»¬ã€‚
   */
   for(i=0; i<ArraySize(aTable); i++){
     const char *zTab = aTable[i].zName; 
     Table *pStat;
-	/*sqlite3FindTable·½·¨ ¶¨Î»ÃèÊöÒ»¸öÌØ¶¨µÄÊı¾İ¿â±íµÄÄÚ´æ½á¹¹£¬¸ø³öÕâ¸öÌØÊâµÄ±íµÄÃû×ÖºÍ£¨¿ÉÑ¡£©°üº¬Õâ¸ö±íµÄÊı¾İ¿âµÄÃû³Æ£¬Èç¹ûÃ»ÓĞÕÒµ½·µ»ØNULL¡£ ³ö×Ôbuild.c*/
+	/*sqlite3FindTableæ–¹æ³• å®šä½æè¿°ä¸€ä¸ªç‰¹å®šçš„æ•°æ®åº“è¡¨çš„å†…å­˜ç»“æ„ï¼Œç»™å‡ºè¿™ä¸ªç‰¹æ®Šçš„è¡¨çš„åå­—å’Œï¼ˆå¯é€‰ï¼‰åŒ…å«è¿™ä¸ªè¡¨çš„æ•°æ®åº“çš„åç§°ï¼Œå¦‚æœæ²¡æœ‰æ‰¾åˆ°è¿”å›NULLã€‚ å‡ºè‡ªbuild.c*/
     if( (pStat = sqlite3FindTable(db, zTab, pDb->zName))==0 ){
       /* The sqlite_stat[12] table does not exist. Create it. Note that a 
       ** side-effect of the CREATE TABLE statement is to leave the rootpage 
       ** of the new table in register pParse->regRoot. This is important 
       ** because the OpenWrite opcode below will be needing it. */
 
-      /*±ísqlite_stat1»òsqlite_stat2²»´æÔÚ£¬¾Í´´½¨¡£×¢ÒâµÄÊÇCREATE TABLEÓï¾äµÄ
-      **¸±×÷ÓÃ£¬¼´µ±Àë¿ª×¢²áĞÂ±íµÄ¸ùÒ³µÄÊ±ºòpParse->regRoot£¬ÕâµãºÜÖØÒªÒòÎªÖ®ºóµÄ
-      **´ò¿ªĞ´²Ù×÷»áĞèÒªËü¡£
+      /*è¡¨sqlite_stat1æˆ–sqlite_stat2ä¸å­˜åœ¨ï¼Œå°±åˆ›å»ºã€‚æ³¨æ„çš„æ˜¯CREATE TABLEè¯­å¥çš„
+      **å‰¯ä½œç”¨ï¼Œå³å½“ç¦»å¼€æ³¨å†Œæ–°è¡¨çš„æ ¹é¡µçš„æ—¶å€™pParse->regRootï¼Œè¿™ç‚¹å¾ˆé‡è¦å› ä¸ºä¹‹åçš„
+      **æ‰“å¼€å†™æ“ä½œä¼šéœ€è¦å®ƒã€‚
       */
-      sqlite3NestedParse(pParse,   /*µİ¹éÔËĞĞ½âÎöÆ÷ºÍ´úÂëÉú³ÉÆ÷ÊÇÎªÁËÉú³É¸ø¶¨SQLÓï¾äµÄ´úÂë£¬ÓÃÓÚÖÕÖ¹Ä¿Ç°ÕıÔÚ¹¹ÔìµÄpParseÉÏÏÂÎÄ¡£³ö×Ôbuild.c*/
+      sqlite3NestedParse(pParse,   /*é€’å½’è¿è¡Œè§£æå™¨å’Œä»£ç ç”Ÿæˆå™¨æ˜¯ä¸ºäº†ç”Ÿæˆç»™å®šSQLè¯­å¥çš„ä»£ç ï¼Œç”¨äºç»ˆæ­¢ç›®å‰æ­£åœ¨æ„é€ çš„pParseä¸Šä¸‹æ–‡ã€‚å‡ºè‡ªbuild.c*/
           "CREATE TABLE %Q.%s(%s)", pDb->zName, zTab, aTable[i].zCols
       );  
-      aRoot[i] = pParse->regRoot;  /*regRoot±íÊ¾´æ´¢ĞÂ¶ÔÏóµÄ¸ùÒ³ÂëµÄ¼Ä´æÆ÷*/
+      aRoot[i] = pParse->regRoot;  /*regRootè¡¨ç¤ºå­˜å‚¨æ–°å¯¹è±¡çš„æ ¹é¡µç çš„å¯„å­˜å™¨*/
       aCreateTbl[i] = OPFLAG_P2ISREG;
     }else{
       /* The table already exists. If zWhere is not NULL, delete all entries 
       ** associated with the table zWhere. If zWhere is NULL, delete the
       ** entire contents of the table. */
 
-      /*Õâ¸ö±íÒÑ¾­´æÔÚ¡£Èç¹ûzWhere²»Îª¿Õ£¬É¾³ıËùÓĞÓë±íÖĞzWhereÏà¹ØÁªµÄÌõÄ¿¡£Èç¹ûzWhere
-      **Îª¿Õ£¬ÄÇÃ´É¾³ı±íÖĞµÄËùÓĞÌõÄ¿¡£*/
+      /*è¿™ä¸ªè¡¨å·²ç»å­˜åœ¨ã€‚å¦‚æœzWhereä¸ä¸ºç©ºï¼Œåˆ é™¤æ‰€æœ‰ä¸è¡¨ä¸­zWhereç›¸å…³è”çš„æ¡ç›®ã€‚å¦‚æœzWhere
+      **ä¸ºç©ºï¼Œé‚£ä¹ˆåˆ é™¤è¡¨ä¸­çš„æ‰€æœ‰æ¡ç›®ã€‚*/
 
-      aRoot[i] = pStat->tnum;  /*tnum±íÊ¾±íµÄBÊ÷¸ù½Úµã*/
-      sqlite3TableLock(pParse, iDb, aRoot[i], 1, zTab);//±íÉÏËø /*sqlite3TableLock·½·¨ ¼ÇÂ¼ĞÅÏ¢£¬ÔÚÔËĞĞÊ±¼äÎÒÃÇÏëËø×¡Ò»¸ö±í*/
+      aRoot[i] = pStat->tnum;  /*tnumè¡¨ç¤ºè¡¨çš„Bæ ‘æ ¹èŠ‚ç‚¹*/
+      sqlite3TableLock(pParse, iDb, aRoot[i], 1, zTab);//è¡¨ä¸Šé” /*sqlite3TableLockæ–¹æ³• è®°å½•ä¿¡æ¯ï¼Œåœ¨è¿è¡Œæ—¶é—´æˆ‘ä»¬æƒ³é”ä½ä¸€ä¸ªè¡¨*/
       if( zWhere ){
         sqlite3NestedParse(pParse,
            "DELETE FROM %Q.%s WHERE %s=%Q", pDb->zName, zTab, zWhereType, zWhere
         );
       }else{
         /* The sqlite_stat[12] table already exists.  Delete all rows. */
-        /*Èç¹û±ísqlite_stat1»òsqlite_stat2ÒÑ¾­´æÔÚ£¬É¾³ıËùÓĞµÄĞĞ¡£*/
+        /*å¦‚æœè¡¨sqlite_stat1æˆ–sqlite_stat2å·²ç»å­˜åœ¨ï¼Œåˆ é™¤æ‰€æœ‰çš„è¡Œã€‚*/
         sqlite3VdbeAddOp2(v, OP_Clear, aRoot[i], iDb);
       }
     }
   }
 
   /* Open the sqlite_stat[13] tables for writing. */
-  /*´ò¿ª±ísqlite_stat1ºÍ±ísqlite_stat3 È¥Ğ´*/
+  /*æ‰“å¼€è¡¨sqlite_stat1å’Œè¡¨sqlite_stat3 å»å†™*/
   for(i=0; i<ArraySize(aTable); i++){
     sqlite3VdbeAddOp3(v, OP_OpenWrite, iStatCur+i, aRoot[i], iDb);
     sqlite3VdbeChangeP4(v, -1, (char *)3, P4_INT32);
@@ -229,7 +229,7 @@ static void openStatTable(
 /*
 ** Recommended number of samples for sqlite_stat3
 */
-/*ÍÆ¼ösqlite_stat3µÄ²ÉÑùÊı*/
+/*æ¨èsqlite_stat3çš„é‡‡æ ·æ•°*/
 #ifndef SQLITE_STAT3_SAMPLES
 # define SQLITE_STAT3_SAMPLES 24
 #endif
@@ -241,25 +241,25 @@ static void openStatTable(
 */
 
 /*
-**Èı¸öSQLº¯Êı-stat3_init(), stat3_push(), ºÍ stat3_pop()£¬·ÖÏíÒ»¸öÈçÏÂ½á¹¹ÌåµÄ
-**ÊµÀıÀ´±£´æËüÃÇµÄ×´Ì¬ĞÅÏ¢¡£
+**ä¸‰ä¸ªSQLå‡½æ•°-stat3_init(), stat3_push(), å’Œ stat3_pop()ï¼Œåˆ†äº«ä¸€ä¸ªå¦‚ä¸‹ç»“æ„ä½“çš„
+**å®ä¾‹æ¥ä¿å­˜å®ƒä»¬çš„çŠ¶æ€ä¿¡æ¯ã€‚
 */
 typedef struct Stat3Accum Stat3Accum;
 struct Stat3Accum {
-  tRowcnt nRow;             /* Number of rows in the entire table */ /*Õû¸ö±íµÄĞĞÊı*/
-  tRowcnt nPSample;         /* How often to do a periodic sample */ /*¶à¾Ã×öÒ»´Î¶¨ÆÚ³éÑù*/
-  int iMin;                 /* Index of entry with minimum nEq and hash */ /*×îĞ¡nEqºÍhashÌõÄ¿µÄË÷Òı*/
-  int mxSample;             /* Maximum number of samples to accumulate */ /*Ñù±¾ÀÛ¼ÆµÄ×î´óÊıÄ¿*/
-  int nSample;              /* Current number of samples */ /*µ±Ç°µÄÑù±¾ÊıÄ¿*/
-  u32 iPrn;                 /* Pseudo-random number used for sampling */ /*ÓÃÓÚ³éÑùµÄËæ»úÊı*/  /*u32±íÊ¾4Î»ÎŞ·ûºÅÕûÊı*/
-  struct Stat3Sample {  /*¶¨Òåstat3±í*/
-    i64 iRowid;                /* Rowid in main table of the key */ /*Ö÷±íÖĞ¹Ø¼ü×ÖµÄROWID*/  /*i64±íÊ¾8Î»ÓĞ·ûºÅÕûÊı*/
+  tRowcnt nRow;             /* Number of rows in the entire table */ /*æ•´ä¸ªè¡¨çš„è¡Œæ•°*/
+  tRowcnt nPSample;         /* How often to do a periodic sample */ /*å¤šä¹…åšä¸€æ¬¡å®šæœŸæŠ½æ ·*/
+  int iMin;                 /* Index of entry with minimum nEq and hash */ /*æœ€å°nEqå’Œhashæ¡ç›®çš„ç´¢å¼•*/
+  int mxSample;             /* Maximum number of samples to accumulate */ /*æ ·æœ¬ç´¯è®¡çš„æœ€å¤§æ•°ç›®*/
+  int nSample;              /* Current number of samples */ /*å½“å‰çš„æ ·æœ¬æ•°ç›®*/
+  u32 iPrn;                 /* Pseudo-random number used for sampling */ /*ç”¨äºæŠ½æ ·çš„éšæœºæ•°*/  /*u32è¡¨ç¤º4ä½æ— ç¬¦å·æ•´æ•°*/
+  struct Stat3Sample {  /*å®šä¹‰stat3è¡¨*/
+    i64 iRowid;                /* Rowid in main table of the key */ /*ä¸»è¡¨ä¸­å…³é”®å­—çš„ROWID*/  /*i64è¡¨ç¤º8ä½æœ‰ç¬¦å·æ•´æ•°*/
     tRowcnt nEq;               /* sqlite_stat3.nEq */  
     tRowcnt nLt;               /* sqlite_stat3.nLt */
     tRowcnt nDLt;              /* sqlite_stat3.nDLt */
-    u8 isPSample;              /* True if a periodic sample */  /*Èç¹ûÊÇ¶¨ÆÚÑù±¾£¬ÔòÎªtrue*/  /*u8±íÊ¾1Î»ÎŞ·ûºÅÕûÊı*/
+    u8 isPSample;              /* True if a periodic sample */  /*å¦‚æœæ˜¯å®šæœŸæ ·æœ¬ï¼Œåˆ™ä¸ºtrue*/  /*u8è¡¨ç¤º1ä½æ— ç¬¦å·æ•´æ•°*/
     u32 iHash;                 /* Tiebreaker hash */  
-  } *a;                     /* An array of samples */  /*Ñù±¾Êı×é*/
+  } *a;                     /* An array of samples */  /*æ ·æœ¬æ•°ç»„*/
 };
 
 #ifdef SQLITE_ENABLE_STAT3
@@ -272,33 +272,33 @@ struct Stat3Accum {
 **
 ** The return value is the Stat3Accum object (P).
 **
-**SQLº¯Êıstat3_init(C,S)µÄÊµÏÖ¡£ÕâÁ½¸ö²ÎÊı·Ö±ğÊÇÔÚ±í»òÕßË÷ÒıÖĞµÄĞĞÊıºÍ
-**ÀÛ¼ÆµÄÑù±¾Êı¡£
+**SQLå‡½æ•°stat3_init(C,S)çš„å®ç°ã€‚è¿™ä¸¤ä¸ªå‚æ•°åˆ†åˆ«æ˜¯åœ¨è¡¨æˆ–è€…ç´¢å¼•ä¸­çš„è¡Œæ•°å’Œ
+**ç´¯è®¡çš„æ ·æœ¬æ•°ã€‚
 **
-**Õâ¸ö¹ı³Ì·ÖÅä²¢³õÊ¼»¯Stat3Accum ¶ÔÏóµÄÃ¿Ò»¸öÊôĞÔ¡£
+**è¿™ä¸ªè¿‡ç¨‹åˆ†é…å¹¶åˆå§‹åŒ–Stat3Accum å¯¹è±¡çš„æ¯ä¸€ä¸ªå±æ€§ã€‚
 **
-** ·µ»ØÖµÊÇ Stat3Accum ¶ÔÏó.
+** è¿”å›å€¼æ˜¯ Stat3Accum å¯¹è±¡.
 */
 static void stat3Init(
-  sqlite3_context *context,  /*¶¨ÒåÉÏÏÂÎÄ*/
+  sqlite3_context *context,  /*å®šä¹‰ä¸Šä¸‹æ–‡*/
   int argc,
   sqlite3_value **argv
 ){
-  Stat3Accum *p;  //¶¨Òå½á¹¹ÌåÖ¸Õë
-  tRowcnt nRow;  /*ºê¶¨Òå£ºtypedef u32 tRowcnt£¬ 32-bit is the default 32Î»ÊÇÄ¬ÈÏµÄ  */
+  Stat3Accum *p;  //å®šä¹‰ç»“æ„ä½“æŒ‡é’ˆ
+  tRowcnt nRow;  /*å®å®šä¹‰ï¼štypedef u32 tRowcntï¼Œ 32-bit is the default 32ä½æ˜¯é»˜è®¤çš„  */
   int mxSample;
   int n;
 
-  UNUSED_PARAMETER(argc);  /* UNUSED_PARAMETERºê±»ÓÃÀ´ÒÖÖÆ±àÒëÆ÷¾¯¸æ£¬*³ö×ÔsqliteInt.h 631ĞĞ */
+  UNUSED_PARAMETER(argc);  /* UNUSED_PARAMETERå®è¢«ç”¨æ¥æŠ‘åˆ¶ç¼–è¯‘å™¨è­¦å‘Šï¼Œ*å‡ºè‡ªsqliteInt.h 631è¡Œ */
   nRow = (tRowcnt)sqlite3_value_int64(argv[0]);
   mxSample = sqlite3_value_int(argv[1]);
   n = sizeof(*p) + sizeof(p->a[0])*mxSample;
-  p = sqlite3MallocZero( n );  /*·ÖÅä0ÄÚ´æ*/
+  p = sqlite3MallocZero( n );  /*åˆ†é…0å†…å­˜*/
   if( p==0 ){
     sqlite3_result_error_nomem(context);
     return;
   }
-  //³õÊ¼»¯Ã¿Ò»¸ö±äÁ¿
+  //åˆå§‹åŒ–æ¯ä¸€ä¸ªå˜é‡
   p->a = (struct Stat3Sample*)&p[1];
   p->nRow = nRow;
   p->mxSample = mxSample;
@@ -306,7 +306,7 @@ static void stat3Init(
   sqlite3_randomness(sizeof(p->iPrn), &p->iPrn);
   sqlite3_result_blob(context, p, sizeof(p), sqlite3_free);
 }
-static const FuncDef stat3InitFuncdef = {  /*FuncDefÎªÒ»½á¹¹Ìå£¬Ã¿¸öSQLº¯ÊıÓÉ¸Ã½á¹¹ÌåµÄÒ»¸öÊµÀıÀ´¶¨Òå¡£*/
+static const FuncDef stat3InitFuncdef = {  /*FuncDefä¸ºä¸€ç»“æ„ä½“ï¼Œæ¯ä¸ªSQLå‡½æ•°ç”±è¯¥ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹æ¥å®šä¹‰ã€‚*/
   2,                /* nArg */
   SQLITE_UTF8,      /* iPrefEnc */
   0,                /* flags */
@@ -331,10 +331,10 @@ static const FuncDef stat3InitFuncdef = {  /*FuncDefÎªÒ»½á¹¹Ìå£¬Ã¿¸öSQLº¯ÊıÓÉ¸Ã½
 */
 
 /*
-** SQLº¯Êıstat3_push(nEq,nLt,nDLt,rowid,P)µÄÊµÏÖ¡£ ÕâĞ©²ÎÊıÃèÊöÁËÒ»¸ö¹Ø¼üÊµÀı¡£
-**Õâ¸ö¹ı³Ì×ö³ö¾ö¶¨£¬¹ØÓÚÊÇ·ñ±£Áôsqlite_stat3±íµÄ¹Ø¼ü×Ö¡£
+** SQLå‡½æ•°stat3_push(nEq,nLt,nDLt,rowid,P)çš„å®ç°ã€‚ è¿™äº›å‚æ•°æè¿°äº†ä¸€ä¸ªå…³é”®å®ä¾‹ã€‚
+**è¿™ä¸ªè¿‡ç¨‹åšå‡ºå†³å®šï¼Œå…³äºæ˜¯å¦ä¿ç•™sqlite_stat3è¡¨çš„å…³é”®å­—ã€‚
 **
-**·µ»ØÖµÎª¿Õ¡£
+**è¿”å›å€¼ä¸ºç©ºã€‚
 */
 static void stat3Push(
   sqlite3_context *context,
@@ -342,18 +342,18 @@ static void stat3Push(
   sqlite3_value **argv
 ){
   Stat3Accum *p = (Stat3Accum*)sqlite3_value_blob(argv[4]);
-  tRowcnt nEq = sqlite3_value_int64(argv[0]);  /*ºê¶¨Òå£ºtypedef u32 tRowcnt£¬ 32-bit is the default 32Î»ÊÇÄ¬ÈÏµÄ  */
+  tRowcnt nEq = sqlite3_value_int64(argv[0]);  /*å®å®šä¹‰ï¼štypedef u32 tRowcntï¼Œ 32-bit is the default 32ä½æ˜¯é»˜è®¤çš„  */
   tRowcnt nLt = sqlite3_value_int64(argv[1]);
   tRowcnt nDLt = sqlite3_value_int64(argv[2]);
-  i64 rowid = sqlite3_value_int64(argv[3]);  /*i64±íÊ¾8Î»ÓĞ·ûºÅÕûÊı*/
-  u8 isPSample = 0;  /*u8±íÊ¾1Î»ÎŞ·ûºÅÕûÊı*/
+  i64 rowid = sqlite3_value_int64(argv[3]);  /*i64è¡¨ç¤º8ä½æœ‰ç¬¦å·æ•´æ•°*/
+  u8 isPSample = 0;  /*u8è¡¨ç¤º1ä½æ— ç¬¦å·æ•´æ•°*/
   u8 doInsert = 0;
   int iMin = p->iMin;
   struct Stat3Sample *pSample;
   int i;
   u32 h;
 
-  UNUSED_PARAMETER(context);  /* UNUSED_PARAMETERºê±»ÓÃÀ´ÒÖÖÆ±àÒëÆ÷¾¯¸æ£¬*³ö×ÔsqliteInt.h 631ĞĞ */
+  UNUSED_PARAMETER(context);  /* UNUSED_PARAMETERå®è¢«ç”¨æ¥æŠ‘åˆ¶ç¼–è¯‘å™¨è­¦å‘Šï¼Œ*å‡ºè‡ªsqliteInt.h 631è¡Œ */
   UNUSED_PARAMETER(argc);
   if( nEq==0 ) return;
   h = p->iPrn = p->iPrn*1103515245 + 12345;
@@ -382,7 +382,7 @@ static void stat3Push(
   pSample->isPSample = isPSample;
 
   /* Find the new minimum */
-  /*ÕÒµ½ĞÂµÄ×îĞ¡Öµ*/
+  /*æ‰¾åˆ°æ–°çš„æœ€å°å€¼*/
   if( p->nSample==p->mxSample ){
     pSample = p->a;
     i = 0;
@@ -433,12 +433,12 @@ static const FuncDef stat3PushFuncdef = {
 **   argc==5    result:  nDLt
 */
 
-/*SQLº¯Êıstat3_get(P,N,...)µÄÊµÏÖ¡£Õâ¸ö¹ı³ÌÓÃÓÚ²éÑ¯½á¹û¡£·µ»ØµÄÊÇsqlite_stat3µÄµÚNĞĞ
-**NÊÇÔÚ0 µ½ S-1Ö®¼ä£¬sÊÇÑù±¾Êı¡£·µ»ØµÄÖµÈ¡¾öÓÚµÄÊÇ²ÎÊıµÄ¸öÊı¡£
-**   argc==2    ½á¹û:  rowid
-**   argc==3    ½á¹û:  nEq
-**   argc==4    ½á¹û:  nLt
-**   argc==5    ½á¹û:  nDLt
+/*SQLå‡½æ•°stat3_get(P,N,...)çš„å®ç°ã€‚è¿™ä¸ªè¿‡ç¨‹ç”¨äºæŸ¥è¯¢ç»“æœã€‚è¿”å›çš„æ˜¯sqlite_stat3çš„ç¬¬Nè¡Œ
+**Næ˜¯åœ¨0 åˆ° S-1ä¹‹é—´ï¼Œsæ˜¯æ ·æœ¬æ•°ã€‚è¿”å›çš„å€¼å–å†³äºçš„æ˜¯å‚æ•°çš„ä¸ªæ•°ã€‚
+**   argc==2    ç»“æœ:  rowid
+**   argc==3    ç»“æœ:  nEq
+**   argc==4    ç»“æœ:  nLt
+**   argc==5    ç»“æœ:  nDLt
 */
 static void stat3Get(
   sqlite3_context *context,
@@ -450,7 +450,7 @@ static void stat3Get(
 
   assert( p!=0 );
   if( p->nSample<=n ) return;
-  //¸ù¾İ²ÎÊıµÄ²»Í¬£¬·µ»Ø²»Í¬µÄÖµ
+  //æ ¹æ®å‚æ•°çš„ä¸åŒï¼Œè¿”å›ä¸åŒçš„å€¼
   switch( argc ){
     case 2:  sqlite3_result_int64(context, p->a[n].iRowid); break;
     case 3:  sqlite3_result_int64(context, p->a[n].nEq);    break;
@@ -481,119 +481,119 @@ static const FuncDef stat3GetFuncdef = {
 ** a single table.
 */
 /*
-**¶ÔËù¹ØÁªµÄµ¥Ò»±íµÄËùÓĞË÷Òı½øĞĞ·ÖÎö
+**å¯¹æ‰€å…³è”çš„å•ä¸€è¡¨çš„æ‰€æœ‰ç´¢å¼•è¿›è¡Œåˆ†æ
 */
 static void analyzeOneTable(
-  Parse *pParse,   /* Parser context */  /* ½âÎöÆ÷ÉÏÏÂÎÄ */
-  Table *pTab,     /* Table whose indices are to be analyzed */ /* Òª·ÖÎöË÷ÒıµÄ±í*/
-  Index *pOnlyIdx, /* If not NULL, only analyze this one index */ /*Èç¹û·Ç¿Õ, Ö»·ÖÎöÕâÒ»¸öË÷Òı*/
-  int iStatCur,    /* Index of VdbeCursor that writes the sqlite_stat1 table */ /* VdbeCursorµÄË÷Òı£¬ÓÃÓÚĞ´sqlite_stat1 ±í */
-  int iMem         /* Available memory locations begin here */  /*¿ÉÓÃÄÚ´æÆğÊ¼Î»ÖÃ */
+  Parse *pParse,   /* Parser context */  /* è§£æå™¨ä¸Šä¸‹æ–‡ */
+  Table *pTab,     /* Table whose indices are to be analyzed */ /* è¦åˆ†æç´¢å¼•çš„è¡¨*/
+  Index *pOnlyIdx, /* If not NULL, only analyze this one index */ /*å¦‚æœéç©º, åªåˆ†æè¿™ä¸€ä¸ªç´¢å¼•*/
+  int iStatCur,    /* Index of VdbeCursor that writes the sqlite_stat1 table */ /* VdbeCursorçš„ç´¢å¼•ï¼Œç”¨äºå†™sqlite_stat1 è¡¨ */
+  int iMem         /* Available memory locations begin here */  /*å¯ç”¨å†…å­˜èµ·å§‹ä½ç½® */
 ){
-  sqlite3 *db = pParse->db;    /* Database handle */ /*Êı¾İ¿â¾ä±ú */
-  Index *pIdx;                 /* An index to being analyzed */ /* Ò»¸öÕıÔÚ±»·ÖÎöµÄË÷Òı*/
-  int iIdxCur;                 /* Cursor open on index being analyzed */ /* ÕıÔÚ±»·ÖÎöµÄË÷ÒıÉÏ´ò¿ªµÄÏÂ±ê*/
-  Vdbe *v;                     /* The virtual machine being built up *//*½¨Á¢µÄĞéÄâ»ú */
-  int i;                       /* Loop counter */ /*Ñ­»·¼ÆÊı */
-  int topOfLoop;               /* The top of the loop */  /* Ñ­»·µÄ¿ªÊ¼ */
-  int endOfLoop;               /* The end of the loop */  /* Ñ­»·µÄ½áÊø */
-  int jZeroRows = -1;          /* Jump from here if number of rows is zero */ /* Èç¹ûĞĞÊıÎª0´Ó´ËÌø×ª*/
-  int iDb;                     /* Index of database containing pTab */ /* °üº¬Òª·ÖÎö±íµÄÊı¾İ¿âµÄË÷Òı*/
-  int regTabname = iMem++;     /* Register containing table name *//* °üº¬±íÃûµÄ¼Ä´æÆ÷ */
-  int regIdxname = iMem++;     /* Register containing index name *//* °üº¬Ë÷ÒıÃûµÄ¼Ä´æÆ÷ */
-  int regStat1 = iMem++;       /* The stat column of sqlite_stat1 *//* sqlite_stat1±íµÄstatÁĞ*/
+  sqlite3 *db = pParse->db;    /* Database handle */ /*æ•°æ®åº“å¥æŸ„ */
+  Index *pIdx;                 /* An index to being analyzed */ /* ä¸€ä¸ªæ­£åœ¨è¢«åˆ†æçš„ç´¢å¼•*/
+  int iIdxCur;                 /* Cursor open on index being analyzed */ /* æ­£åœ¨è¢«åˆ†æçš„ç´¢å¼•ä¸Šæ‰“å¼€çš„ä¸‹æ ‡*/
+  Vdbe *v;                     /* The virtual machine being built up *//*å»ºç«‹çš„è™šæ‹Ÿæœº */
+  int i;                       /* Loop counter */ /*å¾ªç¯è®¡æ•° */
+  int topOfLoop;               /* The top of the loop */  /* å¾ªç¯çš„å¼€å§‹ */
+  int endOfLoop;               /* The end of the loop */  /* å¾ªç¯çš„ç»“æŸ */
+  int jZeroRows = -1;          /* Jump from here if number of rows is zero */ /* å¦‚æœè¡Œæ•°ä¸º0ä»æ­¤è·³è½¬*/
+  int iDb;                     /* Index of database containing pTab */ /* åŒ…å«è¦åˆ†æè¡¨çš„æ•°æ®åº“çš„ç´¢å¼•*/
+  int regTabname = iMem++;     /* Register containing table name *//* åŒ…å«è¡¨åçš„å¯„å­˜å™¨ */
+  int regIdxname = iMem++;     /* Register containing index name *//* åŒ…å«ç´¢å¼•åçš„å¯„å­˜å™¨ */
+  int regStat1 = iMem++;       /* The stat column of sqlite_stat1 *//* sqlite_stat1è¡¨çš„statåˆ—*/
 #ifdef SQLITE_ENABLE_STAT3
-  int regNumEq = regStat1;     /* Number of instances.  Same as regStat1 */ /*ÊµÀıµÄÊıÁ¿£¬ÀàËÆStatÁĞregStat1*/
-  int regNumLt = iMem++;       /* Number of keys less than regSample */ /*Ğ¡ÓÚÊµÀıµÄ¹Ø¼ü×ÖÊıÄ¿*/ 
-  int regNumDLt = iMem++;      /* Number of distinct keys less than regSample */ /*Ğ¡ÓÚÊµÀıµÄ²»Í¬¹Ø¼ü×ÖµÄÊıÄ¿*/
-  int regSample = iMem++;      /* The next sample value */ /*ÏÂÒ»¸öÊµÀıµÄÖµ*/
-  int regRowid = regSample;    /* Rowid of a sample */ /*ÑùÀı±íµÄRowid*/
-  int regAccum = iMem++;       /* Register to hold Stat3Accum object */ /*±£´æStat3Accum¶ÔÏóµÄ¼Ä´æÆ÷*/
-  int regLoop = iMem++;        /* Loop counter */ /*Ñ­»·¼ÆÊıÆ÷*/
-  int regCount = iMem++;       /* Number of rows in the table or index */ /*±í»òË÷ÒıÖĞµÄĞĞÊı*/
-  int regTemp1 = iMem++;       /* Intermediate register */ /*ÖĞ¼ä¼Ä´æÆ÷*/
-  int regTemp2 = iMem++;       /* Intermediate register */ /*ÖĞ¼ä¼Ä´æÆ÷*/
-  int once = 1;                /* One-time initialization */ /*Ò»´ÎĞÔ³õÊ¼»¯*/
-  int shortJump = 0;           /* Instruction address */ /*Ö¸ÁîµØÖ·*/
-  int iTabCur = pParse->nTab++; /* Table cursor */ /*±íµÄÓÎ±ê*/
+  int regNumEq = regStat1;     /* Number of instances.  Same as regStat1 */ /*å®ä¾‹çš„æ•°é‡ï¼Œç±»ä¼¼Statåˆ—regStat1*/
+  int regNumLt = iMem++;       /* Number of keys less than regSample */ /*å°äºå®ä¾‹çš„å…³é”®å­—æ•°ç›®*/ 
+  int regNumDLt = iMem++;      /* Number of distinct keys less than regSample */ /*å°äºå®ä¾‹çš„ä¸åŒå…³é”®å­—çš„æ•°ç›®*/
+  int regSample = iMem++;      /* The next sample value */ /*ä¸‹ä¸€ä¸ªå®ä¾‹çš„å€¼*/
+  int regRowid = regSample;    /* Rowid of a sample */ /*æ ·ä¾‹è¡¨çš„Rowid*/
+  int regAccum = iMem++;       /* Register to hold Stat3Accum object */ /*ä¿å­˜Stat3Accumå¯¹è±¡çš„å¯„å­˜å™¨*/
+  int regLoop = iMem++;        /* Loop counter */ /*å¾ªç¯è®¡æ•°å™¨*/
+  int regCount = iMem++;       /* Number of rows in the table or index */ /*è¡¨æˆ–ç´¢å¼•ä¸­çš„è¡Œæ•°*/
+  int regTemp1 = iMem++;       /* Intermediate register */ /*ä¸­é—´å¯„å­˜å™¨*/
+  int regTemp2 = iMem++;       /* Intermediate register */ /*ä¸­é—´å¯„å­˜å™¨*/
+  int once = 1;                /* One-time initialization */ /*ä¸€æ¬¡æ€§åˆå§‹åŒ–*/
+  int shortJump = 0;           /* Instruction address */ /*æŒ‡ä»¤åœ°å€*/
+  int iTabCur = pParse->nTab++; /* Table cursor */ /*è¡¨çš„æ¸¸æ ‡*/
 #endif
-  int regCol = iMem++;         /* Content of a column in analyzed table *//* ±»·ÖÎöµÄ±íÖĞÒ»ÁĞµÄÄÚÈİ */
-  int regRec = iMem++;         /* Register holding completed record */ /* ³ÖÓĞÍêÕû¼ÇÂ¼µÄ¼ÇÂ¼Æ÷ */
-  int regTemp = iMem++;        /* Temporary use register *//* ÁÙÊ±ÓÃµ½µÄ¼ÇÂ¼Æ÷*/
-  int regNewRowid = iMem++;    /* Rowid for the inserted record */ /* ²åÈë¼ÇÂ¼µÄrowid*/
+  int regCol = iMem++;         /* Content of a column in analyzed table *//* è¢«åˆ†æçš„è¡¨ä¸­ä¸€åˆ—çš„å†…å®¹ */
+  int regRec = iMem++;         /* Register holding completed record */ /* æŒæœ‰å®Œæ•´è®°å½•çš„è®°å½•å™¨ */
+  int regTemp = iMem++;        /* Temporary use register *//* ä¸´æ—¶ç”¨åˆ°çš„è®°å½•å™¨*/
+  int regNewRowid = iMem++;    /* Rowid for the inserted record */ /* æ’å…¥è®°å½•çš„rowid*/
 
 
-  v = sqlite3GetVdbe(pParse);  /*»ñµÃĞéÄâ»ú*/
-  if( v==0 || NEVER(pTab==0) ){  /*Ã»ÓĞ»ñµÃĞéÄâ»ú»òÃ»ÓĞ±í*/
+  v = sqlite3GetVdbe(pParse);  /*è·å¾—è™šæ‹Ÿæœº*/
+  if( v==0 || NEVER(pTab==0) ){  /*æ²¡æœ‰è·å¾—è™šæ‹Ÿæœºæˆ–æ²¡æœ‰è¡¨*/
     return;
   }
-  if( pTab->tnum==0 ){   /*tnum±íÊ¾ ±íµÄBÊ÷µÄ¸ù½Úµã*/
-    /* Do not gather statistics on views or virtual tables */ /*²»ÊÕ¼¯ÊÓÍ¼»òĞéÄâ±íµÄÍ³¼ÆĞÅÏ¢*/
+  if( pTab->tnum==0 ){   /*tnumè¡¨ç¤º è¡¨çš„Bæ ‘çš„æ ¹èŠ‚ç‚¹*/
+    /* Do not gather statistics on views or virtual tables */ /*ä¸æ”¶é›†è§†å›¾æˆ–è™šæ‹Ÿè¡¨çš„ç»Ÿè®¡ä¿¡æ¯*/
     return;
   }
-  if( memcmp(pTab->zName, "sqlite_", 7)==0 ){  /*ÅĞ¶¨ÒÔ sqlite_ Æ¥ÅäµÄ±íÃû*/
-    /* Do not gather statistics on system tables */  /*²»ÊÕ¼¯ÏµÍ³±íµÄÍ³¼ÆĞÅÏ¢*/
+  if( memcmp(pTab->zName, "sqlite_", 7)==0 ){  /*åˆ¤å®šä»¥ sqlite_ åŒ¹é…çš„è¡¨å*/
+    /* Do not gather statistics on system tables */  /*ä¸æ”¶é›†ç³»ç»Ÿè¡¨çš„ç»Ÿè®¡ä¿¡æ¯*/
     return;
   }
-  assert( sqlite3BtreeHoldsAllMutexes(db) );  /*ÅĞ¶Ï BÊ÷ÓµÓĞËùÓĞ»¥³â*/
-  iDb = sqlite3SchemaToIndex(db, pTab->pSchema);  /*½«Ä£Ê½Ö¸Õë×ª»»ÎªÊı¾İ¿âË÷Òı£¬¸ÃË÷ÒıÖ¸³ö ÔÚdb->aDb[]ÖĞÄ£Ê½Ö¸ÏòµÄÊı¾İ¿âÎÄ¼ş*/
-  assert( iDb>=0 );  /*ÅĞ¶Ï ´æÔÚÊı¾İ¿â*/
-  assert( sqlite3SchemaMutexHeld(db, iDb, 0) );  /*ÅĞ¶Ï Ä£Ê½ÓµÓĞ»¥³â */
+  assert( sqlite3BtreeHoldsAllMutexes(db) );  /*åˆ¤æ–­ Bæ ‘æ‹¥æœ‰æ‰€æœ‰äº’æ–¥*/
+  iDb = sqlite3SchemaToIndex(db, pTab->pSchema);  /*å°†æ¨¡å¼æŒ‡é’ˆè½¬æ¢ä¸ºæ•°æ®åº“ç´¢å¼•ï¼Œè¯¥ç´¢å¼•æŒ‡å‡º åœ¨db->aDb[]ä¸­æ¨¡å¼æŒ‡å‘çš„æ•°æ®åº“æ–‡ä»¶*/
+  assert( iDb>=0 );  /*åˆ¤æ–­ å­˜åœ¨æ•°æ®åº“*/
+  assert( sqlite3SchemaMutexHeld(db, iDb, 0) );  /*åˆ¤æ–­ æ¨¡å¼æ‹¥æœ‰äº’æ–¥ */
 #ifndef SQLITE_OMIT_AUTHORIZATION
   if( sqlite3AuthCheck(pParse, SQLITE_ANALYZE, pTab->zName, 0,
-      db->aDb[iDb].zName ) ){   /*×öÒ»¸öÊ¹ÓÃ¸ø¶¨´úÂëºÍ²ÎÊıµÄÊÚÈ¨¼ì²é*/
+      db->aDb[iDb].zName ) ){   /*åšä¸€ä¸ªä½¿ç”¨ç»™å®šä»£ç å’Œå‚æ•°çš„æˆæƒæ£€æŸ¥*/
     return;
   }
 #endif
 
   /* Establish a read-lock on the table at the shared-cache level. */
 
-  /*ÔÚ¹²ÏícacheµÈ¼¶ÉÏµÄ±íÉÏ½¨Á¢¶ÁËø*/
+  /*åœ¨å…±äº«cacheç­‰çº§ä¸Šçš„è¡¨ä¸Šå»ºç«‹è¯»é”*/
   sqlite3TableLock(pParse, iDb, pTab->tnum, 0, pTab->zName);
 
-  iIdxCur = pParse->nTab++;   /*nTab±íÊ¾ÊÂÏÈ·ÖÅäµÄVDBE¹â±êµÄÊıÁ¿*/
-  sqlite3VdbeAddOp4(v, OP_String8, 0, regTabname, 0, pTab->zName, 0);  /*Ìí¼ÓÒ»¸ö°üº¬p4Öµ×÷ÎªÖ¸ÕëµÄ²Ù×÷Âë*/
-  for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){  /*pIndex±íÊ¾¸Ã±íµÄSQLË÷ÒıÁĞ±í£¬pNext±íÊ¾Ïà¹ØÁªµÄÍ¬Ò»¸ö±íµÄÏÂÒ»¸öË÷Òı*/
-    int nCol;  /*¶¨Òå±íµÄÁĞ±àºÅ*/
-    KeyInfo *pKey;    /*KeyInfo½á¹¹Ìå£¬¶¨ÒåË÷Òı¹Ø¼ü×Ö*/
-    int addrIfNot = 0;           /* address of OP_IfNot */ /*OP_IfNotµÄµØÖ·*/
-    int *aChngAddr;              /* Array of jump instruction addresses */  /*Ìø×ªÖ¸ÁîµØÖ·µÄÊı×é*/
+  iIdxCur = pParse->nTab++;   /*nTabè¡¨ç¤ºäº‹å…ˆåˆ†é…çš„VDBEå…‰æ ‡çš„æ•°é‡*/
+  sqlite3VdbeAddOp4(v, OP_String8, 0, regTabname, 0, pTab->zName, 0);  /*æ·»åŠ ä¸€ä¸ªåŒ…å«p4å€¼ä½œä¸ºæŒ‡é’ˆçš„æ“ä½œç */
+  for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){  /*pIndexè¡¨ç¤ºè¯¥è¡¨çš„SQLç´¢å¼•åˆ—è¡¨ï¼ŒpNextè¡¨ç¤ºç›¸å…³è”çš„åŒä¸€ä¸ªè¡¨çš„ä¸‹ä¸€ä¸ªç´¢å¼•*/
+    int nCol;  /*å®šä¹‰è¡¨çš„åˆ—ç¼–å·*/
+    KeyInfo *pKey;    /*KeyInfoç»“æ„ä½“ï¼Œå®šä¹‰ç´¢å¼•å…³é”®å­—*/
+    int addrIfNot = 0;           /* address of OP_IfNot */ /*OP_IfNotçš„åœ°å€*/
+    int *aChngAddr;              /* Array of jump instruction addresses */  /*è·³è½¬æŒ‡ä»¤åœ°å€çš„æ•°ç»„*/
 
     if( pOnlyIdx && pOnlyIdx!=pIdx ) continue;
-    VdbeNoopComment((v, "Begin analysis of %s", pIdx->zName));  /*ÌáÊ¾¿ªÊ¼·ÖÎöpIdxÖ¸¶¨±íÃûµÄ±í*/
-    nCol = pIdx->nColumn;    /*nColumn±íÊ¾Í¨¹ı¸ÃË÷ÒıÊ¹ÓÃµÄ±íµÄÁĞÊı*/
-    aChngAddr = sqlite3DbMallocRaw(db, sizeof(int)*nCol);  /*µ÷ÓÃsqlite3DbMallocRaw·½·¨£¬·ÖÅäÄÚ´æ¡£³ö×Ômalloc.c*/
+    VdbeNoopComment((v, "Begin analysis of %s", pIdx->zName));  /*æç¤ºå¼€å§‹åˆ†æpIdxæŒ‡å®šè¡¨åçš„è¡¨*/
+    nCol = pIdx->nColumn;    /*nColumnè¡¨ç¤ºé€šè¿‡è¯¥ç´¢å¼•ä½¿ç”¨çš„è¡¨çš„åˆ—æ•°*/
+    aChngAddr = sqlite3DbMallocRaw(db, sizeof(int)*nCol);  /*è°ƒç”¨sqlite3DbMallocRawæ–¹æ³•ï¼Œåˆ†é…å†…å­˜ã€‚å‡ºè‡ªmalloc.c*/
     if( aChngAddr==0 ) continue;
-	/*µ÷ÓÃsqlite3IndexKeyinfo·½·¨£¬·µ»ØÒ»¸ö¶¯Ì¬·ÖÅäµÄÃÜÔ¿ĞÅÏ¢µÄ½á¹¹£¬¿ÉÒÔÓÃÓÚOP_OpenRead»òOP_OpenWrite·ÃÎÊÊı¾İ¿âË÷ÒıpIdx¡£³ö×Ôbuild.c*/
+	/*è°ƒç”¨sqlite3IndexKeyinfoæ–¹æ³•ï¼Œè¿”å›ä¸€ä¸ªåŠ¨æ€åˆ†é…çš„å¯†é’¥ä¿¡æ¯çš„ç»“æ„ï¼Œå¯ä»¥ç”¨äºOP_OpenReadæˆ–OP_OpenWriteè®¿é—®æ•°æ®åº“ç´¢å¼•pIdxã€‚å‡ºè‡ªbuild.c*/
     pKey = sqlite3IndexKeyinfo(pParse, pIdx);  
-    if( iMem+1+(nCol*2)>pParse->nMem ){  /*nMem±íÊ¾µ½Ä¿Ç°ÎªÖ¹Ê¹ÓÃµÄÄÚ´æµ¥ÔªµÄÊıÁ¿*/
+    if( iMem+1+(nCol*2)>pParse->nMem ){  /*nMemè¡¨ç¤ºåˆ°ç›®å‰ä¸ºæ­¢ä½¿ç”¨çš„å†…å­˜å•å…ƒçš„æ•°é‡*/
       pParse->nMem = iMem+1+(nCol*2);
     }
 
     /* Open a cursor to the index to be analyzed. */
-    /*´ò¿ª½«±»·ÖÎöµÄË÷ÒıµÄÓÎ±ê*/
+    /*æ‰“å¼€å°†è¢«åˆ†æçš„ç´¢å¼•çš„æ¸¸æ ‡*/
     assert( iDb==sqlite3SchemaToIndex(db, pIdx->pSchema) );
     sqlite3VdbeAddOp4(v, OP_OpenRead, iIdxCur, pIdx->tnum, iDb,
         (char *)pKey, P4_KEYINFO_HANDOFF);
     VdbeComment((v, "%s", pIdx->zName));
 
-    /* Populate the register containing the index name. */ /*ÒÆÖ²°üº¬¸ÃË÷ÒıÃû×ÖµÄ¼Ä´æÆ÷*/
+    /* Populate the register containing the index name. */ /*ç§»æ¤åŒ…å«è¯¥ç´¢å¼•åå­—çš„å¯„å­˜å™¨*/
     sqlite3VdbeAddOp4(v, OP_String8, 0, regIdxname, 0, pIdx->zName, 0);
 
-#ifdef SQLITE_ENABLE_STAT3  /*¶¨Òåºê*/
+#ifdef SQLITE_ENABLE_STAT3  /*å®šä¹‰å®*/
     if( once ){
       once = 0;
-      sqlite3OpenTable(pParse, iTabCur, iDb, pTab, OP_OpenRead);  /*¸ù¾İÓÎ±êiTabCur¡¢Êı¾İ¿âË÷ÒıiDb¡¢±í¶¨ÒåpTab£¬´ò¿ª±í*/
+      sqlite3OpenTable(pParse, iTabCur, iDb, pTab, OP_OpenRead);  /*æ ¹æ®æ¸¸æ ‡iTabCurã€æ•°æ®åº“ç´¢å¼•iDbã€è¡¨å®šä¹‰pTabï¼Œæ‰“å¼€è¡¨*/
     }
     sqlite3VdbeAddOp2(v, OP_Count, iIdxCur, regCount);  
-    sqlite3VdbeAddOp2(v, OP_Integer, SQLITE_STAT3_SAMPLES, regTemp1);  /*SQLITE_STAT3_SAMPLES±íÊ¾sqlite_stat3µÄ²ÉÑùÊı*/
+    sqlite3VdbeAddOp2(v, OP_Integer, SQLITE_STAT3_SAMPLES, regTemp1);  /*SQLITE_STAT3_SAMPLESè¡¨ç¤ºsqlite_stat3çš„é‡‡æ ·æ•°*/
     sqlite3VdbeAddOp2(v, OP_Integer, 0, regNumEq);
     sqlite3VdbeAddOp2(v, OP_Integer, 0, regNumLt);
     sqlite3VdbeAddOp2(v, OP_Integer, -1, regNumDLt);
-    sqlite3VdbeAddOp3(v, OP_Null, 0, regSample, regAccum);  /*ÔÚVDBEÖĞÌí¼ÓÒ»¸öĞÂµÄÖ¸Áîµ½µ±Ç°ÁĞ±íÖĞ£¬·µ»ØĞÂµÄÖ¸ÁîµÄµØÖ·¡£³ö×Ôvdbeaux.c*/
+    sqlite3VdbeAddOp3(v, OP_Null, 0, regSample, regAccum);  /*åœ¨VDBEä¸­æ·»åŠ ä¸€ä¸ªæ–°çš„æŒ‡ä»¤åˆ°å½“å‰åˆ—è¡¨ä¸­ï¼Œè¿”å›æ–°çš„æŒ‡ä»¤çš„åœ°å€ã€‚å‡ºè‡ªvdbeaux.c*/
     sqlite3VdbeAddOp4(v, OP_Function, 1, regCount, regAccum,
                       (char*)&stat3InitFuncdef, P4_FUNCDEF);
-    sqlite3VdbeChangeP5(v, 2);  /*Îª×î½üÌí¼ÓµÄ²Ù×÷¸ü¸Ä²Ù×÷Êı P5 µÄÖµ*/
+    sqlite3VdbeChangeP5(v, 2);  /*ä¸ºæœ€è¿‘æ·»åŠ çš„æ“ä½œæ›´æ”¹æ“ä½œæ•° P5 çš„å€¼*/
 #endif /* SQLITE_ENABLE_STAT3 */
 
     /* The block of memory cells initialized here is used as follows.
@@ -612,19 +612,19 @@ static void analyzeOneTable(
     ** Cells iMem through iMem+nCol are initialized to 0. The others are 
     ** initialized to contain an SQL NULL.
     **
-    ** ±»³õÊ¼»¯µÄÄÚ´æ¿éÈçÏÂ.
+    ** è¢«åˆå§‹åŒ–çš„å†…å­˜å—å¦‚ä¸‹.
     **
     **    iMem:                
-    **        ±íµÄ×ÜĞĞÊı.
+    **        è¡¨çš„æ€»è¡Œæ•°.
     **
     **    iMem+1 .. iMem+nCol: 
-    **        Ë÷ÒıÖĞ²»Í¬µÄÌõÄ¿ÊıÖ»¿¼ÂÇ×î×ó±ßµÄµÄNÁĞ,N ÔÚ 1 µ½ nColÖ®¼ä¡£
+    **        ç´¢å¼•ä¸­ä¸åŒçš„æ¡ç›®æ•°åªè€ƒè™‘æœ€å·¦è¾¹çš„çš„Nåˆ—,N åœ¨ 1 åˆ° nColä¹‹é—´ã€‚
     **
     **    iMem+nCol+1 .. Mem+2*nCol:  
-    **        ±»Ë÷ÒıµÄÁĞÖ®Ç°µÄÖµ, ´Ó×óµ½ÓÒ.
+    **        è¢«ç´¢å¼•çš„åˆ—ä¹‹å‰çš„å€¼, ä»å·¦åˆ°å³.
     **
-    ** µ¥Ôª iMem µ½ iMem+nCol ±»³õÊ¼»¯Îª 0. ÆäËû±»³õÊ¼»¯Îª 
-    ** °üº¬Ò»¸ö¿ÕµÄ SQL.
+    ** å•å…ƒ iMem åˆ° iMem+nCol è¢«åˆå§‹åŒ–ä¸º 0. å…¶ä»–è¢«åˆå§‹åŒ–ä¸º 
+    ** åŒ…å«ä¸€ä¸ªç©ºçš„ SQL.
     */
     for(i=0; i<=nCol; i++){
       sqlite3VdbeAddOp2(v, OP_Integer, 0, iMem+i);
@@ -636,27 +636,27 @@ static void analyzeOneTable(
     /* Start the analysis loop. This loop runs through all the entries in
     ** the index b-tree.  */
 
-    /* ¿ªÊ¼Ñ­»··ÖÎö. Õâ¸öÑ­»·ÔËĞĞÁËÔÚË÷Òı b-Ê÷ÖĞµÄËùÓĞÌõÄ¿*/
-    endOfLoop = sqlite3VdbeMakeLabel(v);  /*´´½¨Ò»¸ö»¹Ã»ÓĞ±»±àÂëµÄÖ¸ÁîµÄĞÂ·ûºÅ±êÇ©£¬Õâ¸ö·ûºÅ±êÇ©½ö±íÊ¾Ò»¸ö¸ºÊı¡£³ö×Ôvdbeaux.c*/
+    /* å¼€å§‹å¾ªç¯åˆ†æ. è¿™ä¸ªå¾ªç¯è¿è¡Œäº†åœ¨ç´¢å¼• b-æ ‘ä¸­çš„æ‰€æœ‰æ¡ç›®*/
+    endOfLoop = sqlite3VdbeMakeLabel(v);  /*åˆ›å»ºä¸€ä¸ªè¿˜æ²¡æœ‰è¢«ç¼–ç çš„æŒ‡ä»¤çš„æ–°ç¬¦å·æ ‡ç­¾ï¼Œè¿™ä¸ªç¬¦å·æ ‡ç­¾ä»…è¡¨ç¤ºä¸€ä¸ªè´Ÿæ•°ã€‚å‡ºè‡ªvdbeaux.c*/
     sqlite3VdbeAddOp2(v, OP_Rewind, iIdxCur, endOfLoop);
-    topOfLoop = sqlite3VdbeCurrentAddr(v);  /*·µ»Ø²åÈëÏÂÒ»ÌõÖ¸ÁîµÄµØÖ·¡£*/
-    sqlite3VdbeAddOp2(v, OP_AddImm, iMem, 1);  /* ĞĞµİÔö¼ÆÊıÆ÷ */
+    topOfLoop = sqlite3VdbeCurrentAddr(v);  /*è¿”å›æ’å…¥ä¸‹ä¸€æ¡æŒ‡ä»¤çš„åœ°å€ã€‚*/
+    sqlite3VdbeAddOp2(v, OP_AddImm, iMem, 1);  /* è¡Œé€’å¢è®¡æ•°å™¨ */
 
     for(i=0; i<nCol; i++){
-      CollSeq *pColl;  /*¶¨ÒåÒ»¸öÅÅĞòĞòÁĞ*/
+      CollSeq *pColl;  /*å®šä¹‰ä¸€ä¸ªæ’åºåºåˆ—*/
       sqlite3VdbeAddOp3(v, OP_Column, iIdxCur, i, regCol);
       if( i==0 ){
         /* Always record the very first row */
-        /* ×ÜÊÇ¼ÇÂ¼µÚÒ»ĞĞ*/
+        /* æ€»æ˜¯è®°å½•ç¬¬ä¸€è¡Œ*/
         addrIfNot = sqlite3VdbeAddOp1(v, OP_IfNot, iMem+1);
       }
-      assert( pIdx->azColl!=0 );  /*azColl±íÊ¾ÒÔË÷ÒıÃû×Ö½øĞĞÅÅĞòµÄÅÅĞòĞòÁĞÊı×é*/
+      assert( pIdx->azColl!=0 );  /*azCollè¡¨ç¤ºä»¥ç´¢å¼•åå­—è¿›è¡Œæ’åºçš„æ’åºåºåˆ—æ•°ç»„*/
       assert( pIdx->azColl[i]!=0 );
-      pColl = sqlite3LocateCollSeq(pParse, pIdx->azColl[i]);  /*·µ»ØÊı¾İ¿â±¾µØÎÄ¼ş±àÂëµÄÅÅĞòĞòÁĞ*/
+      pColl = sqlite3LocateCollSeq(pParse, pIdx->azColl[i]);  /*è¿”å›æ•°æ®åº“æœ¬åœ°æ–‡ä»¶ç¼–ç çš„æ’åºåºåˆ—*/
       aChngAddr[i] = sqlite3VdbeAddOp4(v, OP_Ne, regCol, 0, iMem+nCol+i+1,
                                       (char*)pColl, P4_COLLSEQ);
-      sqlite3VdbeChangeP5(v, SQLITE_NULLEQ);  /*¶¨ÒåSQLITE_NULLEQ£¬NULL=NULL*/
-      VdbeComment((v, "jump if column %d changed", i));  /*ÌáÊ¾*/
+      sqlite3VdbeChangeP5(v, SQLITE_NULLEQ);  /*å®šä¹‰SQLITE_NULLEQï¼ŒNULL=NULL*/
+      VdbeComment((v, "jump if column %d changed", i));  /*æç¤º*/
 #ifdef SQLITE_ENABLE_STAT3
       if( i==0 ){
         sqlite3VdbeAddOp2(v, OP_AddImm, regNumEq, 1);
@@ -666,9 +666,9 @@ static void analyzeOneTable(
     }
     sqlite3VdbeAddOp2(v, OP_Goto, 0, endOfLoop);
     for(i=0; i<nCol; i++){
-      sqlite3VdbeJumpHere(v, aChngAddr[i]);  /* Set jump dest for the OP_Ne */ /*ÎªOP_NeÉèÖÃÌø×ªµÄÄ¿µÄµØ*/
+      sqlite3VdbeJumpHere(v, aChngAddr[i]);  /* Set jump dest for the OP_Ne */ /*ä¸ºOP_Neè®¾ç½®è·³è½¬çš„ç›®çš„åœ°*/
       if( i==0 ){
-        sqlite3VdbeJumpHere(v, addrIfNot);   /* Jump dest for OP_IfNot */ /*ÎªOP_IfNotÌø×ªÄ¿µÄµØ*/
+        sqlite3VdbeJumpHere(v, addrIfNot);   /* Jump dest for OP_IfNot */ /*ä¸ºOP_IfNotè·³è½¬ç›®çš„åœ°*/
 #ifdef SQLITE_ENABLE_STAT3
         sqlite3VdbeAddOp4(v, OP_Function, 1, regNumEq, regTemp2,
                           (char*)&stat3PushFuncdef, P4_FUNCDEF);
@@ -682,12 +682,12 @@ static void analyzeOneTable(
       sqlite3VdbeAddOp2(v, OP_AddImm, iMem+i+1, 1);
       sqlite3VdbeAddOp3(v, OP_Column, iIdxCur, i, iMem+nCol+i+1);
     }
-    sqlite3DbFree(db, aChngAddr);  /*ÊÍ·ÅÊı¾İ¿âÁ¬½Ó¹ØÁªµÄÄÚ´æ*/
+    sqlite3DbFree(db, aChngAddr);  /*é‡Šæ”¾æ•°æ®åº“è¿æ¥å…³è”çš„å†…å­˜*/
 
     /* Always jump here after updating the iMem+1...iMem+1+nCol counters */
 
-    /* µ±¸üĞÂÍêiMem+1...iMem+1+nCol¼ÇÂ¼Ö®ºó×ÜÊÇÌø×ªµ½´Ë*/
-    sqlite3VdbeResolveLabel(v, endOfLoop);  /*ÊÍ·Å±êÇ©¡°endOfLoop¡±µÄµØÖ·¸ø½«Òª²åÈëµÄÏÂÒ»ÌõÖ¸Áî£¬endOfLoop±ØĞë´ÓÖ®Ç°µ÷ÓÃµÄº¯Êısqlite3VdbeMakeLabel()ÖĞ»ñµÃ¡£*/
+    /* å½“æ›´æ–°å®ŒiMem+1...iMem+1+nColè®°å½•ä¹‹åæ€»æ˜¯è·³è½¬åˆ°æ­¤*/
+    sqlite3VdbeResolveLabel(v, endOfLoop);  /*é‡Šæ”¾æ ‡ç­¾â€œendOfLoopâ€çš„åœ°å€ç»™å°†è¦æ’å…¥çš„ä¸‹ä¸€æ¡æŒ‡ä»¤ï¼ŒendOfLoopå¿…é¡»ä»ä¹‹å‰è°ƒç”¨çš„å‡½æ•°sqlite3VdbeMakeLabel()ä¸­è·å¾—ã€‚*/
 
     sqlite3VdbeAddOp2(v, OP_Next, iIdxCur, topOfLoop);
     sqlite3VdbeAddOp1(v, OP_Close, iIdxCur);
@@ -740,17 +740,17 @@ static void analyzeOneTable(
     ** is never possible.
     */
 
-    /* ½«½á¹û´æÔÚ sqlite_stat1 ±íÖĞ.
+    /* å°†ç»“æœå­˜åœ¨ sqlite_stat1 è¡¨ä¸­.
     **
-    ** ½á¹ûÊÇ sqlite_stat1 ±íµÄÒ»ĞĞ.  Ç°Á½ÁĞÊÇ±íºÍË÷ÒıµÄÃû×Ö¡£
-    ** µÚÈıÁĞÊÇÒ»¸ö°üº¬Ò»ÏµÁĞ¹ØÓÚË÷ÒıµÄÕûĞÎÊı¾İµÄ×Ö·û´®¡£
-    ** ÔÚÆäÖĞµÚÒ»¸öÕûÊıÊÇÔÚË÷ÒıÖĞÌõÄ¿µÄ×ÜÊı£¬Ò»¸ö¸½¼ÓµÄÕûÊıÕë¶Ô±íÖĞµÄÃ¿Ò»ÁĞ£¬
-    ** Õâ¸ö¸½¼ÓÕûÊıÊÇ¶Ô±íÖĞÓĞ¶àÉÙĞĞ»á±»Ë÷ÒıÑ¡ÔñµÄ²Â²â£¬Èç¹ûDÊÇ²»Í¬ÖµµÄ¸öÊı£¬kÊÇ×ÜĞĞÊı£¬ÄÇÃ´Õâ¸öÕûÊı
-    **¿ÉÒÔ¼ÆËãÎª£º
+    ** ç»“æœæ˜¯ sqlite_stat1 è¡¨çš„ä¸€è¡Œ.  å‰ä¸¤åˆ—æ˜¯è¡¨å’Œç´¢å¼•çš„åå­—ã€‚
+    ** ç¬¬ä¸‰åˆ—æ˜¯ä¸€ä¸ªåŒ…å«ä¸€ç³»åˆ—å…³äºç´¢å¼•çš„æ•´å½¢æ•°æ®çš„å­—ç¬¦ä¸²ã€‚
+    ** åœ¨å…¶ä¸­ç¬¬ä¸€ä¸ªæ•´æ•°æ˜¯åœ¨ç´¢å¼•ä¸­æ¡ç›®çš„æ€»æ•°ï¼Œä¸€ä¸ªé™„åŠ çš„æ•´æ•°é’ˆå¯¹è¡¨ä¸­çš„æ¯ä¸€åˆ—ï¼Œ
+    ** è¿™ä¸ªé™„åŠ æ•´æ•°æ˜¯å¯¹è¡¨ä¸­æœ‰å¤šå°‘è¡Œä¼šè¢«ç´¢å¼•é€‰æ‹©çš„çŒœæµ‹ï¼Œå¦‚æœDæ˜¯ä¸åŒå€¼çš„ä¸ªæ•°ï¼Œkæ˜¯æ€»è¡Œæ•°ï¼Œé‚£ä¹ˆè¿™ä¸ªæ•´æ•°
+    **å¯ä»¥è®¡ç®—ä¸ºï¼š
     **        I = (K+D-1)/D
     **
-    ** Èç¹ûk == 0 ÄÇÃ´ÔÚ sqlite_stat1 ±íÖĞÃ»ÓĞÌõÄ¿.  
-    ** Èç¹ûk > 0 ½«×ÜÊÇÓĞÕâÖÖÇé¿ö  D>0 Òò´Ë±»0³ı¾Í²»ÄÜ¡£
+    ** å¦‚æœk == 0 é‚£ä¹ˆåœ¨ sqlite_stat1 è¡¨ä¸­æ²¡æœ‰æ¡ç›®.  
+    ** å¦‚æœk > 0 å°†æ€»æ˜¯æœ‰è¿™ç§æƒ…å†µ  D>0 å› æ­¤è¢«0é™¤å°±ä¸èƒ½ã€‚
     */
     sqlite3VdbeAddOp2(v, OP_SCopy, iMem, regStat1);
     if( jZeroRows<0 ){
@@ -775,8 +775,8 @@ static void analyzeOneTable(
   ** containing NULL as the index name and the row count as the content.
   */
 
-  /* Èç¹û±íÃ»ÓĞË÷Òı, ´´½¨Ò»¸ö °üº¬NULLµÄ sqlite_stat1 ÌõÄ¿
-  ** ×÷ÎªË÷ÒıÃû£¬²¢ÇÒĞĞÊı×÷ÎªÄÚÈİ.
+  /* å¦‚æœè¡¨æ²¡æœ‰ç´¢å¼•, åˆ›å»ºä¸€ä¸ª åŒ…å«NULLçš„ sqlite_stat1 æ¡ç›®
+  ** ä½œä¸ºç´¢å¼•åï¼Œå¹¶ä¸”è¡Œæ•°ä½œä¸ºå†…å®¹.
   */
   if( pTab->pIndex==0 ){
     sqlite3VdbeAddOp3(v, OP_OpenRead, iIdxCur, pTab->tnum, iDb);
@@ -794,7 +794,7 @@ static void analyzeOneTable(
   sqlite3VdbeAddOp3(v, OP_Insert, iStatCur, regRec, regNewRowid);
   sqlite3VdbeChangeP5(v, OPFLAG_APPEND);
   if( pParse->nMem<regRec ) pParse->nMem = regRec;
-  sqlite3VdbeJumpHere(v, jZeroRows);  /*¸ü¸Ä P2 ²Ù×÷ÊıµÄÖ¸ÁîµØÖ·£¬ÒÔ±ãËüÖ¸Ïò½«Òª±àÂëµÄÏÂÒ»ÌõÖ¸ÁîµÄµØÖ·¡£*/
+  sqlite3VdbeJumpHere(v, jZeroRows);  /*æ›´æ”¹ P2 æ“ä½œæ•°çš„æŒ‡ä»¤åœ°å€ï¼Œä»¥ä¾¿å®ƒæŒ‡å‘å°†è¦ç¼–ç çš„ä¸‹ä¸€æ¡æŒ‡ä»¤çš„åœ°å€ã€‚*/
 }
 
 
@@ -803,7 +803,7 @@ static void analyzeOneTable(
 ** be loaded into internal hash tables where is can be used.
 */
 
-/*Éú³É´úÂë£¬Ê¹×î½ü·ÖÎöµÄË÷Òı±»ÔØÈëµ½¿ÉÓÃµÄÄÚ²¿¹şÏ£±í*/
+/*ç”Ÿæˆä»£ç ï¼Œä½¿æœ€è¿‘åˆ†æçš„ç´¢å¼•è¢«è½½å…¥åˆ°å¯ç”¨çš„å†…éƒ¨å“ˆå¸Œè¡¨*/
 static void loadAnalysis(Parse *pParse, int iDb){
   Vdbe *v = sqlite3GetVdbe(pParse);
   if( v ){
@@ -815,28 +815,28 @@ static void loadAnalysis(Parse *pParse, int iDb){
 ** Generate code that will do an analysis of an entire database
 */
 
-/*¸Ãº¯ÊıÓÃÓÚ·ÖÎöÒ»¸öÍêÕûÊı¾İ¿â*/
+/*è¯¥å‡½æ•°ç”¨äºåˆ†æä¸€ä¸ªå®Œæ•´æ•°æ®åº“*/
 static void analyzeDatabase(Parse *pParse, int iDb){
-  sqlite3 *db = pParse->db;  /*Êı¾İ¿â¾ä±ú */
-  Schema *pSchema = db->aDb[iDb].pSchema;    /* Schema of database iDb */ /*¸ù¾İÊı¾İ¿âË÷Òı£¬¶¨ÒåÊı¾İ¿âÄ£Ê½*/
-  HashElem *k;  /*¶¨ÒåÒ»¸ö¹şÏ£½á¹¹Ìå*/
-  int iStatCur;  /* VdbeCursorµÄË÷Òı£¬ÓÃÓÚĞ´sqlite_stat1 ±í */
-  int iMem;  /*¶¨Òå¿ÉÓÃÄÚ´æµÄÆğÊ¼Î»ÖÃ*/
+  sqlite3 *db = pParse->db;  /*æ•°æ®åº“å¥æŸ„ */
+  Schema *pSchema = db->aDb[iDb].pSchema;    /* Schema of database iDb */ /*æ ¹æ®æ•°æ®åº“ç´¢å¼•ï¼Œå®šä¹‰æ•°æ®åº“æ¨¡å¼*/
+  HashElem *k;  /*å®šä¹‰ä¸€ä¸ªå“ˆå¸Œç»“æ„ä½“*/
+  int iStatCur;  /* VdbeCursorçš„ç´¢å¼•ï¼Œç”¨äºå†™sqlite_stat1 è¡¨ */
+  int iMem;  /*å®šä¹‰å¯ç”¨å†…å­˜çš„èµ·å§‹ä½ç½®*/
 
-  sqlite3BeginWriteOperation(pParse, 0, iDb);  /*¿ªÊ¼Ğ´²Ù×÷£¬Ö¸¶¨Êı¾İ¿âË÷Òı¡£¸Ã·½·¨³ö×Ô build.c*/
-  iStatCur = pParse->nTab;  /*nTab±íÊ¾ÊÂÏÈ·ÖÅäµÄVDBE¹â±êµÄÊıÁ¿*/
-  pParse->nTab += 3;  /* £¿+3£¿ */
-  openStatTable(pParse, iDb, iStatCur, 0, 0);  /*µ÷ÓÃopenStatTable·½·¨£¬´ò¿ª´æ´¢Ë÷ÒıµÄ±ísqlite_stat1*/
-  iMem = pParse->nMem+1;  /*nMem±íÊ¾µ½Ä¿Ç°ÎªÖ¹Ê¹ÓÃµÄÄÚ´æÊıÁ¿*/
-  assert( sqlite3SchemaMutexHeld(db, iDb, 0) );  /*ÅĞ¶¨Ä£Ê½´æÔÚ»¥³â*/
+  sqlite3BeginWriteOperation(pParse, 0, iDb);  /*å¼€å§‹å†™æ“ä½œï¼ŒæŒ‡å®šæ•°æ®åº“ç´¢å¼•ã€‚è¯¥æ–¹æ³•å‡ºè‡ª build.c*/
+  iStatCur = pParse->nTab;  /*nTabè¡¨ç¤ºäº‹å…ˆåˆ†é…çš„VDBEå…‰æ ‡çš„æ•°é‡*/
+  pParse->nTab += 3;  /* ï¼Ÿ+3ï¼Ÿ */
+  openStatTable(pParse, iDb, iStatCur, 0, 0);  /*è°ƒç”¨openStatTableæ–¹æ³•ï¼Œæ‰“å¼€å­˜å‚¨ç´¢å¼•çš„è¡¨sqlite_stat1*/
+  iMem = pParse->nMem+1;  /*nMemè¡¨ç¤ºåˆ°ç›®å‰ä¸ºæ­¢ä½¿ç”¨çš„å†…å­˜æ•°é‡*/
+  assert( sqlite3SchemaMutexHeld(db, iDb, 0) );  /*åˆ¤å®šæ¨¡å¼å­˜åœ¨äº’æ–¥*/
 
-  /*forÑ­»·£¬¶ÔÊı¾İ¿âÖĞµÄÃ¿Ò»¸ö±í½øĞĞ·ÖÎö*/
-  /*¹şÏ£±íºê¶¨Òå£ºsqliteHashFirst¡¢sqliteHashNext¡¢sqliteHashData£¬ÓÃÓÚ±éÀú¹şÏ£±íÖĞµÄËùÓĞÔªËØ¡£*/
+  /*forå¾ªç¯ï¼Œå¯¹æ•°æ®åº“ä¸­çš„æ¯ä¸€ä¸ªè¡¨è¿›è¡Œåˆ†æ*/
+  /*å“ˆå¸Œè¡¨å®å®šä¹‰ï¼šsqliteHashFirstã€sqliteHashNextã€sqliteHashDataï¼Œç”¨äºéå†å“ˆå¸Œè¡¨ä¸­çš„æ‰€æœ‰å…ƒç´ ã€‚*/
   for(k=sqliteHashFirst(&pSchema->tblHash); k; k=sqliteHashNext(k)){ 
-    Table *pTab = (Table*)sqliteHashData(k);  /*µÃµ½Òª·ÖÎöµÄ±í*/
-    analyzeOneTable(pParse, pTab, 0, iStatCur, iMem);  /*µ÷ÓÃanalyzeOneTable·½·¨£¬Íê³É·ÖÎöµ¥Ò»±íµÄ¾ßÌå¹ı³Ì*/
+    Table *pTab = (Table*)sqliteHashData(k);  /*å¾—åˆ°è¦åˆ†æçš„è¡¨*/
+    analyzeOneTable(pParse, pTab, 0, iStatCur, iMem);  /*è°ƒç”¨analyzeOneTableæ–¹æ³•ï¼Œå®Œæˆåˆ†æå•ä¸€è¡¨çš„å…·ä½“è¿‡ç¨‹*/
   }
-  loadAnalysis(pParse, iDb);  /*½«×î½ü·ÖÎöµÄÊı¾İ¿âµÄË÷ÒıÔØÈëÄÚ²¿¹şÏ£±í*/
+  loadAnalysis(pParse, iDb);  /*å°†æœ€è¿‘åˆ†æçš„æ•°æ®åº“çš„ç´¢å¼•è½½å…¥å†…éƒ¨å“ˆå¸Œè¡¨*/
 }
 
 /*
@@ -846,26 +846,26 @@ static void analyzeDatabase(Parse *pParse, int iDb){
 */
 
 /*
-** ¶ÔÊı¾İ¿âÖĞµÄÒ»¸ö±í½øĞĞ·ÖÎö£¬Èç¹ûpOnlyIdx²»Îª¿Õ£¬ÄÇÃ´ÔÚpTab±íÖĞµÄ
-** Ò»¸öË÷Òı½«±»·ÖÎö¡£
+** å¯¹æ•°æ®åº“ä¸­çš„ä¸€ä¸ªè¡¨è¿›è¡Œåˆ†æï¼Œå¦‚æœpOnlyIdxä¸ä¸ºç©ºï¼Œé‚£ä¹ˆåœ¨pTabè¡¨ä¸­çš„
+** ä¸€ä¸ªç´¢å¼•å°†è¢«åˆ†æã€‚
 */
 static void analyzeTable(Parse *pParse, Table *pTab, Index *pOnlyIdx){
-  int iDb;  /*Êı¾İ¿âË÷Òı*/
-  int iStatCur;  /* VdbeCursorµÄË÷Òı£¬ÓÃÓÚĞ´sqlite_stat1 ±í */
+  int iDb;  /*æ•°æ®åº“ç´¢å¼•*/
+  int iStatCur;  /* VdbeCursorçš„ç´¢å¼•ï¼Œç”¨äºå†™sqlite_stat1 è¡¨ */
 
-  assert( pTab!=0 );  /*ÅĞ¶¨´æÔÚÊı¾İ¿â±í*/
-  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );  /*»¥³âÅĞ¶Ï*/
-  iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);  /*½«Ä£Ê½Ö¸Õë×ª»»ÎªÊı¾İ¿âË÷Òı£¬¸ÃË÷ÒıÖ¸³ö ÔÚdb->aDb[]ÖĞÄ£Ê½Ö¸ÏòµÄÊı¾İ¿âÎÄ¼ş*/
-  sqlite3BeginWriteOperation(pParse, 0, iDb);  /*¿ªÊ¼Ğ´²Ù×÷*/
-  iStatCur = pParse->nTab;  /*nTab±íÊ¾ÊÂÏÈ·ÖÅäµÄVDBE¹â±êµÄÊıÁ¿*/
-  pParse->nTab += 3;  /* £¿+3£¿ */
-  if( pOnlyIdx ){  /*pOnlyIdxÊÇ±íµÄÎ¨Ò»Ë÷Òı*/
-    openStatTable(pParse, iDb, iStatCur, pOnlyIdx->zName, "idx");  /*µ÷ÓÃopenStatTable·½·¨£¬´ò¿ª´æ´¢Ë÷ÒıµÄ±ísqlite_stat1¡£ÀàĞÍÊÇ¡°idx¡±*/
+  assert( pTab!=0 );  /*åˆ¤å®šå­˜åœ¨æ•°æ®åº“è¡¨*/
+  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );  /*äº’æ–¥åˆ¤æ–­*/
+  iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);  /*å°†æ¨¡å¼æŒ‡é’ˆè½¬æ¢ä¸ºæ•°æ®åº“ç´¢å¼•ï¼Œè¯¥ç´¢å¼•æŒ‡å‡º åœ¨db->aDb[]ä¸­æ¨¡å¼æŒ‡å‘çš„æ•°æ®åº“æ–‡ä»¶*/
+  sqlite3BeginWriteOperation(pParse, 0, iDb);  /*å¼€å§‹å†™æ“ä½œ*/
+  iStatCur = pParse->nTab;  /*nTabè¡¨ç¤ºäº‹å…ˆåˆ†é…çš„VDBEå…‰æ ‡çš„æ•°é‡*/
+  pParse->nTab += 3;  /* ï¼Ÿ+3ï¼Ÿ */
+  if( pOnlyIdx ){  /*pOnlyIdxæ˜¯è¡¨çš„å”¯ä¸€ç´¢å¼•*/
+    openStatTable(pParse, iDb, iStatCur, pOnlyIdx->zName, "idx");  /*è°ƒç”¨openStatTableæ–¹æ³•ï¼Œæ‰“å¼€å­˜å‚¨ç´¢å¼•çš„è¡¨sqlite_stat1ã€‚ç±»å‹æ˜¯â€œidxâ€*/
   }else{
-    openStatTable(pParse, iDb, iStatCur, pTab->zName, "tbl");  /*µ÷ÓÃopenStatTable·½·¨£¬´ò¿ª´æ´¢Ë÷ÒıµÄ±ísqlite_stat1¡£ÀàĞÍÊÇ¡°tb1¡±*/
+    openStatTable(pParse, iDb, iStatCur, pTab->zName, "tbl");  /*è°ƒç”¨openStatTableæ–¹æ³•ï¼Œæ‰“å¼€å­˜å‚¨ç´¢å¼•çš„è¡¨sqlite_stat1ã€‚ç±»å‹æ˜¯â€œtb1â€*/
   }
-  analyzeOneTable(pParse, pTab, pOnlyIdx, iStatCur, pParse->nMem+1);  /*µ÷ÓÃanalyzeOneTable·½·¨£¬Íê³É·ÖÎöµ¥Ò»±íµÄ¾ßÌå¹ı³Ì*/
-  loadAnalysis(pParse, iDb);  /*½«×î½ü·ÖÎöµÄÊı¾İ¿âµÄË÷ÒıÔØÈëÄÚ²¿¹şÏ£±í*/
+  analyzeOneTable(pParse, pTab, pOnlyIdx, iStatCur, pParse->nMem+1);  /*è°ƒç”¨analyzeOneTableæ–¹æ³•ï¼Œå®Œæˆåˆ†æå•ä¸€è¡¨çš„å…·ä½“è¿‡ç¨‹*/
+  loadAnalysis(pParse, iDb);  /*å°†æœ€è¿‘åˆ†æçš„æ•°æ®åº“çš„ç´¢å¼•è½½å…¥å†…éƒ¨å“ˆå¸Œè¡¨*/
 }
 
 /*
@@ -882,72 +882,72 @@ static void analyzeTable(Parse *pParse, Table *pTab, Index *pOnlyIdx){
 */
 
 /*
-** Éú³ÉANALYZEÃüÁîµÄ´úÂë.  µ±½âÎöÆ÷Ê¶±ğ³ö ANALYZE ÃüÁîÊ±µ÷ÓÃ´Ë¹ı³Ì¡£
-** ¸ù¾İTokenµÄÊı¾İpName1¡¢pName2£¬È·¶¨·ÖÎö·¶Î§ 
+** ç”ŸæˆANALYZEå‘½ä»¤çš„ä»£ç .  å½“è§£æå™¨è¯†åˆ«å‡º ANALYZE å‘½ä»¤æ—¶è°ƒç”¨æ­¤è¿‡ç¨‹ã€‚
+** æ ¹æ®Tokençš„æ•°æ®pName1ã€pName2ï¼Œç¡®å®šåˆ†æèŒƒå›´ 
 **
 **        ANALYZE                            -- 1
 **        ANALYZE  <database>                -- 2
 **        ANALYZE  ?<database>.?<tablename>  -- 3
 **
-** ¸ñÊ½1 ËùÓĞÊı¾İ¿âÖĞµÄËùÓĞË÷Òı½«±»·ÖÎö¡£
-** ¸ñÊ½2 ·ÖÎö¸ø³öÃû×ÖµÄÊı¾İ¿âµÄËùÓĞË÷Òı¡£
-** ¸ñÊ½3 ·ÖÎö¸ø³ö±íÃûµÄ±íµÄËùÓĞË÷Òı.
+** æ ¼å¼1 æ‰€æœ‰æ•°æ®åº“ä¸­çš„æ‰€æœ‰ç´¢å¼•å°†è¢«åˆ†æã€‚
+** æ ¼å¼2 åˆ†æç»™å‡ºåå­—çš„æ•°æ®åº“çš„æ‰€æœ‰ç´¢å¼•ã€‚
+** æ ¼å¼3 åˆ†æç»™å‡ºè¡¨åçš„è¡¨çš„æ‰€æœ‰ç´¢å¼•.
 */
 void sqlite3Analyze(Parse *pParse, Token *pName1, Token *pName2){
-  sqlite3 *db = pParse->db;  /*Êı¾İ¿â¾ä±ú */
-  int iDb;    /*Ö¸¶¨Òª·ÖÎöµÄÊı¾İ¿â£»iDb<0±íÊ¾Êı¾İ¿â²»´æÔÚ*/
-  int i;   /*¶¨Òåi±àºÅ£¬±íÊ¾Êı¾İ¿âË÷Òı*/
-  char *z, *zDb;   /*zDb±íÊ¾Êı¾İ¿âÃû×Ö*/
-  Table *pTab;   /*Ö¸¶¨±íÃû×Ö*/
-  Index *pIdx;  /*Ò»¸öÕıÔÚ±»·ÖÎöµÄË÷Òı*/
-  Token *pTableName;  /*±êÊ¶·û Ö¸¶¨±íµÄÃû×Ö*/
+  sqlite3 *db = pParse->db;  /*æ•°æ®åº“å¥æŸ„ */
+  int iDb;    /*æŒ‡å®šè¦åˆ†æçš„æ•°æ®åº“ï¼›iDb<0è¡¨ç¤ºæ•°æ®åº“ä¸å­˜åœ¨*/
+  int i;   /*å®šä¹‰iç¼–å·ï¼Œè¡¨ç¤ºæ•°æ®åº“ç´¢å¼•*/
+  char *z, *zDb;   /*zDbè¡¨ç¤ºæ•°æ®åº“åå­—*/
+  Table *pTab;   /*æŒ‡å®šè¡¨åå­—*/
+  Index *pIdx;  /*ä¸€ä¸ªæ­£åœ¨è¢«åˆ†æçš„ç´¢å¼•*/
+  Token *pTableName;  /*æ ‡è¯†ç¬¦ æŒ‡å®šè¡¨çš„åå­—*/
 
   /* Read the database schema. If an error occurs, leave an error message
   ** and code in pParse and return NULL. */
 
-  /* ¶ÁÊı¾İ¿âµÄÄ£Ê½. Èç¹û³öÏÖÒ»¸ö´íÎó, ÔÚ½âÎöÆ÷ÖĞÁôÏÂÒ»¸ö´íÎóĞÅÏ¢²¢·µ»Ø¿Õ*/
-  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );   /*»¥³âÅĞ¶Ï*/
+  /* è¯»æ•°æ®åº“çš„æ¨¡å¼. å¦‚æœå‡ºç°ä¸€ä¸ªé”™è¯¯, åœ¨è§£æå™¨ä¸­ç•™ä¸‹ä¸€ä¸ªé”™è¯¯ä¿¡æ¯å¹¶è¿”å›ç©º*/
+  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );   /*äº’æ–¥åˆ¤æ–­*/
   if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){
     return;
   }
 
   assert( pName2!=0 || pName1==0 );
   if( pName1==0 ){
-    /* ¸ñÊ½1:  ·ÖÎöËùÓĞµÄ */
-    for(i=0; i<db->nDb; i++){   /* nDb±íÊ¾Ä¿Ç°ËùÊ¹ÓÃµÄºó¶ËÊı£¬¼´Êı¾İ¿âÊı*/
-      if( i==1 ) continue;  /* Do not analyze the TEMP database */ /*²»·ÖÎöÁÙÊ±Êı¾İ¿â*/
-      analyzeDatabase(pParse, i);   /*µ÷ÓÃanalyzeDatabase·½·¨£¬·ÖÎöÖ¸¶¨Êı¾İ¿â*/
+    /* æ ¼å¼1:  åˆ†ææ‰€æœ‰çš„ */
+    for(i=0; i<db->nDb; i++){   /* nDbè¡¨ç¤ºç›®å‰æ‰€ä½¿ç”¨çš„åç«¯æ•°ï¼Œå³æ•°æ®åº“æ•°*/
+      if( i==1 ) continue;  /* Do not analyze the TEMP database */ /*ä¸åˆ†æä¸´æ—¶æ•°æ®åº“*/
+      analyzeDatabase(pParse, i);   /*è°ƒç”¨analyzeDatabaseæ–¹æ³•ï¼Œåˆ†ææŒ‡å®šæ•°æ®åº“*/
     }
   }else if( pName2->n==0 ){
     /* Form 2:  Analyze the database or table named */
 
-   /* ¸ñÊ½2:  ·ÖÎö¸ø³öÃû×ÖµÄÊı¾İ¿â»òÕß±í */
-    iDb = sqlite3FindDb(db, pName1);   /*Í¨¹ıTokenµÄÊı¾İÃû×ÖpNaame1 ·µ»ØÊı¾İ¿âµÄË÷Òı*/
-    if( iDb>=0 ){  /*´æÔÚÒª·ÖÎöµÄÊı¾İ¿â*/
-      analyzeDatabase(pParse, iDb);  /*µ÷ÓÃanalyzeDatabase·½·¨£¬·ÖÎöÖ¸¶¨Êı¾İ¿â*/
+   /* æ ¼å¼2:  åˆ†æç»™å‡ºåå­—çš„æ•°æ®åº“æˆ–è€…è¡¨ */
+    iDb = sqlite3FindDb(db, pName1);   /*é€šè¿‡Tokençš„æ•°æ®åå­—pNaame1 è¿”å›æ•°æ®åº“çš„ç´¢å¼•*/
+    if( iDb>=0 ){  /*å­˜åœ¨è¦åˆ†æçš„æ•°æ®åº“*/
+      analyzeDatabase(pParse, iDb);  /*è°ƒç”¨analyzeDatabaseæ–¹æ³•ï¼Œåˆ†ææŒ‡å®šæ•°æ®åº“*/
     }else{
-      z = sqlite3NameFromToken(db, pName1);  /*ÊäÈëÒ»¸öTokenµÄÊı¾İ·µ»ØÒ»¸ö×Ö·û´®*/
+      z = sqlite3NameFromToken(db, pName1);  /*è¾“å…¥ä¸€ä¸ªTokençš„æ•°æ®è¿”å›ä¸€ä¸ªå­—ç¬¦ä¸²*/
       if( z ){
-		/*sqlite3FindIndex·½·¨£¬¶¨Î» ÃèÊöÒ»¸öÌØ¶¨µÄË÷ÒıµÄÄÚ´æ½á¹¹£¬¸ø³öÕâ¸öÌØÊâµÄË÷ÒıµÄÃû×ÖºÍÊı¾İ¿âµÄÃû³Æ£¬
-		  Õâ¸öÊı¾İ¿â°üº¬Õâ¸öË÷Òı¡£Èç¹ûÃ»ÓĞÕÒµ½·µ»Ø0*/  
-        if( (pIdx = sqlite3FindIndex(db, z, 0))!=0 ){  /*²ÎÊı0±íÊ¾Êı¾İ¿â*/
-          analyzeTable(pParse, pIdx->pTable, pIdx);  /*µ÷ÓÃanalyzeTable·½·¨£¬¶ÔÊı¾İ¿âÖĞµÄÒ»¸ö±í½øĞĞ·ÖÎö*/
-		/*sqlite3LocateTable·½·¨£¬¶¨Î» ÃèÊöÒ»¸öÌØ¶¨µÄÊı¾İ¿â±íµÄÄÚ´æ½á¹¹£¬¸ø³öÕâ¸öÌØÊâµÄ±íµÄÃû×ÖºÍ£¨¿ÉÑ¡£©Êı¾İ¿âµÄÃû³Æ£¬
-		  Õâ¸öÊı¾İ¿â°üº¬Õâ¸ö±í¸ñ¡£Èç¹ûÃ»ÓĞÕÒµ½·µ»Ø0.ÔÚpParse->zErrMsgÖĞÁôÏÂÒ»¸ö´íÎóĞÅÏ¢¡£*/  
-        }else if( (pTab = sqlite3LocateTable(pParse, 0, z, 0))!=0 ){  /*µÚÒ»¸ö0ÊÇ²ÎÊıisView£¬±íÊ¾ÊÇ·ñÊÇÊÓÍ¼£»µÚ¶ş¸ö0ÊÇ²ÎÊızDbase,±íÊ¾Êı¾İ¿â*/
+		/*sqlite3FindIndexæ–¹æ³•ï¼Œå®šä½ æè¿°ä¸€ä¸ªç‰¹å®šçš„ç´¢å¼•çš„å†…å­˜ç»“æ„ï¼Œç»™å‡ºè¿™ä¸ªç‰¹æ®Šçš„ç´¢å¼•çš„åå­—å’Œæ•°æ®åº“çš„åç§°ï¼Œ
+		  è¿™ä¸ªæ•°æ®åº“åŒ…å«è¿™ä¸ªç´¢å¼•ã€‚å¦‚æœæ²¡æœ‰æ‰¾åˆ°è¿”å›0*/  
+        if( (pIdx = sqlite3FindIndex(db, z, 0))!=0 ){  /*å‚æ•°0è¡¨ç¤ºæ•°æ®åº“*/
+          analyzeTable(pParse, pIdx->pTable, pIdx);  /*è°ƒç”¨analyzeTableæ–¹æ³•ï¼Œå¯¹æ•°æ®åº“ä¸­çš„ä¸€ä¸ªè¡¨è¿›è¡Œåˆ†æ*/
+		/*sqlite3LocateTableæ–¹æ³•ï¼Œå®šä½ æè¿°ä¸€ä¸ªç‰¹å®šçš„æ•°æ®åº“è¡¨çš„å†…å­˜ç»“æ„ï¼Œç»™å‡ºè¿™ä¸ªç‰¹æ®Šçš„è¡¨çš„åå­—å’Œï¼ˆå¯é€‰ï¼‰æ•°æ®åº“çš„åç§°ï¼Œ
+		  è¿™ä¸ªæ•°æ®åº“åŒ…å«è¿™ä¸ªè¡¨æ ¼ã€‚å¦‚æœæ²¡æœ‰æ‰¾åˆ°è¿”å›0.åœ¨pParse->zErrMsgä¸­ç•™ä¸‹ä¸€ä¸ªé”™è¯¯ä¿¡æ¯ã€‚*/  
+        }else if( (pTab = sqlite3LocateTable(pParse, 0, z, 0))!=0 ){  /*ç¬¬ä¸€ä¸ª0æ˜¯å‚æ•°isViewï¼Œè¡¨ç¤ºæ˜¯å¦æ˜¯è§†å›¾ï¼›ç¬¬äºŒä¸ª0æ˜¯å‚æ•°zDbase,è¡¨ç¤ºæ•°æ®åº“*/
           analyzeTable(pParse, pTab, 0);
         }
-        sqlite3DbFree(db, z);  /*ÊÍ·ÅÊı¾İ¿âÁ¬½Ó¹ØÁªµÄÄÚ´æ*/
+        sqlite3DbFree(db, z);  /*é‡Šæ”¾æ•°æ®åº“è¿æ¥å…³è”çš„å†…å­˜*/
       }
     }
   }else{
     /* Form 3: Analyze the fully qualified table name */
 
-    /* ¸ñÊ½ 3: ·ÖÎöËùÓĞ¶ÔÓ¦±íÃûµÄ±í */
-	/*µ÷ÓÃ¹ı³ÌÍ¬ÉÏ*/    
-    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pTableName);  /*¸ù¾İTokenµÄÊı¾İpName1¡¢pName2£¬ºÍ¸ø³öµÄ±íÃû£¬·µ»ØÊı¾İ¿âË÷Òı*/
-    if( iDb>=0 ){  /*Êı¾İ¿â´æÔÚ*/
-      zDb = db->aDb[iDb].zName;  /*¸ù¾İË÷ÒıµÃµ½Êı¾İ¿âÃû×Ö*/
+    /* æ ¼å¼ 3: åˆ†ææ‰€æœ‰å¯¹åº”è¡¨åçš„è¡¨ */
+	/*è°ƒç”¨è¿‡ç¨‹åŒä¸Š*/    
+    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pTableName);  /*æ ¹æ®Tokençš„æ•°æ®pName1ã€pName2ï¼Œå’Œç»™å‡ºçš„è¡¨åï¼Œè¿”å›æ•°æ®åº“ç´¢å¼•*/
+    if( iDb>=0 ){  /*æ•°æ®åº“å­˜åœ¨*/
+      zDb = db->aDb[iDb].zName;  /*æ ¹æ®ç´¢å¼•å¾—åˆ°æ•°æ®åº“åå­—*/
       z = sqlite3NameFromToken(db, pTableName);
       if( z ){
         if( (pIdx = sqlite3FindIndex(db, z, zDb))!=0 ){
@@ -955,7 +955,7 @@ void sqlite3Analyze(Parse *pParse, Token *pName1, Token *pName2){
         }else if( (pTab = sqlite3LocateTable(pParse, 0, z, zDb))!=0 ){
           analyzeTable(pParse, pTab, 0);
         }
-        sqlite3DbFree(db, z);  /*ÊÍ·ÅÊı¾İ¿âÁ¬½Ó¹ØÁªµÄÄÚ´æ*/
+        sqlite3DbFree(db, z);  /*é‡Šæ”¾æ•°æ®åº“è¿æ¥å…³è”çš„å†…å­˜*/
       }
     }   
   }
@@ -966,7 +966,7 @@ void sqlite3Analyze(Parse *pParse, Token *pName1, Token *pName2){
 ** callback routine.
 */
 
-/* ÓÃÓÚ´«µİĞÅÏ¢£¬´Ó¶Á·ÖÎöÆ÷µ½»Øµ÷¹ı³Ì*/
+/* ç”¨äºä¼ é€’ä¿¡æ¯ï¼Œä»è¯»åˆ†æå™¨åˆ°å›è°ƒè¿‡ç¨‹*/
 typedef struct analysisInfo analysisInfo;
 struct analysisInfo {
   sqlite3 *db;
@@ -985,24 +985,24 @@ struct analysisInfo {
 ** the table.
 */
 /*
-**µ±¶Ásqlite_stat1 ±íÊ±£¬Ã¿¸öË÷Òıµ÷ÓÃÒ»´ÎÕâ¸ö»Øµ÷¹ı³Ì¡£
+**å½“è¯»sqlite_stat1 è¡¨æ—¶ï¼Œæ¯ä¸ªç´¢å¼•è°ƒç”¨ä¸€æ¬¡è¿™ä¸ªå›è°ƒè¿‡ç¨‹ã€‚
 **
-**     argv[0] = ±íÃû
-**     argv[1] = Ë÷ÒıÃû (¿ÉÄÜÎª¿Õ)
-**     argv[2] = ·ÖÎöµÄ½á¹û - ¶ÔÓÚÃ¿Ò»ÁĞµÄÕûÊı
+**     argv[0] = è¡¨å
+**     argv[1] = ç´¢å¼•å (å¯èƒ½ä¸ºç©º)
+**     argv[2] = åˆ†æçš„ç»“æœ - å¯¹äºæ¯ä¸€åˆ—çš„æ•´æ•°
 **
-**  argv[1]==NULL ½ö½ö¼ÇÂ¼±íÖĞµÄĞĞÊı
+**  argv[1]==NULL ä»…ä»…è®°å½•è¡¨ä¸­çš„è¡Œæ•°
 */
 static int analysisLoader(void *pData, int argc, char **argv, char **NotUsed){
-  analysisInfo *pInfo = (analysisInfo*)pData;  /*½á¹¹ÌåanalysisInfo£¬ÓÃÓÚ´«µİĞÅÏ¢£¬´Ó¶Á·ÖÎöÆ÷µ½»Øµ÷¹ı³Ì*/
+  analysisInfo *pInfo = (analysisInfo*)pData;  /*ç»“æ„ä½“analysisInfoï¼Œç”¨äºä¼ é€’ä¿¡æ¯ï¼Œä»è¯»åˆ†æå™¨åˆ°å›è°ƒè¿‡ç¨‹*/
   Index *pIndex;
   Table *pTable;
   int i, c, n;
-  tRowcnt v;  /*ºê¶¨Òå£ºtypedef u32 tRowcnt£¬ 32-bit is the default 32Î»ÊÇÄ¬ÈÏµÄ  */
+  tRowcnt v;  /*å®å®šä¹‰ï¼štypedef u32 tRowcntï¼Œ 32-bit is the default 32ä½æ˜¯é»˜è®¤çš„  */
   const char *z;
 
   assert( argc==3 );
-  UNUSED_PARAMETER2(NotUsed, argc);  /* UNUSED_PARAMETER2ºê±»ÓÃÀ´ÒÖÖÆ±àÒëÆ÷¾¯¸æ£¬*³ö×ÔsqliteInt.h 632ĞĞ */
+  UNUSED_PARAMETER2(NotUsed, argc);  /* UNUSED_PARAMETER2å®è¢«ç”¨æ¥æŠ‘åˆ¶ç¼–è¯‘å™¨è­¦å‘Šï¼Œ*å‡ºè‡ªsqliteInt.h 632è¡Œ */
 
   if( argv==0 || argv[0]==0 || argv[2]==0 ){
     return 0;
@@ -1041,21 +1041,21 @@ static int analysisLoader(void *pData, int argc, char **argv, char **NotUsed){
 ** and its contents.
 */
 
-/*Èç¹ûË÷Òı±äÁ¿aSample²»Îª¿Õ£¬É¾³ıaSampleÊı×éºÍËüµÄÄÚÈİ*/
+/*å¦‚æœç´¢å¼•å˜é‡aSampleä¸ä¸ºç©ºï¼Œåˆ é™¤aSampleæ•°ç»„å’Œå®ƒçš„å†…å®¹*/
 void sqlite3DeleteIndexSamples(sqlite3 *db, Index *pIdx){
 #ifdef SQLITE_ENABLE_STAT3
   if( pIdx->aSample ){
     int j;
     for(j=0; j<pIdx->nSample; j++){
-      IndexSample *p = &pIdx->aSample[j];  /*½á¹¹ÌåIndexSample£¬sqlite_stat3±íÖĞµÄÃ¿¸öÑù±¾Öµ¾ùÊ¹ÓÃÕâÖÖÀàĞÍµÄ½á¹¹±íÊ¾ÔÚÄÚ´æÖĞ±íÊ¾¡£*/
+      IndexSample *p = &pIdx->aSample[j];  /*ç»“æ„ä½“IndexSampleï¼Œsqlite_stat3è¡¨ä¸­çš„æ¯ä¸ªæ ·æœ¬å€¼å‡ä½¿ç”¨è¿™ç§ç±»å‹çš„ç»“æ„è¡¨ç¤ºåœ¨å†…å­˜ä¸­è¡¨ç¤ºã€‚*/
       if( p->eType==SQLITE_TEXT || p->eType==SQLITE_BLOB ){
-        sqlite3DbFree(db, p->u.z);  /* ÊÍ·ÅÊı¾İ¿âÁ¬½Ó¹ØÁªµÄÄÚ´æ */
+        sqlite3DbFree(db, p->u.z);  /* é‡Šæ”¾æ•°æ®åº“è¿æ¥å…³è”çš„å†…å­˜ */
       }
     }
     sqlite3DbFree(db, pIdx->aSample);
   }
-  if( db && db->pnBytesFreed==0 ){  /*ÕûÊıĞÍÖ¸ÕëpnBytesFreed£¬Èô²»Îª¿Õ£¬½«Æä¼ÓÈëº¯ÊıDbFree()ÖĞ*/
-    pIdx->nSample = 0;  /*nSampleµ±Ç°µÄÑù±¾ÊıÄ¿*/
+  if( db && db->pnBytesFreed==0 ){  /*æ•´æ•°å‹æŒ‡é’ˆpnBytesFreedï¼Œè‹¥ä¸ä¸ºç©ºï¼Œå°†å…¶åŠ å…¥å‡½æ•°DbFree()ä¸­*/
+    pIdx->nSample = 0;  /*nSampleå½“å‰çš„æ ·æœ¬æ•°ç›®*/
     pIdx->aSample = 0;
   }
 #else
@@ -1070,22 +1070,22 @@ void sqlite3DeleteIndexSamples(sqlite3 *db, Index *pIdx){
 ** arrays of all indices.
 */
 
-/*½«sqlite_stat3±íµÄÄÚÈİ¼ÓÔØµ½ËùÓĞË÷ÒıµÄ aSample Êı×éÖĞ*/
+/*å°†sqlite_stat3è¡¨çš„å†…å®¹åŠ è½½åˆ°æ‰€æœ‰ç´¢å¼•çš„ aSample æ•°ç»„ä¸­*/
 static int loadStat3(sqlite3 *db, const char *zDb){
-  int rc;                       /* Result codes from subroutines */ /*×Ó¹ı³Ì·µ»ØÖµ*/
-  sqlite3_stmt *pStmt = 0;      /* An SQL statement being run */ /*ÕıÔÚÔËĞĞµÄÒ»¸öSQlÓï¾ä*/
-  char *zSql;                   /* Text of the SQL statement */ /*SQLÓï¾äµÄÄÚÈİ*/
-  Index *pPrevIdx = 0;          /* Previous index in the loop */ /*Ñ­»·ÖĞµÄÇ°Ò»¸öË÷Òı*/
-  int idx = 0;                  /* slot in pIdx->aSample[] for next sample */ /*ÏÂÒ»¸öÑù±¾ÔÚpIdx->aSample[]µÄºÛ¼£*/
-  int eType;                    /* Datatype of a sample */ /*Ñù±¾µÄÊı¾İÀàĞÍ*/
-  IndexSample *pSample;         /* A slot in pIdx->aSample[] */  /*pIdx->aSample[]ÖĞµÄÒ»¸öºÛ¼£*/
+  int rc;                       /* Result codes from subroutines */ /*å­è¿‡ç¨‹è¿”å›å€¼*/
+  sqlite3_stmt *pStmt = 0;      /* An SQL statement being run */ /*æ­£åœ¨è¿è¡Œçš„ä¸€ä¸ªSQlè¯­å¥*/
+  char *zSql;                   /* Text of the SQL statement */ /*SQLè¯­å¥çš„å†…å®¹*/
+  Index *pPrevIdx = 0;          /* Previous index in the loop */ /*å¾ªç¯ä¸­çš„å‰ä¸€ä¸ªç´¢å¼•*/
+  int idx = 0;                  /* slot in pIdx->aSample[] for next sample */ /*ä¸‹ä¸€ä¸ªæ ·æœ¬åœ¨pIdx->aSample[]çš„ç—•è¿¹*/
+  int eType;                    /* Datatype of a sample */ /*æ ·æœ¬çš„æ•°æ®ç±»å‹*/
+  IndexSample *pSample;         /* A slot in pIdx->aSample[] */  /*pIdx->aSample[]ä¸­çš„ä¸€ä¸ªç—•è¿¹*/
 
-  assert( db->lookaside.bEnabled==0 );  /*Lookaside½á¹¹Ìå¶¨Òålookaside£¬±íÊ¾ºó±³¶¯Ì¬ÄÚ´æ·ÖÅäÅäÖÃ*/
-  if( !sqlite3FindTable(db, "sqlite_stat3", zDb) ){  /*sqlite3FindTable·½·¨¶¨Î»ÃèÊöÒ»¸öÌØ¶¨µÄÊı¾İ¿â±íµÄÄÚ´æ½á¹¹*/
+  assert( db->lookaside.bEnabled==0 );  /*Lookasideç»“æ„ä½“å®šä¹‰lookasideï¼Œè¡¨ç¤ºåèƒŒåŠ¨æ€å†…å­˜åˆ†é…é…ç½®*/
+  if( !sqlite3FindTable(db, "sqlite_stat3", zDb) ){  /*sqlite3FindTableæ–¹æ³•å®šä½æè¿°ä¸€ä¸ªç‰¹å®šçš„æ•°æ®åº“è¡¨çš„å†…å­˜ç»“æ„*/
     return SQLITE_OK;
   }
 
-  zSql = sqlite3MPrintf(db,  /*sqlite3MPrintf()º¯ÊıÓÃÓÚ½«´ÓsqliteMalloc()º¯Êı»ñµÃµÄÄÚÈİ´òÓ¡µ½ÄÚ´æÖĞÈ¥£¬²¢ÇÒÊ¹ÓÃÄÚ²¿%×ª»»À©Õ¹¡£*/
+  zSql = sqlite3MPrintf(db,  /*sqlite3MPrintf()å‡½æ•°ç”¨äºå°†ä»sqliteMalloc()å‡½æ•°è·å¾—çš„å†…å®¹æ‰“å°åˆ°å†…å­˜ä¸­å»ï¼Œå¹¶ä¸”ä½¿ç”¨å†…éƒ¨%è½¬æ¢æ‰©å±•ã€‚*/
       "SELECT idx,count(*) FROM %Q.sqlite_stat3"
       " GROUP BY idx", zDb);
   if( !zSql ){
@@ -1096,21 +1096,21 @@ static int loadStat3(sqlite3 *db, const char *zDb){
   if( rc ) return rc;
 
   while( sqlite3_step(pStmt)==SQLITE_ROW ){
-    char *zIndex;   /* Index name */ /*Ë÷ÒıÃû*/
-    Index *pIdx;    /* Pointer to the index object */ /*Ö¸ÏòË÷Òı¶ÔÏóµÄÖ¸Õë*/
-    int nSample;    /* Number of samples */ /*Ñù±¾Êı*/
+    char *zIndex;   /* Index name */ /*ç´¢å¼•å*/
+    Index *pIdx;    /* Pointer to the index object */ /*æŒ‡å‘ç´¢å¼•å¯¹è±¡çš„æŒ‡é’ˆ*/
+    int nSample;    /* Number of samples */ /*æ ·æœ¬æ•°*/
 
     zIndex = (char *)sqlite3_column_text(pStmt, 0);
     if( zIndex==0 ) continue;
     nSample = sqlite3_column_int(pStmt, 1);
-    pIdx = sqlite3FindIndex(db, zIndex, zDb);  /*sqlite3FindIndex·½·¨¶¨Î»ÃèÊöÒ»¸öÌØ¶¨µÄË÷ÒıµÄÄÚ´æ½á¹¹*/
+    pIdx = sqlite3FindIndex(db, zIndex, zDb);  /*sqlite3FindIndexæ–¹æ³•å®šä½æè¿°ä¸€ä¸ªç‰¹å®šçš„ç´¢å¼•çš„å†…å­˜ç»“æ„*/
     if( pIdx==0 ) continue;
     assert( pIdx->nSample==0 );
     pIdx->nSample = nSample;
-    pIdx->aSample = sqlite3DbMallocZero(db, nSample*sizeof(IndexSample));  /*·ÖÅä0ÄÚ´æ Èç¹û·ÖÅäÊ§°Ü È·±£ÔÚÁ¬½ÓÖ¸ÕëÖĞ·ÖÅäÊ§°ÜµÄ±êÖ¾*/
-    pIdx->avgEq = pIdx->aiRowEst[1];  /*aiRowEst±íÊ¾ANALYZEÃüÁîµÄ½á¹û:Est. rowsÓÉÃ¿Ò»ÁĞÑ¡Ôñ*/
+    pIdx->aSample = sqlite3DbMallocZero(db, nSample*sizeof(IndexSample));  /*åˆ†é…0å†…å­˜ å¦‚æœåˆ†é…å¤±è´¥ ç¡®ä¿åœ¨è¿æ¥æŒ‡é’ˆä¸­åˆ†é…å¤±è´¥çš„æ ‡å¿—*/
+    pIdx->avgEq = pIdx->aiRowEst[1];  /*aiRowEstè¡¨ç¤ºANALYZEå‘½ä»¤çš„ç»“æœ:Est. rowsç”±æ¯ä¸€åˆ—é€‰æ‹©*/
     if( pIdx->aSample==0 ){
-      db->mallocFailed = 1;  /*mallocFailed±íÊ¾Èô¶¯Ì¬ÄÚ´æ·ÖÅäÊ§°Ü¼´ÎªÕæ*/
+      db->mallocFailed = 1;  /*mallocFailedè¡¨ç¤ºè‹¥åŠ¨æ€å†…å­˜åˆ†é…å¤±è´¥å³ä¸ºçœŸ*/
       sqlite3_finalize(pStmt);
       return SQLITE_NOMEM;
     }
@@ -1118,7 +1118,7 @@ static int loadStat3(sqlite3 *db, const char *zDb){
   rc = sqlite3_finalize(pStmt);
   if( rc ) return rc;
 
-  zSql = sqlite3MPrintf(db,  /*/*sqlite3MPrintf()º¯ÊıÓÃÓÚ½«´ÓsqliteMalloc()º¯Êı»ñµÃµÄÄÚÈİ´òÓ¡µ½ÄÚ´æÖĞÈ¥£¬²¢ÇÒÊ¹ÓÃÄÚ²¿%×ª»»À©Õ¹¡£*/
+  zSql = sqlite3MPrintf(db,  /*/*sqlite3MPrintf()å‡½æ•°ç”¨äºå°†ä»sqliteMalloc()å‡½æ•°è·å¾—çš„å†…å®¹æ‰“å°åˆ°å†…å­˜ä¸­å»ï¼Œå¹¶ä¸”ä½¿ç”¨å†…éƒ¨%è½¬æ¢æ‰©å±•ã€‚*/
       "SELECT idx,neq,nlt,ndlt,sample FROM %Q.sqlite_stat3", zDb);
   if( !zSql ){
     return SQLITE_NOMEM;
@@ -1128,14 +1128,14 @@ static int loadStat3(sqlite3 *db, const char *zDb){
   if( rc ) return rc;
 
   while( sqlite3_step(pStmt)==SQLITE_ROW ){
-    char *zIndex;   /* Index name */  /*Ë÷ÒıÃû×Ö*/
-    Index *pIdx;    /* Pointer to the index object */  /*Ö¸ÏòË÷Òı¶ÔÏóµÄÖ¸Õë*/
-    int i;          /* Loop counter */  /*Ñ­»·¼ÆÊıÆ÷*/
-    tRowcnt sumEq;  /* Sum of the nEq values */  /*nEqÖµµÄ×ÜÊı*/
+    char *zIndex;   /* Index name */  /*ç´¢å¼•åå­—*/
+    Index *pIdx;    /* Pointer to the index object */  /*æŒ‡å‘ç´¢å¼•å¯¹è±¡çš„æŒ‡é’ˆ*/
+    int i;          /* Loop counter */  /*å¾ªç¯è®¡æ•°å™¨*/
+    tRowcnt sumEq;  /* Sum of the nEq values */  /*nEqå€¼çš„æ€»æ•°*/
 
     zIndex = (char *)sqlite3_column_text(pStmt, 0);
     if( zIndex==0 ) continue;
-    pIdx = sqlite3FindIndex(db, zIndex, zDb);  /*¶¨Î»ÃèÊöÒ»¸öÌØ¶¨µÄË÷ÒıµÄÄÚ´æ½á¹¹*/
+    pIdx = sqlite3FindIndex(db, zIndex, zDb);  /*å®šä½æè¿°ä¸€ä¸ªç‰¹å®šçš„ç´¢å¼•çš„å†…å­˜ç»“æ„*/
     if( pIdx==0 ) continue;
     if( pIdx==pPrevIdx ){
       idx++;
@@ -1216,19 +1216,19 @@ static int loadStat3(sqlite3 *db, const char *zDb){
 ** code may be ignored.
 */
 /*
-** ÔØÈë±ísqlite_stat1ºÍsqlite_stat3µÄÄÚÈİ.±ísqlite_stat1µÄÄÚÈİÓÃÓÚÌî³ä
-** aiRowEstË÷ÒıÊı×é¡£±ísqlite_stat3ÓÃÓÚÌî³äaSampleË÷ÒıÊı×é¡£
+** è½½å…¥è¡¨sqlite_stat1å’Œsqlite_stat3çš„å†…å®¹.è¡¨sqlite_stat1çš„å†…å®¹ç”¨äºå¡«å……
+** aiRowEstç´¢å¼•æ•°ç»„ã€‚è¡¨sqlite_stat3ç”¨äºå¡«å……aSampleç´¢å¼•æ•°ç»„ã€‚
 **
-** Èç¹ûsqlite_stat1 ±íµ±Ç°²»ÔÚÊı¾İ¿âÖĞ, ·µ»Ø SQLITE_ERROR¡£´ËÖÖÇé¿öÏÂ£¬
-** ÔÚ±àÒë¹ı³ÌÖĞ¼´Ê¹ SQLITE_ENABLE_STAT3 ±»¶¨ÒåÁË£¬²¢ÇÒ sqlite_stat3±íµ±Ç°
-** Ò²´æÔÚ£¬Ò²²»ÄÜ´ÓÖĞ¶Á³öÈÎºÎÊı¾İ¡£
+** å¦‚æœsqlite_stat1 è¡¨å½“å‰ä¸åœ¨æ•°æ®åº“ä¸­, è¿”å› SQLITE_ERRORã€‚æ­¤ç§æƒ…å†µä¸‹ï¼Œ
+** åœ¨ç¼–è¯‘è¿‡ç¨‹ä¸­å³ä½¿ SQLITE_ENABLE_STAT3 è¢«å®šä¹‰äº†ï¼Œå¹¶ä¸” sqlite_stat3è¡¨å½“å‰
+** ä¹Ÿå­˜åœ¨ï¼Œä¹Ÿä¸èƒ½ä»ä¸­è¯»å‡ºä»»ä½•æ•°æ®ã€‚
 **
-** Èç¹ûÔÚ±àÒë¹ı³ÌÖĞ SQLITE_ENABLE_STAT3 ±»¶¨ÒåÁË ÇÒ sqlite_stat3±íµ±Ç°
-** ²»ÔÚÊı¾İ¿âÖĞ, SQLITE_ERROR ±»·µ»Ø£¬µ«ÊÇÔÚÕâÖÖÇé¿öÏÂ£¬ÔÚ·µ»ØÇ°Êı¾İ¿ÉÒÔ´Ó
-** sqlite_stat1 ±íÖĞ¶Á³ö¡£
+** å¦‚æœåœ¨ç¼–è¯‘è¿‡ç¨‹ä¸­ SQLITE_ENABLE_STAT3 è¢«å®šä¹‰äº† ä¸” sqlite_stat3è¡¨å½“å‰
+** ä¸åœ¨æ•°æ®åº“ä¸­, SQLITE_ERROR è¢«è¿”å›ï¼Œä½†æ˜¯åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œåœ¨è¿”å›å‰æ•°æ®å¯ä»¥ä»
+** sqlite_stat1 è¡¨ä¸­è¯»å‡ºã€‚
 **
-** Èç¹ûÒ»¸ö OOM ´íÎó³öÏÖ, ´Ëº¯Êı½«×ÜÊÇÉèÖÃÎª db->mallocFailed.
-** ÕâÒâÎ¶×Åµ÷ÓÃÆ÷²»¹Ø×¢ÆäËû´íÎó,·µ»Ø´úÂë½«±»ºöÂÔ¡£
+** å¦‚æœä¸€ä¸ª OOM é”™è¯¯å‡ºç°, æ­¤å‡½æ•°å°†æ€»æ˜¯è®¾ç½®ä¸º db->mallocFailed.
+** è¿™æ„å‘³ç€è°ƒç”¨å™¨ä¸å…³æ³¨å…¶ä»–é”™è¯¯,è¿”å›ä»£ç å°†è¢«å¿½ç•¥ã€‚
 */
 int sqlite3AnalysisLoad(sqlite3 *db, int iDb){
   analysisInfo sInfo;
@@ -1241,12 +1241,12 @@ int sqlite3AnalysisLoad(sqlite3 *db, int iDb){
 
   /* Clear any prior statistics */
 
-  /*Çå¿ÕÖ®Ç°µÄËùÓĞÊı¾İ*/
+  /*æ¸…ç©ºä¹‹å‰çš„æ‰€æœ‰æ•°æ®*/
   assert( sqlite3SchemaMutexHeld(db, iDb, 0) );
   for(i=sqliteHashFirst(&db->aDb[iDb].pSchema->idxHash);i;i=sqliteHashNext(i)){  
-	/*sqliteHashFirst¡¢sqliteHashNextÎª¹şÏ£±íµÄºê¶¨Òå£¬pSchema±íÊ¾Ö¸ÏòÊı¾İ¿âÄ£Ê½µÄÖ¸Õë(¿ÉÄÜÊÇ¹²ÏíµÄ)*/
-    Index *pIdx = sqliteHashData(i);  /*sqliteHashDataÎª¹şÏ£±íµÄºê¶¨Òå*/
-    sqlite3DefaultRowEst(pIdx);  /*ÓÃÄ¬ÈÏµÄĞÅÏ¢Ìî³äIndex.aiRowEst[]Êı×é£¬µ±ÎÒÃÇ²»ÔËĞĞANALYZEÖ¸ÁîÊ±£¬¾ÍÊ¹ÓÃÕâĞ©ĞÅÏ¢¡£*/
+	/*sqliteHashFirstã€sqliteHashNextä¸ºå“ˆå¸Œè¡¨çš„å®å®šä¹‰ï¼ŒpSchemaè¡¨ç¤ºæŒ‡å‘æ•°æ®åº“æ¨¡å¼çš„æŒ‡é’ˆ(å¯èƒ½æ˜¯å…±äº«çš„)*/
+    Index *pIdx = sqliteHashData(i);  /*sqliteHashDataä¸ºå“ˆå¸Œè¡¨çš„å®å®šä¹‰*/
+    sqlite3DefaultRowEst(pIdx);  /*ç”¨é»˜è®¤çš„ä¿¡æ¯å¡«å……Index.aiRowEst[]æ•°ç»„ï¼Œå½“æˆ‘ä»¬ä¸è¿è¡ŒANALYZEæŒ‡ä»¤æ—¶ï¼Œå°±ä½¿ç”¨è¿™äº›ä¿¡æ¯ã€‚*/
 #ifdef SQLITE_ENABLE_STAT3
     sqlite3DeleteIndexSamples(db, pIdx);
     pIdx->aSample = 0;
@@ -1255,32 +1255,32 @@ int sqlite3AnalysisLoad(sqlite3 *db, int iDb){
 
   /* Check to make sure the sqlite_stat1 table exists */
 
-  /*¼ì²éÈ·¶¨sqlite_stat1±í´æÔÚ*/
+  /*æ£€æŸ¥ç¡®å®šsqlite_stat1è¡¨å­˜åœ¨*/
   sInfo.db = db;
   sInfo.zDatabase = db->aDb[iDb].zName;
-  if( sqlite3FindTable(db, "sqlite_stat1", sInfo.zDatabase)==0 ){  /*¶¨Î»ÃèÊöÒ»¸öÌØ¶¨µÄÊı¾İ¿â±íµÄÄÚ´æ½á¹¹*/
+  if( sqlite3FindTable(db, "sqlite_stat1", sInfo.zDatabase)==0 ){  /*å®šä½æè¿°ä¸€ä¸ªç‰¹å®šçš„æ•°æ®åº“è¡¨çš„å†…å­˜ç»“æ„*/
     return SQLITE_ERROR;
   }
 
   /* Load new statistics out of the sqlite_stat1 table */
 
-  /*´Ósqlite_stat1±íÍâÔØ³öĞÂÊı¾İ*/
+  /*ä»sqlite_stat1è¡¨å¤–è½½å‡ºæ–°æ•°æ®*/
   zSql = sqlite3MPrintf(db, 
       "SELECT tbl,idx,stat FROM %Q.sqlite_stat1", sInfo.zDatabase);
   if( zSql==0 ){
     rc = SQLITE_NOMEM;
   }else{
-    rc = sqlite3_exec(db, zSql, analysisLoader, &sInfo, 0);  /*/* sqlite3Ö´ĞĞº¯Êı£¬Ö´ĞĞSQL´úÂë¡£³ö×Ôlegacy.c 36ĞĞ*/*/
+    rc = sqlite3_exec(db, zSql, analysisLoader, &sInfo, 0);  /*/* sqlite3æ‰§è¡Œå‡½æ•°ï¼Œæ‰§è¡ŒSQLä»£ç ã€‚å‡ºè‡ªlegacy.c 36è¡Œ*/*/
     sqlite3DbFree(db, zSql);
   }
 
 
   /* Load the statistics from the sqlite_stat3 table. */
 
-  /*´Ósqlite_stat3±íÔØ³öÊı¾İ*/
+  /*ä»sqlite_stat3è¡¨è½½å‡ºæ•°æ®*/
 #ifdef SQLITE_ENABLE_STAT3
   if( rc==SQLITE_OK ){
-    int lookasideEnabled = db->lookaside.bEnabled;  /*lookaside±íÊ¾ºó±¸¶¯Ì¬ÄÚ´æ·ÖÅäÅäÖÃ¡£bEnabledÊÇÒ»¸ö±êÖ¾Î»£¬Õ¼ÓÃÁ½¸ö×Ö½ÚµÄÎŞ·ûºÅÕûÊı£¬±íÊ¾¿ÉÒÔ½øĞĞĞÂµÄºó±¸ÄÚ´æÇøµÄ·ÖÅä¡£*/
+    int lookasideEnabled = db->lookaside.bEnabled;  /*lookasideè¡¨ç¤ºåå¤‡åŠ¨æ€å†…å­˜åˆ†é…é…ç½®ã€‚bEnabledæ˜¯ä¸€ä¸ªæ ‡å¿—ä½ï¼Œå ç”¨ä¸¤ä¸ªå­—èŠ‚çš„æ— ç¬¦å·æ•´æ•°ï¼Œè¡¨ç¤ºå¯ä»¥è¿›è¡Œæ–°çš„åå¤‡å†…å­˜åŒºçš„åˆ†é…ã€‚*/
     db->lookaside.bEnabled = 0;
     rc = loadStat3(db, sInfo.zDatabase);
     db->lookaside.bEnabled = lookasideEnabled;
@@ -1288,7 +1288,7 @@ int sqlite3AnalysisLoad(sqlite3 *db, int iDb){
 #endif
 
   if( rc==SQLITE_NOMEM ){
-    db->mallocFailed = 1;  /*mallocFailed±íÊ¾Èô¶¯Ì¬ÄÚ´æ·ÖÅäÊ§°Ü¼´ÎªÕæ*/
+    db->mallocFailed = 1;  /*mallocFailedè¡¨ç¤ºè‹¥åŠ¨æ€å†…å­˜åˆ†é…å¤±è´¥å³ä¸ºçœŸ*/
   }
   return rc;
 }
