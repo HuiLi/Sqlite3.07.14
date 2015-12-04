@@ -70,7 +70,7 @@ int sqlite3VdbeChangeEncoding(Mem *pMem, int desiredEnc){
 }
 
 /*
-** Make sure pMem->z points to a writable allocation(分配) of at least 
+** Make sure pMem->z points to a writable allocation(分配) of at least
 ** n bytes.
 ** 确保pMem->z指向一个可写的至少有n个字节的分配单元.
 ** If the third argument(论据,论点) passed to this function is true, then memory
@@ -160,7 +160,7 @@ int sqlite3VdbeMemMakeWriteable(Mem *pMem){
 /*
 ** If the given Mem* has a zero-filled tail, turn it into an ordinary
 ** blob stored in dynamically allocated space.
-** 如果给出的Mem*包含一个零填充的--,那就吧Mem*转换成一个普通的blob对象,这个blob对象是在动态分配的空间存储着的.
+** 如果给的Mem*指针是以0填充的尾巴，将它转化成普通的blob类型数据存储在动态分布的空间里
 */
 #ifndef SQLITE_OMIT_INCRBLOB
 int sqlite3VdbeMemExpandBlob(Mem *pMem){
@@ -586,13 +586,13 @@ void sqlite3VdbeMemSetInt64(Mem *pMem, i64 val){
 /*
 ** Delete any previous value and set the value stored in *pMem to val,
 ** manifest type REAL.
-** 删除任何先前存在的值,并且把在*pMem中存在的值设置成val
+** 删除所有以前存在的值,并把存储在pMem里面的值给val变量
 */
 void sqlite3VdbeMemSetDouble(Mem *pMem, double val){
   if( sqlite3IsNaN(val) ){
-    sqlite3VdbeMemSetNull(pMem);
+    sqlite3VdbeMemSetNull(pMem);//把在pMem中存储的值置空
   }else{
-    sqlite3VdbeMemRelease(pMem);
+    sqlite3VdbeMemRelease(pMem);//释放被Mem存储的任何内存单元
     pMem->r = val;
     pMem->flags = MEM_Real;
     pMem->type = SQLITE_FLOAT;
@@ -765,7 +765,8 @@ int sqlite3VdbeMemSetStr(
   assert( pMem->db==0 || sqlite3_mutex_held(pMem->db->mutex) );
   assert( (pMem->flags & MEM_RowSet)==0 );
 
-  /* If z is a NULL pointer, set pMem to contain an SQL NULL. */
+  /* If z is a NULL pointer, set pMem to contain an SQL NULL.
+   * 如果z是空指针，设置pMem包含一个SQL空语句*/
   if( !z ){
     sqlite3VdbeMemSetNull(pMem);
     return SQLITE_OK;
@@ -790,7 +791,7 @@ int sqlite3VdbeMemSetStr(
   /* The following block sets the new values of Mem.z and Mem.xDel. It
   ** also sets a flag in local variable "flags" to indicate the memory
   ** management (one of MEM_Dyn or MEM_Static).
-  ** 接下来的块是用来设置Mem.z和Mem.xDel的新值.它也用来在当前的变量"flags"设置一个标志以表明存储管理
+  ** 接下来的块是为Mem.z和Mem.xDel设置新值.它也用来在当前的局部变量"flags"设置一个标志以表明为存储管理
   */
   if( xDel==SQLITE_TRANSIENT ){
     int nAlloc = nByte;

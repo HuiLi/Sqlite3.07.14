@@ -1277,7 +1277,7 @@ int sqlite3VdbeList(
   ** so far.  The nRow value will increase as new trigger subprograms are
   ** encountered, but p->pc will eventually catch up to nRow.
   当输出的行数达到最大值nRow时，意味着列举工作已经完成并且sqlite3_step()应该返回SQLITE_DONE。
-  nRow是主程序中的行数的总和，将这个总和加到所有遇到的触发子程序上。当出现新的触发子程序时
+  nRow是主程序中的行数的总和加上到目前为止所遇到的触法子程序的数量。当出现新的触发子程序时
   nRow值将增加，但是p->pc最终会赶上nRow
   */
   nRow = p->nOp;
@@ -1535,7 +1535,7 @@ static void *allocSpace(
 /*
 ** Rewind the VDBE back to the beginning in preparation for
 ** running it.
-将VDBE倒回到开始为运行它做准备
+将VDBE倒回为VDBE准备运行时的状态
 */
 void sqlite3VdbeRewind(Vdbe *p){
 #if defined(SQLITE_DEBUG) || defined(VDBE_PROFILE)

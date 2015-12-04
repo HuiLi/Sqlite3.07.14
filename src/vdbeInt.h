@@ -102,6 +102,7 @@ struct VdbeCursor {
 typedef struct VdbeCursor VdbeCursor;
 
 /*
+ * TODO
 ** When a sub-program is executed (OP_Program), a structure of this type
 ** is allocated to store the current value of the program counter, as
 ** well as the current memory cell array and various other frame specific
@@ -124,7 +125,7 @@ typedef struct VdbeCursor VdbeCursor;
 ** 避免当属于子框架的存储单元被释放时循环调用sqlite3VdbeMemRelease()方法。
 ** The currently executing frame is stored in Vdbe.pFrame. Vdbe.pFrame is
 ** set to NULL if the currently executing frame is the main program.
-** 当前的执行框架被存储在Vdbe.pFrame里面。如果当前的执行框架在主程序当中，Vdbe.pFrame将被置为空。 
+** 当前的执行框架被存储在Vdbe.pFrame里面。如果当前的执行框架在主程序当中，Vdbe.pFrame将被置为空。
 */
 typedef struct VdbeFrame VdbeFrame;
 struct VdbeFrame {
@@ -162,7 +163,7 @@ struct VdbeFrame {
 */
 struct Mem {
   sqlite3 *db;        /* The associated database connection 先关联的数据库连接*/
-  char *z;            /* String or BLOB value 字符串或者	值*/
+  char *z;            /* String or BLOB value 字符串或者值*/
   double r;           /* Real value 真值*/
   union {
     i64 i;              /* Integer value used when MEM_Int is set in flags 整形只在当MEM_Int被设置标记时使用*/
@@ -171,7 +172,7 @@ struct Mem {
     RowSet *pRowSet;    /* Used only when flags==MEM_RowSet大致同上 */
     VdbeFrame *pFrame;  /* Used when flags==MEM_Frame */
   } u;
-  int n;              /* Number of characters in string value, excluding '\0' 字符串值中出去/0的的字符个数*/
+  int n;              /* Number of characters in string value, excluding '\0' 字符串值中除去/0的的字符个数*/
   u16 flags;          /* Some combination of MEM_Null, MEM_Str, MEM_Dyn, etc. 这几种标示的结合*/
   u8  type;           /* One of SQLITE_NULL, SQLITE_TEXT, SQLITE_INTEGER, etc 其中的一种数据类型*/
   u8  enc;            /* SQLITE_UTF8, SQLITE_UTF16BE, SQLITE_UTF16LE 不同的编码方式*/

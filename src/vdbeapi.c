@@ -9,7 +9,7 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-**
+**翻译@author wxq
 ** This file contains code use to implement APIs that are part of the
 ** VDBE.
 */
@@ -24,6 +24,8 @@
 ** that sqlite3_prepare() generates.  For example, if new functions or
 ** collating sequences are registered or if an authorizer function is
 ** added or changed.
+**返回值为true且有一个参数的函数声明需要被重新编译。无论执行环境在何时被修改，这个函数声明都会被重新编译，这将会改变由sqlite_prepare()生成程序。
+**例如：新的函数或排序生成，又或者是授权函数被添加或改变。
 */
 int sqlite3_expired(sqlite3_stmt *pStmt){
   Vdbe *p = (Vdbe*)pStmt;
@@ -35,6 +37,8 @@ int sqlite3_expired(sqlite3_stmt *pStmt){
 ** Check on a Vdbe to make sure it has not been finalized.  Log
 ** an error and return true if it has been finalized (or is otherwise
 ** invalid).  Return false if it is ok.
+** 检查Vdbe确认它没有被关闭（p->db==0表示vdbe关闭），如果vdbe被关闭，记录一条相关错误信息日志并且返回true（否
+** 则其他都是无效的）；如果vdbe正常返回 false
 */
 static int vdbeSafety(Vdbe *p){
   if( p->db==0 ){
@@ -58,9 +62,12 @@ static int vdbeSafetyNotNull(Vdbe *p){
 ** the sqlite3_compile() routine. The integer returned is an SQLITE_
 ** success/failure code that describes the result of executing the virtual
 ** machine.
-**
+**下面这段程序是销毁由sqlite3_compile()程序创建的虚拟机。
+**返回的整型值SQLITE_success/failure编号，用来表示虚拟机执行的结果。
 ** This routine sets the error code and string returned by
 ** sqlite3_errcode(), sqlite3_errmsg() and sqlite3_errmsg16().
+** 这个程序设置错误编号并且由sqlite3_errocode(),sqlite3_errmsg()
+** 和sqlite3_errmsg16()返回具体错误信息（string类型）
 */
 int sqlite3_finalize(sqlite3_stmt *pStmt){
   int rc;
@@ -69,13 +76,15 @@ int sqlite3_finalize(sqlite3_stmt *pStmt){
     ** pointer is a harmless no-op. */
     rc = SQLITE_OK;
   }else{
+	  //TODO
     Vdbe *v = (Vdbe*)pStmt;
     sqlite3 *db = v->db;
-    if( vdbeSafety(v) ) return SQLITE_MISUSE_BKPT;
-    sqlite3_mutex_enter(db->mutex);
-    rc = sqlite3VdbeFinalize(v);
-    rc = sqlite3ApiExit(db, rc);
-    sqlite3LeaveMutexAndCloseZombie(db);
+    if( vdbeSafety(v) )//检查Vdbe确认它没有被关闭（p->db==0表示vdbe关闭）
+    	return SQLITE_MISUSE_BKPT;
+    sqlite3_mutex_enter(db->mutex);//获得互斥锁p
+    rc = sqlite3VdbeFinalize(v);//在程序执行过后清除VDBE占用的资源并删除这个VDBE。最后返回的代码是一个实数。将整个过程中所有的错误信息传递给指针参数pzErrMsg。
+    rc = sqlite3ApiExit(db, rc);//退出任何API的函数调用
+    sqlite3LeaveMutexAndCloseZombie(db);//关闭在数据连接db上的互斥体
   }
   return rc;
 }
@@ -84,9 +93,10 @@ int sqlite3_finalize(sqlite3_stmt *pStmt){
 ** Terminate the current execution of an SQL statement and reset it
 ** back to its starting state so that it can be reused. A success code from
 ** the prior execution is returned.
-**
+**终止当前执行的SQL语句并重置它使它回到最初的开始状态从而能够重新使用。来自优先执行的成功编号被返回
 ** This routine sets the error code and string returned by
 ** sqlite3_errcode(), sqlite3_errmsg() and sqlite3_errmsg16().
+**程序设置错误编号并且由sqlite3_errcode(),sqlite3_errmsg(),sqlite3_errmsg16()函数返回对应的错误信息。
 */
 int sqlite3_reset(sqlite3_stmt *pStmt){
   int rc;
@@ -94,11 +104,11 @@ int sqlite3_reset(sqlite3_stmt *pStmt){
     rc = SQLITE_OK;
   }else{
     Vdbe *v = (Vdbe*)pStmt;
-    sqlite3_mutex_enter(v->db->mutex);
+    sqlite3_mutex_enter(v->db->mutex);//获得互斥锁p
     rc = sqlite3VdbeReset(v);
-    sqlite3VdbeRewind(v);
+    sqlite3VdbeRewind(v);//将VDBE倒回为VDBE准备运行时的状态
     assert( (rc & (v->db->errMask))==rc );
-    rc = sqlite3ApiExit(v->db, rc);
+    rc = sqlite3ApiExit(v->db, rc);//退出API调用的任何函数
     sqlite3_mutex_leave(v->db->mutex);
   }
   return rc;
@@ -106,6 +116,7 @@ int sqlite3_reset(sqlite3_stmt *pStmt){
 
 /*
 ** Set all the parameters in the compiled SQL statement to NULL.
+** 设置所有编译的SQL语句中的参数为NULL
 */
 int sqlite3_clear_bindings(sqlite3_stmt *pStmt){
   int i;
@@ -130,12 +141,13 @@ int sqlite3_clear_bindings(sqlite3_stmt *pStmt){
 /**************************** sqlite3_value_  *******************************
 ** The following routines extract information from a Mem or sqlite3_value
 ** structure.
+** 下面的程序是从Mem和sqlite_value两个结构体中提取信息
 */
-const void *sqlite3_value_blob(sqlite3_value *pVal){
+const void *sqlite3_value_blob(sqlite3_value *pVal){//sqlite3_value的结构体就是Mem
   Mem *p = (Mem*)pVal;
   if( p->flags & (MEM_Blob|MEM_Str) ){
-    sqlite3VdbeMemExpandBlob(p);
-    p->flags &= ~MEM_Str;
+    sqlite3VdbeMemExpandBlob(p);//转化成普通的blob类型数据存储在动态分布的空间里
+    p->flags &= ~MEM_Str;//各位取反
     p->flags |= MEM_Blob;
     return p->n ? p->z : 0;
   }else{
@@ -178,17 +190,19 @@ int sqlite3_value_type(sqlite3_value* pVal){
 /**************************** sqlite3_result_  *******************************
 ** The following routines are used by user-defined functions to specify
 ** the function result.
-**
+**下面的函数使用用户自定义函数列举出函数结果。
 ** The setStrOrError() funtion calls sqlite3VdbeMemSetStr() to store the
 ** result as a string or blob but if the string or blob is too large, it
 ** then sets the error code to SQLITE_TOOBIG
+** setStrOrError()函数唤醒sqlite3VdbeMemSetStr()存储string类型或blob类型结果数据，
+** 但是如果string或blob类型数据过大，它就会给SQLITE_TOOBIG设置错误编号
 */
 static void setResultStrOrError(
-  sqlite3_context *pCtx,  /* Function context */
-  const char *z,          /* String pointer */
-  int n,                  /* Bytes in string, or negative */
-  u8 enc,                 /* Encoding of z.  0 for BLOBs */
-  void (*xDel)(void*)     /* Destructor function */
+  sqlite3_context *pCtx,  /* Function context 函数操作的内容-待存储的数据内容 */
+  const char *z,          /* String pointer 字符指针*/
+  int n,                  /* Bytes in string, or negative 数据字节数*/
+  u8 enc,                 /* Encoding of z.  0 for BLOBs 编码*/
+  void (*xDel)(void*)     /* Destructor function 析构函数*/
 ){
   if( sqlite3VdbeMemSetStr(&pCtx->s, z, n, enc, xDel)==SQLITE_TOOBIG ){
     sqlite3_result_error_toobig(pCtx);
@@ -209,10 +223,11 @@ void sqlite3_result_double(sqlite3_context *pCtx, double rVal){
   sqlite3VdbeMemSetDouble(&pCtx->s, rVal);
 }
 void sqlite3_result_error(sqlite3_context *pCtx, const char *z, int n){
-  assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
+  assert( sqlite3_mutex_held(pCtx->s.db->mutex));
   pCtx->isError = SQLITE_ERROR;
   sqlite3VdbeMemSetStr(&pCtx->s, z, n, SQLITE_UTF8, SQLITE_TRANSIENT);
 }
+//const void *z 定义z指针，这种定义方式表示z可以指向任意类型，但是它只能指向常量
 #ifndef SQLITE_OMIT_UTF16
 void sqlite3_result_error16(sqlite3_context *pCtx, const void *z, int n){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
@@ -234,7 +249,7 @@ void sqlite3_result_null(sqlite3_context *pCtx){
 }
 void sqlite3_result_text(
   sqlite3_context *pCtx, 
-  const char *z, 
+  const char *z, //const void *z 定义z指针，这种定义方式表示z可以指向任意类型，但是它只能指向常量
   int n,
   void (*xDel)(void *)
 ){
@@ -286,7 +301,7 @@ void sqlite3_result_error_code(sqlite3_context *pCtx, int errCode){
   }
 }
 
-/* Force an SQLITE_TOOBIG error. */
+/* Force an SQLITE_TOOBIG error. 强行设置一个SQLITE_TOOBIG（sqlite3_context的string或blob类型数据过大）错误*/
 void sqlite3_result_error_toobig(sqlite3_context *pCtx){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   pCtx->isError = SQLITE_TOOBIG;
@@ -294,7 +309,7 @@ void sqlite3_result_error_toobig(sqlite3_context *pCtx){
                        SQLITE_UTF8, SQLITE_STATIC);
 }
 
-/* An SQLITE_NOMEM error. */
+/* An SQLITE_NOMEM error. 设置内存不足错误*/
 void sqlite3_result_error_nomem(sqlite3_context *pCtx){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetNull(&pCtx->s);
@@ -305,15 +320,16 @@ void sqlite3_result_error_nomem(sqlite3_context *pCtx){
 /*
 ** This function is called after a transaction has been committed. It 
 ** invokes callbacks registered with sqlite3_wal_hook() as required.
+** 当事务被提交后这个函数会被唤醒，它会按要求调用由sqlite_wal_hool()注册的回调函数。
 */
 static int doWalCallbacks(sqlite3 *db){
   int rc = SQLITE_OK;
 #ifndef SQLITE_OMIT_WAL
   int i;
   for(i=0; i<db->nDb; i++){
-    Btree *pBt = db->aDb[i].pBt;
+    Btree *pBt = db->aDb[i].pBt;//此数据库文件的B树结构
     if( pBt ){
-      int nEntry = sqlite3PagerWalCallback(sqlite3BtreePager(pBt));
+      int nEntry = sqlite3PagerWalCallback(sqlite3BtreePager(pBt));//测试上次commit是否存在，0表示没有commit
       if( db->xWalCallback && nEntry>0 && rc==SQLITE_OK ){
         rc = db->xWalCallback(db->pWalArg, db, db->aDb[i].zName, nEntry);
       }
@@ -326,11 +342,14 @@ static int doWalCallbacks(sqlite3 *db){
 /*
 ** Execute the statement pStmt, either until a row of data is ready, the
 ** statement is completely executed or an error occurs.
+**执行pStmt语句，直到一条已经准备好的数据，语句被完全执行完或者有错误发生
 **
 ** This routine implements the bulk of the logic behind the sqlite_step()
 ** API.  The only thing omitted is the automatic recompile if a 
 ** schema change has occurred.  That detail is handled by the
 ** outer sqlite3_step() wrapper procedure.
+** 这段程序实现了大部分的逻辑内容在sqlite_step() API背后。唯一省略的事是如果设计模式发生改变就会产生自动编译。
+** 具体的执行细节由外部sqlite_step()函数来处理。
 */
 static int sqlite3Step(Vdbe *p){
   sqlite3 *db;
@@ -345,6 +364,9 @@ static int sqlite3Step(Vdbe *p){
     ** This "automatic-reset" change is not technically an incompatibility, 
     ** since any application that receives an SQLITE_MISUSE is broken by
     ** definition.
+    **在有错误产生或者语句执行完后，在重新调用sqlite_step()函数之前我们需要唤醒sqlite_reset();但在从3.7.0版本
+    **开始，我们这样改变是为了让sqlite_reset()可以自动被唤醒而不是抛出一个SQLITE_MISsUSE错误。这种自动复位不是技术的不兼容而是任何一个
+    **应用都会收到一个被定义破坏的SQLITE_MISUSE
     **
     ** Nevertheless, some published applications that were originally written
     ** for version 3.6.23 or earlier do in fact depend on SQLITE_MISUSE 
@@ -353,6 +375,9 @@ static int sqlite3Step(Vdbe *p){
     ** legacy behavior of returning SQLITE_MISUSE for cases where the 
     ** previous sqlite3_step() returned something other than a SQLITE_LOCKED
     ** or SQLITE_BUSY error.
+    ** 然而，一些已经发布的比较早的3.6.0甚至更早版本都是依赖SQLITE_MISUSE的返回，而这些都被自动重置改变。
+    ** 就像一种应急措施，SQLITE_OMIT_AUTORESET编译时恢复，返回SQLITE_MISUSE遗留的行为的情况前sqlite3_step()
+    ** 返回SQLITE_LOCKED以外的东西或SQLITE_BUSY错误。
     */
 #ifdef SQLITE_OMIT_AUTORESET
     if( p->rc==SQLITE_BUSY || p->rc==SQLITE_LOCKED ){
@@ -365,7 +390,9 @@ static int sqlite3Step(Vdbe *p){
 #endif
   }
 
-  /* Check that malloc() has not failed. If it has, return early. */
+  /* Check that malloc() has not failed. If it has, return early.
+   * 检查自动分配内存，如果分配失败，返回SQLITE_NOMEM
+   * */
   db = p->db;
   if( db->mallocFailed ){
     p->rc = SQLITE_NOMEM;
@@ -381,16 +408,19 @@ static int sqlite3Step(Vdbe *p){
     /* If there are no other statements currently running, then
     ** reset the interrupt flag.  This prevents a call to sqlite3_interrupt
     ** from interrupting a statement that has not yet started.
+    **TODO
+    ** 如果当前正在运行的没有其他的语句，那么重置打断状态。
+    ** 这就会防止调用sqlite_interrupt从而打断还没有开始 的执行的语句。
     */
-    if( db->activeVdbeCnt==0 ){
+    if( db->activeVdbeCnt==0 ){//正在执行的虚拟数据库引擎的数目
       db->u1.isInterrupted = 0;
     }
 
     assert( db->writeVdbeCnt>0 || db->autoCommit==0 || db->nDeferredCons==0 );
 
 #ifndef SQLITE_OMIT_TRACE
-    if( db->xProfile && !db->init.busy ){
-      sqlite3OsCurrentTimeInt64(db->pVfs, &p->startTime);
+    if( db->xProfile/*分析功能函数*/ && !db->init.busy/*是否正在初始化*/ ){
+      sqlite3OsCurrentTimeInt64(db->pVfs, &p->startTime);//获取当前系统时间
     }
 #endif
 
@@ -400,7 +430,7 @@ static int sqlite3Step(Vdbe *p){
   }
 #ifndef SQLITE_OMIT_EXPLAIN
   if( p->explain ){
-    rc = sqlite3VdbeList(p);
+    rc = sqlite3VdbeList(p);//在虚拟机中给出程序的清单。接口和sqlite3VdbeExec()的接口一样
   }else
 #endif /* SQLITE_OMIT_EXPLAIN */
   {
@@ -411,11 +441,12 @@ static int sqlite3Step(Vdbe *p){
 
 #ifndef SQLITE_OMIT_TRACE
   /* Invoke the profile callback if there is one
+   * 如果运行到这就调用这个回掉函数
   */
   if( rc!=SQLITE_ROW && db->xProfile && !db->init.busy && p->zSql ){
     sqlite3_int64 iNow;
     sqlite3OsCurrentTimeInt64(db->pVfs, &iNow);
-    db->xProfile(db->pProfileArg, p->zSql, (iNow - p->startTime)*1000000);
+    db->xProfile(db->pProfileArg, p->zSql, (iNow - p->startTime)*1000000);//调用分析函数
   }
 #endif
 
@@ -438,6 +469,9 @@ end_of_step:
   ** be one of the values in the first assert() below. Variable p->rc 
   ** contains the value that would be returned if sqlite3_finalize() 
   ** were called on statement p.
+  ** 在这一步，局部变量携带一个值，如果这句话被sqlite_prepare()的接口编译，这个值就会被返回。
+  ** 根据这个文档，它只能是以下第一个assert()函数的其中一个值。变量p->rc包含了这样一个值，如果
+  ** sqlite3_finalize()被语句p调用，这个值就会被返回。
   */
   assert( rc==SQLITE_ROW  || rc==SQLITE_DONE   || rc==SQLITE_ERROR 
        || rc==SQLITE_BUSY || rc==SQLITE_MISUSE
@@ -447,8 +481,10 @@ end_of_step:
     /* If this statement was prepared using sqlite3_prepare_v2(), and an
     ** error has occured, then return the error code in p->rc to the
     ** caller. Set the error code in the database handle to the same value.
+    ** 如果当这句话正准备使用sqlite3_prepare_v2()函数，此时发生了一个错误，于是就会在p->rc里面返回一个错误编号给调用者
+    ** 在数据库句柄错误代码设置为相同的值
     */ 
-    rc = sqlite3VdbeTransferError(p);
+    rc = sqlite3VdbeTransferError(p);//将属于VDBE相关的错误代码和错误信息作为第一个参数一起传递给数据库句柄处理函数
   }
   return (rc&db->errMask);
 }
@@ -456,15 +492,18 @@ end_of_step:
 /*
 ** The maximum number of times that a statement will try to reparse
 ** itself before giving up and returning SQLITE_SCHEMA.
+** 一条语句被放弃编译并且返回SQLITE_SCHEMA必须是实际重新编译次数超过最大重新分析次数
 */
 #ifndef SQLITE_MAX_SCHEMA_RETRY
-# define SQLITE_MAX_SCHEMA_RETRY 5
+# define SQLITE_MAX_SCHEMA_RETRY 5//设置为5次
 #endif
 
 /*
 ** This is the top-level implementation of sqlite3_step().  Call
 ** sqlite3Step() to do most of the work.  If a schema error occurs,
 ** call sqlite3Reprepare() and try again.
+** 这是一个顶级实现sqlite3_step()，唤醒sqlite3Step()来做大多数工作。
+** 如果这层出错，调用sqlite3Reprepare()并重试
 */
 int sqlite3_step(sqlite3_stmt *pStmt){
   int rc = SQLITE_OK;      /* Result from sqlite3Step() */
@@ -473,14 +512,14 @@ int sqlite3_step(sqlite3_stmt *pStmt){
   int cnt = 0;             /* Counter to prevent infinite loop of reprepares */
   sqlite3 *db;             /* The database connection */
 
-  if( vdbeSafetyNotNull(v) ){
+  if( vdbeSafetyNotNull(v) ){//检查vdbe是否为空，是否关闭，
     return SQLITE_MISUSE_BKPT;
   }
   db = v->db;
   sqlite3_mutex_enter(db->mutex);
-  while( (rc = sqlite3Step(v))==SQLITE_SCHEMA
-         && cnt++ < SQLITE_MAX_SCHEMA_RETRY
-         && (rc2 = rc = sqlite3Reprepare(v))==SQLITE_OK ){
+  while( (rc = sqlite3Step(v))==SQLITE_SCHEMA/*执行pStmt语句*/
+         && cnt++ < SQLITE_MAX_SCHEMA_RETRY/*编译次数*/
+         && (rc2 = rc = sqlite3Reprepare(v))==SQLITE_OK/*重新编译当编译模式发生改变*/ ){
     sqlite3_reset(pStmt);
     assert( v->expired==0 );
   }
@@ -492,9 +531,12 @@ int sqlite3_step(sqlite3_stmt *pStmt){
     ** program counter to 0 to ensure that when the statement is 
     ** finalized or reset the parser error message is available via
     ** sqlite3_errmsg() and sqlite3_errcode().
+    **在重新编译SQL语句发生错误后，这种情形就会发生。来自SQL编译器的错误信息已经加载到数据库句柄里。
+    **此块从数据库处理语句复制错误信息，并将该语句的程序计数器为0，以确保通过sqlite3_errmsg当语
+    **句完成或重置解析器错误信息是可用sqlite3_errmsg()和sqlite3_errcode()。
     */
     const char *zErr = (const char *)sqlite3_value_text(db->pErr); 
-    sqlite3DbFree(db, v->zErrMsg);
+    sqlite3DbFree(db, v->zErrMsg);//释放数据库连接关联的内存
     if( !db->mallocFailed ){
       v->zErrMsg = sqlite3DbStrDup(db, zErr);
       v->rc = rc2;
@@ -503,14 +545,15 @@ int sqlite3_step(sqlite3_stmt *pStmt){
       v->rc = rc = SQLITE_NOMEM;
     }
   }
-  rc = sqlite3ApiExit(db, rc);
-  sqlite3_mutex_leave(db->mutex);
+  rc = sqlite3ApiExit(db, rc);//退出数据库调用
+  sqlite3_mutex_leave(db->mutex);//程序退出之前由相同的线程输入的互斥对象
   return rc;
 }
 
 /*
 ** Extract the user data from a sqlite3_context structure and return a
 ** pointer to it.
+** 从sqlite3_context结构体提取用户信息后返回一个指向它的指针。
 */
 void *sqlite3_user_data(sqlite3_context *p){
   assert( p && p->pFunc );
@@ -520,12 +563,15 @@ void *sqlite3_user_data(sqlite3_context *p){
 /*
 ** Extract the user data from a sqlite3_context structure and return a
 ** pointer to it.
+**从sqlite3_context结构体提取用户信息后返回一个指向它的指针
 **
 ** IMPLEMENTATION-OF: R-46798-50301 The sqlite3_context_db_handle() interface
 ** returns a copy of the pointer to the database connection (the 1st
 ** parameter) of the sqlite3_create_function() and
 ** sqlite3_create_function16() routines that originally registered the
 ** application defined function.
+** 上述的sqlite3_context_db_handle（）接口返回指针的一个拷贝到sqlite3_create_function（）
+** 和sqlite3_create_function16（）程序最初注册的应用程序中定义的功能的数据库连接（第一参数）。
 */
 sqlite3 *sqlite3_context_db_handle(sqlite3_context *p){
   assert( p && p->pFunc );
@@ -539,39 +585,42 @@ sqlite3 *sqlite3_context_db_handle(sqlite3_context *p){
 ** SQL function that use this routine so that the functions will exist
 ** for name resolution but are actually overloaded by the xFindFunction
 ** method of virtual tables.
+** 以下是总是失败并显示错误消息，指出该功能用于在错误的情况下SQL函数的实现。该sqlite3_overload_function()
+** API可以构造使用该程序的SQL功能，这样的功能会存在域名解析，但实际上是由虚表的xFindFunction方法重载。
 */
 void sqlite3InvalidFunction(
   sqlite3_context *context,  /* The function calling context */
   int NotUsed,               /* Number of arguments to the function */
   sqlite3_value **NotUsed2   /* Value of each argument */
 ){
-  const char *zName = context->pFunc->zName;
+  const char *zName = context->pFunc->zName;//函数的SQL名称
   char *zErr;
   UNUSED_PARAMETER2(NotUsed, NotUsed2);
-  zErr = sqlite3_mprintf(
-      "unable to use function %s in the requested context", zName);
+  zErr = sqlite3_mprintf("unable to use function %s in the requested context", zName);
   sqlite3_result_error(context, zErr, -1);
-  sqlite3_free(zErr);
+  sqlite3_free(zErr);//释放从sqlite3Malloc函数中得到的内存
 }
 
 /*
 ** Allocate or return the aggregate context for a user function.  A new
 ** context is allocated on the first call.  Subsequent calls return the
 ** same context that was returned on prior calls.
+** 分配或归还集合体上下文用户的功能。
 */
 void *sqlite3_aggregate_context(sqlite3_context *p, int nByte){
-  Mem *pMem;
+  Mem *pM
+  em;
   assert( p && p->pFunc && p->pFunc->xStep );
   assert( sqlite3_mutex_held(p->s.db->mutex) );
   pMem = p->pMem;
   testcase( nByte<0 );
   if( (pMem->flags & MEM_Agg)==0 ){
     if( nByte<=0 ){
-      sqlite3VdbeMemReleaseExternal(pMem);
+      sqlite3VdbeMemReleaseExternal(pMem);//如果一个存储单元包含一个字符串值,这个值必须通过条用外部的回调函数才能释放,那就现在释放了.
       pMem->flags = MEM_Null;
       pMem->z = 0;
     }else{
-      sqlite3VdbeMemGrow(pMem, nByte, 0);
+      sqlite3VdbeMemGrow(pMem, nByte, 0);//
       pMem->flags = MEM_Agg;
       pMem->u.pDef = p->pFunc;
       if( pMem->z ){
@@ -585,6 +634,8 @@ void *sqlite3_aggregate_context(sqlite3_context *p, int nByte){
 /*
 ** Return the auxilary data pointer, if any, for the iArg'th argument to
 ** the user-function defined by pCtx.
+** 返回辅助数据的指针，如果有的话，返回第iArg个pCtx的Funcdef结构体（包含参数和参数对应的方法-在vdbeInt.h里）
+**
 */
 void *sqlite3_get_auxdata(sqlite3_context *pCtx, int iArg){
   VdbeFunc *pVdbeFunc;
@@ -601,6 +652,8 @@ void *sqlite3_get_auxdata(sqlite3_context *pCtx, int iArg){
 ** Set the auxilary data pointer and delete function, for the iArg'th
 ** argument to the user-function defined by pCtx. Any previous value is
 ** deleted by calling the delete function specified when it was set.
+** 返回辅助数据的指针并删除函数，返回第iArg个pCtx的Funcdef结构体（包含参数和参数对应的方法-在vdbeInt.h里）
+** 任何先前的值都是通过调用它被设置时指定的删除功能进行删除。
 */
 void sqlite3_set_auxdata(
   sqlite3_context *pCtx, 
@@ -645,11 +698,14 @@ failed:
 /*
 ** Return the number of times the Step function of a aggregate has been 
 ** called.
+**返回聚集函数被调用的次数。
 **
 ** This function is deprecated.  Do not use it for new code.  It is
 ** provide only to avoid breaking legacy code.  New aggregate function
 ** implementations should keep their own counts within their aggregate
 ** context.
+** 这个方法已被弃用，不要在新的编码中使用。它还继续使用是因为避免破坏旧代码。
+** 新的聚集函数的实现应该保持他们自己与聚集函数的依赖。
 */
 int sqlite3_aggregate_count(sqlite3_context *p){
   assert( p && p->pMem && p->pFunc && p->pFunc->xStep );
@@ -659,15 +715,17 @@ int sqlite3_aggregate_count(sqlite3_context *p){
 
 /*
 ** Return the number of columns in the result set for the statement pStmt.
+** 为pStmt语句返回执行的结果的列数
 */
 int sqlite3_column_count(sqlite3_stmt *pStmt){
   Vdbe *pVm = (Vdbe *)pStmt;
-  return pVm ? pVm->nResColumn : 0;
+  return pVm ? pVm->nResColumn : 0;//列数目
 }
 
 /*
 ** Return the number of values available from the current row of the
 ** currently executing statement pStmt.
+** 返回值的数量来自当前正在执行的语句产生的行数（即pVm->nResColumn）。
 */
 int sqlite3_data_count(sqlite3_stmt *pStmt){
   Vdbe *pVm = (Vdbe *)pStmt;
@@ -681,6 +739,8 @@ int sqlite3_data_count(sqlite3_stmt *pStmt){
 ** it is, return a pointer to the Mem for the value of that column.
 ** If iCol is not valid, return a pointer to a Mem which has a value
 ** of NULL.
+** 检查确定给定的第i条语句是否有效。如果有效，返回指向每一列值的Mem指针。
+** 如果i列无效，返回值为空的Mem指针。
 */
 static Mem *columnMem(sqlite3_stmt *pStmt, int i){
   Vdbe *pVm;
@@ -702,7 +762,7 @@ static Mem *columnMem(sqlite3_stmt *pStmt, int i){
     ** these assert()s from failing, when building with SQLITE_DEBUG defined
     ** using gcc, we force nullMem to be 8-byte aligned using the magical
     ** __attribute__((aligned(8))) macro.  */
-    static const Mem nullMem 
+    static const Mem nullMem//值为空的Mem指针
 #if defined(SQLITE_DEBUG) && defined(__GNUC__)
       __attribute__((aligned(8))) 
 #endif
@@ -727,6 +787,9 @@ static Mem *columnMem(sqlite3_stmt *pStmt, int i){
 ** select list of a SELECT statement) that may cause a malloc() failure. If 
 ** malloc() has failed, the threads mallocFailed flag is cleared and the result
 ** code of statement pStmt set to SQLITE_NOMEM.
+** 在调用一个sqlite3_value_XXX函数后，columnMallocFailure(sqlite3_stmt *pStmt)将会被唤
+** 醒（如：在一个值由执行一连串SELECT语句的返回的），这就有可能导致malloc()失败，分配失败状态线程被清除并且
+** pStmt结果语句被设置成SQLITE_NOMEM
 **
 ** Specifically, this is called from within:
 **
@@ -745,6 +808,8 @@ static void columnMallocFailure(sqlite3_stmt *pStmt)
   ** sqlite3_column_XXX API, then set the return code of the statement to
   ** SQLITE_NOMEM. The next call to _step() (if any) will return SQLITE_ERROR
   ** and _finalize() will return NOMEM.
+  ** 使用sqlite3_column_XXX的API，如果在转换编码时候，malloc()函数出现失败，就设置返回语句编码为SQLITE_NOMEM
+  ** 下一步（如果继续执行）_finalize()将会返回NOMEM错误
   */
   Vdbe *p = (Vdbe *)pStmt;
   if( p ){
@@ -756,13 +821,15 @@ static void columnMallocFailure(sqlite3_stmt *pStmt)
 /**************************** sqlite3_column_  *******************************
 ** The following routines are used to access elements of the current row
 ** in the result set.
+** 下面程序用来访问当前行的结果集。
 */
 const void *sqlite3_column_blob(sqlite3_stmt *pStmt, int i){
   const void *val;
-  val = sqlite3_value_blob( columnMem(pStmt,i) );
+  val = sqlite3_value_blob( columnMem(pStmt,i) );//从Mem和sqlite_value两个结构体中提取信息
   /* Even though there is no encoding conversion, value_blob() might
   ** need to call malloc() to expand the result of a zeroblob() 
   ** expression. 
+  ** 即使这里没有编码转换，value_blob()函数也会调用malloc()来扩展zeroblob()函数结果表示
   */
   columnMallocFailure(pStmt);
   return val;
