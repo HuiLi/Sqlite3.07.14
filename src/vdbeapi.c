@@ -834,32 +834,32 @@ const void *sqlite3_column_blob(sqlite3_stmt *pStmt, int i){
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_bytes(sqlite3_stmt *pStmt, int i){
+int sqlite3_column_bytes(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte）
   int val = sqlite3_value_bytes( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_bytes16(sqlite3_stmt *pStmt, int i){
+int sqlite3_column_bytes16(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte16）
   int val = sqlite3_value_bytes16( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-double sqlite3_column_double(sqlite3_stmt *pStmt, int i){
+double sqlite3_column_double(sqlite3_stmt *pStmt, int i){//获取每一列数据值（double型）
   double val = sqlite3_value_double( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_int(sqlite3_stmt *pStmt, int i){
+int sqlite3_column_int(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int类型）
   int val = sqlite3_value_int( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-sqlite_int64 sqlite3_column_int64(sqlite3_stmt *pStmt, int i){
+sqlite_int64 sqlite3_column_int64(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int64 8位有符号整型）
   sqlite_int64 val = sqlite3_value_int64( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-const unsigned char *sqlite3_column_text(sqlite3_stmt *pStmt, int i){
+const unsigned char *sqlite3_column_text(sqlite3_stmt *pStmt, int i){//获取每一列数据值（文本数据text）
   const unsigned char *val = sqlite3_value_text( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
@@ -887,48 +887,59 @@ int sqlite3_column_type(sqlite3_stmt *pStmt, int i){
 }
 
 /* The following function is experimental and subject to change or
-** removal */
-/*int sqlite3_column_numeric_type(sqlite3_stmt *pStmt, int i){
-**  return sqlite3_value_numeric_type( columnMem(pStmt,i) );
-**}
+** removal
+** 下面的函数是实验的，并随时更改或删除
+** */
+/*  int sqlite3_column_numeric_type(sqlite3_stmt *pStmt, int i)
+ * {
+**  	return sqlite3_value_numeric_type( columnMem(pStmt,i) );
+** }
 */
 
 /*
 ** Convert the N-th element of pStmt->pColName[] into a string using
 ** xFunc() then return that string.  If N is out of range, return 0.
-**
+** 使用xFunc()函数转换pStmt->pColName[]数组里面的第N个元素为string类型并返回string字符。
+** 如果N超出了数组的大小，返回0.
+
 ** There are up to 5 names for each column.  useType determines which
 ** name is returned.  Here are the names:
+** 每一列有五个命名，使用useType来决定那种名称被返回。下面是它的名称：
 **
-**    0      The column name as it should be displayed for output
-**    1      The datatype name for the column
-**    2      The name of the database that the column derives from
-**    3      The name of the table that the column derives from
-**    4      The name of the table column that the result column derives from
+**
+**    0      The column name as it should be displayed for output 列名应该要被输出显示
+**    1      The datatype name for the column 这列数据的类型名
+**    2      The name of the database that the column derives from 数据库的列名称来源
+**    3      The name of the table that the column derives from 表列名称来源
+**    4      The name of the table column that the result column derives from 表列的数据来源
 **
 ** If the result is not a simple column reference (if it is an expression
 ** or a constant) then useTypes 2, 3, and 4 return NULL.
+** 如果结果不是简单的列数据引用（如果它只是一个表达式或者常量），于是以上2，3，4三种情况会返回NULL
 */
 static const void *columnName(
-  sqlite3_stmt *pStmt,
-  int N,
-  const void *(*xFunc)(Mem*),
+  sqlite3_stmt *pStmt,//预处理语句
+  int N,/*第N列结果集*/
+  const void *(*xFunc)(Mem*),/*使用xFunc()函数转换pStmt->pColName[]数组里面的第N个元素为string类型并返回string字符*/
   int useType
 ){
   const void *ret = 0;
   Vdbe *p = (Vdbe *)pStmt;
   int n;
-  sqlite3 *db = p->db;
+  sqlite3 *db = p->db;//数据库连接句柄，sqlite3在sqlite3.h里面定义
   
   assert( db!=0 );
-  n = sqlite3_column_count(pStmt);
+  n = sqlite3_column_count(pStmt);//pStmt语句返回执行的结果的列数
   if( N<n && N>=0 ){
     N += useType*n;
     sqlite3_mutex_enter(db->mutex);
-    assert( db->mallocFailed==0 );
-    ret = xFunc(&p->aColName[N]);
+    assert( db->mallocFailed==0 );// 若动态内存分配失败即为真
+    ret = xFunc(&p->aColName[N]);/*使用xFunc()函数转换pStmt->pColName[]数组里面的第N个元素为string类型并返回string字符*/
      /* A malloc may have failed inside of the xFunc() call. If this
     ** is the case, clear the mallocFailed flag and return NULL.
+    **
+    ** 在xFunc()函数中分配内存可能出现失败调用，如果这样情况出现，
+    ** 清楚内存分配失败状态并返回NULL
     */
     if( db->mallocFailed ){
       db->mallocFailed = 0;
@@ -942,21 +953,21 @@ static const void *columnName(
 /*
 ** Return the name of the Nth column of the result set returned by SQL
 ** statement pStmt.
+** 通过执行SQL语句返回第N列结果集
 */
 const char *sqlite3_column_name(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_NAME);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_NAME);
 }
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_column_name16(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_NAME);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_NAME);
 }
 #endif
 
 /*
 ** Constraint:  If you have ENABLE_COLUMN_METADATA then you must
 ** not define OMIT_DECLTYPE.
+** 约束：如果你有ENABLE_COLUMN_METADATA变量，你就不能定义OMIT_DECLTYPE变量
 */
 #if defined(SQLITE_OMIT_DECLTYPE) && defined(SQLITE_ENABLE_COLUMN_METADATA)
 # error "Must not define both SQLITE_OMIT_DECLTYPE \
@@ -967,15 +978,14 @@ const void *sqlite3_column_name16(sqlite3_stmt *pStmt, int N){
 /*
 ** Return the column declaration type (if applicable) of the 'i'th column
 ** of the result set of SQL statement pStmt.
+** 返回第i列pStmt SQL语句执行的结果集的列声明类型。
 */
 const char *sqlite3_column_decltype(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_DECLTYPE);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_DECLTYPE);
 }
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_column_decltype16(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_DECLTYPE);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_DECLTYPE);
 }
 #endif /* SQLITE_OMIT_UTF16 */
 #endif /* SQLITE_OMIT_DECLTYPE */
@@ -985,15 +995,14 @@ const void *sqlite3_column_decltype16(sqlite3_stmt *pStmt, int N){
 ** Return the name of the database from which a result column derives.
 ** NULL is returned if the result column is an expression or constant or
 ** anything else which is not an unabiguous reference to a database column.
+** 返回数据库的名称列得出结果。 如果结果列是一个表达式或者常量又或者是其他没有清楚提到数据库列的东西话就会返回NULL
 */
 const char *sqlite3_column_database_name(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_DATABASE);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_DATABASE);
 }
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_column_database_name16(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_DATABASE);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_DATABASE);
 }
 #endif /* SQLITE_OMIT_UTF16 */
 
@@ -1001,15 +1010,14 @@ const void *sqlite3_column_database_name16(sqlite3_stmt *pStmt, int N){
 ** Return the name of the table from which a result column derives.
 ** NULL is returned if the result column is an expression or constant or
 ** anything else which is not an unabiguous reference to a database column.
+** 返回来自结果列的数据库表的表名。如果结果列是一个表达式或者常量又或者是其他没有清楚引用数据库列就会返回NULL
 */
 const char *sqlite3_column_table_name(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_TABLE);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_TABLE);
 }
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_column_table_name16(sqlite3_stmt *pStmt, int N){
-  return columnName(
-      pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_TABLE);
+  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_TABLE);
 }
 #endif /* SQLITE_OMIT_UTF16 */
 
@@ -1017,6 +1025,7 @@ const void *sqlite3_column_table_name16(sqlite3_stmt *pStmt, int N){
 ** Return the name of the table column from which a result column derives.
 ** NULL is returned if the result column is an expression or constant or
 ** anything else which is not an unabiguous reference to a database column.
+** 返回来自结果列数据库表的列名。如果结果列是一个表达式或者常量又或者是其他没有清楚引用数据库列就会返回NULL
 */
 const char *sqlite3_column_origin_name(sqlite3_stmt *pStmt, int N){
   return columnName(
@@ -1034,29 +1043,34 @@ const void *sqlite3_column_origin_name16(sqlite3_stmt *pStmt, int N){
 /******************************* sqlite3_bind_  ***************************
 ** 
 ** Routines used to attach values to wildcards in a compiled SQL statement.
+** 下面程序会在编译SQL语句时会将值附加到通配符里
+**
 */
 /*
 ** Unbind the value bound to variable i in virtual machine p. This is the 
 ** the same as binding a NULL value to the column. If the "i" parameter is
 ** out of range, then SQLITE_RANGE is returned. Othewise SQLITE_OK.
+** 解绑变量i在虚拟机p中的值。这就相当于把NULL值绑定给数据库表的某列。如果i这个参数超出范围，就返回
+** SQLITE_RANGE变量，否则返回SQLITE_OK
 **
 ** A successful evaluation of this routine acquires the mutex on p.
 ** the mutex is released if any kind of error occurs.
+** 一个成功的程序评估需要获取虚拟机p的互斥变量（锁），如果有任何一种错误发生，这个互斥变量（锁）就会被释放。
 **
 ** The error code stored in database p->db is overwritten with the return
 ** value in any case.
+** 在任何情况下，存储在数据库p->db里面的错误编号就会被重写
 */
 static int vdbeUnbind(Vdbe *p, int i){
   Mem *pVar;
-  if( vdbeSafetyNotNull(p) ){
+  if( vdbeSafetyNotNull(p) ){//检查vdbe是否为空
     return SQLITE_MISUSE_BKPT;
   }
-  sqlite3_mutex_enter(p->db->mutex);
+  sqlite3_mutex_enter(p->db->mutex);//获得互斥锁p
   if( p->magic!=VDBE_MAGIC_RUN || p->pc>=0 ){
     sqlite3Error(p->db, SQLITE_MISUSE, 0);
-    sqlite3_mutex_leave(p->db->mutex);
-    sqlite3_log(SQLITE_MISUSE, 
-        "bind on a busy prepared statement: [%s]", p->zSql);
+    sqlite3_mutex_leave(p->db->mutex);//互斥锁释放
+    sqlite3_log(SQLITE_MISUSE, "bind on a busy prepared statement: [%s]", p->zSql);
     return SQLITE_MISUSE_BKPT;
   }
   if( i<1 || i>p->nVar ){
@@ -1066,18 +1080,21 @@ static int vdbeUnbind(Vdbe *p, int i){
   }
   i--;
   pVar = &p->aVar[i];
-  sqlite3VdbeMemRelease(pVar);
-  pVar->flags = MEM_Null;
+  sqlite3VdbeMemRelease(pVar);//释放pVar操作码值
+  pVar->flags = MEM_Null;//状态置为MEM_Null
   sqlite3Error(p->db, SQLITE_OK, 0);
 
   /* If the bit corresponding to this variable in Vdbe.expmask is set, then 
   ** binding a new value to this variable invalidates the current query plan.
+  ** 如果对应于该变量在Vdbe.expmask该位被设置，则绑定一个新值这个变量的当前查询计划无效。
   **
   ** IMPLEMENTATION-OF: R-48440-37595 If the specific value bound to host
   ** parameter in the WHERE clause might influence the choice of query plan
   ** for a statement, then the statement will be automatically recompiled,
   ** as if there had been a schema change, on the first sqlite3_step() call
   ** following any change to the bindings of that parameter.
+  ** 如果特定值绑定到主机的WHERE子句会影响查询计划选择的语句的参数，那么该语句将被自动重新编译，
+  ** 因为如果出现了一个模式的变化，第一个sqlite3_step()调用下面的任何变化该参数的绑定。
   */
   if( p->isPrepareV2 &&
      ((i<32 && p->expmask & ((u32)1 << i)) || p->expmask==0xffffffff)
@@ -1089,33 +1106,34 @@ static int vdbeUnbind(Vdbe *p, int i){
 
 /*
 ** Bind a text or BLOB value.
+** 绑定文本或者BLOB值
 */
 static int bindText(
   sqlite3_stmt *pStmt,   /* The statement to bind against */
-  int i,                 /* Index of the parameter to bind */
-  const void *zData,     /* Pointer to the data to be bound */
-  int nData,             /* Number of bytes of data to be bound */
-  void (*xDel)(void*),   /* Destructor for the data */
-  u8 encoding            /* Encoding for the data */
+  int i,                 /* Index of the parameter to bind 绑定参数的索引*/
+  const void *zData,     /* Pointer to the data to be bound 指向绑定数据的指针*/
+  int nData,             /* Number of bytes of data to be bound 受约束的字节数*/
+  void (*xDel)(void*),   /* Destructor for the data 破化数据*/
+  u8 encoding            /* Encoding for the data 数据的编码*/
 ){
   Vdbe *p = (Vdbe *)pStmt;
   Mem *pVar;
   int rc;
 
-  rc = vdbeUnbind(p, i);
+  rc = vdbeUnbind(p, i);//解绑vdbe
   if( rc==SQLITE_OK ){
-    if( zData!=0 ){
-      pVar = &p->aVar[i-1];
-      rc = sqlite3VdbeMemSetStr(pVar, zData, nData, encoding, xDel);
+    if( zData != 0 ){
+      pVar = &p->aVar[i-1];//操作码的值 这里就是绑定值，而释放的时候也是释放操作码就行
+      rc = sqlite3VdbeMemSetStr(pVar, zData, nData, encoding, xDel);//把Mem结构中的数据转换成string或者BLOB类型
       if( rc==SQLITE_OK && encoding!=0 ){
-        rc = sqlite3VdbeChangeEncoding(pVar, ENC(p->db));
+        rc = sqlite3VdbeChangeEncoding(pVar, ENC(p->db));//改变编码方式
       }
       sqlite3Error(p->db, rc, 0);
-      rc = sqlite3ApiExit(p->db, rc);
+      rc = sqlite3ApiExit(p->db, rc);//退出API调用的任何函数
     }
     sqlite3_mutex_leave(p->db->mutex);
   }else if( xDel!=SQLITE_STATIC && xDel!=SQLITE_TRANSIENT ){
-    xDel((void*)zData);
+    xDel((void*)zData);//释放zData
   }
   return rc;
 }
@@ -1123,6 +1141,7 @@ static int bindText(
 
 /*
 ** Bind a blob value to an SQL statement variable.
+** 为SQL语句变量绑定一个blob类型的值
 */
 int sqlite3_bind_blob(
   sqlite3_stmt *pStmt, 
@@ -1138,12 +1157,12 @@ int sqlite3_bind_double(sqlite3_stmt *pStmt, int i, double rValue){
   Vdbe *p = (Vdbe *)pStmt;
   rc = vdbeUnbind(p, i);
   if( rc==SQLITE_OK ){
-    sqlite3VdbeMemSetDouble(&p->aVar[i-1], rValue);
+    sqlite3VdbeMemSetDouble(&p->aVar[i-1], rValue);//删除所有以前存在的值,并把存储在pMem里面的值给val变量
     sqlite3_mutex_leave(p->db->mutex);
   }
   return rc;
 }
-int sqlite3_bind_int(sqlite3_stmt *p, int i, int iValue){
+int sqlite3_bind_int(sqlite3_stmt *p, int i, int iValue){//i64-8位有符号整型
   return sqlite3_bind_int64(p, i, (i64)iValue);
 }
 int sqlite3_bind_int64(sqlite3_stmt *pStmt, int i, sqlite_int64 iValue){
@@ -1184,6 +1203,7 @@ int sqlite3_bind_text16(
 ){
   return bindText(pStmt, i, zData, nData, xDel, SQLITE_UTF16NATIVE);
 }
+/*TODO sqlite3_bind_value 的入口，里面由pValue->type来决定调用绑定值得类型*/
 #endif /* SQLITE_OMIT_UTF16 */
 int sqlite3_bind_value(sqlite3_stmt *pStmt, int i, const sqlite3_value *pValue){
   int rc;
@@ -1229,7 +1249,8 @@ int sqlite3_bind_zeroblob(sqlite3_stmt *pStmt, int i, int n){
 
 /*
 ** Return the number of wildcards that can be potentially bound to.
-** This routine is added to support DBD::SQLite.  
+** This routine is added to support DBD::SQLite.
+**  返回有可能被绑定的通配符数量。这个程序是添加DBD::SQLite支持
 */
 int sqlite3_bind_parameter_count(sqlite3_stmt *pStmt){
   Vdbe *p = (Vdbe*)pStmt;
@@ -1239,8 +1260,10 @@ int sqlite3_bind_parameter_count(sqlite3_stmt *pStmt){
 /*
 ** Return the name of a wildcard parameter.  Return NULL if the index
 ** is out of range or if the wildcard is unnamed.
+** 返回通配符参数的名字。如果index索引超出范围或者通配符是未命名就返回NULL
 **
 ** The result is always UTF-8.
+** 结果通常是UTF-8编码
 */
 const char *sqlite3_bind_parameter_name(sqlite3_stmt *pStmt, int i){
   Vdbe *p = (Vdbe*)pStmt;
@@ -1254,6 +1277,7 @@ const char *sqlite3_bind_parameter_name(sqlite3_stmt *pStmt, int i){
 ** Given a wildcard parameter name, return the index of the variable
 ** with that name.  If there is no variable with the given name,
 ** return 0.
+** 给出一个通配符参数的名称，返回该名称下变量的索引。如果该名称下没有对应的变量就返回0
 */
 int sqlite3VdbeParameterIndex(Vdbe *p, const char *zName, int nName){
   int i;
@@ -1264,7 +1288,7 @@ int sqlite3VdbeParameterIndex(Vdbe *p, const char *zName, int nName){
     for(i=0; i<p->nzVar; i++){
       const char *z = p->azVar[i];
       if( z && memcmp(z,zName,nName)==0 && z[nName]==0 ){
-        return i+1;
+        return i+1;//索引计算
       }
     }
   }
@@ -1276,6 +1300,7 @@ int sqlite3_bind_parameter_index(sqlite3_stmt *pStmt, const char *zName){
 
 /*
 ** Transfer all bindings from the first statement over to the second.
+** 将第一条语句的绑定转移到绑定第二条语句
 */
 int sqlite3TransferBindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
   Vdbe *pFrom = (Vdbe*)pFromStmt;
@@ -1285,9 +1310,9 @@ int sqlite3TransferBindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
   assert( pTo->nVar==pFrom->nVar );
   sqlite3_mutex_enter(pTo->db->mutex);
   for(i=0; i<pFrom->nVar; i++){
-    sqlite3VdbeMemMove(&pTo->aVar[i], &pFrom->aVar[i]);
+    sqlite3VdbeMemMove(&pTo->aVar[i], &pFrom->aVar[i]);//转移绑定
   }
-  sqlite3_mutex_leave(pTo->db->mutex);
+  sqlite3_mutex_leave(pTo->db->mutex);//互斥锁移除
   return SQLITE_OK;
 }
 
@@ -1295,14 +1320,17 @@ int sqlite3TransferBindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
 /*
 ** Deprecated external interface.  Internal/core SQLite code
 ** should call sqlite3TransferBindings.
+** 不赞成使用的外部接口。内部的或者核心的SQLite代码应该调用sqlite3TransferBindings()
 **
-** Is is misuse to call this routine with statements from different
+** It is misuse to call this routine with statements from different
 ** database connections.  But as this is a deprecated interface, we
 ** will not bother to check for that condition.
+** 使用不同的数据库连接语句调用改程序是滥用方式。但因为这是一个不推荐使用的接口，我们不会刻意去检查该条件。
 **
 ** If the two statements contain a different number of bindings, then
 ** an SQLITE_ERROR is returned.  Nothing else can go wrong, so otherwise
 ** SQLITE_OK is returned.
+** 如果两个语句包含不同数量的绑定，那么SQLITE_ERROR被返回。没有什么可以去错了，所以否则SQLITE_OK返回。
 */
 int sqlite3_transfer_bindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
   Vdbe *pFrom = (Vdbe*)pFromStmt;
@@ -1325,14 +1353,17 @@ int sqlite3_transfer_bindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
 ** in the argument belongs.  This is the same database handle that was
 ** the first argument to the sqlite3_prepare() that was used to create
 ** the statement in the first place.
+** 返回的sqlite3*数据库句柄，这在给定参数的准备好的声明所属。这是同一个数据库句柄是第一个参数sqlite3_prepare（），
+** 这是用于创建摆在首位的声明。
+**
 */
 sqlite3 *sqlite3_db_handle(sqlite3_stmt *pStmt){
   return pStmt ? ((Vdbe*)pStmt)->db : 0;
 }
 
 /*
-** Return true if the prepared statement is guaranteed to not modify the
-** database.
+** Return true if the prepared statement is guaranteed to not modify the database.
+** 返回true，如果预编译语句中保证不会修改数据库
 */
 int sqlite3_stmt_readonly(sqlite3_stmt *pStmt){
   return pStmt ? ((Vdbe*)pStmt)->readOnly : 1;
@@ -1340,6 +1371,7 @@ int sqlite3_stmt_readonly(sqlite3_stmt *pStmt){
 
 /*
 ** Return true if the prepared statement is in need of being reset.
+** 如果预编译语句需要被重置就返回true值
 */
 int sqlite3_stmt_busy(sqlite3_stmt *pStmt){
   Vdbe *v = (Vdbe*)pStmt;
@@ -1351,6 +1383,8 @@ int sqlite3_stmt_busy(sqlite3_stmt *pStmt){
 ** with database connection pDb.  If pStmt is NULL, return the first
 ** prepared statement for the database connection.  Return NULL if there
 ** are no more.
+** 返回一个指向下一个准备语句之后pStmt与数据库连接PDB相关联。如果pStmt为NULL，
+** 返回的第一个预备语句的数据库连接。返回NULL，如果没有更多的。
 */
 sqlite3_stmt *sqlite3_next_stmt(sqlite3 *pDb, sqlite3_stmt *pStmt){
   sqlite3_stmt *pNext;
