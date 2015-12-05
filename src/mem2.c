@@ -111,8 +111,8 @@ struct MemBlockHdr {
 ** static variables organized and to reduce namespace pollution
 ** when this module is combined with other in the amalgamation.
 **
-** 所有通过该模块使用的静态变量被收集到一个单一的结构，命名为“mem”。
-** 这是保持静态变量的组织和减少该模块结合其他的时产生的命名空间污染。
+** 所有该模块所使用的静态变量被收集到一个单一的结构，命名为“mem”。
+** 这是让静态变量变得更容易组织和减少该模块结合其他的时产生的命名空间污染。
 */
 static struct {
   
@@ -200,7 +200,7 @@ static void adjustStats(int iSize, int increment){
 ** This routine checks the guards at either end of the allocation and
 ** if they are incorrect it asserts.
 **
-** 给定一个配置，寻找并配置MemBlockHdr
+** 给定一个分配器，寻找该分配器的MemBlockHdr
 ** 如果不是正确的声明，这个例程将检查配置的任意一段保护。
 */
 static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
