@@ -151,7 +151,7 @@ struct VdbeFrame {
 
 /*
 ** A value for VdbeCursor.cacheValid that means the cache is always invalid.
-** vdbe指针的值。cachValid意味着缓存总是无效的。
+** 对于VdbeCursor.cacheValid值，这意味着缓存永远是无效的。
 */
 #define CACHE_STALE 0
 
@@ -159,7 +159,7 @@ struct VdbeFrame {
 ** Internally, the vdbe manipulates nearly all SQL values as Mem
 ** structures. Each Mem struct may cache multiple representations (string,
 ** integer etc.) of the same value.
-** 在内部，vdbe操作几乎所有的sql值都以Mem的结构来实现。每一个Mem结构可以缓存多种同样的代表值（比如字符串，整形的结构）
+** 在内部，vdbe的操作几乎所有的SQL值都以Mem的结构来实现。每一个Mem结构可以缓存多种同样值的表示（比如字符串，整形的结构）
 */
 struct Mem {
   sqlite3 *db;        /* The associated database connection 先关联的数据库连接*/
@@ -213,8 +213,8 @@ struct Mem {
 ** the following flags must be set to determine the memory management
 ** policy for Mem.z.  The MEM_Term flag tells us whether or not the
 ** string is \000 or \u0000 terminated
-**任何时候Mem包含一个字符串或者块儿代表，下面其中之一的标志必须被设置以决定Mem.z的内存管理策略
-**Mem_Term标记告诉我们无论是否这个字符串是\00还是\u000都将停止。
+**任何时候Mem包含一个字符串或者块儿代表，有下列标志之一必须设置为确定用于Mem.z.存储器管理政策该MEM_Term标志
+**告诉我们该字符串是否为\ 000或符\ u0000终止
 */
 #define MEM_Term      0x0200   /* String rep is nul terminated 字符串代替符以空结尾*/
 #define MEM_Dyn       0x0400   /* Need to call sqliteFree() on Mem.z 在Mem.z中需要调用sqliteFree()方法*/
@@ -229,7 +229,7 @@ struct Mem {
 
 /*
 ** Clear any existing type flags from a Mem and replace them with f
-**将Mem中的任何存在的标记类型都清空然后用f替换。
+**将Mem中的任何现有的标记来自Mem清除都并且用f替换。
 */
 #define MemSetTypeFlag(p, f) \
    ((p)->flags = ((p)->flags&~(MEM_TypeMask|MEM_Zero))|f)
@@ -237,7 +237,7 @@ struct Mem {
 /*
 ** Return true if a memory cell is not marked as invalid.  This macro
 ** is for use inside assert() statements only.
-**如果内存单元没有被标记为空则返回真。这个宏只是用来实现assert（）函数的内部声明。
+**如果内存单元没有被标记为无效则返回真。这个宏仅仅用来实现assert（）函数的内部声明。
 */
 #ifdef SQLITE_DEBUG
 #define memIsValid(M)  ((M)->flags & MEM_Invalid)==0
