@@ -34,7 +34,7 @@ typedef struct VdbeOp Op;
 typedef unsigned char Bool;
 
 /* Opaque type used by code in vdbesort.c  
-**Opaque类型被vdbesort.c文件中的代码使用
+** Opaque类型被vdbesort.c文件中的代码使用
 */
 typedef struct VdbeSorter VdbeSorter;
 
@@ -43,16 +43,16 @@ typedef struct Explain Explain;
 
 /*
 ** A cursor is a pointer into a single BTree within a database file.
-**一个游标是一个数据库文件中单一BTree的指示器。
+** 游标是一个数据库文件中单一B树的指示器。
 ** The cursor can seek to a BTree entry with a particular key, or
 ** loop over all entries of the Btree.  You can also insert new BTree
 ** entries or retrieve the key or data from the entry that the cursor
 ** is currently pointing to.
-**这个指针能够找到拥有特定值的一个BTree的入口，或者遍历BTree的所有入
-**口。你能够从新的BTree入口或者从这个指针通常指向的的入口检索值或者数据。
+**这个游标可以通过给定特定的键定位到一个B树的入口，或者循环遍历BTree的所有入
+**口。你能够添加新的BTree入口或者从这个指针通常指向的的入口检索值或者数据。
 ** Every cursor that the virtual machine has open is represented by an
 ** instance of the following structure.
-**每一个虚拟机已经开启的指针都代表着一个一下结构的常量。
+**每一个虚拟机已经开启的游标都是由下面实例代表
 */
 struct VdbeCursor {
   BtCursor *pCursor;    /* The cursor structure of the backend 后台的指针结构*/
@@ -102,7 +102,6 @@ struct VdbeCursor {
 typedef struct VdbeCursor VdbeCursor;
 
 /*
- * TODO
 ** When a sub-program is executed (OP_Program), a structure of this type
 ** is allocated to store the current value of the program counter, as
 ** well as the current memory cell array and various other frame specific
@@ -110,8 +109,9 @@ typedef struct VdbeCursor VdbeCursor;
 ** these values are copied back to the Vdbe from the VdbeFrame structure,
 ** restoring the state of the VM to as it was before the sub-program
 ** began executing.
-** 当一个子线程被执行，这个类型的结构将被分配存储当前程序计数器的值，而且当前存储单元阵列和各种其它的框架特定值存储在vdbe结构当中。
-**当子程序运行结束，这些值将从VDBE框架当中复制回来。存储虚拟机的状态当做它在子程序开始执行之前。
+** 当一个子线程被执行，这个类型的结构将被分配存储当前程序计数器的值，而且当前存储单元数据和各种其它的框架特
+** 定值存储在vdbe结构当中。当子程序运行结束，这些值将从VDBE框架当中复制回来。存储虚拟机的状态当做它在子
+** 程序开始执行之前。
 ** The memory for a VdbeFrame object is allocated and managed by a memory
 ** cell in the parent (calling) frame. When the memory cell is deleted or
 ** overwritten, the VdbeFrame object is not freed immediately. Instead, it
@@ -120,12 +120,12 @@ typedef struct VdbeCursor VdbeCursor;
 ** this instead of deleting the VdbeFrame immediately is to avoid recursive
 ** calls to sqlite3VdbeMemRelease() when the memory cells belonging to the
 ** child frame are released.
-** 一个虚拟机框架对象的内存由父框架的一个存储单元中被分配和管理。当内存单元被删除或者重写，虚拟机框架对象不会被立即释放。相反的，
-** 他将被链接到Vdbe.pDelFrame清单中。当虚拟机在中重启后，Vdbe.pDelFrame的目录清单被删除。这么做而不是立刻删除虚拟机框架对象是为了
-** 避免当属于子框架的存储单元被释放时循环调用sqlite3VdbeMemRelease()方法。
+** 一个虚拟机框架对象的内存由父框架的一个存储单元中被分配和管理。当内存单元被删除或者重写，虚拟机框架对象不会被立即释放。
+** 相反的，他将被链接到Vdbe.pDelFrame清单中。当虚拟机在中重启后，Vdbe.pDelFrame的目录清单被删除。这么做而不
+** 是立刻删除虚拟机框架对象是为了避免当属于子框架的存储单元被释放时循环调用sqlite3VdbeMemRelease()方法。
 ** The currently executing frame is stored in Vdbe.pFrame. Vdbe.pFrame is
 ** set to NULL if the currently executing frame is the main program.
-** 当前的执行框架被存储在Vdbe.pFrame里面。如果当前的执行框架在主程序当中，Vdbe.pFrame将被置为空。
+** 当前的执行框架被存储在Vdbe.pFrame里面。如果当前的执行框架在主程序当中，Vdbe.pFrame将会被置为空。
 */
 typedef struct VdbeFrame VdbeFrame;
 struct VdbeFrame {
