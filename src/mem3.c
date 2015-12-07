@@ -736,7 +736,9 @@ void sqlite3Memsys3Dump(const char *zFilename){
 /*
 ** This routine is the only routine in this file with external 
 ** linkage.
-** //该线程是这个文件中唯一一个用于外部链接的函数
+** 
+** 该线程是这个文件中唯一一个用于外部链接的函数
+** 
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file. The
 ** arguments specify the block of memory to manage.
