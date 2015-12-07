@@ -759,16 +759,19 @@ void sqlite3UnlinkAndDeleteTable(sqlite3 *db, int iDb, const char *zTabName){//�
 ** Given a token, return a string that consists of the text of that
 ** token.  Space to hold the returned string
 ** is obtained from sqliteMalloc() and must be freed by the calling
-** function.【给定一个符号,返回一个字符串,该字符串包含文本的符号。
-空间将返回的字符串从sqliteMalloc获得()，这个空间必须被调用函数释放。】
+** function.
+**给定一个符号,返回一个字符串,该字符串包含文本的符号。
+**空间将返回的字符串从sqliteMalloc获得()，这个空间必须被调用函数释放。
 **
 ** Any quotation marks (ex:  "name", 'name', [name], or `name`) that
-** surround the body of the token are removed.【这个符号周围的引号标志被清除。】
+** surround the body of the token are removed.
+**这个符号周围的引号标志被清除
 **
 ** Tokens are often just pointers into the original SQL text and so
 ** are not \000 terminated and are not persistent.  The returned string
-** is \000 terminated and is persistent.【符号一般只指向原始的SQL文本，因此这些符号并不是\000终止也不是持久的。
-这个返回的字符串是\000终止而且是持久的。】
+** is \000 terminated and is persistent.
+**符号一般只指向原始的SQL文本，因此这些符号并不是\000终止也不是持久的。
+这个返回的字符串是\000终止而且是持久的。
 */
 char *sqlite3NameFromToken(sqlite3 *db, Token *pName){//输入一个Token的数据返回一个字符串
 	char *zName;
