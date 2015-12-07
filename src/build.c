@@ -823,22 +823,16 @@ int sqlite3FindDb(sqlite3 *db, Token *pName){//通过数据的名字返回数据
 /* The table or view or trigger name is passed to this routine via tokens
 ** pName1 and pName2. If the table name was fully qualified, for example:
 **
-** CREATE TABLE xxx.yyy (...);
-**
-** Then pName1 is set to "xxx" and pName2 "yyy". On the other hand if
-** the table name is not fully qualified, i.e.:
-**
-** CREATE TABLE yyy(...);
-**
-** Then pName1 is set to "yyy" and pName2 is "".【表名，试图名，或是触发器名被传给这个例程通道符号为pName1和pName2。如果表名完全被限制了，
-比如说：CREATE TABLE xxx.yyy (...);
-Then pName1 is set to "xxx" and pName2 "yyy".另一方面如果表名没有被完全限制，i.e.;
-CREATE TABLE yyy(...);
-Then pName1 is set to "yyy" and pName2 is "".】
-**
-** This routine sets the *ppUnqual pointer to point at the token (pName1 or
+** CREATE TABLE xxx.yyy (...).Then pName1 is set to "xxx" and pName2 "yyy". 
+**表名，视图名，或是触发器名被传给这个例程，通道符号为pName1和pName2。如果表名完全被限制了，比如说：CREATE TABLE xxx.yyy (...)，那么pName1被设置为xxx，pName2被设置为yyy
+**On the other hand if the table name is not fully qualified, i.e.:
+**CREATE TABLE yyy(...);Then pName1 is set to "yyy" and pName2 is "".
+**另一方面如果表名没有被完全限制，例如：CREATE TABLE yyy(...);那么pName1被设置为yyy，而此时的pName2被设置为“”。
+
+**This routine sets the **ppUnqual pointer to point at the token (pName1 or
 ** pName2) that stores the unqualified table name.  The index of the
-** database "xxx" is returned.   【这个例程设定*ppUnqual指针指向（pName1 or pName2），这两个指针储存的是没有被完全限制的表名。数据库"xxx"的索引被返回。】
+** database "xxx" is returned.   
+**这个例程设定*ppUnqual指针指向（pName1 or pName2），这两个指针储存的是没有被完全限制的表名。数据库"xxx"的索引被返回。
 **
 */
 int sqlite3TwoPartName(
@@ -852,11 +846,11 @@ int sqlite3TwoPartName(
 
 	if (ALWAYS(pName2 != 0) && pName2->n>0){
 		if (db->init.busy) {//数据库初始化正在占用
-			sqlite3ErrorMsg(pParse, "corrupt database");
-			pParse->nErr++;
+			sqlite3ErrorMsg(pParse, "corrupt database");   //发送错误信息
+			pParse->nErr++;  
 			return -1;
 		}
-		*pUnqual = pName2;
+		**pUnqual = pName2;
 		iDb = sqlite3FindDb(db, pName1);//通过名字查找数据库的索引
 		if (iDb<0){//数据库不存在
 			sqlite3ErrorMsg(pParse, "unknown database %T", pName1);
@@ -876,14 +870,19 @@ int sqlite3TwoPartName(
 ** unqualified name for a new schema object (table, index, view or
 ** trigger). All names are legal except those that begin with the string
 ** "sqlite_" (in upper, lower or mixed case). This portion of the namespace
-** is reserved for internal use.  【这个例程是用于检查UTF-8字符串zName是否是完全合法的名字对于一个模式目标（表，索引，试图或是触发器）。
-所有的名字都是合法的除了那些以sqlite_开头的字符串。命名空间的部分被留给内部使用。】
+** is reserved for internal use.  
+**这个例程是用于检查UTF-8字符串zName是否是完全合法的名字对于一个模式对象（表，索引，视图或是触发器）。
+**所有的名字都是合法的除了那些以sqlite_开头的字符串。命名空间的部分被留给内部使用。】
+*/
+
+/*junpeng zhu created
+**检查数据库是否是合法的，包括其中包含的表、索引、视图、触发器。
 */
 int sqlite3CheckObjectName(Parse *pParse, const char *zName){//检测对象的名字是否合法
-	if (!pParse->db->init.busy && pParse->nested == 0
+	if (!pParse->db->init.busy && pParse->nested == 0    //如果数据库不忙，并且没有嵌套的解析，并且没有处于数据库的写模式，且数据库的前7位不是sqlite_
 		&& (pParse->db->flags & SQLITE_WriteSchema) == 0
 		&& 0 == sqlite3StrNICmp(zName, "sqlite_", 7)){//比较字符串的前七为是不是“sqlite_”
-		sqlite3ErrorMsg(pParse, "object name reserved for internal use: %s", zName);
+		sqlite3ErrorMsg(pParse, "object name reserved for internal use: %s", zName);  //部分命名空间被保留给数据库的内部使用
 		return SQLITE_ERROR;
 	}
 	return SQLITE_OK;
