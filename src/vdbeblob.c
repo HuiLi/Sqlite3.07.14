@@ -9,8 +9,13 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
+** BLOB (binary large object),二进制大对象，是一个可以存储二进制文件的容器
+** BLOB常常是数据库中用来存储二进制文件的字段类型
+** BLOB是一个大文件，典型的BLOB是一张图片或一个声音文件，由于它们的尺寸，必须使用特殊的
+** 方式来处理（例如：上传、下载或者存放到一个数据库）
 **
 ** This file contains code used to implement incremental BLOB I/O.
+** 这个文件包含代码用于实现增量BLOB I/O
 */
 
 #include "sqliteInt.h"
@@ -20,16 +25,24 @@
 
 /*
 ** Valid sqlite3_blob* handles point to Incrblob structures.
+** 有效sqlite3_blob*处理点Incrblob结构
 */
 typedef struct Incrblob Incrblob;
 struct Incrblob {
-  int flags;              /* Copy of "flags" passed to sqlite3_blob_open() */
-  int nByte;              /* Size of open blob, in bytes */
-  int iOffset;            /* Byte offset of blob in cursor data */
-  int iCol;               /* Table column this handle is open on */
-  BtCursor *pCsr;         /* Cursor pointing at blob row */
-  sqlite3_stmt *pStmt;    /* Statement holding cursor open */
-  sqlite3 *db;            /* The associated database */
+  int flags;              /* Copy of "flags" passed to sqlite3_blob_open() 
+                           */
+  int nByte;              /* Size of open blob, in bytes 
+                            */
+  int iOffset;            /* Byte offset of blob in cursor data 
+                            */
+  int iCol;               /* Table column this handle is open on 
+                            */
+  BtCursor *pCsr;         /* Cursor pointing at blob row 
+                             */
+  sqlite3_stmt *pStmt;    /* Statement holding cursor open
+                              */
+  sqlite3 *db;            /* The associated database 
+                             */
 };
 
 
@@ -38,6 +51,10 @@ struct Incrblob {
 ** the b-tree cursor associated with blob handle p to point to row iRow.
 ** If successful, SQLITE_OK is returned and subsequent calls to
 ** sqlite3_blob_read() or sqlite3_blob_write() access the specified row.
+** sqlite3_blob_read() or sqlite3_blob_write() access the specified row.
+** 这个函数的功能由blob_open()和blob_reopen()使用。它寻找相关的B树游标和blob
+** 类型的句柄定义为p去指出行用iRow标记。如果成功，返回SQLITE_OK和随后
+** 调用sqlite3_blob_read()或者sqlite3_blob_write()访问特定的行
 **
 ** If an error occurs, or if the specified row does not exist or does not
 ** contain a value of type TEXT or BLOB in the column nominated when the
@@ -45,10 +62,16 @@ struct Incrblob {
 ** be set to point to a buffer containing an error message. It is the
 ** responsibility of the caller to free the error message buffer using
 ** sqlite3DbFree().
+** 如果有错误出现，或者如果访问的行不存在或者不包含TEXT或者BLOB类型，
+** 当在提名列时，BLOB手柄被打开，然后一个错误代码被返回和*pzErr指针类型
+** 可能被指向一个缓冲区其包含一个错误信息。这是调用者自由使用sqlite3DbFree()
+** 错误缓冲区的责任。
 **
 ** If an error does occur, then the b-tree cursor is closed. All subsequent
 ** calls to sqlite3_blob_read(), blob_write() or blob_reopen() will 
 ** immediately return SQLITE_ABORT.
+** 如果一个错误发生，之后B树游标被关闭。之后所有调用sqlite3_blob_read(), blob_write() 
+** 或者 blob_reopen()函数立即返回SQLITE_ABORT。
 */
 static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
   int rc;                         /* Error code */
@@ -58,6 +81,8 @@ static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
   /* Set the value of the SQL statements only variable to integer iRow. 
   ** This is done directly instead of using sqlite3_bind_int64() to avoid 
   ** triggering asserts related to mutexes.
+  ** 设置SQL语句的值，唯一的变量为整数iRow
+  ** 这是直接完成的，而不是使用sqlite3_bind_int64()，以避免触发断言相关的互斥
   */
   assert( v->aVar[0].flags&MEM_Int );
   v->aVar[0].u.i = iRow;
@@ -123,14 +148,19 @@ int sqlite3_blob_open(
   ** vdbe program will take advantage of the various transaction,
   ** locking and error handling infrastructure built into the vdbe.
   **
+  ** 这VDBE程序旨在B树游标 移动到所确定的DB/表/行条目。
+  ** 之所以使用一个VDBE程序，而不是写代码直接使用b树层是VDBE程序将利用各种事务，
+  ** 锁定和错误处理基础设施内置于VDBE。
   ** After seeking the cursor, the vdbe executes an OP_ResultRow.
   ** Code external to the Vdbe then "borrows" the b-tree cursor and
   ** uses it to implement the blob_read(), blob_write() and 
   ** blob_bytes() functions.
-  **
+  ** 寻求光标之后，VDBE执行的OP_ResultRow。
+  ** 类外部的代码VDBE再“借”B-树游标和用它来实现blob_read(),blob_write()和blob_bytes()函数
   ** The sqlite3_blob_close() function finalizes the vdbe program,
   ** which closes the b-tree cursor and (possibly) commits the 
   ** transaction.
+  ** 该sqlite3_blob_close()函数最终确定VDBE程序，该程序关闭B树光标(可能)提交事务
   */
   static const VdbeOpList openBlob[] = {
     {OP_Transaction, 0, 0, 0},     /* 0: Start a transaction */
@@ -212,7 +242,10 @@ int sqlite3_blob_open(
     /* If the value is being opened for writing, check that the
     ** column is not indexed, and that it is not part of a foreign key. 
     ** It is against the rules to open a column to which either of these
-    ** descriptions applies for writing.  */
+    ** descriptions applies for writing.  
+  ** 如果该值被打开允许去写，检查列没有被索引，并且它不是一个外键的一部分。
+    ** 这是违反规定开一列到以下任一说明适用于写作。
+  */
     if( flags ){
       const char *zFault = 0;
       Index *pIdx;
@@ -221,7 +254,11 @@ int sqlite3_blob_open(
         /* Check that the column is not part of an FK child key definition. It
         ** is not necessary to check if it is part of a parent key, as parent
         ** key columns must be indexed. The check below will pick up this 
-        ** case.  */
+        ** case. 
+    ** 检查列不是一个FK子键定义的一部分,
+        ** 它没有必要检查,如果是父母key的一部分
+        ** 作为父母键一定必须被索引，下面的检查将会拿起这个案例
+    */
         FKey *pFKey;
         for(pFKey=pTab->pFKey; pFKey; pFKey=pFKey->pNextFrom){
           int j;
@@ -282,7 +319,9 @@ int sqlite3_blob_open(
 #endif
 
       /* Remove either the OP_OpenWrite or OpenRead. Set the P2 
-      ** parameter of the other to pTab->tnum.  */
+      ** parameter of the other to pTab->tnum. 
+    ** 删除OP_OpenWrite或OpenRead,P2参数设置的其他pTab->tnum
+    */
       sqlite3VdbeChangeToNoop(v, 4 - flags);
       sqlite3VdbeChangeP2(v, 3 + flags, pTab->tnum);
       sqlite3VdbeChangeP3(v, 3 + flags, iDb);
@@ -293,6 +332,10 @@ int sqlite3_blob_open(
       ** always return an SQL NULL. This is useful because it means
       ** we can invoke OP_Column to fill in the vdbe cursors type 
       ** and offset cache without causing any IO.
+    ** 配置列数,配置这个游标去确认这个表有至少一列确实这样做了。
+      ** 一个OP_Column检索这个虚构列将始终返回SQL NULL
+      ** 因为这意味着我们可以调用OP_Column填写的VDBE游标类型和偏移的缓存，
+      ** 而不会造成任何IO这是非常有用
       */
       sqlite3VdbeChangeP4(v, 3+flags, SQLITE_INT_TO_PTR(pTab->nCol+1),P4_INT32);
       sqlite3VdbeChangeP2(v, 7, pTab->nCol);
@@ -333,6 +376,7 @@ blob_open_out:
 /*
 ** Close a blob handle that was previously created using
 ** sqlite3_blob_open().
+** 关闭一个blob句柄以前创建的利用sqlite3_blob_open()函数
 */
 int sqlite3_blob_close(sqlite3_blob *pBlob){
   Incrblob *p = (Incrblob *)pBlob;
@@ -353,6 +397,7 @@ int sqlite3_blob_close(sqlite3_blob *pBlob){
 
 /*
 ** Perform a read or write operation on a blob
+** 对一个blob执行读或写操作
 */
 static int blobReadWrite(
   sqlite3_blob *pBlob, 
@@ -429,12 +474,17 @@ int sqlite3_blob_bytes(sqlite3_blob *pBlob){
 /*
 ** Move an existing blob handle to point to a different row of the same
 ** database table.
+** 移动现有的blob句柄指向同一数据库表中的一个不同的行
 **
 ** If an error occurs, or if the specified row does not exist or does not
 ** contain a blob or text value, then an error code is returned and the
 ** database handle error code and message set. If this happens, then all 
 ** subsequent calls to sqlite3_blob_xxx() functions (except blob_close()) 
 ** immediately return SQLITE_ABORT.
+** 如果有错误出现,或者如果这个特定的行不存在或者不包含blob和text的值,然后一个
+** 错误代码被返回，和数据库处理的错误代码和消息集。
+** 如果这些发生了，接着所有调用sqlite3_blob_xxx()函数(除了blob_close()函数)，
+** 被立即返回SQLITE_ABORT
 */
 int sqlite3_blob_reopen(sqlite3_blob *pBlob, sqlite3_int64 iRow){
   int rc;
