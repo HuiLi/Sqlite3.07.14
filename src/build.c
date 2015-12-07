@@ -665,58 +665,61 @@ static void sqliteDeleteColumnNames(sqlite3 *db, Table *pTable){
 /*
 ** Remove the memory data structures associated with the given
 ** Table.  No changes are made to disk by this routine.
-【清除内存数据结构与给定的表相关联。这个例程没有更改磁盘。】
+**删除与表相关联的内存数据结构，但是这个程序不改变磁盘
 **
 ** This routine just deletes the data structure.  It does not unlink
 ** the table data structure from the hash table.  But it does destroy
 ** memory structures of the indices and foreign keys associated with
-** the table.【这段程序仅仅删除数据结构。此段程序不拆开来自哈希表的表数据结构。但是它破坏了索引内存结构和与这个表相关联的外键。】
-**
+** the table.
+**这段程序仅仅删除数据结构。此段程序不拆开来自哈希表的表数据结构（哈希表的数据结构在删除的时候要删除与之相关联的所有内存数据结构）。但是它破坏了索引内存结构和与这个表相关联的外键。
 ** The db parameter is optional.  It is needed if the Table object
 ** contains lookaside memory.  (Table objects in the schema do not use
 ** lookaside memory, but some ephemeral Table objects do.)  Or the
 ** db parameter can be used with db->pnBytesFreed to measure the memory
-** used by the Table object.【这个db是可选的。如果表对象包含后备存储器db就是需要的。（模式下的表对象不用后备存储器，但是一些短暂的表对象是需要用后备存储器的。）
-或db参数可以使用db - > pnBytesFreed衡量表对象使用的内存。】
+** used by the Table object.
+**这个db是可选的。如果表对象包含后备存储器db就是需要的。（模式下的表对象不用后备存储器，但是一些短暂的表对象是需要用后备存储器的。）
+**或db参数可以使用db - > pnBytesFreed衡量表对象使用的内存。】
 */
 void sqlite3DeleteTable(sqlite3 *db, Table *pTable){//不拆开给定的哈希表的表结构，还有删除这个表结构以及与该表相关联的所有索引和外键。
 	Index *pIndex, *pNext;
-	TESTONLY(int nLookaside;) /* Used to verify lookaside not used for schema 【用于验证后备不用于模式】*/
+	TESTONLY(int nLookaside;) /* Used to verify lookaside not used for schema  用于验证后备不用于模式*/
 
 		assert(!pTable || pTable->nRef>0);
 
-	/* Do not delete the table until the reference count reaches zero.【不删除这个表格直到参数为0】 */
+	/* Do not delete the table until the reference count reaches zero. 如果正在使用这个表则不会删除，如果没有引用那么就删除这个表，是否引用这个表用count参数指定 */
 	if (!pTable) return;
 	if (((!db || db->pnBytesFreed == 0) && (--pTable->nRef)>0)) return;
 
 	/* Record the number of outstanding lookaside allocations in schema Tables
 	** prior to doing any free() operations.  Since schema Tables do not use
-	** lookaside, this number should not change. 【记录突出的后备分配模式表的数量之前做一些free()操作。
-	由于不使用后备模式表,这个数字不应该改变。】*/
+	** lookaside, this number should not change. 
+	**记录突出的后备分配模式表的数量之前做一些free()操作。
+	由于不使用后备模式表,这个数字不应该改变。*/
 	TESTONLY(nLookaside = (db && (pTable->tabFlags & TF_Ephemeral) == 0) ?
 		db->lookaside.nOut : 0);
 
-	/* Delete all indices associated with this table.【删除和这个表有关联的所有索引。】 */
+	/* Delete all indices associated with this table. 删除和这个表有关联的所有索引。 */
 	for (pIndex = pTable->pIndex; pIndex; pIndex = pNext){
 		pNext = pIndex->pNext;
-		assert(pIndex->pSchema == pTable->pSchema);
-		if (!db || db->pnBytesFreed == 0){
+		assert(pIndex->pSchema == pTable->pSchema);   //断言这个表和索引确实是在同一个模式中，防止错误的删除表
+		if (!db || db->pnBytesFreed == 0){   //数据库费空，并且趋势已经释放了这个表
 			char *zName = pIndex->zName;
 			TESTONLY(Index *pOld = ) sqlite3HashInsert(
 				&pIndex->pSchema->idxHash, zName, sqlite3Strlen30(zName), 0
 				);
-			assert(db == 0 || sqlite3SchemaMutexHeld(db, 0, pIndex->pSchema));
+			assert(db == 0 || sqlite3SchemaMutexHeld(db, 0, pIndex->pSchema));   //临界区的互斥访问
 			assert(pOld == pIndex || pOld == 0);
 		}
-		freeIndex(db, pIndex);
+		freeIndex(db, pIndex);    //释放索引
 	}
 
-	/* Delete any foreign keys attached to this table.【删除依赖于这个表的任何外键。】 */
+	/* Delete any foreign keys attached to this table. 删除依赖于这个表的任何外键。 */
 	sqlite3FkDelete(db, pTable);
 
-	/* Delete the Table structure itself.【删除这个表结构。】
+	/* 
+	Delete the Table structure itself. 删除这个表结构。
 	*/
-	sqliteDeleteColumnNames(db, pTable);
+	sqliteDeleteColumnNames(db, pTable);   //删除列名
 	sqlite3DbFree(db, pTable->zName);
 	sqlite3DbFree(db, pTable->zColAff);
 	sqlite3SelectDelete(db, pTable->pSelect);
@@ -728,7 +731,7 @@ void sqlite3DeleteTable(sqlite3 *db, Table *pTable){//不拆开给定的哈希�
 #endif
 	sqlite3DbFree(db, pTable);
 
-	/* Verify that no lookaside memory was used by schema tables【验证没有后备存储器用于模式表格。】 */
+	/* Verify that no lookaside memory was used by schema tables 验证没有后备存储器用于模式表格。  */
 	assert(nLookaside == 0 || nLookaside == db->lookaside.nOut);
 }
 
