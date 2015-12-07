@@ -83,17 +83,19 @@
 ** size of the array is a power of 2.
 ** 
 ** 最低配置如下面程序中结构体所示.更高的配置是结构体数组，数组的大小是 2 的幂。
-** 此对象的大小必须是 2 的幂。在函数memsys5Init() 中，得以验证。
+** 
 ** The size of this object must be a power of two.  That fact is
-** verified in memsys5Init().定义结构体Mem5Link
+** verified in memsys5Init().
+** 
+** 此对象的大小必须是2的幂。利用memsys5Init()函数验证。
 */
 typedef struct Mem5Link Mem5Link;
 struct Mem5Link {
-  int next;       /* Index of next free chunk *//*下一个空闲块的索引*/
-  int prev;       /* Index of previous free chunk *//*前一个空闲块的索引*/
+  int next;       /* Index of next free chunk  下一个空闲块的索引*/
+  int prev;       /* Index of previous free chunk  上一个空闲块的索引*/
 };
-/*next指向下一个空闲chunk的地址，prev指向上一个空闲chunk的
-地址， prev = -1 表示该chunk在双向链表的表头位置，没有prev；*/
+/*next指向下一个空闲chunk的地址，prev指向上一个空闲chunk的地址， 
+prev = -1 表示该chunk在双向链表的表头位置，没有prev；*/
 
 /*
 ** Maximum size of any allocation is ((1<<LOGMAX)*mem5.szAtom). Since
@@ -106,10 +108,10 @@ struct Mem5Link {
 #define LOGMAX 30             /*宏定义LOGMAX为30*/
 
 /*
-** Masks used for mem5.aCtrl[] elements.以下两个常量用于 mem5.aCtrl [] 元素的掩码
+** Masks used for mem5.aCtrl[] elements.以下两个常量用于mem5.aCtrl []元素的掩码
 */
-#define CTRL_LOGSIZE  0x1f    /* Log2 Size of this block *//*宏定义 CTRL_LOGSIZE块的大小，为16进制的1f，即十进制的31*/
-#define CTRL_FREE     0x20    /* True if not checked out */
+#define CTRL_LOGSIZE  0x1f    /* Log2 Size of this block 宏定义CTRL_LOGSIZE块的大小，为16进制的1f，即十进制的31*/
+#define CTRL_FREE     0x20    /* True if not checked out 宏定义，十进制的32*/
 
 /*
 ** All of the static variables used by this module are collected
@@ -118,64 +120,72 @@ struct Mem5Link {
 ** when this module is combined with other in the amalgamation.
 **
 ** 本模块使用的所有静态变量被聚集在一个结构体”mem5”中。
-** 这样当本模块和其他模块合并时，就能保持这些静态变量，并且能减少命名空间污染。
+** 这样当本模块和其他模块合并时，就能是这些静态变量易组织，并且能减少命名空间污染。
 ** mem5是Mem5Global类型的结构体.
 */
 static SQLITE_WSD struct Mem5Global {
   /*
-  ** Memory available for allocation可供分配的内存
+  ** Memory available for allocation
+  ** 
+  ** 可供分配的内存
   */
-  int szAtom;      /* Smallest possible allocation in bytes*//*以字节为单位的最小可能分配*/
-  int nBlock;      /* Number of szAtom sized blocks in zPool*//*在zPool存储池中一些szAtom大小的块数目 */
-  u8 *zPool;       /* Memory available to be allocated *//*可用来分配的内存，zPool是无符号字符类型的指针*/
+  int szAtom;      /* Smallest possible allocation in bytes  以字节为单位的最小可能分配*/
+  int nBlock;      /* Number of szAtom sized blocks in zPool  在zPool存储池中一些szAtom大小的块数目 */
+  u8 *zPool;       /* Memory available to be allocated  可用来分配的内存，zPool是无符号字符类型的指针*/
   
   /*
   ** Mutex to control access to the memory allocation subsystem.
+  ** 
+  ** 互斥锁来控制对内存分配子系统访问
   */
-  sqlite3_mutex *mutex;    /*互斥锁来控制对内存分配子系统访问*/
+  sqlite3_mutex *mutex;  
 
   /*
   ** Performance statistics
+  ** 
   ** 性能统计信息 u32:无符号整型
   */
-  u64 nAlloc;         /* Total number of calls to malloc *//*调用malloc总数*/
-  u64 totalAlloc;     /* Total of all malloc calls - includes internal frag *//*所有Mallocde 调用总合— 包括内部碎片*/
-  u64 totalExcess;    /* Total internal fragmentation *//*总内部碎片*/
-  u32 currentOut;     /* Current checkout, including internal fragmentation *//*当前校验，包括内部碎片*/
-  u32 currentCount;   /* Current number of distinct checkouts *//*当前不同的检出数*/
-  u32 maxOut;         /* Maximum instantaneous currentOut *//*currentOut瞬时最大值*/
-  u32 maxCount;       /* Maximum instantaneous currentCount *//*currentCount 瞬时最大值*/
-  u32 maxRequest;     /* Largest allocation (exclusive of internal frag) *//*最大配置 （不包括内部碎片）*/
+  u64 nAlloc;         /* Total number of calls to malloc  调用malloc总数*/
+  u64 totalAlloc;     /* Total of all malloc calls - includes internal frag  所有Mallocde调用总合— 包括内部碎片*/
+  u64 totalExcess;    /* Total internal fragmentation 总内部碎片*/
+  u32 currentOut;     /* Current checkout, including internal fragmentation  当前校验，包括内部碎片*/
+  u32 currentCount;   /* Current number of distinct checkouts  当前不同的检出数*/
+  u32 maxOut;         /* Maximum instantaneous currentOut  currentOut瞬时最大值*/
+  u32 maxCount;       /* Maximum instantaneous currentCount  currentCount 瞬时最大值*/
+  u32 maxRequest;     /* Largest allocation (exclusive of internal frag)  最大分配（不包括内部碎片）*/
   /*整体思想为buddy算法
   ** Lists of free blocks.  aiFreelist[0] is a list of free blocks of
   ** size mem5.szAtom.  aiFreelist[1] holds blocks of size szAtom*2.
   ** and so forth.
+  ** 
+  ** 空闲块列表。aiFreelist[0]是大小为mem5.szAtom空闲块列表。 
+  ** aiFreelist[1]大小为szAtom*2，以此类推。
+  ** 
+  ** 使用了一个大小为31个字节的空闲链表来保存空闲的block，值为-1表示是空链表；
+  ** aiFreelist[0] 保存了大小为 mem5.szAtom个字节的空闲block  
+  ** aiFreelist[1] 保存了大小为 mem5.szAtom * 2 个字节的空闲block  
   */
-  /*
-  **空闲块数组。 aiFreelist[0]是大小为mem5.szAtom空闲块数组。 
-  aiFreelist[1]大小为szAtom*2，以此类推。
-  */
-/*使用了一个大小为31个字节的空闲链表来保存空闲的block，
- 值为 -1 表示是空链表；
- aiFreelist[0] 保存了大小为 mem5.szAtom个字节的空闲block  
- aiFreelist[1] 保存了大小为 mem5.szAtom * 2 个字节的空闲block  
- 等等；*/
+
   int aiFreelist[LOGMAX+1];
 
   /*
   ** Space for tracking which blocks are checked out and the size
   ** of each block.  One byte per block.
+  ** 
+  ** 用于追踪检出块和每块的大小的空间，每个块一个字节
   */
   u8 *aCtrl;
-/*aCtrl是无符号类型的指针用于追踪哪些内存块被划出，检查了每块的大小。*/
-/*aCtrl是一个字符数组，保存了每个block的控制信息，当前block的大小，  
-  以及是否checkout，等等，每个大小为szAtom的block 占一个位置；*/
+  /*
+  ** aCtrl是无符号类型的指针用于追踪哪些内存块被划出，检查了每块的大小。
+  ** aCtrl是一个字符数组，保存了每个block的控制信息，当前block的大小， 
+  ** 以及是否checkout，等等，每个大小为szAtom的block占一个位置； 
+  */
 } mem5;
 
 /*
 ** Access the static variable through a macro for SQLITE_OMIT_WSD
 **
-** 通过宏sqlite_omit_wsd访问静态变量
+** 通过宏SQLITE_OMIT_WSD访问静态变量
 */
 #define mem5 GLOBAL(struct Mem5Global, mem5)
 
@@ -189,7 +199,7 @@ static SQLITE_WSD struct Mem5Global {
 
 /*
 ** Unlink the chunk at mem5.aPool[i] from list it is currently
-** on.  It should be found on mem5.aiFreelist[iLogsize].
+** on. It should be found on mem5.aiFreelist[iLogsize].
 **
 ** 从当前的链表中取消可用内存块的链接。该内存块位于mem5.aiFreelist[iLogsize]
 */
@@ -216,7 +226,7 @@ static void memsys5Unlink(int i, int iLogsize){
 ** Link the chunk at mem5.aPool[i] so that is on the iLogsize
 ** free list.
 **
-** 将 mem5.aPool[i] 位置的chunk， 插入到iLogSize链表的头部
+** 将mem5.aPool[i]位置的chunk，插入到iLogSize链表的头部
 ** 链接可用内存分配aPool中的块，此块在空闲块数组中
 */
 static void memsys5Link(int i, int iLogsize){
@@ -295,13 +305,18 @@ static int memsys5UnlinkFirst(int iLogsize){
 /*
 ** Return a block of memory of at least nBytes in size.
 ** Return NULL if unable.  Return NULL if nBytes==0.
-**返回一个大小至少为nBytes的内存块。如果不能或nBytes等于0，返回空值NULL.。
+** 
+** 返回一个大小至少为nBytes的内存块。如果不能或nBytes等于0，返回空值NULL。
+** 
 ** The caller guarantees that nByte positive.
-**调用方需保证nByte 为正。
+** 
+** 调用方需保证nByte 为正。
+** 
 ** The caller has obtained a mutex prior to invoking this
 ** routine so there is never any chance that two or more
 ** threads can be in this routine at the same time.
-**调用方在调用这个线程前会加上互斥锁，所以不可能有两个或多个该线程同时发生。
+** 
+** 调用方在调用这个线程前会加上互斥锁，所以不可能有两个或多个该线程同时发生。
 */
 static void *memsys5MallocUnsafe(int nByte){
   int i;           /* Index of a mem5.aPool[] slot */  /*aPool的索引*/
@@ -312,8 +327,11 @@ static void *memsys5MallocUnsafe(int nByte){
   /* nByte must be a positive */
   assert( nByte>0 );    /*nByte必须大于0*/
 
-  /* Keep track of the maximum allocation request.  Even unfulfilled
-  ** requests are counted */
+  /* 
+  ** Keep track of the maximum allocation request.  Even unfulfilled
+  ** requests are counted 
+  ** 
+  */
   /*比较nByte与最大分配请求，若nByte较大，则将nByte的值赋予该请求*/
   if( (u32)nByte>mem5.maxRequest ){
     mem5.maxRequest = nByte;
@@ -339,7 +357,7 @@ static void *memsys5MallocUnsafe(int nByte){
   */
   /*aiFreelist[iLogsize]至少包含一个空闲块。
   如果没有，那么就从下一个大小为2的幂的内存块中划出iLogsize大小的内存块，作为的新的空闲块。*/
-/*找到FreeList链表中的第iLogsize项指向的链表，如果为空，则向上找，
+  /*找到FreeList链表中的第iLogsize项指向的链表，如果为空，则向上找，
   直到找到第一个不为空的项为止*/
   for(iBin=iLogsize; mem5.aiFreelist[iBin]<0 && iBin<=LOGMAX; iBin++){}
   if( iBin>LOGMAX ){      /*没有找到这样的项，则返回失败*/
@@ -446,6 +464,7 @@ static void memsys5FreeUnsafe(void *pOld){
 
 /*
 ** Allocate nBytes of memory
+** 
 ** 分配大小为nBytes的内存
 */
 static void *memsys5Malloc(int nBytes){
@@ -460,9 +479,12 @@ static void *memsys5Malloc(int nBytes){
 
 /*
 ** Free memory.
+** 
 ** 可用内存
+** 
 ** The outer layer memory allocator prevents this routine from
 ** being called with pPrior==0.
+** 
 ** 当pPrior==0，防止外层内存分配器调用此程序
 */
 static void memsys5Free(void *pPrior){
@@ -516,12 +538,16 @@ static void *memsys5Realloc(void *pPrior, int nBytes){
 ** Round up a request size to the next valid allocation size.  If
 ** the allocation is too large to be handled by this allocation system,
 ** return 0.
+** 
 ** 计算一个请求到下一个有效分配的大小。如果请求分配的内存过大，无法通过该内存分配系统来处理，则返回0。
+** 
 ** All allocations must be a power of two and must be expressed by a
 ** 32-bit signed integer.  Hence the largest allocation is 0x40000000
 ** or 1073741824 bytes.
+** 
 ** 所有的内存分配大小必须是2的幂，并且必须由一个32位有符号整数表示。
-** 因此，最大的内存分配是0x40000000或1073741824字节。*/
+** 因此，最大的内存分配是0x40000000或1073741824字节。
+*/
 static int memsys5Roundup(int n){
   int iFullSz;
   if( n > 0x40000000 ) return 0;
@@ -531,7 +557,9 @@ static int memsys5Roundup(int n){
 
 /*
 ** Return the ceiling of the logarithm base 2 of iValue.
+** 
 **返回向上取整的以2为底数的对数值iValue
+**
 ** Examples:   memsys5Log(1) -> 0
 **             memsys5Log(2) -> 1
 **             memsys5Log(4) -> 2
@@ -547,7 +575,9 @@ static int memsys5Log(int iValue){
 
 /*
 ** Initialize the memory allocator.
+** 
 ** 初始化内存分配器。这个例程并不是线程安全的。调用方必须加上互斥锁来防止多个线程同时调用.
+** 
 ** This routine is not threadsafe.  The caller must be holding a mutex
 ** to prevent multiple threads from entering at the same time.
 */
@@ -609,7 +639,9 @@ static int memsys5Init(void *NotUsed){
 }
 
 /*
-** Deinitialize this module.取消初始化这个模块。
+** Deinitialize this module.
+** 
+** 取消初始化这个模块。
 */
 static void memsys5Shutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
@@ -621,6 +653,7 @@ static void memsys5Shutdown(void *NotUsed){
 /*
 ** Open the file indicated and write a log of all unfreed memory 
 ** allocations into that log.
+** 
 ** 打开日志文件显示并写入所有非空闲内存分配
 */
 void sqlite3Memsys5Dump(const char *zFilename){
