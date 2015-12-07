@@ -556,22 +556,26 @@ void sqlite3UnlinkAndDeleteIndex(sqlite3 *db, int iDb, const char *zIdxName){
 /*
 ** Look through the list of open database files in db->aDb[] and if
 ** any have been closed, remove them from the list.  Reallocate the
-** db->aDb[] structure to a smaller size, if possible.【用db->aDb[]浏览打开数据库文件的这些列表，如果一些文件被关闭的，从列表中移除它们。如果可能的话给db->aDb[]重新分配更小的内存。】
-**
+** db->aDb[] structure to a smaller size, if possible.
+**扫描打开的数据库的文件，如果有任何一个被关闭的，从这个表中移除他们。如果可能的话重新分配这个数据结构的内存空间，这样可以降低内存的无效使用
 ** Entry 0 (the "main" database) and entry 1 (the "temp" database)
 ** are never candidates for being collapsed.
+**main数据库和temp临时数据库将不再上面移除的数据库考虑范围之内
+*/
+/*junpeng zhu created
+收缩数据库，将已经关闭的数据库移除内存数据结构，节省内存的无效使用,其中参数db指向当前的数据库
 */
 void sqlite3CollapseDatabaseArray(sqlite3 *db){
-	int i, j;
-	for (i = j = 2; i<db->nDb; i++){
+	int i, j;   //参数i指向当前正在查找的数据库的内存编号，是以数组存储的；j一直是指向当前数据库的内存编号
+	for (i = j = 2; i<db->nDb; i++){   //参数nDb指示数据库的个数
 		struct Db *pDb = &db->aDb[i];//打开数据库文件
 		if (pDb->pBt == 0){//如果pDb->pBt是0则说明数据库被关闭
 			sqlite3DbFree(db, pDb->zName);//释放内存
 			pDb->zName = 0;
 			continue;
 		}
-		if (j<i){
-			db->aDb[j] = db->aDb[i];
+		if (j<i){   
+			db->aDb[j] = db->aDb[i]; //如果查找到了已经关闭的数据库，从内存数据结构中移除之后，后面的数据库的指针应该一次向前进行调整
 		}
 		j++;
 	}
