@@ -30,19 +30,19 @@
 typedef struct Incrblob Incrblob;
 struct Incrblob {
   int flags;              /* Copy of "flags" passed to sqlite3_blob_open() 
-                           */
+                           把“flags”的复印传递给sqlite3_blob_open()函数*/
   int nByte;              /* Size of open blob, in bytes 
-                            */
+                           打开blob的大小，以字节计算*/
   int iOffset;            /* Byte offset of blob in cursor data 
-                            */
+                           在游标数据块的字节偏移量*/
   int iCol;               /* Table column this handle is open on 
-                            */
+                           表列数这个句柄是打开的*/
   BtCursor *pCsr;         /* Cursor pointing at blob row 
-                             */
+                           游标指针在blob行*/
   sqlite3_stmt *pStmt;    /* Statement holding cursor open
-                              */
+                           语句保持游标打开*/
   sqlite3 *db;            /* The associated database 
-                             */
+                           相关的数据库*/
 };
 
 
@@ -131,16 +131,24 @@ static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
 ** Open a blob handle.
 */
 int sqlite3_blob_open(
-  sqlite3* db,            /* The database connection */
-  const char *zDb,        /* The attached database containing the blob */
-  const char *zTable,     /* The table containing the blob */
-  const char *zColumn,    /* The column containing the blob */
-  sqlite_int64 iRow,      /* The row containing the glob */
-  int flags,              /* True -> read/write access, false -> read-only */
-  sqlite3_blob **ppBlob   /* Handle for accessing the blob returned here */
+  sqlite3* db,            /* The database connection 
+                              数据库连接*/
+  const char *zDb,        /* The attached database containing the blob 
+                          附加的数据库包含blob*/
+  const char *zTable,     /* The table containing the blob 
+                          数据库表包含blob*/
+  const char *zColumn,    /* The column containing the blob 
+                          数据库表列包含blob*/
+  sqlite_int64 iRow,      /* The row containing the blob 
+                          数据库行包含blob*/
+  int flags,              /* True -> read/write access, false -> read-only 
+                          标记如果True则有有read/write的权限，如果错误仅仅有read的权限*/
+  sqlite3_blob **ppBlob   /* Handle for accessing the blob returned here 
+                          处理访问这里的blob返回*/
 ){
   int nAttempt = 0;
-  int iCol;               /* Index of zColumn in row-record */
+  int iCol;               /* Index of zColumn in row-record
+                          zColumn的行记录的索引 */
 
   /* This VDBE program seeks a btree cursor to the identified 
   ** db/table/row entry. The reason for using a vdbe program instead
@@ -163,16 +171,21 @@ int sqlite3_blob_open(
   ** 该sqlite3_blob_close()函数最终确定VDBE程序，该程序关闭B树光标(可能)提交事务
   */
   static const VdbeOpList openBlob[] = {
-    {OP_Transaction, 0, 0, 0},     /* 0: Start a transaction */
-    {OP_VerifyCookie, 0, 0, 0},    /* 1: Check the schema cookie */
-    {OP_TableLock, 0, 0, 0},       /* 2: Acquire a read or write lock */
+    {OP_Transaction, 0, 0, 0},     /* 0: Start a transaction 开始一个事务*/
+    {OP_VerifyCookie, 0, 0, 0},    /* 1: Check the schema cookie 检查模式的cookie*/
+    {OP_TableLock, 0, 0, 0},       /* 2: Acquire a read or write lock 获取一个读或者写的加锁*/
 
-    /* One of the following two instructions is replaced by an OP_Noop. */
-    {OP_OpenRead, 0, 0, 0},        /* 3: Open cursor 0 for reading */
-    {OP_OpenWrite, 0, 0, 0},       /* 4: Open cursor 0 for read/write */
+    /* One of the following two instructions is replaced by an OP_Noop. 
+    被一个OP_Noop所取代下面二个指令*/
+    {OP_OpenRead, 0, 0, 0},        /* 3: Open cursor 0 for reading 
+                                    打开一个游标去读*/
+    {OP_OpenWrite, 0, 0, 0},       /* 4: Open cursor 0 for read/write 
+                                    打开游标去读或写*/
 
-    {OP_Variable, 1, 1, 1},        /* 5: Push the rowid to the stack */
-    {OP_NotExists, 0, 10, 1},      /* 6: Seek the cursor */
+    {OP_Variable, 1, 1, 1},        /* 5: Push the rowid to the stack 
+                                    把一个rowid压入到栈中*/
+    {OP_NotExists, 0, 10, 1},      /* 6: Seek the cursor 
+                                    查询游标 */
     {OP_Column, 0, 0, 1},          /* 7  */
     {OP_ResultRow, 1, 0, 0},       /* 8  */
     {OP_Goto, 0, 5, 0},            /* 9  */
