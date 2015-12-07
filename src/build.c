@@ -787,7 +787,7 @@ char *sqlite3NameFromToken(sqlite3 *db, Token *pName){//输入一个Token的数�
 
 /*
 ** Open the sqlite_master table stored in database number iDb for
-** writing. The table is opened using cursor 0.【打开存储在数据库iDb中的sqlite_master表，这个被打开的表使用的游标是0.】
+** writing. The table is opened using cursor 0.打开存储在数据库iDb中的sqlite_master表，为写操作做准备，这个被打开的表使用的游标是0.
 */
 void sqlite3OpenMasterTable(Parse *p, int iDb){
 	Vdbe *v = sqlite3GetVdbe(p);
@@ -804,12 +804,12 @@ void sqlite3OpenMasterTable(Parse *p, int iDb){
 ** of a database ("main", "temp" or the name of an attached db). This
 ** function returns the index of the named database in db->aDb[], or
 ** -1 if the named db cannot be found.
-*/
-/*
+** 参数zName指针指向一个空终止缓冲区（也就是说这个缓冲区是以\000结束的，并且使字符串类型的），这个缓冲区包括的数据库有：main数据库、临时数据库、和一个attached 数据库
 ** The token *pName contains the name of a database (either "main" or
 ** "temp" or the name of an attached db). This routine returns the
 ** index of the named database in db->aDb[], or -1 if the named db
-** does not exist.【这个*pName 符号包含一个数据的名称。这个函数用db->aDb[]返回被指定数据库的索引，如果这个被指定的数据库db不存在，则返回-1。】
+** does not exist
+**这个*pName 符号包含一个数据的名称。这个函数用db->aDb[]返回被指定数据库的索引，如果这个被指定的数据库db不存在，则返回-1。
 */
 int sqlite3FindDb(sqlite3 *db, Token *pName){//通过数据的名字返回数据库的索引
 	int i;                               /* 数据库的索引 */
@@ -823,22 +823,16 @@ int sqlite3FindDb(sqlite3 *db, Token *pName){//通过数据的名字返回数据
 /* The table or view or trigger name is passed to this routine via tokens
 ** pName1 and pName2. If the table name was fully qualified, for example:
 **
-** CREATE TABLE xxx.yyy (...);
-**
-** Then pName1 is set to "xxx" and pName2 "yyy". On the other hand if
-** the table name is not fully qualified, i.e.:
-**
-** CREATE TABLE yyy(...);
-**
-** Then pName1 is set to "yyy" and pName2 is "".【表名，试图名，或是触发器名被传给这个例程通道符号为pName1和pName2。如果表名完全被限制了，
-比如说：CREATE TABLE xxx.yyy (...);
-Then pName1 is set to "xxx" and pName2 "yyy".另一方面如果表名没有被完全限制，i.e.;
-CREATE TABLE yyy(...);
-Then pName1 is set to "yyy" and pName2 is "".】
-**
-** This routine sets the *ppUnqual pointer to point at the token (pName1 or
+** CREATE TABLE xxx.yyy (...).Then pName1 is set to "xxx" and pName2 "yyy". 
+**表名，视图名，或是触发器名被传给这个例程，通道符号为pName1和pName2。如果表名完全被限制了，比如说：CREATE TABLE xxx.yyy (...)，那么pName1被设置为xxx，pName2被设置为yyy
+**On the other hand if the table name is not fully qualified, i.e.:
+**CREATE TABLE yyy(...);Then pName1 is set to "yyy" and pName2 is "".
+**另一方面如果表名没有被完全限制，例如：CREATE TABLE yyy(...);那么pName1被设置为yyy，而此时的pName2被设置为“”。
+
+**This routine sets the **ppUnqual pointer to point at the token (pName1 or
 ** pName2) that stores the unqualified table name.  The index of the
-** database "xxx" is returned.   【这个例程设定*ppUnqual指针指向（pName1 or pName2），这两个指针储存的是没有被完全限制的表名。数据库"xxx"的索引被返回。】
+** database "xxx" is returned.   
+**这个例程设定*ppUnqual指针指向（pName1 or pName2），这两个指针储存的是没有被完全限制的表名。数据库"xxx"的索引被返回。
 **
 */
 int sqlite3TwoPartName(
@@ -852,11 +846,11 @@ int sqlite3TwoPartName(
 
 	if (ALWAYS(pName2 != 0) && pName2->n>0){
 		if (db->init.busy) {//数据库初始化正在占用
-			sqlite3ErrorMsg(pParse, "corrupt database");
-			pParse->nErr++;
+			sqlite3ErrorMsg(pParse, "corrupt database");   //发送错误信息
+			pParse->nErr++;  
 			return -1;
 		}
-		*pUnqual = pName2;
+		**pUnqual = pName2;
 		iDb = sqlite3FindDb(db, pName1);//通过名字查找数据库的索引
 		if (iDb<0){//数据库不存在
 			sqlite3ErrorMsg(pParse, "unknown database %T", pName1);
@@ -876,36 +870,39 @@ int sqlite3TwoPartName(
 ** unqualified name for a new schema object (table, index, view or
 ** trigger). All names are legal except those that begin with the string
 ** "sqlite_" (in upper, lower or mixed case). This portion of the namespace
-** is reserved for internal use.  【这个例程是用于检查UTF-8字符串zName是否是完全合法的名字对于一个模式目标（表，索引，试图或是触发器）。
-所有的名字都是合法的除了那些以sqlite_开头的字符串。命名空间的部分被留给内部使用。】
+** is reserved for internal use.  
+**这个例程是用于检查UTF-8字符串zName是否是完全合法的名字对于一个模式对象（表，索引，视图或是触发器）。
+**所有的名字都是合法的除了那些以sqlite_开头的字符串。命名空间的部分被留给内部使用。】
+*/
+
+/*junpeng zhu created
+**检查数据库是否是合法的，包括其中包含的表、索引、视图、触发器。
 */
 int sqlite3CheckObjectName(Parse *pParse, const char *zName){//检测对象的名字是否合法
-	if (!pParse->db->init.busy && pParse->nested == 0
+	if (!pParse->db->init.busy && pParse->nested == 0    //如果数据库不忙，并且没有嵌套的解析，并且没有处于数据库的写模式，且数据库的前7位不是sqlite_
 		&& (pParse->db->flags & SQLITE_WriteSchema) == 0
 		&& 0 == sqlite3StrNICmp(zName, "sqlite_", 7)){//比较字符串的前七为是不是“sqlite_”
-		sqlite3ErrorMsg(pParse, "object name reserved for internal use: %s", zName);
+		sqlite3ErrorMsg(pParse, "object name reserved for internal use: %s", zName);  //部分命名空间被保留给数据库的内部使用
 		return SQLITE_ERROR;
 	}
-	return SQLITE_OK;
+	return SQLITE_OK; 
+
 }
 
 /*
 ** Begin constructing a new table representation in memory.  This is
 ** the first of several action routines that get called in response
-** to a CREATE TABLE statement.  In particular, this routine is called
-** after seeing tokens "CREATE" and "TABLE" and the table name. The isTemp
-** flag is true if the table should be stored in the auxiliary database
-** file instead of in the main database file.  This is normally the case
-** when the "TEMP" or "TEMPORARY" keyword occurs in between
-** CREATE and TABLE.
-**    【开始构造一个新的表在内存中表示。这是第一次调用几个行为例程去响应CREATE TABLE语句。
+** to a CREATE TABLE statement.  
+** 开始构造一个新的表在内存中的表示。这是第一次去调用多个程序去响应CREATE TABLE语句。
+** In particular, this routine is called
+** after seeing tokens "CREATE" and "TABLE" and the table name. 
+** 尤其是，这个程序在看到“CREATE” 和“TABLE”还有一个表名的时候，表示这个程序将会被调用
 
-尤其是，当看到 "CREATE" and "TABLE" and表名后调用这个例程。
-
-如果表被存储在辅助数据库文件中而不是主数据库文件中，则isTemp==true.
-
-"TEMP" or "TEMPORARY"关键字在CREATE 和 TABLE之间出现这种情况是正常的。 】
-
+** The isTemp flag is true if the table should be stored in the auxiliary database
+** file instead of in the main database file.  
+** 如果这个表被存储在辅助数据库中而不是在主数据库文件中，那么此时的这个标志isTemp应该被置为真（True）
+** This is normally the case when the "TEMP" or "TEMPORARY" keyword occurs in between CREATE and TABLE。
+**"TEMP" or "TEMPORARY"关键字在CREATE 和 TABLE之间出现这种情况是正常的。
 ** The new table record is initialized and put in pParse->pNewTable.【初始化新表记录,放入pParse - > pNewTable。】
 ** As more of the CREATE TABLE statement is parsed, additional action【如果更多的CREATE TABLE 语句被解析，
 ** routines will be called to add more information to this record.   额外的行为例程将会被调用去增加更多的信息为这个记录。】
