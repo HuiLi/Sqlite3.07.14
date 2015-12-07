@@ -6426,6 +6426,7 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //´¦Àí³
 ** This function does not contribute anything to the operation of SQLite.
 ** it is sometimes activated temporarily while debugging code responsible 
 ** for setting pointer-map entries.
+** Èç¹ûº¯Êı¶ÔSQLite²Ù×÷ÄÚÓĞÈÎºÎ°ïÖú.Ö»ÊÇµ±µ÷ÊÔ´úÂëÉèÖÃpointer-mapÌõÄ¿Ê±ÔİÊ±¼¤»î¡£
 */
 static int ptrmapCheckPages(MemPage **apPage, int nPage){
   int i, j;
@@ -6481,13 +6482,15 @@ static int ptrmapCheckPages(MemPage **apPage, int nPage){
 ** which are called often under normal circumstances.
 */
 	/*
-	**´Ë¹¦ÄÜÓÃÓÚ¸´ÖÆµÄbÊ÷½ÚµãµÄ´æ´¢ÄÚÈİ¡£Èç¹ûÒ³ÃæpFromÖĞ²»ÊÇÒ¶×ÓÒ³£¬È»ºó
-	Ã¿¸ö×ÓÒ³Ö¸ÕëµÄÓ³ÉäÌõÄ¿½øĞĞ¸üĞÂ¡£	 
-	 ·µ»ØÖ®Ç°£¬Ò³ÃæPTOÊ¹ÓÃbtreeInitPageÖØĞÂ³õÊ¼»¯£¨£©¡£´Ë¹¦ÄÜµÄĞÔÄÜ²»ÊÇ¹Ø¼üµÄ¡£
-	 Ëü½öÓÉbalance_shallower£¨£©ºÍbalance_deeper£¨£©³ÌĞò×é³É¡£
+	**´Ëº¯ÊıÓÃÓÚ¸´ÖÆpFromÒ³ÉÏbÊ÷½ÚµãµÄ´æ´¢ÄÚÈİµ½pToÒ³¡£Èç¹ûÒ³ÃæpFrom²»ÊÇÒ¶×ÓÒ³£¬È»ºó
+	Ã¿¸ö×ÓÒ³Ö¸ÕëµÄÓ³ÉäÌõÄ¿½øĞĞ¸üĞÂ£¬ÒÔ±ãÓÚ´æ´¢ÔÚÖ¸ÕëÎ»Í¼ÖĞµÄ¸¸½ÚµãÊÇpToÒ³.Èç¹ûpFrom°ü
+	º¬ÈÎºÎ´øÓĞÒç³öÒ³Ö¸ÕëµÄµ¥Ôª,ÄÇÃ´ÏàÓ¦µÄÖ¸ÕëÎ»Í¼Ò²¸üĞÂÊ¹¸¸½ÚµãÊÇ pToÒ³¡£
+	Èç¹ûpFromÄ¿Ç°ÓĞÈÎºÎÒç³öµ¥Ôª(ÔÚMemPage.apOvfl[]Êı×éÖĞµÄÌõÄ¿),ÄÇÃ´ËüÃÇÃ»ÓĞ±»¸´ÖÆµ½pTo¡£
+	·µ»ØÖ®Ç°£¬Ò³ÃæpToĞèÒªÓÃbtreeInitPage()ÖØĞÂ³õÊ¼»¯.´Ë¹¦ÄÜµÄĞÔÄÜ²»ÊÇ¹Ø¼ü¡£
+	 Ëü½öÓÉbalance_shallower£¨£©ºÍbalance_deeper£¨£©³ÌĞòÊ¹ÓÃ¡£Í¨³£Çé¿öÏÂ£¬Á½Õß¶¼²»ÓÃ¡£
 	*/
 
-static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){
+static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //¸´ÖÆpFromÒ³ÉÏbÊ÷½ÚµãµÄ´æ´¢ÄÚÈİµ½pToÒ³
   if( (*pRC)==SQLITE_OK ){
     BtShared * const pBt = pFrom->pBt;
     u8 * const aFrom = pFrom->aData;
@@ -6502,7 +6505,7 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){
     assert( pFrom->nFree>=iToHdr );
     assert( get2byte(&aFrom[iFromHdr+5]) <= (int)pBt->usableSize );
   
-    /* Copy the b-tree node content from page pFrom to page pTo. */
+    /* Copy the b-tree node content from page pFrom to page pTo. */  //´ÓpFromÒ³¿½±´BÊ÷½ÚµãÄÚÈİµ½pToÒ³
     iData = get2byte(&aFrom[iFromHdr+5]);
     memcpy(&aTo[iData], &aFrom[iData], pBt->usableSize-iData);
     memcpy(&aTo[iToHdr], &aFrom[iFromHdr], pFrom->cellOffset + 2*pFrom->nCell);
@@ -6511,17 +6514,18 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){
     ** match the new data. The initialization of pTo can actually fail under
     ** fairly obscure circumstances, even though it is a copy of initialized 
     ** page pFrom.
+	** ÖØĞÂ³õÊ¼»¯Ò³pToÀ´Ê¹MemPage½á¹¹µÄÄÚÈİºÍĞÂµÄÊı¾İÆ¥Åä¡£Ïàµ±Ä£ºıµÄÇé¿öÏÂ£¬pToµÄ³õÊ¼»¯¿ÉÄÜÊ§°Ü,
+	** ¼´Ê¹ËüÊÇÒ»¸öÒÑ¾­³õÊ¼»¯pFromÒ³µÄ¸±±¾¡£
     */
     pTo->isInit = 0;
-    rc = btreeInitPage(pTo);
+    rc = btreeInitPage(pTo);   //³õÊ¼»¯Ò³pTo
     if( rc!=SQLITE_OK ){
       *pRC = rc;
       return;
     }
-  
     /* If this is an auto-vacuum database, update the pointer-map entries
     ** for any b-tree or overflow pages that pTo now contains the pointers to.
-    */
+    ** Èç¹ûÕâÊÇÒ»¸ö×Ô¶¯ÇåÀíµÄÊı¾İ¿â£¬ÄÇÃ´¶ÔÓÚpToµÄÖ¸ÕëÖ¸ÏòµÄÈÎºÎBÊ÷»òÒç³öÒ³Ãæ¸üĞÂÖ¸ÕëÎ»Í¼ÌõÄ¿.*/
     if( ISAUTOVACUUM ){
       *pRC = setChildPtrmaps(pTo);
     }
@@ -6537,25 +6541,30 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){
 ** has fewer than 2 siblings (something which can only happen if the page
 ** is a root page or a child of a root page) then all available siblings
 ** participate in the balancing.
-**
+** Õâ¸öº¯ÊıÔÚ pParentµÄµÚiParentIdxº¢×ÓÉÏÖØĞÂ·ÖÅäµ¥Ôª(ÒÔÏÂ¼ò³Æ¡°Ò³Ãæ¡±)ºÍ´ïµ½2¸öĞÖµÜ½Úµã,
+** ÕâÑù¶ÔËùÓĞÒ³Ãæ¶¼ÓĞÏàÍ¬ÊıÁ¿µÄ×ÔÓÉ¿Õ¼ä¡£Í¨³£ÔÚÒ³ÃæÁ½²àµÄÒ»¸öĞÖµÜ½ÚµãÊÇÆ½ºâµÄ,
+** Èç¹ûÒ³ÃæµÄ¸¸½ÚµãÊÇµÚÒ»¸ö»ò×îºóÒ»¸öº¢×ÓÔòĞÖµÜ½Úµã¿ÉÄÜÀ´×ÔÒ»²à¡£Èç¹ûÒ³ÃæÒÑ¾­ÉÙÓÚ2ĞÖµÜ
+** (Èç¹ûÒ³ÃæÊÇÒ»¸ö¸ù»ò¸ùµÄ×ÓÒ³Ãæ£¬ÓĞĞ©ÒÆ¶¯Ï¯¿ÉÄÜÎ¨Ò»·¢Éú)È»ºóËùÓĞ¿ÉÓÃµÄĞÖµÜ½ãÃÃ²ÎÓëÆ½ºâ¡£
 ** The number of siblings of the page might be increased or decreased by 
 ** one or two in an effort to keep pages nearly full but not over full. 
-**
+** Ò³ÃæµÄĞÖµÜµÄÊıÁ¿¿ÉÄÜ»áÔö¼Ó»ò¼õÉÙÒ»¸ö»òÁ½¸ö£¬¾¡Á¿±£³ÖÒ³Ãæ¼¸ºõÌîÂúµ«²»ÍêÈ«ÎªÂú¡£
 ** Note that when this routine is called, some of the cells on the page
 ** might not actually be stored in MemPage.aData[]. This can happen
 ** if the page is overfull. This routine ensures that all cells allocated
 ** to the page and its siblings fit into MemPage.aData[] before returning.
-**
+** ×¢Òâ,µ±µ÷ÓÃÕâ¸öº¯Êı,ÔÚÒ³ÃæÉÏµÄÒ»Ğ©µ¥Ôª¿ÉÄÜ²»ÍêÈ«ÊÇ´æ´¢ÔÚMemPage.aData[]¡£Èç¹ûÒ³Ãæ¹ıÂú
+** ¿ÉÄÜ»á·¢ÉúÕâÖÖÇé¿ö¡£Õâ¸öº¯Êı·ÖÅä¸øÒ³ÃæµÄËùÓĞµ¥Ôª¼°·µ»ØÖ®Ç°ÆäĞÖµÜ»áĞ´ÈëMemPage.aData[]¡£
 ** In the course of balancing the page and its siblings, cells may be
 ** inserted into or removed from the parent page (pParent). Doing so
 ** may cause the parent page to become overfull or underfull. If this
 ** happens, it is the responsibility of the caller to invoke the correct
 ** balancing routine to fix this problem (see the balance() routine). 
-**
+** ÔÚÆ½ºâÒ³ÃæºÍËüµÄĞÖµÜ¹ı³ÌÖĞ,µ¥Ôª¿ÉÄÜ²åÈë»ò´Ó¸¸Ò³Ãæ(pParent)É¾³ı¡£ÕâÑù×ö¿ÉÄÜµ¼ÖÂ¸¸Ò³Ãæ¹ı¶ÈÂú¡£
+** Èç¹ûÕâ·¢ÉúÁË,µ÷ÓÃº¯Êı¸ºÔğµ÷ÓÃÕıÈ·µÄÆ½ºâº¯ÊıÀ´½â¾öÕâ¸öÎÊÌâ(¼ûbalance()º¯Êı)¡£
 ** If this routine fails for any reason, it might leave the database
 ** in a corrupted state. So if this routine fails, the database should
 ** be rolled back.
-**
+** Èç¹ûÕâ¸öº¯ÊıÊ§°Ü,Ëü¿ÉÄÜÊ¹Êı¾İ¿âÔÚÒ»¸öËğ»µµÄ×´Ì¬¡£Òò´ËÈç¹ûÕâ¸öº¯ÊıÊ§°Ü,Êı¾İ¿âÓ¦¸Ã»Ø¹ö¡£
 ** The third argument to this function, aOvflSpace, is a pointer to a
 ** buffer big enough to hold one page. If while inserting cells into the parent
 ** page (pParent) the parent page becomes overfull, this buffer is
@@ -6564,9 +6573,12 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){
 ** size of a cell stored within an internal node is always less than 1/4
 ** of the page-size, the aOvflSpace[] buffer is guaranteed to be large
 ** enough for all overflow cells.
-**
-** If aOvflSpace is set to a null pointer, this function returns 
-** SQLITE_NOMEM.
+** Õâ¸öº¯ÊıµÄµÚÈı¸ö²ÎÊıaOvflSpaceÊÇÒ»¸öÖ¸Õë£¬Ö¸ÏòÒ»¸ö×ã¹»´æ·ÅÒ³µÄ»º³åÇø¡£Èç¹ûµ¥ÔªÕı
+** ²åÈë¸¸Ò³Ãæ(pParent)£¬¸Ã¸¸Ò³Ãæ±äµÃ¹ı¶ÈÂú,ÄÇÃ´Õâ¸ö»º³åÇøÓÃÓÚ´æ´¢¸¸Ò³ÃæµÄÒç³öµ¥Ôª¡£
+** ÒòÎªÕâ¸öº¯Êı×î¶à²åÈëËÄ¸ö¶ÀÁ¢µÄµ¥Ôª½øÈë¸¸Ò³Ãæ,²¢ÇÒ´æ´¢ÔÚÒ»¸öÄÚ²¿½ÚµãÖĞµÄµ¥ÔªµÄ×î´óÖµ
+** ×ÜÊÇĞ¡ÓÚ1/4µÄÒ³Ãæ´óĞ¡,Õâ¸öaOvflSpace[]»º³åÇøÊÇ±£Ö¤Òç³öµ¥Ôª×ã¹»´ó¡£
+** If aOvflSpace is set to a null pointer, this function returns SQLITE_NOMEM.
+** Èç¹ûaOvflSpaceÃ»ÓĞÉè¶¨Ö¸Õë£¬Ôòº¯Êı·µ»ØSQLITE_NOMEM.
 */
 /*
 Õâ¸ö³ÌĞòÖØĞÂ·ÖÅäµ¥Ôª¸ñµ½ĞÖµÜ½Úµã¡£
@@ -6575,40 +6587,40 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){
 #if defined(_MSC_VER) && _MSC_VER >= 1700 && defined(_M_ARM)
 #pragma optimize("", off)
 #endif
-static int balance_nonroot(
-  MemPage *pParent,               /* Parent page of siblings being balanced */
-  int iParentIdx,                 /* Index of "the page" in pParent */
-  u8 *aOvflSpace,                 /* page-size bytes of space for parent ovfl */
-  int isRoot,                     /* True if pParent is a root-page */
-  int bBulk                       /* True if this call is part of a bulk load */
+static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®±£³ÖÆ½ºâ
+  MemPage *pParent,               /* Parent page of siblings being balanced */      //ÒªÆ½ºâµÄĞÖµÜ½ÚµãµÄ¸¸Ò³Ãæ
+  int iParentIdx,                 /* Index of "the page" in pParent */              //pParentÒ¶ÃæÖĞÒ³Ë÷Òı
+  u8 *aOvflSpace,                 /* page-size bytes of space for parent ovfl */    //Ë«Ç×Ò¶ÃæµÄ¿Õ¼ä´óĞ¡×Ö½Ú
+  int isRoot,                     /* True if pParent is a root-page */              //Èç¹ûpParentÊÇ¸ùÒ³ÃæÔòÎªtrue
+  int bBulk                       /* True if this call is part of a bulk load */    //Õâ¸öµ÷ÓÃÊÇ¿é¸ºÔØµÄÒ»²¿·ÖÔòÎªtrue
 ){
-  BtShared *pBt;               /* The whole database */
-  int nCell = 0;               /* Number of cells in apCell[] */
-  int nMaxCells = 0;           /* Allocated size of apCell, szCell, aFrom. */
-  int nNew = 0;                /* Number of pages in apNew[] */
-  int nOld;                    /* Number of pages in apOld[] */
-  int i, j, k;                 /* Loop counters */
-  int nxDiv;                   /* Next divider slot in pParent->aCell[] */
-  int rc = SQLITE_OK;          /* The return code */
-  u16 leafCorrection;          /* 4 if pPage is a leaf.  0 if not */
-  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */
-  int usableSpace;             /* Bytes in pPage beyond the header */
-  int pageFlags;               /* Value of pPage->aData[0] */
-  int subtotal;                /* Subtotal of bytes in cells on one page */
-  int iSpace1 = 0;             /* First unused byte of aSpace1[] */
-  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */
-  int szScratch;               /* Size of scratch memory requested */
-  MemPage *apOld[NB];          /* pPage and up to two siblings */
-  MemPage *apCopy[NB];         /* Private copies of apOld[] pages */
-  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */
-  u8 *pRight;                  /* Location in parent of right-sibling pointer */
-  u8 *apDiv[NB-1];             /* Divider cells in pParent */
-  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */
-  int szNew[NB+2];             /* Combined size of cells place on i-th page */
-  u8 **apCell = 0;             /* All cells begin balanced */
-  u16 *szCell;                 /* Local size of all cells in apCell[] */
-  u8 *aSpace1;                 /* Space for copies of dividers cells */
-  Pgno pgno;                   /* Temp var to store a page number in */
+  BtShared *pBt;               /* The whole database */                             //Õû¸öÊı¾İ¿â
+  int nCell = 0;               /* Number of cells in apCell[] */                    //apCell[]ÖĞµÄµ¥ÔªÊı
+  int nMaxCells = 0;           /* Allocated size of apCell, szCell, aFrom. */       //·ÖÅä¸øapCell, szCell, aFromµÄ´óĞ¡
+  int nNew = 0;                /* Number of pages in apNew[] */                     //apNew[]ÖĞÒ³µÄÊıÁ¿
+  int nOld;                    /* Number of pages in apOld[] */                     //apOld[]ÖĞÒ²µÃÊıÁ¿
+  int i, j, k;                 /* Loop counters */                                  //Ñ­»·ÖĞµÄ±äÁ¿
+  int nxDiv;                   /* Next divider slot in pParent->aCell[] */          //pParent->aCell[]ÖĞµÄÏÂÒ»¸ö·Ö¸îÎ»ÖÃ
+  int rc = SQLITE_OK;          /* The return code */                                //·µ»Ø´úÂë
+  u16 leafCorrection;          /* 4 if pPage is a leaf.  0 if not */                //Èç¹ûÊÇÒ¶×Ó½Úµã¸ÃÖµÎª4£¬·ñÔòÎª0
+  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */     //Èç¹ûpPageÊÇLEAFDATAÊ÷µÄÒ¶×Ó½ÚµãÔòÎªtrue
+  int usableSpace;             /* Bytes in pPage beyond the header */               //pPageÖĞÍ·²¿ºóÃæµÄ×Ö½ÚÊı£¬¿ÉÓÃ¿Õ¼ä
+  int pageFlags;               /* Value of pPage->aData[0] */                       //pPage->aData[0]µÄÖµ
+  int subtotal;                /* Subtotal of bytes in cells on one page */         //Ò»¸öÒ³ÉÏµÄµ¥ÔªÖĞµÄ×Ö½ÚÊı
+  int iSpace1 = 0;             /* First unused byte of aSpace1[] */                 // aSpace1[]ÖĞµÚÒ»¸ö²»¿ÉÓÃ×Ö½Ú
+  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */              //aOvflSpace[]ÖĞµÄ²»¿ÉÓÃ×Ö½Ú
+  int szScratch;               /* Size of scratch memory requested */               //Ôİ´æÆ÷ĞèÒªµÄ´óĞ¡
+  MemPage *apOld[NB];          /* pPage and up to two siblings */                   //pPage²¢´ïµ½Á½¸ö×Ö½Ú
+  MemPage *apCopy[NB];         /* Private copies of apOld[] pages */                //apOld[]µÄË½ÓĞ¸±±¾
+  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */    //Æ½ºâºóµÄpPageºÍNB¸öĞÖµÜ
+  u8 *pRight;                  /* Location in parent of right-sibling pointer */    //ÓĞĞÖµÜÖ¸ÕëµÄ¸¸½ÚµãÎ»ÖÃ
+  u8 *apDiv[NB-1];             /* Divider cells in pParent */                       //pParentÖĞµÄ·ÖÀëµÄµ¥Ôª
+  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */       //µÚi¸öÒ³Ãæºóµ¥ÔªµÄaCell[]ÖĞµÄË÷Òı
+  int szNew[NB+2];             /* Combined size of cells place on i-th page */      //µÚi¸öÒ³ÃæÉÏµÄµ¥ÔªµÄ×Ü´óĞ¡
+  u8 **apCell = 0;             /* All cells begin balanced */                       //¿ªÊ¼Ê±±£³ÖÆ½ºâµÄµ¥ÔªÊı
+  u16 *szCell;                 /* Local size of all cells in apCell[] */            //apCell[]ÖĞµÄËùÓĞµ¥ÔªµÄ±¾µØ´óĞ¡
+  u8 *aSpace1;                 /* Space for copies of dividers cells */             //·ÖÀëµ¥ÔªµÄ¸±±¾¿Õ¼ä
+  Pgno pgno;                   /* Temp var to store a page number in */             //ÔÚÆäÖĞ´æ´¢Ò³ÂëµÄ
 
   pBt = pParent->pBt;
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -6622,6 +6634,8 @@ static int balance_nonroot(
   ** this overflow cell is present, it must be the cell with 
   ** index iParentIdx. This scenario comes about when this function
   ** is called (indirectly) from sqlite3BtreeDelete().
+  ** ´ËÊ±pParent¿ÉÄÜ×î¶àÒ»¸öÒç³öµ¥Ôª¡£Èç¹ûÕâÖĞÒç³öµ¥Ôª³öÏÖ,ËûÒ»¶¨ÊÇ´øÓĞiParentIdxË÷ÒıµÄ¡£
+  ** Õâ¸ö³¡¾°ÊÇÕâ¸öº¯Êı±»sqlite3BtreeDelete()µ÷ÓÃ(¼ä½Ó)¡£
   */
   assert( pParent->nOverflow==0 || pParent->nOverflow==1 );
   assert( pParent->nOverflow==0 || pParent->aiOvfl[0]==iParentIdx );
@@ -6635,11 +6649,15 @@ static int balance_nonroot(
   ** either side of pPage. More siblings are taken from one side, however, 
   ** if there are fewer than NN siblings on the other side. If pParent
   ** has NB or fewer children then all children of pParent are taken.  
-  **
+  ** ÕÒµ½ÒªÆ½ºâµÄĞÖµÜÒ³Ãæ.»¹È·¶¨pParentÖĞ·Ö¿ªĞÖµÜµ¥ÔªµÄÎ»ÖÃ¡£ÊÔÍ¼
+  ** ÕÒµ½pPageÁ½²àµÄNNĞÖµÜ¡£È»¶ø,Ò»²àÓĞ¸ü¶àµÄĞÖµÜ½ÚµãÄÇÃ´ÓĞÉÙÓÚ
+  ** NNµÄĞÖµÜÔÚÁíÒ»±ß¡£Èç¹ûpParentÓĞNB»ò¸üÉÙº¢×ÓÄÇÃ´pParentµÄº¢×ÓÕ¼¾İ¡£
   ** This loop also drops the divider cells from the parent page. This
   ** way, the remainder of the function does not have to deal with any
   ** overflow cells in the parent page, since if any existed they will
   ** have already been removed.
+  ** Õâ¸öÑ­»·Ò²´Ó¸¸Ò³ÃæÉ¾³ı·ÖÀëµÄµ¥Ôª¡£ÕâÑùº¯ÊıµÄÆäÓà²¿·Ö²»ĞèÒª´¦ÀíÈÎºÎÔÚ
+  **¸¸Ò³ÃæÖĞÒç³öµÄµ¥Ôª,ÒòÎªÈç¹ûÈÎºÎ´æÔÚµÄ¶¼ÒÑ¾­±»ÒÆ³ı¡£
   */
   /*ÕÒµ½ĞÖµÜÒ³ÒÔ´ïµ½Æ½ºâ¡£*/
   i = pParent->nOverflow + pParent->nCell;
@@ -6689,12 +6707,16 @@ static int balance_nonroot(
       ** four bytes of it, and this function does not need the first
       ** four bytes of the divider cell. So the pointer is safe to use
       ** later on.  
-      **
+      ** ´Ó¸¸Ò³ÃæÉ¾³ıµ¥Ôª¡£apDiv[i]ÈÔÈ»Ö¸Ïò¸¸½ÚµãÄÚµÄµ¥Ôª,¼´Ê¹ËüÒÑ¾­É¾³ı¡£ÕâÊÇ°²È«µÄ,ÒòÎªµ¥Ôª
+	  ** ½ö¸²¸ÇËüµÄ¿ªÊ¼µÄ4¸ö×Ö½Ú,¸Ãº¯Êı²»ĞèÒªÆäËûµ¥ÔªµÄ¿ªÊ¼µÄËÄ¸ö×Ö½Ú¡£Ö¸Õë¿ÉÒÔ°²È«µØËæºóÊ¹ÓÃ¡£
       ** But not if we are in secure-delete mode. In secure-delete mode,
       ** the dropCell() routine will overwrite the entire cell with zeroes.
       ** In this case, temporarily copy the cell into the aOvflSpace[]
       ** buffer. It will be copied out again as soon as the aSpace[] buffer
-      ** is allocated.  */
+      ** is allocated. 
+	  ** µ«³ı´ËÖ®ÍâĞèÒª°²È«É¾³ıÄ£Ê½.ÔÚ°²È«É¾³ıÄ£Ê½ÏÂ,  dropCell()º¯Êı½«ÓÃ0¸²¸ÇÕû¸öµ¥Ôª.ÔÚÕâ
+	  ** ÖÖÇé¿öÏÂ,ÁÙÊ±±¸·İµ¥Ôªµ½aOvflSpace[]»º³åÇø.Ò»µ©aSpace[]»º³åÇø±»·ÖÅäËü½«±»¸´ÖÆ³öÀ´¡£
+	  */
       if( pBt->btsFlags & BTS_SECURE_DELETE ){
         int iOff;
 
@@ -6712,19 +6734,17 @@ static int balance_nonroot(
     }
   }
 
-  /* Make nMaxCells a multiple of 4 in order to preserve 8-byte
-  ** alignment */
+  /* Make nMaxCells a multiple of 4 in order to preserve 8-byte alignment */
+  //Ê¹nMaxCellsÎª4µÄ±¶ÊıÎªÁË±£³Ö8×Ö½ÚµÄ¶ÔÆë.
   nMaxCells = (nMaxCells + 3)&~3;
 
-  /*
-  ** Allocate space for memory structures
-  */
+  /* Allocate space for memory structures */                //ÎªÄÚ´æ½á¹¹·ÖÅä¿Õ¼ä
   k = pBt->pageSize + ROUND8(sizeof(MemPage));
   szScratch =
-       nMaxCells*sizeof(u8*)                       /* apCell */
-     + nMaxCells*sizeof(u16)                       /* szCell */
-     + pBt->pageSize                               /* aSpace1 */
-     + k*nOld;                                     /* Page copies (apCopy) */
+       nMaxCells*sizeof(u8*)                       /* apCell */               //¿ªÊ¼Ê±±£³ÖÆ½ºâµÄµ¥ÔªÊı
+     + nMaxCells*sizeof(u16)                       /* szCell */               //apCell[]ÖĞµÄËùÓĞµ¥ÔªµÄ±¾µØ´óĞ¡
+     + pBt->pageSize                               /* aSpace1 */              //·ÖÀëµ¥ÔªµÄ¸±±¾¿Õ¼ä
+     + k*nOld;                                     /* Page copies (apCopy) */ //Ò³¸±±¾
   apCell = sqlite3ScratchMalloc( szScratch ); 
   if( apCell==0 ){
     rc = SQLITE_NOMEM;
@@ -6739,7 +6759,7 @@ static int balance_nonroot(
   ** into the local apCell[] array.  Make copies of the divider cells
   ** into space obtained from aSpace1[] and remove the divider cells
   ** from pParent.
-  **
+  ** ¸ºÔØÖ¸ÕëĞÖµÜÒ³ÃæÉÏµÄËùÓĞµ¥ÔªºÍ·ÖÀëµ¥Ôªµ½±¾µØapCell[]Êı×é¡£¸´ÖÆ·ÖÅäÆ÷µÄÏ¸°û¡¡¡¡* *½øÈëÌ«¿Õ»ñµÃaSpace1[]ºÍÉ¾³ı·Ö¸ôÏ¸°û¡¡¡¡´ÓpParent * *¡£
   ** If the siblings are on leaf pages, then the child pointers of the
   ** divider cells are stripped from the cells before they are copied
   ** into aSpace1[].  In this way, all cells in apCell[] are without
