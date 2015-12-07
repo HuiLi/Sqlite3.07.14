@@ -429,78 +429,82 @@ Table *sqlite3FindTable(sqlite3 *db, const char *zName, const char *zDatabase){
 ** Locate the in-memory structure that describes a particular database
 ** table given the name of that table and (optionally) the name of the
 ** database containing the table.  Return NULL if not found.  Also leave an
-** error message in pParse->zErrMsg.【定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.在pParse->zErrMsg中留下一个错误信息。】
-**
+** error message in pParse->zErrMsg.
+**定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.在pParse->zErrMsg中留下一个错误信息。
 ** The difference between this routine and sqlite3FindTable() is that this
 ** routine leaves an error message in pParse->zErrMsg where
-** sqlite3FindTable() does not.【这个例程和sqlite3FindTable()的区别是：这个例程留下一个错误信息在pParse->zErrMsg中，而sqlite3FindTable()没有。】
+** sqlite3FindTable() does not.
+**这个例程和sqlite3FindTable()的区别是：这个例程留下一个错误信息在pParse->zErrMsg中，而sqlite3FindTable()没有。
 */
 Table *sqlite3LocateTable(
 	Parse *pParse,         /* context in which to report errors 【上下文来报告错误】*/
-	int isView,            /* True if looking for a VIEW rather than a TABLE如果找到试图而不是表，则值是true */
+	int isView,            /* True if looking for a VIEW rather than a TABLE  如果找到的是视图而不是表，则值是true */
 	const char *zName,     /* Name of the table we are looking for 【查找的表名】*/
 	const char *zDbase     /* Name of the database.  Might be NULL【数据库的名字，可能是空】 */
 	){
-	Table *p;
+	Table *p;    //表指针，返回这个表的地址
 
 	/* Read the database schema. If an error occurs, leave an error message
-	** and code in pParse and return NULL.【读取数据库模式，如果有错误发生，留下一个错误信息和代码在pParse，然后返回NULL.】 */
+	** and code in pParse and return NULL.   读取数据库模式，如果有错误发生，留下一个错误信息和代码在pParse，然后返回NULL。 */
 	if (SQLITE_OK != sqlite3ReadSchema(pParse)){
 		return 0;
 	}
 
-	p = sqlite3FindTable(pParse->db, zName, zDbase);
+	p = sqlite3FindTable(pParse->db, zName, zDbase);    //调用寻找表的函数
 	if (p == 0){
-		const char *zMsg = isView ? "no such view" : "no such table";
-		if (zDbase){
-			sqlite3ErrorMsg(pParse, "%s: %s.%s", zMsg, zDbase, zName);
+		const char *zMsg = isView ? "no such view" : "no such table";   //判断得到的视图还是表
+		if (zDbase){   //如果数据库不为空
+			sqlite3ErrorMsg(pParse, "%s: %s.%s", zMsg, zDbase, zName);    //输出相应的信息
 		}
 		else{
-			sqlite3ErrorMsg(pParse, "%s: %s", zMsg, zName);
+			sqlite3ErrorMsg(pParse, "%s: %s", zMsg, zName);    //如果数据库为空，并且没有找到相应的表，则输出相应的信息
 		}
 		pParse->checkSchema = 1;
 	}
-	return p;
+	return p;     //返回指针
 }
 
 /*
 ** Locate the in-memory structure that describes
 ** a particular index given the name of that index
 ** and the name of the database that contains the index.
-** Return NULL if not found.【定位描述一个特定的索引的内存结构，给出这个特殊的索引的名字和数据库的名称，这个数据库包含这个索引。如果没有找到返回0.】
-**
+** Return NULL if not found.
+**定位描述一个特定的索引的内存结构，给出这个特殊的索引的名字和数据库的名称，这个数据库包含这个索引。如果没有找到返回0.
 **If zDatabase is 0, all databases are searched for the
 ** table and the first matching index is returned.  (No checking
 ** for duplicate index names is done.)  The search order is
 ** TEMP（临时文件夹） first, then MAIN（主要文件夹）, then any auxiliary databases added
 ** using the ATTACH command.（使用附加命令添加到任何辅助数据库。）
 
-【找到的内存结构，它描述给该索引的名称，并包含index.Return NULL，如果没有找到该数据库的名称特定的索引。如果zDatabase为0，
-所有的数据库搜索的表和第一个匹配的索引返回。
-（没有检查是否有重复的索引名称就完成了。）搜索顺序是TEMP，再主，然后加入使用attach命令任何辅助数据库。
-】
+**找到的内存结构，它描述给该索引的名称，并包含index.Return NULL，如果没有找到该数据库的名称特定的索引。如果zDatabase为0，
+**所有的数据库搜索的表和第一个匹配的索引返回。
+**（没有检查是否有重复的索引名称就完成了。）搜索顺序是TEMP文件，再主文件，然后加入使用attach命令任何辅助数据库。
+*/
 
+/*
+**寻找索引，提高查询的速度，其中zDb参数是表明数据库是否为空的参数，采用的是const参数，不允许在程序中去修改这个参数；
+**zName是索引名字，也采用的是const参数，表明我们在程序中是不能随便取更改这个参数的。
 */
 Index *sqlite3FindIndex(sqlite3 *db, const char *zName, const char *zDb){
-	Index *p = 0;
+	Index *p = 0;  //索引指针，返回这个索引的地址
 	int i;
-	int nName = sqlite3Strlen30(zName);
-	/* All mutexes are required for schema access.  Make sure we hold them. */
-	assert(zDb != 0 || sqlite3BtreeHoldsAllMutexes(db));
+	int nName = sqlite3Strlen30(zName);     //Sqlite索引的名字
+	/* All mutexes are required for schema access.  Make sure we hold them.   互斥的访问临界区，独立的拥有临界区的访问权 */
+	assert(zDb != 0 || sqlite3BtreeHoldsAllMutexes(db));   
 	for (i = OMIT_TEMPDB; i<db->nDb; i++){
-		int j = (i<2) ? i ^ 1 : i;  /* Search TEMP before MAIN */
-		Schema *pSchema = db->aDb[j].pSchema;
+		int j = (i<2) ? i ^ 1 : i;  /* Search TEMP before MAIN   确定查找的顺序，先查找临时文件后查找主文件*/
+		Schema *pSchema = db->aDb[j].pSchema;   
 		assert(pSchema);
 		if (zDb && sqlite3StrICmp(zDb, db->aDb[j].zName)) continue;
-		assert(sqlite3SchemaMutexHeld(db, j, 0));
-		p = sqlite3HashFind(&pSchema->idxHash, zName, nName);
-		if (p) break;
+		assert(sqlite3SchemaMutexHeld(db, j, 0));   //断言该模式已经完全的拥有了临界区
+		p = sqlite3HashFind(&pSchema->idxHash, zName, nName);   //采用的是hash查找
+		if (p) break;   //如果查找到了相应的索引，则终止这个循环的查找
 	}
 	return p;
 }
 
 /*
-** Reclaim the memory used by an index【回收被索引使用的内存】
+** Reclaim the memory used by an index 回收被所以使用的内存
 */
 static void freeIndex(sqlite3 *db, Index *p){
 #ifndef SQLITE_OMIT_ANALYZE
@@ -515,15 +519,18 @@ static void freeIndex(sqlite3 *db, Index *p){
 ** unlike that index from its Table then remove the index from
 ** the index hash table and free all memory structures associated
 ** with the index.
+**zIdexName这个索引被在数据库iDb中找到，不同于其表的索引，它（zIdexName）需要从哈希索引文件中移除并释放所有的与这个索引相关的内存数据结构。
+*/
 
-【对于所谓的zIdxName索引是数据库中IDB中发现的，不同于其表的索引，然后从索引哈希表和索引相关的所有自由内存结构中删除索引。】
+/* junpeng zhu created
+**删除与参数zIdexName相关的所有的内存数据结构,参数db是当前数据库的指针，指向现在正在操作的数据库；iDb是这个索引所在的数据库；zIdxName是要删除的索引，与其相关的内存数据结构也要全部删除。
 */
 void sqlite3UnlinkAndDeleteIndex(sqlite3 *db, int iDb, const char *zIdxName){
-	Index *pIndex;
+	Index *pIndex;  
 	int len;
 	Hash *pHash;
 
-	assert(sqlite3SchemaMutexHeld(db, iDb, 0));
+	assert(sqlite3SchemaMutexHeld(db, iDb, 0));   //断言数据库iDb拥有了完全的临界区控制权
 	pHash = &db->aDb[iDb].pSchema->idxHash;
 	len = sqlite3Strlen30(zIdxName);  //Len获取zIdxName前30个字符。
 	pIndex = sqlite3HashInsert(pHash, zIdxName, len, 0);
