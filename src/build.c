@@ -324,8 +324,10 @@ void sqlite3FinishCoding(Parse *pParse){
 		FILE *trace = (db->flags & SQLITE_VdbeTrace) != 0 ? stdout : 0;
 		sqlite3VdbeTrace(v, trace);
 #endif
-		assert(pParse->iCacheLevel == 0);  /* Disables and re-enables match【无效，重新启用匹配】 */
-		/* A minimum of one cursor is required if autoincrement is used【如果自动增量被用过，至少需要一个光标。】
+		assert(pParse->iCacheLevel == 0);  
+		/* Disables and re-enables match  无效，重新启用匹配 */
+		/* A minimum of one cursor is required if autoincrement is used   
+		**如果自动增量被用过，至少需要一个光标。
 		*  See ticket [a696379c1f08866] */
 		if (pParse->pAinc != 0 && pParse->nTab == 0) pParse->nTab = 1;
 		sqlite3VdbeMakeReady(v, pParse);
@@ -349,69 +351,78 @@ void sqlite3FinishCoding(Parse *pParse){
 ** currently under construction.  When the parser is run recursively
 ** this way, the final OP_Halt is not appended and other initialization
 ** and finalization steps are omitted because those are handling by the
-** outermost parser.【解析器和生成器递归运行为了生成代码到给定的SQL语句去结束pParse目前正在建设的上下文。当parser以这种方式递归运行时，最后OP_Halt是没有被附加的，还有其他的初始值和
-终止步调时被忽略的，因为它们正在被parser的最外层处理。】
+** outermost parser.
+**解析器和生成器递归运行为了生成代码到给定的SQL语句去结束pParse目前正在建设的上下文。当parser以这种方式递归运行时，最后OP_Halt是没有被附加的，还有其他的初始值和
+**终止步调时被忽略的，因为它们正在被parser的最外层处理。
 **
 ** Not everything is nestable.  This facility is designed to permit
 ** INSERT, UPDATE, and DELETE operations against SQLITE_MASTER.  Use
 ** care if you decide to try to use this routine for some other purposes.
-【不是每个操作都是可用的，这个设备的目的是允许插入，更新和删除操作不适用于SQLITE_MASTER。如果你试图把这个例程用于一些其他目的，那么你用的时候要小心了。】
+**不是每个操作都是嵌套的，这个设备的目的是允许插入，更新和删除操作不适用于SQLITE_MASTER。如果你试图把这个例程用于一些其他目的，那么你用的时候要小心了。
 */
+
+//嵌套解析函数，用于对插入、删除、更新操作进行嵌套的解析
 void sqlite3NestedParse(Parse *pParse, const char *zFormat, ...){
-	va_list ap;
+	va_list ap;    //可变参数列表的使用
 	char *zSql;
-	char *zErrMsg = 0;
+	char *zErrMsg = 0;  //错误信息指针
 	sqlite3 *db = pParse->db;
 # define SAVE_SZ  (sizeof(Parse) - offsetof(Parse,nVar))
-	char saveBuf[SAVE_SZ];
+	char saveBuf[SAVE_SZ];   //保存信息的缓冲区
 
-	if (pParse->nErr) return;
-	assert(pParse->nested<10);  /* Nesting should only be of limited depth【嵌套应该被限制一个深度。最深为10】 */
-	va_start(ap, zFormat);
-	zSql = sqlite3VMPrintf(db, zFormat, ap);
-	va_end(ap);
+	if (pParse->nErr) return;  //如果解析有错误，则直接停止这个嵌套的程序
+	assert(pParse->nested<10);  /* Nesting should only be of limited depth  断言改嵌套解析函数的深度小于10，如果大于等于10，则断言失败，程序立刻停止 */
+	va_start(ap, zFormat);    //开始读取可变参数列表中的参数
+	zSql = sqlite3VMPrintf(db, zFormat, ap);  
+	va_end(ap);   //可变参数列表使用结束
 	if (zSql == 0){
-		return;   /* A malloc must have failed 【分配内存失败】*/
+		return;   /* A malloc must have failed 分配内存失败，结束整个程序*/
 	}
-	pParse->nested++;
-	memcpy(saveBuf, &pParse->nVar, SAVE_SZ);
-	memset(&pParse->nVar, 0, SAVE_SZ);
-	sqlite3RunParser(pParse, zSql, &zErrMsg);
-	sqlite3DbFree(db, zErrMsg);
+	pParse->nested++;    //嵌套的深度+1
+	memcpy(saveBuf, &pParse->nVar, SAVE_SZ);   //把SAVE_SZ大小的内容从&pParse->nVar拷贝到saveBuf
+	memset(&pParse->nVar, 0, SAVE_SZ);    
+	sqlite3RunParser(pParse, zSql, &zErrMsg);       //运行parser
+	sqlite3DbFree(db, zErrMsg);         //数据库释放
 	sqlite3DbFree(db, zSql);
-	memcpy(&pParse->nVar, saveBuf, SAVE_SZ);
+	memcpy(&pParse->nVar, saveBuf, SAVE_SZ);      //把SAVE_SZ大小的内容从saveBuf拷贝到&pParse->nVar
 	pParse->nested--;
 }
 
 /*
 ** Locate the in-memory structure that describes a particular database
 ** table given the name of that table and (optionally) the name of the
-** database containing the table.  Return NULL if not found.【定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.】
-**
+** database containing the table.  Return NULL if not found.
+**定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.
 ** If zDatabase is 0, all databases are searched for the table and the
 ** first matching table is returned.  (No checking for duplicate table
 ** names is done.)  The search order is TEMP first, then MAIN, then any
-** auxiliary databases added using the ATTACH command.【如果zDatabase是0，在所有的数据库中查找这个表，返回第一个匹配的表。（对重复的表名不做检查）查找的循序是：首先是临时文件，
-然后是主文件，然后是一些辅助数据库，添加辅助数据库是用于ATTACH命令。】
+** auxiliary databases added using the ATTACH command.
+**如果zDatabase是0，在所有的数据库中查找这个表，返回第一个匹配的表。（对重复的表名不做检查）查找的顺序是：首先是临时文件，
+**然后是主文件，然后是一些辅助数据库，添加辅助数据库是用于ATTACH命令。
 **
 ** See also sqlite3LocateTable().
 */
+
+/*  junpeng zhu created 
+**寻找数据库表函数：sqlite3FindTable，并且返回这个表的指针，参数zDatabase去指定数据库，避免去查找所有的数据库；ZName要查找的表的名字，z代表的是zero，也就是是否为空,
+**如果查找的表的名字也为空的话是没有必要查找的。这两个参数都是const类型的，即不允许程序显式的去修改这两个参数
+*/
 Table *sqlite3FindTable(sqlite3 *db, const char *zName, const char *zDatabase){
-	Table *p = 0;
+	Table *p = 0;     //建立这个表的指针，保存表的首地址
 	int i;
 	int nName;
-	assert(zName != 0);
-	nName = sqlite3Strlen30(zName);
-	/* All mutexes are required for schema access.  Make sure we hold them. 所有需要互斥访问模式。确保我们拥有他们。*/
-	assert(zDatabase != 0 || sqlite3BtreeHoldsAllMutexes(db));
+	assert(zName != 0);    //断言这个表名不是0，也就是说表名不为空，如果为空的话查找是没有效果的，也是没有必要的操作
+	nName = sqlite3Strlen30(zName);    
+	/* All mutexes are required for schema access.  Make sure we hold them. 所有需要互斥访问模式。确保我们拥有他们。加锁的操作*/
+	assert(zDatabase != 0 || sqlite3BtreeHoldsAllMutexes(db));   //断言确实指定了数据库，否则将要去扫描所有的数据库去寻找指定的表，这简直是浪费时间
 	for (i = OMIT_TEMPDB; i<db->nDb; i++){
-		int j = (i<2) ? i ^ 1 : i;   /* Search TEMP before MAIN */
+		int j = (i<2) ? i ^ 1 : i;   /* Search TEMP before MAIN    界定临时文件与主文件的查找顺序*/
 		if (zDatabase != 0 && sqlite3StrICmp(zDatabase, db->aDb[j].zName)) continue;
-		assert(sqlite3SchemaMutexHeld(db, j, 0));
-		p = sqlite3HashFind(&db->aDb[j].pSchema->tblHash, zName, nName);
-		if (p) break;
+		assert(sqlite3SchemaMutexHeld(db, j, 0));   //断言这个表模式已经完全获得了临界区 ，临界区是互斥访问的      
+		p = sqlite3HashFind(&db->aDb[j].pSchema->tblHash, zName, nName);    //进行的是hash查找算法
+		if (p) break;   //如果找到了，则结束查找工作
 	}
-	return p;
+	return p;   //如果找到的话，返回这个表的地址
 }
 
 /*
