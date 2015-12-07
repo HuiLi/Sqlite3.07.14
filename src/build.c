@@ -324,8 +324,10 @@ void sqlite3FinishCoding(Parse *pParse){
 		FILE *trace = (db->flags & SQLITE_VdbeTrace) != 0 ? stdout : 0;
 		sqlite3VdbeTrace(v, trace);
 #endif
-		assert(pParse->iCacheLevel == 0);  /* Disables and re-enables match【无效，重新启用匹配】 */
-		/* A minimum of one cursor is required if autoincrement is used【如果自动增量被用过，至少需要一个光标。】
+		assert(pParse->iCacheLevel == 0);  
+		/* Disables and re-enables match  无效，重新启用匹配 */
+		/* A minimum of one cursor is required if autoincrement is used   
+		**如果自动增量被用过，至少需要一个光标。
 		*  See ticket [a696379c1f08866] */
 		if (pParse->pAinc != 0 && pParse->nTab == 0) pParse->nTab = 1;
 		sqlite3VdbeMakeReady(v, pParse);
@@ -349,147 +351,160 @@ void sqlite3FinishCoding(Parse *pParse){
 ** currently under construction.  When the parser is run recursively
 ** this way, the final OP_Halt is not appended and other initialization
 ** and finalization steps are omitted because those are handling by the
-** outermost parser.【解析器和生成器递归运行为了生成代码到给定的SQL语句去结束pParse目前正在建设的上下文。当parser以这种方式递归运行时，最后OP_Halt是没有被附加的，还有其他的初始值和
-终止步调时被忽略的，因为它们正在被parser的最外层处理。】
+** outermost parser.
+**解析器和生成器递归运行为了生成代码到给定的SQL语句去结束pParse目前正在建设的上下文。当parser以这种方式递归运行时，最后OP_Halt是没有被附加的，还有其他的初始值和
+**终止步调时被忽略的，因为它们正在被parser的最外层处理。
 **
 ** Not everything is nestable.  This facility is designed to permit
 ** INSERT, UPDATE, and DELETE operations against SQLITE_MASTER.  Use
 ** care if you decide to try to use this routine for some other purposes.
-【不是每个操作都是可用的，这个设备的目的是允许插入，更新和删除操作不适用于SQLITE_MASTER。如果你试图把这个例程用于一些其他目的，那么你用的时候要小心了。】
+**不是每个操作都是嵌套的，这个设备的目的是允许插入，更新和删除操作不适用于SQLITE_MASTER。如果你试图把这个例程用于一些其他目的，那么你用的时候要小心了。
 */
+
+//嵌套解析函数，用于对插入、删除、更新操作进行嵌套的解析
 void sqlite3NestedParse(Parse *pParse, const char *zFormat, ...){
-	va_list ap;
+	va_list ap;    //可变参数列表的使用
 	char *zSql;
-	char *zErrMsg = 0;
+	char *zErrMsg = 0;  //错误信息指针
 	sqlite3 *db = pParse->db;
 # define SAVE_SZ  (sizeof(Parse) - offsetof(Parse,nVar))
-	char saveBuf[SAVE_SZ];
+	char saveBuf[SAVE_SZ];   //保存信息的缓冲区
 
-	if (pParse->nErr) return;
-	assert(pParse->nested<10);  /* Nesting should only be of limited depth【嵌套应该被限制一个深度。最深为10】 */
-	va_start(ap, zFormat);
-	zSql = sqlite3VMPrintf(db, zFormat, ap);
-	va_end(ap);
+	if (pParse->nErr) return;  //如果解析有错误，则直接停止这个嵌套的程序
+	assert(pParse->nested<10);  /* Nesting should only be of limited depth  断言改嵌套解析函数的深度小于10，如果大于等于10，则断言失败，程序立刻停止 */
+	va_start(ap, zFormat);    //开始读取可变参数列表中的参数
+	zSql = sqlite3VMPrintf(db, zFormat, ap);  
+	va_end(ap);   //可变参数列表使用结束
 	if (zSql == 0){
-		return;   /* A malloc must have failed 【分配内存失败】*/
+		return;   /* A malloc must have failed 分配内存失败，结束整个程序*/
 	}
-	pParse->nested++;
-	memcpy(saveBuf, &pParse->nVar, SAVE_SZ);
-	memset(&pParse->nVar, 0, SAVE_SZ);
-	sqlite3RunParser(pParse, zSql, &zErrMsg);
-	sqlite3DbFree(db, zErrMsg);
+	pParse->nested++;    //嵌套的深度+1
+	memcpy(saveBuf, &pParse->nVar, SAVE_SZ);   //把SAVE_SZ大小的内容从&pParse->nVar拷贝到saveBuf
+	memset(&pParse->nVar, 0, SAVE_SZ);    
+	sqlite3RunParser(pParse, zSql, &zErrMsg);       //运行parser
+	sqlite3DbFree(db, zErrMsg);         //数据库释放
 	sqlite3DbFree(db, zSql);
-	memcpy(&pParse->nVar, saveBuf, SAVE_SZ);
+	memcpy(&pParse->nVar, saveBuf, SAVE_SZ);      //把SAVE_SZ大小的内容从saveBuf拷贝到&pParse->nVar
 	pParse->nested--;
 }
 
 /*
 ** Locate the in-memory structure that describes a particular database
 ** table given the name of that table and (optionally) the name of the
-** database containing the table.  Return NULL if not found.【定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.】
-**
+** database containing the table.  Return NULL if not found.
+**定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.
 ** If zDatabase is 0, all databases are searched for the table and the
 ** first matching table is returned.  (No checking for duplicate table
 ** names is done.)  The search order is TEMP first, then MAIN, then any
-** auxiliary databases added using the ATTACH command.【如果zDatabase是0，在所有的数据库中查找这个表，返回第一个匹配的表。（对重复的表名不做检查）查找的循序是：首先是临时文件，
-然后是主文件，然后是一些辅助数据库，添加辅助数据库是用于ATTACH命令。】
+** auxiliary databases added using the ATTACH command.
+**如果zDatabase是0，在所有的数据库中查找这个表，返回第一个匹配的表。（对重复的表名不做检查）查找的顺序是：首先是临时文件，
+**然后是主文件，然后是一些辅助数据库，添加辅助数据库是用于ATTACH命令。
 **
 ** See also sqlite3LocateTable().
 */
+
+/*  junpeng zhu created 
+**寻找数据库表函数：sqlite3FindTable，并且返回这个表的指针，参数zDatabase去指定数据库，避免去查找所有的数据库；ZName要查找的表的名字，z代表的是zero，也就是是否为空,
+**如果查找的表的名字也为空的话是没有必要查找的。这两个参数都是const类型的，即不允许程序显式的去修改这两个参数
+*/
 Table *sqlite3FindTable(sqlite3 *db, const char *zName, const char *zDatabase){
-	Table *p = 0;
+	Table *p = 0;     //建立这个表的指针，保存表的首地址
 	int i;
 	int nName;
-	assert(zName != 0);
-	nName = sqlite3Strlen30(zName);
-	/* All mutexes are required for schema access.  Make sure we hold them. 所有需要互斥访问模式。确保我们拥有他们。*/
-	assert(zDatabase != 0 || sqlite3BtreeHoldsAllMutexes(db));
+	assert(zName != 0);    //断言这个表名不是0，也就是说表名不为空，如果为空的话查找是没有效果的，也是没有必要的操作
+	nName = sqlite3Strlen30(zName);    
+	/* All mutexes are required for schema access.  Make sure we hold them. 所有需要互斥访问模式。确保我们拥有他们。加锁的操作*/
+	assert(zDatabase != 0 || sqlite3BtreeHoldsAllMutexes(db));   //断言确实指定了数据库，否则将要去扫描所有的数据库去寻找指定的表，这简直是浪费时间
 	for (i = OMIT_TEMPDB; i<db->nDb; i++){
-		int j = (i<2) ? i ^ 1 : i;   /* Search TEMP before MAIN */
+		int j = (i<2) ? i ^ 1 : i;   /* Search TEMP before MAIN    界定临时文件与主文件的查找顺序*/
 		if (zDatabase != 0 && sqlite3StrICmp(zDatabase, db->aDb[j].zName)) continue;
-		assert(sqlite3SchemaMutexHeld(db, j, 0));
-		p = sqlite3HashFind(&db->aDb[j].pSchema->tblHash, zName, nName);
-		if (p) break;
+		assert(sqlite3SchemaMutexHeld(db, j, 0));   //断言这个表模式已经完全获得了临界区 ，临界区是互斥访问的      
+		p = sqlite3HashFind(&db->aDb[j].pSchema->tblHash, zName, nName);    //进行的是hash查找算法
+		if (p) break;   //如果找到了，则结束查找工作
 	}
-	return p;
+	return p;   //如果找到的话，返回这个表的地址
 }
 
 /*
 ** Locate the in-memory structure that describes a particular database
 ** table given the name of that table and (optionally) the name of the
 ** database containing the table.  Return NULL if not found.  Also leave an
-** error message in pParse->zErrMsg.【定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.在pParse->zErrMsg中留下一个错误信息。】
-**
+** error message in pParse->zErrMsg.
+**定位描述一个特定的数据库表的内存结构，给出这个特殊的表的名字和（可选）数据库的名称，这个数据库包含这个表格。如果没有找到返回0.在pParse->zErrMsg中留下一个错误信息。
 ** The difference between this routine and sqlite3FindTable() is that this
 ** routine leaves an error message in pParse->zErrMsg where
-** sqlite3FindTable() does not.【这个例程和sqlite3FindTable()的区别是：这个例程留下一个错误信息在pParse->zErrMsg中，而sqlite3FindTable()没有。】
+** sqlite3FindTable() does not.
+**这个例程和sqlite3FindTable()的区别是：这个例程留下一个错误信息在pParse->zErrMsg中，而sqlite3FindTable()没有。
 */
 Table *sqlite3LocateTable(
 	Parse *pParse,         /* context in which to report errors 【上下文来报告错误】*/
-	int isView,            /* True if looking for a VIEW rather than a TABLE如果找到试图而不是表，则值是true */
+	int isView,            /* True if looking for a VIEW rather than a TABLE  如果找到的是视图而不是表，则值是true */
 	const char *zName,     /* Name of the table we are looking for 【查找的表名】*/
 	const char *zDbase     /* Name of the database.  Might be NULL【数据库的名字，可能是空】 */
 	){
-	Table *p;
+	Table *p;    //表指针，返回这个表的地址
 
 	/* Read the database schema. If an error occurs, leave an error message
-	** and code in pParse and return NULL.【读取数据库模式，如果有错误发生，留下一个错误信息和代码在pParse，然后返回NULL.】 */
+	** and code in pParse and return NULL.   读取数据库模式，如果有错误发生，留下一个错误信息和代码在pParse，然后返回NULL。 */
 	if (SQLITE_OK != sqlite3ReadSchema(pParse)){
 		return 0;
 	}
 
-	p = sqlite3FindTable(pParse->db, zName, zDbase);
+	p = sqlite3FindTable(pParse->db, zName, zDbase);    //调用寻找表的函数
 	if (p == 0){
-		const char *zMsg = isView ? "no such view" : "no such table";
-		if (zDbase){
-			sqlite3ErrorMsg(pParse, "%s: %s.%s", zMsg, zDbase, zName);
+		const char *zMsg = isView ? "no such view" : "no such table";   //判断得到的视图还是表
+		if (zDbase){   //如果数据库不为空
+			sqlite3ErrorMsg(pParse, "%s: %s.%s", zMsg, zDbase, zName);    //输出相应的信息
 		}
 		else{
-			sqlite3ErrorMsg(pParse, "%s: %s", zMsg, zName);
+			sqlite3ErrorMsg(pParse, "%s: %s", zMsg, zName);    //如果数据库为空，并且没有找到相应的表，则输出相应的信息
 		}
 		pParse->checkSchema = 1;
 	}
-	return p;
+	return p;     //返回指针
 }
 
 /*
 ** Locate the in-memory structure that describes
 ** a particular index given the name of that index
 ** and the name of the database that contains the index.
-** Return NULL if not found.【定位描述一个特定的索引的内存结构，给出这个特殊的索引的名字和数据库的名称，这个数据库包含这个索引。如果没有找到返回0.】
-**
+** Return NULL if not found.
+**定位描述一个特定的索引的内存结构，给出这个特殊的索引的名字和数据库的名称，这个数据库包含这个索引。如果没有找到返回0.
 **If zDatabase is 0, all databases are searched for the
 ** table and the first matching index is returned.  (No checking
 ** for duplicate index names is done.)  The search order is
 ** TEMP（临时文件夹） first, then MAIN（主要文件夹）, then any auxiliary databases added
 ** using the ATTACH command.（使用附加命令添加到任何辅助数据库。）
 
-【找到的内存结构，它描述给该索引的名称，并包含index.Return NULL，如果没有找到该数据库的名称特定的索引。如果zDatabase为0，
-所有的数据库搜索的表和第一个匹配的索引返回。
-（没有检查是否有重复的索引名称就完成了。）搜索顺序是TEMP，再主，然后加入使用attach命令任何辅助数据库。
-】
+**找到的内存结构，它描述给该索引的名称，并包含index.Return NULL，如果没有找到该数据库的名称特定的索引。如果zDatabase为0，
+**所有的数据库搜索的表和第一个匹配的索引返回。
+**（没有检查是否有重复的索引名称就完成了。）搜索顺序是TEMP文件，再主文件，然后加入使用attach命令任何辅助数据库。
+*/
 
+/*
+**寻找索引，提高查询的速度，其中zDb参数是表明数据库是否为空的参数，采用的是const参数，不允许在程序中去修改这个参数；
+**zName是索引名字，也采用的是const参数，表明我们在程序中是不能随便取更改这个参数的。
 */
 Index *sqlite3FindIndex(sqlite3 *db, const char *zName, const char *zDb){
-	Index *p = 0;
+	Index *p = 0;  //索引指针，返回这个索引的地址
 	int i;
-	int nName = sqlite3Strlen30(zName);
-	/* All mutexes are required for schema access.  Make sure we hold them. */
-	assert(zDb != 0 || sqlite3BtreeHoldsAllMutexes(db));
+	int nName = sqlite3Strlen30(zName);     //Sqlite索引的名字
+	/* All mutexes are required for schema access.  Make sure we hold them.   互斥的访问临界区，独立的拥有临界区的访问权 */
+	assert(zDb != 0 || sqlite3BtreeHoldsAllMutexes(db));   
 	for (i = OMIT_TEMPDB; i<db->nDb; i++){
-		int j = (i<2) ? i ^ 1 : i;  /* Search TEMP before MAIN */
-		Schema *pSchema = db->aDb[j].pSchema;
+		int j = (i<2) ? i ^ 1 : i;  /* Search TEMP before MAIN   确定查找的顺序，先查找临时文件后查找主文件*/
+		Schema *pSchema = db->aDb[j].pSchema;   
 		assert(pSchema);
 		if (zDb && sqlite3StrICmp(zDb, db->aDb[j].zName)) continue;
-		assert(sqlite3SchemaMutexHeld(db, j, 0));
-		p = sqlite3HashFind(&pSchema->idxHash, zName, nName);
-		if (p) break;
+		assert(sqlite3SchemaMutexHeld(db, j, 0));   //断言该模式已经完全的拥有了临界区
+		p = sqlite3HashFind(&pSchema->idxHash, zName, nName);   //采用的是hash查找
+		if (p) break;   //如果查找到了相应的索引，则终止这个循环的查找
 	}
 	return p;
 }
 
 /*
-** Reclaim the memory used by an index【回收被索引使用的内存】
+** Reclaim the memory used by an index 回收被所以使用的内存
 */
 static void freeIndex(sqlite3 *db, Index *p){
 #ifndef SQLITE_OMIT_ANALYZE
@@ -504,15 +519,18 @@ static void freeIndex(sqlite3 *db, Index *p){
 ** unlike that index from its Table then remove the index from
 ** the index hash table and free all memory structures associated
 ** with the index.
+**zIdexName这个索引被在数据库iDb中找到，不同于其表的索引，它（zIdexName）需要从哈希索引文件中移除并释放所有的与这个索引相关的内存数据结构。
+*/
 
-【对于所谓的zIdxName索引是数据库中IDB中发现的，不同于其表的索引，然后从索引哈希表和索引相关的所有自由内存结构中删除索引。】
+/* junpeng zhu created
+**删除与参数zIdexName相关的所有的内存数据结构,参数db是当前数据库的指针，指向现在正在操作的数据库；iDb是这个索引所在的数据库；zIdxName是要删除的索引，与其相关的内存数据结构也要全部删除。
 */
 void sqlite3UnlinkAndDeleteIndex(sqlite3 *db, int iDb, const char *zIdxName){
-	Index *pIndex;
+	Index *pIndex;  
 	int len;
 	Hash *pHash;
 
-	assert(sqlite3SchemaMutexHeld(db, iDb, 0));
+	assert(sqlite3SchemaMutexHeld(db, iDb, 0));   //断言数据库iDb拥有了完全的临界区控制权
 	pHash = &db->aDb[iDb].pSchema->idxHash;
 	len = sqlite3Strlen30(zIdxName);  //Len获取zIdxName前30个字符。
 	pIndex = sqlite3HashInsert(pHash, zIdxName, len, 0);
@@ -538,22 +556,26 @@ void sqlite3UnlinkAndDeleteIndex(sqlite3 *db, int iDb, const char *zIdxName){
 /*
 ** Look through the list of open database files in db->aDb[] and if
 ** any have been closed, remove them from the list.  Reallocate the
-** db->aDb[] structure to a smaller size, if possible.【用db->aDb[]浏览打开数据库文件的这些列表，如果一些文件被关闭的，从列表中移除它们。如果可能的话给db->aDb[]重新分配更小的内存。】
-**
+** db->aDb[] structure to a smaller size, if possible.
+**扫描打开的数据库的文件，如果有任何一个被关闭的，从这个表中移除他们。如果可能的话重新分配这个数据结构的内存空间，这样可以降低内存的无效使用
 ** Entry 0 (the "main" database) and entry 1 (the "temp" database)
 ** are never candidates for being collapsed.
+**main数据库和temp临时数据库将不再上面移除的数据库考虑范围之内
+*/
+/*junpeng zhu created
+收缩数据库，将已经关闭的数据库移除内存数据结构，节省内存的无效使用,其中参数db指向当前的数据库
 */
 void sqlite3CollapseDatabaseArray(sqlite3 *db){
-	int i, j;
-	for (i = j = 2; i<db->nDb; i++){
+	int i, j;   //参数i指向当前正在查找的数据库的内存编号，是以数组存储的；j一直是指向当前数据库的内存编号
+	for (i = j = 2; i<db->nDb; i++){   //参数nDb指示数据库的个数
 		struct Db *pDb = &db->aDb[i];//打开数据库文件
 		if (pDb->pBt == 0){//如果pDb->pBt是0则说明数据库被关闭
 			sqlite3DbFree(db, pDb->zName);//释放内存
 			pDb->zName = 0;
 			continue;
 		}
-		if (j<i){
-			db->aDb[j] = db->aDb[i];
+		if (j<i){   
+			db->aDb[j] = db->aDb[i]; //如果查找到了已经关闭的数据库，从内存数据结构中移除之后，后面的数据库的指针应该一次向前进行调整
 		}
 		j++;
 	}
@@ -643,58 +665,61 @@ static void sqliteDeleteColumnNames(sqlite3 *db, Table *pTable){
 /*
 ** Remove the memory data structures associated with the given
 ** Table.  No changes are made to disk by this routine.
-【清除内存数据结构与给定的表相关联。这个例程没有更改磁盘。】
+**删除与表相关联的内存数据结构，但是这个程序不改变磁盘
 **
 ** This routine just deletes the data structure.  It does not unlink
 ** the table data structure from the hash table.  But it does destroy
 ** memory structures of the indices and foreign keys associated with
-** the table.【这段程序仅仅删除数据结构。此段程序不拆开来自哈希表的表数据结构。但是它破坏了索引内存结构和与这个表相关联的外键。】
-**
+** the table.
+**这段程序仅仅删除数据结构。此段程序不拆开来自哈希表的表数据结构（哈希表的数据结构在删除的时候要删除与之相关联的所有内存数据结构）。但是它破坏了索引内存结构和与这个表相关联的外键。
 ** The db parameter is optional.  It is needed if the Table object
 ** contains lookaside memory.  (Table objects in the schema do not use
 ** lookaside memory, but some ephemeral Table objects do.)  Or the
 ** db parameter can be used with db->pnBytesFreed to measure the memory
-** used by the Table object.【这个db是可选的。如果表对象包含后备存储器db就是需要的。（模式下的表对象不用后备存储器，但是一些短暂的表对象是需要用后备存储器的。）
-或db参数可以使用db - > pnBytesFreed衡量表对象使用的内存。】
+** used by the Table object.
+**这个db是可选的。如果表对象包含后备存储器db就是需要的。（模式下的表对象不用后备存储器，但是一些短暂的表对象是需要用后备存储器的。）
+**或db参数可以使用db - > pnBytesFreed衡量表对象使用的内存。】
 */
 void sqlite3DeleteTable(sqlite3 *db, Table *pTable){//不拆开给定的哈希表的表结构，还有删除这个表结构以及与该表相关联的所有索引和外键。
 	Index *pIndex, *pNext;
-	TESTONLY(int nLookaside;) /* Used to verify lookaside not used for schema 【用于验证后备不用于模式】*/
+	TESTONLY(int nLookaside;) /* Used to verify lookaside not used for schema  用于验证后备不用于模式*/
 
 		assert(!pTable || pTable->nRef>0);
 
-	/* Do not delete the table until the reference count reaches zero.【不删除这个表格直到参数为0】 */
+	/* Do not delete the table until the reference count reaches zero. 如果正在使用这个表则不会删除，如果没有引用那么就删除这个表，是否引用这个表用count参数指定 */
 	if (!pTable) return;
 	if (((!db || db->pnBytesFreed == 0) && (--pTable->nRef)>0)) return;
 
 	/* Record the number of outstanding lookaside allocations in schema Tables
 	** prior to doing any free() operations.  Since schema Tables do not use
-	** lookaside, this number should not change. 【记录突出的后备分配模式表的数量之前做一些free()操作。
-	由于不使用后备模式表,这个数字不应该改变。】*/
+	** lookaside, this number should not change. 
+	**记录突出的后备分配模式表的数量之前做一些free()操作。
+	由于不使用后备模式表,这个数字不应该改变。*/
 	TESTONLY(nLookaside = (db && (pTable->tabFlags & TF_Ephemeral) == 0) ?
 		db->lookaside.nOut : 0);
 
-	/* Delete all indices associated with this table.【删除和这个表有关联的所有索引。】 */
+	/* Delete all indices associated with this table. 删除和这个表有关联的所有索引。 */
 	for (pIndex = pTable->pIndex; pIndex; pIndex = pNext){
 		pNext = pIndex->pNext;
-		assert(pIndex->pSchema == pTable->pSchema);
-		if (!db || db->pnBytesFreed == 0){
+		assert(pIndex->pSchema == pTable->pSchema);   //断言这个表和索引确实是在同一个模式中，防止错误的删除表
+		if (!db || db->pnBytesFreed == 0){   //数据库费空，并且趋势已经释放了这个表
 			char *zName = pIndex->zName;
 			TESTONLY(Index *pOld = ) sqlite3HashInsert(
 				&pIndex->pSchema->idxHash, zName, sqlite3Strlen30(zName), 0
 				);
-			assert(db == 0 || sqlite3SchemaMutexHeld(db, 0, pIndex->pSchema));
+			assert(db == 0 || sqlite3SchemaMutexHeld(db, 0, pIndex->pSchema));   //临界区的互斥访问
 			assert(pOld == pIndex || pOld == 0);
 		}
-		freeIndex(db, pIndex);
+		freeIndex(db, pIndex);    //释放索引
 	}
 
-	/* Delete any foreign keys attached to this table.【删除依赖于这个表的任何外键。】 */
+	/* Delete any foreign keys attached to this table. 删除依赖于这个表的任何外键。 */
 	sqlite3FkDelete(db, pTable);
 
-	/* Delete the Table structure itself.【删除这个表结构。】
+	/* 
+	Delete the Table structure itself. 删除这个表结构。
 	*/
-	sqliteDeleteColumnNames(db, pTable);
+	sqliteDeleteColumnNames(db, pTable);   //删除列名
 	sqlite3DbFree(db, pTable->zName);
 	sqlite3DbFree(db, pTable->zColAff);
 	sqlite3SelectDelete(db, pTable->pSelect);
@@ -706,7 +731,7 @@ void sqlite3DeleteTable(sqlite3 *db, Table *pTable){//不拆开给定的哈希�
 #endif
 	sqlite3DbFree(db, pTable);
 
-	/* Verify that no lookaside memory was used by schema tables【验证没有后备存储器用于模式表格。】 */
+	/* Verify that no lookaside memory was used by schema tables 验证没有后备存储器用于模式表格。  */
 	assert(nLookaside == 0 || nLookaside == db->lookaside.nOut);
 }
 
@@ -734,16 +759,19 @@ void sqlite3UnlinkAndDeleteTable(sqlite3 *db, int iDb, const char *zTabName){//�
 ** Given a token, return a string that consists of the text of that
 ** token.  Space to hold the returned string
 ** is obtained from sqliteMalloc() and must be freed by the calling
-** function.【给定一个符号,返回一个字符串,该字符串包含文本的符号。
-空间将返回的字符串从sqliteMalloc获得()，这个空间必须被调用函数释放。】
+** function.
+**给定一个符号,返回一个字符串,该字符串包含文本的符号。
+**空间将返回的字符串从sqliteMalloc获得()，这个空间必须被调用函数释放。
 **
 ** Any quotation marks (ex:  "name", 'name', [name], or `name`) that
-** surround the body of the token are removed.【这个符号周围的引号标志被清除。】
+** surround the body of the token are removed.
+**这个符号周围的引号标志被清除
 **
 ** Tokens are often just pointers into the original SQL text and so
 ** are not \000 terminated and are not persistent.  The returned string
-** is \000 terminated and is persistent.【符号一般只指向原始的SQL文本，因此这些符号并不是\000终止也不是持久的。
-这个返回的字符串是\000终止而且是持久的。】
+** is \000 terminated and is persistent.
+**符号一般只指向原始的SQL文本，因此这些符号并不是\000终止也不是持久的。
+这个返回的字符串是\000终止而且是持久的。
 */
 char *sqlite3NameFromToken(sqlite3 *db, Token *pName){//输入一个Token的数据返回一个字符串
 	char *zName;
