@@ -787,7 +787,7 @@ char *sqlite3NameFromToken(sqlite3 *db, Token *pName){//输入一个Token的数�
 
 /*
 ** Open the sqlite_master table stored in database number iDb for
-** writing. The table is opened using cursor 0.【打开存储在数据库iDb中的sqlite_master表，这个被打开的表使用的游标是0.】
+** writing. The table is opened using cursor 0.打开存储在数据库iDb中的sqlite_master表，为写操作做准备，这个被打开的表使用的游标是0.
 */
 void sqlite3OpenMasterTable(Parse *p, int iDb){
 	Vdbe *v = sqlite3GetVdbe(p);
@@ -804,12 +804,12 @@ void sqlite3OpenMasterTable(Parse *p, int iDb){
 ** of a database ("main", "temp" or the name of an attached db). This
 ** function returns the index of the named database in db->aDb[], or
 ** -1 if the named db cannot be found.
-*/
-/*
+** 参数zName指针指向一个空终止缓冲区（也就是说这个缓冲区是以\000结束的，并且使字符串类型的），这个缓冲区包括的数据库有：main数据库、临时数据库、和一个attached 数据库
 ** The token *pName contains the name of a database (either "main" or
 ** "temp" or the name of an attached db). This routine returns the
 ** index of the named database in db->aDb[], or -1 if the named db
-** does not exist.【这个*pName 符号包含一个数据的名称。这个函数用db->aDb[]返回被指定数据库的索引，如果这个被指定的数据库db不存在，则返回-1。】
+** does not exist
+**这个*pName 符号包含一个数据的名称。这个函数用db->aDb[]返回被指定数据库的索引，如果这个被指定的数据库db不存在，则返回-1。
 */
 int sqlite3FindDb(sqlite3 *db, Token *pName){//通过数据的名字返回数据库的索引
 	int i;                               /* 数据库的索引 */
