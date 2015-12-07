@@ -885,26 +885,24 @@ int sqlite3CheckObjectName(Parse *pParse, const char *zName){//检测对象的�
 		sqlite3ErrorMsg(pParse, "object name reserved for internal use: %s", zName);  //部分命名空间被保留给数据库的内部使用
 		return SQLITE_ERROR;
 	}
-	return SQLITE_OK;
+	return SQLITE_OK; 
+
 }
 
 /*
 ** Begin constructing a new table representation in memory.  This is
 ** the first of several action routines that get called in response
-** to a CREATE TABLE statement.  In particular, this routine is called
-** after seeing tokens "CREATE" and "TABLE" and the table name. The isTemp
-** flag is true if the table should be stored in the auxiliary database
-** file instead of in the main database file.  This is normally the case
-** when the "TEMP" or "TEMPORARY" keyword occurs in between
-** CREATE and TABLE.
-**    【开始构造一个新的表在内存中表示。这是第一次调用几个行为例程去响应CREATE TABLE语句。
+** to a CREATE TABLE statement.  
+** 开始构造一个新的表在内存中的表示。这是第一次去调用多个程序去响应CREATE TABLE语句。
+** In particular, this routine is called
+** after seeing tokens "CREATE" and "TABLE" and the table name. 
+** 尤其是，这个程序在看到“CREATE” 和“TABLE”还有一个表名的时候，表示这个程序将会被调用
 
-尤其是，当看到 "CREATE" and "TABLE" and表名后调用这个例程。
-
-如果表被存储在辅助数据库文件中而不是主数据库文件中，则isTemp==true.
-
-"TEMP" or "TEMPORARY"关键字在CREATE 和 TABLE之间出现这种情况是正常的。 】
-
+** The isTemp flag is true if the table should be stored in the auxiliary database
+** file instead of in the main database file.  
+** 如果这个表被存储在辅助数据库中而不是在主数据库文件中，那么此时的这个标志isTemp应该被置为真（True）
+** This is normally the case when the "TEMP" or "TEMPORARY" keyword occurs in between CREATE and TABLE。
+**"TEMP" or "TEMPORARY"关键字在CREATE 和 TABLE之间出现这种情况是正常的。
 ** The new table record is initialized and put in pParse->pNewTable.【初始化新表记录,放入pParse - > pNewTable。】
 ** As more of the CREATE TABLE statement is parsed, additional action【如果更多的CREATE TABLE 语句被解析，
 ** routines will be called to add more information to this record.   额外的行为例程将会被调用去增加更多的信息为这个记录。】
