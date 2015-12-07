@@ -6233,25 +6233,25 @@ static void insertCell(             //在pPage的单元索引i处插入一个新单元
 */
 
 static void assemblePage(        //在页上添加单元列表
-  MemPage *pPage,   /* The page to be assemblied */                   //
-  int nCell,        /* The number of cells to add to this page */
-  u8 **apCell,      /* Pointers to cell bodies */
-  u16 *aSize        /* Sizes of the cells */
+  MemPage *pPage,   /* The page to be assemblied */                   //装配页
+  int nCell,        /* The number of cells to add to this page */     //添加到页上的单元数
+  u8 **apCell,      /* Pointers to cell bodies */                     //单元体的指针
+  u16 *aSize        /* Sizes of the cells */                          //单元得大小
 ){
-  int i;            /* Loop counter */
-  u8 *pCellptr;     /* Address of next cell pointer */
-  int cellbody;     /* Address of next cell body */
-  u8 * const data = pPage->aData;             /* Pointer to data for pPage */
-  const int hdr = pPage->hdrOffset;           /* Offset of header on pPage */
-  const int nUsable = pPage->pBt->usableSize; /* Usable size of page */
+  int i;            /* Loop counter */                                //循环计数变量
+  u8 *pCellptr;     /* Address of next cell pointer */                //下一单元的指针地址
+  int cellbody;     /* Address of next cell body */                   //下一个单元体的地址
+  u8 * const data = pPage->aData;             /* Pointer to data for pPage */     //页中数据的指针
+  const int hdr = pPage->hdrOffset;           /* Offset of header on pPage */     //页上头部的偏移量
+  const int nUsable = pPage->pBt->usableSize; /* Usable size of page */           //可用页的大小
 
   assert( pPage->nOverflow==0 );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
-  assert( nCell>=0 && nCell<=(int)MX_CELL(pPage->pBt)
+  assert( nCell>=0 && nCell<=(int)MX_CELL(pPage->pBt)  //添加的单元数大于0，且小于允许的最大单元数，页上的最大单元数<=10921
             && (int)MX_CELL(pPage->pBt)<=10921);
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
 
-  /* Check that the page has just been zeroed by zeroPage() */
+  /* Check that the page has just been zeroed by zeroPage() */  //检查页是否已经被zeroPage()置零.
   assert( pPage->nCell==0 );
   assert( get2byteNotZero(&data[hdr+5])==nUsable );
 
@@ -6262,7 +6262,7 @@ static void assemblePage(        //在页上添加单元列表
     pCellptr -= 2;
     cellbody -= sz;
     put2byte(pCellptr, cellbody);
-    memcpy(&data[cellbody], apCell[i], sz);
+    memcpy(&data[cellbody], apCell[i], sz);     //从apCell[i]的起始位置开始拷贝sz个字节到&data[cellbody]的起始位置上
   }
   put2byte(&data[hdr+3], nCell);
   put2byte(&data[hdr+5], cellbody);
@@ -6276,19 +6276,22 @@ static void assemblePage(        //在页上添加单元列表
 ** of the page that participate in the balancing operation.  NB is the
 ** total number of pages that participate, including the target page and
 ** NN neighbors on either side.
-**
+** 以下参数确定在一个平衡操作中有多少相邻页面参与进来。NN是参与平衡操作的页面相邻页面的数量。
+** NB的所涉及的页面总数,包括目标页面和NN的相邻页面。
 ** The minimum value of NN is 1 (of course).  Increasing NN above 1
 ** (to 2 or 3) gives a modest improvement in SELECT and DELETE performance
 ** in exchange for a larger degradation in INSERT and UPDATE performance.
 ** The value of NN appears to give the best results overall.
+** NN的最小值是1。增加NN使之大于1(2或3)能够改善SELECT和DELETE性能,以换取更大的插入和更新性能的退化。
+** NN值似乎给了最好的结果。
 */
 /*下面的参数确定在平衡操作里面涉及多少相邻的页面，数量记为NN。NB是参与的页的总数量。
 NN的最小值是1。增加NN到1以上（2或3)， 能够改善SELECT和DELETE性能。
 */
 
 
-#define NN 1             /* Number of neighbors on either side of pPage */
-#define NB (NN*2+1)      /* Total pages involved in the balance */
+#define NN 1             /* Number of neighbors on either side of pPage */   //pPage两侧相邻的页数
+#define NB (NN*2+1)      /* Total pages involved in the balance */           //在平衡中涉及的总页数
 
 
 #ifndef SQLITE_OMIT_QUICKBALANCE
@@ -6297,23 +6300,27 @@ NN的最小值是1。增加NN到1以上（2或3)， 能够改善SELECT和DELETE性能。
 ** a new entry is being inserted on the extreme right-end of the
 ** tree, in other words, when the new entry will become the largest
 ** entry in the tree.
-**
+** 这个balance()版本处理常见的特殊情况，一个新条目被插入到树的最右端.
+** 换句话说,当新条目将成为树中最大的条目。
 ** Instead of trying to balance the 3 right-most leaf pages, just add
 ** a new page to the right-hand side and put the one new entry in
 ** that page.  This leaves the right side of the tree somewhat
 ** unbalanced.  But odds are that we will be inserting new entries
 ** at the end soon afterwards so the nearly empty page will quickly
 ** fill up.  On average.
-**
+** 而不是试图平衡最右边的3个叶页面,添加一个新页面的右边,放一个新条目在这个页面中。
+** 这使得树的右边不平衡的。但奇怪的是,我们将插入新的条目到最后，所以很快将空页面添满。
 ** pPage is the leaf page which is the right-most page in the tree.
 ** pParent is its parent.  pPage must have a single overflow entry
 ** which is also the right-most entry on the page.
-**
+** pPage是叶子页面，它是树上最右边的页面。pParent是它的父节点。pPage必须有单独的溢出条目也页面上最右边的条目。
 ** The pSpace buffer is used to store a temporary copy of the divider
 ** cell that will be inserted into pParent. Such a cell consists of a 4
 ** byte page number followed by a variable length integer. In other
 ** words, at most 13 bytes. Hence the pSpace buffer must be at
 ** least 13 bytes in size.
+** pSpace缓冲区用于存储将插入pParent的临时副本的单元。这样一个单元包含在一个可变长度的整数后的4字节页码组成。
+** 换句话说,最多13字节。因此,pSpace缓冲区必须要至少13个字节大小。
 */
 
 /*
@@ -6321,32 +6328,31 @@ NN的最小值是1。增加NN到1以上（2或3)， 能够改善SELECT和DELETE性能。
 换句话说，新的条目将成为最大的入口。pPage是叶子页，在树中是最右边的页面。
 pParent是其父节点。 pPage是一个溢出页的入口。
 */
-
-*/
-static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){
-  BtShared *const pBt = pPage->pBt;    /* B-Tree Database */
-  MemPage *pNew;                       /* Newly allocated page */
-  int rc;                              /* Return Code */
-  Pgno pgnoNew;                        /* Page number of pNew */
+static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //处理常见的情况，一个新条目被插入到树的最右端.
+  BtShared *const pBt = pPage->pBt;    /* B-Tree Database */             //数据库中B树
+  MemPage *pNew;                       /* Newly allocated page */        //新分配的页
+  int rc;                              /* Return Code */                 //返回代码
+  Pgno pgnoNew;                        /* Page number of pNew */         // pNew的页码
 
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   assert( sqlite3PagerIswriteable(pParent->pDbPage) );
   assert( pPage->nOverflow==1 );
 
-  /* This error condition is now caught prior to reaching this function */
+  /* This error condition is now caught prior to reaching this function */ 
   if( pPage->nCell<=0 ) return SQLITE_CORRUPT_BKPT;
 
   /* Allocate a new page. This page will become the right-sibling of 
   ** pPage. Make the parent page writable, so that the new divider cell
   ** may be inserted. If both these operations are successful, proceed.
+  ** 分配一个新页，该页将变为pPage右侧的分支，确保父页面时可写的以便于新分出的单元被插入。如果这两个操作都成功，则保护。
   */
-  rc = allocateBtreePage(pBt, &pNew, &pgnoNew, 0, 0);
+  rc = allocateBtreePage(pBt, &pNew, &pgnoNew, 0, 0);  //分配一个新页
 
   if( rc==SQLITE_OK ){
 
     u8 *pOut = &pSpace[4];
     u8 *pCell = pPage->apOvfl[0];
-    u16 szCell = cellSizePtr(pPage, pCell);
+    u16 szCell = cellSizePtr(pPage, pCell);  //计算一个单元需要的总的字节数并赋值给szCell
     u8 *pStop;
 
     assert( sqlite3PagerIswriteable(pNew->pDbPage) );
@@ -6363,12 +6369,9 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){
     ** be marked as dirty. Returning an error code will cause a
     ** rollback, undoing any changes made to the parent page.
     */
-    
-		/*如果这是一个自动真空的数据库，更新指向一个新页的入口。
-		如果这些操作失败，返回代码被设置，但父页面被THH代码操纵。
-		返回错误代码将导致回滚，撤销父页面所做的任何更改。
-	*/
-
+	/*如果这是一个自动清空的数据库，更新指向一个新页的条目。如果这些
+	操作失败，返回代码被设置，但父页面被thh代码操纵。在这一点上保证父页面
+	被标记为脏字。返回错误代码将导致回滚，撤销父页面所做的任何更改。
 	*/
     if( ISAUTOVACUUM ){
       ptrmapPut(pBt, pgnoNew, PTRMAP_BTREE, pParent->pgno, &rc);
@@ -6392,8 +6395,10 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){
     */
 
 	/*创建一个除法器单元，插入到pParent。除法器由一个4字节的页号（PPAGE的页号），
-	并一个可变长度密钥的值（它必须是相同的值作为PPAGE上最大的键）组成。
-	要查找PPAGE最大的键值，先找到最右边的PPAGE单元格。 
+	和一个可变长度关键字的值（它必须是相同的值作为PPAGE上最大的键）组成。
+	要查找PPAGE最大的键值，先找到最右边的pPage单元格。这个单元的前两个字段是记录长度
+	(一个可变长度的整数大小最多32位)和关键字值(一个可变长度的整数,可能有价值)。
+	第一个while循环跳过以下记录长度字段。第二个while循环拷贝pPage上的单元关键字值到pSpace缓冲区。 
 */
     pCell = findCell(pPage, pPage->nCell-1);
     pStop = &pCell[9];
@@ -6401,14 +6406,14 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){
     pStop = &pCell[9];
     while( ((*(pOut++) = *(pCell++))&0x80) && pCell<pStop );
 
-    /* Insert the new divider cell into pParent. */
+    /* Insert the new divider cell into pParent. */  //插入新的除法器单元到pParent
     insertCell(pParent, pParent->nCell, pSpace, (int)(pOut-pSpace),
                0, pPage->pgno, &rc);
 
-    /* Set the right-child pointer of pParent to point to the new page. */
+    /* Set the right-child pointer of pParent to point to the new page. */  //设置pParent右孩子的指针指向新页
     put4byte(&pParent->aData[pParent->hdrOffset+8], pgnoNew);
   
-    /* Release the reference to the new page. */
+    /* Release the reference to the new page. */     //释放对新页的引用
     releasePage(pNew);
   }
 
