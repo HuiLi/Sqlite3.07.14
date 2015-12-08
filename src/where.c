@@ -5456,6 +5456,7 @@ static int codeEqualityTerm(
   disableTerm(pLevel, pTerm);
   return iReg;
 }
+
 /*
 ** Generate code that will evaluate all == and IN constraints for an
 ** index.
@@ -6736,6 +6737,7 @@ static Bitmask codeOneLoopStart(
 
   return notReady;
 }
+
 
 #if defined(SQLITE_TEST)
 /*
