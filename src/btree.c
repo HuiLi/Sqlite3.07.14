@@ -6759,16 +6759,19 @@ static int balance_nonroot(                                //调整B树的各节点使之
   ** into the local apCell[] array.  Make copies of the divider cells
   ** into space obtained from aSpace1[] and remove the divider cells
   ** from pParent.
-  ** 负载指针兄弟页面上的所有单元和分离单元到本地apCell[]数组。复制分配器的细胞　　* *进入太空获得aSpace1[]和删除分隔细胞　　从pParent * *。
+  ** 加载指针兄弟页面上的所有单元和分离单元到本地apCell[]数组。复制分分离的单元的
+  ** 副本进入从aSpace1[]获得的空间并从pParent删除分离的单元。
   ** If the siblings are on leaf pages, then the child pointers of the
   ** divider cells are stripped from the cells before they are copied
   ** into aSpace1[].  In this way, all cells in apCell[] are without
   ** child pointers.  If siblings are not leaves, then all cell in
   ** apCell[] include child pointers.  Either way, all cells in apCell[]
   ** are alike.
-  **
+  ** 如果兄弟在叶页面,那么分离单元的孩子指针在它们被拷贝进入aSpace1[]之前从单元上移除.通过这种方式,在apCell[]中的所有的
+  ** 单元都没有孩子指针.如果兄弟不是叶子,那么apCell[]中的所有单元都有孩子指针.无论如何,在apCell[]种的所有的单元都是一样的.
   ** leafCorrection:  4 if pPage is a leaf.  0 if pPage is not a leaf.
-  **       leafData:  1 if pPage holds key+data and pParent holds only keys.
+  ** leafData:  1 if pPage holds key+data and pParent holds only keys.
+  ** leafCorrection:如果pPage是叶子，为4，否则为0.    leafData:若pPage有Key和data并且pParent仅有key那么为1.
   */
   leafCorrection = apOld[0]->leaf*4;
   leafData = apOld[0]->hasData;
@@ -6778,7 +6781,10 @@ static int balance_nonroot(                                //调整B树的各节点使之
     /* Before doing anything else, take a copy of the i'th original sibling
     ** The rest of this function will use data from the copies rather
     ** that the original pages since the original pages will be in the
-    ** process of being overwritten.  */
+    ** process of being overwritten. 
+	** 在做任何其他操作之前,复制原来的第i个兄弟.这个函数的其余部分将使用来自副本的数据，
+	** 而不是源实业的数据,原始页面将在被被覆盖的进程中。
+	*/
     MemPage *pOld = apCopy[i] = (MemPage*)&aSpace1[pBt->pageSize + k*i];
     memcpy(pOld, apOld[i], sizeof(MemPage));
     pOld->aData = (void*)&pOld[1];
@@ -6820,12 +6826,13 @@ static int balance_nonroot(                                //调整B树的各节点使之
         assert( leafCorrection==0 );
         assert( pOld->hdrOffset==0 );
         /* The right pointer of the child page pOld becomes the left
-        ** pointer of the divider cell */
+        ** pointer of the divider cell 
+		** 孩子页面pOld的右指针变成分离单元的左指针*/
         memcpy(apCell[nCell], &pOld->aData[8], 4);
       }else{
         assert( leafCorrection==4 );
         if( szCell[nCell]<4 ){
-          /* Do not allow any cells smaller than 4 bytes. */
+          /* Do not allow any cells smaller than 4 bytes. */  //不允许任何单元小于4个字节
           szCell[nCell] = 4;
         }
       }
@@ -6839,15 +6846,15 @@ static int balance_nonroot(                                //调整B树的各节点使之
   ** size of all cells on the i-th page and cntNew[] which is the index
   ** in apCell[] of the cell that divides page i from page i+1.  
   ** cntNew[k] should equal nCell.
+  ** 计算出需要保存所有 nCell 单元的数量，将值付给k.也计算szNew它是在第i个页上但单元的总大小，
+  ** 以及cntNew[]它是在分开第i个和第i+1个页的单元的apCell[]中的索引。
+  ** Values computed by this block:      //通过这个块计算值
   **
-  ** Values computed by this block:
-  **
-  **           k: The total number of sibling pages
-  **    szNew[i]: Spaced used on the i-th sibling page.
-  **   cntNew[i]: Index in apCell[] and szCell[] for the first cell to
+  **           k: The total number of sibling pages                                   //k：兄弟也的总数
+  **    szNew[i]: Spaced used on the i-th sibling page.                        //szNew[i]：第i个兄弟页使用的空间大小
+  **   cntNew[i]: Index in apCell[] and szCell[] for the first cell to     //cntNew[i]：在apCell[] 和szCell[]中第i个兄弟页的右侧第一个单元的索引
   **              the right of the i-th sibling page.
-  ** usableSpace: Number of bytes of space available on each sibling.
-  ** 
+  ** usableSpace: Number of bytes of space available on each sibling.   //usableSpace:每个兄弟页上可用的空间字节大小
   */
   usableSpace = pBt->usableSize - 12 + leafCorrection;
   for(subtotal=k=i=0; i<nCell; i++){
@@ -6871,16 +6878,19 @@ static int balance_nonroot(                                //调整B树的各节点使之
   ** on the left side.  The left siblings are always nearly full, while the
   ** right-most sibling might be nearly empty.  This block of code attempts
   ** to adjust the packing of siblings to get a better balance.
-  **
+  ** 通过前一块打包计算，偏向左兄弟节点。左兄弟总是装得尽可能满,而最右侧兄弟近可能空。
+  ** 这段代码的尝试调整使得兄弟节点更好地保持平衡。
   ** This adjustment is more than an optimization.  The packing above might
   ** be so out of balance as to be illegal.  For example, the right-most
   ** sibling might be completely empty.  This adjustment is not optional.
+  ** 这种调整更优化。上面的包装可能会是失去平衡,因此是非法的。
+  ** 例如,最右边兄弟可能完全是空的，此时这种调整不可选。
   */
   for(i=k-1; i>0; i--){
-    int szRight = szNew[i];  /* Size of sibling on the right */
-    int szLeft = szNew[i-1]; /* Size of sibling on the left */
-    int r;              /* Index of right-most cell in left sibling */
-    int d;              /* Index of first cell to the left of right sibling */
+    int szRight = szNew[i];  /* Size of sibling on the right */                 //右兄弟的大小
+    int szLeft = szNew[i-1]; /* Size of sibling on the left */                  //左兄弟的大小
+    int r;              /* Index of right-most cell in left sibling */          //左兄弟中最右单元的索引
+    int d;              /* Index of first cell to the left of right sibling */  //右兄弟最左侧第一个单元的索引
 
     r = cntNew[i-1] - 1;
     d = r + 1 - leafData;
@@ -6902,7 +6912,8 @@ static int balance_nonroot(                                //调整B树的各节点使之
   /* Either we found one or more cells (cntnew[0])>0) or pPage is
   ** a virtual root page.  A virtual root page is when the real root
   ** page is page 1 and we are the only child of that page.
-  **
+  ** 我们发现一个或更多(cntnew[0])> 0)或pPage是一个虚拟根页面。
+  ** 一个虚拟的根页是当真正的根页是第1页的时候和那个页面是唯一的孩子。
   ** UPDATE:  The assert() below is not necessarily true if the database
   ** file is corrupt.  The corruption will be detected and reported later
   ** in this procedure so there is no need to act upon it now.
@@ -6917,9 +6928,7 @@ static int balance_nonroot(                                //调整B树的各节点使之
     nOld>=3 ? apOld[2]->pgno : 0
   ));
 
-  /*
-  ** Allocate k new pages.  Reuse old pages where possible.
-  */
+  /*Allocate k new pages.  Reuse old pages where possible. */     //分配k新页。有可能重新使用老页
   if( apOld[0]->pgno<=1 ){
     rc = SQLITE_CORRUPT_BKPT;
     goto balance_cleanup;
@@ -6940,7 +6949,7 @@ static int balance_nonroot(                                //调整B树的各节点使之
       apNew[i] = pNew;
       nNew++;
 
-      /* Set the pointer-map entry for the new sibling page. */
+      /* Set the pointer-map entry for the new sibling page. */  //对于新的兄弟页设置指针位图条目
       if( ISAUTOVACUUM ){
         ptrmapPut(pBt, pNew->pgno, PTRMAP_BTREE, pParent->pgno, &rc);
         if( rc!=SQLITE_OK ){
@@ -6950,8 +6959,7 @@ static int balance_nonroot(                                //调整B树的各节点使之
     }
   }
 
-  /* Free any old pages that were not reused as new pages.
-  */
+  /* Free any old pages that were not reused as new pages.*/    //释放没有重新使用作新页的老页
   while( i<nOld ){
     freePage(apOld[i], &rc);
     if( rc ) goto balance_cleanup;
@@ -6966,13 +6974,15 @@ static int balance_nonroot(                                //调整B树的各节点使之
   ** of the table is a linear scan through the file.  That
   ** in turn helps the operating system to deliver pages
   ** from the disk more rapidly.
-  **
+  ** 使新页递增有序。这有助于保持磁盘文件中的条目顺序以便于对表的进行
+  ** 一个线性扫描整个文件.反过来帮助操作系统从磁盘更快的提供页面。
   ** An O(n^2) insertion sort algorithm is used, but since
   ** n is never more than NB (a small constant), that should
   ** not be a problem.
-  **
+  ** 用一个复杂度为O(n^2)的插入排序算法,但是n不会超过NB，应该不是问题
   ** When NB==3, this one optimization makes the database
   ** about 25% faster for large insertions and deletions.
+  ** 当NB==3,这个优化使数据库对于删除插入提高大约25%左右。
   */
   for(i=0; i<k-1; i++){
     int minV = apNew[i]->pgno;
@@ -7003,10 +7013,11 @@ static int balance_nonroot(                                //调整B树的各节点使之
   /*
   ** Evenly distribute the data in apCell[] across the new pages.
   ** Insert divider cells into pParent as necessary.
+  ** 在新的页面的apCell[]中均匀分布数据。插入分隔单元pParent是必要的。
   */
   j = 0;
   for(i=0; i<nNew; i++){
-    /* Assemble the new sibling page. */
+    /* Assemble the new sibling page. */     //组装新兄弟页
     MemPage *pNew = apNew[i];
     assert( j<nMaxCells );
     zeroPage(pNew, pageFlags);
@@ -7017,7 +7028,8 @@ static int balance_nonroot(                                //调整B树的各节点使之
     j = cntNew[i];
 
     /* If the sibling page assembled above was not the right-most sibling,
-    ** insert a divider cell into the parent page.
+    ** insert a divider cell into the parent page. 
+	** 如果上面组装的兄弟页面并不是最右边的兄弟,插入隔离单元到父页面。
     */
     assert( i<nNew-1 || j==nCell );
     if( j<nCell ){
@@ -7036,6 +7048,8 @@ static int balance_nonroot(                                //调整B树的各节点使之
         ** then there is no divider cell in apCell[]. Instead, the divider 
         ** cell consists of the integer key for the right-most cell of 
         ** the sibling-page assembled above only.
+		** 如果是叶数据的树，并且各节点是叶节点，那么在APCell[]中没有分割单元。
+		** 相反分割单元是以上装配的兄弟节点的最右的单元的整形关键字组成。
         */
         CellInfo info;
         j--;
@@ -7051,10 +7065,14 @@ static int balance_nonroot(                                //调整B树的各节点使之
         ** (see btreeParseCellPtr(), 4 bytes is the minimum size of
         ** any cell). But it is important to pass the correct size to 
         ** insertCell(), so reparse the cell now.
-        **
+        ** 另种情况是non-leaf-data树:如果在pCell的单元是以前存储在一个叶节点上的,并且是
+		** 4字节大小,事实上它可能会比这个小(见btreeParseCellPtr(),4个字节是任何单元的最小值)。
+		** 但重要的是通过正确的大小insertCell(),所以现在重新解析单元。
         ** Note that this can never happen in an SQLite data file, as all
         ** cells are at least 4 bytes. It only happens in b-trees used
         ** to evaluate "IN (SELECT ...)" and similar clauses.
+		** 注意,这可能不会发生在一个SQLite数据文件中,所有单元至少有4个字节。
+		** 它只发生在b树中用来评估"IN (SELECT ...)"和相关子句。
         */
         if( szCell[j]==4 ){
           assert(leafCorrection==4);
@@ -7086,15 +7104,19 @@ static int balance_nonroot(                                //调整B树的各节点使之
     ** child page into the parent, decreasing the overall height of the
     ** b-tree structure by one. This is described as the "balance-shallower"
     ** sub-algorithm in some documentation.
-    **
+    ** B树的根页现在不含单元。唯一的兄弟页面是右孩子的父节点。拷贝孩子页面的内容
+	** 到父页面,减少B树结构的整体高度.在一些文档中被描述为“balance-shallower” 子算法。
     ** If this is an auto-vacuum database, the call to copyNodeContent() 
     ** sets all pointer-map entries corresponding to database image pages 
     ** for which the pointer is stored within the content being copied.
-    **
-    ** The second assert below verifies that the child page is defragmented
+    ** 如果是一个自动清理的数据库,调用copyNodeContent() 设定所有pointer-map条目与数据
+	** 库镜像页对应，指针存储在被拷贝的内容中。
+    ** The second assert below verifies that the child page is defragmented 
     ** (it must be, as it was just reconstructed using assemblePage()). This
     ** is important if the parent page happens to be page 1 of the database
-    ** image.  */
+    ** image.  
+	** 第二个断言验证子页面被碎片化了(这是必须的,因为它只是使用assemblePage()重建).
+	** 这是很重要的,如果父页面是数据库镜像的page 1。*/
     assert( nNew==1 );
     assert( apNew[0]->nFree == 
         (get2byte(&apNew[0]->aData[5])-apNew[0]->cellOffset-apNew[0]->nCell*2) 
@@ -7106,46 +7128,53 @@ static int balance_nonroot(                                //调整B树的各节点使之
     ** There are several different types of pointer-map entries that need to
     ** be dealt with by this routine. Some of these have been set already, but
     ** many have not. The following is a summary:
-    **
+    ** 对于所有被转移的周围的单元修复pointer-map条目.有几种不同类型的需要pointer-map条目
+	**要通过这个函数处理。其中的一些已经设置,但是许多没有设置.下面是总结:
     **   1) The entries associated with new sibling pages that were not
     **      siblings when this function was called. These have already
     **      been set. We don't need to worry about old siblings that were
     **      moved to the free-list - the freePage() code has taken care
     **      of those.
-    **
+    **      这些条目新的兄弟页面相关,这些兄弟页面当被该函数调用时并不是兄弟节点。
+	**      不必担心之前的兄弟节点被移到了空闲列表——freePage() 代码已经考虑到这些。
     **   2) The pointer-map entries associated with the first overflow
     **      page in any overflow chains used by new divider cells. These 
     **      have also already been taken care of by the insertCell() code.
-    **
+    **     与在任何溢出链表中的第一个溢出页相关的pointer-map条目用作分离单元。
+	**     这些也已经在insertCell()代码中考虑。
     **   3) If the sibling pages are not leaves, then the child pages of
     **      cells stored on the sibling pages may need to be updated.
-    **
+    **      如果兄弟页面不是叶子,那么存储在兄弟页面上的单元的子页面需要更新.
     **   4) If the sibling pages are not internal intkey nodes, then any
     **      overflow pages used by these cells may need to be updated
     **      (internal intkey nodes never contain pointers to overflow pages).
-    **
+    **      如果兄弟页不是内部intkey节点,那么任何被这些单元使用的溢出页可能需要更新
+	**      (内部intkey节点不包含指向溢出页的指针)。
     **   5) If the sibling pages are not leaves, then the pointer-map
     **      entries for the right-child pages of each sibling may need
     **      to be updated.
-    **
+    **    　如果兄弟页面不是叶子,那么对每个兄弟的右孩子页pointer-map条目可能需要更新。
     ** Cases 1 and 2 are dealt with above by other code. The next
     ** block deals with cases 3 and 4 and the one after that, case 5. Since
     ** setting a pointer map entry is a relatively expensive operation, this
     ** code only sets pointer map entries for child or overflow pages that have
-    ** actually moved between pages.  */
+    ** actually moved between pages.  
+	** 前两种情况被其他代码处理。下一个块处理情况下3和4,之后5。因为设置一个指针映射条目是一个
+	** 相对浪费的操作,所以这个代码只对在页面之间移动的孩子或溢出页设置指针的映射条目。*/
     MemPage *pNew = apNew[0];
     MemPage *pOld = apCopy[0];
     int nOverflow = pOld->nOverflow;
     int iNextOld = pOld->nCell + nOverflow;
     int iOverflow = (nOverflow ? pOld->aiOvfl[0] : -1);
-    j = 0;                             /* Current 'old' sibling page */
-    k = 0;                             /* Current 'new' sibling page */
+    j = 0;                             /* Current 'old' sibling page */   //当前'old'兄弟页
+    k = 0;                             /* Current 'new' sibling page */   //当前'new'兄弟页
     for(i=0; i<nCell; i++){
       int isDivider = 0;
       while( i==iNextOld ){
         /* Cell i is the cell immediately following the last cell on old
         ** sibling page j. If the siblings are not leaf pages of an
-        ** intkey b-tree, then cell i was a divider cell. */
+        ** intkey b-tree, then cell i was a divider cell. 
+		** 单元i是单元立即老兄弟页最后单元后.如果不是intkeyB树的叶子节点那么单元i是一个分割单元*/
         assert( j+1 < ArraySize(apCopy) );
         assert( j+1 < nOld );
         pOld = apCopy[++j];
@@ -7202,7 +7231,9 @@ static int balance_nonroot(                                //调整B树的各节点使之
     /* The ptrmapCheckPages() contains assert() statements that verify that
     ** all pointer map pages are set correctly. This is helpful while 
     ** debugging. This is usually disabled because a corrupt database may
-    ** cause an assert() statement to fail.  */
+    ** cause an assert() statement to fail. 
+	** ptrmapCheckPages()包含的assert()语句时验证所有的指针映射页正确设定.
+	** 这有助于调试.这常不可用，因为一个崩溃的数据库可能造成assert()语句失败.*/
     ptrmapCheckPages(apNew, nNew);
     ptrmapCheckPages(&pParent, 1);
 #endif
@@ -7212,9 +7243,7 @@ static int balance_nonroot(                                //调整B树的各节点使之
   TRACE(("BALANCE: finished: old=%d new=%d cells=%d\n",
           nOld, nNew, nCell));
 
-  /*
-  ** Cleanup before returning.
-  */
+  /*Cleanup before returning.*/    //返回之前清理
 balance_cleanup:
   sqlite3ScratchFree(apCell);
   for(i=0; i<nOld; i++){
@@ -7234,27 +7263,30 @@ balance_cleanup:
 /*
 ** This function is called when the root page of a b-tree structure is
 ** overfull (has one or more overflow pages).
-**
+** 当B树结构的根页过度满时，该函数将被调用。（有一个或多个溢出页）
 ** A new child page is allocated and the contents of the current root
 ** page, including overflow cells, are copied into the child. The root
 ** page is then overwritten to make it an empty page with the right-child 
 ** pointer pointing to the new page.
-**
+** 一个新的孩子页将被分配并且当前根页的内容包括也出单元被拷贝到孩子节点。
+** 根页被重写使之为空页，最右孩子指针指向新页。
 ** Before returning, all pointer-map entries corresponding to pages 
 ** that the new child-page now contains pointers to are updated. The
 ** entry corresponding to the new right-child pointer of the root
 ** page is also updated.
-**
+** 在返回之前,所有pointer-map条目对应新子页面包含指针的页面被更新。条目对应的根页的新右子结点指针根也更新。
 ** If successful, *ppChild is set to contain a reference to the child 
 ** page and SQLITE_OK is returned. In this case the caller is required
 ** to call releasePage() on *ppChild exactly once. If an error occurs,
 ** an error code is returned and *ppChild is set to 0.
+** 如果成功,*ppChild将包含一个对孩子页的引用并返回SQLITE_OK。在这种情况下,调用者需要
+** 在*ppChild上对releasePage()调用恰好一次。如果出现错误,返回一个错误代码并且ppChild设置为0。
 */
-static int balance_deeper(MemPage *pRoot, MemPage **ppChild){
-  int rc;                        /* Return value from subprocedures */
-  MemPage *pChild = 0;           /* Pointer to a new child page */
-  Pgno pgnoChild = 0;            /* Page number of the new child page */
-  BtShared *pBt = pRoot->pBt;    /* The BTree */
+static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //进一步调整B树的页
+  int rc;                        /* Return value from subprocedures */   //子函数的返回值
+  MemPage *pChild = 0;           /* Pointer to a new child page */       //新孩子页的指针
+  Pgno pgnoChild = 0;            /* Page number of the new child page */ //新孩子页的页码
+  BtShared *pBt = pRoot->pBt;    /* The BTree */                         //B树
 
   assert( pRoot->nOverflow>0 );
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -7262,6 +7294,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){
   /* Make pRoot, the root page of the b-tree, writable. Allocate a new 
   ** page that will become the new right-child of pPage. Copy the contents
   ** of the node stored on pRoot into the new child page.
+  ** 使pRoot（B树的根页）可写,分配一个新页使之成为pPage的右孩子.拷贝存储在pRoot上的节点的内容到新的孩子页面。
   */
   rc = sqlite3PagerWrite(pRoot->pDbPage);
   if( rc==SQLITE_OK ){
@@ -7282,7 +7315,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){
 
   TRACE(("BALANCE: copy root %d into %d\n", pRoot->pgno, pChild->pgno));
 
-  /* Copy the overflow cells from pRoot to pChild */
+  /* Copy the overflow cells from pRoot to pChild */  //将已出单元从pRoot拷贝到pChild
   memcpy(pChild->aiOvfl, pRoot->aiOvfl,
          pRoot->nOverflow*sizeof(pRoot->aiOvfl[0]));
   memcpy(pChild->apOvfl, pRoot->apOvfl,
@@ -7290,6 +7323,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){
   pChild->nOverflow = pRoot->nOverflow;
 
   /* Zero the contents of pRoot. Then install pChild as the right-child. */
+  //清零pRoot中的内容，将pChild作为右孩子。
   zeroPage(pRoot, pChild->aData[0] & ~PTF_LEAF);
   put4byte(&pRoot->aData[pRoot->hdrOffset+8], pgnoChild);
 
@@ -7302,7 +7336,8 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){
 ** some way. This function figures out if this modification means the
 ** tree needs to be balanced, and if so calls the appropriate balancing 
 ** routine. Balancing routines are:
-**
+** 游标pCur当前指向的页面以某种方式被修改。函数将弄明白是否这个修改需要被平衡，
+** 是否调用适当的平衡函数。平衡函数如下：
 **   balance_quick()
 **   balance_deeper()
 **   balance_nonroot()
@@ -7326,6 +7361,8 @@ static int balance(BtCursor *pCur){
         ** balance_deeper() function to create a new child for the root-page
         ** and copy the current contents of the root-page to it. The
         ** next iteration of the do-loop will balance the child page.
+		** B树的根页是过满。在这种情况下,调用balance_deeper()函数为根页创建一个新的孩子
+		** 并复制的当前内容根页到该孩子页。下一个迭代循环语句的平衡子页面。
         */ 
         assert( (balance_deeper_called++)==0 );
         rc = balance_deeper(pPage, &pCur->apPage[1]);
@@ -7360,11 +7397,15 @@ static int balance(BtCursor *pCur){
           ** use either balance_nonroot() or balance_deeper(). Until this
           ** happens, the overflow cell is stored in the aBalanceQuickSpace[]
           ** buffer. 
-          **
+          ** 调用balance_quick()来创建一个pPage的新兄弟页，页上存储了溢出单元。balance_quick()插入一个
+		  ** 新单元到pParent,这可能会导致pParent溢出.如果这种情况发生,下一个迭代循环语句将用balance_nonroot()
+		  ** 或balance_deeper()中的任一个平衡pParent.直到溢出单元存储在aBalanceQuickSpace[]缓冲区。
           ** The purpose of the following assert() is to check that only a
           ** single call to balance_quick() is made for each call to this
           ** function. If this were not verified, a subtle bug involving reuse
           ** of the aBalanceQuickSpace[] might sneak in.
+		  ** 下面的assert()的目的是检查,对于每个调用函数只有一个调用balance_quick()。如果这是不验证,
+		  ** aBalanceQuickSpace[]重用的时候将发生一个微妙的错误。
           */
           assert( (balance_quick_called++)==0 );
           rc = balance_quick(pParent, pPage, aBalanceQuickSpace);
