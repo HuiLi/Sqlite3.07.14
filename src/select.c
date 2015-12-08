@@ -21,18 +21,16 @@
 ** 跟踪输出宏
 */
 
-
 #if SELECTTRACE_ENABLED //预编译指令
 /***/ int sqlite3SelectTrace = 0;
-# define SELECTTRACE(K,P,S,X)  \
-  if(sqlite3SelectTrace&(K))   \
-    sqlite3DebugPrintf("%*s%s.%p: ",(P)->nSelectIndent*2-2,"",\
-        (S)->zSelName,(S)),\
+# define SELECTTRACE(K,P,S,X)  
+  if(sqlite3SelectTrace&(K))   
+    sqlite3DebugPrintf("%*s%s.%p: ",(P)->nSelectIndent*2-2,"",
+        (S)->zSelName,(S)),
     sqlite3DebugPrintf X
 #else
 # define SELECTTRACE(K,P,S,X)
 #endif
-
 
 /*
 ** An instance of the following object is used to record information about
@@ -40,7 +38,6 @@
 ** into the selectInnerLoop() routine.
 ** 下面结构体的一个实例是用于记录有关如何处理DISTINCT关键字的信息，为了简化传递该信息到selectInnerLoop（）事务。
 */
-
 
 typedef struct DistinctCtx DistinctCtx;
 struct DistinctCtx {
