@@ -1300,19 +1300,20 @@ char sqlite3AffinityType(const char *zIn){
 ** column currently under construction.   pLast is the last token
 ** in the sequence.  Use this information to construct a string
 ** that contains the typename of the column and store that string
-** in zType.【当解析CREATE TABLE语句的时候就会调用这个例程的解析器。会看到列不能为空的约束。这个例程为当前构建的列设定不能为空的标志。这个pFirst代表了符号序列的第一个符号，
-这序列符号描述的是当前正在创建的列。pLast代表的是符号序列的最后一个符号。用此信息构造一个字符串，这个字符串包含列的类名和用zType存储的字符串。】
+** in zType.
+** 当解析CREATE TABLE语句的时候就会调用这个例程的解析器。会看到列不能为空的约束。这个例程为当前构建的列设定不能为空的标志。这个pFirst代表了符号序列的第一个符号，
+** 这序列符号描述的是当前正在创建的列。pLast代表的是符号序列的最后一个符号。用此信息构造一个字符串，这个字符串包含列的类名和用zType存储的字符串。
 */
 void sqlite3AddColumnType(Parse *pParse, Token *pType){
-	Table *p;
-	Column *pCol;
-
-	p = pParse->pNewTable;
-	if (p == 0 || NEVER(p->nCol<1)) return;
-	pCol = &p->aCol[p->nCol - 1];//找到当前创建的列
-	assert(pCol->zType == 0);
+	Table *p;    //指向当前正在新建的表
+	Column *pCol;  //列指针
+	 
+	p = pParse->pNewTable;    //指向当前正在新建的表
+	if (p == 0 || NEVER(p->nCol<1)) return;    //如果当前新建表的指针为0或者是其列数目是小于1的，说明并没有新建表，退出函数
+	pCol = &p->aCol[p->nCol - 1];//，否则找到当前创建的列
+	assert(pCol->zType == 0);   
 	pCol->zType = sqlite3NameFromToken(pParse->db, pType);//列的类型
-	pCol->affinity = sqlite3AffinityType(pCol->zType);//相关联的类型
+	pCol->affinity = sqlite3AffinityType(pCol->zType);//，sqlite系统中相关联的类型
 }
 
 /*
