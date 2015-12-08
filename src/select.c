@@ -21,7 +21,7 @@
 ** Delete all the content of a Select structure but do not deallocate
 ** the select structure itself.
 **删除所有选择结构的内容但并不释放选择结构本身
-*/86168
+*/
 static void clearSelect(sqlite3 *db, Select *p){//清除查询结构，sqlite3 *db  Database connection, for malloc()
   sqlite3ExprListDelete(db, p->pEList);   /*删除整个表达式列表*/
   sqlite3SrcListDelete(db, p->pSrc);   /*删除表达式列表中的FROM子句表达式*/
