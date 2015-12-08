@@ -1219,14 +1219,16 @@ void sqlite3AddNotNull(Parse *pParse, int onError){
 
 /*
 ** Scan the column type name zType (length nType) and return the
-** associated affinity type.【扫描列类型名称zType(长度nType)并返回相关的关联类型。】
+** associated affinity type.
+** 扫描列类型名称zType(长度nType)并返回相关的关联类型。
 **
 ** This routine does a case-independent search of zType for the
 ** substrings in the following table. If one of the substrings is
 ** found, the corresponding affinity is returned. If zType contains
 ** more than one of the substrings, entries toward the top of
 ** the table take priority. For example, if zType is 'BLOBINT',
-** SQLITE_AFF_INTEGER is returned.【这个例程做一次与案例无关的zType搜索对表下的子字符串。如果找到一个子字符串，返回相应的关系。如果zType包含不止一个子字符串，表头的条目优先。】
+** SQLITE_AFF_INTEGER is returned.
+** 这个例程做一次与案例无关的zType搜索对表下的子字符串。如果找到一个子字符串，返回相应的关系。如果zType包含不止一个子字符串，表头的条目优先。
 **
 ** Substring     | Affinity
 ** --------------------------------
@@ -1240,15 +1242,21 @@ void sqlite3AddNotNull(Parse *pParse, int onError){
 ** 'DOUB'        | SQLITE_AFF_REAL
 **
 ** If none of the substrings in the above table are found,
-** SQLITE_AFF_NUMERIC is returned.【如果在以上所述的表中没有找到子字符串，则返回SQLITE_AFF_NUMERIC。】
+** SQLITE_AFF_NUMERIC is returned.
+** 如果在以上所述的表中没有找到子字符串，则返回SQLITE_AFF_NUMERIC。
+*/
+
+/* created by junpeng zhu
+**函数sqlite3AffinityType的功能是：为用户在创建表时指定的列类型返回系统统一的处理方式 
+**其中参数:zIn是用户在创建表时为列名指定的类型，这个参数是一个const类型字符串，也就是在程序中不能修改这个指定的类型
 */
 char sqlite3AffinityType(const char *zIn){
-	u32 h = 0;
-	char aff = SQLITE_AFF_NUMERIC;
+	u32 h = 0;   //无符号32位整型，u是指unsigned
+	char aff = SQLITE_AFF_NUMERIC;   
 
-	if (zIn) while (zIn[0]){//只取第一个字符串
+	if (zIn) while (zIn[0]){//取字符串的第一个单元
 		h = (h << 8) + sqlite3UpperToLower[(*zIn) & 0xff];//把大写转换成小写字母
-		zIn++;
+		zIn++;  //接着取字符串的下一个单元
 		if (h == (('c' << 24) + ('h' << 16) + ('a' << 8) + 'r')){             /*拼接CHAR */
 			aff = SQLITE_AFF_TEXT;
 		}
