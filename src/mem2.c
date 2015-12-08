@@ -83,8 +83,8 @@
 struct MemBlockHdr {
   i64 iSize;                          /* Size of this allocation  分配的大小*/
   struct MemBlockHdr *pNext, *pPrev;  /* Linked list of all unfreed memory  所有未释放内存链表*/
-  char nBacktrace;                    /* Number of backtraces on this alloc  这个分配的回溯数*/
-  char nBacktraceSlots;               /* Available backtrace slots     可回溯插槽 */
+  char nBacktrace;                    /* Number of backtraces on this alloc  这个分配的跟踪指针数*/
+  char nBacktraceSlots;               /* Available backtrace slots     可跟踪指针槽 */
   u8 nTitle;                          /* Bytes of title; includes '\0'    标题字节,包括 '\0'*/
   u8 eType;                           /* Allocation type code    分配类型代码*/
   int iForeGuard;                     /* Guard word for sanity     保护字*/
