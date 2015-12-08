@@ -1212,9 +1212,9 @@ void sqlite3AddColumn(Parse *pParse, Token *pName){
 */
 void sqlite3AddNotNull(Parse *pParse, int onError){
 	Table *p;
-	p = pParse->pNewTable;
-	if (p == 0 || NEVER(p->nCol<1)) return;//没有新建的表或者是还没有添加一个列
-	p->aCol[p->nCol - 1].notNull = (u8)onError;//对当前添加的列进行“NOT NULL”设置
+	p = pParse->pNewTable;     //指针指向当前正在创建的新表
+	if (p == 0 || NEVER(p->nCol<1)) return;//如果新表指针为0或者其列数目是小于1的，表示根本就没有创建新表，结束这个函数
+	p->aCol[p->nCol - 1].notNull = (u8)onError;//对当前添加的列进行“NOT NULL”设置  
 }
 
 /*
