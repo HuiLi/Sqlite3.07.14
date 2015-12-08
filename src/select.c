@@ -20,7 +20,7 @@
 /*
 ** Delete all the content of a Select structure but do not deallocate
 ** the select structure itself.
-**删除所有选择结构的内容但并不释放选择结构本身
+**删除所有select结构的内容,但并不释放选择结构本身
 */
 static void clearSelect(sqlite3 *db, Select *p){//清除查询结构，sqlite3 *db  Database connection, for malloc()
   sqlite3ExprListDelete(db, p->pEList);   /*删除整个表达式列表*/
@@ -50,11 +50,12 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure
+   分配一个新的select结构，并且返回一个指针指向该结构体
 */
 Select *sqlite3SelectNew(//select语法分析最终在sqlite3SelectNew中完成,它主要就是将之前得到的各个子语法树汇总到Select结构体，并根据该结构，进行接下来语义分析及生成执行计划等工作。
   Parse *pParse,        /* Parsing context  解析上下文*/
   ExprList *pEList,     /* which columns to include in the result  存放表达式列表*/
-  SrcList *pSrc,        /* the FROM clause -- which tables to scan  存放from子句---扫描表 */
+  SrcList *pSrc,        /* the FROM clause -- which tables to scan  存放from子句---扫描有哪些表 */
   Expr *pWhere,         /* the WHERE clause  存放where子句*/
   ExprList *pGroupBy,   /* the GROUP BY clause   存放groupby子句*/
   Expr *pHaving,        /* the HAVING clause 存放having子句*/
@@ -109,7 +110,7 @@ Select *sqlite3SelectNew(//select语法分析最终在sqlite3SelectNew中完成,
 
 /*
 ** Delete the given Select structure and all of its substructures.
-**删除给定的选择结构和所有的子结构
+**删除已分配的select结构和所有它的子结构
 */
 void sqlite3SelectDelete(sqlite3 *db, Select *p){
   if( p ){/*如果结构体指针p指向的地址非空*/
@@ -134,17 +135,17 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){
 **
 ** If an illegal or unsupported join type is seen, then still return
 ** a join type, but put an error in the pParse structure.
-**鉴于1 - 3标识符事先加入关键字,确定加入的类型。
-**返回一个整数常数,表示该类型的下列值: 
+**在连接关键字之前加入1到3个标示符，来决定使用何种连接返回一个整形常量来表示使用以下何种连接类型： 
 **JT_INNER 
 **JT_CROSS 
 **JT_OUTER 
 **JT_NATURAL 
 **JT_LEFT 
 **JT_RIGHT 
-**完全外连接的组合JT_LEFT JT_RIGHT。 如果看到一个
-**非法或不受支持的连接类型,然后仍然返回一个
-**连接类型,但在pParse结构中放入一个错误
+**全外连接是JT_LEFT和JT_RIGHT结合。
+**
+** 如果检测到是非法字符或者不支持的连接类型，仍然会返回一个连接类型，
+** 但是会在pParse结构中放入一个错误信息。
 */
 int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){
   int jointype = 0;
