@@ -1,4 +1,20 @@
-﻿========================================================================
+﻿#提供一种可以对select语句进行debug的例程，有助于理解select.c处理select语句的过程。
+##食用方法：
+- 本例程在VS2015上调试成功
+```c
+if (ret == SQLITE_OK) {
+	sqlite3_get_table(pdb, "select * from student", &result, &row, &colum, &message);
+		for (int i = 0; i <= row; i++) {
+			for (int j = 0; j < colum; j++) {
+				printf("%s|", *(result + colum * i + j));
+			}
+			printf("\n");
+		}
+	sqlite3_close(pdb);
+	}
+```
+断点设置在if语句
+========================================================================
     控制台应用程序：ZXsqlite 项目概述
 ========================================================================
 
