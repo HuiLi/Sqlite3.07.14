@@ -4342,9 +4342,9 @@ int sqlite3Select(
 	** an optimization - the correct answer should result regardless.
 	** Use the SQLITE_GroupByOrder flag with SQLITE_TESTCTRL_OPTIMIZER
 	** to disable this optimization for testing purposes.
-	**如果有GROUP BY 和 ORDER BY子句，并且他们是一致的，先执行GROUP BY再执行ORDER BY.
-	** 这是一种优化，不影响正确的结果。使用带SQLITE_TESTCTRL_OPTIMIZER的SQLITE_GroupByOrder标记
-	** 在测试目的中不使用优化。
+	**如果有GROUP BY 和 ORDER BY子句，然后如果它们是一致的，那么先执行GROUP BY然后再执行ORDER BY.
+	** 这是一种优化方式，对最后的结果没有任何影响。使用带SQLITE_TESTCTRL_OPTIMIZER的SQLITE_GroupByOrder标记
+	** 在日常测试中不断优化。
 	*/
 	if (sqlite3ExprListCompare(p->pGroupBy, pOrderBy) == 0/*如果两个表达式值相同*/
 		&& (db->flags & SQLITE_GroupByOrder) == 0){
@@ -5114,14 +5114,14 @@ static void explainOneSelect(Vdbe *pVdbe, Select *p){
 	  sqlite3ExplainPush(pVdbe);/*在pVdbe中推出一个新的缩进级别，从光标开始的位置进行，后续的行都缩进*/
 	  while( p ){
 		explainOneSelect(pVdbe, p);/*生成一个易读描述SELECET的对象*/
-		p = p->pNext;/*将p的子树，赋值给当前p*/
-		if( p==0 ) break;/*循环到最后一个了，已经没有了子节点*/
+		p = p->pNext;/*将p的子树，赋值，给当前p*/
+		if( p==0 ) break;/*已经循环到最后一个了，没有了子节点*/
 		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
-		sqlite3ExplainPrintf(pVdbe, "%s\n", selectOpName(p->op));/*实际上调用sqlite3VXPrintf（），进行格式化输出"%s\n"*/
+		sqlite3ExplainPrintf(pVdbe, "%s\n", selectOpName(p->op));/*实际上是调用sqlite3VXPrintf（），并进行格式化输出为"%s\n"*/
 	  }
-	  sqlite3ExplainPrintf(pVdbe, "END");/*实际上调用sqlite3VXPrintf（），进行格式化输出"END"*/
-	  sqlite3ExplainPop(pVdbe);/*弹出刚才压进栈的缩进级别*/
+	  sqlite3ExplainPrintf(pVdbe, "END");/*实际上是调用sqlite3VXPrintf（），进行格式化大的输出为"END"*/
+	  sqlite3ExplainPop(pVdbe);/*对刚才压进栈的缩进级别进行弹出*/
 	}
-	/* End of the structure debug printing code 结束打印调试代码的结构
+	/* End of the structure debug printing code 结束调试
 	*****************************************************************************/
 	#endif /* defined(SQLITE_ENABLE_TREE_EXPLAIN) */
