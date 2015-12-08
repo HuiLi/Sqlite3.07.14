@@ -1150,40 +1150,43 @@ sqlite3UpperToLower[*(unsigned char *)(y)]     \
 && sqlite3StrICmp((x)+1,(y)+1)==0 )
 
 /*
-** Add a new column to the table currently being constructed.【向当前正在构建的表中添加新的一列。】
+** Add a new column to the table currently being constructed.
+**向当前正在构建的表中添加新的一列。
 **
 ** The parser calls this routine once for each column declaration
 ** in a CREATE TABLE statement.  sqlite3StartTable() gets called
 ** first to get things going.  Then this routine is called for each
-** column.【一旦每一列在一个CREATE TABLE语句中声明，解析器就会调用这个例程。首先被调用做一些事情，然后为每一列调用这个例程。】
+** column.
+**一旦每一列在一个CREATE TABLE语句中声明，解析器就会调用这个例程。首先被调用做一些事情，然后为每一列调用这个例程。
 */
 void sqlite3AddColumn(Parse *pParse, Token *pName){
-	Table *p;
+	Table *p;      //指针指向当前要创建的表
 	int i;
 	char *z;
-	Column *pCol;
-	sqlite3 *db = pParse->db;
-	if ((p = pParse->pNewTable) == 0) return;
+	Column *pCol;    //列指针
+	sqlite3 *db = pParse->db;     //db指向的是语法分析程序当前上下文正在处理的数据库，也就是db始终指向正在处理的数据库
+	if ((p = pParse->pNewTable) == 0) return;    //pNewTable参数指明当前是否正在创建表，如果参数为0，则表明没有创建表，直接退出函数
 #if SQLITE_MAX_COLUMN//表的列总数已经达到最大值
-	if (p->nCol + 1>db->aLimit[SQLITE_LIMIT_COLUMN]){
-		sqlite3ErrorMsg(pParse, "too many columns on %s", p->zName);
+	if (p->nCol + 1>db->aLimit[SQLITE_LIMIT_COLUMN]){  //如果当前表的列数目+1得到的值比SQLITE所指定的列的峰值更大的话
+		sqlite3ErrorMsg(pParse, "too many columns on %s", p->zName);   //发送错误信息“列太多”，并且退出函数
 		return;
 	}
 #endif
-	z = sqlite3NameFromToken(db, pName);
-	if (z == 0) return;
+	z = sqlite3NameFromToken(db, pName);   //否则的话就需要创建列，从分词程序中读出列名
+	if (z == 0) return;     //如果列名为空的话就退出程序，表名当前就没有新的列创建
 	for (i = 0; i<p->nCol; i++){//循环的检测新插入的一列的名字，是不是已经存在
 		if (STRICMP(z, p->aCol[i].zName)){//比较两个字符串用不区分大小写的方式
-			sqlite3ErrorMsg(pParse, "duplicate column name: %s", z);
-			sqlite3DbFree(db, z);
+			sqlite3ErrorMsg(pParse, "duplicate column name: %s", z);   //发出列名重复的错误
+			sqlite3DbFree(db, z);   //释放当前的数据库
 			return;
 		}
 	}
+	//否则的话就创建新的列
 	if ((p->nCol & 0x7) == 0){
 		Column *aNew;
 		aNew = sqlite3DbRealloc(db, p->aCol, (p->nCol + 8)*sizeof(p->aCol[0]));//为新的一列分配内存
 		if (aNew == 0){//没有分配成功
-			sqlite3DbFree(db, z);
+			sqlite3DbFree(db, z);   //如果内存分配失败，释放数据库
 			return;
 		}
 		p->aCol = aNew;//添加一列
@@ -1194,10 +1197,11 @@ void sqlite3AddColumn(Parse *pParse, Token *pName){
 
 	/* If there is no type specified, columns have the default affinity
 	** 'NONE'. If there is a type specified, then sqlite3AddColumnType() will
-	** be called next to set pCol->affinity correctly.【如果没有类型指定，列默认关联“NONE”。如果有类型指定，那么sqlite3AddColumnType()就会被调用，接着正确地设定pCol->affinity的值。】
+	** be called next to set pCol->affinity correctly.
+	**如果没有类型指定，列默认关联“NONE”。如果有类型指定，那么sqlite3AddColumnType()就会被调用，接着正确地设定pCol->affinity的值。
 	*/
 	pCol->affinity = SQLITE_AFF_NONE;//设置列队数据类型，默认为NONE
-	p->nCol++;//对列队总数进行修改
+	p->nCol++;//对列名总数进行修改，这个参数用于判断列名的个数是否得到阈值
 }
 
 /*
