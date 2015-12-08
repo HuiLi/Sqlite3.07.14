@@ -5215,15 +5215,11 @@ static int codeEqualityTerm(
   disableTerm(pLevel, pTerm);
   return iReg;
 }
-
 /*
 ** Generate code that will evaluate all == and IN constraints for an
 ** index.
 <<<<<<< HEAD
-**生成的代码将评估所有= =和IIN 对于一个索引
-=======
-**
-** 为一个索引生成一个评价所有==和IN约束的代码。
+**生成代码，这个代码将会为一个索引评价所有==和IN约束
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** For example, consider table t1(a,b,c,d,e,f) with index i1(a,b,c).
@@ -5234,18 +5230,11 @@ static int codeEqualityTerm(
 ** a==5 and b IN (1,2,3).  The current values for a and b will be stored
 ** in consecutive registers and the index of the first register is returned.
 <<<<<<< HEAD
-**例如，考虑带有索引 i1(a,b,c)的表t1(a,b,c,d,e,f)
-假设where子句是： a==5 AND b IN (1,2,3) AND c>5 AND c<10
-这个索引有3个等式约束。但是在这里例子中。第三个“c”的值是不等。
-所以只有两个等式约束被编译。
-这同样适用于编译a==5 and b IN (1,2,3)目前值对于a和b存储在连续的寄存器中，
-而且第一个索引值被返回。
-=======
-**
-** 例如，考虑一个有索引i1(a,b,c)的表t1(a,b,c,d,e,f).
-** 假设WHERE子句是这样的:a==5 AND b IN (1,2,3) AND c>5 AND c<10。
-** 索引有3个等式约束，但是在这个例子中，第三个值"c"是一个不等式约束。所以只会有两个约束被编码。
-** 这个程序将生成计算a==5和b IN (1,2,3)的代码。当前a和b的值将被存储在连续的寄存器中并且返回第一个寄存器的指针。
+**例如，考虑带有索引i1(a,b,c)的表t1(a,b,c,d,e,f)
+**假设WHERE子句是： a==5 AND b IN (1,2,3) AND c>5 AND c<10
+**这个索引有3个等式约束。但是在这里例子中。第三个"c"的值是不等关系。
+**因此，只会生成两个约束的代码。这个程序将生成代码计算a==5 and b IN(1,2,3)。
+**目前，a和b的值将存储在连续的寄存器中，而且返回第一个寄存器的指针。
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** In the example above nEq==2.  But this subroutine works for any value
@@ -5254,12 +5243,8 @@ static int codeEqualityTerm(
 ** compute the affinity string.
 <<<<<<< HEAD
 **在上面示例中nEq==2.但是这个子程序适合于任何nEq值，包含0。
-如果nEq==0，这个程序几乎是无操作。
-它的唯一的操作就是分配pLevel - > iMem的存储单元和计算关联的字符串
-=======
-**
-** 在上面的例子中nEq==2.但这个子程序为nEq所有值工作(包括0).如果nEq==0,这个程序差不多是一个空操作。
-** 它只会为pLevel->iMem分配存储单元和计算亲和字符串
+**如果nEq==0，这个程序几乎是空操作。
+**而它的唯一的操作就是分配pLevel - > iMem的存储单元和计算关联的字符串
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** This routine always allocates at least one memory cell and returns
@@ -5269,14 +5254,9 @@ static int codeEqualityTerm(
 ** this routine allocates an additional nEq memory cells for internal
 ** use.
 <<<<<<< HEAD
-**这个示例总是至少分配一个存储单元并返回索引的存储单元。
-这个编译叫做调用这个例程的代码将使用该存储单元存储终止循环的键值。
-如果一个或多个IN 操作出现,那么这个例程分配额外nEq存储单元供内部使用。
-=======
-**
-** 这个程序总是分配至少一个内存单元和返回内存单元的地址。
-** 编码调用这个程序将使用内存单元来存储循环终端的关键值。
-** 如果出现一个或多个IN操作符，那么这个程序非配一个附加的nEq内存单元供内部使用。
+**这个程序总是分配至少一个内存单元和返回内存单元的指针。
+**调用这个程序的代码将使用那块内存单元存储循环的最终键值
+**如果出现一个或多个IN操作符，那么这个程序会分配一个额外的nEq内存单元供内部使用。
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ** Before returning, *pzAff is set to point to a buffer containing a
@@ -5284,10 +5264,10 @@ static int codeEqualityTerm(
 ** sqlite3DbMalloc(). Except, entries in the copy of the string associated
 ** with equality constraints that use NONE affinity are set to
 ** SQLITE_AFF_NONE. This is to deal with SQL such as the following:
-**在返回前，* pzAff设置为指向缓冲区包含索引的
-列关联的字符串的副本，分配使用sqlite3DbMalloc()。
-除了条目相关联的字符串的副本具有等式约束，这里使用将SQLITE_AFF_NONE表示没关联。
-这是SQL处理如以下:
+**在返回之前，设置*pzAff指向缓冲区，这个缓冲区包含索引的
+**列关联的字符串的副本，这个索引是使用sqlite3DbMalloc()分配的。
+**除了条目相关联的字符串的副本具有等式约束，这里使用将SQLITE_AFF_NONE表示没关联。
+**这是SQL处理，如以下:
 **   CREATE TABLE t1(a TEXT PRIMARY KEY, b);
 **   SELECT ... FROM t1 AS t2, t1 WHERE t1.a = t2.b;
 **
@@ -5297,15 +5277,15 @@ static int codeEqualityTerm(
 ** a key to search the index. Hence the first byte in the returned affinity
 ** string in this example would be set to SQLITE_AFF_NONE.
 <<<<<<< HEAD
-在上面的例子中。表t1(a)有一个TEXT索引。但是因为等式右边t2.b没有关联。
-在使用t2.b值作为搜索索引的关键的一部分，没有转换应该尝试。
-因此在这个例子，返回字符串中第一个字节将会设置为SQLITE_AFF_NONE。
+**在上面的例子中。表t1(a)有一个TEXT类型索引。但是因为等式约束右边t2.b没有亲和性。
+**在使用t2.b值作为搜索索引的关键的一部分，我们不应该尝试转换。
+**因此在这个例子，返回关联的字符串中第一个字节将会设置为SQLITE_AFF_NONE。
 */
 static int codeAllEqualityTerms(
   Parse *pParse,        /* 解析上下文 */
   WhereLevel *pLevel,   /*编译FROM嵌套循环 */
   WhereClause *pWC,     /* where子句*/
-  Bitmask notReady,     /* 部分FROM没有编译 */
+  Bitmask notReady,     /* 哪一部分FROM没有编译 */
   int nExtraReg,        /* 分配大量额外的寄存器 */
   char **pzAff          /*设置为指向关联的字符串 */
 ){
@@ -5313,55 +5293,20 @@ static int codeAllEqualityTerms(
   Vdbe *v = pParse->pVdbe;      /*建立vm */
   Index *pIdx;                  /* 索引被用于这个循环*/
   int iCur = pLevel->iTabCur;   /* 表的游标 */
-  WhereTerm *pTerm;             /* 一个简单的约束查询 */
+  WhereTerm *pTerm;             /* 一个简单的约束条件 */
   int j;                        /* 循环计数器 */
   int regBase;                  /* 基址寄存器*/
   int nReg;                     /* 分配寄存器数目 */
   char *zAff;                   /* 返回关联字符串 */
 
   /* This module is only called on query plans that use an index. 
-  这个模块只是用于使用索引的查询计划。
+  **这个模块只是用于建议使用索引的查询计划。
   */
-=======
-**
-** 在返回前，设置*pzAff指向一个使用sqlite3DbMalloc()分配的包含索引的列亲和字符串的副本的缓冲区。
-** 在与等式约束相关的string的副本中的条目使用无亲和性被设置为SQLITE_AFF_NONE.
-** 下面这样处理SQL:
-**   CREATE TABLE t1(a TEXT PRIMARY KEY, b);
-**   SELECT ... FROM t1 AS t2, t1 WHERE t1.a = t2.b;
-** 在上面的例子中，在t1(a)上的索引有TEXT亲和性。但是由于等式约束的右边(t2.b)没有亲和性,
-** 在使用一个t2.b座位一个搜索索引关键的一部分之前，尝试不对等式约束进行转换。
-** 因为在这个例子中返回的亲和字符串的第一个字节将被设为SQLITE_AFF_NONE.
-*/
-static int codeAllEqualityTerms(
-  Parse *pParse,        /* Parsing context 分析上下文 */
-  WhereLevel *pLevel,   /* Which nested loop of the FROM we are coding 我们对FROM的嵌套循环进行编码 */
-  WhereClause *pWC,     /* The WHERE clause WHERE子句 */
-  Bitmask notReady,     /* Which parts of FROM have not yet been coded FROM中还未编码的部分 */
-  int nExtraReg,        /* Number of extra registers to allocate 需要额外分配的寄存器数 */
-  char **pzAff          /* OUT: Set to point to affinity string 设置指向亲和字符串 */
-){
-  int nEq = pLevel->plan.nEq;   /* The number of == or IN constraints to code 需编码的==或IN约束数 */
-  Vdbe *v = pParse->pVdbe;      /* The vm under construction 正在创建的VM */
-  Index *pIdx;                  /* The index being used for this loop 用于这个循环的索引 */
-  int iCur = pLevel->iTabCur;   /* The cursor of the table 表游标 */
-  WhereTerm *pTerm;             /* A single constraint term 一个单独的约束term */
-  int j;                        /* Loop counter 循环计数器 */
-  int regBase;                  /* Base register 基址寄存器 */
-  int nReg;                     /* Number of registers to allocate 用于分配的寄存器数 */
-  char *zAff;                   /* Affinity string to return 返回的亲和字符串 */
-
-  /* This module is only called on query plans that use an index. 这个模块只是在查询计划使用索引时被调用 */
->>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   assert( pLevel->plan.wsFlags & WHERE_INDEXED );
   pIdx = pLevel->plan.u.pIdx;
 
   /* Figure out how many memory cells we will need then allocate them.
-<<<<<<< HEAD
-  找出我们需要多少存储单元然后分配它们
-=======
-  ** 解决我们需要分配多少内存单元
->>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+  **弄明白我们需要多少存储单元,然后分配它们
   */
   regBase = pParse->nMem + 1;
   nReg = pLevel->plan.nEq + nExtraReg;
@@ -5373,11 +5318,7 @@ static int codeAllEqualityTerms(
   }
 
   /* Evaluate the equality constraints
-<<<<<<< HEAD
-  计算平等约束
-=======
   ** 计算等式约束
->>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   assert( pIdx->nColumn>=nEq );
   for(j=0; j<nEq; j++){
@@ -5387,11 +5328,10 @@ static int codeAllEqualityTerms(
     if( pTerm==0 ) break;
     /* The following true for indices with redundant columns. 
 <<<<<<< HEAD
-    以下适用于索引和冗余列。
+    **对于有冗余的列的索引来说，下面是正确的
 =======
     ** Ex: CREATE INDEX i1 ON t1(a,b,a); SELECT * FROM t1 WHERE a=0 AND b=0; 
     **
-    ** 对于有冗余的列的索引来说，下面是正确的。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Ex: CREATE INDEX i1 ON t1(a,b,a); SELECT * FROM t1 WHERE a=0 AND b=0; 
     */
@@ -5429,20 +5369,17 @@ static int codeAllEqualityTerms(
 /*
 ** This routine is a helper for explainIndexRange() below
 <<<<<<< HEAD
-**下面的例子是 explainIndexRange()的帮助
-=======
-**
-** 这个程序辅助explainIndexRange()
+**这个的程度是对下面explainIndexRange()函数的一个辅助
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
-** pStr holds the text of an expression that we are building up one term
+** pStr holds the text of an expression that we are building up one term at a time
 ** at a time.  This routine adds a new term to the end of the expression.
 ** Terms are separated by AND so add the "AND" text for second and subsequent
 ** terms only.
 <<<<<<< HEAD
-pStr持有一个表达式的文本,我们正在建立一个查询。
-这个例程添加一个新术语的表达。
-查询是被AND隔开,所以添加”AND“文本仅供第二和随后的查询
+**pStr保存表达式的文本，即我们每次建立的一个术语。
+**这个程序给表达式的末尾增加了一个新的术语。
+**这些术语由AND分割。因此，只为第二个和后续的术语增加"AND"文本
 */
 static void explainAppendTerm(
   StrAccum *pStr,             /* 建立文本表达 */
@@ -5451,12 +5388,10 @@ static void explainAppendTerm(
   const char *zOp             /* 操作名 */
 =======
 **
-** 当我们每次构建一个term时，用pStr保存表达式的内容。这个程序在表达式的最后增添一个新的term.
-** Terms是根据AND分隔的，所以只为第二个和随后的terms添加一个"AND".
 */
 static void explainAppendTerm(
-  StrAccum *pStr,             /* The text expression being built 构建的文本表达式 */
-  int iTerm,                  /* Index of this term.  First is zero 这个term的下标，第一个是0 */
+  StrAccum *pStr,             /* The text expression being built 建立的文本表达式 */
+  int iTerm,                  /* Index of this term.  First is zero 这个术语的索引，第一个是0 */
   const char *zColumn,        /* Name of the column 列名 */
   const char *zOp             /* Name of the operator 操作者名 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -5473,11 +5408,6 @@ static void explainAppendTerm(
 ** of the subset of table rows scanned by the strategy in the form of an
 ** SQL expression. Or, if all rows are scanned, NULL is returned.
 <<<<<<< HEAD
-**参数扫描表pTab pLevel描述战略。
-这个函数返回一个指向一个字符串缓冲区,
-其中包含一个描述的子集的表行扫描策略的形式一个SQL表达式
-=======
-**
 ** 参数pLevel描述一个扫描表pTab的策略。这个函数返回一个指针，指向一个字符串缓冲区。
 ** 其中字符串缓冲区包含一个通过以一个SQL表达式形式的策略扫描表的行的子集的描述。
 ** 或者，如果扫描所有行，返回NULL.
@@ -5496,9 +5426,6 @@ static void explainAppendTerm(
 ** It is the responsibility of the caller to free the buffer when it is
 ** no longer required.
 <<<<<<< HEAD
-返回的指针指向的内存从sqlite3DbMalloc()获得。
-调用者的责任是自由缓冲区时,它不再是必需的
-=======
 **
 ** 例如，如果查询:
 **   SELECT * FROM t1 WHERE a=1 AND b>2;
@@ -5544,9 +5471,10 @@ static char *explainIndexRange(sqlite3 *db, WhereLevel *pLevel, Table *pTab){
 ** record is added to the output to describe the table scan strategy in 
 ** pLevel.
 <<<<<<< HEAD
-这个函数是无操作,除非目前处理解释查询计划命令。
-如果查询编译是一个解释查询计划,
-单个记录添加到输出用于描述表扫描策略
+**如果当前不是处理一个解释查询计划指令，这个函数就是空操作的.
+**这个函数是无操作,除非目前处理解释查询计划命令。
+**如果查询编译是一个解释查询计划,
+**输出是会添加一个记录来描述在pLevel中的表扫描策略
 */
 static void explainOneScan(
   Parse *pParse,                  /* 解析上下文*/
@@ -5555,19 +5483,6 @@ static void explainOneScan(
   int iLevel,                     /* 值得记录输出 */
   int iFrom,                      /* 值得form集输出 */
   u16 wctrlFlags                  /* sqlite3WhereBegin() 的标记*/
-=======
-**
-** 这个函数是一个空操作，除非当前执行一个EXPLAIN QUERY PLAN命令。
-** 如果开始编译的查询是一个EXPLAIN QUERY PLAN，输出是会添加一个记录来描述在pLevel中的表扫描策略。
-*/
-static void explainOneScan(
-  Parse *pParse,                  /* Parse context 分析上下文 */
-  SrcList *pTabList,              /* Table list this loop refers to 这个循环引用的表列表 */
-  WhereLevel *pLevel,             /* Scan to write OP_Explain opcode for 扫描写入的OP_Explain操作码 */
-  int iLevel,                     /* Value for "level" column of output 输出的"level"列的值 */
-  int iFrom,                      /* Value for "from" column of output 输出的"from"列的值 */
-  u16 wctrlFlags                  /* Flags passed to sqlite3WhereBegin() 传给sqlite3WhereBegin()的标志 */
->>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
   if( pParse->explain==2 ){
     u32 flags = pLevel->plan.wsFlags;
@@ -5653,32 +5568,7 @@ static void explainOneScan(
 ** Generate code for the start of the iLevel-th loop in the WHERE clause
 ** implementation described by pWInfo.
 <<<<<<< HEAD
-生成代码，iLevel-th循环开始被pWInfo在WHERE子句中实现
-*/
-static Bitmask codeOneLoopStart(
-  WhereInfo *pWInfo,   /*完整的WHERE子句的信息 */
-  int iLevel,          /*编码pWInfo->a[]*/
-  u16 wctrlFlags,      /*sqliteInt.h中定义的WHERE_ *标志之一*/
-  Bitmask notReady     /* 当前标的有效空间 */
-){
-  int j, k;            /* 循环计数器 */
-  int iCur;            /* 表的游标 */
-  int addrNxt;         /* 在什么时候跳出循环进入下一个in */
-  int omitTable;       /* 值为真，如果我们只使用索引 */
-  int bRev;            /* 值为真，如果我们倒序扫描 */
-  WhereLevel *pLevel;  /* 水平编码*/
-  WhereClause *pWC;    /*整个where子句的分解 */
-  WhereTerm *pTerm;               /* where子句 */
-  Parse *pParse;                  /* 解析上下文 */
-  Vdbe *v;                        /* 准备支撑结构 */
-  struct SrcList_item *pTabItem;  /* FROM子句编译 */
-  int addrBrk;                    /* 跳出循环*/
-  int addrCont;                   /* 跳出循环进入下一周期 */
-  int iRowidReg = 0;        /*Rowid存储在这个寄存器,如果不是零*/
-  int iReleaseReg = 0;      /* 在返回前，释放临时寄存器 */
-=======
-**
-** 通过pWInfo的描述，为WHERE子句中实现的的第i级循环的开始生成代码
+**生成代码开始由pWInfo描述的WHERE子句的iLevel-th循环
 */
 static Bitmask codeOneLoopStart(
   WhereInfo *pWInfo,   /* Complete information about the WHERE clause WHERE子句的完整信息 */
@@ -5692,7 +5582,7 @@ static Bitmask codeOneLoopStart(
   int omitTable;       /* True if we use the index only 如果我们只使用索引则为TRUE */
   int bRev;            /* True if we need to scan in reverse order 如果我们需要在倒序中扫描则为TRUE */
   WhereLevel *pLevel;  /* The where level to be coded 被编码的where等级 */
-  WhereClause *pWC;    /* Decomposition of the entire WHERE clause 整个WHERE子句的分解 */
+  WhereClause *pWC;    /* Decomposition of the entire WHERE clause 分解整个where子句 */
   WhereTerm *pTerm;               /* A WHERE clause term 一个WHERE子句的term */
   Parse *pParse;                  /* Parsing context 分析上下文 */
   Vdbe *v;                        /* The prepared stmt under constructions 在构建中准备好的stmt */
@@ -5718,13 +5608,8 @@ static Bitmask codeOneLoopStart(
   ** Jump to cont to go immediately to the next iteration of the
   ** loop.
 <<<<<<< HEAD
-  **建标签的“break”和“continue”为当前循环。
-  跳转到addrBrk为了打破循环。
-  立即跳到下一个迭代循环
-=======
-  **
   ** 为当前循环的"break"和"continue"指令的创建标签。跳到addrBrk来跳出循环。
-  ** 跳到addrCont就立即执行下一个循环
+  ** 跳到cont就立即执行下一个迭代循环
   **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   ** When there is an IN operator, we also have a "addrNxt" label that
@@ -5732,12 +5617,9 @@ static Bitmask codeOneLoopStart(
   ** there are no IN operators in the constraints, the "addrNxt" label
   ** is the same as "addrBrk".
 <<<<<<< HEAD
-  当有一个IN operator,我们也有一个“addrNxt”的标签,
-  这意味着,继续处理下一个IN value组合。
-  当没有IN operators的限制,“addrNxt”标签和“addrBrk”一样
-=======
-  ** 当有一个IN运算符，"addrNxt"标签标示继续下一个IN值组合。
-  ** 当约束中没有IN运算符时，"addrNxt"标签和"addrBrk"作用相同。
+  **当有一个IN operator,我们也有一个“addrNxt”的标签,
+  **这意味着,继续处理下一个IN value组合。
+  **当没有IN operators的约束,"addrNxt"标签和"addrBrk"作用相同
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   addrBrk = pLevel->addrBrk = pLevel->addrNxt = sqlite3VdbeMakeLabel(v);
@@ -5747,11 +5629,8 @@ static Bitmask codeOneLoopStart(
   ** initialize a memory cell that records if this table matches any
   ** row of the left table of the join.
 <<<<<<< HEAD
-  如果这是正确的左外连接表,分配和初始化一个存储单元,
-  记录此表匹配任何行左表的连接。
-=======
-  **
-  ** 如果这是一个LEFT OUTER JOIN的右表，分配并初始化一个内存单元来记录此表匹配的join中的左表的行
+  **如果这是正确的左外连接表,分配和初始化一个存储单元,
+  **这个内存单元来记录是否此表与任何左连接表的行匹配。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( pLevel->iFrom>0 && (pTabItem[0].jointype & JT_LEFT)!=0 ){
@@ -5765,10 +5644,8 @@ static Bitmask codeOneLoopStart(
     /* Case 0:  The table is a virtual-table.  Use the VFilter and VNext
     **          to access the data.
 <<<<<<< HEAD
-    表是一个虚拟表。使用VFilter和VNext访问数据
-=======
     **
-    ** 情况0:表是一个虚拟表。使用VFilter和VNext来访问数据。
+    ** 情况0:该表是一个虚拟表。使用VFilter和VNext来访问数据。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     int iReg;   /* P3 Value for OP_VFilter OP_VFilter的P3值 */
@@ -5815,12 +5692,8 @@ static Bitmask codeOneLoopStart(
     **          equality comparison against the ROWID field.  Or
     **          we reference multiple rows using a "rowid IN (...)"
     **          construct.
-<<<<<<< HEAD
-    我们可以直接引用一个单行对ROWID字段使用相等的比较。
-    或者我们使用引用多个行“rowid(…)IN”构造。
-=======
     **
-    ** 情况1:我们可以直接引用一个单行使用等式与ROWID字段比较。
+    ** 情况1:我们可以直接使用等式与ROWID字段比较来引用一个单行。
     **       或引用多行使用"rowid IN (...)"结构。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
@@ -5841,10 +5714,7 @@ static Bitmask codeOneLoopStart(
   }else if( pLevel->plan.wsFlags & WHERE_ROWID_RANGE ){
     /* Case 2:  We have an inequality comparison against the ROWID field.
 <<<<<<< HEAD
-    我们对ROWID字段有不相等的比较
-=======
-    **
-    ** 情况2:有一个与ROWID字段进行的不等式比较
+    **情况2:我们对ROWID字段有不相等的比较
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     int testOp = OP_Noop;
@@ -5867,17 +5737,11 @@ static Bitmask codeOneLoopStart(
 
       /* The following constant maps TK_xx codes into corresponding 
       ** seek opcodes.  It depends on a particular ordering of TK_xx
-      下列常数TK_xx代码映射到相应的操作码。
-      这取决于一个特定TK_xx指示
-=======
+      **下列常数映射TK_xx代码到相应的操作码。
+      **这取决于一个特定TK_x排序
+
       Expr *pX;             /* The expression that defines the start bound 表达式定义了开始范围 */
       int r1, rTemp;        /* Registers for holding the start boundary 保存开始范围的寄存器 */
-
-      /* The following constant maps TK_xx codes into corresponding 
-      ** seek opcodes.  It depends on a particular ordering of TK_xx
-      **
-      ** 下面的常量根据TK_xx特殊的顺序，把TK_xx映射到相应的搜索操作码。
->>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       */
       const u8 aMoveOp[] = {
            /* TK_GT */  OP_SeekGt,
@@ -5965,38 +5829,18 @@ static Bitmask codeOneLoopStart(
     **         constraints but an index is selected anyway, in order
     **         to force the output order to conform to an ORDER BY.
 <<<<<<< HEAD
-    where子句可能有0个或者多个相等关系（"==" or "IN" ）涉及到N个最左连接索引
-    它可能也有不等关系(>, <, >= or <=)在索引集中紧跟着Ｎ相等关系。
-    只有最右连接集才可以成为相等，剩余的必须用于 "==" and "IN" 。
-    例如以(x,y,z)建立索引。下面所有的子句都是最优的。
-    　　　　　　　x=5
-=======
     **
     ** 情况3:使用索引的扫描
-    **         WHERE子句可能包含0或多个等式
-    **         terms ("=="或"IN"运算符)涉及到N个索引最左边的列.
+    **         WHERE子句可能包含0或多个等式条件("=="或"IN"运算符)
+	**			这些条件涉及到N个索引最左边的列.
     **         它可能在索引列上也包含不等式约束(>, <, >= or <=)，紧随其后有N个等式。
     **         只有最右边的列可以为一个不等式--其余的必须使用"=="和"IN"运算符。
     **         例如，如过有一个在(x,y,z)的索引，下面的子句都可以进行优化:
-    **            x=5
->>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
-    **            x=5 AND y=10
-    **            x=5 AND y<10
-    **            x=5 AND y>5 AND y<10
-    **            x=5 AND y=5 AND z<=10
-<<<<<<< HEAD
-    下面的z<10是无用的。因为它有x=5约束
-    N可能是0如果这个有不等约束。
-    如果这里没有不等条件那么N至少为1.
-    
-    这种情况下也没有WHERE子句约束但索引选择使用,
-    为了迫使输出顺序符合ORDER BY。
-=======
-    **         下面的例子中z<10不能优化，只有x=5可以:
-    **            x=5 AND z<10
-    **         如果有不等式约束那么N可能为0.如果没有不等式约束，N至少为1.
-    **         
-    **         当没有WHERE子句约束，但选出了一个索引并且为了强行让输出符合ORDER BY顺序时，这种情况也是适用的。
+    **			下面的例子中z<10不能优化。只有x=5可以:
+    **			N可能是0如果有不等约束。
+    **			如果这里没有不等约束，那么N至少为1.
+	** 			当没有WHERE子句约束，但选出了一个索引并且为了强行让输出符合ORDER BY顺序时，这种情况也是适用的。
+    **        
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */  
     static const u8 aStartOp[] = {
@@ -6062,16 +5906,10 @@ static Bitmask codeOneLoopStart(
     ** the first one after the nEq equality constraints in the index,
     ** this requires some special handling.
 <<<<<<< HEAD
-    如果这个循环满足排序顺序(pOrderBy)
-    请求传递给这个函数实现一个“选择min(x)…“查询,
+    如果这个循环满足排序(pOrderBy)请求，将这个请求传递给这个函数实现一个"SELECT min(x) ..."查询，
     那么调用者将只允许为一个迭代循环运行。
-    这意味着第一行不应该返回NULL值存储在“x”。
-    如果列“x”后的第一个nEq等式约束的指数,这需要一些特殊的处理。
-=======
-    **
-    ** 如果这个循环满足一个排序顺序(pOrderBy)的请求，传递给这个函数实现一个"SELECT min(x) ..."查询，
-    ** 那么调用者只允许循环为一个迭代运行。这意味着返回的第一行不能有NULL值存储在'x'中。
-    ** 如果列'x'是索引中nEq个等式约束后第一个，这会请求一些特别处理。
+    这意味着返回的第一行不应该有存储在“x”的NULL值。
+    如果列'x'是索引中nEq个等式约束后第一个,这需要一些特殊的处理。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (wctrlFlags&WHERE_ORDERBY_MIN)!=0
@@ -6087,10 +5925,7 @@ static Bitmask codeOneLoopStart(
     /* Find any inequality constraint terms for the start and end 
     ** of the range. 
 <<<<<<< HEAD
-    找到任何不等式约束条件范围的开始和结束。
-=======
-    **
-    ** 为范围的开始和结尾查找不等式约束terms
+    ** 为范围的开始和结尾寻找不等式约束条件
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_TOP_LIMIT ){
@@ -6106,9 +5941,6 @@ static Bitmask codeOneLoopStart(
     ** and store the values of those terms in an array of registers
     ** starting at regBase.
 <<<<<<< HEAD
-    使用= = enerate代码来评估所有约束条件或在这些条件
-    的值存储在一个数组在regBase寄存器的开始。
-=======
     **
     ** 生成代码来计算所有使用==或IN约束terms并且把这些terms的值存储在由regBase开始的一组寄存器中。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -6123,12 +5955,10 @@ static Bitmask codeOneLoopStart(
     ** a forward order scan on a descending index, interchange the 
     ** start and end terms (pRangeStart and pRangeEnd).
 <<<<<<< HEAD
-    如果我们做一个逆序扫描一个升序索引,
-    或转发顺序降序索引扫描,
-    交换的开始和结束条件(pRangeStart和pRangeEnd)
-=======
+    如果我们逆序扫描一个升序索引,
+    或先序扫描降序索引,
+    交换开始和结束条件(pRangeStart和pRangeEnd)
     **
-    ** 如果我们在升序索引上做一个倒序扫描，或者在一个降序索引上做一个先序扫描，交换开始和结束的terms(pRangeStart and pRangeEnd).
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (nEq<pIdx->nColumn && bRev==(pIdx->aSortOrder[nEq]==SQLITE_SO_ASC))
@@ -6147,10 +5977,8 @@ static Bitmask codeOneLoopStart(
 
 <<<<<<< HEAD
     /* Seek the index cursor to the start of the range.
-    寻求索引指针范围的开始。
+    寻求索引游标范围的开始。
      */
-=======
-    /* Seek the index cursor to the start of the range. 查询索引游标范围的开始 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     nConstraint = nEq;
     if( pRangeStart ){
@@ -6162,17 +5990,12 @@ static Bitmask codeOneLoopStart(
       if( zStartAff ){
         if( sqlite3CompareAffinity(pRight, zStartAff[nEq])==SQLITE_AFF_NONE){
           /* Since the comparison is to be performed with no conversions
-          ** applied to the operands, set the affinity to apply to pRight to 
+          ** applied to the operands, set the affinity to apply to pRight to SQLITE_AFF_NONE
 <<<<<<< HEAD
           ** SQLITE_AFF_NONE.
-          由于比较是没有执行转换应用于操作数,
-          设置关联应用pRight SQLITE_AFF_NONE。
-            */
-=======
-          ** SQLITE_AFF_NONE.  
-          **
-          ** 由于应用在运算对象上的比较是未转换的，设置pRight的亲和性为SQLITE_AFF_NONE
-          */
+          由于执行的比较是没有转换就应用于操作数,
+          设置pRight的亲和性为SQLITE_AFF_NONE
+            */        
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           zStartAff[nEq] = SQLITE_AFF_NONE;
         }
@@ -6202,10 +6025,7 @@ static Bitmask codeOneLoopStart(
     /* Load the value for the inequality constraint at the end of the
     ** range (if any).
 <<<<<<< HEAD
-    加载不等式约束的范围的值(如果有的话)
-=======
-    **
-    ** 为范围的末尾的不等式约束加载值。
+    在范围的结尾加载不等式约束的值(如果有的话)
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     nConstraint = nEq;
@@ -6222,8 +6042,8 @@ static Bitmask codeOneLoopStart(
           ** applied to the operands, set the affinity to apply to pRight to 
 <<<<<<< HEAD
           ** SQLITE_AFF_NONE. 
-          由于比较是没有执行转换应用于操作数,
-          设置关联申请pRight SQLITE_AFF_NONE。
+          由于执行的比较是没有转换应用于操作数,
+          设置pRight的亲和性为SQLITE_AFF_NONE
            */
 =======
           ** SQLITE_AFF_NONE.  
@@ -6249,10 +6069,8 @@ static Bitmask codeOneLoopStart(
 
 <<<<<<< HEAD
     /* Check if the index cursor is past the end of the range. 
-    检查索引指针是否结束过去的范围。
+    检查索引指针是否超过范围的结束。
     */
-=======
-    /* Check if the index cursor is past the end of the range. 检查索引游标是否经过范围的末尾 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     op = aEndOp[(pRangeEnd || nEq) * (1 + bRev)];
     testcase( op==OP_Noop );
@@ -6267,13 +6085,8 @@ static Bitmask codeOneLoopStart(
     ** of the table column that the inequality contrains is not NULL.
     ** If it is, jump to the next iteration of the loop.
 <<<<<<< HEAD
-    如果有不等式约束,检查表列的值,
-    不平等contrains不是空的。
-    如果是,跳转到下一个迭代的循环。
-=======
-    **
-    ** 如果有不等式约束，检查表中有不等式约束的列的值是否不为NULL.
-    ** 如果不为NULL，跳到下一个循环迭代
+    **如果有不等式约束,检查表中不等约束非NULL的列的值,
+    **如果是,跳转到下一个迭代的循环。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     r1 = sqlite3GetTempReg(pParse);
@@ -6287,10 +6100,8 @@ static Bitmask codeOneLoopStart(
 
 <<<<<<< HEAD
     /* Seek the table cursor, if required 
-    寻求表指针,如果需要的话
+    寻找表指针,如果需要的话
     */
-=======
-    /* Seek the table cursor, if required 如果需要，查询表游标 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     disableTerm(pLevel, pRangeStart);
     disableTerm(pLevel, pRangeEnd);
@@ -6304,10 +6115,8 @@ static Bitmask codeOneLoopStart(
     /* Record the instruction used to terminate the loop. Disable 
     ** WHERE clause terms made redundant by the index range scan.
 <<<<<<< HEAD
-    记录使用的指令终止循环。禁用WHERE子句由索引范围扫描造成的冗余。
-=======
     **
-    ** 记录用于结束循环的指令。
+    ** 记录用于终止循环的指令。禁用WHERE子句由索引范围扫描造成的冗余。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_UNIQUE ){
@@ -6323,7 +6132,6 @@ static Bitmask codeOneLoopStart(
 #ifndef SQLITE_OMIT_OR_OPTIMIZATION
   if( pLevel->plan.wsFlags & WHERE_MULTI_OR ){
     /* Case 4:  Two or more separately indexed terms connected by OR
-    **两个或两个以上的独立索引术语或连接
     ** Example:
     **
     **   CREATE TABLE t1(a,b,c,d);
@@ -6335,16 +6143,12 @@ static Bitmask codeOneLoopStart(
     **
     ** In the example, there are three indexed terms connected by OR.
     ** The top of the loop looks like this:
-    **在这个例子中,有三个索引术语或连接。
     **          Null       1                # Zero the rowset in reg 1
     **
     ** Then, for each indexed term, the following. The arguments to
     ** RowSetTest are such that the rowid of the current row is inserted
     ** into the RowSet. If it is already present, control skips the
     ** Gosub opcode and jumps straight to the code generated by WhereEnd().
-    **然后,为每个索引术语,下面。
-    RowSet的参数,rowid当前行插入到行集。
-    如果它已经存在,由WhereEnd()控制跳过Gosub操作码和跳跃直接生成的代码。
     **        sqlite3WhereBegin(<term>)
     **          RowSetTest                  # Insert rowid into rowset
     **          Gosub      2 A
@@ -6352,7 +6156,6 @@ static Bitmask codeOneLoopStart(
     **
     ** Following the above, code to terminate the loop. Label A, the target
     ** of the Gosub above, jumps to the instruction right after the Goto.
-    **有上面的可知，下面的代码终止循环。标签A上面Gosub的目标,跳转指令之后转到。
     **          Null       1                # Zero the rowset in reg 1
     **          Goto       B                # The loop is finished.
     **
@@ -6375,7 +6178,7 @@ static Bitmask codeOneLoopStart(
     ** 在这个例子中，有3个带索引的terms被OR连接。
     ** 循环的顶部像这样:
     **
-    **          Null       1                # 在寄存器1中把rowset清零
+    **          Null       1                # 把寄存器1中的rowset清零
     **
     ** 那么，对于接下来的每个有索引的term.传递给RowSetTest的参数是当前插入到RowSet的行的rowid. 
     ** 如果已经存在，控制跳过这个Gosub操作码并且直接跳到由WhereEnd()直接生成的代码。
@@ -6389,7 +6192,7 @@ static Bitmask codeOneLoopStart(
     **          Null       1                # 在寄存器1中把rowset清零
     **          Goto       B                # 循环结束.
     **
-    **       A: <loop body>                 # Return data, whatever.
+    **       A: <loop body>                 # 不管怎样，返回数据
     **
     **          Return     2                # 跳回到Gosub
     **
@@ -6397,21 +6200,7 @@ static Bitmask codeOneLoopStart(
     **
     */
 <<<<<<< HEAD
-    WhereClause *pOrWc;    /* The OR-clause broken out into subterms */
-    SrcList *pOrTab;       /* Shortened table list or OR-clause generation */
-    Index *pCov = 0;             /* 可能覆盖索引(或者为空) */
-    int iCovCur = pParse->nTab++;  /* 游标用于索引扫描(如果有的话) */
-
-    int regReturn = ++pParse->nMem;           /* 寄存器使用OP_Gosub*/
-    int regRowset = 0;                        /* 寄存RowSet对象 */
-    int regRowid = 0;                         /* 寄存器存放rowid*/
-    int iLoopBody = sqlite3VdbeMakeLabel(v);  /* 循环体开始 */
-    int iRetInit;                             /* regReturn的地址 */
-    int untestedTerms = 0;             /* 一些子句不能完全测试 */
-    int ii;                            /* 循环计数器 */
-    Expr *pAndExpr = 0;                /* An ".. AND (...)" expression */
-=======
-    WhereClause *pOrWc;    /* The OR-clause broken out into subterms ORi子句分裂的子terms */
+    WhereClause *pOrWc;    /* The OR-clause broken out into subterms OR子句分裂的子terms */
     SrcList *pOrTab;       /* Shortened table list or OR-clause generation 缩小表列表或OR子句的生产 */
     Index *pCov = 0;             /* Potential covering index (or NULL) 可能的覆盖索引(或NULL) */
     int iCovCur = pParse->nTab++;  /* Cursor used for index scans (if any) 用于索引扫描的游标 */
@@ -6419,7 +6208,7 @@ static Bitmask codeOneLoopStart(
     int regReturn = ++pParse->nMem;           /* Register used with OP_Gosub 寄存器使用OP_Gosub */
     int regRowset = 0;                        /* Register for RowSet object 用于RowSet对象的寄存器 */
     int regRowid = 0;                         /* Register holding rowid 保存rowid的寄存器 */
-    int iLoopBody = sqlite3VdbeMakeLabel(v);  /* Start of loop body 循环体的开始 */
+    int iLoopBody = sqlite3VdbeMakeLabel(v);  /* Start of loop body 开始循环体 */
     int iRetInit;                             /* Address of regReturn init regReturn地址初始化 */
     int untestedTerms = 0;             /* Some terms not completely tested 一些没完全测试的terms */
     int ii;                            /* Loop counter 循环计数器 */
@@ -6470,10 +6259,7 @@ static Bitmask codeOneLoopStart(
     /* Initialize the rowset register to contain NULL. An SQL NULL is 
     ** equivalent to an empty rowset.
 <<<<<<< HEAD
-    **初始化行集寄存器包含NULL。一个SQL空相当于一个空行集。
-=======
-    **
-    ** 初始化rowset寄存器包含NULL.一个SQL NULL是等价于一个空的rowset.
+    **初始化行集寄存器包含NULL。一个SQL NULL是等价于一个空的行集。
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Also initialize regReturn to contain the address of the instruction 
@@ -6484,11 +6270,6 @@ static Bitmask codeOneLoopStart(
     ** fall through to the next instruction, just as an OP_Next does if
     ** called on an uninitialized cursor.
 <<<<<<< HEAD
-    初始化regReturn包含指令地址和OP_Return底部循环。
-    这是需要在几个模糊左连接情况在控制跳过循环的顶部进入体情况下。
-    在这种情况下正确的响应end-of-loop代码(OP_Return)下降到下一个指令,
-    正如一个OP_Next所作如果要求未初始化的指针。
-=======
     **
     ** 同时也初始化regReturn包含指令地址，这个regReturn是紧跟着循环底部的OP_Return.
     ** 在这种情况对于循环结束编码的正确响应是要跳过下一个指令，
@@ -6507,12 +6288,8 @@ static Bitmask codeOneLoopStart(
     ** That way, terms in y that are factored into the disjunction will
     ** be picked up by the recursive calls to sqlite3WhereBegin() below.
 <<<<<<< HEAD
-    **如果原始WHERE子句的z形式:(x1或x2或…)和y。然后每个子句xN,
-    评估子表达式:xN和z,子句的y分解成析取将被递归调用sqlite3WhereBegin()。
-=======
-    **
-    ** 如果原始的WHERE子句是z这种形式:(x1 OR x2 OR ...) AND y.那么对于每一个term xN,计算字表达式:xN AND z.
-    ** 那样，在y中的terms通过调用下面的sqlite3WhereBegin()来进行分解。
+    **如果原始WHERE子句是z形式:(x1或x2或…)和y。然后每个子句xN,
+    计算子表达式:xN和z,那样，在y中的terms通过递归调用下面的sqlite3WhereBegin()来进行分解
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     ** Actually, each subexpression is converted to "xN AND w" where w is
@@ -6520,9 +6297,6 @@ static Bitmask codeOneLoopStart(
     ** ON or USING clause of a LEFT JOIN, and terms that are usable as 
     ** indices.
 <<<<<<< HEAD
-    实际上,每个子表达式转换为“xN和w”,w是“有趣”的z -
-    术语。并不起源于左连接或使用条款,这个可用索引。
-=======
     **
     ** 事实上，每个子表达式转化为"xN AND w"，
     ** 其中w是z的"interesting" terms-terms不是源于LEFT JOIN的ON或USING子句,并且terms可以被当做索引使用。
@@ -6554,10 +6328,8 @@ static Bitmask codeOneLoopStart(
         }
 <<<<<<< HEAD
         /* Loop through table entries that match term pOrTerm.
-        遍历表与术语pOrTerm相匹配的条目。
+        遍历与术语pOrTerm相匹配的表项目。
          */
-=======
-        /* Loop through table entries that match term pOrTerm. 循环遍历表中匹配pOrTerm的条目 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         pSubWInfo = sqlite3WhereBegin(pParse, pOrTab, pOrExpr, 0, 0,
                         WHERE_OMIT_OPEN_CLOSE | WHERE_AND_ONLY |
@@ -6583,12 +6355,8 @@ static Bitmask codeOneLoopStart(
           ** terms from the notReady table could not be tested and will
           ** need to be tested later.
 <<<<<<< HEAD
-          pSubWInfo - > untestedTerms标志意味着这OR连接词包含一个或多个关键表。
-          notReady 表不能测试,稍后需要测试。
-=======
-          **
-          ** pSubWInfo->untestedTerms标志代表这个OR term包含了来自一个notReady表的一个或多个AND term.
-          ** 来自notReady表的terms不能被测试并且稍后将需要测试。
+          pSubWInfo - > untestedTerms标志意味着这OR连接词包含一个或多个来自notReady表的AND term。
+          来自notReady表的terms不能被测试并且稍后需要测试。      
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
           if( pSubWInfo->untestedTerms ) untestedTerms = 1;
@@ -6598,30 +6366,21 @@ static Bitmask codeOneLoopStart(
           ** by each call to sqlite3WhereBegin() made by this loop, it may
           ** be possible to use that index as a covering index.
 <<<<<<< HEAD
-          **如果所有的OR连接词都是已经优化的而且使用相同的指数,
-          索引使用相同的游标打开索引号由每个调用sqlite3WhereBegin()由这个循环,
-          它可能会使用该指数作为覆盖索引。
-=======
-          **
-          ** 如果使用相同的索引优化所有OR连接的terms，
-          ** 并且通过每次调用由循环制造的sqlite3WhereBegin()来使用相同的游标数据打开索引,
-          ** 那么可能会把这个索引作为覆盖索引使用。
+          **如果所有的OR连接词使用相同的索引都是已经优化的,
+          并且通过每次调用由循环产生的sqlite3WhereBegin()来使用相同的游标数据打开索引
+          使用该索引作为覆盖索引是可能的
           **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           ** If the call to sqlite3WhereBegin() above resulted in a scan that
           ** uses an index, and this is either the first OR-connected term
-          ** processed or the index is the same as that used by all previous
+          ** processed or the index i       s the same as that used by all previous
           ** terms, set pCov to the candidate covering index. Otherwise, set 
           ** pCov to NULL to indicate that no candidate covering index will 
           ** be available.
 <<<<<<< HEAD
-          如果调用sqlite3WhereBegin()导致一个使用索引扫描,
-          这是第一个OR连接词处理或使用的索引是一样的,设置pCov候选覆盖索引 。
-          否则,pCov设置为空,表示没有候选覆盖索引将是可用的
-=======
           **
-          ** 如果调用sqlite3WhereBegin()导致使用索引扫描，
-          ** 并且这是第一次执行OR-connected term或使用的索引与前面所有的terms形态,把pCov设置为候选的覆盖索引。
+          ** 如果调用上面的sqlite3WhereBegin()导致使用索引扫描，
+          ** 并且这是第一次执行OR-connected term或使用的索引与前面所有的terms形态一样,把pCov设置为候选的覆盖索引。
           ** 否则，把pCov设置为NULL来说明没有候选的覆盖索引可供使用。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
@@ -6640,8 +6399,6 @@ static Bitmask codeOneLoopStart(
           /* Finish the loop through table entries that match term pOrTerm.
           完成遍历表与术语pOrTerm相匹配的条目。
            */
-=======
-          /* Finish the loop through table entries that match term pOrTerm. 完成表中匹配pOrTerm的条目的循环遍历 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           sqlite3WhereEnd(pSubWInfo);
         }
@@ -6666,10 +6423,7 @@ static Bitmask codeOneLoopStart(
     /* Case 5:  There is no usable index.  We must do a complete
     **          scan of the entire table.
 <<<<<<< HEAD
-    没有可用的索引。我们必须做一个完整的扫描整个表。
-=======
-    **
-    ** 情况5:没有可用的索引。我们做一个全表扫描。
+    情况5:没有可用的索引。我们必须对整个表做一个完整的扫描。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     static const u8 aStep[] = { OP_Next, OP_Prev };
@@ -6686,19 +6440,11 @@ static Bitmask codeOneLoopStart(
   /* Insert code to test every subexpression that can be completely
   ** computed using the current set of tables.
 <<<<<<< HEAD
-  **使用当前的一组表来完全插入代码来测试计算每个子表达式。
+	**插入代码测试每个子表达式，这些子表达式可以完全使用当前的表集合计算
   ** IMPLEMENTATION-OF: R-49525-50935 Terms that cannot be satisfied through
   ** the use of indices become tests that are evaluated against each row of
   ** the relevant input tables.
-  条件不能满足通过使用指数成为测试评估相关的输入表的每一行。
-=======
-  **
-  ** 插入代码来测试每一个可以使用当前一系列的表来完整计算的子表达式
-  **
-  ** IMPLEMENTATION-OF: R-49525-50935 Terms that cannot be satisfied through
-  ** the use of indices become tests that are evaluated against each row of
-  ** the relevant input tables.
-  ** IMPLEMENTATION-OF: R-49525-50935 不能使用索引的terms成为计算相关输入表的每行的测试
+  **条件不能满足通过使用指数成为测试,评估这些测试与相关输入表的每一行
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   for(pTerm=pWC->a, j=pWC->nTerm; j>0; j--, pTerm++){
@@ -6724,11 +6470,7 @@ static Bitmask codeOneLoopStart(
   /* For a LEFT OUTER JOIN, generate code that will record the fact that
 <<<<<<< HEAD
   ** at least one row of the right table has matched the left table.  
-  对于一个左外连接,生成的代码将记录的事实至少对表的一行匹配左表。
-=======
-  ** at least one row of the right table has matched the left table. 
-  **
-  ** 对于一个LEFT OUTER JOIN,生成代码来记录右表至少有一行与左表相匹配的事实。
+  **对于一个左外连接,生成的代码将记录一个事实，即右表中至少一行与左表匹配
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
   if( pLevel->iLeftJoin ){
