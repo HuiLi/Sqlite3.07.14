@@ -101,19 +101,20 @@
 **
 ** 我们经常定义一个块的索引在 mem3.aPool[]中。这样做时，这块的索引与第二块相关。
 ** 用这种方法，第一个块有了1索引。一个块索引为0意味着“无这样的块”和等效为一个空指针u.list由第二块为自由块组成。
-** 这两块领域形成一个双链表的相关尺寸块。  较小的块将头指针储存在mem3.aiSmall[]，较大的块将头指针储存在mem3.aiHash[]
+** 这两块领域形成一个双链表的相关尺寸块。 
+** 较小的块将头指针储存在mem3.aiSmall[]，较大的块将头指针储存在mem3.aiHash[]
 ** 如果chunk被检查，那么chunk中的第二个块是用户数据。如果chunk被检验,那么用户数据将会被延生至下一个chunk的u.hdr.prevSize值内。
 */
 typedef struct Mem3Block Mem3Block;   //定义一个任意类型的数据块结构体
 struct Mem3Block {
   union {       //联合体，它里面定义的每个变量使用同一段内存空间，达到节约空间的目的
     struct {
-      u32 prevSize;   /* Size of previous chunk in Mem3Block elements */ //前一个chunk的大小
-      u32 size4x;     /* 4x the size of current chunk in Mem3Block elements *///当前chunk大小
+      u32 prevSize;   /* Size of previous chunk in Mem3Block elements  前一个chunk的大小 */
+      u32 size4x;     /* 4x the size of current chunk in Mem3Block elements  当前chunk大小 */
     } hdr;    //chunk中的第一个block名为hdr，不返回给用户
     struct {
-      u32 next;       /* Index in mem3.aPool[] of next free chunk *///下一个未使用chunk的索引号
-      u32 prev;       /* Index in mem3.aPool[] of previous free chunk *///前一个未使用chunk的索引号
+      u32 next;       /* Index in mem3.aPool[] of next free chunk  下一个未使用chunk的索引号 */
+      u32 prev;       /* Index in mem3.aPool[] of previous free chunk  前一个未使用chunk的索引号 */
     } list;   //chunk中的第二个block名为list
   } u;   //定义了一个名为u的chunk
 };
@@ -132,7 +133,7 @@ static SQLITE_WSD struct Mem3Global {
   ** Memory available for allocation. nPool is the size of the array
   ** (in Mem3Blocks) pointed to by aPool less 2.
   ** 
-  ** 为. nPool配置的可用内存大小为数组(in Mem3Blocks)所指的小于2的aPool。
+  ** 可用内存. nPool配置的可用内存大小为数组(in Mem3Blocks)所指的小于2的aPool。
   */
   u32 nPool;   //内存变量数组分配的空间大小
   Mem3Block *aPool;//指向Mem3Block类型变量的指针，用于指向nPool
@@ -164,7 +165,7 @@ static SQLITE_WSD struct Mem3Global {
   ** of the current master.  iMaster is 0 if there is not master chunk.
   ** The master chunk is not in either the aiHash[] or aiSmall[].
   **
-  ** iMaster是主块索引。  这个块发生了大部分新分配。szMaster的大小（在Mem3Blocks）由 当前主块决定。
+  ** iMaster是主块索引。这个块发生大部分新分配。szMaster的大小（在Mem3Blocks）由 当前主块决定。
   ** 如果没有主块，则iMaster为0.主块既不在aiHash[] 也不在aiSmall[]。
   */
   u32 iMaster;  //新分配的chunk的索引号
@@ -178,15 +179,17 @@ static SQLITE_WSD struct Mem3Global {
   ** 根据块的大小为更小的块排列空闲块列表数组，或是为更大块建哈希表。
   */
   
-  u32 aiSmall[MX_SMALL-1]; /* For sizes 2 through MX_SMALL, inclusive *///双链表中较小的chunk数组
-  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1 and larger *///较大chunk
+  u32 aiSmall[MX_SMALL-1]; /* For sizes 2 through MX_SMALL, inclusive  双链表中较小的chunk数组 */
+  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1 and larger  较大chunk */
 } mem3 = { 97535575 };//定义一个名为mem3的全局变量并赋值
 
 #define mem3 GLOBAL(struct Mem3Global, mem3)
 /*
 ** Unlink the chunk at mem3.aPool[i] from list it is currently
 ** on.  *pRoot is the list that i is a member of.
-*/                   //该函数把当前使用的块移出列表
+** 
+** 该函数把当前使用的块移出列表
+*/                  
 static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
   u32 next = mem3.aPool[i].u.list.next;  //将索引号为aPool[i]的块的下一个块索引号赋值给next
   u32 prev = mem3.aPool[i].u.list.prev;  //将索引号为aPool[i]的块的前一个块索引号赋给prev
@@ -207,8 +210,9 @@ static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
 /*
 ** Unlink the chunk at index i from 
 ** whatever list is currently a member of.
+** 
+** 该函数将某个块移出列表
 */      
-//该函数将某个块移出列表
 static void memsys3Unlink(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
@@ -229,8 +233,9 @@ static void memsys3Unlink(u32 i){
 /*
 ** Link the chunk at mem3.aPool[i] so that is on the list rooted
 ** at *pRoot.
+** 
+** 将mem3.aPool[i]对应块链接到列表中
 */    
-//将mem3.aPool[i]对应块链接到列表中
 static void memsys3LinkIntoList(u32 i, u32 *pRoot){
   assert( sqlite3_mutex_held(mem3.mutex) );
   mem3.aPool[i].u.list.next = *pRoot;   //索引号为i的块的下一块索引号设为*pRoot
@@ -267,6 +272,8 @@ static void memsys3Link(u32 i){
 ** If the STATIC_MEM mutex is not already held, obtain it now. The mutex
 ** will already be held (obtained by code in malloc.c) if
 ** sqlite3GlobalConfig.bMemStat is true.
+** 
+** 如果STATIC_MEM锁没有被获取，则现在获取锁。如果sqlite3GlobalConfig.bMemStat为真的话，互斥锁也会被获取。
 */    
 //该函数用于获取互斥锁,通过sqlite3GlobalConfig.bMemstat的值来判断是否已经获取
 static void memsys3Enter(void){
@@ -281,8 +288,9 @@ static void memsys3Leave(void){
 
 /*
 ** Called when we are unable to satisfy an allocation of nBytes.
+** 
+** 内存不够分配nbyte大小的空间时调用该函数
 */   
-//内存不够分配nbyte大小的空间时调用该函数
 static void memsys3OutOfMemory(int nByte){
   if( !mem3.alarmBusy ){  //mem3.alarmBusy为假时进行内存回收
     mem3.alarmBusy = 1;  //赋值为1表示进行内存回收
@@ -353,9 +361,14 @@ static void *memsys3FromMaster(u32 nBlock){
 ** *pRoot is the head of a list of free chunks of the same size
 ** or same size hash.  In other words, *pRoot is an entry in either
 ** mem3.aiSmall[] or mem3.aiHash[].  
+** 
+** *pRoot是相同大小或相同索引大小的空闲块列表的的头部。
+** *pRoot是mem3.aiSmall[]或mem3.aiHash[]的入口。
 **
 ** This routine examines all entries on the given list and tries
 ** to coalesce each entries with adjacent free chunks.  
+** 
+** 这个例程检查所有给定列表的入口，并且试着合并相邻块的入口。
 **
 ** If it sees a chunk that is larger than mem3.iMaster, it replaces 
 ** the current mem3.iMaster with the new larger chunk.  In order for
@@ -364,6 +377,10 @@ static void *memsys3FromMaster(u32 nBlock){
 ** affairs, of course.  The calling routine must link the master
 ** chunk before invoking this routine, then must unlink the (possibly
 ** changed) master chunk once this routine has finished.
+** 
+** 如果一个块的大小比mem3.iMaster大，则用这个块的大小的值替换mem3.iMaster的值。
+** 为了替换成功，主块必须链接到哈希表中。当然，这不是事务的正常状态。
+** 在引用这个例程前，调用例程必须链接到主块，然后，在完成后，去掉主块链接。
 */   
 //该函数用于合并每一个chunk入口，*pRoot是chunk列表的头指针
 static void memsys3Merge(u32 *pRoot){
@@ -401,9 +418,13 @@ static void memsys3Merge(u32 *pRoot){
 /*
 ** Return a block of memory of at least nBytes in size.
 ** Return NULL if unable.
+** 
+** 返回一块大小至少为nBytes的的内存块，如果不可用，则返回空。
 **
 ** This function assumes that the necessary mutexes, if any, are
 ** already held by the caller. Hence "Unsafe".
+** 
+** 这个函数假设调用者已经获得了必要的锁，所以称为“不安全”。
 */
 //该函数返回至少n字节大小的block，没有则返回null。该函数假设所有必要的互斥锁都上了，所以不安全
 static void *memsys3MallocUnsafe(int nByte){
@@ -459,7 +480,8 @@ static void *memsys3MallocUnsafe(int nByte){
   ** of the end of the master chunk.  This step happens very
   ** rarely (we hope!)
   */
-  //遍历整个内存池，合并相邻空闲chunk，重新计算主要的chunk大小，再次尝试从master chunk中分裂出满足分配条件的chunk。前面都不行才执行该步骤。
+  //遍历整个内存池，合并相邻空闲chunk，重新计算主要的chunk大小，
+  //再次尝试从master chunk中分裂出满足分配条件的chunk。前面都不行才执行该步骤。
   for(toFree=nBlock*16; toFree<(mem3.nPool*16); toFree *= 2){  //遍历内存池
     memsys3OutOfMemory(toFree);     //不够分配则释放
     if( mem3.iMaster ){               //master chunk存在，将其链接到相应块索引表中        
