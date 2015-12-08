@@ -1318,7 +1318,8 @@ void sqlite3AddColumnType(Parse *pParse, Token *pType){
 
 /*
 ** The expression is the default value for the most recently added column
-** of the table currently under construction.【这个表达式是一个默认值对于当前正在创建的表的最近增添的列。】
+** of the table currently under construction.
+** 这个表达式是一个默认值对于当前正在创建的表的最近增添的列。
 **
 ** Default value expressions must be constant.  Raise an exception if this
 ** is not the case.【默认值表达式必须是常量。如果不是这种情况引发一个异常。】
@@ -1329,19 +1330,20 @@ void sqlite3AddColumnType(Parse *pParse, Token *pType){
 void sqlite3AddDefaultValue(Parse *pParse, ExprSpan *pSpan){
 	Table *p;
 	Column *pCol;
-	sqlite3 *db = pParse->db;
-	p = pParse->pNewTable;
-	if (p != 0){
+	sqlite3 *db = pParse->db;    //语法分析上下文指向的数据库，保证正在处理的是当前的数据库
+	p = pParse->pNewTable;     //指向当前正在创建的表 
+	if (p != 0){  
 		pCol = &(p->aCol[p->nCol - 1]);
 		if (!sqlite3ExprIsConstantOrFunction(pSpan->pExpr)){//默认值表达式必须是常量。如果不是这种情况引发一个异常
 			sqlite3ErrorMsg(pParse, "default value of column [%s] is not constant",
 				pCol->zName);
 		}
-		else{
+		else{   //当前没有创建表
 			/* A copy of pExpr is used instead of the original, as pExpr contains
 			** tokens that point to volatile memory. The 'span' of the expression
-			** is required by pragma table_info.【pExpr用于代替原来的副本，当pExpr包含指向易失存储器的符号时。
-			'span'表达式需要编译table_info。】
+			** is required by pragma table_info.
+			**pExpr用于代替原来的副本，当pExpr包含指向易失存储器的符号时。
+			**'span'表达式需要编译table_info。
 			*/
 			sqlite3ExprDelete(db, pCol->pDflt);//先删除，默认值
 			pCol->pDflt = sqlite3ExprDup(db, pSpan->pExpr, EXPRDUP_REDUCE);//在复制
@@ -1356,52 +1358,56 @@ void sqlite3AddDefaultValue(Parse *pParse, ExprSpan *pSpan){
 /*
 ** Designate the PRIMARY KEY for the table.  pList is a list of names
 ** of columns that form the primary key.  If pList is NULL, then the
-** most recently added column of the table is the primary key.【给表指派外键。pList代表的是一系列构成主键列的名字。如果pList为空，则表的最近增加的列为主键。】
+** most recently added column of the table is the primary key.
+** 给表指派外键。pList代表的是一系列构成主键列的名字。如果pList为空，则表的最近增加的列为主键。
 **
 ** A table can have at most one primary key.  If the table already has
 ** a primary key (and this is the second primary key) then create an
-** error.【一个表最多有一个主键。如果表已经存在一个主键（并且这是第二个主键）然后建立一个错误。】
+** error.
+** 一个表最多有一个主键。如果表已经存在一个主键（并且这是第二个主键）那么就创建一个错误。
 **
 ** If the PRIMARY KEY is on a single column whose datatype is INTEGER,
 ** then we will try to use that column as the rowid.  Set the Table.iPKey
 ** field of the table under construction to be the index of the
 ** INTEGER PRIMARY KEY column.  Table.iPKey is set to -1 if there is
-** no INTEGER PRIMARY KEY.【如果这个主键是建立在单一列上，这一列的数据类型是INTEGER，那么我们将会试图用这一列作为rowid.
-为正在创建的表设置Table.iPKey字段，作为INTEGER PRIMARY KEY列的索引。如果没有INTEGER PRIMARY KEY，则Table.iPKey设定为-1.】
+** no INTEGER PRIMARY KEY.
+** 如果这个主键是建立在单一列上，这一列的数据类型是INTEGER，那么我们将会试图用这一列作为rowid（rowid意思是记录的唯一标识）.
+** 为正在创建的表设置Table.iPKey字段，作为INTEGER PRIMARY KEY列的索引。如果没有INTEGER PRIMARY KEY，则Table.iPKey设定为-1.
 **
 ** If the key is not an INTEGER PRIMARY KEY, then create a unique
-** index for the key.  No index is created for INTEGER PRIMARY KEYs.【如果这个键不是INTEGER PRIMARY KEY，那么为这个键创建一个唯一的索引。 INTEGER PRIMARY KEYs是不创建索引的。】
+** index for the key.  No index is created for INTEGER PRIMARY KEYs.
+** 如果这个键不是INTEGER PRIMARY KEY，那么为这个键创建一个唯一的索引。 INTEGER PRIMARY KEYs是不创建索引的。
 */
 void sqlite3AddPrimaryKey(
-	Parse *pParse,    /* Parsing context */
-	ExprList *pList,  /* List of field names to be indexed【被编入索引的一系列名称】 */
-	int onError,      /* What to do with a uniqueness conflict【如何处理唯一型冲突】 */
-	int autoInc,      /* True if the AUTOINCREMENT keyword is present 【如果关键字AUTOINCREMENT存在，则为true】*/
-	int sortOrder     /* SQLITE_SO_ASC or SQLITE_SO_DESC */
+	Parse *pParse,    /* Parsing context   语法分析上下文*/
+	ExprList *pList,  /* List of field names to be indexed 被索引的域名 */
+	int onError,      /* What to do with a uniqueness conflict 如何处理唯一型冲突，也就是上面注释中提到的主键的唯一性 */
+	int autoInc,      /* True if the AUTOINCREMENT keyword is present  如果关键字AUTOINCREMENT存在，则为true，换句话说就是设置自增的关键字*/
+	int sortOrder     /* SQLITE_SO_ASC or SQLITE_SO_DESC   升序或者是降序关键字的处理*/
 	){
-	Table *pTab = pParse->pNewTable;
+	Table *pTab = pParse->pNewTable;     //指向当前正在创建的表
 	char *zType = 0;
 	int iCol = -1, i;
-	if (pTab == 0 || IN_DECLARE_VTAB) goto primary_key_exit;
-	if (pTab->tabFlags & TF_HasPrimaryKey){
+	if (pTab == 0 || IN_DECLARE_VTAB) goto primary_key_exit;   //如果根本没有创建表，则不必要设置主键，直接退出函数
+	if (pTab->tabFlags & TF_HasPrimaryKey){   //当前表已经存在主键
 		sqlite3ErrorMsg(pParse,
-			"table \"%s\" has more than one primary key", pTab->zName);
-		goto primary_key_exit;
+			"table \"%s\" has more than one primary key", pTab->zName);   //发送已经存在主键的错误信息
+		goto primary_key_exit;     //退出程序
 	}
-	pTab->tabFlags |= TF_HasPrimaryKey;
-	if (pList == 0){
+	pTab->tabFlags |= TF_HasPrimaryKey;  //将tabFlags标志位置位没有主键的情况
+	if (pList == 0){  //如果主键为NULL，则指定最近一个增加的列为主键
 		iCol = pTab->nCol - 1;
-		pTab->aCol[iCol].isPrimKey = 1;
+		pTab->aCol[iCol].isPrimKey = 1;   //设定最近增加的一个列为主键
 	}
 	else{
 		for (i = 0; i<pList->nExpr; i++){
-			for (iCol = 0; iCol<pTab->nCol; iCol++){
-				if (sqlite3StrICmp(pList->a[i].zName, pTab->aCol[iCol].zName) == 0){
+			for (iCol = 0; iCol<pTab->nCol; iCol++){  //索引当前创建表的所有的列
+				if (sqlite3StrICmp(pList->a[i].zName, pTab->aCol[iCol].zName) == 0){   
 					break;
 				}
 			}
 			if (iCol<pTab->nCol){
-				pTab->aCol[iCol].isPrimKey = 1;
+				pTab->aCol[iCol].isPrimKey = 1;   //索引所有的列设置主键
 			}
 		}
 		if (pList->nExpr>1) iCol = -1;
@@ -1409,30 +1415,30 @@ void sqlite3AddPrimaryKey(
 	if (iCol >= 0 && iCol<pTab->nCol){
 		zType = pTab->aCol[iCol].zType;
 	}
-	if (zType && sqlite3StrICmp(zType, "INTEGER") == 0
-		&& sortOrder == SQLITE_SO_ASC){
+	if (zType && sqlite3StrICmp(zType, "INTEGER") == 0  //主键是单一的列并且是INTEGER，则创建iPKey，并设置为索引
+		&& sortOrder == SQLITE_SO_ASC){   //默认的排序方式是增
 		pTab->iPKey = iCol;
-		pTab->keyConf = (u8)onError;
-		assert(autoInc == 0 || autoInc == 1);
-		pTab->tabFlags |= autoInc*TF_Autoincrement;
+		pTab->keyConf = (u8)onError;  
+		assert(autoInc == 0 || autoInc == 1);  //当指定类型为INTERGE时，断言不是自增的就是自减的
+		pTab->tabFlags |= autoInc*TF_Autoincrement;  //设定标志位为自增
 	}
 	else if (autoInc){
 #ifndef SQLITE_OMIT_AUTOINCREMENT
 		sqlite3ErrorMsg(pParse, "AUTOINCREMENT is only allowed on an "
-			"INTEGER PRIMARY KEY");
+			"INTEGER PRIMARY KEY");     //类型不是整型是不允许设置自增关键字的，如果设置了则发送错误
 #endif
 	}
 	else{
 		Index *p;
-		p = sqlite3CreateIndex(pParse, 0, 0, 0, pList, onError, 0, 0, sortOrder, 0);
+		p = sqlite3CreateIndex(pParse, 0, 0, 0, pList, onError, 0, 0, sortOrder, 0);   //在主键上创建索引
 		if (p){
 			p->autoIndex = 2;
 		}
-		pList = 0;
+		pList = 0;  
 	}
 
-primary_key_exit:
-	sqlite3ExprListDelete(pParse->db, pList);
+primary_key_exit:   //标签
+	sqlite3ExprListDelete(pParse->db, pList);   //当执行goto语句之后会跳到此处，删除主键或者根本不设置主键
 	return;
 }
 
