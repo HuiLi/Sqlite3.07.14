@@ -1356,7 +1356,7 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 /*
 ** Generate code that will tell the VDBE the declaration types of columns
 ** in the result set.
-**生成的代码会告诉VDBE在结果集中的列的声明类型。
+**生成代码，告诉VDBE在结果集中的列的声明类型的。
 */
 static void generateColumnTypes(
 	Parse *pParse,      /* Parser context 语义分析*/
@@ -1381,8 +1381,7 @@ static void generateColumnTypes(
 		/* The vdbe must make its own copy of the column-type and other
 		** column specific strings, in case the schema is reset before this
 		** virtual machine is deleted.
-		**VDBE必须做出自己的列的类型和其他列的特定字符串的副本，在此情况下，
-		**虚拟机被删除之前的模式被重置。
+		**为防止该虚拟机被删除前架构重设，该VDBE必须做出自己的列式和其他列的特定字符串的副本。
 		*/
 		sqlite3VdbeSetColName(v, i, COLNAME_DATABASE, zOrigDb, SQLITE_TRANSIENT);
 		sqlite3VdbeSetColName(v, i, COLNAME_TABLE, zOrigTab, SQLITE_TRANSIENT);
@@ -1399,12 +1398,12 @@ static void generateColumnTypes(
 ** Generate code that will tell the VDBE the names of columns
 ** in the result set.  This information is used to provide the
 ** azCol[] values in the callback.
-**生成的代码，会告诉VDBE结果集中列的名字。这些信息用于提供在回调中azCol[] 的值。
+**生成代码，告诉 VDBE 在结果集中的列的名称。这些信息被用于提供在回调中azCol[]的值。
 */
 static void generateColumnNames(
 	Parse *pParse,      /* Parser context   解析上下文 */
 	SrcList *pTabList,  /* List of tables   列表*/
-	ExprList *pEList    /* Expressions defining the result set   定义结果集的表达式*/
+	ExprList *pEList    /* Expressions defining the result set	输出结果列的语法书树*/
 	){
 	Vdbe *v = pParse->pVdbe;
 	int i, j;
@@ -1473,7 +1472,7 @@ static void generateColumnNames(
 ** Given a an expression list (which is really the list of expressions
 ** that form the result set of a SELECT statement) compute appropriate
 ** column names for a table that would hold the expression list.
-**给定一个表达式列表(真正的形成一个SELECT语句结果集的表达式列表)，能计算出一个拥有这些表达式列表的表的合适列名称
+**给定一个表达式列表，将为拥有这些表达式列表的表计算一个适合的列名称。
 ** All column names will be unique.
 **所有列名将是唯一的
 ** Only the column names are computed.  Column.zType, Column.zColl,
@@ -1585,7 +1584,8 @@ static int selectColumnsFromExprList(
 /*
 ** Add type and collation information to a column list based on
 ** a SELECT statement.
-** 给列列表添加类型和排序信息，基于一个SELECT语句。
+**
+**将类型和排序规则信息添加到基于一个 SELECT 语句的列列表。
 **
 ** The column list presumably came from selectColumnNamesFromExprList().
 ** The column list has only names, not types or collations.  This
@@ -1594,7 +1594,7 @@ static int selectColumnsFromExprList(
 **
 ** This routine requires that all identifiers in the SELECT
 ** statement be resolved.
-**这个程序在SELECT语句中要求的所有标识符被决定。
+**这个程序要求，在SELECT语句中的所有标识符得到解决。
 */
 static void selectAddColumnTypeAndCollation(
 	Parse *pParse,        /* Parsing contexts 解析上下文*/
@@ -1696,10 +1696,10 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** the limit and offset.  If there is no limit and/or offset, then
 ** iLimit and iOffset are negative.
 **基于pLimit和pOffset表达式计算SELECT中的iLimit和iOffset字段。
-**nLimit和nOffset持有这些表达式，这些表达式出现在原始的SQL语句中，在LIMIT和OFFSET关键字之后。
-**或者为空如果这些关键词被省略。
-**iLimit和iOffset是用来计算限制和偏移量的整数存储寄存器数据计数器
-**如果没有限制和/或偏移,然后iLimit和iOffset是负的。
+**nLimit和nOffset持有这些出现在原始的SQL语句中LIMIT和OFFSET关键字之后的表达式。
+**或者如果这些关键字被省略则为空。
+**iLimit和iOffset是用来计算限制和偏移量的整数存储寄存器数据计数器。
+**如果没有限制和/或偏移,那么iLimit和iOffset是负的。
 **
 **
 ** This routine changes the values of iLimit and iOffset only if
@@ -1710,10 +1710,10 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** redefined.  The UNION ALL operator uses this property to force
 ** the reuse of the same limit and offset registers across multiple
 ** SELECT statements.
-** 这个程序改变了iLimit和 iOffset的值，只有限制或偏移由nLimit和nOffset定义。
-**iLimit和iOffset应该是预设到适当的默认值(通常但不总是-1)之前调用这个程序。
-**只有nLimit>=0或者nOffset>0做限制寄存器得重新定义。
-**这个UNION ALL操作符使用这个属性来迫使相同的限制和偏移暂存器的重用通过多个SELECT语句。
+** 这个程序只有在限制或偏移由nLimit和nOffset定义的时候改变iLimit和 iOffset的值。
+** 调用这个程序之前iLimit和iOffset应该是预设到适当的默认值(通常但不总是-1)。
+** 只有nLimit>=0或者nOffset>0限制寄存器重新定义。
+** 这个UNION ALL操作符使用这个属性来迫使相同的限制和偏移暂存器的重用通过多个SELECT语句。
 */
 static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 	Vdbe *v = 0;
@@ -1753,7 +1753,7 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 		}
 		if (p->pOffset){
 			p->iOffset = iOffset = ++pParse->nMem;
-			pParse->nMem++;   /* Allocate an extra register for limit+offset 给限制+偏移量分配额外的注册*/
+			pParse->nMem++;   /* Allocate an extra register for limit+offset 分配一个额外的寄存器给limit+offset*/
 			sqlite3ExprCode(pParse, p->pOffset, iOffset);
 			sqlite3VdbeAddOp1(v, OP_MustBeInt, iOffset);
 			VdbeComment((v, "OFFSET counter"));
@@ -1810,7 +1810,7 @@ static int multiSelectOrderBy(
 ** This routine is called to process a compound query form from
 ** two or more separate queries using UNION, UNION ALL, EXCEPT, or
 ** INTERSECT
-**调用这个程序来处理一个真正的两个的并集或交集查询或者两个以上单独的查询。
+**调用这个程序来处理复合查询窗体由两个并集或交集查询或者两个以上单独的查询。
 **
 ** "p" points to the right-most of the two queries.  the query on the
 ** left is p->pPrior.  The left query could also be a compound query
