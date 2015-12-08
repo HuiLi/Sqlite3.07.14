@@ -1530,7 +1530,7 @@ static int selectColumnsFromExprList(
 				assert(pColExpr != 0);
 			}
 			if (pColExpr->op == TK_COLUMN && ALWAYS(pColExpr->pTab != 0)){
-				/* For columns use the column name name 对于列使用列名的名字*/
+				/* For columns use the column name name 对于使用了列名的列*/
 				int iCol = pColExpr->iColumn;
 				pTab = pColExpr->pTab;
 				if (iCol < 0) iCol = pTab->iPKey;
@@ -1584,21 +1584,21 @@ static int selectColumnsFromExprList(
 /*
 ** Add type and collation information to a column list based on
 ** a SELECT statement.
-** 给列列表添加类型和排序信息，基于一个SELECT语句。
+** 基于Select语句来为列表增加类型和排序信息
 **
 ** The column list presumably came from selectColumnNamesFromExprList().
 ** The column list has only names, not types or collations.  This
 ** routine goes through and adds the types and collations.
-**列列表大概来自于selectColumnNamesFromExprList()。列列表只有名字,没有类型或排序。这个程序遍历并添加类型和排序。
+**列表来自于selectColumnNamesFromExprList()。列表只有名字,没有类型或排序。这个事务遍历并添加类型和排序。
 **
 ** This routine requires that all identifiers in the SELECT
 ** statement be resolved.
-**这个程序在SELECT语句中要求的所有标识符被决定。
+**这个事务要求select语句中所有的标识符都被确定。
 */
 static void selectAddColumnTypeAndCollation(
 	Parse *pParse,        /* Parsing contexts 解析上下文*/
 	int nCol,             /* Number of columns 列数*/
-	Column *aCol,         /* List of columns 列列表*/
+	Column *aCol,         /* List of columns 列表*/
 	Select *pSelect       /* SELECT used to determine types and collations      SELECT用于确定类型和排序*/
 	){
 	sqlite3 *db = pParse->db;
@@ -1651,7 +1651,7 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 	}
 	/* The sqlite3ResultSetOfSelect() is only used n contexts where lookaside
 	** is disabled
-	**sqlite3ResultSetOfSelect()只被使用n上下文,在那里后备是不能用的*/
+	**sqlite3ResultSetOfSelect()在lookaside禁用的地方只使用n个上下文*/
 	assert(db->lookaside.bEnabled == 0);
 	pTab->nRef = 1;
 	pTab->zName = 0;
@@ -1669,8 +1669,8 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 /*
 ** Get a VDBE for the given parser context.  Create a new one if necessary.
 ** If an error occurs, return NULL and leave a message in pParse.
-** 对给定的解析器上下文获得一个VDBE，如果需要，创建一个新的VDBE。
-** 如果发生一个错误，返回空并且在pParse里留下信息。
+** 从给定的解析器获得一个VDBE，在必要的情况下创建一个新的VDBE。
+** 如果发生错误，返回NULL并且在pParse里留下信息。
 */
 Vdbe *sqlite3GetVdbe(Parse *pParse){
 	Vdbe *v = pParse->pVdbe;
@@ -1695,8 +1695,8 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** the limit and offset.  If there is no limit and/or offset, then
 ** iLimit and iOffset are negative.
 **基于pLimit和pOffset表达式计算SELECT中的iLimit和iOffset字段。
-**nLimit和nOffset持有这些表达式，这些表达式出现在原始的SQL语句中，在LIMIT和OFFSET关键字之后。
-**或者为空如果这些关键词被省略。
+**nLimit和nOffset持有这些在LIMIT和OFFSET关键字之后出现在原始的SQL语句中的表达式。
+**如果这些关键词被省略的话,它的值为NULL。
 **iLimit和iOffset是用来计算限制和偏移量的整数存储寄存器数据计数器
 **如果没有限制和/或偏移,然后iLimit和iOffset是负的。
 **
@@ -1709,10 +1709,10 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** redefined.  The UNION ALL operator uses this property to force
 ** the reuse of the same limit and offset registers across multiple
 ** SELECT statements.
-** 这个程序改变了iLimit和 iOffset的值，只有限制或偏移由nLimit和nOffset定义。
+** 只有限制或偏移由nLimit和nOffset定义时这个程序才会改变iLimit和 iOffset的值，
 **iLimit和iOffset应该是预设到适当的默认值(通常但不总是-1)之前调用这个程序。
-**只有nLimit>=0或者nOffset>0做限制寄存器得重新定义。
-**这个UNION ALL操作符使用这个属性来迫使相同的限制和偏移暂存器的重用通过多个SELECT语句。
+**只有pLimit!=0或者pOffset!=0时限制寄存器才会重新定义。
+**UNION ALL操作符使用这个属性通过多个SELECT语句来迫使相同的限制和偏移暂存器的重用。
 */
 static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 	Vdbe *v = 0;
@@ -1726,7 +1726,7 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 	** contraversy about what the correct behavior should be.
 	** The current implementation interprets "LIMIT 0" to mean
 	** no rows.
-	** "LIMIT -1" 总是显示所有行。有一些争议关于什么应该是正确的行为。当前实现解释"LIMIT 0"意味着没有行。
+	** "LIMIT -1" 总是显示所有行。在这里什么是正确的行为还有一些争议。当前实现解释"LIMIT 0"意味着没有行。
 	*/
 	sqlite3ExprCacheClear(pParse);
 	assert(p->pOffset == 0 || p->pLimit != 0);
@@ -1752,7 +1752,7 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 		}
 		if (p->pOffset){
 			p->iOffset = iOffset = ++pParse->nMem;
-			pParse->nMem++;   /* Allocate an extra register for limit+offset 给限制+偏移量分配额外的注册*/
+			pParse->nMem++;   /* Allocate an extra register for limit+offset 为限制+偏移量额外分配注册器*/
 			sqlite3ExprCode(pParse, p->pOffset, iOffset);
 			sqlite3VdbeAddOp1(v, OP_MustBeInt, iOffset);
 			VdbeComment((v, "OFFSET counter"));
