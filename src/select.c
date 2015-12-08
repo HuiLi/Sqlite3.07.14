@@ -3129,264 +3129,311 @@ static int flattenSubquery(
 		return 0;         /* Restriction (21) *//*规则（21）*/
 	}
 
-	/* OBSOLETE COMMENT 1:过时注释1：
-	** Restriction 3:  If the subquery is a join, make sure the subquery is
-	** not used as the right operand of an outer join.  Examples of why this
-	** is not allowed:
-	** 限制3:如果子查询是一个连接,请确保子查询并非用作右操作数的一个外部链接。
-	此种情况不允许的原因示例：
-	**         t1 LEFT OUTER JOIN (t2 JOIN t3)
-	**        T1左外部联接(T2和T3)
-	** If we flatten the above, we would get
-	**  如果我们将上述扁平化,我们将会得到
-	**         (t1 LEFT OUTER JOIN t2) JOIN t3
-	**       (T1左外部联接T2)连接到T3
-	** which is not at all the same thing.
-	**并不是在所有的是同一回事
-	** OBSOLETE COMMENT 2: 过时评论2:
-	** Restriction 12:  If the subquery is the right operand of a left outer
-	** join, make sure the subquery has no WHERE clause.
-	限制12:如果子查询是一个左外连接的右操作，请确保将子查询没有Where子句。
-	** An examples of why this is not allowed:
-	**一个例子：为什么不允许存在这种情况:
-	**         t1 LEFT OUTER JOIN (SELECT * FROM t2 WHERE t2.x>0)
-	**       T1左外部联接(select*FROM T2,T2.x>0)
-	** If we flatten the above, we would get
-	** 如果我们将上述扁平化,我们将会得到
-	**         (t1 LEFT OUTER JOIN t2) WHERE t2.x>0
-	**         (T1左外部联接T2),T2.x>0
-	** But the t2.x>0 test will always fail on a NULL row of t2, which
-	** effectively converts the OUTER JOIN into an INNER JOIN.
-	**但T2.x>0测试将总是在T2的一个空行失败,它有效地将外部连接到一个内部链接。
-	** THIS OVERRIDES OBSOLETE COMMENTS 1 AND 2 ABOVE:此操作会覆盖已过时注释1和2段:
-	** Ticket #3300 shows that flattening the right term of a LEFT JOIN
-	** is fraught with danger.  Best to avoid the whole thing.  If the
-	** subquery is the right term of a LEFT JOIN, then do not flatten.
-	票#3300显示,扁平化一个左联接正确术语是充满危险的。最好避免整个东西。 如果
-	子查询是一个左联接正确术语,则不要将其扁平化。*/
-	if ((pSubitem->jointype & JT_OUTER) != 0){
-		return 0;
-	}
+  /* OBSOLETE COMMENT 1:
+	  ** Restriction 3:  If the subquery is a join, make sure the subquery is 
+	  ** not used as the right operand of an outer join.  Examples of why this
+	  ** is not allowed:
+	  **
+	  **         t1 LEFT OUTER JOIN (t2 JOIN t3)
+	  **
+	  ** If we flatten the above, we would get
+	  **
+	  **         (t1 LEFT OUTER JOIN t2) JOIN t3
+	  **
+	  ** which is not at all the same thing.
+	  **
+	  ** OBSOLETE COMMENT 2:
+	  ** Restriction 12:  If the subquery is the right operand of a left outer
+	  ** join, make sure the subquery has no WHERE clause.
+	  ** An examples of why this is not allowed:
+	  **
+	  **         t1 LEFT OUTER JOIN (SELECT * FROM t2 WHERE t2.x>0)
+	  **
+	  ** If we flatten the above, we would get
+	  **
+	  **         (t1 LEFT OUTER JOIN t2) WHERE t2.x>0
+	  **
+	  ** But the t2.x>0 test will always fail on a NULL row of t2, which
+	  ** effectively converts the OUTER JOIN into an INNER JOIN.
+	  **
+	  ** THIS OVERRIDES OBSOLETE COMMENTS 1 AND 2 ABOVE:
+	  ** Ticket #3300 shows that flattening the right term of a LEFT JOIN
+	  ** is fraught with danger.  Best to avoid the whole thing.  If the
+	  ** subquery is the right term of a LEFT JOIN, then do not flatten.
+	  */
+	  /* 过时的注释 1：
+	  ** 规则3：如果子查询是一种联接，请确保子查询是不用作外部联接的右操作数。
+	  **     t1 LEFT OUTER JOIN (t2 JOIN t3)
+	  ** 若对表达式进行扁平化，我们得到
+	  **      (t1 LEFT OUTER JOIN t2) JOIN t3
+	  ** 这两个表达式表示是不相同了。
+	  ** 过时的注释 2：
+	  ** 规则（12），如果子查询是左外部的右操作数，请确保子查询有没有 WHERE 子句。
+	  ** 下面的例子不能使用：
+	  **  1 LEFT OUTER JOIN (SELECT * FROM t2 WHERE t2.x>0)
+	  **若对上面的语句扁平化：
+	  **  (t1 LEFT OUTER JOIN t2) WHERE t2.x>0
+	  ** 测试将始终失败在 t2，因为在一个NULL或者t2的行，有效的将OUTER JOIN转化为INNER JOIN.
+	  **
+	  ** 重写过时的注释1，2，扁平化左连接的右子树是不安全的。。
+	  ** 若子查询是左连接的右子树，将不会扁平化。
+	  */
+	  if( (pSubitem->jointype & JT_OUTER)!=0 ){/*if判断条件，若外查询使用jointype*/
+		return  0;/*直接返回*/
+	  }
 
-	/* Restriction 17: If the sub-query is a compound SELECT, then it must
-	** use only the UNION ALL operator. And none of the simple select queries
-	** that make up the compound SELECT are allowed to be aggregate or distinct
-	** queries.限制17:如果子查询是一个复合选择,那么它就必须仅使用UNION所有的操作符。而且不存在允许
-	复合选择被聚合或不同查询的简单选择查询。*/
-	if (pSub->pPrior){
-		if (pSub->pOrderBy){
-			return 0;  /* Restriction 20 */
+	  /* Restriction 17: If the sub-query is a compound SELECT, then it must
+	  ** use only the UNION ALL operator. And none of the simple select queries
+	  ** that make up the compound SELECT are allowed to be aggregate or distinct
+	  ** queries.规则17：
+
+
+	  *//*如果子查询是一个复合的选择，那么它必须使用只有 UNION ALL 运算符，没有一个简单的选择查询组成在这个复合查询的子查询中，没有使用聚集函数和去除重复*/
+	  if( pSub->pPrior ){
+		if( pSub->pOrderBy ){/*子查询含有OrderBy子句*/
+		  return 0;  /* 规则 20 直接返回*/
 		}
-		if (isAgg || (p->selFlags & SF_Distinct) != 0 || pSrc->nSrc != 1){
+		if( isAgg || (p->selFlags & SF_Distinct)!=0 || pSrc->nSrc!=1 ){/*如果外部查询使用了聚集函数，没有重复排序或者FROM表不等于1*/
+		  return 0;/*直接返回*/
+		}
+		for(pSub1=pSub; pSub1; pSub1=pSub1->pPrior){/*遍历子查询中最右边的查询*/
+		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Distinct );/*测试Distinct的使用*/
+		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Aggregate );/*测试Aggregate的使用*/
+		  assert( pSub->pSrc!=0 );/*异常处理*/
+		  if( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))!=0//若子查询含有Distinct或Aggregate且标记变量=1
+		   || (pSub1->pPrior && pSub1->op!=TK_ALL) //子查询中含优先查询SELECT并且操作为TK_ALL
+		   || pSub1->pSrc->nSrc<1//子查询中FROM子句中表达式且个数<1*/
+		   || pSub->pEList->nExpr!=pSub1->pEList->nExpr//子查询中表达式的个数！=子查询中右边查询的表达式个数
+		  ){
 			return 0;
-		}
-		for (pSub1 = pSub; pSub1; pSub1 = pSub1->pPrior){
-			testcase((pSub1->selFlags & (SF_Distinct | SF_Aggregate)) == SF_Distinct);
-			testcase((pSub1->selFlags & (SF_Distinct | SF_Aggregate)) == SF_Aggregate);
-			assert(pSub->pSrc != 0);
-			if ((pSub1->selFlags & (SF_Distinct | SF_Aggregate)) != 0
-				|| (pSub1->pPrior && pSub1->op != TK_ALL)
-				|| pSub1->pSrc->nSrc < 1
-				|| pSub->pEList->nExpr != pSub1->pEList->nExpr
-				){
-				return 0;
-			}
-			testcase(pSub1->pSrc->nSrc > 1);
+		  }
+		  testcase( pSub1->pSrc->nSrc>1 );//调用testcase对子查询的FROM子句中表达式个数>1的测试
 		}
 
-		/* Restriction 18. */
-		if (p->pOrderBy){
-			int ii;
-			for (ii = 0; ii < p->pOrderBy->nExpr; ii++){
-				if (p->pOrderBy->a[ii].iOrderByCol == 0) return 0;
-			}
+		/* Restriction 18. *//*规则（18）*/
+		if( p->pOrderBy ){//若ORDERBY子句为真
+		  int ii;//声明变量ii
+		  for(ii=0; ii<p->pOrderBy->nExpr; ii++){//遍历
+			if( p->pOrderBy->a[ii].iOrderByCol==0 ) return 0;//值为空，返回。
+		  }
 		}
-	}
+	  }
 
-	/***** If we reach this point, flattening is permitted.
-	   如果达到这一点，允许扁平化*****/
+	  /***** If we reach this point, flattening is permitted. *****/
+      /*若能执行到这一步，允许扁平化*/
+	  /* Authorize the subquery *//*授权允许子查询*/
+	  pParse->zAuthContext = pSubitem->zName;//子查询的名字赋值给语法解析树的已经授权的上下文属性
+	  TESTONLY(i =) sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0);/**/
+	  testcase( i==SQLITE_DENY );//调用testcase测试i是否为SQLITE_DENY
+	  pParse->zAuthContext = zSavedAuthContext;//语法解析树中的上下文赋值给语法解析树的授权上下文属性
 
-	/* Authorize the subquery 授权子查询*/
-	pParse->zAuthContext = pSubitem->zName;
-	TESTONLY(i = ) sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0);
-	testcase(i == SQLITE_DENY);
-	pParse->zAuthContext = zSavedAuthContext;
-
-	/* If the sub-query is a compound SELECT statement, then (by restrictions
-	** 17 and 18 above) it must be a UNION ALL and the parent query must
-	** be of the form:
-	**如果子查询是一个复合SELECT语句,然后(以上限制17和18)它必须是一个UNION ALL，并且父查询必须
-	在这个form中。
-	**     SELECT <expr-list> FROM (<sub-query>) <where-clause>
-	**followed by any ORDER BY, LIMIT and/or OFFSET clauses. This block
-	** creates N-1 copies of the parent query without any ORDER BY, LIMIT or
-	** OFFSET clauses and joins them to the left-hand-side of the original
-	** using UNION ALL operators. In this case N is the number of simple
-	** select statements in the compound sub-query.
-	**从(<子查询>)<Where子句>中选择<expr-列表>，接着是任何顺序、限制或偏移量子句。
-	这一块创建N1的副本的父查询,且无需任何顺序、限制或偏移量子句，而且把它们用原始的UNION ALL 操作
-	的左侧。在这种情况下,n是复合子查询中的简单查询语句。
-	** Example 示例：
-	**
-	**     SELECT a+1 FROM (
-	**        SELECT x FROM tab
-	**        UNION ALL
-	**        SELECT y FROM tab
-	**        UNION ALL
-	**        SELECT abs(z*2) FROM tab2
-	**     ) WHERE a!=5 ORDER BY 1
-	**
-	** Transformed into:
-	**
-	**     SELECT x+1 FROM tab WHERE x+1!=5
-	**     UNION ALL
-	**     SELECT y+1 FROM tab WHERE y+1!=5
-	**     UNION ALL
-	**     SELECT abs(z*2)+1 FROM tab2 WHERE abs(z*2)+1!=5
-	**     ORDER BY 1
-	**
-	** We call this the "compound-subquery flattening".我们将其称为“复合型子查询的扁平化”。
-	*/
-	for (pSub = pSub->pPrior; pSub; pSub = pSub->pPrior){
-		Select *pNew;
-		ExprList *pOrderBy = p->pOrderBy;
-		Expr *pLimit = p->pLimit;
-		Select *pPrior = p->pPrior;
+	  /* If the sub-query is a compound SELECT statement, then (by restrictions
+	  ** 17 and 18 above) it must be a UNION ALL and the parent query must 
+	  ** be of the form:
+	  **
+	  **     SELECT <expr-list> FROM (<sub-query>) <where-clause> 
+	  **
+	  ** followed by any ORDER BY, LIMIT and/or OFFSET clauses. This block
+	  ** creates N-1 copies of the parent query without any ORDER BY, LIMIT or 
+	  ** OFFSET clauses and joins them to the left-hand-side of the original
+	  ** using UNION ALL operators. In this case N is the number of simple
+	  ** select statements in the compound sub-query.
+	  **
+	  ** Example:
+	  **
+	  **     SELECT a+1 FROM (
+	  **        SELECT x FROM tab
+	  **        UNION ALL
+	  **        SELECT y FROM tab
+	  **        UNION ALL
+	  **        SELECT abs(z*2) FROM tab2
+	  **     ) WHERE a!=5 ORDER BY 1
+	  **
+	  ** Transformed into:
+	  **
+	  **     SELECT x+1 FROM tab WHERE x+1!=5
+	  **     UNION ALL
+	  **     SELECT y+1 FROM tab WHERE y+1!=5
+	  **     UNION ALL
+	  **     SELECT abs(z*2)+1 FROM tab2 WHERE abs(z*2)+1!=5
+	  **     ORDER BY 1
+	  **
+	  ** We call this the "compound-subquery flattening".
+	  */
+	  /*如果子查询是一个复合 SELECT 语句，然后根据规则17和规则18必须是UNION ALL 并且父查询的格式如下：
+	  **    SELECT <expr-list> FROM (<sub-query>) <where-clause> 
+	  **其次是任何 ORDER BY, LIMIT 或 OFFSET 子句。这一块创建了n-1个副本的不含ORDER BY, LIMIT 或 OFFSET父查询对象 
+	  **并且连接到原始使用的UNION ALL操作对象。N是复合查询中简单查询的编号。
+	  **请看例子：
+	  **     SELECT a+1 FROM (
+	  **        SELECT x FROM tab
+	  **        UNION ALL
+	  **        SELECT y FROM tab
+	  **        UNION ALL
+	  **        SELECT abs(z*2) FROM tab2
+	  **     ) WHERE a!=5 ORDER BY 1
+	  **转化成：
+	  **     SELECT x+1 FROM tab WHERE x+1!=5
+	  **     UNION ALL
+	  **     SELECT y+1 FROM tab WHERE y+1!=5
+	  **     UNION ALL
+	  **     SELECT abs(z*2)+1 FROM tab2 WHERE abs(z*2)+1!=5
+	  **     ORDER BY 1
+	  **我们称这为“扁平化复合子查询”
+	  */
+	  //循环遍历子查询
+	  for(pSub=pSub->pPrior; pSub; pSub=pSub->pPrior){//遍历子查询中的优先查询
+		Select *pNew;//声明一个SELECT结构体的对象
+		ExprList *pOrderBy = p->pOrderBy;//S表达式列表pOrderBy的赋值
+		Expr *pLimit = p->pLimit;//对表达式的pLimit属性的赋值（select结构体）
+		Select *pPrior = p->pPrior;//优先查找重新赋值给新的变量
+		//初始化
 		p->pOrderBy = 0;
 		p->pSrc = 0;
 		p->pPrior = 0;
 		p->pLimit = 0;
-		pNew = sqlite3SelectDup(db, p, 0);
+		pNew = sqlite3SelectDup(db, p, 0);//深拷贝
+		//变量赋值给select结构体成员
 		p->pLimit = pLimit;
 		p->pOrderBy = pOrderBy;
 		p->pSrc = pSrc;
-		p->op = TK_ALL;
-		p->pRightmost = 0;
-		if (pNew == 0){
-			pNew = pPrior;
+		p->op = TK_ALL;//操作符属性设置为tk_all
+		p->pRightmost = 0;//最右边查询的初始化操作
+
+		if( pNew==0 ){
+		  pNew = pPrior;//SELECT结构体中优先查询的赋值给pNew
 		}
-		else{
-			pNew->pPrior = pPrior;
-			pNew->pRightmost = 0;
+		
+		else
+		{
+		  pNew->pPrior = pPrior;//select->pPrior赋值给pNew->pPrior
+		  pNew->pRightmost = 0;//pNew指向的最右边置为0
 		}
-		p->pPrior = pNew;
-		if (db->mallocFailed) return 1;
-	}
+		p->pPrior = pNew;//完成最终赋值，优先查找
+		if( db->mallocFailed ) return 1;//内存分配失败
+	  }
 
-	/* Begin flattening the iFrom-th entry of the FROM clause
-	** in the outer query.开始在外部查询中将FROM clause中的iFrom-th entry扁平化
-	*/
-	pSub = pSub1 = pSubitem->pSelect;
+	  /* Begin flattening the iFrom-th entry of the FROM clause 
+	  ** in the outer query.
+	  *//*在外查询中压缩FROM子句的第iFrom个条目*/
+	  pSub = pSub1 = pSubitem->pSelect;//赋值语句，子查询
+	  /* Delete the transient table structure associated with the
+	  ** subquery
+	  *//*删除和子查询相关联的临时表结构*/
+	  //内存的释放
+	  sqlite3DbFree(db, pSubitem->zDatabase);//数据库模块的内存
+	  sqlite3DbFree(db, pSubitem->zName);//子查询名字属性
+	  sqlite3DbFree(db, pSubitem->zAlias);//子查询依赖关系
+	  //重新赋值
+	  pSubitem->zDatabase = 0;//清空
+	  pSubitem->zName = 0;
+	  pSubitem->zAlias = 0;
+	  pSubitem->pSelect = 0;
 
-	/* Delete the transient table structure associated with the
-	** subquery删除与子查询相关联的瞬态表结构
-	*/
-	sqlite3DbFree(db, pSubitem->zDatabase);
-	sqlite3DbFree(db, pSubitem->zName);
-	sqlite3DbFree(db, pSubitem->zAlias);
-	pSubitem->zDatabase = 0;
-	pSubitem->zName = 0;
-	pSubitem->zAlias = 0;
-	pSubitem->pSelect = 0;
+	  /* Defer deleting the Table object associated with the
+	  ** subquery until code generation is
+	  ** complete, since there may still exist Expr.pTab entries that
+	  ** refer to the subquery even after flattening.  Ticket #3346.
+	  **
+	  ** pSubitem->pTab is always non-NULL by test restrictions and tests above.
+	  *//*延迟删除与关联的表对象，直到子查询生成代码完成，因为那里可能仍然存在 Expr.pTab 扁平化后的子查询*/
 
-	/* Defer deleting the Table object associated with the
-	** subquery until code generation is
-	** complete, since there may still exist Expr.pTab entries that
-	** refer to the subquery even after flattening.  Ticket #3346.
-	**推迟删除与子查询相关连的表格对象，直到代码完全生成，因为仍可能存在指向甚至扁平化的子查询的
-	EXPR.ptab条目。票#3346。
-	**请参阅后的子查询甚至整平滤板。
-	** pSubitem->pTab is always non-NULL by test restrictions and tests above.
-	通过测试限制和上述测试，psubitem->ptab总是非空的。
-	*/
-	if (ALWAYS(pSubitem->pTab != 0)){
+	  if( ALWAYS(pSubitem->pTab!=0) ){//子查询项的pTab不空
 		Table *pTabToDel = pSubitem->pTab;
-		if (pTabToDel->nRef == 1){
-			Parse *pToplevel = sqlite3ParseToplevel(pParse);
-			pTabToDel->pNextZombie = pToplevel->pZombieTab;
-			pToplevel->pZombieTab = pTabToDel;
+		if( pTabToDel->nRef==1 ){
+		  Parse *pToplevel = sqlite3ParseToplevel(pParse);//最顶层解析
+		  pTabToDel->pNextZombie = pToplevel->pZombieTab;//解析后的域赋值
+		  pToplevel->pZombieTab = pTabToDel;//类似链表结构赋值
+		}else{
+		  pTabToDel->nRef--;//自减
 		}
-		else{
-			pTabToDel->nRef--;
-		}
-		pSubitem->pTab = 0;
-	}
+		pSubitem->pTab = 0;//置0
+	  }
 
-	/* The following loop runs once for each term in a compound-subquery
-	** flattening (as described above).  If we are doing a different kind
-	** of flattening - a flattening other than a compound-subquery flattening -
-	** then this loop only runs once.
-	**以下循环运行时,每次在一个复合子查询的扁平化。（如上所描述）。如果我们这样做一个不同种类扁平化-一个
-	不同于复合子查询的扁平化，然后这个循环仅运行一次。
-	** This loop moves all of the FROM elements of the subquery into the
-	** the FROM clause of the outer query.  Before doing this, remember
-	** the cursor number for the original outer query FROM element in
-	** iParent.  The iParent cursor will never be used.  Subsequent code
-	** will scan expressions looking for iParent references and replace
-	** those references with expressions that resolve to the subquery FROM
-	** elements we are now copying in.
-	此环路将所有的子查询的FROM元素移动到外查询的FROM子句中。在执行此操作之前,请记住在iParent的
-	用于原始外部查询中的元素的光标数量。iparent的光标将不再使用。后续代码将扫描查找表达式来寻找iparent引用和
-	更换引用有解决我们现在复制的子查询FROM元素的表达式。*/
-	for (pParent = p; pParent; pParent = pParent->pPrior, pSub = pSub->pPrior){
-		int nSubSrc;
-		u8 jointype = 0;
-		pSubSrc = pSub->pSrc;     /* FROM clause of subquery  FROM子句的子查询*/
-		nSubSrc = pSubSrc->nSrc;  /* Number of terms in subquery FROM clause 在FROM子句的子查询
-		的数字*/
-		pSrc = pParent->pSrc;     /* FROM clause of the outer query 外部查询的FROM子句*/
+	  /* The following loop runs once for each term in a compound-subquery
+	  ** flattening (as described above).  If we are doing a different kind
+	  ** of flattening - a flattening other than a compound-subquery flattening -
+	  ** then this loop only runs once.
+	  **
+	  ** This loop moves all of the FROM elements of the subquery into the
+	  ** the FROM clause of the outer query.  Before doing this, remember
+	  ** the cursor number for the original outer query FROM element in
+	  ** iParent.  The iParent cursor will never be used.  Subsequent code
+	  ** will scan expressions looking for iParent references and replace
+	  ** those references with expressions that resolve to the subquery FROM
+	  ** elements we are now copying in.
+	  */
+	  /* 下面的循环一次性的将符合查询中每个条款都进行扁平化操作。若我们做了另一种方式的扁平化操作--
+	  ** 这种扁平化操作并非复合子查询的扁平化，该循环仅仅运行一次。
+	  **
+	  ** 这个循环将子查询中的FROM子句的所有元素都移动到外部查询的FROM子句中。在这之前，记住父查询中原始外部查询
+	  ** FROM子句的游标号。父查询的游标号没有用过。后面的代码 将扫描查找 iParent 引用的表达式和替换，这些引用解析我们现在正在复制的子查询的表达式元素。
+	  */
+	  //遍历
+	  for(pParent=p; pParent; pParent=pParent->pPrior, pSub=pSub->pPrior){
+		int nSubSrc;//声明整型变量nsubsrc
+		u8 jointype = 0; //自定义类型变量的声明
+		pSubSrc = pSub->pSrc;     /* FROM clause of subquery *//*from子查询*/
+		nSubSrc = pSubSrc->nSrc;  /* Number of terms in subquery FROM clause *//*from子句的数目*/
+		pSrc = pParent->pSrc;     /* FROM clause of the outer query *//*外部查询的FROM子句*/
 
-		if (pSrc){
-			assert(pParent == p);  /* First time through the loop 第一次执行循环*/
-			jointype = pSubitem->jointype;
-		}
-		else{
-			assert(pParent != p);  /* 2nd and subsequent times through the loop
-			第二次和随后的执行循环*/
-			pSrc = pParent->pSrc = sqlite3SrcListAppend(db, 0, 0, 0);
-			if (pSrc == 0){
-				assert(db->mallocFailed);
-				break;
-			}
+		if( pSrc ){//外部查询有from子句
+		  assert( pParent==p );  // First time through the loop *//*第一次循环，插入断点，若有异常，则做相关处理*/
+		  jointype = pSubitem->jointype;//子查询的连接类型
+		}else{
+		  assert( pParent!=p );  // 2nd and subsequent times through the loop *//*条件不成立，同样插入断点*/
+		  pSrc = pParent->pSrc = sqlite3SrcListAppend(db, 0, 0, 0);//追加from子句
+		  if( pSrc==0 ){//如果没有追加
+			assert( db->mallocFailed );//异常处理，检查内存问题
+			break;
+		  }
 		}
 
 		/* The subquery uses a single slot of the FROM clause of the outer
 		** query.  If the subquery has more than one element in its FROM clause,
 		** then expand the outer query to make space for it to hold all elements
 		** of the subquery.
-		**该子查询用一个单个的对外查询的FROM子句的跟踪。如果子查询在它的From子句有多个元素,那么展开外部查询来为
-		保持子查询的所有元素而创造空间。
-		** Example:示例：
+		**
+		** Example:
 		**
 		**    SELECT * FROM tabA, (SELECT * FROM sub1, sub2), tabB;
+		**
 		** The outer query has 3 slots in its FROM clause.  One slot of the
 		** outer query (the middle slot) is used by the subquery.  The next
 		** block of code will expand the out query to 4 slots.  The middle
 		** slot is expanded to two slots in order to make space for the
 		** two elements in the FROM clause of the subquery.
-		外查询在它的FROM子句有三个跟踪。外查询的一个跟踪（中间的跟踪）用于子查询。下一个代码块将扩大外查询
-		到4个跟踪。中间那个扩大成两个是为了为子查询的FROM子句创造空间。*/
-		if (nSubSrc > 1){
-			pParent->pSrc = pSrc = sqlite3SrcListEnlarge(db, pSrc, nSubSrc - 1, iFrom + 1);
-			if (db->mallocFailed){
-				break;
-			}
+		*/
+		/*
+		** 子查询使用 FROM 子句的外部查询。 如果子查询在其 FROM 子句中有多个元素，
+		展开该外部查询，以使它持有的所有元素的空间 。**
+		** 例子：
+		**      SELECT * FROM tabA, (SELECT * FROM sub1, sub2), tabB;
+		** 外部有3个入口在from子句中。中间的入口是子查询。下一个代码块将外查询扩大为4个入口。
+		** 为确保子查询的空间，中间入口扩展位2个。
+		*/
+		if( nSubSrc>1 ){//子查询from子句超过一个
+		  pParent->pSrc = pSrc = sqlite3SrcListEnlarge(db, pSrc, nSubSrc-1,iFrom+1);//扩充外部查询入口
+		  if( db->mallocFailed ){//内存分配失败
+			break;
+		  }
 		}
 
 		/* Transfer the FROM clause terms from the subquery into the
-		** outer query.从子查询中把FROM字句转移到外部查询中
-		*/
-		for (i = 0; i < nSubSrc; i++){
-			sqlite3IdListDelete(db, pSrc->a[i + iFrom].pUsing);
-			pSrc->a[i + iFrom] = pSubSrc->a[i];
-			memset(&pSubSrc->a[i], 0, sizeof(pSubSrc->a[i]));
+		** outer query.
+		*//*子查询中的FROM子句转到外查询*/
+		//遍历所有的from子句
+		for(i=0; i<nSubSrc; i++){
+		  sqlite3IdListDelete(db, pSrc->a[i+iFrom].pUsing);//从数组删除已经处理过的from子句
+		  pSrc->a[i+iFrom] = pSubSrc->a[i];//删除后存入当前的from子句
+		  memset(&pSubSrc->a[i], 0, sizeof(pSubSrc->a[i]));//从pSubSrc->a[i]所指的地址开始，将pSubSrc->a[i]的前sizeof(pSubSrc->a[i])个字节用0替换
 		}
-		pSrc->a[iFrom].jointype = jointype;
-
-		/* Now begin substituting subquery result set expressions for
+		pSrc->a[iFrom].jointype = jointype;//当前from子句连接类型的赋值
+	  
+		/* Now begin substituting subquery result set expressions for 
 		** references to the iParent in the outer query.
-		** 现在开始把提到的子查询结果集表达式替换到外查询的iParent中
-		** Example:比如：
+		** 
+		** Example:
 		**
 		**   SELECT a+5, b*10 FROM (SELECT x*3 AS a, y+10 AS b FROM t1) WHERE a>b;
 		**   \                     \_____________ subquery __________/          /
@@ -3394,642 +3441,671 @@ static int flattenSubquery(
 		**
 		** We look at every expression in the outer query and every place we see
 		** "a" we substitute "x*3" and every place we see "b" we substitute "y+10".
-		我们看外部查询中的每个表达式和每个我们看到"a"，我们取代"x*3的地方，以及每个我们看到"B"
-		我们替代"y+10"的地方。*/
-		pList = pParent->pEList;
-		for (i = 0; i < pList->nExpr; i++){
-			if (pList->a[i].zName == 0){
-				const char *zSpan = pList->a[i].zSpan;
-				if (ALWAYS(zSpan)){
-					pList->a[i].zName = sqlite3DbStrDup(db, zSpan);
-				}
-			}
-		}
-		substExprList(db, pParent->pEList, iParent, pSub->pEList);
-		if (isAgg){
-			substExprList(db, pParent->pGroupBy, iParent, pSub->pEList);
-			pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);
-		}
-		if (pSub->pOrderBy){
-			assert(pParent->pOrderBy == 0);
-			pParent->pOrderBy = pSub->pOrderBy;
-			pSub->pOrderBy = 0;
-		}
-		else if (pParent->pOrderBy){
-			substExprList(db, pParent->pOrderBy, iParent, pSub->pEList);
-		}
-		if (pSub->pWhere){
-			pWhere = sqlite3ExprDup(db, pSub->pWhere, 0);
-		}
-		else{
-			pWhere = 0;
-		}
-		if (subqueryIsAgg){
-			assert(pParent->pHaving == 0);
-			pParent->pHaving = pParent->pWhere;
-			pParent->pWhere = pWhere;
-			pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);
-			pParent->pHaving = sqlite3ExprAnd(db, pParent->pHaving,
-				sqlite3ExprDup(db, pSub->pHaving, 0));
-			assert(pParent->pGroupBy == 0);
-			pParent->pGroupBy = sqlite3ExprListDup(db, pSub->pGroupBy, 0);
-		}
-		else{
-			pParent->pWhere = substExpr(db, pParent->pWhere, iParent, pSub->pEList);
-			pParent->pWhere = sqlite3ExprAnd(db, pParent->pWhere, pWhere);
-		}
-
-		/* The flattened query is distinct if either the inner or the
-		** outer query is distinct.如果内部或外部查询是不同的，那么扁平化查询也不一样。
 		*/
+		/* 现在开始取代子查询结果集表达式，引用外部查询的iParent（父查询）。
+		** 例如：
+		** SELECT a+5, b*10 FROM (SELECT x*3 AS a, y+10 AS b FROM t1) WHERE a>b;
+		**   \                     \_____________ subquery __________/          /
+		**    \_____________________ outer query ______________________________/
+		**我们看看每个外部查询中的表达式，我们看到每个地方  'a' 代替 'x * 3'，每个地方，我们看到 'b' 我们代替' y+10'
+		*/
+		pList = pParent->pEList;//外部查询表达式列表的获取
+		//遍历所有的表达式列表
+		for(i=0; i<pList->nExpr; i++){
+		  if( pList->a[i].zName==0 ){//若表达式不存在
+			const char *zSpan = pList->a[i].zSpan;//赋值
+			if( ALWAYS(zSpan) ){
+			  pList->a[i].zName = sqlite3DbStrDup(db, zSpan);//深拷贝
+			}
+		  }
+		}
+		substExprList(db, pParent->pEList, iParent, pSub->pEList);//获取pParent->pEList给pSub->pEList
+		if( isAgg ){//如果外部查询使用了聚集函数
+		  substExprList(db, pParent->pGroupBy, iParent, pSub->pEList);//获取pParent->pGroupBy给pSub->pEList
+		  pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);//获取pParent->pHaving表达式给pSub->pEList
+		}
+		if( pSub->pOrderBy ){//子查询中含OrderBy子句
+		  assert( pParent->pOrderBy==0 );//插入断点，异常处理
+		  pParent->pOrderBy = pSub->pOrderBy;//子查询中pOrderBy赋值给父查询中的pOrderBy子句进行处理
+		  pSub->pOrderBy = 0;//处理完毕清空pSub->pOrderBy
+		}else if( pParent->pOrderBy ){//若父查询有pOrderBy子句
+		  substExprList(db, pParent->pOrderBy, iParent, pSub->pEList);//获取pParent->pOrderBy给pSub->pEList
+		}
+		if( pSub->pWhere ){//含有where子句
+		  pWhere = sqlite3ExprDup(db, pSub->pWhere, 0);//深拷贝
+		}else{
+		  pWhere = 0;//没有where子句，置0
+		}
+		if( subqueryIsAgg ){//若含有聚集函数
+			//聚集函数的处理
+		  assert( pParent->pHaving==0 );//异常断点处理
+		  pParent->pHaving = pParent->pWhere;//where子句在having中处理
+		  pParent->pWhere = pWhere;//当前的where子句赋值给父查询中
+		  pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);//获取pParent->pHaving给SELECT中pWhere
+		  pParent->pHaving = sqlite3ExprAnd(db, pParent->pHaving,
+									  sqlite3ExprDup(db, pSub->pHaving, 0));//父查询pHaving子句与子查询pHaving子句，赋值给父查询的pHaving
+		  assert( pParent->pGroupBy==0 );//插入断点，如果父查询中含GroupBy抛出异常
+		  pParent->pGroupBy = sqlite3ExprListDup(db, pSub->pGroupBy, 0);//深度拷贝
+		}else{
+		  pParent->pWhere = substExpr(db, pParent->pWhere, iParent, pSub->pEList);//获取pParent->pWhere给pSub->pEList
+		  pParent->pWhere = sqlite3ExprAnd(db, pParent->pWhere, pWhere);//where子句相连接
+		}
+	  
+		/* The flattened query is distinct if either the inner or the
+		** outer query is distinct. 
+		*//*如果内查询和外查询都是唯一的，扁平化查询也是唯一的。
 		pParent->selFlags |= pSub->selFlags & SF_Distinct;
-
+	  /*位运算*/
 		/*
 		** SELECT ... FROM (SELECT ... LIMIT a OFFSET b) LIMIT x OFFSET y;
-		**搜索... (搜索... 限制一个偏移量b)限制X偏移量Y;
+		**
 		** One is tempted to try to add a and b to combine the limits.  But this
-		** does not work if either limit is negative.一个是想方设法要添加A和B来与限制相结合，
-		但是如果限制是负值就不行了。
-		*/
-		if (pSub->pLimit){
-			pParent->pLimit = pSub->pLimit;
-			pSub->pLimit = 0;
+		** does not work if either limit is negative.
+		*//*结合limit中使用a和b，但limit是负数时，不起作用
+		if( pSub->pLimit ){//子查询中含有limit子句
+		  pParent->pLimit = pSub->pLimit;//子查询赋给父查询的limit
+		  pSub->pLimit = 0;//置0
 		}
+	  }
+	  
+	  /* Finially, delete what is left of the subquery and return
+	  ** success.
+	  *//*最后删除左边的子查询，成功返回*/
+	  sqlite3SelectDelete(db, pSub1);/*调用数据库删除函数*/
+
+	  return 1;//表示执行通过
 	}
+	#endif /* !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW) */
 
-	/* Finially, delete what is left of the subquery and return
-	** success. 最后，删除子查询的剩余部分并返回
+	/*
+	** Analyze the SELECT statement passed as an argument to see if it
+	** is a min() or max() query. Return WHERE_ORDERBY_MIN or WHERE_ORDERBY_MAX if 
+	** it is, or 0 otherwise. At present, a query is considered to be
+	** a min()/max() query if:
+	**
+	**   1. There is a single object in the FROM clause.
+	**
+	**   2. There is a single expression in the result set, and it is
+	**      either min(x) or max(x), where x is a column reference.
 	*/
-	sqlite3SelectDelete(db, pSub1);
-
-	return 1;
-}
-#endif /* !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW) */
-
-/*
-** Analyze the SELECT statement passed as an argument to see if it
-** is a min() or max() query. Return WHERE_ORDERBY_MIN or WHERE_ORDERBY_MAX if
-** it is, or 0 otherwise. At present, a query is considered to be
-** a min()/max() query if:
-**分析参数传递的 SELECT语句来看它是否是一个最小值或最大值查询。如果是，则返回WHERE_ORDERBY_MIN或WHERE_ORDERBY_MAX，
-否则返回0.目前，一个查询被认为是一个最小或最大值查询，如果：
-**   1. There is a single object in the FROM clause.
-** 在From子句中有一个单一对象。
-**   2. There is a single expression in the result set, and it is
-**      either min(x) or max(x), where x is a column reference.
-在结果集中有一个单一表达式，并且它要么最小值，要么最大值，其中x为一个列参考。*/
-static u8 minMaxQuery(Select *p){
-	Expr *pExpr;
-	ExprList *pEList = p->pEList;
-
-	if (pEList->nExpr != 1) return WHERE_ORDERBY_NORMAL;
-	pExpr = pEList->a[0].pExpr;
-	if (pExpr->op != TK_AGG_FUNCTION) return 0;
-	if (NEVER(ExprHasProperty(pExpr, EP_xIsSelect))) return 0;
-	pEList = pExpr->x.pList;
-	if (pEList == 0 || pEList->nExpr != 1) return 0;
-	if (pEList->a[0].pExpr->op != TK_AGG_COLUMN) return WHERE_ORDERBY_NORMAL;
-	assert(!ExprHasProperty(pExpr, EP_IntValue));
-	if (sqlite3StrICmp(pExpr->u.zToken, "min") == 0){
+	/* 分析 SELECT 语句，若它是一个a min() 或 max() .返回WHERE_ORDERBY_MIN ， WHERE_ORDERBY_MAX .
+	**否则返回0. 现在，若一个查询被认为是一个min() 或 max() ：
+	** 1.在from的子句中有一个单独的对象
+	** 2.在结果集中有一个单独的表达式，而且它要么是min,要么是max，x是参考的列。**/
+	
+	static u8 minMaxQuery(Select *p){
+	  Expr *pExpr; //声明一个表达式
+	  ExprList *pEList = p->pEList;//定义pEList，将select中的p->pEList赋值给它
+	  if( pEList->nExpr!=1 ) 
+		  return WHERE_ORDERBY_NORMAL;//表达式列表不为1，返回默认值
+	  pExpr = pEList->a[0].pExpr;//数组中的第一个元素给新定义的变量
+	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//非聚集操作，返回
+	  if( NEVER(ExprHasProperty(pExpr, EP_xIsSelect)) ) return 0;
+	  pEList = pExpr->x.pList;//表达式中x的表达式列表赋值
+	  if( pEList==0 || pEList->nExpr!=1 ) return 0;//没有表达式或者表达式列表中表达式个数不等于1，返回
+	  if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL;//数组第一个表达式并非聚集操作，返回默认值
+	  assert( !ExprHasProperty(pExpr, EP_IntValue) );//异常处理，加入断点检查
+	  if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){//字符串min，返回WHERE_ORDERBY_MIN
 		return WHERE_ORDERBY_MIN;
-	}
-	else if (sqlite3StrICmp(pExpr->u.zToken, "max") == 0){
+	  }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//字符串max，返回WHERE_ORDERBY_MAX
 		return WHERE_ORDERBY_MAX;
-	}
-	return WHERE_ORDERBY_NORMAL;
-}
-
-/*
-** The select statement passed as the first argument is an aggregate query.
-** The second argment is the associated aggregate-info object. This
-** function tests if the SELECT is of the form:
-** 选择语句传递作为第一个参数是一个汇总查询。第二个参数是关联聚合的信息对象如果 SELECT 是以下子句，
-这个功能可以测试：
-**   SELECT count(*) FROM <tbl>
-**
-** where table is a database table, not a sub-select or view. If the query
-** does match this pattern, then a pointer to the Table object representing
-** <tbl> is returned. Otherwise, 0 is returned.
-其中表是一个数据库表,而不是一个子选择或视图。 如果该查询不匹配这一模式,那么返回代表表对象的指针,
-否则，返回0.*/
-static Table *isSimpleCount(Select *p, AggInfo *pAggInfo){
-	Table *pTab;
-	Expr *pExpr;
-
-	assert(!p->pGroupBy);
-
-	if (p->pWhere || p->pEList->nExpr != 1
-		|| p->pSrc->nSrc != 1 || p->pSrc->a[0].pSelect
-		){
-		return 0;
-	}
-	pTab = p->pSrc->a[0].pTab;
-	pExpr = p->pEList->a[0].pExpr;
-	assert(pTab && !pTab->pSelect && pExpr);
-
-	if (IsVirtual(pTab)) return 0;
-	if (pExpr->op != TK_AGG_FUNCTION) return 0;
-	if (NEVER(pAggInfo->nFunc == 0)) return 0;
-	if ((pAggInfo->aFunc[0].pFunc->flags&SQLITE_FUNC_COUNT) == 0) return 0;
-	if (pExpr->flags&EP_Distinct) return 0;
-
-	return pTab;
-}
-
-/*
-** If the source-list item passed as an argument was augmented with an
-** INDEXED BY clause, then try to locate the specified index. If there
-** was such a clause and the named index cannot be found, return
-** SQLITE_ERROR and leave an error in pParse. Otherwise, populate
-** pFrom->pIndex and return SQLITE_OK.
-如果源列表中的项目作为参数传递,增加了一个索引的子句,则尝试找到指定的索引。如果有这样一个子句，并且这个已命名
-索引不能找到，返回SQLITE_ERROR并在 pParse中留下一个错误。否则，填充pFrom->pIndex并返回SQLITE_OK.
-?*/
-int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){
-	if (pFrom->pTab && pFrom->zIndex){
-		Table *pTab = pFrom->pTab;
-		char *zIndex = pFrom->zIndex;
-		Index *pIdx;
-		for (pIdx = pTab->pIndex;
-			pIdx && sqlite3StrICmp(pIdx->zName, zIndex);
-			pIdx = pIdx->pNext
-			);
-		if (!pIdx){
-			sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);
-			pParse->checkSchema = 1;
-			return SQLITE_ERROR;
-		}
-		pFrom->pIndex = pIdx;
-	}
-	return SQLITE_OK;
-}
-
-/*
-** This routine is a Walker callback for "expanding" a SELECT statement.
-** "Expanding" means to do the following:
-**此例程是一个 Walker回调为“扩大”一个SELECT语句。
-**    (1)  Make sure VDBE cursor numbers have been assigned to every
-**         element of the FROM clause.
-**    确保vdbe光标号已分配给每个 FROM子句的元素。
-**    (2)  Fill in the pTabList->a[].pTab fields in the SrcList that
-**         defines FROM clause.  When views appear in the FROM clause,
-**         fill pTabList->a[].pSelect with a copy of the SELECT statement
-**         that implements the view.  A copy is made of the view's SELECT
-**         statement so that we can freely modify or delete that statement
-**         without worrying about messing up the presistent representation
-**         of the view.
-**   在定义FROM子句的SrcList中填写 pTabList->a[].pTab字段。当视图出现在From子句时，填写
-ptablist->[].pselect，用SELECT语句的副本实现了视图。一个副本是由视图的SELECT语句形成的，
-以便我们可以自由地修改或删除该语句，而不用担心弄砸了这个视图的持久代表性。
-**    (3)  Add terms to the WHERE clause to accomodate the NATURAL keyword
-**         on joins and the ON and USING clause of joins.
-**  添加到WHERE子句以适应在链接上的自然关键字和ON以及USING链接子句。
-**    (4)  Scan the list of columns in the result set (pEList) looking
-**         for instances of the "*" operator or the TABLE.* operator.
-**         If found, expand each "*" to be every column in every table
-**         and TABLE.* to be every column in TABLE.
-**  扫描结果集(pelist)的列表来查找"*"操作或TABLE.*操作的实例。如果找到,展开每个"*"作为每个表格
-的每一列，每一个TABLE.*作为TABLE的每一列。
-*/
-static int selectExpander(Walker *pWalker, Select *p){
-	Parse *pParse = pWalker->pParse;
-	int i, j, k;
-	SrcList *pTabList;
-	ExprList *pEList;
-	struct SrcList_item *pFrom;
-	sqlite3 *db = pParse->db;
-
-	if (db->mallocFailed){
-		return WRC_Abort;
-	}
-	if (NEVER(p->pSrc == 0) || (p->selFlags & SF_Expanded) != 0){
-		return WRC_Prune;
-	}
-	p->selFlags |= SF_Expanded;
-	pTabList = p->pSrc;
-	pEList = p->pEList;
-
-	/* Make sure cursor numbers have been assigned to all entries in
-	** the FROM clause of the SELECT statement.
-	确保光标编号是否已指定SELECT语句的FROM子句中的所有条目*/
-	sqlite3SrcListAssignCursors(pParse, pTabList);
-
-	/* Look up every table named in the FROM clause of the select.  If
-	** an entry of the FROM clause is a subquery instead of a table or view,
-	** then create a transient table structure to describe the subquery.
-	查找select的From子句中中每一个已命名的表。如果一个From子句的一个条目是一个子查询而不是一个表
-	或视图,那么创建一个瞬态表结构来描述这个子查询。*/
-	for (i = 0, pFrom = pTabList->a; i < pTabList->nSrc; i++, pFrom++){
-		Table *pTab;
-		if (pFrom->pTab != 0){
-			/* This statement has already been prepared.  There is no need
-			** to go further. 此声明已做好准备，不需要更进一步。*/
-			assert(i == 0);
-			return WRC_Prune;
-		}
-		if (pFrom->zName == 0){
-#ifndef SQLITE_OMIT_SUBQUERY
-			Select *pSel = pFrom->pSelect;
-			/* A sub-query in the FROM clause of a SELECT 一个SELECT的From子句的一个子查询。 */
-			assert(pSel != 0);
-			assert(pFrom->pTab == 0);
-			sqlite3WalkSelect(pWalker, pSel);
-			pFrom->pTab = pTab = sqlite3DbMallocZero(db, sizeof(Table));
-			if (pTab == 0) return WRC_Abort;
-			pTab->nRef = 1;
-			pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);
-			while (pSel->pPrior){ pSel = pSel->pPrior; }
-			selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);
-			pTab->iPKey = -1;
-			pTab->nRowEst = 1000000;
-			pTab->tabFlags |= TF_Ephemeral;
-#endif
-		}
-		else{
-			/* An ordinary table or view name in the FROM clause From子句中的一个普通表或视图名称*/
-			assert(pFrom->pTab == 0);
-			pFrom->pTab = pTab =
-				sqlite3LocateTable(pParse, 0, pFrom->zName, pFrom->zDatabase);
-			if (pTab == 0) return WRC_Abort;
-			pTab->nRef++;
-#if !defined(SQLITE_OMIT_VIEW) || !defined (SQLITE_OMIT_VIRTUALTABLE)
-			if (pTab->pSelect || IsVirtual(pTab)){
-				/* We reach here if the named table is a really a view
-				如果达成的已命名的表格是一个真正的视图，我们可以到达这里。*/
-				if (sqlite3ViewGetColumnNames(pParse, pTab)) return WRC_Abort;
-				assert(pFrom->pSelect == 0);
-				pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);
-				sqlite3WalkSelect(pWalker, pFrom->pSelect);
-			}
-#endif
-		}
-
-		/* Locate the index named by the INDEXED BY clause, if any.
-		定位以INDEXED BY clause来命名的索引,*/
-		if (sqlite3IndexedByLookup(pParse, pFrom)){
-			return WRC_Abort;
-		}
+	  }
+	  return WHERE_ORDERBY_NORMAL;//默认值
 	}
 
-	/* Process NATURAL keywords, and ON and USING clauses of joins.
-	  自然关键字的进程，以及ON和 USING的子句链接。*/
-	if (db->mallocFailed || sqliteProcessJoin(pParse, p)){
-		return WRC_Abort;
-	}
-
-	/* For every "*" that occurs in the column list, insert the names of
-	** all columns in all tables.  And for every TABLE.* insert the names
-	** of all columns in TABLE.  The parser inserted a special expression
-	** with the TK_ALL operator for each "*" that it found in the column list.
-	** The following code just has to locate the TK_ALL expressions and expand
-	** each one to the list of all columns in all tables.
-	** 对于每个出现在“列”列表中的"*",在所有表格中插入所有列的名称，解析器插入有在“列”
-	列表出现的每个"*"的TK_ALL操作的特殊表达式。下面的代码就可以找到tk_all表达式和扩大每一个到所有
-	表格的所有列。
-	** The first loop just checks to see if there are any "*" operators
-	** that need expanding.第一个循环就会进行检查,以查看是否有任何需要扩大的"*"运算符。
+	/*
+	** The select statement passed as the first argument is an aggregate query.
+	** The second argument is the associated aggregate-info object. This 
+	** function tests if the SELECT is of the form:
+	**
+	**   SELECT count(*) FROM <tbl>
+	**
+	** where table is a database table, not a sub-select or view. If the query
+	** does match this pattern, then a pointer to the Table object representing
+	** <tbl> is returned. Otherwise, 0 is returned.
 	*/
-	for (k = 0; k < pEList->nExpr; k++){
-		Expr *pE = pEList->a[k].pExpr;
-		if (pE->op == TK_ALL) break;
-		assert(pE->op != TK_DOT || pE->pRight != 0);
-		assert(pE->op != TK_DOT || (pE->pLeft != 0 && pE->pLeft->op == TK_ID));
-		if (pE->op == TK_DOT && pE->pRight->op == TK_ALL) break;
+	/* 作为第一个参数传递的 select 语句是聚集查询。* * 第二个参数是相关联的聚集信息对象。
+	** 
+	** SELECT count(*) FROM <tbl>
+	** 这个表是数据库中的表，它不是一个子查询的结果也不是一个视图。如果查询和模式匹配，那么就有个指向Table对象代表<tab>的指针返回。
+	** 否则就返回0
+	*/
+	static Table *isSimpleCount(Select *p, AggInfo *pAggInfo){//两个参数，其中p是查询语法树，pAggInfo是聚集函数结构体
+	  Table *pTab;//声明一个表
+	  Expr *pExpr;//声明一个表达式
+
+	  assert( !p->pGroupBy );//异常处理，加入断点，进行判断检查
+
+	  if( p->pWhere || p->pEList->nExpr!=1 //含WHERE子句或者表达式的个数不等于1
+	   || p->pSrc->nSrc!=1 || p->pSrc->a[0].pSelect//或者FROM子句不等于1或者有嵌套查询
+	  ){
+		return 0;
+	  }
+	  pTab = p->pSrc->a[0].pTab;//数组中的第一个表格值赋值给Table结构体成员pTab
+	  pExpr = p->pEList->a[0].pExpr;//数组中的一个表达式的值赋值给表达式pExpr
+	  assert( pTab && !pTab->pSelect && pExpr );//异常处理，加入断点，进行判断检查
+
+	  if( IsVirtual(pTab) ) return 0;//如果ptab是个虚表
+	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//非聚集操作
+	  if( NEVER(pAggInfo->nFunc==0) ) return 0;//没有聚集函数
+	  if( (pAggInfo->aFunc[0].pFunc->flags&SQLITE_FUNC_COUNT)==0 ) return 0;//聚集函数的标记变量和SQLITE_FUNC_COUNT位运算不等
+	  if( pExpr->flags&EP_Distinct ) return 0;//表达式标记变量和EP_Distinct的值相等
+
+	  return pTab;//返回指针
 	}
-	if (k < pEList->nExpr){
+
+	/*
+	** If the source-list item passed as an argument was augmented with an
+	** INDEXED BY clause, then try to locate the specified index. If there
+	** was such a clause and the named index cannot be found, return 
+	** SQLITE_ERROR and leave an error in pParse. Otherwise, populate 
+	** pFrom->pIndex and return SQLITE_OK.
+	*/
+	/*如果源列表的项作为一个索引是有异议的，那么久尝试定位特殊的索引。如果有一个子句而且被命名的索引找不到了，
+	那么就返回错误并且在解析器中标记出错误。
+	否则填充到 pFrom->pIndex并且返回一个 SQLITE_OK
+	*/
+	//索引项的处理
+	int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){
+	  if( pFrom->pTab && pFrom->zIndex ){//SrcList_item为FROM的结构体，pTab非空且pFrom->zIndex非空
+		Table *pTab = pFrom->pTab;//定义一个表
+		char *zIndex = pFrom->zIndex;//from项的索引标识符
+		Index *pIdx;//声明一个索引指针
+
+		//遍历表中的索引项，查找指定名字的索引
+		for(pIdx=pTab->pIndex; 
+			pIdx && sqlite3StrICmp(pIdx->zName, zIndex); 
+			pIdx=pIdx->pNext
+		);
+		if( !pIdx ){//没有找到对应的索引项
+		  sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);//输出错误信息
+		  pParse->checkSchema = 1;//语法解析器错误信息标识
+		  return SQLITE_ERROR;
+		}
+		pFrom->pIndex = pIdx;//找到索引项，添加到FROM表达式项的索引结构体中
+	  }
+	  return SQLITE_OK;//执行正确
+	}
+
+	/*
+	** This routine is a Walker callback for "expanding" a SELECT statement.
+	** "Expanding" means to do the following:
+	**
+	**    (1)  Make sure VDBE cursor numbers have been assigned to every
+	**         element of the FROM clause.
+	**
+	**    (2)  Fill in the pTabList->a[].pTab fields in the SrcList that 
+	**         defines FROM clause.  When views appear in the FROM clause,
+	**         fill pTabList->a[].pSelect with a copy of the SELECT statement
+	**         that implements the view.  A copy is made of the view's SELECT
+	**         statement so that we can freely modify or delete that statement
+	**         without worrying about messing up the presistent representation
+	**         of the view.
+	**
+	**    (3)  Add terms to the WHERE clause to accomodate the NATURAL keyword
+	**         on joins and the ON and USING clause of joins.
+	**
+	**    (4)  Scan the list of columns in the result set (pEList) looking
+	**         for instances of the "*" operator or the TABLE.* operator.
+	**         If found, expand each "*" to be every column in every table
+	**         and TABLE.* to be every column in TABLE.
+	**
+	*/
+	/* 这个程序是Walker回调“expanding”的一个SELECT语句，“Expanding”是指做以下这些：
+	**   （1）确保VEBE游标号已经被分配给FROM子句的每个元素   
+	**   （2）在SrcList中，填进pTabList->a[].pTab中的域是对from子句的定义。当FROM子句中出现视图，填进一个实现试图的select的副本的pTabList->a[].pSelect
+	**        由SELECT语句的组成的副本，我们可以自由的修改或者删除这个语句，而不用担心
+	**        会将以前的视图修改。
+	**   （3）在连接操作和连接操作中涉及的on以及using上，添加一个WHERE子句容纳NATURAL关键字
+	**   （4）在结果集中扫描列表，查找“*”操作符的实例或TABLE.*操作符。如果找到了，在每个表的每一列扩展
+	*/
+	static int selectExpander(Walker *pWalker, Select *p){
+	  Parse *pParse = pWalker->pParse;//语法解析树的声明
+	  int i, j, k;//自定义变量
+	  SrcList *pTabList;//from子句列表指针的声明
+	  ExprList *pEList;//表达式列表的声明
+	  struct SrcList_item *pFrom;//实例化一个结构体
+	  sqlite3 *db = pParse->db;//数据库连接的定义
+
+	  if( db->mallocFailed  ){//检查内存分配问题
+		return WRC_Abort;//*如果内存分配错误，终止程序
+	  }
+	  if( NEVER(p->pSrc==0) || (p->selFlags & SF_Expanded)!=0 ){//没有from子句或标记符和SF_Expanded位运算相等
+		return WRC_Prune;//删除
+	  }
+	  p->selFlags |= SF_Expanded;//变量的位运算
+	  pTabList = p->pSrc;//FROM子句所指的赋值给FROM子句列表指针
+	  pEList = p->pEList;
+
+	  /* Make sure cursor numbers have been assigned to all entries in
+	  ** the FROM clause of the SELECT statement.
+	  *//*确保游标号已经分配给所有的在SELECT语句里中FROM子句里。*/
+	  sqlite3SrcListAssignCursors(pParse, pTabList);/*为表达式列表pTabList中所有表分配游标号*/
+
+	  /* Look up every table named in the FROM clause of the select.  If
+	  ** an entry of the FROM clause is a subquery instead of a table or view,
+	  ** then create a transient table structure to describe the subquery.
+	  *//*查找SELECT中FROM子句中每一个表名。若FROM子句的一个条目是子查询而不是一个表或视图，
+	  那么就创建一个描述子查询的事务表	  */
+	  //遍历表
+	  for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
+		Table *pTab;//定义一个table类型的变量
+		if( pFrom->pTab!=0 ){//如果from表项中有表
+		  /* This statement has already been prepared.  There is no need
+		  ** to go further. */
+		  这个声明已经被事先执行，没有必要继续进行。
+		  assert( i==0 );//异常处理，加入断点。
+		  return WRC_Prune;//删除
+		}
+		if( pFrom->zName==0 ){
+		//若表名为空
+	#ifndef SQLITE_OMIT_SUBQUERY
+		  Select *pSel = pFrom->pSelect;//将pFrom赋值给pSel
+		  /* A sub-query in the FROM clause of a SELECT *//*SELECT中FROM子句的子查询*/
+		  assert( pSel!=0 );//异常处理，加入断点
+		  assert( pFrom->pTab==0 );//异常处理，加入断点
+		  sqlite3WalkSelect(pWalker, pSel);//调用sqlite3WalkSelect函数
+		  pFrom->pTab = pTab = sqlite3DbMallocZero(db, sizeof(Table));//分配和表的大小相等的内存
+		  if( pTab==0 ) return WRC_Abort;//如果分配错误，则终止程序
+		  pTab->nRef = 1;//pTab->nRef赋值为1
+		  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//将相关的信息打印出来赋给pTab->zName
+		  //遍历，查找优先的select
+		  while( pSel->pPrior ){ pSel = pSel->pPrior; }
+		  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//在表达式列表中查找列
+		  pTab->iPKey = -1;//置iPKey=-1，不用它做主键
+		  pTab->nRowEst = 1000000;//设置表的行数
+		  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表的标记变量
+	#endif
+		}else{
+		  /* An ordinary table or view name in the FROM clause *//*FROM语句中常规的表或视图名字*/
+		  assert( pFrom->pTab==0 );//异常处理，加入断点
+		  pFrom->pTab = pTab = 
+			sqlite3LocateTable(pParse,0,pFrom->zName,pFrom->zDatabase);//由语法解析，数据库连接，数据库名字定位所寻找的表
+		  if( pTab==0 ) return WRC_Abort;//不存在该表则终止
+		  pTab->nRef++;//自加
+	#if !defined(SQLITE_OMIT_VIEW) || !defined (SQLITE_OMIT_VIRTUALTABLE)
+		  if( pTab->pSelect || IsVirtual(pTab) ){//若表中SELECT非空或pTab是虚表
+			/* We reach here if the named table is a really a view *//*到达这一步，如果，说明这个表是一个真正的视图*/
+			if( sqlite3ViewGetColumnNames(pParse, pTab) ) return WRC_Abort;//获取视图列名，若有错误，终止
+			assert( pFrom->pSelect==0 );//异常处理，加入断点
+			pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);//深拷贝
+			sqlite3WalkSelect(pWalker, pFrom->pSelect);/*调用sqlite3WalkSelect和sqlite3WalkExpr
+		  }
+	#endif
+		}
+
+		/* Locate the index named by the INDEXED BY clause, if any. *//*在索引子句中定位到索引的名字*/
+		if( sqlite3IndexedByLookup(pParse, pFrom) ){//查找索引
+		  return WRC_Abort;//再返回中止执行标记
+		}
+	  }
+
+	  /* Process NATURAL keywords, and ON and USING clauses of joins.
+	  *//*处理连接中的NATURAL关键字 ON USING*/
+	  if( db->mallocFailed || sqliteProcessJoin(pParse, p) ){//内存分配失败或者处理连接操作
+		return WRC_Abort;//中止
+	  }
+
+	  /* For every "*" that occurs in the column list, insert the names of
+	  ** all columns in all tables.  And for every TABLE.* insert the names
+	  ** of all columns in TABLE.  The parser inserted a special expression
+	  ** with the TK_ALL operator for each "*" that it found in the column list.
+	  ** The following code just has to locate the TK_ALL expressions and expand
+	  ** each one to the list of all columns in all tables.
+	  **
+	  ** The first loop just checks to see if there are any "*" operators
+	  ** that need expanding.
+	  */
+	  /*
+	  ** 在列表中出现的每一个“*”，在所有的表和所有的列中插入名字。对于每个表的左连接运算，插入表中所有列的名字
+	  ** 对于任何的“*”，在语法解析器中，插入一个聚集操作操作符的特殊表达式。
+	  ** 剩下的代码必须找到聚集表达式并且扩展所有表所有列的列表
+	  */
+
+	  //遍历表达式列表
+	  for(k=0; k<pEList->nExpr; k++){
+		Expr *pE = pEList->a[k].pExpr;/*表达式列表数组中的每个元素赋值给pe*/
+		if( pE->op==TK_ALL ) break;/*如果操作为聚集操作*/
+		assert( pE->op!=TK_DOT || pE->pRight!=0 );//异常处理，加入断点
+		assert( pE->op!=TK_DOT || (pE->pLeft!=0 && pE->pLeft->op==TK_ID) );//异常处理，加入断点
+		if( pE->op==TK_DOT && pE->pRight->op==TK_ALL ) break;//满足条件，跳出循环体
+	  }
+	  if( k<pEList->nExpr ){//若k的值小于表达式列表的个数
 		/*
 		** If we get here it means the result set contains one or more "*"
 		** operators that need to be expanded.  Loop through each expression
 		** in the result set and expand them one by one.
-		如果我们到了这里就意味着结果集包含一个或多个需要扩大的"*"。循环每个结果集中的表达式并
-		一个接一个的扩大它们。*/
-		struct ExprList_item *a = pEList->a;
-		ExprList *pNew = 0;
-		int flags = pParse->db->flags;
-		int longNames = (flags & SQLITE_FullColNames) != 0
-			&& (flags & SQLITE_ShortColNames) == 0;
+		//到了这一步，表明结果集包含一个或多个的*操作，这些操作是需要扩展的。循环处理每一个结果集中的表达式并且扩展它们*/
+	
+		struct ExprList_item *a = pEList->a;//ExprList_item结构体对象的赋值
+		ExprList *pNew = 0;//*定义一个表达式列表
+		int flags = pParse->db->flags;//解析器中标记变量
+		int longNames = (flags & SQLITE_FullColNames)!=0//flags为SQLITE_FullColNames并且不包含SQLITE_ShortColNames
+						  && (flags & SQLITE_ShortColNames)==0;
 
-		for (k = 0; k < pEList->nExpr; k++){
-			Expr *pE = a[k].pExpr;
-			assert(pE->op != TK_DOT || pE->pRight != 0);
-			if (pE->op != TK_ALL && (pE->op != TK_DOT || pE->pRight->op != TK_ALL)){
-				/* This particular expression does not need to be expanded.
-				此特定表达式不需要扩大*/
-				pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);
-				if (pNew){
-					pNew->a[pNew->nExpr - 1].zName = a[k].zName;
-					pNew->a[pNew->nExpr - 1].zSpan = a[k].zSpan;
-					a[k].zName = 0;
-					a[k].zSpan = 0;
-				}
-				a[k].pExpr = 0;
+		//遍历表达式列表
+		for(k=0; k<pEList->nExpr; k++){
+		  Expr *pE = a[k].pExpr;/*表达式列表数组中的每个元素赋值给pe
+		  assert( pE->op!=TK_DOT || pE->pRight!=0 );//异常处理，加入断点
+		  if( pE->op!=TK_ALL && (pE->op!=TK_DOT || pE->pRight->op!=TK_ALL) ){
+			/* This particular expression does not need to be expanded.
+			//这种特殊的表达不需要扩展*/
+			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//追加
+			if( pNew ){//非空
+			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//数组元素表名属性赋值
+			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//数组元素的zSpan属性赋值
+			  a[k].zName = 0;//置0
+			  a[k].zSpan = 0;//置0
 			}
-			else{
-				/* This expression is a "*" or a "TABLE.*" and needs to be
-				** expanded. 此表达式是一个“*”或一个"table.*",并需要扩大。*/
-				int tableSeen = 0;      /* Set to 1 when TABLE matches 当表匹配时，设置为1*/
-				char *zTName;            /* text of name of TABLE 文本的表名*/
-				if (pE->op == TK_DOT){
-					assert(pE->pLeft != 0);
-					assert(!ExprHasProperty(pE->pLeft, EP_IntValue));
-					zTName = pE->pLeft->u.zToken;
-				}
-				else{
-					zTName = 0;
-				}
-				for (i = 0, pFrom = pTabList->a; i < pTabList->nSrc; i++, pFrom++){
-					Table *pTab = pFrom->pTab;
-					char *zTabName = pFrom->zAlias;
-					if (zTabName == 0){
-						zTabName = pTab->zName;
-					}
-					if (db->mallocFailed) break;
-					if (zTName && sqlite3StrICmp(zTName, zTabName) != 0){
-						continue;
-					}
-					tableSeen = 1;
-					for (j = 0; j < pTab->nCol; j++){
-						Expr *pExpr, *pRight;
-						char *zName = pTab->aCol[j].zName;
-						char *zColname;  /* The computed column name 计算列名称*/
-						char *zToFree;   /* Malloced string that needs to be freed 访问内存需要
-						释放的字符串 */
-						Token sColname;  /* Computed column name as a token 计算列名称用作令牌*/
-
-						/* If a column is marked as 'hidden' (currently only possible
-						** for virtual tables), do not include it in the expanded
-						** result-set list.如果一个列被标记为“隐藏”(目前仅对虚拟表有可能），不要把它包含在
-						扩大的结果集列表中。
-						*/
-						if (IsHiddenColumn(&pTab->aCol[j])){
-							assert(IsVirtual(pTab));
-							continue;
-						}
-
-						if (i>0 && zTName == 0){
-							if ((pFrom->jointype & JT_NATURAL) != 0
-								&& tableAndColumnIndex(pTabList, i, zName, 0, 0)
-								){
-								/* In a NATURAL join, omit the join columns from the
-								** table to the right of the join 在一个NATURAL链接中，省略从这个表到右链接
-								的列链接*/
-								continue;
-							}
-							if (sqlite3IdListIndex(pFrom->pUsing, zName) >= 0){
-								/* In a join with a USING clause, omit columns in the
-								** using clause from the table on the right.在有同一个Using子句的链接中，
-								省略从这个表到右链接Using子句的列链接
-								*/
-								continue;
-							}
-						}
-						pRight = sqlite3Expr(db, TK_ID, zName);
-						zColname = zName;
-						zToFree = 0;
-						if (longNames || pTabList->nSrc > 1){
-							Expr *pLeft;
-							pLeft = sqlite3Expr(db, TK_ID, zTabName);
-							pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);
-							if (longNames){
-								zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);
-								zToFree = zColname;
-							}
-						}
-						else{
-							pExpr = pRight;
-						}
-						pNew = sqlite3ExprListAppend(pParse, pNew, pExpr);
-						sColname.z = zColname;
-						sColname.n = sqlite3Strlen30(zColname);
-						sqlite3ExprListSetName(pParse, pNew, &sColname, 0);
-						sqlite3DbFree(db, zToFree);
-					}
-				}
-				if (!tableSeen){
-					if (zTName){
-						sqlite3ErrorMsg(pParse, "no such table: %s", zTName);
-					}
-					else{
-						sqlite3ErrorMsg(pParse, "no tables specified");
-					}
-				}
+			a[k].pExpr = 0;//置0
+		  }else{
+			/* This expression is a "*" or a "TABLE.*" and needs to be
+			** expanded.这个表达式是一个*或者是左连接，它们是需要被扩展的  */
+			int tableSeen = 0;      /* Set to 1 when TABLE matches *///正确匹配的时候设置为1
+			char *zTName;            /* text of name of TABLE *///表的文本名
+			if( pE->op==TK_DOT ){
+			  assert( pE->pLeft!=0 );//异常处理，加入断点
+			  assert( !ExprHasProperty(pE->pLeft, EP_IntValue) );//异常处理，加入断点
+			  zTName = pE->pLeft->u.zToken;//表达式左边的u.zToken赋值给文本
+			}else{
+			  zTName = 0;//否则文本清空
 			}
+			//表达式列表的遍历
+			for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
+			  Table *pTab = pFrom->pTab;//定义表
+			  char *zTabName = pFrom->zAlias;//from子句的依赖关系
+			  if( zTabName==0 ){//为空
+				zTabName = pTab->zName;//直接赋表名
+			  }
+			  if( db->mallocFailed ) break;//内存分配失败，跳出循环体
+			  if( zTName && sqlite3StrICmp(zTName, zTabName)!=0 ){//表名非空，表名一致
+				continue;//跳出本次循环
+			  }
+			  tableSeen = 1;//设置标记变量
+			  //遍历表中的列
+			  for(j=0; j<pTab->nCol; j++){
+				Expr *pExpr, *pRight;//声明表达式
+				char *zName = pTab->aCol[j].zName;//获取每一列的名字
+				char *zColname;  // The computed column name //计算的列名
+				char *zToFree;   /* Malloced string that needs to be freed *//*释放已分配字符串的空间*/
+				Token sColname;  /* Computed column name as a token *//*标记列名
+
+				/* If a column is marked as 'hidden' (currently only possible
+				** for virtual tables), do not include it in the expanded result-set list.
+				** result-set list.
+				*//*如果有一列标记为隐藏，当前只能对虚表，在扩展的结果集中不包括它。*/
+				if( IsHiddenColumn(&pTab->aCol[j]) ){//判断列是否被隐藏
+				  assert(IsVirtual(pTab));//异常处理，加入断点
+				  continue;//跳过本次循环
+				}
+
+				if( i>0 && zTName==0 ){
+				  if( (pFrom->jointype & JT_NATURAL)!=0/*连接类型为JT_NATURAL*/
+					&& tableAndColumnIndex(pTabList, i, zName, 0, 0)/*并且表与列索引不为空*/
+				  ){
+					/* In a NATURAL join, omit the join columns from the 
+					** table to the right of the join *//*(注：使用自然连接，从右侧的连接表中省略连接列)*/
+					continue;//跳过本次循环
+				  }
+				  if( sqlite3IdListIndex(pFrom->pUsing, zName)>=0 ){//列索引
+					/* In a join with a USING clause, omit columns in the
+					** using clause from the table on the right. *//*用USING子句的连接，从右表中省略在using子句中的列*/
+					continue;//跳过本次循环
+				  }
+				}
+				pRight = sqlite3Expr(db, TK_ID, zName);//调用sqlite3Expr函数，分配列zName一个TK_ID标记
+				zColname = zName;//对列名的赋值
+				zToFree = 0;
+				if( longNames || pTabList->nSrc>1 ){
+				  Expr *pLeft;//声明表达式
+				  pLeft = sqlite3Expr(db, TK_ID, zTabName); //调用sqlite3Expr函数，分配列zTabName一个TK_ID标记
+				  pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);//调用sqlite3PExpr用来处理pLeft和pRight
+				  if( longNames ){//全路径
+					zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);//输出列名
+					zToFree = zColname;
+				  }
+				}else{
+				  pExpr = pRight;//pright赋值给最后的表达式
+				}
+				pNew = sqlite3ExprListAppend(pParse, pNew, pExpr);//pExpr追加到pNew
+				sColname.z = zColname;//赋值
+				sColname.n = sqlite3Strlen30(zColname);//列名的字符串长度
+				sqlite3ExprListSetName(pParse, pNew, &sColname, 0);//设置表达式列表的名字
+				sqlite3DbFree(db, zToFree);//释放内存空间
+			  }
+			}
+			if( !tableSeen ){
+			  if( zTName ){//列名不为空
+				sqlite3ErrorMsg(pParse, "no such table: %s", zTName);//打印错误信息
+			  }else{
+				sqlite3ErrorMsg(pParse, "no tables specified");//打印错误信息
+			  }
+			}
+		  }
 		}
-		sqlite3ExprListDelete(db, pEList);
-		p->pEList = pNew;
+		sqlite3ExprListDelete(db, pEList);//删除表达式列表
+		p->pEList = pNew;//赋值
+	  }
+	#if SQLITE_MAX_COLUMN
+	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//列溢出
+		sqlite3ErrorMsg(pParse, "too many columns in result set");//打印错误信息
+	  }
+	#endif
+	  return WRC_Continue;
 	}
-#if SQLITE_MAX_COLUMN
-	if (p->pEList && p->pEList->nExpr > db->aLimit[SQLITE_LIMIT_COLUMN]){
-		sqlite3ErrorMsg(pParse, "too many columns in result set");
+
+	/*
+	** No-op routine for the parse-tree walker.
+	**
+	** When this routine is the Walker.xExprCallback then expression trees
+	** are walked without any actions being taken at each node.  Presumably,
+	** when this routine is used for Walker.xExprCallback then 
+	** Walker.xSelectCallback is set to do something useful for every 
+	** subquery in the parser tree.
+	*/
+	/* 关于解析树walker的例程
+	**
+	** 当程序是Walker.xExprCallback回调函数，表达式树在没有任何操作情况下占据每个节点。假设，当程序用来Walker.xExprCallback
+	** 然后Walker.xSelectCallback 为语法解析树中的每一个子查询提供帮助。
+	*/
+	static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
+	  UNUSED_PARAMETER2(NotUsed, NotUsed2);
+	  return WRC_Continue;//继续执行
 	}
-#endif
-	return WRC_Continue;
-}
 
-/*
-** No-op routine for the parse-tree walker.
-**对于parse-tree walker的无操作例程
-** When this routine is the Walker.xExprCallback then expression trees
-** are walked without any actions being taken at each node.  Presumably,
-** when this routine is used for Walker.xExprCallback then
-** Walker.xSelectCallback is set to do something useful for every
-** subquery in the parser tree.当这个例程是Walker.xExprCallback ，那么表达树在每个节点上不采取
-任何行动都可以。由此可以推断,当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback
-被设置对为解析树中的每一个子查询有用。
-*/
-static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
-	UNUSED_PARAMETER2(NotUsed, NotUsed2);
-	return WRC_Continue;
-}
+	/*
+	** This routine "expands" a SELECT statement and all of its subqueries.
+	** For additional information on what it means to "expand" a SELECT
+	** statement, see the comment on the selectExpand worker callback above.
+	**
+	** Expanding a SELECT statement is the first step in processing a
+	** SELECT statement.  The SELECT statement must be expanded before
+	** name resolution is performed.
+	**
+	** If anything goes wrong, an error message is written into pParse.
+	** The calling function can detect the problem by looking at pParse->nErr
+	** and/or pParse->db->mallocFailed.
+	*/
+	/* 这个例程“expands”一个SELECT声明和所有的子查询，它的附加信息是指它是"expand" 语句的SELECT的声明
+	**
+	** SELECT声明中的第一步是扩展一个SELECT语句。在解析执行前，这个select语句必须被扩展
+	**
+	** 若有错误出现，那这条错误信息就写到解析器中。回调函数可以在pParse->nErr 或 pParse->db->mallocFailed中找出错误信息
+	*/
+	static void sqlite3SelectExpand(Parse *pParse, Select *pSelect){
+	  Walker w;//Walker结构体的声明
+	  w.xSelectCallback = selectExpander;
+	  w.xExprCallback = exprWalkNoop;//若表达式含有未使用的信息，调用回调函数
+	  w.pParse = pParse;//赋值
+	  sqlite3WalkSelect(&w, pSelect);//回调函数，调用sqlite3WalkSelect
+	}
 
-/*
-** This routine "expands" a SELECT statement and all of its subqueries.
-** For additional information on what it means to "expand" a SELECT
-** statement, see the comment on the selectExpand worker callback above.
-**此例程可以扩展一个SELECT语句及其所有子查询。对于意味着“扩大”一个SELECT语句的附加信息,
-请参阅上面selectexpand工人回调的评论。
-** Expanding a SELECT statement is the first step in processing a
-** SELECT statement.  The SELECT statement must be expanded before
-** name resolution is performed.扩大一个SELECT语句是处理SELECT语句的第一步。SELECT语句在执行名称
-解析之前必须扩大。
 
-** If anything goes wrong, an error message is written into pParse.
-** The calling function can detect the problem by looking at pParse->nErr
-** and/or pParse->db->mallocFailed.如果出现任何错误,错误消息被写入pparse，
-调用函数可以通过看pParse->nErr和/或pParse->db->mallocFailed来检测问题。
-*/
-static void sqlite3SelectExpand(Parse *pParse, Select *pSelect){
-	Walker w;
-	w.xSelectCallback = selectExpander;
-	w.xExprCallback = exprWalkNoop;
-	w.pParse = pParse;
-	sqlite3WalkSelect(&w, pSelect);
-}
+	#ifndef SQLITE_OMIT_SUBQUERY
+	/*
+	** This is a Walker.xSelectCallback callback for the sqlite3SelectTypeInfo()
+	** interface.
+	**
+	** For each FROM-clause subquery, add Column.zType and Column.zColl
+	** information to the Table structure that represents the result set
+	** of that subquery.
+	**
+	** The Table structure that represents the result set was constructed
+	** by selectExpander() but the type and collation information was omitted
+	** at that point because identifiers had not yet been resolved.  This
+	** routine is called after identifier resolution.
+	*/
+	/* 这是一个Walker.xSelectCallback回调sqlite3SelectTypeInfo()函数的接口。
+	**
+	** 对于任何一个FROM子查询，添加Column.zType和 Column.zColl信息到表结构中，他代表子查询的结果集。
+	**
+	** 表结构代表结果集由selectExpander（）构建，但在这种情况下类型和排列信息会被省略，因为没有解析标识符。
+	** 这个例程实在解析标识之后调用的
+	*/
+	static int selectAddSubqueryTypeInfo(Walker *pWalker, Select *p){
+	  Parse *pParse;//语法解析器的声明
+	  int i;//声明一个整型变量
+	  SrcList *pTabList;//声明from子句的表达式列表
+	  struct SrcList_item *pFrom;//构造结构体对象
 
-///end update by zhaoyanqi 赵艳琪
-
-#ifndef SQLITE_OMIT_SUBQUERY
-/*
-** This is a Walker.xSelectCallback callback for the sqlite3SelectTypeInfo()
-** interface.
-**
-** For each FROM-clause subquery, add Column.zType and Column.zColl
-** information to the Table structure that represents the result set
-** of that subquery.
-**
-**为from子句的每个子查询，增加Column.zType 和Column.zColl 信息到表结构?
-**以代表 子查询的结果集
-**
-** The Table structure that represents the result set was constructed
-** by selectExpander() but the type and collation information was omitted
-** at that point because identifiers had not yet been resolved.  This
-** routine is called after identifier resolution.
-**
-**这个表结构代表被selectExpander()创建的结果集、、、
-**这个程序被叫做标识符解析后
-*/
-static int selectAddSubqueryTypeInfo(Walker *pWalker, Select *p){
-	Parse *pParse; ? *SQL解析器的上下文* /
-		int i;
-	SrcList *pTabList;
-	struct SrcList_item *pFrom;
-
-	assert(p->selFlags & SF_Resolved);
-	if ((p->selFlags & SF_HasTypeInfo) == 0){
-		p->selFlags |= SF_HasTypeInfo;
-		pParse = pWalker->pParse;
+	  assert( p->selFlags & SF_Resolved );//异常处理，加入断点
+	  if( (p->selFlags & SF_HasTypeInfo)==0 ){//检查标记变量和类型信息
+		p->selFlags |= SF_HasTypeInfo;//位运算
+		pParse = pWalker->pParse;//语法解析树
 		pTabList = p->pSrc;
-		for (i = 0, pFrom = pTabList->a; i < pTabList->nSrc; i++, pFrom++){
-			Table *pTab = pFrom->pTab;
-			if (ALWAYS(pTab != 0) && (pTab->tabFlags & TF_Ephemeral) != 0){
-				/* A sub-query in the FROM clause of a SELECT
-				**
-				**select中的from 子句的一个子查询
-				**
-				*/
-				Select *pSel = pFrom->pSelect;
-				assert(pSel);
-				while (pSel->pPrior) pSel = pSel->pPrior;
-				selectAddColumnTypeAndCollation(pParse, pTab->nCol, pTab->aCol, pSel);
-			}
+		//遍历列表的表达式
+		for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
+		  Table *pTab = pFrom->pTab;//获取from子句中的列表
+		  if( ALWAYS(pTab!=0) && (pTab->tabFlags & TF_Ephemeral)!=0 ){//判断条件
+			/* A sub-query in the FROM clause of a SELECT 在from子句中的子查询*/
+			Select *pSel = pFrom->pSelect;//获取select语句
+			assert( pSel );//异常处理，加入断点
+			while( pSel->pPrior ) pSel = pSel->pPrior;//循环获取最优先的查询
+			selectAddColumnTypeAndCollation(pParse, pTab->nCol, pTab->aCol, pSel);//添加列的类型和相关的信息
+		  }
 		}
+	  }
+	  return WRC_Continue;//继续执行
 	}
-	return WRC_Continue;
-}
-#endif
+	#endif
 
 
-/*
-** This routine adds datatype and collating sequence information to
-** the Table structures of all FROM-clause subqueries in a
-** SELECT statement.
-**这个程序将数据类型和排序序列信息
-添加到表结构所有from子句的子查询
-在一个SELECT语句。
-** Use this routine after name resolution.
-**在name resolution之后使用这个程序
-*/
-static void sqlite3SelectAddTypeInfo(Parse *pParse, Select *pSelect){
-#ifndef SQLITE_OMIT_SUBQUERY
-	Walker w;
-	w.xSelectCallback = selectAddSubqueryTypeInfo;/*select回叫*/
-	w.xExprCallback = exprWalkNoop;/*表达式回叫*/
-	w.pParse = pParse;
-	sqlite3WalkSelect(&w, pSelect);
-#endif
-}
+	/*
+	** This routine adds datatype and collating sequence information to
+	** the Table structures of all FROM-clause subqueries in a
+	** SELECT statement.
+	**
+	** Use this routine after name resolution.
+	*/
+	/* 在所有from子句的子查询中的表结构中添加datatype和排序信息到SELECT中子查询的所有FROM子句的TABLE结构中。
+	** 在名字解析后使用这段程序*/
+	static void sqlite3SelectAddTypeInfo(Parse *pParse, Select *pSelect){
+	#ifndef SQLITE_OMIT_SUBQUERY
+	  Walker w;//声明一个Walker结构体
+	  w.xSelectCallback = selectAddSubqueryTypeInfo;//子查询类型信息给回调函数
+	  w.xExprCallback = exprWalkNoop;//表达式信息给回调函数
+	  w.pParse = pParse;//解析器
+	  sqlite3WalkSelect(&w, pSelect);//回调函数，调用sqlite3WalkSelect
+	#endif
+	}
 
-
-/*
-** This routine sets up a SELECT statement for processing.  The
-** following is accomplished:
-**本程序建立一个SELECT语句的处理
-**     *  VDBE Cursor numbers are assigned to all FROM-clause terms.             为from子句分配的vdbe指针数
-**     *  Ephemeral Table objects are created for all FROM-clause subqueries    为from子句的子查询建立的临时表对象.
-**     *  ON and USING clauses are shifted into WHERE statements
-**     *  Wildcards "*" and "TABLE.*" in result sets are expanded.                     通配符"*" 和"TABLE.*" 在结果集中被扩展
-**     *  Identifiers in expression are matched to tables.                                   表达式的标识符被匹配到相应的表
-**
-** This routine acts recursively on all subqueries within the SELECT.
-**这个程序递归地运行在select中的子查询中
-*/
-void sqlite3SelectPrep(
-	Parse *pParse,         /* The parser context 解析器的上下文*/
-	Select *p,             /* The SELECT statement being coded. 被编码的select表达式*/
-	NameContext *pOuterNC  /* Name context for container 为容器命名上下文*/
+	/*
+	** This routine sets up a SELECT statement for processing.  The
+	** following is accomplished:
+	**
+	**     *  VDBE Cursor numbers are assigned to all FROM-clause terms.
+	**     *  Ephemeral Table objects are created for all FROM-clause subqueries.
+	**     *  ON and USING clauses are shifted into WHERE statements
+	**     *  Wildcards "*" and "TABLE.*" in result sets are expanded.
+	**     *  Identifiers in expression are matched to tables.
+	**
+	** This routine acts recursively on all subqueries within the SELECT.
+	*/
+	/* 这个例程设置 SELECT 语句进行处理。
+	**   * VDBE游标号分配给所有的FROM子句
+	**   * 为所有 FROM 子句的子查询创建临时表对象
+	**   * ON 和 USING 子句切换到WHERE语句
+	**   * 结果集中扩展通配符"*" 和 "TABLE左连接"
+	**   * 在表达式中的标识符相匹配的表
+	** 这个例程以递归的方式对所有子查询
+	*/
+	void sqlite3SelectPrep(
+	  Parse *pParse,         /* The parser context *///定义解析器
+	  Select *p,             /* The SELECT statement being coded. *///声明select类型的指针
+	  NameContext *pOuterNC  /* Name context for container *///为容器命名
 	){
-	sqlite3 *db;
-	if (NEVER(p == 0)) return;
-	db = pParse->db;
-	if (p->selFlags & SF_HasTypeInfo) return;
-	sqlite3SelectExpand(pParse, p);
-	if (pParse->nErr || db->mallocFailed) return;
-	sqlite3ResolveSelectNames(pParse, p, pOuterNC);
-	if (pParse->nErr || db->mallocFailed) return;
-	sqlite3SelectAddTypeInfo(pParse, p);
-}
+	  sqlite3 *db;//声明一个sqlite类型的数据库连接
+	  if( NEVER(p==0) ) return;//空指针，直接返回
+	  db = pParse->db;//获取语法解析器中的数据库
+	  if( p->selFlags & SF_HasTypeInfo ) return;//标识变量和类型信息的判断
+	  sqlite3SelectExpand(pParse, p);//扩展
+	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败
+	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//解析上下文
+	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败
+	  sqlite3SelectAddTypeInfo(pParse, p);//向解析树添加语法信息
+	}
 
-/*
-** Reset the aggregate accumulator.
-**
-**重置聚合累加器
-**
-**The aggregate accumulator is a set of memory cells that hold
-** intermediate results while calculating an aggregate.  This
-** routine generates code that stores NULLs in all of those memory
-** cells.
-**
-**在计算一个聚集函数时，聚合累加器是保持中间结果集的内存单元集
-**这个程序生成代码,这些代码将null存储在所有的内存单元中
-**
-*/
-static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){
-	Vdbe *v = pParse->pVdbe;
-	int i;
-	struct AggInfo_func *pFunc;
-	if (pAggInfo->nFunc + pAggInfo->nColumn == 0){
+	/*
+	** Reset the aggregate accumulator.
+	**
+	** The aggregate accumulator is a set of memory cells that hold
+	** intermediate results while calculating an aggregate.  This
+	** routine generates code that stores NULLs in all of those memory
+	** cells.
+	*/
+	/* 聚集函数的重新设置
+	** 聚集累加器是一组记忆单元，它能在计算一个聚集的时候保存中间结果集。这段程序生成的代码在所有的记忆单元中存储了空值
+	*/
+	static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){
+	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性
+	  int i;//声明一个变量
+	  struct AggInfo_func *pFunc;//声明一个AggInfo_func结构体对象
+	  if( pAggInfo->nFunc+pAggInfo->nColumn==0 ){
 		return;
-	}
-	for (i = 0; i < pAggInfo->nColumn; i++){
-		sqlite3VdbeAddOp2(v, OP_Null, 0, pAggInfo->aCol[i].iMem);
-	}
-	for (pFunc = pAggInfo->aFunc, i = 0; i < pAggInfo->nFunc; i++, pFunc++){
-		sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);
-		if (pFunc->iDistinct >= 0){
-			Expr *pE = pFunc->pExpr;
-			assert(!ExprHasProperty(pE, EP_xIsSelect));
-			if (pE->x.pList == 0 || pE->x.pList->nExpr != 1){
-				sqlite3ErrorMsg(pParse, "DISTINCT aggregates must have exactly one "
-					"argument");
-				pFunc->iDistinct = -1;
-			}
-			else{
-				KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);
-				sqlite3VdbeAddOp4(v, OP_OpenEphemeral, pFunc->iDistinct, 0, 0,
-					(char*)pKeyInfo, P4_KEYINFO_HANDOFF);
-			}
-		}
-	}
-}
+	  }
 
-/*
-** Invoke the OP_AggFinalize opcode for every aggregate function
-** in the AggInfo structure.
-**
-**为在AggInfo 结构中的每个聚合函数调用
-**OP_AggFinalize操作码
-*/
-static void finalizeAggFunctions(Parse *pParse, AggInfo *pAggInfo){
-	Vdbe *v = pParse->pVdbe;
-	int i;
-	struct AggInfo_func *pF;
-	for (i = 0, pF = pAggInfo->aFunc; i < pAggInfo->nFunc; i++, pF++){
-		ExprList *pList = pF->pExpr->x.pList;
-		assert(!ExprHasProperty(pF->pExpr, EP_xIsSelect));
-		sqlite3VdbeAddOp4(v, OP_AggFinal, pF->iMem, pList ? pList->nExpr : 0, 0,
-			(void*)pF->pFunc, P4_FUNCDEF);
+	  //遍历所有的列
+	  for(i=0; i<pAggInfo->nColumn; i++){
+		sqlite3VdbeAddOp2(v, OP_Null, 0, pAggInfo->aCol[i].iMem);//操作处理
+	  }
+	  //聚集函数的遍历
+	  for(pFunc=pAggInfo->aFunc, i=0; i<pAggInfo->nFunc; i++, pFunc++){
+		sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);//操作处理
+		if( pFunc->iDistinct>=0 )
+		  Expr *pE = pFunc->pExpr;//获取AggInfo_func中的表达式
+		  assert( !ExprHasProperty(pE, EP_xIsSelect) );//异常处理，加入断点
+		  if( pE->x.pList==0 || pE->x.pList->nExpr!=1 ){
+			sqlite3ErrorMsg(pParse, "DISTINCT aggregates must have exactly one "
+			   "argument");//打印错误信息
+			pFunc->iDistinct = -1;//临时表置为-1（无效）
+		  }else{
+			KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);//从表达式列表中获取信息
+			sqlite3VdbeAddOp4(v, OP_OpenEphemeral, pFunc->iDistinct, 0, 0,
+							  (char*)pKeyInfo, P4_KEYINFO_HANDOFF);//添加了一个操作符OP_OpenEphemeral
+		  }
+		}
+	  }
 	}
-}
+	
+	/*
+	** Invoke the OP_AggFinalize opcode for every aggregate function 
+	** in the AggInfo structure.
+	*/
+	/*
+	** 在AggInfo结构体中，为每一个聚集函数调用OP_AggFinalize操作码*/
+
+	static void finalizeAggFunctions(Parse *pParse, AggInfo *pAggInfo){
+	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性
+	  int i;//声明一个变量
+	  struct AggInfo_func *pF;//声明一个AggInfo_func结构体对象
+	  //聚集函数的遍历
+	  for(i=0, pF=pAggInfo->aFunc; i<pAggInfo->nFunc; i++, pF++){
+		ExprList *pList = pF->pExpr->x.pList;//获取表达式列表
+		assert( !ExprHasProperty(pF->pExpr, EP_xIsSelect) );//异常处理，加入断点
+		sqlite3VdbeAddOp4(v, OP_AggFinal, pF->iMem, pList ? pList->nExpr : 0, 0,
+						  (void*)pF->pFunc, P4_FUNCDEF);//添加了一个操作符OP_OpenEphemeral
+	  }
+	}	
 
 /*
 ** Update the accumulator memory cells for an aggregate based on
