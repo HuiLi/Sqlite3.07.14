@@ -132,7 +132,7 @@ static SQLITE_WSD struct Mem3Global {
   ** Memory available for allocation. nPool is the size of the array
   ** (in Mem3Blocks) pointed to by aPool less 2.
   ** 
-  ** 为. nPool配置的可用内存大小为数组(in Mem3Blocks)所指的小于2的aPool。
+  ** 可用内存. nPool配置的可用内存大小为数组(in Mem3Blocks)所指的小于2的aPool。
   */
   u32 nPool;   //内存变量数组分配的空间大小
   Mem3Block *aPool;//指向Mem3Block类型变量的指针，用于指向nPool
@@ -164,7 +164,7 @@ static SQLITE_WSD struct Mem3Global {
   ** of the current master.  iMaster is 0 if there is not master chunk.
   ** The master chunk is not in either the aiHash[] or aiSmall[].
   **
-  ** iMaster是主块索引。  这个块发生了大部分新分配。szMaster的大小（在Mem3Blocks）由 当前主块决定。
+  ** iMaster是主块索引。这个块发生了大部分新分配。szMaster的大小（在Mem3Blocks）由 当前主块决定。
   ** 如果没有主块，则iMaster为0.主块既不在aiHash[] 也不在aiSmall[]。
   */
   u32 iMaster;  //新分配的chunk的索引号
@@ -178,15 +178,17 @@ static SQLITE_WSD struct Mem3Global {
   ** 根据块的大小为更小的块排列空闲块列表数组，或是为更大块建哈希表。
   */
   
-  u32 aiSmall[MX_SMALL-1]; /* For sizes 2 through MX_SMALL, inclusive *///双链表中较小的chunk数组
-  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1 and larger *///较大chunk
+  u32 aiSmall[MX_SMALL-1]; /* For sizes 2 through MX_SMALL, inclusive  双链表中较小的chunk数组 */
+  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1 and larger  较大chunk */
 } mem3 = { 97535575 };//定义一个名为mem3的全局变量并赋值
 
 #define mem3 GLOBAL(struct Mem3Global, mem3)
 /*
 ** Unlink the chunk at mem3.aPool[i] from list it is currently
 ** on.  *pRoot is the list that i is a member of.
-*/                   //该函数把当前使用的块移出列表
+** 
+** 该函数把当前使用的块移出列表
+*/                  
 static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
   u32 next = mem3.aPool[i].u.list.next;  //将索引号为aPool[i]的块的下一个块索引号赋值给next
   u32 prev = mem3.aPool[i].u.list.prev;  //将索引号为aPool[i]的块的前一个块索引号赋给prev
@@ -207,8 +209,9 @@ static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
 /*
 ** Unlink the chunk at index i from 
 ** whatever list is currently a member of.
+** 
+** 该函数将某个块移出列表
 */      
-//该函数将某个块移出列表
 static void memsys3Unlink(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
@@ -229,8 +232,9 @@ static void memsys3Unlink(u32 i){
 /*
 ** Link the chunk at mem3.aPool[i] so that is on the list rooted
 ** at *pRoot.
+** 
+** 将mem3.aPool[i]对应块链接到列表中
 */    
-//将mem3.aPool[i]对应块链接到列表中
 static void memsys3LinkIntoList(u32 i, u32 *pRoot){
   assert( sqlite3_mutex_held(mem3.mutex) );
   mem3.aPool[i].u.list.next = *pRoot;   //索引号为i的块的下一块索引号设为*pRoot
@@ -281,8 +285,9 @@ static void memsys3Leave(void){
 
 /*
 ** Called when we are unable to satisfy an allocation of nBytes.
+** 
+** 内存不够分配nbyte大小的空间时调用该函数
 */   
-//内存不够分配nbyte大小的空间时调用该函数
 static void memsys3OutOfMemory(int nByte){
   if( !mem3.alarmBusy ){  //mem3.alarmBusy为假时进行内存回收
     mem3.alarmBusy = 1;  //赋值为1表示进行内存回收
