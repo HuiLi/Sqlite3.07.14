@@ -595,8 +595,10 @@ static int memsys5Init(void *NotUsed){
 
   /* The size of a Mem5Link object must be a power of two.  Verify that
   ** this is case.
+  ** 
+  ** Mem5Link大小的对象必须是2的幂
   */
-  assert( (sizeof(Mem5Link)&(sizeof(Mem5Link)-1))==0 );   /*Mem5Link大小的对象必须是2的幂*/
+  assert( (sizeof(Mem5Link)&(sizeof(Mem5Link)-1))==0 ); 
 
   nByte = sqlite3GlobalConfig.nHeap;
   zByte = (u8*)sqlite3GlobalConfig.pHeap;
@@ -654,7 +656,7 @@ static void memsys5Shutdown(void *NotUsed){
 ** Open the file indicated and write a log of all unfreed memory 
 ** allocations into that log.
 ** 
-** 打开日志文件显示并写入所有非空闲内存分配
+** 打开指定日志文件并写入所有非空闲内存分配情况
 */
 void sqlite3Memsys5Dump(const char *zFilename){
   FILE *out;
@@ -699,7 +701,8 @@ void sqlite3Memsys5Dump(const char *zFilename){
 ** linkage. It returns a pointer to a static sqlite3_mem_methods
 ** struct populated with the memsys5 methods.
 ** 
-** 此函数是这个文件唯一与外部联系的函数。它返回一个指向sqlite3_mem_methods的指针
+** 此例程是这个文件唯一与外部联系的函数。
+** 它返回一个指向用memsys5构成sqlite3_mem_methods的的指针
 */
 const sqlite3_mem_methods *sqlite3MemGetMemsys5(void){
   static const sqlite3_mem_methods memsys5Methods = {

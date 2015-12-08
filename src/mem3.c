@@ -244,8 +244,9 @@ static void memsys3LinkIntoList(u32 i, u32 *pRoot){
 /*
 ** Link the chunk at index i into either the appropriate
 ** small chunk list, or into the large chunk hash table.
+** 
+** 将索引为i的块链接到合适的块列表或者大块hash列表中
 */  
-//将索引为i的块链接到合适的块列表或者大块hash列表中
 static void memsys3Link(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
