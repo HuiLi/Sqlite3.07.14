@@ -903,27 +903,29 @@ int sqlite3CheckObjectName(Parse *pParse, const char *zName){//检测对象的�
 ** 如果这个表被存储在辅助数据库中而不是在主数据库文件中，那么此时的这个标志isTemp应该被置为真（True）
 ** This is normally the case when the "TEMP" or "TEMPORARY" keyword occurs in between CREATE and TABLE。
 **"TEMP" or "TEMPORARY"关键字在CREATE 和 TABLE之间出现这种情况是正常的。
-** The new table record is initialized and put in pParse->pNewTable.【初始化新表记录,放入pParse - > pNewTable。】
-** As more of the CREATE TABLE statement is parsed, additional action【如果更多的CREATE TABLE 语句被解析，
-** routines will be called to add more information to this record.   额外的行为例程将会被调用去增加更多的信息为这个记录。】
+
+** The new table record is initialized and put in pParse->pNewTable.
+** 初始化新表记录,放入pParse - > pNewTable。
+** As more of the CREATE TABLE statement is parsed, additional action  如果更多的CREATE TABLE 语句被解析，
+** routines will be called to add more information to this record.   额外的行为例程将会被调用去增加更多的信息为这个记录。 
 ** At the end of the CREATE TABLE statement, the sqlite3EndTable() routine
-** is called to complete the construction of the new table record.【CREATE TABLE语句最后，调用sqlite3EndTable()去完成新表记录的构建。】
+** is called to complete the construction of the new table record. CREATE TABLE语句最后，调用sqlite3EndTable()去完成新表记录的构建。
 */
 void sqlite3StartTable(
-	Parse *pParse,   /* Parser context */
-	Token *pName1,   /* First part of the name of the table or view 【表或试图名字的第一部分】*/
-	Token *pName2,   /* Second part of the name of the table or view 【表或试图名字的第二部分】*/
-	int isTemp,      /* True if this is a TEMP table【如果是临时表为true】 */
-	int isView,      /* True if this is a VIEW 【如果是试图时为true】*/
-	int isVirtual,   /* True if this is a VIRTUAL table【如果是虚拟表格为true】 */
-	int noErr        /* Do nothing if table already exists 【如果表已经存在什么也不做】*/
+	Parse *pParse,   /* Parser context  语法分析程序的上下文 */
+	Token *pName1,   /* First part of the name of the table or view  表或视图名字的第一部分*/
+	Token *pName2,   /* Second part of the name of the table or view 表或视图名字的第二部分*/
+	int isTemp,      /* True if this is a TEMP table如果是临时表为true */
+	int isView,      /* True if this is a VIEW 如果是视图时为true*/
+	int isVirtual,   /* True if this is a VIRTUAL table  如果是虚拟表格为true */
+	int noErr        /* Do nothing if table already exists  如果表已经存在什么也不做*/
 	){
 	Table *pTable;
-	char *zName = 0; /* The name of the new table */
+	char *zName = 0; /* The name of the new table  新建表的表名*/
 	sqlite3 *db = pParse->db;
 	Vdbe *v;
-	int iDb;         /* Database number to create the table in【记录数据库中创建表的数量】 */
-	Token *pName;    /* Unqualified name of the table to create【创建不合格的表名】 */
+	int iDb;         /* Database number to create the table in 记录数据库中创建表的数量  */
+	Token *pName;    /* Unqualified name of the table to create   创建不规范的表名 */
 
 	/* The table or view name to create is passed to this routine via tokens
 	** pName1 and pName2. If the table name was fully qualified, for example:
@@ -934,22 +936,25 @@ void sqlite3StartTable(
 	** the table name is not fully qualified, i.e.:
 	**
 	** CREATE TABLE yyy(...);
-	**    【表名，试图名，被传给这个例程通道符号pName1和pName2。如果表名完全被限制了，
-	比如说：CREATE TABLE xxx.yyy (...);
-	Then pName1 is set to "xxx" and pName2 "yyy".另一方面如果表名没有被完全限制，i.e.;
-	CREATE TABLE yyy(...);】
+	** 表名，视图名，被传给这个例程通道符号pName1和pName2。如果表名完全被限制了，
+	**比如说：CREATE TABLE xxx.yyy (...);
+	**Then pName1 is set to "xxx" and pName2 "yyy".另一方面如果表名没有被完全限制，i.e.;
+	**CREATE TABLE yyy(...);】
 	** Then pName1 is set to "yyy" and pName2 is "".
 	**
 	** The call below sets the pName pointer to point at the token (pName1 or
 	** pName2) that stores the unqualified table name. The variable iDb is
 	** set to the index of the database that the table or view is to be
-	** created in.【访问接下来设定pName指针指向pName1或pName2,这两个符号存储的是没有被限制的表名。这个变量iDb是对数据库的索引进行设置，表或试图是在数据库中创建。】
+	** created in. 访问接下来设定pName指针指向pName1或pName2,这两个符号存储的是没有被限制的表名。这个变量iDb是对数据库的索引进行设置，表或试图是在数据库中创建。
 	*/
-	iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);//把合格的xxx.yyy拆分，pName2 =xxx，pName=yyy，返回数据库索引
-	if (iDb<0) return;//数据库不存在
+	iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);//把合格的xxx.yyy拆分，pName1 =xxx，pName2=yyy，返回数据库索引
+	if (iDb<0) return;//iDb表示创建的数据库的数目，小于0表示没有相应的数据库被创建
 	if (!OMIT_TEMPDB && isTemp && pName2->n>0 && iDb != 1){
-		/* If creating a temp table, the name may not be qualified. Unless
-		** the database name is "temp" anyway. 【如果创建的是一个临时表，这个名字也许是被限制的。除非这个数据库名也是“临时的”。】 */
+		/* 
+		**If creating a temp table, the name may not be qualified. Unless
+		** the database name is "temp" anyway.
+		**如果创建的是一个临时表，这个名字也许没有被限制使用。除非这个数据库名也是“临时的”。
+		*/
 		sqlite3ErrorMsg(pParse, "temporary table name must be unqualified");
 		return;
 	}
@@ -957,7 +962,7 @@ void sqlite3StartTable(
 
 	pParse->sNameToken = *pName;
 	zName = sqlite3NameFromToken(db, pName);//把pName转换成字符串
-	if (zName == 0) return;//zName为空
+	if (zName == 0) return;//zName代表新表是否被创建，如果没有则结束程序
 	if (SQLITE_OK != sqlite3CheckObjectName(pParse, zName)){//如果新建的表名不合法（或者是以sqlist_开头），直接跳转
 		goto begin_table_error;
 	}
@@ -971,19 +976,19 @@ void sqlite3StartTable(
 			goto begin_table_error;
 		}
 		if (isView){//如果创建的是视图
-			if (!OMIT_TEMPDB && isTemp){
-				code = SQLITE_CREATE_TEMP_VIEW;//临时视图
+			if (!OMIT_TEMPDB && isTemp){   //如果没有忽略临时数据库，并且视图是临时的
+				code = SQLITE_CREATE_TEMP_VIEW;//创建临时视图
 			}
 			else{
-				code = SQLITE_CREATE_VIEW;//视图
+				code = SQLITE_CREATE_VIEW;//创建非临时视图
 			}
 		}
 		else{//否则创建的是表
 			if (!OMIT_TEMPDB && isTemp){
-				code = SQLITE_CREATE_TEMP_TABLE;//临时表
+				code = SQLITE_CREATE_TEMP_TABLE;//创建临时表
 			}
 			else{
-				code = SQLITE_CREATE_TABLE;//表
+				code = SQLITE_CREATE_TABLE;//创建非临时表
 			}
 		}
 		if (!isVirtual && sqlite3AuthCheck(pParse, code, zName, 0, zDb)){//检测角色是否有创建视图、临时视图、表、临时表的权限
@@ -997,8 +1002,9 @@ void sqlite3StartTable(
 	** it does. The exception is if the statement being parsed was passed
 	** to an sqlite3_declare_vtab() call. In that case only the column names
 	** and types will be used, so there is no need to test for namespace
-	** collisions.【在同一个数据库中确保新的表名与已经存在的试图或表名不冲突。如果发生冲突则发出一个错误信息。
-	有个例外是如果被解析的语句传递给一个sqlite3_declare_vtab()调用。在这种情况下只有列名称和类型将被使用,所以没有必要测试名称空间冲突。】
+	** collisions.
+	**在同一个数据库中确保新的表名与已经存在的视图或表名不冲突。如果发生冲突则发出一个错误信息。
+	**有个例外是如果被解析的语句传递给一个sqlite3_declare_vtab()调用。在这种情况下只有列名称和类型将被使用,所以没有必要测试名称空间冲突。
 	*/
 	if (!IN_DECLARE_VTAB){
 		char *zDb = db->aDb[iDb].zName;
@@ -1006,7 +1012,7 @@ void sqlite3StartTable(
 			goto begin_table_error;
 		}
 		pTable = sqlite3FindTable(db, zName, zDb);//通过数据库名和表名找到表
-		if (pTable){//如果在数据库中通过表明找到了表，说明该表名一存在
+		if (pTable){//如果在数据库中通过表明找到了表
 			if (!noErr){
 				sqlite3ErrorMsg(pParse, "table %T already exists", pName);
 			}
@@ -1039,7 +1045,8 @@ void sqlite3StartTable(
 
 	/* If this is the magic sqlite_sequence table used by autoincrement,
 	** then record a pointer to this table in the main database structure
-	** so that INSERT can find the table easily.【如果这是由sqlite_sequence表所使用的自动增量,然后记录一个指针，这个指针指向这个在主数据库结构中的表,以便插入可以很容易地找到表。】
+	** so that INSERT can find the table easily.【
+    **如果这是由sqlite_sequence表所使用的自动增量,然后记录一个指针，这个指针指向这个在主数据库结构中的表,以便插入可以很容易地找到表。
 	*/
 #ifndef SQLITE_OMIT_AUTOINCREMENT
 	if (!pParse->nested && strcmp(zName, "sqlite_sequence") == 0){
@@ -1054,23 +1061,26 @@ void sqlite3StartTable(
 	** PRIMARY KEY or UNIQUE keywords are parsed.  Those keywords will cause
 	** indices to be created and the table record must come before the
 	** indices.  Hence, the record number for the table must be allocated
-	** now.【开始时生成的这些代码将会把表记录插入到SQLITE_MASTER 表中。尤其需注意的是，我们必须继续，现在为表项目指定记录编号。在任何PRIMARY KEY或UNIQUE关键字被解析之前，
-	这些关键字将导致创建索引和表记录必须先于指数。因此，对于表的记录编号必须现在指定。】
+	** now.
+	**开始时生成的这些代码将会把表记录插入到SQLITE_MASTER 表中。尤其需注意的是，我们必须继续，现在为表项目指定记录编号。在任何PRIMARY KEY或UNIQUE关键字被解析之前，
+	**这些关键字将导致创建索引和表记录必须先于指数。因此，对于表的记录编号必须现在指定。】
 	*/
+	//接下来的操作是分配表的记录编号
 	if (!db->init.busy && (v = sqlite3GetVdbe(pParse)) != 0){
 		int j1;
 		int fileFormat;
 		int reg1, reg2, reg3;
-		sqlite3BeginWriteOperation(pParse, 0, iDb);
+		sqlite3BeginWriteOperation(pParse, 0, iDb);   //执行写操作
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 		if (isVirtual){
-			sqlite3VdbeAddOp0(v, OP_VBegin);
+			sqlite3VdbeAddOp0(v, OP_VBegin);    //vdbe增加一个OP_VBegin
 		}
 #endif
 
 		/* If the file format and encoding in the database have not been set,
-		** set them now.【如果文件格式和代字符编码在数据库中还没有被设定，则现在设定他们。】
+		** set them now.
+		**如果文件格式和代字符编码在数据库中还没有被设定，则现在设定他们。
 		*/
 		reg1 = pParse->regRowid = ++pParse->nMem;
 		reg2 = pParse->regRoot = ++pParse->nMem;
@@ -1124,12 +1134,15 @@ begin_table_error:
 }
 
 /*
-** This macro is used to compare two strings in a case-insensitive manner.【这个宏是用来比较两个字符串用不区分大小写的方式。】
+** This macro is used to compare two strings in a case-insensitive manner.
+**这个宏是用来比较两个字符串用不区分大小写的方式。
 ** It is slightly faster than calling sqlite3StrICmp() directly, but
-** produces larger code.【他是比直接调用sqlite3StrICmp()稍微快一点，但是会产生大量代码。】
+** produces larger code.
+**他是比直接调用sqlite3StrICmp()稍微快一点，但是会产生大量代码。
 **
 ** WARNING: This macro is not compatible with the strcmp() family. It
-** returns true if the two strings are equal, otherwise false.【这个宏不兼容strcmp()的家庭。如果两个字符串相等，则返回true,否则返回false】
+** returns true if the two strings are equal, otherwise false.
+**这个宏不兼容strcmp()家族的函数。如果两个字符串相等，则返回true,否则返回false
 */
 #define STRICMP(x, y) (\
 sqlite3UpperToLower[*(unsigned char *)(x)]==   \
@@ -1137,40 +1150,43 @@ sqlite3UpperToLower[*(unsigned char *)(y)]     \
 && sqlite3StrICmp((x)+1,(y)+1)==0 )
 
 /*
-** Add a new column to the table currently being constructed.【向当前正在构建的表中添加新的一列。】
+** Add a new column to the table currently being constructed.
+**向当前正在构建的表中添加新的一列。
 **
 ** The parser calls this routine once for each column declaration
 ** in a CREATE TABLE statement.  sqlite3StartTable() gets called
 ** first to get things going.  Then this routine is called for each
-** column.【一旦每一列在一个CREATE TABLE语句中声明，解析器就会调用这个例程。首先被调用做一些事情，然后为每一列调用这个例程。】
+** column.
+**一旦每一列在一个CREATE TABLE语句中声明，解析器就会调用这个例程。首先被调用做一些事情，然后为每一列调用这个例程。
 */
 void sqlite3AddColumn(Parse *pParse, Token *pName){
-	Table *p;
+	Table *p;      //指针指向当前要创建的表
 	int i;
 	char *z;
-	Column *pCol;
-	sqlite3 *db = pParse->db;
-	if ((p = pParse->pNewTable) == 0) return;
+	Column *pCol;    //列指针
+	sqlite3 *db = pParse->db;     //db指向的是语法分析程序当前上下文正在处理的数据库，也就是db始终指向正在处理的数据库
+	if ((p = pParse->pNewTable) == 0) return;    //pNewTable参数指明当前是否正在创建表，如果参数为0，则表明没有创建表，直接退出函数
 #if SQLITE_MAX_COLUMN//表的列总数已经达到最大值
-	if (p->nCol + 1>db->aLimit[SQLITE_LIMIT_COLUMN]){
-		sqlite3ErrorMsg(pParse, "too many columns on %s", p->zName);
+	if (p->nCol + 1>db->aLimit[SQLITE_LIMIT_COLUMN]){  //如果当前表的列数目+1得到的值比SQLITE所指定的列的峰值更大的话
+		sqlite3ErrorMsg(pParse, "too many columns on %s", p->zName);   //发送错误信息“列太多”，并且退出函数
 		return;
 	}
 #endif
-	z = sqlite3NameFromToken(db, pName);
-	if (z == 0) return;
+	z = sqlite3NameFromToken(db, pName);   //否则的话就需要创建列，从分词程序中读出列名
+	if (z == 0) return;     //如果列名为空的话就退出程序，表名当前就没有新的列创建
 	for (i = 0; i<p->nCol; i++){//循环的检测新插入的一列的名字，是不是已经存在
 		if (STRICMP(z, p->aCol[i].zName)){//比较两个字符串用不区分大小写的方式
-			sqlite3ErrorMsg(pParse, "duplicate column name: %s", z);
-			sqlite3DbFree(db, z);
+			sqlite3ErrorMsg(pParse, "duplicate column name: %s", z);   //发出列名重复的错误
+			sqlite3DbFree(db, z);   //释放当前的数据库
 			return;
 		}
 	}
+	//否则的话就创建新的列
 	if ((p->nCol & 0x7) == 0){
 		Column *aNew;
 		aNew = sqlite3DbRealloc(db, p->aCol, (p->nCol + 8)*sizeof(p->aCol[0]));//为新的一列分配内存
 		if (aNew == 0){//没有分配成功
-			sqlite3DbFree(db, z);
+			sqlite3DbFree(db, z);   //如果内存分配失败，释放数据库
 			return;
 		}
 		p->aCol = aNew;//添加一列
@@ -1181,10 +1197,11 @@ void sqlite3AddColumn(Parse *pParse, Token *pName){
 
 	/* If there is no type specified, columns have the default affinity
 	** 'NONE'. If there is a type specified, then sqlite3AddColumnType() will
-	** be called next to set pCol->affinity correctly.【如果没有类型指定，列默认关联“NONE”。如果有类型指定，那么sqlite3AddColumnType()就会被调用，接着正确地设定pCol->affinity的值。】
+	** be called next to set pCol->affinity correctly.
+	**如果没有类型指定，列默认关联“NONE”。如果有类型指定，那么sqlite3AddColumnType()就会被调用，接着正确地设定pCol->affinity的值。
 	*/
 	pCol->affinity = SQLITE_AFF_NONE;//设置列队数据类型，默认为NONE
-	p->nCol++;//对列队总数进行修改
+	p->nCol++;//对列名总数进行修改，这个参数用于判断列名的个数是否得到阈值
 }
 
 /*
@@ -1195,9 +1212,9 @@ void sqlite3AddColumn(Parse *pParse, Token *pName){
 */
 void sqlite3AddNotNull(Parse *pParse, int onError){
 	Table *p;
-	p = pParse->pNewTable;
-	if (p == 0 || NEVER(p->nCol<1)) return;//没有新建的表或者是还没有添加一个列
-	p->aCol[p->nCol - 1].notNull = (u8)onError;//对当前添加的列进行“NOT NULL”设置
+	p = pParse->pNewTable;     //指针指向当前正在创建的新表
+	if (p == 0 || NEVER(p->nCol<1)) return;//如果新表指针为0或者其列数目是小于1的，表示根本就没有创建新表，结束这个函数
+	p->aCol[p->nCol - 1].notNull = (u8)onError;//对当前添加的列进行“NOT NULL”设置  
 }
 
 /*
