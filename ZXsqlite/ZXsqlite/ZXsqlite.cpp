@@ -7,6 +7,7 @@ int main(int argc, char** argv) {
 	sqlite3* pdb;
 
 	ret = sqlite3_open("test.db", &pdb);
+	//if设置断点debug
 	if (ret == SQLITE_OK) {
 		sqlite3_get_table(pdb, "select * from student", &result, &row, &colum, &message);
 		for (int i = 0; i <= row; i++) {
