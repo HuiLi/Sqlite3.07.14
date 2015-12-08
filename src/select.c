@@ -105,7 +105,6 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*函数sqli
 	pDest->nSdst = 0; /*0赋值给pDest->nSdst*/
 }
 
-
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure.
