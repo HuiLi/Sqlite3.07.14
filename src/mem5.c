@@ -130,7 +130,7 @@ static SQLITE_WSD struct Mem5Global {
   ** 可供分配的内存
   */
   int szAtom;      /* Smallest possible allocation in bytes  以字节为单位的最小可能分配*/
-  int nBlock;      /* Number of szAtom sized blocks in zPool  在zPool存储池中一些szAtom大小的块数目 */
+  int nBlock;      /* Number of szAtom sized blocks in zPool  在zPool存储池中大小为szAtom的块数目 */
   u8 *zPool;       /* Memory available to be allocated  可用来分配的内存，zPool是无符号字符类型的指针*/
   
   /*
@@ -208,8 +208,8 @@ static void memsys5Unlink(int i, int iLogsize){
   assert( i>=0 && i<mem5.nBlock );
   assert( iLogsize>=0 && iLogsize<=LOGMAX );
   assert( (mem5.aCtrl[i] & CTRL_LOGSIZE)==iLogsize );
-/*assert是宏，用于断言其作用是如果它的条件返回错误，则终止程序执行 。
-在函数memsys5Unlink开始处检验传入参数i和iLogsize的合法性*/
+  /*assert是宏，用于断言其作用是如果它的条件返回错误，则终止程序执行 。
+  在函数memsys5Unlink开始处检验传入参数i和iLogsize的合法性*/
   next = MEM5LINK(i)->next;
   prev = MEM5LINK(i)->prev;              /*将该节点从链表中删除*/
   if( prev<0 ){
@@ -236,7 +236,7 @@ static void memsys5Link(int i, int iLogsize){
   assert( iLogsize>=0 && iLogsize<=LOGMAX );
   assert( (mem5.aCtrl[i] & CTRL_LOGSIZE)==iLogsize );
 
-  x = MEM5LINK(i)->next = mem5.aiFreelist[iLogsize];  /*将 mem5.aPool[i] 位置的chunk， 插入到iLogSize链表的头部*/
+  x = MEM5LINK(i)->next = mem5.aiFreelist[iLogsize];  /*将mem5.aPool[i]位置的chunk， 插入到iLogSize链表的头部*/
   MEM5LINK(i)->prev = -1;
   if( x>=0 ){
     assert( x<mem5.nBlock );
@@ -285,11 +285,13 @@ static int memsys5Size(void *p){
 ** 查找空闲链表中的第一项条目，并返回其索引。
 ** 找到freelist链表中的第iLogSize项指向的链表中的，
 ** 下标最小的那一项的下标，返回这个下标
+** 
+** 将 iLogSize链表中的下标最小的那一项，也就是第iFirst个从链表中删除
 */
 static int memsys5UnlinkFirst(int iLogsize){
   int i;
   int iFirst;
-/*iFirst指向 下标最小的那一项*/
+  /*iFirst指向 下标最小的那一项*/
   assert( iLogsize>=0 && iLogsize<=LOGMAX );   /*判断传入参数的合法性*/
   i = iFirst = mem5.aiFreelist[iLogsize];
   assert( iFirst>=0 );
@@ -300,7 +302,6 @@ static int memsys5UnlinkFirst(int iLogsize){
   memsys5Unlink(iFirst, iLogsize);
   return iFirst;
 }
-/*将 iLogSize链表中的下标最小的那一项，也就是第iFirst 个从链表中删除*/
 
 /*
 ** Return a block of memory of at least nBytes in size.
@@ -319,46 +320,49 @@ static int memsys5UnlinkFirst(int iLogsize){
 ** 调用方在调用这个线程前会加上互斥锁，所以不可能有两个或多个该线程同时发生。
 */
 static void *memsys5MallocUnsafe(int nByte){
-  int i;           /* Index of a mem5.aPool[] slot */  /*aPool的索引*/
-  int iBin;        /* Index into mem5.aiFreelist[] */  /*空闲链表的索引*/
-  int iFullSz;     /* Size of allocation rounded up to power of 2 */ /*内存分配大小四舍五入至 2 的幂*/
+  int i;           /* Index of a mem5.aPool[] slot aPool的索引*/
+  int iBin;        /* Index into mem5.aiFreelist[]  空闲链表的索引*/
+  int iFullSz;     /* Size of allocation rounded up to power of 2  内存分配大小四舍五入至2的幂*/
   int iLogsize;    /* Log2 of iFullSz/POW2_MIN */
 
-  /* nByte must be a positive */
-  assert( nByte>0 );    /*nByte必须大于0*/
+  /* nByte must be a positive  nByte必须大于0*/
+  assert( nByte>0 );   
 
   /* 
   ** Keep track of the maximum allocation request.  Even unfulfilled
   ** requests are counted 
   ** 
+  ** 追踪最大分配请求，即使没有分配成功过的。
+  ** 
+  ** 比较nByte与最大分配请求，若nByte较大，则将nByte的值赋予该请求
   */
-  /*比较nByte与最大分配请求，若nByte较大，则将nByte的值赋予该请求*/
   if( (u32)nByte>mem5.maxRequest ){
     mem5.maxRequest = nByte;
   }
 
   /* Abort if the requested allocation size is larger than the largest
   ** power of two that we can represent using 32-bit signed integers.
+  ** 
+  ** 如果nByte大于32位有符号整数能表示的2的幂的最大值，那么返回0程序中止
   */
-  /*如果nByte 大于32位有符号整数能表示的2的幂的最大值，那么返回0程序中止*/
   if( nByte > 0x40000000 ){
     return 0;
   }
 
-  /* Round nByte up to the next valid power of two nByte作用范围到下一个2的幂*/
+  /* Round nByte up to the next valid power of two 把nByte的取值到下一个2的幂的有效数*/
   for(iFullSz=mem5.szAtom, iLogsize=0; iFullSz<nByte; iFullSz *= 2, iLogsize++){}
 
   /* Make sure mem5.aiFreelist[iLogsize] contains at least one free
   ** block.  If not, then split a block of the next larger power of
   ** two in order to create a new free block of size iLogsize.
-  确保mem5.aiFreelist[iLogsize] 中至少包含一个空闲块。
-  如果没有，那就把两块中效益更大的一块分裂
-  以创建一个新的大小iLogsize空闲块。
+  ** 
+  ** aiFreelist[iLogsize]至少包含一个空闲块。
+  ** 如果没有，那么就从下一个大小为2的幂的内存块中划出iLogsize大小的内存块，作为的新的空闲块。
   */
-  /*aiFreelist[iLogsize]至少包含一个空闲块。
-  如果没有，那么就从下一个大小为2的幂的内存块中划出iLogsize大小的内存块，作为的新的空闲块。*/
-  /*找到FreeList链表中的第iLogsize项指向的链表，如果为空，则向上找，
-  直到找到第一个不为空的项为止*/
+  /*
+  ** 找到FreeList链表中的第iLogsize项指向的链表，如果为空，则向上找，
+  ** 直到找到第一个不为空的项为止
+  */
   for(iBin=iLogsize; mem5.aiFreelist[iBin]<0 && iBin<=LOGMAX; iBin++){}
   if( iBin>LOGMAX ){      /*没有找到这样的项，则返回失败*/
     testcase( sqlite3GlobalConfig.xLog!=0 );
@@ -366,10 +370,10 @@ static void *memsys5MallocUnsafe(int nByte){
     return 0;
   }
   i = memsys5UnlinkFirst(iBin);    /*找到了这样的项，则从freelist中删除*/
-/*
-  将最大的块iBin 大小切分成  iBin / 2 , 链入对应的iBin链表；
-  然后切分成  iBin / 4 , 链入对应的iBin（此时iBin已经--了，指向上一项）链表，然后切分成  iBin / 8 ,等等，
-  直到 剩余到的iBin可以放得下 iLogSize为止
+  /*
+  ** 将最大的块iBin 大小切分成  iBin / 2 , 链入对应的iBin链表；
+  ** 然后切分成  iBin / 4 , 链入对应的iBin（此时iBin已经--了，指向上一项）链表，然后切分成  iBin / 8 ,等等，
+  ** 直到 剩余到的iBin可以放得下 iLogSize为止
   */
   while( iBin>iLogsize ){
     int newSize;
@@ -406,8 +410,9 @@ static void memsys5FreeUnsafe(void *pOld){
 
   /* Set iBlock to the index of the block pointed to by pOld in 
   ** the array of mem5.szAtom byte blocks pointed to by mem5.zPool.
+  ** 
+  ** iBlock 为当前要释放的块在pool中的下标
   */
-/*iBlock 为当前要释放的块在pool中的下标*/
   iBlock = ((u8 *)pOld-mem5.zPool)/mem5.szAtom;   /*设置iBlock为内存块的索引指向 mem5.zPool与mem5.szAtom的比值*/
 
   /* Check that the pointer pOld points to a valid, non-free block. */
@@ -430,13 +435,14 @@ static void memsys5FreeUnsafe(void *pOld){
   assert( mem5.currentCount>0 || mem5.currentOut==0 );
 
   mem5.aCtrl[iBlock] = CTRL_FREE | iLogsize;
-/*
-  由于分配都是按照 iLogsize的整数倍来分配的，所以iBlock有可能落在
-  单数倍和偶数倍上，则需要按照是单数倍还是偶数倍来向前或者向后合并，  
-  例如 iBlock   = 4 ， iLogSize  = 2， 这时iBlock就落在单数倍上了，需要向前合并；   
-  iBuddy =  iBlock - size;
-  iBlock  = 8， iLogSize  = 2， 这是iBlock就落在偶数倍上，需要向后合并；
-  iBuddy =  iBlock  + size;*/
+  /*
+  ** 由于分配都是按照 iLogsize的整数倍来分配的，所以iBlock有可能落在
+  ** 单数倍和偶数倍上，则需要按照是单数倍还是偶数倍来向前或者向后合并，  
+  ** 例如 iBlock   = 4 ， iLogSize  = 2， 这时iBlock就落在单数倍上了，需要向前合并；   
+  ** iBuddy =  iBlock - size;
+  ** iBlock  = 8， iLogSize  = 2， 这是iBlock就落在偶数倍上，需要向后合并；
+  ** iBuddy =  iBlock  + size;
+  */
   while( ALWAYS(iLogsize<LOGMAX) ){
     int iBuddy;
     if( (iBlock>>iLogsize) & 1 ){
@@ -480,7 +486,7 @@ static void *memsys5Malloc(int nBytes){
 /*
 ** Free memory.
 ** 
-** 可用内存
+** 释放内存
 ** 
 ** The outer layer memory allocator prevents this routine from
 ** being called with pPrior==0.
@@ -509,7 +515,7 @@ static void memsys5Free(void *pPrior){
 ** 改变现有的内存分配的大小。
 ** 当pPrior==0，防止外层内存分配器调用此程序
 ** nBytes的值从调用memsys5Round()函数得来。因此nBytes的值始终为正的2次幂。
-** 如果nBytes = = 0意味着一个溢出的内存分配请求(分配大于0 x40000000),这个函数返回0并且不释放指针pPrior。
+** 如果nBytes==0意味着一个溢出的内存分配请求(分配大于0 x40000000),这个函数返回0并且不释放指针pPrior。
 */
 static void *memsys5Realloc(void *pPrior, int nBytes){
   int nOld;
@@ -539,7 +545,8 @@ static void *memsys5Realloc(void *pPrior, int nBytes){
 ** the allocation is too large to be handled by this allocation system,
 ** return 0.
 ** 
-** 计算一个请求到下一个有效分配的大小。如果请求分配的内存过大，无法通过该内存分配系统来处理，则返回0。
+** 把请求的大小向上取整到下一个有效的分配大小
+** 如果请求分配的内存过大，无法通过该内存分配系统来处理，则返回0。
 ** 
 ** All allocations must be a power of two and must be expressed by a
 ** 32-bit signed integer.  Hence the largest allocation is 0x40000000
@@ -558,7 +565,7 @@ static int memsys5Roundup(int n){
 /*
 ** Return the ceiling of the logarithm base 2 of iValue.
 ** 
-**返回向上取整的以2为底数的对数值iValue
+** 返回向上取整的以2为底数的对数值iValue
 **
 ** Examples:   memsys5Log(1) -> 0
 **             memsys5Log(2) -> 1
@@ -580,6 +587,8 @@ static int memsys5Log(int iValue){
 ** 
 ** This routine is not threadsafe.  The caller must be holding a mutex
 ** to prevent multiple threads from entering at the same time.
+** 
+** 这个例程不是线程安全的，调用者必须保持一个所来防止多个线程同时进入。
 */
 static int memsys5Init(void *NotUsed){
   int ii;            /* Loop counter 循环计数器*/
@@ -602,8 +611,7 @@ static int memsys5Init(void *NotUsed){
 
   nByte = sqlite3GlobalConfig.nHeap;
   zByte = (u8*)sqlite3GlobalConfig.pHeap;
-  assert( zByte!=0 );  /* sqlite3_config() does not allow otherwise */
-                       /*若断言assert返回值错误，sqlite3_config（）不执行*/
+  assert( zByte!=0 );  /* sqlite3_config() does not allow otherwise 若zByte==0，则返回*/
   /* boundaries on sqlite3GlobalConfig.mnReq are enforced in sqlite3_config() */
   /*在sqlite3GlobalConfig.mnReq边界强制执行sqlite3_config（）*/
   nMinLog = memsys5Log(sqlite3GlobalConfig.mnReq);
