@@ -1381,8 +1381,7 @@ static void generateColumnTypes(
 		/* The vdbe must make its own copy of the column-type and other
 		** column specific strings, in case the schema is reset before this
 		** virtual machine is deleted.
-		**VDBE必须做出自己的列的类型和其他列的特定字符串的副本，在此情况下，
-		**虚拟机被删除之前的模式被重置。
+		**VDBE必须做出自己的列的类型和其他列的特定字符串的副本，防止这个虚拟机被删除之前重置。
 		*/
 		sqlite3VdbeSetColName(v, i, COLNAME_DATABASE, zOrigDb, SQLITE_TRANSIENT);
 		sqlite3VdbeSetColName(v, i, COLNAME_TABLE, zOrigTab, SQLITE_TRANSIENT);
@@ -1412,7 +1411,7 @@ static void generateColumnNames(
 	int fullNames, shortNames;
 
 #ifndef SQLITE_OMIT_EXPLAIN
-	/* If this is an EXPLAIN, skip this step    如果这是一个EXPLAIN, 跳过这一步 */
+	/* If this is an EXPLAIN, skip this step    如果这是一个解释器, 跳过这一步 */
 	if (pParse->explain){
 		return;
 	}
@@ -1478,21 +1477,21 @@ static void generateColumnNames(
 **所有列名将是唯一的
 ** Only the column names are computed.  Column.zType, Column.zColl,
 ** and other fields of Column are zeroed.
-**只计算列名称。zType、zColl列和其他字段的列都被置零。
+**只有列名是计算出来的。zType列、zColl列和其余列都被置零。
 ** Return SQLITE_OK on success.  If a memory allocation error occurs,
 ** store NULL in *paCol and 0 in *pnCol and return SQLITE_NOMEM.
-**返回SQLITE_OK成功。如果内存分配发生错误,在*paCol里存储空，在*pnCol里存储0，返回SQLITE_NOMEM
+**成功时返回SQLITE_OK。如果内存分配发生错误,在*paCol里存NULL，在*pnCol里存0，返回SQLITE_NOMEM
 */
 static int selectColumnsFromExprList(
 	Parse *pParse,          /* Parsing context 解析上下文 */
-	ExprList *pEList,       /* Expr list from which to derive column names 源于列名的Expr列表*/
+	ExprList *pEList,       /* Expr list from which to derive column names 从中派生Expr列表*/
 	int *pnCol,             /* Write the number of columns here 把列的数量写在这里*/
 	Column **paCol          /* Write the new column list here 把新列列表写在这里*/
 	){
-	sqlite3 *db = pParse->db;   /* Database connection 数据库连接*/
+	sqlite3 *db = pParse->db;   /* Database connection 连接数据库*/
 	int i, j;                   /* Loop counters 循环计数器*/
-	int cnt;                    /* Index added to make the name unique 索引的添加使得名字唯一*/
-	Column *aCol, *pCol;        /* For looping over result columns 循环结束得到的结果列*/
+	int cnt;                    /* Index added to make the name unique 索引的添加使名称唯一*/
+	Column *aCol, *pCol;        /* For looping over result columns 在结果列中循环*/
 	int nCol;                   /* Number of columns in the result set 在结果集中的列数*/
 	Expr *p;                    /* Expression for a single result column 一个结果列的表达式*/
 	char *zName;                /* Column name 列名*/
