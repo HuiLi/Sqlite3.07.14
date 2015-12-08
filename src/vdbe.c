@@ -92,23 +92,22 @@
 ** 的正确性，没有别的功能
 */
 #ifdef SQLITE_TEST
-int sqlite3_search_count = 0;/*这个全局变量会随着游标的移动而增大，不管是通过OP_SeekXX还是OP_Next
-							还是OP_Prev操作码，它不能帮助核实正确的操作。*/
+int sqlite3_search_count = 0;/*这个全局变量会随着游标的移动而增大，不管是通过OP_SeekXX还是OP_Next还是OP_Prev操作码，它不能帮助核实正确的操作。*/
 #endif
 
 /*
 ** When this global variable is positive, it gets decremented once before
 ** each instruction in the VDBE.  When it reaches zero, the u1.isInterrupted
 ** field of the sqlite3 structure is set in order to simulate an interrupt.
+** 当全局变量是正值时，在每次使用VDBE执行一条指令，该变量就会递减一次。当该变量值为0，sqlite3结构体中的
+** u1.isInterrupted将会被设置为true用来模仿打断状态。
 **
 ** This facility is used for testing purposes only.  It does not function
 ** in an ordinary build.
 ** 此工具仅用于测试目的。它在正常的编译中是不起作用的。
 */
 #ifdef SQLITE_TEST
-int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在VDBE中执行一次，它就减1，,当它变为0时，
-									sqlite3结构体中的u1.isInterrupted区域会被设置以模拟一个中断发生
-									*/
+int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在VDBE中执行一次，它就减1，,当它变为0时，sqlite3结构体中的u1.isInterrupted区域会被设置以模拟一个中断发生*/
 #endif
 
 /*
@@ -117,10 +116,11 @@ int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在V
 ** sorting is occurring or not occurring at appropriate times.   This variable
 ** has no function other than to help verify the correct operation of the
 ** library.
+** 这个全局变量是在OP_Sort操作码执行后增加1,测试步骤会使用这个信息以确定排序在
+        适当的时间发生或没发生,这个变量除了帮助验证正确的库操作没有其他功能
 */
 #ifdef SQLITE_TEST
-int sqlite3_sort_count = 0;/*这个全局变量是在OP_Sort操作码执行后增加1,测试步骤会使用这个信息以确定排序在
-							适当的时间发生或没发生,这个变量除了帮助验证正确的库操作没有其他功能.*/
+int sqlite3_sort_count = 0;
 #endif
 
 /*
@@ -129,10 +129,11 @@ int sqlite3_sort_count = 0;/*这个全局变量是在OP_Sort操作码执行后�
 ** use this information to make sure that the zero-blob functionality
 ** is working correctly.   This variable has no function other than to
 ** help verify the correct operation of the library.
+** 这个全局变量记录了已经被VDBE操作码使用了的最大的MEM_Blob或者MEM_Str,测试
+         步骤使用它确定zero-blob功能工作正常,这个变量除了帮助验证正确的库操作没有其他功能
 */
 #ifdef SQLITE_TEST
-int sqlite3_max_blobsize = 0;/*这个全局变量记录了已经被VDBE操作码使用了的最大的MEM_Blob或者MEM_Str,测试
-							步骤使用它确定zero-blob功能工作正常,这个变量除了帮助验证正确的库操作没有其他功能*/
+int sqlite3_max_blobsize = 0;
 static void updateMaxBlobsize(Mem *p){
   if( (p->flags & (MEM_Str|MEM_Blob))!=0 && p->n > sqlite3_max_blobsize ){
     sqlite3_max_blobsize = p->n;/*如果p指向的结构体的标记'与'上 'MEM_Str和MEM_Blob或运算的值'的结果不等于0,
@@ -147,7 +148,8 @@ static void updateMaxBlobsize(Mem *p){
 ** is executed. This is used to test whether or not the foreign key
 ** operation implemented using OP_FkIsZero is working. This variable
 ** has no function other than to help verify the correct operation of the
-** library.这个全局变量在OP_Found操作码执行后增加1,这个是用来测试外键操作实施时,是否
+** library.
+** 这个全局变量在OP_Found操作码执行后增加1,这个是用来测试外键操作实施时,是否
 ** 在使用OP_FkIsZero操作码.这个变量除了帮助验证正确的库操作没有其他功能
 */
 #ifdef SQLITE_TEST
@@ -156,8 +158,8 @@ int sqlite3_found_count = 0;
 
 /*
 ** Test a register to see if it exceeds the current maximum blob size.
-** If it does, record the new maximum blob size.测试一个寄存器来看它是否超过
-** 了当前最大blob,超过了就记录这个最大值.
+** If it does, record the new maximum blob size.
+** 测试寄存器查看它是否超过当前blob类型最大长度，如果超过了就记录下形成一个新的blob大小
 */
 #if defined(SQLITE_TEST) && !defined(SQLITE_OMIT_BUILTIN_TEST)
 # define UPDATE_MAX_BLOBSIZE(P)  updateMaxBlobsize(P)
@@ -167,8 +169,8 @@ int sqlite3_found_count = 0;
 
 /*
 ** Convert the given register into a string if it isn't one
-** already. Return non-zero if a malloc() fails.把给的不完整的寄存器值转换
-** 为一个字符串,如果malloc()失败,返回非零值.
+** already. Return non-zero if a malloc() fails.
+** 把给的不完整的寄存器值转换为一个字符串,如果malloc()失败,返回非零值.
 */
 #define Stringify(P, enc) \
    if(((P)->flags&(MEM_Str|MEM_Blob))==0 && sqlite3VdbeMemStringify(P,enc)) \
@@ -182,6 +184,7 @@ int sqlite3_found_count = 0;
 ** knowing it.
 ** 一个临时的字符串值(MEM_Ephem标记所指的)包含一个指向动态分配的字符串的指针,一些其他
 ** 的实体是负责清除这个字符串的.原因是寄存器无法控制这个字符串,寄存器可能都不知道它被删除了.
+**
 ** This routine converts an ephemeral string into a dynamically allocated
 ** string that the register itself controls.  In other words, it
 ** converts an MEM_Ephem string into an MEM_Dyn string.
@@ -233,19 +236,15 @@ void sqlite3VdbeMemStoreType(Mem *pMem){
 }
 
 /*
-** Allocate VdbeCursor number iCur.  Return a pointer to it.  Return NULL
+** Allocate VdbeCursor number iCur.Return a pointer to it.  Return NULL
 ** if we run out of memory.
 ** 分配Vdbe游标数 iCur,返回一个指针给它,如果内存用尽就返回NULL.
 */
 static VdbeCursor *allocateCursor(
   Vdbe *p,              /* The virtual machine 虚拟机指针*/
   int iCur,             /* Index of the new VdbeCursor 新建的虚拟机游标索引值*/
-  int nField,           /* Number of fields in the table or index 
-                        ** 表中字段或索引的数量
-                        */
-  int iDb,              /* Database the cursor belongs to, or -1 
-                        ** 这个游标属于哪个数据库，或者iDb = -1
-                        */
+  int nField,           /* Number of fields in the table or index ** 表中字段或索引的数量*/
+  int iDb,              /* Database the cursor belongs to, or -1 ** 这个游标属于哪个数据库，或者iDb = -1 */
   int isBtreeCursor     /* True for B-Tree.False for pseudo-table or vtab B树就为true,虚表或者假表为false*/
 ){
   /* Find the memory cell that will be used to store the blob of memory
@@ -269,8 +268,8 @@ static VdbeCursor *allocateCursor(
   ** 存储单元来管理一个VdbeCursor结构体所需要的内存分配是很方便的,原因如下:
   ** 一,在vdbe程序中,游标数有时被用于两个不同的目的,不同的用途可能会需要不同
   ** 的内存分配,而内存单元提供了可增长的分配机制.
-  ** 二,当使用ENBALE_MEMORY_MANAGEMENT时,内存单元缓冲区可以被sqlite3_release
-  ** _memory()API释放,把内存分配数量最小化是系统决定的.
+  ** 二,当使用ENBALE_MEMORY_MANAGEMENT时,内存单元缓冲区可以被sqlite3_release_memory()API
+  ** 释放,把内存分配数量最小化是系统决定的.
   ** 分配给游标的内存存储单元在地址空间的最顶端。虚拟机P在内存中的存储位置nMem(p->nMem)对应于游标0。
   ** 游标1是由内存单元(p->nMem-1)来管理,等等。
   */
@@ -310,16 +309,17 @@ static VdbeCursor *allocateCursor(
 ** do so without loss of information.  In other words, if the string
 ** looks like a number, convert it into a number.  If it does not
 ** look like a number, leave it alone.
-** 在不丢失信息的提前下,尝试把一个像数字的值转换为数字
+** 在不丢失信息的提前下,尝试把一个像数字的值转换为数字。话句话说，如果一个字符串非常像一个数字，
+** 将它转换成一个数字。如果不像数字，保持它的原型
 */
 static void applyNumericAffinity(Mem *pRec){
-  if( (pRec->flags & (MEM_Real|MEM_Int))==0 ){
+  if( (pRec->flags & (MEM_Real|MEM_Int))==0 ){//满足pRec数据不是Int 或 Real要求
     double rValue;
     i64 iValue;
     u8 enc = pRec->enc;
-    if( (pRec->flags&MEM_Str)==0 ) return;
-    if( sqlite3AtoF(pRec->z, &rValue, pRec->n, enc)==0 ) return;
-    if( 0==sqlite3Atoi64(pRec->z, &iValue, pRec->n, enc) ){
+    if( (pRec->flags&MEM_Str)==0 ) return;//如果字符串为空
+    if( sqlite3AtoF(pRec->z, &c, pRec->n, enc)==0 ) return;//先试着转换成Real类型
+    if( 0==sqlite3Atoi64(pRec->z, &iValue, pRec->n, enc) ){//调用sqlite3Atoi64函数对数据进行转换，转换后的数据存储在sqlite3Atoi64的参数pResult里，即iValue
       pRec->u.i = iValue;
       pRec->flags |= MEM_Int;
     }else{
@@ -340,8 +340,8 @@ static void applyNumericAffinity(Mem *pRec){
 **    is not possible.  Note that the integer representation is
 **    always preferred, even if the affinity is REAL, because
 **    an integer representation is more space efficient on disk.
-**	  尝试把Mem结构体类型的指针pRec转换为一个整形,如果不能转换为整形就转换为浮点型
-**    要注意到整形是优先的,即使最像的参数是一个REAL类型,这是因为在磁盘上整形的空间利用率更高
+** 尝试把Mem结构体类型的指针pRec转换为一个整形,如果不能转换为整形就转换为浮点型
+** 要注意到整形是优先的,即使最像的参数是一个REAL类型,这是因为在磁盘上整形的空间利用率更高
 ** SQLITE_AFF_TEXT:
 **    Convert pRec to a text representation.
 **    把pRec转换为文本
@@ -359,8 +359,8 @@ static void applyAffinity(
     ** representation (blob and NULL do not get converted) but no string
     ** representation.
     */
-    if( 0==(pRec->flags&MEM_Str) && (pRec->flags&(MEM_Real|MEM_Int)) ){
-      sqlite3VdbeMemStringify(pRec, enc);
+    if( 0==(pRec->flags&MEM_Str) && (pRec->flags&(MEM_Real|MEM_Int)) ){//如果字符数据不是string real int类型数据
+      sqlite3VdbeMemStringify(pRec, enc);//转换成string型数据
     }
     pRec->flags &= ~(MEM_Real|MEM_Int);
   }else if( affinity!=SQLITE_AFF_NONE ){
@@ -378,18 +378,17 @@ static void applyAffinity(
 ** into a numeric representation.  Use either INTEGER or REAL whichever
 ** is appropriate.  But only do the conversion if it is possible without
 ** loss of information and return the revised type of the argument.
-** 尝试把一个函数参数或者一个结果行转换为一个数字表示的表达式.使用INTEGER或REAL中的合
-** 适的一个.但是只在不会丢失信息和可以返回改过的参数的情况下转换.
 ** 周敏菲修改：
-** 尝试…………一个。但是只有在没有信息丢失的情况下才进行转换，同时返回一个修改后的type参数。
+** 尝试把一个函数参数或者一个结果行转换为一个数字表示的表达式.使用INTEGER或REAL中的合
+** 适的一个。但是只有在没有信息丢失的情况下才进行转换，同时返回一个修改后的type参数。
 */
 int sqlite3_value_numeric_type(sqlite3_value *pVal){
   Mem *pMem = (Mem*)pVal;
   if( pMem->type==SQLITE_TEXT ){
     applyNumericAffinity(pMem);
-    sqlite3VdbeMemStoreType(pMem);
+    sqlite3VdbeMemStoreType(pMem);//存储修改后的pMem
   }
-  return pMem->type;
+  return pMem->type;//返回type类型
 }
 
 /*
@@ -571,15 +570,14 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 ** linked list starting at sqlite3.pSavepoint.
 **
 ** Usage:
-**
 **     assert( checkSavepointCount(db) );
 **
+**周敏菲修改：
 ** checkSavepointCount()这个函数仅仅被assert( checkSavepointCount(db) )回调.
-** 它检查sqlite3.nTransaction类型变量正在被正确的设置为开始于sqlite3.pSavepoint指针
-** 的链表中,无事务savepoints指针的数量.
-** 周敏菲修改：
 ** 它用于检测变量sqlite3.nTransaction被正确赋值为当前链表中非事务性存储点的数目，这个链表
 ** 的起始点为sqlite3.pSavepoint。
+**
+**
 */
 static int checkSavepointCount(sqlite3 *db){
   int n = 0;
@@ -599,9 +597,9 @@ static int checkSavepointCount(sqlite3 *db){
 */
 static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
   sqlite3 *db = p->db;
-  sqlite3DbFree(db, p->zErrMsg);
-  p->zErrMsg = sqlite3DbStrDup(db, pVtab->zErrMsg);
-  sqlite3_free(pVtab->zErrMsg);
+  sqlite3DbFree(db, p->zErrMsg);//释放数据库连接关联的内存
+  p->zErrMsg = sqlite3DbStrDup(db, pVtab->zErrMsg);//从sqliteMalloc函数拷贝一个字符串
+  sqlite3_free(pVtab->zErrMsg);//释放sqlite里的zErrMsg
   pVtab->zErrMsg = 0;
 }
 
@@ -651,42 +649,36 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 */
 
 
-int sqlite3VdbeExec(
-  Vdbe *p                    /* The VDBE */
-){
+int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
   int pc=0;                  /* The program counter 指令计数器*/
-  Op *aOp = p->aOp;          /* Copy of p->aOp  */
+  Op *aOp = p->aOp;          /* Copy of p->aOp  拷贝指令*/
   Op *pOp;                   /* Current operation 当前指令*/
   int rc = SQLITE_OK;        /* Value to return */
   sqlite3 *db = p->db;       /* The database 数据库*/
-  u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive */
-  u8 encoding = ENC(db);     /* The database encoding 
-                             ** 数据库编码格式。
-                             */
+  u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive 有错误发生重置计划*/
+  u8 encoding = ENC(db);     /* The database encoding 数据库编码格式。 */
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
-  int checkProgress;         /* True if progress callbacks are enabled */
-  int nProgressOps = 0;      /* Opcodes executed since progress callback. */
+  int checkProgress;         /* True if progress callbacks are enabled 如果进展回调可用就为真*/
+  int nProgressOps = 0;      /* Opcodes executed since progress callback. 操作码将会执行如果进展回调*/
 #endif
   Mem *aMem = p->aMem;       /* Copy of p->aMem */
   Mem *pIn1 = 0;             /* 1st input operand */
   Mem *pIn2 = 0;             /* 2nd input operand */
   Mem *pIn3 = 0;             /* 3rd input operand */
   Mem *pOut = 0;             /* Output operand */
-  int iCompare = 0;          /* Result of last OP_Compare operation
-                             ** 存放操作码OP_Compare的操作结果
-                             */
-  int *aPermute = 0;         /* Permutation of columns for OP_Compare
-                             ** 操作码OP_Compare使用的数组。
-                             */
+  int iCompare = 0;          /* Result of last OP_Compare operation 存放操作码OP_Compare的操作结果*/
+  int *aPermute = 0;         /* Permutation of columns for OP_Compare 操作码OP_Compare使用的数组*/
   i64 lastRowid = db->lastRowid;  /* Saved value of the last insert ROWID */
 #ifdef VDBE_PROFILE
   u64 start;                 /* CPU clock count at start of opcode */
-  int origPc;                /* Program counter at start of opcode */
+  int origPc;              /* Program counter at start of opcode */
+#endif
+  /* Program counter at start of opcode */
 #endif
   /*** INSERT STACK UNION HERE ***/
 
   assert( p->magic==VDBE_MAGIC_RUN );  /* sqlite3_step() verifies this */
-  sqlite3VdbeEnter(p);
+  sqlite3VdbeEnter(p);//锁定B树 如果SQLite编译支持共享缓存模式和线程安全,这个程序获得与每个BtShared结构关联的互斥锁,可能被VM访问作为一个参数传递。这样做也可以设置BtShared.db成员的每个BtShared结构,确保如果需要的时候正确的busy-handler被调用。
   if( p->rc==SQLITE_NOMEM ){
     /* This happens if a malloc() inside a call to sqlite3_column_text() or
     ** sqlite3_column_text16() failed.  */
@@ -698,7 +690,7 @@ int sqlite3VdbeExec(
   p->pResultSet = 0;
   db->busyHandler.nBusy = 0;
   CHECK_FOR_INTERRUPT;
-  sqlite3VdbeIOTraceSql(p);
+  sqlite3VdbeIOTraceSql(p);//打印一个IO的跟踪消息，显示SQL内容
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
   checkProgress = db->xProgress!=0;
 #endif
