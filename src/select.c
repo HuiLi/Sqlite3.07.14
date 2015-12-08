@@ -2781,295 +2781,351 @@ static int multiSelectOrderBy(
 }
 #endif
 
-///start update by zhaoyanqi 赵艳琪
-#if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)
-/* Forward Declarations */
+//汤海婷
+#if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)//宏定义
+/* Forward Declarations *//*预先声明*/
+//声明静态函数
 static void substExprList(sqlite3*, ExprList*, int, ExprList*);
 static void substSelect(sqlite3*, Select *, int, ExprList *);
 
 /*
 ** Scan through the expression pExpr.  Replace every reference to
 ** a column in table number iTable with a copy of the iColumn-th
-** entry in pEList.  (But leave references to the ROWID column
+** entry in pEList.  (But leave references to the ROWID column unchanged。
 ** unchanged.)
-**扫描pexpr表达式。用pEList的 iColumn-th条目的一个副本来更换每一个引用到名为iTable的表的
-一列。（但保留到 ROWID列的引用不变）
+**
 ** This routine is part of the flattening procedure.  A subquery
 ** whose result set is defined by pEList appears as entry in the
 ** FROM clause of a SELECT such that the VDBE cursor assigned to that
 ** FORM clause entry is iTable.  This routine make the necessary
 ** changes to pExpr so that it refers directly to the source table
 ** of the subquery rather the result set of the subquery.
-次例程是扁平化程序的一部分。一个结果集被在一个SELECT的FROM子句出现的条目定义的子查询，比如
-VDBE光标指派给FROM子句条目是iTable。此例程对pExpr进行必要更改以便于它直接指到子查询的源表，
-而不是子查询的结果集。*/
+*/
+
+
+
+/*
+** 通过表达式pExpr进行扫描，从表达式列表中复制第iColumn-th个条目，替换iTable中每个参照的列。
+** （ROWID不做任何改变）
+** 这个例程是拼合过程的一部分。子查询的结果集被表达式定义，表现为一个在SELECT中FROM子句的条目，
+** 因此VDBE分配给FROM子句的游标是一个表。这个程序必须对表达式做出改变，才能直接引用子查询的源表而不是
+** 子查询的结果集。
+*/
+
 static Expr *substExpr(
-	sqlite3 *db,        /* Report malloc errors to this connection 对此链接报告内存分配错误*/
-	Expr *pExpr,        /* Expr in which substitution occurs在Expr表达式出现替代 */
-	int iTable,         /* Table to be substituted 表取代*/
-	ExprList *pEList    /* Substitute expressions 替代表达式*/
-	){
+	sqlite3 *db,        /* Report malloc errors to this connection *//*定义数据库db,报告malloc错误连接*/
+	Expr *pExpr,        /* Expr in which substitution occurs *//*定义pExpr变量，当替换发生*/
+	int iTable,         /* Table to be substituted *//*替换的表号*/
+	ExprList *pEList    /* Substitute expressions *//*替换的表达式列表*/
+	)
+{
+	///*判断条件，若表达式为空，返回*/
 	if (pExpr == 0) return 0;
+
 	if (pExpr->op == TK_COLUMN && pExpr->iTable == iTable){
-		if (pExpr->iColumn < 0){
-			pExpr->op = TK_NULL;
+
+		if (pExpr->iColumn<0){//表达式列数溢出
+			pExpr->op = TK_NULL;//赋值为空
 		}
 		else{
-			Expr *pNew;
-			assert(pEList != 0 && pExpr->iColumn < pEList->nExpr);
-			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);
-			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);
-			if (pNew && pExpr->pColl){
-				pNew->pColl = pExpr->pColl;
+			Expr *pNew;//声明一个新的指向表达式的指针
+			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//异常处理，表达式不为空，并且列数小于表达式列表中表达式的个数，条件不成立则抛出
+			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//异常处理，表达式的左右子树为空，条件不成立抛出断点
+			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//深拷贝
+			if (pNew && pExpr->pColl){//若pNew不为空且表达式的排序序列不为空成立，执行
+				pNew->pColl = pExpr->pColl;//全局变量赋值
 			}
-			sqlite3ExprDelete(db, pExpr);
-			pExpr = pNew;
+			sqlite3ExprDelete(db, pExpr);//调用数据库中表达式删除函数
+			pExpr = pNew;//全局变量赋值
 		}
 	}
 	else{
-		pExpr->pLeft = substExpr(db, pExpr->pLeft, iTable, pEList);
-		pExpr->pRight = substExpr(db, pExpr->pRight, iTable, pEList);
-		if (ExprHasProperty(pExpr, EP_xIsSelect)){
-			substSelect(db, pExpr->x.pSelect, iTable, pEList);
+		pExpr->pLeft = substExpr(db, pExpr->pLeft, iTable, pEList);//递归调用substExpr函数
+		pExpr->pRight = substExpr(db, pExpr->pRight, iTable, pEList);//递归调用substExpr函数
+		if (ExprHasProperty(pExpr, EP_xIsSelect)){//判断表达式pExpr是否进行EP_xIsSelect查询
+			substSelect(db, pExpr->x.pSelect, iTable, pEList);//调用substSelect函数，对pExpr->x.pSelect中Select语句进行处理
 		}
 		else{
-			substExprList(db, pExpr->x.pList, iTable, pEList);
+			substExprList(db, pExpr->x.pList, iTable, pEList);//调用substExprList函数，对pExpr->x.pList表达式列表处理
 		}
 	}
 	return pExpr;
 }
 static void substExprList(
-	sqlite3 *db,         /* Report malloc errors here 在这里报告内存分配错误*/
-	ExprList *pList,     /* List to scan and in which to make substitutes 扫描列表并替代*/
-	int iTable,          /* Table to be substituted 表取代*/
-	ExprList *pEList     /* Substitute values 替代值*/
+	sqlite3 *db,         /* Report malloc errors here *//*声明sqlite的对象，报告分配内存错误*/
+	ExprList *pList,     /* List to scan and in which to make substitutes *//*定义pExpr变量，当替换发生*/
+	int iTable,          /* Table to be substituted *//*替换的表号*/
+	ExprList *pEList     /* Substitute values *//*替换的表达式列表*/
 	){
 	int i;
-	if (pList == 0) return;
-	for (i = 0; i < pList->nExpr; i++){
-		pList->a[i].pExpr = substExpr(db, pList->a[i].pExpr, iTable, pEList);
+	if (pList == 0) return;//列表达式为空，返回
+	//遍历表达式列表
+	for (i = 0; i<pList->nExpr; i++){
+		pList->a[i].pExpr = substExpr(db, pList->a[i].pExpr, iTable, pEList);//递归调用，重新赋值pList->a[i].pExpr
 	}
 }
 static void substSelect(
-	sqlite3 *db,         /* Report malloc errors here 在这里报告内存分配错误*/
-	Select *p,           /* SELECT statement in which to make substitutions 在这里选择语句替换*/
-	int iTable,          /* Table to be replaced 表替换为*/
-	ExprList *pEList     /* Substitute values 替代值*/
+	sqlite3 *db,         /* Report malloc errors here *//*声明sqlite的对象，报告分配内存错误*/
+	Select *p,           /* SELECT statement in which to make substitutions *//*声明一个Select对象*/
+	int iTable,          /* Table to be replaced *//*替换的表号*/
+	ExprList *pEList     /* Substitute values *//*替换的表达式列表*/
 	){
-	SrcList *pSrc;
-	struct SrcList_item *pItem;
+	SrcList *pSrc;//声明描述SELECT中的FROM子句的对象
+	struct SrcList_item *pItem;//声明SrcList_item结构体的一个FROM子句对象
 	int i;
-	if (!p) return;
+	if (!p) return;//若p不空，返回
+	//调用substExprList函数，对 p->pEList表达式列表处理
 	substExprList(db, p->pEList, iTable, pEList);
 	substExprList(db, p->pGroupBy, iTable, pEList);
 	substExprList(db, p->pOrderBy, iTable, pEList);
-	p->pHaving = substExpr(db, p->pHaving, iTable, pEList);
-	p->pWhere = substExpr(db, p->pWhere, iTable, pEList);
-	substSelect(db, p->pPrior, iTable, pEList);
-	pSrc = p->pSrc;
-	assert(pSrc);  /* Even for (SELECT 1) we have: pSrc!=0 but pSrc->nSrc==0 尽管我们有 pSrc!=0，但是pSrc->nSrc==0*/
+	p->pHaving = substExpr(db, p->pHaving, iTable, pEList);//调用substExpr函数，赋值给SELECT中pHaving属性
+	p->pWhere = substExpr(db, p->pWhere, iTable, pEList);//调用substExpr函数，赋值给SELECT中pWhere属性
+	substSelect(db, p->pPrior, iTable, pEList);//递归调用substSelect
+	pSrc = p->pSrc;//当前的SELECT中FROM子句赋值给全局变量的pSrc
+	assert(pSrc);  /* Even for (SELECT 1) we have: pSrc!=0 but pSrc->nSrc==0 *///满足条件，插入断点
 	if (ALWAYS(pSrc)){
-		for (i = pSrc->nSrc, pItem = pSrc->a; i > 0; i--, pItem++){
-			substSelect(db, pItem->pSelect, iTable, pEList);
+		for (i = pSrc->nSrc, pItem = pSrc->a; i>0; i--, pItem++){//遍历
+			substSelect(db, pItem->pSelect, iTable, pEList);//调用substSelect函数，对 pItem->x.pSelect中Select语句进行处理
 		}
 	}
 }
-#endif /* !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW) */
+#endif // !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW) 
 
 #if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)
 /*
-** This routine attempts to  subqueries as a performance optimization.该例程尝试展平子查询使其性能优化
-** This routine returns 1 if it makes changes and 0 if no flattening occurs.如果该例程改变并且没有扁平化的发生，则该例程返回1
+** This routine attempts to flatten subqueries as a performance optimization.
+** This routine returns 1 if it makes changes and 0 if no flattening occurs.
 **
 ** To understand the concept of flattening, consider the following
-** query:为了理解扁平化的概念，请考虑以下查询
+** query:
 **
 **     SELECT a FROM (SELECT x+y AS a FROM t1 WHERE z<100) WHERE a>5
-**选择一个对象（选择 x+y 作为一个对象t1，其中z<100）其中a>5
+**
 ** The default way of implementing this query is to execute the
 ** subquery first and store the results in a temporary table, then
 ** run the outer query on that temporary table.  This requires two
 ** passes over the data.  Furthermore, because the temporary table
 ** has no indices, the WHERE clause on the outer query cannot be
 ** optimized.
-** 执行此查询的的默认方式是先执行子查询，并将其结果存储在一个临时表中,然后运行在临时表的外部查询。
-这就需要两个通过数据。 此外,由于临时表没有索引，外部查询的WHERE子句不能优化。
+**
 ** This routine attempts to rewrite queries such as the above into
 ** a single flat select, like this:
-** 此例程试图将如上文所述的查询重写进一个单独平面选择，比如：
+**
 **     SELECT x+y AS a FROM t1 WHERE z<100 AND a>5
-** 选择x+y作为一个对象t1，其中 z<100并且 a>5
+**
 ** The code generated for this simpification gives the same result
 ** but only has to scan the data once.  And because indices might
 ** exist on the table t1, a complete scan of the data might be
 ** avoided.
-** 为了这个simpification生成的代码给出了相同的结果，但只需扫描一次数据。而且由于指数可能存在与表t1，这可以避免扫描所有数据。
+**
 ** Flattening is only attempted if all of the following are true:
-** 如果满足以下所有条件，那么扁平化就只是一个尝试
+**
 **   (1)  The subquery and the outer query do not both use aggregates.
-**       子查询和外部查询都不使用聚合。
+**
 **   (2)  The subquery is not an aggregate or the outer query is not a join.
-**       子查询不是一个聚合或者外部查询不是一个连接。
+**
 **   (3)  The subquery is not the right operand of a left outer join
 **        (Originally ticket #306.  Strengthened by ticket #3300)
-**       子查询不是一个左外连接的右操作。
+**
 **   (4)  The subquery is not DISTINCT.
-**       子查询是不一样的
-**  (**)  At one point restrictions (4) and (5) defined a subset of DISTINCT
+**
+**   (5)  At one point restrictions (4) and (5) defined a subset of DISTINCT
 **        sub-queries that were excluded from this optimization. Restriction
 **        (4) has since been expanded to exclude all DISTINCT subqueries.
-**       这时限制（4）和（5）定义一个从这个优化被排除在外的不同的子查询的子集
+**
 **   (6)  The subquery does not use aggregates or the outer query is not
 **        DISTINCT.
-**        这个子查询不使用聚合或外部查询是不同的
+**
 **   (7)  The subquery has a FROM clause.  TODO:  For subqueries without
 **        A FROM clause, consider adding a FROM close with the special
 **        table sqlite_once that consists of a single row containing a
 **        single NULL.
-**        这个子查询有一个FROM字句。TODO:没有一个FROM字句的子查询，可以考虑添加一个
-带有从关闭的特别表组成的单个行的FROM字句，其中包含一个单个空。
+**
 **   (8)  The subquery does not use LIMIT or the outer query is not a join.
-**   子查询不使用限制或外查询并不是一种链接。
+**
 **   (9)  The subquery does not use LIMIT or the outer query does not use
 **        aggregates.
-**    子查询不使用限制或外部查询不使用聚合
+**
 **  (10)  The subquery does not use aggregates or the outer query does not
 **        use LIMIT.
-**   子查询不使用聚合或外部查询不使用限制。
+**
 **  (11)  The subquery and the outer query do not both have ORDER BY clauses.
-**   子查询和外部查询不都有 ORDER 子句。
+**
 **  (**)  Not implemented.  Subsumed into restriction (3).  Was previously
 **        a separate restriction deriving from ticket #350.
-**    不执行。 归入限制(3)，以前是一个来自票#350的单独限制。
+**
 **  (13)  The subquery and outer query do not both use LIMIT.
-**   子查询和外部查询都不使用限制
+**
 **  (14)  The subquery does not use OFFSET.
-**  子查询不使用偏移
+**
 **  (15)  The outer query is not part of a compound select or the
 **        subquery does not have a LIMIT clause.
 **        (See ticket #2339 and ticket [02a8e81d44]).
-**    外部查询并不是一个复合选择的一部分，或者说子查询没有限制子句。
+**
 **  (16)  The outer query is not an aggregate or the subquery does
-**        not contain.  (Ticket #2942)  This used to not matter
+**        not contain ORDER BY.  (Ticket #2942)  This used to not matter
 **        until we introduced the group_concat() function.
-**    外查询并不是一个聚合或者说子查询不包含 ORDER BY。(票 #2942)这在我们介绍 group_concat()
-函数之前无关紧要。
+**
 **  (17)  The sub-query is not a compound select, or it is a UNION ALL
 **        compound clause made up entirely of non-aggregate queries, and
 **        the parent query:
-** 子查询并不是一种复合选择,或者说它是一个全部由非聚合查询组成的复合句，父查询：
-**          * is not itself part of a compound select,本身并不是一个复合选择的一部分,
+**
+**          * is not itself part of a compound select,
 **          * is not an aggregate or DISTINCT query, and
 **          * is not a join
-**  不是一个聚合或DISTINCT查询，而且没有一个链接
+**
 **        The parent and sub-query may contain WHERE clauses. Subject to
 **        rules (11), (13) and (14), they may also contain ORDER BY,
 **        LIMIT and OFFSET clauses.  The subquery cannot use any compound
 **        operator other than UNION ALL because all the other compound
 **        operators have an implied DISTINCT which is disallowed by
 **        restriction (4).
-** 父和子查询可能包含Where子句。由规则(11), (13)和 (14)可知，他们也可能包含ORDER BY， LIMIT
-和 OFFSET 子句。子查询不能使用任何UNION ALL以外的任何复合操作，因为所有其它复合操作有一个隐含
-DISTINCT，这由于限制而不被允许。
+**
 **        Also, each component of the sub-query must return the same number
 **        of result columns. This is actually a requirement for any compound
 **        SELECT statement, but all the code here does is make sure that no
 **        such (illegal) sub-query is flattened. The caller will detect the
 **        syntax error and return a detailed message.
-**  另外,每个子查询的组件必须返还相同数量的结果列。这实际上是一个对于任何复合SELECT语句的要求，
-但在这里的所有代码是确保没有这种(非法的)子查询是扁平化的。主叫方将会检测到语法错误并返回一个
-详细的讯息。
+**
 **  (18)  If the sub-query is a compound select, then all terms of the
 **        ORDER by clause of the parent must be simple references to
 **        columns of the sub-query.
-** 如果子查询是一个复合选择,然后所有父子句的 ORDER条目必须简单提到列的子查询。
+**
 **  (19)  The subquery does not use LIMIT or the outer query does not
 **        have a WHERE clause.
-** 子查询不使用限制或外部查询没有一个WHERE 子句。
+**
 **  (20)  If the sub-query is a compound select, then it must not use
 **        an ORDER BY clause.  Ticket #3773.  We could relax this constraint
 **        somewhat by saying that the terms of the ORDER BY clause must
 **        appear as unmodified result columns in the outer query.  But we
 **        have other optimizations in mind to deal with that case.
-** 如果子查询是一个复合选择,那么它就必须不能使用一个ORDER子句。票#3773.我们可以通过说这个ORDER子句
-条目显示为在外部查询未修改结果列来放宽这一限制。但是在这种情况下，我们有其他的方法优化。
+**
 **  (21)  The subquery does not use LIMIT or the outer query is not
 **        DISTINCT.  (See ticket [752e1646fc]).
-** 该子查询不使用限制或外部查询是不同的。
+**
 ** In this routine, the "p" parameter is a pointer to the outer query.
 ** The subquery is p->pSrc->a[iFrom].  isAgg is true if the outer query
 ** uses aggregates and subqueryIsAgg is true if the subquery uses aggregates.
-**在该例程,“P”参数是一个指向外部查询的指针。子查询是p->pSrc->a[iFrom].如果外查询用聚合和子查询，
-则为真
+**
 ** If flattening is not attempted, this routine is a no-op and returns 0.
 ** If flattening is attempted this routine returns 1.
-**如果没有扁平化，此例程是一个无操作并返回0
-如果扁平化，则返回1.
+**
 ** All of the expression analysis must occur on both the outer query and
 ** the subquery before this routine runs.
-在此例程运行之前，所有的表达式的分析必须发生在外部查询和子查询中。*/
+*/
+/* 此例程尝试以扁平化子查询作为一种性能优化。如果程序发生了改变，程序返回1，若没有扁平化操作，则程序返回0.
+**
+** 要理解扁平化的概念，要考虑以下的查询：
+**   SELECT a FROM (SELECT x+y AS a FROM t1 WHERE z<100) WHERE a>5
+** 默认先执行子查询语句，然后将结果存储在临时表中，在该临时表上运行外部查询。这要求有两个操作。
+** 此外，因为临时表没有索引，对外部查询的where字句不能进行优化。
+** 这个程序尝试重写查询，根据上面的SQL语句，作为像这样的一个单独的扁平化查询：
+**   SELECT a FROM (SELECT x+y AS a FROM t1 WHERE z<100) WHERE a>5
+** 代码给出同样的结果但只需要扫描一次数据。因为索引可能在表t1上存在，可能避免一次完成的数据扫描。
+**
+** 若能满足以下规则，就能实现扁平化查询：
+**（1）子查询和外查询不能同时使用聚合函数
+**（2）子查询不是一个聚合或外部查询不是一个联接
+**（3）子查询不是左外连接的右操作集
+**（4）子查询不使用“DISTINCT”
+**（5）规则（4）和（5）定义了DISTINCT子查询的子集，排除了这种优化的子查询。规则（4）已经排除了所有的DISTINCT子查询
+**（6）子查询不能使用聚集或外部查询不能使用DISTINCT
+**（7）子查询有一个FROM子句。TODO：子查询没有一个FROM子句，考虑添加一个特殊的表sqlite_once，它只包含了一个单一的空值的行。
+**（8）子查询不使用限制或外部查询不是一个联接
+**（9）子查询不使用限制或外部查询不使用聚集
+**（10）子查询不使用聚合或外部查询不使用限制
+**（11）子查询和外部查询不能同时使用ORDER BY子句
+**（12）没有实现，归入到限制条件（3）。
+**（13）子查询和外部查询不能同时使用LIMIT子句
+**（14）子查询不能使用OFFSET子句
+**（15）外部查询不能是一个复合查询的一部分或者子查询不能有LIMIT子句
+**（16）外部查询不能是一个聚集查询或子查询不能包含orderby子句。除非有group_concat（）函数才能实现匹配。
+**（17）子查询不是一个复合查询，或者UNION ALL复合查询有非聚集查询组成的查询语句，另外有以下的父查询：
+**      *本身不是复合查询
+**      *不是一个聚集查询或DISTINCT查询
+**      *没有连接操作
+** 父查询或子查询可能包含一个WHERE子句。这些服从规则（11），（13）和（14），它可能也包含 ORDER BY, LIMIT 和OFFSET 子句.
+** 子查询不能使用任何符合操作除了UNION ALL,因为所有的复合操作是都是实现了DISTINCT，规则（4）不允许的。
+** 此外，每一个子查询的组件必须返回数量的结果列。这个实际上要求复合查询中子查询没有扁平化的。调用将检测到语法错误和返回详细信息
+**
+**（18）如果子查询是复合查询，父查询中ORDERBY子句所有规则必须简单依赖引用子查询的列。
+**（19）子查询不能使用LIMIT或外查询不能使用WHERE子句
+**（20）如果子查询是复合查询，不能使用ORDER BY 子句。释放这些约束条件，ORDER BY 子句必须显示为外部查询中的未修改的结果列。
+在打算如何处理这种情况下有其他优化。
+**（21）子查询不能使用LIMIT或者外查询不能使用DISTINCT。
+**
+**在这个程序中，参数p是一个指针，指向外查询，子查询p->pSrc->a[iFrom].如果外查询使用了聚集isAgg为TRUE，如果
+**子查询使用了聚集，subqueryIsAgg为TRUE。
+**
+**如果不能进行扁平化，那么这个程序不执行，并返回0。
+**如果使用扁平化了，返回1.
+**
+*表达式分析必须发生在程序运行之前的外部查询和子查询中。
+*/
 static int flattenSubquery(
-	Parse *pParse,       /* Parsing context 解析环境*/
-	Select *p,           /* The parent or outer SELECT statement父选择或外选择声明 */
-	int iFrom,           /* Index in p->pSrc->a[] of the inner subquery在内子查询的 p->pSrc->a[]中的索引*/
-	int isAgg,           /* True if outer SELECT uses aggregate functions 如果外选择使用聚合函数，则返回True*/
-	int subqueryIsAgg    /* True if the subquery uses aggregate functions 如果子查询使用聚合函数，则返回True*/
+	Parse *pParse,       /* Parsing context *//*声明解析上下文的变量*/
+	Select *p,           /* The parent or outer SELECT statement *//*声明一个父查询或外查询的变量*/
+	int iFrom,           /* Index in p->pSrc->a[] of the inner subquery *//*内部查询中p->pSrc->a[]中的索引*/
+	int isAgg,           /* True if outer SELECT uses aggregate functions *//*外部查询如果用了聚集函数，则为TRUE*/
+	int subqueryIsAgg    /* True if the subquery uses aggregate functions *//*子查询如果使用了聚集函数，则为TRUE*/
 	){
-	const char *zSavedAuthContext = pParse->zAuthContext;
+	const char *zSavedAuthContext = pParse->zAuthContext;/*声明常变量对语法解析树中的上下文进行赋值*/
 	Select *pParent;
-	Select *pSub;       /* The inner query or "subquery" 内部查询或“子查询”*/
-	Select *pSub1;      /* Pointer to the rightmost select in sub-query指针移到子查询最右边的选择 */
-	SrcList *pSrc;      /* The FROM clause of the outer query 子句的外部查询*/
-	SrcList *pSubSrc;   /* The FROM clause of the subquery 子句的子查询*/
-	ExprList *pList;    /* The result set of the outer query 外部查询的结果集*/
-	int iParent;        /* VDBE cursor number of the pSub result set temp table 结果集临时表的VDBE光标数字*/
-	int i;              /* Loop counter循环计数器 */
-	Expr *pWhere;                    /* The WHERE clause  WHERE子句*/
-	struct SrcList_item *pSubitem;   /* The subquery 子查询*/
-	sqlite3 *db = pParse->db;
+	Select *pSub;       /* The inner query or "subquery" *//*声明变量 pSub用来表明内查询或子查询变量*/
+	Select *pSub1;      /* Pointer to the rightmost select in sub-query *//*声明Select变量，用来表示指向子查询中最右边的查询*/
+	SrcList *pSrc;      /* The FROM clause of the outer query *//*声明Srclist的对象，表明外部查询的FROM子句*/
+	SrcList *pSubSrc;   /* The FROM clause of the subquery *//*声明Srclist的对象，用来表示子查询的FROM子句*/
+	ExprList *pList;    /* The result set of the outer query *//*声明表达式Exprlist的变量外部查询的结果集*/
+	int iParent;        /* VDBE cursor number of the pSub result set temp table *//*声明整数类型的变量，用来上表示VDBE游标号，指向内查询的临时表*/
+	int i;              /* Loop counter *//*循环计数*/
+	Expr *pWhere;                    /* The WHERE clause *//*用来表示WHERE子句*/
+	struct SrcList_item *pSubitem;   /* The subquery *//*声明一个SrcList_item类型的子查询结构体*/
+	sqlite3 *db = pParse->db;//声明一个sqlite3的对象，表示数据库连接
 
-	/* Check to see if flattening is permitted.  Return 0 if not.检查是否允许扁平化，否则返回0
-	*/
-	assert(p != 0);
-	assert(p->pPrior == 0);  /* Unable to flatten compound queries无法展平复合查询 */
-	if (db->flags & SQLITE_QueryFlattener) return 0;
-	pSrc = p->pSrc;
-	assert(pSrc && iFrom >= 0 && iFrom < pSrc->nSrc);
-	pSubitem = &pSrc->a[iFrom];
-	iParent = pSubitem->iCursor;
-	pSub = pSubitem->pSelect;
-	assert(pSub != 0);
-	if (isAgg && subqueryIsAgg) return 0;                 /* Restriction (1)  限制（1）*/
-	if (subqueryIsAgg && pSrc->nSrc>1) return 0;          /* Restriction (2)  限制（2）*/
-	pSubSrc = pSub->pSrc;
-	assert(pSubSrc);
+	/* Check to see if flattening is permitted.  Return 0 if not.
+	*//*检查是否允许扁平化，不允许则返回0*/
+	assert(p != 0);//SELECT结构体为空，抛出异常，这里是设置了断点，用于处理异常
+	assert(p->pPrior == 0);  // Unable to flatten compound queries *//*不能扁平化的复合查询
+	if (db->flags & SQLITE_QueryFlattener) return 0;//如果数据连接中值为SQLITE_QueryFlattener且标记变量db->flags均符合条件，执行下一步 
+	pSrc = p->pSrc;/*查询结构体中from字句的赋值*/
+	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//不满足条件，则抛出异常
+	pSubitem = &pSrc->a[iFrom];//FROM子句中数组索引地址赋值给子查询pSubitem
+	iParent = pSubitem->iCursor;//将子查询的游标赋值给一个内查询或子查询VDBE游标号。
+	pSub = pSubitem->pSelect;//子查询或内查询赋值
+	assert(pSub != 0);//异常处理，如果子查询结构体为空，抛出警告信息
+	if (isAgg && subqueryIsAgg) return 0;                 /* Restriction (1)  *//*规则（1）使用了聚集函数*/
+	if (subqueryIsAgg && pSrc->nSrc>1) return 0;          /* Restriction (2)  *//*规则（2）*/
+	pSubSrc = pSub->pSrc;/*子查询from子句赋值给pSubSrc*/
+	assert(pSubSrc);/*异常处理，如果pSubSrc为空，抛出错误信息*/
 	/* Prior to version 3.1.2, when LIMIT and OFFSET had to be simple constants,
 	** not arbitrary expresssions, we allowed some combining of LIMIT and OFFSET
 	** because they could be computed at compile-time.  But when LIMIT and OFFSET
 	** became arbitrary expressions, we were forced to add restrictions (13)
-	** and (14).
-	在3.1.2版之前，当限制和偏移量必须是简单常量，并非任意表达式时，我们允许一些合并的限制和偏移
-	量，因为它们可以在编译时计算。但是当限制和偏移量成为任意表达式时,我们不得不限制*/
-	if (pSub->pLimit && p->pLimit) return 0;              /* Restriction (13) */
-	if (pSub->pOffset) return 0;                          /* Restriction (14) */
-	if (p->pRightmost && pSub->pLimit){
-		return 0;                                            /* Restriction (15) */
+	** and (14). */
+	/*之前版本 3.1.2，限制和偏移量必须是简单的常量而不是任意的表达式，我们允许联合LIMIT 和 OFFSET
+	**因为他们可以在编译时计算。但是当LIMIT 和 OFFSET为任意的表达式，我们被迫使用规则（13）和
+	**规则（14）。
+	*/
+	if (pSub->pLimit && p->pLimit) return 0;              /* Restriction (13) *//*规则（13）*/
+	if (pSub->pOffset) return 0;                          /* Restriction (14) *//*规则（14）*/
+	if (p->pRightmost && pSub->pLimit){/**/
+		return 0;                                            /* Restriction (15) *//*规则（15）*/
 	}
-	if (pSubSrc->nSrc == 0) return 0;                       /* Restriction (7)  */
-	if (pSub->selFlags & SF_Distinct) return 0;           /* Restriction (5)  */
-	if (pSub->pLimit && (pSrc->nSrc > 1 || isAgg)){
-		return 0;         /* Restrictions (8)(9) */
+	if (pSubSrc->nSrc == 0) return 0;                       /* Restriction (7)  *//*规则（7）*/
+	if (pSub->selFlags & SF_Distinct) return 0;           /* Restriction (5)  *//*规则（5）*/
+	if (pSub->pLimit && (pSrc->nSrc>1 || isAgg)){
+		return 0;         /* Restrictions (8)(9) *//*规则（8）（9）*/
 	}
 	if ((p->selFlags & SF_Distinct) != 0 && subqueryIsAgg){
-		return 0;         /* Restriction (6)  */
+		return 0;         /* Restriction (6)  *//*规则（6）*/
 	}
 	if (p->pOrderBy && pSub->pOrderBy){
-		return 0;                                           /* Restriction (11) */
+		return 0;                                           /* Restriction (11) *//*规则（11）*/
 	}
-	if (isAgg && pSub->pOrderBy) return 0;                /* Restriction (16) */
-	if (pSub->pLimit && p->pWhere) return 0;              /* Restriction (19) */
+	if (isAgg && pSub->pOrderBy) return 0;                /* Restriction (16) *//*规则（16）*/
+	if (pSub->pLimit && p->pWhere) return 0;              /* Restriction (19) *//*规则（19）*/
 	if (pSub->pLimit && (p->selFlags & SF_Distinct) != 0){
-		return 0;         /* Restriction (21) */
+		return 0;         /* Restriction (21) *//*规则（21）*/
 	}
 
 	/* OBSOLETE COMMENT 1:过时注释1：
