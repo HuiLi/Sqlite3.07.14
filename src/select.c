@@ -2522,27 +2522,28 @@ static int multiSelectOrderBy(
 	int labelEnd;         /* Label for the end of the overall SELECT stmt 所有查询语句的结束标志*/
 	int j1;               /* Jump instructions that get retargetted 得到重定向的跳转指示*/
 	int op;               /* One of TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT之一*/
-	KeyInfo *pKeyDup = 0; /* Comparison information for duplicate removal */
-	KeyInfo *pKeyMerge;   /* Comparison information for merging rows */
-	sqlite3 *db;          /* Database connection */
-	ExprList *pOrderBy;   /* The ORDER BY clause */
-	int nOrderBy;         /* Number of terms in the ORDER BY clause */
-	int *aPermute;        /* Mapping from ORDER BY terms to result set columns */
+	KeyInfo *pKeyDup = 0; /* Comparison information for duplicate removal 去重的比较信息*/
+	KeyInfo *pKeyMerge;   /* Comparison information for merging rows 合并数据的比较信息*/
+	sqlite3 *db;          /* Database connection 连接数据库*/
+	ExprList *pOrderBy;   /* The ORDER BY clause ORDER BY元素*/
+	int nOrderBy;         /* Number of terms in the ORDER BY clause. ORDER BY元素中的词语数量*/
+	int *aPermute;        /* Mapping from ORDER BY terms to result set columns 根据ORDER BY元素排列结果列*/
 #ifndef SQLITE_OMIT_EXPLAIN
-	int iSub1;            /* EQP id of left-hand query */
-	int iSub2;            /* EQP id of right-hand query */
+	int iSub1;            /* EQP id of left-hand query 左队列的EQP id */
+	int iSub2;            /* EQP id of right-hand query 右队列的EQP id */
 #endif
 
 	assert(p->pOrderBy != 0);
-	assert(pKeyDup == 0); /* "Managed" code needs this.  Ticket #3382. */
+	assert(pKeyDup == 0); /* "Managed" code needs this.  Ticket #3382. 代码"Managed"需要这个*/
 	db = pParse->db;
 	v = pParse->pVdbe;
-	assert(v != 0);       /* Already thrown the error if VDBE alloc failed */
+	assert(v != 0);       /* Already thrown the error if VDBE alloc failed 当VDBE申请失败时早已报错*/
 	labelEnd = sqlite3VdbeMakeLabel(v);
 	labelCmpr = sqlite3VdbeMakeLabel(v);
 
 
 	/* Patch up the ORDER BY clause
+	** 修补ORDER BY子句
 	*/
 	op = p->op;
 	pPrior = p->pPrior;
@@ -2554,6 +2555,8 @@ static int multiSelectOrderBy(
 	/* For operators other than UNION ALL we have to make sure that
 	** the ORDER BY clause covers every term of the result set.  Add
 	** terms to the ORDER BY clause as necessary.
+	** 除了UNION ALL操作符以外,我们需要确保ORDER BY元素覆盖到了结果集中的每个位置.
+	** 在需要时向ORDER BY元素中添加词.
 	*/
 	if (op != TK_ALL){
 		for (i = 1; db->mallocFailed == 0 && i <= p->pEList->nExpr; i++){
@@ -2579,6 +2582,7 @@ static int multiSelectOrderBy(
 	** collations to the ORDER BY clause terms so that when the subqueries
 	** to the right and the left are evaluated, they use the correct
 	** collation.
+	** 计算比较排列的密钥信息，用于与用来确定置换如果结果的下一行来自SELECTA或selectB
 	*/
 	aPermute = sqlite3DbMallocRaw(db, sizeof(int)*nOrderBy);
 	if (aPermute){
@@ -2614,6 +2618,7 @@ static int multiSelectOrderBy(
 	}
 
 	/* Reattach the ORDER BY clause to the query.
+	** 重新连接ORDER BY子句的查询。
 	*/
 	p->pOrderBy = pOrderBy;
 	pPrior->pOrderBy = sqlite3ExprListDup(pParse->db, pOrderBy, 0);
@@ -2621,6 +2626,7 @@ static int multiSelectOrderBy(
 	/* Allocate a range of temporary registers and the KeyInfo needed
 	** for the logic that removes duplicate result rows when the
 	** operator is UNION, EXCEPT, or INTERSECT (but not UNION ALL).
+	** 分配一系列临时寄存器,并且需要去除重复的结果行,当操作符是UNION, EXCEPT, 或者 INTERSECT(但不是UNION ALL)
 	*/
 	if (op == TK_ALL){
 		regPrev = 0;
@@ -2644,6 +2650,7 @@ static int multiSelectOrderBy(
 	}
 
 	/* Separate the left and the right query from one another
+	** 将左右两个序列分离
 	*/
 	p->pPrior = 0;
 	sqlite3ResolveOrderGroupBy(pParse, p, p->pOrderBy, "ORDER");
@@ -2651,7 +2658,7 @@ static int multiSelectOrderBy(
 		sqlite3ResolveOrderGroupBy(pParse, pPrior, pPrior->pOrderBy, "ORDER");
 	}
 
-	/* Compute the limit registers */
+	/* Compute the limit registers 计算上限寄存器*/
 	computeLimitRegisters(pParse, p, labelEnd);
 	if (p->iLimit && op == TK_ALL){
 		regLimitA = ++pParse->nMem;
@@ -2679,6 +2686,7 @@ static int multiSelectOrderBy(
 
 	/* Jump past the various subroutines and coroutines to the main
 	** merge loop
+	** 跳过众多子程序和协同程序跳转至主合并循环
 	*/
 	j1 = sqlite3VdbeAddOp0(v, OP_Goto);
 	addrSelectA = sqlite3VdbeCurrentAddr(v);
@@ -2686,6 +2694,7 @@ static int multiSelectOrderBy(
 
 	/* Generate a coroutine to evaluate the SELECT statement to the
 	** left of the compound operator - the "A" select.
+	** 生成一个协同程序来衡量查询语句左侧的复合操作符-"A"查询
 	*/
 	VdbeNoopComment((v, "Begin coroutine for left SELECT"));
 	pPrior->iLimit = regLimitA;
@@ -2697,6 +2706,7 @@ static int multiSelectOrderBy(
 
 	/* Generate a coroutine to evaluate the SELECT statement on
 	** the right - the "B" select
+	** 生成一个协同程序来衡量查询语句右侧的复合操作符-"B"查询
 	*/
 	addrSelectB = sqlite3VdbeCurrentAddr(v);
 	VdbeNoopComment((v, "Begin coroutine for right SELECT"));
@@ -2714,6 +2724,7 @@ static int multiSelectOrderBy(
 
 	/* Generate a subroutine that outputs the current row of the A
 	** select as the next output row of the compound select.
+	** 生成一个子程序输出当前A查询的数据当做下次复合查询的输出的数据
 	*/
 	VdbeNoopComment((v, "Output routine for A"));
 	addrOutA = generateOutputSubroutine(pParse,
@@ -2722,6 +2733,7 @@ static int multiSelectOrderBy(
 
 	/* Generate a subroutine that outputs the current row of the B
 	** select as the next output row of the compound select.
+	** 生成一个子程序输出当前B查询的数据当做下次复合查询的输出的数据
 	*/
 	if (op == TK_ALL || op == TK_UNION){
 		VdbeNoopComment((v, "Output routine for B"));
@@ -2732,6 +2744,7 @@ static int multiSelectOrderBy(
 
 	/* Generate a subroutine to run when the results from select A
 	** are exhausted and only data in select B remains.
+	** 生成一个子程序当A查询中的数据已处理完,B查询中的数据还有的时候运行
 	*/
 	VdbeNoopComment((v, "eof-A subroutine"));
 	if (op == TK_EXCEPT || op == TK_INTERSECT){
@@ -2747,6 +2760,7 @@ static int multiSelectOrderBy(
 
 	/* Generate a subroutine to run when the results from select B
 	** are exhausted and only data in select A remains.
+	** 生成一个子程序当B查询中的数据已处理完,A查询中的数据还有的时候运行
 	*/
 	if (op == TK_INTERSECT){
 		addrEofB = addrEofA;
@@ -2761,6 +2775,7 @@ static int multiSelectOrderBy(
 	}
 
 	/* Generate code to handle the case of A<B
+	** 生成一段代码来处理A<B的情况
 	*/
 	VdbeNoopComment((v, "A-lt-B subroutine"));
 	addrAltB = sqlite3VdbeAddOp2(v, OP_Gosub, regOutA, addrOutA);
