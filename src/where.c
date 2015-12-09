@@ -7120,11 +7120,13 @@ static Bitmask codeOneLoopStart(
 通过最近的调用qlite3WhereBegin()。
 每个调用WhereBegin覆盖前面的。
 这些信息仅用于测试和分析。
+**以下的变量保存一个文本，这个文本描述了查询计划；而这个计划是通过最近调用qlite3WhereBegin()来生成的
+**每次调用WhereBegin重写了前面。这些信息仅用于测试和分析
 */
 char sqlite3_query_plan[BMS*2*40];  /*加入文本 */
 static int nQPlan = 0;              /*释放下一个in _query_plan[] */
-//王秀超 从此结束
-=======
+
+=======/*
 **
 ** 下面的变量保存一个描述通过最新的调用sqlite3WhereBegin()生成的查询计划的文本。
 ** 每次调用WhereBegin重写先前的信息。这个信息只用于测试和分析。
@@ -7181,8 +7183,12 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** 返回值是一个指针,它指向一个包含终止循环所需的信息的不透明的结构体。
 ** 稍后，调用程序会根据这个函数的返回值唤醒sqlite3WhereEnd()来完成WHERE子句的处理。
 **
+**
+**生成循环的开始，这个循环是用来处理WHERE子句的。
+**返回至是一个指向不透明结构的指针，而这个结构包含必需的信息来终止循环。
+**之后,主叫程序会更据这个函数的返回值调用sqlite3WhereEnd()函数来完成WHERE子句处理
 ** If an error occurs, this routine returns NULL.
-如果出现错误，这个例程返回null。
+如果出现错误，这个程序返回null。
 **
 ** 如果发生错误，这个程序将返回NULL.
 **
@@ -7190,8 +7196,8 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** the FROM clause of a select.  (INSERT and UPDATE statements are the
 ** same as a SELECT with only a single table in the FROM clause.)  For
 ** example, if the SQL is this:
-其基本思路是做一个嵌套的循环，一个循环在每个表从一个选择像。
-（INSERT和UPDATE语句相同的SELECT与在仅单个表FROM子句）。
+其基本思路是做一个嵌套的循环，其中一个循环是针对在select语句中的from子句中的每个表。
+（INSERT和UPDATE语句与select语句相同，只是在FROM子句中有一个表）。
 例如，如果SQL是这样的：
 **
 **       SELECT * FROM t1, t2, t3 WHERE ...;
@@ -7229,16 +7235,16 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 能够更好地利用索引的顺序。还要注意的是，当在操作者显示的WHERE子句中，
 它可能会导致透过的IN的右手侧的所有值的附加的嵌套循环进行扫描。
 **
-** 注意:循环可能不是按FROM子句中他们出现的顺序进行嵌套，因为可能一个其他的嵌套顺序更适合使用索引。
+** 注意:循环可能不是按FROM子句中表出现的顺序进行嵌套，因为可能一个其他的嵌套顺序更适合使用索引。
 ** 还要注意;当WHERE子句中出现了IN操作符，它可能导致添加嵌套循环来扫描IN右边的所有值。
 **
 ** There are Btree cursors associated with each table.  t1 uses cursor
 ** number pTabList->a[0].iCursor.  t2 uses the cursor pTabList->a[1].iCursor.
 ** And so forth.  This routine generates code to open those VDBE cursors
 ** and sqlite3WhereEnd() generates the code to close them.
-有与每个表相关联的B树游标。T1使用光标号pTabList->一个[0].iCursor。
-T2使用光标pTabList->一[1].iCursor。
-这个程序生成代码来打开这些VDBE光标和sqlite3WhereEnd（）生成的代码来关闭它们。
+有与每个表相关联的B树游标。表t1使用光标号pTabList->一个[0].iCursor。
+表t2使用光标pTabList->一[1].iCursor，等等。
+这个程序生成打开这些VDBE游标的代码来以及sqlite3WhereEnd（）生成的代码来关闭这些游标。
 **
 ** 有Btree游标与每个表相关联。t1使用游标数pTabList->a[0].iCursor.t2使用游标pTabList->a[1].iCursor.等等
 ** 这个程序生成代码来打开这些VDBE游标，sqlite3WhereEnd()生成代码来关闭他们。
@@ -7261,10 +7267,10 @@ T2使用光标pTabList->一[1].iCursor。
 ** code will run much faster.  Most of the work of this routine is checking
 ** to see if there are indices that can be used to speed up the loop.
 <<<<<<< HEAD
-**如果WHERE子句是空的，foreach循环必须在每次扫描他们的整个表。
-因此，一个三路连接是O（N^3）操作。但是，如果表有索引并有在
-WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
-运行得更快。大部分该程序的工作是检查
+**如果WHERE子句是空的，foreach循环必须每次扫描他们整个表。
+因此，一个三路连接是O（N^3）操作。但是，如果表有索引并在
+WHERE子句中有涉及这些索引的terms，可以避免一个完整的表扫描代码而且将
+运行得更快。该程序的大部分工作是检查
 以查看是否有索引可以用来加速循环。
 =======
 **
@@ -7286,7 +7292,7 @@ WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
 
 **
 ** WHERE子句的terms也被用于限制在循环的中部哪些行使它成为"...".
-** 每次循环后，WHERE子句的terms只使用在那个循环和外部循环评估过的terms.
+** 每次循环后，WHERE子句的terms只使用在那个循环和外部循环计算过的terms.
 ** 并且如果错误就跳过所有后续的内部循环(或如果测试发生在最内部循环中，那么就跳过"...")
 **
 ** OUTER JOINS
@@ -7308,7 +7314,7 @@ WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
 **
 **
 ** OUTER JOINS
-** 一个表t1和t2的外部链接会在概念上生成如下代码:
+** 表t1和t2的一个外连接会在概念上生成如下代码:
 **    foreach row1 in t1 do
 **      flag = 0
 **      foreach row2 in t2 do
@@ -7324,14 +7330,14 @@ WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
 **
 **
 ** ORDER BY CLAUSE PROCESSING
-ORDER BY集处理
+ORDER BY子句处理
 **
 ** *ppOrderBy is a pointer to the ORDER BY clause of a SELECT statement,
 ** if there is one.  If there is no ORDER BY clause or if this routine
 ** is called from an UPDATE or DELETE statement, then ppOrderBy is NULL.
-**ppOrderBy是一个指向ORDER BY的SELECT语句的WHERE集，
-如果有一个。如果没有ORDER BY子句，或者如果这个程序被
-称为从UPDATE或DELETE语句，然后ppOrderBy为NULL。
+**如果有ORDER BY子句，那么ppOrderBy是一个指向SELECT语句中ORDER BY子句的指针，
+如果没有ORDER BY子句，或者如果这个程序被
+称为UPDATE或DELETE的语句调用，那么ppOrderBy为NULL。
 ** If an index can be used so that the natural output order of the table
 ** scan is correct for the ORDER BY clause, then that index is used and
 ** *ppOrderBy is set to NULL.  This is an optimization that prevents an
@@ -7340,6 +7346,9 @@ ORDER BY集处理
 如果一个索引可以用来使表扫描的自然输出顺序是正确的ORDER BY集，
 则该索引的使用和ppOrderBy设置为NULL。这是阻止的结果，如果已经存
 在的指数适合于ORDER BY子句中设置的不必要的排序优化..
+**如果一个索引可以用来使表扫描的自然输出顺序对ORDER BY子句是正确的，
+则该使用的索引和ppOrderBy设置为NULL。如果一个适合ORDER BY子句的索引已经存在，
+这种优化可以阻止不必要的结果集。
 **
 ** If the where clause loops cannot be arranged to provide the correct
 ** output order, then the *ppOrderBy is unchanged.
@@ -7350,7 +7359,7 @@ ORDER BY集处理
 WhereInfo *sqlite3WhereBegin(
   Parse *pParse,        /* The parser context  解析器的环境*/
   SrcList *pTabList,    /* A list of all tables to be scanned  要扫描的所有表的列表*/
-  Expr *pWhere,         /* The WHERE clause  WHERE集*/
+  Expr *pWhere,         /* The WHERE clause  WHERE子句*/
   ExprList **ppOrderBy, /* An ORDER BY clause, or NULL  ORDER BY集，或NULL*/
   ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL  选择列表中的DISTINCT查询 - 或NULL*/
   u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h  一个在sqliteInt.h定义的WHERE_*标志 */
@@ -7372,7 +7381,7 @@ WhereInfo *sqlite3WhereBegin(
 
   /* The number of tables in the FROM clause is limited by the number of
   ** bits in a Bitmask 
-  在from子集中表的数量被bitmask中的比特数量
+  在from子句中表的数量被限制在bitmask中的比特数量
 =======
 **
 ** ORDER BY子句处理
@@ -7417,7 +7426,6 @@ WhereInfo *sqlite3WhereBegin(
     sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);	//提示连接中最多只能有BMS个表
     return 0;
   }
-
   /* This function normally generates a nested loop for all tables in 
   ** pTabList.  But if the WHERE_ONETABLE_ONLY flag is set, then we should
   ** only generate code for the first table in pTabList and assume that
