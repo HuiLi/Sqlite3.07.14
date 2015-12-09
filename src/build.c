@@ -2466,8 +2466,8 @@ exit_drop_table:
 
 /*
 ** This routine is called to create a new foreign key on the table     //调用进程从当前正在建的表中创建一个新的外键约束。
-** currently under construction.  pFromCol determines which columns    //pFromCol决定哪一列指向当前表的外键。
-** in the current table point to the foreign key.  If pFromCol==0 then   //如果pFromCol==0，那么连接最后一列插入的主键。
+** currently under construction.  pFromCol determines which columns    //pFromCol决定哪一列指向当前表的外键（也就是说哪一列将是外键）
+** in the current table point to the foreign key.  If pFromCol==0 then   //如果pFromCol==0，那么最后插入的一列将为外键。
 ** connect the key to the last column inserted.  pTo is the name of      //将前面提及的表命名为pTo。
 ** the table referred to.  pToCol is a list of tables in the other    //pToCol作为pTo表的外键指向的表。
 ** pTo table that the foreign key points to.  flags contains all      
@@ -2482,37 +2482,37 @@ exit_drop_table:
 */
 void sqlite3CreateForeignKey(
   Parse *pParse,       /* Parsing context */              //解析上下文
-  ExprList *pFromCol,  /* Columns in this table that point to other table */    //创建这个表中指向另一表的列。
+  ExprList *pFromCol,  /* Columns in this table that point to other table */    //创建这个表中指向另一表的列（也就是所谓的外键）。
   Token *pTo,          /* Name of the other table */                      //创建新表的名字
   ExprList *pToCol,    /* Columns in the other table */                 //创建另一表的列指向
   int flags            /* Conflict resolution algorithms. */             //添加冲突解决算法的数目。
 ){
-  sqlite3 *db = pParse->db;
+  sqlite3 *db = pParse->db;   //语法分析上下文所指向的数据库
 #ifndef SQLITE_OMIT_FOREIGN_KEY
-  FKey *pFKey = 0;
+  FKey *pFKey = 0;     
   FKey *pNextTo;
-  Table *p = pParse->pNewTable;
+  Table *p = pParse->pNewTable;   //上下文创建的新表
   int nByte;
   int i;
-  int nCol;
+  int nCol;     //标记列的数目
   char *z;
 
-  assert( pTo!=0 );
-  if( p==0 || IN_DECLARE_VTAB ) goto fk_end;
-  if( pFromCol==0 ){
+  assert( pTo!=0 );    //断言这个即将要添加外键的表确实是存在，如果不存在，这个函数式没有任何意义的
+  if( p==0 || IN_DECLARE_VTAB ) goto fk_end;    //如果上下文指向的当前表不存在，调出这个添加外键处理函数
+  if( pFromCol==0 ){    //外键为0，意味着要找到这个表最后追加的一列作为外键
     int iCol = p->nCol-1;
-    if( NEVER(iCol<0) ) goto fk_end;
-    if( pToCol && pToCol->nExpr!=1 ){
+    if( NEVER(iCol<0) ) goto fk_end;    //列小于0说明根本没有创建表，退出函数
+    if( pToCol && pToCol->nExpr!=1 ){    //如果确实存在外键指向，并且所指向的不是另一个表的一列时
       sqlite3ErrorMsg(pParse, "foreign key on %s"
-         " should reference only one column of table %T",
+         " should reference only one column of table %T",   //输出错误信息，外键应该指向另一个表的一列，这显然是理所当然的
          p->aCol[iCol].zName, pTo);
-      goto fk_end;
+      goto fk_end;   //如果发生上面的情况，退出函数
     }
     nCol = 1;
-  }else if( pToCol && pToCol->nExpr!=pFromCol->nExpr ){
+  }else if( pToCol && pToCol->nExpr!=pFromCol->nExpr ){ 
     sqlite3ErrorMsg(pParse,
         "number of columns in foreign key does not match the number of "
-        "columns in the referenced table");
+        "columns in the referenced table");   //如果确实已经指定了外键，并且锁指向表的列也已经存在，但是二者的表达式数目是不同的，则输出错误的信息
     goto fk_end;
   }else{
     nCol = pFromCol->nExpr;
@@ -2598,7 +2598,7 @@ fk_end:
 ** This routine is called when an INITIALLY IMMEDIATE or INITIALLY DEFERRED          //程序执行包含有INITIALLY IMMEDIA或INITIALLY DEFERRED 内容的外键定义。
 ** clause is seen as part of a foreign key definition.  The isDeferred    
 ** parameter is 1 for INITIALLY DEFERRED and 0 for INITIALLY IMMEDIATE.    //INITIALLY DEFERRED的isDeferred参数为1,INITIALLY IMMEDIATE的isDeferred参数为0。
-** The behavior of the most recently created foreign key is adjusted     //对刚创建的外键做相应的调整。
+** The behavior of the most recently created foreign key is adjusted        //对刚创建的外键做相应的调整。
 ** accordingly.
 */
 void sqlite3DeferForeignKey(Parse *pParse, int isDeferred){
