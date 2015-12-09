@@ -521,14 +521,19 @@ struct WhereCost {
 #define WHERE_ROWID_RANGE  0x00002000  /* rowid<EXPR and/or rowid>EXPR  rowid<EXPR 且/或 rowid>EXPR */
 #define WHERE_COLUMN_EQ    0x00010000  /* x=EXPR or x IN (...) or x IS NULL  x=EXPR 或 x IN (...) 或 x IS NULL  */
 #define WHERE_COLUMN_RANGE 0x00020000  /* x<EXPR and/or x>EXPR */
+                                       /* x<EXPR and/or x>EXPR .x<EXPR 且/或 x>EXPR*/
 #define WHERE_COLUMN_IN    0x00040000  /* x IN (...) */
 #define WHERE_COLUMN_NULL  0x00080000  /* x IS NULL */
+                                       /* x IS NULL. x非空*/
 #define WHERE_INDEXED      0x000f0000  /* Anything that uses an index  任何使用索引 */
 #define WHERE_NOT_FULLSCAN 0x100f3000  /* Does not do a full table scan  不需要全表扫描 */
 #define WHERE_IN_ABLE      0x000f1000  /* Able to support an IN operator  支持IN操作 */
 #define WHERE_TOP_LIMIT    0x00100000  /* x<EXPR or x<=EXPR constraint  x<EXPR or x<=EXPR约束 */
+                                       /* x<EXPR or x<=EXPR constraint . 约束条件x<EXPR or x<=EXPR*/
 #define WHERE_BTM_LIMIT    0x00200000  /* x>EXPR or x>=EXPR constraint  x>EXPR or x>=EXPR约束 */
+                                       /* x>EXPR or x>=EXPR constraint . 约束条件x>EXPR or x>=EXPR*/
 #define WHERE_BOTH_LIMIT   0x00300000  /* Both x>EXPR and x<EXPR */
+                                       /* Both x>EXPR and x<EXPR . x>EXPR and x<EXPR同时成立*/
 #define WHERE_IDX_ONLY     0x00800000  /* Use index only - omit table  只用索引，省略表 */
 #define WHERE_ORDERBY      0x01000000  /* Output will appear in correct order  以恰当的顺序输出 */
 #define WHERE_REVERSE      0x02000000  /* Scan in reverse order  倒序扫描 */
@@ -539,13 +544,38 @@ struct WhereCost {
 #define WHERE_DISTINCT     0x40000000  /* Correct order for DISTINCT  DISTINCT的正确顺序 */
 
 /*
+** 扫描:
+** Sqlite有三种基本的扫描策略：
+** (1)全表扫描,这种情况通常出现在没有WHERE子句时.
+** (2)基于索引扫描,这种情况通常出现在表有索引,而且WHERE中的表达式又能够使用该索引的情况.
+** (3)基本rowid的扫描,这种情况通常出现在WHERE表达式中含有rowid的条件.
+** 该情况实际上也是对表进行的扫描.
+** 可以说,Sqlite以rowid为聚簇索引.
+*/
+/*
+** 索引：索引是对记录按照多个字段进行排序的一种展现.
+** 对表中的某个字段建立索引会创建另一种数据结构,其中保存着字段的值,
+** 每个值还包括指向与它相关记录的指针.这样,就不必要查询整个数据库,
+** 自然提升了查询效率.同时,索引的数据结构是经过排序的,
+** 因而可以对其执行二分查找,那就更快了.
+** 索引的种类：
+** (1)聚集索引：表中行的物理顺序与键值的逻辑（索引）顺序相同.
+** 因为数据的物理顺序只能有一种,所以一张表只能有一个聚集索引.
+** 如果一张表没有聚集索引,那么这张表就没有顺序的概念.
+** 所有的新行都会插入到表的末尾.
+** (2)非聚集索引：表中行的物理顺序与索引顺序无关.
+** 对于非聚集索引,叶节点存储了索引字段值以及指向相应数据页的指针.
+*/
+/*
 ** Initialize a preallocated(预分配) WhereClause structure.
 ** 初始化一个预分配的WhereClause数据结构
 */
 static void whereClauseInit(
   WhereClause *pWC,        /* The WhereClause to be initialized  将被初始化Where子句 */
+                           /* The WhereClause to be initialized . 将要初始化的WhereClause */
   Parse *pParse,           /* The parsing context  解析器上下文 */
   WhereMaskSet *pMaskSet,  /* Mapping from table cursor numbers to bitmasks  表的游标数到位掩码的映射 */
+                           /* Mapping from table cursor numbers to bitmasks. 游标数表映射到位掩码表*/
   u16 wctrlFlags           /* Might include WHERE_AND_ONLY  可能包含WHERE_AND_ONLY */
 ){
   pWC->pParse = pParse;	 /*初始化解析器上下文*/
@@ -558,6 +588,14 @@ static void whereClauseInit(
   pWC->wctrlFlags = wctrlFlags;		/*初始化wctrlFlags*/
 }
 
+/*
+** SQLite的连接子句用于从两个或多个数据库中的表的记录相结合.
+** JOIN是一种手段，从两个表中使用常见于每个值相结合的字段.
+** SQL定义了三种主要类型的联接：
+** 交叉连接 - CROSS JOIN
+** 内连接 - INNER JOIN
+** 外连接 - OUTER JOIN
+*/
 /* Forward reference(前置引用) 具体函数在下面 */
 static void whereClauseClear(WhereClause*);
 
@@ -565,15 +603,29 @@ static void whereClauseClear(WhereClause*);
 ** Deallocate all memory associated with a WhereAndInfo object.
 ** 释放与WhereAndInfo对象相关联的所有内存
 */
+/*
+** Deallocate all memory associated with a WhereAndInfo object.
+** 解除WhereAndInfo对象的所有内存分配.
+*/
 static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
   whereClauseClear(&p->wc);	 /*解除分配*/
   sqlite3DbFree(db, p);	 /*释放被关联到一个特定数据库连接的内存*/
 }
-
+/*在使用完SQlite数据库之后,需要调用相关的函数关闭数据库连接,
+**释放数据结构所关联的内存,删除所有的临时数据项.
+*/
 /*
 ** Deallocate a WhereClause structure.  The WhereClause structure
 ** itself is not freed.  This routine is the inverse of whereClauseInit().
 ** 解除一个WhereClause数据结构的分配。WhereClause本身不被释放。这个程序是whereClauseInit()的反向执行
+*/
+/*
+** Deallocate a WhereClause structure.  The WhereClause structure
+** itself is not freed.  This routine is the inverse of whereClauseInit().
+**
+** 这里为解除一个WhereClause数据结构.
+** 但是WhereClause结构本身不被释放.
+** 这个程序与whereClauseInit()是相反的.
 */
 static void whereClauseClear(WhereClause *pWC){
   int i;
@@ -627,6 +679,11 @@ static void whereClauseClear(WhereClause *pWC){
 ** 警告:这个程序可能会重新分配用于存储WhereTerms的空间。所有指向WhereTerms的指针在调用这个程序后都会失效。
 ** 这些指针可能会通过引用pWC->a[]被重新启用
 */
+/*
+** 警告:这个程序可能分配用于存储WhereTerms的空间.
+** 所有指向WhereTerms的指针需要设定为失效,在调用这个程序后.
+** 一些索引可能通过引用pWC->a[]被重新启用.
+*/
 static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
   WhereTerm *pTerm;   /* 新建一个WhereTerm */
   int idx;
@@ -653,7 +710,7 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
   pTerm->wtFlags = wtFlags;
   pTerm->pWC = pWC;
   pTerm->iParent = -1;
-  return idx;
+  return idx;                                      /*返回idx*/
 }
 
 /*
