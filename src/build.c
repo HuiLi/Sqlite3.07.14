@@ -2037,15 +2037,17 @@ void sqlite3CreateView(
 /*
 ** The Table structure pTable is really a VIEW.  Fill in the names of
 ** the columns of the view in the pTable structure.  Return the number
-** of errors.  If an error is seen leave an error message in pParse->zErrMsg.【表结构pTable真是一个视图。】
+** of errors.  If an error is seen leave an error message in pParse->zErrMsg.
+** 参数pTable是一个已经创建的视图，在这个视图结构中填充列名
+** 错误的信息被保存在pParse->zErrMsg
 */
 int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
-	Table *pSelTab;   /* A fake table from which we get the result set 【】*/
+	Table *pSelTab;   /* A fake table from which we get the result set */
 	Select *pSel;     /* Copy of the SELECT that implements the view */
-	int nErr = 0;     /* Number of errors encountered【遇到的错误数量】 */
-	int n;            /* Temporarily holds the number of cursors assigned【暂时持有游标的数量分配】 */
-	sqlite3 *db = pParse->db;  /* Database connection for malloc errors 【内存分配中数据库连接错误】*/
-	int(*xAuth)(void*, int, const char*, const char*, const char*, const char*);
+	int nErr = 0;     /* Number of errors encountered  遇到的错误数量 */
+	int n;            /* Temporarily holds the number of cursors assigned 暂时持有游标的数量分配 */
+	sqlite3 *db = pParse->db;  /* Database connection for malloc errors  内存分配中数据库连接错误*/
+	int(*xAuth)(void*, int, const char*, const char*, const char*, const char*);  //通用函数指针模板
 
 	assert(pTable);
 
@@ -2053,14 +2055,15 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 	if (sqlite3VtabCallConnect(pParse, pTable)){
 		return SQLITE_ERROR;
 	}
-	if (IsVirtual(pTable)) return 0;
+	if (IsVirtual(pTable)) return 0;    //如果是虚拟视图，退出函数
 #endif
 
 #ifndef SQLITE_OMIT_VIEW
 	/* A positive nCol means the columns names for this view are
-	** already known.【正数nCol意思是这个视图的列名已经是知道的。】
-	*/
-	if (pTable->nCol>0) return 0;
+	** already known.
+	** 正数nCol参数的意思是列名已经存在了（已经获取到了，这个函数的功能就是获取视图的列名）
+	*/ 
+	if (pTable->nCol>0) return 0;     //如果已经获取列名，则直接退出
 
 	/* A negative nCol is a special marker meaning that we are currently
 	** trying to compute the column names.  If we enter this routine with
@@ -2076,17 +2079,17 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 	**     CREATE TABLE main.ex1(a);
 	**     CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
 	**     SELECT * FROM temp.ex1;
-	【负数nCol是一个特殊的标记，意思是我们目前试着去计算列名。如果我们带着这个负数进入这个例程，它的意思是来自于一个循环的两个或更多的视图，就像下面这样：
-	CREATE VIEW one AS SELECT * FROM two;
-	CREATE VIEW two AS SELECT * FROM one;
-	实际上，上面这个错误先在是被捕获了在达到这个点之前。但是接下来的测试任然很重要，因为接下来这个情况那个错误会发生的。
-	CREATE TABLE main.ex1(a);
-	CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
-	SELECT * FROM temp.ex1;
-	】
+	** 负数nCol是一个特殊的标记，意思是我们目前试着去计算列名。如果我们带着这个负数进入这个例程，它的意思是来自于一个循环的两个或更多的视图，就像下面这样：
+	** CREATE VIEW one AS SELECT * FROM two;
+	** CREATE VIEW two AS SELECT * FROM one;
+	** 实际上，上面这个错误先在是被捕获了在达到这个点之前。但是接下来的测试任然很重要，因为接下来这个情况那个错误会发生的。
+	** CREATE TABLE main.ex1(a);
+	** CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
+	** SELECT * FROM temp.ex1;
+
 	*/
-	if (pTable->nCol<0){
-		sqlite3ErrorMsg(pParse, "view %s is circularly defined", pTable->zName);
+	if (pTable->nCol<0){   
+		sqlite3ErrorMsg(pParse, "view %s is circularly defined", pTable->zName); //视图被循环的定义
 		return 1;
 	}
 	assert(pTable->nCol >= 0);
@@ -2096,9 +2099,10 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 	** "*" elements in the results set of the view and will assign cursors
 	** to the elements of the FROM clause.  But we do not want these changes
 	** to be permanent.  So the computation is done on a copy of the SELECT
-	** statement that defines the view.【如果我们打到了这个最大极限，意味着我们需要计算这个表名。
-	要注意的是，调用sqlite3ResultSetOfSelect()将增加一些"*"元素在设定视图的结果中，并且将分派光标对这些FROM条款的元素。
-	但是我们不想这些改变时永久的。因此计算是要做的在这个SELECT语句的副本上，用它来定义视图。】
+	** statement that defines the view.
+	** 如果我们打到了这个最大极限，意味着我们需要计算这个表名。
+	** 要注意的是，调用sqlite3ResultSetOfSelect()将增加一些"*"元素在设定视图的结果中，并且将分派光标对这些FROM字句的元素。
+	** 但是我们不想这些改变时永久的。因此计算是要做的在这个SELECT语句的副本上，用它来定义视图。
 	*/
 	assert(pTable->pSelect);
 	pSel = sqlite3SelectDup(db, pTable->pSelect, 0);
