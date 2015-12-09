@@ -2173,7 +2173,8 @@ static void sqliteViewResetAll(sqlite3 *db, int idx){
 ** This function is called by the VDBE to adjust the internal schema
 ** used by SQLite when the btree layer moves a table root page. The
 ** root-page of a table or index in database iDb has changed from iFrom
-** to iTo.【当btree层移动一个表根页时，这个函数是由VDBE调整内部模式调用。一个表的root-page或数据库中的索引由iFrom改变到iTo。】
+** to iTo.
+** 当btree的层调整移动了一个表的根页面时，这个函数被VDBE调用去调整SQLITE的内部模式。一个表的root-page或数据库中的索引由iFrom改变到iTo。
 **
 ** Ticket #1728:  The symbol table might still contain information
 ** on tables and/or indices that are the process of being deleted.
@@ -2185,10 +2186,10 @@ static void sqliteViewResetAll(sqlite3 *db, int idx){
 ** We must continue looping until all tables and indices with
 ** rootpage==iFrom have been converted to have a rootpage of iTo
 ** in order to be certain that we got the right one.
-【标签#1728：符号表仍可能包含信息表和/或索引，在它们存在的过程中被删除了。
-如果你是不幸的，那些中的一个删除索引或表，它们也许有相同的根页码数，正如这个真实的被迁移的表或索引。
-因此我们不能停止搜索第一个相匹配后，因为第一个相匹配项可能是被删除的索引或表中的其中一个和不是事实上正在移动的表/索引。
-我们必须继续循环直到所有的满足rootpage==iFrom条件的表和索引被转换为有一个iTo的页码，这样做是为了确保我们得到正确的一个结果。】
+** 标签#1728：符号表仍可能包含信息表和/或索引，但是他们确实是被删除了。
+** 如果你是不幸的，那些中的一个删除索引或表，它们也许有相同的根页码数，正如这个真实的被迁移的表或索引。
+** 因此我们不能停止搜索第一个相匹配后，因为第一个相匹配项可能是被删除的索引或表中的其中一个和不是事实上正在移动的表/索引。
+** 我们必须继续循环直到所有的满足rootpage==iFrom条件的表和索引被转换为有一个iTo的页码，这样做是为了确保我们得到正确的一个结果。
 */
 #ifndef SQLITE_OMIT_AUTOVACUUM
 void sqlite3RootPageMoved(sqlite3 *db, int iDb, int iFrom, int iTo){
@@ -2219,8 +2220,9 @@ void sqlite3RootPageMoved(sqlite3 *db, int iDb, int iFrom, int iTo){
 ** Write code to erase the table with root-page iTable from database iDb.
 ** Also write code to modify the sqlite_master table and internal schema
 ** if a root-page of another table is moved by the btree-layer whilst
-** erasing iTable (this can happen with an auto-vacuum database).【编写代码来删除这个表与来自于数据库iDb的根页iTable。
-并且编写代码来更新sqlite_master表和内部模式，如果另一个表的一个跟页被btree-layer迁移，则将清除页码iTable（这可能在一个auto-vacuum数据库中发生）】
+** erasing iTable (this can happen with an auto-vacuum database).
+** 编写代码来删除这个表与来自于数据库iDb的根页iTable。
+** 并且编写代码来更新sqlite_master表和内部模式，如果另一个表的一个跟页被btree-layer迁移，则将清除页码iTable（这可能在一个auto-vacuum数据库中发生）
 */
 static void destroyRootPage(Parse *pParse, int iTable, int iDb){
 	Vdbe *v = sqlite3GetVdbe(pParse);
@@ -2271,17 +2273,17 @@ static void destroyRootPage(Parse *pParse, int iTable, int iDb){
 */
 static void sqlite3ClearStatTables(
   Parse *pParse,         /* The parsing context */            //解析上下文
-  int iDb,               /* The database number */            //创建数据的个数
+  int iDb,               /* The database number */            //数据库的个数
   const char *zType,     /* "idx" or "tbl" */                 //指向索引或表
-  const char *zName      /* Name of index or table */         //指向索引或表的的命名空间
+  const char *zName      /* Name of index or table */         //表或者是索引的名字
 ){
   int i;
-  const char *zDbName = pParse->db->aDb[iDb].zName;
+  const char *zDbName = pParse->db->aDb[iDb].zName;  //语法解析上下文所指向的表或者索引的名字
   for(i=1; i<=3; i++){
     char zTab[24];
-    sqlite3_snprintf(sizeof(zTab),zTab,"sqlite_stat%d",i);     //
-    if( sqlite3FindTable(pParse->db, zTab, zDbName) ){
-      sqlite3NestedParse(pParse,
+    sqlite3_snprintf(sizeof(zTab),zTab,"sqlite_stat%d",i);     //  打印出现在的表是1或者2或者3
+    if( sqlite3FindTable(pParse->db, zTab, zDbName) ){        //寻找相应的表
+      sqlite3NestedParse(pParse,           //嵌套的删除表
         "DELETE FROM %Q.%s WHERE %s=%Q",
         zDbName, zTab, zType, zName
       );
