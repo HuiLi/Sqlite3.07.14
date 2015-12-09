@@ -255,7 +255,7 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分�
 /*
 ** Return the index of a column in a table.  Return -1 if the column
 ** is not contained in the table.
-** 返回一个表中的列的索引。如果该列没有包含在表中返回-1。
+** 返回表中的一列的下标，如果该列不在表中，返回-1.
 */
 static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函数columnIndex，参数列表为结构体指针pTab、只读的字符型指针zCol*/
 	int i;/*定义临时变量*/
@@ -268,11 +268,11 @@ static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函
 /*
 ** Search the first N tables in pSrc, from left to right, looking for a
 ** table that has a column named zCol.
-** 在FROM子句中扫描表，从左到右查找前N个表，搜索列中有名为zCol的表。
+** 在FROM子句中扫描表，从左到右,查找前N个表,找一个含有列名为zCol的表 。
 **
 ** When found, set *piTab and *piCol to the table index and column index
 ** of the matching column and return TRUE.
-** 当找到以后，设置* piTab和* piCol表索引和匹配列的列索引，并返回TRUE 。
+** 找到之后,设置*piTab给表索引，设置*piCol给需要匹配的列索引，再返回TRUE
 **
 ** If not found, return FALSE.
 ** 如果没有找到，返回FALSE。
@@ -312,8 +312,8 @@ static int tableAndColumnIndex(
 ** (iSrc+1)'th. Column col1 is column iColLeft of tab1, and col2 is
 ** column iColRight of tab2.
 
-** 此函数功能是用来添加where子句解释含有JOIN语法句,从而解释select语句。
-** 是相比现有的WHERE子句的这种形式：
+** 这个函数用来添加where子句解释含有JOIN语法句,从而解释select语句。
+** 这个新条款添加到含有where子句中的，格式如下:
 **
 ** (tab1.col1 = tab2.col2)
 **
