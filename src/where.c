@@ -6101,7 +6101,7 @@ static Bitmask codeOneLoopStart(
     iIdxCur = pLevel->iIdxCur;
     k = (nEq==pIdx->nColumn ? -1 : pIdx->aiColumn[nEq]);
 
-    /* If this loop satisfies a sort order (pOrderBy) request that 
+      /* If this loop satisfies a sort order (pOrderBy) request that 
     ** was passed to this function to implement a "SELECT min(x) ..." 
     ** query, then the caller will only allow the loop to run for
     ** a single iteration. This means that the first row returned
@@ -6116,9 +6116,9 @@ static Bitmask codeOneLoopStart(
     如果列“x”后的第一个nEq等式约束的指数,这需要一些特殊的处理。
 =======
     **
-    ** 如果这个循环满足一个排序顺序(pOrderBy)的请求，传递给这个函数实现一个"SELECT min(x) ..."查询，
-    ** 那么调用者只允许循环为一个迭代运行。这意味着返回的第一行不能有NULL值存储在'x'中。
-    ** 如果列'x'是索引中nEq个等式约束后第一个，这会请求一些特别处理。
+    ** 如果这个循环满足一个排序顺序(pOrderBy)的请求，将这个请求传递给这个函数实现一个"SELECT min(x) ..."查询，
+    ** 那么调用者只允许循环为一个迭代循环运行。这意味着返回的第一行不能有NULL值存储在'x'中。
+    ** 如果列'x'是索引中nEq个等式约束后第一个，这需要一些特别处理。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (wctrlFlags&WHERE_ORDERBY_MIN)!=0
@@ -6137,7 +6137,7 @@ static Bitmask codeOneLoopStart(
     找到任何不等式约束条件范围的开始和结束。
 =======
     **
-    ** 为范围的开始和结尾查找不等式约束terms
+    ** 为范围的开始和结尾寻找不等式约束条件
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_TOP_LIMIT ){
@@ -6157,7 +6157,7 @@ static Bitmask codeOneLoopStart(
     的值存储在一个数组在regBase寄存器的开始。
 =======
     **
-    ** 生成代码来计算所有使用==或IN约束terms并且把这些terms的值存储在由regBase开始的一组寄存器中。
+    ** 生成代码来计算所有使用==或IN约束项并且把这些项的值存储在由regBase开始的一组寄存器中。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     regBase = codeAllEqualityTerms(
@@ -6173,6 +6173,8 @@ static Bitmask codeOneLoopStart(
     如果我们做一个逆序扫描一个升序索引,
     或转发顺序降序索引扫描,
     交换的开始和结束条件(pRangeStart和pRangeEnd)
+	=====
+	**如果我们逆序扫描一个升序索引，或者先选扫描降序索引，交换开始和结束项
 =======
     **
     ** 如果我们在升序索引上做一个倒序扫描，或者在一个降序索引上做一个先序扫描，交换开始和结束的terms(pRangeStart and pRangeEnd).
@@ -6215,6 +6217,7 @@ static Bitmask codeOneLoopStart(
           由于比较是没有执行转换应用于操作数,
           设置关联应用pRight SQLITE_AFF_NONE。
             */
+			/*由于执行的比较没有转换就应用于操作数，设置pRight的亲和性为SQLITE_AFF_NONE*/
 =======
           ** SQLITE_AFF_NONE.  
           **
@@ -6250,6 +6253,7 @@ static Bitmask codeOneLoopStart(
     ** range (if any).
 <<<<<<< HEAD
     加载不等式约束的范围的值(如果有的话)
+	**在范围的结尾加载不等式约束的值（如果有的话）
 =======
     **
     ** 为范围的末尾的不等式约束加载值。
@@ -6354,7 +6358,7 @@ static Bitmask codeOneLoopStart(
     记录使用的指令终止循环。禁用WHERE子句由索引范围扫描造成的冗余。
 =======
     **
-    ** 记录用于结束循环的指令。
+    ** 记录用于结束循环的指令。禁用WHERE子句由索引范围扫描造成的冗余
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_UNIQUE ){
@@ -6370,7 +6374,7 @@ static Bitmask codeOneLoopStart(
 #ifndef SQLITE_OMIT_OR_OPTIMIZATION
   if( pLevel->plan.wsFlags & WHERE_MULTI_OR ){
     /* Case 4:  Two or more separately indexed terms connected by OR
-    **两个或两个以上的独立索引术语或连接
+    **两个或两个以上的独立索引术语由或(OR)连接
     ** Example:
     **
     **   CREATE TABLE t1(a,b,c,d);
@@ -6492,6 +6496,7 @@ static Bitmask codeOneLoopStart(
       int nNotReady;                 /* notReady 表的数目 */
       struct SrcList_item *origSrc;     /* 原始的表列表 */
 =======
+/*
     **
     ** 在pOrTab中创建新的SrcList，这个SrcList包含通过这个循环扫描到在a[0]位置的表和在a[1..]位置所有notReady的表
     */
@@ -6531,8 +6536,8 @@ static Bitmask codeOneLoopStart(
     ** fall through to the next instruction, just as an OP_Next does if
     ** called on an uninitialized cursor.
 <<<<<<< HEAD
-    初始化regReturn包含指令地址和OP_Return底部循环。
-    这是需要在几个模糊左连接情况在控制跳过循环的顶部进入体情况下。
+    初始化regReturn包含指令地址,这个regReturn是紧跟着循环底部的OP_Return。
+    这是需要在几个模糊左连接情况，控制跳过循环的顶部进入循环体。
     在这种情况下正确的响应end-of-loop代码(OP_Return)下降到下一个指令,
     正如一个OP_Next所作如果要求未初始化的指针。
 =======
@@ -6555,7 +6560,7 @@ static Bitmask codeOneLoopStart(
     ** be picked up by the recursive calls to sqlite3WhereBegin() below.
 <<<<<<< HEAD
     **如果原始WHERE子句的z形式:(x1或x2或…)和y。然后每个子句xN,
-    评估子表达式:xN和z,子句的y分解成析取将被递归调用sqlite3WhereBegin()。
+    计算子表达式:xN和z,那样，在y中的terms通过递归调用下面的sqlite3WhereBegin()函数来进行分解。
 =======
     **
     ** 如果原始的WHERE子句是z这种形式:(x1 OR x2 OR ...) AND y.那么对于每一个term xN,计算字表达式:xN AND z.
@@ -6601,7 +6606,7 @@ static Bitmask codeOneLoopStart(
         }
 <<<<<<< HEAD
         /* Loop through table entries that match term pOrTerm.
-        遍历表与术语pOrTerm相匹配的条目。
+        遍历与术语pOrTerm相匹配的表项目。
          */
 =======
         /* Loop through table entries that match term pOrTerm. 循环遍历表中匹配pOrTerm的条目 */
@@ -6630,8 +6635,8 @@ static Bitmask codeOneLoopStart(
           ** terms from the notReady table could not be tested and will
           ** need to be tested later.
 <<<<<<< HEAD
-          pSubWInfo - > untestedTerms标志意味着这OR连接词包含一个或多个关键表。
-          notReady 表不能测试,稍后需要测试。
+          pSubWInfo - > untestedTerms标志意味着这OR连接词包含一个或多个来自notReady表的AND term。
+          来自notReady表的terms不能被测试并且稍后需要测试。
 =======
           **
           ** pSubWInfo->untestedTerms标志代表这个OR term包含了来自一个notReady表的一个或多个AND term.
@@ -6645,9 +6650,9 @@ static Bitmask codeOneLoopStart(
           ** by each call to sqlite3WhereBegin() made by this loop, it may
           ** be possible to use that index as a covering index.
 <<<<<<< HEAD
-          **如果所有的OR连接词都是已经优化的而且使用相同的指数,
-          索引使用相同的游标打开索引号由每个调用sqlite3WhereBegin()由这个循环,
-          它可能会使用该指数作为覆盖索引。
+          **如果所有的OR连接词都是使用相同的索引已经优化的,
+          并且通过每次调用由循环产生的sqlite3WhereBegin()来使用相同的游标数据打开索引,
+          并且该索引作为覆盖索引是不可能的
 =======
           **
           ** 如果使用相同的索引优化所有OR连接的terms，
@@ -6713,7 +6718,7 @@ static Bitmask codeOneLoopStart(
     /* Case 5:  There is no usable index.  We must do a complete
     **          scan of the entire table.
 <<<<<<< HEAD
-    没有可用的索引。我们必须做一个完整的扫描整个表。
+    没有可用的索引。我们必须对整个表做一个完整的扫描。
 =======
     **
     ** 情况5:没有可用的索引。我们做一个全表扫描。
@@ -6734,6 +6739,7 @@ static Bitmask codeOneLoopStart(
   ** computed using the current set of tables.
 <<<<<<< HEAD
   **使用当前的一组表来完全插入代码来测试计算每个子表达式。
+  **插入代码测试每个子表达式，这些子表达式可以完全使用当前的表集合计算
   ** IMPLEMENTATION-OF: R-49525-50935 Terms that cannot be satisfied through
   ** the use of indices become tests that are evaluated against each row of
   ** the relevant input tables.
@@ -6771,7 +6777,7 @@ static Bitmask codeOneLoopStart(
   /* For a LEFT OUTER JOIN, generate code that will record the fact that
 <<<<<<< HEAD
   ** at least one row of the right table has matched the left table.  
-  对于一个左外连接,生成的代码将记录的事实至少对表的一行匹配左表。
+  对于一个左外连接,生成的代码将记录的一个事实，即右表中至少一行与左表匹配。
 =======
   ** at least one row of the right table has matched the left table. 
   **
