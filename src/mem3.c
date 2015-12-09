@@ -256,7 +256,7 @@ static void memsys3LinkIntoList(u32 i, u32 *pRoot){
 static void memsys3Link(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
-  assert( i>=1 );    //该块不存在则终止程序
+  assert( i>=1 );    
   assert( (mem3.aPool[i-1].u.hdr.size4x & 1)==0 );
   size = mem3.aPool[i-1].u.hdr.size4x/4;  //用来判断是block还是chunk
   assert( size==mem3.aPool[i+size-1].u.hdr.prevSize );
@@ -308,6 +308,8 @@ static void memsys3OutOfMemory(int nByte){
 ** Chunk i is a free chunk that has been unlinked.  Adjust its 
 ** size parameters for check-out and return a pointer to the 
 ** user portion of the chunk.
+** 
+** 块i是没有链接的空闲块，调整它的小大，然后返回指向用户部分的块的指针
 */   
 //调整空闲i块的大小以适应用户使用，返回一个指向用户使用部分的指针
 static void *memsys3Checkout(u32 i, u32 nBlock){
@@ -327,6 +329,9 @@ static void *memsys3Checkout(u32 i, u32 nBlock){
 ** Carve a piece off of the end of the mem3.iMaster free chunk.
 ** Return a pointer to the new allocation.  Or, if the master chunk
 ** is not large enough, return 0.
+** 
+** 从mem3.iMaster的尾端取一块空闲的内存。返回指向新分配器的指针。
+** 或者，当主块不够大时，返回0。
 */      
 //该函数作用是从主要的空闲块中取出nBlock大小的块
 static void *memsys3FromMaster(u32 nBlock){
@@ -766,6 +771,8 @@ void sqlite3Memsys3Dump(const char *zFilename){
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file. The
 ** arguments specify the block of memory to manage.
+** 
+** 用该文件中指向这个例程的指针填充代替内存分配器指针。参数指定了要操作的内存块。
 **
 ** This routine is only called by sqlite3_config(), and therefore
 ** is not required to be threadsafe (it is not).
