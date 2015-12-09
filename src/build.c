@@ -1959,35 +1959,35 @@ void sqlite3EndTable(
 ** 解析器调用这个例程为了创建一个新视图。
 */
 void sqlite3CreateView(
-	Parse *pParse,     /* The parsing context */
-	Token *pBegin,     /* The CREATE token that begins the statement    【CREATE语句开始的标志】*/
-	Token *pName1,     /* The token that holds the name of the view   【符号包含视图的名称】*/
-	Token *pName2,     /* The token that holds the name of the view 【符号包含视图的名称】*/
-	Select *pSelect,   /* A SELECT statement that will become the new view 【】*/
-	int isTemp,        /* TRUE for a TEMPORARY view */
-	int noErr          /* Suppress error messages if VIEW already exists【如果视图已经存在抑制错误消息】 */
+	Parse *pParse,     /* The parsing context   语法分析程序上下文*/
+	Token *pBegin,     /* The CREATE token that begins the statement    开始这个创建视图语句的CREATE符号*/
+	Token *pName1,     /* The token that holds the name of the view   包含这个视图名字的符号*/
+	Token *pName2,     /* The token that holds the name of the view  包含这个视图名字的符号*/
+	Select *pSelect,   /* A SELECT statement that will become the new view  SELECT语句将创建一个新的视图 */
+	int isTemp,        /* TRUE for a TEMPORARY view   如果是临时视图的话这个变量的值就为真*/
+	int noErr          /* Suppress error messages if VIEW already exists  如果视图已经存在的话，发出错误信息*/
 	){
 	Table *p;
-	int n;
-	const char *z;
-	Token sEnd;
+	int n;    //分析字符的个数
+	const char *z;   //分词数组指针，一个常量的字符数组，这个数组由词法分析程序提供
+	Token sEnd;   //指向创建视图语句的结束部分，会有一个函数对这个变量进行赋值，搜索整个词法符号，找到结束符号\0或者；
 	DbFixer sFix;
 	Token *pName = 0;
 	int iDb;
-	sqlite3 *db = pParse->db;
+	sqlite3 *db = pParse->db;    //指向语法分析上下文正在操作的数据库
 
 	if (pParse->nVar>0){
-		sqlite3ErrorMsg(pParse, "parameters are not allowed in views");
-		sqlite3SelectDelete(db, pSelect);
+		sqlite3ErrorMsg(pParse, "parameters are not allowed in views");   //发出错误，在视图中不允许有参数存在
+		sqlite3SelectDelete(db, pSelect);     
 		return;
 	}
 	sqlite3StartTable(pParse, pName1, pName2, isTemp, 1, 0, noErr);
-	p = pParse->pNewTable;
-	if (p == 0 || pParse->nErr){
+	p = pParse->pNewTable;   //指向当前正在创建的表
+	if (p == 0 || pParse->nErr){   //如果当前没有创建表或者当前的上下文中出现了错误，直接退出函数
 		sqlite3SelectDelete(db, pSelect);
 		return;
 	}
-	sqlite3TwoPartName(pParse, pName1, pName2, &pName);
+	sqlite3TwoPartName(pParse, pName1, pName2, &pName);  //进行两部分名称的格式修改，用于内存中表示，和创建表中的函数是一个定义
 	iDb = sqlite3SchemaToIndex(db, p->pSchema);
 	if (sqlite3FixInit(&sFix, pParse, iDb, "view", pName)
 		&& sqlite3FixSelect(&sFix, pSelect)
@@ -1999,35 +1999,37 @@ void sqlite3CreateView(
 	/* Make a copy of the entire SELECT statement that defines the view.
 	** This will force all the Expr.token.z values to be dynamically
 	** allocated rather than point to the input string - which means that
-	** they will persist after the current sqlite3_exec() call returns.【复制全部的SELECT语句,定义视图。
-	这将使所有的Expr.token.z值被动态的分配，而不是单单指向输入的字符串。意思是当前的sqlite3_exec()调用返回值之后这些Expr.token.z值将保持不变。】
+	** they will persist after the current sqlite3_exec() call returns.
+	** 复制全部的SELECT语句,定义视图。
+	** 这将使所有的Expr.token.z值被动态的分配，而不是单单指向输入的字符串。意思是当前的sqlite3_exec()调用返回值之后这些Expr.token.z值将保持不变。
 	*/
-	p->pSelect = sqlite3SelectDup(db, pSelect, EXPRDUP_REDUCE);
-	sqlite3SelectDelete(db, pSelect);
-	if (db->mallocFailed){
+	p->pSelect = sqlite3SelectDup(db, pSelect, EXPRDUP_REDUCE);   //对SELECT语句进行备份
+	sqlite3SelectDelete(db, pSelect);   //删除SELECT语句
+	if (db->mallocFailed){   //如果内存分配失败，直接退出函数
 		return;
 	}
-	if (!db->init.busy){
-		sqlite3ViewGetColumnNames(pParse, p);
+	if (!db->init.busy){   //读取SQL语句的操作已经结束
+		sqlite3ViewGetColumnNames(pParse, p);    //获得要创建视图的列名
 	}
 
 	/* Locate the end of the CREATE VIEW statement.  Make sEnd point to
-	** the end.【定位CREATE VIEW语句最后，确保sEnd指向最后。】
+	** the end.
+	** 定位CREATE VIEW语句最后，确保sEnd指向最后。
 	*/
-	sEnd = pParse->sLastToken;
-	if (ALWAYS(sEnd.z[0] != 0) && sEnd.z[0] != ';'){
-		sEnd.z += sEnd.n;
+	sEnd = pParse->sLastToken;   //定位到创建视图语句的结尾部分，也就是最后一个符号
+	if (ALWAYS(sEnd.z[0] != 0) && sEnd.z[0] != ';'){   //如果最后一个结束符号不是\或者不是；那么继续读下一个符号，直到扫描得到创建视图语句的最后一个符号
+		sEnd.z += sEnd.n;    
 	}
-	sEnd.n = 0;
-	n = (int)(sEnd.z - pBegin->z);
-	z = pBegin->z;
-	while (ALWAYS(n>0) && sqlite3Isspace(z[n - 1])){ n--; }
-	sEnd.z = &z[n - 1];
-	sEnd.n = 1;
+	sEnd.n = 0;   
+	n = (int)(sEnd.z - pBegin->z);   //计算整个创建视图语句的符号个数，这些符号由词法分析程序给出
+	z = pBegin->z;   //指向创建视图语句的开始符号
+	while (ALWAYS(n>0) && sqlite3Isspace(z[n - 1])){ n--; }  //扫面这个符号数组，将其中的空格去掉
+	sEnd.z = &z[n - 1];  //得到去掉空格之后的符号数组的最后一个单元
+	sEnd.n = 1;    //将个数重新赋值为1
 
 	/* Use sqlite3EndTable() to add the view to the SQLITE_MASTER table */
-	sqlite3EndTable(pParse, 0, &sEnd, 0);
-	return;
+	sqlite3EndTable(pParse, 0, &sEnd, 0);   //调用创建表的结束函数
+	return;  //处理完成
 }
 #endif /* SQLITE_OMIT_VIEW */
 
