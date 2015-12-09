@@ -3570,41 +3570,41 @@ static int flattenSubquery(
 	}
 	#endif /* !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW) */
 
-	/*
-	** Analyze the SELECT statement passed as an argument to see if it
-	** is a min() or max() query. Return WHERE_ORDERBY_MIN or WHERE_ORDERBY_MAX if 
-	** it is, or 0 otherwise. At present, a query is considered to be
-	** a min()/max() query if:
-	**
-	**   1. There is a single object in the FROM clause.
-	**
-	**   2. There is a single expression in the result set, and it is
-	**      either min(x) or max(x), where x is a column reference.
-	*/
-	/* 分析 SELECT 语句，若它是一个a min() 或 max() .返回WHERE_ORDERBY_MIN ， WHERE_ORDERBY_MAX .
-	**否则返回0. 现在，若一个查询被认为是一个min() 或 max() ：
-	** 1.在from的子句中有一个单独的对象
-	** 2.在结果集中有一个单独的表达式，而且它要么是min,要么是max，x是参考的列。**/
-	
-	static u8 minMaxQuery(Select *p){
-	  Expr *pExpr; //声明一个表达式
-	  ExprList *pEList = p->pEList;//定义pEList，将select中的p->pEList赋值给它
-	  if( pEList->nExpr!=1 ) 
-		  return WHERE_ORDERBY_NORMAL;//表达式列表不为1，返回默认值
-	  pExpr = pEList->a[0].pExpr;//数组中的第一个元素给新定义的变量
-	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//非聚集操作，返回
-	  if( NEVER(ExprHasProperty(pExpr, EP_xIsSelect)) ) return 0;
-	  pEList = pExpr->x.pList;//表达式中x的表达式列表赋值
-	  if( pEList==0 || pEList->nExpr!=1 ) return 0;//没有表达式或者表达式列表中表达式个数不等于1，返回
-	  if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL;//数组第一个表达式并非聚集操作，返回默认值
-	  assert( !ExprHasProperty(pExpr, EP_IntValue) );//异常处理，加入断点检查
-	  if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){//字符串min，返回WHERE_ORDERBY_MIN
-		return WHERE_ORDERBY_MIN;
-	  }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//字符串max，返回WHERE_ORDERBY_MAX
-		return WHERE_ORDERBY_MAX;
-	  }
-	  return WHERE_ORDERBY_NORMAL;//默认值
-	}
+/*
+** Analyze the SELECT statement passed as an argument to see if it
+** is a min() or max() query. Return WHERE_ORDERBY_MIN or WHERE_ORDERBY_MAX if 
+** it is, or 0 otherwise. At present, a query is considered to be
+** a min()/max() query if:
+**分析参数传递的 SELECT语句来看它是否是一个最小值或最大值查询。如果是，则返回WHERE_ORDERBY_MIN或WHERE_ORDERBY_MAX，
+否则返回0.目前，一个查询如果满足下列条件则认为它是一个最小或最大值查询：
+**   1. There is a single object in the FROM clause.
+**   2. There is a single expression in the result set, and it is
+**      either min(x) or max(x), where x is a column reference.
+**   1.在From子句中有一个单一对象。
+**   2.在结果集中有一个单一表达式，并且它要么最小值，要么最大值，其中x为一个列参考。*/
+static u8 minMaxQuery(Select *p){
+  Expr *pExpr; //初始化一个表达式
+  ExprList *pEList = p->pEList; //初始化表达式列表
+
+  if( pEList->nExpr!=1 ) return WHERE_ORDERBY_NORMAL;  //列表中不是只有一个表达式返回0，不做min()处理也不做max()处理
+  pExpr = pEList->a[0].pExpr; //将表达式列表中的第一个表达式赋给pExpr
+  if( pExpr->op != TK_AGG_FUNCTION ) return 0; //如果表达式的操作码不等于TK_AGG_FUNCTION，则返回0
+/*
+  if( NEVER((pExpr->flags & EP_xIsSelect) == EP_xIsSelect))
+  pExpr->flags == EP_*
+*/
+  if( NEVER(ExprHasProperty(pExpr, EP_xIsSelect)) ) return 0; //判断表达式的flags是否满足x.pSelect是有效的
+  pEList = pExpr->x.pList;
+  if( pEList==0 || pEList->nExpr!=1 ) return 0;
+  if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL; //如果新的表达式的操作码不等于TK_AGG_COLUMN，则返回0
+  assert( !ExprHasProperty(pExpr, EP_IntValue) ); //设置断言，判断ExprHasProperty(pExpr, EP_IntValue) == false是否成立
+  if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){ //如果表达式的标记值等于min则返回WHERE_ORDERBY_MIN
+    return WHERE_ORDERBY_MIN;
+  }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//如果表达式的标记值等于max则返回WHERE_ORDERBY_MAX
+    return WHERE_ORDERBY_MAX;
+  }
+  return WHERE_ORDERBY_NORMAL; //否则返回0，不做min()处理也不做max()处理
+}
 
 	/*
 	** The select statement passed as the first argument is an aggregate query.
