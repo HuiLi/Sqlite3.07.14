@@ -2292,38 +2292,38 @@ static void sqlite3ClearStatTables(
 }
 
 /*
-** Generate code to drop a table.         //生成删除一个表的指令
+** Generate code to drop a table.         //执行删除DROP TABLE执行
 */
 void sqlite3CodeDropTable(Parse *pParse, Table *pTab, int iDb, int isView){
   Vdbe *v;
-  sqlite3 *db = pParse->db;
-  Trigger *pTrigger;
+  sqlite3 *db = pParse->db;   //指向当前语法解析的上下文
+  Trigger *pTrigger;   //定义一个触发器
   Db *pDb = &db->aDb[iDb];
 
-  v = sqlite3GetVdbe(pParse);
-  assert( v!=0 );
-  sqlite3BeginWriteOperation(pParse, 1, iDb);
+  v = sqlite3GetVdbe(pParse);  
+  assert( v!=0 );    //断言成功获取了VDBE
+  sqlite3BeginWriteOperation(pParse, 1, iDb);   //开始写操作
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  if( IsVirtual(pTab) ){
-    sqlite3VdbeAddOp0(v, OP_VBegin);
+  if( IsVirtual(pTab) ){  //判断表是否是虚表
+    sqlite3VdbeAddOp0(v, OP_VBegin);    //给VDBE增加操作OP_VBegin
   }
 #endif
 
-  /* Drop all triggers associated with the table being dropped. Code//删除所有和已经被删除的那些表相关联的未被删除的表的所有的触发器
+  /* Drop all triggers associated with the table being dropped. Code //删除所有与已经的删除的表相关联的触发器
   ** is generated to remove entries from sqlite_master and/or        //在有需求的情况下，移除来自Sqlite_master或sqlite_temp_mater条目的那部分代码
   ** sqlite_temp_master if required.
   */
-  pTrigger = sqlite3TriggerList(pParse, pTab);
-  while( pTrigger ){
-    assert( pTrigger->pSchema==pTab->pSchema || 
-        pTrigger->pSchema==db->aDb[1].pSchema );
-    sqlite3DropTriggerPtr(pParse, pTrigger);
-    pTrigger = pTrigger->pNext;
+  pTrigger = sqlite3TriggerList(pParse, pTab);   //指向触发器列表的指针
+  while( pTrigger ){  //当触发器列表确实是存在的时候
+    assert( pTrigger->pSchema==pTab->pSchema ||      //断言触发器确实是与表相关联的，这种检查是通过检查两者的模式是否相同
+        pTrigger->pSchema==db->aDb[1].pSchema );   
+    sqlite3DropTriggerPtr(pParse, pTrigger);   //循环的删除触发器列表的触发器
+    pTrigger = pTrigger->pNext;   //指向触发器列表的下一个位置，也就是指向下一个相关联的触发器
   }
 
 #ifndef SQLITE_OMIT_AUTOINCREMENT
-  /* Remove any entries of the sqlite_sequence table associated with    //移除sqlite_sequence表中与已删除的表相关联的把部分记录。
+  /* Remove any entries of the sqlite_sequence table associated with    //移除sqlite_sequence表中与已删除的表相关联的那部分记录。
   ** the table being dropped. This is done before the table is dropped   //在btree表被删除前这样做是防止sqlite_sequence表中需要移除删除的结果，因为这可能发生在auto-vacuum。
   ** at the btree level, in case the sqlite_sequence table needs to
   ** move as a result of the drop (can happen in auto-vacuum mode).
@@ -2366,41 +2366,41 @@ void sqlite3CodeDropTable(Parse *pParse, Table *pTab, int iDb, int isView){
 ** pName is the name of the table to be dropped.                             //pName是要删除的表的名称。
 */
 void sqlite3DropTable(Parse *pParse, SrcList *pName, int isView, int noErr){
-  Table *pTab;
-  Vdbe *v;
-  sqlite3 *db = pParse->db;
+  Table *pTab;   //指向当前要删除的表的指针，而pName是当前要删除的表的名字
+  Vdbe *v;   //需要VDBE引擎
+  sqlite3 *db = pParse->db;   //指向当前语法分析上下文中的数据库
   int iDb;
 
-  if( db->mallocFailed ){
-    goto exit_drop_table;
+  if( db->mallocFailed ){    //如果数据库的内存申请失败，直接跳转到另外的一个处理入口
+    goto exit_drop_table;   
   }
-  assert( pParse->nErr==0 );
-  assert( pName->nSrc==1 );
-  if( noErr ) db->suppressErr++;
+  assert( pParse->nErr==0 );       //断言上下文的处理过程中没有任何的错误
+  assert( pName->nSrc==1 );    //断言表名所指向的资源是唯一的
+  if( noErr ) db->suppressErr++;    
   pTab = sqlite3LocateTable(pParse, isView, 
-                            pName->a[0].zName, pName->a[0].zDatabase);
+                            pName->a[0].zName, pName->a[0].zDatabase);    //定位到这个表
   if( noErr ) db->suppressErr--;
 
-  if( pTab==0 ){
-    if( noErr ) sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);
-    goto exit_drop_table;
-  }
-  iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
-  assert( iDb>=0 && iDb<db->nDb );
+  if( pTab==0 ){  //如果当前根本没有表
+    if( noErr ) sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);    //进行名字核验之后确实是没有这个表
+    goto exit_drop_table;  //直接跳转到另一个处理入口
+  }  
+  iDb = sqlite3SchemaToIndex(db, pTab->pSchema);  
+  assert( iDb>=0 && iDb<db->nDb ); 
 
-  /* If pTab is a virtual table, call ViewGetColumnNames() to ensure   //如果pTab是一个虚拟的表，用ViewGetCoiumnNames()方法去创建它，并进行初始化。
+  /* If pTab is a virtual table, call ViewGetColumnNames() to ensure   //如果获取的当前表的指针指向的是一个虚表，则调用相关的视图处理函数去确定它已经被初始化了。
   ** it is initialized.
   */
-  if( IsVirtual(pTab) && sqlite3ViewGetColumnNames(pParse, pTab) ){
-    goto exit_drop_table;
+  if( IsVirtual(pTab) && sqlite3ViewGetColumnNames(pParse, pTab) ){  //如果确实是虚表，并且相关的视图处理函数已经对它进行了初始化
+    goto exit_drop_table;  //跳转到另一个处理入口
   }
-#ifndef SQLITE_OMIT_AUTHORIZATION
+#ifndef SQLITE_OMIT_AUTHORIZATION   //进行授权的检查，例如确定是有足够的权限删除表等
   {
     int code;
-    const char *zTab = SCHEMA_TABLE(iDb);
-    const char *zDb = db->aDb[iDb].zName;
+    const char *zTab = SCHEMA_TABLE(iDb);  
+    const char *zDb = db->aDb[iDb].zName;  
     const char *zArg2 = 0;
-    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb)){
+    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb)){     
       goto exit_drop_table;
     }
     if( isView ){
@@ -2436,32 +2436,32 @@ void sqlite3DropTable(Parse *pParse, SrcList *pName, int isView, int noErr){
   }
 
 #ifndef SQLITE_OMIT_VIEW
-  /* Ensure DROP TABLE is not used on a view, and DROP VIEW is not used      //确保不使用DROP TABLE视图，并且DROP VIEW 不用在这张表中。
+  /* Ensure DROP TABLE is not used on a view, and DROP VIEW is not used      //确保不使用DROP TABLE去删除视图，并且DROP VIEW也没有用于去删除表
   ** on a table.
   */
-  if( isView && pTab->pSelect==0 ){
-    sqlite3ErrorMsg(pParse, "use DROP TABLE to delete table %s", pTab->zName);
+  if( isView && pTab->pSelect==0 ){   //如果是视图，并且当前的表确实没有SELECT子句
+    sqlite3ErrorMsg(pParse, "use DROP TABLE to delete table %s", pTab->zName);   //发出错误信息:“使用DROP TABLE删除表”,不能去删除视图
     goto exit_drop_table;
   }
-  if( !isView && pTab->pSelect ){
-    sqlite3ErrorMsg(pParse, "use DROP VIEW to delete view %s", pTab->zName);
+  if( !isView && pTab->pSelect ){  //如果不是视图，并且没有SELECT子句
+    sqlite3ErrorMsg(pParse, "use DROP VIEW to delete view %s", pTab->zName);  //发出错误信息："使用DROP VIEW删除视图"，不能去删除表
     goto exit_drop_table;
   }
 #endif
 
-  /* Generate code to remove the table from the master table             //从硬盘的主表中删除生成数据库的代码
+  /* Generate code to remove the table from the master table             //彻底从磁盘上删除表
   ** on disk.
   */
   v = sqlite3GetVdbe(pParse);
   if( v ){
-    sqlite3BeginWriteOperation(pParse, 1, iDb);
-    sqlite3ClearStatTables(pParse, iDb, "tbl", pTab->zName);
-    sqlite3FkDropTable(pParse, pName, pTab);
-    sqlite3CodeDropTable(pParse, pTab, iDb, isView);
+    sqlite3BeginWriteOperation(pParse, 1, iDb);  //具备写操作权限
+    sqlite3ClearStatTables(pParse, iDb, "tbl", pTab->zName);  //清除保存的所有的表状态
+    sqlite3FkDropTable(pParse, pName, pTab);   //删除表
+    sqlite3CodeDropTable(pParse, pTab, iDb, isView);   
   }
 
 exit_drop_table:
-  sqlite3SrcListDelete(db, pName);
+  sqlite3SrcListDelete(db, pName);  
 }
 
 /*
