@@ -108,7 +108,7 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*函数sqli
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure.
-** 分配一个新的选择结构并且返回一个指向该结构的指针.
+** 分配一个新的select结构,并且返回一个指向该结构的指针.
 */
 Select *sqlite3SelectNew(
 	Parse *pParse,        /* Parsing context  句法分析*/
