@@ -4355,14 +4355,14 @@ int sqlite3Select(
 	Vdbe *v;               /* The virtual machine under construction 创建中的虚拟机*/
 	int isAgg;             /* True for select lists like "count(*)" 选择是否是聚集*/
 	ExprList *pEList;      /* List of columns to extract. 提取的列列表*/
-	SrcList *pTabList;     /* List of tables to select from */
-	Expr *pWhere;          /* The WHERE clause.  May be NULL */
-	ExprList *pOrderBy;    /* The ORDER BY clause.  May be NULL order by 子句 */
-	ExprList *pGroupBy;    /* The GROUP BY clause.  May be NULL */
-	Expr *pHaving;         /* The HAVING clause.  May be NULL */
-	int isDistinct;        /* True if the DISTINCT keyword is present */
-	int distinct;          /* Table to use for the distinct set */
-	int rc = 1;            /* Value to return from this function */
+        SrcList *pTabList;     /* List of tables to select from .from中的表的列表 * /
+ 	Expr *pWhere;          /* The WHERE clause.  May be NULL where子句，可能为空*/
+ 	ExprList *pOrderBy;    /* The ORDER BY clause.  May be NULL. order by子句，可能为空*/
+ 	ExprList *pGroupBy;    /* The GROUP BY clause.  May be NULL. group by子句，可能为空*/
+ 	Expr *pHaving;         /* The HAVING clause.  May be NULL. having子句，可能为空 */
+ 	int isDistinct;        /* True if the DISTINCT keyword is present. 如果DISTINCT关键字有的话就为true */
+ 	int distinct;          /* Table to use for the distinct set.  */
+ 	int rc = 1;            /* Value to return from this function 函数的返回值*/
 	int addrSortIndex;     /* Address of an OP_OpenEphemeral instruction */
 	int addrDistinctIndex; /* Address of an OP_OpenEphemeral instruction */
 	AggInfo sAggInfo;      /* Information used by aggregate queries 聚集信息*/
@@ -4579,8 +4579,9 @@ int sqlite3Select(
 	**
 	**SELECT xyz FROM ... GROUP BY xyz
 	**
-	**第二个格式更好，一个单独索引（临时表）可能用来能处理 ORDER BY 和 DISTINCT。最初写查询必须使用临时表在
-	** 针对ORDER BY 和 DISTINCT的其中一个，并且一个索引或分开的一个临时表给另外一个。*/
+	 第二种形式是首选，作为单一索引(或临时表)可以
+	 **用于ORDERBY和DISTINCT的处理。
+	 **正如开始写的那样，这个语句必须为order by、DISTINCT和一个索引或是一个独立的临时表中至少一个来使用临时表。*/
 	
 	if ((p->selFlags & (SF_Distinct | SF_Aggregate)) == SF_Distinct
 		&& sqlite3ExprListCompare(pOrderBy, p->pEList) == 0/*如果SELECT中selFlags为SF_Distinct或SF_Aggregate，并且表达式一直*/
@@ -4598,8 +4599,8 @@ int sqlite3Select(
 	** OP_OpenEphemeral instruction will be changed to an OP_Noop once
 	** we figure out that the sorting index is not needed.  The addrSortIndex
 	** variable is used to facilitate that change.
-	**如果有ORDER BY子句如果数据被提前排序，排序索引可能不用。如果这种情况OP_OpenEphemeral指令会改变
-	**OP_Noop，一旦决定不需要排序索引。addrSortIndex变量用于帮助改变。*/
+	**如果有ORDER BY子句，并且数据在这个排序索引到最后都没用杯使用因为数据在排序前可以被提取。在这种情况OP_OpenEphemeral指令
+	**会改变为OP_Noop，一旦决定不需要排序索引。addrSortIndex变量用于帮助改变。*/
 	
 	if (pOrderBy){
 		KeyInfo *pKeyInfo;
@@ -4664,8 +4665,7 @@ int sqlite3Select(
 		** instruction ended up not being needed, then change the OP_OpenEphemeral
 		** into an OP_Noop.
 		**
-		**如果排序索引被优先 OP_OpenEphemeral 指令创建
-		**创建不需要而被结束，那么OP_OpenEphemeral 变为OP_Noop
+		*如果以前OP_OpenEphemeral生成的排序索引到最后都没有需要用到，那么OP_OpenEphemeral 变为OP_Noop
 		*/
 		if (addrSortIndex >= 0 && pOrderBy == 0){/*如果排序索引存在并且ORDERBY为0*/
 			sqlite3VdbeChangeToNoop(v, addrSortIndex);/*将addrSortIndex中操作改为OP_Noop*/
@@ -4692,7 +4692,7 @@ int sqlite3Select(
 				pParse->nMem += (pEList->nExpr * 2);/*将表达式乘2加上分配的内存数再赋值给pParse->nMem*/
 
 				/* Change the OP_OpenEphemeral coded earlier to an OP_Integer. The
-				** OP_Integer initializes the "first row" flag.  */
+				** OP_Integer initializes the "first row" flag.将OP_OpenEphemeral改成OP_Integer，OP_Integer初始化“first row”   */
 				pOp->opcode = OP_Integer;
 				pOp->p1 = 1;
 				pOp->p2 = iFlag;
