@@ -1774,12 +1774,12 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 ** Return the appropriate collating sequence for the iCol-th column of
 ** the result set for the compound-select statement "p".  Return NULL if
 ** the column has no default collating sequence.
-** 返回适当的排序序列，这个排序是针对compound-select语句“p”中的iCol-th列的结果集。
+** 为iCol-th列中针对复合查询语句"p"的结果集返回适当的排序序列.
 ** 如果列没有默认的排序序列，返回NULL。
 **
 ** The collating sequence for the compound select is taken from the
 ** left-most term of the select that has a collating sequence.
-** 复合选择的排序序列来自选择最左边的排序序列。
+** 复合查询的排序序列来自具有排序序列的最左边的查询。
 */
 static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
 	CollSeq *pRet;
@@ -1800,7 +1800,7 @@ static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
 /* Forward reference 向前引用*/
 static int multiSelectOrderBy(
 	Parse *pParse,        /* Parsing context 解析上下文*/
-	Select *p,            /* The right-most of SELECTs to be coded SELECTs的最右边被编码*/
+	Select *p,            /* The right-most of SELECTs to be coded 最右边的需要解码的查询语句*/
 	SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
 	);
 
@@ -1810,12 +1810,12 @@ static int multiSelectOrderBy(
 ** This routine is called to process a compound query form from
 ** two or more separate queries using UNION, UNION ALL, EXCEPT, or
 ** INTERSECT
-** 调用这个程序来处理复合查询窗体由两个并集或交集查询或者两个以上单独的查询。
+** 这个程序被调用来处理使用了UNION, UNION ALL, EXCEPT,或者INTERSECT操作的复合序列或者两个及以上的分散序列
 **
 ** "p" points to the right-most of the two queries.  the query on the
 ** left is p->pPrior.  The left query could also be a compound query
 ** in which case this routine will be called recursively.
-**“p”指向最右边的两个查询。左边的查询是p->pPrior.在递归地将调用这个程序的情况下，左边的查询也可以是复合查询。
+**“p”指向最右边的两个序列。左边的序列是p->pPrior.在递归地将调用这个程序的情况下，左边的查询也可以是复合查询。
 **
 ** The results of the total query are to be written into a destination
 ** of type eDest with parameter iParm.
@@ -1841,19 +1841,19 @@ static int multiSelectOrderBy(
 **
 ** Notice that because of the way SQLite parses compound SELECTs, the
 ** individual selects always group from left to right.
-** 注意,因为这种方式的SQLite是解析复合选择,单个选择总是从左到右。
+** 注意,因为SQLite解析复合查询语句的逻辑问题,单个查询总是从左到右。
 */
 static int multiSelect(
 	Parse *pParse,        /* Parsing context 解析的上下文 */
 	Select *p,            /* The right-most of SELECTs to be coded 最右边的SELECTs将会被编码*/
 	SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
 	){
-	int rc = SQLITE_OK;   /* Success code from a subroutine 来自子程序的成功编码 */
-	Select *pPrior;       /* Another SELECT immediately to our left 另一个SELECT立即到我们的左边*/
-	Vdbe *v;              /* Generate code to this VDBE 这个VDBE生成代码*/
-	SelectDest dest;      /* Alternative data destination 供选择的数据目的地*/
-	Select *pDelete = 0;  /* Chain of simple selects to delete 删除简单选择的链*/
-	sqlite3 *db;          /* Database connection 数据库连接*/
+	int rc = SQLITE_OK;   /* Success code from a subroutine 从子程序传递来的成功参数 */
+	Select *pPrior;       /* Another SELECT immediately to our left 另一个SELECT指向左边*/
+	Vdbe *v;              /* Generate code to this VDBE 为这个VDBE生成代码*/
+	SelectDest dest;      /* Alternative data destination 可变动的数据目的地*/
+	Select *pDelete = 0;  /* Chain of simple selects to delete 用来删除的简单查询链*/
+	sqlite3 *db;          /* Database connection 连接数据库*/
 #ifndef SQLITE_OMIT_EXPLAIN
 	int iSub1;            /* EQP id of left-hand query     EQP id左侧的查询*/
 	int iSub2;            /* EQP id of right-hand query    EQP id右侧的查询*/
@@ -1861,9 +1861,9 @@ static int multiSelect(
 
 	/* Make sure there is no ORDER BY or LIMIT clause on prior SELECTs.  Only
 	** the last (right-most) SELECT in the series may have an ORDER BY or LIMIT.
-	**确保没有任何ORDER BY 或者LIMIT子句在prior SELECTs中。只有在系列中的最后一个(最右)SELECT可能有ORDER BY或者LIMIT。
+	**确保之前的查询语句中没有任何ORDER BY 或者LIMIT。只有在序列中的最后一个(或最右)查询语句可能有ORDER BY或者LIMIT。
 	*/
-	assert(p && p->pPrior);  /* Calling function guarantees this much 调用函数保证这么多*/
+	assert(p && p->pPrior);  /* Calling function guarantees this much 保证有足够的调用函数*/
 	db = pParse->db;
 	pPrior = p->pPrior;
 	assert(pPrior->pRightmost != pPrior);
@@ -1896,7 +1896,7 @@ static int multiSelect(
 
 	/* Make sure all SELECTs in the statement have the same number of elements
 	** in their result sets.
-	** 确保所有在声明中SELECTs在他们的结果集中具有相同数量的元素。
+	** 确保所有声明中的查询语句在他们的结果集中具有相同数量的元素。
 	*/
 	assert(p->pEList && pPrior->pEList);
 	if (p->pEList->nExpr != pPrior->pEList->nExpr){
@@ -1912,7 +1912,7 @@ static int multiSelect(
 	}
 
 	/* Compound SELECTs that have an ORDER BY clause are handled separately.
-	** 有ORDER BY子句的复合的SELECTs被分别处理。
+	** 有ORDER BY子句的复合查询被单独处理。
 	*/
 	if (p->pOrderBy){
 		return multiSelectOrderBy(pParse, p, pDest);
@@ -1961,9 +1961,9 @@ static int multiSelect(
 	}
 	case TK_EXCEPT:
 	case TK_UNION: {
-		int unionTab;    /* Cursor number of the temporary table holding result   有结果的临时表的光标数*/
-		u8 op = 0;       /* One of the SRT_ operations to apply to self        SRT_ operations中的一个指定给自己*/
-		int priorOp;     /* The SRT_ operation to apply to prior selects   这个SRT_ operation 指定给prior selects*/
+		int unionTab;    /* Cursor number of the temporary table holding result   临时表保存结果游标数*/
+		u8 op = 0;       /* One of the SRT_ operations to apply to self        其中一个SRT_操作应用到自身*/
+		int priorOp;     /* The SRT_ operation to apply to prior selects   此SRT_操作应用到之前的查询*/
 		Expr *pLimit, *pOffset; /* Saved values of p->nLimit and p->nOffset    保存p->nLimit和p->nOffset的值*/
 		int addr;
 		SelectDest uniondest;
@@ -1974,10 +1974,10 @@ static int multiSelect(
 		if (dest.eDest == priorOp && ALWAYS(!p->pLimit &&!p->pOffset)){
 			/* We can reuse a temporary table generated by a SELECT to our
 			** right.
-			**我们可以重用一个我们右边的选择生成的临时表
+			**我们可以重用一个由右端查询语句生成的临时表.
 			*/
 			assert(p->pRightmost != p);  /* Can only happen for leftward elements
-										 ** of a 3-way or more compound    左侧的元素只能发生3种方式或者以上复合*/
+										 ** of a 3-way or more compound    只能在左侧元素是3种或以上复合的时候触发*/
 			assert(p->pLimit == 0);      /* Not allowed on leftward elements 不允许在左侧的元素*/
 			assert(p->pOffset == 0);     /* Not allowed on leftward elements 不允许在左侧的元素*/
 			unionTab = dest.iSDParm;
@@ -2025,6 +2025,7 @@ static int multiSelect(
 		testcase(rc != SQLITE_OK);
 		/* Query flattening in sqlite3Select() might refill p->pOrderBy.
 		** Be sure to delete p->pOrderBy, therefore, to avoid a memory leak.
+		**在sqlite3Select()中的扁平化处理可能会重新填充p->pOrderBy.
 		** 确保要删除p - > pOrderBy,如此这样,才能避免内存泄漏。
 		*/
 		sqlite3ExprListDelete(db, p->pOrderBy);
@@ -2040,7 +2041,7 @@ static int multiSelect(
 
 		/* Convert the data in the temporary table into whatever form
 		** it is that we currently need.
-		**将临时表中的数据转换成任何我们目前所需要的形式那就是。
+		**将临时表中的任何数据转换成我们目前数据。
 		*/
 		assert(unionTab == dest.iSDParm || dest.eDest != priorOp);
 		if (dest.eDest != priorOp){
@@ -2076,8 +2077,8 @@ static int multiSelect(
 		/* INTERSECT is different from the others since it requires
 		** two temporary tables.  Hence it has its own case.  Begin
 		** by allocating the tables we will need.
-		**由于INTERSECT需要两个临时表，所以它是不同于其它的。因此它有自己的案例。
-		**分配我们需要的表为开始。
+		**INTERSECT与其他的不同因为它需要两个临时表.因此它有自己的案例。
+		**从分配我们需要的表开始
 		*/
 		tab1 = pParse->nTab++;
 		tab2 = pParse->nTab++;
@@ -2152,8 +2153,7 @@ static int multiSelect(
 	/* Compute collating sequences used by
 	** temporary tables needed to implement the compound select.
 	** Attach the KeyInfo structure to all temporary tables.
-	**计算排序序列既使用了ORDER by子句，也使用了需要实现复合选择的任何临时表。把KeyInfo结构附加到所有临时表。
-	**如果有ORDER BY子句，调用ORDER BY处理。
+	**临时表所使用的计算排序序列需要实现复合查询。把KeyInfo结构附加到所有临时表。
 	**
 	** This section is run by the right-most SELECT statement only.
 	** SELECT statements to the left always skip this part.  The right-most
@@ -2161,7 +2161,7 @@ static int multiSelect(
 	** no temp tables are required.
 	**这部分是仅仅通过最右边的SELECT语句运行的。
 	** 左边的SELECT语句总是跳过这个部分。
-	**最右边的SELECT也可能跳过这个部分，如果它没有ORDER BY 子句并且没有临时需要的表的话
+	**最右边的SELECT如果没有ORDER BY也不需要临时表的话也可能跳过这个部分
 	*/
 	if (p->selFlags & SF_UsesEphemeral){
 		int i;                        /* Loop counter 循环计数器 */
@@ -2195,7 +2195,7 @@ static int multiSelect(
 				if (addr < 0){
 					/* If [0] is unused then [1] is also unused.  So we can
 					** always safely abort as soon as the first unused slot is found
-					**如果[0]没有被使用，所以[1]也没有被使用. 所以我们总能尽快安全地终止第一个发现未使用的位置
+					**如果[0]没有被使用，那么[1]也同样没有被使用. 所以我们在发现了第一个未使用的之后能够安全的中止它.
 					*/
 					assert(pLoop->addrOpenEphm[1] < 0);
 					break;
