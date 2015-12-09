@@ -2219,33 +2219,40 @@ multi_select_end:
 /*
 ** Code an output subroutine for a coroutine implementation of a
 ** SELECT statment.
+** 为协同执行查询语句编写一个输出子程序.
 **
 ** The data to be output is contained in pIn->iSdst.  There are
 ** pIn->nSdst columns to be output.  pDest is where the output should
 ** be sent.
+** 待输出的数据包含在pIn->iSdst中,还有pIn->nSdst列等待输出.这些输出应该以pDest为目的地.
 **
 ** regReturn is the number of the register holding the subroutine
 ** return address.
+** regReturn是存储了子程序返回地址的寄存器数量.
 **
 ** If regPrev>0 then it is the first register in a vector that
 ** records the previous output.  mem[regPrev] is a flag that is false
 ** if there has been no previous output.  If regPrev>0 then code is
 ** generated to suppress duplicates.  pKeyInfo is used for comparing
 ** keys.
+** 如果regPrev>0,那么这是向量中记录了之前输出的第一个寄存器. 
+** mem[regPrev]是如果之前没有输出的失败标记. 如果regPrev>0那么生成的代码就是用来禁止重复.
+** pKeyInfo被用来比较键值.
 **
 ** If the LIMIT found in p->iLimit is reached, jump immediately to
 ** iBreak.
+** 如果p->iLimit中的LIMIT达到阀值,那么马上跳转到iBreak.
 */
 static int generateOutputSubroutine(
-	Parse *pParse,          /* Parsing context */
-	Select *p,              /* The SELECT statement */
-	SelectDest *pIn,        /* Coroutine supplying data */
-	SelectDest *pDest,      /* Where to send the data */
-	int regReturn,          /* The return address register */
-	int regPrev,            /* Previous result register.  No uniqueness if 0 */
-	KeyInfo *pKeyInfo,      /* For comparing with previous entry */
-	int p4type,             /* The p4 type for pKeyInfo */
-	int iBreak              /* Jump here if we hit the LIMIT */
+	Parse *pParse,          /* Parsing context 解析上下文*/
+	Select *p,              /* The SELECT statement 查询语句*/
+	SelectDest *pIn,        /* Coroutine supplying data 协同程序提供数据*/
+	SelectDest *pDest,      /* Where to send the data 数据传输的目的地*/
+	int regReturn,          /* The return address register 返回地址的寄存器 */
+	int regPrev,            /* Previous result register.  No uniqueness if 0. 之前结果的寄存器,如果是0的话就没有唯一性 */
+	KeyInfo *pKeyInfo,      /* For comparing with previous entry. 与之前的输入比较*/
+	int p4type,             /* The p4 type for pKeyInfo. 为pKeyInfo声明的类型*/
+	int iBreak              /* Jump here if we hit the LIMIT. 若达到阀值则跳转到这里*/
 	){
 	Vdbe *v = pParse->pVdbe;
 	int iContinue;
@@ -2255,6 +2262,7 @@ static int generateOutputSubroutine(
 	iContinue = sqlite3VdbeMakeLabel(v);
 
 	/* Suppress duplicates for UNION, EXCEPT, and INTERSECT
+	** UNION, EXCEPT, and INTERSECT的禁止重复字段
 	*/
 	if (regPrev){
 		int j1, j2;
@@ -2269,11 +2277,13 @@ static int generateOutputSubroutine(
 	if (pParse->db->mallocFailed) return 0;
 
 	/* Suppress the first OFFSET entries if there is an OFFSET clause
+	** 当有OFFSET元素的时候禁止第一个OFFSET输入
 	*/
 	codeOffset(v, p, iContinue);
 
 	switch (pDest->eDest){
 		/* Store the result as data using a unique key.
+		** 使用一个特殊的键值来以数据的方式存储结果
 		*/
 	case SRT_Table:
 	case SRT_EphemTab: {
@@ -2294,6 +2304,8 @@ static int generateOutputSubroutine(
 		/* If we are creating a set for an "expr IN (SELECT ...)" construct,
 		** then there should be a single item on the stack.  Write this
 		** item into the set table with bogus data.
+		** 如果我们为"expr IN (SELECT ...)"创建一个结构集合,那么栈里面应该只有一个元素.
+		** 将这个元素伪装后写入表集中.
 		*/
 	case SRT_Set: {
 		int r1;
@@ -2310,6 +2322,7 @@ static int generateOutputSubroutine(
 
 #if 0  /* Never occurs on an ORDER BY query */
 		/* If any row exist in the result set, record that fact and abort.
+		** 如果有任何未处理的数据存在于结果集中,记录它然后中止
 		*/
 	case SRT_Exists: {
 		sqlite3VdbeAddOp2(v, OP_Integer, 1, pDest->iSDParm);
@@ -2321,17 +2334,19 @@ static int generateOutputSubroutine(
 		/* If this is a scalar select that is part of an expression, then
 		** store the results in the appropriate memory cell and break out
 		** of the scan loop.
+		** 如果这是一个标量选择表达式的一部分,那么把结果存储在一个合适的存储单元中,然后跳出检索循环
 		*/
 	case SRT_Mem: {
 		assert(pIn->nSdst == 1);
 		sqlite3ExprCodeMove(pParse, pIn->iSdst, pDest->iSDParm, 1);
-		/* The LIMIT clause will jump out of the loop for us */
+		/* The LIMIT clause will jump out of the loop for us. LIMIT元素会跳出循环*/
 		break;
 	}
 #endif /* #ifndef SQLITE_OMIT_SUBQUERY */
 
 		/* The results are stored in a sequence of registers
 		** starting at pDest->iSdst.  Then the co-routine yields.
+		** 结果存储在以pDest->iSdst开始的寄存器序列中.接下来就是协同程序的范畴了.
 		*/
 	case SRT_Coroutine: {
 		if (pDest->iSdst == 0){
