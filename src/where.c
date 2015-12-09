@@ -745,9 +745,32 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
 ** 在前面的句子和在图表中，"slot[]"指的是WhereClause.a[]数组。slot数组根据需要扩大，要包含WHERE子句的所有terms
 **
 */
+/*
+** 这个程序是识别在WHERE子句中的子表达式,这些子表达式分隔是以运算符AND运算符或者op参数中定义的其他运算符.
+** WhereClause数据结构有指向子表达式的指针.
+**
+** 例如:
+**    WHERE  a=='hello' AND coalesce(b,11)<10 AND (c+12!=d OR c==22)
+**           \________/     \_______________/     \________________/
+**            slot[0]            slot[1]               slot[2]
+**
+** 原始的WHERE子句在pExpr中的是不变的.
+** 这个程序就是让slot[]指向在pExpr中的substructure.
+**
+** 在前面的句子和在图表中，"slot[]"引用了WhereClause.a[].
+** slot[]根据需要包含所有的WHERE子句中的的terms.
+*/
+/*
+** WHERE子句
+** SQLite的WHERE子句用于指定条件,同时从一个表或多个表中获取数据.
+** 如果给定的条件被满足时,表示真(true),那么它返回从表中的特定值.
+** 可以使用WHERE子句来过滤记录和获取只需要记录.
+** WHERE子句不仅在SELECT语句中使用,
+** 但它也可用于在UPDATE，DELETE语句等等.
+*/
 static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
   pWC->op = (u8)op;  /*初始化WHERE子句进行分割的运算符*/
-  if( pExpr==0 ) return;
+  if( pExpr==0 ) return;  /*判断pExpr是否为 0 */
   if( pExpr->op!=op ){  /*如果表达式的操作符不是指定的运算符*/
     whereClauseInsert(pWC, pExpr, 0); /*向pWC子句中插入一个WhereTerm*/
   }else{
@@ -773,11 +796,11 @@ static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
   int i;
   assert( pMaskSet->n<=(int)sizeof(Bitmask)*8 );  /*判定*/
   for(i=0; i<pMaskSet->n; i++){
-    if( pMaskSet->ix[i]==iCursor ){
+    if( pMaskSet->ix[i]==iCursor ){                 /*判断pMaskSet->ix[i]是否等于iCursor*/
       return ((Bitmask)1)<<i;
     }
   }
-  return 0;
+  return 0;                                       /*返回0*/
 }
 
 /*
@@ -791,6 +814,10 @@ static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
 **
 ** 在FROM子句中的每个表有一个游标。在FROM子句中的表的个数由sqlite3WhereBegin()程序的一个测试限制。
 ** 所以我们知道pMaskSet->ix[]永远不会溢出。
+**
+** 在FROM子句中每个表有一个游标.
+** sqlite3WhereBegin()的一个测试程序限制FROM子句中的表的个数.
+** 因此我们知道pMaskSet->ix[]是永远不会有溢出操作的.
 **
 */
 static void createMask(WhereMaskSet *pMaskSet, int iCursor){
@@ -819,15 +846,31 @@ static void createMask(WhereMaskSet *pMaskSet, int iCursor){
 ** sqlite3ResolveExprNames()程序查找列名，把这些列的opcodes设置为TK_COLUMN，并把它们的Expr.iTable字段设为表的VDBE游标数。
 ** 这个程序只是把游标数转换为位掩码，将所有的位掩码集合起来。
 */
+/*
+** 这个程序(递归地)访问一个表达式树,生成一个位掩码指向使用表达式树的表中.
+** 为了让这个程序工作，这个调用函数必须首先激活表达式中的sqlite3ResolveExprNames().
+** 然后查看sqlite3ResolveExprNames()程序的头部附加的注释信息.
+** sqlite3ResolveExprNames()程序查找列名,并把opcodes设置为TK_COLUMN,Expr.iTable设为表的VDBE游标数.
+** 这个程序只是一起把游标数转换为位掩码值和OR的所有的位掩码. 
+*/
+/*
+** 递归：
+**执行递归查询表内容的基本算法如下：
+  １.执行初始查询并将查询结果放入一个队列；
+  ２.如果队列不为空
+    1）从LEFT的ON子句表达式JOIN可以使用它Expr.从队列中提取一条记录；
+    2）将这条记录插入递归表；
+    3）假设刚刚被提取的记录是递归表中唯一一条记录，然后，运行递归查询，把所有结果放入队列
+*/
 static Bitmask exprListTableUsage(WhereMaskSet*, ExprList*);
 static Bitmask exprSelectTableUsage(WhereMaskSet*, Select*);
 
 static Bitmask exprTableUsage(WhereMaskSet *pMaskSet, Expr *p){
   Bitmask mask = 0;
-  if( p==0 ) return 0;
-  if( p->op==TK_COLUMN ){
+  if( p==0 ) return 0;                                  /*如果p==0,返回0*/
+  if( p->op==TK_COLUMN ){                               /*判断p->op是否为TK_COLUMN */ 
     mask = getMask(pMaskSet, p->iTable);
-    return mask;
+    return mask;                                         /*返回mask*/
   }
   mask = exprTableUsage(pMaskSet, p->pRight);
   mask |= exprTableUsage(pMaskSet, p->pLeft);
@@ -836,7 +879,7 @@ static Bitmask exprTableUsage(WhereMaskSet *pMaskSet, Expr *p){
   }else{
     mask |= exprListTableUsage(pMaskSet, p->x.pList);
   }
-  return mask;
+  return mask;                                           /*返回mask*/
 }
 
 static Bitmask exprListTableUsage(WhereMaskSet *pMaskSet, ExprList *pList){
@@ -847,7 +890,7 @@ static Bitmask exprListTableUsage(WhereMaskSet *pMaskSet, ExprList *pList){
       mask |= exprTableUsage(pMaskSet, pList->a[i].pExpr);
     }
   }
-  return mask;
+  return mask;                                          /*返回mask*/
 }
 
 static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
@@ -859,8 +902,8 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
     mask |= exprListTableUsage(pMaskSet, pS->pOrderBy);
     mask |= exprTableUsage(pMaskSet, pS->pWhere);
     mask |= exprTableUsage(pMaskSet, pS->pHaving);
-    if( ALWAYS(pSrc!=0) ){
-      int i;
+    if( ALWAYS(pSrc!=0) ){                 
+      int i;                                  /*判断ALWAYS(pSrc!=0)*/
       for(i=0; i<pSrc->nSrc; i++){
         mask |= exprSelectTableUsage(pMaskSet, pSrc->a[i].pSelect);
         mask |= exprTableUsage(pMaskSet, pSrc->a[i].pOn);
@@ -868,7 +911,7 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
     }
     pS = pS->pPrior;
   }
-  return mask;
+  return mask;                                        /*返回mask*/
 }
 
 /*
@@ -900,6 +943,22 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
 ** column IN (expression-list) 
 ** column IN (subquery) 
 ** column IS NULL
+*/
+/*
+** SQLite 
+** 有如下二元运算符，根据其优先级从高到低有：
+**  ||
+**  *    /    %
+**  +    -  
+**  <<   >>   &    |
+**  <    <=   >    >=  
+**  =    ==   !=   <>   IN
+**  AND      
+**  OR
+** 以下是支持的一元运算符：
+**  -    +    !    ~    NOT
+** 注意：除 || 之外,任何二元操作符的结果都是一个数值型的值. 
+**       || 返回两个操作数连接后的大字符串。
 */
 static int allowedOp(int op){
   assert( TK_GT>TK_EQ && TK_GT<TK_GE );
@@ -933,6 +992,14 @@ static int allowedOp(int op){
 ** 因此 "Y collate NOCASE op X" 变成了 "X collate NOCASE op Y" 。
 ** 这是因为任何在比较式左边的排序序列重写右边的任何排序序列。
 ** 也由此，EP_ExpCollate标志不交换。
+*/
+/*
+** 计算一个比较表达式.
+** "X op Y"表达式转化为"Y op X".
+** 如果一个对照顺序与比较式的左边或右边相关,那么交换后的它仍与相同边有关.
+** 因此原先的索引"Y对应NOCASE op X"，就变成了"X对应NOCASE op Y".
+** 这是因为任何在比较式左边的对应序列，可以重写为任何右边的对应序列.
+** 由于相同的原因,EP_ExpCollate标志不能交换.
 */
 static void exprCommute(Parse *pParse, Expr *pExpr){
   u16 expRight = (pExpr->pRight->flags & EP_ExpCollate);  /*pLeft表示左子节点，pRight表示右子节点。*/
