@@ -1443,16 +1443,16 @@ primary_key_exit:   //标签
 }
 
 /*
-** Add a new CHECK constraint to the table currently under construction.【为当前正在创建的表添加一个新的CHECK约束。】
+** Add a new CHECK constraint to the table currently under construction. 为当前正在创建的表添加一个新的CHECK约束。
 */
 void sqlite3AddCheckConstraint(
-	Parse *pParse,    /* Parsing context */
-	Expr *pCheckExpr  /* The check expression */
+	Parse *pParse,    /* Parsing context   语法分析程序的上下文*/
+	Expr *pCheckExpr  /* The check expression   约束表达式*/
 	){
 #ifndef SQLITE_OMIT_CHECK
-	Table *pTab = pParse->pNewTable;
-	if (pTab && !IN_DECLARE_VTAB){
-		pTab->pCheck = sqlite3ExprListAppend(pParse, pTab->pCheck, pCheckExpr);
+	Table *pTab = pParse->pNewTable;   //指向当前正在创建的新表
+	if (pTab && !IN_DECLARE_VTAB){   //当前表存在
+		pTab->pCheck = sqlite3ExprListAppend(pParse, pTab->pCheck, pCheckExpr);    //追加约束
 		if (pParse->constraintName.n){
 			sqlite3ExprListSetName(pParse, pTab->pCheck, &pParse->constraintName, 1);
 		}
@@ -1466,7 +1466,8 @@ void sqlite3AddCheckConstraint(
 
 /*
 ** Set the collation function of the most recently parsed table column
-** to the CollSeq given.【设置最近的排序函数解析CollSeq给定的表列。】
+** to the CollSeq given.
+** 设置最近的排序函数解析CollSeq给定的表列。
 */
 void sqlite3AddCollateType(Parse *pParse, Token *pToken){
 	Table *p;
@@ -1474,7 +1475,7 @@ void sqlite3AddCollateType(Parse *pParse, Token *pToken){
 	char *zColl;              /* Dequoted name of collation sequence */
 	sqlite3 *db;
 
-	if ((p = pParse->pNewTable) == 0) return;
+	if ((p = pParse->pNewTable) == 0) return;   //如果上下文数据库所指向的当前表为空，直接退出函数，因为病没有创建表
 	i = p->nCol - 1;
 	db = pParse->db;
 	zColl = sqlite3NameFromToken(db, pToken);
@@ -1503,18 +1504,21 @@ void sqlite3AddCollateType(Parse *pParse, Token *pToken){
 
 /*
 ** This function returns the collation sequence for database native text
-** encoding identified by the string zName, length nName.【这个函数返回的是数据库本地文件编码的排序序列，用字符串zName识别，长度由nName识别。】
+** encoding identified by the string zName, length nName.
+** 这个函数返回的是数据库本地文件编码的排序序列，用字符串zName识别，长度由nName识别。
 **
 ** If the requested collation sequence is not available, or not available
 ** in the database native encoding, the collation factory is invoked to
 ** request it. If the collation factory does not supply such a sequence,
 ** and the sequence is available in another text encoding, then that is
-** returned instead.【如果这个所需的对照序列是无效的，或者是在数据库本地编码中无效，那么这个序列工厂就会被唤醒为了请求这个序列。
-如果这个序列工厂没有提供这样的一个序列和这个序列是无效的在另一个文本编码中，那么这将被代替返回。】
+** returned instead.
+** 如果这个所需的对照序列是无效的，或者是在数据库本地编码中无效，那么这个序列工厂就会被唤醒为了请求这个序列。
+** 如果这个序列工厂没有提供这样的一个序列和这个序列是无效的在另一个文本编码中，那么这将被代替返回。
 **
 ** If no versions of the requested collations sequence are available, or
 ** another error occurs, NULL is returned and an error message written into
-** pParse.【如果没有所需对照序列的版本可用，或是出现另一个错误，返回NULL，并且把错误信息写入pParse中。】
+** pParse.
+** 如果没有所需对照序列的版本可用，或是出现另一个错误，返回NULL，并且把错误信息写入pParse中。
 **
 ** This routine is a wrapper around sqlite3FindCollSeq().  This routine
 ** invokes the collation factory if the named collation cannot be found
@@ -1550,7 +1554,7 @@ CollSeq *sqlite3LocateCollSeq(Parse *pParse, const char *zName){
 ** cookie.  Thereafter, whenever it goes to access the database,
 ** it checks the cookie to make sure the schema has not changed
 ** since it was last read.【这个模式cookie是用于确定数据库模式改变时间。没有模式改变以后，这个cookie属性就会改变。当一个进程首先读取这个cookie时，
-这个进程就会记录这个cookie值。因此，无论这个进程什么时候访问数据库，它都会检查这个cookie值确定这个模式没有被改变，这个过程直到进程读取到最后。】
+** 这个进程就会记录这个cookie值。因此，无论这个进程什么时候访问数据库，它都会检查这个cookie值确定这个模式没有被改变，这个过程直到进程读取到最后。】
 **
 ** This plan is not completely bullet-proof.  It is possible for
 ** the schema to change multiple times and for the cookie to be
@@ -1592,8 +1596,8 @@ static int identLength(const char *z){
 ** nul-terminated string pointed to by the third parameter, zSignedIdent,
 ** to the specified offset in the buffer and updates *pIdx to refer
 ** to the first byte after the last byte written before returning.【第一个参数指向一个输出缓冲区指针。
-第二个参数是一个指向一个整数的指针,这个整数包含的抵消编写到输出缓冲区。这个函数复制第三个参数（zSignedIdent）指向的空终止字符串，
-这个指定的zSignedIdent在缓冲器总抵消和更新*pIdx参照第一个字符在最后一个字符写入之后，而且在返回之前。】
+** 第二个参数是一个指向一个整数的指针,这个整数包含的抵消编写到输出缓冲区。这个函数复制第三个参数（zSignedIdent）指向的空终止字符串，
+** 这个指定的zSignedIdent在缓冲器总抵消和更新*pIdx参照第一个字符在最后一个字符写入之后，而且在返回之前。】
 **
 ** If the string zSignedIdent consists entirely of alpha-numeric
 ** characters, does not begin with a digit and is not an SQL keyword,
@@ -1697,55 +1701,59 @@ static char *createTableStmt(sqlite3 *db, Table *p){
 
 /*
 ** This routine is called to report the final ")" that terminates
-** a CREATE TABLE statement.这段代码被调用去报告最终一个CREATE TABLE语句“）”。
+** a CREATE TABLE statement.
+** 这段代码被调用去报告最终一个CREATE TABLE语句“）”。
 **
 ** The table structure that other action routines have been building
 ** is added to the internal hash tables, assuming no errors have
-** occurred.【其他操作例程的表结构建立被添加到内部哈希表，这些操作例程假设没有发生错误。】
+** occurred.
+** 其他操作例程的表结构建立被添加到内部哈希表，这些操作例程假设没有发生错误。
 **
 ** An entry for the table is made in the master table on disk, unless
 ** this is a temporary table or db->init.busy==1.  When db->init.busy==1
 ** it means we are reading the sqlite_master table because we just
 ** connected to the database or because the sqlite_master table has
 ** recently changed, so the entry for this table already exists in
-** the sqlite_master table.  We do not want to create it again.【一个表的条目是被建立在主表磁盘上，临时表或db->init.busy==1情况除外。
-当db->init.busy==1时意思是我们正在读取这个sqlite主表，因为我们只是连接到数据库或是因为这个sqlite主表最近发生了改变，
-因此这个表的条目在sqlite主表中已经存在。我们不限再次重建这个表的条目。】
+** the sqlite_master table.  We do not want to create it again.
+** 一个表的条目是被建立在主表磁盘上，除非这是临时表或db->init.busy==1情况除外。
+** 当db->init.busy==1时意思是我们正在读取这个sqlite主表，因为我们只是连接到数据库或是因为这个sqlite主表最近发生了改变，
+** 因此这个表的条目在sqlite主表中已经存在。我们没必要再次重建这个表的条目。
 **
 ** If the pSelect argument is not NULL, it means that this routine
 ** was called to create a table generated from a
 ** "CREATE TABLE ... AS SELECT ..." statement.  The column names of
-** the new table will match the result set of the SELECT.【如果pSelect的内容是NULL，意思是这个例程被调用去创建一个产生于 "CREATE TABLE ... AS SELECT ..." 语句的表。
-新建表的列名将与这个SELECT设定的结果相匹配。】
+** the new table will match the result set of the SELECT.
+** 如果pSelect的内容是NULL，意思是这个例程被调用去创建一个产生于 "CREATE TABLE ... AS SELECT ..." 语句的表。
+** 新建表的列名将与这个SELECT设定的结果相匹配。
 */
 void sqlite3EndTable(
-	Parse *pParse,          /* Parse context */
-	Token *pCons,           /* The ',' token after the last column defn. */
-	Token *pEnd,            /* The final ')' token in the CREATE TABLE */
-	Select *pSelect         /* Select from a "CREATE ... AS SELECT" */
+	Parse *pParse,          /* Parse context   语法解析的上下文*/
+	Token *pCons,           /* The ',' token after the last column defn.  在最后的一个列之后的, */
+	Token *pEnd,            /* The final ')' token in the CREATE TABLE  CREATE TABLE语句的结束符号*/
+	Select *pSelect         /* Select from a "CREATE ... AS SELECT"  生成一个带有AS SELECT 字句的CREATE TABLE语句 */
 	){
 	Table *p;
-	sqlite3 *db = pParse->db;
-	int iDb;
+	sqlite3 *db = pParse->db;   //指向语法解析上下文正在操作的数据库
+	int iDb; 
 
-	if ((pEnd == 0 && pSelect == 0) || db->mallocFailed){
-		return;
-	}
-	p = pParse->pNewTable;
-	if (p == 0) return;
+	if ((pEnd == 0 && pSelect == 0) || db->mallocFailed){   //如果没有遇到CREATE TABLE语句的结束右括号，并且确实是没有AS SELECT字句，这两个条件同时满足，或者内存申请失败
+		return;   //直接退出函数，因为这样的创建表是不符合语法的 
+	} 
+	p = pParse->pNewTable;   //p指针指向当前正在创建的表的地址
+	if (p == 0) return;   //如果p为0意味着根本没有创建表
 
-	assert(!db->init.busy || !pSelect);
+	assert(!db->init.busy || !pSelect);   
 
-	iDb = sqlite3SchemaToIndex(db, p->pSchema);
+	iDb = sqlite3SchemaToIndex(db, p->pSchema);     
 
 #ifndef SQLITE_OMIT_CHECK
-	/* Resolve names in all CHECK constraint expressions.【用所有的CHECK约束表达式确定名字。】
+	/* Resolve names in all CHECK constraint expressions. 用所有的CHECK约束表达式确定名字。
 	*/
 	if (p->pCheck){
-		SrcList sSrc;                   /* Fake SrcList for pParse->pNewTable【为 pParse->pNewTable假设SrcList】 */
-		NameContext sNC;                /* Name context for pParse->pNewTable  【为pParse->pNewTable记录名称上下文】*/
-		ExprList *pList;                /* List of all CHECK constraints【所有CHECK约束的列表】 */
-		int i;                          /* Loop counter【循环计数器】 */
+		SrcList sSrc;                   /* Fake SrcList for pParse->pNewTable 为 pParse->pNewTable假设SrcList */
+		NameContext sNC;                /* Name context for pParse->pNewTable  为pParse->pNewTable记录名称上下文*/
+		ExprList *pList;                /* List of all CHECK constraints 所有CHECK约束的列表  */
+		int i;                          /* Loop counter  循环计数器 */
 
 		memset(&sNC, 0, sizeof(sNC));
 		memset(&sSrc, 0, sizeof(sSrc));
@@ -1763,7 +1771,8 @@ void sqlite3EndTable(
 			}
 		}
 	}
-#endif /* !defined(SQLITE_OMIT_CHECK) */
+#endif 
+	/* !defined(SQLITE_OMIT_CHECK) */
 
 	/* If the db->init.busy is 1 it means we are reading the SQL off the
 	** "sqlite_master" or "sqlite_temp_master" table on the disk.
