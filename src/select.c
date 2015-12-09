@@ -182,7 +182,7 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*定义数据库db以及Select
 ** Given 1 to 3 identifiers preceeding the JOIN keyword, determine the
 ** type of join.  Return an integer constant that expresses that type
 ** in terms of the following bit values:
-** 在连接关键字前加一到三个标示符，决定使用何种连接方式。返回一个整数，表示使用以下的何种连接类型。
+** 在连接关键字前加一到三个标示符，决定使用何种连接方式。返回一个整数，表示使用以下的何种连接类型:
 **
 **     JT_INNER
 **     JT_CROSS
