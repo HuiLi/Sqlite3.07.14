@@ -2832,13 +2832,16 @@ static int multiSelectOrderBy(
 }
 #endif
 
-//汤海婷
+
+
+
 
 #if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)//宏定义
 /* Forward Declarations *//*预先声明*/
 //声明静态函数
-static void substExprList(sqlite3*, ExprList*, int, ExprList*);
-static void substSelect(sqlite3*, Select *, int, ExprList *);
+static void substExprList(sqlite3*, ExprList*, int, ExprList*);//声明静态函数表达式列表
+static void substSelect(sqlite3*, Select *, int, ExprList *);声明静态函数
+
 
 /*
 ** Scan through the expression pExpr.  Replace every reference to
@@ -2867,28 +2870,28 @@ static void substSelect(sqlite3*, Select *, int, ExprList *);
 static Expr *substExpr(
 	sqlite3 *db,        /* Report malloc errors to this connection *//*定义数据库db,报告malloc错误连接*/
 	Expr *pExpr,        /* Expr in which substitution occurs *//*定义pExpr变量，当替换发生*/
-	int iTable,         /* Table to be substituted *//*替换的表号*/
+	int iTable,         /* Table to be substituted *//*声明整型的表号，用来代替指定的表*/
 	ExprList *pEList    /* Substitute expressions *//*替换的表达式列表*/
 	)
 {
 	///*判断条件，若表达式为空，返回*/
 	if (pExpr == 0) return 0;
 
-	if (pExpr->op == TK_COLUMN && pExpr->iTable == iTable){
+	if (pExpr->op == TK_COLUMN && pExpr->iTable == iTable){//判断条件，如果列号和指定的表号相同
 
-		if (pExpr->iColumn<0){//表达式列数溢出
+		if (pExpr->iColumn<0){//表达式列数溢出（下溢）
 			pExpr->op = TK_NULL;//赋值为空
 		}
 		else{
 			Expr *pNew;//声明一个新的指向表达式的指针
-			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//异常处理，表达式不为空，并且列数小于表达式列表中表达式的个数，条件不成立则抛出
-			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//异常处理，表达式的左右子树为空，条件不成立抛出断点
-			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//深拷贝
-			if (pNew && pExpr->pColl){//若pNew不为空且表达式的排序序列不为空成立，执行
-				pNew->pColl = pExpr->pColl;//全局变量赋值
+			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//异常处理，加入断点，表达式不为空，并且列数小于表达式列表中表达式的个数
+			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//异常处理，加入断点，表达式的左右子树均为空的时候
+			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//深拷贝，返回的表达式给pNew
+			if (pNew && pExpr->pColl){//若pNew不为空且表达式的排序序列不为空成立，执行if语句
+				pNew->pColl = pExpr->pColl;//获取当前表达式序列
 			}
-			sqlite3ExprDelete(db, pExpr);//调用数据库中表达式删除函数
-			pExpr = pNew;//全局变量赋值
+			sqlite3ExprDelete(db, pExpr);//调用数据库中表达式删除函数，删除相应的表达式
+			pExpr = pNew;//获取当前表达式
 		}
 	}
 	else{
@@ -3338,7 +3341,7 @@ static int flattenSubquery(
 		ExprList *pOrderBy = p->pOrderBy;//S表达式列表pOrderBy的赋值
 		Expr *pLimit = p->pLimit;//对表达式的pLimit属性的赋值（select结构体）
 		Select *pPrior = p->pPrior;//优先查找重新赋值给新的变量
-	
+		//初始化
 		p->pOrderBy = 0;
 		p->pSrc = 0;
 		p->pPrior = 0;
@@ -5210,9 +5213,9 @@ select_end:
 		generateColumnNames(pParse, pTabList, pEList);/*生成列名*/
 	}
 
-	sqlite3DbFree(db, sAggInfo.aCol);/*释放数据库连接中存储聚集函数信息的列的内存*/
-	sqlite3DbFree(db, sAggInfo.aFunc);/*释放数据库连接中存储聚集函数信息的聚集函数名的内存*/
-	return rc;/*返回执行结束标记*/
+	sqlite3DbFree(db, sAggInfo.aCol);
+	sqlite3DbFree(db, sAggInfo.aFunc);
+	return rc;
 }
 
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
@@ -5223,14 +5226,14 @@ select_end:
 static void explainOneSelect(Vdbe *pVdbe, Select *p){
 	sqlite3ExplainPrintf(pVdbe, "SELECT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"SELECT "*/
 	if (p->selFlags & (SF_Distinct | SF_Aggregate)){/*有Distinct 或者Aggregate*/
-		if (p->selFlags & SF_Distinct){/*有Distinct *//*如果selFlags为SF_Distinct*/
-			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"DISTINCT"*/
+		if (p->selFlags & SF_Distinct){/*有Distinct */
+			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");
 		}
-		if (p->selFlags & SF_Aggregate){/*有Aggregate *//*如果selFlags为SF_Aggregate*/
-			sqlite3ExplainPrintf(pVdbe, "agg_flag ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"agg_flag "*/
+		if (p->selFlags & SF_Aggregate){/*有Aggregate */
+			sqlite3ExplainPrintf(pVdbe, "agg_flag ");
 		}
-		sqlite3ExplainNL(pVdbe);/*附加上'|n' *//*添加一个换行符（'\n',前提是如果结尾没有）*/
-		sqlite3ExplainPrintf(pVdbe, "   ");/*遍历FROM子句表达式列表*/
+		sqlite3ExplainNL(pVdbe);/*附加上'|n' */
+		sqlite3ExplainPrintf(pVdbe, "   ");
 	}
 	sqlite3ExplainExprList(pVdbe, p->pEList);/*为表达式列表p->pEList生成一个易读的描述信息*/
 	sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
