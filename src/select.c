@@ -1773,12 +1773,12 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 ** Return the appropriate collating sequence for the iCol-th column of
 ** the result set for the compound-select statement "p".  Return NULL if
 ** the column has no default collating sequence.
-** 返回适当的排序序列，这个排序是针对compound-select语句“p”中的iCol-th列的结果集。
+** 为iCol-th列中针对复合查询语句"p"的结果集返回适当的排序序列.
 ** 如果列没有默认的排序序列，返回NULL。
 **
 ** The collating sequence for the compound select is taken from the
 ** left-most term of the select that has a collating sequence.
-** 复合选择的排序序列来自选择最左边的排序序列。
+** 复合查询的排序序列来自具有排序序列的最左边的查询。
 */
 static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
 	CollSeq *pRet;
@@ -1799,7 +1799,7 @@ static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
 /* Forward reference 向前引用*/
 static int multiSelectOrderBy(
 	Parse *pParse,        /* Parsing context 解析上下文*/
-	Select *p,            /* The right-most of SELECTs to be coded SELECTs的最右边被编码*/
+	Select *p,            /* The right-most of SELECTs to be coded 最右边的需要解码的查询语句*/
 	SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
 	);
 
@@ -1809,12 +1809,12 @@ static int multiSelectOrderBy(
 ** This routine is called to process a compound query form from
 ** two or more separate queries using UNION, UNION ALL, EXCEPT, or
 ** INTERSECT
-** 调用这个程序来处理复合查询窗体由两个并集或交集查询或者两个以上单独的查询。
+** 这个程序被调用来处理使用了UNION, UNION ALL, EXCEPT,或者INTERSECT操作的复合序列或者两个及以上的分散序列
 **
 ** "p" points to the right-most of the two queries.  the query on the
 ** left is p->pPrior.  The left query could also be a compound query
 ** in which case this routine will be called recursively.
-**“p”指向最右边的两个查询。左边的查询是p->pPrior.在递归地将调用这个程序的情况下，左边的查询也可以是复合查询。
+**“p”指向最右边的两个序列。左边的序列是p->pPrior.在递归地将调用这个程序的情况下，左边的查询也可以是复合查询。
 **
 ** The results of the total query are to be written into a destination
 ** of type eDest with parameter iParm.
@@ -1840,19 +1840,19 @@ static int multiSelectOrderBy(
 **
 ** Notice that because of the way SQLite parses compound SELECTs, the
 ** individual selects always group from left to right.
-** 注意,因为这种方式的SQLite是解析复合选择,单个选择总是从左到右。
+** 注意,因为SQLite解析复合查询语句的逻辑问题,单个查询总是从左到右。
 */
 static int multiSelect(
 	Parse *pParse,        /* Parsing context 解析的上下文 */
 	Select *p,            /* The right-most of SELECTs to be coded 最右边的SELECTs将会被编码*/
 	SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
 	){
-	int rc = SQLITE_OK;   /* Success code from a subroutine 来自子程序的成功编码 */
-	Select *pPrior;       /* Another SELECT immediately to our left 另一个SELECT立即到我们的左边*/
-	Vdbe *v;              /* Generate code to this VDBE 这个VDBE生成代码*/
-	SelectDest dest;      /* Alternative data destination 供选择的数据目的地*/
-	Select *pDelete = 0;  /* Chain of simple selects to delete 删除简单选择的链*/
-	sqlite3 *db;          /* Database connection 数据库连接*/
+	int rc = SQLITE_OK;   /* Success code from a subroutine 从子程序传递来的成功参数 */
+	Select *pPrior;       /* Another SELECT immediately to our left 另一个SELECT指向左边*/
+	Vdbe *v;              /* Generate code to this VDBE 为这个VDBE生成代码*/
+	SelectDest dest;      /* Alternative data destination 可变动的数据目的地*/
+	Select *pDelete = 0;  /* Chain of simple selects to delete 用来删除的简单查询链*/
+	sqlite3 *db;          /* Database connection 连接数据库*/
 #ifndef SQLITE_OMIT_EXPLAIN
 	int iSub1;            /* EQP id of left-hand query     EQP id左侧的查询*/
 	int iSub2;            /* EQP id of right-hand query    EQP id右侧的查询*/
