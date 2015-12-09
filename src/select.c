@@ -4649,29 +4649,29 @@ int sqlite3Select(
 		**如果排序索引被优先 OP_OpenEphemeral 指令创建
 		**创建不需要而被结束，那么OP_OpenEphemeral 变为OP_Noop
 		*/
-		if (addrSortIndex >= 0 && pOrderBy == 0){
-			sqlite3VdbeChangeToNoop(v, addrSortIndex);
-			p->addrOpenEphm[2] = -1;
+		if (addrSortIndex >= 0 && pOrderBy == 0){/*如果排序索引存在并且ORDERBY为0*/
+			sqlite3VdbeChangeToNoop(v, addrSortIndex);/*将addrSortIndex中操作改为OP_Noop*/
+			p->addrOpenEphm[2] = -1;/*将SELECT结构体打开临时表的下标为2的元素设为-1*/
 		}
 
-		if (pWInfo->eDistinct){
+		if (pWInfo->eDistinct){/*如果返回的WHERE信息中含DISTINCT查询*/
 			VdbeOp *pOp;                /* 不再需要OpenEphemeral（打开临时表）instr*/
 
-			assert(addrDistinctIndex >= 0);
+			assert(addrDistinctIndex >= 0);/*插入断点，如果addrDistinctIndex小于0，抛出错误信息*/
 			pOp = sqlite3VdbeGetOp(v, addrDistinctIndex);/*返回addrDistinctIndex 指向的操作码*/
 
-			assert(isDistinct);
-			assert(pWInfo->eDistinct == WHERE_DISTINCT_ORDERED
-				|| pWInfo->eDistinct == WHERE_DISTINCT_UNIQUE
+			assert(isDistinct);/*插入断点，判断是否含有DISTINCT查询，如没有抛出错误信息*/
+			assert(pWInfo->eDistinct == WHERE_DISTINCT_ORDERED/*插入断点，如果eDistinct为WHERE_DISTINCT_ORDERED*/
+				|| pWInfo->eDistinct == WHERE_DISTINCT_UNIQUE/*或者为WHERE_DISTINCT_UNIQUE，否则就抛出错误信息*/
 				);
-			distinct = -1;
-			if (pWInfo->eDistinct == WHERE_DISTINCT_ORDERED){
+			distinct = -1;/*将distinct置为-1，不进行取消重复操作*/
+			if (pWInfo->eDistinct == WHERE_DISTINCT_ORDERED){/*如果WHERE返回信息中eDistinct为WHERE_DISTINCT_ORDERED*/
 				int iJump;
 				int iExpr;
-				int iFlag = ++pParse->nMem;
-				int iBase = pParse->nMem + 1;
-				int iBase2 = iBase + pEList->nExpr;
-				pParse->nMem += (pEList->nExpr * 2);
+				int iFlag = ++pParse->nMem;/*将语法解析树中分配内存的个数加加再赋值给iFlag*/
+				int iBase = pParse->nMem + 1;/*将语法解析树中分配内存的个数加1再赋值给iBase*/
+				int iBase2 = iBase + pEList->nExpr;/*将基址iBase+表达式个数再赋值给iBase2*/
+				pParse->nMem += (pEList->nExpr * 2);/*将表达式乘2加上分配的内存数再赋值给pParse->nMem*/
 
 				/* Change the OP_OpenEphemeral coded earlier to an OP_Integer. The
 				** OP_Integer initializes the "first row" flag.  */
