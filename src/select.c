@@ -3338,7 +3338,7 @@ static int flattenSubquery(
 		ExprList *pOrderBy = p->pOrderBy;//S表达式列表pOrderBy的赋值
 		Expr *pLimit = p->pLimit;//对表达式的pLimit属性的赋值（select结构体）
 		Select *pPrior = p->pPrior;//优先查找重新赋值给新的变量
-		//初始化
+	
 		p->pOrderBy = 0;
 		p->pSrc = 0;
 		p->pPrior = 0;
@@ -5210,9 +5210,9 @@ select_end:
 		generateColumnNames(pParse, pTabList, pEList);/*生成列名*/
 	}
 
-	sqlite3DbFree(db, sAggInfo.aCol);
-	sqlite3DbFree(db, sAggInfo.aFunc);
-	return rc;
+	sqlite3DbFree(db, sAggInfo.aCol);/*释放数据库连接中存储聚集函数信息的列的内存*/
+	sqlite3DbFree(db, sAggInfo.aFunc);/*释放数据库连接中存储聚集函数信息的聚集函数名的内存*/
+	return rc;/*返回执行结束标记*/
 }
 
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
@@ -5223,14 +5223,14 @@ select_end:
 static void explainOneSelect(Vdbe *pVdbe, Select *p){
 	sqlite3ExplainPrintf(pVdbe, "SELECT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"SELECT "*/
 	if (p->selFlags & (SF_Distinct | SF_Aggregate)){/*有Distinct 或者Aggregate*/
-		if (p->selFlags & SF_Distinct){/*有Distinct */
-			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");
+		if (p->selFlags & SF_Distinct){/*有Distinct *//*如果selFlags为SF_Distinct*/
+			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"DISTINCT"*/
 		}
-		if (p->selFlags & SF_Aggregate){/*有Aggregate */
-			sqlite3ExplainPrintf(pVdbe, "agg_flag ");
+		if (p->selFlags & SF_Aggregate){/*有Aggregate *//*如果selFlags为SF_Aggregate*/
+			sqlite3ExplainPrintf(pVdbe, "agg_flag ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"agg_flag "*/
 		}
-		sqlite3ExplainNL(pVdbe);/*附加上'|n' */
-		sqlite3ExplainPrintf(pVdbe, "   ");
+		sqlite3ExplainNL(pVdbe);/*附加上'|n' *//*添加一个换行符（'\n',前提是如果结尾没有）*/
+		sqlite3ExplainPrintf(pVdbe, "   ");/*遍历FROM子句表达式列表*/
 	}
 	sqlite3ExplainExprList(pVdbe, p->pEList);/*为表达式列表p->pEList生成一个易读的描述信息*/
 	sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
