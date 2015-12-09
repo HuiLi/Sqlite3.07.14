@@ -2784,6 +2784,7 @@ static int multiSelectOrderBy(
 	sqlite3VdbeAddOp2(v, OP_Goto, 0, labelCmpr);
 
 	/* Generate code to handle the case of A==B
+	** 生成一段代码来处理A==B的情况
 	*/
 	if (op == TK_ALL){
 		addrAeqB = addrAltB;
@@ -2801,6 +2802,7 @@ static int multiSelectOrderBy(
 	}
 
 	/* Generate code to handle the case of A>B
+	** 生成一段代码来处理A>B的情况
 	*/
 	VdbeNoopComment((v, "A-gt-B subroutine"));
 	addrAgtB = sqlite3VdbeCurrentAddr(v);
@@ -2812,6 +2814,7 @@ static int multiSelectOrderBy(
 	sqlite3VdbeAddOp2(v, OP_Goto, 0, labelCmpr);
 
 	/* This code runs once to initialize everything.
+	** 这段代码只运行一次来初始化所有需要的东西
 	*/
 	sqlite3VdbeJumpHere(v, j1);
 	sqlite3VdbeAddOp2(v, OP_Integer, 0, regEofA);
@@ -2822,6 +2825,7 @@ static int multiSelectOrderBy(
 	sqlite3VdbeAddOp2(v, OP_If, regEofB, addrEofB);
 
 	/* Implement the main merge loop
+	** 运行主合并循环
 	*/
 	sqlite3VdbeResolveLabel(v, labelCmpr);
 	sqlite3VdbeAddOp4(v, OP_Permutation, 0, 0, 0, (char*)aPermute, P4_INTARRAY);
@@ -2830,16 +2834,19 @@ static int multiSelectOrderBy(
 	sqlite3VdbeAddOp3(v, OP_Jump, addrAltB, addrAeqB, addrAgtB);
 
 	/* Release temporary registers
+	** 释放临时寄存器
 	*/
 	if (regPrev){
 		sqlite3ReleaseTempRange(pParse, regPrev, nOrderBy + 1);
 	}
 
 	/* Jump to the this point in order to terminate the query.
+	** 为了中止序列而跳转至改点
 	*/
 	sqlite3VdbeResolveLabel(v, labelEnd);
 
 	/* Set the number of output columns
+	** 设置输出列的数量
 	*/
 	if (pDest->eDest == SRT_Output){
 		Select *pFirst = pPrior;
@@ -2848,7 +2855,9 @@ static int multiSelectOrderBy(
 	}
 
 	/* Reassembly the compound query so that it will be freed correctly
-	** by the calling function */
+	** by the calling function 
+	** 重新组合复合序列,以便它正确的被调用函数释放
+	*/
 	if (p->pPrior){
 		sqlite3SelectDelete(db, p->pPrior);
 	}
