@@ -2360,10 +2360,12 @@ static int generateOutputSubroutine(
 		/* If none of the above, then the result destination must be
 		** SRT_Output.  This routine is never called with any other
 		** destination other than the ones handled above or SRT_Output.
+		** 如果上面的都没有,那么结果的目标位置必须是SRT_Output.
 		**
 		** For SRT_Output, results are stored in a sequence of registers.
 		** Then the OP_ResultRow opcode is used to cause sqlite3_step() to
 		** return the next row of result.
+		** 对于SRT_Output, 结果存放于一系列的寄存器中. 然后OP_ResultRow的开头代码被用作启用sqlite3_step()来返回下一个结果.
 		*/
 	default: {
 		assert(pDest->eDest == SRT_Output);
@@ -2374,12 +2376,14 @@ static int generateOutputSubroutine(
 	}
 
 	/* Jump to the end of the loop if the LIMIT is reached.
+	** 若达到阀值,则跳转到循环的末尾.
 	*/
 	if (p->iLimit){
 		sqlite3VdbeAddOp3(v, OP_IfZero, p->iLimit, iBreak, -1);
 	}
 
 	/* Generate the subroutine return
+	** 返回生成子程序
 	*/
 	sqlite3VdbeResolveLabel(v, iContinue);
 	sqlite3VdbeAddOp1(v, OP_Return, regReturn);
@@ -2390,8 +2394,9 @@ static int generateOutputSubroutine(
 /*
 ** Alternative compound select code generator for cases when there
 ** is an ORDER BY clause.
+** 当有ORDER BY元素时,生成可选择的复合查询代码
 **
-** We assume a query of the following form:
+** We assume a query of the following form: 我们假设有以下格式的代码
 **
 **      <selectA>  <operator>  <selectB>  ORDER BY <orderbylist>
 **
@@ -2400,27 +2405,30 @@ static int generateOutputSubroutine(
 ** co-routines.  Then run the co-routines in parallel and merge the results
 ** into the output.  In addition to the two coroutines (called selectA and
 ** selectB) there are 7 subroutines:
+** <operator>是UNION ALL, UNION, EXCEPT, 或者 INTERSECT这些中的一个. 解决方法就是协同程序同时使用ORDER BY元素来编码<selectA> 和 <selectB>.
+** 然后并行执行协同程序,合并输出结果.除了这两个协同程序(selectA和selectB)还有7个子程序:
 **
-**    outA:    Move the output of the selectA coroutine into the output
+**    outA:    Move the output of the selectA coroutine into the output  将selectA的协同程序的输出结果移动到复合序列中
 **             of the compound query.
 **
-**    outB:    Move the output of the selectB coroutine into the output
-**             of the compound query.  (Only generated for UNION and
+**    outB:    Move the output of the selectB coroutine into the output  将selectB的系统程序的输出结果移动到复合序列中.
+**             of the compound query.  (Only generated for UNION and   (只对UNION和UNION ALL生成. EXCEPT 和 INSERTSECT不会输出一个只出现在B中的原始数据) 
 **             UNION ALL.  EXCEPT and INSERTSECT never output a row that
 **             appears only in B.)
 **
-**    AltB:    Called when there is data from both coroutines and A<B.
+**    AltB:    Called when there is data from both coroutines and A<B.  在协同程序生成数据且A<B时调用.
 **
-**    AeqB:    Called when there is data from both coroutines and A==B.
+**    AeqB:    Called when there is data from both coroutines and A==B.  在协同程序生成数据且A==B时调用.
 **
-**    AgtB:    Called when there is data from both coroutines and A>B.
+**    AgtB:    Called when there is data from both coroutines and A>B.  在协同程序生成数据且A>B时调用.
 **
-**    EofA:    Called when data is exhausted from selectA.
+**    EofA:    Called when data is exhausted from selectA.  在selectA中的数据处理完成时调用.
 **
-**    EofB:    Called when data is exhausted from selectB.
+**    EofB:    Called when data is exhausted from selectB.  在selectB中的数据处理完成时调用.
 **
 ** The implementation of the latter five subroutines depend on which
 ** <operator> is used:
+** 后面5个子程序的执行取决于使用的是哪一个<operator>
 **
 **
 **             UNION ALL         UNION            EXCEPT          INTERSECT
@@ -2439,6 +2447,7 @@ static int generateOutputSubroutine(
 ** causes an immediate jump to EofA and an EOF on B following nextB causes
 ** an immediate jump to EofB.  Within EofA and EofB, and EOF on entry or
 ** following nextX causes a jump to the end of the select processing.
+**
 **
 ** Duplicate removal in the UNION, EXCEPT, and INTERSECT cases is handled
 ** within the output subroutine.  The regPrev register set holds the previously
