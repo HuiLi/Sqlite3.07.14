@@ -224,7 +224,10 @@ typedef struct WhereCost WhereCost;
 ** 此外，如果其中一个操作数为NULL，那么它们的结果亦为NULL。
 ** 在操作符中，如果其中一个操作数看上去并不像数值类型，那么它们结果为0或0.0。
 */
-
+/*
+**表达式是一个或多个值，运算付和计算值的SQL函数的组合。
+**SQL表达式与公式类似，都写在查询语言。还可以使用特定的数据集来查询数据库。
+*/
 /* WhereTerm 结构体用来存储 where 子句根据 <op>(AND、OR)分隔后的各个子句 */
 /*Expr 结构体，表示 语法分析树中的一个表达式的每个节点是该结构的一个实例。 出自sqliteInit.h 1829行*/
 typedef struct WhereTerm WhereTerm;
@@ -303,14 +306,27 @@ struct WhereTerm {
 ** 对于整个where子句和分子句 "(b AND c)" and "(d AND e)"，存在分开的WhereClause对象。
 ** 子句的pOuter字段指向整个where子句的WhereClause对象
 */
+/*
+** 下面结构的实例是关于一个WHERE子句的所有信息.
+** 大部分时候它是一个或多个WhereTerms的容器.
+**
+** pOuter说明:  对于如下形式的WHERE子句
+**
+**             a AND ((b AND c) OR (d AND e)) AND f
+**
+** the subclauses "(b AND c)" and "(d AND e)".
+** 这里有很多独立的WhereClause对象来组成整个Where语句，以及类似的"(b AND c)"以及"(d AND e)"这样的子语句。
+** pOuter字段指向整个Where语句的WhereClause对象的子语句。
+*/
 
 /*WhereClause结构体用于存储sql语句中的整个的where子句，可能包含一个或多个WhereTerm。*/
 struct WhereClause {
-  Parse *pParse;           /* The parser context  解析器上下文 */
+  Parse *pParse;           /* The parser context  解析器上下文 */   
   WhereMaskSet *pMaskSet;  /* Mapping of table cursor numbers to bitmasks  表的游标数和位掩码之间的映射 */
   Bitmask vmask;           /* Bitmask identifying(识别) virtual table cursors  识别虚表游标的位掩码 */
   WhereClause *pOuter;     /* Outer conjunction  外连接 */
   u8 op;                   /* Split operator. TK_AND or TK_OR  分隔符如TK_AND or TK_OR  */
+                           /* Split operator.  TK_AND or TK_OR . 分离运算符 TK_AND or TK_OR*/
   u16 wctrlFlags;          /* Might include WHERE_AND_ONLY  可能包含WHERE_AND_ONLY */
   int nTerm;               /* Number of terms  terms的数目 */
   int nSlot;               /* Number of entries(条目数) in a[](153行)  在一个WhereTerm中的记录数  */
@@ -388,15 +404,41 @@ struct WhereAndInfo {
 ** 或着是其他719种组合中的一种。实际上，这并不重要。
 ** 重要的是分散的游标数能全部映射到从0开始的bit数，而且不能包含空白.
 */
+/*
+** WhereMaskSet 定义说明  
+**
+** WhereMaskSet结构体实例用于跟踪WhereTerm中 VDBE 游标数量,以及位掩码bits之间的映射.
+** VDBE游标数量为small integer类型,包含在 SrcList_item.iCursor 或 Expr.iTable 字段中.
+** 对于任何给定的WHERE子句,游标数据可能不是从0开始,它们可能在数字序列中有间断.
+** 但是我们想要使用最大化的掩码位.
+**
+** 这种结构提供一个稀疏游标到数字从0开始的连续整数的映射.
+** 如果WhereMaskSet.ix[A]==B,它意味着位掩码的A-th bit与VDBE游标数B相对应.
+** 位掩码A-th bit是1<<A.
+** 例如,如果WHERE子句表达式使用这些VDBE游标数: 4, 5, 8, 29, 57, 73.
+** 那么WhereMaskSet会把这些游标数映射为0到5的整数.
+**
+** 注意:映射不需要有序的.在上面的例子中映射也可以是这样的:4->3, 5->1, 8->2, 29->0, 57->5, 73->4.
+** 或着是719种组合中的一种.
+** 但这并不很重要.
+** 重要的是稀疏游标数能全部映射成bit数,这些bit数从0开始的,并且不间断.
+*/
 struct WhereMaskSet {
   int n;                        /* Number of assigned(已分配的) cursor values  已分配游标值的数目 */
   int ix[BMS];                  /* Cursor assigned to each bit  游标被分配给每一个bit */
+                                /* Cursor assigned to each bit. 每个bit指定游标*/
 };
 
 /*
 ** A WhereCost object records a lookup strategy and the estimated
 ** cost of pursuing that strategy.
 ** WhereCost 对象记录一个查询策略以及执行该策略的预估成本。
+*/
+/*
+** SQLite采用基于代价的优化.根据处理查询时CPU和磁盘I/O的代价,主要考虑以下一些因素：
+** A、查询读取的记录数； 
+** B、结果是否排序(这可能会导致使用临时表)；
+** C、是否需要访问索引和原表.
 */
 struct WhereCost {
   WherePlan plan;    /* The lookup strategy 查询策略 */
@@ -410,6 +452,10 @@ struct WhereCost {
 ** terms in the where clause.
 **
 ** 运算符的位掩码，索引可以进行开发。这些值的OR-ed组合可以在查找where子句的terms时被使用.
+*/
+/*
+** 运算符可以利用索引的位掩码.
+** 这些值的OR-ed组合可以在where子句中查找terms时使用.
 */
 #define WO_IN     0x001	//16进制0000 0000 0001
 #define WO_EQ     0x002	//16进制0000 0000 0010
@@ -448,6 +494,28 @@ struct WhereCost {
 ** 当我们分析等式约束时，WhereLevel.wsFlags字段当做findTerm的"op"参数使用
 ** 在左联接的右表上不会使用ISNULL约束
 ** Tickets #2177 and #2189.
+*/
+/*
+** Flags的值由bestIndex()返回,并且存储在WhereLevel.wsFlags中.
+** 这些标志将决定哪些查询策略是合适的.
+** 这里低位的12bits被保留为上文中的WO_ 值的掩码.
+** WhereLevel.wsFlags域经常被设置为WO_IN|WO_EQ|WO_ISNULL.
+** 但是如果WhereLevel为左联接的右表.wsFlags将设置为WO_IN|WO_EQ.
+** 因此当我们分析等式约束时,WhereLevel.wsFlags域能被当做"op"参数来findTerm.
+** 在有左联接的右表上将不会被使用ISNULL约束.
+** Tickets #2177 and #2189.
+**
+** 注意：约束数据表列执行的规则.
+** 这些是用来限制可以去到一个表中的不同的数据.
+** 这确保数据库中的数据的准确性和可靠性.
+** 约束可以是列级或表级.
+** 仅适用于表级约束被应用到整个表的一列列级约束.
+** 以下是可在SQLite常用的约束.
+** NOT NULL Constraint: 确保一列不能有NULL值。
+** DEFAULT Constraint : 提供一列没有指定时的默认值。
+** UNIQUE Constraint: 确保所有列中的值是不同(唯一)的。
+** PRIMARY Key: 唯一标识数据库表中的各行/记录。
+** CHECK Constraint: CHECK约束，确保一列中的所有值满足一定条件。
 */
 #define WHERE_ROWID_EQ     0x00001000  /* rowid=EXPR or rowid IN (...)  rowid=EXPR或rowid IN(...) */
 #define WHERE_ROWID_RANGE  0x00002000  /* rowid<EXPR and/or rowid>EXPR  rowid<EXPR 且/或 rowid>EXPR */
