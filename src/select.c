@@ -2447,15 +2447,19 @@ static int generateOutputSubroutine(
 ** causes an immediate jump to EofA and an EOF on B following nextB causes
 ** an immediate jump to EofB.  Within EofA and EofB, and EOF on entry or
 ** following nextX causes a jump to the end of the select processing.
-**
+** 在AltB, AeqB, 和 AgtB子程序中, 在A上的一个跟随着nextA的EOF会造成即刻跳转到EofA和B上的一个跟随nextB的EOF造成即刻跳转到EofB.
+** 在EofA,EofB和EOF条目或者跟随着nextX造成跳转到查询过程的末尾.
 **
 ** Duplicate removal in the UNION, EXCEPT, and INTERSECT cases is handled
 ** within the output subroutine.  The regPrev register set holds the previously
 ** output value.  A comparison is made against this value and the output
-** is skipped if the next results would be the same as the previous.
+** is skipped if the next results would be the same as the previous .
+** 在UNION, EXCEPT, 和INTERSECT中去重是在输出子程序中处理的. regPrev寄存器组保存着之前的输出值.
+** 将本值和输出进行比较,但若是下一个结果和之前的结果相同,则跳过此步.
 **
 ** The implementation plan is to implement the two coroutines and seven
 ** subroutines first, then put the control logic at the bottom.  Like this:
+** 执行计划是先执行两个协同程序和七个子程序,然后将控制逻辑放在最后. 如:
 **
 **          goto Init
 **     coA: coroutine for left query (A)
@@ -2480,42 +2484,44 @@ static int generateOutputSubroutine(
 ** actually called using Gosub and they do not Return.  EofA and EofB loop
 ** until all data is exhausted then jump to the "end" labe.  AltB, AeqB,
 ** and AgtB jump to either L2 or to one of EofA or EofB.
+** 我们称AltB, AeqB, AgtB, EofA, 和 EofB为"子程序",但他们并不是使用Gosub自动调用并且没有返回值. EofA 和 EofB
+** 循环至所有数据被处理完然后跳转到"end"处. AltB, AeqB,和AgtB跳转至L2或者EofA 与 EofB之中的一处.
 */
 #ifndef SQLITE_OMIT_COMPOUND_SELECT
 static int multiSelectOrderBy(
-	Parse *pParse,        /* Parsing context */
-	Select *p,            /* The right-most of SELECTs to be coded */
-	SelectDest *pDest     /* What to do with query results */
+	Parse *pParse,        /* Parsing context 解析上下文*/
+	Select *p,            /* The right-most of SELECTs to be coded 编码最右边的查询语句*/
+	SelectDest *pDest     /* What to do with query results 对队列结果的操作*/
 	){
-	int i, j;             /* Loop counters */
-	Select *pPrior;       /* Another SELECT immediately to our left */
-	Vdbe *v;              /* Generate code to this VDBE */
-	SelectDest destA;     /* Destination for coroutine A */
-	SelectDest destB;     /* Destination for coroutine B */
-	int regAddrA;         /* Address register for select-A coroutine */
-	int regEofA;          /* Flag to indicate when select-A is complete */
-	int regAddrB;         /* Address register for select-B coroutine */
-	int regEofB;          /* Flag to indicate when select-B is complete */
-	int addrSelectA;      /* Address of the select-A coroutine */
-	int addrSelectB;      /* Address of the select-B coroutine */
-	int regOutA;          /* Address register for the output-A subroutine */
-	int regOutB;          /* Address register for the output-B subroutine */
-	int addrOutA;         /* Address of the output-A subroutine */
-	int addrOutB = 0;     /* Address of the output-B subroutine */
-	int addrEofA;         /* Address of the select-A-exhausted subroutine */
-	int addrEofB;         /* Address of the select-B-exhausted subroutine */
-	int addrAltB;         /* Address of the A<B subroutine */
-	int addrAeqB;         /* Address of the A==B subroutine */
-	int addrAgtB;         /* Address of the A>B subroutine */
-	int regLimitA;        /* Limit register for select-A */
-	int regLimitB;        /* Limit register for select-A */
-	int regPrev;          /* A range of registers to hold previous output */
-	int savedLimit;       /* Saved value of p->iLimit */
-	int savedOffset;      /* Saved value of p->iOffset */
-	int labelCmpr;        /* Label for the start of the merge algorithm */
-	int labelEnd;         /* Label for the end of the overall SELECT stmt */
-	int j1;               /* Jump instructions that get retargetted */
-	int op;               /* One of TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT */
+	int i, j;             /* Loop counters 循环计数器*/
+	Select *pPrior;       /* Another SELECT immediately to our left 另一个查询语句立刻到左边*/
+	Vdbe *v;              /* Generate code to this VDBE 为此VDBE生成代码/
+	SelectDest destA;     /* Destination for coroutine A  协同程序A的目标位置*/
+	SelectDest destB;     /* Destination for coroutine B 协同程序B的目标位置*/
+	int regAddrA;         /* Address register for select-A coroutine 协同程序select-A的地址寄存器*/
+	int regEofA;          /* Flag to indicate when select-A is complete select-A是否完成的标志*/
+	int regAddrB;         /* Address register for select-B coroutine 协同程序select-B的地址寄存器*/
+	int regEofB;          /* Flag to indicate when select-B is complete select-B是否完成的标志*/
+	int addrSelectA;      /* Address of the select-A coroutine 协同程序select-A的地址*/
+	int addrSelectB;      /* Address of the select-B coroutine 协同程序select-B的地址*/
+	int regOutA;          /* Address register for the output-A subroutine 子程序output-A的地址寄存器*/
+	int regOutB;          /* Address register for the output-B subroutine 子程序output-B的地址寄存器*/
+	int addrOutA;         /* Address of the output-A subroutine 子程序output-A的地址*/
+	int addrOutB = 0;     /* Address of the output-B subroutine 子程序output-B的地址*/
+	int addrEofA;         /* Address of the select-A-exhausted subroutine 子程序select-A-exhausted的地址*/
+	int addrEofB;         /* Address of the select-B-exhausted subroutine 子程序select-B-exhausted的地址*/
+	int addrAltB;         /* Address of the A<B subroutine 子程序A<B的地址*/
+	int addrAeqB;         /* Address of the A==B subroutine 子程序A==B的地址*/
+	int addrAgtB;         /* Address of the A>B subroutine 子程序A>B的地址*/
+	int regLimitA;        /* Limit register for select-A select-A的上限寄存器*/
+	int regLimitB;        /* Limit register for select-B select-B的上限寄存器*/
+	int regPrev;          /* A range of registers to hold previous output 一系列保存之前输出的寄存器*/
+	int savedLimit;       /* Saved value of p->iLimit 保存p->iLimit的值*/
+	int savedOffset;      /* Saved value of p->iOffset 保存p->iOffset的值*/
+	int labelCmpr;        /* Label for the start of the merge algorithm 合并算法的开始标志*/
+	int labelEnd;         /* Label for the end of the overall SELECT stmt 所有查询语句的结束标志*/
+	int j1;               /* Jump instructions that get retargetted 得到重定向的跳转指示*/
+	int op;               /* One of TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT之一*/
 	KeyInfo *pKeyDup = 0; /* Comparison information for duplicate removal */
 	KeyInfo *pKeyMerge;   /* Comparison information for merging rows */
 	sqlite3 *db;          /* Database connection */
