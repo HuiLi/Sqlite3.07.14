@@ -2292,38 +2292,38 @@ static void sqlite3ClearStatTables(
 }
 
 /*
-** Generate code to drop a table.         //生成删除一个表的指令
+** Generate code to drop a table.         //执行删除DROP TABLE执行
 */
 void sqlite3CodeDropTable(Parse *pParse, Table *pTab, int iDb, int isView){
   Vdbe *v;
-  sqlite3 *db = pParse->db;
-  Trigger *pTrigger;
+  sqlite3 *db = pParse->db;   //指向当前语法解析的上下文
+  Trigger *pTrigger;   //定义一个触发器
   Db *pDb = &db->aDb[iDb];
 
-  v = sqlite3GetVdbe(pParse);
-  assert( v!=0 );
-  sqlite3BeginWriteOperation(pParse, 1, iDb);
+  v = sqlite3GetVdbe(pParse);  
+  assert( v!=0 );    //断言成功获取了VDBE
+  sqlite3BeginWriteOperation(pParse, 1, iDb);   //开始写操作
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  if( IsVirtual(pTab) ){
-    sqlite3VdbeAddOp0(v, OP_VBegin);
+  if( IsVirtual(pTab) ){  //判断表是否是虚表
+    sqlite3VdbeAddOp0(v, OP_VBegin);    //给VDBE增加操作OP_VBegin
   }
 #endif
 
-  /* Drop all triggers associated with the table being dropped. Code//删除所有和已经被删除的那些表相关联的未被删除的表的所有的触发器
+  /* Drop all triggers associated with the table being dropped. Code //删除所有与已经的删除的表相关联的触发器
   ** is generated to remove entries from sqlite_master and/or        //在有需求的情况下，移除来自Sqlite_master或sqlite_temp_mater条目的那部分代码
   ** sqlite_temp_master if required.
   */
-  pTrigger = sqlite3TriggerList(pParse, pTab);
-  while( pTrigger ){
-    assert( pTrigger->pSchema==pTab->pSchema || 
-        pTrigger->pSchema==db->aDb[1].pSchema );
-    sqlite3DropTriggerPtr(pParse, pTrigger);
-    pTrigger = pTrigger->pNext;
+  pTrigger = sqlite3TriggerList(pParse, pTab);   //指向触发器列表的指针
+  while( pTrigger ){  //当触发器列表确实是存在的时候
+    assert( pTrigger->pSchema==pTab->pSchema ||      //断言触发器确实是与表相关联的，这种检查是通过检查两者的模式是否相同
+        pTrigger->pSchema==db->aDb[1].pSchema );   
+    sqlite3DropTriggerPtr(pParse, pTrigger);   //循环的删除触发器列表的触发器
+    pTrigger = pTrigger->pNext;   //指向触发器列表的下一个位置，也就是指向下一个相关联的触发器
   }
 
 #ifndef SQLITE_OMIT_AUTOINCREMENT
-  /* Remove any entries of the sqlite_sequence table associated with    //移除sqlite_sequence表中与已删除的表相关联的把部分记录。
+  /* Remove any entries of the sqlite_sequence table associated with    //移除sqlite_sequence表中与已删除的表相关联的那部分记录。
   ** the table being dropped. This is done before the table is dropped   //在btree表被删除前这样做是防止sqlite_sequence表中需要移除删除的结果，因为这可能发生在auto-vacuum。
   ** at the btree level, in case the sqlite_sequence table needs to
   ** move as a result of the drop (can happen in auto-vacuum mode).
