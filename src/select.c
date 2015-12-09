@@ -2361,12 +2361,10 @@ static int generateOutputSubroutine(
 		/* If none of the above, then the result destination must be
 		** SRT_Output.  This routine is never called with any other
 		** destination other than the ones handled above or SRT_Output.
-		** 如果上面的都没有,那么结果的目标位置必须是SRT_Output.
 		**
 		** For SRT_Output, results are stored in a sequence of registers.
 		** Then the OP_ResultRow opcode is used to cause sqlite3_step() to
 		** return the next row of result.
-		** 对于SRT_Output, 结果存放于一系列的寄存器中. 然后OP_ResultRow的开头代码被用作启用sqlite3_step()来返回下一个结果.
 		*/
 	default: {
 		assert(pDest->eDest == SRT_Output);
@@ -2377,14 +2375,12 @@ static int generateOutputSubroutine(
 	}
 
 	/* Jump to the end of the loop if the LIMIT is reached.
-	** 若达到阀值,则跳转到循环的末尾.
 	*/
 	if (p->iLimit){
 		sqlite3VdbeAddOp3(v, OP_IfZero, p->iLimit, iBreak, -1);
 	}
 
 	/* Generate the subroutine return
-	** 返回生成子程序
 	*/
 	sqlite3VdbeResolveLabel(v, iContinue);
 	sqlite3VdbeAddOp1(v, OP_Return, regReturn);
@@ -2395,9 +2391,8 @@ static int generateOutputSubroutine(
 /*
 ** Alternative compound select code generator for cases when there
 ** is an ORDER BY clause.
-** 当有ORDER BY元素时,生成可选择的复合查询代码
 **
-** We assume a query of the following form: 我们假设有以下格式的代码
+** We assume a query of the following form:
 **
 **      <selectA>  <operator>  <selectB>  ORDER BY <orderbylist>
 **
@@ -2406,30 +2401,27 @@ static int generateOutputSubroutine(
 ** co-routines.  Then run the co-routines in parallel and merge the results
 ** into the output.  In addition to the two coroutines (called selectA and
 ** selectB) there are 7 subroutines:
-** <operator>是UNION ALL, UNION, EXCEPT, 或者 INTERSECT这些中的一个. 解决方法就是协同程序同时使用ORDER BY元素来编码<selectA> 和 <selectB>.
-** 然后并行执行协同程序,合并输出结果.除了这两个协同程序(selectA和selectB)还有7个子程序:
 **
-**    outA:    Move the output of the selectA coroutine into the output  将selectA的协同程序的输出结果移动到复合序列中
+**    outA:    Move the output of the selectA coroutine into the output
 **             of the compound query.
 **
-**    outB:    Move the output of the selectB coroutine into the output  将selectB的系统程序的输出结果移动到复合序列中.
-**             of the compound query.  (Only generated for UNION and   (只对UNION和UNION ALL生成. EXCEPT 和 INSERTSECT不会输出一个只出现在B中的原始数据) 
+**    outB:    Move the output of the selectB coroutine into the output
+**             of the compound query.  (Only generated for UNION and
 **             UNION ALL.  EXCEPT and INSERTSECT never output a row that
 **             appears only in B.)
 **
-**    AltB:    Called when there is data from both coroutines and A<B.  在协同程序生成数据且A<B时调用.
+**    AltB:    Called when there is data from both coroutines and A<B.
 **
-**    AeqB:    Called when there is data from both coroutines and A==B.  在协同程序生成数据且A==B时调用.
+**    AeqB:    Called when there is data from both coroutines and A==B.
 **
-**    AgtB:    Called when there is data from both coroutines and A>B.  在协同程序生成数据且A>B时调用.
+**    AgtB:    Called when there is data from both coroutines and A>B.
 **
-**    EofA:    Called when data is exhausted from selectA.  在selectA中的数据处理完成时调用.
+**    EofA:    Called when data is exhausted from selectA.
 **
-**    EofB:    Called when data is exhausted from selectB.  在selectB中的数据处理完成时调用.
+**    EofB:    Called when data is exhausted from selectB.
 **
 ** The implementation of the latter five subroutines depend on which
 ** <operator> is used:
-** 后面5个子程序的执行取决于使用的是哪一个<operator>
 **
 **
 **             UNION ALL         UNION            EXCEPT          INTERSECT
@@ -2448,19 +2440,14 @@ static int generateOutputSubroutine(
 ** causes an immediate jump to EofA and an EOF on B following nextB causes
 ** an immediate jump to EofB.  Within EofA and EofB, and EOF on entry or
 ** following nextX causes a jump to the end of the select processing.
-** 在AltB, AeqB, 和 AgtB子程序中, 在A上的一个跟随着nextA的EOF会造成即刻跳转到EofA和B上的一个跟随nextB的EOF造成即刻跳转到EofB.
-** 在EofA,EofB和EOF条目或者跟随着nextX造成跳转到查询过程的末尾.
 **
 ** Duplicate removal in the UNION, EXCEPT, and INTERSECT cases is handled
 ** within the output subroutine.  The regPrev register set holds the previously
 ** output value.  A comparison is made against this value and the output
-** is skipped if the next results would be the same as the previous .
-** 在UNION, EXCEPT, 和INTERSECT中去重是在输出子程序中处理的. regPrev寄存器组保存着之前的输出值.
-** 将本值和输出进行比较,但若是下一个结果和之前的结果相同,则跳过此步.
+** is skipped if the next results would be the same as the previous.
 **
 ** The implementation plan is to implement the two coroutines and seven
 ** subroutines first, then put the control logic at the bottom.  Like this:
-** 执行计划是先执行两个协同程序和七个子程序,然后将控制逻辑放在最后. 如:
 **
 **          goto Init
 **     coA: coroutine for left query (A)
@@ -2485,44 +2472,42 @@ static int generateOutputSubroutine(
 ** actually called using Gosub and they do not Return.  EofA and EofB loop
 ** until all data is exhausted then jump to the "end" labe.  AltB, AeqB,
 ** and AgtB jump to either L2 or to one of EofA or EofB.
-** 我们称AltB, AeqB, AgtB, EofA, 和 EofB为"子程序",但他们并不是使用Gosub自动调用并且没有返回值. EofA 和 EofB
-** 循环至所有数据被处理完然后跳转到"end"处. AltB, AeqB,和AgtB跳转至L2或者EofA 与 EofB之中的一处.
 */
 #ifndef SQLITE_OMIT_COMPOUND_SELECT
 static int multiSelectOrderBy(
-	Parse *pParse,        /* Parsing context 解析上下文*/
-	Select *p,            /* The right-most of SELECTs to be coded 编码最右边的查询语句*/
-	SelectDest *pDest     /* What to do with query results 对队列结果的操作*/
+	Parse *pParse,        /* Parsing context */
+	Select *p,            /* The right-most of SELECTs to be coded */
+	SelectDest *pDest     /* What to do with query results */
 	){
-	int i, j;             /* Loop counters 循环计数器*/
-	Select *pPrior;       /* Another SELECT immediately to our left 另一个查询语句立刻到左边*/
-	Vdbe *v;              /* Generate code to this VDBE 为此VDBE生成代码/
-	SelectDest destA;     /* Destination for coroutine A  协同程序A的目标位置*/
-	SelectDest destB;     /* Destination for coroutine B 协同程序B的目标位置*/
-	int regAddrA;         /* Address register for select-A coroutine 协同程序select-A的地址寄存器*/
-	int regEofA;          /* Flag to indicate when select-A is complete select-A是否完成的标志*/
-	int regAddrB;         /* Address register for select-B coroutine 协同程序select-B的地址寄存器*/
-	int regEofB;          /* Flag to indicate when select-B is complete select-B是否完成的标志*/
-	int addrSelectA;      /* Address of the select-A coroutine 协同程序select-A的地址*/
-	int addrSelectB;      /* Address of the select-B coroutine 协同程序select-B的地址*/
-	int regOutA;          /* Address register for the output-A subroutine 子程序output-A的地址寄存器*/
-	int regOutB;          /* Address register for the output-B subroutine 子程序output-B的地址寄存器*/
-	int addrOutA;         /* Address of the output-A subroutine 子程序output-A的地址*/
-	int addrOutB = 0;     /* Address of the output-B subroutine 子程序output-B的地址*/
-	int addrEofA;         /* Address of the select-A-exhausted subroutine 子程序select-A-exhausted的地址*/
-	int addrEofB;         /* Address of the select-B-exhausted subroutine 子程序select-B-exhausted的地址*/
-	int addrAltB;         /* Address of the A<B subroutine 子程序A<B的地址*/
-	int addrAeqB;         /* Address of the A==B subroutine 子程序A==B的地址*/
-	int addrAgtB;         /* Address of the A>B subroutine 子程序A>B的地址*/
-	int regLimitA;        /* Limit register for select-A select-A的上限寄存器*/
-	int regLimitB;        /* Limit register for select-B select-B的上限寄存器*/
-	int regPrev;          /* A range of registers to hold previous output 一系列保存之前输出的寄存器*/
-	int savedLimit;       /* Saved value of p->iLimit 保存p->iLimit的值*/
-	int savedOffset;      /* Saved value of p->iOffset 保存p->iOffset的值*/
-	int labelCmpr;        /* Label for the start of the merge algorithm 合并算法的开始标志*/
-	int labelEnd;         /* Label for the end of the overall SELECT stmt 所有查询语句的结束标志*/
-	int j1;               /* Jump instructions that get retargetted 得到重定向的跳转指示*/
-	int op;               /* One of TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT之一*/
+	int i, j;             /* Loop counters */
+	Select *pPrior;       /* Another SELECT immediately to our left */
+	Vdbe *v;              /* Generate code to this VDBE */
+	SelectDest destA;     /* Destination for coroutine A */
+	SelectDest destB;     /* Destination for coroutine B */
+	int regAddrA;         /* Address register for select-A coroutine */
+	int regEofA;          /* Flag to indicate when select-A is complete */
+	int regAddrB;         /* Address register for select-B coroutine */
+	int regEofB;          /* Flag to indicate when select-B is complete */
+	int addrSelectA;      /* Address of the select-A coroutine */
+	int addrSelectB;      /* Address of the select-B coroutine */
+	int regOutA;          /* Address register for the output-A subroutine */
+	int regOutB;          /* Address register for the output-B subroutine */
+	int addrOutA;         /* Address of the output-A subroutine */
+	int addrOutB = 0;     /* Address of the output-B subroutine */
+	int addrEofA;         /* Address of the select-A-exhausted subroutine */
+	int addrEofB;         /* Address of the select-B-exhausted subroutine */
+	int addrAltB;         /* Address of the A<B subroutine */
+	int addrAeqB;         /* Address of the A==B subroutine */
+	int addrAgtB;         /* Address of the A>B subroutine */
+	int regLimitA;        /* Limit register for select-A */
+	int regLimitB;        /* Limit register for select-A */
+	int regPrev;          /* A range of registers to hold previous output */
+	int savedLimit;       /* Saved value of p->iLimit */
+	int savedOffset;      /* Saved value of p->iOffset */
+	int labelCmpr;        /* Label for the start of the merge algorithm */
+	int labelEnd;         /* Label for the end of the overall SELECT stmt */
+	int j1;               /* Jump instructions that get retargetted */
+	int op;               /* One of TK_ALL, TK_UNION, TK_EXCEPT, TK_INTERSECT */
 	KeyInfo *pKeyDup = 0; /* Comparison information for duplicate removal */
 	KeyInfo *pKeyMerge;   /* Comparison information for merging rows */
 	sqlite3 *db;          /* Database connection */
@@ -2847,16 +2832,13 @@ static int multiSelectOrderBy(
 }
 #endif
 
-
-
-
+//汤海婷
 
 #if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)//宏定义
 /* Forward Declarations *//*预先声明*/
 //声明静态函数
-static void substExprList(sqlite3*, ExprList*, int, ExprList*);//声明静态函数表达式列表
-static void substSelect(sqlite3*, Select *, int, ExprList *);声明静态函数
-
+static void substExprList(sqlite3*, ExprList*, int, ExprList*);
+static void substSelect(sqlite3*, Select *, int, ExprList *);
 
 /*
 ** Scan through the expression pExpr.  Replace every reference to
@@ -2885,76 +2867,78 @@ static void substSelect(sqlite3*, Select *, int, ExprList *);声明静态函数
 static Expr *substExpr(
 	sqlite3 *db,        /* Report malloc errors to this connection *//*定义数据库db,报告malloc错误连接*/
 	Expr *pExpr,        /* Expr in which substitution occurs *//*定义pExpr变量，当替换发生*/
-	int iTable,         /* Table to be substituted *//*声明整型的表号，用来代替指定的表*/
+	int iTable,         /* Table to be substituted *//*替换的表号*/
 	ExprList *pEList    /* Substitute expressions *//*替换的表达式列表*/
 	)
 {
 	///*判断条件，若表达式为空，返回*/
 	if (pExpr == 0) return 0;
 
-	if (pExpr->op == TK_COLUMN && pExpr->iTable == iTable){//判断条件，如果列号和指定的表号相同
+	if (pExpr->op == TK_COLUMN && pExpr->iTable == iTable){
 
-		if (pExpr->iColumn<0){//表达式列数溢出（下溢）
+		if (pExpr->iColumn<0){//表达式列数溢出
 			pExpr->op = TK_NULL;//赋值为空
 		}
 		else{
 			Expr *pNew;//声明一个新的指向表达式的指针
-			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//异常处理，加入断点，表达式不为空，并且列数小于表达式列表中表达式的个数
-			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//异常处理，加入断点，表达式的左右子树均为空的时候
-			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//深拷贝，返回的表达式给pNew
-			if (pNew && pExpr->pColl){//若pNew不为空且表达式的排序序列不为空成立，执行if语句
-				pNew->pColl = pExpr->pColl;//获取当前表达式序列
+			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//异常处理，表达式不为空，并且列数小于表达式列表中表达式的个数，条件不成立则抛出
+			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//异常处理，表达式的左右子树为空，条件不成立抛出断点
+			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//深拷贝
+			if (pNew && pExpr->pColl){//若pNew不为空且表达式的排序序列不为空成立，执行
+				pNew->pColl = pExpr->pColl;//全局变量赋值
 			}
-			sqlite3ExprDelete(db, pExpr);//调用数据库中表达式删除函数，删除相应的表达式
-			pExpr = pNew;//获取当前表达式
+			sqlite3ExprDelete(db, pExpr);//调用数据库中表达式删除函数
+			pExpr = pNew;//全局变量赋值
 		}
 	}
 	else{
 		pExpr->pLeft = substExpr(db, pExpr->pLeft, iTable, pEList);//递归调用substExpr函数
 		pExpr->pRight = substExpr(db, pExpr->pRight, iTable, pEList);//递归调用substExpr函数
-		if (ExprHasProperty(pExpr, EP_xIsSelect)){//判断表达式pExpr是否进行EP_xIsSelect查询
+		if (ExprHasProperty(pExpr, EP_xIsSelect)){//调用函数ExprHasProperty判断表达式pExpr是否进行EP_xIsSelect查询
 			substSelect(db, pExpr->x.pSelect, iTable, pEList);//调用substSelect函数，对pExpr->x.pSelect中Select语句进行处理
 		}
 		else{
 			substExprList(db, pExpr->x.pList, iTable, pEList);//调用substExprList函数，对pExpr->x.pList表达式列表处理
 		}
 	}
-	return pExpr;
+	return pExpr;//返回相应的表达式指针
 }
 static void substExprList(
 	sqlite3 *db,         /* Report malloc errors here *//*声明sqlite的对象，报告分配内存错误*/
-	ExprList *pList,     /* List to scan and in which to make substitutes *//*定义pExpr变量，当替换发生*/
-	int iTable,          /* Table to be substituted *//*替换的表号*/
+	ExprList *pList,     /* List to scan and in which to make substitutes *//*定义pExpr变量，当替换发生扫描列表*/
+	int iTable,          /* Table to be substituted *//*声明要替换的表号*/
 	ExprList *pEList     /* Substitute values *//*替换的表达式列表*/
 	){
-	int i;
-	if (pList == 0) return;//列表达式为空，返回
+	int i;//声明整变量i
+	if (pList == 0) return;//表达式列表为空，返回
 	//遍历表达式列表
 	for (i = 0; i<pList->nExpr; i++){
 		pList->a[i].pExpr = substExpr(db, pList->a[i].pExpr, iTable, pEList);//递归调用，重新赋值pList->a[i].pExpr
 	}
 }
+
 static void substSelect(
 	sqlite3 *db,         /* Report malloc errors here *//*声明sqlite的对象，报告分配内存错误*/
 	Select *p,           /* SELECT statement in which to make substitutions *//*声明一个Select对象*/
-	int iTable,          /* Table to be replaced *//*替换的表号*/
+	int iTable,          /* Table to be replaced *//*声明要替换的表号*/
 	ExprList *pEList     /* Substitute values *//*替换的表达式列表*/
 	){
 	SrcList *pSrc;//声明描述SELECT中的FROM子句的对象
 	struct SrcList_item *pItem;//声明SrcList_item结构体的一个FROM子句对象
-	int i;
+	int i;//声明整变量i
 	if (!p) return;//若p不空，返回
-	//调用substExprList函数，对 p->pEList表达式列表处理
-	substExprList(db, p->pEList, iTable, pEList);
-	substExprList(db, p->pGroupBy, iTable, pEList);
-	substExprList(db, p->pOrderBy, iTable, pEList);
+
+	substExprList(db, p->pEList, iTable, pEList);	//调用substExprList函数，对 p->pEList表达式列表处理
+	substExprList(db, p->pGroupBy, iTable, pEList);	//调用substExprList函数，对 p->pGroupBy表达式列表处理
+	substExprList(db, p->pOrderBy, iTable, pEList);	//调用substExprList函数，对 p->pOrderBy表达式列表处理
 	p->pHaving = substExpr(db, p->pHaving, iTable, pEList);//调用substExpr函数，赋值给SELECT中pHaving属性
 	p->pWhere = substExpr(db, p->pWhere, iTable, pEList);//调用substExpr函数，赋值给SELECT中pWhere属性
-	substSelect(db, p->pPrior, iTable, pEList);//递归调用substSelect
-	pSrc = p->pSrc;//当前的SELECT中FROM子句赋值给全局变量的pSrc
-	assert(pSrc);  /* Even for (SELECT 1) we have: pSrc!=0 but pSrc->nSrc==0 *///满足条件，插入断点
+	substSelect(db, p->pPrior, iTable, pEList);//递归调用substSelect函数
+	pSrc = p->pSrc;//获取当前from子句中的p->pSrc
+	assert(pSrc);  /* Even for (SELECT 1) we have: pSrc!=0 but pSrc->nSrc==0 *///满足条件，插入断点，用于异常处理
 	if (ALWAYS(pSrc)){
-		for (i = pSrc->nSrc, pItem = pSrc->a; i>0; i--, pItem++){//遍历
+		//遍历from子句表中的对象
+		for (i = pSrc->nSrc, pItem = pSrc->a; i>0; i--, pItem++){
 			substSelect(db, pItem->pSelect, iTable, pEList);//调用substSelect函数，对 pItem->x.pSelect中Select语句进行处理
 		}
 	}
@@ -3133,8 +3117,8 @@ static void substSelect(
 *表达式分析必须发生在程序运行之前的外部查询和子查询中。
 */
 static int flattenSubquery(
-	Parse *pParse,       /* Parsing context *//*声明解析上下文的变量*/
-	Select *p,           /* The parent or outer SELECT statement *//*声明一个父查询或外查询的变量*/
+	Parse *pParse,       /* Parsing context *//*声明解析上下文的变量（解析器）*/
+	Select *p,           /* The parent or outer SELECT statement *//*声明一个父查询或外部查询的变量*/
 	int iFrom,           /* Index in p->pSrc->a[] of the inner subquery *//*内部查询中p->pSrc->a[]中的索引*/
 	int isAgg,           /* True if outer SELECT uses aggregate functions *//*外部查询如果用了聚集函数，则为TRUE*/
 	int subqueryIsAgg    /* True if the subquery uses aggregate functions *//*子查询如果使用了聚集函数，则为TRUE*/
@@ -3142,10 +3126,10 @@ static int flattenSubquery(
 	const char *zSavedAuthContext = pParse->zAuthContext;/*声明常变量对语法解析树中的上下文进行赋值*/
 	Select *pParent;
 	Select *pSub;       /* The inner query or "subquery" *//*声明变量 pSub用来表明内查询或子查询变量*/
-	Select *pSub1;      /* Pointer to the rightmost select in sub-query *//*声明Select变量，用来表示指向子查询中最右边的查询*/
+	Select *pSub1;      /* Pointer to the rightmost select in sub-query *//*声明pSub1变量，用来表示指向子查询中最右边的查询*/
 	SrcList *pSrc;      /* The FROM clause of the outer query *//*声明Srclist的对象，表明外部查询的FROM子句*/
 	SrcList *pSubSrc;   /* The FROM clause of the subquery *//*声明Srclist的对象，用来表示子查询的FROM子句*/
-	ExprList *pList;    /* The result set of the outer query *//*声明表达式Exprlist的变量外部查询的结果集*/
+	ExprList *pList;    /* The result set of the outer query *//*声明表达式Exprlist的变量，表示外部查询的结果集*/
 	int iParent;        /* VDBE cursor number of the pSub result set temp table *//*声明整数类型的变量，用来上表示VDBE游标号，指向内查询的临时表*/
 	int i;              /* Loop counter *//*循环计数*/
 	Expr *pWhere;                    /* The WHERE clause *//*用来表示WHERE子句*/
@@ -3155,18 +3139,18 @@ static int flattenSubquery(
 	/* Check to see if flattening is permitted.  Return 0 if not.
 	*//*检查是否允许扁平化，不允许则返回0*/
 	assert(p != 0);//SELECT结构体为空，抛出异常，这里是设置了断点，用于处理异常
-	assert(p->pPrior == 0);  // Unable to flatten compound queries *//*不能扁平化的复合查询
+	assert(p->pPrior == 0);  // Unable to flatten compound queries *//*不能扁平化的复合查询，加入断点，异常处理
 	if (db->flags & SQLITE_QueryFlattener) return 0;//如果数据连接中值为SQLITE_QueryFlattener且标记变量db->flags均符合条件，执行下一步 
-	pSrc = p->pSrc;/*查询结构体中from字句的赋值*/
-	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//不满足条件，则抛出异常
+	pSrc = p->pSrc;/*获取查询结构体中from子句*/
+	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//异常处理，加入断点不满足条件，则抛出异常
 	pSubitem = &pSrc->a[iFrom];//FROM子句中数组索引地址赋值给子查询pSubitem
-	iParent = pSubitem->iCursor;//将子查询的游标赋值给一个内查询或子查询VDBE游标号。
-	pSub = pSubitem->pSelect;//子查询或内查询赋值
-	assert(pSub != 0);//异常处理，如果子查询结构体为空，抛出警告信息
-	if (isAgg && subqueryIsAgg) return 0;                 /* Restriction (1)  *//*规则（1）使用了聚集函数*/
-	if (subqueryIsAgg && pSrc->nSrc>1) return 0;          /* Restriction (2)  *//*规则（2）*/
-	pSubSrc = pSub->pSrc;/*子查询from子句赋值给pSubSrc*/
-	assert(pSubSrc);/*异常处理，如果pSubSrc为空，抛出错误信息*/
+	iParent = pSubitem->iCursor;//获取子查询的游标号
+	pSub = pSubitem->pSelect;//获取当前的子查询或内查询
+	assert(pSub != 0);//异常处理，加入断点，如果子查询结构体为空，抛出警告信息
+	if (isAgg && subqueryIsAgg) return 0;                 /* Restriction (1)  *//*规则（1）子查询和外部查询使用了聚集函数，程序直接返回*/
+	if (subqueryIsAgg && pSrc->nSrc>1) return 0;          /* Restriction (2)  *//*规则（2）*///使用聚集函数或者from的子句个数>1
+	pSubSrc = pSub->pSrc;//获取子查询的from语句
+	assert(pSubSrc);/*异常处理，加入断点，如果pSubSrc为空，抛出错误信息*/
 	/* Prior to version 3.1.2, when LIMIT and OFFSET had to be simple constants,
 	** not arbitrary expresssions, we allowed some combining of LIMIT and OFFSET
 	** because they could be computed at compile-time.  But when LIMIT and OFFSET
@@ -3176,26 +3160,26 @@ static int flattenSubquery(
 	**因为他们可以在编译时计算。但是当LIMIT 和 OFFSET为任意的表达式，我们被迫使用规则（13）和
 	**规则（14）。
 	*/
-	if (pSub->pLimit && p->pLimit) return 0;              /* Restriction (13) *//*规则（13）*/
-	if (pSub->pOffset) return 0;                          /* Restriction (14) *//*规则（14）*/
+	if (pSub->pLimit && p->pLimit) return 0;              /* Restriction (13) *//*规则（13）*///子查询和外部查询不能使用limit
+	if (pSub->pOffset) return 0;                          /* Restriction (14) *//*规则（14）*///子查询不能使用offset语句
 	if (p->pRightmost && pSub->pLimit){/**/
-		return 0;                                            /* Restriction (15) *//*规则（15）*/
+		return 0;                                            /* Restriction (15) *//*规则（15）*///子查询不能有limit子句
 	}
-	if (pSubSrc->nSrc == 0) return 0;                       /* Restriction (7)  *//*规则（7）*/
-	if (pSub->selFlags & SF_Distinct) return 0;           /* Restriction (5)  *//*规则（5）*/
+	if (pSubSrc->nSrc == 0) return 0;                       /* Restriction (7)  *//*规则（7）*///判断子查询是否有from子句
+	if (pSub->selFlags & SF_Distinct) return 0;           /* Restriction (5)  *//*规则（5）*///含有distinct子句，直接返回
 	if (pSub->pLimit && (pSrc->nSrc>1 || isAgg)){
-		return 0;         /* Restrictions (8)(9) *//*规则（8）（9）*/
+		return 0;         /* Restrictions (8)(9) *//*规则（8）（9）*///子查询不使用聚集或连接操作，或limit子句
 	}
 	if ((p->selFlags & SF_Distinct) != 0 && subqueryIsAgg){
-		return 0;         /* Restriction (6)  *//*规则（6）*/
+		return 0;         /* Restriction (6)  *//*规则（6）*///子查询不使用聚集函数，外部查询不使用distinct子句
 	}
 	if (p->pOrderBy && pSub->pOrderBy){
-		return 0;                                           /* Restriction (11) *//*规则（11）*/
+		return 0;                                           /* Restriction (11) *//*规则（11）*///子查询和外部查询不能同时使用orderby子句
 	}
-	if (isAgg && pSub->pOrderBy) return 0;                /* Restriction (16) *//*规则（16）*/
-	if (pSub->pLimit && p->pWhere) return 0;              /* Restriction (19) *//*规则（19）*/
+	if (isAgg && pSub->pOrderBy) return 0;                /* Restriction (16) *//*规则（16）*///外部查询不能使聚集查询，子查询不能含有orderby子句
+	if (pSub->pLimit && p->pWhere) return 0;              /* Restriction (19) *//*规则（19）*///子查询不含limit子句，外部查询不含有where子句
 	if (pSub->pLimit && (p->selFlags & SF_Distinct) != 0){
-		return 0;         /* Restriction (21) *//*规则（21）*/
+		return 0;         /* Restriction (21) *//*规则（21）*///子查询不能含有limit，外部查询不能有distinct语句
 	}
 
   /* OBSOLETE COMMENT 1:
@@ -3258,7 +3242,7 @@ static int flattenSubquery(
 
 
 	  *//*如果子查询是一个复合的选择，那么它必须使用只有 UNION ALL 运算符，没有一个简单的选择查询组成在这个复合查询的子查询中，没有使用聚集函数和去除重复*/
-	  if( pSub->pPrior ){
+	  if( pSub->pPrior ){//判断子查询是否有优先查询
 		if( pSub->pOrderBy ){/*子查询含有OrderBy子句*/
 		  return 0;  /* 规则 20 直接返回*/
 		}
@@ -3356,7 +3340,7 @@ static int flattenSubquery(
 		ExprList *pOrderBy = p->pOrderBy;//S表达式列表pOrderBy的赋值
 		Expr *pLimit = p->pLimit;//对表达式的pLimit属性的赋值（select结构体）
 		Select *pPrior = p->pPrior;//优先查找重新赋值给新的变量
-		//初始化
+	
 		p->pOrderBy = 0;
 		p->pSrc = 0;
 		p->pPrior = 0;
@@ -5228,9 +5212,9 @@ select_end:
 		generateColumnNames(pParse, pTabList, pEList);/*生成列名*/
 	}
 
-	sqlite3DbFree(db, sAggInfo.aCol);
-	sqlite3DbFree(db, sAggInfo.aFunc);
-	return rc;
+	sqlite3DbFree(db, sAggInfo.aCol);/*释放数据库连接中存储聚集函数信息的列的内存*/
+	sqlite3DbFree(db, sAggInfo.aFunc);/*释放数据库连接中存储聚集函数信息的聚集函数名的内存*/
+	return rc;/*返回执行结束标记*/
 }
 
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
@@ -5241,14 +5225,14 @@ select_end:
 static void explainOneSelect(Vdbe *pVdbe, Select *p){
 	sqlite3ExplainPrintf(pVdbe, "SELECT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"SELECT "*/
 	if (p->selFlags & (SF_Distinct | SF_Aggregate)){/*有Distinct 或者Aggregate*/
-		if (p->selFlags & SF_Distinct){/*有Distinct */
-			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");
+		if (p->selFlags & SF_Distinct){/*有Distinct *//*如果selFlags为SF_Distinct*/
+			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"DISTINCT"*/
 		}
-		if (p->selFlags & SF_Aggregate){/*有Aggregate */
-			sqlite3ExplainPrintf(pVdbe, "agg_flag ");
+		if (p->selFlags & SF_Aggregate){/*有Aggregate *//*如果selFlags为SF_Aggregate*/
+			sqlite3ExplainPrintf(pVdbe, "agg_flag ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"agg_flag "*/
 		}
-		sqlite3ExplainNL(pVdbe);/*附加上'|n' */
-		sqlite3ExplainPrintf(pVdbe, "   ");
+		sqlite3ExplainNL(pVdbe);/*附加上'|n' *//*添加一个换行符（'\n',前提是如果结尾没有）*/
+		sqlite3ExplainPrintf(pVdbe, "   ");/*遍历FROM子句表达式列表*/
 	}
 	sqlite3ExplainExprList(pVdbe, p->pEList);/*为表达式列表p->pEList生成一个易读的描述信息*/
 	sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
