@@ -520,7 +520,7 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse�
 /*
 ** Insert code into "v" that will push the record on the top of the
 ** stack into the sorter.
-** 插入代码"v"，在分类器将会推进记录到栈的顶部。
+** 插入代码到"v",将会把记录放置在分类器的栈顶。
 */
 static void pushOntoSorter(
 	Parse *pParse,         /* Parser context  语义分析*/
@@ -590,12 +590,12 @@ static void codeOffset(
 ** form a distinct entry.  iTab is a sorting index that holds previously
 ** seen combinations of the N values.  A new entry is made in iTab
 ** if the current N values are new.
-** 添加代码，将检查确保N个寄存器开始iMem形成一个单独的条目。iTab是一个分类索引，
-** 预先见到的N值得组合。如果当前的N值是新的，一个新的条目由在iTab中产生。
+** 编写代码检查确定一个iMem表中N个注册者在一个单独的入口。
+** iTab是一个分类索引，预先能看到N个值的组合。如果在iTab中新存在一个N值，那么将会产生一个新的入口在iTab 中。
 **
 ** A jump to addrRepeat is made and the N+1 values are popped from the
 ** stack if the top N elements are not distinct.
-** 如最上面N个元素不明显，则跳转到addrRepeat，N+1个值从栈中弹出。
+** 如果N+1个值突然从栈中弹出，其中N个值是不唯一的，那么将会产生大量重复的地址（addrRepeat）
 */
 static void codeDistinct(
 	Parse *pParse,     /* Parsing and code generating context 语义和代码生成*/
@@ -622,9 +622,9 @@ static void codeDistinct(
 ** column.  We do this in a subroutine because the error used to occur
 ** in multiple places.  (The error only occurs in one place now, but we
 ** retain the subroutine to minimize code disruption.)
-** 当一个select语句中使用子表达式就产生一个错误的信息(例如:a in(select * from table))，
-** 但是它有多于1的结果列。我们在子程序中这样做是因为错误通常发生在多个地方。
-** (现在错误只发生在一个地方，但是我们保留中断的子程序将代码错误减少到最小。)
+** 如果select中使用一个这样的子句（“a IN (SELECT * FROM table)”）将会产生错误。
+** 因为它有不止一个结果列。我们运行子程序错误的原因是因为它能在多处发生运行。
+** 现在这个错误只在一处发生，但是我们依然保留这个子程序最小化的代码中断。
 */
 static int checkForMultiColumnSelectError(
 	Parse *pParse,       /* Parse context. 语义分析 */
@@ -646,7 +646,7 @@ static int checkForMultiColumnSelectError(
 /*
 ** This routine generates the code for the inside of the inner loop
 ** of a SELECT.
-** 这个程序产生代码为了select内连接的内部代码。
+** 这个程序产生代码为了select内连接循环。
 **
 ** If srcTab and nColumn are both zero, then the pEList expressions
 ** are evaluated in order to get the data for this row.  If nColumn>0
@@ -719,7 +719,7 @@ static void selectInnerLoop(
 	/* If the DISTINCT keyword was present on the SELECT statement
 	** and this row has been seen before, then do not make this row
 	** part of the result.
-	** 如果distinct关键字在select语句中出现，这行之前已经见过，那么这行不作为结果的一部分。
+	** 如果distinct关键字在select语句中出现，并且这行之前已经见过，那么这行不作为结果的一部分。
 	*/
 	if (hasDistinct){/*如果使用了distinct关键字*/
 		assert(pEList != 0);/*做断点，判断被提取的值列表是否为空*/
@@ -748,7 +748,7 @@ static void selectInnerLoop(
 		/* Construct a record from the query result, but instead of
 		** saving that record, use it as a key to delete elements from
 		** the temporary table iParm.
-		** 构建一个记录的查询结果，但不是保存该记录，将其作为从临时表iParm删除元素的一个键。
+		** 构建一个记录的查询结果，但不是保存该记录，用它作为删除临时表IParm的关键字。
 		*/
 	case SRT_Except: {/*如果eDest为SRT_Except，则从union索引中移除结果*/
 		sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn); /*添加一个新的指令VDBE指示当前的列表。返回新指令的地址。*/
@@ -785,8 +785,8 @@ static void selectInnerLoop(
 		** If we are creating a set for an "expr IN (SELECT ...)" construct,
 		** then there should be a single item on the stack.  Write this
 		** item into the set table with bogus data.
-		** 如果我们创建一个"expr IN (SELECT ...)"表达式 ，那么在堆栈上就应该
-		** 有一个单独的对象。把这个对象写入虚拟数据表。
+		** 如果我们创建一个这样的表达式"expr IN (SELECT ...)" ，那么在堆栈上就应该
+		** 只有一个单独的对象。把这个对象写入没有数据的表中。
 		*/
 	case SRT_Set: {/*如果eDest为SRT_Set，则结果作为关键字存入索引*/
 		assert(nColumn == 1);/*设断点，列数等于1*/
