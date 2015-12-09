@@ -5969,6 +5969,7 @@ static Bitmask codeOneLoopStart(
     sqlite3VdbeAddOp2(v, OP_Integer, 0, pLevel->iLeftJoin);
     VdbeComment((v, "init LEFT JOIN no-match flag"));
   }
+
 #ifndef SQLITE_OMIT_VIRTUALTABLE
   if(  (pLevel->plan.wsFlags & WHERE_VIRTUALTABLE)!=0 ){
     /* Case 0:  The table is a virtual-table.  Use the VFilter and VNext
@@ -6032,6 +6033,8 @@ static Bitmask codeOneLoopStart(
     ** 情况1:我们可以直接引用一个单行使用等式与ROWID字段比较。
     **       或引用多行使用"rowid IN (...)"结构。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+	情况1：我们可以直接使用等式与ROWID字段比较来引用一个单行。
+			或引用多行使用"rowid IN (...)"结构
     */
     iReleaseReg = sqlite3GetTempReg(pParse);
     pTerm = findTerm(pWC, iCur, -1, notReady, WO_EQ|WO_IN, 0);
@@ -6071,13 +6074,17 @@ static Bitmask codeOneLoopStart(
     }
     if( pStart ){
 <<<<<<< HEAD
-      Expr *pX;             /* 表达式,定义了开始*/
+      Expr *pX;             /* 定义了表达式的开始*/
       int r1, rTemp;        /* 寄存器开始容纳边界 */
 
       /* The following constant maps TK_xx codes into corresponding 
       ** seek opcodes.  It depends on a particular ordering of TK_xx
       下列常数TK_xx代码映射到相应的操作码。
       这取决于一个特定TK_xx指示
+	  /*
+	  下列常熟映射TK_xx代码到相应的操作吗
+	  这取决于一个特定TK_xx排序
+	  */
 =======
       Expr *pX;             /* The expression that defines the start bound 表达式定义了开始范围 */
       int r1, rTemp;        /* Registers for holding the start boundary 保存开始范围的寄存器 */
@@ -6163,16 +6170,18 @@ static Bitmask codeOneLoopStart(
     **
     **         The z<10 term of the following cannot be used, only
     **         the x=5 term:
-    **
+    **          下面的z<10是无效的，只有x=5是有效的
     **            x=5 AND z<10
     **
     **         N may be zero if there are inequality constraints.
     **         If there are no inequality constraints, then N is at
     **         least one.
-    **
+    **          如果有不等约束，N可以是0
+	**          如果没有不等约束，那么N至少是1
     **         This case is also used when there are no WHERE clause
     **         constraints but an index is selected anyway, in order
     **         to force the output order to conform to an ORDER BY.
+	**         这种情况在没有WHERE子句但不管怎样选了一个索引时也可以，目的是强制输出顺序遵从ORDER BY
 <<<<<<< HEAD
     where子句可能有0个或者多个相等关系（"==" or "IN" ）涉及到N个最左连接索引
     它可能也有不等关系(>, <, >= or <=)在索引集中紧跟着Ｎ相等关系。
@@ -6181,13 +6190,20 @@ static Bitmask codeOneLoopStart(
     　　　　　　　x=5
 =======
     **
-    ** 情况3:使用索引的扫描
-    **         WHERE子句可能包含0或多个等式
-    **         terms ("=="或"IN"运算符)涉及到N个索引最左边的列.
-    **         它可能在索引列上也包含不等式约束(>, <, >= or <=)，紧随其后有N个等式。
+    ** 情况3:使用索引扫描
+    **        
+	**它可能在索引列上也包含不等式约束(>, <, >= or <=)，紧随其后有N个等式。
     **         只有最右边的列可以为一个不等式--其余的必须使用"=="和"IN"运算符。
-    **         例如，如过有一个在(x,y,z)的索引，下面的子句都可以进行优化:
+    **         例如，如果有一个在(x,y,z)的索引，下面的子句都可以进行优化:
     **            x=5
+	/*
+	           WHERE子句可能包含0或多个等式
+    **        ("=="或"IN"运算符)，这些含有"=="或者"IN"的等式必须在索引的最左边N个列.
+    **         在N个等式后面可以有包含关于索引列的不等约束(>, <, >= or <=)
+	**         只有最右边的列可以为不等关系。例如：如果有在(x,y,z)的索引，那么下面的子句
+	**          都是最优的
+	*/
+	/*
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **            x=5 AND y=10
     **            x=5 AND y<10
