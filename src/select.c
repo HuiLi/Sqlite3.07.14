@@ -2040,7 +2040,7 @@ static int multiSelect(
 
 		/* Convert the data in the temporary table into whatever form
 		** it is that we currently need.
-		**将临时表中的数据转换成任何我们目前所需要的形式那就是。
+		**将临时表中的任何数据转换成我们目前数据。
 		*/
 		assert(unionTab == dest.iSDParm || dest.eDest != priorOp);
 		if (dest.eDest != priorOp){
@@ -2076,8 +2076,8 @@ static int multiSelect(
 		/* INTERSECT is different from the others since it requires
 		** two temporary tables.  Hence it has its own case.  Begin
 		** by allocating the tables we will need.
-		**由于INTERSECT需要两个临时表，所以它是不同于其它的。因此它有自己的案例。
-		**分配我们需要的表为开始。
+		**INTERSECT与其他的不同因为它需要两个临时表.因此它有自己的案例。
+		**从分配我们需要的表开始
 		*/
 		tab1 = pParse->nTab++;
 		tab2 = pParse->nTab++;
@@ -2152,8 +2152,7 @@ static int multiSelect(
 	/* Compute collating sequences used by
 	** temporary tables needed to implement the compound select.
 	** Attach the KeyInfo structure to all temporary tables.
-	**计算排序序列既使用了ORDER by子句，也使用了需要实现复合选择的任何临时表。把KeyInfo结构附加到所有临时表。
-	**如果有ORDER BY子句，调用ORDER BY处理。
+	**临时表所使用的计算排序序列需要实现复合查询。把KeyInfo结构附加到所有临时表。
 	**
 	** This section is run by the right-most SELECT statement only.
 	** SELECT statements to the left always skip this part.  The right-most
@@ -2161,7 +2160,7 @@ static int multiSelect(
 	** no temp tables are required.
 	**这部分是仅仅通过最右边的SELECT语句运行的。
 	** 左边的SELECT语句总是跳过这个部分。
-	**最右边的SELECT也可能跳过这个部分，如果它没有ORDER BY 子句并且没有临时需要的表的话
+	**最右边的SELECT如果没有ORDER BY也不需要临时表的话也可能跳过这个部分
 	*/
 	if (p->selFlags & SF_UsesEphemeral){
 		int i;                        /* Loop counter 循环计数器 */
@@ -2195,7 +2194,7 @@ static int multiSelect(
 				if (addr < 0){
 					/* If [0] is unused then [1] is also unused.  So we can
 					** always safely abort as soon as the first unused slot is found
-					**如果[0]没有被使用，所以[1]也没有被使用. 所以我们总能尽快安全地终止第一个发现未使用的位置
+					**如果[0]没有被使用，那么[1]也同样没有被使用. 所以我们在发现了第一个未使用的之后能够安全的中止它.
 					*/
 					assert(pLoop->addrOpenEphm[1] < 0);
 					break;
