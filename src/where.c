@@ -1,4 +1,4 @@
-﻿/*
+/*
 ** 2001 September 15
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -28,11 +28,29 @@
 **描述文档中.
 */
 /*
-
+**在SQLite 是不区分大小写的，但也有一些命令是大小写敏感的,比如 GLOB 和 glob 在 SQLite 的语句中有不同的含义.
+*/
+/*
 **where．C负责处理SQL语句中WHERE子句的代码的生成.
 **该模块用产生的一个循环的代码通过查询一个表来找适用的行.
 **当选择使用索引加快查找速度,是适用的.
 **因为这个模块负责选择索引,你也可以认为这个模块是“查询优化”.
+*/
+/*
+** SQLite将数据值的存储划分为以下几种存储类型：
+** NULL: 表示该值为NULL值。
+** INTEGER: 无符号整型值。
+** REAL: 浮点值。
+** TEXT: 文本字符串，存储使用的编码方式为UTF-8、UTF-16BE、UTF-16LE。
+** BLOB: 存储Blob数据，该类型数据和输入数据完全相同。
+**1.布尔数据类型：
+**  SQLite并没有提供专门的布尔存储类型，取而代之的是存储整型1表示true，0表示false。
+
+**2.日期和时间数据类型：
+** 和布尔类型一样，SQLite也同样没有提供专门的日期时间存储类型，而是以TEXT、REAL和INTEGER类型分别不同的格式表示该类型，如：
+** TEXT: "YYYY-MM-DD HH:MM:SS.SSS"
+** REAL: 以Julian日期格式存储
+** INTEGER: 以Unix时间形式保存数据值，即从1970-01-01 00:00:00到当前时间所流经的秒数。
 */
 #include "sqliteInt.h"
 
@@ -41,6 +59,7 @@
 ** Trace output macros
 ** 跟踪输出宏,用于测试和调试
 */
+
 #if defined(SQLITE_TEST) || defined(SQLITE_DEBUG)
 int sqlite3WhereTrace = 0;
 #endif
@@ -54,6 +73,19 @@ int sqlite3WhereTrace = 0;
 /* Forward reference
 ** 前置引用 
 ** 具体结构体在下面
+*/
+/*
+**Forward reference前置引用
+**准备语句对象。准备语句对象一个代表一个简单SQL语句对象的实例，这个对象
+**通常被称为“准备语句”或者“编译好的SQL语句”或者就直接称为“语句”.
+*/
+/*
+** 语句对象的生命周期经历这样的过程:
+** 1使用相关的函数创建这个对象.
+** 2使用相关的函数给宿主参数绑定值.
+** 3通过调用相关的函数一次或多次来执行这个sql.
+** 4使用相关的函数重置这个语句，然后回到第2步，这个过程做0次或多次.
+** 5使用相关函数销毁这个对象.
 */
 typedef struct WhereClause WhereClause;
 typedef struct WhereMaskSet WhereMaskSet;
@@ -140,6 +172,58 @@ typedef struct WhereCost WhereCost;
 ** 一个连接中的terms数目受prereqRight and prereqAll中的bits数限制。
 ** 默认是64位，因此SQLite只能处理64个或更少个表的连接。 
 */
+/*
+** 查询生成器用一个该结构体的数组来分析WHERE语句的子表达式. 
+** 每一个WHERE语句子表达式通常用AND隔开,有时使用OR操作符隔开.
+** SQLite的AND和OR运算符用于编译多个条件来缩小所选数据在SQLite语句。
+** AND和OR这两个操作符被称为连接运算符.在SQLite语句的WHERE子句，AND运算符
+** 允许存在多个条件, OR运算符用于多个条件结合起来.
+** 使用以下方式保存:
+**
+**           WhereTerm.pWC->a[WhereTerm.idx] == WhereTerm
+** 所有WhereTerms汇总到一个单一的WhereClause结构体中.
+** 如果term如下形式:
+**
+**               X <op> <expr>
+**
+** 这里X是一个列名并且<op>是某些操作符.
+** leftCursor和WhereTerm.u.leftColumn记录了X的指针数.
+** WhereTerm.eOperator使用下面定义的WO_xxx和位掩码（Bitmask）记录了<op>
+** 在使用操作符的位掩码编码，我们允许使用快速搜索匹配几种不同的操作符.
+** 一个WhereTerm也可能有由OR连接的2个或多个subterms.
+**
+**         (t1.X <op> <expr>) OR (t1.Y <op> <expr>) OR ....
+**
+** 在第二种情况下,wtFlag设为TERM_ORINFO，eOperator==WO_OR并且WhereTerm.u.pOrInfo
+** 指向收集的关于OR子句的信息.
+** 如果一个WHERE语句中的term不匹配前面两种情形，那么eOperator==0.
+** WhereTerm.pExpr字段对于原有子表达式内容和wtFlags还是恰当的,
+** 但是WhereTerm对象中的其他字段是无效的。
+** 当eOperator!=0, prereqRight and prereqAll用来间接地记录游标数.
+** 一个wheremaskset结构把游标数转化为bits，然后转化后的bit存储在prereq域中.
+** 这种转换是为了最大化bits的位掩码.
+** The VDBE cursor numbers为非负整数.
+** 举例，这个游标数可能为 3, 8, 9, 10, 20, 23, 41,45. 
+** WhereMaskSet把这些稀疏的游标数转换为连续整型,这些整数是从0开始的,这是为了尽
+** 可能利用可获得的Bitmask中的bits.
+** 所以,在上面的例子中,游标号将被映射成0至7的整数.
+** 在一个连接中的terms数目受到prereqRight和prereqAll比特数的限制.
+** 默认是64位, 因此SQLite仅能够处理64个以下的表的连接.
+**
+** 注意：Cursor 是一个随机的数据源.所有的数据都是通过下标取得.
+** 在数据库中，游标是一个十分重要的概念.
+** 游标提供了一种对从表中检索出的数据进行操作的灵活手段,
+** 就本质而言，游标实际上是一种能从包括多条数据记录的结果集中每次提取一条记录的机制.
+** 游标总是与一条T_SQL 选择语句相关联因为游标由结果集（可以是零条、
+** 一条或由相关的选择语句检索出的多条记录）和结果集中指向特定记录的游标位置组成.
+** 当决定对结果集进行处理时,必须声明一个指向该结果集的游标.
+**
+** 操作符
+** 所有的操作符(+, -, *, /, %, <<, >>, &, and |)在执行之前都会先将操作数转换
+** 为NUMERIC存储类型，即使在转换过程中可能会造成数据信息的丢失。
+** 此外，如果其中一个操作数为NULL，那么它们的结果亦为NULL。
+** 在操作符中，如果其中一个操作数看上去并不像数值类型，那么它们结果为0或0.0。
+*/
 
 /* WhereTerm 结构体用来存储 where 子句根据 <op>(AND、OR)分隔后的各个子句 */
 /*Expr 结构体，表示 语法分析树中的一个表达式的每个节点是该结构的一个实例。 出自sqliteInit.h 1829行*/
@@ -147,11 +231,14 @@ typedef struct WhereTerm WhereTerm;
 struct WhereTerm {
   Expr *pExpr;            /* Pointer to the subexpression(子表达式) that is this term 指向这个子表达式的指针 */
   int iParent;            /* Disable pWC->a[iParent] when this term disabled 当这个term销毁时禁用pWC->a[iParent] */
+                          /*  Disable pWC->a[iParent] when this term disabled.当这个term 被禁用,禁用 pWC->a[iParent]  */
   int leftCursor;         /* Cursor number of X in "X <op> <expr>"  在"X <op> <expr>"中的X的游标数 */
   union {
     int leftColumn;         /* Column number of X in "X <op> <expr>"  在"X <op> <expr>"中的X的列数 */
     WhereOrInfo *pOrInfo;   /* Extra information if eOperator==WO_OR 如果eOperator==WO_OR时的额外信息 */
+	                        /* Extra information if eOperator==WO_OR .  当eOperator==WO_OR时的附加信息 */
     WhereAndInfo *pAndInfo; /* Extra information if eOperator==WO_AND 如果eOperator==WO_AND时的额外信息 */
+	                        /* Extra information if eOperator==WO_AND. 如果eOperator==WO_AND时的附加信息*/
   } u;
   u16 eOperator;          /* A WO_xx value describing <op>  描述<op>的一个 WO_xx */
   u8 wtFlags;             /* TERM_xxx bit flags.  See below   TERM_xxx bit标志，下面的TERM_xxx定义了具体值 */
@@ -161,21 +248,44 @@ struct WhereTerm {
   Bitmask prereqAll;      /* Bitmask of tables referenced by pExpr  由pExpr引用的表位掩码 */
 };
 /*
+** Bitmask  位掩码
+** 比如打算用8位二进制表示可以任意组合的8个开关值
+** 则其对应bitmask为
+** #define SWITCH1 0x01
+** #define SWITCH2 0x02
+** #define SWITCH3 0x04
+** #define SWITCH4 0x08
+** #define SWITCH5 0x10
+** #define SWITCH6 0x20
+** #define SWITCH7 0x40
+** #define SWITCH8 0x80
+   unsigned char SW8;
+** 二进制位1表示开，0表示关
+*/
+/*
 ** Allowed values of WhereTerm.wtFlags
 ** wtFlags的可用值
 */
 #define TERM_DYNAMIC    0x01   /* Need to call sqlite3ExprDelete(db, pExpr)  需要调用sqlite3ExprDelete(db, pExpr) */
+                                /* 16进制0000 0001*/
 #define TERM_VIRTUAL    0x02   /* Added by the optimizer.  Do not code  由优化器添加，不需要编码*/
+                                /* 16进制0000 0010*/
 #define TERM_CODED      0x04   /* This term(项) is already coded  这个term已经被编码了 */
+                                /* 16进制0000 0100*/
 #define TERM_COPIED     0x08   /* Has a child  有一个子term */
+                                /* 16进制0000 1000*/
 #define TERM_ORINFO     0x10   /* Need to free the WhereTerm.u.pOrInfo object  需要释放WhereTerm.u.pOrInfo对象 */
+                                /* 16进制0001 0000*/
 #define TERM_ANDINFO    0x20   /* Need to free the WhereTerm.u.pAndInfo obj  需要释放WhereTerm.u.pAndInfo对象 */
+                                 /* 16进制0010 0000*/
 #define TERM_OR_OK      0x40   /* Used during OR-clause processing  当OR子句执行时使用 */
-
+                                 /* 16进制0100 0000*/
 #ifdef SQLITE_ENABLE_STAT3
 #  define TERM_VNULL    0x80   /* Manufactured x>NULL or x<=NULL term  生成 x>NULL or x<=NULL 的term */
+                                 /* 16进制1000 0000*/
 #else
 #  define TERM_VNULL    0x00   /* Disabled if not using stat3  如果不使用stat3则禁用 */
+                                  /* 16进制0000 0000*/
 #endif
 
 /* ****************** WhereClause定义说明 *********************
