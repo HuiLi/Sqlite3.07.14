@@ -108,7 +108,7 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*函数sqli
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure.
-** 分配一个新的选择结构并且返回一个指向该结构的指针.
+** 分配一个新的select结构,并且返回一个指向该结构的指针.
 */
 Select *sqlite3SelectNew(
 	Parse *pParse,        /* Parsing context  句法分析*/
@@ -182,7 +182,7 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*定义数据库db以及Select
 ** Given 1 to 3 identifiers preceeding the JOIN keyword, determine the
 ** type of join.  Return an integer constant that expresses that type
 ** in terms of the following bit values:
-** 给定1-3标识符提前加入关键字,确定加入的类型。返回一个整数常数表示该类型的下列值:
+** 在连接关键字前加一到三个标示符，决定使用何种连接方式。返回一个整数，表示使用以下的何种连接类型:
 **
 **     JT_INNER
 **     JT_CROSS
@@ -194,7 +194,8 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*定义数据库db以及Select
 ** A full outer join is the combination of JT_LEFT and JT_RIGHT.
 ** If an illegal or unsupported join type is seen, then still return
 ** a join type, but put an error in the pParse structure. 
-** 完全外连接的组合JT_LEFT JT_RIGHT。 如果发现非法或不受支持的连接类型,仍然要返回一个连接类型,但是要在pParse结构中保存这个错误信息
+** 全外连接是JT_LEFT和JT_RIGHT结合。 如果检测到是非法字符或者不支持的连接类型，
+** 也会返回一个连接类型，但是会在pParse结构中放入一个错误信息。
 */
 int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分析数变量pParse以及三个符文结构体（符文：具有执行某些操作的权利的对象）参数*/
 	int jointype = 0;/*临时变量用于标示链接类型*/
@@ -207,13 +208,13 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分�
 		u8 nChar;    /* Length of the keyword in characters  在字符中关键字的长度*/
 		u8 code;     /* Join type mask 标记连接类型*/
 	} aKeyword[] = {
-		/* natural 自然连接 */{ 0, 7, JT_NATURAL },
-		/* left   左连接 */{ 6, 4, JT_LEFT | JT_OUTER },
-		/* outer  外连接 */{ 10, 5, JT_OUTER },
-		/* right   右连接*/{ 14, 5, JT_RIGHT | JT_OUTER },
-		/* full    全连接*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },
-		/* inner  内连接 */{ 23, 5, JT_INNER },
-		/* cross   交叉连接*/{ 28, 5, JT_INNER | JT_CROSS },
+		/* natural 下标从0开始，长度为7，自然连接 */{ 0, 7, JT_NATURAL },
+		/* left   下标从6开始，长度为4，左连接 */{ 6, 4, JT_LEFT | JT_OUTER },
+		/* outer  下标从10开始，长度为5，外连接 */{ 10, 5, JT_OUTER },
+		/* right   下标从14开始，长度为5，右连接*/{ 14, 5, JT_RIGHT | JT_OUTER },
+		/* full    下标从19开始，长度为4，全连接*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },
+		/* inner  下标从23开始，长度为5，内连接 */{ 23, 5, JT_INNER },
+		/* cross   下标从28开始，长度为5，内连接或CROSS连接*/{ 28, 5, JT_INNER | JT_CROSS },
 	};//定义全部类型的连接，并给出起始位置、长度、连接类型
 	int i, j;
 	apAll[0] = pA;
@@ -254,7 +255,7 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分�
 /*
 ** Return the index of a column in a table.  Return -1 if the column
 ** is not contained in the table.
-** 返回一个表中的列的索引。如果该列没有包含在表中返回-1。
+** 返回表中的一列的下标，如果该列不在表中，返回-1.
 */
 static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函数columnIndex，参数列表为结构体指针pTab、只读的字符型指针zCol*/
 	int i;/*定义临时变量*/
@@ -267,11 +268,11 @@ static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函
 /*
 ** Search the first N tables in pSrc, from left to right, looking for a
 ** table that has a column named zCol.
-** 在FROM子句中扫描表，从左到右查找前N个表，搜索列中有名为zCol的表。
+** 在FROM子句中扫描表，从左到右,查找前N个表,找一个含有列名为zCol的表 。
 **
 ** When found, set *piTab and *piCol to the table index and column index
 ** of the matching column and return TRUE.
-** 当找到以后，设置* piTab和* piCol表索引和匹配列的列索引，并返回TRUE 。
+** 找到之后,设置*piTab给表索引，设置*piCol给需要匹配的列索引，再返回TRUE
 **
 ** If not found, return FALSE.
 ** 如果没有找到，返回FALSE。
@@ -311,8 +312,8 @@ static int tableAndColumnIndex(
 ** (iSrc+1)'th. Column col1 is column iColLeft of tab1, and col2 is
 ** column iColRight of tab2.
 
-** 此函数功能是用来添加where子句解释含有JOIN语法句,从而解释select语句。
-** 是相比现有的WHERE子句的这种形式：
+** 这个函数用来添加where子句解释含有JOIN语法句,从而解释select语句。
+** 这个新条款添加到含有where子句中的，格式如下:
 **
 ** (tab1.col1 = tab2.col2)
 **
