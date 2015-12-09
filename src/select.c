@@ -182,7 +182,7 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*定义数据库db以及Select
 ** Given 1 to 3 identifiers preceeding the JOIN keyword, determine the
 ** type of join.  Return an integer constant that expresses that type
 ** in terms of the following bit values:
-** 给定1-3标识符提前加入关键字,确定加入的类型。返回一个整数常数表示该类型的下列值:
+** 在连接关键字前加一到三个标示符，决定使用何种连接方式。返回一个整数，表示使用以下的何种连接类型。
 **
 **     JT_INNER
 **     JT_CROSS
@@ -194,7 +194,8 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*定义数据库db以及Select
 ** A full outer join is the combination of JT_LEFT and JT_RIGHT.
 ** If an illegal or unsupported join type is seen, then still return
 ** a join type, but put an error in the pParse structure. 
-** 完全外连接的组合JT_LEFT JT_RIGHT。 如果发现非法或不受支持的连接类型,仍然要返回一个连接类型,但是要在pParse结构中保存这个错误信息
+** 全外连接是JT_LEFT和JT_RIGHT结合。 如果检测到是非法字符或者不支持的连接类型，
+** 也会返回一个连接类型，但是会在pParse结构中放入一个错误信息。
 */
 int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分析数变量pParse以及三个符文结构体（符文：具有执行某些操作的权利的对象）参数*/
 	int jointype = 0;/*临时变量用于标示链接类型*/
@@ -207,13 +208,13 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分�
 		u8 nChar;    /* Length of the keyword in characters  在字符中关键字的长度*/
 		u8 code;     /* Join type mask 标记连接类型*/
 	} aKeyword[] = {
-		/* natural 自然连接 */{ 0, 7, JT_NATURAL },
-		/* left   左连接 */{ 6, 4, JT_LEFT | JT_OUTER },
-		/* outer  外连接 */{ 10, 5, JT_OUTER },
-		/* right   右连接*/{ 14, 5, JT_RIGHT | JT_OUTER },
-		/* full    全连接*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },
-		/* inner  内连接 */{ 23, 5, JT_INNER },
-		/* cross   交叉连接*/{ 28, 5, JT_INNER | JT_CROSS },
+		/* natural 下标从0开始，长度为7，自然连接 */{ 0, 7, JT_NATURAL },
+		/* left   下标从6开始，长度为4，左连接 */{ 6, 4, JT_LEFT | JT_OUTER },
+		/* outer  下标从10开始，长度为5，外连接 */{ 10, 5, JT_OUTER },
+		/* right   下标从14开始，长度为5，右连接*/{ 14, 5, JT_RIGHT | JT_OUTER },
+		/* full    下标从19开始，长度为4，全连接*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },
+		/* inner  下标从23开始，长度为5，内连接 */{ 23, 5, JT_INNER },
+		/* cross   下标从28开始，长度为5，内连接或CROSS连接*/{ 28, 5, JT_INNER | JT_CROSS },
 	};//定义全部类型的连接，并给出起始位置、长度、连接类型
 	int i, j;
 	apAll[0] = pA;
