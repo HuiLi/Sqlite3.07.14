@@ -1631,8 +1631,9 @@ static void identPut(char *z, int *pIdx, char *zSignedIdent){
 /*
 ** Generate a CREATE TABLE statement appropriate for the given
 ** table.  Memory to hold the text of the statement is obtained
-** from sqliteMalloc() and must be freed by the calling function.【生产一个CREATE TABLE语句适合给定的表。
-内存保存从sqliteMalloc()获得的文本声明，并且内存必须是通过调用函数释放。】
+** from sqliteMalloc() and must be freed by the calling function.
+** 生成一个CREATE TABLE语句适合给定的表。
+** 内存保存从sqliteMalloc()获得的文本声明，并且内存必须是通过调用函数释放。
 */
 static char *createTableStmt(sqlite3 *db, Table *p){
 	int i, k, n;
@@ -1742,9 +1743,9 @@ void sqlite3EndTable(
 	p = pParse->pNewTable;   //p指针指向当前正在创建的表的地址
 	if (p == 0) return;   //如果p为0意味着根本没有创建表
 
-	assert(!db->init.busy || !pSelect);   
+	assert(!db->init.busy || !pSelect);        //断言已经没有在读取SQL语句，并且并没有AS SELECT语句需要进行处理，后面的处理针对这种假设
 
-	iDb = sqlite3SchemaToIndex(db, p->pSchema);     
+	iDb = sqlite3SchemaToIndex(db, p->pSchema);   //为当前的模式创建索引    
 
 #ifndef SQLITE_OMIT_CHECK
 	/* Resolve names in all CHECK constraint expressions. 用所有的CHECK约束表达式确定名字。
@@ -1755,8 +1756,8 @@ void sqlite3EndTable(
 		ExprList *pList;                /* List of all CHECK constraints 所有CHECK约束的列表  */
 		int i;                          /* Loop counter  循环计数器 */
 
-		memset(&sNC, 0, sizeof(sNC));
-		memset(&sSrc, 0, sizeof(sSrc));
+		memset(&sNC, 0, sizeof(sNC));   //将sNC的所有单元用0代替，处理完成之后返回sNC
+		memset(&sSrc, 0, sizeof(sSrc));  //将sSrc的所有单元用0代替，处理完成之后返回sSrc
 		sSrc.nSrc = 1;
 		sSrc.a[0].zName = p->zName;
 		sSrc.a[0].pTab = p;
@@ -1778,62 +1779,70 @@ void sqlite3EndTable(
 	** "sqlite_master" or "sqlite_temp_master" table on the disk.
 	** So do not write to the disk again.  Extract the root page number
 	** for the table from the db->init.newTnum field.  (The page number
-	** should have been put there by the sqliteOpenCb routine.)【如果db->init.busy是1意思是我们正在读取SQL语句"sqlite_master"或磁盘上的"sqlite_temp_master"表。
-	从 db->init.newTnum 中提取出这个表根页码数。（这个页码数应该是通过sqliteOpenCb例程放在db->init.newTnum那里的。）】
+	** should have been put there by the sqliteOpenCb routine.)
+	** 如果db->init.busy是1意思是我们正在读取SQL语句"sqlite_master"或磁盘上的"sqlite_temp_master"表。
+	** 从 db->init.newTnum 中提取出这个表根页码数。（这个页码数应该是通过sqliteOpenCb例程放在db->init.newTnum那里的。）
 	*/
-	if (db->init.busy){
+	if (db->init.busy){   //如果正在读取SQL语句
 		p->tnum = db->init.newTnum;
 	}
 
 	/* If not initializing, then create a record for the new table
-	** in the SQLITE_MASTER table of the database.【如果没有初始化，那么在数据库的SQLITE_MASTER表中创建一个新表记录。】
+	** in the SQLITE_MASTER table of the database.
+	** 如果没有初始化，那么在数据库的SQLITE_MASTER表中创建一个新表记录。
 	**
 	** If this is a TEMPORARY table, write the entry into the auxiliary
-	** file instead of into the main database file.【如果是一个临时表，则把这个表条目写入辅助文件而不是写入主数据库文件。】
+	** file instead of into the main database file.
+	** 如果是一个临时表，则把这个表条目写入辅助文件而不是写入主数据库文件
 	*/
-	if (!db->init.busy){
+	if (!db->init.busy){   //没有读取SQL语句
 		int n;
 		Vdbe *v;
-		char *zType;    /* "view" or "table" */
-		char *zType2;   /* "VIEW" or "TABLE" */
-		char *zStmt;    /* Text of the CREATE TABLE or CREATE VIEW statement */
+		char *zType;    /* "view" or "table"   表示视图或者表*/
+		char *zType2;   /* "VIEW" or "TABLE"    视图或者表，第1814行涉及到了这个参数的初始化 */
+		char *zStmt;    /* Text of the CREATE TABLE or CREATE VIEW statement   创建表或者创建视图语句的上下文*/
 
-		v = sqlite3GetVdbe(pParse);
-		if (NEVER(v == 0)) return;
-
-		sqlite3VdbeAddOp1(v, OP_Close, 0);
+		v = sqlite3GetVdbe(pParse);  //SQLite中修改数据库时必须要获取VDBE
+		if (NEVER(v == 0)) return;  //如果v为0代表根本没有在修改数据库，直接退出操作
+		 
+		sqlite3VdbeAddOp1(v, OP_Close, 0);  //给VDBE增加操作OP_close（关闭操作）
 
 		/*
-		** Initialize zType for the new view or table.【为新视图或表初始化zType】
+		** Initialize zType for the new view or table.
+		** 为新视图或表初始化zType
 		*/
-		if (p->pSelect == 0){
-			/* A regular table【一个常规表】 */
-			zType = "table";
+		if (p->pSelect == 0){   //如果没有AS SELECT语句
+			/* A regular table  一个常规表 */
+			zType = "table";   //进行赋值的初始化
 			zType2 = "TABLE";
 #ifndef SQLITE_OMIT_VIEW
 		}
 		else{
 			/* A view */
-			zType = "view";
+			zType = "view";   //否则初始化为视图
 			zType2 = "VIEW";
 #endif
 		}
 
 		/* If this is a CREATE TABLE xx AS SELECT ..., execute the SELECT
 		** statement to populate the new table. The root-page number for the
-		** new table is in register pParse->regRoot.【如果这是一个CREATE TABLE xx AS SELECT ...，执行SELECT语句填充新表。新表的根页码数保存在寄存器pParse->regRoot中。】
-		**
+		** new table is in register pParse->regRoot.
+		** 如果这是一个CREATE TABLE xx AS SELECT ...，执行SELECT语句填充新表。新表的根页码数保存在寄存器pParse->regRoot中。
+		** 
 		** Once the SELECT has been coded by sqlite3Select(), it is in a
 		** suitable state to query for the column names and types to be used
-		** by the new table.【一旦这个SELECT被编译通过sqlite3Select()，它就会在合适的状态下去计算用于这个新表的列名和属性。】
+		** by the new table.
+		** 一旦这个SELECT被编译通过sqlite3Select()，它就会在合适的状态下去查询用于这个新表的列名和属性。
 		**
 		** A shared-cache write-lock is not required to write to the new table,
 		** as a schema-lock must have already been obtained to create it. Since
 		** a schema-lock excludes all other database users, the write-lock would
-		** be redundant.【不需要共享缓存写锁,写新表,作为一个schema-lock必须已经获得创建它。一旦一个schema-lock包含所有其他的数据库用户，这个写入锁将是多余的。】
+		** be redundant.
+		** 共享缓存的写锁不需要写到新表里面,因为一个模式锁已经获得，并且已经创建了新表（英文注释中it指代新创建的表）。
+		** 一旦一个schema-lock包含所有其他的数据库用户，这个写入锁将是多余的。
 		*/
-		if (pSelect){
-			SelectDest dest;
+		if (pSelect){    //如果有AS SELECT语句，下面处理这种情况
+			SelectDest dest;  
 			Table *pSelTab;
 
 			assert(pParse->nTab == 1);
@@ -1855,7 +1864,8 @@ void sqlite3EndTable(
 			}
 		}
 
-		/* Compute the complete text of the CREATE statement【计算这个CREATE语句的全文】 */
+		/* Compute the complete text of the CREATE statement
+		** 计算这个CREATE语句的全文 */
 		if (pSelect){
 			zStmt = createTableStmt(db, p);
 		}
@@ -1868,9 +1878,10 @@ void sqlite3EndTable(
 
 		/* A slot for the record has already been allocated in the
 		** SQLITE_MASTER table.  We just need to update that slot with all
-		** the information we've collected.【记录的位置已经被分派到SQLITE_MASTER表中。我们仅仅需要用我们收集的所有信息去更新位置。】
+		** the information we've collected.
+		** 记录的位置已经被分派到SQLITE_MASTER表中。我们仅仅需要用我们收集的所有信息去更新位置。
 		*/
-		sqlite3NestedParse(pParse,
+		sqlite3NestedParse(pParse,   //调用嵌套解析函数
 			"UPDATE %Q.%s "
 			"SET type='%s', name=%Q, tbl_name=%Q, rootpage=#%d, sql=%Q "
 			"WHERE rowid=#%d",
@@ -1887,7 +1898,8 @@ void sqlite3EndTable(
 
 #ifndef SQLITE_OMIT_AUTOINCREMENT
 		/* Check to see if we need to create an sqlite_sequence table for
-		** keeping track of autoincrement keys.【检查看看我们是否需要创建一个sqlite_sequence table表为了跟踪自动增量键。】
+		** keeping track of autoincrement keys.
+		** 检查看看我们是否需要创建一个sqlite_sequence table表为了跟踪自动增量键。
 		*/
 		if (p->tabFlags & TF_Autoincrement){
 			Db *pDb = &db->aDb[iDb];
@@ -1901,23 +1913,26 @@ void sqlite3EndTable(
 		}
 #endif
 
-		/* Reparse everything to update our internal data structures【重新解析一切更新我们的内部数据结构】 */
+		/* Reparse everything to update our internal data structures
+		** 重新解析一切更新我们的内部数据结构 */
 		sqlite3VdbeAddParseSchemaOp(v, iDb,
 			sqlite3MPrintf(db, "tbl_name='%q'", p->zName));
 	}
 
 
-	/* Add the table to the in-memory representation of the database.【将表添加到数据库的内存中表示】
+	/* Add the table to the in-memory representation of the database.
+	** 将表添加到数据库的内存中表示
 	*/
-	if (db->init.busy){
+	if (db->init.busy){   //如果数据库现在正在读SQL语句
 		Table *pOld;
 		Schema *pSchema = p->pSchema;
-		assert(sqlite3SchemaMutexHeld(db, iDb, 0));
+		assert(sqlite3SchemaMutexHeld(db, iDb, 0));  //互斥访问
 		pOld = sqlite3HashInsert(&pSchema->tblHash, p->zName,
 			sqlite3Strlen30(p->zName), p);
 		if (pOld){
-			assert(p == pOld);  /* Malloc must have failed inside HashInsert()【内存分配一定发生了错误在HashInsert()内】 */
-			db->mallocFailed = 1;
+			assert(p == pOld);  /* Malloc must have failed inside HashInsert()
+								** 内存分配一定发生了错误在HashInsert()内 */
+			db->mallocFailed = 1;    //内存申请失败
 			return;
 		}
 		pParse->pNewTable = 0;
@@ -1940,7 +1955,8 @@ void sqlite3EndTable(
 
 #ifndef SQLITE_OMIT_VIEW
 /*
-** The parser calls this routine in order to create a new VIEW【解析器跳动这个例程为了创建一个新视图。】
+** The parser calls this routine in order to create a new VIEW
+** 解析器调用这个例程为了创建一个新视图。
 */
 void sqlite3CreateView(
 	Parse *pParse,     /* The parsing context */
