@@ -944,7 +944,7 @@ static void exprCommute(Parse *pParse, Expr *pExpr){
   pExpr->pRight->flags = (pExpr->pRight->flags & ~EP_ExpCollate) | expLeft;  
   pExpr->pLeft->flags = (pExpr->pLeft->flags & ~EP_ExpCollate) | expRight;
   SWAP(Expr*,pExpr->pRight,pExpr->pLeft);  /*交换两个左右子节点*/
-  if( pExpr->op>=TK_GT ){
+  if( pExpr->op>=TK_GT ){                   /*判断pExpr->op是否大于等于TK_GT*/ 
     assert( TK_LT==TK_GT+2 );
     assert( TK_GE==TK_LE+2 );
     assert( TK_GT>TK_EQ );
@@ -962,9 +962,9 @@ static void exprCommute(Parse *pParse, Expr *pExpr){
 static u16 operatorMask(int op){
   u16 c;
   assert( allowedOp(op) );
-  if( op==TK_IN ){
+  if( op==TK_IN ){                               /*判断op是否等于TK_IN */ 
     c = WO_IN;
-  }else if( op==TK_ISNULL ){
+  }else if( op==TK_ISNULL ){                     /*判断op是否等于TK_ISNULL */ 
     c = WO_ISNULL;
   }else{
     assert( (WO_EQ<<(op-TK_EQ)) < 0x7fff );
@@ -977,7 +977,7 @@ static u16 operatorMask(int op){
   assert( op!=TK_LE || c==WO_LE );
   assert( op!=TK_GT || c==WO_GT );
   assert( op!=TK_GE || c==WO_GE );
-  return c;
+  return c;                                         /*返回C*/ 
 }
 
 /*
@@ -990,13 +990,21 @@ static u16 operatorMask(int op){
 ** 其中X是与表iCur的iColumn相关的,<op>是由op参数指定的WO_xx运算符的一种。
 ** 返回一个指向term的指针。如果没有找到就返回0。
 */
+/*
+** 在WHERE子句中查找一个term,这个term是由"X <op> <expr>"这种形式组成的.
+** 其中的X是与表iCur的iColumn相关的,WO_xx运算符编码的一种<op>是用op参数来说明的.
+** 返回一个指向term的指针.
+** 如果没有找到就返回0.
+*/
 static WhereTerm *findTerm(
   WhereClause *pWC,     /* The WHERE clause to be searched  要被查找的WHERE子句 */
+                        /* The WHERE clause to be searched.  搜索WhereClause*/
   int iCur,             /* Cursor number of LHS  LHS(等式的左边)的游标数 */
   int iColumn,          /* Column number of LHS  LHS(等式的左边)的列数 */
   Bitmask notReady,     /* RHS must not overlap with this mask  等式的右边不能与掩码重叠 */
   u32 op,               /* Mask of WO_xx values describing operator  描述运算符的WO_xx值的掩码 */
   Index *pIdx           /* Must be compatible with this index, if not NULL  必须与索引相一致，不能为空 */
+                         /* Must be compatible with this index, if not NULL. 如果不是零,必须兼容这个索引. */
 ){
   WhereTerm *pTerm;  /* 新建一个WhereTerm */
   int k;
@@ -1031,15 +1039,15 @@ static WhereTerm *findTerm(
           assert(pColl || pParse->nErr);
   
           for(j=0; pIdx->aiColumn[j]!=iColumn; j++){
-            if( NEVER(j>=pIdx->nColumn) ) return 0;
+            if( NEVER(j>=pIdx->nColumn) ) return 0;/*如果NEVER(j>=pIdx->nColumn)成立,返回0*/  
           }
           if( pColl && sqlite3StrICmp(pColl->zName, pIdx->azColl[j]) ) continue;
         }
-        return pTerm;
+        return pTerm;   /*返回pTerm*/
       }
     }
   }
-  return 0;
+  return 0;     /*返回pTerm*/  
 }
 
 /* Forward reference 前置引用 */
@@ -1075,7 +1083,24 @@ static void exprAnalyzeAll(
 ** 为了能够优化此运算符，等式的右边必须是一个字符串且不能以通配符开头。
 **
 */
-
+/*
+** SQLite的LIKE操作符是用来反对使用通配符的模式匹配的文本值.
+** 如果搜索表达式可以匹配的图案表达,LIKE运算将返回true,也就是1.
+** 有两个通配符与LIKE运算符一起使用：
+** 百分号 (%)
+** 下划线 (_)
+** 百分号表示零个，一个或多个数字或字符.
+** 下划线代表一个单一的数字或字符.这些符号可以被组合使用.
+*/
+/*
+** SQLite的GLOB运算符用于对图案使用通配符只匹配文本值。
+** 如果搜索表达式可以匹配的图案表达，GLOB运算将返回true，也就是1。
+** LIKE操作符不同，GLOB是大小写敏感的，它遵循以下通配符指定的UNIX语法。
+** 星号 (*)
+** 问号(?)
+** 星号表示零个或多个数字或字符。
+** ？代表一个单一的数字或字符。
+*/
 /*Expr结构体，语法分析树中的一个表达式的每个节点是该结构的一个实例。 出自sqliteInit.h 1829行*/
 static int isLikeOrGlob(
   Parse *pParse,    /* Parsing and code generating context 分析和编码生成上下文 */
@@ -1095,10 +1120,10 @@ static int isLikeOrGlob(
   int op;                    /* Opcode of pRight  pRight的Opcode */
 
   if( !sqlite3IsLikeFunction(db, pExpr, pnoCase, wc) ){  /*判断是否是LIKE函数*/
-    return 0;
+    return 0;               /*返回0*/
   }
 #ifdef SQLITE_EBCDIC
-  if( *pnoCase ) return 0;
+  if( *pnoCase ) return 0; /*如果*pnoCase 存在,返回0.*/
 #endif
   pList = pExpr->x.pList;  
   pLeft = pList->a[1].pExpr;  
@@ -1110,10 +1135,33 @@ static int isLikeOrGlob(
     /* IMP: R-02065-49465 The left-hand side of the LIKE or GLOB operator must
     ** be the name of an indexed column with TEXT affinity. 
     **
-	**IMP: R-02065-49465 LIKE或GLOB运算符的左边必须是一个TEXT亲和性的带索引的列名
+	** IMP: R-02065-49465 LIKE或GLOB运算符的左边必须是一个TEXT亲和性的带索引的列名
+	**
+	** 注意：类型亲缘性(Type Affinity)
+	** 作用：最大化SQLite和其它数据库引擎之间的数据类型兼容性.
+	** "类型亲缘性 "，是指在表字段被声明之后，SQLite都会根据该字段声明时的类型为其选择一种亲缘类型，
+	** 当数据插入时，该字段的数据将会优先采用亲缘类型作为该值的存储方式，
+	** 除非亲缘类型不匹配或无法转换当前数据到该亲缘类型，
+	** 这样SQLite才会考虑其它更适合该值的类型存储该值。
 	*/
-    return 0;
+    return 0;      /*返回0*/
   }
+  /*
+  **虚表 ：
+  ** 虚表是一种自定义的扩展，允许用户通过代码定制表的数据结构和数据内容；
+  ** 对于数据库引擎,它和普通表一,允许进行大多数的sql操作.
+  ** 虚表和普通表的主要不同在于,其表中的数据的来源；
+  ** 对于普通表,来源于数据库的行列值；而对于虚表,来源于用户自定义的函数,
+  ** 可以使数据库中的数据,也可以使其他的外部数据,如：磁盘文件(csv, excel)等.
+  ** 虚表是sqlite的一种高级特性,它的实现基于sqlite module；
+  ** 虚表被用于连接数据库引擎和可变的数据源,分为两种：internals and externals.
+  ** internal modules的数据来自于数据库文件本身,它的主要目的并不是做普通表不能做的,
+  ** 而是作为智能视图,更具扩展性的、更方便的、更快速的处理一些特定格式的数据.
+  ** sqlite本身带有两个modules：FTS3和R*Tree,用于全文检索；
+  ** external modules的数据来自于数据库文件外部，如cvs、excel文件等；
+  ** 这样,在不导入外部数据到数据库的情况下,用户能够以sql的方式访问和处理.
+  ** 外部数据源 （对于10万条记录，速度可以是秒级的）.
+  */
   assert( pLeft->iColumn!=(-1) );  /* Because IPK never has AFF_TEXT 因为IPK从没有TEXT亲和性 */
 
   pRight = pList->a[0].pExpr; 
@@ -1159,7 +1207,7 @@ static int isLikeOrGlob(
       pPrefix = sqlite3Expr(db, TK_STRING, z);  /*SQL数据类型(TK_INTEGER,TK_FLOAT,TK_BLOB或TK_STRING)*/
       if( pPrefix ) pPrefix->u.zToken[cnt] = 0;
       *ppPrefix = pPrefix;
-      if( op==TK_VARIABLE ){
+      if( op==TK_VARIABLE ){                   /*判断op是否等于TK_VARIABLE*/
         Vdbe *v = pParse->pVdbe;
         sqlite3VdbeSetVarmask(v, pRight->iColumn);
         if( *pisComplete && pRight->u.zToken[1] ){
@@ -1187,6 +1235,18 @@ static int isLikeOrGlob(
       z = 0;
     }
   }
+ /*
+** 存储：
+** SQLite最大的特点是可以把各种类型的数据保存到任何字段中,
+** 而不用关心字段声明的数据类型是什么.
+** 例如：可以在Integer类型的字段中存放字符串,或者在布尔型字段中存放浮点数,
+** 或者在字符型字段中存放日期型值.
+** 但有一种情况例外：定义为INTEGER PRIMARY KEY的字段只能存储64位整数,
+** 当向这种字段保存除整数以外的数据时,将会产生错误. 
+** 另外,SQLite 在解析CREATE TABLE 语句时，会忽略 CREATE TABLE 语句中跟在字段名
+**后面的数据类型信息。
+**        
+*/ 
 
   sqlite3ValueFree(pVal);  /*释放sqlite3_value对象*/
   return (z!=0);
@@ -1205,17 +1265,22 @@ static int isLikeOrGlob(
 ** 查看表达式是否是column MATCH expr形式，如果是则返回TRUE，否则返回FALSE
 **
 */
+/*
+** 检查给出的表达式是否为以下形式
+**         column MATCH expr 
+** 如果是,则返回TRUE,如果不是,则返回FALSE.
+*/
 static int isMatchOfColumn(
   Expr *pExpr      /* Test this expression 测试这个表达式*/
 ){
   ExprList *pList;  /*定义一个表达式列表结构体的实例*/
 
   if( pExpr->op!=TK_FUNCTION ){   /*TK_FUNCTION表示表达式是一个SQL函数*/
-    return 0;
+    return 0;                       /*返回0*/
   }
   /*sqlite3StrICmp为宏定义，表示内部函数原型*/
   if( sqlite3StrICmp(pExpr->u.zToken,"match")!=0 ){  /*zToken表示 标记值。零终止，未引用*/
-    return 0;
+    return 0;                           /*返回0*/
   }
   /*
   union {
@@ -1226,12 +1291,12 @@ static int isMatchOfColumn(
   */
   pList = pExpr->x.pList;
   if( pList->nExpr!=2 ){   /*nExpr表示列表中表达式的数目*/
-    return 0;
+    return 0;              /*返回0*/
   }
   if( pList->a[1].pExpr->op != TK_COLUMN ){  /*TK_COLUMN表示表达式是一个列*/
-    return 0;
+    return 0;               /*返回0*/
   }
-  return 1;
+  return 1;                 /*返回1*/
 }
 #endif /* SQLITE_OMIT_VIRTUALTABLE */
 
@@ -1241,6 +1306,9 @@ static int isMatchOfColumn(
 **
 ** 如果pBase表达式起源于一个连接的ON或USING子句，那么将适当的连接标记转移给派生的表达式 pDerived。
 **
+*/
+/*
+**如果pBase表达式起源于一个连接的ON或USING子句,那么推导出适当的标记.
 */
 static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
   pDerived->flags |= pBase->flags & EP_FromJoin;  /*EP_FromJoin表示起源于连接的ON或USING子句*/
