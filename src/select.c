@@ -2287,11 +2287,11 @@ static int generateOutputSubroutine(
 		*/
 	case SRT_Table:
 	case SRT_EphemTab: {
-		int r1 = sqlite3GetTempReg(pParse);
+		int r1 = sqlite3GetTempReg(pParse);/*分配一个寄存器，存储中间计算结果*/*/
 		int r2 = sqlite3GetTempReg(pParse);
-		testcase(pDest->eDest == SRT_Table);
-		testcase(pDest->eDest == SRT_EphemTab);
-		sqlite3VdbeAddOp3(v, OP_MakeRecord, pIn->iSdst, pIn->nSdst, r1);
+		testcase(pDest->eDest == SRT_Table);/*测试处理的结果集的表名称*/
+		testcase(pDest->eDest == SRT_EphemTab);/*测试处理的结果集的表的大小*/
+		sqlite3VdbeAddOp3(v, OP_MakeRecord, pIn->iSdst, pIn->nSdst, r1);/*把OP_MakeRecord（做记录）操作送入VDBE，再返回一个新指令地址*/
 		sqlite3VdbeAddOp2(v, OP_NewRowid, pDest->iSDParm, r2);
 		sqlite3VdbeAddOp3(v, OP_Insert, pDest->iSDParm, r1, r2);
 		sqlite3VdbeChangeP5(v, OPFLAG_APPEND);
@@ -2315,8 +2315,8 @@ static int generateOutputSubroutine(
 		r1 = sqlite3GetTempReg(pParse);
 		sqlite3VdbeAddOp4(v, OP_MakeRecord, pIn->iSdst, 1, r1, &p->affinity, 1);
 		sqlite3ExprCacheAffinityChange(pParse, pIn->iSdst, 1);
-		sqlite3VdbeAddOp2(v, OP_IdxInsert, pDest->iSDParm, r1);
-		sqlite3ReleaseTempReg(pParse, r1);
+		sqlite3VdbeAddOp2(v, OP_IdxInsert, pDest->iSDParm, r1);/*把OP_IdxInsert操作送入VDBE，再返回一个新指令地址*/
+		sqlite3ReleaseTempReg(pParse, r1);/*释放这个寄存器*/
 		break;
 	}
 
