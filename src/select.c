@@ -4357,7 +4357,7 @@ int sqlite3Select(
 	ExprList *pEList;      /* List of columns to extract. 提取的列列表*/
 	SrcList *pTabList;     /* List of tables to select from */
 	Expr *pWhere;          /* The WHERE clause.  May be NULL */
-	ExprList *pOrderBy;    /* The ORDER BY clause.  May be NULL */
+	ExprList *pOrderBy;    /* The ORDER BY clause.  May be NULL order by 子句 */
 	ExprList *pGroupBy;    /* The GROUP BY clause.  May be NULL */
 	Expr *pHaving;         /* The HAVING clause.  May be NULL */
 	int isDistinct;        /* True if the DISTINCT keyword is present */
