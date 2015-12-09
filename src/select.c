@@ -4787,21 +4787,22 @@ int sqlite3Select(
 			/* Initialize memory locations used by GROUP BY aggregate processing
 			**初始化被groupby 聚合处理的内存单元
 			*/
-			iUseFlag = ++pParse->nMem;
-			iAbortFlag = ++pParse->nMem;
-			regOutputRow = ++pParse->nMem;
-			addrOutputRow = sqlite3VdbeMakeLabel(v);
-			regReset = ++pParse->nMem;
-			addrReset = sqlite3VdbeMakeLabel(v);
-			iAMem = pParse->nMem + 1;
-			pParse->nMem += pGroupBy->nExpr;
-			iBMem = pParse->nMem + 1;
-			pParse->nMem += pGroupBy->nExpr;
-			sqlite3VdbeAddOp2(v, OP_Integer, 0, iAbortFlag);
-			VdbeComment((v, "clear abort flag"));
-			sqlite3VdbeAddOp2(v, OP_Integer, 0, iUseFlag);
-			VdbeComment((v, "indicate accumulator empty"));
-			sqlite3VdbeAddOp3(v, OP_Null, 0, iAMem, iAMem + pGroupBy->nExpr - 1);
+			iUseFlag = ++pParse->nMem;/*将语法解析树中的内存空间加1赋值给iUseFlag*/
+			iAbortFlag = ++pParse->nMem;/*将语法解析树中的内存空间加1赋值给iAbortFlag*/
+			regOutputRow = ++pParse->nMem;/*将语法解析树中的内存空间加1赋值给regOutputRow*/
+			addrOutputRow = sqlite3VdbeMakeLabel(v);/*为VDBE创建一个标签（指出继续运行的地址），返回值赋值给addrOutputRow*/
+			regReset = ++pParse->nMem;/*将语法解析树中的内存空间加1赋值给regReset*/
+			addrReset = sqlite3VdbeMakeLabel(v);/*为VDBE创建一个标签（指出继续运行的地址），返回值赋值给addrReset*/
+			iAMem = pParse->nMem + 1;/*将语法解析树中的内存空间加1赋值给iAMem*/
+			pParse->nMem += pGroupBy->nExpr;/*pGroupBy中表达式个数加语法解析树中的内存空间再赋值给语法解析树中的内存空间*/
+			iBMem = pParse->nMem + 1;/*将语法解析树中的内存空间加1赋值iBMem*/
+			pParse->nMem += pGroupBy->nExpr;/*pGroupBy中表达式个数加语法解析树中的内存空间再赋值给语法解析树中的内存空间*/
+			sqlite3VdbeAddOp2(v, OP_Integer, 0, iAbortFlag);/*将OP_Integer操作交给vdbe，然后返回这个操作的地址*/
+			VdbeComment((v, "clear abort flag"));;/*将“clear abort flag”放入到VDBE中*/
+			sqlite3VdbeAddOp2(v, OP_Integer, 0, iUseFlag);/*将OP_Integer操作交给vdbe，然后返回这个操作的地址*/
+			VdbeComment((v, "indicate accumulator empty"));/*将“indicate accumulator empty"放入到VDBE中*/
+			sqlite3VdbeAddOp3(v, OP_Null, 0, iAMem, iAMem + pGroupBy->nExpr - 1);/*将OP_Null操作交给vdbe，然后返回这个操作的地址*/
+
 
 			/* Begin a loop that will extract all source rows in GROUP BY order.
 			** This might involve two separate loops with an OP_Sort in between, or
