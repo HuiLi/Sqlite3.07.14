@@ -103,14 +103,15 @@
 ** 用这种方法，第一个块有了1索引。一个块索引为0意味着“无这样的块”和等效为一个空指针u.list由第二块为自由块组成。
 ** 这两块领域形成一个双链表的相关尺寸块。 
 ** 较小的块将头指针储存在mem3.aiSmall[]，较大的块将头指针储存在mem3.aiHash[]
-** 如果chunk被检查，那么chunk中的第二个块是用户数据。如果chunk被检验,那么用户数据将会被延生至下一个chunk的u.hdr.prevSize值内。
+** 如果chunk被检查，那么chunk中的第二个块是用户数据。
+** 如果chunk被检验,那么用户数据将会被延生至下一个chunk的u.hdr.prevSize值内。
 */
 typedef struct Mem3Block Mem3Block;   //定义一个任意类型的数据块结构体
 struct Mem3Block {
   union {       //联合体，它里面定义的每个变量使用同一段内存空间，达到节约空间的目的
     struct {
       u32 prevSize;   /* Size of previous chunk in Mem3Block elements  前一个chunk的大小 */
-      u32 size4x;     /* 4x the size of current chunk in Mem3Block elements  当前chunk大小 */
+      u32 size4x;     /* 4x the size of current chunk in Mem3Block elements  当前chunk大小的4倍 */
     } hdr;    //chunk中的第一个block名为hdr，不返回给用户
     struct {
       u32 next;       /* Index in mem3.aPool[] of next free chunk  下一个未使用chunk的索引号 */
@@ -189,16 +190,16 @@ static SQLITE_WSD struct Mem3Global {
 ** on.  *pRoot is the list that i is a member of.
 ** 
 ** 该函数把当前使用的块移出列表
-*/                  
+*/   
+//在mem3.aPool[]中删除结点i，pRoot为第一个结点               
 static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
   u32 next = mem3.aPool[i].u.list.next;  //将索引号为aPool[i]的块的下一个块索引号赋值给next
   u32 prev = mem3.aPool[i].u.list.prev;  //将索引号为aPool[i]的块的前一个块索引号赋给prev
   assert( sqlite3_mutex_held(mem3.mutex) );//若当前有互斥锁，则终止程序
   if( prev==0 ){    //若当前chunk的前一个chunk不存在
- *pRoot = next;     //将指针pRoot指向下一个chunk的 索引号
-
+    *pRoot = next;     //将指针pRoot指向下一个chunk的 索引号
   }else{ 
- mem3.aPool[prev].u.list.next = next;//否则将当前chunk的next赋给前一个chunk的下一个chunk
+    mem3.aPool[prev].u.list.next = next;//否则将当前chunk的next赋给前一个chunk的下一个chunk
   }
   if( next ){
     mem3.aPool[next].u.list.prev = prev;
@@ -216,8 +217,8 @@ static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
 static void memsys3Unlink(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
-  assert( (mem3.aPool[i-1].u.hdr.size4x & 1)==0 );  //该块大小为0，则终止程序
-  assert( i>=1 );                              //不存在该块，则终止程序
+  assert( (mem3.aPool[i-1].u.hdr.size4x & 1)==0 );  
+  assert( i>=1 );                              
   size = mem3.aPool[i-1].u.hdr.size4x/4;
 
   assert( size==mem3.aPool[i+size-1].u.hdr.prevSize );
@@ -313,7 +314,7 @@ static void *memsys3Checkout(u32 i, u32 nBlock){
   u32 x;
   assert( sqlite3_mutex_held(mem3.mutex) );
   assert( i>=1 );  //该块不存在则终止程序
-  assert( mem3.aPool[i-1].u.hdr.size4x/4==nBlock ); //若前一块大小为nBlock，则终止程序
+  assert( mem3.aPool[i-1].u.hdr.size4x/4==nBlock ); 
   assert( mem3.aPool[i+nBlock-1].u.hdr.prevSize==nBlock );
   x = mem3.aPool[i-1].u.hdr.size4x;
   mem3.aPool[i-1].u.hdr.size4x = nBlock*4 | 1 | (x&2);  //调整块大小
