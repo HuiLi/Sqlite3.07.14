@@ -7124,14 +7124,14 @@ WhereInfo *sqlite3WhereBegin(
     sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);	//提示连接中最多只能有BMS个表
     return 0;
   }
-  /* This function normally generates a nested loop for all tables in 
+ /* This function normally generates a nested loop for all tables in 
   ** pTabList.  But if the WHERE_ONETABLE_ONLY flag is set, then we should
   ** only generate code for the first table in pTabList and assume that
   ** any cursors associated with subsequent tables are uninitialized.
 <<<<<<< HEAD
-  该功能通常会产生一个嵌套循环中pTabList所有表。
-  但如果WHERE_ONETABLE_ONLY标志设置，那么我们应该只
-  生成代码为pTabList第一个表，并假定随后表相关的任何游标初始化。
+  该功能通常会为pTabList中德所有表产生一个嵌套循环。
+  但如果设置了WHERE_ONETABLE_ONLY标记，那么我们应该只
+  为pTabList第一个表生成代码而且认为与后续表相关联的任何游标不会初始化。
 =======
   **
   ** 这个函数一般是为在pTabList中的所有表生成一个嵌套循环。
@@ -7197,7 +7197,7 @@ WhereInfo *sqlite3WhereBegin(
   ** subexpression is separated by an AND operator.
 <<<<<<< HEAD
 
-  分裂WHERE集成独立的集表达式，其中每个集表达式由一个AND运算分离。
+  分裂WHERE子句成独立的子表达式，其中每个子表达式由一个AND运算符分隔。
 =======
   **
   ** 把WHERE子句通过AND运算符分割成多个子表达式。
@@ -7211,7 +7211,7 @@ WhereInfo *sqlite3WhereBegin(
   /* Special case: a WHERE clause that is constant.  Evaluate the
   ** expression and either jump over all of the code or fall thru.
 <<<<<<< HEAD
-  特殊情况：一个WHERE子集是恒定的。计算表达式，要么跳过所有的代码或下降。
+  特殊情况：一个WHERE子句是恒定的。计算表达式，接着要么跳过所有的代码或下降。
 =======
   **
   ** 特殊情况:一个WHERE子句是恒定的。对表达式求值时，要么跳过所有的代码，要么通过
@@ -7238,6 +7238,7 @@ WhereInfo *sqlite3WhereBegin(
   ** of the join.  Subtracting one from the right table bitmask gives a
   ** bitmask for all tables to the left of the join.  Knowing the bitmask
   ** for all tables to the left of a left join is important.  Ticket #3015.
+  **
   当指定位掩码值FROM子句光标，它一定是这样的，
   如果X是位掩码N个FROM子集中短期的，则掩码为所有FROM子集条件的N个任期的左
 为（X-1）。从LEFT的ON子句表达式JOIN可以使用它Expr.iRightJoinTable
@@ -7245,18 +7246,18 @@ WhereInfo *sqlite3WhereBegin(
 位掩码为所有表的加盟左侧。知道位掩码对于所有表左连接的左侧
 是重要的。票务＃3015
   **
-  ** 当把位掩码值分配给FROM子句游标时，如果X是N-th FROM子句项的位掩码，
+  ** 当把位掩码值分配给FROM子句游标时，情况必须是这样，即如果X是N-th FROM子句项的位掩码，
   ** 那么所有FROM子句terms的左边的第N项的位掩码是(X-1)。
   ** 一个来自于LEFT JOIN的ON子句的表达式可以使用它自己的Expr.iRightJoinTable值来查找这个连接的右表的位掩码。
   ** 从右边表的位掩码中减去一，把这个位掩码给连接的左边的所有的表。
-  ** 要知道一个左联接左边的所有表的位掩码是很重要的。
+  ** 要知道所有左连接的左表的位掩码是很重要的。
   **
   ** Configure the WhereClause.vmask variable so that bits that correspond
   ** to virtual table cursors are set. This is used to selectively disable 
   ** the OR-to-IN transformation in exprAnalyzeOrTerm(). It is not helpful
   ** with virtual tables.
-  配置WhereClause.vmask变量，以便对应于虚表指针位设置。
-  这是用来选择性地禁用exprAnalyzeOrTerm的或到IN变换（）。
+  设置WhereClause.vmask变量，以便设置对应的虚表指针。
+  这是用来选择性地禁用exprAnalyzeOrTerm()的或到IN变换。
   这对虚拟表是没有帮助的。
   **
   ** 设置WhereClause.vmask变量以便bits与设置好的虚拟表的游标相一致。
@@ -7270,6 +7271,7 @@ WhereInfo *sqlite3WhereBegin(
   需要注意的是位掩码为所有pTabList-> NSRC表中pTabList，
   不只是第一个nTabList表创建。nTabList通常等于pTabList-> NSRC但可能缩短为1，
   如果该WHERE_ONETABLE_ONLY标志被设置。
+  **注意：是为pTabList中德所有pTabList-> NSRC表生成掩位码，而不仅仅是第一个nTabList表
 =======
   **
   ** 注意:不只是为第一个nTabList表创建位掩码，而是为在pTabList中的所有pTabList->nSrc表创建。
@@ -7295,7 +7297,6 @@ WhereInfo *sqlite3WhereBegin(
     }
   }
 #endif
-
   /* Analyze all of the subexpressions.  Note that exprAnalyze() might
   ** add new virtual terms onto the end of the WHERE clause.  We do not
   ** want to analyze these virtual terms, so start analyzing at the end
