@@ -2098,21 +2098,22 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 	** Note that the call to sqlite3ResultSetOfSelect() will expand any
 	** "*" elements in the results set of the view and will assign cursors
 	** to the elements of the FROM clause.  But we do not want these changes
-	** to be permanent.  So the computation is done on a copy of the SELECT
+	** to be permanent（永久的）.  So the computation is done on a copy of the SELECT
 	** statement that defines the view.
 	** 如果我们打到了这个最大极限，意味着我们需要计算这个表名。
-	** 要注意的是，调用sqlite3ResultSetOfSelect()将增加一些"*"元素在设定视图的结果中，并且将分派光标对这些FROM字句的元素。
-	** 但是我们不想这些改变时永久的。因此计算是要做的在这个SELECT语句的副本上，用它来定义视图。
+	** 要注意的是，在视图结果集中，调用sqlite3ResultSetOfSelect()将展开任何一个'*'元素
+	** ，并且将为来自FROM子句的元素设置游标。
+	** 但是我们不想这些改变时永久的。因此计算要被做在这个定义视图的SELECT语句的副本上（也就是在副本上做下面的这个函数的操作）。
 	*/
-	assert(pTable->pSelect);
-	pSel = sqlite3SelectDup(db, pTable->pSelect, 0);
-	if (pSel){
-		u8 enableLookaside = db->lookaside.bEnabled;
+	assert(pTable->pSelect);   //断言这个定义视图的语句带有SELECT子句
+	pSel = sqlite3SelectDup(db, pTable->pSelect, 0);   //获取这个SELECT子句的副本，其中变量pSel代表的就是这个子句的副本，其中Dup（Duplicate 复制）的简写
+	if (pSel){   //如果副本确实是存在的，也就是说确实是有SELECT子句
+		u8 enableLookaside = db->lookaside.bEnabled;   
 		n = pParse->nTab;
-		sqlite3SrcListAssignCursors(pParse, pSel->pSrc);
+		sqlite3SrcListAssignCursors(pParse, pSel->pSrc);   //为来自FROM子句的元素设置游标
 		pTable->nCol = -1;
 		db->lookaside.bEnabled = 0;
-#ifndef SQLITE_OMIT_AUTHORIZATION
+#ifndef SQLITE_OMIT_AUTHORIZATION     
 		xAuth = db->xAuth;
 		db->xAuth = 0;
 		pSelTab = sqlite3ResultSetOfSelect(pParse, pSel);
