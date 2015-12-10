@@ -15,25 +15,28 @@
 ** the library with -DSQLITE_OMIT_AUTHORIZATION=1
 这个文件包含用于实现sqlite3_set_authorizer()API的代码。
 此工具是一个可选的特征库。
-不需要这个工具的嵌入式系统可能忽略它通过重新编译这个库-DSQLITE_OMIT_AUTHORIZATION = 1
+不需要这个工具的嵌入式系统可以忽略它通过设置-DSQLITE_OMIT_AUTHORIZATION = 1来重新编译这个库
 */
 #include "sqliteInt.h"//头文件
 
 /*
 ** All of the code in this file may be omitted by defining a single
 ** macro.
-所有的代码在这个文件中可以通过定义一个宏来省略。
+在这个文件中的所有代码可以通过定义一个宏来省略。
 */
-#ifndef SQLITE_OMIT_AUTHORIZATION
+#ifndef SQLITE_OMIT_AUTHORIZATION   防止SQLITE_OMIT_AUTHORIZATION被重复引用
 
 /*
 ** Set or clear the access authorization function.
-**
+** 设置或清除访问授权功能。
 ** The access authorization function is be called during the compilation
 ** phase to verify that the user has read and/or write access permission on
 ** various fields of the database.  The first argument to the auth function
 ** is a copy of the 3rd argument to this routine.  The second argument
 ** to the auth function is one of these constants:
+访问授权函数在编译阶段期间被称为验证在数据库的各个领域里用户读和/或写访问权限。
+授权函数的第一个参数是这个程序的第三个参数副本。
+授权函数的第二个参数是其中的一个常量:
 **
 **       SQLITE_CREATE_INDEX
 **       SQLITE_CREATE_TABLE
@@ -70,10 +73,13 @@
 **
 ** Setting the auth function to NULL disables this hook.  The default
 ** setting of the auth function is NULL.
-设置或清除访问授权功能。
-访问授权函数在编译阶段被称为验证在数据库的各个领域里用户读和/或写访问权限。
-授权函数的第一个参数是这个例程的第三参数副本。
-授权函数的第二个参数是其中的一个常量:
+授权函数的第三和第四个参数是正在被访问的表和列的名称。
+授权函数应该返回SQLITE_OK,SQLITE_DENY或SQLITE_IGNORE的任何一个。
+如果SQLITE_OK被返回,这意味着允许访问。
+SQLITE_DENY意味着SQL语句将不会运行——sqlite3_exec()调用将返回一个错误。
+SQLITE_IGNORE意味着应该运行SQL语句,但试图阅读指定的列将返回NULL,尝试写列将被忽略。
+授权函数设置为空时禁用这个钩子。授权函数的默认设置为NULL。
+
 * * SQLITE_CREATE_INDEX
 * * SQLITE_CREATE_TABLE
 * * SQLITE_CREATE_TEMP_INDEX
@@ -97,12 +103,7 @@
 * * SQLITE_SELECT
 * * SQLITE_TRANSACTION
 * * SQLITE_UPDATE
-授权函数的第三和第四参数是正在被访问的表和列的名称。
-授权函数应该返回SQLITE_OK,SQLITE_DENY或SQLITE_IGNORE。
-如果SQLITE_OK返回,这意味着允许访问。
-SQLITE_DENY意味着SQL语句将不会运行——sqlite3_exec()调用将返回一个错误。
-SQLITE_IGNORE意味着应该运行SQL语句,但试图阅读指定的列将返回NULL,尝试写列将被忽略。
-授权函数设置为空时禁用这个钩子机制。授权函数的默认设置为NULL。
+
 */
 int sqlite3_set_authorizer(
   sqlite3 *db,
@@ -120,7 +121,7 @@ int sqlite3_set_authorizer(
 /*
 ** Write an error message into pParse->zErrMsg that explains that the
 ** user-supplied authorization function returned an illegal value.
-写一个错误的信息为pParse -> zerrmsg说明用户提供授权函数返回了一个非法的值。
+一个错误的消息写入pParse -> zerrmsg说明用户提供的授权函数返回了一个非法的值。
 */
 static void sqliteAuthBadReturnCode(Parse *pParse){
   sqlite3ErrorMsg(pParse, "authorizer malfunction");
@@ -135,9 +136,9 @@ static void sqliteAuthBadReturnCode(Parse *pParse){
 ** If SQLITE_IGNORE is returned and pExpr is not NULL, then pExpr is changed
 ** to an SQL NULL expression. Otherwise, if pExpr is NULL, then SQLITE_IGNORE
 ** is treated as SQLITE_DENY. In this case an error is left in pParse.
-调用授权回调允许数据库zDb中从表zTab中读取列zCol。
-这个函数假设授权回调注册(即,sqlite3.xAuth 不为 NULL)。
-如果返回SQLITE_IGNORE和pExpr指针不为NULL,那么pExpr改为一个SQL空表达式。
+调用授权回调允许在数据库zDb中从表zTab中读取列zCol。
+这个函数假设一个授权回调已经被注册(即,sqlite3.xAuth 不为 NULL)。
+如果SQLITE_IGNORE被返回并且pExpr指针不为NULL,那么pExpr被改为一个SQL空表达式。
 否则,如果pExpr为空,则SQLITE_IGNORE视为SQLITE_DENY 。
 在这种情况下在pParse中一个错误被丢弃。
 */
@@ -168,13 +169,13 @@ int sqlite3AuthReadCol(
 /*
 ** The pExpr should be a TK_COLUMN expression.  The table referred to
 ** is in pTabList or else it is the NEW or OLD table of a trigger.  
-** Check to see if it is OK to read this pa rticular column.
+** Check to see if it is OK to read this particular column.
 **
 ** If the auth function returns SQLITE_IGNORE, change the TK_COLUMN 
 ** instruction into a TK_NULL.  If the auth function returns SQLITE_DENY,
 ** then generate an error.
 pExpr应该是一个TK_COLUMN表达式。
-这个表所指的是pTabList否则它是在新或旧的触发器的表
+这个表所指的是pTabList否则它是新或旧表的触发器
 检查是否可以读取这个特定列。
 如果授权函数返回SQLITE_IGNORE,将TK_COLUMN指令改变成TK_NULL。
 如果授权函数返回SQLITE_DENY,然后生成一个错误。
@@ -189,8 +190,8 @@ void sqlite3AuthRead(
   Table *pTab = 0;      /* The table being read 表正在被读*/
   const char *zCol;     /* Name of the column of the table 表的列的名称*/
   int iSrc;             /* Index in pTabList->a[] of table being read 表索引pTabList->a[] 正在被读*/
-  int iDb;              /* The index of the database the expression refers to 表达式是指数据库的索引*/
-  int iCol;             /* Index of column in table 在表中列的索引*/
+  int iDb;              /* The index of the database the expression refers to 数据库的索引表达式引用*/
+  int iCol;             /* Index of column in table 表中列的索引*/
 
   if( db->xAuth==0 ) return;
   iDb = sqlite3SchemaToIndex(pParse->db, pSchema);
@@ -237,7 +238,7 @@ void sqlite3AuthRead(
 ** modified appropriately.
 做一个使用给定的代码和参数的授权检查。
 返回要么是SQLITE_OK(零)要么是SQLITE_IGNORE 或SQLITE_DENY。
-如果SQLITE_DENY返回,那么错误数和错误pParse里适当修改的消息。
+如果SQLITE_DENY返回,那么pParse里的错误数和错误消息被适当修改。
 */
 int sqlite3AuthCheck(
   Parse *pParse,
@@ -251,8 +252,7 @@ int sqlite3AuthCheck(
 
   /* Don't do any authorization checks if the database is initialising
   ** or if the parser is being invoked from within sqlite3_declare_vtab.
-  不做任何授权检查
-  如果数据库初始化或解析器从sqlite3_declare_vtab内部调用。
+  如果数据库正在初始化或解析器被sqlite3_declare_vtab内部调用，那么不做任何授权检查
   */
   if( db->init.busy || IN_DECLARE_VTAB ){
     return SQLITE_OK;
@@ -276,8 +276,8 @@ int sqlite3AuthCheck(
 ** Push an authorization context.  After this routine is called, the
 ** zArg3 argument to authorization callbacks will be zContext until
 ** popped.  Or if pParse==0, this routine is a no-op.
-入栈授权上下文。调用这个例程后,授权回调的zArg3参数将是zContext直到突然破裂。
-或者如果pParse = = 0,这个例程是一个空操作。
+入栈授权上下文。这个程序被调用后,授权回调的zArg3参数将是zContext直到出栈。
+或者如果pParse = = 0,这个程序是一个空操作。
 */
 void  sqlite3AuthContextPush(
   Parse *pParse,
@@ -293,8 +293,7 @@ void  sqlite3AuthContextPush(
 /*
 ** Pop an authorization context that was previously pushed
 ** by sqlite3AuthContextPush
-出栈解析授权上下文，
-这个上下文被sqlite3AuthContextPush预先推出
+弹出被sqlite3AuthContextPush预先推出授权的上下文，
 */
 void sqlite3AuthContextPop(AuthContext *pContext){
   if( pContext->pParse ){
