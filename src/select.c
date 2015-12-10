@@ -3586,7 +3586,7 @@ static u8 minMaxQuery(Select *p){
   Expr *pExpr; //初始化一个表达式
   ExprList *pEList = p->pEList; //初始化表达式列表
 
-  if( pEList->nExpr!=1 ) return WHERE_ORDERBY_NORMAL;  //列表中不是只有一个表达式返回0，不做min()处理也不做max()处理
+  if( pEList->nExpr!=1 ) return WHERE_ORDERBY_NORMAL;  //列表中不是只有一个表达式返回0，即并非单一对象，不做min()处理也不做max()处理
   pExpr = pEList->a[0].pExpr; //将表达式列表中的第一个表达式赋给pExpr
   if( pExpr->op != TK_AGG_FUNCTION ) return 0; //如果表达式的操作码不等于TK_AGG_FUNCTION，则返回0
 /*
@@ -3597,7 +3597,7 @@ static u8 minMaxQuery(Select *p){
   pEList = pExpr->x.pList;
   if( pEList==0 || pEList->nExpr!=1 ) return 0;
   if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL; //如果新的表达式的操作码不等于TK_AGG_COLUMN，则返回0
-  assert( !ExprHasProperty(pExpr, EP_IntValue) ); //设置断言，判断ExprHasProperty(pExpr, EP_IntValue) == false是否成立
+  assert( !ExprHasProperty(pExpr, EP_IntValue) ); //设置断点，判断ExprHasProperty(pExpr, EP_IntValue) == false是否成立
   if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){ //如果表达式的标记值等于min则返回WHERE_ORDERBY_MIN
     return WHERE_ORDERBY_MIN;
   }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//如果表达式的标记值等于max则返回WHERE_ORDERBY_MAX
@@ -3654,7 +3654,7 @@ static u8 minMaxQuery(Select *p){
 	** SQLITE_ERROR and leave an error in pParse. Otherwise, populate 
 	** pFrom->pIndex and return SQLITE_OK.
 	*/
-	/*如果源列表的项作为一个索引是有异议的，那么久尝试定位特殊的索引。如果有一个子句而且被命名的索引找不到了，
+	/*如果源列表的项作为一个索引是有异议的，那么就尝试定位特殊的索引。如果有一个子句而且被命名的索引找不到了，
 	那么就返回错误并且在解析器中标记出错误。
 	否则填充到 pFrom->pIndex并且返回一个 SQLITE_OK
 	*/
@@ -3673,11 +3673,11 @@ static u8 minMaxQuery(Select *p){
 		if( !pIdx ){//没有找到对应的索引项
 		  sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);//输出错误信息
 		  pParse->checkSchema = 1;//语法解析器错误信息标识
-		  return SQLITE_ERROR;
+		  return SQLITE_ERROR;//返回错误信息
 		}
 		pFrom->pIndex = pIdx;//找到索引项，添加到FROM表达式项的索引结构体中
 	  }
-	  return SQLITE_OK;//执行正确
+	  return SQLITE_OK;//执行正确，返回正确信息
 	}
 
 	/*
@@ -3728,7 +3728,7 @@ static u8 minMaxQuery(Select *p){
 	  }
 	  p->selFlags |= SF_Expanded;//变量的位运算
 	  pTabList = p->pSrc;//FROM子句所指的赋值给FROM子句列表指针
-	  pEList = p->pEList;
+	  pEList = p->pEList;//获取表达式列表
 
 	  /* Make sure cursor numbers have been assigned to all entries in
 	  ** the FROM clause of the SELECT statement.
@@ -3740,7 +3740,7 @@ static u8 minMaxQuery(Select *p){
 	  ** then create a transient table structure to describe the subquery.
 	  *//*查找SELECT中FROM子句中每一个表名。若FROM子句的一个条目是子查询而不是一个表或视图，
 	  那么就创建一个描述子查询的事务表	  */
-	  //遍历表
+	  //遍历表达式列表
 	  for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
 		Table *pTab;//定义一个table类型的变量
 		if( pFrom->pTab!=0 ){//如果from表项中有表
@@ -3844,7 +3844,7 @@ static u8 minMaxQuery(Select *p){
 			/* This particular expression does not need to be expanded.
 			//这种特殊的表达不需要扩展*/
 			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//追加
-			if( pNew ){//非空
+			if( pNew ){//pnew非空
 			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//数组元素表名属性赋值
 			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//数组元素的zSpan属性赋值
 			  a[k].zName = 0;//置0
@@ -3915,7 +3915,7 @@ static u8 minMaxQuery(Select *p){
 				  pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);//调用sqlite3PExpr用来处理pLeft和pRight
 				  if( longNames ){//全路径
 					zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);//输出列名
-					zToFree = zColname;
+					zToFree = zColname;//获取列名
 				  }
 				}else{
 				  pExpr = pRight;//pright赋值给最后的表达式
@@ -3940,11 +3940,11 @@ static u8 minMaxQuery(Select *p){
 		p->pEList = pNew;//赋值
 	  }
 	#if SQLITE_MAX_COLUMN
-	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//列溢出
+	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//列溢出，表达式不为空
 		sqlite3ErrorMsg(pParse, "too many columns in result set");//打印错误信息
 	  }
 	#endif
-	  return WRC_Continue;
+	  return WRC_Continue;//继续执行
 	}
 
 	/*
