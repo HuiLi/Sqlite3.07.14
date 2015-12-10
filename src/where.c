@@ -2037,20 +2037,20 @@ static int findIndexCol(
 ** 可以受益于任何索引列 "b" 和 "c".
 */
 
+
 static int isDistinctIndex(
   Parse *pParse,                  /* Parsing context 分析上下文 */
   WhereClause *pWC,               /* The WHERE clause WHERE子句 */
   Index *pIdx,                    /* The index being considered 被考虑的索引 */
   int base,                       /* Cursor number for the table pIdx is on pIdx使用的表游标数 */
   ExprList *pDistinct,            /* The DISTINCT expressions DISTINCT表达式 */
-  int nEqCol                      /* Number of index columns with == ==中索引列的数目 */
+  int nEqCol                      /* Number of index columns with == 带==的索引列的数目 */
 ){
   Bitmask mask = 0;               /* Mask of unaccounted for pDistinct exprs 未解释的pDistinct exprs掩码 */
   int i;                          /* Iterator variable 迭代变量 */
 
   if( pIdx->zName==0 || pDistinct==0 || pDistinct->nExpr>=BMS ) return 0;
   testcase( pDistinct->nExpr==BMS-1 );
-
   /* Loop through all the expressions in the distinct list. If any of them
   ** are not simple column references, return early. Otherwise, test if the
   ** WHERE clause contains a "col=X" clause. If it does, the expression
