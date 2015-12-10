@@ -8412,9 +8412,9 @@ static int getPageReferenced(IntegrityCk *pCheck, Pgno iPg){
 
 /*
 ** Set the bit in the IntegrityCk.aPgRef[] array that corresponds to page iPg.
-** 在与页iPg相应的IntegrityCk.aPgRef[]数组中的位.
+** 设定在与页iPg相应的IntegrityCk.aPgRef[]数组中的位.
 */
-static void setPageReferenced(IntegrityCk *pCheck, Pgno iPg){  //在与页iPg相应的IntegrityCk.aPgRef[]数组中的位
+static void setPageReferenced(IntegrityCk *pCheck, Pgno iPg){  //设定在与页iPg相应的IntegrityCk.aPgRef[]数组中的位
   assert( iPg<=pCheck->nPage && sizeof(pCheck->aPgRef[0])==1 );
   pCheck->aPgRef[iPg/8] |= (1 << (iPg & 0x07));
 }
@@ -8840,24 +8840,22 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整的检查
     return 0;
   }
 
-  sCheck.aPgRef = sqlite3MallocZero((sCheck.nPage / 8)+ 1);
+  sCheck.aPgRef = sqlite3MallocZero((sCheck.nPage / 8)+ 1);  //分配并清零
   if( !sCheck.aPgRef ){
     *pnErr = 1;
     sqlite3BtreeLeave(p);
     return 0;
   }
   i = PENDING_BYTE_PAGE(pBt);
-  if( i<=sCheck.nPage ) setPageReferenced(&sCheck, i);
-  sqlite3StrAccumInit(&sCheck.errMsg, zErr, sizeof(zErr), 20000);
+  if( i<=sCheck.nPage ) setPageReferenced(&sCheck, i); 
+  sqlite3StrAccumInit(&sCheck.errMsg, zErr, sizeof(zErr), 20000);  //初始化一个字符串累加器
   sCheck.errMsg.useMalloc = 2;
 
-  /* Check the integrity of the freelist
-  */
+  /* Check the integrity of the freelist */   //核对空闲列表的完整性
   checkList(&sCheck, 1, get4byte(&pBt->pPage1->aData[32]),
             get4byte(&pBt->pPage1->aData[36]), "Main freelist: ");
 
-  /* Check all the tables.
-  */
+  /* Check all the tables.*/                 //核对所有表
   for(i=0; (int)i<nRoot && sCheck.mxErr; i++){
     if( aRoot[i]==0 ) continue;
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -8865,11 +8863,10 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整的检查
       checkPtrmap(&sCheck, aRoot[i], PTRMAP_ROOTPAGE, 0, 0);
     }
 #endif
-    checkTreePage(&sCheck, aRoot[i], "List of tree roots: ", NULL, NULL);
+    checkTreePage(&sCheck, aRoot[i], "List of tree roots: ", NULL, NULL);  //在树的一个单独的页上进行检查
   }
 
-  /* Make sure every page in the file is referenced
-  */
+  /* Make sure every page in the file is referenced .*/  //确保在文件中的每个页都被引用 
   for(i=1; i<=sCheck.nPage && sCheck.mxErr; i++){
 #ifdef SQLITE_OMIT_AUTOVACUUM
     if( getPageReferenced(&sCheck, i)==0 ){
@@ -8878,6 +8875,7 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整的检查
 #else
     /* If the database supports auto-vacuum, make sure no tables contain
     ** references to pointer-map pages.
+	** 如果数据库支持自动清理，确保没有表包含对指针位图页的引用。
     */
     if( getPageReferenced(&sCheck, i)==0 && 
        (PTRMAP_PAGENO(pBt, i)!=i || !pBt->autoVacuum) ){
@@ -8902,12 +8900,11 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整的检查
     );
   }
 
-  /* Clean  up and report errors.
-  */
+  /* Clean  up and report errors.*/  //清理并报错
   sqlite3BtreeLeave(p);
   sqlite3_free(sCheck.aPgRef);
   if( sCheck.mallocFailed ){
-    sqlite3StrAccumReset(&sCheck.errMsg);
+    sqlite3StrAccumReset(&sCheck.errMsg); //重置一个StrAccum类型的字符，并且回收所有分配的内存。
     *pnErr = sCheck.nErr+1;
     return 0;
   }
@@ -8924,10 +8921,10 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整的检查
 ** The pager filename is invariant as long as the pager is
 ** open so it is safe to access without the BtShared mutex.
 */
-/*返回数据库中的完整的路径名。如果该数据库为内存数据库，或者为临时数据库，
-返回空的字符串。
+/* 返回底层数据库文件中完整的路径名。如果该数据库为内存数据库，或者为临时数据库，
+** 返回空的字符串。pager的文件名是不变的只要pager是开放的，因此没有BtShared互斥锁也能安全访问.
 */
-const char *sqlite3BtreeGetFilename(Btree *p){
+const char *sqlite3BtreeGetFilename(Btree *p){    //返回底层数据库文件中完整的路径名
   assert( p->pBt->pPager!=0 );
   return sqlite3PagerFilename(p->pBt->pPager, 1);
 }
@@ -8941,18 +8938,19 @@ const char *sqlite3BtreeGetFilename(Btree *p){
 ** open so it is safe to access without the BtShared mutex.
 */
 /*
-返回数据库中日志文件的完整路径名。无论日志文件是否被创建，程序返回值相同。
-
+** 返回数据库中日志文件的路径名。无论日志文件是否被创建，程序返回值相同。
+** pager日志文件名是不变的只要pager开放，因此没有BtShared互斥锁也能安全访问.
 */
-const char *sqlite3BtreeGetJournalname(Btree *p){
+const char *sqlite3BtreeGetJournalname(Btree *p){  //返回数据库中日志文件的路径名
   assert( p->pBt->pPager!=0 );
   return sqlite3PagerJournalname(p->pBt->pPager);
 }
 
 /*
-** Return non-zero if a transaction is active.
+** Return non-zero if a transaction is active.  
+** 事务在运行，返回非零
 */
-int sqlite3BtreeIsInTrans(Btree *p){
+int sqlite3BtreeIsInTrans(Btree *p){     //是否在事务中
   assert( p==0 || sqlite3_mutex_held(p->db->mutex) );
   return (p && (p->inTrans==TRANS_WRITE));
 }
@@ -8967,11 +8965,11 @@ int sqlite3BtreeIsInTrans(Btree *p){
 ** Parameter eMode is one of SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART.
 */
 /*
-执行B树上的检查点，即第一个参数　
-如果连接到一个共享cache上的打开的事务，返回SQLITE_LOCKED。
-参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一。
+** 执行B树上的检查点作为第一个参数传递。如果这个或任何其他连接
+** 有一个开放的事务，返回SQLITE_LOCKED，事务在被B树连接的共享在参数上。
+** 参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一。
 */
-int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){
+int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //执行B树上的检查点作为第一个参数传递
   int rc = SQLITE_OK;
   if( p ){
     BtShared *pBt = p->pBt;
@@ -8989,6 +8987,7 @@ int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){
 
 /*
 ** Return non-zero if a read (or write) transaction is active.
+** 如果读或写事务在活动，返回非零
 */
 int sqlite3BtreeIsInReadTrans(Btree *p){
   assert( p );
@@ -9007,25 +9006,28 @@ int sqlite3BtreeIsInBackup(Btree *p){
 ** a single shared-btree. The memory is used by client code for its own
 ** purposes (for example, to store a high-level schema associated with 
 ** the shared-btree). The btree layer manages reference counting issues.
-**
+** 这个函数返回一个指向与一个单独的共享B树相关的内存中的blob。内存被客户端代码
+** 使用(例如,存储一个与shared-btree相关的高级模式)。btree层管理引用计数问题。
 ** The first time this is called on a shared-btree, nBytes bytes of memory
 ** are allocated, zeroed, and returned to the caller. For each subsequent 
 ** call the nBytes parameter is ignored and a pointer to the same blob
 ** of memory returned. 
-**
+** 这个函数是第一次在共享B树上调用。内存的nBytes个字节被分配，清零，并返回到调用者.
+** 对于每后来的调用nBytes字节都被忽略并且指针指向内存返回的相同blob对象.
 ** If the nBytes parameter is 0 and the blob of memory has not yet been
 ** allocated, a null pointer is returned. If the blob has already been
 ** allocated, it is returned as normal.
-**
+** 如果nBytes参数是0并且内存blob尚未分配,将返回一个空指针。如果该blob已经分配,它是正常返回。
 ** Just before the shared-btree is closed, the function passed as the 
 ** xFree argument when the memory allocation was made is invoked on the 
 ** blob of allocated memory. The xFree function should not call sqlite3_free()
 ** on the memory, the btree layer does that.
+** 在shared-btree关闭之前,内存分配时函数传递作为xFree参数在内存分配的blob上被调用。在内存上，xFree函数
+** 不能调用sqlite3_free()，在btree层可以调用。
 */
 /*
 函数返回一个指向blob型内存。内存用作客户端代码。在B树层管理引用计数的问题。
 第一次在所谓的共享B树上被调用，为nbytes字节的内存被分配。
-
 */
 void *sqlite3BtreeSchema(Btree *p, int nBytes, void(*xFree)(void *)){
   BtShared *pBt = p->pBt;
@@ -9044,7 +9046,7 @@ void *sqlite3BtreeSchema(Btree *p, int nBytes, void(*xFree)(void *)){
 ** sqlite_master table. Otherwise SQLITE_OK.
 */
 /*如果另一个用户在共享B树上有一个排他锁，返回SQLITE_LOCKED_SHAREDCACHE。*/
-int sqlite3BtreeSchemaLocked(Btree *p){
+int sqlite3BtreeSchemaLocked(Btree *p){    //B树模式锁
   int rc;
   assert( sqlite3_mutex_held(p->db->mutex) );
   sqlite3BtreeEnter(p);
@@ -9062,7 +9064,7 @@ int sqlite3BtreeSchemaLocked(Btree *p){
 ** if it is false.
 */
 /*获得表的根页iTab上的锁，isWriteLock=1是写锁，等于0为读锁。*/
-int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){
+int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //获得表的根页iTab上的锁
   int rc = SQLITE_OK;
   assert( p->inTrans!=TRANS_NONE );
   if( p->sharable ){
@@ -9071,9 +9073,9 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){
     assert( isWriteLock==0 || isWriteLock==1 );
 
     sqlite3BtreeEnter(p);
-    rc = querySharedCacheTableLock(p, iTab, lockType);
+    rc = querySharedCacheTableLock(p, iTab, lockType);//查看Btree句柄p是否在具有根页iTab的表上获得了lockType类型
     if( rc==SQLITE_OK ){
-      rc = setSharedCacheTableLock(p, iTab, lockType);
+      rc = setSharedCacheTableLock(p, iTab, lockType); //通过B树句柄p在根页iTable的表上添加锁到共享B树
     }
     sqlite3BtreeLeave(p);
   }
@@ -9086,7 +9088,7 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){
 ** Argument pCsr must be a cursor opened for writing on an 
 ** INTKEY table currently pointing at a valid table entry. 
 ** This function modifies the data stored as part of that entry.
-**
+** 参数pCsr必须是一个打开的游标　　目前* * INTKEY表指向一个有效的表条目。　　* *这个函数修改存储的数据作为输入的一部分。
 ** Only the data content may only be modified, it is not possible to 
 ** change the length of the data stored. If this function is called with
 ** parameters that attempt to write past the end of the existing data,
