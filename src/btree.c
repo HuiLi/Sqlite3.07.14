@@ -998,7 +998,7 @@ ptrmap_exit:
 ** the type and parent page number to *pEType and *pPgno respectively.
 ** An error code is returned if something goes wrong, otherwise SQLITE_OK.
 ** 从指针位图读取条目。
-** 这个程序检索页面 'key'的指针位图条目，分别将类型和父页码写入到*pEType 和 *pPgno中。
+** 这个函数检索页面 'key'的指针位图条目，分别将类型和父页码写入到*pEType 和 *pPgno中。
 ** 如果运行出错则返回错误代码，其他返回SQLITE_OK.
 */
 /*读取pointer map的条目，写入pEType和pPgno中*/
@@ -8431,7 +8431,7 @@ static void setPageReferenced(IntegrityCk *pCheck, Pgno iPg){  //在与页iPg相应的
 /*对页iPage的引用数量加1。如果是对页的第二个引用，加错误消息到pCheck->zErrMsg。
 如果对页有两次或者更多次，返回1。如果这个页被第一次引用，返回0。
 */
-static int checkRef(IntegrityCk *pCheck, Pgno iPage, char *zContext){
+static int checkRef(IntegrityCk *pCheck, Pgno iPage, char *zContext){  //对页iPage的引用数量加1
   if( iPage==0 ) return 1;
   if( iPage>pCheck->nPage ){
     checkAppendMsg(pCheck, zContext, "invalid page number %d", iPage);
@@ -8450,20 +8450,21 @@ static int checkRef(IntegrityCk *pCheck, Pgno iPage, char *zContext){
 ** Check that the entry in the pointer-map for page iChild maps to 
 ** page iParent, pointer type ptrType. If not, append an error message
 ** to pCheck.
+** 核对从页iChild映射到页iParent的指针位图中的条目，指针类型为ptrType.如果没有，附加错误信息到pCheck.
 */
 
-static void checkPtrmap(
-  IntegrityCk *pCheck,   /* Integrity check context */
-  Pgno iChild,           /* Child page number */
-  u8 eType,              /* Expected pointer map type */
-  Pgno iParent,          /* Expected pointer map parent page number */
-  char *zContext         /* Context description (used for error msg) */
+static void checkPtrmap(           //核对从页iChild映射到页iParent的指针位图中的条目
+  IntegrityCk *pCheck,   /* Integrity check context */                    //完整性检查上下文
+  Pgno iChild,           /* Child page number */                          //孩子页的页号
+  u8 eType,              /* Expected pointer map type */                  //指针映射的类型
+  Pgno iParent,          /* Expected pointer map parent page number */    //指针映射的父页码
+  char *zContext         /* Context description (used for error msg) */   //上下文描述(用作错误描述)
 ){
   int rc;
   u8 ePtrmapType;
   Pgno iPtrmapParent;
 
-  rc = ptrmapGet(pCheck->pBt, iChild, &ePtrmapType, &iPtrmapParent);
+  rc = ptrmapGet(pCheck->pBt, iChild, &ePtrmapType, &iPtrmapParent);      //从指针位图读取条目
   if( rc!=SQLITE_OK ){
     if( rc==SQLITE_NOMEM || rc==SQLITE_IOERR_NOMEM ) pCheck->mallocFailed = 1;
     checkAppendMsg(pCheck, zContext, "Failed to read ptrmap key=%d", iChild);
@@ -8481,14 +8482,15 @@ static void checkPtrmap(
 /*
 ** Check the integrity of the freelist or of an overflow page list.
 ** Verify that the number of pages on the list is N.
+** 检查空闲列表或溢出页列表的完整性。查证列表上的页数是N.
 */
-/*检查自由页链表和溢出页链表上的完整性。证实链表上页的数量为N*/
-static void checkList(
-  IntegrityCk *pCheck,  /* Integrity checking context */
-  int isFreeList,       /* True for a freelist.  False for overflow page list */
-  int iPage,            /* Page number for first page in the list */
-  int N,                /* Expected number of pages in the list */
-  char *zContext        /* Context for error messages */
+
+static void checkList(        //检查空闲列表或溢出页列表的完整性
+  IntegrityCk *pCheck,  /* Integrity checking context */                         //上下文完整性检查
+  int isFreeList,       /* True for a freelist.  False for overflow page list */ //空闲列表为true,溢出页列表为false
+  int iPage,            /* Page number for first page in the list */             //列表中第一个页的页码
+  int N,                /* Expected number of pages in the list */               //在列表中预期的页面数量
+  char *zContext        /* Context for error messages */                         //上下文的错误信息
 ){
   int i;
   int expected = N;
@@ -8539,8 +8541,8 @@ static void checkList(
       ** the following page matches iPage.
       */
       /*
-		如果数据库支持auto-vacuum和iPage并不是溢出链表中的最后一页，检查匹配
-		iPage的下一页的条目。
+	  ** 如果数据库支持auto-vacuum并且iPage不是溢出链表中的最后一页，检查匹配下一页与
+	  ** iPage匹配的指针位图条目。
 	  */
       if( pCheck->pBt->autoVacuum && N>0 ){
         i = get4byte(pOvflData);
@@ -8574,22 +8576,21 @@ static void checkList(
 **          the root of the tree.
 */
 /*
-在树上一个单独的页上进行检查。返回树的深度。根页返回0。根页上的父结点返回1，
-依次类推。
-以下将被检查:
-1、确保单元格和自由块不覆盖，但是完全覆盖页。
-2、确保单元格上的关键字排序好。
-3、确保没关键字小于等于zLowerBound。
-4、确保没关键字大于等于zUpperBound。
-5、检查溢出页的完整性。
-6、在所有孩子结点上递归调用checkTreePage。
-7、确保所有孩子结点都在同一层。
-8、除了根页，页中的应包含至少33%的信息。
+** 在树的一个单独的页上进行检查。返回树的深度。根页返回0。根页上的父结点返回1，
+** 依次类推。以下将被检查:
+** 1、确保单元格和自由块不覆盖，但是完全覆盖页。
+** 2、确保单元格上的关键字有序。
+** 3、确保关键字大于zLowerBound。
+** 4、确保关键字小于zUpperBound。
+** 5、检查溢出页的完整性。
+** 6、在所有孩子结点上递归调用checkTreePage。
+** 7、确保所有孩子结点深度相同。
+** 8、除了根页，页至少有33%的空间被使用。
 */
-static int checkTreePage(
-  IntegrityCk *pCheck,  /* Context for the sanity check */
-  int iPage,            /* Page number of the page to check */
-  char *zParentContext, /* Parent context */
+static int checkTreePage(    //在树的一个单独的页上进行检查
+  IntegrityCk *pCheck,  /* Context for the sanity check */       //核对上下文
+  int iPage,            /* Page number of the page to check */   //要核对页的页码
+  char *zParentContext, /* Parent context */                     //父节点上下文
   i64 *pnParentMinKey, 
   i64 *pnParentMaxKey
 ){
@@ -8607,8 +8608,7 @@ static int checkTreePage(
 
   sqlite3_snprintf(sizeof(zContext), zContext, "Page %d: ", iPage);
 
-  /* Check that the page exists
-  */
+  /* Check that the page exists */
   pBt = pCheck->pBt;
   usableSize = pBt->usableSize;
   if( iPage==0 ) return 0;
@@ -8620,7 +8620,8 @@ static int checkTreePage(
   }
 
   /* Clear MemPage.isInit to make sure the corruption detection code in
-  ** btreeInitPage() is executed.  */
+  ** btreeInitPage() is executed.  
+  ** 清理MemPage.isInit确保btreeInitPage()中的崩溃检测代码执行 */
   pPage->isInit = 0;
   if( (rc = btreeInitPage(pPage))!=0 ){
     assert( rc==SQLITE_CORRUPT );  /* The only possible error from InitPage */
@@ -8630,24 +8631,21 @@ static int checkTreePage(
     return 0;
   }
 
-  /* Check out all the cells.
-  */
+  /* Check out all the cells.*/
   depth = 0;
   for(i=0; i<pPage->nCell && pCheck->mxErr; i++){
     u8 *pCell;
     u32 sz;
     CellInfo info;
 
-    /* Check payload overflow pages
-    */
+    /* Check payload overflow pages */
     sqlite3_snprintf(sizeof(zContext), zContext,
              "On tree page %d cell %d: ", iPage, i);
     pCell = findCell(pPage,i);
-    btreeParseCellPtr(pPage, pCell, &info);
+    btreeParseCellPtr(pPage, pCell, &info);   //解析单元内容块，填在CellInfo结构中
     sz = info.nData;
     if( !pPage->intKey ) sz += (int)info.nKey;
-    /* For intKey pages, check that the keys are in order.
-    */
+    /* For intKey pages, check that the keys are in order. */  //对于intKey，有序核对关键字
     else if( i==0 ) nMinKey = nMaxKey = info.nKey;
     else{
       if( info.nKey <= nMaxKey ){
@@ -8664,14 +8662,13 @@ static int checkTreePage(
       Pgno pgnoOvfl = get4byte(&pCell[info.iOverflow]);
 #ifndef SQLITE_OMIT_AUTOVACUUM
       if( pBt->autoVacuum ){
-        checkPtrmap(pCheck, pgnoOvfl, PTRMAP_OVERFLOW1, iPage, zContext);
+        checkPtrmap(pCheck, pgnoOvfl, PTRMAP_OVERFLOW1, iPage, zContext); //核对从页pgnoOvfl映射到页iPage的指针位图中的条目
       }
 #endif
-      checkList(pCheck, 0, pgnoOvfl, nPage, zContext);
+      checkList(pCheck, 0, pgnoOvfl, nPage, zContext);  //检查空闲列表或溢出页列表的完整性
     }
 
-    /* Check sanity of left child page.
-    */
+    /* Check sanity of left child page. */    //核对左孩子
     if( !pPage->leaf ){
       pgno = get4byte(pCell);
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -8700,12 +8697,13 @@ static int checkTreePage(
   }
  
   /* For intKey leaf pages, check that the min/max keys are in order
-  ** with any left/parent/right pages.
+  ** with any left/parent/right pages. 
+  ** 对于intKey叶子页，对left/parent/right页有序核对min/max关键字.
   */
   if( pPage->leaf && pPage->intKey ){
-    /* if we are a left child page */
+    /* if we are a left child page */  //若是在左孩子页上
     if( pnParentMinKey ){
-      /* if we are the left most child page */
+      /* if we are the left most child page */  //如果在最左孩子页上
       if( !pnParentMaxKey ){
         if( nMaxKey > *pnParentMinKey ){
           checkAppendMsg(pCheck, zContext, 
@@ -8725,7 +8723,7 @@ static int checkTreePage(
         }
         *pnParentMinKey = nMaxKey;
       }
-    /* else if we're a right child page */
+    /* else if we're a right child page */  //在右孩子页上
     } else if( pnParentMaxKey ){
       if( nMinKey <= *pnParentMaxKey ){
         checkAppendMsg(pCheck, zContext, 
@@ -8735,16 +8733,15 @@ static int checkTreePage(
     }
   }
 
-  /* Check for complete coverage of the page
-  */
+  /* Check for complete coverage of the page .*/ //核对页被完全覆盖
   data = pPage->aData;
   hdr = pPage->hdrOffset;
-  hit = sqlite3PageMalloc( pBt->pageSize );
+  hit = sqlite3PageMalloc( pBt->pageSize );  //从缓冲区获得空间分配给页
   if( hit==0 ){
     pCheck->mallocFailed = 1;
   }else{
     int contentOffset = get2byteNotZero(&data[hdr+5]);
-    assert( contentOffset<=usableSize );  /* Enforced by btreeInitPage() */
+    assert( contentOffset<=usableSize );  /* Enforced by btreeInitPage() */ //被btreeInitPage()强制执行
     memset(hit+contentOffset, 0, usableSize-contentOffset);
     memset(hit, 1, contentOffset);
     nCell = get2byte(&data[hdr+3]);
@@ -8754,7 +8751,7 @@ static int checkTreePage(
       u32 size = 65536;
       int j;
       if( pc<=usableSize-4 ){
-        size = cellSizePtr(pPage, &data[pc]);
+        size = cellSizePtr(pPage, &data[pc]); //计算一个Cell需要的总的字节数
       }
       if( (int)(pc+size-1)>=usableSize ){
         checkAppendMsg(pCheck, 0, 
@@ -8766,13 +8763,13 @@ static int checkTreePage(
     i = get2byte(&data[hdr+1]);
     while( i>0 ){
       int size, j;
-      assert( i<=usableSize-4 );     /* Enforced by btreeInitPage() */
+      assert( i<=usableSize-4 );     /* Enforced by btreeInitPage() */  //被btreeInitPage()强制执行
       size = get2byte(&data[i+2]);
-      assert( i+size<=usableSize );  /* Enforced by btreeInitPage() */
+      assert( i+size<=usableSize );  /* Enforced by btreeInitPage() */  //被btreeInitPage()强制执行
       for(j=i+size-1; j>=i; j--) hit[j]++;
       j = get2byte(&data[i]);
-      assert( j==0 || j>i+size );  /* Enforced by btreeInitPage() */
-      assert( j<=usableSize-4 );   /* Enforced by btreeInitPage() */
+      assert( j==0 || j>i+size );  /* Enforced by btreeInitPage() */  //被btreeInitPage()强制执行
+      assert( j<=usableSize-4 );   /* Enforced by btreeInitPage() */  //被btreeInitPage()强制执行
       i = j;
     }
     for(i=cnt=0; i<usableSize; i++){
@@ -8790,8 +8787,8 @@ static int checkTreePage(
           cnt, data[hdr+7], iPage);
     }
   }
-  sqlite3PageFree(hit);
-  releasePage(pPage);
+  sqlite3PageFree(hit);   //释放从sqlite3PageMalloc()获得的缓冲区
+  releasePage(pPage);     //释放内存页
   return depth+1;
 }
 #endif /* SQLITE_OMIT_INTEGRITY_CHECK */
@@ -8810,16 +8807,17 @@ static int checkTreePage(
 ** malloc is returned if *pnErr is non-zero.  If *pnErr==0 then NULL is
 ** returned.  If a memory allocation error occurs, NULL is returned.
 */
-/*在BTree文件中做一个完全的检查。aRoot[]是一个数组，数组中每一个元素存放每个表的根页。
-aRoot中的条目数量为nRoot。在这个函数被调用之前，一个只读或者读写事务必须为打开状态。
-写错误数量到*pnErr。
+/* 该函数对BTree文件做一个完全的检查。aRoot[]是一个页码数组，数组中每一个页码都是表的根页。
+** aRoot中的条目数量为nRoot。在调用这个函数之前，一个只读或者读写事务必须为打开状态。
+** 写错误数量在*pnErr中可见。除了一些内存错误，如果*pnErr非零，一个从malloc中获得的错误信息保存在内存。*pnErr==0，
+** 返回NULL.内存分配错误返回NULL.
 */
-char *sqlite3BtreeIntegrityCheck(
-  Btree *p,     /* The btree to be checked */
-  int *aRoot,   /* An array of root pages numbers for individual trees */
-  int nRoot,    /* Number of entries in aRoot[] */
-  int mxErr,    /* Stop reporting errors after this many */
-  int *pnErr    /* Write number of errors seen to this variable */
+char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整的检查
+  Btree *p,     /* The btree to be checked */                             //要被检查的B树
+  int *aRoot,   /* An array of root pages numbers for individual trees */ //一个树的根页码数组
+  int nRoot,    /* Number of entries in aRoot[] */                        //aRoot[]中的条目数
+  int mxErr,    /* Stop reporting errors after this many */               //达到这个数之后停止报错
+  int *pnErr    /* Write number of errors seen to this variable */        //错误数赋给该变量
 ){
   Pgno i;
   int nRef;
@@ -8832,7 +8830,7 @@ char *sqlite3BtreeIntegrityCheck(
   nRef = sqlite3PagerRefcount(pBt->pPager);
   sCheck.pBt = pBt;
   sCheck.pPager = pBt->pPager;
-  sCheck.nPage = btreePagecount(sCheck.pBt);
+  sCheck.nPage = btreePagecount(sCheck.pBt);  //返回页中数据库文件(页)的大小
   sCheck.mxErr = mxErr;
   sCheck.nErr = 0;
   sCheck.mallocFailed = 0;
