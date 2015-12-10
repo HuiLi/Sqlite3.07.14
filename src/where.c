@@ -1999,7 +1999,8 @@ static int findIndexCol(
   return -1;                 /* 返回-1*/
 }
 
-/*
+
+*
 ** This routine determines if pIdx can be used to assist in processing a
 ** DISTINCT qualifier. In other words, it tests whether or not using this
 ** index for the outer loop guarantees that rows with equal values for
@@ -2014,6 +2015,28 @@ static int findIndexCol(
 ** 这个程序决定如果pIdx能被用于辅助在程序执行中的DISTINCT限定。
 ** 换句话说，它测试是否为了外部循环使用这个索引来保证在pDistinct列表中所有表达式中等值的行是组合在一起交付的
 */
+/*
+** This routine determines if pIdx can be used to assist in processing a
+** DISTINCT qualifier. In other words, it tests whether or not using this
+** index for the outer loop guarantees that rows with equal values for
+** all expressions in the pDistinct list are delivered grouped together.
+**
+** For example, the query 
+**
+**   SELECT DISTINCT a, b, c FROM tbl WHERE a = ?
+**
+** can benefit from any index on columns "b" and "c".
+**
+** 这个程序决定DISTINCT限定，如果pIdx能被用于辅助的程序的执行。
+** 换句话说，它测试与否是为了外部循环在使用这个索引，
+** 来保证在pDistinct列表中所有表达式中等值的行是组合在一起交付的。
+** 举例, 该查询
+**
+**   SELECT DISTINCT a, b, c FROM tbl WHERE a = ?
+**
+** 可以受益于任何索引列 "b" 和 "c".
+*/
+
 static int isDistinctIndex(
   Parse *pParse,                  /* Parsing context 分析上下文 */
   WhereClause *pWC,               /* The WHERE clause WHERE子句 */
