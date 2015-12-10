@@ -1891,8 +1891,8 @@ static void exprAnalyze(
   */
   if( pExpr->op==TK_NOTNULL
    && pExpr->pLeft->op==TK_COLUMN
-   && pExpr->pLeft->iColumn>=0
-  ){
+   && pExpr->pLeft->iColumn>=0             /*判断*/
+  ){ 
     Expr *pNewExpr;
     Expr *pLeft = pExpr->pLeft;
     int idxNew;
@@ -1943,10 +1943,10 @@ static int referencesOtherTables(
   Bitmask allowed = ~getMask(pMaskSet, iBase);
   while( iFirst<pList->nExpr ){
     if( (exprTableUsage(pMaskSet, pList->a[iFirst++].pExpr)&allowed)!=0 ){
-      return 1;
+      return 1;      /*返回1*/
     }
   }
-  return 0;
+  return 0;     /*返回0*/
 }
 
 /*
@@ -1964,6 +1964,14 @@ static int referencesOtherTables(
 ** no expression is found, -1 is returned.
 **
 ** 若一个表达式被查到，返回它的在pList->a[]下标。如果没有查到，则返回-1.
+*/
+/*
+** 这个函数查询表达式列表作为第二个参数传递给TK_COLUMN类型的表达式，
+** 表达式引用相同的列，使用相同的排序序列作为索引pIdx的iCol'th列。
+** 参数iBase是指游标数被用在pIdx指向的表上。
+**
+** 若一个表达式被查到，返回它的在pList->a[]中的索引。
+** 如果没有查到，则返回-1.
 */
 static int findIndexCol(
   Parse *pParse,                  /* Parse context 分析上下文 */
@@ -1983,12 +1991,12 @@ static int findIndexCol(
     ){
       CollSeq *pColl = sqlite3ExprCollSeq(pParse, p);
       if( ALWAYS(pColl) && 0==sqlite3StrICmp(pColl->zName, zColl) ){
-        return i;
+        return i;                   /*返回i*/
       }
     }
   }
 
-  return -1;
+  return -1;                 /* 返回-1*/
 }
 
 /*
