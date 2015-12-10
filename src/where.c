@@ -1511,6 +1511,10 @@ static void exprAnalyzeOrTerm(
   ** WhereOrInfo对象附加到原始的OR子句term中。
   */
   /*
+  ** OR子句分解成单独的子terms.将子terms存储在一个包含WhereOrInfo对象的WhereClause的数据结构中，
+  ** 然后附加到原始的OR子句term中.
+  */
+  /*
   ** wtFlags表示TERM_xxx bit标志，TERM_DYNAMIC表示需要调用sqlite3ExprDelete(db, pExpr)，
   ** TERM_ORINFO表示需要释放WhereTerm.u.pOrInfo对象，TERM_ANDINFO表示需要释放WhereTerm.u.pAndInfo对象。
   */
@@ -1525,6 +1529,15 @@ static void exprAnalyzeOrTerm(
   exprAnalyzeAll(pSrc, pOrWc);  /*分析所有子句*/
   if( db->mallocFailed ) return;  /*动态内存分配失败，结束*/
   assert( pOrWc->nTerm>=2 );  /*判定子句的子term大于等于2个，OR运算符*/
+  /*
+  ** SQLite通过动态内存分配来获取各种对象（例如数据库连接和SQL预处理语句）
+  ** 所需内存、建立数据库文件的内存Cache、以及保存查询结果.
+  ** 对防止内存分配失败或堆内存出现碎片提供形式化的保证.
+  **
+  ** SQLite能配置成保证不会出现内存分配失败或内存碎片.
+  ** 这个特性对长期运行、高可靠性的嵌入式系统至关重要,
+  ** 在这样的系统上一个内存分配错误可能会导致整个系统失效. 
+  */
   /*
   ** Compute the set of tables that might satisfy cases 1 or 2.
   **
@@ -1586,11 +1599,22 @@ static void exprAnalyzeOrTerm(
       }
     }
   }
-
+ /* 
+** 优化的方法
+** 对要查询的每个表,统计这个表上的索引信息,将代价赋值.
+** 如果没有索引，则找有没有在这个表上对rowid的查询条件.
+** 如果WHERE子句中存在OR操作符，那么要把这些OR连接的所有子句分开再进行分析.
+** 如果有索引，则统计每个表的索引信息，对于每个索引.
+** 通过上面的优化过程，可以得到对一个表查询的总代价.
+** 因此循环的嵌套顺序不一定是与FROM子句中的顺序一致，因为在执行过程中会用索引优化来重新排列顺序.
+*/
   /*
   ** Record the set of tables that satisfy case 2.  The set might be
   ** empty. 
   ** 记录满足情况2的表。这个可能为空。
+  */
+  /*
+  ** 表中的记录要满足情况2。这个记录也可能设置为空。
   */
   pOrInfo->indexable = indexable;
   pTerm->eOperator = indexable==0 ? 0 : WO_OR;  
@@ -1601,6 +1625,8 @@ static void exprAnalyzeOrTerm(
   ** 
   ** 出现第一种情况时的处理
   ** chngToIN保存可能满足情况1的表。但我们需要做一些附加检查看看是不是真的满足情况1
+  **
+  ** chngToIN有一系列可能满足情况1的表,但我们仍要做一些额外的检查来看看是不是真的满足情况1.
   **
   ** chngToIN will hold either 0, 1, or 2 bits.  
   ** The 0-bit case means that there is no possibility of transforming 
@@ -1639,6 +1665,14 @@ static void exprAnalyzeOrTerm(
     **
     ** 查找一个表和列，它出现在每个子term中==运算符的其中一边。这个表和列被记录在iCursor和iColumn中。
     ** 也可能没有任何这样的表和列。如果一个适当的表和列被查找到，则设置okToChngToIN为TRUE，否则，设置okToChngToIN为FALSE。
+    */
+	/*
+	** 查找一个在每个term中含有==运算符出现的表和列.
+	** 那个表和列会被记录在iCursor和iColumn中.
+    ** 有可能没有任何表和列被记录.
+	** 如果一个适当的表和列被查找到,则设置okToChngToIN,
+	** 但是如果没有找到，则设置okToChngToIN为FALSE.
+    **
     */
     for(j=0; j<2 && !okToChngToIN; j++){
       pOrTerm = pOrWc->a;  /*where子句OR运算符分隔的一个term*/
@@ -1702,6 +1736,7 @@ static void exprAnalyzeOrTerm(
           ** conversions are required on the right.  (Ticket #2249)
           ** 
 		  ** 如果右边也是一个列，那么左右两边的关联性是必须的这样的，右边不需要类型转换。
+		  ** (Ticket #2249)
 		  */
           affRight = sqlite3ExprAffinity(pOrTerm->pExpr->pRight);  /*返回表达式pExpr的右边存在的关联性 'affinity'*/
           affLeft = sqlite3ExprAffinity(pOrTerm->pExpr->pLeft);  /*返回表达式pExpr的左边存在的关联性 'affinity'*/
@@ -1714,10 +1749,18 @@ static void exprAnalyzeOrTerm(
       }
     }
 
-    /* At this point, okToChngToIN is true if original pTerm satisfies case 1.
+    /*
+	** At this point, okToChngToIN is true if original pTerm satisfies case 1.
     ** In that case, construct a new virtual term that is pTerm converted into an IN operator.
     **
-    ** 这时，如果原始的pTerm满足情况1，则okToChngToIN为TRUE。这种情况下，需要构造一个新的虚拟的term，把pTerm转换为IN操作符。
+    ** 这时，如果原始的pTerm满足情况1，则okToChngToIN为TRUE。
+	** 这种情况下，需要构造一个新的虚拟的term，把pTerm转换为IN操作符。
+    */
+	/*
+	** 创建的虚拟表文件
+	** 正确的语法是：
+    ** CREATE VIRTUAL TABLE IF NOT EXISTS User USING FTS4(...)
+    ** 根据FTS 文件,不能显式地声明一个自动增量列,但每个表具有隐式列称为 docid 或 rowid .
     */
     if( okToChngToIN ){
       Expr *pDup;            /* A transient duplicate expression  一个临时的复制表达式 */
@@ -1756,9 +1799,26 @@ static void exprAnalyzeOrTerm(
     }
   }
 }
+/*
+** IN操作符允许在 WHERE 子句中规定多个值.
+** 举例：
+** SQL IN 语法
+** SELECT column_name(s)
+** FROM table_name
+** WHERE column_name IN (value1,value2,...);
+*/
+
+/*
+** 使用delete方法删除记录
+** SQLiteDatabase的delete方法签名为delete(String table,String whereClause,String[] whereArgs),
+** 这个删除的参数说明如下：
+** table：代表想删除数据的表名.
+** whereClause：满足该whereClause子句的记录将会被删除.
+** whereArgs：用于为whereArgs子句传入参数.
+** 删除person_inf表中所有人名以孙开头的记录(举例)
+** int result=db.delete("person_inf","person_name like ?",new String[]{"孙_"})
+*/
 #endif /* !SQLITE_OMIT_OR_OPTIMIZATION && !SQLITE_OMIT_SUBQUERY */
-
-
 /*
 ** The input to this routine is an WhereTerm structure with only the
 ** "pExpr" field filled in.  The job of this routine is to analyze the
