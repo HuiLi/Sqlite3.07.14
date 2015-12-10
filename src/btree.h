@@ -112,7 +112,7 @@ int sqlite3BtreeDropTable(Btree*, int, int*);                  //删除数据库
 int sqlite3BtreeClearTable(Btree*, int, int*);                 //删除B树中所有数据，但保持B树结构完整
 void sqlite3BtreeTripAllCursors(Btree*, int);                  //遍历所有游标
 
-void sqlite3BtreeGetMeta(Btree *pBtree, int idx, u32 *pValue);
+void sqlite3BtreeGetMeta(Btree *pBtree, int idx, u32 *pValue); //读数据库文件的元数据信息
 int sqlite3BtreeUpdateMeta(Btree*, int idx, u32 value);
 
 /*

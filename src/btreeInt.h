@@ -270,6 +270,7 @@ typedef struct BtLock BtLock;
 /*
 ** Page type flags.  An ORed combination of these flags appear as the
 ** first byte of on-disk image of every BTree page.
+** 页面类型的标志，出现在每个B树页磁盘镜像的第一个字节.
 */
 #define PTF_INTKEY    0x01
 #define PTF_ZERODATA  0x02
