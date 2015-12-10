@@ -2787,16 +2787,16 @@ Index *sqlite3CreateIndex(
   /*
   ** Find the table that is to be indexed.  Return early if not found.   //找到索引的表。如果没有发现提前返回。
   */
-  if( pTblName!=0 ){
+  if( pTblName!=0 ){   //索引的表确实是存在的
 
     /* Use the two-part index name to determine the database           //使用两部分的索引名称来确定数据库搜索表。
     ** to search for the table. 'Fix' the table name to this db        //修复这个这个数据库查找表的表名。
     ** before looking up the table.
     */
-    assert( pName1 && pName2 );
-    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);
-    if( iDb<0 ) goto exit_create_index;
-    assert( pName && pName->z );
+    assert( pName1 && pName2 );   //断言索引的两段表名是存在的，这样就保证了当索引不存在的时候提前退出这个函数
+    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);    //根据两段表名函数返回找到的数据库    
+    if( iDb<0 ) goto exit_create_index;   //说明不存在这个数据库，直接退出函数
+    assert( pName && pName->z );   //断言这个被创建的索引名是合法的，如果不合法，直接退出
 
 #ifndef SQLITE_OMIT_TEMPDB
     /* If the index name was unqualified, check if the table    //如果索引名称不合格,检查表是否是是一个临时表。
