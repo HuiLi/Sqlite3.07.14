@@ -2803,10 +2803,10 @@ Index *sqlite3CreateIndex(
     ** is a temp table. If so, set the database to 1. Do not do this      //如果是这样,将数据库设置为1。
     ** if initialising a database schema.                                 //如果不是这样，初始化数据库模式。
     */
-    if( !db->init.busy ){
-      pTab = sqlite3SrcListLookup(pParse, pTblName);
-      if( pName2->n==0 && pTab && pTab->pSchema==db->aDb[1].pSchema ){
-        iDb = 1;
+    if( !db->init.busy ){   //如果数据库的初始化工作已经完成
+      pTab = sqlite3SrcListLookup(pParse, pTblName);    //查找索引表
+      if( pName2->n==0 && pTab && pTab->pSchema==db->aDb[1].pSchema ){    //确定其模式
+        iDb = 1;    //被索引的表是一个临时表，将其数据库设置为1
       }
     }
 #endif
@@ -2818,13 +2818,13 @@ Index *sqlite3CreateIndex(
       ** sqlite3FixSrcList can never fail. */             //因为解析器构造的pTblName是单一标示符，从而sqlite3FixSrcList永远不会失效。
       assert(0);
     }
-    pTab = sqlite3LocateTable(pParse, 0, pTblName->a[0].zName, 
+    pTab = sqlite3LocateTable(pParse, 0, pTblName->a[0].zName,     //定位这个被索引的表
         pTblName->a[0].zDatabase);
-    if( !pTab || db->mallocFailed ) goto exit_create_index;
-    assert( db->aDb[iDb].pSchema==pTab->pSchema );
+    if( !pTab || db->mallocFailed ) goto exit_create_index;   //如果不存在或者数据库内存分配失败，停止执行当前创建索引函数
+    assert( db->aDb[iDb].pSchema==pTab->pSchema );    //断言数据库要创建表的模式和索引表的模式是相同的
   }else{
-    assert( pName==0 );
-    assert( pStart==0 );
+    assert( pName==0 );  
+    assert( pStart==0 ); 
     pTab = pParse->pNewTable;
     if( !pTab ) goto exit_create_index;
     iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
@@ -2864,35 +2864,35 @@ Index *sqlite3CreateIndex(
   ** dealing with a primary key or UNIQUE constraint.  We have to invent our     //如果pName为0意味着我们正在处理一个主键或唯一约束。我们必须创建自己的名称。
   ** own name.
   */
-  if( pName ){
-    zName = sqlite3NameFromToken(db, pName);
-    if( zName==0 ) goto exit_create_index;
-    assert( pName->z!=0 );
-    if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){
+  if( pName ){    //索引的名字是合法的
+    zName = sqlite3NameFromToken(db, pName);   //将索引的名字转化为符号表中的符号
+    if( zName==0 ) goto exit_create_index;    //如果符号为空，则意味着索引名是没有的或者不合法的，直接退出函数
+    assert( pName->z!=0 );     //断言索引名是合法的
+    if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){   
       goto exit_create_index;
     }
-    if( !db->init.busy ){
-      if( sqlite3FindTable(db, zName, 0)!=0 ){
-        sqlite3ErrorMsg(pParse, "there is already a table named %s", zName);
-        goto exit_create_index;
-      }
+    if( !db->init.busy ){    //数据库已经初始化完成
+      if( sqlite3FindTable(db, zName, 0)!=0 ){    //寻找表
+        sqlite3ErrorMsg(pParse, "there is already a table named %s", zName);    //如果索引名和表名冲突发出错误消息：已经有表被命名为当前的名字
+        goto exit_create_index;   //退出函数，跳转到其他的处理入口
+      }  
     }
-    if( sqlite3FindIndex(db, zName, pDb->zName)!=0 ){
+    if( sqlite3FindIndex(db, zName, pDb->zName)!=0 ){    //寻找索引
       if( !ifNotExist ){
-        sqlite3ErrorMsg(pParse, "index %s already exists", zName);
+        sqlite3ErrorMsg(pParse, "index %s already exists", zName);   //发现索引已经存在，发送错误消息
       }else{
-        assert( !db->init.busy );
-        sqlite3CodeVerifySchema(pParse, iDb);
+        assert( !db->init.busy );   //断言数据库的初始化工作已经完成
+        sqlite3CodeVerifySchema(pParse, iDb);   
       }
       goto exit_create_index;
     }
-  }else{
+  }else{    //我们现在处理的谁一个主键或者是唯一性约束
     int n;
     Index *pLoop;
     for(pLoop=pTab->pIndex, n=1; pLoop; pLoop=pLoop->pNext, n++){}
-    zName = sqlite3MPrintf(db, "sqlite_autoindex_%s_%d", pTab->zName, n);
+    zName = sqlite3MPrintf(db, "sqlite_autoindex_%s_%d", pTab->zName, n);   //输出被索引的表的索引名，此时的索引的名字是我们自己创建的
     if( zName==0 ){
-      goto exit_create_index;
+      goto exit_create_index;   //索引名为空说明索引根本是不存在的
     }
   }
 
