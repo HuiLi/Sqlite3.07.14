@@ -4303,15 +4303,15 @@ static int copyPayload(                      //将数据从缓冲区复制到一个页面,或从
 **   * Creating a table (may require moving an overflow page).
 */
 	/*
-	**对于游标pCur正指向的条目，此功能用于读或覆写有效载荷信息。
-	**如果参数eOp为0，这是一个读操作（数据复制到缓存pBuf）。
-	**如果它不为零，数据从缓存 pBuf中复制到页。
+	** 对于游标pCur正指向的条目，此功能用于读或覆写有效载荷信息。
+	** 如果参数eOp为0，这是一个读操作（数据复制到缓存pBuf）。
+	** 如果它不为零，数据从缓存 pBuf中复制到页。
 	** 总共有“amt”字节的数据被读或写从"offset"开始.
 	** 正在读或写的内容可能出现在主页上或分散在多个溢出页。 如果设置了BtCursor.isIncrblobHandle标志,
 	** 且当前游标条目使用一个或多个溢出页,这个函数分配空间和慢慢增加溢出页列表缓存数组(BtCursor.aOverflow)。
 	** 后续调用使用这个缓存使寻求提供的偏移更有效率。
-	*一旦溢出页列表缓存已经被分配，如果其他游标写入
-	*同一个表则无效,或者游标移动到不同行。此外,在auto-vacuum 模式,下面的事件可能使一个缓存溢出页列表缓存无效。
+	** 一旦溢出页列表缓存已经被分配，如果其他游标写入
+	** 同一个表则无效,或者游标移动到不同行。此外,在auto-vacuum 模式,下面的事件可能使一个缓存溢出页列表缓存无效。
 	**   * 增量式清理,
 	**   * 在 auto_vacuum="full" 模式中的一个提交,
 	**   * 创建表 (可能要求移动一个溢出页).
@@ -9088,14 +9088,17 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //获得表的根页i
 ** Argument pCsr must be a cursor opened for writing on an 
 ** INTKEY table currently pointing at a valid table entry. 
 ** This function modifies the data stored as part of that entry.
-** 参数pCsr必须是一个打开的游标　　目前* * INTKEY表指向一个有效的表条目。　　* *这个函数修改存储的数据作为输入的一部分。
+** 参数pCsr必须是一个打开的游标，等待在I当前NTKEY表上指向一个有效的表条目。
+** 这个函数修改存储的数据作为条目的一部分。
 ** Only the data content may only be modified, it is not possible to 
 ** change the length of the data stored. If this function is called with
 ** parameters that attempt to write past the end of the existing data,
 ** no modifications are made and SQLITE_CORRUPT is returned.
+** 只有数据内容可能修改,修改存储的数据的长度是不可能的。如果这个函数被调用
+** 参数尝试写到现有数据的末尾,没有修改并返回SQLITE_CORRUPT。
 */
 /*仅仅数据内容能够被修改，不可能改变数据存储的长度。*/
-int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){
+int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //修改数据内容
   int rc;
   assert( cursorHoldsMutex(pCsr) );
   assert( sqlite3_mutex_held(pCsr->pBtree->db->mutex) );
@@ -9111,11 +9114,11 @@ int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){
   }
 
   /* Check some assumptions: 
-  **   (a) the cursor is open for writing,
-  **   (b) there is a read/write transaction open,
-  **   (c) the connection holds a write-lock on the table (if required),
-  **   (d) there are no conflicting read-locks, and
-  **   (e) the cursor points at a valid row of an intKey table.
+  **   (a) the cursor is open for writing,        //等待游标开放
+  **   (b) there is a read/write transaction open, //有读或写事务开放
+  **   (c) the connection holds a write-lock on the table (if required),  //在表上上句酷连接持有写锁
+  **   (d) there are no conflicting read-locks, and                       //没有冲突读锁
+  **   (e) the cursor points at a valid row of an intKey table.           //游标指向intKey表的有效行
   */
   if( !pCsr->wrFlag ){
     return SQLITE_READONLY;
@@ -9126,21 +9129,22 @@ int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){
   assert( !hasReadConflicts(pCsr->pBtree, pCsr->pgnoRoot) );/*读锁没冲突*/
   assert( pCsr->apPage[pCsr->iPage]->intKey );
 
-  return accessPayload(pCsr, offset, amt, (unsigned char *)z, 1);
+  return accessPayload(pCsr, offset, amt, (unsigned char *)z, 1);  //读或覆写有效载荷信息
 }
 
 /* 
 ** Set a flag on this cursor to cache the locations of pages from the 
 ** overflow list for the current row. This is used by cursors opened
 ** for incremental blob IO only.
-**
+** 对于当前行，在这个游标缓存的页面的位置设置一个标志。标志仅被对增量blob IO开放的游标使用。
 ** This function sets a flag only. The actual page location cache
 ** (stored in BtCursor.aOverflow[]) is allocated and used by function
 ** accessPayload() (the worker function for sqlite3BtreeData() and
 ** sqlite3BtreePutData()).
-*/
-/*此函数在游标上设置一个标志，缓存溢出列表上的页*/
-void sqlite3BtreeCacheOverflow(BtCursor *pCur){
+** 这个函数只设置一个标志。实际页面位置缓存(存储在BtCursor.aOverflow[])分配和被accessPayload()使用
+** (对函数sqlite3BtreeData()和sqlite3BtreePutData()有效)。
+*/  /*此函数在游标上设置一个标志，缓存溢出列表上的页*/
+void sqlite3BtreeCacheOverflow(BtCursor *pCur){  //此函数在游标上设置一个标志
   assert( cursorHoldsMutex(pCur) );
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
   invalidateOverflowCache(pCur);
@@ -9152,8 +9156,9 @@ void sqlite3BtreeCacheOverflow(BtCursor *pCur){
 ** Set both the "read version" (single byte at byte offset 18) and 
 ** "write version" (single byte at byte offset 19) fields in the database
 ** header to iVersion.
+** 在数据库头部设置"read version"(在偏移量18处的单字节处)和"write version"(在偏移量19处的单字节处)域
 */
-int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){
+int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){  //在数据库头部设置"读版本"和"写版本"域
   BtShared *pBt = pBtree->pBt;
   int rc;                         /* Return code */
  
@@ -9187,6 +9192,7 @@ int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){
 /*
 ** set the mask of hint flags for cursor pCsr. Currently the only valid
 ** values are 0 and BTREE_BULKLOAD.
+** 设置游标pCsr掩码。当前唯一有效值是0,且BTREE_BULKLOAD。
 */
 void sqlite3BtreeCursorHints(BtCursor *pCsr, unsigned int mask){
   assert( mask==BTREE_BULKLOAD || mask==0 );/*设置掩码mask=BTREE_BULKLOAD 或0*/
