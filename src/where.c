@@ -1578,6 +1578,10 @@ static void exprAnalyzeOrTerm(
   ** WhereOrInfo对象附加到原始的OR子句term中。
   */
   /*
+  ** OR子句分解成单独的子terms.将子terms存储在一个包含WhereOrInfo对象的WhereClause的数据结构中，
+  ** 然后附加到原始的OR子句term中.
+  */
+  /*
   ** wtFlags表示TERM_xxx bit标志，TERM_DYNAMIC表示需要调用sqlite3ExprDelete(db, pExpr)，
   ** TERM_ORINFO表示需要释放WhereTerm.u.pOrInfo对象，TERM_ANDINFO表示需要释放WhereTerm.u.pAndInfo对象。
   */
@@ -1592,6 +1596,15 @@ static void exprAnalyzeOrTerm(
   exprAnalyzeAll(pSrc, pOrWc);  /*分析所有子句*/
   if( db->mallocFailed ) return;  /*动态内存分配失败，结束*/
   assert( pOrWc->nTerm>=2 );  /*判定子句的子term大于等于2个，OR运算符*/
+  /*
+  ** SQLite通过动态内存分配来获取各种对象（例如数据库连接和SQL预处理语句）
+  ** 所需内存、建立数据库文件的内存Cache、以及保存查询结果.
+  ** 对防止内存分配失败或堆内存出现碎片提供形式化的保证.
+  **
+  ** SQLite能配置成保证不会出现内存分配失败或内存碎片.
+  ** 这个特性对长期运行、高可靠性的嵌入式系统至关重要,
+  ** 在这样的系统上一个内存分配错误可能会导致整个系统失效. 
+  */
   /*
   ** Compute the set of tables that might satisfy cases 1 or 2.
   **
@@ -1653,11 +1666,22 @@ static void exprAnalyzeOrTerm(
       }
     }
   }
-
+ /* 
+** 优化的方法
+** 对要查询的每个表,统计这个表上的索引信息,将代价赋值.
+** 如果没有索引，则找有没有在这个表上对rowid的查询条件.
+** 如果WHERE子句中存在OR操作符，那么要把这些OR连接的所有子句分开再进行分析.
+** 如果有索引，则统计每个表的索引信息，对于每个索引.
+** 通过上面的优化过程，可以得到对一个表查询的总代价.
+** 因此循环的嵌套顺序不一定是与FROM子句中的顺序一致，因为在执行过程中会用索引优化来重新排列顺序.
+*/
   /*
   ** Record the set of tables that satisfy case 2.  The set might be
   ** empty. 
   ** 记录满足情况2的表。这个可能为空。
+  */
+  /*
+  ** 表中的记录要满足情况2。这个记录也可能设置为空。
   */
   pOrInfo->indexable = indexable;
   pTerm->eOperator = indexable==0 ? 0 : WO_OR;  
@@ -1668,6 +1692,8 @@ static void exprAnalyzeOrTerm(
   ** 
   ** 出现第一种情况时的处理
   ** chngToIN保存可能满足情况1的表。但我们需要做一些附加检查看看是不是真的满足情况1
+  **
+  ** chngToIN有一系列可能满足情况1的表,但我们仍要做一些额外的检查来看看是不是真的满足情况1.
   **
   ** chngToIN will hold either 0, 1, or 2 bits.  
   ** The 0-bit case means that there is no possibility of transforming 
@@ -1706,6 +1732,14 @@ static void exprAnalyzeOrTerm(
     **
     ** 查找一个表和列，它出现在每个子term中==运算符的其中一边。这个表和列被记录在iCursor和iColumn中。
     ** 也可能没有任何这样的表和列。如果一个适当的表和列被查找到，则设置okToChngToIN为TRUE，否则，设置okToChngToIN为FALSE。
+    */
+	/*
+	** 查找一个在每个term中含有==运算符出现的表和列.
+	** 那个表和列会被记录在iCursor和iColumn中.
+    ** 有可能没有任何表和列被记录.
+	** 如果一个适当的表和列被查找到,则设置okToChngToIN,
+	** 但是如果没有找到，则设置okToChngToIN为FALSE.
+    **
     */
     for(j=0; j<2 && !okToChngToIN; j++){
       pOrTerm = pOrWc->a;  /*where子句OR运算符分隔的一个term*/
@@ -1769,6 +1803,7 @@ static void exprAnalyzeOrTerm(
           ** conversions are required on the right.  (Ticket #2249)
           ** 
 		  ** 如果右边也是一个列，那么左右两边的关联性是必须的这样的，右边不需要类型转换。
+		  ** (Ticket #2249)
 		  */
           affRight = sqlite3ExprAffinity(pOrTerm->pExpr->pRight);  /*返回表达式pExpr的右边存在的关联性 'affinity'*/
           affLeft = sqlite3ExprAffinity(pOrTerm->pExpr->pLeft);  /*返回表达式pExpr的左边存在的关联性 'affinity'*/
@@ -1781,10 +1816,18 @@ static void exprAnalyzeOrTerm(
       }
     }
 
-    /* At this point, okToChngToIN is true if original pTerm satisfies case 1.
+    /*
+	** At this point, okToChngToIN is true if original pTerm satisfies case 1.
     ** In that case, construct a new virtual term that is pTerm converted into an IN operator.
     **
-    ** 这时，如果原始的pTerm满足情况1，则okToChngToIN为TRUE。这种情况下，需要构造一个新的虚拟的term，把pTerm转换为IN操作符。
+    ** 这时，如果原始的pTerm满足情况1，则okToChngToIN为TRUE。
+	** 这种情况下，需要构造一个新的虚拟的term，把pTerm转换为IN操作符。
+    */
+	/*
+	** 创建的虚拟表文件
+	** 正确的语法是：
+    ** CREATE VIRTUAL TABLE IF NOT EXISTS User USING FTS4(...)
+    ** 根据FTS 文件,不能显式地声明一个自动增量列,但每个表具有隐式列称为 docid 或 rowid .
     */
     if( okToChngToIN ){
       Expr *pDup;            /* A transient duplicate expression  一个临时的复制表达式 */
@@ -1823,9 +1866,26 @@ static void exprAnalyzeOrTerm(
     }
   }
 }
+/*
+** IN操作符允许在 WHERE 子句中规定多个值.
+** 举例：
+** SQL IN 语法
+** SELECT column_name(s)
+** FROM table_name
+** WHERE column_name IN (value1,value2,...);
+*/
+
+/*
+** 使用delete方法删除记录
+** SQLiteDatabase的delete方法签名为delete(String table,String whereClause,String[] whereArgs),
+** 这个删除的参数说明如下：
+** table：代表想删除数据的表名.
+** whereClause：满足该whereClause子句的记录将会被删除.
+** whereArgs：用于为whereArgs子句传入参数.
+** 删除person_inf表中所有人名以孙开头的记录(举例)
+** int result=db.delete("person_inf","person_name like ?",new String[]{"孙_"})
+*/
 #endif /* !SQLITE_OMIT_OR_OPTIMIZATION && !SQLITE_OMIT_SUBQUERY */
-
-
 /*
 ** The input to this routine is an WhereTerm structure with only the
 ** "pExpr" field filled in.  The job of this routine is to analyze the
@@ -7550,14 +7610,14 @@ WhereInfo *sqlite3WhereBegin(
     sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);	//提示连接中最多只能有BMS个表
     return 0;
   }
-  /* This function normally generates a nested loop for all tables in 
+ /* This function normally generates a nested loop for all tables in 
   ** pTabList.  But if the WHERE_ONETABLE_ONLY flag is set, then we should
   ** only generate code for the first table in pTabList and assume that
   ** any cursors associated with subsequent tables are uninitialized.
 <<<<<<< HEAD
-  该功能通常会产生一个嵌套循环中pTabList所有表。
-  但如果WHERE_ONETABLE_ONLY标志设置，那么我们应该只
-  生成代码为pTabList第一个表，并假定随后表相关的任何游标初始化。
+  该功能通常会为pTabList中德所有表产生一个嵌套循环。
+  但如果设置了WHERE_ONETABLE_ONLY标记，那么我们应该只
+  为pTabList第一个表生成代码而且认为与后续表相关联的任何游标不会初始化。
 =======
   **
   ** 这个函数一般是为在pTabList中的所有表生成一个嵌套循环。
@@ -7623,7 +7683,7 @@ WhereInfo *sqlite3WhereBegin(
   ** subexpression is separated by an AND operator.
 <<<<<<< HEAD
 
-  分裂WHERE集成独立的集表达式，其中每个集表达式由一个AND运算分离。
+  分裂WHERE子句成独立的子表达式，其中每个子表达式由一个AND运算符分隔。
 =======
   **
   ** 把WHERE子句通过AND运算符分割成多个子表达式。
@@ -7637,7 +7697,7 @@ WhereInfo *sqlite3WhereBegin(
   /* Special case: a WHERE clause that is constant.  Evaluate the
   ** expression and either jump over all of the code or fall thru.
 <<<<<<< HEAD
-  特殊情况：一个WHERE子集是恒定的。计算表达式，要么跳过所有的代码或下降。
+  特殊情况：一个WHERE子句是恒定的。计算表达式，接着要么跳过所有的代码或下降。
 =======
   **
   ** 特殊情况:一个WHERE子句是恒定的。对表达式求值时，要么跳过所有的代码，要么通过
@@ -7664,6 +7724,7 @@ WhereInfo *sqlite3WhereBegin(
   ** of the join.  Subtracting one from the right table bitmask gives a
   ** bitmask for all tables to the left of the join.  Knowing the bitmask
   ** for all tables to the left of a left join is important.  Ticket #3015.
+  **
   当指定位掩码值FROM子句光标，它一定是这样的，
   如果X是位掩码N个FROM子集中短期的，则掩码为所有FROM子集条件的N个任期的左
 为（X-1）。从LEFT的ON子句表达式JOIN可以使用它Expr.iRightJoinTable
@@ -7671,18 +7732,18 @@ WhereInfo *sqlite3WhereBegin(
 位掩码为所有表的加盟左侧。知道位掩码对于所有表左连接的左侧
 是重要的。票务＃3015
   **
-  ** 当把位掩码值分配给FROM子句游标时，如果X是N-th FROM子句项的位掩码，
+  ** 当把位掩码值分配给FROM子句游标时，情况必须是这样，即如果X是N-th FROM子句项的位掩码，
   ** 那么所有FROM子句terms的左边的第N项的位掩码是(X-1)。
   ** 一个来自于LEFT JOIN的ON子句的表达式可以使用它自己的Expr.iRightJoinTable值来查找这个连接的右表的位掩码。
   ** 从右边表的位掩码中减去一，把这个位掩码给连接的左边的所有的表。
-  ** 要知道一个左联接左边的所有表的位掩码是很重要的。
+  ** 要知道所有左连接的左表的位掩码是很重要的。
   **
   ** Configure the WhereClause.vmask variable so that bits that correspond
   ** to virtual table cursors are set. This is used to selectively disable 
   ** the OR-to-IN transformation in exprAnalyzeOrTerm(). It is not helpful
   ** with virtual tables.
-  配置WhereClause.vmask变量，以便对应于虚表指针位设置。
-  这是用来选择性地禁用exprAnalyzeOrTerm的或到IN变换（）。
+  设置WhereClause.vmask变量，以便设置对应的虚表指针。
+  这是用来选择性地禁用exprAnalyzeOrTerm()的或到IN变换。
   这对虚拟表是没有帮助的。
   **
   ** 设置WhereClause.vmask变量以便bits与设置好的虚拟表的游标相一致。
@@ -7696,6 +7757,7 @@ WhereInfo *sqlite3WhereBegin(
   需要注意的是位掩码为所有pTabList-> NSRC表中pTabList，
   不只是第一个nTabList表创建。nTabList通常等于pTabList-> NSRC但可能缩短为1，
   如果该WHERE_ONETABLE_ONLY标志被设置。
+  **注意：是为pTabList中德所有pTabList-> NSRC表生成掩位码，而不仅仅是第一个nTabList表
 =======
   **
   ** 注意:不只是为第一个nTabList表创建位掩码，而是为在pTabList中的所有pTabList->nSrc表创建。
@@ -7721,7 +7783,6 @@ WhereInfo *sqlite3WhereBegin(
     }
   }
 #endif
-
   /* Analyze all of the subexpressions.  Note that exprAnalyze() might
   ** add new virtual terms onto the end of the WHERE clause.  We do not
   ** want to analyze these virtual terms, so start analyzing at the end

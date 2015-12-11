@@ -343,6 +343,7 @@ void *sqlite3PageMalloc(int sz){
 
 /*
 ** Free an allocated buffer obtained from sqlite3PageMalloc().
+** 释放从sqlite3PageMalloc()获得的缓冲区。
 */
 void sqlite3PageFree(void *p){
   pcache1Free(p);
