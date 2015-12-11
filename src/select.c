@@ -11,17 +11,17 @@
 *************************************************************************
 ** This file contains C code routines that are called by the parser
 ** to handle SELECT statements in SQLite.
-**æ­¤æ–‡ä»¶åŒ…å«ç”±è¯­æ³•åˆ†æå™¨æ¥å¤„ç†åœ¨ SQLite çš„ SELECT è¯­å¥è°ƒç”¨çš„ C ä»£ç ä¾‹ç¨‹
+**´ËÎÄ¼ş°üº¬ÓÉÓï·¨·ÖÎöÆ÷À´´¦ÀíÔÚ SQLite µÄ SELECT Óï¾äµ÷ÓÃµÄ C ´úÂëÀı³Ì
 */
 
-#include "sqliteInt.h"  /*é¢„ç¼–è¯‘å¤„ç†å™¨æŠŠsqliteInt.hæ–‡ä»¶ä¸­çš„å†…å®¹åŠ è½½åˆ°ç¨‹åºä¸­æ¥*/
+#include "sqliteInt.h"  /*Ô¤±àÒë´¦ÀíÆ÷°ÑsqliteInt.hÎÄ¼şÖĞµÄÄÚÈİ¼ÓÔØµ½³ÌĞòÖĞÀ´*/
 
 /*
 ** Trace output macros
-** è·Ÿè¸ªè¾“å‡ºå®
+** ¸ú×ÙÊä³öºê
 */
 
-#if SELECTTRACE_ENABLED //é¢„ç¼–è¯‘æŒ‡ä»¤
+#if SELECTTRACE_ENABLED //Ô¤±àÒëÖ¸Áî
 /***/ int sqlite3SelectTrace = 0;
 # define SELECTTRACE(K,P,S,X)  
   if(sqlite3SelectTrace&(K))   
@@ -36,55 +36,55 @@
 ** An instance of the following object is used to record information about
 ** how to process the DISTINCT keyword, to simplify passing that information
 ** into the selectInnerLoop() routine.
-** ä¸‹é¢ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹æ˜¯ç”¨äºè®°å½•æœ‰å…³å¦‚ä½•å¤„ç†DISTINCTå…³é”®å­—çš„ä¿¡æ¯ï¼Œä¸ºäº†ç®€åŒ–ä¼ é€’è¯¥ä¿¡æ¯åˆ°selectInnerLoopï¼ˆï¼‰äº‹åŠ¡ã€‚
+** ÏÂÃæ½á¹¹ÌåµÄÒ»¸öÊµÀıÊÇÓÃÓÚ¼ÇÂ¼ÓĞ¹ØÈçºÎ´¦ÀíDISTINCT¹Ø¼ü×ÖµÄĞÅÏ¢£¬ÎªÁË¼ò»¯´«µİ¸ÃĞÅÏ¢µ½selectInnerLoop£¨£©ÊÂÎñ¡£
 */
 
 typedef struct DistinctCtx DistinctCtx;
 struct DistinctCtx {
-	u8 isTnct;      /* å¦‚æœDISTINCTå…³é”®å­—å­˜åœ¨åˆ™çœŸ */ 
-		u8 eTnctType;   /* å…¶ä¸­çš„WHERE_DISTINCT_*è¿ç®—ç¬¦*/ 
-		int tabTnct;    /* å¤„ç†DISTINCTçš„ä¸´æ—¶è¡¨*/
-		int addrTnct;   /* OP_OpenEphemeralæ“ä½œç çš„åœ°å€*/ 
+	u8 isTnct;      /* Èç¹ûDISTINCT¹Ø¼ü×Ö´æÔÚÔòÕæ */ 
+		u8 eTnctType;   /* ÆäÖĞµÄWHERE_DISTINCT_*ÔËËã·û*/ 
+		int tabTnct;    /* ´¦ÀíDISTINCTµÄÁÙÊ±±í*/
+		int addrTnct;   /* OP_OpenEphemeral²Ù×÷ÂëµÄµØÖ·*/ 
 };
 
 /*
 ** An instance of the following object is used to record information about
 ** the ORDER BY (or GROUP BY) clause of query is being coded.
-** ä¸‹é¢ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹æ˜¯ç”¨äºè®°å½•ORDER BY(æˆ–è€… GROUP BY)æŸ¥è¯¢å­—å¥çš„ä¿¡æ¯
+** ÏÂÃæ½á¹¹ÌåµÄÒ»¸öÊµÀıÊÇÓÃÓÚ¼ÇÂ¼ORDER BY(»òÕß GROUP BY)²éÑ¯×Ö¾äµÄĞÅÏ¢
 */
 
 typedef struct SortCtx SortCtx;
 struct SortCtx {
-	ExprList *pOrderBy;   /* ORDER BY(æˆ–è€… GROUP BYå­—å¥)*/ 
-		int nOBSat;           /* ORDER BYè¯­å¥çš„æ•°é‡æ»¡è¶³æŒ‡æ•°*/
-		int iECursor;         /* åˆ†ç±»å™¨çš„æ¸¸æ ‡æ•°ç›®*/
-		int regReturn;        /* å¯„å­˜å™¨æ§åˆ¶å—è¾“å‡ºè¿”å›åœ°å€*/
-		int labelBkOut;       /* å—è¾“å‡ºå­ç¨‹åºçš„å¯åŠ¨æ ‡ç­¾*/  
-		int addrSortIndex;    /* OP_SorterOpenæˆ–è€…OP_OpenEphemeralçš„åœ°å€ */ 
-		u8 sortFlags;         /* é›¶æˆ–è€…æ›´å¤šçš„SORTFLAG_* ä½ */ 
+	ExprList *pOrderBy;   /* ORDER BY(»òÕß GROUP BY×Ö¾ä)*/ 
+		int nOBSat;           /* ORDER BYÓï¾äµÄÊıÁ¿Âú×ãÖ¸Êı*/
+		int iECursor;         /* ·ÖÀàÆ÷µÄÓÎ±êÊıÄ¿*/
+		int regReturn;        /* ¼Ä´æÆ÷¿ØÖÆ¿éÊä³ö·µ»ØµØÖ·*/
+		int labelBkOut;       /* ¿éÊä³ö×Ó³ÌĞòµÄÆô¶¯±êÇ©*/  
+		int addrSortIndex;    /* OP_SorterOpen»òÕßOP_OpenEphemeralµÄµØÖ· */ 
+		u8 sortFlags;         /* Áã»òÕß¸ü¶àµÄSORTFLAG_* Î» */ 
 };
-#define SORTFLAG_UseSorter  0x01   /* ä½¿ç”¨sorteropenä»£æ›¿openephemeral */ 
+#define SORTFLAG_UseSorter  0x01   /* Ê¹ÓÃsorteropen´úÌæopenephemeral */ 
 
 /*
 ** Delete all the content of a Select structure.  Deallocate the structure
 ** itself only if bFree is true.
-** åˆ é™¤é€‰æ‹©ç»“æ„çš„æ‰€æœ‰å†…å®¹ã€‚ä»…å½“bFreeæ˜¯çœŸçš„æ—¶å€™é‡Šæ”¾ç»“æ„æœ¬èº«
+** É¾³ıÑ¡Ôñ½á¹¹µÄËùÓĞÄÚÈİ¡£½öµ±bFreeÊÇÕæµÄÊ±ºòÊÍ·Å½á¹¹±¾Éí
 */
 
 static void clearSelect(sqlite3 *db, Select *p, int bFree){
 	while (p){
-		Select *pPrior = p->pPrior;                  /*å°†p->pPriorèµ‹å€¼ç»™Select *pPrior*/
-			sqlite3ExprListDelete(db, p->pEList);        /*åˆ é™¤æ•´ä¸ªè¡¨è¾¾å¼åˆ—è¡¨*/
-			sqlite3SrcListDelete(db, p->pSrc);           /*åˆ é™¤æ•´ä¸ªSrcList, åŒ…æ‹¬æ‰€æœ‰çš„å­ç»“æ„*/
-			sqlite3ExprDelete(db, p->pWhere);            /*é€’å½’åˆ é™¤ä¸€ä¸ªè¡¨è¾¾å¼æ ‘*/
-			sqlite3ExprListDelete(db, p->pGroupBy);      /*åˆ é™¤æ•´ä¸ªè¡¨è¾¾å¼åˆ—è¡¨*/
-			sqlite3ExprDelete(db, p->pHaving);           /*é€’å½’åˆ é™¤ä¸€ä¸ªè¡¨è¾¾å¼æ ‘*/
-			sqlite3ExprListDelete(db, p->pOrderBy);      /*åˆ é™¤æ•´ä¸ªè¡¨è¾¾å¼åˆ—è¡¨*/
-			sqlite3ExprDelete(db, p->pLimit);            /*é€’å½’åˆ é™¤ä¸€ä¸ªè¡¨è¾¾å¼æ ‘*/
-			sqlite3ExprDelete(db, p->pOffset);           /*é€’å½’åˆ é™¤ä¸€ä¸ªè¡¨è¾¾å¼æ ‘*/
-			sqlite3WithDelete(db, p->pWith);			 /*é€’å½’åˆ é™¤ä¸€ä¸ªæ¡ä»¶æ ‘*/
+		Select *pPrior = p->pPrior;                  /*½«p->pPrior¸³Öµ¸øSelect *pPrior*/
+			sqlite3ExprListDelete(db, p->pEList);        /*É¾³ıÕû¸ö±í´ïÊ½ÁĞ±í*/
+			sqlite3SrcListDelete(db, p->pSrc);           /*É¾³ıÕû¸öSrcList, °üÀ¨ËùÓĞµÄ×Ó½á¹¹*/
+			sqlite3ExprDelete(db, p->pWhere);            /*µİ¹éÉ¾³ıÒ»¸ö±í´ïÊ½Ê÷*/
+			sqlite3ExprListDelete(db, p->pGroupBy);      /*É¾³ıÕû¸ö±í´ïÊ½ÁĞ±í*/
+			sqlite3ExprDelete(db, p->pHaving);           /*µİ¹éÉ¾³ıÒ»¸ö±í´ïÊ½Ê÷*/
+			sqlite3ExprListDelete(db, p->pOrderBy);      /*É¾³ıÕû¸ö±í´ïÊ½ÁĞ±í*/
+			sqlite3ExprDelete(db, p->pLimit);            /*µİ¹éÉ¾³ıÒ»¸ö±í´ïÊ½Ê÷*/
+			sqlite3ExprDelete(db, p->pOffset);           /*µİ¹éÉ¾³ıÒ»¸ö±í´ïÊ½Ê÷*/
+			sqlite3WithDelete(db, p->pWith);			 /*µİ¹éÉ¾³ıÒ»¸öÌõ¼şÊ÷*/
 			if (bFree)
-				sqlite3DbFree(db, p);					 /*é‡Šæ”¾*db*/
+				sqlite3DbFree(db, p);					 /*ÊÍ·Å*db*/
 				p = pPrior;
 		bFree = 1;
 	}
@@ -92,89 +92,89 @@ static void clearSelect(sqlite3 *db, Select *p, int bFree){
 
 /*
 ** Initialize a SelectDest structure.
-** åˆå§‹åŒ–ä¸€ä¸ªSelectDestç»“æ„.
+** ³õÊ¼»¯Ò»¸öSelectDest½á¹¹.
 */
-void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*å‡½æ•°sqlite3SelectDestInitçš„å‚æ•°åˆ—è¡¨ä¸º
-																	  ç»“æ„ä½“SelectDestæŒ‡é’ˆpDestï¼Œæ•´å‹æŒ‡é’ˆeDestï¼Œ
-																	  æ•´å‹æŒ‡é’ˆiParm
+void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*º¯Êısqlite3SelectDestInitµÄ²ÎÊıÁĞ±íÎª
+																	  ½á¹¹ÌåSelectDestÖ¸ÕëpDest£¬ÕûĞÍÖ¸ÕëeDest£¬
+																	  ÕûĞÍÖ¸ÕëiParm
 																	  */
-	pDest->eDest = (u8)eDest; /*æŠŠæ•´å‹eDestå¼ºåˆ¶ç±»å‹è½¬åŒ–ä¸ºu8å‹ï¼Œç„¶åèµ‹å€¼ç»™pDest->eDest*/
-	pDest->iSDParm = iParm; /*æ•´å‹å‚æ•°iParmèµ‹å€¼ä¸ºpDest->iSDParm*/
-	pDest->affSdst = 0; /*0èµ‹å€¼ç»™pDest->affSdst*/
-	pDest->iSdst = 0; /*0èµ‹å€¼ç»™pDest->iSdst*/
-	pDest->nSdst = 0; /*0èµ‹å€¼ç»™pDest->nSdst*/
+	pDest->eDest = (u8)eDest; /*°ÑÕûĞÍeDestÇ¿ÖÆÀàĞÍ×ª»¯Îªu8ĞÍ£¬È»ºó¸³Öµ¸øpDest->eDest*/
+	pDest->iSDParm = iParm; /*ÕûĞÍ²ÎÊıiParm¸³ÖµÎªpDest->iSDParm*/
+	pDest->affSdst = 0; /*0¸³Öµ¸øpDest->affSdst*/
+	pDest->iSdst = 0; /*0¸³Öµ¸øpDest->iSdst*/
+	pDest->nSdst = 0; /*0¸³Öµ¸øpDest->nSdst*/
 }
 
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure.
-** åˆ†é…ä¸€ä¸ªæ–°çš„selectç»“æ„,å¹¶ä¸”è¿”å›ä¸€ä¸ªæŒ‡å‘è¯¥ç»“æ„çš„æŒ‡é’ˆ.
+** ·ÖÅäÒ»¸öĞÂµÄselect½á¹¹,²¢ÇÒ·µ»ØÒ»¸öÖ¸Ïò¸Ã½á¹¹µÄÖ¸Õë.
 */
 Select *sqlite3SelectNew(
-	Parse *pParse,        /* Parsing context  å¥æ³•åˆ†æ*/
-	ExprList *pEList,     /* which columns to include in the result  åœ¨ç»“æœä¸­åŒ…å«å“ªäº›åˆ—*/
-	SrcList *pSrc,        /* the FROM clause -- which tables to scan  FROMå­—å¥--æ‰«æè¡¨ */
-	Expr *pWhere,         /* the WHERE clause  WHEREå­—å¥*/
-	ExprList *pGroupBy,   /* the GROUP BY clause   GROUP BYå­—å¥*/
-	Expr *pHaving,        /* the HAVING clause  havingHAVINGå­—å¥*/
-	ExprList *pOrderBy,   /* the ORDER BY clause  ORDER BYå­—å¥*/
-	int isDistinct,       /* true if the DISTINCT keyword is present  å¦‚æœå…³é”®å­—distinctå­˜åœ¨ï¼Œåˆ™è¿”å›true*/
-	Expr *pLimit,         /* LIMIT value.  NULL means not used  limitå€¼ï¼Œå¦‚æœå€¼ä¸ºç©ºæ„å‘³ç€limitæœªä½¿ç”¨*/
-	Expr *pOffset         /* OFFSET value.  NULL means no offset  offsetå€¼ï¼Œå¦‚æœå€¼ä¸ºç©ºæ„å‘³ç€offsetæœªä½¿ç”¨*/
+	Parse *pParse,        /* Parsing context  ¾ä·¨·ÖÎö*/
+	ExprList *pEList,     /* which columns to include in the result  ÔÚ½á¹ûÖĞ°üº¬ÄÄĞ©ÁĞ*/
+	SrcList *pSrc,        /* the FROM clause -- which tables to scan  FROM×Ö¾ä--É¨Ãè±í */
+	Expr *pWhere,         /* the WHERE clause  WHERE×Ö¾ä*/
+	ExprList *pGroupBy,   /* the GROUP BY clause   GROUP BY×Ö¾ä*/
+	Expr *pHaving,        /* the HAVING clause  havingHAVING×Ö¾ä*/
+	ExprList *pOrderBy,   /* the ORDER BY clause  ORDER BY×Ö¾ä*/
+	int isDistinct,       /* true if the DISTINCT keyword is present  Èç¹û¹Ø¼ü×Ödistinct´æÔÚ£¬Ôò·µ»Øtrue*/
+	Expr *pLimit,         /* LIMIT value.  NULL means not used  limitÖµ£¬Èç¹ûÖµÎª¿ÕÒâÎ¶×ÅlimitÎ´Ê¹ÓÃ*/
+	Expr *pOffset         /* OFFSET value.  NULL means no offset  offsetÖµ£¬Èç¹ûÖµÎª¿ÕÒâÎ¶×ÅoffsetÎ´Ê¹ÓÃ*/
 	){
-	Select *pNew;/*å®šä¹‰ç»“æ„ä½“æŒ‡é’ˆpNew*/
-	Select standin;/*å®šä¹‰ç»“æ„ä½“ç±»å‹å˜é‡standin*/
-	sqlite3 *db = pParse->db;/*ç»“æ„ä½“Parseçš„æˆå‘˜dbèµ‹å€¼ç»™ç»“æ„ä½“sqlite3æŒ‡é’ˆdb*/
-	pNew = sqlite3DbMallocZero(db, sizeof(*pNew));  /* åˆ†é…å’Œé›¶å†…å­˜ï¼Œå¦‚æœåˆ†é…å¤±è´¥ï¼Œä½¿mallocFaiedæ ‡å¿—åœ¨è¿æ¥æŒ‡é’ˆä¸­ã€‚ */
-	assert(db->mallocFailed || !pOffset || pLimit); /* åˆ¤æ–­åˆ†é…æ˜¯å¦å¤±è´¥,æˆ–pOffsetå€¼ä¸ºç©º,æˆ–pLimitå€¼ä¸ä¸ºç©º*/
-	if (pNew == 0){/*å¦‚æœç»“æ„ä½“æŒ‡é’ˆå˜é‡pNewåˆ†é…å¤±è´¥*/
-		assert(db->mallocFailed);/*å¦‚æœåˆ†é…å¤±è´¥ï¼Œä½¿mallocFaiedæ ‡å¿—åœ¨è¿æ¥æŒ‡é’ˆä¸­*/
-		pNew = &standin;/*æŠŠstandinçš„å­˜å‚¨åœ°å€èµ‹ç»™pNew*/
-		memset(pNew, 0, sizeof(*pNew));/*å°†pNewä¸­å‰sizeof(*pNew)ä¸ªå­—èŠ‚ç”¨0æ›¿æ¢å¹¶ä¸”è¿”å›pNew*/
+	Select *pNew;/*¶¨Òå½á¹¹ÌåÖ¸ÕëpNew*/
+	Select standin;/*¶¨Òå½á¹¹ÌåÀàĞÍ±äÁ¿standin*/
+	sqlite3 *db = pParse->db;/*½á¹¹ÌåParseµÄ³ÉÔ±db¸³Öµ¸ø½á¹¹Ìåsqlite3Ö¸Õëdb*/
+	pNew = sqlite3DbMallocZero(db, sizeof(*pNew));  /* ·ÖÅäºÍÁãÄÚ´æ£¬Èç¹û·ÖÅäÊ§°Ü£¬Ê¹mallocFaied±êÖ¾ÔÚÁ¬½ÓÖ¸ÕëÖĞ¡£ */
+	assert(db->mallocFailed || !pOffset || pLimit); /* ÅĞ¶Ï·ÖÅäÊÇ·ñÊ§°Ü,»òpOffsetÖµÎª¿Õ,»òpLimitÖµ²»Îª¿Õ*/
+	if (pNew == 0){/*Èç¹û½á¹¹ÌåÖ¸Õë±äÁ¿pNew·ÖÅäÊ§°Ü*/
+		assert(db->mallocFailed);/*Èç¹û·ÖÅäÊ§°Ü£¬Ê¹mallocFaied±êÖ¾ÔÚÁ¬½ÓÖ¸ÕëÖĞ*/
+		pNew = &standin;/*°ÑstandinµÄ´æ´¢µØÖ·¸³¸øpNew*/
+		memset(pNew, 0, sizeof(*pNew));/*½«pNewÖĞÇ°sizeof(*pNew)¸ö×Ö½ÚÓÃ0Ìæ»»²¢ÇÒ·µ»ØpNew*/
 	}
-	if (pEList == 0){/*å¦‚æœè¡¨è¾¾å¼åˆ—è¡¨ä¸ºç©º*/
-		pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db, TK_ALL, 0)); /*æ–°æ·»åŠ çš„å…ƒç´ åœ¨è¡¨è¾¾å¼åˆ—è¡¨çš„æœ«å°¾ã€‚æ–°æ·»åŠ å…ƒç´ 
-																				çš„åœ°å€èµ‹ç»™pEListã€‚å¦‚æœpListçš„åˆå§‹æ•°æ®ä¸ºç©ºï¼Œ
-																				é‚£ä¹ˆæ–°å»º ä¸€ä¸ªæ–°çš„è¡¨è¾¾å¼åˆ—è¡¨ã€‚å¦‚æœå‡ºç°å†…å­˜
-																				åˆ†é…é”™è¯¯ï¼Œåˆ™æ•´ä¸ªåˆ—è¡¨è¢«é‡Šæ”¾å¹¶è¿”å›ç©ºã€‚å¦‚æœ
-																				è¿”å›çš„æ˜¯éç©ºï¼Œåˆ™ä¿è¯æ–°çš„æ¡ç›®æˆåŠŸè¿½åŠ ã€‚
+	if (pEList == 0){/*Èç¹û±í´ïÊ½ÁĞ±íÎª¿Õ*/
+		pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db, TK_ALL, 0)); /*ĞÂÌí¼ÓµÄÔªËØÔÚ±í´ïÊ½ÁĞ±íµÄÄ©Î²¡£ĞÂÌí¼ÓÔªËØ
+																				µÄµØÖ·¸³¸øpEList¡£Èç¹ûpListµÄ³õÊ¼Êı¾İÎª¿Õ£¬
+																				ÄÇÃ´ĞÂ½¨ Ò»¸öĞÂµÄ±í´ïÊ½ÁĞ±í¡£Èç¹û³öÏÖÄÚ´æ
+																				·ÖÅä´íÎó£¬ÔòÕû¸öÁĞ±í±»ÊÍ·Å²¢·µ»Ø¿Õ¡£Èç¹û
+																				·µ»ØµÄÊÇ·Ç¿Õ£¬Ôò±£Ö¤ĞÂµÄÌõÄ¿³É¹¦×·¼Ó¡£
 																				*/
 	}
-	pNew->pEList = pEList;/*pEListæŒ‡å‘å…ƒç´ çš„åœ°å€èµ‹ç»™pNew->pEList*/
-	if (pSrc == 0) pSrc = sqlite3DbMallocZero(db, sizeof(*pSrc));/*åˆ†é…å¹¶æ¸…ç©ºå†…å­˜ï¼Œåˆ†é…å¤§å°ä¸ºç¬¬äºŒä¸ªå‚æ•°çš„å†…å­˜ï¼Œå¦‚æœåˆ†é…å¤±è´¥ï¼Œä¼šåœ¨mallocFailedä¸­åšæ ‡è®°*/
-	pNew->pSrc = pSrc;/*ä¸ºSelectç»“æ„ä½“ä¸­FROMå­å¥è¡¨è¾¾å¼èµ‹å€¼*/
-	pNew->pWhere = pWhere;/*ä¸ºSelectç»“æ„ä½“ä¸­Whereå­å¥è¡¨è¾¾å¼èµ‹å€¼*/
-	pNew->pGroupBy = pGroupBy;/*ä¸ºSelectç»“æ„ä½“ä¸­GroupByå­å¥è¡¨è¾¾å¼èµ‹å€¼*/
-	pNew->pHaving = pHaving;/*ä¸ºSelectç»“æ„ä½“ä¸­Havingå­å¥è¡¨è¾¾å¼èµ‹å€¼*/
-	pNew->pOrderBy = pOrderBy;/*ä¸ºSelectç»“æ„ä½“ä¸­OrderByå­å¥è¡¨è¾¾å¼èµ‹å€¼*/
-	pNew->selFlags = isDistinct ? SF_Distinct : 0;/*è®¾ç½®SF_*ä¸­çš„å€¼*/
-	pNew->op = TK_SELECT;/*åªèƒ½è®¾ç½®ä¸ºTK_UNION TK_ALL TK_INTERSECT TK_EXCEPT å…¶ä¸­ä¸€ä¸ªå€¼*/
-	pNew->pLimit = pLimit;/*ä¸ºSelectç»“æ„ä½“ä¸­Limitå­å¥è¡¨è¾¾å¼èµ‹å€¼*/
-	pNew->pOffset = pOffset;/*ä¸ºSelectç»“æ„ä½“ä¸­Offsetå­å¥è¡¨è¾¾å¼èµ‹å€¼*/
-	assert(pOffset == 0 || pLimit != 0);/*å¦‚æœåç§»é‡ä¸ºç©ºï¼ŒLimitä¸ä¸ºç©ºï¼Œåˆ™åˆ†é…å†…å­˜*/
-	pNew->addrOpenEphm[0] = -1;       /*å¯¹åœ°å€ä¿¡æ¯åˆå§‹åŒ–*/
-	pNew->addrOpenEphm[1] = -1;		  /*å¯¹åœ°å€ä¿¡æ¯åˆå§‹åŒ–*/
-	pNew->addrOpenEphm[2] = -1;		  /*å¯¹åœ°å€ä¿¡æ¯åˆå§‹åŒ–*/
-	if (db->mallocFailed) {          /*å¦‚æœä¸èƒ½åˆ†é…å†…å­˜*/
-		clearSelect(db, pNew);          /*æ¸…é™¤Selectç»“æ„ä½“ä¸­å†…å®¹*/
-		if (pNew != &standin) sqlite3DbFree(db, pNew);/*å¦‚æœSelectç»“æ„ä½“standinçš„åœ°å€æœªèµ‹å€¼ç»™pNewï¼Œåˆ™æ¸…é™¤pNewï¼Œ*/
-		pNew = 0;                      /*å°†Selectç»“æ„ä½“è®¾ç½®ä¸ºç©º*/
+	pNew->pEList = pEList;/*pEListÖ¸ÏòÔªËØµÄµØÖ·¸³¸øpNew->pEList*/
+	if (pSrc == 0) pSrc = sqlite3DbMallocZero(db, sizeof(*pSrc));/*·ÖÅä²¢Çå¿ÕÄÚ´æ£¬·ÖÅä´óĞ¡ÎªµÚ¶ş¸ö²ÎÊıµÄÄÚ´æ£¬Èç¹û·ÖÅäÊ§°Ü£¬»áÔÚmallocFailedÖĞ×ö±ê¼Ç*/
+	pNew->pSrc = pSrc;/*ÎªSelect½á¹¹ÌåÖĞFROM×Ó¾ä±í´ïÊ½¸³Öµ*/
+	pNew->pWhere = pWhere;/*ÎªSelect½á¹¹ÌåÖĞWhere×Ó¾ä±í´ïÊ½¸³Öµ*/
+	pNew->pGroupBy = pGroupBy;/*ÎªSelect½á¹¹ÌåÖĞGroupBy×Ó¾ä±í´ïÊ½¸³Öµ*/
+	pNew->pHaving = pHaving;/*ÎªSelect½á¹¹ÌåÖĞHaving×Ó¾ä±í´ïÊ½¸³Öµ*/
+	pNew->pOrderBy = pOrderBy;/*ÎªSelect½á¹¹ÌåÖĞOrderBy×Ó¾ä±í´ïÊ½¸³Öµ*/
+	pNew->selFlags = isDistinct ? SF_Distinct : 0;/*ÉèÖÃSF_*ÖĞµÄÖµ*/
+	pNew->op = TK_SELECT;/*Ö»ÄÜÉèÖÃÎªTK_UNION TK_ALL TK_INTERSECT TK_EXCEPT ÆäÖĞÒ»¸öÖµ*/
+	pNew->pLimit = pLimit;/*ÎªSelect½á¹¹ÌåÖĞLimit×Ó¾ä±í´ïÊ½¸³Öµ*/
+	pNew->pOffset = pOffset;/*ÎªSelect½á¹¹ÌåÖĞOffset×Ó¾ä±í´ïÊ½¸³Öµ*/
+	assert(pOffset == 0 || pLimit != 0);/*Èç¹ûÆ«ÒÆÁ¿Îª¿Õ£¬Limit²»Îª¿Õ£¬Ôò·ÖÅäÄÚ´æ*/
+	pNew->addrOpenEphm[0] = -1;       /*¶ÔµØÖ·ĞÅÏ¢³õÊ¼»¯*/
+	pNew->addrOpenEphm[1] = -1;		  /*¶ÔµØÖ·ĞÅÏ¢³õÊ¼»¯*/
+	pNew->addrOpenEphm[2] = -1;		  /*¶ÔµØÖ·ĞÅÏ¢³õÊ¼»¯*/
+	if (db->mallocFailed) {          /*Èç¹û²»ÄÜ·ÖÅäÄÚ´æ*/
+		clearSelect(db, pNew);          /*Çå³ıSelect½á¹¹ÌåÖĞÄÚÈİ*/
+		if (pNew != &standin) sqlite3DbFree(db, pNew);/*Èç¹ûSelect½á¹¹ÌåstandinµÄµØÖ·Î´¸³Öµ¸øpNew£¬ÔòÇå³ıpNew£¬*/
+		pNew = 0;                      /*½«Select½á¹¹ÌåÉèÖÃÎª¿Õ*/
 	}
-	else{                           /*èƒ½åˆ†é…å†…å­˜*/
-		assert(pNew->pSrc != 0 || pParse->nErr>0);/*åˆ¤æ–­æ˜¯å¦æœ‰Fromå­å¥æˆ–è€…æ˜¯å¦æœ‰åˆ†æé”™è¯¯*/
+	else{                           /*ÄÜ·ÖÅäÄÚ´æ*/
+		assert(pNew->pSrc != 0 || pParse->nErr>0);/*ÅĞ¶ÏÊÇ·ñÓĞFrom×Ó¾ä»òÕßÊÇ·ñÓĞ·ÖÎö´íÎó*/
 	}
-	assert(pNew != &standin);/*åˆ¤æ–­Selectç»“æ„ä½“æ˜¯å¦åŒæ›¿æ¢ç»“æ„ä½“ç›¸åŒ*/
-	return pNew;/*è¿”å›è¿™ä¸ªæ„é€ å¥½çš„Selectç»“æ„ä½“*/
+	assert(pNew != &standin);/*ÅĞ¶ÏSelect½á¹¹ÌåÊÇ·ñÍ¬Ìæ»»½á¹¹ÌåÏàÍ¬*/
+	return pNew;/*·µ»ØÕâ¸ö¹¹ÔìºÃµÄSelect½á¹¹Ìå*/
 }
 
 /*
 ** Delete the given Select structure and all of its substructures.
-** åˆ é™¤ç»™å®šçš„é€‰æ‹©ç»“æ„å’Œæ‰€æœ‰çš„å­ç»“æ„
+** É¾³ı¸ø¶¨µÄÑ¡Ôñ½á¹¹ºÍËùÓĞµÄ×Ó½á¹¹
 */
-void sqlite3SelectDelete(sqlite3 *db, Select *p){/*å®šä¹‰æ•°æ®åº“dbä»¥åŠSelectç±»å‹çš„ç»“æ„ä½“pä½œä¸ºå‚æ•°*/
-	if (p){/*å¦‚æœSelectç»“æ„ä½“æŒ‡é’ˆpå­˜åœ¨*/
-		clearSelect(db, p);  /*æ¸…ç©ºSelectç±»å‹ç»“æ„ä½“pé‡Œé¢çš„å†…å®¹*/
-		sqlite3DbFree(db, p);  /*é‡Šæ”¾æ‰ç©ºé—´*/
+void sqlite3SelectDelete(sqlite3 *db, Select *p){/*¶¨ÒåÊı¾İ¿âdbÒÔ¼°SelectÀàĞÍµÄ½á¹¹Ìåp×÷Îª²ÎÊı*/
+	if (p){/*Èç¹ûSelect½á¹¹ÌåÖ¸Õëp´æÔÚ*/
+		clearSelect(db, p);  /*Çå¿ÕSelectÀàĞÍ½á¹¹ÌåpÀïÃæµÄÄÚÈİ*/
+		sqlite3DbFree(db, p);  /*ÊÍ·Åµô¿Õ¼ä*/
 	}
 }
 
@@ -182,7 +182,7 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*å®šä¹‰æ•°æ®åº“dbä»¥åŠSelect
 ** Given 1 to 3 identifiers preceeding the JOIN keyword, determine the
 ** type of join.  Return an integer constant that expresses that type
 ** in terms of the following bit values:
-** åœ¨è¿æ¥å…³é”®å­—å‰åŠ ä¸€åˆ°ä¸‰ä¸ªæ ‡ç¤ºç¬¦ï¼Œå†³å®šä½¿ç”¨ä½•ç§è¿æ¥æ–¹å¼ã€‚è¿”å›ä¸€ä¸ªæ•´æ•°ï¼Œè¡¨ç¤ºä½¿ç”¨ä»¥ä¸‹çš„ä½•ç§è¿æ¥ç±»å‹:
+** ÔÚÁ¬½Ó¹Ø¼ü×ÖÇ°¼ÓÒ»µ½Èı¸ö±êÊ¾·û£¬¾ö¶¨Ê¹ÓÃºÎÖÖÁ¬½Ó·½Ê½¡£·µ»ØÒ»¸öÕûÊı£¬±íÊ¾Ê¹ÓÃÒÔÏÂµÄºÎÖÖÁ¬½ÓÀàĞÍ:
 **
 **     JT_INNER
 **     JT_CROSS
@@ -194,108 +194,108 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*å®šä¹‰æ•°æ®åº“dbä»¥åŠSelect
 ** A full outer join is the combination of JT_LEFT and JT_RIGHT.
 ** If an illegal or unsupported join type is seen, then still return
 ** a join type, but put an error in the pParse structure. 
-** å…¨å¤–è¿æ¥æ˜¯JT_LEFTå’ŒJT_RIGHTç»“åˆã€‚ å¦‚æœæ£€æµ‹åˆ°æ˜¯éæ³•å­—ç¬¦æˆ–è€…ä¸æ”¯æŒçš„è¿æ¥ç±»å‹ï¼Œ
-** ä¹Ÿä¼šè¿”å›ä¸€ä¸ªè¿æ¥ç±»å‹ï¼Œä½†æ˜¯ä¼šåœ¨pParseç»“æ„ä¸­æ”¾å…¥ä¸€ä¸ªé”™è¯¯ä¿¡æ¯ã€‚
+** È«ÍâÁ¬½ÓÊÇJT_LEFTºÍJT_RIGHT½áºÏ¡£ Èç¹û¼ì²âµ½ÊÇ·Ç·¨×Ö·û»òÕß²»Ö§³ÖµÄÁ¬½ÓÀàĞÍ£¬
+** Ò²»á·µ»ØÒ»¸öÁ¬½ÓÀàĞÍ£¬µ«ÊÇ»áÔÚpParse½á¹¹ÖĞ·ÅÈëÒ»¸ö´íÎóĞÅÏ¢¡£
 */
-int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*å®šä¹‰åˆ†ææ•°å˜é‡pParseä»¥åŠä¸‰ä¸ªç¬¦æ–‡ç»“æ„ä½“ï¼ˆç¬¦æ–‡ï¼šå…·æœ‰æ‰§è¡ŒæŸäº›æ“ä½œçš„æƒåˆ©çš„å¯¹è±¡ï¼‰å‚æ•°*/
-	int jointype = 0;/*ä¸´æ—¶å˜é‡ç”¨äºæ ‡ç¤ºé“¾æ¥ç±»å‹*/
-	Token *apAll[3];/*å®šä¹‰ç¬¦æ–‡ç±»å‹ç»“æ„ä½“æŒ‡é’ˆæ•°ç»„apAll*/
-	Token *p;/*å®šä¹‰ç¬¦æ–‡ç±»å‹ç»“æ„ä½“æŒ‡é’ˆp*/
+int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*¶¨Òå·ÖÎöÊı±äÁ¿pParseÒÔ¼°Èı¸ö·ûÎÄ½á¹¹Ìå£¨·ûÎÄ£º¾ßÓĞÖ´ĞĞÄ³Ğ©²Ù×÷µÄÈ¨ÀûµÄ¶ÔÏó£©²ÎÊı*/
+	int jointype = 0;/*ÁÙÊ±±äÁ¿ÓÃÓÚ±êÊ¾Á´½ÓÀàĞÍ*/
+	Token *apAll[3];/*¶¨Òå·ûÎÄÀàĞÍ½á¹¹ÌåÖ¸ÕëÊı×éapAll*/
+	Token *p;/*¶¨Òå·ûÎÄÀàĞÍ½á¹¹ÌåÖ¸Õëp*/
 	/*   0123456789 123456789 123456789 123 */
-	static const char zKeyText[] = "naturaleftouterightfullinnercross";/*å®šä¹‰åªè¯»çš„ä¸”åªèƒ½åœ¨å½“å‰æ¨¡å—ä¸­å¯è§çš„å­—ç¬¦å‹æ•°ç»„zKeyTextï¼Œç”¨äºæ ‡ç¤ºè¿æ¥ç±»å‹ï¼Œå¹¶å¯¹å…¶è¿›è¡Œèµ‹å€¼*/
-	static const struct {/*å®šä¹‰åªè¯»çš„ä¸”åªèƒ½åœ¨å½“å‰æ¨¡å—å¯è§ç»“æ„ä½“*/
-		u8 i;        /* Beginning of keyword text in zKeyText[]   åœ¨KeyText[] ä¸­å¼€å§‹å…³é”®å­—çš„æ–‡æœ¬*/
-		u8 nChar;    /* Length of the keyword in characters  åœ¨å­—ç¬¦ä¸­å…³é”®å­—çš„é•¿åº¦*/
-		u8 code;     /* Join type mask æ ‡è®°è¿æ¥ç±»å‹*/
+	static const char zKeyText[] = "naturaleftouterightfullinnercross";/*¶¨ÒåÖ»¶ÁµÄÇÒÖ»ÄÜÔÚµ±Ç°Ä£¿éÖĞ¿É¼ûµÄ×Ö·ûĞÍÊı×ézKeyText£¬ÓÃÓÚ±êÊ¾Á¬½ÓÀàĞÍ£¬²¢¶ÔÆä½øĞĞ¸³Öµ*/
+	static const struct {/*¶¨ÒåÖ»¶ÁµÄÇÒÖ»ÄÜÔÚµ±Ç°Ä£¿é¿É¼û½á¹¹Ìå*/
+		u8 i;        /* Beginning of keyword text in zKeyText[]   ÔÚKeyText[] ÖĞ¿ªÊ¼¹Ø¼ü×ÖµÄÎÄ±¾*/
+		u8 nChar;    /* Length of the keyword in characters  ÔÚ×Ö·ûÖĞ¹Ø¼ü×ÖµÄ³¤¶È*/
+		u8 code;     /* Join type mask ±ê¼ÇÁ¬½ÓÀàĞÍ*/
 	} aKeyword[] = {
-		/* natural ä¸‹æ ‡ä»0å¼€å§‹ï¼Œé•¿åº¦ä¸º7ï¼Œè‡ªç„¶è¿æ¥ */{ 0, 7, JT_NATURAL },
-		/* left   ä¸‹æ ‡ä»6å¼€å§‹ï¼Œé•¿åº¦ä¸º4ï¼Œå·¦è¿æ¥ */{ 6, 4, JT_LEFT | JT_OUTER },
-		/* outer  ä¸‹æ ‡ä»10å¼€å§‹ï¼Œé•¿åº¦ä¸º5ï¼Œå¤–è¿æ¥ */{ 10, 5, JT_OUTER },
-		/* right   ä¸‹æ ‡ä»14å¼€å§‹ï¼Œé•¿åº¦ä¸º5ï¼Œå³è¿æ¥*/{ 14, 5, JT_RIGHT | JT_OUTER },
-		/* full    ä¸‹æ ‡ä»19å¼€å§‹ï¼Œé•¿åº¦ä¸º4ï¼Œå…¨è¿æ¥*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },
-		/* inner  ä¸‹æ ‡ä»23å¼€å§‹ï¼Œé•¿åº¦ä¸º5ï¼Œå†…è¿æ¥ */{ 23, 5, JT_INNER },
-		/* cross   ä¸‹æ ‡ä»28å¼€å§‹ï¼Œé•¿åº¦ä¸º5ï¼Œå†…è¿æ¥æˆ–CROSSè¿æ¥*/{ 28, 5, JT_INNER | JT_CROSS },
-	};//å®šä¹‰å…¨éƒ¨ç±»å‹çš„è¿æ¥ï¼Œå¹¶ç»™å‡ºèµ·å§‹ä½ç½®ã€é•¿åº¦ã€è¿æ¥ç±»å‹
+		/* natural ÏÂ±ê´Ó0¿ªÊ¼£¬³¤¶ÈÎª7£¬×ÔÈ»Á¬½Ó */{ 0, 7, JT_NATURAL },
+		/* left   ÏÂ±ê´Ó6¿ªÊ¼£¬³¤¶ÈÎª4£¬×óÁ¬½Ó */{ 6, 4, JT_LEFT | JT_OUTER },
+		/* outer  ÏÂ±ê´Ó10¿ªÊ¼£¬³¤¶ÈÎª5£¬ÍâÁ¬½Ó */{ 10, 5, JT_OUTER },
+		/* right   ÏÂ±ê´Ó14¿ªÊ¼£¬³¤¶ÈÎª5£¬ÓÒÁ¬½Ó*/{ 14, 5, JT_RIGHT | JT_OUTER },
+		/* full    ÏÂ±ê´Ó19¿ªÊ¼£¬³¤¶ÈÎª4£¬È«Á¬½Ó*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },
+		/* inner  ÏÂ±ê´Ó23¿ªÊ¼£¬³¤¶ÈÎª5£¬ÄÚÁ¬½Ó */{ 23, 5, JT_INNER },
+		/* cross   ÏÂ±ê´Ó28¿ªÊ¼£¬³¤¶ÈÎª5£¬ÄÚÁ¬½Ó»òCROSSÁ¬½Ó*/{ 28, 5, JT_INNER | JT_CROSS },
+	};//¶¨ÒåÈ«²¿ÀàĞÍµÄÁ¬½Ó£¬²¢¸ø³öÆğÊ¼Î»ÖÃ¡¢³¤¶È¡¢Á¬½ÓÀàĞÍ
 	int i, j;
 	apAll[0] = pA;
 	apAll[1] = pB;
-	apAll[2] = pC;/*å°†ä¼ äººçš„ä¸‰ä¸ªç¬¦æ–‡ç»“æ„ä½“ç±»å‹çš„å‚æ•°åˆ†åˆ«èµ‹å€¼åˆ°ç¬¦æ–‡ç»“æ„ä½“ç±»å‹çš„apAllæ•°ç»„ä¸­ */
-	for (i = 0; i < 3 && apAll[i]; i++){//å¾ªç¯å¤„ç†apAllæ•°ç»„
-		p = apAll[i];/*æŒ‡é’ˆapAll[i]çš„åœ°å€èµ‹ç»™æŒ‡é’ˆp*/
-		if (p->n == aKeyword[j].nChar /*å¦‚æœç¬¦æ–‡ä¸­å­—ç¬¦ä¸ªæ•°ç­‰äºè¿æ¥æ•°ç»„ä¸­çš„å…³é”®å­—é•¿åº¦*/
-			&& sqlite3StrNICmp((char*)p->z, &zKeyText[aKeyword[j].i], p->n) == 0){/*å¹¶ä¸”ä½¿ç”¨æ¯”è¾ƒå­—ç¬¦ä¸²å‡½æ•°æ¯”è¾ƒ*/
-			jointype |= aKeyword[j].code;/*å¦‚æœé€šè¿‡äº†æ¯”è¾ƒé•¿åº¦å’Œå†…å®¹ï¼Œè¿”å›è¿æ¥ç±»å‹ï¼Œæ³¨æ„æ˜¯ï¼Œä½¿ç”¨çš„æ˜¯â€œä½æˆ–â€*/
-			break;//è·³å‡ºæœ¬å±‚å¾ªç¯
+	apAll[2] = pC;/*½«´«ÈËµÄÈı¸ö·ûÎÄ½á¹¹ÌåÀàĞÍµÄ²ÎÊı·Ö±ğ¸³Öµµ½·ûÎÄ½á¹¹ÌåÀàĞÍµÄapAllÊı×éÖĞ */
+	for (i = 0; i < 3 && apAll[i]; i++){//Ñ­»·´¦ÀíapAllÊı×é
+		p = apAll[i];/*Ö¸ÕëapAll[i]µÄµØÖ·¸³¸øÖ¸Õëp*/
+		if (p->n == aKeyword[j].nChar /*Èç¹û·ûÎÄÖĞ×Ö·û¸öÊıµÈÓÚÁ¬½ÓÊı×éÖĞµÄ¹Ø¼ü×Ö³¤¶È*/
+			&& sqlite3StrNICmp((char*)p->z, &zKeyText[aKeyword[j].i], p->n) == 0){/*²¢ÇÒÊ¹ÓÃ±È½Ï×Ö·û´®º¯Êı±È½Ï*/
+			jointype |= aKeyword[j].code;/*Èç¹ûÍ¨¹ıÁË±È½Ï³¤¶ÈºÍÄÚÈİ£¬·µ»ØÁ¬½ÓÀàĞÍ£¬×¢ÒâÊÇ£¬Ê¹ÓÃµÄÊÇ¡°Î»»ò¡±*/
+			break;//Ìø³ö±¾²ãÑ­»·
 		}
 	}
-	testcase(j == 0 || j == 1 || j == 2 || j == 3 || j == 4 || j == 5 || j == 6);/*åˆ©ç”¨æµ‹è¯•ä»£ç ä¸­testcastï¼Œæµ‹è¯•jå€¼ï¼Œæ˜¯å¦åœ¨è¿™ä¸ªèŒƒå›´*/
-	if (j >= ArraySize(aKeyword)){/*å¦‚æœjæ¯”è¿æ¥å…³é”®å­—æ•°ç»„è¿˜å¤§*/
-		jointype |= JT_ERROR;/*é‚£å°±jointypeä¸JT_ERRORâ€œä½æˆ–â€ï¼Œè¿”å›ä¸€ä¸ªé”™è¯¯*/
-		break;//è·³å‡ºæœ¬å±‚å¾ªç¯
+	testcase(j == 0 || j == 1 || j == 2 || j == 3 || j == 4 || j == 5 || j == 6);/*ÀûÓÃ²âÊÔ´úÂëÖĞtestcast£¬²âÊÔjÖµ£¬ÊÇ·ñÔÚÕâ¸ö·¶Î§*/
+	if (j >= ArraySize(aKeyword)){/*Èç¹ûj±ÈÁ¬½Ó¹Ø¼ü×ÖÊı×é»¹´ó*/
+		jointype |= JT_ERROR;/*ÄÇ¾ÍjointypeÓëJT_ERROR¡°Î»»ò¡±£¬·µ»ØÒ»¸ö´íÎó*/
+		break;//Ìø³ö±¾²ãÑ­»·
 	  }
 	}
 	if (
-	(jointype & (JT_INNER | JT_OUTER)) == (JT_INNER | JT_OUTER) ||/*å¦‚æœè¿æ¥ç±»å‹äº¤ä¸Š(JT_INNER|JT_OUTER)çš„ç»“æœï¼Œä¸JT_INNERå’ŒJT_OUTERä¸€ç§*/
-	(jointype & JT_ERROR) != 0/*æˆ–è€…è¿æ¥å…³é”®å­—æ˜¯é”™è¯¯è¿æ¥*/
+	(jointype & (JT_INNER | JT_OUTER)) == (JT_INNER | JT_OUTER) ||/*Èç¹ûÁ¬½ÓÀàĞÍ½»ÉÏ(JT_INNER|JT_OUTER)µÄ½á¹û£¬ÓëJT_INNERºÍJT_OUTERÒ»ÖÖ*/
+	(jointype & JT_ERROR) != 0/*»òÕßÁ¬½Ó¹Ø¼ü×ÖÊÇ´íÎóÁ¬½Ó*/
 	){
-		const char *zSp = " "; /*åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆzSp*/
-		assert(pB != 0);/*åˆ¤æ–­pBæ˜¯å¦ä¸ºç©º*/
-		if (pC == 0){ zSp++; }/*å¦‚æœæŒ‡é’ˆpCæŒ‡å‘çš„åœ°å€ä¸º0ï¼Œåˆ™zSp++*/
-		sqlite3ErrorMsg(pParse, "unknown or unsupported join type: ""%T %T%s%T", pA, pB, zSp, pC);  /*è¾“å‡ºé”™è¯¯æ¶ˆâ€œæœªçŸ¥æˆ–è€…ä¸æ”¯æŒçš„è¿æ¥ç±»å‹â€*/
-		jointype = JT_INNER ;/*é»˜è®¤ä½¿ç”¨å†…è¿æ¥*/
+		const char *zSp = " "; /*Ö»¶ÁµÄ×Ö·ûĞÍÖ¸ÕëzSp*/
+		assert(pB != 0);/*ÅĞ¶ÏpBÊÇ·ñÎª¿Õ*/
+		if (pC == 0){ zSp++; }/*Èç¹ûÖ¸ÕëpCÖ¸ÏòµÄµØÖ·Îª0£¬ÔòzSp++*/
+		sqlite3ErrorMsg(pParse, "unknown or unsupported join type: ""%T %T%s%T", pA, pB, zSp, pC);  /*Êä³ö´íÎóÏû¡°Î´Öª»òÕß²»Ö§³ÖµÄÁ¬½ÓÀàĞÍ¡±*/
+		jointype = JT_INNER ;/*Ä¬ÈÏÊ¹ÓÃÄÚÁ¬½Ó*/
 	}
 	else if ((jointype & JT_OUTER) != 0 
-		&& (jointype & (JT_LEFT | JT_RIGHT)) != JT_LEFT){/*å¦‚æœè¿æ¥ç±»å‹å’Œå¤–è¿æ¥æœ‰äº¤é›†ï¼Œå¹¶ä¸”è¿æ¥ç±»å‹å’Œ(JT_LEFT|JT_RIGHT)äº¤é›†ï¼Œä¸æ˜¯å·¦è¿æ¥*/
-		sqlite3ErrorMsg(pParse,"RIGHT and FULL OUTER JOINs are not currently supported");/*è¾“å‡ºé”™è¯¯æ¶ˆæ¯â€œå³è¿æ¥å’Œå…¨å¤–è¿æ¥ä¸è¢«æ”¯æŒâ€*/
-		jointype = JT_INNER; /*é»˜è®¤ä½¿ç”¨å†…è¿æ¥*/
+		&& (jointype & (JT_LEFT | JT_RIGHT)) != JT_LEFT){/*Èç¹ûÁ¬½ÓÀàĞÍºÍÍâÁ¬½ÓÓĞ½»¼¯£¬²¢ÇÒÁ¬½ÓÀàĞÍºÍ(JT_LEFT|JT_RIGHT)½»¼¯£¬²»ÊÇ×óÁ¬½Ó*/
+		sqlite3ErrorMsg(pParse,"RIGHT and FULL OUTER JOINs are not currently supported");/*Êä³ö´íÎóÏûÏ¢¡°ÓÒÁ¬½ÓºÍÈ«ÍâÁ¬½Ó²»±»Ö§³Ö¡±*/
+		jointype = JT_INNER; /*Ä¬ÈÏÊ¹ÓÃÄÚÁ¬½Ó*/
 	}
-	return jointype;/*è¿”å›è¿æ¥ç±»å‹*/
+	return jointype;/*·µ»ØÁ¬½ÓÀàĞÍ*/
 }
 
 /*
 ** Return the index of a column in a table.  Return -1 if the column
 ** is not contained in the table.
-** è¿”å›è¡¨ä¸­çš„ä¸€åˆ—çš„ä¸‹æ ‡ï¼Œå¦‚æœè¯¥åˆ—ä¸åœ¨è¡¨ä¸­ï¼Œè¿”å›-1.
+** ·µ»Ø±íÖĞµÄÒ»ÁĞµÄÏÂ±ê£¬Èç¹û¸ÃÁĞ²»ÔÚ±íÖĞ£¬·µ»Ø-1.
 */
-static int columnIndex(Table *pTab, const char *zCol){/*å®šä¹‰é™æ€çš„æ•´å‹å‡½æ•°columnIndexï¼Œå‚æ•°åˆ—è¡¨ä¸ºç»“æ„ä½“æŒ‡é’ˆpTabã€åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆzCol*/
-	int i;/*å®šä¹‰ä¸´æ—¶å˜é‡*/
-	for (i = 0; i < pTab->nCol; i++){/*å¯¹æ‰€æœ‰çš„åˆ—è¿›è¡Œéå†*/
-		if (sqlite3StrICmp(pTab->aCol[i].zName, zCol) == 0) return i;/*å¦‚æœåŒ¹é…æˆåŠŸï¼Œé‚£ä¹ˆè¿”å›i*/
+static int columnIndex(Table *pTab, const char *zCol){/*¶¨Òå¾²Ì¬µÄÕûĞÍº¯ÊıcolumnIndex£¬²ÎÊıÁĞ±íÎª½á¹¹ÌåÖ¸ÕëpTab¡¢Ö»¶ÁµÄ×Ö·ûĞÍÖ¸ÕëzCol*/
+	int i;/*¶¨ÒåÁÙÊ±±äÁ¿*/
+	for (i = 0; i < pTab->nCol; i++){/*¶ÔËùÓĞµÄÁĞ½øĞĞ±éÀú*/
+		if (sqlite3StrICmp(pTab->aCol[i].zName, zCol) == 0) return i;/*Èç¹ûÆ¥Åä³É¹¦£¬ÄÇÃ´·µ»Øi*/
 	}
-	return -1;/*å¦åˆ™ï¼Œè¿”å›-1*/
+	return -1;/*·ñÔò£¬·µ»Ø-1*/
 }
 
 /*
 ** Search the first N tables in pSrc, from left to right, looking for a
 ** table that has a column named zCol.
-** åœ¨FROMå­å¥ä¸­æ‰«æè¡¨ï¼Œä»å·¦åˆ°å³,æŸ¥æ‰¾å‰Nä¸ªè¡¨,æ‰¾ä¸€ä¸ªå«æœ‰åˆ—åä¸ºzColçš„è¡¨ ã€‚
+** ÔÚFROM×Ó¾äÖĞÉ¨Ãè±í£¬´Ó×óµ½ÓÒ,²éÕÒÇ°N¸ö±í,ÕÒÒ»¸öº¬ÓĞÁĞÃûÎªzColµÄ±í ¡£
 **
 ** When found, set *piTab and *piCol to the table index and column index
 ** of the matching column and return TRUE.
-** æ‰¾åˆ°ä¹‹å,è®¾ç½®*piTabç»™è¡¨ç´¢å¼•ï¼Œè®¾ç½®*piColç»™éœ€è¦åŒ¹é…çš„åˆ—ç´¢å¼•ï¼Œå†è¿”å›TRUE
+** ÕÒµ½Ö®ºó,ÉèÖÃ*piTab¸ø±íË÷Òı£¬ÉèÖÃ*piCol¸øĞèÒªÆ¥ÅäµÄÁĞË÷Òı£¬ÔÙ·µ»ØTRUE
 **
 ** If not found, return FALSE.
-** å¦‚æœæ²¡æœ‰æ‰¾åˆ°ï¼Œè¿”å›FALSEã€‚
+** Èç¹ûÃ»ÓĞÕÒµ½£¬·µ»ØFALSE¡£
 */
 static int tableAndColumnIndex(
-	SrcList *pSrc,       /* Array of tables to search å­˜æ”¾å¾…æŸ¥æ‰¾çš„è¡¨çš„é˜Ÿåˆ—*/
-	int N,               /* Number of tables in pSrc->a[] to search è¡¨çš„æ•°ç›®*/
-	const char *zCol,    /* Name of the column we are looking for å¯»æ‰¾çš„åˆ—å*/
-	int *piTab,          /* Write index of pSrc->a[] here å†™å…¥ç´¢å¼•*/
-	int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here å†™å…¥ç´¢å¼•*/
+	SrcList *pSrc,       /* Array of tables to search ´æ·Å´ı²éÕÒµÄ±íµÄ¶ÓÁĞ*/
+	int N,               /* Number of tables in pSrc->a[] to search ±íµÄÊıÄ¿*/
+	const char *zCol,    /* Name of the column we are looking for Ñ°ÕÒµÄÁĞÃû*/
+	int *piTab,          /* Write index of pSrc->a[] here Ğ´ÈëË÷Òı*/
+	int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here Ğ´ÈëË÷Òı*/
 	){
-	int i;               /* For looping over tables in pSrc å¯¹pSrcéå†è¡¨*/
-	int iCol;            /* Index of column matching zCol   åŒ¹é…ä¸Šçš„åˆ—çš„ç´¢å¼•ï¼Œç¬¬å‡ åˆ—*/
+	int i;               /* For looping over tables in pSrc ¶ÔpSrc±éÀú±í*/
+	int iCol;            /* Index of column matching zCol   Æ¥ÅäÉÏµÄÁĞµÄË÷Òı£¬µÚ¼¸ÁĞ*/
 
-	assert((piTab == 0) == (piCol == 0));  /* Both or neither are NULL  åˆ¤æ–­è¡¨ç´¢å¼•å’Œåˆ—ç´¢å¼•éƒ½æ˜¯æˆ–éƒ½ä¸æ˜¯ç©º*/
-	for (i = 0; i < N; i++){/*éå†æ‰€æœ‰çš„è¡¨*/
-		iCol = columnIndex(pSrc->a[i].pTab, zCol); /*è¿”å›è¡¨çš„åˆ—çš„ç´¢å¼•èµ‹ç»™iColï¼Œå¦‚æœè¯¥åˆ—æ²¡æœ‰åœ¨è¡¨ä¸­ï¼ŒiColçš„å€¼æ˜¯-1.*/
-		if (iCol >= 0){/*å¦‚æœåˆ—ç´¢å¼•å­˜åœ¨*/
-			if (piTab){/*å¦‚æœè¡¨ç´¢å¼•å­˜åœ¨*/
-				*piTab = i;/*æŠŠi èµ‹ç»™æŒ‡é’ˆpiTab çš„ç›®æ ‡å˜é‡*/
-				*piCol = iCol;/*æŠŠiCol èµ‹å€¼ç»™æŒ‡é’ˆpiCol çš„ç›®æ ‡å˜é‡*/
+	assert((piTab == 0) == (piCol == 0));  /* Both or neither are NULL  ÅĞ¶Ï±íË÷ÒıºÍÁĞË÷Òı¶¼ÊÇ»ò¶¼²»ÊÇ¿Õ*/
+	for (i = 0; i < N; i++){/*±éÀúËùÓĞµÄ±í*/
+		iCol = columnIndex(pSrc->a[i].pTab, zCol); /*·µ»Ø±íµÄÁĞµÄË÷Òı¸³¸øiCol£¬Èç¹û¸ÃÁĞÃ»ÓĞÔÚ±íÖĞ£¬iColµÄÖµÊÇ-1.*/
+		if (iCol >= 0){/*Èç¹ûÁĞË÷Òı´æÔÚ*/
+			if (piTab){/*Èç¹û±íË÷Òı´æÔÚ*/
+				*piTab = i;/*°Ñi ¸³¸øÖ¸ÕëpiTab µÄÄ¿±ê±äÁ¿*/
+				*piCol = iCol;/*°ÑiCol ¸³Öµ¸øÖ¸ÕëpiCol µÄÄ¿±ê±äÁ¿*/
 			}
-			return 1;/*å¦åˆ™è¿”å›1*/
+			return 1;/*·ñÔò·µ»Ø1*/
 		}
 	}
 	return 0;
@@ -312,53 +312,53 @@ static int tableAndColumnIndex(
 ** (iSrc+1)'th. Column col1 is column iColLeft of tab1, and col2 is
 ** column iColRight of tab2.
 
-** è¿™ä¸ªå‡½æ•°ç”¨æ¥æ·»åŠ whereå­å¥è§£é‡Šå«æœ‰JOINè¯­æ³•å¥,ä»è€Œè§£é‡Šselectè¯­å¥ã€‚
-** è¿™ä¸ªæ–°æ¡æ¬¾æ·»åŠ åˆ°å«æœ‰whereå­å¥ä¸­çš„ï¼Œæ ¼å¼å¦‚ä¸‹:
+** Õâ¸öº¯ÊıÓÃÀ´Ìí¼Ówhere×Ó¾ä½âÊÍº¬ÓĞJOINÓï·¨¾ä,´Ó¶ø½âÊÍselectÓï¾ä¡£
+** Õâ¸öĞÂÌõ¿îÌí¼Óµ½º¬ÓĞwhere×Ó¾äÖĞµÄ£¬¸ñÊ½ÈçÏÂ:
 **
 ** (tab1.col1 = tab2.col2)
 **
-** tab1æ˜¯SrcList pSrcçš„iSrc'thè¡¨ï¼Œtab2æ˜¯(iSrc+1)'thã€‚åˆ—col1æ˜¯tab1çš„iColLeftåˆ—ï¼Œcol2æ˜¯
-** tab2çš„iColRightåˆ—
+** tab1ÊÇSrcList pSrcµÄiSrc'th±í£¬tab2ÊÇ(iSrc+1)'th¡£ÁĞcol1ÊÇtab1µÄiColLeftÁĞ£¬col2ÊÇ
+** tab2µÄiColRightÁĞ
 */
 static void addWhereTerm(
-	Parse *pParse,                  /* Parsing context  è¯­ä¹‰åˆ†æ*/
-	SrcList *pSrc,                  /* List of tables in FROM clause   fromå­—å¥ä¸­çš„åˆ—è¡¨ */
-	int iLeft,                      /* Index of first table to join in pSrc  ç¬¬ä¸€ä¸ªè¿æ¥çš„è¡¨ç´¢å¼• */
-	int iColLeft,                   /* Index of column in first table  ç¬¬ä¸€ä¸ªè¡¨çš„åˆ—ç´¢å¼•*/
-	int iRight,                     /* Index of second table in pSrc  ç¬¬äºŒä¸ªè¿æ¥çš„è¡¨ç´¢å¼•*/
-	int iColRight,                  /* Index of column in second table  ç¬¬äºŒä¸ªè¡¨çš„åˆ—ç´¢å¼•*/
-	int isOuterJoin,                /* True if this is an OUTER join  å¦‚æœæ˜¯å¤–è¿æ¥åˆ™è¿”å›true*/
-	Expr **ppWhere                  /* IN/OUT: The WHERE clause to add to  whereå­å¥æ·»åŠ åˆ°in/out*/
+	Parse *pParse,                  /* Parsing context  ÓïÒå·ÖÎö*/
+	SrcList *pSrc,                  /* List of tables in FROM clause   from×Ö¾äÖĞµÄÁĞ±í */
+	int iLeft,                      /* Index of first table to join in pSrc  µÚÒ»¸öÁ¬½ÓµÄ±íË÷Òı */
+	int iColLeft,                   /* Index of column in first table  µÚÒ»¸ö±íµÄÁĞË÷Òı*/
+	int iRight,                     /* Index of second table in pSrc  µÚ¶ş¸öÁ¬½ÓµÄ±íË÷Òı*/
+	int iColRight,                  /* Index of column in second table  µÚ¶ş¸ö±íµÄÁĞË÷Òı*/
+	int isOuterJoin,                /* True if this is an OUTER join  Èç¹ûÊÇÍâÁ¬½ÓÔò·µ»Øtrue*/
+	Expr **ppWhere                  /* IN/OUT: The WHERE clause to add to  where×Ó¾äÌí¼Óµ½in/out*/
 	){
-	sqlite3 *db = pParse->db;/*å£°æ˜ä¸€ä¸ªæ•°æ®åº“è¿æ¥*/
-	Expr *pE1; /*å®šä¹‰ç»“æ„ä½“æŒ‡é’ˆpE1*/
-	Expr *pE2; /*å®šä¹‰ç»“æ„ä½“æŒ‡é’ˆpE2*/
-	Expr *pEq; /*å®šä¹‰ç»“æ„ä½“æŒ‡é’ˆpEq*/
+	sqlite3 *db = pParse->db;/*ÉùÃ÷Ò»¸öÊı¾İ¿âÁ¬½Ó*/
+	Expr *pE1; /*¶¨Òå½á¹¹ÌåÖ¸ÕëpE1*/
+	Expr *pE2; /*¶¨Òå½á¹¹ÌåÖ¸ÕëpE2*/
+	Expr *pEq; /*¶¨Òå½á¹¹ÌåÖ¸ÕëpEq*/
 
-	assert(iLeft<iRight);/*åˆ¤æ–­å¦‚æœç¬¬ä¸€ä¸ªè¡¨ç´¢å¼•å€¼æ˜¯å¦å°äºç¬¬äºŒä¸ªè¡¨ç´¢å¼•å€¼*/
-	assert(pSrc->nSrc>iRight);/*åˆ¤æ–­è¡¨é›†åˆä¸­çš„è¡¨çš„æ•°ç›®æ˜¯å¦å¤§äºå³è¡¨çš„ç´¢å¼•å€¼*/
-	assert(pSrc->a[iLeft].pTab);/*åˆ¤æ–­è¡¨é›†åˆä¸­è¡¨ä¸­å·¦è¡¨ç´¢å¼•çš„è¡¨æ˜¯å¦ä¸ºç©º*/
-	assert(pSrc->a[iRight].pTab);/*åˆ¤æ–­è¡¨é›†åˆä¸­è¡¨ä¸­å³è¡¨ç´¢å¼•çš„è¡¨æ˜¯å¦ä¸ºç©º*/
+	assert(iLeft<iRight);/*ÅĞ¶ÏÈç¹ûµÚÒ»¸ö±íË÷ÒıÖµÊÇ·ñĞ¡ÓÚµÚ¶ş¸ö±íË÷ÒıÖµ*/
+	assert(pSrc->nSrc>iRight);/*ÅĞ¶Ï±í¼¯ºÏÖĞµÄ±íµÄÊıÄ¿ÊÇ·ñ´óÓÚÓÒ±íµÄË÷ÒıÖµ*/
+	assert(pSrc->a[iLeft].pTab);/*ÅĞ¶Ï±í¼¯ºÏÖĞ±íÖĞ×ó±íË÷ÒıµÄ±íÊÇ·ñÎª¿Õ*/
+	assert(pSrc->a[iRight].pTab);/*ÅĞ¶Ï±í¼¯ºÏÖĞ±íÖĞÓÒ±íË÷ÒıµÄ±íÊÇ·ñÎª¿Õ*/
 
-	pE1 = sqlite3CreateColumnExpr(db, pSrc, iLeft, iColLeft);/*åˆ†é…å¹¶è¿”å›ä¸€ä¸ªè¡¨è¾¾å¼æŒ‡é’ˆå»åŠ è½½è¡¨é›†åˆä¸­å·¦è¡¨çš„ä¸€ä¸ªåˆ—ç´¢å¼•*/
-	pE2 = sqlite3CreateColumnExpr(db, pSrc, iRight, iColRight);/*åˆ†é…å¹¶è¿”å›ä¸€ä¸ªè¡¨è¾¾å¼æŒ‡é’ˆå»åŠ è½½è¡¨é›†åˆä¸­å³è¡¨çš„ä¸€ä¸ªåˆ—ç´¢å¼•*/
+	pE1 = sqlite3CreateColumnExpr(db, pSrc, iLeft, iColLeft);/*·ÖÅä²¢·µ»ØÒ»¸ö±í´ïÊ½Ö¸ÕëÈ¥¼ÓÔØ±í¼¯ºÏÖĞ×ó±íµÄÒ»¸öÁĞË÷Òı*/
+	pE2 = sqlite3CreateColumnExpr(db, pSrc, iRight, iColRight);/*·ÖÅä²¢·µ»ØÒ»¸ö±í´ïÊ½Ö¸ÕëÈ¥¼ÓÔØ±í¼¯ºÏÖĞÓÒ±íµÄÒ»¸öÁĞË÷Òı*/
 
-	pEq = sqlite3PExpr(pParse, TK_EQ, pE1, pE2, 0);/*åˆ†é…ä¸€ä¸ªé¢å¤–èŠ‚ç‚¹è¿æ¥è¿™ä¸¤ä¸ªå­æ ‘è¡¨è¾¾å¼*/
-	if (pEq && isOuterJoin){/*å¦‚æœpEqè¡¨è¾¾å¼æ˜¯å…¨è¿æ¥è¡¨è¾¾å¼*/
-		ExprSetProperty(pEq, EP_FromJoin);/*é‚£ä¹ˆåœ¨è¿æ¥ä¸­ä½¿ç”¨ONæˆ–USINGå­å¥*/
-		assert(!ExprHasAnyProperty(pEq, EP_TokenOnly | EP_Reduced));/*åˆ¤æ–­pEqè¡¨è¾¾å¼æ˜¯å¦æ˜¯EP_TokenOnlyæˆ–EP_Reduced*/
-		ExprSetIrreducible(pEq);/*è°ƒè¯•pEq,è®¾ç½®æ˜¯å¦å¯ä»¥çº¦æŸ*/
-		pEq->iRightJoinTable = (i16)pE2->iTable;/*æŒ‡å®šè¦è¿æ¥çš„å³è¡¨æ˜¯ç¬¬äºŒä¸ªè¡¨è¾¾å¼çš„è¡¨*/
+	pEq = sqlite3PExpr(pParse, TK_EQ, pE1, pE2, 0);/*·ÖÅäÒ»¸ö¶îÍâ½ÚµãÁ¬½ÓÕâÁ½¸ö×ÓÊ÷±í´ïÊ½*/
+	if (pEq && isOuterJoin){/*Èç¹ûpEq±í´ïÊ½ÊÇÈ«Á¬½Ó±í´ïÊ½*/
+		ExprSetProperty(pEq, EP_FromJoin);/*ÄÇÃ´ÔÚÁ¬½ÓÖĞÊ¹ÓÃON»òUSING×Ó¾ä*/
+		assert(!ExprHasAnyProperty(pEq, EP_TokenOnly | EP_Reduced));/*ÅĞ¶ÏpEq±í´ïÊ½ÊÇ·ñÊÇEP_TokenOnly»òEP_Reduced*/
+		ExprSetIrreducible(pEq);/*µ÷ÊÔpEq,ÉèÖÃÊÇ·ñ¿ÉÒÔÔ¼Êø*/
+		pEq->iRightJoinTable = (i16)pE2->iTable;/*Ö¸¶¨ÒªÁ¬½ÓµÄÓÒ±íÊÇµÚ¶ş¸ö±í´ïÊ½µÄ±í*/
 	}
-	*ppWhere = sqlite3ExprAnd(db, *ppWhere, pEq);/*å¯¹æŒ‡å®šæ•°æ®åº“çš„è¡¨è¾¾å¼æ˜¯è¿›è¡Œè¿æ¥*/
+	*ppWhere = sqlite3ExprAnd(db, *ppWhere, pEq);/*¶ÔÖ¸¶¨Êı¾İ¿âµÄ±í´ïÊ½ÊÇ½øĞĞÁ¬½Ó*/
 }
 
 /*
 ** Set the EP_FromJoin property on all terms of the given expression.
 ** And set the Expr.iRightJoinTable to iTable for every term in the
 ** expression.
-** åœ¨ç»™å®šçš„è¡¨è¾¾å¼ä¸­çš„æ‰€æœ‰æ¡ä»¶è¿›è¡ŒEP_FromJoinçš„å±æ€§è®¾ç½®ã€‚å¹¶ç»™iTableçš„æ¯ä¸€ç§
-** è¡¨è¾¾å½¢å¼è¿›è¡ŒExpr.iRightJoinTableè®¾ç½®ã€‚
+** ÔÚ¸ø¶¨µÄ±í´ïÊ½ÖĞµÄËùÓĞÌõ¼ş½øĞĞEP_FromJoinµÄÊôĞÔÉèÖÃ¡£²¢¸øiTableµÄÃ¿Ò»ÖÖ
+** ±í´ïĞÎÊ½½øĞĞExpr.iRightJoinTableÉèÖÃ¡£
 **
 ** The EP_FromJoin property is used on terms of an expression to tell
 ** the LEFT OUTER JOIN processing logic that this term is part of the
@@ -366,9 +366,9 @@ static void addWhereTerm(
 ** of the more general WHERE clause.  These terms are moved over to the
 ** WHERE clause during join processing but we need to remember that they
 ** originated in the ON or USING clause.
-** EP_FromJoin å±æ€§ç”¨äºå·¦å¤–è¿æ¥å¤„ç†é€»è¾‘çš„è¡¨è¾¾å½¢å¼ï¼Œè¿™ç§å½¢å¼æ˜¯åŠ å…¥é™åˆ¶æŒ‡å®šonæˆ–è€…
-** usingå­å¥çš„ä¸€éƒ¨åˆ†ï¼Œä¸æ˜¯ä¸€èˆ¬whereå­å¥çš„ä¸€éƒ¨åˆ†ã€‚è¿™äº›æœ¯è¯­ç§»æ¤åˆ°where å­å¥ä¸­
-** ä½¿ç”¨ï¼Œä½†æ˜¯æˆ‘ä»¬å¿…é¡»è®°ä½å®ƒä»¬èµ·æºäºonæˆ–è€…useingå­å¥ã€‚
+** EP_FromJoin ÊôĞÔÓÃÓÚ×óÍâÁ¬½Ó´¦ÀíÂß¼­µÄ±í´ïĞÎÊ½£¬ÕâÖÖĞÎÊ½ÊÇ¼ÓÈëÏŞÖÆÖ¸¶¨on»òÕß
+** using×Ó¾äµÄÒ»²¿·Ö£¬²»ÊÇÒ»°ãwhere×Ó¾äµÄÒ»²¿·Ö¡£ÕâĞ©ÊõÓïÒÆÖ²µ½where ×Ó¾äÖĞ
+** Ê¹ÓÃ£¬µ«ÊÇÎÒÃÇ±ØĞë¼Ç×¡ËüÃÇÆğÔ´ÓÚon»òÕßuseing×Ó¾ä¡£
 **
 ** The Expr.iRightJoinTable tells the WHERE clause processing that the
 ** expression depends on table iRightJoinTable even if that table is not
@@ -383,21 +383,21 @@ static void addWhereTerm(
 ** defer the handling of t1.x=5, it will be processed immediately
 ** after the t1 loop and rows with t1.x!=5 will never appear in
 ** the output, which is incorrect.
-** Expr.iRightJoinTableå‘Šè¯‰whereå­å¥è¡¨è¾¾å¼ä¾é è¡¨iRightJoinTableå¤„ç†ï¼Œå³ä½¿è¡¨åœ¨
-** è¡¨è¾¾å¼ä¸­æ²¡æœ‰æ˜ç¡®æåˆ°ã€‚è¿™äº›ä¿¡æ¯éœ€è¦åƒè¿™ä¸ªä¾‹å­:
+** Expr.iRightJoinTable¸æËßwhere×Ó¾ä±í´ïÊ½ÒÀ¿¿±íiRightJoinTable´¦Àí£¬¼´Ê¹±íÔÚ
+** ±í´ïÊ½ÖĞÃ»ÓĞÃ÷È·Ìáµ½¡£ÕâĞ©ĞÅÏ¢ĞèÒªÏñÕâ¸öÀı×Ó:
 ** SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.b AND t1.x=5
-** where å­å¥éœ€è¦æ¨è¿Ÿå¤„ç†t1.x=5ï¼Œç›´åˆ°åŠ å…¥t2å¾ªç¯ä¹‹åã€‚ä»¥è¿™ç§æ–¹å¼ï¼Œ
-** æ¯å½“t1.x!=5æ—¶ï¼Œä¸€ä¸ªNULL t2è¡Œå°†è¢«åŠ å…¥ã€‚å¦‚æœæˆ‘ä»¬ä¸æ¨è¿Ÿ t1.x=5çš„å¤„ç†ï¼Œ
-** å°†ä¼šè¢«ç«‹å³å¤„ç†åä¸t1å¾ªç¯å’Œåˆ—t1.x!=5æ°¸è¿œä¸ä¼šè¾“å‡ºï¼Œè¿™æ˜¯ä¸æ­£ç¡®çš„ã€‚
+** where ×Ó¾äĞèÒªÍÆ³Ù´¦Àít1.x=5£¬Ö±µ½¼ÓÈët2Ñ­»·Ö®ºó¡£ÒÔÕâÖÖ·½Ê½£¬
+** Ã¿µ±t1.x!=5Ê±£¬Ò»¸öNULL t2ĞĞ½«±»¼ÓÈë¡£Èç¹ûÎÒÃÇ²»ÍÆ³Ù t1.x=5µÄ´¦Àí£¬
+** ½«»á±»Á¢¼´´¦ÀíºóÓët1Ñ­»·ºÍÁĞt1.x!=5ÓÀÔ¶²»»áÊä³ö£¬ÕâÊÇ²»ÕıÈ·µÄ¡£
 */
-static void setJoinExpr(Expr *p, int iTable){/*å‡½æ•°setJoinExprçš„å‚æ•°åˆ—è¡¨ä¸ºç»“æ„ä½“æŒ‡é’ˆpï¼Œæ•´å‹iTable*/
-	while (p){/*å½“pä¸ºçœŸæ—¶å¾ªç¯*/
-		ExprSetProperty(p, EP_FromJoin);/*è®¾ç½®joinä¸­ä½¿ç”¨ONå’ŒUSINGå­å¥*/
-		assert(!ExprHasAnyProperty(p, EP_TokenOnly | EP_Reduced));/*åˆ¤æ–­è¡¨è¾¾å¼çš„å±æ€§ï¼Œå…³äºè¡¨è¾¾å¼çš„é•¿åº¦å’Œå‰©ä½™é•¿åº¦*/
-		ExprSetIrreducible(p);/*è°ƒè¯•è¡¨è¾¾å¼ï¼Œåˆ¤è¯»æ˜¯å¦é”™è¯¯*/
-		p->iRightJoinTable = (i16)iTable;/*è¿æ¥å³è¡¨ï¼Œå³å‚æ•°ä¸­ä¼ å…¥çš„è¡¨*/
-		setJoinExpr(p->pLeft, iTable);/*é€’å½’è°ƒç”¨è‡ªèº«*/
-		p = p->pRight;/*èµ‹å€¼è¡¨è¾¾å¼ï¼Œå°†pèµ‹å€¼æˆä¸ºåŸæ¥pçš„å³å­èŠ‚ç‚¹*/
+static void setJoinExpr(Expr *p, int iTable){/*º¯ÊısetJoinExprµÄ²ÎÊıÁĞ±íÎª½á¹¹ÌåÖ¸Õëp£¬ÕûĞÍiTable*/
+	while (p){/*µ±pÎªÕæÊ±Ñ­»·*/
+		ExprSetProperty(p, EP_FromJoin);/*ÉèÖÃjoinÖĞÊ¹ÓÃONºÍUSING×Ó¾ä*/
+		assert(!ExprHasAnyProperty(p, EP_TokenOnly | EP_Reduced));/*ÅĞ¶Ï±í´ïÊ½µÄÊôĞÔ£¬¹ØÓÚ±í´ïÊ½µÄ³¤¶ÈºÍÊ£Óà³¤¶È*/
+		ExprSetIrreducible(p);/*µ÷ÊÔ±í´ïÊ½£¬ÅĞ¶ÁÊÇ·ñ´íÎó*/
+		p->iRightJoinTable = (i16)iTable;/*Á¬½ÓÓÒ±í£¬¼´²ÎÊıÖĞ´«ÈëµÄ±í*/
+		setJoinExpr(p->pLeft, iTable);/*µİ¹éµ÷ÓÃ×ÔÉí*/
+		p = p->pRight;/*¸³Öµ±í´ïÊ½£¬½«p¸³Öµ³ÉÎªÔ­À´pµÄÓÒ×Ó½Úµã*/
 	}
 }
 
@@ -405,8 +405,8 @@ static void setJoinExpr(Expr *p, int iTable){/*å‡½æ•°setJoinExprçš„å‚æ•°åˆ—è¡¨ä
 ** This routine processes the join information for a SELECT statement.
 ** ON and USING clauses are converted into extra terms of the WHERE clause.
 ** NATURAL joins also create extra WHERE clause terms.
-** è¿™ä¸ªç¨‹åºå¤„ç†ä¸€ä¸ªselectè¯­å¥çš„joinä¿¡æ¯ã€‚onæˆ–è€…usingå­å¥è½¬æ¢ä¸ºé¢å¤–å½¢å¼çš„whereå­å¥ã€‚
-** è‡ªç„¶è¿æ¥ä¹Ÿåˆ›å»ºé¢å¤–çš„whereå­å¥ã€‚
+** Õâ¸ö³ÌĞò´¦ÀíÒ»¸öselectÓï¾äµÄjoinĞÅÏ¢¡£on»òÕßusing×Ó¾ä×ª»»Îª¶îÍâĞÎÊ½µÄwhere×Ó¾ä¡£
+** ×ÔÈ»Á¬½ÓÒ²´´½¨¶îÍâµÄwhere×Ó¾ä¡£
 **
 ** The terms of a FROM clause are contained in the Select.pSrc structure.
 ** The left most table is the first entry in Select.pSrc.  The right-most
@@ -414,70 +414,70 @@ static void setJoinExpr(Expr *p, int iTable){/*å‡½æ•°setJoinExprçš„å‚æ•°åˆ—è¡¨ä
 ** the left.  Thus entry 0 contains the join operator for the join between
 ** entries 0 and 1.  Any ON or USING clauses associated with the join are
 ** also attached to the left entry.
-**fromå­å¥è¢«Select.pSrc(Selectç»“æ„ä½“ä¸­FROMå±æ€§)æ‰€åŒ…å«ã€‚
-**å·¦è¾¹çš„è¡¨é€šå¸¸æ˜¯Select.pSrcçš„å…¥å£ã€‚å³è¾¹çš„è¡¨é€šå¸¸æ˜¯æœ€åä¸€ä¸ªå…¥å£ï¼ˆentryåœ¨hashmapä¸­ä½œä¸ºå¾ªç¯çš„èŠ‚ç‚¹å…¥å£ï¼Œæ­¤å¤„çš„ç†è§£çš„è¡¨è¿æ¥éå†çš„è®°å½•å…¥å£ï¼‰
-**joinæ“ä½œç¬¦åœ¨å…¥å£çš„å·¦è¾¹ã€‚ç„¶åå…¥å£ç‚¹0åŒ…å«çš„è¿æ¥æ“ä½œç¬¦åœ¨å…¥å£0å’Œå…¥å£1ä¹‹é—´ã€‚ä»»ä½•æ¶‰åŠjoinçš„ONå’ŒUSINGå­å¥ï¼Œä¹Ÿå°†è¿æ¥æ“ä½œç¬¦æ”¾åˆ°å·¦è¾¹å…¥å£ã€‚
+**from×Ó¾ä±»Select.pSrc(Select½á¹¹ÌåÖĞFROMÊôĞÔ)Ëù°üº¬¡£
+**×ó±ßµÄ±íÍ¨³£ÊÇSelect.pSrcµÄÈë¿Ú¡£ÓÒ±ßµÄ±íÍ¨³£ÊÇ×îºóÒ»¸öÈë¿Ú£¨entryÔÚhashmapÖĞ×÷ÎªÑ­»·µÄ½ÚµãÈë¿Ú£¬´Ë´¦µÄÀí½âµÄ±íÁ¬½Ó±éÀúµÄ¼ÇÂ¼Èë¿Ú£©
+**join²Ù×÷·ûÔÚÈë¿ÚµÄ×ó±ß¡£È»ºóÈë¿Úµã0°üº¬µÄÁ¬½Ó²Ù×÷·ûÔÚÈë¿Ú0ºÍÈë¿Ú1Ö®¼ä¡£ÈÎºÎÉæ¼°joinµÄONºÍUSING×Ó¾ä£¬Ò²½«Á¬½Ó²Ù×÷·û·Åµ½×ó±ßÈë¿Ú¡£
 **
 ** This routine returns the number of errors encountered.
-** è¿™ä¸ªç¨‹åºè¿”å›é‡åˆ°é”™è¯¯çš„æ•°é‡
+** Õâ¸ö³ÌĞò·µ»ØÓöµ½´íÎóµÄÊıÁ¿
 */
-static int sqliteProcessJoin(Parse *pParse, Select *p){/*ä¼ å…¥åˆ†ææ ‘pParseï¼ŒSelectç»“æ„ä½“p*/
-	SrcList *pSrc;                  /* All tables in the FROM clause   fromå­å¥ä¸­çš„æ‰€æœ‰è¡¨*/
-	int i, j;                       /* Loop counters  å¾ªç¯è®¡æ•°å™¨*/
-	struct SrcList_item *pLeft;     /* Left table being joined   å·¦è¡¨è¢«åŠ å…¥*/
-	struct SrcList_item *pRight;    /* Right table being joined   å³è¡¨è¢«åŠ å…¥*/
+static int sqliteProcessJoin(Parse *pParse, Select *p){/*´«Èë·ÖÎöÊ÷pParse£¬Select½á¹¹Ìåp*/
+	SrcList *pSrc;                  /* All tables in the FROM clause   from×Ó¾äÖĞµÄËùÓĞ±í*/
+	int i, j;                       /* Loop counters  Ñ­»·¼ÆÊıÆ÷*/
+	struct SrcList_item *pLeft;     /* Left table being joined   ×ó±í±»¼ÓÈë*/
+	struct SrcList_item *pRight;    /* Right table being joined   ÓÒ±í±»¼ÓÈë*/
 
-	pSrc = p->pSrc;/*æŠŠp->pSrcèµ‹å€¼ç»™ç»“æ„ä½“æŒ‡é’ˆpSrc*/
-	pLeft = &pSrc->a[0];/*æŠŠ&pSrc->a[0]æ”¾å…¥å·¦è¡¨*/
-	pRight = &pLeft[1];/*æŠŠ&pLeft[1]æ”¾å…¥å³è¡¨*/
+	pSrc = p->pSrc;/*°Ñp->pSrc¸³Öµ¸ø½á¹¹ÌåÖ¸ÕëpSrc*/
+	pLeft = &pSrc->a[0];/*°Ñ&pSrc->a[0]·ÅÈë×ó±í*/
+	pRight = &pLeft[1];/*°Ñ&pLeft[1]·ÅÈëÓÒ±í*/
 	for (i = 0; i < pSrc->nSrc - 1; i++, pRight++, pLeft++){
-		Table *pLeftTab = pLeft->pTab;/*æŠŠpLeft->pTabèµ‹ç»™ç»“æ„ä½“æŒ‡é’ˆpLeftTab*/
-		Table *pRightTab = pRight->pTab;/*æŠŠpRight->pTabèµ‹ç»™ç»“æ„ä½“æŒ‡é’ˆpRightTab*/
-		int isOuter;/*ç”¨äºåˆ¤æ–­*/
+		Table *pLeftTab = pLeft->pTab;/*°ÑpLeft->pTab¸³¸ø½á¹¹ÌåÖ¸ÕëpLeftTab*/
+		Table *pRightTab = pRight->pTab;/*°ÑpRight->pTab¸³¸ø½á¹¹ÌåÖ¸ÕëpRightTab*/
+		int isOuter;/*ÓÃÓÚÅĞ¶Ï*/
 
-		if (NEVER(pLeftTab == 0 || pRightTab == 0)) continue;/*å¦‚æœå·¦è¡¨æˆ–å³è¡¨æœ‰ä¸€ä¸ªä¸ºç©ºåˆ™è·³å‡ºæœ¬æ¬¡å¾ªç¯*/
-		isOuter = (pRight->jointype & JT_OUTER) != 0;/*å³è¡¨çš„è¿æ¥ç±»å‹äº¤å¤–è¿æ¥ç±»å‹ä¸ä¸ºç©ºï¼Œå†èµ‹å€¼ç»™isOuteå±æ€§å€¼*/
+		if (NEVER(pLeftTab == 0 || pRightTab == 0)) continue;/*Èç¹û×ó±í»òÓÒ±íÓĞÒ»¸öÎª¿ÕÔòÌø³ö±¾´ÎÑ­»·*/
+		isOuter = (pRight->jointype & JT_OUTER) != 0;/*ÓÒ±íµÄÁ¬½ÓÀàĞÍ½»ÍâÁ¬½ÓÀàĞÍ²»Îª¿Õ£¬ÔÙ¸³Öµ¸øisOuteÊôĞÔÖµ*/
 
 		/* When the NATURAL keyword is present, add WHERE clause terms for
 		** every column that the two tables have in common.
-		** å½“naturalå…³é”®å­—å­˜åœ¨ï¼Œå¹¶ä¸”WHEREå­å¥çš„æ¡ä»¶ä¸ºä¸¤ä¸ªè¡¨ä¸­æœ‰ç›¸åŒåˆ—ã€‚
+		** µ±natural¹Ø¼ü×Ö´æÔÚ£¬²¢ÇÒWHERE×Ó¾äµÄÌõ¼şÎªÁ½¸ö±íÖĞÓĞÏàÍ¬ÁĞ¡£
 		*/
-		if (pRight->jointype & JT_NATURAL){/*å¦‚æœå³è¡¨çš„è¿æ¥ç±»å‹æ˜¯è‡ªç„¶è¿æ¥*/
-			if (pRight->pOn || pRight->pUsing){/*å¦‚æœå³è¡¨æœ‰ONæˆ–USINGå­å¥*/
+		if (pRight->jointype & JT_NATURAL){/*Èç¹ûÓÒ±íµÄÁ¬½ÓÀàĞÍÊÇ×ÔÈ»Á¬½Ó*/
+			if (pRight->pOn || pRight->pUsing){/*Èç¹ûÓÒ±íÓĞON»òUSING×Ó¾ä*/
 				sqlite3ErrorMsg(pParse, "a NATURAL join may not have "
-					"an ON or USING clause", 0);/*é‚£ä¹ˆå°±è¾“å‡ºï¼Œè‡ªç„¶è¿æ¥ä¸­ä¸èƒ½å«æœ‰ON USINGå­å¥*/
+					"an ON or USING clause", 0);/*ÄÇÃ´¾ÍÊä³ö£¬×ÔÈ»Á¬½ÓÖĞ²»ÄÜº¬ÓĞON USING×Ó¾ä*/
 				return 1;
 			}
-			for (j = 0; j < pRightTab->nCol; j++){/*å¾ªç¯éå†å³è¡¨ä¸­çš„åˆ—*/
-				char *zName;   /* Name of column in the right table å³è¡¨ä¸­åˆ—çš„åå­—*/
-				int iLeft;     /* Matching left table åŒ¹é…å·¦è¡¨*/
-				int iLeftCol;  /* Matching column in the left table åœ¨å·¦è¡¨ä¸­åŒ¹é…åˆ—*/
+			for (j = 0; j < pRightTab->nCol; j++){/*Ñ­»·±éÀúÓÒ±íÖĞµÄÁĞ*/
+				char *zName;   /* Name of column in the right table ÓÒ±íÖĞÁĞµÄÃû×Ö*/
+				int iLeft;     /* Matching left table Æ¥Åä×ó±í*/
+				int iLeftCol;  /* Matching column in the left table ÔÚ×ó±íÖĞÆ¥ÅäÁĞ*/
 
-				zName = pRightTab->aCol[j].zName;/*ç»™åˆ—åèµ‹å€¼*/
-				if (tableAndColumnIndex(pSrc, i + 1, zName, &iLeft, &iLeftCol)){/*å¦‚æœå­˜åœ¨å·¦è¡¨çš„åˆ—çš„ç´¢å¼•*/
+				zName = pRightTab->aCol[j].zName;/*¸øÁĞÃû¸³Öµ*/
+				if (tableAndColumnIndex(pSrc, i + 1, zName, &iLeft, &iLeftCol)){/*Èç¹û´æÔÚ×ó±íµÄÁĞµÄË÷Òı*/
 					addWhereTerm(pParse, pSrc, iLeft, iLeftCol, i + 1, j,
-						isOuter, &p->pWhere);/*æ·»åŠ WHEREå­å¥ï¼Œè®¾ç½®å·¦å³è¡¨ã€åˆ—å’Œè¿æ¥æ–¹å¼*/
+						isOuter, &p->pWhere);/*Ìí¼ÓWHERE×Ó¾ä£¬ÉèÖÃ×óÓÒ±í¡¢ÁĞºÍÁ¬½Ó·½Ê½*/
 				}
 			}
 		}
 
 		/* Disallow both ON and USING clauses in the same join
-		** ä¸å…è®¸åœ¨åŒä¸€ä¸ªè¿æ¥ä¸­ä½¿ç”¨onå’Œusingå­å¥
+		** ²»ÔÊĞíÔÚÍ¬Ò»¸öÁ¬½ÓÖĞÊ¹ÓÃonºÍusing×Ó¾ä
 		*/
-		if (pRight->pOn && pRight->pUsing){/*å¦‚æœç»“æ„ä½“æŒ‡é’ˆpRightå¼•ç”¨çš„æˆå‘˜å˜é‡éŒºOnå’ŒpUsingéç©º*/
+		if (pRight->pOn && pRight->pUsing){/*Èç¹û½á¹¹ÌåÖ¸ÕëpRightÒıÓÃµÄ³ÉÔ±±äÁ¿åpOnºÍpUsing·Ç¿Õ*/
 			sqlite3ErrorMsg(pParse, "cannot have both ON and USING "
-				"clauses in the same join");/*è¾“å‡ºé”™è¯¯ä¿¡æ¯â€œcannot have both ON and USING clauses in the same joinâ€*/
+				"clauses in the same join");/*Êä³ö´íÎóĞÅÏ¢¡°cannot have both ON and USING clauses in the same join¡±*/
 			return 1;
 		}
 
 		/* Add the ON clause to the end of the WHERE clause, connected by
 		** an AND operator.
-		** å°†onå­å¥æ·»åŠ åˆ°whereå­å¥çš„æœ«å°¾ï¼Œç”¨andæ“ä½œç¬¦è¿æ¥
+		** ½«on×Ó¾äÌí¼Óµ½where×Ó¾äµÄÄ©Î²£¬ÓÃand²Ù×÷·ûÁ¬½Ó
 		*/
-		if (pRight->pOn){/*å¦‚æœç»“æ„ä½“æŒ‡é’ˆpRightå¼•ç”¨çš„æˆå‘˜å˜é‡pOnéç©º*/
-			if (isOuter) setJoinExpr(pRight->pOn, pRight->iCursor);/*å¦‚æœæœ‰å¤–è¿æ¥ï¼Œè®¾ç½®è¿æ¥è¡¨è¾¾å¼ä¸­ONå­å¥å’Œæ¸¸æ ‡*/
-			p->pWhere = sqlite3ExprAnd(pParse->db, p->pWhere, pRight->pOn);/*è®¾ç½®å°†WHEREå­å¥ä¸ONå­å¥è¿æ¥ä¸€èµ·ï¼Œèµ‹å€¼ç»™ç»“æ„ä½“çš„WHERE*/
-			pRight->pOn = 0;/*å¦‚æœæ²¡æœ‰å¤–è¿æ¥ï¼Œå°±è®¾ç½®ä¸ä½¿ç”¨ONå­å¥*/
+		if (pRight->pOn){/*Èç¹û½á¹¹ÌåÖ¸ÕëpRightÒıÓÃµÄ³ÉÔ±±äÁ¿pOn·Ç¿Õ*/
+			if (isOuter) setJoinExpr(pRight->pOn, pRight->iCursor);/*Èç¹ûÓĞÍâÁ¬½Ó£¬ÉèÖÃÁ¬½Ó±í´ïÊ½ÖĞON×Ó¾äºÍÓÎ±ê*/
+			p->pWhere = sqlite3ExprAnd(pParse->db, p->pWhere, pRight->pOn);/*ÉèÖÃ½«WHERE×Ó¾äÓëON×Ó¾äÁ¬½ÓÒ»Æğ£¬¸³Öµ¸ø½á¹¹ÌåµÄWHERE*/
+			pRight->pOn = 0;/*Èç¹ûÃ»ÓĞÍâÁ¬½Ó£¬¾ÍÉèÖÃ²»Ê¹ÓÃON×Ó¾ä*/
 		}
 
 		/* Create extra terms on the WHERE clause for each column named
@@ -486,102 +486,102 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*ä¼ å…¥åˆ†ææ ‘pParseï¼
 		** to the WHERE clause:    A.X=B.X AND A.Y=B.Y AND A.Z=B.Z
 		** Report an error if any column mentioned in the USING clause is
 		** not contained in both tables to be joined.
-		** åœ¨WHEREå­å¥ä¸Šä¸ºæ¯ä¸€åˆ—åˆ›å»ºä¸€ä¸ªé¢å¤–çš„USINGå­å¥æ¡æ¬¾ã€‚ä¾‹å¦‚ï¼š
-		** å¦‚æœä¸¤ä¸ªè¡¨çš„è¿æ¥æ˜¯Aå’ŒB,usingåˆ—åä¸ºX,Y,Z,ç„¶åæŠŠå®ƒä»¬æ·»åŠ åˆ°
-		** whereå­å¥:A.X=B.X AND A.Y=B.Y AND A.Z=B.Z
-		** å¦‚æœusingå­å¥ä¸­æåˆ°çš„ä»»ä½•åˆ—ä¸åŒ…å«åœ¨è¡¨çš„è¿æ¥ä¸­ï¼Œå°±ä¼šæŠ¥å‘Š
-		** ä¸€ä¸ªé”™è¯¯ã€‚
+		** ÔÚWHERE×Ó¾äÉÏÎªÃ¿Ò»ÁĞ´´½¨Ò»¸ö¶îÍâµÄUSING×Ó¾äÌõ¿î¡£ÀıÈç£º
+		** Èç¹ûÁ½¸ö±íµÄÁ¬½ÓÊÇAºÍB,usingÁĞÃûÎªX,Y,Z,È»ºó°ÑËüÃÇÌí¼Óµ½
+		** where×Ó¾ä:A.X=B.X AND A.Y=B.Y AND A.Z=B.Z
+		** Èç¹ûusing×Ó¾äÖĞÌáµ½µÄÈÎºÎÁĞ²»°üº¬ÔÚ±íµÄÁ¬½ÓÖĞ£¬¾Í»á±¨¸æ
+		** Ò»¸ö´íÎó¡£
 		*/
-		if (pRight->pUsing){/*å¦‚æœç»“æ„ä½“æŒ‡é’ˆpRightå¼•ç”¨çš„æˆå‘˜å˜é‡pUsingéç©º*/
-			IdList *pList = pRight->pUsing;/*æŠŠpRight->pUsingèµ‹ç»™ç»“æ„ä½“æŒ‡é’ˆpList*/
-			for (j = 0; j < pList->nId; j++){/*éå†æ ‡ç¤ºç¬¦åˆ—è¡¨*/
-				char *zName;     /* Name of the term in the USING clause   usingå­å¥çš„åç§°æœ¯è¯­*/
-				int iLeft;       /* Table on the left with matching column name   å·¦è¡¨ä¸åŒ¹é…çš„åˆ—å*/
-				int iLeftCol;    /* Column number of matching column on the left  å·¦è¡¨åŒ¹é…åˆ—çš„åˆ—æ•°*/
-				int iRightCol;   /* Column number of matching column on the right  å³è¡¨åŒ¹é…åˆ—çš„åˆ—æ•°*/
+		if (pRight->pUsing){/*Èç¹û½á¹¹ÌåÖ¸ÕëpRightÒıÓÃµÄ³ÉÔ±±äÁ¿pUsing·Ç¿Õ*/
+			IdList *pList = pRight->pUsing;/*°ÑpRight->pUsing¸³¸ø½á¹¹ÌåÖ¸ÕëpList*/
+			for (j = 0; j < pList->nId; j++){/*±éÀú±êÊ¾·ûÁĞ±í*/
+				char *zName;     /* Name of the term in the USING clause   using×Ó¾äµÄÃû³ÆÊõÓï*/
+				int iLeft;       /* Table on the left with matching column name   ×ó±íÓëÆ¥ÅäµÄÁĞÃû*/
+				int iLeftCol;    /* Column number of matching column on the left  ×ó±íÆ¥ÅäÁĞµÄÁĞÊı*/
+				int iRightCol;   /* Column number of matching column on the right  ÓÒ±íÆ¥ÅäÁĞµÄÁĞÊı*/
 
-				zName = pList->a[j].zName;/*æ ‡ç¤ºç¬¦åˆ—è¡¨ä¸­çš„æ ‡ç¤ºç¬¦*/
-				iRightCol = columnIndex(pRightTab, zName);/*æ ¹æ®å³è¡¨å’Œæ ‡ç¤ºç¬¦å³è¡¨çš„å¾…åŒ¹é…çš„åˆ—ç´¢å¼•è¿”å›åˆ—å·*/
+				zName = pList->a[j].zName;/*±êÊ¾·ûÁĞ±íÖĞµÄ±êÊ¾·û*/
+				iRightCol = columnIndex(pRightTab, zName);/*¸ù¾İÓÒ±íºÍ±êÊ¾·ûÓÒ±íµÄ´ıÆ¥ÅäµÄÁĞË÷Òı·µ»ØÁĞºÅ*/
 				if (iRightCol<0
-					|| !tableAndColumnIndex(pSrc, i + 1, zName, &iLeft, &iLeftCol)/*å¦‚æœåˆ—ä¸å­˜åœ¨*/
+					|| !tableAndColumnIndex(pSrc, i + 1, zName, &iLeft, &iLeftCol)/*Èç¹ûÁĞ²»´æÔÚ*/
 					){
 					sqlite3ErrorMsg(pParse, "cannot join using column %s - column "
-						"not present in both tables", zName);/*è¾“å‡ºé”™è¯¯ä¿¡æ¯*/
+						"not present in both tables", zName);/*Êä³ö´íÎóĞÅÏ¢*/
 					return 1;
 				}
 				addWhereTerm(pParse, pSrc, iLeft, iLeftCol, i + 1, iRightCol,
-					isOuter, &p->pWhere);/*å¦‚æœå­˜åœ¨ï¼Œæ·»åŠ åˆ°WHEREå­å¥ä¸­*/
+					isOuter, &p->pWhere);/*Èç¹û´æÔÚ£¬Ìí¼Óµ½WHERE×Ó¾äÖĞ*/
 			}
 		}
 	}
-	return 0;/*é»˜è®¤è¿”å›0ï¼Œæ ¹æ®ä¸Šæ–‡åˆ†æå¯å¾—å‡ºç”Ÿæˆäº†ä¸€ä¸ªinnerè¿æ¥*/
+	return 0;/*Ä¬ÈÏ·µ»Ø0£¬¸ù¾İÉÏÎÄ·ÖÎö¿ÉµÃ³öÉú³ÉÁËÒ»¸öinnerÁ¬½Ó*/
 }
 
 /*
 ** Insert code into "v" that will push the record on the top of the
 ** stack into the sorter.
-** æ’å…¥ä»£ç "v"ï¼Œåœ¨åˆ†ç±»å™¨å°†ä¼šæ¨è¿›è®°å½•åˆ°æ ˆçš„é¡¶éƒ¨ã€‚
+** ²åÈë´úÂë"v"£¬ÔÚ·ÖÀàÆ÷½«»áÍÆ½ø¼ÇÂ¼µ½Õ»µÄ¶¥²¿¡£
 */
 static void pushOntoSorter(
-	Parse *pParse,         /* Parser context  è¯­ä¹‰åˆ†æ*/
-	ExprList *pOrderBy,    /* The ORDER BY clause   order byå­å¥*/
-	Select *pSelect,       /* The whole SELECT statement  æ•´ä¸ªselectè¯­å¥*/
-	int regData            /* Register holding data to be sorted  ä¿æŒæ•°æ®æœ‰åº*/
+	Parse *pParse,         /* Parser context  ÓïÒå·ÖÎö*/
+	ExprList *pOrderBy,    /* The ORDER BY clause   order by×Ó¾ä*/
+	Select *pSelect,       /* The whole SELECT statement  Õû¸öselectÓï¾ä*/
+	int regData            /* Register holding data to be sorted  ±£³ÖÊı¾İÓĞĞò*/
 	){
-	Vdbe *v = pParse->pVdbe;/*å£°æ˜ä¸€ä¸ªè™šæ‹Ÿæœº*/
-	int nExpr = pOrderBy->nExpr;/*å£°æ˜ä¸€ä¸ªORDERBYè¡¨è¾¾å¼*/
-	int regBase = sqlite3GetTempRange(pParse, nExpr + 2); /*åˆ†é…æˆ–é‡Šæ”¾ä¸€å—è¿ç»­çš„å¯„å­˜å™¨ï¼Œè¿”å›ä¸€ä¸ªæ•´æ•°å€¼ï¼ŒæŠŠè¯¥å€¼èµ‹ç»™regBaseã€‚*/
-	int regRecord = sqlite3GetTempReg(pParse); /*åˆ†é…ä¸€ä¸ªæ–°çš„å¯„å­˜å™¨ç”¨äºæ§åˆ¶ä¸­é—´ç»“æœã€‚*/
+	Vdbe *v = pParse->pVdbe;/*ÉùÃ÷Ò»¸öĞéÄâ»ú*/
+	int nExpr = pOrderBy->nExpr;/*ÉùÃ÷Ò»¸öORDERBY±í´ïÊ½*/
+	int regBase = sqlite3GetTempRange(pParse, nExpr + 2); /*·ÖÅä»òÊÍ·ÅÒ»¿éÁ¬ĞøµÄ¼Ä´æÆ÷£¬·µ»ØÒ»¸öÕûÊıÖµ£¬°Ñ¸ÃÖµ¸³¸øregBase¡£*/
+	int regRecord = sqlite3GetTempReg(pParse); /*·ÖÅäÒ»¸öĞÂµÄ¼Ä´æÆ÷ÓÃÓÚ¿ØÖÆÖĞ¼ä½á¹û¡£*/
 	int op;
-	sqlite3ExprCacheClear(pParse); /*æ¸…é™¤æ‰€æœ‰åˆ—çš„ç¼“å­˜æ¡ç›®*/
-	sqlite3ExprCodeExprList(pParse, pOrderBy, regBase, 0);/*ç”Ÿæˆä»£ç ï¼Œå°†ç»™å®šçš„è¡¨è¾¾å¼åˆ—è¡¨çš„æ¯ä¸ªå…ƒç´ çš„å€¼æ”¾åˆ°å¯„å­˜å™¨å¼€å§‹çš„ç›®æ ‡åºåˆ—ã€‚è¿”å›å…ƒç´ è¯„ä¼°çš„æ•°é‡ã€‚*/
-	sqlite3VdbeAddOp2(v, OP_Sequence, pOrderBy->iECursor, regBase + nExpr);/*å°†è¡¨è¾¾å¼æ”¾åˆ°VDBEä¸­ï¼Œå†è¿”å›ä¸€ä¸ªæ–°çš„æŒ‡ä»¤åœ°å€*/
-	sqlite3ExprCodeMove(pParse, regData, regBase + nExpr + 1, 1);/*æ›´æ”¹å¯„å­˜å™¨ä¸­çš„å†…å®¹ï¼Œè¿™æ ·åšèƒ½åŠæ—¶æ›´æ–°å¯„å­˜å™¨ä¸­çš„åˆ—ç¼“å­˜æ•°æ®*/
-	sqlite3VdbeAddOp3(v, OP_MakeRecord, regBase, nExpr + 2, regRecord);/*å°†nExpræ”¾åˆ°å½“å‰ä½¿ç”¨çš„VDBEä¸­ï¼Œå†è¿”å›ä¸€ä¸ªæ–°çš„æŒ‡ä»¤çš„åœ°å€*/
-	if (pSelect->selFlags & SF_UseSorter){/*å¦‚æœselectç»“æ„ä½“ä¸­selFlagsçš„å€¼æ˜¯SF_UseSorterï¼Œæä¸€ä¸‹ï¼ŒselFlagsçš„å€¼å…¨æ˜¯ä»¥SFå¼€å¤´ï¼Œè¿™ä¸ªè¡¨ç¤ºä½¿ç”¨äº†åˆ†æ‹£å™¨äº†ã€‚*/
-		op = OP_SorterInsert;/*å› ä¸ºä½¿ç”¨åˆ†æ‹£å™¨ï¼Œæ‰€ä»¥æ“ä½œç¬¦è®¾ç½®ä¸ºæ’å…¥åˆ†æ‹£å™¨*/
+	sqlite3ExprCacheClear(pParse); /*Çå³ıËùÓĞÁĞµÄ»º´æÌõÄ¿*/
+	sqlite3ExprCodeExprList(pParse, pOrderBy, regBase, 0);/*Éú³É´úÂë£¬½«¸ø¶¨µÄ±í´ïÊ½ÁĞ±íµÄÃ¿¸öÔªËØµÄÖµ·Åµ½¼Ä´æÆ÷¿ªÊ¼µÄÄ¿±êĞòÁĞ¡£·µ»ØÔªËØÆÀ¹ÀµÄÊıÁ¿¡£*/
+	sqlite3VdbeAddOp2(v, OP_Sequence, pOrderBy->iECursor, regBase + nExpr);/*½«±í´ïÊ½·Åµ½VDBEÖĞ£¬ÔÙ·µ»ØÒ»¸öĞÂµÄÖ¸ÁîµØÖ·*/
+	sqlite3ExprCodeMove(pParse, regData, regBase + nExpr + 1, 1);/*¸ü¸Ä¼Ä´æÆ÷ÖĞµÄÄÚÈİ£¬ÕâÑù×öÄÜ¼°Ê±¸üĞÂ¼Ä´æÆ÷ÖĞµÄÁĞ»º´æÊı¾İ*/
+	sqlite3VdbeAddOp3(v, OP_MakeRecord, regBase, nExpr + 2, regRecord);/*½«nExpr·Åµ½µ±Ç°Ê¹ÓÃµÄVDBEÖĞ£¬ÔÙ·µ»ØÒ»¸öĞÂµÄÖ¸ÁîµÄµØÖ·*/
+	if (pSelect->selFlags & SF_UseSorter){/*Èç¹ûselect½á¹¹ÌåÖĞselFlagsµÄÖµÊÇSF_UseSorter£¬ÌáÒ»ÏÂ£¬selFlagsµÄÖµÈ«ÊÇÒÔSF¿ªÍ·£¬Õâ¸ö±íÊ¾Ê¹ÓÃÁË·Ö¼ğÆ÷ÁË¡£*/
+		op = OP_SorterInsert;/*ÒòÎªÊ¹ÓÃ·Ö¼ğÆ÷£¬ËùÒÔ²Ù×÷·ûÉèÖÃÎª²åÈë·Ö¼ğÆ÷*/
 	}
 	else{
-		op = OP_IdxInsert;/*å¦åˆ™ä½¿ç”¨ç´¢å¼•æ–¹å¼æ’å…¥*/
+		op = OP_IdxInsert;/*·ñÔòÊ¹ÓÃË÷Òı·½Ê½²åÈë*/
 	}
-	sqlite3VdbeAddOp2(v, op, pOrderBy->iECursor, regRecord);/*å°†Orderbyè¡¨è¾¾å¼æ”¾åˆ°å½“å‰ä½¿ç”¨çš„VDBEä¸­ï¼Œç„¶åè¿”å›ä¸€ä¸ªæ–°çš„æŒ‡ä»¤åœ°å€*/
-	sqlite3ReleaseTempReg(pParse, regRecord);/*é‡Šæ”¾regRecordå¯„å­˜å™¨*/
-	sqlite3ReleaseTempRange(pParse, regBase, nExpr + 2);/*é‡Šæ”¾regBaseè¿™ä¸ªè¿ç»­å¯„å­˜å™¨ï¼Œé•¿åº¦æ˜¯è¡¨è¾¾å¼çš„é•¿åº¦åŠ 2*/
-	if (pSelect->iLimit){/*å¦‚æœä½¿ç”¨Limitå­å¥*/
+	sqlite3VdbeAddOp2(v, op, pOrderBy->iECursor, regRecord);/*½«Orderby±í´ïÊ½·Åµ½µ±Ç°Ê¹ÓÃµÄVDBEÖĞ£¬È»ºó·µ»ØÒ»¸öĞÂµÄÖ¸ÁîµØÖ·*/
+	sqlite3ReleaseTempReg(pParse, regRecord);/*ÊÍ·ÅregRecord¼Ä´æÆ÷*/
+	sqlite3ReleaseTempRange(pParse, regBase, nExpr + 2);/*ÊÍ·ÅregBaseÕâ¸öÁ¬Ğø¼Ä´æÆ÷£¬³¤¶ÈÊÇ±í´ïÊ½µÄ³¤¶È¼Ó2*/
+	if (pSelect->iLimit){/*Èç¹ûÊ¹ÓÃLimit×Ó¾ä*/
 		int addr1, addr2;
 		int iLimit;
-		if (pSelect->iOffset){/*å¦‚æœä½¿ç”¨äº†Offsetåç§»é‡*/
-			iLimit = pSelect->iOffset + 1;/*é‚£ä¹ˆLimitçš„å€¼ä¸ºåç§»é‡åŠ 1*/
+		if (pSelect->iOffset){/*Èç¹ûÊ¹ÓÃÁËOffsetÆ«ÒÆÁ¿*/
+			iLimit = pSelect->iOffset + 1;/*ÄÇÃ´LimitµÄÖµÎªÆ«ÒÆÁ¿¼Ó1*/
 		}
 		else{
-			iLimit = pSelect->iLimit;/*å¦åˆ™ç­‰äºé»˜è®¤çš„ï¼Œä»ç¬¬ä¸€ä¸ªå¼€å§‹è®¡ç®—*/
+			iLimit = pSelect->iLimit;/*·ñÔòµÈÓÚÄ¬ÈÏµÄ£¬´ÓµÚÒ»¸ö¿ªÊ¼¼ÆËã*/
 		}
-		addr1 = sqlite3VdbeAddOp1(v, OP_IfZero, iLimit);/*è¿™ä¸ªåœ°å€æ˜¯ç»“æœé™åˆ¶äº†è¿”å›çš„æ¡æ•°ï¼Œç»™çš„æ–°çš„æŒ‡ä»¤åœ°å€*/
-		sqlite3VdbeAddOp2(v, OP_AddImm, iLimit, -1);/*å°†æŒ‡ä»¤æ”¾åˆ°å½“å‰ä½¿ç”¨çš„VDBEï¼Œç„¶åè¿”å›ä¸€ä¸ªåœ°å€*/
-		addr2 = sqlite3VdbeAddOp0(v, OP_Goto);/*è¿™ä¸ªæ˜¯ä½¿ç”¨Gotoè¯­å¥ä¹‹åè¿”å›çš„åœ°å€*/
-		sqlite3VdbeJumpHere(v, addr1);/*æ”¹å˜addr1çš„åœ°å€ï¼Œä»¥ä¾¿VDBEæŒ‡å‘ä¸‹ä¸€æ¡æŒ‡ä»¤çš„åœ°å€*/
-		sqlite3VdbeAddOp1(v, OP_Last, pOrderBy->iECursor);/*å°†ORDERBYæŒ‡ä»¤æ”¾åˆ°å½“å‰ä½¿ç”¨çš„è™šæ‹Ÿæœºä¸­ï¼Œè¿”å›Lastæ“ä½œçš„åœ°å€*/
-		sqlite3VdbeAddOp1(v, OP_Delete, pOrderBy->iECursor);/*å°†ORDERBYæŒ‡ä»¤æ”¾åˆ°å½“å‰ä½¿ç”¨çš„è™šæ‹Ÿæœºä¸­ï¼Œè¿”å›Deleteæ“ä½œçš„åœ°å€*/
-		sqlite3VdbeJumpHere(v, addr2);/*æ”¹å˜addr2çš„åœ°å€ï¼Œä»¥ä¾¿VDBEæŒ‡å‘ä¸‹ä¸€æ¡æŒ‡ä»¤çš„åœ°å€*/
+		addr1 = sqlite3VdbeAddOp1(v, OP_IfZero, iLimit);/*Õâ¸öµØÖ·ÊÇ½á¹ûÏŞÖÆÁË·µ»ØµÄÌõÊı£¬¸øµÄĞÂµÄÖ¸ÁîµØÖ·*/
+		sqlite3VdbeAddOp2(v, OP_AddImm, iLimit, -1);/*½«Ö¸Áî·Åµ½µ±Ç°Ê¹ÓÃµÄVDBE£¬È»ºó·µ»ØÒ»¸öµØÖ·*/
+		addr2 = sqlite3VdbeAddOp0(v, OP_Goto);/*Õâ¸öÊÇÊ¹ÓÃGotoÓï¾äÖ®ºó·µ»ØµÄµØÖ·*/
+		sqlite3VdbeJumpHere(v, addr1);/*¸Ä±äaddr1µÄµØÖ·£¬ÒÔ±ãVDBEÖ¸ÏòÏÂÒ»ÌõÖ¸ÁîµÄµØÖ·*/
+		sqlite3VdbeAddOp1(v, OP_Last, pOrderBy->iECursor);/*½«ORDERBYÖ¸Áî·Åµ½µ±Ç°Ê¹ÓÃµÄĞéÄâ»úÖĞ£¬·µ»ØLast²Ù×÷µÄµØÖ·*/
+		sqlite3VdbeAddOp1(v, OP_Delete, pOrderBy->iECursor);/*½«ORDERBYÖ¸Áî·Åµ½µ±Ç°Ê¹ÓÃµÄĞéÄâ»úÖĞ£¬·µ»ØDelete²Ù×÷µÄµØÖ·*/
+		sqlite3VdbeJumpHere(v, addr2);/*¸Ä±äaddr2µÄµØÖ·£¬ÒÔ±ãVDBEÖ¸ÏòÏÂÒ»ÌõÖ¸ÁîµÄµØÖ·*/
 	}
 }
 
 /*
 ** Add code to implement the OFFSET
-** æ·»åŠ ä»£ç æ¥å®ç°offsetåç§»
+** Ìí¼Ó´úÂëÀ´ÊµÏÖoffsetÆ«ÒÆ
 */
 static void codeOffset(
-	Vdbe *v,          /* Generate code into this VM  åœ¨è™šæ‹Ÿå™¨ä¸­ç”Ÿæˆä»£ç */
-	Select *p,        /* The SELECT statement being coded  selectè¯­å¥è¢«ç¼–ç */
-	int iContinue     /* Jump here to skip the current record  è·³åˆ°è¿™é‡Œä»¥è·³è¿‡å½“å‰è®°å½•*/
+	Vdbe *v,          /* Generate code into this VM  ÔÚĞéÄâÆ÷ÖĞÉú³É´úÂë*/
+	Select *p,        /* The SELECT statement being coded  selectÓï¾ä±»±àÂë*/
+	int iContinue     /* Jump here to skip the current record  Ìøµ½ÕâÀïÒÔÌø¹ıµ±Ç°¼ÇÂ¼*/
 	){
-	if (p->iOffset && iContinue != 0){/*å¦‚æœç»“æ„ä½“æŒ‡é’ˆpå¼•ç”¨çš„æˆå‘˜iOffsetéç©ºä¸”æ•´å‹iContinueä¸ç­‰äº0*/
+	if (p->iOffset && iContinue != 0){/*Èç¹û½á¹¹ÌåÖ¸ÕëpÒıÓÃµÄ³ÉÔ±iOffset·Ç¿ÕÇÒÕûĞÍiContinue²»µÈÓÚ0*/
 		int addr;
-		sqlite3VdbeAddOp2(v, OP_AddImm, p->iOffset, -1);/*åœ¨VDBEä¸­æ–°æ·»åŠ ä¸€æ¡æŒ‡ä»¤ï¼Œè¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤çš„åœ°å€*/
-		addr = sqlite3VdbeAddOp1(v, OP_IfNeg, p->iOffset);/*å®è´¨ä¸Šè°ƒç”¨sqlite3VdbeAddOp3ï¼ˆï¼‰ä¿®æ”¹æŒ‡ä»¤çš„åœ°å€*/
-		sqlite3VdbeAddOp2(v, OP_Goto, 0, iContinue);/*è®¾ç½®è·³å¾€çš„åœ°å€*/
-		VdbeComment((v, "skip OFFSET records"));/*è¾“å…¥åç§»é‡è®°å½•*/
-		sqlite3VdbeJumpHere(v, addr);/*æ”¹å˜æŒ‡å®šåœ°å€çš„æ“ä½œï¼Œä½¿å…¶æŒ‡å‘ä¸‹ä¸€æ¡æŒ‡ä»¤çš„åœ°å€ç¼–ç */
+		sqlite3VdbeAddOp2(v, OP_AddImm, p->iOffset, -1);/*ÔÚVDBEÖĞĞÂÌí¼ÓÒ»ÌõÖ¸Áî£¬·µ»ØÒ»¸öĞÂÖ¸ÁîµÄµØÖ·*/
+		addr = sqlite3VdbeAddOp1(v, OP_IfNeg, p->iOffset);/*ÊµÖÊÉÏµ÷ÓÃsqlite3VdbeAddOp3£¨£©ĞŞ¸ÄÖ¸ÁîµÄµØÖ·*/
+		sqlite3VdbeAddOp2(v, OP_Goto, 0, iContinue);/*ÉèÖÃÌøÍùµÄµØÖ·*/
+		VdbeComment((v, "skip OFFSET records"));/*ÊäÈëÆ«ÒÆÁ¿¼ÇÂ¼*/
+		sqlite3VdbeJumpHere(v, addr);/*¸Ä±äÖ¸¶¨µØÖ·µÄ²Ù×÷£¬Ê¹ÆäÖ¸ÏòÏÂÒ»ÌõÖ¸ÁîµÄµØÖ·±àÂë*/
 	}
 }
 
@@ -590,237 +590,237 @@ static void codeOffset(
 ** form a distinct entry.  iTab is a sorting index that holds previously
 ** seen combinations of the N values.  A new entry is made in iTab
 ** if the current N values are new.
-** æ·»åŠ ä»£ç ï¼Œå°†æ£€æŸ¥ç¡®ä¿Nä¸ªå¯„å­˜å™¨å¼€å§‹iMemå½¢æˆä¸€ä¸ªå•ç‹¬çš„æ¡ç›®ã€‚iTabæ˜¯ä¸€ä¸ªåˆ†ç±»ç´¢å¼•ï¼Œ
-** é¢„å…ˆè§åˆ°çš„Nå€¼å¾—ç»„åˆã€‚å¦‚æœå½“å‰çš„Nå€¼æ˜¯æ–°çš„ï¼Œä¸€ä¸ªæ–°çš„æ¡ç›®ç”±åœ¨iTabä¸­äº§ç”Ÿã€‚
+** Ìí¼Ó´úÂë£¬½«¼ì²éÈ·±£N¸ö¼Ä´æÆ÷¿ªÊ¼iMemĞÎ³ÉÒ»¸öµ¥¶ÀµÄÌõÄ¿¡£iTabÊÇÒ»¸ö·ÖÀàË÷Òı£¬
+** Ô¤ÏÈ¼ûµ½µÄNÖµµÃ×éºÏ¡£Èç¹ûµ±Ç°µÄNÖµÊÇĞÂµÄ£¬Ò»¸öĞÂµÄÌõÄ¿ÓÉÔÚiTabÖĞ²úÉú¡£
 **
 ** A jump to addrRepeat is made and the N+1 values are popped from the
 ** stack if the top N elements are not distinct.
-** å¦‚æœ€ä¸Šé¢Nä¸ªå…ƒç´ ä¸æ˜æ˜¾ï¼Œåˆ™è·³è½¬åˆ°addrRepeatï¼ŒN+1ä¸ªå€¼ä»æ ˆä¸­å¼¹å‡ºã€‚
+** Èç×îÉÏÃæN¸öÔªËØ²»Ã÷ÏÔ£¬ÔòÌø×ªµ½addrRepeat£¬N+1¸öÖµ´ÓÕ»ÖĞµ¯³ö¡£
 */
 static void codeDistinct(
-	Parse *pParse,     /* Parsing and code generating context è¯­ä¹‰å’Œä»£ç ç”Ÿæˆ*/
-	int iTab,          /* A sorting index used to test for distinctness ä¸€ä¸ªæ’åˆ—ç´¢å¼•ç”¨äºå”¯ä¸€æ€§çš„æµ‹è¯•*/
-	int addrRepeat,    /* Jump to here if not distinct å¦‚æœæ²¡æœ‰â€œå»é™¤é‡å¤â€è·³åˆ°æ­¤å¤„*/
-	int N,             /* Number of elements å…ƒç´ æ•°ç›®*/
-	int iMem           /* First element ç¬¬ä¸€ä¸ªå…ƒç´ */
+	Parse *pParse,     /* Parsing and code generating context ÓïÒåºÍ´úÂëÉú³É*/
+	int iTab,          /* A sorting index used to test for distinctness Ò»¸öÅÅÁĞË÷ÒıÓÃÓÚÎ¨Ò»ĞÔµÄ²âÊÔ*/
+	int addrRepeat,    /* Jump to here if not distinct Èç¹ûÃ»ÓĞ¡°È¥³ıÖØ¸´¡±Ìøµ½´Ë´¦*/
+	int N,             /* Number of elements ÔªËØÊıÄ¿*/
+	int iMem           /* First element µÚÒ»¸öÔªËØ*/
 	){
-	Vdbe *v;/*å®šä¹‰ç»“æ„ä½“æŒ‡é’ˆv*/
+	Vdbe *v;/*¶¨Òå½á¹¹ÌåÖ¸Õëv*/
 	int r1;
 
-	v = pParse->pVdbe;/*æŠŠç»“æ„ä½“æˆå‘˜pParse->pVdbeèµ‹ç»™ç»“æ„ä½“æŒ‡é’ˆv*/
-	r1 = sqlite3GetTempReg(pParse); /*åˆ†é…ä¸€ä¸ªæ–°çš„å¯„å­˜å™¨ç”¨äºæ§åˆ¶ä¸­é—´ç»“æœï¼Œè¿”å›çš„æ•´æ•°èµ‹ç»™r1.*/
-	sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N);/*æŠŠæ“ä½œçš„å€¼çœ‹æˆæ•´æ•°ï¼Œç„¶åæ·»åŠ è¿™ä¸ªæ“ä½œç¬¦åˆ°è™šæ‹Ÿæœºä¸­*/
-	sqlite3VdbeAddOp3(v, OP_MakeRecord, iMem, N, r1);/*è°ƒç”¨sqlite3VdbeAddOp3ï¼ˆï¼‰ä¿®æ”¹æŒ‡ä»¤çš„åœ°å€*/
-	sqlite3VdbeAddOp2(v, OP_IdxInsert, iTab, r1);/*å®é™…ä¹Ÿæ˜¯ä½¿ç”¨sqlite3VdbeAddOp3()åªæ˜¯å‚æ•°å˜ä¸ºå‰4ä¸ªï¼Œä¿®æ”¹æŒ‡ä»¤çš„åœ°å€*/
-	sqlite3ReleaseTempReg(pParse, r1);/*ç”Ÿæˆä»£ç ï¼Œå°†ç»™å®šçš„è¡¨è¾¾å¼åˆ—è¡¨çš„æ¯ä¸ªå…ƒç´ çš„å€¼æ”¾åˆ°å¯„å­˜å™¨å¼€å§‹çš„ç›®æ ‡åºåˆ—ã€‚è¿”å›å…ƒç´ è¯„ä¼°çš„æ•°é‡ã€‚é‡Šæ”¾å¯„å­˜å™¨*/
+	v = pParse->pVdbe;/*°Ñ½á¹¹Ìå³ÉÔ±pParse->pVdbe¸³¸ø½á¹¹ÌåÖ¸Õëv*/
+	r1 = sqlite3GetTempReg(pParse); /*·ÖÅäÒ»¸öĞÂµÄ¼Ä´æÆ÷ÓÃÓÚ¿ØÖÆÖĞ¼ä½á¹û£¬·µ»ØµÄÕûÊı¸³¸ør1.*/
+	sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N);/*°Ñ²Ù×÷µÄÖµ¿´³ÉÕûÊı£¬È»ºóÌí¼ÓÕâ¸ö²Ù×÷·ûµ½ĞéÄâ»úÖĞ*/
+	sqlite3VdbeAddOp3(v, OP_MakeRecord, iMem, N, r1);/*µ÷ÓÃsqlite3VdbeAddOp3£¨£©ĞŞ¸ÄÖ¸ÁîµÄµØÖ·*/
+	sqlite3VdbeAddOp2(v, OP_IdxInsert, iTab, r1);/*Êµ¼ÊÒ²ÊÇÊ¹ÓÃsqlite3VdbeAddOp3()Ö»ÊÇ²ÎÊı±äÎªÇ°4¸ö£¬ĞŞ¸ÄÖ¸ÁîµÄµØÖ·*/
+	sqlite3ReleaseTempReg(pParse, r1);/*Éú³É´úÂë£¬½«¸ø¶¨µÄ±í´ïÊ½ÁĞ±íµÄÃ¿¸öÔªËØµÄÖµ·Åµ½¼Ä´æÆ÷¿ªÊ¼µÄÄ¿±êĞòÁĞ¡£·µ»ØÔªËØÆÀ¹ÀµÄÊıÁ¿¡£ÊÍ·Å¼Ä´æÆ÷*/
 }
 
-#ifndef SQLITE_OMIT_SUBQUERY/*æµ‹è¯•SQLITE_OMIT_SUBQUERYæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
+#ifndef SQLITE_OMIT_SUBQUERY/*²âÊÔSQLITE_OMIT_SUBQUERYÊÇ·ñ±»ºê¶¨Òå¹ı*/
 /*
 ** Generate an error message when a SELECT is used within a subexpression
 ** (example:  "a IN (SELECT * FROM table)") but it has more than 1 result
 ** column.  We do this in a subroutine because the error used to occur
 ** in multiple places.  (The error only occurs in one place now, but we
 ** retain the subroutine to minimize code disruption.)
-** å½“ä¸€ä¸ªselectè¯­å¥ä¸­ä½¿ç”¨å­è¡¨è¾¾å¼å°±äº§ç”Ÿä¸€ä¸ªé”™è¯¯çš„ä¿¡æ¯(ä¾‹å¦‚:a in(select * from table))ï¼Œ
-** ä½†æ˜¯å®ƒæœ‰å¤šäº1çš„ç»“æœåˆ—ã€‚æˆ‘ä»¬åœ¨å­ç¨‹åºä¸­è¿™æ ·åšæ˜¯å› ä¸ºé”™è¯¯é€šå¸¸å‘ç”Ÿåœ¨å¤šä¸ªåœ°æ–¹ã€‚
-** (ç°åœ¨é”™è¯¯åªå‘ç”Ÿåœ¨ä¸€ä¸ªåœ°æ–¹ï¼Œä½†æ˜¯æˆ‘ä»¬ä¿ç•™ä¸­æ–­çš„å­ç¨‹åºå°†ä»£ç é”™è¯¯å‡å°‘åˆ°æœ€å°ã€‚)
+** µ±Ò»¸öselectÓï¾äÖĞÊ¹ÓÃ×Ó±í´ïÊ½¾Í²úÉúÒ»¸ö´íÎóµÄĞÅÏ¢(ÀıÈç:a in(select * from table))£¬
+** µ«ÊÇËüÓĞ¶àÓÚ1µÄ½á¹ûÁĞ¡£ÎÒÃÇÔÚ×Ó³ÌĞòÖĞÕâÑù×öÊÇÒòÎª´íÎóÍ¨³£·¢ÉúÔÚ¶à¸öµØ·½¡£
+** (ÏÖÔÚ´íÎóÖ»·¢ÉúÔÚÒ»¸öµØ·½£¬µ«ÊÇÎÒÃÇ±£ÁôÖĞ¶ÏµÄ×Ó³ÌĞò½«´úÂë´íÎó¼õÉÙµ½×îĞ¡¡£)
 */
 static int checkForMultiColumnSelectError(
-	Parse *pParse,       /* Parse context. è¯­ä¹‰åˆ†æ */
-	SelectDest *pDest,   /* Destination of SELECT results   selectç»“æœçš„é›†åˆ*/
-	int nExpr            /* Number of result columns returned by SELECT  ç»“æœåˆ—çš„æ•°ç›®ç”±selectè¿”å›*/
+	Parse *pParse,       /* Parse context. ÓïÒå·ÖÎö */
+	SelectDest *pDest,   /* Destination of SELECT results   select½á¹ûµÄ¼¯ºÏ*/
+	int nExpr            /* Number of result columns returned by SELECT  ½á¹ûÁĞµÄÊıÄ¿ÓÉselect·µ»Ø*/
 	){
-	int eDest = pDest->eDest;/*å¤„ç†ç»“æœé›†*/
-	if (nExpr > 1 && (eDest == SRT_Mem || eDest == SRT_Set)){/*å¦‚æœç»“æœé›†å¤§äº1å¹¶ä¸”selectçš„ç»“æœé›†æ˜¯SRT_Memæˆ–SRT_Set*/
+	int eDest = pDest->eDest;/*´¦Àí½á¹û¼¯*/
+	if (nExpr > 1 && (eDest == SRT_Mem || eDest == SRT_Set)){/*Èç¹û½á¹û¼¯´óÓÚ1²¢ÇÒselectµÄ½á¹û¼¯ÊÇSRT_Mem»òSRT_Set*/
 		sqlite3ErrorMsg(pParse, "only a single result allowed for "
-			"a SELECT that is part of an expression");/*è¾“å‡ºé”™è¯¯ä¿¡æ¯*/
+			"a SELECT that is part of an expression");/*Êä³ö´íÎóĞÅÏ¢*/
 		return 1;
 	}
 	else{
 		return 0;
 	}
 }
-#endif/*ç»ˆæ­¢if*/
+#endif/*ÖÕÖ¹if*/
 
 /*
 ** This routine generates the code for the inside of the inner loop
 ** of a SELECT.
-** è¿™ä¸ªç¨‹åºäº§ç”Ÿä»£ç ä¸ºäº†selectå†…è¿æ¥çš„å†…éƒ¨ä»£ç ã€‚
+** Õâ¸ö³ÌĞò²úÉú´úÂëÎªÁËselectÄÚÁ¬½ÓµÄÄÚ²¿´úÂë¡£
 **
 ** If srcTab and nColumn are both zero, then the pEList expressions
 ** are evaluated in order to get the data for this row.  If nColumn>0
 ** then data is pulled from srcTab and pEList is used only to get the
 ** datatypes for each column.
-** å¦‚æœsrcTabå’ŒnColumnéƒ½æ˜¯é›¶ï¼Œé‚£ä¹ˆpEListè¡¨è¾¾å¼ä¸ºäº†è·å¾—è¡Œæ•°æ®è¿›è¡Œèµ‹å€¼ã€‚
-** å¦‚æœnColumn>0 é‚£ä¹ˆæ•°æ®ä»srcTabä¸­æ‹‰å‡ºï¼ŒpEListåªç”¨äºä»æ¯ä¸€åˆ—è·å¾—æ•°æ®ç±»å‹ã€‚
+** Èç¹ûsrcTabºÍnColumn¶¼ÊÇÁã£¬ÄÇÃ´pEList±í´ïÊ½ÎªÁË»ñµÃĞĞÊı¾İ½øĞĞ¸³Öµ¡£
+** Èç¹ûnColumn>0 ÄÇÃ´Êı¾İ´ÓsrcTabÖĞÀ­³ö£¬pEListÖ»ÓÃÓÚ´ÓÃ¿Ò»ÁĞ»ñµÃÊı¾İÀàĞÍ¡£
 */
 static void selectInnerLoop(
-	Parse *pParse,          /* The parser context è¯­ä¹‰åˆ†æ*/
-	Select *p,              /* The complete select statement being coded å®Œæ•´çš„selectè¯­å¥è¢«ç¼–ç */
-	ExprList *pEList,       /* List of values being extracted  è¾“å‡ºç»“æœåˆ—çš„è¯­æ³•æ ‘*/
-	int srcTab,             /* Pull data from this table ä»è¿™ä¸ªè¡¨ä¸­æå–æ•°æ®*/
-	int nColumn,            /* Number of columns in the source table  æºè¡¨ä¸­åˆ—çš„æ•°ç›®*/
-	ExprList *pOrderBy,     /* If not NULL, sort results using this key å¦‚æœä¸æ˜¯NULLï¼Œä½¿ç”¨è¿™ä¸ªkeyå¯¹ç»“æœè¿›è¡Œæ’åº*/
-	int distinct,           /* If >=0, make sure results are distinct å¦‚æœ>=0ï¼Œç¡®ä¿ç»“æœæ˜¯ä¸åŒçš„*/
-	SelectDest *pDest,      /* How to dispose of the results æ€æ ·å¤„ç†ç»“æœ*/
-	int iContinue,          /* Jump here to continue with next row è·³åˆ°è¿™é‡Œç»§ç»­ä¸‹ä¸€è¡Œ*/
-	int iBreak              /* Jump here to break out of the inner loop è·³åˆ°è¿™é‡Œä¸­æ–­å†…éƒ¨å¾ªç¯*/
+	Parse *pParse,          /* The parser context ÓïÒå·ÖÎö*/
+	Select *p,              /* The complete select statement being coded ÍêÕûµÄselectÓï¾ä±»±àÂë*/
+	ExprList *pEList,       /* List of values being extracted  Êä³ö½á¹ûÁĞµÄÓï·¨Ê÷*/
+	int srcTab,             /* Pull data from this table ´ÓÕâ¸ö±íÖĞÌáÈ¡Êı¾İ*/
+	int nColumn,            /* Number of columns in the source table  Ô´±íÖĞÁĞµÄÊıÄ¿*/
+	ExprList *pOrderBy,     /* If not NULL, sort results using this key Èç¹û²»ÊÇNULL£¬Ê¹ÓÃÕâ¸ökey¶Ô½á¹û½øĞĞÅÅĞò*/
+	int distinct,           /* If >=0, make sure results are distinct Èç¹û>=0£¬È·±£½á¹ûÊÇ²»Í¬µÄ*/
+	SelectDest *pDest,      /* How to dispose of the results ÔõÑù´¦Àí½á¹û*/
+	int iContinue,          /* Jump here to continue with next row Ìøµ½ÕâÀï¼ÌĞøÏÂÒ»ĞĞ*/
+	int iBreak              /* Jump here to break out of the inner loop Ìøµ½ÕâÀïÖĞ¶ÏÄÚ²¿Ñ­»·*/
 	){
-	Vdbe *v = pParse->pVdbe;/*å£°æ˜ä¸€ä¸ªè™šæ‹Ÿæœº*/
+	Vdbe *v = pParse->pVdbe;/*ÉùÃ÷Ò»¸öĞéÄâ»ú*/
 	int i;
-	int hasDistinct;        /* True if the DISTINCT keyword is present å¦‚æœdistinctå…³é”®å­—å­˜åœ¨è¿”å›true*/
-	int regResult;              /* Start of memory holding result set å¼€å§‹çš„å†…å­˜æŒæœ‰ç»“æœé›†*/
-	int eDest = pDest->eDest;   /* How to dispose of results æ€æ ·å¤„ç†ç»“æœ*/
-	int iParm = pDest->iSDParm; /* First argument to disposal method ç¬¬ä¸€ä¸ªå‚æ•°çš„å¤„ç†æ–¹æ³•*/
-	int nResultCol;             /* Number of result columns ç»“æœåˆ—çš„æ•°ç›®*/
+	int hasDistinct;        /* True if the DISTINCT keyword is present Èç¹ûdistinct¹Ø¼ü×Ö´æÔÚ·µ»Øtrue*/
+	int regResult;              /* Start of memory holding result set ¿ªÊ¼µÄÄÚ´æ³ÖÓĞ½á¹û¼¯*/
+	int eDest = pDest->eDest;   /* How to dispose of results ÔõÑù´¦Àí½á¹û*/
+	int iParm = pDest->iSDParm; /* First argument to disposal method µÚÒ»¸ö²ÎÊıµÄ´¦Àí·½·¨*/
+	int nResultCol;             /* Number of result columns ½á¹ûÁĞµÄÊıÄ¿*/
 
-	assert(v);/*åˆ¤æ–­è™šæ‹Ÿæœº*/
-	if (NEVER(v == 0)) return;/*å¦‚æœè™šæ‹Ÿæœºä¸å­˜åœ¨ï¼Œç›´æ¥è¿”å›*/
-	assert(pEList != 0);/*åˆ¤æ–­è¡¨è¾¾å¼åˆ—è¡¨æ˜¯å¦ä¸ºç©º*/
-	hasDistinct = distinct >= 0;/*èµ‹å€¼â€œå»é™¤é‡å¤â€æ“ä½œç¬¦*/
-	if (pOrderBy == 0 && !hasDistinct){/*å¦‚æœä½¿ç”¨äº†ORDERBYäº¤hasDistinctå–åå€¼*/
-		codeOffset(v, p, iContinue);/*è®¾ç½®åç§»é‡ï¼ŒVDBEå’Œselectç¡®å®šï¼Œåç§»å‚æ•°æ˜¯IContinue*/
+	assert(v);/*ÅĞ¶ÏĞéÄâ»ú*/
+	if (NEVER(v == 0)) return;/*Èç¹ûĞéÄâ»ú²»´æÔÚ£¬Ö±½Ó·µ»Ø*/
+	assert(pEList != 0);/*ÅĞ¶Ï±í´ïÊ½ÁĞ±íÊÇ·ñÎª¿Õ*/
+	hasDistinct = distinct >= 0;/*¸³Öµ¡°È¥³ıÖØ¸´¡±²Ù×÷·û*/
+	if (pOrderBy == 0 && !hasDistinct){/*Èç¹ûÊ¹ÓÃÁËORDERBY½»hasDistinctÈ¡·´Öµ*/
+		codeOffset(v, p, iContinue);/*ÉèÖÃÆ«ÒÆÁ¿£¬VDBEºÍselectÈ·¶¨£¬Æ«ÒÆ²ÎÊıÊÇIContinue*/
 	}
 
 	/* Pull the requested columns.
-	** ä»è¦æ±‚çš„åˆ—ä¸­å–å‡ºæ•°æ®
+	** ´ÓÒªÇóµÄÁĞÖĞÈ¡³öÊı¾İ
 	*/
-	if (nColumn > 0){/*å¦‚æœè¡¨ä¸­åˆ—çš„æ•°ç›®å¤§äº0*/
-		nResultCol = nColumn;/*æŠŠåˆ—çš„æ•°ç›®èµ‹ç»™æ•´å‹nResultCol*/
+	if (nColumn > 0){/*Èç¹û±íÖĞÁĞµÄÊıÄ¿´óÓÚ0*/
+		nResultCol = nColumn;/*°ÑÁĞµÄÊıÄ¿¸³¸øÕûĞÍnResultCol*/
 	}
 	else{
-		nResultCol = pEList->nExpr;/*å¦åˆ™ï¼Œèµ‹å€¼ä¸ºè¢«æå–å€¼å¾—åˆ—æ•°*/
+		nResultCol = pEList->nExpr;/*·ñÔò£¬¸³ÖµÎª±»ÌáÈ¡ÖµµÃÁĞÊı*/
 	}
-	if (pDest->iSdst == 0){/*å¦‚æœæŸ¥è¯¢æ•°æ®é›†çš„å†™å…¥ç»“æœçš„åŸºå€å¯„å­˜å™¨çš„å€¼ä¸º0*/
-		pDest->iSdst = pParse->nMem + 1;/*é‚£ä¹ˆåŸºå€å¯„å­˜å™¨çš„å€¼è®¾ä¸ºåˆ†æè¯­æ³•æ ‘çš„ä¸‹ä¸€ä¸ªåœ°å€*/
-		pDest->nSdst = nResultCol;/*æ³¨å†Œå¯„å­˜å™¨çš„æ•°é‡ä¸ºç»“æœåˆ—çš„æ•°é‡*/
-		pParse->nMem += nResultCol;/*åˆ†ææ ‘çš„åœ°å€è®¾ä¸ºè‡ªèº«çš„å†åŠ ä¸Šç»“æœåˆ—çš„æ•°é‡*/
+	if (pDest->iSdst == 0){/*Èç¹û²éÑ¯Êı¾İ¼¯µÄĞ´Èë½á¹ûµÄ»ùÖ·¼Ä´æÆ÷µÄÖµÎª0*/
+		pDest->iSdst = pParse->nMem + 1;/*ÄÇÃ´»ùÖ·¼Ä´æÆ÷µÄÖµÉèÎª·ÖÎöÓï·¨Ê÷µÄÏÂÒ»¸öµØÖ·*/
+		pDest->nSdst = nResultCol;/*×¢²á¼Ä´æÆ÷µÄÊıÁ¿Îª½á¹ûÁĞµÄÊıÁ¿*/
+		pParse->nMem += nResultCol;/*·ÖÎöÊ÷µÄµØÖ·ÉèÎª×ÔÉíµÄÔÙ¼ÓÉÏ½á¹ûÁĞµÄÊıÁ¿*/
 	}
 	else{
-		assert(pDest->nSdst == nResultCol);/*åˆ¤æ–­ç»“æœé›†ä¸­å¯„å­˜å™¨çš„ä¸ªæ•°æ˜¯å¦ä¸ç»“æœåˆ—çš„åˆ—æ•°ç›¸åŒ*/
+		assert(pDest->nSdst == nResultCol);/*ÅĞ¶Ï½á¹û¼¯ÖĞ¼Ä´æÆ÷µÄ¸öÊıÊÇ·ñÓë½á¹ûÁĞµÄÁĞÊıÏàÍ¬*/
 	}
-	regResult = pDest->iSdst;/*å†æŠŠå‚¨å­˜ç»“æœé›†çš„å¯„å­˜å™¨çš„åœ°å€è®¾ä¸ºç»“æœé›†çš„èµ·å§‹åœ°å€*/
-	if (nColumn > 0){/*å¦‚æœè¡Œæ•°å¤§äº0*/
-		for (i = 0; i < nColumn; i++){/*åˆ™éå†æ¯ä¸€åˆ—*/
-			sqlite3VdbeAddOp3(v, OP_Column, srcTab, i, regResult + i);/*å°†é˜Ÿåˆ—æ“ä½œé€å…¥åˆ°VDBEå†è¿”å›æ–°çš„æŒ‡ä»¤åœ°å€*/
+	regResult = pDest->iSdst;/*ÔÙ°Ñ´¢´æ½á¹û¼¯µÄ¼Ä´æÆ÷µÄµØÖ·ÉèÎª½á¹û¼¯µÄÆğÊ¼µØÖ·*/
+	if (nColumn > 0){/*Èç¹ûĞĞÊı´óÓÚ0*/
+		for (i = 0; i < nColumn; i++){/*Ôò±éÀúÃ¿Ò»ÁĞ*/
+			sqlite3VdbeAddOp3(v, OP_Column, srcTab, i, regResult + i);/*½«¶ÓÁĞ²Ù×÷ËÍÈëµ½VDBEÔÙ·µ»ØĞÂµÄÖ¸ÁîµØÖ·*/
 		}
 	}
-	else if (eDest != SRT_Exists){/*å¦‚æœå¤„ç†çš„ç»“æœé›†ä¸å­˜åœ¨*/
+	else if (eDest != SRT_Exists){/*Èç¹û´¦ÀíµÄ½á¹û¼¯²»´æÔÚ*/
 		/* If the destination is an EXISTS(...) expression, the actual
 		** values returned by the SELECT are not required.
-		** å¦‚æœç›®æ ‡æ˜¯ä¸€ä¸ªEXISTS(...)è¡¨è¾¾å¼ï¼Œç”±selectè¿”å›çš„å®é™…å€¼æ˜¯ä¸éœ€è¦çš„ã€‚
+		** Èç¹ûÄ¿±êÊÇÒ»¸öEXISTS(...)±í´ïÊ½£¬ÓÉselect·µ»ØµÄÊµ¼ÊÖµÊÇ²»ĞèÒªµÄ¡£
 		*/
-		sqlite3ExprCacheClear(pParse);  /*æ¸…é™¤æ‰€æœ‰åˆ—ä¸­çš„å†…å®¹*/
-		sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest == SRT_Output);/*ç”Ÿæˆä»£ç ï¼Œå°†ç»™å®šçš„è¡¨è¾¾å¼åˆ—è¡¨çš„æ¯ä¸ªå…ƒç´ çš„å€¼æ”¾åˆ°å¯„å­˜å™¨å¼€å§‹çš„ç›®æ ‡åºåˆ—ã€‚è¿”å›å…ƒç´ è¯„ä¼°çš„æ•°é‡ã€‚*/
+		sqlite3ExprCacheClear(pParse);  /*Çå³ıËùÓĞÁĞÖĞµÄÄÚÈİ*/
+		sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest == SRT_Output);/*Éú³É´úÂë£¬½«¸ø¶¨µÄ±í´ïÊ½ÁĞ±íµÄÃ¿¸öÔªËØµÄÖµ·Åµ½¼Ä´æÆ÷¿ªÊ¼µÄÄ¿±êĞòÁĞ¡£·µ»ØÔªËØÆÀ¹ÀµÄÊıÁ¿¡£*/
 	}
-	nColumn = nResultCol;/*ç»™åˆ—æ•°èµ‹å€¼ç»“æœåˆ—çš„åˆ—æ•°*/
+	nColumn = nResultCol;/*¸øÁĞÊı¸³Öµ½á¹ûÁĞµÄÁĞÊı*/
 
 	/* If the DISTINCT keyword was present on the SELECT statement
 	** and this row has been seen before, then do not make this row
 	** part of the result.
-	** å¦‚æœdistinctå…³é”®å­—åœ¨selectè¯­å¥ä¸­å‡ºç°ï¼Œè¿™è¡Œä¹‹å‰å·²ç»è§è¿‡ï¼Œé‚£ä¹ˆè¿™è¡Œä¸ä½œä¸ºç»“æœçš„ä¸€éƒ¨åˆ†ã€‚
+	** Èç¹ûdistinct¹Ø¼ü×ÖÔÚselectÓï¾äÖĞ³öÏÖ£¬ÕâĞĞÖ®Ç°ÒÑ¾­¼û¹ı£¬ÄÇÃ´ÕâĞĞ²»×÷Îª½á¹ûµÄÒ»²¿·Ö¡£
 	*/
-	if (hasDistinct){/*å¦‚æœä½¿ç”¨äº†distinctå…³é”®å­—*/
-		assert(pEList != 0);/*åšæ–­ç‚¹ï¼Œåˆ¤æ–­è¢«æå–çš„å€¼åˆ—è¡¨æ˜¯å¦ä¸ºç©º*/
-		assert(pEList->nExpr == nColumn);/*è¢«æå–çš„å€¼åˆ—è¡¨çš„åˆ—æ•°æ˜¯å¦ç­‰äºåˆ—æ•°*/
-		codeDistinct(pParse, distinct, iContinue, nColumn, regResult);/*è¿›è¡Œâ€œå»é™¤é‡å¤æ“ä½œâ€*/
-		if (pOrderBy == 0){/*å¦‚æœæ²¡æœ‰ä½¿ç”¨ORDERBYå­—å¥ */
-			codeOffset(v, p, iContinue);/*ä½¿ç”¨codeOffsetï¼ˆï¼‰ï¼Œè®¾ç½®é€æ¡è¿›è¡Œäº§ç”Ÿç»“æœ*/
+	if (hasDistinct){/*Èç¹ûÊ¹ÓÃÁËdistinct¹Ø¼ü×Ö*/
+		assert(pEList != 0);/*×ö¶Ïµã£¬ÅĞ¶Ï±»ÌáÈ¡µÄÖµÁĞ±íÊÇ·ñÎª¿Õ*/
+		assert(pEList->nExpr == nColumn);/*±»ÌáÈ¡µÄÖµÁĞ±íµÄÁĞÊıÊÇ·ñµÈÓÚÁĞÊı*/
+		codeDistinct(pParse, distinct, iContinue, nColumn, regResult);/*½øĞĞ¡°È¥³ıÖØ¸´²Ù×÷¡±*/
+		if (pOrderBy == 0){/*Èç¹ûÃ»ÓĞÊ¹ÓÃORDERBY×Ö¾ä */
+			codeOffset(v, p, iContinue);/*Ê¹ÓÃcodeOffset£¨£©£¬ÉèÖÃÖğÌõ½øĞĞ²úÉú½á¹û*/
 		}
 	}
 
-	switch (eDest){/*å®šä¹‰switchå‡½æ•°ï¼Œæ ¹æ®å‚æ•°eDeståˆ¤æ–­æ€æ ·å¤„ç†ç»“æœ*/
+	switch (eDest){/*¶¨Òåswitchº¯Êı£¬¸ù¾İ²ÎÊıeDestÅĞ¶ÏÔõÑù´¦Àí½á¹û*/
 		/* In this mode, write each query result to the key of the temporary
 		** table iParm.
-		** åœ¨è¿™ç§æ¨¡å¼ä¸‹ï¼Œç»™ä¸´æ—¶è¡¨iParmå†™å…¥æ¯ä¸ªæŸ¥è¯¢ç»“æœã€‚
+		** ÔÚÕâÖÖÄ£Ê½ÏÂ£¬¸øÁÙÊ±±íiParmĞ´ÈëÃ¿¸ö²éÑ¯½á¹û¡£
 		*/
-#ifndef SQLITE_OMIT_COMPOUND_SELECT/*æµ‹è¯•SQLITE_OMIT_COMPOUND_SELECTæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
-	case SRT_Union: {/*å¦‚æœeDestä¸ºSRT_Unionï¼Œåˆ™ç»“æœä½œä¸ºå…³é”®å­—å­˜å‚¨åœ¨ç´¢å¼•*/
+#ifndef SQLITE_OMIT_COMPOUND_SELECT/*²âÊÔSQLITE_OMIT_COMPOUND_SELECTÊÇ·ñ±»ºê¶¨Òå¹ı*/
+	case SRT_Union: {/*Èç¹ûeDestÎªSRT_Union£¬Ôò½á¹û×÷Îª¹Ø¼ü×Ö´æ´¢ÔÚË÷Òı*/
 		int r1;
-		r1 = sqlite3GetTempReg(pParse);/*åˆ†é…ä¸€ä¸ªæ–°çš„å¯„å­˜å™¨æ§åˆ¶ä¸­é—´ç»“æœï¼Œè¿”å›å€¼èµ‹ç»™r1*/
-		sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*æŠŠOP_MakeRecordï¼ˆåšè®°å½•ï¼‰æ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-		sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);/*æŠŠOP_IdxInsertï¼ˆç´¢å¼•æ’å…¥ï¼‰æ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-		sqlite3ReleaseTempReg(pParse, r1);/*é‡Šæ”¾å¯„å­˜å™¨ï¼Œä½¿å…¶å¯ä»¥ä»ç”¨äºå…¶ä»–ç›®çš„ã€‚å¦‚æœä¸€ä¸ªå¯„å­˜å™¨å½“å‰è¢«ç”¨äºåˆ—ç¼“å­˜ï¼Œåˆ™dallocationè¢«æ¨è¿Ÿï¼Œç›´åˆ°ä½¿ç”¨çš„åˆ—å¯„å­˜å™¨å˜çš„é™ˆæ—§*/
+		r1 = sqlite3GetTempReg(pParse);/*·ÖÅäÒ»¸öĞÂµÄ¼Ä´æÆ÷¿ØÖÆÖĞ¼ä½á¹û£¬·µ»ØÖµ¸³¸ør1*/
+		sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*°ÑOP_MakeRecord£¨×ö¼ÇÂ¼£©²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+		sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);/*°ÑOP_IdxInsert£¨Ë÷Òı²åÈë£©²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+		sqlite3ReleaseTempReg(pParse, r1);/*ÊÍ·Å¼Ä´æÆ÷£¬Ê¹Æä¿ÉÒÔ´ÓÓÃÓÚÆäËûÄ¿µÄ¡£Èç¹ûÒ»¸ö¼Ä´æÆ÷µ±Ç°±»ÓÃÓÚÁĞ»º´æ£¬Ôòdallocation±»ÍÆ³Ù£¬Ö±µ½Ê¹ÓÃµÄÁĞ¼Ä´æÆ÷±äµÄ³Â¾É*/
 		break;
 	}
 
 		/* Construct a record from the query result, but instead of
 		** saving that record, use it as a key to delete elements from
 		** the temporary table iParm.
-		** æ„å»ºä¸€ä¸ªè®°å½•çš„æŸ¥è¯¢ç»“æœï¼Œä½†ä¸æ˜¯ä¿å­˜è¯¥è®°å½•ï¼Œå°†å…¶ä½œä¸ºä»ä¸´æ—¶è¡¨iParmåˆ é™¤å…ƒç´ çš„ä¸€ä¸ªé”®ã€‚
+		** ¹¹½¨Ò»¸ö¼ÇÂ¼µÄ²éÑ¯½á¹û£¬µ«²»ÊÇ±£´æ¸Ã¼ÇÂ¼£¬½«Æä×÷Îª´ÓÁÙÊ±±íiParmÉ¾³ıÔªËØµÄÒ»¸ö¼ü¡£
 		*/
-	case SRT_Except: {/*å¦‚æœeDestä¸ºSRT_Exceptï¼Œåˆ™ä»unionç´¢å¼•ä¸­ç§»é™¤ç»“æœ*/
-		sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn); /*æ·»åŠ ä¸€ä¸ªæ–°çš„æŒ‡ä»¤VDBEæŒ‡ç¤ºå½“å‰çš„åˆ—è¡¨ã€‚è¿”å›æ–°æŒ‡ä»¤çš„åœ°å€ã€‚*/
+	case SRT_Except: {/*Èç¹ûeDestÎªSRT_Except£¬Ôò´ÓunionË÷ÒıÖĞÒÆ³ı½á¹û*/
+		sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn); /*Ìí¼ÓÒ»¸öĞÂµÄÖ¸ÁîVDBEÖ¸Ê¾µ±Ç°µÄÁĞ±í¡£·µ»ØĞÂÖ¸ÁîµÄµØÖ·¡£*/
 		break;
 	}
-#endif/*ç»ˆæ­¢if*/
+#endif/*ÖÕÖ¹if*/
 
 		/* 
 		** Store the result as data using a unique key.
-		** å­˜å‚¨ä½¿ç”¨äº†å”¯ä¸€å…³é”®å­—çš„ç»“æœ
+		** ´æ´¢Ê¹ÓÃÁËÎ¨Ò»¹Ø¼ü×ÖµÄ½á¹û
 		*/
-	case SRT_Table:/*å¦‚æœeDestä¸ºSRT_Tableï¼Œåˆ™ç»“æœæŒ‰ç…§è‡ªåŠ¨çš„rowidè‡ªåŠ¨ä¿å­˜*/
-	case SRT_EphemTab: {/*å¦‚æœeDestä¸ºSRT_EphemTabï¼Œåˆ™åˆ›å»ºä¸´æ—¶è¡¨å¹¶å­˜å‚¨ä¸ºåƒSRT_Tableçš„è¡¨*/
-		int r1 = sqlite3GetTempReg(pParse); /*åˆ†é…ä¸€ä¸ªæ–°çš„å¯„å­˜å™¨ç”¨äºæ§åˆ¶ä¸­é—´ç»“æœï¼Œå¹¶æŠŠè¿”å›å€¼èµ‹ç»™r1*/
-		testcase(eDest == SRT_Table);/*æµ‹è¯•å¤„ç†çš„ç»“æœé›†çš„è¡¨åç§°*/
-		testcase(eDest == SRT_EphemTab);/*æµ‹è¯•å¤„ç†çš„ç»“æœé›†çš„è¡¨çš„å¤§å°*/
-		sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*æ·»åŠ ä¸€ä¸ªæ–°çš„æŒ‡ä»¤VDBEæŒ‡ç¤ºå½“å‰çš„åˆ—è¡¨ã€‚è¿”å›æ–°æŒ‡ä»¤çš„åœ°å€ã€‚*/
-		if (pOrderBy){/*å¦‚æœæœ‰orderbyå­—å¥*/
-			pushOntoSorter(pParse, pOrderBy, p, r1);/*æ’å…¥ä»£ç "V"ï¼Œåœ¨åˆ†é€‰æœºå°†ä¼šæ¨è¿›è®°å½•åˆ°æ ˆçš„é¡¶éƒ¨*/
+	case SRT_Table:/*Èç¹ûeDestÎªSRT_Table£¬Ôò½á¹û°´ÕÕ×Ô¶¯µÄrowid×Ô¶¯±£´æ*/
+	case SRT_EphemTab: {/*Èç¹ûeDestÎªSRT_EphemTab£¬Ôò´´½¨ÁÙÊ±±í²¢´æ´¢ÎªÏñSRT_TableµÄ±í*/
+		int r1 = sqlite3GetTempReg(pParse); /*·ÖÅäÒ»¸öĞÂµÄ¼Ä´æÆ÷ÓÃÓÚ¿ØÖÆÖĞ¼ä½á¹û£¬²¢°Ñ·µ»ØÖµ¸³¸ør1*/
+		testcase(eDest == SRT_Table);/*²âÊÔ´¦ÀíµÄ½á¹û¼¯µÄ±íÃû³Æ*/
+		testcase(eDest == SRT_EphemTab);/*²âÊÔ´¦ÀíµÄ½á¹û¼¯µÄ±íµÄ´óĞ¡*/
+		sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*Ìí¼ÓÒ»¸öĞÂµÄÖ¸ÁîVDBEÖ¸Ê¾µ±Ç°µÄÁĞ±í¡£·µ»ØĞÂÖ¸ÁîµÄµØÖ·¡£*/
+		if (pOrderBy){/*Èç¹ûÓĞorderby×Ö¾ä*/
+			pushOntoSorter(pParse, pOrderBy, p, r1);/*²åÈë´úÂë"V"£¬ÔÚ·ÖÑ¡»ú½«»áÍÆ½ø¼ÇÂ¼µ½Õ»µÄ¶¥²¿*/
 		}
 		else{
-			int r2 = sqlite3GetTempReg(pParse);/*åˆ†é…ä¸€ä¸ªæ–°çš„å¯„å­˜å™¨ç”¨äºæ§åˆ¶ä¸­é—´ç»“æœï¼Œå¹¶æŠŠè¿”å›å€¼èµ‹ç»™r2*/
-			sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, r2);/*æŠŠOP_NewRowidï¼ˆæ–°å»ºè®°å½•ï¼‰æ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-			sqlite3VdbeAddOp3(v, OP_Insert, iParm, r1, r2);/*æŠŠOP_Insertï¼ˆæ’å…¥è®°å½•ï¼‰æ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-			sqlite3VdbeChangeP5(v, OPFLAG_APPEND);  /*å¯¹äºæœ€æ–°æ·»åŠ çš„æ“ä½œï¼Œæ”¹å˜p5æ“ä½œæ•°çš„å€¼ã€‚*/
-			sqlite3ReleaseTempReg(pParse, r2);/*é‡Šæ”¾å¯„å­˜å™¨ï¼Œä½¿å…¶å¯ä»¥ä»ç”¨äºå…¶ä»–ç›®çš„ã€‚å¦‚æœä¸€ä¸ªå¯„å­˜å™¨å½“å‰è¢«ç”¨äºåˆ—ç¼“å­˜ï¼Œåˆ™dallocationè¢«æ¨è¿Ÿï¼Œç›´åˆ°ä½¿ç”¨çš„åˆ—å¯„å­˜å™¨å˜çš„é™ˆæ—§*/
+			int r2 = sqlite3GetTempReg(pParse);/*·ÖÅäÒ»¸öĞÂµÄ¼Ä´æÆ÷ÓÃÓÚ¿ØÖÆÖĞ¼ä½á¹û£¬²¢°Ñ·µ»ØÖµ¸³¸ør2*/
+			sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, r2);/*°ÑOP_NewRowid£¨ĞÂ½¨¼ÇÂ¼£©²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+			sqlite3VdbeAddOp3(v, OP_Insert, iParm, r1, r2);/*°ÑOP_Insert£¨²åÈë¼ÇÂ¼£©²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+			sqlite3VdbeChangeP5(v, OPFLAG_APPEND);  /*¶ÔÓÚ×îĞÂÌí¼ÓµÄ²Ù×÷£¬¸Ä±äp5²Ù×÷ÊıµÄÖµ¡£*/
+			sqlite3ReleaseTempReg(pParse, r2);/*ÊÍ·Å¼Ä´æÆ÷£¬Ê¹Æä¿ÉÒÔ´ÓÓÃÓÚÆäËûÄ¿µÄ¡£Èç¹ûÒ»¸ö¼Ä´æÆ÷µ±Ç°±»ÓÃÓÚÁĞ»º´æ£¬Ôòdallocation±»ÍÆ³Ù£¬Ö±µ½Ê¹ÓÃµÄÁĞ¼Ä´æÆ÷±äµÄ³Â¾É*/
 		}
-		sqlite3ReleaseTempReg(pParse, r1);/*é‡Šæ”¾å¯„å­˜å™¨*/
+		sqlite3ReleaseTempReg(pParse, r1);/*ÊÍ·Å¼Ä´æÆ÷*/
 		break;
 	}
 
-#ifndef SQLITE_OMIT_SUBQUERY/*æµ‹è¯•SQLITE_OMIT_SUBQUERYæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
+#ifndef SQLITE_OMIT_SUBQUERY/*²âÊÔSQLITE_OMIT_SUBQUERYÊÇ·ñ±»ºê¶¨Òå¹ı*/
 		/* 
 		** If we are creating a set for an "expr IN (SELECT ...)" construct,
 		** then there should be a single item on the stack.  Write this
 		** item into the set table with bogus data.
-		** å¦‚æœæˆ‘ä»¬åˆ›å»ºä¸€ä¸ª"expr IN (SELECT ...)"è¡¨è¾¾å¼ ï¼Œé‚£ä¹ˆåœ¨å †æ ˆä¸Šå°±åº”è¯¥
-		** æœ‰ä¸€ä¸ªå•ç‹¬çš„å¯¹è±¡ã€‚æŠŠè¿™ä¸ªå¯¹è±¡å†™å…¥è™šæ‹Ÿæ•°æ®è¡¨ä¸­ã€‚
+		** Èç¹ûÎÒÃÇ´´½¨Ò»¸ö"expr IN (SELECT ...)"±í´ïÊ½ £¬ÄÇÃ´ÔÚ¶ÑÕ»ÉÏ¾ÍÓ¦¸Ã
+		** ÓĞÒ»¸öµ¥¶ÀµÄ¶ÔÏó¡£°ÑÕâ¸ö¶ÔÏóĞ´ÈëĞéÄâÊı¾İ±íÖĞ¡£
 		*/
-	case SRT_Set: {/*å¦‚æœeDestä¸ºSRT_Setï¼Œåˆ™ç»“æœä½œä¸ºå…³é”®å­—å­˜å…¥ç´¢å¼•*/
-		assert(nColumn == 1);/*è®¾æ–­ç‚¹ï¼Œåˆ—æ•°ç­‰äº1*/
-		p->affinity = sqlite3CompareAffinity(pEList->a[0].pExpr, pDest->affSdst);/*æ ¹æ®è¡¨å’Œç»“æœé›†ï¼Œå­˜å‚¨ç»“æ„ä½“çš„äº²å’Œæ€§ç»“æœé›†*/
+	case SRT_Set: {/*Èç¹ûeDestÎªSRT_Set£¬Ôò½á¹û×÷Îª¹Ø¼ü×Ö´æÈëË÷Òı*/
+		assert(nColumn == 1);/*Éè¶Ïµã£¬ÁĞÊıµÈÓÚ1*/
+		p->affinity = sqlite3CompareAffinity(pEList->a[0].pExpr, pDest->affSdst);/*¸ù¾İ±íºÍ½á¹û¼¯£¬´æ´¢½á¹¹ÌåµÄÇ×ºÍĞÔ½á¹û¼¯*/
 		if (pOrderBy){
 			/* 
 			** At first glance you would think we could optimize out the
 			** ORDER BY in this case since the order of entries in the set
 			** does not matter.  But there might be a LIMIT clause, in which
 			** case the order does matter
-			** ä¸€å¼€å§‹çœ‹çš„æ—¶å€™ï¼Œä½ ä¼šä»¥ä¸ºæˆ‘ä»¬èƒ½åœ¨è¿™ç§æƒ…å†µä¸‹ä¼˜åŒ–äº†order byï¼Œ
-			** ä½†æ˜¯ï¼Œä½¿ç”¨äº†LIMITå­—å¥çš„æ—¶å€™ï¼Œæ’åºå°±é‡è¦äº†
+			** Ò»¿ªÊ¼¿´µÄÊ±ºò£¬Äã»áÒÔÎªÎÒÃÇÄÜÔÚÕâÖÖÇé¿öÏÂÓÅ»¯ÁËorder by£¬
+			** µ«ÊÇ£¬Ê¹ÓÃÁËLIMIT×Ö¾äµÄÊ±ºò£¬ÅÅĞò¾ÍÖØÒªÁË
 			*/
-			pushOntoSorter(pParse, pOrderBy, p, regResult);/*æ¨å…¥æ ˆé¡¶*/
+			pushOntoSorter(pParse, pOrderBy, p, regResult);/*ÍÆÈëÕ»¶¥*/
 		}
 		else{
-			int r1 = sqlite3GetTempReg(pParse);/*åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨ï¼Œå­˜å‚¨ä¸­é—´è®¡ç®—ç»“æœ*/
-			sqlite3VdbeAddOp4(v, OP_MakeRecord, regResult, 1, r1, &p->affinity, 1);/*æŠŠOP_MakeRecordæ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-			sqlite3ExprCacheAffinityChange(pParse, regResult, 1);/*è®°å½•äº²å’Œç±»å‹çš„æ•°æ®çš„æ”¹å˜çš„è®¡æ•°å¯„å­˜å™¨çš„èµ·å§‹åœ°å€*/
-			sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);/*æŠŠOP_IdxInsertæ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-			sqlite3ReleaseTempReg(pParse, r1);/*é‡Šæ”¾å¯„å­˜å™¨*/
+			int r1 = sqlite3GetTempReg(pParse);/*·ÖÅäÒ»¸ö¼Ä´æÆ÷£¬´æ´¢ÖĞ¼ä¼ÆËã½á¹û*/
+			sqlite3VdbeAddOp4(v, OP_MakeRecord, regResult, 1, r1, &p->affinity, 1);/*°ÑOP_MakeRecord²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+			sqlite3ExprCacheAffinityChange(pParse, regResult, 1);/*¼ÇÂ¼Ç×ºÍÀàĞÍµÄÊı¾İµÄ¸Ä±äµÄ¼ÆÊı¼Ä´æÆ÷µÄÆğÊ¼µØÖ·*/
+			sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);/*°ÑOP_IdxInsert²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+			sqlite3ReleaseTempReg(pParse, r1);/*ÊÍ·Å¼Ä´æÆ÷*/
 		}
 		break;
 	}
 
 		/* 
 		** If any row exist in the result set, record that fact and abort.
-		** å¦‚æœå­˜åœ¨ç»“æœé›†ä¸­çš„ä¸€è¡Œï¼Œè®°å½•è¿™ä¸ªå†…å®¹å’Œä¸­æ–­
+		** Èç¹û´æÔÚ½á¹û¼¯ÖĞµÄÒ»ĞĞ£¬¼ÇÂ¼Õâ¸öÄÚÈİºÍÖĞ¶Ï
 		*/
-	case SRT_Exists: {/*å¦‚æœeDestä¸ºSRT_Existsï¼Œåˆ™ç»“æœè‹¥ä¸ä¸ºç©ºå­˜å‚¨1*/
-		sqlite3VdbeAddOp2(v, OP_Integer, 1, iParm);/*æŠŠOP_Integeræ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
+	case SRT_Exists: {/*Èç¹ûeDestÎªSRT_Exists£¬Ôò½á¹ûÈô²»Îª¿Õ´æ´¢1*/
+		sqlite3VdbeAddOp2(v, OP_Integer, 1, iParm);/*°ÑOP_Integer²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
 		/* 
 		** The LIMIT clause will terminate the loop for us
-		** limitå­å¥å°†ç»ˆæ­¢æˆ‘ä»¬çš„å¾ªç¯
+		** limit×Ó¾ä½«ÖÕÖ¹ÎÒÃÇµÄÑ­»·
 		*/
 		break;
 	}
@@ -829,18 +829,18 @@ static void selectInnerLoop(
 		** If this is a scalar select that is part of an expression, then
 		** store the results in the appropriate memory cell and break out
 		** of the scan loop.
-		** è¿™ä¸ªæ ‡é‡é€‰æ‹©æ˜¯è¡¨è¾¾å¼çš„ä¸€éƒ¨åˆ†ï¼Œç„¶åå°†ç»“æœå­˜å‚¨åœ¨é€‚å½“çš„å­˜å‚¨å•å…ƒå¹¶ä¸­æ­¢æ‰«æå¾ªç¯ã€‚
+		** Õâ¸ö±êÁ¿Ñ¡ÔñÊÇ±í´ïÊ½µÄÒ»²¿·Ö£¬È»ºó½«½á¹û´æ´¢ÔÚÊÊµ±µÄ´æ´¢µ¥Ôª²¢ÖĞÖ¹É¨ÃèÑ­»·¡£
 		*/
-	case SRT_Mem: {/*å¦‚æœeDestä¸ºSRT_Memï¼Œåˆ™å°†ç»“æœå­˜å‚¨åœ¨å­˜å‚¨å•å…ƒ*/
-		assert(nColumn == 1);/*åšæ–­ç‚¹ï¼Œåˆ¤æ–­è¢«æå–çš„å€¼åˆ—è¡¨æ˜¯å¦ä¸ºç©º*/
+	case SRT_Mem: {/*Èç¹ûeDestÎªSRT_Mem£¬Ôò½«½á¹û´æ´¢ÔÚ´æ´¢µ¥Ôª*/
+		assert(nColumn == 1);/*×ö¶Ïµã£¬ÅĞ¶Ï±»ÌáÈ¡µÄÖµÁĞ±íÊÇ·ñÎª¿Õ*/
 		if (pOrderBy){
-			pushOntoSorter(pParse, pOrderBy, p, regResult);/*æ¨å…¥æ ˆé¡¶*/
+			pushOntoSorter(pParse, pOrderBy, p, regResult);/*ÍÆÈëÕ»¶¥*/
 		}
 		else{
-			sqlite3ExprCodeMove(pParse, regResult, iParm, 1);/*é‡Šæ”¾å¯„å­˜å™¨ä¸­çš„å†…å®¹ï¼Œä¿æŒå¯„å­˜å™¨çš„å†…å®¹åŠæ—¶æ›´æ–°*/
+			sqlite3ExprCodeMove(pParse, regResult, iParm, 1);/*ÊÍ·Å¼Ä´æÆ÷ÖĞµÄÄÚÈİ£¬±£³Ö¼Ä´æÆ÷µÄÄÚÈİ¼°Ê±¸üĞÂ*/
 			/* 
 			** The LIMIT clause will jump out of the loop for us
-			** limitå­å¥ä¼šä¸ºæˆ‘ä»¬è·³å‡ºå¾ªç¯
+			** limit×Ó¾ä»áÎªÎÒÃÇÌø³öÑ­»·
 			*/
 		}
 		break;
@@ -850,120 +850,120 @@ static void selectInnerLoop(
 		** Send the data to the callback function or to a subroutine.  In the
 		** case of a subroutine, the subroutine itself is responsible for
 		** popping the data from the stack.
-		** ç»™å›è°ƒå‡½æ•°æˆ–å­ç¨‹åºå‘é€æ•°æ®ï¼Œåœ¨å­ç¨‹åºä¸­ï¼Œå­ç¨‹åºè´Ÿè´£ä»å †æ ˆä¸­å¼¹å‡ºæ•°æ®ã€‚
+		** ¸ø»Øµ÷º¯Êı»ò×Ó³ÌĞò·¢ËÍÊı¾İ£¬ÔÚ×Ó³ÌĞòÖĞ£¬×Ó³ÌĞò¸ºÔğ´Ó¶ÑÕ»ÖĞµ¯³öÊı¾İ¡£
 		*/
-		testcase(eDest == SRT_Coroutine);/*æµ‹è¯•å¤„ç†ç»“æœé›†æ˜¯å¦æ˜¯ååŒå¤„ç†*/
-		testcase(eDest == SRT_Output);   /*æµ‹è¯•å¤„ç†ç»“æœé›†æ˜¯å¦è¦è¾“å‡º*/
-		if (pOrderBy){/*å¦‚æœåŒ…å«äº†OEDERBYå­å¥*/
-			int r1 = sqlite3GetTempReg(pParse);/*åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨ï¼Œå­˜å‚¨ä¸­é—´è®¡ç®—ç»“æœ*/
-			sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*æŠŠOP_MakeRecordæ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-			pushOntoSorter(pParse, pOrderBy, p, r1);/*æ¨å…¥æ ˆé¡¶*/
-			sqlite3ReleaseTempReg(pParse, r1);/*é‡Šæ”¾å¯„å­˜å™¨*/
+		testcase(eDest == SRT_Coroutine);/*²âÊÔ´¦Àí½á¹û¼¯ÊÇ·ñÊÇĞ­Í¬´¦Àí*/
+		testcase(eDest == SRT_Output);   /*²âÊÔ´¦Àí½á¹û¼¯ÊÇ·ñÒªÊä³ö*/
+		if (pOrderBy){/*Èç¹û°üº¬ÁËOEDERBY×Ó¾ä*/
+			int r1 = sqlite3GetTempReg(pParse);/*·ÖÅäÒ»¸ö¼Ä´æÆ÷£¬´æ´¢ÖĞ¼ä¼ÆËã½á¹û*/
+			sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*°ÑOP_MakeRecord²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+			pushOntoSorter(pParse, pOrderBy, p, r1);/*ÍÆÈëÕ»¶¥*/
+			sqlite3ReleaseTempReg(pParse, r1);/*ÊÍ·Å¼Ä´æÆ÷*/
 		}
-		else if (eDest == SRT_Coroutine){/*å¦‚æœå¤„ç†ç»“æœé›†æ˜¯ååŒå¤„ç†*/
-			sqlite3VdbeAddOp1(v, OP_Yield, pDest->iSDParm);/*æŠŠOP_Yieldæ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
+		else if (eDest == SRT_Coroutine){/*Èç¹û´¦Àí½á¹û¼¯ÊÇĞ­Í¬´¦Àí*/
+			sqlite3VdbeAddOp1(v, OP_Yield, pDest->iSDParm);/*°ÑOP_Yield²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
 		}
 		else{
-			sqlite3VdbeAddOp2(v, OP_ResultRow, regResult, nColumn);/*æŠŠOP_ResultRowæ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-			sqlite3ExprCacheAffinityChange(pParse, regResult, nColumn);/*è®°å½•äº²å’Œç±»å‹çš„æ•°æ®çš„æ”¹å˜çš„è®¡æ•°å¯„å­˜å™¨çš„èµ·å§‹åœ°å€*/
+			sqlite3VdbeAddOp2(v, OP_ResultRow, regResult, nColumn);/*°ÑOP_ResultRow²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+			sqlite3ExprCacheAffinityChange(pParse, regResult, nColumn);/*¼ÇÂ¼Ç×ºÍÀàĞÍµÄÊı¾İµÄ¸Ä±äµÄ¼ÆÊı¼Ä´æÆ÷µÄÆğÊ¼µØÖ·*/
 		}
 		break;
 		}
 
-#if !defined(SQLITE_OMIT_TRIGGER)/*æ¡ä»¶ç¼–è¯‘*/
+#if !defined(SQLITE_OMIT_TRIGGER)/*Ìõ¼ş±àÒë*/
 		/* 
 		** Discard the results.  This is used for SELECT statements inside
 		** the body of a TRIGGER.  The purpose of such selects is to call
 		** user-defined functions that have side effects.  We do not care
 		** about the actual results of the select.
-		** ä¸¢å¼ƒç»“æœã€‚è¿™æ˜¯ç”¨äºè§¦å‘å™¨çš„selectè¯­å¥ã€‚è¿™æ ·é€‰æ‹©çš„ç›®çš„æ˜¯è¦è°ƒç”¨ç”¨æˆ·è‡ªå®šä¹‰å‡½æ•°ã€‚
-		** æˆ‘ä»¬ä¸å¿…å…³å¿ƒå®é™…çš„selectå¤„ç†ç»“æœã€‚
+		** ¶ªÆú½á¹û¡£ÕâÊÇÓÃÓÚ´¥·¢Æ÷µÄselectÓï¾ä¡£ÕâÑùÑ¡ÔñµÄÄ¿µÄÊÇÒªµ÷ÓÃÓÃ»§×Ô¶¨Òåº¯Êı¡£
+		** ÎÒÃÇ²»±Ø¹ØĞÄÊµ¼ÊµÄselect´¦Àí½á¹û¡£
 		*/
-	default: {/*é»˜è®¤æ¡ä»¶ä¸‹*/
-		assert(eDest == SRT_Discard);/*å¦‚æœå¤„ç†ç»“æœé›†æ˜¯SRT_Discardï¼ˆèˆå¼ƒï¼‰*/
+	default: {/*Ä¬ÈÏÌõ¼şÏÂ*/
+		assert(eDest == SRT_Discard);/*Èç¹û´¦Àí½á¹û¼¯ÊÇSRT_Discard£¨ÉáÆú£©*/
 		break;
 	}
-#endif/*æ¡ä»¶ç¼–è¯‘ç»“æŸ*/
+#endif/*Ìõ¼ş±àÒë½áÊø*/
 	}
 
 	/* Jump to the end of the loop if the LIMIT is reached.  Except, if
 	** there is a sorter, in which case the sorter has already limited
 	** the output for us.
-	** é™¤äº†æœ‰ä¸€ä¸ªåˆ†é€‰æœºï¼Œåœ¨è¿™ç§æƒ…å†µä¸‹åˆ†é€‰æœºå·²ç»é™åˆ¶äº†æˆ‘ä»¬çš„è¾“å‡ºã€‚
-	** å¦‚æœç¬¦åˆlimitå­å¥çš„æ¡ä»¶åˆ™è·³è½¬åˆ°å¾ªç¯ç»“æŸã€‚
+	** ³ıÁËÓĞÒ»¸ö·ÖÑ¡»ú£¬ÔÚÕâÖÖÇé¿öÏÂ·ÖÑ¡»úÒÑ¾­ÏŞÖÆÁËÎÒÃÇµÄÊä³ö¡£
+	** Èç¹û·ûºÏlimit×Ó¾äµÄÌõ¼şÔòÌø×ªµ½Ñ­»·½áÊø¡£
 	*/
-	if (pOrderBy == 0 && p->iLimit){/*å¦‚æœä¸åŒ…å«ORDERBYå¹¶ä¸”å«æœ‰limitå­å¥*/
-		sqlite3VdbeAddOp3(v, OP_IfZero, p->iLimit, iBreak, -1);/*æŠŠOP_IfZeroæ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
+	if (pOrderBy == 0 && p->iLimit){/*Èç¹û²»°üº¬ORDERBY²¢ÇÒº¬ÓĞlimit×Ó¾ä*/
+		sqlite3VdbeAddOp3(v, OP_IfZero, p->iLimit, iBreak, -1);/*°ÑOP_IfZero²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
 	}
 }
 
 /*
 ** Given an expression list, generate a KeyInfo structure that records
 ** the collating sequence for each expression in that expression list.
-** ç»™å®šä¸€ä¸ªè¡¨è¾¾å¼åˆ—è¡¨ï¼Œç”Ÿæˆä¸€ä¸ªKeyInfoï¼ˆå…³é”®ä¿¡æ¯ï¼‰ç»“æ„ï¼Œè®°å½•åœ¨è¯¥è¡¨è¾¾å¼åˆ—è¡¨ä¸­çš„æ¯ä¸ªè¡¨è¾¾å¼çš„æ’åºåºåˆ—ã€‚
+** ¸ø¶¨Ò»¸ö±í´ïÊ½ÁĞ±í£¬Éú³ÉÒ»¸öKeyInfo£¨¹Ø¼üĞÅÏ¢£©½á¹¹£¬¼ÇÂ¼ÔÚ¸Ã±í´ïÊ½ÁĞ±íÖĞµÄÃ¿¸ö±í´ïÊ½µÄÅÅĞòĞòÁĞ¡£
 **
 ** If the ExprList is an ORDER BY or GROUP BY clause then the resulting
 ** KeyInfo structure is appropriate for initializing a virtual index to
 ** implement that clause.  If the ExprList is the result set of a SELECT
 ** then the KeyInfo structure is appropriate for initializing a virtual
 ** index to implement a DISTINCT test.
-** å¦‚æœExprListæ˜¯ä¸€ä¸ªorder byæˆ–è€…group byå­å¥ï¼Œé‚£ä¹ˆKeyInfoç»“æ„ä½“é€‚åˆåˆå§‹åŒ–è™šæ‹Ÿç´¢å¼•å»å®ç°
-** è¿™äº›å­å¥ã€‚å¦‚æœExprListæ˜¯selectçš„ç»“æœé›†ï¼Œé‚£ä¹ˆKeyInfoç»“æ„ä½“é€‚åˆåˆå§‹åŒ–ä¸€ä¸ªè™šæ‹Ÿç´¢å¼•å»å®
-** ç°DISTINCTæµ‹è¯•ã€‚
+** Èç¹ûExprListÊÇÒ»¸öorder by»òÕßgroup by×Ó¾ä£¬ÄÇÃ´KeyInfo½á¹¹ÌåÊÊºÏ³õÊ¼»¯ĞéÄâË÷ÒıÈ¥ÊµÏÖ
+** ÕâĞ©×Ó¾ä¡£Èç¹ûExprListÊÇselectµÄ½á¹û¼¯£¬ÄÇÃ´KeyInfo½á¹¹ÌåÊÊºÏ³õÊ¼»¯Ò»¸öĞéÄâË÷ÒıÈ¥Êµ
+** ÏÖDISTINCT²âÊÔ¡£
 **
 ** Space to hold the KeyInfo structure is obtain from malloc.  The calling
 ** function is responsible for seeing that this structure is eventually
 ** freed.  Add the KeyInfo structure to the P4 field of an opcode using
 ** P4_KEYINFO_HANDOFF is the usual way of dealing with this.
-** ä¿å­˜KeyInfoç»“æ„ä½“çš„ç©ºé—´æ˜¯ç”±mallocè·å¾—ã€‚å›è°ƒå‡½æ•°è´Ÿè´£æœ€åé‡Šæ”¾è¿™ä¸ªç»“æ„ã€‚
-** æ·»åŠ å…³é”®ä¿¡æ¯ç»“æ„ç»™P4æ“ä½œç¬¦ä»£ç å—ï¼Œé€šå¸¸ä½¿ç”¨P4_KEYINFO_HANDOFFå¤„ç†ã€‚
+** ±£´æKeyInfo½á¹¹ÌåµÄ¿Õ¼äÊÇÓÉmalloc»ñµÃ¡£»Øµ÷º¯Êı¸ºÔğ×îºóÊÍ·ÅÕâ¸ö½á¹¹¡£
+** Ìí¼Ó¹Ø¼üĞÅÏ¢½á¹¹¸øP4²Ù×÷·û´úÂë¿é£¬Í¨³£Ê¹ÓÃP4_KEYINFO_HANDOFF´¦Àí¡£
 */
-static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){/*å®šä¹‰é™æ€çš„ç»“æ„ä½“æŒ‡é’ˆå‡½æ•°keyInfoFromExprList*/
-	sqlite3 *db = pParse->db;/*æŠŠç»“æ„ä½“ç±»å‹æ˜¯pParseçš„æˆå‘˜å˜é‡dbèµ‹ç»™ç»“æ„ä½“ç±»å‹æ˜¯sqlite3çš„æŒ‡é’ˆdb*/
+static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){/*¶¨Òå¾²Ì¬µÄ½á¹¹ÌåÖ¸Õëº¯ÊıkeyInfoFromExprList*/
+	sqlite3 *db = pParse->db;/*°Ñ½á¹¹ÌåÀàĞÍÊÇpParseµÄ³ÉÔ±±äÁ¿db¸³¸ø½á¹¹ÌåÀàĞÍÊÇsqlite3µÄÖ¸Õëdb*/
 	int nExpr;
-	KeyInfo *pInfo;/*å®šä¹‰ç»“æ„ä½“ç±»å‹æ˜¯KeyInfoçš„æŒ‡é’ˆpInfo*/
-	struct ExprList_item *pItem;/*å®šä¹‰ç»“æ„ä½“ç±»å‹æ˜¯ExprList_itemçš„æŒ‡é’ˆpItem*/
+	KeyInfo *pInfo;/*¶¨Òå½á¹¹ÌåÀàĞÍÊÇKeyInfoµÄÖ¸ÕëpInfo*/
+	struct ExprList_item *pItem;/*¶¨Òå½á¹¹ÌåÀàĞÍÊÇExprList_itemµÄÖ¸ÕëpItem*/
 	int i;
 
-	nExpr = pList->nExpr;/*å£°æ˜è¡¨è¾¾å¼åˆ—è¡¨ä¸­è¡¨è¾¾å¼çš„ä¸ªæ•°*/
-	pInfo = sqlite3DbMallocZero(db, sizeof(*pInfo) + nExpr*(sizeof(CollSeq*) + 1));/*åˆ†é…å¹¶æ¸…ç©ºå†…å­˜ï¼Œåˆ†é…å¤§å°ä¸ºç¬¬äºŒä¸ªå‚æ•°çš„å†…å­˜*/
-	if (pInfo){/*å¦‚æœå­˜åœ¨å…³é”®å­—ç»“æ„ä½“*/
-		pInfo->aSortOrder = (u8*)&pInfo->aColl[nExpr];/*è®¾ç½®å…³é”®ä¿¡æ¯ç»“æ„ä½“çš„æ’åºä¸ºå…³é”®ä¿¡æ¯ç»“æ„ä½“ä¸­è¡¨è¾¾å¼ä¸­å«æœ‰çš„å…³é”®å­—ï¼Œå…¶ä¸­aColl[1]è¡¨ç¤ºä¸ºæ¯ä¸€ä¸ªå…³é”®å­—è¿›è¡Œæ•´ç†*/
-		pInfo->nField = (u16)nExpr;/*å¯¹æ•´å‹nExprè¿›è¡Œå¼ºåˆ¶ç±»å‹è½¬æ¢æˆu16ï¼Œèµ‹ç»™ pInfo->nField*/
-		pInfo->enc = ENC(db);/*å…³é”®ä¿¡æ¯ç»“æ„ä½“ä¸­ç¼–ç æ–¹å¼ä¸ºdbçš„ç¼–ç æ–¹å¼*/
-		pInfo->db = db;/*å…³é”®ä¿¡æ¯ç»“æ„ä½“ä¸­æ•°æ®åº“ä¸ºå½“å‰ä½¿ç”¨çš„æ•°æ®åº“*/
-		for (i = 0, pItem = pList->a; i < nExpr; i++, pItem++){/*éå†å½“å‰çš„è¡¨è¾¾å¼åˆ—è¡¨*/
-			CollSeq *pColl;/*å®šä¹‰ç»“æ„ä½“ç±»å‹ä¸ºCollSeqçš„æŒ‡é’ˆpColl*/
-			pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr); /*ä¸ºè¡¨è¾¾å¼pExprè¿”å›é»˜è®¤æ’åºé¡ºåºã€‚å¦‚æœæ²¡æœ‰é»˜è®¤æ’åºç±»å‹ï¼Œè¿”å›0.*/
-			if (!pColl){/*å¦‚æœæ²¡æœ‰æŒ‡å®šæ’åºçš„æ–¹æ³•*/
-				pColl = db->pDfltColl;/*å°†æ•°æ®åº“ä¸­é»˜è®¤çš„æ’åºæ–¹æ³•èµ‹å€¼ç»™pColl*/
+	nExpr = pList->nExpr;/*ÉùÃ÷±í´ïÊ½ÁĞ±íÖĞ±í´ïÊ½µÄ¸öÊı*/
+	pInfo = sqlite3DbMallocZero(db, sizeof(*pInfo) + nExpr*(sizeof(CollSeq*) + 1));/*·ÖÅä²¢Çå¿ÕÄÚ´æ£¬·ÖÅä´óĞ¡ÎªµÚ¶ş¸ö²ÎÊıµÄÄÚ´æ*/
+	if (pInfo){/*Èç¹û´æÔÚ¹Ø¼ü×Ö½á¹¹Ìå*/
+		pInfo->aSortOrder = (u8*)&pInfo->aColl[nExpr];/*ÉèÖÃ¹Ø¼üĞÅÏ¢½á¹¹ÌåµÄÅÅĞòÎª¹Ø¼üĞÅÏ¢½á¹¹ÌåÖĞ±í´ïÊ½ÖĞº¬ÓĞµÄ¹Ø¼ü×Ö£¬ÆäÖĞaColl[1]±íÊ¾ÎªÃ¿Ò»¸ö¹Ø¼ü×Ö½øĞĞÕûÀí*/
+		pInfo->nField = (u16)nExpr;/*¶ÔÕûĞÍnExpr½øĞĞÇ¿ÖÆÀàĞÍ×ª»»³Éu16£¬¸³¸ø pInfo->nField*/
+		pInfo->enc = ENC(db);/*¹Ø¼üĞÅÏ¢½á¹¹ÌåÖĞ±àÂë·½Ê½ÎªdbµÄ±àÂë·½Ê½*/
+		pInfo->db = db;/*¹Ø¼üĞÅÏ¢½á¹¹ÌåÖĞÊı¾İ¿âÎªµ±Ç°Ê¹ÓÃµÄÊı¾İ¿â*/
+		for (i = 0, pItem = pList->a; i < nExpr; i++, pItem++){/*±éÀúµ±Ç°µÄ±í´ïÊ½ÁĞ±í*/
+			CollSeq *pColl;/*¶¨Òå½á¹¹ÌåÀàĞÍÎªCollSeqµÄÖ¸ÕëpColl*/
+			pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr); /*Îª±í´ïÊ½pExpr·µ»ØÄ¬ÈÏÅÅĞòË³Ğò¡£Èç¹ûÃ»ÓĞÄ¬ÈÏÅÅĞòÀàĞÍ£¬·µ»Ø0.*/
+			if (!pColl){/*Èç¹ûÃ»ÓĞÖ¸¶¨ÅÅĞòµÄ·½·¨*/
+				pColl = db->pDfltColl;/*½«Êı¾İ¿âÖĞÄ¬ÈÏµÄÅÅĞò·½·¨¸³Öµ¸øpColl*/
 			}
-			pInfo->aColl[i] = pColl;/*å…³é”®ä¿¡æ¯ç»“æ„ä½“ä¸­å¯¹å…³é”®å­—æ’åºæ•°ç»„ä¸­å…ƒç´ å¯¹åº”è¡¨è¾¾å¼ä¸­æ’åºçš„åç§°*/
-			pInfo->aSortOrder[i] = pItem->sortOrder;/*å…³é”®ä¿¡æ¯ç»“æ„ä½“ä¸­æ’åºçš„é¡ºåºä¸ºè¯­æ³•åˆ†ææ ‘ä¸­è¯­æ³•é¡¹è¡¨è¾¾å¼çš„æ’åºæ–¹æ³•*/
-			/*å¤‡æ³¨ï¼šåšæ ‡è®°ï¼Œæˆ‘æ²¡æœ‰çœ‹æ‡‚è¿™ç§æ’åºçš„æ–¹æ³•ï¼Œä¸ªäººç†è§£ä¸ºæŠŠæŒ‡å®šä½¿ç”¨æŸç§æ’åºçš„æ–¹å¼è®°ä¸‹æ¥ï¼Œå¦‚æœæ²¡æœ‰ä½¿ç”¨ç³»ç»Ÿé»˜è®¤çš„ã€‚å†æŠŠè¯­æ³•æ ‘ä¸­è¡¨è¾¾å¼è®°ä¸‹æ¥ï¼Œä¸¤è€…åº”è¯¥æ˜¯ä¸€ä¸ªä¸œè¥¿ï¼Œåªæ˜¯è¡¨è¾¾çš„æ–¹å¼ä¸ä¸€æ ·*/
+			pInfo->aColl[i] = pColl;/*¹Ø¼üĞÅÏ¢½á¹¹ÌåÖĞ¶Ô¹Ø¼ü×ÖÅÅĞòÊı×éÖĞÔªËØ¶ÔÓ¦±í´ïÊ½ÖĞÅÅĞòµÄÃû³Æ*/
+			pInfo->aSortOrder[i] = pItem->sortOrder;/*¹Ø¼üĞÅÏ¢½á¹¹ÌåÖĞÅÅĞòµÄË³ĞòÎªÓï·¨·ÖÎöÊ÷ÖĞÓï·¨Ïî±í´ïÊ½µÄÅÅĞò·½·¨*/
+			/*±¸×¢£º×ö±ê¼Ç£¬ÎÒÃ»ÓĞ¿´¶®ÕâÖÖÅÅĞòµÄ·½·¨£¬¸öÈËÀí½âÎª°ÑÖ¸¶¨Ê¹ÓÃÄ³ÖÖÅÅĞòµÄ·½Ê½¼ÇÏÂÀ´£¬Èç¹ûÃ»ÓĞÊ¹ÓÃÏµÍ³Ä¬ÈÏµÄ¡£ÔÙ°ÑÓï·¨Ê÷ÖĞ±í´ïÊ½¼ÇÏÂÀ´£¬Á½ÕßÓ¦¸ÃÊÇÒ»¸ö¶«Î÷£¬Ö»ÊÇ±í´ïµÄ·½Ê½²»Ò»Ñù*/
 		}
 	}
-	return pInfo;/*è¿”å›è¿™ä¸ªå…³é”®ä¿¡æ¯ç»“æ„ä½“*/
+	return pInfo;/*·µ»ØÕâ¸ö¹Ø¼üĞÅÏ¢½á¹¹Ìå*/
 }
 
-#ifndef SQLITE_OMIT_COMPOUND_SELECT/*æµ‹è¯•SQLITE_OMIT_COMPOUND_SELECTæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
+#ifndef SQLITE_OMIT_COMPOUND_SELECT/*²âÊÔSQLITE_OMIT_COMPOUND_SELECTÊÇ·ñ±»ºê¶¨Òå¹ı*/
 /*
 ** Name of the connection operator, used for error messages.
-** è¿æ¥ç¬¦çš„åç§°ï¼Œç”¨æ¥åé¦ˆé”™è¯¯ä¿¡æ¯ã€‚
+** Á¬½Ó·ûµÄÃû³Æ£¬ÓÃÀ´·´À¡´íÎóĞÅÏ¢¡£
 */
-static const char *selectOpName(int id){/*å®šä¹‰é™æ€ä¸”æ˜¯åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆselectOpName*/
-	char *z;/*å®šä¹‰å­—ç¬¦å‹æŒ‡é’ˆz*/
-	switch (id){/*switchå‡½æ•°ï¼Œåˆ¤æ–­idçš„å€¼*/
-	case TK_ALL:       z = "UNION ALL";   break;/*å¦‚æœå‚æ•°idä¸ºTK_ALLï¼Œè¿”å›å­—ç¬¦"UNION ALL"*/
-	case TK_INTERSECT: z = "INTERSECT";   break;/*å¦‚æœå‚æ•°idä¸ºTK_INTERSECTï¼Œè¿”å›å­—ç¬¦"INTERSECT"*/
-	case TK_EXCEPT:    z = "EXCEPT";      break;/*å¦‚æœå‚æ•°idä¸ºTK_EXCEPTï¼Œè¿”å›å­—ç¬¦"EXCEPT"*/
-	default:           z = "UNION";       break;/*é»˜è®¤æ¡ä»¶ä¸‹ï¼Œè¿”å›å­—ç¬¦"UNION"*/
+static const char *selectOpName(int id){/*¶¨Òå¾²Ì¬ÇÒÊÇÖ»¶ÁµÄ×Ö·ûĞÍÖ¸ÕëselectOpName*/
+	char *z;/*¶¨Òå×Ö·ûĞÍÖ¸Õëz*/
+	switch (id){/*switchº¯Êı£¬ÅĞ¶ÏidµÄÖµ*/
+	case TK_ALL:       z = "UNION ALL";   break;/*Èç¹û²ÎÊıidÎªTK_ALL£¬·µ»Ø×Ö·û"UNION ALL"*/
+	case TK_INTERSECT: z = "INTERSECT";   break;/*Èç¹û²ÎÊıidÎªTK_INTERSECT£¬·µ»Ø×Ö·û"INTERSECT"*/
+	case TK_EXCEPT:    z = "EXCEPT";      break;/*Èç¹û²ÎÊıidÎªTK_EXCEPT£¬·µ»Ø×Ö·û"EXCEPT"*/
+	default:           z = "UNION";       break;/*Ä¬ÈÏÌõ¼şÏÂ£¬·µ»Ø×Ö·û"UNION"*/
 	}
-	return z;  /*è¿”å›è¿æ¥ç¬¦çš„åç§°*/
+	return z;  /*·µ»ØÁ¬½Ó·ûµÄÃû³Æ*/
 }
 #endif /* SQLITE_OMIT_COMPOUND_SELECT */
 
-#ifndef SQLITE_OMIT_EXPLAIN/*æµ‹è¯•SQLITE_OMIT_EXPLAINæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
+#ifndef SQLITE_OMIT_EXPLAIN/*²âÊÔSQLITE_OMIT_EXPLAINÊÇ·ñ±»ºê¶¨Òå¹ı*/
 /*
 ** Unless an "EXPLAIN QUERY PLAN" command is being processed, this function
 ** is a no-op. Otherwise, it adds a single row of output to the EQP result,
@@ -973,17 +973,17 @@ static const char *selectOpName(int id){/*å®šä¹‰é™æ€ä¸”æ˜¯åªè¯»çš„å­—ç¬¦å‹æŒ
 **
 ** where xxx is one of "DISTINCT", "ORDER BY" or "GROUP BY". Exactly which
 ** is determined by the zUsage argument.
-** é™¤éä¸€ä¸ª"EXPLAIN QUERY PLAN"å‘½ä»¤æ­£åœ¨è¢«å¤„ç†ï¼Œå¦åˆ™è¿™ä¸ªåŠŸèƒ½å°±æ˜¯ä¸€ä¸ªç©ºæ“ä½œã€‚
-** å¦åˆ™ï¼Œå®ƒå¢åŠ ä¸€ä¸ªå•ç‹¬çš„è¾“å‡ºè¡Œåˆ°EQPç»“æœï¼Œè¾“å‡ºçš„æ ¼å¼:
+** ³ı·ÇÒ»¸ö"EXPLAIN QUERY PLAN"ÃüÁîÕıÔÚ±»´¦Àí£¬·ñÔòÕâ¸ö¹¦ÄÜ¾ÍÊÇÒ»¸ö¿Õ²Ù×÷¡£
+** ·ñÔò£¬ËüÔö¼ÓÒ»¸öµ¥¶ÀµÄÊä³öĞĞµ½EQP½á¹û£¬Êä³öµÄ¸ñÊ½:
 ** "USE TEMP B-TREE FOR xxx"
-** å…¶ä¸­xxxæ˜¯"distinct","order by",æˆ–è€…"group by"ä¸­çš„ä¸€ä¸ªã€‚ç©¶ç«Ÿæ˜¯å“ªä¸ªç”±
-** zUsageå‚æ•°å†³å®šã€‚
+** ÆäÖĞxxxÊÇ"distinct","order by",»òÕß"group by"ÖĞµÄÒ»¸ö¡£¾¿¾¹ÊÇÄÄ¸öÓÉ
+** zUsage²ÎÊı¾ö¶¨¡£
 */
 static void explainTempTable(Parse *pParse, const char *zUsage){
-	if (pParse->explain == 2){/*å¦‚æœè¯­æ³•åˆ†ææ ‘ä¸­çš„explainæ˜¯ç¬¬äºŒä¸ª*/
-		Vdbe *v = pParse->pVdbe;/*å£°æ˜ä¸€ä¸ªè™šæ‹Ÿæœº*/
-		char *zMsg = sqlite3MPrintf(pParse->db, "USE TEMP B-TREE FOR %s", zUsage);/*æŠŠè¾“å‡ºçš„æ ¼å¼çš„å†…å®¹ä¼ é€’ç»™zMsgï¼Œå…¶ä¸­%S æ˜¯ä¼ å…¥çš„å‚æ•°åœ¨Usage*/
-		sqlite3VdbeAddOp4(v, OP_Explain, pParse->iSelectId, 0, 0, zMsg, P4_DYNAMIC); /*æ·»åŠ ä¸€ä¸ªæ“ä½œç ï¼Œå…¶ä¸­åŒ…æ‹¬ä½œä¸ºæŒ‡é’ˆçš„p4å€¼ã€‚*/
+	if (pParse->explain == 2){/*Èç¹ûÓï·¨·ÖÎöÊ÷ÖĞµÄexplainÊÇµÚ¶ş¸ö*/
+		Vdbe *v = pParse->pVdbe;/*ÉùÃ÷Ò»¸öĞéÄâ»ú*/
+		char *zMsg = sqlite3MPrintf(pParse->db, "USE TEMP B-TREE FOR %s", zUsage);/*°ÑÊä³öµÄ¸ñÊ½µÄÄÚÈİ´«µİ¸øzMsg£¬ÆäÖĞ%S ÊÇ´«ÈëµÄ²ÎÊıÔÚUsage*/
+		sqlite3VdbeAddOp4(v, OP_Explain, pParse->iSelectId, 0, 0, zMsg, P4_DYNAMIC); /*Ìí¼ÓÒ»¸ö²Ù×÷Âë£¬ÆäÖĞ°üÀ¨×÷ÎªÖ¸ÕëµÄp4Öµ¡£*/
 	}
   }
 }
@@ -994,14 +994,14 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 ** in sqlite3Select() to assign values to structure member variables that
 ** only exist if SQLITE_OMIT_EXPLAIN is not defined without polluting the
 ** code with #ifndef directives.
-** èµ‹å€¼è¡¨è¾¾å¼bç»™å·¦å€¼aã€‚ç¬¬äºŒï¼Œæ— æ“ä½œç¬¦ï¼Œå®çš„ç‰ˆæœ¬ç”±SQLITE_OMIT_EXPLAIN å®šä¹‰æä¾›ã€‚è¿™å…è®¸
-** sqlite3Select()çš„ä»£ç ç»™ç»“æ„ä½“çš„æˆå‘˜å˜é‡åˆ†é…å€¼ï¼Œå¦‚æœSQLITE_OMIT_EXPLAINæ²¡æœ‰
-** å®šä¹‰ï¼Œæ²¡æœ‰#ifndef æŒ‡ä»¤çš„ä»£ç å…¶æ‰ä¼šå­˜åœ¨ã€‚
+** ¸³Öµ±í´ïÊ½b¸ø×óÖµa¡£µÚ¶ş£¬ÎŞ²Ù×÷·û£¬ºêµÄ°æ±¾ÓÉSQLITE_OMIT_EXPLAIN ¶¨ÒåÌá¹©¡£ÕâÔÊĞí
+** sqlite3Select()µÄ´úÂë¸ø½á¹¹ÌåµÄ³ÉÔ±±äÁ¿·ÖÅäÖµ£¬Èç¹ûSQLITE_OMIT_EXPLAINÃ»ÓĞ
+** ¶¨Òå£¬Ã»ÓĞ#ifndef Ö¸ÁîµÄ´úÂëÆä²Å»á´æÔÚ¡£
 */
-# define explainSetInteger(a, b) a = b/*å®å®šä¹‰*/
+# define explainSetInteger(a, b) a = b/*ºê¶¨Òå*/
 
 #else
-/* No-op versions of the explainXXX() functions and macros. explainXXX() å‡½æ•°å’Œå®æ— æ“ä½œç¬¦çš„ç‰ˆæœ¬ã€‚*/
+/* No-op versions of the explainXXX() functions and macros. explainXXX() º¯ÊıºÍºêÎŞ²Ù×÷·ûµÄ°æ±¾¡£*/
 # define explainTempTable(y,z)
 # define explainSetInteger(y,z)
 #endif
@@ -1021,33 +1021,33 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 ** TK_INTERSECT or TK_ALL. The first form is used if argument bUseTmp is
 ** false, or the second form if it is true.
 **
-** é™¤éä¸€ä¸ª"EXPLAIN QUERY PLAN"å‘½ä»¤æ­£åœ¨å¤„ç†ï¼Œè¿™ä¸ªåŠŸèƒ½å°±æ˜¯ä¸€ä¸ªç©ºæ“ä½œã€‚
-** å¦åˆ™ï¼Œå®ƒå¢åŠ ä¸€ä¸ªå•ç‹¬çš„è¾“å‡ºè¡Œåˆ°EQPç»“æœï¼Œè¾“å‡ºçš„æ ¼å¼ä¸º:
+** ³ı·ÇÒ»¸ö"EXPLAIN QUERY PLAN"ÃüÁîÕıÔÚ´¦Àí£¬Õâ¸ö¹¦ÄÜ¾ÍÊÇÒ»¸ö¿Õ²Ù×÷¡£
+** ·ñÔò£¬ËüÔö¼ÓÒ»¸öµ¥¶ÀµÄÊä³öĞĞµ½EQP½á¹û£¬Êä³öµÄ¸ñÊ½Îª:
 ** "COMPOSITE SUBQUERIES iSub1 and iSub2 (op)"
 ** "COMPOSITE SUBQUERIES iSub1 and iSub2 USING TEMP B-TREE (op)"
-** iSub1å’ŒiSub2ä½œä¸ºæ•´æ•°è¢«ä¼ é€’åˆ°ç›¸å…³çš„å‡½æ•°å‚æ•°ï¼Œè¿ç®—æ˜¯ç›¸åŒåç§°çš„å‚æ•°
-** çš„æ–‡æœ¬è¡¨ç¤ºã€‚å‚æ•°"op"å¿…æ˜¯TK_UNION, TK_EXCEPT,TK_INTERSECTæˆ–è€…TK_ALLä¹‹ä¸€ã€‚
-** å¦‚æœå‚æ•°bUseTmpæ˜¯falseå°±ä½¿ç”¨ç¬¬ä¸€èŒƒå¼ï¼Œæˆ–è€…å¦‚æœæ˜¯trueå°±ä½¿ç”¨ç¬¬äºŒèŒƒå¼ã€‚
+** iSub1ºÍiSub2×÷ÎªÕûÊı±»´«µİµ½Ïà¹ØµÄº¯Êı²ÎÊı£¬ÔËËãÊÇÏàÍ¬Ãû³ÆµÄ²ÎÊı
+** µÄÎÄ±¾±íÊ¾¡£²ÎÊı"op"±ØÊÇTK_UNION, TK_EXCEPT,TK_INTERSECT»òÕßTK_ALLÖ®Ò»¡£
+** Èç¹û²ÎÊıbUseTmpÊÇfalse¾ÍÊ¹ÓÃµÚÒ»·¶Ê½£¬»òÕßÈç¹ûÊÇtrue¾ÍÊ¹ÓÃµÚ¶ş·¶Ê½¡£
 */
 static void explainComposite(
-	Parse *pParse,                  /* Parse context è¯­ä¹‰åˆ†æ*/
-	int op,                         /* One of TK_UNION, TK_EXCEPT etc.   TK_UNION, TK_EXCEPTç­‰è¿ç®—ç¬¦ä¸­çš„ä¸€ä¸ª*/
-	int iSub1,                      /* Subquery id 1 å­æŸ¥è¯¢id 1*/
-	int iSub2,                      /* Subquery id 2 å­æŸ¥è¯¢id 2*/
-	int bUseTmp                     /* True if a temp table was used å¦‚æœæ˜¯ä½¿ç”¨äº†ä¸€å¼ ä¸´æ—¶è¡¨ï¼Œé‚£ä¹ˆå€¼ä¸ºtrue*/
+	Parse *pParse,                  /* Parse context ÓïÒå·ÖÎö*/
+	int op,                         /* One of TK_UNION, TK_EXCEPT etc.   TK_UNION, TK_EXCEPTµÈÔËËã·ûÖĞµÄÒ»¸ö*/
+	int iSub1,                      /* Subquery id 1 ×Ó²éÑ¯id 1*/
+	int iSub2,                      /* Subquery id 2 ×Ó²éÑ¯id 2*/
+	int bUseTmp                     /* True if a temp table was used Èç¹ûÊÇÊ¹ÓÃÁËÒ»ÕÅÁÙÊ±±í£¬ÄÇÃ´ÖµÎªtrue*/
 	){
-	assert(op == TK_UNION || op == TK_EXCEPT || op == TK_INTERSECT || op == TK_ALL);/*æµ‹è¯•opæ˜¯å¦æœ‰TK_UNIONæˆ–TK_EXCEPTæˆ–TK_INTERSECTæˆ–TK_ALL*/
-	if (pParse->explain == 2){/*å¦‚æœpParse->explainä¸å­—ç¬¦zç›¸åŒ*/
-		Vdbe *v = pParse->pVdbe;/*å£°æ˜ä¸€ä¸ªè™šæ‹Ÿæœº*/
-		char *zMsg = sqlite3MPrintf(/*è®¾ç½®æ ‡è®°ä¿¡æ¯*/
+	assert(op == TK_UNION || op == TK_EXCEPT || op == TK_INTERSECT || op == TK_ALL);/*²âÊÔopÊÇ·ñÓĞTK_UNION»òTK_EXCEPT»òTK_INTERSECT»òTK_ALL*/
+	if (pParse->explain == 2){/*Èç¹ûpParse->explainÓë×Ö·ûzÏàÍ¬*/
+		Vdbe *v = pParse->pVdbe;/*ÉùÃ÷Ò»¸öĞéÄâ»ú*/
+		char *zMsg = sqlite3MPrintf(/*ÉèÖÃ±ê¼ÇĞÅÏ¢*/
 			pParse->db, "COMPOUND SUBQUERIES %d AND %d %s(%s)", iSub1, iSub2,
 			bUseTmp ? "USING TEMP B-TREE " : "", selectOpName(op)
-			);/*å°†å­æŸ¥è¯¢1å’Œå­æŸ¥è¯¢2çš„è¯­æ³•å†…å®¹èµ‹å€¼ç»™zMsg*/
-		sqlite3VdbeAddOp4(v, OP_Explain, pParse->iSelectId, 0, 0, zMsg, P4_DYNAMIC);/*å°†OP_Explainæ“ä½œäº¤ç»™è™šæ‹Ÿæœºï¼Œç„¶åè¿”å›ä¸€ä¸ªåœ°å€ï¼Œåœ°å€ä¸ºP4_DYNAMICæŒ‡é’ˆä¸­çš„å€¼*/
+			);/*½«×Ó²éÑ¯1ºÍ×Ó²éÑ¯2µÄÓï·¨ÄÚÈİ¸³Öµ¸øzMsg*/
+		sqlite3VdbeAddOp4(v, OP_Explain, pParse->iSelectId, 0, 0, zMsg, P4_DYNAMIC);/*½«OP_Explain²Ù×÷½»¸øĞéÄâ»ú£¬È»ºó·µ»ØÒ»¸öµØÖ·£¬µØÖ·ÎªP4_DYNAMICÖ¸ÕëÖĞµÄÖµ*/
 	}
 }
 #else
-/* No-op versions of the explainXXX() functions and macros. explainXXX()å‡½æ•°å’Œå®çš„æ— æ“ä½œç‰ˆæœ¬ã€‚*/
+/* No-op versions of the explainXXX() functions and macros. explainXXX()º¯ÊıºÍºêµÄÎŞ²Ù×÷°æ±¾¡£*/
 # define explainComposite(v,w,x,y,z)
 #endif
 
@@ -1056,120 +1056,120 @@ static void explainComposite(
 ** then the results were placed in a sorter.  After the loop is terminated
 ** we need to run the sorter and output the results.  The following
 ** routine generates the code needed to do that.
-** å¦‚æœå†…éƒ¨å¾ªç¯ä½¿ç”¨ä¸€ä¸ªéç©ºpOrderByç”Ÿæˆå‚æ•°,ç„¶åæŠŠç»“æœæ”¾ç½®åœ¨ä¸€ä¸ªåˆ†é€‰æœºã€‚
-** å¾ªç¯ç»ˆæ­¢åæˆ‘ä»¬éœ€è¦è¿è¡Œåˆ†é€‰æœºå’Œè¾“å‡ºç»“æœã€‚ä¸‹é¢çš„ä¾‹ç¨‹ç”Ÿæˆæ‰€éœ€çš„ä»£ç ã€‚
+** Èç¹ûÄÚ²¿Ñ­»·Ê¹ÓÃÒ»¸ö·Ç¿ÕpOrderByÉú³É²ÎÊı,È»ºó°Ñ½á¹û·ÅÖÃÔÚÒ»¸ö·ÖÑ¡»ú¡£
+** Ñ­»·ÖÕÖ¹ºóÎÒÃÇĞèÒªÔËĞĞ·ÖÑ¡»úºÍÊä³ö½á¹û¡£ÏÂÃæµÄÀı³ÌÉú³ÉËùĞèµÄ´úÂë¡£
 */
 static void generateSortTail(
-	Parse *pParse,    /* Parsing context è¯­ä¹‰åˆ†æ*/
-	Select *p,        /* The SELECT statement   selectè¯­å¥*/
-	Vdbe *v,          /* Generate code into this VDBE  åœ¨VDBEä¸­ç”Ÿæˆä»£ç **/
-	int nColumn,      /* Number of columns of data æ•°æ®ç§åˆ—çš„æ•°ç›®*/
-	SelectDest *pDest /* Write the sorted results here åœ¨è¿™é‡Œå†™å…¥æ’åºç»“æœ*/
+	Parse *pParse,    /* Parsing context ÓïÒå·ÖÎö*/
+	Select *p,        /* The SELECT statement   selectÓï¾ä*/
+	Vdbe *v,          /* Generate code into this VDBE  ÔÚVDBEÖĞÉú³É´úÂë**/
+	int nColumn,      /* Number of columns of data Êı¾İÖÖÁĞµÄÊıÄ¿*/
+	SelectDest *pDest /* Write the sorted results here ÔÚÕâÀïĞ´ÈëÅÅĞò½á¹û*/
 	){
-	int addrBreak = sqlite3VdbeMakeLabel(v);     /* Jump here to exit loop è·³è½¬åˆ°è¿™é‡Œé€€å‡ºå¾ªç¯*/
-	int addrContinue = sqlite3VdbeMakeLabel(v);  /* Jump here for next cycle è·³è½¬åˆ°è¿™é‡Œè¿›è¡Œä¸‹ä¸€ä¸ªå¾ªç¯*/
+	int addrBreak = sqlite3VdbeMakeLabel(v);     /* Jump here to exit loop Ìø×ªµ½ÕâÀïÍË³öÑ­»·*/
+	int addrContinue = sqlite3VdbeMakeLabel(v);  /* Jump here for next cycle Ìø×ªµ½ÕâÀï½øĞĞÏÂÒ»¸öÑ­»·*/
 	int addr;
 	int iTab;
 	int pseudoTab = 0;
-	ExprList *pOrderBy = p->pOrderBy;/*å°†Selectç»“æ„ä½“ä¸­ORDERBYèµ‹å€¼åˆ°è¡¨è¾¾å¼åˆ—è¡¨ä¸­çš„ORDERBYè¡¨è¾¾å¼å±æ€§*/
+	ExprList *pOrderBy = p->pOrderBy;/*½«Select½á¹¹ÌåÖĞORDERBY¸³Öµµ½±í´ïÊ½ÁĞ±íÖĞµÄORDERBY±í´ïÊ½ÊôĞÔ*/
 
-	int eDest = pDest->eDest;/*å°†æŸ¥è¯¢ç»“æœé›†ä¸­å¤„ç†æ–¹å¼ä¼ é€’ç»™eDest*/
-	int iParm = pDest->iSDParm;/*å°†æŸ¥è¯¢ç»“æœé›†ä¸­å¤„ç†æ–¹å¼ä¸­çš„å‚æ•°ä¼ é€’ç»™iParm*/
+	int eDest = pDest->eDest;/*½«²éÑ¯½á¹û¼¯ÖĞ´¦Àí·½Ê½´«µİ¸øeDest*/
+	int iParm = pDest->iSDParm;/*½«²éÑ¯½á¹û¼¯ÖĞ´¦Àí·½Ê½ÖĞµÄ²ÎÊı´«µİ¸øiParm*/
 
 	int regRow;
 	int regRowid;
 
-	iTab = pOrderBy->iECursor;/*æŠŠpOrderBy->iECursorèµ‹ç»™æ•´å‹iTab*/
-	regRow = sqlite3GetTempReg(pParse);/*ä¸ºpParseè¯­æ³•æ ‘åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨,å­˜å‚¨è®¡ç®—çš„ä¸­é—´ç»“æœ*/
-	if (eDest == SRT_Output || eDest == SRT_Coroutine){/*å¦‚æœå¤„ç†æ–¹å¼æ˜¯SRT_Outputï¼ˆè¾“å‡ºï¼‰æˆ–SRT_Coroutineï¼ˆååŒç¨‹åºï¼‰*/
-		pseudoTab = pParse->nTab++;/*é€æ¬¡å°†åˆ†æè¯­æ³•æ ‘ä¸­è¡¨æ•°ä¼ ç»™pseudoTabï¼ˆè™šè¡¨ï¼‰*/
-		sqlite3VdbeAddOp3(v, OP_OpenPseudo, pseudoTab, regRow, nColumn);/*å°†OP_Explainæ“ä½œäº¤ç»™è™šæ‹Ÿæœº*/
+	iTab = pOrderBy->iECursor;/*°ÑpOrderBy->iECursor¸³¸øÕûĞÍiTab*/
+	regRow = sqlite3GetTempReg(pParse);/*ÎªpParseÓï·¨Ê÷·ÖÅäÒ»¸ö¼Ä´æÆ÷,´æ´¢¼ÆËãµÄÖĞ¼ä½á¹û*/
+	if (eDest == SRT_Output || eDest == SRT_Coroutine){/*Èç¹û´¦Àí·½Ê½ÊÇSRT_Output£¨Êä³ö£©»òSRT_Coroutine£¨Ğ­Í¬³ÌĞò£©*/
+		pseudoTab = pParse->nTab++;/*Öğ´Î½«·ÖÎöÓï·¨Ê÷ÖĞ±íÊı´«¸øpseudoTab£¨Ğé±í£©*/
+		sqlite3VdbeAddOp3(v, OP_OpenPseudo, pseudoTab, regRow, nColumn);/*½«OP_Explain²Ù×÷½»¸øĞéÄâ»ú*/
 		regRowid = 0;
 	}
 	else{
-		regRowid = sqlite3GetTempReg(pParse);/*ä¸ºpParseè¯­æ³•æ ‘åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨,å­˜å‚¨è®¡ç®—çš„ä¸­é—´ç»“æœ*/
+		regRowid = sqlite3GetTempReg(pParse);/*ÎªpParseÓï·¨Ê÷·ÖÅäÒ»¸ö¼Ä´æÆ÷,´æ´¢¼ÆËãµÄÖĞ¼ä½á¹û*/
 	}
-	if (p->selFlags & SF_UseSorter){/*å¦‚æœSelectç»“æ„ä½“ä¸­çš„selFlagså±æ€§å€¼ä¸ºSF_UseSorterï¼Œä½¿ç”¨åˆ†æ‹£å™¨ï¼ˆæ’åºç¨‹åºï¼‰*/
-		int regSortOut = ++pParse->nMem;/*åˆ†é…å¯„å­˜å™¨ï¼Œä¸ªæ•°æ˜¯åˆ†æè¯­æ³•æ ‘ä¸­å†…å­˜æ•°+1*/
-		int ptab2 = pParse->nTab++;/*å°†åˆ†æè¯­æ³•æ ‘ä¸­è¡¨çš„ä¸ªæ•°èµ‹å€¼ç»™ptab2*/
-		sqlite3VdbeAddOp3(v, OP_OpenPseudo, ptab2, regSortOut, pOrderBy->nExpr + 2);/*å°†OP_OpenPseudoï¼ˆæ‰“å¼€è™šæ‹Ÿæ“ä½œï¼‰äº¤ç»™VDBEï¼Œè¿”å›è¡¨è¾¾å¼åˆ—è¡¨ä¸­è¡¨è¾¾å¼ä¸ªæ•°çš„å€¼+2*/
-		addr = 1 + sqlite3VdbeAddOp2(v, OP_SorterSort, iTab, addrBreak);/*å°†OP_SorterSortï¼ˆåˆ†æ‹£å™¨è¿›è¡Œæ’åºï¼‰äº¤ç»™VDBEï¼Œè¿”å›çš„åœ°å€+1èµ‹å€¼ç»™addr*/
-		codeOffset(v, p, addrContinue);/*è®¾ç½®åç§»é‡ï¼Œå…¶ä¸­addrContinueæ˜¯ä¸‹ä¸€æ¬¡å¾ªç¯è¦è°ƒåˆ°çš„åœ°å€*/
-		sqlite3VdbeAddOp2(v, OP_SorterData, iTab, regSortOut);/*å°†OP_SorterDataæ“ä½œäº¤ç»™è™šæ‹Ÿæœº*/
-		sqlite3VdbeAddOp3(v, OP_Column, ptab2, pOrderBy->nExpr + 1, regRow);/*å°†OP_Columnæ“ä½œäº¤ç»™è™šæ‹Ÿæœº*/
-		sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);/*æ”¹å˜OPFLAG_CLEARCACHEï¼ˆæ¸…é™¤ç¼“å­˜ï¼‰çš„æ“ä½œæ•°ï¼Œå› ä¸ºåœ°å€ç»è¿‡sqlite3VdbeAddOp3å’Œsqlite3VdbeAddOp2ï¼ˆï¼‰å‡½æ•°æ”¹å˜äº†åœ°å€*/
+	if (p->selFlags & SF_UseSorter){/*Èç¹ûSelect½á¹¹ÌåÖĞµÄselFlagsÊôĞÔÖµÎªSF_UseSorter£¬Ê¹ÓÃ·Ö¼ğÆ÷£¨ÅÅĞò³ÌĞò£©*/
+		int regSortOut = ++pParse->nMem;/*·ÖÅä¼Ä´æÆ÷£¬¸öÊıÊÇ·ÖÎöÓï·¨Ê÷ÖĞÄÚ´æÊı+1*/
+		int ptab2 = pParse->nTab++;/*½«·ÖÎöÓï·¨Ê÷ÖĞ±íµÄ¸öÊı¸³Öµ¸øptab2*/
+		sqlite3VdbeAddOp3(v, OP_OpenPseudo, ptab2, regSortOut, pOrderBy->nExpr + 2);/*½«OP_OpenPseudo£¨´ò¿ªĞéÄâ²Ù×÷£©½»¸øVDBE£¬·µ»Ø±í´ïÊ½ÁĞ±íÖĞ±í´ïÊ½¸öÊıµÄÖµ+2*/
+		addr = 1 + sqlite3VdbeAddOp2(v, OP_SorterSort, iTab, addrBreak);/*½«OP_SorterSort£¨·Ö¼ğÆ÷½øĞĞÅÅĞò£©½»¸øVDBE£¬·µ»ØµÄµØÖ·+1¸³Öµ¸øaddr*/
+		codeOffset(v, p, addrContinue);/*ÉèÖÃÆ«ÒÆÁ¿£¬ÆäÖĞaddrContinueÊÇÏÂÒ»´ÎÑ­»·Òªµ÷µ½µÄµØÖ·*/
+		sqlite3VdbeAddOp2(v, OP_SorterData, iTab, regSortOut);/*½«OP_SorterData²Ù×÷½»¸øĞéÄâ»ú*/
+		sqlite3VdbeAddOp3(v, OP_Column, ptab2, pOrderBy->nExpr + 1, regRow);/*½«OP_Column²Ù×÷½»¸øĞéÄâ»ú*/
+		sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);/*¸Ä±äOPFLAG_CLEARCACHE£¨Çå³ı»º´æ£©µÄ²Ù×÷Êı£¬ÒòÎªµØÖ·¾­¹ısqlite3VdbeAddOp3ºÍsqlite3VdbeAddOp2£¨£©º¯Êı¸Ä±äÁËµØÖ·*/
 	}
 	else{
-		addr = 1 + sqlite3VdbeAddOp2(v, OP_Sort, iTab, addrBreak);/*å°†OP_Sortæ“ä½œäº¤ç»™è™šæ‹Ÿæœºï¼Œè¿”å›çš„åœ°å€+1*/
-		codeOffset(v, p, addrContinue);/*è®¾ç½®åç§»é‡ï¼Œå…¶ä¸­addrContinueæ˜¯ä¸‹ä¸€æ¬¡å¾ªç¯è¦è°ƒåˆ°çš„åœ°å€*/
-		sqlite3VdbeAddOp3(v, OP_Column, iTab, pOrderBy->nExpr + 1, regRow);/*å°†OP_Columnæ“ä½œäº¤ç»™VDBEï¼Œå†æŠŠOP_Columnçš„åœ°å€è¿”å›*/
+		addr = 1 + sqlite3VdbeAddOp2(v, OP_Sort, iTab, addrBreak);/*½«OP_Sort²Ù×÷½»¸øĞéÄâ»ú£¬·µ»ØµÄµØÖ·+1*/
+		codeOffset(v, p, addrContinue);/*ÉèÖÃÆ«ÒÆÁ¿£¬ÆäÖĞaddrContinueÊÇÏÂÒ»´ÎÑ­»·Òªµ÷µ½µÄµØÖ·*/
+		sqlite3VdbeAddOp3(v, OP_Column, iTab, pOrderBy->nExpr + 1, regRow);/*½«OP_Column²Ù×÷½»¸øVDBE£¬ÔÙ°ÑOP_ColumnµÄµØÖ··µ»Ø*/
 	}
-	switch (eDest){/*switchå‡½æ•°ï¼Œå‚æ•°eDestï¼Œé€‰æ‹©ç»“æœé›†çš„å¤„ç†æ–¹æ³•*/
-	case SRT_Table:/*å¦‚æœeDestä¸ºSRT_Tableï¼Œåˆ™ç»“æœæŒ‰ç…§è‡ªåŠ¨çš„rowidè‡ªåŠ¨ä¿å­˜*/
-	case SRT_EphemTab: {/*å¦‚æœeDestä¸ºSRT_EphemTabï¼Œåˆ™åˆ›å»ºä¸´æ—¶è¡¨å¹¶å­˜å‚¨ä¸ºåƒSRT_Tableçš„è¡¨*/
-		testcase(eDest == SRT_Table);/*å¤„ç†æ–¹å¼ä¸­æ˜¯å¦SRT_Table*/
-		testcase(eDest == SRT_EphemTab);/*å¤„ç†æ–¹å¼ä¸­æ˜¯å¦SRT_EphemTab*/
-		sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, regRowid);/*å°†OP_NewRowidæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
-		sqlite3VdbeAddOp3(v, OP_Insert, iParm, regRow, regRowid);/*å°†OP_Insertæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
-		sqlite3VdbeChangeP5(v, OPFLAG_APPEND);/*æ”¹å˜OPFLAG_APPENDï¼ˆè®¾ç½®è·¯å¾„ï¼‰ï¼Œå› ä¸ºåœ°å€ç»è¿‡sqlite3VdbeAddOp2ï¼ˆï¼‰å’Œsqlite3VdbeAddOp3ï¼ˆï¼‰å‡½æ•°æ”¹å˜äº†åœ°å€*/
+	switch (eDest){/*switchº¯Êı£¬²ÎÊıeDest£¬Ñ¡Ôñ½á¹û¼¯µÄ´¦Àí·½·¨*/
+	case SRT_Table:/*Èç¹ûeDestÎªSRT_Table£¬Ôò½á¹û°´ÕÕ×Ô¶¯µÄrowid×Ô¶¯±£´æ*/
+	case SRT_EphemTab: {/*Èç¹ûeDestÎªSRT_EphemTab£¬Ôò´´½¨ÁÙÊ±±í²¢´æ´¢ÎªÏñSRT_TableµÄ±í*/
+		testcase(eDest == SRT_Table);/*´¦Àí·½Ê½ÖĞÊÇ·ñSRT_Table*/
+		testcase(eDest == SRT_EphemTab);/*´¦Àí·½Ê½ÖĞÊÇ·ñSRT_EphemTab*/
+		sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, regRowid);/*½«OP_NewRowid²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
+		sqlite3VdbeAddOp3(v, OP_Insert, iParm, regRow, regRowid);/*½«OP_Insert²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
+		sqlite3VdbeChangeP5(v, OPFLAG_APPEND);/*¸Ä±äOPFLAG_APPEND£¨ÉèÖÃÂ·¾¶£©£¬ÒòÎªµØÖ·¾­¹ısqlite3VdbeAddOp2£¨£©ºÍsqlite3VdbeAddOp3£¨£©º¯Êı¸Ä±äÁËµØÖ·*/
 		break;
 	}
-#ifndef SQLITE_OMIT_SUBQUERY/*æµ‹è¯•SQLITE_OMIT_SUBQUERYæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
-	case SRT_Set: {/*å¦‚æœeDestä¸ºSRT_Setï¼Œåˆ™ç»“æœä½œä¸ºå…³é”®å­—å­˜å…¥ç´¢å¼•*/
-		assert(nColumn == 1);/*åŠ å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­åˆ—æ•°æ˜¯å¦ç­‰äº1*/
-		sqlite3VdbeAddOp4(v, OP_MakeRecord, regRow, 1, regRowid, &p->affinity, 1);/*æ·»åŠ ä¸€ä¸ªOP_MakeRecordæ“ä½œï¼Œå¹¶å°†å®ƒçš„å€¼ä½œä¸ºä¸€ä¸ªæŒ‡é’ˆ*/
-		sqlite3ExprCacheAffinityChange(pParse, regRow, 1); /*è®°å½•ä»iStartå¼€å§‹ï¼Œå‘ç”Ÿåœ¨iCountå¯„å­˜å™¨ä¸­çš„æ”¹å˜çš„äº‹å®ã€‚*/
-		sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, regRowid);/*å°†OP_IdxInsertï¼ˆç´¢å¼•æ’å…¥ï¼‰æ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+#ifndef SQLITE_OMIT_SUBQUERY/*²âÊÔSQLITE_OMIT_SUBQUERYÊÇ·ñ±»ºê¶¨Òå¹ı*/
+	case SRT_Set: {/*Èç¹ûeDestÎªSRT_Set£¬Ôò½á¹û×÷Îª¹Ø¼ü×Ö´æÈëË÷Òı*/
+		assert(nColumn == 1);/*¼ÓÈë¶Ïµã£¬ÅĞ¶ÏÁĞÊıÊÇ·ñµÈÓÚ1*/
+		sqlite3VdbeAddOp4(v, OP_MakeRecord, regRow, 1, regRowid, &p->affinity, 1);/*Ìí¼ÓÒ»¸öOP_MakeRecord²Ù×÷£¬²¢½«ËüµÄÖµ×÷ÎªÒ»¸öÖ¸Õë*/
+		sqlite3ExprCacheAffinityChange(pParse, regRow, 1); /*¼ÇÂ¼´ÓiStart¿ªÊ¼£¬·¢ÉúÔÚiCount¼Ä´æÆ÷ÖĞµÄ¸Ä±äµÄÊÂÊµ¡£*/
+		sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, regRowid);/*½«OP_IdxInsert£¨Ë÷Òı²åÈë£©²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 		break;
 	}
-	case SRT_Mem: {/*å¦‚æœeDestä¸ºSRT_Memï¼Œåˆ™å°†ç»“æœå­˜å‚¨åœ¨å­˜å‚¨å•å…ƒ*/
-		assert(nColumn == 1);/*åŠ å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­åˆ—æ•°æ˜¯å¦ç­‰äº1*/
-		sqlite3ExprCodeMove(pParse, regRow, iParm, 1);/*é‡Šæ”¾å¯„å­˜å™¨ä¸­çš„å†…å®¹ï¼Œä¿æŒå¯„å­˜å™¨çš„å†…å®¹åŠæ—¶æ›´æ–°*/
+	case SRT_Mem: {/*Èç¹ûeDestÎªSRT_Mem£¬Ôò½«½á¹û´æ´¢ÔÚ´æ´¢µ¥Ôª*/
+		assert(nColumn == 1);/*¼ÓÈë¶Ïµã£¬ÅĞ¶ÏÁĞÊıÊÇ·ñµÈÓÚ1*/
+		sqlite3ExprCodeMove(pParse, regRow, iParm, 1);/*ÊÍ·Å¼Ä´æÆ÷ÖĞµÄÄÚÈİ£¬±£³Ö¼Ä´æÆ÷µÄÄÚÈİ¼°Ê±¸üĞÂ*/
 		/* 
 		** The LIMIT clause will terminate the loop for us
-		** limitå­å¥å°†ä¸ºæˆ‘ä»¬ç»ˆæ­¢å¾ªç¯
+		** limit×Ó¾ä½«ÎªÎÒÃÇÖÕÖ¹Ñ­»·
 		*/
 		break;
 	}
-#endif/*ç»ˆæ­¢if*/
+#endif/*ÖÕÖ¹if*/
 	default: {
 		int i;
-		assert(eDest == SRT_Output || eDest == SRT_Coroutine); /*æ’å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­ç»“æœé›†å¤„ç†ç±»å‹æ˜¯å¦æœ‰SRT_Outputï¼ˆè¾“å‡ºï¼‰æˆ–SRT_Coroutineï¼ˆååŒå¤„ç†ï¼‰*/
-		testcase(eDest == SRT_Output);/*æµ‹è¯•æ˜¯å¦åŒ…å«SRT_Output*/
-		testcase(eDest == SRT_Coroutine);/*æµ‹è¯•æ˜¯å¦åŒ…å«SRT_Coroutine*/
-		for (i = 0; i<nColumn; i++){/*éå†åˆ—*/
-			assert(regRow != pDest->iSdst + i);/*æ’å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­å¯„å­˜å™¨çš„ç¼–å·å€¼ä¸ç­‰äºåŸºå€å¯„å­˜å™¨çš„ç¼–å·å€¼+i*/
-			sqlite3VdbeAddOp3(v, OP_Column, pseudoTab, i, pDest->iSdst + i);/*å°†OP_Columnæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
-			if (i == 0){/*å¦‚æœæ²¡æœ‰åˆ—*/
-				sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);/*æ”¹å˜OPFLAG_CLEARCACHEï¼ˆæ¸…é™¤ç¼“å­˜ï¼‰çš„æ“ä½œæ•°ï¼Œå› ä¸ºåœ°å€ç»è¿‡sqlite3VdbeAddOp3ï¼ˆï¼‰å‡½æ•°æ”¹å˜äº†åœ°å€*/
+		assert(eDest == SRT_Output || eDest == SRT_Coroutine); /*²åÈë¶Ïµã£¬ÅĞ¶Ï½á¹û¼¯´¦ÀíÀàĞÍÊÇ·ñÓĞSRT_Output£¨Êä³ö£©»òSRT_Coroutine£¨Ğ­Í¬´¦Àí£©*/
+		testcase(eDest == SRT_Output);/*²âÊÔÊÇ·ñ°üº¬SRT_Output*/
+		testcase(eDest == SRT_Coroutine);/*²âÊÔÊÇ·ñ°üº¬SRT_Coroutine*/
+		for (i = 0; i<nColumn; i++){/*±éÀúÁĞ*/
+			assert(regRow != pDest->iSdst + i);/*²åÈë¶Ïµã£¬ÅĞ¶Ï¼Ä´æÆ÷µÄ±àºÅÖµ²»µÈÓÚ»ùÖ·¼Ä´æÆ÷µÄ±àºÅÖµ+i*/
+			sqlite3VdbeAddOp3(v, OP_Column, pseudoTab, i, pDest->iSdst + i);/*½«OP_Column²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
+			if (i == 0){/*Èç¹ûÃ»ÓĞÁĞ*/
+				sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);/*¸Ä±äOPFLAG_CLEARCACHE£¨Çå³ı»º´æ£©µÄ²Ù×÷Êı£¬ÒòÎªµØÖ·¾­¹ısqlite3VdbeAddOp3£¨£©º¯Êı¸Ä±äÁËµØÖ·*/
 			}
 		}
-		if (eDest == SRT_Output){/*å¦‚æœç»“æœé›†çš„å¤„ç†æ–¹å¼æ˜¯SRT_Output*/
-			sqlite3VdbeAddOp2(v, OP_ResultRow, pDest->iSdst, nColumn);/*å°†OP_ResultRowæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
-			sqlite3ExprCacheAffinityChange(pParse, pDest->iSdst, nColumn);/*å¤„ç†è¯­æ³•æ ‘pParseï¼Œå¯„å­˜å™¨ä¸­çš„äº²å’Œæ€§æ•°æ®*/
+		if (eDest == SRT_Output){/*Èç¹û½á¹û¼¯µÄ´¦Àí·½Ê½ÊÇSRT_Output*/
+			sqlite3VdbeAddOp2(v, OP_ResultRow, pDest->iSdst, nColumn);/*½«OP_ResultRow²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
+			sqlite3ExprCacheAffinityChange(pParse, pDest->iSdst, nColumn);/*´¦ÀíÓï·¨Ê÷pParse£¬¼Ä´æÆ÷ÖĞµÄÇ×ºÍĞÔÊı¾İ*/
 		}
 		else{
-			sqlite3VdbeAddOp1(v, OP_Yield, pDest->iSDParm);/*å°†OP_Yieldæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+			sqlite3VdbeAddOp1(v, OP_Yield, pDest->iSDParm);/*½«OP_Yield²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 		}
 		break;
 	}
 	}
-	sqlite3ReleaseTempReg(pParse, regRow);/*é‡Šæ”¾å¯„å­˜å™¨*/
-	sqlite3ReleaseTempReg(pParse, regRowid);/*é‡Šæ”¾å¯„å­˜å™¨*/
+	sqlite3ReleaseTempReg(pParse, regRow);/*ÊÍ·Å¼Ä´æÆ÷*/
+	sqlite3ReleaseTempReg(pParse, regRowid);/*ÊÍ·Å¼Ä´æÆ÷*/
 
 	/* The bottom of the loop
-	** å¾ªç¯çš„åº•éƒ¨
+	** Ñ­»·µÄµ×²¿
 	*/
-	sqlite3VdbeResolveLabel(v, addrContinue);/*addrContinueä½œä¸ºä¸‹ä¸€æ¡æ’å…¥æŒ‡ä»¤çš„åœ°å€ï¼Œå…¶ä¸­addrContinueèƒ½ä¼˜å…ˆè°ƒç”¨sqlite3VdbeMakeLabelï¼ˆï¼‰*/
-	if (p->selFlags & SF_UseSorter){/*selFlagsçš„å€¼æ˜¯SF_UseSorter*/
-		sqlite3VdbeAddOp2(v, OP_SorterNext, iTab, addr);/*å°†OP_SorterNextæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+	sqlite3VdbeResolveLabel(v, addrContinue);/*addrContinue×÷ÎªÏÂÒ»Ìõ²åÈëÖ¸ÁîµÄµØÖ·£¬ÆäÖĞaddrContinueÄÜÓÅÏÈµ÷ÓÃsqlite3VdbeMakeLabel£¨£©*/
+	if (p->selFlags & SF_UseSorter){/*selFlagsµÄÖµÊÇSF_UseSorter*/
+		sqlite3VdbeAddOp2(v, OP_SorterNext, iTab, addr);/*½«OP_SorterNext²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 	}
 	else{
-		sqlite3VdbeAddOp2(v, OP_Next, iTab, addr);/*å°†OP_Nextæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+		sqlite3VdbeAddOp2(v, OP_Next, iTab, addr);/*½«OP_Next²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 	}
-	sqlite3VdbeResolveLabel(v, addrBreak);/*addrBreakä½œä¸ºä¸‹ä¸€æ¡æ’å…¥æŒ‡ä»¤çš„åœ°å€ï¼Œå…¶ä¸­addrBreakèƒ½ä¼˜å…ˆè°ƒç”¨sqlite3VdbeMakeLabelï¼ˆï¼‰*/
-	if (eDest == SRT_Output || eDest == SRT_Coroutine){/*å¦‚æœç»“æœé›†çš„å¤„ç†æ–¹å¼SRT_Outputæˆ–SRT_Coroutine*/
-		sqlite3VdbeAddOp2(v, OP_Close, pseudoTab, 0);/*å°†OP_Closeæ“ä½œäº¤ç»™VDBEï¼Œå†è¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+	sqlite3VdbeResolveLabel(v, addrBreak);/*addrBreak×÷ÎªÏÂÒ»Ìõ²åÈëÖ¸ÁîµÄµØÖ·£¬ÆäÖĞaddrBreakÄÜÓÅÏÈµ÷ÓÃsqlite3VdbeMakeLabel£¨£©*/
+	if (eDest == SRT_Output || eDest == SRT_Coroutine){/*Èç¹û½á¹û¼¯µÄ´¦Àí·½Ê½SRT_Output»òSRT_Coroutine*/
+		sqlite3VdbeAddOp2(v, OP_Close, pseudoTab, 0);/*½«OP_Close²Ù×÷½»¸øVDBE£¬ÔÙ·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 	}
 	}
 
@@ -1192,22 +1192,22 @@ static void generateSortTail(
 ** The declaration type for any expression other than a column is NULL.
 **
 **
-** è¿”å›ä¸€ä¸ªæŒ‡å‘åŒ…å«'declaration type'ï¼ˆå£°æ˜ç±»å‹ï¼‰è¡¨è¾¾å¼å­—ç¬¦ä¸²çš„æŒ‡é’ˆã€‚
-** è¿™ä¸ªå­—ç¬¦ä¸²å¯ä»¥è§†ä¸ºé™æ€è°ƒç”¨è€…ã€‚
-** å¦‚æœè¿™ä¸ªè¡¨è¾¾å¼æ˜¯ä¸ªåˆ—ï¼Œé‚£ä¹ˆåˆ—çš„å£°æ˜ç±»å‹åº”è¯¥åœ¨æœ€åˆCREATE TABLEæ—¶è¢«å‡†ç¡®å®šä¹‰ã€‚è¿™ä¸ªå£°æ˜çš„ROWIDåº”è¯¥æ˜¯ä¸ªæ•´æ•°ã€‚ä¸€ä¸ªå‡†ç¡®è¡¨è¾¾å¼è¢«è®¤ä¸º
-** ä¸€åˆ—èƒ½åˆæˆåœ¨ä¸€ä¸ªå­æŸ¥è¯¢ä¸­ã€‚è¿™ä¸ªç»“æœé›†è¡¨è¾¾å¼åœ¨æ‰€æœ‰çš„Selectåè¢«è®¤ä¸ºæ˜¯ä¸€ä¸ªåˆ—ã€‚
+** ·µ»ØÒ»¸öÖ¸Ïò°üº¬'declaration type'£¨ÉùÃ÷ÀàĞÍ£©±í´ïÊ½×Ö·û´®µÄÖ¸Õë¡£
+** Õâ¸ö×Ö·û´®¿ÉÒÔÊÓÎª¾²Ì¬µ÷ÓÃÕß¡£
+** Èç¹ûÕâ¸ö±í´ïÊ½ÊÇ¸öÁĞ£¬ÄÇÃ´ÁĞµÄÉùÃ÷ÀàĞÍÓ¦¸ÃÔÚ×î³õCREATE TABLEÊ±±»×¼È·¶¨Òå¡£Õâ¸öÉùÃ÷µÄROWIDÓ¦¸ÃÊÇ¸öÕûÊı¡£Ò»¸ö×¼È·±í´ïÊ½±»ÈÏÎª
+** Ò»ÁĞÄÜºÏ³ÉÔÚÒ»¸ö×Ó²éÑ¯ÖĞ¡£Õâ¸ö½á¹û¼¯±í´ïÊ½ÔÚËùÓĞµÄSelectºó±»ÈÏÎªÊÇÒ»¸öÁĞ¡£
 **   SELECT col FROM tbl;
 **   SELECT (SELECT col FROM tbl;
 **   SELECT (SELECT col FROM tbl);
 **   SELECT abc FROM (SELECT col AS abc FROM tbl);
-** å£°æ˜çš„ç±»å‹å¯ä»¥ç”¨åœ¨ä»»ä½•è¡¨è¾¾å¼ä¸Šï¼Œé™¤äº†æ˜¯ç©ºçš„åˆ—ã€‚
+** ÉùÃ÷µÄÀàĞÍ¿ÉÒÔÓÃÔÚÈÎºÎ±í´ïÊ½ÉÏ£¬³ıÁËÊÇ¿ÕµÄÁĞ¡£
 */
-static const char *columnType(/*å®šä¹‰é™æ€ä¸”æ˜¯åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆcolumnType*/
-	NameContext *pNC, /*å£°æ˜ä¸€ä¸ªå‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“ï¼ˆå†³å®šè¡¨æˆ–è€…åˆ—çš„åå­—ï¼‰*/
+static const char *columnType(/*¶¨Òå¾²Ì¬ÇÒÊÇÖ»¶ÁµÄ×Ö·ûĞÍÖ¸ÕëcolumnType*/
+	NameContext *pNC, /*ÉùÃ÷Ò»¸öÃüÃûÉÏÏÂÎÄ½á¹¹Ìå£¨¾ö¶¨±í»òÕßÁĞµÄÃû×Ö£©*/
 	Expr *pExpr,
-	const char **pzOriginDb,/*å®šä¹‰åªè¯»çš„å­—ç¬¦å‹äºŒçº§æŒ‡é’ˆpzOriginDb*/
-	const char **pzOriginTab,/*å®šä¹‰åªè¯»çš„å­—ç¬¦å‹äºŒçº§æŒ‡é’ˆpzOriginTab*/
-	const char **pzOriginCol,/*å®šä¹‰åªè¯»çš„å­—ç¬¦å‹äºŒçº§æŒ‡é’ˆpzOriginCol*/
+	const char **pzOriginDb,/*¶¨ÒåÖ»¶ÁµÄ×Ö·ûĞÍ¶ş¼¶Ö¸ÕëpzOriginDb*/
+	const char **pzOriginTab,/*¶¨ÒåÖ»¶ÁµÄ×Ö·ûĞÍ¶ş¼¶Ö¸ÕëpzOriginTab*/
+	const char **pzOriginCol,/*¶¨ÒåÖ»¶ÁµÄ×Ö·ûĞÍ¶ş¼¶Ö¸ÕëpzOriginCol*/
 	){
 	char const *zType = 0;
 	char const *zOriginDb = 0;
@@ -1216,30 +1216,30 @@ static const char *columnType(/*å®šä¹‰é™æ€ä¸”æ˜¯åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆcolumn
 	int j;
 	if (NEVER(pExpr == 0) || pNC->pSrcList == 0) return 0;
 
-	switch (pExpr->op){/*éå†è¡¨è¾¾å¼ä¸­çš„æ“ä½œ*/
+	switch (pExpr->op){/*±éÀú±í´ïÊ½ÖĞµÄ²Ù×÷*/
 	case TK_AGG_COLUMN:
 	case TK_COLUMN: {
 		/* 
 		** The expression is a column. Locate the table the column is being
 		** extracted from in NameContext.pSrcList. This table may be real
 		** database table or a subquery.
-		** è¡¨è¾¾å¼æ˜¯ä¸€ä¸ªåˆ—ã€‚è¢«å®šä½çš„è¡¨çš„åˆ—ä»NameContext.pSrcListä¸­æå–ã€‚
-		** è¿™ä¸ªè¡¨å¯èƒ½æ˜¯çœŸå®çš„æ•°æ®åº“è¡¨ï¼Œæˆ–è€…æ˜¯ä¸€ä¸ªå­æŸ¥è¯¢ã€‚
+		** ±í´ïÊ½ÊÇÒ»¸öÁĞ¡£±»¶¨Î»µÄ±íµÄÁĞ´ÓNameContext.pSrcListÖĞÌáÈ¡¡£
+		** Õâ¸ö±í¿ÉÄÜÊÇÕæÊµµÄÊı¾İ¿â±í£¬»òÕßÊÇÒ»¸ö×Ó²éÑ¯¡£
 		*/
-		Table *pTab = 0;            /* Table structure column is extracted from è¡¨ç»“æ„åˆ—è¢«æå–*/
-		Select *pS = 0;             /* Select the column is extracted from é€‰æ‹©åˆ—è¢«æå–*/
-		int iCol = pExpr->iColumn;  /* Index of column in pTab ç´¢å¼•åˆ—åœ¨pTabä¸­*/
-		testcase(pExpr->op == TK_AGG_COLUMN);/*è¿™ä¸ªè¡¨è¾¾å¼çš„æ“ä½œæ˜¯å¦æ˜¯TK_AGG_COLUMNï¼ˆåµŒå¥—åˆ—ï¼‰*/
-		testcase(pExpr->op == TK_COLUMN);/*è¿™ä¸ªè¡¨è¾¾å¼çš„æ“ä½œæ˜¯å¦æ˜¯TK_COLUMNï¼ˆåˆ—ç´¢å¼•ï¼‰*/
-		while (pNC && !pTab){/*å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“å­˜åœ¨ï¼Œè¢«æå–çš„è¡¨ç»“æ„åˆ—ï¼ˆå°±æ˜¯ä¸€ä¸ªè¢«æå–çš„åˆ—ç»„æˆçš„è¡¨ï¼‰ä¸å­˜åœ¨*/
-			SrcList *pTabList = pNC->pSrcList;/*å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“ä¸­åˆ—è¡¨èµ‹å€¼ç»™æè¿°FROMçš„æ¥æºè¡¨æˆ–å­æŸ¥è¯¢ç»“æœçš„åˆ—è¡¨*/
-			for (j = 0; j<pTabList->nSrc && pTabList->a[j].iCursor != pExpr->iTable; j++);/*éå†æŸ¥è¯¢åˆ—è¡¨*/
-			if (j<pTabList->nSrc){/*å¦‚æœjå°äºåˆ—è¡¨ä¸­è¡¨çš„æ€»ä¸ªæ•°*/
-				pTab = pTabList->a[j].pTab;/*èµ‹å€¼åˆ—è¡¨ä¸­çš„ç¬¬j-1è¡¨ç»™Tableç»“æ„ä½“çš„å®ä½“å˜é‡pTab*/
-				pS = pTabList->a[j].pSelect;/*èµ‹å€¼åˆ—è¡¨ä¸­çš„ç¬¬j-1è¡¨çš„selectç»“æ„ä½“ç»™ps*/
+		Table *pTab = 0;            /* Table structure column is extracted from ±í½á¹¹ÁĞ±»ÌáÈ¡*/
+		Select *pS = 0;             /* Select the column is extracted from Ñ¡ÔñÁĞ±»ÌáÈ¡*/
+		int iCol = pExpr->iColumn;  /* Index of column in pTab Ë÷ÒıÁĞÔÚpTabÖĞ*/
+		testcase(pExpr->op == TK_AGG_COLUMN);/*Õâ¸ö±í´ïÊ½µÄ²Ù×÷ÊÇ·ñÊÇTK_AGG_COLUMN£¨Ç¶Ì×ÁĞ£©*/
+		testcase(pExpr->op == TK_COLUMN);/*Õâ¸ö±í´ïÊ½µÄ²Ù×÷ÊÇ·ñÊÇTK_COLUMN£¨ÁĞË÷Òı£©*/
+		while (pNC && !pTab){/*ÃüÃûÉÏÏÂÎÄ½á¹¹Ìå´æÔÚ£¬±»ÌáÈ¡µÄ±í½á¹¹ÁĞ£¨¾ÍÊÇÒ»¸ö±»ÌáÈ¡µÄÁĞ×é³ÉµÄ±í£©²»´æÔÚ*/
+			SrcList *pTabList = pNC->pSrcList;/*ÃüÃûÉÏÏÂÎÄ½á¹¹ÌåÖĞÁĞ±í¸³Öµ¸øÃèÊöFROMµÄÀ´Ô´±í»ò×Ó²éÑ¯½á¹ûµÄÁĞ±í*/
+			for (j = 0; j<pTabList->nSrc && pTabList->a[j].iCursor != pExpr->iTable; j++);/*±éÀú²éÑ¯ÁĞ±í*/
+			if (j<pTabList->nSrc){/*Èç¹ûjĞ¡ÓÚÁĞ±íÖĞ±íµÄ×Ü¸öÊı*/
+				pTab = pTabList->a[j].pTab;/*¸³ÖµÁĞ±íÖĞµÄµÚj-1±í¸øTable½á¹¹ÌåµÄÊµÌå±äÁ¿pTab*/
+				pS = pTabList->a[j].pSelect;/*¸³ÖµÁĞ±íÖĞµÄµÚj-1±íµÄselect½á¹¹Ìå¸øps*/
 			}
 			else{
-				pNC = pNC->pNext;/*å¦åˆ™ï¼Œå°†å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“çš„ä¸‹ä¸€ä¸ªå¤–éƒ¨å‘½åä¸Šä¸‹æ–‡èµ‹å€¼ç»™pNCå˜é‡*/
+				pNC = pNC->pNext;/*·ñÔò£¬½«ÃüÃûÉÏÏÂÎÄ½á¹¹ÌåµÄÏÂÒ»¸öÍâ²¿ÃüÃûÉÏÏÂÎÄ¸³Öµ¸øpNC±äÁ¿*/
 			}
 		}
 
@@ -1263,15 +1263,15 @@ static const char *columnType(/*å®šä¹‰é™æ€ä¸”æ˜¯åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆcolumn
 			** branch below.
 			**
 			**
-			** åœ¨åŒä¸€æ—¶é—´ï¼Œè¯¸å¦‚è§¦å‘å™¨å†…"SELECT new.x "ä»£ç å°†å¯¼è‡´è¿™ç§çŠ¶æ€è¿è¡Œã€‚è‡ªé‚£æ—¶ä»¥æ¥ï¼Œ
-			** æˆ‘ä»¬å·²é‡ç»„è§¦å‘ä»£ç æ˜¯å¦‚ä½•ç”Ÿæˆçš„ï¼Œå› æ­¤è¯¥æ¡ä»¶ä¸å†å¯èƒ½ã€‚ä½†æ˜¯ï¼Œå®ƒä»ç„¶å¯ä»¥é€‚ç”¨äº
-			** åƒä¸‹é¢çš„è¯­å¥ï¼š
+			** ÔÚÍ¬Ò»Ê±¼ä£¬ÖîÈç´¥·¢Æ÷ÄÚ"SELECT new.x "´úÂë½«µ¼ÖÂÕâÖÖ×´Ì¬ÔËĞĞ¡£×ÔÄÇÊ±ÒÔÀ´£¬
+			** ÎÒÃÇÒÑÖØ×é´¥·¢´úÂëÊÇÈçºÎÉú³ÉµÄ£¬Òò´Ë¸ÃÌõ¼ş²»ÔÙ¿ÉÄÜ¡£µ«ÊÇ£¬ËüÈÔÈ»¿ÉÒÔÊÊÓÃÓÚ
+			** ÏñÏÂÃæµÄÓï¾ä£º
 			** CREATE TABLE t1(col INTEGER);
 			** SELECT (SELECT t1.col) FROM FROM t1;
-			** å½“columnType()è°ƒç”¨åœ¨å­é€‰æ‹©ä¸­çš„è¡¨è¾¾å¼"t1.col"ã€‚åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œè®¾ç½®åˆ—çš„ç±»å‹ä¸ºç©ºï¼Œ
-			** å³ä½¿å®ƒç¡®å®åº”è¯¥"INTEGER"ã€‚
-			** è¿™ä¸æ˜¯ä¸€ä¸ªé—®é¢˜ï¼Œå› ä¸º" t1.col "çš„åˆ—ç±»å‹æ˜¯ä»æœªä½¿ç”¨è¿‡ã€‚å½“columnType ()è¢«è°ƒç”¨çš„
-			** è¡¨è¾¾å¼"(SELECT t1.col)" ï¼Œåˆ™è¿”å›æ­£ç¡®çš„ç±»å‹(è¯·å‚é˜…ä¸‹é¢çš„TK_SELECTåˆ†æ”¯)ã€‚
+			** µ±columnType()µ÷ÓÃÔÚ×ÓÑ¡ÔñÖĞµÄ±í´ïÊ½"t1.col"¡£ÔÚÕâÖÖÇé¿öÏÂ£¬ÉèÖÃÁĞµÄÀàĞÍÎª¿Õ£¬
+			** ¼´Ê¹ËüÈ·ÊµÓ¦¸Ã"INTEGER"¡£
+			** Õâ²»ÊÇÒ»¸öÎÊÌâ£¬ÒòÎª" t1.col "µÄÁĞÀàĞÍÊÇ´ÓÎ´Ê¹ÓÃ¹ı¡£µ±columnType ()±»µ÷ÓÃµÄ
+			** ±í´ïÊ½"(SELECT t1.col)" £¬Ôò·µ»ØÕıÈ·µÄÀàĞÍ(Çë²ÎÔÄÏÂÃæµÄTK_SELECT·ÖÖ§)¡£
 			*/
 			break;
 		}
@@ -1281,41 +1281,41 @@ static const char *columnType(/*å®šä¹‰é™æ€ä¸”æ˜¯åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆcolumn
 			/* The "table" is actually a sub-select or a view in the FROM clause
 			** of the SELECT statement. Return the declaration type and origin
 			** data for the result-set column of the sub-select.
-			** "è¡¨"å®é™…ä¸Šæ˜¯ä¸€ä¸ªå­é€‰æ‹©ï¼Œæˆ–è€…æ˜¯ä¸€ä¸ªåœ¨selectè¯­å¥çš„fromå­å¥çš„è§†å›¾ã€‚
-			** è¿”å›å£°æ˜ç±»å‹å’Œæ¥æºæ•°æ®çš„å­é€‰æ‹©çš„ç»“æœé›†åˆ—ã€‚
+			** "±í"Êµ¼ÊÉÏÊÇÒ»¸ö×ÓÑ¡Ôñ£¬»òÕßÊÇÒ»¸öÔÚselectÓï¾äµÄfrom×Ó¾äµÄÊÓÍ¼¡£
+			** ·µ»ØÉùÃ÷ÀàĞÍºÍÀ´Ô´Êı¾İµÄ×ÓÑ¡ÔñµÄ½á¹û¼¯ÁĞ¡£
 			*/
 			if (iCol >= 0 && ALWAYS(iCol < pS->pEList->nExpr)){
 				/* If iCol is less than zero, then the expression requests the
 				** rowid of the sub-select or view. This expression is legal (see
 				** test case misc2.2.2) - it always evaluates to NULL.
-				** å¦‚æœiColå°äºé›¶ï¼Œåˆ™è¡¨è¾¾å¼è¯·æ±‚å­é€‰æ‹©æˆ–è§†å›¾çš„rowidã€‚
-				** è¿™ç§è¡¨è¾¾å¼åˆæ³•çš„(è§æµ‹è¯•æ¡ˆä¾‹misc2.2.2)-å®ƒå§‹ç»ˆè®¡ç®—ä¸ºç©ºã€‚
+				** Èç¹ûiColĞ¡ÓÚÁã£¬Ôò±í´ïÊ½ÇëÇó×ÓÑ¡Ôñ»òÊÓÍ¼µÄrowid¡£
+				** ÕâÖÖ±í´ïÊ½ºÏ·¨µÄ(¼û²âÊÔ°¸Àımisc2.2.2)-ËüÊ¼ÖÕ¼ÆËãÎª¿Õ¡£
 				*/
 				NameContext sNC;
-				Expr *p = pS->pEList->a[iCol].pExpr;/*è¢«æå–çš„åˆ—ç»„æˆçš„selectç»“æ„ä½“ä¸­è¡¨è¾¾å¼åˆ—è¡¨ä¸­ç¬¬iä¸ªè¡¨è¾¾å¼èµ‹å€¼ç»™p*/
-				sNC.pSrcList = pS->pSrc;/*è¢«æå–çš„åˆ—ç»„æˆçš„selectç»“æ„ä½“ä¸­pSrcï¼ˆFROMå­å¥ï¼‰èµ‹å€¼ç»™pSrcListï¼ˆä¸€ä¸ªæˆ–å¤šä¸ªè¡¨ç”¨æ¥å‘½åçš„å±æ€§ï¼‰*/
-				sNC.pNext = pNC;/*å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“èµ‹å€¼ç»™å½“å‰å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“çš„nextæŒ‡é’ˆ*/
-				sNC.pParse = pNC->pParse;/*å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“ä¸­çš„è¯­æ³•è§£ææ ‘èµ‹å€¼ç»™å½“å‰å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“çš„è¯­æ³•è§£ææ ‘*/
-				zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); /*å°†ç”Ÿæˆçš„å±æ€§ç±»å‹èµ‹å€¼ç»™zType*/
+				Expr *p = pS->pEList->a[iCol].pExpr;/*±»ÌáÈ¡µÄÁĞ×é³ÉµÄselect½á¹¹ÌåÖĞ±í´ïÊ½ÁĞ±íÖĞµÚi¸ö±í´ïÊ½¸³Öµ¸øp*/
+				sNC.pSrcList = pS->pSrc;/*±»ÌáÈ¡µÄÁĞ×é³ÉµÄselect½á¹¹ÌåÖĞpSrc£¨FROM×Ó¾ä£©¸³Öµ¸øpSrcList£¨Ò»¸ö»ò¶à¸ö±íÓÃÀ´ÃüÃûµÄÊôĞÔ£©*/
+				sNC.pNext = pNC;/*ÃüÃûÉÏÏÂÎÄ½á¹¹Ìå¸³Öµ¸øµ±Ç°ÃüÃûÉÏÏÂÎÄ½á¹¹ÌåµÄnextÖ¸Õë*/
+				sNC.pParse = pNC->pParse;/*ÃüÃûÉÏÏÂÎÄ½á¹¹ÌåÖĞµÄÓï·¨½âÎöÊ÷¸³Öµ¸øµ±Ç°ÃüÃûÉÏÏÂÎÄ½á¹¹ÌåµÄÓï·¨½âÎöÊ÷*/
+				zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); /*½«Éú³ÉµÄÊôĞÔÀàĞÍ¸³Öµ¸øzType*/
 			}
 		}
-		else if (ALWAYS(pTab->pSchema)){/*pTabè¡¨çš„æ¨¡å¼å­˜åœ¨*/
-			/* A real table *//*ä¸€ä¸ªçœŸå®çš„è¡¨*/
-			assert(!pS);/*æ’å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­Selectç»“æ„ä½“æ˜¯å¦ä¸ºç©º*/
-			if (iCol<0) iCol = pTab->iPKey;/*å¦‚æœåˆ—å·å°äº0ï¼Œå°†è¡¨ä¸­çš„å…³é”®å­—æ•°ç»„çš„é¦–å…ƒç´ èµ‹å€¼ç»™ICol*/
-			assert(iCol == -1 || (iCol >= 0 && iCol<pTab->nCol));/*æ’å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­IColæ­£ç¡®ï¼Œåœ¨å“ªä¸ªèŒƒå›´*/
-			if (iCol<0){/*å¦‚æœIColå·å°äº0*/
-				zType = "INTEGER";/*å°†ç±»å‹å®šä¹‰ä¸ºæ•´å‹*/
-				zOriginCol = "rowid";/*å…³é”®å­—ä¸ºrowid*/
+		else if (ALWAYS(pTab->pSchema)){/*pTab±íµÄÄ£Ê½´æÔÚ*/
+			/* A real table *//*Ò»¸öÕæÊµµÄ±í*/
+			assert(!pS);/*²åÈë¶Ïµã£¬ÅĞ¶ÏSelect½á¹¹ÌåÊÇ·ñÎª¿Õ*/
+			if (iCol<0) iCol = pTab->iPKey;/*Èç¹ûÁĞºÅĞ¡ÓÚ0£¬½«±íÖĞµÄ¹Ø¼ü×ÖÊı×éµÄÊ×ÔªËØ¸³Öµ¸øICol*/
+			assert(iCol == -1 || (iCol >= 0 && iCol<pTab->nCol));/*²åÈë¶Ïµã£¬ÅĞ¶ÏIColÕıÈ·£¬ÔÚÄÄ¸ö·¶Î§*/
+			if (iCol<0){/*Èç¹ûIColºÅĞ¡ÓÚ0*/
+				zType = "INTEGER";/*½«ÀàĞÍ¶¨ÒåÎªÕûĞÍ*/
+				zOriginCol = "rowid";/*¹Ø¼ü×ÖÎªrowid*/
 			}
 			else{
-				zType = pTab->aCol[iCol].zType;/*å¦åˆ™ï¼Œå®šä¹‰ç±»å‹ä¸ºç±»å‹è¡¨ä¸­ç¬¬iColçš„ç±»å‹*/
-				zOriginCol = pTab->aCol[iCol].zName;/*ç±»å‹çš„åå­—ä¸ºå‹è¡¨ä¸­ç¬¬iColçš„åå­—*/
+				zType = pTab->aCol[iCol].zType;/*·ñÔò£¬¶¨ÒåÀàĞÍÎªÀàĞÍ±íÖĞµÚiColµÄÀàĞÍ*/
+				zOriginCol = pTab->aCol[iCol].zName;/*ÀàĞÍµÄÃû×ÖÎªĞÍ±íÖĞµÚiColµÄÃû×Ö*/
 			}
-			zOriginTab = pTab->zName;/*ä½¿ç”¨é»˜è®¤çš„åå­—ï¼Œå®šä¹‰ç±»å‹*/
-			if (pNC->pParse){/*å¦‚æœå‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“ä¸­çš„è¯­æ³•åˆ†ææ ‘å­˜åœ¨*/
-				int iDb = sqlite3SchemaToIndex(pNC->pParse->db, pTab->pSchema);/*å°†Schemaçš„æŒ‡é’ˆè½¬åŒ–ç»™å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“ä¸­åˆ†æè¯­æ³•æ ‘çš„db*/
-				zOriginDb = pNC->pParse->db->aDb[iDb].zName;/*å°†ä¸Šä¸‹æ–‡è¯­æ³•åˆ†ææ ‘ä¸­çš„dbä¸­ç¬¬i-1ä¸ªDbçš„å‘½åèµ‹å€¼ç»™zOriginDbæ•°æ®åº“å*/
+			zOriginTab = pTab->zName;/*Ê¹ÓÃÄ¬ÈÏµÄÃû×Ö£¬¶¨ÒåÀàĞÍ*/
+			if (pNC->pParse){/*Èç¹ûÃüÃûÉÏÏÂÎÄ½á¹¹ÌåÖĞµÄÓï·¨·ÖÎöÊ÷´æÔÚ*/
+				int iDb = sqlite3SchemaToIndex(pNC->pParse->db, pTab->pSchema);/*½«SchemaµÄÖ¸Õë×ª»¯¸øÃüÃûÉÏÏÂÎÄ½á¹¹ÌåÖĞ·ÖÎöÓï·¨Ê÷µÄdb*/
+				zOriginDb = pNC->pParse->db->aDb[iDb].zName;/*½«ÉÏÏÂÎÄÓï·¨·ÖÎöÊ÷ÖĞµÄdbÖĞµÚi-1¸öDbµÄÃüÃû¸³Öµ¸øzOriginDbÊı¾İ¿âÃû*/
 			}
 		}
 		break;
@@ -1327,42 +1327,42 @@ static const char *columnType(/*å®šä¹‰é™æ€ä¸”æ˜¯åªè¯»çš„å­—ç¬¦å‹æŒ‡é’ˆcolumn
 		** statement.
 		*/
 		/*
-		** è¿™ä¸ªè¡¨è¾¾å¼æ˜¯å­æŸ¥è¯¢ã€‚è¿”å›ä¸€ä¸ªå£°æ˜ç±»å‹å’Œåˆå§‹ä¿¡æ¯ç»™selectç»“æœé›†ä¸­çš„ä¸€åˆ—ã€‚
+		** Õâ¸ö±í´ïÊ½ÊÇ×Ó²éÑ¯¡£·µ»ØÒ»¸öÉùÃ÷ÀàĞÍºÍ³õÊ¼ĞÅÏ¢¸øselect½á¹û¼¯ÖĞµÄÒ»ÁĞ¡£
 		*/
 		NameContext sNC;
-		Select *pS = pExpr->x.pSelect;/*å°†è¡¨è¾¾å¼ä¸­Selectç»“æ„ä½“èµ‹å€¼ç»™ä¸€ä¸ªSELECTç»“æ„ä½“å®ä½“å˜é‡*/
-		Expr *p = pS->pEList->a[0].pExpr;/*å°†SELECTçš„è¡¨è¾¾å¼åˆ—è¡¨ä¸­ç¬¬ä¸€ä¸ªè¡¨è¾¾å¼èµ‹å€¼ç»™è¡¨è¾¾å¼å˜é‡p*/
-		assert(ExprHasProperty(pExpr, EP_xIsSelect));/*æ’å…¥æ–­ç‚¹ï¼Œæµ‹è¯•æ˜¯å¦åŒ…å«EP_xIsSelectè¡¨è¾¾å¼*/
-		sNC.pSrcList = pS->pSrc;/*å°†SELECTç»“æ„ä½“ä¸­FROMå­å¥çš„å±æ€§èµ‹å€¼ç»™å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“ä¸­FROMå­å¥åˆ—è¡¨*/
-		sNC.pNext = pNC;/*å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“èµ‹å€¼ç»™å½“å‰å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“çš„nextæŒ‡é’ˆ*/
-		sNC.pParse = pNC->pParse;/*å°†å‘½åä¸Šä¸‹æ–‡ç»“æ„ä½“ä¸­åˆ†æè¯­æ³•æ ‘èµ‹å€¼ç»™å½“å‰å‘½åç»“æ„ä½“çš„åˆ†æè¯­æ³•æ ‘å±æ€§*/
-		zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); /*è¿”å›å±æ€§ç±»å‹*/
+		Select *pS = pExpr->x.pSelect;/*½«±í´ïÊ½ÖĞSelect½á¹¹Ìå¸³Öµ¸øÒ»¸öSELECT½á¹¹ÌåÊµÌå±äÁ¿*/
+		Expr *p = pS->pEList->a[0].pExpr;/*½«SELECTµÄ±í´ïÊ½ÁĞ±íÖĞµÚÒ»¸ö±í´ïÊ½¸³Öµ¸ø±í´ïÊ½±äÁ¿p*/
+		assert(ExprHasProperty(pExpr, EP_xIsSelect));/*²åÈë¶Ïµã£¬²âÊÔÊÇ·ñ°üº¬EP_xIsSelect±í´ïÊ½*/
+		sNC.pSrcList = pS->pSrc;/*½«SELECT½á¹¹ÌåÖĞFROM×Ó¾äµÄÊôĞÔ¸³Öµ¸øÃüÃûÉÏÏÂÎÄ½á¹¹ÌåÖĞFROM×Ó¾äÁĞ±í*/
+		sNC.pNext = pNC;/*ÃüÃûÉÏÏÂÎÄ½á¹¹Ìå¸³Öµ¸øµ±Ç°ÃüÃûÉÏÏÂÎÄ½á¹¹ÌåµÄnextÖ¸Õë*/
+		sNC.pParse = pNC->pParse;/*½«ÃüÃûÉÏÏÂÎÄ½á¹¹ÌåÖĞ·ÖÎöÓï·¨Ê÷¸³Öµ¸øµ±Ç°ÃüÃû½á¹¹ÌåµÄ·ÖÎöÓï·¨Ê÷ÊôĞÔ*/
+		zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); /*·µ»ØÊôĞÔÀàĞÍ*/
 		break;
 	}
 #endif
 	}
 
-	if (pzOriginDb){/*å¦‚æœå­˜åœ¨åŸå§‹çš„æ•°æ®åº“*/
-		assert(pzOriginTab && pzOriginCol);/*æ’å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­è¡¨å’Œåˆ—æ˜¯å¦å­˜åœ¨*/
-		*pzOriginDb = zOriginDb;/*æ–‡ä»¶ä¸­æ•°æ®åº“èµ‹å€¼ç»™æ•°æ®åº“å˜é‡pzOriginDb*/
-		*pzOriginTab = zOriginTab;/*æ–‡ä»¶ä¸­è¡¨èµ‹å€¼ç»™è¡¨å˜é‡pzOriginTab*/
-		*pzOriginCol = zOriginCol;/*æ–‡ä»¶ä¸­åˆ—èµ‹å€¼ç»™åˆ—å˜é‡pzOriginCol*/
+	if (pzOriginDb){/*Èç¹û´æÔÚÔ­Ê¼µÄÊı¾İ¿â*/
+		assert(pzOriginTab && pzOriginCol);/*²åÈë¶Ïµã£¬ÅĞ¶Ï±íºÍÁĞÊÇ·ñ´æÔÚ*/
+		*pzOriginDb = zOriginDb;/*ÎÄ¼şÖĞÊı¾İ¿â¸³Öµ¸øÊı¾İ¿â±äÁ¿pzOriginDb*/
+		*pzOriginTab = zOriginTab;/*ÎÄ¼şÖĞ±í¸³Öµ¸ø±í±äÁ¿pzOriginTab*/
+		*pzOriginCol = zOriginCol;/*ÎÄ¼şÖĞÁĞ¸³Öµ¸øÁĞ±äÁ¿pzOriginCol*/
 	}
-	return zType;/*è¿”å›åˆ—ç±»å‹*/
+	return zType;/*·µ»ØÁĞÀàĞÍ*/
 }
 
 
 /*
 ** Generate code that will tell the VDBE the declaration types of columns
 ** in the result set.
-** ç”Ÿæˆä»£ç ï¼Œå‘Šè¯‰VDBEåœ¨ç»“æœé›†ä¸­çš„åˆ—çš„å£°æ˜ç±»å‹çš„ã€‚
+** Éú³É´úÂë£¬¸æËßVDBEÔÚ½á¹û¼¯ÖĞµÄÁĞµÄÉùÃ÷ÀàĞÍµÄ¡£
 */
 static void generateColumnTypes(
-	Parse *pParse,      /* Parser context è¯­ä¹‰åˆ†æ*/
-	SrcList *pTabList,  /* List of tables è¾“å‡ºè¡¨çš„é›†åˆçš„è¯­æ³•æ ‘*/
-	ExprList *pEList    /* Expressions defining the result set è¾“å‡ºç»“æœåˆ—çš„è¯­æ³•æ ‘*/
+	Parse *pParse,      /* Parser context ÓïÒå·ÖÎö*/
+	SrcList *pTabList,  /* List of tables Êä³ö±íµÄ¼¯ºÏµÄÓï·¨Ê÷*/
+	ExprList *pEList    /* Expressions defining the result set Êä³ö½á¹ûÁĞµÄÓï·¨Ê÷*/
 	){
-#ifndef SQLITE_OMIT_DECLTYPE/*æµ‹è¯•SQLITE_OMIT_DECLTYPEæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
+#ifndef SQLITE_OMIT_DECLTYPE/*²âÊÔSQLITE_OMIT_DECLTYPEÊÇ·ñ±»ºê¶¨Òå¹ı*/
 	Vdbe *v = pParse->pVdbe;
 	int i;
 	NameContext sNC;
@@ -1371,7 +1371,7 @@ static void generateColumnTypes(
 	for (i = 0; i < pEList->nExpr; i++){
 		Expr *p = pEList->a[i].pExpr;
 		const char *zType;
-#ifdef SQLITE_ENABLE_COLUMN_METADATA/*æµ‹è¯•SQLITE_ENABLE_COLUMN_METADATAæ˜¯å¦è¢«å®å®šä¹‰è¿‡*/
+#ifdef SQLITE_ENABLE_COLUMN_METADATA/*²âÊÔSQLITE_ENABLE_COLUMN_METADATAÊÇ·ñ±»ºê¶¨Òå¹ı*/
 		const char *zOrigDb = 0;
 		const char *zOrigTab = 0;
 		const char *zOrigCol = 0;
@@ -1380,7 +1380,7 @@ static void generateColumnTypes(
 		/* The vdbe must make its own copy of the column-type and other
 		** column specific strings, in case the schema is reset before this
 		** virtual machine is deleted.
-		** ä¸ºé˜²æ­¢è¯¥è™šæ‹Ÿæœºè¢«åˆ é™¤å‰æ¶æ„é‡è®¾ï¼Œè¯¥VDBEå¿…é¡»åšå‡ºè‡ªå·±çš„åˆ—å¼å’Œå…¶ä»–åˆ—çš„ç‰¹å®šå­—ç¬¦ä¸²çš„å‰¯æœ¬ã€‚
+		** Îª·ÀÖ¹¸ÃĞéÄâ»ú±»É¾³ıÇ°¼Ü¹¹ÖØÉè£¬¸ÃVDBE±ØĞë×ö³ö×Ô¼ºµÄÁĞÊ½ºÍÆäËûÁĞµÄÌØ¶¨×Ö·û´®µÄ¸±±¾¡£
 		*/
 		sqlite3VdbeSetColName(v, i, COLNAME_DATABASE, zOrigDb, SQLITE_TRANSIENT);
 		sqlite3VdbeSetColName(v, i, COLNAME_TABLE, zOrigTab, SQLITE_TRANSIENT);
@@ -1397,12 +1397,12 @@ static void generateColumnTypes(
 ** Generate code that will tell the VDBE the names of columns
 ** in the result set.  This information is used to provide the
 ** azCol[] values in the callback.
-** ç”Ÿæˆä»£ç ï¼Œå‘Šè¯‰ VDBE åœ¨ç»“æœé›†ä¸­çš„åˆ—çš„åç§°ã€‚è¿™äº›ä¿¡æ¯è¢«ç”¨äºæä¾›åœ¨å›è°ƒä¸­azCol[]çš„å€¼ã€‚
+** Éú³É´úÂë£¬¸æËß VDBE ÔÚ½á¹û¼¯ÖĞµÄÁĞµÄÃû³Æ¡£ÕâĞ©ĞÅÏ¢±»ÓÃÓÚÌá¹©ÔÚ»Øµ÷ÖĞazCol[]µÄÖµ¡£
 */
 static void generateColumnNames(
-	Parse *pParse,      /* Parser context   è§£æä¸Šä¸‹æ–‡ */
-	SrcList *pTabList,  /* List of tables   åˆ—è¡¨*/
-	ExprList *pEList    /* Expressions defining the result set   è¾“å‡ºç»“æœåˆ—çš„è¯­æ³•æ ‘*/
+	Parse *pParse,      /* Parser context   ½âÎöÉÏÏÂÎÄ */
+	SrcList *pTabList,  /* List of tables   ÁĞ±í*/
+	ExprList *pEList    /* Expressions defining the result set   Êä³ö½á¹ûÁĞµÄÓï·¨Ê÷*/
 	){
 	Vdbe *v = pParse->pVdbe;
 	int i, j;
@@ -1410,7 +1410,7 @@ static void generateColumnNames(
 	int fullNames, shortNames;
 
 #ifndef SQLITE_OMIT_EXPLAIN
-	/* If this is an EXPLAIN, skip this step    å¦‚æœè¿™æ˜¯ä¸€ä¸ªè§£é‡Šå™¨, è·³è¿‡è¿™ä¸€æ­¥ */
+	/* If this is an EXPLAIN, skip this step    Èç¹ûÕâÊÇÒ»¸ö½âÊÍÆ÷, Ìø¹ıÕâÒ»²½ */
 	if (pParse->explain){
 		return;
 	}
@@ -1471,30 +1471,30 @@ static void generateColumnNames(
 ** Given a an expression list (which is really the list of expressions
 ** that form the result set of a SELECT statement) compute appropriate
 ** column names for a table that would hold the expression list.
-** ç»™å®šä¸€ä¸ªè¡¨è¾¾å¼åˆ—è¡¨(çœŸæ­£çš„å½¢æˆä¸€ä¸ªSELECTè¯­å¥ç»“æœé›†çš„è¡¨è¾¾å¼åˆ—è¡¨)ï¼Œå°†ä¸ºæ‹¥æœ‰è¿™äº›è¡¨è¾¾å¼åˆ—è¡¨çš„è¡¨è®¡ç®—ä¸€ä¸ªé€‚åˆçš„åˆ—åç§°ã€‚
+** ¸ø¶¨Ò»¸ö±í´ïÊ½ÁĞ±í(ÕæÕıµÄĞÎ³ÉÒ»¸öSELECTÓï¾ä½á¹û¼¯µÄ±í´ïÊ½ÁĞ±í)£¬½«ÎªÓµÓĞÕâĞ©±í´ïÊ½ÁĞ±íµÄ±í¼ÆËãÒ»¸öÊÊºÏµÄÁĞÃû³Æ¡£
 ** All column names will be unique.
-** æ‰€æœ‰åˆ—åå°†æ˜¯å”¯ä¸€çš„
+** ËùÓĞÁĞÃû½«ÊÇÎ¨Ò»µÄ
 ** Only the column names are computed.  Column.zType, Column.zColl,
 ** and other fields of Column are zeroed.
-** åªæœ‰åˆ—åæ˜¯è®¡ç®—å‡ºæ¥çš„ã€‚zTypeåˆ—ã€zCollåˆ—å’Œå…¶ä½™åˆ—éƒ½è¢«ç½®é›¶ã€‚
+** Ö»ÓĞÁĞÃûÊÇ¼ÆËã³öÀ´µÄ¡£zTypeÁĞ¡¢zCollÁĞºÍÆäÓàÁĞ¶¼±»ÖÃÁã¡£
 ** Return SQLITE_OK on success.  If a memory allocation error occurs,
 ** store NULL in *paCol and 0 in *pnCol and return SQLITE_NOMEM.
-** æˆåŠŸæ—¶è¿”å›SQLITE_OKã€‚å¦‚æœå†…å­˜åˆ†é…å‘ç”Ÿé”™è¯¯,åœ¨*paColé‡Œå­˜NULLï¼Œåœ¨*pnColé‡Œå­˜0ï¼Œè¿”å›SQLITE_NOMEM
+** ³É¹¦Ê±·µ»ØSQLITE_OK¡£Èç¹ûÄÚ´æ·ÖÅä·¢Éú´íÎó,ÔÚ*paColÀï´æNULL£¬ÔÚ*pnColÀï´æ0£¬·µ»ØSQLITE_NOMEM
 */
 static int selectColumnsFromExprList(
-	Parse *pParse,          /* Parsing context è§£æä¸Šä¸‹æ–‡ */
-	ExprList *pEList,       /* Expr list from which to derive column names ä»ä¸­æ´¾ç”ŸExpråˆ—è¡¨*/
-	int *pnCol,             /* Write the number of columns here æŠŠåˆ—çš„æ•°é‡å†™åœ¨è¿™é‡Œ*/
-	Column **paCol          /* Write the new column list here æŠŠæ–°åˆ—åˆ—è¡¨å†™åœ¨è¿™é‡Œ*/
+	Parse *pParse,          /* Parsing context ½âÎöÉÏÏÂÎÄ */
+	ExprList *pEList,       /* Expr list from which to derive column names ´ÓÖĞÅÉÉúExprÁĞ±í*/
+	int *pnCol,             /* Write the number of columns here °ÑÁĞµÄÊıÁ¿Ğ´ÔÚÕâÀï*/
+	Column **paCol          /* Write the new column list here °ÑĞÂÁĞÁĞ±íĞ´ÔÚÕâÀï*/
 	){
-	sqlite3 *db = pParse->db;   /* Database connection è¿æ¥æ•°æ®åº“*/
-	int i, j;                   /* Loop counters å¾ªç¯è®¡æ•°å™¨*/
-	int cnt;                    /* Index added to make the name unique ç´¢å¼•çš„æ·»åŠ ä½¿åç§°å”¯ä¸€*/
-	Column *aCol, *pCol;        /* For looping over result columns åœ¨ç»“æœåˆ—ä¸­å¾ªç¯*/
-	int nCol;                   /* Number of columns in the result set åœ¨ç»“æœé›†ä¸­çš„åˆ—æ•°*/
-	Expr *p;                    /* Expression for a single result column ä¸€ä¸ªç»“æœåˆ—çš„è¡¨è¾¾å¼*/
-	char *zName;                /* Column name åˆ—å*/
-	int nName;                  /* Size of name in zName[]  åœ¨zName[]ä¸­åç§°çš„å¤§å°*/
+	sqlite3 *db = pParse->db;   /* Database connection Á¬½ÓÊı¾İ¿â*/
+	int i, j;                   /* Loop counters Ñ­»·¼ÆÊıÆ÷*/
+	int cnt;                    /* Index added to make the name unique Ë÷ÒıµÄÌí¼ÓÊ¹Ãû³ÆÎ¨Ò»*/
+	Column *aCol, *pCol;        /* For looping over result columns ÔÚ½á¹ûÁĞÖĞÑ­»·*/
+	int nCol;                   /* Number of columns in the result set ÔÚ½á¹û¼¯ÖĞµÄÁĞÊı*/
+	Expr *p;                    /* Expression for a single result column Ò»¸ö½á¹ûÁĞµÄ±í´ïÊ½*/
+	char *zName;                /* Column name ÁĞÃû*/
+	int nName;                  /* Size of name in zName[]  ÔÚzName[]ÖĞÃû³ÆµÄ´óĞ¡*/
 
 	if (pEList){
 		nCol = pEList->nExpr;
@@ -1510,26 +1510,26 @@ static int selectColumnsFromExprList(
 
 	for (i = 0, pCol = aCol; i < nCol; i++, pCol++){
 		/* Get an appropriate name for the column
-		** å¾—åˆ°ä¸€ä¸ªé€‚å½“çš„åˆ—çš„åç§°
+		** µÃµ½Ò»¸öÊÊµ±µÄÁĞµÄÃû³Æ
 		*/
 		p = pEList->a[i].pExpr;
 		assert(p->pRight == 0 || ExprHasProperty(p->pRight, EP_IntValue)
 			|| p->pRight->u.zToken == 0 || p->pRight->u.zToken[0] != 0);
 		if ((zName = pEList->a[i].zName) != 0){
 			/* If the column contains an "AS <name>" phrase, use <name> as the name
-			**å¦‚æœåˆ—åŒ…å«ä¸€ä¸ªâ€œAS <name>â€çŸ­è¯­,ä½¿ç”¨<name>ä½œä¸ºåç§°
+			**Èç¹ûÁĞ°üº¬Ò»¸ö¡°AS <name>¡±¶ÌÓï,Ê¹ÓÃ<name>×÷ÎªÃû³Æ
 			*/
 			zName = sqlite3DbStrDup(db, zName);
 		}
 		else{
-			Expr *pColExpr = p;  /* The expression that is the result column name ç»“æœåˆ—åç§°çš„è¡¨è¾¾å¼*/
-			Table *pTab;         /* Table associated with this expression ä¸è¡¨è¾¾å¼ç›¸å…³çš„è¡¨*/
+			Expr *pColExpr = p;  /* The expression that is the result column name ½á¹ûÁĞÃû³ÆµÄ±í´ïÊ½*/
+			Table *pTab;         /* Table associated with this expression Óë±í´ïÊ½Ïà¹ØµÄ±í*/
 			while (pColExpr->op == TK_DOT){
 				pColExpr = pColExpr->pRight;
 				assert(pColExpr != 0);
 			}
 			if (pColExpr->op == TK_COLUMN && ALWAYS(pColExpr->pTab != 0)){
-				/* For columns use the column name name å¯¹äºä½¿ç”¨äº†åˆ—åçš„åˆ—*/
+				/* For columns use the column name name ¶ÔÓÚÊ¹ÓÃÁËÁĞÃûµÄÁĞ*/
 				int iCol = pColExpr->iColumn;
 				pTab = pColExpr->pTab;
 				if (iCol < 0) iCol = pTab->iPKey;
@@ -1541,7 +1541,7 @@ static int selectColumnsFromExprList(
 				zName = sqlite3MPrintf(db, "%s", pColExpr->u.zToken);
 			}
 			else{
-				/* Use the original text of the column expression as its name ä½¿ç”¨çš„åˆ—è¡¨è¾¾å¼çš„åŸå§‹æ–‡æœ¬ä½œä¸ºå®ƒçš„åå­—*/
+				/* Use the original text of the column expression as its name Ê¹ÓÃµÄÁĞ±í´ïÊ½µÄÔ­Ê¼ÎÄ±¾×÷ÎªËüµÄÃû×Ö*/
 				zName = sqlite3MPrintf(db, "%s", pEList->a[i].zSpan);
 			}
 		}
@@ -1552,7 +1552,7 @@ static int selectColumnsFromExprList(
 
 		/* Make sure the column name is unique.  If the name is not unique,
 		** append a integer to the name so that it becomes unique.
-		** ç¡®ä¿åˆ—åæ˜¯å”¯ä¸€çš„ã€‚å¦‚æœåå­—ä¸æ˜¯å”¯ä¸€çš„,ç»™åç§°é™„åŠ ä¸€ä¸ªæ•´æ•°,è¿™æ ·å°±å˜å¾—å”¯ä¸€äº†
+		** È·±£ÁĞÃûÊÇÎ¨Ò»µÄ¡£Èç¹ûÃû×Ö²»ÊÇÎ¨Ò»µÄ,¸øÃû³Æ¸½¼ÓÒ»¸öÕûÊı,ÕâÑù¾Í±äµÃÎ¨Ò»ÁË
 		*/
 		nName = sqlite3Strlen30(zName);
 		for (j = cnt = 0; j < i; j++){
@@ -1583,22 +1583,22 @@ static int selectColumnsFromExprList(
 /*
 ** Add type and collation information to a column list based on
 ** a SELECT statement.
-** å°†ç±»å‹å’Œæ’åºè§„åˆ™ä¿¡æ¯æ·»åŠ åˆ°åŸºäºä¸€ä¸ª SELECT è¯­å¥çš„åˆ—åˆ—è¡¨ã€‚
+** ½«ÀàĞÍºÍÅÅĞò¹æÔòĞÅÏ¢Ìí¼Óµ½»ùÓÚÒ»¸ö SELECT Óï¾äµÄÁĞÁĞ±í¡£
 **
 ** The column list presumably came from selectColumnNamesFromExprList().
 ** The column list has only names, not types or collations.  This
 ** routine goes through and adds the types and collations.
-** åˆ—è¡¨æ¥è‡ªäºselectColumnNamesFromExprList()ã€‚åˆ—è¡¨åªæœ‰åå­—,æ²¡æœ‰ç±»å‹æˆ–æ’åºã€‚è¿™ä¸ªäº‹åŠ¡éå†å¹¶æ·»åŠ ç±»å‹å’Œæ’åºã€‚
+** ÁĞ±íÀ´×ÔÓÚselectColumnNamesFromExprList()¡£ÁĞ±íÖ»ÓĞÃû×Ö,Ã»ÓĞÀàĞÍ»òÅÅĞò¡£Õâ¸öÊÂÎñ±éÀú²¢Ìí¼ÓÀàĞÍºÍÅÅĞò¡£
 **
 ** This routine requires that all identifiers in the SELECT
 ** statement be resolved.
-** è¿™ä¸ªç¨‹åºè¦æ±‚ï¼Œåœ¨SELECTè¯­å¥ä¸­çš„æ‰€æœ‰æ ‡è¯†ç¬¦å¾—åˆ°è§£å†³ã€‚
+** Õâ¸ö³ÌĞòÒªÇó£¬ÔÚSELECTÓï¾äÖĞµÄËùÓĞ±êÊ¶·ûµÃµ½½â¾ö¡£
 */
 static void selectAddColumnTypeAndCollation(
-	Parse *pParse,        /* Parsing contexts è§£æä¸Šä¸‹æ–‡*/
-	int nCol,             /* Number of columns åˆ—æ•°*/
-	Column *aCol,         /* List of columns åˆ—è¡¨*/
-	Select *pSelect       /* SELECT used to determine types and collations      SELECTç”¨äºç¡®å®šç±»å‹å’Œæ’åº*/
+	Parse *pParse,        /* Parsing contexts ½âÎöÉÏÏÂÎÄ*/
+	int nCol,             /* Number of columns ÁĞÊı*/
+	Column *aCol,         /* List of columns ÁĞ±í*/
+	Select *pSelect       /* SELECT used to determine types and collations      SELECTÓÃÓÚÈ·¶¨ÀàĞÍºÍÅÅĞò*/
 	){
 	sqlite3 *db = pParse->db;
 	NameContext sNC;
@@ -1630,7 +1630,7 @@ static void selectAddColumnTypeAndCollation(
 /*
 ** Given a SELECT statement, generate a Table structure that describes
 ** the result set of that SELECT.
-**ç»™å®šä¸€ä¸ªSELECTè¯­å¥,ç”Ÿæˆä¸€ä¸ªè¡¨ç»“æ„,æ¥æè¿°é‚£ä¸ªSELECTçš„ç»“æœé›†
+**¸ø¶¨Ò»¸öSELECTÓï¾ä,Éú³ÉÒ»¸ö±í½á¹¹,À´ÃèÊöÄÇ¸öSELECTµÄ½á¹û¼¯
 */
 Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 	Table *pTab;
@@ -1650,7 +1650,7 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 	}
 	/* The sqlite3ResultSetOfSelect() is only used n contexts where lookaside
 	** is disabled
-	**sqlite3ResultSetOfSelect()åœ¨lookasideç¦ç”¨çš„åœ°æ–¹åªä½¿ç”¨nä¸ªä¸Šä¸‹æ–‡*/
+	**sqlite3ResultSetOfSelect()ÔÚlookaside½ûÓÃµÄµØ·½Ö»Ê¹ÓÃn¸öÉÏÏÂÎÄ*/
 	assert(db->lookaside.bEnabled == 0);
 	pTab->nRef = 1;
 	pTab->zName = 0;
@@ -1668,8 +1668,8 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 /*
 ** Get a VDBE for the given parser context.  Create a new one if necessary.
 ** If an error occurs, return NULL and leave a message in pParse.
-** ä»ç»™å®šçš„è§£æå™¨è·å¾—ä¸€ä¸ªVDBEï¼Œåœ¨å¿…è¦çš„æƒ…å†µä¸‹åˆ›å»ºä¸€ä¸ªæ–°çš„VDBEã€‚
-** å¦‚æœå‘ç”Ÿé”™è¯¯ï¼Œè¿”å›NULLå¹¶ä¸”åœ¨pParseé‡Œç•™ä¸‹ä¿¡æ¯ã€‚
+** ´Ó¸ø¶¨µÄ½âÎöÆ÷»ñµÃÒ»¸öVDBE£¬ÔÚ±ØÒªµÄÇé¿öÏÂ´´½¨Ò»¸öĞÂµÄVDBE¡£
+** Èç¹û·¢Éú´íÎó£¬·µ»ØNULL²¢ÇÒÔÚpParseÀïÁôÏÂĞÅÏ¢¡£
 */
 Vdbe *sqlite3GetVdbe(Parse *pParse){
 	Vdbe *v = pParse->pVdbe;
@@ -1693,11 +1693,11 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** are the integer memory register numbers for counters used to compute
 ** the limit and offset.  If there is no limit and/or offset, then
 ** iLimit and iOffset are negative.
-** åŸºäºpLimitå’ŒpOffsetè¡¨è¾¾å¼è®¡ç®—SELECTä¸­çš„iLimitå’ŒiOffsetå­—æ®µã€‚
-** nLimitå’ŒnOffsetæŒæœ‰è¿™äº›å‡ºç°åœ¨åŸå§‹çš„SQLè¯­å¥ä¸­LIMITå’ŒOFFSETå…³é”®å­—ä¹‹åçš„è¡¨è¾¾å¼ã€‚
-** å¦‚æœè¿™äº›å…³é”®è¯è¢«çœç•¥çš„è¯,å®ƒçš„å€¼ä¸ºNULLã€‚
-** iLimitå’ŒiOffsetæ˜¯ç”¨æ¥è®¡ç®—é™åˆ¶å’Œåç§»é‡çš„æ•´æ•°å­˜å‚¨å¯„å­˜å™¨æ•°æ®è®¡æ•°å™¨ã€‚
-** å¦‚æœæ²¡æœ‰é™åˆ¶å’Œ/æˆ–åç§»,é‚£ä¹ˆiLimitå’ŒiOffsetæ˜¯è´Ÿçš„ã€‚
+** »ùÓÚpLimitºÍpOffset±í´ïÊ½¼ÆËãSELECTÖĞµÄiLimitºÍiOffset×Ö¶Î¡£
+** nLimitºÍnOffset³ÖÓĞÕâĞ©³öÏÖÔÚÔ­Ê¼µÄSQLÓï¾äÖĞLIMITºÍOFFSET¹Ø¼ü×ÖÖ®ºóµÄ±í´ïÊ½¡£
+** Èç¹ûÕâĞ©¹Ø¼ü´Ê±»Ê¡ÂÔµÄ»°,ËüµÄÖµÎªNULL¡£
+** iLimitºÍiOffsetÊÇÓÃÀ´¼ÆËãÏŞÖÆºÍÆ«ÒÆÁ¿µÄÕûÊı´æ´¢¼Ä´æÆ÷Êı¾İ¼ÆÊıÆ÷¡£
+** Èç¹ûÃ»ÓĞÏŞÖÆºÍ/»òÆ«ÒÆ,ÄÇÃ´iLimitºÍiOffsetÊÇ¸ºµÄ¡£
 **
 **
 ** This routine changes the values of iLimit and iOffset only if
@@ -1708,10 +1708,10 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** redefined.  The UNION ALL operator uses this property to force
 ** the reuse of the same limit and offset registers across multiple
 ** SELECT statements.
-** è¿™ä¸ªç¨‹åºåªæœ‰åœ¨é™åˆ¶æˆ–åç§»ç”±nLimitå’ŒnOffsetå®šä¹‰çš„æ—¶å€™æ”¹å˜iLimitå’Œ iOffsetçš„å€¼ã€‚
-** è°ƒç”¨è¿™ä¸ªç¨‹åºä¹‹å‰iLimitå’ŒiOffsetåº”è¯¥æ˜¯é¢„è®¾åˆ°é€‚å½“çš„é»˜è®¤å€¼(é€šå¸¸ä½†ä¸æ€»æ˜¯-1)ã€‚
-** åªæœ‰nLimit>=0æˆ–è€…nOffset>0é™åˆ¶å¯„å­˜å™¨é‡æ–°å®šä¹‰ã€‚
-** UNION ALLæ“ä½œç¬¦ä½¿ç”¨è¿™ä¸ªå±æ€§é€šè¿‡å¤šä¸ªSELECTè¯­å¥æ¥è¿«ä½¿ç›¸åŒçš„é™åˆ¶å’Œåç§»æš‚å­˜å™¨çš„é‡ç”¨ã€‚
+** Õâ¸ö³ÌĞòÖ»ÓĞÔÚÏŞÖÆ»òÆ«ÒÆÓÉnLimitºÍnOffset¶¨ÒåµÄÊ±ºò¸Ä±äiLimitºÍ iOffsetµÄÖµ¡£
+** µ÷ÓÃÕâ¸ö³ÌĞòÖ®Ç°iLimitºÍiOffsetÓ¦¸ÃÊÇÔ¤Éèµ½ÊÊµ±µÄÄ¬ÈÏÖµ(Í¨³£µ«²»×ÜÊÇ-1)¡£
+** Ö»ÓĞnLimit>=0»òÕßnOffset>0ÏŞÖÆ¼Ä´æÆ÷ÖØĞÂ¶¨Òå¡£
+** UNION ALL²Ù×÷·ûÊ¹ÓÃÕâ¸öÊôĞÔÍ¨¹ı¶à¸öSELECTÓï¾äÀ´ÆÈÊ¹ÏàÍ¬µÄÏŞÖÆºÍÆ«ÒÆÔİ´æÆ÷µÄÖØÓÃ¡£
 */
 static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 	Vdbe *v = 0;
@@ -1725,14 +1725,14 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 	** contraversy about what the correct behavior should be.
 	** The current implementation interprets "LIMIT 0" to mean
 	** no rows.
-	** "LIMIT -1" æ€»æ˜¯æ˜¾ç¤ºæ‰€æœ‰è¡Œã€‚åœ¨è¿™é‡Œä»€ä¹ˆæ˜¯æ­£ç¡®çš„è¡Œä¸ºè¿˜æœ‰ä¸€äº›äº‰è®®ã€‚å½“å‰å®ç°è§£é‡Š"LIMIT 0"æ„å‘³ç€æ²¡æœ‰è¡Œã€‚
+	** "LIMIT -1" ×ÜÊÇÏÔÊ¾ËùÓĞĞĞ¡£ÔÚÕâÀïÊ²Ã´ÊÇÕıÈ·µÄĞĞÎª»¹ÓĞÒ»Ğ©ÕùÒé¡£µ±Ç°ÊµÏÖ½âÊÍ"LIMIT 0"ÒâÎ¶×ÅÃ»ÓĞĞĞ¡£
 	*/
 	sqlite3ExprCacheClear(pParse);
 	assert(p->pOffset == 0 || p->pLimit != 0);
 	if (p->pLimit){
 		p->iLimit = iLimit = ++pParse->nMem;
 		v = sqlite3GetVdbe(pParse);
-		if (NEVER(v == 0)) return;  /* VDBE should have already been allocated VDBEåº”è¯¥å·²ç»åˆ†é…*/
+		if (NEVER(v == 0)) return;  /* VDBE should have already been allocated VDBEÓ¦¸ÃÒÑ¾­·ÖÅä*/
 		if (sqlite3ExprIsInteger(p->pLimit, &n)){
 			sqlite3VdbeAddOp2(v, OP_Integer, n, iLimit);
 			VdbeComment((v, "LIMIT counter"));
@@ -1751,7 +1751,7 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 		}
 		if (p->pOffset){
 			p->iOffset = iOffset = ++pParse->nMem;
-			pParse->nMem++;   /* Allocate an extra register for limit+offset åˆ†é…ä¸€ä¸ªé¢å¤–çš„å¯„å­˜å™¨ç»™limit+offset*/
+			pParse->nMem++;   /* Allocate an extra register for limit+offset ·ÖÅäÒ»¸ö¶îÍâµÄ¼Ä´æÆ÷¸ølimit+offset*/
 			sqlite3ExprCode(pParse, p->pOffset, iOffset);
 			sqlite3VdbeAddOp1(v, OP_MustBeInt, iOffset);
 			VdbeComment((v, "OFFSET counter"));
@@ -1772,12 +1772,12 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 ** Return the appropriate collating sequence for the iCol-th column of
 ** the result set for the compound-select statement "p".  Return NULL if
 ** the column has no default collating sequence.
-** ä¸ºiCol-thåˆ—ä¸­é’ˆå¯¹å¤åˆæŸ¥è¯¢è¯­å¥"p"çš„ç»“æœé›†è¿”å›é€‚å½“çš„æ’åºåºåˆ—.
-** å¦‚æœåˆ—æ²¡æœ‰é»˜è®¤çš„æ’åºåºåˆ—ï¼Œè¿”å›NULLã€‚
+** ÎªiCol-thÁĞÖĞÕë¶Ô¸´ºÏ²éÑ¯Óï¾ä"p"µÄ½á¹û¼¯·µ»ØÊÊµ±µÄÅÅĞòĞòÁĞ.
+** Èç¹ûÁĞÃ»ÓĞÄ¬ÈÏµÄÅÅĞòĞòÁĞ£¬·µ»ØNULL¡£
 **
 ** The collating sequence for the compound select is taken from the
 ** left-most term of the select that has a collating sequence.
-** å¤åˆæŸ¥è¯¢çš„æ’åºåºåˆ—æ¥è‡ªå…·æœ‰æ’åºåºåˆ—çš„æœ€å·¦è¾¹çš„æŸ¥è¯¢ã€‚
+** ¸´ºÏ²éÑ¯µÄÅÅĞòĞòÁĞÀ´×Ô¾ßÓĞÅÅĞòĞòÁĞµÄ×î×ó±ßµÄ²éÑ¯¡£
 */
 static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
 	CollSeq *pRet;
@@ -1795,11 +1795,11 @@ static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
 }
 #endif /* SQLITE_OMIT_COMPOUND_SELECT */
 
-/* Forward reference å‘å‰å¼•ç”¨*/
+/* Forward reference ÏòÇ°ÒıÓÃ*/
 static int multiSelectOrderBy(
-	Parse *pParse,        /* Parsing context è§£æä¸Šä¸‹æ–‡*/
-	Select *p,            /* The right-most of SELECTs to be coded æœ€å³è¾¹çš„éœ€è¦è§£ç çš„æŸ¥è¯¢è¯­å¥*/
-	SelectDest *pDest     /* What to do with query results å¦‚ä½•å¤„ç†æŸ¥è¯¢ç»“æœ*/
+	Parse *pParse,        /* Parsing context ½âÎöÉÏÏÂÎÄ*/
+	Select *p,            /* The right-most of SELECTs to be coded ×îÓÒ±ßµÄĞèÒª½âÂëµÄ²éÑ¯Óï¾ä*/
+	SelectDest *pDest     /* What to do with query results ÈçºÎ´¦Àí²éÑ¯½á¹û*/
 	);
 
 
@@ -1808,22 +1808,22 @@ static int multiSelectOrderBy(
 ** This routine is called to process a compound query form from
 ** two or more separate queries using UNION, UNION ALL, EXCEPT, or
 ** INTERSECT
-** è¿™ä¸ªç¨‹åºè¢«è°ƒç”¨æ¥å¤„ç†ä½¿ç”¨äº†UNION, UNION ALL, EXCEPT,æˆ–è€…INTERSECTæ“ä½œçš„å¤åˆåºåˆ—æˆ–è€…ä¸¤ä¸ªåŠä»¥ä¸Šçš„åˆ†æ•£åºåˆ—
+** Õâ¸ö³ÌĞò±»µ÷ÓÃÀ´´¦ÀíÊ¹ÓÃÁËUNION, UNION ALL, EXCEPT,»òÕßINTERSECT²Ù×÷µÄ¸´ºÏĞòÁĞ»òÕßÁ½¸ö¼°ÒÔÉÏµÄ·ÖÉ¢ĞòÁĞ
 **
 ** "p" points to the right-most of the two queries.  the query on the
 ** left is p->pPrior.  The left query could also be a compound query
 ** in which case this routine will be called recursively.
-**â€œpâ€æŒ‡å‘æœ€å³è¾¹çš„ä¸¤ä¸ªåºåˆ—ã€‚å·¦è¾¹çš„åºåˆ—æ˜¯p->pPrior.åœ¨é€’å½’åœ°å°†è°ƒç”¨è¿™ä¸ªç¨‹åºçš„æƒ…å†µä¸‹ï¼Œå·¦è¾¹çš„æŸ¥è¯¢ä¹Ÿå¯ä»¥æ˜¯å¤åˆæŸ¥è¯¢ã€‚
+**¡°p¡±Ö¸Ïò×îÓÒ±ßµÄÁ½¸öĞòÁĞ¡£×ó±ßµÄĞòÁĞÊÇp->pPrior.ÔÚµİ¹éµØ½«µ÷ÓÃÕâ¸ö³ÌĞòµÄÇé¿öÏÂ£¬×ó±ßµÄ²éÑ¯Ò²¿ÉÒÔÊÇ¸´ºÏ²éÑ¯¡£
 **
 ** The results of the total query are to be written into a destination
 ** of type eDest with parameter iParm.
-**æ€»æŸ¥è¯¢çš„ç»“æœå°†è¢«å†™å…¥ä¸€ä¸ªå¸¦æœ‰å‚æ•°iParmçš„eDestç±»å‹ç›®æ ‡ã€‚
+**×Ü²éÑ¯µÄ½á¹û½«±»Ğ´ÈëÒ»¸ö´øÓĞ²ÎÊıiParmµÄeDestÀàĞÍÄ¿±ê¡£
 **
-** Example 1:  Consider a three-way compound SQL statement.  ä¾‹1:  è€ƒè™‘ä¸€ä¸ªä¸‰å‘å¤åˆSQLè¯­å¥ã€‚
+** Example 1:  Consider a three-way compound SQL statement.  Àı1:  ¿¼ÂÇÒ»¸öÈıÏò¸´ºÏSQLÓï¾ä¡£
 **
 **     SELECT a FROM t1 UNION SELECT b FROM t2 UNION SELECT c FROM t3
 **
-** This statement is parsed up as follows:    è¿™å¥è¯æ˜¯è§£æå¦‚ä¸‹:
+** This statement is parsed up as follows:    Õâ¾ä»°ÊÇ½âÎöÈçÏÂ:
 **
 **     SELECT c FROM t3
 **      |
@@ -1834,34 +1834,34 @@ static int multiSelectOrderBy(
 ** The arrows in the diagram above represent the Select.pPrior pointer.
 ** So if this routine is called with p equal to the t3 query, then
 ** pPrior will be the t2 query.  p->op will be TK_UNION in this case.
-**ä¸Šé¢å›¾ä¸­çš„ç®­å¤´ä»£è¡¨Select.pPrioræŒ‡é’ˆã€‚æ‰€ä»¥å¦‚æœä»¥pç­‰äºt3æŸ¥è¯¢æ¥è°ƒç”¨è¿™ä¸ªç¨‹åºï¼Œç„¶åpPriorå°†ä¼šæ˜¯t2 æŸ¥è¯¢ã€‚
-**è¿™ç§æƒ…å†µä¸‹ï¼Œp- >opå°†ä¼šæ˜¯ TK_UNION
+**ÉÏÃæÍ¼ÖĞµÄ¼ıÍ·´ú±íSelect.pPriorÖ¸Õë¡£ËùÒÔÈç¹ûÒÔpµÈÓÚt3²éÑ¯À´µ÷ÓÃÕâ¸ö³ÌĞò£¬È»ºópPrior½«»áÊÇt2 ²éÑ¯¡£
+**ÕâÖÖÇé¿öÏÂ£¬p- >op½«»áÊÇ TK_UNION
 **
 ** Notice that because of the way SQLite parses compound SELECTs, the
 ** individual selects always group from left to right.
-** æ³¨æ„,å› ä¸ºSQLiteè§£æå¤åˆæŸ¥è¯¢è¯­å¥çš„é€»è¾‘é—®é¢˜,å•ä¸ªæŸ¥è¯¢æ€»æ˜¯ä»å·¦åˆ°å³ã€‚
+** ×¢Òâ,ÒòÎªSQLite½âÎö¸´ºÏ²éÑ¯Óï¾äµÄÂß¼­ÎÊÌâ,µ¥¸ö²éÑ¯×ÜÊÇ´Ó×óµ½ÓÒ¡£
 */
 static int multiSelect(
-	Parse *pParse,        /* Parsing context è§£æçš„ä¸Šä¸‹æ–‡ */
-	Select *p,            /* The right-most of SELECTs to be coded æœ€å³è¾¹çš„SELECTså°†ä¼šè¢«ç¼–ç */
-	SelectDest *pDest     /* What to do with query results å¦‚ä½•å¤„ç†æŸ¥è¯¢ç»“æœ*/
+	Parse *pParse,        /* Parsing context ½âÎöµÄÉÏÏÂÎÄ */
+	Select *p,            /* The right-most of SELECTs to be coded ×îÓÒ±ßµÄSELECTs½«»á±»±àÂë*/
+	SelectDest *pDest     /* What to do with query results ÈçºÎ´¦Àí²éÑ¯½á¹û*/
 	){
-	int rc = SQLITE_OK;   /* Success code from a subroutine ä»å­ç¨‹åºä¼ é€’æ¥çš„æˆåŠŸå‚æ•° */
-	Select *pPrior;       /* Another SELECT immediately to our left å¦ä¸€ä¸ªSELECTæŒ‡å‘å·¦è¾¹*/
-	Vdbe *v;              /* Generate code to this VDBE ä¸ºè¿™ä¸ªVDBEç”Ÿæˆä»£ç */
-	SelectDest dest;      /* Alternative data destination å¯å˜åŠ¨çš„æ•°æ®ç›®çš„åœ°*/
-	Select *pDelete = 0;  /* Chain of simple selects to delete ç”¨æ¥åˆ é™¤çš„ç®€å•æŸ¥è¯¢é“¾*/
-	sqlite3 *db;          /* Database connection è¿æ¥æ•°æ®åº“*/
+	int rc = SQLITE_OK;   /* Success code from a subroutine ´Ó×Ó³ÌĞò´«µİÀ´µÄ³É¹¦²ÎÊı */
+	Select *pPrior;       /* Another SELECT immediately to our left ÁíÒ»¸öSELECTÖ¸Ïò×ó±ß*/
+	Vdbe *v;              /* Generate code to this VDBE ÎªÕâ¸öVDBEÉú³É´úÂë*/
+	SelectDest dest;      /* Alternative data destination ¿É±ä¶¯µÄÊı¾İÄ¿µÄµØ*/
+	Select *pDelete = 0;  /* Chain of simple selects to delete ÓÃÀ´É¾³ıµÄ¼òµ¥²éÑ¯Á´*/
+	sqlite3 *db;          /* Database connection Á¬½ÓÊı¾İ¿â*/
 #ifndef SQLITE_OMIT_EXPLAIN
-	int iSub1;            /* EQP id of left-hand query     EQP idå·¦ä¾§çš„æŸ¥è¯¢*/
-	int iSub2;            /* EQP id of right-hand query    EQP idå³ä¾§çš„æŸ¥è¯¢*/
+	int iSub1;            /* EQP id of left-hand query     EQP id×ó²àµÄ²éÑ¯*/
+	int iSub2;            /* EQP id of right-hand query    EQP idÓÒ²àµÄ²éÑ¯*/
 #endif
 
 	/* Make sure there is no ORDER BY or LIMIT clause on prior SELECTs.  Only
 	** the last (right-most) SELECT in the series may have an ORDER BY or LIMIT.
-	**ç¡®ä¿ä¹‹å‰çš„æŸ¥è¯¢è¯­å¥ä¸­æ²¡æœ‰ä»»ä½•ORDER BY æˆ–è€…LIMITã€‚åªæœ‰åœ¨åºåˆ—ä¸­çš„æœ€åä¸€ä¸ª(æˆ–æœ€å³)æŸ¥è¯¢è¯­å¥å¯èƒ½æœ‰ORDER BYæˆ–è€…LIMITã€‚
+	**È·±£Ö®Ç°µÄ²éÑ¯Óï¾äÖĞÃ»ÓĞÈÎºÎORDER BY »òÕßLIMIT¡£Ö»ÓĞÔÚĞòÁĞÖĞµÄ×îºóÒ»¸ö(»ò×îÓÒ)²éÑ¯Óï¾ä¿ÉÄÜÓĞORDER BY»òÕßLIMIT¡£
 	*/
-	assert(p && p->pPrior);  /* Calling function guarantees this much ä¿è¯æœ‰è¶³å¤Ÿçš„è°ƒç”¨å‡½æ•°*/
+	assert(p && p->pPrior);  /* Calling function guarantees this much ±£Ö¤ÓĞ×ã¹»µÄµ÷ÓÃº¯Êı*/
 	db = pParse->db;
 	pPrior = p->pPrior;
 	assert(pPrior->pRightmost != pPrior);
@@ -1881,9 +1881,9 @@ static int multiSelect(
 	}
 
 	v = sqlite3GetVdbe(pParse);
-	assert(v != 0);  /* The VDBE already created by calling function    VDBEå·²ç»ç”±è°ƒç”¨å‡½æ•°åˆ›å»º*/
+	assert(v != 0);  /* The VDBE already created by calling function    VDBEÒÑ¾­ÓÉµ÷ÓÃº¯Êı´´½¨*/
 
-	/* Create the destination temporary table if necessary   åœ¨å¿…è¦æ—¶åˆ›å»ºç›®æ ‡ä¸´æ—¶è¡¨
+	/* Create the destination temporary table if necessary   ÔÚ±ØÒªÊ±´´½¨Ä¿±êÁÙÊ±±í
 	*/
 	if (dest.eDest == SRT_EphemTab){
 		assert(p->pEList);
@@ -1894,7 +1894,7 @@ static int multiSelect(
 
 	/* Make sure all SELECTs in the statement have the same number of elements
 	** in their result sets.
-	** ç¡®ä¿æ‰€æœ‰å£°æ˜ä¸­çš„æŸ¥è¯¢è¯­å¥åœ¨ä»–ä»¬çš„ç»“æœé›†ä¸­å…·æœ‰ç›¸åŒæ•°é‡çš„å…ƒç´ ã€‚
+	** È·±£ËùÓĞÉùÃ÷ÖĞµÄ²éÑ¯Óï¾äÔÚËûÃÇµÄ½á¹û¼¯ÖĞ¾ßÓĞÏàÍ¬ÊıÁ¿µÄÔªËØ¡£
 	*/
 	assert(p->pEList && pPrior->pEList);
 	if (p->pEList->nExpr != pPrior->pEList->nExpr){
@@ -1910,14 +1910,14 @@ static int multiSelect(
 	}
 
 	/* Compound SELECTs that have an ORDER BY clause are handled separately.
-	** æœ‰ORDER BYå­å¥çš„å¤åˆæŸ¥è¯¢è¢«å•ç‹¬å¤„ç†ã€‚
+	** ÓĞORDER BY×Ó¾äµÄ¸´ºÏ²éÑ¯±»µ¥¶À´¦Àí¡£
 	*/
 	if (p->pOrderBy){
 		return multiSelectOrderBy(pParse, p, pDest);
 	}
 
 	/* Generate code for the left and right SELECT statements.
-	**ä¸ºå·¦è¾¹å’Œå³è¾¹çš„SELECTè¯­å¥ç”Ÿæˆä»£ç ã€‚
+	**Îª×ó±ßºÍÓÒ±ßµÄSELECTÓï¾äÉú³É´úÂë¡£
 	*/
 	switch (p->op){
 	case TK_ALL: {
@@ -1959,10 +1959,10 @@ static int multiSelect(
 	}
 	case TK_EXCEPT:
 	case TK_UNION: {
-		int unionTab;    /* Cursor number of the temporary table holding result   ä¸´æ—¶è¡¨ä¿å­˜ç»“æœæ¸¸æ ‡æ•°*/
-		u8 op = 0;       /* One of the SRT_ operations to apply to self        å…¶ä¸­ä¸€ä¸ªSRT_æ“ä½œåº”ç”¨åˆ°è‡ªèº«*/
-		int priorOp;     /* The SRT_ operation to apply to prior selects   æ­¤SRT_æ“ä½œåº”ç”¨åˆ°ä¹‹å‰çš„æŸ¥è¯¢*/
-		Expr *pLimit, *pOffset; /* Saved values of p->nLimit and p->nOffset    ä¿å­˜p->nLimitå’Œp->nOffsetçš„å€¼*/
+		int unionTab;    /* Cursor number of the temporary table holding result   ÁÙÊ±±í±£´æ½á¹ûÓÎ±êÊı*/
+		u8 op = 0;       /* One of the SRT_ operations to apply to self        ÆäÖĞÒ»¸öSRT_²Ù×÷Ó¦ÓÃµ½×ÔÉí*/
+		int priorOp;     /* The SRT_ operation to apply to prior selects   ´ËSRT_²Ù×÷Ó¦ÓÃµ½Ö®Ç°µÄ²éÑ¯*/
+		Expr *pLimit, *pOffset; /* Saved values of p->nLimit and p->nOffset    ±£´æp->nLimitºÍp->nOffsetµÄÖµ*/
 		int addr;
 		SelectDest uniondest;
 
@@ -1972,17 +1972,17 @@ static int multiSelect(
 		if (dest.eDest == priorOp && ALWAYS(!p->pLimit &&!p->pOffset)){
 			/* We can reuse a temporary table generated by a SELECT to our
 			** right.
-			**æˆ‘ä»¬å¯ä»¥é‡ç”¨ä¸€ä¸ªç”±å³ç«¯æŸ¥è¯¢è¯­å¥ç”Ÿæˆçš„ä¸´æ—¶è¡¨.
+			**ÎÒÃÇ¿ÉÒÔÖØÓÃÒ»¸öÓÉÓÒ¶Ë²éÑ¯Óï¾äÉú³ÉµÄÁÙÊ±±í.
 			*/
 			assert(p->pRightmost != p);  /* Can only happen for leftward elements
-										 ** of a 3-way or more compound    åªèƒ½åœ¨å·¦ä¾§å…ƒç´ æ˜¯3ç§æˆ–ä»¥ä¸Šå¤åˆçš„æ—¶å€™è§¦å‘*/
-			assert(p->pLimit == 0);      /* Not allowed on leftward elements ä¸å…è®¸åœ¨å·¦ä¾§çš„å…ƒç´ */
-			assert(p->pOffset == 0);     /* Not allowed on leftward elements ä¸å…è®¸åœ¨å·¦ä¾§çš„å…ƒç´ */
+										 ** of a 3-way or more compound    Ö»ÄÜÔÚ×ó²àÔªËØÊÇ3ÖÖ»òÒÔÉÏ¸´ºÏµÄÊ±ºò´¥·¢*/
+			assert(p->pLimit == 0);      /* Not allowed on leftward elements ²»ÔÊĞíÔÚ×ó²àµÄÔªËØ*/
+			assert(p->pOffset == 0);     /* Not allowed on leftward elements ²»ÔÊĞíÔÚ×ó²àµÄÔªËØ*/
 			unionTab = dest.iSDParm;
 		}
 		else{
 			/* We will need to create our own temporary table to hold the
-			** intermediate results.   æˆ‘ä»¬éœ€è¦åˆ›å»ºè‡ªå·±çš„ä¸´æ—¶è¡¨æ¥ä¿å­˜ä¸­é—´ç»“æœã€‚
+			** intermediate results.   ÎÒÃÇĞèÒª´´½¨×Ô¼ºµÄÁÙÊ±±íÀ´±£´æÖĞ¼ä½á¹û¡£
 			*/
 			unionTab = pParse->nTab++;
 			assert(p->pOrderBy == 0);
@@ -1993,7 +1993,7 @@ static int multiSelect(
 			assert(p->pEList);
 		}
 
-		/* Code the SELECT statements to our left  ç»™å·¦è¾¹çš„SELECTè¯­å¥ç¼–ç 
+		/* Code the SELECT statements to our left  ¸ø×ó±ßµÄSELECTÓï¾ä±àÂë
 		*/
 		assert(!pPrior->pOrderBy);
 		sqlite3SelectDestInit(&uniondest, priorOp, unionTab);
@@ -2003,7 +2003,7 @@ static int multiSelect(
 			goto multi_select_end;
 		}
 
-		/* Code the current SELECT statement    ç»™å½“å‰SELECTè¯­å¥ç¼–ç 
+		/* Code the current SELECT statement    ¸øµ±Ç°SELECTÓï¾ä±àÂë
 		*/
 		if (p->op == TK_EXCEPT){
 			op = SRT_Except;
@@ -2023,8 +2023,8 @@ static int multiSelect(
 		testcase(rc != SQLITE_OK);
 		/* Query flattening in sqlite3Select() might refill p->pOrderBy.
 		** Be sure to delete p->pOrderBy, therefore, to avoid a memory leak.
-		**åœ¨sqlite3Select()ä¸­çš„æ‰å¹³åŒ–å¤„ç†å¯èƒ½ä¼šé‡æ–°å¡«å……p->pOrderBy.
-		** ç¡®ä¿è¦åˆ é™¤p - > pOrderBy,å¦‚æ­¤è¿™æ ·,æ‰èƒ½é¿å…å†…å­˜æ³„æ¼ã€‚
+		**ÔÚsqlite3Select()ÖĞµÄ±âÆ½»¯´¦Àí¿ÉÄÜ»áÖØĞÂÌî³äp->pOrderBy.
+		** È·±£ÒªÉ¾³ıp - > pOrderBy,Èç´ËÕâÑù,²ÅÄÜ±ÜÃâÄÚ´æĞ¹Â©¡£
 		*/
 		sqlite3ExprListDelete(db, p->pOrderBy);
 		pDelete = p->pPrior;
@@ -2039,7 +2039,7 @@ static int multiSelect(
 
 		/* Convert the data in the temporary table into whatever form
 		** it is that we currently need.
-		**å°†ä¸´æ—¶è¡¨ä¸­çš„ä»»ä½•æ•°æ®è½¬æ¢æˆæˆ‘ä»¬ç›®å‰æ•°æ®ã€‚
+		**½«ÁÙÊ±±íÖĞµÄÈÎºÎÊı¾İ×ª»»³ÉÎÒÃÇÄ¿Ç°Êı¾İ¡£
 		*/
 		assert(unionTab == dest.iSDParm || dest.eDest != priorOp);
 		if (dest.eDest != priorOp){
@@ -2075,8 +2075,8 @@ static int multiSelect(
 		/* INTERSECT is different from the others since it requires
 		** two temporary tables.  Hence it has its own case.  Begin
 		** by allocating the tables we will need.
-		**INTERSECTä¸å…¶ä»–çš„ä¸åŒå› ä¸ºå®ƒéœ€è¦ä¸¤ä¸ªä¸´æ—¶è¡¨.å› æ­¤å®ƒæœ‰è‡ªå·±çš„æ¡ˆä¾‹ã€‚
-		**ä»åˆ†é…æˆ‘ä»¬éœ€è¦çš„è¡¨å¼€å§‹
+		**INTERSECTÓëÆäËûµÄ²»Í¬ÒòÎªËüĞèÒªÁ½¸öÁÙÊ±±í.Òò´ËËüÓĞ×Ô¼ºµÄ°¸Àı¡£
+		**´Ó·ÖÅäÎÒÃÇĞèÒªµÄ±í¿ªÊ¼
 		*/
 		tab1 = pParse->nTab++;
 		tab2 = pParse->nTab++;
@@ -2088,7 +2088,7 @@ static int multiSelect(
 		p->pRightmost->selFlags |= SF_UsesEphemeral;
 		assert(p->pEList);
 
-		/* Code the SELECTs to our left into temporary table "tab1".   æŠŠæˆ‘ä»¬å·¦è¾¹çš„SELECTs ç¼–ç åˆ°ä¸´æ—¶è¡¨"tab1"ä¸­
+		/* Code the SELECTs to our left into temporary table "tab1".   °ÑÎÒÃÇ×ó±ßµÄSELECTs ±àÂëµ½ÁÙÊ±±í"tab1"ÖĞ
 		*/
 		sqlite3SelectDestInit(&intersectdest, SRT_Union, tab1);
 		explainSetInteger(iSub1, pParse->iNextSelectId);
@@ -2097,7 +2097,7 @@ static int multiSelect(
 			goto multi_select_end;
 		}
 
-		/* Code the current SELECT into temporary table "tab2"    æŠŠå½“å‰çš„SELECTç¼–ç åˆ°ä¸´æ—¶è¡¨"tab2"ä¸­
+		/* Code the current SELECT into temporary table "tab2"    °Ñµ±Ç°µÄSELECT±àÂëµ½ÁÙÊ±±í"tab2"ÖĞ
 		*/
 		addr = sqlite3VdbeAddOp2(v, OP_OpenEphemeral, tab2, 0);
 		assert(p->addrOpenEphm[1] == -1);
@@ -2119,7 +2119,7 @@ static int multiSelect(
 		p->pOffset = pOffset;
 
 		/* Generate code to take the intersection of the two temporary
-		** tables.   ç»™ä¸¤ä¸ªä¸´æ—¶è¡¨çš„äº¤é›†ç”Ÿæˆä»£ç ã€‚
+		** tables.   ¸øÁ½¸öÁÙÊ±±íµÄ½»¼¯Éú³É´úÂë¡£
 		*/
 		assert(p->pEList);
 		if (dest.eDest == SRT_Output){
@@ -2151,22 +2151,22 @@ static int multiSelect(
 	/* Compute collating sequences used by
 	** temporary tables needed to implement the compound select.
 	** Attach the KeyInfo structure to all temporary tables.
-	**ä¸´æ—¶è¡¨æ‰€ä½¿ç”¨çš„è®¡ç®—æ’åºåºåˆ—éœ€è¦å®ç°å¤åˆæŸ¥è¯¢ã€‚æŠŠKeyInfoç»“æ„é™„åŠ åˆ°æ‰€æœ‰ä¸´æ—¶è¡¨ã€‚
+	**ÁÙÊ±±íËùÊ¹ÓÃµÄ¼ÆËãÅÅĞòĞòÁĞĞèÒªÊµÏÖ¸´ºÏ²éÑ¯¡£°ÑKeyInfo½á¹¹¸½¼Óµ½ËùÓĞÁÙÊ±±í¡£
 	**
 	** This section is run by the right-most SELECT statement only.
 	** SELECT statements to the left always skip this part.  The right-most
 	** SELECT might also skip this part if it has no ORDER BY clause and
 	** no temp tables are required.
-	**è¿™éƒ¨åˆ†æ˜¯ä»…ä»…é€šè¿‡æœ€å³è¾¹çš„SELECTè¯­å¥è¿è¡Œçš„ã€‚
-	** å·¦è¾¹çš„SELECTè¯­å¥æ€»æ˜¯è·³è¿‡è¿™ä¸ªéƒ¨åˆ†ã€‚
-	**æœ€å³è¾¹çš„SELECTå¦‚æœæ²¡æœ‰ORDER BYä¹Ÿä¸éœ€è¦ä¸´æ—¶è¡¨çš„è¯ä¹Ÿå¯èƒ½è·³è¿‡è¿™ä¸ªéƒ¨åˆ†
+	**Õâ²¿·ÖÊÇ½ö½öÍ¨¹ı×îÓÒ±ßµÄSELECTÓï¾äÔËĞĞµÄ¡£
+	** ×ó±ßµÄSELECTÓï¾ä×ÜÊÇÌø¹ıÕâ¸ö²¿·Ö¡£
+	**×îÓÒ±ßµÄSELECTÈç¹ûÃ»ÓĞORDER BYÒ²²»ĞèÒªÁÙÊ±±íµÄ»°Ò²¿ÉÄÜÌø¹ıÕâ¸ö²¿·Ö
 	*/
 	if (p->selFlags & SF_UsesEphemeral){
-		int i;                        /* Loop counter å¾ªç¯è®¡æ•°å™¨ */
-		KeyInfo *pKeyInfo;            /* Collating sequence for the result set ç»“æœé›†çš„æ’åºåºåˆ— */
-		Select *pLoop;                /* For looping through SELECT statements éå†SELECTè¯­å¥ */
-		CollSeq **apColl;             /* For looping through pKeyInfo->aColl[] éå†pKeyInfo - > aColl[]*/
-		int nCol;                     /* Number of columns in result set åœ¨ç»“æœé›†çš„åˆ—æ•°*/
+		int i;                        /* Loop counter Ñ­»·¼ÆÊıÆ÷ */
+		KeyInfo *pKeyInfo;            /* Collating sequence for the result set ½á¹û¼¯µÄÅÅĞòĞòÁĞ */
+		Select *pLoop;                /* For looping through SELECT statements ±éÀúSELECTÓï¾ä */
+		CollSeq **apColl;             /* For looping through pKeyInfo->aColl[] ±éÀúpKeyInfo - > aColl[]*/
+		int nCol;                     /* Number of columns in result set ÔÚ½á¹û¼¯µÄÁĞÊı*/
 
 		assert(p->pRightmost == p);
 		nCol = p->pEList->nExpr;
@@ -2193,7 +2193,7 @@ static int multiSelect(
 				if (addr < 0){
 					/* If [0] is unused then [1] is also unused.  So we can
 					** always safely abort as soon as the first unused slot is found
-					**å¦‚æœ[0]æ²¡æœ‰è¢«ä½¿ç”¨ï¼Œé‚£ä¹ˆ[1]ä¹ŸåŒæ ·æ²¡æœ‰è¢«ä½¿ç”¨. æ‰€ä»¥æˆ‘ä»¬åœ¨å‘ç°äº†ç¬¬ä¸€ä¸ªæœªä½¿ç”¨çš„ä¹‹åèƒ½å¤Ÿå®‰å…¨çš„ä¸­æ­¢å®ƒ.
+					**Èç¹û[0]Ã»ÓĞ±»Ê¹ÓÃ£¬ÄÇÃ´[1]Ò²Í¬ÑùÃ»ÓĞ±»Ê¹ÓÃ. ËùÒÔÎÒÃÇÔÚ·¢ÏÖÁËµÚÒ»¸öÎ´Ê¹ÓÃµÄÖ®ºóÄÜ¹»°²È«µÄÖĞÖ¹Ëü.
 					*/
 					assert(pLoop->addrOpenEphm[1] < 0);
 					break;
@@ -2217,40 +2217,40 @@ multi_select_end:
 /*
 ** Code an output subroutine for a coroutine implementation of a
 ** SELECT statment.
-** ä¸ºååŒæ‰§è¡ŒæŸ¥è¯¢è¯­å¥ç¼–å†™ä¸€ä¸ªè¾“å‡ºå­ç¨‹åº.
+** ÎªĞ­Í¬Ö´ĞĞ²éÑ¯Óï¾ä±àĞ´Ò»¸öÊä³ö×Ó³ÌĞò.
 **
 ** The data to be output is contained in pIn->iSdst.  There are
 ** pIn->nSdst columns to be output.  pDest is where the output should
 ** be sent.
-** å¾…è¾“å‡ºçš„æ•°æ®åŒ…å«åœ¨pIn->iSdstä¸­,è¿˜æœ‰pIn->nSdståˆ—ç­‰å¾…è¾“å‡º.è¿™äº›è¾“å‡ºåº”è¯¥ä»¥pDestä¸ºç›®çš„åœ°.
+** ´ıÊä³öµÄÊı¾İ°üº¬ÔÚpIn->iSdstÖĞ,»¹ÓĞpIn->nSdstÁĞµÈ´ıÊä³ö.ÕâĞ©Êä³öÓ¦¸ÃÒÔpDestÎªÄ¿µÄµØ.
 **
 ** regReturn is the number of the register holding the subroutine
 ** return address.
-** regReturnæ˜¯å­˜å‚¨äº†å­ç¨‹åºè¿”å›åœ°å€çš„å¯„å­˜å™¨æ•°é‡.
+** regReturnÊÇ´æ´¢ÁË×Ó³ÌĞò·µ»ØµØÖ·µÄ¼Ä´æÆ÷ÊıÁ¿.
 **
 ** If regPrev>0 then it is the first register in a vector that
 ** records the previous output.  mem[regPrev] is a flag that is false
 ** if there has been no previous output.  If regPrev>0 then code is
 ** generated to suppress duplicates.  pKeyInfo is used for comparing
 ** keys.
-** å¦‚æœregPrev>0,é‚£ä¹ˆè¿™æ˜¯å‘é‡ä¸­è®°å½•äº†ä¹‹å‰è¾“å‡ºçš„ç¬¬ä¸€ä¸ªå¯„å­˜å™¨. 
-** mem[regPrev]æ˜¯å¦‚æœä¹‹å‰æ²¡æœ‰è¾“å‡ºçš„å¤±è´¥æ ‡è®°. å¦‚æœregPrev>0é‚£ä¹ˆç”Ÿæˆçš„ä»£ç å°±æ˜¯ç”¨æ¥ç¦æ­¢é‡å¤.
-** pKeyInfoè¢«ç”¨æ¥æ¯”è¾ƒé”®å€¼.
+** Èç¹ûregPrev>0,ÄÇÃ´ÕâÊÇÏòÁ¿ÖĞ¼ÇÂ¼ÁËÖ®Ç°Êä³öµÄµÚÒ»¸ö¼Ä´æÆ÷. 
+** mem[regPrev]ÊÇÈç¹ûÖ®Ç°Ã»ÓĞÊä³öµÄÊ§°Ü±ê¼Ç. Èç¹ûregPrev>0ÄÇÃ´Éú³ÉµÄ´úÂë¾ÍÊÇÓÃÀ´½ûÖ¹ÖØ¸´.
+** pKeyInfo±»ÓÃÀ´±È½Ï¼üÖµ.
 **
 ** If the LIMIT found in p->iLimit is reached, jump immediately to
 ** iBreak.
-** å¦‚æœp->iLimitä¸­çš„LIMITè¾¾åˆ°é˜€å€¼,é‚£ä¹ˆé©¬ä¸Šè·³è½¬åˆ°iBreak.
+** Èç¹ûp->iLimitÖĞµÄLIMIT´ïµ½·§Öµ,ÄÇÃ´ÂíÉÏÌø×ªµ½iBreak.
 */
 static int generateOutputSubroutine(
-	Parse *pParse,          /* Parsing context è§£æä¸Šä¸‹æ–‡*/
-	Select *p,              /* The SELECT statement æŸ¥è¯¢è¯­å¥*/
-	SelectDest *pIn,        /* Coroutine supplying data ååŒç¨‹åºæä¾›æ•°æ®*/
-	SelectDest *pDest,      /* Where to send the data æ•°æ®ä¼ è¾“çš„ç›®çš„åœ°*/
-	int regReturn,          /* The return address register è¿”å›åœ°å€çš„å¯„å­˜å™¨ */
-	int regPrev,            /* Previous result register.  No uniqueness if 0. ä¹‹å‰ç»“æœçš„å¯„å­˜å™¨,å¦‚æœæ˜¯0çš„è¯å°±æ²¡æœ‰å”¯ä¸€æ€§ */
-	KeyInfo *pKeyInfo,      /* For comparing with previous entry. ä¸ä¹‹å‰çš„è¾“å…¥æ¯”è¾ƒ*/
-	int p4type,             /* The p4 type for pKeyInfo. ä¸ºpKeyInfoå£°æ˜çš„ç±»å‹*/
-	int iBreak              /* Jump here if we hit the LIMIT. è‹¥è¾¾åˆ°é˜€å€¼åˆ™è·³è½¬åˆ°è¿™é‡Œ*/
+	Parse *pParse,          /* Parsing context ½âÎöÉÏÏÂÎÄ*/
+	Select *p,              /* The SELECT statement ²éÑ¯Óï¾ä*/
+	SelectDest *pIn,        /* Coroutine supplying data Ğ­Í¬³ÌĞòÌá¹©Êı¾İ*/
+	SelectDest *pDest,      /* Where to send the data Êı¾İ´«ÊäµÄÄ¿µÄµØ*/
+	int regReturn,          /* The return address register ·µ»ØµØÖ·µÄ¼Ä´æÆ÷ */
+	int regPrev,            /* Previous result register.  No uniqueness if 0. Ö®Ç°½á¹ûµÄ¼Ä´æÆ÷,Èç¹ûÊÇ0µÄ»°¾ÍÃ»ÓĞÎ¨Ò»ĞÔ */
+	KeyInfo *pKeyInfo,      /* For comparing with previous entry. ÓëÖ®Ç°µÄÊäÈë±È½Ï*/
+	int p4type,             /* The p4 type for pKeyInfo. ÎªpKeyInfoÉùÃ÷µÄÀàĞÍ*/
+	int iBreak              /* Jump here if we hit the LIMIT. Èô´ïµ½·§ÖµÔòÌø×ªµ½ÕâÀï*/
 	){
 	Vdbe *v = pParse->pVdbe;
 	int iContinue;
@@ -2260,7 +2260,7 @@ static int generateOutputSubroutine(
 	iContinue = sqlite3VdbeMakeLabel(v);
 
 	/* Suppress duplicates for UNION, EXCEPT, and INTERSECT
-	** UNION, EXCEPT, and INTERSECTçš„ç¦æ­¢é‡å¤å­—æ®µ
+	** UNION, EXCEPT, and INTERSECTµÄ½ûÖ¹ÖØ¸´×Ö¶Î
 	*/
 	if (regPrev){
 		int j1, j2;
@@ -2275,21 +2275,21 @@ static int generateOutputSubroutine(
 	if (pParse->db->mallocFailed) return 0;
 
 	/* Suppress the first OFFSET entries if there is an OFFSET clause
-	** å½“æœ‰OFFSETå…ƒç´ çš„æ—¶å€™ç¦æ­¢ç¬¬ä¸€ä¸ªOFFSETè¾“å…¥
+	** µ±ÓĞOFFSETÔªËØµÄÊ±ºò½ûÖ¹µÚÒ»¸öOFFSETÊäÈë
 	*/
 	codeOffset(v, p, iContinue);
 
 	switch (pDest->eDest){
 		/* Store the result as data using a unique key.
-		** ä½¿ç”¨ä¸€ä¸ªç‰¹æ®Šçš„é”®å€¼æ¥ä»¥æ•°æ®çš„æ–¹å¼å­˜å‚¨ç»“æœ
+		** Ê¹ÓÃÒ»¸öÌØÊâµÄ¼üÖµÀ´ÒÔÊı¾İµÄ·½Ê½´æ´¢½á¹û
 		*/
 	case SRT_Table:
 	case SRT_EphemTab: {
-		int r1 = sqlite3GetTempReg(pParse);/*åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨ï¼Œå­˜å‚¨ä¸­é—´è®¡ç®—ç»“æœ*/*/
+		int r1 = sqlite3GetTempReg(pParse);/*·ÖÅäÒ»¸ö¼Ä´æÆ÷£¬´æ´¢ÖĞ¼ä¼ÆËã½á¹û*/*/
 		int r2 = sqlite3GetTempReg(pParse);
-		testcase(pDest->eDest == SRT_Table);/*æµ‹è¯•å¤„ç†çš„ç»“æœé›†çš„è¡¨åç§°*/
-		testcase(pDest->eDest == SRT_EphemTab);/*æµ‹è¯•å¤„ç†çš„ç»“æœé›†çš„è¡¨çš„å¤§å°*/
-		sqlite3VdbeAddOp3(v, OP_MakeRecord, pIn->iSdst, pIn->nSdst, r1);/*æŠŠOP_MakeRecordï¼ˆåšè®°å½•ï¼‰æ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
+		testcase(pDest->eDest == SRT_Table);/*²âÊÔ´¦ÀíµÄ½á¹û¼¯µÄ±íÃû³Æ*/
+		testcase(pDest->eDest == SRT_EphemTab);/*²âÊÔ´¦ÀíµÄ½á¹û¼¯µÄ±íµÄ´óĞ¡*/
+		sqlite3VdbeAddOp3(v, OP_MakeRecord, pIn->iSdst, pIn->nSdst, r1);/*°ÑOP_MakeRecord£¨×ö¼ÇÂ¼£©²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
 		sqlite3VdbeAddOp2(v, OP_NewRowid, pDest->iSDParm, r2);
 		sqlite3VdbeAddOp3(v, OP_Insert, pDest->iSDParm, r1, r2);
 		sqlite3VdbeChangeP5(v, OPFLAG_APPEND);
@@ -2302,8 +2302,8 @@ static int generateOutputSubroutine(
 		/* If we are creating a set for an "expr IN (SELECT ...)" construct,
 		** then there should be a single item on the stack.  Write this
 		** item into the set table with bogus data.
-		** å¦‚æœæˆ‘ä»¬ä¸º"expr IN (SELECT ...)"åˆ›å»ºä¸€ä¸ªç»“æ„é›†åˆ,é‚£ä¹ˆæ ˆé‡Œé¢åº”è¯¥åªæœ‰ä¸€ä¸ªå…ƒç´ .
-		** å°†è¿™ä¸ªå…ƒç´ ä¼ªè£…åå†™å…¥è¡¨é›†ä¸­.
+		** Èç¹ûÎÒÃÇÎª"expr IN (SELECT ...)"´´½¨Ò»¸ö½á¹¹¼¯ºÏ,ÄÇÃ´Õ»ÀïÃæÓ¦¸ÃÖ»ÓĞÒ»¸öÔªËØ.
+		** ½«Õâ¸öÔªËØÎ±×°ºóĞ´Èë±í¼¯ÖĞ.
 		*/
 	case SRT_Set: {
 		int r1;
@@ -2313,14 +2313,14 @@ static int generateOutputSubroutine(
 		r1 = sqlite3GetTempReg(pParse);
 		sqlite3VdbeAddOp4(v, OP_MakeRecord, pIn->iSdst, 1, r1, &p->affinity, 1);
 		sqlite3ExprCacheAffinityChange(pParse, pIn->iSdst, 1);
-		sqlite3VdbeAddOp2(v, OP_IdxInsert, pDest->iSDParm, r1);/*æŠŠOP_IdxInsertæ“ä½œé€å…¥VDBEï¼Œå†è¿”å›ä¸€ä¸ªæ–°æŒ‡ä»¤åœ°å€*/
-		sqlite3ReleaseTempReg(pParse, r1);/*é‡Šæ”¾è¿™ä¸ªå¯„å­˜å™¨*/
+		sqlite3VdbeAddOp2(v, OP_IdxInsert, pDest->iSDParm, r1);/*°ÑOP_IdxInsert²Ù×÷ËÍÈëVDBE£¬ÔÙ·µ»ØÒ»¸öĞÂÖ¸ÁîµØÖ·*/
+		sqlite3ReleaseTempReg(pParse, r1);/*ÊÍ·ÅÕâ¸ö¼Ä´æÆ÷*/
 		break;
 	}
 
 #if 0  /* Never occurs on an ORDER BY query */
 		/* If any row exist in the result set, record that fact and abort.
-		** å¦‚æœæœ‰ä»»ä½•æœªå¤„ç†çš„æ•°æ®å­˜åœ¨äºç»“æœé›†ä¸­,è®°å½•å®ƒç„¶åä¸­æ­¢
+		** Èç¹ûÓĞÈÎºÎÎ´´¦ÀíµÄÊı¾İ´æÔÚÓÚ½á¹û¼¯ÖĞ,¼ÇÂ¼ËüÈ»ºóÖĞÖ¹
 		*/
 	case SRT_Exists: {
 		sqlite3VdbeAddOp2(v, OP_Integer, 1, pDest->iSDParm);
@@ -2332,19 +2332,19 @@ static int generateOutputSubroutine(
 		/* If this is a scalar select that is part of an expression, then
 		** store the results in the appropriate memory cell and break out
 		** of the scan loop.
-		** å¦‚æœè¿™æ˜¯ä¸€ä¸ªæ ‡é‡é€‰æ‹©è¡¨è¾¾å¼çš„ä¸€éƒ¨åˆ†,é‚£ä¹ˆæŠŠç»“æœå­˜å‚¨åœ¨ä¸€ä¸ªåˆé€‚çš„å­˜å‚¨å•å…ƒä¸­,ç„¶åè·³å‡ºæ£€ç´¢å¾ªç¯
+		** Èç¹ûÕâÊÇÒ»¸ö±êÁ¿Ñ¡Ôñ±í´ïÊ½µÄÒ»²¿·Ö,ÄÇÃ´°Ñ½á¹û´æ´¢ÔÚÒ»¸öºÏÊÊµÄ´æ´¢µ¥ÔªÖĞ,È»ºóÌø³ö¼ìË÷Ñ­»·
 		*/
 	case SRT_Mem: {
 		assert(pIn->nSdst == 1);
 		sqlite3ExprCodeMove(pParse, pIn->iSdst, pDest->iSDParm, 1);
-		/* The LIMIT clause will jump out of the loop for us. LIMITå…ƒç´ ä¼šè·³å‡ºå¾ªç¯*/
+		/* The LIMIT clause will jump out of the loop for us. LIMITÔªËØ»áÌø³öÑ­»·*/
 		break;
 	}
 #endif /* #ifndef SQLITE_OMIT_SUBQUERY */
 
 		/* The results are stored in a sequence of registers
 		** starting at pDest->iSdst.  Then the co-routine yields.
-		** ç»“æœå­˜å‚¨åœ¨ä»¥pDest->iSdstå¼€å§‹çš„å¯„å­˜å™¨åºåˆ—ä¸­.æ¥ä¸‹æ¥å°±æ˜¯ååŒç¨‹åºçš„èŒƒç•´äº†.
+		** ½á¹û´æ´¢ÔÚÒÔpDest->iSdst¿ªÊ¼µÄ¼Ä´æÆ÷ĞòÁĞÖĞ.½ÓÏÂÀ´¾ÍÊÇĞ­Í¬³ÌĞòµÄ·¶³ëÁË.
 		*/
 	case SRT_Coroutine: {
 		if (pDest->iSdst == 0){
@@ -2830,18 +2830,18 @@ static int multiSelectOrderBy(
 }
 #endif
 
-//æ±¤æµ·å©·
+//ÌÀº£æÃ
 
-#if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)//å®å®šä¹‰
-/* Forward Declarations *//*é¢„å…ˆå£°æ˜*/
-//å£°æ˜é™æ€å‡½æ•°
+#if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)//ºê¶¨Òå
+/* Forward Declarations *//*Ô¤ÏÈÉùÃ÷*/
+//ÉùÃ÷¾²Ì¬º¯Êı
 static void substExprList(sqlite3*, ExprList*, int, ExprList*);
 static void substSelect(sqlite3*, Select *, int, ExprList *);
 
 /*
 ** Scan through the expression pExpr.  Replace every reference to
 ** a column in table number iTable with a copy of the iColumn-th
-** entry in pEList.  (But leave references to the ROWID column unchangedã€‚
+** entry in pEList.  (But leave references to the ROWID column unchanged¡£
 ** unchanged.)
 **
 ** This routine is part of the flattening procedure.  A subquery
@@ -2855,89 +2855,89 @@ static void substSelect(sqlite3*, Select *, int, ExprList *);
 
 
 /*
-** é€šè¿‡è¡¨è¾¾å¼pExprè¿›è¡Œæ‰«æï¼Œä»è¡¨è¾¾å¼åˆ—è¡¨ä¸­å¤åˆ¶ç¬¬iColumn-thä¸ªæ¡ç›®ï¼Œæ›¿æ¢iTableä¸­æ¯ä¸ªå‚ç…§çš„åˆ—ã€‚
-** ï¼ˆROWIDä¸åšä»»ä½•æ”¹å˜ï¼‰
-** è¿™ä¸ªä¾‹ç¨‹æ˜¯æ‹¼åˆè¿‡ç¨‹çš„ä¸€éƒ¨åˆ†ã€‚å­æŸ¥è¯¢çš„ç»“æœé›†è¢«è¡¨è¾¾å¼å®šä¹‰ï¼Œè¡¨ç°ä¸ºä¸€ä¸ªåœ¨SELECTä¸­FROMå­å¥çš„æ¡ç›®ï¼Œ
-** å› æ­¤VDBEåˆ†é…ç»™FROMå­å¥çš„æ¸¸æ ‡æ˜¯ä¸€ä¸ªè¡¨ã€‚è¿™ä¸ªç¨‹åºå¿…é¡»å¯¹è¡¨è¾¾å¼åšå‡ºæ”¹å˜ï¼Œæ‰èƒ½ç›´æ¥å¼•ç”¨å­æŸ¥è¯¢çš„æºè¡¨è€Œä¸æ˜¯
-** å­æŸ¥è¯¢çš„ç»“æœé›†ã€‚
+** Í¨¹ı±í´ïÊ½pExpr½øĞĞÉ¨Ãè£¬´Ó±í´ïÊ½ÁĞ±íÖĞ¸´ÖÆµÚiColumn-th¸öÌõÄ¿£¬Ìæ»»iTableÖĞÃ¿¸ö²ÎÕÕµÄÁĞ¡£
+** £¨ROWID²»×öÈÎºÎ¸Ä±ä£©
+** Õâ¸öÀı³ÌÊÇÆ´ºÏ¹ı³ÌµÄÒ»²¿·Ö¡£×Ó²éÑ¯µÄ½á¹û¼¯±»±í´ïÊ½¶¨Òå£¬±íÏÖÎªÒ»¸öÔÚSELECTÖĞFROM×Ó¾äµÄÌõÄ¿£¬
+** Òò´ËVDBE·ÖÅä¸øFROM×Ó¾äµÄÓÎ±êÊÇÒ»¸ö±í¡£Õâ¸ö³ÌĞò±ØĞë¶Ô±í´ïÊ½×ö³ö¸Ä±ä£¬²ÅÄÜÖ±½ÓÒıÓÃ×Ó²éÑ¯µÄÔ´±í¶ø²»ÊÇ
+** ×Ó²éÑ¯µÄ½á¹û¼¯¡£
 */
 
 static Expr *substExpr(
-	sqlite3 *db,        /* Report malloc errors to this connection *//*å®šä¹‰æ•°æ®åº“db,æŠ¥å‘Šmallocé”™è¯¯è¿æ¥*/
-	Expr *pExpr,        /* Expr in which substitution occurs *//*å®šä¹‰pExprå˜é‡ï¼Œå½“æ›¿æ¢å‘ç”Ÿ*/
-	int iTable,         /* Table to be substituted *//*æ›¿æ¢çš„è¡¨å·*/
-	ExprList *pEList    /* Substitute expressions *//*æ›¿æ¢çš„è¡¨è¾¾å¼åˆ—è¡¨*/
+	sqlite3 *db,        /* Report malloc errors to this connection *//*¶¨ÒåÊı¾İ¿âdb,±¨¸æmalloc´íÎóÁ¬½Ó*/
+	Expr *pExpr,        /* Expr in which substitution occurs *//*¶¨ÒåpExpr±äÁ¿£¬µ±Ìæ»»·¢Éú*/
+	int iTable,         /* Table to be substituted *//*Ìæ»»µÄ±íºÅ*/
+	ExprList *pEList    /* Substitute expressions *//*Ìæ»»µÄ±í´ïÊ½ÁĞ±í*/
 	)
 {
-	///*åˆ¤æ–­æ¡ä»¶ï¼Œè‹¥è¡¨è¾¾å¼ä¸ºç©ºï¼Œè¿”å›*/
+	///*ÅĞ¶ÏÌõ¼ş£¬Èô±í´ïÊ½Îª¿Õ£¬·µ»Ø*/
 	if (pExpr == 0) return 0;
 
 	if (pExpr->op == TK_COLUMN && pExpr->iTable == iTable){
 
-		if (pExpr->iColumn<0){//è¡¨è¾¾å¼åˆ—æ•°æº¢å‡º
-			pExpr->op = TK_NULL;//èµ‹å€¼ä¸ºç©º
+		if (pExpr->iColumn<0){//±í´ïÊ½ÁĞÊıÒç³ö
+			pExpr->op = TK_NULL;//¸³ÖµÎª¿Õ
 		}
 		else{
-			Expr *pNew;//å£°æ˜ä¸€ä¸ªæ–°çš„æŒ‡å‘è¡¨è¾¾å¼çš„æŒ‡é’ˆ
-			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//å¼‚å¸¸å¤„ç†ï¼Œè¡¨è¾¾å¼ä¸ä¸ºç©ºï¼Œå¹¶ä¸”åˆ—æ•°å°äºè¡¨è¾¾å¼åˆ—è¡¨ä¸­è¡¨è¾¾å¼çš„ä¸ªæ•°ï¼Œæ¡ä»¶ä¸æˆç«‹åˆ™æŠ›å‡º
-			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//å¼‚å¸¸å¤„ç†ï¼Œè¡¨è¾¾å¼çš„å·¦å³å­æ ‘ä¸ºç©ºï¼Œæ¡ä»¶ä¸æˆç«‹æŠ›å‡ºæ–­ç‚¹
-			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//æ·±æ‹·è´
-			if (pNew && pExpr->pColl){//è‹¥pNewä¸ä¸ºç©ºä¸”è¡¨è¾¾å¼çš„æ’åºåºåˆ—ä¸ä¸ºç©ºæˆç«‹ï¼Œæ‰§è¡Œ
-				pNew->pColl = pExpr->pColl;//å…¨å±€å˜é‡èµ‹å€¼
+			Expr *pNew;//ÉùÃ÷Ò»¸öĞÂµÄÖ¸Ïò±í´ïÊ½µÄÖ¸Õë
+			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//Òì³£´¦Àí£¬±í´ïÊ½²»Îª¿Õ£¬²¢ÇÒÁĞÊıĞ¡ÓÚ±í´ïÊ½ÁĞ±íÖĞ±í´ïÊ½µÄ¸öÊı£¬Ìõ¼ş²»³ÉÁ¢ÔòÅ×³ö
+			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//Òì³£´¦Àí£¬±í´ïÊ½µÄ×óÓÒ×ÓÊ÷Îª¿Õ£¬Ìõ¼ş²»³ÉÁ¢Å×³ö¶Ïµã
+			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//Éî¿½±´
+			if (pNew && pExpr->pColl){//ÈôpNew²»Îª¿ÕÇÒ±í´ïÊ½µÄÅÅĞòĞòÁĞ²»Îª¿Õ³ÉÁ¢£¬Ö´ĞĞ
+				pNew->pColl = pExpr->pColl;//È«¾Ö±äÁ¿¸³Öµ
 			}
-			sqlite3ExprDelete(db, pExpr);//è°ƒç”¨æ•°æ®åº“ä¸­è¡¨è¾¾å¼åˆ é™¤å‡½æ•°
-			pExpr = pNew;//å…¨å±€å˜é‡èµ‹å€¼
+			sqlite3ExprDelete(db, pExpr);//µ÷ÓÃÊı¾İ¿âÖĞ±í´ïÊ½É¾³ıº¯Êı
+			pExpr = pNew;//È«¾Ö±äÁ¿¸³Öµ
 		}
 	}
 	else{
-		pExpr->pLeft = substExpr(db, pExpr->pLeft, iTable, pEList);//é€’å½’è°ƒç”¨substExprå‡½æ•°
-		pExpr->pRight = substExpr(db, pExpr->pRight, iTable, pEList);//é€’å½’è°ƒç”¨substExprå‡½æ•°
-		if (ExprHasProperty(pExpr, EP_xIsSelect)){//è°ƒç”¨å‡½æ•°ExprHasPropertyåˆ¤æ–­è¡¨è¾¾å¼pExpræ˜¯å¦è¿›è¡ŒEP_xIsSelectæŸ¥è¯¢
-			substSelect(db, pExpr->x.pSelect, iTable, pEList);//è°ƒç”¨substSelectå‡½æ•°ï¼Œå¯¹pExpr->x.pSelectä¸­Selectè¯­å¥è¿›è¡Œå¤„ç†
+		pExpr->pLeft = substExpr(db, pExpr->pLeft, iTable, pEList);//µİ¹éµ÷ÓÃsubstExprº¯Êı
+		pExpr->pRight = substExpr(db, pExpr->pRight, iTable, pEList);//µİ¹éµ÷ÓÃsubstExprº¯Êı
+		if (ExprHasProperty(pExpr, EP_xIsSelect)){//µ÷ÓÃº¯ÊıExprHasPropertyÅĞ¶Ï±í´ïÊ½pExprÊÇ·ñ½øĞĞEP_xIsSelect²éÑ¯
+			substSelect(db, pExpr->x.pSelect, iTable, pEList);//µ÷ÓÃsubstSelectº¯Êı£¬¶ÔpExpr->x.pSelectÖĞSelectÓï¾ä½øĞĞ´¦Àí
 		}
 		else{
-			substExprList(db, pExpr->x.pList, iTable, pEList);//è°ƒç”¨substExprListå‡½æ•°ï¼Œå¯¹pExpr->x.pListè¡¨è¾¾å¼åˆ—è¡¨å¤„ç†
+			substExprList(db, pExpr->x.pList, iTable, pEList);//µ÷ÓÃsubstExprListº¯Êı£¬¶ÔpExpr->x.pList±í´ïÊ½ÁĞ±í´¦Àí
 		}
 	}
-	return pExpr;//è¿”å›ç›¸åº”çš„è¡¨è¾¾å¼æŒ‡é’ˆ
+	return pExpr;//·µ»ØÏàÓ¦µÄ±í´ïÊ½Ö¸Õë
 }
 static void substExprList(
-	sqlite3 *db,         /* Report malloc errors here *//*å£°æ˜sqliteçš„å¯¹è±¡ï¼ŒæŠ¥å‘Šåˆ†é…å†…å­˜é”™è¯¯*/
-	ExprList *pList,     /* List to scan and in which to make substitutes *//*å®šä¹‰pExprå˜é‡ï¼Œå½“æ›¿æ¢å‘ç”Ÿæ‰«æåˆ—è¡¨*/
-	int iTable,          /* Table to be substituted *//*å£°æ˜è¦æ›¿æ¢çš„è¡¨å·*/
-	ExprList *pEList     /* Substitute values *//*æ›¿æ¢çš„è¡¨è¾¾å¼åˆ—è¡¨*/
+	sqlite3 *db,         /* Report malloc errors here *//*ÉùÃ÷sqliteµÄ¶ÔÏó£¬±¨¸æ·ÖÅäÄÚ´æ´íÎó*/
+	ExprList *pList,     /* List to scan and in which to make substitutes *//*¶¨ÒåpExpr±äÁ¿£¬µ±Ìæ»»·¢ÉúÉ¨ÃèÁĞ±í*/
+	int iTable,          /* Table to be substituted *//*ÉùÃ÷ÒªÌæ»»µÄ±íºÅ*/
+	ExprList *pEList     /* Substitute values *//*Ìæ»»µÄ±í´ïÊ½ÁĞ±í*/
 	){
-	int i;//å£°æ˜æ•´å˜é‡i
-	if (pList == 0) return;//è¡¨è¾¾å¼åˆ—è¡¨ä¸ºç©ºï¼Œè¿”å›
-	//éå†è¡¨è¾¾å¼åˆ—è¡¨
+	int i;//ÉùÃ÷Õû±äÁ¿i
+	if (pList == 0) return;//±í´ïÊ½ÁĞ±íÎª¿Õ£¬·µ»Ø
+	//±éÀú±í´ïÊ½ÁĞ±í
 	for (i = 0; i<pList->nExpr; i++){
-		pList->a[i].pExpr = substExpr(db, pList->a[i].pExpr, iTable, pEList);//é€’å½’è°ƒç”¨ï¼Œé‡æ–°èµ‹å€¼pList->a[i].pExpr
+		pList->a[i].pExpr = substExpr(db, pList->a[i].pExpr, iTable, pEList);//µİ¹éµ÷ÓÃ£¬ÖØĞÂ¸³ÖµpList->a[i].pExpr
 	}
 }
 
 static void substSelect(
-	sqlite3 *db,         /* Report malloc errors here *//*å£°æ˜sqliteçš„å¯¹è±¡ï¼ŒæŠ¥å‘Šåˆ†é…å†…å­˜é”™è¯¯*/
-	Select *p,           /* SELECT statement in which to make substitutions *//*å£°æ˜ä¸€ä¸ªSelectå¯¹è±¡*/
-	int iTable,          /* Table to be replaced *//*å£°æ˜è¦æ›¿æ¢çš„è¡¨å·*/
-	ExprList *pEList     /* Substitute values *//*æ›¿æ¢çš„è¡¨è¾¾å¼åˆ—è¡¨*/
+	sqlite3 *db,         /* Report malloc errors here *//*ÉùÃ÷sqliteµÄ¶ÔÏó£¬±¨¸æ·ÖÅäÄÚ´æ´íÎó*/
+	Select *p,           /* SELECT statement in which to make substitutions *//*ÉùÃ÷Ò»¸öSelect¶ÔÏó*/
+	int iTable,          /* Table to be replaced *//*ÉùÃ÷ÒªÌæ»»µÄ±íºÅ*/
+	ExprList *pEList     /* Substitute values *//*Ìæ»»µÄ±í´ïÊ½ÁĞ±í*/
 	){
-	SrcList *pSrc;//å£°æ˜æè¿°SELECTä¸­çš„FROMå­å¥çš„å¯¹è±¡
-	struct SrcList_item *pItem;//å£°æ˜SrcList_itemç»“æ„ä½“çš„ä¸€ä¸ªFROMå­å¥å¯¹è±¡
-	int i;//å£°æ˜æ•´å˜é‡i
-	if (!p) return;//è‹¥pä¸ç©ºï¼Œè¿”å›
+	SrcList *pSrc;//ÉùÃ÷ÃèÊöSELECTÖĞµÄFROM×Ó¾äµÄ¶ÔÏó
+	struct SrcList_item *pItem;//ÉùÃ÷SrcList_item½á¹¹ÌåµÄÒ»¸öFROM×Ó¾ä¶ÔÏó
+	int i;//ÉùÃ÷Õû±äÁ¿i
+	if (!p) return;//Èôp²»¿Õ£¬·µ»Ø
 
-	substExprList(db, p->pEList, iTable, pEList);	//è°ƒç”¨substExprListå‡½æ•°ï¼Œå¯¹ p->pEListè¡¨è¾¾å¼åˆ—è¡¨å¤„ç†
-	substExprList(db, p->pGroupBy, iTable, pEList);	//è°ƒç”¨substExprListå‡½æ•°ï¼Œå¯¹ p->pGroupByè¡¨è¾¾å¼åˆ—è¡¨å¤„ç†
-	substExprList(db, p->pOrderBy, iTable, pEList);	//è°ƒç”¨substExprListå‡½æ•°ï¼Œå¯¹ p->pOrderByè¡¨è¾¾å¼åˆ—è¡¨å¤„ç†
-	p->pHaving = substExpr(db, p->pHaving, iTable, pEList);//è°ƒç”¨substExprå‡½æ•°ï¼Œèµ‹å€¼ç»™SELECTä¸­pHavingå±æ€§
-	p->pWhere = substExpr(db, p->pWhere, iTable, pEList);//è°ƒç”¨substExprå‡½æ•°ï¼Œèµ‹å€¼ç»™SELECTä¸­pWhereå±æ€§
-	substSelect(db, p->pPrior, iTable, pEList);//é€’å½’è°ƒç”¨substSelectå‡½æ•°
-	pSrc = p->pSrc;//è·å–å½“å‰fromå­å¥ä¸­çš„p->pSrc
-	assert(pSrc);  /* Even for (SELECT 1) we have: pSrc!=0 but pSrc->nSrc==0 *///æ»¡è¶³æ¡ä»¶ï¼Œæ’å…¥æ–­ç‚¹ï¼Œç”¨äºå¼‚å¸¸å¤„ç†
+	substExprList(db, p->pEList, iTable, pEList);	//µ÷ÓÃsubstExprListº¯Êı£¬¶Ô p->pEList±í´ïÊ½ÁĞ±í´¦Àí
+	substExprList(db, p->pGroupBy, iTable, pEList);	//µ÷ÓÃsubstExprListº¯Êı£¬¶Ô p->pGroupBy±í´ïÊ½ÁĞ±í´¦Àí
+	substExprList(db, p->pOrderBy, iTable, pEList);	//µ÷ÓÃsubstExprListº¯Êı£¬¶Ô p->pOrderBy±í´ïÊ½ÁĞ±í´¦Àí
+	p->pHaving = substExpr(db, p->pHaving, iTable, pEList);//µ÷ÓÃsubstExprº¯Êı£¬¸³Öµ¸øSELECTÖĞpHavingÊôĞÔ
+	p->pWhere = substExpr(db, p->pWhere, iTable, pEList);//µ÷ÓÃsubstExprº¯Êı£¬¸³Öµ¸øSELECTÖĞpWhereÊôĞÔ
+	substSelect(db, p->pPrior, iTable, pEList);//µİ¹éµ÷ÓÃsubstSelectº¯Êı
+	pSrc = p->pSrc;//»ñÈ¡µ±Ç°from×Ó¾äÖĞµÄp->pSrc
+	assert(pSrc);  /* Even for (SELECT 1) we have: pSrc!=0 but pSrc->nSrc==0 *///Âú×ãÌõ¼ş£¬²åÈë¶Ïµã£¬ÓÃÓÚÒì³£´¦Àí
 	if (ALWAYS(pSrc)){
-		//éå†fromå­å¥è¡¨ä¸­çš„å¯¹è±¡
+		//±éÀúfrom×Ó¾ä±íÖĞµÄ¶ÔÏó
 		for (i = pSrc->nSrc, pItem = pSrc->a; i>0; i--, pItem++){
-			substSelect(db, pItem->pSelect, iTable, pEList);//è°ƒç”¨substSelectå‡½æ•°ï¼Œå¯¹ pItem->x.pSelectä¸­Selectè¯­å¥è¿›è¡Œå¤„ç†
+			substSelect(db, pItem->pSelect, iTable, pEList);//µ÷ÓÃsubstSelectº¯Êı£¬¶Ô pItem->x.pSelectÖĞSelectÓï¾ä½øĞĞ´¦Àí
 		}
 	}
 }
@@ -3065,119 +3065,119 @@ static void substSelect(
 ** All of the expression analysis must occur on both the outer query and
 ** the subquery before this routine runs.
 */
-/* æ­¤ä¾‹ç¨‹å°è¯•ä»¥æ‰å¹³åŒ–å­æŸ¥è¯¢ä½œä¸ºä¸€ç§æ€§èƒ½ä¼˜åŒ–ã€‚å¦‚æœç¨‹åºå‘ç”Ÿäº†æ”¹å˜ï¼Œç¨‹åºè¿”å›1ï¼Œè‹¥æ²¡æœ‰æ‰å¹³åŒ–æ“ä½œï¼Œåˆ™ç¨‹åºè¿”å›0.
+/* ´ËÀı³Ì³¢ÊÔÒÔ±âÆ½»¯×Ó²éÑ¯×÷ÎªÒ»ÖÖĞÔÄÜÓÅ»¯¡£Èç¹û³ÌĞò·¢ÉúÁË¸Ä±ä£¬³ÌĞò·µ»Ø1£¬ÈôÃ»ÓĞ±âÆ½»¯²Ù×÷£¬Ôò³ÌĞò·µ»Ø0.
 **
-** è¦ç†è§£æ‰å¹³åŒ–çš„æ¦‚å¿µï¼Œè¦è€ƒè™‘ä»¥ä¸‹çš„æŸ¥è¯¢ï¼š
+** ÒªÀí½â±âÆ½»¯µÄ¸ÅÄî£¬Òª¿¼ÂÇÒÔÏÂµÄ²éÑ¯£º
 **   SELECT a FROM (SELECT x+y AS a FROM t1 WHERE z<100) WHERE a>5
-** é»˜è®¤å…ˆæ‰§è¡Œå­æŸ¥è¯¢è¯­å¥ï¼Œç„¶åå°†ç»“æœå­˜å‚¨åœ¨ä¸´æ—¶è¡¨ä¸­ï¼Œåœ¨è¯¥ä¸´æ—¶è¡¨ä¸Šè¿è¡Œå¤–éƒ¨æŸ¥è¯¢ã€‚è¿™è¦æ±‚æœ‰ä¸¤ä¸ªæ“ä½œã€‚
-** æ­¤å¤–ï¼Œå› ä¸ºä¸´æ—¶è¡¨æ²¡æœ‰ç´¢å¼•ï¼Œå¯¹å¤–éƒ¨æŸ¥è¯¢çš„whereå­—å¥ä¸èƒ½è¿›è¡Œä¼˜åŒ–ã€‚
-** è¿™ä¸ªç¨‹åºå°è¯•é‡å†™æŸ¥è¯¢ï¼Œæ ¹æ®ä¸Šé¢çš„SQLè¯­å¥ï¼Œä½œä¸ºåƒè¿™æ ·çš„ä¸€ä¸ªå•ç‹¬çš„æ‰å¹³åŒ–æŸ¥è¯¢ï¼š
+** Ä¬ÈÏÏÈÖ´ĞĞ×Ó²éÑ¯Óï¾ä£¬È»ºó½«½á¹û´æ´¢ÔÚÁÙÊ±±íÖĞ£¬ÔÚ¸ÃÁÙÊ±±íÉÏÔËĞĞÍâ²¿²éÑ¯¡£ÕâÒªÇóÓĞÁ½¸ö²Ù×÷¡£
+** ´ËÍâ£¬ÒòÎªÁÙÊ±±íÃ»ÓĞË÷Òı£¬¶ÔÍâ²¿²éÑ¯µÄwhere×Ö¾ä²»ÄÜ½øĞĞÓÅ»¯¡£
+** Õâ¸ö³ÌĞò³¢ÊÔÖØĞ´²éÑ¯£¬¸ù¾İÉÏÃæµÄSQLÓï¾ä£¬×÷ÎªÏñÕâÑùµÄÒ»¸öµ¥¶ÀµÄ±âÆ½»¯²éÑ¯£º
 **   SELECT a FROM (SELECT x+y AS a FROM t1 WHERE z<100) WHERE a>5
-** ä»£ç ç»™å‡ºåŒæ ·çš„ç»“æœä½†åªéœ€è¦æ‰«æä¸€æ¬¡æ•°æ®ã€‚å› ä¸ºç´¢å¼•å¯èƒ½åœ¨è¡¨t1ä¸Šå­˜åœ¨ï¼Œå¯èƒ½é¿å…ä¸€æ¬¡å®Œæˆçš„æ•°æ®æ‰«æã€‚
+** ´úÂë¸ø³öÍ¬ÑùµÄ½á¹ûµ«Ö»ĞèÒªÉ¨ÃèÒ»´ÎÊı¾İ¡£ÒòÎªË÷Òı¿ÉÄÜÔÚ±ít1ÉÏ´æÔÚ£¬¿ÉÄÜ±ÜÃâÒ»´ÎÍê³ÉµÄÊı¾İÉ¨Ãè¡£
 **
-** è‹¥èƒ½æ»¡è¶³ä»¥ä¸‹è§„åˆ™ï¼Œå°±èƒ½å®ç°æ‰å¹³åŒ–æŸ¥è¯¢ï¼š
-**ï¼ˆ1ï¼‰å­æŸ¥è¯¢å’Œå¤–æŸ¥è¯¢ä¸èƒ½åŒæ—¶ä½¿ç”¨èšåˆå‡½æ•°
-**ï¼ˆ2ï¼‰å­æŸ¥è¯¢ä¸æ˜¯ä¸€ä¸ªèšåˆæˆ–å¤–éƒ¨æŸ¥è¯¢ä¸æ˜¯ä¸€ä¸ªè”æ¥
-**ï¼ˆ3ï¼‰å­æŸ¥è¯¢ä¸æ˜¯å·¦å¤–è¿æ¥çš„å³æ“ä½œé›†
-**ï¼ˆ4ï¼‰å­æŸ¥è¯¢ä¸ä½¿ç”¨â€œDISTINCTâ€
-**ï¼ˆ5ï¼‰è§„åˆ™ï¼ˆ4ï¼‰å’Œï¼ˆ5ï¼‰å®šä¹‰äº†DISTINCTå­æŸ¥è¯¢çš„å­é›†ï¼Œæ’é™¤äº†è¿™ç§ä¼˜åŒ–çš„å­æŸ¥è¯¢ã€‚è§„åˆ™ï¼ˆ4ï¼‰å·²ç»æ’é™¤äº†æ‰€æœ‰çš„DISTINCTå­æŸ¥è¯¢
-**ï¼ˆ6ï¼‰å­æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨èšé›†æˆ–å¤–éƒ¨æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨DISTINCT
-**ï¼ˆ7ï¼‰å­æŸ¥è¯¢æœ‰ä¸€ä¸ªFROMå­å¥ã€‚TODOï¼šå­æŸ¥è¯¢æ²¡æœ‰ä¸€ä¸ªFROMå­å¥ï¼Œè€ƒè™‘æ·»åŠ ä¸€ä¸ªç‰¹æ®Šçš„è¡¨sqlite_onceï¼Œå®ƒåªåŒ…å«äº†ä¸€ä¸ªå•ä¸€çš„ç©ºå€¼çš„è¡Œã€‚
-**ï¼ˆ8ï¼‰å­æŸ¥è¯¢ä¸ä½¿ç”¨é™åˆ¶æˆ–å¤–éƒ¨æŸ¥è¯¢ä¸æ˜¯ä¸€ä¸ªè”æ¥
-**ï¼ˆ9ï¼‰å­æŸ¥è¯¢ä¸ä½¿ç”¨é™åˆ¶æˆ–å¤–éƒ¨æŸ¥è¯¢ä¸ä½¿ç”¨èšé›†
-**ï¼ˆ10ï¼‰å­æŸ¥è¯¢ä¸ä½¿ç”¨èšåˆæˆ–å¤–éƒ¨æŸ¥è¯¢ä¸ä½¿ç”¨é™åˆ¶
-**ï¼ˆ11ï¼‰å­æŸ¥è¯¢å’Œå¤–éƒ¨æŸ¥è¯¢ä¸èƒ½åŒæ—¶ä½¿ç”¨ORDER BYå­å¥
-**ï¼ˆ12ï¼‰æ²¡æœ‰å®ç°ï¼Œå½’å…¥åˆ°é™åˆ¶æ¡ä»¶ï¼ˆ3ï¼‰ã€‚
-**ï¼ˆ13ï¼‰å­æŸ¥è¯¢å’Œå¤–éƒ¨æŸ¥è¯¢ä¸èƒ½åŒæ—¶ä½¿ç”¨LIMITå­å¥
-**ï¼ˆ14ï¼‰å­æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨OFFSETå­å¥
-**ï¼ˆ15ï¼‰å¤–éƒ¨æŸ¥è¯¢ä¸èƒ½æ˜¯ä¸€ä¸ªå¤åˆæŸ¥è¯¢çš„ä¸€éƒ¨åˆ†æˆ–è€…å­æŸ¥è¯¢ä¸èƒ½æœ‰LIMITå­å¥
-**ï¼ˆ16ï¼‰å¤–éƒ¨æŸ¥è¯¢ä¸èƒ½æ˜¯ä¸€ä¸ªèšé›†æŸ¥è¯¢æˆ–å­æŸ¥è¯¢ä¸èƒ½åŒ…å«orderbyå­å¥ã€‚é™¤éæœ‰group_concatï¼ˆï¼‰å‡½æ•°æ‰èƒ½å®ç°åŒ¹é…ã€‚
-**ï¼ˆ17ï¼‰å­æŸ¥è¯¢ä¸æ˜¯ä¸€ä¸ªå¤åˆæŸ¥è¯¢ï¼Œæˆ–è€…UNION ALLå¤åˆæŸ¥è¯¢æœ‰éèšé›†æŸ¥è¯¢ç»„æˆçš„æŸ¥è¯¢è¯­å¥ï¼Œå¦å¤–æœ‰ä»¥ä¸‹çš„çˆ¶æŸ¥è¯¢ï¼š
-**      *æœ¬èº«ä¸æ˜¯å¤åˆæŸ¥è¯¢
-**      *ä¸æ˜¯ä¸€ä¸ªèšé›†æŸ¥è¯¢æˆ–DISTINCTæŸ¥è¯¢
-**      *æ²¡æœ‰è¿æ¥æ“ä½œ
-** çˆ¶æŸ¥è¯¢æˆ–å­æŸ¥è¯¢å¯èƒ½åŒ…å«ä¸€ä¸ªWHEREå­å¥ã€‚è¿™äº›æœä»è§„åˆ™ï¼ˆ11ï¼‰ï¼Œï¼ˆ13ï¼‰å’Œï¼ˆ14ï¼‰ï¼Œå®ƒå¯èƒ½ä¹ŸåŒ…å« ORDER BY, LIMIT å’ŒOFFSET å­å¥.
-** å­æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨ä»»ä½•ç¬¦åˆæ“ä½œé™¤äº†UNION ALL,å› ä¸ºæ‰€æœ‰çš„å¤åˆæ“ä½œæ˜¯éƒ½æ˜¯å®ç°äº†DISTINCTï¼Œè§„åˆ™ï¼ˆ4ï¼‰ä¸å…è®¸çš„ã€‚
-** æ­¤å¤–ï¼Œæ¯ä¸€ä¸ªå­æŸ¥è¯¢çš„ç»„ä»¶å¿…é¡»è¿”å›æ•°é‡çš„ç»“æœåˆ—ã€‚è¿™ä¸ªå®é™…ä¸Šè¦æ±‚å¤åˆæŸ¥è¯¢ä¸­å­æŸ¥è¯¢æ²¡æœ‰æ‰å¹³åŒ–çš„ã€‚è°ƒç”¨å°†æ£€æµ‹åˆ°è¯­æ³•é”™è¯¯å’Œè¿”å›è¯¦ç»†ä¿¡æ¯
+** ÈôÄÜÂú×ãÒÔÏÂ¹æÔò£¬¾ÍÄÜÊµÏÖ±âÆ½»¯²éÑ¯£º
+**£¨1£©×Ó²éÑ¯ºÍÍâ²éÑ¯²»ÄÜÍ¬Ê±Ê¹ÓÃ¾ÛºÏº¯Êı
+**£¨2£©×Ó²éÑ¯²»ÊÇÒ»¸ö¾ÛºÏ»òÍâ²¿²éÑ¯²»ÊÇÒ»¸öÁª½Ó
+**£¨3£©×Ó²éÑ¯²»ÊÇ×óÍâÁ¬½ÓµÄÓÒ²Ù×÷¼¯
+**£¨4£©×Ó²éÑ¯²»Ê¹ÓÃ¡°DISTINCT¡±
+**£¨5£©¹æÔò£¨4£©ºÍ£¨5£©¶¨ÒåÁËDISTINCT×Ó²éÑ¯µÄ×Ó¼¯£¬ÅÅ³ıÁËÕâÖÖÓÅ»¯µÄ×Ó²éÑ¯¡£¹æÔò£¨4£©ÒÑ¾­ÅÅ³ıÁËËùÓĞµÄDISTINCT×Ó²éÑ¯
+**£¨6£©×Ó²éÑ¯²»ÄÜÊ¹ÓÃ¾Û¼¯»òÍâ²¿²éÑ¯²»ÄÜÊ¹ÓÃDISTINCT
+**£¨7£©×Ó²éÑ¯ÓĞÒ»¸öFROM×Ó¾ä¡£TODO£º×Ó²éÑ¯Ã»ÓĞÒ»¸öFROM×Ó¾ä£¬¿¼ÂÇÌí¼ÓÒ»¸öÌØÊâµÄ±ísqlite_once£¬ËüÖ»°üº¬ÁËÒ»¸öµ¥Ò»µÄ¿ÕÖµµÄĞĞ¡£
+**£¨8£©×Ó²éÑ¯²»Ê¹ÓÃÏŞÖÆ»òÍâ²¿²éÑ¯²»ÊÇÒ»¸öÁª½Ó
+**£¨9£©×Ó²éÑ¯²»Ê¹ÓÃÏŞÖÆ»òÍâ²¿²éÑ¯²»Ê¹ÓÃ¾Û¼¯
+**£¨10£©×Ó²éÑ¯²»Ê¹ÓÃ¾ÛºÏ»òÍâ²¿²éÑ¯²»Ê¹ÓÃÏŞÖÆ
+**£¨11£©×Ó²éÑ¯ºÍÍâ²¿²éÑ¯²»ÄÜÍ¬Ê±Ê¹ÓÃORDER BY×Ó¾ä
+**£¨12£©Ã»ÓĞÊµÏÖ£¬¹éÈëµ½ÏŞÖÆÌõ¼ş£¨3£©¡£
+**£¨13£©×Ó²éÑ¯ºÍÍâ²¿²éÑ¯²»ÄÜÍ¬Ê±Ê¹ÓÃLIMIT×Ó¾ä
+**£¨14£©×Ó²éÑ¯²»ÄÜÊ¹ÓÃOFFSET×Ó¾ä
+**£¨15£©Íâ²¿²éÑ¯²»ÄÜÊÇÒ»¸ö¸´ºÏ²éÑ¯µÄÒ»²¿·Ö»òÕß×Ó²éÑ¯²»ÄÜÓĞLIMIT×Ó¾ä
+**£¨16£©Íâ²¿²éÑ¯²»ÄÜÊÇÒ»¸ö¾Û¼¯²éÑ¯»ò×Ó²éÑ¯²»ÄÜ°üº¬orderby×Ó¾ä¡£³ı·ÇÓĞgroup_concat£¨£©º¯Êı²ÅÄÜÊµÏÖÆ¥Åä¡£
+**£¨17£©×Ó²éÑ¯²»ÊÇÒ»¸ö¸´ºÏ²éÑ¯£¬»òÕßUNION ALL¸´ºÏ²éÑ¯ÓĞ·Ç¾Û¼¯²éÑ¯×é³ÉµÄ²éÑ¯Óï¾ä£¬ÁíÍâÓĞÒÔÏÂµÄ¸¸²éÑ¯£º
+**      *±¾Éí²»ÊÇ¸´ºÏ²éÑ¯
+**      *²»ÊÇÒ»¸ö¾Û¼¯²éÑ¯»òDISTINCT²éÑ¯
+**      *Ã»ÓĞÁ¬½Ó²Ù×÷
+** ¸¸²éÑ¯»ò×Ó²éÑ¯¿ÉÄÜ°üº¬Ò»¸öWHERE×Ó¾ä¡£ÕâĞ©·ş´Ó¹æÔò£¨11£©£¬£¨13£©ºÍ£¨14£©£¬Ëü¿ÉÄÜÒ²°üº¬ ORDER BY, LIMIT ºÍOFFSET ×Ó¾ä.
+** ×Ó²éÑ¯²»ÄÜÊ¹ÓÃÈÎºÎ·ûºÏ²Ù×÷³ıÁËUNION ALL,ÒòÎªËùÓĞµÄ¸´ºÏ²Ù×÷ÊÇ¶¼ÊÇÊµÏÖÁËDISTINCT£¬¹æÔò£¨4£©²»ÔÊĞíµÄ¡£
+** ´ËÍâ£¬Ã¿Ò»¸ö×Ó²éÑ¯µÄ×é¼ş±ØĞë·µ»ØÊıÁ¿µÄ½á¹ûÁĞ¡£Õâ¸öÊµ¼ÊÉÏÒªÇó¸´ºÏ²éÑ¯ÖĞ×Ó²éÑ¯Ã»ÓĞ±âÆ½»¯µÄ¡£µ÷ÓÃ½«¼ì²âµ½Óï·¨´íÎóºÍ·µ»ØÏêÏ¸ĞÅÏ¢
 **
-**ï¼ˆ18ï¼‰å¦‚æœå­æŸ¥è¯¢æ˜¯å¤åˆæŸ¥è¯¢ï¼Œçˆ¶æŸ¥è¯¢ä¸­ORDERBYå­å¥æ‰€æœ‰è§„åˆ™å¿…é¡»ç®€å•ä¾èµ–å¼•ç”¨å­æŸ¥è¯¢çš„åˆ—ã€‚
-**ï¼ˆ19ï¼‰å­æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨LIMITæˆ–å¤–æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨WHEREå­å¥
-**ï¼ˆ20ï¼‰å¦‚æœå­æŸ¥è¯¢æ˜¯å¤åˆæŸ¥è¯¢ï¼Œä¸èƒ½ä½¿ç”¨ORDER BY å­å¥ã€‚é‡Šæ”¾è¿™äº›çº¦æŸæ¡ä»¶ï¼ŒORDER BY å­å¥å¿…é¡»æ˜¾ç¤ºä¸ºå¤–éƒ¨æŸ¥è¯¢ä¸­çš„æœªä¿®æ”¹çš„ç»“æœåˆ—ã€‚
-åœ¨æ‰“ç®—å¦‚ä½•å¤„ç†è¿™ç§æƒ…å†µä¸‹æœ‰å…¶ä»–ä¼˜åŒ–ã€‚
-**ï¼ˆ21ï¼‰å­æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨LIMITæˆ–è€…å¤–æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨DISTINCTã€‚
+**£¨18£©Èç¹û×Ó²éÑ¯ÊÇ¸´ºÏ²éÑ¯£¬¸¸²éÑ¯ÖĞORDERBY×Ó¾äËùÓĞ¹æÔò±ØĞë¼òµ¥ÒÀÀµÒıÓÃ×Ó²éÑ¯µÄÁĞ¡£
+**£¨19£©×Ó²éÑ¯²»ÄÜÊ¹ÓÃLIMIT»òÍâ²éÑ¯²»ÄÜÊ¹ÓÃWHERE×Ó¾ä
+**£¨20£©Èç¹û×Ó²éÑ¯ÊÇ¸´ºÏ²éÑ¯£¬²»ÄÜÊ¹ÓÃORDER BY ×Ó¾ä¡£ÊÍ·ÅÕâĞ©Ô¼ÊøÌõ¼ş£¬ORDER BY ×Ó¾ä±ØĞëÏÔÊ¾ÎªÍâ²¿²éÑ¯ÖĞµÄÎ´ĞŞ¸ÄµÄ½á¹ûÁĞ¡£
+ÔÚ´òËãÈçºÎ´¦ÀíÕâÖÖÇé¿öÏÂÓĞÆäËûÓÅ»¯¡£
+**£¨21£©×Ó²éÑ¯²»ÄÜÊ¹ÓÃLIMIT»òÕßÍâ²éÑ¯²»ÄÜÊ¹ÓÃDISTINCT¡£
 **
-**åœ¨è¿™ä¸ªç¨‹åºä¸­ï¼Œå‚æ•°pæ˜¯ä¸€ä¸ªæŒ‡é’ˆï¼ŒæŒ‡å‘å¤–æŸ¥è¯¢ï¼Œå­æŸ¥è¯¢p->pSrc->a[iFrom].å¦‚æœå¤–æŸ¥è¯¢ä½¿ç”¨äº†èšé›†isAggä¸ºTRUEï¼Œå¦‚æœ
-**å­æŸ¥è¯¢ä½¿ç”¨äº†èšé›†ï¼ŒsubqueryIsAggä¸ºTRUEã€‚
+**ÔÚÕâ¸ö³ÌĞòÖĞ£¬²ÎÊıpÊÇÒ»¸öÖ¸Õë£¬Ö¸ÏòÍâ²éÑ¯£¬×Ó²éÑ¯p->pSrc->a[iFrom].Èç¹ûÍâ²éÑ¯Ê¹ÓÃÁË¾Û¼¯isAggÎªTRUE£¬Èç¹û
+**×Ó²éÑ¯Ê¹ÓÃÁË¾Û¼¯£¬subqueryIsAggÎªTRUE¡£
 **
-**å¦‚æœä¸èƒ½è¿›è¡Œæ‰å¹³åŒ–ï¼Œé‚£ä¹ˆè¿™ä¸ªç¨‹åºä¸æ‰§è¡Œï¼Œå¹¶è¿”å›0ã€‚
-**å¦‚æœä½¿ç”¨æ‰å¹³åŒ–äº†ï¼Œè¿”å›1.
+**Èç¹û²»ÄÜ½øĞĞ±âÆ½»¯£¬ÄÇÃ´Õâ¸ö³ÌĞò²»Ö´ĞĞ£¬²¢·µ»Ø0¡£
+**Èç¹ûÊ¹ÓÃ±âÆ½»¯ÁË£¬·µ»Ø1.
 **
-*è¡¨è¾¾å¼åˆ†æå¿…é¡»å‘ç”Ÿåœ¨ç¨‹åºè¿è¡Œä¹‹å‰çš„å¤–éƒ¨æŸ¥è¯¢å’Œå­æŸ¥è¯¢ä¸­ã€‚
+*±í´ïÊ½·ÖÎö±ØĞë·¢ÉúÔÚ³ÌĞòÔËĞĞÖ®Ç°µÄÍâ²¿²éÑ¯ºÍ×Ó²éÑ¯ÖĞ¡£
 */
 static int flattenSubquery(
-	Parse *pParse,       /* Parsing context *//*å£°æ˜è§£æä¸Šä¸‹æ–‡çš„å˜é‡ï¼ˆè§£æå™¨ï¼‰*/
-	Select *p,           /* The parent or outer SELECT statement *//*å£°æ˜ä¸€ä¸ªçˆ¶æŸ¥è¯¢æˆ–å¤–éƒ¨æŸ¥è¯¢çš„å˜é‡*/
-	int iFrom,           /* Index in p->pSrc->a[] of the inner subquery *//*å†…éƒ¨æŸ¥è¯¢ä¸­p->pSrc->a[]ä¸­çš„ç´¢å¼•*/
-	int isAgg,           /* True if outer SELECT uses aggregate functions *//*å¤–éƒ¨æŸ¥è¯¢å¦‚æœç”¨äº†èšé›†å‡½æ•°ï¼Œåˆ™ä¸ºTRUE*/
-	int subqueryIsAgg    /* True if the subquery uses aggregate functions *//*å­æŸ¥è¯¢å¦‚æœä½¿ç”¨äº†èšé›†å‡½æ•°ï¼Œåˆ™ä¸ºTRUE*/
+	Parse *pParse,       /* Parsing context *//*ÉùÃ÷½âÎöÉÏÏÂÎÄµÄ±äÁ¿£¨½âÎöÆ÷£©*/
+	Select *p,           /* The parent or outer SELECT statement *//*ÉùÃ÷Ò»¸ö¸¸²éÑ¯»òÍâ²¿²éÑ¯µÄ±äÁ¿*/
+	int iFrom,           /* Index in p->pSrc->a[] of the inner subquery *//*ÄÚ²¿²éÑ¯ÖĞp->pSrc->a[]ÖĞµÄË÷Òı*/
+	int isAgg,           /* True if outer SELECT uses aggregate functions *//*Íâ²¿²éÑ¯Èç¹ûÓÃÁË¾Û¼¯º¯Êı£¬ÔòÎªTRUE*/
+	int subqueryIsAgg    /* True if the subquery uses aggregate functions *//*×Ó²éÑ¯Èç¹ûÊ¹ÓÃÁË¾Û¼¯º¯Êı£¬ÔòÎªTRUE*/
 	){
-	const char *zSavedAuthContext = pParse->zAuthContext;/*å£°æ˜å¸¸å˜é‡å¯¹è¯­æ³•è§£ææ ‘ä¸­çš„ä¸Šä¸‹æ–‡è¿›è¡Œèµ‹å€¼*/
+	const char *zSavedAuthContext = pParse->zAuthContext;/*ÉùÃ÷³£±äÁ¿¶ÔÓï·¨½âÎöÊ÷ÖĞµÄÉÏÏÂÎÄ½øĞĞ¸³Öµ*/
 	Select *pParent;
-	Select *pSub;       /* The inner query or "subquery" *//*å£°æ˜å˜é‡ pSubç”¨æ¥è¡¨æ˜å†…æŸ¥è¯¢æˆ–å­æŸ¥è¯¢å˜é‡*/
-	Select *pSub1;      /* Pointer to the rightmost select in sub-query *//*å£°æ˜pSub1å˜é‡ï¼Œç”¨æ¥è¡¨ç¤ºæŒ‡å‘å­æŸ¥è¯¢ä¸­æœ€å³è¾¹çš„æŸ¥è¯¢*/
-	SrcList *pSrc;      /* The FROM clause of the outer query *//*å£°æ˜Srclistçš„å¯¹è±¡ï¼Œè¡¨æ˜å¤–éƒ¨æŸ¥è¯¢çš„FROMå­å¥*/
-	SrcList *pSubSrc;   /* The FROM clause of the subquery *//*å£°æ˜Srclistçš„å¯¹è±¡ï¼Œç”¨æ¥è¡¨ç¤ºå­æŸ¥è¯¢çš„FROMå­å¥*/
-	ExprList *pList;    /* The result set of the outer query *//*å£°æ˜è¡¨è¾¾å¼Exprlistçš„å˜é‡ï¼Œè¡¨ç¤ºå¤–éƒ¨æŸ¥è¯¢çš„ç»“æœé›†*/
-	int iParent;        /* VDBE cursor number of the pSub result set temp table *//*å£°æ˜æ•´æ•°ç±»å‹çš„å˜é‡ï¼Œç”¨æ¥ä¸Šè¡¨ç¤ºVDBEæ¸¸æ ‡å·ï¼ŒæŒ‡å‘å†…æŸ¥è¯¢çš„ä¸´æ—¶è¡¨*/
-	int i;              /* Loop counter *//*å¾ªç¯è®¡æ•°*/
-	Expr *pWhere;                    /* The WHERE clause *//*ç”¨æ¥è¡¨ç¤ºWHEREå­å¥*/
-	struct SrcList_item *pSubitem;   /* The subquery *//*å£°æ˜ä¸€ä¸ªSrcList_itemç±»å‹çš„å­æŸ¥è¯¢ç»“æ„ä½“*/
-	sqlite3 *db = pParse->db;//å£°æ˜ä¸€ä¸ªsqlite3çš„å¯¹è±¡ï¼Œè¡¨ç¤ºæ•°æ®åº“è¿æ¥
+	Select *pSub;       /* The inner query or "subquery" *//*ÉùÃ÷±äÁ¿ pSubÓÃÀ´±íÃ÷ÄÚ²éÑ¯»ò×Ó²éÑ¯±äÁ¿*/
+	Select *pSub1;      /* Pointer to the rightmost select in sub-query *//*ÉùÃ÷pSub1±äÁ¿£¬ÓÃÀ´±íÊ¾Ö¸Ïò×Ó²éÑ¯ÖĞ×îÓÒ±ßµÄ²éÑ¯*/
+	SrcList *pSrc;      /* The FROM clause of the outer query *//*ÉùÃ÷SrclistµÄ¶ÔÏó£¬±íÃ÷Íâ²¿²éÑ¯µÄFROM×Ó¾ä*/
+	SrcList *pSubSrc;   /* The FROM clause of the subquery *//*ÉùÃ÷SrclistµÄ¶ÔÏó£¬ÓÃÀ´±íÊ¾×Ó²éÑ¯µÄFROM×Ó¾ä*/
+	ExprList *pList;    /* The result set of the outer query *//*ÉùÃ÷±í´ïÊ½ExprlistµÄ±äÁ¿£¬±íÊ¾Íâ²¿²éÑ¯µÄ½á¹û¼¯*/
+	int iParent;        /* VDBE cursor number of the pSub result set temp table *//*ÉùÃ÷ÕûÊıÀàĞÍµÄ±äÁ¿£¬ÓÃÀ´ÉÏ±íÊ¾VDBEÓÎ±êºÅ£¬Ö¸ÏòÄÚ²éÑ¯µÄÁÙÊ±±í*/
+	int i;              /* Loop counter *//*Ñ­»·¼ÆÊı*/
+	Expr *pWhere;                    /* The WHERE clause *//*ÓÃÀ´±íÊ¾WHERE×Ó¾ä*/
+	struct SrcList_item *pSubitem;   /* The subquery *//*ÉùÃ÷Ò»¸öSrcList_itemÀàĞÍµÄ×Ó²éÑ¯½á¹¹Ìå*/
+	sqlite3 *db = pParse->db;//ÉùÃ÷Ò»¸ösqlite3µÄ¶ÔÏó£¬±íÊ¾Êı¾İ¿âÁ¬½Ó
 
 	/* Check to see if flattening is permitted.  Return 0 if not.
-	*//*æ£€æŸ¥æ˜¯å¦å…è®¸æ‰å¹³åŒ–ï¼Œä¸å…è®¸åˆ™è¿”å›0*/
-	assert(p != 0);//SELECTç»“æ„ä½“ä¸ºç©ºï¼ŒæŠ›å‡ºå¼‚å¸¸ï¼Œè¿™é‡Œæ˜¯è®¾ç½®äº†æ–­ç‚¹ï¼Œç”¨äºå¤„ç†å¼‚å¸¸
-	assert(p->pPrior == 0);  // Unable to flatten compound queries *//*ä¸èƒ½æ‰å¹³åŒ–çš„å¤åˆæŸ¥è¯¢ï¼ŒåŠ å…¥æ–­ç‚¹ï¼Œå¼‚å¸¸å¤„ç†
-	if (db->flags & SQLITE_QueryFlattener) return 0;//å¦‚æœæ•°æ®è¿æ¥ä¸­å€¼ä¸ºSQLITE_QueryFlattenerä¸”æ ‡è®°å˜é‡db->flagså‡ç¬¦åˆæ¡ä»¶ï¼Œæ‰§è¡Œä¸‹ä¸€æ­¥ 
-	pSrc = p->pSrc;/*è·å–æŸ¥è¯¢ç»“æ„ä½“ä¸­fromå­å¥*/
-	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹ä¸æ»¡è¶³æ¡ä»¶ï¼Œåˆ™æŠ›å‡ºå¼‚å¸¸
-	pSubitem = &pSrc->a[iFrom];//FROMå­å¥ä¸­æ•°ç»„ç´¢å¼•åœ°å€èµ‹å€¼ç»™å­æŸ¥è¯¢pSubitem
-	iParent = pSubitem->iCursor;//è·å–å­æŸ¥è¯¢çš„æ¸¸æ ‡å·
-	pSub = pSubitem->pSelect;//è·å–å½“å‰çš„å­æŸ¥è¯¢æˆ–å†…æŸ¥è¯¢
-	assert(pSub != 0);//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹ï¼Œå¦‚æœå­æŸ¥è¯¢ç»“æ„ä½“ä¸ºç©ºï¼ŒæŠ›å‡ºè­¦å‘Šä¿¡æ¯
-	if (isAgg && subqueryIsAgg) return 0;                 /* Restriction (1)  *//*è§„åˆ™ï¼ˆ1ï¼‰å­æŸ¥è¯¢å’Œå¤–éƒ¨æŸ¥è¯¢ä½¿ç”¨äº†èšé›†å‡½æ•°ï¼Œç¨‹åºç›´æ¥è¿”å›*/
-	if (subqueryIsAgg && pSrc->nSrc>1) return 0;          /* Restriction (2)  *//*è§„åˆ™ï¼ˆ2ï¼‰*///ä½¿ç”¨èšé›†å‡½æ•°æˆ–è€…fromçš„å­å¥ä¸ªæ•°>1
-	pSubSrc = pSub->pSrc;//è·å–å­æŸ¥è¯¢çš„fromè¯­å¥
-	assert(pSubSrc);/*å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹ï¼Œå¦‚æœpSubSrcä¸ºç©ºï¼ŒæŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
+	*//*¼ì²éÊÇ·ñÔÊĞí±âÆ½»¯£¬²»ÔÊĞíÔò·µ»Ø0*/
+	assert(p != 0);//SELECT½á¹¹ÌåÎª¿Õ£¬Å×³öÒì³££¬ÕâÀïÊÇÉèÖÃÁË¶Ïµã£¬ÓÃÓÚ´¦ÀíÒì³£
+	assert(p->pPrior == 0);  // Unable to flatten compound queries *//*²»ÄÜ±âÆ½»¯µÄ¸´ºÏ²éÑ¯£¬¼ÓÈë¶Ïµã£¬Òì³£´¦Àí
+	if (db->flags & SQLITE_QueryFlattener) return 0;//Èç¹ûÊı¾İÁ¬½ÓÖĞÖµÎªSQLITE_QueryFlattenerÇÒ±ê¼Ç±äÁ¿db->flags¾ù·ûºÏÌõ¼ş£¬Ö´ĞĞÏÂÒ»²½ 
+	pSrc = p->pSrc;/*»ñÈ¡²éÑ¯½á¹¹ÌåÖĞfrom×Ó¾ä*/
+	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã²»Âú×ãÌõ¼ş£¬ÔòÅ×³öÒì³£
+	pSubitem = &pSrc->a[iFrom];//FROM×Ó¾äÖĞÊı×éË÷ÒıµØÖ·¸³Öµ¸ø×Ó²éÑ¯pSubitem
+	iParent = pSubitem->iCursor;//»ñÈ¡×Ó²éÑ¯µÄÓÎ±êºÅ
+	pSub = pSubitem->pSelect;//»ñÈ¡µ±Ç°µÄ×Ó²éÑ¯»òÄÚ²éÑ¯
+	assert(pSub != 0);//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã£¬Èç¹û×Ó²éÑ¯½á¹¹ÌåÎª¿Õ£¬Å×³ö¾¯¸æĞÅÏ¢
+	if (isAgg && subqueryIsAgg) return 0;                 /* Restriction (1)  *//*¹æÔò£¨1£©×Ó²éÑ¯ºÍÍâ²¿²éÑ¯Ê¹ÓÃÁË¾Û¼¯º¯Êı£¬³ÌĞòÖ±½Ó·µ»Ø*/
+	if (subqueryIsAgg && pSrc->nSrc>1) return 0;          /* Restriction (2)  *//*¹æÔò£¨2£©*///Ê¹ÓÃ¾Û¼¯º¯Êı»òÕßfromµÄ×Ó¾ä¸öÊı>1
+	pSubSrc = pSub->pSrc;//»ñÈ¡×Ó²éÑ¯µÄfromÓï¾ä
+	assert(pSubSrc);/*Òì³£´¦Àí£¬¼ÓÈë¶Ïµã£¬Èç¹ûpSubSrcÎª¿Õ£¬Å×³ö´íÎóĞÅÏ¢*/
 	/* Prior to version 3.1.2, when LIMIT and OFFSET had to be simple constants,
 	** not arbitrary expresssions, we allowed some combining of LIMIT and OFFSET
 	** because they could be computed at compile-time.  But when LIMIT and OFFSET
 	** became arbitrary expressions, we were forced to add restrictions (13)
 	** and (14). */
-	/*ä¹‹å‰ç‰ˆæœ¬ 3.1.2ï¼Œé™åˆ¶å’Œåç§»é‡å¿…é¡»æ˜¯ç®€å•çš„å¸¸é‡è€Œä¸æ˜¯ä»»æ„çš„è¡¨è¾¾å¼ï¼Œæˆ‘ä»¬å…è®¸è”åˆLIMIT å’Œ OFFSET
-	**å› ä¸ºä»–ä»¬å¯ä»¥åœ¨ç¼–è¯‘æ—¶è®¡ç®—ã€‚ä½†æ˜¯å½“LIMIT å’Œ OFFSETä¸ºä»»æ„çš„è¡¨è¾¾å¼ï¼Œæˆ‘ä»¬è¢«è¿«ä½¿ç”¨è§„åˆ™ï¼ˆ13ï¼‰å’Œ
-	**è§„åˆ™ï¼ˆ14ï¼‰ã€‚
+	/*Ö®Ç°°æ±¾ 3.1.2£¬ÏŞÖÆºÍÆ«ÒÆÁ¿±ØĞëÊÇ¼òµ¥µÄ³£Á¿¶ø²»ÊÇÈÎÒâµÄ±í´ïÊ½£¬ÎÒÃÇÔÊĞíÁªºÏLIMIT ºÍ OFFSET
+	**ÒòÎªËûÃÇ¿ÉÒÔÔÚ±àÒëÊ±¼ÆËã¡£µ«ÊÇµ±LIMIT ºÍ OFFSETÎªÈÎÒâµÄ±í´ïÊ½£¬ÎÒÃÇ±»ÆÈÊ¹ÓÃ¹æÔò£¨13£©ºÍ
+	**¹æÔò£¨14£©¡£
 	*/
-	if (pSub->pLimit && p->pLimit) return 0;              /* Restriction (13) *//*è§„åˆ™ï¼ˆ13ï¼‰*///å­æŸ¥è¯¢å’Œå¤–éƒ¨æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨limit
-	if (pSub->pOffset) return 0;                          /* Restriction (14) *//*è§„åˆ™ï¼ˆ14ï¼‰*///å­æŸ¥è¯¢ä¸èƒ½ä½¿ç”¨offsetè¯­å¥
+	if (pSub->pLimit && p->pLimit) return 0;              /* Restriction (13) *//*¹æÔò£¨13£©*///×Ó²éÑ¯ºÍÍâ²¿²éÑ¯²»ÄÜÊ¹ÓÃlimit
+	if (pSub->pOffset) return 0;                          /* Restriction (14) *//*¹æÔò£¨14£©*///×Ó²éÑ¯²»ÄÜÊ¹ÓÃoffsetÓï¾ä
 	if (p->pRightmost && pSub->pLimit){/**/
-		return 0;                                            /* Restriction (15) *//*è§„åˆ™ï¼ˆ15ï¼‰*///å­æŸ¥è¯¢ä¸èƒ½æœ‰limitå­å¥
+		return 0;                                            /* Restriction (15) *//*¹æÔò£¨15£©*///×Ó²éÑ¯²»ÄÜÓĞlimit×Ó¾ä
 	}
-	if (pSubSrc->nSrc == 0) return 0;                       /* Restriction (7)  *//*è§„åˆ™ï¼ˆ7ï¼‰*///åˆ¤æ–­å­æŸ¥è¯¢æ˜¯å¦æœ‰fromå­å¥
-	if (pSub->selFlags & SF_Distinct) return 0;           /* Restriction (5)  *//*è§„åˆ™ï¼ˆ5ï¼‰*///å«æœ‰distinctå­å¥ï¼Œç›´æ¥è¿”å›
+	if (pSubSrc->nSrc == 0) return 0;                       /* Restriction (7)  *//*¹æÔò£¨7£©*///ÅĞ¶Ï×Ó²éÑ¯ÊÇ·ñÓĞfrom×Ó¾ä
+	if (pSub->selFlags & SF_Distinct) return 0;           /* Restriction (5)  *//*¹æÔò£¨5£©*///º¬ÓĞdistinct×Ó¾ä£¬Ö±½Ó·µ»Ø
 	if (pSub->pLimit && (pSrc->nSrc>1 || isAgg)){
-		return 0;         /* Restrictions (8)(9) *//*è§„åˆ™ï¼ˆ8ï¼‰ï¼ˆ9ï¼‰*///å­æŸ¥è¯¢ä¸ä½¿ç”¨èšé›†æˆ–è¿æ¥æ“ä½œï¼Œæˆ–limitå­å¥
+		return 0;         /* Restrictions (8)(9) *//*¹æÔò£¨8£©£¨9£©*///×Ó²éÑ¯²»Ê¹ÓÃ¾Û¼¯»òÁ¬½Ó²Ù×÷£¬»òlimit×Ó¾ä
 	}
 	if ((p->selFlags & SF_Distinct) != 0 && subqueryIsAgg){
-		return 0;         /* Restriction (6)  *//*è§„åˆ™ï¼ˆ6ï¼‰*///å­æŸ¥è¯¢ä¸ä½¿ç”¨èšé›†å‡½æ•°ï¼Œå¤–éƒ¨æŸ¥è¯¢ä¸ä½¿ç”¨distinctå­å¥
+		return 0;         /* Restriction (6)  *//*¹æÔò£¨6£©*///×Ó²éÑ¯²»Ê¹ÓÃ¾Û¼¯º¯Êı£¬Íâ²¿²éÑ¯²»Ê¹ÓÃdistinct×Ó¾ä
 	}
 	if (p->pOrderBy && pSub->pOrderBy){
-		return 0;                                           /* Restriction (11) *//*è§„åˆ™ï¼ˆ11ï¼‰*///å­æŸ¥è¯¢å’Œå¤–éƒ¨æŸ¥è¯¢ä¸èƒ½åŒæ—¶ä½¿ç”¨orderbyå­å¥
+		return 0;                                           /* Restriction (11) *//*¹æÔò£¨11£©*///×Ó²éÑ¯ºÍÍâ²¿²éÑ¯²»ÄÜÍ¬Ê±Ê¹ÓÃorderby×Ó¾ä
 	}
-	if (isAgg && pSub->pOrderBy) return 0;                /* Restriction (16) *//*è§„åˆ™ï¼ˆ16ï¼‰*///å¤–éƒ¨æŸ¥è¯¢ä¸èƒ½ä½¿èšé›†æŸ¥è¯¢ï¼Œå­æŸ¥è¯¢ä¸èƒ½å«æœ‰orderbyå­å¥
-	if (pSub->pLimit && p->pWhere) return 0;              /* Restriction (19) *//*è§„åˆ™ï¼ˆ19ï¼‰*///å­æŸ¥è¯¢ä¸å«limitå­å¥ï¼Œå¤–éƒ¨æŸ¥è¯¢ä¸å«æœ‰whereå­å¥
+	if (isAgg && pSub->pOrderBy) return 0;                /* Restriction (16) *//*¹æÔò£¨16£©*///Íâ²¿²éÑ¯²»ÄÜÊ¹¾Û¼¯²éÑ¯£¬×Ó²éÑ¯²»ÄÜº¬ÓĞorderby×Ó¾ä
+	if (pSub->pLimit && p->pWhere) return 0;              /* Restriction (19) *//*¹æÔò£¨19£©*///×Ó²éÑ¯²»º¬limit×Ó¾ä£¬Íâ²¿²éÑ¯²»º¬ÓĞwhere×Ó¾ä
 	if (pSub->pLimit && (p->selFlags & SF_Distinct) != 0){
-		return 0;         /* Restriction (21) *//*è§„åˆ™ï¼ˆ21ï¼‰*///å­æŸ¥è¯¢ä¸èƒ½å«æœ‰limitï¼Œå¤–éƒ¨æŸ¥è¯¢ä¸èƒ½æœ‰distinctè¯­å¥
+		return 0;         /* Restriction (21) *//*¹æÔò£¨21£©*///×Ó²éÑ¯²»ÄÜº¬ÓĞlimit£¬Íâ²¿²éÑ¯²»ÄÜÓĞdistinctÓï¾ä
 	}
 
   /* OBSOLETE COMMENT 1:
@@ -3212,71 +3212,71 @@ static int flattenSubquery(
 	  ** is fraught with danger.  Best to avoid the whole thing.  If the
 	  ** subquery is the right term of a LEFT JOIN, then do not flatten.
 	  */
-	  /* è¿‡æ—¶çš„æ³¨é‡Š 1ï¼š
-	  ** è§„åˆ™3ï¼šå¦‚æœå­æŸ¥è¯¢æ˜¯ä¸€ç§è”æ¥ï¼Œè¯·ç¡®ä¿å­æŸ¥è¯¢æ˜¯ä¸ç”¨ä½œå¤–éƒ¨è”æ¥çš„å³æ“ä½œæ•°ã€‚
+	  /* ¹ıÊ±µÄ×¢ÊÍ 1£º
+	  ** ¹æÔò3£ºÈç¹û×Ó²éÑ¯ÊÇÒ»ÖÖÁª½Ó£¬ÇëÈ·±£×Ó²éÑ¯ÊÇ²»ÓÃ×÷Íâ²¿Áª½ÓµÄÓÒ²Ù×÷Êı¡£
 	  **     t1 LEFT OUTER JOIN (t2 JOIN t3)
-	  ** è‹¥å¯¹è¡¨è¾¾å¼è¿›è¡Œæ‰å¹³åŒ–ï¼Œæˆ‘ä»¬å¾—åˆ°
+	  ** Èô¶Ô±í´ïÊ½½øĞĞ±âÆ½»¯£¬ÎÒÃÇµÃµ½
 	  **      (t1 LEFT OUTER JOIN t2) JOIN t3
-	  ** è¿™ä¸¤ä¸ªè¡¨è¾¾å¼è¡¨ç¤ºæ˜¯ä¸ç›¸åŒäº†ã€‚
-	  ** è¿‡æ—¶çš„æ³¨é‡Š 2ï¼š
-	  ** è§„åˆ™ï¼ˆ12ï¼‰ï¼Œå¦‚æœå­æŸ¥è¯¢æ˜¯å·¦å¤–éƒ¨çš„å³æ“ä½œæ•°ï¼Œè¯·ç¡®ä¿å­æŸ¥è¯¢æœ‰æ²¡æœ‰ WHERE å­å¥ã€‚
-	  ** ä¸‹é¢çš„ä¾‹å­ä¸èƒ½ä½¿ç”¨ï¼š
+	  ** ÕâÁ½¸ö±í´ïÊ½±íÊ¾ÊÇ²»ÏàÍ¬ÁË¡£
+	  ** ¹ıÊ±µÄ×¢ÊÍ 2£º
+	  ** ¹æÔò£¨12£©£¬Èç¹û×Ó²éÑ¯ÊÇ×óÍâ²¿µÄÓÒ²Ù×÷Êı£¬ÇëÈ·±£×Ó²éÑ¯ÓĞÃ»ÓĞ WHERE ×Ó¾ä¡£
+	  ** ÏÂÃæµÄÀı×Ó²»ÄÜÊ¹ÓÃ£º
 	  **  1 LEFT OUTER JOIN (SELECT * FROM t2 WHERE t2.x>0)
-	  **è‹¥å¯¹ä¸Šé¢çš„è¯­å¥æ‰å¹³åŒ–ï¼š
+	  **Èô¶ÔÉÏÃæµÄÓï¾ä±âÆ½»¯£º
 	  **  (t1 LEFT OUTER JOIN t2) WHERE t2.x>0
-	  ** æµ‹è¯•å°†å§‹ç»ˆå¤±è´¥åœ¨ t2ï¼Œå› ä¸ºåœ¨ä¸€ä¸ªNULLæˆ–è€…t2çš„è¡Œï¼Œæœ‰æ•ˆçš„å°†OUTER JOINè½¬åŒ–ä¸ºINNER JOIN.
+	  ** ²âÊÔ½«Ê¼ÖÕÊ§°ÜÔÚ t2£¬ÒòÎªÔÚÒ»¸öNULL»òÕßt2µÄĞĞ£¬ÓĞĞ§µÄ½«OUTER JOIN×ª»¯ÎªINNER JOIN.
 	  **
-	  ** é‡å†™è¿‡æ—¶çš„æ³¨é‡Š1ï¼Œ2ï¼Œæ‰å¹³åŒ–å·¦è¿æ¥çš„å³å­æ ‘æ˜¯ä¸å®‰å…¨çš„ã€‚ã€‚
-	  ** è‹¥å­æŸ¥è¯¢æ˜¯å·¦è¿æ¥çš„å³å­æ ‘ï¼Œå°†ä¸ä¼šæ‰å¹³åŒ–ã€‚
+	  ** ÖØĞ´¹ıÊ±µÄ×¢ÊÍ1£¬2£¬±âÆ½»¯×óÁ¬½ÓµÄÓÒ×ÓÊ÷ÊÇ²»°²È«µÄ¡£¡£
+	  ** Èô×Ó²éÑ¯ÊÇ×óÁ¬½ÓµÄÓÒ×ÓÊ÷£¬½«²»»á±âÆ½»¯¡£
 	  */
-	  if( (pSubitem->jointype & JT_OUTER)!=0 ){/*ifåˆ¤æ–­æ¡ä»¶ï¼Œè‹¥å¤–æŸ¥è¯¢ä½¿ç”¨jointype*/
-		return  0;/*ç›´æ¥è¿”å›*/
+	  if( (pSubitem->jointype & JT_OUTER)!=0 ){/*ifÅĞ¶ÏÌõ¼ş£¬ÈôÍâ²éÑ¯Ê¹ÓÃjointype*/
+		return  0;/*Ö±½Ó·µ»Ø*/
 	  }
 
 	  /* Restriction 17: If the sub-query is a compound SELECT, then it must
 	  ** use only the UNION ALL operator. And none of the simple select queries
 	  ** that make up the compound SELECT are allowed to be aggregate or distinct
-	  ** queries.è§„åˆ™17ï¼š
+	  ** queries.¹æÔò17£º
 
 
-	  *//*å¦‚æœå­æŸ¥è¯¢æ˜¯ä¸€ä¸ªå¤åˆçš„é€‰æ‹©ï¼Œé‚£ä¹ˆå®ƒå¿…é¡»ä½¿ç”¨åªæœ‰ UNION ALL è¿ç®—ç¬¦ï¼Œæ²¡æœ‰ä¸€ä¸ªç®€å•çš„é€‰æ‹©æŸ¥è¯¢ç»„æˆåœ¨è¿™ä¸ªå¤åˆæŸ¥è¯¢çš„å­æŸ¥è¯¢ä¸­ï¼Œæ²¡æœ‰ä½¿ç”¨èšé›†å‡½æ•°å’Œå»é™¤é‡å¤*/
-	  if( pSub->pPrior ){//åˆ¤æ–­å­æŸ¥è¯¢æ˜¯å¦æœ‰ä¼˜å…ˆæŸ¥è¯¢
-		if( pSub->pOrderBy ){/*è‹¥å­æŸ¥è¯¢å«æœ‰OrderByå­å¥*/
-		  return 0;  /* è§„åˆ™ 20 ç›´æ¥è¿”å›*/
+	  *//*Èç¹û×Ó²éÑ¯ÊÇÒ»¸ö¸´ºÏµÄÑ¡Ôñ£¬ÄÇÃ´Ëü±ØĞëÊ¹ÓÃÖ»ÓĞ UNION ALL ÔËËã·û£¬Ã»ÓĞÒ»¸ö¼òµ¥µÄÑ¡Ôñ²éÑ¯×é³ÉÔÚÕâ¸ö¸´ºÏ²éÑ¯µÄ×Ó²éÑ¯ÖĞ£¬Ã»ÓĞÊ¹ÓÃ¾Û¼¯º¯ÊıºÍÈ¥³ıÖØ¸´*/
+	  if( pSub->pPrior ){//ÅĞ¶Ï×Ó²éÑ¯ÊÇ·ñÓĞÓÅÏÈ²éÑ¯
+		if( pSub->pOrderBy ){/*Èô×Ó²éÑ¯º¬ÓĞOrderBy×Ó¾ä*/
+		  return 0;  /* ¹æÔò 20 Ö±½Ó·µ»Ø*/
 		}
-		if( isAgg || (p->selFlags & SF_Distinct)!=0 || pSrc->nSrc!=1 ){/*å¦‚æœå¤–éƒ¨æŸ¥è¯¢ä½¿ç”¨äº†èšé›†å‡½æ•°ï¼Œæ²¡æœ‰é‡å¤æ’åºæˆ–è€…FROMè¡¨ä¸ç­‰äº1*/
-		  return 0;/*ç›´æ¥è¿”å›*/
+		if( isAgg || (p->selFlags & SF_Distinct)!=0 || pSrc->nSrc!=1 ){/*Èç¹ûÍâ²¿²éÑ¯Ê¹ÓÃÁË¾Û¼¯º¯Êı£¬Ã»ÓĞÖØ¸´ÅÅĞò»òÕßFROM±í²»µÈÓÚ1*/
+		  return 0;/*Ö±½Ó·µ»Ø*/
 		}
-		for(pSub1=pSub; pSub1; pSub1=pSub1->pPrior){/*éå†å­æŸ¥è¯¢ä¸­æœ€å³è¾¹çš„æŸ¥è¯¢*/
-		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Distinct );/*æµ‹è¯•Distinctçš„ä½¿ç”¨*/
-		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Aggregate );/*æµ‹è¯•Aggregateçš„ä½¿ç”¨*/
-		  assert( pSub->pSrc!=0 );/*å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹*/
-		  if( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))!=0//è‹¥å­æŸ¥è¯¢å«æœ‰Distinctæˆ–Aggregateï¼ˆèšé›†å‡½æ•°ï¼‰ä¸”æ ‡è®°å˜é‡=1
-		   || (pSub1->pPrior && pSub1->op!=TK_ALL) //å­æŸ¥è¯¢ä¸­å«ä¼˜å…ˆæŸ¥è¯¢SELECTå¹¶ä¸”æ“ä½œä¸ºTK_ALL
-		   || pSub1->pSrc->nSrc<1//å­æŸ¥è¯¢ä¸­FROMå­å¥ä¸­è¡¨è¾¾å¼ä¸”ä¸ªæ•°<1*/
-		   || pSub->pEList->nExpr!=pSub1->pEList->nExpr//å­æŸ¥è¯¢ä¸­è¡¨è¾¾å¼çš„ä¸ªæ•°ï¼=å­æŸ¥è¯¢ä¸­å³è¾¹æŸ¥è¯¢çš„è¡¨è¾¾å¼ä¸ªæ•°
+		for(pSub1=pSub; pSub1; pSub1=pSub1->pPrior){/*±éÀú×Ó²éÑ¯ÖĞ×îÓÒ±ßµÄ²éÑ¯*/
+		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Distinct );/*²âÊÔDistinctµÄÊ¹ÓÃ*/
+		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Aggregate );/*²âÊÔAggregateµÄÊ¹ÓÃ*/
+		  assert( pSub->pSrc!=0 );/*Òì³£´¦Àí£¬¼ÓÈë¶Ïµã*/
+		  if( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))!=0//Èô×Ó²éÑ¯º¬ÓĞDistinct»òAggregate£¨¾Û¼¯º¯Êı£©ÇÒ±ê¼Ç±äÁ¿=1
+		   || (pSub1->pPrior && pSub1->op!=TK_ALL) //×Ó²éÑ¯ÖĞº¬ÓÅÏÈ²éÑ¯SELECT²¢ÇÒ²Ù×÷ÎªTK_ALL
+		   || pSub1->pSrc->nSrc<1//×Ó²éÑ¯ÖĞFROM×Ó¾äÖĞ±í´ïÊ½ÇÒ¸öÊı<1*/
+		   || pSub->pEList->nExpr!=pSub1->pEList->nExpr//×Ó²éÑ¯ÖĞ±í´ïÊ½µÄ¸öÊı£¡=×Ó²éÑ¯ÖĞÓÒ±ß²éÑ¯µÄ±í´ïÊ½¸öÊı
 		  ){
-			return 0;//è¿”å›0
+			return 0;//·µ»Ø0
 		  }
-		  testcase( pSub1->pSrc->nSrc>1 );//è°ƒç”¨testcaseå¯¹å­æŸ¥è¯¢çš„FROMå­å¥ä¸­è¡¨è¾¾å¼ä¸ªæ•°>1çš„æµ‹è¯•
+		  testcase( pSub1->pSrc->nSrc>1 );//µ÷ÓÃtestcase¶Ô×Ó²éÑ¯µÄFROM×Ó¾äÖĞ±í´ïÊ½¸öÊı>1µÄ²âÊÔ
 		}
 
-		/* Restriction 18. *//*è§„åˆ™ï¼ˆ18ï¼‰*/
-		if( p->pOrderBy ){//è‹¥ORDERBYå­å¥ä¸ºçœŸ
-		  int ii;//å£°æ˜å˜é‡ii
-		  for(ii=0; ii<p->pOrderBy->nExpr; ii++){//éå†orderbyè¡¨è¾¾å¼ä¸ªæ•°
-			if( p->pOrderBy->a[ii].iOrderByCol==0 ) return 0;//å€¼ä¸ºç©ºï¼Œè¿”å›ã€‚
+		/* Restriction 18. *//*¹æÔò£¨18£©*/
+		if( p->pOrderBy ){//ÈôORDERBY×Ó¾äÎªÕæ
+		  int ii;//ÉùÃ÷±äÁ¿ii
+		  for(ii=0; ii<p->pOrderBy->nExpr; ii++){//±éÀúorderby±í´ïÊ½¸öÊı
+			if( p->pOrderBy->a[ii].iOrderByCol==0 ) return 0;//ÖµÎª¿Õ£¬·µ»Ø¡£
 		  }
 		}
 	  }
 
 	  /***** If we reach this point, flattening is permitted. *****/
-      /*è‹¥èƒ½æ‰§è¡Œåˆ°è¿™ä¸€æ­¥ï¼Œå…è®¸æ‰å¹³åŒ–*/
-	  /* Authorize the subquery *//*æˆæƒå…è®¸å­æŸ¥è¯¢*/
-	  pParse->zAuthContext = pSubitem->zName;//å­æŸ¥è¯¢çš„åå­—èµ‹å€¼ç»™è¯­æ³•è§£ææ ‘çš„å·²ç»æˆæƒçš„ä¸Šä¸‹æ–‡å±æ€§
-	  TESTONLY(i =) sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0);/**///æ£€æŸ¥æˆæƒå±æ€§
-	  testcase( i==SQLITE_DENY );//è°ƒç”¨testcaseæµ‹è¯•iæ˜¯å¦ä¸ºSQLITE_DENY
-	  pParse->zAuthContext = zSavedAuthContext;//è¯­æ³•è§£ææ ‘ä¸­çš„ä¸Šä¸‹æ–‡èµ‹å€¼ç»™è¯­æ³•è§£ææ ‘çš„æˆæƒä¸Šä¸‹æ–‡å±æ€§
+      /*ÈôÄÜÖ´ĞĞµ½ÕâÒ»²½£¬ÔÊĞí±âÆ½»¯*/
+	  /* Authorize the subquery *//*ÊÚÈ¨ÔÊĞí×Ó²éÑ¯*/
+	  pParse->zAuthContext = pSubitem->zName;//×Ó²éÑ¯µÄÃû×Ö¸³Öµ¸øÓï·¨½âÎöÊ÷µÄÒÑ¾­ÊÚÈ¨µÄÉÏÏÂÎÄÊôĞÔ
+	  TESTONLY(i =) sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0);/**///¼ì²éÊÚÈ¨ÊôĞÔ
+	  testcase( i==SQLITE_DENY );//µ÷ÓÃtestcase²âÊÔiÊÇ·ñÎªSQLITE_DENY
+	  pParse->zAuthContext = zSavedAuthContext;//Óï·¨½âÎöÊ÷ÖĞµÄÉÏÏÂÎÄ¸³Öµ¸øÓï·¨½âÎöÊ÷µÄÊÚÈ¨ÉÏÏÂÎÄÊôĞÔ
 
 	  /* If the sub-query is a compound SELECT statement, then (by restrictions
 	  ** 17 and 18 above) it must be a UNION ALL and the parent query must 
@@ -3311,11 +3311,11 @@ static int flattenSubquery(
 	  **
 	  ** We call this the "compound-subquery flattening".
 	  */
-	  /*å¦‚æœå­æŸ¥è¯¢æ˜¯ä¸€ä¸ªå¤åˆ SELECT è¯­å¥ï¼Œç„¶åæ ¹æ®è§„åˆ™17å’Œè§„åˆ™18å¿…é¡»æ˜¯UNION ALL å¹¶ä¸”çˆ¶æŸ¥è¯¢çš„æ ¼å¼å¦‚ä¸‹ï¼š
+	  /*Èç¹û×Ó²éÑ¯ÊÇÒ»¸ö¸´ºÏ SELECT Óï¾ä£¬È»ºó¸ù¾İ¹æÔò17ºÍ¹æÔò18±ØĞëÊÇUNION ALL ²¢ÇÒ¸¸²éÑ¯µÄ¸ñÊ½ÈçÏÂ£º
 	  **    SELECT <expr-list> FROM (<sub-query>) <where-clause> 
-	  **å…¶æ¬¡æ˜¯ä»»ä½• ORDER BY, LIMIT æˆ– OFFSET å­å¥ã€‚è¿™ä¸€å—åˆ›å»ºäº†n-1ä¸ªå‰¯æœ¬çš„ä¸å«ORDER BY, LIMIT æˆ– OFFSETçˆ¶æŸ¥è¯¢å¯¹è±¡ 
-	  **å¹¶ä¸”è¿æ¥åˆ°åŸå§‹ä½¿ç”¨çš„UNION ALLæ“ä½œå¯¹è±¡ã€‚Næ˜¯å¤åˆæŸ¥è¯¢ä¸­ç®€å•æŸ¥è¯¢çš„ç¼–å·ã€‚
-	  **è¯·çœ‹ä¾‹å­ï¼š
+	  **Æä´ÎÊÇÈÎºÎ ORDER BY, LIMIT »ò OFFSET ×Ó¾ä¡£ÕâÒ»¿é´´½¨ÁËn-1¸ö¸±±¾µÄ²»º¬ORDER BY, LIMIT »ò OFFSET¸¸²éÑ¯¶ÔÏó 
+	  **²¢ÇÒÁ¬½Óµ½Ô­Ê¼Ê¹ÓÃµÄUNION ALL²Ù×÷¶ÔÏó¡£NÊÇ¸´ºÏ²éÑ¯ÖĞ¼òµ¥²éÑ¯µÄ±àºÅ¡£
+	  **Çë¿´Àı×Ó£º
 	  **     SELECT a+1 FROM (
 	  **        SELECT x FROM tab
 	  **        UNION ALL
@@ -3323,63 +3323,63 @@ static int flattenSubquery(
 	  **        UNION ALL
 	  **        SELECT abs(z*2) FROM tab2
 	  **     ) WHERE a!=5 ORDER BY 1
-	  **è½¬åŒ–æˆï¼š
+	  **×ª»¯³É£º
 	  **     SELECT x+1 FROM tab WHERE x+1!=5
 	  **     UNION ALL
 	  **     SELECT y+1 FROM tab WHERE y+1!=5
 	  **     UNION ALL
 	  **     SELECT abs(z*2)+1 FROM tab2 WHERE abs(z*2)+1!=5
 	  **     ORDER BY 1
-	  **æˆ‘ä»¬ç§°è¿™ä¸ºâ€œæ‰å¹³åŒ–å¤åˆå­æŸ¥è¯¢â€
+	  **ÎÒÃÇ³ÆÕâÎª¡°±âÆ½»¯¸´ºÏ×Ó²éÑ¯¡±
 	  */
-	  //å¾ªç¯éå†å­æŸ¥è¯¢
-	  for(pSub=pSub->pPrior; pSub; pSub=pSub->pPrior){//éå†å­æŸ¥è¯¢ä¸­çš„ä¼˜å…ˆæŸ¥è¯¢
-		Select *pNew;//å£°æ˜ä¸€ä¸ªSELECTç»“æ„ä½“çš„å¯¹è±¡
-		ExprList *pOrderBy = p->pOrderBy;//Sè¡¨è¾¾å¼åˆ—è¡¨pOrderByçš„èµ‹å€¼
-		Expr *pLimit = p->pLimit;//å¯¹è¡¨è¾¾å¼çš„pLimitå±æ€§çš„èµ‹å€¼ï¼ˆselectç»“æ„ä½“ï¼‰
-		Select *pPrior = p->pPrior;//ä¼˜å…ˆæŸ¥æ‰¾é‡æ–°èµ‹å€¼ç»™æ–°çš„å˜é‡
+	  //Ñ­»·±éÀú×Ó²éÑ¯
+	  for(pSub=pSub->pPrior; pSub; pSub=pSub->pPrior){//±éÀú×Ó²éÑ¯ÖĞµÄÓÅÏÈ²éÑ¯
+		Select *pNew;//ÉùÃ÷Ò»¸öSELECT½á¹¹ÌåµÄ¶ÔÏó
+		ExprList *pOrderBy = p->pOrderBy;//S±í´ïÊ½ÁĞ±ípOrderByµÄ¸³Öµ
+		Expr *pLimit = p->pLimit;//¶Ô±í´ïÊ½µÄpLimitÊôĞÔµÄ¸³Öµ£¨select½á¹¹Ìå£©
+		Select *pPrior = p->pPrior;//ÓÅÏÈ²éÕÒÖØĞÂ¸³Öµ¸øĞÂµÄ±äÁ¿
 	
-		p->pOrderBy = 0;//åˆå§‹åŒ–
-		p->pSrc = 0;//åˆå§‹åŒ–
-		p->pPrior = 0;//åˆå§‹åŒ–
-		p->pLimit = 0;//åˆå§‹åŒ–
-		pNew = sqlite3SelectDup(db, p, 0);//æ·±æ‹·è´
-		//å˜é‡èµ‹å€¼ç»™selectç»“æ„ä½“æˆå‘˜
-		p->pLimit = pLimit;//è·å–limitè¯­å¥
-		p->pOrderBy = pOrderBy;//è·å–orderbyè¯­å¥
-		p->pSrc = pSrc;//è·å–fromå­å¥
-		p->op = TK_ALL;//æ“ä½œç¬¦å±æ€§è®¾ç½®ä¸ºtk_all
-		p->pRightmost = 0;//æœ€å³è¾¹æŸ¥è¯¢çš„åˆå§‹åŒ–æ“ä½œ
-                     //å¦‚æœpnewä¸ºç©º
+		p->pOrderBy = 0;//³õÊ¼»¯
+		p->pSrc = 0;//³õÊ¼»¯
+		p->pPrior = 0;//³õÊ¼»¯
+		p->pLimit = 0;//³õÊ¼»¯
+		pNew = sqlite3SelectDup(db, p, 0);//Éî¿½±´
+		//±äÁ¿¸³Öµ¸øselect½á¹¹Ìå³ÉÔ±
+		p->pLimit = pLimit;//»ñÈ¡limitÓï¾ä
+		p->pOrderBy = pOrderBy;//»ñÈ¡orderbyÓï¾ä
+		p->pSrc = pSrc;//»ñÈ¡from×Ó¾ä
+		p->op = TK_ALL;//²Ù×÷·ûÊôĞÔÉèÖÃÎªtk_all
+		p->pRightmost = 0;//×îÓÒ±ß²éÑ¯µÄ³õÊ¼»¯²Ù×÷
+                     //Èç¹ûpnewÎª¿Õ
 		if( pNew==0 ){
-		  pNew = pPrior;//SELECTç»“æ„ä½“ä¸­ä¼˜å…ˆæŸ¥è¯¢çš„èµ‹å€¼ç»™pNew
+		  pNew = pPrior;//SELECT½á¹¹ÌåÖĞÓÅÏÈ²éÑ¯µÄ¸³Öµ¸øpNew
 		}
 		
 		else
 		{
-		  pNew->pPrior = pPrior;//select->pPriorèµ‹å€¼ç»™pNew->pPrior
-		  pNew->pRightmost = 0;//pNewæŒ‡å‘çš„æœ€å³è¾¹ç½®ä¸º0
+		  pNew->pPrior = pPrior;//select->pPrior¸³Öµ¸øpNew->pPrior
+		  pNew->pRightmost = 0;//pNewÖ¸ÏòµÄ×îÓÒ±ßÖÃÎª0
 		}
-		p->pPrior = pNew;//å®Œæˆæœ€ç»ˆèµ‹å€¼ï¼Œä¼˜å…ˆæŸ¥æ‰¾
-		if( db->mallocFailed ) return 1;//å†…å­˜åˆ†é…å¤±è´¥
+		p->pPrior = pNew;//Íê³É×îÖÕ¸³Öµ£¬ÓÅÏÈ²éÕÒ
+		if( db->mallocFailed ) return 1;//ÄÚ´æ·ÖÅäÊ§°Ü
 	  }
 
 	  /* Begin flattening the iFrom-th entry of the FROM clause 
 	  ** in the outer query.
-	  *//*åœ¨å¤–æŸ¥è¯¢ä¸­å‹ç¼©FROMå­å¥çš„ç¬¬iFromä¸ªæ¡ç›®*/
-	  pSub = pSub1 = pSubitem->pSelect;//èµ‹å€¼è¯­å¥ï¼Œå­æŸ¥è¯¢
+	  *//*ÔÚÍâ²éÑ¯ÖĞÑ¹ËõFROM×Ó¾äµÄµÚiFrom¸öÌõÄ¿*/
+	  pSub = pSub1 = pSubitem->pSelect;//¸³ÖµÓï¾ä£¬×Ó²éÑ¯
 	  /* Delete the transient table structure associated with the
 	  ** subquery
-	  *//*åˆ é™¤å’Œå­æŸ¥è¯¢ç›¸å…³è”çš„ä¸´æ—¶è¡¨ç»“æ„*/
-	  //å†…å­˜çš„é‡Šæ”¾
-	  sqlite3DbFree(db, pSubitem->zDatabase);//æ•°æ®åº“æ¨¡å—çš„å†…å­˜
-	  sqlite3DbFree(db, pSubitem->zName);//å­æŸ¥è¯¢åå­—å±æ€§
-	  sqlite3DbFree(db, pSubitem->zAlias);//å­æŸ¥è¯¢ä¾èµ–å…³ç³»
-	 //å°†ä¸´æ—¶è¡¨ä¸­çš„æ•°æ®æ¸…é›¶
-	  pSubitem->zDatabase = 0;//æ¸…é›¶
-	  pSubitem->zName = 0;//æ¸…é›¶
-	  pSubitem->zAlias = 0;//æ¸…é›¶
-	  pSubitem->pSelect = 0;//æ¸…é›¶
+	  *//*É¾³ıºÍ×Ó²éÑ¯Ïà¹ØÁªµÄÁÙÊ±±í½á¹¹*/
+	  //ÄÚ´æµÄÊÍ·Å
+	  sqlite3DbFree(db, pSubitem->zDatabase);//Êı¾İ¿âÄ£¿éµÄÄÚ´æ
+	  sqlite3DbFree(db, pSubitem->zName);//×Ó²éÑ¯Ãû×ÖÊôĞÔ
+	  sqlite3DbFree(db, pSubitem->zAlias);//×Ó²éÑ¯ÒÀÀµ¹ØÏµ
+	 //½«ÁÙÊ±±íÖĞµÄÊı¾İÇåÁã
+	  pSubitem->zDatabase = 0;//ÇåÁã
+	  pSubitem->zName = 0;//ÇåÁã
+	  pSubitem->zAlias = 0;//ÇåÁã
+	  pSubitem->pSelect = 0;//ÇåÁã
 
 	  /* Defer deleting the Table object associated with the
 	  ** subquery until code generation is
@@ -3387,18 +3387,18 @@ static int flattenSubquery(
 	  ** refer to the subquery even after flattening.  Ticket #3346.
 	  **
 	  ** pSubitem->pTab is always non-NULL by test restrictions and tests above.
-	  *//*å»¶è¿Ÿåˆ é™¤ä¸å…³è”çš„è¡¨å¯¹è±¡ï¼Œç›´åˆ°å­æŸ¥è¯¢ç”Ÿæˆä»£ç å®Œæˆï¼Œå› ä¸ºé‚£é‡Œå¯èƒ½ä»ç„¶å­˜åœ¨ Expr.pTab æ‰å¹³åŒ–åçš„å­æŸ¥è¯¢*/
+	  *//*ÑÓ³ÙÉ¾³ıÓë¹ØÁªµÄ±í¶ÔÏó£¬Ö±µ½×Ó²éÑ¯Éú³É´úÂëÍê³É£¬ÒòÎªÄÇÀï¿ÉÄÜÈÔÈ»´æÔÚ Expr.pTab ±âÆ½»¯ºóµÄ×Ó²éÑ¯*/
 
-	  if( ALWAYS(pSubitem->pTab!=0) ){//å­æŸ¥è¯¢é¡¹çš„pTabä¸ç©º
-		Table *pTabToDel = pSubitem->pTab;//è·å–å­æŸ¥è¯¢çš„pTab
+	  if( ALWAYS(pSubitem->pTab!=0) ){//×Ó²éÑ¯ÏîµÄpTab²»¿Õ
+		Table *pTabToDel = pSubitem->pTab;//»ñÈ¡×Ó²éÑ¯µÄpTab
 		if( pTabToDel->nRef==1 ){
-		  Parse *pToplevel = sqlite3ParseToplevel(pParse);//æœ€é¡¶å±‚è§£æ
-		  pTabToDel->pNextZombie = pToplevel->pZombieTab;//è§£æåçš„åŸŸèµ‹å€¼
-		  pToplevel->pZombieTab = pTabToDel;//ç±»ä¼¼é“¾è¡¨ç»“æ„èµ‹å€¼
+		  Parse *pToplevel = sqlite3ParseToplevel(pParse);//×î¶¥²ã½âÎö
+		  pTabToDel->pNextZombie = pToplevel->pZombieTab;//½âÎöºóµÄÓò¸³Öµ
+		  pToplevel->pZombieTab = pTabToDel;//ÀàËÆÁ´±í½á¹¹¸³Öµ
 		}else{
-		  pTabToDel->nRef--;//è‡ªå‡
+		  pTabToDel->nRef--;//×Ô¼õ
 		}
-		pSubitem->pTab = 0;//ç½®0
+		pSubitem->pTab = 0;//ÖÃ0
 	  }
 
 	  /* The following loop runs once for each term in a compound-subquery
@@ -3414,29 +3414,29 @@ static int flattenSubquery(
 	  ** those references with expressions that resolve to the subquery FROM
 	  ** elements we are now copying in.
 	  */
-	  /* ä¸‹é¢çš„å¾ªç¯ä¸€æ¬¡æ€§çš„å°†ç¬¦åˆæŸ¥è¯¢ä¸­æ¯ä¸ªæ¡æ¬¾éƒ½è¿›è¡Œæ‰å¹³åŒ–æ“ä½œã€‚è‹¥æˆ‘ä»¬åšäº†å¦ä¸€ç§æ–¹å¼çš„æ‰å¹³åŒ–æ“ä½œ--
-	  ** è¿™ç§æ‰å¹³åŒ–æ“ä½œå¹¶éå¤åˆå­æŸ¥è¯¢çš„æ‰å¹³åŒ–ï¼Œè¯¥å¾ªç¯ä»…ä»…è¿è¡Œä¸€æ¬¡ã€‚
+	  /* ÏÂÃæµÄÑ­»·Ò»´ÎĞÔµÄ½«·ûºÏ²éÑ¯ÖĞÃ¿¸öÌõ¿î¶¼½øĞĞ±âÆ½»¯²Ù×÷¡£ÈôÎÒÃÇ×öÁËÁíÒ»ÖÖ·½Ê½µÄ±âÆ½»¯²Ù×÷--
+	  ** ÕâÖÖ±âÆ½»¯²Ù×÷²¢·Ç¸´ºÏ×Ó²éÑ¯µÄ±âÆ½»¯£¬¸ÃÑ­»·½ö½öÔËĞĞÒ»´Î¡£
 	  **
-	  ** è¿™ä¸ªå¾ªç¯å°†å­æŸ¥è¯¢ä¸­çš„FROMå­å¥çš„æ‰€æœ‰å…ƒç´ éƒ½ç§»åŠ¨åˆ°å¤–éƒ¨æŸ¥è¯¢çš„FROMå­å¥ä¸­ã€‚åœ¨è¿™ä¹‹å‰ï¼Œè®°ä½çˆ¶æŸ¥è¯¢ä¸­åŸå§‹å¤–éƒ¨æŸ¥è¯¢
-	  ** FROMå­å¥çš„æ¸¸æ ‡å·ã€‚çˆ¶æŸ¥è¯¢çš„æ¸¸æ ‡å·æ²¡æœ‰ç”¨è¿‡ã€‚åé¢çš„ä»£ç  å°†æ‰«ææŸ¥æ‰¾ iParent å¼•ç”¨çš„è¡¨è¾¾å¼å’Œæ›¿æ¢ï¼Œè¿™äº›å¼•ç”¨è§£ææˆ‘ä»¬ç°åœ¨æ­£åœ¨å¤åˆ¶çš„å­æŸ¥è¯¢çš„è¡¨è¾¾å¼å…ƒç´ ã€‚
+	  ** Õâ¸öÑ­»·½«×Ó²éÑ¯ÖĞµÄFROM×Ó¾äµÄËùÓĞÔªËØ¶¼ÒÆ¶¯µ½Íâ²¿²éÑ¯µÄFROM×Ó¾äÖĞ¡£ÔÚÕâÖ®Ç°£¬¼Ç×¡¸¸²éÑ¯ÖĞÔ­Ê¼Íâ²¿²éÑ¯
+	  ** FROM×Ó¾äµÄÓÎ±êºÅ¡£¸¸²éÑ¯µÄÓÎ±êºÅÃ»ÓĞÓÃ¹ı¡£ºóÃæµÄ´úÂë ½«É¨Ãè²éÕÒ iParent ÒıÓÃµÄ±í´ïÊ½ºÍÌæ»»£¬ÕâĞ©ÒıÓÃ½âÎöÎÒÃÇÏÖÔÚÕıÔÚ¸´ÖÆµÄ×Ó²éÑ¯µÄ±í´ïÊ½ÔªËØ¡£
 	  */
-	  //éå†å¤–éƒ¨æŸ¥è¯¢ï¼Œå°†å­æŸ¥è¯¢ä¸­çš„FROMå­å¥çš„æ‰€æœ‰å…ƒç´ éƒ½ç§»åŠ¨åˆ°å¤–éƒ¨æŸ¥è¯¢çš„FROMå­å¥ä¸­
+	  //±éÀúÍâ²¿²éÑ¯£¬½«×Ó²éÑ¯ÖĞµÄFROM×Ó¾äµÄËùÓĞÔªËØ¶¼ÒÆ¶¯µ½Íâ²¿²éÑ¯µÄFROM×Ó¾äÖĞ
 	  for(pParent=p; pParent; pParent=pParent->pPrior, pSub=pSub->pPrior){
-		int nSubSrc;//å£°æ˜æ•´å‹å˜é‡nsubsrc
-		u8 jointype = 0; //è‡ªå®šä¹‰ç±»å‹å˜é‡çš„å£°æ˜
-		pSubSrc = pSub->pSrc;     /* FROM clause of subquery *//*fromå­æŸ¥è¯¢*/
-		nSubSrc = pSubSrc->nSrc;  /* Number of terms in subquery FROM clause *//*fromå­å¥çš„æ•°ç›®*/
-		pSrc = pParent->pSrc;     /* FROM clause of the outer query *//*å¤–éƒ¨æŸ¥è¯¢çš„FROMå­å¥*/
+		int nSubSrc;//ÉùÃ÷ÕûĞÍ±äÁ¿nsubsrc
+		u8 jointype = 0; //×Ô¶¨ÒåÀàĞÍ±äÁ¿µÄÉùÃ÷
+		pSubSrc = pSub->pSrc;     /* FROM clause of subquery *//*from×Ó²éÑ¯*/
+		nSubSrc = pSubSrc->nSrc;  /* Number of terms in subquery FROM clause *//*from×Ó¾äµÄÊıÄ¿*/
+		pSrc = pParent->pSrc;     /* FROM clause of the outer query *//*Íâ²¿²éÑ¯µÄFROM×Ó¾ä*/
 
-		if( pSrc ){//å¤–éƒ¨æŸ¥è¯¢æœ‰fromå­å¥
-		  assert( pParent==p );  // First time through the loop *//*ç¬¬ä¸€æ¬¡å¾ªç¯ï¼Œæ’å…¥æ–­ç‚¹ï¼Œè‹¥æœ‰å¼‚å¸¸ï¼Œåˆ™åšç›¸å…³å¤„ç†*/
-		  jointype = pSubitem->jointype;//å­æŸ¥è¯¢çš„è¿æ¥
+		if( pSrc ){//Íâ²¿²éÑ¯ÓĞfrom×Ó¾ä
+		  assert( pParent==p );  // First time through the loop *//*µÚÒ»´ÎÑ­»·£¬²åÈë¶Ïµã£¬ÈôÓĞÒì³££¬Ôò×öÏà¹Ø´¦Àí*/
+		  jointype = pSubitem->jointype;//×Ó²éÑ¯µÄÁ¬½Ó
 		}else{
-		  assert( pParent!=p );  // 2nd and subsequent times through the loop *//*æ¡ä»¶ä¸æˆç«‹ï¼ŒåŒæ ·æ’å…¥æ–­ç‚¹ï¼Œå¼‚å¸¸å¤„ç†*/
-		  pSrc = pParent->pSrc = sqlite3SrcListAppend(db, 0, 0, 0);//è¿½åŠ fromå­å¥
-		  if( pSrc==0 ){//å¦‚æœå¤–éƒ¨æŸ¥è¯¢çš„fromå­å¥ä¸º0
-			assert( db->mallocFailed );//å¼‚å¸¸å¤„ç†ï¼Œæ£€æŸ¥å†…å­˜é—®é¢˜
-			break;//è·³å‡ºæœ¬æ¬¡å¾ªç¯
+		  assert( pParent!=p );  // 2nd and subsequent times through the loop *//*Ìõ¼ş²»³ÉÁ¢£¬Í¬Ñù²åÈë¶Ïµã£¬Òì³£´¦Àí*/
+		  pSrc = pParent->pSrc = sqlite3SrcListAppend(db, 0, 0, 0);//×·¼Ófrom×Ó¾ä
+		  if( pSrc==0 ){//Èç¹ûÍâ²¿²éÑ¯µÄfrom×Ó¾äÎª0
+			assert( db->mallocFailed );//Òì³£´¦Àí£¬¼ì²éÄÚ´æÎÊÌâ
+			break;//Ìø³ö±¾´ÎÑ­»·
 		  }
 		}
 
@@ -3456,30 +3456,30 @@ static int flattenSubquery(
 		** two elements in the FROM clause of the subquery.
 		*/
 		/*
-		** å­æŸ¥è¯¢ä½¿ç”¨ FROM å­å¥çš„å¤–éƒ¨æŸ¥è¯¢ã€‚ å¦‚æœå­æŸ¥è¯¢åœ¨å…¶ FROM å­å¥ä¸­æœ‰å¤šä¸ªå…ƒç´ ï¼Œ
-		å±•å¼€è¯¥å¤–éƒ¨æŸ¥è¯¢ï¼Œä»¥ä½¿å®ƒæŒæœ‰çš„æ‰€æœ‰å…ƒç´ çš„ç©ºé—´ ã€‚**
-		** ä¾‹å­ï¼š
+		** ×Ó²éÑ¯Ê¹ÓÃ FROM ×Ó¾äµÄÍâ²¿²éÑ¯¡£ Èç¹û×Ó²éÑ¯ÔÚÆä FROM ×Ó¾äÖĞÓĞ¶à¸öÔªËØ£¬
+		Õ¹¿ª¸ÃÍâ²¿²éÑ¯£¬ÒÔÊ¹Ëü³ÖÓĞµÄËùÓĞÔªËØµÄ¿Õ¼ä ¡£**
+		** Àı×Ó£º
 		**      SELECT * FROM tabA, (SELECT * FROM sub1, sub2), tabB;
-		** å¤–éƒ¨æœ‰3ä¸ªå…¥å£åœ¨fromå­å¥ä¸­ã€‚ä¸­é—´çš„å…¥å£æ˜¯å­æŸ¥è¯¢ã€‚ä¸‹ä¸€ä¸ªä»£ç å—å°†å¤–æŸ¥è¯¢æ‰©å¤§ä¸º4ä¸ªå…¥å£ã€‚
-		** ä¸ºç¡®ä¿å­æŸ¥è¯¢çš„ç©ºé—´ï¼Œä¸­é—´å…¥å£æ‰©å±•ä½2ä¸ªã€‚
+		** Íâ²¿ÓĞ3¸öÈë¿ÚÔÚfrom×Ó¾äÖĞ¡£ÖĞ¼äµÄÈë¿ÚÊÇ×Ó²éÑ¯¡£ÏÂÒ»¸ö´úÂë¿é½«Íâ²éÑ¯À©´óÎª4¸öÈë¿Ú¡£
+		** ÎªÈ·±£×Ó²éÑ¯µÄ¿Õ¼ä£¬ÖĞ¼äÈë¿ÚÀ©Õ¹Î»2¸ö¡£
 		*/
-		if( nSubSrc>1 ){//å­æŸ¥è¯¢fromå­å¥è¶…è¿‡ä¸€ä¸ª
-		  pParent->pSrc = pSrc = sqlite3SrcListEnlarge(db, pSrc, nSubSrc-1,iFrom+1);//æ‰©å……å¤–éƒ¨æŸ¥è¯¢å…¥å£
-		  if( db->mallocFailed ){//å†…å­˜åˆ†é…å¤±è´¥
+		if( nSubSrc>1 ){//×Ó²éÑ¯from×Ó¾ä³¬¹ıÒ»¸ö
+		  pParent->pSrc = pSrc = sqlite3SrcListEnlarge(db, pSrc, nSubSrc-1,iFrom+1);//À©³äÍâ²¿²éÑ¯Èë¿Ú
+		  if( db->mallocFailed ){//ÄÚ´æ·ÖÅäÊ§°Ü
 			break;
 		  }
 		}
 
 		/* Transfer the FROM clause terms from the subquery into the
 		** outer query.
-		*//*å­æŸ¥è¯¢ä¸­çš„FROMå­å¥è½¬åˆ°å¤–æŸ¥è¯¢*/
-		//éå†æ‰€æœ‰å­æŸ¥è¯¢ä¸­çš„fromå­å¥
+		*//*×Ó²éÑ¯ÖĞµÄFROM×Ó¾ä×ªµ½Íâ²éÑ¯*/
+		//±éÀúËùÓĞ×Ó²éÑ¯ÖĞµÄfrom×Ó¾ä
 		for(i=0; i<nSubSrc; i++){
-		  sqlite3IdListDelete(db, pSrc->a[i+iFrom].pUsing);//ä»æ•°ç»„åˆ é™¤å·²ç»å¤„ç†è¿‡çš„fromå­å¥
-		  pSrc->a[i+iFrom] = pSubSrc->a[i];//è¡¥å…¨æ•°ç»„
-		  memset(&pSubSrc->a[i], 0, sizeof(pSubSrc->a[i]));//ä»pSubSrc->a[i]æ‰€æŒ‡çš„åœ°å€å¼€å§‹ï¼Œå°†pSubSrc->a[i]çš„å‰sizeof(pSubSrc->a[i])ä¸ªå­—èŠ‚ç”¨0æ›¿æ¢
+		  sqlite3IdListDelete(db, pSrc->a[i+iFrom].pUsing);//´ÓÊı×éÉ¾³ıÒÑ¾­´¦Àí¹ıµÄfrom×Ó¾ä
+		  pSrc->a[i+iFrom] = pSubSrc->a[i];//²¹È«Êı×é
+		  memset(&pSubSrc->a[i], 0, sizeof(pSubSrc->a[i]));//´ÓpSubSrc->a[i]ËùÖ¸µÄµØÖ·¿ªÊ¼£¬½«pSubSrc->a[i]µÄÇ°sizeof(pSubSrc->a[i])¸ö×Ö½ÚÓÃ0Ìæ»»
 		}
-		pSrc->a[iFrom].jointype = jointype;//è·å–å½“å‰fromå­å¥è¿æ¥
+		pSrc->a[iFrom].jointype = jointype;//»ñÈ¡µ±Ç°from×Ó¾äÁ¬½Ó
 	  
 		/* Now begin substituting subquery result set expressions for 
 		** references to the iParent in the outer query.
@@ -3493,78 +3493,78 @@ static int flattenSubquery(
 		** We look at every expression in the outer query and every place we see
 		** "a" we substitute "x*3" and every place we see "b" we substitute "y+10".
 		*/
-		/* ç°åœ¨å¼€å§‹å–ä»£å­æŸ¥è¯¢ç»“æœé›†è¡¨è¾¾å¼ï¼Œå¼•ç”¨å¤–éƒ¨æŸ¥è¯¢çš„iParentï¼ˆçˆ¶æŸ¥è¯¢ï¼‰ã€‚
-		** ä¾‹å¦‚ï¼š
+		/* ÏÖÔÚ¿ªÊ¼È¡´ú×Ó²éÑ¯½á¹û¼¯±í´ïÊ½£¬ÒıÓÃÍâ²¿²éÑ¯µÄiParent£¨¸¸²éÑ¯£©¡£
+		** ÀıÈç£º
 		** SELECT a+5, b*10 FROM (SELECT x*3 AS a, y+10 AS b FROM t1) WHERE a>b;
 		**   \                     \_____________ subquery __________/          /
 		**    \_____________________ outer query ______________________________/
-		**æˆ‘ä»¬çœ‹çœ‹æ¯ä¸ªå¤–éƒ¨æŸ¥è¯¢ä¸­çš„è¡¨è¾¾å¼ï¼Œæˆ‘ä»¬çœ‹åˆ°æ¯ä¸ªåœ°æ–¹  'a' ä»£æ›¿ 'x * 3'ï¼Œæ¯ä¸ªåœ°æ–¹ï¼Œæˆ‘ä»¬çœ‹åˆ° 'b' æˆ‘ä»¬ä»£æ›¿' y+10'
+		**ÎÒÃÇ¿´¿´Ã¿¸öÍâ²¿²éÑ¯ÖĞµÄ±í´ïÊ½£¬ÎÒÃÇ¿´µ½Ã¿¸öµØ·½  'a' ´úÌæ 'x * 3'£¬Ã¿¸öµØ·½£¬ÎÒÃÇ¿´µ½ 'b' ÎÒÃÇ´úÌæ' y+10'
 		*/
-		pList = pParent->pEList;//å¤–éƒ¨æŸ¥è¯¢è¡¨è¾¾å¼åˆ—è¡¨çš„è·å–
-		//éå†æ‰€æœ‰çš„è¡¨è¾¾å¼åˆ—è¡¨
+		pList = pParent->pEList;//Íâ²¿²éÑ¯±í´ïÊ½ÁĞ±íµÄ»ñÈ¡
+		//±éÀúËùÓĞµÄ±í´ïÊ½ÁĞ±í
 		for(i=0; i<pList->nExpr; i++){
-		  if( pList->a[i].zName==0 ){//è‹¥è¡¨è¾¾å¼ä¸å­˜åœ¨
-			const char *zSpan = pList->a[i].zSpan;//èµ‹å€¼
+		  if( pList->a[i].zName==0 ){//Èô±í´ïÊ½²»´æÔÚ
+			const char *zSpan = pList->a[i].zSpan;//¸³Öµ
 			if( ALWAYS(zSpan) ){
-			  pList->a[i].zName = sqlite3DbStrDup(db, zSpan);//æ·±æ‹·è´
+			  pList->a[i].zName = sqlite3DbStrDup(db, zSpan);//Éî¿½±´
 			}
 		  }
 		}
-		substExprList(db, pParent->pEList, iParent, pSub->pEList);//è·å–pParent->pEListç»™pSub->pEList
-		if( isAgg ){//å¦‚æœå¤–éƒ¨æŸ¥è¯¢ä½¿ç”¨äº†èšé›†å‡½æ•°
-		  substExprList(db, pParent->pGroupBy, iParent, pSub->pEList);//è·å–pParent->pGroupByç»™pSub->pEList
-		  pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);//è·å–pParent->pHavingè¡¨è¾¾å¼ç»™pSub->pEList
+		substExprList(db, pParent->pEList, iParent, pSub->pEList);//»ñÈ¡pParent->pEList¸øpSub->pEList
+		if( isAgg ){//Èç¹ûÍâ²¿²éÑ¯Ê¹ÓÃÁË¾Û¼¯º¯Êı
+		  substExprList(db, pParent->pGroupBy, iParent, pSub->pEList);//»ñÈ¡pParent->pGroupBy¸øpSub->pEList
+		  pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);//»ñÈ¡pParent->pHaving±í´ïÊ½¸øpSub->pEList
 		}
-		if( pSub->pOrderBy ){//å­æŸ¥è¯¢ä¸­å«OrderByå­å¥
-		  assert( pParent->pOrderBy==0 );//æ’å…¥æ–­ç‚¹ï¼Œå¼‚å¸¸å¤„ç†
-		  pParent->pOrderBy = pSub->pOrderBy;//å­æŸ¥è¯¢ä¸­pOrderByèµ‹å€¼ç»™çˆ¶æŸ¥è¯¢ä¸­çš„pOrderByå­å¥è¿›è¡Œå¤„ç†
-		  pSub->pOrderBy = 0;//å¤„ç†å®Œæ¯•æ¸…ç©ºpSub->pOrderBy
-		}else if( pParent->pOrderBy ){//è‹¥çˆ¶æŸ¥è¯¢æœ‰pOrderByå­å¥
-		  substExprList(db, pParent->pOrderBy, iParent, pSub->pEList);//è·å–pParent->pOrderByç»™pSub->pEList
+		if( pSub->pOrderBy ){//×Ó²éÑ¯ÖĞº¬OrderBy×Ó¾ä
+		  assert( pParent->pOrderBy==0 );//²åÈë¶Ïµã£¬Òì³£´¦Àí
+		  pParent->pOrderBy = pSub->pOrderBy;//×Ó²éÑ¯ÖĞpOrderBy¸³Öµ¸ø¸¸²éÑ¯ÖĞµÄpOrderBy×Ó¾ä½øĞĞ´¦Àí
+		  pSub->pOrderBy = 0;//´¦ÀíÍê±ÏÇå¿ÕpSub->pOrderBy
+		}else if( pParent->pOrderBy ){//Èô¸¸²éÑ¯ÓĞpOrderBy×Ó¾ä
+		  substExprList(db, pParent->pOrderBy, iParent, pSub->pEList);//»ñÈ¡pParent->pOrderBy¸øpSub->pEList
 		}
-		if( pSub->pWhere ){//å«æœ‰whereå­å¥
-		  pWhere = sqlite3ExprDup(db, pSub->pWhere, 0);//æ·±æ‹·è´
+		if( pSub->pWhere ){//º¬ÓĞwhere×Ó¾ä
+		  pWhere = sqlite3ExprDup(db, pSub->pWhere, 0);//Éî¿½±´
 		}else{
-		  pWhere = 0;//æ²¡æœ‰whereå­å¥ï¼Œç½®0
+		  pWhere = 0;//Ã»ÓĞwhere×Ó¾ä£¬ÖÃ0
 		}
-		if( subqueryIsAgg ){//è‹¥å«æœ‰èšé›†å‡½æ•°
-			//èšé›†å‡½æ•°çš„å¤„ç†
-		  assert( pParent->pHaving==0 );//å¼‚å¸¸æ–­ç‚¹å¤„ç†
-		  pParent->pHaving = pParent->pWhere;//whereå­å¥åœ¨havingä¸­å¤„ç†
-		  pParent->pWhere = pWhere;//å½“å‰çš„whereå­å¥èµ‹å€¼ç»™çˆ¶æŸ¥è¯¢ä¸­
-		  pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);//è·å–pParent->pHavingç»™SELECTä¸­pWhere
+		if( subqueryIsAgg ){//Èôº¬ÓĞ¾Û¼¯º¯Êı
+			//¾Û¼¯º¯ÊıµÄ´¦Àí
+		  assert( pParent->pHaving==0 );//Òì³£¶Ïµã´¦Àí
+		  pParent->pHaving = pParent->pWhere;//where×Ó¾äÔÚhavingÖĞ´¦Àí
+		  pParent->pWhere = pWhere;//µ±Ç°µÄwhere×Ó¾ä¸³Öµ¸ø¸¸²éÑ¯ÖĞ
+		  pParent->pHaving = substExpr(db, pParent->pHaving, iParent, pSub->pEList);//»ñÈ¡pParent->pHaving¸øSELECTÖĞpWhere
 		  pParent->pHaving = sqlite3ExprAnd(db, pParent->pHaving,
-									  sqlite3ExprDup(db, pSub->pHaving, 0));//çˆ¶æŸ¥è¯¢pHavingå­å¥ä¸å­æŸ¥è¯¢pHavingå­å¥ï¼Œèµ‹å€¼ç»™çˆ¶æŸ¥è¯¢çš„pHaving
-		  assert( pParent->pGroupBy==0 );//æ’å…¥æ–­ç‚¹ï¼Œå¦‚æœçˆ¶æŸ¥è¯¢ä¸­å«GroupByæŠ›å‡ºå¼‚å¸¸
-		  pParent->pGroupBy = sqlite3ExprListDup(db, pSub->pGroupBy, 0);//æ·±åº¦æ‹·è´
+									  sqlite3ExprDup(db, pSub->pHaving, 0));//¸¸²éÑ¯pHaving×Ó¾äÓë×Ó²éÑ¯pHaving×Ó¾ä£¬¸³Öµ¸ø¸¸²éÑ¯µÄpHaving
+		  assert( pParent->pGroupBy==0 );//²åÈë¶Ïµã£¬Èç¹û¸¸²éÑ¯ÖĞº¬GroupByÅ×³öÒì³£
+		  pParent->pGroupBy = sqlite3ExprListDup(db, pSub->pGroupBy, 0);//Éî¶È¿½±´
 		}else{
-		  pParent->pWhere = substExpr(db, pParent->pWhere, iParent, pSub->pEList);//è·å–pParent->pWhereç»™pSub->pEList
-		  pParent->pWhere = sqlite3ExprAnd(db, pParent->pWhere, pWhere);//whereå­å¥ç›¸è¿æ¥
+		  pParent->pWhere = substExpr(db, pParent->pWhere, iParent, pSub->pEList);//»ñÈ¡pParent->pWhere¸øpSub->pEList
+		  pParent->pWhere = sqlite3ExprAnd(db, pParent->pWhere, pWhere);//where×Ó¾äÏàÁ¬½Ó
 		}
 	  
 		/* The flattened query is distinct if either the inner or the
 		** outer query is distinct. 
-		*//*å¦‚æœå†…æŸ¥è¯¢å’Œå¤–æŸ¥è¯¢éƒ½æ˜¯å”¯ä¸€çš„ï¼Œæ‰å¹³åŒ–æŸ¥è¯¢ä¹Ÿæ˜¯å”¯ä¸€çš„ã€‚
+		*//*Èç¹ûÄÚ²éÑ¯ºÍÍâ²éÑ¯¶¼ÊÇÎ¨Ò»µÄ£¬±âÆ½»¯²éÑ¯Ò²ÊÇÎ¨Ò»µÄ¡£
 		pParent->selFlags |= pSub->selFlags & SF_Distinct;
-	  /*ä½è¿ç®—*/
+	  /*Î»ÔËËã*/
 		/*
 		** SELECT ... FROM (SELECT ... LIMIT a OFFSET b) LIMIT x OFFSET y;
 		**
 		** One is tempted to try to add a and b to combine the limits.  But this
 		** does not work if either limit is negative.
-		*//*ç»“åˆlimitä¸­ä½¿ç”¨aå’Œbï¼Œä½†limitæ˜¯è´Ÿæ•°æ—¶ï¼Œä¸èµ·ä½œç”¨
-		if( pSub->pLimit ){//å­æŸ¥è¯¢ä¸­å«æœ‰limitå­å¥
-		  pParent->pLimit = pSub->pLimit;//å­æŸ¥è¯¢èµ‹ç»™çˆ¶æŸ¥è¯¢çš„limit
-		  pSub->pLimit = 0;//ç½®0
+		*//*½áºÏlimitÖĞÊ¹ÓÃaºÍb£¬µ«limitÊÇ¸ºÊıÊ±£¬²»Æğ×÷ÓÃ
+		if( pSub->pLimit ){//×Ó²éÑ¯ÖĞº¬ÓĞlimit×Ó¾ä
+		  pParent->pLimit = pSub->pLimit;//×Ó²éÑ¯¸³¸ø¸¸²éÑ¯µÄlimit
+		  pSub->pLimit = 0;//ÖÃ0
 		}
 	  }
 	  
 	  /* Finially, delete what is left of the subquery and return
 	  ** success.
-	  *//*æœ€ååˆ é™¤å·¦è¾¹çš„å­æŸ¥è¯¢ï¼ŒæˆåŠŸè¿”å›*/
-	  sqlite3SelectDelete(db, pSub1);/*è°ƒç”¨æ•°æ®åº“åˆ é™¤å‡½æ•°*/
+	  *//*×îºóÉ¾³ı×ó±ßµÄ×Ó²éÑ¯£¬³É¹¦·µ»Ø*/
+	  sqlite3SelectDelete(db, pSub1);/*µ÷ÓÃÊı¾İ¿âÉ¾³ıº¯Êı*/
 
-	  return 1;//è¡¨ç¤ºæ‰§è¡Œé€šè¿‡
+	  return 1;//±íÊ¾Ö´ĞĞÍ¨¹ı
 	}
 	#endif /* !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW) */
 
@@ -3573,35 +3573,35 @@ static int flattenSubquery(
 ** is a min() or max() query. Return WHERE_ORDERBY_MIN or WHERE_ORDERBY_MAX if 
 ** it is, or 0 otherwise. At present, a query is considered to be
 ** a min()/max() query if:
-**åˆ†æå‚æ•°ä¼ é€’çš„ SELECTè¯­å¥æ¥çœ‹å®ƒæ˜¯å¦æ˜¯ä¸€ä¸ªæœ€å°å€¼æˆ–æœ€å¤§å€¼æŸ¥è¯¢ã€‚å¦‚æœæ˜¯ï¼Œåˆ™è¿”å›WHERE_ORDERBY_MINæˆ–WHERE_ORDERBY_MAXï¼Œ
-å¦åˆ™è¿”å›0.ç›®å‰ï¼Œä¸€ä¸ªæŸ¥è¯¢å¦‚æœæ»¡è¶³ä¸‹åˆ—æ¡ä»¶åˆ™è®¤ä¸ºå®ƒæ˜¯ä¸€ä¸ªæœ€å°æˆ–æœ€å¤§å€¼æŸ¥è¯¢ï¼š
+**·ÖÎö²ÎÊı´«µİµÄ SELECTÓï¾äÀ´¿´ËüÊÇ·ñÊÇÒ»¸ö×îĞ¡Öµ»ò×î´óÖµ²éÑ¯¡£Èç¹ûÊÇ£¬Ôò·µ»ØWHERE_ORDERBY_MIN»òWHERE_ORDERBY_MAX£¬
+·ñÔò·µ»Ø0.Ä¿Ç°£¬Ò»¸ö²éÑ¯Èç¹ûÂú×ãÏÂÁĞÌõ¼şÔòÈÏÎªËüÊÇÒ»¸ö×îĞ¡»ò×î´óÖµ²éÑ¯£º
 **   1. There is a single object in the FROM clause.
 **   2. There is a single expression in the result set, and it is
 **      either min(x) or max(x), where x is a column reference.
-**   1.åœ¨Fromå­å¥ä¸­æœ‰ä¸€ä¸ªå•ä¸€å¯¹è±¡ã€‚
-**   2.åœ¨ç»“æœé›†ä¸­æœ‰ä¸€ä¸ªå•ä¸€è¡¨è¾¾å¼ï¼Œå¹¶ä¸”å®ƒè¦ä¹ˆæœ€å°å€¼ï¼Œè¦ä¹ˆæœ€å¤§å€¼ï¼Œå…¶ä¸­xä¸ºä¸€ä¸ªåˆ—å‚è€ƒã€‚*/
+**   1.ÔÚFrom×Ó¾äÖĞÓĞÒ»¸öµ¥Ò»¶ÔÏó¡£
+**   2.ÔÚ½á¹û¼¯ÖĞÓĞÒ»¸öµ¥Ò»±í´ïÊ½£¬²¢ÇÒËüÒªÃ´×îĞ¡Öµ£¬ÒªÃ´×î´óÖµ£¬ÆäÖĞxÎªÒ»¸öÁĞ²Î¿¼¡£*/
 static u8 minMaxQuery(Select *p){
-  Expr *pExpr; //åˆå§‹åŒ–ä¸€ä¸ªè¡¨è¾¾å¼
-  ExprList *pEList = p->pEList; //åˆå§‹åŒ–è¡¨è¾¾å¼åˆ—è¡¨
+  Expr *pExpr; //³õÊ¼»¯Ò»¸ö±í´ïÊ½
+  ExprList *pEList = p->pEList; //³õÊ¼»¯±í´ïÊ½ÁĞ±í
 
-  if( pEList->nExpr!=1 ) return WHERE_ORDERBY_NORMAL;  //åˆ—è¡¨ä¸­ä¸æ˜¯åªæœ‰ä¸€ä¸ªè¡¨è¾¾å¼è¿”å›0ï¼Œå³å¹¶éå•ä¸€å¯¹è±¡ï¼Œä¸åšmin()å¤„ç†ä¹Ÿä¸åšmax()å¤„ç†
-  pExpr = pEList->a[0].pExpr; //å°†è¡¨è¾¾å¼åˆ—è¡¨ä¸­çš„ç¬¬ä¸€ä¸ªè¡¨è¾¾å¼èµ‹ç»™pExpr
-  if( pExpr->op != TK_AGG_FUNCTION ) return 0; //å¦‚æœè¡¨è¾¾å¼çš„æ“ä½œç ä¸ç­‰äºTK_AGG_FUNCTIONï¼Œåˆ™è¿”å›0
+  if( pEList->nExpr!=1 ) return WHERE_ORDERBY_NORMAL;  //ÁĞ±íÖĞ²»ÊÇÖ»ÓĞÒ»¸ö±í´ïÊ½·µ»Ø0£¬¼´²¢·Çµ¥Ò»¶ÔÏó£¬²»×ömin()´¦ÀíÒ²²»×ömax()´¦Àí
+  pExpr = pEList->a[0].pExpr; //½«±í´ïÊ½ÁĞ±íÖĞµÄµÚÒ»¸ö±í´ïÊ½¸³¸øpExpr
+  if( pExpr->op != TK_AGG_FUNCTION ) return 0; //Èç¹û±í´ïÊ½µÄ²Ù×÷Âë²»µÈÓÚTK_AGG_FUNCTION£¬Ôò·µ»Ø0
 /*
   if( NEVER((pExpr->flags & EP_xIsSelect) == EP_xIsSelect))
   pExpr->flags == EP_*
 */
-  if( NEVER(ExprHasProperty(pExpr, EP_xIsSelect)) ) return 0; //åˆ¤æ–­è¡¨è¾¾å¼çš„flagsæ˜¯å¦æ»¡è¶³x.pSelectæ˜¯æœ‰æ•ˆçš„
+  if( NEVER(ExprHasProperty(pExpr, EP_xIsSelect)) ) return 0; //ÅĞ¶Ï±í´ïÊ½µÄflagsÊÇ·ñÂú×ãx.pSelectÊÇÓĞĞ§µÄ
   pEList = pExpr->x.pList;
   if( pEList==0 || pEList->nExpr!=1 ) return 0;
-  if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL; //å¦‚æœæ–°çš„è¡¨è¾¾å¼çš„æ“ä½œç ä¸ç­‰äºTK_AGG_COLUMNï¼Œåˆ™è¿”å›0
-  assert( !ExprHasProperty(pExpr, EP_IntValue) ); //è®¾ç½®æ–­ç‚¹ï¼Œåˆ¤æ–­ExprHasProperty(pExpr, EP_IntValue) == falseæ˜¯å¦æˆç«‹
-  if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){ //å¦‚æœè¡¨è¾¾å¼çš„æ ‡è®°å€¼ç­‰äºminåˆ™è¿”å›WHERE_ORDERBY_MIN
+  if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL; //Èç¹ûĞÂµÄ±í´ïÊ½µÄ²Ù×÷Âë²»µÈÓÚTK_AGG_COLUMN£¬Ôò·µ»Ø0
+  assert( !ExprHasProperty(pExpr, EP_IntValue) ); //ÉèÖÃ¶Ïµã£¬ÅĞ¶ÏExprHasProperty(pExpr, EP_IntValue) == falseÊÇ·ñ³ÉÁ¢
+  if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){ //Èç¹û±í´ïÊ½µÄ±ê¼ÇÖµµÈÓÚminÔò·µ»ØWHERE_ORDERBY_MIN
     return WHERE_ORDERBY_MIN;
-  }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//å¦‚æœè¡¨è¾¾å¼çš„æ ‡è®°å€¼ç­‰äºmaxåˆ™è¿”å›WHERE_ORDERBY_MAX
+  }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//Èç¹û±í´ïÊ½µÄ±ê¼ÇÖµµÈÓÚmaxÔò·µ»ØWHERE_ORDERBY_MAX
     return WHERE_ORDERBY_MAX;
   }
-  return WHERE_ORDERBY_NORMAL; //å¦åˆ™è¿”å›0ï¼Œä¸åšmin()å¤„ç†ä¹Ÿä¸åšmax()å¤„ç†
+  return WHERE_ORDERBY_NORMAL; //·ñÔò·µ»Ø0£¬²»×ömin()´¦ÀíÒ²²»×ömax()´¦Àí
 }
 
 	/*
@@ -3615,35 +3615,35 @@ static u8 minMaxQuery(Select *p){
 	** does match this pattern, then a pointer to the Table object representing
 	** <tbl> is returned. Otherwise, 0 is returned.
 	*/
-	/* æŸ¥è¯¢è¯­å¥ä¼ é€’çš„ç¬¬ä¸€ä¸ªå‚æ•°æ˜¯èšé›†æŸ¥è¯¢ï¼Œç¬¬äºŒä¸ªå‚æ•°æ˜¯ç›¸å…³çš„èšé›†ä¿¡æ¯å¯¹è±¡ã€‚
-	** è¿™ä¸ªåŠŸèƒ½çš„ä½œç”¨æ˜¯æµ‹è¯•æŸ¥è¯¢è¯­å¥æ˜¯å¦æ˜¯å¦‚ä¸‹æ ¼å¼ï¼š
+	/* ²éÑ¯Óï¾ä´«µİµÄµÚÒ»¸ö²ÎÊıÊÇ¾Û¼¯²éÑ¯£¬µÚ¶ş¸ö²ÎÊıÊÇÏà¹ØµÄ¾Û¼¯ĞÅÏ¢¶ÔÏó¡£
+	** Õâ¸ö¹¦ÄÜµÄ×÷ÓÃÊÇ²âÊÔ²éÑ¯Óï¾äÊÇ·ñÊÇÈçÏÂ¸ñÊ½£º
 	**   SELECT count(*) FROM <tbl>
-	** å½“è¿™ä¸ªè¡¨æ˜¯æ•°æ®åº“ä¸­çš„è¡¨ï¼Œä¸æ˜¯å­æŸ¥è¯¢ç»“æœæˆ–è§†å›¾ã€‚å¦‚æœæŸ¥è¯¢å’Œæ¨¡å¼åŒ¹é…ï¼Œ
-	** é‚£ä¹ˆå°±æœ‰ä¸€ä¸ªæŒ‡å‘è¯¥Tableå¯¹è±¡è¡¨ç¤º<tb1>çš„æŒ‡é’ˆè¿”å›ï¼Œå¦åˆ™è¿”å›0ã€‚
+	** µ±Õâ¸ö±íÊÇÊı¾İ¿âÖĞµÄ±í£¬²»ÊÇ×Ó²éÑ¯½á¹û»òÊÓÍ¼¡£Èç¹û²éÑ¯ºÍÄ£Ê½Æ¥Åä£¬
+	** ÄÇÃ´¾ÍÓĞÒ»¸öÖ¸Ïò¸ÃTable¶ÔÏó±íÊ¾<tb1>µÄÖ¸Õë·µ»Ø£¬·ñÔò·µ»Ø0¡£
 	*/
-	static Table *isSimpleCount(Select *p, AggInfo *pAggInfo){//å‚æ•°1ï¼šæŸ¥è¯¢è¯­å¥ï¼›å‚æ•°2ï¼šèšé›†å‡½æ•°
-	  Table *pTab;//åˆå§‹åŒ–ä¸€ä¸ªè¡¨
-	  Expr *pExpr;//åˆå§‹åŒ–ä¸€ä¸ªè¡¨è¾¾å¼
+	static Table *isSimpleCount(Select *p, AggInfo *pAggInfo){//²ÎÊı1£º²éÑ¯Óï¾ä£»²ÎÊı2£º¾Û¼¯º¯Êı
+	  Table *pTab;//³õÊ¼»¯Ò»¸ö±í
+	  Expr *pExpr;//³õÊ¼»¯Ò»¸ö±í´ïÊ½
 
-	  assert( !p->pGroupBy );//æ–­è¨€åˆ¤æ–­ !p->pGroupBy
+	  assert( !p->pGroupBy );//¶ÏÑÔÅĞ¶Ï !p->pGroupBy
 
-	  if( p->pWhere || p->pEList->nExpr!=1 //æŸ¥è¯¢è¯­å¥å«WHEREå­å¥æˆ–è¡¨è¾¾å¼çš„ä¸ªæ•°ä¸ä¸º1
-	   || p->pSrc->nSrc!=1 || p->pSrc->a[0].pSelect)//æˆ–æŸ¥è¯¢è¯­å¥FROMå­å¥ä¸ç­‰äº1ï¼Œæˆ–è€…è‡³å°‘åŒ…å«ä¸€ä¸ªæœ‰åµŒå¥—å­æŸ¥è¯¢
+	  if( p->pWhere || p->pEList->nExpr!=1 //²éÑ¯Óï¾äº¬WHERE×Ó¾ä»ò±í´ïÊ½µÄ¸öÊı²»Îª1
+	   || p->pSrc->nSrc!=1 || p->pSrc->a[0].pSelect)//»ò²éÑ¯Óï¾äFROM×Ó¾ä²»µÈÓÚ1£¬»òÕßÖÁÉÙ°üº¬Ò»¸öÓĞÇ¶Ì××Ó²éÑ¯
 	  {
-		return 0;//è¿”å›0
+		return 0;//·µ»Ø0
 	  }
-	  pTab = p->pSrc->a[0].pTab;//å°†æŸ¥è¯¢è¯­å¥FROMä¸­çš„ç¬¬ä¸€ä¸ªSQLè¡¨èµ‹ç»™pTab
-	  pExpr = p->pEList->a[0].pExpr;//å°†æŸ¥è¯¢è¯­å¥ä¸­çš„ç¬¬ä¸€ä¸ªè¡¨è¾¾å¼èµ‹ç»™pExpr
-	  assert( pTab && !pTab->pSelect && pExpr );//åŠ å…¥æ–­è¨€ï¼Œåˆ¤æ–­pTabã€pExpræ˜¯å¦èµ‹å€¼æˆåŠŸï¼Œä¸”pTabä¸ºè¡¨è€Œéè§†å›¾
-												//pTabæ˜¯è¡¨åˆ™pTab->pSelect == nullï¼Œæ˜¯è§†å›¾åˆ™pTab->pSelectä¸ºç›¸åº”å®šä¹‰
+	  pTab = p->pSrc->a[0].pTab;//½«²éÑ¯Óï¾äFROMÖĞµÄµÚÒ»¸öSQL±í¸³¸øpTab
+	  pExpr = p->pEList->a[0].pExpr;//½«²éÑ¯Óï¾äÖĞµÄµÚÒ»¸ö±í´ïÊ½¸³¸øpExpr
+	  assert( pTab && !pTab->pSelect && pExpr );//¼ÓÈë¶ÏÑÔ£¬ÅĞ¶ÏpTab¡¢pExprÊÇ·ñ¸³Öµ³É¹¦£¬ÇÒpTabÎª±í¶ø·ÇÊÓÍ¼
+												//pTabÊÇ±íÔòpTab->pSelect == null£¬ÊÇÊÓÍ¼ÔòpTab->pSelectÎªÏàÓ¦¶¨Òå
 
-	  if( IsVirtual(pTab) ) return 0;//pTabè‹¥æ˜¯è™šè¡¨ï¼Œåˆ™è¿”å›0
-	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//è‹¥è¡¨è¾¾å¼ä¸ºéèšé›†æ“ä½œï¼Œåˆ™è¿”å›0
-	  if( NEVER(pAggInfo->nFunc==0) ) return 0;//å¦‚æœæ²¡æœ‰èšé›†å‡½æ•°ï¼Œåˆ™è¿”å›0
-	  if( (pAggInfo->aFunc[0].pFunc->flags&SQLITE_FUNC_COUNT)==0 ) return 0;//å¦‚æœèšé›†å‡½æ•°çš„æ ‡è®°å˜é‡å’ŒSQLITE_FUNC_COUNTä½è¿ç®—ä¸ç­‰ï¼Œåˆ™è¿”å›0
-	  if( pExpr->flags&EP_Distinct ) return 0;//å¦‚æœè¡¨è¾¾å¼å¸¦æœ‰DISTINCTæ ‡è®°ï¼Œåˆ™è¿”å›0
+	  if( IsVirtual(pTab) ) return 0;//pTabÈôÊÇĞé±í£¬Ôò·µ»Ø0
+	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//Èô±í´ïÊ½Îª·Ç¾Û¼¯²Ù×÷£¬Ôò·µ»Ø0
+	  if( NEVER(pAggInfo->nFunc==0) ) return 0;//Èç¹ûÃ»ÓĞ¾Û¼¯º¯Êı£¬Ôò·µ»Ø0
+	  if( (pAggInfo->aFunc[0].pFunc->flags&SQLITE_FUNC_COUNT)==0 ) return 0;//Èç¹û¾Û¼¯º¯ÊıµÄ±ê¼Ç±äÁ¿ºÍSQLITE_FUNC_COUNTÎ»ÔËËã²»µÈ£¬Ôò·µ»Ø0
+	  if( pExpr->flags&EP_Distinct ) return 0;//Èç¹û±í´ïÊ½´øÓĞDISTINCT±ê¼Ç£¬Ôò·µ»Ø0
 
-	  return pTab;//è¿”å›è¡¨pTab
+	  return pTab;//·µ»Ø±ípTab
 	}
 
 	/*
@@ -3653,30 +3653,31 @@ static u8 minMaxQuery(Select *p){
 	** SQLITE_ERROR and leave an error in pParse. Otherwise, populate 
 	** pFrom->pIndex and return SQLITE_OK.
 	*/
-	/*å¦‚æœæºåˆ—è¡¨çš„é¡¹ä½œä¸ºä¸€ä¸ªç´¢å¼•æ˜¯æœ‰å¼‚è®®çš„ï¼Œé‚£ä¹ˆå°±å°è¯•å®šä½ç‰¹æ®Šçš„ç´¢å¼•ã€‚å¦‚æœæœ‰ä¸€ä¸ªå­å¥è€Œä¸”è¢«å‘½åçš„ç´¢å¼•æ‰¾ä¸åˆ°äº†ï¼Œ
-	é‚£ä¹ˆå°±è¿”å›é”™è¯¯å¹¶ä¸”åœ¨è§£æå™¨ä¸­æ ‡è®°å‡ºé”™è¯¯ã€‚
-	å¦åˆ™å¡«å……åˆ° pFrom->pIndexå¹¶ä¸”è¿”å›ä¸€ä¸ª SQLITE_OK
+	/* Èç¹ûÔ´ÁĞ±íÖĞµÄÏî´«µİµÄ²ÎÊı´øÓĞË÷Òı×Ó¾ä£¬Ôò³¢ÊÔ¶¨Î»Ö¸¶¨Ë÷Òı¡£
+	** Èç¹û´æÔÚÕâÑùµÄ×Ó¾äÇÒ±»Ö¸¶¨µÄË÷ÒıÕÒ²»µ½£¬Ôò·µ»ØSQLITE_ERROR£¬²¢ÔÚ½âÎöÊ±ÏÔÊ¾´íÎó¡£
+	** ·ñÔò£¬ÌîÈëpFrom->pIndex ²¢·µ»Ø SQLITE_OK¡£
+	** 
 	*/
-	//ç´¢å¼•é¡¹çš„å¤„ç†
-	int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){
-	  if( pFrom->pTab && pFrom->zIndex ){//SrcList_itemä¸ºFROMçš„ç»“æ„ä½“ï¼ŒpTabéç©ºä¸”pFrom->zIndexéç©º
-		Table *pTab = pFrom->pTab;//å®šä¹‰ä¸€ä¸ªè¡¨
-		char *zIndex = pFrom->zIndex;//fromé¡¹çš„ç´¢å¼•æ ‡è¯†ç¬¦
-		Index *pIdx;//å£°æ˜ä¸€ä¸ªç´¢å¼•æŒ‡é’ˆ
+	//Ë÷ÒıÏîµÄ´¦Àí
+	int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){ //²ÎÊı1:½âÎöÆ÷ ²ÎÊı2:FROMµÄ½á¹¹Ìå
+	  if( pFrom->pTab && pFrom->zIndex ){//Èç¹ûpFrom->pTab·Ç¿Õ£¬ÇÒpFrom->zIndex·Ç¿Õ
+		Table *pTab = pFrom->pTab;//½«pFrom->pTab¸³¸øÒ»¸öĞÂ±í
+		char *zIndex = pFrom->zIndex;//½«pFrom->zIndex¸³¸øÒ»¸öĞÂ±êÊ¶·û
+		Index *pIdx;//³õÊ¼»¯Ò»¸öË÷ÒıÖ¸Õë
 
-		//éå†è¡¨ä¸­çš„ç´¢å¼•é¡¹ï¼ŒæŸ¥æ‰¾æŒ‡å®šåå­—çš„ç´¢å¼•
+		//±éÀú±íÖĞµÄË÷ÒıÏî£¬²éÕÒÖ¸¶¨Ë÷Òı
 		for(pIdx=pTab->pIndex; 
 			pIdx && sqlite3StrICmp(pIdx->zName, zIndex); 
 			pIdx=pIdx->pNext
 		);
-		if( !pIdx ){//æ²¡æœ‰æ‰¾åˆ°å¯¹åº”çš„ç´¢å¼•é¡¹
-		  sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);//è¾“å‡ºé”™è¯¯ä¿¡æ¯
-		  pParse->checkSchema = 1;//è¯­æ³•è§£æå™¨é”™è¯¯ä¿¡æ¯æ ‡è¯†
-		  return SQLITE_ERROR;//è¿”å›é”™è¯¯ä¿¡æ¯
+		if( !pIdx ){//Èç¹ûÃ»ÓĞÕÒµ½Ë÷ÒıÏî
+		  sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);//Êä³ö´íÎóĞÅÏ¢
+		  pParse->checkSchema = 1;//½âÎöÆ÷Ä£Ê½Ê¶±ğ±êÖ¾ÉèÎª1
+		  return SQLITE_ERROR;//·µ»ØSQLITE_ERROR
 		}
-		pFrom->pIndex = pIdx;//æ‰¾åˆ°ç´¢å¼•é¡¹ï¼Œæ·»åŠ åˆ°FROMè¡¨è¾¾å¼é¡¹çš„ç´¢å¼•ç»“æ„ä½“ä¸­
+		pFrom->pIndex = pIdx;//½«ÕÒµ½µÄË÷ÒıÏîÌí¼Óµ½FROM±í´ïÊ½ÏîµÄË÷Òı½á¹¹ÌåÖĞ
 	  }
-	  return SQLITE_OK;//æ‰§è¡Œæ­£ç¡®ï¼Œè¿”å›æ­£ç¡®ä¿¡æ¯
+	  return SQLITE_OK;//Ö´ĞĞÍê±Ï£¬·µ»ØSQLITE_OK
 	}
 
 	/*
@@ -3703,99 +3704,99 @@ static u8 minMaxQuery(Select *p){
 	**         and TABLE.* to be every column in TABLE.
 	**
 	*/
-	/* è¿™ä¸ªç¨‹åºæ˜¯Walkerå›è°ƒâ€œexpandingâ€çš„ä¸€ä¸ªSELECTè¯­å¥ï¼Œâ€œExpandingâ€æ˜¯æŒ‡åšä»¥ä¸‹è¿™äº›ï¼š
-	**   ï¼ˆ1ï¼‰ç¡®ä¿VEBEæ¸¸æ ‡å·å·²ç»è¢«åˆ†é…ç»™FROMå­å¥çš„æ¯ä¸ªå…ƒç´    
-	**   ï¼ˆ2ï¼‰åœ¨SrcListä¸­ï¼Œå¡«è¿›pTabList->a[].pTabä¸­çš„åŸŸæ˜¯å¯¹fromå­å¥çš„å®šä¹‰ã€‚å½“FROMå­å¥ä¸­å‡ºç°è§†å›¾ï¼Œå¡«è¿›ä¸€ä¸ªå®ç°è¯•å›¾çš„selectçš„å‰¯æœ¬çš„pTabList->a[].pSelect
-	**        ç”±SELECTè¯­å¥çš„ç»„æˆçš„å‰¯æœ¬ï¼Œæˆ‘ä»¬å¯ä»¥è‡ªç”±çš„ä¿®æ”¹æˆ–è€…åˆ é™¤è¿™ä¸ªè¯­å¥ï¼Œè€Œä¸ç”¨æ‹…å¿ƒ
-	**        ä¼šå°†ä»¥å‰çš„è§†å›¾ä¿®æ”¹ã€‚
-	**   ï¼ˆ3ï¼‰åœ¨è¿æ¥æ“ä½œå’Œè¿æ¥æ“ä½œä¸­æ¶‰åŠçš„onä»¥åŠusingä¸Šï¼Œæ·»åŠ ä¸€ä¸ªWHEREå­å¥å®¹çº³NATURALå…³é”®å­—
-	**   ï¼ˆ4ï¼‰åœ¨ç»“æœé›†ä¸­æ‰«æåˆ—è¡¨ï¼ŒæŸ¥æ‰¾â€œ*â€æ“ä½œç¬¦çš„å®ä¾‹æˆ–TABLE.*æ“ä½œç¬¦ã€‚å¦‚æœæ‰¾åˆ°äº†ï¼Œåœ¨æ¯ä¸ªè¡¨çš„æ¯ä¸€åˆ—æ‰©å±•
+	/* Õâ¸ö³ÌĞòÊÇWalker»Øµ÷¡°expanding¡±µÄÒ»¸öSELECTÓï¾ä£¬¡°Expanding¡±ÊÇÖ¸×öÒÔÏÂÕâĞ©£º
+	**   £¨1£©È·±£VEBEÓÎ±êºÅÒÑ¾­±»·ÖÅä¸øFROM×Ó¾äµÄÃ¿¸öÔªËØ   
+	**   £¨2£©ÔÚSrcListÖĞ£¬Ìî½øpTabList->a[].pTabÖĞµÄÓòÊÇ¶Ôfrom×Ó¾äµÄ¶¨Òå¡£µ±FROM×Ó¾äÖĞ³öÏÖÊÓÍ¼£¬Ìî½øÒ»¸öÊµÏÖÊÔÍ¼µÄselectµÄ¸±±¾µÄpTabList->a[].pSelect
+	**        ÓÉSELECTÓï¾äµÄ×é³ÉµÄ¸±±¾£¬ÎÒÃÇ¿ÉÒÔ×ÔÓÉµÄĞŞ¸Ä»òÕßÉ¾³ıÕâ¸öÓï¾ä£¬¶ø²»ÓÃµ£ĞÄ
+	**        »á½«ÒÔÇ°µÄÊÓÍ¼ĞŞ¸Ä¡£
+	**   £¨3£©ÔÚÁ¬½Ó²Ù×÷ºÍÁ¬½Ó²Ù×÷ÖĞÉæ¼°µÄonÒÔ¼°usingÉÏ£¬Ìí¼ÓÒ»¸öWHERE×Ó¾äÈİÄÉNATURAL¹Ø¼ü×Ö
+	**   £¨4£©ÔÚ½á¹û¼¯ÖĞÉ¨ÃèÁĞ±í£¬²éÕÒ¡°*¡±²Ù×÷·ûµÄÊµÀı»òTABLE.*²Ù×÷·û¡£Èç¹ûÕÒµ½ÁË£¬ÔÚÃ¿¸ö±íµÄÃ¿Ò»ÁĞÀ©Õ¹
 	*/
 	static int selectExpander(Walker *pWalker, Select *p){
-	  Parse *pParse = pWalker->pParse;//è¯­æ³•è§£ææ ‘çš„å£°æ˜
-	  int i, j, k;//è‡ªå®šä¹‰å˜é‡
-	  SrcList *pTabList;//fromå­å¥åˆ—è¡¨æŒ‡é’ˆçš„å£°æ˜
-	  ExprList *pEList;//è¡¨è¾¾å¼åˆ—è¡¨çš„å£°æ˜
-	  struct SrcList_item *pFrom;//å®ä¾‹åŒ–ä¸€ä¸ªç»“æ„ä½“
-	  sqlite3 *db = pParse->db;//æ•°æ®åº“è¿æ¥çš„å®šä¹‰
+	  Parse *pParse = pWalker->pParse;//Óï·¨½âÎöÊ÷µÄÉùÃ÷
+	  int i, j, k;//×Ô¶¨Òå±äÁ¿
+	  SrcList *pTabList;//from×Ó¾äÁĞ±íÖ¸ÕëµÄÉùÃ÷
+	  ExprList *pEList;//±í´ïÊ½ÁĞ±íµÄÉùÃ÷
+	  struct SrcList_item *pFrom;//ÊµÀı»¯Ò»¸ö½á¹¹Ìå
+	  sqlite3 *db = pParse->db;//Êı¾İ¿âÁ¬½ÓµÄ¶¨Òå
 
-	  if( db->mallocFailed  ){//æ£€æŸ¥å†…å­˜åˆ†é…é—®é¢˜
-		return WRC_Abort;//*å¦‚æœå†…å­˜åˆ†é…é”™è¯¯ï¼Œç»ˆæ­¢ç¨‹åº
+	  if( db->mallocFailed  ){//¼ì²éÄÚ´æ·ÖÅäÎÊÌâ
+		return WRC_Abort;//*Èç¹ûÄÚ´æ·ÖÅä´íÎó£¬ÖÕÖ¹³ÌĞò
 	  }
-	  if( NEVER(p->pSrc==0) || (p->selFlags & SF_Expanded)!=0 ){//æ²¡æœ‰fromå­å¥æˆ–æ ‡è®°ç¬¦å’ŒSF_Expandedä½è¿ç®—ç›¸ç­‰
-		return WRC_Prune;//åˆ é™¤
+	  if( NEVER(p->pSrc==0) || (p->selFlags & SF_Expanded)!=0 ){//Ã»ÓĞfrom×Ó¾ä»ò±ê¼Ç·ûºÍSF_ExpandedÎ»ÔËËãÏàµÈ
+		return WRC_Prune;//É¾³ı
 	  }
-	  p->selFlags |= SF_Expanded;//å˜é‡çš„ä½è¿ç®—
-	  pTabList = p->pSrc;//FROMå­å¥æ‰€æŒ‡çš„èµ‹å€¼ç»™FROMå­å¥åˆ—è¡¨æŒ‡é’ˆ
-	  pEList = p->pEList;//è·å–è¡¨è¾¾å¼åˆ—è¡¨
+	  p->selFlags |= SF_Expanded;//±äÁ¿µÄÎ»ÔËËã
+	  pTabList = p->pSrc;//FROM×Ó¾äËùÖ¸µÄ¸³Öµ¸øFROM×Ó¾äÁĞ±íÖ¸Õë
+	  pEList = p->pEList;//»ñÈ¡±í´ïÊ½ÁĞ±í
 
 	  /* Make sure cursor numbers have been assigned to all entries in
 	  ** the FROM clause of the SELECT statement.
-	  *//*ç¡®ä¿æ¸¸æ ‡å·å·²ç»åˆ†é…ç»™æ‰€æœ‰çš„åœ¨SELECTè¯­å¥é‡Œä¸­FROMå­å¥é‡Œã€‚*/
-	  sqlite3SrcListAssignCursors(pParse, pTabList);/*ä¸ºè¡¨è¾¾å¼åˆ—è¡¨pTabListä¸­æ‰€æœ‰è¡¨åˆ†é…æ¸¸æ ‡å·*/
+	  *//*È·±£ÓÎ±êºÅÒÑ¾­·ÖÅä¸øËùÓĞµÄÔÚSELECTÓï¾äÀïÖĞFROM×Ó¾äÀï¡£*/
+	  sqlite3SrcListAssignCursors(pParse, pTabList);/*Îª±í´ïÊ½ÁĞ±ípTabListÖĞËùÓĞ±í·ÖÅäÓÎ±êºÅ*/
 
 	  /* Look up every table named in the FROM clause of the select.  If
 	  ** an entry of the FROM clause is a subquery instead of a table or view,
 	  ** then create a transient table structure to describe the subquery.
-	  *//*æŸ¥æ‰¾SELECTä¸­FROMå­å¥ä¸­æ¯ä¸€ä¸ªè¡¨åã€‚è‹¥FROMå­å¥çš„ä¸€ä¸ªæ¡ç›®æ˜¯å­æŸ¥è¯¢è€Œä¸æ˜¯ä¸€ä¸ªè¡¨æˆ–è§†å›¾ï¼Œ
-	  é‚£ä¹ˆå°±åˆ›å»ºä¸€ä¸ªæè¿°å­æŸ¥è¯¢çš„äº‹åŠ¡è¡¨	  */
-	  //éå†è¡¨è¾¾å¼åˆ—è¡¨
+	  *//*²éÕÒSELECTÖĞFROM×Ó¾äÖĞÃ¿Ò»¸ö±íÃû¡£ÈôFROM×Ó¾äµÄÒ»¸öÌõÄ¿ÊÇ×Ó²éÑ¯¶ø²»ÊÇÒ»¸ö±í»òÊÓÍ¼£¬
+	  ÄÇÃ´¾Í´´½¨Ò»¸öÃèÊö×Ó²éÑ¯µÄÊÂÎñ±í	  */
+	  //±éÀú±í´ïÊ½ÁĞ±í
 	  for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
-		Table *pTab;//å®šä¹‰ä¸€ä¸ªtableç±»å‹çš„å˜é‡
-		if( pFrom->pTab!=0 ){//å¦‚æœfromè¡¨é¡¹ä¸­æœ‰è¡¨
+		Table *pTab;//¶¨ÒåÒ»¸ötableÀàĞÍµÄ±äÁ¿
+		if( pFrom->pTab!=0 ){//Èç¹ûfrom±íÏîÖĞÓĞ±í
 		  /* This statement has already been prepared.  There is no need
 		  ** to go further. */
-		  è¿™ä¸ªå£°æ˜å·²ç»è¢«äº‹å…ˆæ‰§è¡Œï¼Œæ²¡æœ‰å¿…è¦ç»§ç»­è¿›è¡Œã€‚
-		  assert( i==0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹ã€‚
-		  return WRC_Prune;//åˆ é™¤
+		  Õâ¸öÉùÃ÷ÒÑ¾­±»ÊÂÏÈÖ´ĞĞ£¬Ã»ÓĞ±ØÒª¼ÌĞø½øĞĞ¡£
+		  assert( i==0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã¡£
+		  return WRC_Prune;//É¾³ı
 		}
 		if( pFrom->zName==0 ){
-		//è‹¥è¡¨åä¸ºç©º
+		//Èô±íÃûÎª¿Õ
 	#ifndef SQLITE_OMIT_SUBQUERY
-		  Select *pSel = pFrom->pSelect;//å°†pFromèµ‹å€¼ç»™pSel
-		  /* A sub-query in the FROM clause of a SELECT *//*SELECTä¸­FROMå­å¥çš„å­æŸ¥è¯¢*/
-		  assert( pSel!=0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-		  assert( pFrom->pTab==0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-		  sqlite3WalkSelect(pWalker, pSel);//è°ƒç”¨sqlite3WalkSelectå‡½æ•°
-		  pFrom->pTab = pTab = sqlite3DbMallocZero(db, sizeof(Table));//åˆ†é…å’Œè¡¨çš„å¤§å°ç›¸ç­‰çš„å†…å­˜
-		  if( pTab==0 ) return WRC_Abort;//å¦‚æœåˆ†é…é”™è¯¯ï¼Œåˆ™ç»ˆæ­¢ç¨‹åº
-		  pTab->nRef = 1;//pTab->nRefèµ‹å€¼ä¸º1
-		  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//å°†ç›¸å…³çš„ä¿¡æ¯æ‰“å°å‡ºæ¥èµ‹ç»™pTab->zName
-		  //éå†ï¼ŒæŸ¥æ‰¾ä¼˜å…ˆçš„select
+		  Select *pSel = pFrom->pSelect;//½«pFrom¸³Öµ¸øpSel
+		  /* A sub-query in the FROM clause of a SELECT *//*SELECTÖĞFROM×Ó¾äµÄ×Ó²éÑ¯*/
+		  assert( pSel!=0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+		  assert( pFrom->pTab==0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+		  sqlite3WalkSelect(pWalker, pSel);//µ÷ÓÃsqlite3WalkSelectº¯Êı
+		  pFrom->pTab = pTab = sqlite3DbMallocZero(db, sizeof(Table));//·ÖÅäºÍ±íµÄ´óĞ¡ÏàµÈµÄÄÚ´æ
+		  if( pTab==0 ) return WRC_Abort;//Èç¹û·ÖÅä´íÎó£¬ÔòÖÕÖ¹³ÌĞò
+		  pTab->nRef = 1;//pTab->nRef¸³ÖµÎª1
+		  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//½«Ïà¹ØµÄĞÅÏ¢´òÓ¡³öÀ´¸³¸øpTab->zName
+		  //±éÀú£¬²éÕÒÓÅÏÈµÄselect
 		  while( pSel->pPrior ){ pSel = pSel->pPrior; }
-		  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//åœ¨è¡¨è¾¾å¼åˆ—è¡¨ä¸­æŸ¥æ‰¾åˆ—
-		  pTab->iPKey = -1;//ç½®iPKey=-1ï¼Œä¸ç”¨å®ƒåšä¸»é”®
-		  pTab->nRowEst = 1000000;//è®¾ç½®è¡¨çš„è¡Œæ•°
-		  pTab->tabFlags |= TF_Ephemeral;//ä½è¿ç®—ï¼Œè®¾ç½®è¡¨çš„æ ‡è®°å˜é‡
+		  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//ÔÚ±í´ïÊ½ÁĞ±íÖĞ²éÕÒÁĞ
+		  pTab->iPKey = -1;//ÖÃiPKey=-1£¬²»ÓÃËü×öÖ÷¼ü
+		  pTab->nRowEst = 1000000;//ÉèÖÃ±íµÄĞĞÊı
+		  pTab->tabFlags |= TF_Ephemeral;//Î»ÔËËã£¬ÉèÖÃ±íµÄ±ê¼Ç±äÁ¿
 	#endif
 		}else{
-		  /* An ordinary table or view name in the FROM clause *//*FROMè¯­å¥ä¸­å¸¸è§„çš„è¡¨æˆ–è§†å›¾åå­—*/
-		  assert( pFrom->pTab==0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
+		  /* An ordinary table or view name in the FROM clause *//*FROMÓï¾äÖĞ³£¹æµÄ±í»òÊÓÍ¼Ãû×Ö*/
+		  assert( pFrom->pTab==0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
 		  pFrom->pTab = pTab = 
-			sqlite3LocateTable(pParse,0,pFrom->zName,pFrom->zDatabase);//ç”±è¯­æ³•è§£æï¼Œæ•°æ®åº“è¿æ¥ï¼Œæ•°æ®åº“åå­—å®šä½æ‰€å¯»æ‰¾çš„è¡¨
-		  if( pTab==0 ) return WRC_Abort;//ä¸å­˜åœ¨è¯¥è¡¨åˆ™ç»ˆæ­¢
-		  pTab->nRef++;//è‡ªåŠ 
+			sqlite3LocateTable(pParse,0,pFrom->zName,pFrom->zDatabase);//ÓÉÓï·¨½âÎö£¬Êı¾İ¿âÁ¬½Ó£¬Êı¾İ¿âÃû×Ö¶¨Î»ËùÑ°ÕÒµÄ±í
+		  if( pTab==0 ) return WRC_Abort;//²»´æÔÚ¸Ã±íÔòÖÕÖ¹
+		  pTab->nRef++;//×Ô¼Ó
 	#if !defined(SQLITE_OMIT_VIEW) || !defined (SQLITE_OMIT_VIRTUALTABLE)
-		  if( pTab->pSelect || IsVirtual(pTab) ){//è‹¥è¡¨ä¸­SELECTéç©ºæˆ–pTabæ˜¯è™šè¡¨
-			/* We reach here if the named table is a really a view *//*åˆ°è¾¾è¿™ä¸€æ­¥ï¼Œå¦‚æœï¼Œè¯´æ˜è¿™ä¸ªè¡¨æ˜¯ä¸€ä¸ªçœŸæ­£çš„è§†å›¾*/
-			if( sqlite3ViewGetColumnNames(pParse, pTab) ) return WRC_Abort;//è·å–è§†å›¾åˆ—åï¼Œè‹¥æœ‰é”™è¯¯ï¼Œç»ˆæ­¢
-			assert( pFrom->pSelect==0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-			pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);//æ·±æ‹·è´
-			sqlite3WalkSelect(pWalker, pFrom->pSelect);/*è°ƒç”¨sqlite3WalkSelectå’Œsqlite3WalkExpr
+		  if( pTab->pSelect || IsVirtual(pTab) ){//Èô±íÖĞSELECT·Ç¿Õ»òpTabÊÇĞé±í
+			/* We reach here if the named table is a really a view *//*µ½´ïÕâÒ»²½£¬Èç¹û£¬ËµÃ÷Õâ¸ö±íÊÇÒ»¸öÕæÕıµÄÊÓÍ¼*/
+			if( sqlite3ViewGetColumnNames(pParse, pTab) ) return WRC_Abort;//»ñÈ¡ÊÓÍ¼ÁĞÃû£¬ÈôÓĞ´íÎó£¬ÖÕÖ¹
+			assert( pFrom->pSelect==0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+			pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);//Éî¿½±´
+			sqlite3WalkSelect(pWalker, pFrom->pSelect);/*µ÷ÓÃsqlite3WalkSelectºÍsqlite3WalkExpr
 		  }
 	#endif
 		}
 
-		/* Locate the index named by the INDEXED BY clause, if any. *//*åœ¨ç´¢å¼•å­å¥ä¸­å®šä½åˆ°ç´¢å¼•çš„åå­—*/
-		if( sqlite3IndexedByLookup(pParse, pFrom) ){//æŸ¥æ‰¾ç´¢å¼•
-		  return WRC_Abort;//å†è¿”å›ä¸­æ­¢æ‰§è¡Œæ ‡è®°
+		/* Locate the index named by the INDEXED BY clause, if any. *//*ÔÚË÷Òı×Ó¾äÖĞ¶¨Î»µ½Ë÷ÒıµÄÃû×Ö*/
+		if( sqlite3IndexedByLookup(pParse, pFrom) ){//²éÕÒË÷Òı
+		  return WRC_Abort;//ÔÙ·µ»ØÖĞÖ¹Ö´ĞĞ±ê¼Ç
 		}
 	  }
 
 	  /* Process NATURAL keywords, and ON and USING clauses of joins.
-	  *//*å¤„ç†è¿æ¥ä¸­çš„NATURALå…³é”®å­— ON USING*/
-	  if( db->mallocFailed || sqliteProcessJoin(pParse, p) ){//å†…å­˜åˆ†é…å¤±è´¥æˆ–è€…å¤„ç†è¿æ¥æ“ä½œ
-		return WRC_Abort;//ä¸­æ­¢
+	  *//*´¦ÀíÁ¬½ÓÖĞµÄNATURAL¹Ø¼ü×Ö ON USING*/
+	  if( db->mallocFailed || sqliteProcessJoin(pParse, p) ){//ÄÚ´æ·ÖÅäÊ§°Ü»òÕß´¦ÀíÁ¬½Ó²Ù×÷
+		return WRC_Abort;//ÖĞÖ¹
 	  }
 
 	  /* For every "*" that occurs in the column list, insert the names of
@@ -3809,141 +3810,141 @@ static u8 minMaxQuery(Select *p){
 	  ** that need expanding.
 	  */
 	  /*
-	  ** åœ¨åˆ—è¡¨ä¸­å‡ºç°çš„æ¯ä¸€ä¸ªâ€œ*â€ï¼Œåœ¨æ‰€æœ‰çš„è¡¨å’Œæ‰€æœ‰çš„åˆ—ä¸­æ’å…¥åå­—ã€‚å¯¹äºæ¯ä¸ªè¡¨çš„å·¦è¿æ¥è¿ç®—ï¼Œæ’å…¥è¡¨ä¸­æ‰€æœ‰åˆ—çš„åå­—
-	  ** å¯¹äºä»»ä½•çš„â€œ*â€ï¼Œåœ¨è¯­æ³•è§£æå™¨ä¸­ï¼Œæ’å…¥ä¸€ä¸ªèšé›†æ“ä½œæ“ä½œç¬¦çš„ç‰¹æ®Šè¡¨è¾¾å¼ã€‚
-	  ** å‰©ä¸‹çš„ä»£ç å¿…é¡»æ‰¾åˆ°èšé›†è¡¨è¾¾å¼å¹¶ä¸”æ‰©å±•æ‰€æœ‰è¡¨æ‰€æœ‰åˆ—çš„åˆ—è¡¨
+	  ** ÔÚÁĞ±íÖĞ³öÏÖµÄÃ¿Ò»¸ö¡°*¡±£¬ÔÚËùÓĞµÄ±íºÍËùÓĞµÄÁĞÖĞ²åÈëÃû×Ö¡£¶ÔÓÚÃ¿¸ö±íµÄ×óÁ¬½ÓÔËËã£¬²åÈë±íÖĞËùÓĞÁĞµÄÃû×Ö
+	  ** ¶ÔÓÚÈÎºÎµÄ¡°*¡±£¬ÔÚÓï·¨½âÎöÆ÷ÖĞ£¬²åÈëÒ»¸ö¾Û¼¯²Ù×÷²Ù×÷·ûµÄÌØÊâ±í´ïÊ½¡£
+	  ** Ê£ÏÂµÄ´úÂë±ØĞëÕÒµ½¾Û¼¯±í´ïÊ½²¢ÇÒÀ©Õ¹ËùÓĞ±íËùÓĞÁĞµÄÁĞ±í
 	  */
 
-	  //éå†è¡¨è¾¾å¼åˆ—è¡¨
+	  //±éÀú±í´ïÊ½ÁĞ±í
 	  for(k=0; k<pEList->nExpr; k++){
-		Expr *pE = pEList->a[k].pExpr;/*è¡¨è¾¾å¼åˆ—è¡¨æ•°ç»„ä¸­çš„æ¯ä¸ªå…ƒç´ èµ‹å€¼ç»™pe*/
-		if( pE->op==TK_ALL ) break;/*å¦‚æœæ“ä½œä¸ºèšé›†æ“ä½œ*/
-		assert( pE->op!=TK_DOT || pE->pRight!=0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-		assert( pE->op!=TK_DOT || (pE->pLeft!=0 && pE->pLeft->op==TK_ID) );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-		if( pE->op==TK_DOT && pE->pRight->op==TK_ALL ) break;//æ»¡è¶³æ¡ä»¶ï¼Œè·³å‡ºå¾ªç¯ä½“
+		Expr *pE = pEList->a[k].pExpr;/*±í´ïÊ½ÁĞ±íÊı×éÖĞµÄÃ¿¸öÔªËØ¸³Öµ¸øpe*/
+		if( pE->op==TK_ALL ) break;/*Èç¹û²Ù×÷Îª¾Û¼¯²Ù×÷*/
+		assert( pE->op!=TK_DOT || pE->pRight!=0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+		assert( pE->op!=TK_DOT || (pE->pLeft!=0 && pE->pLeft->op==TK_ID) );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+		if( pE->op==TK_DOT && pE->pRight->op==TK_ALL ) break;//Âú×ãÌõ¼ş£¬Ìø³öÑ­»·Ìå
 	  }
-	  if( k<pEList->nExpr ){//è‹¥kçš„å€¼å°äºè¡¨è¾¾å¼åˆ—è¡¨çš„ä¸ªæ•°
+	  if( k<pEList->nExpr ){//ÈôkµÄÖµĞ¡ÓÚ±í´ïÊ½ÁĞ±íµÄ¸öÊı
 		/*
 		** If we get here it means the result set contains one or more "*"
 		** operators that need to be expanded.  Loop through each expression
 		** in the result set and expand them one by one.
-		//åˆ°äº†è¿™ä¸€æ­¥ï¼Œè¡¨æ˜ç»“æœé›†åŒ…å«ä¸€ä¸ªæˆ–å¤šä¸ªçš„*æ“ä½œï¼Œè¿™äº›æ“ä½œæ˜¯éœ€è¦æ‰©å±•çš„ã€‚å¾ªç¯å¤„ç†æ¯ä¸€ä¸ªç»“æœé›†ä¸­çš„è¡¨è¾¾å¼å¹¶ä¸”æ‰©å±•å®ƒä»¬*/
+		//µ½ÁËÕâÒ»²½£¬±íÃ÷½á¹û¼¯°üº¬Ò»¸ö»ò¶à¸öµÄ*²Ù×÷£¬ÕâĞ©²Ù×÷ÊÇĞèÒªÀ©Õ¹µÄ¡£Ñ­»·´¦ÀíÃ¿Ò»¸ö½á¹û¼¯ÖĞµÄ±í´ïÊ½²¢ÇÒÀ©Õ¹ËüÃÇ*/
 	
-		struct ExprList_item *a = pEList->a;//ExprList_itemç»“æ„ä½“å¯¹è±¡çš„èµ‹å€¼
-		ExprList *pNew = 0;//*å®šä¹‰ä¸€ä¸ªè¡¨è¾¾å¼åˆ—è¡¨
-		int flags = pParse->db->flags;//è§£æå™¨ä¸­æ ‡è®°å˜é‡
-		int longNames = (flags & SQLITE_FullColNames)!=0//flagsä¸ºSQLITE_FullColNameså¹¶ä¸”ä¸åŒ…å«SQLITE_ShortColNames
+		struct ExprList_item *a = pEList->a;//ExprList_item½á¹¹Ìå¶ÔÏóµÄ¸³Öµ
+		ExprList *pNew = 0;//*¶¨ÒåÒ»¸ö±í´ïÊ½ÁĞ±í
+		int flags = pParse->db->flags;//½âÎöÆ÷ÖĞ±ê¼Ç±äÁ¿
+		int longNames = (flags & SQLITE_FullColNames)!=0//flagsÎªSQLITE_FullColNames²¢ÇÒ²»°üº¬SQLITE_ShortColNames
 						  && (flags & SQLITE_ShortColNames)==0;
 
-		//éå†è¡¨è¾¾å¼åˆ—è¡¨
+		//±éÀú±í´ïÊ½ÁĞ±í
 		for(k=0; k<pEList->nExpr; k++){
-		  Expr *pE = a[k].pExpr;/*è¡¨è¾¾å¼åˆ—è¡¨æ•°ç»„ä¸­çš„æ¯ä¸ªå…ƒç´ èµ‹å€¼ç»™pe
-		  assert( pE->op!=TK_DOT || pE->pRight!=0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
+		  Expr *pE = a[k].pExpr;/*±í´ïÊ½ÁĞ±íÊı×éÖĞµÄÃ¿¸öÔªËØ¸³Öµ¸øpe
+		  assert( pE->op!=TK_DOT || pE->pRight!=0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
 		  if( pE->op!=TK_ALL && (pE->op!=TK_DOT || pE->pRight->op!=TK_ALL) ){
 			/* This particular expression does not need to be expanded.
-			//è¿™ç§ç‰¹æ®Šçš„è¡¨è¾¾ä¸éœ€è¦æ‰©å±•*/
-			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//è¿½åŠ 
-			if( pNew ){//pnewéç©º
-			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//æ•°ç»„å…ƒç´ è¡¨åå±æ€§èµ‹å€¼
-			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//æ•°ç»„å…ƒç´ çš„zSpanå±æ€§èµ‹å€¼
-			  a[k].zName = 0;//ç½®0
-			  a[k].zSpan = 0;//ç½®0
+			//ÕâÖÖÌØÊâµÄ±í´ï²»ĞèÒªÀ©Õ¹*/
+			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//×·¼Ó
+			if( pNew ){//pnew·Ç¿Õ
+			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//Êı×éÔªËØ±íÃûÊôĞÔ¸³Öµ
+			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//Êı×éÔªËØµÄzSpanÊôĞÔ¸³Öµ
+			  a[k].zName = 0;//ÖÃ0
+			  a[k].zSpan = 0;//ÖÃ0
 			}
-			a[k].pExpr = 0;//ç½®0
+			a[k].pExpr = 0;//ÖÃ0
 		  }else{
 			/* This expression is a "*" or a "TABLE.*" and needs to be
-			** expanded.è¿™ä¸ªè¡¨è¾¾å¼æ˜¯ä¸€ä¸ª*æˆ–è€…æ˜¯å·¦è¿æ¥ï¼Œå®ƒä»¬æ˜¯éœ€è¦è¢«æ‰©å±•çš„  */
-			int tableSeen = 0;      /* Set to 1 when TABLE matches *///æ­£ç¡®åŒ¹é…çš„æ—¶å€™è®¾ç½®ä¸º1
-			char *zTName;            /* text of name of TABLE *///è¡¨çš„æ–‡æœ¬å
+			** expanded.Õâ¸ö±í´ïÊ½ÊÇÒ»¸ö*»òÕßÊÇ×óÁ¬½Ó£¬ËüÃÇÊÇĞèÒª±»À©Õ¹µÄ  */
+			int tableSeen = 0;      /* Set to 1 when TABLE matches *///ÕıÈ·Æ¥ÅäµÄÊ±ºòÉèÖÃÎª1
+			char *zTName;            /* text of name of TABLE *///±íµÄÎÄ±¾Ãû
 			if( pE->op==TK_DOT ){
-			  assert( pE->pLeft!=0 );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-			  assert( !ExprHasProperty(pE->pLeft, EP_IntValue) );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-			  zTName = pE->pLeft->u.zToken;//è¡¨è¾¾å¼å·¦è¾¹çš„u.zTokenèµ‹å€¼ç»™æ–‡æœ¬
+			  assert( pE->pLeft!=0 );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+			  assert( !ExprHasProperty(pE->pLeft, EP_IntValue) );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+			  zTName = pE->pLeft->u.zToken;//±í´ïÊ½×ó±ßµÄu.zToken¸³Öµ¸øÎÄ±¾
 			}else{
-			  zTName = 0;//å¦åˆ™æ–‡æœ¬æ¸…ç©º
+			  zTName = 0;//·ñÔòÎÄ±¾Çå¿Õ
 			}
-			//è¡¨è¾¾å¼åˆ—è¡¨çš„éå†
+			//±í´ïÊ½ÁĞ±íµÄ±éÀú
 			for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
-			  Table *pTab = pFrom->pTab;//å®šä¹‰è¡¨
-			  char *zTabName = pFrom->zAlias;//fromå­å¥çš„ä¾èµ–å…³ç³»
-			  if( zTabName==0 ){//ä¸ºç©º
-				zTabName = pTab->zName;//ç›´æ¥èµ‹è¡¨å
+			  Table *pTab = pFrom->pTab;//¶¨Òå±í
+			  char *zTabName = pFrom->zAlias;//from×Ó¾äµÄÒÀÀµ¹ØÏµ
+			  if( zTabName==0 ){//Îª¿Õ
+				zTabName = pTab->zName;//Ö±½Ó¸³±íÃû
 			  }
-			  if( db->mallocFailed ) break;//å†…å­˜åˆ†é…å¤±è´¥ï¼Œè·³å‡ºå¾ªç¯ä½“
-			  if( zTName && sqlite3StrICmp(zTName, zTabName)!=0 ){//è¡¨åéç©ºï¼Œè¡¨åä¸€è‡´
-				continue;//è·³å‡ºæœ¬æ¬¡å¾ªç¯
+			  if( db->mallocFailed ) break;//ÄÚ´æ·ÖÅäÊ§°Ü£¬Ìø³öÑ­»·Ìå
+			  if( zTName && sqlite3StrICmp(zTName, zTabName)!=0 ){//±íÃû·Ç¿Õ£¬±íÃûÒ»ÖÂ
+				continue;//Ìø³ö±¾´ÎÑ­»·
 			  }
-			  tableSeen = 1;//è®¾ç½®æ ‡è®°å˜é‡
-			  //éå†è¡¨ä¸­çš„åˆ—
+			  tableSeen = 1;//ÉèÖÃ±ê¼Ç±äÁ¿
+			  //±éÀú±íÖĞµÄÁĞ
 			  for(j=0; j<pTab->nCol; j++){
-				Expr *pExpr, *pRight;//å£°æ˜è¡¨è¾¾å¼
-				char *zName = pTab->aCol[j].zName;//è·å–æ¯ä¸€åˆ—çš„åå­—
-				char *zColname;  // The computed column name //è®¡ç®—çš„åˆ—å
-				char *zToFree;   /* Malloced string that needs to be freed *//*é‡Šæ”¾å·²åˆ†é…å­—ç¬¦ä¸²çš„ç©ºé—´*/
-				Token sColname;  /* Computed column name as a token *//*æ ‡è®°åˆ—å
+				Expr *pExpr, *pRight;//ÉùÃ÷±í´ïÊ½
+				char *zName = pTab->aCol[j].zName;//»ñÈ¡Ã¿Ò»ÁĞµÄÃû×Ö
+				char *zColname;  // The computed column name //¼ÆËãµÄÁĞÃû
+				char *zToFree;   /* Malloced string that needs to be freed *//*ÊÍ·ÅÒÑ·ÖÅä×Ö·û´®µÄ¿Õ¼ä*/
+				Token sColname;  /* Computed column name as a token *//*±ê¼ÇÁĞÃû
 
 				/* If a column is marked as 'hidden' (currently only possible
 				** for virtual tables), do not include it in the expanded result-set list.
 				** result-set list.
-				*//*å¦‚æœæœ‰ä¸€åˆ—æ ‡è®°ä¸ºéšè—ï¼Œå½“å‰åªèƒ½å¯¹è™šè¡¨ï¼Œåœ¨æ‰©å±•çš„ç»“æœé›†ä¸­ä¸åŒ…æ‹¬å®ƒã€‚*/
-				if( IsHiddenColumn(&pTab->aCol[j]) ){//åˆ¤æ–­åˆ—æ˜¯å¦è¢«éšè—
-				  assert(IsVirtual(pTab));//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-				  continue;//è·³è¿‡æœ¬æ¬¡å¾ªç¯
+				*//*Èç¹ûÓĞÒ»ÁĞ±ê¼ÇÎªÒş²Ø£¬µ±Ç°Ö»ÄÜ¶ÔĞé±í£¬ÔÚÀ©Õ¹µÄ½á¹û¼¯ÖĞ²»°üÀ¨Ëü¡£*/
+				if( IsHiddenColumn(&pTab->aCol[j]) ){//ÅĞ¶ÏÁĞÊÇ·ñ±»Òş²Ø
+				  assert(IsVirtual(pTab));//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+				  continue;//Ìø¹ı±¾´ÎÑ­»·
 				}
 
 				if( i>0 && zTName==0 ){
-				  if( (pFrom->jointype & JT_NATURAL)!=0/*è¿æ¥ç±»å‹ä¸ºJT_NATURAL*/
-					&& tableAndColumnIndex(pTabList, i, zName, 0, 0)/*å¹¶ä¸”è¡¨ä¸åˆ—ç´¢å¼•ä¸ä¸ºç©º*/
+				  if( (pFrom->jointype & JT_NATURAL)!=0/*Á¬½ÓÀàĞÍÎªJT_NATURAL*/
+					&& tableAndColumnIndex(pTabList, i, zName, 0, 0)/*²¢ÇÒ±íÓëÁĞË÷Òı²»Îª¿Õ*/
 				  ){
 					/* In a NATURAL join, omit the join columns from the 
-					** table to the right of the join *//*(æ³¨ï¼šä½¿ç”¨è‡ªç„¶è¿æ¥ï¼Œä»å³ä¾§çš„è¿æ¥è¡¨ä¸­çœç•¥è¿æ¥åˆ—)*/
-					continue;//è·³è¿‡æœ¬æ¬¡å¾ªç¯
+					** table to the right of the join *//*(×¢£ºÊ¹ÓÃ×ÔÈ»Á¬½Ó£¬´ÓÓÒ²àµÄÁ¬½Ó±íÖĞÊ¡ÂÔÁ¬½ÓÁĞ)*/
+					continue;//Ìø¹ı±¾´ÎÑ­»·
 				  }
-				  if( sqlite3IdListIndex(pFrom->pUsing, zName)>=0 ){//åˆ—ç´¢å¼•
+				  if( sqlite3IdListIndex(pFrom->pUsing, zName)>=0 ){//ÁĞË÷Òı
 					/* In a join with a USING clause, omit columns in the
-					** using clause from the table on the right. *//*ç”¨USINGå­å¥çš„è¿æ¥ï¼Œä»å³è¡¨ä¸­çœç•¥åœ¨usingå­å¥ä¸­çš„åˆ—*/
-					continue;//è·³è¿‡æœ¬æ¬¡å¾ªç¯
+					** using clause from the table on the right. *//*ÓÃUSING×Ó¾äµÄÁ¬½Ó£¬´ÓÓÒ±íÖĞÊ¡ÂÔÔÚusing×Ó¾äÖĞµÄÁĞ*/
+					continue;//Ìø¹ı±¾´ÎÑ­»·
 				  }
 				}
-				pRight = sqlite3Expr(db, TK_ID, zName);//è°ƒç”¨sqlite3Exprå‡½æ•°ï¼Œåˆ†é…åˆ—zNameä¸€ä¸ªTK_IDæ ‡è®°
-				zColname = zName;//å¯¹åˆ—åçš„èµ‹å€¼
+				pRight = sqlite3Expr(db, TK_ID, zName);//µ÷ÓÃsqlite3Exprº¯Êı£¬·ÖÅäÁĞzNameÒ»¸öTK_ID±ê¼Ç
+				zColname = zName;//¶ÔÁĞÃûµÄ¸³Öµ
 				zToFree = 0;
 				if( longNames || pTabList->nSrc>1 ){
-				  Expr *pLeft;//å£°æ˜è¡¨è¾¾å¼
-				  pLeft = sqlite3Expr(db, TK_ID, zTabName); //è°ƒç”¨sqlite3Exprå‡½æ•°ï¼Œåˆ†é…åˆ—zTabNameä¸€ä¸ªTK_IDæ ‡è®°
-				  pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);//è°ƒç”¨sqlite3PExprç”¨æ¥å¤„ç†pLeftå’ŒpRight
-				  if( longNames ){//å…¨è·¯å¾„
-					zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);//è¾“å‡ºåˆ—å
-					zToFree = zColname;//è·å–åˆ—å
+				  Expr *pLeft;//ÉùÃ÷±í´ïÊ½
+				  pLeft = sqlite3Expr(db, TK_ID, zTabName); //µ÷ÓÃsqlite3Exprº¯Êı£¬·ÖÅäÁĞzTabNameÒ»¸öTK_ID±ê¼Ç
+				  pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);//µ÷ÓÃsqlite3PExprÓÃÀ´´¦ÀípLeftºÍpRight
+				  if( longNames ){//È«Â·¾¶
+					zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);//Êä³öÁĞÃû
+					zToFree = zColname;//»ñÈ¡ÁĞÃû
 				  }
 				}else{
-				  pExpr = pRight;//prightèµ‹å€¼ç»™æœ€åçš„è¡¨è¾¾å¼
+				  pExpr = pRight;//pright¸³Öµ¸ø×îºóµÄ±í´ïÊ½
 				}
-				pNew = sqlite3ExprListAppend(pParse, pNew, pExpr);//pExprè¿½åŠ åˆ°pNew
-				sColname.z = zColname;//èµ‹å€¼
-				sColname.n = sqlite3Strlen30(zColname);//åˆ—åçš„å­—ç¬¦ä¸²é•¿åº¦
-				sqlite3ExprListSetName(pParse, pNew, &sColname, 0);//è®¾ç½®è¡¨è¾¾å¼åˆ—è¡¨çš„åå­—
-				sqlite3DbFree(db, zToFree);//é‡Šæ”¾å†…å­˜ç©ºé—´
+				pNew = sqlite3ExprListAppend(pParse, pNew, pExpr);//pExpr×·¼Óµ½pNew
+				sColname.z = zColname;//¸³Öµ
+				sColname.n = sqlite3Strlen30(zColname);//ÁĞÃûµÄ×Ö·û´®³¤¶È
+				sqlite3ExprListSetName(pParse, pNew, &sColname, 0);//ÉèÖÃ±í´ïÊ½ÁĞ±íµÄÃû×Ö
+				sqlite3DbFree(db, zToFree);//ÊÍ·ÅÄÚ´æ¿Õ¼ä
 			  }
 			}
 			if( !tableSeen ){
-			  if( zTName ){//åˆ—åä¸ä¸ºç©º
-				sqlite3ErrorMsg(pParse, "no such table: %s", zTName);//æ‰“å°é”™è¯¯ä¿¡æ¯
+			  if( zTName ){//ÁĞÃû²»Îª¿Õ
+				sqlite3ErrorMsg(pParse, "no such table: %s", zTName);//´òÓ¡´íÎóĞÅÏ¢
 			  }else{
-				sqlite3ErrorMsg(pParse, "no tables specified");//æ‰“å°é”™è¯¯ä¿¡æ¯
+				sqlite3ErrorMsg(pParse, "no tables specified");//´òÓ¡´íÎóĞÅÏ¢
 			  }
 			}
 		  }
 		}
-		sqlite3ExprListDelete(db, pEList);//åˆ é™¤è¡¨è¾¾å¼åˆ—è¡¨
-		p->pEList = pNew;//èµ‹å€¼
+		sqlite3ExprListDelete(db, pEList);//É¾³ı±í´ïÊ½ÁĞ±í
+		p->pEList = pNew;//¸³Öµ
 	  }
 	#if SQLITE_MAX_COLUMN
-	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//åˆ—æº¢å‡ºï¼Œè¡¨è¾¾å¼ä¸ä¸ºç©º
-		sqlite3ErrorMsg(pParse, "too many columns in result set");//æ‰“å°é”™è¯¯ä¿¡æ¯
+	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//ÁĞÒç³ö£¬±í´ïÊ½²»Îª¿Õ
+		sqlite3ErrorMsg(pParse, "too many columns in result set");//´òÓ¡´íÎóĞÅÏ¢
 	  }
 	#endif
-	  return WRC_Continue;//ç»§ç»­æ‰§è¡Œ
+	  return WRC_Continue;//¼ÌĞøÖ´ĞĞ
 	}
 
 	/*
@@ -3955,14 +3956,14 @@ static u8 minMaxQuery(Select *p){
 	** Walker.xSelectCallback is set to do something useful for every 
 	** subquery in the parser tree.
 	*/
-	/* å…³äºè§£ææ ‘walkerçš„ä¾‹ç¨‹
+	/* ¹ØÓÚ½âÎöÊ÷walkerµÄÀı³Ì
 	**
-	** å½“ç¨‹åºæ˜¯Walker.xExprCallbackå›è°ƒå‡½æ•°ï¼Œè¡¨è¾¾å¼æ ‘åœ¨æ²¡æœ‰ä»»ä½•æ“ä½œæƒ…å†µä¸‹å æ®æ¯ä¸ªèŠ‚ç‚¹ã€‚å‡è®¾ï¼Œå½“ç¨‹åºç”¨æ¥Walker.xExprCallback
-	** ç„¶åWalker.xSelectCallback ä¸ºè¯­æ³•è§£ææ ‘ä¸­çš„æ¯ä¸€ä¸ªå­æŸ¥è¯¢æä¾›å¸®åŠ©ã€‚
+	** µ±³ÌĞòÊÇWalker.xExprCallback»Øµ÷º¯Êı£¬±í´ïÊ½Ê÷ÔÚÃ»ÓĞÈÎºÎ²Ù×÷Çé¿öÏÂÕ¼¾İÃ¿¸ö½Úµã¡£¼ÙÉè£¬µ±³ÌĞòÓÃÀ´Walker.xExprCallback
+	** È»ºóWalker.xSelectCallback ÎªÓï·¨½âÎöÊ÷ÖĞµÄÃ¿Ò»¸ö×Ó²éÑ¯Ìá¹©°ïÖú¡£
 	*/
 	static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
 	  UNUSED_PARAMETER2(NotUsed, NotUsed2);
-	  return WRC_Continue;//ç»§ç»­æ‰§è¡Œ
+	  return WRC_Continue;//¼ÌĞøÖ´ĞĞ
 	}
 
 	/*
@@ -3978,18 +3979,18 @@ static u8 minMaxQuery(Select *p){
 	** The calling function can detect the problem by looking at pParse->nErr
 	** and/or pParse->db->mallocFailed.
 	*/
-	/* è¿™ä¸ªä¾‹ç¨‹â€œexpandsâ€ä¸€ä¸ªSELECTå£°æ˜å’Œæ‰€æœ‰çš„å­æŸ¥è¯¢ï¼Œå®ƒçš„é™„åŠ ä¿¡æ¯æ˜¯æŒ‡å®ƒæ˜¯"expand" è¯­å¥çš„SELECTçš„å£°æ˜
+	/* Õâ¸öÀı³Ì¡°expands¡±Ò»¸öSELECTÉùÃ÷ºÍËùÓĞµÄ×Ó²éÑ¯£¬ËüµÄ¸½¼ÓĞÅÏ¢ÊÇÖ¸ËüÊÇ"expand" Óï¾äµÄSELECTµÄÉùÃ÷
 	**
-	** SELECTå£°æ˜ä¸­çš„ç¬¬ä¸€æ­¥æ˜¯æ‰©å±•ä¸€ä¸ªSELECTè¯­å¥ã€‚åœ¨è§£ææ‰§è¡Œå‰ï¼Œè¿™ä¸ªselectè¯­å¥å¿…é¡»è¢«æ‰©å±•
+	** SELECTÉùÃ÷ÖĞµÄµÚÒ»²½ÊÇÀ©Õ¹Ò»¸öSELECTÓï¾ä¡£ÔÚ½âÎöÖ´ĞĞÇ°£¬Õâ¸öselectÓï¾ä±ØĞë±»À©Õ¹
 	**
-	** è‹¥æœ‰é”™è¯¯å‡ºç°ï¼Œé‚£è¿™æ¡é”™è¯¯ä¿¡æ¯å°±å†™åˆ°è§£æå™¨ä¸­ã€‚å›è°ƒå‡½æ•°å¯ä»¥åœ¨pParse->nErr æˆ– pParse->db->mallocFailedä¸­æ‰¾å‡ºé”™è¯¯ä¿¡æ¯
+	** ÈôÓĞ´íÎó³öÏÖ£¬ÄÇÕâÌõ´íÎóĞÅÏ¢¾ÍĞ´µ½½âÎöÆ÷ÖĞ¡£»Øµ÷º¯Êı¿ÉÒÔÔÚpParse->nErr »ò pParse->db->mallocFailedÖĞÕÒ³ö´íÎóĞÅÏ¢
 	*/
 	static void sqlite3SelectExpand(Parse *pParse, Select *pSelect){
-	  Walker w;//Walkerç»“æ„ä½“çš„å£°æ˜
+	  Walker w;//Walker½á¹¹ÌåµÄÉùÃ÷
 	  w.xSelectCallback = selectExpander;
-	  w.xExprCallback = exprWalkNoop;//è‹¥è¡¨è¾¾å¼å«æœ‰æœªä½¿ç”¨çš„ä¿¡æ¯ï¼Œè°ƒç”¨å›è°ƒå‡½æ•°
-	  w.pParse = pParse;//èµ‹å€¼
-	  sqlite3WalkSelect(&w, pSelect);//å›è°ƒå‡½æ•°ï¼Œè°ƒç”¨sqlite3WalkSelect
+	  w.xExprCallback = exprWalkNoop;//Èô±í´ïÊ½º¬ÓĞÎ´Ê¹ÓÃµÄĞÅÏ¢£¬µ÷ÓÃ»Øµ÷º¯Êı
+	  w.pParse = pParse;//¸³Öµ
+	  sqlite3WalkSelect(&w, pSelect);//»Øµ÷º¯Êı£¬µ÷ÓÃsqlite3WalkSelect
 	}
 
 
@@ -4007,37 +4008,37 @@ static u8 minMaxQuery(Select *p){
 	** at that point because identifiers had not yet been resolved.  This
 	** routine is called after identifier resolution.
 	*/
-	/* è¿™æ˜¯ä¸€ä¸ªWalker.xSelectCallbackå›è°ƒsqlite3SelectTypeInfo()å‡½æ•°çš„æ¥å£ã€‚
+	/* ÕâÊÇÒ»¸öWalker.xSelectCallback»Øµ÷sqlite3SelectTypeInfo()º¯ÊıµÄ½Ó¿Ú¡£
 	**
-	** å¯¹äºä»»ä½•ä¸€ä¸ªFROMå­æŸ¥è¯¢ï¼Œæ·»åŠ Column.zTypeå’Œ Column.zCollä¿¡æ¯åˆ°è¡¨ç»“æ„ä¸­ï¼Œä»–ä»£è¡¨å­æŸ¥è¯¢çš„ç»“æœé›†ã€‚
+	** ¶ÔÓÚÈÎºÎÒ»¸öFROM×Ó²éÑ¯£¬Ìí¼ÓColumn.zTypeºÍ Column.zCollĞÅÏ¢µ½±í½á¹¹ÖĞ£¬Ëû´ú±í×Ó²éÑ¯µÄ½á¹û¼¯¡£
 	**
-	** è¡¨ç»“æ„ä»£è¡¨ç»“æœé›†ç”±selectExpanderï¼ˆï¼‰æ„å»ºï¼Œä½†åœ¨è¿™ç§æƒ…å†µä¸‹ç±»å‹å’Œæ’åˆ—ä¿¡æ¯ä¼šè¢«çœç•¥ï¼Œå› ä¸ºæ²¡æœ‰è§£ææ ‡è¯†ç¬¦ã€‚
-	** è¿™ä¸ªä¾‹ç¨‹å®åœ¨è§£ææ ‡è¯†ä¹‹åè°ƒç”¨çš„
+	** ±í½á¹¹´ú±í½á¹û¼¯ÓÉselectExpander£¨£©¹¹½¨£¬µ«ÔÚÕâÖÖÇé¿öÏÂÀàĞÍºÍÅÅÁĞĞÅÏ¢»á±»Ê¡ÂÔ£¬ÒòÎªÃ»ÓĞ½âÎö±êÊ¶·û¡£
+	** Õâ¸öÀı³ÌÊµÔÚ½âÎö±êÊ¶Ö®ºóµ÷ÓÃµÄ
 	*/
 	static int selectAddSubqueryTypeInfo(Walker *pWalker, Select *p){
-	  Parse *pParse;//è¯­æ³•è§£æå™¨çš„å£°æ˜
-	  int i;//å£°æ˜ä¸€ä¸ªæ•´å‹å˜é‡
-	  SrcList *pTabList;//å£°æ˜fromå­å¥çš„è¡¨è¾¾å¼åˆ—è¡¨
-	  struct SrcList_item *pFrom;//æ„é€ ç»“æ„ä½“å¯¹è±¡
+	  Parse *pParse;//Óï·¨½âÎöÆ÷µÄÉùÃ÷
+	  int i;//ÉùÃ÷Ò»¸öÕûĞÍ±äÁ¿
+	  SrcList *pTabList;//ÉùÃ÷from×Ó¾äµÄ±í´ïÊ½ÁĞ±í
+	  struct SrcList_item *pFrom;//¹¹Ôì½á¹¹Ìå¶ÔÏó
 
-	  assert( p->selFlags & SF_Resolved );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-	  if( (p->selFlags & SF_HasTypeInfo)==0 ){//æ£€æŸ¥æ ‡è®°å˜é‡å’Œç±»å‹ä¿¡æ¯
-		p->selFlags |= SF_HasTypeInfo;//ä½è¿ç®—
-		pParse = pWalker->pParse;//è¯­æ³•è§£ææ ‘
+	  assert( p->selFlags & SF_Resolved );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+	  if( (p->selFlags & SF_HasTypeInfo)==0 ){//¼ì²é±ê¼Ç±äÁ¿ºÍÀàĞÍĞÅÏ¢
+		p->selFlags |= SF_HasTypeInfo;//Î»ÔËËã
+		pParse = pWalker->pParse;//Óï·¨½âÎöÊ÷
 		pTabList = p->pSrc;
-		//éå†åˆ—è¡¨çš„è¡¨è¾¾å¼
+		//±éÀúÁĞ±íµÄ±í´ïÊ½
 		for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
-		  Table *pTab = pFrom->pTab;//è·å–fromå­å¥ä¸­çš„åˆ—è¡¨
-		  if( ALWAYS(pTab!=0) && (pTab->tabFlags & TF_Ephemeral)!=0 ){//åˆ¤æ–­æ¡ä»¶
-			/* A sub-query in the FROM clause of a SELECT åœ¨fromå­å¥ä¸­çš„å­æŸ¥è¯¢*/
-			Select *pSel = pFrom->pSelect;//è·å–selectè¯­å¥
-			assert( pSel );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
-			while( pSel->pPrior ) pSel = pSel->pPrior;//å¾ªç¯è·å–æœ€ä¼˜å…ˆçš„æŸ¥è¯¢
-			selectAddColumnTypeAndCollation(pParse, pTab->nCol, pTab->aCol, pSel);//æ·»åŠ åˆ—çš„ç±»å‹å’Œç›¸å…³çš„ä¿¡æ¯
+		  Table *pTab = pFrom->pTab;//»ñÈ¡from×Ó¾äÖĞµÄÁĞ±í
+		  if( ALWAYS(pTab!=0) && (pTab->tabFlags & TF_Ephemeral)!=0 ){//ÅĞ¶ÏÌõ¼ş
+			/* A sub-query in the FROM clause of a SELECT ÔÚfrom×Ó¾äÖĞµÄ×Ó²éÑ¯*/
+			Select *pSel = pFrom->pSelect;//»ñÈ¡selectÓï¾ä
+			assert( pSel );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
+			while( pSel->pPrior ) pSel = pSel->pPrior;//Ñ­»·»ñÈ¡×îÓÅÏÈµÄ²éÑ¯
+			selectAddColumnTypeAndCollation(pParse, pTab->nCol, pTab->aCol, pSel);//Ìí¼ÓÁĞµÄÀàĞÍºÍÏà¹ØµÄĞÅÏ¢
 		  }
 		}
 	  }
-	  return WRC_Continue;//ç»§ç»­æ‰§è¡Œ
+	  return WRC_Continue;//¼ÌĞøÖ´ĞĞ
 	}
 	#endif
 
@@ -4049,15 +4050,15 @@ static u8 minMaxQuery(Select *p){
 	**
 	** Use this routine after name resolution.
 	*/
-	/* åœ¨æ‰€æœ‰fromå­å¥çš„å­æŸ¥è¯¢ä¸­çš„è¡¨ç»“æ„ä¸­æ·»åŠ datatypeå’Œæ’åºä¿¡æ¯åˆ°SELECTä¸­å­æŸ¥è¯¢çš„æ‰€æœ‰FROMå­å¥çš„TABLEç»“æ„ä¸­ã€‚
-	** åœ¨åå­—è§£æåä½¿ç”¨è¿™æ®µç¨‹åº*/
+	/* ÔÚËùÓĞfrom×Ó¾äµÄ×Ó²éÑ¯ÖĞµÄ±í½á¹¹ÖĞÌí¼ÓdatatypeºÍÅÅĞòĞÅÏ¢µ½SELECTÖĞ×Ó²éÑ¯µÄËùÓĞFROM×Ó¾äµÄTABLE½á¹¹ÖĞ¡£
+	** ÔÚÃû×Ö½âÎöºóÊ¹ÓÃÕâ¶Î³ÌĞò*/
 	static void sqlite3SelectAddTypeInfo(Parse *pParse, Select *pSelect){
 	#ifndef SQLITE_OMIT_SUBQUERY
-	  Walker w;//å£°æ˜ä¸€ä¸ªWalkerç»“æ„ä½“
-	  w.xSelectCallback = selectAddSubqueryTypeInfo;//å­æŸ¥è¯¢ç±»å‹ä¿¡æ¯ç»™å›è°ƒå‡½æ•°
-	  w.xExprCallback = exprWalkNoop;//è¡¨è¾¾å¼ä¿¡æ¯ç»™å›è°ƒå‡½æ•°
-	  w.pParse = pParse;//è§£æå™¨
-	  sqlite3WalkSelect(&w, pSelect);//å›è°ƒå‡½æ•°ï¼Œè°ƒç”¨sqlite3WalkSelect
+	  Walker w;//ÉùÃ÷Ò»¸öWalker½á¹¹Ìå
+	  w.xSelectCallback = selectAddSubqueryTypeInfo;//×Ó²éÑ¯ÀàĞÍĞÅÏ¢¸ø»Øµ÷º¯Êı
+	  w.xExprCallback = exprWalkNoop;//±í´ïÊ½ĞÅÏ¢¸ø»Øµ÷º¯Êı
+	  w.pParse = pParse;//½âÎöÆ÷
+	  sqlite3WalkSelect(&w, pSelect);//»Øµ÷º¯Êı£¬µ÷ÓÃsqlite3WalkSelect
 	#endif
 	}
 
@@ -4073,28 +4074,28 @@ static u8 minMaxQuery(Select *p){
 	**
 	** This routine acts recursively on all subqueries within the SELECT.
 	*/
-	/* è¿™ä¸ªä¾‹ç¨‹è®¾ç½® SELECT è¯­å¥è¿›è¡Œå¤„ç†ã€‚
-	**   * VDBEæ¸¸æ ‡å·åˆ†é…ç»™æ‰€æœ‰çš„FROMå­å¥
-	**   * ä¸ºæ‰€æœ‰ FROM å­å¥çš„å­æŸ¥è¯¢åˆ›å»ºä¸´æ—¶è¡¨å¯¹è±¡
-	**   * ON å’Œ USING å­å¥åˆ‡æ¢åˆ°WHEREè¯­å¥
-	**   * ç»“æœé›†ä¸­æ‰©å±•é€šé…ç¬¦"*" å’Œ "TABLEå·¦è¿æ¥"
-	**   * åœ¨è¡¨è¾¾å¼ä¸­çš„æ ‡è¯†ç¬¦ç›¸åŒ¹é…çš„è¡¨
-	** è¿™ä¸ªä¾‹ç¨‹ä»¥é€’å½’çš„æ–¹å¼å¯¹æ‰€æœ‰å­æŸ¥è¯¢
+	/* Õâ¸öÀı³ÌÉèÖÃ SELECT Óï¾ä½øĞĞ´¦Àí¡£
+	**   * VDBEÓÎ±êºÅ·ÖÅä¸øËùÓĞµÄFROM×Ó¾ä
+	**   * ÎªËùÓĞ FROM ×Ó¾äµÄ×Ó²éÑ¯´´½¨ÁÙÊ±±í¶ÔÏó
+	**   * ON ºÍ USING ×Ó¾äÇĞ»»µ½WHEREÓï¾ä
+	**   * ½á¹û¼¯ÖĞÀ©Õ¹Í¨Åä·û"*" ºÍ "TABLE×óÁ¬½Ó"
+	**   * ÔÚ±í´ïÊ½ÖĞµÄ±êÊ¶·ûÏàÆ¥ÅäµÄ±í
+	** Õâ¸öÀı³ÌÒÔµİ¹éµÄ·½Ê½¶ÔËùÓĞ×Ó²éÑ¯
 	*/
 	void sqlite3SelectPrep(
-	  Parse *pParse,         /* The parser context *///å®šä¹‰è§£æå™¨
-	  Select *p,             /* The SELECT statement being coded. *///å£°æ˜selectç±»å‹çš„æŒ‡é’ˆ
-	  NameContext *pOuterNC  /* Name context for container *///ä¸ºå®¹å™¨å‘½å
+	  Parse *pParse,         /* The parser context *///¶¨Òå½âÎöÆ÷
+	  Select *p,             /* The SELECT statement being coded. *///ÉùÃ÷selectÀàĞÍµÄÖ¸Õë
+	  NameContext *pOuterNC  /* Name context for container *///ÎªÈİÆ÷ÃüÃû
 	){
-	  sqlite3 *db;//å£°æ˜ä¸€ä¸ªsqliteç±»å‹çš„æ•°æ®åº“è¿æ¥
-	  if( NEVER(p==0) ) return;//ç©ºæŒ‡é’ˆï¼Œç›´æ¥è¿”å›
-	  db = pParse->db;//è·å–è¯­æ³•è§£æå™¨ä¸­çš„æ•°æ®åº“
-	  if( p->selFlags & SF_HasTypeInfo ) return;//æ ‡è¯†å˜é‡å’Œç±»å‹ä¿¡æ¯çš„åˆ¤æ–­
-	  sqlite3SelectExpand(pParse, p);//æ‰©å±•
-	  if( pParse->nErr || db->mallocFailed ) return;//è§£æé”™è¯¯æˆ–è€…åˆ†é…å†…å­˜å¤±è´¥
-	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//è§£æä¸Šä¸‹æ–‡
-	  if( pParse->nErr || db->mallocFailed ) return;//è§£æé”™è¯¯æˆ–è€…åˆ†é…å†…å­˜å¤±è´¥
-	  sqlite3SelectAddTypeInfo(pParse, p);//å‘è§£ææ ‘æ·»åŠ è¯­æ³•ä¿¡æ¯
+	  sqlite3 *db;//ÉùÃ÷Ò»¸ösqliteÀàĞÍµÄÊı¾İ¿âÁ¬½Ó
+	  if( NEVER(p==0) ) return;//¿ÕÖ¸Õë£¬Ö±½Ó·µ»Ø
+	  db = pParse->db;//»ñÈ¡Óï·¨½âÎöÆ÷ÖĞµÄÊı¾İ¿â
+	  if( p->selFlags & SF_HasTypeInfo ) return;//±êÊ¶±äÁ¿ºÍÀàĞÍĞÅÏ¢µÄÅĞ¶Ï
+	  sqlite3SelectExpand(pParse, p);//À©Õ¹
+	  if( pParse->nErr || db->mallocFailed ) return;//½âÎö´íÎó»òÕß·ÖÅäÄÚ´æÊ§°Ü
+	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//½âÎöÉÏÏÂÎÄ
+	  if( pParse->nErr || db->mallocFailed ) return;//½âÎö´íÎó»òÕß·ÖÅäÄÚ´æÊ§°Ü
+	  sqlite3SelectAddTypeInfo(pParse, p);//Ïò½âÎöÊ÷Ìí¼ÓÓï·¨ĞÅÏ¢
 	}
 
 	/*
@@ -4105,35 +4106,35 @@ static u8 minMaxQuery(Select *p){
 	** routine generates code that stores NULLs in all of those memory
 	** cells.
 	*/
-	/* èšé›†å‡½æ•°çš„é‡æ–°è®¾ç½®
-	** èšé›†ç´¯åŠ å™¨æ˜¯ä¸€ç»„è®°å¿†å•å…ƒï¼Œå®ƒèƒ½åœ¨è®¡ç®—ä¸€ä¸ªèšé›†çš„æ—¶å€™ä¿å­˜ä¸­é—´ç»“æœé›†ã€‚è¿™æ®µç¨‹åºç”Ÿæˆçš„ä»£ç åœ¨æ‰€æœ‰çš„è®°å¿†å•å…ƒä¸­å­˜å‚¨äº†ç©ºå€¼
+	/* ¾Û¼¯º¯ÊıµÄÖØĞÂÉèÖÃ
+	** ¾Û¼¯ÀÛ¼ÓÆ÷ÊÇÒ»×é¼ÇÒäµ¥Ôª£¬ËüÄÜÔÚ¼ÆËãÒ»¸ö¾Û¼¯µÄÊ±ºò±£´æÖĞ¼ä½á¹û¼¯¡£Õâ¶Î³ÌĞòÉú³ÉµÄ´úÂëÔÚËùÓĞµÄ¼ÇÒäµ¥ÔªÖĞ´æ´¢ÁË¿ÕÖµ
 	*/
 	static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){
-	  Vdbe *v = pParse->pVdbe;//è·å–è¯­æ³•è§£æå™¨ä¸­çš„pVdbeå±æ€§
-	  int i;//å£°æ˜ä¸€ä¸ªå˜é‡
-	  struct AggInfo_func *pFunc;//å£°æ˜ä¸€ä¸ªAggInfo_funcç»“æ„ä½“å¯¹è±¡
+	  Vdbe *v = pParse->pVdbe;//»ñÈ¡Óï·¨½âÎöÆ÷ÖĞµÄpVdbeÊôĞÔ
+	  int i;//ÉùÃ÷Ò»¸ö±äÁ¿
+	  struct AggInfo_func *pFunc;//ÉùÃ÷Ò»¸öAggInfo_func½á¹¹Ìå¶ÔÏó
 	  if( pAggInfo->nFunc+pAggInfo->nColumn==0 ){
 		return;
 	  }
 
-	  //éå†æ‰€æœ‰çš„åˆ—
+	  //±éÀúËùÓĞµÄÁĞ
 	  for(i=0; i<pAggInfo->nColumn; i++){
-		sqlite3VdbeAddOp2(v, OP_Null, 0, pAggInfo->aCol[i].iMem);//æ“ä½œå¤„ç†
+		sqlite3VdbeAddOp2(v, OP_Null, 0, pAggInfo->aCol[i].iMem);//²Ù×÷´¦Àí
 	  }
-	  //èšé›†å‡½æ•°çš„éå†
+	  //¾Û¼¯º¯ÊıµÄ±éÀú
 	  for(pFunc=pAggInfo->aFunc, i=0; i<pAggInfo->nFunc; i++, pFunc++){
-		sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);//æ“ä½œå¤„ç†
+		sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);//²Ù×÷´¦Àí
 		if( pFunc->iDistinct>=0 )
-		  Expr *pE = pFunc->pExpr;//è·å–AggInfo_funcä¸­çš„è¡¨è¾¾å¼
-		  assert( !ExprHasProperty(pE, EP_xIsSelect) );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
+		  Expr *pE = pFunc->pExpr;//»ñÈ¡AggInfo_funcÖĞµÄ±í´ïÊ½
+		  assert( !ExprHasProperty(pE, EP_xIsSelect) );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
 		  if( pE->x.pList==0 || pE->x.pList->nExpr!=1 ){
 			sqlite3ErrorMsg(pParse, "DISTINCT aggregates must have exactly one "
-			   "argument");//æ‰“å°é”™è¯¯ä¿¡æ¯
-			pFunc->iDistinct = -1;//ä¸´æ—¶è¡¨ç½®ä¸º-1ï¼ˆæ— æ•ˆï¼‰
+			   "argument");//´òÓ¡´íÎóĞÅÏ¢
+			pFunc->iDistinct = -1;//ÁÙÊ±±íÖÃÎª-1£¨ÎŞĞ§£©
 		  }else{
-			KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);//ä»è¡¨è¾¾å¼åˆ—è¡¨ä¸­è·å–ä¿¡æ¯
+			KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);//´Ó±í´ïÊ½ÁĞ±íÖĞ»ñÈ¡ĞÅÏ¢
 			sqlite3VdbeAddOp4(v, OP_OpenEphemeral, pFunc->iDistinct, 0, 0,
-							  (char*)pKeyInfo, P4_KEYINFO_HANDOFF);//æ·»åŠ äº†ä¸€ä¸ªæ“ä½œç¬¦OP_OpenEphemeral
+							  (char*)pKeyInfo, P4_KEYINFO_HANDOFF);//Ìí¼ÓÁËÒ»¸ö²Ù×÷·ûOP_OpenEphemeral
 		  }
 		}
 	  }
@@ -4144,18 +4145,18 @@ static u8 minMaxQuery(Select *p){
 	** in the AggInfo structure.
 	*/
 	/*
-	** åœ¨AggInfoç»“æ„ä½“ä¸­ï¼Œä¸ºæ¯ä¸€ä¸ªèšé›†å‡½æ•°è°ƒç”¨OP_AggFinalizeæ“ä½œç */
+	** ÔÚAggInfo½á¹¹ÌåÖĞ£¬ÎªÃ¿Ò»¸ö¾Û¼¯º¯Êıµ÷ÓÃOP_AggFinalize²Ù×÷Âë*/
 
 	static void finalizeAggFunctions(Parse *pParse, AggInfo *pAggInfo){
-	  Vdbe *v = pParse->pVdbe;//è·å–è¯­æ³•è§£æå™¨ä¸­çš„pVdbeå±æ€§
-	  int i;//å£°æ˜ä¸€ä¸ªå˜é‡
-	  struct AggInfo_func *pF;//å£°æ˜ä¸€ä¸ªAggInfo_funcç»“æ„ä½“å¯¹è±¡
-	  //èšé›†å‡½æ•°çš„éå†
+	  Vdbe *v = pParse->pVdbe;//»ñÈ¡Óï·¨½âÎöÆ÷ÖĞµÄpVdbeÊôĞÔ
+	  int i;//ÉùÃ÷Ò»¸ö±äÁ¿
+	  struct AggInfo_func *pF;//ÉùÃ÷Ò»¸öAggInfo_func½á¹¹Ìå¶ÔÏó
+	  //¾Û¼¯º¯ÊıµÄ±éÀú
 	  for(i=0, pF=pAggInfo->aFunc; i<pAggInfo->nFunc; i++, pF++){
-		ExprList *pList = pF->pExpr->x.pList;//è·å–è¡¨è¾¾å¼åˆ—è¡¨
-		assert( !ExprHasProperty(pF->pExpr, EP_xIsSelect) );//å¼‚å¸¸å¤„ç†ï¼ŒåŠ å…¥æ–­ç‚¹
+		ExprList *pList = pF->pExpr->x.pList;//»ñÈ¡±í´ïÊ½ÁĞ±í
+		assert( !ExprHasProperty(pF->pExpr, EP_xIsSelect) );//Òì³£´¦Àí£¬¼ÓÈë¶Ïµã
 		sqlite3VdbeAddOp4(v, OP_AggFinal, pF->iMem, pList ? pList->nExpr : 0, 0,
-						  (void*)pF->pFunc, P4_FUNCDEF);//æ·»åŠ äº†ä¸€ä¸ªæ“ä½œç¬¦OP_OpenEphemeral
+						  (void*)pF->pFunc, P4_FUNCDEF);//Ìí¼ÓÁËÒ»¸ö²Ù×÷·ûOP_OpenEphemeral
 	  }
 	}	
 
@@ -4163,7 +4164,7 @@ static u8 minMaxQuery(Select *p){
 ** Update the accumulator memory cells for an aggregate based on
 ** the current cursor position.
 **
-**ä¸ºä¸€ä¸ªåŸºäºå½“å‰æ‰€å¤„çš„ä½ç½®ä¸Šçš„èšé›†å‡½æ•°updateç´¯åŠ å™¨çš„å†…å­˜å•å…ƒ
+**ÎªÒ»¸ö»ùÓÚµ±Ç°Ëù´¦µÄÎ»ÖÃÉÏµÄ¾Û¼¯º¯ÊıupdateÀÛ¼ÓÆ÷µÄÄÚ´æµ¥Ôª
 */
 static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
 	Vdbe *v = pParse->pVdbe;
@@ -4171,30 +4172,30 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
 	int regHit = 0;
 	int addrHitTest = 0;
 	struct AggInfo_func *pF;
-	struct AggInfo_col *pC;/*å°†è¯­æ³•è§£ææ ‘ä¸­çš„pVdbeèµ‹å€¼ç»™vï¼Œå¹¶è¿›è¡Œä¸€äº›åˆå§‹åŒ–æ“ä½œ*/
+	struct AggInfo_col *pC;/*½«Óï·¨½âÎöÊ÷ÖĞµÄpVdbe¸³Öµ¸øv£¬²¢½øĞĞÒ»Ğ©³õÊ¼»¯²Ù×÷*/
 
-	pAggInfo->directMode = 1;/*æ•°æ®å±æ€§ç½®ä¸º1*/
-	sqlite3ExprCacheClear(pParse);/*æ¸…é™¤è§£ææ ‘*/
-	for (i = 0, pF = pAggInfo->aFunc; i < pAggInfo->nFunc; i++, pF++){/*å¼€å§‹è¿›è¡Œèšé›†å‡½æ•°çš„éå†*/
+	pAggInfo->directMode = 1;/*Êı¾İÊôĞÔÖÃÎª1*/
+	sqlite3ExprCacheClear(pParse);/*Çå³ı½âÎöÊ÷*/
+	for (i = 0, pF = pAggInfo->aFunc; i < pAggInfo->nFunc; i++, pF++){/*¿ªÊ¼½øĞĞ¾Û¼¯º¯ÊıµÄ±éÀú*/
 		int nArg;
 		int addrNext = 0;
 		int regAgg;
 		ExprList *pList = pF->pExpr->x.pList;
-		assert(!ExprHasProperty(pF->pExpr, EP_xIsSelect));/*æ’å…¥ä¸€ä¸ªæ–­ç‚¹ï¼Œå¦‚æœpEåŒ…å«EP_xIsSelectï¼Œé‚£ä¹ˆä¹…æŠ›å‡ºé”™è¯¯çš„ä¿¡æ¯*/
+		assert(!ExprHasProperty(pF->pExpr, EP_xIsSelect));/*²åÈëÒ»¸ö¶Ïµã£¬Èç¹ûpE°üº¬EP_xIsSelect£¬ÄÇÃ´¾ÃÅ×³ö´íÎóµÄĞÅÏ¢*/
 		if (pList){
 			nArg = pList->nExpr;
 			regAgg = sqlite3GetTempRange(pParse, nArg);
-			sqlite3ExprCodeExprList(pParse, pList, regAgg, 1);/*å¼€å§‹ä¸ºèšé›†å‡½æ•°åˆ†é…å¯„å­˜å™¨ï¼ŒæŠŠè¡¨è¾¾å¼ä¸­çš„å€¼å¯„å­˜åœ¨å¯„å­˜å™¨ä¸­*/
+			sqlite3ExprCodeExprList(pParse, pList, regAgg, 1);/*¿ªÊ¼Îª¾Û¼¯º¯Êı·ÖÅä¼Ä´æÆ÷£¬°Ñ±í´ïÊ½ÖĞµÄÖµ¼Ä´æÔÚ¼Ä´æÆ÷ÖĞ*/
 		}
 		else{
 			nArg = 0;
-			regAgg = 0;/*å°†èšé›†å‡½æ•°çš„ä¸ªæ•°å’Œå­˜å‚¨èšé›†å‡½æ•°å¯„å­˜å™¨è¿›è¡Œç½®0æ“ä½œ*/
+			regAgg = 0;/*½«¾Û¼¯º¯ÊıµÄ¸öÊıºÍ´æ´¢¾Û¼¯º¯Êı¼Ä´æÆ÷½øĞĞÖÃ0²Ù×÷*/
 		}
 		if (pF->iDistinct >= 0){
 			addrNext = sqlite3VdbeMakeLabel(v);
 			assert(nArg == 1);
-			codeDistinct(pParse, pF->iDistinct, addrNext, 1, regAgg);/*å¦‚æœä»æºè¡¨ä¸­å–å€¼çš„ä¸ªæ•°ä¸º0ï¼Œä¸ºVDBEåˆ›å»ºä¸€ä¸ªæ ‡ç­¾ï¼Œè¿”å›å€¼èµ‹å€¼ç»™ä¸‹ä¸€ä¸ªè¿è¡Œåœ°å€ï¼Œ
-			                                                       å¹¶ä¸”æ’å…¥æ–­ç‚¹ï¼Œå¦‚æœèšé›†å‡½æ•°ä¸ä¸º1ï¼ŒæŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
+			codeDistinct(pParse, pF->iDistinct, addrNext, 1, regAgg);/*Èç¹û´ÓÔ´±íÖĞÈ¡ÖµµÄ¸öÊıÎª0£¬ÎªVDBE´´½¨Ò»¸ö±êÇ©£¬·µ»ØÖµ¸³Öµ¸øÏÂÒ»¸öÔËĞĞµØÖ·£¬
+			                                                       ²¢ÇÒ²åÈë¶Ïµã£¬Èç¹û¾Û¼¯º¯Êı²»Îª1£¬Å×³ö´íÎóĞÅÏ¢*/
 		}
 		if (pF->pFunc->flags & SQLITE_FUNC_NEEDCOLL){
 			CollSeq *pColl = 0;
@@ -4202,14 +4203,14 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
 			int j;
 			assert(pList != 0);  /* pList!=0 if pF->pFunc has NEEDCOLL */
 			for (j = 0, pItem = pList->a; !pColl && j < nArg; j++, pItem++){
-				pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr);/*å¦‚æœpF->pFuncå«NEEDCOLLï¼Œåˆ™pListä¸ä¸º0,é‚£ä¹ˆéå†èšé›†å‡½æ•°ï¼Œè¿”å›ä¸€ä¸ªé»˜è®¤çš„æ’åºåºåˆ—*/
+				pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr);/*Èç¹ûpF->pFuncº¬NEEDCOLL£¬ÔòpList²»Îª0,ÄÇÃ´±éÀú¾Û¼¯º¯Êı£¬·µ»ØÒ»¸öÄ¬ÈÏµÄÅÅĞòĞòÁĞ*/
 			}
 			if (!pColl){
-				pColl = pParse->db->pDfltColl;/*å¦‚æœæ’åºåºåˆ—ä¸ä¸º0ï¼Œé‚£ä¹ˆå°†æ•°æ®åº“è¿æ¥ä¸­çš„é»˜è®¤çš„æ’åºåºåˆ—èµ‹å€¼ç»™pColl*/
+				pColl = pParse->db->pDfltColl;/*Èç¹ûÅÅĞòĞòÁĞ²»Îª0£¬ÄÇÃ´½«Êı¾İ¿âÁ¬½ÓÖĞµÄÄ¬ÈÏµÄÅÅĞòĞòÁĞ¸³Öµ¸øpColl*/
 			}
 			if (regHit == 0 && pAggInfo->nAccumulator) regHit = ++pParse->nMem;
-			sqlite3VdbeAddOp4(v, OP_CollSeq, regHit, 0, 0, (char *)pColl, P4_COLLSEQ);/*å¦‚æœregHitä¸º0å¹¶ä¸”ç´¯åŠ å™¨ä¸ä¸º0ï¼Œå†…å­˜å•å…ƒä¸ªæ•°è‡ªåŠ ä¹‹åå†èµ‹å€¼ç»™regHitï¼Œ
-			                                                                           æ·»åŠ ä¸€ä¸ªOP_CollSeqæ“ä½œï¼Œå¹¶å°†å®ƒçš„å€¼ä½œä¸ºä¸€ä¸ªæŒ‡é’ˆ*/
+			sqlite3VdbeAddOp4(v, OP_CollSeq, regHit, 0, 0, (char *)pColl, P4_COLLSEQ);/*Èç¹ûregHitÎª0²¢ÇÒÀÛ¼ÓÆ÷²»Îª0£¬ÄÚ´æµ¥Ôª¸öÊı×Ô¼ÓÖ®ºóÔÙ¸³Öµ¸øregHit£¬
+			                                                                           Ìí¼ÓÒ»¸öOP_CollSeq²Ù×÷£¬²¢½«ËüµÄÖµ×÷ÎªÒ»¸öÖ¸Õë*/
 		}
 		sqlite3VdbeAddOp4(v, OP_AggStep, 0, regAgg, pF->iMem,
 			(void*)pF->pFunc, P4_FUNCDEF);
@@ -4218,8 +4219,8 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
 		sqlite3ReleaseTempRange(pParse, regAgg, nArg);
 		if (addrNext){
 			sqlite3VdbeResolveLabel(v, addrNext);
-			sqlite3ExprCacheClear(pParse);/*å¦‚æœæœ‰ä¸‹ä¸€ä¸ªæ‰§è¡Œåœ°å€ï¼Œè§£æaddrNextï¼Œå¹¶ä½œä¸ºä¸‹ä¸€æ¡è¢«æ’å…¥çš„åœ°å€ï¼Œå¹¶ä¸”æ¸…æ¥šç¼“å­˜ä¸­çš„è¯­æ³•è§£ææ ‘*/
-		}ï¼Œ
+			sqlite3ExprCacheClear(pParse);/*Èç¹ûÓĞÏÂÒ»¸öÖ´ĞĞµØÖ·£¬½âÎöaddrNext£¬²¢×÷ÎªÏÂÒ»Ìõ±»²åÈëµÄµØÖ·£¬²¢ÇÒÇå³ş»º´æÖĞµÄÓï·¨½âÎöÊ÷*/
+		}£¬
 	}
 
 	/* Before populating the accumulator registers, clear the column cache.
@@ -4229,53 +4230,53 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
 	** may have been used, invalidating the underlying buffer holding the
 	** text or blob value. See ticket [883034dcb5].
 	**
-	**åœ¨è·å–ç´¯åŠ å¯„å­˜å™¨çš„å†…å­˜ä¹‹å‰,æ¸…ç©ºåˆ—ç¼“å­˜ã€‚
-	**å¦åˆ™,å¦‚æœä»»ä½•æ‰€éœ€çš„åˆ—å€¼å·²ç»å­˜åœ¨äºå¯„å­˜å™¨,
-	**sqlite3ExprCode()å¯ä»¥ä½¿ç”¨OP_SCopyå€¼å¤åˆ¶åˆ°pC->iMemã€‚
-	**ä½†å¦‚æœåŒæ—¶è¿™ä¸ªå€¼ä¹Ÿè¢«ä½¿ç”¨,åˆå§‹å¯„å­˜å™¨å¯èƒ½è¢«ä½¿ç”¨,
-	**æ½œåœ¨ç¼“å­˜åŒºä¸­ä¿å­˜çš„æ–‡æœ¬å’Œå€¼æ˜¯æ— æ•ˆçš„ã€‚
+	**ÔÚ»ñÈ¡ÀÛ¼Ó¼Ä´æÆ÷µÄÄÚ´æÖ®Ç°,Çå¿ÕÁĞ»º´æ¡£
+	**·ñÔò,Èç¹ûÈÎºÎËùĞèµÄÁĞÖµÒÑ¾­´æÔÚÓÚ¼Ä´æÆ÷,
+	**sqlite3ExprCode()¿ÉÒÔÊ¹ÓÃOP_SCopyÖµ¸´ÖÆµ½pC->iMem¡£
+	**µ«Èç¹ûÍ¬Ê±Õâ¸öÖµÒ²±»Ê¹ÓÃ,³õÊ¼¼Ä´æÆ÷¿ÉÄÜ±»Ê¹ÓÃ,
+	**Ç±ÔÚ»º´æÇøÖĞ±£´æµÄÎÄ±¾ºÍÖµÊÇÎŞĞ§µÄ¡£
 	**
 	** Another solution would be to change the OP_SCopy used to copy cached
 	** values to an OP_Copy.
 	**
-	**å¦ä¸€ä¸ªè§£å†³æ–¹æ¡ˆæ˜¯æ”¹å˜OP_SCopyç”¨æ¥å¤åˆ¶ç¼“å­˜å€¼åˆ°OP_Copyã€‚
+	**ÁíÒ»¸ö½â¾ö·½°¸ÊÇ¸Ä±äOP_SCopyÓÃÀ´¸´ÖÆ»º´æÖµµ½OP_Copy¡£
 	**
 	*/
 	if (regHit){
 		addrHitTest = sqlite3VdbeAddOp1(v, OP_If, regHit);
 	}
-	sqlite3ExprCacheClear(pParse);/*å°†OP_Yieldæ“ä½œäº¤ç»™vdbeï¼Œç„¶åè¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€ï¼Œæ¸…é™¤ç¼“å­˜ä¸­çš„è¯­æ³•è§£ææ ‘*/
-	for (i = 0, pC = pAggInfo->aCol; i < pAggInfo->nAccumulator; i++, pC++){/*éå†ç´¯åŠ å™¨*/
+	sqlite3ExprCacheClear(pParse);/*½«OP_Yield²Ù×÷½»¸øvdbe£¬È»ºó·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·£¬Çå³ı»º´æÖĞµÄÓï·¨½âÎöÊ÷*/
+	for (i = 0, pC = pAggInfo->aCol; i < pAggInfo->nAccumulator; i++, pC++){/*±éÀúÀÛ¼ÓÆ÷*/
 		sqlite3ExprCode(pParse, pC->pExpr, pC->iMem);
 	}
 	pAggInfo->directMode = 0;
 	sqlite3ExprCacheClear(pParse);
-	if (addrHitTest){/*å¦‚æœaddrHitTestä¸ä¸ºç©º*/
-		sqlite3VdbeJumpHere(v, addrHitTest);/*å¦‚æœaddrHitTestä¸ä¸ºç©ºï¼Œå¹¶ä¸”å¦‚æœaddrHitTestä¸ä¸º0ï¼Œé‚£ä¸ªè¿è¡Œåœ°å€å°±è·³åˆ°å½“å‰åœ°å€*/
+	if (addrHitTest){/*Èç¹ûaddrHitTest²»Îª¿Õ*/
+		sqlite3VdbeJumpHere(v, addrHitTest);/*Èç¹ûaddrHitTest²»Îª¿Õ£¬²¢ÇÒÈç¹ûaddrHitTest²»Îª0£¬ÄÇ¸öÔËĞĞµØÖ·¾ÍÌøµ½µ±Ç°µØÖ·*/
 	}
 }
 
 /*
 ** Add a single OP_Explain instruction to the VDBE to explain a simple
 ** count(*) query ("SELECT count(*) FROM pTab").
-**æ·»åŠ ä¸€ä¸ªå•ä¸€çš„OP_Explain ç»“æ„åˆ°VDBE ï¼Œç”¨æ¥è§£é‡Šä¸€ä¸ªå•ç‹¬çš„count(*)æŸ¥è¯¢.
+**Ìí¼ÓÒ»¸öµ¥Ò»µÄOP_Explain ½á¹¹µ½VDBE £¬ÓÃÀ´½âÊÍÒ»¸öµ¥¶ÀµÄcount(*)²éÑ¯.
 */
 #ifndef SQLITE_OMIT_EXPLAIN
 static void explainSimpleCount(
-	Parse *pParse,                  /* è§£æä¸Šä¸‹æ–‡ */
-	Table *pTab,                    /* æ­£åœ¨æŸ¥è¯¢çš„è¡¨*/
-	Index *pIdx                     /* ç”¨äºä¼˜åŒ–æ‰«æçš„ç´¢å¼• */
+	Parse *pParse,                  /* ½âÎöÉÏÏÂÎÄ */
+	Table *pTab,                    /* ÕıÔÚ²éÑ¯µÄ±í*/
+	Index *pIdx                     /* ÓÃÓÚÓÅ»¯É¨ÃèµÄË÷Òı */
 	){
-	if (pParse->explain == 2){/*å¦‚æœè¯­æ³•è§£ææ ‘ä¸­explainè¡¨è¾¾å¼ä¸º2*/
+	if (pParse->explain == 2){/*Èç¹ûÓï·¨½âÎöÊ÷ÖĞexplain±í´ïÊ½Îª2*/
 		char *zEqp = sqlite3MPrintf(pParse->db, "SCAN TABLE %s %s%s(~%d rows)",
 			pTab->zName,
 			pIdx ? "USING COVERING INDEX " : "",
 			pIdx ? pIdx->zName : "",
 			pTab->nRowEst
-			);/*æ‰“å°è¾“å‡ºï¼Œå¹¶èµ‹å€¼ç»™zEqpï¼ˆå…¶ä¸­%s%s%sä¸ºä¼ å…¥çš„å˜é‡ï¼‰*/
+			);/*´òÓ¡Êä³ö£¬²¢¸³Öµ¸øzEqp£¨ÆäÖĞ%s%s%sÎª´«ÈëµÄ±äÁ¿£©*/
 		sqlite3VdbeAddOp4(
 			pParse->pVdbe, OP_Explain, pParse->iSelectId, 0, 0, zEqp, P4_DYNAMIC
-			);/*æ·»åŠ åä¸ºOP_Explainçš„æ“ä½œï¼Œå¹¶å°†å®ƒçš„å€¼ä½œä¸ºä¸€ä¸ªæŒ‡é’ˆ*/
+			);/*Ìí¼ÓÃûÎªOP_ExplainµÄ²Ù×÷£¬²¢½«ËüµÄÖµ×÷ÎªÒ»¸öÖ¸Õë*/
 	}
 }
 #else
@@ -4291,53 +4292,53 @@ static void explainSimpleCount(
 ** contents of the SelectDest structure pointed to by argument pDest
 ** as follows:
 **
-**ä¸ºç»™å‡ºpå‚æ•°ç¼–å†™SELECTè¯­å¥ã€‚ 
-**ç»“æœåˆ†å¸ƒåœ¨ä¸åŒçš„SelectDestç»“æ„ç›®å½•æŒ‡é’ˆä¸­ï¼Œå¦‚ä¸‹ï¼š
+**Îª¸ø³öp²ÎÊı±àĞ´SELECTÓï¾ä¡£ 
+**½á¹û·Ö²¼ÔÚ²»Í¬µÄSelectDest½á¹¹Ä¿Â¼Ö¸ÕëÖĞ£¬ÈçÏÂ£º
 **     pDest->eDest    Result
 	**     ------------    -------------------------------------------
-	**     SRT_Output      ä¸ºç»“æœé›†ä¸­æ¯ä¸€è¡Œäº§ç”Ÿä¸€è¡Œè¾“å‡º(ä½¿ç”¨OP_ResultRowæ“ä½œ
+	**     SRT_Output      Îª½á¹û¼¯ÖĞÃ¿Ò»ĞĞ²úÉúÒ»ĞĞÊä³ö(Ê¹ÓÃOP_ResultRow²Ù×÷
 	**                     opcode)
 	**
-	**     SRT_Mem         å¦‚æœç»“æœåªæ˜¯ä¸€ä¸ªå•ç‹¬åˆ—ä¹Ÿæ˜¯å¯ç”¨çš„ã€‚å­˜å‚¨ç¬¬ä¸€ä¸ªç»“æœè¡Œçš„ç¬¬ä¸€åˆ—åœ¨å¯„å­˜å™¨pDest->iSDParm
-	**                     ç„¶åèˆå¼ƒå‰©ä½™çš„æŸ¥è¯¢ã€‚ä¸ºäº†å®ç°"LIMIT 1".
+	**     SRT_Mem         Èç¹û½á¹ûÖ»ÊÇÒ»¸öµ¥¶ÀÁĞÒ²ÊÇ¿ÉÓÃµÄ¡£´æ´¢µÚÒ»¸ö½á¹ûĞĞµÄµÚÒ»ÁĞÔÚ¼Ä´æÆ÷pDest->iSDParm
+	**                     È»ºóÉáÆúÊ£ÓàµÄ²éÑ¯¡£ÎªÁËÊµÏÖ"LIMIT 1".
 	**                     
 	**                    
 	**
-	**     SRT_Set         ç»“æœå¿…é¡»æ˜¯ä¸€ä¸ªå•ç‹¬åˆ—ã€‚å­˜å‚¨ç»“æœçš„æ¯ä¸€è¡Œä½œä¸ºé”®åœ¨è¡¨pDest->iSDParmä¸­ã€‚
-	**                     åº”ç”¨ç›¸ä¼¼æ€§pDest->affSdståœ¨å­˜å‚¨ç»“æœå‰ã€‚ä¸ºäº†å®ç°"IN (SELECT ...)".
+	**     SRT_Set         ½á¹û±ØĞëÊÇÒ»¸öµ¥¶ÀÁĞ¡£´æ´¢½á¹ûµÄÃ¿Ò»ĞĞ×÷Îª¼üÔÚ±ípDest->iSDParmÖĞ¡£
+	**                     Ó¦ÓÃÏàËÆĞÔpDest->affSdstÔÚ´æ´¢½á¹ûÇ°¡£ÎªÁËÊµÏÖ"IN (SELECT ...)".
 	**                   
-	**     SRT_Union       å­˜å‚¨ç»“æœä½œä¸ºä¸€ä¸ªå¯è¢«è¯†åˆ«çš„é”®åœ¨ä¸´æ—¶è¡¨ pDest->iSDParm ä¸­ã€‚
+	**     SRT_Union       ´æ´¢½á¹û×÷ÎªÒ»¸ö¿É±»Ê¶±ğµÄ¼üÔÚÁÙÊ±±í pDest->iSDParm ÖĞ¡£
 	**                     
 	**
-	**     SRT_Except      ä»ä¸´æ—¶è¡¨pDest->iSDParmåˆ é™¤ç»“æœ
+	**     SRT_Except      ´ÓÁÙÊ±±ípDest->iSDParmÉ¾³ı½á¹û
 	**
-	**     SRT_Table       å­˜å‚¨ç»“æœåœ¨ä¸´æ—¶è¡¨pDest->iSDParmä¸­ã€‚è¿™å°±åƒ SRT_EphemTabé™¤äº†å‡è®¾è¿™ä¸ªè¡¨å·²ç»
-	**                     è¢«æ‰“å¼€ã€‚
+	**     SRT_Table       ´æ´¢½á¹ûÔÚÁÙÊ±±ípDest->iSDParmÖĞ¡£Õâ¾ÍÏñ SRT_EphemTab³ıÁË¼ÙÉèÕâ¸ö±íÒÑ¾­
+	**                     ±»´ò¿ª¡£
 	**                    
-	**     SRT_EphemTab    åˆ›å»ºä¸€ä¸ªä¸´æ—¶è¡¨pDest->iSDParmå¹¶ä¸”åœ¨é‡Œé¢å­˜å‚¨ç»“æœã€‚è¿™ä¸ªæ¸¸æ ‡æ˜¯è¿”å›ä¹‹åå·¦è¾¹æ‰“å¼€ã€‚
-	**                     è¿™å°±åƒSRT_Tableé™¤äº†è¦ä½¿ç”¨OP_OpenEphemeralå…ˆåˆ›å»ºä¸€ä¸ªè¡¨
+	**     SRT_EphemTab    ´´½¨Ò»¸öÁÙÊ±±ípDest->iSDParm²¢ÇÒÔÚÀïÃæ´æ´¢½á¹û¡£Õâ¸öÓÎ±êÊÇ·µ»ØÖ®ºó×ó±ß´ò¿ª¡£
+	**                     Õâ¾ÍÏñSRT_Table³ıÁËÒªÊ¹ÓÃOP_OpenEphemeralÏÈ´´½¨Ò»¸ö±í
 	**                     
-	**     SRT_Coroutine   åˆ›å»ºä¸€ä¸ªåä½œç¨‹åºï¼Œæ¯æ¬¡è¢«è°ƒç”¨çš„æ—¶å€™ï¼Œéƒ½è¿”å›ä¸€è¡Œæ–°çš„ç»“æœã€‚è¿™ä¸ªåä½œç¨‹åºçš„æ¡ç›®æŒ‡é’ˆ
-	**                     å­˜åœ¨å¯„å­˜å™¨pDest->iSDParmä¸­ã€‚
+	**     SRT_Coroutine   ´´½¨Ò»¸öĞ­×÷³ÌĞò£¬Ã¿´Î±»µ÷ÓÃµÄÊ±ºò£¬¶¼·µ»ØÒ»ĞĞĞÂµÄ½á¹û¡£Õâ¸öĞ­×÷³ÌĞòµÄÌõÄ¿Ö¸Õë
+	**                     ´æÔÚ¼Ä´æÆ÷pDest->iSDParmÖĞ¡£
 	**                    
-	**     SRT_Exists      å­˜å‚¨ä¸€ä¸ª1åœ¨å†…å­˜å•å…ƒpDest->iSDParm ä¸­ï¼Œå¦‚æœç»“æœé›†ä¸ä¸ºç©ºã€‚
+	**     SRT_Exists      ´æ´¢Ò»¸ö1ÔÚÄÚ´æµ¥ÔªpDest->iSDParm ÖĞ£¬Èç¹û½á¹û¼¯²»Îª¿Õ¡£
 	**                     
-	**     SRT_Discard     æŠ›æ‰ç»“æœã€‚å®ƒè¢«ä¸€ä¸ªå¸¦è§¦å‘å™¨çš„SELECTè¯­å¥ä½¿ç”¨ï¼Œè§¦å‘å™¨æ˜¯è¿™ä¸ªå‡½æ•°çš„é™„å¸¦å› ç´ ã€‚
+	**     SRT_Discard     Å×µô½á¹û¡£Ëü±»Ò»¸ö´ø´¥·¢Æ÷µÄSELECTÓï¾äÊ¹ÓÃ£¬´¥·¢Æ÷ÊÇÕâ¸öº¯ÊıµÄ¸½´øÒòËØ¡£
 	**                     
-	** è¿™æ®µç¨‹åºè¿”å›é”™è¯¯çš„ä¸ªæ•°ã€‚å¦‚æœå­˜ç°ä»»ä½•é”™è¯¯ï¼Œä¸€ä¸ªé”™è¯¯ä¿¡æ¯å°†ä¼šæ”¾åœ¨pParse->zErrMsgä¸­ã€‚                   
+	** Õâ¶Î³ÌĞò·µ»Ø´íÎóµÄ¸öÊı¡£Èç¹û´æÏÖÈÎºÎ´íÎó£¬Ò»¸ö´íÎóĞÅÏ¢½«»á·ÅÔÚpParse->zErrMsgÖĞ¡£                   
 	**
-	** è¿™æ®µç¨‹åºå¹¶ä¸é‡Šæ”¾SELECTç»“æ„ä½“ã€‚è°ƒç”¨çš„å‡½æ•°éœ€è¦é‡Šæ”¾SELECTç»“æ„ä½“ã€‚
+	** Õâ¶Î³ÌĞò²¢²»ÊÍ·ÅSELECT½á¹¹Ìå¡£µ÷ÓÃµÄº¯ÊıĞèÒªÊÍ·ÅSELECT½á¹¹Ìå¡£
 	*/
 int sqlite3Select(
 	Parse *pParse,         /* The parser context */
-	Select *p,             /* The SELECT statement being coded. SELECTè¯­å¥è¢«ç¼–ç */
-	SelectDest *pDest      /* What to do with the query results å¦‚ä½•å¤„ç†æŸ¥è¯¢ç»“æœ*/
+	Select *p,             /* The SELECT statement being coded. SELECTÓï¾ä±»±àÂë*/
+	SelectDest *pDest      /* What to do with the query results ÈçºÎ´¦Àí²éÑ¯½á¹û*/
 	){
-	int i, j;              /* Loop counters å¾ªç¯è®¡æ•°å™¨*/
-	WhereInfo *pWInfo;     /* Return from sqlite3WhereBegin() ä»sqlite3WhereBegin()è¿”å›*/
-	Vdbe *v;               /* The virtual machine under construction åˆ›å»ºä¸­çš„è™šæ‹Ÿæœº*/
-	int isAgg;             /* True for select lists like "count(*)" é€‰æ‹©æ˜¯å¦æ˜¯èšé›†*/
-	ExprList *pEList;      /* List of columns to extract. æå–çš„åˆ—åˆ—è¡¨*/
+	int i, j;              /* Loop counters Ñ­»·¼ÆÊıÆ÷*/
+	WhereInfo *pWInfo;     /* Return from sqlite3WhereBegin() ´Ósqlite3WhereBegin()·µ»Ø*/
+	Vdbe *v;               /* The virtual machine under construction ´´½¨ÖĞµÄĞéÄâ»ú*/
+	int isAgg;             /* True for select lists like "count(*)" Ñ¡ÔñÊÇ·ñÊÇ¾Û¼¯*/
+	ExprList *pEList;      /* List of columns to extract. ÌáÈ¡µÄÁĞÁĞ±í*/
 	SrcList *pTabList;     /* List of tables to select from */
 	Expr *pWhere;          /* The WHERE clause.  May be NULL */
 	ExprList *pOrderBy;    /* The ORDER BY clause.  May be NULL */
@@ -4348,29 +4349,29 @@ int sqlite3Select(
 	int rc = 1;            /* Value to return from this function */
 	int addrSortIndex;     /* Address of an OP_OpenEphemeral instruction */
 	int addrDistinctIndex; /* Address of an OP_OpenEphemeral instruction */
-	AggInfo sAggInfo;      /* Information used by aggregate queries èšé›†ä¿¡æ¯*/
-	int iEnd;              /* Address of the end of the query æŸ¥è¯¢ç»“æŸåœ°å€*/
-	sqlite3 *db;           /* The database connection æ•°æ®åº“è¿æ¥*/
+	AggInfo sAggInfo;      /* Information used by aggregate queries ¾Û¼¯ĞÅÏ¢*/
+	int iEnd;              /* Address of the end of the query ²éÑ¯½áÊøµØÖ·*/
+	sqlite3 *db;           /* The database connection Êı¾İ¿âÁ¬½Ó*/
 
 #ifndef SQLITE_OMIT_EXPLAIN
 	int iRestoreSelectId = pParse->iSelectId;
-	pParse->iSelectId = pParse->iNextSelectId++;/*å°†è¯­æ³•è§£ææ ‘ä¸­æŸ¥æ‰¾çš„IDå­˜å‚¨åœ¨iRestoreSelectIdä¸­ï¼Œç„¶åå†å°†è¯­æ³•è§£ææ ‘ä¸­ä¸‹ä¸€ä¸ªæŸ¥æ‰¾IDå­˜å‚¨åœ¨iSelectIdä¸­*/
+	pParse->iSelectId = pParse->iNextSelectId++;/*½«Óï·¨½âÎöÊ÷ÖĞ²éÕÒµÄID´æ´¢ÔÚiRestoreSelectIdÖĞ£¬È»ºóÔÙ½«Óï·¨½âÎöÊ÷ÖĞÏÂÒ»¸ö²éÕÒID´æ´¢ÔÚiSelectIdÖĞ*/
 #endif
 
 	db = pParse->db;
 	if (p == 0 || db->mallocFailed || pParse->nErr){
 	return 1;  
-	}  /*ç”³æ˜ä¸€ä¸ªæ•°æ®åº“è¿æ¥ï¼Œå¦‚æœSELECTä¸ºç©ºæˆ–åˆ†é…å†…å­˜å¤±è´¥æˆ–è¯­æ³•è§£ææ ‘ä¸­æœ‰é”™è¯¯ï¼Œé‚£ä¹ˆç›´æ¥è¿”å›1*/
+	}  /*ÉêÃ÷Ò»¸öÊı¾İ¿âÁ¬½Ó£¬Èç¹ûSELECTÎª¿Õ»ò·ÖÅäÄÚ´æÊ§°Ü»òÓï·¨½âÎöÊ÷ÖĞÓĞ´íÎó£¬ÄÇÃ´Ö±½Ó·µ»Ø1*/
    
-	if (sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0)) return 1;/*æˆæƒæ£€æŸ¥,æœ‰é”™è¯¯ï¼Œä¹Ÿè¿”å›1*/
-	memset(&sAggInfo, 0, sizeof(sAggInfo));/*å°†sAggInfoçš„å‰sizeof(sAggInfo)ä¸ªå­—èŠ‚ç”¨0æ›¿æ¢*/
+	if (sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0)) return 1;/*ÊÚÈ¨¼ì²é,ÓĞ´íÎó£¬Ò²·µ»Ø1*/
+	memset(&sAggInfo, 0, sizeof(sAggInfo));/*½«sAggInfoµÄÇ°sizeof(sAggInfo)¸ö×Ö½ÚÓÃ0Ìæ»»*/
 
 	if (IgnorableOrderby(pDest)){
 		assert(pDest->eDest == SRT_Exists || pDest->eDest == SRT_Union ||
 			pDest->eDest == SRT_Except || pDest->eDest == SRT_Discard);
-		/*å¦‚æœæŸ¥è¯¢ç»“æœä¸­çš„èšé›†å‡½æ•°æ²¡æœ‰oderbyå‡½æ•°ï¼Œé‚£ä¹ˆæ’å…¥æ–­ç‚¹ï¼Œè·Ÿæ®åˆ¤æ–­å¤„ç†ç»“æœé›†ä¸­å¤„ç†æ–¹å¼ä¸ºSRT_Existsæˆ–SRT_Unionå¼‚æˆ–SRT_Exceptæˆ–SRT_Discarï¼Œ
-		å¦‚æœéƒ½æ²¡æœ‰ï¼Œå°±æŠ›é”™*/
-		sqlite3ExprListDelete(db, p->pOrderBy);/*åˆ é™¤æ•°æ®åº“ä¸­çš„orderbyå­å¥è¡¨è¾¾å¼*/
+		/*Èç¹û²éÑ¯½á¹ûÖĞµÄ¾Û¼¯º¯ÊıÃ»ÓĞoderbyº¯Êı£¬ÄÇÃ´²åÈë¶Ïµã£¬¸ú¾İÅĞ¶Ï´¦Àí½á¹û¼¯ÖĞ´¦Àí·½Ê½ÎªSRT_Exists»òSRT_UnionÒì»òSRT_Except»òSRT_Discar£¬
+		Èç¹û¶¼Ã»ÓĞ£¬¾ÍÅ×´í*/
+		sqlite3ExprListDelete(db, p->pOrderBy);/*É¾³ıÊı¾İ¿âÖĞµÄorderby×Ó¾ä±í´ïÊ½*/
 		p->pOrderBy = 0;
 		p->selFlags &= ~SF_Distinct;
 	}
@@ -4379,39 +4380,39 @@ int sqlite3Select(
 	pTabList = p->pSrc;
 	pEList = p->pEList;
 	if (pParse->nErr || db->mallocFailed){
-		goto select_end;/*å¦‚æœè¯­æ³•è§£ææ ‘å¤±è´¥æˆ–å‡ºé”™ï¼Œå°±è·³è½¬åˆ°select_end*/
+		goto select_end;/*Èç¹ûÓï·¨½âÎöÊ÷Ê§°Ü»ò³ö´í£¬¾ÍÌø×ªµ½select_end*/
 	}
 	isAgg = (p->selFlags & SF_Aggregate) != 0;
-	assert(pEList != 0);/*æ ¹æ®selFlagsåˆ¤æ–­æ˜¯å¦æ˜¯èšé›†å‡½æ•°ï¼Œå¦‚æœæœ‰isAggä¸ºtrueï¼Œå¦åˆ™ä¸ºFALSEï¼›ç„¶åæ’å…¥æ–­ç‚¹ï¼Œå¦‚æœè¡¨è¾¾å¼åˆ—è¡¨ä¸ºç©ºï¼Œå°±æŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
+	assert(pEList != 0);/*¸ù¾İselFlagsÅĞ¶ÏÊÇ·ñÊÇ¾Û¼¯º¯Êı£¬Èç¹ûÓĞisAggÎªtrue£¬·ñÔòÎªFALSE£»È»ºó²åÈë¶Ïµã£¬Èç¹û±í´ïÊ½ÁĞ±íÎª¿Õ£¬¾ÍÅ×³ö´íÎóĞÅÏ¢*/
 
 	/* Begin generating code.
-	**å¼€å§‹ç”Ÿæˆä»£ç 
+	**¿ªÊ¼Éú³É´úÂë
 	*/
 	v = sqlite3GetVdbe(pParse);
-	if (v == 0) goto select_end;/*æ ¹æ®è¯­æ³•è§£ææ ‘ç”Ÿæˆä¸€ä¸ªè™šæ‹Ÿçš„Databaseå¼•æ“ï¼Œå¦‚æœvdbeè·å–å¤±è´¥ï¼Œå°±è·³åˆ°æŸ¥è¯¢ç»“æŸ*/
+	if (v == 0) goto select_end;/*¸ù¾İÓï·¨½âÎöÊ÷Éú³ÉÒ»¸öĞéÄâµÄDatabaseÒıÇæ£¬Èç¹ûvdbe»ñÈ¡Ê§°Ü£¬¾ÍÌøµ½²éÑ¯½áÊø*/
 
 	/* If writing to memory or generating a set
 	** only a single column may be output.
-	**å¦‚æœå†™å…¥å†…å­˜æˆ–è€…ç”Ÿæˆä¸€ä¸ªé›†åˆï¼Œ
-	**é‚£ä¹ˆä»…æœ‰ä¸€ä¸ªå•ç‹¬çš„åˆ—å¯èƒ½è¢«è¾“å‡º
+	**Èç¹ûĞ´ÈëÄÚ´æ»òÕßÉú³ÉÒ»¸ö¼¯ºÏ£¬
+	**ÄÇÃ´½öÓĞÒ»¸öµ¥¶ÀµÄÁĞ¿ÉÄÜ±»Êä³ö
 	*/
 #ifndef SQLITE_OMIT_SUBQUERY
 	if (checkForMultiColumnSelectError(pParse, pDest, pEList->nExpr)){
-		goto select_end;/*å¦‚æœæ£€æµ‹åˆ°å¤šç»´åˆ—æŸ¥è¯¢é”™è¯¯ï¼Œå°±è·³è½¬åˆ°æŸ¥è¯¢ç»“æŸ*/
+		goto select_end;/*Èç¹û¼ì²âµ½¶àÎ¬ÁĞ²éÑ¯´íÎó£¬¾ÍÌø×ªµ½²éÑ¯½áÊø*/
 	}
 #endif
 
 	/* Generate code for all sub-queries in the FROM clause
-	   *  ä¸ºfromè¯­å¥ä¸­çš„å­æŸ¥è¯¢ç”Ÿæˆä»£ç 
+	   *  ÎªfromÓï¾äÖĞµÄ×Ó²éÑ¯Éú³É´úÂë
 	   */
 #if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)
-	for (i = 0; !p->pPrior && i < pTabList->nSrc; i++){/*éå†FROMå­å¥è¡¨è¾¾å¼åˆ—è¡¨*/
+	for (i = 0; !p->pPrior && i < pTabList->nSrc; i++){/*±éÀúFROM×Ó¾ä±í´ïÊ½ÁĞ±í*/
 
 		struct SrcList_item *pItem = &pTabList->a[i];
 		SelectDest dest;
 		Select *pSub = pItem->pSelect;
 		int isAggSub;
-		if (pSub == 0) continue;/*å¦‚æœSELECTç»“æ„ä½“pSubä¸º0ï¼Œè·³è¿‡æ­¤æ¬¡å¾ªç¯åˆ°ä¸‹æ¬¡å¾ªç¯*/
+		if (pSub == 0) continue;/*Èç¹ûSELECT½á¹¹ÌåpSubÎª0£¬Ìø¹ı´Ë´ÎÑ­»·µ½ÏÂ´ÎÑ­»·*/
 		if (pItem->addrFillSub){
 			sqlite3VdbeAddOp2(v, OP_Gosub, pItem->regReturn, pItem->addrFillSub);
 			continue;
@@ -4424,95 +4425,95 @@ int sqlite3Select(
 		** more conservative than necessary, but much easier than enforcing
 		** an exact limit.
 		**
-		**å¢åŠ æœ€å¤§è¡¨è¾¾å¼æ ‘çš„é«˜åº¦Parse.nHeightï¼Œçˆ¶é€‰æ‹©ã€‚
-		**å­é€‰æ‹©å¯èƒ½åŒ…å«è¡¨è¾¾å¼æ ‘æœ€å¤š
-		**(SQLITE_MAX_EXPR_DEPTH-Parse.nHeight)é«˜åº¦ã€‚
-		**è¿™å¯èƒ½ä¿å®ˆä¸€äº›,ä½†æ¯”å¼ºåˆ¶
-		**æ‰§è¡Œä¸€ä¸ªç²¾ç¡®çš„é™åˆ¶æ›´å®¹æ˜“äº›
+		**Ôö¼Ó×î´ó±í´ïÊ½Ê÷µÄ¸ß¶ÈParse.nHeight£¬¸¸Ñ¡Ôñ¡£
+		**×ÓÑ¡Ôñ¿ÉÄÜ°üº¬±í´ïÊ½Ê÷×î¶à
+		**(SQLITE_MAX_EXPR_DEPTH-Parse.nHeight)¸ß¶È¡£
+		**Õâ¿ÉÄÜ±£ÊØÒ»Ğ©,µ«±ÈÇ¿ÖÆ
+		**Ö´ĞĞÒ»¸ö¾«È·µÄÏŞÖÆ¸üÈİÒ×Ğ©
 		*/
 		pParse->nHeight += sqlite3SelectExprHeight(p);
 
-		isAggSub = (pSub->selFlags & SF_Aggregate) != 0;/*å¦‚æœselFlagsä¸ºSF_Aggregateï¼Œå°†èšé›†å‡½æ•°ä¿¡æ¯å­˜å…¥isAggSub*/
-		if (flattenSubquery(pParse, p, i, isAgg, isAggSub)){/*é”€æ¯å­æŸ¥è¯¢*/
-			/*è¿™ä¸ªå­æŸ¥è¯¢å¯ä»¥å¹¶å…¥å…¶çˆ¶æŸ¥è¯¢ä¸­ã€‚*/
-			if (isAggSub){/*å¦‚æœå­æŸ¥è¯¢ä¸­æœ‰èšé›†æŸ¥è¯¢ï¼Œä¹Ÿå°±æ˜¯ä¿¡æ¯å­˜åœ¨*/
-				isAgg = 1;/*ä¿¡æ¯ä½ç½®1*/
+		isAggSub = (pSub->selFlags & SF_Aggregate) != 0;/*Èç¹ûselFlagsÎªSF_Aggregate£¬½«¾Û¼¯º¯ÊıĞÅÏ¢´æÈëisAggSub*/
+		if (flattenSubquery(pParse, p, i, isAgg, isAggSub)){/*Ïú»Ù×Ó²éÑ¯*/
+			/*Õâ¸ö×Ó²éÑ¯¿ÉÒÔ²¢ÈëÆä¸¸²éÑ¯ÖĞ¡£*/
+			if (isAggSub){/*Èç¹û×Ó²éÑ¯ÖĞÓĞ¾Û¼¯²éÑ¯£¬Ò²¾ÍÊÇĞÅÏ¢´æÔÚ*/
+				isAgg = 1;/*ĞÅÏ¢Î»ÖÃ1*/
 				p->selFlags |= SF_Aggregate;
 			}
-			i = -1;/*å°†iç½®ä¸º-1ï¼Œä¸‹ä¸€è½®å¾ªç¯iä»0å¼€å§‹*/
+			i = -1;/*½«iÖÃÎª-1£¬ÏÂÒ»ÂÖÑ­»·i´Ó0¿ªÊ¼*/
 		}
 		else{
 			/* Generate a subroutine that will fill an ephemeral table with
 			** the content of this subquery.  pItem->addrFillSub will point
 			** to the address of the generated subroutine.  pItem->regReturn
 			** is a register allocated to hold the subroutine return address
-			**ç”Ÿæˆä¸€ä¸ªå­ç¨‹åºï¼Œè¿™ä¸ªå­ç¨‹åºå°†
-			**å¡«è¡¥ä¸€ä¸ªä¸´æ—¶è¡¨ä¸è¯¥å­æŸ¥è¯¢çš„å†…å®¹ã€‚
-			**pItem - > addrFillSubå°†æŒ‡å‘ç”Ÿæˆçš„å­ç¨‹åºåœ°å€ã€‚
-			**pItem - > regReturnæ˜¯ä¸€ä¸ªå¯„å­˜å™¨åˆ†é…ç»™å­ç¨‹åºè¿”å›åœ°å€
+			**Éú³ÉÒ»¸ö×Ó³ÌĞò£¬Õâ¸ö×Ó³ÌĞò½«
+			**Ìî²¹Ò»¸öÁÙÊ±±íÓë¸Ã×Ó²éÑ¯µÄÄÚÈİ¡£
+			**pItem - > addrFillSub½«Ö¸ÏòÉú³ÉµÄ×Ó³ÌĞòµØÖ·¡£
+			**pItem - > regReturnÊÇÒ»¸ö¼Ä´æÆ÷·ÖÅä¸ø×Ó³ÌĞò·µ»ØµØÖ·
 			**
 			*/
 			int topAddr;
 			int onceAddr = 0;
 			int retAddr;
-			assert(pItem->addrFillSub == 0);/*æ’å…¥æ–­ç‚¹*/
-			pItem->regReturn = ++pParse->nMem;/*å°†åˆ†é…çš„å†…å­˜ç©ºé—´å¤§å°åŠ 1åèµ‹å€¼ç»™regReturn*/
-			topAddr = sqlite3VdbeAddOp2(v, OP_Integer, 0, pItem->regReturn);/*å°†OP_Integeræ“ä½œäº¤ç»™vdbeï¼Œç„¶åè¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€å¹¶èµ‹å€¼ç»™topAddr*/
-			pItem->addrFillSub = topAddr + 1;/*èµ·å§‹åœ°å€åŠ 1å†èµ‹å€¼ç»™addrFillSubï¼Œè¿™ä¹Ÿæ˜¯æŒ‡å‘å­ç¨‹åºåœ°å€çš„*/
-			VdbeNoopComment((v, "materialize %s", pItem->pTab->zName));//è¾“å‡ºç›¸å…³çš„æç¤ºå¸®åŠ©ä¿¡æ¯
+			assert(pItem->addrFillSub == 0);/*²åÈë¶Ïµã*/
+			pItem->regReturn = ++pParse->nMem;/*½«·ÖÅäµÄÄÚ´æ¿Õ¼ä´óĞ¡¼Ó1ºó¸³Öµ¸øregReturn*/
+			topAddr = sqlite3VdbeAddOp2(v, OP_Integer, 0, pItem->regReturn);/*½«OP_Integer²Ù×÷½»¸øvdbe£¬È»ºó·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·²¢¸³Öµ¸øtopAddr*/
+			pItem->addrFillSub = topAddr + 1;/*ÆğÊ¼µØÖ·¼Ó1ÔÙ¸³Öµ¸øaddrFillSub£¬ÕâÒ²ÊÇÖ¸Ïò×Ó³ÌĞòµØÖ·µÄ*/
+			VdbeNoopComment((v, "materialize %s", pItem->pTab->zName));//Êä³öÏà¹ØµÄÌáÊ¾°ïÖúĞÅÏ¢
 			if (pItem->isCorrelated == 0){
 				/* If the subquery is no correlated and if we are not inside of
 				** a trigger, then we only need to compute the value of the subquery
 				** once.
-				**å¦‚æœå­æŸ¥è¯¢æ²¡æœ‰å…³è”åˆ°
-				**ä¸€ä¸ªè§¦å‘å™¨,é‚£ä¹ˆæˆ‘ä»¬åªéœ€è¦è®¡ç®—
-				**å­æŸ¥è¯¢çš„å€¼ä¸€æ¬¡ã€‚*/
-				onceAddr = sqlite3CodeOnce(pParse);/*ç”Ÿæˆä¸€ä¸ªä¸€æ¬¡æ“ä½œæŒ‡ä»¤å¹¶ä¸ºå…¶åˆ†é…ç©ºé—´*/
+				**Èç¹û×Ó²éÑ¯Ã»ÓĞ¹ØÁªµ½
+				**Ò»¸ö´¥·¢Æ÷,ÄÇÃ´ÎÒÃÇÖ»ĞèÒª¼ÆËã
+				**×Ó²éÑ¯µÄÖµÒ»´Î¡£*/
+				onceAddr = sqlite3CodeOnce(pParse);/*Éú³ÉÒ»¸öÒ»´Î²Ù×÷Ö¸Áî²¢ÎªÆä·ÖÅä¿Õ¼ä*/
 			}
-			sqlite3SelectDestInit(&dest, SRT_EphemTab, pItem->iCursor);/*åˆå§‹åŒ–ä¸€ä¸ªSelectDestç»“æ„ï¼Œå¹¶ä¸”æŠŠå¤„ç†ç»“æœé›†åˆå­˜å‚¨åˆ°SRT_EphmTab*/
+			sqlite3SelectDestInit(&dest, SRT_EphemTab, pItem->iCursor);/*³õÊ¼»¯Ò»¸öSelectDest½á¹¹£¬²¢ÇÒ°Ñ´¦Àí½á¹û¼¯ºÏ´æ´¢µ½SRT_EphmTab*/
 			explainSetInteger(pItem->iSelectId, (u8)pParse->iNextSelectId);
-			sqlite3Select(pParse, pSub, &dest);/*ä¸ºå­æŸ¥è¯¢è¯­å¥ç”Ÿæˆä»£ç ,/*ä½¿ç”¨è‡ªèº«å‡½æ•°å¤„ç†æŸ¥è¯¢*/*/
+			sqlite3Select(pParse, pSub, &dest);/*Îª×Ó²éÑ¯Óï¾äÉú³É´úÂë,/*Ê¹ÓÃ×ÔÉíº¯Êı´¦Àí²éÑ¯*/*/
 			pItem->pTab->nRowEst = (unsigned)pSub->nSelectRow;
 			if (onceAddr) sqlite3VdbeJumpHere(v, onceAddr);
 			retAddr = sqlite3VdbeAddOp1(v, OP_Return, pItem->regReturn);
 			VdbeComment((v, "end %s", pItem->pTab->zName));
 			sqlite3VdbeChangeP1(v, topAddr, retAddr);
-			sqlite3ClearTempRegCache(pParse);/*æ¸…é™¤å¯„å­˜å™¨ä¸­è¯­æ³•è§£ææ ‘*/
+			sqlite3ClearTempRegCache(pParse);/*Çå³ı¼Ä´æÆ÷ÖĞÓï·¨½âÎöÊ÷*/
 		}
 		if ( /*pParse->nErr ||*/ db->mallocFailed){
-			goto select_end;/*å¦‚æœåˆ†é…å†…å­˜å‡ºé”™,è·³åˆ°select_endï¼ˆæŸ¥è¯¢ç»“æŸï¼‰*/
+			goto select_end;/*Èç¹û·ÖÅäÄÚ´æ³ö´í,Ìøµ½select_end£¨²éÑ¯½áÊø£©*/
 		}
-		pParse->nHeight -= sqlite3SelectExprHeight(p);/*è¿”å›è¡¨è¾¾å¼æ ‘çš„æœ€å¤§é«˜åº¦*/
-		pTabList = p->pSrc;/*è¡¨åˆ—è¡¨*/
-		if (!IgnorableOrderby(pDest)){/*å¦‚æœå¤„ç†ç»“æœé›†ä¸­ä¸å«æœ‰Orderby,å°±å°†SELECTç»“æ„ä½“ä¸­Orderbyå±æ€§èµ‹å€¼ç»™pOrderBy*/
+		pParse->nHeight -= sqlite3SelectExprHeight(p);/*·µ»Ø±í´ïÊ½Ê÷µÄ×î´ó¸ß¶È*/
+		pTabList = p->pSrc;/*±íÁĞ±í*/
+		if (!IgnorableOrderby(pDest)){/*Èç¹û´¦Àí½á¹û¼¯ÖĞ²»º¬ÓĞOrderby,¾Í½«SELECT½á¹¹ÌåÖĞOrderbyÊôĞÔ¸³Öµ¸øpOrderBy*/
 			pOrderBy = p->pOrderBy;
 		}
 	}
-	pEList = p->pEList;/*å°†ç»“æ„ä½“è¡¨è¾¾å¼åˆ—è¡¨èµ‹å€¼ç»™pEList*/
+	pEList = p->pEList;/*½«½á¹¹Ìå±í´ïÊ½ÁĞ±í¸³Öµ¸øpEList*/
 #endif
-	pWhere = p->pWhere;/*SELECTç»“æ„ä½“ä¸­WHEREå­å¥èµ‹å€¼ç»™pWhere*/
-	pGroupBy = p->pGroupBy;/*SELECTç»“æ„ä½“ä¸­GROUP BYå­å¥èµ‹å€¼ç»™pGroupBy*/
-	pHaving = p->pHaving;/*SELECTç»“æ„ä½“ä¸­Havingå­å¥èµ‹å€¼ç»™pHaving*/
-	isDistinct = (p->selFlags & SF_Distinct) != 0;/*å¦‚æœå‡ºç°DISTINCTå…³é”®å­—è®¾ä¸ºtrue*/
+	pWhere = p->pWhere;/*SELECT½á¹¹ÌåÖĞWHERE×Ó¾ä¸³Öµ¸øpWhere*/
+	pGroupBy = p->pGroupBy;/*SELECT½á¹¹ÌåÖĞGROUP BY×Ó¾ä¸³Öµ¸øpGroupBy*/
+	pHaving = p->pHaving;/*SELECT½á¹¹ÌåÖĞHaving×Ó¾ä¸³Öµ¸øpHaving*/
+	isDistinct = (p->selFlags & SF_Distinct) != 0;/*Èç¹û³öÏÖDISTINCT¹Ø¼ü×ÖÉèÎªtrue*/
 
 #ifndef SQLITE_OMIT_COMPOUND_SELECT
 	/* If there is are a sequence of queries, do the earlier ones first.
-	  **å¦‚æœæœ‰ä¸€ç³»åˆ—çš„æŸ¥è¯¢,å…ˆåšå‰é¢çš„ã€‚
+	  **Èç¹ûÓĞÒ»ÏµÁĞµÄ²éÑ¯,ÏÈ×öÇ°ÃæµÄ¡£
 	  */
 	if (p->pPrior){
 		if (p->pRightmost == 0){
 			Select *pLoop, *pRight = 0;
 			int cnt = 0;
 			int mxSelect;
-			for (pLoop = p; pLoop; pLoop = pLoop->pPrior, cnt++){/*éå†SELECTä¸­ä¼˜å…ˆæŸ¥æ‰¾SELECTï¼Œæ‰¾åˆ°æœ€ä¼˜å…ˆæŸ¥æ‰¾SELECT*/
-				pLoop->pRightmost = p;/*å°†SELECTèµ‹å€¼ç»™å³å­æ ‘*/
-				pLoop->pNext = pRight;/*å°†å³å­æ ‘èµ‹å€¼ç»™ä¸‹ä¸€ä¸ªèŠ‚ç‚¹*/
-				pRight = pLoop;/*è®²ä¸­é—´å­èŠ‚ç‚¹èµ‹å€¼ç»™å³å­æ ‘*/
+			for (pLoop = p; pLoop; pLoop = pLoop->pPrior, cnt++){/*±éÀúSELECTÖĞÓÅÏÈ²éÕÒSELECT£¬ÕÒµ½×îÓÅÏÈ²éÕÒSELECT*/
+				pLoop->pRightmost = p;/*½«SELECT¸³Öµ¸øÓÒ×ÓÊ÷*/
+				pLoop->pNext = pRight;/*½«ÓÒ×ÓÊ÷¸³Öµ¸øÏÂÒ»¸ö½Úµã*/
+				pRight = pLoop;/*½²ÖĞ¼ä×Ó½Úµã¸³Öµ¸øÓÒ×ÓÊ÷*/
 			}
-			mxSelect = db->aLimit[SQLITE_LIMIT_COMPOUND_SELECT];/*å°†ç¬¦åˆæŸ¥è¯¢çš„æŸ¥è¯¢ä¸ªæ•°å€¼è¿”å›ç»™mxSelect*/
+			mxSelect = db->aLimit[SQLITE_LIMIT_COMPOUND_SELECT];/*½«·ûºÏ²éÑ¯µÄ²éÑ¯¸öÊıÖµ·µ»Ø¸ømxSelect*/
 			if (mxSelect && cnt > mxSelect){
 				sqlite3ErrorMsg(pParse, "too many terms in compound SELECT");
-				goto select_end;/*å¦‚æœmxSelectå­˜åœ¨ï¼Œå¹¶ä¸”æ·±åº¦å¤§äºSELECTä¸ªæ•°çš„è¯ï¼Œé‚£ä¹ˆåœ¨è¯­æ³•è§£ææ ‘ä¸­å­˜å‚¨too many...Select,ç„¶åè·³åˆ°æŸ¥è¯¢ç»“æŸ*/
+				goto select_end;/*Èç¹ûmxSelect´æÔÚ£¬²¢ÇÒÉî¶È´óÓÚSELECT¸öÊıµÄ»°£¬ÄÇÃ´ÔÚÓï·¨½âÎöÊ÷ÖĞ´æ´¢too many...Select,È»ºóÌøµ½²éÑ¯½áÊø*/
 			}
 		}
 		rc = multiSelect(pParse, p, pDest);
@@ -4527,11 +4528,11 @@ int sqlite3Select(
 	** an optimization - the correct answer should result regardless.
 	** Use the SQLITE_GroupByOrder flag with SQLITE_TESTCTRL_OPTIMIZER
 	** to disable this optimization for testing purposes.
-	**å¦‚æœæœ‰GROUP BY å’Œ ORDER BYå­å¥ï¼Œç„¶åå¦‚æœå®ƒä»¬æ˜¯ä¸€è‡´çš„ï¼Œé‚£ä¹ˆå…ˆæ‰§è¡ŒGROUP BYç„¶åå†æ‰§è¡ŒORDER BY.
-	** è¿™æ˜¯ä¸€ç§ä¼˜åŒ–æ–¹å¼ï¼Œå¯¹æœ€åçš„ç»“æœæ²¡æœ‰ä»»ä½•å½±å“ã€‚ä½¿ç”¨å¸¦SQLITE_TESTCTRL_OPTIMIZERçš„SQLITE_GroupByOrderæ ‡è®°
-	** åœ¨æ—¥å¸¸æµ‹è¯•ä¸­ä¸æ–­ä¼˜åŒ–ã€‚
+	**Èç¹ûÓĞGROUP BY ºÍ ORDER BY×Ó¾ä£¬È»ºóÈç¹ûËüÃÇÊÇÒ»ÖÂµÄ£¬ÄÇÃ´ÏÈÖ´ĞĞGROUP BYÈ»ºóÔÙÖ´ĞĞORDER BY.
+	** ÕâÊÇÒ»ÖÖÓÅ»¯·½Ê½£¬¶Ô×îºóµÄ½á¹ûÃ»ÓĞÈÎºÎÓ°Ïì¡£Ê¹ÓÃ´øSQLITE_TESTCTRL_OPTIMIZERµÄSQLITE_GroupByOrder±ê¼Ç
+	** ÔÚÈÕ³£²âÊÔÖĞ²»¶ÏÓÅ»¯¡£
 	*/
-	if (sqlite3ExprListCompare(p->pGroupBy, pOrderBy) == 0/*å¦‚æœä¸¤ä¸ªè¡¨è¾¾å¼å€¼ç›¸åŒ*/
+	if (sqlite3ExprListCompare(p->pGroupBy, pOrderBy) == 0/*Èç¹ûÁ½¸ö±í´ïÊ½ÖµÏàÍ¬*/
 		&& (db->flags & SQLITE_GroupByOrder) == 0){
 		pOrderBy = 0;
 	}
@@ -4551,22 +4552,22 @@ int sqlite3Select(
 	** written the query must use a temp-table for at least one of the ORDER
 	** BY and DISTINCT, and an index or separate temp-table for the other.
 	**
-	**å¦‚æœæŸ¥è¯¢æ˜¯DISTINCTä½†ä¸æ˜¯ä¸€ä¸ªèšåˆæŸ¥è¯¢,
-	**å¦‚æœé€‰æ‹©åˆ—è¡¨ï¼ˆselect-listï¼‰ä¸ORDERBYåˆ—è¡¨æ˜¯ä¸€æ ·çš„
-	**é‚£ä¹ˆï¼Œè¯¥æŸ¥è¯¢å¯ä»¥é‡å†™ä¸ºä¸€ä¸ªGROUP BYï¼Œ
-	**ä¹Ÿå°±æ˜¯è¯´:
+	**Èç¹û²éÑ¯ÊÇDISTINCTµ«²»ÊÇÒ»¸ö¾ÛºÏ²éÑ¯,
+	**Èç¹ûÑ¡ÔñÁĞ±í£¨select-list£©ÓëORDERBYÁĞ±íÊÇÒ»ÑùµÄ
+	**ÄÇÃ´£¬¸Ã²éÑ¯¿ÉÒÔÖØĞ´ÎªÒ»¸öGROUP BY£¬
+	**Ò²¾ÍÊÇËµ:
 	**
 	** SELECT DISTINCT xyz FROM ... ORDER BY xyz
 	**
-	**è½¬æ¢ä¸º
+	**×ª»»Îª
 	**
 	**SELECT xyz FROM ... GROUP BY xyz
 	**
-	**ç¬¬äºŒä¸ªæ ¼å¼æ›´å¥½ï¼Œä¸€ä¸ªå•ç‹¬ç´¢å¼•ï¼ˆä¸´æ—¶è¡¨ï¼‰å¯èƒ½ç”¨æ¥èƒ½å¤„ç† ORDER BY å’Œ DISTINCTã€‚æœ€åˆå†™æŸ¥è¯¢å¿…é¡»ä½¿ç”¨ä¸´æ—¶è¡¨åœ¨
-	** é’ˆå¯¹ORDER BY å’Œ DISTINCTçš„å…¶ä¸­ä¸€ä¸ªï¼Œå¹¶ä¸”ä¸€ä¸ªç´¢å¼•æˆ–åˆ†å¼€çš„ä¸€ä¸ªä¸´æ—¶è¡¨ç»™å¦å¤–ä¸€ä¸ªã€‚*/
+	**µÚ¶ş¸ö¸ñÊ½¸üºÃ£¬Ò»¸öµ¥¶ÀË÷Òı£¨ÁÙÊ±±í£©¿ÉÄÜÓÃÀ´ÄÜ´¦Àí ORDER BY ºÍ DISTINCT¡£×î³õĞ´²éÑ¯±ØĞëÊ¹ÓÃÁÙÊ±±íÔÚ
+	** Õë¶ÔORDER BY ºÍ DISTINCTµÄÆäÖĞÒ»¸ö£¬²¢ÇÒÒ»¸öË÷Òı»ò·Ö¿ªµÄÒ»¸öÁÙÊ±±í¸øÁíÍâÒ»¸ö¡£*/
 	
 	if ((p->selFlags & (SF_Distinct | SF_Aggregate)) == SF_Distinct
-		&& sqlite3ExprListCompare(pOrderBy, p->pEList) == 0/*å¦‚æœSELECTä¸­selFlagsä¸ºSF_Distinctæˆ–SF_Aggregateï¼Œå¹¶ä¸”è¡¨è¾¾å¼ä¸€ç›´*/
+		&& sqlite3ExprListCompare(pOrderBy, p->pEList) == 0/*Èç¹ûSELECTÖĞselFlagsÎªSF_Distinct»òSF_Aggregate£¬²¢ÇÒ±í´ïÊ½Ò»Ö±*/
 	  ){
 		){
 		p->selFlags &= ~SF_Distinct;
@@ -4581,8 +4582,8 @@ int sqlite3Select(
 	** OP_OpenEphemeral instruction will be changed to an OP_Noop once
 	** we figure out that the sorting index is not needed.  The addrSortIndex
 	** variable is used to facilitate that change.
-	**å¦‚æœæœ‰ORDER BYå­å¥å¦‚æœæ•°æ®è¢«æå‰æ’åºï¼Œæ’åºç´¢å¼•å¯èƒ½ä¸ç”¨ã€‚å¦‚æœè¿™ç§æƒ…å†µOP_OpenEphemeralæŒ‡ä»¤ä¼šæ”¹å˜
-	**OP_Noopï¼Œä¸€æ—¦å†³å®šä¸éœ€è¦æ’åºç´¢å¼•ã€‚addrSortIndexå˜é‡ç”¨äºå¸®åŠ©æ”¹å˜ã€‚*/
+	**Èç¹ûÓĞORDER BY×Ó¾äÈç¹ûÊı¾İ±»ÌáÇ°ÅÅĞò£¬ÅÅĞòË÷Òı¿ÉÄÜ²»ÓÃ¡£Èç¹ûÕâÖÖÇé¿öOP_OpenEphemeralÖ¸Áî»á¸Ä±ä
+	**OP_Noop£¬Ò»µ©¾ö¶¨²»ĞèÒªÅÅĞòË÷Òı¡£addrSortIndex±äÁ¿ÓÃÓÚ°ïÖú¸Ä±ä¡£*/
 	
 	if (pOrderBy){
 		KeyInfo *pKeyInfo;
@@ -4591,35 +4592,35 @@ int sqlite3Select(
 		p->addrOpenEphm[2] = addrSortIndex =
 			sqlite3VdbeAddOp4(v, OP_OpenEphemeral,
 			pOrderBy->iECursor, pOrderBy->nExpr + 2, 0,
-			(char*)pKeyInfo, P4_KEYINFO_HANDOFF);  /*è¿™æ®µæ„æ€å°±æ˜¯ï¼Œå¦‚æœå­˜åœ¨ORDERBYå­å¥,é‚£ä¹ˆå£°æ˜ä¸€ä¸ªå…³é”®ä¿¡æ¯ç»“æ„ä½“ï¼Œå¹¶å°†è¡¨è¾¾å¼pOrderByæ”¾åˆ°å…³é”®ä¿¡æ¯ç»“æ„ä½“ä¸­*/
+			(char*)pKeyInfo, P4_KEYINFO_HANDOFF);  /*Õâ¶ÎÒâË¼¾ÍÊÇ£¬Èç¹û´æÔÚORDERBY×Ó¾ä,ÄÇÃ´ÉùÃ÷Ò»¸ö¹Ø¼üĞÅÏ¢½á¹¹Ìå£¬²¢½«±í´ïÊ½pOrderBy·Åµ½¹Ø¼üĞÅÏ¢½á¹¹ÌåÖĞ*/
 	}
 	else{
-		addrSortIndex = -1;/*å¦åˆ™é‚£ä¹ˆå°†æ’åºç´¢å¼•çš„æ ‡å¿—ç½®ä¸º-1*/
+		addrSortIndex = -1;/*·ñÔòÄÇÃ´½«ÅÅĞòË÷ÒıµÄ±êÖ¾ÖÃÎª-1*/
 	}
 
 	/* If the output is destined for a temporary table, open that table.
-	  **å¦‚æœè¾“å‡ºè¢«æŒ‡å®šåˆ°ä¸€ä¸ªä¸´æ—¶è¡¨æ—¶å€™ï¼Œé‚£ä¹ˆå°±è¦æ‰“å¼€è¿™ä¸ªè¡¨
+	  **Èç¹ûÊä³ö±»Ö¸¶¨µ½Ò»¸öÁÙÊ±±íÊ±ºò£¬ÄÇÃ´¾ÍÒª´ò¿ªÕâ¸ö±í
 	  */
 	if (pDest->eDest == SRT_EphemTab){
 		sqlite3VdbeAddOp2(v, OP_OpenEphemeral, pDest->iSDParm, pEList->nExpr);
-	}/*å¦‚æœå¤„ç†çš„å¯¹è±¡ä¸ºSRT_EphemTabï¼Œé‚£ä¹ˆå°†OP_OpenEphemeralæ“ä½œäº¤ç»™vdbeï¼Œç„¶åè¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+	}/*Èç¹û´¦ÀíµÄ¶ÔÏóÎªSRT_EphemTab£¬ÄÇÃ´½«OP_OpenEphemeral²Ù×÷½»¸øvdbe£¬È»ºó·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 
 	/* Set the limiter.
-	   **è®¾ç½®é™åˆ¶å™¨
+	   **ÉèÖÃÏŞÖÆÆ÷
 	   */
-	iEnd = sqlite3VdbeMakeLabel(v);/*ç”Ÿæˆä¸€ä¸ªæ–°æ ‡ç­¾ï¼Œè¿”å›å€¼èµ‹å€¼ç»™iEnd*/
+	iEnd = sqlite3VdbeMakeLabel(v);/*Éú³ÉÒ»¸öĞÂ±êÇ©£¬·µ»ØÖµ¸³Öµ¸øiEnd*/
 	p->nSelectRow = (double)LARGEST_INT64;
-	computeLimitRegisters(pParse, p, iEnd);/*è®¡ç®—iLimitå’ŒiOffsetå­—æ®µ*/
+	computeLimitRegisters(pParse, p, iEnd);/*¼ÆËãiLimitºÍiOffset×Ö¶Î*/
 	if (p->iLimit == 0 && addrSortIndex >= 0){
-		sqlite3VdbeGetOp(v, addrSortIndex)->opcode = OP_SorterOpen;/*å°†æ“ä½œOP_SorterOpenï¼ˆæ‰“å¼€åˆ†æ‹£å™¨ï¼‰ï¼Œå°†æ’åºç´¢å¼•äº¤ç»™VDBE*/
+		sqlite3VdbeGetOp(v, addrSortIndex)->opcode = OP_SorterOpen;/*½«²Ù×÷OP_SorterOpen£¨´ò¿ª·Ö¼ğÆ÷£©£¬½«ÅÅĞòË÷Òı½»¸øVDBE*/
 		p->selFlags |= SF_UseSorter;
 	}
 
 	/* Open a virtual index to use for the distinct set.
-	  **ä¸ºdistincté›†åˆæ‰“å¼€ä¸€ä¸ªè™šæ‹Ÿç´¢å¼•
+	  **Îªdistinct¼¯ºÏ´ò¿ªÒ»¸öĞéÄâË÷Òı
 	  */
-	if (p->selFlags & SF_Distinct){/*å¦‚æœselFlagsçš„å€¼ä¸ºSF_Distinct*/
-		KeyInfo *pKeyInfo;/*å£°æ˜ä¸€ä¸ªå…³é”®ä¿¡æ¯ç»“æ„ä½“*/
+	if (p->selFlags & SF_Distinct){/*Èç¹ûselFlagsµÄÖµÎªSF_Distinct*/
+		KeyInfo *pKeyInfo;/*ÉùÃ÷Ò»¸ö¹Ø¼üĞÅÏ¢½á¹¹Ìå*/
 		distinct = pParse->nTab++;
 		pKeyInfo = keyInfoFromExprList(pParse, p->pEList);
 		addrDistinctIndex = sqlite3VdbeAddOp4(v, OP_OpenEphemeral, distinct, 0, 0,
@@ -4631,48 +4632,48 @@ int sqlite3Select(
 	}
 
 	/* Aggregate and non-aggregate queries are handled differently
-	  **èšåˆå’ŒéèšåˆæŸ¥è¯¢è¢«ä¸åŒæ–¹å¼å¤„ç†
+	  **¾ÛºÏºÍ·Ç¾ÛºÏ²éÑ¯±»²»Í¬·½Ê½´¦Àí
 	  */
 	if (!isAgg && pGroupBy == 0){
-		ExprList *pDist = (isDistinct ? p->pEList : 0);/*å¦‚æœisAggæ²¡æœ‰GroupByï¼Œåˆ¤æ–­isDistinctæ˜¯å¦ä¸ºtrueï¼Œå¦åˆ™å°†p->pEListèµ‹å€¼ç»™pDist*/
+		ExprList *pDist = (isDistinct ? p->pEList : 0);/*Èç¹ûisAggÃ»ÓĞGroupBy£¬ÅĞ¶ÏisDistinctÊÇ·ñÎªtrue£¬·ñÔò½«p->pEList¸³Öµ¸øpDist*/
 
 		/* Begin the database scan.
-		**å¼€å§‹æ•°æ®åº“æ‰«æ
+		**¿ªÊ¼Êı¾İ¿âÉ¨Ãè
 		*/
-		pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pOrderBy, pDist, 0, 0);/*ç”Ÿæˆç”¨äºWHEREå­å¥å¤„ç†çš„å¾ªç¯è¯­å¥ï¼Œå¹¶è¿”å›ç»“æŸæŒ‡é’ˆ*/
-		if (pWInfo == 0) goto select_end;/*å¦‚æœè¿”å›æŒ‡é’ˆä¸º0ï¼Œè·³åˆ°æŸ¥è¯¢ç»“æŸ*/
-		if (pWInfo->nRowOut < p->nSelectRow) p->nSelectRow = pWInfo->nRowOut;/*è¾“å‡ºè¡Œæ•°*/
+		pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pOrderBy, pDist, 0, 0);/*Éú³ÉÓÃÓÚWHERE×Ó¾ä´¦ÀíµÄÑ­»·Óï¾ä£¬²¢·µ»Ø½áÊøÖ¸Õë*/
+		if (pWInfo == 0) goto select_end;/*Èç¹û·µ»ØÖ¸ÕëÎª0£¬Ìøµ½²éÑ¯½áÊø*/
+		if (pWInfo->nRowOut < p->nSelectRow) p->nSelectRow = pWInfo->nRowOut;/*Êä³öĞĞÊı*/
 
 		/* If sorting index that was created by a prior OP_OpenEphemeral
 		** instruction ended up not being needed, then change the OP_OpenEphemeral
 		** into an OP_Noop.
 		**
-		**å¦‚æœæ’åºç´¢å¼•è¢«ä¼˜å…ˆ OP_OpenEphemeral æŒ‡ä»¤åˆ›å»º
-		**åˆ›å»ºä¸éœ€è¦è€Œè¢«ç»“æŸï¼Œé‚£ä¹ˆOP_OpenEphemeral å˜ä¸ºOP_Noop
+		**Èç¹ûÅÅĞòË÷Òı±»ÓÅÏÈ OP_OpenEphemeral Ö¸Áî´´½¨
+		**´´½¨²»ĞèÒª¶ø±»½áÊø£¬ÄÇÃ´OP_OpenEphemeral ±äÎªOP_Noop
 		*/
-		if (addrSortIndex >= 0 && pOrderBy == 0){/*å¦‚æœæ’åºç´¢å¼•å­˜åœ¨å¹¶ä¸”ORDERBYä¸º0*/
-			sqlite3VdbeChangeToNoop(v, addrSortIndex);/*å°†addrSortIndexä¸­æ“ä½œæ”¹ä¸ºOP_Noop*/
-			p->addrOpenEphm[2] = -1;/*å°†SELECTç»“æ„ä½“æ‰“å¼€ä¸´æ—¶è¡¨çš„ä¸‹æ ‡ä¸º2çš„å…ƒç´ è®¾ä¸º-1*/
+		if (addrSortIndex >= 0 && pOrderBy == 0){/*Èç¹ûÅÅĞòË÷Òı´æÔÚ²¢ÇÒORDERBYÎª0*/
+			sqlite3VdbeChangeToNoop(v, addrSortIndex);/*½«addrSortIndexÖĞ²Ù×÷¸ÄÎªOP_Noop*/
+			p->addrOpenEphm[2] = -1;/*½«SELECT½á¹¹Ìå´ò¿ªÁÙÊ±±íµÄÏÂ±êÎª2µÄÔªËØÉèÎª-1*/
 		}
 
-		if (pWInfo->eDistinct){/*å¦‚æœè¿”å›çš„WHEREä¿¡æ¯ä¸­å«DISTINCTæŸ¥è¯¢*/
-			VdbeOp *pOp;                /* ä¸å†éœ€è¦OpenEphemeralï¼ˆæ‰“å¼€ä¸´æ—¶è¡¨ï¼‰instr*/
+		if (pWInfo->eDistinct){/*Èç¹û·µ»ØµÄWHEREĞÅÏ¢ÖĞº¬DISTINCT²éÑ¯*/
+			VdbeOp *pOp;                /* ²»ÔÙĞèÒªOpenEphemeral£¨´ò¿ªÁÙÊ±±í£©instr*/
 
-			assert(addrDistinctIndex >= 0);/*æ’å…¥æ–­ç‚¹ï¼Œå¦‚æœaddrDistinctIndexå°äº0ï¼ŒæŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
-			pOp = sqlite3VdbeGetOp(v, addrDistinctIndex);/*è¿”å›addrDistinctIndex æŒ‡å‘çš„æ“ä½œç */
+			assert(addrDistinctIndex >= 0);/*²åÈë¶Ïµã£¬Èç¹ûaddrDistinctIndexĞ¡ÓÚ0£¬Å×³ö´íÎóĞÅÏ¢*/
+			pOp = sqlite3VdbeGetOp(v, addrDistinctIndex);/*·µ»ØaddrDistinctIndex Ö¸ÏòµÄ²Ù×÷Âë*/
 
-			assert(isDistinct);/*æ’å…¥æ–­ç‚¹ï¼Œåˆ¤æ–­æ˜¯å¦å«æœ‰DISTINCTæŸ¥è¯¢ï¼Œå¦‚æ²¡æœ‰æŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
-			assert(pWInfo->eDistinct == WHERE_DISTINCT_ORDERED/*æ’å…¥æ–­ç‚¹ï¼Œå¦‚æœeDistinctä¸ºWHERE_DISTINCT_ORDERED*/
-				|| pWInfo->eDistinct == WHERE_DISTINCT_UNIQUE/*æˆ–è€…ä¸ºWHERE_DISTINCT_UNIQUEï¼Œå¦åˆ™å°±æŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
+			assert(isDistinct);/*²åÈë¶Ïµã£¬ÅĞ¶ÏÊÇ·ñº¬ÓĞDISTINCT²éÑ¯£¬ÈçÃ»ÓĞÅ×³ö´íÎóĞÅÏ¢*/
+			assert(pWInfo->eDistinct == WHERE_DISTINCT_ORDERED/*²åÈë¶Ïµã£¬Èç¹ûeDistinctÎªWHERE_DISTINCT_ORDERED*/
+				|| pWInfo->eDistinct == WHERE_DISTINCT_UNIQUE/*»òÕßÎªWHERE_DISTINCT_UNIQUE£¬·ñÔò¾ÍÅ×³ö´íÎóĞÅÏ¢*/
 				);
-			distinct = -1;/*å°†distinctç½®ä¸º-1ï¼Œä¸è¿›è¡Œå–æ¶ˆé‡å¤æ“ä½œ*/
-			if (pWInfo->eDistinct == WHERE_DISTINCT_ORDERED){/*å¦‚æœWHEREè¿”å›ä¿¡æ¯ä¸­eDistinctä¸ºWHERE_DISTINCT_ORDERED*/
+			distinct = -1;/*½«distinctÖÃÎª-1£¬²»½øĞĞÈ¡ÏûÖØ¸´²Ù×÷*/
+			if (pWInfo->eDistinct == WHERE_DISTINCT_ORDERED){/*Èç¹ûWHERE·µ»ØĞÅÏ¢ÖĞeDistinctÎªWHERE_DISTINCT_ORDERED*/
 				int iJump;
 				int iExpr;
-				int iFlag = ++pParse->nMem;/*å°†è¯­æ³•è§£ææ ‘ä¸­åˆ†é…å†…å­˜çš„ä¸ªæ•°åŠ åŠ å†èµ‹å€¼ç»™iFlag*/
-				int iBase = pParse->nMem + 1;/*å°†è¯­æ³•è§£ææ ‘ä¸­åˆ†é…å†…å­˜çš„ä¸ªæ•°åŠ 1å†èµ‹å€¼ç»™iBase*/
-				int iBase2 = iBase + pEList->nExpr;/*å°†åŸºå€iBase+è¡¨è¾¾å¼ä¸ªæ•°å†èµ‹å€¼ç»™iBase2*/
-				pParse->nMem += (pEList->nExpr * 2);/*å°†è¡¨è¾¾å¼ä¹˜2åŠ ä¸Šåˆ†é…çš„å†…å­˜æ•°å†èµ‹å€¼ç»™pParse->nMem*/
+				int iFlag = ++pParse->nMem;/*½«Óï·¨½âÎöÊ÷ÖĞ·ÖÅäÄÚ´æµÄ¸öÊı¼Ó¼ÓÔÙ¸³Öµ¸øiFlag*/
+				int iBase = pParse->nMem + 1;/*½«Óï·¨½âÎöÊ÷ÖĞ·ÖÅäÄÚ´æµÄ¸öÊı¼Ó1ÔÙ¸³Öµ¸øiBase*/
+				int iBase2 = iBase + pEList->nExpr;/*½«»ùÖ·iBase+±í´ïÊ½¸öÊıÔÙ¸³Öµ¸øiBase2*/
+				pParse->nMem += (pEList->nExpr * 2);/*½«±í´ïÊ½³Ë2¼ÓÉÏ·ÖÅäµÄÄÚ´æÊıÔÙ¸³Öµ¸øpParse->nMem*/
 
 				/* Change the OP_OpenEphemeral coded earlier to an OP_Integer. The
 				** OP_Integer initializes the "first row" flag.  */
@@ -4700,33 +4701,33 @@ int sqlite3Select(
 			}
 		}
 
-		/* Use the standard inner loop. ä½¿ç”¨æ ‡å‡†çš„å†…éƒ¨å¾ªç¯*/
+		/* Use the standard inner loop. Ê¹ÓÃ±ê×¼µÄÄÚ²¿Ñ­»·*/
 		selectInnerLoop(pParse, p, pEList, 0, 0, pOrderBy, distinct, pDest,
 			pWInfo->iContinue, pWInfo->iBreak);
 
-		/* End the database scan loop.ç»“æŸæ•°æ®åº“æ‰«æå¾ªç¯ã€‚
+		/* End the database scan loop.½áÊøÊı¾İ¿âÉ¨ÃèÑ­»·¡£
 		*/
-		sqlite3WhereEnd(pWInfo);/*ç”Ÿæˆä¸€ä¸ªwhereå¾ªç¯çš„ç»“æŸ*/
+		sqlite3WhereEnd(pWInfo);/*Éú³ÉÒ»¸öwhereÑ­»·µÄ½áÊø*/
 	}
 	else{
-		/* This is the processing for aggregate queries *//*å¤„ç†èšåˆæŸ¥è¯¢*/
-		NameContext sNC;    /* Name context for processing aggregate information *//*å‘½åä¸Šä¸‹æ–‡å¤„ç†èšåˆä¿¡æ¯*/
-		int iAMem;          /* First Mem address for storing current GROUP BY *//*ç¬¬ä¸€ä¸ªå†…å­˜åœ°å€å­˜å‚¨GROUP BY*/
-		int iBMem;          /* First Mem address for previous GROUP BY *//*å­˜å‚¨ä»¥å‰GROUP BYåœ¨ç¬¬ä¸€ä¸ªå†…å­˜åœ°å€*/
+		/* This is the processing for aggregate queries *//*´¦Àí¾ÛºÏ²éÑ¯*/
+		NameContext sNC;    /* Name context for processing aggregate information *//*ÃüÃûÉÏÏÂÎÄ´¦Àí¾ÛºÏĞÅÏ¢*/
+		int iAMem;          /* First Mem address for storing current GROUP BY *//*µÚÒ»¸öÄÚ´æµØÖ·´æ´¢GROUP BY*/
+		int iBMem;          /* First Mem address for previous GROUP BY *//*´æ´¢ÒÔÇ°GROUP BYÔÚµÚÒ»¸öÄÚ´æµØÖ·*/
 		int iUseFlag;       /* Mem address holding flag indicating that at least
 							** one row of the input to the aggregator has been
-							** processed *//*å«æœ‰æ ‡ç­¾å†…å­˜åœ°å€è¡¨æ˜è‡³å°‘ä¸€ä¸ªè¾“å…¥è¡Œæ‰§è¡Œèšé›†*/
-		int iAbortFlag;     /* Mem address which causes query abort if positive *//*å¦‚æœæ˜¯æ•´æ•°ä¼šé€ æˆä¸­æ­¢æŸ¥è¯¢*/
-		int groupBySort;    /* Rows come from source in GROUP BY order *//*æ¥æºäºGROUP BYå‘½ä»¤çš„ç»“æœè¡Œ*/
-		int addrEnd;        /* End of processing for this SELECT *//*å¤„ç†SELECTçš„ç»“æŸæ ‡è®°*/
-		int sortPTab = 0;   /* Pseudotable used to decode sorting results *//*Pseudotableç”¨äºè§£ç æ’åºçš„ç»“æœ*/
-		int sortOut = 0;    /* Output register from the sorter *//*ä»åˆ†æ‹£å™¨è¾“å‡ºå¯„å­˜å™¨*/
+							** processed *//*º¬ÓĞ±êÇ©ÄÚ´æµØÖ·±íÃ÷ÖÁÉÙÒ»¸öÊäÈëĞĞÖ´ĞĞ¾Û¼¯*/
+		int iAbortFlag;     /* Mem address which causes query abort if positive *//*Èç¹ûÊÇÕûÊı»áÔì³ÉÖĞÖ¹²éÑ¯*/
+		int groupBySort;    /* Rows come from source in GROUP BY order *//*À´Ô´ÓÚGROUP BYÃüÁîµÄ½á¹ûĞĞ*/
+		int addrEnd;        /* End of processing for this SELECT *//*´¦ÀíSELECTµÄ½áÊø±ê¼Ç*/
+		int sortPTab = 0;   /* Pseudotable used to decode sorting results *//*PseudotableÓÃÓÚ½âÂëÅÅĞòµÄ½á¹û*/
+		int sortOut = 0;    /* Output register from the sorter *//*´Ó·Ö¼ğÆ÷Êä³ö¼Ä´æÆ÷*/
 
 		/* Remove any and all aliases between the result set and the
 		** GROUP BY clause.
-		*//*åˆ é™¤ç»“æœé›†ä¸GROUP BYä¹‹é—´æ‰€æœ‰çš„å…³è”ä¾èµ–*/
-		if (pGroupBy){/*groupby å­å¥éç©º*/
-			int k;                        /* Loop counter   å¾ªç¯è®¡æ•°å™¨*/
+		*//*É¾³ı½á¹û¼¯ÓëGROUP BYÖ®¼äËùÓĞµÄ¹ØÁªÒÀÀµ*/
+		if (pGroupBy){/*groupby ×Ó¾ä·Ç¿Õ*/
+			int k;                        /* Loop counter   Ñ­»·¼ÆÊıÆ÷*/
 			struct ExprList_item *pItem;  /* For looping over expression in a list */
 
 			for (k = p->pEList->nExpr, pItem = p->pEList->a; k > 0; k--, pItem++){
@@ -4735,34 +4736,34 @@ int sqlite3Select(
 			for (k = pGroupBy->nExpr, pItem = pGroupBy->a; k > 0; k--, pItem++){
 				pItem->iAlias = 0;
 			}
-			if (p->nSelectRow > (double)100) p->nSelectRow = (double)100;/*å¦‚æœSELECTç»“æœè¡Œå¤§äº100ï¼Œèµ‹å€¼ç»™SELECTçš„è¡Œæ•°ä¸º100ï¼Œé™å®šäº†å¤§å°ï¼Œè¶…è¿‡100å³ä¸º100*/
+			if (p->nSelectRow > (double)100) p->nSelectRow = (double)100;/*Èç¹ûSELECT½á¹ûĞĞ´óÓÚ100£¬¸³Öµ¸øSELECTµÄĞĞÊıÎª100£¬ÏŞ¶¨ÁË´óĞ¡£¬³¬¹ı100¼´Îª100*/
 		}
 		else{
 			p->nSelectRow = (double)1;
 		}
 
 
-		/* Create a label to jump to when we want to abort the query ã€
-		**å½“æˆ‘ä»¬æƒ³å–æ¶ˆæŸ¥è¯¢æ—¶åˆ›å»ºä¸€ä¸ªæ ‡ç­¾æ¥è·³è½¬
+		/* Create a label to jump to when we want to abort the query ¡¢
+		**µ±ÎÒÃÇÏëÈ¡Ïû²éÑ¯Ê±´´½¨Ò»¸ö±êÇ©À´Ìø×ª
 		*/
 		addrEnd = sqlite3VdbeMakeLabel(v);
 
 		/* Convert TK_COLUMN nodes into TK_AGG_COLUMN and make entries in
 		** sAggInfo for all TK_AGG_FUNCTION nodes in expressions of the
 		** SELECT statement.
-		*//*å°†TK_COLUMNèŠ‚ç‚¹è½¬åŒ–ä¸ºTK_AGG_COLUMNï¼Œå¹¶ä¸”ä½¿æ‰€æœ‰sAggInfoä¸­çš„æ¡ç›®è½¬åŒ–ä¸ºSELECTä¸­çš„è¡¨è¾¾å¼ä¸­TK_AGG_FUNCTIONèŠ‚ç‚¹*/
-		memset(&sNC, 0, sizeof(sNC));/*å°†sNCä¸­å‰sizeof(*sNc)ä¸ªå­—èŠ‚ç”¨0æ›¿æ¢*/
+		*//*½«TK_COLUMN½Úµã×ª»¯ÎªTK_AGG_COLUMN£¬²¢ÇÒÊ¹ËùÓĞsAggInfoÖĞµÄÌõÄ¿×ª»¯ÎªSELECTÖĞµÄ±í´ïÊ½ÖĞTK_AGG_FUNCTION½Úµã*/
+		memset(&sNC, 0, sizeof(sNC));/*½«sNCÖĞÇ°sizeof(*sNc)¸ö×Ö½ÚÓÃ0Ìæ»»*/
 		sNC.pParse = pParse;
-		sNC.pSrcList = pTabList;/*å°†SELECTçš„æºè¡¨é›†åˆèµ‹å€¼ç»™å‘½åä¸Šä¸‹æ–‡çš„æºè¡¨é›†åˆï¼ˆFROMå­å¥åˆ—è¡¨ï¼‰*/
+		sNC.pSrcList = pTabList;/*½«SELECTµÄÔ´±í¼¯ºÏ¸³Öµ¸øÃüÃûÉÏÏÂÎÄµÄÔ´±í¼¯ºÏ£¨FROM×Ó¾äÁĞ±í£©*/
 		sNC.pAggInfo = &sAggInfo;
 		sAggInfo.nSortingColumn = pGroupBy ? pGroupBy->nExpr + 1 : 0;
 		sAggInfo.pGroupBy = pGroupBy;
-		sqlite3ExprAnalyzeAggList(&sNC, pEList);/*åˆ†æè¡¨è¾¾å¼çš„èšåˆå‡½æ•°å¹¶è¿”å›é”™è¯¯æ•°*/
+		sqlite3ExprAnalyzeAggList(&sNC, pEList);/*·ÖÎö±í´ïÊ½µÄ¾ÛºÏº¯Êı²¢·µ»Ø´íÎóÊı*/
 		sqlite3ExprAnalyzeAggList(&sNC, pOrderBy);
 		if (pHaving){
-			sqlite3ExprAnalyzeAggregates(&sNC, pHaving);/*åˆ†æè¡¨è¾¾å¼çš„èšåˆå‡½æ•°*/
+			sqlite3ExprAnalyzeAggregates(&sNC, pHaving);/*·ÖÎö±í´ïÊ½µÄ¾ÛºÏº¯Êı*/
 		}
-		sAggInfo.nAccumulator = sAggInfo.nColumn;/*å°†èšåˆä¿¡æ¯çš„åˆ—æ•°èµ‹ç»™å…¶ç´¯åŠ å™¨*/
+		sAggInfo.nAccumulator = sAggInfo.nColumn;/*½«¾ÛºÏĞÅÏ¢µÄÁĞÊı¸³¸øÆäÀÛ¼ÓÆ÷*/
 		for (i = 0; i < sAggInfo.nFunc; i++){
 			assert(!ExprHasProperty(sAggInfo.aFunc[i].pExpr, EP_xIsSelect));
 			sNC.ncFlags |= NC_InAggFunc;
@@ -4774,58 +4775,58 @@ int sqlite3Select(
 		/* Processing for aggregates with GROUP BY is very different and
 		** much more complex than aggregates without a GROUP BY.
 		**
-		**å¤„ç†å¸¦æœ‰GROUP BYçš„èšé›†å‡½æ•°ä¸åŒäºä¸å¸¦çš„ï¼Œè€Œä¸”æ›´ä¸ºå¤æ‚ï¼Œ
-		**è€Œä¸”æœ‰å¾ˆå¤§çš„ä¸åŒï¼Œå¸¦groupbyçš„è¦å¤æ‚å¾—å¤šã€‚
+		**´¦Àí´øÓĞGROUP BYµÄ¾Û¼¯º¯Êı²»Í¬ÓÚ²»´øµÄ£¬¶øÇÒ¸üÎª¸´ÔÓ£¬
+		**¶øÇÒÓĞºÜ´óµÄ²»Í¬£¬´øgroupbyµÄÒª¸´ÔÓµÃ¶à¡£
 		*/
 		if (pGroupBy){
-			KeyInfo *pKeyInfo;  /* Keying information for the group by clause å­å¥groupby çš„å…³é”®ä¿¡æ¯*/
+			KeyInfo *pKeyInfo;  /* Keying information for the group by clause ×Ó¾ägroupby µÄ¹Ø¼üĞÅÏ¢*/
 			int j1;             /* A-vs-B comparision jump */
-			int addrOutputRow;  /* Start of subroutine that outputs a result row å¼€å§‹ä¸€ä¸ªè¾“å‡ºç»“æœè¡Œå­ç¨‹åº*/
-			int regOutputRow;   /* Return address register for output subroutine  ä¸ºè¾“å‡ºå­ç¨‹åºè¿”å›åœ°å€å¯„å­˜å™¨*/
-			int addrSetAbort;   /* Set the abort flag and return  è®¾ç½®ç»ˆæ­¢æ ‡å¿—å¹¶è¿”å›*/
-			int addrTopOfLoop;  /* Top of the input loop  è¾“å…¥å¾ªç¯çš„é¡¶ç«¯*/
+			int addrOutputRow;  /* Start of subroutine that outputs a result row ¿ªÊ¼Ò»¸öÊä³ö½á¹ûĞĞ×Ó³ÌĞò*/
+			int regOutputRow;   /* Return address register for output subroutine  ÎªÊä³ö×Ó³ÌĞò·µ»ØµØÖ·¼Ä´æÆ÷*/
+			int addrSetAbort;   /* Set the abort flag and return  ÉèÖÃÖÕÖ¹±êÖ¾²¢·µ»Ø*/
+			int addrTopOfLoop;  /* Top of the input loop  ÊäÈëÑ­»·µÄ¶¥¶Ë*/
 			int addrSortingIdx; /* The OP_OpenEphemeral for the sorting index */
-			int addrReset;      /* Subroutine for resetting the accumulator   é‡ç½®ç´¯åŠ å™¨çš„å­ç¨‹åº*/
-			int regReset;       /* Return address register for reset subroutine  ä¸ºé‡ç½®å­ç¨‹åºè¿”å›åœ°å€å¯„å­˜å™¨*/
+			int addrReset;      /* Subroutine for resetting the accumulator   ÖØÖÃÀÛ¼ÓÆ÷µÄ×Ó³ÌĞò*/
+			int regReset;       /* Return address register for reset subroutine  ÎªÖØÖÃ×Ó³ÌĞò·µ»ØµØÖ·¼Ä´æÆ÷*/
 
 			/* If there is a GROUP BY clause we might need a sorting index to
 			** implement it.  Allocate that sorting index now.  If it turns out
 			** that we do not need it after all, the OP_SorterOpen instruction
 			** will be converted into a Noop.
-			**ï¼ˆæœ¬äººæ³¨ï¼šè‹¥å®ç°åˆ†ç»„ï¼Œå…ˆè¿›è¡Œæ’åºï¼‰å¦‚æœæœ‰ä¸€ä¸ªGROUP BYå­å¥ï¼Œæˆ‘ä»¬å¯èƒ½éœ€è¦ä¸€ä¸ªæ’åºç´¢å¼•å»å®ç°å®ƒã€‚
-		    ** é”å®šæ’åºç´¢å¼•ã€‚å¦‚æœè¿”å›ä¸€ä¸ªæˆ‘ä»¬å·²ç»å®ç°çš„ï¼Œè¿™ä¸ªOP_SorterOpenæŒ‡ä»¤å°†ä¼šè½¬ä¸ºNoop*/
+			**£¨±¾ÈË×¢£ºÈôÊµÏÖ·Ö×é£¬ÏÈ½øĞĞÅÅĞò£©Èç¹ûÓĞÒ»¸öGROUP BY×Ó¾ä£¬ÎÒÃÇ¿ÉÄÜĞèÒªÒ»¸öÅÅĞòË÷ÒıÈ¥ÊµÏÖËü¡£
+		    ** Ëø¶¨ÅÅĞòË÷Òı¡£Èç¹û·µ»ØÒ»¸öÎÒÃÇÒÑ¾­ÊµÏÖµÄ£¬Õâ¸öOP_SorterOpenÖ¸Áî½«»á×ªÎªNoop*/
 			*/
 			sAggInfo.sortingIdx = pParse->nTab++;
-			pKeyInfo = keyInfoFromExprList(pParse, pGroupBy);/*å°†è¡¨è¾¾å¼åˆ—è¡¨ä¸­çš„pGroupByæå–å…³é”®ä¿¡æ¯ç»™pKeyInfo*/
+			pKeyInfo = keyInfoFromExprList(pParse, pGroupBy);/*½«±í´ïÊ½ÁĞ±íÖĞµÄpGroupByÌáÈ¡¹Ø¼üĞÅÏ¢¸øpKeyInfo*/
 			addrSortingIdx = sqlite3VdbeAddOp4(v, OP_SorterOpen,
 				sAggInfo.sortingIdx, sAggInfo.nSortingColumn,
 				0, (char*)pKeyInfo, P4_KEYINFO_HANDOFF);
 
 			/* Initialize memory locations used by GROUP BY aggregate processing
-			**åˆå§‹åŒ–è¢«groupby èšåˆå¤„ç†çš„å†…å­˜å•å…ƒ
+			**³õÊ¼»¯±»groupby ¾ÛºÏ´¦ÀíµÄÄÚ´æµ¥Ôª
 			*/
-			iUseFlag = ++pParse->nMem;/*å°†è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´åŠ 1èµ‹å€¼ç»™iUseFlag*/
-			iAbortFlag = ++pParse->nMem;/*å°†è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´åŠ 1èµ‹å€¼ç»™iAbortFlag*/
-			regOutputRow = ++pParse->nMem;/*å°†è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´åŠ 1èµ‹å€¼ç»™regOutputRow*/
-			addrOutputRow = sqlite3VdbeMakeLabel(v);/*ä¸ºVDBEåˆ›å»ºä¸€ä¸ªæ ‡ç­¾ï¼ˆæŒ‡å‡ºç»§ç»­è¿è¡Œçš„åœ°å€ï¼‰ï¼Œè¿”å›å€¼èµ‹å€¼ç»™addrOutputRow*/
-			regReset = ++pParse->nMem;/*å°†è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´åŠ 1èµ‹å€¼ç»™regReset*/
-			addrReset = sqlite3VdbeMakeLabel(v);/*ä¸ºVDBEåˆ›å»ºä¸€ä¸ªæ ‡ç­¾ï¼ˆæŒ‡å‡ºç»§ç»­è¿è¡Œçš„åœ°å€ï¼‰ï¼Œè¿”å›å€¼èµ‹å€¼ç»™addrReset*/
-			iAMem = pParse->nMem + 1;/*å°†è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´åŠ 1èµ‹å€¼ç»™iAMem*/
-			pParse->nMem += pGroupBy->nExpr;/*pGroupByä¸­è¡¨è¾¾å¼ä¸ªæ•°åŠ è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´å†èµ‹å€¼ç»™è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´*/
-			iBMem = pParse->nMem + 1;/*å°†è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´åŠ 1èµ‹å€¼iBMem*/
-			pParse->nMem += pGroupBy->nExpr;/*pGroupByä¸­è¡¨è¾¾å¼ä¸ªæ•°åŠ è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´å†èµ‹å€¼ç»™è¯­æ³•è§£ææ ‘ä¸­çš„å†…å­˜ç©ºé—´*/
-			sqlite3VdbeAddOp2(v, OP_Integer, 0, iAbortFlag);/*å°†OP_Integeræ“ä½œäº¤ç»™vdbeï¼Œç„¶åè¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
-			VdbeComment((v, "clear abort flag"));;/*å°†â€œclear abort flagâ€æ”¾å…¥åˆ°VDBEä¸­*/
-			sqlite3VdbeAddOp2(v, OP_Integer, 0, iUseFlag);/*å°†OP_Integeræ“ä½œäº¤ç»™vdbeï¼Œç„¶åè¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
-			VdbeComment((v, "indicate accumulator empty"));/*å°†â€œindicate accumulator empty"æ”¾å…¥åˆ°VDBEä¸­*/
-			sqlite3VdbeAddOp3(v, OP_Null, 0, iAMem, iAMem + pGroupBy->nExpr - 1);/*å°†OP_Nullæ“ä½œäº¤ç»™vdbeï¼Œç„¶åè¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+			iUseFlag = ++pParse->nMem;/*½«Óï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä¼Ó1¸³Öµ¸øiUseFlag*/
+			iAbortFlag = ++pParse->nMem;/*½«Óï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä¼Ó1¸³Öµ¸øiAbortFlag*/
+			regOutputRow = ++pParse->nMem;/*½«Óï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä¼Ó1¸³Öµ¸øregOutputRow*/
+			addrOutputRow = sqlite3VdbeMakeLabel(v);/*ÎªVDBE´´½¨Ò»¸ö±êÇ©£¨Ö¸³ö¼ÌĞøÔËĞĞµÄµØÖ·£©£¬·µ»ØÖµ¸³Öµ¸øaddrOutputRow*/
+			regReset = ++pParse->nMem;/*½«Óï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä¼Ó1¸³Öµ¸øregReset*/
+			addrReset = sqlite3VdbeMakeLabel(v);/*ÎªVDBE´´½¨Ò»¸ö±êÇ©£¨Ö¸³ö¼ÌĞøÔËĞĞµÄµØÖ·£©£¬·µ»ØÖµ¸³Öµ¸øaddrReset*/
+			iAMem = pParse->nMem + 1;/*½«Óï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä¼Ó1¸³Öµ¸øiAMem*/
+			pParse->nMem += pGroupBy->nExpr;/*pGroupByÖĞ±í´ïÊ½¸öÊı¼ÓÓï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼äÔÙ¸³Öµ¸øÓï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä*/
+			iBMem = pParse->nMem + 1;/*½«Óï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä¼Ó1¸³ÖµiBMem*/
+			pParse->nMem += pGroupBy->nExpr;/*pGroupByÖĞ±í´ïÊ½¸öÊı¼ÓÓï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼äÔÙ¸³Öµ¸øÓï·¨½âÎöÊ÷ÖĞµÄÄÚ´æ¿Õ¼ä*/
+			sqlite3VdbeAddOp2(v, OP_Integer, 0, iAbortFlag);/*½«OP_Integer²Ù×÷½»¸øvdbe£¬È»ºó·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
+			VdbeComment((v, "clear abort flag"));;/*½«¡°clear abort flag¡±·ÅÈëµ½VDBEÖĞ*/
+			sqlite3VdbeAddOp2(v, OP_Integer, 0, iUseFlag);/*½«OP_Integer²Ù×÷½»¸øvdbe£¬È»ºó·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
+			VdbeComment((v, "indicate accumulator empty"));/*½«¡°indicate accumulator empty"·ÅÈëµ½VDBEÖĞ*/
+			sqlite3VdbeAddOp3(v, OP_Null, 0, iAMem, iAMem + pGroupBy->nExpr - 1);/*½«OP_Null²Ù×÷½»¸øvdbe£¬È»ºó·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 
 
 			/* Begin a loop that will extract all source rows in GROUP BY order.
 			** This might involve two separate loops with an OP_Sort in between, or
 			** it might be a single loop that uses an index to extract information
 			** in the right order to begin with.
-			**å¯åŠ¨ä¸€ä¸ªå¾ªç¯ï¼Œæå–GROUP BYå‘½ä»¤çš„æ‰€æœ‰çš„åŸåˆ—ã€‚
+			**Æô¶¯Ò»¸öÑ­»·£¬ÌáÈ¡GROUP BYÃüÁîµÄËùÓĞµÄÔ­ÁĞ¡£
 			*/
 			sqlite3VdbeAddOp2(v, OP_Gosub, regReset, addrReset);
 			pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pGroupBy, 0, 0, 0);
@@ -4835,8 +4836,8 @@ int sqlite3Select(
 				** we do not have to sort.  The OP_OpenEphemeral table will be
 				** cancelled later because we still need to use the pKeyInfo
 				**
-				**ä¼˜åŒ–å™¨èƒ½å¤Ÿå‘é€å‡ºGROUP BYå‘½ä»¤ï¼Œä¸ç”¨å†è¿›è¡Œæ’åºã€‚
-				**è¿™ä¸ªä¸´æ—¶è¡¨OP_OpenEphemeralå°†ä¼šè¢«å–æ¶ˆï¼Œå› ä¸ºæˆ‘ä»¬ä½¿ç”¨pKeyInfo
+				**ÓÅ»¯Æ÷ÄÜ¹»·¢ËÍ³öGROUP BYÃüÁî£¬²»ÓÃÔÙ½øĞĞÅÅĞò¡£
+				**Õâ¸öÁÙÊ±±íOP_OpenEphemeral½«»á±»È¡Ïû£¬ÒòÎªÎÒÃÇÊ¹ÓÃpKeyInfo
 				*/
 				pGroupBy = p->pGroupBy;
 				groupBySort = 0;
@@ -4847,16 +4848,16 @@ int sqlite3Select(
 				** then loop over the sorting index in order to get the output
 				** in sorted order
 				**
-				**ä»¥ç¡®å®šçš„é¡ºåºè¾“å‡ºè¡Œã€‚æˆ‘ä»¬éœ€è¦å°†æ¯ä¸€è¡Œè¾“å…¥åˆ°æ’åºç´¢å¼•ï¼Œ
-				**ä¸­æ­¢ç¬¬ä¸€ä¸ªå¾ªç¯ï¼Œç„¶åéå†æ’åºç´¢å¼•ä¸ºäº†å¾—å‡ºæ’åºçš„åºåˆ—
+				**ÒÔÈ·¶¨µÄË³ĞòÊä³öĞĞ¡£ÎÒÃÇĞèÒª½«Ã¿Ò»ĞĞÊäÈëµ½ÅÅĞòË÷Òı£¬
+				**ÖĞÖ¹µÚÒ»¸öÑ­»·£¬È»ºó±éÀúÅÅĞòË÷ÒıÎªÁËµÃ³öÅÅĞòµÄĞòÁĞ
 				*/
-				int regBase;/*åŸºå€å¯„å­˜å™¨*/
-				int regRecord;/*å¯„å­˜å™¨ä¸­è®°å½•*/
-				int nCol;/*åˆ—æ•°*/
-				int nGroupBy;/*GROUP BYçš„ä¸ªæ•°*/
+				int regBase;/*»ùÖ·¼Ä´æÆ÷*/
+				int regRecord;/*¼Ä´æÆ÷ÖĞ¼ÇÂ¼*/
+				int nCol;/*ÁĞÊı*/
+				int nGroupBy;/*GROUP BYµÄ¸öÊı*/
 
 				explainTempTable(pParse,
-					isDistinct && !(p->selFlags&SF_Distinct) ? "DISTINCT" : "GROUP BY");/*æ‰§è¡Œå‡ºé”™æ‰ä¼šä½¿ç”¨è¯¥å‡½æ•°ï¼Œè¾“å‡ºé”™è¯¯ä¿¡æ¯åˆ°è¯­æ³•è§£ææ ‘ä¸­*/
+					isDistinct && !(p->selFlags&SF_Distinct) ? "DISTINCT" : "GROUP BY");/*Ö´ĞĞ³ö´í²Å»áÊ¹ÓÃ¸Ãº¯Êı£¬Êä³ö´íÎóĞÅÏ¢µ½Óï·¨½âÎöÊ÷ÖĞ*/
 
 
 				groupBySort = 1;
@@ -4907,10 +4908,10 @@ int sqlite3Select(
 		  ** (b0 is memory location iBMem+0, b1 is iBMem+1, and so forth)
 		  ** Then compare the current GROUP BY terms against the GROUP BY terms
 		  ** from the previous row currently stored in a0, a1, a2...
-		  *//*è®¡ç®—å½“å‰GROUP BYçš„æ¡æ¬¾å¹¶ä¸”å­˜å‚¨åœ¨b0,b1,b2â€¦ï¼ˆb0çš„å†…å­˜åœ°å€ä¸ºiBMem+0ï¼Œb1çš„å†…å­˜åœ°å€ä¸ºiBMem+1â€¦ä¾æ¬¡ç±»æ¨ï¼‰
-		  **ç„¶åå°†å½“å‰GROUP BYçš„æ¡æ¬¾ä¸å­˜å‚¨åœ¨a0,a1,a2çš„ä»¥å‰çš„è¡Œçš„the GROUP BY çš„æ¡æ¬¾*/
-			addrTopOfLoop = sqlite3VdbeCurrentAddr(v);/*è¿”å›ä¸‹ä¸€ä¸ªè¢«æ’å…¥çš„æŒ‡ä»¤çš„åœ°å€*/
-			sqlite3ExprCacheClear(pParse);/*æ¸…é™¤æ‰€æœ‰åˆ—ç¼“å­˜æ¡ç›®*/
+		  *//*¼ÆËãµ±Ç°GROUP BYµÄÌõ¿î²¢ÇÒ´æ´¢ÔÚb0,b1,b2¡­£¨b0µÄÄÚ´æµØÖ·ÎªiBMem+0£¬b1µÄÄÚ´æµØÖ·ÎªiBMem+1¡­ÒÀ´ÎÀàÍÆ£©
+		  **È»ºó½«µ±Ç°GROUP BYµÄÌõ¿îÓë´æ´¢ÔÚa0,a1,a2µÄÒÔÇ°µÄĞĞµÄthe GROUP BY µÄÌõ¿î*/
+			addrTopOfLoop = sqlite3VdbeCurrentAddr(v);/*·µ»ØÏÂÒ»¸ö±»²åÈëµÄÖ¸ÁîµÄµØÖ·*/
+			sqlite3ExprCacheClear(pParse);/*Çå³ıËùÓĞÁĞ»º´æÌõÄ¿*/
 			if (groupBySort){
 				sqlite3VdbeAddOp2(v, OP_SorterData, sAggInfo.sortingIdx, sortOut);
 			}
@@ -4937,8 +4938,8 @@ int sqlite3Select(
 		  ** the processing calls for the query to abort, this subroutine
 		  ** increments the iAbortFlag memory location before returning in
 		  ** order to signal the caller to abort.
-		  ** ç¼–ä¸€ä¸ªå­ç¨‹åºï¼Œç”¨æ¥é‡ç½®group-byç´¯åŠ å™¨
-		  ** å¦‚æœè¿™ä¸ªå¤„ç†å•å…ƒæ˜¯é’ˆå¯¹ä¸­æ­¢æŸ¥è¯¢ï¼Œè¿™ä¸ªå­ç¨‹åºå­åœ¨è¿”å›ä¹‹å‰ï¼Œå¢å¤§iAbortFlagå†…å­˜ä¸ºäº†ä¸­æ­¢ä¿¡å·è°ƒç”¨è€…ã€‚*/
+		  ** ±àÒ»¸ö×Ó³ÌĞò£¬ÓÃÀ´ÖØÖÃgroup-byÀÛ¼ÓÆ÷
+		  ** Èç¹ûÕâ¸ö´¦Àíµ¥ÔªÊÇÕë¶ÔÖĞÖ¹²éÑ¯£¬Õâ¸ö×Ó³ÌĞò×ÓÔÚ·µ»ØÖ®Ç°£¬Ôö´óiAbortFlagÄÚ´æÎªÁËÖĞÖ¹ĞÅºÅµ÷ÓÃÕß¡£*/
 			
 			sqlite3ExprCodeMove(pParse, iBMem, iAMem, pGroupBy->nExpr);
 			sqlite3VdbeAddOp2(v, OP_Gosub, regOutputRow, addrOutputRow);
@@ -4951,14 +4952,14 @@ int sqlite3Select(
 			/* Update the aggregate accumulators based on the content of
 			** the current row
 			**
-			**åŸºäºå½“å‰å†…å®¹çš„å½“å‰è¡Œï¼Œæ›´æ–°èšåˆç´¯åŠ å™¨
+			**»ùÓÚµ±Ç°ÄÚÈİµÄµ±Ç°ĞĞ£¬¸üĞÂ¾ÛºÏÀÛ¼ÓÆ÷
 			*/
 			sqlite3VdbeJumpHere(v, j1);
 			updateAccumulator(pParse, &sAggInfo);
 			sqlite3VdbeAddOp2(v, OP_Integer, 1, iUseFlag);
 			VdbeComment((v, "indicate data in accumulator"));
 
-			/* End of the loop   å¾ªç¯ç»“å°¾
+			/* End of the loop   Ñ­»·½áÎ²
 			*/
 			if (groupBySort){
 				sqlite3VdbeAddOp2(v, OP_SorterNext, sAggInfo.sortingIdx, addrTopOfLoop);
@@ -4968,12 +4969,12 @@ int sqlite3Select(
 				sqlite3VdbeChangeToNoop(v, addrSortingIdx);
 			}
 
-			/* Output the final row of result   è¾“å‡ºç»“æœçš„æœ€åä¸€è¡Œ
+			/* Output the final row of result   Êä³ö½á¹ûµÄ×îºóÒ»ĞĞ
 			*/
 			sqlite3VdbeAddOp2(v, OP_Gosub, regOutputRow, addrOutputRow);
 			VdbeComment((v, "output final row"));
 
-			/* Jump over the subroutines   è·³è¿‡å­ç¨‹åº
+			/* Jump over the subroutines   Ìø¹ı×Ó³ÌĞò
 			*/
 			sqlite3VdbeAddOp2(v, OP_Goto, 0, addrEnd);
 
@@ -4984,12 +4985,12 @@ int sqlite3Select(
 			** increments the iAbortFlag memory location before returning in
 			** order to signal the caller to abort.
 			**
-			**ç”Ÿæˆä¸€ä¸ªè¾“å‡ºç»“æœé›†çš„å•ä¸€è¡Œçš„å­ç¨‹åº
-			**è¿™ä¸ªå­ç¨‹åºé¦–å…ˆæ£€æŸ¥iUseFlag
-			**å¦‚æœiUseFlagæ¯”0 å°æˆ–è€…ç­‰äº0 ï¼Œé‚£ä¹ˆå­ç¨‹åºä¸
-			**åšä»»ä½•æ“ä½œã€‚å¦‚æœå¯¹æŸ¥è¯¢çš„å¤„ç†è°ƒç”¨ç»ˆæ­¢ï¼Œ
-			**é‚£ä¹ˆè¯¥å­ç¨‹åºåœ¨è¿”å›ä¹‹å‰å¢åŠ iAbortFlag çš„å†…å­˜å•å…ƒ
-			**è¿™æ ·åšæ˜¯ä¸ºäº†å‘Šè¯‰è°ƒç”¨è€…ç»ˆæ­¢è°ƒç”¨
+			**Éú³ÉÒ»¸öÊä³ö½á¹û¼¯µÄµ¥Ò»ĞĞµÄ×Ó³ÌĞò
+			**Õâ¸ö×Ó³ÌĞòÊ×ÏÈ¼ì²éiUseFlag
+			**Èç¹ûiUseFlag±È0 Ğ¡»òÕßµÈÓÚ0 £¬ÄÇÃ´×Ó³ÌĞò²»
+			**×öÈÎºÎ²Ù×÷¡£Èç¹û¶Ô²éÑ¯µÄ´¦Àíµ÷ÓÃÖÕÖ¹£¬
+			**ÄÇÃ´¸Ã×Ó³ÌĞòÔÚ·µ»ØÖ®Ç°Ôö¼ÓiAbortFlag µÄÄÚ´æµ¥Ôª
+			**ÕâÑù×öÊÇÎªÁË¸æËßµ÷ÓÃÕßÖÕÖ¹µ÷ÓÃ
 			*/
 			addrSetAbort = sqlite3VdbeCurrentAddr(v);
 			sqlite3VdbeAddOp2(v, OP_Integer, 1, iAbortFlag);
@@ -5009,17 +5010,17 @@ int sqlite3Select(
 			VdbeComment((v, "end groupby result generator"));
 
 			/* Generate a subroutine that will reset the group-by accumulator
-			**ç”Ÿæˆä¸€ä¸ªå­ç¨‹åºï¼Œè¿™ä¸ªå­ç¨‹åºå°†é‡ç½®groupby ç´¯åŠ å™¨
+			**Éú³ÉÒ»¸ö×Ó³ÌĞò£¬Õâ¸ö×Ó³ÌĞò½«ÖØÖÃgroupby ÀÛ¼ÓÆ÷
 			*/
 			sqlite3VdbeResolveLabel(v, addrReset);
 			resetAccumulator(pParse, &sAggInfo);
 			sqlite3VdbeAddOp1(v, OP_Return, regReset);
 
 		} /* endif pGroupBy.  Begin aggregate queries without GROUP BY:
-											   **å¼€å§‹ä¸€ä¸ªæ— groupbyçš„èšåˆæŸ¥è¯¢
+											   **¿ªÊ¼Ò»¸öÎŞgroupbyµÄ¾ÛºÏ²éÑ¯
 											   */
 		else {
-			ExprList *pDel = 0;/*å£°æ˜ä¸€ä¸ªè¡¨è¾¾å¼åˆ—è¡¨*/
+			ExprList *pDel = 0;/*ÉùÃ÷Ò»¸ö±í´ïÊ½ÁĞ±í*/
 #ifndef SQLITE_OMIT_BTREECOUNT
 			Table *pTab;
 			if ((pTab = isSimpleCount(p, &sAggInfo)) != 0){
@@ -5036,19 +5037,19 @@ int sqlite3Select(
 				** is better to execute the op on an index, as indexes are almost
 				** always spread across less pages than their corresponding tables.
 				**
-				/* å¦‚æœisSimpleCount() è¿”å›ä¸€ä¸ªæŒ‡å‘TABLEç»“æ„çš„æŒ‡é’ˆï¼Œç„¶åSQLè¯­å¥æ ¼å¼å¦‚
+				/* Èç¹ûisSimpleCount() ·µ»ØÒ»¸öÖ¸ÏòTABLE½á¹¹µÄÖ¸Õë£¬È»ºóSQLÓï¾ä¸ñÊ½Èç
 			   **	SELECT count(*) FROM <tbl>
 			   ** 
-			   ** Tableç»“æ„è¿”å›çš„table<tbl>å¦‚ä¸‹ï¼š
-			   ** è¿™ä¸ªè¯­å¥å¾ˆå¸¸è§ï¼Œæ•…è¿›è¡Œç‰¹ä¿—ä¼˜åŒ–äº†ã€‚è¿™ä¸ªOP_CountæŒ‡ä»¤æ‰§è¡Œåœ¨intkeyè¡¨æˆ–åŒ…å«æ•°æ®çš„table<tbl>æˆ–å®ƒçš„ç´¢å¼•ã€‚
-			   ** å®ƒæ¯”è¾ƒå¥½çš„æ‰§è¡Œopæˆ–ç´¢å¼•ï¼Œå½“ç´¢å¼•é¢‘ç¹ä¼ é€’æ¯”ä¸è¡¨ä¸€è‡´ï¼ˆè¿™ä¸ªç´¢å¼•å¯¹åº”çš„è¡¨ï¼‰çš„å°‘çš„é¡µã€‚
+			   ** Table½á¹¹·µ»ØµÄtable<tbl>ÈçÏÂ£º
+			   ** Õâ¸öÓï¾äºÜ³£¼û£¬¹Ê½øĞĞÌØË×ÓÅ»¯ÁË¡£Õâ¸öOP_CountÖ¸ÁîÖ´ĞĞÔÚintkey±í»ò°üº¬Êı¾İµÄtable<tbl>»òËüµÄË÷Òı¡£
+			   ** Ëü±È½ÏºÃµÄÖ´ĞĞop»òË÷Òı£¬µ±Ë÷ÒıÆµ·±´«µİ±ÈÓë±íÒ»ÖÂ£¨Õâ¸öË÷Òı¶ÔÓ¦µÄ±í£©µÄÉÙµÄÒ³¡£
 			   */
-				const int iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);/*ä¸ºè¡¨æ¨¡å¼å»ºç«‹ç´¢å¼•ï¼Œå¹¶èµ‹å€¼ç»™iDb*/
-				const int iCsr = pParse->nTab++;     /*  æ‰«æb-tree çš„æŒ‡é’ˆ*/
-				Index *pIdx;                         /* Iterator variable è¿­ä»£å˜é‡*/
-				KeyInfo *pKeyInfo = 0;               /* Keyinfo for scanned index å·²æ‰«æç´¢å¼•çš„å…³é”®ä¿¡æ¯*/
-				Index *pBest = 0;                    /* Best index found so far åˆ°ç›®å‰ä¸ºæ­¢æ‰¾åˆ°çš„æœ€å¥½çš„ç´¢å¼•*/
-				int iRoot = pTab->tnum;              /* Root page of scanned b-tree æ‰«æè¡¨b-tree çš„æ ¹é¡µ*/
+				const int iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);/*Îª±íÄ£Ê½½¨Á¢Ë÷Òı£¬²¢¸³Öµ¸øiDb*/
+				const int iCsr = pParse->nTab++;     /*  É¨Ãèb-tree µÄÖ¸Õë*/
+				Index *pIdx;                         /* Iterator variable µü´ú±äÁ¿*/
+				KeyInfo *pKeyInfo = 0;               /* Keyinfo for scanned index ÒÑÉ¨ÃèË÷ÒıµÄ¹Ø¼üĞÅÏ¢*/
+				Index *pBest = 0;                    /* Best index found so far µ½Ä¿Ç°ÎªÖ¹ÕÒµ½µÄ×îºÃµÄË÷Òı*/
+				int iRoot = pTab->tnum;              /* Root page of scanned b-tree É¨Ãè±íb-tree µÄ¸ùÒ³*/
 
 				sqlite3CodeVerifySchema(pParse, iDb);
 				sqlite3TableLock(pParse, iDb, pTab->tnum, 0, pTab->zName);
@@ -5061,22 +5062,22 @@ int sqlite3Select(
 				** and pKeyInfo to the KeyInfo structure required to navigate the
 				** index.
 				**
-				**æŸ¥æ‰¾æœ€å°‘å‡ºç°çš„åˆ—çš„ç´¢å¼•ï¼Œå¦‚æœè¿™é‡Œæœ‰ä¸ªç´¢å¼•ï¼Œå®ƒæœ‰æ¯”è¾ƒå°‘çš„åˆ—ï¼Œç„¶åæˆ‘ä»¬å‡è®¾ä»–æ¶ˆè€—äº†è¾ƒå°çš„ç©ºé—´åœ¨ç¡¬ç›˜ä¸Šå¹¶ä¸”
-			    ** æ‰«æå·²ç»ç¡®å®šæŸ¥è¯¢ç»“æœå¼€é”€æ¯”è¾ƒä½ã€‚åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œè®¾ç½®iRootåˆ°b-treeç´¢å¼•çš„æ ¹é¡µå·å¹¶ä¸”pKeyInfoæ˜¯KeyInfoç»“æ„ä½“éœ€è¦çš„å¯¼èˆªç´¢å¼•*/
+				**²éÕÒ×îÉÙ³öÏÖµÄÁĞµÄË÷Òı£¬Èç¹ûÕâÀïÓĞ¸öË÷Òı£¬ËüÓĞ±È½ÏÉÙµÄÁĞ£¬È»ºóÎÒÃÇ¼ÙÉèËûÏûºÄÁË½ÏĞ¡µÄ¿Õ¼äÔÚÓ²ÅÌÉÏ²¢ÇÒ
+			    ** É¨ÃèÒÑ¾­È·¶¨²éÑ¯½á¹û¿ªÏú±È½ÏµÍ¡£ÔÚÕâÖÖÇé¿öÏÂ£¬ÉèÖÃiRootµ½b-treeË÷ÒıµÄ¸ùÒ³ºÅ²¢ÇÒpKeyInfoÊÇKeyInfo½á¹¹ÌåĞèÒªµÄµ¼º½Ë÷Òı*/
 			
-				for (pIdx = pTab->pIndex; pIdx; pIdx = pIdx->pNext){/*éå†ç´¢å¼•*/
-					if (pIdx->bUnordered == 0 && (!pBest || pIdx->nColumn < pBest->nColumn)){/*å¦‚æœç´¢å¼•æ²¡æœ‰æ’åºå¹¶ä¸”æ²¡æœ‰æœ€å¥½çš„ç´¢å¼•æˆ–è€…æ‰€æœ‰ä¸­çš„åˆ—å°äºæœ€å¥½ç´¢å¼•çš„ä¸­çš„åˆ—*/
+				for (pIdx = pTab->pIndex; pIdx; pIdx = pIdx->pNext){/*±éÀúË÷Òı*/
+					if (pIdx->bUnordered == 0 && (!pBest || pIdx->nColumn < pBest->nColumn)){/*Èç¹ûË÷ÒıÃ»ÓĞÅÅĞò²¢ÇÒÃ»ÓĞ×îºÃµÄË÷Òı»òÕßËùÓĞÖĞµÄÁĞĞ¡ÓÚ×îºÃË÷ÒıµÄÖĞµÄÁĞ*/
 						pBest = pIdx;
 					}
 				}
 				if (pBest && pBest->nColumn < pTab->nCol){
-					iRoot = pBest->tnum;/*å°†æœ€å¥½ç´¢å¼•ä¸­æ ¹ç´¢å¼•èµ‹å€¼ç»™iRoot*/
-					pKeyInfo = sqlite3IndexKeyinfo(pParse, pBest);/*å°†æœ€å¥½ç´¢å¼•çš„ä¿¡æ¯æå–åˆ°å…³é”®ä¿¡æ¯ç»“æ„ä½“pKeyInfoä¸­*/
+					iRoot = pBest->tnum;/*½«×îºÃË÷ÒıÖĞ¸ùË÷Òı¸³Öµ¸øiRoot*/
+					pKeyInfo = sqlite3IndexKeyinfo(pParse, pBest);/*½«×îºÃË÷ÒıµÄĞÅÏ¢ÌáÈ¡µ½¹Ø¼üĞÅÏ¢½á¹¹ÌåpKeyInfoÖĞ*/
 				}
 
 				/* Open a read-only cursor, execute the OP_Count, close the cursor.
 					 **
-					 **  æ‰“å¼€åªè¯»æ¸¸æ ‡ï¼Œæ‰§è¡ŒOP_Countæ“ä½œï¼Œå…³é—­æ¸¸æ ‡
+					 **  ´ò¿ªÖ»¶ÁÓÎ±ê£¬Ö´ĞĞOP_Count²Ù×÷£¬¹Ø±ÕÓÎ±ê
 					 */
 				sqlite3VdbeAddOp3(v, OP_OpenRead, iCsr, iRoot, iDb);
 				if (pKeyInfo){
@@ -5114,26 +5115,26 @@ int sqlite3Select(
 			**     satisfying the 'ORDER BY' clause than it does in other cases.
 			**     Refer to code and comments in where.c for details.
 			*/
-			/*å¦‚æœæŸ¥è¯¢æ˜¯ä»¥ä¸‹çš„æ ¼å¼ï¼Œå°±è¿›è¡Œæ£€æµ‹ï¼š
+			/*Èç¹û²éÑ¯ÊÇÒÔÏÂµÄ¸ñÊ½£¬¾Í½øĞĞ¼ì²â£º
 			**   SELECT min(x) FROM ...
 			**   SELECT max(x) FROM ...
-			**å¦‚æœæ˜¯ï¼Œç„¶åè®©where.cå°è¯•æ’åºç»“æœï¼Œå¦‚æœè¿™æ˜¯ä¸€ä¸ª"ORDER ON x" æˆ– "ORDER ON x DESC" å­å¥ã€‚
-			**å¦‚æœwhere.cèƒ½äº§ç”Ÿæ’åºç»“æœï¼Œç„¶ååœ¨ç¬¬ä¸€ä¸ªè¿­ä»£å™¨ï¼ˆç¬¬ä¸€ä¸ªè¿­ä»£å¾ªç¯ä¿è¯æ‰§è¡Œxçš„æœ€å°æˆ–æœ€å¤§å€¼ï¼Œåªæœ‰ä¸€è¡Œï¼‰ä¹‹åæ·»åŠ VDBEä»£ç ä¸­æ–­æ‰§è¡Œå¾ªç¯
+			**Èç¹ûÊÇ£¬È»ºóÈÃwhere.c³¢ÊÔÅÅĞò½á¹û£¬Èç¹ûÕâÊÇÒ»¸ö"ORDER ON x" »ò "ORDER ON x DESC" ×Ó¾ä¡£
+			**Èç¹ûwhere.cÄÜ²úÉúÅÅĞò½á¹û£¬È»ºóÔÚµÚÒ»¸öµü´úÆ÷£¨µÚÒ»¸öµü´úÑ­»·±£Ö¤Ö´ĞĞxµÄ×îĞ¡»ò×î´óÖµ£¬Ö»ÓĞÒ»ĞĞ£©Ö®ºóÌí¼ÓVDBE´úÂëÖĞ¶ÏÖ´ĞĞÑ­»·
 			**
-			**åº”è¯¥ä¼ ç»™sqlite3WhereBeginä¸€ä¸ªç‰¹æ®Šçš„æ ‡è®°ç¨å¾®ä¿®æ”¹ä¸€ä¸‹çš„è¡Œä¸ºï¼š
-			**   å¦‚æœè¿™ä¸ªæŸ¥è¯¢æ˜¯"SELECT min(x)"ï¼Œç„¶åwhere.cä¸­å¾ªç¯ä»£ç ä¸èƒ½è¿­ä»£ä»»ä½•xåˆ—çš„ç©ºå€¼ã€‚
-			**   where.cä¼˜åŒ–å™¨ä»£ç ï¼ˆå†³å®šä½¿ç”¨ä½¿ç”¨é‚£äº›ç´¢å¼•ï¼‰åº”è¯¥ä¼˜å…ˆ'ORDER BY'å­å¥ï¼Œæ›´å¤šçš„ä»£ç å’Œæ³¨é‡Šç»†èŠ‚åœ¨where.cä¸­ã€‚
+			**Ó¦¸Ã´«¸øsqlite3WhereBeginÒ»¸öÌØÊâµÄ±ê¼ÇÉÔÎ¢ĞŞ¸ÄÒ»ÏÂµÄĞĞÎª£º
+			**   Èç¹ûÕâ¸ö²éÑ¯ÊÇ"SELECT min(x)"£¬È»ºówhere.cÖĞÑ­»·´úÂë²»ÄÜµü´úÈÎºÎxÁĞµÄ¿ÕÖµ¡£
+			**   where.cÓÅ»¯Æ÷´úÂë£¨¾ö¶¨Ê¹ÓÃÊ¹ÓÃÄÇĞ©Ë÷Òı£©Ó¦¸ÃÓÅÏÈ'ORDER BY'×Ó¾ä£¬¸ü¶àµÄ´úÂëºÍ×¢ÊÍÏ¸½ÚÔÚwhere.cÖĞ¡£
 			*/
-				ExprList *pMinMax = 0;/*å£°æ˜ä¸€ä¸ªè¡¨è¾¾å¼åˆ—è¡¨ï¼Œå­˜æ”¾æœ€å°æˆ–æœ€å¤§å€¼çš„è¡¨è¾¾å¼*/
-				u8 flag = minMaxQuery(p);/*å¯¹SELECTç»“æ„ä½“pè¿›è¡Œæœ€å¤§å€¼æˆ–æœ€å°å€¼æŸ¥è¯¢ï¼Œå¹¶èµ‹å€¼ç»™flag*/
-				if (flag){/*å¦‚æœflagå­˜åœ¨*/
-					assert(!ExprHasProperty(p->pEList->a[0].pExpr, EP_xIsSelect));/*æ’å…¥æ–­ç‚¹ï¼Œå¦‚æœp->pEList->a[0].pExprä¸­åŒ…å«EP_xIsSelectå±æ€§ä¸ä¸ºç©ºï¼ŒæŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
-					pMinMax = sqlite3ExprListDup(db, p->pEList->a[0].pExpr->x.pList, 0);/*æ’å…¥æ–­ç‚¹ï¼Œå¦‚æœp->pEList->a[0].pExprä¸­åŒ…å«EP_xIsSelectå±æ€§ä¸ä¸ºç©ºï¼Œ
-					                                                                      æŠ›å‡ºé”™è¯¯ä¿¡æ¯*/
-					pDel = pMinMax;/*å°†æŸ¥è¯¢ç»“æœèµ‹å€¼ç»™pDel*/
-					if (pMinMax && !db->mallocFailed){/*å¦‚æœpMinMaxå­˜åœ¨å¹¶ä¸”åˆ†é…å†…å­˜æˆåŠŸ*/
-						pMinMax->a[0].sortOrder = flag != WHERE_ORDERBY_MIN ? 1 : 0;/*å¦‚æœflagä¸ºWHERE_ORDERBY_MINå°†1èµ‹å€¼ç»™æ’åºæ ‡è®°ï¼Œå¦åˆ™èµ‹å€¼0*/
-						pMinMax->a[0].pExpr->op = TK_COLUMN;/*å°†è¡¨è¾¾å¼ä¸­æ“ä½œç¬¦èµ‹å€¼ä¸ºTK_COLUMN*/
+				ExprList *pMinMax = 0;/*ÉùÃ÷Ò»¸ö±í´ïÊ½ÁĞ±í£¬´æ·Å×îĞ¡»ò×î´óÖµµÄ±í´ïÊ½*/
+				u8 flag = minMaxQuery(p);/*¶ÔSELECT½á¹¹Ìåp½øĞĞ×î´óÖµ»ò×îĞ¡Öµ²éÑ¯£¬²¢¸³Öµ¸øflag*/
+				if (flag){/*Èç¹ûflag´æÔÚ*/
+					assert(!ExprHasProperty(p->pEList->a[0].pExpr, EP_xIsSelect));/*²åÈë¶Ïµã£¬Èç¹ûp->pEList->a[0].pExprÖĞ°üº¬EP_xIsSelectÊôĞÔ²»Îª¿Õ£¬Å×³ö´íÎóĞÅÏ¢*/
+					pMinMax = sqlite3ExprListDup(db, p->pEList->a[0].pExpr->x.pList, 0);/*²åÈë¶Ïµã£¬Èç¹ûp->pEList->a[0].pExprÖĞ°üº¬EP_xIsSelectÊôĞÔ²»Îª¿Õ£¬
+					                                                                      Å×³ö´íÎóĞÅÏ¢*/
+					pDel = pMinMax;/*½«²éÑ¯½á¹û¸³Öµ¸øpDel*/
+					if (pMinMax && !db->mallocFailed){/*Èç¹ûpMinMax´æÔÚ²¢ÇÒ·ÖÅäÄÚ´æ³É¹¦*/
+						pMinMax->a[0].sortOrder = flag != WHERE_ORDERBY_MIN ? 1 : 0;/*Èç¹ûflagÎªWHERE_ORDERBY_MIN½«1¸³Öµ¸øÅÅĞò±ê¼Ç£¬·ñÔò¸³Öµ0*/
+						pMinMax->a[0].pExpr->op = TK_COLUMN;/*½«±í´ïÊ½ÖĞ²Ù×÷·û¸³ÖµÎªTK_COLUMN*/
 					}
 				}
 
@@ -5141,173 +5142,173 @@ int sqlite3Select(
 				** processing is much simpler since there is only a single row
 				** of output.
 				**
-				**å¤„ç†èšé›†å‡½æ•°ä¸­æ²¡æœ‰ GROUP BYæƒ…å†µã€‚è¿™ä¸ªå¤„ç†ç¨‹åºå¾ˆç®€å•
-				**åªæœ‰ä¸€ä¸ªå•ç‹¬çš„è¡Œè¾“å‡ºã€‚
+				**´¦Àí¾Û¼¯º¯ÊıÖĞÃ»ÓĞ GROUP BYÇé¿ö¡£Õâ¸ö´¦Àí³ÌĞòºÜ¼òµ¥
+				**Ö»ÓĞÒ»¸öµ¥¶ÀµÄĞĞÊä³ö¡£
 				*/
-				resetAccumulator(pParse, &sAggInfo);/*é‡ç½®èšåˆç´¯åŠ å™¨*/
-				pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pMinMax, 0, flag, 0);/*ç”Ÿæˆå¤„ç†whereå­å¥çš„å¾ªç¯çš„å¼€å§‹*/
-				if (pWInfo == 0){/*è‹¥ä¸ºç©ºï¼Œåˆ™åˆ é™¤å¹¶ç»“æŸselect*/
-					sqlite3ExprListDelete(db, pDel);/*åˆ é™¤æ‰§è¡Œæœ€å€¼çš„è¡¨è¾¾å¼åˆ—è¡¨*/
-					goto select_end;/*è·³åˆ°æŸ¥è¯¢ç»“æŸ*/
+				resetAccumulator(pParse, &sAggInfo);/*ÖØÖÃ¾ÛºÏÀÛ¼ÓÆ÷*/
+				pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pMinMax, 0, flag, 0);/*Éú³É´¦Àíwhere×Ó¾äµÄÑ­»·µÄ¿ªÊ¼*/
+				if (pWInfo == 0){/*ÈôÎª¿Õ£¬ÔòÉ¾³ı²¢½áÊøselect*/
+					sqlite3ExprListDelete(db, pDel);/*É¾³ıÖ´ĞĞ×îÖµµÄ±í´ïÊ½ÁĞ±í*/
+					goto select_end;/*Ìøµ½²éÑ¯½áÊø*/
 				}
-				updateAccumulator(pParse, &sAggInfo);/*æ›´æ–°ç´¯åŠ å™¨å†…å­˜å•å…ƒ*//*ä¸ºå½“å‰æ¸¸æ ‡ä½ç½®ä¸Šçš„èšé›†å‡½æ•°ï¼Œæ›´æ–°ç´¯åŠ å™¨å†…å­˜å•å…ƒ*/
-				if (!pMinMax && flag){/*å¦‚æœæœ€å€¼çš„è¡¨è¾¾å¼ä¸ºç©ºå¹¶ä¸”flagæ ‡è®°ä¸ä¸ºç©º*/
-					sqlite3VdbeAddOp2(v, OP_Goto, 0, pWInfo->iBreak);/*å°†OP_Gotoæ“ä½œäº¤ç»™vdbeï¼Œè·³åˆ° pWInfo->iBreakæ‰§è¡Œè¯­å¥ï¼Œç„¶åè¿”å›è¿™ä¸ªæ“ä½œçš„åœ°å€*/
+				updateAccumulator(pParse, &sAggInfo);/*¸üĞÂÀÛ¼ÓÆ÷ÄÚ´æµ¥Ôª*//*Îªµ±Ç°ÓÎ±êÎ»ÖÃÉÏµÄ¾Û¼¯º¯Êı£¬¸üĞÂÀÛ¼ÓÆ÷ÄÚ´æµ¥Ôª*/
+				if (!pMinMax && flag){/*Èç¹û×îÖµµÄ±í´ïÊ½Îª¿Õ²¢ÇÒflag±ê¼Ç²»Îª¿Õ*/
+					sqlite3VdbeAddOp2(v, OP_Goto, 0, pWInfo->iBreak);/*½«OP_Goto²Ù×÷½»¸øvdbe£¬Ìøµ½ pWInfo->iBreakÖ´ĞĞÓï¾ä£¬È»ºó·µ»ØÕâ¸ö²Ù×÷µÄµØÖ·*/
 					VdbeComment((v, "%s() by index",
-						(flag == WHERE_ORDERBY_MIN ? "min" : "max")));/*å°†"%s() by index"æ”¾å…¥åˆ°VDBEä¸­æ”¾å…¥åˆ°VDBEä¸­,å…¶ä¸­flag=WHERE_ORDERBY_MINï¼Œ%sä¸ºminï¼Œå¦è€…ä¸ºmax*/
+						(flag == WHERE_ORDERBY_MIN ? "min" : "max")));/*½«"%s() by index"·ÅÈëµ½VDBEÖĞ·ÅÈëµ½VDBEÖĞ,ÆäÖĞflag=WHERE_ORDERBY_MIN£¬%sÎªmin£¬·ñÕßÎªmax*/
 				}
-				sqlite3WhereEnd(pWInfo);/*ç»“æŸwhere å¾ªç¯*/
-				finalizeAggFunctions(pParse, &sAggInfo);/*ç»“æŸèšåˆå‡½æ•°*/
+				sqlite3WhereEnd(pWInfo);/*½áÊøwhere Ñ­»·*/
+				finalizeAggFunctions(pParse, &sAggInfo);/*½áÊø¾ÛºÏº¯Êı*/
 			}
 
 			pOrderBy = 0;
-			sqlite3ExprIfFalse(pParse, pHaving, addrEnd, SQLITE_JUMPIFNULL);/*å¦‚æœä¸ºtrueç»§ç»­æ‰§è¡Œï¼Œå¦‚æœä¸ºFALSEè·³åˆ°addrEnd*/
+			sqlite3ExprIfFalse(pParse, pHaving, addrEnd, SQLITE_JUMPIFNULL);/*Èç¹ûÎªtrue¼ÌĞøÖ´ĞĞ£¬Èç¹ûÎªFALSEÌøµ½addrEnd*/
 			selectInnerLoop(pParse, p, p->pEList, 0, 0, 0, -1,
-				pDest, addrEnd, addrEnd);/*æ ¹æ®è¡¨è¾¾å¼p->pEListå»ºç«‹å†…è¿æ¥ï¼Œé™„å¸¦å‚æ•°addrEndå’ŒpDestå¤„ç†ç»“æœé›†*/
-			sqlite3ExprListDelete(db, pDel);/*åˆ é™¤æ‰§è¡Œæœ€å€¼çš„è¡¨è¾¾å¼åˆ—è¡¨*/
+				pDest, addrEnd, addrEnd);/*¸ù¾İ±í´ïÊ½p->pEList½¨Á¢ÄÚÁ¬½Ó£¬¸½´ø²ÎÊıaddrEndºÍpDest´¦Àí½á¹û¼¯*/
+			sqlite3ExprListDelete(db, pDel);/*É¾³ıÖ´ĞĞ×îÖµµÄ±í´ïÊ½ÁĞ±í*/
 		}
 		sqlite3VdbeResolveLabel(v, addrEnd);
 
-	} /* endif aggregate query *//*å¦‚æœæ˜¯èšé›†æŸ¥è¯¢*/
+	} /* endif aggregate query *//*Èç¹ûÊÇ¾Û¼¯²éÑ¯*/
 
 	if (distinct >= 0){
-		explainTempTable(pParse, "DISTINCT");/*å–æ¶ˆé‡å¤è¡¨è¾¾å¼çš„å€¼å¤§äºç­‰äº0ï¼Œæ‰§è¡Œå‡ºé”™æ‰ä¼šä½¿ç”¨è¯¥å‡½æ•°ï¼Œè¾“å‡ºé”™è¯¯ä¿¡æ¯"DISTINCT"åˆ°è¯­æ³•è§£ææ ‘*/
+		explainTempTable(pParse, "DISTINCT");/*È¡ÏûÖØ¸´±í´ïÊ½µÄÖµ´óÓÚµÈÓÚ0£¬Ö´ĞĞ³ö´í²Å»áÊ¹ÓÃ¸Ãº¯Êı£¬Êä³ö´íÎóĞÅÏ¢"DISTINCT"µ½Óï·¨½âÎöÊ÷*/
 	}
 
 	/* If there is an ORDER BY clause, then we need to sort the results
 	** and send them to the callback one by one.
 	**
-	**å¦‚æœè¿™æ˜¯ä¸€ä¸ªORDERBYå­å¥ï¼Œ
-	**æˆ‘ä»¬éœ€è¦æ’åºç»“æœå¹¶ä¸”å‘é€ç»“æœä¸€ä¸ªæ¥ä¸€ä¸ªçš„ç»™å›è°ƒå‡½æ•°
+	**Èç¹ûÕâÊÇÒ»¸öORDERBY×Ó¾ä£¬
+	**ÎÒÃÇĞèÒªÅÅĞò½á¹û²¢ÇÒ·¢ËÍ½á¹ûÒ»¸ö½ÓÒ»¸öµÄ¸ø»Øµ÷º¯Êı
 	*/
 	if (pOrderBy){
 		explainTempTable(pParse, "ORDER BY");
-		generateSortTail(pParse, p, v, pEList->nExpr, pDest);/*è°ƒç”¨è‡ªèº«å‡½æ•°ï¼Œè¾“å‡ºORDER BYç»“æœ*/
+		generateSortTail(pParse, p, v, pEList->nExpr, pDest);/*µ÷ÓÃ×ÔÉíº¯Êı£¬Êä³öORDER BY½á¹û*/
 	}
 
 	/* Jump here to skip this query
-	  **ä¸ºäº†è·³è¿‡æŸ¥è¯¢ï¼Œç›´æ¥è·³è½¬åˆ°è¿™å„¿
+	  **ÎªÁËÌø¹ı²éÑ¯£¬Ö±½ÓÌø×ªµ½Õâ¶ù
 	  */
-	sqlite3VdbeResolveLabel(v, iEnd);/*è§£æiEndï¼Œå¹¶ä½œä¸ºä¸‹ä¸€æ¡è¢«æ’å…¥çš„åœ°å€*/
+	sqlite3VdbeResolveLabel(v, iEnd);/*½âÎöiEnd£¬²¢×÷ÎªÏÂÒ»Ìõ±»²åÈëµÄµØÖ·*/
 
 	/* The SELECT was successfully coded.   Set the return code to 0
 	** to indicate no errors.
 	**
-	**  select è¯­å¥è¢«æˆåŠŸç¼–ç ï¼Œè®¾ç½®å¦‚æœè¿”è¿˜ä¸º0ï¼Œè¡¨æ˜æ²¡æœ‰å‡ºé”™
+	**  select Óï¾ä±»³É¹¦±àÂë£¬ÉèÖÃÈç¹û·µ»¹Îª0£¬±íÃ÷Ã»ÓĞ³ö´í
 	*/
-	rc = 0;/*å°†æ‰§è¡Œç»“æœæ ‡è®°ä¸º0*/
+	rc = 0;/*½«Ö´ĞĞ½á¹û±ê¼ÇÎª0*/
 	/* Control jumps to here if an error is encountered above, or upon
 	** successful coding of the SELECT.
-	**æ§åˆ¶è·³è·ƒåˆ°è¿™é‡Œå¦‚æœä¸Šé¢é‡
-	**  åˆ°ä¸€ä¸ªé”™è¯¯,æˆ–å¯¹selectæˆåŠŸç¼–ç ã€‚
+	**¿ØÖÆÌøÔ¾µ½ÕâÀïÈç¹ûÉÏÃæÓö
+	**  µ½Ò»¸ö´íÎó,»ò¶Ôselect³É¹¦±àÂë¡£
 	*/
 select_end:
 	explainSetInteger(pParse->iSelectId, iRestoreSelectId);
 
 	/* Identify column names if results of the SELECT are to be output.
-	**å¦‚æœselect ç»“æœé›†è¦è¢«è¾“å‡ºï¼Œåˆ™æ ‡å‡ºåˆ—å
+	**Èç¹ûselect ½á¹û¼¯Òª±»Êä³ö£¬Ôò±ê³öÁĞÃû
 	*/
 	if (rc == SQLITE_OK && pDest->eDest == SRT_Output){
-		generateColumnNames(pParse, pTabList, pEList);/*ç”Ÿæˆåˆ—å*/
+		generateColumnNames(pParse, pTabList, pEList);/*Éú³ÉÁĞÃû*/
 	}
 
-	sqlite3DbFree(db, sAggInfo.aCol);/*é‡Šæ”¾æ•°æ®åº“è¿æ¥ä¸­å­˜å‚¨èšé›†å‡½æ•°ä¿¡æ¯çš„åˆ—çš„å†…å­˜*/
-	sqlite3DbFree(db, sAggInfo.aFunc);/*é‡Šæ”¾æ•°æ®åº“è¿æ¥ä¸­å­˜å‚¨èšé›†å‡½æ•°ä¿¡æ¯çš„èšé›†å‡½æ•°åçš„å†…å­˜*/
-	return rc;/*è¿”å›æ‰§è¡Œç»“æŸæ ‡è®°*/
+	sqlite3DbFree(db, sAggInfo.aCol);/*ÊÍ·ÅÊı¾İ¿âÁ¬½ÓÖĞ´æ´¢¾Û¼¯º¯ÊıĞÅÏ¢µÄÁĞµÄÄÚ´æ*/
+	sqlite3DbFree(db, sAggInfo.aFunc);/*ÊÍ·ÅÊı¾İ¿âÁ¬½ÓÖĞ´æ´¢¾Û¼¯º¯ÊıĞÅÏ¢µÄ¾Û¼¯º¯ÊıÃûµÄÄÚ´æ*/
+	return rc;/*·µ»ØÖ´ĞĞ½áÊø±ê¼Ç*/
 }
 
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
 /*
 ** Generate a human-readable description of a the Select object.
-**ç”Ÿæˆä¸€ä¸ªå¯è¯»çš„select å¯¹è±¡çš„æè¿°
+**Éú³ÉÒ»¸ö¿É¶ÁµÄselect ¶ÔÏóµÄÃèÊö
 */
 static void explainOneSelect(Vdbe *pVdbe, Select *p){
-	sqlite3ExplainPrintf(pVdbe, "SELECT ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"SELECT "*/
-	if (p->selFlags & (SF_Distinct | SF_Aggregate)){/*æœ‰Distinct æˆ–è€…Aggregate*/
-		if (p->selFlags & SF_Distinct){/*æœ‰Distinct *//*å¦‚æœselFlagsä¸ºSF_Distinct*/
-			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"DISTINCT"*/
+	sqlite3ExplainPrintf(pVdbe, "SELECT ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"SELECT "*/
+	if (p->selFlags & (SF_Distinct | SF_Aggregate)){/*ÓĞDistinct »òÕßAggregate*/
+		if (p->selFlags & SF_Distinct){/*ÓĞDistinct *//*Èç¹ûselFlagsÎªSF_Distinct*/
+			sqlite3ExplainPrintf(pVdbe, "DISTINCT ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"DISTINCT"*/
 		}
-		if (p->selFlags & SF_Aggregate){/*æœ‰Aggregate *//*å¦‚æœselFlagsä¸ºSF_Aggregate*/
-			sqlite3ExplainPrintf(pVdbe, "agg_flag ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"agg_flag "*/
+		if (p->selFlags & SF_Aggregate){/*ÓĞAggregate *//*Èç¹ûselFlagsÎªSF_Aggregate*/
+			sqlite3ExplainPrintf(pVdbe, "agg_flag ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"agg_flag "*/
 		}
-		sqlite3ExplainNL(pVdbe);/*é™„åŠ ä¸Š'|n' *//*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
-		sqlite3ExplainPrintf(pVdbe, "   ");/*éå†FROMå­å¥è¡¨è¾¾å¼åˆ—è¡¨*/
+		sqlite3ExplainNL(pVdbe);/*¸½¼ÓÉÏ'|n' *//*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
+		sqlite3ExplainPrintf(pVdbe, "   ");/*±éÀúFROM×Ó¾ä±í´ïÊ½ÁĞ±í*/
 	}
-	sqlite3ExplainExprList(pVdbe, p->pEList);/*ä¸ºè¡¨è¾¾å¼åˆ—è¡¨p->pEListç”Ÿæˆä¸€ä¸ªæ˜“è¯»çš„æè¿°ä¿¡æ¯*/
-	sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
-	  if( p->pSrc && p->pSrc->nSrc ){/*éå†FROMå­å¥è¡¨è¾¾å¼åˆ—è¡¨*/
+	sqlite3ExplainExprList(pVdbe, p->pEList);/*Îª±í´ïÊ½ÁĞ±íp->pEListÉú³ÉÒ»¸öÒ×¶ÁµÄÃèÊöĞÅÏ¢*/
+	sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
+	  if( p->pSrc && p->pSrc->nSrc ){/*±éÀúFROM×Ó¾ä±í´ïÊ½ÁĞ±í*/
 		int i;
-		sqlite3ExplainPrintf(pVdbe, "FROM ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"FROM "*/
-		sqlite3ExplainPush(pVdbe);/*åœ¨pVdbeä¸­æ¨å‡ºä¸€ä¸ªæ–°çš„ç¼©è¿›çº§åˆ«ï¼Œä»å…‰æ ‡å¼€å§‹çš„ä½ç½®è¿›è¡Œï¼Œåç»­çš„è¡Œéƒ½ç¼©è¿›*/
-		for(i=0; i<p->pSrc->nSrc; i++){/*éå†FROMå­å¥è¡¨è¾¾å¼åˆ—è¡¨**/
-		  struct SrcList_item *pItem = &p->pSrc->a[i];/*å£°æ˜ä¸€ä¸ªFROMå­å¥åˆ—è¡¨é¡¹ç»“æ„ä½“*/
-		  sqlite3ExplainPrintf(pVdbe, "{%d,*} = ", pItem->iCursor);/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º "{%d,*} = "*/
-		  if( pItem->pSelect ){/*å¦‚æœè¡¨è¾¾å¼åˆ—è¡¨ä¸­å«æœ‰SELECT*/
-			sqlite3ExplainSelect(pVdbe, pItem->pSelect);/*è§£æSELECTç»“æ„ä½“çš„pSelect*/
-			if( pItem->pTab ){/*å¦‚æœè¡¨è¾¾å¼åˆ—è¡¨ä¸­å«æœ‰pTab*/
-			  sqlite3ExplainPrintf(pVdbe, " (tabname=%s)", pItem->pTab->zName);/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º" (tabname=%s)"*/
+		sqlite3ExplainPrintf(pVdbe, "FROM ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"FROM "*/
+		sqlite3ExplainPush(pVdbe);/*ÔÚpVdbeÖĞÍÆ³öÒ»¸öĞÂµÄËõ½ø¼¶±ğ£¬´Ó¹â±ê¿ªÊ¼µÄÎ»ÖÃ½øĞĞ£¬ºóĞøµÄĞĞ¶¼Ëõ½ø*/
+		for(i=0; i<p->pSrc->nSrc; i++){/*±éÀúFROM×Ó¾ä±í´ïÊ½ÁĞ±í**/
+		  struct SrcList_item *pItem = &p->pSrc->a[i];/*ÉùÃ÷Ò»¸öFROM×Ó¾äÁĞ±íÏî½á¹¹Ìå*/
+		  sqlite3ExplainPrintf(pVdbe, "{%d,*} = ", pItem->iCursor);/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö "{%d,*} = "*/
+		  if( pItem->pSelect ){/*Èç¹û±í´ïÊ½ÁĞ±íÖĞº¬ÓĞSELECT*/
+			sqlite3ExplainSelect(pVdbe, pItem->pSelect);/*½âÎöSELECT½á¹¹ÌåµÄpSelect*/
+			if( pItem->pTab ){/*Èç¹û±í´ïÊ½ÁĞ±íÖĞº¬ÓĞpTab*/
+			  sqlite3ExplainPrintf(pVdbe, " (tabname=%s)", pItem->pTab->zName);/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö" (tabname=%s)"*/
 			}
-		  }else if( pItem->zName ){/*å¦‚æœè¡¨è¾¾å¼åˆ—è¡¨ä¸­è¡¨è¾¾å¼é¡¹åå­˜åœ¨*/
-			sqlite3ExplainPrintf(pVdbe, "%s", pItem->zName);/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡ºpItem->zName*/
+		  }else if( pItem->zName ){/*Èç¹û±í´ïÊ½ÁĞ±íÖĞ±í´ïÊ½ÏîÃû´æÔÚ*/
+			sqlite3ExplainPrintf(pVdbe, "%s", pItem->zName);/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³öpItem->zName*/
 		  }
-		  if( pItem->zAlias ){/*å¦‚æœè¡¨è¾¾å¼åˆ—è¡¨ä¸­æœ‰å…³è”ä¾èµ–*/
-			sqlite3ExplainPrintf(pVdbe, " (AS %s)", pItem->zAlias);/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º" (AS %s)"*/
+		  if( pItem->zAlias ){/*Èç¹û±í´ïÊ½ÁĞ±íÖĞÓĞ¹ØÁªÒÀÀµ*/
+			sqlite3ExplainPrintf(pVdbe, " (AS %s)", pItem->zAlias);/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö" (AS %s)"*/
 		  }
-		  if( pItem->jointype & JT_LEFT ){/*å¦‚æœè¡¨è¾¾å¼åˆ—è¡¨ä¸­è¿æ¥ç±»å‹ä¸ºJT_LEFT*/
-			sqlite3ExplainPrintf(pVdbe, " LEFT-JOIN");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º" LEFT-JOIN"*/
+		  if( pItem->jointype & JT_LEFT ){/*Èç¹û±í´ïÊ½ÁĞ±íÖĞÁ¬½ÓÀàĞÍÎªJT_LEFT*/
+			sqlite3ExplainPrintf(pVdbe, " LEFT-JOIN");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö" LEFT-JOIN"*/
 		  }
-		  sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
+		  sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
 		}
-		sqlite3ExplainPop(pVdbe);/*å¼¹å‡ºåˆšæ‰å‹è¿›æ ˆçš„ç¼©è¿›çº§åˆ«*/
+		sqlite3ExplainPop(pVdbe);/*µ¯³ö¸Õ²ÅÑ¹½øÕ»µÄËõ½ø¼¶±ğ*/
 	  }
-	  if( p->pWhere ){/*å¦‚æœSELECTç»“æ„ä½“pä¸­å«ä¸ä¸ºç©ºwhereå­å¥*/
-		sqlite3ExplainPrintf(pVdbe, "WHERE ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"WHERE "*/
-		sqlite3ExplainExpr(pVdbe, p->pWhere);/*ä¸ºè¡¨è¾¾å¼æ ‘pWhereç”Ÿæˆä¸€ä¸ªæ˜“è¯»è¯´æ˜*/
-		sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
+	  if( p->pWhere ){/*Èç¹ûSELECT½á¹¹ÌåpÖĞº¬²»Îª¿Õwhere×Ó¾ä*/
+		sqlite3ExplainPrintf(pVdbe, "WHERE ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"WHERE "*/
+		sqlite3ExplainExpr(pVdbe, p->pWhere);/*Îª±í´ïÊ½Ê÷pWhereÉú³ÉÒ»¸öÒ×¶ÁËµÃ÷*/
+		sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
 	  }
-	  if( p->pGroupBy ){/*å¦‚æœSELECTç»“æ„ä½“pä¸­å«ä¸ä¸ºç©ºwhereå­å¥*/
-		sqlite3ExplainPrintf(pVdbe, "GROUPBY ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"GROUPBY "*/
-		sqlite3ExplainExprList(pVdbe, p->pGroupBy);/*ä¸ºè¡¨è¾¾å¼åˆ—è¡¨p->pGroupByç”Ÿæˆä¸€ä¸ªæ˜“è¯»çš„æè¿°ä¿¡æ¯*/
-		sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
+	  if( p->pGroupBy ){/*Èç¹ûSELECT½á¹¹ÌåpÖĞº¬²»Îª¿Õwhere×Ó¾ä*/
+		sqlite3ExplainPrintf(pVdbe, "GROUPBY ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"GROUPBY "*/
+		sqlite3ExplainExprList(pVdbe, p->pGroupBy);/*Îª±í´ïÊ½ÁĞ±íp->pGroupByÉú³ÉÒ»¸öÒ×¶ÁµÄÃèÊöĞÅÏ¢*/
+		sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
 	  }
-	  if( p->pHaving ){/*å¦‚æœSELECTç»“æ„ä½“pä¸­å«ä¸ä¸ºç©ºhavingå­å¥*/
-		sqlite3ExplainPrintf(pVdbe, "HAVING ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º "HAVING "*/
-		sqlite3ExplainExpr(pVdbe, p->pHaving);/*ä¸ºè¡¨è¾¾å¼æ ‘pHavingç”Ÿæˆä¸€ä¸ªæ˜“è¯»è¯´æ˜*/
-		sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
+	  if( p->pHaving ){/*Èç¹ûSELECT½á¹¹ÌåpÖĞº¬²»Îª¿Õhaving×Ó¾ä*/
+		sqlite3ExplainPrintf(pVdbe, "HAVING ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö "HAVING "*/
+		sqlite3ExplainExpr(pVdbe, p->pHaving);/*Îª±í´ïÊ½Ê÷pHavingÉú³ÉÒ»¸öÒ×¶ÁËµÃ÷*/
+		sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
 	  }
-	  if( p->pOrderBy ){/*å¦‚æœSELECTç»“æ„ä½“pä¸­å«ä¸ä¸ºç©ºorder byå­å¥*/
-		sqlite3ExplainPrintf(pVdbe, "ORDERBY ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"ORDERBY "*/
-		sqlite3ExplainExprList(pVdbe, p->pOrderBy);/*ä¸ºè¡¨è¾¾å¼åˆ—è¡¨p->pOrderByç”Ÿæˆä¸€ä¸ªæ˜“è¯»çš„æè¿°ä¿¡æ¯*/
-		sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
+	  if( p->pOrderBy ){/*Èç¹ûSELECT½á¹¹ÌåpÖĞº¬²»Îª¿Õorder by×Ó¾ä*/
+		sqlite3ExplainPrintf(pVdbe, "ORDERBY ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"ORDERBY "*/
+		sqlite3ExplainExprList(pVdbe, p->pOrderBy);/*Îª±í´ïÊ½ÁĞ±íp->pOrderByÉú³ÉÒ»¸öÒ×¶ÁµÄÃèÊöĞÅÏ¢*/
+		sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
 	  }
-	  if( p->pLimit ){/*å¦‚æœSELECTç»“æ„ä½“pä¸­å«ä¸ä¸ºç©ºlimitå­å¥*/
-		sqlite3ExplainPrintf(pVdbe, "LIMIT ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"LIMIT "*/
-		sqlite3ExplainExpr(pVdbe, p->pLimit);/*ä¸ºè¡¨è¾¾å¼æ ‘p->pLimitç”Ÿæˆä¸€ä¸ªæ˜“è¯»è¯´æ˜*/
-		sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
+	  if( p->pLimit ){/*Èç¹ûSELECT½á¹¹ÌåpÖĞº¬²»Îª¿Õlimit×Ó¾ä*/
+		sqlite3ExplainPrintf(pVdbe, "LIMIT ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"LIMIT "*/
+		sqlite3ExplainExpr(pVdbe, p->pLimit);/*Îª±í´ïÊ½Ê÷p->pLimitÉú³ÉÒ»¸öÒ×¶ÁËµÃ÷*/
+		sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
 	  }
-	  if( p->pOffset ){/*å¦‚æœSELECTç»“æ„ä½“pä¸­å«ä¸ä¸ºç©ºoffsetå­å¥*/
-		sqlite3ExplainPrintf(pVdbe, "OFFSET ");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"OFFSET "*/
-		sqlite3ExplainExpr(pVdbe, p->pOffset);/*ä¸ºè¡¨è¾¾å¼æ ‘p->pOffsetç”Ÿæˆä¸€ä¸ªæ˜“è¯»è¯´æ˜*/
-		sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
+	  if( p->pOffset ){/*Èç¹ûSELECT½á¹¹ÌåpÖĞº¬²»Îª¿Õoffset×Ó¾ä*/
+		sqlite3ExplainPrintf(pVdbe, "OFFSET ");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"OFFSET "*/
+		sqlite3ExplainExpr(pVdbe, p->pOffset);/*Îª±í´ïÊ½Ê÷p->pOffsetÉú³ÉÒ»¸öÒ×¶ÁËµÃ÷*/
+		sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
 	  }
 	}
 	void sqlite3ExplainSelect(Vdbe *pVdbe, Select *p){
-	  if( p==0 ){/*å¦‚æœSELECTç»“æ„ä½“pä¸ºç©º*/
-		sqlite3ExplainPrintf(pVdbe, "(null-select)");/*å®é™…ä¸Šè°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–è¾“å‡º"(null-select)"*/
+	  if( p==0 ){/*Èç¹ûSELECT½á¹¹ÌåpÎª¿Õ*/
+		sqlite3ExplainPrintf(pVdbe, "(null-select)");/*Êµ¼ÊÉÏµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯Êä³ö"(null-select)"*/
 		return;
 	  }
-	  while( p->pPrior ) p = p->pPrior;/*é€’å½’ï¼Œæ‰¾åˆ°æœ€ä¼˜å…ˆæŸ¥è¯¢çš„SELECT*/
-	  sqlite3ExplainPush(pVdbe);/*åœ¨pVdbeä¸­æ¨å‡ºä¸€ä¸ªæ–°çš„ç¼©è¿›çº§åˆ«ï¼Œä»å…‰æ ‡å¼€å§‹çš„ä½ç½®è¿›è¡Œï¼Œåç»­çš„è¡Œéƒ½ç¼©è¿›*/
+	  while( p->pPrior ) p = p->pPrior;/*µİ¹é£¬ÕÒµ½×îÓÅÏÈ²éÑ¯µÄSELECT*/
+	  sqlite3ExplainPush(pVdbe);/*ÔÚpVdbeÖĞÍÆ³öÒ»¸öĞÂµÄËõ½ø¼¶±ğ£¬´Ó¹â±ê¿ªÊ¼µÄÎ»ÖÃ½øĞĞ£¬ºóĞøµÄĞĞ¶¼Ëõ½ø*/
 	  while( p ){
-		explainOneSelect(pVdbe, p);/*ç”Ÿæˆä¸€ä¸ªæ˜“è¯»æè¿°SELECETçš„å¯¹è±¡*/
-		p = p->pNext;/*å°†pçš„å­æ ‘ï¼Œèµ‹å€¼ï¼Œç»™å½“å‰p*/
-		if( p==0 ) break;/*å·²ç»å¾ªç¯åˆ°æœ€åä¸€ä¸ªäº†ï¼Œæ²¡æœ‰äº†å­èŠ‚ç‚¹*/
-		sqlite3ExplainNL(pVdbe);/*æ·»åŠ ä¸€ä¸ªæ¢è¡Œç¬¦ï¼ˆ'\n',å‰ææ˜¯å¦‚æœç»“å°¾æ²¡æœ‰ï¼‰*/
-		sqlite3ExplainPrintf(pVdbe, "%s\n", selectOpName(p->op));/*å®é™…ä¸Šæ˜¯è°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œå¹¶è¿›è¡Œæ ¼å¼åŒ–è¾“å‡ºä¸º"%s\n"*/
+		explainOneSelect(pVdbe, p);/*Éú³ÉÒ»¸öÒ×¶ÁÃèÊöSELECETµÄ¶ÔÏó*/
+		p = p->pNext;/*½«pµÄ×ÓÊ÷£¬¸³Öµ£¬¸øµ±Ç°p*/
+		if( p==0 ) break;/*ÒÑ¾­Ñ­»·µ½×îºóÒ»¸öÁË£¬Ã»ÓĞÁË×Ó½Úµã*/
+		sqlite3ExplainNL(pVdbe);/*Ìí¼ÓÒ»¸ö»»ĞĞ·û£¨'\n',Ç°ÌáÊÇÈç¹û½áÎ²Ã»ÓĞ£©*/
+		sqlite3ExplainPrintf(pVdbe, "%s\n", selectOpName(p->op));/*Êµ¼ÊÉÏÊÇµ÷ÓÃsqlite3VXPrintf£¨£©£¬²¢½øĞĞ¸ñÊ½»¯Êä³öÎª"%s\n"*/
 	  }
-	  sqlite3ExplainPrintf(pVdbe, "END");/*å®é™…ä¸Šæ˜¯è°ƒç”¨sqlite3VXPrintfï¼ˆï¼‰ï¼Œè¿›è¡Œæ ¼å¼åŒ–å¤§çš„è¾“å‡ºä¸º"END"*/
-	  sqlite3ExplainPop(pVdbe);/*å¯¹åˆšæ‰å‹è¿›æ ˆçš„ç¼©è¿›çº§åˆ«è¿›è¡Œå¼¹å‡º*/
+	  sqlite3ExplainPrintf(pVdbe, "END");/*Êµ¼ÊÉÏÊÇµ÷ÓÃsqlite3VXPrintf£¨£©£¬½øĞĞ¸ñÊ½»¯´óµÄÊä³öÎª"END"*/
+	  sqlite3ExplainPop(pVdbe);/*¶Ô¸Õ²ÅÑ¹½øÕ»µÄËõ½ø¼¶±ğ½øĞĞµ¯³ö*/
 	}
-	/* End of the structure debug printing code ç»“æŸè°ƒè¯•
+	/* End of the structure debug printing code ½áÊøµ÷ÊÔ
 	*****************************************************************************/
 	#endif /* defined(SQLITE_ENABLE_TREE_EXPLAIN) */
