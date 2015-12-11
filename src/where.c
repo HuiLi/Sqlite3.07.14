@@ -2468,6 +2468,19 @@ static int isSortingIndex(
 	** ORDER BY子句中尾部的项指向其他的表。所以，假设索引条目访问不包含NULL
 	** 值,那么这个索引提供行所需的顺序。
 	*/
+	/* SQLite 的 NULL 是用来表示一个缺失值的项。
+	** 表中的一个 NULL 值是在字段中显示为空白的一个值。
+    ** 带有 NULL 值的字段是一个不带有值的字段。
+	** NULL 值与零值或包含空格的字段是不同的，理解这点是非常重要的。
+	** 创建表时使用 NULL 的基本语法如下：
+    ** SQLite> CREATE TABLE COMPANY(
+    ** ID INT PRIMARY KEY     NOT NULL,
+    ** NAME           TEXT    NOT NULL,
+    ** AGE            INT     NOT NULL,
+    ** ADDRESS        CHAR(50),
+    ** SALARY         REAL
+    **  );
+	*/
 =======
     ** index entries are free of NULLs.  
     **
@@ -2497,14 +2510,14 @@ static int isSortingIndex(
 ** 计执行操作的总代价与O(logN)或O(NlogN)复杂性。因为N仅仅是一个猜测值
 ** 即使logN有些误差也问题不大。
 */
-static double estLog(double N){
+tatic double estLog(double N){
   double logN = 1;
   double x = 10;
   while( N>x ){
     logN += 1;
     x *= 10;
   }
-  return logN;
+  return logN;           /*返回logN */
 }
 
 /*
