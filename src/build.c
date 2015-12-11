@@ -3258,47 +3258,38 @@ void sqlite3DefaultRowEst(Index *pIdx){
 }
 
 /*
-<<<<<<< HEAD
 ** This routine will drop an existing named index.  This routine
 ** implements the DROP INDEX statement.
-*///计算机软件与理论  周凯
-=======
-** This routine will drop an existing named index.  This routine   //这个程序将删除索引现存已命名的索引。
-** implements the DROP INDEX statement.                            //这个程序实现DROP INDEX语句。
+** 这个程序被用来调用去删除一个已经存在的索引，实现了DROP INDEX语句。       
 */
->>>>>>> 0bcd1972cffc6fab83462a46d4ae538f2902c15a
-void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
-  Index *pIndex;//定义一个指针
-  Vdbe *v;
-  sqlite3 *db = pParse->db;//指针赋值
-  int iDb;
 
-<<<<<<< HEAD
-  assert(pParse->nErr == 0);   /* Never called with prior errors *///之前从来没有使用错误
-=======
-  assert( pParse->nErr==0 );   /* Never called with prior errors */   //之前从来没有出现的错误
->>>>>>> 0bcd1972cffc6fab83462a46d4ae538f2902c15a
-  if( db->mallocFailed ){
-    goto exit_drop_index;//
+void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
+  Index *pIndex;    //定义了索引指针
+  Vdbe *v;
+  sqlite3 *db = pParse->db;//指向语法解析上下文处理的数据库
+  int iDb;
+  assert( pParse->nErr==0 );   /* Never called with prior errors */   //断言语法解析的上下文没有出现错误
+  if( db->mallocFailed ){    //如果数据库内存分配失败的话，退出删除索引函数
+    goto exit_drop_index;
   }
-  assert( pName->nSrc==1 );//判断是否为1
-  if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){
-    goto exit_drop_index;//转到exit_drop_index文件
+  assert( pName->nSrc==1 );//断言索引表的数目为1
+  if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){  
+    goto exit_drop_index;//转到另外一个处理的入口
   }
-  pIndex = sqlite3FindIndex(db, pName->a[0].zName, pName->a[0].zDatabase);
-  if( pIndex==0 ){//判断是否为0
-    if( !ifExists ){//如果成立执行
-      sqlite3ErrorMsg(pParse, "no such index: %S", pName, 0);
-    }else{//否则
-      sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);
+  pIndex = sqlite3FindIndex(db, pName->a[0].zName, pName->a[0].zDatabase);   //找到相应的索引
+  if( pIndex==0 ){//如果索引为空，也就是不存在索引
+    if( !ifExists ){//如果索引不存在
+      sqlite3ErrorMsg(pParse, "no such index: %S", pName, 0);   //发出错误信息：确实没有这个索引
+    }else{//如果索引不为空且确实是存在的
+      sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);  //确定索引的模式，也就是确定这个索引属于哪个表的索引
     }
     pParse->checkSchema = 1;
     goto exit_drop_index;
   }
-  if( pIndex->autoIndex ){//如果pIndex->autoIndex为真
+  if( pIndex->autoIndex ){//如果该索引为自动添加的索引，也就是有PRIMARY KEY和UNIQUE子句的自动添加索引
     sqlite3ErrorMsg(pParse, "index associated with UNIQUE "
-      "or PRIMARY KEY constraint cannot be dropped", 0);
-    goto exit_drop_index;
+      "or PRIMARY KEY constraint cannot be dropped", 0);   //发出错误消息：索引被UNIQUE或者PRIMARY KEY限制，这样的索引是不能被删除的
+    goto exit_drop_index;  //跳转到另一个处理入口，结束删除索引的动作
   }
   iDb = sqlite3SchemaToIndex(db, pIndex->pSchema);
 #ifndef SQLITE_OMIT_AUTHORIZATION
@@ -3307,7 +3298,7 @@ void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
     Table *pTab = pIndex->pTable;//定义一个表指针pTab 
     const char *zDb = db->aDb[iDb].zName;//常变量
     const char *zTab = SCHEMA_TABLE(iDb);//常变量
-    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb) ){
+    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb) ){   //检查是否具有删除索引的授权，如果不具有，立马退出删除索引函数
       goto exit_drop_index;
     }
     if( !OMIT_TEMPDB && iDb ) code = SQLITE_DROP_TEMP_INDEX;
@@ -3318,14 +3309,14 @@ void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
 #endif
 
   /* Generate code to remove the index and from the master table *///生成代码来从主表中删除索引
-  v = sqlite3GetVdbe(pParse);
+  v = sqlite3GetVdbe(pParse);  //需要VDBE引擎的支持
   if( v ){
-    sqlite3BeginWriteOperation(pParse, 1, iDb);
+    sqlite3BeginWriteOperation(pParse, 1, iDb);   //开始写操作
     sqlite3NestedParse(pParse,
        "DELETE FROM %Q.%s WHERE name=%Q AND type='index'",
        db->aDb[iDb].zName, SCHEMA_TABLE(iDb), pIndex->zName
-    );
-    sqlite3ClearStatTables(pParse, iDb, "idx", pIndex->zName);
+    ); //嵌套的删除
+    sqlite3ClearStatTables(pParse, iDb, "idx", pIndex->zName);  //清理一些内存结构
     sqlite3ChangeCookie(pParse, iDb);
     destroyRootPage(pParse, pIndex->tnum, iDb);
     sqlite3VdbeAddOp4(v, OP_DropIndex, iDb, 0, 0, pIndex->zName, 0);
