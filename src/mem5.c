@@ -40,7 +40,7 @@
 **   3.  New memory is allocated from the first available free block.
 **
 ** 该内存分配器使用下面的算法
-** 1.所有的内存分配大小四舍五入至 2 的幂。
+** 1.所有的内存分配大小向上舍入至2的幂。
 ** 2.如果两个相邻的自由块是一个大块的两部分，那么这两个块会被合并成一个大的单独的块。
 ** 3.从第一个可用的空闲块分配新的内存
 **
@@ -65,7 +65,7 @@
 ** 设N 是内存的的可供分配总量。
 ** 罗布森证明了这个内存分配器将不会因为内存碎片崩溃，只要满足以下约束
 **      N >=  M*(1 + log2(n)/2) - n + 1
-** 函数Sqlite3_status() 逻辑追踪 n 和 M 的最大值所以应用程序可以在任何时间，验证此约束。
+** 函数Sqlite3_status()逻辑追踪n和M的最大值所以应用程序可以在任何时间，验证此约束。
 */
 #include "sqliteInt.h"
 
@@ -82,7 +82,7 @@
 ** Larger allocations are an array of these structures where the
 ** size of the array is a power of 2.
 ** 
-** 最低配置如下面程序中结构体所示.更高的配置是结构体数组，数组的大小是 2 的幂。
+** 最小分配如下面程结构体所示.更高的配置是结构体数组，数组的大小是 2 的幂。
 ** 
 ** The size of this object must be a power of two.  That fact is
 ** verified in memsys5Init().
@@ -148,12 +148,12 @@ static SQLITE_WSD struct Mem5Global {
   u64 nAlloc;         /* Total number of calls to malloc  调用malloc总数*/
   u64 totalAlloc;     /* Total of all malloc calls - includes internal frag  所有Mallocde调用总合— 包括内部碎片*/
   u64 totalExcess;    /* Total internal fragmentation 总内部碎片*/
-  u32 currentOut;     /* Current checkout, including internal fragmentation  当前校验，包括内部碎片*/
+  u32 currentOut;     /* Current checkout, including internal fragmentation  当前检出，包括内部碎片*/
   u32 currentCount;   /* Current number of distinct checkouts  当前不同的检出数*/
   u32 maxOut;         /* Maximum instantaneous currentOut  currentOut瞬时最大值*/
   u32 maxCount;       /* Maximum instantaneous currentCount  currentCount 瞬时最大值*/
   u32 maxRequest;     /* Largest allocation (exclusive of internal frag)  最大分配（不包括内部碎片）*/
-  /*整体思想为buddy算法
+  /* 整体思想为buddy算法
   ** Lists of free blocks.  aiFreelist[0] is a list of free blocks of
   ** size mem5.szAtom.  aiFreelist[1] holds blocks of size szAtom*2.
   ** and so forth.
@@ -161,7 +161,7 @@ static SQLITE_WSD struct Mem5Global {
   ** 空闲块列表。aiFreelist[0]是大小为mem5.szAtom空闲块列表。 
   ** aiFreelist[1]大小为szAtom*2，以此类推。
   ** 
-  ** 使用了一个大小为31个字节的空闲链表来保存空闲的block，值为-1表示是空链表；
+  ** 使用了一个大小为31个元素的空闲链表来保存空闲的block，值为-1表示是空链表；
   ** aiFreelist[0] 保存了大小为 mem5.szAtom个字节的空闲block  
   ** aiFreelist[1] 保存了大小为 mem5.szAtom * 2 个字节的空闲block  
   */
@@ -203,6 +203,7 @@ static SQLITE_WSD struct Mem5Global {
 **
 ** 从当前的链表中取消可用内存块的链接。该内存块位于mem5.aiFreelist[iLogsize]
 */
+//从双向循环链表中删除第i项chunk,该chunk位于mem5.aiFreelist[iLogsize]处
 static void memsys5Unlink(int i, int iLogsize){
   int next, prev;
   assert( i>=0 && i<mem5.nBlock );
@@ -211,7 +212,7 @@ static void memsys5Unlink(int i, int iLogsize){
   /*assert是宏，用于断言其作用是如果它的条件返回错误，则终止程序执行 。
   在函数memsys5Unlink开始处检验传入参数i和iLogsize的合法性*/
   next = MEM5LINK(i)->next;
-  prev = MEM5LINK(i)->prev;              /*将该节点从链表中删除*/
+  prev = MEM5LINK(i)->prev;              
   if( prev<0 ){
     mem5.aiFreelist[iLogsize] = next;    /*将该节点从链表中删除*/
   }else{
@@ -229,6 +230,7 @@ static void memsys5Unlink(int i, int iLogsize){
 ** 将mem5.aPool[i]位置的chunk，插入到iLogSize链表的头部
 ** 链接可用内存分配aPool中的块，此块在空闲块数组中
 */
+//将 mem5.aPool[i] 位置的chunk， 插入到空闲链表mem5.aiFreelist[iLogsize]处
 static void memsys5Link(int i, int iLogsize){
   int x;
   assert( sqlite3_mutex_held(mem5.mutex) );
@@ -253,9 +255,11 @@ static void memsys5Link(int i, int iLogsize){
 ** 如果STATIC_MEM互斥锁未发生，则进行加锁。如果sqlite3GlobalConfig.
 ** bMemStat互斥状态为真，那么互斥状态在malloc.c中就已经生成。
 */
+//该内存分配器加互斥锁
 static void memsys5Enter(void){
   sqlite3_mutex_enter(mem5.mutex);        /*加互斥锁*/
 }
+//解锁
 static void memsys5Leave(void){
   sqlite3_mutex_leave(mem5.mutex);        /*退出互斥锁*/
 }
@@ -268,6 +272,7 @@ static void memsys5Leave(void){
 ** 返回一个以字节为单位的未分配的内存大小,该返回值省略了8字节大小的头开销。
 ** 该函数只适用于当前划分出的内存块。
 */
+//返回一个以字节为单位的未分配的内存大小
 static int memsys5Size(void *p){
   int iSize = 0;
   if( p ){
@@ -288,6 +293,7 @@ static int memsys5Size(void *p){
 ** 
 ** 将 iLogSize链表中的下标最小的那一项，也就是第iFirst个从链表中删除
 */
+//找到空闲链表中的第iLogSize项指向的链表中下标最小的那一项，返回这个下标
 static int memsys5UnlinkFirst(int iLogsize){
   int i;
   int iFirst;
@@ -319,6 +325,7 @@ static int memsys5UnlinkFirst(int iLogsize){
 ** 
 ** 调用方在调用这个线程前会加上互斥锁，所以不可能有两个或多个该线程同时发生。
 */
+//给用户分配n字节的空间，返回该空间的地址。
 static void *memsys5MallocUnsafe(int nByte){
   int i;           /* Index of a mem5.aPool[] slot aPool的索引*/
   int iBin;        /* Index into mem5.aiFreelist[]  空闲链表的索引*/
@@ -404,6 +411,7 @@ static void *memsys5MallocUnsafe(int nByte){
 **
 ** 释放未分配内存
 */
+//释放未分配内存，由pOld指针指向的zPool与szAtom的比值，得到要释放的内存块下标
 static void memsys5FreeUnsafe(void *pOld){
   u32 size, iLogsize;
   int iBlock;
@@ -473,6 +481,7 @@ static void memsys5FreeUnsafe(void *pOld){
 ** 
 ** 分配大小为nBytes的内存
 */
+//申请分配n字节的内存空间。
 static void *memsys5Malloc(int nBytes){
   sqlite3_int64 *p = 0;
   if( nBytes>0 ){
@@ -493,6 +502,7 @@ static void *memsys5Malloc(int nBytes){
 ** 
 ** 当pPrior==0，防止外层内存分配器调用此程序
 */
+//释放*pPrior指向的内存空间。
 static void memsys5Free(void *pPrior){
   assert( pPrior!=0 );
   memsys5Enter();
@@ -517,6 +527,7 @@ static void memsys5Free(void *pPrior){
 ** nBytes的值从调用memsys5Round()函数得来。因此nBytes的值始终为正的2次幂。
 ** 如果nBytes==0意味着一个溢出的内存分配请求(分配大于0 x40000000),这个函数返回0并且不释放指针pPrior。
 */
+//重新分配*pPrior指向的内存空间大小为n字节。
 static void *memsys5Realloc(void *pPrior, int nBytes){
   int nOld;
   void *p;
@@ -555,6 +566,7 @@ static void *memsys5Realloc(void *pPrior, int nBytes){
 ** 所有的内存分配大小必须是2的幂，并且必须由一个32位有符号整数表示。
 ** 因此，最大的内存分配是0x40000000或1073741824字节。
 */
+//计算当前请求到下一个有效分配的大小。
 static int memsys5Roundup(int n){
   int iFullSz;
   if( n > 0x40000000 ) return 0;
@@ -574,6 +586,7 @@ static int memsys5Roundup(int n){
 **             memsys5Log(8) -> 3
 **             memsys5Log(9) -> 4
 */
+//返回最接近iValue的2的幂
 static int memsys5Log(int iValue){
   int iLog;
   for(iLog=0; (iLog<(int)((sizeof(int)*8)-1)) && (1<<iLog)<iValue; iLog++);
@@ -590,6 +603,7 @@ static int memsys5Log(int iValue){
 ** 
 ** 这个例程不是线程安全的，调用者必须保持一个所来防止多个线程同时进入。
 */
+//初始化该内存分配器。
 static int memsys5Init(void *NotUsed){
   int ii;            /* Loop counter 循环计数器*/
   int nByte;         /* Number of bytes of memory available to this allocator 这个分配器可用的内存字节数*/
@@ -653,6 +667,7 @@ static int memsys5Init(void *NotUsed){
 ** 
 ** 取消初始化这个模块。
 */
+//取消模块初始化设置。
 static void memsys5Shutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   mem5.mutex = 0;
@@ -666,6 +681,7 @@ static void memsys5Shutdown(void *NotUsed){
 ** 
 ** 打开指定日志文件并写入所有非空闲内存分配情况
 */
+//将该内存分配器进行的操作写入日志文件。
 void sqlite3Memsys5Dump(const char *zFilename){
   FILE *out;
   int i, j, n;
@@ -712,6 +728,7 @@ void sqlite3Memsys5Dump(const char *zFilename){
 ** 此例程是这个文件唯一与外部联系的函数。
 ** 它返回一个指向用memsys5构成sqlite3_mem_methods的的指针
 */
+//配置参数
 const sqlite3_mem_methods *sqlite3MemGetMemsys5(void){
   static const sqlite3_mem_methods memsys5Methods = {
      memsys5Malloc,
