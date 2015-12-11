@@ -3182,7 +3182,7 @@ static int flattenSubquery(
 		return 0;         /* Restriction (21) *//*规则（21）*///子查询不能含有limit，外部查询不能有distinct语句
 	}
 
-  /* OBSOLETE COMMENT 1:
+  /* OBSOLETE COMMENT 1:过时注释1：
 	  ** Restriction 3:  If the subquery is a join, make sure the subquery is 
 	  ** not used as the right operand of an outer join.  Examples of why this
 	  ** is not allowed:
