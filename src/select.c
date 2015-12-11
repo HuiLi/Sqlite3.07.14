@@ -3724,34 +3724,35 @@ static u8 minMaxQuery(Select *p){
 	** does match this pattern, then a pointer to the Table object representing
 	** <tbl> is returned. Otherwise, 0 is returned.
 	*/
-	/* 作为第一个参数传递的 select 语句是聚集查询。* * 第二个参数是相关联的聚集信息对象。
-	** 
-	** SELECT count(*) FROM <tbl>
-	** 这个表是数据库中的表，它不是一个子查询的结果也不是一个视图。如果查询和模式匹配，那么就有个指向Table对象代表<tab>的指针返回。
-	** 否则就返回0
+	/* 查询语句传递的第一个参数是聚集查询，第二个参数是相关的聚集信息对象。
+	** 这个功能的作用是测试查询语句是否是如下格式：
+	**   SELECT count(*) FROM <tbl>
+	** 当这个表是数据库中的表，不是子查询结果或视图。如果查询和模式匹配，
+	** 那么就有一个指向该Table对象表示<tb1>的指针返回，否则返回0。
 	*/
-	static Table *isSimpleCount(Select *p, AggInfo *pAggInfo){//两个参数，其中p是查询语法树，pAggInfo是聚集函数结构体
-	  Table *pTab;//声明一个表
-	  Expr *pExpr;//声明一个表达式
+	static Table *isSimpleCount(Select *p, AggInfo *pAggInfo){//参数1：查询语句；参数2：聚集函数
+	  Table *pTab;//初始化一个表
+	  Expr *pExpr;//初始化一个表达式
 
-	  assert( !p->pGroupBy );//异常处理，加入断点，进行判断检查
+	  assert( !p->pGroupBy );//断言判断 !p->pGroupBy
 
-	  if( p->pWhere || p->pEList->nExpr!=1 //含WHERE子句或者表达式的个数不等于1
-	   || p->pSrc->nSrc!=1 || p->pSrc->a[0].pSelect//或者FROM子句不等于1或者有嵌套查询
-	  ){
-		return 0;
+	  if( p->pWhere || p->pEList->nExpr!=1 //查询语句含WHERE子句或表达式的个数不为1
+	   || p->pSrc->nSrc!=1 || p->pSrc->a[0].pSelect)//或查询语句FROM子句不等于1，或者至少包含一个有嵌套子查询
+	  {
+		return 0;//返回0
 	  }
-	  pTab = p->pSrc->a[0].pTab;//数组中的第一个表格值赋值给Table结构体成员pTab
-	  pExpr = p->pEList->a[0].pExpr;//数组中的一个表达式的值赋值给表达式pExpr
-	  assert( pTab && !pTab->pSelect && pExpr );//异常处理，加入断点，进行判断检查
+	  pTab = p->pSrc->a[0].pTab;//将查询语句FROM中的第一个SQL表赋给pTab
+	  pExpr = p->pEList->a[0].pExpr;//将查询语句中的第一个表达式赋给pExpr
+	  assert( pTab && !pTab->pSelect && pExpr );//加入断言，判断pTab、pExpr是否赋值成功，且pTab为表而非视图
+												//pTab是表则pTab->pSelect == null，是视图则pTab->pSelect为相应定义
 
-	  if( IsVirtual(pTab) ) return 0;//如果ptab是个虚表
-	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//非聚集操作
-	  if( NEVER(pAggInfo->nFunc==0) ) return 0;//没有聚集函数
-	  if( (pAggInfo->aFunc[0].pFunc->flags&SQLITE_FUNC_COUNT)==0 ) return 0;//聚集函数的标记变量和SQLITE_FUNC_COUNT位运算不等
-	  if( pExpr->flags&EP_Distinct ) return 0;//表达式标记变量和EP_Distinct的值相等
+	  if( IsVirtual(pTab) ) return 0;//pTab若是虚表，则返回0
+	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//若表达式为非聚集操作，则返回0
+	  if( NEVER(pAggInfo->nFunc==0) ) return 0;//如果没有聚集函数，则返回0
+	  if( (pAggInfo->aFunc[0].pFunc->flags&SQLITE_FUNC_COUNT)==0 ) return 0;//如果聚集函数的标记变量和SQLITE_FUNC_COUNT位运算不等，则返回0
+	  if( pExpr->flags&EP_Distinct ) return 0;//如果表达式带有DISTINCT标记，则返回0
 
-	  return pTab;//返回指针
+	  return pTab;//返回表pTab
 	}
 
 	/*
