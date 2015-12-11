@@ -1507,6 +1507,278 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 **
 ** 否则： 如果既不满足CASE 1，也不满足CASE 2，则将eOperator设置为0. 这个term对于查询是没有用的。  
 */
+static void exprAnalyzeOrTerm(
+  SrcList *pSrc,            /* the FROM clause  FROM子句 */
+  WhereClause *pWC,         /* the complete WHERE clause  完整的WHERE子句 */
+  int idxTerm               /* Index of the OR-term to be analyzed  将被分析的OR-term索引 */
+){
+  Parse *pParse = pWC->pParse;            /* Parser context 解析器上下文 */
+  sqlite3 *db = pParse->db;               /* Database connection 数据库连接 */
+  WhereTerm *pTerm = &pWC->a[idxTerm];    /* The term to be analyzed 要分析的term */
+  Expr *pExpr = pTerm->pExpr;             /* The expression of the term  term的表达式 */
+  WhereMaskSet *pMaskSet = pWC->pMaskSet; /* Table use masks  表使用的掩码 */
+  int i;                                  /* Loop counters   循环计数器 */
+  WhereClause *pOrWc;       /* Breakup of pTerm into subterms  （OR运算符）分解成子terms的where子句 pTerm */
+  WhereTerm *pOrTerm;       /* A Sub-term within the pOrWc  一个在pOrWc中的子term */
+  WhereOrInfo *pOrInfo;     /* Additional information associated with pTerm  与（OR运算符）pTerm相关的附加信息 */
+  Bitmask chngToIN;         /* Tables that might satisfy case 1  满足情况1的表 */
+  Bitmask indexable;        /* Tables that are indexable, satisfying case 2  可加索引且满足情况2的表 */
+
+  /*
+  ** Break the OR clause into its separate subterms.  The subterms are
+  ** stored in a WhereClause structure containing within the WhereOrInfo
+  ** object that is attached to the original OR clause term.
+  **
+  ** 把OR子句分解成单独的子terms。子terms存储在一个包含在WhereOrInfo对象的WhereClause结构中，
+  ** WhereOrInfo对象附加到原始的OR子句term中。
+  */
+  /*
+  ** wtFlags表示TERM_xxx bit标志，TERM_DYNAMIC表示需要调用sqlite3ExprDelete(db, pExpr)，
+  ** TERM_ORINFO表示需要释放WhereTerm.u.pOrInfo对象，TERM_ANDINFO表示需要释放WhereTerm.u.pAndInfo对象。
+  */
+  assert( (pTerm->wtFlags & (TERM_DYNAMIC|TERM_ORINFO|TERM_ANDINFO))==0 );
+  assert( pExpr->op==TK_OR );  /*判定为 OR表达式*/
+  pTerm->u.pOrInfo = pOrInfo = sqlite3DbMallocZero(db, sizeof(*pOrInfo));  /*分配内存*/
+  if( pOrInfo==0 ) return;  /*分配内存失败，结束*/
+  pTerm->wtFlags |= TERM_ORINFO;
+  pOrWc = &pOrInfo->wc;  /* wc表示where子句分解为子terms */
+  whereClauseInit(pOrWc, pWC->pParse, pMaskSet, pWC->wctrlFlags);  /*初始化一个预分配的WhereClause数据结构*/
+  whereSplit(pOrWc, pExpr, TK_OR);  /*识别在WHERE子句中的子表达式，根据OR运算符*/
+  exprAnalyzeAll(pSrc, pOrWc);  /*分析所有子句*/
+  if( db->mallocFailed ) return;  /*动态内存分配失败，结束*/
+  assert( pOrWc->nTerm>=2 );  /*判定子句的子term大于等于2个，OR运算符*/
+  /*
+  ** Compute the set of tables that might satisfy cases 1 or 2.
+  **
+  ** 计算可能满足情况1或情况2的表
+  */
+  indexable = ~(Bitmask)0;  /*可加索引且满足情况2的表*/
+  chngToIN = ~(pWC->vmask);  /*满足情况1的表*/
+  /*考虑例子 E 形式*/
+  for(i=pOrWc->nTerm-1, pOrTerm=pOrWc->a; i>=0 && indexable; i--, pOrTerm++){  /*循环where子句的每个子term，子term（OR运算符）的每一项*/
+	/*WO_XX表示运算符的位掩码，索引可以进行开发。这些值的OR-ed组合可以在查找where子句的子terms时被使用.*/  
+    if( (pOrTerm->eOperator & WO_SINGLE)==0 ){  /*WO_SINGLE表示所有单一的WO_XX值的掩码*/
+      WhereAndInfo *pAndInfo;  /*AND运算符*/
+      assert( pOrTerm->eOperator==0 );  /*eOperator表示描述<op>的一个WO_XX*/
+      assert( (pOrTerm->wtFlags & (TERM_ANDINFO|TERM_ORINFO))==0 );
+      chngToIN = 0;  
+      pAndInfo = sqlite3DbMallocRaw(db, sizeof(*pAndInfo));  /*分配内存*/
+      if( pAndInfo ){
+        WhereClause *pAndWC;  /*（AND运算符）分解成子terms的pTerm，pTerm为OR运算符的子term*/
+        WhereTerm *pAndTerm;  /*一个在pOrWc中的子term*/
+        int j;  /*循环计数器*/
+        Bitmask b = 0;  
+        pOrTerm->u.pAndInfo = pAndInfo;  /*与（AND运算符）pTerm相关的附加信息*/
+        pOrTerm->wtFlags |= TERM_ANDINFO;  /*赋值为TERM_ANDINFO标志*/
+        pOrTerm->eOperator = WO_AND;  /*运算符赋值为WO_AND*/
+        pAndWC = &pAndInfo->wc;
+        whereClauseInit(pAndWC, pWC->pParse, pMaskSet, pWC->wctrlFlags);   /*初始化一个预分配的WhereClause数据结构*/
+        whereSplit(pAndWC, pOrTerm->pExpr, TK_AND);  /*识别在WHERE子句中的子表达式，根据AND运算符*/
+        exprAnalyzeAll(pSrc, pAndWC);  /*分析所有子句*/
+        pAndWC->pOuter = pWC;  /*外连接*/
+        testcase( db->mallocFailed );  /*宏testcase()用于帮助覆盖测试。*/
+        if( !db->mallocFailed ){
+          for(j=0, pAndTerm=pAndWC->a; j<pAndWC->nTerm; j++, pAndTerm++){  /*循环OR运算符的每个子term，子term（AND运算符）的每一项*/
+            assert( pAndTerm->pExpr );  
+            if( allowedOp(pAndTerm->pExpr->op) ){  /*运算符"=", "<", "<=", ">", ">=", "IS NULL", or "IN"的一种*/
+              b |= getMask(pMaskSet, pAndTerm->leftCursor);  /*返回给出的游标数的位掩码，AND运算符的左游标*/
+            }
+          }
+        }
+        indexable &= b;  /*获得满足情况2的表*/
+      }
+    }else if( pOrTerm->wtFlags & TERM_COPIED ){  /*TERM_COPIED表示有一个child*/
+      /* Skip this term for now.  We revisit it when we process the 
+      ** corresponding TERM_VIRTUAL term 
+	  **
+	  ** 暂时跳过这个term.当执行对应的的TERM_VIRTUAL term时会重新访问它。	
+	  */
+    }else{
+      Bitmask b;
+      b = getMask(pMaskSet, pOrTerm->leftCursor);  /*返回给出的游标数的位掩码，OR运算符的左游标*/
+      if( pOrTerm->wtFlags & TERM_VIRTUAL ){  /*TERM_VIRTUAL表示由优化器添加，不需要编码*/
+        WhereTerm *pOther = &pOrWc->a[pOrTerm->iParent];  /*定义where子句的子term*/
+        b |= getMask(pMaskSet, pOther->leftCursor);
+      }
+      indexable &= b;  /*获得满足情况2的表*/
+      if( pOrTerm->eOperator!=WO_EQ ){  /*OR运算符子term的运算符的位掩码不是WO_EQ*/
+        chngToIN = 0;
+      }else{
+        chngToIN &= b;  /*获得满足情况1的表*/
+      }
+    }
+  }
+
+  /*
+  ** Record the set of tables that satisfy case 2.  The set might be
+  ** empty. 
+  ** 记录满足情况2的表。这个可能为空。
+  */
+  pOrInfo->indexable = indexable;
+  pTerm->eOperator = indexable==0 ? 0 : WO_OR;  
+  /*
+  ** chngToIN holds a set of tables that *might* satisfy case 1.  But
+  ** we have to do some additional checking to see if case 1 really
+  ** is satisfied.
+  ** 
+  ** 出现第一种情况时的处理
+  ** chngToIN保存可能满足情况1的表。但我们需要做一些附加检查看看是不是真的满足情况1
+  **
+  ** chngToIN will hold either 0, 1, or 2 bits.  
+  ** The 0-bit case means that there is no possibility of transforming 
+  ** the OR clause into an IN operator because one or more terms in the 
+  ** OR clause contain something other than == on a column in the single table.  
+  ** The 1-bit case means that every term of the OR clause is of the form
+  ** "table.column=expr" for some single table.  The one bit that is set
+  ** will correspond to the common table.  We still need to check to make
+  ** sure the same column is used on all terms.  
+  ** The 2-bit case is when the all terms are of the form "table1.column=table2.column".  
+  ** It might be possible to form an IN operator with either table1.column or table2.column 
+  ** as the LHS if either is common to every term of the OR clause.
+  **
+  ** chngToIN将保存0,1或2 bits.
+  ** 0-bit情况意味着无法把OR子句转化为IN运算符(如例子B),因为OR子句中的一个或多个terms在单个表的一列上包含除==运算符以外的其他东西。
+  ** 1-bit情况意味着OR子句的每个term对于某个单表都是"table.column=expr"形式。我们还需要进一步验证所有terms使用的同一列。
+  ** 2-bit情况意味着所有的terms都是"table1.column=table2.column"形式。它可能形成一个table1.column或table2.column作为左边操作数的IN运算符。
+  ** 如果任何一个（table1.column或table2.column）对OR子句的每个term都是共用的。
+  **
+  ** Note that terms of the form "table.column1=table.column2" (the
+  ** same table on both sizes of the ==) cannot be optimized.
+  ** 
+  ** 注意:"table.column1=table.column2"(在==的两边都是同一个表)形式是不能优化的
+  */
+  if( chngToIN ){  /*满足情况1*/
+    int okToChngToIN = 0;     /* True if the conversion to IN is valid  如果可以转换为IN操作符则为TRUE */
+    int iColumn = -1;         /* Column index on lhs of IN operator  IN运算符左边的列索引 */
+    int iCursor = -1;         /* Table cursor common to all terms  所有terms共同的表游标 */
+    int j = 0;                /* Loop counter  循环计数器 */
+
+    /* Search for a table and column that appears on one side or the
+    ** other of the == operator in every subterm.  That table and column
+    ** will be recorded in iCursor and iColumn.  There might not be any
+    ** such table and column.  Set okToChngToIN if an appropriate table
+    ** and column is found but leave okToChngToIN false if not found.
+    **
+    ** 查找一个表和列，它出现在每个子term中==运算符的其中一边。这个表和列被记录在iCursor和iColumn中。
+    ** 也可能没有任何这样的表和列。如果一个适当的表和列被查找到，则设置okToChngToIN为TRUE，否则，设置okToChngToIN为FALSE。
+    */
+    for(j=0; j<2 && !okToChngToIN; j++){
+      pOrTerm = pOrWc->a;  /*where子句OR运算符分隔的一个term*/
+      for(i=pOrWc->nTerm-1; i>=0; i--, pOrTerm++){
+        assert( pOrTerm->eOperator==WO_EQ );  /*判定term运算符为WO_EQ*/
+        pOrTerm->wtFlags &= ~TERM_OR_OK;  /*OR运算符*/
+        if( pOrTerm->leftCursor==iCursor ){  /*iCursor表示满足情况1的表*/
+          /* This is the 2-bit case and we are on the second iteration and   	
+          ** current term is from the first iteration.  So skip this term. 
+		  **
+		  ** 这是2-bit的情况，我们是在第二次迭代下，当前term是来自于第一次迭代。所以跳过这个term。	
+		  */
+          assert( j==1 );
+          continue;
+        }
+        if( (chngToIN & getMask(pMaskSet, pOrTerm->leftCursor))==0 ){
+          /* This term must be of the form t1.a==t2.b where t2 is in the 
+          ** chngToIN set but t1 is not.  This term will be either preceeded or
+          ** follwed by an inverted copy (t2.b==t1.a).  Skip this term and use its inversion. 
+		  **
+		  ** 这个term必须是t1.a==t2.b形式，其中t2是chngToIN中的表，但t1不是。
+		  ** 这个term将被执行或进行反转复制(t2.b==t1.a)。跳过这个term，使用它的反转形式。	
+		  */
+          testcase( pOrTerm->wtFlags & TERM_COPIED );  /*宏testcase()用于帮助覆盖测试。*/
+          testcase( pOrTerm->wtFlags & TERM_VIRTUAL );
+          assert( pOrTerm->wtFlags & (TERM_COPIED|TERM_VIRTUAL) );
+          continue;
+        }
+        iColumn = pOrTerm->u.leftColumn;  /*确定列*/
+        iCursor = pOrTerm->leftCursor;  /*确定表*/
+        break;
+      }
+      if( i<0 ){
+        /* No candidate table+column was found.  This can only occur on the second iteration.
+        **  
+		** 没有找到如上所述的候选表和列。这只能发生在第二次循环。
+		*/
+        assert( j==1 );
+        assert( (chngToIN&(chngToIN-1))==0 );
+        assert( chngToIN==getMask(pMaskSet, iCursor) );
+        break;
+      }
+      testcase( j==1 );
+
+      /* We have found a candidate table and column.  Check to see if that 
+      ** table and column is common to every term in the OR clause 
+	  ** 
+	  ** 已经发现了一个候选表和列。再查看表和列是否对OR子句中的所有term都是共同的。
+	  */
+      okToChngToIN = 1;
+      for(; i>=0 && okToChngToIN; i--, pOrTerm++){
+        assert( pOrTerm->eOperator==WO_EQ );
+        if( pOrTerm->leftCursor!=iCursor ){  /*表不是*/
+          pOrTerm->wtFlags &= ~TERM_OR_OK;  /*非TERM_OR_OK*/
+        }else if( pOrTerm->u.leftColumn!=iColumn ){  /*列不是*/
+          okToChngToIN = 0;  /*候选表和列不是，不能转换为IN操作符*/
+        }else{
+          int affLeft, affRight;
+          /* If the right-hand side is also a column, then the affinities  
+          ** of both right and left sides must be such that no type 
+          ** conversions are required on the right.  (Ticket #2249)
+          ** 
+		  ** 如果右边也是一个列，那么左右两边的关联性是必须的这样的，右边不需要类型转换。
+		  */
+          affRight = sqlite3ExprAffinity(pOrTerm->pExpr->pRight);  /*返回表达式pExpr的右边存在的关联性 'affinity'*/
+          affLeft = sqlite3ExprAffinity(pOrTerm->pExpr->pLeft);  /*返回表达式pExpr的左边存在的关联性 'affinity'*/
+          if( affRight!=0 && affRight!=affLeft ){  /*两边五关联性*/
+            okToChngToIN = 0;
+          }else{
+            pOrTerm->wtFlags |= TERM_OR_OK;  /*有关联性*/
+          }
+        }
+      }
+    }
+
+    /* At this point, okToChngToIN is true if original pTerm satisfies case 1.
+    ** In that case, construct a new virtual term that is pTerm converted into an IN operator.
+    **
+    ** 这时，如果原始的pTerm满足情况1，则okToChngToIN为TRUE。这种情况下，需要构造一个新的虚拟的term，把pTerm转换为IN操作符。
+    */
+    if( okToChngToIN ){
+      Expr *pDup;            /* A transient duplicate expression  一个临时的复制表达式 */
+      ExprList *pList = 0;   /* The RHS of the IN operator  IN操作符右边 */
+      Expr *pLeft = 0;       /* The LHS of the IN operator  IN操作符左边 */
+      Expr *pNew;            /* The complete IN operator  完整的IN操作符 */
+
+      for(i=pOrWc->nTerm-1, pOrTerm=pOrWc->a; i>=0; i--, pOrTerm++){
+        if( (pOrTerm->wtFlags & TERM_OR_OK)==0 ) continue;
+        assert( pOrTerm->eOperator==WO_EQ );
+        assert( pOrTerm->leftCursor==iCursor );
+        assert( pOrTerm->u.leftColumn==iColumn );  /*判定是满足情况1的表和列，操作符*/
+        pDup = sqlite3ExprDup(db, pOrTerm->pExpr->pRight, 0);  /*复制表达式右边。 出自expr.c 900行*/
+		/*在表达式列表末尾添加一个新的元素。如果pList最初是空的，则创建一个新的表达式列表。*/
+        pList = sqlite3ExprListAppend(pWC->pParse, pList, pDup);
+        pLeft = pOrTerm->pExpr->pLeft;
+      }
+      assert( pLeft!=0 );
+      pDup = sqlite3ExprDup(db, pLeft, 0);  /*复制表达式左边*/
+      pNew = sqlite3PExpr(pParse, TK_IN, pDup, 0, 0);  /*分配一个Expr表达式节点，连接两个子树节点。 出自expr.c 496行*/
+      if( pNew ){  /*完整的IN操作符复制成功*/
+        int idxNew;  /*用于索引*/
+        transferJoinMarkings(pNew, pExpr);
+        assert( !ExprHasProperty(pNew, EP_xIsSelect) );  /*ExprHasProperty宏在Expr.flags字段用于测试*/
+        pNew->x.pList = pList;
+        idxNew = whereClauseInsert(pWC, pNew, TERM_VIRTUAL|TERM_DYNAMIC);  /*返回新WhereTerm中pWC->a[]的索引*/
+        testcase( idxNew==0 );  /*覆盖测试*/
+        exprAnalyze(pSrc, pWC, idxNew);  /*分析子表达式，即whereterm*/
+        pTerm = &pWC->a[idxTerm];  
+        pWC->a[idxNew].iParent = idxTerm;
+        pTerm->nChild = 1;
+      }else{
+        sqlite3ExprListDelete(db, pList);  /*删除拷贝列表*/
+      }
+      pTerm->eOperator = WO_NOOP;   /* case 1 trumps case 2  情况1胜过情况2。  WO_NOOP表示这个term不限制搜索空间*/
+    }
+  }
+}
+#endif /* !SQLITE_OMIT_OR_OPTIMIZATION && !SQLITE_OMIT_SUBQUERY */
 
 /*
 ** 
