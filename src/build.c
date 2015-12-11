@@ -2731,42 +2731,42 @@ static void sqlite3RefillIndex(Parse *pParse, Index *pIndex, int memRootPage){
 
 /*
 ** Create a new index for an SQL table.  pName1.pName2 is the name of the index //为SQL表创建新的索引
-** and pTblList is the name of the table that is to be indexed.  Both will     //pName1.pName2是这个索引的名字，pTblList是索引的表的名称。
-** be NULL for a primary key or an index that is created to satisfy a    //创建的用于满足UNIQUE约束的主键或索引都是空的。
-** UNIQUE constraint.  If pTable and pIndex are NULL, use pParse->pNewTable   //如果pTable和pIndex是空的，用pParse->pNewTable作为表的索引。
-** as the table to be indexed.  pParse->pNewTable is a table that is          //pParse->pNewTable表是当前使用CREATE TABLE声明构建的表。
+** and pTblList is the name of the table that is to be indexed.  Both will     //pName1.pName2是这个索引的名字，pTblList是被索引的表的名字。
+** be NULL for a primary key or an index that is created to satisfy a          //创建的用于满足UNIQUE约束的主键或索引都是空的。
+** UNIQUE constraint.  If pTable and pIndex are NULL, use pParse->pNewTable   //如果pTable和pIndex是空的，用pParse->pNewTable作为被索引的表（换句话说就是当pTable和pIndex均为空的时候，采用现在正在创建的表作为要建立索引的表）。
+** as the table to be indexed.  pParse->pNewTable is a table that is          //pParse->pNewTable是一个正在使用CREATE TABLE语句去构建的表。
 ** currently being constructed by a CREATE TABLE statement.
 **
-** pList is a list of columns to be indexed.  pList will be NULL if this     //pList是列索引的列表。
+** pList is a list of columns to be indexed.  pList will be NULL if this     //pList要被索引的列。
 ** is a primary key or unique-constraint on the most recent column added     //如果这个主键或唯一约束最近添加到正在建设的表中，pList将是NULL。
 ** to the table currently under construction.  
 **
-** If the index is created successfully, return a pointer to the new Index    //如果索引创建成功，对新构建的索引返回指向。
-** structure. This is used by sqlite3AddPrimaryKey() to mark the index           //当Index.autoIndex==2时，使用sqlite3AddPrimaryKey()方法标记这个索引，作为这个表的主键。
+** If the index is created successfully, return a pointer to the new Index    //如果索引创建成功，将返回一个新的索引结构。
+** structure. This is used by sqlite3AddPrimaryKey() to mark the index        //当Index.autoIndex==2时，使用sqlite3AddPrimaryKey()方法标记这个索引，作为这个表的主键。
 ** as the tables primary key (Index.autoIndex==2).
 */
 Index *sqlite3CreateIndex(
   Parse *pParse,     /* All information about this parse */                 //关于这个语法解析器的所有信息
   Token *pName1,     /* First part of index name. May be NULL */            //索引名称的第一部分，这部分可能是空的。
   Token *pName2,     /* Second part of index name. May be NULL */           //索引名称的第二部分，可能是空的。
-  SrcList *pTblName, /* Table to index. Use pParse->pNewTable if 0 */       //这个表的索引，当为0时用pParse->pNewTable表示
-  ExprList *pList,   /* A list of columns to be indexed */                  //列索引的列表
+  SrcList *pTblName, /* Table to index. Use pParse->pNewTable if 0 */       //被索引的表的名字，当为0时用pParse->pNewTable表示被索引的表
+  ExprList *pList,   /* A list of columns to be indexed */                  //被索引的列
   int onError,       /* OE_Abort, OE_Ignore, OE_Replace, or OE_None */       //关于OE_Abort、OE_Ignore OE_Replace或OE_None的参数
   Token *pStart,     /* The CREATE token that begins this statement */       //CREATE指令开始这样的声明
   Token *pEnd,       /* The ")" that closes the CREATE INDEX statement */     //当出现）时关闭CREATE INDEX语句
-  int sortOrder,     /* Sort order of primary key when pList==NULL */       //当pList==NULL主键的排序顺序
+  int sortOrder,     /* Sort order of primary key when pList==NULL */       //当被索引的列为空的时候，那么会去排序主键
   int ifNotExist     /* Omit error if index already exists */               //如果索引已经存在忽略错误
 ){
   Index *pRet = 0;     /* Pointer to return */                               //指针返回
-  Table *pTab = 0;     /* Table to be indexed */                           //表索引
+  Table *pTab = 0;     /* Table to be indexed */                           //被索引的表（也就是将要创建索引的表）
   Index *pIndex = 0;   /* The index to be created */                       //要创建的索引
   char *zName = 0;     /* Name of the index */                             //索引的名称
-  int nName;           /* Number of characters in zName */                //在zName的字符数
+  int nName;           /* Number of characters in zName */                //zName（索引名字）的字符数
   int i, j;
   Token nullId;        /* Fake token for an empty ID list */             //假令牌空ID列表
-  DbFixer sFix;        /* For assigning database names to pTable */      //为pTable指定的数据库的名称
+  DbFixer sFix;        /* For assigning database names to pTable */      //为pTable指定数据库的名称
   int sortOrderMask;   /* 1 to honor DESC in index.  0 to ignore. */     //在索引中出现1时降序排列，0的时候升序排列
-  sqlite3 *db = pParse->db;
+  sqlite3 *db = pParse->db;                                                    //语法分析上下文所指向的数据库
   Db *pDb;             /* The specific table containing the indexed database */     //包含索引数据库的具体的表
   int iDb;             /* Index of the database that is being written */            //记录数据库的索引
   Token *pName = 0;    /* Unqualified name of the index to create */                //创建索引的不合格的名称
@@ -2778,35 +2778,35 @@ Index *sqlite3CreateIndex(
   assert( pStart==0 || pEnd!=0 ); /* pEnd must be non-NULL if pStart is */     //pStart为0或pEnd不为0时
   assert( pParse->nErr==0 );      /* Never called with prior errors */         //当变量 pParse->nErr为0时，声明这一变量。
   if( db->mallocFailed || IN_DECLARE_VTAB ){
-    goto exit_create_index;
+    goto exit_create_index;    //如果数据库内存分配失败，跳转到另一个处理入口
   }
   if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){
-    goto exit_create_index;
+    goto exit_create_index;   //没有切换到读表模式时候，退出函数的执行
   }
 
   /*
   ** Find the table that is to be indexed.  Return early if not found.   //找到索引的表。如果没有发现提前返回。
   */
-  if( pTblName!=0 ){
+  if( pTblName!=0 ){   //索引的表确实是存在的
 
     /* Use the two-part index name to determine the database           //使用两部分的索引名称来确定数据库搜索表。
     ** to search for the table. 'Fix' the table name to this db        //修复这个这个数据库查找表的表名。
     ** before looking up the table.
     */
-    assert( pName1 && pName2 );
-    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);
-    if( iDb<0 ) goto exit_create_index;
-    assert( pName && pName->z );
+    assert( pName1 && pName2 );   //断言索引的两段表名是存在的，这样就保证了当索引不存在的时候提前退出这个函数
+    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);    //根据两段表名函数返回找到的数据库    
+    if( iDb<0 ) goto exit_create_index;   //说明不存在这个数据库，直接退出函数
+    assert( pName && pName->z );   //断言这个被创建的索引名是合法的，如果不合法，直接退出
 
 #ifndef SQLITE_OMIT_TEMPDB
     /* If the index name was unqualified, check if the table    //如果索引名称不合格,检查表是否是是一个临时表。
     ** is a temp table. If so, set the database to 1. Do not do this      //如果是这样,将数据库设置为1。
     ** if initialising a database schema.                                 //如果不是这样，初始化数据库模式。
     */
-    if( !db->init.busy ){
-      pTab = sqlite3SrcListLookup(pParse, pTblName);
-      if( pName2->n==0 && pTab && pTab->pSchema==db->aDb[1].pSchema ){
-        iDb = 1;
+    if( !db->init.busy ){   //如果数据库的初始化工作已经完成
+      pTab = sqlite3SrcListLookup(pParse, pTblName);    //查找索引表
+      if( pName2->n==0 && pTab && pTab->pSchema==db->aDb[1].pSchema ){    //确定其模式
+        iDb = 1;    //被索引的表是一个临时表，将其数据库设置为1
       }
     }
 #endif
@@ -2818,13 +2818,13 @@ Index *sqlite3CreateIndex(
       ** sqlite3FixSrcList can never fail. */             //因为解析器构造的pTblName是单一标示符，从而sqlite3FixSrcList永远不会失效。
       assert(0);
     }
-    pTab = sqlite3LocateTable(pParse, 0, pTblName->a[0].zName, 
+    pTab = sqlite3LocateTable(pParse, 0, pTblName->a[0].zName,     //定位这个被索引的表
         pTblName->a[0].zDatabase);
-    if( !pTab || db->mallocFailed ) goto exit_create_index;
-    assert( db->aDb[iDb].pSchema==pTab->pSchema );
+    if( !pTab || db->mallocFailed ) goto exit_create_index;   //如果不存在或者数据库内存分配失败，停止执行当前创建索引函数
+    assert( db->aDb[iDb].pSchema==pTab->pSchema );    //断言数据库要创建表的模式和索引表的模式是相同的
   }else{
-    assert( pName==0 );
-    assert( pStart==0 );
+    assert( pName==0 );  
+    assert( pStart==0 ); 
     pTab = pParse->pNewTable;
     if( !pTab ) goto exit_create_index;
     iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
@@ -2864,35 +2864,35 @@ Index *sqlite3CreateIndex(
   ** dealing with a primary key or UNIQUE constraint.  We have to invent our     //如果pName为0意味着我们正在处理一个主键或唯一约束。我们必须创建自己的名称。
   ** own name.
   */
-  if( pName ){
-    zName = sqlite3NameFromToken(db, pName);
-    if( zName==0 ) goto exit_create_index;
-    assert( pName->z!=0 );
-    if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){
+  if( pName ){    //索引的名字是合法的
+    zName = sqlite3NameFromToken(db, pName);   //将索引的名字转化为符号表中的符号
+    if( zName==0 ) goto exit_create_index;    //如果符号为空，则意味着索引名是没有的或者不合法的，直接退出函数
+    assert( pName->z!=0 );     //断言索引名是合法的
+    if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){   
       goto exit_create_index;
     }
-    if( !db->init.busy ){
-      if( sqlite3FindTable(db, zName, 0)!=0 ){
-        sqlite3ErrorMsg(pParse, "there is already a table named %s", zName);
-        goto exit_create_index;
-      }
+    if( !db->init.busy ){    //数据库已经初始化完成
+      if( sqlite3FindTable(db, zName, 0)!=0 ){    //寻找表
+        sqlite3ErrorMsg(pParse, "there is already a table named %s", zName);    //如果索引名和表名冲突发出错误消息：已经有表被命名为当前的名字
+        goto exit_create_index;   //退出函数，跳转到其他的处理入口
+      }  
     }
-    if( sqlite3FindIndex(db, zName, pDb->zName)!=0 ){
+    if( sqlite3FindIndex(db, zName, pDb->zName)!=0 ){    //寻找索引
       if( !ifNotExist ){
-        sqlite3ErrorMsg(pParse, "index %s already exists", zName);
+        sqlite3ErrorMsg(pParse, "index %s already exists", zName);   //发现索引已经存在，发送错误消息
       }else{
-        assert( !db->init.busy );
-        sqlite3CodeVerifySchema(pParse, iDb);
+        assert( !db->init.busy );   //断言数据库的初始化工作已经完成
+        sqlite3CodeVerifySchema(pParse, iDb);   
       }
       goto exit_create_index;
     }
-  }else{
+  }else{    //我们现在处理的谁一个主键或者是唯一性约束
     int n;
     Index *pLoop;
     for(pLoop=pTab->pIndex, n=1; pLoop; pLoop=pLoop->pNext, n++){}
-    zName = sqlite3MPrintf(db, "sqlite_autoindex_%s_%d", pTab->zName, n);
+    zName = sqlite3MPrintf(db, "sqlite_autoindex_%s_%d", pTab->zName, n);   //输出被索引的表的索引名，此时的索引的名字是我们自己创建的
     if( zName==0 ){
-      goto exit_create_index;
+      goto exit_create_index;   //索引名为空说明索引根本是不存在的
     }
   }
 

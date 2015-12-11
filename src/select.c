@@ -3241,7 +3241,7 @@ static int flattenSubquery(
 
 	  *//*如果子查询是一个复合的选择，那么它必须使用只有 UNION ALL 运算符，没有一个简单的选择查询组成在这个复合查询的子查询中，没有使用聚集函数和去除重复*/
 	  if( pSub->pPrior ){//判断子查询是否有优先查询
-		if( pSub->pOrderBy ){/*子查询含有OrderBy子句*/
+		if( pSub->pOrderBy ){/*若子查询含有OrderBy子句*/
 		  return 0;  /* 规则 20 直接返回*/
 		}
 		if( isAgg || (p->selFlags & SF_Distinct)!=0 || pSrc->nSrc!=1 ){/*如果外部查询使用了聚集函数，没有重复排序或者FROM表不等于1*/
@@ -3250,13 +3250,13 @@ static int flattenSubquery(
 		for(pSub1=pSub; pSub1; pSub1=pSub1->pPrior){/*遍历子查询中最右边的查询*/
 		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Distinct );/*测试Distinct的使用*/
 		  testcase( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))==SF_Aggregate );/*测试Aggregate的使用*/
-		  assert( pSub->pSrc!=0 );/*异常处理*/
-		  if( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))!=0//若子查询含有Distinct或Aggregate且标记变量=1
+		  assert( pSub->pSrc!=0 );/*异常处理，加入断点*/
+		  if( (pSub1->selFlags & (SF_Distinct|SF_Aggregate))!=0//若子查询含有Distinct或Aggregate（聚集函数）且标记变量=1
 		   || (pSub1->pPrior && pSub1->op!=TK_ALL) //子查询中含优先查询SELECT并且操作为TK_ALL
 		   || pSub1->pSrc->nSrc<1//子查询中FROM子句中表达式且个数<1*/
 		   || pSub->pEList->nExpr!=pSub1->pEList->nExpr//子查询中表达式的个数！=子查询中右边查询的表达式个数
 		  ){
-			return 0;
+			return 0;//返回0
 		  }
 		  testcase( pSub1->pSrc->nSrc>1 );//调用testcase对子查询的FROM子句中表达式个数>1的测试
 		}
@@ -3264,7 +3264,7 @@ static int flattenSubquery(
 		/* Restriction 18. *//*规则（18）*/
 		if( p->pOrderBy ){//若ORDERBY子句为真
 		  int ii;//声明变量ii
-		  for(ii=0; ii<p->pOrderBy->nExpr; ii++){//遍历
+		  for(ii=0; ii<p->pOrderBy->nExpr; ii++){//遍历orderby表达式个数
 			if( p->pOrderBy->a[ii].iOrderByCol==0 ) return 0;//值为空，返回。
 		  }
 		}
@@ -3274,7 +3274,7 @@ static int flattenSubquery(
       /*若能执行到这一步，允许扁平化*/
 	  /* Authorize the subquery *//*授权允许子查询*/
 	  pParse->zAuthContext = pSubitem->zName;//子查询的名字赋值给语法解析树的已经授权的上下文属性
-	  TESTONLY(i =) sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0);/**/
+	  TESTONLY(i =) sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0);/**///检查授权属性
 	  testcase( i==SQLITE_DENY );//调用testcase测试i是否为SQLITE_DENY
 	  pParse->zAuthContext = zSavedAuthContext;//语法解析树中的上下文赋值给语法解析树的授权上下文属性
 
@@ -3339,18 +3339,18 @@ static int flattenSubquery(
 		Expr *pLimit = p->pLimit;//对表达式的pLimit属性的赋值（select结构体）
 		Select *pPrior = p->pPrior;//优先查找重新赋值给新的变量
 	
-		p->pOrderBy = 0;
-		p->pSrc = 0;
-		p->pPrior = 0;
-		p->pLimit = 0;
+		p->pOrderBy = 0;//初始化
+		p->pSrc = 0;//初始化
+		p->pPrior = 0;//初始化
+		p->pLimit = 0;//初始化
 		pNew = sqlite3SelectDup(db, p, 0);//深拷贝
 		//变量赋值给select结构体成员
-		p->pLimit = pLimit;
-		p->pOrderBy = pOrderBy;
-		p->pSrc = pSrc;
+		p->pLimit = pLimit;//获取limit语句
+		p->pOrderBy = pOrderBy;//获取orderby语句
+		p->pSrc = pSrc;//获取from子句
 		p->op = TK_ALL;//操作符属性设置为tk_all
 		p->pRightmost = 0;//最右边查询的初始化操作
-
+                     //如果pnew为空
 		if( pNew==0 ){
 		  pNew = pPrior;//SELECT结构体中优先查询的赋值给pNew
 		}
@@ -3375,11 +3375,11 @@ static int flattenSubquery(
 	  sqlite3DbFree(db, pSubitem->zDatabase);//数据库模块的内存
 	  sqlite3DbFree(db, pSubitem->zName);//子查询名字属性
 	  sqlite3DbFree(db, pSubitem->zAlias);//子查询依赖关系
-	  //重新赋值
-	  pSubitem->zDatabase = 0;//清空
-	  pSubitem->zName = 0;
-	  pSubitem->zAlias = 0;
-	  pSubitem->pSelect = 0;
+	 //将临时表中的数据清零
+	  pSubitem->zDatabase = 0;//清零
+	  pSubitem->zName = 0;//清零
+	  pSubitem->zAlias = 0;//清零
+	  pSubitem->pSelect = 0;//清零
 
 	  /* Defer deleting the Table object associated with the
 	  ** subquery until code generation is
@@ -3390,7 +3390,7 @@ static int flattenSubquery(
 	  *//*延迟删除与关联的表对象，直到子查询生成代码完成，因为那里可能仍然存在 Expr.pTab 扁平化后的子查询*/
 
 	  if( ALWAYS(pSubitem->pTab!=0) ){//子查询项的pTab不空
-		Table *pTabToDel = pSubitem->pTab;
+		Table *pTabToDel = pSubitem->pTab;//获取子查询的pTab
 		if( pTabToDel->nRef==1 ){
 		  Parse *pToplevel = sqlite3ParseToplevel(pParse);//最顶层解析
 		  pTabToDel->pNextZombie = pToplevel->pZombieTab;//解析后的域赋值
@@ -3420,7 +3420,7 @@ static int flattenSubquery(
 	  ** 这个循环将子查询中的FROM子句的所有元素都移动到外部查询的FROM子句中。在这之前，记住父查询中原始外部查询
 	  ** FROM子句的游标号。父查询的游标号没有用过。后面的代码 将扫描查找 iParent 引用的表达式和替换，这些引用解析我们现在正在复制的子查询的表达式元素。
 	  */
-	  //遍历
+	  //遍历外部查询，将子查询中的FROM子句的所有元素都移动到外部查询的FROM子句中
 	  for(pParent=p; pParent; pParent=pParent->pPrior, pSub=pSub->pPrior){
 		int nSubSrc;//声明整型变量nsubsrc
 		u8 jointype = 0; //自定义类型变量的声明
@@ -3430,13 +3430,13 @@ static int flattenSubquery(
 
 		if( pSrc ){//外部查询有from子句
 		  assert( pParent==p );  // First time through the loop *//*第一次循环，插入断点，若有异常，则做相关处理*/
-		  jointype = pSubitem->jointype;//子查询的连接类型
+		  jointype = pSubitem->jointype;//子查询的连接
 		}else{
-		  assert( pParent!=p );  // 2nd and subsequent times through the loop *//*条件不成立，同样插入断点*/
+		  assert( pParent!=p );  // 2nd and subsequent times through the loop *//*条件不成立，同样插入断点，异常处理*/
 		  pSrc = pParent->pSrc = sqlite3SrcListAppend(db, 0, 0, 0);//追加from子句
-		  if( pSrc==0 ){//如果没有追加
+		  if( pSrc==0 ){//如果外部查询的from子句为0
 			assert( db->mallocFailed );//异常处理，检查内存问题
-			break;
+			break;//跳出本次循环
 		  }
 		}
 
@@ -3473,13 +3473,13 @@ static int flattenSubquery(
 		/* Transfer the FROM clause terms from the subquery into the
 		** outer query.
 		*//*子查询中的FROM子句转到外查询*/
-		//遍历所有的from子句
+		//遍历所有子查询中的from子句
 		for(i=0; i<nSubSrc; i++){
 		  sqlite3IdListDelete(db, pSrc->a[i+iFrom].pUsing);//从数组删除已经处理过的from子句
-		  pSrc->a[i+iFrom] = pSubSrc->a[i];//删除后存入当前的from子句
+		  pSrc->a[i+iFrom] = pSubSrc->a[i];//补全数组
 		  memset(&pSubSrc->a[i], 0, sizeof(pSubSrc->a[i]));//从pSubSrc->a[i]所指的地址开始，将pSubSrc->a[i]的前sizeof(pSubSrc->a[i])个字节用0替换
 		}
-		pSrc->a[iFrom].jointype = jointype;//当前from子句连接类型的赋值
+		pSrc->a[iFrom].jointype = jointype;//获取当前from子句连接
 	  
 		/* Now begin substituting subquery result set expressions for 
 		** references to the iParent in the outer query.
@@ -3568,41 +3568,41 @@ static int flattenSubquery(
 	}
 	#endif /* !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW) */
 
-	/*
-	** Analyze the SELECT statement passed as an argument to see if it
-	** is a min() or max() query. Return WHERE_ORDERBY_MIN or WHERE_ORDERBY_MAX if 
-	** it is, or 0 otherwise. At present, a query is considered to be
-	** a min()/max() query if:
-	**
-	**   1. There is a single object in the FROM clause.
-	**
-	**   2. There is a single expression in the result set, and it is
-	**      either min(x) or max(x), where x is a column reference.
-	*/
-	/* 分析 SELECT 语句，若它是一个a min() 或 max() .返回WHERE_ORDERBY_MIN ， WHERE_ORDERBY_MAX .
-	**否则返回0. 现在，若一个查询被认为是一个min() 或 max() ：
-	** 1.在from的子句中有一个单独的对象
-	** 2.在结果集中有一个单独的表达式，而且它要么是min,要么是max，x是参考的列。**/
-	
-	static u8 minMaxQuery(Select *p){
-	  Expr *pExpr; //声明一个表达式
-	  ExprList *pEList = p->pEList;//定义pEList，将select中的p->pEList赋值给它
-	  if( pEList->nExpr!=1 ) 
-		  return WHERE_ORDERBY_NORMAL;//表达式列表不为1，返回默认值
-	  pExpr = pEList->a[0].pExpr;//数组中的第一个元素给新定义的变量
-	  if( pExpr->op!=TK_AGG_FUNCTION ) return 0;//非聚集操作，返回
-	  if( NEVER(ExprHasProperty(pExpr, EP_xIsSelect)) ) return 0;
-	  pEList = pExpr->x.pList;//表达式中x的表达式列表赋值
-	  if( pEList==0 || pEList->nExpr!=1 ) return 0;//没有表达式或者表达式列表中表达式个数不等于1，返回
-	  if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL;//数组第一个表达式并非聚集操作，返回默认值
-	  assert( !ExprHasProperty(pExpr, EP_IntValue) );//异常处理，加入断点检查
-	  if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){//字符串min，返回WHERE_ORDERBY_MIN
-		return WHERE_ORDERBY_MIN;
-	  }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//字符串max，返回WHERE_ORDERBY_MAX
-		return WHERE_ORDERBY_MAX;
-	  }
-	  return WHERE_ORDERBY_NORMAL;//默认值
-	}
+/*
+** Analyze the SELECT statement passed as an argument to see if it
+** is a min() or max() query. Return WHERE_ORDERBY_MIN or WHERE_ORDERBY_MAX if 
+** it is, or 0 otherwise. At present, a query is considered to be
+** a min()/max() query if:
+**分析参数传递的 SELECT语句来看它是否是一个最小值或最大值查询。如果是，则返回WHERE_ORDERBY_MIN或WHERE_ORDERBY_MAX，
+否则返回0.目前，一个查询如果满足下列条件则认为它是一个最小或最大值查询：
+**   1. There is a single object in the FROM clause.
+**   2. There is a single expression in the result set, and it is
+**      either min(x) or max(x), where x is a column reference.
+**   1.在From子句中有一个单一对象。
+**   2.在结果集中有一个单一表达式，并且它要么最小值，要么最大值，其中x为一个列参考。*/
+static u8 minMaxQuery(Select *p){
+  Expr *pExpr; //初始化一个表达式
+  ExprList *pEList = p->pEList; //初始化表达式列表
+
+  if( pEList->nExpr!=1 ) return WHERE_ORDERBY_NORMAL;  //列表中不是只有一个表达式返回0，即并非单一对象，不做min()处理也不做max()处理
+  pExpr = pEList->a[0].pExpr; //将表达式列表中的第一个表达式赋给pExpr
+  if( pExpr->op != TK_AGG_FUNCTION ) return 0; //如果表达式的操作码不等于TK_AGG_FUNCTION，则返回0
+/*
+  if( NEVER((pExpr->flags & EP_xIsSelect) == EP_xIsSelect))
+  pExpr->flags == EP_*
+*/
+  if( NEVER(ExprHasProperty(pExpr, EP_xIsSelect)) ) return 0; //判断表达式的flags是否满足x.pSelect是有效的
+  pEList = pExpr->x.pList;
+  if( pEList==0 || pEList->nExpr!=1 ) return 0;
+  if( pEList->a[0].pExpr->op!=TK_AGG_COLUMN ) return WHERE_ORDERBY_NORMAL; //如果新的表达式的操作码不等于TK_AGG_COLUMN，则返回0
+  assert( !ExprHasProperty(pExpr, EP_IntValue) ); //设置断点，判断ExprHasProperty(pExpr, EP_IntValue) == false是否成立
+  if( sqlite3StrICmp(pExpr->u.zToken,"min")==0 ){ //如果表达式的标记值等于min则返回WHERE_ORDERBY_MIN
+    return WHERE_ORDERBY_MIN;
+  }else if( sqlite3StrICmp(pExpr->u.zToken,"max")==0 ){//如果表达式的标记值等于max则返回WHERE_ORDERBY_MAX
+    return WHERE_ORDERBY_MAX;
+  }
+  return WHERE_ORDERBY_NORMAL; //否则返回0，不做min()处理也不做max()处理
+}
 
 	/*
 	** The select statement passed as the first argument is an aggregate query.
@@ -3652,7 +3652,7 @@ static int flattenSubquery(
 	** SQLITE_ERROR and leave an error in pParse. Otherwise, populate 
 	** pFrom->pIndex and return SQLITE_OK.
 	*/
-	/*如果源列表的项作为一个索引是有异议的，那么久尝试定位特殊的索引。如果有一个子句而且被命名的索引找不到了，
+	/*如果源列表的项作为一个索引是有异议的，那么就尝试定位特殊的索引。如果有一个子句而且被命名的索引找不到了，
 	那么就返回错误并且在解析器中标记出错误。
 	否则填充到 pFrom->pIndex并且返回一个 SQLITE_OK
 	*/
@@ -3671,11 +3671,11 @@ static int flattenSubquery(
 		if( !pIdx ){//没有找到对应的索引项
 		  sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);//输出错误信息
 		  pParse->checkSchema = 1;//语法解析器错误信息标识
-		  return SQLITE_ERROR;
+		  return SQLITE_ERROR;//返回错误信息
 		}
 		pFrom->pIndex = pIdx;//找到索引项，添加到FROM表达式项的索引结构体中
 	  }
-	  return SQLITE_OK;//执行正确
+	  return SQLITE_OK;//执行正确，返回正确信息
 	}
 
 	/*
@@ -3726,7 +3726,7 @@ static int flattenSubquery(
 	  }
 	  p->selFlags |= SF_Expanded;//变量的位运算
 	  pTabList = p->pSrc;//FROM子句所指的赋值给FROM子句列表指针
-	  pEList = p->pEList;
+	  pEList = p->pEList;//获取表达式列表
 
 	  /* Make sure cursor numbers have been assigned to all entries in
 	  ** the FROM clause of the SELECT statement.
@@ -3738,7 +3738,7 @@ static int flattenSubquery(
 	  ** then create a transient table structure to describe the subquery.
 	  *//*查找SELECT中FROM子句中每一个表名。若FROM子句的一个条目是子查询而不是一个表或视图，
 	  那么就创建一个描述子查询的事务表	  */
-	  //遍历表
+	  //遍历表达式列表
 	  for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
 		Table *pTab;//定义一个table类型的变量
 		if( pFrom->pTab!=0 ){//如果from表项中有表
@@ -3842,7 +3842,7 @@ static int flattenSubquery(
 			/* This particular expression does not need to be expanded.
 			//这种特殊的表达不需要扩展*/
 			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//追加
-			if( pNew ){//非空
+			if( pNew ){//pnew非空
 			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//数组元素表名属性赋值
 			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//数组元素的zSpan属性赋值
 			  a[k].zName = 0;//置0
@@ -3913,7 +3913,7 @@ static int flattenSubquery(
 				  pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);//调用sqlite3PExpr用来处理pLeft和pRight
 				  if( longNames ){//全路径
 					zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);//输出列名
-					zToFree = zColname;
+					zToFree = zColname;//获取列名
 				  }
 				}else{
 				  pExpr = pRight;//pright赋值给最后的表达式
@@ -3938,11 +3938,11 @@ static int flattenSubquery(
 		p->pEList = pNew;//赋值
 	  }
 	#if SQLITE_MAX_COLUMN
-	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//列溢出
+	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//列溢出，表达式不为空
 		sqlite3ErrorMsg(pParse, "too many columns in result set");//打印错误信息
 	  }
 	#endif
-	  return WRC_Continue;
+	  return WRC_Continue;//继续执行
 	}
 
 	/*

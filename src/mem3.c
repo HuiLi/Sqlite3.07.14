@@ -103,8 +103,8 @@
 ** 用这种方法，第一个块有了1索引。一个块索引为0意味着“无这样的块”和等效为一个空指针u.list由第二块为自由块组成。
 ** 这两块领域形成一个双链表的相关尺寸块。 
 ** 较小的块将头指针储存在mem3.aiSmall[]，较大的块将头指针储存在mem3.aiHash[]
-** 如果chunk被检查，那么chunk中的第二个块是用户数据。
-** 如果chunk被检验,那么用户数据将会被延生至下一个chunk的u.hdr.prevSize值内。
+** 如果chunk被检出，那么chunk中的第二个块是用户数据。
+** 如果chunk被检出,那么用户数据将会被延伸至下一个chunk的u.hdr.prevSize值内。
 */
 typedef struct Mem3Block Mem3Block;   //定义一个任意类型的数据块结构体
 struct Mem3Block {
@@ -191,7 +191,8 @@ static SQLITE_WSD struct Mem3Global {
 ** 
 ** 该函数把当前使用的块移出列表
 */   
-//在mem3.aPool[]中删除结点i，pRoot为第一个结点               
+//将第i个项从双向链表中删除， 如果是第一个，则调整pRoot指针；
+//同时调整 前一个的next指针，和后一个的prev指针。将卸下来的这一项的prev和next都设置为null。               
 static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
   u32 next = mem3.aPool[i].u.list.next;  //将索引号为aPool[i]的块的下一个块索引号赋值给next
   u32 prev = mem3.aPool[i].u.list.prev;  //将索引号为aPool[i]的块的前一个块索引号赋给prev
@@ -213,7 +214,8 @@ static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
 ** whatever list is currently a member of.
 ** 
 ** 该函数将某个块移出列表
-*/      
+*/    
+//从双向循环链表中删除第i项。  
 static void memsys3Unlink(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
@@ -237,6 +239,7 @@ static void memsys3Unlink(u32 i){
 ** 
 ** 将mem3.aPool[i]对应块链接到列表中
 */    
+//将mem3.aPool[i]插入到pRoot指向的链表的头部，更新pRoot指向新插入的这一项。
 static void memsys3LinkIntoList(u32 i, u32 *pRoot){
   assert( sqlite3_mutex_held(mem3.mutex) );
   mem3.aPool[i].u.list.next = *pRoot;   //索引号为i的块的下一块索引号设为*pRoot
@@ -253,6 +256,7 @@ static void memsys3LinkIntoList(u32 i, u32 *pRoot){
 ** 
 ** 将索引为i的块链接到合适的块列表或者大块hash列表中
 */  
+//将第i项插入链表中。
 static void memsys3Link(u32 i){
   u32 size, hash;
   assert( sqlite3_mutex_held(mem3.mutex) );
@@ -290,8 +294,9 @@ static void memsys3Leave(void){
 /*
 ** Called when we are unable to satisfy an allocation of nBytes.
 ** 
-** 内存不够分配nbyte大小的空间时调用该函数
+** 当内存不够时调用
 */   
+//分配的内存不足时释放n字节空间。
 static void memsys3OutOfMemory(int nByte){
   if( !mem3.alarmBusy ){  //mem3.alarmBusy为假时进行内存回收
     mem3.alarmBusy = 1;  //赋值为1表示进行内存回收
@@ -311,7 +316,7 @@ static void memsys3OutOfMemory(int nByte){
 ** 
 ** 块i是没有链接的空闲块，调整它的小大，然后返回指向用户部分的块的指针
 */   
-//调整空闲i块的大小以适应用户使用，返回一个指向用户使用部分的指针
+//调整第i块的大小为nblock，为用户使用，返回该空间的地址。
 static void *memsys3Checkout(u32 i, u32 nBlock){
   u32 x;
   assert( sqlite3_mutex_held(mem3.mutex) );
@@ -333,27 +338,27 @@ static void *memsys3Checkout(u32 i, u32 nBlock){
 ** 从mem3.iMaster的尾端取一块空闲的内存。返回指向新分配器的指针。
 ** 或者，当主块不够大时，返回0。
 */      
-//该函数作用是从主要的空闲块中取出nBlock大小的块
+//从iMaster开始的大chunk上切下nBlock的大小供用户使用，返回该空间的地址。
 static void *memsys3FromMaster(u32 nBlock){
   assert( sqlite3_mutex_held(mem3.mutex) ); 
   assert( mem3.szMaster>=nBlock );  //主要块的大小若小于nBlock，则终止程序
-  if( nBlock>=mem3.szMaster-1 ){   //若nBlock等于该主要块大小，则使用整个chunk
+  if( nBlock>=mem3.szMaster-1 ){   //若nBlock等于该主要块大小，则使用整个主chunk
     /* Use the entire master */
     void *p = memsys3Checkout(mem3.iMaster, mem3.szMaster);
     mem3.iMaster = 0;
     mem3.szMaster = 0;
     mem3.mnMaster = 0;
     return p;
-  }else{       //若nBlock小于主要chunk大小，则分裂master free chunk，返回尾部地址
+  }else{       //若nBlock小于主chunk大小，则分裂master free chunk，返回尾部地址
     /* Split the master block.  Return the tail. */
     u32 newi, x;
     newi = mem3.iMaster + mem3.szMaster - nBlock; //将多出来的空间赋给newi
-   assert( newi > mem3.iMaster+1 ); //除去nBlock大小外的空间小于等于mem3.iMaster，则终止
+    assert( newi > mem3.iMaster+1 ); //除去nBlock大小外的空间小于等于mem3.iMaster，则终止
     mem3.aPool[mem3.iMaster+mem3.szMaster-1].u.hdr.prevSize = nBlock;//分裂出的chunk
     mem3.aPool[mem3.iMaster+mem3.szMaster-1].u.hdr.size4x |= 2;
     mem3.aPool[newi-1].u.hdr.size4x = nBlock*4 + 1;
     mem3.szMaster -= nBlock;       //当前chunk大小为nBlock
-    mem3.aPool[newi-1].u.hdr.prevSize = mem3.szMaster; 剩余部分的前一块大小也即为nBlock
+    mem3.aPool[newi-1].u.hdr.prevSize = mem3.szMaster; //剩余部分的前一块大小也即为nBlock
     x = mem3.aPool[mem3.iMaster-1].u.hdr.size4x & 2;
     mem3.aPool[mem3.iMaster-1].u.hdr.size4x = mem3.szMaster*4 | x;
     if( mem3.szMaster < mem3.mnMaster ){ //若当前chunk空间小于块中的最小空间，则将最小空间大小赋值为当前块空间大小
@@ -389,6 +394,7 @@ static void *memsys3FromMaster(u32 nBlock){
 ** 在引用这个例程前，调用例程必须链接到主块，然后，在完成后，去掉主块链接。
 */   
 //该函数用于合并每一个chunk入口，*pRoot是chunk列表的头指针
+//合并相邻chunk块到*pRoot指向的链表中，若块大于当前master，则将其替换。
 static void memsys3Merge(u32 *pRoot){
   u32 iNext, prev, size, i, x;
 
@@ -432,6 +438,7 @@ static void memsys3Merge(u32 *pRoot){
 ** 
 ** 这个函数假设调用者已经获得了必要的锁，所以称为“不安全”。
 */
+//给用户分配n字节的空间，返回该空间的地址。
 //该函数返回至少n字节大小的block，没有则返回null。该函数假设所有必要的互斥锁都上了，所以不安全
 static void *memsys3MallocUnsafe(int nByte){
   u32 i;
@@ -521,6 +528,7 @@ static void *memsys3MallocUnsafe(int nByte){
 **
 ** 自由的高效内存分配。此函数假定必为互斥体，如果有的话，已由调用者所有。因此，“不安全”。
 */
+//释放内存空间。
 static void memsys3FreeUnsafe(void *pOld){//*pOld指向为完成分配的内存空间
   Mem3Block *p = (Mem3Block*)pOld;
   int i;
@@ -537,7 +545,7 @@ static void memsys3FreeUnsafe(void *pOld){//*pOld指向为完成分配的内存�
   memsys3Link(i);  //将索引号为i的chunk链接到合适的chunk数组中
 
   /* Try to expand the master using the newly freed chunk */
-//尝试使用释放了的chunk扩大主要的chunk大小
+  //尝试使用释放了的chunk扩大主要的chunk大小
   if( mem3.iMaster ){
     while( (mem3.aPool[mem3.iMaster-1].u.hdr.size4x&2)==0 ){
       size = mem3.aPool[mem3.iMaster-1].u.hdr.prevSize;
@@ -566,6 +574,7 @@ static void memsys3FreeUnsafe(void *pOld){//*pOld指向为完成分配的内存�
 ** 以字节的方式返回未完成分配的内存大小，不返回头8byte，节约开销，此函数仅针对刚刚被check out的内存
 ** 返回一个未分配的大小，以字节为单位。 返回8字节的包头开销大小 仅当前被检查时，该块工作。
 */
+//以字节返回未分配内存大小（头8字节除外）。
 static int memsys3Size(void *p){
   Mem3Block *pBlock;
   if( p==0 ) return 0;
@@ -579,6 +588,7 @@ static int memsys3Size(void *p){
 ** 
 ** 聚集请求大小给下一个有效的内存分配大小
 */
+//聚集请求大小给下一个有效的内存分配大小。
 static int memsys3Roundup(int n){
   if( n<=12 ){
     return 12;
@@ -592,10 +602,11 @@ static int memsys3Roundup(int n){
 **
 ** 召集请求大小到下一个有效的分配大小。
 */
+//申请分配n字节的内存空间。
 static void *memsys3Malloc(int nBytes){//分配n字节的内存
   sqlite3_int64 *p;
   assert( nBytes>0 );          /* malloc.c filters out 0 byte requests *///请求字节为0则终止程序
-  memsys3Enter();          //获取共享所
+  memsys3Enter();          //获取共享锁
   p = memsys3MallocUnsafe(nBytes);   //分配内存
   memsys3Leave();    //释放锁
   return (void*)p;    //返回空指针
@@ -604,6 +615,7 @@ static void *memsys3Malloc(int nBytes){//分配n字节的内存
 /*
 ** Free memory.   //释放内存
 */
+//释放*pPrior指向的内存空间。
 static void memsys3Free(void *pPrior){
   assert( pPrior );
   memsys3Enter();                //加锁
@@ -616,6 +628,7 @@ static void memsys3Free(void *pPrior){
 **
 ** 改变一个已存在的内存的大小
 */
+//重新分配*pPrior指向的内存空间大小为n字节。
 static void *memsys3Realloc(void *pPrior, int nBytes){
   int nOld;
   void *p;
@@ -656,7 +669,7 @@ static int memsys3Init(void *NotUsed){
   }
 
   /* Store a pointer to the memory block in global structure mem3. */
-//在结构体mem3中存储一个指向该内存块的指针
+  //在结构体mem3中存储一个指向该内存块的指针
   assert( sizeof(Mem3Block)==8 ); //若该内存块大小为8字节，继续执行
   mem3.aPool = (Mem3Block *)sqlite3GlobalConfig.pHeap;
   mem3.nPool = (sqlite3GlobalConfig.nHeap / sizeof(Mem3Block)) - 2;
@@ -689,6 +702,7 @@ static void memsys3Shutdown(void *NotUsed){
 **
 ** 将所有内存分配的日志写入该文件
 */ 
+//将该内存分配器进行的操作写入日志文件。
 void sqlite3Memsys3Dump(const char *zFilename){
 #ifdef SQLITE_DEBUG
   FILE *out;
@@ -781,6 +795,7 @@ void sqlite3Memsys3Dump(const char *zFilename){
 ** 低级别的内存分配函数指针与指针在sqlite3GlobalConfig.m中的例程。
 ** 该参数指定的内存管理。这个程序被sqlite3_config()调用并不需要线程安全（这不安全）
 */ 
+//用于与外部链接。
 const sqlite3_mem_methods *sqlite3MemGetMemsys3(void){
   static const sqlite3_mem_methods mempoolMethods = {
      memsys3Malloc,
