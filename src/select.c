@@ -4272,6 +4272,7 @@ static u8 minMaxQuery(Select *p){
 ** the current cursor position.
 **
 **为一个基于当前所处的位置上的聚集函数update累加器的内存单元
+** plp
 */
 static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
 	Vdbe *v = pParse->pVdbe;
