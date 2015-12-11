@@ -2824,7 +2824,7 @@ Index *sqlite3CreateIndex(
     assert( db->aDb[iDb].pSchema==pTab->pSchema );    //断言数据库要创建表的模式和索引表的模式是相同的
   }else{
     assert( pName==0 );  
-    assert( pStart==0 ); 
+    assert( pStart==0 );  
     pTab = pParse->pNewTable;
     if( !pTab ) goto exit_create_index;
     iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
@@ -2947,14 +2947,14 @@ Index *sqlite3CreateIndex(
   nCol = pList->nExpr;
   pIndex = sqlite3DbMallocZero(db, 
       ROUND8(sizeof(Index)) +              /* Index structure  */            //索引结构
-      ROUND8(sizeof(tRowcnt)*(nCol+1)) +   /* Index.aiRowEst   */
+	  ROUND8(sizeof(tRowcnt)*(nCol + 1)) +   /* Index.aiRowEst   */
       sizeof(char *)*nCol +                /* Index.azColl     */
       sizeof(int)*nCol +                   /* Index.aiColumn   */
       sizeof(u8)*nCol +                    /* Index.aSortOrder */
-      nName + 1 +                          /* Index.zName      */              //索引名称
-      nExtra                               /* Collation sequence names */         //排序序列的名字
+      nName + 1 +                          /* Index.zName      */              //索引的名字
+      nExtra                               /* Collation sequence names */         //校对序列的名字
   );
-  if( db->mallocFailed ){
+  if( db->mallocFailed ){    //如果数据库的内存分配失败，则立即结束整个程序的执行
     goto exit_create_index;
   }
   zExtra = (char*)pIndex;
@@ -2983,13 +2983,13 @@ Index *sqlite3CreateIndex(
     sortOrderMask = 0;    /* Ignore DESC */                                 //升序排列
   }
 
-  /* Scan the names of the columns of the table to be indexed and          //扫描表中列的索引的名称，加载列指数到列索引结构中。
+  /* Scan the names of the columns of the table to be indexed and          //扫描被索引表的列名，并且加载这些列目录到索引结构中。
   ** load the column indices into the Index structure.  Report an error
   ** if any column is not found.                                          //如果没有发现某些列，报告这些错误。
   **
   ** TODO:  Add a test to make sure that the same column is not named     //待办事项：添加一个测试，以确保相同的列不会被命名在相同的索引上。
-  ** more than once within the same index.  Only the first instance of     //只有这列的第一个实例对象将会成为优化器。
-  ** the column will ever be used by the optimizer.  Note that using the   //需要更多的支出的是使用相同的列不能出现同样的错误，因为那样将打破向后的兼容性，它需要一个警示。
+  ** more than once within the same index.  Only the first instance of     //只有这列的第一个实例对象将会被优化器使用。
+  ** the column will ever be used by the optimizer.  Note that using the   //注意，使用同一列超过一次不应该是一个错误，因为这只影响向后的兼容性，这应该是一个警告。
   ** same column more than once cannot be an error because that would 
   ** break backwards compatibility - it needs to be a warning.
   */
@@ -3000,7 +3000,7 @@ Index *sqlite3CreateIndex(
     char *zColl;                   /* Collation sequence name */                //定义排序序列的名称
 
     for(j=0, pTabCol=pTab->aCol; j<pTab->nCol; j++, pTabCol++){
-      if( sqlite3StrICmp(zColName, pTabCol->zName)==0 ) break;
+      if( sqlite3StrICmp(zColName, pTabCol->zName)==0 ) break;   
     }
     if( j>=pTab->nCol ){
       sqlite3ErrorMsg(pParse, "table %s has no column named %s",
@@ -3052,7 +3052,7 @@ Index *sqlite3CreateIndex(
     ** automatically created indices. Users can do as they wish with         //这只适用于自动创建索引。
     ** explicit indices.                                                     //当用户当要显示这些明确的索引时，可以执行上述操作。
     **
-    ** Two UNIQUE or PRIMARY KEY constraints are considered equivalent    //两个唯一约束或主键约束是等价的（这也是为了防止第二个的产生），
+    ** Two UNIQUE or PRIMARY KEY constraints are considered equivalent    //唯一约束或主键约束被认为是等价的（这也是为了防止第二个的产生），
     ** (and thus suppressing the second one) even if they have different  //即使他们有不同的排列顺序。
     ** sort orders.
     **
@@ -3063,8 +3063,8 @@ Index *sqlite3CreateIndex(
     Index *pIdx;
     for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){
       int k;
-      assert( pIdx->onError!=OE_None );
-      assert( pIdx->autoIndex );
+      assert( pIdx->onError!=OE_None );   //断言没有发生错误
+      assert( pIdx->autoIndex );   //断言存在自动的索引
       assert( pIndex->onError!=OE_None );
 
       if( pIdx->nColumn!=pIndex->nColumn ) continue;
@@ -3101,13 +3101,13 @@ Index *sqlite3CreateIndex(
   /* Link the new Index structure to its table and to the other   //链接新的索引结构和其它的内存数据库结构
   ** in-memory database structures. 
   */
-  if( db->init.busy ){
-    Index *p;
+  if( db->init.busy ){   //数据库正在进行初始化的操作
+    Index *p;   //即将要建立的索引名
     assert( sqlite3SchemaMutexHeld(db, 0, pIndex->pSchema) );
     p = sqlite3HashInsert(&pIndex->pSchema->idxHash, 
                           pIndex->zName, sqlite3Strlen30(pIndex->zName),
-                          pIndex);
-    if( p ){
+                          pIndex);    //调用函数进行hash插入操作
+    if( p ){   //如果索引确实是中存在的
       assert( p==pIndex );  /* Malloc must have failed */          //当p==pIndex时，Malloc已经出错。
       db->mallocFailed = 1;
       goto exit_create_index;
@@ -3224,7 +3224,7 @@ exit_create_index:
 
 /*
 ** Fill the Index.aiRowEst[] array with default information - information  //用默认的信息填充Index.aiRowEst[]数组，
-** to be used when we have not run the ANALYZE command.                    //当我哦们不运行ANALYZE指令时，就使用这些信息。
+** to be used when we have not run the ANALYZE command.                    //当我们不运行ANALYZE指令时，就使用这些信息。
 **
 ** aiRowEst[0] is suppose to contain the number of elements in the index.  //aiRowEst[0]是索引中的基本内容。
 ** Since we do not know, guess 1 million.  aiRowEst[1] is an estimate of the  //当我们在不知道的时候，可以猜测为100万。
