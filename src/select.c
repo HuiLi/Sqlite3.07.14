@@ -758,7 +758,7 @@ static void selectInnerLoop(
 
 		/* 
 		** Store the result as data using a unique key.
-		** 存储使用了唯一关键字的结果
+		** 存储数据使用唯一关键字的结果
 		*/
 	case SRT_Table:/*如果eDest为SRT_Table，则结果按照自动的rowid自动保存*/
 	case SRT_EphemTab: {/*如果eDest为SRT_EphemTab，则创建临时表并存储为像SRT_Table的表*/
@@ -786,7 +786,7 @@ static void selectInnerLoop(
 		** then there should be a single item on the stack.  Write this
 		** item into the set table with bogus data.
 		** 如果我们创建一个"expr IN (SELECT ...)"表达式 ，那么在堆栈上就应该
-		** 有一个单独的对象。把这个对象写入虚拟数据表中。
+		** 有一个单独的对象。把这个对象写入虚拟数据表。
 		*/
 	case SRT_Set: {/*如果eDest为SRT_Set，则结果作为关键字存入索引*/
 		assert(nColumn == 1);/*设断点，列数等于1*/
@@ -814,7 +814,7 @@ static void selectInnerLoop(
 
 		/* 
 		** If any row exist in the result set, record that fact and abort.
-		** 如果存在结果集中的一行，记录这个内容和中断
+		** 如果任何一行在结果集中存在，记录这一事实并中止。
 		*/
 	case SRT_Exists: {/*如果eDest为SRT_Exists，则结果若不为空存储1*/
 		sqlite3VdbeAddOp2(v, OP_Integer, 1, iParm);/*把OP_Integer操作送入VDBE，再返回一个新指令地址*/
@@ -850,7 +850,7 @@ static void selectInnerLoop(
 		** Send the data to the callback function or to a subroutine.  In the
 		** case of a subroutine, the subroutine itself is responsible for
 		** popping the data from the stack.
-		** 给回调函数或子程序发送数据，在子程序中，子程序负责从堆栈中弹出数据。
+		** 将数据发送到回调函数或子程序。在子程序的情况下，子程序本身负责从堆栈中弹出数据。
 		*/
 		testcase(eDest == SRT_Coroutine);/*测试处理结果集是否是协同处理*/
 		testcase(eDest == SRT_Output);   /*测试处理结果集是否要输出*/
@@ -876,8 +876,8 @@ static void selectInnerLoop(
 		** the body of a TRIGGER.  The purpose of such selects is to call
 		** user-defined functions that have side effects.  We do not care
 		** about the actual results of the select.
-		** 丢弃结果。这是用于触发器的select语句。这样选择的目的是要调用用户自定义函数。
-		** 我们不必关心实际的select处理结果。
+		** 丢弃结果。这是用于触发器的select语句。这样选择的目的是要调用用户定义函数。
+		** 我们不必关心实际的选择结果。
 		*/
 	default: {/*默认条件下*/
 		assert(eDest == SRT_Discard);/*如果处理结果集是SRT_Discard（舍弃）*/
@@ -900,7 +900,7 @@ static void selectInnerLoop(
 /*
 ** Given an expression list, generate a KeyInfo structure that records
 ** the collating sequence for each expression in that expression list.
-** 给定一个表达式列表，生成一个KeyInfo（关键信息）结构，记录在该表达式列表中的每个表达式的排序序列。
+** 给定一个表达式列表，生成一个KeyInfo结构，记录在该表达式列表中的每个表达式的排序序列。
 **
 ** If the ExprList is an ORDER BY or GROUP BY clause then the resulting
 ** KeyInfo structure is appropriate for initializing a virtual index to
@@ -915,8 +915,8 @@ static void selectInnerLoop(
 ** function is responsible for seeing that this structure is eventually
 ** freed.  Add the KeyInfo structure to the P4 field of an opcode using
 ** P4_KEYINFO_HANDOFF is the usual way of dealing with this.
-** 保存KeyInfo结构体的空间是由malloc获得。回调函数负责最后释放这个结构。
-** 添加关键信息结构给P4操作符代码块，通常使用P4_KEYINFO_HANDOFF处理。
+** 保存KeyInfo结构体的空间是由malloc获得。调用函数负责看到这个结构体最终释放。
+** KeyInfo结构添加到使用P4_KEYINFO_HANDOFF P4的一个操作码是通常的处理方式。
 */
 static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){/*定义静态的结构体指针函数keyInfoFromExprList*/
 	sqlite3 *db = pParse->db;/*把结构体类型是pParse的成员变量db赋给结构体类型是sqlite3的指针db*/
@@ -949,7 +949,7 @@ static KeyInfo *keyInfoFromExprList(Parse *pParse, ExprList *pList){/*定义静�
 #ifndef SQLITE_OMIT_COMPOUND_SELECT/*测试SQLITE_OMIT_COMPOUND_SELECT是否被宏定义过*/
 /*
 ** Name of the connection operator, used for error messages.
-** 连接符的名称，用来反馈错误信息。
+** 连接符的名称，用于表示错误消息。
 */
 static const char *selectOpName(int id){/*定义静态且是只读的字符型指针selectOpName*/
 	char *z;/*定义字符型指针z*/
@@ -973,8 +973,8 @@ static const char *selectOpName(int id){/*定义静态且是只读的字符型�
 **
 ** where xxx is one of "DISTINCT", "ORDER BY" or "GROUP BY". Exactly which
 ** is determined by the zUsage argument.
-** 除非一个"EXPLAIN QUERY PLAN"命令正在被处理，否则这个功能就是一个空操作。
-** 否则，它增加一个单独的输出行到EQP结果，输出的格式:
+** 除非一个"EXPLAIN QUERY PLAN"命令正在处理，否则这个功能就是一个空操作。
+** 否则，它增加一个单独的输出行到EQP结果，标题的形式为:
 ** "USE TEMP B-TREE FOR xxx"
 ** 其中xxx是"distinct","order by",或者"group by"中的一个。究竟是哪个由
 ** zUsage参数决定。
@@ -1022,10 +1022,10 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 ** false, or the second form if it is true.
 **
 ** 除非一个"EXPLAIN QUERY PLAN"命令正在处理，这个功能就是一个空操作。
-** 否则，它增加一个单独的输出行到EQP结果，输出的格式为:
+** 否则，它增加一个单独的输出行到EQP结果，标题的形式为:
 ** "COMPOSITE SUBQUERIES iSub1 and iSub2 (op)"
 ** "COMPOSITE SUBQUERIES iSub1 and iSub2 USING TEMP B-TREE (op)"
-** iSub1和iSub2作为整数被传递到相关的函数参数，运算是相同名称的参数
+** iSub1和iSub2整数作为相应的传递函数参数，运算是相同名称的参数
 ** 的文本表示。参数"op"必是TK_UNION, TK_EXCEPT,TK_INTERSECT或者TK_ALL之一。
 ** 如果参数bUseTmp是false就使用第一范式，或者如果是true就使用第二范式。
 */
@@ -1034,7 +1034,7 @@ static void explainComposite(
 	int op,                         /* One of TK_UNION, TK_EXCEPT etc.   TK_UNION, TK_EXCEPT等运算符中的一个*/
 	int iSub1,                      /* Subquery id 1 子查询id 1*/
 	int iSub2,                      /* Subquery id 2 子查询id 2*/
-	int bUseTmp                     /* True if a temp table was used 如果是使用了一张临时表，那么值为true*/
+	int bUseTmp                     /* True if a temp table was used 如果临时表被使用就是true*/
 	){
 	assert(op == TK_UNION || op == TK_EXCEPT || op == TK_INTERSECT || op == TK_ALL);/*测试op是否有TK_UNION或TK_EXCEPT或TK_INTERSECT或TK_ALL*/
 	if (pParse->explain == 2){/*如果pParse->explain与字符z相同*/
@@ -1192,15 +1192,17 @@ static void generateSortTail(
 ** The declaration type for any expression other than a column is NULL.
 **
 **
-** 返回一个指向包含'declaration type'（声明类型）表达式字符串的指针。
+** 返回一个指向表达式pExpr 包含 'declaration type'的字符串。
 ** 这个字符串可以视为静态调用者。
-** 如果这个表达式是个列，那么列的声明类型应该在最初CREATE TABLE时被准确定义。这个声明的ROWID应该是个整数。一个准确表达式被认为
-** 一列能合成在一个子查询中。这个结果集表达式在所有的Select后被认为是一个列。
+** 如果表达式是一列，声明类型是确切的数据类型定义从最初的
+** create table 语句中获取。ROWID字段的声明类型是整数。当一个表达式
+** 被认为作为一列在子查询中是复杂的。在所有下面的SELECT语句
+** 的结果集的表达被认为是这个函数的列。
 **   SELECT col FROM tbl;
 **   SELECT (SELECT col FROM tbl;
 **   SELECT (SELECT col FROM tbl);
 **   SELECT abc FROM (SELECT col AS abc FROM tbl);
-** 声明的类型可以用在任何表达式上，除了是空的列。
+** 声明类型以外的任何表达式列是空的。
 */
 static const char *columnType(/*定义静态且是只读的字符型指针columnType*/
 	NameContext *pNC, /*声明一个命名上下文结构体（决定表或者列的名字）*/
@@ -3761,11 +3763,11 @@ static u8 minMaxQuery(Select *p){
 		  pTab->nRef = 1;//pTab->nRef赋值为1
 		  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//将相关的信息打印出来赋给pTab->zName
 		  //遍历，查找优先的select
-		  while( pSel->pPrior ){ pSel = pSel->pPrior; }
+		  while( pSel->pPrior ){ pSel = pSel->pPrior; }//获取优先select语句
 		  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//在表达式列表中查找列
 		  pTab->iPKey = -1;//置iPKey=-1，不用它做主键
 		  pTab->nRowEst = 1000000;//设置表的行数
-		  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表的标记变量
+		  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表的标记变量，二进制特定位上的无条件赋值
 	#endif
 		}else{
 		  /* An ordinary table or view name in the FROM clause *//*FROM语句中常规的表或视图名字*/
@@ -3794,7 +3796,7 @@ static u8 minMaxQuery(Select *p){
 	  /* Process NATURAL keywords, and ON and USING clauses of joins.
 	  *//*处理连接中的NATURAL关键字 ON USING*/
 	  if( db->mallocFailed || sqliteProcessJoin(pParse, p) ){//内存分配失败或者处理连接操作
-		return WRC_Abort;//中止
+		return WRC_Abort;//程序中止
 	  }
 
 	  /* For every "*" that occurs in the column list, insert the names of
@@ -3815,8 +3817,8 @@ static u8 minMaxQuery(Select *p){
 
 	  //遍历表达式列表
 	  for(k=0; k<pEList->nExpr; k++){
-		Expr *pE = pEList->a[k].pExpr;/*表达式列表数组中的每个元素赋值给pe*/
-		if( pE->op==TK_ALL ) break;/*如果操作为聚集操作*/
+		Expr *pE = pEList->a[k].pExpr;//表达式列表数组中的每个元素赋值给pe
+		if( pE->op==TK_ALL ) break;//如果操作为聚集操作直接跳出循环体
 		assert( pE->op!=TK_DOT || pE->pRight!=0 );//异常处理，加入断点
 		assert( pE->op!=TK_DOT || (pE->pLeft!=0 && pE->pLeft->op==TK_ID) );//异常处理，加入断点
 		if( pE->op==TK_DOT && pE->pRight->op==TK_ALL ) break;//满足条件，跳出循环体
@@ -3841,7 +3843,7 @@ static u8 minMaxQuery(Select *p){
 		  if( pE->op!=TK_ALL && (pE->op!=TK_DOT || pE->pRight->op!=TK_ALL) ){
 			/* This particular expression does not need to be expanded.
 			//这种特殊的表达不需要扩展*/
-			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//追加
+			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//追加,返回的表达式给pnew
 			if( pNew ){//pnew非空
 			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//数组元素表名属性赋值
 			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//数组元素的zSpan属性赋值
@@ -3863,10 +3865,10 @@ static u8 minMaxQuery(Select *p){
 			}
 			//表达式列表的遍历
 			for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
-			  Table *pTab = pFrom->pTab;//定义表
-			  char *zTabName = pFrom->zAlias;//from子句的依赖关系
-			  if( zTabName==0 ){//为空
-				zTabName = pTab->zName;//直接赋表名
+			  Table *pTab = pFrom->pTab;//定义表,临时变量，存储表
+			  char *zTabName = pFrom->zAlias;//获取表的别名
+			  if( zTabName==0 ){//如果该表没有别名
+				zTabName = pTab->zName;//直接获取表名
 			  }
 			  if( db->mallocFailed ) break;//内存分配失败，跳出循环体
 			  if( zTName && sqlite3StrICmp(zTName, zTabName)!=0 ){//表名非空，表名一致
@@ -3876,7 +3878,7 @@ static u8 minMaxQuery(Select *p){
 			  //遍历表中的列
 			  for(j=0; j<pTab->nCol; j++){
 				Expr *pExpr, *pRight;//声明表达式
-				char *zName = pTab->aCol[j].zName;//获取每一列的名字
+				char *zName = pTab->aCol[j].zName;//获取每一列包含的表的名字
 				char *zColname;  // The computed column name //计算的列名
 				char *zToFree;   /* Malloced string that needs to be freed *//*释放已分配字符串的空间*/
 				Token sColname;  /* Computed column name as a token *//*标记列名
@@ -3886,11 +3888,11 @@ static u8 minMaxQuery(Select *p){
 				** result-set list.
 				*//*如果有一列标记为隐藏，当前只能对虚表，在扩展的结果集中不包括它。*/
 				if( IsHiddenColumn(&pTab->aCol[j]) ){//判断列是否被隐藏
-				  assert(IsVirtual(pTab));//异常处理，加入断点
-				  continue;//跳过本次循环
+				  assert(IsVirtual(pTab));//（判断该表是否是虚表）异常处理，加入断点
+				  continue;//跳出本次循环
 				}
 
-				if( i>0 && zTName==0 ){
+				if( i>0 && zTName==0 ){//如果表名为空且已经执行过循环
 				  if( (pFrom->jointype & JT_NATURAL)!=0/*连接类型为JT_NATURAL*/
 					&& tableAndColumnIndex(pTabList, i, zName, 0, 0)/*并且表与列索引不为空*/
 				  ){
