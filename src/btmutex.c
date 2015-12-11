@@ -143,9 +143,9 @@ void sqlite3BtreeEnter(Btree *p){
 }
 
 /*
-** Exit the recursive mutex on a Btree.  //在B树上退出互斥锁
+** Exit the recursive mutex on a Btree.  
 */
-void sqlite3BtreeLeave(Btree *p){
+void sqlite3BtreeLeave(Btree *p){   ////在B树上退出互斥锁
   if( p->sharable ){
     assert( p->wantToLock>0 );
     p->wantToLock--;

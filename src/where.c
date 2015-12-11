@@ -224,7 +224,10 @@ typedef struct WhereCost WhereCost;
 ** 此外，如果其中一个操作数为NULL，那么它们的结果亦为NULL。
 ** 在操作符中，如果其中一个操作数看上去并不像数值类型，那么它们结果为0或0.0。
 */
-
+/*
+**表达式是一个或多个值，运算付和计算值的SQL函数的组合。
+**SQL表达式与公式类似，都写在查询语言。还可以使用特定的数据集来查询数据库。
+*/
 /* WhereTerm 结构体用来存储 where 子句根据 <op>(AND、OR)分隔后的各个子句 */
 /*Expr 结构体，表示 语法分析树中的一个表达式的每个节点是该结构的一个实例。 出自sqliteInit.h 1829行*/
 typedef struct WhereTerm WhereTerm;
@@ -303,14 +306,27 @@ struct WhereTerm {
 ** 对于整个where子句和分子句 "(b AND c)" and "(d AND e)"，存在分开的WhereClause对象。
 ** 子句的pOuter字段指向整个where子句的WhereClause对象
 */
+/*
+** 下面结构的实例是关于一个WHERE子句的所有信息.
+** 大部分时候它是一个或多个WhereTerms的容器.
+**
+** pOuter说明:  对于如下形式的WHERE子句
+**
+**             a AND ((b AND c) OR (d AND e)) AND f
+**
+** the subclauses "(b AND c)" and "(d AND e)".
+** 这里有很多独立的WhereClause对象来组成整个Where语句，以及类似的"(b AND c)"以及"(d AND e)"这样的子语句。
+** pOuter字段指向整个Where语句的WhereClause对象的子语句。
+*/
 
 /*WhereClause结构体用于存储sql语句中的整个的where子句，可能包含一个或多个WhereTerm。*/
 struct WhereClause {
-  Parse *pParse;           /* The parser context  解析器上下文 */
+  Parse *pParse;           /* The parser context  解析器上下文 */   
   WhereMaskSet *pMaskSet;  /* Mapping of table cursor numbers to bitmasks  表的游标数和位掩码之间的映射 */
   Bitmask vmask;           /* Bitmask identifying(识别) virtual table cursors  识别虚表游标的位掩码 */
   WhereClause *pOuter;     /* Outer conjunction  外连接 */
   u8 op;                   /* Split operator. TK_AND or TK_OR  分隔符如TK_AND or TK_OR  */
+                           /* Split operator.  TK_AND or TK_OR . 分离运算符 TK_AND or TK_OR*/
   u16 wctrlFlags;          /* Might include WHERE_AND_ONLY  可能包含WHERE_AND_ONLY */
   int nTerm;               /* Number of terms  terms的数目 */
   int nSlot;               /* Number of entries(条目数) in a[](153行)  在一个WhereTerm中的记录数  */
@@ -388,15 +404,41 @@ struct WhereAndInfo {
 ** 或着是其他719种组合中的一种。实际上，这并不重要。
 ** 重要的是分散的游标数能全部映射到从0开始的bit数，而且不能包含空白.
 */
+/*
+** WhereMaskSet 定义说明  
+**
+** WhereMaskSet结构体实例用于跟踪WhereTerm中 VDBE 游标数量,以及位掩码bits之间的映射.
+** VDBE游标数量为small integer类型,包含在 SrcList_item.iCursor 或 Expr.iTable 字段中.
+** 对于任何给定的WHERE子句,游标数据可能不是从0开始,它们可能在数字序列中有间断.
+** 但是我们想要使用最大化的掩码位.
+**
+** 这种结构提供一个稀疏游标到数字从0开始的连续整数的映射.
+** 如果WhereMaskSet.ix[A]==B,它意味着位掩码的A-th bit与VDBE游标数B相对应.
+** 位掩码A-th bit是1<<A.
+** 例如,如果WHERE子句表达式使用这些VDBE游标数: 4, 5, 8, 29, 57, 73.
+** 那么WhereMaskSet会把这些游标数映射为0到5的整数.
+**
+** 注意:映射不需要有序的.在上面的例子中映射也可以是这样的:4->3, 5->1, 8->2, 29->0, 57->5, 73->4.
+** 或着是719种组合中的一种.
+** 但这并不很重要.
+** 重要的是稀疏游标数能全部映射成bit数,这些bit数从0开始的,并且不间断.
+*/
 struct WhereMaskSet {
   int n;                        /* Number of assigned(已分配的) cursor values  已分配游标值的数目 */
   int ix[BMS];                  /* Cursor assigned to each bit  游标被分配给每一个bit */
+                                /* Cursor assigned to each bit. 每个bit指定游标*/
 };
 
 /*
 ** A WhereCost object records a lookup strategy and the estimated
 ** cost of pursuing that strategy.
 ** WhereCost 对象记录一个查询策略以及执行该策略的预估成本。
+*/
+/*
+** SQLite采用基于代价的优化.根据处理查询时CPU和磁盘I/O的代价,主要考虑以下一些因素：
+** A、查询读取的记录数； 
+** B、结果是否排序(这可能会导致使用临时表)；
+** C、是否需要访问索引和原表.
 */
 struct WhereCost {
   WherePlan plan;    /* The lookup strategy 查询策略 */
@@ -410,6 +452,10 @@ struct WhereCost {
 ** terms in the where clause.
 **
 ** 运算符的位掩码，索引可以进行开发。这些值的OR-ed组合可以在查找where子句的terms时被使用.
+*/
+/*
+** 运算符可以利用索引的位掩码.
+** 这些值的OR-ed组合可以在where子句中查找terms时使用.
 */
 #define WO_IN     0x001	//16进制0000 0000 0001
 #define WO_EQ     0x002	//16进制0000 0000 0010
@@ -449,18 +495,45 @@ struct WhereCost {
 ** 在左联接的右表上不会使用ISNULL约束
 ** Tickets #2177 and #2189.
 */
+/*
+** Flags的值由bestIndex()返回,并且存储在WhereLevel.wsFlags中.
+** 这些标志将决定哪些查询策略是合适的.
+** 这里低位的12bits被保留为上文中的WO_ 值的掩码.
+** WhereLevel.wsFlags域经常被设置为WO_IN|WO_EQ|WO_ISNULL.
+** 但是如果WhereLevel为左联接的右表.wsFlags将设置为WO_IN|WO_EQ.
+** 因此当我们分析等式约束时,WhereLevel.wsFlags域能被当做"op"参数来findTerm.
+** 在有左联接的右表上将不会被使用ISNULL约束.
+** Tickets #2177 and #2189.
+**
+** 注意：约束数据表列执行的规则.
+** 这些是用来限制可以去到一个表中的不同的数据.
+** 这确保数据库中的数据的准确性和可靠性.
+** 约束可以是列级或表级.
+** 仅适用于表级约束被应用到整个表的一列列级约束.
+** 以下是可在SQLite常用的约束.
+** NOT NULL Constraint: 确保一列不能有NULL值。
+** DEFAULT Constraint : 提供一列没有指定时的默认值。
+** UNIQUE Constraint: 确保所有列中的值是不同(唯一)的。
+** PRIMARY Key: 唯一标识数据库表中的各行/记录。
+** CHECK Constraint: CHECK约束，确保一列中的所有值满足一定条件。
+*/
 #define WHERE_ROWID_EQ     0x00001000  /* rowid=EXPR or rowid IN (...)  rowid=EXPR或rowid IN(...) */
 #define WHERE_ROWID_RANGE  0x00002000  /* rowid<EXPR and/or rowid>EXPR  rowid<EXPR 且/或 rowid>EXPR */
 #define WHERE_COLUMN_EQ    0x00010000  /* x=EXPR or x IN (...) or x IS NULL  x=EXPR 或 x IN (...) 或 x IS NULL  */
 #define WHERE_COLUMN_RANGE 0x00020000  /* x<EXPR and/or x>EXPR */
+                                       /* x<EXPR and/or x>EXPR .x<EXPR 且/或 x>EXPR*/
 #define WHERE_COLUMN_IN    0x00040000  /* x IN (...) */
 #define WHERE_COLUMN_NULL  0x00080000  /* x IS NULL */
+                                       /* x IS NULL. x非空*/
 #define WHERE_INDEXED      0x000f0000  /* Anything that uses an index  任何使用索引 */
 #define WHERE_NOT_FULLSCAN 0x100f3000  /* Does not do a full table scan  不需要全表扫描 */
 #define WHERE_IN_ABLE      0x000f1000  /* Able to support an IN operator  支持IN操作 */
 #define WHERE_TOP_LIMIT    0x00100000  /* x<EXPR or x<=EXPR constraint  x<EXPR or x<=EXPR约束 */
+                                       /* x<EXPR or x<=EXPR constraint . 约束条件x<EXPR or x<=EXPR*/
 #define WHERE_BTM_LIMIT    0x00200000  /* x>EXPR or x>=EXPR constraint  x>EXPR or x>=EXPR约束 */
+                                       /* x>EXPR or x>=EXPR constraint . 约束条件x>EXPR or x>=EXPR*/
 #define WHERE_BOTH_LIMIT   0x00300000  /* Both x>EXPR and x<EXPR */
+                                       /* Both x>EXPR and x<EXPR . x>EXPR and x<EXPR同时成立*/
 #define WHERE_IDX_ONLY     0x00800000  /* Use index only - omit table  只用索引，省略表 */
 #define WHERE_ORDERBY      0x01000000  /* Output will appear in correct order  以恰当的顺序输出 */
 #define WHERE_REVERSE      0x02000000  /* Scan in reverse order  倒序扫描 */
@@ -471,13 +544,38 @@ struct WhereCost {
 #define WHERE_DISTINCT     0x40000000  /* Correct order for DISTINCT  DISTINCT的正确顺序 */
 
 /*
+** 扫描:
+** Sqlite有三种基本的扫描策略：
+** (1)全表扫描,这种情况通常出现在没有WHERE子句时.
+** (2)基于索引扫描,这种情况通常出现在表有索引,而且WHERE中的表达式又能够使用该索引的情况.
+** (3)基本rowid的扫描,这种情况通常出现在WHERE表达式中含有rowid的条件.
+** 该情况实际上也是对表进行的扫描.
+** 可以说,Sqlite以rowid为聚簇索引.
+*/
+/*
+** 索引：索引是对记录按照多个字段进行排序的一种展现.
+** 对表中的某个字段建立索引会创建另一种数据结构,其中保存着字段的值,
+** 每个值还包括指向与它相关记录的指针.这样,就不必要查询整个数据库,
+** 自然提升了查询效率.同时,索引的数据结构是经过排序的,
+** 因而可以对其执行二分查找,那就更快了.
+** 索引的种类：
+** (1)聚集索引：表中行的物理顺序与键值的逻辑（索引）顺序相同.
+** 因为数据的物理顺序只能有一种,所以一张表只能有一个聚集索引.
+** 如果一张表没有聚集索引,那么这张表就没有顺序的概念.
+** 所有的新行都会插入到表的末尾.
+** (2)非聚集索引：表中行的物理顺序与索引顺序无关.
+** 对于非聚集索引,叶节点存储了索引字段值以及指向相应数据页的指针.
+*/
+/*
 ** Initialize a preallocated(预分配) WhereClause structure.
 ** 初始化一个预分配的WhereClause数据结构
 */
 static void whereClauseInit(
   WhereClause *pWC,        /* The WhereClause to be initialized  将被初始化Where子句 */
+                           /* The WhereClause to be initialized . 将要初始化的WhereClause */
   Parse *pParse,           /* The parsing context  解析器上下文 */
   WhereMaskSet *pMaskSet,  /* Mapping from table cursor numbers to bitmasks  表的游标数到位掩码的映射 */
+                           /* Mapping from table cursor numbers to bitmasks. 游标数表映射到位掩码表*/
   u16 wctrlFlags           /* Might include WHERE_AND_ONLY  可能包含WHERE_AND_ONLY */
 ){
   pWC->pParse = pParse;	 /*初始化解析器上下文*/
@@ -490,6 +588,14 @@ static void whereClauseInit(
   pWC->wctrlFlags = wctrlFlags;		/*初始化wctrlFlags*/
 }
 
+/*
+** SQLite的连接子句用于从两个或多个数据库中的表的记录相结合.
+** JOIN是一种手段，从两个表中使用常见于每个值相结合的字段.
+** SQL定义了三种主要类型的联接：
+** 交叉连接 - CROSS JOIN
+** 内连接 - INNER JOIN
+** 外连接 - OUTER JOIN
+*/
 /* Forward reference(前置引用) 具体函数在下面 */
 static void whereClauseClear(WhereClause*);
 
@@ -497,15 +603,29 @@ static void whereClauseClear(WhereClause*);
 ** Deallocate all memory associated with a WhereAndInfo object.
 ** 释放与WhereAndInfo对象相关联的所有内存
 */
+/*
+** Deallocate all memory associated with a WhereAndInfo object.
+** 解除WhereAndInfo对象的所有内存分配.
+*/
 static void whereAndInfoDelete(sqlite3 *db, WhereAndInfo *p){
   whereClauseClear(&p->wc);	 /*解除分配*/
   sqlite3DbFree(db, p);	 /*释放被关联到一个特定数据库连接的内存*/
 }
-
+/*在使用完SQlite数据库之后,需要调用相关的函数关闭数据库连接,
+**释放数据结构所关联的内存,删除所有的临时数据项.
+*/
 /*
 ** Deallocate a WhereClause structure.  The WhereClause structure
 ** itself is not freed.  This routine is the inverse of whereClauseInit().
 ** 解除一个WhereClause数据结构的分配。WhereClause本身不被释放。这个程序是whereClauseInit()的反向执行
+*/
+/*
+** Deallocate a WhereClause structure.  The WhereClause structure
+** itself is not freed.  This routine is the inverse of whereClauseInit().
+**
+** 这里为解除一个WhereClause数据结构.
+** 但是WhereClause结构本身不被释放.
+** 这个程序与whereClauseInit()是相反的.
 */
 static void whereClauseClear(WhereClause *pWC){
   int i;
@@ -559,6 +679,11 @@ static void whereClauseClear(WhereClause *pWC){
 ** 警告:这个程序可能会重新分配用于存储WhereTerms的空间。所有指向WhereTerms的指针在调用这个程序后都会失效。
 ** 这些指针可能会通过引用pWC->a[]被重新启用
 */
+/*
+** 警告:这个程序可能分配用于存储WhereTerms的空间.
+** 所有指向WhereTerms的指针需要设定为失效,在调用这个程序后.
+** 一些索引可能通过引用pWC->a[]被重新启用.
+*/
 static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
   WhereTerm *pTerm;   /* 新建一个WhereTerm */
   int idx;
@@ -585,7 +710,7 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
   pTerm->wtFlags = wtFlags;
   pTerm->pWC = pWC;
   pTerm->iParent = -1;
-  return idx;
+  return idx;                                      /*返回idx*/
 }
 
 /*
@@ -620,9 +745,32 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, u8 wtFlags){
 ** 在前面的句子和在图表中，"slot[]"指的是WhereClause.a[]数组。slot数组根据需要扩大，要包含WHERE子句的所有terms
 **
 */
+/*
+** 这个程序是识别在WHERE子句中的子表达式,这些子表达式分隔是以运算符AND运算符或者op参数中定义的其他运算符.
+** WhereClause数据结构有指向子表达式的指针.
+**
+** 例如:
+**    WHERE  a=='hello' AND coalesce(b,11)<10 AND (c+12!=d OR c==22)
+**           \________/     \_______________/     \________________/
+**            slot[0]            slot[1]               slot[2]
+**
+** 原始的WHERE子句在pExpr中的是不变的.
+** 这个程序就是让slot[]指向在pExpr中的substructure.
+**
+** 在前面的句子和在图表中，"slot[]"引用了WhereClause.a[].
+** slot[]根据需要包含所有的WHERE子句中的的terms.
+*/
+/*
+** WHERE子句
+** SQLite的WHERE子句用于指定条件,同时从一个表或多个表中获取数据.
+** 如果给定的条件被满足时,表示真(true),那么它返回从表中的特定值.
+** 可以使用WHERE子句来过滤记录和获取只需要记录.
+** WHERE子句不仅在SELECT语句中使用,
+** 但它也可用于在UPDATE，DELETE语句等等.
+*/
 static void whereSplit(WhereClause *pWC, Expr *pExpr, int op){
   pWC->op = (u8)op;  /*初始化WHERE子句进行分割的运算符*/
-  if( pExpr==0 ) return;
+  if( pExpr==0 ) return;  /*判断pExpr是否为 0 */
   if( pExpr->op!=op ){  /*如果表达式的操作符不是指定的运算符*/
     whereClauseInsert(pWC, pExpr, 0); /*向pWC子句中插入一个WhereTerm*/
   }else{
@@ -648,11 +796,11 @@ static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
   int i;
   assert( pMaskSet->n<=(int)sizeof(Bitmask)*8 );  /*判定*/
   for(i=0; i<pMaskSet->n; i++){
-    if( pMaskSet->ix[i]==iCursor ){
+    if( pMaskSet->ix[i]==iCursor ){                 /*判断pMaskSet->ix[i]是否等于iCursor*/
       return ((Bitmask)1)<<i;
     }
   }
-  return 0;
+  return 0;                                       /*返回0*/
 }
 
 /*
@@ -666,6 +814,10 @@ static Bitmask getMask(WhereMaskSet *pMaskSet, int iCursor){
 **
 ** 在FROM子句中的每个表有一个游标。在FROM子句中的表的个数由sqlite3WhereBegin()程序的一个测试限制。
 ** 所以我们知道pMaskSet->ix[]永远不会溢出。
+**
+** 在FROM子句中每个表有一个游标.
+** sqlite3WhereBegin()的一个测试程序限制FROM子句中的表的个数.
+** 因此我们知道pMaskSet->ix[]是永远不会有溢出操作的.
 **
 */
 static void createMask(WhereMaskSet *pMaskSet, int iCursor){
@@ -694,15 +846,31 @@ static void createMask(WhereMaskSet *pMaskSet, int iCursor){
 ** sqlite3ResolveExprNames()程序查找列名，把这些列的opcodes设置为TK_COLUMN，并把它们的Expr.iTable字段设为表的VDBE游标数。
 ** 这个程序只是把游标数转换为位掩码，将所有的位掩码集合起来。
 */
+/*
+** 这个程序(递归地)访问一个表达式树,生成一个位掩码指向使用表达式树的表中.
+** 为了让这个程序工作，这个调用函数必须首先激活表达式中的sqlite3ResolveExprNames().
+** 然后查看sqlite3ResolveExprNames()程序的头部附加的注释信息.
+** sqlite3ResolveExprNames()程序查找列名,并把opcodes设置为TK_COLUMN,Expr.iTable设为表的VDBE游标数.
+** 这个程序只是一起把游标数转换为位掩码值和OR的所有的位掩码. 
+*/
+/*
+** 递归：
+**执行递归查询表内容的基本算法如下：
+  １.执行初始查询并将查询结果放入一个队列；
+  ２.如果队列不为空
+    1）从LEFT的ON子句表达式JOIN可以使用它Expr.从队列中提取一条记录；
+    2）将这条记录插入递归表；
+    3）假设刚刚被提取的记录是递归表中唯一一条记录，然后，运行递归查询，把所有结果放入队列
+*/
 static Bitmask exprListTableUsage(WhereMaskSet*, ExprList*);
 static Bitmask exprSelectTableUsage(WhereMaskSet*, Select*);
 
 static Bitmask exprTableUsage(WhereMaskSet *pMaskSet, Expr *p){
   Bitmask mask = 0;
-  if( p==0 ) return 0;
-  if( p->op==TK_COLUMN ){
+  if( p==0 ) return 0;                                  /*如果p==0,返回0*/
+  if( p->op==TK_COLUMN ){                               /*判断p->op是否为TK_COLUMN */ 
     mask = getMask(pMaskSet, p->iTable);
-    return mask;
+    return mask;                                         /*返回mask*/
   }
   mask = exprTableUsage(pMaskSet, p->pRight);
   mask |= exprTableUsage(pMaskSet, p->pLeft);
@@ -711,7 +879,7 @@ static Bitmask exprTableUsage(WhereMaskSet *pMaskSet, Expr *p){
   }else{
     mask |= exprListTableUsage(pMaskSet, p->x.pList);
   }
-  return mask;
+  return mask;                                           /*返回mask*/
 }
 
 static Bitmask exprListTableUsage(WhereMaskSet *pMaskSet, ExprList *pList){
@@ -722,7 +890,7 @@ static Bitmask exprListTableUsage(WhereMaskSet *pMaskSet, ExprList *pList){
       mask |= exprTableUsage(pMaskSet, pList->a[i].pExpr);
     }
   }
-  return mask;
+  return mask;                                          /*返回mask*/
 }
 
 static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
@@ -734,8 +902,8 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
     mask |= exprListTableUsage(pMaskSet, pS->pOrderBy);
     mask |= exprTableUsage(pMaskSet, pS->pWhere);
     mask |= exprTableUsage(pMaskSet, pS->pHaving);
-    if( ALWAYS(pSrc!=0) ){
-      int i;
+    if( ALWAYS(pSrc!=0) ){                 
+      int i;                                  /*判断ALWAYS(pSrc!=0)*/
       for(i=0; i<pSrc->nSrc; i++){
         mask |= exprSelectTableUsage(pMaskSet, pSrc->a[i].pSelect);
         mask |= exprTableUsage(pMaskSet, pSrc->a[i].pOn);
@@ -743,7 +911,7 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
     }
     pS = pS->pPrior;
   }
-  return mask;
+  return mask;                                        /*返回mask*/
 }
 
 /*
@@ -775,6 +943,22 @@ static Bitmask exprSelectTableUsage(WhereMaskSet *pMaskSet, Select *pS){
 ** column IN (expression-list) 
 ** column IN (subquery) 
 ** column IS NULL
+*/
+/*
+** SQLite 
+** 有如下二元运算符，根据其优先级从高到低有：
+**  ||
+**  *    /    %
+**  +    -  
+**  <<   >>   &    |
+**  <    <=   >    >=  
+**  =    ==   !=   <>   IN
+**  AND      
+**  OR
+** 以下是支持的一元运算符：
+**  -    +    !    ~    NOT
+** 注意：除 || 之外,任何二元操作符的结果都是一个数值型的值. 
+**       || 返回两个操作数连接后的大字符串。
 */
 static int allowedOp(int op){
   assert( TK_GT>TK_EQ && TK_GT<TK_GE );
@@ -809,6 +993,14 @@ static int allowedOp(int op){
 ** 这是因为任何在比较式左边的排序序列重写右边的任何排序序列。
 ** 也由此，EP_ExpCollate标志不交换。
 */
+/*
+** 计算一个比较表达式.
+** "X op Y"表达式转化为"Y op X".
+** 如果一个对照顺序与比较式的左边或右边相关,那么交换后的它仍与相同边有关.
+** 因此原先的索引"Y对应NOCASE op X"，就变成了"X对应NOCASE op Y".
+** 这是因为任何在比较式左边的对应序列，可以重写为任何右边的对应序列.
+** 由于相同的原因,EP_ExpCollate标志不能交换.
+*/
 static void exprCommute(Parse *pParse, Expr *pExpr){
   u16 expRight = (pExpr->pRight->flags & EP_ExpCollate);  /*pLeft表示左子节点，pRight表示右子节点。*/
   u16 expLeft = (pExpr->pLeft->flags & EP_ExpCollate);  /*EP_ExpCollate表示明确规定的排序序列*/
@@ -819,7 +1011,7 @@ static void exprCommute(Parse *pParse, Expr *pExpr){
   pExpr->pRight->flags = (pExpr->pRight->flags & ~EP_ExpCollate) | expLeft;  
   pExpr->pLeft->flags = (pExpr->pLeft->flags & ~EP_ExpCollate) | expRight;
   SWAP(Expr*,pExpr->pRight,pExpr->pLeft);  /*交换两个左右子节点*/
-  if( pExpr->op>=TK_GT ){
+  if( pExpr->op>=TK_GT ){                   /*判断pExpr->op是否大于等于TK_GT*/ 
     assert( TK_LT==TK_GT+2 );
     assert( TK_GE==TK_LE+2 );
     assert( TK_GT>TK_EQ );
@@ -837,9 +1029,9 @@ static void exprCommute(Parse *pParse, Expr *pExpr){
 static u16 operatorMask(int op){
   u16 c;
   assert( allowedOp(op) );
-  if( op==TK_IN ){
+  if( op==TK_IN ){                               /*判断op是否等于TK_IN */ 
     c = WO_IN;
-  }else if( op==TK_ISNULL ){
+  }else if( op==TK_ISNULL ){                     /*判断op是否等于TK_ISNULL */ 
     c = WO_ISNULL;
   }else{
     assert( (WO_EQ<<(op-TK_EQ)) < 0x7fff );
@@ -852,7 +1044,7 @@ static u16 operatorMask(int op){
   assert( op!=TK_LE || c==WO_LE );
   assert( op!=TK_GT || c==WO_GT );
   assert( op!=TK_GE || c==WO_GE );
-  return c;
+  return c;                                         /*返回C*/ 
 }
 
 /*
@@ -865,13 +1057,21 @@ static u16 operatorMask(int op){
 ** 其中X是与表iCur的iColumn相关的,<op>是由op参数指定的WO_xx运算符的一种。
 ** 返回一个指向term的指针。如果没有找到就返回0。
 */
+/*
+** 在WHERE子句中查找一个term,这个term是由"X <op> <expr>"这种形式组成的.
+** 其中的X是与表iCur的iColumn相关的,WO_xx运算符编码的一种<op>是用op参数来说明的.
+** 返回一个指向term的指针.
+** 如果没有找到就返回0.
+*/
 static WhereTerm *findTerm(
   WhereClause *pWC,     /* The WHERE clause to be searched  要被查找的WHERE子句 */
+                        /* The WHERE clause to be searched.  搜索WhereClause*/
   int iCur,             /* Cursor number of LHS  LHS(等式的左边)的游标数 */
   int iColumn,          /* Column number of LHS  LHS(等式的左边)的列数 */
   Bitmask notReady,     /* RHS must not overlap with this mask  等式的右边不能与掩码重叠 */
   u32 op,               /* Mask of WO_xx values describing operator  描述运算符的WO_xx值的掩码 */
   Index *pIdx           /* Must be compatible with this index, if not NULL  必须与索引相一致，不能为空 */
+                         /* Must be compatible with this index, if not NULL. 如果不是零,必须兼容这个索引. */
 ){
   WhereTerm *pTerm;  /* 新建一个WhereTerm */
   int k;
@@ -906,15 +1106,15 @@ static WhereTerm *findTerm(
           assert(pColl || pParse->nErr);
   
           for(j=0; pIdx->aiColumn[j]!=iColumn; j++){
-            if( NEVER(j>=pIdx->nColumn) ) return 0;
+            if( NEVER(j>=pIdx->nColumn) ) return 0;/*如果NEVER(j>=pIdx->nColumn)成立,返回0*/  
           }
           if( pColl && sqlite3StrICmp(pColl->zName, pIdx->azColl[j]) ) continue;
         }
-        return pTerm;
+        return pTerm;   /*返回pTerm*/
       }
     }
   }
-  return 0;
+  return 0;     /*返回pTerm*/  
 }
 
 /* Forward reference 前置引用 */
@@ -950,7 +1150,24 @@ static void exprAnalyzeAll(
 ** 为了能够优化此运算符，等式的右边必须是一个字符串且不能以通配符开头。
 **
 */
-
+/*
+** SQLite的LIKE操作符是用来反对使用通配符的模式匹配的文本值.
+** 如果搜索表达式可以匹配的图案表达,LIKE运算将返回true,也就是1.
+** 有两个通配符与LIKE运算符一起使用：
+** 百分号 (%)
+** 下划线 (_)
+** 百分号表示零个，一个或多个数字或字符.
+** 下划线代表一个单一的数字或字符.这些符号可以被组合使用.
+*/
+/*
+** SQLite的GLOB运算符用于对图案使用通配符只匹配文本值。
+** 如果搜索表达式可以匹配的图案表达，GLOB运算将返回true，也就是1。
+** LIKE操作符不同，GLOB是大小写敏感的，它遵循以下通配符指定的UNIX语法。
+** 星号 (*)
+** 问号(?)
+** 星号表示零个或多个数字或字符。
+** ？代表一个单一的数字或字符。
+*/
 /*Expr结构体，语法分析树中的一个表达式的每个节点是该结构的一个实例。 出自sqliteInit.h 1829行*/
 static int isLikeOrGlob(
   Parse *pParse,    /* Parsing and code generating context 分析和编码生成上下文 */
@@ -970,10 +1187,10 @@ static int isLikeOrGlob(
   int op;                    /* Opcode of pRight  pRight的Opcode */
 
   if( !sqlite3IsLikeFunction(db, pExpr, pnoCase, wc) ){  /*判断是否是LIKE函数*/
-    return 0;
+    return 0;               /*返回0*/
   }
 #ifdef SQLITE_EBCDIC
-  if( *pnoCase ) return 0;
+  if( *pnoCase ) return 0; /*如果*pnoCase 存在,返回0.*/
 #endif
   pList = pExpr->x.pList;  
   pLeft = pList->a[1].pExpr;  
@@ -985,10 +1202,33 @@ static int isLikeOrGlob(
     /* IMP: R-02065-49465 The left-hand side of the LIKE or GLOB operator must
     ** be the name of an indexed column with TEXT affinity. 
     **
-	**IMP: R-02065-49465 LIKE或GLOB运算符的左边必须是一个TEXT亲和性的带索引的列名
+	** IMP: R-02065-49465 LIKE或GLOB运算符的左边必须是一个TEXT亲和性的带索引的列名
+	**
+	** 注意：类型亲缘性(Type Affinity)
+	** 作用：最大化SQLite和其它数据库引擎之间的数据类型兼容性.
+	** "类型亲缘性 "，是指在表字段被声明之后，SQLite都会根据该字段声明时的类型为其选择一种亲缘类型，
+	** 当数据插入时，该字段的数据将会优先采用亲缘类型作为该值的存储方式，
+	** 除非亲缘类型不匹配或无法转换当前数据到该亲缘类型，
+	** 这样SQLite才会考虑其它更适合该值的类型存储该值。
 	*/
-    return 0;
+    return 0;      /*返回0*/
   }
+  /*
+  **虚表 ：
+  ** 虚表是一种自定义的扩展，允许用户通过代码定制表的数据结构和数据内容；
+  ** 对于数据库引擎,它和普通表一,允许进行大多数的sql操作.
+  ** 虚表和普通表的主要不同在于,其表中的数据的来源；
+  ** 对于普通表,来源于数据库的行列值；而对于虚表,来源于用户自定义的函数,
+  ** 可以使数据库中的数据,也可以使其他的外部数据,如：磁盘文件(csv, excel)等.
+  ** 虚表是sqlite的一种高级特性,它的实现基于sqlite module；
+  ** 虚表被用于连接数据库引擎和可变的数据源,分为两种：internals and externals.
+  ** internal modules的数据来自于数据库文件本身,它的主要目的并不是做普通表不能做的,
+  ** 而是作为智能视图,更具扩展性的、更方便的、更快速的处理一些特定格式的数据.
+  ** sqlite本身带有两个modules：FTS3和R*Tree,用于全文检索；
+  ** external modules的数据来自于数据库文件外部，如cvs、excel文件等；
+  ** 这样,在不导入外部数据到数据库的情况下,用户能够以sql的方式访问和处理.
+  ** 外部数据源 （对于10万条记录，速度可以是秒级的）.
+  */
   assert( pLeft->iColumn!=(-1) );  /* Because IPK never has AFF_TEXT 因为IPK从没有TEXT亲和性 */
 
   pRight = pList->a[0].pExpr; 
@@ -1034,7 +1274,7 @@ static int isLikeOrGlob(
       pPrefix = sqlite3Expr(db, TK_STRING, z);  /*SQL数据类型(TK_INTEGER,TK_FLOAT,TK_BLOB或TK_STRING)*/
       if( pPrefix ) pPrefix->u.zToken[cnt] = 0;
       *ppPrefix = pPrefix;
-      if( op==TK_VARIABLE ){
+      if( op==TK_VARIABLE ){                   /*判断op是否等于TK_VARIABLE*/
         Vdbe *v = pParse->pVdbe;
         sqlite3VdbeSetVarmask(v, pRight->iColumn);
         if( *pisComplete && pRight->u.zToken[1] ){
@@ -1062,6 +1302,18 @@ static int isLikeOrGlob(
       z = 0;
     }
   }
+ /*
+** 存储：
+** SQLite最大的特点是可以把各种类型的数据保存到任何字段中,
+** 而不用关心字段声明的数据类型是什么.
+** 例如：可以在Integer类型的字段中存放字符串,或者在布尔型字段中存放浮点数,
+** 或者在字符型字段中存放日期型值.
+** 但有一种情况例外：定义为INTEGER PRIMARY KEY的字段只能存储64位整数,
+** 当向这种字段保存除整数以外的数据时,将会产生错误. 
+** 另外,SQLite 在解析CREATE TABLE 语句时，会忽略 CREATE TABLE 语句中跟在字段名
+**后面的数据类型信息。
+**        
+*/ 
 
   sqlite3ValueFree(pVal);  /*释放sqlite3_value对象*/
   return (z!=0);
@@ -1080,17 +1332,22 @@ static int isLikeOrGlob(
 ** 查看表达式是否是column MATCH expr形式，如果是则返回TRUE，否则返回FALSE
 **
 */
+/*
+** 检查给出的表达式是否为以下形式
+**         column MATCH expr 
+** 如果是,则返回TRUE,如果不是,则返回FALSE.
+*/
 static int isMatchOfColumn(
   Expr *pExpr      /* Test this expression 测试这个表达式*/
 ){
   ExprList *pList;  /*定义一个表达式列表结构体的实例*/
 
   if( pExpr->op!=TK_FUNCTION ){   /*TK_FUNCTION表示表达式是一个SQL函数*/
-    return 0;
+    return 0;                       /*返回0*/
   }
   /*sqlite3StrICmp为宏定义，表示内部函数原型*/
   if( sqlite3StrICmp(pExpr->u.zToken,"match")!=0 ){  /*zToken表示 标记值。零终止，未引用*/
-    return 0;
+    return 0;                           /*返回0*/
   }
   /*
   union {
@@ -1101,12 +1358,12 @@ static int isMatchOfColumn(
   */
   pList = pExpr->x.pList;
   if( pList->nExpr!=2 ){   /*nExpr表示列表中表达式的数目*/
-    return 0;
+    return 0;              /*返回0*/
   }
   if( pList->a[1].pExpr->op != TK_COLUMN ){  /*TK_COLUMN表示表达式是一个列*/
-    return 0;
+    return 0;               /*返回0*/
   }
-  return 1;
+  return 1;                 /*返回1*/
 }
 #endif /* SQLITE_OMIT_VIRTUALTABLE */
 
@@ -1117,20 +1374,33 @@ static int isMatchOfColumn(
 ** 如果pBase表达式起源于一个连接的ON或USING子句，那么将适当的连接标记转移给派生的表达式 pDerived。
 **
 */
+/*
+**如果pBase表达式起源于一个连接的ON或USING子句,那么推导出适当的标记.
+*/
 static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
   pDerived->flags |= pBase->flags & EP_FromJoin;  /*EP_FromJoin表示起源于连接的ON或USING子句*/
   pDerived->iRightJoinTable = pBase->iRightJoinTable;  /*iRightJoinTable表示右连接表编号*/
 }
-
+/*
+** RIGHT JOIN 或 RIGHT OUTER JOIN 
+** 右向外联接是左向外联接的反向联接.
+** 将返回右表的所有行.
+** 如果右表的某行在左表中没有匹配行,则将为左表返回空值.
+*/
+/*
+** LEFT JOIN或LEFT OUTER JOIN 
+** 左向外联接的结果集包括 LEFT OUTER子句中指定的左表的所有行,而不仅仅是联接列所匹配的行.
+** 如果左表的某行在右表中没有匹配行,则在相关联的结果集行中右表的所有选择列表列均为空值.
+*/
 #if !defined(SQLITE_OMIT_OR_OPTIMIZATION) && !defined(SQLITE_OMIT_SUBQUERY)
 /*
 ** Analyze a term that consists of two or more OR-connected
-** subterms.  
+** subterms. 
+** 分析一个包含两个或更多OR连接的子term的term。 
 ** 例如下面这种形式:
 **
 **     ... WHERE  (a=5) AND (b=7 OR c=9 OR d=13) AND (d=13)
 **                          ^^^^^^^^^^^^^^^^^^^^
-** 分析一个包含两个或更多OR连接的子term的term。
 **
 ** This routine analyzes terms such as the middle term in the above example.
 ** A WhereOrTerm object is computed and attached to the term under
@@ -1236,6 +1506,52 @@ static void transferJoinMarkings(Expr *pDerived, Expr *pBase){
 **
 ** 否则： 如果既不满足CASE 1，也不满足CASE 2，则将eOperator设置为0. 这个term对于查询是没有用的。  
 */
+
+/*
+** 
+** 分析一个term中包含两个或更多的OR连接的子term。
+** 举例：如下形式:
+**
+**     ... WHERE  (a=5) AND (b=7 OR c=9 OR d=13) AND (d=13)
+**                          ^^^^^^^^^^^^^^^^^^^^
+** 这个程序分析诸如上面中部term的terms。
+** 一个WhereOrTerm对象被计算和附加到term的分析下，不管分析的结果如何。
+** 分析必须包含多个OR连接的子term的term，其中单独的子term也可能是
+** 一组AND连接的sub-subterms（子term的子term）.（如下面的例子A、C、D、E）
+** 分析terms 的例子如下:
+**
+**     (A)     t1.x=t2.y OR t1.x=t2.z OR t1.y=15 OR t1.z=t3.a+5
+**     (B)     x=expr1 OR expr2=x OR x=expr3
+**     (C)     t1.x=t2.y OR (t1.x=t2.z AND t1.y=15)
+**     (D)     x=expr1 OR (y>11 AND y<22 AND z LIKE '*hello*')
+**     (E)     (p.a=1 AND q.b=2 AND r.c=3) OR (p.x=4 AND q.y=5 AND r.z=6)
+**
+** 注意：
+**  操作符为OR或者AND的一系列组合,以及OR和AND的组合.
+**  影响查询性能的因素：
+**    1） 对表中行的检索数目,越小越好
+**    2） 排序与否
+**    3） 是否要对一个索引
+**    4） 查询语句的形式
+**
+** 查询优化(与索引有关)
+** 1对于单个表的单个列而言,如果都有形如T.C=expr这样的子句,
+**  并且都是用OR操作符连接起来,形如： x = expr1 OR expr2 = x OR x = expr3 此时由于对于OR,
+**  在SQLite中不能利用索引来优化,所以可以将它转换成带有IN操作符的子句：
+**  x IN(expr1,expr2,expr3)这样就可以用索引进行优化,效果很明显,
+**  但是如果在都没有索引的情况下OR语句执行效率会稍优于IN语句的效率.
+** 2如果一个子句的操作符是BETWEEN,在SQLite中同样不能用索引进行优化,
+**  所以也要进行相应的等价转换： 如：a BETWEEN b AND c可以转换成：
+**  (a BETWEEN b AND c) AND (a>=b) AND (a<=c).
+**  在上面这个子句中, (a>=b) AND (a<=c)将被设为dynamic且是(a BETWEEN b AND c)的子句,
+**  那么如果BETWEEN语句已经编码,那么子句就忽略不计,
+**  如果存在可利用的index使得子句已经满足条件,那么父句则被忽略.
+** 3如果一个单元的操作符是LIKE,那么将做下面的转换：
+**  x LIKE ‘abc%’,转换成：x>=‘abc’ AND x<‘abd’
+**  因为在SQLite中的LIKE是不能用索引进行优化的,所以如果存在索引的话,
+**  则转换后和不转换相差很远,因为对LIKE不起作用,但如果不存在索引,
+**  那么LIKE在效率方面也还是比不上转换后的效率的.
+*/
 static void exprAnalyzeOrTerm(
   SrcList *pSrc,            /* the FROM clause  FROM子句 */
   WhereClause *pWC,         /* the complete WHERE clause  完整的WHERE子句 */
@@ -1262,6 +1578,10 @@ static void exprAnalyzeOrTerm(
   ** WhereOrInfo对象附加到原始的OR子句term中。
   */
   /*
+  ** OR子句分解成单独的子terms.将子terms存储在一个包含WhereOrInfo对象的WhereClause的数据结构中，
+  ** 然后附加到原始的OR子句term中.
+  */
+  /*
   ** wtFlags表示TERM_xxx bit标志，TERM_DYNAMIC表示需要调用sqlite3ExprDelete(db, pExpr)，
   ** TERM_ORINFO表示需要释放WhereTerm.u.pOrInfo对象，TERM_ANDINFO表示需要释放WhereTerm.u.pAndInfo对象。
   */
@@ -1276,6 +1596,15 @@ static void exprAnalyzeOrTerm(
   exprAnalyzeAll(pSrc, pOrWc);  /*分析所有子句*/
   if( db->mallocFailed ) return;  /*动态内存分配失败，结束*/
   assert( pOrWc->nTerm>=2 );  /*判定子句的子term大于等于2个，OR运算符*/
+  /*
+  ** SQLite通过动态内存分配来获取各种对象（例如数据库连接和SQL预处理语句）
+  ** 所需内存、建立数据库文件的内存Cache、以及保存查询结果.
+  ** 对防止内存分配失败或堆内存出现碎片提供形式化的保证.
+  **
+  ** SQLite能配置成保证不会出现内存分配失败或内存碎片.
+  ** 这个特性对长期运行、高可靠性的嵌入式系统至关重要,
+  ** 在这样的系统上一个内存分配错误可能会导致整个系统失效. 
+  */
   /*
   ** Compute the set of tables that might satisfy cases 1 or 2.
   **
@@ -1337,11 +1666,22 @@ static void exprAnalyzeOrTerm(
       }
     }
   }
-
+ /* 
+** 优化的方法
+** 对要查询的每个表,统计这个表上的索引信息,将代价赋值.
+** 如果没有索引，则找有没有在这个表上对rowid的查询条件.
+** 如果WHERE子句中存在OR操作符，那么要把这些OR连接的所有子句分开再进行分析.
+** 如果有索引，则统计每个表的索引信息，对于每个索引.
+** 通过上面的优化过程，可以得到对一个表查询的总代价.
+** 因此循环的嵌套顺序不一定是与FROM子句中的顺序一致，因为在执行过程中会用索引优化来重新排列顺序.
+*/
   /*
   ** Record the set of tables that satisfy case 2.  The set might be
   ** empty. 
   ** 记录满足情况2的表。这个可能为空。
+  */
+  /*
+  ** 表中的记录要满足情况2。这个记录也可能设置为空。
   */
   pOrInfo->indexable = indexable;
   pTerm->eOperator = indexable==0 ? 0 : WO_OR;  
@@ -1352,6 +1692,8 @@ static void exprAnalyzeOrTerm(
   ** 
   ** 出现第一种情况时的处理
   ** chngToIN保存可能满足情况1的表。但我们需要做一些附加检查看看是不是真的满足情况1
+  **
+  ** chngToIN有一系列可能满足情况1的表,但我们仍要做一些额外的检查来看看是不是真的满足情况1.
   **
   ** chngToIN will hold either 0, 1, or 2 bits.  
   ** The 0-bit case means that there is no possibility of transforming 
@@ -1390,6 +1732,14 @@ static void exprAnalyzeOrTerm(
     **
     ** 查找一个表和列，它出现在每个子term中==运算符的其中一边。这个表和列被记录在iCursor和iColumn中。
     ** 也可能没有任何这样的表和列。如果一个适当的表和列被查找到，则设置okToChngToIN为TRUE，否则，设置okToChngToIN为FALSE。
+    */
+	/*
+	** 查找一个在每个term中含有==运算符出现的表和列.
+	** 那个表和列会被记录在iCursor和iColumn中.
+    ** 有可能没有任何表和列被记录.
+	** 如果一个适当的表和列被查找到,则设置okToChngToIN,
+	** 但是如果没有找到，则设置okToChngToIN为FALSE.
+    **
     */
     for(j=0; j<2 && !okToChngToIN; j++){
       pOrTerm = pOrWc->a;  /*where子句OR运算符分隔的一个term*/
@@ -1453,6 +1803,7 @@ static void exprAnalyzeOrTerm(
           ** conversions are required on the right.  (Ticket #2249)
           ** 
 		  ** 如果右边也是一个列，那么左右两边的关联性是必须的这样的，右边不需要类型转换。
+		  ** (Ticket #2249)
 		  */
           affRight = sqlite3ExprAffinity(pOrTerm->pExpr->pRight);  /*返回表达式pExpr的右边存在的关联性 'affinity'*/
           affLeft = sqlite3ExprAffinity(pOrTerm->pExpr->pLeft);  /*返回表达式pExpr的左边存在的关联性 'affinity'*/
@@ -1465,10 +1816,18 @@ static void exprAnalyzeOrTerm(
       }
     }
 
-    /* At this point, okToChngToIN is true if original pTerm satisfies case 1.
+    /*
+	** At this point, okToChngToIN is true if original pTerm satisfies case 1.
     ** In that case, construct a new virtual term that is pTerm converted into an IN operator.
     **
-    ** 这时，如果原始的pTerm满足情况1，则okToChngToIN为TRUE。这种情况下，需要构造一个新的虚拟的term，把pTerm转换为IN操作符。
+    ** 这时，如果原始的pTerm满足情况1，则okToChngToIN为TRUE。
+	** 这种情况下，需要构造一个新的虚拟的term，把pTerm转换为IN操作符。
+    */
+	/*
+	** 创建的虚拟表文件
+	** 正确的语法是：
+    ** CREATE VIRTUAL TABLE IF NOT EXISTS User USING FTS4(...)
+    ** 根据FTS 文件,不能显式地声明一个自动增量列,但每个表具有隐式列称为 docid 或 rowid .
     */
     if( okToChngToIN ){
       Expr *pDup;            /* A transient duplicate expression  一个临时的复制表达式 */
@@ -1507,9 +1866,26 @@ static void exprAnalyzeOrTerm(
     }
   }
 }
+/*
+** IN操作符允许在 WHERE 子句中规定多个值.
+** 举例：
+** SQL IN 语法
+** SELECT column_name(s)
+** FROM table_name
+** WHERE column_name IN (value1,value2,...);
+*/
+
+/*
+** 使用delete方法删除记录
+** SQLiteDatabase的delete方法签名为delete(String table,String whereClause,String[] whereArgs),
+** 这个删除的参数说明如下：
+** table：代表想删除数据的表名.
+** whereClause：满足该whereClause子句的记录将会被删除.
+** whereArgs：用于为whereArgs子句传入参数.
+** 删除person_inf表中所有人名以孙开头的记录(举例)
+** int result=db.delete("person_inf","person_name like ?",new String[]{"孙_"})
+*/
 #endif /* !SQLITE_OMIT_OR_OPTIMIZATION && !SQLITE_OMIT_SUBQUERY */
-
-
 /*
 ** The input to this routine is an WhereTerm structure with only the
 ** "pExpr" field filled in.  The job of this routine is to analyze the
@@ -5901,6 +6277,7 @@ static Bitmask codeOneLoopStart(
     sqlite3VdbeAddOp2(v, OP_Integer, 0, pLevel->iLeftJoin);
     VdbeComment((v, "init LEFT JOIN no-match flag"));
   }
+
 #ifndef SQLITE_OMIT_VIRTUALTABLE
   if(  (pLevel->plan.wsFlags & WHERE_VIRTUALTABLE)!=0 ){
     /* Case 0:  The table is a virtual-table.  Use the VFilter and VNext
@@ -5964,6 +6341,8 @@ static Bitmask codeOneLoopStart(
     ** 情况1:我们可以直接引用一个单行使用等式与ROWID字段比较。
     **       或引用多行使用"rowid IN (...)"结构。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+	情况1：我们可以直接使用等式与ROWID字段比较来引用一个单行。
+			或引用多行使用"rowid IN (...)"结构
     */
     iReleaseReg = sqlite3GetTempReg(pParse);
     pTerm = findTerm(pWC, iCur, -1, notReady, WO_EQ|WO_IN, 0);
@@ -6003,13 +6382,17 @@ static Bitmask codeOneLoopStart(
     }
     if( pStart ){
 <<<<<<< HEAD
-      Expr *pX;             /* 表达式,定义了开始*/
+      Expr *pX;             /* 定义了表达式的开始*/
       int r1, rTemp;        /* 寄存器开始容纳边界 */
 
       /* The following constant maps TK_xx codes into corresponding 
       ** seek opcodes.  It depends on a particular ordering of TK_xx
       下列常数TK_xx代码映射到相应的操作码。
       这取决于一个特定TK_xx指示
+	  /*
+	  下列常熟映射TK_xx代码到相应的操作吗
+	  这取决于一个特定TK_xx排序
+	  */
 =======
       Expr *pX;             /* The expression that defines the start bound 表达式定义了开始范围 */
       int r1, rTemp;        /* Registers for holding the start boundary 保存开始范围的寄存器 */
@@ -6095,16 +6478,18 @@ static Bitmask codeOneLoopStart(
     **
     **         The z<10 term of the following cannot be used, only
     **         the x=5 term:
-    **
+    **          下面的z<10是无效的，只有x=5是有效的
     **            x=5 AND z<10
     **
     **         N may be zero if there are inequality constraints.
     **         If there are no inequality constraints, then N is at
     **         least one.
-    **
+    **          如果有不等约束，N可以是0
+	**          如果没有不等约束，那么N至少是1
     **         This case is also used when there are no WHERE clause
     **         constraints but an index is selected anyway, in order
     **         to force the output order to conform to an ORDER BY.
+	**         这种情况在没有WHERE子句但不管怎样选了一个索引时也可以，目的是强制输出顺序遵从ORDER BY
 <<<<<<< HEAD
     where子句可能有0个或者多个相等关系（"==" or "IN" ）涉及到N个最左连接索引
     它可能也有不等关系(>, <, >= or <=)在索引集中紧跟着Ｎ相等关系。
@@ -6113,13 +6498,20 @@ static Bitmask codeOneLoopStart(
     　　　　　　　x=5
 =======
     **
-    ** 情况3:使用索引的扫描
-    **         WHERE子句可能包含0或多个等式
-    **         terms ("=="或"IN"运算符)涉及到N个索引最左边的列.
-    **         它可能在索引列上也包含不等式约束(>, <, >= or <=)，紧随其后有N个等式。
+    ** 情况3:使用索引扫描
+    **        
+	**它可能在索引列上也包含不等式约束(>, <, >= or <=)，紧随其后有N个等式。
     **         只有最右边的列可以为一个不等式--其余的必须使用"=="和"IN"运算符。
-    **         例如，如过有一个在(x,y,z)的索引，下面的子句都可以进行优化:
+    **         例如，如果有一个在(x,y,z)的索引，下面的子句都可以进行优化:
     **            x=5
+	/*
+	           WHERE子句可能包含0或多个等式
+    **        ("=="或"IN"运算符)，这些含有"=="或者"IN"的等式必须在索引的最左边N个列.
+    **         在N个等式后面可以有包含关于索引列的不等约束(>, <, >= or <=)
+	**         只有最右边的列可以为不等关系。例如：如果有在(x,y,z)的索引，那么下面的子句
+	**          都是最优的
+	*/
+	/*
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     **            x=5 AND y=10
     **            x=5 AND y<10
@@ -6195,7 +6587,7 @@ static Bitmask codeOneLoopStart(
     iIdxCur = pLevel->iIdxCur;
     k = (nEq==pIdx->nColumn ? -1 : pIdx->aiColumn[nEq]);
 
-    /* If this loop satisfies a sort order (pOrderBy) request that 
+      /* If this loop satisfies a sort order (pOrderBy) request that 
     ** was passed to this function to implement a "SELECT min(x) ..." 
     ** query, then the caller will only allow the loop to run for
     ** a single iteration. This means that the first row returned
@@ -6210,9 +6602,9 @@ static Bitmask codeOneLoopStart(
     如果列“x”后的第一个nEq等式约束的指数,这需要一些特殊的处理。
 =======
     **
-    ** 如果这个循环满足一个排序顺序(pOrderBy)的请求，传递给这个函数实现一个"SELECT min(x) ..."查询，
-    ** 那么调用者只允许循环为一个迭代运行。这意味着返回的第一行不能有NULL值存储在'x'中。
-    ** 如果列'x'是索引中nEq个等式约束后第一个，这会请求一些特别处理。
+    ** 如果这个循环满足一个排序顺序(pOrderBy)的请求，将这个请求传递给这个函数实现一个"SELECT min(x) ..."查询，
+    ** 那么调用者只允许循环为一个迭代循环运行。这意味着返回的第一行不能有NULL值存储在'x'中。
+    ** 如果列'x'是索引中nEq个等式约束后第一个，这需要一些特别处理。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( (wctrlFlags&WHERE_ORDERBY_MIN)!=0
@@ -6231,7 +6623,7 @@ static Bitmask codeOneLoopStart(
     找到任何不等式约束条件范围的开始和结束。
 =======
     **
-    ** 为范围的开始和结尾查找不等式约束terms
+    ** 为范围的开始和结尾寻找不等式约束条件
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_TOP_LIMIT ){
@@ -6251,7 +6643,7 @@ static Bitmask codeOneLoopStart(
     的值存储在一个数组在regBase寄存器的开始。
 =======
     **
-    ** 生成代码来计算所有使用==或IN约束terms并且把这些terms的值存储在由regBase开始的一组寄存器中。
+    ** 生成代码来计算所有使用==或IN约束项并且把这些项的值存储在由regBase开始的一组寄存器中。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     regBase = codeAllEqualityTerms(
@@ -6267,6 +6659,8 @@ static Bitmask codeOneLoopStart(
     如果我们做一个逆序扫描一个升序索引,
     或转发顺序降序索引扫描,
     交换的开始和结束条件(pRangeStart和pRangeEnd)
+	=====
+	**如果我们逆序扫描一个升序索引，或者先选扫描降序索引，交换开始和结束项
 =======
     **
     ** 如果我们在升序索引上做一个倒序扫描，或者在一个降序索引上做一个先序扫描，交换开始和结束的terms(pRangeStart and pRangeEnd).
@@ -6309,6 +6703,7 @@ static Bitmask codeOneLoopStart(
           由于比较是没有执行转换应用于操作数,
           设置关联应用pRight SQLITE_AFF_NONE。
             */
+			/*由于执行的比较没有转换就应用于操作数，设置pRight的亲和性为SQLITE_AFF_NONE*/
 =======
           ** SQLITE_AFF_NONE.  
           **
@@ -6344,6 +6739,7 @@ static Bitmask codeOneLoopStart(
     ** range (if any).
 <<<<<<< HEAD
     加载不等式约束的范围的值(如果有的话)
+	**在范围的结尾加载不等式约束的值（如果有的话）
 =======
     **
     ** 为范围的末尾的不等式约束加载值。
@@ -6448,7 +6844,7 @@ static Bitmask codeOneLoopStart(
     记录使用的指令终止循环。禁用WHERE子句由索引范围扫描造成的冗余。
 =======
     **
-    ** 记录用于结束循环的指令。
+    ** 记录用于结束循环的指令。禁用WHERE子句由索引范围扫描造成的冗余
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     if( pLevel->plan.wsFlags & WHERE_UNIQUE ){
@@ -6464,7 +6860,7 @@ static Bitmask codeOneLoopStart(
 #ifndef SQLITE_OMIT_OR_OPTIMIZATION
   if( pLevel->plan.wsFlags & WHERE_MULTI_OR ){
     /* Case 4:  Two or more separately indexed terms connected by OR
-    **两个或两个以上的独立索引术语或连接
+    **两个或两个以上的独立索引术语由或(OR)连接
     ** Example:
     **
     **   CREATE TABLE t1(a,b,c,d);
@@ -6586,6 +6982,7 @@ static Bitmask codeOneLoopStart(
       int nNotReady;                 /* notReady 表的数目 */
       struct SrcList_item *origSrc;     /* 原始的表列表 */
 =======
+/*
     **
     ** 在pOrTab中创建新的SrcList，这个SrcList包含通过这个循环扫描到在a[0]位置的表和在a[1..]位置所有notReady的表
     */
@@ -6625,8 +7022,8 @@ static Bitmask codeOneLoopStart(
     ** fall through to the next instruction, just as an OP_Next does if
     ** called on an uninitialized cursor.
 <<<<<<< HEAD
-    初始化regReturn包含指令地址和OP_Return底部循环。
-    这是需要在几个模糊左连接情况在控制跳过循环的顶部进入体情况下。
+    初始化regReturn包含指令地址,这个regReturn是紧跟着循环底部的OP_Return。
+    这是需要在几个模糊左连接情况，控制跳过循环的顶部进入循环体。
     在这种情况下正确的响应end-of-loop代码(OP_Return)下降到下一个指令,
     正如一个OP_Next所作如果要求未初始化的指针。
 =======
@@ -6649,7 +7046,7 @@ static Bitmask codeOneLoopStart(
     ** be picked up by the recursive calls to sqlite3WhereBegin() below.
 <<<<<<< HEAD
     **如果原始WHERE子句的z形式:(x1或x2或…)和y。然后每个子句xN,
-    评估子表达式:xN和z,子句的y分解成析取将被递归调用sqlite3WhereBegin()。
+    计算子表达式:xN和z,那样，在y中的terms通过递归调用下面的sqlite3WhereBegin()函数来进行分解。
 =======
     **
     ** 如果原始的WHERE子句是z这种形式:(x1 OR x2 OR ...) AND y.那么对于每一个term xN,计算字表达式:xN AND z.
@@ -6695,7 +7092,7 @@ static Bitmask codeOneLoopStart(
         }
 <<<<<<< HEAD
         /* Loop through table entries that match term pOrTerm.
-        遍历表与术语pOrTerm相匹配的条目。
+        遍历与术语pOrTerm相匹配的表项目。
          */
 =======
         /* Loop through table entries that match term pOrTerm. 循环遍历表中匹配pOrTerm的条目 */
@@ -6724,8 +7121,8 @@ static Bitmask codeOneLoopStart(
           ** terms from the notReady table could not be tested and will
           ** need to be tested later.
 <<<<<<< HEAD
-          pSubWInfo - > untestedTerms标志意味着这OR连接词包含一个或多个关键表。
-          notReady 表不能测试,稍后需要测试。
+          pSubWInfo - > untestedTerms标志意味着这OR连接词包含一个或多个来自notReady表的AND term。
+          来自notReady表的terms不能被测试并且稍后需要测试。
 =======
           **
           ** pSubWInfo->untestedTerms标志代表这个OR term包含了来自一个notReady表的一个或多个AND term.
@@ -6739,9 +7136,9 @@ static Bitmask codeOneLoopStart(
           ** by each call to sqlite3WhereBegin() made by this loop, it may
           ** be possible to use that index as a covering index.
 <<<<<<< HEAD
-          **如果所有的OR连接词都是已经优化的而且使用相同的指数,
-          索引使用相同的游标打开索引号由每个调用sqlite3WhereBegin()由这个循环,
-          它可能会使用该指数作为覆盖索引。
+          **如果所有的OR连接词都是使用相同的索引已经优化的,
+          并且通过每次调用由循环产生的sqlite3WhereBegin()来使用相同的游标数据打开索引,
+          并且该索引作为覆盖索引是不可能的
 =======
           **
           ** 如果使用相同的索引优化所有OR连接的terms，
@@ -6807,7 +7204,7 @@ static Bitmask codeOneLoopStart(
     /* Case 5:  There is no usable index.  We must do a complete
     **          scan of the entire table.
 <<<<<<< HEAD
-    没有可用的索引。我们必须做一个完整的扫描整个表。
+    没有可用的索引。我们必须对整个表做一个完整的扫描。
 =======
     **
     ** 情况5:没有可用的索引。我们做一个全表扫描。
@@ -6828,6 +7225,7 @@ static Bitmask codeOneLoopStart(
   ** computed using the current set of tables.
 <<<<<<< HEAD
   **使用当前的一组表来完全插入代码来测试计算每个子表达式。
+  **插入代码测试每个子表达式，这些子表达式可以完全使用当前的表集合计算
   ** IMPLEMENTATION-OF: R-49525-50935 Terms that cannot be satisfied through
   ** the use of indices become tests that are evaluated against each row of
   ** the relevant input tables.
@@ -6865,7 +7263,7 @@ static Bitmask codeOneLoopStart(
   /* For a LEFT OUTER JOIN, generate code that will record the fact that
 <<<<<<< HEAD
   ** at least one row of the right table has matched the left table.  
-  对于一个左外连接,生成的代码将记录的事实至少对表的一行匹配左表。
+  对于一个左外连接,生成的代码将记录的一个事实，即右表中至少一行与左表匹配。
 =======
   ** at least one row of the right table has matched the left table. 
   **
@@ -6906,11 +7304,13 @@ static Bitmask codeOneLoopStart(
 通过最近的调用qlite3WhereBegin()。
 每个调用WhereBegin覆盖前面的。
 这些信息仅用于测试和分析。
+**以下的变量保存一个文本，这个文本描述了查询计划；而这个计划是通过最近调用qlite3WhereBegin()来生成的
+**每次调用WhereBegin重写了前面。这些信息仅用于测试和分析
 */
 char sqlite3_query_plan[BMS*2*40];  /*加入文本 */
 static int nQPlan = 0;              /*释放下一个in _query_plan[] */
-//王秀超 从此结束
-=======
+
+=======/*
 **
 ** 下面的变量保存一个描述通过最新的调用sqlite3WhereBegin()生成的查询计划的文本。
 ** 每次调用WhereBegin重写先前的信息。这个信息只用于测试和分析。
@@ -6967,8 +7367,12 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** 返回值是一个指针,它指向一个包含终止循环所需的信息的不透明的结构体。
 ** 稍后，调用程序会根据这个函数的返回值唤醒sqlite3WhereEnd()来完成WHERE子句的处理。
 **
+**
+**生成循环的开始，这个循环是用来处理WHERE子句的。
+**返回至是一个指向不透明结构的指针，而这个结构包含必需的信息来终止循环。
+**之后,主叫程序会更据这个函数的返回值调用sqlite3WhereEnd()函数来完成WHERE子句处理
 ** If an error occurs, this routine returns NULL.
-如果出现错误，这个例程返回null。
+如果出现错误，这个程序返回null。
 **
 ** 如果发生错误，这个程序将返回NULL.
 **
@@ -6976,8 +7380,8 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 ** the FROM clause of a select.  (INSERT and UPDATE statements are the
 ** same as a SELECT with only a single table in the FROM clause.)  For
 ** example, if the SQL is this:
-其基本思路是做一个嵌套的循环，一个循环在每个表从一个选择像。
-（INSERT和UPDATE语句相同的SELECT与在仅单个表FROM子句）。
+其基本思路是做一个嵌套的循环，其中一个循环是针对在select语句中的from子句中的每个表。
+（INSERT和UPDATE语句与select语句相同，只是在FROM子句中有一个表）。
 例如，如果SQL是这样的：
 **
 **       SELECT * FROM t1, t2, t3 WHERE ...;
@@ -7015,16 +7419,16 @@ static void whereInfoFree(sqlite3 *db, WhereInfo *pWInfo){
 能够更好地利用索引的顺序。还要注意的是，当在操作者显示的WHERE子句中，
 它可能会导致透过的IN的右手侧的所有值的附加的嵌套循环进行扫描。
 **
-** 注意:循环可能不是按FROM子句中他们出现的顺序进行嵌套，因为可能一个其他的嵌套顺序更适合使用索引。
+** 注意:循环可能不是按FROM子句中表出现的顺序进行嵌套，因为可能一个其他的嵌套顺序更适合使用索引。
 ** 还要注意;当WHERE子句中出现了IN操作符，它可能导致添加嵌套循环来扫描IN右边的所有值。
 **
 ** There are Btree cursors associated with each table.  t1 uses cursor
 ** number pTabList->a[0].iCursor.  t2 uses the cursor pTabList->a[1].iCursor.
 ** And so forth.  This routine generates code to open those VDBE cursors
 ** and sqlite3WhereEnd() generates the code to close them.
-有与每个表相关联的B树游标。T1使用光标号pTabList->一个[0].iCursor。
-T2使用光标pTabList->一[1].iCursor。
-这个程序生成代码来打开这些VDBE光标和sqlite3WhereEnd（）生成的代码来关闭它们。
+有与每个表相关联的B树游标。表t1使用光标号pTabList->一个[0].iCursor。
+表t2使用光标pTabList->一[1].iCursor，等等。
+这个程序生成打开这些VDBE游标的代码来以及sqlite3WhereEnd（）生成的代码来关闭这些游标。
 **
 ** 有Btree游标与每个表相关联。t1使用游标数pTabList->a[0].iCursor.t2使用游标pTabList->a[1].iCursor.等等
 ** 这个程序生成代码来打开这些VDBE游标，sqlite3WhereEnd()生成代码来关闭他们。
@@ -7047,10 +7451,10 @@ T2使用光标pTabList->一[1].iCursor。
 ** code will run much faster.  Most of the work of this routine is checking
 ** to see if there are indices that can be used to speed up the loop.
 <<<<<<< HEAD
-**如果WHERE子句是空的，foreach循环必须在每次扫描他们的整个表。
-因此，一个三路连接是O（N^3）操作。但是，如果表有索引并有在
-WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
-运行得更快。大部分该程序的工作是检查
+**如果WHERE子句是空的，foreach循环必须每次扫描他们整个表。
+因此，一个三路连接是O（N^3）操作。但是，如果表有索引并在
+WHERE子句中有涉及这些索引的terms，可以避免一个完整的表扫描代码而且将
+运行得更快。该程序的大部分工作是检查
 以查看是否有索引可以用来加速循环。
 =======
 **
@@ -7072,7 +7476,7 @@ WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
 
 **
 ** WHERE子句的terms也被用于限制在循环的中部哪些行使它成为"...".
-** 每次循环后，WHERE子句的terms只使用在那个循环和外部循环评估过的terms.
+** 每次循环后，WHERE子句的terms只使用在那个循环和外部循环计算过的terms.
 ** 并且如果错误就跳过所有后续的内部循环(或如果测试发生在最内部循环中，那么就跳过"...")
 **
 ** OUTER JOINS
@@ -7094,7 +7498,7 @@ WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
 **
 **
 ** OUTER JOINS
-** 一个表t1和t2的外部链接会在概念上生成如下代码:
+** 表t1和t2的一个外连接会在概念上生成如下代码:
 **    foreach row1 in t1 do
 **      flag = 0
 **      foreach row2 in t2 do
@@ -7110,14 +7514,14 @@ WHERE集中像指那些索引，一个完整的表扫描，可避免和代码将
 **
 **
 ** ORDER BY CLAUSE PROCESSING
-ORDER BY集处理
+ORDER BY子句处理
 **
 ** *ppOrderBy is a pointer to the ORDER BY clause of a SELECT statement,
 ** if there is one.  If there is no ORDER BY clause or if this routine
 ** is called from an UPDATE or DELETE statement, then ppOrderBy is NULL.
-**ppOrderBy是一个指向ORDER BY的SELECT语句的WHERE集，
-如果有一个。如果没有ORDER BY子句，或者如果这个程序被
-称为从UPDATE或DELETE语句，然后ppOrderBy为NULL。
+**如果有ORDER BY子句，那么ppOrderBy是一个指向SELECT语句中ORDER BY子句的指针，
+如果没有ORDER BY子句，或者如果这个程序被
+称为UPDATE或DELETE的语句调用，那么ppOrderBy为NULL。
 ** If an index can be used so that the natural output order of the table
 ** scan is correct for the ORDER BY clause, then that index is used and
 ** *ppOrderBy is set to NULL.  This is an optimization that prevents an
@@ -7126,6 +7530,9 @@ ORDER BY集处理
 如果一个索引可以用来使表扫描的自然输出顺序是正确的ORDER BY集，
 则该索引的使用和ppOrderBy设置为NULL。这是阻止的结果，如果已经存
 在的指数适合于ORDER BY子句中设置的不必要的排序优化..
+**如果一个索引可以用来使表扫描的自然输出顺序对ORDER BY子句是正确的，
+则该使用的索引和ppOrderBy设置为NULL。如果一个适合ORDER BY子句的索引已经存在，
+这种优化可以阻止不必要的结果集。
 **
 ** If the where clause loops cannot be arranged to provide the correct
 ** output order, then the *ppOrderBy is unchanged.
@@ -7136,7 +7543,7 @@ ORDER BY集处理
 WhereInfo *sqlite3WhereBegin(
   Parse *pParse,        /* The parser context  解析器的环境*/
   SrcList *pTabList,    /* A list of all tables to be scanned  要扫描的所有表的列表*/
-  Expr *pWhere,         /* The WHERE clause  WHERE集*/
+  Expr *pWhere,         /* The WHERE clause  WHERE子句*/
   ExprList **ppOrderBy, /* An ORDER BY clause, or NULL  ORDER BY集，或NULL*/
   ExprList *pDistinct,  /* The select-list for DISTINCT queries - or NULL  选择列表中的DISTINCT查询 - 或NULL*/
   u16 wctrlFlags,       /* One of the WHERE_* flags defined in sqliteInt.h  一个在sqliteInt.h定义的WHERE_*标志 */
@@ -7158,7 +7565,7 @@ WhereInfo *sqlite3WhereBegin(
 
   /* The number of tables in the FROM clause is limited by the number of
   ** bits in a Bitmask 
-  在from子集中表的数量被bitmask中的比特数量
+  在from子句中表的数量被限制在bitmask中的比特数量
 =======
 **
 ** ORDER BY子句处理
@@ -7203,15 +7610,14 @@ WhereInfo *sqlite3WhereBegin(
     sqlite3ErrorMsg(pParse, "at most %d tables in a join", BMS);	//提示连接中最多只能有BMS个表
     return 0;
   }
-
-  /* This function normally generates a nested loop for all tables in 
+ /* This function normally generates a nested loop for all tables in 
   ** pTabList.  But if the WHERE_ONETABLE_ONLY flag is set, then we should
   ** only generate code for the first table in pTabList and assume that
   ** any cursors associated with subsequent tables are uninitialized.
 <<<<<<< HEAD
-  该功能通常会产生一个嵌套循环中pTabList所有表。
-  但如果WHERE_ONETABLE_ONLY标志设置，那么我们应该只
-  生成代码为pTabList第一个表，并假定随后表相关的任何游标初始化。
+  该功能通常会为pTabList中德所有表产生一个嵌套循环。
+  但如果设置了WHERE_ONETABLE_ONLY标记，那么我们应该只
+  为pTabList第一个表生成代码而且认为与后续表相关联的任何游标不会初始化。
 =======
   **
   ** 这个函数一般是为在pTabList中的所有表生成一个嵌套循环。
@@ -7277,7 +7683,7 @@ WhereInfo *sqlite3WhereBegin(
   ** subexpression is separated by an AND operator.
 <<<<<<< HEAD
 
-  分裂WHERE集成独立的集表达式，其中每个集表达式由一个AND运算分离。
+  分裂WHERE子句成独立的子表达式，其中每个子表达式由一个AND运算符分隔。
 =======
   **
   ** 把WHERE子句通过AND运算符分割成多个子表达式。
@@ -7291,7 +7697,7 @@ WhereInfo *sqlite3WhereBegin(
   /* Special case: a WHERE clause that is constant.  Evaluate the
   ** expression and either jump over all of the code or fall thru.
 <<<<<<< HEAD
-  特殊情况：一个WHERE子集是恒定的。计算表达式，要么跳过所有的代码或下降。
+  特殊情况：一个WHERE子句是恒定的。计算表达式，接着要么跳过所有的代码或下降。
 =======
   **
   ** 特殊情况:一个WHERE子句是恒定的。对表达式求值时，要么跳过所有的代码，要么通过
@@ -7318,6 +7724,7 @@ WhereInfo *sqlite3WhereBegin(
   ** of the join.  Subtracting one from the right table bitmask gives a
   ** bitmask for all tables to the left of the join.  Knowing the bitmask
   ** for all tables to the left of a left join is important.  Ticket #3015.
+  **
   当指定位掩码值FROM子句光标，它一定是这样的，
   如果X是位掩码N个FROM子集中短期的，则掩码为所有FROM子集条件的N个任期的左
 为（X-1）。从LEFT的ON子句表达式JOIN可以使用它Expr.iRightJoinTable
@@ -7325,18 +7732,18 @@ WhereInfo *sqlite3WhereBegin(
 位掩码为所有表的加盟左侧。知道位掩码对于所有表左连接的左侧
 是重要的。票务＃3015
   **
-  ** 当把位掩码值分配给FROM子句游标时，如果X是N-th FROM子句项的位掩码，
+  ** 当把位掩码值分配给FROM子句游标时，情况必须是这样，即如果X是N-th FROM子句项的位掩码，
   ** 那么所有FROM子句terms的左边的第N项的位掩码是(X-1)。
   ** 一个来自于LEFT JOIN的ON子句的表达式可以使用它自己的Expr.iRightJoinTable值来查找这个连接的右表的位掩码。
   ** 从右边表的位掩码中减去一，把这个位掩码给连接的左边的所有的表。
-  ** 要知道一个左联接左边的所有表的位掩码是很重要的。
+  ** 要知道所有左连接的左表的位掩码是很重要的。
   **
   ** Configure the WhereClause.vmask variable so that bits that correspond
   ** to virtual table cursors are set. This is used to selectively disable 
   ** the OR-to-IN transformation in exprAnalyzeOrTerm(). It is not helpful
   ** with virtual tables.
-  配置WhereClause.vmask变量，以便对应于虚表指针位设置。
-  这是用来选择性地禁用exprAnalyzeOrTerm的或到IN变换（）。
+  设置WhereClause.vmask变量，以便设置对应的虚表指针。
+  这是用来选择性地禁用exprAnalyzeOrTerm()的或到IN变换。
   这对虚拟表是没有帮助的。
   **
   ** 设置WhereClause.vmask变量以便bits与设置好的虚拟表的游标相一致。
@@ -7350,6 +7757,7 @@ WhereInfo *sqlite3WhereBegin(
   需要注意的是位掩码为所有pTabList-> NSRC表中pTabList，
   不只是第一个nTabList表创建。nTabList通常等于pTabList-> NSRC但可能缩短为1，
   如果该WHERE_ONETABLE_ONLY标志被设置。
+  **注意：是为pTabList中德所有pTabList-> NSRC表生成掩位码，而不仅仅是第一个nTabList表
 =======
   **
   ** 注意:不只是为第一个nTabList表创建位掩码，而是为在pTabList中的所有pTabList->nSrc表创建。
@@ -7375,7 +7783,6 @@ WhereInfo *sqlite3WhereBegin(
     }
   }
 #endif
-
   /* Analyze all of the subexpressions.  Note that exprAnalyze() might
   ** add new virtual terms onto the end of the WHERE clause.  We do not
   ** want to analyze these virtual terms, so start analyzing at the end

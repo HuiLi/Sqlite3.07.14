@@ -809,7 +809,7 @@ void sqlite3StrAccumReset(StrAccum *p){
 }
 
 /*
-** Initialize a string accumulator;初始化一个字符串蓄电池
+** Initialize a string accumulator;初始化一个字符串累加器
 */
 void sqlite3StrAccumInit(StrAccum *p, char *zBase, int n, int mx){
   p->zText = p->zBase = zBase;

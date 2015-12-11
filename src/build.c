@@ -2037,15 +2037,17 @@ void sqlite3CreateView(
 /*
 ** The Table structure pTable is really a VIEW.  Fill in the names of
 ** the columns of the view in the pTable structure.  Return the number
-** of errors.  If an error is seen leave an error message in pParse->zErrMsg.【表结构pTable真是一个视图。】
+** of errors.  If an error is seen leave an error message in pParse->zErrMsg.
+** 参数pTable是一个已经创建的视图，在这个视图结构中填充列名
+** 错误的信息被保存在pParse->zErrMsg
 */
 int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
-	Table *pSelTab;   /* A fake table from which we get the result set 【】*/
+	Table *pSelTab;   /* A fake table from which we get the result set */
 	Select *pSel;     /* Copy of the SELECT that implements the view */
-	int nErr = 0;     /* Number of errors encountered【遇到的错误数量】 */
-	int n;            /* Temporarily holds the number of cursors assigned【暂时持有游标的数量分配】 */
-	sqlite3 *db = pParse->db;  /* Database connection for malloc errors 【内存分配中数据库连接错误】*/
-	int(*xAuth)(void*, int, const char*, const char*, const char*, const char*);
+	int nErr = 0;     /* Number of errors encountered  遇到的错误数量 */
+	int n;            /* Temporarily holds the number of cursors assigned 暂时持有游标的数量分配 */
+	sqlite3 *db = pParse->db;  /* Database connection for malloc errors  内存分配中数据库连接错误*/
+	int(*xAuth)(void*, int, const char*, const char*, const char*, const char*);  //通用函数指针模板
 
 	assert(pTable);
 
@@ -2053,14 +2055,15 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 	if (sqlite3VtabCallConnect(pParse, pTable)){
 		return SQLITE_ERROR;
 	}
-	if (IsVirtual(pTable)) return 0;
+	if (IsVirtual(pTable)) return 0;    //如果是虚拟视图，退出函数
 #endif
 
 #ifndef SQLITE_OMIT_VIEW
 	/* A positive nCol means the columns names for this view are
-	** already known.【正数nCol意思是这个视图的列名已经是知道的。】
-	*/
-	if (pTable->nCol>0) return 0;
+	** already known.
+	** 正数nCol参数的意思是列名已经存在了（已经获取到了，这个函数的功能就是获取视图的列名）
+	*/ 
+	if (pTable->nCol>0) return 0;     //如果已经获取列名，则直接退出
 
 	/* A negative nCol is a special marker meaning that we are currently
 	** trying to compute the column names.  If we enter this routine with
@@ -2076,17 +2079,17 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 	**     CREATE TABLE main.ex1(a);
 	**     CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
 	**     SELECT * FROM temp.ex1;
-	【负数nCol是一个特殊的标记，意思是我们目前试着去计算列名。如果我们带着这个负数进入这个例程，它的意思是来自于一个循环的两个或更多的视图，就像下面这样：
-	CREATE VIEW one AS SELECT * FROM two;
-	CREATE VIEW two AS SELECT * FROM one;
-	实际上，上面这个错误先在是被捕获了在达到这个点之前。但是接下来的测试任然很重要，因为接下来这个情况那个错误会发生的。
-	CREATE TABLE main.ex1(a);
-	CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
-	SELECT * FROM temp.ex1;
-	】
+	** 负数nCol是一个特殊的标记，意思是我们目前试着去计算列名。如果我们带着这个负数进入这个例程，它的意思是来自于一个循环的两个或更多的视图，就像下面这样：
+	** CREATE VIEW one AS SELECT * FROM two;
+	** CREATE VIEW two AS SELECT * FROM one;
+	** 实际上，上面这个错误先在是被捕获了在达到这个点之前。但是接下来的测试任然很重要，因为接下来这个情况那个错误会发生的。
+	** CREATE TABLE main.ex1(a);
+	** CREATE TEMP VIEW ex1 AS SELECT a FROM ex1;
+	** SELECT * FROM temp.ex1;
+
 	*/
-	if (pTable->nCol<0){
-		sqlite3ErrorMsg(pParse, "view %s is circularly defined", pTable->zName);
+	if (pTable->nCol<0){   
+		sqlite3ErrorMsg(pParse, "view %s is circularly defined", pTable->zName); //视图被循环的定义
 		return 1;
 	}
 	assert(pTable->nCol >= 0);
@@ -2095,20 +2098,22 @@ int sqlite3ViewGetColumnNames(Parse *pParse, Table *pTable){
 	** Note that the call to sqlite3ResultSetOfSelect() will expand any
 	** "*" elements in the results set of the view and will assign cursors
 	** to the elements of the FROM clause.  But we do not want these changes
-	** to be permanent.  So the computation is done on a copy of the SELECT
-	** statement that defines the view.【如果我们打到了这个最大极限，意味着我们需要计算这个表名。
-	要注意的是，调用sqlite3ResultSetOfSelect()将增加一些"*"元素在设定视图的结果中，并且将分派光标对这些FROM条款的元素。
-	但是我们不想这些改变时永久的。因此计算是要做的在这个SELECT语句的副本上，用它来定义视图。】
+	** to be permanent（永久的）.  So the computation is done on a copy of the SELECT
+	** statement that defines the view.
+	** 如果我们打到了这个最大极限，意味着我们需要计算这个表名。
+	** 要注意的是，在视图结果集中，调用sqlite3ResultSetOfSelect()将展开任何一个'*'元素
+	** ，并且将为来自FROM子句的元素设置游标。
+	** 但是我们不想这些改变时永久的。因此计算要被做在这个定义视图的SELECT语句的副本上（也就是在副本上做下面的这个函数的操作）。
 	*/
-	assert(pTable->pSelect);
-	pSel = sqlite3SelectDup(db, pTable->pSelect, 0);
-	if (pSel){
-		u8 enableLookaside = db->lookaside.bEnabled;
+	assert(pTable->pSelect);   //断言这个定义视图的语句带有SELECT子句
+	pSel = sqlite3SelectDup(db, pTable->pSelect, 0);   //获取这个SELECT子句的副本，其中变量pSel代表的就是这个子句的副本，其中Dup（Duplicate 复制）的简写
+	if (pSel){   //如果副本确实是存在的，也就是说确实是有SELECT子句
+		u8 enableLookaside = db->lookaside.bEnabled;   
 		n = pParse->nTab;
-		sqlite3SrcListAssignCursors(pParse, pSel->pSrc);
+		sqlite3SrcListAssignCursors(pParse, pSel->pSrc);   //为来自FROM子句的元素设置游标
 		pTable->nCol = -1;
 		db->lookaside.bEnabled = 0;
-#ifndef SQLITE_OMIT_AUTHORIZATION
+#ifndef SQLITE_OMIT_AUTHORIZATION     
 		xAuth = db->xAuth;
 		db->xAuth = 0;
 		pSelTab = sqlite3ResultSetOfSelect(pParse, pSel);
@@ -2168,7 +2173,8 @@ static void sqliteViewResetAll(sqlite3 *db, int idx){
 ** This function is called by the VDBE to adjust the internal schema
 ** used by SQLite when the btree layer moves a table root page. The
 ** root-page of a table or index in database iDb has changed from iFrom
-** to iTo.【当btree层移动一个表根页时，这个函数是由VDBE调整内部模式调用。一个表的root-page或数据库中的索引由iFrom改变到iTo。】
+** to iTo.
+** 当btree的层调整移动了一个表的根页面时，这个函数被VDBE调用去调整SQLITE的内部模式。一个表的root-page或数据库中的索引由iFrom改变到iTo。
 **
 ** Ticket #1728:  The symbol table might still contain information
 ** on tables and/or indices that are the process of being deleted.
@@ -2180,10 +2186,10 @@ static void sqliteViewResetAll(sqlite3 *db, int idx){
 ** We must continue looping until all tables and indices with
 ** rootpage==iFrom have been converted to have a rootpage of iTo
 ** in order to be certain that we got the right one.
-【标签#1728：符号表仍可能包含信息表和/或索引，在它们存在的过程中被删除了。
-如果你是不幸的，那些中的一个删除索引或表，它们也许有相同的根页码数，正如这个真实的被迁移的表或索引。
-因此我们不能停止搜索第一个相匹配后，因为第一个相匹配项可能是被删除的索引或表中的其中一个和不是事实上正在移动的表/索引。
-我们必须继续循环直到所有的满足rootpage==iFrom条件的表和索引被转换为有一个iTo的页码，这样做是为了确保我们得到正确的一个结果。】
+** 标签#1728：符号表仍可能包含信息表和/或索引，但是他们确实是被删除了。
+** 如果你是不幸的，那些中的一个删除索引或表，它们也许有相同的根页码数，正如这个真实的被迁移的表或索引。
+** 因此我们不能停止搜索第一个相匹配后，因为第一个相匹配项可能是被删除的索引或表中的其中一个和不是事实上正在移动的表/索引。
+** 我们必须继续循环直到所有的满足rootpage==iFrom条件的表和索引被转换为有一个iTo的页码，这样做是为了确保我们得到正确的一个结果。
 */
 #ifndef SQLITE_OMIT_AUTOVACUUM
 void sqlite3RootPageMoved(sqlite3 *db, int iDb, int iFrom, int iTo){
@@ -2214,8 +2220,9 @@ void sqlite3RootPageMoved(sqlite3 *db, int iDb, int iFrom, int iTo){
 ** Write code to erase the table with root-page iTable from database iDb.
 ** Also write code to modify the sqlite_master table and internal schema
 ** if a root-page of another table is moved by the btree-layer whilst
-** erasing iTable (this can happen with an auto-vacuum database).【编写代码来删除这个表与来自于数据库iDb的根页iTable。
-并且编写代码来更新sqlite_master表和内部模式，如果另一个表的一个跟页被btree-layer迁移，则将清除页码iTable（这可能在一个auto-vacuum数据库中发生）】
+** erasing iTable (this can happen with an auto-vacuum database).
+** 编写代码来删除这个表与来自于数据库iDb的根页iTable。
+** 并且编写代码来更新sqlite_master表和内部模式，如果另一个表的一个跟页被btree-layer迁移，则将清除页码iTable（这可能在一个auto-vacuum数据库中发生）
 */
 static void destroyRootPage(Parse *pParse, int iTable, int iDb){
 	Vdbe *v = sqlite3GetVdbe(pParse);
@@ -2266,17 +2273,17 @@ static void destroyRootPage(Parse *pParse, int iTable, int iDb){
 */
 static void sqlite3ClearStatTables(
   Parse *pParse,         /* The parsing context */            //解析上下文
-  int iDb,               /* The database number */            //创建数据的个数
+  int iDb,               /* The database number */            //数据库的个数
   const char *zType,     /* "idx" or "tbl" */                 //指向索引或表
-  const char *zName      /* Name of index or table */         //指向索引或表的的命名空间
+  const char *zName      /* Name of index or table */         //表或者是索引的名字
 ){
   int i;
-  const char *zDbName = pParse->db->aDb[iDb].zName;
+  const char *zDbName = pParse->db->aDb[iDb].zName;  //语法解析上下文所指向的表或者索引的名字
   for(i=1; i<=3; i++){
     char zTab[24];
-    sqlite3_snprintf(sizeof(zTab),zTab,"sqlite_stat%d",i);     //
-    if( sqlite3FindTable(pParse->db, zTab, zDbName) ){
-      sqlite3NestedParse(pParse,
+    sqlite3_snprintf(sizeof(zTab),zTab,"sqlite_stat%d",i);     //  打印出现在的表是1或者2或者3
+    if( sqlite3FindTable(pParse->db, zTab, zDbName) ){        //寻找相应的表
+      sqlite3NestedParse(pParse,           //嵌套的删除表
         "DELETE FROM %Q.%s WHERE %s=%Q",
         zDbName, zTab, zType, zName
       );
@@ -2285,38 +2292,38 @@ static void sqlite3ClearStatTables(
 }
 
 /*
-** Generate code to drop a table.         //生成删除一个表的指令
+** Generate code to drop a table.         //执行删除DROP TABLE执行
 */
 void sqlite3CodeDropTable(Parse *pParse, Table *pTab, int iDb, int isView){
   Vdbe *v;
-  sqlite3 *db = pParse->db;
-  Trigger *pTrigger;
+  sqlite3 *db = pParse->db;   //指向当前语法解析的上下文
+  Trigger *pTrigger;   //定义一个触发器
   Db *pDb = &db->aDb[iDb];
 
-  v = sqlite3GetVdbe(pParse);
-  assert( v!=0 );
-  sqlite3BeginWriteOperation(pParse, 1, iDb);
+  v = sqlite3GetVdbe(pParse);  
+  assert( v!=0 );    //断言成功获取了VDBE
+  sqlite3BeginWriteOperation(pParse, 1, iDb);   //开始写操作
 
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  if( IsVirtual(pTab) ){
-    sqlite3VdbeAddOp0(v, OP_VBegin);
+  if( IsVirtual(pTab) ){  //判断表是否是虚表
+    sqlite3VdbeAddOp0(v, OP_VBegin);    //给VDBE增加操作OP_VBegin
   }
 #endif
 
-  /* Drop all triggers associated with the table being dropped. Code//删除所有和已经被删除的那些表相关联的未被删除的表的所有的触发器
+  /* Drop all triggers associated with the table being dropped. Code //删除所有与已经的删除的表相关联的触发器
   ** is generated to remove entries from sqlite_master and/or        //在有需求的情况下，移除来自Sqlite_master或sqlite_temp_mater条目的那部分代码
   ** sqlite_temp_master if required.
   */
-  pTrigger = sqlite3TriggerList(pParse, pTab);
-  while( pTrigger ){
-    assert( pTrigger->pSchema==pTab->pSchema || 
-        pTrigger->pSchema==db->aDb[1].pSchema );
-    sqlite3DropTriggerPtr(pParse, pTrigger);
-    pTrigger = pTrigger->pNext;
+  pTrigger = sqlite3TriggerList(pParse, pTab);   //指向触发器列表的指针
+  while( pTrigger ){  //当触发器列表确实是存在的时候
+    assert( pTrigger->pSchema==pTab->pSchema ||      //断言触发器确实是与表相关联的，这种检查是通过检查两者的模式是否相同
+        pTrigger->pSchema==db->aDb[1].pSchema );   
+    sqlite3DropTriggerPtr(pParse, pTrigger);   //循环的删除触发器列表的触发器
+    pTrigger = pTrigger->pNext;   //指向触发器列表的下一个位置，也就是指向下一个相关联的触发器
   }
 
 #ifndef SQLITE_OMIT_AUTOINCREMENT
-  /* Remove any entries of the sqlite_sequence table associated with    //移除sqlite_sequence表中与已删除的表相关联的把部分记录。
+  /* Remove any entries of the sqlite_sequence table associated with    //移除sqlite_sequence表中与已删除的表相关联的那部分记录。
   ** the table being dropped. This is done before the table is dropped   //在btree表被删除前这样做是防止sqlite_sequence表中需要移除删除的结果，因为这可能发生在auto-vacuum。
   ** at the btree level, in case the sqlite_sequence table needs to
   ** move as a result of the drop (can happen in auto-vacuum mode).
@@ -2359,41 +2366,41 @@ void sqlite3CodeDropTable(Parse *pParse, Table *pTab, int iDb, int isView){
 ** pName is the name of the table to be dropped.                             //pName是要删除的表的名称。
 */
 void sqlite3DropTable(Parse *pParse, SrcList *pName, int isView, int noErr){
-  Table *pTab;
-  Vdbe *v;
-  sqlite3 *db = pParse->db;
+  Table *pTab;   //指向当前要删除的表的指针，而pName是当前要删除的表的名字
+  Vdbe *v;   //需要VDBE引擎
+  sqlite3 *db = pParse->db;   //指向当前语法分析上下文中的数据库
   int iDb;
 
-  if( db->mallocFailed ){
-    goto exit_drop_table;
+  if( db->mallocFailed ){    //如果数据库的内存申请失败，直接跳转到另外的一个处理入口
+    goto exit_drop_table;   
   }
-  assert( pParse->nErr==0 );
-  assert( pName->nSrc==1 );
-  if( noErr ) db->suppressErr++;
+  assert( pParse->nErr==0 );       //断言上下文的处理过程中没有任何的错误
+  assert( pName->nSrc==1 );    //断言表名所指向的资源是唯一的
+  if( noErr ) db->suppressErr++;    
   pTab = sqlite3LocateTable(pParse, isView, 
-                            pName->a[0].zName, pName->a[0].zDatabase);
+                            pName->a[0].zName, pName->a[0].zDatabase);    //定位到这个表
   if( noErr ) db->suppressErr--;
 
-  if( pTab==0 ){
-    if( noErr ) sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);
-    goto exit_drop_table;
-  }
-  iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
-  assert( iDb>=0 && iDb<db->nDb );
+  if( pTab==0 ){  //如果当前根本没有表
+    if( noErr ) sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);    //进行名字核验之后确实是没有这个表
+    goto exit_drop_table;  //直接跳转到另一个处理入口
+  }  
+  iDb = sqlite3SchemaToIndex(db, pTab->pSchema);  
+  assert( iDb>=0 && iDb<db->nDb ); 
 
-  /* If pTab is a virtual table, call ViewGetColumnNames() to ensure   //如果pTab是一个虚拟的表，用ViewGetCoiumnNames()方法去创建它，并进行初始化。
+  /* If pTab is a virtual table, call ViewGetColumnNames() to ensure   //如果获取的当前表的指针指向的是一个虚表，则调用相关的视图处理函数去确定它已经被初始化了。
   ** it is initialized.
   */
-  if( IsVirtual(pTab) && sqlite3ViewGetColumnNames(pParse, pTab) ){
-    goto exit_drop_table;
+  if( IsVirtual(pTab) && sqlite3ViewGetColumnNames(pParse, pTab) ){  //如果确实是虚表，并且相关的视图处理函数已经对它进行了初始化
+    goto exit_drop_table;  //跳转到另一个处理入口
   }
-#ifndef SQLITE_OMIT_AUTHORIZATION
+#ifndef SQLITE_OMIT_AUTHORIZATION   //进行授权的检查，例如确定是有足够的权限删除表等
   {
     int code;
-    const char *zTab = SCHEMA_TABLE(iDb);
-    const char *zDb = db->aDb[iDb].zName;
+    const char *zTab = SCHEMA_TABLE(iDb);  
+    const char *zDb = db->aDb[iDb].zName;  
     const char *zArg2 = 0;
-    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb)){
+    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb)){     
       goto exit_drop_table;
     }
     if( isView ){
@@ -2429,38 +2436,38 @@ void sqlite3DropTable(Parse *pParse, SrcList *pName, int isView, int noErr){
   }
 
 #ifndef SQLITE_OMIT_VIEW
-  /* Ensure DROP TABLE is not used on a view, and DROP VIEW is not used      //确保不使用DROP TABLE视图，并且DROP VIEW 不用在这张表中。
+  /* Ensure DROP TABLE is not used on a view, and DROP VIEW is not used      //确保不使用DROP TABLE去删除视图，并且DROP VIEW也没有用于去删除表
   ** on a table.
   */
-  if( isView && pTab->pSelect==0 ){
-    sqlite3ErrorMsg(pParse, "use DROP TABLE to delete table %s", pTab->zName);
+  if( isView && pTab->pSelect==0 ){   //如果是视图，并且当前的表确实没有SELECT子句
+    sqlite3ErrorMsg(pParse, "use DROP TABLE to delete table %s", pTab->zName);   //发出错误信息:“使用DROP TABLE删除表”,不能去删除视图
     goto exit_drop_table;
   }
-  if( !isView && pTab->pSelect ){
-    sqlite3ErrorMsg(pParse, "use DROP VIEW to delete view %s", pTab->zName);
+  if( !isView && pTab->pSelect ){  //如果不是视图，并且没有SELECT子句
+    sqlite3ErrorMsg(pParse, "use DROP VIEW to delete view %s", pTab->zName);  //发出错误信息："使用DROP VIEW删除视图"，不能去删除表
     goto exit_drop_table;
   }
 #endif
 
-  /* Generate code to remove the table from the master table             //从硬盘的主表中删除生成数据库的代码
+  /* Generate code to remove the table from the master table             //彻底从磁盘上删除表
   ** on disk.
   */
   v = sqlite3GetVdbe(pParse);
   if( v ){
-    sqlite3BeginWriteOperation(pParse, 1, iDb);
-    sqlite3ClearStatTables(pParse, iDb, "tbl", pTab->zName);
-    sqlite3FkDropTable(pParse, pName, pTab);
-    sqlite3CodeDropTable(pParse, pTab, iDb, isView);
+    sqlite3BeginWriteOperation(pParse, 1, iDb);  //具备写操作权限
+    sqlite3ClearStatTables(pParse, iDb, "tbl", pTab->zName);  //清除保存的所有的表状态
+    sqlite3FkDropTable(pParse, pName, pTab);   //删除表
+    sqlite3CodeDropTable(pParse, pTab, iDb, isView);   
   }
 
 exit_drop_table:
-  sqlite3SrcListDelete(db, pName);
+  sqlite3SrcListDelete(db, pName);  
 }
 
 /*
 ** This routine is called to create a new foreign key on the table     //调用进程从当前正在建的表中创建一个新的外键约束。
-** currently under construction.  pFromCol determines which columns    //pFromCol决定哪一列指向当前表的外键。
-** in the current table point to the foreign key.  If pFromCol==0 then   //如果pFromCol==0，那么连接最后一列插入的主键。
+** currently under construction.  pFromCol determines which columns    //pFromCol决定哪一列指向当前表的外键（也就是说哪一列将是外键）
+** in the current table point to the foreign key.  If pFromCol==0 then   //如果pFromCol==0，那么最后插入的一列将为外键。
 ** connect the key to the last column inserted.  pTo is the name of      //将前面提及的表命名为pTo。
 ** the table referred to.  pToCol is a list of tables in the other    //pToCol作为pTo表的外键指向的表。
 ** pTo table that the foreign key points to.  flags contains all      
@@ -2475,37 +2482,37 @@ exit_drop_table:
 */
 void sqlite3CreateForeignKey(
   Parse *pParse,       /* Parsing context */              //解析上下文
-  ExprList *pFromCol,  /* Columns in this table that point to other table */    //创建这个表中指向另一表的列。
+  ExprList *pFromCol,  /* Columns in this table that point to other table */    //创建这个表中指向另一表的列（也就是所谓的外键）。
   Token *pTo,          /* Name of the other table */                      //创建新表的名字
   ExprList *pToCol,    /* Columns in the other table */                 //创建另一表的列指向
   int flags            /* Conflict resolution algorithms. */             //添加冲突解决算法的数目。
 ){
-  sqlite3 *db = pParse->db;
+  sqlite3 *db = pParse->db;   //语法分析上下文所指向的数据库
 #ifndef SQLITE_OMIT_FOREIGN_KEY
-  FKey *pFKey = 0;
+  FKey *pFKey = 0;     
   FKey *pNextTo;
-  Table *p = pParse->pNewTable;
+  Table *p = pParse->pNewTable;   //上下文创建的新表
   int nByte;
   int i;
-  int nCol;
+  int nCol;     //标记列的数目
   char *z;
 
-  assert( pTo!=0 );
-  if( p==0 || IN_DECLARE_VTAB ) goto fk_end;
-  if( pFromCol==0 ){
+  assert( pTo!=0 );    //断言这个即将要添加外键的表确实是存在，如果不存在，这个函数式没有任何意义的
+  if( p==0 || IN_DECLARE_VTAB ) goto fk_end;    //如果上下文指向的当前表不存在，调出这个添加外键处理函数
+  if( pFromCol==0 ){    //外键为0，意味着要找到这个表最后追加的一列作为外键
     int iCol = p->nCol-1;
-    if( NEVER(iCol<0) ) goto fk_end;
-    if( pToCol && pToCol->nExpr!=1 ){
+    if( NEVER(iCol<0) ) goto fk_end;    //列小于0说明根本没有创建表，退出函数
+    if( pToCol && pToCol->nExpr!=1 ){    //如果确实存在外键指向，并且所指向的不是另一个表的一列时
       sqlite3ErrorMsg(pParse, "foreign key on %s"
-         " should reference only one column of table %T",
+         " should reference only one column of table %T",   //输出错误信息，外键应该指向另一个表的一列，这显然是理所当然的
          p->aCol[iCol].zName, pTo);
-      goto fk_end;
+      goto fk_end;   //如果发生上面的情况，退出函数
     }
     nCol = 1;
-  }else if( pToCol && pToCol->nExpr!=pFromCol->nExpr ){
+  }else if( pToCol && pToCol->nExpr!=pFromCol->nExpr ){ 
     sqlite3ErrorMsg(pParse,
         "number of columns in foreign key does not match the number of "
-        "columns in the referenced table");
+        "columns in the referenced table");   //如果确实已经指定了外键，并且锁指向表的列也已经存在，但是二者的表达式数目是不同的，则输出错误的信息
     goto fk_end;
   }else{
     nCol = pFromCol->nExpr;
@@ -2591,7 +2598,7 @@ fk_end:
 ** This routine is called when an INITIALLY IMMEDIATE or INITIALLY DEFERRED          //程序执行包含有INITIALLY IMMEDIA或INITIALLY DEFERRED 内容的外键定义。
 ** clause is seen as part of a foreign key definition.  The isDeferred    
 ** parameter is 1 for INITIALLY DEFERRED and 0 for INITIALLY IMMEDIATE.    //INITIALLY DEFERRED的isDeferred参数为1,INITIALLY IMMEDIATE的isDeferred参数为0。
-** The behavior of the most recently created foreign key is adjusted     //对刚创建的外键做相应的调整。
+** The behavior of the most recently created foreign key is adjusted        //对刚创建的外键做相应的调整。
 ** accordingly.
 */
 void sqlite3DeferForeignKey(Parse *pParse, int isDeferred){
@@ -2724,42 +2731,42 @@ static void sqlite3RefillIndex(Parse *pParse, Index *pIndex, int memRootPage){
 
 /*
 ** Create a new index for an SQL table.  pName1.pName2 is the name of the index //为SQL表创建新的索引
-** and pTblList is the name of the table that is to be indexed.  Both will     //pName1.pName2是这个索引的名字，pTblList是索引的表的名称。
-** be NULL for a primary key or an index that is created to satisfy a    //创建的用于满足UNIQUE约束的主键或索引都是空的。
-** UNIQUE constraint.  If pTable and pIndex are NULL, use pParse->pNewTable   //如果pTable和pIndex是空的，用pParse->pNewTable作为表的索引。
-** as the table to be indexed.  pParse->pNewTable is a table that is          //pParse->pNewTable表是当前使用CREATE TABLE声明构建的表。
+** and pTblList is the name of the table that is to be indexed.  Both will     //pName1.pName2是这个索引的名字，pTblList是被索引的表的名字。
+** be NULL for a primary key or an index that is created to satisfy a          //创建的用于满足UNIQUE约束的主键或索引都是空的。
+** UNIQUE constraint.  If pTable and pIndex are NULL, use pParse->pNewTable   //如果pTable和pIndex是空的，用pParse->pNewTable作为被索引的表（换句话说就是当pTable和pIndex均为空的时候，采用现在正在创建的表作为要建立索引的表）。
+** as the table to be indexed.  pParse->pNewTable is a table that is          //pParse->pNewTable是一个正在使用CREATE TABLE语句去构建的表。
 ** currently being constructed by a CREATE TABLE statement.
 **
-** pList is a list of columns to be indexed.  pList will be NULL if this     //pList是列索引的列表。
+** pList is a list of columns to be indexed.  pList will be NULL if this     //pList要被索引的列。
 ** is a primary key or unique-constraint on the most recent column added     //如果这个主键或唯一约束最近添加到正在建设的表中，pList将是NULL。
 ** to the table currently under construction.  
 **
-** If the index is created successfully, return a pointer to the new Index    //如果索引创建成功，对新构建的索引返回指向。
-** structure. This is used by sqlite3AddPrimaryKey() to mark the index           //当Index.autoIndex==2时，使用sqlite3AddPrimaryKey()方法标记这个索引，作为这个表的主键。
+** If the index is created successfully, return a pointer to the new Index    //如果索引创建成功，将返回一个新的索引结构。
+** structure. This is used by sqlite3AddPrimaryKey() to mark the index        //当Index.autoIndex==2时，使用sqlite3AddPrimaryKey()方法标记这个索引，作为这个表的主键。
 ** as the tables primary key (Index.autoIndex==2).
 */
 Index *sqlite3CreateIndex(
   Parse *pParse,     /* All information about this parse */                 //关于这个语法解析器的所有信息
   Token *pName1,     /* First part of index name. May be NULL */            //索引名称的第一部分，这部分可能是空的。
   Token *pName2,     /* Second part of index name. May be NULL */           //索引名称的第二部分，可能是空的。
-  SrcList *pTblName, /* Table to index. Use pParse->pNewTable if 0 */       //这个表的索引，当为0时用pParse->pNewTable表示
-  ExprList *pList,   /* A list of columns to be indexed */                  //列索引的列表
+  SrcList *pTblName, /* Table to index. Use pParse->pNewTable if 0 */       //被索引的表的名字，当为0时用pParse->pNewTable表示被索引的表
+  ExprList *pList,   /* A list of columns to be indexed */                  //被索引的列
   int onError,       /* OE_Abort, OE_Ignore, OE_Replace, or OE_None */       //关于OE_Abort、OE_Ignore OE_Replace或OE_None的参数
   Token *pStart,     /* The CREATE token that begins this statement */       //CREATE指令开始这样的声明
   Token *pEnd,       /* The ")" that closes the CREATE INDEX statement */     //当出现）时关闭CREATE INDEX语句
-  int sortOrder,     /* Sort order of primary key when pList==NULL */       //当pList==NULL主键的排序顺序
+  int sortOrder,     /* Sort order of primary key when pList==NULL */       //当被索引的列为空的时候，那么会去排序主键
   int ifNotExist     /* Omit error if index already exists */               //如果索引已经存在忽略错误
 ){
   Index *pRet = 0;     /* Pointer to return */                               //指针返回
-  Table *pTab = 0;     /* Table to be indexed */                           //表索引
+  Table *pTab = 0;     /* Table to be indexed */                           //被索引的表（也就是将要创建索引的表）
   Index *pIndex = 0;   /* The index to be created */                       //要创建的索引
   char *zName = 0;     /* Name of the index */                             //索引的名称
-  int nName;           /* Number of characters in zName */                //在zName的字符数
+  int nName;           /* Number of characters in zName */                //zName（索引名字）的字符数
   int i, j;
   Token nullId;        /* Fake token for an empty ID list */             //假令牌空ID列表
-  DbFixer sFix;        /* For assigning database names to pTable */      //为pTable指定的数据库的名称
+  DbFixer sFix;        /* For assigning database names to pTable */      //为pTable指定数据库的名称
   int sortOrderMask;   /* 1 to honor DESC in index.  0 to ignore. */     //在索引中出现1时降序排列，0的时候升序排列
-  sqlite3 *db = pParse->db;
+  sqlite3 *db = pParse->db;                                                    //语法分析上下文所指向的数据库
   Db *pDb;             /* The specific table containing the indexed database */     //包含索引数据库的具体的表
   int iDb;             /* Index of the database that is being written */            //记录数据库的索引
   Token *pName = 0;    /* Unqualified name of the index to create */                //创建索引的不合格的名称
@@ -2771,35 +2778,35 @@ Index *sqlite3CreateIndex(
   assert( pStart==0 || pEnd!=0 ); /* pEnd must be non-NULL if pStart is */     //pStart为0或pEnd不为0时
   assert( pParse->nErr==0 );      /* Never called with prior errors */         //当变量 pParse->nErr为0时，声明这一变量。
   if( db->mallocFailed || IN_DECLARE_VTAB ){
-    goto exit_create_index;
+    goto exit_create_index;    //如果数据库内存分配失败，跳转到另一个处理入口
   }
   if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){
-    goto exit_create_index;
+    goto exit_create_index;   //没有切换到读表模式时候，退出函数的执行
   }
 
   /*
   ** Find the table that is to be indexed.  Return early if not found.   //找到索引的表。如果没有发现提前返回。
   */
-  if( pTblName!=0 ){
+  if( pTblName!=0 ){   //索引的表确实是存在的
 
     /* Use the two-part index name to determine the database           //使用两部分的索引名称来确定数据库搜索表。
     ** to search for the table. 'Fix' the table name to this db        //修复这个这个数据库查找表的表名。
     ** before looking up the table.
     */
-    assert( pName1 && pName2 );
-    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);
-    if( iDb<0 ) goto exit_create_index;
-    assert( pName && pName->z );
+    assert( pName1 && pName2 );   //断言索引的两段表名是存在的，这样就保证了当索引不存在的时候提前退出这个函数
+    iDb = sqlite3TwoPartName(pParse, pName1, pName2, &pName);    //根据两段表名函数返回找到的数据库    
+    if( iDb<0 ) goto exit_create_index;   //说明不存在这个数据库，直接退出函数
+    assert( pName && pName->z );   //断言这个被创建的索引名是合法的，如果不合法，直接退出
 
 #ifndef SQLITE_OMIT_TEMPDB
     /* If the index name was unqualified, check if the table    //如果索引名称不合格,检查表是否是是一个临时表。
     ** is a temp table. If so, set the database to 1. Do not do this      //如果是这样,将数据库设置为1。
     ** if initialising a database schema.                                 //如果不是这样，初始化数据库模式。
     */
-    if( !db->init.busy ){
-      pTab = sqlite3SrcListLookup(pParse, pTblName);
-      if( pName2->n==0 && pTab && pTab->pSchema==db->aDb[1].pSchema ){
-        iDb = 1;
+    if( !db->init.busy ){   //如果数据库的初始化工作已经完成
+      pTab = sqlite3SrcListLookup(pParse, pTblName);    //查找索引表
+      if( pName2->n==0 && pTab && pTab->pSchema==db->aDb[1].pSchema ){    //确定其模式
+        iDb = 1;    //被索引的表是一个临时表，将其数据库设置为1
       }
     }
 #endif
@@ -2811,13 +2818,13 @@ Index *sqlite3CreateIndex(
       ** sqlite3FixSrcList can never fail. */             //因为解析器构造的pTblName是单一标示符，从而sqlite3FixSrcList永远不会失效。
       assert(0);
     }
-    pTab = sqlite3LocateTable(pParse, 0, pTblName->a[0].zName, 
+    pTab = sqlite3LocateTable(pParse, 0, pTblName->a[0].zName,     //定位这个被索引的表
         pTblName->a[0].zDatabase);
-    if( !pTab || db->mallocFailed ) goto exit_create_index;
-    assert( db->aDb[iDb].pSchema==pTab->pSchema );
+    if( !pTab || db->mallocFailed ) goto exit_create_index;   //如果不存在或者数据库内存分配失败，停止执行当前创建索引函数
+    assert( db->aDb[iDb].pSchema==pTab->pSchema );    //断言数据库要创建表的模式和索引表的模式是相同的
   }else{
-    assert( pName==0 );
-    assert( pStart==0 );
+    assert( pName==0 );  
+    assert( pStart==0 ); 
     pTab = pParse->pNewTable;
     if( !pTab ) goto exit_create_index;
     iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
@@ -2857,35 +2864,35 @@ Index *sqlite3CreateIndex(
   ** dealing with a primary key or UNIQUE constraint.  We have to invent our     //如果pName为0意味着我们正在处理一个主键或唯一约束。我们必须创建自己的名称。
   ** own name.
   */
-  if( pName ){
-    zName = sqlite3NameFromToken(db, pName);
-    if( zName==0 ) goto exit_create_index;
-    assert( pName->z!=0 );
-    if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){
+  if( pName ){    //索引的名字是合法的
+    zName = sqlite3NameFromToken(db, pName);   //将索引的名字转化为符号表中的符号
+    if( zName==0 ) goto exit_create_index;    //如果符号为空，则意味着索引名是没有的或者不合法的，直接退出函数
+    assert( pName->z!=0 );     //断言索引名是合法的
+    if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){   
       goto exit_create_index;
     }
-    if( !db->init.busy ){
-      if( sqlite3FindTable(db, zName, 0)!=0 ){
-        sqlite3ErrorMsg(pParse, "there is already a table named %s", zName);
-        goto exit_create_index;
-      }
+    if( !db->init.busy ){    //数据库已经初始化完成
+      if( sqlite3FindTable(db, zName, 0)!=0 ){    //寻找表
+        sqlite3ErrorMsg(pParse, "there is already a table named %s", zName);    //如果索引名和表名冲突发出错误消息：已经有表被命名为当前的名字
+        goto exit_create_index;   //退出函数，跳转到其他的处理入口
+      }  
     }
-    if( sqlite3FindIndex(db, zName, pDb->zName)!=0 ){
+    if( sqlite3FindIndex(db, zName, pDb->zName)!=0 ){    //寻找索引
       if( !ifNotExist ){
-        sqlite3ErrorMsg(pParse, "index %s already exists", zName);
+        sqlite3ErrorMsg(pParse, "index %s already exists", zName);   //发现索引已经存在，发送错误消息
       }else{
-        assert( !db->init.busy );
-        sqlite3CodeVerifySchema(pParse, iDb);
+        assert( !db->init.busy );   //断言数据库的初始化工作已经完成
+        sqlite3CodeVerifySchema(pParse, iDb);   
       }
       goto exit_create_index;
     }
-  }else{
+  }else{    //我们现在处理的谁一个主键或者是唯一性约束
     int n;
     Index *pLoop;
     for(pLoop=pTab->pIndex, n=1; pLoop; pLoop=pLoop->pNext, n++){}
-    zName = sqlite3MPrintf(db, "sqlite_autoindex_%s_%d", pTab->zName, n);
+    zName = sqlite3MPrintf(db, "sqlite_autoindex_%s_%d", pTab->zName, n);   //输出被索引的表的索引名，此时的索引的名字是我们自己创建的
     if( zName==0 ){
-      goto exit_create_index;
+      goto exit_create_index;   //索引名为空说明索引根本是不存在的
     }
   }
 
