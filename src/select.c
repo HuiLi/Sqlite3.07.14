@@ -1863,21 +1863,12 @@ static int multiSelect(
 	** the last (right-most) SELECT in the series may have an ORDER BY or LIMIT.
 	**确保之前的查询语句中没有任何ORDER BY 或者LIMIT。只有在序列中的最后一个(或最右)查询语句可能有ORDER BY或者LIMIT。
 	*/
-<<<<<<< HEAD
 	assert(p && p->pPrior);  /* Calling function guarantees this much 插入断点判断是否有优先SELECT*/
 	db = pParse->db;	/*将语法解析树中的数据库连接赋值给db*/
 	pPrior = p->pPrior;	/*将SELECT中优先级赋值给pPrior*/
 	assert(pPrior->pRightmost != pPrior);	/*插入断点，判断优先级的最右边表达式不是当前优先SELECT*/
 	assert(pPrior->pRightmost == p->pRightmost);	/*插入断点，判断优先级的最右边表达式是当前优先SELECT的最右边SELECT*/
 	dest = *pDest;	/*将如何处理结果集的结构体赋值给dest*/
-=======
-	assert(p && p->pPrior);  /* Calling function guarantees this much 保证有足够的调用函数*/
-	db = pParse->db;
-	pPrior = p->pPrior;
-	assert(pPrior->pRightmost != pPrior);
-	assert(pPrior->pRightmost == p->pRightmost);
-	dest = *pDest;
->>>>>>> origin/master
 	if (pPrior->pOrderBy){
 		sqlite3ErrorMsg(pParse, "ORDER BY clause should come after %s not before",
 			selectOpName(p->op));
@@ -1904,11 +1895,7 @@ static int multiSelect(
 
 	/* Make sure all SELECTs in the statement have the same number of elements
 	** in their result sets.
-<<<<<<< HEAD
 	** 确定所有声明的SELECT有相同结果集元素的个数
-=======
-	** 确保所有声明中的查询语句在他们的结果集中具有相同数量的元素。
->>>>>>> origin/master
 	*/
 	assert(p->pEList && pPrior->pEList);
 	if (p->pEList->nExpr != pPrior->pEList->nExpr){
@@ -1924,11 +1911,7 @@ static int multiSelect(
 	}
 
 	/* Compound SELECTs that have an ORDER BY clause are handled separately.
-<<<<<<< HEAD
 	** 含有ORDERBY的复合SELECT要分开处理
-=======
-	** 有ORDER BY子句的复合查询被单独处理。
->>>>>>> origin/master
 	*/
 	if (p->pOrderBy){
 		return multiSelectOrderBy(pParse, p, pDest);
@@ -1977,15 +1960,9 @@ static int multiSelect(
 	}
 	case TK_EXCEPT:
 	case TK_UNION: {
-<<<<<<< HEAD
 		int unionTab;    /* Cursor number of the temporary table holding result   临时结果表中游标号*/
 		u8 op = 0;       /* One of the SRT_ operations to apply to self        应用与自身的一个SRT_ operations操作*/
 		int priorOp;     /* The SRT_ operation to apply to prior selects   应用于优先SELECT的SRT_ operations操作*/
-=======
-		int unionTab;    /* Cursor number of the temporary table holding result   临时表保存结果游标数*/
-		u8 op = 0;       /* One of the SRT_ operations to apply to self        其中一个SRT_操作应用到自身*/
-		int priorOp;     /* The SRT_ operation to apply to prior selects   此SRT_操作应用到之前的查询*/
->>>>>>> origin/master
 		Expr *pLimit, *pOffset; /* Saved values of p->nLimit and p->nOffset    保存p->nLimit和p->nOffset的值*/
 		int addr;	/*定义一个地址*/
 		SelectDest uniondest;
@@ -2290,7 +2267,6 @@ multi_select_end:
 **
 ** If the LIMIT found in p->iLimit is reached, jump immediately to
 ** iBreak.
-<<<<<<< HEAD
 ** 为协作程序写一个输出子程序实现SELECT语句。
 ** 输出的数据来自pIn->iSdst（存放结果的基址寄存器），pIn->iSdst的列被输出，pDest（处理结果集结构体）进行输出。
 ** regReturn是存储子程序地址的寄存器的数量
@@ -2307,20 +2283,6 @@ static int generateOutputSubroutine(
 	KeyInfo *pKeyInfo,      /* For comparing with previous entry 与以前的条目比较*/
 	int p4type,             /* The p4 type for pKeyInfo pKeyInfo的p4类型*/
 	int iBreak              /* Jump here if we hit the LIMIT 如果发现LIMIT跳到此处*/
-=======
-** 如果p->iLimit中的LIMIT达到阀值,那么马上跳转到iBreak.
-*/
-static int generateOutputSubroutine(
-	Parse *pParse,          /* Parsing context 解析上下文*/
-	Select *p,              /* The SELECT statement 查询语句*/
-	SelectDest *pIn,        /* Coroutine supplying data 协同程序提供数据*/
-	SelectDest *pDest,      /* Where to send the data 数据传输的目的地*/
-	int regReturn,          /* The return address register 返回地址的寄存器 */
-	int regPrev,            /* Previous result register.  No uniqueness if 0. 之前结果的寄存器,如果是0的话就没有唯一性 */
-	KeyInfo *pKeyInfo,      /* For comparing with previous entry. 与之前的输入比较*/
-	int p4type,             /* The p4 type for pKeyInfo. 为pKeyInfo声明的类型*/
-	int iBreak              /* Jump here if we hit the LIMIT. 若达到阀值则跳转到这里*/
->>>>>>> origin/master
 	){
 	Vdbe *v = pParse->pVdbe;
 	int iContinue;
@@ -2329,13 +2291,7 @@ static int generateOutputSubroutine(
 	addr = sqlite3VdbeCurrentAddr(v);
 	iContinue = sqlite3VdbeMakeLabel(v);
 
-<<<<<<< HEAD
 	/* Suppress duplicates for UNION, EXCEPT, and INTERSECT	  禁止UNION,EXCEPT,INTERSECT副本*/
-=======
-	/* Suppress duplicates for UNION, EXCEPT, and INTERSECT
-	** UNION, EXCEPT, and INTERSECT的禁止重复字段
-	*/
->>>>>>> origin/master
 	if (regPrev){
 		int j1, j2;
 		j1 = sqlite3VdbeAddOp1(v, OP_IfNot, regPrev);
@@ -2348,23 +2304,11 @@ static int generateOutputSubroutine(
 	}
 	if (pParse->db->mallocFailed) return 0;
 
-<<<<<<< HEAD
 	/* Suppress the first OFFSET entries if there is an OFFSET clause  如果有OFFSET子句，禁止OFFSET多个入口*/
 	codeOffset(v, p, iContinue);
 
 	switch (pDest->eDest){
 		/* Store the result as data using a unique key.  使用一个唯一键存储结果*/
-=======
-	/* Suppress the first OFFSET entries if there is an OFFSET clause
-	** 当有OFFSET元素的时候禁止第一个OFFSET输入
-	*/
-	codeOffset(v, p, iContinue);
-
-	switch (pDest->eDest){
-		/* Store the result as data using a unique key.
-		** 使用一个特殊的键值来以数据的方式存储结果
-		*/
->>>>>>> origin/master
 	case SRT_Table:
 	case SRT_EphemTab: {
 		int r1 = sqlite3GetTempReg(pParse);/*分配一个寄存器，存储中间计算结果*/*/
@@ -2422,31 +2366,21 @@ static int generateOutputSubroutine(
 		/* If this is a scalar select that is part of an expression, then
 		** store the results in the appropriate memory cell and break out
 		** of the scan loop.
-<<<<<<< HEAD
 		** 如果一个标量选择是一个表达式的一部分，将结果存储在一个合适的内存中，并且搭配扫描循环
-=======
-		** 如果这是一个标量选择表达式的一部分,那么把结果存储在一个合适的存储单元中,然后跳出检索循环
->>>>>>> origin/master
+
 		*/
 	case SRT_Mem: {
 		assert(pIn->nSdst == 1);
 		sqlite3ExprCodeMove(pParse, pIn->iSdst, pDest->iSDParm, 1);
-<<<<<<< HEAD
 		/* The LIMIT clause will jump out of the loop for us  Limit子句将会从循环中跳出*/
-=======
-		/* The LIMIT clause will jump out of the loop for us. LIMIT元素会跳出循环*/
->>>>>>> origin/master
 		break;
 	}
 #endif /* #ifndef SQLITE_OMIT_SUBQUERY */
 
 		/* The results are stored in a sequence of registers
 		** starting at pDest->iSdst.  Then the co-routine yields.
-<<<<<<< HEAD
 		** 结果存储在一个连续的寄存器中，起始位置为写入数据的基址寄存器的地址，然后执行协同代码块
-=======
-		** 结果存储在以pDest->iSdst开始的寄存器序列中.接下来就是协同程序的范畴了.
->>>>>>> origin/master
+
 		*/
 	case SRT_Coroutine: {
 		if (pDest->iSdst == 0){
@@ -3762,30 +3696,31 @@ static u8 minMaxQuery(Select *p){
 	** SQLITE_ERROR and leave an error in pParse. Otherwise, populate 
 	** pFrom->pIndex and return SQLITE_OK.
 	*/
-	/*如果源列表的项作为一个索引是有异议的，那么就尝试定位特殊的索引。如果有一个子句而且被命名的索引找不到了，
-	那么就返回错误并且在解析器中标记出错误。
-	否则填充到 pFrom->pIndex并且返回一个 SQLITE_OK
+	/* 如果源列表中的项传递的参数带有索引子句，则尝试定位指定索引。
+	** 如果存在这样的子句且被指定的索引找不到，则返回SQLITE_ERROR，并在解析时显示错误。
+	** 否则，填入pFrom->pIndex 并返回 SQLITE_OK。
+	** 
 	*/
 	//索引项的处理
-	int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){
-	  if( pFrom->pTab && pFrom->zIndex ){//SrcList_item为FROM的结构体，pTab非空且pFrom->zIndex非空
-		Table *pTab = pFrom->pTab;//定义一个表
-		char *zIndex = pFrom->zIndex;//from项的索引标识符
-		Index *pIdx;//声明一个索引指针
+	int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){ //参数1:解析器 参数2:FROM的结构体
+	  if( pFrom->pTab && pFrom->zIndex ){//如果pFrom->pTab非空，且pFrom->zIndex非空
+		Table *pTab = pFrom->pTab;//将pFrom->pTab赋给一个新表
+		char *zIndex = pFrom->zIndex;//将pFrom->zIndex赋给一个新标识符
+		Index *pIdx;//初始化一个索引指针
 
-		//遍历表中的索引项，查找指定名字的索引
+		//遍历表中的索引项，查找指定索引
 		for(pIdx=pTab->pIndex; 
 			pIdx && sqlite3StrICmp(pIdx->zName, zIndex); 
 			pIdx=pIdx->pNext
 		);
-		if( !pIdx ){//没有找到对应的索引项
+		if( !pIdx ){//如果没有找到索引项
 		  sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);//输出错误信息
-		  pParse->checkSchema = 1;//语法解析器错误信息标识
-		  return SQLITE_ERROR;//返回错误信息
+		  pParse->checkSchema = 1;//解析器模式识别标志设为1
+		  return SQLITE_ERROR;//返回SQLITE_ERROR
 		}
-		pFrom->pIndex = pIdx;//找到索引项，添加到FROM表达式项的索引结构体中
+		pFrom->pIndex = pIdx;//将找到的索引项添加到FROM表达式项的索引结构体中
 	  }
-	  return SQLITE_OK;//执行正确，返回正确信息
+	  return SQLITE_OK;//执行完毕，返回SQLITE_OK
 	}
 
 	/*
