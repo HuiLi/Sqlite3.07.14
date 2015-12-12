@@ -795,7 +795,7 @@ void sqlite3Memsys3Dump(const char *zFilename){
 ** 低级别的内存分配函数指针与指针在sqlite3GlobalConfig.m中的例程。
 ** 该参数指定的内存管理。这个程序被sqlite3_config()调用并不需要线程安全（这不安全）
 */ 
-//用于与外部链接。
+//配置参数
 const sqlite3_mem_methods *sqlite3MemGetMemsys3(void){
   static const sqlite3_mem_methods mempoolMethods = {
      memsys3Malloc,

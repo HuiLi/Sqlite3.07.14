@@ -2824,7 +2824,7 @@ Index *sqlite3CreateIndex(
     assert( db->aDb[iDb].pSchema==pTab->pSchema );    //断言数据库要创建表的模式和索引表的模式是相同的
   }else{
     assert( pName==0 );  
-    assert( pStart==0 ); 
+    assert( pStart==0 );  
     pTab = pParse->pNewTable;
     if( !pTab ) goto exit_create_index;
     iDb = sqlite3SchemaToIndex(db, pTab->pSchema);
@@ -2947,14 +2947,14 @@ Index *sqlite3CreateIndex(
   nCol = pList->nExpr;
   pIndex = sqlite3DbMallocZero(db, 
       ROUND8(sizeof(Index)) +              /* Index structure  */            //索引结构
-      ROUND8(sizeof(tRowcnt)*(nCol+1)) +   /* Index.aiRowEst   */
+	  ROUND8(sizeof(tRowcnt)*(nCol + 1)) +   /* Index.aiRowEst   */
       sizeof(char *)*nCol +                /* Index.azColl     */
       sizeof(int)*nCol +                   /* Index.aiColumn   */
       sizeof(u8)*nCol +                    /* Index.aSortOrder */
-      nName + 1 +                          /* Index.zName      */              //索引名称
-      nExtra                               /* Collation sequence names */         //排序序列的名字
+      nName + 1 +                          /* Index.zName      */              //索引的名字
+      nExtra                               /* Collation sequence names */         //校对序列的名字
   );
-  if( db->mallocFailed ){
+  if( db->mallocFailed ){    //如果数据库的内存分配失败，则立即结束整个程序的执行
     goto exit_create_index;
   }
   zExtra = (char*)pIndex;
@@ -2983,13 +2983,13 @@ Index *sqlite3CreateIndex(
     sortOrderMask = 0;    /* Ignore DESC */                                 //升序排列
   }
 
-  /* Scan the names of the columns of the table to be indexed and          //扫描表中列的索引的名称，加载列指数到列索引结构中。
+  /* Scan the names of the columns of the table to be indexed and          //扫描被索引表的列名，并且加载这些列目录到索引结构中。
   ** load the column indices into the Index structure.  Report an error
   ** if any column is not found.                                          //如果没有发现某些列，报告这些错误。
   **
   ** TODO:  Add a test to make sure that the same column is not named     //待办事项：添加一个测试，以确保相同的列不会被命名在相同的索引上。
-  ** more than once within the same index.  Only the first instance of     //只有这列的第一个实例对象将会成为优化器。
-  ** the column will ever be used by the optimizer.  Note that using the   //需要更多的支出的是使用相同的列不能出现同样的错误，因为那样将打破向后的兼容性，它需要一个警示。
+  ** more than once within the same index.  Only the first instance of     //只有这列的第一个实例对象将会被优化器使用。
+  ** the column will ever be used by the optimizer.  Note that using the   //注意，使用同一列超过一次不应该是一个错误，因为这只影响向后的兼容性，这应该是一个警告。
   ** same column more than once cannot be an error because that would 
   ** break backwards compatibility - it needs to be a warning.
   */
@@ -3000,7 +3000,7 @@ Index *sqlite3CreateIndex(
     char *zColl;                   /* Collation sequence name */                //定义排序序列的名称
 
     for(j=0, pTabCol=pTab->aCol; j<pTab->nCol; j++, pTabCol++){
-      if( sqlite3StrICmp(zColName, pTabCol->zName)==0 ) break;
+      if( sqlite3StrICmp(zColName, pTabCol->zName)==0 ) break;   
     }
     if( j>=pTab->nCol ){
       sqlite3ErrorMsg(pParse, "table %s has no column named %s",
@@ -3052,7 +3052,7 @@ Index *sqlite3CreateIndex(
     ** automatically created indices. Users can do as they wish with         //这只适用于自动创建索引。
     ** explicit indices.                                                     //当用户当要显示这些明确的索引时，可以执行上述操作。
     **
-    ** Two UNIQUE or PRIMARY KEY constraints are considered equivalent    //两个唯一约束或主键约束是等价的（这也是为了防止第二个的产生），
+    ** Two UNIQUE or PRIMARY KEY constraints are considered equivalent    //唯一约束或主键约束被认为是等价的（这也是为了防止第二个的产生），
     ** (and thus suppressing the second one) even if they have different  //即使他们有不同的排列顺序。
     ** sort orders.
     **
@@ -3063,8 +3063,8 @@ Index *sqlite3CreateIndex(
     Index *pIdx;
     for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){
       int k;
-      assert( pIdx->onError!=OE_None );
-      assert( pIdx->autoIndex );
+      assert( pIdx->onError!=OE_None );   //断言没有发生错误
+      assert( pIdx->autoIndex );   //断言存在自动的索引
       assert( pIndex->onError!=OE_None );
 
       if( pIdx->nColumn!=pIndex->nColumn ) continue;
@@ -3101,13 +3101,13 @@ Index *sqlite3CreateIndex(
   /* Link the new Index structure to its table and to the other   //链接新的索引结构和其它的内存数据库结构
   ** in-memory database structures. 
   */
-  if( db->init.busy ){
-    Index *p;
+  if( db->init.busy ){   //数据库正在进行初始化的操作
+    Index *p;   //即将要建立的索引名
     assert( sqlite3SchemaMutexHeld(db, 0, pIndex->pSchema) );
     p = sqlite3HashInsert(&pIndex->pSchema->idxHash, 
                           pIndex->zName, sqlite3Strlen30(pIndex->zName),
-                          pIndex);
-    if( p ){
+                          pIndex);    //调用函数进行hash插入操作
+    if( p ){   //如果索引确实是中存在的
       assert( p==pIndex );  /* Malloc must have failed */          //当p==pIndex时，Malloc已经出错。
       db->mallocFailed = 1;
       goto exit_create_index;
@@ -3224,7 +3224,7 @@ exit_create_index:
 
 /*
 ** Fill the Index.aiRowEst[] array with default information - information  //用默认的信息填充Index.aiRowEst[]数组，
-** to be used when we have not run the ANALYZE command.                    //当我哦们不运行ANALYZE指令时，就使用这些信息。
+** to be used when we have not run the ANALYZE command.                    //当我们不运行ANALYZE指令时，就使用这些信息。
 **
 ** aiRowEst[0] is suppose to contain the number of elements in the index.  //aiRowEst[0]是索引中的基本内容。
 ** Since we do not know, guess 1 million.  aiRowEst[1] is an estimate of the  //当我们在不知道的时候，可以猜测为100万。
@@ -3258,47 +3258,38 @@ void sqlite3DefaultRowEst(Index *pIdx){
 }
 
 /*
-<<<<<<< HEAD
 ** This routine will drop an existing named index.  This routine
 ** implements the DROP INDEX statement.
-*///计算机软件与理论  周凯
-=======
-** This routine will drop an existing named index.  This routine   //这个程序将删除索引现存已命名的索引。
-** implements the DROP INDEX statement.                            //这个程序实现DROP INDEX语句。
+** 这个程序被用来调用去删除一个已经存在的索引，实现了DROP INDEX语句。       
 */
->>>>>>> 0bcd1972cffc6fab83462a46d4ae538f2902c15a
-void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
-  Index *pIndex;//定义一个指针
-  Vdbe *v;
-  sqlite3 *db = pParse->db;//指针赋值
-  int iDb;
 
-<<<<<<< HEAD
-  assert(pParse->nErr == 0);   /* Never called with prior errors *///之前从来没有使用错误
-=======
-  assert( pParse->nErr==0 );   /* Never called with prior errors */   //之前从来没有出现的错误
->>>>>>> 0bcd1972cffc6fab83462a46d4ae538f2902c15a
-  if( db->mallocFailed ){
-    goto exit_drop_index;//
+void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
+  Index *pIndex;    //定义了索引指针
+  Vdbe *v;
+  sqlite3 *db = pParse->db;//指向语法解析上下文处理的数据库
+  int iDb;
+  assert( pParse->nErr==0 );   /* Never called with prior errors */   //断言语法解析的上下文没有出现错误
+  if( db->mallocFailed ){    //如果数据库内存分配失败的话，退出删除索引函数
+    goto exit_drop_index;
   }
-  assert( pName->nSrc==1 );//判断是否为1
-  if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){
-    goto exit_drop_index;//转到exit_drop_index文件
+  assert( pName->nSrc==1 );//断言索引表的数目为1
+  if( SQLITE_OK!=sqlite3ReadSchema(pParse) ){  
+    goto exit_drop_index;//转到另外一个处理的入口
   }
-  pIndex = sqlite3FindIndex(db, pName->a[0].zName, pName->a[0].zDatabase);
-  if( pIndex==0 ){//判断是否为0
-    if( !ifExists ){//如果成立执行
-      sqlite3ErrorMsg(pParse, "no such index: %S", pName, 0);
-    }else{//否则
-      sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);
+  pIndex = sqlite3FindIndex(db, pName->a[0].zName, pName->a[0].zDatabase);   //找到相应的索引
+  if( pIndex==0 ){//如果索引为空，也就是不存在索引
+    if( !ifExists ){//如果索引不存在
+      sqlite3ErrorMsg(pParse, "no such index: %S", pName, 0);   //发出错误信息：确实没有这个索引
+    }else{//如果索引不为空且确实是存在的
+      sqlite3CodeVerifyNamedSchema(pParse, pName->a[0].zDatabase);  //确定索引的模式，也就是确定这个索引属于哪个表的索引
     }
     pParse->checkSchema = 1;
     goto exit_drop_index;
   }
-  if( pIndex->autoIndex ){//如果pIndex->autoIndex为真
+  if( pIndex->autoIndex ){//如果该索引为自动添加的索引，也就是有PRIMARY KEY和UNIQUE子句的自动添加索引
     sqlite3ErrorMsg(pParse, "index associated with UNIQUE "
-      "or PRIMARY KEY constraint cannot be dropped", 0);
-    goto exit_drop_index;
+      "or PRIMARY KEY constraint cannot be dropped", 0);   //发出错误消息：索引被UNIQUE或者PRIMARY KEY限制，这样的索引是不能被删除的
+    goto exit_drop_index;  //跳转到另一个处理入口，结束删除索引的动作
   }
   iDb = sqlite3SchemaToIndex(db, pIndex->pSchema);
 #ifndef SQLITE_OMIT_AUTHORIZATION
@@ -3307,7 +3298,7 @@ void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
     Table *pTab = pIndex->pTable;//定义一个表指针pTab 
     const char *zDb = db->aDb[iDb].zName;//常变量
     const char *zTab = SCHEMA_TABLE(iDb);//常变量
-    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb) ){
+    if( sqlite3AuthCheck(pParse, SQLITE_DELETE, zTab, 0, zDb) ){   //检查是否具有删除索引的授权，如果不具有，立马退出删除索引函数
       goto exit_drop_index;
     }
     if( !OMIT_TEMPDB && iDb ) code = SQLITE_DROP_TEMP_INDEX;
@@ -3318,14 +3309,14 @@ void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
 #endif
 
   /* Generate code to remove the index and from the master table *///生成代码来从主表中删除索引
-  v = sqlite3GetVdbe(pParse);
+  v = sqlite3GetVdbe(pParse);  //需要VDBE引擎的支持
   if( v ){
-    sqlite3BeginWriteOperation(pParse, 1, iDb);
+    sqlite3BeginWriteOperation(pParse, 1, iDb);   //开始写操作
     sqlite3NestedParse(pParse,
        "DELETE FROM %Q.%s WHERE name=%Q AND type='index'",
        db->aDb[iDb].zName, SCHEMA_TABLE(iDb), pIndex->zName
-    );
-    sqlite3ClearStatTables(pParse, iDb, "idx", pIndex->zName);
+    ); //嵌套的删除
+    sqlite3ClearStatTables(pParse, iDb, "idx", pIndex->zName);  //清理一些内存结构
     sqlite3ChangeCookie(pParse, iDb);
     destroyRootPage(pParse, pIndex->tnum, iDb);
     sqlite3VdbeAddOp4(v, OP_DropIndex, iDb, 0, 0, pIndex->zName, 0);
@@ -3336,13 +3327,16 @@ exit_drop_index:
 }
 
 /*
-** pArray is a pointer to an array of objects. Each object in the//pArray是指向一个对象数组的指针，而且数组中的每个对象szEntry字节的大小。
-** array is szEntry bytes in size. This routine uses sqlite3DbRealloc()//这个程序使用了 sqlite3DbRealloc()去扩展数组的大小从而使得在最后对于新的对象还有新的空间。
+** pArray is a pointer to an array of objects. Each object in the
+** pArray是指向一个对象数组的指针，而且数组中的每个对象szEntry字节的大小。
+** array is szEntry bytes in size. This routine uses sqlite3DbRealloc()
+** 这个程序使用了 sqlite3DbRealloc()去扩展数组的大小从而使得在最后对于新的对象还有新的空间。
 ** to extend the array so that there is space for a new object at the end.
 **
-** When this function is called, *pnEntry contains the current size of//当调用这个函数时，*pnEntry包含当前数组的大小（*pnEntry进行分配）
+** When this function is called, *pnEntry contains the current size of
+** 当调用这个函数时，*pnEntry包含当前数组的大小（*pnEntry进行分配） 
 ** the array (in entries - so the allocation is ((*pnEntry) * szEntry) bytes
-** in total).//总的来说
+** in total).
 **
 ** If the realloc() is successful (i.e. if no OOM condition occurs), the//如果realloc函数调用成功（没有OOM条件发生的话），
 ** space allocated for the new object is zeroed, *pnEntry updated to//分配新对象的空间大小为零，*pnEntry就指向数组的新空间，返回一个指针，指向新的分配空间首地址
@@ -3353,28 +3347,28 @@ exit_drop_index:
 ** unchanged and a copy of pArray returned.
 */
 void *sqlite3ArrayAllocate(
-	sqlite3 *db,      /* Connection to notify of malloc failures *///联系到malloc函数错误的通知。
-  void *pArray,     /* Array of objects.  Might be reallocated *///对象数组。可能被重新分配。
-  int szEntry,      /* Size of each object in the array *///表示为数组中的每个对象的大小。
-  int *pnEntry,     /* Number of objects currently in use *///用整数指针代表目前使用的对象数。
-  int *pIdx         /* Write the index of a new slot here *///写索引。
+  sqlite3 *db,      /* Connection to notify of malloc failures   联系到malloc函数错误的通知*/
+  void *pArray,     /* Array of objects.  Might be reallocated   对象数组。可能被重新分配*/
+  int szEntry,      /* Size of each object in the array  数组中的每个对象的大小*/
+  int *pnEntry,     /* Number of objects currently in use  代表目前使用的对象数*/
+  int *pIdx         /* Write the index of a new slot here  写索引*/
 ){
   char *z;
-  int n = *pnEntry;
-  if( (n & (n-1))==0 ){
-    int sz = (n==0) ? 1 : 2*n;
-    void *pNew = sqlite3DbRealloc(db, pArray, sz*szEntry);
+  int n = *pnEntry;   //获取当前正在使用的对象的个数
+  if( (n & (n-1))==0 ){   //当前没有对象正在被使用或者当前正在被使用的对象数据是1
+    int sz = (n==0) ? 1 : 2*n; //条件表达式，如果n为0的话则sz的值为1，否则sz的值为2*n
+    void *pNew = sqlite3DbRealloc(db, pArray, sz*szEntry);  //重新申请两倍的对象数组的空间，当n为0时，申请的空间大小就是现在对象数组的大小
     if( pNew==0 ){
-      *pIdx = -1;
+      *pIdx = -1;   //如果空间没有申请成功，那么索引指针为空，返回当前数组的指针
       return pArray;
     }
-    pArray = pNew;
+    pArray = pNew;//如果空间申请成功，返回的是新数组的指针
   }
-  z = (char*)pArray;
+  z = (char*)pArray;  //将新数组的指针指向z
   memset(&z[n * szEntry], 0, szEntry);
-  *pIdx = n;
-  ++*pnEntry;
-  return pArray;
+  *pIdx = n;   //指向新的空闲的位置
+  ++*pnEntry;  //当前正在使用的对象数目加1 
+  return pArray;  //返回新申请的数组
 }
 
 /*
