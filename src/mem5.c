@@ -230,7 +230,7 @@ static void memsys5Unlink(int i, int iLogsize){
 ** 将mem5.aPool[i]位置的chunk，插入到iLogSize链表的头部
 ** 链接可用内存分配aPool中的块，此块在空闲块数组中
 */
-//将 mem5.aPool[i] 位置的chunk， 插入到空闲链表mem5.aiFreelist[iLogsize]处
+//将mem5.aPool[i]位置的chunk，插入到空闲链表mem5.aiFreelist[iLogsize]处
 static void memsys5Link(int i, int iLogsize){
   int x;
   assert( sqlite3_mutex_held(mem5.mutex) );
@@ -238,7 +238,7 @@ static void memsys5Link(int i, int iLogsize){
   assert( iLogsize>=0 && iLogsize<=LOGMAX );
   assert( (mem5.aCtrl[i] & CTRL_LOGSIZE)==iLogsize );
 
-  x = MEM5LINK(i)->next = mem5.aiFreelist[iLogsize];  /*将mem5.aPool[i]位置的chunk， 插入到iLogSize链表的头部*/
+  x = MEM5LINK(i)->next = mem5.aiFreelist[iLogsize];  /*将mem5.aPool[i]位置的chunk，插入到iLogSize链表的头部*/
   MEM5LINK(i)->prev = -1;
   if( x>=0 ){
     assert( x<mem5.nBlock );
@@ -297,7 +297,7 @@ static int memsys5Size(void *p){
 static int memsys5UnlinkFirst(int iLogsize){
   int i;
   int iFirst;
-  /*iFirst指向 下标最小的那一项*/
+  /*iFirst指向下标最小的那一项*/
   assert( iLogsize>=0 && iLogsize<=LOGMAX );   /*判断传入参数的合法性*/
   i = iFirst = mem5.aiFreelist[iLogsize];
   assert( iFirst>=0 );
