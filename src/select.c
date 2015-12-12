@@ -1412,61 +1412,61 @@ static void generateColumnNames(
 	int fullNames, shortNames;
 
 #ifndef SQLITE_OMIT_EXPLAIN
-	/* If this is an EXPLAIN, skip this step    如果这是一个解释器, 跳过这一步 */
-	if (pParse->explain){
+	/* If this is an EXPLAIN, skip this step    如果这是一个表达式, 跳过这一步 */
+	if (pParse->explain){/*如果语法分析树中的explain属性存在，直接返回*/
 		return;
 	}
 #endif
 
-	if (pParse->colNamesSet || NEVER(v == 0) || db->mallocFailed) return;
-	pParse->colNamesSet = 1;
-	fullNames = (db->flags & SQLITE_FullColNames) != 0;
-	shortNames = (db->flags & SQLITE_ShortColNames) != 0;
-	sqlite3VdbeSetNumCols(v, pEList->nExpr);
-	for (i = 0; i < pEList->nExpr; i++){
+	if (pParse->colNamesSet || NEVER(v == 0) || db->mallocFailed) return;/*如果存在语法分析树的列明集合或不存在VDBE变量或分配内存失败都将直接返回*/
+	pParse->colNamesSet = 1;/*设置语法分析树中列名集合为1*/
+	fullNames = (db->flags & SQLITE_FullColNames) != 0;/*如果数据库连接的名字交SQLIte全称列名不为空，交集返回给变量为fullNames*/
+	shortNames = (db->flags & SQLITE_ShortColNames) != 0;/*如果数据库连接的名字交SQLIte简称列名不为空，交集返回给变量为shortNames*/
+	sqlite3VdbeSetNumCols(v, pEList->nExpr);/*根据表达式返回结果集列的数量*/
+	for (i = 0; i < pEList->nExpr; i++){/*遍历标示符列表*/
 		Expr *p;
-		p = pEList->a[i].pExpr;
-		if (NEVER(p == 0)) continue;
-		if (pEList->a[i].zName){
-			char *zName = pEList->a[i].zName;
-			sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_TRANSIENT);
+		p = pEList->a[i].pExpr;/*将表达式列表中第i-1个赋值给p*/
+		if (NEVER(p == 0)) continue;/*如果p为0，直接跳过*/
+		if (pEList->a[i].zName){/*如果第i-1个表达式的名字存在*/
+			char *zName = pEList->a[i].zName;/*将第i-1个表达式的名字存在赋值给zName*/
+			sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_TRANSIENT);/*设置SQL执行后返回结果集的列数*/
 		}
-		else if ((p->op == TK_COLUMN || p->op == TK_AGG_COLUMN) && pTabList){
+		else if ((p->op == TK_COLUMN || p->op == TK_AGG_COLUMN) && pTabList){/*如果表达式中操作为TK_COLUMN或TK_AGG_COLUMN，并且与表的集合有交集*/
 			Table *pTab;
 			char *zCol;
-			int iCol = p->iColumn;
-			for (j = 0; ALWAYS(j < pTabList->nSrc); j++){
-				if (pTabList->a[j].iCursor == p->iTable) break;
+			int iCol = p->iColumn;/*将表达式中iColumn赋值给ICol*/
+			for (j = 0; ALWAYS(j < pTabList->nSrc); j++){/*遍历表集合*/
+				if (pTabList->a[j].iCursor == p->iTable) break;/*如果表中的游标指向ITable，中断*/
 			}
-			assert(j < pTabList->nSrc);
-			pTab = pTabList->a[j].pTab;
-			if (iCol < 0) iCol = pTab->iPKey;
-			assert(iCol == -1 || (iCol >= 0 && iCol < pTab->nCol));
-			if (iCol < 0){
-				zCol = "rowid";
+			assert(j < pTabList->nSrc);/*插入断点，判断j小于表集合的数目*/
+			pTab = pTabList->a[j].pTab;/*将表集合中表赋值给变量pTab*/
+			if (iCol < 0) iCol = pTab->iPKey;/*如果列小于0，设置iCol为当前表变量的主键*/
+			assert(iCol == -1 || (iCol >= 0 && iCol < pTab->nCol));/*插入断点，判断iCol的范围*/
+			if (iCol < 0){/*如果iCol小于0*/
+				zCol = "rowid";/*设置zCol为主键，“rowid”*/
 			}
 			else{
-				zCol = pTab->aCol[iCol].zName;
+				zCol = pTab->aCol[iCol].zName;/*否则令zCol为当前表第i-1列的名字*/
 			}
-			if (!shortNames && !fullNames){
+			if (!shortNames && !fullNames){/*如果既不是简称又不是全称*/
 				sqlite3VdbeSetColName(v, i, COLNAME_NAME,
-					sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);
+					sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
 			}
-			else if (fullNames){
+			else if (fullNames){/*如果是全称*/
 				char *zName = 0;
-				zName = sqlite3MPrintf(db, "%s.%s", pTab->zName, zCol);
-				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_DYNAMIC);
+				zName = sqlite3MPrintf(db, "%s.%s", pTab->zName, zCol);/*列名为pTab中的zCol名*/
+				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_DYNAMIC);/*计算结果集的列数*/
 			}
 			else{
-				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zCol, SQLITE_TRANSIENT);
+				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zCol, SQLITE_TRANSIENT);/*计算结果集的列数*/
 			}
 		}
 		else{
 			sqlite3VdbeSetColName(v, i, COLNAME_NAME,
-				sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);
+				sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
 		}
 	}
-	generateColumnTypes(pParse, pTabList, pEList);
+	generateColumnTypes(pParse, pTabList, pEList);/*根据语法分析树，表的列表和表达式列表产生列类型*/
 }
 
 /*
