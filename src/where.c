@@ -7867,7 +7867,7 @@ WhereInfo *sqlite3WhereBegin(
     int j;                      /* For looping over FROM tables  对于遍历FROM表*/
     int bestJ = -1;             /* The value of j j的值*/
     Bitmask m;                  /* Bitmask value for j or bestJ  对于J或bestJ位掩码值*/
-    int isOptimal;              /* Iterator for optimal/non-optimal search  迭代最佳/非最佳搜索*/
+    int isOptimal;              /* Iterator for optimal/non-optimal search  是不是最佳/非最佳的循环*/
     int nUnconstrained;         /* Number tables without INDEXED BY  INT nUnconstrained; /*号码表没有收录*/*/
     Bitmask notIndexed;         /* Mask of tables that cannot use an index  mask的表可以不使用索引*/
 
@@ -7993,11 +7993,11 @@ WhereInfo *sqlite3WhereBegin(
         WhereCost sCost;     /* Cost information from best[Virtual]Index() best[Virtual]Index()中的代价信息 */
         ExprList *pOrderBy;  /* ORDER BY clause for index to optimize 索引优化的ORDER BY子句 */
         ExprList *pDist;     /* DISTINCT clause for index to optimize 索引优化的DISTINCT子句 */
-  
-        doNotReorder =  (pTabItem->jointype & (JT_LEFT|JT_CROSS))!=0; //如果是左连接或CROSS连接，则记录这个表
-        if( j!=iFrom && doNotReorder ) break;
+  //对于左连接和交叉连接,不能改变嵌套的顺序
+        doNotReorder =  (pTabItem->jointype & (JT_LEFT|JT_CROSS))!=0; 
+        if( j!=iFrom && doNotReorder ) break;//如果j == iFrom,仍要进行优化处理(此时,是第一次处理iFrom项
         m = getMask(pMaskSet, pTabItem->iCursor);
-        if( (m & notReady)==0 ){
+        if( (m & notReady)==0 ){//如果该pTabItem已经进行处理,则不需要再处理
           if( j==iFrom ) iFrom++;
           continue;
         }
@@ -8018,7 +8018,7 @@ WhereInfo *sqlite3WhereBegin(
 #endif
         {
           bestBtreeIndex(pParse, pWC, pTabItem, mask, notReady, pOrderBy,
-              pDist, &sCost); //最好的Btree索引
+              pDist, &sCost); //获得最好的Btree索引，sCost返回一个最好的代价
         }
         assert( isOptimal || (sCost.used&notReady)==0 );
 
@@ -8091,7 +8091,7 @@ WhereInfo *sqlite3WhereBegin(
                       " with cost=%g and nRow=%g\n",
                       j, sCost.rCost, sCost.plan.nRow));
           bestPlan = sCost; //最有效的计划的代价
-          bestJ = j;
+          bestJ = j;//如果bestJ >=0,表示找到了优化的扫描策略
         }
         if( doNotReorder ) break;
       }
@@ -8109,12 +8109,13 @@ WhereInfo *sqlite3WhereBegin(
       assert( pWInfo->eDistinct==0 );
       pWInfo->eDistinct = WHERE_DISTINCT_ORDERED;
     }
+    //设置该层选用的查询策略
     andFlags &= bestPlan.plan.wsFlags;
     pLevel->plan = bestPlan.plan;
     testcase( bestPlan.plan.wsFlags & WHERE_INDEXED );
     testcase( bestPlan.plan.wsFlags & WHERE_TEMP_INDEX );
     if( bestPlan.plan.wsFlags & (WHERE_INDEXED|WHERE_TEMP_INDEX) ){
-      if( (wctrlFlags & WHERE_ONETABLE_ONLY) 
+      if( (wctrlFlags & WHERE_ONETABLE_ONLY) //如果可以使用索引,则设置索引对应的游标的下标  
        && (bestPlan.plan.wsFlags & WHERE_TEMP_INDEX)==0 
       ){
         pLevel->iIdxCur = iIdxCur;
@@ -8167,7 +8168,7 @@ WhereInfo *sqlite3WhereBegin(
       }
     }
   }
-  WHERETRACE(("*** Optimizer Finished ***\n"));
+  WHERETRACE(("*** Optimizer Finished ***\n"));//优化结束
   if( pParse->nErr || db->mallocFailed ){
     goto whereBeginError;
   }
