@@ -1112,6 +1112,100 @@ static int walIndexAppend(Wal *pWal, u32 iFrame, u32 iPage)
   return rc;
 }
 
+/*
+** Set an entry in the wal-index that will map database page number
+** pPage into WAL frame iFrame.       在Wal-index设置一个标记作为 可以将 数据页码映射到 Wal帧中的第iFrame
+*/
+static int walIndexAppend(Wal *pWal, u32 iFrame, u32 iPage)
+{
+  int rc;                         /* Return code */ 返回码
+  u32 iZero = 0;                  /* One less than frame number of aPgno[1] */ 小于aPgno【1】的帧号
+  volatile u32 *aPgno = 0;        /* Page number array */ 变量 数组页码
+  volatile ht_slot *aHash = 0;    /* Hash table */    哈希表
+
+  rc = walHashGet(pWal, walFramePage(iFrame), &aHash, &aPgno, &iZero);
+
+  /* Assuming the wal-index file was successfully mapped, populate the
+  ** page number array and hash table entry.
+  */
+  if( rc==SQLITE_OK )
+  {                 /*  如果调用函数成功 */
+    int iKey;                     /* Hash table key */  哈希键
+    int idx;                      /* Value to write to hash-table slot */ 写入hash槽的值
+    int nCollide;                 /* Number of hash collisions */ 哈希碰撞数目
+
+    idx = iFrame - iZero;     /*  求 idx的值   */                
+    assert( idx <= HASHTABLE_NSLOT/2 + 1 ); /* 终止程序*/
+    
+    /* If this is the first entry to be added to this hash-table, zero the
+    ** entire hash table and aPgno[] array before proceding. 
+    */
+    if( idx==1 )
+	{ 
+      int nByte = (int)((u8 *)&aHash[HASHTABLE_NSLOT] - (u8 *)&aPgno[1]);
+      memset((void*)&aPgno[1], 0, nByte);   /* 为aPgno分配内存，并初始化为0*/
+    }
+
+    /* If the entry in aPgno[] is already set, then the previous writer
+    ** must have exited unexpectedly in the middle of a transaction (after
+    ** writing one or more dirty pages to the WAL to free up memory). 
+    ** Remove the remnants of that writers uncommitted transaction from 
+    ** the hash-table before writing any new entries.
+	如果aPgno[]进入已经设定，那么以前的写必须有意外的事务处理过程中退出（写入一个或多个脏页WAL以释放内存后）。写任何新项目前，应先从哈希表移除未提交的写事务
+    */
+    if( aPgno[idx] )
+	{            aPgno[idx] 不为0
+      walCleanupHash(pWal);
+      assert( !aPgno[idx] );         /*终止程序*/
+    }
+
+    /* Write the aPgno[] array entry and the hash-table slot. */ 
+    nCollide = idx;      /* 为nCollide 赋值*/
+    for(iKey=walHash(iPage); aHash[iKey]; iKey=walNextHash(iKey))
+	{ 获取ikey值，判段aHash 
+      if( (nCollide--)==0 )
+		  return SQLITE_CORRUPT_BKPT;  /*如果碰撞数为0 则返回 SQLITE_CORRUPT_BKPT*/
+    }
+    aPgno[idx] = iPage;       /* 为apgno[] 赋值*/
+    aHash[iKey] = (ht_slot)idx; /* 第ikey的hash值为 idx*/
+
+#ifdef SQLITE_ENABLE_EXPENSIVE_ASSERT
+    /* Verify that the number of entries in the hash table exactly equals
+    ** the number of entries in the mapping region. 确保 hash 表的入口和 映射区域的入口的数目相同*/
+    {
+      int i;           /* Loop counter */ 循环计数
+      int nEntry = 0;  /* Number of entries in the hash table */ 入口数目为0
+      for(i=0; i<HASHTABLE_NSLOT; i++)
+	  { 
+		  if( aHash[i] ) nEntry++;
+	  }/* 进行循环*/
+      assert( nEntry==idx );  /*  终止程序*/
+    }
+
+    /* Verify that the every entry in the mapping region is reachable
+    ** via the hash table.  This turns out to be a really, really expensive
+    ** thing to check, so only do this occasionally - not on every
+    ** iteration.　验证每个条目映射区域是可获得的通过哈希表这被证明是一个非常非常昂贵要检查,所以只是偶尔这样做——而不是在每一个迭代。
+    */
+    if( (idx&0x3ff)==0 )
+	{  
+      int i;           /* Loop counter */ 循环变量
+      for(i=1; i<=idx; i++)
+	  { /*   对idex进行遍历*/
+        for(iKey=walHash(aPgno[i]); aHash[iKey]; iKey=walNextHash(iKey))
+		{
+          if( aHash[iKey]==i ) break;
+        }
+        assert( aHash[iKey]==i ); /*终止程序*/
+      }
+    }
+#endif /* SQLITE_ENABLE_EXPENSIVE_ASSERT */
+  }
+
+
+  return rc;
+}
+
 
 /*
 ** Recover the wal-index by reading the write-ahead log file. 
