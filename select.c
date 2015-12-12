@@ -33,6 +33,7 @@ static void clearSelect(sqlite3 *db, Select *p){
   sqlite3ExprDelete(db, p->pOffset);     /*递归删除一个表达式树*/
 }
 
+
 /*
 ** Initialize a SelectDest structure.
 **初始化一个SelectDest结构.
