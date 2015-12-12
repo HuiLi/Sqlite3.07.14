@@ -24,8 +24,8 @@
 ** that sqlite3_prepare() generates.  For example, if new functions or
 ** collating sequences are registered or if an authorizer function is
 ** added or changed.
-**返回值为true且有一个参数的函数声明需要被重新编译。无论执行环境在何时被修改，这个函数声明都会被重新编译，这将会改变由sqlite_prepare()生成程序。
-**例如：新的函数或排序生成，又或者是授权函数被添加或改变。
+**返回值为true（非零）且有一个参数的函数声明需要被重新编译。无论执行环境在何时被修改，这个函数声明都会被重新编译，在某种程度上会改变sqlite3_prepare()生成程序执行环境的变化。
+**例如：新的函数或排序生成，又或者是授权函数被添加或更改。
 */
 int sqlite3_expired(sqlite3_stmt *pStmt){
   Vdbe *p = (Vdbe*)pStmt;
@@ -62,8 +62,8 @@ static int vdbeSafetyNotNull(Vdbe *p){
 ** the sqlite3_compile() routine. The integer returned is an SQLITE_
 ** success/failure code that describes the result of executing the virtual
 ** machine.
-**下面这段程序是销毁由sqlite3_compile()程序创建的虚拟机。
-**返回的整型值SQLITE_success/failure编号，用来表示虚拟机执行的结果。
+**下面的程序将破坏由sqlite3_compile（）创建的虚拟机。
+**返回的整型值是描述在执行该虚拟机的结果的SQLITE_成功/失败的代码。
 ** This routine sets the error code and string returned by
 ** sqlite3_errcode(), sqlite3_errmsg() and sqlite3_errmsg16().
 ** 这个程序设置错误编号并且由sqlite3_errocode(),sqlite3_errmsg()
@@ -93,7 +93,7 @@ int sqlite3_finalize(sqlite3_stmt *pStmt){
 ** Terminate the current execution of an SQL statement and reset it
 ** back to its starting state so that it can be reused. A success code from
 ** the prior execution is returned.
-**终止当前执行的SQL语句并重置它使它回到最初的开始状态从而能够重新使用。来自优先执行的成功编号被返回
+**终止SQL语句的当前执行，并将其复位到其初始状态，以便它可以重复使用。来自优先执行的成功编号被返回。
 ** This routine sets the error code and string returned by
 ** sqlite3_errcode(), sqlite3_errmsg() and sqlite3_errmsg16().
 **程序设置错误编号并且由sqlite3_errcode(),sqlite3_errmsg(),sqlite3_errmsg16()函数返回对应的错误信息。
@@ -320,7 +320,7 @@ void sqlite3_result_error_nomem(sqlite3_context *pCtx){
 /*
 ** This function is called after a transaction has been committed. It 
 ** invokes callbacks registered with sqlite3_wal_hook() as required.
-** 当事务被提交后这个函数会被唤醒，它会按要求调用由sqlite_wal_hool()注册的回调函数。
+** 当事务被提交后调用的函数会被唤醒，它会按要求调用由sqlite_wal_hool()注册的回调函数。
 */
 static int doWalCallbacks(sqlite3 *db){
   int rc = SQLITE_OK;
@@ -342,14 +342,14 @@ static int doWalCallbacks(sqlite3 *db){
 /*
 ** Execute the statement pStmt, either until a row of data is ready, the
 ** statement is completely executed or an error occurs.
-**执行pStmt语句，直到一条已经准备好的数据，语句被完全执行完或者有错误发生
+**执行pStmt语句，直到一条已经准备好的数据，语句被完全执行完或者有错误发生。
 **
 ** This routine implements the bulk of the logic behind the sqlite_step()
 ** API.  The only thing omitted is the automatic recompile if a 
 ** schema change has occurred.  That detail is handled by the
 ** outer sqlite3_step() wrapper procedure.
-** 这段程序实现了大部分的逻辑内容在sqlite_step() API背后。唯一省略的事是如果设计模式发生改变就会产生自动编译。
-** 具体的执行细节由外部sqlite_step()函数来处理。
+** 此例程实现大部分sqlite_step（）API背后的逻辑。唯一省略的是如果发生了架构更改就会产生自动重新编译。
+** 这个细节被外sqlite3_step（）包装过程处理。
 */
 static int sqlite3Step(Vdbe *p){
   sqlite3 *db;
@@ -375,7 +375,7 @@ static int sqlite3Step(Vdbe *p){
     ** legacy behavior of returning SQLITE_MISUSE for cases where the 
     ** previous sqlite3_step() returned something other than a SQLITE_LOCKED
     ** or SQLITE_BUSY error.
-    ** 然而，一些已经发布的比较早的3.6.0甚至更早版本都是依赖SQLITE_MISUSE的返回，而这些都被自动重置改变。
+    ** 然而,一些出版的最初是写给3.6.23或更早版本的应用程序做实际上取决于SQLITE_MISUSE返回,而这些都被自动重置改变。
     ** 就像一种应急措施，SQLITE_OMIT_AUTORESET编译时恢复，返回SQLITE_MISUSE遗留的行为的情况前sqlite3_step()
     ** 返回SQLITE_LOCKED以外的东西或SQLITE_BUSY错误。
     */
@@ -585,8 +585,8 @@ sqlite3 *sqlite3_context_db_handle(sqlite3_context *p){
 ** SQL function that use this routine so that the functions will exist
 ** for name resolution but are actually overloaded by the xFindFunction
 ** method of virtual tables.
-** 以下是总是失败并显示错误消息，指出该功能用于在错误的情况下SQL函数的实现。该sqlite3_overload_function()
-** API可以构造使用该程序的SQL功能，这样的功能会存在域名解析，但实际上是由虚表的xFindFunction方法重载。
+** 以下是总是失败并显示错误消息，指出该功能用于在错误的情况下SQL函数的实现。
+** sqlite3_overload_function()API可以构成一个功能，使用这个程序使得这些功能会存在域名解析，但实际上是重载的虚拟表的xfindfunction方法。
 */
 void sqlite3InvalidFunction(
   sqlite3_context *context,  /* The function calling context */
@@ -761,7 +761,13 @@ static Mem *columnMem(sqlite3_stmt *pStmt, int i){
     ** that a Mem structure is located on an 8-byte boundary. To prevent
     ** these assert()s from failing, when building with SQLITE_DEBUG defined
     ** using gcc, we force nullMem to be 8-byte aligned using the magical
-    ** __attribute__((aligned(8))) macro.  */
+    ** __attribute__((aligned(8))) macro. 
+	如果一个值作为第二个依据被通过是在范围之外的，返回一个指针指向后面的包含值SQL NULL的静态Mem对象。
+	尽管Mem结构包含一个i64类型元素，在某一结构（x86）和某一编辑器开关（-Os），编译器可能排列这个Mem
+	对象在一个4-byte范围内代替8-byte。这一切都是好的，除了有时当运行assert（）与SQLITE_DEBUG规定的一个Mem
+	结构的位于一个8-byte范围内的SQLite代码。为了防止这些assert()出错，当构建SQLITE_DEBUG规定使用的编译器
+	我们强制nullMem是8-byte对齐使用不可思议的__attribute__((aligned(8)))宏指令*/
+	
     static const Mem nullMem//值为空的Mem指针
 #if defined(SQLITE_DEBUG) && defined(__GNUC__)
       __attribute__((aligned(8))) 
@@ -1050,7 +1056,7 @@ const void *sqlite3_column_origin_name16(sqlite3_stmt *pStmt, int N){
 ** Unbind the value bound to variable i in virtual machine p. This is the 
 ** the same as binding a NULL value to the column. If the "i" parameter is
 ** out of range, then SQLITE_RANGE is returned. Othewise SQLITE_OK.
-** 解绑变量i在虚拟机p中的值。这就相当于把NULL值绑定给数据库表的某列。如果i这个参数超出范围，就返回
+** 在虚拟机p中取消绑定变量i值得界限。这是一个类似于在数据库的某列上绑定一个NULL值。如果i这个参数超出范围，就返回
 ** SQLITE_RANGE变量，否则返回SQLITE_OK
 **
 ** A successful evaluation of this routine acquires the mutex on p.
@@ -1320,7 +1326,7 @@ int sqlite3TransferBindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
 /*
 ** Deprecated external interface.  Internal/core SQLite code
 ** should call sqlite3TransferBindings.
-** 不赞成使用的外部接口。内部的或者核心的SQLite代码应该调用sqlite3TransferBindings()
+** 不赞成使用的外部接口。内核/核心SQLite代码应该调用sqlite3TransferBindings()
 **
 ** It is misuse to call this routine with statements from different
 ** database connections.  But as this is a deprecated interface, we
