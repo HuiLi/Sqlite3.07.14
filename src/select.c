@@ -3696,30 +3696,31 @@ static u8 minMaxQuery(Select *p){
 	** SQLITE_ERROR and leave an error in pParse. Otherwise, populate 
 	** pFrom->pIndex and return SQLITE_OK.
 	*/
-	/*如果源列表的项作为一个索引是有异议的，那么就尝试定位特殊的索引。如果有一个子句而且被命名的索引找不到了，
-	那么就返回错误并且在解析器中标记出错误。
-	否则填充到 pFrom->pIndex并且返回一个 SQLITE_OK
+	/* 如果源列表中的项传递的参数带有索引子句，则尝试定位指定索引。
+	** 如果存在这样的子句且被指定的索引找不到，则返回SQLITE_ERROR，并在解析时显示错误。
+	** 否则，填入pFrom->pIndex 并返回 SQLITE_OK。
+	** 
 	*/
 	//索引项的处理
-	int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){
-	  if( pFrom->pTab && pFrom->zIndex ){//SrcList_item为FROM的结构体，pTab非空且pFrom->zIndex非空
-		Table *pTab = pFrom->pTab;//定义一个表
-		char *zIndex = pFrom->zIndex;//from项的索引标识符
-		Index *pIdx;//声明一个索引指针
+	int sqlite3IndexedByLookup(Parse *pParse, struct SrcList_item *pFrom){ //参数1:解析器 参数2:FROM的结构体
+	  if( pFrom->pTab && pFrom->zIndex ){//如果pFrom->pTab非空，且pFrom->zIndex非空
+		Table *pTab = pFrom->pTab;//将pFrom->pTab赋给一个新表
+		char *zIndex = pFrom->zIndex;//将pFrom->zIndex赋给一个新标识符
+		Index *pIdx;//初始化一个索引指针
 
-		//遍历表中的索引项，查找指定名字的索引
+		//遍历表中的索引项，查找指定索引
 		for(pIdx=pTab->pIndex; 
 			pIdx && sqlite3StrICmp(pIdx->zName, zIndex); 
 			pIdx=pIdx->pNext
 		);
-		if( !pIdx ){//没有找到对应的索引项
+		if( !pIdx ){//如果没有找到索引项
 		  sqlite3ErrorMsg(pParse, "no such index: %s", zIndex, 0);//输出错误信息
-		  pParse->checkSchema = 1;//语法解析器错误信息标识
-		  return SQLITE_ERROR;//返回错误信息
+		  pParse->checkSchema = 1;//解析器模式识别标志设为1
+		  return SQLITE_ERROR;//返回SQLITE_ERROR
 		}
-		pFrom->pIndex = pIdx;//找到索引项，添加到FROM表达式项的索引结构体中
+		pFrom->pIndex = pIdx;//将找到的索引项添加到FROM表达式项的索引结构体中
 	  }
-	  return SQLITE_OK;//执行正确，返回正确信息
+	  return SQLITE_OK;//执行完毕，返回SQLITE_OK
 	}
 
 	/*
