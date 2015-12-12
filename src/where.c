@@ -191,6 +191,7 @@ struct WhereTerm {
 #define TERM_ORINFO     0x10   /* Need to free the WhereTerm.u.pOrInfo object */
 #define TERM_ANDINFO    0x20   /* Need to free the WhereTerm.u.pAndInfo obj */
 #define TERM_OR_OK      0x40   /* Used during OR-clause processing */
+/*
 =======
 ** would be mapped into(映入) integers 0 through 7.
 **
@@ -272,6 +273,7 @@ struct WhereClause {
   int nTerm;               /* term的数量 */
   int nSlot;               /* Number of entries in a[] */
   WhereTerm *a;            /* 每一个 a[] 表示WHERE语句中的term */
+/*
 =======
 ** the subclauses "(b AND c)" and "(d AND e)".  
 ** The pOuter field of the subclauses points to the WhereClause object for the whole clause.
