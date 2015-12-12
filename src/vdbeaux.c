@@ -116,8 +116,10 @@ void sqlite3VdbeTrace(Vdbe *p, FILE *trace){
 ** SQLITE_NOMEM. In this case Vdbe.aOp and Vdbe.nOpAlloc remain 
 ** unchanged (this is so that any opcodes already allocated can be 
 ** correctly deallocated along with the rest of the Vdbe).
-如果发生内存不足的错误时调整数组的大小，返回 SQLITE_NOMEM。在这种情况下 Vdbe.aOp 和 Vdbe.nOpAlloc
-保持不变 （这样有利于任何代码已分配的操作码可以正确释放剩下的 Vdbe）。
+如果在调整大小的数组，返回出现内存不足的错误
+SQLITE_NOMEM。在这种情况下Vdbe.aOp和Vdbe.nOpAlloc保持
+不变（这是使已分配的任何操作码可
+随着VDBE的其余部分）正确地释放。
 */
 static int growOpArray(Vdbe *p){
   VdbeOp *pNew;
@@ -147,8 +149,9 @@ static int growOpArray(Vdbe *p){
 ** Use the sqlite3VdbeResolveLabel() function to fix an address and
 ** the sqlite3VdbeChangeP4() function to change the value of the P4
 ** operand.
-使用 sqlite3VdbeResolveLabel() 函数功能来处理地址和
-sqlite3VdbeChangeP4() 函数功能来更改操作数p4的值。
+使用sqlite3VdbeResolveLabel（）函数以固定的地址和
+在sqlite3VdbeChangeP4（）函数改变P4的价值
+操作数。
 */
 int sqlite3VdbeAddOp3(Vdbe *p, int op, int p1, int p2, int p3){
   int i;
@@ -218,7 +221,8 @@ int sqlite3VdbeAddOp4(
 **
 ** The zWhere string must have been obtained from sqlite3_malloc().
 ** This routine will take ownership of the allocated memory.
-ZWhere 字符串必须从 sqlite3_malloc()中获得。此例程将持有分配内存的所有权。
+从sqlite3_malloc必须是已获得的zWhere串（）。
+这个程序将采取分配的内存的所有权。
 */
 void sqlite3VdbeAddParseSchemaOp(Vdbe *p, int iDb, char *zWhere){
   int j;
@@ -280,8 +284,9 @@ int sqlite3VdbeMakeLabel(Vdbe *p){
 ** Resolve label "x" to be the address of the next instruction to
 ** be inserted.  The parameter "x" must have been obtained from
 ** a prior call to sqlite3VdbeMakeLabel().
-解决标签“x”给下一条指令的地址插入。参数“x”必须从
-之前调用的函数sqlite3VdbeMakeLabel()中。获得.
+解析标签的“x”是下一个指令的地址
+插入。参数“X”必须已经从获得
+以sqlite3VdbeMakeLabel先前调用（）。
 */
 void sqlite3VdbeResolveLabel(Vdbe *p, int x){
   int j = -1-x;
@@ -377,7 +382,8 @@ static Op *opIterNext(VdbeOpIter *p){
 ** throw an ABORT exception (causing the statement, but not entire transaction
 ** to be rolled back). This condition is true if the main program or any
 ** sub-programs contains any of the following:
-检查存储在虚拟机中与 pParse 相关联的程序是否可能抛出一个ABORT异常 （导致该声明，但不是整个事务被回滚）。
+检查存储在VM程序与pParse关联机构可能会
+抛出中止异常（导致的声明，而不是整个事务被回滚）
 如果主程序或任何子程序包含下列任一操作，这个条件为真：
 **
 **   *  OP_Halt with P1=SQLITE_CONSTRAINT and P2=OE_Abort.
@@ -434,8 +440,9 @@ int sqlite3VdbeAssertMayAbort(Vdbe *v, int mayAbort){
 ** Loop through the program looking for P2 values that are negative
 ** on jump instructions.  Each such value is a label.  Resolve the
 ** label by setting the P2 value to its correct non-zero value.
-循环遍历程序寻找 P2 值，这个值在跳转指令上是负的。每一个这样的值是一个标签。
-通过设置对其正确的 P2 值非零值解决标签。
+通过该程序循环寻找P2的值是负
+在跳转指令。每个这样的值是一个标签。解析
+标签通过设置在P2值到它的正确的非零值。
 **
 ** This routine is called once after all opcodes have been inserted.调用这个例程一旦所有的操作码被插入后。
 **
@@ -529,7 +536,7 @@ VdbeOp *sqlite3VdbeTakeOpArray(Vdbe *p, int *pnOp, int *pnMaxArg){
 /*
 ** Add a whole list of operations to the operation stack.  Return the
 ** address of the first operation added.
-添加整个操作列表到操作堆栈。返回第一个操作添加的地址。
+添加整个操作列表到操作堆栈。返回第一个添加操作的地址。
 */
 int sqlite3VdbeAddOpList(Vdbe *p, int nOp, VdbeOpList const *aOp){
   int addr;
@@ -610,7 +617,7 @@ void sqlite3VdbeChangeP3(Vdbe *p, u32 addr, int val){
 /*
 ** Change the value of the P5 operand for the most recently
 ** added operation.
-为最近添加的操作更改操作数 P5 的值。
+为最新添加的操作更改操作数 P5 的值。
 */
 void sqlite3VdbeChangeP5(Vdbe *p, u8 val){
   assert( p!=0 );
@@ -623,7 +630,7 @@ void sqlite3VdbeChangeP5(Vdbe *p, u8 val){
 /*
 ** Change the P2 operand of instruction addr so that it points to
 ** the address of the next instruction to be coded.
-更改的 P2 操作数的指令地址，以便它指向下一条指令进行编码的地址。
+更改的P2操作数的指令地址，以便它指向下一条指令进行编码的地址。
 */
 void sqlite3VdbeJumpHere(Vdbe *p, int addr){
   assert( addr>=0 || p->db->mallocFailed );
@@ -716,7 +723,7 @@ static void vdbeFreeOpArray(sqlite3 *db, Op *aOp, int nOp){
 ** Link the SubProgram object passed as the second argument into the linked
 ** list at Vdbe.pSubProgram. This list is used to delete all sub-program
 ** objects when the VM is no longer required.
-链接的子程序对象作为第二个参数传递到Vdbe.pSubProgram链表。这个列表用来删除所有子程序当VM对象不再是必需的时。
+链接作为第二个参数的子程序对象传递到Vdbe.pSubProgram链表。这个列表用来删除所有子程序当VM对象不再是必需的时。
 */
 void sqlite3VdbeLinkSubProgram(Vdbe *pVdbe, SubProgram *p){
   p->pNext = pVdbe->pProgram;
