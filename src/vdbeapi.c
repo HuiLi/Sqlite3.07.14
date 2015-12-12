@@ -12,6 +12,7 @@
 **翻译@author wxq
 ** This file contains code use to implement APIs that are part of the
 ** VDBE.
+** 这个文件包含了运行API的代码
 */
 #include "sqliteInt.h"
 #include "vdbeInt.h"
