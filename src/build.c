@@ -3327,13 +3327,16 @@ exit_drop_index:
 }
 
 /*
-** pArray is a pointer to an array of objects. Each object in the//pArray是指向一个对象数组的指针，而且数组中的每个对象szEntry字节的大小。
-** array is szEntry bytes in size. This routine uses sqlite3DbRealloc()//这个程序使用了 sqlite3DbRealloc()去扩展数组的大小从而使得在最后对于新的对象还有新的空间。
+** pArray is a pointer to an array of objects. Each object in the
+** pArray是指向一个对象数组的指针，而且数组中的每个对象szEntry字节的大小。
+** array is szEntry bytes in size. This routine uses sqlite3DbRealloc()
+** 这个程序使用了 sqlite3DbRealloc()去扩展数组的大小从而使得在最后对于新的对象还有新的空间。
 ** to extend the array so that there is space for a new object at the end.
 **
-** When this function is called, *pnEntry contains the current size of//当调用这个函数时，*pnEntry包含当前数组的大小（*pnEntry进行分配）
+** When this function is called, *pnEntry contains the current size of
+** 当调用这个函数时，*pnEntry包含当前数组的大小（*pnEntry进行分配） 
 ** the array (in entries - so the allocation is ((*pnEntry) * szEntry) bytes
-** in total).//总的来说
+** in total).
 **
 ** If the realloc() is successful (i.e. if no OOM condition occurs), the//如果realloc函数调用成功（没有OOM条件发生的话），
 ** space allocated for the new object is zeroed, *pnEntry updated to//分配新对象的空间大小为零，*pnEntry就指向数组的新空间，返回一个指针，指向新的分配空间首地址
@@ -3344,28 +3347,28 @@ exit_drop_index:
 ** unchanged and a copy of pArray returned.
 */
 void *sqlite3ArrayAllocate(
-	sqlite3 *db,      /* Connection to notify of malloc failures *///联系到malloc函数错误的通知。
-  void *pArray,     /* Array of objects.  Might be reallocated *///对象数组。可能被重新分配。
-  int szEntry,      /* Size of each object in the array *///表示为数组中的每个对象的大小。
-  int *pnEntry,     /* Number of objects currently in use *///用整数指针代表目前使用的对象数。
-  int *pIdx         /* Write the index of a new slot here *///写索引。
+  sqlite3 *db,      /* Connection to notify of malloc failures   联系到malloc函数错误的通知*/
+  void *pArray,     /* Array of objects.  Might be reallocated   对象数组。可能被重新分配*/
+  int szEntry,      /* Size of each object in the array  数组中的每个对象的大小*/
+  int *pnEntry,     /* Number of objects currently in use  代表目前使用的对象数*/
+  int *pIdx         /* Write the index of a new slot here  写索引*/
 ){
   char *z;
-  int n = *pnEntry;
-  if( (n & (n-1))==0 ){
-    int sz = (n==0) ? 1 : 2*n;
-    void *pNew = sqlite3DbRealloc(db, pArray, sz*szEntry);
+  int n = *pnEntry;   //获取当前正在使用的对象的个数
+  if( (n & (n-1))==0 ){   //当前没有对象正在被使用或者当前正在被使用的对象数据是1
+    int sz = (n==0) ? 1 : 2*n; //条件表达式，如果n为0的话则sz的值为1，否则sz的值为2*n
+    void *pNew = sqlite3DbRealloc(db, pArray, sz*szEntry);  //重新申请两倍的对象数组的空间，当n为0时，申请的空间大小就是现在对象数组的大小
     if( pNew==0 ){
-      *pIdx = -1;
+      *pIdx = -1;   //如果空间没有申请成功，那么索引指针为空，返回当前数组的指针
       return pArray;
     }
-    pArray = pNew;
+    pArray = pNew;//如果空间申请成功，返回的是新数组的指针
   }
-  z = (char*)pArray;
+  z = (char*)pArray;  //将新数组的指针指向z
   memset(&z[n * szEntry], 0, szEntry);
-  *pIdx = n;
-  ++*pnEntry;
-  return pArray;
+  *pIdx = n;   //指向新的空闲的位置
+  ++*pnEntry;  //当前正在使用的对象数目加1 
+  return pArray;  //返回新申请的数组
 }
 
 /*
