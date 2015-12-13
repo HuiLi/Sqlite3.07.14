@@ -141,6 +141,7 @@ static malloc_zone_t* _sqliteZone_;
 ** 像malloc(),但记忆分配大小，这样我们可以在之后使用sqlite3MemSize()来找到它.
 ** 对于这个低级的例程，我们必须保证nByte>0,因为如果nByte<=0，则将被打断和被更高级别的例程处理。
 */
+//在内存的动态分配存储区中分配一块长度为nByte字节的连续区域，参数nByte为需要内存空间的长度，返回该区域的首地址。
 static void *sqlite3MemMalloc(int nByte){
 #ifdef SQLITE_MALLOCSIZE
   void *p = SQLITE_MALLOC( nByte );
@@ -176,6 +177,7 @@ static void *sqlite3MemMalloc(int nByte){
 ** 像free() 当在工作时被分配到sqlite3MemMalloc()或者sqlite3MemRealloc().
 ** 对于这个底层程序, 我们已知pPrior!=0，因为如果pPrior==0时，将被高层程序获取和处理。
 */
+//释放pPrior指向的存储空间，被释放的空间通常被送入可用存储区域，以后可在调用malloc、realloc函数来再分配。
 static void sqlite3MemFree(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
   SQLITE_FREE(pPrior);
@@ -193,6 +195,7 @@ static void sqlite3MemFree(void *pPrior){
 **
 ** 报告来自于xMalloc()或xRealloc()之前的分配大小。
 */
+//函数返回已分配内存的大小，也能够跟踪未归还内存的字节数，它能确定当一个分配被释放时有多少字节从未归还内存中移除。
 static int sqlite3MemSize(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
   return pPrior ? (int)SQLITE_MALLOCSIZE(pPrior) : 0;
@@ -219,6 +222,7 @@ static int sqlite3MemSize(void *pPrior){
 ** 对于底层接口，我们已知pPrior!=0，因为如果pPrior==0已拦截了高层的例程和重定向到xMalloc. 
 ** 同样，我们知道nByte>0，因为nByte<=0的情况会被高层的例程拦截和重定向到xFree。
 */
+//给一个已经分配了地址的指针重新分配空间，参数pPrior为原有空间地址，nByte是重新申请的地址长度。
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
 #ifdef SQLITE_MALLOCSIZE
   void *p = SQLITE_REALLOC(pPrior, nByte);
@@ -253,6 +257,7 @@ static void *sqlite3MemRealloc(void *pPrior, int nByte){
 **
 ** 集合一个请求大小到下一个有效分配的大小。
 */
+//函数返回下一个有效内存分配的大小。
 static int sqlite3MemRoundup(int n){
   return ROUND8(n);
 }
@@ -262,6 +267,7 @@ static int sqlite3MemRoundup(int n){
 **
 ** 初始化这个模块。
 */
+//函数初始化
 static int sqlite3MemInit(void *NotUsed){
 #if defined(__APPLE__) && !defined(SQLITE_WITHOUT_ZONEMALLOC)
   int cpuCount;
@@ -304,6 +310,7 @@ static int sqlite3MemInit(void *NotUsed){
 **
 ** 取消初始化这个模块
 */
+//取消函数的初始化
 static void sqlite3MemShutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   return;
@@ -318,6 +325,7 @@ static void sqlite3MemShutdown(void *NotUsed){
 ** 该例程是外部链接这个文件的唯一的例程。
 ** 在sqlite3GlobalConfig.m与这个文件指针的例程中填充底层内存分配函数指针。
 */
+//函数填充底层的内存分配函数指针
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {
      sqlite3MemMalloc,
