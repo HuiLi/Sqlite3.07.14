@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 ** 2004 April 6
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -12,8 +12,8 @@
 ** This file implements a external (disk-based) database using BTrees.
 ** See the header comment on "btreeInt.h" for additional information.
 ** Including a description of file format and an overview of operation.
-** Õâ¸öÎÄ¼şÊ¹ÓÃBÊ÷½á¹¹À´ÊµÏÖÍâ²¿(»ùÓÚ´ÅÅÌ)Êı¾İ¿â¡£ÔÚ¡°btreeInt.h¡±ÎÄ¼şÖĞ²é¿´ÉùÃ÷µÄ¸½¼ÓĞÅÏ¢¡£
-** °üÀ¨ÎÄ¼ş¸ñÊ½ÃèÊöºÍ²Ù×÷¸ÅÊö¡£
+** è¿™ä¸ªæ–‡ä»¶ä½¿ç”¨Bæ ‘ç»“æ„æ¥å®ç°å¤–éƒ¨(åŸºäºç£ç›˜)æ•°æ®åº“ã€‚åœ¨â€œbtreeInt.hâ€æ–‡ä»¶ä¸­æŸ¥çœ‹å£°æ˜çš„é™„åŠ ä¿¡æ¯ã€‚
+** åŒ…æ‹¬æ–‡ä»¶æ ¼å¼æè¿°å’Œæ“ä½œæ¦‚è¿°ã€‚
 */
 
 #include "btreeInt.h"
@@ -21,17 +21,17 @@
 /*
 ** The header string that appears at the beginning of every
 ** SQLite database.
-** "btreeInt.h"Õâ¸öÍ·ÎÄ¼şÔÚËùÓĞµÄSQLiteÊı¾İ¿âµÄ¿ªÍ·ÖĞ¶¼»á³öÏÖ¡£
+** "btreeInt.h"è¿™ä¸ªå¤´æ–‡ä»¶åœ¨æ‰€æœ‰çš„SQLiteæ•°æ®åº“çš„å¼€å¤´ä¸­éƒ½ä¼šå‡ºç°ã€‚
 */
 static const char zMagicHeader[] = SQLITE_FILE_HEADER;
 
 /*
 ** Set this global variable to 1 to enable tracing using the TRACE
 ** macro.
-** ÉèÖÃÈ«¾Ö±äÁ¿£¬ÖµÎª1¿ÉÒÔÓÃºêTRACE¸ú×Ù
+** è®¾ç½®å…¨å±€å˜é‡ï¼Œå€¼ä¸º1å¯ä»¥ç”¨å®TRACEè·Ÿè¸ª
 */
 #if 0
-int sqlite3BtreeTrace=1;  /* True to enable tracing *//* Âß¼­ÖµÎªÕæ±íÊ¾¿ÉÒÔ×·×Ù */
+int sqlite3BtreeTrace=1;  /* True to enable tracing *//* é€»è¾‘å€¼ä¸ºçœŸè¡¨ç¤ºå¯ä»¥è¿½è¸ª */
 # define TRACE(X)  if(sqlite3BtreeTrace){printf X;fflush(stdout);}
 #else
 # define TRACE(X)
@@ -47,10 +47,10 @@ int sqlite3BtreeTrace=1;  /* True to enable tracing *//* Âß¼­ÖµÎªÕæ±íÊ¾¿ÉÒÔ×·×Ù 
 ** This routine makes the necessary adjustment to 65536.
 */
 /*
-**´ÓÎŞ·ûºÅ×Ö½ÚÊı×éÖĞÈ¡³öÒ»¸ö2×Ö½ÚµÄ´ó¶ËÕûÊı¡£µ«ÊÇ£¬Èç¹û¸ÃÖµÎªÁã£¬Ê¹ËüµÈÓÚ65536¡£
-´Ë³ÌĞòÓÃÀ´´ÓBÊ÷Ò³ÃæµÄ±êÌâÖĞÌáÈ¡¡°Æ«ÒÆµ¥Ôª¸ñµÄÄÚÈİÇø¡±µÄÖµ¡£
-Èç¹ûÒ³Ãæ´óĞ¡ÊÇ65536ºÍÒ³ÊÇ¿ÕµÄ£¬Æ«ÒÆÓ¦¸ÃÊÇ65536£¬µ«2¸ö×Ö½ÚµÄÖµ´æ´¢ÎªÁã¡£
-Õâ¸ö³ÌĞò½øĞĞ±ØÒªµÄµ÷Õû£¬µ÷Õûµ½65536¡£
+** ä»æ— ç¬¦å·å­—èŠ‚æ•°ç»„ä¸­å–å‡ºä¸€ä¸ª2å­—èŠ‚çš„å¤§ç«¯æ•´æ•°ã€‚ä½†æ˜¯ï¼Œå¦‚æœè¯¥å€¼ä¸ºé›¶ï¼Œä½¿å®ƒç­‰äº65536ã€‚
+** æ­¤ç¨‹åºç”¨æ¥ä»Bæ ‘é¡µé¢çš„æ ‡é¢˜ä¸­æå–â€œåç§»å•å…ƒæ ¼çš„å†…å®¹åŒºâ€çš„å€¼ã€‚
+** å¦‚æœé¡µé¢å¤§å°æ˜¯65536å’Œé¡µæ˜¯ç©ºçš„ï¼Œåç§»åº”è¯¥æ˜¯65536ï¼Œä½†2ä¸ªå­—èŠ‚çš„å€¼å­˜å‚¨ä¸ºé›¶ã€‚
+** è¿™ä¸ªç¨‹åºè¿›è¡Œå¿…è¦çš„è°ƒæ•´ï¼Œè°ƒæ•´åˆ°65536ã€‚
 */
 
 #define get2byteNotZero(X)  (((((int)get2byte(X))-1)&0xffff)+1)
@@ -65,8 +65,8 @@ int sqlite3BtreeTrace=1;  /* True to enable tracing *//* Âß¼­ÖµÎªÕæ±íÊ¾¿ÉÒÔ×·×Ù 
 ** Access to this variable is protected by SQLITE_MUTEX_STATIC_MASTER.
 */
 /*
-Ò»ÏµÁĞBtShared¶ÔÏóÓĞÈ¨ÏŞ·ÃÎÊ¹²Ïí»º´æ¡£Õâ¸ö±äÁ¿ÔÚ´´½¨Ê±ÓĞÒ»¸öÎÄ¼ş×÷ÓÃÓò£¬µ«²âÊÔ¹¤¾ßĞèÒª·ÃÎÊËü£¬
-ËùÒÔÎªÁË²âÊÔÎÒÃÇ°ÑËü±äÎªÈ«¾Ö±äÁ¿¡£·ÃÎÊÕâ¸öÓÉSQLITE_MUTEX_STATIC_MASTER±£»¤µÄ±äÁ¿¡£
+ä¸€ç³»åˆ—BtSharedå¯¹è±¡æœ‰æƒé™è®¿é—®å…±äº«ç¼“å­˜ã€‚è¿™ä¸ªå˜é‡åœ¨åˆ›å»ºæ—¶æœ‰ä¸€ä¸ªæ–‡ä»¶ä½œç”¨åŸŸï¼Œä½†æµ‹è¯•å·¥å…·éœ€è¦è®¿é—®å®ƒï¼Œ
+æ‰€ä»¥ä¸ºäº†æµ‹è¯•æˆ‘ä»¬æŠŠå®ƒå˜ä¸ºå…¨å±€å˜é‡ã€‚è®¿é—®è¿™ä¸ªç”±SQLITE_MUTEX_STATIC_MASTERä¿æŠ¤çš„å˜é‡ã€‚
 */
 #ifdef SQLITE_TEST
 BtShared *SQLITE_WSD sqlite3SharedCacheList = 0;
@@ -84,8 +84,8 @@ static BtShared *SQLITE_WSD sqlite3SharedCacheList = 0;
 ** sqlite3_open(), sqlite3_open16(), or sqlite3_open_v2().
 */
 /*
-ÆôÓÃ»ò½ûÓÃ¹²ÏíµÄÒ³ºÍÄ£Ê½µÄÌØµã¡£Õâ¸ö³ÌĞò¶ÔÏÖÓĞµÄÊı¾İ¿âÁ¬½ÓÃ»ÓĞÓ°Ïì¡£
-¹²Ïí»º´æÉèÖÃ½öÓ°Ïì½«À´µ÷ÓÃsqlite3_open£¨£©£¬sqlite3_open16£¨£©£¬»òsqlite3_open_v2£¨£©¡£
+å¯ç”¨æˆ–ç¦ç”¨å…±äº«çš„é¡µå’Œæ¨¡å¼çš„ç‰¹ç‚¹ã€‚è¿™ä¸ªç¨‹åºå¯¹ç°æœ‰çš„æ•°æ®åº“è¿æ¥æ²¡æœ‰å½±å“ã€‚
+å…±äº«ç¼“å­˜è®¾ç½®ä»…å½±å“å°†æ¥è°ƒç”¨sqlite3_openï¼ˆï¼‰ï¼Œsqlite3_open16ï¼ˆï¼‰ï¼Œæˆ–sqlite3_open_v2ï¼ˆï¼‰ã€‚
 */
 int sqlite3_enable_shared_cache(int enable){
   sqlite3GlobalConfig.sharedCacheEnabled = enable;
@@ -106,17 +106,17 @@ int sqlite3_enable_shared_cache(int enable){
   ** So define the lock related functions as no-ops.
   */
   /*
-º¯ÊıquerySharedCacheTableLock£¨£©£¬setSharedCacheTableLock£¨£©ºÍclearAllSharedCacheTableLocks£¨£©
-²Ù×İÁ´±íBtShared.pLockÖĞµÄ¼ÇÂ¼£¬Õâ¸öÁ´±í´æ´¢¹²Ïí»º´æ±í¼¶Ëø¡£Èç¹û¿âÔÚ¹²Ïí»º´æ¹¦ÄÜ½ûÓÃµÄÇé¿öÏÂ±àÒë£¬
-ÄÇÃ´Ã¿¸öBtShared½á¹¹¾ÍÓÀÔ¶Ö»ÄÜÓĞÒ»¸öÓÃ»§£¬Òò´Ë¸ÃËø¶¨ÊÇÃ»ÓĞ±ØÒªµÄ¡£
-ËùÒÔ¶¨ÒåËøÏà¹ØµÄ¹¦ÄÜÎª¿Õ²Ù×÷¡£
+å‡½æ•°querySharedCacheTableLockï¼ˆï¼‰ï¼ŒsetSharedCacheTableLockï¼ˆï¼‰å’ŒclearAllSharedCacheTableLocksï¼ˆï¼‰
+æ“çºµé“¾è¡¨BtShared.pLockä¸­çš„è®°å½•ï¼Œè¿™ä¸ªé“¾è¡¨å­˜å‚¨å…±äº«ç¼“å­˜è¡¨çº§é”ã€‚å¦‚æœåº“åœ¨å…±äº«ç¼“å­˜åŠŸèƒ½ç¦ç”¨çš„æƒ…å†µä¸‹ç¼–è¯‘ï¼Œ
+é‚£ä¹ˆæ¯ä¸ªBtSharedç»“æ„å°±æ°¸è¿œåªèƒ½æœ‰ä¸€ä¸ªç”¨æˆ·ï¼Œå› æ­¤è¯¥é”å®šæ˜¯æ²¡æœ‰å¿…è¦çš„ã€‚
+æ‰€ä»¥å®šä¹‰é”ç›¸å…³çš„åŠŸèƒ½ä¸ºç©ºæ“ä½œã€‚
 */
-  #define querySharedCacheTableLock(a,b,c) SQLITE_OK  //²éÑ¯¹²Ïí»º´æ±íËø
-  #define setSharedCacheTableLock(a,b,c) SQLITE_OK    //ÉèÖÃ¹²Ïí»º´æ±íËø
-  #define clearAllSharedCacheTableLocks(a)            //É¾³ıËùÓĞ¹²Ïí»º´æ±íËø
-  #define downgradeAllSharedCacheTableLocks(a)        //½µµÍ¹²Ïí»º´æ±íËøµÄÓÅÏÈ¼¶
-  #define hasSharedCacheTableLock(a,b,c,d) 1          //ÅĞ¶ÏÊÇ·ñÓĞ¹²Ïí»º´æ±íËø£¬1´ú±íÓĞËø
-  #define hasReadConflicts(a, b) 0                    //ÓĞ¶Á³åÍ»
+  #define querySharedCacheTableLock(a,b,c) SQLITE_OK  //æŸ¥è¯¢å…±äº«ç¼“å­˜è¡¨é”
+  #define setSharedCacheTableLock(a,b,c) SQLITE_OK    //è®¾ç½®å…±äº«ç¼“å­˜è¡¨é”
+  #define clearAllSharedCacheTableLocks(a)            //åˆ é™¤æ‰€æœ‰å…±äº«ç¼“å­˜è¡¨é”
+  #define downgradeAllSharedCacheTableLocks(a)        //é™ä½å…±äº«ç¼“å­˜è¡¨é”çš„ä¼˜å…ˆçº§
+  #define hasSharedCacheTableLock(a,b,c,d) 1          //åˆ¤æ–­æ˜¯å¦æœ‰å…±äº«ç¼“å­˜è¡¨é”ï¼Œ1ä»£è¡¨æœ‰é”
+  #define hasReadConflicts(a, b) 0                    //æœ‰è¯»å†²çª
 #endif
 
 #ifndef SQLITE_OMIT_SHARED_CACHE
@@ -145,19 +145,19 @@ int sqlite3_enable_shared_cache(int enable){
 ** acceptable.
 */
 /*
-´Ë¹¦ÄÜ½ö×÷Îªassert£¨£©Óï¾äµÄÒ»²¿·Ö¡£ ¼ì²épBtree(Btree³ÖÓĞËøµÄ¾ä±ú)ÊÇ·ñ³ÖÓĞËùĞèµÄËøÀ´¶ÁÈ¡»òĞ´Èë
-±íµÄ¸ùÒ³iRoot¡£Èç¹ûÓĞÔò·µ»Ø1£¬·ñÔò·µ»Ø0¡£ÀıÈç£¬Í¨¹ıBÊ÷Á¬½ÓpBtree£¬Ğ´Èë±í¸ùÒ³iRoot£º
-assert£¨hasSharedCacheTableLock£¨pBtree£¬iRoot£¬0£¬WRITE_LOCK£©£©;
-Ğ´×¤ÁôÔÚ¹²ÏíÊı¾İ¿âË÷ÒıÊ±£¬¸ÃÖ÷µ÷Ó¦¸ÃÏÈ»ñµÃÒ»¸öËøÖ¸¶¨µÄ¸ùÒ³ÏàÓ¦µÄ±í¡£ÒòÎª¸ÃÄ£¿é½«Ã¿¸ö±í¿´×÷
-ÎªÒ»¸ö¶ÀÁ¢µÄ½á¹¹£¬ÕâÊ¹ÊÂÇé±äµÃÓĞµã¸´ÔÓ¡£ÎªÁËÈ·¶¨¶ÔÓ¦ÓÚ¸ÃË÷ÒıµÄÄÄ¸ö±í±»Ğ´Èë£¬Õâ¸öº¯Êı±ØĞëËÑ±é
-Êı¾İ¿â¼Ü¹¹¡£Ö÷µ÷¿ÉÄÜ³ÖÓĞ¼Ü¹¹±íÖĞµÄÒ»¸öĞ´Ëø£¬¶ø²»ÊÇ¸ùÖ²ÔÚÒ³ÃæiRootÉÏµÄ±í»òÕßË÷ÒıÉÏµÄËø¡£
-ÕâÒ²ÊÇ¿ÉÒÔ½ÓÊÜµÄ¡£
+æ­¤åŠŸèƒ½ä»…ä½œä¸ºassertï¼ˆï¼‰è¯­å¥çš„ä¸€éƒ¨åˆ†ã€‚ æ£€æŸ¥pBtree(BtreeæŒæœ‰é”çš„å¥æŸ„)æ˜¯å¦æŒæœ‰æ‰€éœ€çš„é”æ¥è¯»å–æˆ–å†™å…¥
+è¡¨çš„æ ¹é¡µiRootã€‚å¦‚æœæœ‰åˆ™è¿”å›1ï¼Œå¦åˆ™è¿”å›0ã€‚ä¾‹å¦‚ï¼Œé€šè¿‡Bæ ‘è¿æ¥pBtreeï¼Œå†™å…¥è¡¨æ ¹é¡µiRootï¼š
+assertï¼ˆhasSharedCacheTableLockï¼ˆpBtreeï¼ŒiRootï¼Œ0ï¼ŒWRITE_LOCKï¼‰ï¼‰;
+å†™é©»ç•™åœ¨å…±äº«æ•°æ®åº“ç´¢å¼•æ—¶ï¼Œè¯¥ä¸»è°ƒåº”è¯¥å…ˆè·å¾—ä¸€ä¸ªé”æŒ‡å®šçš„æ ¹é¡µç›¸åº”çš„è¡¨ã€‚å› ä¸ºè¯¥æ¨¡å—å°†æ¯ä¸ªè¡¨çœ‹ä½œ
+ä¸ºä¸€ä¸ªç‹¬ç«‹çš„ç»“æ„ï¼Œè¿™ä½¿äº‹æƒ…å˜å¾—æœ‰ç‚¹å¤æ‚ã€‚ä¸ºäº†ç¡®å®šå¯¹åº”äºè¯¥ç´¢å¼•çš„å“ªä¸ªè¡¨è¢«å†™å…¥ï¼Œè¿™ä¸ªå‡½æ•°å¿…é¡»æœé
+æ•°æ®åº“æ¶æ„ã€‚ä¸»è°ƒå¯èƒ½æŒæœ‰æ¶æ„è¡¨ä¸­çš„ä¸€ä¸ªå†™é”ï¼Œè€Œä¸æ˜¯æ ¹æ¤åœ¨é¡µé¢iRootä¸Šçš„è¡¨æˆ–è€…ç´¢å¼•ä¸Šçš„é”ã€‚
+è¿™ä¹Ÿæ˜¯å¯ä»¥æ¥å—çš„ã€‚
 */
 static int hasSharedCacheTableLock(
-  Btree *pBtree,         /* Handle that must hold lock *Õâ¸ö¾ä±úÒª³ÖÓĞËø*/
-  Pgno iRoot,            /* Root page of b-tree  *B¡ªÊ÷µÄ¸ùÒ³*/
-  int isIndex,           /* True if iRoot is the root of an index b-tree *Èç¹ûiRootÊÇBrteeË÷ÒıµÄ¸ùÒ³ÔòÎªtrue*/
-  int eLockType          /* Required lock type (READ_LOCK or WRITE_LOCK) ĞèÒªËøÀàĞÍ*/
+  Btree *pBtree,         /* Handle that must hold lock *è¿™ä¸ªå¥æŸ„è¦æŒæœ‰é”*/
+  Pgno iRoot,            /* Root page of b-tree  *Bâ€”æ ‘çš„æ ¹é¡µ*/
+  int isIndex,           /* True if iRoot is the root of an index b-tree *å¦‚æœiRootæ˜¯Brteeç´¢å¼•çš„æ ¹é¡µåˆ™ä¸ºtrue*/
+  int eLockType          /* Required lock type (READ_LOCK or WRITE_LOCK) éœ€è¦é”ç±»å‹*/
 ){
   Schema *pSchema = (Schema *)pBtree->pBt->pSchema;
   Pgno iTab = 0;
@@ -168,8 +168,8 @@ static int hasSharedCacheTableLock(
   ** Return true immediately.
   */
   /*
-  Èç¹û¸ÃÊı¾İ¿âÊÇ·Ç¹²ÏíµÄ£¬»òÕßÈç¹û¿Í»§¶ËÕıÔÚ¶Á²¢ÇÒ¾ßÓĞ¶ÁÎ´Ìá½»µÄ±êÖ¾ÉèÖÃ£¬Ôò²»ĞèÒªËø¡£
-  Á¢¼´·µ»Øtrue¡£
+  å¦‚æœè¯¥æ•°æ®åº“æ˜¯éå…±äº«çš„ï¼Œæˆ–è€…å¦‚æœå®¢æˆ·ç«¯æ­£åœ¨è¯»å¹¶ä¸”å…·æœ‰è¯»æœªæäº¤çš„æ ‡å¿—è®¾ç½®ï¼Œåˆ™ä¸éœ€è¦é”ã€‚
+  ç«‹å³è¿”å›trueã€‚
   */
   if( (pBtree->sharable==0)
    || (eLockType==READ_LOCK && (pBtree->db->flags & SQLITE_ReadUncommitted))
@@ -182,9 +182,9 @@ static int hasSharedCacheTableLock(
   ** the correct locks are held.  So do not bother - just return true.
   ** This case does not come up very often anyhow.
   */
-  /*Èç¹ûÓÃ»§ÕıÔÚ¶ÁÈ¡»òĞ´ÈëË÷ÒıµÄÊ±ºò(isIndex)£¬Ä£Ê½Ã»ÓĞ¼ÓÔØ(!pSchema)£¬
-  ´ËÊ±È¥ÅĞ¶ÏpBtreeÊÇ·ñ³ÖÓĞÕıÈ·µÄËø·Ç³£À§ÄÑ((pSchema->flags&DB_SchemaLoaded)==0)¡£
-  ËùÒÔ£¬²»ÒªÀ§»ó£¬½ö½ö·µ»Øtrue¡£  ĞÒºÃ£¬´ËÇé¿ö³öÏÖµÄºÜÉÙ¡£*/
+  /*å¦‚æœç”¨æˆ·æ­£åœ¨è¯»å–æˆ–å†™å…¥ç´¢å¼•çš„æ—¶å€™(isIndex)ï¼Œæ¨¡å¼æ²¡æœ‰åŠ è½½(!pSchema)ï¼Œ
+  æ­¤æ—¶å»åˆ¤æ–­pBtreeæ˜¯å¦æŒæœ‰æ­£ç¡®çš„é”éå¸¸å›°éš¾((pSchema->flags&DB_SchemaLoaded)==0)ã€‚
+  æ‰€ä»¥ï¼Œä¸è¦å›°æƒ‘ï¼Œä»…ä»…è¿”å›trueã€‚  å¹¸å¥½ï¼Œæ­¤æƒ…å†µå‡ºç°çš„å¾ˆå°‘ã€‚*/
   if( isIndex && (!pSchema || (pSchema->flags&DB_SchemaLoaded)==0) ){
     return 1;
   }
@@ -193,10 +193,10 @@ static int hasSharedCacheTableLock(
   ** b-trees, this is just the root page of the b-tree being read or
   ** written. For index b-trees, it is the root page of the associated
   ** table.  */
-  /*ÕÒ³ö¸ùÒ³Ó¦¸Ã³ÖÓĞµÄËø¡£¶ÔÓÚ±íBÊ÷£¬ BÊ÷µÄ¸ùÒ³±»¶ÁÈ¡»òĞ´Èë(else iRoot)¡£Ë÷ÒıBÊ÷£¬ËüÊÇÏà¹ØÁªµÄ¸ùÒ³±í¡£*/
+  /*æ‰¾å‡ºæ ¹é¡µåº”è¯¥æŒæœ‰çš„é”ã€‚å¯¹äºè¡¨Bæ ‘ï¼Œ Bæ ‘çš„æ ¹é¡µè¢«è¯»å–æˆ–å†™å…¥(else iRoot)ã€‚ç´¢å¼•Bæ ‘ï¼Œå®ƒæ˜¯ç›¸å…³è”çš„æ ¹é¡µè¡¨ã€‚*/
   /*
-  ** ¼ÆËã³öÓ¦¸Ã³ÖÓĞËøµÄ¸ùÒ³£¬¶Ô±íBÊ÷£¨±íÊÇB+-tree£©£¬ÕâÖ»ÊÇÕıÔÚ±»¶Á»òÕßĞ´µÄBÊ÷µÄ¸ùÒ³¡£
-  ** ¶ÔÓÚË÷ÒıBÊ÷£¬ËüÊÇÏà¶ÔÓ¦±íµÄ¸ùÒ³¡£
+  ** è®¡ç®—å‡ºåº”è¯¥æŒæœ‰é”çš„æ ¹é¡µï¼Œå¯¹è¡¨Bæ ‘ï¼ˆè¡¨æ˜¯B+-treeï¼‰ï¼Œè¿™åªæ˜¯æ­£åœ¨è¢«è¯»æˆ–è€…å†™çš„Bæ ‘çš„æ ¹é¡µã€‚
+  ** å¯¹äºç´¢å¼•Bæ ‘ï¼Œå®ƒæ˜¯ç›¸å¯¹åº”è¡¨çš„æ ¹é¡µã€‚
   */
   if( isIndex ){
     HashElem *p;
@@ -213,8 +213,8 @@ static int hasSharedCacheTableLock(
   /* Search for the required lock. Either a write-lock on root-page iTab, a 
   ** write-lock on the schema table, or (if the client is reading) a
   ** read-lock on iTab will suffice. Return 1 if any of these are found.  */
-  /*ËÑË÷ËùĞèµÄËø(pLock)¡£ÔÚ¸ùÒ³iTABÉÏµÄĞ´Ëø(pLock->eLock==WRITE_LOCK) £¬ÔÚ¼Ü¹¹±íÉÏµÄĞ´Ëø( pLock->iTable==1)£¬»ò£¨Èç¹û¿Í»§ÕıÔÚ¶Á£©ITABÉÏµÄ¶ÁËø
-  ¾Í×ã¹»ÁË(pLock->eLock>=eLockType,eLockTypeÎªËùĞèÒªµÄËø)¡£Èç¹ûÉÏÊöÇé¿ö³öÏÖ¾Í·µ»Ø1¡£
+  /*æœç´¢æ‰€éœ€çš„é”(pLock)ã€‚åœ¨æ ¹é¡µiTABä¸Šçš„å†™é”(pLock->eLock==WRITE_LOCK) ï¼Œåœ¨æ¶æ„è¡¨ä¸Šçš„å†™é”( pLock->iTable==1)ï¼Œæˆ–ï¼ˆå¦‚æœå®¢æˆ·æ­£åœ¨è¯»ï¼‰ITABä¸Šçš„è¯»é”
+  å°±è¶³å¤Ÿäº†(pLock->eLock>=eLockType,eLockTypeä¸ºæ‰€éœ€è¦çš„é”)ã€‚å¦‚æœä¸Šè¿°æƒ…å†µå‡ºç°å°±è¿”å›1ã€‚
   */
   for(pLock=pBtree->pBt->pLock; pLock; pLock=pLock->pNext){
     if( pLock->pBtree==pBtree 
@@ -225,10 +225,10 @@ static int hasSharedCacheTableLock(
     }
   }
 
-  /* Failed to find the required lock. Î´²éÑ¯µ½ÏàÓ¦µÄËøÔò·µ»Ø0 */
+  /* Failed to find the required lock. æœªæŸ¥è¯¢åˆ°ç›¸åº”çš„é”åˆ™è¿”å›0 */
   return 0;
 }
-#endif /* SQLITE_DEBUG */  //µ÷ÊÔ³ÌĞòSQLITE_DEBUG 
+#endif /* SQLITE_DEBUG */  //è°ƒè¯•ç¨‹åºSQLITE_DEBUG 
 
 #ifdef SQLITE_DEBUG
 /*
@@ -250,13 +250,13 @@ static int hasSharedCacheTableLock(
 **    assert( !hasReadConflicts(pBtree, iRoot) );
 */
 /*
-** Èç¹ûÒòÎªÆäËûµÄ¹²ÏíÁ¬½ÓÍ¬Ê±¶ÁÈ¡ÏàÍ¬µÄ±í»òÕßË÷Òı£¬µ¼ÖÂpBtreeĞ´½øÈ¥µÄ
-** ±í»ò¸ùiRootÉÏµÄË÷ÒıÊÇ·Ç·¨µÄ£¬Ôò·µ»Øtrue.
-Èç¹ûÒ»Ğ©ÆäËûµÄBÊ÷¶ÔÏó¹²ÏíÏàÍ¬µÄBtShared¶ÔÏó£¬BtShared¶ÔÏóÕıÔÚ¶ÁÈ¡»òĞ´ÈëµÄiRoot±í
-(p->pgnoRoot==iRoot )£¬´ËÊ±pBtreeµÄĞ´ÈëÊÇ·Ç·¨µÄ¡£³ıÍâ£¬Èç¹ûÆäÓàµÄBÊ÷¶ÔÏó¾ßÓĞ¶ÁÎ´Ìá½»±êÖ¾ÉèÖÃ
-(SQLITE_ReadUncommitted)£¬ÔòËüÈ·±£ÆäËû¶ÔÏóÓĞÒ»¸ö¶ÁÖ¸Õë¡£
-ÀıÈç£¬ÔÚĞ´¸ùÒ³ÉÏµÄ±í»òË÷ÒıÖ®Ç°£¬Ó¦¸Ãµ÷ÓÃ£º
-	assert£¨£¡hasReadConflicts£¨pBtree£¬iRoot£©£©;
+** å¦‚æœå› ä¸ºå…¶ä»–çš„å…±äº«è¿æ¥åŒæ—¶è¯»å–ç›¸åŒçš„è¡¨æˆ–è€…ç´¢å¼•ï¼Œå¯¼è‡´pBtreeå†™è¿›å»çš„
+** è¡¨æˆ–æ ¹iRootä¸Šçš„ç´¢å¼•æ˜¯éæ³•çš„ï¼Œåˆ™è¿”å›true.
+å¦‚æœä¸€äº›å…¶ä»–çš„Bæ ‘å¯¹è±¡å…±äº«ç›¸åŒçš„BtSharedå¯¹è±¡ï¼ŒBtSharedå¯¹è±¡æ­£åœ¨è¯»å–æˆ–å†™å…¥çš„iRootè¡¨
+(p->pgnoRoot==iRoot )ï¼Œæ­¤æ—¶pBtreeçš„å†™å…¥æ˜¯éæ³•çš„ã€‚é™¤å¤–ï¼Œå¦‚æœå…¶ä½™çš„Bæ ‘å¯¹è±¡å…·æœ‰è¯»æœªæäº¤æ ‡å¿—è®¾ç½®
+(SQLITE_ReadUncommitted)ï¼Œåˆ™å®ƒç¡®ä¿å…¶ä»–å¯¹è±¡æœ‰ä¸€ä¸ªè¯»æŒ‡é’ˆã€‚
+ä¾‹å¦‚ï¼Œåœ¨å†™æ ¹é¡µä¸Šçš„è¡¨æˆ–ç´¢å¼•ä¹‹å‰ï¼Œåº”è¯¥è°ƒç”¨ï¼š
+	assertï¼ˆï¼hasReadConflictsï¼ˆpBtreeï¼ŒiRootï¼‰ï¼‰;
 */
 static int hasReadConflicts(Btree *pBtree, Pgno iRoot){
   BtCursor *p;
@@ -279,14 +279,14 @@ static int hasReadConflicts(Btree *pBtree, Pgno iRoot){
 ** setSharedCacheTableLock()), or SQLITE_LOCKED if not.
 */
 /*
-²éÑ¯£¬ÅĞ¶ÏBÊ÷¾ä±úpÊÇ·ñÄÜÔÚiTab¸ùÒ³µÄ±íÉÏ»ñÈ¡eLockÀàĞÍµÄËø£¨READ_LOCK»òWRITE_LOCK£©(eLock==READ_LOCK || eLock==WRITE_LOCK )¡£
-Èç¹ûÍ¨¹ıµ÷ÓÃ setSharedCacheTableLock£¨£©£¬¿ÉÒÔ»ñµÃËø£¬·µ»ØSQLITE_OK¡£·ñÔò·µ»ØSQLITE_LOCKED¡£
-**²é¿´Btree¾ä±úpÊÇ·ñÔÚ¾ßÓĞ¸ùÒ³iTabµÄ±íÉÏ»ñµÃÁËeLockÀàĞÍ£¨¶ÁËø»òĞ´Ëø£©µÄËø¡£
-** Èç¹ûÍ¨¹ıµ÷ÓÃsetSharedCacheTableLock()»ñµÃÁËËø£¬·µ»ØSQLITE_OK,·ñÔò·µ»ØSQLITE_LOCKED.
+æŸ¥è¯¢ï¼Œåˆ¤æ–­Bæ ‘å¥æŸ„pæ˜¯å¦èƒ½åœ¨iTabæ ¹é¡µçš„è¡¨ä¸Šè·å–eLockç±»å‹çš„é”ï¼ˆREAD_LOCKæˆ–WRITE_LOCKï¼‰(eLock==READ_LOCK || eLock==WRITE_LOCK )ã€‚
+å¦‚æœé€šè¿‡è°ƒç”¨ setSharedCacheTableLockï¼ˆï¼‰ï¼Œå¯ä»¥è·å¾—é”ï¼Œè¿”å›SQLITE_OKã€‚å¦åˆ™è¿”å›SQLITE_LOCKEDã€‚
+**æŸ¥çœ‹Btreeå¥æŸ„pæ˜¯å¦åœ¨å…·æœ‰æ ¹é¡µiTabçš„è¡¨ä¸Šè·å¾—äº†eLockç±»å‹ï¼ˆè¯»é”æˆ–å†™é”ï¼‰çš„é”ã€‚
+** å¦‚æœé€šè¿‡è°ƒç”¨setSharedCacheTableLock()è·å¾—äº†é”ï¼Œè¿”å›SQLITE_OK,å¦åˆ™è¿”å›SQLITE_LOCKED.
 */
 static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
   BtShared *pBt = p->pBt;
-  BtLock *pIter;    //pIterBÊ÷ÉÏµÄËøÖ¸Õë±äÁ¿
+  BtLock *pIter;    //pIterBæ ‘ä¸Šçš„é”æŒ‡é’ˆå˜é‡
 
   assert( sqlite3BtreeHoldsMutex(p) );  
   assert( eLock==READ_LOCK || eLock==WRITE_LOCK );
@@ -296,21 +296,21 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
   /* If requesting a write-lock, then the Btree must have an open write
   ** transaction on this file. And, obviously, for this to be so there 
   ** must be an open write transaction on the file itself.
-  ** Èç¹ûĞèÒªÒ»¸öĞ´Ëø£¬ÄÇÃ´BÊ÷±ØĞëÓĞÒ»¸ö¿ª·ÅµÄĞ´ÊÂÎñ¡£ÏÔÈ»£¬ÎªÁË´ïµ½ÕâÖÖĞ§¹û
-  ** ÎÄ¼ş±¾Éí±ØĞëÓĞÒ»¸ö¿ª·ÅµÄĞ´ÊÂÎñ¡£
+  ** å¦‚æœéœ€è¦ä¸€ä¸ªå†™é”ï¼Œé‚£ä¹ˆBæ ‘å¿…é¡»æœ‰ä¸€ä¸ªå¼€æ”¾çš„å†™äº‹åŠ¡ã€‚æ˜¾ç„¶ï¼Œä¸ºäº†è¾¾åˆ°è¿™ç§æ•ˆæœ
+  ** æ–‡ä»¶æœ¬èº«å¿…é¡»æœ‰ä¸€ä¸ªå¼€æ”¾çš„å†™äº‹åŠ¡ã€‚
   */
   assert( eLock==READ_LOCK || (p==pBt->pWriter && p->inTrans==TRANS_WRITE) );
   assert( eLock==READ_LOCK || pBt->inTransaction==TRANS_WRITE );
   
   /* This routine is a no-op if the shared-cache is not enabled */
-  /*Èç¹ûÎ´ÆôÓÃ¹²Ïí»º´æ£¬Õâ¸ö³ÌĞòÔòÊÇÒ»¸ö¿Õ²Ù×÷*/
-  if( !p->sharable ){    //»ñµÃĞ´Ëø·µ»ØSQLITE_OK
+  /*å¦‚æœæœªå¯ç”¨å…±äº«ç¼“å­˜ï¼Œè¿™ä¸ªç¨‹åºåˆ™æ˜¯ä¸€ä¸ªç©ºæ“ä½œ*/
+  if( !p->sharable ){    //è·å¾—å†™é”è¿”å›SQLITE_OK
     return SQLITE_OK;
   }
 
   /* If some other connection is holding an exclusive lock, the
   ** requested lock may not be obtained.
-  ** Èç¹ûÒ»Ğ©ÆäËûµÄÁ¬½ÓÕıÔÚ³ÖÓĞ»¥³âËø(pBt->btsFlags & BTS_EXCLUSIVE)!=0,ÄÇÃ´ÎŞ·¨»ñµÃËùÇëÇóµÄËø¡£
+  ** å¦‚æœä¸€äº›å…¶ä»–çš„è¿æ¥æ­£åœ¨æŒæœ‰äº’æ–¥é”(pBt->btsFlags & BTS_EXCLUSIVE)!=0,é‚£ä¹ˆæ— æ³•è·å¾—æ‰€è¯·æ±‚çš„é”ã€‚
   */
   if( pBt->pWriter!=p && (pBt->btsFlags & BTS_EXCLUSIVE)!=0 ){
     sqlite3ConnectionBlocked(p->db, pBt->pWriter->db);
@@ -328,9 +328,9 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
     ** only be a single writer).
     */
     /*
-	** Ìõ¼ş(pIter->eLock!=eLock)ÊÇifÓï¾äÖĞ(eLock==WRITE_LOCK || pIter->eLock==WRITE_LOCK)µÄ¼ò»¯¡£
-	** ÒòÎªÎÒÃÇÖªµÀ£¬Èç¹ûeLock== WRITE_LOCK£¬ÔòÃ»ÓĞÆäËûÁ¬½Ó¿ÉÄÜ³ÖÓĞÕâ¸öÎÄ¼şµÄÈÎºÎ±íµÄWRITE_LOCK
-	**£¨ÒòÎªÖ»ÓĞÒ»¸öĞ´½ø³Ì£©¡£
+	** æ¡ä»¶(pIter->eLock!=eLock)æ˜¯ifè¯­å¥ä¸­(eLock==WRITE_LOCK || pIter->eLock==WRITE_LOCK)çš„ç®€åŒ–ã€‚
+	** å› ä¸ºæˆ‘ä»¬çŸ¥é“ï¼Œå¦‚æœeLock== WRITE_LOCKï¼Œåˆ™æ²¡æœ‰å…¶ä»–è¿æ¥å¯èƒ½æŒæœ‰è¿™ä¸ªæ–‡ä»¶çš„ä»»ä½•è¡¨çš„WRITE_LOCK
+	**ï¼ˆå› ä¸ºåªæœ‰ä¸€ä¸ªå†™è¿›ç¨‹ï¼‰ã€‚
 	*/
     assert( pIter->eLock==READ_LOCK || pIter->eLock==WRITE_LOCK );
     assert( eLock==READ_LOCK || pIter->pBtree==p || pIter->eLock==READ_LOCK);
@@ -364,19 +364,19 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
 **
 ** SQLITE_OK is returned if the lock is added successfully. SQLITE_NOMEM 
 ** is returned if a malloc attempt fails.
-** Í¨¹ıBÊ÷¾ä±úpÔÚ¸ùÒ³iTableµÄ±íÉÏÌí¼ÓËøµ½¹²ÏíBÊ÷ÉÏ¡£²ÎÊıeLock±ØĞëÊÇREAD_LOCK»ò WRITE_LOCK¡£
-** ´Ë¹¦ÄÜ¼Ù¶¨ÈçÏÂ£º
-**  (a)Ö¸¶¨µÄBÊ÷¶ÔÏóp±»Á¬½Óµ½Ò»¸ö¿É¹²ÏíÊı¾İ¿â£¨Ò»¸öÓëBtShare¿É¹²ÏíµÄ±êÖ¾ÉèÖÃ£©£¬ÒÔ¼°
-**  (b)Ã»ÓĞÆäËûBÊ÷¶ÔÏó³ÖÓĞÓëËùÇëÇóµÄËøÏà³åÍ»µÄËø£¨ÀıÈçquerySharedCacheTableLock£¨£©
-**     ÒÑ¾­±»µ÷ÓÃ²¢ÇÒ·µ»ØSQLITE_OK£©
-** Èç¹û³É¹¦µÄÌí¼ÓÁËËø£¬Ôò·µ»ØSQLITE_OK£¬Èç¹ûÄÚ´æ·ÖÅäÊ§°Ü£¬Ôò·µ»ØSQLITE_NOMEM.
+** é€šè¿‡Bæ ‘å¥æŸ„påœ¨æ ¹é¡µiTableçš„è¡¨ä¸Šæ·»åŠ é”åˆ°å…±äº«Bæ ‘ä¸Šã€‚å‚æ•°eLockå¿…é¡»æ˜¯READ_LOCKæˆ– WRITE_LOCKã€‚
+** æ­¤åŠŸèƒ½å‡å®šå¦‚ä¸‹ï¼š
+**  (a)æŒ‡å®šçš„Bæ ‘å¯¹è±¡pè¢«è¿æ¥åˆ°ä¸€ä¸ªå¯å…±äº«æ•°æ®åº“ï¼ˆä¸€ä¸ªä¸BtShareå¯å…±äº«çš„æ ‡å¿—è®¾ç½®ï¼‰ï¼Œä»¥åŠ
+**  (b)æ²¡æœ‰å…¶ä»–Bæ ‘å¯¹è±¡æŒæœ‰ä¸æ‰€è¯·æ±‚çš„é”ç›¸å†²çªçš„é”ï¼ˆä¾‹å¦‚querySharedCacheTableLockï¼ˆï¼‰
+**     å·²ç»è¢«è°ƒç”¨å¹¶ä¸”è¿”å›SQLITE_OKï¼‰
+** å¦‚æœæˆåŠŸçš„æ·»åŠ äº†é”ï¼Œåˆ™è¿”å›SQLITE_OKï¼Œå¦‚æœå†…å­˜åˆ†é…å¤±è´¥ï¼Œåˆ™è¿”å›SQLITE_NOMEM.
 */
 /*
-Í¨¹ıBÊ÷¾ä±úpÔÚ¸ùÒ³iTableµÄ±íÉÏÌí¼ÓËøµ½¹²ÏíBÊ÷ÉÏ¡£ ²ÎÊıeLock±ØĞëÊÇREAD_LOCK»ò WRITE_LOCK¡£
-´Ë¹¦ÄÜ¼Ù¶¨£º
-£¨Ò»£©Ö¸¶¨µÄBÊ÷¶ÔÏóp±»Á¬½Óµ½Ò»¸ö¿É¹²ÏíÊı¾İ¿â£¨Ò»¸öÓëBtShare¿É¹²ÏíµÄ±êÖ¾ÉèÖÃ£©£¬ÒÔ¼°
-£¨¶ş£©Ã»ÓĞÆäËûBÊ÷¶ÔÏó³ÖÓĞÓëËùÇëÇóµÄËøÏà³åÍ»µÄËø£¨ÀıÈçquerySharedCacheTableLock£¨£©
-ÒÑ¾­±»µ÷ÓÃ²¢ÇÒ·µ»ØSQLITE_OK£©¡£Èç¹ûËø³É¹¦Ìí¼Ó·µ»ØSQLITE_OK¡£Èç¹ûmallocÊ§°ÜÔò·µ»ØSQLITE_NOMEM¡£
+é€šè¿‡Bæ ‘å¥æŸ„påœ¨æ ¹é¡µiTableçš„è¡¨ä¸Šæ·»åŠ é”åˆ°å…±äº«Bæ ‘ä¸Šã€‚ å‚æ•°eLockå¿…é¡»æ˜¯READ_LOCKæˆ– WRITE_LOCKã€‚
+æ­¤åŠŸèƒ½å‡å®šï¼š
+ï¼ˆä¸€ï¼‰æŒ‡å®šçš„Bæ ‘å¯¹è±¡pè¢«è¿æ¥åˆ°ä¸€ä¸ªå¯å…±äº«æ•°æ®åº“ï¼ˆä¸€ä¸ªä¸BtShareå¯å…±äº«çš„æ ‡å¿—è®¾ç½®ï¼‰ï¼Œä»¥åŠ
+ï¼ˆäºŒï¼‰æ²¡æœ‰å…¶ä»–Bæ ‘å¯¹è±¡æŒæœ‰ä¸æ‰€è¯·æ±‚çš„é”ç›¸å†²çªçš„é”ï¼ˆä¾‹å¦‚querySharedCacheTableLockï¼ˆï¼‰
+å·²ç»è¢«è°ƒç”¨å¹¶ä¸”è¿”å›SQLITE_OKï¼‰ã€‚å¦‚æœé”æˆåŠŸæ·»åŠ è¿”å›SQLITE_OKã€‚å¦‚æœmallocå¤±è´¥åˆ™è¿”å›SQLITE_NOMEMã€‚
 */
 static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   BtShared *pBt = p->pBt;
@@ -391,23 +391,23 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   ** obtain a read-lock using this function. The only read-lock obtained
   ** by a connection in read-uncommitted mode is on the sqlite_master 
   ** table, and that lock is obtained in BtreeBeginTrans(). 
-  **´øÓĞ¶ÁÎ´Ìá½»±ê¼ÇÉèÖÃµÄÁ¬½Ó²»ÄÜ³¢ÊÔÓÃÕâ¸öº¯Êı»ñÈ¡¶ÁËø¡£ÔÚSQLITE_MASTER±íÖĞ¶ÁÎ´Ìá½»Ä£Ê½ÏÂ
-  ** ²ÅÄÜ»ñµÃÖ»¶ÁËø¡£²¢ÇÒÔÚBtreeBeginTrans£¨£©ÖĞ»ñµÃËø¡£*/
+  **å¸¦æœ‰è¯»æœªæäº¤æ ‡è®°è®¾ç½®çš„è¿æ¥ä¸èƒ½å°è¯•ç”¨è¿™ä¸ªå‡½æ•°è·å–è¯»é”ã€‚åœ¨SQLITE_MASTERè¡¨ä¸­è¯»æœªæäº¤æ¨¡å¼ä¸‹
+  ** æ‰èƒ½è·å¾—åªè¯»é”ã€‚å¹¶ä¸”åœ¨BtreeBeginTransï¼ˆï¼‰ä¸­è·å¾—é”ã€‚*/
   /*
-  ÓĞ¶ÁÎ´Ìá½»±êÖ¾µÄÁ¬½Ó²»»áÍ¨¹ı¸Ã¹¦ÄÜ»ñµÃ¶ÁËø¡£ÔÚSQLITE_MASTER±íÖĞ¶ÁÎ´Ìá½»Ä£Ê½ÏÂ²ÅÄÜ»ñµÃÖ»¶ÁËø¡£
-  ²¢ÇÒÔÚBtreeBeginTrans£¨£©ÖĞ»ñµÃËø¡£
+  æœ‰è¯»æœªæäº¤æ ‡å¿—çš„è¿æ¥ä¸ä¼šé€šè¿‡è¯¥åŠŸèƒ½è·å¾—è¯»é”ã€‚åœ¨SQLITE_MASTERè¡¨ä¸­è¯»æœªæäº¤æ¨¡å¼ä¸‹æ‰èƒ½è·å¾—åªè¯»é”ã€‚
+  å¹¶ä¸”åœ¨BtreeBeginTransï¼ˆï¼‰ä¸­è·å¾—é”ã€‚
   */
   assert( 0==(p->db->flags&SQLITE_ReadUncommitted) || eLock==WRITE_LOCK );
 
   /* This function should only be called on a sharable b-tree after it 
   ** has been determined that no other b-tree holds a conflicting lock.  
-  ** ÔÚÃ»ÓĞÆäËûµÄBÊ÷³ÖÓĞÒ»¸ö³åÍ»µÄËøÖ®ºó£¬²ÅÄÜÔÚÒ»¸ö¹²ÏíµÄBÊ÷ÉÏµ÷ÓÃÕâ¸öº¯Êı¡£
+  ** åœ¨æ²¡æœ‰å…¶ä»–çš„Bæ ‘æŒæœ‰ä¸€ä¸ªå†²çªçš„é”ä¹‹åï¼Œæ‰èƒ½åœ¨ä¸€ä¸ªå…±äº«çš„Bæ ‘ä¸Šè°ƒç”¨è¿™ä¸ªå‡½æ•°ã€‚
   */
   assert( p->sharable );
-  assert( SQLITE_OK==querySharedCacheTableLock(p, iTable, eLock) );/*ÓĞËø*/
+  assert( SQLITE_OK==querySharedCacheTableLock(p, iTable, eLock) );/*æœ‰é”*/
 
   /* First search the list for an existing lock on this table. */
-  /* Ê×ÏÈËÑË÷ÔÚ±íÉÏÒÑ´æÔÚµÄËøÁĞ±í   */
+  /* é¦–å…ˆæœç´¢åœ¨è¡¨ä¸Šå·²å­˜åœ¨çš„é”åˆ—è¡¨   */
   for(pIter=pBt->pLock; pIter; pIter=pIter->pNext){
     if( pIter->iTable==iTable && pIter->pBtree==p ){
       pLock = pIter;
@@ -419,8 +419,8 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   ** with table iTable, allocate one and link it into the list.
   */
   /*
-  ** Èç¹ûÉÏÃæµÄËÑË÷Ã»ÓĞÕÒµ½( !pLock)BtLock½á¹¹¹ØÁªµÄÔÚ±íiTableÉÏµÄBÊ÷p£¬ÄÇÃ´¾Í·ÖÅä
-  ** Ò»¸ö( pLock = (BtLock *)sqlite3MallocZero(sizeof(BtLock)); )²¢°ÑËüÁ´½Óµ½ÁĞ±íÖĞ¡£
+  ** å¦‚æœä¸Šé¢çš„æœç´¢æ²¡æœ‰æ‰¾åˆ°( !pLock)BtLockç»“æ„å…³è”çš„åœ¨è¡¨iTableä¸Šçš„Bæ ‘pï¼Œé‚£ä¹ˆå°±åˆ†é…
+  ** ä¸€ä¸ª( pLock = (BtLock *)sqlite3MallocZero(sizeof(BtLock)); )å¹¶æŠŠå®ƒé“¾æ¥åˆ°åˆ—è¡¨ä¸­ã€‚
   */
   if( !pLock ){
     pLock = (BtLock *)sqlite3MallocZero(sizeof(BtLock));
@@ -436,11 +436,11 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   /* Set the BtLock.eLock variable to the maximum of the current lock
   ** and the requested lock. This means if a write-lock was already held
   ** and a read-lock requested, we don't incorrectly downgrade the lock.
-  ** ½«BtLock.eLock±äÁ¿ÉèÖÃÎªµ±Ç°µÄËøÓëËùÇëÇóµÄËøµÄ×î´óÖµ¡£ÒâË¼ÊÇÈç¹ûÒÑ¾­³ÖÓĞÒ»¸öĞ´Ëø
-  ** ²¢ÇÒÇëÇóÒ»¸ö¶ÁËø£¬ÎÒÃÇ½«½µµÍÕâ¸öËøµÄ¼¶±ğ¡£
+  ** å°†BtLock.eLockå˜é‡è®¾ç½®ä¸ºå½“å‰çš„é”ä¸æ‰€è¯·æ±‚çš„é”çš„æœ€å¤§å€¼ã€‚æ„æ€æ˜¯å¦‚æœå·²ç»æŒæœ‰ä¸€ä¸ªå†™é”
+  ** å¹¶ä¸”è¯·æ±‚ä¸€ä¸ªè¯»é”ï¼Œæˆ‘ä»¬å°†é™ä½è¿™ä¸ªé”çš„çº§åˆ«ã€‚
   */
-  /*½«BtLock.eLock±äÁ¿ÉèÖÃÎªµ±Ç°µÄËøÓëËùÇëÇóµÄËøµÄ×î´ó Öµ¡£ÕâÒâÎ¶×Å£¬
-  Èç¹ûÒÑ¾­³ÖÓĞÒ»¸öĞ´Ëø  ºÍÇëÇóÒ»¸ö¶ÁËø£¬ÎÒÃÇÕıÈ·µØ½µ¼¶Ëø¡£*/
+  /*å°†BtLock.eLockå˜é‡è®¾ç½®ä¸ºå½“å‰çš„é”ä¸æ‰€è¯·æ±‚çš„é”çš„æœ€å¤§ å€¼ã€‚è¿™æ„å‘³ç€ï¼Œ
+  å¦‚æœå·²ç»æŒæœ‰ä¸€ä¸ªå†™é”  å’Œè¯·æ±‚ä¸€ä¸ªè¯»é”ï¼Œæˆ‘ä»¬æ­£ç¡®åœ°é™çº§é”ã€‚*/
   assert( WRITE_LOCK>READ_LOCK );
   if( eLock>pLock->eLock ){
     pLock->eLock = eLock;
@@ -460,9 +460,9 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
 ** may be incorrectly cleared.
 */
 /*
-ÊÍ·ÅËùÓĞBÊ÷¶ÔÏóPËù³ÖÓĞµÄ±íËø£¨Í¨¹ıµ÷ÓÃsetSharedCacheTableLock£¨£©
-·½·¨»ñµÃµÄËø£©¡£´Ëº¯Êı¼Ù¶¨BÊ÷PÓĞÒ»¸ö¿ª·ÅµÄ¶Á»òĞ´²Ù×÷ÊÂÎñ¡£
-Èç¹ûÃ»ÓĞ£¬ÔòBTS_PENDING±êÖ¾¿ÉÄÜ±»´íÎóµØÇå³ı¡£pBt->btsFlags &= ~(BTS_EXCLUSIVE|BTS_PENDING);
+é‡Šæ”¾æ‰€æœ‰Bæ ‘å¯¹è±¡Pæ‰€æŒæœ‰çš„è¡¨é”ï¼ˆé€šè¿‡è°ƒç”¨setSharedCacheTableLockï¼ˆï¼‰
+æ–¹æ³•è·å¾—çš„é”ï¼‰ã€‚æ­¤å‡½æ•°å‡å®šBæ ‘Pæœ‰ä¸€ä¸ªå¼€æ”¾çš„è¯»æˆ–å†™æ“ä½œäº‹åŠ¡ã€‚
+å¦‚æœæ²¡æœ‰ï¼Œåˆ™BTS_PENDINGæ ‡å¿—å¯èƒ½è¢«é”™è¯¯åœ°æ¸…é™¤ã€‚pBt->btsFlags &= ~(BTS_EXCLUSIVE|BTS_PENDING);
 */
 static void clearAllSharedCacheTableLocks(Btree *p){
   BtShared *pBt = p->pBt;
@@ -500,13 +500,13 @@ static void clearAllSharedCacheTableLocks(Btree *p){
     **
     ** If there is not currently a writer, then BTS_PENDING must
     ** be zero already. So this next line is harmless in that case.
-	** Õâ¸öº¯ÊıÔÚBÊ÷pÕıÔÚ½áÊøÊÂÎñÊ±±»µ÷ÓÃ¡£Èç¹ûµ±Ç°´æÔÚÒ»¸öĞ´ÊÂÎñ²¢ÇÒ
-	** p²»ÊÇÄÇ¸öĞ´ÊÂÎñ£¬ÄÇÃ´Á¬½Ó½ø³Ì¶ø²»ÊÇĞ´½ø³Ì³ÖÓĞµÄËøµÄÊıÁ¿´óÔ¼½µÖÁÁã¡£
-	** ÔÚÕâÖÖÇé¿öÏÂÉèÖÃBTS_PENDING±êÇ©Îª0.
+	** è¿™ä¸ªå‡½æ•°åœ¨Bæ ‘pæ­£åœ¨ç»“æŸäº‹åŠ¡æ—¶è¢«è°ƒç”¨ã€‚å¦‚æœå½“å‰å­˜åœ¨ä¸€ä¸ªå†™äº‹åŠ¡å¹¶ä¸”
+	** pä¸æ˜¯é‚£ä¸ªå†™äº‹åŠ¡ï¼Œé‚£ä¹ˆè¿æ¥è¿›ç¨‹è€Œä¸æ˜¯å†™è¿›ç¨‹æŒæœ‰çš„é”çš„æ•°é‡å¤§çº¦é™è‡³é›¶ã€‚
+	** åœ¨è¿™ç§æƒ…å†µä¸‹è®¾ç½®BTS_PENDINGæ ‡ç­¾ä¸º0.
     */
-    /*ÔÚBÊ÷p½áÊøÊÂÎñÊ±£¬¸Ãº¯Êı±»µ÷ÓÃ¡£Èç¹ûÓĞµ±Ç°´æÔÚÒ»¸öĞ´ÊÂÎñ£¬p²»ÊÇÄÇ¸öĞ´ÊÂÎñ¡£
-    ÄÇÃ´Á¬½Ó½ø³Ì¶ø²»ÊÇĞ´½ø³Ì³ÖÓĞµÄËøµÄÊıÁ¿´óÔ¼½µÖÁÁã¡£ÔÚÕâÖÖÇé¿öÏÂ£¬ÉèÖÃBTS_PENDING±êÖ¾Îª0¡£
-    Èç¹ûÄ¿Ç°»¹Ã»ÓĞÒ»¸öĞ´ÊÂÎñ£¬ÄÇÃ´BTS_PENDINGÎªÁã¡£Òò´Ë£¬ÏÂÒ»ĞĞ(pBt->btsFlags &= ~BTS_PENDING;)ÔÚÕâÖÖÇé¿öÏÂÊÇÃ»ÓĞÓ°ÏìµÄ¡£*/
+    /*åœ¨Bæ ‘pç»“æŸäº‹åŠ¡æ—¶ï¼Œè¯¥å‡½æ•°è¢«è°ƒç”¨ã€‚å¦‚æœæœ‰å½“å‰å­˜åœ¨ä¸€ä¸ªå†™äº‹åŠ¡ï¼Œpä¸æ˜¯é‚£ä¸ªå†™äº‹åŠ¡ã€‚
+    é‚£ä¹ˆè¿æ¥è¿›ç¨‹è€Œä¸æ˜¯å†™è¿›ç¨‹æŒæœ‰çš„é”çš„æ•°é‡å¤§çº¦é™è‡³é›¶ã€‚åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œè®¾ç½®BTS_PENDINGæ ‡å¿—ä¸º0ã€‚
+    å¦‚æœç›®å‰è¿˜æ²¡æœ‰ä¸€ä¸ªå†™äº‹åŠ¡ï¼Œé‚£ä¹ˆBTS_PENDINGä¸ºé›¶ã€‚å› æ­¤ï¼Œä¸‹ä¸€è¡Œ(pBt->btsFlags &= ~BTS_PENDING;)åœ¨è¿™ç§æƒ…å†µä¸‹æ˜¯æ²¡æœ‰å½±å“çš„ã€‚*/
     pBt->btsFlags &= ~BTS_PENDING;
   }
 }
@@ -514,7 +514,7 @@ static void clearAllSharedCacheTableLocks(Btree *p){
 /*
 ** This function changes all write-locks held by Btree p into read-locks.
 */
-/*Õâ¸öº¯Êı½«BÊ÷p³ÖÓĞµÄËùÓĞĞ´Ëø¸Ä±äÎª¶ÁËø¡£*/
+/*è¿™ä¸ªå‡½æ•°å°†Bæ ‘pæŒæœ‰çš„æ‰€æœ‰å†™é”æ”¹å˜ä¸ºè¯»é”ã€‚*/
 static void downgradeAllSharedCacheTableLocks(Btree *p){
   BtShared *pBt = p->pBt;
   if( pBt->pWriter==p ){
@@ -530,14 +530,14 @@ static void downgradeAllSharedCacheTableLocks(Btree *p){
 
 #endif /* SQLITE_OMIT_SHARED_CACHE */
 
-static void releasePage(MemPage *pPage);  /* Forward reference ÏòÇ°ÒıÓÃ*/
+static void releasePage(MemPage *pPage);  /* Forward reference å‘å‰å¼•ç”¨*/
 
 /*
 ***** This routine is used inside of assert() only ****
-** Õâ¸ö³ÌĞò½ö½ö±»ÓÃÔÚassert()ÄÚ²¿
+** è¿™ä¸ªç¨‹åºä»…ä»…è¢«ç”¨åœ¨assert()å†…éƒ¨
 ** Verify that the cursor holds the mutex on its BtShared
 */
-/*Õâ¸ö³ÌĞòÀïÃæÖ»ÓĞassert£¨£©£¬È·ÈÏÓÎ±ê³ÖÓĞBtSharedÉÏµÄ»¥³âÁ¿¡£*/
+/*è¿™ä¸ªç¨‹åºé‡Œé¢åªæœ‰assertï¼ˆï¼‰ï¼Œç¡®è®¤æ¸¸æ ‡æŒæœ‰BtSharedä¸Šçš„äº’æ–¥é‡ã€‚*/
 #ifdef SQLITE_DEBUG
 static int cursorHoldsMutex(BtCursor *p){
   return sqlite3_mutex_held(p->pBt->mutex);
@@ -550,7 +550,7 @@ static int cursorHoldsMutex(BtCursor *p){
 ** Invalidate the overflow page-list cache for cursor pCur, if any.
 */
 /*
-ÓÎ±êpCur³ÖÓĞµÄÒç³öÒ³Ãæ£¨ÈçÓĞ£©»º´æÁĞ±íÎŞĞ§( pCur->aOverflow = 0)¡£
+** æ¸¸æ ‡pCuræŒæœ‰çš„æº¢å‡ºé¡µé¢ï¼ˆå¦‚æœ‰ï¼‰ç¼“å­˜åˆ—è¡¨æ— æ•ˆ( pCur->aOverflow = 0)ã€‚
 */
 static void invalidateOverflowCache(BtCursor *pCur){
   assert( cursorHoldsMutex(pCur) );
@@ -562,7 +562,7 @@ static void invalidateOverflowCache(BtCursor *pCur){
 ** Invalidate the overflow page-list cache for all cursors opened
 ** on the shared btree structure pBt.
 */
-/*ÔÚ¹²ÏíBÊ÷½á¹¹pBtÉÏ£¬¶ÔËùÓĞ´ò¿ªµÄÓÎ±êÊ¹Òç³öÒ³ÁĞ±íÎŞĞ§¡£invalidateOverflowCache(p)*/
+/*åœ¨å…±äº«Bæ ‘ç»“æ„pBtä¸Šï¼Œå¯¹æ‰€æœ‰æ‰“å¼€çš„æ¸¸æ ‡ä½¿æº¢å‡ºé¡µåˆ—è¡¨æ— æ•ˆã€‚invalidateOverflowCache(p)*/
 static void invalidateAllOverflowCache(BtShared *pBt){
   BtCursor *p;
   assert( sqlite3_mutex_held(pBt->mutex));
@@ -583,17 +583,17 @@ static void invalidateAllOverflowCache(BtShared *pBt){
 ** Otherwise, if argument isClearTable is false, then the row with
 ** rowid iRow is being replaced or deleted. In this case invalidate
 ** only those incrblob cursors open on that specific row.
-** Õâ¸öº¯ÊıÔÚ±íµÄÄÚÈİ±»ĞŞ¸ÄÖ®Ç°±»µ÷ÓÃ£¬Ê¹¿ª·ÅµÄĞĞ»òĞĞÖĞµÄÒ»¸ö
-** ±»ĞŞ¸ÄµÄÒ»¸öincrblobÓÎ±êÎŞĞ§¡£
-** Èç¹û²ÎÊıisClearTableÎªÕæ£¬Ôò±íµÄÈ«²¿ÄÚÈİ¶¼½«±»É¾³ı¡£ÔÚÕâÑùµÄÇé¿öÏÂ£¬
-** Ê¹ÔÚ¸ùÒ³pgnoRootÉÏ¿ª·ÅµÄĞĞ»òĞĞÖĞµÄÒ»¸ö±»ĞŞ¸ÄµÄincrblobÓÎ±êÎŞĞ§¡£
-** ÁíÍâ£¬Èç¹û²ÎÊıisClearTableÎª¼Ù£¬ÄÇÃ´ÓĞrowid iRowµÄĞĞ½«±»´úÌæ»òÉ¾³ı¡£
-** ÔÚÕâÖÖÇé¿öÏÂ£¬ÔÚÌØ¶¨ĞĞÉÏµÄ¿ª·ÅµÄÕâĞ©incrblobÓÎ±êÎŞĞ§¡£
+** è¿™ä¸ªå‡½æ•°åœ¨è¡¨çš„å†…å®¹è¢«ä¿®æ”¹ä¹‹å‰è¢«è°ƒç”¨ï¼Œä½¿å¼€æ”¾çš„è¡Œæˆ–è¡Œä¸­çš„ä¸€ä¸ª
+** è¢«ä¿®æ”¹çš„ä¸€ä¸ªincrblobæ¸¸æ ‡æ— æ•ˆã€‚
+** å¦‚æœå‚æ•°isClearTableä¸ºçœŸï¼Œåˆ™è¡¨çš„å…¨éƒ¨å†…å®¹éƒ½å°†è¢«åˆ é™¤ã€‚åœ¨è¿™æ ·çš„æƒ…å†µä¸‹ï¼Œ
+** ä½¿åœ¨æ ¹é¡µpgnoRootä¸Šå¼€æ”¾çš„è¡Œæˆ–è¡Œä¸­çš„ä¸€ä¸ªè¢«ä¿®æ”¹çš„incrblobæ¸¸æ ‡æ— æ•ˆã€‚
+** å¦å¤–ï¼Œå¦‚æœå‚æ•°isClearTableä¸ºå‡ï¼Œé‚£ä¹ˆæœ‰rowid iRowçš„è¡Œå°†è¢«ä»£æ›¿æˆ–åˆ é™¤ã€‚
+** åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œåœ¨ç‰¹å®šè¡Œä¸Šçš„å¼€æ”¾çš„è¿™äº›incrblobæ¸¸æ ‡æ— æ•ˆã€‚
 */
-static void invalidateIncrblobCursors(        //Ê¹¿ª·ÅµÄĞĞ»òĞĞÖĞµÄÒ»¸ö±»ĞŞ¸ÄµÄÒ»¸öincrblobÓÎ±êÎŞĞ§
-  Btree *pBtree,          /* The database file to check */         //¼ì²éÊı¾İ¿âÎÄ¼ş
-  i64 iRow,               /* The rowid that might be changing */   //rowid¿ÉÄÜ·¢Éú¸Ä±ä
-  int isClearTable        /* True if all rows are being deleted */ //Èç¹ûËùÓĞµÄĞĞ¶¼±»É¾³ı·µ»ØÕæ
+static void invalidateIncrblobCursors(        //ä½¿å¼€æ”¾çš„è¡Œæˆ–è¡Œä¸­çš„ä¸€ä¸ªè¢«ä¿®æ”¹çš„ä¸€ä¸ªincrblobæ¸¸æ ‡æ— æ•ˆ
+  Btree *pBtree,          /* The database file to check */         //æ£€æŸ¥æ•°æ®åº“æ–‡ä»¶
+  i64 iRow,               /* The rowid that might be changing */   //rowidå¯èƒ½å‘ç”Ÿæ”¹å˜
+  int isClearTable        /* True if all rows are being deleted */ //å¦‚æœæ‰€æœ‰çš„è¡Œéƒ½è¢«åˆ é™¤è¿”å›çœŸ
 ){
   BtCursor *p;
   BtShared *pBt = pBtree->pBt;
@@ -606,7 +606,7 @@ static void invalidateIncrblobCursors(        //Ê¹¿ª·ÅµÄĞĞ»òĞĞÖĞµÄÒ»¸ö±»ĞŞ¸ÄµÄÒ»
 }
 
 #else
-  /* Stub functions when INCRBLOB is omitted µ±INCRBLOB±»ºöÂÔÊ±£¬Çå³ıº¯Êı*/
+  /* Stub functions when INCRBLOB is omitted å½“INCRBLOBè¢«å¿½ç•¥æ—¶ï¼Œæ¸…é™¤å‡½æ•°*/
   #define invalidateOverflowCache(x)
   #define invalidateAllOverflowCache(x)
   #define invalidateIncrblobCursors(x,y,z)
@@ -631,7 +631,7 @@ static void invalidateIncrblobCursors(        //Ê¹¿ª·ÅµÄĞĞ»òĞĞÖĞµÄÒ»¸ö±»ĞŞ¸ÄµÄÒ»
 **      from the database or written to the journal file (why should it
 **      be, if it is not at all meaningful?).
 **
-** By themselves, these optimizations work fine and provide a handy(·½±ãµÄ)
+** By themselves, these optimizations work fine and provide a handy(æ–¹ä¾¿çš„)
 ** performance boost to bulk delete or insert operations. However, if
 ** a page is moved to the free-list and then reused within the same
 ** transaction, a problem comes up. If the page is not journalled when
@@ -646,33 +646,33 @@ static void invalidateIncrblobCursors(        //Ê¹¿ª·ÅµÄĞĞ»òĞĞÖĞµÄÒ»¸ö±»ĞŞ¸ÄµÄÒ»
 ** optimization 2 above is omitted if the corresponding bit is already
 ** set in BtShared.pHasContent. The contents of the bitvec are cleared
 ** at the end of every transaction.
-** Éè¶¨Î»ÏòÁ¿BtShared.pHasContentµÄpgnoµÄÎ»¡£Õâ¸öº¯Êı½«ÔÚÏÈÇ°°üº¬Êı¾İµÄÒ³
-** ±äÎªÒ»¸ö¿ÕÁĞÒ¶½ÚµãÒ³µÄÊ±ºò±»µ÷ÓÃ¡£
+** è®¾å®šä½å‘é‡BtShared.pHasContentçš„pgnoçš„ä½ã€‚è¿™ä¸ªå‡½æ•°å°†åœ¨å…ˆå‰åŒ…å«æ•°æ®çš„é¡µ
+** å˜ä¸ºä¸€ä¸ªç©ºåˆ—å¶èŠ‚ç‚¹é¡µçš„æ—¶å€™è¢«è°ƒç”¨ã€‚
 **
-** BtShared.pHasContentÎ»ÏòÁ¿´æÔÚÊÇÎªÁË½â¾öÎ´ÖªµÄ´íÎó£¬Õâ¸ö´íÎóÊÇ·¢ÉúÔÚ¿ÕÁĞÒ¶½ÚµãÒ³µÄ
-** ÁÙ½ü½ÚµãÁ½¸öÓĞÓÃµÄIOÓÅ»¯µÄÏà»¥×÷ÓÃ²úÉúµÄ£º
-** 1£©µ±Ò³µÄËùÓĞÊı¾İ¶¼±»É¾³ı²¢ÇÒÒ³±ä³É¿ÕÁĞ±íÒ¶½ÚµãÒ³µÄÊ±ºò£¬Õâ¸öÒ³½«²»ÄÜ±»Ğ´µ½Êı¾İ¿âÖĞ
-**   £¨¿ÕÁĞ±íÒ¶½ÚµãµÄÒ³ÖĞ°üº¬µÄÊÇÎŞĞ§µÄÊı¾İ£©¡£ÓĞÊ±ÕâÑùµÄÒ³ÉõÖÁ²»»á±»¼ÇÂ¼µ½ÈÕÖ¾ÖĞ¡£
-**	 £¨ÒòÎªËü²¢Ã»ÓĞ±»ĞŞ¸ÄËùÓĞÃ»ÓĞ±ØÒª¼ÇÂ¼µ½ÈÕÖ¾£©
-** 2£©µ±¿ÕÁĞ±íÒ¶½ÚµãµÄÒ³±»ÖØĞÂÊ¹ÓÃµÄÊ±ºò£¬ËüµÄ²»»á´ÓÊı¾İ¿âÖĞ»òÒÑ¾­±»Ğ´µÄÈÕÖ¾ÎÄ¼şÖĞ¶ÁÈ¡¡£
-**    ÒòÎªËüÊÇ²»ÊÇ¶¼ÓĞÒâÒåµÄ¡£
+** BtShared.pHasContentä½å‘é‡å­˜åœ¨æ˜¯ä¸ºäº†è§£å†³æœªçŸ¥çš„é”™è¯¯ï¼Œè¿™ä¸ªé”™è¯¯æ˜¯å‘ç”Ÿåœ¨ç©ºåˆ—å¶èŠ‚ç‚¹é¡µçš„
+** ä¸´è¿‘èŠ‚ç‚¹ä¸¤ä¸ªæœ‰ç”¨çš„IOä¼˜åŒ–çš„ç›¸äº’ä½œç”¨äº§ç”Ÿçš„ï¼š
+** 1ï¼‰å½“é¡µçš„æ‰€æœ‰æ•°æ®éƒ½è¢«åˆ é™¤å¹¶ä¸”é¡µå˜æˆç©ºåˆ—è¡¨å¶èŠ‚ç‚¹é¡µçš„æ—¶å€™ï¼Œè¿™ä¸ªé¡µå°†ä¸èƒ½è¢«å†™åˆ°æ•°æ®åº“ä¸­
+**   ï¼ˆç©ºåˆ—è¡¨å¶èŠ‚ç‚¹çš„é¡µä¸­åŒ…å«çš„æ˜¯æ— æ•ˆçš„æ•°æ®ï¼‰ã€‚æœ‰æ—¶è¿™æ ·çš„é¡µç”šè‡³ä¸ä¼šè¢«è®°å½•åˆ°æ—¥å¿—ä¸­ã€‚
+**	 ï¼ˆå› ä¸ºå®ƒå¹¶æ²¡æœ‰è¢«ä¿®æ”¹æ‰€æœ‰æ²¡æœ‰å¿…è¦è®°å½•åˆ°æ—¥å¿—ï¼‰
+** 2ï¼‰å½“ç©ºåˆ—è¡¨å¶èŠ‚ç‚¹çš„é¡µè¢«é‡æ–°ä½¿ç”¨çš„æ—¶å€™ï¼Œå®ƒçš„ä¸ä¼šä»æ•°æ®åº“ä¸­æˆ–å·²ç»è¢«å†™çš„æ—¥å¿—æ–‡ä»¶ä¸­è¯»å–ã€‚
+**    å› ä¸ºå®ƒæ˜¯ä¸æ˜¯éƒ½æœ‰æ„ä¹‰çš„ã€‚
 **
-** Í¨¹ı±¾Éí£¬ÕâĞ©ÓÅ»¯Æğµ½ºÜºÃµÄ×÷ÓÃ£¬²¢Ìá¹©Ò»¸öÁé»îµÄĞÔÄÜÌáÉı´ïµ½ÅúÁ¿É¾³ı»ò²åÈë²Ù×÷¡£
-** È»¶ø£¬Èç¹ûÒ»¸öÒ³ÃæÒÆ³ı¶ø±äÎª¿ÕÏĞÁĞ±í£¬È»ºóÔÚÏàÍ¬ÊÂÎñÖĞÖØĞÂÀûÓÃ£¬¾Í»á²úÉúÎÊÌâ¡£
-** µ±Ò³ÃæÒÆ³ı¶ø±äÎª¿ÕÏĞÁĞ±íÊ±£¬Èç¹ûÒ³ÃæÃ»ÓĞ¼ÓÈëµ½ÈÕÖ¾£¬ËüÒ²²»»á¼ÓÈëµ½ÈÕÖ¾£¬Ëü´Ó×ÔÓÉ±íÖĞ
-** ÌáÈ¡ºÍÖØĞÂÊ¹ÓÃ£¬ÔòÔ­Ê¼Êı¾İ¿ÉÄÜ»á¶ªÊ§¡£ÔÚ»Ø¹öµÄÇé¿öÏÂ£¬Ëü¿ÉÄÜÎŞ·¨½«Êı¾İ¿â»Ö¸´µ½Ô­À´µÄÅäÖÃ¡£
+** é€šè¿‡æœ¬èº«ï¼Œè¿™äº›ä¼˜åŒ–èµ·åˆ°å¾ˆå¥½çš„ä½œç”¨ï¼Œå¹¶æä¾›ä¸€ä¸ªçµæ´»çš„æ€§èƒ½æå‡è¾¾åˆ°æ‰¹é‡åˆ é™¤æˆ–æ’å…¥æ“ä½œã€‚
+** ç„¶è€Œï¼Œå¦‚æœä¸€ä¸ªé¡µé¢ç§»é™¤è€Œå˜ä¸ºç©ºé—²åˆ—è¡¨ï¼Œç„¶ååœ¨ç›¸åŒäº‹åŠ¡ä¸­é‡æ–°åˆ©ç”¨ï¼Œå°±ä¼šäº§ç”Ÿé—®é¢˜ã€‚
+** å½“é¡µé¢ç§»é™¤è€Œå˜ä¸ºç©ºé—²åˆ—è¡¨æ—¶ï¼Œå¦‚æœé¡µé¢æ²¡æœ‰åŠ å…¥åˆ°æ—¥å¿—ï¼Œå®ƒä¹Ÿä¸ä¼šåŠ å…¥åˆ°æ—¥å¿—ï¼Œå®ƒä»è‡ªç”±è¡¨ä¸­
+** æå–å’Œé‡æ–°ä½¿ç”¨ï¼Œåˆ™åŸå§‹æ•°æ®å¯èƒ½ä¼šä¸¢å¤±ã€‚åœ¨å›æ»šçš„æƒ…å†µä¸‹ï¼Œå®ƒå¯èƒ½æ— æ³•å°†æ•°æ®åº“æ¢å¤åˆ°åŸæ¥çš„é…ç½®ã€‚
 **
-** ¸Ã½â¾ö·½°¸¾ÍÊÇBtShared.pHasContent Î»ÏòÁ¿¡£Ã¿µ±Ò»¸öÒ³ÃæÒÆ³ı³ÉÎª¿ÕÁĞ±íÒ¶×Ó½ÚµãÒ³Ê±£¬
-** ÏàÓ¦µÄÎ»½«ÔÚÎ»ÏòÁ¿ÖĞÉèÖÃ¡£Ã¿µ±Ò»¸öÒ¶½ÚµãÒ³´Ó¿ÕÁĞ±íÖĞÌáÈ¡£¬Èç¹ûÏàÓ¦µÄÎ»ÒÑ¾­ÔÚ
-** BtShared.pHasContentÖĞÉèÖÃ£¬ÔòÒÔÉÏÁ½ÖÖÓÅ»¯½«±»ºöÂÔ¡£ÔÚÃ¿Ò»ÊÂÎñ½áÊø¸ÃÊ±£¬Î»ÏòÁ¿µÄÄÚÈİ½«±»Çå³ı¡£
+** è¯¥è§£å†³æ–¹æ¡ˆå°±æ˜¯BtShared.pHasContent ä½å‘é‡ã€‚æ¯å½“ä¸€ä¸ªé¡µé¢ç§»é™¤æˆä¸ºç©ºåˆ—è¡¨å¶å­èŠ‚ç‚¹é¡µæ—¶ï¼Œ
+** ç›¸åº”çš„ä½å°†åœ¨ä½å‘é‡ä¸­è®¾ç½®ã€‚æ¯å½“ä¸€ä¸ªå¶èŠ‚ç‚¹é¡µä»ç©ºåˆ—è¡¨ä¸­æå–ï¼Œå¦‚æœç›¸åº”çš„ä½å·²ç»åœ¨
+** BtShared.pHasContentä¸­è®¾ç½®ï¼Œåˆ™ä»¥ä¸Šä¸¤ç§ä¼˜åŒ–å°†è¢«å¿½ç•¥ã€‚åœ¨æ¯ä¸€äº‹åŠ¡ç»“æŸè¯¥æ—¶ï¼Œä½å‘é‡çš„å†…å®¹å°†è¢«æ¸…é™¤ã€‚
 */
 static int btreeSetHasContent(BtShared *pBt, Pgno pgno){
   int rc = SQLITE_OK;
-  if( !pBt->pHasContent ){  /*×ÔÓÉÒ³*/
+  if( !pBt->pHasContent ){  /*è‡ªç”±é¡µ*/
     assert( pgno<=pBt->nPage );
     pBt->pHasContent = sqlite3BitvecCreate(pBt->nPage);
     if( !pBt->pHasContent ){
-      rc = SQLITE_NOMEM;   /*·ÖÅäÄÚ´æÊ§°Ü*/
+      rc = SQLITE_NOMEM;   /*åˆ†é…å†…å­˜å¤±è´¥*/
     }
   }
   if( rc==SQLITE_OK && pgno<=sqlite3BitvecSize(pBt->pHasContent) ){
@@ -687,23 +687,23 @@ static int btreeSetHasContent(BtShared *pBt, Pgno pgno){
 ** This function is called when a free-list leaf page is removed from the
 ** free-list for reuse. It returns false if it is safe to retrieve the
 ** page from the pager layer with the 'no-content' flag set. True otherwise.
-** ²éÑ¯BtShared.pHasContentÏòÁ¿¡£
-** µ±Ò»¸ö¿Õ±íµÄÒ¶½ÚµãµÄÒ³Ãæ´ÓÖØÓÃµÄ¿Õ±íÖĞ±»ÒÆ³ıÊ±£¬Õâ¸öº¯Êı½«±»µ÷ÓÃ¡£Èç¹û´Ó
-** ´øÓĞno-content±êÇ©µÄÒ³Ãæ¶ÔÏó²ã¼ìË÷Ò³ÃæÊÇ°²È«µÄÔò·µ»Øfalse¡£·ñÔò·µ»Øtrue
+** æŸ¥è¯¢BtShared.pHasContentå‘é‡ã€‚
+** å½“ä¸€ä¸ªç©ºè¡¨çš„å¶èŠ‚ç‚¹çš„é¡µé¢ä»é‡ç”¨çš„ç©ºè¡¨ä¸­è¢«ç§»é™¤æ—¶ï¼Œè¿™ä¸ªå‡½æ•°å°†è¢«è°ƒç”¨ã€‚å¦‚æœä»
+** å¸¦æœ‰no-contentæ ‡ç­¾çš„é¡µé¢å¯¹è±¡å±‚æ£€ç´¢é¡µé¢æ˜¯å®‰å…¨çš„åˆ™è¿”å›falseã€‚å¦åˆ™è¿”å›true
 */
 static int btreeGetHasContent(BtShared *pBt, Pgno pgno){
-  Bitvec *p = pBt->pHasContent; /*ÊÇ·ñÎª×ÔÓÉÒ³*/
+  Bitvec *p = pBt->pHasContent; /*æ˜¯å¦ä¸ºè‡ªç”±é¡µ*/
   return (p && (pgno>sqlite3BitvecSize(p) || sqlite3BitvecTest(p, pgno)));
 }
 
 /*
 ** Clear (destroy) the BtShared.pHasContent bitvec. This should be
 ** invoked at the conclusion of each write-transaction.
-** Çå³ıBtShared.pHasContentÎ»ÏòÁ¿¡£Õâ¸ö³ÌĞòÓ¦¸ÃÔÚµÃµ½Ã¿¸öĞ´ÊÂÎñ½áÂÛÊÇµ÷ÓÃ¡£
+** æ¸…é™¤BtShared.pHasContentä½å‘é‡ã€‚è¿™ä¸ªç¨‹åºåº”è¯¥åœ¨å¾—åˆ°æ¯ä¸ªå†™äº‹åŠ¡ç»“è®ºæ˜¯è°ƒç”¨ã€‚
 */
-/*ÔÚÃ¿¸öĞ´ÊÂÎñµÄ½áÎ²±»µ÷ÓÃ*/
+/*åœ¨æ¯ä¸ªå†™äº‹åŠ¡çš„ç»“å°¾è¢«è°ƒç”¨*/
 static void btreeClearHasContent(BtShared *pBt){
-  sqlite3BitvecDestroy(pBt->pHasContent);/*Ïú»ÙÎ»Í¼¶ÔÏó£¬»ØÊÕÓÃ¹ıµÄÄÚ´æ*/
+  sqlite3BitvecDestroy(pBt->pHasContent);/*é”€æ¯ä½å›¾å¯¹è±¡ï¼Œå›æ”¶ç”¨è¿‡çš„å†…å­˜*/
   pBt->pHasContent = 0;
 }
 
@@ -713,33 +713,33 @@ static void btreeClearHasContent(BtShared *pBt){
 **
 ** The caller must ensure that the cursor is valid (has eState==CURSOR_VALID)
 ** prior to calling this routine.  
-** ±£´æµ±Ç°ÓÎ±êÔÚ±äÁ¿BtCursor.nKeyºÍBtCursor.pKeyÉÏµÄÎ»ÖÃ¡£ÓÎ±êµÄ×´Ì¬±»ÉèÖÃÎªCURSOR_REQUIRESEEK.
-** Õâ¸öµ÷ÓÃÕß±ØĞëÈ·±£Ö®Ç°µ÷ÓÃÕâ¸ö³ÌĞòµÄÓÎ±êÊÇÓĞĞ§(ÓĞeState==CURSOR_VALID)¡£
+** ä¿å­˜å½“å‰æ¸¸æ ‡åœ¨å˜é‡BtCursor.nKeyå’ŒBtCursor.pKeyä¸Šçš„ä½ç½®ã€‚æ¸¸æ ‡çš„çŠ¶æ€è¢«è®¾ç½®ä¸ºCURSOR_REQUIRESEEK.
+** è¿™ä¸ªè°ƒç”¨è€…å¿…é¡»ç¡®ä¿ä¹‹å‰è°ƒç”¨è¿™ä¸ªç¨‹åºçš„æ¸¸æ ‡æ˜¯æœ‰æ•ˆ(æœ‰eState==CURSOR_VALID)ã€‚
 */
-/*½«ÓÎ±êµÄÎ»ÖÃ±£´æÔÚ±äÁ¿BtCursor.nKeyºÍBtCursor.pKeyÖĞ£¬È¡pKey
-ÖĞnKey³¤¶ÈµÄ×Ö¶Î¾Í¿ÉÒÔÕÒµ½ÓÎ±êËùÔÚÎ»ÖÃ¡£ÆäÖĞÓÎ±ê´Ó0¿ªÊ¼£¬pKey
-Ö¸ÏòÓÎ±êµÄ last knownÎ»ÖÃ¡£
+/*å°†æ¸¸æ ‡çš„ä½ç½®ä¿å­˜åœ¨å˜é‡BtCursor.nKeyå’ŒBtCursor.pKeyä¸­ï¼Œå–pKey
+ä¸­nKeyé•¿åº¦çš„å­—æ®µå°±å¯ä»¥æ‰¾åˆ°æ¸¸æ ‡æ‰€åœ¨ä½ç½®ã€‚å…¶ä¸­æ¸¸æ ‡ä»0å¼€å§‹ï¼ŒpKey
+æŒ‡å‘æ¸¸æ ‡çš„ last knownä½ç½®ã€‚
 */
 static int saveCursorPosition(BtCursor *pCur){
   int rc;
 
-  assert( CURSOR_VALID==pCur->eState );/*Ç°Ìá:ÓÎ±êÓĞĞ§*/
+  assert( CURSOR_VALID==pCur->eState );/*å‰æ:æ¸¸æ ‡æœ‰æ•ˆ*/
   assert( 0==pCur->pKey );
   assert( cursorHoldsMutex(pCur) );
 
   rc = sqlite3BtreeKeySize(pCur, &pCur->nKey);
-  assert( rc==SQLITE_OK );  /* KeySize() cannot fail£¬ÓÀÔ¶·µ»ØSQLITE_OK*/
+  assert( rc==SQLITE_OK );  /* KeySize() cannot failï¼Œæ°¸è¿œè¿”å›SQLITE_OK*/
 
   /* If this is an intKey table, then the above call to BtreeKeySize()
   ** stores the integer key in pCur->nKey. In this case this value is
   ** all that is required. Otherwise, if pCur is not open on an intKey
   ** table, then malloc space for and store the pCur->nKey bytes of key 
   ** data.
-  ** Èç¹ûÓĞÒ»¸öintKey±í£¬È»ºóÉÏ±ßµ÷ÓÃBtreeKeySize()²¢´æ´¢Õâ¸öÕûÊıµ½pCur->nKeyÀï¡£
-  ** ÔÚÕâÊ±£¬Õâ¸öÖµ¾ÍÊÇËùĞèÒªµÄÖµ¡£·ñÔò£¬Èç¹ûÔÚintKey±íÉÏpCur²»ÊÇ¿ª·ÅµÄ£¬ÄÇÃ´
-  ** ¶¯Ì¬·ÖÅä¿Õ¼ä²¢ÇÒ´æ´¢¹Ø¼ü×ÖÊı¾İµÄ pCur->nKey×Ö½Ú¡£
+  ** å¦‚æœæœ‰ä¸€ä¸ªintKeyè¡¨ï¼Œç„¶åä¸Šè¾¹è°ƒç”¨BtreeKeySize()å¹¶å­˜å‚¨è¿™ä¸ªæ•´æ•°åˆ°pCur->nKeyé‡Œã€‚
+  ** åœ¨è¿™æ—¶ï¼Œè¿™ä¸ªå€¼å°±æ˜¯æ‰€éœ€è¦çš„å€¼ã€‚å¦åˆ™ï¼Œå¦‚æœåœ¨intKeyè¡¨ä¸ŠpCurä¸æ˜¯å¼€æ”¾çš„ï¼Œé‚£ä¹ˆ
+  ** åŠ¨æ€åˆ†é…ç©ºé—´å¹¶ä¸”å­˜å‚¨å…³é”®å­—æ•°æ®çš„ pCur->nKeyå­—èŠ‚ã€‚
   */
-  if( 0==pCur->apPage[0]->intKey ){/*ÓÎ±êÔÚintKey±íÖĞÃ»ÓĞ´ò¿ª£¬·ÖÅäpCur->nKey´óĞ¡µÄ¿Õ¼ä*/
+  if( 0==pCur->apPage[0]->intKey ){/*æ¸¸æ ‡åœ¨intKeyè¡¨ä¸­æ²¡æœ‰æ‰“å¼€ï¼Œåˆ†é…pCur->nKeyå¤§å°çš„ç©ºé—´*/
     void *pKey = sqlite3Malloc( (int)pCur->nKey );
     if( pKey ){
       rc = sqlite3BtreeKey(pCur, 0, (int)pCur->nKey, pKey);
@@ -761,7 +761,7 @@ static int saveCursorPosition(BtCursor *pCur){
       pCur->apPage[i] = 0;
     }
     pCur->iPage = -1;
-    pCur->eState = CURSOR_REQUIRESEEK;/*ÓÎ±êÖ¸ÏòµÄ±í±»ĞŞ¸ÄÁË£¬ĞèÒªÖØĞÂ¶¨Î»ÓÎ±êµÄÎ»ÖÃ*/
+    pCur->eState = CURSOR_REQUIRESEEK;/*æ¸¸æ ‡æŒ‡å‘çš„è¡¨è¢«ä¿®æ”¹äº†ï¼Œéœ€è¦é‡æ–°å®šä½æ¸¸æ ‡çš„ä½ç½®*/
   }
 
   invalidateOverflowCache(pCur);
@@ -772,14 +772,14 @@ static int saveCursorPosition(BtCursor *pCur){
 ** Save the positions of all cursors (except pExcept) that are open on
 ** the table  with root-page iRoot. Usually, this is called just before cursor
 ** pExcept is used to modify the table (BtreeDelete() or BtreeInsert()).
-** ±£´æËùÓĞÔÚÓĞ¸ùÒ³iRootµÄ±íÉÏ¿ª·ÅµÄÓÎ±êµÄÎ»ÖÃ¡£±£´æÓĞ±êµÄÎ´ÖªµÄÒâË¼ÊÇÔÚBÊ÷ÉÏµÄÎ»ÖÃ
-** ±»¼ÇÂ¼ÕâÑù¿ÉÒÔÔÚBÊ÷±»ĞŞ¸ÄºóÒÆ»Øµ½ÏàÍ¬µÄµã¡£Õâ¸ö³ÌĞòÔÚÓÎ±êpExcept±»ÓÃÓÚĞŞ¸Ä±íÖ®Ç°±»µ÷ÓÃ
-** ÀıÈçÔÚBtreeDelete()»ò BtreeInsert()ÖĞ¡£
-** Èç¹ûÔÚÏàÍ¬µÄBtreeÉÏÓĞÁ½¸ö»òÕß¸ü¶àµÄÓÎ±ê£¬ÔòËùÓĞÕâÑùµÄÓÎ±ê¶¼Ó¦¸ÃÓĞBTCF_Multiple±ê¼Ç¡£
-** btreeCursor()»áÖ´ĞĞÕâ¸ö¹æÔò¡£Õâ¸ö³ÌĞò±»µ÷ÓÃÔÚ²»³£¼ûµÄÇé¿öÏÂ£¬ÈçpExpectÒÑ¾­ÉèÖÃÁËBTCF_Multiple±ê¼ÇÊ±¡£
-** Èç¹ûpExpect!=NULL²¢ÇÒÈç¹ûÔÚÏàÍ¬µÄ¸ùÒ³ÉÏÃ»ÓĞÓÎ±ê£¬ÄÇÃ´ÔÚpExpectÉÏµÄBTCF_Multiple±ê¼Ç½«±»Çå³ı
-** ±ÜÃâÔÙÒ»´ÎÎŞÒâÒåµÄµ÷ÓÃÕâ¸ö³ÌĞò¡£
-** ÊµÏÖÊ±×¢Òâ£ºÕâ¸ö³ÌĞòºÜÉÙÈ¥ºË¶ÔÊÇ·ñÓĞÓÎ±êĞèÒª±£´æ¡£Ëüµ÷ÓÃsaveCursorsOnList()(Òì³£)ÊÂ¼ş,ÓÎ±êÊÇĞèÒª±»±£´æ¡£
+** ä¿å­˜æ‰€æœ‰åœ¨æœ‰æ ¹é¡µiRootçš„è¡¨ä¸Šå¼€æ”¾çš„æ¸¸æ ‡çš„ä½ç½®ã€‚ä¿å­˜æœ‰æ ‡çš„æœªçŸ¥çš„æ„æ€æ˜¯åœ¨Bæ ‘ä¸Šçš„ä½ç½®
+** è¢«è®°å½•è¿™æ ·å¯ä»¥åœ¨Bæ ‘è¢«ä¿®æ”¹åç§»å›åˆ°ç›¸åŒçš„ç‚¹ã€‚è¿™ä¸ªç¨‹åºåœ¨æ¸¸æ ‡pExceptè¢«ç”¨äºä¿®æ”¹è¡¨ä¹‹å‰è¢«è°ƒç”¨
+** ä¾‹å¦‚åœ¨BtreeDelete()æˆ– BtreeInsert()ä¸­ã€‚
+** å¦‚æœåœ¨ç›¸åŒçš„Btreeä¸Šæœ‰ä¸¤ä¸ªæˆ–è€…æ›´å¤šçš„æ¸¸æ ‡ï¼Œåˆ™æ‰€æœ‰è¿™æ ·çš„æ¸¸æ ‡éƒ½åº”è¯¥æœ‰BTCF_Multipleæ ‡è®°ã€‚
+** btreeCursor()ä¼šæ‰§è¡Œè¿™ä¸ªè§„åˆ™ã€‚è¿™ä¸ªç¨‹åºè¢«è°ƒç”¨åœ¨ä¸å¸¸è§çš„æƒ…å†µä¸‹ï¼Œå¦‚pExpectå·²ç»è®¾ç½®äº†BTCF_Multipleæ ‡è®°æ—¶ã€‚
+** å¦‚æœpExpect!=NULLå¹¶ä¸”å¦‚æœåœ¨ç›¸åŒçš„æ ¹é¡µä¸Šæ²¡æœ‰æ¸¸æ ‡ï¼Œé‚£ä¹ˆåœ¨pExpectä¸Šçš„BTCF_Multipleæ ‡è®°å°†è¢«æ¸…é™¤
+** é¿å…å†ä¸€æ¬¡æ— æ„ä¹‰çš„è°ƒç”¨è¿™ä¸ªç¨‹åºã€‚
+** å®ç°æ—¶æ³¨æ„ï¼šè¿™ä¸ªç¨‹åºå¾ˆå°‘å»æ ¸å¯¹æ˜¯å¦æœ‰æ¸¸æ ‡éœ€è¦ä¿å­˜ã€‚å®ƒè°ƒç”¨saveCursorsOnList()(å¼‚å¸¸)äº‹ä»¶,æ¸¸æ ‡æ˜¯éœ€è¦è¢«ä¿å­˜ã€‚
 */
 static int saveAllCursors(BtShared *pBt, Pgno iRoot, BtCursor *pExcept){
   BtCursor *p;
@@ -787,7 +787,7 @@ static int saveAllCursors(BtShared *pBt, Pgno iRoot, BtCursor *pExcept){
   assert( pExcept==0 || pExcept->pBt==pBt );
   for(p=pBt->pCursor; p; p=p->pNext){
     if( p!=pExcept && (0==iRoot || p->pgnoRoot==iRoot) && 
-        p->eState==CURSOR_VALID ){/*Ö¸Ïò¸ùÒ³µÄÓÎ±ê²»ĞèÒª±£´æ*/
+        p->eState==CURSOR_VALID ){/*æŒ‡å‘æ ¹é¡µçš„æ¸¸æ ‡ä¸éœ€è¦ä¿å­˜*/
       int rc = saveCursorPosition(p);
       if( SQLITE_OK!=rc ){
         return rc;
@@ -797,7 +797,7 @@ static int saveAllCursors(BtShared *pBt, Pgno iRoot, BtCursor *pExcept){
   return SQLITE_OK;
 }
 
-/* Clear the current cursor position.   Çå³ıµ±Ç°ÓÎ±êÎ»ÖÃ*/
+/* Clear the current cursor position.   æ¸…é™¤å½“å‰æ¸¸æ ‡ä½ç½®*/
 void sqlite3BtreeClearCursor(BtCursor *pCur){
   assert( cursorHoldsMutex(pCur) );
   sqlite3_free(pCur->pKey);
@@ -809,19 +809,19 @@ void sqlite3BtreeClearCursor(BtCursor *pCur){
 ** In this version of BtreeMoveto, pKey is a packed index record
 ** such as is generated by the OP_MakeRecord opcode.  Unpack the
 ** record and then call BtreeMovetoUnpacked() to do the work.
-** ÔÚBtreeMovetoµÄÕâ¸ö°æ±¾ÖĞ£¬pKeyÊÇÒ»¸ö°üË÷Òı¼ÇÂ¼ÈçÓÉOP_MakeRecordÉú³ÉµÄ²Ù×÷Âë¡£
-** ´ò¿ª¼ÇÂ¼È»ºóµ÷ÓÃBtreeMovetoUnpacked()À´Íê³ÉÕâÏî¹¤×÷¡£
+** åœ¨BtreeMovetoçš„è¿™ä¸ªç‰ˆæœ¬ä¸­ï¼ŒpKeyæ˜¯ä¸€ä¸ªåŒ…ç´¢å¼•è®°å½•å¦‚ç”±OP_MakeRecordç”Ÿæˆçš„æ“ä½œç ã€‚
+** æ‰“å¼€è®°å½•ç„¶åè°ƒç”¨BtreeMovetoUnpacked()æ¥å®Œæˆè¿™é¡¹å·¥ä½œã€‚
 */
 static int btreeMoveto(
-  BtCursor *pCur,     /* Cursor open on the btree to be searched  ÔÚBÊ÷ÉÏ¿ª·ÅÓÎ±êÊ¹Ö®ÄÜ±»ËÑË÷µ½*/
-  const void *pKey,   /* Packed key if the btree is an index Èç¹ûBÊ÷ÊÇÒ»¸öË÷ÒıÔò´ò°ü¹Ø¼ü×Ö*/
-  i64 nKey,           /* Integer key for tables.  Size of pKey for indices ±íµÄÕûÊı¹Ø¼ü×Ö£¬pKeyµÄ´óĞ¡*/
-  int bias,           /* Bias search to the high end ËÑË÷×îÖÕ¸ß¶È*/
-  int *pRes           /* Write search results here Ğ´ËÑË÷½á¹û*/
+  BtCursor *pCur,     /* Cursor open on the btree to be searched  åœ¨Bæ ‘ä¸Šå¼€æ”¾æ¸¸æ ‡ä½¿ä¹‹èƒ½è¢«æœç´¢åˆ°*/
+  const void *pKey,   /* Packed key if the btree is an index å¦‚æœBæ ‘æ˜¯ä¸€ä¸ªç´¢å¼•åˆ™æ‰“åŒ…å…³é”®å­—*/
+  i64 nKey,           /* Integer key for tables.  Size of pKey for indices è¡¨çš„æ•´æ•°å…³é”®å­—ï¼ŒpKeyçš„å¤§å°*/
+  int bias,           /* Bias search to the high end æœç´¢æœ€ç»ˆé«˜åº¦*/
+  int *pRes           /* Write search results here å†™æœç´¢ç»“æœ*/
 ){
-  int rc;                    /* Status code ×´Ì¬Âë*/
-  UnpackedRecord *pIdxKey;   /* Unpacked index key ´ò¿ªË÷Òı¼ü */
-  char aSpace[150];          /* Temp space for pIdxKey - to avoid a malloc **pIdxKeyµÄÁÙÊ±¿Õ¼ä£¬±ÜÃâ¶¯Ì¬·ÖÅä*/
+  int rc;                    /* Status code çŠ¶æ€ç */
+  UnpackedRecord *pIdxKey;   /* Unpacked index key æ‰“å¼€ç´¢å¼•é”® */
+  char aSpace[150];          /* Temp space for pIdxKey - to avoid a malloc **pIdxKeyçš„ä¸´æ—¶ç©ºé—´ï¼Œé¿å…åŠ¨æ€åˆ†é…*/
   char *pFree = 0;
 
   if( pKey ){
@@ -847,18 +847,18 @@ static int btreeMoveto(
 ** saved position info stored by saveCursorPosition(), so there can be
 ** at most one effective restoreCursorPosition() call after each 
 ** saveCursorPosition().
-** µ±saveCursorPosition()±»µ÷ÓÃµÄÊ±ºò£¬ÖØĞÂ±£´æÓĞ±êµÄÎ»ÖÃ¡£×¢ÒâÕâ¸öµ÷ÓÃ»á
-** É¾³ısaveCursorPosition()Ö®Ç°±£´æµÄÎ»ÖÃĞÅÏ¢¡£Òò´ËÔÚÃ¿Ò»¸ösaveCursorPosition()ºó
-** ÓĞÒ»¸öÓĞĞ§µÄrestoreCursorPosition()µ÷ÓÃ
+** å½“saveCursorPosition()è¢«è°ƒç”¨çš„æ—¶å€™ï¼Œé‡æ–°ä¿å­˜æœ‰æ ‡çš„ä½ç½®ã€‚æ³¨æ„è¿™ä¸ªè°ƒç”¨ä¼š
+** åˆ é™¤saveCursorPosition()ä¹‹å‰ä¿å­˜çš„ä½ç½®ä¿¡æ¯ã€‚å› æ­¤åœ¨æ¯ä¸€ä¸ªsaveCursorPosition()å
+** æœ‰ä¸€ä¸ªæœ‰æ•ˆçš„restoreCursorPosition()è°ƒç”¨
 */
-/*µ÷ÓÃsaveCursorPosition()Ö®ºó£¬saveCursorPosition()ÖĞ±£´æµÄÎ»ÖÃĞÅÏ¢±»É¾³ı£¬Òò´ËÒª»Ö¸´
-ÓÎ±êÎ»ÖÃ¡£*/
+/*è°ƒç”¨saveCursorPosition()ä¹‹åï¼ŒsaveCursorPosition()ä¸­ä¿å­˜çš„ä½ç½®ä¿¡æ¯è¢«åˆ é™¤ï¼Œå› æ­¤è¦æ¢å¤
+æ¸¸æ ‡ä½ç½®ã€‚*/
 static int btreeRestoreCursorPosition(BtCursor *pCur){
   int rc;
   assert( cursorHoldsMutex(pCur) );
-  assert( pCur->eState>=CURSOR_REQUIRESEEK );/*ÓÎ±ê´¦ÓÚCURSOR_FAULT|CURSOR_REQUIRESEEK×´Ì¬ */
+  assert( pCur->eState>=CURSOR_REQUIRESEEK );/*æ¸¸æ ‡å¤„äºCURSOR_FAULT|CURSOR_REQUIRESEEKçŠ¶æ€ */
   if( pCur->eState==CURSOR_FAULT ){
-    return pCur->skipNext;  /* Prev() is noop if (skipNext) negative. Next() is noop if positive  Èç¹ûskipNextÊÇ¸ºµÄÔò Prev()ÎŞ²Ù×÷¡£Èç¹ûÎªÕıÔòNext()ÎŞ²Ù×÷*/
+    return pCur->skipNext;  /* Prev() is noop if (skipNext) negative. Next() is noop if positive  å¦‚æœskipNextæ˜¯è´Ÿçš„åˆ™ Prev()æ— æ“ä½œã€‚å¦‚æœä¸ºæ­£åˆ™Next()æ— æ“ä½œ*/
   }
   pCur->eState = CURSOR_INVALID;
   rc = btreeMoveto(pCur, pCur->pKey, pCur->nKey, 0, &pCur->skipNext);
@@ -882,14 +882,14 @@ static int btreeRestoreCursorPosition(BtCursor *pCur){
 **
 ** This routine returns an error code if something goes wrong.  The
 ** integer *pHasMoved is set to one if the cursor has moved and 0 if not.
-** È·¶¨ÓÎ±êÊÇ·ñÒÑ¾­´ÓÉÏÒ»´ÎµÄÎ»ÖÃ·¢ÉúÁËÒÆ¶¯»òÕßÓÉÓÚÆäËûÔ­Òò¶øÎŞĞ§¡£
-** ÀıÈç£¬µ±ÓÎ±êÕıÖ¸Ïò±»É¾³ıµÄÁĞÊ±ÓÎ±ê¿ÉÒÔÒÆ¶¯¡£Èç¹ûBÊ÷ÔÙÆ½ºâ£¬ÓÎ±êÒ²Ğí»á·¢ÉúÒÆ¶¯¡£
-** µ÷ÓÃ´øÓĞ¿ÕÓÎ±êµÄ³ÌĞòÊ±·µ»Øfalse¡£
-** Ê¹ÓÃµ¥¶ÀµÄsqlite3BtreeCursorRestore()³ÌĞò»Ö¸´Ò»¸öÓÎ±êµ½ËüÓ¦¸ÃÔÚµÄÎ»ÖÃ£¬Èç¹ûÕâ¸ö³ÌĞò·µ»ØtrueµÄ»°¡£
+** ç¡®å®šæ¸¸æ ‡æ˜¯å¦å·²ç»ä»ä¸Šä¸€æ¬¡çš„ä½ç½®å‘ç”Ÿäº†ç§»åŠ¨æˆ–è€…ç”±äºå…¶ä»–åŸå› è€Œæ— æ•ˆã€‚
+** ä¾‹å¦‚ï¼Œå½“æ¸¸æ ‡æ­£æŒ‡å‘è¢«åˆ é™¤çš„åˆ—æ—¶æ¸¸æ ‡å¯ä»¥ç§»åŠ¨ã€‚å¦‚æœBæ ‘å†å¹³è¡¡ï¼Œæ¸¸æ ‡ä¹Ÿè®¸ä¼šå‘ç”Ÿç§»åŠ¨ã€‚
+** è°ƒç”¨å¸¦æœ‰ç©ºæ¸¸æ ‡çš„ç¨‹åºæ—¶è¿”å›falseã€‚
+** ä½¿ç”¨å•ç‹¬çš„sqlite3BtreeCursorRestore()ç¨‹åºæ¢å¤ä¸€ä¸ªæ¸¸æ ‡åˆ°å®ƒåº”è¯¥åœ¨çš„ä½ç½®ï¼Œå¦‚æœè¿™ä¸ªç¨‹åºè¿”å›trueçš„è¯ã€‚
 */
-/*ÓÎ±êÊÇ·ñÒÆ¶¯¡£³ö´í·µ»Ø´íÎó´úÂë¡£*/
+/*æ¸¸æ ‡æ˜¯å¦ç§»åŠ¨ã€‚å‡ºé”™è¿”å›é”™è¯¯ä»£ç ã€‚*/
 int sqlite3BtreeCursorHasMoved(BtCursor *pCur, int *pHasMoved){
-  int rc;  //×´Ì¬Âë
+  int rc;  //çŠ¶æ€ç 
 
   rc = restoreCursorPosition(pCur);
   if( rc ){
@@ -913,15 +913,15 @@ int sqlite3BtreeCursorHasMoved(BtCursor *pCur, int *pHasMoved){
 ** Return 0 (not a valid page) for pgno==1 since there is
 ** no pointer map associated with page 1.  The integrity_check logic
 ** requires that ptrmapPageno(*,1)!=1.
-** ¼øÓÚ³£¹æÊı¾İ¿âÒ³µÄÒ³ºÅ£¬·µ»ØÒ³ºÅÎª°üº¬ÓÃÓÚ½«ÊäÈëÒ³ºÅÌõÄ¿µÄÖ¸ÕëÎ»Í¼Ò³¡£
-** ¶ÔÓÚpgno==1£¬·µ»Ø0£¨²»ÊÇÒ»¸öÓĞĞ§µÄÒ³£©¡£ÒòÎªÃ»ÓĞÓëÒ³1Ïà¹ØµÄÖ¸ÕëÎ»Í¼¡£
-** ÍêÕûĞÔ¼ì²éµÄÂß¼­ÒªÇóÊÇptrmapPageno(*,1)!=1
+** é‰´äºå¸¸è§„æ•°æ®åº“é¡µçš„é¡µå·ï¼Œè¿”å›é¡µå·ä¸ºåŒ…å«ç”¨äºå°†è¾“å…¥é¡µå·æ¡ç›®çš„æŒ‡é’ˆä½å›¾é¡µã€‚
+** å¯¹äºpgno==1ï¼Œè¿”å›0ï¼ˆä¸æ˜¯ä¸€ä¸ªæœ‰æ•ˆçš„é¡µï¼‰ã€‚å› ä¸ºæ²¡æœ‰ä¸é¡µ1ç›¸å…³çš„æŒ‡é’ˆä½å›¾ã€‚
+** å®Œæ•´æ€§æ£€æŸ¥çš„é€»è¾‘è¦æ±‚æ˜¯ptrmapPageno(*,1)!=1
 */
 static Pgno ptrmapPageno(BtShared *pBt, Pgno pgno){
   int nPagesPerMapPage;
   Pgno iPtrMap, ret;
   assert( sqlite3_mutex_held(pBt->mutex) );
-  if( pgno<2 ) return 0;     /*ÎŞĞ§Ò³£¬ÒòÎªÃ»ÓĞÖ¸ÕëÖ¸ÏòÒ³Ãæ1*/
+  if( pgno<2 ) return 0;     /*æ— æ•ˆé¡µï¼Œå› ä¸ºæ²¡æœ‰æŒ‡é’ˆæŒ‡å‘é¡µé¢1*/
   nPagesPerMapPage = (pBt->usableSize/5)+1;
   iPtrMap = (pgno-2)/nPagesPerMapPage;
   ret = (iPtrMap*nPagesPerMapPage) + 2; 
@@ -940,23 +940,23 @@ static Pgno ptrmapPageno(BtShared *pBt, Pgno pgno){
 ** If *pRC is initially non-zero (non-SQLITE_OK) then this routine is
 ** a no-op.  If an error occurs, the appropriate error code is written
 ** into *pRC.
-** Ğ´Ò»¸öÌõÄ¿½øÈëÖ¸ÕëÎ»Í¼¡£Õâ¸ö³ÌĞò¸üĞÂÒ³Âë¡°key¡±µÄÖ¸ÕëÎ»Í¼ÌõÄ¿£¬
-** ÒÔ±ãÓÚ£¬ËüÓ³Éäµ½ÀàĞÍ'eType'Óë¸¸Ò³Âë'pgno'.
-** Èç¹û*pRCµÄ³õÊ¼»¯ÊÇ·ÇÁãµÄ(non-SQLITE_OK)£¬ÄÇÃ´Õâ¸ö³ÌĞòÎŞ²Ù×÷µÄ¡£
-** Èç¹ûÒ»¸ö´íÎó·¢Éú£¬ÔòÏàÓ¦µÄ´íÎó´úÂë±»Ğ´Èë*pRC.
+** å†™ä¸€ä¸ªæ¡ç›®è¿›å…¥æŒ‡é’ˆä½å›¾ã€‚è¿™ä¸ªç¨‹åºæ›´æ–°é¡µç â€œkeyâ€çš„æŒ‡é’ˆä½å›¾æ¡ç›®ï¼Œ
+** ä»¥ä¾¿äºï¼Œå®ƒæ˜ å°„åˆ°ç±»å‹'eType'ä¸çˆ¶é¡µç 'pgno'.
+** å¦‚æœ*pRCçš„åˆå§‹åŒ–æ˜¯éé›¶çš„(non-SQLITE_OK)ï¼Œé‚£ä¹ˆè¿™ä¸ªç¨‹åºæ— æ“ä½œçš„ã€‚
+** å¦‚æœä¸€ä¸ªé”™è¯¯å‘ç”Ÿï¼Œåˆ™ç›¸åº”çš„é”™è¯¯ä»£ç è¢«å†™å…¥*pRC.
 */
 static void ptrmapPut(BtShared *pBt, Pgno key, u8 eType, Pgno parent, int *pRC){
-  DbPage *pDbPage;  /* The pointer map page Ö¸ÕëÎ»Í¼Ò³*/
-  u8 *pPtrmap;      /* The pointer map data Ö¸ÕëÎ»Í¼µÄÊı¾İÓò*/
-  Pgno iPtrmap;     /* The pointer map page number Ö¸ÕëÎ»Í¼µÄÒ³Âë*/
-  int offset;       /* Offset in pointer map page Ö¸ÕëÎ»Í¼Ò³µÄÆ«ÒÆÁ¿*/
-  int rc;           /* Return code from subfunctions(×Óº¯Êı) ´Ó×Óº¯Êı·µ»Øµ½´úÂë*/
+  DbPage *pDbPage;  /* The pointer map page æŒ‡é’ˆä½å›¾é¡µ*/
+  u8 *pPtrmap;      /* The pointer map data æŒ‡é’ˆä½å›¾çš„æ•°æ®åŸŸ*/
+  Pgno iPtrmap;     /* The pointer map page number æŒ‡é’ˆä½å›¾çš„é¡µç */
+  int offset;       /* Offset in pointer map page æŒ‡é’ˆä½å›¾é¡µçš„åç§»é‡*/
+  int rc;           /* Return code from subfunctions(å­å‡½æ•°) ä»å­å‡½æ•°è¿”å›åˆ°ä»£ç */
 
   if( *pRC ) return;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   /* The master-journal page number must never be used as a pointer map page 
-  ** Ö÷ÈÕÖ¾Ò³ÂëÒ»¶¨²»ÄÜÓÃ×÷Ö¸ÕëÎ»Í¼Ò³
+  ** ä¸»æ—¥å¿—é¡µç ä¸€å®šä¸èƒ½ç”¨ä½œæŒ‡é’ˆä½å›¾é¡µ
   */
   assert( 0==PTRMAP_ISPAGE(pBt, PENDING_BYTE_PAGE(pBt)) );
 
@@ -998,16 +998,16 @@ ptrmap_exit:
 ** This routine retrieves the pointer map entry for page 'key', writing
 ** the type and parent page number to *pEType and *pPgno respectively.
 ** An error code is returned if something goes wrong, otherwise SQLITE_OK.
-** ´ÓÖ¸ÕëÎ»Í¼¶ÁÈ¡ÌõÄ¿¡£
-** Õâ¸öº¯Êı¼ìË÷Ò³Ãæ 'key'µÄÖ¸ÕëÎ»Í¼ÌõÄ¿£¬·Ö±ğ½«ÀàĞÍºÍ¸¸Ò³ÂëĞ´Èëµ½*pEType ºÍ *pPgnoÖĞ¡£
-** Èç¹ûÔËĞĞ³ö´íÔò·µ»Ø´íÎó´úÂë£¬ÆäËû·µ»ØSQLITE_OK.
+** ä»æŒ‡é’ˆä½å›¾è¯»å–æ¡ç›®ã€‚
+** è¿™ä¸ªå‡½æ•°æ£€ç´¢é¡µé¢ 'key'çš„æŒ‡é’ˆä½å›¾æ¡ç›®ï¼Œåˆ†åˆ«å°†ç±»å‹å’Œçˆ¶é¡µç å†™å…¥åˆ°*pEType å’Œ *pPgnoä¸­ã€‚
+** å¦‚æœè¿è¡Œå‡ºé”™åˆ™è¿”å›é”™è¯¯ä»£ç ï¼Œå…¶ä»–è¿”å›SQLITE_OK.
 */
-/*¶ÁÈ¡pointer mapµÄÌõÄ¿£¬Ğ´ÈëpETypeºÍpPgnoÖĞ*/
+/*è¯»å–pointer mapçš„æ¡ç›®ï¼Œå†™å…¥pETypeå’ŒpPgnoä¸­*/
 static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
-  DbPage *pDbPage;   /* The pointer map page Ö¸ÕëÎ»Í¼Ò³*/
-  int iPtrmap;       /* Pointer map page index Ö¸ÕëÎ»Í¼Ò³Ë÷Òı*/
-  u8 *pPtrmap;       /* Pointer map page data Ö¸ÕëÎ»Í¼Ò³Êı¾İ*/
-  int offset;        /* Offset of entry in pointer map Ö¸ÕëÎ»Í¼Ò³µÄÆ«ÒÆÁ¿*/
+  DbPage *pDbPage;   /* The pointer map page æŒ‡é’ˆä½å›¾é¡µ*/
+  int iPtrmap;       /* Pointer map page index æŒ‡é’ˆä½å›¾é¡µç´¢å¼•*/
+  u8 *pPtrmap;       /* Pointer map page data æŒ‡é’ˆä½å›¾é¡µæ•°æ®*/
+  int offset;        /* Offset of entry in pointer map æŒ‡é’ˆä½å›¾é¡µçš„åç§»é‡*/
   int rc;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -1046,10 +1046,10 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 ** to the cell content.
 **
 ** This routine works only for pages that do not contain overflow cells.
-** ¸ø¶¨µÄBÊ÷Ò³ºÍµ¥ÔªË÷Òı£¨0ÒâÎ¶×ÅÒ³ÉÏµÄµÚÒ»¸öµ¥Ôª£¬1ÊÇµÚ¶ş¸öµ¥Ôª£¬µÈµÈ£©·µ»ØÒ»¸öÖ¸Ïòµ¥ÔªÄÚÈİµÄÖ¸Õë
-** Õâ¸ö³ÌĞòÖ»¶Ô²»°üº¬Òç³öµ¥ÔªµÄÒ³Æğ×÷ÓÃ
+** ç»™å®šçš„Bæ ‘é¡µå’Œå•å…ƒç´¢å¼•ï¼ˆ0æ„å‘³ç€é¡µä¸Šçš„ç¬¬ä¸€ä¸ªå•å…ƒï¼Œ1æ˜¯ç¬¬äºŒä¸ªå•å…ƒï¼Œç­‰ç­‰ï¼‰è¿”å›ä¸€ä¸ªæŒ‡å‘å•å…ƒå†…å®¹çš„æŒ‡é’ˆ
+** è¿™ä¸ªç¨‹åºåªå¯¹ä¸åŒ…å«æº¢å‡ºå•å…ƒçš„é¡µèµ·ä½œç”¨
 */
-/*¸ø¶¨µÄBÊ÷Ò³ºÍµ¥ÔªË÷Òı£¨0ÒâÎ¶×ÅÒ³ÉÏµÄµÚÒ»¸öµ¥Ôª£¬1ÊÇµÚ¶ş¸öµ¥Ôª£¬µÈµÈ£©·µ»ØÒ»¸öÖ¸Ïòµ¥ÔªÄÚÈİµÄÖ¸Õë*/
+/*ç»™å®šçš„Bæ ‘é¡µå’Œå•å…ƒç´¢å¼•ï¼ˆ0æ„å‘³ç€é¡µä¸Šçš„ç¬¬ä¸€ä¸ªå•å…ƒï¼Œ1æ˜¯ç¬¬äºŒä¸ªå•å…ƒï¼Œç­‰ç­‰ï¼‰è¿”å›ä¸€ä¸ªæŒ‡å‘å•å…ƒå†…å®¹çš„æŒ‡é’ˆ*/
 #define findCell(P,I) \
   ((P)->aData + ((P)->maskPage & get2byte(&(P)->aCellIdx[2*(I)])))
 #define findCellv2(D,M,O,I) (D+(M&get2byte(D+(O+2*(I)))))
@@ -1058,7 +1058,7 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 /*
 ** This a more complex version of findCell() that works for
 ** pages that do contain overflow cells.
-** Õë¶Ô°üº¬Òç³öµ¥ÔªµÄ¸üÎª¸´ÔÓµÄfindCell()°æ±¾
+** é’ˆå¯¹åŒ…å«æº¢å‡ºå•å…ƒçš„æ›´ä¸ºå¤æ‚çš„findCell()ç‰ˆæœ¬
 */
 static u8 *findOverflowCell(MemPage *pPage, int iCell){
   int i;
@@ -1084,18 +1084,18 @@ static u8 *findOverflowCell(MemPage *pPage, int iCell){
 **
 ** Within this file, the parseCell() macro can be called instead of
 ** btreeParseCellPtr(). Using some compilers, this will be faster.
-** ½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ¡£Õâ¸öº¯ÊıÓĞÁ½¸ö°æ±¾¡£btreeParseCell()
-** Õ¼ÁËÒ»¸öµ¥ÔªË÷Òı£¬ËüÊÇµÚÒ»¸ö¡£btreeParseCellPtr()Õ¼ÁËÒ»¸öÖ¸Ïòµ¥ÔªÌåµÄÖ¸ÕëÊÇµÚ¶ş¸ö°æ±¾¡£
-** ÔÚÕâÎÄ¼şÄÚ£¬¿ÉÒÔµ÷ÓÃºêparseCell()¶ø²»ÊÇbtreeParseCellPtr()¡£ÓÃÒ»Ğ©±àÒë³ÌĞò»á¸ü¿ì¡£
+** è§£æå•å…ƒå†…å®¹å—ï¼Œå¡«åœ¨CellInfoç»“æ„ä¸­ã€‚è¿™ä¸ªå‡½æ•°æœ‰ä¸¤ä¸ªç‰ˆæœ¬ã€‚btreeParseCell()
+** å äº†ä¸€ä¸ªå•å…ƒç´¢å¼•ï¼Œå®ƒæ˜¯ç¬¬ä¸€ä¸ªã€‚btreeParseCellPtr()å äº†ä¸€ä¸ªæŒ‡å‘å•å…ƒä½“çš„æŒ‡é’ˆæ˜¯ç¬¬äºŒä¸ªç‰ˆæœ¬ã€‚
+** åœ¨è¿™æ–‡ä»¶å†…ï¼Œå¯ä»¥è°ƒç”¨å®parseCell()è€Œä¸æ˜¯btreeParseCellPtr()ã€‚ç”¨ä¸€äº›ç¼–è¯‘ç¨‹åºä¼šæ›´å¿«ã€‚
 */
-/*½âÎöcell content block£¬ÌîÔÚCellInfo½á¹¹ÖĞ¡£*/
-static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
-  MemPage *pPage,         /* Page containing the cell °üº¬µ¥ÔªµÄÒ³*/
-  u8 *pCell,              /* Pointer to the cell text. µ¥ÔªÎÄ±¾µÄÖ¸Õë*/
-  CellInfo *pInfo         /* Fill in this structure Ìî³äÕâ¸ö½á¹¹*/
+/*è§£æcell content blockï¼Œå¡«åœ¨CellInfoç»“æ„ä¸­ã€‚*/
+static void btreeParseCellPtr(           //è§£æå•å…ƒå†…å®¹å—ï¼Œå¡«åœ¨CellInfoç»“æ„ä¸­
+  MemPage *pPage,         /* Page containing the cell åŒ…å«å•å…ƒçš„é¡µ*/
+  u8 *pCell,              /* Pointer to the cell text. å•å…ƒæ–‡æœ¬çš„æŒ‡é’ˆ*/
+  CellInfo *pInfo         /* Fill in this structure å¡«å……è¿™ä¸ªç»“æ„*/
 ){
-  u16 n;                  /* Number bytes in cell content header µ¥ÔªÄÚÈİÍ·²¿µÄ×Ö½ÚÊı*/
-  u32 nPayload;           /* Number of bytes of cell payload µ¥ÔªÓĞĞ§ÔØºÉ£¨BÊ÷¼ÇÂ¼£©µÄ×Ö½ÚÊı*/
+  u16 n;                  /* Number bytes in cell content header å•å…ƒå†…å®¹å¤´éƒ¨çš„å­—èŠ‚æ•°*/
+  u32 nPayload;           /* Number of bytes of cell payload å•å…ƒæœ‰æ•ˆè½½è·ï¼ˆBæ ‘è®°å½•ï¼‰çš„å­—èŠ‚æ•°*/
 
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
 
@@ -1123,7 +1123,7 @@ static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
   if( likely(nPayload<=pPage->maxLocal) ){
     /* This is the (easy) common case where the entire payload fits
     ** on the local page.  No overflow is required.
-	** ÕâÊÇ¸ö³£¼ûµÄÇé¿ö£¬ËùÓĞµÄÓĞĞ§ÔØºÉ¶¼¹Ì¶¨ÔÚ±¾µØÒ³ÉÏ¡£²»ĞèÒªÒç³ö¡£
+	** è¿™æ˜¯ä¸ªå¸¸è§çš„æƒ…å†µï¼Œæ‰€æœ‰çš„æœ‰æ•ˆè½½è·éƒ½å›ºå®šåœ¨æœ¬åœ°é¡µä¸Šã€‚ä¸éœ€è¦æº¢å‡ºã€‚
     */
     if( (pInfo->nSize = (u16)(n+nPayload))<4 ) pInfo->nSize = 4;
     pInfo->nLocal = (u16)nPayload;
@@ -1137,14 +1137,14 @@ static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
     **
     ** Warning:  changing the way overflow payload is distributed in any
     ** way will result in an incompatible file format.
-	** Èç¹û¸ºÔØ²»ÊÊºÏÍêÈ«ÔÚ±¾µØÒ³Ãæ,ÎÒÃÇ±ØĞë¾ö¶¨¶àÉÙ´æ´¢ÔÚ±¾µØºÍ¶àÉÙ´æ´¢ÔÚÒç³öÒ³¡£
-	** Õâ¸ö²ßÂÔÊÇ¼õÉÙÒç³öÒ³ÉÏÎ´Ê¹ÓÃ¿Õ¼äµÄÊıÁ¿ Í¬Ê±±£³Ö±¾µØ´æ´¢µÄÊıÁ¿ÔÚminLocalºÍmaxLocalÖ®¼ä¡£
-	** ¾¯¸æ:ÈÎÒâ¸Ä±äÒçÁ÷ÔØºÉ·Ö²¼»áµ¼ÖÂ²»¼æÈİµÄÎÄ¼ş¸ñÊ½¡£
+	** å¦‚æœè´Ÿè½½ä¸é€‚åˆå®Œå…¨åœ¨æœ¬åœ°é¡µé¢,æˆ‘ä»¬å¿…é¡»å†³å®šå¤šå°‘å­˜å‚¨åœ¨æœ¬åœ°å’Œå¤šå°‘å­˜å‚¨åœ¨æº¢å‡ºé¡µã€‚
+	** è¿™ä¸ªç­–ç•¥æ˜¯å‡å°‘æº¢å‡ºé¡µä¸Šæœªä½¿ç”¨ç©ºé—´çš„æ•°é‡ åŒæ—¶ä¿æŒæœ¬åœ°å­˜å‚¨çš„æ•°é‡åœ¨minLocalå’ŒmaxLocalä¹‹é—´ã€‚
+	** è­¦å‘Š:ä»»æ„æ”¹å˜æº¢æµè½½è·åˆ†å¸ƒä¼šå¯¼è‡´ä¸å…¼å®¹çš„æ–‡ä»¶æ ¼å¼ã€‚
     */
-    /*Ê¹±¾µØ´æ´¢ÔÚ×îĞ¡ºÍ×î´óÖµÖ®¼ä²¢ÇÒ½«Òç³öÒ³Î´Ê¹ÓÃÇøÓò×îĞ¡»¯*/
-    int minLocal;  /* Minimum amount of payload held locally */       //±¾µØ³ÖÓĞµÄ×îĞ¡ÓĞĞ§ÔØºÉÊıÁ¿
-    int maxLocal;  /* Maximum amount of payload held locally */       //±¾µØ³ÖÓĞµÄ×î´óÓĞĞ§ÔØºÉÊıÁ¿
-    int surplus;   /* Overflow payload available for local storage */ //Òç³öµÄÓĞĞ§ÔØºÉ¿ÉÓÃÓÚ±¾µØ´æ´¢
+    /*ä½¿æœ¬åœ°å­˜å‚¨åœ¨æœ€å°å’Œæœ€å¤§å€¼ä¹‹é—´å¹¶ä¸”å°†æº¢å‡ºé¡µæœªä½¿ç”¨åŒºåŸŸæœ€å°åŒ–*/
+    int minLocal;  /* Minimum amount of payload held locally */       //æœ¬åœ°æŒæœ‰çš„æœ€å°æœ‰æ•ˆè½½è·æ•°é‡
+    int maxLocal;  /* Maximum amount of payload held locally */       //æœ¬åœ°æŒæœ‰çš„æœ€å¤§æœ‰æ•ˆè½½è·æ•°é‡
+    int surplus;   /* Overflow payload available for local storage */ //æº¢å‡ºçš„æœ‰æ•ˆè½½è·å¯ç”¨äºæœ¬åœ°å­˜å‚¨
 
     minLocal = pPage->minLocal;
     maxLocal = pPage->maxLocal;
@@ -1153,7 +1153,7 @@ static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
     testcase( surplus==maxLocal+1 );
     if( surplus <= maxLocal ){
       pInfo->nLocal = (u16)surplus;
-    }else{   /*Òç³ö*/
+    }else{   /*æº¢å‡º*/
       pInfo->nLocal = (u16)minLocal;
     }
     pInfo->iOverflow = (u16)(pInfo->nLocal + n);
@@ -1162,10 +1162,10 @@ static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
 }
 #define parseCell(pPage, iCell, pInfo) \
   btreeParseCellPtr((pPage), findCell((pPage), (iCell)), (pInfo))
-static void btreeParseCell(                                      //½âÎöµ¥ÔªÄÚÈİ¿é
-  MemPage *pPage,         /* Page containing the cell */         //°üº¬µ¥ÔªµÄÒ³
-  int iCell,              /* The cell index.  First cell is 0 */ //µ¥ÔªµÄË÷Òı£¬µÚÒ»¸öµ¥ÔªiCellÎª0
-  CellInfo *pInfo         /* Fill in this structure */           //ÌîĞ´Õâ¸ö½á¹¹
+static void btreeParseCell(                                      //è§£æå•å…ƒå†…å®¹å—
+  MemPage *pPage,         /* Page containing the cell */         //åŒ…å«å•å…ƒçš„é¡µ
+  int iCell,              /* The cell index.  First cell is 0 */ //å•å…ƒçš„ç´¢å¼•ï¼Œç¬¬ä¸€ä¸ªå•å…ƒiCellä¸º0
+  CellInfo *pInfo         /* Fill in this structure */           //å¡«å†™è¿™ä¸ªç»“æ„
 ){
   parseCell(pPage, iCell, pInfo);
 }
@@ -1176,8 +1176,8 @@ static void btreeParseCell(                                      //½âÎöµ¥ÔªÄÚÈİ¿
 ** data header and the local payload, but not any overflow page or
 ** the space used by the cell pointer.
 */
-/*¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½ÚÊı*/
-static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½ÚÊı
+/*è®¡ç®—ä¸€ä¸ªCelléœ€è¦çš„æ€»çš„å­—èŠ‚æ•°*/
+static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //è®¡ç®—ä¸€ä¸ªCelléœ€è¦çš„æ€»çš„å­—èŠ‚æ•°
   u8 *pIter = &pCell[pPage->childPtrSize];
   u32 nSize;
 
@@ -1185,9 +1185,9 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½Ú
   /* The value returned by this function should always be the same as
   ** the (CellInfo.nSize) value found by doing a full parse of the
   ** cell. If SQLITE_DEBUG is defined, an assert() at the bottom of
-  ** this function verifies that this invariant(²»±äÊ½) is not violated(Î¥·´). 
-  ** Õâ¸öº¯ÊıµÄ·µ»ØÖµÓ¦Ê¼ÖÕÊÇºÍÖ´ĞĞÒ»¸öÍêÕûµÄ½âÎöÖĞ·¢ÏÖµÄµ¥Ôª£¨CellInfo.nSize£©ÖµÏàÍ¬¡£
-  ** Èç¹ûSQLITE_DEBUG±»¶¨Òå£¬Ò»¸öassert£¨£©´¦µÄµ×²¿ËûµÄ¹¦ÄÜÑéÖ¤Õâ¸ö²»±ä²»Î¥·´¡£*/
+  ** this function verifies that this invariant(ä¸å˜å¼) is not violated(è¿å). 
+  ** è¿™ä¸ªå‡½æ•°çš„è¿”å›å€¼åº”å§‹ç»ˆæ˜¯å’Œæ‰§è¡Œä¸€ä¸ªå®Œæ•´çš„è§£æä¸­å‘ç°çš„å•å…ƒï¼ˆCellInfo.nSizeï¼‰å€¼ç›¸åŒã€‚
+  ** å¦‚æœSQLITE_DEBUGè¢«å®šä¹‰ï¼Œä¸€ä¸ªassertï¼ˆï¼‰å¤„çš„åº•éƒ¨ä»–çš„åŠŸèƒ½éªŒè¯è¿™ä¸ªä¸å˜ä¸è¿åã€‚*/
   CellInfo debuginfo;
   btreeParseCellPtr(pPage, pCell, &debuginfo);
 #endif
@@ -1203,7 +1203,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½Ú
     /* pIter now points at the 64-bit integer key value, a variable length 
     ** integer. The following block moves pIter to point at the first byte
     ** past the end of the key value. 
-	** pIterÏÖÔÚÖ¸ÏòÔÚ64Î»ÕûÊı¹Ø¼ü×ÖÖµ£¬¿É±ä³¤¶ÈÕûÊı¡£ÏÂÃæµÄ¿éÒÆ¶¯pIterÖ¸Ïò¼üÖµÄ©Î²µÄµÚÒ»¸ö×Ö½Ú¡£*/
+	** pIterç°åœ¨æŒ‡å‘åœ¨64ä½æ•´æ•°å…³é”®å­—å€¼ï¼Œå¯å˜é•¿åº¦æ•´æ•°ã€‚ä¸‹é¢çš„å—ç§»åŠ¨pIteræŒ‡å‘é”®å€¼æœ«å°¾çš„ç¬¬ä¸€ä¸ªå­—èŠ‚ã€‚*/
     pEnd = &pIter[9];
     while( (*pIter++)&0x80 && pIter<pEnd );
   }else{
@@ -1236,7 +1236,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½Ú
 #ifdef SQLITE_DEBUG
 /* This variation on cellSizePtr() is used inside of assert() statements
 ** only. 
-** cellSizePtr()ÖĞµÄ±äÁ¿½ö½ö±»ÓÃÔÚassert()Óï¾äÖĞ */
+** cellSizePtr()ä¸­çš„å˜é‡ä»…ä»…è¢«ç”¨åœ¨assert()è¯­å¥ä¸­ */
 static u16 cellSize(MemPage *pPage, int iCell){
   return cellSizePtr(pPage, findCell(pPage, iCell));
 }
@@ -1248,7 +1248,7 @@ static u16 cellSize(MemPage *pPage, int iCell){
 ** to an overflow page, insert an entry into the pointer-map
 ** for the overflow page.
 */
-/*Èç¹ûpCell(pPageµÄÒ»²¿·Ö)°üº¬Ö¸ÏòÒç³öÒ³µÄÖ¸Õë£¬ÔòÎªÕâ¸öÒç³öÒ³²åÈëÒ»¸öÌõÄ¿µ½pointer-map*/
+/*å¦‚æœpCell(pPageçš„ä¸€éƒ¨åˆ†)åŒ…å«æŒ‡å‘æº¢å‡ºé¡µçš„æŒ‡é’ˆï¼Œåˆ™ä¸ºè¿™ä¸ªæº¢å‡ºé¡µæ’å…¥ä¸€ä¸ªæ¡ç›®åˆ°pointer-map*/
 static void ptrmapPutOvflPtr(MemPage *pPage, u8 *pCell, int *pRC){
   CellInfo info;
   if( *pRC ) return;
@@ -1268,23 +1268,23 @@ static void ptrmapPutOvflPtr(MemPage *pPage, u8 *pCell, int *pRC){
 ** end of the page and all free space is collected into one
 ** big FreeBlk that occurs in between the header and cell
 ** pointer array and the cell content area.
-** ÖØÕû¸ø³öµÄÒ³Ãæ¡£ËùÓĞµÄµ¥Ôª±»×ªÒÆµ½¸ÃÒ³µÄ½áÊø£¬ËùÓĞµÄ×ÔÓÉ¿Õ¼ä±»ÊÕ¼¯µ½
-** ÔÚËùÊöÍ·²¿ºÍµ¥ÔªÖ¸ÕëÊı×éºÍĞ¡ÇøÄÚÈİÇøÓòÖ®¼äµÄÒ»¸ö´óµÄFreeBlk¡£
+** é‡æ•´ç»™å‡ºçš„é¡µé¢ã€‚æ‰€æœ‰çš„å•å…ƒè¢«è½¬ç§»åˆ°è¯¥é¡µçš„ç»“æŸï¼Œæ‰€æœ‰çš„è‡ªç”±ç©ºé—´è¢«æ”¶é›†åˆ°
+** åœ¨æ‰€è¿°å¤´éƒ¨å’Œå•å…ƒæŒ‡é’ˆæ•°ç»„å’Œå°åŒºå†…å®¹åŒºåŸŸä¹‹é—´çš„ä¸€ä¸ªå¤§çš„FreeBlkã€‚
 */
-/*ÖØÕûÒ³Ãæ¡£*/
+/*é‡æ•´é¡µé¢ã€‚*/
 static int defragmentPage(MemPage *pPage){
-  int i;                     /* Loop counter */                      //Ñ­»·ÄÚµÄ²ÎÊıi
-  int pc;                    /* Address of a i-th cell */            //µÚi¸öµ¥ÔªµÄµØÖ·
-  int hdr;                   /* Offset to the page header */         //Ò³Í·²¿µÃÆ«ÒÆÁ¿
-  int size;                  /* Size of a cell */                    //µ¥ÔªµÄ´óĞ¡
-  int usableSize;            /* Number of usable bytes on a page */  //Ò³ÉÏ¿ÉÓÃµ¥ÔªµÄÊıÁ¿
-  int cellOffset;            /* Offset to the cell pointer array */  //µ¥ÔªÖ¸ÕëÊı×éµÄÆ«ÒÆÁ¿
-  int cbrk;                  /* Offset to the cell content area */   //µ¥ÔªÄÚÈİÇøÓòµÄÆ«ÒÆÁ¿
-  int nCell;                 /* Number of cells on the page */       //Ò³ÉÏµ¥ÔªµÄÊıÁ¿
-  unsigned char *data;       /* The page data */                     //Ò³Êı¾İ
-  unsigned char *temp;       /* Temp area for cell content */        //µ¥ÔªÄÚÈİµÄÁÙÊ±Çø
-  int iCellFirst;            /* First allowable cell index */        //µÚÒ»¸öĞí¿ÉµÄµ¥ÔªË÷Òı
-  int iCellLast;             /* Last possible cell index */          //×îºóÒ»¸ö¿ÉÄÜµÄµ¥ÔªË÷Òı
+  int i;                     /* Loop counter */                      //å¾ªç¯å†…çš„å‚æ•°i
+  int pc;                    /* Address of a i-th cell */            //ç¬¬iä¸ªå•å…ƒçš„åœ°å€
+  int hdr;                   /* Offset to the page header */         //é¡µå¤´éƒ¨å¾—åç§»é‡
+  int size;                  /* Size of a cell */                    //å•å…ƒçš„å¤§å°
+  int usableSize;            /* Number of usable bytes on a page */  //é¡µä¸Šå¯ç”¨å•å…ƒçš„æ•°é‡
+  int cellOffset;            /* Offset to the cell pointer array */  //å•å…ƒæŒ‡é’ˆæ•°ç»„çš„åç§»é‡
+  int cbrk;                  /* Offset to the cell content area */   //å•å…ƒå†…å®¹åŒºåŸŸçš„åç§»é‡
+  int nCell;                 /* Number of cells on the page */       //é¡µä¸Šå•å…ƒçš„æ•°é‡
+  unsigned char *data;       /* The page data */                     //é¡µæ•°æ®
+  unsigned char *temp;       /* Temp area for cell content */        //å•å…ƒå†…å®¹çš„ä¸´æ—¶åŒº
+  int iCellFirst;            /* First allowable cell index */        //ç¬¬ä¸€ä¸ªè®¸å¯çš„å•å…ƒç´¢å¼•
+  int iCellLast;             /* Last possible cell index */          //æœ€åä¸€ä¸ªå¯èƒ½çš„å•å…ƒç´¢å¼•
 
 
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
@@ -1305,7 +1305,7 @@ static int defragmentPage(MemPage *pPage){
   iCellFirst = cellOffset + 2*nCell;
   iCellLast = usableSize - 4;
   for(i=0; i<nCell; i++){
-    u8 *pAddr;     /* The i-th cell pointer */  //µÚi¸öµ¥ÔªµÄÖ¸Õë
+    u8 *pAddr;     /* The i-th cell pointer */  //ç¬¬iä¸ªå•å…ƒçš„æŒ‡é’ˆ
     pAddr = &data[cellOffset + i*2];
     pc = get2byte(pAddr);
     testcase( pc==iCellFirst );
@@ -1313,17 +1313,17 @@ static int defragmentPage(MemPage *pPage){
 #if !defined(SQLITE_ENABLE_OVERSIZE_CELL_CHECK)
     /* These conditions have already been verified in btreeInitPage()
     ** if SQLITE_ENABLE_OVERSIZE_CELL_CHECK is defined 
-	** Èç¹ûSQLITE_ENABLE_OVERSIZE_CELL_CHECK±»¶¨ÒåÁË£¬ÔòÕâĞ©Ìõ¼şÒÑ¾­ÔÚbtreeInitPage()ÖĞ±»ÑéÖ¤
+	** å¦‚æœSQLITE_ENABLE_OVERSIZE_CELL_CHECKè¢«å®šä¹‰äº†ï¼Œåˆ™è¿™äº›æ¡ä»¶å·²ç»åœ¨btreeInitPage()ä¸­è¢«éªŒè¯
     */
     if( pc<iCellFirst || pc>iCellLast ){
       return SQLITE_CORRUPT_BKPT;
     }
 #endif
-    assert( pc>=iCellFirst && pc<=iCellLast );/*µÚÒ»¸öÔÊĞícellË÷Òı£¬×îºóÒ»¸ö¿ÉÄÜµÄcellË÷ÒıÖ®¼ä¡£*/
+    assert( pc>=iCellFirst && pc<=iCellLast );/*ç¬¬ä¸€ä¸ªå…è®¸cellç´¢å¼•ï¼Œæœ€åä¸€ä¸ªå¯èƒ½çš„cellç´¢å¼•ä¹‹é—´ã€‚*/
     size = cellSizePtr(pPage, &temp[pc]);
     cbrk -= size;
 #if defined(SQLITE_ENABLE_OVERSIZE_CELL_CHECK)
-    if( cbrk<iCellFirst ){         // µ¥ÔªÄÚÈİÆ«ÒÆÁ¿±ÈµÚÒ»¸öµ¥ÔªµÄÆ«ÒÆÁ¿»¹Ğ¡£¬´íÎó´¦Àí
+    if( cbrk<iCellFirst ){         // å•å…ƒå†…å®¹åç§»é‡æ¯”ç¬¬ä¸€ä¸ªå•å…ƒçš„åç§»é‡è¿˜å°ï¼Œé”™è¯¯å¤„ç†
       return SQLITE_CORRUPT_BKPT;
     }
 #else
@@ -1355,8 +1355,8 @@ static int defragmentPage(MemPage *pPage){
 ** as the first argument. Write into *pIdx the index into pPage->aData[]
 ** of the first byte of allocated space. Return either SQLITE_OK or
 ** an error code (usually SQLITE_CORRUPT).
-** ´ÓÍ¨¹ıBÊ÷Ò³ÖĞ·ÖÅäµÄ¿Õ¼änByte×Ö½Ú×÷ÎªµÚÒ»¸ö²ÎÊı¡£Ğ´Èë*pIdx£¨Ë÷ÒıPage->aData[]µÄ·ÖÅä
-** ¿Õ¼äµÄµÚÒ»¸ö×Ö½Ú£©¡£·µ»ØÒªÃ´SQLITE_OK»òÒ»¸ö´íÎóÂë£¨Í¨³£SQLITE_CORRUPT£©¡£
+** ä»é€šè¿‡Bæ ‘é¡µä¸­åˆ†é…çš„ç©ºé—´nByteå­—èŠ‚ä½œä¸ºç¬¬ä¸€ä¸ªå‚æ•°ã€‚å†™å…¥*pIdxï¼ˆç´¢å¼•Page->aData[]çš„åˆ†é…
+** ç©ºé—´çš„ç¬¬ä¸€ä¸ªå­—èŠ‚ï¼‰ã€‚è¿”å›è¦ä¹ˆSQLITE_OKæˆ–ä¸€ä¸ªé”™è¯¯ç ï¼ˆé€šå¸¸SQLITE_CORRUPTï¼‰ã€‚
 **
 ** The caller guarantees that there is sufficient space to make the
 ** allocation.  This routine might need to defragment in order to bring
@@ -1364,24 +1364,24 @@ static int defragmentPage(MemPage *pPage){
 ** the first two bytes past the cell pointer area since presumably this
 ** allocation is being made in order to insert a new cell, so we will
 ** also end up needing a new cell pointer.
-** µ÷ÓÃ±£Ö¤ÓĞ×ã¹»µÄ¿Õ¼äÈ¥·ÖÅä¡£µ«ÊÇ£¬¸Ã³ÌĞò¿ÉÄÜĞèÒª½øĞĞËéÆ¬ÕûÀíÊ¹ËùÓĞµÄ¿Õ¼äºÏ²¢ÔÚÒ»Æğ¡£
-** Õâ¸ö³ÌĞò½«±ÜÃâÊ¹ÓÃÍ¨¹ıµ¥ÔªÖ¸ÕëÖ¸ÕëÇøÓòµÄÇ°Á½¸ö×Ö½Ú£¬ÍÆ²âÎªÁË²åÈëÒ»¸öĞÂµÄµ¥Ôª¶øÕıÔÚ·ÖÅä£¬
-** ËùÒÔÎÒÃÇ½«Ò²×îÖÕĞèÒªÒ»¸öĞÂµÄµ¥Ôª¸ñÖ¸Õë¡£
+** è°ƒç”¨ä¿è¯æœ‰è¶³å¤Ÿçš„ç©ºé—´å»åˆ†é…ã€‚ä½†æ˜¯ï¼Œè¯¥ç¨‹åºå¯èƒ½éœ€è¦è¿›è¡Œç¢ç‰‡æ•´ç†ä½¿æ‰€æœ‰çš„ç©ºé—´åˆå¹¶åœ¨ä¸€èµ·ã€‚
+** è¿™ä¸ªç¨‹åºå°†é¿å…ä½¿ç”¨é€šè¿‡å•å…ƒæŒ‡é’ˆæŒ‡é’ˆåŒºåŸŸçš„å‰ä¸¤ä¸ªå­—èŠ‚ï¼Œæ¨æµ‹ä¸ºäº†æ’å…¥ä¸€ä¸ªæ–°çš„å•å…ƒè€Œæ­£åœ¨åˆ†é…ï¼Œ
+** æ‰€ä»¥æˆ‘ä»¬å°†ä¹Ÿæœ€ç»ˆéœ€è¦ä¸€ä¸ªæ–°çš„å•å…ƒæ ¼æŒ‡é’ˆã€‚
 */
-/*ÔÚpPageÉÏ·ÖÅänByte×Ö½ÚµÄ¿Õ¼ä£¬½«Ë÷ÒıĞ´ÈëpIdxÖĞ*/
+/*åœ¨pPageä¸Šåˆ†é…nByteå­—èŠ‚çš„ç©ºé—´ï¼Œå°†ç´¢å¼•å†™å…¥pIdxä¸­*/
 static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
-  const int hdr = pPage->hdrOffset;    /* Local cache of pPage->hdrOffset */       //pPage->hdrOffsetµÄ±¾µØ»º´æ
-  u8 * const data = pPage->aData;      /* Local cache of pPage->aData */           //pPage->aDataµÄ±¾µØ»º´æ
-  int nFrag;                           /* Number of fragmented bytes on pPage */   //Ò³ÉÏµÄËéÆ¬×Ö½ÚÊı
-  int top;                             /* First byte of cell content area */       //µ¥ÔªÄÚÈİµÄµÚÒ»¸ö×Ö½Ú
-  int gap;        /* First byte of gap between cell pointers and cell content */   //µ¥ÔªÖ¸ÕëºÍµ¥ÔªÄÚÈİÖ®¼ä¼äÏ¶µÄµÚÒ»¸ö×Ö½Ú
-  int rc;         /* Integer return code */                                        //ÕûĞÍ·µ»ØÂë
-  int usableSize; /* Usable size of the page */                                    //Ò³ÄÜ¹»Ê¹ÓÃµÄ´óĞ¡
+  const int hdr = pPage->hdrOffset;    /* Local cache of pPage->hdrOffset */       //pPage->hdrOffsetçš„æœ¬åœ°ç¼“å­˜
+  u8 * const data = pPage->aData;      /* Local cache of pPage->aData */           //pPage->aDataçš„æœ¬åœ°ç¼“å­˜
+  int nFrag;                           /* Number of fragmented bytes on pPage */   //é¡µä¸Šçš„ç¢ç‰‡å­—èŠ‚æ•°
+  int top;                             /* First byte of cell content area */       //å•å…ƒå†…å®¹çš„ç¬¬ä¸€ä¸ªå­—èŠ‚
+  int gap;        /* First byte of gap between cell pointers and cell content */   //å•å…ƒæŒ‡é’ˆå’Œå•å…ƒå†…å®¹ä¹‹é—´é—´éš™çš„ç¬¬ä¸€ä¸ªå­—èŠ‚
+  int rc;         /* Integer return code */                                        //æ•´å‹è¿”å›ç 
+  int usableSize; /* Usable size of the page */                                    //é¡µèƒ½å¤Ÿä½¿ç”¨çš„å¤§å°
   
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
   assert( pPage->pBt );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
-  assert( nByte>=0 );  /* Minimum cell size is 4 */   //×îĞ¡µ¥Ôª´óĞ¡Îª4×Ö½Ú
+  assert( nByte>=0 );  /* Minimum cell size is 4 */   //æœ€å°å•å…ƒå¤§å°ä¸º4å­—èŠ‚
   assert( pPage->nFree>=nByte );
   assert( pPage->nOverflow==0 );
   usableSize = pPage->pBt->usableSize;
@@ -1397,7 +1397,7 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
   testcase( gap==top );
 
   if( nFrag>=60 ){
-    /* Always defragment highly fragmented pages */  //ÕûÀíËéÆ¬½Ï¶àµÄÒ³
+    /* Always defragment highly fragmented pages */  //æ•´ç†ç¢ç‰‡è¾ƒå¤šçš„é¡µ
     rc = defragmentPage(pPage);
     if( rc ) return rc;
     top = get2byteNotZero(&data[hdr+5]);
@@ -1405,12 +1405,12 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
     /* Search the freelist looking for a free slot big enough to satisfy 
     ** the request. The allocation is made from the first free slot in 
     ** the list that is large enough to accomadate it.
-	** ËÑË÷¿ÕÏĞÁĞ±íÑ°ÕÒÂú×ãÒªÇóµÄ×ã¹»´óµÄ free slot¡£·ÖÅäµÄÇøÓòÓÉÁĞ±íÖĞµÄ
-	** µÚÒ»¸ö free slot×é³É£¬ÆäÖĞÁĞ±íÊÇ×ã¹»×° free slot¡£
+	** æœç´¢ç©ºé—²åˆ—è¡¨å¯»æ‰¾æ»¡è¶³è¦æ±‚çš„è¶³å¤Ÿå¤§çš„ free slotã€‚åˆ†é…çš„åŒºåŸŸç”±åˆ—è¡¨ä¸­çš„
+	** ç¬¬ä¸€ä¸ª free slotç»„æˆï¼Œå…¶ä¸­åˆ—è¡¨æ˜¯è¶³å¤Ÿè£… free slotã€‚
     */
     int pc, addr;
     for(addr=hdr+1; (pc = get2byte(&data[addr]))>0; addr=pc){
-      int size;            /* Size of the free slot */   // free slotµÄ´óĞ¡
+      int size;            /* Size of the free slot */   // free slotçš„å¤§å°
       if( pc>usableSize-4 || pc<addr+4 ){
         return SQLITE_CORRUPT_BKPT;
       }
@@ -1421,14 +1421,14 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
         testcase( x==3 );
         if( x<4 ){
           /* Remove the slot from the free-list. Update the number of
-          ** fragmented bytes within the page. */  //´Ó×ÔÓÉÁĞ±íÖĞÒÆ³ıslot£¬ÔÚÒ³ÄÚ¸üĞÂËéÆ¬µÄÊıÁ¿
+          ** fragmented bytes within the page. */  //ä»è‡ªç”±åˆ—è¡¨ä¸­ç§»é™¤slotï¼Œåœ¨é¡µå†…æ›´æ–°ç¢ç‰‡çš„æ•°é‡
           memcpy(&data[addr], &data[pc], 2);
           data[hdr+7] = (u8)(nFrag + x);
         }else if( size+pc > usableSize ){
           return SQLITE_CORRUPT_BKPT;
         }else{
-          /* The slot remains on the free-list. Reduce its size to account   //slot±£ÁôÔÚ×ÔÓÉÁĞ±íÉÏ£¬
-          ** for the portion used by the new allocation. */                 //¼õÉÙÆäÕ¼ËùÊ¹ÓÃµÄĞÂ·ÖÅäµÄ²¿·ÖµÄ´óĞ¡¡£
+          /* The slot remains on the free-list. Reduce its size to account   //slotä¿ç•™åœ¨è‡ªç”±åˆ—è¡¨ä¸Šï¼Œ
+          ** for the portion used by the new allocation. */                 //å‡å°‘å…¶å æ‰€ä½¿ç”¨çš„æ–°åˆ†é…çš„éƒ¨åˆ†çš„å¤§å°ã€‚
           put2byte(&data[pc+2], x);
         }
         *pIdx = pc + x;
@@ -1439,7 +1439,7 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
 
   /* Check to make sure there is enough space in the gap to satisfy
   ** the allocation.  If not, defragment.
-  ** ¼ì²éÈ·ÈÏÔÚgapÖĞÓĞ×ã¹»µÄ¿Õ¼äÀ´Âú×ã·ÖÅäµÄĞèÒª£¬Èç¹û¿Õ¼ä²»×ã£¬ËéÆ¬ÕûÀí¡£
+  ** æ£€æŸ¥ç¡®è®¤åœ¨gapä¸­æœ‰è¶³å¤Ÿçš„ç©ºé—´æ¥æ»¡è¶³åˆ†é…çš„éœ€è¦ï¼Œå¦‚æœç©ºé—´ä¸è¶³ï¼Œç¢ç‰‡æ•´ç†ã€‚
   */
   testcase( gap+2+nByte==top );
   if( gap+2+nByte>top ){
@@ -1454,9 +1454,9 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
   ** validated the freelist.  Given that the freelist is valid, there
   ** is no way that the allocation can extend off the end of the page.
   ** The assert() below verifies the previous sentence.
-  ** ´Óµ¥ÔªÖ¸ÕëÊı×éºÍµ¥ÔªÄÚÈİÇøÓòÖ®¼äµÄ¼äÏ¶·ÖÅäÄÚ´æ¡£¸ÃbtreeInitPage£¨£©
-  ** µ÷ÓÃÒÑ¾­ÓĞÓĞĞ§µÄ¿ÕÏĞÁĞ±í¡£¼øÓÚ¿ÕÏĞÁĞ±íÊÇÓĞĞ§µÄ£¬·ÖÅä¿ÉÒÔÀ©Õ¹³¬³öÒ³
-  ** ÊÇ²»ĞĞµÄ¡£assert()ÏÂÃæÑéÖ¤ÁËÇ°ÃæµÄÓï¾ä¡£
+  ** ä»å•å…ƒæŒ‡é’ˆæ•°ç»„å’Œå•å…ƒå†…å®¹åŒºåŸŸä¹‹é—´çš„é—´éš™åˆ†é…å†…å­˜ã€‚è¯¥btreeInitPageï¼ˆï¼‰
+  ** è°ƒç”¨å·²ç»æœ‰æœ‰æ•ˆçš„ç©ºé—²åˆ—è¡¨ã€‚é‰´äºç©ºé—²åˆ—è¡¨æ˜¯æœ‰æ•ˆçš„ï¼Œåˆ†é…å¯ä»¥æ‰©å±•è¶…å‡ºé¡µ
+  ** æ˜¯ä¸è¡Œçš„ã€‚assert()ä¸‹é¢éªŒè¯äº†å‰é¢çš„è¯­å¥ã€‚
   */
   top -= nByte;
   put2byte(&data[hdr+5], top);
@@ -1469,16 +1469,16 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
 ** Return a section of the pPage->aData to the freelist.
 ** The first byte of the new free block is pPage->aDisk[start]
 ** and the size of the block is "size" bytes.
-** ĞÂ¿ÕÏĞ¿éµÄµÚÒ»¸ö×Ö½ÚÊÇpPage->aDisk[start]ÇÒ¿éµÄ×Ö½Ú´óĞ¡ÊÇ"size"×Ö½Ú¡£
+** æ–°ç©ºé—²å—çš„ç¬¬ä¸€ä¸ªå­—èŠ‚æ˜¯pPage->aDisk[start]ä¸”å—çš„å­—èŠ‚å¤§å°æ˜¯"size"å­—èŠ‚ã€‚
 ** Most of the effort here is involved in coalesing adjacent
 ** free blocks into a single big free block.
-** ·µ»ØpPage-> ADATAµÄ²¿·Öµ½×ÔÓÉÁĞ±í¡£´Ó¶øÔÚĞÂµÄ¿ÕÏĞ¿éµÄµÚÒ»×Ö½ÚÊÇpPage-> aDisk[start]
-** ºÍ¿éµÄ´óĞ¡Îª¡°size¡±×Ö½Ú¡£ÕâÀïµÄ´ó¶àÊı¹¦ÄÜÉæ¼°ºÏ²¢ÏàÁÚ¿ÕÏĞ¿é³ÉÒ»¸öµ¥¶ÀµÄ´ó¿ÕÏĞ¿é¡£
+** è¿”å›pPage-> ADATAçš„éƒ¨åˆ†åˆ°è‡ªç”±åˆ—è¡¨ã€‚ä»è€Œåœ¨æ–°çš„ç©ºé—²å—çš„ç¬¬ä¸€å­—èŠ‚æ˜¯pPage-> aDisk[start]
+** å’Œå—çš„å¤§å°ä¸ºâ€œsizeâ€å­—èŠ‚ã€‚è¿™é‡Œçš„å¤§å¤šæ•°åŠŸèƒ½æ¶‰åŠåˆå¹¶ç›¸é‚»ç©ºé—²å—æˆä¸€ä¸ªå•ç‹¬çš„å¤§ç©ºé—²å—ã€‚
 */
-/*ÊÍ·ÅpPage->aDisk[start]£¬´óĞ¡Îªsize×Ö½ÚµÄ¿é*/
-static int freeSpace(MemPage *pPage, int start, int size){  //ÊÍ·ÅpPage->aDataµÄ²¿·Ö²¢Ğ´Èë¿ÕÏĞÁĞ±í
+/*é‡Šæ”¾pPage->aDisk[start]ï¼Œå¤§å°ä¸ºsizeå­—èŠ‚çš„å—*/
+static int freeSpace(MemPage *pPage, int start, int size){  //é‡Šæ”¾pPage->aDataçš„éƒ¨åˆ†å¹¶å†™å…¥ç©ºé—²åˆ—è¡¨
   int addr, pbegin, hdr;
-  int iLast;                        /* Largest possible freeblock offset */   //×î´óµÄ¿ÉÄÜfreeblockÆ«ÒÆ
+  int iLast;                        /* Largest possible freeblock offset */   //æœ€å¤§çš„å¯èƒ½freeblockåç§»
   unsigned char *data = pPage->aData;
 
   assert( pPage->pBt!=0 );
@@ -1490,7 +1490,7 @@ static int freeSpace(MemPage *pPage, int start, int size){  //ÊÍ·ÅpPage->aDataµÄ
 
   if( pPage->pBt->btsFlags & BTS_SECURE_DELETE ){
     /* Overwrite deleted information with zeros when the secure_delete
-    ** option is enabled */  //µ±secure_delete¿ÉÓÃµÄÊ±ºò£¬½«É¾³ıĞÅÏ¢ÖÃÁã¡£
+    ** option is enabled */  //å½“secure_deleteå¯ç”¨çš„æ—¶å€™ï¼Œå°†åˆ é™¤ä¿¡æ¯ç½®é›¶ã€‚
     memset(&data[start], 0, size);
   }
 
@@ -1502,9 +1502,9 @@ static int freeSpace(MemPage *pPage, int start, int size){  //ÊÍ·ÅpPage->aDataµÄ
   ** situations arise, then subsequent insert operations might corrupt
   ** the freelist.  So we do need to check for corruption while scanning
   ** the freelist.
-  ** Ìí¼Ó¿Õ¼äµ½¿ÕÏĞ¿éµÄÁ´±íÖĞ¡£×¢Òâ¼´Ê¹btreeInitPage()ÒÑ¼ì²é¹ı¿ÕÏĞ¿éÁĞ±í£¬btreeInitPage()Ò²²»ÄÜ¼ì²âµ½ÖØ¸´µ¥Ôª»òÖØ¸´µ¥ÔªµÄ¿ÕÏĞ¿é¡£
-  ** µ±µ¥ÔªÄÚÈİÇøÓò³¬³ö¸ÃÒ³Í·µÄÖµÊ±Ò²²»»á¼ì²â¡£Èç¹ûÕâÖÖÇé¿ö·¢Éú£¬ÄÇÃ´ËæºóµÄ²åÈë²Ù×÷¿ÉÄÜ»áÆÆ»µ×ÔÓÉÁĞ±í¡£
-  ** ËùÒÔÎÒÃÇĞèÒª¼ì²éÊÇ·ñÓĞËğ»µ£¬Í¬Ê±É¨Ãè¿ÕÏĞÁĞ±í¡£
+  ** æ·»åŠ ç©ºé—´åˆ°ç©ºé—²å—çš„é“¾è¡¨ä¸­ã€‚æ³¨æ„å³ä½¿btreeInitPage()å·²æ£€æŸ¥è¿‡ç©ºé—²å—åˆ—è¡¨ï¼ŒbtreeInitPage()ä¹Ÿä¸èƒ½æ£€æµ‹åˆ°é‡å¤å•å…ƒæˆ–é‡å¤å•å…ƒçš„ç©ºé—²å—ã€‚
+  ** å½“å•å…ƒå†…å®¹åŒºåŸŸè¶…å‡ºè¯¥é¡µå¤´çš„å€¼æ—¶ä¹Ÿä¸ä¼šæ£€æµ‹ã€‚å¦‚æœè¿™ç§æƒ…å†µå‘ç”Ÿï¼Œé‚£ä¹ˆéšåçš„æ’å…¥æ“ä½œå¯èƒ½ä¼šç ´åè‡ªç”±åˆ—è¡¨ã€‚
+  ** æ‰€ä»¥æˆ‘ä»¬éœ€è¦æ£€æŸ¥æ˜¯å¦æœ‰æŸåï¼ŒåŒæ—¶æ‰«æç©ºé—²åˆ—è¡¨ã€‚
   */ 
   hdr = pPage->hdrOffset;
   addr = hdr + 1;
@@ -1525,7 +1525,7 @@ static int freeSpace(MemPage *pPage, int start, int size){  //ÊÍ·ÅpPage->aDataµÄ
   put2byte(&data[start+2], size);
   pPage->nFree = pPage->nFree + (u16)size;
 
-  /* Coalesce adjacent free blocks */ //ºÏ²¢ÏàÁÚµÄ¿ÕÏĞ¿é
+  /* Coalesce adjacent free blocks */ //åˆå¹¶ç›¸é‚»çš„ç©ºé—²å—
   addr = hdr + 1;
   while( (pbegin = get2byte(&data[addr]))>0 ){
     int pnext, psize, x;
@@ -1533,7 +1533,7 @@ static int freeSpace(MemPage *pPage, int start, int size){  //ÊÍ·ÅpPage->aDataµÄ
     assert( pbegin <= (int)pPage->pBt->usableSize-4 );
     pnext = get2byte(&data[pbegin]);
     psize = get2byte(&data[pbegin+2]);
-    if( pbegin + psize + 3 >= pnext && pnext>0 ){/*ºÏ²¢¿ÕÏĞ¿é*/
+    if( pbegin + psize + 3 >= pnext && pnext>0 ){/*åˆå¹¶ç©ºé—²å—*/
       int frag = pnext - (pbegin+psize);
       if( (frag<0) || (frag>(int)data[hdr+7]) ){
         return SQLITE_CORRUPT_BKPT;
@@ -1548,7 +1548,7 @@ static int freeSpace(MemPage *pPage, int start, int size){  //ÊÍ·ÅpPage->aDataµÄ
     }
   }
 
-  /* If the cell content area begins with a freeblock, remove it. */  //Èç¹ûµ¥Ôª¸ñÄÚÈİÇøÓòÒÔfreeblock¿ªÊ¼,É¾³ıËü¡£
+  /* If the cell content area begins with a freeblock, remove it. */  //å¦‚æœå•å…ƒæ ¼å†…å®¹åŒºåŸŸä»¥freeblockå¼€å§‹,åˆ é™¤å®ƒã€‚
   if( data[hdr+1]==data[hdr+5] && data[hdr+2]==data[hdr+6] ){
     int top;
     pbegin = get2byte(&data[hdr+1]);
@@ -1563,17 +1563,17 @@ static int freeSpace(MemPage *pPage, int start, int size){  //ÊÍ·ÅpPage->aDataµÄ
 /*
 ** Decode the flags byte (the first byte of the header) for a page
 ** and initialize fields of the MemPage structure accordingly.
-** // ÎªÒ»¸öÒ³ºÍMemPageÏàÓ¦½á¹¹µÄ³õÊ¼»¯ÇøÓò½âÂë±êÖ¾×Ö½Ú¡£
+** // ä¸ºä¸€ä¸ªé¡µå’ŒMemPageç›¸åº”ç»“æ„çš„åˆå§‹åŒ–åŒºåŸŸè§£ç æ ‡å¿—å­—èŠ‚ã€‚
 ** Only the following combinations are supported.  Anything different
 ** indicates a corrupt database files:
-** //Ö»Ö§³ÖÒÔÏÂ×éºÏ¡£ÈÎºÎ²»Í¬¶¼ÊÇÖ¸Ê¾Ò»¸ö²»Á¼µÄÊı¾İÎÄ¼ş
+** //åªæ”¯æŒä»¥ä¸‹ç»„åˆã€‚ä»»ä½•ä¸åŒéƒ½æ˜¯æŒ‡ç¤ºä¸€ä¸ªä¸è‰¯çš„æ•°æ®æ–‡ä»¶
 **         PTF_ZERODATA
 **         PTF_ZERODATA | PTF_LEAF
 **         PTF_LEAFDATA | PTF_INTKEY
 **         PTF_LEAFDATA | PTF_INTKEY | PTF_LEAF
 */
 static int decodeFlags(MemPage *pPage, int flagByte){
-  BtShared *pBt;     /* A copy of pPage->pBt */   //pPage->pBtµÄÒ»¸ö¸±±¾
+  BtShared *pBt;     /* A copy of pPage->pBt */   //pPage->pBtçš„ä¸€ä¸ªå‰¯æœ¬
 
   assert( pPage->hdrOffset==(pPage->pgno==1 ? 100 : 0) );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
@@ -1600,16 +1600,16 @@ static int decodeFlags(MemPage *pPage, int flagByte){
 
 /*
 ** Initialize the auxiliary information for a disk block.
-** ³õÊ¼»¯´ÅÅÌ¿éµÄ¸¨ÖúĞÅÏ¢¡£
+** åˆå§‹åŒ–ç£ç›˜å—çš„è¾…åŠ©ä¿¡æ¯ã€‚
 ** Return SQLITE_OK on success.  If we see that the page does
 ** not contain a well-formed database page, then return 
 ** SQLITE_CORRUPT.  Note that a return of SQLITE_OK does not
 ** guarantee that the page is well-formed.  It only shows that
 ** we failed to detect any corruption.
-** ³É¹¦Ôò·µ»ØSQLITE OK¡£Èç¹ûÎÒÃÇ¿´µ½Ò³Ãæ²»°üº¬Ò»¸ö¸ñÊ½Á¼ºÃµÄÊı¾İ¿âÒ³Ãæ,È»ºó·µ»Ø
-** SQLITE_CORRUPT¡£×¢Òâ,SQLITE_OKµÄ»Ø¹é¿ÉÒÔ²»±£Ö¤Ò³ÃæµÄ¸ñÊ½ÊÇÕıÈ·µÄ¡£ËüÖ»±íÃ÷ÎÒÃÇÊ§°ÜÁË
+** æˆåŠŸåˆ™è¿”å›SQLITE OKã€‚å¦‚æœæˆ‘ä»¬çœ‹åˆ°é¡µé¢ä¸åŒ…å«ä¸€ä¸ªæ ¼å¼è‰¯å¥½çš„æ•°æ®åº“é¡µé¢,ç„¶åè¿”å›
+** SQLITE_CORRUPTã€‚æ³¨æ„,SQLITE_OKçš„å›å½’å¯ä»¥ä¸ä¿è¯é¡µé¢çš„æ ¼å¼æ˜¯æ­£ç¡®çš„ã€‚å®ƒåªè¡¨æ˜æˆ‘ä»¬å¤±è´¥äº†
 */
-static int btreeInitPage(MemPage *pPage){     //BÊ÷³õÊ¼»¯Ò³
+static int btreeInitPage(MemPage *pPage){     //Bæ ‘åˆå§‹åŒ–é¡µ
 
   assert( pPage->pBt!=0 );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
@@ -1618,16 +1618,16 @@ static int btreeInitPage(MemPage *pPage){     //BÊ÷³õÊ¼»¯Ò³
   assert( pPage->aData == sqlite3PagerGetData(pPage->pDbPage) );
 
   if( !pPage->isInit ){
-    u16 pc;            /* Address of a freeblock within pPage->aData[] */      //pPage->aData[]ÄÚ²¿µÄ¿ÕÏĞ¿éµÄµØÖ·
-    u8 hdr;            /* Offset to beginning of page header */                //Ò³Í·¿ªÊ¼µÄÆ«ÒÆÁ¿
-    u8 *data;          /* Equal to pPage->aData */                             //µÈÓÚpPage->aData
-    BtShared *pBt;     /* The main btree structure */                          //¿É¹²ÏíµÄBÊ÷½á¹¹
-    int usableSize;    /* Amount of usable space on each page */               //Ã¿¸öÒ³ÉÏµÄ¿ÉÓÃ¿Õ¼äµÄÊıÁ¿
-    u16 cellOffset;    /* Offset from start of page to first cell pointer */   //´ÓÒ³ÃæµÄ¿ªÊ¼µ½µÚÒ»¸öµ¥ÔªÖ¸ÕëµÄÆ«ÒÆÁ¿
-    int nFree;         /* Number of unused bytes on the page */                //Ò³ÉÏ²»ÄÜÊ¹ÓÃ×Ö½ÚµÄÊıÁ¿
-    int top;           /* First byte of the cell content area */               //µ¥ÔªÄÚÈİµÄµÚÒ»¸ö×Ö½Ú
-    int iCellFirst;    /* First allowable cell or freeblock offset */          //µÚÒ»¸ö¿ÉÓÃµ¥Ôª»ò¿ÕÏĞ¿éÆ«ÒÆÁ¿
-    int iCellLast;     /* Last possible cell or freeblock offset */            //×îºóÒ»¸ö¿ÉÄÜµ¥Ôª»ò¿ÕÏĞ¿éÆ«ÒÆÁ¿
+    u16 pc;            /* Address of a freeblock within pPage->aData[] */      //pPage->aData[]å†…éƒ¨çš„ç©ºé—²å—çš„åœ°å€
+    u8 hdr;            /* Offset to beginning of page header */                //é¡µå¤´å¼€å§‹çš„åç§»é‡
+    u8 *data;          /* Equal to pPage->aData */                             //ç­‰äºpPage->aData
+    BtShared *pBt;     /* The main btree structure */                          //å¯å…±äº«çš„Bæ ‘ç»“æ„
+    int usableSize;    /* Amount of usable space on each page */               //æ¯ä¸ªé¡µä¸Šçš„å¯ç”¨ç©ºé—´çš„æ•°é‡
+    u16 cellOffset;    /* Offset from start of page to first cell pointer */   //ä»é¡µé¢çš„å¼€å§‹åˆ°ç¬¬ä¸€ä¸ªå•å…ƒæŒ‡é’ˆçš„åç§»é‡
+    int nFree;         /* Number of unused bytes on the page */                //é¡µä¸Šä¸èƒ½ä½¿ç”¨å­—èŠ‚çš„æ•°é‡
+    int top;           /* First byte of the cell content area */               //å•å…ƒå†…å®¹çš„ç¬¬ä¸€ä¸ªå­—èŠ‚
+    int iCellFirst;    /* First allowable cell or freeblock offset */          //ç¬¬ä¸€ä¸ªå¯ç”¨å•å…ƒæˆ–ç©ºé—²å—åç§»é‡
+    int iCellLast;     /* Last possible cell or freeblock offset */            //æœ€åä¸€ä¸ªå¯èƒ½å•å…ƒæˆ–ç©ºé—²å—åç§»é‡
 
     pBt = pPage->pBt;
 
@@ -1644,25 +1644,25 @@ static int btreeInitPage(MemPage *pPage){     //BÊ÷³õÊ¼»¯Ò³
     top = get2byteNotZero(&data[hdr+5]);
     pPage->nCell = get2byte(&data[hdr+3]);
     if( pPage->nCell>MX_CELL(pBt) ){
-      /* To many cells for a single page.  The page must be corrupt */  //¶ÔÓÚµ¥Ò³ÃæµÄÈô¸Éµ¥ÔªÒ²Ò»¶¨ÊÇ²»Á¼µÄ
+      /* To many cells for a single page.  The page must be corrupt */  //å¯¹äºå•é¡µé¢çš„è‹¥å¹²å•å…ƒä¹Ÿä¸€å®šæ˜¯ä¸è‰¯çš„
       return SQLITE_CORRUPT_BKPT;
     }
     testcase( pPage->nCell==MX_CELL(pBt) );
 
-    /* A malformed(ÓĞÈ±ÏİµÄ) database page might cause us to read past the end
+    /* A malformed(æœ‰ç¼ºé™·çš„) database page might cause us to read past the end
     ** of page when parsing a cell.  
-    ** ½âÎöµ¥ÔªÊ±£¬Ò»¸öÓĞÈ±ÏİµÄÊı¾İ¿âÒ³¿ÉÄÜ»áµ¼ÖÂÎÒÃÇÈ¥¶ÁÒ³ÃæÄ©Î²µÄ²¿·Ö¡£
+    ** è§£æå•å…ƒæ—¶ï¼Œä¸€ä¸ªæœ‰ç¼ºé™·çš„æ•°æ®åº“é¡µå¯èƒ½ä¼šå¯¼è‡´æˆ‘ä»¬å»è¯»é¡µé¢æœ«å°¾çš„éƒ¨åˆ†ã€‚
     ** The following block of code checks early to see if a cell extends
     ** past the end of a page boundary and causes SQLITE_CORRUPT to be 
     ** returned if it does.
-	** ÏÂÃæµÄ´úÂë¿é½«ÌáÇ°ºË¶ÔÊÇ·ñÒ»¸öµ¥ÔªÀ©Õ¹³¬¹ıÒ³Ãæ±ß½ç£¬²¢ÇÒÈç¹ûÈ·ÊµÈç´ËSQLITE_CORRUPT½«±»·µ»Ø¡£
+	** ä¸‹é¢çš„ä»£ç å—å°†æå‰æ ¸å¯¹æ˜¯å¦ä¸€ä¸ªå•å…ƒæ‰©å±•è¶…è¿‡é¡µé¢è¾¹ç•Œï¼Œå¹¶ä¸”å¦‚æœç¡®å®å¦‚æ­¤SQLITE_CORRUPTå°†è¢«è¿”å›ã€‚
     */
     iCellFirst = cellOffset + 2*pPage->nCell;
     iCellLast = usableSize - 4;
 #if defined(SQLITE_ENABLE_OVERSIZE_CELL_CHECK)
     {
-      int i;            /* Index into the cell pointer array */   //µ½µ¥ÔªÖ¸ÕëÊı×éµÄË÷Òı
-      int sz;           /* Size of a cell */      //µ¥ÔªµÄ´óĞ¡
+      int i;            /* Index into the cell pointer array */   //åˆ°å•å…ƒæŒ‡é’ˆæ•°ç»„çš„ç´¢å¼•
+      int sz;           /* Size of a cell */      //å•å…ƒçš„å¤§å°
 
       if( !pPage->leaf ) iCellLast--;
       for(i=0; i<pPage->nCell; i++){
@@ -1682,13 +1682,13 @@ static int btreeInitPage(MemPage *pPage){     //BÊ÷³õÊ¼»¯Ò³
     }  
 #endif
 
-    /* Compute the total free space on the page */  //¼ÆËãÒ³ÃæÉÏ×ÔÓÉ¿Õ¼äµÄ×ÜÁ¿
+    /* Compute the total free space on the page */  //è®¡ç®—é¡µé¢ä¸Šè‡ªç”±ç©ºé—´çš„æ€»é‡
     pc = get2byte(&data[hdr+1]);
     nFree = data[hdr+7] + top;
     while( pc>0 ){
       u16 next, size;
       if( pc<iCellFirst || pc>iCellLast ){
-        /* Start of free block is off the page */  //¿ÕÏĞ¿éµÄ¿ªÊ¼²»ÔÚÒ³ÃæÉÏ
+        /* Start of free block is off the page */  //ç©ºé—²å—çš„å¼€å§‹ä¸åœ¨é¡µé¢ä¸Š
         return SQLITE_CORRUPT_BKPT; 
       }
       next = get2byte(&data[pc]);
@@ -1696,7 +1696,7 @@ static int btreeInitPage(MemPage *pPage){     //BÊ÷³õÊ¼»¯Ò³
       if( (next>0 && next<=pc+size+3) || pc+size>usableSize ){
         /* Free blocks must be in ascending order. And the last byte of
         ** the free-block must lie on the database page.  
-		** ¿ÕÏĞ¿é±ØĞëÊÇÒ»¸öµØíEµÄË³Ğò¡£²¢ÇÒ¿ÕÏĞ¿ªµÄ×îºóÒ»¸ö×Ö½ÚÒ»¶¨ÊÇÔÚÒ»¸öÊı¾İ¿âÒ³ÉÏµÄ*/
+		** ç©ºé—²å—å¿…é¡»æ˜¯ä¸€ä¸ªåœ°é¥çš„é¡ºåºã€‚å¹¶ä¸”ç©ºé—²å¼€çš„æœ€åä¸€ä¸ªå­—èŠ‚ä¸€å®šæ˜¯åœ¨ä¸€ä¸ªæ•°æ®åº“é¡µä¸Šçš„*/
         return SQLITE_CORRUPT_BKPT; 
       }
       nFree = nFree + size;
@@ -1709,8 +1709,8 @@ static int btreeInitPage(MemPage *pPage){     //BÊ÷³õÊ¼»¯Ò³
     ** of the page, then the page must be corrupted. This check also
     ** serves to verify that the offset to the start of the cell-content
     ** area, according to the page header, lies within the page.
-	** ´ËÊ±£¬nFree°üº¬Æ«ÒÆÁ¿µÄ×ÜÁ¿£¬Æ«ÒÆÁ¿ÊÇµ¥ÔªÄÚÈİÇø¿ªÊ¼²¿·Ö¼ÓÉÏµ¥ÔªÄÚÈİÇøÄÚµÄ¿ÕÏĞ×Ö½ÚµÄÊıÁ¿µÄºÍ¡£
-	** Èç¹ûÕâ±ÈÒ³ÃæµÄ¿ÉÓÃ´óĞ¡¸ü´ó£¬Ôò¸ÃÒ³Ãæ±ØĞë±»ÆÆ»µ¡£¸ù¾İÒ³Í·£¬´Ë¼ì²é»¹ÓÃÓÚÑéÖ¤Î»ÓÚ¸ÃÒ³ÃæÄÚµÄµ¥ÔªÄÚÈİÇø¿ªÊ¼²¿·ÖµÄÆ«ÒÆÁ¿¡£
+	** æ­¤æ—¶ï¼ŒnFreeåŒ…å«åç§»é‡çš„æ€»é‡ï¼Œåç§»é‡æ˜¯å•å…ƒå†…å®¹åŒºå¼€å§‹éƒ¨åˆ†åŠ ä¸Šå•å…ƒå†…å®¹åŒºå†…çš„ç©ºé—²å­—èŠ‚çš„æ•°é‡çš„å’Œã€‚
+	** å¦‚æœè¿™æ¯”é¡µé¢çš„å¯ç”¨å¤§å°æ›´å¤§ï¼Œåˆ™è¯¥é¡µé¢å¿…é¡»è¢«ç ´åã€‚æ ¹æ®é¡µå¤´ï¼Œæ­¤æ£€æŸ¥è¿˜ç”¨äºéªŒè¯ä½äºè¯¥é¡µé¢å†…çš„å•å…ƒå†…å®¹åŒºå¼€å§‹éƒ¨åˆ†çš„åç§»é‡ã€‚
     */
     if( nFree>usableSize ){
       return SQLITE_CORRUPT_BKPT; 
@@ -1723,7 +1723,7 @@ static int btreeInitPage(MemPage *pPage){     //BÊ÷³õÊ¼»¯Ò³
 
 /*
 ** Set up a raw page so that it looks like a database page holding
-** no entries.  //½¨Á¢Ò»¸öÔ­Ê¼Ò³Ãæ,ÒÔ±ãËü¿´ÆğÀ´ÏñÒ»¸öÊı¾İ¿âÃ»ÓĞÌõÄ¿¡£
+** no entries.  //å»ºç«‹ä¸€ä¸ªåŸå§‹é¡µé¢,ä»¥ä¾¿å®ƒçœ‹èµ·æ¥åƒä¸€ä¸ªæ•°æ®åº“æ²¡æœ‰æ¡ç›®ã€‚
 */
 static void zeroPage(MemPage *pPage, int flags){
   unsigned char *data = pPage->aData;
@@ -1760,7 +1760,7 @@ static void zeroPage(MemPage *pPage, int flags){
 
 /*
 ** Convert a DbPage obtained from the pager into a MemPage used by
-** the btree layer.  //Í¨¹ıBÊ÷²ã£¬½«DbPage×ª»¯³ÉMemPage
+** the btree layer.  //é€šè¿‡Bæ ‘å±‚ï¼Œå°†DbPageè½¬åŒ–æˆMemPage
 */
 /*convert DbPage into MemPage*/
 static MemPage *btreePageFromDbPage(DbPage *pDbPage, Pgno pgno, BtShared *pBt){
@@ -1776,20 +1776,20 @@ static MemPage *btreePageFromDbPage(DbPage *pDbPage, Pgno pgno, BtShared *pBt){
 /*
 ** Get a page from the pager.  Initialize the MemPage.pBt and
 ** MemPage.aData elements if needed.
-** ´ÓÒ³¶ÔÏóµÃµ½Ò»¸öÒ³¡£Èç¹ûĞèÒª£¬Ôò³õÊ¼»¯MemPage.pBtºÍMemPage.aDataµÄÔªËØ
+** ä»é¡µå¯¹è±¡å¾—åˆ°ä¸€ä¸ªé¡µã€‚å¦‚æœéœ€è¦ï¼Œåˆ™åˆå§‹åŒ–MemPage.pBtå’ŒMemPage.aDataçš„å…ƒç´ 
 ** If the noContent flag is set, it means that we do not care about
 ** the content of the page at this time.  So do not go to the disk
 ** to fetch the content.  Just fill in the content with zeros for now.
 ** If in the future we call sqlite3PagerWrite() on this page, that
 ** means we have started to be concerned about content and the disk
 ** read should occur at that point.
-** Èç¹ûÎŞÄÚÈİ±êÇ©Éè¶¨ÁË£¬ÄÇÒâÎ¶×ÅÎÒÃÇ½«²»¹ØĞÄ´ËÊ±µÄÒ³ÃæÄÚÈİ¡£ËùÒÔ²»ÒªÈ¥´ÅÅÌ»ñÈ¡ÄÚÈİ¡£Ö»ĞèÔÚÄÚÈİÖĞÌîĞ´Ê¹ÓÃÁã¼´¿É¡£
-** Èç¹ûÒÔºóÎÒÃÇÔÚÕâ¸öÒ³ÃæÉÏµ÷ÓÃsqlite3PagerWrite£¨£©£¬ÕâÒâÎ¶×ÅÎÒÃÇÒÑ¾­¿ªÊ¼¹Ø×¢ÄÚÈİ£¬²¢Ó¦³öÏÖÔÚ¸ÃµãµÄ´ÅÅÌ¶ÁÈ¡¡£*/
+** å¦‚æœæ— å†…å®¹æ ‡ç­¾è®¾å®šäº†ï¼Œé‚£æ„å‘³ç€æˆ‘ä»¬å°†ä¸å…³å¿ƒæ­¤æ—¶çš„é¡µé¢å†…å®¹ã€‚æ‰€ä»¥ä¸è¦å»ç£ç›˜è·å–å†…å®¹ã€‚åªéœ€åœ¨å†…å®¹ä¸­å¡«å†™ä½¿ç”¨é›¶å³å¯ã€‚
+** å¦‚æœä»¥åæˆ‘ä»¬åœ¨è¿™ä¸ªé¡µé¢ä¸Šè°ƒç”¨sqlite3PagerWriteï¼ˆï¼‰ï¼Œè¿™æ„å‘³ç€æˆ‘ä»¬å·²ç»å¼€å§‹å…³æ³¨å†…å®¹ï¼Œå¹¶åº”å‡ºç°åœ¨è¯¥ç‚¹çš„ç£ç›˜è¯»å–ã€‚*/
 static int btreeGetPage(
-  BtShared *pBt,       /* The btree */                          //BÊ÷
-  Pgno pgno,           /* Number of the page to fetch */        //»ñÈ¡µÄÒ³ÃæÊı
-  MemPage **ppPage,    /* Return the page in this parameter */  //ÓÃÕâ¸ö²ÎÊı·µ»ØÒ³
-  int noContent        /* Do not load page content if true */   //Èç¹ûÎªÕæ£¬Ôò²»»á¼ÓÔØÒ³
+  BtShared *pBt,       /* The btree */                          //Bæ ‘
+  Pgno pgno,           /* Number of the page to fetch */        //è·å–çš„é¡µé¢æ•°
+  MemPage **ppPage,    /* Return the page in this parameter */  //ç”¨è¿™ä¸ªå‚æ•°è¿”å›é¡µ
+  int noContent        /* Do not load page content if true */   //å¦‚æœä¸ºçœŸï¼Œåˆ™ä¸ä¼šåŠ è½½é¡µ
 ){
   int rc;
   DbPage *pDbPage;
@@ -1797,7 +1797,7 @@ static int btreeGetPage(
   assert( sqlite3_mutex_held(pBt->mutex) );
   rc = sqlite3PagerAcquire(pBt->pPager, pgno, (DbPage**)&pDbPage, noContent);
   if( rc ) return rc; 
-  *ppPage = btreePageFromDbPage(pDbPage, pgno, pBt);/*´ÓpagerÖĞ»ñÈ¡page£¬·ÅÔÚppPageÖĞ*/
+  *ppPage = btreePageFromDbPage(pDbPage, pgno, pBt);/*ä»pagerä¸­è·å–pageï¼Œæ”¾åœ¨ppPageä¸­*/
   return SQLITE_OK;
 }
 
@@ -1805,13 +1805,13 @@ static int btreeGetPage(
 ** Retrieve a page from the pager cache. If the requested page is not
 ** already in the pager cache return NULL. Initialize the MemPage.pBt and
 ** MemPage.aData elements if needed.
-** ´ÓÒ³¶ÔÏó»º´æ¼ìË÷Ò»¸öÒ³Ãæ¡£Èç¹ûÃ»ÓĞ¶ø·µ»ØNULL¡£ÈôÓĞ±ØÒª£¬³õÊ¼»¯MemPage.pBtºÍMemPage.aDataµÄÔªËØ*/
+** ä»é¡µå¯¹è±¡ç¼“å­˜æ£€ç´¢ä¸€ä¸ªé¡µé¢ã€‚å¦‚æœæ²¡æœ‰è€Œè¿”å›NULLã€‚è‹¥æœ‰å¿…è¦ï¼Œåˆå§‹åŒ–MemPage.pBtå’ŒMemPage.aDataçš„å…ƒç´ */
 static MemPage *btreePageLookup(BtShared *pBt, Pgno pgno){
   DbPage *pDbPage;
   assert( sqlite3_mutex_held(pBt->mutex) );
   pDbPage = sqlite3PagerLookup(pBt->pPager, pgno);
   if( pDbPage ){
-    return btreePageFromDbPage(pDbPage, pgno, pBt);/*´Ópager cacheÖĞÈ¡page*/
+    return btreePageFromDbPage(pDbPage, pgno, pBt);/*ä»pager cacheä¸­å–page*/
   }
   return 0;
 }
@@ -1819,7 +1819,7 @@ static MemPage *btreePageLookup(BtShared *pBt, Pgno pgno){
 /*
 ** Return the size of the database file in pages. If there is any kind of
 ** error, return ((unsigned int)-1).
-** ·µ»ØÒ³ÖĞÊı¾İ¿âÎÄ¼şµÄ´óĞ¡¡£ÈôÓĞ´íreturn ((unsigned int)-1)*/
+** è¿”å›é¡µä¸­æ•°æ®åº“æ–‡ä»¶çš„å¤§å°ã€‚è‹¥æœ‰é”™return ((unsigned int)-1)*/
 static Pgno btreePagecount(BtShared *pBt){
   return pBt->nPage;
 }
@@ -1833,14 +1833,14 @@ u32 sqlite3BtreeLastPage(Btree *p){
 ** Get a page from the pager and initialize it.  This routine is just a
 ** convenience wrapper around separate calls to btreeGetPage() and 
 ** btreeInitPage().
-** ´ÓÒ³¶ÔÏóÖĞ»ñµÃÒ»¸öÒ³Ãæ²¢³õÊ¼»¯¡£Õâ¸ö³ÌĞòÖ»Ò»¸ö¹ØÓÚ·Ö±ğµ÷ÓÃbtreeGetPage£¨£©ºÍbtreeInitPage£¨£©µÄ±ã½İµÄ°ü¡£
+** ä»é¡µå¯¹è±¡ä¸­è·å¾—ä¸€ä¸ªé¡µé¢å¹¶åˆå§‹åŒ–ã€‚è¿™ä¸ªç¨‹åºåªä¸€ä¸ªå…³äºåˆ†åˆ«è°ƒç”¨btreeGetPageï¼ˆï¼‰å’ŒbtreeInitPageï¼ˆï¼‰çš„ä¾¿æ·çš„åŒ…ã€‚
 ** If an error occurs, then the value *ppPage is set to is undefined. It
 ** may remain unchanged, or it may be set to an invalid value.
-** Èç¹û·¢Éú´íÎó£¬Ôò¸ÃÖµ* ppPage±»ÉèÖÃÎªÎ´¶¨Òå¡£Ëü¿ÉÒÔ±£³Ö²»±ä£¬»òÕßËü¿ÉÒÔ±»ÉèÖÃÎªÎŞĞ§Öµ¡£*/
+** å¦‚æœå‘ç”Ÿé”™è¯¯ï¼Œåˆ™è¯¥å€¼* ppPageè¢«è®¾ç½®ä¸ºæœªå®šä¹‰ã€‚å®ƒå¯ä»¥ä¿æŒä¸å˜ï¼Œæˆ–è€…å®ƒå¯ä»¥è¢«è®¾ç½®ä¸ºæ— æ•ˆå€¼ã€‚*/
 static int getAndInitPage(
-  BtShared *pBt,          /* The database file */         //Êı¾İ¿âÎÄ¼ş
-  Pgno pgno,           /* Number of the page to get */    //»ñµÃµÄÒ³ÃæµÄÊıÁ¿
-  MemPage **ppPage     /* Write the page pointer here */  //ÔÚ¸Ã±äÁ¿ÉÏĞ´Ö¸Õë
+  BtShared *pBt,          /* The database file */         //æ•°æ®åº“æ–‡ä»¶
+  Pgno pgno,           /* Number of the page to get */    //è·å¾—çš„é¡µé¢çš„æ•°é‡
+  MemPage **ppPage     /* Write the page pointer here */  //åœ¨è¯¥å˜é‡ä¸Šå†™æŒ‡é’ˆ
 ){
   int rc;
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -1850,8 +1850,8 @@ static int getAndInitPage(
   }else{
     rc = btreeGetPage(pBt, pgno, ppPage, 0); /*Get a page from the pager*/
     if( rc==SQLITE_OK ){
-      rc = btreeInitPage(*ppPage);/*³õÊ¼»¯page*/
-      if( rc!=SQLITE_OK ){/*ppPageµÄÖµÎ´±»¶¨Òå¡£ËüµÄÖµ¿ÉÄÜÎ´±ä»¯»òÕßÎªÎŞĞ§Öµ¡£*/
+      rc = btreeInitPage(*ppPage);/*åˆå§‹åŒ–page*/
+      if( rc!=SQLITE_OK ){/*ppPageçš„å€¼æœªè¢«å®šä¹‰ã€‚å®ƒçš„å€¼å¯èƒ½æœªå˜åŒ–æˆ–è€…ä¸ºæ— æ•ˆå€¼ã€‚*/
         releasePage(*ppPage);
       }
     }
@@ -1865,8 +1865,8 @@ static int getAndInitPage(
 /*
 ** Release a MemPage.  This should be called once for each prior
 ** call to btreeGetPage.
-** Ã¿´Îµ÷ÓÃÖ®Ç°Ó¦¸Ã±»µ÷ÓÃbtreeGetPageÒ»´Î¡£*/
-/*ÊÍ·ÅÄÚ´æÒ³*/
+** æ¯æ¬¡è°ƒç”¨ä¹‹å‰åº”è¯¥è¢«è°ƒç”¨btreeGetPageä¸€æ¬¡ã€‚*/
+/*é‡Šæ”¾å†…å­˜é¡µ*/
 static void releasePage(MemPage *pPage){
   if( pPage ){
     assert( pPage->aData );
@@ -1874,20 +1874,20 @@ static void releasePage(MemPage *pPage){
     assert( sqlite3PagerGetExtra(pPage->pDbPage) == (void*)pPage );
     assert( sqlite3PagerGetData(pPage->pDbPage)==pPage->aData );
     assert( sqlite3_mutex_held(pPage->pBt->mutex) );
-    sqlite3PagerUnref(pPage->pDbPage);/*ÊÍ·ÅÒ³ÉÏµÄÒıÓÃ*/
+    sqlite3PagerUnref(pPage->pDbPage);/*é‡Šæ”¾é¡µä¸Šçš„å¼•ç”¨*/
   }
 }
 
 /*
-** During a rollback, when the pager reloads(ÖØĞÂ×°) information into the cache
+** During a rollback, when the pager reloads(é‡æ–°è£…) information into the cache
 ** so that the cache is restored to its original state at the start of
 ** the transaction, for each page restored this routine is called.
-** ÔÚ»Ø¹öÆÚ¼ä£¬µ±pager¶ÔÏóÖØĞÂ×°ÔØĞÅÏ¢µ½»º´æÒÔ±ãÓÚ»º´æ»Ö¸´µ½ÊÂÎñ¿ªÊ¼µÄ»º´æÔ­Ê¼×´Ì¬µÄÊ±ºò£¬¶ÔÓÚÃ¿¸öÒ³Ãæ»Ö¸´¶¼µ÷ÓÃÕâ¸ö³ÌĞò¡£
+** åœ¨å›æ»šæœŸé—´ï¼Œå½“pagerå¯¹è±¡é‡æ–°è£…è½½ä¿¡æ¯åˆ°ç¼“å­˜ä»¥ä¾¿äºç¼“å­˜æ¢å¤åˆ°äº‹åŠ¡å¼€å§‹çš„ç¼“å­˜åŸå§‹çŠ¶æ€çš„æ—¶å€™ï¼Œå¯¹äºæ¯ä¸ªé¡µé¢æ¢å¤éƒ½è°ƒç”¨è¿™ä¸ªç¨‹åºã€‚
 ** This routine needs to reset the extra data section at the end of the
 ** page to agree with the restored data.
-** Õâ¸ö³ÌĞòĞèÒªÔÚÒ³ÃæµÄ×îºóÖØĞÂÉè¶¨¶îÍâµÄÊı¾İ²¿·ÖÒÔÊÊºÏ»Ö¸´Êı¾İ */
-/*»Ø¹öºó£¬Ò³ÖØĞÂ×°informationµ½cache¡£*/
-static void pageReinit(DbPage *pData){    //pager¶ÔÏóÖØĞÂ×°ÔØĞÅÏ¢µ½»º´æ
+** è¿™ä¸ªç¨‹åºéœ€è¦åœ¨é¡µé¢çš„æœ€åé‡æ–°è®¾å®šé¢å¤–çš„æ•°æ®éƒ¨åˆ†ä»¥é€‚åˆæ¢å¤æ•°æ® */
+/*å›æ»šåï¼Œé¡µé‡æ–°è£…informationåˆ°cacheã€‚*/
+static void pageReinit(DbPage *pData){    //pagerå¯¹è±¡é‡æ–°è£…è½½ä¿¡æ¯åˆ°ç¼“å­˜
   MemPage *pPage;
   pPage = (MemPage *)sqlite3PagerGetExtra(pData);
   assert( sqlite3PagerPageRefcount(pData)>0 );
@@ -1896,10 +1896,10 @@ static void pageReinit(DbPage *pData){    //pager¶ÔÏóÖØĞÂ×°ÔØĞÅÏ¢µ½»º´æ
     pPage->isInit = 0;
     if( sqlite3PagerPageRefcount(pData)>1 ){
       /* pPage might not be a btree page;  it might be an overflow page
-      ** or ptrmap page or a free page.  In those cases, the following  //pPage¿ÉÄÜ²»ÊÇÒ»¸öBÊ÷Ò³Ãæ;Ëü¿ÉÄÜÊÇÒ»¸öÒç³öÒ³Ãæ»òptrmapÒ³»ò¿Õ°×Ò³
-      ** call to btreeInitPage() will likely return SQLITE_CORRUPT.     //ÔÚÕâĞ©Çé¿öÏÂ£¬ÏÂÃæ¶ÔbtreeInitPage()µÄµ÷ÓÃ¿ÉÄÜ·µ»ØSQLITE_CORRUPT¡£
-      ** But no harm is done by this.  And it is very important that    //ÔÚÃ¿Ò»¸öBÊ÷Ò³ÉÏµ÷ÓÃbtreeInitPage()ÊÇºÜÖØÒªµÄ£¬
-      ** btreeInitPage() be called on every btree page so we make       //Òò´ËÎÒÃÇÎªÃ¿Ò»¸öÖØĞÂ³õÊ¼»¯µÄÃ¿Ò»¸öÒ³Ãæ·¢³öµ÷ÓÃÇëÇó¡£
+      ** or ptrmap page or a free page.  In those cases, the following  //pPageå¯èƒ½ä¸æ˜¯ä¸€ä¸ªBæ ‘é¡µé¢;å®ƒå¯èƒ½æ˜¯ä¸€ä¸ªæº¢å‡ºé¡µé¢æˆ–ptrmapé¡µæˆ–ç©ºç™½é¡µ
+      ** call to btreeInitPage() will likely return SQLITE_CORRUPT.     //åœ¨è¿™äº›æƒ…å†µä¸‹ï¼Œä¸‹é¢å¯¹btreeInitPage()çš„è°ƒç”¨å¯èƒ½è¿”å›SQLITE_CORRUPTã€‚
+      ** But no harm is done by this.  And it is very important that    //åœ¨æ¯ä¸€ä¸ªBæ ‘é¡µä¸Šè°ƒç”¨btreeInitPage()æ˜¯å¾ˆé‡è¦çš„ï¼Œ
+      ** btreeInitPage() be called on every btree page so we make       //å› æ­¤æˆ‘ä»¬ä¸ºæ¯ä¸€ä¸ªé‡æ–°åˆå§‹åŒ–çš„æ¯ä¸€ä¸ªé¡µé¢å‘å‡ºè°ƒç”¨è¯·æ±‚ã€‚
       ** the call for every page that comes in for re-initing. 
 	  */
       btreeInitPage(pPage);
@@ -1908,7 +1908,7 @@ static void pageReinit(DbPage *pData){    //pager¶ÔÏóÖØĞÂ×°ÔØĞÅÏ¢µ½»º´æ
 }
 
 /*
-** Invoke the busy handler for a btree.      //µ÷ÓÃbtree·±Ã¦µÄ´¦Àí³ÌĞò¡£
+** Invoke the busy handler for a btree.      //è°ƒç”¨btreeç¹å¿™çš„å¤„ç†ç¨‹åºã€‚
 */
 static int btreeInvokeBusyHandler(void *pArg){
   BtShared *pBt = (BtShared*)pArg;
@@ -1918,54 +1918,54 @@ static int btreeInvokeBusyHandler(void *pArg){
 }
 
 /*
-** Open a database file.             //´ò¿ªÊı¾İ¿âÎÄ¼ş
+** Open a database file.             //æ‰“å¼€æ•°æ®åº“æ–‡ä»¶
 ** 
 ** zFilename is the name of the database file.  If zFilename is NULL             
-** then an ephemeral(¶ÌÔİµÄ) database is created.  The ephemeral database might 
+** then an ephemeral(çŸ­æš‚çš„) database is created.  The ephemeral database might 
 ** be exclusively in memory, or it might use a disk-based memory cache. 
 ** Either way, the ephemeral database will be automatically deleted              
 ** when sqlite3BtreeClose() is called. 
-** zFilenameÊÇÕâ¸öÊı¾İ¿âÎÄ¼şµÄÃû×Ö¡£Èç¹ûzFilenameÎª¿Õ£¬Ôò½«´´½¨Ò»¸öÁÙÊ±Êı¾İ¿â¡£
-** Õâ¸öÁÙÊ±Êı¾İ¿âÔÚÄÚ´æÖĞÎ¨Ò»µÄ£¬»òÓÃÁË»ùÓÚ´ÅÅÌµÄÄÚ´æ»º´æÎŞÂÛÄÄÖÖ·½Ê½µ±sqlite3BtreeClose()±»µ÷ÓÃµÄÊ±ºò£¬
-** Õâ¸öÁÙÊ±Êı¾İ¿â½«×Ô¶¯É¾³ı¡£
+** zFilenameæ˜¯è¿™ä¸ªæ•°æ®åº“æ–‡ä»¶çš„åå­—ã€‚å¦‚æœzFilenameä¸ºç©ºï¼Œåˆ™å°†åˆ›å»ºä¸€ä¸ªä¸´æ—¶æ•°æ®åº“ã€‚
+** è¿™ä¸ªä¸´æ—¶æ•°æ®åº“åœ¨å†…å­˜ä¸­å”¯ä¸€çš„ï¼Œæˆ–ç”¨äº†åŸºäºç£ç›˜çš„å†…å­˜ç¼“å­˜æ— è®ºå“ªç§æ–¹å¼å½“sqlite3BtreeClose()è¢«è°ƒç”¨çš„æ—¶å€™ï¼Œ
+** è¿™ä¸ªä¸´æ—¶æ•°æ®åº“å°†è‡ªåŠ¨åˆ é™¤ã€‚
 **
 ** If zFilename is ":memory:" then an in-memory database is created  
 ** that is automatically destroyed when it is closed.
-** Èç¹ûzFilenameÊÇ":memory:"ÄÇÃ´¹Ø±ÕÊ±×Ô¶¯Ïú»ÙµÄÄÚ´æÊı¾İ¿â½«»á´´½¨¡£
+** å¦‚æœzFilenameæ˜¯":memory:"é‚£ä¹ˆå…³é—­æ—¶è‡ªåŠ¨é”€æ¯çš„å†…å­˜æ•°æ®åº“å°†ä¼šåˆ›å»ºã€‚
 **
 ** The "flags" parameter is a bitmask that might contain bits like
 ** BTREE_OMIT_JOURNAL and/or BTREE_MEMORY.  
-** ¡°flags¡±²ÎÊıÊÇÒ»¸ö¿ÉÄÜ°üº¬µÄÎ»ÑÚÂëÎ»BTREE_OMIT_JOURNAL¡¢BTREE_MEMORY¡£
+** â€œflagsâ€å‚æ•°æ˜¯ä¸€ä¸ªå¯èƒ½åŒ…å«çš„ä½æ©ç ä½BTREE_OMIT_JOURNALã€BTREE_MEMORYã€‚
 
 ** If the database is already opened in the same database connection
 ** and we are in shared cache mode, then the open will fail with an
 ** SQLITE_CONSTRAINT error.  We cannot allow two or more BtShared
 ** objects in the same database connection since doing so will lead
 ** to problems with locking.
-** Èç¹ûÊı¾İ¿âÒÑ¾­ÔÚÏàÍ¬µÄÊı¾İ¿âÁ¬½ÓÖĞ´ò¿ªÁË²¢ÇÒÔÚ¹²Ïí»º´æÄ£Ê½ÏÂ,È»ºóÓÃÒ»¸ö´ò¿ª½«»áÊ§°Ü·µ»ØSQLITE_CONSTRAINT´íÎó¡£
-** ÔÚÍ¬Ò»Êı¾İ¿âÁ¬½ÓÖĞÎÒÃÇ²»ÄÜÔÊĞíÁ½¸ö»ò¶à¸öBtShared¶ÔÏó£¬ÒòÎªÕâÑù×ö»áµ¼ÖÂËøÎÊÌâ¡£
+** å¦‚æœæ•°æ®åº“å·²ç»åœ¨ç›¸åŒçš„æ•°æ®åº“è¿æ¥ä¸­æ‰“å¼€äº†å¹¶ä¸”åœ¨å…±äº«ç¼“å­˜æ¨¡å¼ä¸‹,ç„¶åç”¨ä¸€ä¸ªæ‰“å¼€å°†ä¼šå¤±è´¥è¿”å›SQLITE_CONSTRAINTé”™è¯¯ã€‚
+** åœ¨åŒä¸€æ•°æ®åº“è¿æ¥ä¸­æˆ‘ä»¬ä¸èƒ½å…è®¸ä¸¤ä¸ªæˆ–å¤šä¸ªBtSharedå¯¹è±¡ï¼Œå› ä¸ºè¿™æ ·åšä¼šå¯¼è‡´é”é—®é¢˜ã€‚
 */
-int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
-  sqlite3_vfs *pVfs,      /* VFS to use for this b-tree */                      //VFSÊ¹ÓÃBÊ÷
-  const char *zFilename,  /* Name of the file containing the BTree database */  //°üº¬BÊ÷Êı¾İ¿âÎÄ¼şµÄÃû×Ö
-  sqlite3 *db,            /* Associated database handle */                      //Ïà¹ØÊı¾İ¿â¾ä±ú
-  Btree **ppBtree,        /* Pointer to new Btree object written here */        //Ö¸ÏòÔÚ´Ë±»Ğ´µÄĞÂµÄBÊ÷¶ÔÏó
-  int flags,              /* Options */                                         //Ñ¡Ïî±êÇ©
-  int vfsFlags            /* Flags passed through to sqlite3_vfs.xOpen() */     //Í¨¹ısqlite3_vfs.xOpen()±ê¼Ç
+int sqlite3BtreeOpen(     //æ‰“å¼€æ•°æ®åº“æ–‡ä»¶å¹¶è¿”å›Bæ ‘å¯¹è±¡
+  sqlite3_vfs *pVfs,      /* VFS to use for this b-tree */                      //VFSä½¿ç”¨Bæ ‘
+  const char *zFilename,  /* Name of the file containing the BTree database */  //åŒ…å«Bæ ‘æ•°æ®åº“æ–‡ä»¶çš„åå­—
+  sqlite3 *db,            /* Associated database handle */                      //ç›¸å…³æ•°æ®åº“å¥æŸ„
+  Btree **ppBtree,        /* Pointer to new Btree object written here */        //æŒ‡å‘åœ¨æ­¤è¢«å†™çš„æ–°çš„Bæ ‘å¯¹è±¡
+  int flags,              /* Options */                                         //é€‰é¡¹æ ‡ç­¾
+  int vfsFlags            /* Flags passed through to sqlite3_vfs.xOpen() */     //é€šè¿‡sqlite3_vfs.xOpen()æ ‡è®°
 ){
-  BtShared *pBt = 0;             /* Shared part of btree structure */           //BÊ÷½á¹¹µÄ¹²Ïí²¿·Ö
-  Btree *p;                      /* Handle to return */                         //·µ»ØµÄ¾ä±ú
-  sqlite3_mutex *mutexOpen = 0;  /* Prevents a race condition. Ticket #3537 */  //±ÜÃâ¾ºÌ¬Ìõ¼ş¡£±êÇ©#3537
-  int rc = SQLITE_OK;            /* Result code from this function */           //Õâ¸öº¯ÊıµÄ×´Ì¬Âë
-  u8 nReserve;                   /* Byte of unused space on each page */        //Ã¿¸öÒ³ÉÏµÄ²»ÓÃ¿Õ¼äµÄ×Ö½ÚÊı
-  unsigned char zDbHeader[100];  /* Database header content */                  //Êı¾İ¿âÎÄ¼şÍ·ÄÚÈİ
+  BtShared *pBt = 0;             /* Shared part of btree structure */           //Bæ ‘ç»“æ„çš„å…±äº«éƒ¨åˆ†
+  Btree *p;                      /* Handle to return */                         //è¿”å›çš„å¥æŸ„
+  sqlite3_mutex *mutexOpen = 0;  /* Prevents a race condition. Ticket #3537 */  //é¿å…ç«æ€æ¡ä»¶ã€‚æ ‡ç­¾#3537
+  int rc = SQLITE_OK;            /* Result code from this function */           //è¿™ä¸ªå‡½æ•°çš„çŠ¶æ€ç 
+  u8 nReserve;                   /* Byte of unused space on each page */        //æ¯ä¸ªé¡µä¸Šçš„ä¸ç”¨ç©ºé—´çš„å­—èŠ‚æ•°
+  unsigned char zDbHeader[100];  /* Database header content */                  //æ•°æ®åº“æ–‡ä»¶å¤´å†…å®¹
 
   /* True if opening an ephemeral, temporary database */
-  const int isTempDb = zFilename==0 || zFilename[0]==0;/*zFilenameÎª¿Õ±íÊ¾ÊÇÁÙÊ±Êı¾İ¿â*/
+  const int isTempDb = zFilename==0 || zFilename[0]==0;/*zFilenameä¸ºç©ºè¡¨ç¤ºæ˜¯ä¸´æ—¶æ•°æ®åº“*/
 
   /* Set the variable isMemdb to true for an in-memory database, or 
   ** false for a file-based database.
-  ** ¶ÔÓÚÄÚ´æÊı¾İ¿âÉèÖÃ±äÁ¿isMemdbÕæ£¬¶ÔÓÚ»ùÓÚÎÄ¼şµÄÊı¾İ¿â±äÁ¿isMemdbÉèÎª¼Ù¡£
+  ** å¯¹äºå†…å­˜æ•°æ®åº“è®¾ç½®å˜é‡isMemdbçœŸï¼Œå¯¹äºåŸºäºæ–‡ä»¶çš„æ•°æ®åº“å˜é‡isMemdbè®¾ä¸ºå‡ã€‚
   */
 #ifdef SQLITE_OMIT_MEMORYDB
   const int isMemdb = 0;
@@ -1978,12 +1978,12 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
   assert( db!=0 );
   assert( pVfs!=0 );
   assert( sqlite3_mutex_held(db->mutex) );
-  assert( (flags&0xff)==flags );   /* flags fit in 8 bits */    //±ê¼ÇÕ¼8¸ö×Ö½Ú
+  assert( (flags&0xff)==flags );   /* flags fit in 8 bits */    //æ ‡è®°å 8ä¸ªå­—èŠ‚
 
   /* Only a BTREE_SINGLE database can be BTREE_UNORDERED */
   assert( (flags & BTREE_UNORDERED)==0 || (flags & BTREE_SINGLE)!=0 );
 
-  /* A BTREE_SINGLE database is always a temporary and/or ephemeral */  //BTREE_SINGLEÊı¾İ¿â×ÜÊÇÁÙÊ±µÄ¡£
+  /* A BTREE_SINGLE database is always a temporary and/or ephemeral */  //BTREE_SINGLEæ•°æ®åº“æ€»æ˜¯ä¸´æ—¶çš„ã€‚
   assert( (flags & BTREE_SINGLE)==0 || isTempDb );
 
   if( isMemdb ){
@@ -2007,7 +2007,7 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
   /*
   ** If this Btree is a candidate for shared cache, try to find an
   ** existing BtShared object that we can share with
-  ** Èç¹ûÕâBtree¹²Ïí»º´æÊÇºòÑ¡µÄ,³¢ÊÔÕÒµ½Ò»¸ö¿É¹²ÏíµÄ´æÔÚµÄBtShared¶ÔÏó¡£
+  ** å¦‚æœè¿™Btreeå…±äº«ç¼“å­˜æ˜¯å€™é€‰çš„,å°è¯•æ‰¾åˆ°ä¸€ä¸ªå¯å…±äº«çš„å­˜åœ¨çš„BtSharedå¯¹è±¡ã€‚
   */
   if( isTempDb==0 && (isMemdb==0 || (vfsFlags&SQLITE_OPEN_URI)!=0) ){
     if( vfsFlags & SQLITE_OPEN_SHAREDCACHE ){
@@ -2044,7 +2044,7 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
           int iDb;
           for(iDb=db->nDb-1; iDb>=0; iDb--){
             Btree *pExisting = db->aDb[iDb].pBt;
-            if( pExisting && pExisting->pBt==pBt ){/*ÔÚÍ¬Ò»¸ö¹²ÏícacheÄ£Ê½ÏÂ£¬ÔÚÏàÍ¬Êı¾İ¿âÁ¬½ÓÖĞ£¬Êı¾İ¿âÊÇ´ò¿ªµÄ£¬·µ»ØSQLITE_CONSTRAINT*/
+            if( pExisting && pExisting->pBt==pBt ){/*åœ¨åŒä¸€ä¸ªå…±äº«cacheæ¨¡å¼ä¸‹ï¼Œåœ¨ç›¸åŒæ•°æ®åº“è¿æ¥ä¸­ï¼Œæ•°æ®åº“æ˜¯æ‰“å¼€çš„ï¼Œè¿”å›SQLITE_CONSTRAINT*/
               sqlite3_mutex_leave(mutexShared);
               sqlite3_mutex_leave(mutexOpen);
               sqlite3_free(zFullPathname);
@@ -2066,8 +2066,8 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
       ** even when they are not.  This exercises the locking code and
       ** gives more opportunity for asserts(sqlite3_mutex_held())
       ** statements to find locking problems.
-	  ** ÔÚµ÷ÊÔÄ£Ê½ÏÂ,ÎÒÃÇ½«ËùÓĞ³Ö¾Ã»¯Êı¾İ¿â±ê¼ÇÎª¿É¹²ÏíµÄ£¬¼´Ê¹ËûÃÇ²»ÊÇ³Ö¾Ã»¯µÄ¡£ÕâÁ·Ï°Ëø¶¨´úÂë
-	  ** ºÍasserts(sqlite3_mutex_held())Óï¾ä¸ø¸ü¶àµÄ»ú»áÕÒµ½ËøÎÊÌâ¡£
+	  ** åœ¨è°ƒè¯•æ¨¡å¼ä¸‹,æˆ‘ä»¬å°†æ‰€æœ‰æŒä¹…åŒ–æ•°æ®åº“æ ‡è®°ä¸ºå¯å…±äº«çš„ï¼Œå³ä½¿ä»–ä»¬ä¸æ˜¯æŒä¹…åŒ–çš„ã€‚è¿™ç»ƒä¹ é”å®šä»£ç 
+	  ** å’Œasserts(sqlite3_mutex_held())è¯­å¥ç»™æ›´å¤šçš„æœºä¼šæ‰¾åˆ°é”é—®é¢˜ã€‚
       */
       p->sharable = 1;
     }
@@ -2079,7 +2079,7 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
     ** The following asserts make sure that structures used by the btree are
     ** the right size.  This is to guard against size changes that result
     ** when compiling on a different architecture.
-	** ÏÂÃæµÄ¶ÏÑÔÊÇÈ·±£BÊ÷Ê¹ÓÃµÄ½á¹¹µÄ´óĞ¡ÊÇÕıÈ·µÄ¡£ÕâÊÇÎªÁË·ÀÖ¹±àÒë²»Í¬µÄ¼Ü¹¹Ê±´óĞ¡±ä»¯µÄ½á¹û¡£
+	** ä¸‹é¢çš„æ–­è¨€æ˜¯ç¡®ä¿Bæ ‘ä½¿ç”¨çš„ç»“æ„çš„å¤§å°æ˜¯æ­£ç¡®çš„ã€‚è¿™æ˜¯ä¸ºäº†é˜²æ­¢ç¼–è¯‘ä¸åŒçš„æ¶æ„æ—¶å¤§å°å˜åŒ–çš„ç»“æœã€‚
     */
     assert( sizeof(i64)==8 || sizeof(i64)==4 );
     assert( sizeof(u64)==8 || sizeof(u64)==4 );
@@ -2121,9 +2121,9 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
       ** SQLITE_DEFAULT_AUTOVACUUM is true. On the other hand, if
       ** SQLITE_OMIT_MEMORYDB has been defined, then ":memory:" is just a
       ** regular file-name. In this case the auto-vacuum applies as per normal.
-	  ** Èç¹ûmagicÃûÎª":memory:"£¬½«´´½¨Ò»¸öÄÚ´æÖĞµÄÊı¾İ¿â,È»ºóÊ¹autoVacuumÄ£Ê½Îª0(¼´²»Òªauto-vacuum)
-	  ** ¼´Ê¹SQLITE_DEFAULT_AUTOVACUUMÖµÎªÕæ¡£ÁíÒ»·½Ãæ£¬Èç¹ûSQLITE_OMIT_MEMORYDBÒÑ¾­±»¶¨Òå£¬Ôò":memory:"
-	  ** ÊÇÒ»¸ö¹æÔòµÄÎÄ¼şÃû¡£´ËÖÖÇé¿öÏÂ£¬auto-vacuumÕı³£Ê¹ÓÃ¡£
+	  ** å¦‚æœmagicåä¸º":memory:"ï¼Œå°†åˆ›å»ºä¸€ä¸ªå†…å­˜ä¸­çš„æ•°æ®åº“,ç„¶åä½¿autoVacuumæ¨¡å¼ä¸º0(å³ä¸è¦auto-vacuum)
+	  ** å³ä½¿SQLITE_DEFAULT_AUTOVACUUMå€¼ä¸ºçœŸã€‚å¦ä¸€æ–¹é¢ï¼Œå¦‚æœSQLITE_OMIT_MEMORYDBå·²ç»è¢«å®šä¹‰ï¼Œåˆ™":memory:"
+	  ** æ˜¯ä¸€ä¸ªè§„åˆ™çš„æ–‡ä»¶åã€‚æ­¤ç§æƒ…å†µä¸‹ï¼Œauto-vacuumæ­£å¸¸ä½¿ç”¨ã€‚
       */
       if( zFilename && !isMemdb ){
         pBt->autoVacuum = (SQLITE_DEFAULT_AUTOVACUUM ? 1 : 0);
@@ -2146,7 +2146,7 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
    
 #if !defined(SQLITE_OMIT_SHARED_CACHE) && !defined(SQLITE_OMIT_DISKIO)
     /* Add the new BtShared object to the linked list sharable BtShareds.
-    ** Ìí¼ÓĞÂµÄBtShared¶ÔÏóµ½¿É¹²ÏíµÄBtSharedsµÄÁ´±í*/
+    ** æ·»åŠ æ–°çš„BtSharedå¯¹è±¡åˆ°å¯å…±äº«çš„BtSharedsçš„é“¾è¡¨*/
     if( p->sharable ){
       MUTEX_LOGIC( sqlite3_mutex *mutexShared; )
       pBt->nRef = 1;
@@ -2170,7 +2170,7 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
   /* If the new Btree uses a sharable pBtShared, then link the new
   ** Btree into the list of all sharable Btrees for the same connection.
   ** The list is kept in ascending order by pBt address.
-  ** Èç¹ûĞÂµÄBtreeÊ¹ÓÃ¿É¹²ÏípBtShared,ÄÇÃ´¶ÔÓÚÏàÍ¬µÄÁ¬½Ó£¬Á´½ÓĞÂBÊ÷µ½ËùÓĞ¿É¹²ÏíBtreeµÄÁĞ±í¡£ÁĞ±ípBtµÄµØÖ·µİÔöÓĞĞò¡£
+  ** å¦‚æœæ–°çš„Btreeä½¿ç”¨å¯å…±äº«pBtShared,é‚£ä¹ˆå¯¹äºç›¸åŒçš„è¿æ¥ï¼Œé“¾æ¥æ–°Bæ ‘åˆ°æ‰€æœ‰å¯å…±äº«Btreeçš„åˆ—è¡¨ã€‚åˆ—è¡¨pBtçš„åœ°å€é€’å¢æœ‰åºã€‚
   */
   if( p->sharable ){
     int i;
@@ -2178,7 +2178,7 @@ int sqlite3BtreeOpen(     //´ò¿ªÊı¾İ¿âÎÄ¼ş²¢·µ»ØBÊ÷¶ÔÏó
     for(i=0; i<db->nDb; i++){
       if( (pSib = db->aDb[i].pBt)!=0 && pSib->sharable ){
         while( pSib->pPrev ){ pSib = pSib->pPrev; }
-        if( p->pBt<pSib->pBt ){ /*½«ËùÓĞ¿É¹²ÏíBÊ÷µÄÁ¬½ÓÔÚÒ»Æğ*/
+        if( p->pBt<pSib->pBt ){ /*å°†æ‰€æœ‰å¯å…±äº«Bæ ‘çš„è¿æ¥åœ¨ä¸€èµ·*/
           p->pNext = pSib;
           p->pPrev = 0;
           pSib->pPrev = p;
@@ -2212,7 +2212,7 @@ btree_open_out:
     /* If the B-Tree was successfully opened, set the pager-cache size to the
     ** default value. Except, when opening on an existing shared pager-cache,
     ** do not change the pager-cache size.
-	** Èç¹ûBÊ÷´ò¿ª³É¹¦£¬ÔòÉèÖÃÒ³Ãæ»º´æµÄ´óĞ¡ÎªÄ¬ÈÏÖµ¡£³ı´ËÖ®Íâ£¬µ±ÔÚÒ»¸öÒÑ´æÔÚµÄ¿É¹²ÏíÒ³Ãæ»º´æÉÏ´ò¿ªÊ±£¬²»Òª¸Ä±äÒ³Ãæ»º´æµÄ´óĞ¡¡£
+	** å¦‚æœBæ ‘æ‰“å¼€æˆåŠŸï¼Œåˆ™è®¾ç½®é¡µé¢ç¼“å­˜çš„å¤§å°ä¸ºé»˜è®¤å€¼ã€‚é™¤æ­¤ä¹‹å¤–ï¼Œå½“åœ¨ä¸€ä¸ªå·²å­˜åœ¨çš„å¯å…±äº«é¡µé¢ç¼“å­˜ä¸Šæ‰“å¼€æ—¶ï¼Œä¸è¦æ”¹å˜é¡µé¢ç¼“å­˜çš„å¤§å°ã€‚
     */
     if( sqlite3BtreeSchema(p, 0, 0)==0 ){
       sqlite3PagerSetCachesize(p->pBt->pPager, SQLITE_DEFAULT_CACHE_SIZE);
@@ -2230,8 +2230,8 @@ btree_open_out:
 ** remove the BtShared structure from the sharing list.  Return
 ** true if the BtShared.nRef counter reaches zero and return
 ** false if it is still positive.
-** µİ¼õBtShared.nRef¼ÆÊıÆ÷¡£µ±Ëü´ïµ½ÁãÊ±£¬´Ó¹²ÏíÁĞ±íÖĞÉ¾³ıBtShared½á¹¹¡£
-** Èç¹ûBtShared.nRef¼ÆÊıÆ÷´ïµ½Áã·µ»Øtrue£¬Èç¹ûËüÈÔÈ»ÎªÕı²¢·µ»Øfalse¡£
+** é€’å‡BtShared.nRefè®¡æ•°å™¨ã€‚å½“å®ƒè¾¾åˆ°é›¶æ—¶ï¼Œä»å…±äº«åˆ—è¡¨ä¸­åˆ é™¤BtSharedç»“æ„ã€‚
+** å¦‚æœBtShared.nRefè®¡æ•°å™¨è¾¾åˆ°é›¶è¿”å›trueï¼Œå¦‚æœå®ƒä»ç„¶ä¸ºæ­£å¹¶è¿”å›falseã€‚
 */
 static int removeFromSharingList(BtShared *pBt){
 #ifndef SQLITE_OMIT_SHARED_CACHE
@@ -2245,7 +2245,7 @@ static int removeFromSharingList(BtShared *pBt){
   pBt->nRef--;
   if( pBt->nRef<=0 ){
     if( GLOBAL(BtShared*,sqlite3SharedCacheList)==pBt ){
-      GLOBAL(BtShared*,sqlite3SharedCacheList) = pBt->pNext;/*ÈôBtShared.nRef counter½µÎª0£¬½«pBt´Ó·ÖÏíÁĞ±íÖĞÉ¾³ı¡£*/
+      GLOBAL(BtShared*,sqlite3SharedCacheList) = pBt->pNext;/*è‹¥BtShared.nRef counteré™ä¸º0ï¼Œå°†pBtä»åˆ†äº«åˆ—è¡¨ä¸­åˆ é™¤ã€‚*/
     }else{
       pList = GLOBAL(BtShared*,sqlite3SharedCacheList);
       while( ALWAYS(pList) && pList->pNext!=pBt ){
@@ -2270,16 +2270,16 @@ static int removeFromSharingList(BtShared *pBt){
 /*
 ** Make sure pBt->pTmpSpace points to an allocation of 
 ** MX_CELL_SIZE(pBt) bytes.
-** È·±£pBt->pTmpSpaceÖ¸ÏòÒ»¸öMX_CELL_SIZE(pBt)×Ö½ÚµÄ·ÖÅä
+** ç¡®ä¿pBt->pTmpSpaceæŒ‡å‘ä¸€ä¸ªMX_CELL_SIZE(pBt)å­—èŠ‚çš„åˆ†é…
 */
 static void allocateTempSpace(BtShared *pBt){
   if( !pBt->pTmpSpace ){
-    pBt->pTmpSpace = sqlite3PageMalloc( pBt->pageSize );/*È·±£pBt->pTmpSpaceÖ¸ÏòMX_CELL_SIZE(pBt)×Ö½Ú*/
+    pBt->pTmpSpace = sqlite3PageMalloc( pBt->pageSize );/*ç¡®ä¿pBt->pTmpSpaceæŒ‡å‘MX_CELL_SIZE(pBt)å­—èŠ‚*/
   }
 }
 
 /*
-** Free the pBt->pTmpSpace allocation  //ÊÍ·ÅpBt->pTmpSpace·ÖÅä
+** Free the pBt->pTmpSpace allocation  //é‡Šæ”¾pBt->pTmpSpaceåˆ†é…
 */
 static void freeTempSpace(BtShared *pBt){
   sqlite3PageFree( pBt->pTmpSpace);
@@ -2287,13 +2287,13 @@ static void freeTempSpace(BtShared *pBt){
 }
 
 /*
-** Close an open database and invalidate all cursors. //¹Ø±ÕÒÑ´ò¿ªµÄÊı¾İ¿â²¢ÇÒÊ¹ÓÎ±êÎŞĞ§
+** Close an open database and invalidate all cursors. //å…³é—­å·²æ‰“å¼€çš„æ•°æ®åº“å¹¶ä¸”ä½¿æ¸¸æ ‡æ— æ•ˆ
 */
 int sqlite3BtreeClose(Btree *p){
   BtShared *pBt = p->pBt;
   BtCursor *pCur;
 
-  /* Close all cursors opened via this handle.  */  //Í¨¹ıÕâ¾ä±ú¹Ø±ÕËùÓĞ´ò¿ªµÄÓÎ±ê¡£
+  /* Close all cursors opened via this handle.  */  //é€šè¿‡è¿™å¥æŸ„å…³é—­æ‰€æœ‰æ‰“å¼€çš„æ¸¸æ ‡ã€‚
   assert( sqlite3_mutex_held(p->db->mutex) );
   sqlite3BtreeEnter(p);
   pCur = pBt->pCursor;
@@ -2301,32 +2301,32 @@ int sqlite3BtreeClose(Btree *p){
     BtCursor *pTmp = pCur;
     pCur = pCur->pNext;
     if( pTmp->pBtree==p ){		
-      sqlite3BtreeCloseCursor(pTmp);/* Ê¹ËùÓĞÓÎ±êÎŞĞ§ */
+      sqlite3BtreeCloseCursor(pTmp);/* ä½¿æ‰€æœ‰æ¸¸æ ‡æ— æ•ˆ */
     }
   }
 
   /* Rollback any active transaction and free the handle structure.
   ** The call to sqlite3BtreeRollback() drops any table-locks held by
   ** this handle.
-  ** »Ø¹öÈÎºÎ»î¶¯ÊÂÎñ²¢ÇÒÊÍ·Å¾ä±ú½á¹¹¡£µ÷ÓÃsqlite3BtreeRollback()£¬É¾³ı±»Õâ¸ö¾ä±ú³ÖÓĞµÄÈÎºÎËø±ê¡£
+  ** å›æ»šä»»ä½•æ´»åŠ¨äº‹åŠ¡å¹¶ä¸”é‡Šæ”¾å¥æŸ„ç»“æ„ã€‚è°ƒç”¨sqlite3BtreeRollback()ï¼Œåˆ é™¤è¢«è¿™ä¸ªå¥æŸ„æŒæœ‰çš„ä»»ä½•é”æ ‡ã€‚
   */
-  sqlite3BtreeRollback(p, SQLITE_OK);/*É¾³ıÁËÕâ¸ö¾ä±úÉÏËù³ÖÓĞµÄËùÓĞ±íËø*/
+  sqlite3BtreeRollback(p, SQLITE_OK);/*åˆ é™¤äº†è¿™ä¸ªå¥æŸ„ä¸Šæ‰€æŒæœ‰çš„æ‰€æœ‰è¡¨é”*/
   sqlite3BtreeLeave(p);
 
   /* If there are still other outstanding references to the shared-btree
   ** structure, return now. The remainder of this procedure cleans 
   ** up the shared-btree.
-  ** Èç¹ûÈÔÈ»ÓĞÆäËûÎ´½â¾öµÄ¶Ôshared-btree½á¹¹µÄÒıÓÃ£¬ÔòÁ¢¼´·µ»Ø¡£³ÌĞòµÄÊ£Óà²¿·ÖÇåÀíshared-btree¡£
+  ** å¦‚æœä»ç„¶æœ‰å…¶ä»–æœªè§£å†³çš„å¯¹shared-btreeç»“æ„çš„å¼•ç”¨ï¼Œåˆ™ç«‹å³è¿”å›ã€‚ç¨‹åºçš„å‰©ä½™éƒ¨åˆ†æ¸…ç†shared-btreeã€‚
   */
   assert( p->wantToLock==0 && p->locked==0 );
   if( !p->sharable || removeFromSharingList(pBt) ){
     /* The pBt is no longer on the sharing list, so we can access
     ** it without having to hold the mutex.
-    ** pBt½«²»ÔÙÁôÔÚ¹²ÏíÁĞ±íÉÏ£¬ËùÒÔÎÒÃÇ¿ÉÒÔ·ÃÎÊËü¶øÎŞĞè³ÖÓĞ»¥³âËø¡£
+    ** pBtå°†ä¸å†ç•™åœ¨å…±äº«åˆ—è¡¨ä¸Šï¼Œæ‰€ä»¥æˆ‘ä»¬å¯ä»¥è®¿é—®å®ƒè€Œæ— éœ€æŒæœ‰äº’æ–¥é”ã€‚
     ** Clean out and delete the BtShared object.
-    ** ÇåÀí²¢É¾³ıBtShared¶ÔÏó */
+    ** æ¸…ç†å¹¶åˆ é™¤BtSharedå¯¹è±¡ */
     assert( !pBt->pCursor );
-    sqlite3PagerClose(pBt->pPager);/*ÔÚ¹²ÏíÁĞ±íÖĞ²»ÔÙÓĞ´Ë¶ÔÏó£¬É¾³ıBtShared¹²Ïí¶ÔÏó*/
+    sqlite3PagerClose(pBt->pPager);/*åœ¨å…±äº«åˆ—è¡¨ä¸­ä¸å†æœ‰æ­¤å¯¹è±¡ï¼Œåˆ é™¤BtSharedå…±äº«å¯¹è±¡*/
     if( pBt->xFreeSchema && pBt->pSchema ){
       pBt->xFreeSchema(pBt->pSchema);
     }
@@ -2348,10 +2348,10 @@ int sqlite3BtreeClose(Btree *p){
 
 /*
 ** Change the limit on the number of pages allowed in the cache.
-** ¸Ä±äÔÚ»º´æÖĞÔÊĞíµÄÒ³ÃæÊıÁ¿µÄÏŞÖÆ
+** æ”¹å˜åœ¨ç¼“å­˜ä¸­å…è®¸çš„é¡µé¢æ•°é‡çš„é™åˆ¶
 ** The maximum number of cache pages is set to the absolute
 ** value of mxPage.  If mxPage is negative, the pager will
-** operate asynchronously(²»Í¬Ê±) - it will not stop to do fsync()s
+** operate asynchronously(ä¸åŒæ—¶) - it will not stop to do fsync()s
 ** to insure data is written to the disk surface before
 ** continuing.  Transactions still work if synchronous is off,
 ** and the database cannot be corrupted if this program
@@ -2360,17 +2360,17 @@ int sqlite3BtreeClose(Btree *p){
 ** could be left in an inconsistent and unrecoverable state.
 ** Synchronous is on by default so database corruption is not
 ** normally a worry.
-** »º´æÒ³ÃæµÄ×î´óÊıÁ¿ÉèÖÃÎªmxPageµÄ¼ÛÖµ¡£Èç¹ûmxPageÎª¸º£¬Ôòpager½«½øĞĞÒì²½²Ù×÷
-** ÔÚ¼ÌĞøÖ®Ç°±íÃæËü²»»áÍ£Ö¹×öfsync()ÒÔÈ·±£Êı¾İ±»Ğ´µ½´ÅÅÌ¡£Èç¹ûÍ¬²½ÊÇ¹Ø±ÕµÄÊÂÎñÈÔÈ»Æğ×÷ÓÃ£¬
-** ²¢ÇÒÈç¹û³ÌĞò±ÀÀ£¶øÊı¾İ¿â¿ÉÄÜ²»»áËğ»µ¡£µ«ÊÇ£¬Èç¹û²Ù×÷ÏµÍ³±ÀÀ£»òµ±Í¬²½¹Ø±ÕÊ±³öÏÖÍ»È»¶Ïµç£¬
-** Êı¾İ¿â¿ÉÄÜ»á´¦ÓÚ²»Ò»ÖÂµÄºÍ²»¿É»Ö¸´µÄ×´Ì¬¡£Í¬²½ÊÇÄ¬ÈÏµÄ£¬Òò´ËÊı¾İ¿âËğ»µÍ¨³£ÊÇÁîÈËµ£ÓÇµÄ¡£
+** ç¼“å­˜é¡µé¢çš„æœ€å¤§æ•°é‡è®¾ç½®ä¸ºmxPageçš„ä»·å€¼ã€‚å¦‚æœmxPageä¸ºè´Ÿï¼Œåˆ™pagerå°†è¿›è¡Œå¼‚æ­¥æ“ä½œ
+** åœ¨ç»§ç»­ä¹‹å‰è¡¨é¢å®ƒä¸ä¼šåœæ­¢åšfsync()ä»¥ç¡®ä¿æ•°æ®è¢«å†™åˆ°ç£ç›˜ã€‚å¦‚æœåŒæ­¥æ˜¯å…³é—­çš„äº‹åŠ¡ä»ç„¶èµ·ä½œç”¨ï¼Œ
+** å¹¶ä¸”å¦‚æœç¨‹åºå´©æºƒè€Œæ•°æ®åº“å¯èƒ½ä¸ä¼šæŸåã€‚ä½†æ˜¯ï¼Œå¦‚æœæ“ä½œç³»ç»Ÿå´©æºƒæˆ–å½“åŒæ­¥å…³é—­æ—¶å‡ºç°çªç„¶æ–­ç”µï¼Œ
+** æ•°æ®åº“å¯èƒ½ä¼šå¤„äºä¸ä¸€è‡´çš„å’Œä¸å¯æ¢å¤çš„çŠ¶æ€ã€‚åŒæ­¥æ˜¯é»˜è®¤çš„ï¼Œå› æ­¤æ•°æ®åº“æŸåé€šå¸¸æ˜¯ä»¤äººæ‹…å¿§çš„ã€‚
 */
-/*¿ØÖÆÒ³»º´æ´óĞ¡ÒÔ¼°Í¬²½Ğ´Èë£¨ÔÚ±àÒëÖ¸Ê¾synchronousÖĞ¶¨Òå£©*/
+/*æ§åˆ¶é¡µç¼“å­˜å¤§å°ä»¥åŠåŒæ­¥å†™å…¥ï¼ˆåœ¨ç¼–è¯‘æŒ‡ç¤ºsynchronousä¸­å®šä¹‰ï¼‰*/
 int sqlite3BtreeSetCacheSize(Btree *p, int mxPage){
   BtShared *pBt = p->pBt;
   assert( sqlite3_mutex_held(p->db->mutex) );
   sqlite3BtreeEnter(p);
-  sqlite3PagerSetCachesize(pBt->pPager, mxPage); /*ÉèÖÃcacheÖĞÒ³µÄÊıÁ¿*/
+  sqlite3PagerSetCachesize(pBt->pPager, mxPage); /*è®¾ç½®cacheä¸­é¡µçš„æ•°é‡*/
   sqlite3BtreeLeave(p);
   return SQLITE_OK;
 }
@@ -2384,18 +2384,18 @@ int sqlite3BtreeSetCacheSize(Btree *p, int mxPage){
 ** probability of damage to near zero but with a write performance reduction.
 */
 /*
-sqlite3BtreeSetSafetyLevel £º¸Ä±ä´ÅÅÌÊı¾İµÄÍ¬²½·½Ê½£¬ÒÔÔö¼Ó»ò¼õÉÙÊı¾İ¿âµÖÓù²Ù×÷ÏµÍ³±ÀÀ£»òµçÔ´¹ÊÕÏµÈËğº¦µÄÄÜÁ¦¡£
-1¼¶µÈÍ¬ÓÚÒì²½£¨ÎŞsyncs£¨£©·¢Éú£¬´æÔÚ½Ï¸ßµÄËğº¦·çÏÕ£©£¬µÈÍ¬ÓÚÉèÖÃ±àÒëÖ¸Ê¾synchronous=OFF¡£
-2¼¶ÊÇÄ¬ÈÏ¼¶±ğ£¬´æÔÚ½ÏµÍµÄËğº¦·çÏÕ£¬µÈÍ¬ÓÚÉèÖÃ±àÒëÖ¸Ê¾synchronous=NORMAL¡£
-3¼¶½µµÍÁËËğº¦¿ÉÄÜĞÔ£¬·çÏÕ½Ó½üÎª0£¬µ«½µµÍÁËĞ´ĞÔÄÜ£¬µÈÍ¬ÓÚÉèÖÃ±àÒëÖ¸Ê¾synchronous=FULL¡£
+sqlite3BtreeSetSafetyLevel ï¼šæ”¹å˜ç£ç›˜æ•°æ®çš„åŒæ­¥æ–¹å¼ï¼Œä»¥å¢åŠ æˆ–å‡å°‘æ•°æ®åº“æŠµå¾¡æ“ä½œç³»ç»Ÿå´©æºƒæˆ–ç”µæºæ•…éšœç­‰æŸå®³çš„èƒ½åŠ›ã€‚
+1çº§ç­‰åŒäºå¼‚æ­¥ï¼ˆæ— syncsï¼ˆï¼‰å‘ç”Ÿï¼Œå­˜åœ¨è¾ƒé«˜çš„æŸå®³é£é™©ï¼‰ï¼Œç­‰åŒäºè®¾ç½®ç¼–è¯‘æŒ‡ç¤ºsynchronous=OFFã€‚
+2çº§æ˜¯é»˜è®¤çº§åˆ«ï¼Œå­˜åœ¨è¾ƒä½çš„æŸå®³é£é™©ï¼Œç­‰åŒäºè®¾ç½®ç¼–è¯‘æŒ‡ç¤ºsynchronous=NORMALã€‚
+3çº§é™ä½äº†æŸå®³å¯èƒ½æ€§ï¼Œé£é™©æ¥è¿‘ä¸º0ï¼Œä½†é™ä½äº†å†™æ€§èƒ½ï¼Œç­‰åŒäºè®¾ç½®ç¼–è¯‘æŒ‡ç¤ºsynchronous=FULLã€‚
 
 */
 #ifndef SQLITE_OMIT_PAGER_PRAGMAS
-int sqlite3BtreeSetSafetyLevel(      //¸Ä±ä´ÅÅÌÊı¾İµÄ·ÃÎÊ·½Ê½£¬ÒÔÔö¼Ó»ò¼õÉÙÊı¾İ¿âµÖÓù²Ù×÷ÏµÍ³±ÀÀ£»òµçÔ´¹ÊÕÏµÈËğº¦µÄÄÜÁ¦
-  Btree *p,              /* The btree to set the safety level on */         //btreeÉèÖÃ°²È«¼¶±ğ
-  int level,             /* PRAGMA synchronous.  1=OFF, 2=NORMAL, 3=FULL */ //±àÒëÖ¸Ê¾Í¬²½£¬1=OFF, 2=NORMAL, 3=FULL
-  int fullSync,          /* PRAGMA fullfsync. */                            //±àÒëÖ¸Ê¾fullfsync
-  int ckptFullSync       /* PRAGMA checkpoint_fullfync */                   //±àÒëÖ¸Ê¾checkpoint_fullfync
+int sqlite3BtreeSetSafetyLevel(      //æ”¹å˜ç£ç›˜æ•°æ®çš„è®¿é—®æ–¹å¼ï¼Œä»¥å¢åŠ æˆ–å‡å°‘æ•°æ®åº“æŠµå¾¡æ“ä½œç³»ç»Ÿå´©æºƒæˆ–ç”µæºæ•…éšœç­‰æŸå®³çš„èƒ½åŠ›
+  Btree *p,              /* The btree to set the safety level on */         //btreeè®¾ç½®å®‰å…¨çº§åˆ«
+  int level,             /* PRAGMA synchronous.  1=OFF, 2=NORMAL, 3=FULL */ //ç¼–è¯‘æŒ‡ç¤ºåŒæ­¥ï¼Œ1=OFF, 2=NORMAL, 3=FULL
+  int fullSync,          /* PRAGMA fullfsync. */                            //ç¼–è¯‘æŒ‡ç¤ºfullfsync
+  int ckptFullSync       /* PRAGMA checkpoint_fullfync */                   //ç¼–è¯‘æŒ‡ç¤ºcheckpoint_fullfync
 ){
   BtShared *pBt = p->pBt;
   assert( sqlite3_mutex_held(p->db->mutex) );
@@ -2410,7 +2410,7 @@ int sqlite3BtreeSetSafetyLevel(      //¸Ä±ä´ÅÅÌÊı¾İµÄ·ÃÎÊ·½Ê½£¬ÒÔÔö¼Ó»ò¼õÉÙÊı¾İ¿
 /*
 ** Return TRUE if the given btree is set to safety level 1.  In other
 ** words, return TRUE if no sync() occurs on the disk files.
-** ¸ø¶¨µÄBÊ÷±»Éè¶¨µÄ°²È«¼¶±ğÎª1·µ»Øtrue¡£¼´ÊÇÈç¹ûÔÚ´ÅÅÌÉÏÃ»ÓĞsync()³öÏÖ·µ»Øtrue¡£
+** ç»™å®šçš„Bæ ‘è¢«è®¾å®šçš„å®‰å…¨çº§åˆ«ä¸º1è¿”å›trueã€‚å³æ˜¯å¦‚æœåœ¨ç£ç›˜ä¸Šæ²¡æœ‰sync()å‡ºç°è¿”å›trueã€‚
 */
 int sqlite3BtreeSyncDisabled(Btree *p){
   BtShared *pBt = p->pBt;
@@ -2443,7 +2443,7 @@ int sqlite3BtreeSyncDisabled(Btree *p){
 ** If the iFix!=0 then the BTS_PAGESIZE_FIXED flag is set so that the page size
 ** and autovacuum mode can no longer be changed.
 */
-/*ÉèÖÃÊı¾İ¿âÒ³´óĞ¡*/
+/*è®¾ç½®æ•°æ®åº“é¡µå¤§å°*/
 int sqlite3BtreeSetPageSize(Btree *p, int pageSize, int nReserve, int iFix){
   int rc = SQLITE_OK;
   BtShared *pBt = p->pBt;
@@ -2454,7 +2454,7 @@ int sqlite3BtreeSetPageSize(Btree *p, int pageSize, int nReserve, int iFix){
     return SQLITE_READONLY;
   }
   if( nReserve<0 ){
-    nReserve = pBt->pageSize - pBt->usableSize; /*±£ÁôÒ³´óĞ¡*/
+    nReserve = pBt->pageSize - pBt->usableSize; /*ä¿ç•™é¡µå¤§å°*/
   }
   assert( nReserve>=0 && nReserve<=255 );
   if( pageSize>=512 && pageSize<=SQLITE_MAX_PAGE_SIZE &&
@@ -2464,9 +2464,9 @@ int sqlite3BtreeSetPageSize(Btree *p, int pageSize, int nReserve, int iFix){
     pBt->pageSize = (u32)pageSize;
     freeTempSpace(pBt);
   }
-  rc = sqlite3PagerSetPagesize(pBt->pPager, &pBt->pageSize, nReserve);/*ÉèÖÃÒ³µÄ´óĞ¡*/
+  rc = sqlite3PagerSetPagesize(pBt->pPager, &pBt->pageSize, nReserve);/*è®¾ç½®é¡µçš„å¤§å°*/
   pBt->usableSize = pBt->pageSize - (u16)nReserve;
-  if( iFix ) pBt->btsFlags |= BTS_PAGESIZE_FIXED;/*iFix!=0£¬ÉèÖÃBTS_PAGESIZE_FIXED±êÖ¾*/
+  if( iFix ) pBt->btsFlags |= BTS_PAGESIZE_FIXED;/*iFix!=0ï¼Œè®¾ç½®BTS_PAGESIZE_FIXEDæ ‡å¿—*/
   sqlite3BtreeLeave(p);
   return rc;
 }
@@ -2475,7 +2475,7 @@ int sqlite3BtreeSetPageSize(Btree *p, int pageSize, int nReserve, int iFix){
 ** Return the currently defined page size
 */
 /*
-·µ»ØÊı¾İ¿âÒ³µÄ´óĞ¡
+è¿”å›æ•°æ®åº“é¡µçš„å¤§å°
 */
 int sqlite3BtreeGetPageSize(Btree *p){
   return p->pBt->pageSize;
@@ -2490,7 +2490,7 @@ int sqlite3BtreeGetPageSize(Btree *p){
 int sqlite3BtreeGetReserve(Btree *p){
   int n;
   sqlite3BtreeEnter(p);
-  n = p->pBt->pageSize - p->pBt->usableSize;/*Ò³ÖĞÎ´±»Ê¹ÓÃµÄ×Ö½ÚÊı*/
+  n = p->pBt->pageSize - p->pBt->usableSize;/*é¡µä¸­æœªè¢«ä½¿ç”¨çš„å­—èŠ‚æ•°*/
   sqlite3BtreeLeave(p);
   return n;
 }
@@ -2499,12 +2499,12 @@ int sqlite3BtreeGetReserve(Btree *p){
 ** Set the maximum page count for a database if mxPage is positive.
 ** No changes are made if mxPage is 0 or negative.
 ** Regardless of the value of mxPage, return the maximum page count.
-** Èç¹ûmxPageÊÇÕıµÄ£¬ÉèÖÃÊı¾İ¿âµÄ×î´óÒ³Êı¡£Èç¹ûmxPageÊÇ0»ò¸ºÔò²»¸Ä±ä´óĞ¡¡£²»¹ÜmxPageµÄÖµ,·µ»Ø×î´óÒ³Êı¡£
+** å¦‚æœmxPageæ˜¯æ­£çš„ï¼Œè®¾ç½®æ•°æ®åº“çš„æœ€å¤§é¡µæ•°ã€‚å¦‚æœmxPageæ˜¯0æˆ–è´Ÿåˆ™ä¸æ”¹å˜å¤§å°ã€‚ä¸ç®¡mxPageçš„å€¼,è¿”å›æœ€å¤§é¡µæ•°ã€‚
 */
 int sqlite3BtreeMaxPageCount(Btree *p, int mxPage){
   int n;
   sqlite3BtreeEnter(p);
-  n = sqlite3PagerMaxPageCount(p->pBt->pPager, mxPage);/*mxPageÎªÕı£¬pPager->mxPgno = mxPage;*/
+  n = sqlite3PagerMaxPageCount(p->pBt->pPager, mxPage);/*mxPageä¸ºæ­£ï¼ŒpPager->mxPgno = mxPage;*/
   sqlite3BtreeLeave(p);
   return n;
 }
@@ -2513,7 +2513,7 @@ int sqlite3BtreeMaxPageCount(Btree *p, int mxPage){
 ** Set the BTS_SECURE_DELETE flag if newFlag is 0 or 1.  If newFlag is -1,
 ** then make no changes.  Always return the value of the BTS_SECURE_DELETE
 ** setting after the change.
-** Èç¹ûnewFlagÊÇ0»ò1£¬ÉèÖÃBTS_SECURE_DELETE±êÖ¾¡£Èç¹ûnewFlagÊÇ-1,Ôò²»ÉèÖÃ¡£Ò»µ©Éè¶¨½«×ÜÊÇ·µ»ØBTS_SECURE_DELETEµÄÖµ¡£
+** å¦‚æœnewFlagæ˜¯0æˆ–1ï¼Œè®¾ç½®BTS_SECURE_DELETEæ ‡å¿—ã€‚å¦‚æœnewFlagæ˜¯-1,åˆ™ä¸è®¾ç½®ã€‚ä¸€æ—¦è®¾å®šå°†æ€»æ˜¯è¿”å›BTS_SECURE_DELETEçš„å€¼ã€‚
 */
 int sqlite3BtreeSecureDelete(Btree *p, int newFlag){
   int b;
@@ -2534,9 +2534,9 @@ int sqlite3BtreeSecureDelete(Btree *p, int newFlag){
 ** parameter is non-zero, then auto-vacuum mode is enabled. If zero, it
 ** is disabled. The default value for the auto-vacuum property is 
 ** determined by the SQLITE_DEFAULT_AUTOVACUUM macro.
-** ÉèÖÃÊı¾İ¿â×Ô¶¯ÇåÀí¿ÕÏĞÒ³ÊôĞÔ¡£Èç¹û¡°autoVacuum¡±²ÎÊıÊÇÁã,ÄÇÃ´auto-vacuumÄ£Ê½¿ªÆô¡£Èç¹ûÎªÁãÔò½ûÓÃ¡£
-** auto-vacuumÊôĞÔµÄÄ¬ÈÏÖµÓÉºêSQLITE_DEFAULT_AUTOVACUUM¶¨Òå¡£
-*//*ÉèÖÃÊı¾İ¿â×Ô¶¯ÇåÀí¿ÕÏĞÒ³ÊôĞÔ¡£*/
+** è®¾ç½®æ•°æ®åº“è‡ªåŠ¨æ¸…ç†ç©ºé—²é¡µå±æ€§ã€‚å¦‚æœâ€œautoVacuumâ€å‚æ•°æ˜¯é›¶,é‚£ä¹ˆauto-vacuumæ¨¡å¼å¼€å¯ã€‚å¦‚æœä¸ºé›¶åˆ™ç¦ç”¨ã€‚
+** auto-vacuumå±æ€§çš„é»˜è®¤å€¼ç”±å®SQLITE_DEFAULT_AUTOVACUUMå®šä¹‰ã€‚
+*//*è®¾ç½®æ•°æ®åº“è‡ªåŠ¨æ¸…ç†ç©ºé—²é¡µå±æ€§ã€‚*/
 
 int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){
 #ifdef SQLITE_OMIT_AUTOVACUUM
@@ -2550,7 +2550,7 @@ int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){
   if( (pBt->btsFlags & BTS_PAGESIZE_FIXED)!=0 && (av ?1:0)!=pBt->autoVacuum ){
     rc = SQLITE_READONLY;
   }else{
-    pBt->autoVacuum = av ?1:0; /*avÈç¹ûÎª·Ç0£¬auto-vacuumÄ£Ê½Æô¶¯*/
+    pBt->autoVacuum = av ?1:0; /*avå¦‚æœä¸ºé0ï¼Œauto-vacuumæ¨¡å¼å¯åŠ¨*/
     pBt->incrVacuum = av==2 ?1:0;
   }
   sqlite3BtreeLeave(p);
@@ -2561,7 +2561,7 @@ int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){
 /*
 ** Return the value of the 'auto-vacuum' property. If auto-vacuum is 
 ** enabled 1 is returned. Otherwise 0.
-*//*»ñÈ¡Êı¾İ¿âÊÇ·ñ×Ô¶¯ÇåÀíÒ³¡£*/
+*//*è·å–æ•°æ®åº“æ˜¯å¦è‡ªåŠ¨æ¸…ç†é¡µã€‚*/
 int sqlite3BtreeGetAutoVacuum(Btree *p){
 #ifdef SQLITE_OMIT_AUTOVACUUM
   return BTREE_AUTOVACUUM_NONE;
@@ -2572,7 +2572,7 @@ int sqlite3BtreeGetAutoVacuum(Btree *p){
     (!p->pBt->autoVacuum)?BTREE_AUTOVACUUM_NONE:
     (!p->pBt->incrVacuum)?BTREE_AUTOVACUUM_FULL:
     BTREE_AUTOVACUUM_INCR
-  );/*ÈôautoVacuumÎª1£¬³ıÈ¥¿Õ°×Ò³£¬ÅĞ¶ÏincrVacuumµÄÖµ£¬ÈôincrVacuum=1£¬ Incremental vacuum*/
+  );/*è‹¥autoVacuumä¸º1ï¼Œé™¤å»ç©ºç™½é¡µï¼Œåˆ¤æ–­incrVacuumçš„å€¼ï¼Œè‹¥incrVacuum=1ï¼Œ Incremental vacuum*/
   sqlite3BtreeLeave(p);
   return rc;
 #endif
@@ -2581,20 +2581,20 @@ int sqlite3BtreeGetAutoVacuum(Btree *p){
 /*
 ** Get a reference to pPage1 of the database file.  This will
 ** also acquire a readlock on that file.
-** µÃµ½Ò»¸ö¹ØÓÚÊı¾İ¿âÎÄ¼şpPage1µÄ²Î¿¼¡£ÕâÒ²½«ÔÚ´ËÎÄ¼şÉÏ»ñµÃ¶ÁËø
+** å¾—åˆ°ä¸€ä¸ªå…³äºæ•°æ®åº“æ–‡ä»¶pPage1çš„å‚è€ƒã€‚è¿™ä¹Ÿå°†åœ¨æ­¤æ–‡ä»¶ä¸Šè·å¾—è¯»é”
 ** SQLITE_OK is returned on success.  If the file is not a
 ** well-formed database file, then SQLITE_CORRUPT is returned.
 ** SQLITE_BUSY is returned if the database is locked.  SQLITE_NOMEM
 ** is returned if we run out of memory. 
-** ³É¹¦Ôò·µ»ØSQLITE_OK¡£Èç¹ûÎÄ¼ş²»ÊÇÒ»¸ö¸ñÊ½Á¼ºÃµÄÊı¾İ¿âÎÄ¼ş,È»ºó·µ»ØSQLITE_CORRUPT¡£
-** Èç¹ûÊı¾İ¿â±»Ëø¶¨·µ»ØSQLITE_BUSY¡£Èç¹ûÄÚ´æºÄ¾¡·µ»ØSQLITE_NOMEM.
+** æˆåŠŸåˆ™è¿”å›SQLITE_OKã€‚å¦‚æœæ–‡ä»¶ä¸æ˜¯ä¸€ä¸ªæ ¼å¼è‰¯å¥½çš„æ•°æ®åº“æ–‡ä»¶,ç„¶åè¿”å›SQLITE_CORRUPTã€‚
+** å¦‚æœæ•°æ®åº“è¢«é”å®šè¿”å›SQLITE_BUSYã€‚å¦‚æœå†…å­˜è€—å°½è¿”å›SQLITE_NOMEM.
 */
 static int lockBtree(BtShared *pBt){
-  int rc;              /* Result code from subfunctions */                     //´Ó×Óº¯Êı·µ»Ø½á¹û´úÂë
-  MemPage *pPage1;     /* Page 1 of the database file */                       //Êı¾İ¿âÎÄ¼şµÄÒ³1
-  int nPage;           /* Number of pages in the database */                   //Êı¾İ¿âÖĞµÄÒ³ÊıÁ¿
-  int nPageFile = 0;   /* Number of pages in the database file */              //Êı¾İ¿âÎÄ¼şÖĞµÄÒ³ÊıÁ¿
-  int nPageHeader;     /* Number of pages in the database according to hdr */  //¾İhdrÔÚÊı¾İ¿âÖĞµÄÒ³ÃæÊı
+  int rc;              /* Result code from subfunctions */                     //ä»å­å‡½æ•°è¿”å›ç»“æœä»£ç 
+  MemPage *pPage1;     /* Page 1 of the database file */                       //æ•°æ®åº“æ–‡ä»¶çš„é¡µ1
+  int nPage;           /* Number of pages in the database */                   //æ•°æ®åº“ä¸­çš„é¡µæ•°é‡
+  int nPageFile = 0;   /* Number of pages in the database file */              //æ•°æ®åº“æ–‡ä»¶ä¸­çš„é¡µæ•°é‡
+  int nPageHeader;     /* Number of pages in the database according to hdr */  //æ®hdråœ¨æ•°æ®åº“ä¸­çš„é¡µé¢æ•°
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( pBt->pPage1==0 );
@@ -2604,7 +2604,7 @@ static int lockBtree(BtShared *pBt){
   if( rc!=SQLITE_OK ) return rc;
   /* Do some checking to help insure the file we opened really is
   ** a valid database file. 
-  ** ×öÒ»Ğ©¼ì²é,°ïÖúÎÒÃÇÈ·±£´ò¿ªµÄÎÄ¼şÊÇÒ»¸öÓĞĞ§µÄÊı¾İ¿âÎÄ¼ş¡£
+  ** åšä¸€äº›æ£€æŸ¥,å¸®åŠ©æˆ‘ä»¬ç¡®ä¿æ‰“å¼€çš„æ–‡ä»¶æ˜¯ä¸€ä¸ªæœ‰æ•ˆçš„æ•°æ®åº“æ–‡ä»¶ã€‚
   */
   nPage = nPageHeader = get4byte(28+(u8*)pPage1->aData);
   sqlite3PagerPagecount(pBt->pPager, &nPageFile);
@@ -2641,12 +2641,12 @@ static int lockBtree(BtShared *pBt){
     ** required as the version of page 1 currently in the page1 buffer
     ** may not be the latest version - there may be a newer one in the log
     ** file.
-	** Èç¹ûĞ´°æ±¾ÉèÖÃÎª2,Ó¦¸ÃÔÚWALÄ£Ê½ÏÂ·ÃÎÊÕâ¸öÊı¾İ¿â¡£Èç¹ûÈÕÖ¾²»ÊÇÒÑ¾­´ò¿ª,´ò¿ªËü¡£È»ºó·µ»ØSQLITE_OK²¢ÇÒ·µ»ØÃ»ÓĞÕ¼¾İBtShared.pPage1 
-	** µ÷ÓÃÕß¼ì²âµ½ÕâÒ»µã²¢ÔÙ´Îµ÷ÓÃÕâ¸öº¯Êı¡£ÕâÊÇĞèÒªµÚ1Ò³µÄ°æ±¾Ä¿Ç°ÔÚpage1»º³åÇø£¬¿ÉÄÜ²»ÊÇ×îĞÂ°æ±¾,¿ÉÄÜ»áÓĞÒ»¸öĞÂµÄÈÕÖ¾ÎÄ¼ş¡£
+	** å¦‚æœå†™ç‰ˆæœ¬è®¾ç½®ä¸º2,åº”è¯¥åœ¨WALæ¨¡å¼ä¸‹è®¿é—®è¿™ä¸ªæ•°æ®åº“ã€‚å¦‚æœæ—¥å¿—ä¸æ˜¯å·²ç»æ‰“å¼€,æ‰“å¼€å®ƒã€‚ç„¶åè¿”å›SQLITE_OKå¹¶ä¸”è¿”å›æ²¡æœ‰å æ®BtShared.pPage1 
+	** è°ƒç”¨è€…æ£€æµ‹åˆ°è¿™ä¸€ç‚¹å¹¶å†æ¬¡è°ƒç”¨è¿™ä¸ªå‡½æ•°ã€‚è¿™æ˜¯éœ€è¦ç¬¬1é¡µçš„ç‰ˆæœ¬ç›®å‰åœ¨page1ç¼“å†²åŒºï¼Œå¯èƒ½ä¸æ˜¯æœ€æ–°ç‰ˆæœ¬,å¯èƒ½ä¼šæœ‰ä¸€ä¸ªæ–°çš„æ—¥å¿—æ–‡ä»¶ã€‚
     */
     if( page1[19]==2 && (pBt->btsFlags & BTS_NO_WAL)==0 ){
       int isOpen = 0;
-      rc = sqlite3PagerOpenWal(pBt->pPager, &isOpen);/*´ò¿ªÈÕÖ¾*/
+      rc = sqlite3PagerOpenWal(pBt->pPager, &isOpen);/*æ‰“å¼€æ—¥å¿—*/
       if( rc!=SQLITE_OK ){
         goto page1_init_failed;
       }else if( isOpen==0 ){
@@ -2660,7 +2660,7 @@ static int lockBtree(BtShared *pBt){
     ** embedded fraction must be 12.5% for both leaf-data and non-leaf-data.
     ** The original design allowed these amounts to vary, but as of
     ** version 3.6.0, we require them to be fixed.
-	** ×î´óµÄÇ¶Èë²¿·Ö±ØĞëÊÇ25%¶øÇÒ×îĞ¡Ç¶Èë²¿·Ö°üÀ¨Ò¶Êı¾İÓòºÍnon-leaf-data±ØĞëÊÇ12.5%¡£×î³õµÄÉè¼ÆÔÊĞíÕâĞ©ÊıÁ¿²»Í¬,µ«½ØÖÁ3.6.0°æ±¾,ÎÒÃÇÒªÇóËûÃÇÊÇ¹Ì¶¨µÄ¡£
+	** æœ€å¤§çš„åµŒå…¥éƒ¨åˆ†å¿…é¡»æ˜¯25%è€Œä¸”æœ€å°åµŒå…¥éƒ¨åˆ†åŒ…æ‹¬å¶æ•°æ®åŸŸå’Œnon-leaf-dataå¿…é¡»æ˜¯12.5%ã€‚æœ€åˆçš„è®¾è®¡å…è®¸è¿™äº›æ•°é‡ä¸åŒ,ä½†æˆªè‡³3.6.0ç‰ˆæœ¬,æˆ‘ä»¬è¦æ±‚ä»–ä»¬æ˜¯å›ºå®šçš„ã€‚
     */
     if( memcmp(&page1[21], "\100\040\040",3)!=0 ){
       goto page1_init_failed;
@@ -2680,8 +2680,8 @@ static int lockBtree(BtShared *pBt){
       ** actually pageSize. Unlock the database, leave pBt->pPage1 at
       ** zero and return SQLITE_OK. The caller will call this function
       ** again with the correct page-size.
-	  ** ¶ÁÍêµÚÒ»Ò³Êı¾İ¿âµÄ¼ÙÉèÒ»¸öBtShared.pageSizeµÄÒ³Ãæ´óĞ¡¡£ÎÒÃÇÒÑ¾­·¢ÏÖpage-sizeÊÇÊµ¼ÊµÄÒ³´óĞ¡¡£´ò¿ªÊı¾İ¿â,½«pBt->pPage1ÁôÔÚ0´¦
-	  ** ²¢·µ»ØSQLITE_OK¡£µ÷ÓÃÕß½«»áÓÃÕıÈ·µÄpage-sizeÔÙ´Îµ÷ÓÃÕâ¸öº¯Êı¡£
+	  ** è¯»å®Œç¬¬ä¸€é¡µæ•°æ®åº“çš„å‡è®¾ä¸€ä¸ªBtShared.pageSizeçš„é¡µé¢å¤§å°ã€‚æˆ‘ä»¬å·²ç»å‘ç°page-sizeæ˜¯å®é™…çš„é¡µå¤§å°ã€‚æ‰“å¼€æ•°æ®åº“,å°†pBt->pPage1ç•™åœ¨0å¤„
+	  ** å¹¶è¿”å›SQLITE_OKã€‚è°ƒç”¨è€…å°†ä¼šç”¨æ­£ç¡®çš„page-sizeå†æ¬¡è°ƒç”¨è¿™ä¸ªå‡½æ•°ã€‚
       */
       releasePage(pPage1);
       pBt->usableSize = usableSize;
@@ -2717,14 +2717,14 @@ static int lockBtree(BtShared *pBt){
   ** So a cell consists of a 2-byte pointer, a header which is as much as
   ** 17 bytes long, 0 to N bytes of payload, and an optional 4 byte overflow
   ** page pointer.
-  ** maxLocalÊÇ´æ´¢ÔÚ±¾µØÒ»¸öµ¥ÔªµÄ¸ºÔØµÄ×î´óÊıÁ¿¡£È·±£ËüÊÇ×ã¹»Ğ¡,ÕâÑùÖÁÉÙminFanoutµ¥Ôª¿ÉÒÔ¹Ì¶¨ÔÚÒ»¸öÒ³ÃæÉÏ¡£ÎÒÃÇ¼ÙÉèÒ»¸ö10-byteÒ³Í·¡£
-  ** ³ıÁË¸ºÔØ,µ¥Ôª±ØĞë´æ´¢:
-  **     2×Ö½ÚµÄÖ¸Ïòµ¥ÔªµÄÖ¸Õë
-  **     4×Ö½ÚµÄº¢×ÓÖ¸Õë
-  **     9¸ö×Ö½ÚµÄnKeyÖµ
-  **     4×Ö½ÚµÄnDataÖµ
-  **     4×Ö½ÚµÄÒç³öÒ³Ö¸Õë
-  ** ËùÒÔµ¥ÔªÓÉÒ»¸ö2×Ö½ÚµÄÖ¸Õë,Ò»¸ö17×Ö½Ú³¤µÄÍ·£¬0µ½N¸ö×Ö½ÚµÄÓĞĞ§¸ºÔØ,ºÍÒ»¸ö¿ÉÑ¡µÄ4×Ö½ÚÒç³öÒ³ÃæÖ¸Õë¡£
+  ** maxLocalæ˜¯å­˜å‚¨åœ¨æœ¬åœ°ä¸€ä¸ªå•å…ƒçš„è´Ÿè½½çš„æœ€å¤§æ•°é‡ã€‚ç¡®ä¿å®ƒæ˜¯è¶³å¤Ÿå°,è¿™æ ·è‡³å°‘minFanoutå•å…ƒå¯ä»¥å›ºå®šåœ¨ä¸€ä¸ªé¡µé¢ä¸Šã€‚æˆ‘ä»¬å‡è®¾ä¸€ä¸ª10-byteé¡µå¤´ã€‚
+  ** é™¤äº†è´Ÿè½½,å•å…ƒå¿…é¡»å­˜å‚¨:
+  **     2å­—èŠ‚çš„æŒ‡å‘å•å…ƒçš„æŒ‡é’ˆ
+  **     4å­—èŠ‚çš„å­©å­æŒ‡é’ˆ
+  **     9ä¸ªå­—èŠ‚çš„nKeyå€¼
+  **     4å­—èŠ‚çš„nDataå€¼
+  **     4å­—èŠ‚çš„æº¢å‡ºé¡µæŒ‡é’ˆ
+  ** æ‰€ä»¥å•å…ƒç”±ä¸€ä¸ª2å­—èŠ‚çš„æŒ‡é’ˆ,ä¸€ä¸ª17å­—èŠ‚é•¿çš„å¤´ï¼Œ0åˆ°Nä¸ªå­—èŠ‚çš„æœ‰æ•ˆè´Ÿè½½,å’Œä¸€ä¸ªå¯é€‰çš„4å­—èŠ‚æº¢å‡ºé¡µé¢æŒ‡é’ˆã€‚
   */
   pBt->maxLocal = (u16)((pBt->usableSize-12)*64/255 - 23);
   pBt->minLocal = (u16)((pBt->usableSize-12)*32/255 - 23);
@@ -2751,18 +2751,18 @@ page1_init_failed:
 ** of a transaction but there is a read lock on the database, then
 ** this routine unrefs the first page of the database file which 
 ** has the effect of releasing the read lock.
-** Èç¹ûÃ»ÓĞÏÔÖøµÄÓÎ±ê²¢ÇÒ²»ÊÇÔÚÊÂÎñÖĞ¶øÊÇÔÚÊı¾İ¿âÉÏÓĞÒ»¸ö¶ÁËø£¬ÄÇÃ´Õâ¸öÀı³Ì²»»áÒıÓÃÒÑ¾­ÊÍ·Å¶ÁËøµÄÊı¾İ¿âÎÄ¼şµÄµÚÒ»Ò³¡£
+** å¦‚æœæ²¡æœ‰æ˜¾è‘—çš„æ¸¸æ ‡å¹¶ä¸”ä¸æ˜¯åœ¨äº‹åŠ¡ä¸­è€Œæ˜¯åœ¨æ•°æ®åº“ä¸Šæœ‰ä¸€ä¸ªè¯»é”ï¼Œé‚£ä¹ˆè¿™ä¸ªä¾‹ç¨‹ä¸ä¼šå¼•ç”¨å·²ç»é‡Šæ”¾è¯»é”çš„æ•°æ®åº“æ–‡ä»¶çš„ç¬¬ä¸€é¡µã€‚
 ** If there is a transaction in progress, this routine is a no-op.
-** Èç¹ûÔÚ½ø³ÌÖĞÓĞÒ»¸öÊÂÎñ,Õâ¸öÀı³Ì½«ÊÇÒ»¸ö¿Õ²Ù×÷¡£
+** å¦‚æœåœ¨è¿›ç¨‹ä¸­æœ‰ä¸€ä¸ªäº‹åŠ¡,è¿™ä¸ªä¾‹ç¨‹å°†æ˜¯ä¸€ä¸ªç©ºæ“ä½œã€‚
 */
 static void unlockBtreeIfUnused(BtShared *pBt){
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( pBt->pCursor==0 || pBt->inTransaction>TRANS_NONE );
-  if( pBt->inTransaction==TRANS_NONE && pBt->pPage1!=0 ){	/*Ã»ÓĞÊÂÎñ*/
+  if( pBt->inTransaction==TRANS_NONE && pBt->pPage1!=0 ){	/*æ²¡æœ‰äº‹åŠ¡*/
     assert( pBt->pPage1->aData );
     assert( sqlite3PagerRefcount(pBt->pPager)==1 );
     assert( pBt->pPage1->aData );
-    releasePage(pBt->pPage1);/*ÊÍ·ÅÄÚ´æ*/
+    releasePage(pBt->pPage1);/*é‡Šæ”¾å†…å­˜*/
     pBt->pPage1 = 0;
   }
 }
@@ -2771,7 +2771,7 @@ static void unlockBtreeIfUnused(BtShared *pBt){
 ** If pBt points to an empty file then convert that empty file
 ** into a new empty database by initializing the first page of
 ** the database.
-** Èç¹ûpBtÖ¸ÏòÒ»¸ö¿ÕÎÄ¼ş,ÄÇÃ´Í¨¹ı³õÊ¼»¯Êı¾İ¿âµÄµÚÒ»Ò³´«ËÍ¿ÕÎÄ¼şµ½Ò»¸öĞÂµÄ¿ÕÊı¾İ¿â¡£
+** å¦‚æœpBtæŒ‡å‘ä¸€ä¸ªç©ºæ–‡ä»¶,é‚£ä¹ˆé€šè¿‡åˆå§‹åŒ–æ•°æ®åº“çš„ç¬¬ä¸€é¡µä¼ é€ç©ºæ–‡ä»¶åˆ°ä¸€ä¸ªæ–°çš„ç©ºæ•°æ®åº“ã€‚
 */
 static int newDatabase(BtShared *pBt){
   MemPage *pP1;
@@ -2785,7 +2785,7 @@ static int newDatabase(BtShared *pBt){
   pP1 = pBt->pPage1;
   assert( pP1!=0 );
   data = pP1->aData;
-  rc = sqlite3PagerWrite(pP1->pDbPage);/*³õÊ¼»¯Êı¾İ¿âÖĞµÄµÚÒ»Ò³£¬´«ËÍ¿ÕÎÄ¼şµ½¿ÕµÄÊı¾İ¿â*/
+  rc = sqlite3PagerWrite(pP1->pDbPage);/*åˆå§‹åŒ–æ•°æ®åº“ä¸­çš„ç¬¬ä¸€é¡µï¼Œä¼ é€ç©ºæ–‡ä»¶åˆ°ç©ºçš„æ•°æ®åº“*/
   if( rc ) return rc;
   memcpy(data, zMagicHeader, sizeof(zMagicHeader));
   assert( sizeof(zMagicHeader)==16 );
@@ -2820,12 +2820,12 @@ static int newDatabase(BtShared *pBt){
 ** to access the database.  A preexisting transaction may not be
 ** upgraded to exclusive by calling this routine a second time - the
 ** exclusivity flag only works for a new transaction.
-** ³¢ÊÔ¿ªÊ¼Ò»¸öĞÂÊÂÎñ¡£Èç¹ûµÚ¶ş¸ö²ÎÊıÊÇ·ÇÁã0£¬¿ªÊ¼Ò»¸öĞ´ÊÂÎñ,·ñÔò¿ªÊ¼¶ÁÊÂÎñ¡£Èç¹ûµÚ¶ş¸ö²ÎÊıÊÇ2»ò±È2¸ü´óÔò¿ªÊ¼Ò»¸ö»¥³âµÄÊÂÎñ,
-** Ò²¾ÍÊÇËµ,²»ÔÊĞíÆäËû½ø³ÌÀ´·ÃÎÊÊı¾İ¿â¡£Ò»¸öÏÈÇ°´æÔÚµÄÊÂÎñ¿ÉÄÜ²»ÊÇÍ¨¹ıµÚ¶ş´Îµ÷ÓÃÕâ¸öº¯ÊıÉı¼¶µ½»¥³âµÄ--»¥³â±êÖ¾Ö»ÊÊÓÃÓÚÒ»¸öĞÂÊÂÎñ¡£
+** å°è¯•å¼€å§‹ä¸€ä¸ªæ–°äº‹åŠ¡ã€‚å¦‚æœç¬¬äºŒä¸ªå‚æ•°æ˜¯éé›¶0ï¼Œå¼€å§‹ä¸€ä¸ªå†™äº‹åŠ¡,å¦åˆ™å¼€å§‹è¯»äº‹åŠ¡ã€‚å¦‚æœç¬¬äºŒä¸ªå‚æ•°æ˜¯2æˆ–æ¯”2æ›´å¤§åˆ™å¼€å§‹ä¸€ä¸ªäº’æ–¥çš„äº‹åŠ¡,
+** ä¹Ÿå°±æ˜¯è¯´,ä¸å…è®¸å…¶ä»–è¿›ç¨‹æ¥è®¿é—®æ•°æ®åº“ã€‚ä¸€ä¸ªå…ˆå‰å­˜åœ¨çš„äº‹åŠ¡å¯èƒ½ä¸æ˜¯é€šè¿‡ç¬¬äºŒæ¬¡è°ƒç”¨è¿™ä¸ªå‡½æ•°å‡çº§åˆ°äº’æ–¥çš„--äº’æ–¥æ ‡å¿—åªé€‚ç”¨äºä¸€ä¸ªæ–°äº‹åŠ¡ã€‚
 ** A write-transaction must be started before attempting any 
 ** changes to the database.  None of the following routines 
 ** will work unless a transaction is started first:
-** Ğ´ÊÂÎñ±ØĞëÔÚĞŞ¸ÄÊı¾İ¿âÖ®Ç°¿ªÊ¼¡£ÏÂÃæµÄº¯ÊıÃ»ÓĞÒ»¸ö»áÆğ×÷ÓÃ³ı·ÇÊÂÎñÊ×ÏÈ¿ªÊ¼:
+** å†™äº‹åŠ¡å¿…é¡»åœ¨ä¿®æ”¹æ•°æ®åº“ä¹‹å‰å¼€å§‹ã€‚ä¸‹é¢çš„å‡½æ•°æ²¡æœ‰ä¸€ä¸ªä¼šèµ·ä½œç”¨é™¤éäº‹åŠ¡é¦–å…ˆå¼€å§‹:
 **      sqlite3BtreeCreateTable()
 **      sqlite3BtreeCreateIndex()
 **      sqlite3BtreeClearTable()
@@ -2839,8 +2839,8 @@ static int newDatabase(BtShared *pBt){
 ** if there is one.  But if there was previously a read-lock, do not
 ** invoke the busy handler - just return SQLITE_BUSY.  SQLITE_BUSY is 
 ** returned when there is already a read-lock in order to avoid a deadlock.
-** Èç¹ûÊ×´Î³¢ÊÔ»ñµÃËøÊ§°ÜÊÇÒòÎªËø¾ºÕùºÍÊı¾İ¿âÖ®Ç°Ã»ÓĞËø,È»ºóµ÷ÓÃ·±Ã¦µÄ´¦Àí³ÌĞò£¬Èç¹ûÓĞµÄ»°¡£µ«ÊÇÈç¹ûÖ®Ç°ÓĞ¶ÁËø,
-** Ôò²»µ÷ÓÃ¡ª¡ªÖ»ÊÇ·µ»ØSQLITE_BUSY¡£ÒÑ¾­ÓĞÒ»¸ö¶ÁËøÒÔ±ÜÃâËÀËøÊ±£¬SQLITE_BUSY±»·µ»Ø¡£
+** å¦‚æœé¦–æ¬¡å°è¯•è·å¾—é”å¤±è´¥æ˜¯å› ä¸ºé”ç«äº‰å’Œæ•°æ®åº“ä¹‹å‰æ²¡æœ‰é”,ç„¶åè°ƒç”¨ç¹å¿™çš„å¤„ç†ç¨‹åºï¼Œå¦‚æœæœ‰çš„è¯ã€‚ä½†æ˜¯å¦‚æœä¹‹å‰æœ‰è¯»é”,
+** åˆ™ä¸è°ƒç”¨â€”â€”åªæ˜¯è¿”å›SQLITE_BUSYã€‚å·²ç»æœ‰ä¸€ä¸ªè¯»é”ä»¥é¿å…æ­»é”æ—¶ï¼ŒSQLITE_BUSYè¢«è¿”å›ã€‚
 ** Suppose there are two processes A and B.  A has a read lock and B has
 ** a reserved lock.  B tries to promote to exclusive but is blocked because
 ** of A's read lock.  A tries to promote to reserved but is blocked by B.
@@ -2848,10 +2848,10 @@ static int newDatabase(BtShared *pBt){
 ** no progress.  By returning SQLITE_BUSY and not invoking the busy callback
 ** when A already has a read lock, we encourage A to give up and let B
 ** proceed.
-** ¼ÙÉèÓĞÁ½¸ö½ø³ÌAºÍB£¬AÓĞÒ»¸ö¶ÁËøºÍBÓĞreservedËø¡£BÊÔÍ¼»ñµÃ»¥³âµ«ÒòÎªAµÄ¶ÁËø±»Ëø¡£AÊÔÍ¼´Ù½ø±£Áôµ«±»BËø¡£
-** Ò»¸ö»òÁ½¸ö½ø³Ì±ØĞë¸øÆäËûµÄ·½Ê½»òÕßÃ»ÓĞ½ø³Ì¡£µ±AÒÑ¾­ÓĞ¹ıÒ»¸ö¶ÁËøÊ±·µ»ØSQLITE_BUSY¶ø²»ÊÇµ÷ÓÃÃ¦,¾¡Á¿ÈÃA·ÅÆú£¬ÈÃB³ÖÓĞ¡£
+** å‡è®¾æœ‰ä¸¤ä¸ªè¿›ç¨‹Aå’ŒBï¼ŒAæœ‰ä¸€ä¸ªè¯»é”å’ŒBæœ‰reservedé”ã€‚Bè¯•å›¾è·å¾—äº’æ–¥ä½†å› ä¸ºAçš„è¯»é”è¢«é”ã€‚Aè¯•å›¾ä¿ƒè¿›ä¿ç•™ä½†è¢«Bé”ã€‚
+** ä¸€ä¸ªæˆ–ä¸¤ä¸ªè¿›ç¨‹å¿…é¡»ç»™å…¶ä»–çš„æ–¹å¼æˆ–è€…æ²¡æœ‰è¿›ç¨‹ã€‚å½“Aå·²ç»æœ‰è¿‡ä¸€ä¸ªè¯»é”æ—¶è¿”å›SQLITE_BUSYè€Œä¸æ˜¯è°ƒç”¨å¿™,å°½é‡è®©Aæ”¾å¼ƒï¼Œè®©BæŒæœ‰ã€‚
 */
-int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag·ÇÁã¿ªÊ¼Ğ´ÊÂÎñ£¬·ñÔò¿ªÊ¼¶ÁÊÂÎñ
+int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflagéé›¶å¼€å§‹å†™äº‹åŠ¡ï¼Œå¦åˆ™å¼€å§‹è¯»äº‹åŠ¡
   sqlite3 *pBlock = 0;
   BtShared *pBt = p->pBt;
   int rc = SQLITE_OK;
@@ -2863,13 +2863,13 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag·ÇÁã¿ªÊ¼Ğ´ÊÂÎñ£¬·ñÔò
   /* If the btree is already in a write-transaction, or it
   ** is already in a read-transaction and a read-transaction
   ** is requested, this is a no-op.
-  ** Èç¹ûbtreeÒÑ¾­ÔÚĞ´ÊÂÎñÖĞ,»òÕßËüÒÑÔÚ¶ÁÊÂÎñÖĞ²¢ÇÒ¶ÁÊÂÎñ±»ÇëÇó,ÄÇÃ´ÕâÊÇÒ»¸ö¿Õ²Ù×÷¡£
+  ** å¦‚æœbtreeå·²ç»åœ¨å†™äº‹åŠ¡ä¸­,æˆ–è€…å®ƒå·²åœ¨è¯»äº‹åŠ¡ä¸­å¹¶ä¸”è¯»äº‹åŠ¡è¢«è¯·æ±‚,é‚£ä¹ˆè¿™æ˜¯ä¸€ä¸ªç©ºæ“ä½œã€‚
   */
   if( p->inTrans==TRANS_WRITE || (p->inTrans==TRANS_READ && !wrflag) ){
     goto trans_begun;
   }
 
-  /* Write transactions are not possible on a read-only database */ //Ğ´ÊÂÎñ²»¿ÉÄÜÔÚÒ»¸öÖ»¶ÁµÄÊı¾İ¿âÉÏ
+  /* Write transactions are not possible on a read-only database */ //å†™äº‹åŠ¡ä¸å¯èƒ½åœ¨ä¸€ä¸ªåªè¯»çš„æ•°æ®åº“ä¸Š
   if( (pBt->btsFlags & BTS_READ_ONLY)!=0 && wrflag ){
     rc = SQLITE_READONLY;
     goto trans_begun;
@@ -2879,12 +2879,12 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag·ÇÁã¿ªÊ¼Ğ´ÊÂÎñ£¬·ñÔò
   /* If another database handle has already opened a write transaction 
   ** on this shared-btree structure and a second write transaction is
   ** requested, return SQLITE_LOCKED.
-  ** Èç¹ûÁíÒ»¸öÊı¾İ¿â´¦Àí³ÌĞòÒÑ¾­ÔÚÕâshared-btree½á¹¹¿ªÆôÁËĞ´ÊÂÎñ²¢ÇÒÇëÇóµÚ¶ş¸öĞ´ÊÂÎñ,Ôò·µ»ØSQLITE_LOCKED¡£
+  ** å¦‚æœå¦ä¸€ä¸ªæ•°æ®åº“å¤„ç†ç¨‹åºå·²ç»åœ¨è¿™shared-btreeç»“æ„å¼€å¯äº†å†™äº‹åŠ¡å¹¶ä¸”è¯·æ±‚ç¬¬äºŒä¸ªå†™äº‹åŠ¡,åˆ™è¿”å›SQLITE_LOCKEDã€‚
   */
   if( (wrflag && pBt->inTransaction==TRANS_WRITE)
    || (pBt->btsFlags & BTS_PENDING)!=0
   ){
-    pBlock = pBt->pWriter->db;/*²»ÄÜÍ¬Ê±ÓĞÁ½¸öĞ´ÊÂÎñ£¬·µ»ØSQLITE_LOCKED*/
+    pBlock = pBt->pWriter->db;/*ä¸èƒ½åŒæ—¶æœ‰ä¸¤ä¸ªå†™äº‹åŠ¡ï¼Œè¿”å›SQLITE_LOCKED*/
   }else if( wrflag>1 ){
     BtLock *pIter;
     for(pIter=pBt->pLock; pIter; pIter=pIter->pNext){
@@ -2904,7 +2904,7 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag·ÇÁã¿ªÊ¼Ğ´ÊÂÎñ£¬·ñÔò
   /* Any read-only or read-write transaction implies a read-lock on 
   ** page 1. So if some other shared-cache client already has a write-lock 
   ** on page 1, the transaction cannot be opened. 
-  ** ÈÎºÎÖ»¶Á»ò¶ÁĞ´ÊÂÎñÒâÎ¶×ÅÔÚÒ³1ÉÏÓĞ¶ÁËø¡£Èç¹ûÆäËû¹²Ïí»º´æ¿Í»§¶ËÔÚÒ³1ÉÏÒÑ¾­ÓĞÒ»¸öĞ´Ëø,ÄÇÃ´ÊÂÎñ²»ÄÜ±»¿ªÆô¡£*/
+  ** ä»»ä½•åªè¯»æˆ–è¯»å†™äº‹åŠ¡æ„å‘³ç€åœ¨é¡µ1ä¸Šæœ‰è¯»é”ã€‚å¦‚æœå…¶ä»–å…±äº«ç¼“å­˜å®¢æˆ·ç«¯åœ¨é¡µ1ä¸Šå·²ç»æœ‰ä¸€ä¸ªå†™é”,é‚£ä¹ˆäº‹åŠ¡ä¸èƒ½è¢«å¼€å¯ã€‚*/
   
   rc = querySharedCacheTableLock(p, MASTER_ROOT, READ_LOCK);
   if( SQLITE_OK!=rc ) goto trans_begun;
@@ -2918,9 +2918,9 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag·ÇÁã¿ªÊ¼Ğ´ÊÂÎñ£¬·ñÔò
     ** reading page 1 it discovers that the page-size of the database 
     ** file is not pBt->pageSize. In this case lockBtree() will update
     ** pBt->pageSize to the page-size of the file on disk.
-	** µ÷ÓÃlockBtree(),Ö±µ½pBt->pPage1±»¸³Öµ»òÕßlockBtree()·µ»ØSQLITE_OKÒÔÍâµÄĞÅÏ¢¡£
-	** lockBtree()¿ÉÄÜ·µ»ØSQLITE_OKµ«¸³pBt->pPage1Îª0 £¬Èç¹û¶ÁµÚ1Ò³ºó·¢ÏÖÊı¾İ¿âÎÄ¼şÒ³Ãæ´óĞ¡²»ÊÇpBt->pageSize¡£
-	** ÔÚÕâÖÖÇé¿öÏÂlockBtree()½«¸üĞÂpBt->pageSizeµÄ´óĞ¡Îª´ÅÅÌÉÏÎÄ¼şµÄÒ³´óĞ¡¡£
+	** è°ƒç”¨lockBtree(),ç›´åˆ°pBt->pPage1è¢«èµ‹å€¼æˆ–è€…lockBtree()è¿”å›SQLITE_OKä»¥å¤–çš„ä¿¡æ¯ã€‚
+	** lockBtree()å¯èƒ½è¿”å›SQLITE_OKä½†èµ‹pBt->pPage1ä¸º0 ï¼Œå¦‚æœè¯»ç¬¬1é¡µåå‘ç°æ•°æ®åº“æ–‡ä»¶é¡µé¢å¤§å°ä¸æ˜¯pBt->pageSizeã€‚
+	** åœ¨è¿™ç§æƒ…å†µä¸‹lockBtree()å°†æ›´æ–°pBt->pageSizeçš„å¤§å°ä¸ºç£ç›˜ä¸Šæ–‡ä»¶çš„é¡µå¤§å°ã€‚
     */
     while( pBt->pPage1==0 && SQLITE_OK==(rc = lockBtree(pBt)) );
 
@@ -2953,7 +2953,7 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag·ÇÁã¿ªÊ¼Ğ´ÊÂÎñ£¬·ñÔò
       }
 #endif
     }
-    p->inTrans = (wrflag?TRANS_WRITE:TRANS_READ);/*Îª1ÊÇĞ´Ëø£¬·ñÔò¶ÁËø*/
+    p->inTrans = (wrflag?TRANS_WRITE:TRANS_READ);/*ä¸º1æ˜¯å†™é”ï¼Œå¦åˆ™è¯»é”*/
     if( p->inTrans>pBt->inTransaction ){
       pBt->inTransaction = p->inTrans;
     }
@@ -2971,11 +2971,11 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag·ÇÁã¿ªÊ¼Ğ´ÊÂÎñ£¬·ñÔò
       ** this sooner rather than later means the database size can safely 
       ** re-read the database size from page 1 if a savepoint or transaction
       ** rollback occurs within the transaction.
-	  ** Èç¹ûdb-sizeÍ·×Ö¶Î²»ÕıÈ·(Èç¹ûÒ»¸ö¾É¿Í»§¶ËÒ»Ö±ÔÚĞ´Êı¾İ¿âÎÄ¼ş£¬ÔòÕâÖÖÇé¿ö¿ÉÄÜ·¢Éú),ÔòÁ¢¼´¸üĞÂ¡£
-	  ** ¸üĞÂÒËÔç²»ÒË³Ù£¬ÒòÎªÈç¹ûÒ»¸ö±£´æµã»òÊÂÎñÔÚÊÂÎñÖĞ·¢Éú»Ø¹ö£¬Êı¾İ¿â´óĞ¡¿ÉÒÔ´ÓµÚ1Ò³°²È«µØÖØ¶Á¡£
+	  ** å¦‚æœdb-sizeå¤´å­—æ®µä¸æ­£ç¡®(å¦‚æœä¸€ä¸ªæ—§å®¢æˆ·ç«¯ä¸€ç›´åœ¨å†™æ•°æ®åº“æ–‡ä»¶ï¼Œåˆ™è¿™ç§æƒ…å†µå¯èƒ½å‘ç”Ÿ),åˆ™ç«‹å³æ›´æ–°ã€‚
+	  ** æ›´æ–°å®œæ—©ä¸å®œè¿Ÿï¼Œå› ä¸ºå¦‚æœä¸€ä¸ªä¿å­˜ç‚¹æˆ–äº‹åŠ¡åœ¨äº‹åŠ¡ä¸­å‘ç”Ÿå›æ»šï¼Œæ•°æ®åº“å¤§å°å¯ä»¥ä»ç¬¬1é¡µå®‰å…¨åœ°é‡è¯»ã€‚
       */
       if( pBt->nPage!=get4byte(&pPage1->aData[28]) ){
-        rc = sqlite3PagerWrite(pPage1->pDbPage);/*¸üĞÂdb-sizeµÄÍ·×Ö¶Î*/
+        rc = sqlite3PagerWrite(pPage1->pDbPage);/*æ›´æ–°db-sizeçš„å¤´å­—æ®µ*/
         if( rc==SQLITE_OK ){
           put4byte(&pPage1->aData[28], pBt->nPage);
         }
@@ -2989,9 +2989,9 @@ trans_begun:
     /* This call makes sure that the pager has the correct number of
     ** open savepoints. If the second parameter is greater than 0 and
     ** the sub-journal is not already open, then it will be opened here.
-	** Õâ¸öµ÷ÓÃÈ·±£pagerÓĞÕıÈ·µÄ¿ª·ÅĞÔ±£´æµãÊıÄ¿¡£Èç¹ûµÚ¶ş¸ö²ÎÊı´óÓÚ0²¢ÇÒsub-journalÃ»ÓĞ´ò¿ª,ÄÇÃ´Ëü½«±»´ò¿ª¡£
+	** è¿™ä¸ªè°ƒç”¨ç¡®ä¿pageræœ‰æ­£ç¡®çš„å¼€æ”¾æ€§ä¿å­˜ç‚¹æ•°ç›®ã€‚å¦‚æœç¬¬äºŒä¸ªå‚æ•°å¤§äº0å¹¶ä¸”sub-journalæ²¡æœ‰æ‰“å¼€,é‚£ä¹ˆå®ƒå°†è¢«æ‰“å¼€ã€‚
     */
-    rc = sqlite3PagerOpenSavepoint(pBt->pPager, p->db->nSavepoint);/*wrflag>0,´ò¿ª±£´æµã*/
+    rc = sqlite3PagerOpenSavepoint(pBt->pPager, p->db->nSavepoint);/*wrflag>0,æ‰“å¼€ä¿å­˜ç‚¹*/
   }
 
   btreeIntegrity(p);
@@ -3004,12 +3004,12 @@ trans_begun:
 ** Set the pointer-map entries for all children of page pPage. Also, if
 ** pPage contains cells that point to overflow pages, set the pointer
 ** map entries for the overflow pages as well.
-** ¶ÔÒ³pPageµÄËùÓĞº¢×Ó½ÚµãÉèÖÃÖ¸ÕëÓ³ÉäÌõÄ¿¡£Èç¹ûpPage°üº¬Ö¸ÏòÒç³öÒ³µÄÖ¸ÕëµÄµ¥Ôª£¬Ò²¶ÔÒç³öÒ³ÉèÖÃÖ¸ÕëÓ³ÉäÌõÄ¿¡£
+** å¯¹é¡µpPageçš„æ‰€æœ‰å­©å­èŠ‚ç‚¹è®¾ç½®æŒ‡é’ˆæ˜ å°„æ¡ç›®ã€‚å¦‚æœpPageåŒ…å«æŒ‡å‘æº¢å‡ºé¡µçš„æŒ‡é’ˆçš„å•å…ƒï¼Œä¹Ÿå¯¹æº¢å‡ºé¡µè®¾ç½®æŒ‡é’ˆæ˜ å°„æ¡ç›®ã€‚
 */
 static int setChildPtrmaps(MemPage *pPage){
-  int i;                             /* Counter variable */    //¼ÆÊıÆ÷±äÁ¿
-  int nCell;                         /* Number of cells in page pPage */  //ÔÚÒ³pPageÖĞµÄµ¥ÔªµÄÊıÁ¿
-  int rc;                            /* Return code */    //·µ»ØÖµ±äÁ¿
+  int i;                             /* Counter variable */    //è®¡æ•°å™¨å˜é‡
+  int nCell;                         /* Number of cells in page pPage */  //åœ¨é¡µpPageä¸­çš„å•å…ƒçš„æ•°é‡
+  int rc;                            /* Return code */    //è¿”å›å€¼å˜é‡
   BtShared *pBt = pPage->pBt;
   u8 isInitOrig = pPage->isInit;
   Pgno pgno = pPage->pgno;
@@ -3046,21 +3046,21 @@ set_child_ptrmaps_out:
 ** Somewhere on pPage is a pointer to page iFrom.  Modify this pointer so
 ** that it points to iTo. Parameter eType describes the type of pointer to
 ** be modified, as  follows:
-** Ò³iFromÊÇÒ»¸öÖ¸Õë£¬Ö¸ÏòÒ³ÃæÉÏµÄÄ³¸öµØ·½¡£ĞŞ¸ÄÕâ¸öÖ¸ÕëÊ¹ËüÖ¸ÏòiTo¡£²ÎÊıeTypeÃèÊö±»ĞŞ¸ÄÖ¸ÕëµÄÀàĞÍ,ÈçÏÂËùÊ¾:
+** é¡µiFromæ˜¯ä¸€ä¸ªæŒ‡é’ˆï¼ŒæŒ‡å‘é¡µé¢ä¸Šçš„æŸä¸ªåœ°æ–¹ã€‚ä¿®æ”¹è¿™ä¸ªæŒ‡é’ˆä½¿å®ƒæŒ‡å‘iToã€‚å‚æ•°eTypeæè¿°è¢«ä¿®æ”¹æŒ‡é’ˆçš„ç±»å‹,å¦‚ä¸‹æ‰€ç¤º:
 ** PTRMAP_BTREE:     pPage is a btree-page. The pointer points at a child 
 **                   page of pPage.
-**                   Ö¸ÕëÖ¸ÏòpPageµÄÒ»¸öº¢×ÓÒ³Ãæ¡£
+**                   æŒ‡é’ˆæŒ‡å‘pPageçš„ä¸€ä¸ªå­©å­é¡µé¢ã€‚
 ** PTRMAP_OVERFLOW1: pPage is a btree-page. The pointer points at an overflow
 **                   page pointed to by one of the cells on pPage.
-**                   Ö¸ÕëÖ¸ÏòÒ»¸öÒç³öÒ³Ãæ£¬´ÓpPageÉÏµÄµ¥Ôª¸ñÖĞµÄÒ»¸öÖ¸Ïò¸ÃÒç³öÒ³Ãæ
+**                   æŒ‡é’ˆæŒ‡å‘ä¸€ä¸ªæº¢å‡ºé¡µé¢ï¼Œä»pPageä¸Šçš„å•å…ƒæ ¼ä¸­çš„ä¸€ä¸ªæŒ‡å‘è¯¥æº¢å‡ºé¡µé¢
 ** PTRMAP_OVERFLOW2: pPage is an overflow-page. The pointer points at the next
 **                   overflow page in the list.
-*/                   //Ö¸ÕëÖ¸ÏòÁĞ±íÖĞµÄÏÂÒ»¸öÒç³öÒ³Ãæ
+*/                   //æŒ‡é’ˆæŒ‡å‘åˆ—è¡¨ä¸­çš„ä¸‹ä¸€ä¸ªæº¢å‡ºé¡µé¢
 static int modifyPagePointer(MemPage *pPage, Pgno iFrom, Pgno iTo, u8 eType){
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
   if( eType==PTRMAP_OVERFLOW2 ){
-    /* The pointer is always the first 4 bytes of the page in this case.*/  //Ö¸Õë×ÜÊÇµÚÒ»¸öÒ³ÃæµÄ4¸ö×Ö½Ú¡£
+    /* The pointer is always the first 4 bytes of the page in this case.*/  //æŒ‡é’ˆæ€»æ˜¯ç¬¬ä¸€ä¸ªé¡µé¢çš„4ä¸ªå­—èŠ‚ã€‚
     if( get4byte(pPage->aData)!=iFrom ){
       return SQLITE_CORRUPT_BKPT;
     }
@@ -3108,22 +3108,22 @@ static int modifyPagePointer(MemPage *pPage, Pgno iFrom, Pgno iTo, u8 eType){
 /*
 ** Move the open database page pDbPage to location iFreePage in the 
 ** database. The pDbPage reference remains valid.
-** ÒÆ¶¯¿ª·ÅÊı¾İ¿âÒ³pDbPageµ½Êı¾İ¿âÖĞµÄÒª´æ·ÅÎ»ÖÃiFreePage¡£pDbPage²ÎÊıÈÔ¿ÉÓÃ¡£
+** ç§»åŠ¨å¼€æ”¾æ•°æ®åº“é¡µpDbPageåˆ°æ•°æ®åº“ä¸­çš„è¦å­˜æ”¾ä½ç½®iFreePageã€‚pDbPageå‚æ•°ä»å¯ç”¨ã€‚
 ** The isCommit flag indicates that there is no need to remember that
 ** the journal needs to be sync()ed before database page pDbPage->pgno 
 ** can be written to. The caller has already promised not to write to that
 ** page.
-** isCommit±êÖ¾±íÊ¾ÔÚÊı¾İ¿âÒ³pDbPage->pgno¿ÉÄÜ±»Ğ´Ö®Ç°ÈÕÖ¾ĞèÒªsync()Í¬²½Ã»ÓĞ±ØÒª¼ÇÂ¼¡£µ÷ÓÃÕß²»È¥Ğ´ÄÇ¸öÒ³¡£
+** isCommitæ ‡å¿—è¡¨ç¤ºåœ¨æ•°æ®åº“é¡µpDbPage->pgnoå¯èƒ½è¢«å†™ä¹‹å‰æ—¥å¿—éœ€è¦sync()åŒæ­¥æ²¡æœ‰å¿…è¦è®°å½•ã€‚è°ƒç”¨è€…ä¸å»å†™é‚£ä¸ªé¡µã€‚
 */
 static int relocatePage(
-  BtShared *pBt,           /* Btree */               //BÊ÷
-  MemPage *pDbPage,        /* Open page to move */   //ÒªÒÆ¶¯µÄ¿ª·ÅĞÔÒ³
-  u8 eType,                /* Pointer map 'type' entry for pDbPage */    //pDbPageÖ¸ÕëÓ³ÉäÀàĞÍÌõÄ¿
-  Pgno iPtrPage,           /* Pointer map 'page-no' entry for pDbPage */ //pDbPageÖ¸ÕëÓ³Éä'page-no'ÌõÄ¿
-  Pgno iFreePage,          /* The location to move pDbPage to */         //ÒÆ¶¯pDbPageµ½µÄÎ»ÖÃ
-  int isCommit             /* isCommit flag passed to sqlite3PagerMovepage */  //´«µİ¸øsqlite3PagerMovepageµÄisCommit±êÖ¾
+  BtShared *pBt,           /* Btree */               //Bæ ‘
+  MemPage *pDbPage,        /* Open page to move */   //è¦ç§»åŠ¨çš„å¼€æ”¾æ€§é¡µ
+  u8 eType,                /* Pointer map 'type' entry for pDbPage */    //pDbPageæŒ‡é’ˆæ˜ å°„ç±»å‹æ¡ç›®
+  Pgno iPtrPage,           /* Pointer map 'page-no' entry for pDbPage */ //pDbPageæŒ‡é’ˆæ˜ å°„'page-no'æ¡ç›®
+  Pgno iFreePage,          /* The location to move pDbPage to */         //ç§»åŠ¨pDbPageåˆ°çš„ä½ç½®
+  int isCommit             /* isCommit flag passed to sqlite3PagerMovepage */  //ä¼ é€’ç»™sqlite3PagerMovepageçš„isCommitæ ‡å¿—
 ){
-  MemPage *pPtrPage;   /* The page that contains a pointer to pDbPage */   //°üº¬µ½pDbPageµÄÒ³
+  MemPage *pPtrPage;   /* The page that contains a pointer to pDbPage */   //åŒ…å«åˆ°pDbPageçš„é¡µ
   Pgno iDbPage = pDbPage->pgno;
   Pager *pPager = pBt->pPager;
   int rc;
@@ -3133,7 +3133,7 @@ static int relocatePage(
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( pDbPage->pBt==pBt );
 
-  /* Move page iDbPage from its current location to page number iFreePage */ //´Óµ±Ç°Î»ÖÃÒÆ¶¯Ò³ÃæiDbPageµ½Ò³ÂëiFreePage
+  /* Move page iDbPage from its current location to page number iFreePage */ //ä»å½“å‰ä½ç½®ç§»åŠ¨é¡µé¢iDbPageåˆ°é¡µç iFreePage
   TRACE(("AUTOVACUUM: Moving %d to free page %d (ptr page %d type %d)\n", 
       iDbPage, iFreePage, iPtrPage, eType));
   rc = sqlite3PagerMovepage(pPager, pDbPage->pDbPage, iFreePage, isCommit);
@@ -3145,11 +3145,11 @@ static int relocatePage(
   /* If pDbPage was a btree-page, then it may have child pages and/or cells
   ** that point to overflow pages. The pointer map entries for all these
   ** pages need to be changed.
-  ** Èç¹ûpDbPageÊÇbtree-page,ÄÇÃ´Ëü¿ÉÄÜÓĞº¢×ÓÒ³»òÖ¸ÏòÒç³öÒ³µÄµ¥Ôª¡£ËùÓĞÕâĞ©Ö¸ÕëÓ³ÉäÌõÄ¿¶¼ĞèÒª¸ü¸Ä¡£
+  ** å¦‚æœpDbPageæ˜¯btree-page,é‚£ä¹ˆå®ƒå¯èƒ½æœ‰å­©å­é¡µæˆ–æŒ‡å‘æº¢å‡ºé¡µçš„å•å…ƒã€‚æ‰€æœ‰è¿™äº›æŒ‡é’ˆæ˜ å°„æ¡ç›®éƒ½éœ€è¦æ›´æ”¹ã€‚
   ** If pDbPage is an overflow page, then the first 4 bytes may store a
   ** pointer to a subsequent overflow page. If this is the case, then
   ** the pointer map needs to be updated for the subsequent overflow page.
-  ** Èç¹ûpDbPageÊÇÒ»¸öÒç³öÒ³,ÄÇÃ´µÚÒ»¸ö4×Ö½Ú´æ´¢Ò»¸öÖ¸ÏòºóĞøÒç³öÒ³µÄÖ¸Õë¡£Èç¹ûÊÇÕâÖÖÇé¿ö,ÄÇÃ´Ö¸ÕëÓ³ÉäĞèÒªËæºó¼ÌÒç³öÒ³Ãæ¸üĞÂ¡£
+  ** å¦‚æœpDbPageæ˜¯ä¸€ä¸ªæº¢å‡ºé¡µ,é‚£ä¹ˆç¬¬ä¸€ä¸ª4å­—èŠ‚å­˜å‚¨ä¸€ä¸ªæŒ‡å‘åç»­æº¢å‡ºé¡µçš„æŒ‡é’ˆã€‚å¦‚æœæ˜¯è¿™ç§æƒ…å†µ,é‚£ä¹ˆæŒ‡é’ˆæ˜ å°„éœ€è¦éšåç»§æº¢å‡ºé¡µé¢æ›´æ–°ã€‚
   */
   if( eType==PTRMAP_BTREE || eType==PTRMAP_ROOTPAGE ){
     rc = setChildPtrmaps(pDbPage);
@@ -3169,7 +3169,7 @@ static int relocatePage(
   /* Fix the database pointer on page iPtrPage that pointed at iDbPage so
   ** that it points at iFreePage. Also fix the pointer map entry for
   ** iPtrPage.
-  ** ¹Ì¶¨Êı¾İ¿âÖ¸Õëµ½Ò³iPtrPageÉÏ£¬¸ÃÒ³Ö¸ÏòiDbPage,ÒÔ±ãËüÖ¸ÏòiFreePage¡£Í¬Ê±¶ÔÓÚiPtrPage£¬¹Ì¶¨Ö¸ÕëÓ³ÉäÌõÄ¿¡£
+  ** å›ºå®šæ•°æ®åº“æŒ‡é’ˆåˆ°é¡µiPtrPageä¸Šï¼Œè¯¥é¡µæŒ‡å‘iDbPage,ä»¥ä¾¿å®ƒæŒ‡å‘iFreePageã€‚åŒæ—¶å¯¹äºiPtrPageï¼Œå›ºå®šæŒ‡é’ˆæ˜ å°„æ¡ç›®ã€‚
   */
   if( eType!=PTRMAP_ROOTPAGE ){
     rc = btreeGetPage(pBt, iPtrPage, &pPtrPage, 0);
@@ -3190,18 +3190,18 @@ static int relocatePage(
   return rc;
 }
 
-/* Forward declaration required by incrVacuumStep(). */   //ÒªÇóÍ¨¹ıincrVacuumStep()ÌáÇ°ÉùÃ÷
+/* Forward declaration required by incrVacuumStep(). */   //è¦æ±‚é€šè¿‡incrVacuumStep()æå‰å£°æ˜
 static int allocateBtreePage(BtShared *, MemPage **, Pgno *, Pgno, u8);
 
 /*
 ** Perform a single step of an incremental-vacuum. If successful,
 ** return SQLITE_OK. If there is no work to do (and therefore no
 ** point in calling this function again), return SQLITE_DONE.
-** Ö´ĞĞÒ»¸öµ¥¶ÀµÄincremental-vacuum²½Öè¡£Èç¹û³É¹¦,·µ»ØSQLITE_OK¡£Èç¹ûÃ»ÓĞ³É¹¦(²¢Ã»ÓĞÔÙµ÷ÓÃÕâ¸öº¯Êı),·µ»ØSQLITE_DONE¡£
+** æ‰§è¡Œä¸€ä¸ªå•ç‹¬çš„incremental-vacuumæ­¥éª¤ã€‚å¦‚æœæˆåŠŸ,è¿”å›SQLITE_OKã€‚å¦‚æœæ²¡æœ‰æˆåŠŸ(å¹¶æ²¡æœ‰å†è°ƒç”¨è¿™ä¸ªå‡½æ•°),è¿”å›SQLITE_DONEã€‚
 ** More specificly, this function attempts to re-organize the 
 ** database so that the last page of the file currently in use
 ** is no longer in use.
-** ¸ü¾ßÌåµØ,Õâ¸öº¯ÊıÊÔÍ¼ÖØ×éÊı¾İ¿â,ÒÔÊ¹µ±Ç°Ê¹ÓÃµÄÎÄ¼şµÄ×îºóÒ»Ò³ÒÑ²»ÔÙÊ¹ÓÃ¡£
+** æ›´å…·ä½“åœ°,è¿™ä¸ªå‡½æ•°è¯•å›¾é‡ç»„æ•°æ®åº“,ä»¥ä½¿å½“å‰ä½¿ç”¨çš„æ–‡ä»¶çš„æœ€åä¸€é¡µå·²ä¸å†ä½¿ç”¨ã€‚
 ** If the nFin parameter is non-zero, this function assumes
 ** that the caller will keep calling incrVacuumStep() until
 ** it returns SQLITE_DONE or an error, and that nFin is the
@@ -3210,12 +3210,12 @@ static int allocateBtreePage(BtShared *, MemPage **, Pgno *, Pgno, u8);
 ** incrVacuumStep() will be called a finite amount of times
 ** which may or may not empty the freelist.  A full autovacuum
 ** has nFin>0.  A "PRAGMA incremental_vacuum" has nFin==0.
-** Èç¹ûnFin²ÎÊı²»ÎªÁã,Õâ¸öº¯Êı¼ÙÉèµ÷ÓÃÕß½«±£³Öµ÷ÓÃincrVacuumStep()Ö±µ½·µ»ØSQLITE_DONE»ò´íÎó¡£nFinÊÇÊı¾İ¿âÎÄ¼şµÄÒ³ÃæÊıÁ¿
-** ÔÚ½ø³ÌÍê³ÉÖ®ºó½«±»°üº¬¡£Èç¹ûnFinÊÇÁã,Ëü¼Ù¶¨incrVacuumStep()½«±»µ÷ÓÃÓĞÏŞ´Î£¬freelist¿ÉÄÜ»á»ò¿ÉÄÜ²»»á¿Õ¡£
-** Ò»¸öÍêÕûµÄautovacuumÓĞnFin>0¡£Ò»¸ö"PRAGMA incremental_vacuum"ÓĞnFin==0¡£
+** å¦‚æœnFinå‚æ•°ä¸ä¸ºé›¶,è¿™ä¸ªå‡½æ•°å‡è®¾è°ƒç”¨è€…å°†ä¿æŒè°ƒç”¨incrVacuumStep()ç›´åˆ°è¿”å›SQLITE_DONEæˆ–é”™è¯¯ã€‚nFinæ˜¯æ•°æ®åº“æ–‡ä»¶çš„é¡µé¢æ•°é‡
+** åœ¨è¿›ç¨‹å®Œæˆä¹‹åå°†è¢«åŒ…å«ã€‚å¦‚æœnFinæ˜¯é›¶,å®ƒå‡å®šincrVacuumStep()å°†è¢«è°ƒç”¨æœ‰é™æ¬¡ï¼Œfreelistå¯èƒ½ä¼šæˆ–å¯èƒ½ä¸ä¼šç©ºã€‚
+** ä¸€ä¸ªå®Œæ•´çš„autovacuumæœ‰nFin>0ã€‚ä¸€ä¸ª"PRAGMA incremental_vacuum"æœ‰nFin==0ã€‚
 */
-static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //Ö´ĞĞÒ»¸öµ¥¶ÀµÄincremental-vacuum²½Öè¡£
-  Pgno nFreeList;           /* Number of pages still on the free-list */  //ÈÔÔÚ¿ÕÏĞÁĞ±íµÄÒ³ÃæÊı
+static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //æ‰§è¡Œä¸€ä¸ªå•ç‹¬çš„incremental-vacuumæ­¥éª¤ã€‚
+  Pgno nFreeList;           /* Number of pages still on the free-list */  //ä»åœ¨ç©ºé—²åˆ—è¡¨çš„é¡µé¢æ•°
   int rc;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -3244,8 +3244,8 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //Ö´ĞĞ
         ** if nFin is non-zero. In that case, the free-list will be
         ** truncated to zero after this function returns, so it doesn't 
         ** matter if it still contains some garbage entries.
-		** É¾³ıÎÄ¼ş¿ÕÏĞÁĞ±íµÄÒ³Ãæ¡£Èç¹ûnFinÊÇ·ÇÁãµÄÔòÕâ²»ÊÇ±ØĞèµÄ¡£ÔÚÕâÖÖÇé¿öÏÂ,¿ÕÏĞÁĞ±íÔÚÕâ¸öº¯Êı·µ»Øºó½Ø¶ÏÎªÁã,
-		** ËùÒÔÈç¹ûËü»¹°üº¬ÁËÒ»Ğ©À¬»øÌõÄ¿Ò²Ã»ÓĞÎÊÌâ¡£
+		** åˆ é™¤æ–‡ä»¶ç©ºé—²åˆ—è¡¨çš„é¡µé¢ã€‚å¦‚æœnFinæ˜¯éé›¶çš„åˆ™è¿™ä¸æ˜¯å¿…éœ€çš„ã€‚åœ¨è¿™ç§æƒ…å†µä¸‹,ç©ºé—²åˆ—è¡¨åœ¨è¿™ä¸ªå‡½æ•°è¿”å›åæˆªæ–­ä¸ºé›¶,
+		** æ‰€ä»¥å¦‚æœå®ƒè¿˜åŒ…å«äº†ä¸€äº›åƒåœ¾æ¡ç›®ä¹Ÿæ²¡æœ‰é—®é¢˜ã€‚
         */
         Pgno iFreePg;
         MemPage *pFreePg;
@@ -3257,7 +3257,7 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //Ö´ĞĞ
         releasePage(pFreePg);
       }
     } else {
-      Pgno iFreePg;             /* Index of free page to move pLastPg to */  //ÒÆ¶¯pLastPgËùÒªµ½µÄ¿ÕÏĞÒ³µÄË÷Òı
+      Pgno iFreePg;             /* Index of free page to move pLastPg to */  //ç§»åŠ¨pLastPgæ‰€è¦åˆ°çš„ç©ºé—²é¡µçš„ç´¢å¼•
       MemPage *pLastPg;
 
       rc = btreeGetPage(pBt, iLastPg, &pLastPg, 0);
@@ -3267,11 +3267,11 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //Ö´ĞĞ
 
       /* If nFin is zero, this loop runs exactly once and page pLastPg
       ** is swapped with the first free page pulled off the free list.
-      ** Èç¹ûnFinÊÇÁã,ÕâÑ­»·ÕıºÃÔËĞĞÒ»´ÎºÍÒ³ÃæpLastPg½«ÓëÔÚ¿ÕÏĞÁĞ±íÒ³ÖĞµÄµÚÒ»¸ö¿ÕÏĞÒ³½»»»¡£
+      ** å¦‚æœnFinæ˜¯é›¶,è¿™å¾ªç¯æ­£å¥½è¿è¡Œä¸€æ¬¡å’Œé¡µé¢pLastPgå°†ä¸åœ¨ç©ºé—²åˆ—è¡¨é¡µä¸­çš„ç¬¬ä¸€ä¸ªç©ºé—²é¡µäº¤æ¢ã€‚
       ** On the other hand, if nFin is greater than zero, then keep
       ** looping until a free-page located within the first nFin pages
       ** of the file is found.
-	  ** ÁíÒ»·½Ãæ,Èç¹ûnFin´óÓÚÁã,È»ºó¼ÌĞøÑ­»·,Ö±µ½¿ÕÏĞÒ³Î»ÓÚÎÄ¼şµÄµÚÒ»¸önFinÒ³Ãæ±»·¢ÏÖ¡£
+	  ** å¦ä¸€æ–¹é¢,å¦‚æœnFinå¤§äºé›¶,ç„¶åç»§ç»­å¾ªç¯,ç›´åˆ°ç©ºé—²é¡µä½äºæ–‡ä»¶çš„ç¬¬ä¸€ä¸ªnFiné¡µé¢è¢«å‘ç°ã€‚
       */
       do {
         MemPage *pFreePg;
@@ -3321,15 +3321,15 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //Ö´ĞĞ
 /*
 ** A write-transaction must be opened before calling this function.
 ** It performs a single unit of work towards an incremental vacuum.
-** µ÷ÓÃÕâ¸ö³ÌĞòÖ®Ç°£¬Ğ´ÊÂÎñ±ØĞë´ò¿ª¡£ËüÖ´ĞĞµ¥¸ö¹¤×÷µ¥Ôª¶Ôincremental vacuum¡£
+** è°ƒç”¨è¿™ä¸ªç¨‹åºä¹‹å‰ï¼Œå†™äº‹åŠ¡å¿…é¡»æ‰“å¼€ã€‚å®ƒæ‰§è¡Œå•ä¸ªå·¥ä½œå•å…ƒå¯¹incremental vacuumã€‚
 ** If the incremental vacuum is finished after this function has run,
 ** SQLITE_DONE is returned. If it is not finished, but no error occurred,
 ** SQLITE_OK is returned. Otherwise an SQLite error code. 
-** Èç¹ûincremental vacuumÔÚÕâ¸öº¯ÊıÔËĞĞ½áÊøºó±»Íê³É,·µ»ØSQLITE_DONE¡£Èç¹ûÃ»ÓĞÍê³É,µ«ÊÇÃ»ÓĞ´íÎó·¢Éú,·µ»ØSQLITE_OK¡£
-** ·ñÔò·µ»ØÒ»¸öSQLite´íÎó´úÂë¡£
+** å¦‚æœincremental vacuumåœ¨è¿™ä¸ªå‡½æ•°è¿è¡Œç»“æŸåè¢«å®Œæˆ,è¿”å›SQLITE_DONEã€‚å¦‚æœæ²¡æœ‰å®Œæˆ,ä½†æ˜¯æ²¡æœ‰é”™è¯¯å‘ç”Ÿ,è¿”å›SQLITE_OKã€‚
+** å¦åˆ™è¿”å›ä¸€ä¸ªSQLiteé”™è¯¯ä»£ç ã€‚
 */
 /*
-µ÷ÓÃÕâ¸ö³ÌĞòÖ®Ç°£¬Ğ´ÊÂÎñ±ØĞë´ò¿ª¡£
+è°ƒç”¨è¿™ä¸ªç¨‹åºä¹‹å‰ï¼Œå†™äº‹åŠ¡å¿…é¡»æ‰“å¼€ã€‚
 */
 int sqlite3BtreeIncrVacuum(Btree *p){
   int rc;
@@ -3354,13 +3354,13 @@ int sqlite3BtreeIncrVacuum(Btree *p){
 /*
 ** This routine is called prior to sqlite3PagerCommit when a transaction
 ** is commited for an auto-vacuum database.
-** ¶ÔÓÚÒ»¸öauto-vacuumÊı¾İ¿â£¬µ±Ò»¸öÊÂÎñ±»Ìá½»Ö®ºóÕâ¸öº¯Êı½«ÔÚsqlite3PagerCommitÖ®Ç°±»µ÷ÓÃ¡£
+** å¯¹äºä¸€ä¸ªauto-vacuumæ•°æ®åº“ï¼Œå½“ä¸€ä¸ªäº‹åŠ¡è¢«æäº¤ä¹‹åè¿™ä¸ªå‡½æ•°å°†åœ¨sqlite3PagerCommitä¹‹å‰è¢«è°ƒç”¨ã€‚
 ** If SQLITE_OK is returned, then *pnTrunc is set to the number of pages
 ** the database file should be truncated to during the commit process. 
 ** i.e. the database has been reorganized so that only the first *pnTrunc
 ** pages are in use.
-** Èç¹û·µ»ØSQLITE_OK,ÄÇÃ´*pnTruncÉèÖÃÒ³ÃæµÄÊıÁ¿£¬Êı¾İ¿âÎÄ¼şÔÚÌá½»¹ı³ÌÖĞÓ¦¸Ã±»½Ø¶Ï¡£
-** ¼´Êı¾İ¿âÒÑ¾­ÖØ×é,ÒÔ±ãÖ»ÓĞµÚÒ»¸ö*pnTruncÒ³ÃæÔÚÓÃ¡£
+** å¦‚æœè¿”å›SQLITE_OK,é‚£ä¹ˆ*pnTruncè®¾ç½®é¡µé¢çš„æ•°é‡ï¼Œæ•°æ®åº“æ–‡ä»¶åœ¨æäº¤è¿‡ç¨‹ä¸­åº”è¯¥è¢«æˆªæ–­ã€‚
+** å³æ•°æ®åº“å·²ç»é‡ç»„,ä»¥ä¾¿åªæœ‰ç¬¬ä¸€ä¸ª*pnTruncé¡µé¢åœ¨ç”¨ã€‚
 */
 static int autoVacuumCommit(BtShared *pBt){
   int rc = SQLITE_OK;
@@ -3371,19 +3371,19 @@ static int autoVacuumCommit(BtShared *pBt){
   invalidateAllOverflowCache(pBt);
   assert(pBt->autoVacuum);
   if( !pBt->incrVacuum ){
-    Pgno nFin;         /* Number of pages in database after autovacuuming */  //ÔÚ×ß¶¯ÇåÀíºóÊı¾İ¿âÖĞµÄÒ³ÃæÊı
-    Pgno nFree;        /* Number of pages on the freelist initially */        //¿ÕÏĞÁĞ±íÉÏ×î³õµÄÒ³ÃæÊı
-    Pgno nPtrmap;      /* Number of PtrMap pages to be freed */               //±»ÊÍ·ÅµÄPtrMapÒ³ÃæÊıÁ¿
-    Pgno iFree;        /* The next page to be freed */                        //±»ÊÍ·ÅµÄÏÂÒ»¸öÒ³Ãæ
-    int nEntry;        /* Number of entries on one ptrmap page */             //ÔÚÒ»¸öptrmapÒ³ÉÏµÄÌõÄ¿Êı
-    Pgno nOrig;        /* Database size before freeing */                     //ÊÍ·ÅÇ°µÄÊı¾İ¿â´óĞ¡
+    Pgno nFin;         /* Number of pages in database after autovacuuming */  //åœ¨èµ°åŠ¨æ¸…ç†åæ•°æ®åº“ä¸­çš„é¡µé¢æ•°
+    Pgno nFree;        /* Number of pages on the freelist initially */        //ç©ºé—²åˆ—è¡¨ä¸Šæœ€åˆçš„é¡µé¢æ•°
+    Pgno nPtrmap;      /* Number of PtrMap pages to be freed */               //è¢«é‡Šæ”¾çš„PtrMapé¡µé¢æ•°é‡
+    Pgno iFree;        /* The next page to be freed */                        //è¢«é‡Šæ”¾çš„ä¸‹ä¸€ä¸ªé¡µé¢
+    int nEntry;        /* Number of entries on one ptrmap page */             //åœ¨ä¸€ä¸ªptrmapé¡µä¸Šçš„æ¡ç›®æ•°
+    Pgno nOrig;        /* Database size before freeing */                     //é‡Šæ”¾å‰çš„æ•°æ®åº“å¤§å°
 
     nOrig = btreePagecount(pBt);
     if( PTRMAP_ISPAGE(pBt, nOrig) || nOrig==PENDING_BYTE_PAGE(pBt) ){
       /* It is not possible to create a database for which the final page
       ** is either a pointer-map page or the pending-byte page. If one
       ** is encountered, this indicates corruption.
-	  ** ¶ÔÓÚ×îºóÒ»Ò³ÊÇÒ»¸öÖ¸ÕëÓ³ÉäÒ³»òÕßÊÇpending-byteÀàĞÍµÄÒ³£¬´´½¨Ò»¸öÊı¾İ¿âÊÇ²»¿ÉÄÜµÄ¡£Èç¹û´´½¨ÁË,Õâ±íÃ÷ÊÇ²»Á¼µÄ¡£
+	  ** å¯¹äºæœ€åä¸€é¡µæ˜¯ä¸€ä¸ªæŒ‡é’ˆæ˜ å°„é¡µæˆ–è€…æ˜¯pending-byteç±»å‹çš„é¡µï¼Œåˆ›å»ºä¸€ä¸ªæ•°æ®åº“æ˜¯ä¸å¯èƒ½çš„ã€‚å¦‚æœåˆ›å»ºäº†,è¿™è¡¨æ˜æ˜¯ä¸è‰¯çš„ã€‚
       */
       return SQLITE_CORRUPT_BKPT;
     }
@@ -3448,17 +3448,17 @@ static int autoVacuumCommit(BtShared *pBt){
 **
 ** Once this is routine has returned, the only thing required to commit
 ** the write-transaction for this database file is to delete the journal.
-** Õâ¸öº¯ÊıÊÇÁ½½×¶ÎÌá½»µÄµÚÒ»½×¶Î¡£Õâ¸öº¯Êı´´½¨»Ø¹öÈÕÖ¾(Èç¹ûËü²»´æÔÚ)²¢¼ÓÈë×ã¹»µÄĞÅÏ¢ÒÔ±ãÓÚÈç¹û³öÏÖ¹¦ÂÊËğºÄ£¬
-** Êı¾İ¿â¿ÉÒÔÍ¨¹ıÈÕÖ¾»Ö¸´µ½Ô­À´µÄ×´Ì¬¡£ÈÕÖ¾µÄÄÚÈİ¾ÍĞ´»Øµ½´ÅÅÌ¡£ÔÚÈÕÖ¾°²È«Ğ´»Øºó,¸ü¸ÄµÄÊı¾İ¿âĞ´ÈëÊı¾İ¿âÎÄ¼şºÍĞ´µ½´ÅÅÌ¡£
-** Õâ¸öµ÷ÓÃ½áÊøÊ±,»Ø¹öÈÕÖ¾ÔÚ´ÅÅÌÉÏÈÔÈ»´æÔÚºÍÈÔ³ÖÓĞËùÓĞµÄËø,ËùÒÔÊÂÎñÃ»ÓĞÌá½».Ìá½»½ø³ÌµÄµÚ¶ş¸ö½×¶ÎÊÇsqlite3BtreeCommitPhaseTwo().
-** Èç¹ûÃ»ÓĞĞ´ÊÂÎñÄ¿Ç°»îÔ¾ÔÚpBtÉÏ£¬ÔòÕâ¸öµ÷ÓÃÊÇÒ»¸ö¿Õ²Ù×÷¡£
-** ·ñÔò,¶Ôbtree pBtµÄÊı¾İ¿âÎÄ¼şÍ¬²½¡£zMasterÖ¸ÏòÖ÷ÈÕÖ¾ÎÄ¼şµÄÃû×Ö£¬¸ÃÖ÷ÈÕÖ¾ÎÄ¼şÓ¦¸ÃĞ´½øµ¥¶ÀµÄÈÕÖ¾ÎÄ¼şÖĞ¡£
-** »òÕßÎª¿Õ,±íÊ¾Ã»ÓĞÖ÷ÈÕÖ¾ÎÄ¼ş(µ¥¸öÊı¾İ¿âÊÂÎñ)¡£µ±±»µ÷ÓÃÊ±,¸ÃÖ÷ÈÕÖ¾Ó¦¸ÃÒÑ±»´´½¨¡¢ÓÃÈÕÖ¾Ö¸ÕëºÍÍ¬²½Ğ´Èëµ½´ÅÅÌ¡£
-** Ò»µ©¸Ãº¯Êı·µ»Ø£¬Î¨Ò»ÊÂÇé¾ÍÊÇĞèÒªÌá½»Ğ´ÊÂÎñ£¬Êı¾İ¿âÎÄ¼şÓ¦¸ÃÉ¾³ıÈÕÖ¾¡£
-/*Ìá½»½×¶Î·ÖÎª2²¿·Ö£¬ÕâÊÇµÚ1²¿·Ö£¬³É¹¦·µ»ØSQLITE_OK¡£µÚ¶ş²¿·ÖÔÚsqlite3BtreeCommitPhaseTwo*/
+** è¿™ä¸ªå‡½æ•°æ˜¯ä¸¤é˜¶æ®µæäº¤çš„ç¬¬ä¸€é˜¶æ®µã€‚è¿™ä¸ªå‡½æ•°åˆ›å»ºå›æ»šæ—¥å¿—(å¦‚æœå®ƒä¸å­˜åœ¨)å¹¶åŠ å…¥è¶³å¤Ÿçš„ä¿¡æ¯ä»¥ä¾¿äºå¦‚æœå‡ºç°åŠŸç‡æŸè€—ï¼Œ
+** æ•°æ®åº“å¯ä»¥é€šè¿‡æ—¥å¿—æ¢å¤åˆ°åŸæ¥çš„çŠ¶æ€ã€‚æ—¥å¿—çš„å†…å®¹å°±å†™å›åˆ°ç£ç›˜ã€‚åœ¨æ—¥å¿—å®‰å…¨å†™å›å,æ›´æ”¹çš„æ•°æ®åº“å†™å…¥æ•°æ®åº“æ–‡ä»¶å’Œå†™åˆ°ç£ç›˜ã€‚
+** è¿™ä¸ªè°ƒç”¨ç»“æŸæ—¶,å›æ»šæ—¥å¿—åœ¨ç£ç›˜ä¸Šä»ç„¶å­˜åœ¨å’Œä»æŒæœ‰æ‰€æœ‰çš„é”,æ‰€ä»¥äº‹åŠ¡æ²¡æœ‰æäº¤.æäº¤è¿›ç¨‹çš„ç¬¬äºŒä¸ªé˜¶æ®µæ˜¯sqlite3BtreeCommitPhaseTwo().
+** å¦‚æœæ²¡æœ‰å†™äº‹åŠ¡ç›®å‰æ´»è·ƒåœ¨pBtä¸Šï¼Œåˆ™è¿™ä¸ªè°ƒç”¨æ˜¯ä¸€ä¸ªç©ºæ“ä½œã€‚
+** å¦åˆ™,å¯¹btree pBtçš„æ•°æ®åº“æ–‡ä»¶åŒæ­¥ã€‚zMasteræŒ‡å‘ä¸»æ—¥å¿—æ–‡ä»¶çš„åå­—ï¼Œè¯¥ä¸»æ—¥å¿—æ–‡ä»¶åº”è¯¥å†™è¿›å•ç‹¬çš„æ—¥å¿—æ–‡ä»¶ä¸­ã€‚
+** æˆ–è€…ä¸ºç©º,è¡¨ç¤ºæ²¡æœ‰ä¸»æ—¥å¿—æ–‡ä»¶(å•ä¸ªæ•°æ®åº“äº‹åŠ¡)ã€‚å½“è¢«è°ƒç”¨æ—¶,è¯¥ä¸»æ—¥å¿—åº”è¯¥å·²è¢«åˆ›å»ºã€ç”¨æ—¥å¿—æŒ‡é’ˆå’ŒåŒæ­¥å†™å…¥åˆ°ç£ç›˜ã€‚
+** ä¸€æ—¦è¯¥å‡½æ•°è¿”å›ï¼Œå”¯ä¸€äº‹æƒ…å°±æ˜¯éœ€è¦æäº¤å†™äº‹åŠ¡ï¼Œæ•°æ®åº“æ–‡ä»¶åº”è¯¥åˆ é™¤æ—¥å¿—ã€‚
+/*æäº¤é˜¶æ®µåˆ†ä¸º2éƒ¨åˆ†ï¼Œè¿™æ˜¯ç¬¬1éƒ¨åˆ†ï¼ŒæˆåŠŸè¿”å›SQLITE_OKã€‚ç¬¬äºŒéƒ¨åˆ†åœ¨sqlite3BtreeCommitPhaseTwo*/
 int sqlite3BtreeCommitPhaseOne(Btree *p, const char *zMaster){
   int rc = SQLITE_OK;
-  if( p->inTrans==TRANS_WRITE ){/*ÈôÃ»ÓĞĞ´ÊÂÎñ£¬´Ëµ÷ÓÃÎª¿Õ²Ù×÷*/
+  if( p->inTrans==TRANS_WRITE ){/*è‹¥æ²¡æœ‰å†™äº‹åŠ¡ï¼Œæ­¤è°ƒç”¨ä¸ºç©ºæ“ä½œ*/
     BtShared *pBt = p->pBt;
     sqlite3BtreeEnter(p);
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -3479,18 +3479,18 @@ int sqlite3BtreeCommitPhaseOne(Btree *p, const char *zMaster){
 /*
 ** This function is called from both BtreeCommitPhaseTwo() and BtreeRollback()
 ** at the conclusion of a transaction.
-** ÔÚÒ»¸öÊÂÎñµÄ½áÊø£¬BtreeCommitPhaseTwo()ºÍBtreeRollback()µ÷ÓÃÕâ¸öº¯Êı¡£
+** åœ¨ä¸€ä¸ªäº‹åŠ¡çš„ç»“æŸï¼ŒBtreeCommitPhaseTwo()å’ŒBtreeRollback()è°ƒç”¨è¿™ä¸ªå‡½æ•°ã€‚
 */
 static void btreeEndTransaction(Btree *p){
   BtShared *pBt = p->pBt;
   assert( sqlite3BtreeHoldsMutex(p) );
 
-  btreeClearHasContent(pBt);	/*Ïú»ÙÎ»Í¼¶ÔÏó£¬»ØÊÕÓÃ¹ıµÄÄÚ´æ*/
+  btreeClearHasContent(pBt);	/*é”€æ¯ä½å›¾å¯¹è±¡ï¼Œå›æ”¶ç”¨è¿‡çš„å†…å­˜*/
   if( p->inTrans>TRANS_NONE && p->db->activeVdbeCnt>1 ){
     /* If there are other active statements that belong to this database
     ** handle, downgrade to a read-only transaction. The other statements
     ** may still be reading from the database.  
-	** Èç¹ûÓĞÆäËû»îÔ¾µÄÊôÓÚÕâ¸öÊı¾İ¿â´¦Àí³ÌĞòµÄÓï¾ä,ÏÂµ÷Ò»¸öÖ»¶ÁÊÂÎñ¡£ÆäËûÓï¾ä»òĞíÕıÔÚ´ÓÊı¾İ¿âÖĞ¶Á¡£*/
+	** å¦‚æœæœ‰å…¶ä»–æ´»è·ƒçš„å±äºè¿™ä¸ªæ•°æ®åº“å¤„ç†ç¨‹åºçš„è¯­å¥,ä¸‹è°ƒä¸€ä¸ªåªè¯»äº‹åŠ¡ã€‚å…¶ä»–è¯­å¥æˆ–è®¸æ­£åœ¨ä»æ•°æ®åº“ä¸­è¯»ã€‚*/
     downgradeAllSharedCacheTableLocks(p);
     p->inTrans = TRANS_READ;
   }else{
@@ -3498,21 +3498,21 @@ static void btreeEndTransaction(Btree *p){
     ** transaction count of the shared btree. If the transaction count 
     ** reaches 0, set the shared state to TRANS_NONE. The unlockBtreeIfUnused()
     ** call below will unlock the pager.  
-	** Èç¹û´¦ÀíÈÎºÎÊÂÎñ¿ª·Å£¬¼õÁ¿¿É¹²ÏíBÊ÷µÄÊÂÎñÊı¡£Èç¹ûÊÂÎñÊı´ïµ½0,ÉèÖÃ¹²Ïí×´Ì¬ÎªTRANS_NONE¡£
-	** unlockBtreeIfUnused()µ÷ÓÃÏÂÃæ½«½âËøpager¡£*/
-    if( p->inTrans!=TRANS_NONE ){ /*ÓĞÊÂÎñ*/
+	** å¦‚æœå¤„ç†ä»»ä½•äº‹åŠ¡å¼€æ”¾ï¼Œå‡é‡å¯å…±äº«Bæ ‘çš„äº‹åŠ¡æ•°ã€‚å¦‚æœäº‹åŠ¡æ•°è¾¾åˆ°0,è®¾ç½®å…±äº«çŠ¶æ€ä¸ºTRANS_NONEã€‚
+	** unlockBtreeIfUnused()è°ƒç”¨ä¸‹é¢å°†è§£é”pagerã€‚*/
+    if( p->inTrans!=TRANS_NONE ){ /*æœ‰äº‹åŠ¡*/
       clearAllSharedCacheTableLocks(p);
       pBt->nTransaction--;
       if( 0==pBt->nTransaction ){
-        pBt->inTransaction = TRANS_NONE; /*ÊÂÎñ´¦ÀíÍêÁË*/
+        pBt->inTransaction = TRANS_NONE; /*äº‹åŠ¡å¤„ç†å®Œäº†*/
       }
     }
 
     /* Set the current transaction state to TRANS_NONE and unlock the 
     ** pager if this call closed the only read or write transaction.  
-	** ÉèÖÃµ±Ç°ÊÂÎñ×´Ì¬TRANS_NONE²¢Èç¹ûÕâ¸öµ÷ÓÃ¹Ø±ÕÎ¨Ò»¶Á»òĞ´ÊÂÎñÔò½âËøpager¡£*/
+	** è®¾ç½®å½“å‰äº‹åŠ¡çŠ¶æ€TRANS_NONEå¹¶å¦‚æœè¿™ä¸ªè°ƒç”¨å…³é—­å”¯ä¸€è¯»æˆ–å†™äº‹åŠ¡åˆ™è§£é”pagerã€‚*/
     p->inTrans = TRANS_NONE;
-    unlockBtreeIfUnused(pBt);/*µ±¹Ø±ÕÁË×îºóµÄ¶Á»òĞ´ÊÂÎñ£¬½âËøpager*/
+    unlockBtreeIfUnused(pBt);/*å½“å…³é—­äº†æœ€åçš„è¯»æˆ–å†™äº‹åŠ¡ï¼Œè§£é”pager*/
   }
 
   btreeIntegrity(p);
@@ -3520,7 +3520,7 @@ static void btreeEndTransaction(Btree *p){
 
 /*
 ** Commit the transaction currently in progress.
-** Ìá½»µ±Ç°ÔÚ½ø³ÌÖĞµÄÊÂÎñ¡£
+** æäº¤å½“å‰åœ¨è¿›ç¨‹ä¸­çš„äº‹åŠ¡ã€‚
 ** This routine implements the second phase of a 2-phase commit.  The
 ** sqlite3BtreeCommitPhaseOne() routine does the first phase and should
 ** be invoked prior to calling this routine.  The sqlite3BtreeCommitPhaseOne()
@@ -3545,34 +3545,34 @@ static void btreeEndTransaction(Btree *p){
 ** are no active cursors, it also releases the read lock.
 */
 
-/*Ìá½»½×¶Î·ÖÎª2²¿·Ö£¬ÕâÊÇµÚ2²¿·Ö¡£µÚÒ»²¿·ÖÔÚsqlite3BtreeCommitPhaseOne
-Á½Õß¹ØÏµ:
-1¡¢µÚÒ»½×¶Îµ÷ÓÃºó²ÅÄÜµ÷ÓÃµÚ¶ş½×¶Î¡£
-2¡¢µÚÒ»½×¶ÎÍê³ÉĞ´ĞÅÏ¢µ½´ÅÅÌ¡£µÚ¶ş½×¶ÎÊÍ·ÅĞ´Ëø£¬ÈôÎŞ»î¶¯ÓÎ±ê£¬ÊÍ·Å¶ÁËø¡£
-ÎªÊ²Ã´·Ö2¸ö½×¶Î?
-±£Ö¤ËùÓĞ½ÚµãÔÚ½øĞĞÊÂÎñÌá½»Ê±±£³ÖÒ»ÖÂĞÔ¡£ÔÚ·Ö²¼Ê½ÏµÍ³ÖĞ£¬Ã¿¸ö½ÚµãËäÈ»¿ÉÒÔÖªÏş×Ô¼ºµÄ²Ù×÷Ê±³É¹¦
-»òÕßÊ§°Ü£¬È´ÎŞ·¨ÖªµÀÆäËû½ÚµãµÄ²Ù×÷µÄ³É¹¦»òÊ§°Ü¡£µ±Ò»¸öÊÂÎñ¿çÔ½¶à¸ö½ÚµãÊ±£¬ÎªÁË±£³ÖÊÂÎñµÄ
-ACIDÌØĞÔ£¬ĞèÒªÒıÈëÒ»¸ö×÷ÎªĞ­µ÷ÕßµÄ×é¼şÀ´Í³Ò»ÕÆ¿ØËùÓĞ½Úµã(³Æ×÷²ÎÓëÕß)µÄ²Ù×÷½á¹û²¢×îÖÕÖ¸Ê¾
-ÕâĞ©½ÚµãÊÇ·ñÒª°Ñ²Ù×÷½á¹û½øĞĞÕæÕıµÄÌá½»(±ÈÈç½«¸üĞÂºóµÄÊı¾İĞ´Èë´ÅÅÌµÈµÈ)¡£Òò´Ë£¬¶ş½×¶ÎÌá½»
-µÄËã·¨Ë¼Â·¿ÉÒÔ¸ÅÀ¨Îª£º ²ÎÓëÕß½«²Ù×÷³É°ÜÍ¨ÖªĞ­µ÷Õß£¬ÔÙÓÉĞ­µ÷Õß¸ù¾İËùÓĞ²ÎÓëÕßµÄ·´À¡Çé±¨¾ö¶¨
-¸÷²ÎÓëÕßÊÇ·ñÒªÌá½»²Ù×÷»¹ÊÇÖĞÖ¹²Ù×÷¡£
+/*æäº¤é˜¶æ®µåˆ†ä¸º2éƒ¨åˆ†ï¼Œè¿™æ˜¯ç¬¬2éƒ¨åˆ†ã€‚ç¬¬ä¸€éƒ¨åˆ†åœ¨sqlite3BtreeCommitPhaseOne
+ä¸¤è€…å…³ç³»:
+1ã€ç¬¬ä¸€é˜¶æ®µè°ƒç”¨åæ‰èƒ½è°ƒç”¨ç¬¬äºŒé˜¶æ®µã€‚
+2ã€ç¬¬ä¸€é˜¶æ®µå®Œæˆå†™ä¿¡æ¯åˆ°ç£ç›˜ã€‚ç¬¬äºŒé˜¶æ®µé‡Šæ”¾å†™é”ï¼Œè‹¥æ— æ´»åŠ¨æ¸¸æ ‡ï¼Œé‡Šæ”¾è¯»é”ã€‚
+ä¸ºä»€ä¹ˆåˆ†2ä¸ªé˜¶æ®µ?
+ä¿è¯æ‰€æœ‰èŠ‚ç‚¹åœ¨è¿›è¡Œäº‹åŠ¡æäº¤æ—¶ä¿æŒä¸€è‡´æ€§ã€‚åœ¨åˆ†å¸ƒå¼ç³»ç»Ÿä¸­ï¼Œæ¯ä¸ªèŠ‚ç‚¹è™½ç„¶å¯ä»¥çŸ¥æ™“è‡ªå·±çš„æ“ä½œæ—¶æˆåŠŸ
+æˆ–è€…å¤±è´¥ï¼Œå´æ— æ³•çŸ¥é“å…¶ä»–èŠ‚ç‚¹çš„æ“ä½œçš„æˆåŠŸæˆ–å¤±è´¥ã€‚å½“ä¸€ä¸ªäº‹åŠ¡è·¨è¶Šå¤šä¸ªèŠ‚ç‚¹æ—¶ï¼Œä¸ºäº†ä¿æŒäº‹åŠ¡çš„
+ACIDç‰¹æ€§ï¼Œéœ€è¦å¼•å…¥ä¸€ä¸ªä½œä¸ºåè°ƒè€…çš„ç»„ä»¶æ¥ç»Ÿä¸€æŒæ§æ‰€æœ‰èŠ‚ç‚¹(ç§°ä½œå‚ä¸è€…)çš„æ“ä½œç»“æœå¹¶æœ€ç»ˆæŒ‡ç¤º
+è¿™äº›èŠ‚ç‚¹æ˜¯å¦è¦æŠŠæ“ä½œç»“æœè¿›è¡ŒçœŸæ­£çš„æäº¤(æ¯”å¦‚å°†æ›´æ–°åçš„æ•°æ®å†™å…¥ç£ç›˜ç­‰ç­‰)ã€‚å› æ­¤ï¼ŒäºŒé˜¶æ®µæäº¤
+çš„ç®—æ³•æ€è·¯å¯ä»¥æ¦‚æ‹¬ä¸ºï¼š å‚ä¸è€…å°†æ“ä½œæˆè´¥é€šçŸ¥åè°ƒè€…ï¼Œå†ç”±åè°ƒè€…æ ¹æ®æ‰€æœ‰å‚ä¸è€…çš„åé¦ˆæƒ…æŠ¥å†³å®š
+å„å‚ä¸è€…æ˜¯å¦è¦æäº¤æ“ä½œè¿˜æ˜¯ä¸­æ­¢æ“ä½œã€‚
 */
 
 int sqlite3BtreeCommitPhaseTwo(Btree *p, int bCleanup){
 
   if( p->inTrans==TRANS_NONE ) return SQLITE_OK;
   sqlite3BtreeEnter(p);
-  btreeIntegrity(p); /*¼ì²éÊÂÎñ´¦ÓÚÒ»ÖÂĞÔ×´Ì¬*/
+  btreeIntegrity(p); /*æ£€æŸ¥äº‹åŠ¡å¤„äºä¸€è‡´æ€§çŠ¶æ€*/
 
   /* If the handle has a write-transaction open, commit the shared-btrees 
   ** transaction and set the shared state to TRANS_READ.
-  ** Èç¹û¸Ã¾ä±úÓĞ¿ª·ÅĞÔĞ´ÊÂÎñ,Ìá½»shared-btreesÊÂÎñ²¢ÉèÖÃÊÂÎñ¹²Ïí×´Ì¬ÎªTRANS_READ¡£*/
+  ** å¦‚æœè¯¥å¥æŸ„æœ‰å¼€æ”¾æ€§å†™äº‹åŠ¡,æäº¤shared-btreesäº‹åŠ¡å¹¶è®¾ç½®äº‹åŠ¡å…±äº«çŠ¶æ€ä¸ºTRANS_READã€‚*/
   if( p->inTrans==TRANS_WRITE ){
     int rc;
     BtShared *pBt = p->pBt;
     assert( pBt->inTransaction==TRANS_WRITE );
     assert( pBt->nTransaction>0 );
-    rc = sqlite3PagerCommitPhaseTwo(pBt->pPager); /*Ìá½»ÊÂÎñ*/
+    rc = sqlite3PagerCommitPhaseTwo(pBt->pPager); /*æäº¤äº‹åŠ¡*/
     if( rc!=SQLITE_OK && bCleanup==0 ){
       sqlite3BtreeLeave(p);
       return rc;
@@ -3586,7 +3586,7 @@ int sqlite3BtreeCommitPhaseTwo(Btree *p, int bCleanup){
 }
 
 /*
-** Do both phases of a commit.  Á½½×¶ÎÊÂÎñÌá½»
+** Do both phases of a commit.  ä¸¤é˜¶æ®µäº‹åŠ¡æäº¤
 */
 int sqlite3BtreeCommit(Btree *p){
   int rc;
@@ -3604,18 +3604,18 @@ int sqlite3BtreeCommit(Btree *p){
 ** Return the number of write-cursors open on this handle. This is for use
 ** in assert() expressions, so it is only compiled if NDEBUG is not
 ** defined.
-** Õâ¸ö¾ä±ú·µ»Ø¿ª·ÅĞÔĞ´ÓÎ±êÊı¡£ÔÚassert()Óï¾äÖĞÊ¹ÓÃ£¬Òò´ËÈç¹ûNDEBUGÃ»ÓĞ¶¨ÒåÔòËüÖ»±àÒë¡£
+** è¿™ä¸ªå¥æŸ„è¿”å›å¼€æ”¾æ€§å†™æ¸¸æ ‡æ•°ã€‚åœ¨assert()è¯­å¥ä¸­ä½¿ç”¨ï¼Œå› æ­¤å¦‚æœNDEBUGæ²¡æœ‰å®šä¹‰åˆ™å®ƒåªç¼–è¯‘ã€‚
 ** For the purposes of this routine, a write-cursor is any cursor that
 ** is capable of writing to the databse.  That means the cursor was
 ** originally opened for writing and the cursor has not be disabled
 ** by having its state changed to CURSOR_FAULT.
 */
-/*·µ»ØĞ´ÓÎ±êµÄÊıÁ¿*/
+/*è¿”å›å†™æ¸¸æ ‡çš„æ•°é‡*/
 static int countWriteCursors(BtShared *pBt){
   BtCursor *pCur;
   int r = 0;
   for(pCur=pBt->pCursor; pCur; pCur=pCur->pNext){
-    if( pCur->wrFlag && pCur->eState!=CURSOR_FAULT ) r++; /*pCur->eState!=CURSOR_FAULTÊ±£¬ÓÎ±ê´¦ÓÚ¼¤»î×´Ì¬*/
+    if( pCur->wrFlag && pCur->eState!=CURSOR_FAULT ) r++; /*pCur->eState!=CURSOR_FAULTæ—¶ï¼Œæ¸¸æ ‡å¤„äºæ¿€æ´»çŠ¶æ€*/
   }
   return r;
 }
@@ -3625,11 +3625,11 @@ static int countWriteCursors(BtShared *pBt){
 ** This routine sets the state to CURSOR_FAULT and the error
 ** code to errCode for every cursor on BtShared that pBtree
 ** references.
-** ¶ÔÓÚpBtreeÒıÓÃµÄBtSharedÉÏµÄÓÎ±êÕâ¸öº¯Êı½«×´Ì¬ÉèÖÃÎªCURSOR_FAULTºÍ´íÎó´úÂëÎªerrCode¡£
+** å¯¹äºpBtreeå¼•ç”¨çš„BtSharedä¸Šçš„æ¸¸æ ‡è¿™ä¸ªå‡½æ•°å°†çŠ¶æ€è®¾ç½®ä¸ºCURSOR_FAULTå’Œé”™è¯¯ä»£ç ä¸ºerrCodeã€‚
 ** Every cursor is tripped, including cursors that belong
 ** to other database connections that happen to be sharing
 ** the cache with pBtree.
-** Ã¿¸öÓÎ±ê¶¼±»±éÀú£¬°üÀ¨ÊôÓÚÆäËûÊı¾İ¿âÁ¬½ÓµÄÓÎ±ê£¬ÆäÖĞÊı¾İ¿âÁ¬½ÓÕıÔÚÓëpBtree¹²Ïí»º´æ¡£
+** æ¯ä¸ªæ¸¸æ ‡éƒ½è¢«éå†ï¼ŒåŒ…æ‹¬å±äºå…¶ä»–æ•°æ®åº“è¿æ¥çš„æ¸¸æ ‡ï¼Œå…¶ä¸­æ•°æ®åº“è¿æ¥æ­£åœ¨ä¸pBtreeå…±äº«ç¼“å­˜ã€‚
 ** This routine gets called when a rollback occurs.
 ** All cursors using the same cache must be tripped
 ** to prevent them from trying to use the btree after
@@ -3637,10 +3637,10 @@ static int countWriteCursors(BtShared *pBt){
 ** or moved root pages, so it is not sufficient to
 ** save the state of the cursor.  The cursor must be
 ** invalidated.
-** µ±·¢Éú»Ø¹öÊ±Õâ¸öº¯Êı±»µ÷ÓÃ¡£ËùÓĞÊ¹ÓÃÏàÍ¬µÄ»º´æµÄÓÎ±ê±ØĞë±»±éÀú,ÒÔ×èÖ¹ËûÃÇÔÚ»Ø¹öÖ®ºóÊÔÍ¼ÀûÓÃbtree¡£
-** »Ø¹ö¿ÉÄÜÉ¾³ı±í»òÒÆ¶¯¸ùÒ³Ãæ,ËùÒÔ±£´æÓÎ±êµÄ×´Ì¬ÊÇ²»¹»µÄ¡£ÓÎ±ê±ØĞëÊ§Ğ§¡£
+** å½“å‘ç”Ÿå›æ»šæ—¶è¿™ä¸ªå‡½æ•°è¢«è°ƒç”¨ã€‚æ‰€æœ‰ä½¿ç”¨ç›¸åŒçš„ç¼“å­˜çš„æ¸¸æ ‡å¿…é¡»è¢«éå†,ä»¥é˜»æ­¢ä»–ä»¬åœ¨å›æ»šä¹‹åè¯•å›¾åˆ©ç”¨btreeã€‚
+** å›æ»šå¯èƒ½åˆ é™¤è¡¨æˆ–ç§»åŠ¨æ ¹é¡µé¢,æ‰€ä»¥ä¿å­˜æ¸¸æ ‡çš„çŠ¶æ€æ˜¯ä¸å¤Ÿçš„ã€‚æ¸¸æ ‡å¿…é¡»å¤±æ•ˆã€‚
 */
-/*½«ÓÎ±ê×´Ì¬ÉèÖÃÎª CURSOR_FAULT £¬½«error codeÉèÖÃÎªerrCode*/
+/*å°†æ¸¸æ ‡çŠ¶æ€è®¾ç½®ä¸º CURSOR_FAULT ï¼Œå°†error codeè®¾ç½®ä¸ºerrCode*/
 void sqlite3BtreeTripAllCursors(Btree *pBtree, int errCode){
   BtCursor *p;
   if( pBtree==0 ) return;
@@ -3663,12 +3663,12 @@ void sqlite3BtreeTripAllCursors(Btree *pBtree, int errCode){
 ** invalided by this operation.  Any attempt to use a cursor
 ** that was open at the beginning of this operation will result
 ** in an error.
-** »Ø¹ö½ø³ÌÖĞµÄÊÂÎñ¡£Í¨¹ı¸Ã²Ù×÷ÊÇËùÓĞÓÎ±êÊ§Ğ§¡£ÈÎºÎÊÔÍ¼Ê¹ÓÃÔÚÕâ¸ö²Ù×÷¿ªÊ¼Ê±´ò¿ªµÄÓÎ±ê¶¼»á³ö´í¡£
+** å›æ»šè¿›ç¨‹ä¸­çš„äº‹åŠ¡ã€‚é€šè¿‡è¯¥æ“ä½œæ˜¯æ‰€æœ‰æ¸¸æ ‡å¤±æ•ˆã€‚ä»»ä½•è¯•å›¾ä½¿ç”¨åœ¨è¿™ä¸ªæ“ä½œå¼€å§‹æ—¶æ‰“å¼€çš„æ¸¸æ ‡éƒ½ä¼šå‡ºé”™ã€‚
 ** This will release the write lock on the database file.  If there
 ** are no active cursors, it also releases the read lock.
-** Õâ½«ÊÍ·ÅÔÚÊı¾İ¿âÎÄ¼şÖĞµÄĞ´Ëø¡£Èç¹ûÃ»ÓĞ»îÔ¾µÄÓÎ±ê,Ò²»áÊÍ·Å¶ÁËø¡£
+** è¿™å°†é‡Šæ”¾åœ¨æ•°æ®åº“æ–‡ä»¶ä¸­çš„å†™é”ã€‚å¦‚æœæ²¡æœ‰æ´»è·ƒçš„æ¸¸æ ‡,ä¹Ÿä¼šé‡Šæ”¾è¯»é”ã€‚
 */
-/*»Ø¹öÊÂÎñ£¬Ê¹ËùÓĞÓÎ±êÊ§Ğ§*/
+/*å›æ»šäº‹åŠ¡ï¼Œä½¿æ‰€æœ‰æ¸¸æ ‡å¤±æ•ˆ*/
 int sqlite3BtreeRollback(Btree *p, int tripCode){
   int rc;
   BtShared *pBt = p->pBt;
@@ -3685,7 +3685,7 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
   }
   btreeIntegrity(p);
 
-  if( p->inTrans==TRANS_WRITE ){/*ÊÍ·ÅÊı¾İ¿âÖĞµÄĞ´Ëø*/
+  if( p->inTrans==TRANS_WRITE ){/*é‡Šæ”¾æ•°æ®åº“ä¸­çš„å†™é”*/
     int rc2;
 
     assert( TRANS_WRITE==pBt->inTransaction );
@@ -3697,7 +3697,7 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
     /* The rollback may have destroyed the pPage1->aData value.  So
     ** call btreeGetPage() on page 1 again to make
     ** sure pPage1->aData is set correctly. 
-	** »Ø¹ö¿ÉÄÜÒÑ¾­ÆÆ»µÁËpPage1->aData¼ÛÖµ¡£ËùÒÔÔÚ1Ò³ÉÏÔÚ´Ëµ÷ÓÃbtreeGetPage()£¬È·¶¨pPage1->aDataÉèÖÃÕıÈ·¡£*/
+	** å›æ»šå¯èƒ½å·²ç»ç ´åäº†pPage1->aDataä»·å€¼ã€‚æ‰€ä»¥åœ¨1é¡µä¸Šåœ¨æ­¤è°ƒç”¨btreeGetPage()ï¼Œç¡®å®špPage1->aDataè®¾ç½®æ­£ç¡®ã€‚*/
     if( btreeGetPage(pBt, 1, &pPage1, 0)==SQLITE_OK ){
       int nPage = get4byte(28+(u8*)pPage1->aData);
       testcase( nPage==0 );
@@ -3707,7 +3707,7 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
       releasePage(pPage1);
     }
     assert( countWriteCursors(pBt)==0 );
-    pBt->inTransaction = TRANS_READ;/*ÈôÃ»ÓĞ»î¶¯ÓÎ±ê£¬ÊÍ·Å¶ÁËø¡£*/
+    pBt->inTransaction = TRANS_READ;/*è‹¥æ²¡æœ‰æ´»åŠ¨æ¸¸æ ‡ï¼Œé‡Šæ”¾è¯»é”ã€‚*/
   }
 
   btreeEndTransaction(p);
@@ -3719,27 +3719,27 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
 ** back independently of the main transaction. You must start a transaction 
 ** before starting a subtransaction. The subtransaction is ended automatically 
 ** if the main transaction commits or rolls back.
-** ¿ªÊ¼Ò»¸öÓï¾ä×ÓÊÂÎñ¡£×ÓÊÂÎñ¿ÉÒÔ±»Ö÷ÊÂÎñ¶ÀÁ¢µÄ»Ø¹ö¡£ÔÚ¿ªÊ¼×ÓÊÂÎñÖ®Ç°
-** ÒªÓĞÒ»¸öÖ÷ÊÂÎñ¡£Èç¹ûÖ÷ÒªÊÂÎñÌá½»»ò»Ø¹ö£¬×ÓÊÂÎñ×Ô¶¯½áÊø¡£
+** å¼€å§‹ä¸€ä¸ªè¯­å¥å­äº‹åŠ¡ã€‚å­äº‹åŠ¡å¯ä»¥è¢«ä¸»äº‹åŠ¡ç‹¬ç«‹çš„å›æ»šã€‚åœ¨å¼€å§‹å­äº‹åŠ¡ä¹‹å‰
+** è¦æœ‰ä¸€ä¸ªä¸»äº‹åŠ¡ã€‚å¦‚æœä¸»è¦äº‹åŠ¡æäº¤æˆ–å›æ»šï¼Œå­äº‹åŠ¡è‡ªåŠ¨ç»“æŸã€‚
 ** Statement subtransactions are used around individual SQL statements
 ** that are contained within a BEGIN...COMMIT block.  If a constraint
 ** error occurs within the statement, the effect of that one statement
 ** can be rolled back without having to rollback the entire transaction.
-** Óï¾ä×ÓÊÂÎñÊ¹ÓÃÔÚ°üº¬ÔÚÒ»¸öBEGIN...COMMIT¿éÖĞµÄµ¥¸öSQLÓï¾äÖĞ¡£
-** Èç¹ûÔÚÓï¾äÄÚ³öÏÖÒ»¸öÔ¼Êø´íÎó,Õâ¸öÓï¾äµÄĞ§¹û¿ÉÄÜÊÇ»Ø¹ö,
-** È»¶ø²¢²»ĞèÒª»Ø¹öÕû¸öÊÂÎñ¡£
+** è¯­å¥å­äº‹åŠ¡ä½¿ç”¨åœ¨åŒ…å«åœ¨ä¸€ä¸ªBEGIN...COMMITå—ä¸­çš„å•ä¸ªSQLè¯­å¥ä¸­ã€‚
+** å¦‚æœåœ¨è¯­å¥å†…å‡ºç°ä¸€ä¸ªçº¦æŸé”™è¯¯,è¿™ä¸ªè¯­å¥çš„æ•ˆæœå¯èƒ½æ˜¯å›æ»š,
+** ç„¶è€Œå¹¶ä¸éœ€è¦å›æ»šæ•´ä¸ªäº‹åŠ¡ã€‚
 ** A statement sub-transaction is implemented as an anonymous savepoint. The
 ** value passed as the second parameter is the total number of savepoints,
 ** including the new anonymous savepoint, open on the B-Tree. i.e. if there
 ** are no active savepoints and no other statement-transactions open,
 ** iStatement is 1. This anonymous savepoint can be released or rolled back
 ** using the sqlite3BtreeSavepoint() function.
-** ÉùÃ÷sub-transaction±»ÊµÏÖÎªÒ»¸öÄäÃûµÄ±£´æµã¡£×÷ÎªµÚ¶ş¸ö²ÎÊı´«µİ
-** µÄÖµÊÇ±£´æµãµÄ×ÜÊı,°üÀ¨ĞÂµÄÄäÃû±£´æµã,ÔÚb-ree¿ª·ÅµÄ¡£¼´Èç¹ûÃ»ÓĞ
-** »îÔ¾µÄ±£´æµãºÍÃ»ÓĞÆäËûstatement-transactions¿ª·Å,ÄÇÃ´iStatementÊÇ1¡£
-** Õâ¸öÄäÃûµÄ±£´æµã¿ÉÒÔÊ¹ÓÃsqlite3BtreeSavepoint()ÊÍ·Å»ò»Ø¹ö¡£
+** å£°æ˜sub-transactionè¢«å®ç°ä¸ºä¸€ä¸ªåŒ¿åçš„ä¿å­˜ç‚¹ã€‚ä½œä¸ºç¬¬äºŒä¸ªå‚æ•°ä¼ é€’
+** çš„å€¼æ˜¯ä¿å­˜ç‚¹çš„æ€»æ•°,åŒ…æ‹¬æ–°çš„åŒ¿åä¿å­˜ç‚¹,åœ¨b-reeå¼€æ”¾çš„ã€‚å³å¦‚æœæ²¡æœ‰
+** æ´»è·ƒçš„ä¿å­˜ç‚¹å’Œæ²¡æœ‰å…¶ä»–statement-transactionså¼€æ”¾,é‚£ä¹ˆiStatementæ˜¯1ã€‚
+** è¿™ä¸ªåŒ¿åçš„ä¿å­˜ç‚¹å¯ä»¥ä½¿ç”¨sqlite3BtreeSavepoint()é‡Šæ”¾æˆ–å›æ»šã€‚
 */
-int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //¿ªÊ¼Ò»¸öÓï¾ä×ÓÊÂÎñ
+int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //å¼€å§‹ä¸€ä¸ªè¯­å¥å­äº‹åŠ¡
   int rc;
   BtShared *pBt = p->pBt;
   sqlite3BtreeEnter(p);
@@ -3752,8 +3752,8 @@ int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //¿ªÊ¼Ò»¸öÓï¾ä×ÓÊÂÎñ
   ** an index greater than all savepoints created explicitly using
   ** SQL statements. It is illegal to open, release or rollback any
   ** such savepoints while the statement transaction savepoint is active.
-  ** ÔÚpager Ë®Æ½ÉÏ,Óï¾äÊÂÎñÊÇÒ»¸ö±£´æµã,´øÓĞÒ»¸ö´óÓÚÃ÷È·Ê¹ÓÃSQLÓï¾ä´´½¨µÄËùÓĞ±£´æ
-  ** µãµÄË÷Òı¡£µ±Óï¾äÊÂÎñ±£´æµã»îÔ¾Ê±£¬¿ª·Å£¬ÊÍ·Å»ò»Ø¹öÈÎºÎÕâÑùµÄ±£´æµã¶¼ÊÇ·Ç·¨µÄ¡£
+  ** åœ¨pager æ°´å¹³ä¸Š,è¯­å¥äº‹åŠ¡æ˜¯ä¸€ä¸ªä¿å­˜ç‚¹,å¸¦æœ‰ä¸€ä¸ªå¤§äºæ˜ç¡®ä½¿ç”¨SQLè¯­å¥åˆ›å»ºçš„æ‰€æœ‰ä¿å­˜
+  ** ç‚¹çš„ç´¢å¼•ã€‚å½“è¯­å¥äº‹åŠ¡ä¿å­˜ç‚¹æ´»è·ƒæ—¶ï¼Œå¼€æ”¾ï¼Œé‡Šæ”¾æˆ–å›æ»šä»»ä½•è¿™æ ·çš„ä¿å­˜ç‚¹éƒ½æ˜¯éæ³•çš„ã€‚
   */
   rc = sqlite3PagerOpenSavepoint(pBt->pPager, iStatement);
   sqlite3BtreeLeave(p);
@@ -3764,18 +3764,18 @@ int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //¿ªÊ¼Ò»¸öÓï¾ä×ÓÊÂÎñ
 ** or SAVEPOINT_RELEASE. This function either releases or rolls back the
 ** savepoint identified by parameter iSavepoint, depending on the value 
 ** of op.
-** ¸Ãº¯ÊıµÄµÚ¶ş¸ö²ÎÊı,op,×ÜÊÇSAVEPOINT_ROLLBACK»òSAVEPOINT_RELEASE¡£
-** Õâ¸öº¯ÊıÊÍ·Å»ò»Ø¹ö±»²ÎÊıiSavepointÊ¶±ğµÄ±£´æµã,ÊÇÒÀÀµÓÚopµÄÖµ¡£
+** è¯¥å‡½æ•°çš„ç¬¬äºŒä¸ªå‚æ•°,op,æ€»æ˜¯SAVEPOINT_ROLLBACKæˆ–SAVEPOINT_RELEASEã€‚
+** è¿™ä¸ªå‡½æ•°é‡Šæ”¾æˆ–å›æ»šè¢«å‚æ•°iSavepointè¯†åˆ«çš„ä¿å­˜ç‚¹,æ˜¯ä¾èµ–äºopçš„å€¼ã€‚
 ** Normally, iSavepoint is greater than or equal to zero. However, if op is
 ** SAVEPOINT_ROLLBACK, then iSavepoint may also be -1. In this case the 
 ** contents of the entire transaction are rolled back. This is different
 ** from a normal transaction rollback, as no locks are released and the
 ** transaction remains open.
-** Í¨³£,iSavepoint>=0¡£È»¶ø,Èç¹ûopÊÇ SAVEPOINT_ROLLBACK,ÄÇÃ´iSavepointÒ²¿ÉÄÜÊÇ1¡£ÔÚÕâÖÖ
-** Çé¿öÏÂ, Õû¸öÊÂÎñµÄÄÚÈİ»Ø¹ö¡£ÕâÓëÕı³£µÄÊÂÎñ»Ø¹öÊÇ²»Í¬µÄ,ÒòÎªÃ»ÓĞËøÊÍ·Å,ÊÂÎñÈÔÈ»¿ª·Å¡£
+** é€šå¸¸,iSavepoint>=0ã€‚ç„¶è€Œ,å¦‚æœopæ˜¯ SAVEPOINT_ROLLBACK,é‚£ä¹ˆiSavepointä¹Ÿå¯èƒ½æ˜¯1ã€‚åœ¨è¿™ç§
+** æƒ…å†µä¸‹, æ•´ä¸ªäº‹åŠ¡çš„å†…å®¹å›æ»šã€‚è¿™ä¸æ­£å¸¸çš„äº‹åŠ¡å›æ»šæ˜¯ä¸åŒçš„,å› ä¸ºæ²¡æœ‰é”é‡Šæ”¾,äº‹åŠ¡ä»ç„¶å¼€æ”¾ã€‚
 */
-/*opÎªSAVEPOINT_ROLLBACK»òSAVEPOINT_RELEASE£¬¸ù¾İ´ËÖµÊÍ·Å»òÕß»Ø¹ö±£´æµã*/
-int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //ÊÇÊÍ·Å»¹ÊÇ»Ø¹öÒÀÀµÓÚ²ÎÊıopµÄÖµ
+/*opä¸ºSAVEPOINT_ROLLBACKæˆ–SAVEPOINT_RELEASEï¼Œæ ¹æ®æ­¤å€¼é‡Šæ”¾æˆ–è€…å›æ»šä¿å­˜ç‚¹*/
+int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //æ˜¯é‡Šæ”¾è¿˜æ˜¯å›æ»šä¾èµ–äºå‚æ•°opçš„å€¼
   int rc = SQLITE_OK;
   if( p && p->inTrans==TRANS_WRITE ){
     BtShared *pBt = p->pBt;
@@ -3792,7 +3792,7 @@ int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //ÊÇÊÍ·Å»¹ÊÇ»Ø¹ö
       /* The database size was written into the offset 28 of the header
       ** when the transaction started, so we know that the value at offset
       ** 28 is nonzero. 
-	  ** ÔÚÊÂÎñ¿ªÊ¼Ê±£¬Êı¾İ¿âµÄ´óĞ¡ÊÇ±»Ğ´µ½Í·²¿µÄÆ«ÒÆÁ¿28´¦µÄ£¬Òò´ËÔÚÆ«ÒÆÁ¿28µÄÖµÊÇ·ÇÁãµÄ¡£*/
+	  ** åœ¨äº‹åŠ¡å¼€å§‹æ—¶ï¼Œæ•°æ®åº“çš„å¤§å°æ˜¯è¢«å†™åˆ°å¤´éƒ¨çš„åç§»é‡28å¤„çš„ï¼Œå› æ­¤åœ¨åç§»é‡28çš„å€¼æ˜¯éé›¶çš„ã€‚*/
       assert( pBt->nPage>0 );
     }
     sqlite3BtreeLeave(p);
@@ -3833,27 +3833,27 @@ int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //ÊÇÊÍ·Å»¹ÊÇ»Ø¹ö
 ** on pCur to initialize the memory space prior to invoking this routine.
 */
 /*
-ÎªBTree´´½¨Ò»¸öĞÂµÄÓÎ±ê£¬BÊ÷µÄ¸ùÔÚÒ³iTableÉÏ¡£
-Èç¹ûÇëÇóÒ»¸öÖ»¶ÁÓÎ±ê£¬Êı¾İ¿âÉÏÖÁÉÙÓĞÒ»¸öÖ»¶ÁÊÂÎñ´ò¿ª¡£
-Èç¹û±»ÇëÇóµÄÊÇĞ´ÓÎ±ê£¬±ØĞëÓĞÒ»´ò¿ªµÄĞ´ÊÂÎñ¡£
-ÈçwrFlag== 0£¬ÔòÓÎ±ê½öÄÜÓÃÓÚ¶ÁÈ¡¡£
-ÈçwrFlag== 1£¬ÔòÓÎ±ê¿ÉÓÃÓÚ¶Á»òÕßÓÃÓÚĞ´¡£
-1£ºwrFlag==1ÓÎ±ê±ØĞëÒÑ¾­´ò¿ª¡£
-2£º¹²ÏíÏàÍ¬µÄÒ³»º´æ£¬ ²»ÊÇREAD_UNCOMMITTED×´Ì¬£¬wrFlag==0 Ê±£¬
-ÓÎ±ê¿ÉÄÜ²»ÊÇ´ò¿ª×´Ì¬¡£
-3£ºÊı¾İ¿â±ØĞëÊÇ¿ÉĞ´µÄ£¨¶ø²»ÊÇÖ»¶Á½éÖÊ£©
-4£º±ØĞëÓĞÒ»¸ö»î¶¯µÄÊÂÎñ¡£
-¼ÙÉèÔÚµ÷ÓÃÕâ¸ö³ÌĞòÖ®Ç°£¬sqlite3BtreeCursorZero£¨£©±»µ÷ÓÃ£¬
-ÓÃpCur³õÊ¼»¯ÄÚ´æ¿Õ¼ä¡£
+ä¸ºBTreeåˆ›å»ºä¸€ä¸ªæ–°çš„æ¸¸æ ‡ï¼ŒBæ ‘çš„æ ¹åœ¨é¡µiTableä¸Šã€‚
+å¦‚æœè¯·æ±‚ä¸€ä¸ªåªè¯»æ¸¸æ ‡ï¼Œæ•°æ®åº“ä¸Šè‡³å°‘æœ‰ä¸€ä¸ªåªè¯»äº‹åŠ¡æ‰“å¼€ã€‚
+å¦‚æœè¢«è¯·æ±‚çš„æ˜¯å†™æ¸¸æ ‡ï¼Œå¿…é¡»æœ‰ä¸€æ‰“å¼€çš„å†™äº‹åŠ¡ã€‚
+å¦‚wrFlag== 0ï¼Œåˆ™æ¸¸æ ‡ä»…èƒ½ç”¨äºè¯»å–ã€‚
+å¦‚wrFlag== 1ï¼Œåˆ™æ¸¸æ ‡å¯ç”¨äºè¯»æˆ–è€…ç”¨äºå†™ã€‚
+1ï¼šwrFlag==1æ¸¸æ ‡å¿…é¡»å·²ç»æ‰“å¼€ã€‚
+2ï¼šå…±äº«ç›¸åŒçš„é¡µç¼“å­˜ï¼Œ ä¸æ˜¯READ_UNCOMMITTEDçŠ¶æ€ï¼ŒwrFlag==0 æ—¶ï¼Œ
+æ¸¸æ ‡å¯èƒ½ä¸æ˜¯æ‰“å¼€çŠ¶æ€ã€‚
+3ï¼šæ•°æ®åº“å¿…é¡»æ˜¯å¯å†™çš„ï¼ˆè€Œä¸æ˜¯åªè¯»ä»‹è´¨ï¼‰
+4ï¼šå¿…é¡»æœ‰ä¸€ä¸ªæ´»åŠ¨çš„äº‹åŠ¡ã€‚
+å‡è®¾åœ¨è°ƒç”¨è¿™ä¸ªç¨‹åºä¹‹å‰ï¼Œsqlite3BtreeCursorZeroï¼ˆï¼‰è¢«è°ƒç”¨ï¼Œ
+ç”¨pCuråˆå§‹åŒ–å†…å­˜ç©ºé—´ã€‚
 */
 static int btreeCursor(
-  Btree *p,                              /* The btree */                                  //pÎªBÊ÷
-  int iTable,                            /* Root page of table to open */      //¿ª·ÅµÄ±íµÄ¸ùÒ³
-  int wrFlag                           /* 1 to write. 0 read-only */              //wrFlagÎª1±íÊ¾Ğ´£¬0±íÊ¾Ö»¶Á
-  struct KeyInfo *pKeyInfo,              /* First arg to comparison function */     //±È½Ïº¯ÊıµÄµÚÒ»¸ö²ÎÊı
-  BtCursor *pCur                         /* Space for new cursor */        //ĞÂÓÎ±ê¿Õ¼ä
+  Btree *p,                              /* The btree */                                  //pä¸ºBæ ‘
+  int iTable,                            /* Root page of table to open */      //å¼€æ”¾çš„è¡¨çš„æ ¹é¡µ
+  int wrFlag                           /* 1 to write. 0 read-only */              //wrFlagä¸º1è¡¨ç¤ºå†™ï¼Œ0è¡¨ç¤ºåªè¯»
+  struct KeyInfo *pKeyInfo,              /* First arg to comparison function */     //æ¯”è¾ƒå‡½æ•°çš„ç¬¬ä¸€ä¸ªå‚æ•°
+  BtCursor *pCur                         /* Space for new cursor */        //æ–°æ¸¸æ ‡ç©ºé—´
 ){
-  BtShared *pBt = p->pBt;                /* Shared b-tree handle */   //¿É¹²ÏíBÊ÷¾ä±ú
+  BtShared *pBt = p->pBt;                /* Shared b-tree handle */   //å¯å…±äº«Bæ ‘å¥æŸ„
 
   assert( sqlite3BtreeHoldsMutex(p) );
   assert( wrFlag==0 || wrFlag==1 );
@@ -3862,18 +3862,18 @@ static int btreeCursor(
   ** b-tree database, the connection is holding the required table locks, 
   ** and that no other connection has any open cursor that conflicts with 
   ** this lock.  
-  ** ÏÂÃæµÄ¶ÏÑÔº¯ÊıÓï¾äÑéÖ¤ÊÇ²»ÊÇÒ»¸ö¿É¹²ÏíµÄBÊ÷Êı¾İ¿â£¬ÑéÖ¤Á¬½Ó³ÖÓĞĞèÒªµÄ±íËø²¢ÇÒ
-  ** Ã»ÓĞÆäËûÁ¬½ÓÓë¸ÃËø³åÍ»µÄÈÎºÎ¿ª·ÅµÄÓÎ±ê¡£
+  ** ä¸‹é¢çš„æ–­è¨€å‡½æ•°è¯­å¥éªŒè¯æ˜¯ä¸æ˜¯ä¸€ä¸ªå¯å…±äº«çš„Bæ ‘æ•°æ®åº“ï¼ŒéªŒè¯è¿æ¥æŒæœ‰éœ€è¦çš„è¡¨é”å¹¶ä¸”
+  ** æ²¡æœ‰å…¶ä»–è¿æ¥ä¸è¯¥é”å†²çªçš„ä»»ä½•å¼€æ”¾çš„æ¸¸æ ‡ã€‚
   */
-	/*ÏÂÃæµÄÓï¾äÑéÖ¤£¬Èç¹ûÕâÊÇÒ»¸ö¿É¹²Ïí
-BÊ÷Êı¾İ¿â£¬Á¬½Ó³ÖÓĞËùĞèµÄ±íËø£¬
-²¢Ã»ÓĞÆäËûÁ¬½Ó¾ßÓĞÈÎºÎ´ò¿ªµÄÓÎ±êÓë´ËËø³åÍ»
+	/*ä¸‹é¢çš„è¯­å¥éªŒè¯ï¼Œå¦‚æœè¿™æ˜¯ä¸€ä¸ªå¯å…±äº«
+Bæ ‘æ•°æ®åº“ï¼Œè¿æ¥æŒæœ‰æ‰€éœ€çš„è¡¨é”ï¼Œ
+å¹¶æ²¡æœ‰å…¶ä»–è¿æ¥å…·æœ‰ä»»ä½•æ‰“å¼€çš„æ¸¸æ ‡ä¸æ­¤é”å†²çª
  */
 
   assert( hasSharedCacheTableLock(p, iTable, pKeyInfo!=0, wrFlag+1) );
   assert( wrFlag==0 || !hasReadConflicts(p, iTable) );
 
-  /* Assert that the caller has opened the required transaction. */  //¶ÏÑÔµ÷ÓÃÕßÒÔ¿ª·ÅÁËËùĞèµÄÊÂÎñ¡£
+  /* Assert that the caller has opened the required transaction. */  //æ–­è¨€è°ƒç”¨è€…ä»¥å¼€æ”¾äº†æ‰€éœ€çš„äº‹åŠ¡ã€‚
   assert( p->inTrans>TRANS_NONE );
   assert( wrFlag==0 || p->inTrans==TRANS_WRITE );
   assert( pBt->pPage1 && pBt->pPage1->aData );
@@ -3888,7 +3888,7 @@ BÊ÷Êı¾İ¿â£¬Á¬½Ó³ÖÓĞËùĞèµÄ±íËø£¬
 
   /* Now that no other errors can occur, finish filling in the BtCursor
   ** variables and link the cursor into the BtShared list.  
-  ** ÏÖÔÚÃ»ÓĞÆäËû´íÎó·¢Éú,Íê³É¸øBtCursor±äÁ¿¸³ÖµºÍÁ´½ÓÓÎ±êµ½BtSharedÁĞ±í¡£*/
+  ** ç°åœ¨æ²¡æœ‰å…¶ä»–é”™è¯¯å‘ç”Ÿ,å®Œæˆç»™BtCursorå˜é‡èµ‹å€¼å’Œé“¾æ¥æ¸¸æ ‡åˆ°BtSharedåˆ—è¡¨ã€‚*/
   pCur->pgnoRoot = (Pgno)iTable;
   pCur->iPage = -1;
   pCur->pKeyInfo = pKeyInfo;
@@ -3905,15 +3905,15 @@ BÊ÷Êı¾İ¿â£¬Á¬½Ó³ÖÓĞËùĞèµÄ±íËø£¬
   return SQLITE_OK;
 }
 /*
-´´½¨Ò»¸öÖ¸ÏòÌØ¶¨B-treeµÄÓÎ±ê¡£ÓÎ±ê¿ÉÒÔÊÇ¶ÁÓÎ±ê£¬Ò²¿ÉÒÔÊÇĞ´ÓÎ±ê£¬µ«ÊÇ¶ÁÓÎ±êºÍĞ´ÓÎ±ê²»ÄÜÍ¬Ê±ÔÚ
-Í¬Ò»¸öB-treeÖĞ´æÔÚ¡£
+åˆ›å»ºä¸€ä¸ªæŒ‡å‘ç‰¹å®šB-treeçš„æ¸¸æ ‡ã€‚æ¸¸æ ‡å¯ä»¥æ˜¯è¯»æ¸¸æ ‡ï¼Œä¹Ÿå¯ä»¥æ˜¯å†™æ¸¸æ ‡ï¼Œä½†æ˜¯è¯»æ¸¸æ ‡å’Œå†™æ¸¸æ ‡ä¸èƒ½åŒæ—¶åœ¨
+åŒä¸€ä¸ªB-treeä¸­å­˜åœ¨ã€‚
 */
 int sqlite3BtreeCursor(
-  Btree *p,                                   /* The btree */                                        //pÎªBÊ÷
-  int iTable,                                 /* Root page of table to open */            //¿ª·ÅµÄ±íµÄ¸ùÒ³
-  int wrFlag,                                 /* 1 to write. 0 read-only */                  //wrFlagÎª1±íÊ¾Ğ´£¬0±íÊ¾Ö»¶Á
-  struct KeyInfo *pKeyInfo,                   /* First arg to xCompare() */   //±È½Ïº¯ÊıµÄµÚÒ»¸ö²ÎÊı
-  BtCursor *pCur                              /* Write new cursor here */            //Ğ´ĞÂµÄÓÎ±êµ½ÕâÀï
+  Btree *p,                                   /* The btree */                                        //pä¸ºBæ ‘
+  int iTable,                                 /* Root page of table to open */            //å¼€æ”¾çš„è¡¨çš„æ ¹é¡µ
+  int wrFlag,                                 /* 1 to write. 0 read-only */                  //wrFlagä¸º1è¡¨ç¤ºå†™ï¼Œ0è¡¨ç¤ºåªè¯»
+  struct KeyInfo *pKeyInfo,                   /* First arg to xCompare() */   //æ¯”è¾ƒå‡½æ•°çš„ç¬¬ä¸€ä¸ªå‚æ•°
+  BtCursor *pCur                              /* Write new cursor here */            //å†™æ–°çš„æ¸¸æ ‡åˆ°è¿™é‡Œ
 ){
   int rc;
   sqlite3BtreeEnter(p);
@@ -3924,20 +3924,20 @@ int sqlite3BtreeCursor(
 
 /*
 ** Return the size of a BtCursor object in bytes.
-** ·µ»ØBtCursor¶ÔÏóµÄ×Ö½Ú´óĞ¡
+** è¿”å›BtCursorå¯¹è±¡çš„å­—èŠ‚å¤§å°
 ** This interfaces is needed so that users of cursors can preallocate
 ** sufficient storage to hold a cursor.  The BtCursor object is opaque
 ** to users so they cannot do the sizeof() themselves - they must call
 ** this routine.
-** Õâ¸ö½Ó¿ÚÊÇÎªÁËÓÎ±êµÄÓÃ»§¿ÉÒÔÔ¤ÏÈ·ÖÅä×ã¹»´æ´¢¿Õ¼äÀ´´æ·ÅÒ»¸öÓÎ±ê¡£
-** BtCursor¶ÔÏó¶ÔÓÃ»§²»Í¸Ã÷,ËùÒÔËûÃÇ²»ÄÜ×ösizeof()¡ª±ØĞëµ÷ÓÃÕâ¸öº¯Êı¡£
+** è¿™ä¸ªæ¥å£æ˜¯ä¸ºäº†æ¸¸æ ‡çš„ç”¨æˆ·å¯ä»¥é¢„å…ˆåˆ†é…è¶³å¤Ÿå­˜å‚¨ç©ºé—´æ¥å­˜æ”¾ä¸€ä¸ªæ¸¸æ ‡ã€‚
+** BtCursorå¯¹è±¡å¯¹ç”¨æˆ·ä¸é€æ˜,æ‰€ä»¥ä»–ä»¬ä¸èƒ½åšsizeof()â€”å¿…é¡»è°ƒç”¨è¿™ä¸ªå‡½æ•°ã€‚
 */
 	/*
-	**·µ»ØÒ»¸öBtCursor¶ÔÏóµÄ´óĞ¡(ÒÔ×Ö½Ú¼Æ)¡£ĞèÒª¸Ã½Ó¿ÚÊ¹ÓÎ±ê¿ÉÒÔÔ¤ÏÈ·ÖÅä	
-	**×ã¹»µÄ´æ´¢¿Õ¼ä¡£¸ÃBtCursor¶ÔÏó¶ÔÓÃ»§ÊÇ²»Í¸Ã÷µÄ
-	**¶ÔÓÃ»§£¬ËûÃÇ²»ÄÜÓÃsizeof£¨£©- ËûÃÇ±ØĞëµ÷ÓÃ´Ë³ÌĞò¡£
+	**è¿”å›ä¸€ä¸ªBtCursorå¯¹è±¡çš„å¤§å°(ä»¥å­—èŠ‚è®¡)ã€‚éœ€è¦è¯¥æ¥å£ä½¿æ¸¸æ ‡å¯ä»¥é¢„å…ˆåˆ†é…	
+	**è¶³å¤Ÿçš„å­˜å‚¨ç©ºé—´ã€‚è¯¥BtCursorå¯¹è±¡å¯¹ç”¨æˆ·æ˜¯ä¸é€æ˜çš„
+	**å¯¹ç”¨æˆ·ï¼Œä»–ä»¬ä¸èƒ½ç”¨sizeofï¼ˆï¼‰- ä»–ä»¬å¿…é¡»è°ƒç”¨æ­¤ç¨‹åºã€‚
 	*/
-int sqlite3BtreeCursorSize(void){  //·µ»ØBtCursor¶ÔÏóµÄ×Ö½Ú´óĞ¡
+int sqlite3BtreeCursorSize(void){  //è¿”å›BtCursorå¯¹è±¡çš„å­—èŠ‚å¤§å°
   return ROUND8(sizeof(BtCursor));
 }
 
@@ -3950,13 +3950,12 @@ int sqlite3BtreeCursorSize(void){  //·µ»ØBtCursor¶ÔÏóµÄ×Ö½Ú´óĞ¡
 ** of run-time by skipping the initialization of those elements.
 */
 /*
-**³õÊ¼»¯´æ´¢Æ÷½«±»×ª»»³ÉÒ»¸öBtCursor¶ÔÏó¡£
-**
-**ÕâÀïÒ»¸ö¼òµ¥·½·¨ÊÇÓÃmemset()½«Õû¸ö¶ÔÏóÖÃÎªÁã¡£µ«ÊÂÊµÖ¤Ã÷£¬apPage[]ºÍaiIdx[]Êı×é²»ĞèÒª
-**½øĞĞµ÷Áã£¬ËûÃÇ±È½Ï´ó£¬ËùÒÔÎÒÃÇÍ¨¹ıÌø¹ıÕâĞ©ÔªËØµÄ³õÊ¼»¯£¬¿ÉÒÔ½ÚÊ¡ºÜ¶àµÄÔËĞĞÊ±¼ä¡£
+** åˆå§‹åŒ–å°†è¢«è½¬æ¢æˆä¸€ä¸ªBtCursorå¯¹è±¡çš„å­˜å‚¨å™¨ã€‚
+** è¿™é‡Œä¸€ä¸ªç®€å•æ–¹æ³•æ˜¯ç”¨memset()å°†æ•´ä¸ªå¯¹è±¡ç½®ä¸ºé›¶ã€‚ä½†äº‹å®è¯æ˜ï¼ŒapPage[]å’ŒaiIdx[]æ•°ç»„ä¸éœ€è¦
+** è¿›è¡Œè°ƒé›¶ï¼Œä»–ä»¬æ¯”è¾ƒå¤§ï¼Œæ‰€ä»¥æˆ‘ä»¬é€šè¿‡è·³è¿‡è¿™äº›å…ƒç´ çš„åˆå§‹åŒ–ï¼Œå¯ä»¥èŠ‚çœå¾ˆå¤šçš„è¿è¡Œæ—¶é—´ã€‚
 */
-void sqlite3BtreeCursorZero(BtCursor *p){  //ÓÃmemset()½«Õû¸ö¶ÔÏóÖÃÎªÁã
-  memset(p, 0, offsetof(BtCursor, iPage));
+void sqlite3BtreeCursorZero(BtCursor *p){  //åˆå§‹åŒ–å°†è¢«è½¬æ¢æˆä¸€ä¸ªBtCursorå¯¹è±¡çš„å­˜å‚¨å™¨
+  memset(p, 0, offsetof(BtCursor, iPage)); //ç”¨memset()å°†æ•´ä¸ªå¯¹è±¡ç½®ä¸ºé›¶
 }
 
 /*
@@ -3972,16 +3971,16 @@ void sqlite3BtreeCursorZero(BtCursor *p){  //ÓÃmemset()½«Õû¸ö¶ÔÏóÖÃÎªÁã
 ** or negative rowids are very uncommon so this should not be a problem.
 */
 	/*
-	**ÏàÍ¬µÄÊı¾İ¿âÎÄ¼şÖĞÉèÖÃÃ¿¸öÓÎ±êµÄcacheĞĞºÅ¡£
-	**¸ÃÖµÉèÖÃÎªiRowid¡£Ö»ÓĞÕıµÄrowidÖµ±»ÈÏÎªÊÇÊÊÓÃÓÚ¸Ã»º´æ¡£
-	**¸ßËÙ»º´æ±»³õÊ¼»¯ÎªÁã£¬±íÊ¾Ò»¸öÎŞĞ§µÄ¸ßËÙ»º³å´æ´¢Æ÷¡£
-	**Ò»¸öBÊ÷ÓĞÁã»ò¸ºµÄrowid½«Õı³£¹¤×÷¡£
-	**¸ßËÙ»º´æÎªÁã»ò¸ºµÄrowid²»ĞĞ£¬ÕâÒâÎ¶×Å±íÊ¹ÓÃÁã»ò
-	**¸ºµÄrowid¿ÉÄÜÔËĞĞÂıÒ»µã¡£µ«ÔÚÊµ¼ùÖĞ£¬Áã
-	**»ò¸ºµÄrowid·Ç³£ÉÙ¼ûËùÒÔÕâ²»Ó¦¸ÃÊÇÒ»¸öÎÊÌâ¡£
+	**ç›¸åŒçš„æ•°æ®åº“æ–‡ä»¶ä¸­è®¾ç½®æ¯ä¸ªæ¸¸æ ‡çš„cacheè¡Œå·ã€‚
+	**è¯¥å€¼è®¾ç½®ä¸ºiRowidã€‚åªæœ‰æ­£çš„rowidå€¼è¢«è®¤ä¸ºæ˜¯é€‚ç”¨äºè¯¥ç¼“å­˜ã€‚
+	**é«˜é€Ÿç¼“å­˜è¢«åˆå§‹åŒ–ä¸ºé›¶ï¼Œè¡¨ç¤ºä¸€ä¸ªæ— æ•ˆçš„é«˜é€Ÿç¼“å†²å­˜å‚¨å™¨ã€‚
+	**ä¸€ä¸ªBæ ‘æœ‰é›¶æˆ–è´Ÿçš„rowidå°†æ­£å¸¸å·¥ä½œã€‚
+	**é«˜é€Ÿç¼“å­˜ä¸ºé›¶æˆ–è´Ÿçš„rowidä¸è¡Œï¼Œè¿™æ„å‘³ç€è¡¨ä½¿ç”¨é›¶æˆ–
+	**è´Ÿçš„rowidå¯èƒ½è¿è¡Œæ…¢ä¸€ç‚¹ã€‚ä½†åœ¨å®è·µä¸­ï¼Œé›¶
+	**æˆ–è´Ÿçš„rowidéå¸¸å°‘è§æ‰€ä»¥è¿™ä¸åº”è¯¥æ˜¯ä¸€ä¸ªé—®é¢˜ã€‚
 	*/
 
-void sqlite3BtreeSetCachedRowid(BtCursor *pCur, sqlite3_int64 iRowid){   //ÉèÖÃÏàÍ¬µÄÊı¾İ¿âÎÄ¼şÖĞÖĞÃ¿¸öÓÎ±êµÄcacheĞĞºÅ
+void sqlite3BtreeSetCachedRowid(BtCursor *pCur, sqlite3_int64 iRowid){   //è®¾ç½®ç›¸åŒçš„æ•°æ®åº“æ–‡ä»¶ä¸­ä¸­æ¯ä¸ªæ¸¸æ ‡çš„cacheè¡Œå·
   BtCursor *p;
   for(p=pCur->pBt->pCursor; p; p=p->pNext){
     if( p->pgnoRoot==pCur->pgnoRoot ) p->cachedRowid = iRowid;
@@ -3996,21 +3995,21 @@ void sqlite3BtreeSetCachedRowid(BtCursor *pCur, sqlite3_int64 iRowid){   //ÉèÖÃÏ
 ** zero is returned.
 */
 /*
-**·µ»ØÓÎ±êµÄ»º´æµÄrowid¡£¸º»òÎªÁãµÄ
-**·µ»ØÖµ±íÊ¾Æärowid¸ßËÙ»º´æÎŞĞ§£¬²¢Ó¦
-**ºöÂÔ¡£Èç¹ûrowid»º´æÒÔÇ°´ÓÎ´±»ÉèÖÃ£¬Ôò
-**·µ»ØÁã¡£
+**è¿”å›æ¸¸æ ‡çš„ç¼“å­˜çš„rowidã€‚è´Ÿæˆ–ä¸ºé›¶çš„
+**è¿”å›å€¼è¡¨ç¤ºå…¶rowidé«˜é€Ÿç¼“å­˜æ— æ•ˆï¼Œå¹¶åº”
+**å¿½ç•¥ã€‚å¦‚æœrowidç¼“å­˜ä»¥å‰ä»æœªè¢«è®¾ç½®ï¼Œåˆ™
+**è¿”å›é›¶ã€‚
 */
-sqlite3_int64 sqlite3BtreeGetCachedRowid(BtCursor *pCur){      //·µ»ØÓÎ±êµÄ»º´æµÄrowid
+sqlite3_int64 sqlite3BtreeGetCachedRowid(BtCursor *pCur){      //è¿”å›æ¸¸æ ‡çš„ç¼“å­˜çš„rowid
   return pCur->cachedRowid;
 }
 
 /*
 ** Close a cursor.  The read lock on the database file is released
 ** when the last cursor is closed.
-** ¹Ø±ÕB-treeÓÎ±ê¡£µ±×îºóÓÎ±ê¹Ø±ÕÊ±ÊÍ·ÅÊı¾İ¿âÉÏµÄ¶ÁËø¡£
-*/   /*¹Ø±ÕB-treeÓÎ±ê*/
-int sqlite3BtreeCloseCursor(BtCursor *pCur){  // ¹Ø±ÕB-treeÓÎ±ê
+** å…³é—­B-treeæ¸¸æ ‡ã€‚å½“æœ€åæ¸¸æ ‡å…³é—­æ—¶é‡Šæ”¾æ•°æ®åº“ä¸Šçš„è¯»é”ã€‚
+*/   /*å…³é—­B-treeæ¸¸æ ‡*/
+int sqlite3BtreeCloseCursor(BtCursor *pCur){  //å…³é—­B-treeæ¸¸æ ‡
   Btree *pBtree = pCur->pBtree;
   if( pBtree ){
     int i;
@@ -4040,10 +4039,10 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  // ¹Ø±ÕB-treeÓÎ±ê
 ** Make sure the BtCursor* given in the argument has a valid
 ** BtCursor.info structure.  If it is not already valid, call
 ** btreeParseCell() to fill it in.
-** È·±£ÔÚargumentÖĞ¸ø³öµÄBtCursor ÓĞÒ»¸öÓĞĞ§µÄBtCursor.info½á¹¹¡£Èç¹ûÉĞÎ´ÓĞĞ§,µ÷ÓÃbtreeParseCell()Ê¹Ö®ÓĞĞ§¡£
+** ç¡®ä¿åœ¨argumentä¸­ç»™å‡ºçš„BtCursor æœ‰ä¸€ä¸ªæœ‰æ•ˆçš„BtCursor.infoç»“æ„ã€‚å¦‚æœå°šæœªæœ‰æ•ˆ,è°ƒç”¨btreeParseCell()ä½¿ä¹‹æœ‰æ•ˆã€‚
 ** BtCursor.info is a cache of the information in the current cell.
 ** Using this cache reduces the number of calls to btreeParseCell().
-** BtCursor.infoÊÇÒ»¸öÔÚµ±Ç°µ¥ÔªÖĞµÄĞÅÏ¢»º´æ¡£Ê¹ÓÃÕâ¸ö»º´æ¼õÉÙµ÷ÓÃbtreeParseCell()µÄÊıÁ¿¡£
+** BtCursor.infoæ˜¯ä¸€ä¸ªåœ¨å½“å‰å•å…ƒä¸­çš„ä¿¡æ¯ç¼“å­˜ã€‚ä½¿ç”¨è¿™ä¸ªç¼“å­˜å‡å°‘è°ƒç”¨btreeParseCell()çš„æ•°é‡ã€‚
 ** 2007-06-25:  There is a bug in some versions of MSVC that cause the
 ** compiler to crash when getCellInfo() is implemented as a macro.
 ** But there is a measureable speed advantage to using the macro on gcc
@@ -4052,18 +4051,18 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  // ¹Ø±ÕB-treeÓÎ±ê
 ** for MSVC and a macro for everything else.  Ticket #2457.
 */
 #ifndef NDEBUG
-  static void assertCellInfo(BtCursor *pCur){       /*±£Ö¤BtCursorÓĞÓĞĞ§µÄBtCursor.info½á¹¹¡£ÈôÎŞĞ§£¬µ÷ÓÃbtreeParseCell()È¥Ìî³ä*/
+  static void assertCellInfo(BtCursor *pCur){       /*ä¿è¯BtCursoræœ‰æœ‰æ•ˆçš„BtCursor.infoç»“æ„ã€‚è‹¥æ— æ•ˆï¼Œè°ƒç”¨btreeParseCell()å»å¡«å……*/
     CellInfo info;
     int iPage = pCur->iPage;
-    memset(&info, 0, sizeof(info));                        //½«infoÖĞÇ°sizeof(info)¸ö×Ö½Ú ÓÃ0Ìæ»»²¢·µ»Øinfo ¡£
-    btreeParseCell(pCur->apPage[iPage], pCur->aiIdx[iPage], &info);        //½âÎöµ¥ÔªÄÚÈİ¿é
+    memset(&info, 0, sizeof(info));                        //å°†infoä¸­å‰sizeof(info)ä¸ªå­—èŠ‚ ç”¨0æ›¿æ¢å¹¶è¿”å›info ã€‚
+    btreeParseCell(pCur->apPage[iPage], pCur->aiIdx[iPage], &info);        //è§£æå•å…ƒå†…å®¹å—
     assert( memcmp(&info, &pCur->info, sizeof(info))==0 );
   }
 #else
   #define assertCellInfo(x)
 #endif
 #ifdef _MSC_VER
-  /* Use a real function in MSVC to work around bugs in that compiler. */   //ÔÚMSVCÖĞÊ¹ÓÃÒ»¸öÕæÕıµÄº¯Êı½â¾ö±àÒëÆ÷´íÎó¡£
+  /* Use a real function in MSVC to work around bugs in that compiler. */   //åœ¨MSVCä¸­ä½¿ç”¨ä¸€ä¸ªçœŸæ­£çš„å‡½æ•°è§£å†³ç¼–è¯‘å™¨é”™è¯¯ã€‚
   static void getCellInfo(BtCursor *pCur){
     if( pCur->info.nSize==0 ){
       int iPage = pCur->iPage;
@@ -4074,7 +4073,7 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  // ¹Ø±ÕB-treeÓÎ±ê
     }
   }
 #else /* if not _MSC_VER */
-  /* Use a macro in all other compilers so that the function is inlined */  //ÔÚËùÓĞÆäËû±àÒëÆ÷Ê¹ÓÃºê,ÕâÑùº¯ÊıÊÇÁª»úµÄ¡£
+  /* Use a macro in all other compilers so that the function is inlined */  //åœ¨æ‰€æœ‰å…¶ä»–ç¼–è¯‘å™¨ä½¿ç”¨å®,è¿™æ ·å‡½æ•°æ˜¯è”æœºçš„ã€‚
 #define getCellInfo(pCur)                                                      \
   if( pCur->info.nSize==0 ){                                                   \
     int iPage = pCur->iPage;                                                   \
@@ -4085,17 +4084,17 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  // ¹Ø±ÕB-treeÓÎ±ê
   }
 #endif /* _MSC_VER */
 
-#ifndef NDEBUG  /* The next routine used only within assert() statements */  //ÏÂÒ»¸öº¯ÊıÖ»ÔÚassert()Óï¾äÊ¹ÓÃ¡£
+#ifndef NDEBUG  /* The next routine used only within assert() statements */  //ä¸‹ä¸€ä¸ªå‡½æ•°åªåœ¨assert()è¯­å¥ä½¿ç”¨ã€‚
 /*
 ** Return true if the given BtCursor is valid.  A valid cursor is one
 ** that is currently pointing to a row in a (non-empty) table.
 ** This is a verification routine is used only within assert() statements.
 */
 	/*
-	**Èç¹û¸ø¶¨µÄBtCursorÊÇÓĞĞ§µÄ,·µ»Øtrue¡£Ò»¸öÓĞĞ§µÄÓÎ±êÊÇÔÚ·Ç¿Õ
-	**µÄ±íÖĞµ±Ç°Ö¸ÏòµÄĞĞ¡£ÕâÊÇÒ»¸öÑéÖ¤³ÌĞòÖ»ÔÚassert()Óï¾äÖĞÊ¹ÓÃ¡£
+	**å¦‚æœç»™å®šçš„BtCursoræ˜¯æœ‰æ•ˆçš„,è¿”å›trueã€‚ä¸€ä¸ªæœ‰æ•ˆçš„æ¸¸æ ‡æ˜¯åœ¨éç©º
+	**çš„è¡¨ä¸­å½“å‰æŒ‡å‘çš„è¡Œã€‚è¿™æ˜¯ä¸€ä¸ªéªŒè¯ç¨‹åºåªåœ¨assert()è¯­å¥ä¸­ä½¿ç”¨ã€‚
 	*/
-int sqlite3BtreeCursorIsValid(BtCursor *pCur){          //¸ø¶¨µÄBtCursorÊÇ·ñÓĞĞ§
+int sqlite3BtreeCursorIsValid(BtCursor *pCur){          //ç»™å®šçš„BtCursoræ˜¯å¦æœ‰æ•ˆ
   return pCur && pCur->eState==CURSOR_VALID;
 }
 #endif /* NDEBUG */
@@ -4104,19 +4103,19 @@ int sqlite3BtreeCursorIsValid(BtCursor *pCur){          //¸ø¶¨µÄBtCursorÊÇ·ñÓĞĞ§
 ** Set *pSize to the size of the buffer needed to hold the value of
 ** the key for the current entry.  If the cursor is not pointing
 ** to a valid entry, *pSize is set to 0. 
-** pSizeÎªbufferµÄ´óĞ¡£¬bufferÓÃÀ´±£´æµ±Ç°ÌõÄ¿(ÓÃpCurÖ¸Ïò)µÄkeyÖµ¡£Èç¹ûÓÎ±êÎ´Ö¸ÏòÒ»¸öÓĞĞ§µÄÌõÄ¿,* pSizeÉèÖÃÎª0¡£
+** pSizeä¸ºbufferçš„å¤§å°ï¼Œbufferç”¨æ¥ä¿å­˜å½“å‰æ¡ç›®(ç”¨pCuræŒ‡å‘)çš„keyå€¼ã€‚å¦‚æœæ¸¸æ ‡æœªæŒ‡å‘ä¸€ä¸ªæœ‰æ•ˆçš„æ¡ç›®,* pSizeè®¾ç½®ä¸º0ã€‚
 ** For a table with the INTKEY flag set, this routine returns the key
 ** itself, not the number of bytes in the key.
-** ¶ÔINTKEY±êÖ¾µÄ±íÉèÖÃ,Õâ¸öº¯Êı·µ»Ø¹Ø¼ü×Ö±¾Éí,¶ø²»ÊÇ¹Ø¼ü×ÖµÄ×Ö½ÚÊı¡£
+** å¯¹INTKEYæ ‡å¿—çš„è¡¨è®¾ç½®,è¿™ä¸ªå‡½æ•°è¿”å›å…³é”®å­—æœ¬èº«,è€Œä¸æ˜¯å…³é”®å­—çš„å­—èŠ‚æ•°ã€‚
 ** The caller must position the cursor prior to invoking this routine.
-** µ÷ÓÃÕß
+** è°ƒç”¨è€…
 ** This routine cannot fail.  It always returns SQLITE_OK.  
 */
-/*pSizeÎªbufferµÄ´óĞ¡£¬bufferÓÃÀ´±£´æµ±Ç°ÌõÄ¿(ÓÃpCurÖ¸Ïò)µÄkeyÖµ¡£*/
+/*pSizeä¸ºbufferçš„å¤§å°ï¼Œbufferç”¨æ¥ä¿å­˜å½“å‰æ¡ç›®(ç”¨pCuræŒ‡å‘)çš„keyå€¼ã€‚*/
 int sqlite3BtreeKeySize(BtCursor *pCur, i64 *pSize){
   assert( cursorHoldsMutex(pCur) );
   assert( pCur->eState==CURSOR_INVALID || pCur->eState==CURSOR_VALID );
-  if( pCur->eState!=CURSOR_VALID ){          /*ÓÎ±êÖ¸ÏòÎŞĞ§ÌõÄ¿£¬pSize = 0*/
+  if( pCur->eState!=CURSOR_VALID ){          /*æ¸¸æ ‡æŒ‡å‘æ— æ•ˆæ¡ç›®ï¼ŒpSize = 0*/
     *pSize = 0;
   }else{
     getCellInfo(pCur);
@@ -4128,22 +4127,22 @@ int sqlite3BtreeKeySize(BtCursor *pCur, i64 *pSize){
 /*
 ** Set *pSize to the number of bytes of data in the entry the
 ** cursor currently points to.
-** ÉèÖÃ*pSizeµÄÊı¾İÓòµÄ×Ö½ÚÊı£¬*pSize ÔÚµ±Ç°ÓÎ±êÖ¸ÏòµÄÌõÄ¿ÖĞ¡£
+** è®¾ç½®*pSizeçš„æ•°æ®åŸŸçš„å­—èŠ‚æ•°ï¼Œ*pSize åœ¨å½“å‰æ¸¸æ ‡æŒ‡å‘çš„æ¡ç›®ä¸­ã€‚
 ** The caller must guarantee that the cursor is pointing to a non-NULL
 ** valid entry.  In other words, the calling procedure must guarantee
 ** that the cursor has Cursor.eState==CURSOR_VALID.
-** µ÷ÓÃÕß±ØĞë±£Ö¤ÓÎ±êÖ¸ÏòÒ»¸ö·Ç¿ÕÓĞĞ§ÌõÄ¿¡£»»¾ä»°Ëµ,µ÷ÓÃ³ÌĞò±ØĞë±£Ö¤ÓÎ±êCursor.eState = = CURSOR_VALID¡£
+** è°ƒç”¨è€…å¿…é¡»ä¿è¯æ¸¸æ ‡æŒ‡å‘ä¸€ä¸ªéç©ºæœ‰æ•ˆæ¡ç›®ã€‚æ¢å¥è¯è¯´,è°ƒç”¨ç¨‹åºå¿…é¡»ä¿è¯æ¸¸æ ‡Cursor.eState = = CURSOR_VALIDã€‚
 ** Failure is not possible.  This function always returns SQLITE_OK.
 ** It might just as well be a procedure (returning void) but we continue
 ** to return an integer result code for historical reasons.
-** Õâ¸öº¯ÊıÊ¼ÖÕ·µ»ØSQLITE_OK¡£Ò²¿ÉÄÜ½ö½öÊÇÒ»¸ö¹ı³Ì(·µ»Øvoid)µ«ÊÇÎÒÃÇ¼ÌĞø·µ»ØÒ»¸öÕûÊı½á¹û´úÂë¡£
+** è¿™ä¸ªå‡½æ•°å§‹ç»ˆè¿”å›SQLITE_OKã€‚ä¹Ÿå¯èƒ½ä»…ä»…æ˜¯ä¸€ä¸ªè¿‡ç¨‹(è¿”å›void)ä½†æ˜¯æˆ‘ä»¬ç»§ç»­è¿”å›ä¸€ä¸ªæ•´æ•°ç»“æœä»£ç ã€‚
 */
 
-int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*Éè¶¨µ±Ç°ÓÎ±êËùÖ¸¼ÇÂ¼µÄÊı¾İ³¤¶È£¨×Ö½Ú£©*/
+int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*è®¾å®šå½“å‰æ¸¸æ ‡æ‰€æŒ‡è®°å½•çš„æ•°æ®é•¿åº¦ï¼ˆå­—èŠ‚ï¼‰*/
   assert( cursorHoldsMutex(pCur) );
   assert( pCur->eState==CURSOR_VALID );
   getCellInfo(pCur);
-  *pSize = pCur->info.nData;/*ÓÃpSize·µ»ØÊı¾İ³¤¶È*/
+  *pSize = pCur->info.nData;/*ç”¨pSizeè¿”å›æ•°æ®é•¿åº¦*/
   return SQLITE_OK;
 }
 
@@ -4152,30 +4151,30 @@ int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*Éè¶¨µ±Ç°ÓÎ±êËùÖ¸¼ÇÂ
 ** ovfl), this function finds the page number of the next page in the 
 ** linked list of overflow pages. If possible, it uses the auto-vacuum
 ** pointer-map data instead of reading the content of page ovfl to do so. 
-** ¸ø³öÒ»¸öÔÚÊı¾İ¿âÖĞµÄÒç³öÒ³Ò³Âë(²ÎÊıÎªovfl),Õâ¸öº¯ÊıÕÒµ½ÏÂÒ»¸öÒç³öÒ³ÃæµÄÁ´±íÖĞ
-** µÄÒ³ÃæµÄÒ³Âë¡£Èç¹û¿ÉÄÜ,ËüÊ¹ÓÃauto-vacuum  pointer-mapÊı¾İ¶ø²»ÊÇ¶ÁÒ³ÃæovflµÄÄÚÈİ¡£
+** ç»™å‡ºä¸€ä¸ªåœ¨æ•°æ®åº“ä¸­çš„æº¢å‡ºé¡µé¡µç (å‚æ•°ä¸ºovfl),è¿™ä¸ªå‡½æ•°æ‰¾åˆ°ä¸‹ä¸€ä¸ªæº¢å‡ºé¡µé¢çš„é“¾è¡¨ä¸­
+** çš„é¡µé¢çš„é¡µç ã€‚å¦‚æœå¯èƒ½,å®ƒä½¿ç”¨auto-vacuum  pointer-mapæ•°æ®è€Œä¸æ˜¯è¯»é¡µé¢ovflçš„å†…å®¹ã€‚
 ** If an error occurs an SQLite error code is returned. Otherwise:
-** Èç¹û³öÏÖ´íÎóÒ»¸öSQLite·µ»Ø´íÎó´úÂë¡£·ñÔò£º
+** å¦‚æœå‡ºç°é”™è¯¯ä¸€ä¸ªSQLiteè¿”å›é”™è¯¯ä»£ç ã€‚å¦åˆ™ï¼š
 ** The page number of the next overflow page in the linked list is 
 ** written to *pPgnoNext. If page ovfl is the last page in its linked 
 ** list, *pPgnoNext is set to zero. 
-** Á´½ÓÁĞ±íÖĞµÄÏÂÒ»¸öÒç³öÒ³ÃæµÄÒ³Âë±»Ğ´µ½* pPgnoNextÖĞ¡£Èç¹ûovflÒ³ÊÇ×îºóÒ»Ò³,* pPgnoNextÉèÖÃÎªÁã¡£
+** é“¾æ¥åˆ—è¡¨ä¸­çš„ä¸‹ä¸€ä¸ªæº¢å‡ºé¡µé¢çš„é¡µç è¢«å†™åˆ°* pPgnoNextä¸­ã€‚å¦‚æœovflé¡µæ˜¯æœ€åä¸€é¡µ,* pPgnoNextè®¾ç½®ä¸ºé›¶ã€‚
 ** If ppPage is not NULL, and a reference to the MemPage object corresponding
 ** to page number pOvfl was obtained, then *ppPage is set to point to that
 ** reference. It is the responsibility of the caller to call releasePage()
 ** on *ppPage to free the reference. In no reference was obtained (because
 ** the pointer-map was used to obtain the value for *pPgnoNext), then
 ** *ppPage is set to zero.
-** Èç¹ûppPage·Ç¿Õ,¶Ô MemPage¶ÔÏóÏàÓ¦Ò³ÂëpOvflµÄÒıÓÃ±»»ñµÃ,ÔòÉèÖÃ* ppPageÖ¸ÏòÒıÓÃ¡£
-** ¸ºÔğµ÷ÓÃÕßµÄµ÷ÓÃreleasePage()ÔÚppPageÉÏÊÍ·ÅÒıÓÃ ¡£ÔÚÃ»ÓĞÒıÓÃ»ñµÃ(ÒòÎª pointer-map±»ÓÃÀ´»ñµÃ* pPgnoNextµÄÖµ), 
-** ÄÇÃ´ * ppPageÉèÖÃÎªÁã¡£
+** å¦‚æœppPageéç©º,å¯¹ MemPageå¯¹è±¡ç›¸åº”é¡µç pOvflçš„å¼•ç”¨è¢«è·å¾—,åˆ™è®¾ç½®* ppPageæŒ‡å‘å¼•ç”¨ã€‚
+** è´Ÿè´£è°ƒç”¨è€…çš„è°ƒç”¨releasePage()åœ¨ppPageä¸Šé‡Šæ”¾å¼•ç”¨ ã€‚åœ¨æ²¡æœ‰å¼•ç”¨è·å¾—(å› ä¸º pointer-mapè¢«ç”¨æ¥è·å¾—* pPgnoNextçš„å€¼), 
+** é‚£ä¹ˆ * ppPageè®¾ç½®ä¸ºé›¶ã€‚
 */
-/*ÕÒµ½ÏÂÒ»¸öÒç³öÒ³µÄÒ³ºÅ¡£*/
+/*æ‰¾åˆ°ä¸‹ä¸€ä¸ªæº¢å‡ºé¡µçš„é¡µå·ã€‚*/
 static int getOverflowPage(
-  BtShared *pBt,               /* The database file */                                                       //Êı¾İ¿âÎÄ¼ş
-  Pgno ovfl,                   /* Current overflow page number */                                    //µ±Ç°Òç³öÒ³ºÅ     
-  MemPage **ppPage,            /* OUT: MemPage handle (may be NULL) */         //ÄÚ´æÒ³¾ä±ú£¨¿ÉÄÜÎªNULL£©
-  Pgno *pPgnoNext              /* OUT: Next overflow page number */                       //ÏÂÒ»¸öÒç³öÒ³µÄÒ³ºÅ
+  BtShared *pBt,               /* The database file */                                                       //æ•°æ®åº“æ–‡ä»¶
+  Pgno ovfl,                   /* Current overflow page number */                                    //å½“å‰æº¢å‡ºé¡µå·     
+  MemPage **ppPage,            /* OUT: MemPage handle (may be NULL) */         //å†…å­˜é¡µå¥æŸ„ï¼ˆå¯èƒ½ä¸ºNULLï¼‰
+  Pgno *pPgnoNext              /* OUT: Next overflow page number */                       //ä¸‹ä¸€ä¸ªæº¢å‡ºé¡µçš„é¡µå·
 ){
   Pgno next = 0;
   MemPage *pPage = 0;
@@ -4190,16 +4189,16 @@ static int getOverflowPage(
   ** the overflow list is page number (ovfl+1). If that guess turns 
   ** out to be wrong, fall back to loading the data of page 
   ** number ovfl to determine the next page number.
-  ** ÊÔÍ¼ÕÒµ½Òç³öÁĞ±íÖĞµÄÔÚautovacuum pointer-mapÒ³ÃæÖĞÊ¹ÓÃµÄÏÂÒ»¸öÒ³Ãæ¡£²Â²âÒç³öÁĞ±í
-  ** ÖĞÏÂÒ»¸öÒ³ÃæÒ³ºÅÎª(ovfl + 1)¡£Èç¹û²Â²âÊÇ´íµÄ,»Øµ½¼ÓÔØÒ³ºÅovflµÄÊı¾İÀ´È·¶¨ÏÂÒ»¸öÒ³Âë¡£
+  ** è¯•å›¾æ‰¾åˆ°æº¢å‡ºåˆ—è¡¨ä¸­çš„åœ¨autovacuum pointer-mapé¡µé¢ä¸­ä½¿ç”¨çš„ä¸‹ä¸€ä¸ªé¡µé¢ã€‚çŒœæµ‹æº¢å‡ºåˆ—è¡¨
+  ** ä¸­ä¸‹ä¸€ä¸ªé¡µé¢é¡µå·ä¸º(ovfl + 1)ã€‚å¦‚æœçŒœæµ‹æ˜¯é”™çš„,å›åˆ°åŠ è½½é¡µå·ovflçš„æ•°æ®æ¥ç¡®å®šä¸‹ä¸€ä¸ªé¡µç ã€‚
   */
   if( pBt->autoVacuum ){
     Pgno pgno;
-    Pgno iGuess = ovfl+1;/*²Â²âÏÂÒ»¸öÒç³öÒ³Ò³ºÅÎªovfl+1*/
+    Pgno iGuess = ovfl+1;/*çŒœæµ‹ä¸‹ä¸€ä¸ªæº¢å‡ºé¡µé¡µå·ä¸ºovfl+1*/
     u8 eType;
 
     while( PTRMAP_ISPAGE(pBt, iGuess) || iGuess==PENDING_BYTE_PAGE(pBt) ){
-      iGuess++;/*Ã»²Â¶Ô£¬Ò³ºÅÍùºó¼Ó*/
+      iGuess++;/*æ²¡çŒœå¯¹ï¼Œé¡µå·å¾€ååŠ */
     }
 
     if( iGuess<=btreePagecount(pBt) ){
@@ -4222,7 +4221,7 @@ static int getOverflowPage(
   }
 
   *pPgnoNext = next;
-  if( ppPage ){/*ppPage²»¿Õ£¬ppPageÖ¸Ïòreference*/
+  if( ppPage ){/*ppPageä¸ç©ºï¼ŒppPageæŒ‡å‘reference*/
     *ppPage = pPage;
   }else{
     releasePage(pPage);
@@ -4232,44 +4231,44 @@ static int getOverflowPage(
 
 /*
 ** Copy data from a buffer to a page, or from a page to a buffer.
-** ½«Êı¾İ´Ó»º³åÇø¸´ÖÆµ½Ò»¸öÒ³Ãæ,»ò´ÓÒ»¸öÒ³Ãæµ½»º³åÇø¡£
+** å°†æ•°æ®ä»ç¼“å†²åŒºå¤åˆ¶åˆ°ä¸€ä¸ªé¡µé¢,æˆ–ä»ä¸€ä¸ªé¡µé¢åˆ°ç¼“å†²åŒºã€‚
 ** pPayload is a pointer to data stored on database page pDbPage.
 ** If argument eOp is false, then nByte bytes of data are copied
 ** from pPayload to the buffer pointed at by pBuf. If eOp is true,
 ** then sqlite3PagerWrite() is called on pDbPage and nByte bytes
 ** of data are copied from the buffer pBuf to pPayload.
-** pPayloadÊÇÒ»¸öÖ¸ÕëÖ¸Ïò´æ´¢ÔÚÊı¾İ¿âÒ³pDbPageÉÏµÄÊı¾İ¡£Èç¹û²ÎÊıeOp Îª¼Ù,ÄÇÃ´nByte×Ö½ÚµÄÊı¾İ´ÓpPayload¸´ÖÆ µ½pBuf
-** Ö¸ÏòµÄ»º³åÇøÖ¸×Å¡£Èç¹ûeOpÎªÕæ, È»ºóÔÚpDbPageÉÏµ÷ÓÃsqlite3PagerWrite()²¢ÇÒnByte×Ö½ÚµÄÊı¾İ´ÓpBuf¸´ÖÆ µ½pPayload¡£
+** pPayloadæ˜¯ä¸€ä¸ªæŒ‡é’ˆæŒ‡å‘å­˜å‚¨åœ¨æ•°æ®åº“é¡µpDbPageä¸Šçš„æ•°æ®ã€‚å¦‚æœå‚æ•°eOp ä¸ºå‡,é‚£ä¹ˆnByteå­—èŠ‚çš„æ•°æ®ä»pPayloadå¤åˆ¶ åˆ°pBuf
+** æŒ‡å‘çš„ç¼“å†²åŒºæŒ‡ç€ã€‚å¦‚æœeOpä¸ºçœŸ, ç„¶ååœ¨pDbPageä¸Šè°ƒç”¨sqlite3PagerWrite()å¹¶ä¸”nByteå­—èŠ‚çš„æ•°æ®ä»pBufå¤åˆ¶ åˆ°pPayloadã€‚
 ** SQLITE_OK is returned on success, otherwise an error code.
-** ³É¹¦Ôò·µ»ØSQLITE_OK £¬·ñÔò·µ»Ø´íÎó´úÂë¡£
+** æˆåŠŸåˆ™è¿”å›SQLITE_OK ï¼Œå¦åˆ™è¿”å›é”™è¯¯ä»£ç ã€‚
 */
 	/*
-	**´Ó»º³åÇø¸´ÖÆÊı¾İµ½Ò»¸öÒ³Ãæ£¬»òÕß´ÓÒ»¸öÒ³Ãæ¸´ÖÆµ½»º³åÆ÷¡£
+	**ä»ç¼“å†²åŒºå¤åˆ¶æ•°æ®åˆ°ä¸€ä¸ªé¡µé¢ï¼Œæˆ–è€…ä»ä¸€ä¸ªé¡µé¢å¤åˆ¶åˆ°ç¼“å†²å™¨ã€‚
 	**
-	** pPayloadÊÇÒ»¸öÖ¸Ïò´æ´¢ÔÚÊı¾İ¿âÒ³ÃæpDbPageÊı¾İµÄÖ¸Õë¡£
-	**Èç¹û²ÎÊıEOPÊÇ¼ÙµÄ£¬ÄÇÃ´nByte×Ö½ÚÊı¾İ±»¸´ÖÆ
-	**Í¨¹ıPBUF´ÓpPayloadµ½»º³åÇøÖ¸Ïò¡£Èç¹ûEOPÊÇtrue£¬
-	**È»ºósqlite3PagerWrite£¨£©±»µ÷ÓÃ£¬nByte×Ö½Ú
-	**Êı¾İ´Ó»º³åÆ÷ pBuf µ½pPayload±»¸´ÖÆ¡£
-	** ³É¹¦·µ»ØSQLITE_OK£¬·ñÔò·µ»Ø´íÎó´úÂë¡£
+	** pPayloadæ˜¯ä¸€ä¸ªæŒ‡å‘å­˜å‚¨åœ¨æ•°æ®åº“é¡µé¢pDbPageæ•°æ®çš„æŒ‡é’ˆã€‚
+	**å¦‚æœå‚æ•°EOPæ˜¯å‡çš„ï¼Œé‚£ä¹ˆnByteå­—èŠ‚æ•°æ®è¢«å¤åˆ¶
+	**é€šè¿‡PBUFä»pPayloadåˆ°ç¼“å†²åŒºæŒ‡å‘ã€‚å¦‚æœEOPæ˜¯trueï¼Œ
+	**ç„¶åsqlite3PagerWriteï¼ˆï¼‰è¢«è°ƒç”¨ï¼ŒnByteå­—èŠ‚
+	**æ•°æ®ä»ç¼“å†²å™¨ pBuf åˆ°pPayloadè¢«å¤åˆ¶ã€‚
+	** æˆåŠŸè¿”å›SQLITE_OKï¼Œå¦åˆ™è¿”å›é”™è¯¯ä»£ç ã€‚
 	*/
 
-static int copyPayload(                      //½«Êı¾İ´Ó»º³åÇø¸´ÖÆµ½Ò»¸öÒ³Ãæ,»ò´ÓÒ»¸öÒ³Ãæµ½»º³åÇø
-  void *pPayload,           /* Pointer to page data */                             //Ò³ÃæÊı¾İµÄÖ¸Õë
-  void *pBuf,               /* Pointer to buffer */                                     //»º´æÇøÖ¸Õë
-  int nByte,                /* Number of bytes to copy */                          //¿½±´µÄ×Ö½ÚÊı
-  int eOp,                  /* 0 -> copy from page, 1 -> copy to page */   //eOpÎª0´ÓÒ³¿½±´µ½»º´æÇø£¬Îª1Ôò´Ó»º´æÇø¿½±´µ½Ò³
-  DbPage *pDbPage           /* Page containing pPayload */               //Ò³°üº¬pPayload
+static int copyPayload(                      //å°†æ•°æ®ä»ç¼“å†²åŒºå¤åˆ¶åˆ°ä¸€ä¸ªé¡µé¢,æˆ–ä»ä¸€ä¸ªé¡µé¢åˆ°ç¼“å†²åŒº
+  void *pPayload,           /* Pointer to page data */                             //é¡µé¢æ•°æ®çš„æŒ‡é’ˆ
+  void *pBuf,               /* Pointer to buffer */                                     //ç¼“å­˜åŒºæŒ‡é’ˆ
+  int nByte,                /* Number of bytes to copy */                          //æ‹·è´çš„å­—èŠ‚æ•°
+  int eOp,                  /* 0 -> copy from page, 1 -> copy to page */   //eOpä¸º0ä»é¡µæ‹·è´åˆ°ç¼“å­˜åŒºï¼Œä¸º1åˆ™ä»ç¼“å­˜åŒºæ‹·è´åˆ°é¡µ
+  DbPage *pDbPage           /* Page containing pPayload */               //é¡µåŒ…å«pPayload
 ){
   if( eOp ){
-    /* Copy data from buffer to page (a write operation) */  //Îª1Ôò´Ó»º´æÇø¿½±´µ½Ò³
+    /* Copy data from buffer to page (a write operation) */  //ä¸º1åˆ™ä»ç¼“å­˜åŒºæ‹·è´åˆ°é¡µ
     int rc = sqlite3PagerWrite(pDbPage);
     if( rc!=SQLITE_OK ){
       return rc;
     }
     memcpy(pPayload, pBuf, nByte);
   }else{
-    /* Copy data from page to buffer (a read operation) */    //eOpÎª0´ÓÒ³¿½±´µ½»º´æÇø
+    /* Copy data from page to buffer (a read operation) */    //eOpä¸º0ä»é¡µæ‹·è´åˆ°ç¼“å­˜åŒº
     memcpy(pBuf, pPayload, nByte);
   }
   return SQLITE_OK;
@@ -4304,33 +4303,33 @@ static int copyPayload(                      //½«Êı¾İ´Ó»º³åÇø¸´ÖÆµ½Ò»¸öÒ³Ãæ,»ò´Ó
 **   * Creating a table (may require moving an overflow page).
 */
 	/*
-	** ¶ÔÓÚÓÎ±êpCurÕıÖ¸ÏòµÄÌõÄ¿£¬´Ë¹¦ÄÜÓÃÓÚ¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢¡£
-	** Èç¹û²ÎÊıeOpÎª0£¬ÕâÊÇÒ»¸ö¶Á²Ù×÷£¨Êı¾İ¸´ÖÆµ½»º´æpBuf£©¡£
-	** Èç¹ûËü²»ÎªÁã£¬Êı¾İ´Ó»º´æ pBufÖĞ¸´ÖÆµ½Ò³¡£
-	** ×Ü¹²ÓĞ¡°amt¡±×Ö½ÚµÄÊı¾İ±»¶Á»òĞ´´Ó"offset"¿ªÊ¼.
-	** ÕıÔÚ¶Á»òĞ´µÄÄÚÈİ¿ÉÄÜ³öÏÖÔÚÖ÷Ò³ÉÏ»ò·ÖÉ¢ÔÚ¶à¸öÒç³öÒ³¡£ Èç¹ûÉèÖÃÁËBtCursor.isIncrblobHandle±êÖ¾,
-	** ÇÒµ±Ç°ÓÎ±êÌõÄ¿Ê¹ÓÃÒ»¸ö»ò¶à¸öÒç³öÒ³,Õâ¸öº¯Êı·ÖÅä¿Õ¼äºÍÂıÂıÔö¼ÓÒç³öÒ³ÁĞ±í»º´æÊı×é(BtCursor.aOverflow)¡£
-	** ºóĞøµ÷ÓÃÊ¹ÓÃÕâ¸ö»º´æÊ¹Ñ°ÇóÌá¹©µÄÆ«ÒÆ¸üÓĞĞ§ÂÊ¡£
-	** Ò»µ©Òç³öÒ³ÁĞ±í»º´æÒÑ¾­±»·ÖÅä£¬Èç¹ûÆäËûÓÎ±êĞ´Èë
-	** Í¬Ò»¸ö±íÔòÎŞĞ§,»òÕßÓÎ±êÒÆ¶¯µ½²»Í¬ĞĞ¡£´ËÍâ,ÔÚauto-vacuum Ä£Ê½,ÏÂÃæµÄÊÂ¼ş¿ÉÄÜÊ¹Ò»¸ö»º´æÒç³öÒ³ÁĞ±í»º´æÎŞĞ§¡£
-	**   * ÔöÁ¿Ê½ÇåÀí,
-	**   * ÔÚ auto_vacuum="full" Ä£Ê½ÖĞµÄÒ»¸öÌá½»,
-	**   * ´´½¨±í (¿ÉÄÜÒªÇóÒÆ¶¯Ò»¸öÒç³öÒ³).
+	** å¯¹äºæ¸¸æ ‡pCuræ­£æŒ‡å‘çš„æ¡ç›®ï¼Œæ­¤åŠŸèƒ½ç”¨äºè¯»æˆ–è¦†å†™æœ‰æ•ˆè½½è·ä¿¡æ¯ã€‚
+	** å¦‚æœå‚æ•°eOpä¸º0ï¼Œè¿™æ˜¯ä¸€ä¸ªè¯»æ“ä½œï¼ˆæ•°æ®å¤åˆ¶åˆ°ç¼“å­˜pBufï¼‰ã€‚
+	** å¦‚æœå®ƒä¸ä¸ºé›¶ï¼Œæ•°æ®ä»ç¼“å­˜ pBufä¸­å¤åˆ¶åˆ°é¡µã€‚
+	** æ€»å…±æœ‰â€œamtâ€å­—èŠ‚çš„æ•°æ®è¢«è¯»æˆ–å†™ä»"offset"å¼€å§‹.
+	** æ­£åœ¨è¯»æˆ–å†™çš„å†…å®¹å¯èƒ½å‡ºç°åœ¨ä¸»é¡µä¸Šæˆ–åˆ†æ•£åœ¨å¤šä¸ªæº¢å‡ºé¡µã€‚ å¦‚æœè®¾ç½®äº†BtCursor.isIncrblobHandleæ ‡å¿—,
+	** ä¸”å½“å‰æ¸¸æ ‡æ¡ç›®ä½¿ç”¨ä¸€ä¸ªæˆ–å¤šä¸ªæº¢å‡ºé¡µ,è¿™ä¸ªå‡½æ•°åˆ†é…ç©ºé—´å’Œæ…¢æ…¢å¢åŠ æº¢å‡ºé¡µåˆ—è¡¨ç¼“å­˜æ•°ç»„(BtCursor.aOverflow)ã€‚
+	** åç»­è°ƒç”¨ä½¿ç”¨è¿™ä¸ªç¼“å­˜ä½¿å¯»æ±‚æä¾›çš„åç§»æ›´æœ‰æ•ˆç‡ã€‚
+	** ä¸€æ—¦æº¢å‡ºé¡µåˆ—è¡¨ç¼“å­˜å·²ç»è¢«åˆ†é…ï¼Œå¦‚æœå…¶ä»–æ¸¸æ ‡å†™å…¥
+	** åŒä¸€ä¸ªè¡¨åˆ™æ— æ•ˆ,æˆ–è€…æ¸¸æ ‡ç§»åŠ¨åˆ°ä¸åŒè¡Œã€‚æ­¤å¤–,åœ¨auto-vacuum æ¨¡å¼,ä¸‹é¢çš„äº‹ä»¶å¯èƒ½ä½¿ä¸€ä¸ªç¼“å­˜æº¢å‡ºé¡µåˆ—è¡¨ç¼“å­˜æ— æ•ˆã€‚
+	**   * å¢é‡å¼æ¸…ç†,
+	**   * åœ¨ auto_vacuum="full" æ¨¡å¼ä¸­çš„ä¸€ä¸ªæäº¤,
+	**   * åˆ›å»ºè¡¨ (å¯èƒ½è¦æ±‚ç§»åŠ¨ä¸€ä¸ªæº¢å‡ºé¡µ).
 	*/
 
-static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
-  BtCursor *pCur,      /* Cursor pointing to entry to read from */     //ÓÎ±êÖ¸ÏòÒª¶ÁÈ¡Êı¾İµÄÌõÄ¿
-  u32 offset,          /* Begin reading this far into payload */               //¿ªÊ¼½øÒ»²½¶Áµ½ÓĞĞ§ÔØºÉ
-  u32 amt,             /* Read this many bytes */                                       //¶ÁÈ¡´óÁ¿×Ö½Ú
-  unsigned char *pBuf, /* Write the bytes into this buffer */             //Ğ´ÕâĞ´Êı¾İµ½»º´æÇø
-  int eOp              /* zero to read. non-zero to write. */                        //Áã¶Á£¬·ÇÁãĞ´
+static int accessPayload(          //è¯»æˆ–è¦†å†™æœ‰æ•ˆè½½è·ä¿¡æ¯
+  BtCursor *pCur,      /* Cursor pointing to entry to read from */     //æ¸¸æ ‡æŒ‡å‘è¦è¯»å–æ•°æ®çš„æ¡ç›®
+  u32 offset,          /* Begin reading this far into payload */               //å¼€å§‹è¿›ä¸€æ­¥è¯»åˆ°æœ‰æ•ˆè½½è·
+  u32 amt,             /* Read this many bytes */                                       //è¯»å–å¤§é‡å­—èŠ‚
+  unsigned char *pBuf, /* Write the bytes into this buffer */             //å†™è¿™å†™æ•°æ®åˆ°ç¼“å­˜åŒº
+  int eOp              /* zero to read. non-zero to write. */                        //é›¶è¯»ï¼Œéé›¶å†™
 ){
   unsigned char *aPayload;
   int rc = SQLITE_OK;
   u32 nKey;
   int iIdx = 0;
-  MemPage *pPage = pCur->apPage[pCur->iPage]; /* Btree page of current entry */  //µ±Ç°ÌõÄ¿µÄBÊ÷Ò³
-  BtShared *pBt = pCur->pBt;                  /* Btree this cursor belongs to */                    //¸ÃÓÎ±êËùÊôµÄBÊ÷
+  MemPage *pPage = pCur->apPage[pCur->iPage]; /* Btree page of current entry */  //å½“å‰æ¡ç›®çš„Bæ ‘é¡µ
+  BtShared *pBt = pCur->pBt;                  /* Btree this cursor belongs to */                    //è¯¥æ¸¸æ ‡æ‰€å±çš„Bæ ‘
 
   assert( pPage );
   assert( pCur->eState==CURSOR_VALID );
@@ -4344,11 +4343,11 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
   if( NEVER(offset+amt > nKey+pCur->info.nData) 
    || &aPayload[pCur->info.nLocal] > &pPage->aData[pBt->usableSize]
   ){
-    /* Trying to read or write past the end of the data is an error */  //³¢ÊÔÈ¥¶Á»òĞ´Êı¾İÄ©¶ËÒÔºóµÄÊı¾İ½«·¢ÉúÒ»¸ö´íÎó
+    /* Trying to read or write past the end of the data is an error */  //å°è¯•å»è¯»æˆ–å†™æ•°æ®æœ«ç«¯ä»¥åçš„æ•°æ®å°†å‘ç”Ÿä¸€ä¸ªé”™è¯¯
     return SQLITE_CORRUPT_BKPT;
   }
 
-  /* Check if data must be read/written to/from the btree page itself. */  //¼ì²éÊÇ·ñ´ÓBÊ÷Ò³±¾ÉíÈ¥¶ÁÈ¡»òÕßĞ´
+  /* Check if data must be read/written to/from the btree page itself. */  //æ£€æŸ¥æ˜¯å¦ä»Bæ ‘é¡µæœ¬èº«å»è¯»å–æˆ–è€…å†™
   if( offset<pCur->info.nLocal ){
     int a = amt;
     if( a+offset>pCur->info.nLocal ){
@@ -4363,7 +4362,7 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
   }
 
   if( rc==SQLITE_OK && amt>0 ){
-    const u32 ovflSize = pBt->usableSize - 4;  /* Bytes content per ovfl page */  //Ã¿¸öovflÒ³µÄÊı¸ö×Ö½ÚÄÚÈİ
+    const u32 ovflSize = pBt->usableSize - 4;  /* Bytes content per ovfl page */  //æ¯ä¸ªovflé¡µçš„æ•°ä¸ªå­—èŠ‚å†…å®¹
     Pgno nextPage;
 
     nextPage = get4byte(&aPayload[pCur->info.nLocal]);
@@ -4376,8 +4375,8 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
     ** etc. A value of 0 in the aOverflow[] array means "not yet known"
     ** (the cache is lazily populated).
     */
-    /*Èç¹ûisIncrblobHandle±êÖ¾±»ÉèÖÃºÍBtCursor.aOverflow[]ÉĞÎ´·ÖÅä£¬ÏÖÔÚ·ÖÅäËü¡£   
-	aOverflow[]ÖĞµÄ0±íÊ¾¡°»¹·¢ÏÖ¡±¡£
+    /*å¦‚æœisIncrblobHandleæ ‡å¿—è¢«è®¾ç½®å’ŒBtCursor.aOverflow[]å°šæœªåˆ†é…ï¼Œç°åœ¨åˆ†é…å®ƒã€‚   
+	aOverflow[]ä¸­çš„0è¡¨ç¤ºâ€œè¿˜å‘ç°â€ã€‚
 	*/
     if( pCur->isIncrblobHandle && !pCur->aOverflow ){
       int nOvfl = (pCur->info.nPayload-pCur->info.nLocal+ovflSize-1)/ovflSize;
@@ -4393,7 +4392,7 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
     ** entry for the first required overflow page is valid, skip
     ** directly to it.
     */
-    /*Èç¹ûÒç³öÒ³ÁĞ±í»º´æÒÑ·ÖÅä£¬µÚÒ»¸öÒç³öÒ³ÏîÊÇÓĞĞ§µÄ£¬Ö±½ÓÌø¹ıËü¡£	*/  
+    /*å¦‚æœæº¢å‡ºé¡µåˆ—è¡¨ç¼“å­˜å·²åˆ†é…ï¼Œç¬¬ä¸€ä¸ªæº¢å‡ºé¡µé¡¹æ˜¯æœ‰æ•ˆçš„ï¼Œç›´æ¥è·³è¿‡å®ƒã€‚	*/  
     if( pCur->aOverflow && pCur->aOverflow[offset/ovflSize] ){
       iIdx = (offset/ovflSize);
       nextPage = pCur->aOverflow[iIdx];
@@ -4404,7 +4403,7 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
     for( ; rc==SQLITE_OK && amt>0 && nextPage; iIdx++){
 
 #ifndef SQLITE_OMIT_INCRBLOB
-      /* If required, populate the overflow page-list cache. */   //Èç¹ûĞèÒª,Ìî³äÒç³öÒ³ÁĞ±í»º´æ¡£
+      /* If required, populate the overflow page-list cache. */   //å¦‚æœéœ€è¦,å¡«å……æº¢å‡ºé¡µåˆ—è¡¨ç¼“å­˜ã€‚
       if( pCur->aOverflow ){
         assert(!pCur->aOverflow[iIdx] || pCur->aOverflow[iIdx]==nextPage);
         pCur->aOverflow[iIdx] = nextPage;
@@ -4418,9 +4417,9 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
         ** page-list cache, if any, then fall back to the getOverflowPage()
         ** function.
         */
-        /*¶Á´ËÒ³µÄÎ¨Ò»Ô­ÒòÊÇÎªÁË»ñµÃ¸ÃÒ³ÃæÔÚÒç³öÒ³Á´±íÖĞµÄÏÂÒ»¸öÒ³ºÅ¡£
-        Ò³Ãæ²»ĞèÒªÊı¾İ¡£ËùÒÔ£¬ÏÈÊÔ×Å²éÕÒÒç³öÒ³ÁĞ±í»º´æ£¬Èç¹ûÓĞµÄ»°£¬
-        ÔòÍË»Øµ½getOverflowPage()º¯Êı¡£
+        /*è¯»æ­¤é¡µçš„å”¯ä¸€åŸå› æ˜¯ä¸ºäº†è·å¾—è¯¥é¡µé¢åœ¨æº¢å‡ºé¡µé“¾è¡¨ä¸­çš„ä¸‹ä¸€ä¸ªé¡µå·ã€‚
+        é¡µé¢ä¸éœ€è¦æ•°æ®ã€‚æ‰€ä»¥ï¼Œå…ˆè¯•ç€æŸ¥æ‰¾æº¢å‡ºé¡µåˆ—è¡¨ç¼“å­˜ï¼Œå¦‚æœæœ‰çš„è¯ï¼Œ
+        åˆ™é€€å›åˆ°getOverflowPage()å‡½æ•°ã€‚
 */
 #ifndef SQLITE_OMIT_INCRBLOB
         if( pCur->aOverflow && pCur->aOverflow[iIdx+1] ){
@@ -4432,7 +4431,7 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
       }else{
         /* Need to read this page properly. It contains some of the
         ** range of data that is being read (eOp==0) or written (eOp!=0).
-		** ĞèÒªÕıÈ·µØ¶ÁÕâ¸öÒ³Ãæ¡£Ëü°üº¬µÄÒ»Ğ©ÕıÔÚ±»¶ÁÈ¡(eOp==0)»òĞ´(eOp! = 0)µÄÊı¾İ·¶Î§¡£
+		** éœ€è¦æ­£ç¡®åœ°è¯»è¿™ä¸ªé¡µé¢ã€‚å®ƒåŒ…å«çš„ä¸€äº›æ­£åœ¨è¢«è¯»å–(eOp==0)æˆ–å†™(eOp! = 0)çš„æ•°æ®èŒƒå›´ã€‚
         */
 #ifdef SQLITE_DIRECT_OVERFLOW_READ
         sqlite3_file *fd;
@@ -4455,14 +4454,14 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
         ** output buffer, bypassing the page-cache altogether. This speeds
         ** up loading large records that span many overflow pages.
         */
-        /*Èç¹ûËùÓĞµÄÏÂÁĞÌõ¼şÎªÕæ£º
-		1£©ÕâÊÇÒ»¸ö¶Á²Ù×÷£¬²¢ÇÒ
-		2£©Êı¾İ±»Òç³öÒ³ÇëÇó£¬²¢ÇÒ
-		3£©Êı¾İ¿âÎÄ¼şµÄÖ§³Ö£¬²¢ÇÒ
-		4£©Ã»ÓĞ¿ª·ÅĞÔĞ´ÊÂÎñ£¬
-		5£©Êı¾İ¿â²»ÊÇÒ»¸öWALÊı¾İ¿â£¬
-		È»ºóÊı¾İ¿ÉÒÔÖ±½Ó´ÓÊı¾İ¿âÎÄ¼ş¶ÁÈëµ½
-		Êä³ö»º³å¡£Õâ¼Ó¿ìÁËÒç³öÒ³µÄ´ó¼ÇÂ¼µÄ¼ÓÔØ¡£
+        /*å¦‚æœæ‰€æœ‰çš„ä¸‹åˆ—æ¡ä»¶ä¸ºçœŸï¼š
+		1ï¼‰è¿™æ˜¯ä¸€ä¸ªè¯»æ“ä½œï¼Œå¹¶ä¸”
+		2ï¼‰æ•°æ®è¢«æº¢å‡ºé¡µè¯·æ±‚ï¼Œå¹¶ä¸”
+		3ï¼‰æ•°æ®åº“æ–‡ä»¶çš„æ”¯æŒï¼Œå¹¶ä¸”
+		4ï¼‰æ²¡æœ‰å¼€æ”¾æ€§å†™äº‹åŠ¡ï¼Œ
+		5ï¼‰æ•°æ®åº“ä¸æ˜¯ä¸€ä¸ªWALæ•°æ®åº“ï¼Œ
+		ç„¶åæ•°æ®å¯ä»¥ç›´æ¥ä»æ•°æ®åº“æ–‡ä»¶è¯»å…¥åˆ°
+		è¾“å‡ºç¼“å†²ã€‚è¿™åŠ å¿«äº†æº¢å‡ºé¡µçš„å¤§è®°å½•çš„åŠ è½½ã€‚
 */
         if( eOp==0                                             /* (1) */
          && offset==0                                          /* (2) */
@@ -4506,23 +4505,23 @@ static int accessPayload(          //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
 ** Read part of the key associated with cursor pCur.  Exactly
 ** "amt" bytes will be transfered into pBuf[].  The transfer
 ** begins at "offset".
-** ¶ÁÓëÓÎ±êpCur¹ØÁªµÄ¹Ø¼ü×Ö."amt"×Ö½ÚÊı½«±»´«µİµ½Êı×épBuf[]ÖĞ.´«µİ´Ó"offset"¿ªÊ¼.
+** è¯»ä¸æ¸¸æ ‡pCurå…³è”çš„å…³é”®å­—."amt"å­—èŠ‚æ•°å°†è¢«ä¼ é€’åˆ°æ•°ç»„pBuf[]ä¸­.ä¼ é€’ä»"offset"å¼€å§‹.
 ** The caller must ensure that pCur is pointing to a valid row
 ** in the table.
-** µ÷ÓÃÕß±ØĞëÈ·±£pCurÖ¸Ïò±íÖĞÓĞĞ§µÄĞĞ¡£
+** è°ƒç”¨è€…å¿…é¡»ç¡®ä¿pCuræŒ‡å‘è¡¨ä¸­æœ‰æ•ˆçš„è¡Œã€‚
 ** Return SQLITE_OK on success or an error code if anything goes
 ** wrong.  An error is returned if "offset+amt" is larger than
 ** the available payload.
-** ³É¹¦Ôò·µ»ØSQLITE_OK»òÈç¹ûÈÎºÎ´íÎó·¢ÉúÔò·µ»Ø´íÎó´úÂë¡£Èç¹û "offset+amt"±È¿ÉÓÃµÄÓĞĞ§ÔØºÉ»¹´óÔò·µ»ØÒ»¸ö´íÎó¡£
+** æˆåŠŸåˆ™è¿”å›SQLITE_OKæˆ–å¦‚æœä»»ä½•é”™è¯¯å‘ç”Ÿåˆ™è¿”å›é”™è¯¯ä»£ç ã€‚å¦‚æœ "offset+amt"æ¯”å¯ç”¨çš„æœ‰æ•ˆè½½è·è¿˜å¤§åˆ™è¿”å›ä¸€ä¸ªé”™è¯¯ã€‚
 */
-/*ÈôÓÎ±êpCurÖ¸Ïò±íÖĞÓĞĞ§µÄÒ»ĞĞ£¬·µ»ØSQLITE_OK£¬Èô"offset+amt">ÓĞĞ§¸ºÔØ£¬·µ»Øerror code*/
+/*è‹¥æ¸¸æ ‡pCuræŒ‡å‘è¡¨ä¸­æœ‰æ•ˆçš„ä¸€è¡Œï¼Œè¿”å›SQLITE_OKï¼Œè‹¥"offset+amt">æœ‰æ•ˆè´Ÿè½½ï¼Œè¿”å›error code*/
 int sqlite3BtreeKey(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
   assert( cursorHoldsMutex(pCur) );
-  assert( pCur->eState==CURSOR_VALID );/*ÓÎ±êÖ¸Ïò±íÖĞÓĞĞ§µÄÒ»ĞĞ*/
+  assert( pCur->eState==CURSOR_VALID );/*æ¸¸æ ‡æŒ‡å‘è¡¨ä¸­æœ‰æ•ˆçš„ä¸€è¡Œ*/
   assert( pCur->iPage>=0 && pCur->apPage[pCur->iPage] );
   assert( pCur->aiIdx[pCur->iPage]<pCur->apPage[pCur->iPage]->nCell );
   return accessPayload(pCur, offset, amt, (unsigned char*)pBuf, 0);/*
-  ·µ»Øµ±Ç°ÓÎ±êËùÖ¸¼ÇÂ¼µÄ¹Ø¼ü×Ö¡£
+  è¿”å›å½“å‰æ¸¸æ ‡æ‰€æŒ‡è®°å½•çš„å…³é”®å­—ã€‚
   */
 }
 
@@ -4530,14 +4529,14 @@ int sqlite3BtreeKey(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
 ** Read part of the data associated with cursor pCur.  Exactly
 ** "amt" bytes will be transfered into pBuf[].  The transfer
 ** begins at "offset".
-** ¶ÁÓëÓÎ±êpCur¹ØÁªµÄÊı¾İÓò."amt"×Ö½ÚÊı½«±»´«µİµ½Êı×épBuf[]ÖĞ.´«µİ´Ó"offset"¿ªÊ¼.
+** è¯»ä¸æ¸¸æ ‡pCurå…³è”çš„æ•°æ®åŸŸ."amt"å­—èŠ‚æ•°å°†è¢«ä¼ é€’åˆ°æ•°ç»„pBuf[]ä¸­.ä¼ é€’ä»"offset"å¼€å§‹.
 ** Return SQLITE_OK on success or an error code if anything goes
 ** wrong.  An error is returned if "offset+amt" is larger than
 ** the available payload.
-** ³É¹¦Ôò·µ»ØSQLITE_OK»òÈç¹ûÈÎºÎ´íÎó·¢ÉúÔò·µ»Ø´íÎó´úÂë¡£Èç¹û "offset+amt"±È¿ÉÓÃµÄÓĞĞ§ÔØºÉ»¹´óÔò·µ»ØÒ»¸ö´íÎó¡£
+** æˆåŠŸåˆ™è¿”å›SQLITE_OKæˆ–å¦‚æœä»»ä½•é”™è¯¯å‘ç”Ÿåˆ™è¿”å›é”™è¯¯ä»£ç ã€‚å¦‚æœ "offset+amt"æ¯”å¯ç”¨çš„æœ‰æ•ˆè½½è·è¿˜å¤§åˆ™è¿”å›ä¸€ä¸ªé”™è¯¯ã€‚
 */
 /*
-·µ»Øµ±Ç°ÓÎ±êËùÖ¸¼ÇÂ¼µÄÊı¾İ
+è¿”å›å½“å‰æ¸¸æ ‡æ‰€æŒ‡è®°å½•çš„æ•°æ®
 */
 int sqlite3BtreeData(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){        
   int rc;
@@ -4566,32 +4565,32 @@ int sqlite3BtreeData(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
 ** skipKey==1.  The number of bytes of available key/data is written
 ** into *pAmt.  If *pAmt==0, then the value returned will not be
 ** a valid pointer.
-** ·µ»Ø´ÓpCurÓÎ±êÕıÔÚÖ¸ÏòµÄÌõÄ¿µ½ÓĞĞ§ÔØºÉµÄÖ¸Õë¡£Èç¹ûskipKey==0 Ôò¸ÃÖ¸ÕëÖ¸Ïò¹Ø¼ü×ÖµÄ¿ª
-** Ê¼£¬²¢ÇÒÈç¹ûskipKey==1Ö¸ÏòÊı¾İÓòµÄ¿ªÊ¼¡£¿ÉÓÃ¹Ø¼ü×Ö»òÊı¾İÓòµÄ×Ö½ÚÊı±»Ğ´Èëµ½*pAmt.Èç
-** ¹û* pAmt ==0,ÄÇÃ´·µ»ØµÄÖµÓ¦ÊÇÒ»¸öÓĞĞ§µÄÖ¸Õë¡£
+** è¿”å›ä»pCuræ¸¸æ ‡æ­£åœ¨æŒ‡å‘çš„æ¡ç›®åˆ°æœ‰æ•ˆè½½è·çš„æŒ‡é’ˆã€‚å¦‚æœskipKey==0 åˆ™è¯¥æŒ‡é’ˆæŒ‡å‘å…³é”®å­—çš„å¼€
+** å§‹ï¼Œå¹¶ä¸”å¦‚æœskipKey==1æŒ‡å‘æ•°æ®åŸŸçš„å¼€å§‹ã€‚å¯ç”¨å…³é”®å­—æˆ–æ•°æ®åŸŸçš„å­—èŠ‚æ•°è¢«å†™å…¥åˆ°*pAmt.å¦‚
+** æœ* pAmt ==0,é‚£ä¹ˆè¿”å›çš„å€¼åº”æ˜¯ä¸€ä¸ªæœ‰æ•ˆçš„æŒ‡é’ˆã€‚
 ** This routine is an optimization.  It is common for the entire key
 ** and data to fit on the local page and for there to be no overflow
 ** pages.  When that is so, this routine can be used to access the
 ** key and data without making a copy.  If the key and/or data spills
 ** onto overflow pages, then accessPayload() must be used to reassemble
 ** the key/data and copy it into a preallocated buffer.
-** ´Ëº¯ÊıÊÇÒ»¸öÓÅ»¯¡£¶ÔÓÚÈ«²¿¹Ø¼ü×ÖÓëÊı¾İÓòÊÊÓ¦±¾µØÒ³ÃæÊÇ³£¼ûµÄ,²¢ÇÒ¶ÔÓÚÃ»ÓĞÒç³öÒ³ÃæµÄÒ²ÊÇ³£¼ûµÄ¡£
-** µ±Èç´Ë,Õâ¸öº¯Êı¿ÉÒÔÓÃ×÷·ÃÎÊÃ»ÓĞ¸±±¾µÄ¹Ø¼ü×ÖºÍÊı¾İÓò¡£Èç¹û¼üºÍ/»òÊı¾İÔÚÒç³öÒ³ÃæÉÏÒç³ö,
-** ÄÇÃ´accessPayload()±ØĞëÓÃÓÚÖØ×é¼ü/Êı¾İ²¢½«Æä¸´ÖÆµ½Ò»¸öÔ¤ÏÈ·ÖÅäµÄ»º³åÇø¡£
+** æ­¤å‡½æ•°æ˜¯ä¸€ä¸ªä¼˜åŒ–ã€‚å¯¹äºå…¨éƒ¨å…³é”®å­—ä¸æ•°æ®åŸŸé€‚åº”æœ¬åœ°é¡µé¢æ˜¯å¸¸è§çš„,å¹¶ä¸”å¯¹äºæ²¡æœ‰æº¢å‡ºé¡µé¢çš„ä¹Ÿæ˜¯å¸¸è§çš„ã€‚
+** å½“å¦‚æ­¤,è¿™ä¸ªå‡½æ•°å¯ä»¥ç”¨ä½œè®¿é—®æ²¡æœ‰å‰¯æœ¬çš„å…³é”®å­—å’Œæ•°æ®åŸŸã€‚å¦‚æœé”®å’Œ/æˆ–æ•°æ®åœ¨æº¢å‡ºé¡µé¢ä¸Šæº¢å‡º,
+** é‚£ä¹ˆaccessPayload()å¿…é¡»ç”¨äºé‡ç»„é”®/æ•°æ®å¹¶å°†å…¶å¤åˆ¶åˆ°ä¸€ä¸ªé¢„å…ˆåˆ†é…çš„ç¼“å†²åŒºã€‚
 ** The pointer returned by this routine looks directly into the cached
 ** page of the database.  The data might change or move the next time
 ** any btree routine is called.
-** Ö¸ÕëÍ¨¹ıÕâ¸öº¯ÊıÖ±½Ó²é¿´Êı¾İ¿âÖĞµÄ»º´æÒ³·µ»Ø¡£ÏÂ´ÎÈÎºÎbtreeº¯Êı±»µ÷ÓÃÊ±Êı¾İ¿ÉÄÜ»á¸Ä±ä»òÒÆ¶¯¡£
+** æŒ‡é’ˆé€šè¿‡è¿™ä¸ªå‡½æ•°ç›´æ¥æŸ¥çœ‹æ•°æ®åº“ä¸­çš„ç¼“å­˜é¡µè¿”å›ã€‚ä¸‹æ¬¡ä»»ä½•btreeå‡½æ•°è¢«è°ƒç”¨æ—¶æ•°æ®å¯èƒ½ä¼šæ”¹å˜æˆ–ç§»åŠ¨ã€‚
 */
 	/*
-	·µ»ØÒ»¸öÖ¸ÏòÓĞĞ§ÔØºÉµÄÖ¸Õë¡£Èç¹ûskipKey== 0£¬Ö¸ÕëÖ¸ÏòkeyµÄ¿ªÊ¼¡£Èç¹ûskipKey==1£¬
-	Ö¸ÕëÖ¸ÏòdataµÄ¿ªÊ¼¡£Èç¹û* PAMT== 0£¬Ôò·µ»ØµÄÖµ½«ÎªÎŞĞ§Ö¸Õë¡£´Ë³ÌĞòÊÇÒ»¸öÓÅ»¯¡£
-	µ±ÈÎºÎBÊ÷³ÌĞò±»µ÷ÓÃ£¬¸ÃÊı¾İ¿ÉÄÜ»á¸Ä±ä»òÒÆ¶¯¡£
+	è¿”å›ä¸€ä¸ªæŒ‡å‘æœ‰æ•ˆè½½è·çš„æŒ‡é’ˆã€‚å¦‚æœskipKey== 0ï¼ŒæŒ‡é’ˆæŒ‡å‘keyçš„å¼€å§‹ã€‚å¦‚æœskipKey==1ï¼Œ
+	æŒ‡é’ˆæŒ‡å‘dataçš„å¼€å§‹ã€‚å¦‚æœ* PAMT== 0ï¼Œåˆ™è¿”å›çš„å€¼å°†ä¸ºæ— æ•ˆæŒ‡é’ˆã€‚æ­¤ç¨‹åºæ˜¯ä¸€ä¸ªä¼˜åŒ–ã€‚
+	å½“ä»»ä½•Bæ ‘ç¨‹åºè¢«è°ƒç”¨ï¼Œè¯¥æ•°æ®å¯èƒ½ä¼šæ”¹å˜æˆ–ç§»åŠ¨ã€‚
 	*/
-static const unsigned char *fetchPayload(       //·µ»Ø´ÓpCurÓÎ±êÕıÔÚÖ¸ÏòµÄÌõÄ¿µ½ÓĞĞ§ÔØºÉµÄÖ¸Õë
-  BtCursor *pCur,      /* Cursor pointing to entry to read from */      //Ö¸ÏòÒª¶ÁÈ¡ÌõÄ¿µÄÓÎ±ê
-  int *pAmt,           /* Write the number of available bytes here */   //Ğ´¿ÉÓÃ×Ö½ÚÊı
-  int skipKey          /* read beginning at data if this is true */     //Âß¼­ÖµÎªÕæ´ÓÊı¾İ¿ªÊ¼¶Á
+static const unsigned char *fetchPayload(       //è¿”å›ä»pCuræ¸¸æ ‡æ­£åœ¨æŒ‡å‘çš„æ¡ç›®åˆ°æœ‰æ•ˆè½½è·çš„æŒ‡é’ˆ
+  BtCursor *pCur,      /* Cursor pointing to entry to read from */      //æŒ‡å‘è¦è¯»å–æ¡ç›®çš„æ¸¸æ ‡
+  int *pAmt,           /* Write the number of available bytes here */   //å†™å¯ç”¨å­—èŠ‚æ•°
+  int skipKey          /* read beginning at data if this is true */     //é€»è¾‘å€¼ä¸ºçœŸä»æ•°æ®å¼€å§‹è¯»
 ){
   unsigned char *aPayload;
   MemPage *pPage;
@@ -4640,13 +4639,13 @@ static const unsigned char *fetchPayload(       //·µ»Ø´ÓpCurÓÎ±êÕıÔÚÖ¸ÏòµÄÌõÄ¿µ½
 ** in the common case where no overflow pages are used.
 */
 	/*
-	¶ÔÓÚÓÎ±êpCurÖ¸ÏòÌõÄ¿£¬·µ»Økey »òÕß dataµÄ¼¸¸ö×Ö½Ú¡£Ğ´¿ÉÓÃµÄ×Ö½ÚÊıµ½*pAmt¡£
-	·µ»ØµÄÖ¸ÕëÊÇ¶ÌÔİµÄ¡£ÔÚÏÂÒ»´Îµ÷ÓÃÈÎºÎBÊ÷º¯ÊıµÄÊ±ºò£¬key/data¿ÉÄÜÒÆ¶¯»ò±»Ïú»Ù£¬
-	°üÀ¨ÆäËûÏß³Ì¶ÔÏàÍ¬»º´æµÄµ÷ÓÃ¡£Òò´ËBtSharedÉÏµÄÒ»¸ö»¥³âËøÓ¦¸ÃÔÚµ÷ÓÃÕâ¸öº¯Êı
-	Ç°±»³ÖÓĞÕâ¸ö³ÌĞòÔÚÃ»ÓĞÒç³öÒ³Ê¹ÓÃµÄ³£¼ûÇé¿öÏÂ£¬ÓÃÓÚ¿ìËÙ·ÃÎÊkey ºÍ data¡£
+	å¯¹äºæ¸¸æ ‡pCuræŒ‡å‘æ¡ç›®ï¼Œè¿”å›key æˆ–è€… dataçš„å‡ ä¸ªå­—èŠ‚ã€‚å†™å¯ç”¨çš„å­—èŠ‚æ•°åˆ°*pAmtã€‚
+	è¿”å›çš„æŒ‡é’ˆæ˜¯çŸ­æš‚çš„ã€‚åœ¨ä¸‹ä¸€æ¬¡è°ƒç”¨ä»»ä½•Bæ ‘å‡½æ•°çš„æ—¶å€™ï¼Œkey/dataå¯èƒ½ç§»åŠ¨æˆ–è¢«é”€æ¯ï¼Œ
+	åŒ…æ‹¬å…¶ä»–çº¿ç¨‹å¯¹ç›¸åŒç¼“å­˜çš„è°ƒç”¨ã€‚å› æ­¤BtSharedä¸Šçš„ä¸€ä¸ªäº’æ–¥é”åº”è¯¥åœ¨è°ƒç”¨è¿™ä¸ªå‡½æ•°
+	å‰è¢«æŒæœ‰è¿™ä¸ªç¨‹åºåœ¨æ²¡æœ‰æº¢å‡ºé¡µä½¿ç”¨çš„å¸¸è§æƒ…å†µä¸‹ï¼Œç”¨äºå¿«é€Ÿè®¿é—®key å’Œ dataã€‚
 	*/
 
-const void *sqlite3BtreeKeyFetch(BtCursor *pCur, int *pAmt){  //·µ»ØÓÎ±êpCurÖ¸ÏòÌõÄ¿µÄkey ÔÚ±¾µØBÊ÷Ò³ÉÏ¿ÉÓÃµÄ×Ö½ÚÊı
+const void *sqlite3BtreeKeyFetch(BtCursor *pCur, int *pAmt){  //ç”¨äºå¿«é€Ÿè®¿é—®key
   const void *p = 0;
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
   assert( cursorHoldsMutex(pCur) );
@@ -4656,7 +4655,7 @@ const void *sqlite3BtreeKeyFetch(BtCursor *pCur, int *pAmt){  //·µ»ØÓÎ±êpCurÖ¸Ïò
   return p;
 }
 
-const void *sqlite3BtreeDataFetch(BtCursor *pCur, int *pAmt){  //·µ»ØÓÎ±êpCurÖ¸ÏòÌõÄ¿µÄdataÔÚ±¾µØBÊ÷Ò³ÉÏ¿ÉÓÃµÄ×Ö½ÚÊı
+const void *sqlite3BtreeDataFetch(BtCursor *pCur, int *pAmt){  //ç”¨äºå¿«é€Ÿè®¿é—®data
   const void *p = 0;
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
   assert( cursorHoldsMutex(pCur) );
@@ -4669,20 +4668,20 @@ const void *sqlite3BtreeDataFetch(BtCursor *pCur, int *pAmt){  //·µ»ØÓÎ±êpCurÖ¸Ï
 /*
 ** Move the cursor down to a new child page.  The newPgno argument is the
 ** page number of the child page to move to.
-** ÒÆ¶¯ÓÎ±êµ½ÏÂÒ»¸öĞÂµÄº¢×ÓÒ³Ãæ¡£newPgno²ÎÊıÊÇËùÒÔµ½µÄº¢×ÓÒ³ÃæµÄÒ³Âë¡£
+** ç§»åŠ¨æ¸¸æ ‡åˆ°ä¸‹ä¸€ä¸ªæ–°çš„å­©å­é¡µé¢ã€‚newPgnoå‚æ•°æ˜¯æ‰€ä»¥åˆ°çš„å­©å­é¡µé¢çš„é¡µç ã€‚
 ** This function returns SQLITE_CORRUPT if the page-header flags field of
 ** the new child page does not match the flags field of the parent (i.e.
 ** if an intkey page appears to be the parent of a non-intkey page, or
 ** vice-versa).
-** Èç¹ûĞÂµÄº¢×ÓÒ³ÃæµÄÒ³Í·±êÖ¾ÓòºÍ¸¸½ÚµãµÄ±êÖ¾Óò²»Æ¥Åä£¬Ôòº¯Êı·µ»ØSQLITE_CORRUPT.
-** (ÀıÈçÒ»¸öÄÚ²¿¹Ø¼ü×ÖÒ³ÊÇ·ÇÄÚ²¿¹Ø¼ü×ÖÒ³µÄ¸¸½ÚµãÒ³)
+** å¦‚æœæ–°çš„å­©å­é¡µé¢çš„é¡µå¤´æ ‡å¿—åŸŸå’Œçˆ¶èŠ‚ç‚¹çš„æ ‡å¿—åŸŸä¸åŒ¹é…ï¼Œåˆ™å‡½æ•°è¿”å›SQLITE_CORRUPT.
+** (ä¾‹å¦‚ä¸€ä¸ªå†…éƒ¨å…³é”®å­—é¡µæ˜¯éå†…éƒ¨å…³é”®å­—é¡µçš„çˆ¶èŠ‚ç‚¹é¡µ)
 */
 	/*
-	ÏÂÒÆ¹â±êµ½Ò»¸öĞÂµÄ×ÓÒ³Ãæ¡£¸ÃnewPgno²ÎÊıÊÇ×ÓÒ³ÃæÒÆ¶¯µÄÒ³ºÅ¡£
-	Èç¹ûpage-header±êÖ¾ÓëÆä¸¸½ÚµãµÄ±êÖ¾²»Æ¥Åä£¬´Ëº¯Êı·µ»ØSQLITE_CORRUPT¡£
+	ä¸‹ç§»å…‰æ ‡åˆ°ä¸€ä¸ªæ–°çš„å­é¡µé¢ã€‚è¯¥newPgnoå‚æ•°æ˜¯å­é¡µé¢ç§»åŠ¨çš„é¡µå·ã€‚
+	å¦‚æœpage-headeræ ‡å¿—ä¸å…¶çˆ¶èŠ‚ç‚¹çš„æ ‡å¿—ä¸åŒ¹é…ï¼Œæ­¤å‡½æ•°è¿”å›SQLITE_CORRUPTã€‚
 	*/
 
-static int moveToChild(BtCursor *pCur, u32 newPgno){      //ÒÆ¶¯ÓÎ±êµ½ÏÂÒ»¸öĞÂµÄº¢×ÓÒ³Ãæ
+static int moveToChild(BtCursor *pCur, u32 newPgno){      //ç§»åŠ¨æ¸¸æ ‡åˆ°ä¸‹ä¸€ä¸ªæ–°çš„å­©å­é¡µé¢
   int rc;
   int i = pCur->iPage;
   MemPage *pNewPage;
@@ -4715,10 +4714,10 @@ static int moveToChild(BtCursor *pCur, u32 newPgno){      //ÒÆ¶¯ÓÎ±êµ½ÏÂÒ»¸öĞÂµÄ
 ** cell in page pParent. Or, if iIdx is equal to the total number of
 ** cells in pParent, that page number iChild is the right-child of
 ** the page.
-** Ò³ÃæpParentÊÇBÊ÷ÄÚ²¿(·ÇÒ¶)Ò³¡£Õâ¸öº¯Êı¶ÏÑÔÈç¹ûµÚiIdxµ¥ÔªÔÚÒ³pParentÖĞÔòÒ³ÂëiChild
-** ÊÇ×óº¢×Ó¡£»ò,Èç¹ûiIdxµÈÓÚpParentÖĞµ¥ÔªµÄ×ÜÊı,ÄÇÃ´Ò³ÂëiChildÊÇÒ³ÃæµÄÓÒº¢×Ó¡£
+** é¡µé¢pParentæ˜¯Bæ ‘å†…éƒ¨(éå¶)é¡µã€‚è¿™ä¸ªå‡½æ•°æ–­è¨€å¦‚æœç¬¬iIdxå•å…ƒåœ¨é¡µpParentä¸­åˆ™é¡µç iChild
+** æ˜¯å·¦å­©å­ã€‚æˆ–,å¦‚æœiIdxç­‰äºpParentä¸­å•å…ƒçš„æ€»æ•°,é‚£ä¹ˆé¡µç iChildæ˜¯é¡µé¢çš„å³å­©å­ã€‚
 */
-static void assertParentIndex(MemPage *pParent, int iIdx, Pgno iChild){  //ÅĞ¶ÏÒ³pParentµÄº¢×ÓÒ³ÃæÊÇ×óº¢×Ó»¹ÊÇÓÒº¢×Ó
+static void assertParentIndex(MemPage *pParent, int iIdx, Pgno iChild){  //åˆ¤æ–­é¡µpParentçš„å­©å­é¡µé¢æ˜¯å·¦å­©å­è¿˜æ˜¯å³å­©å­
   assert( iIdx<=pParent->nCell );
   if( iIdx==pParent->nCell ){
     assert( get4byte(&pParent->aData[pParent->hdrOffset+8])==iChild );
@@ -4732,16 +4731,16 @@ static void assertParentIndex(MemPage *pParent, int iIdx, Pgno iChild){  //ÅĞ¶ÏÒ
 
 /*
 ** Move the cursor up to the parent page.
-** ÏòÉÏÒÆ¶¯ÓÎ±êµ½¸¸½ÚµãÒ³Ãæ¡£
+** å‘ä¸Šç§»åŠ¨æ¸¸æ ‡åˆ°çˆ¶èŠ‚ç‚¹é¡µé¢ã€‚
 ** pCur->idx is set to the cell index that contains the pointer
 ** to the page we are coming from.  If we are coming from the
 ** right-most child page then pCur->idx is set to one more than
 ** the largest cell index.
 */
 	/*
-	½«ÓÎ±êÒÆ¶¯µ½¸¸Ò³Ãæ.pCur-> IDX±»Éè¶¨Îª°üº¬Ö¸ÏòÒ³µÄÖ¸ÕëµÄµ¥ÔªË÷Òı.Èç¹ûÎª×îÓÒ±ßµÄ×ÓÒ³Ãæ£¬pCur-> IDX±»ÉèÖÃÎª±È×î´óµÄµ¥Ôª¸ü´óµÄË÷Òı¡£
+	å°†æ¸¸æ ‡ç§»åŠ¨åˆ°çˆ¶é¡µé¢.pCur-> IDXè¢«è®¾å®šä¸ºåŒ…å«æŒ‡å‘é¡µçš„æŒ‡é’ˆçš„å•å…ƒç´¢å¼•.å¦‚æœä¸ºæœ€å³è¾¹çš„å­é¡µé¢ï¼ŒpCur-> IDXè¢«è®¾ç½®ä¸ºæ¯”æœ€å¤§çš„å•å…ƒæ›´å¤§çš„ç´¢å¼•ã€‚
 	*/
-static void moveToParent(BtCursor *pCur){     //ÏòÉÏÒÆ¶¯ÓÎ±êµ½¸¸½ÚµãÒ³Ãæ¡£
+static void moveToParent(BtCursor *pCur){     //å‘ä¸Šç§»åŠ¨æ¸¸æ ‡åˆ°çˆ¶èŠ‚ç‚¹é¡µé¢ã€‚
   assert( cursorHoldsMutex(pCur) );
   assert( pCur->eState==CURSOR_VALID );
   assert( pCur->iPage>0 );
@@ -4752,9 +4751,9 @@ static void moveToParent(BtCursor *pCur){     //ÏòÉÏÒÆ¶¯ÓÎ±êµ½¸¸½ÚµãÒ³Ãæ¡£
   ** one cursor has modified page pParent while a reference to it is held 
   ** by a second cursor. Which can only happen if a single page is linked
   ** into more than one b-tree structure in a corrupt database.  
-  ** Èç¹ûÊı¾İ¿âÎÄ¼şÖĞ¶ÏµÄ»°£¬ÓÉassert²âÊÔµÄÌõ¼şºÜÓĞ¿ÉÄÜÎª¼Ù¡£Èç¹ûµ±Ò»¸ö²ÎÊı
-  ** ±»ÁíÒ»¸öÓÎ±ê³ÖÓĞÊ±Ò»¸öÓÎ±êÒÑ¾­ĞŞ¸ÄÁËÒ³ÃæpParent £¬ÄÇÃ´Õâ¿ÉÄÜ»á·¢Éú¡£
-  ** Èç¹ûÒ»¸öÒ³Ãæ±»Á´½Óµ½²»Ö¹Ò»¸öb -Ê÷½á¹¹ÔÚ²»Á¼µÄÊı¾İ¿âÖĞÔòÒÔÉÏÒ²»á³öÏÖ¡£*/
+  ** å¦‚æœæ•°æ®åº“æ–‡ä»¶ä¸­æ–­çš„è¯ï¼Œç”±assertæµ‹è¯•çš„æ¡ä»¶å¾ˆæœ‰å¯èƒ½ä¸ºå‡ã€‚å¦‚æœå½“ä¸€ä¸ªå‚æ•°
+  ** è¢«å¦ä¸€ä¸ªæ¸¸æ ‡æŒæœ‰æ—¶ä¸€ä¸ªæ¸¸æ ‡å·²ç»ä¿®æ”¹äº†é¡µé¢pParent ï¼Œé‚£ä¹ˆè¿™å¯èƒ½ä¼šå‘ç”Ÿã€‚
+  ** å¦‚æœä¸€ä¸ªé¡µé¢è¢«é“¾æ¥åˆ°ä¸æ­¢ä¸€ä¸ªb -æ ‘ç»“æ„åœ¨ä¸è‰¯çš„æ•°æ®åº“ä¸­åˆ™ä»¥ä¸Šä¹Ÿä¼šå‡ºç°ã€‚*/
 #if 0
   assertParentIndex(
     pCur->apPage[pCur->iPage-1], 
@@ -4772,19 +4771,19 @@ static void moveToParent(BtCursor *pCur){     //ÏòÉÏÒÆ¶¯ÓÎ±êµ½¸¸½ÚµãÒ³Ãæ¡£
 
 /*
 ** Move the cursor to point to the root page of its b-tree structure.
-** ÒÆ¶¯ÓÎ±êÖ¸ÏòBÊ÷½á¹¹µÄ¸ùÒ³¡£
+** ç§»åŠ¨æ¸¸æ ‡æŒ‡å‘Bæ ‘ç»“æ„çš„æ ¹é¡µã€‚
 ** If the table has a virtual root page, then the cursor is moved to point
 ** to the virtual root page instead of the actual root page. A table has a
 ** virtual root page when the actual root page contains no cells and a 
 ** single child page. This can only happen with the table rooted at page 1.
-** Èç¹û±íÓĞÒ»¸öĞéÄâ¸ùÒ³Ãæ,ÔòÓÎ±êÒÆ¶¯Ö¸ÏòĞéÄâ¸ùÒ³Ãæ¶ø²»ÊÇÊµ¼ÊµÄ¸ùÒ³¡£µ±Êµ¼Ê¸ùÒ³
-** ²»°üº¬µ¥ÔªºÍµ¥Ò»µÄ×ÓÒ³ÃæÊ±±íÉÏ»áÓĞÒ»¸öĞéÄâ¸ùÒ³Ãæ¡£ÕâÖ»ÄÜ·¢ÉúÔÚµÚ1Ò³µÄ±íÉÏ¡£
+** å¦‚æœè¡¨æœ‰ä¸€ä¸ªè™šæ‹Ÿæ ¹é¡µé¢,åˆ™æ¸¸æ ‡ç§»åŠ¨æŒ‡å‘è™šæ‹Ÿæ ¹é¡µé¢è€Œä¸æ˜¯å®é™…çš„æ ¹é¡µã€‚å½“å®é™…æ ¹é¡µ
+** ä¸åŒ…å«å•å…ƒå’Œå•ä¸€çš„å­é¡µé¢æ—¶è¡¨ä¸Šä¼šæœ‰ä¸€ä¸ªè™šæ‹Ÿæ ¹é¡µé¢ã€‚è¿™åªèƒ½å‘ç”Ÿåœ¨ç¬¬1é¡µçš„è¡¨ä¸Šã€‚
 ** If the b-tree structure is empty, the cursor state is set to 
 ** CURSOR_INVALID. Otherwise, the cursor is set to point to the first
 ** cell located on the root (or virtual root) page and the cursor state
 ** is set to CURSOR_VALID.
-** Èç¹ûb-Ê÷½á¹¹Îª¿Õ,½«ÓÎ±ê×´Ì¬ÉèÎªCURSOR_INVALID¡£·ñÔò,ÓÎ±ê½«Ö¸ÏòÎ»ÓÚ¸ù(»òĞéÄâ¸ù)
-** Ò³ÃæµÄµÚÒ»¸öµ¥Ôª,²¢ÇÒÓÎ±ê×´Ì¬ÉèÎªCURSOR_VALID¡£
+** å¦‚æœb-æ ‘ç»“æ„ä¸ºç©º,å°†æ¸¸æ ‡çŠ¶æ€è®¾ä¸ºCURSOR_INVALIDã€‚å¦åˆ™,æ¸¸æ ‡å°†æŒ‡å‘ä½äºæ ¹(æˆ–è™šæ‹Ÿæ ¹)
+** é¡µé¢çš„ç¬¬ä¸€ä¸ªå•å…ƒ,å¹¶ä¸”æ¸¸æ ‡çŠ¶æ€è®¾ä¸ºCURSOR_VALIDã€‚
 ** If this function returns successfully, it may be assumed that the
 ** page-header flags indicate that the [virtual] root-page is the expected 
 ** kind of b-tree page (i.e. if when opening the cursor the caller did not
@@ -4792,11 +4791,11 @@ static void moveToParent(BtCursor *pCur){     //ÏòÉÏÒÆ¶¯ÓÎ±êµ½¸¸½ÚµãÒ³Ãæ¡£
 ** indicating a table b-tree, or if the caller did specify a KeyInfo 
 ** structure the flags byte is set to 0x02 or 0x0A, indicating an index
 ** b-tree).
-** Èç¹ûÕâ¸öº¯Êı·µ»Ø³É¹¦,Ëü¿ÉÄÜ»á¼Ù¶¨Í·²¿µÄ±êÖ¾±íÃ÷[ĞéÄâ]¸ùÒ³ÊÇb-Ê÷Ò³Ãæ(¼´Èç¹û
-** ¿ª·ÅÓÎ±êµ÷ÓÃÕßÃ»ÓĞÖ¸¶¨KeyInfo½á¹¹£¬±ê¼Ç×Ö½ÚÉèÖÃÎª0 x05»ò0 x0d,ËµÃ÷ÊÇ±íb-Ê÷
-** ,»òÕßÈç¹ûµ÷ÓÃÕßÖ¸¶¨KeyInfo½á¹¹±ê¼Ç×Ö½ÚÉèÖÃÎª0x02»ò0x0a,ËµÃ÷ÊÇË÷Òıb-tree)¡£
+** å¦‚æœè¿™ä¸ªå‡½æ•°è¿”å›æˆåŠŸ,å®ƒå¯èƒ½ä¼šå‡å®šå¤´éƒ¨çš„æ ‡å¿—è¡¨æ˜[è™šæ‹Ÿ]æ ¹é¡µæ˜¯b-æ ‘é¡µé¢(å³å¦‚æœ
+** å¼€æ”¾æ¸¸æ ‡è°ƒç”¨è€…æ²¡æœ‰æŒ‡å®šKeyInfoç»“æ„ï¼Œæ ‡è®°å­—èŠ‚è®¾ç½®ä¸º0 x05æˆ–0 x0d,è¯´æ˜æ˜¯è¡¨b-æ ‘
+** ,æˆ–è€…å¦‚æœè°ƒç”¨è€…æŒ‡å®šKeyInfoç»“æ„æ ‡è®°å­—èŠ‚è®¾ç½®ä¸º0x02æˆ–0x0a,è¯´æ˜æ˜¯ç´¢å¼•b-tree)ã€‚
 */
-static int moveToRoot(BtCursor *pCur){      //ÒÆ¶¯ÓÎ±êÖ¸ÏòBÊ÷½á¹¹µÄ¸ùÒ³
+static int moveToRoot(BtCursor *pCur){      //ç§»åŠ¨æ¸¸æ ‡æŒ‡å‘Bæ ‘ç»“æ„çš„æ ¹é¡µ
   MemPage *pRoot;
   int rc = SQLITE_OK;
   Btree *p = pCur->pBtree;
@@ -4835,8 +4834,8 @@ static int moveToRoot(BtCursor *pCur){      //ÒÆ¶¯ÓÎ±êÖ¸ÏòBÊ÷½á¹¹µÄ¸ùÒ³
     ** expected to open it on an index b-tree. Otherwise, if pKeyInfo is
     ** NULL, the caller expects a table b-tree. If this is not the case,
     ** return an SQLITE_CORRUPT error.  
-	** Èç¹ûpCur->pKeyInfo·Ç¿Õ,ÄÇÃ´µ÷ÓÃÕß´ò¿ª½«ÔÚË÷ÒıBÊ÷ÉÏ´ò¿ªµÄÓÎ±ê.·ñÔò,Èç¹ûpKeyInfoÎª¿Õ,
-	** µ÷ÓÃÕßĞèÒª±íBÊ÷¡£³ı´ËÖ®Íâ£¬·µ»ØÒ»¸öSQLITE_CORRUPT´íÎó¡£*/
+	** å¦‚æœpCur->pKeyInfoéç©º,é‚£ä¹ˆè°ƒç”¨è€…æ‰“å¼€å°†åœ¨ç´¢å¼•Bæ ‘ä¸Šæ‰“å¼€çš„æ¸¸æ ‡.å¦åˆ™,å¦‚æœpKeyInfoä¸ºç©º,
+	** è°ƒç”¨è€…éœ€è¦è¡¨Bæ ‘ã€‚é™¤æ­¤ä¹‹å¤–ï¼Œè¿”å›ä¸€ä¸ªSQLITE_CORRUPTé”™è¯¯ã€‚*/
     assert( pCur->apPage[0]->intKey==1 || pCur->apPage[0]->intKey==0 );
     if( (pCur->pKeyInfo==0)!=pCur->apPage[0]->intKey ){
       return SQLITE_CORRUPT_BKPT;
@@ -4849,8 +4848,8 @@ static int moveToRoot(BtCursor *pCur){      //ÒÆ¶¯ÓÎ±êÖ¸ÏòBÊ÷½á¹¹µÄ¸ùÒ³
   ** if the assumption were not true, and it is not possible for the flags 
   ** byte to have been modified while this cursor is holding a reference
   ** to the page.  
-  ** ÅĞ¶Ï¸ùÒ³ÓĞÕıÈ·µÄÀàĞÍ¡£µ÷ÓÃ´Ëº¯Êı¼ÓÔØµÄ¸ùÒ³Ê±Ò»¶¨ÊÇÕâÑùµÄ£¨»òÕßÕâ¸öµ÷ÓÃ»òÏÈÇ°µ÷ÓÃ£©Èç¹û¼ÙÉèÊÇ²»ÕıÈ·µÄ£¬
-  ** ¸Ãº¯Êı½«¼ì²âµ½Ëğ»µ¡£²¢ÇÒ¶ÔÓÚ±êÖ¾×Ö½ÚÀ´Ëµ£¬µ±ÓÎ±êÕıÔÚ³ÖÓĞÒ³µÄÒ»¸ö²ÎÊıÊ±±»ĞŞ¸ÄÊÇ²»¿ÉÄÜµÄ¡£*/
+  ** åˆ¤æ–­æ ¹é¡µæœ‰æ­£ç¡®çš„ç±»å‹ã€‚è°ƒç”¨æ­¤å‡½æ•°åŠ è½½çš„æ ¹é¡µæ—¶ä¸€å®šæ˜¯è¿™æ ·çš„ï¼ˆæˆ–è€…è¿™ä¸ªè°ƒç”¨æˆ–å…ˆå‰è°ƒç”¨ï¼‰å¦‚æœå‡è®¾æ˜¯ä¸æ­£ç¡®çš„ï¼Œ
+  ** è¯¥å‡½æ•°å°†æ£€æµ‹åˆ°æŸåã€‚å¹¶ä¸”å¯¹äºæ ‡å¿—å­—èŠ‚æ¥è¯´ï¼Œå½“æ¸¸æ ‡æ­£åœ¨æŒæœ‰é¡µçš„ä¸€ä¸ªå‚æ•°æ—¶è¢«ä¿®æ”¹æ˜¯ä¸å¯èƒ½çš„ã€‚*/
   pRoot = pCur->apPage[0];
   assert( pRoot->pgno==pCur->pgnoRoot );
   assert( pRoot->isInit && (pCur->pKeyInfo==0)==pRoot->intKey );
@@ -4875,12 +4874,12 @@ static int moveToRoot(BtCursor *pCur){      //ÒÆ¶¯ÓÎ±êÖ¸ÏòBÊ÷½á¹¹µÄ¸ùÒ³
 /*
 ** Move the cursor down to the left-most leaf entry beneath the
 ** entry to which it is currently pointing.
-** ÒÆ¶¯ÓÎ±êµ½×î×óÒ¶×ÓÌõÄ¿£¬ÓÎ±êµ±Ç°ÕıÖ¸Ïò¸ÃÌõÄ¿¡£
+** ç§»åŠ¨æ¸¸æ ‡åˆ°æœ€å·¦å¶å­æ¡ç›®ï¼Œæ¸¸æ ‡å½“å‰æ­£æŒ‡å‘è¯¥æ¡ç›®ã€‚
 ** The left-most leaf is the one with the smallest key - the first
 ** in ascending order.
-** ×î×óµÄÒ¶×Ó½ÚµãÓµÓĞ×îĞ¡µÄ¼üÖµ£¬¼¸µİÔöÓĞĞòµÄµÚÒ»¸ö¹Ø¼ü×Ö¡£
+** æœ€å·¦çš„å¶å­èŠ‚ç‚¹æ‹¥æœ‰æœ€å°çš„é”®å€¼ï¼Œå‡ é€’å¢æœ‰åºçš„ç¬¬ä¸€ä¸ªå…³é”®å­—ã€‚
 */
-static int moveToLeftmost(BtCursor *pCur){     //ÒÆ¶¯ÓÎ±êµ½×î×óÒ¶×Ó
+static int moveToLeftmost(BtCursor *pCur){     //ç§»åŠ¨æ¸¸æ ‡åˆ°æœ€å·¦å¶å­
   Pgno pgno;
   int rc = SQLITE_OK;
   MemPage *pPage;
@@ -4901,13 +4900,13 @@ static int moveToLeftmost(BtCursor *pCur){     //ÒÆ¶¯ÓÎ±êµ½×î×óÒ¶×Ó
 ** between moveToLeftmost() and moveToRightmost().  moveToLeftmost()
 ** finds the left-most entry beneath the *entry* whereas moveToRightmost()
 ** finds the right-most entry beneath the *page*.
-** ÒÆ¶¯ÓÎ±êµ½×îÓÒµÄÒ¶×Ó½Úµã¡£×¢ÒâmoveToLeftmost()ÓëmoveToRightmost()µÄ²»Í¬¡£moveToLeftmost()
-**  ÊÇÕÒµ½×î×ó±ß*entry*ÏÂµÄÌõÄ¿£¬¶ømoveToRightmost()ÊÇÕÒµ½×îÓÒ±ß*page*ÏÂµÄÌõÄ¿¡£
+** ç§»åŠ¨æ¸¸æ ‡åˆ°æœ€å³çš„å¶å­èŠ‚ç‚¹ã€‚æ³¨æ„moveToLeftmost()ä¸moveToRightmost()çš„ä¸åŒã€‚moveToLeftmost()
+**  æ˜¯æ‰¾åˆ°æœ€å·¦è¾¹*entry*ä¸‹çš„æ¡ç›®ï¼Œè€ŒmoveToRightmost()æ˜¯æ‰¾åˆ°æœ€å³è¾¹*page*ä¸‹çš„æ¡ç›®ã€‚
 ** The right-most entry is the one with the largest key - the last
 ** key in ascending order.
-** ×îÓÒ±ßµÄÌõÄ¿ÊÇÓĞĞòµİÔöĞòÁĞµÄ×î´óµÄ¼üÖµ¡£
+** æœ€å³è¾¹çš„æ¡ç›®æ˜¯æœ‰åºé€’å¢åºåˆ—çš„æœ€å¤§çš„é”®å€¼ã€‚
 */
-static int moveToRightmost(BtCursor *pCur){   //ÒÆ¶¯ÓÎ±êµ½×îÓÒµÄÒ¶×Ó½Úµã
+static int moveToRightmost(BtCursor *pCur){   //ç§»åŠ¨æ¸¸æ ‡åˆ°æœ€å³çš„å¶å­èŠ‚ç‚¹
   Pgno pgno;
   int rc = SQLITE_OK;
   MemPage *pPage = 0;
@@ -4930,10 +4929,10 @@ static int moveToRightmost(BtCursor *pCur){   //ÒÆ¶¯ÓÎ±êµ½×îÓÒµÄÒ¶×Ó½Úµã
 /* Move the cursor to the first entry in the table.  Return SQLITE_OK
 ** on success.  Set *pRes to 0 if the cursor actually points to something
 ** or set *pRes to 1 if the table is empty.
-** ½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄµÚÒ»¸öÔªËØ¡£Èô³É¹¦,·µ»ØSQLITE_OK¡£
-** Èç¹û±íÔÚÖ¸ÏòÒ»Ğ©µØ·½£¬ÉèÖÃ*pResÎª0»òÈç¹û±íÊÇ¿ÕµÄÉèÖÃ*pResÎª1¡£
+** å°†æ¸¸æ ‡ç§»åŠ¨åˆ°è¡¨ä¸­çš„ç¬¬ä¸€ä¸ªå…ƒç´ ã€‚è‹¥æˆåŠŸ,è¿”å›SQLITE_OKã€‚
+** å¦‚æœè¡¨åœ¨æŒ‡å‘ä¸€äº›åœ°æ–¹ï¼Œè®¾ç½®*pResä¸º0æˆ–å¦‚æœè¡¨æ˜¯ç©ºçš„è®¾ç½®*pResä¸º1ã€‚
 */
-int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄµÚÒ»¸öÌõÄ¿
+int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //å°†æ¸¸æ ‡ç§»åŠ¨åˆ°è¡¨ä¸­çš„ç¬¬ä¸€ä¸ªæ¡ç›®
   int rc;
 
   assert( cursorHoldsMutex(pCur) );
@@ -4941,10 +4940,10 @@ int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄµÚÒ»¸öÌõ
   rc = moveToRoot(pCur);
   if( rc==SQLITE_OK ){
     if( pCur->eState==CURSOR_INVALID ){
-      assert( pCur->pgnoRoot==0 || pCur->apPage[pCur->iPage]->nCell==0 );  //±íÎª¿Õ
+      assert( pCur->pgnoRoot==0 || pCur->apPage[pCur->iPage]->nCell==0 );  //è¡¨ä¸ºç©º
       *pRes = 1;
     }else{
-      assert( pCur->apPage[pCur->iPage]->nCell>0 );    //ÓÎ±êÕıÖ¸ÏòÄ³¸öµØ·½
+      assert( pCur->apPage[pCur->iPage]->nCell>0 );    //æ¸¸æ ‡æ­£æŒ‡å‘æŸä¸ªåœ°æ–¹
       *pRes = 0;
       rc = moveToLeftmost(pCur);
     }
@@ -4955,19 +4954,19 @@ int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄµÚÒ»¸öÌõ
 /* Move the cursor to the last entry in the table.  Return SQLITE_OK
 ** on success.  Set *pRes to 0 if the cursor actually points to something
 ** or set *pRes to 1 if the table is empty.
-** ½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄ×îºóÒ»¸öÌõÄ¿¡£³É¹¦Ôò·µ»ØSQLITE_OK¡£ÈôÓÎ±êÕıÖ¸ÏòÄ³´¦Éè*pResÎª0»ò±íÎª¿ÕÉèÖÃ*pResÎª1¡£
+** å°†æ¸¸æ ‡ç§»åŠ¨åˆ°è¡¨ä¸­çš„æœ€åä¸€ä¸ªæ¡ç›®ã€‚æˆåŠŸåˆ™è¿”å›SQLITE_OKã€‚è‹¥æ¸¸æ ‡æ­£æŒ‡å‘æŸå¤„è®¾*pResä¸º0æˆ–è¡¨ä¸ºç©ºè®¾ç½®*pResä¸º1ã€‚
 */
-int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄ×îºóÒ»¸öÌõÄ¿
+int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //å°†æ¸¸æ ‡ç§»åŠ¨åˆ°è¡¨ä¸­çš„æœ€åä¸€ä¸ªæ¡ç›®
   int rc;
  
   assert( cursorHoldsMutex(pCur) );
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
 
-  /* If the cursor already points to the last entry, this is a no-op. */   //ÈôÓÎ±êÒÑ¾­Ö¸Ïò×îºóÒ»¸öÌõÄ¿£¬ÔòÎŞ²Ù×÷
+  /* If the cursor already points to the last entry, this is a no-op. */   //è‹¥æ¸¸æ ‡å·²ç»æŒ‡å‘æœ€åä¸€ä¸ªæ¡ç›®ï¼Œåˆ™æ— æ“ä½œ
   if( CURSOR_VALID==pCur->eState && pCur->atLast ){
 #ifdef SQLITE_DEBUG
     /* This block serves to assert() that the cursor really does point 
-    ** to the last entry in the b-tree. */    //¸Ã¿é´úÂëÊÇÓÉÀ´ÅĞ¶ÏÓÎ±êÒÑ¾­Ö¸ÏòÁËBÊ÷ÖĞµÄ×îºóµÄÌõÄ¿¡£
+    ** to the last entry in the b-tree. */    //è¯¥å—ä»£ç æ˜¯ç”±æ¥åˆ¤æ–­æ¸¸æ ‡å·²ç»æŒ‡å‘äº†Bæ ‘ä¸­çš„æœ€åçš„æ¡ç›®ã€‚
     int ii;
     for(ii=0; ii<pCur->iPage; ii++){
       assert( pCur->aiIdx[ii]==pCur->apPage[ii]->nCell );
@@ -4978,7 +4977,7 @@ int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄ×îºóÒ»¸
     return SQLITE_OK;
   }
 
-  rc = moveToRoot(pCur);   //·µ»ØBÊ÷¸ùÒ³
+  rc = moveToRoot(pCur);   //è¿”å›Bæ ‘æ ¹é¡µ
   if( rc==SQLITE_OK ){
     if( CURSOR_INVALID==pCur->eState ){
       assert( pCur->pgnoRoot==0 || pCur->apPage[pCur->iPage]->nCell==0 );
@@ -4990,44 +4989,44 @@ int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //½«ÓÎ±êÒÆ¶¯µ½±íÖĞµÄ×îºóÒ»¸
       pCur->atLast = rc==SQLITE_OK ?1:0;
     }
   }
-  return rc;  //rc¾ÍÊÇÒ»¸ö×´Ì¬Á¿£¬·µ»ØµÄÊÇ1»ò0.
+  return rc;  //rcå°±æ˜¯ä¸€ä¸ªçŠ¶æ€é‡ï¼Œè¿”å›çš„æ˜¯1æˆ–0.
 }
 
 /* Move the cursor so that it points to an entry near the key 
 ** specified by pIdxKey or intKey.   Return a success code.
-** ÒÆ¶¯ÓÎ±êÒÔ±ãÓÚÖ¸Ïò±»pIdxKey »òintKeyÖ¸ÏòµÄÌõÄ¿¸½½üµÄ¹Ø¼ü×Ö¡£
+** ç§»åŠ¨æ¸¸æ ‡ä»¥ä¾¿äºæŒ‡å‘è¢«pIdxKey æˆ–intKeyæŒ‡å‘çš„æ¡ç›®é™„è¿‘çš„å…³é”®å­—ã€‚
 ** For INTKEY tables, the intKey parameter is used.  pIdxKey 
 ** must be NULL.  For index tables, pIdxKey is used and intKey
 ** is ignored.
-** ¶ÔÓÚINTKEY±í£¬ÓÃµÄÊÇ²ÎÊıintKey£¬pIdxKey±ØĞëÊÇ¿Õ¡£¶ÔÓÚË÷Òı±í£¬Ê¹ÓÃpIdxKey£¬intKeyºöÂÔ²»ÓÃ¡£
+** å¯¹äºINTKEYè¡¨ï¼Œç”¨çš„æ˜¯å‚æ•°intKeyï¼ŒpIdxKeyå¿…é¡»æ˜¯ç©ºã€‚å¯¹äºç´¢å¼•è¡¨ï¼Œä½¿ç”¨pIdxKeyï¼ŒintKeyå¿½ç•¥ä¸ç”¨ã€‚
 ** If an exact match is not found, then the cursor is always
 ** left pointing at a leaf page which would hold the entry if it
 ** were present.  The cursor might point to an entry that comes
 ** before or after the key.
-** Èç¹ûÃ»ÓĞÕÒµ½×¼È·µÄÆ¥Åä,ÔòÓÎ±ê×ÜÊÇÏò×óÖ¸×ÅÒ¶×ÓÒ³Ãæ£¬Èç¹ûÒ³ÃæÊÇ¸¸½ÚµãÔò½«±£´æÌõÄ¿¡£ÓÎ±ê¿ÉÄÜ
-** Ö¸ÏòÒ»¸ö¹Ø¼ü×ÖÖ®Ç°»òÖ®ºóµÄÌõÄ¿¡£
+** å¦‚æœæ²¡æœ‰æ‰¾åˆ°å‡†ç¡®çš„åŒ¹é…,åˆ™æ¸¸æ ‡æ€»æ˜¯å‘å·¦æŒ‡ç€å¶å­é¡µé¢ï¼Œå¦‚æœé¡µé¢æ˜¯çˆ¶èŠ‚ç‚¹åˆ™å°†ä¿å­˜æ¡ç›®ã€‚æ¸¸æ ‡å¯èƒ½
+** æŒ‡å‘ä¸€ä¸ªå…³é”®å­—ä¹‹å‰æˆ–ä¹‹åçš„æ¡ç›®ã€‚
 ** An integer is written into *pRes which is the result of
 ** comparing the key with the entry to which the cursor is 
 ** pointing.  The meaning of the integer written into
 ** *pRes is as follows:
-** Ò»¸öÕûÊıĞ´Èë*pRes£¬Æä½á¹û½«±È½Ï´øÓĞÌõÄ¿µÄ¹Ø¼ü×ÖºÍÓÎ±êÖ¸ÏòµÄ¶ÔÏó¡£ÕûÊıĞ´ÈëµÄÒâÒåÈçÏÂ:
-**     *pRes<0      The cursor is left pointing at an entry tha                   // ÓÎ±êÀë¿ªÖ¸ÏòÒ»¸öĞ¡ÓÚintKey / pIdxKeyµÄÌõÄ¿
-**                  is smaller than intKey/pIdxKey or if the table is empty       //»òÈç¹û±íÊÇ¿ÕµÄÓÎ±ê²»Ö¸ÏòÈÎºÎµØ·½¡£
+** ä¸€ä¸ªæ•´æ•°å†™å…¥*pResï¼Œå…¶ç»“æœå°†æ¯”è¾ƒå¸¦æœ‰æ¡ç›®çš„å…³é”®å­—å’Œæ¸¸æ ‡æŒ‡å‘çš„å¯¹è±¡ã€‚æ•´æ•°å†™å…¥çš„æ„ä¹‰å¦‚ä¸‹:
+**     *pRes<0      The cursor is left pointing at an entry tha                   // æ¸¸æ ‡ç¦»å¼€æŒ‡å‘ä¸€ä¸ªå°äºintKey / pIdxKeyçš„æ¡ç›®
+**                  is smaller than intKey/pIdxKey or if the table is empty       //æˆ–å¦‚æœè¡¨æ˜¯ç©ºçš„æ¸¸æ ‡ä¸æŒ‡å‘ä»»ä½•åœ°æ–¹ã€‚
 **                  and the cursor is therefore left point to nothing.
 **    
-**     *pRes==0     The cursor is left pointing at an entry that                  //ÓÎ±êÖ¸ÏòÁËÒ»¸öintKey/pIdxKeyÏà¶ÔÓ¦µÄÌõÄ¿¡£
+**     *pRes==0     The cursor is left pointing at an entry that                  //æ¸¸æ ‡æŒ‡å‘äº†ä¸€ä¸ªintKey/pIdxKeyç›¸å¯¹åº”çš„æ¡ç›®ã€‚
 **                  exactly matches intKey/pIdxKey.
 **    
-**     *pRes>0      The cursor is left pointing at an entry that                  //ÓÎ±êÖ¸Ïò±ÈintKey/pIdxKey¸ü´óµÄÌõÄ¿
+**     *pRes>0      The cursor is left pointing at an entry that                  //æ¸¸æ ‡æŒ‡å‘æ¯”intKey/pIdxKeyæ›´å¤§çš„æ¡ç›®
 **                  is larger than intKey/pIdxKey.
 **
 */
-int sqlite3BtreeMovetoUnpacked(                                                   //ÓÎ±êÖ¸ÏòÒ»¸öintKey/pIdxKeyÏà¶ÔÓ¦µÄÌõÄ¿
-  BtCursor *pCur,          /* The cursor to be moved */                           //¸ÃÓÎ±ê½«·¢ÉúÒÆ¶¯
-  UnpackedRecord *pIdxKey, /* Unpacked index key */                               //½âÑ¹µÄË÷Òı¹Ø¼ü×Ö
-  i64 intKey,              /* The table key */                                    //±í¹Ø¼ü×Ö
-  int biasRight,           /* If true, bias the search to the high end */         //¸Ã±äÁ¿ÎªÕæ£¬Æ«ÒÆµ½×îºó
-  int *pRes                /* Write search results here */                        //½«²éÕÒ½á¹ûĞ´Èë¸Ã±äÁ¿
+int sqlite3BtreeMovetoUnpacked(              //æ¸¸æ ‡æŒ‡å‘ä¸€ä¸ªintKey/pIdxKeyç›¸å¯¹åº”çš„æ¡ç›®
+  BtCursor *pCur,          /* The cursor to be moved */                           //è¯¥æ¸¸æ ‡å°†å‘ç”Ÿç§»åŠ¨
+  UnpackedRecord *pIdxKey, /* Unpacked index key */                               //è§£å‹çš„ç´¢å¼•å…³é”®å­—
+  i64 intKey,              /* The table key */                                    //è¡¨å…³é”®å­—
+  int biasRight,           /* If true, bias the search to the high end */         //è¯¥å˜é‡ä¸ºçœŸï¼Œåç§»åˆ°æœ€å
+  int *pRes                /* Write search results here */                        //å°†æŸ¥æ‰¾ç»“æœå†™å…¥è¯¥å˜é‡
 ){
   int rc;
 
@@ -5038,7 +5037,7 @@ int sqlite3BtreeMovetoUnpacked(                                                 
 
   /* If the cursor is already positioned at the point we are trying
   ** to move to, then just return without doing any work 
-  ** Èç¹ûÓÎ±êÒÑ¾­ÔÚÒªÒÆµ½µÄµã£¬Ôò·µ»Ø²»×÷²Ù×÷*/  
+  ** å¦‚æœæ¸¸æ ‡å·²ç»åœ¨è¦ç§»åˆ°çš„ç‚¹ï¼Œåˆ™è¿”å›ä¸ä½œæ“ä½œ*/  
   if( pCur->eState==CURSOR_VALID && pCur->validNKey 
    && pCur->apPage[0]->intKey 
   ){
@@ -5051,7 +5050,7 @@ int sqlite3BtreeMovetoUnpacked(                                                 
       return SQLITE_OK;
     }
   }
-  rc = moveToRoot(pCur);   //Ö¸ÏòBÊ÷¸ùÒ³
+  rc = moveToRoot(pCur);   //æŒ‡å‘Bæ ‘æ ¹é¡µ
   if( rc ){
     return rc;
   }
@@ -5075,9 +5074,9 @@ int sqlite3BtreeMovetoUnpacked(                                                 
     ** would have already detected db corruption. Similarly, pPage must
     ** be the right kind (index or table) of b-tree page. Otherwise
     ** a moveToChild() or moveToRoot() call would have detected corruption.  
-	** pPage->nCell±ØĞë±È0´ó¡£Èç¹ûËüÊÇ¸ùÒ³ÃæÉÏÃæµÄÓÎ±êÎŞĞ§²¢ÇÒfor(;;) Ñ­»·²»»áÖ´ĞĞ¡£
-	** Èç¹û²»ÊÇ¸ú¸ùÒ³£¬ÄÇÃ´ moveToChild()º¯Êı½«¼ì²âdb±ÀÀ£¡£Í¬Ñù£¬ pPage±ØĞëÊÇÕıÈ·ÖÖÀàµÄBÊ÷
-	** ·ñÔò£¬moveToChild() »ò moveToRoot() µÄµ÷ÓÃ½«·¢ÏÖ±ÀÀ£¡£*/
+	** pPage->nCellå¿…é¡»æ¯”0å¤§ã€‚å¦‚æœå®ƒæ˜¯æ ¹é¡µé¢ä¸Šé¢çš„æ¸¸æ ‡æ— æ•ˆå¹¶ä¸”for(;;) å¾ªç¯ä¸ä¼šæ‰§è¡Œã€‚
+	** å¦‚æœä¸æ˜¯è·Ÿæ ¹é¡µï¼Œé‚£ä¹ˆ moveToChild()å‡½æ•°å°†æ£€æµ‹dbå´©æºƒã€‚åŒæ ·ï¼Œ pPageå¿…é¡»æ˜¯æ­£ç¡®ç§ç±»çš„Bæ ‘
+	** å¦åˆ™ï¼ŒmoveToChild() æˆ– moveToRoot() çš„è°ƒç”¨å°†å‘ç°å´©æºƒã€‚*/
     assert( pPage->nCell>0 );
     assert( pPage->intKey==(pIdxKey==0) );
     lwr = 0;
@@ -5085,10 +5084,10 @@ int sqlite3BtreeMovetoUnpacked(                                                 
     if( biasRight ){
       pCur->aiIdx[pCur->iPage] = (u16)(idx = upr);
     }else{
-      pCur->aiIdx[pCur->iPage] = (u16)(idx = (upr+lwr)/2);             //¶ş·Ö²éÕÒ
+      pCur->aiIdx[pCur->iPage] = (u16)(idx = (upr+lwr)/2);             //äºŒåˆ†æŸ¥æ‰¾
     }
     for(;;){
-      u8 *pCell;          /* Pointer to current cell in pPage */       // Ö¸ÏòpPageµÄµ±Ç°µ¥Ôª
+      u8 *pCell;          /* Pointer to current cell in pPage */       // æŒ‡å‘pPageçš„å½“å‰å•å…ƒ
       assert( idx==pCur->aiIdx[pCur->iPage] );
       pCur->info.nSize = 0;
       pCell = findCell(pPage, idx) + pPage->childPtrSize;
@@ -5117,8 +5116,8 @@ int sqlite3BtreeMovetoUnpacked(                                                 
         ** the entire cell by checking for the cases where the record is 
         ** stored entirely within the b-tree page by inspecting the first 
         ** 2 bytes of the cell.
-		** Ö§³ÖµÄ×î´óÒ³Ãæ´óĞ¡Îª65536×Ö½Ú¡£ÕâÒâÎ¶×Å´¢ÔÚË÷ÒıBÊ÷Ò³ÖĞµÄ¼ÇÂ¼µÄ×î´óÊı×Ö½ÚĞ¡ÓÚ16384×Ö½Ú,¿ÉÒÔ´æ´¢ÎªÒ»¸ö2×Ö½ÚµÄ±äÁ¿¡£
-		** ´ËĞÅÏ¢ÓÃÓÚÊÔÍ¼Í¨¹ı¼ì²é±ÜÃâ½âÎöÕû¸öµ¥Ôª£¬¶ÔÓÚ¸ÃÇé¿ö£¬¼ÇÂ¼ÍêÈ«´æ´¢ÔÚBÊ÷Ò³Í¨¹ı¼ì²é¸Ãµ¥ÔªµÄ¿ªÊ¼µÄÁ½¸ö×Ö½Ú¡£
+		** æ”¯æŒçš„æœ€å¤§é¡µé¢å¤§å°ä¸º65536å­—èŠ‚ã€‚è¿™æ„å‘³ç€å‚¨åœ¨ç´¢å¼•Bæ ‘é¡µä¸­çš„è®°å½•çš„æœ€å¤§æ•°å­—èŠ‚å°äº16384å­—èŠ‚,å¯ä»¥å­˜å‚¨ä¸ºä¸€ä¸ª2å­—èŠ‚çš„å˜é‡ã€‚
+		** æ­¤ä¿¡æ¯ç”¨äºè¯•å›¾é€šè¿‡æ£€æŸ¥é¿å…è§£ææ•´ä¸ªå•å…ƒï¼Œå¯¹äºè¯¥æƒ…å†µï¼Œè®°å½•å®Œå…¨å­˜å‚¨åœ¨Bæ ‘é¡µé€šè¿‡æ£€æŸ¥è¯¥å•å…ƒçš„å¼€å§‹çš„ä¸¤ä¸ªå­—èŠ‚ã€‚
         */
         int nCell = pCell[0];
         if( nCell<=pPage->max1bytePayload
@@ -5127,7 +5126,7 @@ int sqlite3BtreeMovetoUnpacked(                                                 
           /* This branch runs if the record-size field of the cell is a
           ** single byte varint and the record fits entirely on the main
           ** b-tree page.  
-		  **Èç¹ûµ¥ÔªµÄ¼ÇÂ¼ÓòÊÇÒ»¸öµ¥×Ö½ÚµÄ±äÁ¿²¢ÇÒ¼ÇÂ¼ÍêÈ«´æ´¢ÔÚÖ÷BÊ÷Ò³ÉÏ£¬Ö´ĞĞ¸Ã·ÖÖ§¡£*/
+		  **å¦‚æœå•å…ƒçš„è®°å½•åŸŸæ˜¯ä¸€ä¸ªå•å­—èŠ‚çš„å˜é‡å¹¶ä¸”è®°å½•å®Œå…¨å­˜å‚¨åœ¨ä¸»Bæ ‘é¡µä¸Šï¼Œæ‰§è¡Œè¯¥åˆ†æ”¯ã€‚*/
           testcase( pCell+nCell+1==pPage->aDataEnd );
           c = sqlite3VdbeRecordCompare(nCell, (void*)&pCell[1], pIdxKey);
         }else if( !(pCell[1] & 0x80) 
@@ -5136,7 +5135,7 @@ int sqlite3BtreeMovetoUnpacked(                                                 
         ){
           /* The record-size field is a 2 byte varint and the record  
           ** fits entirely on the main b-tree page. 
-		  ** ±äÁ¿µÄ¼ÇÂ¼µ½Ğ¡ÓòÊÇÒ»¸öÁ½×Ö½ÚµÄ±äÁ¿²¢ÇÒ¼ÇÂ¼ÍêÈ«´æ´¢ÔÚÖ÷BÊ÷Ò³ÉÏ¡£*/
+		  ** å˜é‡çš„è®°å½•åˆ°å°åŸŸæ˜¯ä¸€ä¸ªä¸¤å­—èŠ‚çš„å˜é‡å¹¶ä¸”è®°å½•å®Œå…¨å­˜å‚¨åœ¨ä¸»Bæ ‘é¡µä¸Šã€‚*/
           testcase( pCell+nCell+2==pPage->aDataEnd );
           c = sqlite3VdbeRecordCompare(nCell, (void*)&pCell[2], pIdxKey);
         }else{
@@ -5144,8 +5143,8 @@ int sqlite3BtreeMovetoUnpacked(                                                 
           ** this case the whole cell needs to be parsed, a buffer allocated
           ** and accessPayload() used to retrieve the record into the
           ** buffer before VdbeRecordCompare() can be called. 
-		  ** ¼ÇÂ¼Òç³öÊÇ´æ´¢ÔÚÒ»¸ö»ò¶à¸öÒç³öÒ³ÉÏ¡£ÔÚÕâÖÖÇé¿öÏÂÕû¸öµ¥ÔªĞèÒª½âÎö,·ÖÅäÒ»¸ö»º³åÇøºÍaccessPayload()
-		  ** ÓÃÓÚ¼ìË÷ÔÚVdbeRecordCompare()¿ÉÒÔ±»µ÷ÓÃÖ®Ç°½øÈëµ½»º³åÇøµÄ¼ÇÂ¼¡£*/
+		  ** è®°å½•æº¢å‡ºæ˜¯å­˜å‚¨åœ¨ä¸€ä¸ªæˆ–å¤šä¸ªæº¢å‡ºé¡µä¸Šã€‚åœ¨è¿™ç§æƒ…å†µä¸‹æ•´ä¸ªå•å…ƒéœ€è¦è§£æ,åˆ†é…ä¸€ä¸ªç¼“å†²åŒºå’ŒaccessPayload()
+		  ** ç”¨äºæ£€ç´¢åœ¨VdbeRecordCompare()å¯ä»¥è¢«è°ƒç”¨ä¹‹å‰è¿›å…¥åˆ°ç¼“å†²åŒºçš„è®°å½•ã€‚*/
           void *pCellKey;
           u8 * const pCellBody = pCell - pPage->childPtrSize;
           btreeParseCellPtr(pPage, pCellBody, &pCur->info);
@@ -5212,17 +5211,17 @@ moveto_finish:
 
 /*
 ** Return TRUE if the cursor is not pointing at an entry of the table.
-** Èç¹ûÓÎ±êÃ»ÓĞÖ¸Ïò±íµÄÒ»¸öÌõÄ¿·µ»Øtrue¡£
+** å¦‚æœæ¸¸æ ‡æ²¡æœ‰æŒ‡å‘è¡¨çš„ä¸€ä¸ªæ¡ç›®è¿”å›trueã€‚
 ** TRUE will be returned after a call to sqlite3BtreeNext() moves
 ** past the last entry in the table or sqlite3BtreePrev() moves past
 ** the first entry.  TRUE is also returned if the table is empty.
-** µ÷ÓÃsqlite3BtreeNext()ºóÒÆ¶¯µ½±êµÄ¶ø×îºóÒ»¸öÌõÄ¿»òµ÷ÓÃsqlite3BtreePrev()ÒÆ¶¯µ½µÚÒ»¸öÌõÄ¿Ôò·µ»ØTrue¡£Èç¹û±íÊÇ¿ÕµÄÒ²·µ»Øtrue¡£
+** è°ƒç”¨sqlite3BtreeNext()åç§»åŠ¨åˆ°æ ‡çš„è€Œæœ€åä¸€ä¸ªæ¡ç›®æˆ–è°ƒç”¨sqlite3BtreePrev()ç§»åŠ¨åˆ°ç¬¬ä¸€ä¸ªæ¡ç›®åˆ™è¿”å›Trueã€‚å¦‚æœè¡¨æ˜¯ç©ºçš„ä¹Ÿè¿”å›trueã€‚
 */
 int sqlite3BtreeEof(BtCursor *pCur){
   /* TODO: What if the cursor is in CURSOR_REQUIRESEEK but all table entries
   ** have been deleted? This API will need to change to return an error code
   ** as well as the boolean result value.
-  ** Èç¹ûÓÎ±êÔÚCURSOR_REQUIRESEEKµ«ËùÓĞ±íÏîÉ¾³ıÊ²Ã´?Õâ¸öAPI½«ĞèÒª¸ü¸Ä·µ»ØÒ»¸ö´íÎó´úÂëÒÔ¼°²¼¶ûÖµ¡£
+  ** å‡ä½¿æ¸¸æ ‡åœ¨CURSOR_REQUIRESEEKä½†æ‰€æœ‰è¡¨é¡¹éƒ½è¢«åˆ é™¤é‚£ä¼šæ€ä¹ˆæ ·?è¿™ä¸ªAPIå°†éœ€è¦æ›´æ”¹è¿”å›ä¸€ä¸ªé”™è¯¯ä»£ç ä»¥åŠå¸ƒå°”å€¼ã€‚
   */
   return (CURSOR_VALID!=pCur->eState);
 }
@@ -5232,9 +5231,9 @@ int sqlite3BtreeEof(BtCursor *pCur){
 ** successful then set *pRes=0.  If the cursor
 ** was already pointing to the last entry in the database before
 ** this routine was called, then set *pRes=1.
-** ÒÆ¶¯ÓÎ±êµ½Êı¾İ¿âÖĞµÄÏÂÒ»ÌõÄ¿£¬Èç¹û³É¹¦ÉèÖÃ*PRes=0¡£Èç¹ûÔÚµ÷ÓÃÕâ¸öº¯ÊıÊ±ÓÎ±êÒÑ¾­Ö¸ÏòÁË×îºóÒ»ÌõÄ¿ÔòÉè¶¨*pRes=1¡£
+** ç§»åŠ¨æ¸¸æ ‡åˆ°æ•°æ®åº“ä¸­çš„ä¸‹ä¸€æ¡ç›®ï¼Œå¦‚æœæˆåŠŸè®¾ç½®*PRes=0ã€‚å¦‚æœåœ¨è°ƒç”¨è¿™ä¸ªå‡½æ•°æ—¶æ¸¸æ ‡å·²ç»æŒ‡å‘äº†æœ€åä¸€æ¡ç›®åˆ™è®¾å®š*pRes=1ã€‚
 */
-int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //ÒÆ¶¯ÓÎ±êµ½Êı¾İ¿âÖĞµÄÏÂÒ»ÌõÄ¿
+int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //ç§»åŠ¨æ¸¸æ ‡åˆ°æ•°æ®åº“ä¸­çš„ä¸‹ä¸€æ¡ç›®
   int rc;
   int idx;
   MemPage *pPage;
@@ -5265,8 +5264,8 @@ int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //ÒÆ¶¯ÓÎ±êµ½Êı¾İ¿âÖĞµÄÏÂÒ»ÌõÄ
   ** the page while cursor pCur is holding a reference to it. Which can
   ** only happen if the database is corrupt in such a way as to link the
   ** page into more than one b-tree structure. 
-  ** Èç¹ûÊı¾İ¿âÎÄ¼şÊÇËğ»µ,idxµÄ¼ÛÖµ¿ÉÄÜÎŞĞ§µÄ¡£µ±ÓÎ±êpCur³ÖÓĞÒ»¸ö²ÎÊıÊ±Èç¹ûµÚ¶ş¸öÓÎ±êĞŞ¸ÄÒ³Ãæ,
-  ** ¿ÉÄÜ»á³öÏÖÎÄ¼şËğº¦¡£µ±Á¬½ÓÒ³µ½¶à¸öBÊ÷½á¹¹Ê±Èç¹ûÊı¾İ¿âÒÔÕâÑùµÄ·½Ê½±ÀÀ£ÄÇÃ´ÕâÖÖÇé¿ö»á·¢Éú¡£*/
+  ** å¦‚æœæ•°æ®åº“æ–‡ä»¶æ˜¯æŸå,idxçš„ä»·å€¼å¯èƒ½æ— æ•ˆçš„ã€‚å½“æ¸¸æ ‡pCuræŒæœ‰ä¸€ä¸ªå‚æ•°æ—¶å¦‚æœç¬¬äºŒä¸ªæ¸¸æ ‡ä¿®æ”¹é¡µé¢,
+  ** å¯èƒ½ä¼šå‡ºç°æ–‡ä»¶æŸå®³ã€‚å½“è¿æ¥é¡µåˆ°å¤šä¸ªBæ ‘ç»“æ„æ—¶å¦‚æœæ•°æ®åº“ä»¥è¿™æ ·çš„æ–¹å¼å´©æºƒé‚£ä¹ˆè¿™ç§æƒ…å†µä¼šå‘ç”Ÿã€‚*/
   testcase( idx>pPage->nCell );
 
   pCur->info.nSize = 0;
@@ -5310,11 +5309,11 @@ int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //ÒÆ¶¯ÓÎ±êµ½Êı¾İ¿âÖĞµÄÏÂÒ»ÌõÄ
 ** successful then set *pRes=0.  If the cursor
 ** was already pointing to the first entry in the database before
 ** this routine was called, then set *pRes=1.
-** Öğ²½Ê¹ÓÎ±ê»Øµ½Êı¾İ¿âÖĞÒÔÇ°µÄÌõÄ¿¡£³É¹¦£¬·µ»Ø*pRes=0¡£
-** Èôº¯Êı±»µ÷ÓÃÖ®Ç°ÒÑ¾­ÒÆµ½ÁËµÚÒ»¸öÌõÄ¿£¬ *pRes=1
+** é€æ­¥ä½¿æ¸¸æ ‡å›åˆ°æ•°æ®åº“ä¸­ä»¥å‰çš„æ¡ç›®ã€‚æˆåŠŸï¼Œè¿”å›*pRes=0ã€‚
+** è‹¥å‡½æ•°è¢«è°ƒç”¨ä¹‹å‰å·²ç»ç§»åˆ°äº†ç¬¬ä¸€ä¸ªæ¡ç›®ï¼Œ *pRes=1
 */
-/*Ñ°ÕÒÊı¾İ¿âÖĞÒÔÇ°µÄÌõÄ¿*/
-int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){   //Öğ²½Ê¹ÓÎ±ê»Øµ½Êı¾İ¿âÖĞÒÔÇ°µÄÌõÄ¿
+/*å¯»æ‰¾æ•°æ®åº“ä¸­ä»¥å‰çš„æ¡ç›®*/
+int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){   //é€æ­¥ä½¿æ¸¸æ ‡å›åˆ°æ•°æ®åº“ä¸­ä»¥å‰çš„æ¡ç›®
   int rc;
   MemPage *pPage;
 
@@ -5370,30 +5369,30 @@ int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){   //Öğ²½Ê¹ÓÎ±ê»Øµ½Êı¾İ¿âÖĞÒ
 
 /*
 ** Allocate a new page from the database file.
-** ´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ¡£
+** ä»æ•°æ®åº“æ–‡ä»¶åˆ†é…ä¸€ä¸ªæ–°é¡µé¢ã€‚
 ** The new page is marked as dirty.  (In other words, sqlite3PagerWrite()
 ** has already been called on the new page.)  The new page has also
 ** been referenced and the calling routine is responsible for calling
 ** sqlite3PagerUnref() on the new page when it is done.
-** ĞÂÒ³±»Ôà×Ö±ê¼Ç£¬¼´ÊÇsqlite3PagerWrite()ÒÑ¾­ÔÚĞÂÒ³ÉÏ±»µ÷ÓÃ¡£Íê³É·ÖÅäÊ±£¬ĞÂµÄÒ³Ò²±»ÒıÓÃ
-** ²¢ÇÒµ÷ÓÃº¯Êı¸ºÔğÔÚĞÂÒ³ÉÏµ÷ÓÃsqlite3PagerUnref().
+** æ–°é¡µè¢«è„å­—æ ‡è®°ï¼Œå³æ˜¯sqlite3PagerWrite()å·²ç»åœ¨æ–°é¡µä¸Šè¢«è°ƒç”¨ã€‚å®Œæˆåˆ†é…æ—¶ï¼Œæ–°çš„é¡µä¹Ÿè¢«å¼•ç”¨
+** å¹¶ä¸”è°ƒç”¨å‡½æ•°è´Ÿè´£åœ¨æ–°é¡µä¸Šè°ƒç”¨sqlite3PagerUnref().
 ** SQLITE_OK is returned on success.  Any other return value indicates
 ** an error.  *ppPage and *pPgno are undefined in the event of an error.
 ** Do not invoke sqlite3PagerUnref() on *ppPage if an error is returned.
-** ³É¹¦Ôò·µ»ØSQLITE_OK¡£ÆäËûÈÎºÎ·µ»ØÖµ±íÊ¾Ò»¸ö´íÎó¡£ÔÚÒ»¸ö´íÎóÊÂ¼şÖĞ* ppPageºÍ* pPgnoÊÇÎ´¶¨ÒåµÄ¡£
-** Èç¹û·µ»ØÒ»¸ö´íÎóÔò²»ÔÚ*ppPageÉÏµ÷ÓÃsqlite3PagerUnref()¡£
+** æˆåŠŸåˆ™è¿”å›SQLITE_OKã€‚å…¶ä»–ä»»ä½•è¿”å›å€¼è¡¨ç¤ºä¸€ä¸ªé”™è¯¯ã€‚åœ¨ä¸€ä¸ªé”™è¯¯äº‹ä»¶ä¸­* ppPageå’Œ* pPgnoæ˜¯æœªå®šä¹‰çš„ã€‚
+** å¦‚æœè¿”å›ä¸€ä¸ªé”™è¯¯åˆ™ä¸åœ¨*ppPageä¸Šè°ƒç”¨sqlite3PagerUnref()ã€‚
 ** If the "nearby" parameter is not 0, then a (feeble) effort is made to 
 ** locate a page close to the page number "nearby".  This can be used in an
 ** attempt to keep related pages close to each other in the database file,
 ** which in turn can make database access faster.
-** Èç¹û "nearby"²ÎÊı²»ÊÇ0,ÄÇÃ´(Î¢ÈõµÄ)Ğ§¹ûÊÇ¶¨Î»½Ó½üµÄÒ³ÃæµÄÒ³Âë"nearby"¡£Õâ¿ÉÒÔÓÃÓÚ³¢ÊÔÊ¹Ïà¹ØÒ³ÃæÔÚÊı¾İ¿âÎÄ¼şÖĞ±£³Ö½Ó½ü,
-** ·´¹ıÀ´¿ÉÒÔÊ¹Êı¾İ¿â·ÃÎÊËÙ¶È¸ü¿ì¡£
+** å¦‚æœ "nearby"å‚æ•°ä¸æ˜¯0,é‚£ä¹ˆ(å¾®å¼±çš„)æ•ˆæœæ˜¯å®šä½æ¥è¿‘çš„é¡µé¢çš„é¡µç "nearby"ã€‚è¿™å¯ä»¥ç”¨äºå°è¯•ä½¿ç›¸å…³é¡µé¢åœ¨æ•°æ®åº“æ–‡ä»¶ä¸­ä¿æŒæ¥è¿‘,
+** åè¿‡æ¥å¯ä»¥ä½¿æ•°æ®åº“è®¿é—®é€Ÿåº¦æ›´å¿«ã€‚
 ** If the "exact" parameter is not 0, and the page-number nearby exists 
 ** anywhere on the free-list, then it is guarenteed to be returned. This
 ** is only used by auto-vacuum databases when allocating a new table.
-** Èç¹û"exact"²ÎÊı²»ÊÇ0,²¢ÇÒÒ³Âë¸½½üÈÎºÎµØ·½¶¼´æÔÚÔÚ¿ÕÏĞÁĞ±í,ÄÇÃ´Ëü±£Ö¤ÁË·µ»Ø¡£Õâ Ö»Ê¹ÓÃÔÚauto-vacuumÊı¾İ¿â·ÖÅäÒ»¸öĞÂ±íÊ±¡£
+** å¦‚æœ"exact"å‚æ•°ä¸æ˜¯0,å¹¶ä¸”é¡µç é™„è¿‘ä»»ä½•åœ°æ–¹éƒ½å­˜åœ¨åœ¨ç©ºé—²åˆ—è¡¨,é‚£ä¹ˆå®ƒä¿è¯äº†è¿”å›ã€‚è¿™ åªä½¿ç”¨åœ¨auto-vacuumæ•°æ®åº“åˆ†é…ä¸€ä¸ªæ–°è¡¨æ—¶ã€‚
 */
-static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»ØSQLITE_OK
+static int allocateBtreePage(           //ä»æ•°æ®åº“æ–‡ä»¶åˆ†é…ä¸€ä¸ªæ–°é¡µé¢ï¼ŒæˆåŠŸåˆ™è¿”å›SQLITE_OK
   BtShared *pBt, 
   MemPage **ppPage, 
   Pgno *pPgno, 
@@ -5402,11 +5401,11 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
 ){
   MemPage *pPage1;
   int rc;
-  u32 n;     /* Number of pages on the freelist */                 //¿ÕÏĞÁĞ±íÉÏµÄÒ³Êı
-  u32 k;     /* Number of leaves on the trunk of the freelist */   //¿ÕÏĞÁĞ±íÖ÷¸ÉµÄÒ¶×ÓÊı
+  u32 n;     /* Number of pages on the freelist */                 //ç©ºé—²åˆ—è¡¨ä¸Šçš„é¡µæ•°
+  u32 k;     /* Number of leaves on the trunk of the freelist */   //ç©ºé—²åˆ—è¡¨ä¸»å¹²çš„å¶å­æ•°
   MemPage *pTrunk = 0;
   MemPage *pPrevTrunk = 0;
-  Pgno mxPage;     /* Total size of the database file */           //Êı¾İ¿âÎÄ¼ş×ÜµÄ´óĞ¡
+  Pgno mxPage;     /* Total size of the database file */           //æ•°æ®åº“æ–‡ä»¶æ€»çš„å¤§å°
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   pPage1 = pBt->pPage1;
@@ -5417,14 +5416,14 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
     return SQLITE_CORRUPT_BKPT;
   }
   if( n>0 ){
-    /* There are pages on the freelist.  Reuse one of those pages. */        //¿ÕÏĞÁĞ±íÉÏÓĞÒ³£¬ÖØĞÂÊ¹ÓÃÕâĞ©Ò³
+    /* There are pages on the freelist.  Reuse one of those pages. */        //ç©ºé—²åˆ—è¡¨ä¸Šæœ‰é¡µï¼Œé‡æ–°ä½¿ç”¨è¿™äº›é¡µ
     Pgno iTrunk;
-    u8 searchList = 0; /* If the free-list must be searched for 'nearby' */  //'nearby'¿ÉÒÔËÑË÷¿ÕÏĞÁĞ±í 
+    u8 searchList = 0; /* If the free-list must be searched for 'nearby' */  //'nearby'å¯ä»¥æœç´¢ç©ºé—²åˆ—è¡¨ 
     
     /* If the 'exact' parameter was true and a query of the pointer-map
     ** shows that the page 'nearby' is somewhere on the free-list, then
     ** the entire-list will be searched for that page.
-	** Èç¹û²ÎÊı'exact'ÊÇtrue²¢ÇÒÒ»¸öÖ¸ÕëÎ»Í¼²éÑ¯ÏÔÊ¾Ò³'nearby'ÔÚ¿ÕÏĞÁĞ±íÉÏµÄÄ³´¦£¬ÄÇÃ´¶ÔÓÚ¸ÃÒ³Õû¸öÁĞ±í¿ÉÒÔ±»ËÑË÷¡£
+	** å¦‚æœå‚æ•°'exact'æ˜¯trueå¹¶ä¸”ä¸€ä¸ªæŒ‡é’ˆä½å›¾æŸ¥è¯¢æ˜¾ç¤ºé¡µ'nearby'åœ¨ç©ºé—²åˆ—è¡¨ä¸Šçš„æŸå¤„ï¼Œé‚£ä¹ˆå¯¹äºè¯¥é¡µæ•´ä¸ªåˆ—è¡¨å¯ä»¥è¢«æœç´¢ã€‚
     */
 #ifndef SQLITE_OMIT_AUTOVACUUM
     if( exact && nearby<=mxPage ){
@@ -5441,7 +5440,7 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
 #endif
     /* Decrement the free-list count by 1. Set iTrunk to the index of the
     ** first free-list trunk page. iPrevTrunk is initially 1.
-    ** µİ¼õ¿ÕÏĞÁĞ±íÊıÁ¿µ½1.Éè¶¨iTrunkµ½µÚÒ»¸ö¿ÕÏĞÁĞ±íÒ³µÄÖ÷Ò³ÃæË÷Òı.iPrevTrunk³õÊ¼»¯Îª1.*/
+    ** é€’å‡ç©ºé—²åˆ—è¡¨æ•°é‡åˆ°1.è®¾å®šiTrunkåˆ°ç¬¬ä¸€ä¸ªç©ºé—²åˆ—è¡¨é¡µçš„ä¸»é¡µé¢ç´¢å¼•.iPrevTrunkåˆå§‹åŒ–ä¸º1.*/
     rc = sqlite3PagerWrite(pPage1->pDbPage);
     if( rc ) return rc;
     put4byte(&pPage1->aData[36], n-1);
@@ -5449,7 +5448,7 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
     /* The code within this loop is run only once if the 'searchList' variable
     ** is not true. Otherwise, it runs once for each trunk-page on the
     ** free-list until the page 'nearby' is located.
-    ** Èç¹û±äÁ¿'searchList'Îª¼Ù£¬ÔòÑ­»·ÄÚµÄ´úÂëÖ»ÔËĞĞÒ»´Î¡£·ñÔò¶ÔÓÚÔÚ¿ÕÏĞÁĞ±íÉÏµÄÃ¿¸öÖ÷Ò³Ãæ¶¼ÔËĞĞÒ»´ÎÖ±µ½Ö±µ½Ò³Ãænearby*/
+    ** å¦‚æœå˜é‡'searchList'ä¸ºå‡ï¼Œåˆ™å¾ªç¯å†…çš„ä»£ç åªè¿è¡Œä¸€æ¬¡ã€‚å¦åˆ™å¯¹äºåœ¨ç©ºé—²åˆ—è¡¨ä¸Šçš„æ¯ä¸ªä¸»é¡µé¢éƒ½è¿è¡Œä¸€æ¬¡ç›´åˆ°ç›´åˆ°é¡µé¢nearby*/
     do {
       pPrevTrunk = pTrunk;
       if( pPrevTrunk ){
@@ -5470,12 +5469,12 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
       assert( pTrunk!=0 );
       assert( pTrunk->aData!=0 );
 
-      k = get4byte(&pTrunk->aData[4]); /* # of leaves on this trunk page */  //Ö÷Ò³ÃæÉÏµÄÒ¶×ÓÊı
+      k = get4byte(&pTrunk->aData[4]); /* # of leaves on this trunk page */  //ä¸»é¡µé¢ä¸Šçš„å¶å­æ•°
       if( k==0 && !searchList ){
         /* The trunk has no leaves and the list is not being searched. 
         ** So extract the trunk page itself and use it as the newly 
         ** allocated page 
-		** Ö÷Ò³ÃæÉÏÎŞÒ¶×Ó²¢ÇÒÁĞ±í²»ÓÃ±»ËÑË÷.²¢ÇÒÌáÈ¡Ö÷Ò³Ãæ±¾Éí²¢ÓÃËü×÷ÎªĞÂ·ÖÅäµÄÒ³¡£
+		** ä¸»é¡µé¢ä¸Šæ— å¶å­å¹¶ä¸”åˆ—è¡¨ä¸ç”¨è¢«æœç´¢.å¹¶ä¸”æå–ä¸»é¡µé¢æœ¬èº«å¹¶ç”¨å®ƒä½œä¸ºæ–°åˆ†é…çš„é¡µã€‚
 		*/
         assert( pPrevTrunk==0 );
         rc = sqlite3PagerWrite(pTrunk->pDbPage);
@@ -5486,16 +5485,16 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
         memcpy(&pPage1->aData[32], &pTrunk->aData[0], 4);
         *ppPage = pTrunk;
         pTrunk = 0;
-        TRACE(("ALLOCATE: %d trunk - %d free pages left\n", *pPgno, n-1));  //¸ú×Ù·ÖÅäÁË¼¸¸öÒ³ÃæÊ£ÏÂ¼¸¸ö¿ÕÏĞÒ³Ãæ
+        TRACE(("ALLOCATE: %d trunk - %d free pages left\n", *pPgno, n-1));  //è·Ÿè¸ªåˆ†é…äº†å‡ ä¸ªé¡µé¢å‰©ä¸‹å‡ ä¸ªç©ºé—²é¡µé¢
       }else if( k>(u32)(pBt->usableSize/4 - 2) ){
-        /* Value of k is out of range.  Database corruption */     //kÖµ³¬¹ı·¶Î§£¬Êı¾İ¿â±ÀÀ£
+        /* Value of k is out of range.  Database corruption */     //kå€¼è¶…è¿‡èŒƒå›´ï¼Œæ•°æ®åº“å´©æºƒ
         rc = SQLITE_CORRUPT_BKPT;
         goto end_allocate_page;
 #ifndef SQLITE_OMIT_AUTOVACUUM
       }else if( searchList && nearby==iTrunk ){
         /* The list is being searched and this trunk page is the page
         ** to allocate, regardless of whether it has leaves.
-		** ÁĞ±íÕı±»ËÑË÷²¢ÇÒÕâ¸öÖ÷Ò³ÃæÊÇ·ÖÅäµÄÒ³£¬²»¹ÜËüÓĞÊ²Ã´Ò¶×Ó
+		** åˆ—è¡¨æ­£è¢«æœç´¢å¹¶ä¸”è¿™ä¸ªä¸»é¡µé¢æ˜¯åˆ†é…çš„é¡µï¼Œä¸ç®¡å®ƒæœ‰ä»€ä¹ˆå¶å­
        */
         assert( *pPgno==iTrunk );
         *ppPage = pTrunk;
@@ -5518,7 +5517,7 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
           /* The trunk page is required by the caller but it contains 
           ** pointers to free-list leaves. The first leaf becomes a trunk
           ** page in this case.
-		  ** Ö÷Ò³ÃæÕıÔÚ±»µ÷ÓÃº¯ÊıĞèÒªµ«ÊÇËü°üº¬Ö¸Ïò¿ÕÏĞÁĞ±íÒ³µÄÖ¸Õë¡£ÔÚÕâÖÖÇé¿öÏÂ£¬µÚÒ»¸öÒ¶×Ó±ä³ÉÖ÷Ò³Ãæ¡£
+		  ** ä¸»é¡µé¢æ­£åœ¨è¢«è°ƒç”¨å‡½æ•°éœ€è¦ä½†æ˜¯å®ƒåŒ…å«æŒ‡å‘ç©ºé—²åˆ—è¡¨é¡µçš„æŒ‡é’ˆã€‚åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œç¬¬ä¸€ä¸ªå¶å­å˜æˆä¸»é¡µé¢ã€‚
           */
           MemPage *pNewTrunk;
           Pgno iNewTrunk = get4byte(&pTrunk->aData[8]);
@@ -5555,7 +5554,7 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
         TRACE(("ALLOCATE: %d trunk - %d free pages left\n", *pPgno, n-1));
 #endif
       }else if( k>0 ){
-        /* Extract a leaf from the trunk */  //´ÓÖ÷Ò³ÃæÌáÈ¡³öÒ»¸öÒ¶×Ó
+        /* Extract a leaf from the trunk */  //ä»ä¸»é¡µé¢æå–å‡ºä¸€ä¸ªå¶å­
         u32 closest;
         Pgno iPage;
         unsigned char *aData = pTrunk->aData;
@@ -5610,8 +5609,8 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
     }while( searchList );
   }else{
     /* There are no pages on the freelist, so create a new page at the
-    ** end of the file¡£
-	** ÔÚ¿ÕÏĞÁĞ±íÉÏÃ»ÓĞÒ³Ãæ£¬Òò´ËÔÚÎÄ¼şµÄÄ©Î²´´½¨ĞÂÒ³¡£
+    ** end of the fileã€‚
+	** åœ¨ç©ºé—²åˆ—è¡¨ä¸Šæ²¡æœ‰é¡µé¢ï¼Œå› æ­¤åœ¨æ–‡ä»¶çš„æœ«å°¾åˆ›å»ºæ–°é¡µã€‚
 	*/
     rc = sqlite3PagerWrite(pBt->pPage1->pDbPage);
     if( rc ) return rc;
@@ -5623,7 +5622,7 @@ static int allocateBtreePage(           //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»Ø
       /* If *pPgno refers to a pointer-map page, allocate two new pages
       ** at the end of the file instead of one. The first allocated page
       ** becomes a new pointer-map page, the second is used by the caller.
-	  ** Èç¹û*pPgnoÖµµÄÊÇÖ¸ÕëÎ»Í¼Ò³£¬ÔÚÎÄ¼şÄ©Î²·ÇÅäÁ½¸öĞÂÒ³À´Ìæ»»Ëü¡£µÚÒ»¸ö±ä³ÉÖ¸ÕëÎ»Í¼Ò³£¬µÚ¶ş¸öÓÃÀ´µ÷ÓÃ¡£
+	  ** å¦‚æœ*pPgnoå€¼çš„æ˜¯æŒ‡é’ˆä½å›¾é¡µï¼Œåœ¨æ–‡ä»¶æœ«å°¾éé…ä¸¤ä¸ªæ–°é¡µæ¥æ›¿æ¢å®ƒã€‚ç¬¬ä¸€ä¸ªå˜æˆæŒ‡é’ˆä½å›¾é¡µï¼Œç¬¬äºŒä¸ªç”¨æ¥è°ƒç”¨ã€‚
       */
       MemPage *pPg = 0;
       TRACE(("ALLOCATE: %d from end of file (pointer-map page)\n", pBt->nPage));
@@ -5672,24 +5671,24 @@ end_allocate_page:
 /*
 ** This function is used to add page iPage to the database file free-list. 
 ** It is assumed that the page is not already a part of the free-list.
-** Õâ¸öº¯ÊıÓÃÓÚÌí¼ÓÒ³ÃæiPageµ½Êı¾İ¿âÎÄ¼ş¿ÕÏĞÁĞ±í¡£¼Ù¶¨Ò³Ãæ²»ÊÇ¿ÕÏĞÁĞ±íµÄÒ»²¿·Ö¡£
+** è¿™ä¸ªå‡½æ•°ç”¨äºæ·»åŠ é¡µé¢iPageåˆ°æ•°æ®åº“æ–‡ä»¶ç©ºé—²åˆ—è¡¨ã€‚å‡å®šé¡µé¢ä¸æ˜¯ç©ºé—²åˆ—è¡¨çš„ä¸€éƒ¨åˆ†ã€‚
 ** The value passed as the second argument to this function is optional.
 ** If the caller happens to have a pointer to the MemPage object 
 ** corresponding to page iPage handy, it may pass it as the second value. 
 ** Otherwise, it may pass NULL.
-** ×÷ÎªµÚ¶ş¸ö²ÎÊı´«µİ¸ø¸Ãº¯ÊıµÄÖµÊÇ¿ÉÑ¡µÄ.Èç¹ûµ÷ÓÃÕßÅöÇÉÓĞÒ»¸öÖ¸ÕëÖ¸ÏòMemPage¶ÔÏó¶ÔÓ¦ iPageÒ³Ãæ,
-** Ëü¿ÉÄÜ°ÑËü×÷ÎªµÚ¶ş¸öÖµ.·ñÔò,Ëü¿ÉÄÜÎª¿Õ¡£
+** ä½œä¸ºç¬¬äºŒä¸ªå‚æ•°ä¼ é€’ç»™è¯¥å‡½æ•°çš„å€¼æ˜¯å¯é€‰çš„.å¦‚æœè°ƒç”¨è€…ç¢°å·§æœ‰ä¸€ä¸ªæŒ‡é’ˆæŒ‡å‘MemPageå¯¹è±¡å¯¹åº” iPageé¡µé¢,
+** å®ƒå¯èƒ½æŠŠå®ƒä½œä¸ºç¬¬äºŒä¸ªå€¼.å¦åˆ™,å®ƒå¯èƒ½ä¸ºç©ºã€‚
 ** If a pointer to a MemPage object is passed as the second argument,
 ** its reference count is not altered by this function.
-** Èç¹ûÒ»¸öÖ¸ÕëMemPage¶ÔÏó×÷ÎªµÚ¶ş¸ö²ÎÊı´«µİ,ÄÇÃ´ËüÒıÓÃÊı²»»á±»Õâ¸öº¯Êı¸Ä±ä¡£
+** å¦‚æœä¸€ä¸ªæŒ‡é’ˆMemPageå¯¹è±¡ä½œä¸ºç¬¬äºŒä¸ªå‚æ•°ä¼ é€’,é‚£ä¹ˆå®ƒå¼•ç”¨æ•°ä¸ä¼šè¢«è¿™ä¸ªå‡½æ•°æ”¹å˜ã€‚
 */ 
-static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //Ìí¼ÓÒ³ÃæiPageµ½Êı¾İ¿âÎÄ¼ş¿ÕÏĞÁĞ±í
-  MemPage *pTrunk = 0;                /* Free-list trunk page */                 //¿ÕÏĞÁĞ±íÒ³µÄÖ÷Ò³Ãæ
-  Pgno iTrunk = 0;                    /* Page number of free-list trunk page */  //¿ÕÏĞÁĞ±íÒ³µÄÖ÷Ò³ÃæµÄÒ³Âë
-  MemPage *pPage1 = pBt->pPage1;      /* Local reference to page 1 */            //ÄÚ´æÒıÓÃÒ³1
-  MemPage *pPage;                     /* Page being freed. May be NULL. */       //Ò³±»ÊÍ·Å£¬¿ÏÄÜÊÇ¿Õ
-  int rc;                             /* Return Code */                          //·µ»Ø´úÂë
-  int nFree;                          /* Initial number of pages on free-list */ //¿ÕÏĞÁĞ±íÒ³ÉÏ×î³õµÄÒ³ÊıÁ¿
+static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //æ·»åŠ é¡µé¢iPageåˆ°æ•°æ®åº“æ–‡ä»¶ç©ºé—²åˆ—è¡¨
+  MemPage *pTrunk = 0;                /* Free-list trunk page */                 //ç©ºé—²åˆ—è¡¨é¡µçš„ä¸»é¡µé¢
+  Pgno iTrunk = 0;                    /* Page number of free-list trunk page */  //ç©ºé—²åˆ—è¡¨é¡µçš„ä¸»é¡µé¢çš„é¡µç 
+  MemPage *pPage1 = pBt->pPage1;      /* Local reference to page 1 */            //å†…å­˜å¼•ç”¨é¡µ1
+  MemPage *pPage;                     /* Page being freed. May be NULL. */       //é¡µè¢«é‡Šæ”¾ï¼Œè‚¯èƒ½æ˜¯ç©º
+  int rc;                             /* Return Code */                          //è¿”å›ä»£ç 
+  int nFree;                          /* Initial number of pages on free-list */ //ç©ºé—²åˆ—è¡¨é¡µä¸Šæœ€åˆçš„é¡µæ•°é‡
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( iPage>1 );
@@ -5702,16 +5701,16 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //Ìí¼Ó
     pPage = btreePageLookup(pBt, iPage);
   }
 
-  /* Increment the free page count on pPage1 */    //µİÔöpPage1ÉÏµÄ¿ÕÏĞÒ³µÄÊıÁ¿
+  /* Increment the free page count on pPage1 */    //é€’å¢pPage1ä¸Šçš„ç©ºé—²é¡µçš„æ•°é‡
   rc = sqlite3PagerWrite(pPage1->pDbPage);
-  if( rc ) goto freepage_out;                     //Èç¹ûrcÖµÎª0×ªµ½freepage_out
+  if( rc ) goto freepage_out;                     //å¦‚æœrcå€¼ä¸º0è½¬åˆ°freepage_out
   nFree = get4byte(&pPage1->aData[36]);
   put4byte(&pPage1->aData[36], nFree+1);
 
   if( pBt->btsFlags & BTS_SECURE_DELETE ){
     /* If the secure_delete option is enabled, then
     ** always fully overwrite deleted information with zeros.
-	** Èç¹ûsecure_deleteÑ¡Ïî¿ÉÓÃ£¬ÄÇÃ´×ÜÊÇÍêÈ«ÖØĞ´É¾³ıĞÅÏ¢Îª0.
+	** å¦‚æœsecure_deleteé€‰é¡¹å¯ç”¨ï¼Œé‚£ä¹ˆæ€»æ˜¯å®Œå…¨é‡å†™åˆ é™¤ä¿¡æ¯ä¸º0.
     */
     if( (!pPage && ((rc = btreeGetPage(pBt, iPage, &pPage, 0))!=0) )
      ||            ((rc = sqlite3PagerWrite(pPage->pDbPage))!=0)
@@ -5723,7 +5722,7 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //Ìí¼Ó
 
   /* If the database supports auto-vacuum, write an entry in the pointer-map
   ** to indicate that the page is free.
-  ** Èç¹ûÊı¾İ¿âÖ§³Ö×Ô¶¯ÇåÀí£¬Ğ´Ò»¸öÌõÄ¿ÔÚÖ¸ÕëÎ»Í¼À´±íÃ÷Ò²ÊÇ¿ÕÏĞµÄ¡£
+  ** å¦‚æœæ•°æ®åº“æ”¯æŒè‡ªåŠ¨æ¸…ç†ï¼Œå†™ä¸€ä¸ªæ¡ç›®åœ¨æŒ‡é’ˆä½å›¾æ¥è¡¨æ˜ä¹Ÿæ˜¯ç©ºé—²çš„ã€‚
   */
   if( ISAUTOVACUUM ){
     ptrmapPut(pBt, iPage, PTRMAP_FREEPAGE, 0, &rc);
@@ -5736,12 +5735,12 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //Ìí¼Ó
   ** new free-list trunk page. Otherwise, it will become a leaf of the
   ** first trunk page in the current free-list. This block tests if it
   ** is possible to add the page as a new free-list leaf.
-  ** ÏÖÔÚ²Ù×÷ÕæÊµµÄÊı¾İ¿â¿ÕÏĞÁĞ±í½á¹¹¡£ÓĞÁ½¸öµÄ¿ÉÄÜĞÔ¡£Èç¹û¿ÕÏĞÁĞ±íµ±Ç°Îª¿Õ,»òÈç¹û¿ÕÏĞÁĞ±í
-  ** ÉÏµÄµÚÒ»Ö÷Ò³ÃæÊÇÂúµÄ,ÄÇÃ´Õâ½«³ÉÎªÒ»¸öÒ³ÃæĞÂµÄ¿ÕÏĞÁĞ±íµÄÖ÷Ò³Ãæ¡£·ñÔò,Ëü½«³ÉÎªµ±Ç°¿ÕÏĞÁĞ
-  ** ÖĞµÄµÚÒ»¸öÖ÷Ò³ÃæµÄÒ»¸öÒ¶×Ó¡£Èç¹ûËü¿ÉÒÔÌí¼ÓÒ³Ãæ×÷ÎªÒ»¸öĞÂµÄ¿ÕÏĞÁĞ±íµÄÒ¶×ÓÔò¶ÔÕâ¸ö¿é²âÊÔ¡£
+  ** ç°åœ¨æ“ä½œçœŸå®çš„æ•°æ®åº“ç©ºé—²åˆ—è¡¨ç»“æ„ã€‚æœ‰ä¸¤ä¸ªçš„å¯èƒ½æ€§ã€‚å¦‚æœç©ºé—²åˆ—è¡¨å½“å‰ä¸ºç©º,æˆ–å¦‚æœç©ºé—²åˆ—è¡¨
+  ** ä¸Šçš„ç¬¬ä¸€ä¸»é¡µé¢æ˜¯æ»¡çš„,é‚£ä¹ˆè¿™å°†æˆä¸ºä¸€ä¸ªé¡µé¢æ–°çš„ç©ºé—²åˆ—è¡¨çš„ä¸»é¡µé¢ã€‚å¦åˆ™,å®ƒå°†æˆä¸ºå½“å‰ç©ºé—²åˆ—
+  ** ä¸­çš„ç¬¬ä¸€ä¸ªä¸»é¡µé¢çš„ä¸€ä¸ªå¶å­ã€‚å¦‚æœå®ƒå¯ä»¥æ·»åŠ é¡µé¢ä½œä¸ºä¸€ä¸ªæ–°çš„ç©ºé—²åˆ—è¡¨çš„å¶å­åˆ™å¯¹è¿™ä¸ªå—æµ‹è¯•ã€‚
   */
   if( nFree!=0 ){
-    u32 nLeaf;                /* Initial number of leaf cells on trunk page */  //Ö÷Ò³ÃæÉÏ×î³õµÄÒ¶×Óµ¥ÔªµÄÊıÁ¿
+    u32 nLeaf;                /* Initial number of leaf cells on trunk page */  //ä¸»é¡µé¢ä¸Šæœ€åˆçš„å¶å­å•å…ƒçš„æ•°é‡
 
     iTrunk = get4byte(&pPage1->aData[32]);
     rc = btreeGetPage(pBt, iTrunk, &pTrunk, 0);
@@ -5758,7 +5757,7 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //Ìí¼Ó
     if( nLeaf < (u32)pBt->usableSize/4 - 8 ){
       /* In this case there is room on the trunk page to insert the page
       ** being freed as a new leaf.
-      ** ÔÚÕâÖÖÇé¿öÏÂ,ÔÚÖ÷Ò³ÃæÉÏÓĞ¿Õ¼ä²åÈë±»ÊÍ·ÅµÄÒ³Ãæ×öĞÂÒ¶×Ó¡£
+      ** åœ¨è¿™ç§æƒ…å†µä¸‹,åœ¨ä¸»é¡µé¢ä¸Šæœ‰ç©ºé—´æ’å…¥è¢«é‡Šæ”¾çš„é¡µé¢åšæ–°å¶å­ã€‚
       ** Note that the trunk page is not really full until it contains
       ** usableSize/4 - 2 entries, not usableSize/4 - 8 entries as we have
       ** coded.  But due to a coding error in versions of SQLite prior to
@@ -5769,11 +5768,11 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //Ìí¼Ó
       ** for now.  At some point in the future (once everyone has upgraded
       ** to 3.6.0 or later) we should consider fixing the conditional above
       ** to read "usableSize/4-2" instead of "usableSize/4-8".
-	  ** ×¢Òâ,Ö÷Ò³Ãæ²»ÊÇÕæÕıµÄÂúÖ±µ½Ëû°üº¬(usableSize/4-2)¸öÌõÄ¿,¶ø²»ÊÇ£¨usableSize/4-8)¸öÌõÄ¿¡£
-	  ** µ«ÓÉÓÚÖ®Ç°°æ±¾3.6.0µÄSQLiteµÄ±àÂë´íÎó£¬ÓĞ¿ÕÏĞÁĞ±íÖ÷Ò³ÃæµÄÊı¾İ¿âÓĞ¶àÓÚ£¨usableSize/4-8£©
-	  ** ¸öÌõÄ¿±»±¨¸æ±ÀÀ£¡£ÎªÓëÀÏ°æ±¾µÄSQLite±£³ÖÏòºó¼æÈİĞÔ£¬½«¼ÌĞøÏŞÖÆÌõÄ¿µÄÊıÁ¿usableSize/4-8¡£
-	  ** ÔÚ½«À´µÄÄ³¸öÊ±ºò(Ã¿¸öÈË¶¼ÓĞÒ»´ÎÉı¼¶3.6.0»òÖ®ºó)ÎÒÃÇÓ¦¸Ã¿¼ÂÇ½â¾öÉÏÃæµÄÌõ¼ş¶Á¡°usableSize/4-2¡±,
-	  ** ¶ø²»ÊÇ¡°usableSize/4-8¡±¡£
+	  ** æ³¨æ„,ä¸»é¡µé¢ä¸æ˜¯çœŸæ­£çš„æ»¡ç›´åˆ°ä»–åŒ…å«(usableSize/4-2)ä¸ªæ¡ç›®,è€Œä¸æ˜¯ï¼ˆusableSize/4-8)ä¸ªæ¡ç›®ã€‚
+	  ** ä½†ç”±äºä¹‹å‰ç‰ˆæœ¬3.6.0çš„SQLiteçš„ç¼–ç é”™è¯¯ï¼Œæœ‰ç©ºé—²åˆ—è¡¨ä¸»é¡µé¢çš„æ•°æ®åº“æœ‰å¤šäºï¼ˆusableSize/4-8ï¼‰
+	  ** ä¸ªæ¡ç›®è¢«æŠ¥å‘Šå´©æºƒã€‚ä¸ºä¸è€ç‰ˆæœ¬çš„SQLiteä¿æŒå‘åå…¼å®¹æ€§ï¼Œå°†ç»§ç»­é™åˆ¶æ¡ç›®çš„æ•°é‡usableSize/4-8ã€‚
+	  ** åœ¨å°†æ¥çš„æŸä¸ªæ—¶å€™(æ¯ä¸ªäººéƒ½æœ‰ä¸€æ¬¡å‡çº§3.6.0æˆ–ä¹‹å)æˆ‘ä»¬åº”è¯¥è€ƒè™‘è§£å†³ä¸Šé¢çš„æ¡ä»¶è¯»â€œusableSize/4-2â€,
+	  ** è€Œä¸æ˜¯â€œusableSize/4-8â€ã€‚
       */
       rc = sqlite3PagerWrite(pTrunk->pDbPage);
       if( rc==SQLITE_OK ){
@@ -5794,9 +5793,9 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //Ìí¼Ó
   ** Possibly because the free-list is empty, or possibly because the 
   ** first trunk in the free-list is full. Either way, the page being freed
   ** will become the new first trunk page in the free-list.
-  ** Èç¹û¿ØÖÆÁ÷´ïµ½ÕâÒ»µã,ÄÇÃ´ËüÊÇ²»¿ÉÄÜµÄÌí¼Ó±»ÊÍ·ÅµÄÒ³Ãæ³ÉÎª¿ÕÏĞÁĞ±íÖĞµÄÖ÷Ò³ÃæµÄµÚÒ»¸öÒ¶×ÓÒ³Ãæ¡£
-  ** ¿ÉÄÜÊÇÒòÎª¿ÕÏĞÁĞ±íÊÇ¿ÕµÄ,»ò¿ÉÄÜÊÇÒòÎª¿ÕÏĞÁĞ±íÖĞµÄµÚÒ»¸öÖ÷Ò³ÃæÒÑ¾­ÂúÁË¡£ÎŞÂÛÄÄÖÖ·½Ê½,Ò³Ãæ±»ÊÍ·Å
-  ** ½«³ÉÎªĞÂµÄ¿ÕÏĞÁĞ±íÖĞµÄµÚÒ»¸öÖ÷Ò³Ãæ¡£
+  ** å¦‚æœæ§åˆ¶æµè¾¾åˆ°è¿™ä¸€ç‚¹,é‚£ä¹ˆå®ƒæ˜¯ä¸å¯èƒ½çš„æ·»åŠ è¢«é‡Šæ”¾çš„é¡µé¢æˆä¸ºç©ºé—²åˆ—è¡¨ä¸­çš„ä¸»é¡µé¢çš„ç¬¬ä¸€ä¸ªå¶å­é¡µé¢ã€‚
+  ** å¯èƒ½æ˜¯å› ä¸ºç©ºé—²åˆ—è¡¨æ˜¯ç©ºçš„,æˆ–å¯èƒ½æ˜¯å› ä¸ºç©ºé—²åˆ—è¡¨ä¸­çš„ç¬¬ä¸€ä¸ªä¸»é¡µé¢å·²ç»æ»¡äº†ã€‚æ— è®ºå“ªç§æ–¹å¼,é¡µé¢è¢«é‡Šæ”¾
+  ** å°†æˆä¸ºæ–°çš„ç©ºé—²åˆ—è¡¨ä¸­çš„ç¬¬ä¸€ä¸ªä¸»é¡µé¢ã€‚
   */
   if( pPage==0 && SQLITE_OK!=(rc = btreeGetPage(pBt, iPage, &pPage, 0)) ){
     goto freepage_out;
@@ -5825,7 +5824,7 @@ static void freePage(MemPage *pPage, int *pRC){
 }
 
 /*Free any overflow pages associated with the given Cell.*/   
-static int clearCell(MemPage *pPage, unsigned char *pCell){     //ÊÍ·ÅÈÎºÎÓë¸ø¶¨µ¥ÔªÏà¹ØµÄÒç³öÒ³
+static int clearCell(MemPage *pPage, unsigned char *pCell){     //é‡Šæ”¾ä»»ä½•ä¸ç»™å®šå•å…ƒç›¸å…³çš„æº¢å‡ºé¡µ
   BtShared *pBt = pPage->pBt;
   CellInfo info;
   Pgno ovflPgno;
@@ -5836,10 +5835,10 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //ÊÍ·ÅÈÎºÎÓë¸ø¶¨
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   btreeParseCellPtr(pPage, pCell, &info);
   if( info.iOverflow==0 ){
-    return SQLITE_OK;  /* No overflow pages. Return without doing anything */   //Ã»ÓĞÒç³öÒ³£¬²»×ö²Ù×÷·µ»Ø
+    return SQLITE_OK;  /* No overflow pages. Return without doing anything */   //æ²¡æœ‰æº¢å‡ºé¡µï¼Œä¸åšæ“ä½œè¿”å›
   }
   if( pCell+info.iOverflow+3 > pPage->aData+pPage->maskPage ){
-    return SQLITE_CORRUPT;  /* Cell extends past end of page */  //µ¥Ôª³¬¹ıÁËÒ³ÃæµÄ·¶Î§
+    return SQLITE_CORRUPT;  /* Cell extends past end of page */  //å•å…ƒè¶…è¿‡äº†é¡µé¢çš„èŒƒå›´
   }
   ovflPgno = get4byte(&pCell[info.iOverflow]);
   assert( pBt->usableSize > 4 );
@@ -5853,7 +5852,7 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //ÊÍ·ÅÈÎºÎÓë¸ø¶¨
       /* 0 is not a legal page number and page 1 cannot be an 
       ** overflow page. Therefore if ovflPgno<2 or past the end of the 
       ** file the database must be corrupt.
-	  0²»ÊÇºÏ·¨µÄÒ³Âë²¢ÇÒ1²»¿ÉÄÜÊÇÒç³öÒ³¡£Òò´Ë£¬Èç¹ûovflPgno<2»òÕß³¬¹ıÊı¾İ¿âÎÄ¼şÒ»¶¨·µ»ØSQLITE_CORRUPT_BKPT*/
+	  0ä¸æ˜¯åˆæ³•çš„é¡µç å¹¶ä¸”1ä¸å¯èƒ½æ˜¯æº¢å‡ºé¡µã€‚å› æ­¤ï¼Œå¦‚æœovflPgno<2æˆ–è€…è¶…è¿‡æ•°æ®åº“æ–‡ä»¶ä¸€å®šè¿”å›SQLITE_CORRUPT_BKPT*/
       return SQLITE_CORRUPT_BKPT;
     }
     if( nOvfl ){
@@ -5873,9 +5872,9 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //ÊÍ·ÅÈÎºÎÓë¸ø¶¨
       ** enabled. If this 'overflow' page happens to be a page that the
       ** caller is iterating through or using in some other way, this
       ** can be problematic.
-	  ** ºÁÎŞÒÉÎÊÈÎºÎÓÎ±êÓ¦¸ÃÓĞÒ»Í»³öµÄÒıÓÃÊôÓÚÕı±»É¾³ı/¸üĞÂµÄµ¥ÔªµÄÒç³öÒ³¡£Èç¹û´æÔÚ¶ÔÕâ¸öÒ³Ãæ¶à¸öÒıÓÃ,ÄÇÃ´Ëü
-	  ** ²»Ò»¶¨ÊÇÒ»¸öÕæµÄÒç³öÒ³ÃæºÍÊı¾İ¿âÒ»¶¨±ÀÀ£¡£ËüÓĞÖúÓÚµ÷ÓÃfreePage2()Ö®Ç°¼ì²â¸ÃÇé¿ö.Èç¹û°²È«É¾³ıÄ£Ê½ÆôÓÃ£¬
-	  ** freePage2()»áÇåÁãÒ³ÃæÄÚÈİ¡£Èç¹ûÕâ¡°Òç³ö¡±Ò³ÃæÊÇÒ»¸öµ÷ÓÃ±éÀú»òÒÔÆäËû·½Ê½Ê¹ÓÃµÄÒ³Ãæ,Õâ¿ÉÄÜÊÇÓĞÎÊÌâµÄ¡£
+	  ** æ¯«æ— ç–‘é—®ä»»ä½•æ¸¸æ ‡åº”è¯¥æœ‰ä¸€çªå‡ºçš„å¼•ç”¨å±äºæ­£è¢«åˆ é™¤/æ›´æ–°çš„å•å…ƒçš„æº¢å‡ºé¡µã€‚å¦‚æœå­˜åœ¨å¯¹è¿™ä¸ªé¡µé¢å¤šä¸ªå¼•ç”¨,é‚£ä¹ˆå®ƒ
+	  ** ä¸ä¸€å®šæ˜¯ä¸€ä¸ªçœŸçš„æº¢å‡ºé¡µé¢å’Œæ•°æ®åº“ä¸€å®šå´©æºƒã€‚å®ƒæœ‰åŠ©äºè°ƒç”¨freePage2()ä¹‹å‰æ£€æµ‹è¯¥æƒ…å†µ.å¦‚æœå®‰å…¨åˆ é™¤æ¨¡å¼å¯ç”¨ï¼Œ
+	  ** freePage2()ä¼šæ¸…é›¶é¡µé¢å†…å®¹ã€‚å¦‚æœè¿™â€œæº¢å‡ºâ€é¡µé¢æ˜¯ä¸€ä¸ªè°ƒç”¨éå†æˆ–ä»¥å…¶ä»–æ–¹å¼ä½¿ç”¨çš„é¡µé¢,è¿™å¯èƒ½æ˜¯æœ‰é—®é¢˜çš„ã€‚
       */
       rc = SQLITE_CORRUPT_BKPT;
     }else{
@@ -5897,23 +5896,23 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //ÊÍ·ÅÈÎºÎÓë¸ø¶¨
 ** allocated and filled in as necessary.  The calling procedure
 ** is responsible for making sure sufficient space has been allocated
 ** for pCell[].
-** ´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞĞ´µ½pCell[]¡£Òç³öÒ³Ãæ
-** ±»·ÖÅäÇÒÔÚ±ØÒªÊ±ÌîĞ´¡£µ÷ÓÃ³ÌĞò¸ºÔğÈ·±£×ã¹»µÄ¿Õ¼ä·ÖÅäÎªpCell[]¡£
+** åˆ›å»ºå­—èŠ‚åºåˆ—ç”¨æ¥ä»£è¡¨ä¸€ä¸ªpPageé¡µä¸Šçš„å•å…ƒå¹¶å°†å­—èŠ‚åºåˆ—å†™åˆ°pCell[]ã€‚æº¢å‡ºé¡µé¢
+** è¢«åˆ†é…ä¸”åœ¨å¿…è¦æ—¶å¡«å†™ã€‚è°ƒç”¨ç¨‹åºè´Ÿè´£ç¡®ä¿è¶³å¤Ÿçš„ç©ºé—´åˆ†é…ä¸ºpCell[]ã€‚
 ** Note that pCell does not necessary need to point to the pPage->aData
 ** area.  pCell might point to some temporary storage.  The cell will
 ** be constructed in this temporary area then copied into pPage->aData
 ** later.
-** ×¢Òâ,pCell²¢²»±ØÒªĞèÒªÖ¸ÏòpPage->aDataÇøÓò¡£pCell¿ÉÄÜÖ¸ÏòÒ»Ğ©ÁÙÊ±´æ´¢Çø¡£
-** µ¥Ôª»áÔÚÕâ¸öÁÙÊ±ÇøÓò±»´´½¨È»ºó¸´ÖÆµ½pPage->aData¡£
+** æ³¨æ„,pCellå¹¶ä¸å¿…è¦éœ€è¦æŒ‡å‘pPage->aDataåŒºåŸŸã€‚pCellå¯èƒ½æŒ‡å‘ä¸€äº›ä¸´æ—¶å­˜å‚¨åŒºã€‚
+** å•å…ƒä¼šåœ¨è¿™ä¸ªä¸´æ—¶åŒºåŸŸè¢«åˆ›å»ºç„¶åå¤åˆ¶åˆ°pPage->aDataã€‚
 */
-/*´´½¨×Ö½ÚĞòÁĞĞ´ÈëpCell*/
-static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞĞ´µ½pCell[]
-  MemPage *pPage,                /* The page that contains the cell */     //°üº¬¸Ãµ¥ÔªµÄÒ³
-  unsigned char *pCell,          /* Complete text of the cell */           //µ¥ÔªµÄÍêÕûÎÄ±¾
-  const void *pKey, i64 nKey,    /* The key */                             //¹Ø¼ü×Ö
-  const void *pData,int nData,   /* The data */                            //Êı¾İÓò
-  int nZero,                     /* Extra zero bytes to append to pData */ //¸½¼ÓÔÚpDataÉÏµÄ¶îÍâ0×Ö½Ú
-  int *pnSize                    /* Write cell size here */                //½«µ¥ÔªµÄ´óĞ¡Ğ´µ½¸Ã±äÁ¿
+/*åˆ›å»ºå­—èŠ‚åºåˆ—å†™å…¥pCell*/
+static int fillInCell(     //åˆ›å»ºå­—èŠ‚åºåˆ—ç”¨æ¥ä»£è¡¨ä¸€ä¸ªpPageé¡µä¸Šçš„å•å…ƒå¹¶å°†å­—èŠ‚åºåˆ—å†™åˆ°pCell[]
+  MemPage *pPage,                /* The page that contains the cell */     //åŒ…å«è¯¥å•å…ƒçš„é¡µ
+  unsigned char *pCell,          /* Complete text of the cell */           //å•å…ƒçš„å®Œæ•´æ–‡æœ¬
+  const void *pKey, i64 nKey,    /* The key */                             //å…³é”®å­—
+  const void *pData,int nData,   /* The data */                            //æ•°æ®åŸŸ
+  int nZero,                     /* Extra zero bytes to append to pData */ //é™„åŠ åœ¨pDataä¸Šçš„é¢å¤–0å­—èŠ‚
+  int *pnSize                    /* Write cell size here */                //å°†å•å…ƒçš„å¤§å°å†™åˆ°è¯¥å˜é‡
 ){
   int nPayload;
   const u8 *pSrc;
@@ -5932,11 +5931,11 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
 
   /* pPage is not necessarily writeable since pCell might be auxiliary
   ** buffer space that is separate from the pPage buffer area 
-  ** pPage²»Ò»¶¨ÊÇ¿ÉĞ´µÄÒòÎªpCell¿ÉÄÜÊÇ´ÓpPage»º³åÇø·Ö³öµÄ¸¨Öú»º³åÇø¿Õ¼ä.*/
+  ** pPageä¸ä¸€å®šæ˜¯å¯å†™çš„å› ä¸ºpCellå¯èƒ½æ˜¯ä»pPageç¼“å†²åŒºåˆ†å‡ºçš„è¾…åŠ©ç¼“å†²åŒºç©ºé—´.*/
   assert( pCell<pPage->aData || pCell>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
-  /* Fill in the header. */     //Ìí¼ÓÍ·ĞÅÏ¢
+  /* Fill in the header. */     //æ·»åŠ å¤´ä¿¡æ¯
   nHeader = 0;
   if( !pPage->leaf ){
     nHeader += 4;
@@ -5947,12 +5946,12 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
     nData = nZero = 0;
   }
   nHeader += putVarint(&pCell[nHeader], *(u64*)&nKey);
-  btreeParseCellPtr(pPage, pCell, &info);              //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
+  btreeParseCellPtr(pPage, pCell, &info);              //è§£æå•å…ƒå†…å®¹å—ï¼Œå¡«åœ¨CellInfoç»“æ„ä¸­
   assert( info.nHeader==nHeader );
   assert( info.nKey==nKey );
   assert( info.nData==(u32)(nData+nZero) );
   
-  /* Fill in the payload */      //Ìí¼Ó¼ÇÂ¼
+  /* Fill in the payload */      //æ·»åŠ è®°å½•
   nPayload = nData + nZero;
   if( pPage->intKey ){
     pSrc = pData;
@@ -5974,7 +5973,7 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
   while( nPayload>0 ){
     if( spaceLeft==0 ){
 #ifndef SQLITE_OMIT_AUTOVACUUM
-      Pgno pgnoPtrmap = pgnoOvfl; /* Overflow page pointer-map entry page */  //Òç³öÒ³Î»Í¼Ö¸ÕëÌõÄ¿Ò³
+      Pgno pgnoPtrmap = pgnoOvfl; /* Overflow page pointer-map entry page */  //æº¢å‡ºé¡µä½å›¾æŒ‡é’ˆæ¡ç›®é¡µ
       if( pBt->autoVacuum ){
         do{
           pgnoOvfl++;
@@ -5983,19 +5982,19 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
         );
       }
 #endif
-      rc = allocateBtreePage(pBt, &pOvfl, &pgnoOvfl, pgnoOvfl, 0);   //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ£¬³É¹¦Ôò·µ»ØSQLITE_OK
+      rc = allocateBtreePage(pBt, &pOvfl, &pgnoOvfl, pgnoOvfl, 0);   //ä»æ•°æ®åº“æ–‡ä»¶åˆ†é…ä¸€ä¸ªæ–°é¡µé¢ï¼ŒæˆåŠŸåˆ™è¿”å›SQLITE_OK
 #ifndef SQLITE_OMIT_AUTOVACUUM
       /* If the database supports auto-vacuum, and the second or subsequent
       ** overflow page is being allocated, add an entry to the pointer-map
       ** for that page now. 
-      ** Èç¹ûÊı¾İ¿âÖ§³Ö×Ô¶¯ÇåÀí£¬ÇÒµÚ¶ş¸ö»òºó¼ÌµÄÒç³öÒ³±»·ÖÅä£¬¶Ô¸ÃÒ³¼ÓÌõÄ¿µ½Ö¸ÕëÎ»Í¼.
+      ** å¦‚æœæ•°æ®åº“æ”¯æŒè‡ªåŠ¨æ¸…ç†ï¼Œä¸”ç¬¬äºŒä¸ªæˆ–åç»§çš„æº¢å‡ºé¡µè¢«åˆ†é…ï¼Œå¯¹è¯¥é¡µåŠ æ¡ç›®åˆ°æŒ‡é’ˆä½å›¾.
       ** If this is the first overflow page, then write a partial entry 
       ** to the pointer-map. If we write nothing to this pointer-map slot,
       ** then the optimistic overflow chain processing in clearCell()
       ** may misinterpret the uninitialised values and delete the
       ** wrong pages from the database.
-	  ** Èç¹ûÕâÊÇµÚÒ»¸öÒç³öÒ³£¬ÄÇÃ´Ğ´Ò»¸ö¾Ö²¿Ò³ÌõÄ¿µ½Ö¸ÕëÎ»Í¼.Èç¹û²»Ğ´µ½Ö¸ÕëÎ»Í¼Î»ÖÃ£¬ÄÇÃ´
-	  ** ¿Í¹ÛÀ´ËµÔÚclearCell()ÖĞ´¦ÀíµÄÒç³öÁ´½Ó½«»áÅª´íÎ´³õÊ¼»¯µÄÖµ²¢ÇÒ½«´ÓÊı¾İ¿âÖĞÉ¾³ı´íÎóÒ³.
+	  ** å¦‚æœè¿™æ˜¯ç¬¬ä¸€ä¸ªæº¢å‡ºé¡µï¼Œé‚£ä¹ˆå†™ä¸€ä¸ªå±€éƒ¨é¡µæ¡ç›®åˆ°æŒ‡é’ˆä½å›¾.å¦‚æœä¸å†™åˆ°æŒ‡é’ˆä½å›¾ä½ç½®ï¼Œé‚£ä¹ˆ
+	  ** å®¢è§‚æ¥è¯´åœ¨clearCell()ä¸­å¤„ç†çš„æº¢å‡ºé“¾æ¥å°†ä¼šå¼„é”™æœªåˆå§‹åŒ–çš„å€¼å¹¶ä¸”å°†ä»æ•°æ®åº“ä¸­åˆ é™¤é”™è¯¯é¡µ.
       */
       if( pBt->autoVacuum && rc==SQLITE_OK ){
         u8 eType = (pgnoPtrmap?PTRMAP_OVERFLOW2:PTRMAP_OVERFLOW1);
@@ -6006,18 +6005,18 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
       }
 #endif
       if( rc ){
-        releasePage(pToRelease);  //ÊÍ·ÅÄÚ´æÒ³
+        releasePage(pToRelease);  //é‡Šæ”¾å†…å­˜é¡µ
         return rc;
       }
 
       /* If pToRelease is not zero than pPrior points into the data area
       ** of pToRelease.  Make sure pToRelease is still writeable. 
-	  ** Èç¹ûpToReleaseÒ»²»Îª0£¬pPrior¾ÍÖ¸ÏòpToReleaseµÄÊı¾İÓò.È·±£pToReleaseÊÇ¿ÉĞ´µÄ. */
+	  ** å¦‚æœpToReleaseä¸€ä¸ä¸º0ï¼ŒpPriorå°±æŒ‡å‘pToReleaseçš„æ•°æ®åŸŸ.ç¡®ä¿pToReleaseæ˜¯å¯å†™çš„. */
       assert( pToRelease==0 || sqlite3PagerIswriteable(pToRelease->pDbPage) );
 
       /* If pPrior is part of the data area of pPage, then make sure pPage
       ** is still writeable 
-	  ** Èç¹ûpPriorÊÇpPageÊı¾İÓòµÄÒ»²¿·Ö£¬ÄÇÃ´È·±£pPageÈÔÈ»¿ÉĞ´. */
+	  ** å¦‚æœpPrioræ˜¯pPageæ•°æ®åŸŸçš„ä¸€éƒ¨åˆ†ï¼Œé‚£ä¹ˆç¡®ä¿pPageä»ç„¶å¯å†™. */
       assert( pPrior<pPage->aData || pPrior>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
@@ -6034,12 +6033,12 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
 
     /* If pToRelease is not zero than pPayload points into the data area
     ** of pToRelease.  Make sure pToRelease is still writeable.
-	** Èç¹ûpToReleaseÒ»²»Îª0£¬pPrior¾ÍÖ¸ÏòpToReleaseµÄÊı¾İÓò.È·±£pToReleaseÊÇ¿ÉĞ´µÄ.  */
+	** å¦‚æœpToReleaseä¸€ä¸ä¸º0ï¼ŒpPriorå°±æŒ‡å‘pToReleaseçš„æ•°æ®åŸŸ.ç¡®ä¿pToReleaseæ˜¯å¯å†™çš„.  */
     assert( pToRelease==0 || sqlite3PagerIswriteable(pToRelease->pDbPage) );
 
     /* If pPayload is part of the data area of pPage, then make sure pPage
     ** is still writeable 
-	** Èç¹ûpPriorÊÇpPageÊı¾İÓòµÄÒ»²¿·Ö£¬ÄÇÃ´È·±£pPageÈÔÈ»¿ÉĞ´.*/
+	** å¦‚æœpPrioræ˜¯pPageæ•°æ®åŸŸçš„ä¸€éƒ¨åˆ†ï¼Œé‚£ä¹ˆç¡®ä¿pPageä»ç„¶å¯å†™.*/
     assert( pPayload<pPage->aData || pPayload>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
@@ -6060,7 +6059,7 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
       pSrc = pData;
     }
   }
-  releasePage(pToRelease);  //ÊÍ·ÅÄÚ´æÒ³
+  releasePage(pToRelease);  //é‡Šæ”¾å†…å­˜é¡µ
   return SQLITE_OK;
 }
 
@@ -6069,17 +6068,17 @@ static int fillInCell(     //´´½¨×Ö½ÚĞòÁĞÓÃÀ´´ú±íÒ»¸öpPageÒ³ÉÏµÄµ¥Ôª²¢½«×Ö½ÚĞòÁĞ
 ** The cell content is not freed or deallocated.  It is assumed that
 ** the cell content has been copied someplace else.  This routine just
 ** removes the reference to the cell from pPage.
-** É¾³ıpPageµÄµÚi¸öµ¥Ôª.Õâ¸öº¯Êı½ö½ö¶ÔpPageÆä×÷ÓÃ.µ¥ÔªµÄÄÚÈİ²»»áÊÍ·Å»òÏûÊ§.
-** ¼Ù¶¨µ¥ÔªµÄÄÚÈİÒÑ¾­¿½±´µ½ÆäËûµØ·½.Õâ¸öº¯Êı½«Ö»pPageÖĞµ¥ÔªµÄÒıÓÃ.
-** "sz" must be the number of bytes in the cell. //²ÎÊıszÊÇµ¥ÔªµÄ×Ö½ÚÊı.
+** åˆ é™¤pPageçš„ç¬¬iä¸ªå•å…ƒ.è¿™ä¸ªå‡½æ•°ä»…ä»…å¯¹pPageå…¶ä½œç”¨.å•å…ƒçš„å†…å®¹ä¸ä¼šé‡Šæ”¾æˆ–æ¶ˆå¤±.
+** å‡å®šå•å…ƒçš„å†…å®¹å·²ç»æ‹·è´åˆ°å…¶ä»–åœ°æ–¹.è¿™ä¸ªå‡½æ•°å°†åªpPageä¸­å•å…ƒçš„å¼•ç”¨.
+** "sz" must be the number of bytes in the cell. //å‚æ•°szæ˜¯å•å…ƒçš„å­—èŠ‚æ•°.
 */
-static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //É¾³ıpPageµÄµÚi¸öµ¥Ôª.
-  u32 pc;         /* Offset to cell content of cell being deleted */  //Òª±»É¾³ıµÄµ¥ÔªÄÚÈİµÄÆ«ÒÆÁ¿
-  u8 *data;       /* pPage->aData */                                  //pPage->aDataµÄÊı¾İ
-  u8 *ptr;        /* Used to move bytes around within data[] */       //ÔÚdata[]ÖĞÓÃÓÚÒÆ¶¯×Ö½Ú
-  u8 *endPtr;     /* End of loop */                                   //Ñ­»·½áÊø
-  int rc;         /* The return code */                               //·µ»Ø´úÂë
-  int hdr;        /* Beginning of the header.  0 most pages.  100 page 1 */   //Í·²¿µÄ¿ªÊ¼£¬Îª0ÊÇÆäËûÒ³£¬Îª1 ÊÇµÚÒ»Ò³
+static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //åˆ é™¤pPageçš„ç¬¬iä¸ªå•å…ƒ.
+  u32 pc;         /* Offset to cell content of cell being deleted */  //è¦è¢«åˆ é™¤çš„å•å…ƒå†…å®¹çš„åç§»é‡
+  u8 *data;       /* pPage->aData */                                  //pPage->aDataçš„æ•°æ®
+  u8 *ptr;        /* Used to move bytes around within data[] */       //åœ¨data[]ä¸­ç”¨äºç§»åŠ¨å­—èŠ‚
+  u8 *endPtr;     /* End of loop */                                   //å¾ªç¯ç»“æŸ
+  int rc;         /* The return code */                               //è¿”å›ä»£ç 
+  int hdr;        /* Beginning of the header.  0 most pages.  100 page 1 */   //å¤´éƒ¨çš„å¼€å§‹ï¼Œä¸º0æ˜¯å…¶ä»–é¡µï¼Œä¸º1 æ˜¯ç¬¬ä¸€é¡µ
 
   if( *pRC ) return;
 
@@ -6097,13 +6096,13 @@ static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //É¾³ıpPag
     *pRC = SQLITE_CORRUPT_BKPT;
     return;
   }
-  rc = freeSpace(pPage, pc, sz);   //ÊÍ·ÅpPage->aDataµÄ²¿·Ö²¢Ğ´Èë¿ÕÏĞÁĞ±í
+  rc = freeSpace(pPage, pc, sz);   //é‡Šæ”¾pPage->aDataçš„éƒ¨åˆ†å¹¶å†™å…¥ç©ºé—²åˆ—è¡¨
   if( rc ){
     *pRC = rc;
     return;
   }
   endPtr = &pPage->aCellIdx[2*pPage->nCell - 2];
-  assert( (SQLITE_PTR_TO_INT(ptr)&1)==0 );  /* ptr is always 2-byte aligned */  //ptr×ÜÊÇÁ½×Ö½Ú
+  assert( (SQLITE_PTR_TO_INT(ptr)&1)==0 );  /* ptr is always 2-byte aligned */  //ptræ€»æ˜¯ä¸¤å­—èŠ‚
   while( ptr<endPtr ){
     *(u16*)ptr = *(u16*)&ptr[2];
     ptr += 2;
@@ -6116,7 +6115,7 @@ static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //É¾³ıpPag
 /*
 ** Insert a new cell on pPage at cell index "i".  pCell points to the
 ** content of the cell.
-** ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª.pCellÖ¸Ïòµ¥ÔªµÄÄÚÈİ.
+** åœ¨pPageçš„å•å…ƒç´¢å¼•iå¤„æ’å…¥ä¸€ä¸ªæ–°å•å…ƒ.pCellæŒ‡å‘å•å…ƒçš„å†…å®¹.
 ** If the cell content will fit on the page, then put it there.  If it
 ** will not fit, then make a copy of the cell content into pTemp if
 ** pTemp is not null.  Regardless of pTemp, allocate a new entry
@@ -6124,34 +6123,34 @@ static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //É¾³ıpPag
 ** in pTemp or the original pCell) and also record its index. 
 ** Allocating a new entry in pPage->aCell[] implies that 
 ** pPage->nOverflow is incremented.
-** Èç¹ûµ¥ÔªÄÚÈİÔÚÒ³ÉÏÊÊºÏ£¬Ôò½«·ÅÔÚ´Ë´¦.Èç¹û²»ÊÊºÏ£¬ÄÇÃ´Èç¹ûpTemp·Ç¿Õ¿½±´µ¥ÔªµÄÄÚÈİµ½pTemp.
-** ²»¹ÜpTemp£¬ÔÚpPage->apOvfl[]ÖĞ·ÖÅäÒ»¸öĞÂÌõÄ¿²¢ÇÒÊÇËûÖ¸Ïòµ¥ÔªÄÚÈİ(»òÕßÊÇpTemp»òÕßÊÇ
-** Ô­ÓĞµÄpCell)Ò²¼ÇÂ¼ËüµÄË÷¡£ÔÚpPage->aCell[]ÖĞ·ÖÅäÒ»¸öĞÂµÄÌõÄ¿ÊµÏÖpPage->nOverflowµÄÔö³¤.
+** å¦‚æœå•å…ƒå†…å®¹åœ¨é¡µä¸Šé€‚åˆï¼Œåˆ™å°†æ”¾åœ¨æ­¤å¤„.å¦‚æœä¸é€‚åˆï¼Œé‚£ä¹ˆå¦‚æœpTempéç©ºæ‹·è´å•å…ƒçš„å†…å®¹åˆ°pTemp.
+** ä¸ç®¡pTempï¼Œåœ¨pPage->apOvfl[]ä¸­åˆ†é…ä¸€ä¸ªæ–°æ¡ç›®å¹¶ä¸”æ˜¯ä»–æŒ‡å‘å•å…ƒå†…å®¹(æˆ–è€…æ˜¯pTempæˆ–è€…æ˜¯
+** åŸæœ‰çš„pCell)ä¹Ÿè®°å½•å®ƒçš„ç´¢ã€‚åœ¨pPage->aCell[]ä¸­åˆ†é…ä¸€ä¸ªæ–°çš„æ¡ç›®å®ç°pPage->nOverflowçš„å¢é•¿.
 ** If nSkip is non-zero, then do not copy the first nSkip bytes of the
 ** cell. The caller will overwrite them after this function returns. If
 ** nSkip is zero, then pCell may not point to an invalid memory location 
 ** (but pCell+nSkip is always valid).
-** Èç¹ûnSkipÊÇ·ÇÁãµÄ,ÄÇÃ´²»Òª¸´ÖÆµ¥ÔªµÄµÚÒ»¸önSkip×Ö½Ú¡£Õâ¸öº¯Êı·µ»Øºóµ÷ÓÃÕß½«¸²¸ÇËûÃÇ¡£
-** Èç¹ûnSkipÊÇÁã,ÄÇÃ´pCell²¢²»Ö¸ÏòÒ»¸öÎŞĞ§µÄÄÚ´æÎ»ÖÃ(µ«pCell + nSkip×ÜÊÇÓĞĞ§)¡£
+** å¦‚æœnSkipæ˜¯éé›¶çš„,é‚£ä¹ˆä¸è¦å¤åˆ¶å•å…ƒçš„ç¬¬ä¸€ä¸ªnSkipå­—èŠ‚ã€‚è¿™ä¸ªå‡½æ•°è¿”å›åè°ƒç”¨è€…å°†è¦†ç›–ä»–ä»¬ã€‚
+** å¦‚æœnSkipæ˜¯é›¶,é‚£ä¹ˆpCellå¹¶ä¸æŒ‡å‘ä¸€ä¸ªæ— æ•ˆçš„å†…å­˜ä½ç½®(ä½†pCell + nSkipæ€»æ˜¯æœ‰æ•ˆ)ã€‚
 */
-/*ÔÚÒ³µÄµÚi¸öµ¥Ôª¸ñÖĞ²åÈëÒ»¸öµ¥Ôª¸ñ*/
-static void insertCell(             //ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª
-  MemPage *pPage,   /* Page into which we are copying */                      //´æ·Å¿½±´ÄÚÈİµÄÒ³
-  int i,            /* New cell becomes the i-th cell of the page */          //ĞÂµ¥Ôª½«±äÎªÒ³µÄµÚi¸öµ¥Ôª
-  u8 *pCell,        /* Content of the new cell */                             //ĞÂµ¥ÔªµÄÄÚÈİ
-  int sz,           /* Bytes of content in pCell */                           //pCellÖĞÄÚÈİµÄ×Ö½Ú
-  u8 *pTemp,        /* Temp storage space for pCell, if needed */             //Èç¹ûĞèÒª£¬Ëü½«ÊÇpCellµÄÁÙÊ±´æ´¢¿Õ¼ä
-  Pgno iChild,      /* If non-zero, replace first 4 bytes with this value */  //·ÇÁãÔòÌæ»»Õâ¸öÖµµÄ¿ªÊ¼µÄ4¸ö×Ö½Ú.
-  int *pRC          /* Read and write return code from here */                //´ÓÕâ¶Á»òĞ´·µ»Ø×Ö½Ú
+/*åœ¨é¡µçš„ç¬¬iä¸ªå•å…ƒæ ¼ä¸­æ’å…¥ä¸€ä¸ªå•å…ƒæ ¼*/
+static void insertCell(             //åœ¨pPageçš„å•å…ƒç´¢å¼•iå¤„æ’å…¥ä¸€ä¸ªæ–°å•å…ƒ
+  MemPage *pPage,   /* Page into which we are copying */                      //å­˜æ”¾æ‹·è´å†…å®¹çš„é¡µ
+  int i,            /* New cell becomes the i-th cell of the page */          //æ–°å•å…ƒå°†å˜ä¸ºé¡µçš„ç¬¬iä¸ªå•å…ƒ
+  u8 *pCell,        /* Content of the new cell */                             //æ–°å•å…ƒçš„å†…å®¹
+  int sz,           /* Bytes of content in pCell */                           //pCellä¸­å†…å®¹çš„å­—èŠ‚
+  u8 *pTemp,        /* Temp storage space for pCell, if needed */             //å¦‚æœéœ€è¦ï¼Œå®ƒå°†æ˜¯pCellçš„ä¸´æ—¶å­˜å‚¨ç©ºé—´
+  Pgno iChild,      /* If non-zero, replace first 4 bytes with this value */  //éé›¶åˆ™æ›¿æ¢è¿™ä¸ªå€¼çš„å¼€å§‹çš„4ä¸ªå­—èŠ‚.
+  int *pRC          /* Read and write return code from here */                //ä»è¿™è¯»æˆ–å†™è¿”å›å­—èŠ‚
 ){
-  int idx = 0;      /* Where to write new cell content in data[] */           //ÔÚdata[]ÖĞĞ´ĞÂµ¥ÔªµÄÄÚÈİ
-  int j;            /* Loop counter */                                        //Ñ­»·¼ÆÊı
-  int end;          /* First byte past the last cell pointer in data[] */     //data[]ÖĞ×îºóÒ»¸öµ¥ÔªºóµÄµÚÒ»¸ö×Ö½Ú
-  int ins;          /* Index in data[] where new cell pointer is inserted */  //data[]ÖĞ½«Òª²åÈëĞÂµ¥ÔªµØ·½µÄË÷Òı
-  int cellOffset;   /* Address of first cell pointer in data[] */             //data[]ÖĞµÚÒ»¸öµ¥ÔªÖ¸ÕëµÄµØÖ·
-  u8 *data;         /* The content of the whole page */                       //Õû¸öÒ³µÄÄÚÈİ
-  u8 *ptr;          /* Used for moving information around in data[] */        //data[]ÖĞÓÃ×÷ÒÆ¶¯ĞÅÏ¢
-  u8 *endPtr;       /* End of the loop */                                     //Ñ­»·µÄ½áÎ²
+  int idx = 0;      /* Where to write new cell content in data[] */           //åœ¨data[]ä¸­å†™æ–°å•å…ƒçš„å†…å®¹
+  int j;            /* Loop counter */                                        //å¾ªç¯è®¡æ•°
+  int end;          /* First byte past the last cell pointer in data[] */     //data[]ä¸­æœ€åä¸€ä¸ªå•å…ƒåçš„ç¬¬ä¸€ä¸ªå­—èŠ‚
+  int ins;          /* Index in data[] where new cell pointer is inserted */  //data[]ä¸­å°†è¦æ’å…¥æ–°å•å…ƒåœ°æ–¹çš„ç´¢å¼•
+  int cellOffset;   /* Address of first cell pointer in data[] */             //data[]ä¸­ç¬¬ä¸€ä¸ªå•å…ƒæŒ‡é’ˆçš„åœ°å€
+  u8 *data;         /* The content of the whole page */                       //æ•´ä¸ªé¡µçš„å†…å®¹
+  u8 *ptr;          /* Used for moving information around in data[] */        //data[]ä¸­ç”¨ä½œç§»åŠ¨ä¿¡æ¯
+  u8 *endPtr;       /* End of the loop */                                     //å¾ªç¯çš„ç»“å°¾
 
   int nSkip = (iChild ? 4 : 0);
 
@@ -6163,12 +6162,12 @@ static void insertCell(             //ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª
   assert( ArraySize(pPage->apOvfl)==ArraySize(pPage->aiOvfl) );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   /* The cell should normally be sized correctly.  However, when moving a
-  ** malformed(»ûĞÎµÄ) cell from a leaf page to an interior page, if the cell size
-  ** wanted to be less than 4 but got rounded up to(Ëãµ½) 4 on the leaf, then size
+  ** malformed(ç•¸å½¢çš„) cell from a leaf page to an interior page, if the cell size
+  ** wanted to be less than 4 but got rounded up to(ç®—åˆ°) 4 on the leaf, then size
   ** might be less than 8 (leaf-size + pointer) on the interior node.  Hence
   ** the term after the || in the following assert(). 
-  ** µ¥Ôª´óĞ¡Í¨³£Ó¦ÕıÈ·¡£È»¶ø,µ±ÒÆ¶¯»ûĞÎµ¥Ôª´ÓÒ»Æ¬Ò¶×ÓÒ³ÃæÄÚ²¿Ò³,Èç¹ûµ¥ÔªµÄ´óĞ¡ÉÙÓÚ4µ«ÔÚÒ¶ÉÏËãµ½ÁË4,
-  ** ÄÇÃ´ÄÚ²¿½ÚµãÉÏ´óĞ¡¿ÉÄÜÉÙÓÚ8(leaf-size + pointer)¡£*/
+  ** å•å…ƒå¤§å°é€šå¸¸åº”æ­£ç¡®ã€‚ç„¶è€Œ,å½“ç§»åŠ¨ç•¸å½¢å•å…ƒä»ä¸€ç‰‡å¶å­é¡µé¢å†…éƒ¨é¡µ,å¦‚æœå•å…ƒçš„å¤§å°å°‘äº4ä½†åœ¨å¶ä¸Šç®—åˆ°äº†4,
+  ** é‚£ä¹ˆå†…éƒ¨èŠ‚ç‚¹ä¸Šå¤§å°å¯èƒ½å°‘äº8(leaf-size + pointer)ã€‚*/
   assert( sz==cellSizePtr(pPage, pCell) || (sz==8 && iChild>0) );
   if( pPage->nOverflow || sz+2>pPage->nFree ){
     if( pTemp ){
@@ -6193,7 +6192,7 @@ static void insertCell(             //ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª
     cellOffset = pPage->cellOffset;
     end = cellOffset + 2*pPage->nCell;
     ins = cellOffset + 2*i;
-    rc = allocateSpace(pPage, sz, &idx);/*ÔÚpPageÉÏ·ÖÅäsz×Ö½ÚµÄ¿Õ¼ä£¬½«Ë÷ÒıĞ´ÈëidxÖĞ*/
+    rc = allocateSpace(pPage, sz, &idx);/*åœ¨pPageä¸Šåˆ†é…szå­—èŠ‚çš„ç©ºé—´ï¼Œå°†ç´¢å¼•å†™å…¥idxä¸­*/
     if( rc ){ *pRC = rc; return; }
     /* The allocateSpace() routine guarantees the following two properties
     ** if it returns success */
@@ -6201,7 +6200,7 @@ static void insertCell(             //ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª
     assert( idx+sz <= (int)pPage->pBt->usableSize );
     pPage->nCell++;
     pPage->nFree -= (u16)(2 + sz);
-    memcpy(&data[idx+nSkip], pCell+nSkip, sz-nSkip);/*½«pCellµÄÄÚÈİ¿½±´µ½data*/
+    memcpy(&data[idx+nSkip], pCell+nSkip, sz-nSkip);/*å°†pCellçš„å†…å®¹æ‹·è´åˆ°data*/
     if( iChild ){
       put4byte(&data[idx], iChild);
     }
@@ -6218,7 +6217,7 @@ static void insertCell(             //ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª
     if( pPage->pBt->autoVacuum ){
       /* The cell may contain a pointer to an overflow page. If so, write
       ** the entry for the overflow page into the pointer map.
-      ** µ¥Ôª¿ÉÄÜ°üº¬µ½Òç³öÒ³µÄÖ¸Õë.Èç¹û°üº¬£¬Ôò¶ÔÓÚÒç³öÒ³Ğ´ÌõÄ¿µ½Ö¸ÕëÎ»Í¼*/
+      ** å•å…ƒå¯èƒ½åŒ…å«åˆ°æº¢å‡ºé¡µçš„æŒ‡é’ˆ.å¦‚æœåŒ…å«ï¼Œåˆ™å¯¹äºæº¢å‡ºé¡µå†™æ¡ç›®åˆ°æŒ‡é’ˆä½å›¾*/
       ptrmapPutOvflPtr(pPage, pCell, pRC);
     }
 #endif
@@ -6230,29 +6229,29 @@ static void insertCell(             //ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª
 ** The cells are guaranteed to fit on the page.
 */
 /*
-Ìí¼ÓÒ»¸öÒ³ÉÏµÄµ¥Ôª¸ñ¡£¸ÃÒ³ÃæÓ¦¸ÃÊÇ×î³õÎª¿Õ¡£È·±£µ¥Ôª¸ñÊÊºÏÒ³¡£
+æ·»åŠ ä¸€ä¸ªé¡µä¸Šçš„å•å…ƒæ ¼ã€‚è¯¥é¡µé¢åº”è¯¥æ˜¯æœ€åˆä¸ºç©ºã€‚ç¡®ä¿å•å…ƒæ ¼é€‚åˆé¡µã€‚
 */
 
-static void assemblePage(        //ÔÚÒ³ÉÏÌí¼Óµ¥ÔªÁĞ±í
-  MemPage *pPage,   /* The page to be assemblied */                   //×°ÅäÒ³
-  int nCell,        /* The number of cells to add to this page */     //Ìí¼Óµ½Ò³ÉÏµÄµ¥ÔªÊı
-  u8 **apCell,      /* Pointers to cell bodies */                     //µ¥ÔªÌåµÄÖ¸Õë
-  u16 *aSize        /* Sizes of the cells */                          //µ¥ÔªµÃ´óĞ¡
+static void assemblePage(        //åœ¨é¡µä¸Šæ·»åŠ å•å…ƒåˆ—è¡¨
+  MemPage *pPage,   /* The page to be assemblied */                   //è£…é…é¡µ
+  int nCell,        /* The number of cells to add to this page */     //æ·»åŠ åˆ°é¡µä¸Šçš„å•å…ƒæ•°
+  u8 **apCell,      /* Pointers to cell bodies */                     //å•å…ƒä½“çš„æŒ‡é’ˆ
+  u16 *aSize        /* Sizes of the cells */                          //å•å…ƒå¾—å¤§å°
 ){
-  int i;            /* Loop counter */                                //Ñ­»·¼ÆÊı±äÁ¿
-  u8 *pCellptr;     /* Address of next cell pointer */                //ÏÂÒ»µ¥ÔªµÄÖ¸ÕëµØÖ·
-  int cellbody;     /* Address of next cell body */                   //ÏÂÒ»¸öµ¥ÔªÌåµÄµØÖ·
-  u8 * const data = pPage->aData;             /* Pointer to data for pPage */     //Ò³ÖĞÊı¾İµÄÖ¸Õë
-  const int hdr = pPage->hdrOffset;           /* Offset of header on pPage */     //Ò³ÉÏÍ·²¿µÄÆ«ÒÆÁ¿
-  const int nUsable = pPage->pBt->usableSize; /* Usable size of page */           //¿ÉÓÃÒ³µÄ´óĞ¡
+  int i;            /* Loop counter */                                //å¾ªç¯è®¡æ•°å˜é‡
+  u8 *pCellptr;     /* Address of next cell pointer */                //ä¸‹ä¸€å•å…ƒçš„æŒ‡é’ˆåœ°å€
+  int cellbody;     /* Address of next cell body */                   //ä¸‹ä¸€ä¸ªå•å…ƒä½“çš„åœ°å€
+  u8 * const data = pPage->aData;             /* Pointer to data for pPage */     //é¡µä¸­æ•°æ®çš„æŒ‡é’ˆ
+  const int hdr = pPage->hdrOffset;           /* Offset of header on pPage */     //é¡µä¸Šå¤´éƒ¨çš„åç§»é‡
+  const int nUsable = pPage->pBt->usableSize; /* Usable size of page */           //å¯ç”¨é¡µçš„å¤§å°
 
   assert( pPage->nOverflow==0 );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
-  assert( nCell>=0 && nCell<=(int)MX_CELL(pPage->pBt)  //Ìí¼ÓµÄµ¥ÔªÊı´óÓÚ0£¬ÇÒĞ¡ÓÚÔÊĞíµÄ×î´óµ¥ÔªÊı£¬Ò³ÉÏµÄ×î´óµ¥ÔªÊı<=10921
+  assert( nCell>=0 && nCell<=(int)MX_CELL(pPage->pBt)  //æ·»åŠ çš„å•å…ƒæ•°å¤§äº0ï¼Œä¸”å°äºå…è®¸çš„æœ€å¤§å•å…ƒæ•°ï¼Œé¡µä¸Šçš„æœ€å¤§å•å…ƒæ•°<=10921
             && (int)MX_CELL(pPage->pBt)<=10921);
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
 
-  /* Check that the page has just been zeroed by zeroPage() */  //¼ì²éÒ³ÊÇ·ñÒÑ¾­±»zeroPage()ÖÃÁã.
+  /* Check that the page has just been zeroed by zeroPage() */  //æ£€æŸ¥é¡µæ˜¯å¦å·²ç»è¢«zeroPage()ç½®é›¶.
   assert( pPage->nCell==0 );
   assert( get2byteNotZero(&data[hdr+5])==nUsable );
 
@@ -6263,7 +6262,7 @@ static void assemblePage(        //ÔÚÒ³ÉÏÌí¼Óµ¥ÔªÁĞ±í
     pCellptr -= 2;
     cellbody -= sz;
     put2byte(pCellptr, cellbody);
-    memcpy(&data[cellbody], apCell[i], sz);     //´ÓapCell[i]µÄÆğÊ¼Î»ÖÃ¿ªÊ¼¿½±´sz¸ö×Ö½Úµ½&data[cellbody]µÄÆğÊ¼Î»ÖÃÉÏ
+    memcpy(&data[cellbody], apCell[i], sz);     //ä»apCell[i]çš„èµ·å§‹ä½ç½®å¼€å§‹æ‹·è´szä¸ªå­—èŠ‚åˆ°&data[cellbody]çš„èµ·å§‹ä½ç½®ä¸Š
   }
   put2byte(&data[hdr+3], nCell);
   put2byte(&data[hdr+5], cellbody);
@@ -6277,22 +6276,22 @@ static void assemblePage(        //ÔÚÒ³ÉÏÌí¼Óµ¥ÔªÁĞ±í
 ** of the page that participate in the balancing operation.  NB is the
 ** total number of pages that participate, including the target page and
 ** NN neighbors on either side.
-** ÒÔÏÂ²ÎÊıÈ·¶¨ÔÚÒ»¸öÆ½ºâ²Ù×÷ÖĞÓĞ¶àÉÙÏàÁÚÒ³Ãæ²ÎÓë½øÀ´¡£NNÊÇ²ÎÓëÆ½ºâ²Ù×÷µÄÒ³ÃæÏàÁÚÒ³ÃæµÄÊıÁ¿¡£
-** NBµÄËùÉæ¼°µÄÒ³Ãæ×ÜÊı,°üÀ¨Ä¿±êÒ³ÃæºÍNNµÄÏàÁÚÒ³Ãæ¡£
+** ä»¥ä¸‹å‚æ•°ç¡®å®šåœ¨ä¸€ä¸ªå¹³è¡¡æ“ä½œä¸­æœ‰å¤šå°‘ç›¸é‚»é¡µé¢å‚ä¸è¿›æ¥ã€‚NNæ˜¯å‚ä¸å¹³è¡¡æ“ä½œçš„é¡µé¢ç›¸é‚»é¡µé¢çš„æ•°é‡ã€‚
+** NBçš„æ‰€æ¶‰åŠçš„é¡µé¢æ€»æ•°,åŒ…æ‹¬ç›®æ ‡é¡µé¢å’ŒNNçš„ç›¸é‚»é¡µé¢ã€‚
 ** The minimum value of NN is 1 (of course).  Increasing NN above 1
 ** (to 2 or 3) gives a modest improvement in SELECT and DELETE performance
 ** in exchange for a larger degradation in INSERT and UPDATE performance.
 ** The value of NN appears to give the best results overall.
-** NNµÄ×îĞ¡ÖµÊÇ1¡£Ôö¼ÓNNÊ¹Ö®´óÓÚ1(2»ò3)ÄÜ¹»¸ÄÉÆSELECTºÍDELETEĞÔÄÜ,ÒÔ»»È¡¸ü´óµÄ²åÈëºÍ¸üĞÂĞÔÄÜµÄÍË»¯¡£
-** NNÖµËÆºõ¸øÁË×îºÃµÄ½á¹û¡£
+** NNçš„æœ€å°å€¼æ˜¯1ã€‚å¢åŠ NNä½¿ä¹‹å¤§äº1(2æˆ–3)èƒ½å¤Ÿæ”¹å–„SELECTå’ŒDELETEæ€§èƒ½,ä»¥æ¢å–æ›´å¤§çš„æ’å…¥å’Œæ›´æ–°æ€§èƒ½çš„é€€åŒ–ã€‚
+** NNå€¼ä¼¼ä¹ç»™äº†æœ€å¥½çš„ç»“æœã€‚
 */
-/*ÏÂÃæµÄ²ÎÊıÈ·¶¨ÔÚÆ½ºâ²Ù×÷ÀïÃæÉæ¼°¶àÉÙÏàÁÚµÄÒ³Ãæ£¬ÊıÁ¿¼ÇÎªNN¡£NBÊÇ²ÎÓëµÄÒ³µÄ×ÜÊıÁ¿¡£
-NNµÄ×îĞ¡ÖµÊÇ1¡£Ôö¼ÓNNµ½1ÒÔÉÏ£¨2»ò3)£¬ ÄÜ¹»¸ÄÉÆSELECTºÍDELETEĞÔÄÜ¡£
+/*ä¸‹é¢çš„å‚æ•°ç¡®å®šåœ¨å¹³è¡¡æ“ä½œé‡Œé¢æ¶‰åŠå¤šå°‘ç›¸é‚»çš„é¡µé¢ï¼Œæ•°é‡è®°ä¸ºNNã€‚NBæ˜¯å‚ä¸çš„é¡µçš„æ€»æ•°é‡ã€‚
+NNçš„æœ€å°å€¼æ˜¯1ã€‚å¢åŠ NNåˆ°1ä»¥ä¸Šï¼ˆ2æˆ–3)ï¼Œ èƒ½å¤Ÿæ”¹å–„SELECTå’ŒDELETEæ€§èƒ½ã€‚
 */
 
 
-#define NN 1             /* Number of neighbors on either side of pPage */   //pPageÁ½²àÏàÁÚµÄÒ³Êı
-#define NB (NN*2+1)      /* Total pages involved in the balance */           //ÔÚÆ½ºâÖĞÉæ¼°µÄ×ÜÒ³Êı
+#define NN 1             /* Number of neighbors on either side of pPage */   //pPageä¸¤ä¾§ç›¸é‚»çš„é¡µæ•°
+#define NB (NN*2+1)      /* Total pages involved in the balance */           //åœ¨å¹³è¡¡ä¸­æ¶‰åŠçš„æ€»é¡µæ•°
 
 
 #ifndef SQLITE_OMIT_QUICKBALANCE
@@ -6301,39 +6300,39 @@ NNµÄ×îĞ¡ÖµÊÇ1¡£Ôö¼ÓNNµ½1ÒÔÉÏ£¨2»ò3)£¬ ÄÜ¹»¸ÄÉÆSELECTºÍDELETEĞÔÄÜ¡£
 ** a new entry is being inserted on the extreme right-end of the
 ** tree, in other words, when the new entry will become the largest
 ** entry in the tree.
-** Õâ¸öbalance()°æ±¾´¦Àí³£¼ûµÄÌØÊâÇé¿ö£¬Ò»¸öĞÂÌõÄ¿±»²åÈëµ½Ê÷µÄ×îÓÒ¶Ë.
-** »»¾ä»°Ëµ,µ±ĞÂÌõÄ¿½«³ÉÎªÊ÷ÖĞ×î´óµÄÌõÄ¿¡£
+** è¿™ä¸ªbalance()ç‰ˆæœ¬å¤„ç†å¸¸è§çš„ç‰¹æ®Šæƒ…å†µï¼Œä¸€ä¸ªæ–°æ¡ç›®è¢«æ’å…¥åˆ°æ ‘çš„æœ€å³ç«¯.
+** æ¢å¥è¯è¯´,å½“æ–°æ¡ç›®å°†æˆä¸ºæ ‘ä¸­æœ€å¤§çš„æ¡ç›®ã€‚
 ** Instead of trying to balance the 3 right-most leaf pages, just add
 ** a new page to the right-hand side and put the one new entry in
 ** that page.  This leaves the right side of the tree somewhat
 ** unbalanced.  But odds are that we will be inserting new entries
 ** at the end soon afterwards so the nearly empty page will quickly
 ** fill up.  On average.
-** ¶ø²»ÊÇÊÔÍ¼Æ½ºâ×îÓÒ±ßµÄ3¸öÒ¶Ò³Ãæ,Ìí¼ÓÒ»¸öĞÂÒ³ÃæµÄÓÒ±ß,·ÅÒ»¸öĞÂÌõÄ¿ÔÚÕâ¸öÒ³ÃæÖĞ¡£
-** ÕâÊ¹µÃÊ÷µÄÓÒ±ß²»Æ½ºâµÄ¡£µ«Ææ¹ÖµÄÊÇ,ÎÒÃÇ½«²åÈëĞÂµÄÌõÄ¿µ½×îºó£¬ËùÒÔºÜ¿ì½«¿ÕÒ³ÃæÌíÂú¡£
+** è€Œä¸æ˜¯è¯•å›¾å¹³è¡¡æœ€å³è¾¹çš„3ä¸ªå¶é¡µé¢,æ·»åŠ ä¸€ä¸ªæ–°é¡µé¢çš„å³è¾¹,æ”¾ä¸€ä¸ªæ–°æ¡ç›®åœ¨è¿™ä¸ªé¡µé¢ä¸­ã€‚
+** è¿™ä½¿å¾—æ ‘çš„å³è¾¹ä¸å¹³è¡¡çš„ã€‚ä½†å¥‡æ€ªçš„æ˜¯,æˆ‘ä»¬å°†æ’å…¥æ–°çš„æ¡ç›®åˆ°æœ€åï¼Œæ‰€ä»¥å¾ˆå¿«å°†ç©ºé¡µé¢æ·»æ»¡ã€‚
 ** pPage is the leaf page which is the right-most page in the tree.
 ** pParent is its parent.  pPage must have a single overflow entry
 ** which is also the right-most entry on the page.
-** pPageÊÇÒ¶×ÓÒ³Ãæ£¬ËüÊÇÊ÷ÉÏ×îÓÒ±ßµÄÒ³Ãæ¡£pParentÊÇËüµÄ¸¸½Úµã¡£pPage±ØĞëÓĞµ¥¶ÀµÄÒç³öÌõÄ¿Ò²Ò³ÃæÉÏ×îÓÒ±ßµÄÌõÄ¿¡£
+** pPageæ˜¯å¶å­é¡µé¢ï¼Œå®ƒæ˜¯æ ‘ä¸Šæœ€å³è¾¹çš„é¡µé¢ã€‚pParentæ˜¯å®ƒçš„çˆ¶èŠ‚ç‚¹ã€‚pPageå¿…é¡»æœ‰å•ç‹¬çš„æº¢å‡ºæ¡ç›®ä¹Ÿé¡µé¢ä¸Šæœ€å³è¾¹çš„æ¡ç›®ã€‚
 ** The pSpace buffer is used to store a temporary copy of the divider
 ** cell that will be inserted into pParent. Such a cell consists of a 4
 ** byte page number followed by a variable length integer. In other
 ** words, at most 13 bytes. Hence the pSpace buffer must be at
 ** least 13 bytes in size.
-** pSpace»º³åÇøÓÃÓÚ´æ´¢½«²åÈëpParentµÄÁÙÊ±¸±±¾µÄµ¥Ôª¡£ÕâÑùÒ»¸öµ¥Ôª°üº¬ÔÚÒ»¸ö¿É±ä³¤¶ÈµÄÕûÊıºóµÄ4×Ö½ÚÒ³Âë×é³É¡£
-** »»¾ä»°Ëµ,×î¶à13×Ö½Ú¡£Òò´Ë,pSpace»º³åÇø±ØĞëÒªÖÁÉÙ13¸ö×Ö½Ú´óĞ¡¡£
+** pSpaceç¼“å†²åŒºç”¨äºå­˜å‚¨å°†æ’å…¥pParentçš„ä¸´æ—¶å‰¯æœ¬çš„å•å…ƒã€‚è¿™æ ·ä¸€ä¸ªå•å…ƒåŒ…å«åœ¨ä¸€ä¸ªå¯å˜é•¿åº¦çš„æ•´æ•°åçš„4å­—èŠ‚é¡µç ç»„æˆã€‚
+** æ¢å¥è¯è¯´,æœ€å¤š13å­—èŠ‚ã€‚å› æ­¤,pSpaceç¼“å†²åŒºå¿…é¡»è¦è‡³å°‘13ä¸ªå­—èŠ‚å¤§å°ã€‚
 */
 
 /*
-´Ë°æ±¾µÄbalance()´¦Àí³£¼ûµÄÌØÊâÇé¿ö¡£ĞÂÌõÄ¿±»²åÔÚÊ÷µÄ×îÓÒ¶Ë£¬
-»»¾ä»°Ëµ£¬ĞÂµÄÌõÄ¿½«³ÉÎª×î´óµÄÌõÄ¿¡£pPageÊÇÒ¶×ÓÒ³£¬ÔÚÊ÷ÖĞÊÇ×îÓÒ±ßµÄÒ³Ãæ¡£
-pParentÊÇÆä¸¸½Úµã¡£ pPageÊÇÒ»¸öÒç³öÒ³µÄÌõÄ¿¡£
+æ­¤ç‰ˆæœ¬çš„balance()å¤„ç†å¸¸è§çš„ç‰¹æ®Šæƒ…å†µã€‚æ–°æ¡ç›®è¢«æ’åœ¨æ ‘çš„æœ€å³ç«¯ï¼Œ
+æ¢å¥è¯è¯´ï¼Œæ–°çš„æ¡ç›®å°†æˆä¸ºæœ€å¤§çš„æ¡ç›®ã€‚pPageæ˜¯å¶å­é¡µï¼Œåœ¨æ ‘ä¸­æ˜¯æœ€å³è¾¹çš„é¡µé¢ã€‚
+pParentæ˜¯å…¶çˆ¶èŠ‚ç‚¹ã€‚ pPageæ˜¯ä¸€ä¸ªæº¢å‡ºé¡µçš„æ¡ç›®ã€‚
 */
-static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //´¦Àí³£¼ûµÄÇé¿ö£¬Ò»¸öĞÂÌõÄ¿±»²åÈëµ½Ê÷µÄ×îÓÒ¶Ë.
-  BtShared *const pBt = pPage->pBt;    /* B-Tree Database */             //Êı¾İ¿âÖĞBÊ÷
-  MemPage *pNew;                       /* Newly allocated page */        //ĞÂ·ÖÅäµÄÒ³
-  int rc;                              /* Return Code */                 //·µ»Ø´úÂë
-  Pgno pgnoNew;                        /* Page number of pNew */         // pNewµÄÒ³Âë
+static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //å¤„ç†å¸¸è§çš„æƒ…å†µï¼Œä¸€ä¸ªæ–°æ¡ç›®è¢«æ’å…¥åˆ°æ ‘çš„æœ€å³ç«¯.
+  BtShared *const pBt = pPage->pBt;    /* B-Tree Database */             //æ•°æ®åº“ä¸­Bæ ‘
+  MemPage *pNew;                       /* Newly allocated page */        //æ–°åˆ†é…çš„é¡µ
+  int rc;                              /* Return Code */                 //è¿”å›ä»£ç 
+  Pgno pgnoNew;                        /* Page number of pNew */         // pNewçš„é¡µç 
 
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   assert( sqlite3PagerIswriteable(pParent->pDbPage) );
@@ -6345,15 +6344,15 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //´¦Àí³
   /* Allocate a new page. This page will become the right-sibling of 
   ** pPage. Make the parent page writable, so that the new divider cell
   ** may be inserted. If both these operations are successful, proceed.
-  ** ·ÖÅäÒ»¸öĞÂÒ³£¬¸ÃÒ³½«±äÎªpPageÓÒ²àµÄ·ÖÖ§£¬È·±£¸¸Ò³ÃæÊ±¿ÉĞ´µÄÒÔ±ãÓÚĞÂ·Ö³öµÄµ¥Ôª±»²åÈë¡£Èç¹ûÕâÁ½¸ö²Ù×÷¶¼³É¹¦£¬Ôò±£»¤¡£
+  ** åˆ†é…ä¸€ä¸ªæ–°é¡µï¼Œè¯¥é¡µå°†å˜ä¸ºpPageå³ä¾§çš„åˆ†æ”¯ï¼Œç¡®ä¿çˆ¶é¡µé¢æ—¶å¯å†™çš„ä»¥ä¾¿äºæ–°åˆ†å‡ºçš„å•å…ƒè¢«æ’å…¥ã€‚å¦‚æœè¿™ä¸¤ä¸ªæ“ä½œéƒ½æˆåŠŸï¼Œåˆ™ä¿æŠ¤ã€‚
   */
-  rc = allocateBtreePage(pBt, &pNew, &pgnoNew, 0, 0);  //·ÖÅäÒ»¸öĞÂÒ³
+  rc = allocateBtreePage(pBt, &pNew, &pgnoNew, 0, 0);  //åˆ†é…ä¸€ä¸ªæ–°é¡µ
 
   if( rc==SQLITE_OK ){
 
     u8 *pOut = &pSpace[4];
     u8 *pCell = pPage->apOvfl[0];
-    u16 szCell = cellSizePtr(pPage, pCell);  //¼ÆËãÒ»¸öµ¥ÔªĞèÒªµÄ×ÜµÄ×Ö½ÚÊı²¢¸³Öµ¸øszCell
+    u16 szCell = cellSizePtr(pPage, pCell);  //è®¡ç®—ä¸€ä¸ªå•å…ƒéœ€è¦çš„æ€»çš„å­—èŠ‚æ•°å¹¶èµ‹å€¼ç»™szCell
     u8 *pStop;
 
     assert( sqlite3PagerIswriteable(pNew->pDbPage) );
@@ -6370,9 +6369,9 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //´¦Àí³
     ** be marked as dirty. Returning an error code will cause a
     ** rollback, undoing any changes made to the parent page.
     */
-	/*Èç¹ûÕâÊÇÒ»¸ö×Ô¶¯Çå¿ÕµÄÊı¾İ¿â£¬¸üĞÂÖ¸ÏòÒ»¸öĞÂÒ³µÄÌõÄ¿¡£Èç¹ûÕâĞ©
-	²Ù×÷Ê§°Ü£¬·µ»Ø´úÂë±»ÉèÖÃ£¬µ«¸¸Ò³Ãæ±»thh´úÂë²Ù×İ¡£ÔÚÕâÒ»µãÉÏ±£Ö¤¸¸Ò³Ãæ
-	±»±ê¼ÇÎªÔà×Ö¡£·µ»Ø´íÎó´úÂë½«µ¼ÖÂ»Ø¹ö£¬³·Ïú¸¸Ò³ÃæËù×öµÄÈÎºÎ¸ü¸Ä¡£
+	/*å¦‚æœè¿™æ˜¯ä¸€ä¸ªè‡ªåŠ¨æ¸…ç©ºçš„æ•°æ®åº“ï¼Œæ›´æ–°æŒ‡å‘ä¸€ä¸ªæ–°é¡µçš„æ¡ç›®ã€‚å¦‚æœè¿™äº›
+	æ“ä½œå¤±è´¥ï¼Œè¿”å›ä»£ç è¢«è®¾ç½®ï¼Œä½†çˆ¶é¡µé¢è¢«thhä»£ç æ“çºµã€‚åœ¨è¿™ä¸€ç‚¹ä¸Šä¿è¯çˆ¶é¡µé¢
+	è¢«æ ‡è®°ä¸ºè„å­—ã€‚è¿”å›é”™è¯¯ä»£ç å°†å¯¼è‡´å›æ»šï¼Œæ’¤é”€çˆ¶é¡µé¢æ‰€åšçš„ä»»ä½•æ›´æ”¹ã€‚
 	*/
     if( ISAUTOVACUUM ){
       ptrmapPut(pBt, pgnoNew, PTRMAP_BTREE, pParent->pgno, &rc);
@@ -6395,11 +6394,11 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //´¦Àí³
     ** cell on pPage into the pSpace buffer.
     */
 
-	/*´´½¨Ò»¸ö³ı·¨Æ÷µ¥Ôª£¬²åÈëµ½pParent¡£³ı·¨Æ÷ÓÉÒ»¸ö4×Ö½ÚµÄÒ³ºÅ£¨PPAGEµÄÒ³ºÅ£©£¬
-	ºÍÒ»¸ö¿É±ä³¤¶È¹Ø¼ü×ÖµÄÖµ£¨Ëü±ØĞëÊÇÏàÍ¬µÄÖµ×÷ÎªPPAGEÉÏ×î´óµÄ¼ü£©×é³É¡£
-	Òª²éÕÒPPAGE×î´óµÄ¼üÖµ£¬ÏÈÕÒµ½×îÓÒ±ßµÄpPageµ¥Ôª¸ñ¡£Õâ¸öµ¥ÔªµÄÇ°Á½¸ö×Ö¶ÎÊÇ¼ÇÂ¼³¤¶È
-	(Ò»¸ö¿É±ä³¤¶ÈµÄÕûÊı´óĞ¡×î¶à32Î»)ºÍ¹Ø¼ü×ÖÖµ(Ò»¸ö¿É±ä³¤¶ÈµÄÕûÊı,¿ÉÄÜÓĞ¼ÛÖµ)¡£
-	µÚÒ»¸öwhileÑ­»·Ìø¹ıÒÔÏÂ¼ÇÂ¼³¤¶È×Ö¶Î¡£µÚ¶ş¸öwhileÑ­»·¿½±´pPageÉÏµÄµ¥Ôª¹Ø¼ü×ÖÖµµ½pSpace»º³åÇø¡£ 
+	/*åˆ›å»ºä¸€ä¸ªé™¤æ³•å™¨å•å…ƒï¼Œæ’å…¥åˆ°pParentã€‚é™¤æ³•å™¨ç”±ä¸€ä¸ª4å­—èŠ‚çš„é¡µå·ï¼ˆPPAGEçš„é¡µå·ï¼‰ï¼Œ
+	å’Œä¸€ä¸ªå¯å˜é•¿åº¦å…³é”®å­—çš„å€¼ï¼ˆå®ƒå¿…é¡»æ˜¯ç›¸åŒçš„å€¼ä½œä¸ºPPAGEä¸Šæœ€å¤§çš„é”®ï¼‰ç»„æˆã€‚
+	è¦æŸ¥æ‰¾PPAGEæœ€å¤§çš„é”®å€¼ï¼Œå…ˆæ‰¾åˆ°æœ€å³è¾¹çš„pPageå•å…ƒæ ¼ã€‚è¿™ä¸ªå•å…ƒçš„å‰ä¸¤ä¸ªå­—æ®µæ˜¯è®°å½•é•¿åº¦
+	(ä¸€ä¸ªå¯å˜é•¿åº¦çš„æ•´æ•°å¤§å°æœ€å¤š32ä½)å’Œå…³é”®å­—å€¼(ä¸€ä¸ªå¯å˜é•¿åº¦çš„æ•´æ•°,å¯èƒ½æœ‰ä»·å€¼)ã€‚
+	ç¬¬ä¸€ä¸ªwhileå¾ªç¯è·³è¿‡ä»¥ä¸‹è®°å½•é•¿åº¦å­—æ®µã€‚ç¬¬äºŒä¸ªwhileå¾ªç¯æ‹·è´pPageä¸Šçš„å•å…ƒå…³é”®å­—å€¼åˆ°pSpaceç¼“å†²åŒºã€‚ 
 */
     pCell = findCell(pPage, pPage->nCell-1);
     pStop = &pCell[9];
@@ -6407,14 +6406,14 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //´¦Àí³
     pStop = &pCell[9];
     while( ((*(pOut++) = *(pCell++))&0x80) && pCell<pStop );
 
-    /* Insert the new divider cell into pParent. */  //²åÈëĞÂµÄ³ı·¨Æ÷µ¥Ôªµ½pParent
+    /* Insert the new divider cell into pParent. */  //æ’å…¥æ–°çš„é™¤æ³•å™¨å•å…ƒåˆ°pParent
     insertCell(pParent, pParent->nCell, pSpace, (int)(pOut-pSpace),
                0, pPage->pgno, &rc);
 
-    /* Set the right-child pointer of pParent to point to the new page. */  //ÉèÖÃpParentÓÒº¢×ÓµÄÖ¸ÕëÖ¸ÏòĞÂÒ³
+    /* Set the right-child pointer of pParent to point to the new page. */  //è®¾ç½®pParentå³å­©å­çš„æŒ‡é’ˆæŒ‡å‘æ–°é¡µ
     put4byte(&pParent->aData[pParent->hdrOffset+8], pgnoNew);
   
-    /* Release the reference to the new page. */     //ÊÍ·Å¶ÔĞÂÒ³µÄÒıÓÃ
+    /* Release the reference to the new page. */     //é‡Šæ”¾å¯¹æ–°é¡µçš„å¼•ç”¨
     releasePage(pNew);
   }
 
@@ -6427,7 +6426,7 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //´¦Àí³
 ** This function does not contribute anything to the operation of SQLite.
 ** it is sometimes activated temporarily while debugging code responsible 
 ** for setting pointer-map entries.
-** Èç¹ûº¯Êı¶ÔSQLite²Ù×÷ÄÚÓĞÈÎºÎ°ïÖú.Ö»ÊÇµ±µ÷ÊÔ´úÂëÉèÖÃpointer-mapÌõÄ¿Ê±ÔİÊ±¼¤»î¡£
+** å¦‚æœå‡½æ•°å¯¹SQLiteæ“ä½œå†…æœ‰ä»»ä½•å¸®åŠ©.åªæ˜¯å½“è°ƒè¯•ä»£ç è®¾ç½®pointer-mapæ¡ç›®æ—¶æš‚æ—¶æ¿€æ´»ã€‚
 */
 static int ptrmapCheckPages(MemPage **apPage, int nPage){
   int i, j;
@@ -6483,15 +6482,15 @@ static int ptrmapCheckPages(MemPage **apPage, int nPage){
 ** which are called often under normal circumstances.
 */
 	/*
-	**´Ëº¯ÊıÓÃÓÚ¸´ÖÆpFromÒ³ÉÏbÊ÷½ÚµãµÄ´æ´¢ÄÚÈİµ½pToÒ³¡£Èç¹ûÒ³ÃæpFrom²»ÊÇÒ¶×ÓÒ³£¬È»ºó
-	Ã¿¸ö×ÓÒ³Ö¸ÕëµÄÓ³ÉäÌõÄ¿½øĞĞ¸üĞÂ£¬ÒÔ±ãÓÚ´æ´¢ÔÚÖ¸ÕëÎ»Í¼ÖĞµÄ¸¸½ÚµãÊÇpToÒ³.Èç¹ûpFrom°ü
-	º¬ÈÎºÎ´øÓĞÒç³öÒ³Ö¸ÕëµÄµ¥Ôª,ÄÇÃ´ÏàÓ¦µÄÖ¸ÕëÎ»Í¼Ò²¸üĞÂÊ¹¸¸½ÚµãÊÇ pToÒ³¡£
-	Èç¹ûpFromÄ¿Ç°ÓĞÈÎºÎÒç³öµ¥Ôª(ÔÚMemPage.apOvfl[]Êı×éÖĞµÄÌõÄ¿),ÄÇÃ´ËüÃÇÃ»ÓĞ±»¸´ÖÆµ½pTo¡£
-	·µ»ØÖ®Ç°£¬Ò³ÃæpToĞèÒªÓÃbtreeInitPage()ÖØĞÂ³õÊ¼»¯.´Ë¹¦ÄÜµÄĞÔÄÜ²»ÊÇ¹Ø¼ü¡£
-	 Ëü½öÓÉbalance_shallower£¨£©ºÍbalance_deeper£¨£©³ÌĞòÊ¹ÓÃ¡£Í¨³£Çé¿öÏÂ£¬Á½Õß¶¼²»ÓÃ¡£
+	**æ­¤å‡½æ•°ç”¨äºå¤åˆ¶pFromé¡µä¸Šbæ ‘èŠ‚ç‚¹çš„å­˜å‚¨å†…å®¹åˆ°pToé¡µã€‚å¦‚æœé¡µé¢pFromä¸æ˜¯å¶å­é¡µï¼Œç„¶å
+	æ¯ä¸ªå­é¡µæŒ‡é’ˆçš„æ˜ å°„æ¡ç›®è¿›è¡Œæ›´æ–°ï¼Œä»¥ä¾¿äºå­˜å‚¨åœ¨æŒ‡é’ˆä½å›¾ä¸­çš„çˆ¶èŠ‚ç‚¹æ˜¯pToé¡µ.å¦‚æœpFromåŒ…
+	å«ä»»ä½•å¸¦æœ‰æº¢å‡ºé¡µæŒ‡é’ˆçš„å•å…ƒ,é‚£ä¹ˆç›¸åº”çš„æŒ‡é’ˆä½å›¾ä¹Ÿæ›´æ–°ä½¿çˆ¶èŠ‚ç‚¹æ˜¯ pToé¡µã€‚
+	å¦‚æœpFromç›®å‰æœ‰ä»»ä½•æº¢å‡ºå•å…ƒ(åœ¨MemPage.apOvfl[]æ•°ç»„ä¸­çš„æ¡ç›®),é‚£ä¹ˆå®ƒä»¬æ²¡æœ‰è¢«å¤åˆ¶åˆ°pToã€‚
+	è¿”å›ä¹‹å‰ï¼Œé¡µé¢pToéœ€è¦ç”¨btreeInitPage()é‡æ–°åˆå§‹åŒ–.æ­¤åŠŸèƒ½çš„æ€§èƒ½ä¸æ˜¯å…³é”®ã€‚
+	 å®ƒä»…ç”±balance_shallowerï¼ˆï¼‰å’Œbalance_deeperï¼ˆï¼‰ç¨‹åºä½¿ç”¨ã€‚é€šå¸¸æƒ…å†µä¸‹ï¼Œä¸¤è€…éƒ½ä¸ç”¨ã€‚
 	*/
 
-static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //¸´ÖÆpFromÒ³ÉÏbÊ÷½ÚµãµÄ´æ´¢ÄÚÈİµ½pToÒ³
+static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //å¤åˆ¶pFromé¡µä¸Šbæ ‘èŠ‚ç‚¹çš„å­˜å‚¨å†…å®¹åˆ°pToé¡µ
   if( (*pRC)==SQLITE_OK ){
     BtShared * const pBt = pFrom->pBt;
     u8 * const aFrom = pFrom->aData;
@@ -6506,7 +6505,7 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //¸´ÖÆpFr
     assert( pFrom->nFree>=iToHdr );
     assert( get2byte(&aFrom[iFromHdr+5]) <= (int)pBt->usableSize );
   
-    /* Copy the b-tree node content from page pFrom to page pTo. */  //´ÓpFromÒ³¿½±´BÊ÷½ÚµãÄÚÈİµ½pToÒ³
+    /* Copy the b-tree node content from page pFrom to page pTo. */  //ä»pFromé¡µæ‹·è´Bæ ‘èŠ‚ç‚¹å†…å®¹åˆ°pToé¡µ
     iData = get2byte(&aFrom[iFromHdr+5]);
     memcpy(&aTo[iData], &aFrom[iData], pBt->usableSize-iData);
     memcpy(&aTo[iToHdr], &aFrom[iFromHdr], pFrom->cellOffset + 2*pFrom->nCell);
@@ -6515,18 +6514,18 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //¸´ÖÆpFr
     ** match the new data. The initialization of pTo can actually fail under
     ** fairly obscure circumstances, even though it is a copy of initialized 
     ** page pFrom.
-	** ÖØĞÂ³õÊ¼»¯Ò³pToÀ´Ê¹MemPage½á¹¹µÄÄÚÈİºÍĞÂµÄÊı¾İÆ¥Åä¡£Ïàµ±Ä£ºıµÄÇé¿öÏÂ£¬pToµÄ³õÊ¼»¯¿ÉÄÜÊ§°Ü,
-	** ¼´Ê¹ËüÊÇÒ»¸öÒÑ¾­³õÊ¼»¯pFromÒ³µÄ¸±±¾¡£
+	** é‡æ–°åˆå§‹åŒ–é¡µpToæ¥ä½¿MemPageç»“æ„çš„å†…å®¹å’Œæ–°çš„æ•°æ®åŒ¹é…ã€‚ç›¸å½“æ¨¡ç³Šçš„æƒ…å†µä¸‹ï¼ŒpToçš„åˆå§‹åŒ–å¯èƒ½å¤±è´¥,
+	** å³ä½¿å®ƒæ˜¯ä¸€ä¸ªå·²ç»åˆå§‹åŒ–pFromé¡µçš„å‰¯æœ¬ã€‚
     */
     pTo->isInit = 0;
-    rc = btreeInitPage(pTo);   //³õÊ¼»¯Ò³pTo
+    rc = btreeInitPage(pTo);   //åˆå§‹åŒ–é¡µpTo
     if( rc!=SQLITE_OK ){
       *pRC = rc;
       return;
     }
     /* If this is an auto-vacuum database, update the pointer-map entries
     ** for any b-tree or overflow pages that pTo now contains the pointers to.
-    ** Èç¹ûÕâÊÇÒ»¸ö×Ô¶¯ÇåÀíµÄÊı¾İ¿â£¬ÄÇÃ´¶ÔÓÚpToµÄÖ¸ÕëÖ¸ÏòµÄÈÎºÎBÊ÷»òÒç³öÒ³Ãæ¸üĞÂÖ¸ÕëÎ»Í¼ÌõÄ¿.*/
+    ** å¦‚æœè¿™æ˜¯ä¸€ä¸ªè‡ªåŠ¨æ¸…ç†çš„æ•°æ®åº“ï¼Œé‚£ä¹ˆå¯¹äºpToçš„æŒ‡é’ˆæŒ‡å‘çš„ä»»ä½•Bæ ‘æˆ–æº¢å‡ºé¡µé¢æ›´æ–°æŒ‡é’ˆä½å›¾æ¡ç›®.*/
     if( ISAUTOVACUUM ){
       *pRC = setChildPtrmaps(pTo);
     }
@@ -6542,30 +6541,30 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //¸´ÖÆpFr
 ** has fewer than 2 siblings (something which can only happen if the page
 ** is a root page or a child of a root page) then all available siblings
 ** participate in the balancing.
-** Õâ¸öº¯ÊıÔÚ pParentµÄµÚiParentIdxº¢×ÓÉÏÖØĞÂ·ÖÅäµ¥Ôª(ÒÔÏÂ¼ò³Æ¡°Ò³Ãæ¡±)ºÍ´ïµ½2¸öĞÖµÜ½Úµã,
-** ÕâÑù¶ÔËùÓĞÒ³Ãæ¶¼ÓĞÏàÍ¬ÊıÁ¿µÄ×ÔÓÉ¿Õ¼ä¡£Í¨³£ÔÚÒ³ÃæÁ½²àµÄÒ»¸öĞÖµÜ½ÚµãÊÇÆ½ºâµÄ,
-** Èç¹ûÒ³ÃæµÄ¸¸½ÚµãÊÇµÚÒ»¸ö»ò×îºóÒ»¸öº¢×ÓÔòĞÖµÜ½Úµã¿ÉÄÜÀ´×ÔÒ»²à¡£Èç¹ûÒ³ÃæÒÑ¾­ÉÙÓÚ2ĞÖµÜ
-** (Èç¹ûÒ³ÃæÊÇÒ»¸ö¸ù»ò¸ùµÄ×ÓÒ³Ãæ£¬ÓĞĞ©ÒÆ¶¯Ï¯¿ÉÄÜÎ¨Ò»·¢Éú)È»ºóËùÓĞ¿ÉÓÃµÄĞÖµÜ½ãÃÃ²ÎÓëÆ½ºâ¡£
+** è¿™ä¸ªå‡½æ•°åœ¨ pParentçš„ç¬¬iParentIdxå­©å­ä¸Šé‡æ–°åˆ†é…å•å…ƒ(ä»¥ä¸‹ç®€ç§°â€œé¡µé¢â€)å’Œè¾¾åˆ°2ä¸ªå…„å¼ŸèŠ‚ç‚¹,
+** è¿™æ ·å¯¹æ‰€æœ‰é¡µé¢éƒ½æœ‰ç›¸åŒæ•°é‡çš„è‡ªç”±ç©ºé—´ã€‚é€šå¸¸åœ¨é¡µé¢ä¸¤ä¾§çš„ä¸€ä¸ªå…„å¼ŸèŠ‚ç‚¹æ˜¯å¹³è¡¡çš„,
+** å¦‚æœé¡µé¢çš„çˆ¶èŠ‚ç‚¹æ˜¯ç¬¬ä¸€ä¸ªæˆ–æœ€åä¸€ä¸ªå­©å­åˆ™å…„å¼ŸèŠ‚ç‚¹å¯èƒ½æ¥è‡ªä¸€ä¾§ã€‚å¦‚æœé¡µé¢å·²ç»å°‘äº2å…„å¼Ÿ
+** (å¦‚æœé¡µé¢æ˜¯ä¸€ä¸ªæ ¹æˆ–æ ¹çš„å­é¡µé¢ï¼Œæœ‰äº›ç§»åŠ¨å¸­å¯èƒ½å”¯ä¸€å‘ç”Ÿ)ç„¶åæ‰€æœ‰å¯ç”¨çš„å…„å¼Ÿå§å¦¹å‚ä¸å¹³è¡¡ã€‚
 ** The number of siblings of the page might be increased or decreased by 
 ** one or two in an effort to keep pages nearly full but not over full. 
-** Ò³ÃæµÄĞÖµÜµÄÊıÁ¿¿ÉÄÜ»áÔö¼Ó»ò¼õÉÙÒ»¸ö»òÁ½¸ö£¬¾¡Á¿±£³ÖÒ³Ãæ¼¸ºõÌîÂúµ«²»ÍêÈ«ÎªÂú¡£
+** é¡µé¢çš„å…„å¼Ÿçš„æ•°é‡å¯èƒ½ä¼šå¢åŠ æˆ–å‡å°‘ä¸€ä¸ªæˆ–ä¸¤ä¸ªï¼Œå°½é‡ä¿æŒé¡µé¢å‡ ä¹å¡«æ»¡ä½†ä¸å®Œå…¨ä¸ºæ»¡ã€‚
 ** Note that when this routine is called, some of the cells on the page
 ** might not actually be stored in MemPage.aData[]. This can happen
 ** if the page is overfull. This routine ensures that all cells allocated
 ** to the page and its siblings fit into MemPage.aData[] before returning.
-** ×¢Òâ,µ±µ÷ÓÃÕâ¸öº¯Êı,ÔÚÒ³ÃæÉÏµÄÒ»Ğ©µ¥Ôª¿ÉÄÜ²»ÍêÈ«ÊÇ´æ´¢ÔÚMemPage.aData[]¡£Èç¹ûÒ³Ãæ¹ıÂú
-** ¿ÉÄÜ»á·¢ÉúÕâÖÖÇé¿ö¡£Õâ¸öº¯Êı·ÖÅä¸øÒ³ÃæµÄËùÓĞµ¥Ôª¼°·µ»ØÖ®Ç°ÆäĞÖµÜ»áĞ´ÈëMemPage.aData[]¡£
+** æ³¨æ„,å½“è°ƒç”¨è¿™ä¸ªå‡½æ•°,åœ¨é¡µé¢ä¸Šçš„ä¸€äº›å•å…ƒå¯èƒ½ä¸å®Œå…¨æ˜¯å­˜å‚¨åœ¨MemPage.aData[]ã€‚å¦‚æœé¡µé¢è¿‡æ»¡
+** å¯èƒ½ä¼šå‘ç”Ÿè¿™ç§æƒ…å†µã€‚è¿™ä¸ªå‡½æ•°åˆ†é…ç»™é¡µé¢çš„æ‰€æœ‰å•å…ƒåŠè¿”å›ä¹‹å‰å…¶å…„å¼Ÿä¼šå†™å…¥MemPage.aData[]ã€‚
 ** In the course of balancing the page and its siblings, cells may be
 ** inserted into or removed from the parent page (pParent). Doing so
 ** may cause the parent page to become overfull or underfull. If this
 ** happens, it is the responsibility of the caller to invoke the correct
 ** balancing routine to fix this problem (see the balance() routine). 
-** ÔÚÆ½ºâÒ³ÃæºÍËüµÄĞÖµÜ¹ı³ÌÖĞ,µ¥Ôª¿ÉÄÜ²åÈë»ò´Ó¸¸Ò³Ãæ(pParent)É¾³ı¡£ÕâÑù×ö¿ÉÄÜµ¼ÖÂ¸¸Ò³Ãæ¹ı¶ÈÂú¡£
-** Èç¹ûÕâ·¢ÉúÁË,µ÷ÓÃº¯Êı¸ºÔğµ÷ÓÃÕıÈ·µÄÆ½ºâº¯ÊıÀ´½â¾öÕâ¸öÎÊÌâ(¼ûbalance()º¯Êı)¡£
+** åœ¨å¹³è¡¡é¡µé¢å’Œå®ƒçš„å…„å¼Ÿè¿‡ç¨‹ä¸­,å•å…ƒå¯èƒ½æ’å…¥æˆ–ä»çˆ¶é¡µé¢(pParent)åˆ é™¤ã€‚è¿™æ ·åšå¯èƒ½å¯¼è‡´çˆ¶é¡µé¢è¿‡åº¦æ»¡ã€‚
+** å¦‚æœè¿™å‘ç”Ÿäº†,è°ƒç”¨å‡½æ•°è´Ÿè´£è°ƒç”¨æ­£ç¡®çš„å¹³è¡¡å‡½æ•°æ¥è§£å†³è¿™ä¸ªé—®é¢˜(è§balance()å‡½æ•°)ã€‚
 ** If this routine fails for any reason, it might leave the database
 ** in a corrupted state. So if this routine fails, the database should
 ** be rolled back.
-** Èç¹ûÕâ¸öº¯ÊıÊ§°Ü,Ëü¿ÉÄÜÊ¹Êı¾İ¿âÔÚÒ»¸öËğ»µµÄ×´Ì¬¡£Òò´ËÈç¹ûÕâ¸öº¯ÊıÊ§°Ü,Êı¾İ¿âÓ¦¸Ã»Ø¹ö¡£
+** å¦‚æœè¿™ä¸ªå‡½æ•°å¤±è´¥,å®ƒå¯èƒ½ä½¿æ•°æ®åº“åœ¨ä¸€ä¸ªæŸåçš„çŠ¶æ€ã€‚å› æ­¤å¦‚æœè¿™ä¸ªå‡½æ•°å¤±è´¥,æ•°æ®åº“åº”è¯¥å›æ»šã€‚
 ** The third argument to this function, aOvflSpace, is a pointer to a
 ** buffer big enough to hold one page. If while inserting cells into the parent
 ** page (pParent) the parent page becomes overfull, this buffer is
@@ -6574,54 +6573,54 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //¸´ÖÆpFr
 ** size of a cell stored within an internal node is always less than 1/4
 ** of the page-size, the aOvflSpace[] buffer is guaranteed to be large
 ** enough for all overflow cells.
-** Õâ¸öº¯ÊıµÄµÚÈı¸ö²ÎÊıaOvflSpaceÊÇÒ»¸öÖ¸Õë£¬Ö¸ÏòÒ»¸ö×ã¹»´æ·ÅÒ³µÄ»º³åÇø¡£Èç¹ûµ¥ÔªÕı
-** ²åÈë¸¸Ò³Ãæ(pParent)£¬¸Ã¸¸Ò³Ãæ±äµÃ¹ı¶ÈÂú,ÄÇÃ´Õâ¸ö»º³åÇøÓÃÓÚ´æ´¢¸¸Ò³ÃæµÄÒç³öµ¥Ôª¡£
-** ÒòÎªÕâ¸öº¯Êı×î¶à²åÈëËÄ¸ö¶ÀÁ¢µÄµ¥Ôª½øÈë¸¸Ò³Ãæ,²¢ÇÒ´æ´¢ÔÚÒ»¸öÄÚ²¿½ÚµãÖĞµÄµ¥ÔªµÄ×î´óÖµ
-** ×ÜÊÇĞ¡ÓÚ1/4µÄÒ³Ãæ´óĞ¡,Õâ¸öaOvflSpace[]»º³åÇøÊÇ±£Ö¤Òç³öµ¥Ôª×ã¹»´ó¡£
+** è¿™ä¸ªå‡½æ•°çš„ç¬¬ä¸‰ä¸ªå‚æ•°aOvflSpaceæ˜¯ä¸€ä¸ªæŒ‡é’ˆï¼ŒæŒ‡å‘ä¸€ä¸ªè¶³å¤Ÿå­˜æ”¾é¡µçš„ç¼“å†²åŒºã€‚å¦‚æœå•å…ƒæ­£
+** æ’å…¥çˆ¶é¡µé¢(pParent)ï¼Œè¯¥çˆ¶é¡µé¢å˜å¾—è¿‡åº¦æ»¡,é‚£ä¹ˆè¿™ä¸ªç¼“å†²åŒºç”¨äºå­˜å‚¨çˆ¶é¡µé¢çš„æº¢å‡ºå•å…ƒã€‚
+** å› ä¸ºè¿™ä¸ªå‡½æ•°æœ€å¤šæ’å…¥å››ä¸ªç‹¬ç«‹çš„å•å…ƒè¿›å…¥çˆ¶é¡µé¢,å¹¶ä¸”å­˜å‚¨åœ¨ä¸€ä¸ªå†…éƒ¨èŠ‚ç‚¹ä¸­çš„å•å…ƒçš„æœ€å¤§å€¼
+** æ€»æ˜¯å°äº1/4çš„é¡µé¢å¤§å°,è¿™ä¸ªaOvflSpace[]ç¼“å†²åŒºæ˜¯ä¿è¯æº¢å‡ºå•å…ƒè¶³å¤Ÿå¤§ã€‚
 ** If aOvflSpace is set to a null pointer, this function returns SQLITE_NOMEM.
-** Èç¹ûaOvflSpaceÃ»ÓĞÉè¶¨Ö¸Õë£¬Ôòº¯Êı·µ»ØSQLITE_NOMEM.
+** å¦‚æœaOvflSpaceæ²¡æœ‰è®¾å®šæŒ‡é’ˆï¼Œåˆ™å‡½æ•°è¿”å›SQLITE_NOMEM.
 */
 /*
-Õâ¸ö³ÌĞòÖØĞÂ·ÖÅäµ¥Ôª¸ñµ½ĞÖµÜ½Úµã¡£
+è¿™ä¸ªç¨‹åºé‡æ–°åˆ†é…å•å…ƒæ ¼åˆ°å…„å¼ŸèŠ‚ç‚¹ã€‚
 */
 
 #if defined(_MSC_VER) && _MSC_VER >= 1700 && defined(_M_ARM)
 #pragma optimize("", off)
 #endif
-static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®±£³ÖÆ½ºâ
-  MemPage *pParent,               /* Parent page of siblings being balanced */      //ÒªÆ½ºâµÄĞÖµÜ½ÚµãµÄ¸¸Ò³Ãæ
-  int iParentIdx,                 /* Index of "the page" in pParent */              //pParentÒ¶ÃæÖĞÒ³Ë÷Òı
-  u8 *aOvflSpace,                 /* page-size bytes of space for parent ovfl */    //Ë«Ç×Ò¶ÃæµÄ¿Õ¼ä´óĞ¡×Ö½Ú
-  int isRoot,                     /* True if pParent is a root-page */              //Èç¹ûpParentÊÇ¸ùÒ³ÃæÔòÎªtrue
-  int bBulk                       /* True if this call is part of a bulk load */    //Õâ¸öµ÷ÓÃÊÇ¿é¸ºÔØµÄÒ»²¿·ÖÔòÎªtrue
+static int balance_nonroot(                                //è°ƒæ•´Bæ ‘çš„å„èŠ‚ç‚¹ä½¿ä¹‹ä¿æŒå¹³è¡¡
+  MemPage *pParent,               /* Parent page of siblings being balanced */      //è¦å¹³è¡¡çš„å…„å¼ŸèŠ‚ç‚¹çš„çˆ¶é¡µé¢
+  int iParentIdx,                 /* Index of "the page" in pParent */              //pParentå¶é¢ä¸­é¡µç´¢å¼•
+  u8 *aOvflSpace,                 /* page-size bytes of space for parent ovfl */    //åŒäº²å¶é¢çš„ç©ºé—´å¤§å°å­—èŠ‚
+  int isRoot,                     /* True if pParent is a root-page */              //å¦‚æœpParentæ˜¯æ ¹é¡µé¢åˆ™ä¸ºtrue
+  int bBulk                       /* True if this call is part of a bulk load */    //è¿™ä¸ªè°ƒç”¨æ˜¯å—è´Ÿè½½çš„ä¸€éƒ¨åˆ†åˆ™ä¸ºtrue
 ){
-  BtShared *pBt;               /* The whole database */                             //Õû¸öÊı¾İ¿â
-  int nCell = 0;               /* Number of cells in apCell[] */                    //apCell[]ÖĞµÄµ¥ÔªÊı
-  int nMaxCells = 0;           /* Allocated size of apCell, szCell, aFrom. */       //·ÖÅä¸øapCell, szCell, aFromµÄ´óĞ¡
-  int nNew = 0;                /* Number of pages in apNew[] */                     //apNew[]ÖĞÒ³µÄÊıÁ¿
-  int nOld;                    /* Number of pages in apOld[] */                     //apOld[]ÖĞÒ²µÃÊıÁ¿
-  int i, j, k;                 /* Loop counters */                                  //Ñ­»·ÖĞµÄ±äÁ¿
-  int nxDiv;                   /* Next divider slot in pParent->aCell[] */          //pParent->aCell[]ÖĞµÄÏÂÒ»¸ö·Ö¸îÎ»ÖÃ
-  int rc = SQLITE_OK;          /* The return code */                                //·µ»Ø´úÂë
-  u16 leafCorrection;          /* 4 if pPage is a leaf.  0 if not */                //Èç¹ûÊÇÒ¶×Ó½Úµã¸ÃÖµÎª4£¬·ñÔòÎª0
-  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */     //Èç¹ûpPageÊÇLEAFDATAÊ÷µÄÒ¶×Ó½ÚµãÔòÎªtrue
-  int usableSpace;             /* Bytes in pPage beyond the header */               //pPageÖĞÍ·²¿ºóÃæµÄ×Ö½ÚÊı£¬¿ÉÓÃ¿Õ¼ä
-  int pageFlags;               /* Value of pPage->aData[0] */                       //pPage->aData[0]µÄÖµ
-  int subtotal;                /* Subtotal of bytes in cells on one page */         //Ò»¸öÒ³ÉÏµÄµ¥ÔªÖĞµÄ×Ö½ÚÊı
-  int iSpace1 = 0;             /* First unused byte of aSpace1[] */                 // aSpace1[]ÖĞµÚÒ»¸ö²»¿ÉÓÃ×Ö½Ú
-  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */              //aOvflSpace[]ÖĞµÄ²»¿ÉÓÃ×Ö½Ú
-  int szScratch;               /* Size of scratch memory requested */               //Ôİ´æÆ÷ĞèÒªµÄ´óĞ¡
-  MemPage *apOld[NB];          /* pPage and up to two siblings */                   //pPage²¢´ïµ½Á½¸ö×Ö½Ú
-  MemPage *apCopy[NB];         /* Private copies of apOld[] pages */                //apOld[]µÄË½ÓĞ¸±±¾
-  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */    //Æ½ºâºóµÄpPageºÍNB¸öĞÖµÜ
-  u8 *pRight;                  /* Location in parent of right-sibling pointer */    //ÓĞĞÖµÜÖ¸ÕëµÄ¸¸½ÚµãÎ»ÖÃ
-  u8 *apDiv[NB-1];             /* Divider cells in pParent */                       //pParentÖĞµÄ·ÖÀëµÄµ¥Ôª
-  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */       //µÚi¸öÒ³Ãæºóµ¥ÔªµÄaCell[]ÖĞµÄË÷Òı
-  int szNew[NB+2];             /* Combined size of cells place on i-th page */      //µÚi¸öÒ³ÃæÉÏµÄµ¥ÔªµÄ×Ü´óĞ¡
-  u8 **apCell = 0;             /* All cells begin balanced */                       //¿ªÊ¼Ê±±£³ÖÆ½ºâµÄµ¥ÔªÊı
-  u16 *szCell;                 /* Local size of all cells in apCell[] */            //apCell[]ÖĞµÄËùÓĞµ¥ÔªµÄ±¾µØ´óĞ¡
-  u8 *aSpace1;                 /* Space for copies of dividers cells */             //·ÖÀëµ¥ÔªµÄ¸±±¾¿Õ¼ä
-  Pgno pgno;                   /* Temp var to store a page number in */             //ÔÚÆäÖĞ´æ´¢Ò³ÂëµÄ
+  BtShared *pBt;               /* The whole database */                             //æ•´ä¸ªæ•°æ®åº“
+  int nCell = 0;               /* Number of cells in apCell[] */                    //apCell[]ä¸­çš„å•å…ƒæ•°
+  int nMaxCells = 0;           /* Allocated size of apCell, szCell, aFrom. */       //åˆ†é…ç»™apCell, szCell, aFromçš„å¤§å°
+  int nNew = 0;                /* Number of pages in apNew[] */                     //apNew[]ä¸­é¡µçš„æ•°é‡
+  int nOld;                    /* Number of pages in apOld[] */                     //apOld[]ä¸­ä¹Ÿå¾—æ•°é‡
+  int i, j, k;                 /* Loop counters */                                  //å¾ªç¯ä¸­çš„å˜é‡
+  int nxDiv;                   /* Next divider slot in pParent->aCell[] */          //pParent->aCell[]ä¸­çš„ä¸‹ä¸€ä¸ªåˆ†å‰²ä½ç½®
+  int rc = SQLITE_OK;          /* The return code */                                //è¿”å›ä»£ç 
+  u16 leafCorrection;          /* 4 if pPage is a leaf.  0 if not */                //å¦‚æœæ˜¯å¶å­èŠ‚ç‚¹è¯¥å€¼ä¸º4ï¼Œå¦åˆ™ä¸º0
+  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */     //å¦‚æœpPageæ˜¯LEAFDATAæ ‘çš„å¶å­èŠ‚ç‚¹åˆ™ä¸ºtrue
+  int usableSpace;             /* Bytes in pPage beyond the header */               //pPageä¸­å¤´éƒ¨åé¢çš„å­—èŠ‚æ•°ï¼Œå¯ç”¨ç©ºé—´
+  int pageFlags;               /* Value of pPage->aData[0] */                       //pPage->aData[0]çš„å€¼
+  int subtotal;                /* Subtotal of bytes in cells on one page */         //ä¸€ä¸ªé¡µä¸Šçš„å•å…ƒä¸­çš„å­—èŠ‚æ•°
+  int iSpace1 = 0;             /* First unused byte of aSpace1[] */                 // aSpace1[]ä¸­ç¬¬ä¸€ä¸ªä¸å¯ç”¨å­—èŠ‚
+  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */              //aOvflSpace[]ä¸­çš„ä¸å¯ç”¨å­—èŠ‚
+  int szScratch;               /* Size of scratch memory requested */               //æš‚å­˜å™¨éœ€è¦çš„å¤§å°
+  MemPage *apOld[NB];          /* pPage and up to two siblings */                   //pPageå¹¶è¾¾åˆ°ä¸¤ä¸ªå­—èŠ‚
+  MemPage *apCopy[NB];         /* Private copies of apOld[] pages */                //apOld[]çš„ç§æœ‰å‰¯æœ¬
+  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */    //å¹³è¡¡åçš„pPageå’ŒNBä¸ªå…„å¼Ÿ
+  u8 *pRight;                  /* Location in parent of right-sibling pointer */    //æœ‰å…„å¼ŸæŒ‡é’ˆçš„çˆ¶èŠ‚ç‚¹ä½ç½®
+  u8 *apDiv[NB-1];             /* Divider cells in pParent */                       //pParentä¸­çš„åˆ†ç¦»çš„å•å…ƒ
+  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */       //ç¬¬iä¸ªé¡µé¢åå•å…ƒçš„aCell[]ä¸­çš„ç´¢å¼•
+  int szNew[NB+2];             /* Combined size of cells place on i-th page */      //ç¬¬iä¸ªé¡µé¢ä¸Šçš„å•å…ƒçš„æ€»å¤§å°
+  u8 **apCell = 0;             /* All cells begin balanced */                       //å¼€å§‹æ—¶ä¿æŒå¹³è¡¡çš„å•å…ƒæ•°
+  u16 *szCell;                 /* Local size of all cells in apCell[] */            //apCell[]ä¸­çš„æ‰€æœ‰å•å…ƒçš„æœ¬åœ°å¤§å°
+  u8 *aSpace1;                 /* Space for copies of dividers cells */             //åˆ†ç¦»å•å…ƒçš„å‰¯æœ¬ç©ºé—´
+  Pgno pgno;                   /* Temp var to store a page number in */             //åœ¨å…¶ä¸­å­˜å‚¨é¡µç çš„
 
   pBt = pParent->pBt;
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -6635,8 +6634,8 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   ** this overflow cell is present, it must be the cell with 
   ** index iParentIdx. This scenario comes about when this function
   ** is called (indirectly) from sqlite3BtreeDelete().
-  ** ´ËÊ±pParent¿ÉÄÜ×î¶àÒ»¸öÒç³öµ¥Ôª¡£Èç¹ûÕâÖĞÒç³öµ¥Ôª³öÏÖ,ËûÒ»¶¨ÊÇ´øÓĞiParentIdxË÷ÒıµÄ¡£
-  ** Õâ¸ö³¡¾°ÊÇÕâ¸öº¯Êı±»sqlite3BtreeDelete()µ÷ÓÃ(¼ä½Ó)¡£
+  ** æ­¤æ—¶pParentå¯èƒ½æœ€å¤šä¸€ä¸ªæº¢å‡ºå•å…ƒã€‚å¦‚æœè¿™ä¸­æº¢å‡ºå•å…ƒå‡ºç°,ä»–ä¸€å®šæ˜¯å¸¦æœ‰iParentIdxç´¢å¼•çš„ã€‚
+  ** è¿™ä¸ªåœºæ™¯æ˜¯è¿™ä¸ªå‡½æ•°è¢«sqlite3BtreeDelete()è°ƒç”¨(é—´æ¥)ã€‚
   */
   assert( pParent->nOverflow==0 || pParent->nOverflow==1 );
   assert( pParent->nOverflow==0 || pParent->aiOvfl[0]==iParentIdx );
@@ -6650,17 +6649,17 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   ** either side of pPage. More siblings are taken from one side, however, 
   ** if there are fewer than NN siblings on the other side. If pParent
   ** has NB or fewer children then all children of pParent are taken.  
-  ** ÕÒµ½ÒªÆ½ºâµÄĞÖµÜÒ³Ãæ.»¹È·¶¨pParentÖĞ·Ö¿ªĞÖµÜµ¥ÔªµÄÎ»ÖÃ¡£ÊÔÍ¼
-  ** ÕÒµ½pPageÁ½²àµÄNNĞÖµÜ¡£È»¶ø,Ò»²àÓĞ¸ü¶àµÄĞÖµÜ½ÚµãÄÇÃ´ÓĞÉÙÓÚ
-  ** NNµÄĞÖµÜÔÚÁíÒ»±ß¡£Èç¹ûpParentÓĞNB»ò¸üÉÙº¢×ÓÄÇÃ´pParentµÄº¢×ÓÕ¼¾İ¡£
+  ** æ‰¾åˆ°è¦å¹³è¡¡çš„å…„å¼Ÿé¡µé¢.è¿˜ç¡®å®špParentä¸­åˆ†å¼€å…„å¼Ÿå•å…ƒçš„ä½ç½®ã€‚è¯•å›¾
+  ** æ‰¾åˆ°pPageä¸¤ä¾§çš„NNå…„å¼Ÿã€‚ç„¶è€Œ,ä¸€ä¾§æœ‰æ›´å¤šçš„å…„å¼ŸèŠ‚ç‚¹é‚£ä¹ˆæœ‰å°‘äº
+  ** NNçš„å…„å¼Ÿåœ¨å¦ä¸€è¾¹ã€‚å¦‚æœpParentæœ‰NBæˆ–æ›´å°‘å­©å­é‚£ä¹ˆpParentçš„å­©å­å æ®ã€‚
   ** This loop also drops the divider cells from the parent page. This
   ** way, the remainder of the function does not have to deal with any
   ** overflow cells in the parent page, since if any existed they will
   ** have already been removed.
-  ** Õâ¸öÑ­»·Ò²´Ó¸¸Ò³ÃæÉ¾³ı·ÖÀëµÄµ¥Ôª¡£ÕâÑùº¯ÊıµÄÆäÓà²¿·Ö²»ĞèÒª´¦ÀíÈÎºÎÔÚ
-  **¸¸Ò³ÃæÖĞÒç³öµÄµ¥Ôª,ÒòÎªÈç¹ûÈÎºÎ´æÔÚµÄ¶¼ÒÑ¾­±»ÒÆ³ı¡£
+  ** è¿™ä¸ªå¾ªç¯ä¹Ÿä»çˆ¶é¡µé¢åˆ é™¤åˆ†ç¦»çš„å•å…ƒã€‚è¿™æ ·å‡½æ•°çš„å…¶ä½™éƒ¨åˆ†ä¸éœ€è¦å¤„ç†ä»»ä½•åœ¨
+  **çˆ¶é¡µé¢ä¸­æº¢å‡ºçš„å•å…ƒ,å› ä¸ºå¦‚æœä»»ä½•å­˜åœ¨çš„éƒ½å·²ç»è¢«ç§»é™¤ã€‚
   */
-  /*ÕÒµ½ĞÖµÜÒ³ÒÔ´ïµ½Æ½ºâ¡£*/
+  /*æ‰¾åˆ°å…„å¼Ÿé¡µä»¥è¾¾åˆ°å¹³è¡¡ã€‚*/
   i = pParent->nOverflow + pParent->nCell;
   if( i<2 ){
     nxDiv = 0;
@@ -6708,15 +6707,15 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
       ** four bytes of it, and this function does not need the first
       ** four bytes of the divider cell. So the pointer is safe to use
       ** later on.  
-      ** ´Ó¸¸Ò³ÃæÉ¾³ıµ¥Ôª¡£apDiv[i]ÈÔÈ»Ö¸Ïò¸¸½ÚµãÄÚµÄµ¥Ôª,¼´Ê¹ËüÒÑ¾­É¾³ı¡£ÕâÊÇ°²È«µÄ,ÒòÎªµ¥Ôª
-	  ** ½ö¸²¸ÇËüµÄ¿ªÊ¼µÄ4¸ö×Ö½Ú,¸Ãº¯Êı²»ĞèÒªÆäËûµ¥ÔªµÄ¿ªÊ¼µÄËÄ¸ö×Ö½Ú¡£Ö¸Õë¿ÉÒÔ°²È«µØËæºóÊ¹ÓÃ¡£
+      ** ä»çˆ¶é¡µé¢åˆ é™¤å•å…ƒã€‚apDiv[i]ä»ç„¶æŒ‡å‘çˆ¶èŠ‚ç‚¹å†…çš„å•å…ƒ,å³ä½¿å®ƒå·²ç»åˆ é™¤ã€‚è¿™æ˜¯å®‰å…¨çš„,å› ä¸ºå•å…ƒ
+	  ** ä»…è¦†ç›–å®ƒçš„å¼€å§‹çš„4ä¸ªå­—èŠ‚,è¯¥å‡½æ•°ä¸éœ€è¦å…¶ä»–å•å…ƒçš„å¼€å§‹çš„å››ä¸ªå­—èŠ‚ã€‚æŒ‡é’ˆå¯ä»¥å®‰å…¨åœ°éšåä½¿ç”¨ã€‚
       ** But not if we are in secure-delete mode. In secure-delete mode,
       ** the dropCell() routine will overwrite the entire cell with zeroes.
       ** In this case, temporarily copy the cell into the aOvflSpace[]
       ** buffer. It will be copied out again as soon as the aSpace[] buffer
       ** is allocated. 
-	  ** µ«³ı´ËÖ®ÍâĞèÒª°²È«É¾³ıÄ£Ê½.ÔÚ°²È«É¾³ıÄ£Ê½ÏÂ,  dropCell()º¯Êı½«ÓÃ0¸²¸ÇÕû¸öµ¥Ôª.ÔÚÕâ
-	  ** ÖÖÇé¿öÏÂ,ÁÙÊ±±¸·İµ¥Ôªµ½aOvflSpace[]»º³åÇø.Ò»µ©aSpace[]»º³åÇø±»·ÖÅäËü½«±»¸´ÖÆ³öÀ´¡£
+	  ** ä½†é™¤æ­¤ä¹‹å¤–éœ€è¦å®‰å…¨åˆ é™¤æ¨¡å¼.åœ¨å®‰å…¨åˆ é™¤æ¨¡å¼ä¸‹,  dropCell()å‡½æ•°å°†ç”¨0è¦†ç›–æ•´ä¸ªå•å…ƒ.åœ¨è¿™
+	  ** ç§æƒ…å†µä¸‹,ä¸´æ—¶å¤‡ä»½å•å…ƒåˆ°aOvflSpace[]ç¼“å†²åŒº.ä¸€æ—¦aSpace[]ç¼“å†²åŒºè¢«åˆ†é…å®ƒå°†è¢«å¤åˆ¶å‡ºæ¥ã€‚
 	  */
       if( pBt->btsFlags & BTS_SECURE_DELETE ){
         int iOff;
@@ -6736,16 +6735,16 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   }
 
   /* Make nMaxCells a multiple of 4 in order to preserve 8-byte alignment */
-  //Ê¹nMaxCellsÎª4µÄ±¶ÊıÎªÁË±£³Ö8×Ö½ÚµÄ¶ÔÆë.
+  //ä½¿nMaxCellsä¸º4çš„å€æ•°ä¸ºäº†ä¿æŒ8å­—èŠ‚çš„å¯¹é½.
   nMaxCells = (nMaxCells + 3)&~3;
 
-  /* Allocate space for memory structures */                //ÎªÄÚ´æ½á¹¹·ÖÅä¿Õ¼ä
+  /* Allocate space for memory structures */                //ä¸ºå†…å­˜ç»“æ„åˆ†é…ç©ºé—´
   k = pBt->pageSize + ROUND8(sizeof(MemPage));
   szScratch =
-       nMaxCells*sizeof(u8*)                       /* apCell */               //¿ªÊ¼Ê±±£³ÖÆ½ºâµÄµ¥ÔªÊı
-     + nMaxCells*sizeof(u16)                       /* szCell */               //apCell[]ÖĞµÄËùÓĞµ¥ÔªµÄ±¾µØ´óĞ¡
-     + pBt->pageSize                               /* aSpace1 */              //·ÖÀëµ¥ÔªµÄ¸±±¾¿Õ¼ä
-     + k*nOld;                                     /* Page copies (apCopy) */ //Ò³¸±±¾
+       nMaxCells*sizeof(u8*)                       /* apCell */               //å¼€å§‹æ—¶ä¿æŒå¹³è¡¡çš„å•å…ƒæ•°
+     + nMaxCells*sizeof(u16)                       /* szCell */               //apCell[]ä¸­çš„æ‰€æœ‰å•å…ƒçš„æœ¬åœ°å¤§å°
+     + pBt->pageSize                               /* aSpace1 */              //åˆ†ç¦»å•å…ƒçš„å‰¯æœ¬ç©ºé—´
+     + k*nOld;                                     /* Page copies (apCopy) */ //é¡µå‰¯æœ¬
   apCell = sqlite3ScratchMalloc( szScratch ); 
   if( apCell==0 ){
     rc = SQLITE_NOMEM;
@@ -6760,19 +6759,19 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   ** into the local apCell[] array.  Make copies of the divider cells
   ** into space obtained from aSpace1[] and remove the divider cells
   ** from pParent.
-  ** ¼ÓÔØÖ¸ÕëĞÖµÜÒ³ÃæÉÏµÄËùÓĞµ¥ÔªºÍ·ÖÀëµ¥Ôªµ½±¾µØapCell[]Êı×é¡£¸´ÖÆ·Ö·ÖÀëµÄµ¥ÔªµÄ
-  ** ¸±±¾½øÈë´ÓaSpace1[]»ñµÃµÄ¿Õ¼ä²¢´ÓpParentÉ¾³ı·ÖÀëµÄµ¥Ôª¡£
+  ** åŠ è½½æŒ‡é’ˆå…„å¼Ÿé¡µé¢ä¸Šçš„æ‰€æœ‰å•å…ƒå’Œåˆ†ç¦»å•å…ƒåˆ°æœ¬åœ°apCell[]æ•°ç»„ã€‚å¤åˆ¶åˆ†åˆ†ç¦»çš„å•å…ƒçš„
+  ** å‰¯æœ¬è¿›å…¥ä»aSpace1[]è·å¾—çš„ç©ºé—´å¹¶ä»pParentåˆ é™¤åˆ†ç¦»çš„å•å…ƒã€‚
   ** If the siblings are on leaf pages, then the child pointers of the
   ** divider cells are stripped from the cells before they are copied
   ** into aSpace1[].  In this way, all cells in apCell[] are without
   ** child pointers.  If siblings are not leaves, then all cell in
   ** apCell[] include child pointers.  Either way, all cells in apCell[]
   ** are alike.
-  ** Èç¹ûĞÖµÜÔÚÒ¶Ò³Ãæ,ÄÇÃ´·ÖÀëµ¥ÔªµÄº¢×ÓÖ¸ÕëÔÚËüÃÇ±»¿½±´½øÈëaSpace1[]Ö®Ç°´Óµ¥ÔªÉÏÒÆ³ı.Í¨¹ıÕâÖÖ·½Ê½,ÔÚapCell[]ÖĞµÄËùÓĞµÄ
-  ** µ¥Ôª¶¼Ã»ÓĞº¢×ÓÖ¸Õë.Èç¹ûĞÖµÜ²»ÊÇÒ¶×Ó,ÄÇÃ´apCell[]ÖĞµÄËùÓĞµ¥Ôª¶¼ÓĞº¢×ÓÖ¸Õë.ÎŞÂÛÈçºÎ,ÔÚapCell[]ÖÖµÄËùÓĞµÄµ¥Ôª¶¼ÊÇÒ»ÑùµÄ.
+  ** å¦‚æœå…„å¼Ÿåœ¨å¶é¡µé¢,é‚£ä¹ˆåˆ†ç¦»å•å…ƒçš„å­©å­æŒ‡é’ˆåœ¨å®ƒä»¬è¢«æ‹·è´è¿›å…¥aSpace1[]ä¹‹å‰ä»å•å…ƒä¸Šç§»é™¤.é€šè¿‡è¿™ç§æ–¹å¼,åœ¨apCell[]ä¸­çš„æ‰€æœ‰çš„
+  ** å•å…ƒéƒ½æ²¡æœ‰å­©å­æŒ‡é’ˆ.å¦‚æœå…„å¼Ÿä¸æ˜¯å¶å­,é‚£ä¹ˆapCell[]ä¸­çš„æ‰€æœ‰å•å…ƒéƒ½æœ‰å­©å­æŒ‡é’ˆ.æ— è®ºå¦‚ä½•,åœ¨apCell[]ç§çš„æ‰€æœ‰çš„å•å…ƒéƒ½æ˜¯ä¸€æ ·çš„.
   ** leafCorrection:  4 if pPage is a leaf.  0 if pPage is not a leaf.
   ** leafData:  1 if pPage holds key+data and pParent holds only keys.
-  ** leafCorrection:Èç¹ûpPageÊÇÒ¶×Ó£¬Îª4£¬·ñÔòÎª0.    leafData:ÈôpPageÓĞKeyºÍdata²¢ÇÒpParent½öÓĞkeyÄÇÃ´Îª1.
+  ** leafCorrection:å¦‚æœpPageæ˜¯å¶å­ï¼Œä¸º4ï¼Œå¦åˆ™ä¸º0.    leafData:è‹¥pPageæœ‰Keyå’Œdataå¹¶ä¸”pParentä»…æœ‰keyé‚£ä¹ˆä¸º1.
   */
   leafCorrection = apOld[0]->leaf*4;
   leafData = apOld[0]->hasData;
@@ -6783,8 +6782,8 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
     ** The rest of this function will use data from the copies rather
     ** that the original pages since the original pages will be in the
     ** process of being overwritten. 
-	** ÔÚ×öÈÎºÎÆäËû²Ù×÷Ö®Ç°,¸´ÖÆÔ­À´µÄµÚi¸öĞÖµÜ.Õâ¸öº¯ÊıµÄÆäÓà²¿·Ö½«Ê¹ÓÃÀ´×Ô¸±±¾µÄÊı¾İ£¬
-	** ¶ø²»ÊÇÔ´ÊµÒµµÄÊı¾İ,Ô­Ê¼Ò³Ãæ½«ÔÚ±»±»¸²¸ÇµÄ½ø³ÌÖĞ¡£
+	** åœ¨åšä»»ä½•å…¶ä»–æ“ä½œä¹‹å‰,å¤åˆ¶åŸæ¥çš„ç¬¬iä¸ªå…„å¼Ÿ.è¿™ä¸ªå‡½æ•°çš„å…¶ä½™éƒ¨åˆ†å°†ä½¿ç”¨æ¥è‡ªå‰¯æœ¬çš„æ•°æ®ï¼Œ
+	** è€Œä¸æ˜¯æºå®ä¸šçš„æ•°æ®,åŸå§‹é¡µé¢å°†åœ¨è¢«è¢«è¦†ç›–çš„è¿›ç¨‹ä¸­ã€‚
 	*/
     MemPage *pOld = apCopy[i] = (MemPage*)&aSpace1[pBt->pageSize + k*i];
     memcpy(pOld, apOld[i], sizeof(MemPage));
@@ -6828,12 +6827,12 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
         assert( pOld->hdrOffset==0 );
         /* The right pointer of the child page pOld becomes the left
         ** pointer of the divider cell 
-		** º¢×ÓÒ³ÃæpOldµÄÓÒÖ¸Õë±ä³É·ÖÀëµ¥ÔªµÄ×óÖ¸Õë*/
+		** å­©å­é¡µé¢pOldçš„å³æŒ‡é’ˆå˜æˆåˆ†ç¦»å•å…ƒçš„å·¦æŒ‡é’ˆ*/
         memcpy(apCell[nCell], &pOld->aData[8], 4);
       }else{
         assert( leafCorrection==4 );
         if( szCell[nCell]<4 ){
-          /* Do not allow any cells smaller than 4 bytes. */  //²»ÔÊĞíÈÎºÎµ¥ÔªĞ¡ÓÚ4¸ö×Ö½Ú
+          /* Do not allow any cells smaller than 4 bytes. */  //ä¸å…è®¸ä»»ä½•å•å…ƒå°äº4ä¸ªå­—èŠ‚
           szCell[nCell] = 4;
         }
       }
@@ -6847,15 +6846,15 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   ** size of all cells on the i-th page and cntNew[] which is the index
   ** in apCell[] of the cell that divides page i from page i+1.  
   ** cntNew[k] should equal nCell.
-  ** ¼ÆËã³öĞèÒª±£´æËùÓĞ nCell µ¥ÔªµÄÊıÁ¿£¬½«Öµ¸¶¸øk.Ò²¼ÆËãszNewËüÊÇÔÚµÚi¸öÒ³ÉÏµ«µ¥ÔªµÄ×Ü´óĞ¡£¬
-  ** ÒÔ¼°cntNew[]ËüÊÇÔÚ·Ö¿ªµÚi¸öºÍµÚi+1¸öÒ³µÄµ¥ÔªµÄapCell[]ÖĞµÄË÷Òı¡£
-  ** Values computed by this block:      //Í¨¹ıÕâ¸ö¿é¼ÆËãÖµ
+  ** è®¡ç®—å‡ºéœ€è¦ä¿å­˜æ‰€æœ‰ nCell å•å…ƒçš„æ•°é‡ï¼Œå°†å€¼ä»˜ç»™k.ä¹Ÿè®¡ç®—szNewå®ƒæ˜¯åœ¨ç¬¬iä¸ªé¡µä¸Šä½†å•å…ƒçš„æ€»å¤§å°ï¼Œ
+  ** ä»¥åŠcntNew[]å®ƒæ˜¯åœ¨åˆ†å¼€ç¬¬iä¸ªå’Œç¬¬i+1ä¸ªé¡µçš„å•å…ƒçš„apCell[]ä¸­çš„ç´¢å¼•ã€‚
+  ** Values computed by this block:      //é€šè¿‡è¿™ä¸ªå—è®¡ç®—å€¼
   **
-  **           k: The total number of sibling pages                                   //k£ºĞÖµÜÒ²µÄ×ÜÊı
-  **    szNew[i]: Spaced used on the i-th sibling page.                        //szNew[i]£ºµÚi¸öĞÖµÜÒ³Ê¹ÓÃµÄ¿Õ¼ä´óĞ¡
-  **   cntNew[i]: Index in apCell[] and szCell[] for the first cell to     //cntNew[i]£ºÔÚapCell[] ºÍszCell[]ÖĞµÚi¸öĞÖµÜÒ³µÄÓÒ²àµÚÒ»¸öµ¥ÔªµÄË÷Òı
+  **           k: The total number of sibling pages                                   //kï¼šå…„å¼Ÿä¹Ÿçš„æ€»æ•°
+  **    szNew[i]: Spaced used on the i-th sibling page.                        //szNew[i]ï¼šç¬¬iä¸ªå…„å¼Ÿé¡µä½¿ç”¨çš„ç©ºé—´å¤§å°
+  **   cntNew[i]: Index in apCell[] and szCell[] for the first cell to     //cntNew[i]ï¼šåœ¨apCell[] å’ŒszCell[]ä¸­ç¬¬iä¸ªå…„å¼Ÿé¡µçš„å³ä¾§ç¬¬ä¸€ä¸ªå•å…ƒçš„ç´¢å¼•
   **              the right of the i-th sibling page.
-  ** usableSpace: Number of bytes of space available on each sibling.   //usableSpace:Ã¿¸öĞÖµÜÒ³ÉÏ¿ÉÓÃµÄ¿Õ¼ä×Ö½Ú´óĞ¡
+  ** usableSpace: Number of bytes of space available on each sibling.   //usableSpace:æ¯ä¸ªå…„å¼Ÿé¡µä¸Šå¯ç”¨çš„ç©ºé—´å­—èŠ‚å¤§å°
   */
   usableSpace = pBt->usableSize - 12 + leafCorrection;
   for(subtotal=k=i=0; i<nCell; i++){
@@ -6879,19 +6878,19 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   ** on the left side.  The left siblings are always nearly full, while the
   ** right-most sibling might be nearly empty.  This block of code attempts
   ** to adjust the packing of siblings to get a better balance.
-  ** Í¨¹ıÇ°Ò»¿é´ò°ü¼ÆËã£¬Æ«Ïò×óĞÖµÜ½Úµã¡£×óĞÖµÜ×ÜÊÇ×°µÃ¾¡¿ÉÄÜÂú,¶ø×îÓÒ²àĞÖµÜ½ü¿ÉÄÜ¿Õ¡£
-  ** Õâ¶Î´úÂëµÄ³¢ÊÔµ÷ÕûÊ¹µÃĞÖµÜ½Úµã¸üºÃµØ±£³ÖÆ½ºâ¡£
+  ** é€šè¿‡å‰ä¸€å—æ‰“åŒ…è®¡ç®—ï¼Œåå‘å·¦å…„å¼ŸèŠ‚ç‚¹ã€‚å·¦å…„å¼Ÿæ€»æ˜¯è£…å¾—å°½å¯èƒ½æ»¡,è€Œæœ€å³ä¾§å…„å¼Ÿè¿‘å¯èƒ½ç©ºã€‚
+  ** è¿™æ®µä»£ç çš„å°è¯•è°ƒæ•´ä½¿å¾—å…„å¼ŸèŠ‚ç‚¹æ›´å¥½åœ°ä¿æŒå¹³è¡¡ã€‚
   ** This adjustment is more than an optimization.  The packing above might
   ** be so out of balance as to be illegal.  For example, the right-most
   ** sibling might be completely empty.  This adjustment is not optional.
-  ** ÕâÖÖµ÷Õû¸üÓÅ»¯¡£ÉÏÃæµÄ°ü×°¿ÉÄÜ»áÊÇÊ§È¥Æ½ºâ,Òò´ËÊÇ·Ç·¨µÄ¡£
-  ** ÀıÈç,×îÓÒ±ßĞÖµÜ¿ÉÄÜÍêÈ«ÊÇ¿ÕµÄ£¬´ËÊ±ÕâÖÖµ÷Õû²»¿ÉÑ¡¡£
+  ** è¿™ç§è°ƒæ•´æ›´ä¼˜åŒ–ã€‚ä¸Šé¢çš„åŒ…è£…å¯èƒ½ä¼šæ˜¯å¤±å»å¹³è¡¡,å› æ­¤æ˜¯éæ³•çš„ã€‚
+  ** ä¾‹å¦‚,æœ€å³è¾¹å…„å¼Ÿå¯èƒ½å®Œå…¨æ˜¯ç©ºçš„ï¼Œæ­¤æ—¶è¿™ç§è°ƒæ•´ä¸å¯é€‰ã€‚
   */
   for(i=k-1; i>0; i--){
-    int szRight = szNew[i];  /* Size of sibling on the right */                 //ÓÒĞÖµÜµÄ´óĞ¡
-    int szLeft = szNew[i-1]; /* Size of sibling on the left */                  //×óĞÖµÜµÄ´óĞ¡
-    int r;              /* Index of right-most cell in left sibling */          //×óĞÖµÜÖĞ×îÓÒµ¥ÔªµÄË÷Òı
-    int d;              /* Index of first cell to the left of right sibling */  //ÓÒĞÖµÜ×î×ó²àµÚÒ»¸öµ¥ÔªµÄË÷Òı
+    int szRight = szNew[i];  /* Size of sibling on the right */                 //å³å…„å¼Ÿçš„å¤§å°
+    int szLeft = szNew[i-1]; /* Size of sibling on the left */                  //å·¦å…„å¼Ÿçš„å¤§å°
+    int r;              /* Index of right-most cell in left sibling */          //å·¦å…„å¼Ÿä¸­æœ€å³å•å…ƒçš„ç´¢å¼•
+    int d;              /* Index of first cell to the left of right sibling */  //å³å…„å¼Ÿæœ€å·¦ä¾§ç¬¬ä¸€ä¸ªå•å…ƒçš„ç´¢å¼•
 
     r = cntNew[i-1] - 1;
     d = r + 1 - leafData;
@@ -6913,8 +6912,8 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   /* Either we found one or more cells (cntnew[0])>0) or pPage is
   ** a virtual root page.  A virtual root page is when the real root
   ** page is page 1 and we are the only child of that page.
-  ** ÎÒÃÇ·¢ÏÖÒ»¸ö»ò¸ü¶à(cntnew[0])> 0)»òpPageÊÇÒ»¸öĞéÄâ¸ùÒ³Ãæ¡£
-  ** Ò»¸öĞéÄâµÄ¸ùÒ³ÊÇµ±ÕæÕıµÄ¸ùÒ³ÊÇµÚ1Ò³µÄÊ±ºòºÍÄÇ¸öÒ³ÃæÊÇÎ¨Ò»µÄº¢×Ó¡£
+  ** æˆ‘ä»¬å‘ç°ä¸€ä¸ªæˆ–æ›´å¤š(cntnew[0])> 0)æˆ–pPageæ˜¯ä¸€ä¸ªè™šæ‹Ÿæ ¹é¡µé¢ã€‚
+  ** ä¸€ä¸ªè™šæ‹Ÿçš„æ ¹é¡µæ˜¯å½“çœŸæ­£çš„æ ¹é¡µæ˜¯ç¬¬1é¡µçš„æ—¶å€™å’Œé‚£ä¸ªé¡µé¢æ˜¯å”¯ä¸€çš„å­©å­ã€‚
   ** UPDATE:  The assert() below is not necessarily true if the database
   ** file is corrupt.  The corruption will be detected and reported later
   ** in this procedure so there is no need to act upon it now.
@@ -6929,7 +6928,7 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
     nOld>=3 ? apOld[2]->pgno : 0
   ));
 
-  /*Allocate k new pages.  Reuse old pages where possible. */     //·ÖÅäkĞÂÒ³¡£ÓĞ¿ÉÄÜÖØĞÂÊ¹ÓÃÀÏÒ³
+  /*Allocate k new pages.  Reuse old pages where possible. */     //åˆ†é…kæ–°é¡µã€‚æœ‰å¯èƒ½é‡æ–°ä½¿ç”¨è€é¡µ
   if( apOld[0]->pgno<=1 ){
     rc = SQLITE_CORRUPT_BKPT;
     goto balance_cleanup;
@@ -6950,7 +6949,7 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
       apNew[i] = pNew;
       nNew++;
 
-      /* Set the pointer-map entry for the new sibling page. */  //¶ÔÓÚĞÂµÄĞÖµÜÒ³ÉèÖÃÖ¸ÕëÎ»Í¼ÌõÄ¿
+      /* Set the pointer-map entry for the new sibling page. */  //å¯¹äºæ–°çš„å…„å¼Ÿé¡µè®¾ç½®æŒ‡é’ˆä½å›¾æ¡ç›®
       if( ISAUTOVACUUM ){
         ptrmapPut(pBt, pNew->pgno, PTRMAP_BTREE, pParent->pgno, &rc);
         if( rc!=SQLITE_OK ){
@@ -6960,7 +6959,7 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
     }
   }
 
-  /* Free any old pages that were not reused as new pages.*/    //ÊÍ·ÅÃ»ÓĞÖØĞÂÊ¹ÓÃ×÷ĞÂÒ³µÄÀÏÒ³
+  /* Free any old pages that were not reused as new pages.*/    //é‡Šæ”¾æ²¡æœ‰é‡æ–°ä½¿ç”¨ä½œæ–°é¡µçš„è€é¡µ
   while( i<nOld ){
     freePage(apOld[i], &rc);
     if( rc ) goto balance_cleanup;
@@ -6975,15 +6974,15 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   ** of the table is a linear scan through the file.  That
   ** in turn helps the operating system to deliver pages
   ** from the disk more rapidly.
-  ** Ê¹ĞÂÒ³µİÔöÓĞĞò¡£ÕâÓĞÖúÓÚ±£³Ö´ÅÅÌÎÄ¼şÖĞµÄÌõÄ¿Ë³ĞòÒÔ±ãÓÚ¶Ô±íµÄ½øĞĞ
-  ** Ò»¸öÏßĞÔÉ¨ÃèÕû¸öÎÄ¼ş.·´¹ıÀ´°ïÖú²Ù×÷ÏµÍ³´Ó´ÅÅÌ¸ü¿ìµÄÌá¹©Ò³Ãæ¡£
+  ** ä½¿æ–°é¡µé€’å¢æœ‰åºã€‚è¿™æœ‰åŠ©äºä¿æŒç£ç›˜æ–‡ä»¶ä¸­çš„æ¡ç›®é¡ºåºä»¥ä¾¿äºå¯¹è¡¨çš„è¿›è¡Œ
+  ** ä¸€ä¸ªçº¿æ€§æ‰«ææ•´ä¸ªæ–‡ä»¶.åè¿‡æ¥å¸®åŠ©æ“ä½œç³»ç»Ÿä»ç£ç›˜æ›´å¿«çš„æä¾›é¡µé¢ã€‚
   ** An O(n^2) insertion sort algorithm is used, but since
   ** n is never more than NB (a small constant), that should
   ** not be a problem.
-  ** ÓÃÒ»¸ö¸´ÔÓ¶ÈÎªO(n^2)µÄ²åÈëÅÅĞòËã·¨,µ«ÊÇn²»»á³¬¹ıNB£¬Ó¦¸Ã²»ÊÇÎÊÌâ
+  ** ç”¨ä¸€ä¸ªå¤æ‚åº¦ä¸ºO(n^2)çš„æ’å…¥æ’åºç®—æ³•,ä½†æ˜¯nä¸ä¼šè¶…è¿‡NBï¼Œåº”è¯¥ä¸æ˜¯é—®é¢˜
   ** When NB==3, this one optimization makes the database
   ** about 25% faster for large insertions and deletions.
-  ** µ±NB==3,Õâ¸öÓÅ»¯Ê¹Êı¾İ¿â¶ÔÓÚÉ¾³ı²åÈëÌá¸ß´óÔ¼25%×óÓÒ¡£
+  ** å½“NB==3,è¿™ä¸ªä¼˜åŒ–ä½¿æ•°æ®åº“å¯¹äºåˆ é™¤æ’å…¥æé«˜å¤§çº¦25%å·¦å³ã€‚
   */
   for(i=0; i<k-1; i++){
     int minV = apNew[i]->pgno;
@@ -7014,11 +7013,11 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   /*
   ** Evenly distribute the data in apCell[] across the new pages.
   ** Insert divider cells into pParent as necessary.
-  ** ÔÚĞÂµÄÒ³ÃæµÄapCell[]ÖĞ¾ùÔÈ·Ö²¼Êı¾İ¡£²åÈë·Ö¸ôµ¥ÔªpParentÊÇ±ØÒªµÄ¡£
+  ** åœ¨æ–°çš„é¡µé¢çš„apCell[]ä¸­å‡åŒ€åˆ†å¸ƒæ•°æ®ã€‚æ’å…¥åˆ†éš”å•å…ƒpParentæ˜¯å¿…è¦çš„ã€‚
   */
   j = 0;
   for(i=0; i<nNew; i++){
-    /* Assemble the new sibling page. */     //×é×°ĞÂĞÖµÜÒ³
+    /* Assemble the new sibling page. */     //ç»„è£…æ–°å…„å¼Ÿé¡µ
     MemPage *pNew = apNew[i];
     assert( j<nMaxCells );
     zeroPage(pNew, pageFlags);
@@ -7030,7 +7029,7 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
 
     /* If the sibling page assembled above was not the right-most sibling,
     ** insert a divider cell into the parent page. 
-	** Èç¹ûÉÏÃæ×é×°µÄĞÖµÜÒ³Ãæ²¢²»ÊÇ×îÓÒ±ßµÄĞÖµÜ,²åÈë¸ôÀëµ¥Ôªµ½¸¸Ò³Ãæ¡£
+	** å¦‚æœä¸Šé¢ç»„è£…çš„å…„å¼Ÿé¡µé¢å¹¶ä¸æ˜¯æœ€å³è¾¹çš„å…„å¼Ÿ,æ’å…¥éš”ç¦»å•å…ƒåˆ°çˆ¶é¡µé¢ã€‚
     */
     assert( i<nNew-1 || j==nCell );
     if( j<nCell ){
@@ -7049,8 +7048,8 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
         ** then there is no divider cell in apCell[]. Instead, the divider 
         ** cell consists of the integer key for the right-most cell of 
         ** the sibling-page assembled above only.
-		** Èç¹ûÊÇÒ¶Êı¾İµÄÊ÷£¬²¢ÇÒ¸÷½ÚµãÊÇÒ¶½Úµã£¬ÄÇÃ´ÔÚAPCell[]ÖĞÃ»ÓĞ·Ö¸îµ¥Ôª¡£
-		** Ïà·´·Ö¸îµ¥ÔªÊÇÒÔÉÏ×°ÅäµÄĞÖµÜ½ÚµãµÄ×îÓÒµÄµ¥ÔªµÄÕûĞÎ¹Ø¼ü×Ö×é³É¡£
+		** å¦‚æœæ˜¯å¶æ•°æ®çš„æ ‘ï¼Œå¹¶ä¸”å„èŠ‚ç‚¹æ˜¯å¶èŠ‚ç‚¹ï¼Œé‚£ä¹ˆåœ¨APCell[]ä¸­æ²¡æœ‰åˆ†å‰²å•å…ƒã€‚
+		** ç›¸ååˆ†å‰²å•å…ƒæ˜¯ä»¥ä¸Šè£…é…çš„å…„å¼ŸèŠ‚ç‚¹çš„æœ€å³çš„å•å…ƒçš„æ•´å½¢å…³é”®å­—ç»„æˆã€‚
         */
         CellInfo info;
         j--;
@@ -7066,14 +7065,14 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
         ** (see btreeParseCellPtr(), 4 bytes is the minimum size of
         ** any cell). But it is important to pass the correct size to 
         ** insertCell(), so reparse the cell now.
-        ** ÁíÖÖÇé¿öÊÇnon-leaf-dataÊ÷:Èç¹ûÔÚpCellµÄµ¥ÔªÊÇÒÔÇ°´æ´¢ÔÚÒ»¸öÒ¶½ÚµãÉÏµÄ,²¢ÇÒÊÇ
-		** 4×Ö½Ú´óĞ¡,ÊÂÊµÉÏËü¿ÉÄÜ»á±ÈÕâ¸öĞ¡(¼ûbtreeParseCellPtr(),4¸ö×Ö½ÚÊÇÈÎºÎµ¥ÔªµÄ×îĞ¡Öµ)¡£
-		** µ«ÖØÒªµÄÊÇÍ¨¹ıÕıÈ·µÄ´óĞ¡insertCell(),ËùÒÔÏÖÔÚÖØĞÂ½âÎöµ¥Ôª¡£
+        ** å¦ç§æƒ…å†µæ˜¯non-leaf-dataæ ‘:å¦‚æœåœ¨pCellçš„å•å…ƒæ˜¯ä»¥å‰å­˜å‚¨åœ¨ä¸€ä¸ªå¶èŠ‚ç‚¹ä¸Šçš„,å¹¶ä¸”æ˜¯
+		** 4å­—èŠ‚å¤§å°,äº‹å®ä¸Šå®ƒå¯èƒ½ä¼šæ¯”è¿™ä¸ªå°(è§btreeParseCellPtr(),4ä¸ªå­—èŠ‚æ˜¯ä»»ä½•å•å…ƒçš„æœ€å°å€¼)ã€‚
+		** ä½†é‡è¦çš„æ˜¯é€šè¿‡æ­£ç¡®çš„å¤§å°insertCell(),æ‰€ä»¥ç°åœ¨é‡æ–°è§£æå•å…ƒã€‚
         ** Note that this can never happen in an SQLite data file, as all
         ** cells are at least 4 bytes. It only happens in b-trees used
         ** to evaluate "IN (SELECT ...)" and similar clauses.
-		** ×¢Òâ,Õâ¿ÉÄÜ²»»á·¢ÉúÔÚÒ»¸öSQLiteÊı¾İÎÄ¼şÖĞ,ËùÓĞµ¥ÔªÖÁÉÙÓĞ4¸ö×Ö½Ú¡£
-		** ËüÖ»·¢ÉúÔÚbÊ÷ÖĞÓÃÀ´ÆÀ¹À"IN (SELECT ...)"ºÍÏà¹Ø×Ó¾ä¡£
+		** æ³¨æ„,è¿™å¯èƒ½ä¸ä¼šå‘ç”Ÿåœ¨ä¸€ä¸ªSQLiteæ•°æ®æ–‡ä»¶ä¸­,æ‰€æœ‰å•å…ƒè‡³å°‘æœ‰4ä¸ªå­—èŠ‚ã€‚
+		** å®ƒåªå‘ç”Ÿåœ¨bæ ‘ä¸­ç”¨æ¥è¯„ä¼°"IN (SELECT ...)"å’Œç›¸å…³å­å¥ã€‚
         */
         if( szCell[j]==4 ){
           assert(leafCorrection==4);
@@ -7105,19 +7104,19 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
     ** child page into the parent, decreasing the overall height of the
     ** b-tree structure by one. This is described as the "balance-shallower"
     ** sub-algorithm in some documentation.
-    ** BÊ÷µÄ¸ùÒ³ÏÖÔÚ²»º¬µ¥Ôª¡£Î¨Ò»µÄĞÖµÜÒ³ÃæÊÇÓÒº¢×ÓµÄ¸¸½Úµã¡£¿½±´º¢×ÓÒ³ÃæµÄÄÚÈİ
-	** µ½¸¸Ò³Ãæ,¼õÉÙBÊ÷½á¹¹µÄÕûÌå¸ß¶È.ÔÚÒ»Ğ©ÎÄµµÖĞ±»ÃèÊöÎª¡°balance-shallower¡± ×ÓËã·¨¡£
+    ** Bæ ‘çš„æ ¹é¡µç°åœ¨ä¸å«å•å…ƒã€‚å”¯ä¸€çš„å…„å¼Ÿé¡µé¢æ˜¯å³å­©å­çš„çˆ¶èŠ‚ç‚¹ã€‚æ‹·è´å­©å­é¡µé¢çš„å†…å®¹
+	** åˆ°çˆ¶é¡µé¢,å‡å°‘Bæ ‘ç»“æ„çš„æ•´ä½“é«˜åº¦.åœ¨ä¸€äº›æ–‡æ¡£ä¸­è¢«æè¿°ä¸ºâ€œbalance-shallowerâ€ å­ç®—æ³•ã€‚
     ** If this is an auto-vacuum database, the call to copyNodeContent() 
     ** sets all pointer-map entries corresponding to database image pages 
     ** for which the pointer is stored within the content being copied.
-    ** Èç¹ûÊÇÒ»¸ö×Ô¶¯ÇåÀíµÄÊı¾İ¿â,µ÷ÓÃcopyNodeContent() Éè¶¨ËùÓĞpointer-mapÌõÄ¿ÓëÊı¾İ
-	** ¿â¾µÏñÒ³¶ÔÓ¦£¬Ö¸Õë´æ´¢ÔÚ±»¿½±´µÄÄÚÈİÖĞ¡£
+    ** å¦‚æœæ˜¯ä¸€ä¸ªè‡ªåŠ¨æ¸…ç†çš„æ•°æ®åº“,è°ƒç”¨copyNodeContent() è®¾å®šæ‰€æœ‰pointer-mapæ¡ç›®ä¸æ•°æ®
+	** åº“é•œåƒé¡µå¯¹åº”ï¼ŒæŒ‡é’ˆå­˜å‚¨åœ¨è¢«æ‹·è´çš„å†…å®¹ä¸­ã€‚
     ** The second assert below verifies that the child page is defragmented 
     ** (it must be, as it was just reconstructed using assemblePage()). This
     ** is important if the parent page happens to be page 1 of the database
     ** image.  
-	** µÚ¶ş¸ö¶ÏÑÔÑéÖ¤×ÓÒ³Ãæ±»ËéÆ¬»¯ÁË(ÕâÊÇ±ØĞëµÄ,ÒòÎªËüÖ»ÊÇÊ¹ÓÃassemblePage()ÖØ½¨).
-	** ÕâÊÇºÜÖØÒªµÄ,Èç¹û¸¸Ò³ÃæÊÇÊı¾İ¿â¾µÏñµÄpage 1¡£*/
+	** ç¬¬äºŒä¸ªæ–­è¨€éªŒè¯å­é¡µé¢è¢«ç¢ç‰‡åŒ–äº†(è¿™æ˜¯å¿…é¡»çš„,å› ä¸ºå®ƒåªæ˜¯ä½¿ç”¨assemblePage()é‡å»º).
+	** è¿™æ˜¯å¾ˆé‡è¦çš„,å¦‚æœçˆ¶é¡µé¢æ˜¯æ•°æ®åº“é•œåƒçš„page 1ã€‚*/
     assert( nNew==1 );
     assert( apNew[0]->nFree == 
         (get2byte(&apNew[0]->aData[5])-apNew[0]->cellOffset-apNew[0]->nCell*2) 
@@ -7129,53 +7128,53 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
     ** There are several different types of pointer-map entries that need to
     ** be dealt with by this routine. Some of these have been set already, but
     ** many have not. The following is a summary:
-    ** ¶ÔÓÚËùÓĞ±»×ªÒÆµÄÖÜÎ§µÄµ¥ÔªĞŞ¸´pointer-mapÌõÄ¿.ÓĞ¼¸ÖÖ²»Í¬ÀàĞÍµÄĞèÒªpointer-mapÌõÄ¿
-	**ÒªÍ¨¹ıÕâ¸öº¯Êı´¦Àí¡£ÆäÖĞµÄÒ»Ğ©ÒÑ¾­ÉèÖÃ,µ«ÊÇĞí¶àÃ»ÓĞÉèÖÃ.ÏÂÃæÊÇ×Ü½á:
+    ** å¯¹äºæ‰€æœ‰è¢«è½¬ç§»çš„å‘¨å›´çš„å•å…ƒä¿®å¤pointer-mapæ¡ç›®.æœ‰å‡ ç§ä¸åŒç±»å‹çš„éœ€è¦pointer-mapæ¡ç›®
+	**è¦é€šè¿‡è¿™ä¸ªå‡½æ•°å¤„ç†ã€‚å…¶ä¸­çš„ä¸€äº›å·²ç»è®¾ç½®,ä½†æ˜¯è®¸å¤šæ²¡æœ‰è®¾ç½®.ä¸‹é¢æ˜¯æ€»ç»“:
     **   1) The entries associated with new sibling pages that were not
     **      siblings when this function was called. These have already
     **      been set. We don't need to worry about old siblings that were
     **      moved to the free-list - the freePage() code has taken care
     **      of those.
-    **      ÕâĞ©ÌõÄ¿ĞÂµÄĞÖµÜÒ³ÃæÏà¹Ø,ÕâĞ©ĞÖµÜÒ³Ãæµ±±»¸Ãº¯Êıµ÷ÓÃÊ±²¢²»ÊÇĞÖµÜ½Úµã¡£
-	**      ²»±Øµ£ĞÄÖ®Ç°µÄĞÖµÜ½Úµã±»ÒÆµ½ÁË¿ÕÏĞÁĞ±í¡ª¡ªfreePage() ´úÂëÒÑ¾­¿¼ÂÇµ½ÕâĞ©¡£
+    **      è¿™äº›æ¡ç›®æ–°çš„å…„å¼Ÿé¡µé¢ç›¸å…³,è¿™äº›å…„å¼Ÿé¡µé¢å½“è¢«è¯¥å‡½æ•°è°ƒç”¨æ—¶å¹¶ä¸æ˜¯å…„å¼ŸèŠ‚ç‚¹ã€‚
+	**      ä¸å¿…æ‹…å¿ƒä¹‹å‰çš„å…„å¼ŸèŠ‚ç‚¹è¢«ç§»åˆ°äº†ç©ºé—²åˆ—è¡¨â€”â€”freePage() ä»£ç å·²ç»è€ƒè™‘åˆ°è¿™äº›ã€‚
     **   2) The pointer-map entries associated with the first overflow
     **      page in any overflow chains used by new divider cells. These 
     **      have also already been taken care of by the insertCell() code.
-    **     ÓëÔÚÈÎºÎÒç³öÁ´±íÖĞµÄµÚÒ»¸öÒç³öÒ³Ïà¹ØµÄpointer-mapÌõÄ¿ÓÃ×÷·ÖÀëµ¥Ôª¡£
-	**     ÕâĞ©Ò²ÒÑ¾­ÔÚinsertCell()´úÂëÖĞ¿¼ÂÇ¡£
+    **     ä¸åœ¨ä»»ä½•æº¢å‡ºé“¾è¡¨ä¸­çš„ç¬¬ä¸€ä¸ªæº¢å‡ºé¡µç›¸å…³çš„pointer-mapæ¡ç›®ç”¨ä½œåˆ†ç¦»å•å…ƒã€‚
+	**     è¿™äº›ä¹Ÿå·²ç»åœ¨insertCell()ä»£ç ä¸­è€ƒè™‘ã€‚
     **   3) If the sibling pages are not leaves, then the child pages of
     **      cells stored on the sibling pages may need to be updated.
-    **      Èç¹ûĞÖµÜÒ³Ãæ²»ÊÇÒ¶×Ó,ÄÇÃ´´æ´¢ÔÚĞÖµÜÒ³ÃæÉÏµÄµ¥ÔªµÄ×ÓÒ³ÃæĞèÒª¸üĞÂ.
+    **      å¦‚æœå…„å¼Ÿé¡µé¢ä¸æ˜¯å¶å­,é‚£ä¹ˆå­˜å‚¨åœ¨å…„å¼Ÿé¡µé¢ä¸Šçš„å•å…ƒçš„å­é¡µé¢éœ€è¦æ›´æ–°.
     **   4) If the sibling pages are not internal intkey nodes, then any
     **      overflow pages used by these cells may need to be updated
     **      (internal intkey nodes never contain pointers to overflow pages).
-    **      Èç¹ûĞÖµÜÒ³²»ÊÇÄÚ²¿intkey½Úµã,ÄÇÃ´ÈÎºÎ±»ÕâĞ©µ¥ÔªÊ¹ÓÃµÄÒç³öÒ³¿ÉÄÜĞèÒª¸üĞÂ
-	**      (ÄÚ²¿intkey½Úµã²»°üº¬Ö¸ÏòÒç³öÒ³µÄÖ¸Õë)¡£
+    **      å¦‚æœå…„å¼Ÿé¡µä¸æ˜¯å†…éƒ¨intkeyèŠ‚ç‚¹,é‚£ä¹ˆä»»ä½•è¢«è¿™äº›å•å…ƒä½¿ç”¨çš„æº¢å‡ºé¡µå¯èƒ½éœ€è¦æ›´æ–°
+	**      (å†…éƒ¨intkeyèŠ‚ç‚¹ä¸åŒ…å«æŒ‡å‘æº¢å‡ºé¡µçš„æŒ‡é’ˆ)ã€‚
     **   5) If the sibling pages are not leaves, then the pointer-map
     **      entries for the right-child pages of each sibling may need
     **      to be updated.
-    **    ¡¡Èç¹ûĞÖµÜÒ³Ãæ²»ÊÇÒ¶×Ó,ÄÇÃ´¶ÔÃ¿¸öĞÖµÜµÄÓÒº¢×ÓÒ³pointer-mapÌõÄ¿¿ÉÄÜĞèÒª¸üĞÂ¡£
+    **    ã€€å¦‚æœå…„å¼Ÿé¡µé¢ä¸æ˜¯å¶å­,é‚£ä¹ˆå¯¹æ¯ä¸ªå…„å¼Ÿçš„å³å­©å­é¡µpointer-mapæ¡ç›®å¯èƒ½éœ€è¦æ›´æ–°ã€‚
     ** Cases 1 and 2 are dealt with above by other code. The next
     ** block deals with cases 3 and 4 and the one after that, case 5. Since
     ** setting a pointer map entry is a relatively expensive operation, this
     ** code only sets pointer map entries for child or overflow pages that have
     ** actually moved between pages.  
-	** Ç°Á½ÖÖÇé¿ö±»ÆäËû´úÂë´¦Àí¡£ÏÂÒ»¸ö¿é´¦ÀíÇé¿öÏÂ3ºÍ4,Ö®ºó5¡£ÒòÎªÉèÖÃÒ»¸öÖ¸ÕëÓ³ÉäÌõÄ¿ÊÇÒ»¸ö
-	** Ïà¶ÔÀË·ÑµÄ²Ù×÷,ËùÒÔÕâ¸ö´úÂëÖ»¶ÔÔÚÒ³ÃæÖ®¼äÒÆ¶¯µÄº¢×Ó»òÒç³öÒ³ÉèÖÃÖ¸ÕëµÄÓ³ÉäÌõÄ¿¡£*/
+	** å‰ä¸¤ç§æƒ…å†µè¢«å…¶ä»–ä»£ç å¤„ç†ã€‚ä¸‹ä¸€ä¸ªå—å¤„ç†æƒ…å†µä¸‹3å’Œ4,ä¹‹å5ã€‚å› ä¸ºè®¾ç½®ä¸€ä¸ªæŒ‡é’ˆæ˜ å°„æ¡ç›®æ˜¯ä¸€ä¸ª
+	** ç›¸å¯¹æµªè´¹çš„æ“ä½œ,æ‰€ä»¥è¿™ä¸ªä»£ç åªå¯¹åœ¨é¡µé¢ä¹‹é—´ç§»åŠ¨çš„å­©å­æˆ–æº¢å‡ºé¡µè®¾ç½®æŒ‡é’ˆçš„æ˜ å°„æ¡ç›®ã€‚*/
     MemPage *pNew = apNew[0];
     MemPage *pOld = apCopy[0];
     int nOverflow = pOld->nOverflow;
     int iNextOld = pOld->nCell + nOverflow;
     int iOverflow = (nOverflow ? pOld->aiOvfl[0] : -1);
-    j = 0;                             /* Current 'old' sibling page */   //µ±Ç°'old'ĞÖµÜÒ³
-    k = 0;                             /* Current 'new' sibling page */   //µ±Ç°'new'ĞÖµÜÒ³
+    j = 0;                             /* Current 'old' sibling page */   //å½“å‰'old'å…„å¼Ÿé¡µ
+    k = 0;                             /* Current 'new' sibling page */   //å½“å‰'new'å…„å¼Ÿé¡µ
     for(i=0; i<nCell; i++){
       int isDivider = 0;
       while( i==iNextOld ){
         /* Cell i is the cell immediately following the last cell on old
         ** sibling page j. If the siblings are not leaf pages of an
         ** intkey b-tree, then cell i was a divider cell. 
-		** µ¥ÔªiÊÇµ¥ÔªÁ¢¼´ÀÏĞÖµÜÒ³×îºóµ¥Ôªºó.Èç¹û²»ÊÇintkeyBÊ÷µÄÒ¶×Ó½ÚµãÄÇÃ´µ¥ÔªiÊÇÒ»¸ö·Ö¸îµ¥Ôª*/
+		** å•å…ƒiæ˜¯å•å…ƒç«‹å³è€å…„å¼Ÿé¡µæœ€åå•å…ƒå.å¦‚æœä¸æ˜¯intkeyBæ ‘çš„å¶å­èŠ‚ç‚¹é‚£ä¹ˆå•å…ƒiæ˜¯ä¸€ä¸ªåˆ†å‰²å•å…ƒ*/
         assert( j+1 < ArraySize(apCopy) );
         assert( j+1 < nOld );
         pOld = apCopy[++j];
@@ -7233,8 +7232,8 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
     ** all pointer map pages are set correctly. This is helpful while 
     ** debugging. This is usually disabled because a corrupt database may
     ** cause an assert() statement to fail. 
-	** ptrmapCheckPages()°üº¬µÄassert()Óï¾äÊ±ÑéÖ¤ËùÓĞµÄÖ¸ÕëÓ³ÉäÒ³ÕıÈ·Éè¶¨.
-	** ÕâÓĞÖúÓÚµ÷ÊÔ.Õâ³£²»¿ÉÓÃ£¬ÒòÎªÒ»¸ö±ÀÀ£µÄÊı¾İ¿â¿ÉÄÜÔì³Éassert()Óï¾äÊ§°Ü.*/
+	** ptrmapCheckPages()åŒ…å«çš„assert()è¯­å¥æ—¶éªŒè¯æ‰€æœ‰çš„æŒ‡é’ˆæ˜ å°„é¡µæ­£ç¡®è®¾å®š.
+	** è¿™æœ‰åŠ©äºè°ƒè¯•.è¿™å¸¸ä¸å¯ç”¨ï¼Œå› ä¸ºä¸€ä¸ªå´©æºƒçš„æ•°æ®åº“å¯èƒ½é€ æˆassert()è¯­å¥å¤±è´¥.*/
     ptrmapCheckPages(apNew, nNew);
     ptrmapCheckPages(&pParent, 1);
 #endif
@@ -7244,7 +7243,7 @@ static int balance_nonroot(                                //µ÷ÕûBÊ÷µÄ¸÷½ÚµãÊ¹Ö®
   TRACE(("BALANCE: finished: old=%d new=%d cells=%d\n",
           nOld, nNew, nCell));
 
-  /*Cleanup before returning.*/    //·µ»ØÖ®Ç°ÇåÀí
+  /*Cleanup before returning.*/    //è¿”å›ä¹‹å‰æ¸…ç†
 balance_cleanup:
   sqlite3ScratchFree(apCell);
   for(i=0; i<nOld; i++){
@@ -7264,30 +7263,30 @@ balance_cleanup:
 /*
 ** This function is called when the root page of a b-tree structure is
 ** overfull (has one or more overflow pages).
-** µ±BÊ÷½á¹¹µÄ¸ùÒ³¹ı¶ÈÂúÊ±£¬¸Ãº¯Êı½«±»µ÷ÓÃ¡££¨ÓĞÒ»¸ö»ò¶à¸öÒç³öÒ³£©
+** å½“Bæ ‘ç»“æ„çš„æ ¹é¡µè¿‡åº¦æ»¡æ—¶ï¼Œè¯¥å‡½æ•°å°†è¢«è°ƒç”¨ã€‚ï¼ˆæœ‰ä¸€ä¸ªæˆ–å¤šä¸ªæº¢å‡ºé¡µï¼‰
 ** A new child page is allocated and the contents of the current root
 ** page, including overflow cells, are copied into the child. The root
 ** page is then overwritten to make it an empty page with the right-child 
 ** pointer pointing to the new page.
-** Ò»¸öĞÂµÄº¢×ÓÒ³½«±»·ÖÅä²¢ÇÒµ±Ç°¸ùÒ³µÄÄÚÈİ°üÀ¨Ò²³öµ¥Ôª±»¿½±´µ½º¢×Ó½Úµã¡£
-** ¸ùÒ³±»ÖØĞ´Ê¹Ö®Îª¿ÕÒ³£¬×îÓÒº¢×ÓÖ¸ÕëÖ¸ÏòĞÂÒ³¡£
+** ä¸€ä¸ªæ–°çš„å­©å­é¡µå°†è¢«åˆ†é…å¹¶ä¸”å½“å‰æ ¹é¡µçš„å†…å®¹åŒ…æ‹¬ä¹Ÿå‡ºå•å…ƒè¢«æ‹·è´åˆ°å­©å­èŠ‚ç‚¹ã€‚
+** æ ¹é¡µè¢«é‡å†™ä½¿ä¹‹ä¸ºç©ºé¡µï¼Œæœ€å³å­©å­æŒ‡é’ˆæŒ‡å‘æ–°é¡µã€‚
 ** Before returning, all pointer-map entries corresponding to pages 
 ** that the new child-page now contains pointers to are updated. The
 ** entry corresponding to the new right-child pointer of the root
 ** page is also updated.
-** ÔÚ·µ»ØÖ®Ç°,ËùÓĞpointer-mapÌõÄ¿¶ÔÓ¦ĞÂ×ÓÒ³Ãæ°üº¬Ö¸ÕëµÄÒ³Ãæ±»¸üĞÂ¡£ÌõÄ¿¶ÔÓ¦µÄ¸ùÒ³µÄĞÂÓÒ×Ó½áµãÖ¸Õë¸ùÒ²¸üĞÂ¡£
+** åœ¨è¿”å›ä¹‹å‰,æ‰€æœ‰pointer-mapæ¡ç›®å¯¹åº”æ–°å­é¡µé¢åŒ…å«æŒ‡é’ˆçš„é¡µé¢è¢«æ›´æ–°ã€‚æ¡ç›®å¯¹åº”çš„æ ¹é¡µçš„æ–°å³å­ç»“ç‚¹æŒ‡é’ˆæ ¹ä¹Ÿæ›´æ–°ã€‚
 ** If successful, *ppChild is set to contain a reference to the child 
 ** page and SQLITE_OK is returned. In this case the caller is required
 ** to call releasePage() on *ppChild exactly once. If an error occurs,
 ** an error code is returned and *ppChild is set to 0.
-** Èç¹û³É¹¦,*ppChild½«°üº¬Ò»¸ö¶Ôº¢×ÓÒ³µÄÒıÓÃ²¢·µ»ØSQLITE_OK¡£ÔÚÕâÖÖÇé¿öÏÂ,µ÷ÓÃÕßĞèÒª
-** ÔÚ*ppChildÉÏ¶ÔreleasePage()µ÷ÓÃÇ¡ºÃÒ»´Î¡£Èç¹û³öÏÖ´íÎó,·µ»ØÒ»¸ö´íÎó´úÂë²¢ÇÒppChildÉèÖÃÎª0¡£
+** å¦‚æœæˆåŠŸ,*ppChildå°†åŒ…å«ä¸€ä¸ªå¯¹å­©å­é¡µçš„å¼•ç”¨å¹¶è¿”å›SQLITE_OKã€‚åœ¨è¿™ç§æƒ…å†µä¸‹,è°ƒç”¨è€…éœ€è¦
+** åœ¨*ppChildä¸Šå¯¹releasePage()è°ƒç”¨æ°å¥½ä¸€æ¬¡ã€‚å¦‚æœå‡ºç°é”™è¯¯,è¿”å›ä¸€ä¸ªé”™è¯¯ä»£ç å¹¶ä¸”ppChildè®¾ç½®ä¸º0ã€‚
 */
-static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //½øÒ»²½µ÷ÕûBÊ÷µÄÒ³
-  int rc;                        /* Return value from subprocedures */   //×Óº¯ÊıµÄ·µ»ØÖµ
-  MemPage *pChild = 0;           /* Pointer to a new child page */       //ĞÂº¢×ÓÒ³µÄÖ¸Õë
-  Pgno pgnoChild = 0;            /* Page number of the new child page */ //ĞÂº¢×ÓÒ³µÄÒ³Âë
-  BtShared *pBt = pRoot->pBt;    /* The BTree */                         //BÊ÷
+static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //è¿›ä¸€æ­¥è°ƒæ•´Bæ ‘çš„é¡µ
+  int rc;                        /* Return value from subprocedures */   //å­å‡½æ•°çš„è¿”å›å€¼
+  MemPage *pChild = 0;           /* Pointer to a new child page */       //æ–°å­©å­é¡µçš„æŒ‡é’ˆ
+  Pgno pgnoChild = 0;            /* Page number of the new child page */ //æ–°å­©å­é¡µçš„é¡µç 
+  BtShared *pBt = pRoot->pBt;    /* The BTree */                         //Bæ ‘
 
   assert( pRoot->nOverflow>0 );
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -7295,7 +7294,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //½øÒ»²
   /* Make pRoot, the root page of the b-tree, writable. Allocate a new 
   ** page that will become the new right-child of pPage. Copy the contents
   ** of the node stored on pRoot into the new child page.
-  ** Ê¹pRoot£¨BÊ÷µÄ¸ùÒ³£©¿ÉĞ´,·ÖÅäÒ»¸öĞÂÒ³Ê¹Ö®³ÉÎªpPageµÄÓÒº¢×Ó.¿½±´´æ´¢ÔÚpRootÉÏµÄ½ÚµãµÄÄÚÈİµ½ĞÂµÄº¢×ÓÒ³Ãæ¡£
+  ** ä½¿pRootï¼ˆBæ ‘çš„æ ¹é¡µï¼‰å¯å†™,åˆ†é…ä¸€ä¸ªæ–°é¡µä½¿ä¹‹æˆä¸ºpPageçš„å³å­©å­.æ‹·è´å­˜å‚¨åœ¨pRootä¸Šçš„èŠ‚ç‚¹çš„å†…å®¹åˆ°æ–°çš„å­©å­é¡µé¢ã€‚
   */
   rc = sqlite3PagerWrite(pRoot->pDbPage);
   if( rc==SQLITE_OK ){
@@ -7316,7 +7315,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //½øÒ»²
 
   TRACE(("BALANCE: copy root %d into %d\n", pRoot->pgno, pChild->pgno));
 
-  /* Copy the overflow cells from pRoot to pChild */  //½«ÒÑ³öµ¥Ôª´ÓpRoot¿½±´µ½pChild
+  /* Copy the overflow cells from pRoot to pChild */  //å°†å·²å‡ºå•å…ƒä»pRootæ‹·è´åˆ°pChild
   memcpy(pChild->aiOvfl, pRoot->aiOvfl,
          pRoot->nOverflow*sizeof(pRoot->aiOvfl[0]));
   memcpy(pChild->apOvfl, pRoot->apOvfl,
@@ -7324,7 +7323,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //½øÒ»²
   pChild->nOverflow = pRoot->nOverflow;
 
   /* Zero the contents of pRoot. Then install pChild as the right-child. */
-  //ÇåÁãpRootÖĞµÄÄÚÈİ£¬½«pChild×÷ÎªÓÒº¢×Ó¡£
+  //æ¸…é›¶pRootä¸­çš„å†…å®¹ï¼Œå°†pChildä½œä¸ºå³å­©å­ã€‚
   zeroPage(pRoot, pChild->aData[0] & ~PTF_LEAF);
   put4byte(&pRoot->aData[pRoot->hdrOffset+8], pgnoChild);
 
@@ -7337,8 +7336,8 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //½øÒ»²
 ** some way. This function figures out if this modification means the
 ** tree needs to be balanced, and if so calls the appropriate balancing 
 ** routine. Balancing routines are:
-** ÓÎ±êpCurµ±Ç°Ö¸ÏòµÄÒ³ÃæÒÔÄ³ÖÖ·½Ê½±»ĞŞ¸Ä¡£º¯Êı½«ÅªÃ÷°×ÊÇ·ñÕâ¸öĞŞ¸ÄĞèÒª±»Æ½ºâ£¬
-** ÊÇ·ñµ÷ÓÃÊÊµ±µÄÆ½ºâº¯Êı¡£Æ½ºâº¯ÊıÈçÏÂ£º
+** æ¸¸æ ‡pCurå½“å‰æŒ‡å‘çš„é¡µé¢ä»¥æŸç§æ–¹å¼è¢«ä¿®æ”¹ã€‚å‡½æ•°å°†å¼„æ˜ç™½æ˜¯å¦è¿™ä¸ªä¿®æ”¹éœ€è¦è¢«å¹³è¡¡ï¼Œ
+** æ˜¯å¦è°ƒç”¨é€‚å½“çš„å¹³è¡¡å‡½æ•°ã€‚å¹³è¡¡å‡½æ•°å¦‚ä¸‹ï¼š
 **   balance_quick()
 **   balance_deeper()
 **   balance_nonroot()
@@ -7362,8 +7361,8 @@ static int balance(BtCursor *pCur){
         ** balance_deeper() function to create a new child for the root-page
         ** and copy the current contents of the root-page to it. The
         ** next iteration of the do-loop will balance the child page.
-		** BÊ÷µÄ¸ùÒ³ÊÇ¹ıÂú¡£ÔÚÕâÖÖÇé¿öÏÂ,µ÷ÓÃbalance_deeper()º¯ÊıÎª¸ùÒ³´´½¨Ò»¸öĞÂµÄº¢×Ó
-		** ²¢¸´ÖÆµÄµ±Ç°ÄÚÈİ¸ùÒ³µ½¸Ãº¢×ÓÒ³¡£ÏÂÒ»¸öµü´úÑ­»·Óï¾äµÄÆ½ºâ×ÓÒ³Ãæ¡£
+		** Bæ ‘çš„æ ¹é¡µæ˜¯è¿‡æ»¡ã€‚åœ¨è¿™ç§æƒ…å†µä¸‹,è°ƒç”¨balance_deeper()å‡½æ•°ä¸ºæ ¹é¡µåˆ›å»ºä¸€ä¸ªæ–°çš„å­©å­
+		** å¹¶å¤åˆ¶çš„å½“å‰å†…å®¹æ ¹é¡µåˆ°è¯¥å­©å­é¡µã€‚ä¸‹ä¸€ä¸ªè¿­ä»£å¾ªç¯è¯­å¥çš„å¹³è¡¡å­é¡µé¢ã€‚
         */ 
         assert( (balance_deeper_called++)==0 );
         rc = balance_deeper(pPage, &pCur->apPage[1]);
@@ -7398,15 +7397,15 @@ static int balance(BtCursor *pCur){
           ** use either balance_nonroot() or balance_deeper(). Until this
           ** happens, the overflow cell is stored in the aBalanceQuickSpace[]
           ** buffer. 
-          ** µ÷ÓÃbalance_quick()À´´´½¨Ò»¸öpPageµÄĞÂĞÖµÜÒ³£¬Ò³ÉÏ´æ´¢ÁËÒç³öµ¥Ôª¡£balance_quick()²åÈëÒ»¸ö
-		  ** ĞÂµ¥Ôªµ½pParent,Õâ¿ÉÄÜ»áµ¼ÖÂpParentÒç³ö.Èç¹ûÕâÖÖÇé¿ö·¢Éú,ÏÂÒ»¸öµü´úÑ­»·Óï¾ä½«ÓÃbalance_nonroot()
-		  ** »òbalance_deeper()ÖĞµÄÈÎÒ»¸öÆ½ºâpParent.Ö±µ½Òç³öµ¥Ôª´æ´¢ÔÚaBalanceQuickSpace[]»º³åÇø¡£
+          ** è°ƒç”¨balance_quick()æ¥åˆ›å»ºä¸€ä¸ªpPageçš„æ–°å…„å¼Ÿé¡µï¼Œé¡µä¸Šå­˜å‚¨äº†æº¢å‡ºå•å…ƒã€‚balance_quick()æ’å…¥ä¸€ä¸ª
+		  ** æ–°å•å…ƒåˆ°pParent,è¿™å¯èƒ½ä¼šå¯¼è‡´pParentæº¢å‡º.å¦‚æœè¿™ç§æƒ…å†µå‘ç”Ÿ,ä¸‹ä¸€ä¸ªè¿­ä»£å¾ªç¯è¯­å¥å°†ç”¨balance_nonroot()
+		  ** æˆ–balance_deeper()ä¸­çš„ä»»ä¸€ä¸ªå¹³è¡¡pParent.ç›´åˆ°æº¢å‡ºå•å…ƒå­˜å‚¨åœ¨aBalanceQuickSpace[]ç¼“å†²åŒºã€‚
           ** The purpose of the following assert() is to check that only a
           ** single call to balance_quick() is made for each call to this
           ** function. If this were not verified, a subtle bug involving reuse
           ** of the aBalanceQuickSpace[] might sneak in.
-		  ** ÏÂÃæµÄassert()µÄÄ¿µÄÊÇ¼ì²é,¶ÔÓÚÃ¿¸öµ÷ÓÃº¯ÊıÖ»ÓĞÒ»¸öµ÷ÓÃbalance_quick()¡£Èç¹ûÕâÊÇ²»ÑéÖ¤,
-		  ** aBalanceQuickSpace[]ÖØÓÃµÄÊ±ºò½«·¢ÉúÒ»¸öÎ¢ÃîµÄ´íÎó¡£
+		  ** ä¸‹é¢çš„assert()çš„ç›®çš„æ˜¯æ£€æŸ¥,å¯¹äºæ¯ä¸ªè°ƒç”¨å‡½æ•°åªæœ‰ä¸€ä¸ªè°ƒç”¨balance_quick()ã€‚å¦‚æœè¿™æ˜¯ä¸éªŒè¯,
+		  ** aBalanceQuickSpace[]é‡ç”¨çš„æ—¶å€™å°†å‘ç”Ÿä¸€ä¸ªå¾®å¦™çš„é”™è¯¯ã€‚
           */
           assert( (balance_quick_called++)==0 );
           rc = balance_quick(pParent, pPage, aBalanceQuickSpace);
@@ -7418,8 +7417,8 @@ static int balance(BtCursor *pCur){
           ** modifying the contents of pParent, which may cause pParent to
           ** become overfull or underfull. The next iteration of the do-loop
           ** will balance the parent page to correct this.
-          ** ** ÔÚÕâÖÖÇé¿öÏÂ£¬µ÷ÓÃbalance_nonroot()Ê¹µ¥ÔªÔÚpPageºÍÆäËûÁ½¸öĞÖµÜ½Úµã¼äÖØ·Ö²¿¡£ÕâÉæ¼°µ½
-		  ** ĞŞ¸ÄpParentµÄÄÚÈİ,Õâ¿ÉÄÜµ¼ÖÂpParent¹ıÂú»ò²»Âú¡£ÏÂÒ»´Îµü´úÑ­»·Óï¾ä½«Æ½ºâ¸¸Ò³Ãæ¡£
+          ** ** åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œè°ƒç”¨balance_nonroot()ä½¿å•å…ƒåœ¨pPageå’Œå…¶ä»–ä¸¤ä¸ªå…„å¼ŸèŠ‚ç‚¹é—´é‡åˆ†éƒ¨ã€‚è¿™æ¶‰åŠåˆ°
+		  ** ä¿®æ”¹pParentçš„å†…å®¹,è¿™å¯èƒ½å¯¼è‡´pParentè¿‡æ»¡æˆ–ä¸æ»¡ã€‚ä¸‹ä¸€æ¬¡è¿­ä»£å¾ªç¯è¯­å¥å°†å¹³è¡¡çˆ¶é¡µé¢ã€‚
           ** If the parent page becomes overfull, the overflow cell or cells
           ** are stored in the pSpace buffer allocated immediately below. 
           ** A subsequent iteration of the do-loop will deal with this by
@@ -7430,11 +7429,11 @@ static int balance(BtCursor *pCur){
           ** the previous call, as the overflow cell data will have been 
           ** copied either into the body of a database page or into the new
           ** pSpace buffer passed to the latter call to balance_nonroot().
-		  ** Èç¹û¸¸Ò³Ãæ±äµÃ¹ıÂú,Òç³öµ¥Ôª»ò´æ´¢ÔÚpSpace»º³åÇøµÄµ¥Ôª½«Á¢¼´·ÖÅä¡£
-		  ** ºóĞøµü´úµÄÑ­»·Óï¾ä½«µ÷ÓÃbalance_nonroot()À´´¦Àí(balance_deeper()¿ÉÄÜÊ×ÏÈ±»µ÷ÓÃ,µ«Ëü²»´¦Àí
-		  ** Òç³öµ¥Ôª¡ª¡ªÖ»ÊÇËûÃÇÒÆ¶¯µ½²»Í¬µÄÒ³Ãæ)¡£Ò»µ©Õâ¸öºóĞøµ÷ÓÃbalance_nonroot()Íê³É,ÊÍ·ÅÖ®Ç°±»Ê¹ÓÃ
-		  ** µÄpSpace»º³åÇø½«ÊÇ°²È«µÄ,´ËÊ±Òç³öµ¥ÔªÊı¾İ½«±»¸´ÖÆµ½Êı¾İ¿âÒ³ÃæµÄÖ÷Ìå»ò¸´ÖÆµ½ĞÂµÄpSpace»º³åÇø£¬
-		  ** ¸ÃÊµÏÖÍ¨¹ıºóÀ´µ÷ÓÃbalance_nonroot()´«µİ¡£
+		  ** å¦‚æœçˆ¶é¡µé¢å˜å¾—è¿‡æ»¡,æº¢å‡ºå•å…ƒæˆ–å­˜å‚¨åœ¨pSpaceç¼“å†²åŒºçš„å•å…ƒå°†ç«‹å³åˆ†é…ã€‚
+		  ** åç»­è¿­ä»£çš„å¾ªç¯è¯­å¥å°†è°ƒç”¨balance_nonroot()æ¥å¤„ç†(balance_deeper()å¯èƒ½é¦–å…ˆè¢«è°ƒç”¨,ä½†å®ƒä¸å¤„ç†
+		  ** æº¢å‡ºå•å…ƒâ€”â€”åªæ˜¯ä»–ä»¬ç§»åŠ¨åˆ°ä¸åŒçš„é¡µé¢)ã€‚ä¸€æ—¦è¿™ä¸ªåç»­è°ƒç”¨balance_nonroot()å®Œæˆ,é‡Šæ”¾ä¹‹å‰è¢«ä½¿ç”¨
+		  ** çš„pSpaceç¼“å†²åŒºå°†æ˜¯å®‰å…¨çš„,æ­¤æ—¶æº¢å‡ºå•å…ƒæ•°æ®å°†è¢«å¤åˆ¶åˆ°æ•°æ®åº“é¡µé¢çš„ä¸»ä½“æˆ–å¤åˆ¶åˆ°æ–°çš„pSpaceç¼“å†²åŒºï¼Œ
+		  ** è¯¥å®ç°é€šè¿‡åæ¥è°ƒç”¨balance_nonroot()ä¼ é€’ã€‚
           */
           u8 *pSpace = sqlite3PageMalloc(pCur->pBt->pageSize);
           rc = balance_nonroot(pParent, iIdx, pSpace, iPage==1, pCur->hints);
@@ -7443,22 +7442,22 @@ static int balance(BtCursor *pCur){
             ** by a previous call to balance_nonroot(). Its contents are
             ** now stored either on real database pages or within the 
             ** new pSpace buffer, so it may be safely freed here. 
-			** ** Èç¹ûpFree²»ÊÇNULL,ËüÖ¸ÏòÖ®Ç°±»balance_nonroot()µ÷ÓÃµÄpSpace»º³åÇø.ËüµÄÄÚÈİÏÖÔÚ´æ´¢ÔÚÊµ¼Ê
-			** Êı¾İ¿âÒ³Ãæ»òĞÂpSpace»º³åÇøÖĞ,ËùÒÔÕâÀï¿ÉÒÔ°²È«µØÊÍ·Å¡£*/
+			** ** å¦‚æœpFreeä¸æ˜¯NULL,å®ƒæŒ‡å‘ä¹‹å‰è¢«balance_nonroot()è°ƒç”¨çš„pSpaceç¼“å†²åŒº.å®ƒçš„å†…å®¹ç°åœ¨å­˜å‚¨åœ¨å®é™…
+			** æ•°æ®åº“é¡µé¢æˆ–æ–°pSpaceç¼“å†²åŒºä¸­,æ‰€ä»¥è¿™é‡Œå¯ä»¥å®‰å…¨åœ°é‡Šæ”¾ã€‚*/
             sqlite3PageFree(pFree);
           }
 
           /* The pSpace buffer will be freed after the next call to
           ** balance_nonroot(), or just before this function returns, whichever
           ** comes first. 
-		  ** pSpace»º³åÇø½«ÔÚÏÂÒ»´Îµ÷ÓÃÊ±±»ÊÍ·Å,»òÔÚÕâ¸öº¯Êı·µ»ØÖ®Ç°¡£*/
+		  ** pSpaceç¼“å†²åŒºå°†åœ¨ä¸‹ä¸€æ¬¡è°ƒç”¨æ—¶è¢«é‡Šæ”¾,æˆ–åœ¨è¿™ä¸ªå‡½æ•°è¿”å›ä¹‹å‰ã€‚*/
           pFree = pSpace;
         }
       }
 
       pPage->nOverflow = 0;
 
-      /* The next iteration of the do-loop balances the parent page. */  //ÏÂÒ»¸öµü´úÑ­»·Óï¾äµ÷Õû¸¸Ò³ÃæÆ½ºâ
+      /* The next iteration of the do-loop balances the parent page. */  //ä¸‹ä¸€ä¸ªè¿­ä»£å¾ªç¯è¯­å¥è°ƒæ•´çˆ¶é¡µé¢å¹³è¡¡
       releasePage(pPage);
       pCur->iPage--;
     }
@@ -7476,45 +7475,45 @@ static int balance(BtCursor *pCur){
 ** and the data is given by (pData,nData).  The cursor is used only to
 ** define what table the record should be inserted into.  The cursor
 ** is left pointing at a random location.
-** ²åÈëÒ»ÌõĞÂ¼ÇÂ¼µ½BÊ÷.¹Ø¼ü×ÖÓÉ(pKey,nKey)¸ø³ö£¬Êı¾İÓòÓĞ(pData,nData)¸ø³ö.
-** ÓÎ±ê½ö½ö±»ÓÃ×÷¶¨Òå¼ÇÂ¼Ó¦¸Ã²åÈëµ½Ê²Ã´±íÖĞ£¬ÆäËûÓÎ±êÖ¸ÏòÈÎÒâÎ»ÖÃ.
+** æ’å…¥ä¸€æ¡æ–°è®°å½•åˆ°Bæ ‘.å…³é”®å­—ç”±(pKey,nKey)ç»™å‡ºï¼Œæ•°æ®åŸŸæœ‰(pData,nData)ç»™å‡º.
+** æ¸¸æ ‡ä»…ä»…è¢«ç”¨ä½œå®šä¹‰è®°å½•åº”è¯¥æ’å…¥åˆ°ä»€ä¹ˆè¡¨ä¸­ï¼Œå…¶ä»–æ¸¸æ ‡æŒ‡å‘ä»»æ„ä½ç½®.
 ** For an INTKEY table, only the nKey value of the key is used.  pKey is
 ** ignored.  For a ZERODATA table, the pData and nData are both ignored.
-** ¶ÔÓÚÒ»¸öINTKEY±íÖ»ÓĞ¹Ø¼ü×ÖµÄnKeyÖµ±»ÓÃ£¬pKeyºöÂÔ¡£¶ÔÓÚZERODATA±ípDataºÍnData¶¼²»ÓÃ¡£
+** å¯¹äºä¸€ä¸ªINTKEYè¡¨åªæœ‰å…³é”®å­—çš„nKeyå€¼è¢«ç”¨ï¼ŒpKeyå¿½ç•¥ã€‚å¯¹äºZERODATAè¡¨pDataå’ŒnDataéƒ½ä¸ç”¨ã€‚
 ** If the seekResult parameter is non-zero, then a successful call to
 ** MovetoUnpacked() to seek cursor pCur to (pKey, nKey) has already
 ** been performed. seekResult is the search result returned (a negative
 ** number if pCur points at an entry that is smaller than (pKey, nKey), or
 ** a positive value if pCur points at an etry that is larger than 
 ** (pKey, nKey)). 
-** Èç¹ûseekResult²ÎÊı·ÇÁã,ÄÇÃ´Ò»¸ö³É¹¦µÄµ÷ÓÃMovetoUnpacked()Ñ°ÕÒ(pKey nKey)ÒÑ¾­±»Ö´ĞĞµÄÓÎ±êpCur¡£
-** seekResultÊÇËÑË÷·µ»ØµÄ½á¹û(Èç¹ûpCurÖ¸ÏòÒ»¸ö±È(pKey, nKey)»¹Ğ¡µÄÌõÄ¿ÔòÊÇÒ»¸ö¸ºÖµ,»òÈç¹ûpCurÖ¸Ïò
-** Ò»¸ö±È(pKey nKey)¸ü´óµÄÖµÔò¸ÃÖµÎªÕıÖµ.)¡£
+** å¦‚æœseekResultå‚æ•°éé›¶,é‚£ä¹ˆä¸€ä¸ªæˆåŠŸçš„è°ƒç”¨MovetoUnpacked()å¯»æ‰¾(pKey nKey)å·²ç»è¢«æ‰§è¡Œçš„æ¸¸æ ‡pCurã€‚
+** seekResultæ˜¯æœç´¢è¿”å›çš„ç»“æœ(å¦‚æœpCuræŒ‡å‘ä¸€ä¸ªæ¯”(pKey, nKey)è¿˜å°çš„æ¡ç›®åˆ™æ˜¯ä¸€ä¸ªè´Ÿå€¼,æˆ–å¦‚æœpCuræŒ‡å‘
+** ä¸€ä¸ªæ¯”(pKey nKey)æ›´å¤§çš„å€¼åˆ™è¯¥å€¼ä¸ºæ­£å€¼.)ã€‚
 ** If the seekResult parameter is non-zero, then the caller guarantees that
 ** cursor pCur is pointing at the existing copy of a row that is to be
 ** overwritten.  If the seekResult parameter is 0, then cursor pCur may
 ** point to any entry or to no entry at all and so this function has to seek
 ** the cursor before the new key can be inserted.
-** Èç¹ûseekResult²ÎÊıÊÇ·ÇÁã,ÄÇÃ´µ÷ÓÃÕß±£Ö¤ÓÎ±êpCurÏòÒ»ĞĞ±»¸´Ğ´µÄÏÖÓĞ¸±±¾¡£Èç¹ûseekResult²ÎÊıÊÇ0,ÄÇÃ´
-** ÓÎ±êpCur¿ÉÄÜÖ¸ÏòÈÎºÎÌõÄ¿»ò²»Ö¸ÏòÈÎºÎÌõÄ¿,ËùÒÔÔÚ²åÈë¼üÖµÖ®Ç°Õâ¸öº¯Êı±ØĞëÑ°ÕÒÓÎ±ê¡£
+** å¦‚æœseekResultå‚æ•°æ˜¯éé›¶,é‚£ä¹ˆè°ƒç”¨è€…ä¿è¯æ¸¸æ ‡pCurå‘ä¸€è¡Œè¢«å¤å†™çš„ç°æœ‰å‰¯æœ¬ã€‚å¦‚æœseekResultå‚æ•°æ˜¯0,é‚£ä¹ˆ
+** æ¸¸æ ‡pCurå¯èƒ½æŒ‡å‘ä»»ä½•æ¡ç›®æˆ–ä¸æŒ‡å‘ä»»ä½•æ¡ç›®,æ‰€ä»¥åœ¨æ’å…¥é”®å€¼ä¹‹å‰è¿™ä¸ªå‡½æ•°å¿…é¡»å¯»æ‰¾æ¸¸æ ‡ã€‚
 */
 /*
-ÏòBtreeÖĞ²åÈëÒ»¸öĞÂ¼ÇÂ¼£º
-¹Ø¼ü×Ö°´ÕÕ(pKey,nKey)¸ø¶¨£¬Êı¾İ°´ÕÕ(pData,nData)¸ø¶¨¡£
-ÕÒµ½½áµã²åÈëÎ»ÖÃ
-·ÖÅäÄÚ´æ¿Õ¼ä
-²åÈë½áµã
+å‘Btreeä¸­æ’å…¥ä¸€ä¸ªæ–°è®°å½•ï¼š
+å…³é”®å­—æŒ‰ç…§(pKey,nKey)ç»™å®šï¼Œæ•°æ®æŒ‰ç…§(pData,nData)ç»™å®šã€‚
+æ‰¾åˆ°ç»“ç‚¹æ’å…¥ä½ç½®
+åˆ†é…å†…å­˜ç©ºé—´
+æ’å…¥ç»“ç‚¹
 */
-int sqlite3BtreeInsert(          //²åÈëĞÂ¼ÇÂ¼µ½BÊ÷
-  BtCursor *pCur,                /* Insert data into the table of this cursor */  //²åÈëÊı¾İµ½ÓÎ±êÖ¸ÏòµÄ±í
-  const void *pKey, i64 nKey,    /* The key of the new record */                  //ĞÂ¼ÇÂ¼µÄ¼üÖµ
-  const void *pData, int nData,  /* The data of the new record */                 //ĞÂ¼ÇÂ¼µÄÊı¾İ
-  int nZero,                     /* Number of extra 0 bytes to append to data */  //¸½¼Óµ½Êı¾İµÄ¶îÍâµÄ0×Ö½ÚÊı
-  int appendBias,                /* True if this is likely an append */           //Èç¹ûÊÇ¸½¼ÓµÄÔòÎªtrue
-  int seekResult                 /* Result of prior MovetoUnpacked() call */      //ÏÈÇ°µ÷ÓÃMovetoUnpacked()µÄ½á¹û
+int sqlite3BtreeInsert(          //æ’å…¥æ–°è®°å½•åˆ°Bæ ‘
+  BtCursor *pCur,                /* Insert data into the table of this cursor */  //æ’å…¥æ•°æ®åˆ°æ¸¸æ ‡æŒ‡å‘çš„è¡¨
+  const void *pKey, i64 nKey,    /* The key of the new record */                  //æ–°è®°å½•çš„é”®å€¼
+  const void *pData, int nData,  /* The data of the new record */                 //æ–°è®°å½•çš„æ•°æ®
+  int nZero,                     /* Number of extra 0 bytes to append to data */  //é™„åŠ åˆ°æ•°æ®çš„é¢å¤–çš„0å­—èŠ‚æ•°
+  int appendBias,                /* True if this is likely an append */           //å¦‚æœæ˜¯é™„åŠ çš„åˆ™ä¸ºtrue
+  int seekResult                 /* Result of prior MovetoUnpacked() call */      //å…ˆå‰è°ƒç”¨MovetoUnpacked()çš„ç»“æœ
 ){
   int rc;
-  int loc = seekResult;          /* -1: before desired location  +1: after */     //-1:Ï£ÍûµÄÎ»ÖÃÖ®Ç°  +1:Ö®ºó
+  int loc = seekResult;          /* -1: before desired location  +1: after */     //-1:å¸Œæœ›çš„ä½ç½®ä¹‹å‰  +1:ä¹‹å
   int szNew = 0;
   int idx;
   MemPage *pPage;
@@ -7538,33 +7537,33 @@ int sqlite3BtreeInsert(          //²åÈëĞÂ¼ÇÂ¼µ½BÊ÷
   ** keys with no associated data. If the cursor was opened expecting an
   ** intkey table, the caller should be inserting integer keys with a
   ** blob of associated data.  
-  ** ¶ÏÑÔµ÷ÓÃÕßÊÇÒ»ÖÂµÄ¡£Èç¹ûÕâ¸öÓÎ±ê±»´ò¿ªµÄBÊ÷Ë÷Òı,ÄÇÃ´µ÷ÓÃÕßÓ¦¸Ã²åÈëÃ»ÓĞÏà¹ØÊı¾İ
-  ** µÄblob¼ü¡£Èç¹ûÓÎ±ê±»¿ª·Å¶ÔÓÚintkey±í,µ÷ÓÃÕßÓ¦¸Ã²åÈë´øÓĞÏà¹ØÊı¾İµÄblobµÄÕûÊı¼ü¡£*/
+  ** æ–­è¨€è°ƒç”¨è€…æ˜¯ä¸€è‡´çš„ã€‚å¦‚æœè¿™ä¸ªæ¸¸æ ‡è¢«æ‰“å¼€çš„Bæ ‘ç´¢å¼•,é‚£ä¹ˆè°ƒç”¨è€…åº”è¯¥æ’å…¥æ²¡æœ‰ç›¸å…³æ•°æ®
+  ** çš„blobé”®ã€‚å¦‚æœæ¸¸æ ‡è¢«å¼€æ”¾å¯¹äºintkeyè¡¨,è°ƒç”¨è€…åº”è¯¥æ’å…¥å¸¦æœ‰ç›¸å…³æ•°æ®çš„blobçš„æ•´æ•°é”®ã€‚*/
   assert( (pKey==0)==(pCur->pKeyInfo==0) );
 
   /* Save the positions of any other cursors open on this table.
-  ** ±£´æÔÚ±íÉÏ´ò¿ªµÄÈÎºÎÆäËûÓÎ±êµÄÎ»ÖÃ¡£
+  ** ä¿å­˜åœ¨è¡¨ä¸Šæ‰“å¼€çš„ä»»ä½•å…¶ä»–æ¸¸æ ‡çš„ä½ç½®ã€‚
   ** In some cases, the call to btreeMoveto() below is a no-op. For
   ** example, when inserting data into a table with auto-generated integer
   ** keys, the VDBE layer invokes sqlite3BtreeLast() to figure out the 
   ** integer key to use. It then calls this function to actually insert the 
   ** data into the intkey B-Tree. In this case btreeMoveto() recognizes
   ** that the cursor is already where it needs to be and returns without
-  ** doing any work. To avoid thwarting(·Á°­) these optimizations, it is important
+  ** doing any work. To avoid thwarting(å¦¨ç¢) these optimizations, it is important
   ** not to clear the cursor here.
-  ** ÔÚÄ³Ğ©Çé¿öÏÂ,ÏÂÃæ¶ÔbtreeMoveto()µÄµ÷ÓÃÊÇÎó²Ù×÷µÄ¡£ÀıÈç,µ±½«Êı¾İ²åÈë×Ô¶¯Éú³ÉµÄÕûÊı¼üµÄ±íÊ±,
-  ** VDBE²ãµ÷ÓÃsqlite3BtreeLast()Çó³öÒªÊ¹ÓÃµÄÕûÊı¼ü¡£È»ºóµ÷ÓÃÕâ¸öº¯ÊıÀ´²åÈëÊı¾İµ½intkeyBÊ÷¡£ÔÚÕâÖÖÇé¿ö
-  ** ÏÂbtreeMoveto()Ê¶±ğÓÎ±êÒÑ¾­ÔÚĞèÒªËüµÄµØ·½,²¢·µ»Ø¡£ÎªÁË±ÜÃâÓ°ÏìÕâĞ©ÓÅ»¯,²»Çå³ıÕâÀïµÄÓÎ±êÊÇºÜÖØÒªµÄ¡£
+  ** åœ¨æŸäº›æƒ…å†µä¸‹,ä¸‹é¢å¯¹btreeMoveto()çš„è°ƒç”¨æ˜¯è¯¯æ“ä½œçš„ã€‚ä¾‹å¦‚,å½“å°†æ•°æ®æ’å…¥è‡ªåŠ¨ç”Ÿæˆçš„æ•´æ•°é”®çš„è¡¨æ—¶,
+  ** VDBEå±‚è°ƒç”¨sqlite3BtreeLast()æ±‚å‡ºè¦ä½¿ç”¨çš„æ•´æ•°é”®ã€‚ç„¶åè°ƒç”¨è¿™ä¸ªå‡½æ•°æ¥æ’å…¥æ•°æ®åˆ°intkeyBæ ‘ã€‚åœ¨è¿™ç§æƒ…å†µ
+  ** ä¸‹btreeMoveto()è¯†åˆ«æ¸¸æ ‡å·²ç»åœ¨éœ€è¦å®ƒçš„åœ°æ–¹,å¹¶è¿”å›ã€‚ä¸ºäº†é¿å…å½±å“è¿™äº›ä¼˜åŒ–,ä¸æ¸…é™¤è¿™é‡Œçš„æ¸¸æ ‡æ˜¯å¾ˆé‡è¦çš„ã€‚
   */ 
-  rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);     /*±£´æËùÓĞÓÎ±ê*/
+  rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);     /*ä¿å­˜æ‰€æœ‰æ¸¸æ ‡*/
   if( rc ) return rc;
 
   /* If this is an insert into a table b-tree, invalidate any incrblob 
   ** cursors open on the row being replaced (assuming this is a replace
   ** operation - if it is not, the following is a no-op).  
-  ** Èç¹û²åÈëµ½±íBÊ÷£¬Ê¹ÔÚ±»Ìæ»»µÄĞĞÉÏµÄÈÎºÎ¿ª·ÅĞÔµÄµİÔöblobÓÎ±ê.(¼ÙÉèÕâÊÇÒ»¸öÌæ»»²Ù×÷,Èç¹û²»ÊÇ£¬ÔòÎŞ²Ù×÷.)*/
+  ** å¦‚æœæ’å…¥åˆ°è¡¨Bæ ‘ï¼Œä½¿åœ¨è¢«æ›¿æ¢çš„è¡Œä¸Šçš„ä»»ä½•å¼€æ”¾æ€§çš„é€’å¢blobæ¸¸æ ‡.(å‡è®¾è¿™æ˜¯ä¸€ä¸ªæ›¿æ¢æ“ä½œ,å¦‚æœä¸æ˜¯ï¼Œåˆ™æ— æ“ä½œ.)*/
   if( pCur->pKeyInfo==0 ){
-    invalidateIncrblobCursors(p, nKey, 0);   //Ê¹¿ª·ÅµÄĞĞ»òĞĞÖĞµÄÒ»¸ö±»ĞŞ¸ÄµÄÒ»¸öincrblobÓÎ±êÎŞĞ§
+    invalidateIncrblobCursors(p, nKey, 0);   //ä½¿å¼€æ”¾çš„è¡Œæˆ–è¡Œä¸­çš„ä¸€ä¸ªè¢«ä¿®æ”¹çš„ä¸€ä¸ªincrblobæ¸¸æ ‡æ— æ•ˆ
   }
 
   if( !loc ){
@@ -7581,7 +7580,7 @@ int sqlite3BtreeInsert(          //²åÈëĞÂ¼ÇÂ¼µ½BÊ÷
           pCur->pgnoRoot, nKey, nData, pPage->pgno,
           loc==0 ? "overwrite" : "new entry"));
   assert( pPage->isInit );
-  allocateTempSpace(pBt); /*È·±£pBtÖ¸ÏòMX_CELL_SIZE(pBt)×Ö½Ú*/
+  allocateTempSpace(pBt); /*ç¡®ä¿pBtæŒ‡å‘MX_CELL_SIZE(pBt)å­—èŠ‚*/
   newCell = pBt->pTmpSpace;
   if( newCell==0 ) return SQLITE_NOMEM;
   rc = fillInCell(pPage, newCell, pKey, nKey, pData, nData, nZero, &szNew);
@@ -7601,8 +7600,8 @@ int sqlite3BtreeInsert(          //²åÈëĞÂ¼ÇÂ¼µ½BÊ÷
       memcpy(newCell, oldCell, 4);
     }
     szOld = cellSizePtr(pPage, oldCell);
-    rc = clearCell(pPage, oldCell);   //ÊÍ·ÅÈÎºÎÓë¸ø¶¨µ¥ÔªÏà¹ØµÄÒç³öÒ³
-    dropCell(pPage, idx, szOld, &rc); //É¾³ıpPageµÄµÚi¸öµ¥Ôª.
+    rc = clearCell(pPage, oldCell);   //é‡Šæ”¾ä»»ä½•ä¸ç»™å®šå•å…ƒç›¸å…³çš„æº¢å‡ºé¡µ
+    dropCell(pPage, idx, szOld, &rc); //åˆ é™¤pPageçš„ç¬¬iä¸ªå•å…ƒ.
     if( rc ) goto end_insert;
   }else if( loc<0 && pPage->nCell>0 ){
     assert( pPage->leaf );
@@ -7610,23 +7609,23 @@ int sqlite3BtreeInsert(          //²åÈëĞÂ¼ÇÂ¼µ½BÊ÷
   }else{
     assert( pPage->leaf );
   }
-  insertCell(pPage, idx, newCell, szNew, 0, 0, &rc); //ÔÚpPageµÄµ¥ÔªË÷Òıi´¦²åÈëÒ»¸öĞÂµ¥Ôª.pCellÖ¸Ïòµ¥ÔªµÄÄÚÈİ
+  insertCell(pPage, idx, newCell, szNew, 0, 0, &rc); //åœ¨pPageçš„å•å…ƒç´¢å¼•iå¤„æ’å…¥ä¸€ä¸ªæ–°å•å…ƒ.pCellæŒ‡å‘å•å…ƒçš„å†…å®¹
   assert( rc!=SQLITE_OK || pPage->nCell>0 || pPage->nOverflow>0 );
 
   /* If no error has occured and pPage has an overflow cell, call balance() 
   ** to redistribute the cells within the tree. Since balance() may move
   ** the cursor, zero the BtCursor.info.nSize and BtCursor.validNKey
   ** variables.
-  ** Èç¹ûÃ»ÓĞ´íÎó·¢Éú,ÇÒpPageÓĞÒç³öµ¥Ôª,µ÷ÓÃbalance()ÖØĞÂ·Ö²¼Ê÷ÄÚµÄµ¥Ôª¡£ÒòÎªbalance()
-  ** ¿ÉÄÜÒÆ¶¯ÓÎ±ê,ËùÒÔÇåÁãBtCursor.info.nSizeºÍBtCursor.validNKeyÁ½¸ö±äÁ¿¡£
+  ** å¦‚æœæ²¡æœ‰é”™è¯¯å‘ç”Ÿ,ä¸”pPageæœ‰æº¢å‡ºå•å…ƒ,è°ƒç”¨balance()é‡æ–°åˆ†å¸ƒæ ‘å†…çš„å•å…ƒã€‚å› ä¸ºbalance()
+  ** å¯èƒ½ç§»åŠ¨æ¸¸æ ‡,æ‰€ä»¥æ¸…é›¶BtCursor.info.nSizeå’ŒBtCursor.validNKeyä¸¤ä¸ªå˜é‡ã€‚
   ** Previous versions of SQLite called moveToRoot() to move the cursor
   ** back to the root page as balance() used to invalidate the contents
   ** of BtCursor.apPage[] and BtCursor.aiIdx[]. Instead of doing that,
   ** set the cursor state to "invalid". This makes common insert operations
   ** slightly faster.
-  ** µ±balance()ÓÃÓÚÊ¹BtCursorÄÚÈİÎŞĞ§Ê±£¬ÒÔÇ°SQLiteµÄ°æ±¾µ÷ÓÃmoveToRoot()À´ÒÆ¶¯ÓÎ±ê»Øµ½¸ùÒ³ÃæÓÃÀ´
-  ** Ê¹BtCursor.apPage[]ºÍBtCursor.aiIdx[]µÄÄÚÈİÎŞĞ§¡£Ïà·´,½«ÓÎ±ê×´Ì¬ÉèÖÃÎª¡°invalid¡±¡£ÕâÊ¹µÃ
-  ** ³£¼ûµÄ²åÈë²Ù×÷¸ü¿ì¡£
+  ** å½“balance()ç”¨äºä½¿BtCursorå†…å®¹æ— æ•ˆæ—¶ï¼Œä»¥å‰SQLiteçš„ç‰ˆæœ¬è°ƒç”¨moveToRoot()æ¥ç§»åŠ¨æ¸¸æ ‡å›åˆ°æ ¹é¡µé¢ç”¨æ¥
+  ** ä½¿BtCursor.apPage[]å’ŒBtCursor.aiIdx[]çš„å†…å®¹æ— æ•ˆã€‚ç›¸å,å°†æ¸¸æ ‡çŠ¶æ€è®¾ç½®ä¸ºâ€œinvalidâ€ã€‚è¿™ä½¿å¾—
+  ** å¸¸è§çš„æ’å…¥æ“ä½œæ›´å¿«ã€‚
   ** There is a subtle but important optimization here too. When inserting
   ** multiple records into an intkey b-tree using a single cursor (as can
   ** happen while processing an "INSERT INTO ... SELECT" statement), it
@@ -7635,22 +7634,22 @@ int sqlite3BtreeInsert(          //²åÈëĞÂ¼ÇÂ¼µ½BÊ÷
   ** entry in the table, and the next row inserted has an integer key
   ** larger than the largest existing key, it is possible to insert the
   ** row without seeking the cursor. This can be a big performance boost.
-  ** ÕâÀïÓĞÒ»¸öÎ¢Ğ¡µ«ÖØÒªµÄÓÅ»¯¡£µ±ÓÃÒ»¸öÓÎ±ê²åÈë¶à¸ö¼ÇÂ¼µ½Ò»¸öintkeyBÊ÷Ê±Ê¹(ÔÚ´¦ÀíÒ»¸ö
-  ** "INSERT INTO ... SELECT"Óï¾ä),Èç¹û¿ÉÄÜµÄ»°,Ê¹ÓÎ±êÖ¸Ïò±íÖĞ×îºóÒ»¸öÌõÄ¿ÕâÊÇÓĞÀûµÄ¡£
-  ** Èç¹ûÓÎ±êÖ¸Ïò±íÖĞ×îºóÒ»¸öÌõÄ¿,ÏÂÒ»ĞĞ²åÈëÓĞÒ»¸ö±ÈÒÑ´æÔÚµÄ×îºó¼üÖµÒª´óµÄÕûÊı¼üÖµ,Ëü¿ÉÒÔ
-  ** ÔÚÃ»ÓĞÓÎ±êµÄµÄĞĞ²åÈë¡£Õâ¿ÉÒÔ¼«´óµØÌá¸ßĞÔÄÜ¡£
+  ** è¿™é‡Œæœ‰ä¸€ä¸ªå¾®å°ä½†é‡è¦çš„ä¼˜åŒ–ã€‚å½“ç”¨ä¸€ä¸ªæ¸¸æ ‡æ’å…¥å¤šä¸ªè®°å½•åˆ°ä¸€ä¸ªintkeyBæ ‘æ—¶ä½¿(åœ¨å¤„ç†ä¸€ä¸ª
+  ** "INSERT INTO ... SELECT"è¯­å¥),å¦‚æœå¯èƒ½çš„è¯,ä½¿æ¸¸æ ‡æŒ‡å‘è¡¨ä¸­æœ€åä¸€ä¸ªæ¡ç›®è¿™æ˜¯æœ‰åˆ©çš„ã€‚
+  ** å¦‚æœæ¸¸æ ‡æŒ‡å‘è¡¨ä¸­æœ€åä¸€ä¸ªæ¡ç›®,ä¸‹ä¸€è¡Œæ’å…¥æœ‰ä¸€ä¸ªæ¯”å·²å­˜åœ¨çš„æœ€åé”®å€¼è¦å¤§çš„æ•´æ•°é”®å€¼,å®ƒå¯ä»¥
+  ** åœ¨æ²¡æœ‰æ¸¸æ ‡çš„çš„è¡Œæ’å…¥ã€‚è¿™å¯ä»¥æå¤§åœ°æé«˜æ€§èƒ½ã€‚
   */
   pCur->info.nSize = 0;
   pCur->validNKey = 0;
-  if( rc==SQLITE_OK && pPage->nOverflow ){   /*pPageÓĞÒç³öµÄµ¥Ôª¸ñ£¬µ÷ÓÃbalance(pCur)Æ½ºâBÊ÷*/
+  if( rc==SQLITE_OK && pPage->nOverflow ){   /*pPageæœ‰æº¢å‡ºçš„å•å…ƒæ ¼ï¼Œè°ƒç”¨balance(pCur)å¹³è¡¡Bæ ‘*/
     rc = balance(pCur);
 
     /* Must make sure nOverflow is reset to zero even if the balance()
     ** fails. Internal data structure corruption will result otherwise. 
     ** Also, set the cursor state to invalid. This stops saveCursorPosition()
     ** from trying to save the current position of the cursor.  
-	** ±ØĞëÈ·±£nOverflow¸´Î»ÎªÁã,¼´Ê¹balance()Ê§°Ü.ÄÚ²¿Êı¾İ½á¹¹±ÀÀ£½«µ¼ÖÂÆäËû½á¹û¡£Ò²ÒªÉèÖÃÓÎ±ê×´Ì¬ÎªÎŞĞ§¡£
-	** Õâ½«Ê¹saveCursorPosition()´ÓÊÔÍ¼±£´æµ±Ç°¹â±êµÄÎ»ÖÃÍ£Ö¹*/
+	** å¿…é¡»ç¡®ä¿nOverflowå¤ä½ä¸ºé›¶,å³ä½¿balance()å¤±è´¥.å†…éƒ¨æ•°æ®ç»“æ„å´©æºƒå°†å¯¼è‡´å…¶ä»–ç»“æœã€‚ä¹Ÿè¦è®¾ç½®æ¸¸æ ‡çŠ¶æ€ä¸ºæ— æ•ˆã€‚
+	** è¿™å°†ä½¿saveCursorPosition()ä»è¯•å›¾ä¿å­˜å½“å‰å…‰æ ‡çš„ä½ç½®åœæ­¢*/
     pCur->apPage[pCur->iPage]->nOverflow = 0;
     pCur->eState = CURSOR_INVALID;
   }
@@ -7663,17 +7662,17 @@ end_insert:
 /*
 ** Delete the entry that the cursor is pointing to.  The cursor
 ** is left pointing at a arbitrary location. 
-** É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»ÖÃ¡£
+** åˆ é™¤æ¸¸æ ‡æŒ‡å‘çš„æ¡ç›®ï¼Œä½¿ä¹‹æŒ‡ç€ä»»æ„ä½ç½®ã€‚
 */
-/*É¾³ıÓÎ±êËùÖ¸¼ÇÂ¼*/
-int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»ÖÃ
+/*åˆ é™¤æ¸¸æ ‡æ‰€æŒ‡è®°å½•*/
+int sqlite3BtreeDelete(BtCursor *pCur){    //åˆ é™¤æ¸¸æ ‡æŒ‡å‘çš„æ¡ç›®ï¼Œä½¿ä¹‹æŒ‡ç€ä»»æ„ä½ç½®
   Btree *p = pCur->pBtree;
   BtShared *pBt = p->pBt;              
-  int rc;                              /* Return code */                     //·µ»Ø´úÂë
-  MemPage *pPage;                      /* Page to delete cell from */        //ÒªÉ¾³ıµ¥ÔªËùÔÚµÄÒ³
-  unsigned char *pCell;                /* Pointer to cell to delete */       //½«ÒªÉ¾³ıµ¥ÔªµÄÖ¸Õë
-  int iCellIdx;                        /* Index of cell to delete */         //ÒªÉ¾³ıµ¥ÔªµÄË÷Òı
-  int iCellDepth;                      /* Depth of node containing pCell */  //°üº¬pCellµÄµ¥ÔªÉî¶È
+  int rc;                              /* Return code */                     //è¿”å›ä»£ç 
+  MemPage *pPage;                      /* Page to delete cell from */        //è¦åˆ é™¤å•å…ƒæ‰€åœ¨çš„é¡µ
+  unsigned char *pCell;                /* Pointer to cell to delete */       //å°†è¦åˆ é™¤å•å…ƒçš„æŒ‡é’ˆ
+  int iCellIdx;                        /* Index of cell to delete */         //è¦åˆ é™¤å•å…ƒçš„ç´¢å¼•
+  int iCellDepth;                      /* Depth of node containing pCell */  //åŒ…å«pCellçš„å•å…ƒæ·±åº¦
 
   assert( cursorHoldsMutex(pCur) );
   assert( pBt->inTransaction==TRANS_WRITE );
@@ -7700,12 +7699,12 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»Ö
   ** of the 'next' entry, as the previous entry is always a part of the
   ** sub-tree headed by the child page of the cell being deleted. This makes
   ** balancing the tree following the delete operation easier.  
-  ** Èç¹ûÒ³Ãæ°üº¬ÒªÉ¾³ıµÄÌõÄ¿²»ÊÇÒ¶×ÓÒ³Ãæ,ÒÆ¶¯ÓÎ±êµ½Ê÷ÖĞ±ÈÒªÉ¾³ıÌõÄ¿Ğ¡µÄ×î´óµÄÌõÄ¿¡£
-  ** Õâ¸öµ¥Ôª½«È¡´ú´ÓÄÚ²¿½Úµã±»É¾³ıµÄµ¥Ôª¡£ÒÔÇ°µÄÌõÄ¿ÓÃÓÚ´Ë´úÌæ¡°next¡±ÌõÄ¿,ÒòÎªÇ°Ãæ
-  ** µÄÌõÄ¿×ÜÊÇÒªÉ¾³ıµ¥ÔªµÄº¢×ÓÒ³´øÁìµÄ×ÓÊ÷µÄÒ»²¿·Ö¡£ÕâÊ¹µÃÉ¾³ı²Ù×÷ºóÊ÷µÄÆ½ºâÔì×÷¸üÈİÒ×¡£*/
+  ** å¦‚æœé¡µé¢åŒ…å«è¦åˆ é™¤çš„æ¡ç›®ä¸æ˜¯å¶å­é¡µé¢,ç§»åŠ¨æ¸¸æ ‡åˆ°æ ‘ä¸­æ¯”è¦åˆ é™¤æ¡ç›®å°çš„æœ€å¤§çš„æ¡ç›®ã€‚
+  ** è¿™ä¸ªå•å…ƒå°†å–ä»£ä»å†…éƒ¨èŠ‚ç‚¹è¢«åˆ é™¤çš„å•å…ƒã€‚ä»¥å‰çš„æ¡ç›®ç”¨äºæ­¤ä»£æ›¿â€œnextâ€æ¡ç›®,å› ä¸ºå‰é¢
+  ** çš„æ¡ç›®æ€»æ˜¯è¦åˆ é™¤å•å…ƒçš„å­©å­é¡µå¸¦é¢†çš„å­æ ‘çš„ä¸€éƒ¨åˆ†ã€‚è¿™ä½¿å¾—åˆ é™¤æ“ä½œåæ ‘çš„å¹³è¡¡é€ ä½œæ›´å®¹æ˜“ã€‚*/
   if( !pPage->leaf ){
     int notUsed;
-    rc = sqlite3BtreePrevious(pCur, &notUsed);  //Öğ²½Ê¹ÓÎ±ê»Øµ½Êı¾İ¿âÖĞÒÔÇ°µÄÌõÄ¿
+    rc = sqlite3BtreePrevious(pCur, &notUsed);  //é€æ­¥ä½¿æ¸¸æ ‡å›åˆ°æ•°æ®åº“ä¸­ä»¥å‰çš„æ¡ç›®
     if( rc ) return rc;
   }
 
@@ -7713,17 +7712,17 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»Ö
   ** making any modifications. Make the page containing the entry to be 
   ** deleted writable. Then free any overflow pages associated with the 
   ** entry and finally remove the cell itself from within the page. 
-  ** ÔÚÈÎºÎĞŞ¸ÄÖ®Ç°£¬±£´æËùÓĞÆäËûÔÚ´Ë±íÉÏ¿ª·ÅµÄÓÎ±êµÄÎ»ÖÃ¡£Ê¹Ò³Ãæ°üº¬ÒªÉ¾³ıµÄ¿ÉĞ´µÄÌõÄ¿¡£
-  ** È»ºóÊÍ·ÅÈÎºÎÓëÌõÄ¿Ïà¹ØµÄÒç³öÒ³,×îºóÉ¾³ıÒ³ÃæÄÚµÄµ¥Ôª±¾Éí¡£
+  ** åœ¨ä»»ä½•ä¿®æ”¹ä¹‹å‰ï¼Œä¿å­˜æ‰€æœ‰å…¶ä»–åœ¨æ­¤è¡¨ä¸Šå¼€æ”¾çš„æ¸¸æ ‡çš„ä½ç½®ã€‚ä½¿é¡µé¢åŒ…å«è¦åˆ é™¤çš„å¯å†™çš„æ¡ç›®ã€‚
+  ** ç„¶åé‡Šæ”¾ä»»ä½•ä¸æ¡ç›®ç›¸å…³çš„æº¢å‡ºé¡µ,æœ€ååˆ é™¤é¡µé¢å†…çš„å•å…ƒæœ¬èº«ã€‚
   */
-  rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);/*ĞŞ¸ÄÖ®Ç°±£´æËùÓĞ´ò¿ªµÄÓÎ±ê*/
+  rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);/*ä¿®æ”¹ä¹‹å‰ä¿å­˜æ‰€æœ‰æ‰“å¼€çš„æ¸¸æ ‡*/
   if( rc ) return rc;
 
   /* If this is a delete operation to remove a row from a table b-tree,
   ** invalidate any incrblob cursors open on the row being deleted.  
-  ** Èç¹ûÊÇ´ÓÒ»¸öBÊ÷±íÖĞÉ¾³ıÒ»ĞĞµÄÉ¾³ı²Ù×÷,Ê¹ÔÚĞĞÉÏ±»É¾³ıµÄ´ò¿ªµÄÈÎºÎincrblobÓÎ±êÎŞĞ§¡£*/
+  ** å¦‚æœæ˜¯ä»ä¸€ä¸ªBæ ‘è¡¨ä¸­åˆ é™¤ä¸€è¡Œçš„åˆ é™¤æ“ä½œ,ä½¿åœ¨è¡Œä¸Šè¢«åˆ é™¤çš„æ‰“å¼€çš„ä»»ä½•incrblobæ¸¸æ ‡æ— æ•ˆã€‚*/
   if( pCur->pKeyInfo==0 ){
-    invalidateIncrblobCursors(p, pCur->info.nKey, 0);/*Èç¹ûÎªÉ¾³ı²Ù×÷£¬Ê¹ËùÓĞincrblobÓÎ±êÎŞĞ§*/
+    invalidateIncrblobCursors(p, pCur->info.nKey, 0);/*å¦‚æœä¸ºåˆ é™¤æ“ä½œï¼Œä½¿æ‰€æœ‰incrblobæ¸¸æ ‡æ— æ•ˆ*/
   }
 
   rc = sqlite3PagerWrite(pPage->pDbPage);
@@ -7737,8 +7736,8 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»Ö
   ** by the child-page of the cell that was just deleted from an internal
   ** node. The cell from the leaf node needs to be moved to the internal
   ** node to replace the deleted cell. 
-  ** Èç¹ûÉ¾³ıµ¥Ôª²¢²»Î»ÓÚÒ¶×ÓÒ³Ãæ,È»ºóÓÎ±êµ±Ç°Ö¸Ïò×ÓÊ÷ÖĞµÄ×î´óµÄÌõÄ¿£¬Õâ¸öÌõÄ¿ÔÚ×ÓÊ÷ÖĞ±»´Ó
-  ** Ò»¸öÄÚ²¿½ÚµãÖĞÉ¾³ıµÄµ¥ÔªµÄº¢×ÓÒ³Ãæ¸ú´Ó¡£Ò¶½ÚµãµÄµ¥ÔªĞèÒªÒÆ¶¯µ½ÄÚ²¿½ÚµãÌæ»»É¾³ıµÄµ¥Ôª¡£*/
+  ** å¦‚æœåˆ é™¤å•å…ƒå¹¶ä¸ä½äºå¶å­é¡µé¢,ç„¶åæ¸¸æ ‡å½“å‰æŒ‡å‘å­æ ‘ä¸­çš„æœ€å¤§çš„æ¡ç›®ï¼Œè¿™ä¸ªæ¡ç›®åœ¨å­æ ‘ä¸­è¢«ä»
+  ** ä¸€ä¸ªå†…éƒ¨èŠ‚ç‚¹ä¸­åˆ é™¤çš„å•å…ƒçš„å­©å­é¡µé¢è·Ÿä»ã€‚å¶èŠ‚ç‚¹çš„å•å…ƒéœ€è¦ç§»åŠ¨åˆ°å†…éƒ¨èŠ‚ç‚¹æ›¿æ¢åˆ é™¤çš„å•å…ƒã€‚*/
   if( !pPage->leaf ){
     MemPage *pLeaf = pCur->apPage[pCur->iPage];
     int nCell;
@@ -7753,7 +7752,7 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»Ö
     pTmp = pBt->pTmpSpace;
 
     rc = sqlite3PagerWrite(pLeaf->pDbPage);
-    insertCell(pPage, iCellIdx, pCell-4, nCell+4, pTmp, n, &rc);/*Ò¶×Ó½áµãÉÏµÄµ¥Ôª¸ñÒÆµ½ÄÚ²¿½áµã´úÌæÉ¾³ıµÄµ¥Ôª¸ñ*/
+    insertCell(pPage, iCellIdx, pCell-4, nCell+4, pTmp, n, &rc);/*å¶å­ç»“ç‚¹ä¸Šçš„å•å…ƒæ ¼ç§»åˆ°å†…éƒ¨ç»“ç‚¹ä»£æ›¿åˆ é™¤çš„å•å…ƒæ ¼*/
     dropCell(pLeaf, pLeaf->nCell-1, nCell, &rc);
     if( rc ) return rc;
   }
@@ -7762,8 +7761,8 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»Ö
   ** then the cursor still points to that page. In this case the first
   ** call to balance() repairs the tree, and the if(...) condition is
   ** never true.
-  ** Æ½ºâÊ÷¡£Èç¹ûÉ¾³ıµÄÌõÄ¿Î»ÓÚÒ¶×ÓÒ³Ãæ,ÄÇÃ´ÓÎ±êÈÔÖ¸ÏòÕâ¸öÒ³Ãæ¡£ÔÚÕâÖÖÇé¿öÏÂ,
-  ** µÚÒ»´Îµ÷ÓÃbalance()µ÷ÕûÊ÷£¬²¢ÇÒif(...)Ìõ¼ş²»»áÎªtrue¡£
+  ** å¹³è¡¡æ ‘ã€‚å¦‚æœåˆ é™¤çš„æ¡ç›®ä½äºå¶å­é¡µé¢,é‚£ä¹ˆæ¸¸æ ‡ä»æŒ‡å‘è¿™ä¸ªé¡µé¢ã€‚åœ¨è¿™ç§æƒ…å†µä¸‹,
+  ** ç¬¬ä¸€æ¬¡è°ƒç”¨balance()è°ƒæ•´æ ‘ï¼Œå¹¶ä¸”if(...)æ¡ä»¶ä¸ä¼šä¸ºtrueã€‚
   ** Otherwise, if the entry deleted was on an internal node page, then
   ** pCur is pointing to the leaf page from which a cell was removed to
   ** replace the cell deleted from the internal node. This is slightly
@@ -7774,10 +7773,10 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»Ö
   ** been corrected, so be it. Otherwise, after balancing the leaf node,
   ** walk the cursor up the tree to the internal node and balance it as 
   ** well.  
-  ** Èç¹ûÒªÉ¾³ıµÄÌõÄ¿ÊÇÔÚÒ»¸öÄÚ²¿½ÚµãÒ³ÉÏ£¬ÄÇÃ´pCurÖ¸ÏòÒ¶×ÓÒ³Ãæ£¬¸ÃÒ¶×ÓÒ³ÃæÉÏµÄµ¥Ôª
-  ** ±»ÒÆ³ıÌæ»»ÄÚ²¿½ÚµãÖĞ±»É¾³ıµÄµ¥Ôª.ÕâÖÖÇé¿öÓĞµã¼¬ÊÖ£¬ÒòÎªÒ¶½Úµã¿ÉÄÜ²»¹»Âú²¢ÇÒÄÚ²¿½Úµã
-  ** ¿ÉÄÜÂúÒ²¿ÉÄÜ²»Âú.ÕâÊ±Ê×ÏÈÔÚÒ¶½ÚµãÉÏÔËĞĞÆ½ºâËã·¨.Èç¹ûÆ½ºâ¹ı³Ì×ã¹»,ÎÒÃÇ¿ÉÒÔ¿Ï¶¨,ÔÚÄÚ²¿½Ú
-  ** µãÈÎºÎÎÊÌâ¶¼±»ĞŞÕı,ËùÒÔÖ´ĞĞ.·ñÔò,Ò¶×Ó½ÚµãÆ½ºâºó, Ëæ×ÅÓÎ±ê±éÀúÊ÷µÄÄÚ²¿½Úµã²¢Æ½ºâËü.*/
+  ** å¦‚æœè¦åˆ é™¤çš„æ¡ç›®æ˜¯åœ¨ä¸€ä¸ªå†…éƒ¨èŠ‚ç‚¹é¡µä¸Šï¼Œé‚£ä¹ˆpCuræŒ‡å‘å¶å­é¡µé¢ï¼Œè¯¥å¶å­é¡µé¢ä¸Šçš„å•å…ƒ
+  ** è¢«ç§»é™¤æ›¿æ¢å†…éƒ¨èŠ‚ç‚¹ä¸­è¢«åˆ é™¤çš„å•å…ƒ.è¿™ç§æƒ…å†µæœ‰ç‚¹æ£˜æ‰‹ï¼Œå› ä¸ºå¶èŠ‚ç‚¹å¯èƒ½ä¸å¤Ÿæ»¡å¹¶ä¸”å†…éƒ¨èŠ‚ç‚¹
+  ** å¯èƒ½æ»¡ä¹Ÿå¯èƒ½ä¸æ»¡.è¿™æ—¶é¦–å…ˆåœ¨å¶èŠ‚ç‚¹ä¸Šè¿è¡Œå¹³è¡¡ç®—æ³•.å¦‚æœå¹³è¡¡è¿‡ç¨‹è¶³å¤Ÿ,æˆ‘ä»¬å¯ä»¥è‚¯å®š,åœ¨å†…éƒ¨èŠ‚
+  ** ç‚¹ä»»ä½•é—®é¢˜éƒ½è¢«ä¿®æ­£,æ‰€ä»¥æ‰§è¡Œ.å¦åˆ™,å¶å­èŠ‚ç‚¹å¹³è¡¡å, éšç€æ¸¸æ ‡éå†æ ‘çš„å†…éƒ¨èŠ‚ç‚¹å¹¶å¹³è¡¡å®ƒ.*/
   rc = balance(pCur);
   if( rc==SQLITE_OK && pCur->iPage>iCellDepth ){
     while( pCur->iPage>iCellDepth ){
@@ -7795,73 +7794,73 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //É¾³ıÓÎ±êÖ¸ÏòµÄÌõÄ¿£¬Ê¹Ö®Ö¸×ÅÈÎÒâÎ»Ö
 /*
 ** Create a new BTree table.  Write into *piTable the page
 ** number for the root page of the new table.
-** ´´½¨ĞÂµÄBÊ÷±í¡£½«ĞÂ±í¸ùÒ³µÄÒ³ÂëĞ´µ½*piTableÖĞ¡£
+** åˆ›å»ºæ–°çš„Bæ ‘è¡¨ã€‚å°†æ–°è¡¨æ ¹é¡µçš„é¡µç å†™åˆ°*piTableä¸­ã€‚
 ** The type of type is determined by the flags parameter.  Only the
 ** following values of flags are currently in use.  Other values for
 ** flags might not work:
-** ÀàĞÍÓÉ±êÖ¾²ÎÊı¾ö¶¨£¬±êÖ¾²ÎÊıÖ»ÓĞÒÔÏÂµÄ¿ÉÓÃ¡£ÆäËû±êÖ¾¿ÉÄÜÃ»ÓĞ×÷ÓÃ.
-**     BTREE_INTKEY|BTREE_LEAFDATA     Used for SQL tables with rowid keys   //¸Ã±êÇ©ÓÃÓÚ´øÓĞÁĞid¼üÖµµÄSQL±í
-**     BTREE_ZERODATA                  Used for SQL indices                  //¸Ã±êÇ©ÓÃÓÚSQLË÷Òı
+** ç±»å‹ç”±æ ‡å¿—å‚æ•°å†³å®šï¼Œæ ‡å¿—å‚æ•°åªæœ‰ä»¥ä¸‹çš„å¯ç”¨ã€‚å…¶ä»–æ ‡å¿—å¯èƒ½æ²¡æœ‰ä½œç”¨.
+**     BTREE_INTKEY|BTREE_LEAFDATA     Used for SQL tables with rowid keys   //è¯¥æ ‡ç­¾ç”¨äºå¸¦æœ‰åˆ—idé”®å€¼çš„SQLè¡¨
+**     BTREE_ZERODATA                  Used for SQL indices                  //è¯¥æ ‡ç­¾ç”¨äºSQLç´¢å¼•
 */
 /*
-´´½¨Ò»¸öbtree±í¸ñ
-ÒÆ¶¯ÏÖÓĞÊı¾İ¿âÎªĞÂ±íµÄ¸ùÒ³ÃæÌÚ³ö¿Õ¼ä
-ÓÃĞÂ¸ùÒ³¸üĞÂÓ³Éä¼Ä´æÆ÷ºÍmetadata
-ĞÂ±í¸ùÒ³µÄÒ³ºÅ·ÅÈëPgnoRoot²¢Ğ´ÈëpiTable
+åˆ›å»ºä¸€ä¸ªbtreeè¡¨æ ¼
+ç§»åŠ¨ç°æœ‰æ•°æ®åº“ä¸ºæ–°è¡¨çš„æ ¹é¡µé¢è…¾å‡ºç©ºé—´
+ç”¨æ–°æ ¹é¡µæ›´æ–°æ˜ å°„å¯„å­˜å™¨å’Œmetadata
+æ–°è¡¨æ ¹é¡µçš„é¡µå·æ”¾å…¥PgnoRootå¹¶å†™å…¥piTable
 */
-static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //´´½¨ĞÂµÄBÊ÷±í.ĞÂ±í¸ùÒ³Ò³ÂëĞ´µ½*piTable
+static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //åˆ›å»ºæ–°çš„Bæ ‘è¡¨.æ–°è¡¨æ ¹é¡µé¡µç å†™åˆ°*piTable
   BtShared *pBt = p->pBt;
   MemPage *pRoot;
   Pgno pgnoRoot;
   int rc;
-  int ptfFlags;          /* Page-type flage for the root page of new table */ //ĞÂ±í¸ùÒ³µÄÒ³ÀàĞÍ±êÇ©
+  int ptfFlags;          /* Page-type flage for the root page of new table */ //æ–°è¡¨æ ¹é¡µçš„é¡µç±»å‹æ ‡ç­¾
 
   assert( sqlite3BtreeHoldsMutex(p) );
   assert( pBt->inTransaction==TRANS_WRITE );
   assert( (pBt->btsFlags & BTS_READ_ONLY)==0 );
 
 #ifdef SQLITE_OMIT_AUTOVACUUM
-  rc = allocateBtreePage(pBt, &pRoot, &pgnoRoot, 1, 0);/*·ÖÅäÒ»¸öBÊ÷Ò³Ãæ*/
+  rc = allocateBtreePage(pBt, &pRoot, &pgnoRoot, 1, 0);/*åˆ†é…ä¸€ä¸ªBæ ‘é¡µé¢*/
   if( rc ){
     return rc;
   }
 #else
   if( pBt->autoVacuum ){
-    Pgno pgnoMove;      /* Move a page here to make room for the root-page */ //ÒÆ¶¯Ò»¸öÒ³µ½´Ë´¦Îª¸ùÒ³ÌÚ³ö¿Õ¼ä
-    MemPage *pPageMove; /* The page to move to. */    //ÒªÒÆ¶¯µÄÒ³
+    Pgno pgnoMove;      /* Move a page here to make room for the root-page */ //ç§»åŠ¨ä¸€ä¸ªé¡µåˆ°æ­¤å¤„ä¸ºæ ¹é¡µè…¾å‡ºç©ºé—´
+    MemPage *pPageMove; /* The page to move to. */    //è¦ç§»åŠ¨çš„é¡µ
 
     /* Creating a new table may probably require moving an existing database
     ** to make room for the new tables root page. In case this page turns
     ** out to be an overflow page, delete all overflow page-map caches
     ** held by open cursors.
-	** ´´½¨Ò»¸öĞÂ±í¿ÉÄÜÒªÒÆ¶¯Ò»¸ö´æÔÚµÄÊı¾İ¿âÀ´ÎªĞÂ±íµÄ¸ùÒ³ÌÚ³ö¿Õ¼ä¡£¼ÓÈë¸ÃÒ³ÊÇÒ»¸öÒç³öÒ³£¬ÄÇÃ´É¾³ı¿ª·ÅĞÔÓÎ±ê
-	** ÓµÓĞµÄËùÓĞÒç³öÒ³Ó³Éä»º´æ¡£
+	** åˆ›å»ºä¸€ä¸ªæ–°è¡¨å¯èƒ½è¦ç§»åŠ¨ä¸€ä¸ªå­˜åœ¨çš„æ•°æ®åº“æ¥ä¸ºæ–°è¡¨çš„æ ¹é¡µè…¾å‡ºç©ºé—´ã€‚åŠ å…¥è¯¥é¡µæ˜¯ä¸€ä¸ªæº¢å‡ºé¡µï¼Œé‚£ä¹ˆåˆ é™¤å¼€æ”¾æ€§æ¸¸æ ‡
+	** æ‹¥æœ‰çš„æ‰€æœ‰æº¢å‡ºé¡µæ˜ å°„ç¼“å­˜ã€‚
     */
-    invalidateAllOverflowCache(pBt); //ÔÚ¹²ÏíBÊ÷½á¹¹pBtÉÏ£¬¶ÔËùÓĞ´ò¿ªµÄÓÎ±êÊ¹Òç³öÒ³ÁĞ±íÎŞĞ§
+    invalidateAllOverflowCache(pBt); //åœ¨å…±äº«Bæ ‘ç»“æ„pBtä¸Šï¼Œå¯¹æ‰€æœ‰æ‰“å¼€çš„æ¸¸æ ‡ä½¿æº¢å‡ºé¡µåˆ—è¡¨æ— æ•ˆ
 
     /* Read the value of meta[3] from the database to determine where the
     ** root page of the new table should go. meta[3] is the largest root-page
     ** created so far, so the new root-page is (meta[3]+1).
-	** ´ÓÊı¾İ¿âÖĞ¶ÁÈ¡meta[3]µÄÖµÀ´¾ö¶¨ĞÂ±íµÄ¸ùÒ³Ó¦ÔÚµÄÎ»ÖÃ.meta[3]ÊÇÄ¿Ç°ÒÔ´´½¨µÄ×î´óµÄ¸ùÒ³¡£Òò´ËĞÂ¸ùÒ³ÊÇmeta[3]+1.
+	** ä»æ•°æ®åº“ä¸­è¯»å–meta[3]çš„å€¼æ¥å†³å®šæ–°è¡¨çš„æ ¹é¡µåº”åœ¨çš„ä½ç½®.meta[3]æ˜¯ç›®å‰ä»¥åˆ›å»ºçš„æœ€å¤§çš„æ ¹é¡µã€‚å› æ­¤æ–°æ ¹é¡µæ˜¯meta[3]+1.
     */
-    sqlite3BtreeGetMeta(p, BTREE_LARGEST_ROOT_PAGE, &pgnoRoot);/*»ñÈ¡×î´ó¸ùÒ³meta*/
-    pgnoRoot++; /*ĞÂÒ³=¸ùÒ³+1*/
+    sqlite3BtreeGetMeta(p, BTREE_LARGEST_ROOT_PAGE, &pgnoRoot);/*è·å–æœ€å¤§æ ¹é¡µmeta*/
+    pgnoRoot++; /*æ–°é¡µ=æ ¹é¡µ+1*/
 
     /* The new root-page may not be allocated on a pointer-map page, or the
-    ** PENDING_BYTE page. //ĞÂ¸ùÒ³Ò²ĞíÃ»ÓĞÔÚÖ¸ÕëÎ»Í¼Ò³»òPENDING_BYTEÒ³ÉÏ·ÖÅä¡£
+    ** PENDING_BYTE page. //æ–°æ ¹é¡µä¹Ÿè®¸æ²¡æœ‰åœ¨æŒ‡é’ˆä½å›¾é¡µæˆ–PENDING_BYTEé¡µä¸Šåˆ†é…ã€‚
     */
     while( pgnoRoot==PTRMAP_PAGENO(pBt, pgnoRoot) ||
         pgnoRoot==PENDING_BYTE_PAGE(pBt) ){
-      pgnoRoot++;/*ĞÂµÄ¸ùÒ³²»ÄÜÊÇpointer-map page»òÕßPENDING_BYTE page*/
+      pgnoRoot++;/*æ–°çš„æ ¹é¡µä¸èƒ½æ˜¯pointer-map pageæˆ–è€…PENDING_BYTE page*/
     }
     assert( pgnoRoot>=3 );
 
     /* Allocate a page. The page that currently resides at pgnoRoot will
     ** be moved to the allocated page (unless the allocated page happens
     ** to reside at pgnoRoot).
-	** ·ÖÅäÒ»¸öÒ³.µ±Ç°×¤ÁôÔÚ pgnoRootÉÏÒ³½«ÒÆ¶¯µ½·ÖÅäµÄÒ³(³ı·Ç·ÖÅäµÄÒ³ÒÑ¾­×¤ÁôÔÚ pgnoRootÖĞ).
+	** åˆ†é…ä¸€ä¸ªé¡µ.å½“å‰é©»ç•™åœ¨ pgnoRootä¸Šé¡µå°†ç§»åŠ¨åˆ°åˆ†é…çš„é¡µ(é™¤éåˆ†é…çš„é¡µå·²ç»é©»ç•™åœ¨ pgnoRootä¸­).
     */
-    rc = allocateBtreePage(pBt, &pPageMove, &pgnoMove, pgnoRoot,1);//´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³Ãæ,³É¹¦Ôò·µ»ØSQLITE_OK
+    rc = allocateBtreePage(pBt, &pPageMove, &pgnoMove, pgnoRoot,1);//ä»æ•°æ®åº“æ–‡ä»¶åˆ†é…ä¸€ä¸ªæ–°é¡µé¢,æˆåŠŸåˆ™è¿”å›SQLITE_OK
     if( rc!=SQLITE_OK ){
       return rc;
     }
@@ -7872,20 +7871,20 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //´´½¨Ğ
       ** allocated pgnoMove. If required (i.e. if it was not allocated
       ** by extending the file), the current page at position pgnoMove
       ** is already journaled.
-	  ** pgnoRootÊÇ½«±»ÓÃ×÷ĞÂ±í¸ùÒ³µÄÒ³Ãæ(¼ÙÉèÃ»ÓĞ·¢Éú´íÎóµÄ»°)¡£µ«·ÖÅäpgnoMove¡£
-	  ** Èç¹ûĞèÒª(¼´Èç¹ûÃ»ÓĞ±»À©Õ¹ÎÄ¼ş·ÖÅä),ÄÇÃ´µ±Ç°Ò³ÃæÎ»ÖÃpgnoMove¼ÇÂ¼µ½ÈÕÖ¾¡£
+	  ** pgnoRootæ˜¯å°†è¢«ç”¨ä½œæ–°è¡¨æ ¹é¡µçš„é¡µé¢(å‡è®¾æ²¡æœ‰å‘ç”Ÿé”™è¯¯çš„è¯)ã€‚ä½†åˆ†é…pgnoMoveã€‚
+	  ** å¦‚æœéœ€è¦(å³å¦‚æœæ²¡æœ‰è¢«æ‰©å±•æ–‡ä»¶åˆ†é…),é‚£ä¹ˆå½“å‰é¡µé¢ä½ç½®pgnoMoveè®°å½•åˆ°æ—¥å¿—ã€‚
       */
       u8 eType = 0;
       Pgno iPtrPage = 0;
 
       releasePage(pPageMove);
 
-      /* Move the page currently at pgnoRoot to pgnoMove. */  //ÒÆ¶¯µ±Ç°ÔÚpgnoRootµÄÒ³Ãæµ½pgnoMove.
-      rc = btreeGetPage(pBt, pgnoRoot, &pRoot, 0); //´ÓÒ³¶ÔÏóµÃµ½Ò»¸öÒ³.ÈôĞèÒª,Ôò³õÊ¼»¯MemPage.pBtºÍMemPage.aData
+      /* Move the page currently at pgnoRoot to pgnoMove. */  //ç§»åŠ¨å½“å‰åœ¨pgnoRootçš„é¡µé¢åˆ°pgnoMove.
+      rc = btreeGetPage(pBt, pgnoRoot, &pRoot, 0); //ä»é¡µå¯¹è±¡å¾—åˆ°ä¸€ä¸ªé¡µ.è‹¥éœ€è¦,åˆ™åˆå§‹åŒ–MemPage.pBtå’ŒMemPage.aData
       if( rc!=SQLITE_OK ){
         return rc;
       }
-      rc = ptrmapGet(pBt, pgnoRoot, &eType, &iPtrPage);  //´ÓÖ¸ÕëÎ»Í¼¶ÁÈ¡
+      rc = ptrmapGet(pBt, pgnoRoot, &eType, &iPtrPage);  //ä»æŒ‡é’ˆä½å›¾è¯»å–
       if( eType==PTRMAP_ROOTPAGE || eType==PTRMAP_FREEPAGE ){
         rc = SQLITE_CORRUPT_BKPT;
       }
@@ -7895,10 +7894,10 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //´´½¨Ğ
       }
       assert( eType!=PTRMAP_ROOTPAGE );
       assert( eType!=PTRMAP_FREEPAGE );
-      rc = relocatePage(pBt, pRoot, eType, iPtrPage, pgnoMove, 0); //ÒÆ¶¯¿ª·ÅÊı¾İ¿âÒ³pRootµ½Òª´æ·ÅÎ»ÖÃpgnoMove
+      rc = relocatePage(pBt, pRoot, eType, iPtrPage, pgnoMove, 0); //ç§»åŠ¨å¼€æ”¾æ•°æ®åº“é¡µpRootåˆ°è¦å­˜æ”¾ä½ç½®pgnoMove
       releasePage(pRoot);
 
-      /* Obtain the page at pgnoRoot */  //»ñµÃÔÚpgnoRootÉÏµÄÒ³
+      /* Obtain the page at pgnoRoot */  //è·å¾—åœ¨pgnoRootä¸Šçš„é¡µ
       if( rc!=SQLITE_OK ){
         return rc;
       }
@@ -7916,7 +7915,7 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //´´½¨Ğ
     } 
 
     /* Update the pointer-map and meta-data with the new root-page number. */
-	//¸üĞÂ´øÓĞĞÂ¸ùÒ³µÄÖ¸ÕëÎ»Í¼ºÍÔªÊı¾İ
+	//æ›´æ–°å¸¦æœ‰æ–°æ ¹é¡µçš„æŒ‡é’ˆä½å›¾å’Œå…ƒæ•°æ®
     ptrmapPut(pBt, pgnoRoot, PTRMAP_ROOTPAGE, 0, &rc);
     if( rc ){
       releasePage(pRoot);
@@ -7926,18 +7925,18 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //´´½¨Ğ
     /* When the new root page was allocated, page 1 was made writable in
     ** order either to increase the database filesize, or to decrement the
     ** freelist count.  Hence, the sqlite3BtreeUpdateMeta() call cannot fail.
-	** µ±ĞÂ¸ùÒ³Ãæ·ÖÅäÊ±,µÚÒ»Ò³ÊÇ¿ÉĞ´µÄÎªÁËÔö¼ÓÊı¾İ¿âÎÄ¼ş´óĞ¡,»ò¼õ¼õÉÙ¿Õ°×ÁĞ±íµÄ¼ÆÊı¡£
-	** Òò´Ë,sqlite3BtreeUpdateMeta()µ÷ÓÃ²»ÄÜÊ§°Ü¡£
+	** å½“æ–°æ ¹é¡µé¢åˆ†é…æ—¶,ç¬¬ä¸€é¡µæ˜¯å¯å†™çš„ä¸ºäº†å¢åŠ æ•°æ®åº“æ–‡ä»¶å¤§å°,æˆ–å‡å‡å°‘ç©ºç™½åˆ—è¡¨çš„è®¡æ•°ã€‚
+	** å› æ­¤,sqlite3BtreeUpdateMeta()è°ƒç”¨ä¸èƒ½å¤±è´¥ã€‚
     */
     assert( sqlite3PagerIswriteable(pBt->pPage1->pDbPage) );
-    rc = sqlite3BtreeUpdateMeta(p, 4, pgnoRoot);/*Ôö¼ÓÊı¾İ¿âÎÄ¼ş´óĞ¡£¬¼õÉÙ¿ÕÏĞÁĞ±íµÄÊıÁ¿*/
+    rc = sqlite3BtreeUpdateMeta(p, 4, pgnoRoot);/*å¢åŠ æ•°æ®åº“æ–‡ä»¶å¤§å°ï¼Œå‡å°‘ç©ºé—²åˆ—è¡¨çš„æ•°é‡*/
     if( NEVER(rc) ){
       releasePage(pRoot);
       return rc;
     }
 
   }else{
-    rc = allocateBtreePage(pBt, &pRoot, &pgnoRoot, 1, 0);  //´ÓÊı¾İ¿âÎÄ¼ş·ÖÅäÒ»¸öĞÂÒ³
+    rc = allocateBtreePage(pBt, &pRoot, &pgnoRoot, 1, 0);  //ä»æ•°æ®åº“æ–‡ä»¶åˆ†é…ä¸€ä¸ªæ–°é¡µ
     if( rc ) return rc;
   }
 #endif
@@ -7950,15 +7949,15 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //´´½¨Ğ
   zeroPage(pRoot, ptfFlags);
   sqlite3PagerUnref(pRoot->pDbPage);
   assert( (pBt->openFlags & BTREE_SINGLE)==0 || pgnoRoot==2 );
-  *piTable = (int)pgnoRoot; /*½«ĞÂ±í¸ùÒ³Ğ´ÈëpiTable*/
+  *piTable = (int)pgnoRoot; /*å°†æ–°è¡¨æ ¹é¡µå†™å…¥piTable*/
   return SQLITE_OK;
 }
 
-/*ÔÚÊı¾İ¿âÖĞ´´½¨Ò»¸ö¿ÕBÊ÷£¬²ÉÓÃÍ¼¸ñÊ½£¨B+Ê÷£©»òË÷Òı¸ñÊ½£¨BÊ÷£©*/
+/*åœ¨æ•°æ®åº“ä¸­åˆ›å»ºä¸€ä¸ªç©ºBæ ‘ï¼Œé‡‡ç”¨å›¾æ ¼å¼ï¼ˆB+æ ‘ï¼‰æˆ–ç´¢å¼•æ ¼å¼ï¼ˆBæ ‘ï¼‰*/
 int sqlite3BtreeCreateTable(Btree *p, int *piTable, int flags){ 
   int rc;
   sqlite3BtreeEnter(p);
-  rc = btreeCreateTable(p, piTable, flags); //´´½¨ĞÂµÄBÊ÷±í.ĞÂ±í¸ùÒ³Ò³ÂëĞ´µ½*piTable
+  rc = btreeCreateTable(p, piTable, flags); //åˆ›å»ºæ–°çš„Bæ ‘è¡¨.æ–°è¡¨æ ¹é¡µé¡µç å†™åˆ°*piTable
   sqlite3BtreeLeave(p);
   return rc;
 }
@@ -7966,13 +7965,13 @@ int sqlite3BtreeCreateTable(Btree *p, int *piTable, int flags){
 /*
 ** Erase the given database page and all its children.  Return
 ** the page to the freelist.
-** ²Á³ı¸ø¶¨µÄÊı¾İ¿âÒ³ºÍÆäËùÓĞº¢×Ó½Úµã.·µ»ØÒ³µ½ÁĞ±íÒ³.
+** æ“¦é™¤ç»™å®šçš„æ•°æ®åº“é¡µå’Œå…¶æ‰€æœ‰å­©å­èŠ‚ç‚¹.è¿”å›é¡µåˆ°åˆ—è¡¨é¡µ.
 */
-static int clearDatabasePage(    //²Á³ı¸ø¶¨µÄÊı¾İ¿âÒ³ºÍÆäËùÓĞº¢×Ó½Úµã.·µ»ØÒ³µ½ÁĞ±íÒ³.
-  BtShared *pBt,           /* The BTree that contains the table */          //°üº¬±íµÄBÊ÷
-  Pgno pgno,               /* Page number to clear */                       //ÇåÀíÒ³Âë
-  int freePageFlag,        /* Deallocate page if true */                    //Èç¹ûÎªtrue,ÊÍ·ÅÒ³
-  int *pnChange            /* Add number of Cells freed to this counter */  //Ìí¼Óµ¥ÔªÊÍ·Å´Ë¼ÆÊıÆ÷µÄÊıÁ¿
+static int clearDatabasePage(    //æ“¦é™¤ç»™å®šçš„æ•°æ®åº“é¡µå’Œå…¶æ‰€æœ‰å­©å­èŠ‚ç‚¹.è¿”å›é¡µåˆ°åˆ—è¡¨é¡µ.
+  BtShared *pBt,           /* The BTree that contains the table */          //åŒ…å«è¡¨çš„Bæ ‘
+  Pgno pgno,               /* Page number to clear */                       //æ¸…ç†é¡µç 
+  int freePageFlag,        /* Deallocate page if true */                    //å¦‚æœä¸ºtrue,é‡Šæ”¾é¡µ
+  int *pnChange            /* Add number of Cells freed to this counter */  //æ·»åŠ å•å…ƒé‡Šæ”¾æ­¤è®¡æ•°å™¨çš„æ•°é‡
 ){
   MemPage *pPage;
   int rc;
@@ -7984,7 +7983,7 @@ static int clearDatabasePage(    //²Á³ı¸ø¶¨µÄÊı¾İ¿âÒ³ºÍÆäËùÓĞº¢×Ó½Úµã.·µ»ØÒ³µ½ÁĞ
     return SQLITE_CORRUPT_BKPT;
   }
 
-  rc = getAndInitPage(pBt, pgno, &pPage);  //´ÓÒ³¶ÔÏóÖĞ»ñµÃÒ»¸öÒ³Ãæ²¢³õÊ¼»¯
+  rc = getAndInitPage(pBt, pgno, &pPage);  //ä»é¡µå¯¹è±¡ä¸­è·å¾—ä¸€ä¸ªé¡µé¢å¹¶åˆå§‹åŒ–
   if( rc ) return rc;
   for(i=0; i<pPage->nCell; i++){
     pCell = findCell(pPage, i);
@@ -8017,20 +8016,20 @@ cleardatabasepage_out:
 ** Delete all information from a single table in the database.  iTable is
 ** the page number of the root of the table.  After this routine returns,
 ** the root page is empty, but still exists.
-** ´ÓÊı¾İ¿âÖĞµÄÒ»¸ö±íÖĞÉ¾³ıËùÓĞĞÅÏ¢¡£iTableÊÇ±íÖĞ¸ùµÄÒ³ºÅ¡£Õâ¸öº¯Êı·µ»Øºó,¸ùÒ³ÃæÊÇ¿ÕµÄ,µ«ÈÔÈ»´æÔÚ¡£
+** ä»æ•°æ®åº“ä¸­çš„ä¸€ä¸ªè¡¨ä¸­åˆ é™¤æ‰€æœ‰ä¿¡æ¯ã€‚iTableæ˜¯è¡¨ä¸­æ ¹çš„é¡µå·ã€‚è¿™ä¸ªå‡½æ•°è¿”å›å,æ ¹é¡µé¢æ˜¯ç©ºçš„,ä½†ä»ç„¶å­˜åœ¨ã€‚
 ** This routine will fail with SQLITE_LOCKED if there are any open
 ** read cursors on the table.  Open write cursors are moved to the
 ** root of the table.
-** Èç¹ûÔÚ±íÉÏÈç¹ûÓĞÈÎºÎ¿ª·ÅĞÔÓÎ±êÄÇÃ´Õâ¸öº¯ÊıÊ§°Ü·µ»ØSQLITE_LOCKED.¿ª·ÅµÄĞ´ÓÎ±ê±»¶¯µ½±íµÄ¸ùÒ³¡£
+** å¦‚æœåœ¨è¡¨ä¸Šå¦‚æœæœ‰ä»»ä½•å¼€æ”¾æ€§æ¸¸æ ‡é‚£ä¹ˆè¿™ä¸ªå‡½æ•°å¤±è´¥è¿”å›SQLITE_LOCKED.å¼€æ”¾çš„å†™æ¸¸æ ‡è¢«åŠ¨åˆ°è¡¨çš„æ ¹é¡µã€‚
 ** If pnChange is not NULL, then table iTable must be an intkey table. The
 ** integer value pointed to by pnChange is incremented by the number of
 ** entries in the table.
-** Èç¹ûpnChange·Ç¿Õ,ÄÇÃ´±íITableÒ»¶¨ÊÇÒ»¸öintkey±í.pnChangeÖ¸ÏòÕâ¸öÕûÊıµÄÖµ£¬ËüÊÇ¸ù¾İ±íÖĞÌõÄ¿µÄÊıÁ¿Ôö¼ÓµÄ.
+** å¦‚æœpnChangeéç©º,é‚£ä¹ˆè¡¨ITableä¸€å®šæ˜¯ä¸€ä¸ªintkeyè¡¨.pnChangeæŒ‡å‘è¿™ä¸ªæ•´æ•°çš„å€¼ï¼Œå®ƒæ˜¯æ ¹æ®è¡¨ä¸­æ¡ç›®çš„æ•°é‡å¢åŠ çš„.
 */
 /*
-É¾³ıB-treeÖĞËùÓĞµÄÊı¾İ£¬µ«±£³ÖB-tree½á¹¹ÍêÕû¡£
+åˆ é™¤B-treeä¸­æ‰€æœ‰çš„æ•°æ®ï¼Œä½†ä¿æŒB-treeç»“æ„å®Œæ•´ã€‚
 */
-int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //É¾³ıB-treeÖĞËùÓĞµÄÊı¾İ£¬µ«±£³ÖB-tree½á¹¹ÍêÕû
+int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //åˆ é™¤B-treeä¸­æ‰€æœ‰çš„æ•°æ®ï¼Œä½†ä¿æŒB-treeç»“æ„å®Œæ•´
   int rc;
   BtShared *pBt = p->pBt;
   sqlite3BtreeEnter(p);
@@ -8042,7 +8041,7 @@ int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //É¾³ıB-treeÖĞ
     /* Invalidate all incrblob cursors open on table iTable (assuming iTable
     ** is the root of a table b-tree - if it is not, the following call is
     ** a no-op).  
-	** ÔÚ±íITableÉÏÊ¹¿ª·ÅµÄincrblobÓÎ±êÎŞĞ§.(¼Ù¶¨ITableÊÇBÊ÷µÄ¸ùÒ³£¬Èç¹û²»ÊÇÏÂÃæµÄµ÷ÓÃÎŞ²Ù×÷)*/
+	** åœ¨è¡¨ITableä¸Šä½¿å¼€æ”¾çš„incrblobæ¸¸æ ‡æ— æ•ˆ.(å‡å®šITableæ˜¯Bæ ‘çš„æ ¹é¡µï¼Œå¦‚æœä¸æ˜¯ä¸‹é¢çš„è°ƒç”¨æ— æ“ä½œ)*/
     invalidateIncrblobCursors(p, 0, 1);
     rc = clearDatabasePage(pBt, (Pgno)iTable, 0, pnChange);
   }
@@ -8054,10 +8053,10 @@ int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //É¾³ıB-treeÖĞ
 ** Erase all information in a table and add the root of the table to
 ** the freelist.  Except, the root of the principle table (the one on
 ** page 1) is never added to the freelist.
-** Çå³ı±íÉÏµÄËùÓĞĞÅÏ¢²¢ÇÒÌí¼Ó±êµÄ¸ùµ½¿ÕÏĞÁĞ±í¡£³ı´ËÖ®Íâ£¬¸ùÔ´±í(Ò»¸öÔÚÒ³1ÉÏµÄ±í)µÄ¸ù´Ó²»¼ÓÈëµ½¿ÕÏĞÁĞ±í.
+** æ¸…é™¤è¡¨ä¸Šçš„æ‰€æœ‰ä¿¡æ¯å¹¶ä¸”æ·»åŠ æ ‡çš„æ ¹åˆ°ç©ºé—²åˆ—è¡¨ã€‚é™¤æ­¤ä¹‹å¤–ï¼Œæ ¹æºè¡¨(ä¸€ä¸ªåœ¨é¡µ1ä¸Šçš„è¡¨)çš„æ ¹ä»ä¸åŠ å…¥åˆ°ç©ºé—²åˆ—è¡¨.
 ** This routine will fail with SQLITE_LOCKED if there are any open
 ** cursors on the table.
-** Èç¹ûÔÚ±íÉÏÈç¹ûÓĞÈÎºÎ¿ª·ÅĞÔÓÎ±êÄÇÃ´Õâ¸öº¯ÊıÊ§°Ü·µ»ØSQLITE_LOCKED.
+** å¦‚æœåœ¨è¡¨ä¸Šå¦‚æœæœ‰ä»»ä½•å¼€æ”¾æ€§æ¸¸æ ‡é‚£ä¹ˆè¿™ä¸ªå‡½æ•°å¤±è´¥è¿”å›SQLITE_LOCKED.
 ** If AUTOVACUUM is enabled and the page at iTable is not the last
 ** root page in the database file, then the last root page 
 ** in the database file is moved into the slot formerly occupied by
@@ -8069,12 +8068,12 @@ int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //É¾³ıB-treeÖĞ
 ** the move.  If no page gets moved, *piMoved is set to 0.
 ** The last root page is recorded in meta[3] and the value of
 ** meta[3] is updated by this procedure.
-** Èç¹ûAUTOVACUUM¿ÉÓÃ²¢ÇÒiTableÉÏµÄÒ³²»ÊÇÊı¾İ¿âÎÄ¼şµÄ×îºó¸ùÒ³£¬ÄÇÃ´Êı¾İ¿âÎÄ¼şÖĞ×îºóµÄ¸ùÒ³½«±»ÒÆ¶¯µ½
-** ±»iTableÕ¼ÓÃµÄÎ»ÖÃ²¢ÇÒÉÏ´Î±»¸ùÒ³Õ¼ÓÃµÄ¼Óµ½¿ÕÏĞÁĞ±í¶ø²»ÊÇiTbale¡£Ò²¾ÍÊÇËµ£¬ËùÓĞµÄ¸ùÒ³Êı¾İ¿âÎÄ¼şµÄ¿ªÊ¼£¬
-** Õâ¶ÔÓÚAUTOVACUUMÕı³£¹¤×÷ÊÇÓĞ±ØÒªµÄ¡£*piMoved±»ÉèÖÃÎªÒÆ¶¯Ö®Ç°ÎÄ¼şÖĞÊÇ×îºó¸ùÒ³µÄÒ³Âë.Èç¹ûÃ»ÓĞÒ³ÒªÒÆ¶¯£¬
-** Ôò*piMovedÉèÎª0.×îºóµÄ¸ùÒ³ÊÇ¼ÇÂ¼ÔÚmeta[3]ÖĞ²¢ÇÒmeta[3]µÄÖµÔÚÕâ¸ö¹ı³ÌÖĞ±»¸üĞÂ¡£
+** å¦‚æœAUTOVACUUMå¯ç”¨å¹¶ä¸”iTableä¸Šçš„é¡µä¸æ˜¯æ•°æ®åº“æ–‡ä»¶çš„æœ€åæ ¹é¡µï¼Œé‚£ä¹ˆæ•°æ®åº“æ–‡ä»¶ä¸­æœ€åçš„æ ¹é¡µå°†è¢«ç§»åŠ¨åˆ°
+** è¢«iTableå ç”¨çš„ä½ç½®å¹¶ä¸”ä¸Šæ¬¡è¢«æ ¹é¡µå ç”¨çš„åŠ åˆ°ç©ºé—²åˆ—è¡¨è€Œä¸æ˜¯iTbaleã€‚ä¹Ÿå°±æ˜¯è¯´ï¼Œæ‰€æœ‰çš„æ ¹é¡µæ•°æ®åº“æ–‡ä»¶çš„å¼€å§‹ï¼Œ
+** è¿™å¯¹äºAUTOVACUUMæ­£å¸¸å·¥ä½œæ˜¯æœ‰å¿…è¦çš„ã€‚*piMovedè¢«è®¾ç½®ä¸ºç§»åŠ¨ä¹‹å‰æ–‡ä»¶ä¸­æ˜¯æœ€åæ ¹é¡µçš„é¡µç .å¦‚æœæ²¡æœ‰é¡µè¦ç§»åŠ¨ï¼Œ
+** åˆ™*piMovedè®¾ä¸º0.æœ€åçš„æ ¹é¡µæ˜¯è®°å½•åœ¨meta[3]ä¸­å¹¶ä¸”meta[3]çš„å€¼åœ¨è¿™ä¸ªè¿‡ç¨‹ä¸­è¢«æ›´æ–°ã€‚
 */
-static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËùÓĞĞÅÏ¢²¢ÇÒÌí¼Ó±êµÄ¸ùµ½¿ÕÏĞÁĞ±í
+static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //æ¸…é™¤è¡¨ä¸Šçš„æ‰€æœ‰ä¿¡æ¯å¹¶ä¸”æ·»åŠ æ ‡çš„æ ¹åˆ°ç©ºé—²åˆ—è¡¨
   int rc;
   MemPage *pPage = 0;
   BtShared *pBt = p->pBt;
@@ -8087,13 +8086,13 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
   ** need to move another root-page to fill a gap left by the deleted
   ** root page. If an open cursor was using this page a problem would 
   ** occur.
-  ** Èç¹ûÊı¾İ¿âÉÏµÄÈÎºÎÓÎ±ê¿ª·ÅÁË£¬ÄÇÃ´²Ù×÷ÊÇ·Ç·¨µÄ¡£ÕâÊÇÒòÎªÔÚauto-vacumÄ£Ê½ÏÂºó¶Ë¿ÉÄÜĞèÒªÒÆ¶¯
-  ** ÁíÍâÒ»¸ö¸ùÒ³À´Ìî³äÍ¨¹ıÉ¾³ı¸ùÒ³ÁôÏÂµÄ·ìÏ¶¡£Èç¹ûÒ»¸ö´ò¿ªµÄÓÎ±êÔÚÒ³ÉÏÕıÔÚÊ¹ÓÃ£¬ÄÇÃ´½«»á³öÏÖÎÊÌâ.
+  ** å¦‚æœæ•°æ®åº“ä¸Šçš„ä»»ä½•æ¸¸æ ‡å¼€æ”¾äº†ï¼Œé‚£ä¹ˆæ“ä½œæ˜¯éæ³•çš„ã€‚è¿™æ˜¯å› ä¸ºåœ¨auto-vacumæ¨¡å¼ä¸‹åç«¯å¯èƒ½éœ€è¦ç§»åŠ¨
+  ** å¦å¤–ä¸€ä¸ªæ ¹é¡µæ¥å¡«å……é€šè¿‡åˆ é™¤æ ¹é¡µç•™ä¸‹çš„ç¼éš™ã€‚å¦‚æœä¸€ä¸ªæ‰“å¼€çš„æ¸¸æ ‡åœ¨é¡µä¸Šæ­£åœ¨ä½¿ç”¨ï¼Œé‚£ä¹ˆå°†ä¼šå‡ºç°é—®é¢˜.
   ** This error is caught long before control reaches this point.
   */
   if( NEVER(pBt->pCursor) ){
     sqlite3ConnectionBlocked(p->db, pBt->pCursor->pBtree->db);
-    return SQLITE_LOCKED_SHAREDCACHE;/*ÓÎ±ê²»ÄÜÎª´ò¿ª×´Ì¬*/
+    return SQLITE_LOCKED_SHAREDCACHE;/*æ¸¸æ ‡ä¸èƒ½ä¸ºæ‰“å¼€çŠ¶æ€*/
   }
 
   rc = btreeGetPage(pBt, (Pgno)iTable, &pPage, 0);
@@ -8106,19 +8105,19 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
 
   *piMoved = 0;
 
-  if( iTable>1 ){ /*Ò³±ØĞë´óÓÚ1£¬²ÅÄÜ±»É¾³ı*/
+  if( iTable>1 ){ /*é¡µå¿…é¡»å¤§äº1ï¼Œæ‰èƒ½è¢«åˆ é™¤*/
 #ifdef SQLITE_OMIT_AUTOVACUUM
     freePage(pPage, &rc);
     releasePage(pPage);
 #else
     if( pBt->autoVacuum ){
       Pgno maxRootPgno;
-      sqlite3BtreeGetMeta(p, BTREE_LARGEST_ROOT_PAGE, &maxRootPgno);  //¶ÁÊı¾İ¿âÎÄ¼şµÄÔªÊı¾İĞÅÏ¢
+      sqlite3BtreeGetMeta(p, BTREE_LARGEST_ROOT_PAGE, &maxRootPgno);  //è¯»æ•°æ®åº“æ–‡ä»¶çš„å…ƒæ•°æ®ä¿¡æ¯
 
       if( iTable==maxRootPgno ){
         /* If the table being dropped is the table with the largest root-page
         ** number in the database, put the root page on the free list. 
-		** Èç¹û±»É¾³ıµÄ±íÊÇÊı¾İ¿âÖĞÓĞ×î´ó¸ùÒ³ÂëµÄ±í£¬ÄÇÃ´°Ñ¸ùÒ³·Åµ½¿ÕÏĞÁĞ±í.
+		** å¦‚æœè¢«åˆ é™¤çš„è¡¨æ˜¯æ•°æ®åº“ä¸­æœ‰æœ€å¤§æ ¹é¡µç çš„è¡¨ï¼Œé‚£ä¹ˆæŠŠæ ¹é¡µæ”¾åˆ°ç©ºé—²åˆ—è¡¨.
         */
         freePage(pPage, &rc);
         releasePage(pPage);
@@ -8129,7 +8128,7 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
         /* The table being dropped does not have the largest root-page
         ** number in the database. So move the page that does into the 
         ** gap left by the deleted root-page.
-		** ÔÚÊı¾İ¿âÖĞ±»É¾³ıµÄ±íÃ»ÓĞ×î´óµÄ¸ùÒ³Âë£¬Òò´ËÒÆ¶¯Ò³µ½ÒòÉ¾³ı¸ùÒ³¶ø²úÉúµÄ·ìÏ¶´¦.
+		** åœ¨æ•°æ®åº“ä¸­è¢«åˆ é™¤çš„è¡¨æ²¡æœ‰æœ€å¤§çš„æ ¹é¡µç ï¼Œå› æ­¤ç§»åŠ¨é¡µåˆ°å› åˆ é™¤æ ¹é¡µè€Œäº§ç”Ÿçš„ç¼éš™å¤„.
         */
         MemPage *pMove;
         releasePage(pPage);
@@ -8137,7 +8136,7 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
         if( rc!=SQLITE_OK ){
           return rc;
         }
-        rc = relocatePage(pBt, pMove, PTRMAP_ROOTPAGE, 0, iTable, 0);/*ÒÆ¶¯Ò³È¥Ìî²¹É¾³ıµÄ¸ùÒ³¡£*/
+        rc = relocatePage(pBt, pMove, PTRMAP_ROOTPAGE, 0, iTable, 0);/*ç§»åŠ¨é¡µå»å¡«è¡¥åˆ é™¤çš„æ ¹é¡µã€‚*/
         releasePage(pMove);
         if( rc!=SQLITE_OK ){
           return rc;
@@ -8156,8 +8155,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
       ** is the old value less one, less one more if that happens to
       ** be a root-page number, less one again if that is the
       ** PENDING_BYTE_PAGE.
-	  ** ÔÚÊı¾İ¿âÍ·²¿ÉèÖÃĞÂµÄmax-root-pageµÄÖµ.ÕâÊÇÔ­À´µÄÖµ¼õÒ»£¬Èç¹ûÊÇÔÚ¸ùÒ³ÂëÉÏÒªÉÙ²»Ö¹1.
-	  ** Èç¹ûÊÇPENDING_BYTE_PAGEÔÙ´Î¼õ1.
+	  ** åœ¨æ•°æ®åº“å¤´éƒ¨è®¾ç½®æ–°çš„max-root-pageçš„å€¼.è¿™æ˜¯åŸæ¥çš„å€¼å‡ä¸€ï¼Œå¦‚æœæ˜¯åœ¨æ ¹é¡µç ä¸Šè¦å°‘ä¸æ­¢1.
+	  ** å¦‚æœæ˜¯PENDING_BYTE_PAGEå†æ¬¡å‡1.
       */
       maxRootPgno--;
       while( maxRootPgno==PENDING_BYTE_PAGE(pBt)
@@ -8166,7 +8165,7 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
       }
       assert( maxRootPgno!=PENDING_BYTE_PAGE(pBt) );
 
-      rc = sqlite3BtreeUpdateMeta(p, 4, maxRootPgno);/*¸üĞÂ×î´óµÄ¸ùÒ³*/
+      rc = sqlite3BtreeUpdateMeta(p, 4, maxRootPgno);/*æ›´æ–°æœ€å¤§çš„æ ¹é¡µ*/
     }else{
       freePage(pPage, &rc);
       releasePage(pPage);
@@ -8176,7 +8175,7 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
     /* If sqlite3BtreeDropTable was called on page 1.
     ** This really never should happen except in a corrupt
     ** database. 
-	** Èç¹ûsqlite3BtreeDropTableÔÚpage1ÉÏ±»µ÷ÓÃ.³ıÁËÔÚ±ÀÀ£µÄÊı¾İ¿âÉÏÆäËûÇé¿ö²»»á·¢Éú¡£
+	** å¦‚æœsqlite3BtreeDropTableåœ¨page1ä¸Šè¢«è°ƒç”¨.é™¤äº†åœ¨å´©æºƒçš„æ•°æ®åº“ä¸Šå…¶ä»–æƒ…å†µä¸ä¼šå‘ç”Ÿã€‚
     */
     zeroPage(pPage, PTF_INTKEY|PTF_LEAF );
     releasePage(pPage);
@@ -8184,7 +8183,7 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //Çå³ı±íÉÏµÄËù
   return rc;  
 }
 
-int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //É¾³ıÊı¾İ¿âÖĞµÄÒ»¸öBÊ÷
+int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //åˆ é™¤æ•°æ®åº“ä¸­çš„ä¸€ä¸ªBæ ‘
   int rc;
   sqlite3BtreeEnter(p);
   rc = btreeDropTable(p, iTable, piMoved);
@@ -8195,23 +8194,23 @@ int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //É¾³ıÊı¾İ¿âÖĞµÄ
 /*
 ** This function may only be called if the b-tree connection already
 ** has a read or write transaction open on the database.
-** Èç¹ûÔÚÊı¾İ¿âÉÏBÊ÷ÒÑ¾­ÓĞÒ»¸ö¶Á»òĞ´ÊÂÎñ¿ª·Å£¬ÄÇÃ´Õâ¸öº¯Êı½«Î¨Ò»±»µ÷ÓÃ.
+** å¦‚æœåœ¨æ•°æ®åº“ä¸ŠBæ ‘å·²ç»æœ‰ä¸€ä¸ªè¯»æˆ–å†™äº‹åŠ¡å¼€æ”¾ï¼Œé‚£ä¹ˆè¿™ä¸ªå‡½æ•°å°†å”¯ä¸€è¢«è°ƒç”¨.
 ** Read the meta-information out of a database file.  Meta[0]
 ** is the number of free pages currently in the database.  Meta[1]
 ** through meta[15] are available for use by higher layers.  Meta[0]
 ** is read-only, the others are read/write.
-** ¶ÁÊı¾İ¿âÎÄ¼şµÄÔªÊı¾İĞÅÏ¢.Meta[0]ÊÇµ±Ç°Êı¾İ¿âÖĞ¿Õ°×Ò³ÃæµÄÊıÁ¿.Meta[1]µ½Meta[15]¶ÔÓÚ¸ü¸ß²ãÊ±¿ÉÓÃµÄ¡£
-** Meta[0]ÊÇÖ»¶ÁµÄ£¬ÆäËûµÄ¶¼ÊÇ¶ÁĞ´µÄ¡£
+** è¯»æ•°æ®åº“æ–‡ä»¶çš„å…ƒæ•°æ®ä¿¡æ¯.Meta[0]æ˜¯å½“å‰æ•°æ®åº“ä¸­ç©ºç™½é¡µé¢çš„æ•°é‡.Meta[1]åˆ°Meta[15]å¯¹äºæ›´é«˜å±‚æ—¶å¯ç”¨çš„ã€‚
+** Meta[0]æ˜¯åªè¯»çš„ï¼Œå…¶ä»–çš„éƒ½æ˜¯è¯»å†™çš„ã€‚
 ** The schema layer numbers meta values differently.  At the schema
 ** layer (and the SetCookie and ReadCookie opcodes) the number of
 ** free pages is not visible.  So Cookie[0] is the same as Meta[1].
-** Ä£Ê½²ã¼ÇÂ¼ÔªÊı¾İµÄ²»Í¬Öµ.ÔÚÄ£Ê½²ã(SetCookieºÍReadCookie²Ù×÷Âë)¿Õ°×Ò³µÄÊıÁ¿ÊÇ²»¿É¼ûµÄ¡£
-** Òò´ËCookie[0]ºÍ Meta[1]ÊÇÏàÍ¬µÄ.
+** æ¨¡å¼å±‚è®°å½•å…ƒæ•°æ®çš„ä¸åŒå€¼.åœ¨æ¨¡å¼å±‚(SetCookieå’ŒReadCookieæ“ä½œç )ç©ºç™½é¡µçš„æ•°é‡æ˜¯ä¸å¯è§çš„ã€‚
+** å› æ­¤Cookie[0]å’Œ Meta[1]æ˜¯ç›¸åŒçš„.
 */ 
-/*Èç¹ûb-treeÁ¬½ÓÒ»¸ö¶Á»òĞ´ÊÂÎñ£¬Õâ¸öº¯Êı¿ÉÄÜ±»µ÷ÓÃ¡£´ÓÊı¾İ¿âÎÄ¼şÖĞ¶Á³ömeta-information¡£
-Meta[0]ÊÇÊı¾İ¿âÖĞµÄ×ÔÓÉÒ³¡£Meta[1]¿ÉÒÔ±»ÓÃ»§Í¨¹ımeta[15]·ÃÎÊ¡£Meta[0]ÎªÖ»¶Á£¬ÆäÓàÎª¶ÁĞ´¡£
+/*å¦‚æœb-treeè¿æ¥ä¸€ä¸ªè¯»æˆ–å†™äº‹åŠ¡ï¼Œè¿™ä¸ªå‡½æ•°å¯èƒ½è¢«è°ƒç”¨ã€‚ä»æ•°æ®åº“æ–‡ä»¶ä¸­è¯»å‡ºmeta-informationã€‚
+Meta[0]æ˜¯æ•°æ®åº“ä¸­çš„è‡ªç”±é¡µã€‚Meta[1]å¯ä»¥è¢«ç”¨æˆ·é€šè¿‡meta[15]è®¿é—®ã€‚Meta[0]ä¸ºåªè¯»ï¼Œå…¶ä½™ä¸ºè¯»å†™ã€‚
 */
-void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //¶ÁÊı¾İ¿âÎÄ¼şµÄÔªÊı¾İĞÅÏ¢
+void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //è¯»æ•°æ®åº“æ–‡ä»¶çš„å…ƒæ•°æ®ä¿¡æ¯
   BtShared *pBt = p->pBt;
 
   sqlite3BtreeEnter(p);
@@ -8225,7 +8224,7 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //¶ÁÊı¾İ¿âÎÄ¼şµÄÔªÊı¾
   /* If auto-vacuum is disabled in this build and this is an auto-vacuum
   ** database, mark the database as read-only.  */
   /*
-  ** Èç¹ûÔÚ¹¹½¨ÖĞauto-vacuumÎª²»¿ÉÓÃ×´Ì¬ÇÒÊÇauto-vacuumÊı¾İ¿â£¬±ê¼ÇÊı¾İ¿âÎªÖ»¶Á¡£
+  ** å¦‚æœåœ¨æ„å»ºä¸­auto-vacuumä¸ºä¸å¯ç”¨çŠ¶æ€ä¸”æ˜¯auto-vacuumæ•°æ®åº“ï¼Œæ ‡è®°æ•°æ®åº“ä¸ºåªè¯»ã€‚
   */
 #ifdef SQLITE_OMIT_AUTOVACUUM
   if( idx==BTREE_LARGEST_ROOT_PAGE && *pMeta>0 ){
@@ -8233,7 +8232,7 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //¶ÁÊı¾İ¿âÎÄ¼şµÄÔªÊı¾
   }
 #endif
 
-  sqlite3BtreeLeave(p);  //ÔÚBÊ÷ÉÏÍË³ö»¥³âËø
+  sqlite3BtreeLeave(p);  //åœ¨Bæ ‘ä¸Šé€€å‡ºäº’æ–¥é”
 }
 
 /*
@@ -8241,10 +8240,10 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //¶ÁÊı¾İ¿âÎÄ¼şµÄÔªÊı¾
 ** read-only and may not be written.
 */
 /*
-** °Ñmeta-informationĞ´»ØÊı¾İ¿â¡£Meta[0]ÎªÖ»¶ÁÇÒ¿ÉÄÜ²»»á±»Ğ´¡£
+** æŠŠmeta-informationå†™å›æ•°æ®åº“ã€‚Meta[0]ä¸ºåªè¯»ä¸”å¯èƒ½ä¸ä¼šè¢«å†™ã€‚
 */
 
-int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //°Ñmeta-informationĞ´»ØÊı¾İ¿â£¬¸üĞÂÔªÊı¾İ
+int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //æŠŠmeta-informationå†™å›æ•°æ®åº“ï¼Œæ›´æ–°å…ƒæ•°æ®
   BtShared *pBt = p->pBt;
   unsigned char *pP1;
   int rc;
@@ -8253,9 +8252,9 @@ int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //°Ñmeta-informationĞ
   assert( p->inTrans==TRANS_WRITE );
   assert( pBt->pPage1!=0 );
   pP1 = pBt->pPage1->aData;
-  rc = sqlite3PagerWrite(pBt->pPage1->pDbPage); /*±ê¼ÇpBt->pPage1->pDbPage¿ÉĞ´*/
+  rc = sqlite3PagerWrite(pBt->pPage1->pDbPage); /*æ ‡è®°pBt->pPage1->pDbPageå¯å†™*/
   if( rc==SQLITE_OK ){
-    put4byte(&pP1[36 + idx*4], iMeta);/*½«iMeta·Ö³É4¸ö×Ö½Ú·ÅÈëpP1*/
+    put4byte(&pP1[36 + idx*4], iMeta);/*å°†iMetaåˆ†æˆ4ä¸ªå­—èŠ‚æ”¾å…¥pP1*/
 #ifndef SQLITE_OMIT_AUTOVACUUM
     if( idx==BTREE_INCR_VACUUM ){
       assert( pBt->autoVacuum || iMeta==0 );
@@ -8264,7 +8263,7 @@ int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //°Ñmeta-informationĞ
     }
 #endif
   }
-  sqlite3BtreeLeave(p);  //ÔÚBÊ÷ÉÏÍË³ö»¥³âËø
+  sqlite3BtreeLeave(p);  //åœ¨Bæ ‘ä¸Šé€€å‡ºäº’æ–¥é”
   return rc;
 }
 
@@ -8278,12 +8277,12 @@ int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //°Ñmeta-informationĞ
 ** corruption) an SQLite error code is returned.
 */
 /*
-µÚÒ»¸ö²ÎÊıpCur£¬ÊÇBÊ÷ÉÏÒ»¸ö´ò¿ªµÄÓÎ±ê¡£¸øBÊ÷ÉÏµÄÌõÄ¿¼ÆÊı£¬°Ñ½á¹ûĞ´µ½*pnEntry¡£
-Èç¹û²Ù×÷³É¹¦Ö´ĞĞ£¬Ôò·µ»Ø SQLITE_OK£¬·´Ö®·µ»ØSQLite´íÎó´úÂë(ÀıÈçI/O´íÎó»òÊı¾İ¿â±ÀÀ£)¡£
+ç¬¬ä¸€ä¸ªå‚æ•°pCurï¼Œæ˜¯Bæ ‘ä¸Šä¸€ä¸ªæ‰“å¼€çš„æ¸¸æ ‡ã€‚ç»™Bæ ‘ä¸Šçš„æ¡ç›®è®¡æ•°ï¼ŒæŠŠç»“æœå†™åˆ°*pnEntryã€‚
+å¦‚æœæ“ä½œæˆåŠŸæ‰§è¡Œï¼Œåˆ™è¿”å› SQLITE_OKï¼Œåä¹‹è¿”å›SQLiteé”™è¯¯ä»£ç (ä¾‹å¦‚I/Oé”™è¯¯æˆ–æ•°æ®åº“å´©æºƒ)ã€‚
 */
-int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //¸øBÊ÷ÉÏµÄÌõÄ¿¼ÆÊı
-  i64 nEntry = 0;                      /* Value to return in *pnEntry */   //ÒªĞ´Èëµ½*pnEntryµÄÖµ
-  int rc;                              /* Return code */                   //·µ»Ø´úÂë
+int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //ç»™Bæ ‘ä¸Šçš„æ¡ç›®è®¡æ•°
+  i64 nEntry = 0;                      /* Value to return in *pnEntry */   //è¦å†™å…¥åˆ°*pnEntryçš„å€¼
+  int rc;                              /* Return code */                   //è¿”å›ä»£ç 
 
   if( pCur->pgnoRoot==0 ){
     *pnEntry = 0;
@@ -8294,18 +8293,18 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //¸øBÊ÷ÉÏµÄÌõÄ¿¼ÆÊı
   /* Unless an error occurs, the following loop runs one iteration for each
   ** page in the B-Tree structure (not including overflow pages). 
   */
-  /*³ı·Ç´íÎó·¢Éú£¬ÒÔÏÂÑ­»·ÔÚÃ¿Ò»¸öB-Tree½á¹¹ÖĞÖ´ĞĞÒ»´Îµü´ú£¬µ«²»°üÀ¨Òç³öÒ³*/
+  /*é™¤éé”™è¯¯å‘ç”Ÿï¼Œä»¥ä¸‹å¾ªç¯åœ¨æ¯ä¸€ä¸ªB-Treeç»“æ„ä¸­æ‰§è¡Œä¸€æ¬¡è¿­ä»£ï¼Œä½†ä¸åŒ…æ‹¬æº¢å‡ºé¡µ*/
   while( rc==SQLITE_OK ){
-    int iIdx;              /* Index of child node in parent */  //¸¸½ÚµãµÄº¢×Ó½ÚµãµÄË÷Òı
-    MemPage *pPage;        /* Current page of the b-tree */     //BÊ÷µÄµ±Ç°Ò³
+    int iIdx;              /* Index of child node in parent */  //çˆ¶èŠ‚ç‚¹çš„å­©å­èŠ‚ç‚¹çš„ç´¢å¼•
+    MemPage *pPage;        /* Current page of the b-tree */     //Bæ ‘çš„å½“å‰é¡µ
 
     /* If this is a leaf page or the tree is not an int-key tree, then 
     ** this page contains countable entries. Increment the entry counter
     ** accordingly.
     */
     /*
-     Èç¹ûÕâÊÇÒ»¸öÒ¶×ÓÒ³£¬»òÕßBÊ÷ÉÏ¹Ø¼ü×Ö²»ÊÇÕûĞÍµÄ£¬ÄÇÃ´Õâ¸öÒ³°üº¬¿ÉÊıµÄÌõÄ¿¡£ÏàÓ¦µØÔö¼Ó
-     ÌõÄ¿µÄÊıÁ¿¡£
+     å¦‚æœè¿™æ˜¯ä¸€ä¸ªå¶å­é¡µï¼Œæˆ–è€…Bæ ‘ä¸Šå…³é”®å­—ä¸æ˜¯æ•´å‹çš„ï¼Œé‚£ä¹ˆè¿™ä¸ªé¡µåŒ…å«å¯æ•°çš„æ¡ç›®ã€‚ç›¸åº”åœ°å¢åŠ 
+     æ¡ç›®çš„æ•°é‡ã€‚
 	*/
     pPage = pCur->apPage[pCur->iPage];
     if( pPage->leaf || !pPage->intKey ){
@@ -8322,15 +8321,15 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //¸øBÊ÷ÉÏµÄÌõÄ¿¼ÆÊı
     ** If all pages in the tree have been visited, return SQLITE_OK to the
     ** caller.
     */
-    /*pPageÊÇÒ»¸öÒ¶×ÓÒ³¡£Õâ¸öÑ­»·Ê¹Õâ¸öÓÎ±êÖ¸ÏòµÚÒ»¸öÄÚ²¿µÄµ¥Ôª¸ñ¡£Õâ¸öµ¥Ôª¸ñÖ¸ÏòÊ÷ÖĞÃ»ÓĞ±»·ÃÎÊµÄÏÂÒ»Ò³µÄ
-	¸¸½Úµã¡£pCur->aiIdx[pCur->iPage]µÄÖµÉèÖÃÎªÒ³ÖĞ¸¸µ¥Ôª¸ñµÄË÷ÒıÊı£¬Èç¹ûÏÂÒ»Ò³½«Òª·ÃÎÊ
-	¸¸½ÚµãµÄÓÒº¢×Ó£¬pCur->aiIdx[pCur->iPage]µÄÖµÉèÖÃÎªÒ³ÖĞµ¥Ôª¸ñµÄÊıÁ¿¡£
-	** ÈôÊ÷ÖĞµÄËùÓĞÒ³¶¼±»·ÃÎÊ£¬·µ»ØSQLITE_OK.
+    /*pPageæ˜¯ä¸€ä¸ªå¶å­é¡µã€‚è¿™ä¸ªå¾ªç¯ä½¿è¿™ä¸ªæ¸¸æ ‡æŒ‡å‘ç¬¬ä¸€ä¸ªå†…éƒ¨çš„å•å…ƒæ ¼ã€‚è¿™ä¸ªå•å…ƒæ ¼æŒ‡å‘æ ‘ä¸­æ²¡æœ‰è¢«è®¿é—®çš„ä¸‹ä¸€é¡µçš„
+	çˆ¶èŠ‚ç‚¹ã€‚pCur->aiIdx[pCur->iPage]çš„å€¼è®¾ç½®ä¸ºé¡µä¸­çˆ¶å•å…ƒæ ¼çš„ç´¢å¼•æ•°ï¼Œå¦‚æœä¸‹ä¸€é¡µå°†è¦è®¿é—®
+	çˆ¶èŠ‚ç‚¹çš„å³å­©å­ï¼ŒpCur->aiIdx[pCur->iPage]çš„å€¼è®¾ç½®ä¸ºé¡µä¸­å•å…ƒæ ¼çš„æ•°é‡ã€‚
+	** è‹¥æ ‘ä¸­çš„æ‰€æœ‰é¡µéƒ½è¢«è®¿é—®ï¼Œè¿”å›SQLITE_OK.
 	*/
     if( pPage->leaf ){
       do {
         if( pCur->iPage==0 ){
-          /* All pages of the b-tree have been visited. Return successfully. */  //BÊ÷Ò³¶¼±»·ÃÎÊ³É¹¦·µ»Ø
+          /* All pages of the b-tree have been visited. Return successfully. */  //Bæ ‘é¡µéƒ½è¢«è®¿é—®æˆåŠŸè¿”å›
           *pnEntry = nEntry;
           return SQLITE_OK;
         }
@@ -8344,7 +8343,7 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //¸øBÊ÷ÉÏµÄÌõÄ¿¼ÆÊı
     /* Descend to the child node of the cell that the cursor currently 
     ** points at. This is the right-child if (iIdx==pPage->nCell).
     */
-    /*ÏÂ½µµ½µ±Ç°ÓÎ±êÖ¸Ïò½áµãµÄº¢×Ó½áµã¡£Èç¹ûiIdx==pPage->nCell£¬È¡ÓÒº¢×Ó½áµã¡£*/
+    /*ä¸‹é™åˆ°å½“å‰æ¸¸æ ‡æŒ‡å‘ç»“ç‚¹çš„å­©å­ç»“ç‚¹ã€‚å¦‚æœiIdx==pPage->nCellï¼Œå–å³å­©å­ç»“ç‚¹ã€‚*/
     iIdx = pCur->aiIdx[pCur->iPage];
     if( iIdx==pPage->nCell ){
       rc = moveToChild(pCur, get4byte(&pPage->aData[pPage->hdrOffset+8]));
@@ -8361,7 +8360,7 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //¸øBÊ÷ÉÏµÄÌõÄ¿¼ÆÊı
 /*
 ** Return the pager associated with a BTree.  This routine is used for
 ** testing and debugging only.
-** ·µ»ØÓëBÊ÷Ïà¹ØµÄÒ³¡£¸Ãº¯Êı½öÓÃÀ´²âÊÔºÍµ÷ÊÔ.
+** è¿”å›ä¸Bæ ‘ç›¸å…³çš„é¡µ.è¯¥å‡½æ•°ä»…ç”¨æ¥æµ‹è¯•å’Œè°ƒè¯•.
 */
 Pager *sqlite3BtreePager(Btree *p){
   return p->pBt->pPager;
@@ -8371,8 +8370,8 @@ Pager *sqlite3BtreePager(Btree *p){
 /*
 ** Append a message to the error message string.
 */
-/*°ÑÏûÏ¢¸½¼Óµ½´íÎóÏûÏ¢×Ö·û´®µÄºóÃæ¡£*/
-static void checkAppendMsg(      //°ÑÏûÏ¢¸½¼Óµ½´íÎóÏûÏ¢×Ö·û´®µÄºóÃæ
+/*æŠŠæ¶ˆæ¯é™„åŠ åˆ°é”™è¯¯æ¶ˆæ¯å­—ç¬¦ä¸²çš„åé¢ã€‚*/
+static void checkAppendMsg(      //æŠŠæ¶ˆæ¯é™„åŠ åˆ°é”™è¯¯æ¶ˆæ¯å­—ç¬¦ä¸²çš„åé¢
   IntegrityCk *pCheck,
   char *zMsg1,
   const char *zFormat,
@@ -8404,7 +8403,7 @@ static void checkAppendMsg(      //°ÑÏûÏ¢¸½¼Óµ½´íÎóÏûÏ¢×Ö·û´®µÄºóÃæ
 ** corresponds to page iPg is already set.
 */
 /*
-Èç¹ûÔÚIntegrityCk.aPgRef[]Êı×éÖĞ£¬¶ÔÓ¦µÄÒ³iPgÒÑ¾­ÉèÖÃ£¬·µ»Ø·Ç0¡£
+å¦‚æœåœ¨IntegrityCk.aPgRef[]æ•°ç»„ä¸­ï¼Œå¯¹åº”çš„é¡µiPgå·²ç»è®¾ç½®ï¼Œè¿”å›é0ã€‚
 */
 static int getPageReferenced(IntegrityCk *pCheck, Pgno iPg){
   assert( iPg<=pCheck->nPage && sizeof(pCheck->aPgRef[0])==1 );
@@ -8413,9 +8412,9 @@ static int getPageReferenced(IntegrityCk *pCheck, Pgno iPg){
 
 /*
 ** Set the bit in the IntegrityCk.aPgRef[] array that corresponds to page iPg.
-** Éè¶¨ÔÚÓëÒ³iPgÏàÓ¦µÄIntegrityCk.aPgRef[]Êı×éÖĞµÄÎ».
+** è®¾å®šåœ¨ä¸é¡µiPgç›¸åº”çš„IntegrityCk.aPgRef[]æ•°ç»„ä¸­çš„ä½.
 */
-static void setPageReferenced(IntegrityCk *pCheck, Pgno iPg){  //Éè¶¨ÔÚÓëÒ³iPgÏàÓ¦µÄIntegrityCk.aPgRef[]Êı×éÖĞµÄÎ»
+static void setPageReferenced(IntegrityCk *pCheck, Pgno iPg){  //è®¾å®šåœ¨ä¸é¡µiPgç›¸åº”çš„IntegrityCk.aPgRef[]æ•°ç»„ä¸­çš„ä½
   assert( iPg<=pCheck->nPage && sizeof(pCheck->aPgRef[0])==1 );
   pCheck->aPgRef[iPg/8] |= (1 << (iPg & 0x07));
 }
@@ -8429,10 +8428,10 @@ static void setPageReferenced(IntegrityCk *pCheck, Pgno iPg){  //Éè¶¨ÔÚÓëÒ³iPgÏà
 **
 ** Also check that the page number is in bounds.
 */
-/*¶ÔÒ³iPageµÄÒıÓÃÊıÁ¿¼Ó1¡£Èç¹ûÊÇ¶ÔÒ³µÄµÚ¶ş¸öÒıÓÃ£¬¼Ó´íÎóÏûÏ¢µ½pCheck->zErrMsg¡£
-Èç¹û¶ÔÒ³ÓĞÁ½´Î»òÕß¸ü¶à´Î£¬·µ»Ø1¡£Èç¹ûÕâ¸öÒ³±»µÚÒ»´ÎÒıÓÃ£¬·µ»Ø0¡£
+/*å¯¹é¡µiPageçš„å¼•ç”¨æ•°é‡åŠ 1ã€‚å¦‚æœæ˜¯å¯¹é¡µçš„ç¬¬äºŒä¸ªå¼•ç”¨ï¼ŒåŠ é”™è¯¯æ¶ˆæ¯åˆ°pCheck->zErrMsgã€‚
+å¦‚æœå¯¹é¡µæœ‰ä¸¤æ¬¡æˆ–è€…æ›´å¤šæ¬¡ï¼Œè¿”å›1ã€‚å¦‚æœè¿™ä¸ªé¡µè¢«ç¬¬ä¸€æ¬¡å¼•ç”¨ï¼Œè¿”å›0ã€‚
 */
-static int checkRef(IntegrityCk *pCheck, Pgno iPage, char *zContext){  //¶ÔÒ³iPageµÄÒıÓÃÊıÁ¿¼Ó1
+static int checkRef(IntegrityCk *pCheck, Pgno iPage, char *zContext){  //å¯¹é¡µiPageçš„å¼•ç”¨æ•°é‡åŠ 1
   if( iPage==0 ) return 1;
   if( iPage>pCheck->nPage ){
     checkAppendMsg(pCheck, zContext, "invalid page number %d", iPage);
@@ -8451,21 +8450,21 @@ static int checkRef(IntegrityCk *pCheck, Pgno iPage, char *zContext){  //¶ÔÒ³iPa
 ** Check that the entry in the pointer-map for page iChild maps to 
 ** page iParent, pointer type ptrType. If not, append an error message
 ** to pCheck.
-** ºË¶Ô´ÓÒ³iChildÓ³Éäµ½Ò³iParentµÄÖ¸ÕëÎ»Í¼ÖĞµÄÌõÄ¿£¬Ö¸ÕëÀàĞÍÎªptrType.Èç¹ûÃ»ÓĞ£¬¸½¼Ó´íÎóĞÅÏ¢µ½pCheck.
+** æ ¸å¯¹ä»é¡µiChildæ˜ å°„åˆ°é¡µiParentçš„æŒ‡é’ˆä½å›¾ä¸­çš„æ¡ç›®ï¼ŒæŒ‡é’ˆç±»å‹ä¸ºptrType.å¦‚æœæ²¡æœ‰ï¼Œé™„åŠ é”™è¯¯ä¿¡æ¯åˆ°pCheck.
 */
 
-static void checkPtrmap(           //ºË¶Ô´ÓÒ³iChildÓ³Éäµ½Ò³iParentµÄÖ¸ÕëÎ»Í¼ÖĞµÄÌõÄ¿
-  IntegrityCk *pCheck,   /* Integrity check context */                    //ÍêÕûĞÔ¼ì²éÉÏÏÂÎÄ
-  Pgno iChild,           /* Child page number */                          //º¢×ÓÒ³µÄÒ³ºÅ
-  u8 eType,              /* Expected pointer map type */                  //Ö¸ÕëÓ³ÉäµÄÀàĞÍ
-  Pgno iParent,          /* Expected pointer map parent page number */    //Ö¸ÕëÓ³ÉäµÄ¸¸Ò³Âë
-  char *zContext         /* Context description (used for error msg) */   //ÉÏÏÂÎÄÃèÊö(ÓÃ×÷´íÎóÃèÊö)
+static void checkPtrmap(           //æ ¸å¯¹ä»é¡µiChildæ˜ å°„åˆ°é¡µiParentçš„æŒ‡é’ˆä½å›¾ä¸­çš„æ¡ç›®
+  IntegrityCk *pCheck,   /* Integrity check context */                    //å®Œæ•´æ€§æ£€æŸ¥ä¸Šä¸‹æ–‡
+  Pgno iChild,           /* Child page number */                          //å­©å­é¡µçš„é¡µå·
+  u8 eType,              /* Expected pointer map type */                  //æŒ‡é’ˆæ˜ å°„çš„ç±»å‹
+  Pgno iParent,          /* Expected pointer map parent page number */    //æŒ‡é’ˆæ˜ å°„çš„çˆ¶é¡µç 
+  char *zContext         /* Context description (used for error msg) */   //ä¸Šä¸‹æ–‡æè¿°(ç”¨ä½œé”™è¯¯æè¿°)
 ){
   int rc;
   u8 ePtrmapType;
   Pgno iPtrmapParent;
 
-  rc = ptrmapGet(pCheck->pBt, iChild, &ePtrmapType, &iPtrmapParent);      //´ÓÖ¸ÕëÎ»Í¼¶ÁÈ¡ÌõÄ¿
+  rc = ptrmapGet(pCheck->pBt, iChild, &ePtrmapType, &iPtrmapParent);      //ä»æŒ‡é’ˆä½å›¾è¯»å–æ¡ç›®
   if( rc!=SQLITE_OK ){
     if( rc==SQLITE_NOMEM || rc==SQLITE_IOERR_NOMEM ) pCheck->mallocFailed = 1;
     checkAppendMsg(pCheck, zContext, "Failed to read ptrmap key=%d", iChild);
@@ -8483,15 +8482,15 @@ static void checkPtrmap(           //ºË¶Ô´ÓÒ³iChildÓ³Éäµ½Ò³iParentµÄÖ¸ÕëÎ»Í¼ÖĞµÄ
 /*
 ** Check the integrity of the freelist or of an overflow page list.
 ** Verify that the number of pages on the list is N.
-** ¼ì²é¿ÕÏĞÁĞ±í»òÒç³öÒ³ÁĞ±íµÄÍêÕûĞÔ¡£²éÖ¤ÁĞ±íÉÏµÄÒ³ÊıÊÇN.
+** æ£€æŸ¥ç©ºé—²åˆ—è¡¨æˆ–æº¢å‡ºé¡µåˆ—è¡¨çš„å®Œæ•´æ€§ã€‚æŸ¥è¯åˆ—è¡¨ä¸Šçš„é¡µæ•°æ˜¯N.
 */
 
-static void checkList(        //¼ì²é¿ÕÏĞÁĞ±í»òÒç³öÒ³ÁĞ±íµÄÍêÕûĞÔ
-  IntegrityCk *pCheck,  /* Integrity checking context */                         //ÉÏÏÂÎÄÍêÕûĞÔ¼ì²é
-  int isFreeList,       /* True for a freelist.  False for overflow page list */ //¿ÕÏĞÁĞ±íÎªtrue,Òç³öÒ³ÁĞ±íÎªfalse
-  int iPage,            /* Page number for first page in the list */             //ÁĞ±íÖĞµÚÒ»¸öÒ³µÄÒ³Âë
-  int N,                /* Expected number of pages in the list */               //ÔÚÁĞ±íÖĞÔ¤ÆÚµÄÒ³ÃæÊıÁ¿
-  char *zContext        /* Context for error messages */                         //ÉÏÏÂÎÄµÄ´íÎóĞÅÏ¢
+static void checkList(        //æ£€æŸ¥ç©ºé—²åˆ—è¡¨æˆ–æº¢å‡ºé¡µåˆ—è¡¨çš„å®Œæ•´æ€§
+  IntegrityCk *pCheck,  /* Integrity checking context */                         //ä¸Šä¸‹æ–‡å®Œæ•´æ€§æ£€æŸ¥
+  int isFreeList,       /* True for a freelist.  False for overflow page list */ //ç©ºé—²åˆ—è¡¨ä¸ºtrue,æº¢å‡ºé¡µåˆ—è¡¨ä¸ºfalse
+  int iPage,            /* Page number for first page in the list */             //åˆ—è¡¨ä¸­ç¬¬ä¸€ä¸ªé¡µçš„é¡µç 
+  int N,                /* Expected number of pages in the list */               //åœ¨åˆ—è¡¨ä¸­é¢„æœŸçš„é¡µé¢æ•°é‡
+  char *zContext        /* Context for error messages */                         //ä¸Šä¸‹æ–‡çš„é”™è¯¯ä¿¡æ¯
 ){
   int i;
   int expected = N;
@@ -8542,8 +8541,8 @@ static void checkList(        //¼ì²é¿ÕÏĞÁĞ±í»òÒç³öÒ³ÁĞ±íµÄÍêÕûĞÔ
       ** the following page matches iPage.
       */
       /*
-	  ** Èç¹ûÊı¾İ¿âÖ§³Öauto-vacuum²¢ÇÒiPage²»ÊÇÒç³öÁ´±íÖĞµÄ×îºóÒ»Ò³£¬¼ì²éÆ¥ÅäÏÂÒ»Ò³Óë
-	  ** iPageÆ¥ÅäµÄÖ¸ÕëÎ»Í¼ÌõÄ¿¡£
+	  ** å¦‚æœæ•°æ®åº“æ”¯æŒauto-vacuumå¹¶ä¸”iPageä¸æ˜¯æº¢å‡ºé“¾è¡¨ä¸­çš„æœ€åä¸€é¡µï¼Œæ£€æŸ¥åŒ¹é…ä¸‹ä¸€é¡µä¸
+	  ** iPageåŒ¹é…çš„æŒ‡é’ˆä½å›¾æ¡ç›®ã€‚
 	  */
       if( pCheck->pBt->autoVacuum && N>0 ){
         i = get4byte(pOvflData);
@@ -8577,21 +8576,21 @@ static void checkList(        //¼ì²é¿ÕÏĞÁĞ±í»òÒç³öÒ³ÁĞ±íµÄÍêÕûĞÔ
 **          the root of the tree.
 */
 /*
-** ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é¡£·µ»ØÊ÷µÄÉî¶È¡£¸ùÒ³·µ»Ø0¡£¸ùÒ³ÉÏµÄ¸¸½áµã·µ»Ø1£¬
-** ÒÀ´ÎÀàÍÆ¡£ÒÔÏÂ½«±»¼ì²é:
-** 1¡¢È·±£µ¥Ôª¸ñºÍ×ÔÓÉ¿é²»¸²¸Ç£¬µ«ÊÇÍêÈ«¸²¸ÇÒ³¡£
-** 2¡¢È·±£µ¥Ôª¸ñÉÏµÄ¹Ø¼ü×ÖÓĞĞò¡£
-** 3¡¢È·±£¹Ø¼ü×Ö´óÓÚzLowerBound¡£
-** 4¡¢È·±£¹Ø¼ü×ÖĞ¡ÓÚzUpperBound¡£
-** 5¡¢¼ì²éÒç³öÒ³µÄÍêÕûĞÔ¡£
-** 6¡¢ÔÚËùÓĞº¢×Ó½áµãÉÏµİ¹éµ÷ÓÃcheckTreePage¡£
-** 7¡¢È·±£ËùÓĞº¢×Ó½áµãÉî¶ÈÏàÍ¬¡£
-** 8¡¢³ıÁË¸ùÒ³£¬Ò³ÖÁÉÙÓĞ33%µÄ¿Õ¼ä±»Ê¹ÓÃ¡£
+** åœ¨æ ‘çš„ä¸€ä¸ªå•ç‹¬çš„é¡µä¸Šè¿›è¡Œæ£€æŸ¥ã€‚è¿”å›æ ‘çš„æ·±åº¦ã€‚æ ¹é¡µè¿”å›0ã€‚æ ¹é¡µä¸Šçš„çˆ¶ç»“ç‚¹è¿”å›1ï¼Œ
+** ä¾æ¬¡ç±»æ¨ã€‚ä»¥ä¸‹å°†è¢«æ£€æŸ¥:
+** 1ã€ç¡®ä¿å•å…ƒæ ¼å’Œè‡ªç”±å—ä¸è¦†ç›–ï¼Œä½†æ˜¯å®Œå…¨è¦†ç›–é¡µã€‚
+** 2ã€ç¡®ä¿å•å…ƒæ ¼ä¸Šçš„å…³é”®å­—æœ‰åºã€‚
+** 3ã€ç¡®ä¿å…³é”®å­—å¤§äºzLowerBoundã€‚
+** 4ã€ç¡®ä¿å…³é”®å­—å°äºzUpperBoundã€‚
+** 5ã€æ£€æŸ¥æº¢å‡ºé¡µçš„å®Œæ•´æ€§ã€‚
+** 6ã€åœ¨æ‰€æœ‰å­©å­ç»“ç‚¹ä¸Šé€’å½’è°ƒç”¨checkTreePageã€‚
+** 7ã€ç¡®ä¿æ‰€æœ‰å­©å­ç»“ç‚¹æ·±åº¦ç›¸åŒã€‚
+** 8ã€é™¤äº†æ ¹é¡µï¼Œé¡µè‡³å°‘æœ‰33%çš„ç©ºé—´è¢«ä½¿ç”¨ã€‚
 */
-static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
-  IntegrityCk *pCheck,  /* Context for the sanity check */       //ºË¶ÔÉÏÏÂÎÄ
-  int iPage,            /* Page number of the page to check */   //ÒªºË¶ÔÒ³µÄÒ³Âë
-  char *zParentContext, /* Parent context */                     //¸¸½ÚµãÉÏÏÂÎÄ
+static int checkTreePage(    //åœ¨æ ‘çš„ä¸€ä¸ªå•ç‹¬çš„é¡µä¸Šè¿›è¡Œæ£€æŸ¥
+  IntegrityCk *pCheck,  /* Context for the sanity check */       //æ ¸å¯¹ä¸Šä¸‹æ–‡
+  int iPage,            /* Page number of the page to check */   //è¦æ ¸å¯¹é¡µçš„é¡µç 
+  char *zParentContext, /* Parent context */                     //çˆ¶èŠ‚ç‚¹ä¸Šä¸‹æ–‡
   i64 *pnParentMinKey, 
   i64 *pnParentMaxKey
 ){
@@ -8622,7 +8621,7 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
 
   /* Clear MemPage.isInit to make sure the corruption detection code in
   ** btreeInitPage() is executed.  
-  ** ÇåÀíMemPage.isInitÈ·±£btreeInitPage()ÖĞµÄ±ÀÀ£¼ì²â´úÂëÖ´ĞĞ */
+  ** æ¸…ç†MemPage.isInitç¡®ä¿btreeInitPage()ä¸­çš„å´©æºƒæ£€æµ‹ä»£ç æ‰§è¡Œ */
   pPage->isInit = 0;
   if( (rc = btreeInitPage(pPage))!=0 ){
     assert( rc==SQLITE_CORRUPT );  /* The only possible error from InitPage */
@@ -8643,10 +8642,10 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
     sqlite3_snprintf(sizeof(zContext), zContext,
              "On tree page %d cell %d: ", iPage, i);
     pCell = findCell(pPage,i);
-    btreeParseCellPtr(pPage, pCell, &info);   //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
+    btreeParseCellPtr(pPage, pCell, &info);   //è§£æå•å…ƒå†…å®¹å—ï¼Œå¡«åœ¨CellInfoç»“æ„ä¸­
     sz = info.nData;
     if( !pPage->intKey ) sz += (int)info.nKey;
-    /* For intKey pages, check that the keys are in order. */  //¶ÔÓÚintKey£¬ÓĞĞòºË¶Ô¹Ø¼ü×Ö
+    /* For intKey pages, check that the keys are in order. */  //å¯¹äºintKeyï¼Œæœ‰åºæ ¸å¯¹å…³é”®å­—
     else if( i==0 ) nMinKey = nMaxKey = info.nKey;
     else{
       if( info.nKey <= nMaxKey ){
@@ -8663,13 +8662,13 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
       Pgno pgnoOvfl = get4byte(&pCell[info.iOverflow]);
 #ifndef SQLITE_OMIT_AUTOVACUUM
       if( pBt->autoVacuum ){
-        checkPtrmap(pCheck, pgnoOvfl, PTRMAP_OVERFLOW1, iPage, zContext); //ºË¶Ô´ÓÒ³pgnoOvflÓ³Éäµ½Ò³iPageµÄÖ¸ÕëÎ»Í¼ÖĞµÄÌõÄ¿
+        checkPtrmap(pCheck, pgnoOvfl, PTRMAP_OVERFLOW1, iPage, zContext); //æ ¸å¯¹ä»é¡µpgnoOvflæ˜ å°„åˆ°é¡µiPageçš„æŒ‡é’ˆä½å›¾ä¸­çš„æ¡ç›®
       }
 #endif
-      checkList(pCheck, 0, pgnoOvfl, nPage, zContext);  //¼ì²é¿ÕÏĞÁĞ±í»òÒç³öÒ³ÁĞ±íµÄÍêÕûĞÔ
+      checkList(pCheck, 0, pgnoOvfl, nPage, zContext);  //æ£€æŸ¥ç©ºé—²åˆ—è¡¨æˆ–æº¢å‡ºé¡µåˆ—è¡¨çš„å®Œæ•´æ€§
     }
 
-    /* Check sanity of left child page. */    //ºË¶Ô×óº¢×Ó
+    /* Check sanity of left child page. */    //æ ¸å¯¹å·¦å­©å­
     if( !pPage->leaf ){
       pgno = get4byte(pCell);
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -8699,12 +8698,12 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
  
   /* For intKey leaf pages, check that the min/max keys are in order
   ** with any left/parent/right pages. 
-  ** ¶ÔÓÚintKeyÒ¶×ÓÒ³£¬¶Ôleft/parent/rightÒ³ÓĞĞòºË¶Ômin/max¹Ø¼ü×Ö.
+  ** å¯¹äºintKeyå¶å­é¡µï¼Œå¯¹left/parent/righté¡µæœ‰åºæ ¸å¯¹min/maxå…³é”®å­—.
   */
   if( pPage->leaf && pPage->intKey ){
-    /* if we are a left child page */  //ÈôÊÇÔÚ×óº¢×ÓÒ³ÉÏ
+    /* if we are a left child page */  //è‹¥æ˜¯åœ¨å·¦å­©å­é¡µä¸Š
     if( pnParentMinKey ){
-      /* if we are the left most child page */  //Èç¹ûÔÚ×î×óº¢×ÓÒ³ÉÏ
+      /* if we are the left most child page */  //å¦‚æœåœ¨æœ€å·¦å­©å­é¡µä¸Š
       if( !pnParentMaxKey ){
         if( nMaxKey > *pnParentMinKey ){
           checkAppendMsg(pCheck, zContext, 
@@ -8724,7 +8723,7 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
         }
         *pnParentMinKey = nMaxKey;
       }
-    /* else if we're a right child page */  //ÔÚÓÒº¢×ÓÒ³ÉÏ
+    /* else if we're a right child page */  //åœ¨å³å­©å­é¡µä¸Š
     } else if( pnParentMaxKey ){
       if( nMinKey <= *pnParentMaxKey ){
         checkAppendMsg(pCheck, zContext, 
@@ -8734,15 +8733,15 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
     }
   }
 
-  /* Check for complete coverage of the page .*/ //ºË¶ÔÒ³±»ÍêÈ«¸²¸Ç
+  /* Check for complete coverage of the page .*/ //æ ¸å¯¹é¡µè¢«å®Œå…¨è¦†ç›–
   data = pPage->aData;
   hdr = pPage->hdrOffset;
-  hit = sqlite3PageMalloc( pBt->pageSize );  //´Ó»º³åÇø»ñµÃ¿Õ¼ä·ÖÅä¸øÒ³
+  hit = sqlite3PageMalloc( pBt->pageSize );  //ä»ç¼“å†²åŒºè·å¾—ç©ºé—´åˆ†é…ç»™é¡µ
   if( hit==0 ){
     pCheck->mallocFailed = 1;
   }else{
     int contentOffset = get2byteNotZero(&data[hdr+5]);
-    assert( contentOffset<=usableSize );  /* Enforced by btreeInitPage() */ //±»btreeInitPage()Ç¿ÖÆÖ´ĞĞ
+    assert( contentOffset<=usableSize );  /* Enforced by btreeInitPage() */ //è¢«btreeInitPage()å¼ºåˆ¶æ‰§è¡Œ
     memset(hit+contentOffset, 0, usableSize-contentOffset);
     memset(hit, 1, contentOffset);
     nCell = get2byte(&data[hdr+3]);
@@ -8752,7 +8751,7 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
       u32 size = 65536;
       int j;
       if( pc<=usableSize-4 ){
-        size = cellSizePtr(pPage, &data[pc]); //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½ÚÊı
+        size = cellSizePtr(pPage, &data[pc]); //è®¡ç®—ä¸€ä¸ªCelléœ€è¦çš„æ€»çš„å­—èŠ‚æ•°
       }
       if( (int)(pc+size-1)>=usableSize ){
         checkAppendMsg(pCheck, 0, 
@@ -8764,13 +8763,13 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
     i = get2byte(&data[hdr+1]);
     while( i>0 ){
       int size, j;
-      assert( i<=usableSize-4 );     /* Enforced by btreeInitPage() */  //±»btreeInitPage()Ç¿ÖÆÖ´ĞĞ
+      assert( i<=usableSize-4 );     /* Enforced by btreeInitPage() */  //è¢«btreeInitPage()å¼ºåˆ¶æ‰§è¡Œ
       size = get2byte(&data[i+2]);
-      assert( i+size<=usableSize );  /* Enforced by btreeInitPage() */  //±»btreeInitPage()Ç¿ÖÆÖ´ĞĞ
+      assert( i+size<=usableSize );  /* Enforced by btreeInitPage() */  //è¢«btreeInitPage()å¼ºåˆ¶æ‰§è¡Œ
       for(j=i+size-1; j>=i; j--) hit[j]++;
       j = get2byte(&data[i]);
-      assert( j==0 || j>i+size );  /* Enforced by btreeInitPage() */  //±»btreeInitPage()Ç¿ÖÆÖ´ĞĞ
-      assert( j<=usableSize-4 );   /* Enforced by btreeInitPage() */  //±»btreeInitPage()Ç¿ÖÆÖ´ĞĞ
+      assert( j==0 || j>i+size );  /* Enforced by btreeInitPage() */  //è¢«btreeInitPage()å¼ºåˆ¶æ‰§è¡Œ
+      assert( j<=usableSize-4 );   /* Enforced by btreeInitPage() */  //è¢«btreeInitPage()å¼ºåˆ¶æ‰§è¡Œ
       i = j;
     }
     for(i=cnt=0; i<usableSize; i++){
@@ -8788,8 +8787,8 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
           cnt, data[hdr+7], iPage);
     }
   }
-  sqlite3PageFree(hit);   //ÊÍ·Å´Ósqlite3PageMalloc()»ñµÃµÄ»º³åÇø
-  releasePage(pPage);     //ÊÍ·ÅÄÚ´æÒ³
+  sqlite3PageFree(hit);   //é‡Šæ”¾ä»sqlite3PageMalloc()è·å¾—çš„ç¼“å†²åŒº
+  releasePage(pPage);     //é‡Šæ”¾å†…å­˜é¡µ
   return depth+1;
 }
 #endif /* SQLITE_OMIT_INTEGRITY_CHECK */
@@ -8808,17 +8807,17 @@ static int checkTreePage(    //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
 ** malloc is returned if *pnErr is non-zero.  If *pnErr==0 then NULL is
 ** returned.  If a memory allocation error occurs, NULL is returned.
 */
-/* ¸Ãº¯Êı¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÈ«µÄ¼ì²é¡£aRoot[]ÊÇÒ»¸öÒ³ÂëÊı×é£¬Êı×éÖĞÃ¿Ò»¸öÒ³Âë¶¼ÊÇ±íµÄ¸ùÒ³¡£
-** aRootÖĞµÄÌõÄ¿ÊıÁ¿ÎªnRoot¡£ÔÚµ÷ÓÃÕâ¸öº¯ÊıÖ®Ç°£¬Ò»¸öÖ»¶Á»òÕß¶ÁĞ´ÊÂÎñ±ØĞëÎª´ò¿ª×´Ì¬¡£
-** Ğ´´íÎóÊıÁ¿ÔÚ*pnErrÖĞ¿É¼û¡£³ıÁËÒ»Ğ©ÄÚ´æ´íÎó£¬Èç¹û*pnErr·ÇÁã£¬Ò»¸ö´ÓmallocÖĞ»ñµÃµÄ´íÎóĞÅÏ¢±£´æÔÚÄÚ´æ¡£*pnErr==0£¬
-** ·µ»ØNULL.ÄÚ´æ·ÖÅä´íÎó·µ»ØNULL.
+/* è¯¥å‡½æ•°å¯¹BTreeæ–‡ä»¶åšä¸€ä¸ªå®Œå…¨çš„æ£€æŸ¥ã€‚aRoot[]æ˜¯ä¸€ä¸ªé¡µç æ•°ç»„ï¼Œæ•°ç»„ä¸­æ¯ä¸€ä¸ªé¡µç éƒ½æ˜¯è¡¨çš„æ ¹é¡µã€‚
+** aRootä¸­çš„æ¡ç›®æ•°é‡ä¸ºnRootã€‚åœ¨è°ƒç”¨è¿™ä¸ªå‡½æ•°ä¹‹å‰ï¼Œä¸€ä¸ªåªè¯»æˆ–è€…è¯»å†™äº‹åŠ¡å¿…é¡»ä¸ºæ‰“å¼€çŠ¶æ€ã€‚
+** å†™é”™è¯¯æ•°é‡åœ¨*pnErrä¸­å¯è§ã€‚é™¤äº†ä¸€äº›å†…å­˜é”™è¯¯ï¼Œå¦‚æœ*pnErréé›¶ï¼Œä¸€ä¸ªä»mallocä¸­è·å¾—çš„é”™è¯¯ä¿¡æ¯ä¿å­˜åœ¨å†…å­˜ã€‚*pnErr==0ï¼Œ
+** è¿”å›NULL.å†…å­˜åˆ†é…é”™è¯¯è¿”å›NULL.
 */
-char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
-  Btree *p,     /* The btree to be checked */                             //Òª±»¼ì²éµÄBÊ÷
-  int *aRoot,   /* An array of root pages numbers for individual trees */ //Ò»¸öÊ÷µÄ¸ùÒ³ÂëÊı×é
-  int nRoot,    /* Number of entries in aRoot[] */                        //aRoot[]ÖĞµÄÌõÄ¿Êı
-  int mxErr,    /* Stop reporting errors after this many */               //´ïµ½Õâ¸öÊıÖ®ºóÍ£Ö¹±¨´í
-  int *pnErr    /* Write number of errors seen to this variable */        //´íÎóÊı¸³¸ø¸Ã±äÁ¿
+char *sqlite3BtreeIntegrityCheck(    //å¯¹BTreeæ–‡ä»¶åšä¸€ä¸ªå®Œæ•´æ€§çš„æ£€æŸ¥
+  Btree *p,     /* The btree to be checked */                             //è¦è¢«æ£€æŸ¥çš„Bæ ‘
+  int *aRoot,   /* An array of root pages numbers for individual trees */ //ä¸€ä¸ªæ ‘çš„æ ¹é¡µç æ•°ç»„
+  int nRoot,    /* Number of entries in aRoot[] */                        //aRoot[]ä¸­çš„æ¡ç›®æ•°
+  int mxErr,    /* Stop reporting errors after this many */               //è¾¾åˆ°è¿™ä¸ªæ•°ä¹‹ååœæ­¢æŠ¥é”™
+  int *pnErr    /* Write number of errors seen to this variable */        //é”™è¯¯æ•°èµ‹ç»™è¯¥å˜é‡
 ){
   Pgno i;
   int nRef;
@@ -8831,7 +8830,7 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
   nRef = sqlite3PagerRefcount(pBt->pPager);
   sCheck.pBt = pBt;
   sCheck.pPager = pBt->pPager;
-  sCheck.nPage = btreePagecount(sCheck.pBt);  //·µ»ØÒ³ÖĞÊı¾İ¿âÎÄ¼ş(Ò³)µÄ´óĞ¡
+  sCheck.nPage = btreePagecount(sCheck.pBt);  //è¿”å›é¡µä¸­æ•°æ®åº“æ–‡ä»¶(é¡µ)çš„å¤§å°
   sCheck.mxErr = mxErr;
   sCheck.nErr = 0;
   sCheck.mallocFailed = 0;
@@ -8841,7 +8840,7 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
     return 0;
   }
 
-  sCheck.aPgRef = sqlite3MallocZero((sCheck.nPage / 8)+ 1);  //·ÖÅä²¢ÇåÁã
+  sCheck.aPgRef = sqlite3MallocZero((sCheck.nPage / 8)+ 1);  //åˆ†é…å¹¶æ¸…é›¶
   if( !sCheck.aPgRef ){
     *pnErr = 1;
     sqlite3BtreeLeave(p);
@@ -8849,14 +8848,14 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
   }
   i = PENDING_BYTE_PAGE(pBt);
   if( i<=sCheck.nPage ) setPageReferenced(&sCheck, i); 
-  sqlite3StrAccumInit(&sCheck.errMsg, zErr, sizeof(zErr), 20000);  //³õÊ¼»¯Ò»¸ö×Ö·û´®ÀÛ¼ÓÆ÷
+  sqlite3StrAccumInit(&sCheck.errMsg, zErr, sizeof(zErr), 20000);  //åˆå§‹åŒ–ä¸€ä¸ªå­—ç¬¦ä¸²ç´¯åŠ å™¨
   sCheck.errMsg.useMalloc = 2;
 
-  /* Check the integrity of the freelist */   //ºË¶Ô¿ÕÏĞÁĞ±íµÄÍêÕûĞÔ
+  /* Check the integrity of the freelist */   //æ ¸å¯¹ç©ºé—²åˆ—è¡¨çš„å®Œæ•´æ€§
   checkList(&sCheck, 1, get4byte(&pBt->pPage1->aData[32]),
             get4byte(&pBt->pPage1->aData[36]), "Main freelist: ");
 
-  /* Check all the tables.*/                 //ºË¶ÔËùÓĞ±í
+  /* Check all the tables.*/                 //æ ¸å¯¹æ‰€æœ‰è¡¨
   for(i=0; (int)i<nRoot && sCheck.mxErr; i++){
     if( aRoot[i]==0 ) continue;
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -8864,10 +8863,10 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
       checkPtrmap(&sCheck, aRoot[i], PTRMAP_ROOTPAGE, 0, 0);
     }
 #endif
-    checkTreePage(&sCheck, aRoot[i], "List of tree roots: ", NULL, NULL);  //ÔÚÊ÷µÄÒ»¸öµ¥¶ÀµÄÒ³ÉÏ½øĞĞ¼ì²é
+    checkTreePage(&sCheck, aRoot[i], "List of tree roots: ", NULL, NULL);  //åœ¨æ ‘çš„ä¸€ä¸ªå•ç‹¬çš„é¡µä¸Šè¿›è¡Œæ£€æŸ¥
   }
 
-  /* Make sure every page in the file is referenced .*/  //È·±£ÔÚÎÄ¼şÖĞµÄÃ¿¸öÒ³¶¼±»ÒıÓÃ 
+  /* Make sure every page in the file is referenced .*/  //ç¡®ä¿åœ¨æ–‡ä»¶ä¸­çš„æ¯ä¸ªé¡µéƒ½è¢«å¼•ç”¨ 
   for(i=1; i<=sCheck.nPage && sCheck.mxErr; i++){
 #ifdef SQLITE_OMIT_AUTOVACUUM
     if( getPageReferenced(&sCheck, i)==0 ){
@@ -8876,7 +8875,7 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
 #else
     /* If the database supports auto-vacuum, make sure no tables contain
     ** references to pointer-map pages.
-	** Èç¹ûÊı¾İ¿âÖ§³Ö×Ô¶¯ÇåÀí£¬È·±£Ã»ÓĞ±í°üº¬¶ÔÖ¸ÕëÎ»Í¼Ò³µÄÒıÓÃ¡£
+	** å¦‚æœæ•°æ®åº“æ”¯æŒè‡ªåŠ¨æ¸…ç†ï¼Œç¡®ä¿æ²¡æœ‰è¡¨åŒ…å«å¯¹æŒ‡é’ˆä½å›¾é¡µçš„å¼•ç”¨ã€‚
     */
     if( getPageReferenced(&sCheck, i)==0 && 
        (PTRMAP_PAGENO(pBt, i)!=i || !pBt->autoVacuum) ){
@@ -8893,7 +8892,7 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
   ** This is an internal consistency check; an integrity check
   ** of the integrity check.
   */
-  /*È·±£·ÖÎö²»ÒÅÂ©unref()µÄÒ³¡£ÕâÊÇÄÚ²¿Ò»ÖÂĞÔ¼ì²é£¬ÍêÕûĞÔ¼ì²é¡£*/
+  /*ç¡®ä¿åˆ†æä¸é—æ¼unref()çš„é¡µã€‚è¿™æ˜¯å†…éƒ¨ä¸€è‡´æ€§æ£€æŸ¥ï¼Œå®Œæ•´æ€§æ£€æŸ¥ã€‚*/
   if( NEVER(nRef != sqlite3PagerRefcount(pBt->pPager)) ){
     checkAppendMsg(&sCheck, 0, 
       "Outstanding page count goes from %d to %d during this analysis",
@@ -8901,11 +8900,11 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
     );
   }
 
-  /* Clean  up and report errors.*/  //ÇåÀí²¢±¨´í
+  /* Clean  up and report errors.*/  //æ¸…ç†å¹¶æŠ¥é”™
   sqlite3BtreeLeave(p);
   sqlite3_free(sCheck.aPgRef);
   if( sCheck.mallocFailed ){
-    sqlite3StrAccumReset(&sCheck.errMsg); //ÖØÖÃÒ»¸öStrAccumÀàĞÍµÄ×Ö·û£¬²¢ÇÒ»ØÊÕËùÓĞ·ÖÅäµÄÄÚ´æ¡£
+    sqlite3StrAccumReset(&sCheck.errMsg); //é‡ç½®ä¸€ä¸ªStrAccumç±»å‹çš„å­—ç¬¦ï¼Œå¹¶ä¸”å›æ”¶æ‰€æœ‰åˆ†é…çš„å†…å­˜ã€‚
     *pnErr = sCheck.nErr+1;
     return 0;
   }
@@ -8922,10 +8921,10 @@ char *sqlite3BtreeIntegrityCheck(    //¶ÔBTreeÎÄ¼ş×öÒ»¸öÍêÕûµÄ¼ì²é
 ** The pager filename is invariant as long as the pager is
 ** open so it is safe to access without the BtShared mutex.
 */
-/* ·µ»Øµ×²ãÊı¾İ¿âÎÄ¼şÖĞÍêÕûµÄÂ·¾¶Ãû¡£Èç¹û¸ÃÊı¾İ¿âÎªÄÚ´æÊı¾İ¿â£¬»òÕßÎªÁÙÊ±Êı¾İ¿â£¬
-** ·µ»Ø¿ÕµÄ×Ö·û´®¡£pagerµÄÎÄ¼şÃûÊÇ²»±äµÄÖ»ÒªpagerÊÇ¿ª·ÅµÄ£¬Òò´ËÃ»ÓĞBtShared»¥³âËøÒ²ÄÜ°²È«·ÃÎÊ.
+/* è¿”å›åº•å±‚æ•°æ®åº“æ–‡ä»¶ä¸­å®Œæ•´çš„è·¯å¾„åã€‚å¦‚æœè¯¥æ•°æ®åº“ä¸ºå†…å­˜æ•°æ®åº“ï¼Œæˆ–è€…ä¸ºä¸´æ—¶æ•°æ®åº“ï¼Œ
+** è¿”å›ç©ºçš„å­—ç¬¦ä¸²ã€‚pagerçš„æ–‡ä»¶åæ˜¯ä¸å˜çš„åªè¦pageræ˜¯å¼€æ”¾çš„ï¼Œå› æ­¤æ²¡æœ‰BtSharedäº’æ–¥é”ä¹Ÿèƒ½å®‰å…¨è®¿é—®.
 */
-const char *sqlite3BtreeGetFilename(Btree *p){    //·µ»Øµ×²ãÊı¾İ¿âÎÄ¼şÖĞÍêÕûµÄÂ·¾¶Ãû
+const char *sqlite3BtreeGetFilename(Btree *p){    //è¿”å›åº•å±‚æ•°æ®åº“æ–‡ä»¶ä¸­å®Œæ•´çš„è·¯å¾„å
   assert( p->pBt->pPager!=0 );
   return sqlite3PagerFilename(p->pBt->pPager, 1);
 }
@@ -8939,19 +8938,19 @@ const char *sqlite3BtreeGetFilename(Btree *p){    //·µ»Øµ×²ãÊı¾İ¿âÎÄ¼şÖĞÍêÕûµÄÂ·
 ** open so it is safe to access without the BtShared mutex.
 */
 /*
-** ·µ»ØÊı¾İ¿âÖĞÈÕÖ¾ÎÄ¼şµÄÂ·¾¶Ãû¡£ÎŞÂÛÈÕÖ¾ÎÄ¼şÊÇ·ñ±»´´½¨£¬³ÌĞò·µ»ØÖµÏàÍ¬¡£
-** pagerÈÕÖ¾ÎÄ¼şÃûÊÇ²»±äµÄÖ»Òªpager¿ª·Å£¬Òò´ËÃ»ÓĞBtShared»¥³âËøÒ²ÄÜ°²È«·ÃÎÊ.
+** è¿”å›æ•°æ®åº“ä¸­æ—¥å¿—æ–‡ä»¶çš„è·¯å¾„åã€‚æ— è®ºæ—¥å¿—æ–‡ä»¶æ˜¯å¦è¢«åˆ›å»ºï¼Œç¨‹åºè¿”å›å€¼ç›¸åŒã€‚
+** pageræ—¥å¿—æ–‡ä»¶åæ˜¯ä¸å˜çš„åªè¦pagerå¼€æ”¾ï¼Œå› æ­¤æ²¡æœ‰BtSharedäº’æ–¥é”ä¹Ÿèƒ½å®‰å…¨è®¿é—®.
 */
-const char *sqlite3BtreeGetJournalname(Btree *p){  //·µ»ØÊı¾İ¿âÖĞÈÕÖ¾ÎÄ¼şµÄÂ·¾¶Ãû
+const char *sqlite3BtreeGetJournalname(Btree *p){  //è¿”å›æ•°æ®åº“ä¸­æ—¥å¿—æ–‡ä»¶çš„è·¯å¾„å
   assert( p->pBt->pPager!=0 );
   return sqlite3PagerJournalname(p->pBt->pPager);
 }
 
 /*
 ** Return non-zero if a transaction is active.  
-** ÊÂÎñÔÚÔËĞĞ£¬·µ»Ø·ÇÁã
+** äº‹åŠ¡åœ¨è¿è¡Œï¼Œè¿”å›éé›¶
 */
-int sqlite3BtreeIsInTrans(Btree *p){     //ÊÇ·ñÔÚÊÂÎñÖĞ
+int sqlite3BtreeIsInTrans(Btree *p){     //æ˜¯å¦åœ¨äº‹åŠ¡ä¸­
   assert( p==0 || sqlite3_mutex_held(p->db->mutex) );
   return (p && (p->inTrans==TRANS_WRITE));
 }
@@ -8966,11 +8965,11 @@ int sqlite3BtreeIsInTrans(Btree *p){     //ÊÇ·ñÔÚÊÂÎñÖĞ
 ** Parameter eMode is one of SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART.
 */
 /*
-** Ö´ĞĞBÊ÷ÉÏµÄ¼ì²éµã×÷ÎªµÚÒ»¸ö²ÎÊı´«µİ¡£Èç¹ûÕâ¸ö»òÈÎºÎÆäËûÁ¬½Ó
-** ÓĞÒ»¸ö¿ª·ÅµÄÊÂÎñ£¬·µ»ØSQLITE_LOCKED£¬ÊÂÎñÔÚ±»BÊ÷Á¬½ÓµÄ¹²ÏíÔÚ²ÎÊıÉÏ¡£
-** ²ÎÊıeModeÎªSQLITE_CHECKPOINT_PASSIVE, FULL or RESTARTÖ®Ò»¡£
+** æ‰§è¡ŒBæ ‘ä¸Šçš„æ£€æŸ¥ç‚¹ä½œä¸ºç¬¬ä¸€ä¸ªå‚æ•°ä¼ é€’ã€‚å¦‚æœè¿™ä¸ªæˆ–ä»»ä½•å…¶ä»–è¿æ¥
+** æœ‰ä¸€ä¸ªå¼€æ”¾çš„äº‹åŠ¡ï¼Œè¿”å›SQLITE_LOCKEDï¼Œäº‹åŠ¡åœ¨è¢«Bæ ‘è¿æ¥çš„å…±äº«åœ¨å‚æ•°ä¸Šã€‚
+** å‚æ•°eModeä¸ºSQLITE_CHECKPOINT_PASSIVE, FULL or RESTARTä¹‹ä¸€ã€‚
 */
-int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //Ö´ĞĞBÊ÷ÉÏµÄ¼ì²éµã×÷ÎªµÚÒ»¸ö²ÎÊı´«µİ
+int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //æ‰§è¡ŒBæ ‘ä¸Šçš„æ£€æŸ¥ç‚¹ä½œä¸ºç¬¬ä¸€ä¸ªå‚æ•°ä¼ é€’
   int rc = SQLITE_OK;
   if( p ){
     BtShared *pBt = p->pBt;
@@ -8988,7 +8987,7 @@ int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //Ö´ĞĞ
 
 /*
 ** Return non-zero if a read (or write) transaction is active.
-** Èç¹û¶Á»òĞ´ÊÂÎñÔÚ»î¶¯£¬·µ»Ø·ÇÁã
+** å¦‚æœè¯»æˆ–å†™äº‹åŠ¡åœ¨æ´»åŠ¨ï¼Œè¿”å›éé›¶
 */
 int sqlite3BtreeIsInReadTrans(Btree *p){
   assert( p );
@@ -9007,28 +9006,28 @@ int sqlite3BtreeIsInBackup(Btree *p){
 ** a single shared-btree. The memory is used by client code for its own
 ** purposes (for example, to store a high-level schema associated with 
 ** the shared-btree). The btree layer manages reference counting issues.
-** Õâ¸öº¯Êı·µ»ØÒ»¸öÖ¸ÏòÓëÒ»¸öµ¥¶ÀµÄ¹²ÏíBÊ÷Ïà¹ØµÄÄÚ´æÖĞµÄblob¡£ÄÚ´æ±»¿Í»§¶Ë´úÂë
-** Ê¹ÓÃ(ÀıÈç,´æ´¢Ò»¸öÓëshared-btreeÏà¹ØµÄ¸ß¼¶Ä£Ê½)¡£btree²ã¹ÜÀíÒıÓÃ¼ÆÊıÎÊÌâ¡£
+** è¿™ä¸ªå‡½æ•°è¿”å›ä¸€ä¸ªæŒ‡å‘ä¸ä¸€ä¸ªå•ç‹¬çš„å…±äº«Bæ ‘ç›¸å…³çš„å†…å­˜ä¸­çš„blobã€‚å†…å­˜è¢«å®¢æˆ·ç«¯ä»£ç 
+** ä½¿ç”¨(ä¾‹å¦‚,å­˜å‚¨ä¸€ä¸ªä¸shared-btreeç›¸å…³çš„é«˜çº§æ¨¡å¼)ã€‚btreeå±‚ç®¡ç†å¼•ç”¨è®¡æ•°é—®é¢˜ã€‚
 ** The first time this is called on a shared-btree, nBytes bytes of memory
 ** are allocated, zeroed, and returned to the caller. For each subsequent 
 ** call the nBytes parameter is ignored and a pointer to the same blob
 ** of memory returned. 
-** Õâ¸öº¯ÊıÊÇµÚÒ»´ÎÔÚ¹²ÏíBÊ÷ÉÏµ÷ÓÃ¡£ÄÚ´æµÄnBytes¸ö×Ö½Ú±»·ÖÅä£¬ÇåÁã£¬²¢·µ»Øµ½µ÷ÓÃÕß.
-** ¶ÔÓÚÃ¿ºóÀ´µÄµ÷ÓÃnBytes×Ö½Ú¶¼±»ºöÂÔ²¢ÇÒÖ¸ÕëÖ¸ÏòÄÚ´æ·µ»ØµÄÏàÍ¬blob¶ÔÏó.
+** è¿™ä¸ªå‡½æ•°æ˜¯ç¬¬ä¸€æ¬¡åœ¨å…±äº«Bæ ‘ä¸Šè°ƒç”¨ã€‚å†…å­˜çš„nBytesä¸ªå­—èŠ‚è¢«åˆ†é…ï¼Œæ¸…é›¶ï¼Œå¹¶è¿”å›åˆ°è°ƒç”¨è€….
+** å¯¹äºæ¯åæ¥çš„è°ƒç”¨nByteså­—èŠ‚éƒ½è¢«å¿½ç•¥å¹¶ä¸”æŒ‡é’ˆæŒ‡å‘å†…å­˜è¿”å›çš„ç›¸åŒblobå¯¹è±¡.
 ** If the nBytes parameter is 0 and the blob of memory has not yet been
 ** allocated, a null pointer is returned. If the blob has already been
 ** allocated, it is returned as normal.
-** Èç¹ûnBytes²ÎÊıÊÇ0²¢ÇÒÄÚ´æblobÉĞÎ´·ÖÅä,½«·µ»ØÒ»¸ö¿ÕÖ¸Õë¡£Èç¹û¸ÃblobÒÑ¾­·ÖÅä,ËüÊÇÕı³£·µ»Ø¡£
+** å¦‚æœnByteså‚æ•°æ˜¯0å¹¶ä¸”å†…å­˜blobå°šæœªåˆ†é…,å°†è¿”å›ä¸€ä¸ªç©ºæŒ‡é’ˆã€‚å¦‚æœè¯¥blobå·²ç»åˆ†é…,å®ƒæ˜¯æ­£å¸¸è¿”å›ã€‚
 ** Just before the shared-btree is closed, the function passed as the 
 ** xFree argument when the memory allocation was made is invoked on the 
 ** blob of allocated memory. The xFree function should not call sqlite3_free()
 ** on the memory, the btree layer does that.
-** ÔÚshared-btree¹Ø±ÕÖ®Ç°,ÄÚ´æ·ÖÅäÊ±º¯Êı´«µİ×÷ÎªxFree²ÎÊıÔÚÄÚ´æ·ÖÅäµÄblobÉÏ±»µ÷ÓÃ¡£ÔÚÄÚ´æÉÏ£¬xFreeº¯Êı
-** ²»ÄÜµ÷ÓÃsqlite3_free()£¬ÔÚbtree²ã¿ÉÒÔµ÷ÓÃ¡£
+** åœ¨shared-btreeå…³é—­ä¹‹å‰,å†…å­˜åˆ†é…æ—¶å‡½æ•°ä¼ é€’ä½œä¸ºxFreeå‚æ•°åœ¨å†…å­˜åˆ†é…çš„blobä¸Šè¢«è°ƒç”¨ã€‚åœ¨å†…å­˜ä¸Šï¼ŒxFreeå‡½æ•°
+** ä¸èƒ½è°ƒç”¨sqlite3_free()ï¼Œåœ¨btreeå±‚å¯ä»¥è°ƒç”¨ã€‚
 */
 /*
-º¯Êı·µ»ØÒ»¸öÖ¸ÏòblobĞÍÄÚ´æ¡£ÄÚ´æÓÃ×÷¿Í»§¶Ë´úÂë¡£ÔÚBÊ÷²ã¹ÜÀíÒıÓÃ¼ÆÊıµÄÎÊÌâ¡£
-µÚÒ»´ÎÔÚËùÎ½µÄ¹²ÏíBÊ÷ÉÏ±»µ÷ÓÃ£¬Îªnbytes×Ö½ÚµÄÄÚ´æ±»·ÖÅä¡£
+å‡½æ•°è¿”å›ä¸€ä¸ªæŒ‡å‘blobå‹å†…å­˜ã€‚å†…å­˜ç”¨ä½œå®¢æˆ·ç«¯ä»£ç ã€‚åœ¨Bæ ‘å±‚ç®¡ç†å¼•ç”¨è®¡æ•°çš„é—®é¢˜ã€‚
+ç¬¬ä¸€æ¬¡åœ¨æ‰€è°“çš„å…±äº«Bæ ‘ä¸Šè¢«è°ƒç”¨ï¼Œä¸ºnbyteså­—èŠ‚çš„å†…å­˜è¢«åˆ†é…ã€‚
 */
 void *sqlite3BtreeSchema(Btree *p, int nBytes, void(*xFree)(void *)){
   BtShared *pBt = p->pBt;
@@ -9046,8 +9045,8 @@ void *sqlite3BtreeSchema(Btree *p, int nBytes, void(*xFree)(void *)){
 ** btree as the argument handle holds an exclusive lock on the 
 ** sqlite_master table. Otherwise SQLITE_OK.
 */
-/*Èç¹ûÁíÒ»¸öÓÃ»§ÔÚ¹²ÏíBÊ÷ÉÏÓĞÒ»¸öÅÅËûËø£¬·µ»ØSQLITE_LOCKED_SHAREDCACHE¡£*/
-int sqlite3BtreeSchemaLocked(Btree *p){    //BÊ÷Ä£Ê½Ëø
+/*å¦‚æœå¦ä¸€ä¸ªç”¨æˆ·åœ¨å…±äº«Bæ ‘ä¸Šæœ‰ä¸€ä¸ªæ’ä»–é”ï¼Œè¿”å›SQLITE_LOCKED_SHAREDCACHEã€‚*/
+int sqlite3BtreeSchemaLocked(Btree *p){    //Bæ ‘æ¨¡å¼é”
   int rc;
   assert( sqlite3_mutex_held(p->db->mutex) );
   sqlite3BtreeEnter(p);
@@ -9064,8 +9063,8 @@ int sqlite3BtreeSchemaLocked(Btree *p){    //BÊ÷Ä£Ê½Ëø
 ** lock is a write lock if isWritelock is true or a read lock
 ** if it is false.
 */
-/*»ñµÃ±íµÄ¸ùÒ³iTabÉÏµÄËø£¬isWriteLock=1ÊÇĞ´Ëø£¬µÈÓÚ0Îª¶ÁËø¡£*/
-int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //»ñµÃ±íµÄ¸ùÒ³iTabÉÏµÄËø
+/*è·å¾—è¡¨çš„æ ¹é¡µiTabä¸Šçš„é”ï¼ŒisWriteLock=1æ˜¯å†™é”ï¼Œç­‰äº0ä¸ºè¯»é”ã€‚*/
+int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //è·å¾—è¡¨çš„æ ¹é¡µiTabä¸Šçš„é”
   int rc = SQLITE_OK;
   assert( p->inTrans!=TRANS_NONE );
   if( p->sharable ){
@@ -9074,9 +9073,9 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //»ñµÃ±íµÄ¸ùÒ³i
     assert( isWriteLock==0 || isWriteLock==1 );
 
     sqlite3BtreeEnter(p);
-    rc = querySharedCacheTableLock(p, iTab, lockType);//²é¿´Btree¾ä±úpÊÇ·ñÔÚ¾ßÓĞ¸ùÒ³iTabµÄ±íÉÏ»ñµÃÁËlockTypeÀàĞÍ
+    rc = querySharedCacheTableLock(p, iTab, lockType);//æŸ¥çœ‹Btreeå¥æŸ„pæ˜¯å¦åœ¨å…·æœ‰æ ¹é¡µiTabçš„è¡¨ä¸Šè·å¾—äº†lockTypeç±»å‹
     if( rc==SQLITE_OK ){
-      rc = setSharedCacheTableLock(p, iTab, lockType); //Í¨¹ıBÊ÷¾ä±úpÔÚ¸ùÒ³iTableµÄ±íÉÏÌí¼ÓËøµ½¹²ÏíBÊ÷
+      rc = setSharedCacheTableLock(p, iTab, lockType); //é€šè¿‡Bæ ‘å¥æŸ„påœ¨æ ¹é¡µiTableçš„è¡¨ä¸Šæ·»åŠ é”åˆ°å…±äº«Bæ ‘
     }
     sqlite3BtreeLeave(p);
   }
@@ -9089,17 +9088,17 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //»ñµÃ±íµÄ¸ùÒ³i
 ** Argument pCsr must be a cursor opened for writing on an 
 ** INTKEY table currently pointing at a valid table entry. 
 ** This function modifies the data stored as part of that entry.
-** ²ÎÊıpCsr±ØĞëÊÇÒ»¸ö´ò¿ªµÄÓÎ±ê£¬µÈ´ıÔÚIµ±Ç°NTKEY±íÉÏÖ¸ÏòÒ»¸öÓĞĞ§µÄ±íÌõÄ¿¡£
-** Õâ¸öº¯ÊıĞŞ¸Ä´æ´¢µÄÊı¾İ×÷ÎªÌõÄ¿µÄÒ»²¿·Ö¡£
+** å‚æ•°pCsrå¿…é¡»æ˜¯ä¸€ä¸ªæ‰“å¼€çš„æ¸¸æ ‡ï¼Œç­‰å¾…åœ¨Iå½“å‰NTKEYè¡¨ä¸ŠæŒ‡å‘ä¸€ä¸ªæœ‰æ•ˆçš„è¡¨æ¡ç›®ã€‚
+** è¿™ä¸ªå‡½æ•°ä¿®æ”¹å­˜å‚¨çš„æ•°æ®ä½œä¸ºæ¡ç›®çš„ä¸€éƒ¨åˆ†ã€‚
 ** Only the data content may only be modified, it is not possible to 
 ** change the length of the data stored. If this function is called with
 ** parameters that attempt to write past the end of the existing data,
 ** no modifications are made and SQLITE_CORRUPT is returned.
-** Ö»ÓĞÊı¾İÄÚÈİ¿ÉÄÜĞŞ¸Ä,ĞŞ¸Ä´æ´¢µÄÊı¾İµÄ³¤¶ÈÊÇ²»¿ÉÄÜµÄ¡£Èç¹ûÕâ¸öº¯Êı±»µ÷ÓÃ
-** ²ÎÊı³¢ÊÔĞ´µ½ÏÖÓĞÊı¾İµÄÄ©Î²,Ã»ÓĞĞŞ¸Ä²¢·µ»ØSQLITE_CORRUPT¡£
+** åªæœ‰æ•°æ®å†…å®¹å¯èƒ½ä¿®æ”¹,ä¿®æ”¹å­˜å‚¨çš„æ•°æ®çš„é•¿åº¦æ˜¯ä¸å¯èƒ½çš„ã€‚å¦‚æœè¿™ä¸ªå‡½æ•°è¢«è°ƒç”¨
+** å‚æ•°å°è¯•å†™åˆ°ç°æœ‰æ•°æ®çš„æœ«å°¾,æ²¡æœ‰ä¿®æ”¹å¹¶è¿”å›SQLITE_CORRUPTã€‚
 */
-/*½ö½öÊı¾İÄÚÈİÄÜ¹»±»ĞŞ¸Ä£¬²»¿ÉÄÜ¸Ä±äÊı¾İ´æ´¢µÄ³¤¶È¡£*/
-int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //ĞŞ¸ÄÊı¾İÄÚÈİ
+/*ä»…ä»…æ•°æ®å†…å®¹èƒ½å¤Ÿè¢«ä¿®æ”¹ï¼Œä¸å¯èƒ½æ”¹å˜æ•°æ®å­˜å‚¨çš„é•¿åº¦ã€‚*/
+int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //ä¿®æ”¹æ•°æ®å†…å®¹
   int rc;
   assert( cursorHoldsMutex(pCsr) );
   assert( sqlite3_mutex_held(pCsr->pBtree->db->mutex) );
@@ -9115,37 +9114,37 @@ int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //ĞŞ¸ÄÊı
   }
 
   /* Check some assumptions: 
-  **   (a) the cursor is open for writing,        //µÈ´ıÓÎ±ê¿ª·Å
-  **   (b) there is a read/write transaction open, //ÓĞ¶Á»òĞ´ÊÂÎñ¿ª·Å
-  **   (c) the connection holds a write-lock on the table (if required),  //ÔÚ±íÉÏÉÏ¾ä¿áÁ¬½Ó³ÖÓĞĞ´Ëø
-  **   (d) there are no conflicting read-locks, and                       //Ã»ÓĞ³åÍ»¶ÁËø
-  **   (e) the cursor points at a valid row of an intKey table.           //ÓÎ±êÖ¸ÏòintKey±íµÄÓĞĞ§ĞĞ
+  **   (a) the cursor is open for writing,        //ç­‰å¾…æ¸¸æ ‡å¼€æ”¾
+  **   (b) there is a read/write transaction open, //æœ‰è¯»æˆ–å†™äº‹åŠ¡å¼€æ”¾
+  **   (c) the connection holds a write-lock on the table (if required),  //åœ¨è¡¨ä¸Šä¸Šå¥é…·è¿æ¥æŒæœ‰å†™é”
+  **   (d) there are no conflicting read-locks, and                       //æ²¡æœ‰å†²çªè¯»é”
+  **   (e) the cursor points at a valid row of an intKey table.           //æ¸¸æ ‡æŒ‡å‘intKeyè¡¨çš„æœ‰æ•ˆè¡Œ
   */
   if( !pCsr->wrFlag ){
     return SQLITE_READONLY;
   }
   assert( (pCsr->pBt->btsFlags & BTS_READ_ONLY)==0
-              && pCsr->pBt->inTransaction==TRANS_WRITE );/*ÓÎ±ê´ò¿ª£¬Ğ´ÊÂÎñ*/
+              && pCsr->pBt->inTransaction==TRANS_WRITE );/*æ¸¸æ ‡æ‰“å¼€ï¼Œå†™äº‹åŠ¡*/
   assert( hasSharedCacheTableLock(pCsr->pBtree, pCsr->pgnoRoot, 0, 2) );
-  assert( !hasReadConflicts(pCsr->pBtree, pCsr->pgnoRoot) );/*¶ÁËøÃ»³åÍ»*/
+  assert( !hasReadConflicts(pCsr->pBtree, pCsr->pgnoRoot) );/*è¯»é”æ²¡å†²çª*/
   assert( pCsr->apPage[pCsr->iPage]->intKey );
 
-  return accessPayload(pCsr, offset, amt, (unsigned char *)z, 1);  //¶Á»ò¸²Ğ´ÓĞĞ§ÔØºÉĞÅÏ¢
+  return accessPayload(pCsr, offset, amt, (unsigned char *)z, 1);  //è¯»æˆ–è¦†å†™æœ‰æ•ˆè½½è·ä¿¡æ¯
 }
 
 /* 
 ** Set a flag on this cursor to cache the locations of pages from the 
 ** overflow list for the current row. This is used by cursors opened
 ** for incremental blob IO only.
-** ¶ÔÓÚµ±Ç°ĞĞ£¬ÔÚÕâ¸öÓÎ±ê»º´æµÄÒ³ÃæµÄÎ»ÖÃÉèÖÃÒ»¸ö±êÖ¾¡£±êÖ¾½ö±»¶ÔÔöÁ¿blob IO¿ª·ÅµÄÓÎ±êÊ¹ÓÃ¡£
+** å¯¹äºå½“å‰è¡Œï¼Œåœ¨è¿™ä¸ªæ¸¸æ ‡ç¼“å­˜çš„é¡µé¢çš„ä½ç½®è®¾ç½®ä¸€ä¸ªæ ‡å¿—ã€‚æ ‡å¿—ä»…è¢«å¯¹å¢é‡blob IOå¼€æ”¾çš„æ¸¸æ ‡ä½¿ç”¨ã€‚
 ** This function sets a flag only. The actual page location cache
 ** (stored in BtCursor.aOverflow[]) is allocated and used by function
 ** accessPayload() (the worker function for sqlite3BtreeData() and
 ** sqlite3BtreePutData()).
-** Õâ¸öº¯ÊıÖ»ÉèÖÃÒ»¸ö±êÖ¾¡£Êµ¼ÊÒ³ÃæÎ»ÖÃ»º´æ(´æ´¢ÔÚBtCursor.aOverflow[])·ÖÅäºÍ±»accessPayload()Ê¹ÓÃ
-** (¶Ôº¯Êısqlite3BtreeData()ºÍsqlite3BtreePutData()ÓĞĞ§)¡£
-*/  /*´Ëº¯ÊıÔÚÓÎ±êÉÏÉèÖÃÒ»¸ö±êÖ¾£¬»º´æÒç³öÁĞ±íÉÏµÄÒ³*/
-void sqlite3BtreeCacheOverflow(BtCursor *pCur){  //´Ëº¯ÊıÔÚÓÎ±êÉÏÉèÖÃÒ»¸ö±êÖ¾
+** è¿™ä¸ªå‡½æ•°åªè®¾ç½®ä¸€ä¸ªæ ‡å¿—ã€‚å®é™…é¡µé¢ä½ç½®ç¼“å­˜(å­˜å‚¨åœ¨BtCursor.aOverflow[])åˆ†é…å’Œè¢«accessPayload()ä½¿ç”¨
+** (å¯¹å‡½æ•°sqlite3BtreeData()å’Œsqlite3BtreePutData()æœ‰æ•ˆ)ã€‚
+*/  /*æ­¤å‡½æ•°åœ¨æ¸¸æ ‡ä¸Šè®¾ç½®ä¸€ä¸ªæ ‡å¿—ï¼Œç¼“å­˜æº¢å‡ºåˆ—è¡¨ä¸Šçš„é¡µ*/
+void sqlite3BtreeCacheOverflow(BtCursor *pCur){  //æ­¤å‡½æ•°åœ¨æ¸¸æ ‡ä¸Šè®¾ç½®ä¸€ä¸ªæº¢å‡ºé¡µç¼“å­˜æ ‡å¿—
   assert( cursorHoldsMutex(pCur) );
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
   invalidateOverflowCache(pCur);
@@ -9157,9 +9156,9 @@ void sqlite3BtreeCacheOverflow(BtCursor *pCur){  //´Ëº¯ÊıÔÚÓÎ±êÉÏÉèÖÃÒ»¸ö±êÖ¾
 ** Set both the "read version" (single byte at byte offset 18) and 
 ** "write version" (single byte at byte offset 19) fields in the database
 ** header to iVersion.
-** ÔÚÊı¾İ¿âÍ·²¿ÉèÖÃ"read version"(ÔÚÆ«ÒÆÁ¿18´¦µÄµ¥×Ö½Ú´¦)ºÍ"write version"(ÔÚÆ«ÒÆÁ¿19´¦µÄµ¥×Ö½Ú´¦)Óò
+** åœ¨æ•°æ®åº“å¤´éƒ¨è®¾ç½®"read version"(åœ¨åç§»é‡18å¤„çš„å•å­—èŠ‚å¤„)å’Œ"write version"(åœ¨åç§»é‡19å¤„çš„å•å­—èŠ‚å¤„)åŸŸ
 */
-int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){  //ÔÚÊı¾İ¿âÍ·²¿ÉèÖÃ"¶Á°æ±¾"ºÍ"Ğ´°æ±¾"Óò
+int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){  //åœ¨æ•°æ®åº“å¤´éƒ¨è®¾ç½®"è¯»ç‰ˆæœ¬"å’Œ"å†™ç‰ˆæœ¬"åŸŸ
   BtShared *pBt = pBtree->pBt;
   int rc;                         /* Return code */
  
@@ -9169,7 +9168,7 @@ int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){  //ÔÚÊı¾İ¿âÍ·²¿ÉèÖÃ"¶Á°
   ** WAL connection, even if the version fields are currently set to 2.
   */
   pBt->btsFlags &= ~BTS_NO_WAL;
-  if( iVersion==1 ) pBt->btsFlags |= BTS_NO_WAL;/*Ã»ÓĞ´ò¿ªÔ¤Ğ´ÈÕÖ¾Á¬½Ó*/
+  if( iVersion==1 ) pBt->btsFlags |= BTS_NO_WAL;/*æ²¡æœ‰æ‰“å¼€é¢„å†™æ—¥å¿—è¿æ¥*/
 
   rc = sqlite3BtreeBeginTrans(pBtree, 0);
   if( rc==SQLITE_OK ){
@@ -9179,8 +9178,8 @@ int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){  //ÔÚÊı¾İ¿âÍ·²¿ÉèÖÃ"¶Á°
       if( rc==SQLITE_OK ){
         rc = sqlite3PagerWrite(pBt->pPage1->pDbPage);
         if( rc==SQLITE_OK ){
-          aData[18] = (u8)iVersion;/*18ÊÇ¶Á°æ±¾*/
-          aData[19] = (u8)iVersion;/*19ÊÇĞ´°æ±¾*/
+          aData[18] = (u8)iVersion;/*18æ˜¯è¯»ç‰ˆæœ¬*/
+          aData[19] = (u8)iVersion;/*19æ˜¯å†™ç‰ˆæœ¬*/
         }
       }
     }
@@ -9193,9 +9192,9 @@ int sqlite3BtreeSetVersion(Btree *pBtree, int iVersion){  //ÔÚÊı¾İ¿âÍ·²¿ÉèÖÃ"¶Á°
 /*
 ** set the mask of hint flags for cursor pCsr. Currently the only valid
 ** values are 0 and BTREE_BULKLOAD.
-** ÉèÖÃÓÎ±êpCsrÑÚÂë¡£µ±Ç°Î¨Ò»ÓĞĞ§ÖµÊÇ0,ÇÒBTREE_BULKLOAD¡£
+** è®¾ç½®æ¸¸æ ‡pCsræ©ç ã€‚å½“å‰å”¯ä¸€æœ‰æ•ˆå€¼æ˜¯0,ä¸”BTREE_BULKLOADã€‚
 */
 void sqlite3BtreeCursorHints(BtCursor *pCsr, unsigned int mask){
-  assert( mask==BTREE_BULKLOAD || mask==0 );/*ÉèÖÃÑÚÂëmask=BTREE_BULKLOAD »ò0*/
+  assert( mask==BTREE_BULKLOAD || mask==0 );/*è®¾ç½®æ©ç mask=BTREE_BULKLOAD æˆ–0*/
   pCsr->hints = mask;
 }
