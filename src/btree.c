@@ -1116,12 +1116,17 @@ static Pgno ptrmapPageno(BtShared *pBt, Pgno pgno){
 ** Èç¹û*pRCµÄ³õÊ¼»¯ÊÇ·ÇÁãµÄ(non-SQLITE_OK)£¬ÄÇÃ´Õâ¸ö³ÌĞòÎŞ²Ù×÷µÄ¡£
 ** Èç¹ûÒ»¸ö´íÎó·¢Éú£¬ÔòÏàÓ¦µÄ´íÎó´úÂë±»Ğ´Èë*pRC.
 */
+/*
+¡¾ÅË¹âÕä¡¿
+*Ğ´Ò»¸ö½øÈëµÄÖ¸ÕëÓ³Ïî¡£
+**Õâ¸ö³ÌĞò¸üĞÂÒ³Âë'key'µÄÖ¸ÕëÓ³ÉäÏîÒÔ±ãËüÓ³Éäµ½ÀàĞÍ'eType'ºÍ¸¸Ò³Âë'pgno'Èç¹û*pRC×î³õ·ÇÁã(non-SQLITE_OK)£¬
+ÔòÕâ¸ö³ÌĞò¿ÉÒÔÈÎºÎ²Ù×÷¡£Èç¹û·¢Éú´íÎó£¬ÊÊµ±µÄ´íÎó´úÂë»áĞ´½ø*pRC*/
 static void ptrmapPut(BtShared *pBt, Pgno key, u8 eType, Pgno parent, int *pRC){
-  DbPage *pDbPage;  /* The pointer map page Ö¸ÕëÎ»Í¼Ò³*/
-  u8 *pPtrmap;      /* The pointer map data Ö¸ÕëÎ»Í¼µÄÊı¾İÓò*/
+  DbPage *pDbPage;  /* The pointer map page Ö¸ÕëÎ»Í¼Ò³*/ /*¡¾ÅË¹âÕä¡¿PagerµÄÒ³¾ä±ú*/
+  u8 *pPtrmap;      /* The pointer map data Ö¸ÕëÎ»Í¼µÄÊı¾İÓò*/ 
   Pgno iPtrmap;     /* The pointer map page number Ö¸ÕëÎ»Í¼µÄÒ³Âë*/
   int offset;       /* Offset in pointer map page Ö¸ÕëÎ»Í¼Ò³µÄÆ«ÒÆÁ¿*/
-  int rc;           /* Return code from subfunctions(×Óº¯Êı) ´Ó×Óº¯Êı·µ»Øµ½´úÂë*/
+  int rc;           /* Return code from subfunctions(×Óº¯Êı) ´Ó×Óº¯Êı·µ»Øµ½´úÂë*//* ¡¾ÅË¹âÕä¡¿·µ»Ø×Óº¯Êı´úÂë*/
 
   if( *pRC ) return;
 
@@ -1129,6 +1134,7 @@ static void ptrmapPut(BtShared *pBt, Pgno key, u8 eType, Pgno parent, int *pRC){
   /* The master-journal page number must never be used as a pointer map page 
   ** Ö÷ÈÕÖ¾Ò³ÂëÒ»¶¨²»ÄÜÓÃ×÷Ö¸ÕëÎ»Í¼Ò³
   */
+  /*¡¾ÅË¹âÕä¡¿master-journalÒ³ÃæÊıÁ¿¾ø²»ÄÜ±»ÓÃ×÷Ò»¸öÖ¸ÕëÎ»Í¼Ò³Ãæ*/
   assert( 0==PTRMAP_ISPAGE(pBt, PENDING_BYTE_PAGE(pBt)) );
 
   assert( pBt->autoVacuum );
@@ -1174,11 +1180,16 @@ ptrmap_exit:
 ** Èç¹ûÔËĞĞ³ö´íÔò·µ»Ø´íÎó´úÂë£¬ÆäËû·µ»ØSQLITE_OK.
 */
 /*¶ÁÈ¡pointer mapµÄÌõÄ¿£¬Ğ´ÈëpETypeºÍpPgnoÖĞ*/
+/*
+¡¾ÅË¹âÕä¡¿*¶ÁÒ»¸ö½øÈëÓ³ÏñµÄÖ¸Õë¡£
+**Õâ¸ö³ÌĞò»ñÈ¡Ö¸ÕëÓ³ÉäÌõÄ¿Ò³Ãæ'key',Ğ´µÄÀàĞÍºÍ¸¸Ò³ÊıÄ¿µÄ*pEType ºÍ *pPgnoÏà»¥·Ö¿ª
+**Èç¹û³öÏÖ´íÎó,·µ»ØÒ»¸ö´íÎóµÄ´úÂë£¬·ñÔò·µ»ØSQLITE_OK¡£
+*/
 static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
-  DbPage *pDbPage;   /* The pointer map page Ö¸ÕëÎ»Í¼Ò³*/
-  int iPtrmap;       /* Pointer map page index Ö¸ÕëÎ»Í¼Ò³Ë÷Òı*/
-  u8 *pPtrmap;       /* Pointer map page data Ö¸ÕëÎ»Í¼Ò³Êı¾İ*/
-  int offset;        /* Offset of entry in pointer map Ö¸ÕëÎ»Í¼Ò³µÄÆ«ÒÆÁ¿*/
+  DbPage *pDbPage;   /* The pointer map page Ö¸ÕëÎ»Í¼Ò³*/  /*¡¾ÅË¹âÕä¡¿PagerµÄÒ³¾ä±ú*/
+  int iPtrmap;       /* Pointer map page index Ö¸ÕëÎ»Í¼Ò³Ë÷Òı*//*¡¾ÅË¹âÕä¡¿Ö¸ÕëÓ³ÉäÒ³ÃæË÷Òı*/
+  u8 *pPtrmap;       /* Pointer map page data Ö¸ÕëÎ»Í¼Ò³Êı¾İ*/ /*¡¾ÅË¹âÕä¡¿Ö¸ÕëÓ³ÉäÒ³Êı¾İ*/
+  int offset;        /* Offset of entry in pointer map Ö¸ÕëÎ»Í¼Ò³µÄÆ«ÒÆÁ¿*//*¡¾ÅË¹âÕä¡¿Ö¸ÕëÓ³ÉäµÄÊäÈëÆ«ÒÆ*/
   int rc;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -1221,6 +1232,10 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 ** Õâ¸ö³ÌĞòÖ»¶Ô²»°üº¬Òç³öµ¥ÔªµÄÒ³Æğ×÷ÓÃ
 */
 /*¸ø¶¨µÄBÊ÷Ò³ºÍµ¥ÔªË÷Òı£¨0ÒâÎ¶×ÅÒ³ÉÏµÄµÚÒ»¸öµ¥Ôª£¬1ÊÇµÚ¶ş¸öµ¥Ôª£¬µÈµÈ£©·µ»ØÒ»¸öÖ¸Ïòµ¥ÔªÄÚÈİµÄÖ¸Õë*/
+/*
+¡¾ÅË¹âÕä¡¿ÔÚbtreeÒ³ÃæºÍÒ»¸öcell indexµ±ÖĞ (0ÒâÎ¶×ÅÒ³ÃæÉÏµÄµÚÒ»¸öµ¥Ôª¸ñ,1ÒâÎ¶×ÅµÚ¶ş¸öµ¥Ôª¸ñ,µÈµÈ)·µ»ØÒ»¸öÖ¸ÕëÖ¸Ïòµ¥ÔªÄÚÈİ¡£
+Õâ¸ö³ÌĞòÖ»ÊÊºÏÒ³Ãæ²»°üº¬Òç³öµÄcells¡£
+*/
 #define findCell(P,I) \
   ((P)->aData + ((P)->maskPage & get2byte(&(P)->aCellIdx[2*(I)])))
 #define findCellv2(D,M,O,I) (D+(M&get2byte(D+(O+2*(I)))))
@@ -1230,6 +1245,9 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 ** This a more complex version of findCell() that works for
 ** pages that do contain overflow cells.
 ** Õë¶Ô°üº¬Òç³öµ¥ÔªµÄ¸üÎª¸´ÔÓµÄfindCell()°æ±¾
+*/
+/*
+¡¾ÅË¹âÕä¡¿Õâ¸ö¸ü¸´ÔÓµÄ°æ±¾µÄfindCell()ÎªÒ³Ãæ×öµÄ¹¤×÷°üº¬Òç³öµÄcells¡£
 */
 static u8 *findOverflowCell(MemPage *pPage, int iCell){
   int i;
@@ -1260,13 +1278,21 @@ static u8 *findOverflowCell(MemPage *pPage, int iCell){
 ** ÔÚÕâÎÄ¼şÄÚ£¬¿ÉÒÔµ÷ÓÃºêparseCell()¶ø²»ÊÇbtreeParseCellPtr()¡£ÓÃÒ»Ğ©±àÒë³ÌĞò»á¸ü¿ì¡£
 */
 /*½âÎöcell content block£¬ÌîÔÚCellInfo½á¹¹ÖĞ¡£*/
+/*
+¡¾ÅË¹âÕä¡¿**½âÎöcell content block£¬ÌîÔÚCellInfo½á¹¹ÖĞ¡£Õâ¸öº¯ÊıÓĞÁ½¸ö°æ±¾¡£
+ÔÚbtreeParseCell()Õâº¯ÊıÖĞ£¬½«Ò»¸öµ¥Ôª¸ñ×÷ÎªµÚ¶ş¸ö²ÎÊı£¬
+ÔÚbtreeParseCellPtr()Õâ¸öº¯ÊıÖĞ£¬½«Ò»¸öÖ¸ÕëÖ¸Ïòµ¥Ôª¸ñ±¾Éí×÷ÎªËüµÚ¶ş¸ö²ÎÊı¡£
+
+**ÔÚÕâ¸öÎÄ¼şÖĞ,parseCell()µÄºê¿ÉÒÔ´úÌæbtreeParseCellPtr()¡£Ê¹ÓÃ±àÒëÆ÷,ÕâÑù½«»á¸ü¿ì¡£
+
+*/
 static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
-  MemPage *pPage,         /* Page containing the cell °üº¬µ¥ÔªµÄÒ³*/
-  u8 *pCell,              /* Pointer to the cell text. µ¥ÔªÎÄ±¾µÄÖ¸Õë*/
+  MemPage *pPage,         /* Page containing the cell °üº¬µ¥ÔªµÄÒ³*/  /*¡¾ÅË¹âÕä¡¿°üº¬µ¥Ôª¸ñµÄÒ³Ãæ*/
+  u8 *pCell,              /* Pointer to the cell text. µ¥ÔªÎÄ±¾µÄÖ¸Õë*/ /*¡¾ÅË¹âÕä¡¿Ö¸Ïòµ¥ÔªÄÚÈİµÄÖ¸Õë*/
   CellInfo *pInfo         /* Fill in this structure Ìî³äÕâ¸ö½á¹¹*/
 ){
-  u16 n;                  /* Number bytes in cell content header µ¥ÔªÄÚÈİÍ·²¿µÄ×Ö½ÚÊı*/
-  u32 nPayload;           /* Number of bytes of cell payload µ¥ÔªÓĞĞ§ÔØºÉ£¨BÊ÷¼ÇÂ¼£©µÄ×Ö½ÚÊı*/
+  u16 n;                  /* Number bytes in cell content header µ¥ÔªÄÚÈİÍ·²¿µÄ×Ö½ÚÊı*/  
+  u32 nPayload;           /* Number of bytes of cell payload µ¥ÔªÓĞĞ§ÔØºÉ£¨BÊ÷¼ÇÂ¼£©µÄ×Ö½ÚÊı*/ /*¡¾ÅË¹âÕä¡¿µ¥ÔªÓĞĞ§¸ºÔØµÄ×Ö½ÚÊı*/
 
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
 
@@ -1296,6 +1322,9 @@ static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
     ** on the local page.  No overflow is required.
 	** ÕâÊÇ¸ö³£¼ûµÄÇé¿ö£¬ËùÓĞµÄÓĞĞ§ÔØºÉ¶¼¹Ì¶¨ÔÚ±¾µØÒ³ÉÏ¡£²»ĞèÒªÒç³ö¡£
     */
+	   /*
+	  ¡¾ÅË¹âÕä¡¿ÕâÊÇÔÚÈİÒ×µÄÇé¿öÏÂ£¬Õû¸ö¸ºÔØÊÊºÏÔÚ±¾µØÒ³ÃæÉÏ¡£²»ĞèÒªÒç³ö
+	  */
     if( (pInfo->nSize = (u16)(n+nPayload))<4 ) pInfo->nSize = 4;
     pInfo->nLocal = (u16)nPayload;
     pInfo->iOverflow = 0;
@@ -1312,10 +1341,15 @@ static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
 	** Õâ¸ö²ßÂÔÊÇ¼õÉÙÒç³öÒ³ÉÏÎ´Ê¹ÓÃ¿Õ¼äµÄÊıÁ¿ Í¬Ê±±£³Ö±¾µØ´æ´¢µÄÊıÁ¿ÔÚminLocalºÍmaxLocalÖ®¼ä¡£
 	** ¾¯¸æ:ÈÎÒâ¸Ä±äÒçÁ÷ÔØºÉ·Ö²¼»áµ¼ÖÂ²»¼æÈİµÄÎÄ¼ş¸ñÊ½¡£
     */
+	  /*
+	¡¾ÅË¹âÕä¡¿Èç¹û¸ºÔØ½«²»ÍêÈ«Æ¥Åä±¾µØÒ³£¬ÎÒÃÇ±ØĞë¾ö¶¨¶àÉÙ´æ´¢ÔÚ±¾µØºÍ¶àÉÙĞ¹Â©µ½Òç³öÒ³¡£
+	Î´Ê¹ÓÃµÄ²ßÂÔÊÇ¼õÉÙ¿Õ¼äÒç³öÒ³Í¬Ê±±£³ÖÖĞµÄ±¾µØ´æ´¢minLocalºÍmaxLocalÖ®¼ä¡£
+	¾¯¸æ:ÒÔÈÎºÎ·½Ê½¸Ä±äÒçÁ÷ÔØºÉ·Ö²¼µÄ·½Ê½»áµ¼ÖÂ²»¼æÈİµÄÎÄ¼ş¸ñÊ½¡£
+	*/
     /*Ê¹±¾µØ´æ´¢ÔÚ×îĞ¡ºÍ×î´óÖµÖ®¼ä²¢ÇÒ½«Òç³öÒ³Î´Ê¹ÓÃÇøÓò×îĞ¡»¯*/
-    int minLocal;  /* Minimum amount of payload held locally */       //±¾µØ³ÖÓĞµÄ×îĞ¡ÓĞĞ§ÔØºÉÊıÁ¿
+    int minLocal;  /* Minimum amount of payload held locally */       //±¾µØ³ÖÓĞµÄ×îĞ¡ÓĞĞ§ÔØºÉÊıÁ¿ 
     int maxLocal;  /* Maximum amount of payload held locally */       //±¾µØ³ÖÓĞµÄ×î´óÓĞĞ§ÔØºÉÊıÁ¿
-    int surplus;   /* Overflow payload available for local storage */ //Òç³öµÄÓĞĞ§ÔØºÉ¿ÉÓÃÓÚ±¾µØ´æ´¢
+    int surplus;   /* Overflow payload available for local storage */ //Òç³öµÄÓĞĞ§ÔØºÉ¿ÉÓÃÓÚ±¾µØ´æ´¢  /*¡¾ÅË¹âÕä¡¿¿ÉÓÃÓÚ±¾µØ´æ´¢µÄÒç³öÓĞĞ§¸ºÔØ*/
 
     minLocal = pPage->minLocal;
     maxLocal = pPage->maxLocal;
@@ -1334,8 +1368,8 @@ static void btreeParseCellPtr(           //½âÎöµ¥ÔªÄÚÈİ¿é£¬ÌîÔÚCellInfo½á¹¹ÖĞ
 #define parseCell(pPage, iCell, pInfo) \
   btreeParseCellPtr((pPage), findCell((pPage), (iCell)), (pInfo))
 static void btreeParseCell(                                      //½âÎöµ¥ÔªÄÚÈİ¿é
-  MemPage *pPage,         /* Page containing the cell */         //°üº¬µ¥ÔªµÄÒ³
-  int iCell,              /* The cell index.  First cell is 0 */ //µ¥ÔªµÄË÷Òı£¬µÚÒ»¸öµ¥ÔªiCellÎª0
+  MemPage *pPage,         /* Page containing the cell */         //°üº¬µ¥ÔªµÄÒ³  /*¡¾ÅË¹âÕä¡¿°üº¬µ¥Ôª¸ñµÄÒ³Ãæ*/
+  int iCell,              /* The cell index.  First cell is 0 */ //µ¥ÔªµÄË÷Òı£¬µÚÒ»¸öµ¥ÔªiCellÎª0  /*¡¾ÅË¹âÕä¡¿µ¥Ôª¸ñË÷Òı£¬Ê×µ¥Ôª¸ñÊÇ0*/
   CellInfo *pInfo         /* Fill in this structure */           //ÌîĞ´Õâ¸ö½á¹¹
 ){
   parseCell(pPage, iCell, pInfo);
@@ -1348,6 +1382,10 @@ static void btreeParseCell(                                      //½âÎöµ¥ÔªÄÚÈİ¿
 ** the space used by the cell pointer.
 */
 /*¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½ÚÊı*/
+/*¡¾ÅË¹âÕä¡¿¼ÆËãµ¥Ôª¸ñÊı¾İÇøÓòÖĞbÊ÷Ò³µÄµ¥Ôª¸ñĞèÒªµÄ×Ü×Ö½ÚÊı¡£
+·µ»ØµÄÊı×Ö°üÀ¨Ğ¡ÇøÊı¾İÍ·ºÍ±¾µØ¸ºÔØ£¬µ«Ã»ÓĞÈÎºÎÒç³öÒ³»òµ¥ÔªÖ¸ÕëËùÊ¹ÓÃµÄ¿Õ¼ä¡£
+
+*/
 static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½ÚÊı
   u8 *pIter = &pCell[pPage->childPtrSize];
   u32 nSize;
@@ -1359,6 +1397,10 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½Ú
   ** this function verifies that this invariant(²»±äÊ½) is not violated(Î¥·´). 
   ** Õâ¸öº¯ÊıµÄ·µ»ØÖµÓ¦Ê¼ÖÕÊÇºÍÖ´ĞĞÒ»¸öÍêÕûµÄ½âÎöÖĞ·¢ÏÖµÄµ¥Ôª£¨CellInfo.nSize£©ÖµÏàÍ¬¡£
   ** Èç¹ûSQLITE_DEBUG±»¶¨Òå£¬Ò»¸öassert£¨£©´¦µÄµ×²¿ËûµÄ¹¦ÄÜÑéÖ¤Õâ¸ö²»±ä²»Î¥·´¡£*/
+  /*
+  ¡¾ÅË¹âÕä¡¿Õâ¸öº¯Êı·µ»ØµÄÖµÓ¦¸ÃÊÇÏàÍ¬µÄ£¨CellInfo.nSize£©Öµ×öÒ»¸öÈ«ÃæµÄ½âÎöµ¥Ôª¸ñµÄ·¢ÏÖ¡£
+  Èç¹ûSQLITE_DEBUG±»¶¨Òå£¬ÔÚÕâ¸öº¯ÊıµÄµ×²¿assert()Ö¤Ã÷ÕâÖÖ²»±ä£¨²»±äÊ½£©²»Î¥·´£¨Î¥·´£©¡£
+  */
   CellInfo debuginfo;
   btreeParseCellPtr(pPage, pCell, &debuginfo);
 #endif
@@ -1375,6 +1417,8 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½Ú
     ** integer. The following block moves pIter to point at the first byte
     ** past the end of the key value. 
 	** pIterÏÖÔÚÖ¸ÏòÔÚ64Î»ÕûÊı¹Ø¼ü×ÖÖµ£¬¿É±ä³¤¶ÈÕûÊı¡£ÏÂÃæµÄ¿éÒÆ¶¯pIterÖ¸Ïò¼üÖµÄ©Î²µÄµÚÒ»¸ö×Ö½Ú¡£*/
+	/*¡¾ÅË¹âÕä¡¿pIterÖ¸ÔÚ64Î»ÕûÊıµÄ¹Ø¼üÖµ£¬Ò»¸ö¿É±ä³¤¶ÈµÄÕûÊı¡£
+	ÏÂÃæµÄ¿éÒÆ¶¯pIterÖ¸ÏòµÚÒ»¸ö×Ö½ÚµÄ¹Ø¼üÖµ½áÊø¹ıÈ¥*/
     pEnd = &pIter[9];
     while( (*pIter++)&0x80 && pIter<pEnd );
   }else{
@@ -1395,7 +1439,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½Ú
   }
   nSize += (u32)(pIter - pCell);
 
-  /* The minimum size of any cell is 4 bytes. */
+  /* The minimum size of any cell is 4 bytes. */ /*¡¾ÅË¹âÕä¡¿ÈÎºÎµ¥ÔªµÄ×îĞ¡³ß´çÎª4¸ö×Ö½Ú¡£*/
   if( nSize<4 ){
     nSize = 4;
   }
@@ -1408,6 +1452,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //¼ÆËãÒ»¸öCellĞèÒªµÄ×ÜµÄ×Ö½Ú
 /* This variation on cellSizePtr() is used inside of assert() statements
 ** only. 
 ** cellSizePtr()ÖĞµÄ±äÁ¿½ö½ö±»ÓÃÔÚassert()Óï¾äÖĞ */
+/*¡¾ÅË¹âÕä¡¿ÕâÖÖ±ä»¯¶Ôcellsizeptr()ÀïÃæassert()Óï¾äÖ»ÄÜÊ¹ÓÃ¡£*/
 static u16 cellSize(MemPage *pPage, int iCell){
   return cellSizePtr(pPage, findCell(pPage, iCell));
 }
@@ -1443,19 +1488,24 @@ static void ptrmapPutOvflPtr(MemPage *pPage, u8 *pCell, int *pRC){
 ** ÔÚËùÊöÍ·²¿ºÍµ¥ÔªÖ¸ÕëÊı×éºÍĞ¡ÇøÄÚÈİÇøÓòÖ®¼äµÄÒ»¸ö´óµÄFreeBlk¡£
 */
 /*ÖØÕûÒ³Ãæ¡£*/
+/*
+¡¾ÅË¹âÕä¡¿ÕûÀíÒ³Ãæ¡£ËùÓĞµÄµ¥Ôª¸ñ¶¼ÒÆµ½Ò³Ãæ½áÊøËùÓĞµÄ×ÔÓÉ¿Õ¼ä±»ÊÕ¼¯µ½
+Ò»¸ö´óµÄFreeBlk·¢ÉúÔÚÍ·ºÍµ¥Ôª¸ñÖ¸ÕëºÍÊı×éÄÚÈİÇøÓòÖ®¼ä¡£
+
+*/
 static int defragmentPage(MemPage *pPage){
-  int i;                     /* Loop counter */                      //Ñ­»·ÄÚµÄ²ÎÊıi
-  int pc;                    /* Address of a i-th cell */            //µÚi¸öµ¥ÔªµÄµØÖ·
-  int hdr;                   /* Offset to the page header */         //Ò³Í·²¿µÃÆ«ÒÆÁ¿
-  int size;                  /* Size of a cell */                    //µ¥ÔªµÄ´óĞ¡
-  int usableSize;            /* Number of usable bytes on a page */  //Ò³ÉÏ¿ÉÓÃµ¥ÔªµÄÊıÁ¿
-  int cellOffset;            /* Offset to the cell pointer array */  //µ¥ÔªÖ¸ÕëÊı×éµÄÆ«ÒÆÁ¿
-  int cbrk;                  /* Offset to the cell content area */   //µ¥ÔªÄÚÈİÇøÓòµÄÆ«ÒÆÁ¿
-  int nCell;                 /* Number of cells on the page */       //Ò³ÉÏµ¥ÔªµÄÊıÁ¿
+  int i;                     /* Loop counter */                      //Ñ­»·ÄÚµÄ²ÎÊıi  /*¡¾ÅË¹âÕä¡¿Ñ­»·¼ÆÊıÆ÷*/
+  int pc;                    /* Address of a i-th cell */            //µÚi¸öµ¥ÔªµÄµØÖ· /*¡¾ÅË¹âÕä¡¿Ò»¸öµ¥Ôª¸ñµØÖ·*/
+  int hdr;                   /* Offset to the page header */         //Ò³Í·²¿µÃÆ«ÒÆÁ¿  /*¡¾ÅË¹âÕä¡¿Æ«ÒÆÒ³Ê×*/
+  int size;                  /* Size of a cell */                    //µ¥ÔªµÄ´óĞ¡     /
+  int usableSize;            /* Number of usable bytes on a page */  //Ò³ÉÏ¿ÉÓÃµ¥ÔªµÄÊıÁ¿  /*¡¾ÅË¹âÕä¡¿Ò³ÃæÉÏ¿ÉÓÃ×Ö½ÚÊı* 
+  int cellOffset;            /* Offset to the cell pointer array */  //µ¥ÔªÖ¸ÕëÊı×éµÄÆ«ÒÆÁ¿/*¡¾ÅË¹âÕä¡¿Æ«ÒÆµ½µ¥Ôª¸ñÖ¸ÕëÊı×é*/
+  int cbrk;                  /* Offset to the cell content area */   //µ¥ÔªÄÚÈİÇøÓòµÄÆ«ÒÆÁ¿/*¡¾ÅË¹âÕä¡¿Æ«ÒÆµ½µ¥Ôª¸ñÄÚÈİÇøÓò*/
+  int nCell;                 /* Number of cells on the page */       //Ò³ÉÏµ¥ÔªµÄÊıÁ¿    /*¡¾ÅË¹âÕä¡¿Ò³ÃæÉÏµÄµ¥Ôª¸ñÊı*/
   unsigned char *data;       /* The page data */                     //Ò³Êı¾İ
-  unsigned char *temp;       /* Temp area for cell content */        //µ¥ÔªÄÚÈİµÄÁÙÊ±Çø
-  int iCellFirst;            /* First allowable cell index */        //µÚÒ»¸öĞí¿ÉµÄµ¥ÔªË÷Òı
-  int iCellLast;             /* Last possible cell index */          //×îºóÒ»¸ö¿ÉÄÜµÄµ¥ÔªË÷Òı
+  unsigned char *temp;       /* Temp area for cell content */        //µ¥ÔªÄÚÈİµÄÁÙÊ±Çø   /*¡¾ÅË¹âÕä¡¿µ¥Ôª¸ñÄÚÈİµÄÁÙÊ±ÇøÓò*/
+  int iCellFirst;            /* First allowable cell index */        //µÚÒ»¸öĞí¿ÉµÄµ¥ÔªË÷Òı    /*¡¾ÅË¹âÕä¡¿ÔÊĞíµ¥Ôª¸ñË÷ÒıµÄµÚÒ»¸ö*/
+  int iCellLast;             /* Last possible cell index */          //×îºóÒ»¸ö¿ÉÄÜµÄµ¥ÔªË÷Òı   /*¡¾ÅË¹âÕä¡¿×îºóÒ»¸ö¿ÉÄÜµÄµ¥Ôª¸ñË÷Òı*/
 
 
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
@@ -1486,11 +1536,14 @@ static int defragmentPage(MemPage *pPage){
     ** if SQLITE_ENABLE_OVERSIZE_CELL_CHECK is defined 
 	** Èç¹ûSQLITE_ENABLE_OVERSIZE_CELL_CHECK±»¶¨ÒåÁË£¬ÔòÕâĞ©Ìõ¼şÒÑ¾­ÔÚbtreeInitPage()ÖĞ±»ÑéÖ¤
     */
+	/*
+	¡¾ÅË¹âÕä¡¿Èç¹ûsqlite_enable_oversize_cell_check¶¨Òå,ÔòÕâĞ©Ìõ¼şÒÑ¾­ÑéÖ¤ÁËbtreeinitpage()
+	*/
     if( pc<iCellFirst || pc>iCellLast ){
       return SQLITE_CORRUPT_BKPT;
     }
 #endif
-    assert( pc>=iCellFirst && pc<=iCellLast );/*µÚÒ»¸öÔÊĞícellË÷Òı£¬×îºóÒ»¸ö¿ÉÄÜµÄcellË÷ÒıÖ®¼ä¡£*/
+    assert( pc>=iCellFirst && pc<=iCellLast );/*µÚÒ»¸öÔÊĞícellË÷Òı£¬×îºóÒ»¸ö¿ÉÄÜµÄcellË÷ÒıÖ®¼ä¡£*/ /*¡¾ÅË¹âÕä¡¿ÔÚµÚÒ»¸öÔÊĞícellË÷Òı£¬×îºóÒ»¸ö¿ÉÄÜµÄcellË÷ÒıÖ®¼ä¡£*/
     size = cellSizePtr(pPage, &temp[pc]);
     cbrk -= size;
 #if defined(SQLITE_ENABLE_OVERSIZE_CELL_CHECK)
@@ -1540,6 +1593,13 @@ static int defragmentPage(MemPage *pPage){
 ** ËùÒÔÎÒÃÇ½«Ò²×îÖÕĞèÒªÒ»¸öĞÂµÄµ¥Ôª¸ñÖ¸Õë¡£
 */
 /*ÔÚpPageÉÏ·ÖÅänByte×Ö½ÚµÄ¿Õ¼ä£¬½«Ë÷ÒıĞ´ÈëpIdxÖĞ*/
+/*
+¡¾ÅË¹âÕä¡¿**ÔÚpPageÉÏ·ÖÅänByte×Ö½ÚµÄ¿Õ¼ä£¬½«Ë÷ÒıĞ´ÈëpIdxÖĞ·ÖÅä¿Õ¼äµÄµÚÒ»¸ö×Ö½Ú¡£
+·µ»ØSQLITE_OK»ò´íÎó´úÂë£¨Í¨³£SQLITE_CORRUPT£©¡£
+**µ÷ÓÃ·½±£Ö¤ÓĞ×ã¹»µÄ¿Õ¼äÀ´½øĞĞ·ÖÅä¡£Õâ¸ö³ÌĞò¿ÉÄÜĞèÒªÕûÀí²ÅÄÜ´øÀ´
+ËùÓĞµÄ¿Õ¼ä£¬µ«ÊÇ£¬Õâ¸ö³ÌĞò½«±ÜÃâÊ¹ÓÃµÚÒ»¸ö2¸ö×Ö½Ú¹ıÈ¥µÄµ¥Ôª¸ñÖ¸ÕëÇøÓò£¬
+ÒòÎª´ó¸ÅÊÇÕâÑùÎªÁË²åÈëÒ»¸öĞÂµÄµ¥Ôª¸ñ£¬ÎÒÃÇ½«·ÖÅäÒ²½áÊøÁËĞèÒªÒ»¸öĞÂµÄµ¥Ôª¸ñÖ¸Õë¡£
+*/
 static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
   const int hdr = pPage->hdrOffset;    /* Local cache of pPage->hdrOffset */       //pPage->hdrOffsetµÄ±¾µØ»º´æ
   u8 * const data = pPage->aData;      /* Local cache of pPage->aData */           //pPage->aDataµÄ±¾µØ»º´æ
