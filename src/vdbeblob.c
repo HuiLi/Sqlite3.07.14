@@ -32,7 +32,7 @@
 typedef struct Incrblob Incrblob;
 struct Incrblob {
   int flags;              /* Copy of "flags" passed to sqlite3_blob_open() 
-                           把“flags”的传递给sqlite3_blob_open()函数*/
+                           把标记值flags传递给sqlite3_blob_open()函数*/
   int nByte ;              /* Size of open blob, in bytes 
                            打开blob的大小，以字节计算*/
   int iOffset;            /* Byte offset of blob in cursor data 
@@ -261,7 +261,7 @@ int sqlite3_blob_open(
     ** column is not indexed, and that it is not part of a foreign key. 
     ** It is against the rules to open a column to which either of these
     ** descriptions applies for writing.  
-  ** 如果该值被打开允许去写，检查列没有被索引，并且它不是一个外键的一部分。
+    ** 如果该值被打开允许去写，检查列没有被索引，并且它不是一个外键的一部分。
     ** 这是违反规定开一列到以下任一说明适用于写作。
   */
     if( flags ){
@@ -273,7 +273,7 @@ int sqlite3_blob_open(
         ** is not necessary to check if it is part of a parent key, as parent
         ** key columns must be indexed. The check below will pick up this 
         ** case. 
-    ** 检查列不是一个FK子键定义的一部分,
+        ** 检查列不是一个FK子键定义的一部分,
         ** 它没有必要检查,如果是父母key的一部分
         ** 作为父母键一定必须被索引，下面的检查将会拿起这个案例
     */
@@ -350,7 +350,7 @@ int sqlite3_blob_open(
       ** always return an SQL NULL. This is useful because it means
       ** we can invoke OP_Column to fill in the vdbe cursors type 
       ** and offset cache without causing any IO.
-    ** 配置列数,配置这个游标去确认这个表有至少一列确实这样做了。
+      ** 配置列数,配置这个游标去确认这个表有至少一列确实这样做了。
       ** 一个OP_Column检索这个虚构列将始终返回SQL NULL
       ** 因为这意味着我们可以调用OP_Column填写的VDBE游标类型和偏移的缓存，
       ** 而不会造成任何IO这是非常有用
