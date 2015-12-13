@@ -1607,7 +1607,8 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
   int top;                             /* First byte of cell content area */       //单元内容的第一个字节
   int gap;        /* First byte of gap between cell pointers and cell content */   //单元指针和单元内容之间间隙的第一个字节
   int rc;         /* Integer return code */                                        //整型返回码
-  int usableSize; /* Usable size of the page */                                    //页能够使用的大小
+  int usableSize; /* Usable size of the page */    //页能够使用的大小/*【潘光珍】 每页可用的字节数。pageSize-每页尾部保留空间的大小，在文件头偏移为20处设定。 */
+                        
   
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
   assert( pPage->pBt );
@@ -1639,9 +1640,13 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
 	** 搜索空闲列表寻找满足要求的足够大的 free slot。分配的区域由列表中的
 	** 第一个 free slot组成，其中列表是足够装 free slot。
     */
+	  /*
+	  【潘光珍】搜索自由列表中寻找一个自由槽的足够大以满足要求。
+	  配置是由列表中的是大到足以容纳它的第一个空闲时隙。
+	  */
     int pc, addr;
     for(addr=hdr+1; (pc = get2byte(&data[addr]))>0; addr=pc){
-      int size;            /* Size of the free slot */   // free slot的大小
+      int size;            /* Size of the free slot */   // free slot的大小  //【潘光珍】设置自由槽的大小
       if( pc>usableSize-4 || pc<addr+4 ){
         return SQLITE_CORRUPT_BKPT;
       }
@@ -1653,6 +1658,9 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
         if( x<4 ){
           /* Remove the slot from the free-list. Update the number of
           ** fragmented bytes within the page. */  //从自由列表中移除slot，在页内更新碎片的数量
+			/*
+			【潘光珍】从空闲列表中删除插槽。更新页面内的碎片字节数。
+			*/
           memcpy(&data[addr], &data[pc], 2);
           data[hdr+7] = (u8)(nFrag + x);
         }else if( size+pc > usableSize ){
@@ -1660,10 +1668,11 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
         }else{
           /* The slot remains on the free-list. Reduce its size to account   //slot保留在自由列表上，
           ** for the portion used by the new allocation. */                 //减少其占所使用的新分配的部分的大小。
+			/*【潘光珍】插槽仍在自由列表上。减少它的大小来说明新分配所使用的部分。*/
           put2byte(&data[pc+2], x);
         }
         *pIdx = pc + x;
-        return SQLITE_OK;
+        return SQLITE_OK; //返回SQLITE_OK
       }
     }
   }
@@ -1671,6 +1680,9 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
   /* Check to make sure there is enough space in the gap to satisfy
   ** the allocation.  If not, defragment.
   ** 检查确认在gap中有足够的空间来满足分配的需要，如果空间不足，碎片整理。
+  */
+   /*
+ 【潘光珍】 检查间隙以确保有足够的空间来满足分配。如果没有，则整理。
   */
   testcase( gap+2+nByte==top );
   if( gap+2+nByte>top ){
@@ -1688,6 +1700,11 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
   ** 从单元指针数组和单元内容区域之间的间隙分配内存。该btreeInitPage（）
   ** 调用已经有有效的空闲列表。鉴于空闲列表是有效的，分配可以扩展超出页
   ** 是不行的。assert()下面验证了前面的语句。
+  */
+  /*
+ 【潘光珍】 分配存储器从单元指针阵列和单元格内容区之间的间隙中进行分配。
+  btreeInitPage()调用了有效的空闲列表。由于数据是有效的，没有这样的配置可以延长页的结束。
+   assert()在验证前边的语句。
   */
   top -= nByte;
   put2byte(&data[hdr+5], top);
@@ -1707,9 +1724,14 @@ static int allocateSpace(MemPage *pPage, int nByte, int *pIdx){
 ** 和块的大小为“size”字节。这里的大多数功能涉及合并相邻空闲块成一个单独的大空闲块。
 */
 /*释放pPage->aDisk[start]，大小为size字节的块*/
+/*
+【潘光珍】释放pPage->aDisk[start]，大小为size字节的块
+这里大部分的精力放在coalesing相邻的空闲块成一个大的空闲块。
+
+*/
 static int freeSpace(MemPage *pPage, int start, int size){  //释放pPage->aData的部分并写入空闲列表
   int addr, pbegin, hdr;
-  int iLast;                        /* Largest possible freeblock offset */   //最大的可能freeblock偏移
+  int iLast;                        /* Largest possible freeblock offset */   //最大的可能freeblock偏移 
   unsigned char *data = pPage->aData;
 
   assert( pPage->pBt!=0 );
@@ -1717,11 +1739,11 @@ static int freeSpace(MemPage *pPage, int start, int size){  //释放pPage->aData的
   assert( start>=pPage->hdrOffset+6+pPage->childPtrSize );
   assert( (start + size) <= (int)pPage->pBt->usableSize );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
-  assert( size>=0 );   /* Minimum cell size is 4 */
+  assert( size>=0 );   /* Minimum cell size is 4 */  //【潘光珍】最小单元的大小为4
 
   if( pPage->pBt->btsFlags & BTS_SECURE_DELETE ){
     /* Overwrite deleted information with zeros when the secure_delete
-    ** option is enabled */  //当secure_delete可用的时候，将删除信息置零。
+    ** option is enabled */  //当secure_delete可用的时候，将删除信息置零。 /*【潘光珍】覆盖删除信息时，secure_delete零点选项启用*/
     memset(&data[start], 0, size);
   }
 
@@ -1737,6 +1759,12 @@ static int freeSpace(MemPage *pPage, int start, int size){  //释放pPage->aData的
   ** 当单元内容区域超出该页头的值时也不会检测。如果这种情况发生，那么随后的插入操作可能会破坏自由列表。
   ** 所以我们需要检查是否有损坏，同时扫描空闲列表。
   */ 
+   /*
+  【潘光珍】添加空间回到freeblocks链表。注意，即使freeblock名单是由btreeinitpage()，btreeinitpage()没有检测到cells
+  或freeblocks重叠，重叠cells 。当单元格内容区域超过该页头中的值时，它也不检测。
+  如果这些情况出现，那么后续的插入操作可能会损坏数据。所以我们需要在扫描时检查腐败自由列表。
+  
+  */
   hdr = pPage->hdrOffset;
   addr = hdr + 1;
   iLast = pPage->pBt->usableSize - 4;
@@ -1780,6 +1808,7 @@ static int freeSpace(MemPage *pPage, int start, int size){  //释放pPage->aData的
   }
 
   /* If the cell content area begins with a freeblock, remove it. */  //如果单元格内容区域以freeblock开始,删除它。
+  /*【潘光珍】如果单元格内容区域开始是空闲块，则删除它。*/
   if( data[hdr+1]==data[hdr+5] && data[hdr+2]==data[hdr+6] ){
     int top;
     pbegin = get2byte(&data[hdr+1]);
@@ -1798,6 +1827,13 @@ static int freeSpace(MemPage *pPage, int start, int size){  //释放pPage->aData的
 ** Only the following combinations are supported.  Anything different
 ** indicates a corrupt database files:
 ** //只支持以下组合。任何不同都是指示一个不良的数据文件
+**         PTF_ZERODATA
+**         PTF_ZERODATA | PTF_LEAF
+**         PTF_LEAFDATA | PTF_INTKEY
+**         PTF_LEAFDATA | PTF_INTKEY | PTF_LEAF
+*/
+/*【潘光珍】解码一页的标记字节（头部的第一个字节）初始化的MemPage相应结构域。
+只有下面的组合支持。任何不同的指示一个损坏的数据库文件：
 **         PTF_ZERODATA
 **         PTF_ZERODATA | PTF_LEAF
 **         PTF_LEAFDATA | PTF_INTKEY
@@ -1840,6 +1876,10 @@ static int decodeFlags(MemPage *pPage, int flagByte){
 ** 成功则返回SQLITE OK。如果我们看到页面不包含一个格式良好的数据库页面,然后返回
 ** SQLITE_CORRUPT。注意,SQLITE_OK的回归可以不保证页面的格式是正确的。它只表明我们失败了
 */
+/*【潘光珍】初始化磁盘块的辅助信息。
+返回sqlite_ok成功。
+如果我们看到该页没有良好的数据库页面，然后返回sqlite_corrupt。
+注意，返回sqlite_ok不保证页面是很好的。它只说明我们没有发现任何异常。*/
 static int btreeInitPage(MemPage *pPage){     //B树初始化页
 
   assert( pPage->pBt!=0 );
@@ -1850,12 +1890,13 @@ static int btreeInitPage(MemPage *pPage){     //B树初始化页
 
   if( !pPage->isInit ){
     u16 pc;            /* Address of a freeblock within pPage->aData[] */      //pPage->aData[]内部的空闲块的地址
-    u8 hdr;            /* Offset to beginning of page header */                //页头开始的偏移量
+    u8 hdr;            /* Offset to beginning of page header */                //页头开始的偏移量/*【潘光珍】 对page 1为100，对其它页为0 */
     u8 *data;          /* Equal to pPage->aData */                             //等于pPage->aData
     BtShared *pBt;     /* The main btree structure */                          //可共享的B树结构
-    int usableSize;    /* Amount of usable space on each page */               //每个页上的可用空间的数量
-    u16 cellOffset;    /* Offset from start of page to first cell pointer */   //从页面的开始到第一个单元指针的偏移量
-    int nFree;         /* Number of unused bytes on the page */                //页上不能使用字节的数量
+    int usableSize;    /* Amount of usable space on each page */      //每个页上的可用空间的数量 /* 【潘光珍】每页可用的字节数。pageSize-每页尾部保留空间的大小，在文件头偏移为20处设定。*/
+																		
+    u16 cellOffset;    /* Offset from start of page to first cell pointer */   //从页面的开始到第一个单元指针的偏移量/* 【潘光珍】单元指针数组的偏移量，aData中第1个单元的指针 */
+    int nFree;         /* Number of unused bytes on the page */                //页上不能使用字节的数量  /* 【潘光珍】可使用空间的总和（字节数） */
     int top;           /* First byte of the cell content area */               //单元内容的第一个字节
     int iCellFirst;    /* First allowable cell or freeblock offset */          //第一个可用单元或空闲块偏移量
     int iCellLast;     /* Last possible cell or freeblock offset */            //最后一个可能单元或空闲块偏移量
@@ -1888,11 +1929,16 @@ static int btreeInitPage(MemPage *pPage){     //B树初始化页
     ** returned if it does.
 	** 下面的代码块将提前核对是否一个单元扩展超过页面边界，并且如果确实如此SQLITE_CORRUPT将被返回。
     */
+	/*
+	【潘光珍】 有缺陷的数据库错误页面可能会为过去的读结束时,进行分析一个单元格。
+	下面的代码检查块，看看是否有一个单元格在过去的最后一页的边界。
+	并且如果原因是 SQLITE_CORRUPT，则它是返回的。
+	*/
     iCellFirst = cellOffset + 2*pPage->nCell;
     iCellLast = usableSize - 4;
 #if defined(SQLITE_ENABLE_OVERSIZE_CELL_CHECK)
     {
-      int i;            /* Index into the cell pointer array */   //到单元指针数组的索引
+      int i;            /* Index into the cell pointer array */   //到单元指针数组的索引 /*【潘光珍】定义一个索引到单元格数组的指针的变量i*/
       int sz;           /* Size of a cell */      //单元的大小
 
       if( !pPage->leaf ) iCellLast--;
@@ -1913,13 +1959,13 @@ static int btreeInitPage(MemPage *pPage){     //B树初始化页
     }  
 #endif
 
-    /* Compute the total free space on the page */  //计算页面上自由空间的总量
+    /* Compute the total free space on the page */  //计算页面上自由空间的总量 /*【潘光珍】计算页面上的总空闲空间*/
     pc = get2byte(&data[hdr+1]);
     nFree = data[hdr+7] + top;
     while( pc>0 ){
       u16 next, size;
       if( pc<iCellFirst || pc>iCellLast ){
-        /* Start of free block is off the page */  //空闲块的开始不在页面上
+        /* Start of free block is off the page */  //空闲块的开始不在页面上 /*【潘光珍】启动空闲块是关闭页面*/
         return SQLITE_CORRUPT_BKPT; 
       }
       next = get2byte(&data[pc]);
@@ -1928,6 +1974,7 @@ static int btreeInitPage(MemPage *pPage){     //B树初始化页
         /* Free blocks must be in ascending order. And the last byte of
         ** the free-block must lie on the database page.  
 		** 空闲块必须是一个地鞥的顺序。并且空闲开的最后一个字节一定是在一个数据库页上的*/
+		  /*【潘光珍】空闲块必须按升序排列。和空闲块的最后一个字节必须位于数据库页*/
         return SQLITE_CORRUPT_BKPT; 
       }
       nFree = nFree + size;
@@ -1943,6 +1990,11 @@ static int btreeInitPage(MemPage *pPage){     //B树初始化页
 	** 此时，nFree包含偏移量的总量，偏移量是单元内容区开始部分加上单元内容区内的空闲字节的数量的和。
 	** 如果这比页面的可用大小更大，则该页面必须被破坏。根据页头，此检查还用于验证位于该页面内的单元内容区开始部分的偏移量。
     */
+	/*
+	【潘光珍】**在这一点上，nFree包含偏移的总和的内容区域开始加单元格内容范围内可用的字节数。
+	如果这是大于页面的可用大小，则页面必须被损坏。
+	此检查也可用于验证该单元格内容区域的起始偏移量，根据该页头，位于该页中。
+	*/
     if( nFree>usableSize ){
       return SQLITE_CORRUPT_BKPT; 
     }
@@ -1956,6 +2008,7 @@ static int btreeInitPage(MemPage *pPage){     //B树初始化页
 ** Set up a raw page so that it looks like a database page holding
 ** no entries.  //建立一个原始页面,以便它看起来像一个数据库没有条目。
 */
+/*【潘光珍】设置一个原始页面，这样它看起来像一个数据库页，没有任何条目。*/
 static void zeroPage(MemPage *pPage, int flags){
   unsigned char *data = pPage->aData;
   BtShared *pBt = pPage->pBt;
@@ -1993,7 +2046,7 @@ static void zeroPage(MemPage *pPage, int flags){
 ** Convert a DbPage obtained from the pager into a MemPage used by
 ** the btree layer.  //通过B树层，将DbPage转化成MemPage
 */
-/*convert DbPage into MemPage*/
+/*convert DbPage into MemPage*//*【潘光珍】将从pager中获得的DbPage转化为btree中使用的MemPage*/
 static MemPage *btreePageFromDbPage(DbPage *pDbPage, Pgno pgno, BtShared *pBt){
   MemPage *pPage = (MemPage*)sqlite3PagerGetExtra(pDbPage);
   pPage->aData = sqlite3PagerGetData(pDbPage);
@@ -2016,11 +2069,17 @@ static MemPage *btreePageFromDbPage(DbPage *pDbPage, Pgno pgno, BtShared *pBt){
 ** read should occur at that point.
 ** 如果无内容标签设定了，那意味着我们将不关心此时的页面内容。所以不要去磁盘获取内容。只需在内容中填写使用零即可。
 ** 如果以后我们在这个页面上调用sqlite3PagerWrite（），这意味着我们已经开始关注内容，并应出现在该点的磁盘读取。*/
+/*
+【潘光珍】**如果需要，则进行初始化 MemPage.pBt和MemPage.aData的元素
+**如果noContent标志设置，这意味着我们不在乎此时的页面内容。所以不要去磁盘获取内容。只需填写内容与零现在。
+**如果将来我们调用sqlite3pagerwrite()这个页面上，这意味着我们已经开始关注内容和读盘应该发生在那一点。
+
+*/
 static int btreeGetPage(
   BtShared *pBt,       /* The btree */                          //B树
-  Pgno pgno,           /* Number of the page to fetch */        //获取的页面数
-  MemPage **ppPage,    /* Return the page in this parameter */  //用这个参数返回页
-  int noContent        /* Do not load page content if true */   //如果为真，则不会加载页
+  Pgno pgno,           /* Number of the page to fetch */        //获取的页面数  /*【潘光珍】本页的页号*/
+  MemPage **ppPage,    /* Return the page in this parameter */  //用这个参数返回页  /*【潘光珍】返回此参数中的页*/
+  int noContent        /* Do not load page content if true */   //如果为真，则不会加载页   /*【潘光珍】如果真的,不要加载页面内容*/
 ){
   int rc;
   DbPage *pDbPage;
@@ -2037,6 +2096,7 @@ static int btreeGetPage(
 ** already in the pager cache return NULL. Initialize the MemPage.pBt and
 ** MemPage.aData elements if needed.
 ** 从页对象缓存检索一个页面。如果没有而返回NULL。若有必要，初始化MemPage.pBt和MemPage.aData的元素*/
+/*【潘光珍】从缓存页检索。如果请求的页不在缓存返回null。如果需要初始化mempage.pbt和mempage.adata元素*/
 static MemPage *btreePageLookup(BtShared *pBt, Pgno pgno){
   DbPage *pDbPage;
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -2051,6 +2111,7 @@ static MemPage *btreePageLookup(BtShared *pBt, Pgno pgno){
 ** Return the size of the database file in pages. If there is any kind of
 ** error, return ((unsigned int)-1).
 ** 返回页中数据库文件的大小。若有错return ((unsigned int)-1)*/
+/*【潘光珍】返回数据库文件的大小。如果有任何错误,则返回((unsigned int)-1)*/
 static Pgno btreePagecount(BtShared *pBt){
   return pBt->nPage;
 }
@@ -2068,9 +2129,13 @@ u32 sqlite3BtreeLastPage(Btree *p){
 ** If an error occurs, then the value *ppPage is set to is undefined. It
 ** may remain unchanged, or it may be set to an invalid value.
 ** 如果发生错误，则该值* ppPage被设置为未定义。它可以保持不变，或者它可以被设置为无效值。*/
+/*
+【潘光珍】**初始化，这个程序仅仅是一个方便的包装，单独调用btreegetpage()和btreeinitpage()。
+**如果出现错误，那么值* pppage将是未定义的。它可以保持不变，或可能被设置为无效值。
+*/
 static int getAndInitPage(
   BtShared *pBt,          /* The database file */         //数据库文件
-  Pgno pgno,           /* Number of the page to get */    //获得的页面的数量
+  Pgno pgno,           /* Number of the page to get */    //获得的页面的数量 /*【潘光珍】获得本页的页号*/
   MemPage **ppPage     /* Write the page pointer here */  //在该变量上写指针
 ){
   int rc;
