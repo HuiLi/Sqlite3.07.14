@@ -18,6 +18,8 @@
 ** 这个文件包含代码用于实现增量BLOB I/O
 */
 
+//BLOB: 值是数据的二进制对象，如何输入就如何存储，不改变格式。
+
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 
@@ -31,7 +33,7 @@ typedef struct Incrblob Incrblob;
 struct Incrblob {
   int flags;              /* Copy of "flags" passed to sqlite3_blob_open() 
                            把“flags”的复印传递给sqlite3_blob_open()函数*/
-  int nByte;              /* Size of open blob, in bytes 
+  int nByte ;              /* Size of open blob, in bytes 
                            打开blob的大小，以字节计算*/
   int iOffset;            /* Byte offset of blob in cursor data 
                            在游标数据块的字节偏移量*/
@@ -165,6 +167,7 @@ int sqlite3_blob_open(
   ** blob_bytes() functions.
   ** 寻求光标之后，VDBE执行的OP_ResultRow。
   ** 类外部的代码VDBE再“借”B-树游标和用它来实现blob_read(),blob_write()和blob_bytes()函数
+
   ** The sqlite3_blob_close() function finalizes the vdbe program,
   ** which closes the b-tree cursor and (possibly) commits the 
   ** transaction.
@@ -238,8 +241,11 @@ int sqlite3_blob_open(
       goto blob_open_out;
     }
 
-    /* Now search pTab for the exact column. */
+    /* Now search pTab for the exact column. 
+       现在查询表pTab目的为了外部列
+    */
     for(iCol=0; iCol<pTab->nCol; iCol++) {
+
       if( sqlite3StrICmp(pTab->aCol[iCol].zName, zColumn)==0 ){
         break;
       }
@@ -430,17 +436,21 @@ static int blobReadWrite(
   v = (Vdbe*)p->pStmt;
 
   if( n<0 || iOffset<0 || (iOffset+n)>p->nByte ){
-    /* Request is out of range. Return a transient error. */
+    /* Request is out of range. Return a transient error. 
+       请求不在范围内，返回一个临时的错误
+    */
     rc = SQLITE_ERROR;
     sqlite3Error(db, SQLITE_ERROR, 0);
   }else if( v==0 ){
     /* If there is no statement handle, then the blob-handle has
     ** already been invalidated. Return SQLITE_ABORT in this case.
+    如果没有语句句柄,然后blob-handle已经失效。在这种情况下返回SQLITE_ABORT
     */
     rc = SQLITE_ABORT;
   }else{
     /* Call either BtreeData() or BtreePutData(). If SQLITE_ABORT is
     ** returned, clean-up the statement handle.
+    调用btreedata()或btreeputdata()。如果sqlite_abort返回，清理语句句柄。
     */
     assert( db == v->db );
     sqlite3BtreeEnterCursor(p->pCsr);
@@ -461,6 +471,7 @@ static int blobReadWrite(
 
 /*
 ** Read data from a blob handle.
+    从数据库表中读取数据
 */
 int sqlite3_blob_read(sqlite3_blob *pBlob, void *z, int n, int iOffset){
   return blobReadWrite(pBlob, z, n, iOffset, sqlite3BtreeData);
@@ -468,6 +479,7 @@ int sqlite3_blob_read(sqlite3_blob *pBlob, void *z, int n, int iOffset){
 
 /*
 ** Write data to a blob handle.
+    写数据到数据库表中
 */
 int sqlite3_blob_write(sqlite3_blob *pBlob, const void *z, int n, int iOffset){
   return blobReadWrite(pBlob, (void *)z, n, iOffset, sqlite3BtreePutData);
@@ -475,7 +487,7 @@ int sqlite3_blob_write(sqlite3_blob *pBlob, const void *z, int n, int iOffset){
 
 /*
 ** Query a blob handle for the size of the data.
-**
+** 查询一个blob处理的数据的大小
 ** The Incrblob.nByte field is fixed for the lifetime of the Incrblob
 ** so no mutex is required for access.
 */

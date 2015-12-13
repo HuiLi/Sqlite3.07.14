@@ -166,8 +166,8 @@ static SQLITE_WSD struct Mem3Global {
   ** of the current master.  iMaster is 0 if there is not master chunk.
   ** The master chunk is not in either the aiHash[] or aiSmall[].
   **
-  ** iMaster是主块索引。这个块发生大部分新分配。szMaster的大小（在Mem3Blocks）由 当前主块决定。
-  ** 如果没有主块，则iMaster为0.主块既不在aiHash[] 也不在aiSmall[]。
+  ** iMaster是主块索引。这个块发生大部分新分配。szMaster的大小（在Mem3Blocks）由当前主块决定。
+  ** 如果没有主块，则iMaster为0.主块既不在aiHash[]，也不在aiSmall[]。
   */
   u32 iMaster;  //新分配的chunk的索引号
   u32 szMaster;  //当前chunk的大小，不构成双链表
@@ -795,7 +795,7 @@ void sqlite3Memsys3Dump(const char *zFilename){
 ** 低级别的内存分配函数指针与指针在sqlite3GlobalConfig.m中的例程。
 ** 该参数指定的内存管理。这个程序被sqlite3_config()调用并不需要线程安全（这不安全）
 */ 
-//用于与外部链接。
+//配置参数
 const sqlite3_mem_methods *sqlite3MemGetMemsys3(void){
   static const sqlite3_mem_methods mempoolMethods = {
      memsys3Malloc,
