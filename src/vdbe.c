@@ -1130,13 +1130,14 @@ case OP_Null: {           /* out2-prerelease */
 **
 ** P4 points to a blob of data P1 bytes long.  Store this
 ** blob in register P2.
-** 
+** P4指向一个blob数据P1字节的长度。
+** 存储这个blob在寄存器P2中。
 */
 case OP_Blob: {                /* out2-prerelease */
-  assert( pOp->p1 <= SQLITE_MAX_LENGTH );
-  sqlite3VdbeMemSetStr(pOut, pOp->p4.z, pOp->p1, 0, 0);
-  pOut->enc = encoding;
-  UPDATE_MAX_BLOBSIZE(pOut);
+  assert( pOp->p1 <= SQLITE_MAX_LENGTH );//当p1字节的长度小于SQLITE_MAX_LENGTH时候执行
+  sqlite3VdbeMemSetStr(pOut, pOp->p4.z, pOp->p1, 0, 0);//给pOut和p4分配内存空间
+  pOut->enc = encoding;					//输出的结果的编码类型
+  UPDATE_MAX_BLOBSIZE(pOut);			//更新最大的blob类型的大小
   break;
 } 
 
@@ -1851,18 +1852,24 @@ case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
 ** 强制P1里的值为一个二进制大文件值，如果这个值正好是数字类型的，
 ** 转换为字符串,字符串是对二进制大文件简单地进行重新解释,它所代表的数据是不变的
 ** 此程序无法改变NULL值,它就是NULL.
+** 刘志齐修改：
+** 把寄存器P1中的值强制转换成BLOB类型，
+** 如果这个值是一个数字类型，首先把它转换成一个字符串类型。
+** 字符串只是对blobs类型的数据仅仅重新解释，并没有改变基础数据。
+** 此程序无法改变NULL值,它就是NULL。
 */
 case OP_ToBlob: {                  /* same as TK_TO_BLOB, in1 */
-  pIn1 = &aMem[pOp->p1];
+  pIn1 = &aMem[pOp->p1];     
   if( pIn1->flags & MEM_Null ) break;
   if( (pIn1->flags & MEM_Blob)==0 ){
     applyAffinity(pIn1, SQLITE_AFF_TEXT, encoding);
     assert( pIn1->flags & MEM_Str || db->mallocFailed );
-    MemSetTypeFlag(pIn1, MEM_Blob);
+    MemSetTypeFlag(pIn1, MEM_Blob);  //将Mem中的任何现有的标记来自Mem清除都并且用MEM_Blob替换
   }else{
-    pIn1->flags &= ~(MEM_TypeMask&~MEM_Blob);
-  }
-  UPDATE_MAX_BLOBSIZE(pIn1);
+    pIn1->flags &= ~(MEM_TypeMask&~MEM_Blob);//把MEM_TypeMask的值与MEM_Blob的取非的结果再取非的结果
+											 //与pIn1->flags取非的结果赋给pIn1->flags。
+  }	
+  UPDATE_MAX_BLOBSIZE(pIn1);      //更新最大的blob类型的大小根据pIn1
   break;
 }
 
