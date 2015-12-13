@@ -473,6 +473,8 @@ end_of_step:
   ** 在这一步，局部变量携带一个值，如果这句话被sqlite_prepare()的接口编译，这个值就会被返回。
   ** 根据这个文档，它只能是以下第一个assert()函数的其中一个值。变量p->rc包含了这样一个值，如果
   ** sqlite3_finalize()被语句p调用，这个值就会被返回。
+  如果使用传统的sqlite3_prepare（）接口编译这个声明返回的值，此时局部变量rc有效，这个值就会被返回。
+  根据文档，这只能是在第一个assert()中的一个值。如果sqlite3_finalize()访问声明p，变量p->rc的值将会返回。
   */
   assert( rc==SQLITE_ROW  || rc==SQLITE_DONE   || rc==SQLITE_ERROR 
        || rc==SQLITE_BUSY || rc==SQLITE_MISUSE
@@ -507,11 +509,11 @@ end_of_step:
 ** 如果这层出错，调用sqlite3Reprepare()并重试
 */
 int sqlite3_step(sqlite3_stmt *pStmt){
-  int rc = SQLITE_OK;      /* Result from sqlite3Step() */
-  int rc2 = SQLITE_OK;     /* Result from sqlite3Reprepare() */
-  Vdbe *v = (Vdbe*)pStmt;  /* the prepared statement */
-  int cnt = 0;             /* Counter to prevent infinite loop of reprepares */
-  sqlite3 *db;             /* The database connection */
+  int rc = SQLITE_OK;      /* Result from sqlite3Step() sqlite3step()的结果*/
+  int rc2 = SQLITE_OK;     /* Result from sqlite3Reprepare() sqlite3reprepare()的结果*/
+  Vdbe *v = (Vdbe*)pStmt;  /* the prepared statement 预处理语句*/
+  int cnt = 0;             /* Counter to prevent infinite loop of reprepares 计数器，以防止reprepares的死循环*/
+  sqlite3 *db;             /* The database connection 数据库连接*/
 
   if( vdbeSafetyNotNull(v) ){//检查vdbe是否为空，是否关闭，
     return SQLITE_MISUSE_BKPT;
@@ -606,7 +608,7 @@ void sqlite3InvalidFunction(
 ** Allocate or return the aggregate context for a user function.  A new
 ** context is allocated on the first call.  Subsequent calls return the
 ** same context that was returned on prior calls.
-** 分配或归还集合体上下文用户的功能。
+** 分配或归还集合体上下文用户的功能。一个新的上下文被分配给一个新的调用，随后的调用返回与之前调用一样的上下文
 */
 void *sqlite3_aggregate_context(sqlite3_context *p, int nByte){
   Mem *pM
@@ -798,7 +800,7 @@ static Mem *columnMem(sqlite3_stmt *pStmt, int i){
 ** 醒（如：在一个值由执行一连串SELECT语句的返回的），这就有可能导致malloc()失败，分配失败状态线程被清除并且
 ** pStmt结果语句被设置成SQLITE_NOMEM
 **
-** Specifically, this is called from within:
+** Specifically, this is called from within具体而言，这是从内部调用:
 **
 **     sqlite3_column_int()
 **     sqlite3_column_int64()
@@ -947,6 +949,7 @@ static const void *columnName(
     **
     ** 在xFunc()函数中分配内存可能出现失败调用，如果这样情况出现，
     ** 清楚内存分配失败状态并返回NULL
+	一个malloc可能失败而不调用xFunc()。如果这是一个事件，清除mallocFailed标志并返回NULL。
     */
     if( db->mallocFailed ){
       db->mallocFailed = 0;
@@ -985,7 +988,7 @@ const void *sqlite3_column_name16(sqlite3_stmt *pStmt, int N){
 /*
 ** Return the column declaration type (if applicable) of the 'i'th column
 ** of the result set of SQL statement pStmt.
-** 返回第i列pStmt SQL语句执行的结果集的列声明类型。
+** 返回第i列pStmt SQL语句执行的结果集的列声明类型。（如果是可用的）
 */
 const char *sqlite3_column_decltype(sqlite3_stmt *pStmt, int N){
   return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_DECLTYPE);
@@ -1003,6 +1006,7 @@ const void *sqlite3_column_decltype16(sqlite3_stmt *pStmt, int N){
 ** NULL is returned if the result column is an expression or constant or
 ** anything else which is not an unabiguous reference to a database column.
 ** 返回数据库的名称列得出结果。 如果结果列是一个表达式或者常量又或者是其他没有清楚提到数据库列的东西话就会返回NULL
+返回结果列派生的数据库的表名。如果结果列是一个语句、常量或任何其他一个数据库列中不明确的引用的东西，则NULL被返回。
 */
 const char *sqlite3_column_database_name(sqlite3_stmt *pStmt, int N){
   return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_DATABASE);
@@ -1018,6 +1022,7 @@ const void *sqlite3_column_database_name16(sqlite3_stmt *pStmt, int N){
 ** NULL is returned if the result column is an expression or constant or
 ** anything else which is not an unabiguous reference to a database column.
 ** 返回来自结果列的数据库表的表名。如果结果列是一个表达式或者常量又或者是其他没有清楚引用数据库列就会返回NULL
+返回结果列派生的表的名字。如果结果列是一个语句、常量或任何其他一个数据库列中不明确的引用的东西，则NULL被返回。
 */
 const char *sqlite3_column_table_name(sqlite3_stmt *pStmt, int N){
   return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_TABLE);
@@ -1033,6 +1038,8 @@ const void *sqlite3_column_table_name16(sqlite3_stmt *pStmt, int N){
 ** NULL is returned if the result column is an expression or constant or
 ** anything else which is not an unabiguous reference to a database column.
 ** 返回来自结果列数据库表的列名。如果结果列是一个表达式或者常量又或者是其他没有清楚引用数据库列就会返回NULL
+返回结果列派生的表的列的名字。如果结果列是一个语句、常量或任何其他一个数据库列中不明确的引用的东西，则NULL被返回。
+*/
 */
 const char *sqlite3_column_origin_name(sqlite3_stmt *pStmt, int N){
   return columnName(
@@ -1067,6 +1074,7 @@ const void *sqlite3_column_origin_name16(sqlite3_stmt *pStmt, int N){
 ** The error code stored in database p->db is overwritten with the return
 ** value in any case.
 ** 在任何情况下，存储在数据库p->db里面的错误编号就会被重写
+在任何情况下，储存在数据库p->db的错误代码被任何情况下的返回值所覆写
 */
 static int vdbeUnbind(Vdbe *p, int i){
   Mem *pVar;
@@ -1093,7 +1101,7 @@ static int vdbeUnbind(Vdbe *p, int i){
 
   /* If the bit corresponding to this variable in Vdbe.expmask is set, then 
   ** binding a new value to this variable invalidates the current query plan.
-  ** 如果对应于该变量在Vdbe.expmask该位被设置，则绑定一个新值这个变量的当前查询计划无效。
+  ** 如果对应于该变量在Vdbe.expmask该位被设置，则将一个新值绑定到该变量，当前的查询计划将会失效。
   **
   ** IMPLEMENTATION-OF: R-48440-37595 If the specific value bound to host
   ** parameter in the WHERE clause might influence the choice of query plan
@@ -1116,11 +1124,11 @@ static int vdbeUnbind(Vdbe *p, int i){
 ** 绑定文本或者BLOB值
 */
 static int bindText(
-  sqlite3_stmt *pStmt,   /* The statement to bind against */
+  sqlite3_stmt *pStmt,   /* The statement to bind against 绑定反对声明*/
   int i,                 /* Index of the parameter to bind 绑定参数的索引*/
   const void *zData,     /* Pointer to the data to be bound 指向绑定数据的指针*/
-  int nData,             /* Number of bytes of data to be bound 受约束的字节数*/
-  void (*xDel)(void*),   /* Destructor for the data 破化数据*/
+  int nData,             /* Number of bytes of data to be bound 受约束的数据的字节数*/
+  void (*xDel)(void*),   /* Destructor for the data 析构数据*/
   u8 encoding            /* Encoding for the data 数据的编码*/
 ){
   Vdbe *p = (Vdbe *)pStmt;
