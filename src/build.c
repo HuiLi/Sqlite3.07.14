@@ -3815,12 +3815,12 @@ int sqlite3OpenTempDatabase(Parse *pParse){
 ** Generate VDBE code that will verify the schema cookie and start//生成VDBE代码，这些代码能验证模式的cookie并且对所有命名数据库文件开始一个读事务。
 ** a read-transaction for all named database files.
 **
-** It is important that all schema cookies be verified and all//所有的模式cookies被验证和所有读事务发生在VDBE程序中发生的事务之前是重要的。
+** It is important that all schema cookies be verified and all//所有的模式cookies被验证，所有的读事务应该开始，这两件事情应该发生在所有其他的VDBE程序之前。
 ** read transactions be started before anything else happens in
 ** the VDBE program.  But this routine can be called after much other
-** code has been generated.  So here is what we do://但是在许多其它代码被生成之后这个程序能被调度.这是我们所做的 :
+** code has been generated.  So here is what we do://但是这个能够被许多其他的代码生成之后再去调用.这是我们所做的 :
 **
-** The first time this routine is called, we code an OP_Goto that//第一次调用这个程序,我们编码一个OP_Goto在程序结束时将跳转到一个子程序。
+** The first time this routine is called, we code an OP_Goto that//第一次调用这个程序,我们编码一个操作OP_Goto在程序结束时将跳转到一个子程序。
 ** will jump to a subroutine at the end of the program.  Then we
 ** record every database that needs its schema verified in the//然后我们记录每个数据库，这个数据库在pParse - > cookieMask字段中需要它的模式验证。
 ** pParse->cookieMask field.  Later, after all other code has been//然后，所有其他代码被生成,  做了cookie验证并启动事务的子程序将被编码并且这个OP_Goto P2值将指向子程序。
@@ -3839,7 +3839,7 @@ void sqlite3CodeVerifySchema(Parse *pParse, int iDb){
   if( pToplevel->cookieGoto==0 ){
     Vdbe *v = sqlite3GetVdbe(pToplevel);
     if( v==0 ) return;  /* This only happens if there was a prior error *///这仅仅发生在如果之前有一个错误的时候
-    pToplevel->cookieGoto = sqlite3VdbeAddOp2(v, OP_Goto, 0, 0)+1;
+    pToplevel->cookieGoto = sqlite3VdbeAddOp2(v, OP_Goto, 0, 0)+1;   //跳转到这个程序末尾的子程序中
   }
   if( iDb>=0 ){
     sqlite3 *db = pToplevel->db;
@@ -3861,7 +3861,7 @@ void sqlite3CodeVerifySchema(Parse *pParse, int iDb){
 }
 
 /*
-** If argument zDb is NULL, then call sqlite3CodeVerifySchema() for each //如果论据zDb为空,然后为每个连接数据库调用sqlite3CodeVerifySchema()。否则,只让名叫zDb的数据库调用它。
+** If argument zDb is NULL, then call sqlite3CodeVerifySchema() for each //如果参数zDb为空,然后为每个连接数据库调用sqlite3CodeVerifySchema()。否则,只让名叫zDb的数据库调用它。
 ** attached database. Otherwise, invoke it for the database named zDb only.
 */
 void sqlite3CodeVerifyNamedSchema(Parse *pParse, const char *zDb){
@@ -3883,13 +3883,13 @@ void sqlite3BeginWriteOperation(Parse *pParse, int setStatement, int iDb){
 }
 
 /*
-** Indicate that the statement currently under construction might write//表明,目前正在建设的语句可以写多个条目(例如:删除一行然后插入另一个表中插入多行,或插入一行和索引条目)。
-如果在这些写完成后发生中止,那么它将需要撤消已经完成的写。
-
-** more than one entry (example: deleting one row then inserting another,//为这些操作应该设置检查点,操作可能会让这种方式的部分失败(由于一个约束),这将需要取消一些写而不需要回滚整个事务。 对于操作,在对数据库进行任何更改之前，所有的约束都可以检查,从来没有需要撤销写和不应设置检查点。
+** Indicate that the statement currently under construction might write
+** more than one entry (example: deleting one row then inserting another,
 ** inserting multiple rows in a table, or inserting a row and index entries.)
+** 表明,目前正在构建的语句可以写多个条目(例如:删除一行然后插入另一个表中插入多行,或插入一行和索引条目)。
 ** If an abort occurs after some of these writes have completed, then it will
 ** be necessary to undo the completed writes.
+** 如果在这些写完成后发生中止,那么它将需要撤消已经完成的写。
 */
 void sqlite3MultiWrite(Parse *pParse){
   Parse *pToplevel = sqlite3ParseToplevel(pParse);
@@ -3897,8 +3897,25 @@ void sqlite3MultiWrite(Parse *pParse){
 }
 
 /*
-**如果发现有可能终止在声明完成之前，代码生成器调用这个程序。为了执行这个没有破坏数据库的中止,我们需要确保声明通过一个语句事务来保护。
-** 从技术上讲,如果isMultiWrite标志在之前设置了，我们只需要设置mayAbort标志。有时间依赖性,中止multiwrite后必须发生。这使得一些语句涉及REPLACE冲突解决算法运行快一点。但这次利用依赖使它更加难以证明的代码是正确的(特别是,它阻止了我们写的有效实现sqlite3AssertMayAbort()),所以我们选择了安全的路径和跳过优化。
+** The code generator calls this routine if is discovers that it is
+** possible to abort a statement prior to completion.  In order to
+** perform this abort without corrupting the database, we need to make
+** sure that the statement is protected by a statement transaction.
+** 当这个程序被发现可能在完成一个语句之前被终止，那么代码生成器调用这个程序。为了去执行这个终止程序但是不弄脏数据库，
+** 因此我们需要去确保这个语句被事务处理语句保护。
+** Technically, we only need to set the mayAbort flag if the
+** isMultiWrite flag was previously set.  
+** 从技术上讲，如果在之前多次写操作标志被设置，我们仅仅需要去重置一个mayAbort标志。
+** There is a time dependency such that the abort must occur after the multiwrite. 
+** 有一些依赖关系是存在的以至于终止操作必须发生在多次写操作之后。
+** This makes some statements involving the REPLACE conflict resolution algorithm
+** go a little faster. 
+** 这使得一些语句调用REPLACE冲突解决算法。
+** But taking advantage of this time dependency makes it more difficult to prove that the code is correct (in
+** particular, it prevents us from writing an effective
+** implementation of sqlite3AssertMayAbort()) and so we have chosen
+** to take the safe route and skip the optimization.
+** 但是利用这种依赖使得它更加的困难去证明这个代码的正确性（特别地，它阻止我们去写一个sqlite3AssertMayAbort()有效的实现），并且，我们选择安全的程序然后跳过一些优化
 */
 
 void sqlite3MayAbort(Parse *pParse){
@@ -3907,10 +3924,11 @@ void sqlite3MayAbort(Parse *pParse){
 }
 
 /*
-** Code an OP_Halt that causes the vdbe to return an SQLITE_CONSTRAINT//代码OP_Halt导致的VDBE返回一个SQLITE_CONSTRAINT错误。该onerror的参数决定的声明和/或当前事务的哪个（如果有的话）被回滚。
-
-** error. The onError parameter determines which (if any) of the statement
+** Code an OP_Halt that causes the vdbe to return an SQLITE_CONSTRAINT error.
+** 编码OP_Halt导致的VDBE返回一个SQLITE_CONSTRAINT错误。
+** The onError parameter determines which (if any) of the statement
 ** and/or current transaction is rolled back.
+** 该onError的参数决定的声明和/或当前事务的哪个（如果有的话）被回滚。
 */
 void sqlite3HaltConstraint(Parse *pParse, int onError, char *p4, int p4type){
   Vdbe *v = sqlite3GetVdbe(pParse);
@@ -3921,8 +3939,10 @@ void sqlite3HaltConstraint(Parse *pParse, int onError, char *p4, int p4type){
 }
 
 /*
-** Check to see if pIndex uses the collating sequence pColl.  Return//检查是否pIndex使用的排序序列pColl 。
-** true if it does and false if it does not.//如果它没有，返回如果它的真假。
+** Check to see if pIndex uses the collating sequence pColl.  Return
+** 检查是否pIndex使用的排序序列pColl 。
+** true if it does and false if it does not.
+** 如果它没有，返回如果它的真假。
 */
 #ifndef SQLITE_OMIT_REINDEX
 static int collationMatch(const char *zColl, Index *pIndex){
@@ -3940,12 +3960,14 @@ static int collationMatch(const char *zColl, Index *pIndex){
 #endif
 
 /*
-** Recompute all indices of pTab that use the collating sequence pColl.//重新计算PTAB中使用的排序序列的所有指标pColl。
-** If pColl==0 then recompute all indices of pTab.//如果pColl == 0，则重新计算PTAB的各项指标。
+** Recompute all indices of pTab that use the collating sequence pColl.
+** 重新计算pTab中使用的排序序列的所有指标pColl。
+** If pColl==0 then recompute all indices of pTab.
+** 如果pColl == 0，则重新计算pTab的各项指标。
 */
 #ifndef SQLITE_OMIT_REINDEX
 static void reindexTable(Parse *pParse, Table *pTab, char const *zColl){
-  Index *pIndex;              /* An index associated with pTab */
+  Index *pIndex;              /* An index associated with pTab  与pTab所关联的索引*/
 
   for(pIndex=pTab->pIndex; pIndex; pIndex=pIndex->pNext){
     if( zColl==0 || collationMatch(zColl, pIndex) ){
@@ -3958,8 +3980,10 @@ static void reindexTable(Parse *pParse, Table *pTab, char const *zColl){
 #endif
 
 /*
-** Recompute all indices of all tables in all databases where the//重新计算所有在那里的指数使用的排序序列pColl数据库中的所有表的所有指标。
-** indices use the collating sequence pColl.  If pColl==0 then recompute//如果pColl == 0，则重新计算所有指数。
+** Recompute all indices of all tables in all databases where the
+** 重新计算所有在那里的指数使用的排序序列pColl数据库中的所有表的所有指标。
+** indices use the collating sequence pColl.  If pColl==0 then recompute
+** 如果pColl == 0，则重新计算所有指数。
 ** all indices everywhere.
 */
 #ifndef SQLITE_OMIT_REINDEX
@@ -4054,7 +4078,7 @@ void sqlite3Reindex(Parse *pParse, Token *pName1, Token *pName2){
 ** with OP_OpenRead or OP_OpenWrite to access database index pIdx.
 **
 ** If successful, a pointer to the new structure is returned. In this case//如果成功，则返回一个指向新的结构。
-** the caller is responsible for calling sqlite3DbFree(db, ) on the returned //在这种情况下，呼叫者负责调用sqlite3DbFree 上返回的指针。
+** the caller is responsible for calling sqlite3DbFree(db, ) on the returned //在这种情况下，调用者负责调用sqlite3DbFree 上返回的指针。
 ** pointer. If an error occurs (out of memory or missing collation //如果出现错误（内存不足或缺失的排列顺序） ，则返回NULL和pParse的状态更新，以反映错误。
 ** sequence), NULL is returned and the state of pParse updated to reflect
 ** the error.
