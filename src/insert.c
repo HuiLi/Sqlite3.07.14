@@ -55,6 +55,7 @@ void sqlite3OpenTable(
 /*
 ** Return a pointer to the column affinity string associated with index
 ** pIdx. A column affinity string has one character for each column in
+** 对于与索引相关的列返回一个指针，对于在这个表中的每一列都有一个字符，按照下面的规则：
 ** the table, according to the affinity of the column:
 **
 **  Character      Column affinity
@@ -67,31 +68,35 @@ void sqlite3OpenTable(
 **
 ** An extra 'd' is appended to the end of the string to cover the
 ** rowid that appears as the last column in every index.
-**
+** 一个附加的'd'被追加在字符串的末尾，这样做是想要去覆盖rowid，rowid出现在每一个索引的最后一列
 ** Memory for the buffer containing the column index affinity string
 ** is managed along with the rest of the Index structure. It will be
 ** released when sqlite3DeleteIndex() is called.
+** 内存被设置去管理剩余的索引结构，当sqlite3DeleteIndex()被调用的时候这个缓冲区将会被删除
 */
-//返回一个与索引pIdx相关的列相关字符串的指针的值而不用修改它，
-//根据列关联，表中每一个列都有一个字符代表列关联的数据类型。
 const char *sqlite3IndexAffinityStr(Vdbe *v, Index *pIdx)
 {
-  //对于一个特定的索引来说，一个列关联字符串在第一次才需要分配和赋值的。
-  //然后对于后续的使用来说，它将会作为一个索引的成员存储.
   //当索引结构本身被清除了的时候，最终这个列关联的字符串通过sqliteDeleteIndex()函数删除。
   if( !pIdx->zColAff )
   {
-
+	  /* The first time a column affinity string for a particular index is
+	  ** required, it is allocated and populated here. It is then stored as
+	  ** a member of the Index structure for subsequent use.
+	  ** 对于一个特定的索引来说，一个列关联字符串在第一次才需要分配和赋值的。接着它将被存储作为一个索引结构的成员，这样做是为了给子序列使用
+	  ** The column affinity string will eventually be deleted by
+	  ** sqliteDeleteIndex() when the Index structure itself is cleaned up.
+	  ** 当索引结构被删除的时候，一个列关联字符串最后将会调用sqliteDeleteIndex()函数删除
+	  */
     int n;
-    Table *pTab = pIdx->pTable;//SQL表索引
-    sqlite3 *db = sqlite3VdbeDb(v);//定义一个当前虚拟机运行的数据库数据实例的指针
+    Table *pTab = pIdx->pTable;//索引所指向的包指针
+    sqlite3 *db = sqlite3VdbeDb(v);//定义一个当前VDBE引擎运行的数据库数据实例的指针
 
     //对于数据的索引一旦开始分配，失败终止只有当失败分配重置。
     pIdx->zColAff = (char *)sqlite3DbMallocRaw(0, pIdx->nColumn+2);
-    if( !pIdx->zColAff )
+    if( !pIdx->zColAff )   //如果没有定义每一列关联字符串的话
     {
-      db->mallocFailed = 1;
-      return 0;
+      db->mallocFailed = 1;   //将内存分配失败
+      return 0; //退出整个函数的执行
     }
     for(n=0; n < pIdx->nColumn; n++)
     {
