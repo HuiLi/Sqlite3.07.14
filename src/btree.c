@@ -12,22 +12,23 @@
 ** This file implements a external (disk-based) database using BTrees.
 ** See the header comment on "btreeInt.h" for additional information.
 ** Including a description of file format and an overview of operation.
-** 【王】这个文件使用来实现外部(基于磁盘)数据库。在“btreeInt.h”文件中查看声明的附加信息。
+** 这个文件使用B树结构来实现外部(基于磁盘)数据库。在“btreeInt.h”文件中查看声明的附加信息。
 ** 包括文件格式描述和操作概述。
 */
+
 #include "btreeInt.h"
 
 /*
 ** The header string that appears at the beginning of every
 ** SQLite database.
-** 【王】"btreeInt.h"这个头文件在所有的SQLite数据库的开头中都会出现。
+** "btreeInt.h"这个头文件在所有的SQLite数据库的开头中都会出现。
 */
 static const char zMagicHeader[] = SQLITE_FILE_HEADER;
 
 /*
 ** Set this global variable to 1 to enable tracing using the TRACE
 ** macro.
-** 【王】设置全局变量，值为1可以用宏TRACE跟踪
+** 设置全局变量，值为1可以用宏TRACE跟踪
 */
 #if 0
 int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示可以追踪 */
@@ -110,12 +111,12 @@ int sqlite3_enable_shared_cache(int enable){
 那么每个BtShared结构就永远只能有一个用户，因此该锁定是没有必要的。
 所以定义锁相关的功能为空操作。
 */
-  #define querySharedCacheTableLock(a,b,c) SQLITE_OK  //【王】查询共享缓存表锁
-  #define setSharedCacheTableLock(a,b,c) SQLITE_OK    //【王】设置共享缓存表锁
-  #define clearAllSharedCacheTableLocks(a)            //【王】删除所有共享缓存表锁
-  #define downgradeAllSharedCacheTableLocks(a)        //【王】降低共享缓存表锁的优先级
-  #define hasSharedCacheTableLock(a,b,c,d) 1          //【王】判断是否有共享缓存表锁，1代表有锁
-  #define hasReadConflicts(a, b) 0                    //【王】有读冲突
+  #define querySharedCacheTableLock(a,b,c) SQLITE_OK  //查询共享缓存表锁
+  #define setSharedCacheTableLock(a,b,c) SQLITE_OK    //设置共享缓存表锁
+  #define clearAllSharedCacheTableLocks(a)            //删除所有共享缓存表锁
+  #define downgradeAllSharedCacheTableLocks(a)        //降低共享缓存表锁的优先级
+  #define hasSharedCacheTableLock(a,b,c,d) 1          //判断是否有共享缓存表锁，1代表有锁
+  #define hasReadConflicts(a, b) 0                    //有读冲突
 #endif
 
 #ifndef SQLITE_OMIT_SHARED_CACHE
@@ -193,7 +194,7 @@ static int hasSharedCacheTableLock(
   ** written. For index b-trees, it is the root page of the associated
   ** table.  */
   /*找出根页应该持有的锁。对于表B树， B树的根页被读取或写入(else iRoot)。索引B树，它是相关联的根页表。*/
-  /*【王】
+  /*
   ** 计算出应该持有锁的根页，对表B树（表是B+-tree），这只是正在被读或者写的B树的根页。
   ** 对于索引B树，它是相对应表的根页。
   */
@@ -280,12 +281,12 @@ static int hasReadConflicts(Btree *pBtree, Pgno iRoot){
 /*
 查询，判断B树句柄p是否能在iTab根页的表上获取eLock类型的锁（READ_LOCK或WRITE_LOCK）(eLock==READ_LOCK || eLock==WRITE_LOCK )。
 如果通过调用 setSharedCacheTableLock（），可以获得锁，返回SQLITE_OK。否则返回SQLITE_LOCKED。
-**【王】查看Btree句柄p是否在具有根页iTab的表上获得了eLock类型（读锁或写锁）的锁。
+**查看Btree句柄p是否在具有根页iTab的表上获得了eLock类型（读锁或写锁）的锁。
 ** 如果通过调用setSharedCacheTableLock()获得了锁，返回SQLITE_OK,否则返回SQLITE_LOCKED.
 */
 static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
   BtShared *pBt = p->pBt;
-  BtLock *pIter;    //【王】pIterB树上的锁指针变量
+  BtLock *pIter;    //pIterB树上的锁指针变量
 
   assert( sqlite3BtreeHoldsMutex(p) );  
   assert( eLock==READ_LOCK || eLock==WRITE_LOCK );
@@ -309,7 +310,7 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
 
   /* If some other connection is holding an exclusive lock, the
   ** requested lock may not be obtained.
-  ** 【王】如果一些其他的连接正在持有互斥锁(pBt->btsFlags & BTS_EXCLUSIVE)!=0,那么无法获得所请求的锁。
+  ** 如果一些其他的连接正在持有互斥锁(pBt->btsFlags & BTS_EXCLUSIVE)!=0,那么无法获得所请求的锁。
   */
   if( pBt->pWriter!=p && (pBt->btsFlags & BTS_EXCLUSIVE)!=0 ){
     sqlite3ConnectionBlocked(p->db, pBt->pWriter->db);
@@ -327,7 +328,7 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
     ** only be a single writer).
     */
     /*
-	** 【王】条件(pIter->eLock!=eLock)是if语句中(eLock==WRITE_LOCK || pIter->eLock==WRITE_LOCK)的简化。
+	** 条件(pIter->eLock!=eLock)是if语句中(eLock==WRITE_LOCK || pIter->eLock==WRITE_LOCK)的简化。
 	** 因为我们知道，如果eLock== WRITE_LOCK，则没有其他连接可能持有这个文件的任何表的WRITE_LOCK
 	**（因为只有一个写进程）。
 	*/
@@ -363,7 +364,7 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
 **
 ** SQLITE_OK is returned if the lock is added successfully. SQLITE_NOMEM 
 ** is returned if a malloc attempt fails.
-**【王】 通过B树句柄p在根页iTable的表上添加锁到共享B树上。参数eLock必须是READ_LOCK或 WRITE_LOCK。
+** 通过B树句柄p在根页iTable的表上添加锁到共享B树上。参数eLock必须是READ_LOCK或 WRITE_LOCK。
 ** 此功能假定如下：
 **  (a)指定的B树对象p被连接到一个可共享数据库（一个与BtShare可共享的标志设置），以及
 **  (b)没有其他B树对象持有与所请求的锁相冲突的锁（例如querySharedCacheTableLock（）
@@ -390,7 +391,7 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   ** obtain a read-lock using this function. The only read-lock obtained
   ** by a connection in read-uncommitted mode is on the sqlite_master 
   ** table, and that lock is obtained in BtreeBeginTrans(). 
-  **【王】带有读未提交标记设置的连接不能尝试用这个函数获取读锁。在SQLITE_MASTER表中读未提交模式下
+  **带有读未提交标记设置的连接不能尝试用这个函数获取读锁。在SQLITE_MASTER表中读未提交模式下
   ** 才能获得只读锁。并且在BtreeBeginTrans（）中获得锁。*/
   /*
   有读未提交标志的连接不会通过该功能获得读锁。在SQLITE_MASTER表中读未提交模式下才能获得只读锁。
@@ -406,7 +407,7 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   assert( SQLITE_OK==querySharedCacheTableLock(p, iTable, eLock) );/*有锁*/
 
   /* First search the list for an existing lock on this table. */
-  /*【王】 首先搜索在表上已存在的锁列表   */
+  /* 首先搜索在表上已存在的锁列表   */
   for(pIter=pBt->pLock; pIter; pIter=pIter->pNext){
     if( pIter->iTable==iTable && pIter->pBtree==p ){
       pLock = pIter;
@@ -533,7 +534,7 @@ static void releasePage(MemPage *pPage);  /* Forward reference 向前引用*/
 
 /*
 ***** This routine is used inside of assert() only ****
-** 【王】这个程序仅仅被用在assert()内部
+** 这个程序仅仅被用在assert()内部
 ** Verify that the cursor holds the mutex on its BtShared
 */
 /*这个程序里面只有assert（），确认游标持有BtShared上的互斥量。*/
@@ -645,7 +646,7 @@ static void invalidateIncrblobCursors(        //使开放的行或行中的一个被修改的一
 ** optimization 2 above is omitted if the corresponding bit is already
 ** set in BtShared.pHasContent. The contents of the bitvec are cleared
 ** at the end of every transaction.
-**【王】 设定位向量BtShared.pHasContent的pgno的位。这个函数将在先前包含数据的页
+** 设定位向量BtShared.pHasContent的pgno的位。这个函数将在先前包含数据的页
 ** 变为一个空列叶节点页的时候被调用。
 **
 ** BtShared.pHasContent位向量存在是为了解决未知的错误，这个错误是发生在空列叶节点页的
