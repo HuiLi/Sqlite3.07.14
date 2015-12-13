@@ -149,18 +149,18 @@ int sqlite3BtreeCursor(     //创建一个指向特定B树的游标。可以是�
   struct KeyInfo*,                     /* First argument to compare function */  //比较函数的第一个参数
   BtCursor *pCursor                    /* Space to write cursor structure */     //写游标结构的空间
 );
-int sqlite3BtreeCursorSize(void);
-void sqlite3BtreeCursorZero(BtCursor*);
+int sqlite3BtreeCursorSize(void);              //返回BtCursor对象的字节大小
+void sqlite3BtreeCursorZero(BtCursor*);        //初始化将被转换成一个BtCursor对象的存储器
 
-int sqlite3BtreeCloseCursor(BtCursor*);
-int sqlite3BtreeMovetoUnpacked(
+int sqlite3BtreeCloseCursor(BtCursor*);        //关闭B-tree游标
+int sqlite3BtreeMovetoUnpacked(                //游标指向一个intKey/pIdxKey相对应的条目
   BtCursor*,
   UnpackedRecord *pUnKey,
   i64 intKey,
   int bias,
   int *pRes
 );
-int sqlite3BtreeCursorHasMoved(BtCursor*, int*);
+int sqlite3BtreeCursorHasMoved(BtCursor*, int*);  //游标是否移动,若出错返回错误代码
 int sqlite3BtreeDelete(BtCursor*);                                //删除游标所指记录
 int sqlite3BtreeInsert(BtCursor*, const void *pKey, i64 nKey,     //在B树的适当位置插入一条记录
                                   const void *pData, int nData,
@@ -172,19 +172,19 @@ int sqlite3BtreeEof(BtCursor*);
 int sqlite3BtreePrevious(BtCursor*, int *pRes);                   //移动游标至当前游标所指记录的前一条
 int sqlite3BtreeKeySize(BtCursor*, i64 *pSize);                   //返回当前游标锁时记录的关键字长度
 int sqlite3BtreeKey(BtCursor*, u32 offset, u32 amt, void*);       //返回当前游标锁时记录的关键字
-const void *sqlite3BtreeKeyFetch(BtCursor*, int *pAmt);
-const void *sqlite3BtreeDataFetch(BtCursor*, int *pAmt);
+const void *sqlite3BtreeKeyFetch(BtCursor*, int *pAmt);           //用于快速访问key
+const void *sqlite3BtreeDataFetch(BtCursor*, int *pAmt);          //用于快速访问data
 int sqlite3BtreeDataSize(BtCursor*, u32 *pSize);                  //返回当前游标锁时记录的数据字长度
 int sqlite3BtreeData(BtCursor*, u32 offset, u32 amt, void*);      //返回当前游标锁时记录的数据
-void sqlite3BtreeSetCachedRowid(BtCursor*, sqlite3_int64);
-sqlite3_int64 sqlite3BtreeGetCachedRowid(BtCursor*);
+void sqlite3BtreeSetCachedRowid(BtCursor*, sqlite3_int64);        //设置相同的数据库文件中中每个游标的cache行号
+sqlite3_int64 sqlite3BtreeGetCachedRowid(BtCursor*);              //返回游标的缓存的rowid
 
-char *sqlite3BtreeIntegrityCheck(Btree*, int *aRoot, int nRoot, int, int*);
-struct Pager *sqlite3BtreePager(Btree*);
+char *sqlite3BtreeIntegrityCheck(Btree*, int *aRoot, int nRoot, int, int*);  //对BTree文件做一个完整性的检查
+struct Pager *sqlite3BtreePager(Btree*);                          //返回与B树相关的页.该函数仅用来测试和调试.
 
-int sqlite3BtreePutData(BtCursor*, u32 offset, u32 amt, void*);
-void sqlite3BtreeCacheOverflow(BtCursor *);
-void sqlite3BtreeClearCursor(BtCursor *);
+int sqlite3BtreePutData(BtCursor*, u32 offset, u32 amt, void*);   //修改数据内容
+void sqlite3BtreeCacheOverflow(BtCursor *);                       //此函数在游标上设置一个溢出页缓存标志
+void sqlite3BtreeClearCursor(BtCursor *);                         //清除当前游标位置
 int sqlite3BtreeSetVersion(Btree *pBt, int iVersion);
 void sqlite3BtreeCursorHints(BtCursor *, unsigned int mask);
 

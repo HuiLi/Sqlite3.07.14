@@ -14,7 +14,7 @@
 ** This code really belongs in btree.c.  But btree.c is getting too
 ** big and we want to break it down some.  This packaged seemed like
 ** a good breakout.
-** 该文件包含的代码是用来在B树对象上实现锁机制。这个代码是属于btree.c文件。
+** 该文件包含的代码是用来在B树对象上实现互斥机制。这个代码是属于btree.c文件。
 ** 但是btree.c文件变得太大，我们想从中分出一部分。这个包装看起来一个好的突破。
 */
 #include "btreeInt.h"
@@ -145,7 +145,7 @@ void sqlite3BtreeEnter(Btree *p){
 /*
 ** Exit the recursive mutex on a Btree.  
 */
-void sqlite3BtreeLeave(Btree *p){   ////在B树上退出互斥锁
+void sqlite3BtreeLeave(Btree *p){   //在B树上退出互斥锁
   if( p->sharable ){
     assert( p->wantToLock>0 );
     p->wantToLock--;
