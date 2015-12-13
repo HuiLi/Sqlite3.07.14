@@ -1,4 +1,4 @@
-
+/*
 ** 2010 February 1
 **
 ** The author disclaims否认 copyright to this source code.  In place of
@@ -34,6 +34,7 @@
 ** The WAL header is 32 bytes in size and consists of the following eight
 ** big-endian 32-bit unsigned无符号的 integer values:
 **
+
 **     0: Magic number.  0x377f0682 or 0x377f0683幻数
 **     4: File format version.  Currently 3007000版本号
 **     8: Database page size.  Example: 1024数据库页面大小
