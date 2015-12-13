@@ -32,7 +32,7 @@
 typedef struct Incrblob Incrblob;
 struct Incrblob {
   int flags;              /* Copy of "flags" passed to sqlite3_blob_open() 
-                           把“flags”的复印传递给sqlite3_blob_open()函数*/
+                           把“flags”的传递给sqlite3_blob_open()函数*/
   int nByte ;              /* Size of open blob, in bytes 
                            打开blob的大小，以字节计算*/
   int iOffset;            /* Byte offset of blob in cursor data 
@@ -108,7 +108,6 @@ static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
       sqlite3BtreeLeaveCursor(p->pCsr);
     }
   }
-
   if( rc==SQLITE_ROW ){
     rc = SQLITE_OK;
   }else if( p->pStmt ){
@@ -490,6 +489,8 @@ int sqlite3_blob_write(sqlite3_blob *pBlob, const void *z, int n, int iOffset){
 ** 查询一个blob处理的数据的大小
 ** The Incrblob.nByte field is fixed for the lifetime of the Incrblob
 ** so no mutex is required for access.
+   在Incrblob结构中。
+   nByte字段是固定的一直在内存中，Incrblob所以不需要互斥访问
 */
 int sqlite3_blob_bytes(sqlite3_blob *pBlob){
   Incrblob *p = (Incrblob *)pBlob;
@@ -499,7 +500,7 @@ int sqlite3_blob_bytes(sqlite3_blob *pBlob){
 /*
 ** Move an existing blob handle to point to a different row of the same
 ** database table.
-** 移动现有的blob句柄指向同一数据库表中的一个不同的行
+**  在同一个数据库表中移动一个现有的blob类型的句柄指向一个不同行
 **
 ** If an error occurs, or if the specified row does not exist or does not
 ** contain a blob or text value, then an error code is returned and the
@@ -523,6 +524,8 @@ int sqlite3_blob_reopen(sqlite3_blob *pBlob, sqlite3_int64 iRow){
   if( p->pStmt==0 ){
     /* If there is no statement handle, then the blob-handle has
     ** already been invalidated. Return SQLITE_ABORT in this case.
+    如果这里没有语句要处理，并且blob_handle已经不起作用，
+    则返回一个SQLITE_ABORT在这个最后。
     */
     rc = SQLITE_ABORT;
   }else{
