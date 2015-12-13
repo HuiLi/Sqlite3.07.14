@@ -1353,22 +1353,23 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 	return zType;/*返回列类型*/
 }
 
-
+/////////
+// 郭香丽
 /*
 ** Generate code that will tell the VDBE the declaration types of columns
 ** in the result set.
 ** 生成代码，告诉VDBE在结果集中的列的声明类型的。
 */
 static void generateColumnTypes(
-	Parse *pParse,      /* Parser context 语义分析*/
+	Parse *pParse,      /* Parser context 解析上下文*/
 	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*/
-	ExprList *pEList    /* Expressions defining the result set 输出结果列的语法树*/
+	ExprList *pEList    /* Expressions defining the result set 定义结果集的表达式列表 */
 	){
 #ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
-	Vdbe *v = pParse->pVdbe;
+	Vdbe *v = pParse->pVdbe;/*将分析语法数中的VDBE赋值给VDBE变量V*/
 	int i;
 	NameContext sNC;
-	sNC.pSrcList = pTabList;
+	sNC.pSrcList = pTabList;/*将表集合赋值给命名上下文结构体中的表集合属性*/
 	sNC.pParse = pParse;
 	for (i = 0; i < pEList->nExpr; i++){
 		Expr *p = pEList->a[i].pExpr;
