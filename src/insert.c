@@ -9,29 +9,39 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-//2014年12月11日 完成前925行的源码阅读与简单分析
-/*在SQLite中，这个实现文件内容是实现由解析器调用C代码处理插入操作的代码例程。*/
+/*
+** This file contains C code routines that are called by the parser
+** to handle INSERT statements in SQLite.
+** 在SQLite中，这个实现文件内容是实现由解析器调用C代码处理插入操作的代码例程。*/
 #include "sqliteInt.h"
 
-////1、sqlite3OpenTable()函数实现打开一张用于读取数据操作的数据库表.
+/*
+** Generate code that will open a table for reading.
+*/
+//1、sqlite3OpenTable()函数实现打开一张用于读取数据操作的数据库表.
 //输入参数依次：指向解析器的指针p，表中游标的数量，在数据库连接实例索引，指向数据库表的指针pTab，读表或是写表操作
-void sqlite3OpenTable(Parse *p, int iCur, int iDb, Table *pTab, int opcode ）
+void sqlite3OpenTable(
+	Parse *p,   /* Generate code into this VDBE  语法解析生成代码给VDBE*/
+	int iCur,   /* The cursor number of the table 表的游标数目 */
+	int iDb,      /* The database index in sqlite3.aDb[]  在sqlite3.aDb[]上的数据库索引*/
+	Table *pTab,  /* The table to be opened  被打开的表*/
+	int opcode    /* OP_OpenRead or OP_OpenWrite  打开之后读操作或者是写操作*/
+	）
 {
-
-  Vdbe *v;//指向虚拟机的指针v
+	Vdbe *v;  //指向VDBE引擎的指针v
 
   if( IsVirtual(pTab) ) //判断是否虚拟表
     return;
 
-  //在给定的解析器的情况下，获得一个虚拟机指针，必要时创建一个新的，若出现错误，将会把NULL和相关错误信息赋值给v
+  //在给定的解析器的情况下，获得一个VDBE引擎
   v = sqlite3GetVdbe(p);
 
-  assert( opcode==OP_OpenWrite || opcode==OP_OpenRead ); //调用断言函数检查传入参数是否合法
+  assert( opcode==OP_OpenWrite || opcode==OP_OpenRead ); //断言进行的操作要么是读要么是写
 
-  //在运行时，把表锁定；相应解析器环境；数据库索引包含被锁的表；表的根页面也被锁定；判断是否为写锁；锁定表的表名。
+  //锁定表函数，其中参数p是语法解析上下文，iDb索引，(opcode==OP_OpenWrite)?1:0确定打开的究竟是否是写操作，pTab->zName参数是被打开的表的表名
   sqlite3TableLock(p, iDb, pTab->tnum, (opcode==OP_OpenWrite)?1:0, pTab->zName);
 
-  //给当前的虚拟机指令列表中添加一条新的指令，返回新指令的地址。(解析器，指令的操作码，游标操作数，根节点操作数，数据库索引操作数)
+  //给当前的VDBE引擎添加一条新的指令，返回新指令的地址。(VDBE引擎，opcode读或者写操作，iCur游标操作数，pTab->tnum被打开的表的数目，iDb参数是索引)
   sqlite3VdbeAddOp3(v, opcode, iCur, pTab->tnum, iDb);
 
   //把操作数P4的值改变为一个特殊的指令。
@@ -39,10 +49,30 @@ void sqlite3OpenTable(Parse *p, int iCur, int iDb, Table *pTab, int opcode ）
   //若P4_INT32==P4_KEYINFO,意味着zP4结构是指针，该结构通过sqlite3_malloc()存入到内存中，当虚拟机完成是释放。-1小于0表明改变P4最近添加的指令值。
   sqlite3VdbeChangeP4(v, -1, SQLITE_INT_TO_PTR(pTab->nCol), P4_INT32);
 
-  VdbeComment((v, "%s", pTab->zName));//虚拟机中当前表的注解打印
+  VdbeComment((v, "%s", pTab->zName));//VDBE引擎打印当前被打开的表的表名
 }
 
-////2、返回一个与索引pIdx相关的列相关字符串的指针的值而不用修改它，
+/*
+** Return a pointer to the column affinity string associated with index
+** pIdx. A column affinity string has one character for each column in
+** the table, according to the affinity of the column:
+**
+**  Character      Column affinity
+**  ------------------------------
+**  'a'            TEXT
+**  'b'            NONE
+**  'c'            NUMERIC
+**  'd'            INTEGER
+**  'e'            REAL
+**
+** An extra 'd' is appended to the end of the string to cover the
+** rowid that appears as the last column in every index.
+**
+** Memory for the buffer containing the column index affinity string
+** is managed along with the rest of the Index structure. It will be
+** released when sqlite3DeleteIndex() is called.
+*/
+//返回一个与索引pIdx相关的列相关字符串的指针的值而不用修改它，
 //根据列关联，表中每一个列都有一个字符代表列关联的数据类型。
 const char *sqlite3IndexAffinityStr(Vdbe *v, Index *pIdx)
 {

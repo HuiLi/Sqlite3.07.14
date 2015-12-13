@@ -520,15 +520,15 @@ struct CellInfo {
 ** A single database file can be shared by two more database connections,
 ** but cursors cannot be shared.  Each cursor is associated with a
 ** particular database connection identified BtCursor.pBtree.db.
-** 游标是指向一个特定入口的指针，这个入口在一个数据库文件的特定b-tree中。
-** 入口由MemPage和MemPage.aCell[]的下标确定。
+** 游标是指向一个特定条目的指针，这个条目在一个数据库文件的特定b-tree中。
+** 条目由MemPage和MemPage.aCell[]的下标确定。
 ** 一个数据库文件可被多个数据库连接共享，但游标不能被共享。
 **
 ** Fields in this structure are accessed under the BtShared.mutex
 ** found at self->pBt->mutex. 
 ** 在BtShared.mutex下，这个结构中的域被访问，发现self->pBt->mutex.
 */
-struct BtCursor {
+struct BtCursor {           //B树上的游标，游标是指向一个特定条目的指针
   Btree *pBtree;            /* The Btree to which this cursor belongs */          //属于这个B树的游标
   BtShared *pBt;            /* The BtShared this cursor points to */              //该游标指向BtShared
   BtCursor *pNext, *pPrev;  /* Forms a linked list of all cursors */              //形成一个所有游标的链表
@@ -543,7 +543,7 @@ struct BtCursor {
   void *pKey;      /* Saved key that was cursor's last known position */          //游标最后已知的位置的键值
   int skipNext;    /* Prev() is noop if negative. Next() is noop if positive */   //如果为负Prev()无操作，如果为正Next()无操作
   u8 wrFlag;                /* True if writable */                                //写标签，如果可写为真
-  u8 atLast;                /* Cursor pointing to the last entry */               //指针指向最后入口
+  u8 atLast;                /* Cursor pointing to the last entry */               //指针指向最后条目
   u8 validNKey;             /* True if info.nKey is valid */                      //如果info.nKey有效为真
   u8 eState;                /* One of the CURSOR_XXX constants (see below) */     //CURSOR_XXX常量之一
 #ifndef SQLITE_OMIT_INCRBLOB
