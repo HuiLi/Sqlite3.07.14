@@ -40,8 +40,8 @@
 ** 回溯功能仅可使用GLIBC
 */
 #ifdef __GLIBC__
-  extern int backtrace(void**,int);
-  extern void backtrace_symbols_fd(void*const*,int,int);
+  extern int backtrace(void**,int); //函数用于获取当前线程的调用堆栈，获取的信息将会被存在指针数组中，函数返回值是实际获取的指针的个数。
+  extern void backtrace_symbols_fd(void*const*,int,int);  //从backtrace函数获取的信息转化为一个字符串数组，函数返回将结果写入文件描述符为fd的文件中，每个函数对应一行。
 #else
 # define backtrace(A,B) 1
 # define backtrace_symbols_fd(A,B,C)
@@ -80,6 +80,7 @@
 ** 我们必须从分配指针备份找到MemBlockHdr。
 ** 所述MemBlockHdr告诉我们的分配的大小和回溯指针的数目。还有在MemBlockHdr结束保护字。
 */
+//内存分配结构
 struct MemBlockHdr {
   i64 iSize;                          /* Size of this allocation  分配的大小*/
   struct MemBlockHdr *pNext, *pPrev;  /* Linked list of all unfreed memory  所有未释放内存链表*/
@@ -177,6 +178,7 @@ static struct {
 ** 
 ** 调整内存使用情况统计
 */
+
 static void adjustStats(int iSize, int increment){
   int i = ROUND8(iSize)/8;
   if( i>NCSIZE-1 ){
@@ -203,6 +205,7 @@ static void adjustStats(int iSize, int increment){
 ** 给定一个分配器，寻找该分配器的MemBlockHdr
 ** 如果不是正确的声明，这个例程将检查配置的任意一段保护。
 */
+//函数设置哨兵对内存破坏进行检查
 static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
   struct MemBlockHdr *p;
   int *pInt;
@@ -283,6 +286,7 @@ static int sqlite3MemRoundup(int n){
 **
 ** 填充伪随机字节的缓冲区。这用于预置一个新的内存分配到不可预测值的内容，并清除释放分配的不可预测值的内容。
 */
+//函数填充伪随机字节的缓冲区，预留一个内存分配到不可预测值并清除释放不可预测值的内容。
 static void randomFill(char *pBuf, int nByte){
   unsigned int x, y, r;
   x = SQLITE_PTR_TO_INT(pBuf);
@@ -460,6 +464,7 @@ void sqlite3MemSetDefault(void){
 **
 ** 设置分配的“类型
 */
+//设置内存分配的类型
 void sqlite3MemdebugSetType(void *p, u8 eType){
   if( p && sqlite3GlobalConfig.m.xMalloc==sqlite3MemMalloc ){
     struct MemBlockHdr *pHdr;
@@ -483,6 +488,7 @@ void sqlite3MemdebugSetType(void *p, u8 eType){
 ** 这个程序被设计用于在assert（）验证配置类型的一个声明。
 ** 举例如：assert( sqlite3MemdebugHasType(p, MEMTYPE_DB) );
 */
+//函数使用assert（）语句验证内存分配的类型
 int sqlite3MemdebugHasType(void *p, u8 eType){
   int rc = 1;
   if( p && sqlite3GlobalConfig.m.xMalloc==sqlite3MemMalloc ){
@@ -510,6 +516,7 @@ int sqlite3MemdebugHasType(void *p, u8 eType){
 ** 这个程序被设计用于在一个assert（）声明里，用于验证配置类型。
 ** 举个例子：assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
 */
+//验证内存分配的类型
 int sqlite3MemdebugNoType(void *p, u8 eType){
   int rc = 1;
   if( p && sqlite3GlobalConfig.m.xMalloc==sqlite3MemMalloc ){
@@ -531,6 +538,7 @@ int sqlite3MemdebugNoType(void *p, u8 eType){
 ** 设置保持各分配回溯跟踪级别数。
 ** 如果值为零将关闭回溯,数字始终四舍五入到 2 的倍数。
 */
+//函数设置每个内存分配回溯跟踪级别数
 void sqlite3MemdebugBacktrace(int depth){
   if( depth<0 ){ depth = 0; }
   if( depth>20 ){ depth = 20; }
@@ -538,6 +546,7 @@ void sqlite3MemdebugBacktrace(int depth){
   mem.nBacktrace = depth;
 }
 
+//函数内存分配的回调函数
 void sqlite3MemdebugBacktraceCallback(void (*xBacktrace)(int, int, void **)){
   mem.xBacktrace = xBacktrace;
 }
@@ -547,6 +556,7 @@ void sqlite3MemdebugBacktraceCallback(void (*xBacktrace)(int, int, void **)){
 **
 ** 设置标题字符串进行后续分配
 */
+//函数设置标题字符串进行后续的分配
 void sqlite3MemdebugSettitle(const char *zTitle){
   unsigned int n = sqlite3Strlen30(zTitle) + 1;
   sqlite3_mutex_enter(mem.mutex);
@@ -557,6 +567,7 @@ void sqlite3MemdebugSettitle(const char *zTitle){
   sqlite3_mutex_leave(mem.mutex);
 }
 
+//函数同步
 void sqlite3MemdebugSync(){
   struct MemBlockHdr *pHdr;
   for(pHdr=mem.pFirst; pHdr; pHdr=pHdr->pNext){
@@ -572,6 +583,7 @@ void sqlite3MemdebugSync(){
 **
 ** 打开指定的文件，并写入日志所有未释放内存分配到该日志。
 */
+//函数打印调用栈
 void sqlite3MemdebugDump(const char *zFilename){
   FILE *out;
   struct MemBlockHdr *pHdr;
@@ -616,6 +628,7 @@ void sqlite3MemdebugDump(const char *zFilename){
 **
 ** 返回的是函数sqlite3MemMalloc()被调用的次数。
 */
+//函数返回sqlite3MemdebugMalloc()被调用的次数
 int sqlite3MemdebugMallocCount(){
   int i;
   int nTotal = 0;

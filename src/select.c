@@ -1353,22 +1353,23 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 	return zType;/*返回列类型*/
 }
 
-
+/////////
+// 郭香丽
 /*
 ** Generate code that will tell the VDBE the declaration types of columns
 ** in the result set.
 ** 生成代码，告诉VDBE在结果集中的列的声明类型的。
 */
 static void generateColumnTypes(
-	Parse *pParse,      /* Parser context 语义分析*/
+	Parse *pParse,      /* Parser context 解析上下文*/
 	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*/
-	ExprList *pEList    /* Expressions defining the result set 输出结果列的语法树*/
+	ExprList *pEList    /* Expressions defining the result set 定义结果集的表达式列表 */
 	){
 #ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
-	Vdbe *v = pParse->pVdbe;
+	Vdbe *v = pParse->pVdbe;/*将分析语法数中的VDBE赋值给VDBE变量V*/
 	int i;
 	NameContext sNC;
-	sNC.pSrcList = pTabList;
+	sNC.pSrcList = pTabList;/*将表集合赋值给命名上下文结构体中的表集合属性*/
 	sNC.pParse = pParse;
 	for (i = 0; i < pEList->nExpr; i++){
 		Expr *p = pEList->a[i].pExpr;
@@ -4207,63 +4208,62 @@ static u8 minMaxQuery(Select *p){
 ** Update the accumulator memory cells for an aggregate based on
 ** the current cursor position.
 **
-**为一个基于当前所处的位置上的聚集函数update累加器的内存单元
+**为一个基于当前所处的位置上的聚集函数更新累加器的内存单元
 */
-static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
-	Vdbe *v = pParse->pVdbe;
+static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数，其中parse是分析树，pAggInfo是聚集函数结构体
+	Vdbe *v = pParse->pVdbe;    /*声明一个分析树中执行数据库字节码的引擎（PVdbe）*/
 	int i;
-	int regHit = 0;
+	int regHit = 0;//用于表示语法分析树内存单元个数 
 	int addrHitTest = 0;
-	struct AggInfo_func *pF;
-	struct AggInfo_col *pC;/*将语法解析树中的pVdbe赋值给v，并进行一些初始化操作*/
+	struct AggInfo_func *pF; //声明一个聚集函数功能结构体（AggInfo_func为AggInfo子结构体）
+	struct AggInfo_col *pC; //声明一个聚集函数列结构体                                
 
-	pAggInfo->directMode = 1;/*数据属性置为1*/
-	sqlite3ExprCacheClear(pParse);/*清除解析树*/
-	for (i = 0, pF = pAggInfo->aFunc; i < pAggInfo->nFunc; i++, pF++){/*开始进行聚集函数的遍历*/
-		int nArg;
-		int addrNext = 0;
-		int regAgg;
-		ExprList *pList = pF->pExpr->x.pList;
-		assert(!ExprHasProperty(pF->pExpr, EP_xIsSelect));/*插入一个断点，如果pE包含EP_xIsSelect，那么久抛出错误的信息*/
-		if (pList){
-			nArg = pList->nExpr;
-			regAgg = sqlite3GetTempRange(pParse, nArg);
-			sqlite3ExprCodeExprList(pParse, pList, regAgg, 1);/*开始为聚集函数分配寄存器，把表达式中的值寄存在寄存器中*/
+	pAggInfo->directMode = 1;	 //允许直接从源表中取数据
+	sqlite3ExprCacheClear(pParse);/*清除缓存中的语法分析树*/
+	for (i = 0, pF = pAggInfo->aFunc; i < pAggInfo->nFunc; i++, pF++){/*开始进行聚集函数的遍历,其中aFunc是在聚集函数结构体中定义的一个数组，而nFunc指该数组中元素的个数*/
+		int nArg;//用来记录索引列表中表达式的数目 
+		int addrNext = 0;// 
+		int regAgg; //用来表示为聚集函数表达式分配的寄存器数目                                                                                                                                                                                                           
+		ExprList *pList = pF->pExpr->x.pList;//声明一个分析树的编码功能表达式的列索引表 
+		assert(!ExprHasProperty(pF->pExpr, EP_xIsSelect));/*插入一个断点，如果pE包含EP_xIsSelect，那么就抛出错误的信息，两个参数，第一个是聚集函数的编码功能表达式*/
+		if (pList){//若创建索引列表成功，则 
+			nArg = pList->nExpr;//将列表中的表达式数目赋给nArg 
+			regAgg = sqlite3GetTempRange(pParse, nArg);//为列表中的表达式分配连续的寄存器 ，并返回第一个寄存器的编号赋给regAgg
+			sqlite3ExprCodeExprList(pParse, pList, regAgg, 1);//把表达式列表中的值存放到一系列的寄存器中 
 		}
-		else{
-			nArg = 0;
-			regAgg = 0;/*将聚集函数的个数和存储聚集函数寄存器进行置0操作*/
+		else{//若创建索引列表失败 
+			nArg = 0;//将列表的表达式数目置0 
+			regAgg = 0;//为表达式分配的寄存器数目置0
 		}
-		if (pF->iDistinct >= 0){
-			addrNext = sqlite3VdbeMakeLabel(v);
-			assert(nArg == 1);
-			codeDistinct(pParse, pF->iDistinct, addrNext, 1, regAgg);/*如果从源表中取值的个数为0，为VDBE创建一个标签，返回值赋值给下一个运行地址，
-			                                                       并且插入断点，如果聚集函数不为1，抛出错误信息*/
+		if (pF->iDistinct >= 0){//若存在聚集函数用于执行DISTINCT操作的临时表 
+			addrNext = sqlite3VdbeMakeLabel(v);//创建一个还没有被编码的新的符号标签，并将其赋给addrNext 
+			assert(nArg == 1);//判断索引列表中是不是只有一个表达式 
+			codeDistinct(pParse, pF->iDistinct, addrNext, 1, regAgg);// ??????
 		}
-		if (pF->pFunc->flags & SQLITE_FUNC_NEEDCOLL){
-			CollSeq *pColl = 0;
+		if (pF->pFunc->flags & SQLITE_FUNC_NEEDCOLL){//若聚集函数中的聚合函数已经实现，并且sqlite3GetFuncCollSeq()函数很可能被调用
+			CollSeq *pColl = 0;//声明一个排序序列，指向第一个元素 
 			struct ExprList_item *pItem;
 			int j;
-			assert(pList != 0);  /* pList!=0 if pF->pFunc has NEEDCOLL */
-			for (j = 0, pItem = pList->a; !pColl && j < nArg; j++, pItem++){
-				pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr);/*如果pF->pFunc含NEEDCOLL，则pList不为0,那么遍历聚集函数，返回一个默认的排序序列*/
+			assert(pList != 0);  /* 判断索引列表是否在开始位置 */
+			for (j = 0, pItem = pList->a; !pColl && j < nArg; j++, pItem++){// 遍历表达式索引列表 
+				pColl = sqlite3ExprCollSeq(pParse, pItem->pExpr);//根据语法分析树，为表达式pExpr返回默认排序顺序。如果没有默认排序类型，返回0
 			}
-			if (!pColl){
-				pColl = pParse->db->pDfltColl;/*如果排序序列不为0，那么将数据库连接中的默认的排序序列赋值给pColl*/
+			if (!pColl){//如果没有默认排序类型 
+				pColl = pParse->db->pDfltColl;//那么将数据库连接中的默认的排序序列赋值给pColl                   
 			}
-			if (regHit == 0 && pAggInfo->nAccumulator) regHit = ++pParse->nMem;
-			sqlite3VdbeAddOp4(v, OP_CollSeq, regHit, 0, 0, (char *)pColl, P4_COLLSEQ);/*如果regHit为0并且累加器不为0，内存单元个数自加之后再赋值给regHit，
-			                                                                           添加一个OP_CollSeq操作，并将它的值作为一个指针*/
+			if (regHit == 0 && pAggInfo->nAccumulator) regHit = ++pParse->nMem;//如果regHit为0并且累加器不为0，语法分析树内存单元个数自加之后再赋值给regHit 
+			sqlite3VdbeAddOp4(v, OP_CollSeq, regHit, 0, 0, (char *)pColl, P4_COLLSEQ);//向虚拟机V中添加操作码为OP_CollSeq的指令，pColl是P4_COLLSEQ类型的指针，并修改它的值，返回新指令的地址
+			                                                                           
 		}
 		sqlite3VdbeAddOp4(v, OP_AggStep, 0, regAgg, pF->iMem,
-			(void*)pF->pFunc, P4_FUNCDEF);
-		sqlite3VdbeChangeP5(v, (u8)nArg);
-		sqlite3ExprCacheAffinityChange(pParse, regAgg, nArg);
-		sqlite3ReleaseTempRange(pParse, regAgg, nArg);
-		if (addrNext){
-			sqlite3VdbeResolveLabel(v, addrNext);
-			sqlite3ExprCacheClear(pParse);/*如果有下一个执行地址，解析addrNext，并作为下一条被插入的地址，并且清楚缓存中的语法解析树*/
-		}，
+			(void*)pF->pFunc, P4_FUNCDEF);//向虚拟机V中添加操作码为OP_AggStep的指令，pF->pFunc是P4_FUNCDEF)类型的指针，并修改它的值，返回新指令的地址 
+		sqlite3VdbeChangeP5(v, (u8)nArg);//将虚拟机中的新指令的第5个操作数改为 nArg（寄存器数目 ） 
+		sqlite3ExprCacheAffinityChange(pParse, regAgg, nArg);//在语法分析树中记录最后一个寄存器中，从regAgg开始发生的亲和性（affinity）变化 
+		sqlite3ReleaseTempRange(pParse, regAgg, nArg);//释放为表达式分配的寄存器 
+		if (addrNext){// 如果有下一个执行地址
+			sqlite3VdbeResolveLabel(v, addrNext);//解析addrNext，此时addrNext是一个标签，并作为下一条被插入的地址
+			sqlite3ExprCacheClear(pParse);//清除缓存中的语法解析树
+		}， 
 	}
 
 	/* Before populating the accumulator registers, clear the column cache.
@@ -4274,30 +4274,34 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){
 	** text or blob value. See ticket [883034dcb5].
 	**
 	**在获取累加寄存器的内存之前,清空列缓存。
-	**否则,如果任何所需的列值已经存在于寄存器,
-	**sqlite3ExprCode()可以使用OP_SCopy值复制到pC->iMem。
-	**但如果同时这个值也被使用,初始寄存器可能被使用,
-	**潜在缓存区中保存的文本和值是无效的。
+	**否则,如果任何所需的列值已经存在于寄存器中,
+	**sqlite3ExprCode()函数会执行OP_SCopy操作，将这个值复制到pC->iMem（内存）中。
+	**但当这个值被使用时,初始寄存器可能被使用
+	**这就会使得底层缓存区中保存的文本和二进制值失效。
 	**
 	** Another solution would be to change the OP_SCopy used to copy cached
 	** values to an OP_Copy.
 	**
-	**另一个解决方案是改变OP_SCopy用来复制缓存值到OP_Copy。
+	**另一个解决方案是用OP_Copy操作来替换OP_Copy操作，实现将缓存中的数据复制到内存中。
 	**
 	*/
-	if (regHit){
-		addrHitTest = sqlite3VdbeAddOp1(v, OP_If, regHit);
+	if (regHit){//若有内存单元 
+		addrHitTest = sqlite3VdbeAddOp1(v, OP_If, regHit);//在虚拟机中添加操作码为OP_If的指令，并将返回的指令地址指令赋给addrHitTest。该指令的第一个操作数是当前内存单元的个数，还有两个默认的操作数0 
 	}
-	sqlite3ExprCacheClear(pParse);/*将OP_Yield操作交给vdbe，然后返回这个操作的地址，清除缓存中的语法解析树*/
-	for (i = 0, pC = pAggInfo->aCol; i < pAggInfo->nAccumulator; i++, pC++){/*遍历累加器*/
-		sqlite3ExprCode(pParse, pC->pExpr, pC->iMem);
+	sqlite3ExprCacheClear(pParse);//清除缓存中的语法解析树
+	for (i = 0, pC = pAggInfo->aCol; i < pAggInfo->nAccumulator; i++, pC++){//遍历累加器.其中acol是在聚集函数结构体（pAggInfo）定义的一个子结构体，相当于一个数组，pAggInfo->aCol数组的首址
+		sqlite3ExprCode(pParse, pC->pExpr, pC->iMem);//计算分析树的列索引表中的每个表达式（pC->pExpr），并将结果存储在寄存器(pC->iMem)中 
 	}
-	pAggInfo->directMode = 0;
-	sqlite3ExprCacheClear(pParse);
-	if (addrHitTest){/*如果addrHitTest不为空*/
-		sqlite3VdbeJumpHere(v, addrHitTest);/*如果addrHitTest不为空，并且如果addrHitTest不为0，那个运行地址就跳到当前地址*/
+	pAggInfo->directMode = 0;// 禁止直接从源表中取数据 
+	sqlite3ExprCacheClear(pParse);//清除缓存中的语法解析树 
+	if (addrHitTest){//如果addrHitTest不为空,即向虚拟机中添加OP_If的指令失败 
+		sqlite3VdbeJumpHere(v, addrHitTest);//将addrHitTest设置成当前地址
 	}
 }
+、
+
+
+
 
 /*
 ** Add a single OP_Explain instruction to the VDBE to explain a simple
@@ -4342,7 +4346,7 @@ static void explainSimpleCount(
 	**     SRT_Output      为结果集中每一行产生一行输出(使用OP_ResultRow操作
 	**                     opcode)
 	**
-	**     SRT_Mem         如果结果只是一个单独列也是可用的。存储第一个结果行的第一列在寄存器pDest->iSDParm
+	**     SRT_Mem          。存储第一个结果行的第一列在寄存器pDest->iSDParm
 	**                     然后舍弃剩余的查询。为了实现"LIMIT 1".
 	**                     
 	**                    
