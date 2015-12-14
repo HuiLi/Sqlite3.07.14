@@ -2791,7 +2791,7 @@ tatic double estLog(double N){
   }
   return logN;           /*返回logN */
 }
-
+//--------------------------------------李雪松开始-----------------------------------------
 /*
 ** Two routines for printing the content of an sqlite3_index_info
 ** structure.  Used for testing and debugging only.  If neither
@@ -2804,6 +2804,9 @@ tatic double estLog(double N){
 */
 /* sqlite3索引信息结构中用于打印目录的两个例程。只用于测试和调试。
 ** 如果SQLITE_TEST和SQLITE_DEBUG都被定义了，则这两个例程执行空操作。
+*/
+/*
+** 两个打印sqlite3_index_info结构体的内容的程序，仅仅用于测试debug.如果SQLITE_TEST或者SQLITE_DEBUG被定义，那么这些程序都是空操作。
 */
 #if !defined(SQLITE_OMIT_VIRTUALTABLE) && defined(SQLITE_DEBUG)
 static void TRACE_IDX_INPUTS(sqlite3_index_info *p){
@@ -2849,6 +2852,9 @@ static void TRACE_IDX_OUTPUTS(sqlite3_index_info *p){
 */
 /* 以下是需要的，因为bstIndex()被bestOrClauseIndex()调用。
 */
+/*
+** 因为bestIndex()被bestOrClauseIndex()调用。
+*/
 static void bestIndex(
     Parse*, WhereClause*, struct SrcList_item*,
     Bitmask, Bitmask, ExprList*, WhereCost*);
@@ -2868,6 +2874,10 @@ static void bestIndex(
 ** “或”表达式。
 **
 ** 与子句FROM中的pScr项相关的表可能是个普通的B树表或者是一个虚表。
+*/
+/*
+** 这个程序尝试去发现一个能够用于优化WHERE程序中异或表达式的浏览策略.
+** 与FROM子句有关的表可能是普通的B-Tree表或者一个虚拟表
 */
 static void bestOrClauseIndex(
 <<<<<<< HEAD
@@ -2909,6 +2919,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
   ** 如果使用INDEXED BY或NOT INDEXED子句或设置了WHERE_AND_ONLY bit，那么OR子句是不允许优化的
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
+  /*
+  ** 如果INDEXED BY or NOT INDEXED子句被使用了或者WHERE_AND_ONLY字节被设置了，异或子句的优化是不被允许的。
+  */
   if( pSrc->notIndexed || pSrc->pIndex!=0 ){
     return;
   }
@@ -2921,6 +2934,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
 =======
   /* Search the WHERE clause terms for a usable WO_OR term. 查找WHERE子句terms */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+/*
+ ** 搜索WHERE子句作为一个可用的WO_OR终止.
+*/
   for(pTerm=pWC->a; pTerm<pWCEnd; pTerm++){
     if( pTerm->eOperator==WO_OR 
      && ((pTerm->prereqAll & ~maskSrc) & notReady)==0
@@ -2965,6 +2981,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
       ** for the cost of the sort. */
 	  /* 如果存在一个ORDER BY子句，则为此次排序的代价账户增加一次浏览代价。
 	  */
+	/*
+	**如果有一个ORDER BY子句，那么就为排序而增加扫描消耗。
+	*/
       if( pOrderBy!=0 ){
         WHERETRACE(("... sorting increases OR cost %.9g to %.9g\n",
                     rTotal, rTotal+nRow*estLog(nRow)));
@@ -2983,6 +3002,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
       ** 如果使用优化的ORterm的扫描代价比存储在pCost的当前代价更少，替换pCost的内容
       */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+/*
+**如果以搜索异或子句的应用为代价，那么这些代价会少于保存在pCost的当前花费，也可以代替pCost里面的内容。
+*/
       WHERETRACE(("... multi-index OR cost=%.9g nrow=%.9g\n", rTotal, nRow));
       if( rTotal<pCost->rCost ){
         pCost->rCost = rTotal;
@@ -3007,6 +3029,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
 */
 /* 如果WHERE子句项pTerm是可以用于和一个索引共同链接到pSrc的一种形式则
 ** 返回真，假设一个合适的索引是存在的。
+*/
+/*
+**假设一个合适的指数存在，如果WHERE子句术语pTerm一种可能会被用到一种索引访问pSrc的地方的形式，返回TRUE.
 */
 static int termCanDriveIndex(
 <<<<<<< HEAD
@@ -3046,6 +3071,9 @@ struct SrcList_item *pSrc,     /* Table we are trying to access *//* 尝试登�
 ** （如果没有NOT INDEXED子句存在）并且可以构建一个瞬态指数,将执行比全
 ** 表扫描即使构建索引的代价考虑进去,然后改变查询计划使用瞬态指数。
 */
+/*
+**如果对于pSrc指定在pCost的查询计划 是 完整表格浏览和允许的索引（如果这里没有编入索引的子句）以及它可能去建设一个暂时性的能够比运行更好的索引。
+*/
 static void bestAutomaticIndex(
 <<<<<<< HEAD
 	Parse *pParse,              /* The parsing context *//* 解析文档*/
@@ -3065,29 +3093,44 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
     /* There is no point in building an automatic index for a single scan */
     /* 为单词扫描建立一个自动索引是没有意义的。
     */
+    /*
+    **这里没有节点在建立一个自动的单个扫描索引.
+    */
     return;
   }
   if( (pParse->db->flags & SQLITE_AutoIndex)==0 ){
     /* Automatic indices are disabled at run-time */
 	  /* 在运行时自动指数是禁用的。
 	  */
+	/*
+	**自动目录不能运行时间
+	*/
     return;
   }
   if( (pCost->plan.wsFlags & WHERE_NOT_FULLSCAN)!=0 ){
     /* We already have some kind of index in use for this query. */
 	  /* 这类查询中我们已经有了一些在使用中的索引。
 	  */
+	  /*
+	  **我们已经拥有一些用于这个查询的索引.
+	  /*/
     return;
   }
   if( pSrc->notIndexed ){
     /* The NOT INDEXED clause appears in the SQL. */
 	  /* SQL中出现的NOT INDEXED子句。
 	  */
+	  /*
+	  **NOT INDEXED字句出现在SQL语句中.
+	  */
     return;
   }
   if( pSrc->isCorrelated ){
     /* The source is a correlated sub-query. No point in indexing it. */
 	  /* 这个源是一个相关子查询，对其索引是没有意义的。
+	  */
+	  /*
+	  **这个资源是一个相关的sub-query，可以在No point位置索引到.
 	  */
 =======
   Parse *pParse,              /* The parsing context 解析上下文 */
@@ -3142,6 +3185,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
   /* Search for any equality comparison term */
   /* 搜索任意的等值比较项。
   */
+  /*
+  ** 搜索任何相等的比较关系术语
+  */
 =======
   /* Search for any equality comparison term 查找任何等式比较的term */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -3174,6 +3220,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
 /* 为索引对象生成代码构造自动索引，并且设置WhereLevel对象pLevel，这样代
 ** 码生成器可以利用自动索引。
 */
+/*
+**生成代码构建的索引对象自动索引和设置WhereLevel对象pLevel这代码生成器利用自动索引。
+*/
 static void constructAutomaticIndex(
 <<<<<<< HEAD
 	Parse *pParse,              /* The parsing context *//* 解析文档*/
@@ -3204,6 +3253,10 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
   ** transient index on 2nd and subsequent iterations of the loop. */
 	/* 生成代码来跳过循环第二个及之后的迭代中瞬态索引的创建和初始化。
 	*/
+  /*
+  ** 跳过生成代码的创建和初始化的瞬态指数在2日和随后的迭代循环。
+  */
+	
 =======
   Parse *pParse,              /* The parsing context 解析上下文 */
   WhereClause *pWC,           /* The WHERE clause WHERE子句 */
@@ -3242,6 +3295,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
   ** and used to match WHERE clause constraints */
   /* 对将要加入索引和用于满足WHERE子句条件的列数计数。
   */
+  /*
+  **计算列的数量将被添加到索引和WHERE子句用于匹配约束
+  */
   nColumn = 0;
   pTable = pSrc->pTab;
   pWCEnd = &pWC->a[pWC->nTerm];
@@ -3278,6 +3334,11 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
   ** 有查询所需的列的索引。有了覆盖索引，那么原始表就不需要被访问。自动
   ** 索引必须是一个覆盖索引，因为如果它们被用于同步的话，原始表格就会变
   ** 化，表也同时不能被使用，那么这个索引就不能被更新。
+  */
+  
+  /*
+  **计算额外的列的数量需要创建一个覆盖索引。“覆盖指数”是一个包含所有列建立索引所需的查询。
+  **覆盖索引,原始表不需要访问。如果去同步，自动索引必须是一个覆盖索引,因为索引不会被更新如果原始表变化和索引和表都不能使用。
   */
   extraCols = pSrc->colUsed & (~idxCols | (((Bitmask)1)<<(BMS-1)));
   mxBitCol = (pTable->nCol >= BMS-1) ? BMS-1 : pTable->nCol;
@@ -3333,6 +3394,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
   ** a covering index */
   /* 添加一个额外但必须的列来保证自动索引是一个覆盖索引。
   */
+  /*
+  **需要自动添加额外的列索引覆盖索引.
+  */
   for(i=0; i<mxBitCol; i++){
     if( extraCols & (((Bitmask)1)<<i) ){
       pIdx->aiColumn[n] = i;
@@ -3352,6 +3416,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 <<<<<<< HEAD
   /* Create the automatic index */
   /* 生成一个自动索引*/
+  /*
+  **创建自动索引
+  */
 =======
   /* Create the automatic index 创建自动索引 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -3364,6 +3431,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 <<<<<<< HEAD
   /* Fill the automatic index with content */
   /* 填上自动索引的内容*/
+  /*
+  **自动索引填充内容
+  */
 =======
   /* Fill the automatic index with content 填充自动索引的内容 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -3380,6 +3450,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 <<<<<<< HEAD
   /* Jump here when skipping the initialization */
   /* 跳过初始化时则跳到此处*/
+  /*
+  **跳过初始化时，调到此处。
+  */
 =======
   /* Jump here when skipping the initialization 当跳过初始化时跳过这里 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -3399,6 +3472,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 */
 /* 分配和填充一个sqlite3_index_info结构。通过sqlite3_free()函数返回的
 ** 指针的最终释放是由它的调用者负责的。
+*/
+/*
+**分配和填充一个sqlite3_index_info结构。是调用者的责任最终释放结构通过这个函数返回的指针sqlite3_free().
 */
 static sqlite3_index_info *allocateIndexInfo(
   Parse *pParse, 
@@ -3421,6 +3497,9 @@ static sqlite3_index_info *allocateIndexInfo(
   ** to this virtual table */
   /* 计算指向这个虚表的可能的WHERE子句约束的数量。
   */
+  /*
+  **如果ORDER BY子句中只包含列当前虚拟表然后分配空间的aOrderBy sqlite3_index_info结构的一部分。
+  */
   for(i=nTerm=0, pTerm=pWC->a; i<pWC->nTerm; i++, pTerm++){
     if( pTerm->leftCursor != pSrc->iCursor ) continue;
     assert( (pTerm->eOperator&(pTerm->eOperator-1))==0 );
@@ -3440,6 +3519,9 @@ static sqlite3_index_info *allocateIndexInfo(
   /* 如果ORDER BY子句只包含当前虚表的列，那么为sqlite3_index_info
   ** 结构中的aOrderby部分分配空间。
   */
+  /*
+  **如果ORDER BY子句中只包含列当前虚拟表然后分配空间的aOrderBy sqlite3_index_info结构的一部分。
+  */
   nOrderBy = 0;
   if( pOrderBy ){
     for(i=0; i<pOrderBy->nExpr; i++){
@@ -3454,6 +3536,9 @@ static sqlite3_index_info *allocateIndexInfo(
   /* Allocate the sqlite3_index_info structure 分配sqlite3_index_info数据结构
   */
   /* 分配sqlite3_index_info结构。
+  */
+  /*
+  **分配sqlite3_index_info结构。
   */
   pIdxInfo = sqlite3DbMallocZero(pParse->db, sizeof(*pIdxInfo)
                            + (sizeof(*pIdxCons) + sizeof(*pUsage))*nTerm
@@ -3474,6 +3559,10 @@ static sqlite3_index_info *allocateIndexInfo(
   */
   /* 初始化结构。sqlite3_index_info结构包含许多字段声明“常量”,以防止
   ** xBestIndex改变他们。我们必须做一些操作来初始化这些字段。
+  */
+  /*
+  **初始化结构。sqlite3_index_info结构包含很多被声明的"const"字段，用来防止xBestIndex改变它们。
+  **我们必须做一些必要的类型转换，为了初始化这些字段。
   */
   pIdxCons = (struct sqlite3_index_constraint*)&pIdxInfo[1];
   pIdxOrderBy = (struct sqlite3_index_orderby*)&pIdxCons[nTerm];
@@ -3502,6 +3591,9 @@ static sqlite3_index_info *allocateIndexInfo(
 	/* 在前一行直接赋值可能是由于WO_和SQLITE_INDEX_CONSTRAINT_代码都是相同
 	** 的。以下假设用于验证这个额情况。
 	*/
+ /*
+ **在前一行直接赋值可能是由于WO_和SQLITE_INDEX_CONSTRAINT_代码是相同的。下面的断言验证这个事实。
+ */
 =======
     ** following asserts verify this fact. 
     **
@@ -3557,6 +3649,12 @@ static sqlite3_index_info *allocateIndexInfo(
 **
 ** 如果p->needToFreeIdxStr这是必须的话，那么不管是否返回了一个错误，那
 ** 么都应该由调用者最终释放p->idxStr指针。
+*/
+
+/*
+**如果出现错误,pParse填充一个错误消息,并返回一个非零值。否则,返回0和输出的一部分sqlite3_index_info结构填充。
+**如果出现错误,pParse填充一个错误消息,并返回一个非零值。否则,返回0和输出的一部分sqlite3_index_info结构填充。
+**是否返回一个错误,它是调用者的责任最终自由p - > idxStr如果p - > needToFreeIdxStr表明这是必需的。
 */
 static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
   sqlite3_vtab *pVtab = sqlite3GetVTable(pParse->db, pTab)->pVtab;
@@ -3629,6 +3727,12 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
 ** whereInfoDelete()例程用来处理在所有操作都完成后对sqlite3_index_info结构的
 ** 释放。
 */
+/*
+**计算出最好的一个虚拟表索引
+**最好的指数计算xBestIndex虚拟表模块的方法。这个例程是一个包装器,设置sqlite3_index_info结构,用于与xBestIndex交流。
+**在加入,这个例程可能会多次呼吁同一个虚拟表。sqlite3_index_info结构是在第一次调用创建并初始化和重用在所有后续调用。
+**sqlite3_index_info结构时也使用生成代码来访问虚拟表。whereInfoDelete()例程负责释放sqlite3_index_info结构后每个人都完成了。
+*/
 static void bestVirtualIndex(
 <<<<<<< HEAD
 	Parse *pParse,                  /* The parsing context *//* 解析上下文*/
@@ -3671,6 +3775,9 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   ** 确保wsFlags是以有意义的值初始化的。否则的话，如果allocateIndexInfo()的
   ** 内存失败，并且这个函数返回值，wsFlags处于未初始化状态，那么调用者可能会
   ** 有不可预计的操作。
+  */
+  /*
+  **确保wsFlags初始化一些健全的价值。否则,如果在allocateIndexInfo malloc()失败,这个函数返回离开wsFlags在未初始化状态,调用者可能不可预知的行为。.
   */
   memset(pCost, 0, sizeof(*pCost));
   pCost->plan.wsFlags = WHERE_VIRTUALTABLE;
@@ -3715,6 +3822,11 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   **
   ** 必须定义模块名。通过这点，必须有个指针指向sqlite3_vtab数据结构。
   ** 另外sqlite3ViewGetColumnNames()将会处理错误
+  */
+  
+  /*
+  **此时,pIdxInfo sqlite3_index_info结构将被初始化,在当前调用或在之前调用。现在我们只需要定制pIdxInfo当前调用的细节并将其传递给xBestIndex。
+  **必须定义的模块名称。另外,此时必须有一个指针指向一个sqlite3_vtab结构。否则sqlite3ViewGetColumnNames()会出现错误。
   */
 <<<<<<< HEAD
   /*
@@ -3776,6 +3888,10 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   ** 次试图只取最优索引，也只需要计算一次。每次取索引的过程中，连接的表
   ** 的顺序可能有所不同，所以我们需要每次都重复计算可用标志。
   */
+  
+  /*
+  **设置aConstraint[]。可用的字段和初始化所有输出变量为零。
+  **
   pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint;
   pUsage = pIdxInfo->aConstraintUsage;
   for(i=0; i<pIdxInfo->nConstraint; i++, pIdxCons++){
@@ -3798,6 +3914,14 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   pIdxInfo->needToFreeIdxStr = 0;
   pIdxInfo->orderByConsumed = 0;
   /* ((double)2) In case of SQLITE_OMIT_FLOATING_POINT... */
+  
+  /*
+  **设置aConstraint[]。可用的字段和初始化所有输出变量为零。
+  **aConstraint[]。使用适用于约束,右边只包含引用表当前表的左边。换句话说,如果表单的约束条件是:column = expr
+  **我们正在评估一个连接,然后限制列只如果发生所有表中引用expr有效包含列左边的表。
+  **aConstraints[]数组包含所有限制当前表的条目。这样,我们只需要计算一次即使我们可能试图多次挑选最好的指数。
+  **对于每一个尝试挑选索引,表中加入的顺序可能有所不同所以我们必须验算每次使用的旗帜。
+  */
   pIdxInfo->estimatedCost = SQLITE_BIG_DBL / ((double)2);
   nOrderBy = pIdxInfo->nOrderBy;
   if( !pOrderBy ){
@@ -3824,6 +3948,10 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   /* 如果存在一个ORDER BY子句，并且选择的虚表索引不满足它，则根据情况增加
   ** 扫描的代价。这个过程匹配bestBtreeIndex()中的非虚表中的过程。
   */
+  
+  /*
+  **如果有ORDER BY子句,和选择的虚拟表索引并不满足,相应增加扫描的成本。这匹配处理非虚拟表bestBtreeIndex()。
+  */
   rCost = pIdxInfo->estimatedCost;
   if( pOrderBy && pIdxInfo->orderByConsumed==0 ){
     rCost += estLog(rCost)*rCost;
@@ -3846,6 +3974,11 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   **
   ** 在定义OMIT_FLOATING_POINT时使用"(double)2"来替换"2.0"。
   */
+  
+  /*
+  **成本是不允许大于SQLITE_BIG_DBL(这个循环下去,最低成本的价值。如果是,那么下面的测试(成本<最低成本)永远是正确的。
+  **使用“(double)2”而不是“2.0”以防OMIT_FLOATING_POINT定义。
+  */
   if( (SQLITE_BIG_DBL/((double)2))<rCost ){
     pCost->rCost = (SQLITE_BIG_DBL/((double)2));
   }else{
@@ -3864,6 +3997,10 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   ** 尝试通过多重索引查找一个更加有效的访问模式去优化一个WHERE子句中的OR表达式
   */
   /* 使用多索引来试图查找一个更有效率的模式，以优化WHERE子句中的OR表达式。
+  */
+  
+  /*
+  **试图找到一个更有效的访问模式通过使用多个索引来优化一个或表达式在WHERE子句中。
   */
   bestOrClauseIndex(pParse, pWC, pSrc, notReady, notValid, pOrderBy, pCost);
 }
@@ -3888,6 +4025,13 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
 **    aStat[1]      估计等于pVal的行数
 **
 ** 返回成功的SQLITE_OK值。
+*/
+
+/*
+** 估计的一个特定的键的位置在所有键索引。在aStat中按照如下方式存储结果：
+**    aStat[0]      Est. number的行数少于pVal
+**    aStat[1]      Est. number的行数等于pVal
+** 返回SQLITE_OK表示操作成功。
 */
 static int whereKeyStats(
 <<<<<<< HEAD
@@ -4027,6 +4171,11 @@ static int whereKeyStats(
   ** i==pIdx->nSample时，所有的样本值都小于pVal。如果aSample[i]=pVal，则
   ** isEq的值为1.
   */
+  
+  /*
+  ** 作为节点，aSample[i]是第一个例子，这个例子大于等于pVal。或者，如果i==pIdx->nSample，那么所有的例子都
+  ** 小于pVal.如果aSample[i]==pVal，那么isEq==1。
+  */
   if( isEq ){
     assert( i<pIdx->nSample );
     aStat[0] = aSample[i].nLt;
@@ -4094,6 +4243,17 @@ static int whereKeyStats(
 ** 如果没有以上应用，则设*pp指针为空。
 **
 ** 如果发生错误，则返回错误代码。否则返回SQLITE_OK。
+*/
+
+/*
+**如果pExpr的表达式没有出现异常值，那么将指针*pp的节点指向sqlite3_value结构，封装同样的值，在运行前，与应用之前的应用。
+**响应者的责任最终会释放这个结构通过sqlite3ValueFree()。
+**
+**如果当前的解析是一个重新编译的，并且pExpr是一个当前非空绑定的SQL变量。将会创建一个sqlite3_value结构进行赋值，重新应用之前的应用。
+**
+**如果都没有进行上述的应用，那么*pp指向NULL。
+**
+**如果出现错误了，就返回错误代码。否则，就是SQLITE_OK。
 */
 #ifdef SQLITE_ENABLE_STAT3
 static int valueFromExpr(
@@ -4320,6 +4480,15 @@ static int whereRangeScanEst(
 ** 如果不能够载入字符串比较所需的排序序列，或者不能够比较时所需的UTF会话
 ** 分配内存空间，则此例程可以算做失败。错误结果储存在pParse结构中。
 */
+
+/*
+**判断返回的行数需要依赖等式约束x=VALUE和这个值所在直方图中的位置。这些仅仅是当x是一个索引和对索引可用的sqlite_stat3直方图数
+**据里的最左边一列。当pExpr==NULL时，约束条件就是"x IS NULL"代替"x=VALUE"
+**
+**估计的行数写入* pnRow并返回SQLITE_OK。如果无法做出估计,离开* pnRow不变并返回零。
+**
+**如果它无法加载所需的排序序列字符串比较无法分配内存UTF转换所需的比较，这个例程会失败。然后将错误存储在pParse结构。
+*/
 static int whereEqualScanEst(
 <<<<<<< HEAD
 	Parse *pParse,       /* Parsing & code generating context *//*解析上下文并且生成代码*/
@@ -4402,6 +4571,18 @@ whereEqualScanEst_cancel:
 **
 ** 如果不能够载入字符串比较所需的排序序列，或者不能够比较时所需的UTF会话
 ** 分配内存空间，则此例程可以算做失败。错误结果储存在pParse结构中。
+*/
+
+/*
+**判断要返回的行数，是基于IN运算符右边的一个约束。例如：
+**
+**        WHERE x IN (1,2,3,4)
+**
+**将判断的行数统计值写入*pnRow，并返回SQLITE_OK。
+**如果不能进行判断，那么移除为改变的*pnRow并返回non-zero。
+**
+**如果不能够加载一个排序序列需要的比较字符串，或者如果不能为一个UTF转换所需求的对照关系进行分配存储，那么这个程序就会失败。
+**这个错误存储在pParse结构中。
 */
 static int whereInScanEst(
 <<<<<<< HEAD
@@ -4511,6 +4692,18 @@ static int whereInScanEst(
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
 //输出pCost，bestBtreeIndex函数包含查询策略信息及相应的代价
+
+/*
+**找到最好的访问一个特定的表的查询计划。最好的查询计划和成本写入WhereCost对象作为最后一个参数提供。
+**最低的成本计划获胜。成本估计所需的CPU和磁盘I/O处理请求的结果。影响成本的因素包括:
+**		*估计将检索的行数。(越少越好。)
+**		*是否必须进行排序。
+**		*是否必须有单独的主要的索引和表中查找。
+**如果有一个索引BY子句(pSrc->pIndex)附在表的SQL语句中，那么这个函数只需要考虑用于索引名字的方案。如果没有找到这样的一个方案，
+**那么就返回SQLITE_BIG_DBL的运行花费。如果能够找到这样的一个方案，那么就可以用普通的方法计算花销。
+**
+**如果一个NOT INDEXED子句（即：pSrc->notIndexed!=0）被附在表的SQL语句中，那么就不需要考虑索引。然而，这个选择方案可能仍然要利用内置rowid主键索引。
+*/
 static void bestBtreeIndex(
 <<<<<<< HEAD
   Parse *pParse,              /* 解析上下文 */
@@ -4573,7 +4766,10 @@ static void bestBtreeIndex(
   ** 这是因为如果表与索引不能帮助我们发现一种情况向匹配是，那么列可能以NULL结尾。 Ticket #2177.
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   */
-  //
+ 
+ /*
+  ** 如果pSrc表是一个正确的LEFT JOIN表，那么我们可能不会使用索引来满足为空表的约束。这是因为列可能会被空表不匹配——这种情况下,如果该指数不能帮助我们发现。
+  */
   if( pSrc->jointype & JT_LEFT ){
     idxEqTermMask = WO_EQ|WO_IN;
   }else{
@@ -4599,6 +4795,10 @@ static void bestBtreeIndex(
     sPk代表rowid主键索引。
     使这个虚的索引对象的第一个索引对象的真实。
     */
+    
+    /*
+	**没有索引BY子句。在局部变量创建一个假的索引对象sPk代表rowid主键索引。让这个假索引链的第一个索引对象的真实指标.
+	*/
     Index *pFirst;                  /* 表中第一个真的索引对象 */
 =======
     ** 
@@ -4885,6 +5085,11 @@ static void bestBtreeIndex(
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
     //计算nBound值
+    
+    /*
+    **如果该索引被认为是UNIQUE,有一个等式约束所有列的索引,那么这个搜索会发现最多一行。在这种情况下设置WHERE_UNIQUE标签来指示调用者。
+    **否则,如果搜索可能会超过一行,测试是否有一系列限制索引列(nEq + 1),可以使用索引进行了优化。
+    */
     if( nEq==pProbe->nColumn && pProbe->onError!=OE_None ){
       testcase( wsFlags & WHERE_COLUMN_IN );
       testcase( wsFlags & WHERE_COLUMN_NULL );
@@ -4928,6 +5133,11 @@ static void bestBtreeIndex(
     ** 否则如果有一个ORDER BY子句但是索引将在其他序列上扫描行，设置bSort变量
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
+    
+    /*
+    **如果有ORDER BY子句和被考虑是可以很容易在需要的命令中浏览行数索引，那么就在wsFlags设置相应的标志。
+    **否则,如果有一个ORDER BY子句但该指数将在不同的顺序扫描行,设置bSort变量。
+    */
     if( isSortingIndex(
           pParse, pWC->pMaskSet, pProbe, iCur, pOrderBy, nEq, wsFlags, &rev)
     ){
@@ -4942,6 +5152,10 @@ static void bestBtreeIndex(
 <<<<<<< HEAD
     如果有限定符DISTINCT,该所索引将扫描行用不同的DISTINCT表达式,
     明确wsFlags bDist和设置适当的标志。
+     */
+     
+     /*
+     **如果有不同的限定符,该指数将扫描行不同的表达式,明确bDist wsFlags设置相应的标志。
      */
 =======
     **
@@ -4967,6 +5181,11 @@ static void bestBtreeIndex(
     如果是,在wsFlags设置 WHERE_IDX_ONLY标志。
     否则,设置bLookup变量为true。
     */
+    
+    /*
+	**如果目前的成本计算使用索引(不是IPK指数),确定所需的所有列数据可以获得不使用主表(即如果该查询的索引是一个覆盖索引)。如果是,则
+	**在wsFlags WHERE_IDX_ONLY设置标签。否则,将bLookup变量设置为true。
+	*/
     if( pIdx && wsFlags ){
       Bitmask m = pSrc->colUsed;
       int j;
@@ -5008,6 +5227,10 @@ static void bestBtreeIndex(
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
+    
+    /*
+	**估计的输出的行数。从选择“x”约束,不要让估计超过一半的表中的行。
+	*/
     nRow = (double)(aiRowEst[nEq] * nInMul);
     if( bInEst && nRow*2>aiRowEst[0] ){
       nRow = aiRowEst[0]/2;
@@ -5032,6 +5255,11 @@ static void bestBtreeIndex(
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
+    
+    /*
+	**如果表单的约束条件是x =价值或x(E1,E2,…),我们不认为x的值是唯一的,如果直方图数据可用列x,那么它可能得到更好的估计的行数基于价值
+	**和共同价值是如何根据直方图。
+    */
     if( nRow>(double)1 && nEq==1 && pFirstTerm!=0 && aiRowEst[1]>1 ){
       assert( (pFirstTerm->eOperator & (WO_EQ|WO_ISNULL|WO_IN))!=0 );
       if( pFirstTerm->eOperator & (WO_EQ|WO_ISNULL) ){
@@ -5053,6 +5281,10 @@ static void bestBtreeIndex(
     **
     ** 调整输出行的数目并且向下反映通过范围约束拒绝的行。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+    */
+    
+    /*
+	**向下调整输出的行数和反映行所排除的范围限制。
     */
     nRow = nRow/rangeDiv;
     if( nRow<1 ) nRow = 1;
@@ -5091,6 +5323,13 @@ static void bestBtreeIndex(
     ** 所以这个计算假设表记录大概是索引记录的两倍。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
+    
+    /*
+	**实验运行在真正的SQLite数据库显示,需要做一个二叉搜索定位表或索引中的一行大概是log10(N)乘以时间从一行到下一
+	**行在一个表或索引。实际时间可能会有所不同,记录的大小是一个重要因素。慢移动和搜索都是与更大的记录,大概是因为
+	**少记录适合在一个页面上,因此必须获取更多页。
+	**分析命令和sqlite_stat1 sqlite_stat3表不给我们数据表和索引记录的相对大小。这计算假定表记录大约两倍索引记录
+    */
     if( (wsFlags & WHERE_NOT_FULLSCAN)==0 ){
       /* The cost of a full table scan is a number of move operations equal
       ** to the number of rows in the table.
@@ -5118,6 +5357,13 @@ static void bestBtreeIndex(
       ** 但是它看起来好像此时运行的还不错。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
       */
+      
+      
+      /*
+	  **全表扫描的成本是一个数量的移动操作表中的行数。
+	  **我们添加一个额外的4x全表扫描。这导致成本函数宁可选择索引/选择一个完整的扫描。这4x全扫
+	  **描是一个有争议的决定,我们希望重新考虑未来。但它似乎工作得很好。
+      */
       cost = aiRowEst[0]*4;
     }else{
       log10N = estLog(aiRowEst[0]);
@@ -5139,6 +5385,10 @@ static void bestBtreeIndex(
           ** + nRow表检索来查使用rowid找表项目
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
+          
+          /*
+	  **索引查找,后跟一个表查找:nInMul索引搜索找到的每个索引范围+ nRow步骤通过索引+ nRow表搜索查找表条目使用rowid
+          */
           cost += (nInMul + nRow)*log10N;
         }else{
           /* For a covering index:
@@ -5155,6 +5405,10 @@ static void bestBtreeIndex(
           **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           */
+          
+          /*
+	  **覆盖索引:nInMul索引搜索来寻找初始条目+ nRow步骤通过索引
+	  */
           cost += nInMul*log10N;
         }
       }else{
@@ -5172,6 +5426,10 @@ static void bestBtreeIndex(
         **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
         */
+        
+        /*
+	**rowid主键查找:nInMult表搜索找到的初始条目通过表范围+ nRow每个步骤
+	*/
         cost += nInMul*log10N;
       }
     }
@@ -5193,6 +5451,11 @@ static void bestBtreeIndex(
     ** 我们将分离区别和选择值为3.0的C
     **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+    */
+    
+    /*
+    **添加排序结果的估计成本。实际实验测量SQLite的排序性能表明,排序时间增加了C * N * log10(N)的成本,其中N是行数进行排序和C是
+    **一个因素在1.95和4.3之间。我们将分裂的区别和选择3.0 C。
     */
     if( bSort ){
       cost += nRow*estLog(nRow)*3;
@@ -5244,6 +5507,15 @@ static void bestBtreeIndex(
     那么最优索引这取决于内在连接循环甚至可能被选中时,
     当存在一个最佳的指数,没有这样的依赖。
     */
+    
+    /*
+	**如果有额外的限制这个表,不能用于当前指数,但这可能会降低输出的行数,相应调整nRow值。这只很重要如果当前指数是
+	**最昂贵的,所以不要纠缠于这一步,如果我们已经知道这个索引不会被选中。同时,从不减少输出行数低于2使用这一步。
+	**
+	**关键是notValid掩码是用在这里,而不是也许掩码。当计算一个“最优”指数,掩码也许只会有一个设置为当前表。
+	**notValid掩码,另一方面,总是有一些设置表,不在外循环。如果这里使用也许不是notValid,那么最优索引这取决于内在连
+	**接循环甚至可能被选中当存在一个最优的指数,没有这样的依赖。
+    */
     if( nRow>2 && cost<=pCost->rCost ){
       int k;                       /* 循环计数器*/
       int nSkipEq = nEq;           /* =约束跳跃*/
@@ -5279,6 +5551,9 @@ static void bestBtreeIndex(
             **
             ** 忽略第一个nEq等式匹配自如果索引已经说明了这些
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+            */
+            /*
+            ** 假设每个额外的平等匹配结果集的大小会减少到10倍
             */
             nSkipEq--;
           }else{
@@ -5327,10 +5602,16 @@ static void bestBtreeIndex(
             ** 我们故意地使范围索引更有选择性，因为平均而言，索引范围约束的主观观察在选择中真的更具有选择性。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
             */
+            
+            /*
+            ** 假设每个额外的约束范围减少了结果集大小的3倍。索引范围约束减少搜索空间较大的因素:4。我们
+            ** 引范围更有选择性故意的主观观察索引范围约束真正在实践中更有选择性在平均上。
+            */
             nRow /= 3;
           }
         }else if( pTerm->eOperator!=WO_NOOP ){
           /* Any other expression lowers the output row count by half 其他的表达式把输出行数减少了一半 */
+          /*其他表达降低输出行数减半*/
           nRow /= 2;
         }
       }
@@ -5356,6 +5637,8 @@ static void bestBtreeIndex(
     ** 如果这个索引是到目前为止最好的，那么在pCost数据结构中记录这个索引和它的代价。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
+    
+    /*如果这个指数是最好的我们已经看到迄今为止,然后记录pCost指数及其成本结构*/
     if( (!pIdx || wsFlags)
      && (cost<pCost->rCost || (cost<=pCost->rCost && nRow<pCost->plan.nRow))
     ){
@@ -5372,10 +5655,14 @@ static void bestBtreeIndex(
 <<<<<<< HEAD
     如果有一个索引BY子句,那么被认为是唯一索引。
     */
+    
+    /*如果有一个索引BY子句,那么只有一个指数被考虑。*/
     if( pSrc->pIndex ) break;
 
     /* Reset masks for the next index in the loop */
     //重置循环中的下一个索引的掩码
+    
+    /*重置循环中的下一个掩码*/
 =======
     **
     ** 如果有一个INDEXED BY子句，那么只有考虑一个索引。
@@ -5403,6 +5690,11 @@ static void bestBtreeIndex(
   ** 如果没有ORDER BY子句并且设置了SQLITE_ReverseOrder标志，那么索引的反向顺序将被扫描。
   ** 这只用来应用测试，用于帮助查找这种情况--应用程序的行为取决于SQLite在缺少ORDER BY子句的输出行的(未定义的)序列。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+  */
+  
+  /*
+  **如果没有设置ORDER BY子句和SQLITE_ReverseOrder标志,然后反向索引的顺序将被扫描。这是用于应用
+  **程序测试,帮助找到的情况下应用程序的行为取决于(定义)以便SQLite输出行没有order BY子句。
   */
   if( !pOrderBy && pParse->db->flags & SQLITE_ReverseOrder ){
     pCost->plan.wsFlags |= WHERE_REVERSE;
@@ -5434,6 +5726,11 @@ static void bestBtreeIndex(
 ** 查找访问表pSrc->pTab的查询计划。在WhereCost对象中写入最好的查询计划和它的代价，并且作为最好的参数传递给bestIndex函数。
 ** 这个函数可能会计算表扫描和虚拟表扫描的代价
 **
+*/
+
+/*
+**找到访问表pSrc->pTab的查询方案。记录下最好的查询方案和它在WhereCost对象中作为最后一个参数运用的代价。
+**这个函数或许可以计算束和浏览虚拟表的成本。
 */
 static void bestIndex(
 <<<<<<< HEAD
@@ -5536,6 +5833,21 @@ t2.z='ok'是错误的在（3）中，因为它不是左连接的一部分。
 **
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
+
+/*
+**禁用一个术语在WHERE子句中。除了,不要禁用词如果控制左外连接,它并不是来源于对或使用条款的加入。
+**考虑这个词t2。z =“ok”在以下查询:
+**   (1)  SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.x WHERE t2.z='ok'
+**   (2)  SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.x AND t2.z='ok'
+**   (3)  SELECT * FROM t1, t2 WHERE t1.a=t2.x AND t2.z='ok'
+**t2*z =“ok”是禁用的(2)因为它起源于ON子句。在(3)这个词是禁用的,因为它不属于左外连接。在(1)中,术语不是不可行。
+**
+**实施:r - 24597 - 58655没有测试完成指标完全满足的条件。
+**
+**禁用一个术语导致这一项没有被测试的内部循环加入。禁用优化。当条件满足指标,我们禁用他们防止内循环冗余测试。我们
+**可以得到正确的结果，如果可用,但连接可能会有点慢。诀窍是禁用尽可能多没有禁用太多。如果我们在(1)不可用,我们会得
+**到错误的答案。见代码# 813。
+*/
 static void disableTerm(WhereLevel *pLevel, WhereTerm *pTerm){
   if( pTerm
       && (pTerm->wtFlags & TERM_CODED)==0
@@ -5581,6 +5893,14 @@ static void disableTerm(WhereLevel *pLevel, WhereTerm *pTerm){
 **
 ** 这个程序复制它自己的zAff以便在这个程序返回后调用者可以自由修改zAff。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
+*/
+
+/*
+**编码一个OP_Affinity操作码，应用于列关联的字符串zAff的n开始寄存器。
+**
+**作为一个优化,SQLITE_AFF_NONE条目(某)的开始和结束zAff被忽略。如果所有条目zAff SQLITE_AFF_NONE,那么没有代码生成。
+**
+**这个例程让zAff的副本,以便调用者可以自由地修改后zAff这个例程返回。
 */
 static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
   Vdbe *v = pParse->pVdbe;
@@ -5636,6 +5956,14 @@ static void codeApplyAffinity(Parse *pParse, int base, int n, char *zAff){
 ** this routine sets up a loop that will iterate over all values of X.
 X = expr约束的形式,计算表达式,其结果是在堆栈上。
 X IN (...)　约束的形式为X这个例程设置一个循环遍历所有的X值
+*/
+
+/*
+**在WHERE子句中生成代码一个单一的等式术语。一个等式的术语可以是X = expr或者X(…)。pTerm这个词是编码。
+**
+**当前值的约束条件是留在iReg登记。
+**
+**X=expr约束的形式,在计算表达式和它的结果是在堆栈上。(…)约束的形式为X这个例程设置一个循环遍历所有X的值。
 */
 static int codeEqualityTerm(
   Parse *pParse,      /* 解析上下文t */
@@ -5716,7 +6044,7 @@ static int codeEqualityTerm(
   disableTerm(pLevel, pTerm);
   return iReg;
 }
-
+//--------------------------------------李雪松结束-----------------------------------------
 /*
 ** Generate code that will evaluate all == and IN constraints for an
 ** index.
