@@ -11,10 +11,10 @@
 *************************************************************************
 ** This file contains C code routines that are called by the parser
 ** to handle SELECT statements in SQLite.
-**此文件包含由语法分析器来处理在 SQLite 的 SELECT 语句调用的 C 代码例程
+**此文件包含 C 代码程序，它是由 SQLite中处理 SELECT 语句的语法分析器调用的。
 */
 
-#include "sqliteInt.h"  /*预编译处理器把sqliteInt.h文件中的内容加载到程序中来*/
+#include "sqliteInt.h"  /*C语言中预编译处理器把sqliteInt.h文件中的内容加载到下面的程序中*/
 
 /*
 ** Trace output macros
@@ -71,22 +71,23 @@ struct SortCtx {
 ** 删除选择结构的所有内容。仅当bFree是真的时候释放结构本身
 */
 
-static void clearSelect(sqlite3 *db, Select *p, int bFree){
+static void clearSelect(sqlite3 *db, Select *p, int bFree){  /*函数的用处是用于清除*/
 	while (p){
 		Select *pPrior = p->pPrior;                  /*将p->pPrior赋值给Select *pPrior*/
-			sqlite3ExprListDelete(db, p->pEList);        /*删除整个表达式列表*/
-			sqlite3SrcListDelete(db, p->pSrc);           /*删除整个SrcList, 包括所有的子结构*/
-			sqlite3ExprDelete(db, p->pWhere);            /*递归删除一个表达式树*/
-			sqlite3ExprListDelete(db, p->pGroupBy);      /*删除整个表达式列表*/
-			sqlite3ExprDelete(db, p->pHaving);           /*递归删除一个表达式树*/
-			sqlite3ExprListDelete(db, p->pOrderBy);      /*删除整个表达式列表*/
-			sqlite3ExprDelete(db, p->pLimit);            /*递归删除一个表达式树*/
-			sqlite3ExprDelete(db, p->pOffset);           /*递归删除一个表达式树*/
+			sqlite3ExprListDelete(db, p->pEList);        /*清除select结构体中的查询结果*/
+			sqlite3SrcListDelete(db, p->pSrc);           /*从表达式列表中清除FROM子句表达式*/
+			sqlite3ExprDelete(db, p->pWhere);           /*从表达式列表中清除where子句表达式*/
+			sqlite3ExprListDelete(db, p->pGroupBy);      /*从表达式列表中清除group by子句表达式*/
+			sqlite3ExprDelete(db, p->pHaving);            /*从表达式列表中清除Having子句表达式*/
+			sqlite3ExprListDelete(db, p->pOrderBy);    /*从表达式列表中清除Order by子句表达式*/
+			sqlite3ExprDelete(db, p->pLimit);           /*从表达式列表中清除Limit子句表达式*/
+			sqlite3ExprDelete(db, p->pOffset);          /*从表达式列表中清除偏移量Offset子句表达式*/
+	}
 			sqlite3WithDelete(db, p->pWith);			 /*递归删除一个条件树*/
-			if (bFree)
+			if (bFree)                                     /*如果树不为空*/
 				sqlite3DbFree(db, p);					 /*释放*db*/
-				p = pPrior;
-		bFree = 1;
+				p = pPrior;                                      /*pPrior赋值给p*/
+		bFree = 1; ?               /树不为空*/
 	}
 }
 
@@ -94,11 +95,13 @@ static void clearSelect(sqlite3 *db, Select *p, int bFree){
 ** Initialize a SelectDest structure.
 ** 初始化一个SelectDest结构.
 */
-void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*函数sqlite3SelectDestInit的参数列表为
+void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){ /*初始化SelectDest查询结构*/
+         /*函数sqlite3SelectDestInit的参数列表为  结构体SelectDest指针pDest， 整型指针 eDest ,整型指针iParm */
 																	  结构体SelectDest指针pDest，整型指针eDest，
 																	  整型指针iParm
 																	  */
-	pDest->eDest = (u8)eDest; /*把整型eDest强制类型转化为u8型，然后赋值给pDest->eDest*/
+	pDest->eDest = (u8)eDest; /*把整型eDest强制类型转化为u8型，然后赋值给pDest->eDest
+	 u8是一个无符号字型，eDest是为了处理select操作结果*/
 	pDest->iSDParm = iParm; /*整型参数iParm赋值为pDest->iSDParm*/
 	pDest->affSdst = 0; /*0赋值给pDest->affSdst*/
 	pDest->iSdst = 0; /*0赋值给pDest->iSdst*/
@@ -108,16 +111,16 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){/*函数sqli
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure.
-** 分配一个新的select结构,并且返回一个指向该结构的指针.
+** 分配一个新的select结构,并且返回一个指向该结构体的指针.
 */
-Select *sqlite3SelectNew(
+Select *sqlite3SelectNew( /*分配一个新的查询结构，返回一个指向该结构体的指针*/
 	Parse *pParse,        /* Parsing context  句法分析*/
 	ExprList *pEList,     /* which columns to include in the result  在结果中包含哪些列*/
-	SrcList *pSrc,        /* the FROM clause -- which tables to scan  FROM字句--扫描表 */
-	Expr *pWhere,         /* the WHERE clause  WHERE字句*/
-	ExprList *pGroupBy,   /* the GROUP BY clause   GROUP BY字句*/
-	Expr *pHaving,        /* the HAVING clause  havingHAVING字句*/
-	ExprList *pOrderBy,   /* the ORDER BY clause  ORDER BY字句*/
+	SrcList *pSrc,        /* the FROM clause -- which tables to scan  from语法树，扫描有哪些表 */
+	Expr *pWhere,         /* the WHERE clause       where部分的语法树 ，子句表达式放where子句*/
+	ExprList *pGroupBy,   /* the GROUP BY clause    group by语句的语法树，表达式列表放Group by子句表达式*/
+	Expr *pHaving,        /* the HAVING clause      having语句的语法树，放Having表达式*/
+	ExprList *pOrderBy,   /* the ORDER BY clause    order by语句的语法树，表达式列表放Order by子句表达式*/
 	int isDistinct,       /* true if the DISTINCT keyword is present  如果关键字distinct存在，则返回true*/
 	Expr *pLimit,         /* LIMIT value.  NULL means not used  limit值，如果值为空意味着limit未使用*/
 	Expr *pOffset         /* OFFSET value.  NULL means no offset  offset值，如果值为空意味着offset未使用*/
@@ -125,20 +128,18 @@ Select *sqlite3SelectNew(
 	Select *pNew;/*定义结构体指针pNew*/
 	Select standin;/*定义结构体类型变量standin*/
 	sqlite3 *db = pParse->db;/*结构体Parse的成员db赋值给结构体sqlite3指针db*/
-	pNew = sqlite3DbMallocZero(db, sizeof(*pNew));  /* 分配和零内存，如果分配失败，使mallocFaied标志在连接指针中。 */
+	pNew = sqlite3DbMallocZero(db, sizeof(*pNew));  /* 分配并清空内存，分配大小为第二个参数的内存。 */
 	assert(db->mallocFailed || !pOffset || pLimit); /* 判断分配是否失败,或pOffset值为空,或pLimit值不为空*/
 	if (pNew == 0){/*如果结构体指针变量pNew分配失败*/
-		assert(db->mallocFailed);/*如果分配失败，使mallocFaied标志在连接指针中*/
+		assert(db->mallocFailed);/*如果分配失败，分配内存*/
 		pNew = &standin;/*把standin的存储地址赋给pNew*/
 		memset(pNew, 0, sizeof(*pNew));/*将pNew中前sizeof(*pNew)个字节用0替换并且返回pNew*/
 	}
 	if (pEList == 0){/*如果表达式列表为空*/
-		pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db, TK_ALL, 0)); /*新添加的元素在表达式列表的末尾。新添加元素
-																				的地址赋给pEList。如果pList的初始数据为空，
-																				那么新建 一个新的表达式列表。如果出现内存
-																				分配错误，则整个列表被释放并返回空。如果
-																				返回的是非空，则保证新的条目成功追加。
-																				*/
+		pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db, TK_ALL, 0)); /*在表达式列表后追加一条表达式，如果没有表达式，列表会新建一个再加入*/
+	  
+																			
+																			
 	}
 	pNew->pEList = pEList;/*pEList指向元素的地址赋给pNew->pEList*/
 	if (pSrc == 0) pSrc = sqlite3DbMallocZero(db, sizeof(*pSrc));/*分配并清空内存，分配大小为第二个参数的内存，如果分配失败，会在mallocFailed中做标记*/
@@ -151,19 +152,19 @@ Select *sqlite3SelectNew(
 	pNew->op = TK_SELECT;/*只能设置为TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT 其中一个值*/
 	pNew->pLimit = pLimit;/*为Select结构体中Limit子句表达式赋值*/
 	pNew->pOffset = pOffset;/*为Select结构体中Offset子句表达式赋值*/
-	assert(pOffset == 0 || pLimit != 0);/*如果偏移量为空，Limit不为空，则分配内存*/
+	assert(pOffset == 0 || pLimit != 0);/*如果偏移量为空，或者Limit不为空，则分配内存*/
 	pNew->addrOpenEphm[0] = -1;       /*对地址信息初始化*/
 	pNew->addrOpenEphm[1] = -1;		  /*对地址信息初始化*/
 	pNew->addrOpenEphm[2] = -1;		  /*对地址信息初始化*/
-	if (db->mallocFailed) {          /*如果不能分配内存*/
-		clearSelect(db, pNew);          /*清除Select结构体中内容*/
+	if (db->mallocFailed) {          /*如果内存分配失败*/
+		clearSelect(db, pNew);          /*调用clearSelect，清除Select结构体中内容*/
 		if (pNew != &standin) sqlite3DbFree(db, pNew);/*如果Select结构体standin的地址未赋值给pNew，则清除pNew，*/
 		pNew = 0;                      /*将Select结构体设置为空*/
 	}
 	else{                           /*能分配内存*/
 		assert(pNew->pSrc != 0 || pParse->nErr>0);/*判断是否有From子句或者是否有分析错误*/
 	}
-	assert(pNew != &standin);/*判断Select结构体是否同替换结构体相同*/
+	assert(pNew != &standin);/*判断Select结构体是否同替换结构体standin的地址相同*/
 	return pNew;/*返回这个构造好的Select结构体*/
 }
 
@@ -171,10 +172,11 @@ Select *sqlite3SelectNew(
 ** Delete the given Select structure and all of its substructures.
 ** 删除给定的选择结构和所有的子结构
 */
-void sqlite3SelectDelete(sqlite3 *db, Select *p){/*定义数据库db以及Select类型的结构体p作为参数*/
+void sqlite3SelectDelete(sqlite3 *db, Select *p){/*删除已分配的查询结构和它所有的子结构
+定义数据库db以及Select类型的结构体p作为参数*/
 	if (p){/*如果Select结构体指针p存在*/
-		clearSelect(db, p);  /*清空Select类型结构体p里面的内容*/
-		sqlite3DbFree(db, p);  /*释放掉空间*/
+		clearSelect(db, p);  /*调用clearSelect函数，清空Select类型结构体p里面的内容*/
+		sqlite3DbFree(db, p);  /*再调用sqlite3DbFree函数，释放掉空间*/
 	}
 }
 
@@ -197,17 +199,17 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*定义数据库db以及Select
 ** 全外连接是JT_LEFT和JT_RIGHT结合。 如果检测到是非法字符或者不支持的连接类型，
 ** 也会返回一个连接类型，但是会在pParse结构中放入一个错误信息。
 */
-int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分析数变量pParse以及三个符文结构体（符文：具有执行某些操作的权利的对象）参数*/
-	int jointype = 0;/*临时变量用于标示链接类型*/
-	Token *apAll[3];/*定义符文类型结构体指针数组apAll*/
-	Token *p;/*定义符文类型结构体指针p*/
+int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*传入分析树，三个令牌结构体pA、pB、pC*/
+	int jointype = 0;/*默认连接类型为0*/
+	Token *apAll[3];/*定义结构体指针数组apAll存放令牌*/
+	Token *p;/*声明一个临时令牌*/
 	/*   0123456789 123456789 123456789 123 */
-	static const char zKeyText[] = "naturaleftouterightfullinnercross";/*定义只读的且只能在当前模块中可见的字符型数组zKeyText，用于标示连接类型，并对其进行赋值*/
-	static const struct {/*定义只读的且只能在当前模块可见结构体*/
-		u8 i;        /* Beginning of keyword text in zKeyText[]   在KeyText[] 中开始关键字的文本*/
-		u8 nChar;    /* Length of the keyword in characters  在字符中关键字的长度*/
+	static const char zKeyText[] = "naturaleftouterightfullinnercross";/*存放字符数组，里面装的是连接类型，在下文中进行调用*/
+	static const struct {/*声明一个内部结构体*/
+		u8 i;        /* Beginning of keyword text in zKeyText[]   zKeyText数组的起始关键字*/
+		u8 nChar;    /* Length of the keyword in characters  关键字的字符长度*/
 		u8 code;     /* Join type mask 标记连接类型*/
-	} aKeyword[] = {
+	} aKeyword[] = {/*声明一个关键字数组，根据下标和长度找到连接类型*/
 		/* natural 下标从0开始，长度为7，自然连接 */{ 0, 7, JT_NATURAL },
 		/* left   下标从6开始，长度为4，左连接 */{ 6, 4, JT_LEFT | JT_OUTER },
 		/* outer  下标从10开始，长度为5，外连接 */{ 10, 5, JT_OUTER },
@@ -217,36 +219,36 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分�
 		/* cross   下标从28开始，长度为5，内连接或CROSS连接*/{ 28, 5, JT_INNER | JT_CROSS },
 	};//定义全部类型的连接，并给出起始位置、长度、连接类型
 	int i, j;
-	apAll[0] = pA;
-	apAll[1] = pB;
-	apAll[2] = pC;/*将传人的三个符文结构体类型的参数分别赋值到符文结构体类型的apAll数组中 */
+	apAll[0] = pA;/*令牌pA指向的地址赋给apAll[0]*/
+	apAll[1] = pB;/*指针pB指向的地址赋给apAll[1]*/
+	apAll[2] = pC;/*指针pC指向的地址赋给apAll[2] */
 	for (i = 0; i < 3 && apAll[i]; i++){//循环处理apAll数组
 		p = apAll[i];/*指针apAll[i]的地址赋给指针p*/
-		if (p->n == aKeyword[j].nChar /*如果符文中字符个数等于连接数组中的关键字长度*/
-			&& sqlite3StrNICmp((char*)p->z, &zKeyText[aKeyword[j].i], p->n) == 0){/*并且使用比较字符串函数比较*/
+		if (p->n == aKeyword[j].nChar /*如果令牌中字符个数等于连接数组中的关键字长度*/
+			&& sqlite3StrNICmp((char*)p->z, &zKeyText[aKeyword[j].i], p->n) == 0){/*并且p->z和p->n以及zKeyText[aKeyword[j].i]相等*/
 			jointype |= aKeyword[j].code;/*如果通过了比较长度和内容，返回连接类型，注意是，使用的是“位或”*/
 			break;//跳出本层循环
 		}
 	}
 	testcase(j == 0 || j == 1 || j == 2 || j == 3 || j == 4 || j == 5 || j == 6);/*利用测试代码中testcast，测试j值，是否在这个范围*/
-	if (j >= ArraySize(aKeyword)){/*如果j比连接关键字数组还大*/
+	if (j >= ArraySize(aKeyword)){/*如果j大于等于连接关键字数组*/
 		jointype |= JT_ERROR;/*那就jointype与JT_ERROR“位或”，返回一个错误*/
 		break;//跳出本层循环
 	  }
 	}
 	if (
-	(jointype & (JT_INNER | JT_OUTER)) == (JT_INNER | JT_OUTER) ||/*如果连接类型交上(JT_INNER|JT_OUTER)的结果，与JT_INNER和JT_OUTER一种*/
-	(jointype & JT_ERROR) != 0/*或者连接关键字是错误连接*/
+	(jointype & (JT_INNER | JT_OUTER)) == (JT_INNER | JT_OUTER) ||/*如果连接类型交上(JT_INNER|JT_OUTER)的结果，与JT_INNER和JT_OUTER一样*/
+	(jointype & JT_ERROR) != 0/*或者连接类型交上JT_ERROR不等于0*/
 	){
-		const char *zSp = " "; /*只读的字符型指针zSp*/
+		const char *zSp = " "; /*空值赋给只读的字符型指针zSp*/
 		assert(pB != 0);/*判断pB是否为空*/
 		if (pC == 0){ zSp++; }/*如果指针pC指向的地址为0，则zSp++*/
-		sqlite3ErrorMsg(pParse, "unknown or unsupported join type: ""%T %T%s%T", pA, pB, zSp, pC);  /*输出错误消“未知或者不支持的连接类型”*/
+		sqlite3ErrorMsg(pParse, "unknown or unsupported join type: ""%T %T%s%T", pA, pB, zSp, pC);  /*在Parse分析树中，存放一个错误信息”*/
 		jointype = JT_INNER ;/*默认使用内连接*/
 	}
-	else if ((jointype & JT_OUTER) != 0 
+	else if ((jointype & JT_OUTER) != 0/* 如果连接类型和外连接有交集*/
 		&& (jointype & (JT_LEFT | JT_RIGHT)) != JT_LEFT){/*如果连接类型和外连接有交集，并且连接类型和(JT_LEFT|JT_RIGHT)交集，不是左连接*/
-		sqlite3ErrorMsg(pParse,"RIGHT and FULL OUTER JOINs are not currently supported");/*输出错误消息“右连接和全外连接不被支持”*/
+		sqlite3ErrorMsg(pParse,"RIGHT and FULL OUTER JOINs are not currently supported");/*那么在Parse分析树中返回一个“右连接和全外连接当前不被支持”的错误消息”*/
 		jointype = JT_INNER; /*默认使用内连接*/
 	}
 	return jointype;/*返回连接类型*/
@@ -255,7 +257,7 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*定义分�
 /*
 ** Return the index of a column in a table.  Return -1 if the column
 ** is not contained in the table.
-** 返回表中的一列的下标，如果该列不在表中，返回-1.
+** 返回一个表中的列的索引。如果该列没有包含在表中返回-1。
 */
 static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函数columnIndex，参数列表为结构体指针pTab、只读的字符型指针zCol*/
 	int i;/*定义临时变量*/
