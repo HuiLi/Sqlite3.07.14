@@ -3750,13 +3750,14 @@ static u8 minMaxQuery(Select *p){
 	**         and TABLE.* to be every column in TABLE.
 	**
 	*/
-	/* 这个程序是Walker回调“expanding”的一个SELECT语句，“Expanding”是指做以下这些：
-	**   （1）确保VEBE游标号已经被分配给FROM子句的每个元素   
-	**   （2）在SrcList中，填进pTabList->a[].pTab中的域是对from子句的定义。当FROM子句中出现视图，填进一个实现试图的select的副本的pTabList->a[].pSelect
-	**        由SELECT语句的组成的副本，我们可以自由的修改或者删除这个语句，而不用担心
-	**        会将以前的视图修改。
-	**   （3）在连接操作和连接操作中涉及的on以及using上，添加一个WHERE子句容纳NATURAL关键字
-	**   （4）在结果集中扫描列表，查找“*”操作符的实例或TABLE.*操作符。如果找到了，在每个表的每一列扩展
+	/* 这个程序用于Walker回调"expanding" SELECT 语句的，
+	** "Expanding"是指如下操作：
+	**  (1)确保VDBE已经被分配到每一个FROM子句的元素。
+	**  (2)在定义FROM子句的表或子查询中，填充对应zName的表。
+	**     当FROM子句中有视图时，在pTabList->a[].pSelect中填入实现该视图的SELECT语句的副本。
+	**     因为它是视图的SELECT语句的副本，所以我们可以自由的修改、删除而不必担心视图受到影响。
+	**  (3)在连接操作中以及涉及ON和USING的连接子句中，增加WHERE子句以适应NATURAL关键字。
+	**  (4)在结果集中每一列查找"*"操作符或"TABLE.*"操作符，如果找到，在每张表的每列扩展"*"或"TABLE.*"。
 	*/
 	static int selectExpander(Walker *pWalker, Select *p){
 	  Parse *pParse = pWalker->pParse;//语法解析树的声明
