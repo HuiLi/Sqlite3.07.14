@@ -41,7 +41,7 @@
 
 typedef struct DistinctCtx DistinctCtx;
 struct DistinctCtx {
-	u8 isTnct;      /* 如果DISTINCT关键字存在则真 */ 
+	u8 isTnct;      /* 如果DISTINCT关键字存在则真  */ 
 		u8 eTnctType;   /* 其中的WHERE_DISTINCT_*运算符*/ 
 		int tabTnct;    /* 处理DISTINCT的临时表*/
 		int addrTnct;   /* OP_OpenEphemeral操作码的地址*/ 
@@ -4005,11 +4005,37 @@ static u8 minMaxQuery(Select *p){
 	** 当程序是Walker.xExprCallback回调函数，表达式树在没有任何操作情况下占据每个节点。假设，当程序用来Walker.xExprCallback
 	** 然后Walker.xSelectCallback 为语法解析树中的每一个子查询提供帮助。
 	*/
+	/*
+** No-op routine for the parse-tree walker.
+**对于parse-tree walker的无操作例程
+** When this routine is the Walker.xExprCallback then expression trees
+** are walked without any actions being taken at each node.  Presumably,
+** when this routine is used for Walker.xExprCallback then 
+** Walker.xSelectCallback is set to do something useful for every 
+** subquery in the parser tree.当这个例程是Walker.xExprCallback ，那么表达树在每个节点上不采取
+任何行动都可以。由此可以推断,当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback 
+被设置对为解析树中的每一个子查询有用。
+*/
 	static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
 	  UNUSED_PARAMETER2(NotUsed, NotUsed2);
 	  return WRC_Continue;//继续执行
 	}
+/*
+** This routine "expands" a SELECT statement and all of its subqueries.
+** For additional information on what it means to "expand" a SELECT
+** statement, see the comment on the selectExpand worker callback above.
+**此例程可以扩展一个SELECT语句及其所有子查询。对于意味着“扩大”一个SELECT语句的附加信息,
+请参阅上面selectexpand工人回调的评论。
+** Expanding a SELECT statement is the first step in processing a
+** SELECT statement.  The SELECT statement must be expanded before
+** name resolution is performed.扩大一个SELECT语句是处理SELECT语句的第一步。SELECT语句在执行名称
+  解析之前必须扩大。
 
+** If anything goes wrong, an error message is written into pParse.
+** The calling function can detect the problem by looking at pParse->nErr
+** and/or pParse->db->mallocFailed.如果出现任何错误,错误消息被写入pparse，
+  调用函数可以通过看pParse->nErr和/或pParse->db->mallocFailed来检测问题。
+*/
 	/*
 	** This routine "expands" a SELECT statement and all of its subqueries.
 	** For additional information on what it means to "expand" a SELECT
@@ -4039,6 +4065,26 @@ static u8 minMaxQuery(Select *p){
 
 
 	#ifndef SQLITE_OMIT_SUBQUERY
+	
+	/*
+** This is a Walker.xSelectCallback callback for the sqlite3SelectTypeInfo()
+** interface.
+**
+** For each FROM-clause subquery, add Column.zType and Column.zColl
+** information to the Table structure that represents the result set
+** of that subquery.
+**
+**为from子句的每个子查询，增加Column.zType 和Column.zColl 信息到表结构?
+**以代表 子查询的结果集
+**
+** The Table structure that represents the result set was constructed
+** by selectExpander() but the type and collation information was omitted
+** at that point because identifiers had not yet been resolved.  This
+** routine is called after identifier resolution.
+**
+**这个表结构代表被selectExpander()创建的结果集、、、
+**这个程序被叫做标识符解析后
+*/
 	/*
 	** This is a Walker.xSelectCallback callback for the sqlite3SelectTypeInfo()
 	** interface.
@@ -4075,6 +4121,11 @@ static u8 minMaxQuery(Select *p){
 		  Table *pTab = pFrom->pTab;//获取from子句中的列表
 		  if( ALWAYS(pTab!=0) && (pTab->tabFlags & TF_Ephemeral)!=0 ){//判断条件
 			/* A sub-query in the FROM clause of a SELECT 在from子句中的子查询*/
+			      /* A sub-query in the FROM clause of a SELECT  
+        **
+        **select中的from 子句的一个子查询
+        **
+        */
 			Select *pSel = pFrom->pSelect;//获取select语句
 			assert( pSel );//异常处理，加入断点
 			while( pSel->pPrior ) pSel = pSel->pPrior;//循环获取最优先的查询
@@ -4085,7 +4136,16 @@ static u8 minMaxQuery(Select *p){
 	  return WRC_Continue;//继续执行
 	}
 	#endif
-
+/*
+** This routine adds datatype and collating sequence information to
+** the Table structures of all FROM-clause subqueries in a
+** SELECT statement.
+**这个程序将数据类型和排序序列信息
+添加到表结构所有from子句的子查询
+在一个SELECT语句。
+** Use this routine after name resolution.
+**在name resolution之后使用这个程序
+*/
 
 	/*
 	** This routine adds datatype and collating sequence information to
@@ -4099,8 +4159,8 @@ static u8 minMaxQuery(Select *p){
 	static void sqlite3SelectAddTypeInfo(Parse *pParse, Select *pSelect){
 	#ifndef SQLITE_OMIT_SUBQUERY
 	  Walker w;//声明一个Walker结构体
-	  w.xSelectCallback = selectAddSubqueryTypeInfo;//子查询类型信息给回调函数
-	  w.xExprCallback = exprWalkNoop;//表达式信息给回调函数
+	  w.xSelectCallback = selectAddSubqueryTypeInfo;//子查询类型信息给回调函数/*select回叫*/
+	  w.xExprCallback = exprWalkNoop;//表达式信息给回调函数/*表达式回叫*/
 	  w.pParse = pParse;//解析器
 	  sqlite3WalkSelect(&w, pSelect);//回调函数，调用sqlite3WalkSelect
 	#endif
@@ -4126,20 +4186,34 @@ static u8 minMaxQuery(Select *p){
 	**   * 在表达式中的标识符相匹配的表
 	** 这个例程以递归的方式对所有子查询
 	*/
+	/*start update by 
+* 2015-11-24 韦付芝
+** This routine sets up a SELECT statement for processing.  The
+** following is accomplished:
+**本程序建立一个SELECT语句的处理
+**     *  VDBE Cursor numbers are assigned to all FROM-clause terms.             为from子句分配的vdbe游标数
+**     *  Ephemeral Table objects are created for all FROM-clause subqueries    为from子句的子查询建立的临时表对象.
+**     *  ON and USING clauses are shifted into WHERE statements
+**     *  Wildcards "*" and "TABLE.*" in result sets are expanded.                     通配符"*" 和"TABLE.*" 在结果集中被扩展
+**     *  Identifiers in expression are matched to tables.                                   表达式的标识符被匹配到相应的表
+**
+** This routine acts recursively on all subqueries within the SELECT.
+**这个程序递归地运行在select中的子查询中
+*/
 	void sqlite3SelectPrep(
-	  Parse *pParse,         /* The parser context *///定义解析器
-	  Select *p,             /* The SELECT statement being coded. *///声明select类型的指针
-	  NameContext *pOuterNC  /* Name context for container *///为容器命名
+	  Parse *pParse,         /* The parser context *///定义解析器/*  解析器的上下文 */
+	  Select *p,             /* The SELECT statement being coded. *///声明select类型的指针/*  被编码的select表达式 */
+	  NameContext *pOuterNC  /* Name context for container *///为容器命名/*  命名上下文 */
 	){
-	  sqlite3 *db;//声明一个sqlite类型的数据库连接
-	  if( NEVER(p==0) ) return;//空指针，直接返回
-	  db = pParse->db;//获取语法解析器中的数据库
-	  if( p->selFlags & SF_HasTypeInfo ) return;//标识变量和类型信息的判断
-	  sqlite3SelectExpand(pParse, p);//扩展
-	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败
-	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//解析上下文
-	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败
-	  sqlite3SelectAddTypeInfo(pParse, p);//向解析树添加语法信息
+	  sqlite3 *db;//声明一个sqlite类型的数据库连接/* 定义数据库指针变量*/
+	  if( NEVER(p==0) ) return;//空指针，直接返回/*判断传递过来的参数select表达式指针是否为空*/
+	  db = pParse->db;//获取语法解析器中的数据库/*数据库指针变量指向解析器上下文对象的数据库存储域*/
+	  if( p->selFlags & SF_HasTypeInfo ) return;//标识变量和类型信息的判断/*判断传递过来的参数select表达式指针与SF_HasTypeInfo进行与运算后的结果*/
+	  sqlite3SelectExpand(pParse, p);//扩展/*调用sqlite3SelectExpand方法，传递两个参数：解析器和表达式指针变量*/
+	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败/*判断解析器的是否出错或数据库分配内存是否成功*/
+	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//解析上下文/*调用sqlite3ResolveSelectNames方法，传递三个参数：解析器，表达式指针，命名上下文指针*/
+	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败/*再次判断解析器的是否出错或数据库分配内存是否成功*/
+	  sqlite3SelectAddTypeInfo(pParse, p);//向解析树添加语法信息/*调用sqlite3SelectAddTypeInfo方法，传递两个参数：解析器，表达式。将查询语句添加进解析器。*/
 	}
 
 	/*
@@ -4153,32 +4227,50 @@ static u8 minMaxQuery(Select *p){
 	/* 聚集函数的重新设置
 	** 聚集累加器是一组记忆单元，它能在计算一个聚集的时候保存中间结果集。这段程序生成的代码在所有的记忆单元中存储了空值
 	*/
-	static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){
-	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性
-	  int i;//声明一个变量
-	  struct AggInfo_func *pFunc;//声明一个AggInfo_func结构体对象
-	  if( pAggInfo->nFunc+pAggInfo->nColumn==0 ){
+	
+	
+	/*
+** Reset the aggregate accumulator.
+**
+**重置聚合累加器
+**
+**The aggregate accumulator is a set of memory cells that hold
+** intermediate results while calculating an aggregate.  This
+** routine generates code that stores NULLs in all of those memory
+** cells.
+**
+**在计算一个聚集函数时，聚合累加器是保持中间结果集的内存单元集
+**这个程序生成代码,这些代码将null存储在所有的内存单元中
+**
+*/
+	
+	static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){/*重置聚合累加器，传递两个参数：解析器指针变量，AggInfo指针变量*/
+	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性/*定义一个Vdbe指针变量，指向解析器的pVdbe域*/
+	  int i;//声明一个变量/*定义变量i*/
+	  struct AggInfo_func *pFunc;//声明一个AggInfo_func结构体对象/*定义一个结构体变量指针pFunc，指向AggInfo_func类型*/
+	  if( pAggInfo->nFunc+pAggInfo->nColumn==0 ){/*判断参数的两个域内容和是否为0*/
 		return;
 	  }
 
 	  //遍历所有的列
-	  for(i=0; i<pAggInfo->nColumn; i++){
+	  for(i=0; i<pAggInfo->nColumn; i++){/*循环调用sqlite3VdbeAddOp2方法*/
 		sqlite3VdbeAddOp2(v, OP_Null, 0, pAggInfo->aCol[i].iMem);//操作处理
 	  }
 	  //聚集函数的遍历
-	  for(pFunc=pAggInfo->aFunc, i=0; i<pAggInfo->nFunc; i++, pFunc++){
+	  for(pFunc=pAggInfo->aFunc, i=0; i<pAggInfo->nFunc; i++, pFunc++){/*循环调用sqlite3VdbeAddOp2方法，参数和上面不同*/
+    sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);
 		sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);//操作处理
-		if( pFunc->iDistinct>=0 )
-		  Expr *pE = pFunc->pExpr;//获取AggInfo_func中的表达式
+		if( pFunc->iDistinct>=0 )/*判断是否去重*/
+		  Expr *pE = pFunc->pExpr;//获取AggInfo_func中的表达式/*表达式指针指向pFunc的pExpr域*/
 		  assert( !ExprHasProperty(pE, EP_xIsSelect) );//异常处理，加入断点
-		  if( pE->x.pList==0 || pE->x.pList->nExpr!=1 ){
+		  if( pE->x.pList==0 || pE->x.pList->nExpr!=1 ){/*判断表达式的x域的pList属性值是否为0或pList的下一表达式域是否为1*/
 			sqlite3ErrorMsg(pParse, "DISTINCT aggregates must have exactly one "
-			   "argument");//打印错误信息
-			pFunc->iDistinct = -1;//临时表置为-1（无效）
+			   "argument");//打印错误信息/*调用sqlite3ErrorMsg方法弹出错误信息*/
+			pFunc->iDistinct = -1;//临时表置为-1（无效）/*将pFunc的iDistinct域置为-1*/
 		  }else{
-			KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);//从表达式列表中获取信息
+			KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);//从表达式列表中获取信息/*调用keyInfoFromExprList方法，传递两个参数，将返回值赋值给KeyInfo类型的指针变量*/
 			sqlite3VdbeAddOp4(v, OP_OpenEphemeral, pFunc->iDistinct, 0, 0,
-							  (char*)pKeyInfo, P4_KEYINFO_HANDOFF);//添加了一个操作符OP_OpenEphemeral
+							  (char*)pKeyInfo, P4_KEYINFO_HANDOFF);//添加了一个操作符OP_OpenEphemeral/*调用sqlite3VdbeAddOp4方法*/
 		  }
 		}
 	  }
@@ -5249,12 +5341,13 @@ int sqlite3Select(
 	**控制跳跃到这里如果上面遇
 	**  到一个错误,或对select成功编码。
 	*/
+	
 select_end:
 	explainSetInteger(pParse->iSelectId, iRestoreSelectId);
 
-	/* Identify column names if results of the SELECT are to be output.
-	**如果select 结果集要被输出，则标出列名
-	*/
+ /* Identify column names if results of the SELECT are to be output.
+  **如果select 结果集要被输出，则标出列名
+  */
 	if (rc == SQLITE_OK && pDest->eDest == SRT_Output){
 		generateColumnNames(pParse, pTabList, pEList);/*生成列名*/
 	}
@@ -5266,6 +5359,9 @@ select_end:
 
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
 /*
+** Generate a human-readable description of a the Select object.
+**生成一个可读的select 对象的描述
+*//*
 ** Generate a human-readable description of a the Select object.
 **生成一个可读的select 对象的描述
 */
@@ -5286,7 +5382,7 @@ static void explainOneSelect(Vdbe *pVdbe, Select *p){
 	  if( p->pSrc && p->pSrc->nSrc ){/*遍历FROM子句表达式列表*/
 		int i;
 		sqlite3ExplainPrintf(pVdbe, "FROM ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"FROM "*/
-		sqlite3ExplainPush(pVdbe);/*在pVdbe中推出一个新的缩进级别，从光标开始的位置进行，后续的行都缩进*/
+		sqlite3ExplainPush(pVdbe);/*在pVdbe中推出一个新的缩进级别，从光标开始的位置进行，后续的行都缩进*//*推进*/ 
 		for(i=0; i<p->pSrc->nSrc; i++){/*遍历FROM子句表达式列表**/
 		  struct SrcList_item *pItem = &p->pSrc->a[i];/*声明一个FROM子句列表项结构体*/
 		  sqlite3ExplainPrintf(pVdbe, "{%d,*} = ", pItem->iCursor);/*实际上调用sqlite3VXPrintf（），进行格式化输出 "{%d,*} = "*/
@@ -5298,42 +5394,42 @@ static void explainOneSelect(Vdbe *pVdbe, Select *p){
 		  }else if( pItem->zName ){/*如果表达式列表中表达式项名存在*/
 			sqlite3ExplainPrintf(pVdbe, "%s", pItem->zName);/*实际上调用sqlite3VXPrintf（），进行格式化输出pItem->zName*/
 		  }
-		  if( pItem->zAlias ){/*如果表达式列表中有关联依赖*/
+		  if( pItem->zAlias ){/*如果表达式列表中有关联依赖*//*别名*/
 			sqlite3ExplainPrintf(pVdbe, " (AS %s)", pItem->zAlias);/*实际上调用sqlite3VXPrintf（），进行格式化输出" (AS %s)"*/
 		  }
-		  if( pItem->jointype & JT_LEFT ){/*如果表达式列表中连接类型为JT_LEFT*/
+		  if( pItem->jointype & JT_LEFT ){/*如果表达式列表中连接类型为JT_LEFT*//*左连接的解释*/
 			sqlite3ExplainPrintf(pVdbe, " LEFT-JOIN");/*实际上调用sqlite3VXPrintf（），进行格式化输出" LEFT-JOIN"*/
 		  }
 		  sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
 		}
 		sqlite3ExplainPop(pVdbe);/*弹出刚才压进栈的缩进级别*/
 	  }
-	  if( p->pWhere ){/*如果SELECT结构体p中含不为空where子句*/
+	  if( p->pWhere ){/*如果SELECT结构体p中含不为空where子句*//*where子句的解释*/
 		sqlite3ExplainPrintf(pVdbe, "WHERE ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"WHERE "*/
 		sqlite3ExplainExpr(pVdbe, p->pWhere);/*为表达式树pWhere生成一个易读说明*/
 		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
 	  }
-	  if( p->pGroupBy ){/*如果SELECT结构体p中含不为空where子句*/
+	  if( p->pGroupBy ){/*如果SELECT结构体p中含不为空where子句*//*groupby 子句的解释*/
 		sqlite3ExplainPrintf(pVdbe, "GROUPBY ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"GROUPBY "*/
 		sqlite3ExplainExprList(pVdbe, p->pGroupBy);/*为表达式列表p->pGroupBy生成一个易读的描述信息*/
 		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
 	  }
-	  if( p->pHaving ){/*如果SELECT结构体p中含不为空having子句*/
+	  if( p->pHaving ){/*如果SELECT结构体p中含不为空having子句*//*having 子句的解释*/
 		sqlite3ExplainPrintf(pVdbe, "HAVING ");/*实际上调用sqlite3VXPrintf（），进行格式化输出 "HAVING "*/
 		sqlite3ExplainExpr(pVdbe, p->pHaving);/*为表达式树pHaving生成一个易读说明*/
 		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
 	  }
-	  if( p->pOrderBy ){/*如果SELECT结构体p中含不为空order by子句*/
+	  if( p->pOrderBy ){/*如果SELECT结构体p中含不为空order by子句*//*orderby 子句的解释*/
 		sqlite3ExplainPrintf(pVdbe, "ORDERBY ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"ORDERBY "*/
 		sqlite3ExplainExprList(pVdbe, p->pOrderBy);/*为表达式列表p->pOrderBy生成一个易读的描述信息*/
 		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
 	  }
-	  if( p->pLimit ){/*如果SELECT结构体p中含不为空limit子句*/
+	  if( p->pLimit ){/*如果SELECT结构体p中含不为空limit子句*//*Limit子句的解释*/
 		sqlite3ExplainPrintf(pVdbe, "LIMIT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"LIMIT "*/
 		sqlite3ExplainExpr(pVdbe, p->pLimit);/*为表达式树p->pLimit生成一个易读说明*/
 		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
 	  }
-	  if( p->pOffset ){/*如果SELECT结构体p中含不为空offset子句*/
+	  if( p->pOffset ){/*如果SELECT结构体p中含不为空offset子句*//*Offset 子句的解释*/
 		sqlite3ExplainPrintf(pVdbe, "OFFSET ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"OFFSET "*/
 		sqlite3ExplainExpr(pVdbe, p->pOffset);/*为表达式树p->pOffset生成一个易读说明*/
 		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
@@ -5344,13 +5440,13 @@ static void explainOneSelect(Vdbe *pVdbe, Select *p){
 		sqlite3ExplainPrintf(pVdbe, "(null-select)");/*实际上调用sqlite3VXPrintf（），进行格式化输出"(null-select)"*/
 		return;
 	  }
-	  while( p->pPrior ) p = p->pPrior;/*递归，找到最优先查询的SELECT*/
-	  sqlite3ExplainPush(pVdbe);/*在pVdbe中推出一个新的缩进级别，从光标开始的位置进行，后续的行都缩进*/
-	  while( p ){
-		explainOneSelect(pVdbe, p);/*生成一个易读描述SELECET的对象*/
-		p = p->pNext;/*将p的子树，赋值，给当前p*/
-		if( p==0 ) break;/*已经循环到最后一个了，没有了子节点*/
-		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*/
+	  while( p->pPrior ) p = p->pPrior;/*递归，找到最优先查询的SELECT*//*如果select语句一直不为空，那么就将select语句的最前一个select赋给p*/
+	  sqlite3ExplainPush(pVdbe);/*在pVdbe中推出一个新的缩进级别，从光标开始的位置进行，后续的行都缩进*//*推动一个新的缩进级别。将后续行缩进,这样他们在当前光标位置开始。*/
+	  while( p ){/*只要p 不为空，就对p 进行*/
+		explainOneSelect(pVdbe, p);/*生成一个易读描述SELECET的对象*//*生成一个可读的select 对象的描述*/
+		p = p->pNext;/*将p的子树，赋值，给当前p*//*下一个select*/
+		if( p==0 ) break;/*已经循环到最后一个了，没有了子节点*//*如果已经没有下一个select ，则break,并附加上'|n'*/
+		sqlite3ExplainNL(pVdbe);/*添加一个换行符（'\n',前提是如果结尾没有）*//*附加上'|n'的函数的调用*/
 		sqlite3ExplainPrintf(pVdbe, "%s\n", selectOpName(p->op));/*实际上是调用sqlite3VXPrintf（），并进行格式化输出为"%s\n"*/
 	  }
 	  sqlite3ExplainPrintf(pVdbe, "END");/*实际上是调用sqlite3VXPrintf（），进行格式化大的输出为"END"*/
