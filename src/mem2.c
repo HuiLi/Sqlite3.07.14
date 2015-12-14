@@ -273,7 +273,7 @@ static void sqlite3MemShutdown(void *NotUsed){
 /*
 ** Round up a request size to the next valid allocation size.
 **
-** 集合一个请求大小到下一个有效分配的大小
+** 向上舍入请求大小到一个有效分配的大
 */
 static int sqlite3MemRoundup(int n){
   return ROUND8(n);
