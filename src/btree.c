@@ -2747,10 +2747,10 @@ int sqlite3BtreeSetSafetyLevel(      //¸Ä±ä´ÅÅÌÊı¾İµÄ·ÃÎÊ·½Ê½£¬ÒÔÔö¼Ó»ò¼õÉÙÊı¾İ¿
 ){
   BtShared *pBt = p->pBt;
   assert( sqlite3_mutex_held(p->db->mutex) );
-  assert( level>=1 && level<=3 );
-  sqlite3BtreeEnter(p);
-  sqlite3PagerSetSafetyLevel(pBt->pPager, level, fullSync, ckptFullSync);
-  sqlite3BtreeLeave(p);
+  assert( level>=1 && level<=3 );//¡¾ÅË¹âÕä¡¿°²È«¼¶±ğÎª1£¬2£¬3
+  sqlite3BtreeEnter(p);//¡¾ÅË¹âÕä¡¿µ÷ÓÃ½øÈëBÊ÷µÄº¯Êı
+  sqlite3PagerSetSafetyLevel(pBt->pPager, level, fullSync, ckptFullSync);//¡¾ÅË¹âÕä¡¿µ÷ÓÃPagerÉèÖÃ°²È«¼¶±ğµÄº¯Êı
+  sqlite3BtreeLeave(p);//¡¾ÅË¹âÕä¡¿µ÷ÓÃÀë¿ªBÊ÷µÄº¯Êı
   return SQLITE_OK;
 }
 #endif
@@ -2759,6 +2759,9 @@ int sqlite3BtreeSetSafetyLevel(      //¸Ä±ä´ÅÅÌÊı¾İµÄ·ÃÎÊ·½Ê½£¬ÒÔÔö¼Ó»ò¼õÉÙÊı¾İ¿
 ** Return TRUE if the given btree is set to safety level 1.  In other
 ** words, return TRUE if no sync() occurs on the disk files.
 ** ¸ø¶¨µÄBÊ÷±»Éè¶¨µÄ°²È«¼¶±ğÎª1·µ»Øtrue¡£¼´ÊÇÈç¹ûÔÚ´ÅÅÌÉÏÃ»ÓĞsync()³öÏÖ·µ»Øtrue¡£
+*/
+/*
+¡¾ÅË¹âÕä¡¿Èç¹û¸ø¶¨µÄBÊ÷µÄ°²È«¼¶±ğÊÇ1£¬Ôò·µ»Øtrue¡£»»¾ä»°Ëµ£¬Èç¹ûÃ»ÓĞsync()·¢ÉúÔÚ´ÅÅÌÎÄ¼ş£¬Ôò·µ»Øtrue¡£
 */
 int sqlite3BtreeSyncDisabled(Btree *p){
   BtShared *pBt = p->pBt;
@@ -2792,6 +2795,13 @@ int sqlite3BtreeSyncDisabled(Btree *p){
 ** and autovacuum mode can no longer be changed.
 */
 /*ÉèÖÃÊı¾İ¿âÒ³´óĞ¡*/
+/*
+¡¾ÅË¹âÕä¡¿**¸ü¸ÄÄ¬ÈÏµÄÒ³´óĞ¡ºÍ±£ÁôµÄ×Ö½ÚÊıÁ¿¡£»òÕß£¬Èç¹ûÍøÒ³µÄ´óĞ¡ÒÑ¾­¹Ì¶¨£¬sqlite_readonly²»×öÈÎºÎ¸Ä±ä¡£
+**Ò³Ãæ´óĞ¡±ØĞëÊÇ2µÄÃİÔÚ512ºÍ65536Ö®¼ä¡£Èç¹ûÒ³Ãæ´óĞ¡²»Âú×ã´ËÔ¼Êø£¬ÔòÒ³Ãæ´óĞ¡Ã»ÓĞ¸Ä±ä¡£
+**Ò³Ãæ´óĞ¡ÏŞÖÆÎª2µÄÃİ£¬ÇøÓòÓÃÓÚËø¶¨Êı¾İ¿âÎÄ¼ş£¨´Ópending_byte£¬µÚÒ»¸ö×Ö½Ú¹ıÈ¥1GBµÄ±ß½ç£¬0x40000000£©ĞèÒª·¢ÉúÔÚÒ»Ò³µÄ¿ªÍ·¡£
+**Èç¹û²ÎÊınReserveĞ¡ÓÚÁã£¬È»ºóÊı±£ÁôÃ¿Ò»Ò³µÄ×Ö½ÚÊı²»±ä¡£
+**Èç¹ûiFIX£¡= 0È»ºóÉèÖÃbts_pagesize_fixed±êÖ¾£¬Ò³Ãæ´óĞ¡ºÍautovacuumÄ£Ê½²»ÔÙÄÜ±»¸Ä±ä¡£
+*/
 int sqlite3BtreeSetPageSize(Btree *p, int pageSize, int nReserve, int iFix){
   int rc = SQLITE_OK;
   BtShared *pBt = p->pBt;
@@ -2835,6 +2845,9 @@ int sqlite3BtreeGetPageSize(Btree *p){
 ** are intentually left unused.  This is the "reserved" space that is
 ** sometimes used by extensions.
 */
+/*
+¡¾ÅË¹âÕä¡¿·µ»ØÔÚ×îºóÃ¿Ò»Ò³¶¼Î´±»Ê¹ÓÃµÄ×Ö½ÚÊıµÄ¿Õ¼ä¡£ÕâÊÇ¡°±£Áô¡±µÄ¿Õ¼ä£¬ÓĞÊ±Ê¹ÓÃÀ©Õ¹¡£
+*/
 int sqlite3BtreeGetReserve(Btree *p){
   int n;
   sqlite3BtreeEnter(p);
@@ -2849,6 +2862,10 @@ int sqlite3BtreeGetReserve(Btree *p){
 ** Regardless of the value of mxPage, return the maximum page count.
 ** Èç¹ûmxPageÊÇÕıµÄ£¬ÉèÖÃÊı¾İ¿âµÄ×î´óÒ³Êı¡£Èç¹ûmxPageÊÇ0»ò¸ºÔò²»¸Ä±ä´óĞ¡¡£²»¹ÜmxPageµÄÖµ,·µ»Ø×î´óÒ³Êı¡£
 */
+/*
+¡¾ÅË¹âÕä¡¿Èç¹ûmxpageÊÇÕı£¬ÔòÉèÖÃ×î´óÒ³ÊıµÄÊı¾İ¿â¡£Èç¹ûmxpageÊÇ0»ò¸ºÊıÁË£¬ÔòÃ»ÓĞ±ä»¯¡£²»¹ÜmxpageµÄÖµ£¬·µ»ØµÄ×î´óÒ³Êı¡£
+
+*/
 int sqlite3BtreeMaxPageCount(Btree *p, int mxPage){
   int n;
   sqlite3BtreeEnter(p);
@@ -2862,6 +2879,9 @@ int sqlite3BtreeMaxPageCount(Btree *p, int mxPage){
 ** then make no changes.  Always return the value of the BTS_SECURE_DELETE
 ** setting after the change.
 ** Èç¹ûnewFlagÊÇ0»ò1£¬ÉèÖÃBTS_SECURE_DELETE±êÖ¾¡£Èç¹ûnewFlagÊÇ-1,Ôò²»ÉèÖÃ¡£Ò»µ©Éè¶¨½«×ÜÊÇ·µ»ØBTS_SECURE_DELETEµÄÖµ¡£
+*/
+/*
+¡¾ÅË¹âÕä¡¿Èç¹ûnewflagÊÇ0»ò1£¬ÔòÉèÖÃBTS_SECURE_DELETE±êÖ¾¡£Èç¹ûnewFlagÊÇ-1£¬ÄÇÃ´²»ĞèÒª¸Ä±ä¡£×ÜÖ®·µ»ØBTS_SECURE_DELETEÉèÖÃ¸ü¸ÄºóµÄÖµ¾ÍĞĞ¡£
 */
 int sqlite3BtreeSecureDelete(Btree *p, int newFlag){
   int b;
@@ -2885,7 +2905,11 @@ int sqlite3BtreeSecureDelete(Btree *p, int newFlag){
 ** ÉèÖÃÊı¾İ¿â×Ô¶¯ÇåÀí¿ÕÏĞÒ³ÊôĞÔ¡£Èç¹û¡°autoVacuum¡±²ÎÊıÊÇÁã,ÄÇÃ´auto-vacuumÄ£Ê½¿ªÆô¡£Èç¹ûÎªÁãÔò½ûÓÃ¡£
 ** auto-vacuumÊôĞÔµÄÄ¬ÈÏÖµÓÉºêSQLITE_DEFAULT_AUTOVACUUM¶¨Òå¡£
 *//*ÉèÖÃÊı¾İ¿â×Ô¶¯ÇåÀí¿ÕÏĞÒ³ÊôĞÔ¡£*/
-
+/*
+¡¾ÅË¹âÕä¡¿**ÉèÖÃÊı¾İ¿â×Ô¶¯ÇåÀí¿ÕÏĞÒ³ÊôĞÔ¡£
+**¸Ä±äÊı¾İ¿âµÄ'auto-vacuum'ÊôĞÔ¡£Èç¹û¡°autovacuum¡±²ÎÊıÎª·ÇÁã£¬Ôòauto-vacuumÄ£Ê½±»ÆôÓÃ¡£
+Èç¹ûÁã£¬Ëü±»½ûÓÃ¡£Îªauto-vacuumÊôĞÔµÄÄ¬ÈÏÖµÊÇÓÉSQLITE_DEFAULT_AUTOVACUUM ºê¹Û¾ö¶¨¡£
+*/
 int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){
 #ifdef SQLITE_OMIT_AUTOVACUUM
   return SQLITE_READONLY;
@@ -2910,7 +2934,11 @@ int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){
 ** Return the value of the 'auto-vacuum' property. If auto-vacuum is 
 ** enabled 1 is returned. Otherwise 0.
 *//*»ñÈ¡Êı¾İ¿âÊÇ·ñ×Ô¶¯ÇåÀíÒ³¡£*/
-int sqlite3BtreeGetAutoVacuum(Btree *p){
+/*
+¡¾ÅË¹âÕä¡¿
+**·µ»Ø'auto-vacuum'ÊôĞÔµÄÖµ¡£Èç¹ûÆôÓÃauto-vacuum£¬Ôò·µ»Ø1¡£·ñÔò0¡£
+*/
+int sqlite3BtreeGetAutoVacuum(Btree *p){//»ñÈ¡Êı¾İ¿âÊÇ·ñ×Ô¶¯ÇåÀíÒ³¡£
 #ifdef SQLITE_OMIT_AUTOVACUUM
   return BTREE_AUTOVACUUM_NONE;
 #else
@@ -2937,9 +2965,14 @@ int sqlite3BtreeGetAutoVacuum(Btree *p){
 ** ³É¹¦Ôò·µ»ØSQLITE_OK¡£Èç¹ûÎÄ¼ş²»ÊÇÒ»¸ö¸ñÊ½Á¼ºÃµÄÊı¾İ¿âÎÄ¼ş,È»ºó·µ»ØSQLITE_CORRUPT¡£
 ** Èç¹ûÊı¾İ¿â±»Ëø¶¨·µ»ØSQLITE_BUSY¡£Èç¹ûÄÚ´æºÄ¾¡·µ»ØSQLITE_NOMEM.
 */
+/*
+¡¾ÅË¹âÕä¡¿**µÃµ½Ò»¸ö²Î¿¼µÄÊı¾İ¿âÎÄ¼şpPage1¡£ÕâÒ²½«¶Ô¸ÃÎÄ¼ş»ñµÃ¶ÁËø¡£
+**SQLITE_OK ±»·µ»Ø³É¹¦¡£Èç¹ûÕâ¸öÎÄ¼ş²»ÊÇÒ»¸öºÜºÃµÄÊı¾İ¿âÎÄ¼ş£¬È»ºóSQLITE_CORRUPT±»·µ»Ø¡£
+**Èç¹ûÊı¾İ¿â±»Ëø¶¨£¬ÔòSQLITE_BUSY ±»·µ»Ø¡£Èç¹ûÎÒÃÇÊ¹ÓÃÍêËüµÄÄÚ´æ£¬ÔòSQLITE_NOMEM±»·µ»Ø¡£
+*/
 static int lockBtree(BtShared *pBt){
   int rc;              /* Result code from subfunctions */                     //´Ó×Óº¯Êı·µ»Ø½á¹û´úÂë
-  MemPage *pPage1;     /* Page 1 of the database file */                       //Êı¾İ¿âÎÄ¼şµÄÒ³1
+  MemPage *pPage1;     /* Page 1 of the database file */                       //Êı¾İ¿âÎÄ¼şµÄÒ³1 /*¡¾ÅË¹âÕä¡¿ Êı¾İ¿âµÄpage 1 */
   int nPage;           /* Number of pages in the database */                   //Êı¾İ¿âÖĞµÄÒ³ÊıÁ¿
   int nPageFile = 0;   /* Number of pages in the database file */              //Êı¾İ¿âÎÄ¼şÖĞµÄÒ³ÊıÁ¿
   int nPageHeader;     /* Number of pages in the database according to hdr */  //¾İhdrÔÚÊı¾İ¿âÖĞµÄÒ³ÃæÊı
@@ -2992,6 +3025,11 @@ static int lockBtree(BtShared *pBt){
 	** Èç¹ûĞ´°æ±¾ÉèÖÃÎª2,Ó¦¸ÃÔÚWALÄ£Ê½ÏÂ·ÃÎÊÕâ¸öÊı¾İ¿â¡£Èç¹ûÈÕÖ¾²»ÊÇÒÑ¾­´ò¿ª,´ò¿ªËü¡£È»ºó·µ»ØSQLITE_OK²¢ÇÒ·µ»ØÃ»ÓĞÕ¼¾İBtShared.pPage1 
 	** µ÷ÓÃÕß¼ì²âµ½ÕâÒ»µã²¢ÔÙ´Îµ÷ÓÃÕâ¸öº¯Êı¡£ÕâÊÇĞèÒªµÚ1Ò³µÄ°æ±¾Ä¿Ç°ÔÚpage1»º³åÇø£¬¿ÉÄÜ²»ÊÇ×îĞÂ°æ±¾,¿ÉÄÜ»áÓĞÒ»¸öĞÂµÄÈÕÖ¾ÎÄ¼ş¡£
     */
+	/*
+	¡¾ÅË¹âÕä¡¿Èç¹ûĞ´µÄ°æ±¾ÊÇ2£¬ÕâÓ¦¸ÃÊÇÔÚÔ¤Ğ´ÈÕÖ¾ÏµÍ³Ä£Ê½·ÃÎÊÊı¾İ¿â¡£Èç¹ûÈÕÖ¾ÉĞÎ´´ò¿ª£¬´ò¿ªËü¡£
+	È»ºó·µ»ØSQLITE_OK»¹Ã»ÓĞÌî³äBtShared.pPage1À´¼ì²â£¬ÔÙµ÷ÓÃÕâ¸öº¯Êı¡£
+	ÕâÊÇĞèÒª1Ò³µÄ°æ±¾Ä¿Ç°ÔÚµÚÒ»Ò³»º³åÇø¿ÉÄÜ²»ÊÇ×îĞÂµÄ°æ±¾¿ÉÄÜ»áÓĞÒ»¸öĞÂµÄÈÕÖ¾ÎÄ¼şÖĞ¡£
+	*/
     if( page1[19]==2 && (pBt->btsFlags & BTS_NO_WAL)==0 ){
       int isOpen = 0;
       rc = sqlite3PagerOpenWal(pBt->pPager, &isOpen);/*´ò¿ªÈÕÖ¾*/
@@ -3010,6 +3048,9 @@ static int lockBtree(BtShared *pBt){
     ** version 3.6.0, we require them to be fixed.
 	** ×î´óµÄÇ¶Èë²¿·Ö±ØĞëÊÇ25%¶øÇÒ×îĞ¡Ç¶Èë²¿·Ö°üÀ¨Ò¶Êı¾İÓòºÍnon-leaf-data±ØĞëÊÇ12.5%¡£×î³õµÄÉè¼ÆÔÊĞíÕâĞ©ÊıÁ¿²»Í¬,µ«½ØÖÁ3.6.0°æ±¾,ÎÒÃÇÒªÇóËûÃÇÊÇ¹Ì¶¨µÄ¡£
     */
+	/*
+	¡¾ÅË¹âÕä¡¿¶ÔÓÚÒ¶Êı¾İºÍ·ÇÒ¶Êı¾İ£¬×î´óÇ¶ÈëÊ½²¿·Ö±ØĞëÊÇ25%ºÍ×îĞ¡Ç¶Èë²¿·Ö±ØĞëÎª12.5%¡£Ô­Éè¼ÆÔÊĞíÕâĞ©ÊıÁ¿ÓĞËù²»Í¬£¬µ«×÷Îª°æ±¾3.6.0£¬ÎÒÃÇÒªÇóËûÃÇÊÇ¹Ì¶¨µÄ¡£
+	*/
     if( memcmp(&page1[21], "\100\040\040",3)!=0 ){
       goto page1_init_failed;
     }
@@ -3031,6 +3072,9 @@ static int lockBtree(BtShared *pBt){
 	  ** ¶ÁÍêµÚÒ»Ò³Êı¾İ¿âµÄ¼ÙÉèÒ»¸öBtShared.pageSizeµÄÒ³Ãæ´óĞ¡¡£ÎÒÃÇÒÑ¾­·¢ÏÖpage-sizeÊÇÊµ¼ÊµÄÒ³´óĞ¡¡£´ò¿ªÊı¾İ¿â,½«pBt->pPage1ÁôÔÚ0´¦
 	  ** ²¢·µ»ØSQLITE_OK¡£µ÷ÓÃÕß½«»áÓÃÕıÈ·µÄpage-sizeÔÙ´Îµ÷ÓÃÕâ¸öº¯Êı¡£
       */
+		/*
+		¡¾ÅË¹âÕä¡¿¶ÁµÚÒ»Ò³ºóÊı¾İ¿â¼ÙÉèÒ»¸öBtShared.pageSizeÒ³Ãæ´óĞ¡£¬ÎÒÃÇ·¢ÏÖ£¬Êµ¼ÊÉÏÊÇÎªÒ³Ãæ´óĞ¡¡£´ò¿ªÊı¾İ¿â£¬½«pBt->pPage1ÎªÁãºÍ·µ»ØSQLITE_OK¡£µ÷ÓÃ·½½«ÔÙ´Îµ÷ÓÃÕâ¸öº¯Êı£¬ÓÃÕıÈ·µÄÒ³Ãæ´óĞ¡¡£
+		*/
       releasePage(pPage1);
       pBt->usableSize = usableSize;
       pBt->pageSize = pageSize;
@@ -3074,6 +3118,18 @@ static int lockBtree(BtShared *pBt){
   **     4×Ö½ÚµÄÒç³öÒ³Ö¸Õë
   ** ËùÒÔµ¥ÔªÓÉÒ»¸ö2×Ö½ÚµÄÖ¸Õë,Ò»¸ö17×Ö½Ú³¤µÄÍ·£¬0µ½N¸ö×Ö½ÚµÄÓĞĞ§¸ºÔØ,ºÍÒ»¸ö¿ÉÑ¡µÄ4×Ö½ÚÒç³öÒ³ÃæÖ¸Õë¡£
   */
+   /*
+ ¡¾ÅË¹âÕä¡¿ maxlocalÊÇÓĞĞ§ÔØºÉµÄ×î´ó´æ´¢Á¿¾Ö²¿µ¥Ôª¸ñ¡£È·±£ËüÊÇ×ã¹»Ğ¡£¬
+  ÕâÑùÖÁÉÙminfanoutµ¥Ôª¸ñ¿ÉÒÔ½«ÊÊºÏÔÚÒ»¸öÒ³Ãæ¡£ÎÒÃÇ¼ÙÉèÒ»¸ö10×Ö½ÚµÄÒ³Í·¡£
+  ³ıÁËÓĞĞ§ÔØºÉ£¬Õâ¸öµ¥Ôª¸ñ±ØĞë´æ´¢£º
+  2¸ö×Ö½ÚÖ¸ÕëµÄµ¥Ôª¸ñ
+  4¸ö×Ö½ÚµÄÒ³Ö¸Õë
+  9¸ö×Ö½ÚnKeyµÄÖµ
+  4¸ö×Ö½ÚnDataµÄÖµ
+  4¸ö×Ö½ÚÒç³öÒ³Ö¸Õë
+ËùÒÔÒ»¸öµ¥ÔªÓÉÒ»¸ö2×Ö½ÚµÄÖ¸Õë£¬Í·²¿ÊÇÒ»ÑùµÄ17×Ö½Ú³¤£¬0µ½N×Ö½ÚµÄÓĞĞ§ÔØºÉ£¬ºÍÒ»¸ö¿ÉÑ¡µÄ4×Ö½ÚÒç³ö
+Ò³ÃæÖ¸Õë¡£
+  */
   pBt->maxLocal = (u16)((pBt->usableSize-12)*64/255 - 23);
   pBt->minLocal = (u16)((pBt->usableSize-12)*32/255 - 23);
   pBt->maxLeaf = (u16)(pBt->usableSize - 35);
@@ -3103,6 +3159,10 @@ page1_init_failed:
 ** If there is a transaction in progress, this routine is a no-op.
 ** Èç¹ûÔÚ½ø³ÌÖĞÓĞÒ»¸öÊÂÎñ,Õâ¸öÀı³Ì½«ÊÇÒ»¸ö¿Õ²Ù×÷¡£
 */
+/*
+¡¾ÅË¹âÕä¡¿**Èç¹ûÃ»ÓĞºÜºÃµÄÓÎ±êºÍÎÒÃÇ²»ÔÚÒ»¸öÊÂÎñÖĞµ«ÓĞ¶ÁËøµÄÊı¾İ¿â£¬È»ºóÕâ¸ö³ÌĞòunrefsÊı¾İ¿âµÄÎÄ¼ş£¬ÊÍ·Å¶ÁËøÓ°ÏìµÄµÚÒ»Ò³¡£
+**Èç¹ûÓĞÒ»¸ö½ø³ÌÖĞµÄÊÂÎñ£¬Õâ¸ö³ÌĞòÊÇÒ»¸ö¿Õ²Ù×÷¡£
+*/
 static void unlockBtreeIfUnused(BtShared *pBt){
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( pBt->pCursor==0 || pBt->inTransaction>TRANS_NONE );
@@ -3120,6 +3180,9 @@ static void unlockBtreeIfUnused(BtShared *pBt){
 ** into a new empty database by initializing the first page of
 ** the database.
 ** Èç¹ûpBtÖ¸ÏòÒ»¸ö¿ÕÎÄ¼ş,ÄÇÃ´Í¨¹ı³õÊ¼»¯Êı¾İ¿âµÄµÚÒ»Ò³´«ËÍ¿ÕÎÄ¼şµ½Ò»¸öĞÂµÄ¿ÕÊı¾İ¿â¡£
+*/
+/*
+¡¾ÅË¹âÕä¡¿Èç¹ûpBtÖ¸Ïò¿ÕÎÄ¼ş£¬È»ºó½«¿ÕÎÄ¼şµ½Ò»¸öĞÂµÄ¿ÕÊı¾İ¿â³õÊ¼»¯Êı¾İ¿âµÄµÚÒ»Ò³¡£
 */
 static int newDatabase(BtShared *pBt){
   MemPage *pP1;
