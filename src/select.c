@@ -1372,28 +1372,28 @@ static void generateColumnTypes(
 	int i;
 	NameContext sNC;
 	sNC.pSrcList = pTabList;/*将表集合赋值给命名上下文结构体中的表集合属性*/
-	sNC.pParse = pParse;
-	for (i = 0; i < pEList->nExpr; i++){
-		Expr *p = pEList->a[i].pExpr;
+	sNC.pParse = pParse;/*将分析语法树赋值给命名上下文语法树*/
+	for (i = 0; i < pEList->nExpr; i++){/*遍历表达式列表*/
+		Expr *p = pEList->a[i].pExpr;/*将表达式变量赋值给p*/
 		const char *zType;
 #ifdef SQLITE_ENABLE_COLUMN_METADATA/*测试SQLITE_ENABLE_COLUMN_METADATA是否被宏定义过*/
 		const char *zOrigDb = 0;
 		const char *zOrigTab = 0;
 		const char *zOrigCol = 0;
-		zType = columnType(&sNC, p, &zOrigDb, &zOrigTab, &zOrigCol);
+		zType = columnType(&sNC, p, &zOrigDb, &zOrigTab, &zOrigCol);/*将当前的表达式传给columnType，返回列属性类型*/
 
 		/* The vdbe must make its own copy of the column-type and other
 		** column specific strings, in case the schema is reset before this
 		** virtual machine is deleted.
-		** 为防止该虚拟机被删除前架构重设，该VDBE必须做出自己的列式和其他列的特定字符串的副本。
+		** 为防止该虚拟机被删除前架构重设，VDBE必须能复制列类型和其他的自定义列类型，在虚拟机删除之前必须要重置这个模式。
 		*/
-		sqlite3VdbeSetColName(v, i, COLNAME_DATABASE, zOrigDb, SQLITE_TRANSIENT);
-		sqlite3VdbeSetColName(v, i, COLNAME_TABLE, zOrigTab, SQLITE_TRANSIENT);
-		sqlite3VdbeSetColName(v, i, COLNAME_COLUMN, zOrigCol, SQLITE_TRANSIENT);
+		sqlite3VdbeSetColName(v, i, COLNAME_DATABASE, zOrigDb, SQLITE_TRANSIENT);/*返回数据库声明中的第i-1个名*/
+		sqlite3VdbeSetColName(v, i, COLNAME_TABLE, zOrigTab, SQLITE_TRANSIENT);/*返回表声明中的第i-1个名*/
+		sqlite3VdbeSetColName(v, i, COLNAME_COLUMN, zOrigCol, SQLITE_TRANSIENT);/*返回列声明中的第i-1个名*/
 #else
-		zType = columnType(&sNC, p, 0, 0, 0);
+		zType = columnType(&sNC, p, 0, 0, 0);/*返回列属性类型*/
 #endif
-		sqlite3VdbeSetColName(v, i, COLNAME_DECLTYPE, zType, SQLITE_TRANSIENT);
+		sqlite3VdbeSetColName(v, i, COLNAME_DECLTYPE, zType, SQLITE_TRANSIENT);/*返回类型获取声明中的第i-1个名*/
 	}
 #endif /* SQLITE_OMIT_DECLTYPE */
 }
@@ -1406,13 +1406,13 @@ static void generateColumnTypes(
 */
 static void generateColumnNames(
 	Parse *pParse,      /* Parser context   解析上下文 */
-	SrcList *pTabList,  /* List of tables   列表*/
+	SrcList *pTabList,  /* List of tables   表的集合*/
 	ExprList *pEList    /* Expressions defining the result set   输出结果列的语法树*/
 	){
-	Vdbe *v = pParse->pVdbe;
+	Vdbe *v = pParse->pVdbe;/*将语法解析树的VDBE属性赋值给VDBE变量v*/
 	int i, j;
-	sqlite3 *db = pParse->db;
-	int fullNames, shortNames;
+	sqlite3 *db = pParse->db;/*将语法分析树的数据库赋值给数据库连接变量db*/
+	int fullNames, shortNames;/*定义两个参数，第一个是全称，第二个是简写*/
 
 #ifndef SQLITE_OMIT_EXPLAIN
 	/* If this is an EXPLAIN, skip this step    如果这是一个表达式, 跳过这一步 */
@@ -1488,70 +1488,73 @@ static void generateColumnNames(
 */
 static int selectColumnsFromExprList(
 	Parse *pParse,          /* Parsing context 解析上下文 */
-	ExprList *pEList,       /* Expr list from which to derive column names 从中派生Expr列表*/
+	ExprList *pEList,       /* Expr list from which to derive column names 来自于列名的表达式列表*/
 	int *pnCol,             /* Write the number of columns here 把列的数量写在这里*/
 	Column **paCol          /* Write the new column list here 把新列列表写在这里*/
 	){
-	sqlite3 *db = pParse->db;   /* Database connection 连接数据库*/
+	sqlite3 *db = pParse->db;   /* Database connection 声明一个数据库连接*/
 	int i, j;                   /* Loop counters 循环计数器*/
 	int cnt;                    /* Index added to make the name unique 索引的添加使名称唯一*/
-	Column *aCol, *pCol;        /* For looping over result columns 在结果列中循环*/
-	int nCol;                   /* Number of columns in the result set 在结果集中的列数*/
-	Expr *p;                    /* Expression for a single result column 一个结果列的表达式*/
+	Column *aCol, *pCol;        /* For looping over result columns 循环结束的结果列*/
+	int nCol;                   /* Number of columns in the result set 结果集中列的总数*/
+	Expr *p;                    /* Expression for a single result column 一个单独结果列的表达式*/
 	char *zName;                /* Column name 列名*/
-	int nName;                  /* Size of name in zName[]  在zName[]中名称的大小*/
+	int nName;                  /* Size of name in zName[]  存放列名的数组的长度*/
 
-	if (pEList){
-		nCol = pEList->nExpr;
-		aCol = sqlite3DbMallocZero(db, sizeof(aCol[0])*nCol);
-		testcase(aCol == 0);
+	if (pEList){/*如果来自于列名的表达式列表存在*/
+		nCol = pEList->nExpr;/*结果集中列的总数等于表达式列表中表达式的个数*/
+		aCol = sqlite3DbMallocZero(db, sizeof(aCol[0])*nCol);/*对循环结束的结果列的初始化。分配并清空内存，分配大小为第二个参数的内存*/
+		testcase(aCol == 0);/*测试总数是否为0*/
 	}
 	else{
-		nCol = 0;
-		aCol = 0;
+		nCol = 0;/*否则定义列数为0*/
+		aCol = 0;/*循环结束的结果集的列数为0*/
 	}
-	*pnCol = nCol;
-	*paCol = aCol;
+	*pnCol = nCol;/*写列名等于列名*/
+	*paCol = aCol;/*写列表名等于结果列名*/
 
-	for (i = 0, pCol = aCol; i < nCol; i++, pCol++){
+	for (i = 0, pCol = aCol; i < nCol; i++, pCol++){/*遍历所有的结果列*/
 		/* Get an appropriate name for the column
-		** 得到一个适当的列的名称
+		**给列取一个合适的名字
 		*/
-		p = pEList->a[i].pExpr;
+		p = pEList->a[i].pExpr;/*表达式中第i-1个表达式为p*/
 		assert(p->pRight == 0 || ExprHasProperty(p->pRight, EP_IntValue)
 			|| p->pRight->u.zToken == 0 || p->pRight->u.zToken[0] != 0);
-		if ((zName = pEList->a[i].zName) != 0){
+			/*插入断点，表达式的右子节点是否为空或表达式的右子节点值是否为int或表达式的右子节点的标记值为0或右子节点的第一个标记值不为0*/
+		if ((zName = pEList->a[i].zName) != 0){/*如果列名和表达式中列名不同*/
 			/* If the column contains an "AS <name>" phrase, use <name> as the name
 			**如果列包含一个“AS <name>”短语,使用<name>作为名称
 			*/
-			zName = sqlite3DbStrDup(db, zName);
+			zName = sqlite3DbStrDup(db, zName);/*copy数据库连接中的列名（实质上copy此时在内存中列名字符串）赋值给列名*/
 		}
 		else{
 			Expr *pColExpr = p;  /* The expression that is the result column name 结果列名称的表达式*/
 			Table *pTab;         /* Table associated with this expression 与表达式相关的表*/
-			while (pColExpr->op == TK_DOT){
-				pColExpr = pColExpr->pRight;
-				assert(pColExpr != 0);
+			while (pColExpr->op == TK_DOT){/*直到结果列名的表达式的操作为TK_DOT*/
+				pColExpr = pColExpr->pRight;/*赋值结果列名的右子节点给结果列名，这个是递归的过程*/
+				assert(pColExpr != 0);/*插入断点，判断结果列名不为0*/
 			}
-			if (pColExpr->op == TK_COLUMN && ALWAYS(pColExpr->pTab != 0)){
-				/* For columns use the column name name 对于使用了列名的列*/
-				int iCol = pColExpr->iColumn;
-				pTab = pColExpr->pTab;
-				if (iCol < 0) iCol = pTab->iPKey;
+			if (pColExpr->op == TK_COLUMN && ALWAYS(pColExpr->pTab != 0)){/*如果结果列名表达式的操作为TK_COLUMN，并且表达式对应的表不为空*/
+			/* For columns use the column name name */
+			/* 列使用列名命名*/
+				int iCol = pColExpr->iColumn;/*将表达式的列赋值给iCol*/
+				pTab = pColExpr->pTab;/*表达式对应的表赋值给pTab*/
+				if (iCol < 0) iCol = pTab->iPKey;/*如果iCol小于0，令iCol的值为表的主键*/
 				zName = sqlite3MPrintf(db, "%s",
-					iCol >= 0 ? pTab->aCol[iCol].zName : "rowid");
+					iCol >= 0 ? pTab->aCol[iCol].zName : "rowid");/*打印表的列名，并赋值给zName*/
 			}
-			else if (pColExpr->op == TK_ID){
-				assert(!ExprHasProperty(pColExpr, EP_IntValue));
-				zName = sqlite3MPrintf(db, "%s", pColExpr->u.zToken);
+			else if (pColExpr->op == TK_ID){/*如果表达式的操作为TK_ID*/
+				assert(!ExprHasProperty(pColExpr, EP_IntValue));/*插入断点，判断结果列名的表达式是否有Int值，因为使用了“ID”*/
+				zName = sqlite3MPrintf(db, "%s", pColExpr->u.zToken);/*打印结果列名的表达式的标记值，并赋值给zName*/
 			}
 			else{
-				/* Use the original text of the column expression as its name 使用的列表达式的原始文本作为它的名字*/
-				zName = sqlite3MPrintf(db, "%s", pEList->a[i].zSpan);
+				/* Use the original text of the column expression as its name 
+				使用的列表达式的原始文本作为它的名字*/
+				zName = sqlite3MPrintf(db, "%s", pEList->a[i].zSpan);/*打印来自于列名的表达式列表的原文，并赋值给zName*/
 			}
 		}
-		if (db->mallocFailed){
-			sqlite3DbFree(db, zName);
+		if (db->mallocFailed){/*分配内存出错*/
+			sqlite3DbFree(db, zName);/*释放数据库连接中的列名*/
 			break;
 		}
 
