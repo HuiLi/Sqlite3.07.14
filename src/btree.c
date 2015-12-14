@@ -17,8 +17,7 @@
 */
 /*
 【潘光珍】
-这个文件使用来实现外部(基于磁盘)数据库
-在"btreeInt.h"文件里附加一些需要调用的方法。 
+这个文件使用来实现外部(基于磁盘)数据库在"btreeInt.h"文件里附加一些需要调用的方法。 
 包括文件格式的描述和操作的概述。
 */
 #include "btreeInt.h"
@@ -41,11 +40,10 @@ static const char zMagicHeader[] = SQLITE_FILE_HEADER;
 */
 /*
 【潘光珍】这是一个宏指令，它将全局变量设置为1，如果是0，就定义一个整形的追踪树，
-并赋值为1；然后定义一个追踪函数，如果sqlite3BtreeTrace为真，就进行追踪。
-否则一开始就为真的话，就进行追踪。
+并赋值为1；然后定义一个追踪函数，如果sqlite3BtreeTrace为真，就进行追踪。否则一开始就为真的话，就进行追踪。
 */
 #if 0
-int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示可以追踪 *///【潘光珍】是true，则追踪
+int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示可以追踪 *///【潘光珍】如果是true，则追踪
 # define TRACE(X)  if(sqlite3BtreeTrace){printf X;fflush(stdout);}
 #else
 # define TRACE(X)
@@ -88,9 +86,8 @@ int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示可以追踪 
 所以为了测试我们把它变为全局变量。访问这个由SQLITE_MUTEX_STATIC_MASTER保护的变量。
 */
 /*
-【潘光珍】** btree结构中最主要包含一个BtShared结构，该结构有权限访问共享缓存，
-这个变量构建时有一个文件作用域，但是测试工具需要访问这个变量，因此
-我们为了测试就把这个变量变成全局变量。访问这个变量时，会受SQLITE_MUTEX_STATIC_MASTER保护
+【潘光珍】** btree结构中最主要包含一个BtShared结构，该结构有权限访问共享缓存，这个变量构建时有一个文件作用域，
+但是测试工具需要访问这个变量，因此我们为了测试就把这个变量变成全局变量。访问这个变量时，会受SQLITE_MUTEX_STATIC_MASTER保护
 */
 #ifdef SQLITE_TEST
 BtShared *SQLITE_WSD sqlite3SharedCacheList = 0;
@@ -190,8 +187,8 @@ assert（hasSharedCacheTableLock（pBtree，iRoot，0，WRITE_LOCK））;
 这也是可以接受的。
 */
 /*
-【潘光珍】这个函数仅仅是作为一个assert()语句的一部分。
-检查pBtree拥有所需的锁读或写iRoot与根表页面。如果是真的则返回1，否则返回0。
+【潘光珍】这个函数仅仅是作为一个assert()语句的一部分。检查pBtree拥有所需的锁读或写iRoot与根表页面。
+如果是真的则返回1，否则返回0。
 例如,当写入表根页iRoot通过Btree连接pBtree:
 assert(hasSharedCacheTableLock(WRITE_LOCK pBtree iRoot 0));
 当编写一个索引,驻留在共享数据库,调用者应该首先获得一个锁指定相应的根页表。
@@ -217,6 +214,9 @@ static int hasSharedCacheTableLock(
   如果该数据库是非共享的，或者如果客户端正在读并且具有读未提交的标志设置，则不需要锁。
   立即返回true。
   */
+   /*
+  如果这个数据库不是可共享的,或者客户端在读,读未提交的标记设置,然后不需要锁。立即返回true。
+  */
   
   if( (pBtree->sharable==0)
    || (eLockType==READ_LOCK && (pBtree->db->flags & SQLITE_ReadUncommitted))
@@ -237,7 +237,7 @@ static int hasSharedCacheTableLock(
 这种情况并不经常出现。
   */
   if( isIndex && (!pSchema || (pSchema->flags&DB_SchemaLoaded)==0) ){
-    return 1;
+    return 1; //返回真
   }
 
   /* Figure out the root-page that the lock should be held on. For table
@@ -355,7 +355,7 @@ static int hasReadConflicts(Btree *pBtree, Pgno iRoot){
 【潘光珍】查询，判断B树句柄p是否能在iTab根页的表上获取eLock类型的锁（读锁或者是写锁）
 如果通过调用 setSharedCacheTableLock（），可以获得锁，返回SQLITE_OK。否则返回SQLITE_LOCKED。
 */
-static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
+static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){//定义一个查询共享缓存表锁的函数
   BtShared *pBt = p->pBt;
   BtLock *pIter;    //【王】pIterB树上的锁指针变量
 
@@ -423,7 +423,7 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
         assert( p==pBt->pWriter );
         pBt->btsFlags |= BTS_PENDING;
       }
-      return SQLITE_LOCKED_SHAREDCACHE;
+      return SQLITE_LOCKED_SHAREDCACHE; //返回共享缓存锁
     }
   }
   return SQLITE_OK;
@@ -470,7 +470,7 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
 已经被调用并返回SQLITE_OK)。
 如果锁添加成功则返回SQLITE_OK。如果malloc尝试失败则返回SQLITE_NOMEM。
 */
-static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
+static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){//设置共享缓存表锁的函数
   BtShared *pBt = p->pBt;
   BtLock *pLock = 0;
   BtLock *pIter;
@@ -502,7 +502,7 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   /*
  【潘光珍】在确定没有其他B树持有冲突的锁后，这个函数只能调用一个可分享的B树。
 	  */
-  assert( p->sharable );
+  assert( p->sharable );//指向共享的b树
   assert( SQLITE_OK==querySharedCacheTableLock(p, iTable, eLock) );/*有锁*/
 
   /* First search the list for an existing lock on this table. */
@@ -3744,7 +3744,7 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执行
       if( rc!=SQLITE_OK ){
         return rc;//返回btreeGetPage()函数
       }
-/*以上是潘光珍做的*/
+/*以上是潘光珍做的*/ 
       /* If nFin is zero, this loop runs exactly once and page pLastPg
       ** is swapped with the first free page pulled off the free list.
       ** 如果nFin是零,这循环正好运行一次和页面pLastPg将与在空闲列表页中的第一个空闲页交换。
