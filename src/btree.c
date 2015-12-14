@@ -3262,6 +3262,24 @@ static int newDatabase(BtShared *pBt){
 ** 假设有两个进程A和B，A有一个读锁和B有reserved锁。B试图获得互斥但因为A的读锁被锁。A试图促进保留但被B锁。
 ** 一个或两个进程必须给其他的方式或者没有进程。当A已经有过一个读锁时返回SQLITE_BUSY而不是调用忙,尽量让A放弃，让B持有。
 */
+/*
+【潘光珍】**尝试启动新的事务。如果另一个参数为非零，则为非零，则为读事务。
+如果二个参数是2个或多个，并且独占事务被启动，这意味着没有其他进程可以访问数据库。
+一个已经存在的事务可能无法通过调用这个例程第二次——排它标志只能用于一个新的事务升级为独家。
+**在尝试更改数据库之前，必须先开始写事务处理。没有下列例程将工作，除非一个事务是开始的：
+**      sqlite3BtreeCreateTable()
+**      sqlite3BtreeCreateIndex()
+**      sqlite3BtreeClearTable()
+**      sqlite3BtreeDropTable()
+**      sqlite3BtreeInsert()
+**      sqlite3BtreeDelete()
+**      sqlite3BtreeUpdateMeta()
+**如果最初的尝试获得锁由于锁争用失败和数据库是先前解锁的，如果有一个数据库，则调用这个繁忙的处理程序。
+但是如果有以前读锁，不调用处理程序只返回SQLITE_BUSY。SQLITE_BUSY返回时，已经有一个读锁，以避免死锁。
+**假设有两个进程A和B。A具有读锁和B具有保留的锁。B试图促进独占但受阻是因为一个读锁，A试图推广到保留但被B阻止。
+一个或另一个进程必须让路或有没有进展。返回SQLITE_BUSY不调用回调时忙已经有一个读锁，我们放弃A让B进行。
+
+*/
 int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事务，否则开始读事务
   sqlite3 *pBlock = 0;
   BtShared *pBt = p->pBt;
@@ -3276,11 +3294,14 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事务，否则
   ** is requested, this is a no-op.
   ** 如果btree已经在写事务中,或者它已在读事务中并且读事务被请求,那么这是一个空操作。
   */
+  /*
+如果B树已经在写事务，或是已经在读事务和请求读取事务，这是一个空操作。
+*/
   if( p->inTrans==TRANS_WRITE || (p->inTrans==TRANS_READ && !wrflag) ){
     goto trans_begun;
   }
 
-  /* Write transactions are not possible on a read-only database */ //写事务不可能在一个只读的数据库上
+  /* Write transactions are not possible on a read-only database */ //写事务不可能在一个只读的数据库上 /*【潘光珍】在只读数据库中写入事务是不可能的*/
   if( (pBt->btsFlags & BTS_READ_ONLY)!=0 && wrflag ){
     rc = SQLITE_READONLY;
     goto trans_begun;
@@ -3291,6 +3312,9 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事务，否则
   ** on this shared-btree structure and a second write transaction is
   ** requested, return SQLITE_LOCKED.
   ** 如果另一个数据库处理程序已经在这shared-btree结构开启了写事务并且请求第二个写事务,则返回SQLITE_LOCKED。
+  */
+  /*
+  【潘光珍】如果一个数据库句柄已开通写事务在这共享的B树结构和请求第二个写事务，则返回SQLITE_LOCKED。
   */
   if( (wrflag && pBt->inTransaction==TRANS_WRITE)
    || (pBt->btsFlags & BTS_PENDING)!=0
@@ -3316,7 +3340,9 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事务，否则
   ** page 1. So if some other shared-cache client already has a write-lock 
   ** on page 1, the transaction cannot be opened. 
   ** 任何只读或读写事务意味着在页1上有读锁。如果其他共享缓存客户端在页1上已经有一个写锁,那么事务不能被开启。*/
-  
+  /*
+ 【潘光珍】 任何只读或读写事务意味着读锁页为1。因此，如果一些其他共享缓存客户端已经有一个写锁页为1，则该事务不能被打开。
+  */
   rc = querySharedCacheTableLock(p, MASTER_ROOT, READ_LOCK);
   if( SQLITE_OK!=rc ) goto trans_begun;
 
@@ -3333,6 +3359,11 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事务，否则
 	** lockBtree()可能返回SQLITE_OK但赋pBt->pPage1为0 ，如果读第1页后发现数据库文件页面大小不是pBt->pageSize。
 	** 在这种情况下lockBtree()将更新pBt->pageSize的大小为磁盘上文件的页大小。
     */
+	  /*
+	 【潘光珍】 调用lockBtree()函数直到pBt->pPage1被填充或者lockBtree()函数返回SQLITE_OK以外的内容。
+	  lockbtree()函数可能返回SQLITE_OK但是pBt->pPage1设置为0如果读的页为1发现页面大小的 数据库文件不是pBt->pageSize。
+	  在这种情况下lockbtree()将更新pBt->pageSize的页面文件大小的磁盘上。
+	  */
     while( pBt->pPage1==0 && SQLITE_OK==(rc = lockBtree(pBt)) );
 
     if( rc==SQLITE_OK && wrflag ){
@@ -3385,6 +3416,10 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事务，否则
 	  ** 如果db-size头字段不正确(如果一个旧客户端一直在写数据库文件，则这种情况可能发生),则立即更新。
 	  ** 更新宜早不宜迟，因为如果一个保存点或事务在事务中发生回滚，数据库大小可以从第1页安全地重读。
       */
+	  /*
+	 【潘光珍】 如果数据库大小的头部是错误的(因为这可能是一个旧客户写数据库文件),则马上更新。
+	  这样做迟早意味着，如果一个保存点回滚或事务发生在事务数据库大小可以安全地重新读取数据库大小页为1。
+	  */
       if( pBt->nPage!=get4byte(&pPage1->aData[28]) ){
         rc = sqlite3PagerWrite(pPage1->pDbPage);/*更新db-size的头字段*/
         if( rc==SQLITE_OK ){
@@ -3402,6 +3437,9 @@ trans_begun:
     ** the sub-journal is not already open, then it will be opened here.
 	** 这个调用确保pager有正确的开放性保存点数目。如果第二个参数大于0并且sub-journal没有打开,那么它将被打开。
     */
+	  /*
+	  【潘光珍】这个调用保证页缓冲区具有开放的保存点正确的数量。如果二个参数大于0和sub-journal不是已经打开，那么它将在这里打开。
+	  */
     rc = sqlite3PagerOpenSavepoint(pBt->pPager, p->db->nSavepoint);/*wrflag>0,打开保存点*/
   }
 
@@ -3417,9 +3455,12 @@ trans_begun:
 ** map entries for the overflow pages as well.
 ** 对页pPage的所有孩子节点设置指针映射条目。如果pPage包含指向溢出页的指针的单元，也对溢出页设置指针映射条目。
 */
+/*
+【潘光珍】设置指针位图为pPage所有孩子页。同时，如果pPage包含指向溢出页的单元，设置溢出页的指针位图。
+*/
 static int setChildPtrmaps(MemPage *pPage){
   int i;                             /* Counter variable */    //计数器变量
-  int nCell;                         /* Number of cells in page pPage */  //在页pPage中的单元的数量
+  int nCell;                         /* Number of cells in page pPage */  //在页pPage中的单元的数量  /* 【潘光珍】本页的单元数*/
   int rc;                            /* Return code */    //返回值变量
   BtShared *pBt = pPage->pBt;
   u8 isInitOrig = pPage->isInit;
@@ -3467,6 +3508,12 @@ set_child_ptrmaps_out:
 ** PTRMAP_OVERFLOW2: pPage is an overflow-page. The pointer points at the next
 **                   overflow page in the list.
 */                   //指针指向列表中的下一个溢出页面
+/*
+【潘光珍】**从pPage指向iFrom页。修改该指针使其指向ITO。参数eType描述要修改指针的类型，如下：
+** PTRMAP_BTREE: pPage是b树页，这个指针指向子页的pPage。
+** PTRMAP_OVERFLOW1:pPage是b树页。指针指向一个溢出页指着由一个在pPage的单元格。
+** PTRMAP_OVERFLOW2:pPage是溢出页。该指针指向列表中的下一个溢出页。
+*/
 static int modifyPagePointer(MemPage *pPage, Pgno iFrom, Pgno iTo, u8 eType){
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
@@ -3526,11 +3573,16 @@ static int modifyPagePointer(MemPage *pPage, Pgno iFrom, Pgno iTo, u8 eType){
 ** page.
 ** isCommit标志表示在数据库页pDbPage->pgno可能被写之前日志需要sync()同步没有必要记录。调用者不去写那个页。
 */
+/*
+【潘光珍】**将打开的数据库页pDbPage数据库中的位置iFreePage。pDbPage仍然有效的参考。
+**isCommit标志表示不需要记住日志而需要sync() ED在数据库页面pDbPage->pgno 
+可以写。调用者已经答应不写该页面。
+*/
 static int relocatePage(
   BtShared *pBt,           /* Btree */               //B树
   MemPage *pDbPage,        /* Open page to move */   //要移动的开放性页
-  u8 eType,                /* Pointer map 'type' entry for pDbPage */    //pDbPage指针映射类型条目
-  Pgno iPtrPage,           /* Pointer map 'page-no' entry for pDbPage */ //pDbPage指针映射'page-no'条目
+  u8 eType,                /* Pointer map 'type' entry for pDbPage */    //pDbPage指针映射类型条目 /*【潘光珍】pDbPage指针位图'type'*/
+  Pgno iPtrPage,           /* Pointer map 'page-no' entry for pDbPage */ //pDbPage指针映射'page-no'条目//【潘光珍】pDbPage指针位图'page-no'
   Pgno iFreePage,          /* The location to move pDbPage to */         //移动pDbPage到的位置
   int isCommit             /* isCommit flag passed to sqlite3PagerMovepage */  //传递给sqlite3PagerMovepage的isCommit标志
 ){
@@ -3546,7 +3598,7 @@ static int relocatePage(
 
   /* Move page iDbPage from its current location to page number iFreePage */ //从当前位置移动页面iDbPage到页码iFreePage
   TRACE(("AUTOVACUUM: Moving %d to free page %d (ptr page %d type %d)\n", 
-      iDbPage, iFreePage, iPtrPage, eType));
+      iDbPage, iFreePage, iPtrPage, eType));//【潘光珍】iDbPage从当前位置移动到iFreePage页数上
   rc = sqlite3PagerMovepage(pPager, pDbPage->pDbPage, iFreePage, isCommit);
   if( rc!=SQLITE_OK ){
     return rc;
@@ -3561,6 +3613,10 @@ static int relocatePage(
   ** pointer to a subsequent overflow page. If this is the case, then
   ** the pointer map needs to be updated for the subsequent overflow page.
   ** 如果pDbPage是一个溢出页,那么第一个4字节存储一个指向后续溢出页的指针。如果是这种情况,那么指针映射需要随后继溢出页面更新。
+  */
+  /*
+  【潘光珍】**如果pDbPage是B树页，那么它可能有子页面和/或单元格指向溢出页。所有这些页的指针位图需要更改。
+  **如果pDbPage是溢出页，然后第一个4字节可以存储一个指向随后溢出页。如果是这样的情况，则该指针位图需要为随后的溢出页进行更新。
   */
   if( eType==PTRMAP_BTREE || eType==PTRMAP_ROOTPAGE ){
     rc = setChildPtrmaps(pDbPage);
@@ -3581,6 +3637,9 @@ static int relocatePage(
   ** that it points at iFreePage. Also fix the pointer map entry for
   ** iPtrPage.
   ** 固定数据库指针到页iPtrPage上，该页指向iDbPage,以便它指向iFreePage。同时对于iPtrPage，固定指针映射条目。
+  */
+   /*
+ 【潘光珍】 修改数据库指针iPtrPage页指向iDbPage使它指向iFreePage。并且还将修改iPtrPage指针位图。
   */
   if( eType!=PTRMAP_ROOTPAGE ){
     rc = btreeGetPage(pBt, iPtrPage, &pPtrPage, 0);
@@ -3625,6 +3684,12 @@ static int allocateBtreePage(BtShared *, MemPage **, Pgno *, Pgno, u8);
 ** 在进程完成之后将被包含。如果nFin是零,它假定incrVacuumStep()将被调用有限次，freelist可能会或可能不会空。
 ** 一个完整的autovacuum有nFin>0。一个"PRAGMA incremental_vacuum"有nFin==0。
 */
+/*
+【潘光珍】**单独执行一个渐进的incremental-vacuum。如果成功，返回SQLITE_OK。如果没有工作要做（因此再次调用这个函数没有点），返回SQLITE_DONE。
+**更具体地说，这个函数试图重新组织数据库，最后一页的文件正在使用不再使用。
+**如果nFin参数不为零，这个函数假定调用者会一直调用incrVacuumStep()直到返回SQLITE_DONE或错误，并且nFin是网页数据库文件将包含在这个过程中的数量是完整的。如果nFin是零，它是假定incrVacuumStep()
+将被称为一个有限的时间，可能会或可能不会空自由列表。
+*/
 static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执行一个单独的incremental-vacuum步骤。
   Pgno nFreeList;           /* Number of pages still on the free-list */  //仍在空闲列表的页面数
   int rc;
@@ -3658,14 +3723,18 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执行
 		** 删除文件空闲列表的页面。如果nFin是非零的则这不是必需的。在这种情况下,空闲列表在这个函数返回后截断为零,
 		** 所以如果它还包含了一些垃圾条目也没有问题。
         */
+		   /*
+		  从“文件”空闲列表中删除该页。如果nFin是非零。在这种情况下，此函数返回后，空闲列表将被截断为零，
+		  因此，如果它仍然包含一些没有用的信息，是没有关系的。
+		  */
         Pgno iFreePg;
         MemPage *pFreePg;
         rc = allocateBtreePage(pBt, &pFreePg, &iFreePg, iLastPg, 1);
         if( rc!=SQLITE_OK ){
-          return rc;
+          return rc;//返回allocateBtreePage()函数
         }
         assert( iFreePg==iLastPg );
-        releasePage(pFreePg);
+        releasePage(pFreePg);//调用释放页的函数
       }
     } else {
       Pgno iFreePg;             /* Index of free page to move pLastPg to */  //移动pLastPg所要到的空闲页的索引
@@ -3673,9 +3742,9 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执行
 
       rc = btreeGetPage(pBt, iLastPg, &pLastPg, 0);
       if( rc!=SQLITE_OK ){
-        return rc;
+        return rc;//返回btreeGetPage()函数
       }
-
+/*以上是潘光珍做的*/
       /* If nFin is zero, this loop runs exactly once and page pLastPg
       ** is swapped with the first free page pulled off the free list.
       ** 如果nFin是零,这循环正好运行一次和页面pLastPg将与在空闲列表页中的第一个空闲页交换。
