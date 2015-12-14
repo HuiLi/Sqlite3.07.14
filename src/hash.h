@@ -64,10 +64,10 @@ hash.htsize和hash.ht可能是零。在这种情况下查找由全局线性搜�
 
 */
 struct Hash {
-  unsigned int htsize;      /* Number of buckets in the hash table *///无符号短整型，当使用哈希表存储时，哈希表中桶的数量
-  unsigned int count;       /* Number of entries in this table *///无符号短整型，哈希表中入口项的个数(记录的个数)
-  HashElem *first;          /* The first element of the array *///HashElem 类型，哈希元素指针，指向入口项双向链表的表头
-  struct _ht {              /* the hash table */
+  unsigned int htsize;      /* Number of buckets in the hash table *//*哈希表中桶的数量*/
+  unsigned int count;       /* Number of entries in this table *//*哈希表中入口项的个数(记录的个数)*/
+  HashElem *first;          /* The first element of the array *//*HashElem 类型，哈希元素指针，指向入口项双向链表的表头*/
+  struct _ht {              /* the hash table *//*Hash表*/
     int count;                 /* Number of entries with this hash *//*其中 count成员变量记录本桶中记录的数量*/
     HashElem *chain;           /* Pointer to first entry with this hash *//* chain指向桶内记录链表的表头，哈希表使用的冲突消解策略是链表*/
   } *ht; /*_ht 结构指针,哈希表存储结构，当使用哈希表存储时，将表现为一个桶的数组,含有两个成员变量*/
@@ -116,9 +116,9 @@ void sqlite3HashClear(Hash*);/*将哈希表中所有的入口项删除，就是�
 /*
 哈希表的所有宏定义，定义是这样的：
 */
-#define sqliteHashFirst(H)  ((H)->first)
-#define sqliteHashNext(E)   ((E)->next)
-#define sqliteHashData(E)   ((E)->data)
+#define sqliteHashFirst(H)  ((H)->first)/*头指针*/
+#define sqliteHashNext(E)   ((E)->next)/*尾指针*/
+#define sqliteHashData(E)   ((E)->data)/*数据*/
 /* #define sqliteHashKey(E)    ((E)->pKey) // NOT USED */
 /* #define sqliteHashKeysize(E) ((E)->nKey)  // NOT USED */
 
