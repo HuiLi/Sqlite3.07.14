@@ -3065,17 +3065,17 @@ static void usage(int showDetail){
 
 /*初始化数据的状态信息*/
 static void main_init(struct callback_data *data) {/*其参数为结构体回显指针*/
-  memset(data, 0, sizeof(*data));
-  data->mode = MODE_List;
-  memcpy(data->separator,"|", 2);
-  data->showHeader = 0;
-  sqlite3_config(SQLITE_CONFIG_URI, 1);
+  memset(data, 0, sizeof(*data));//清零 sizeof(*data),指针data所占内存的字节数 4
+  data->mode = MODE_List;//设置数据库的输出模式为list
+  memcpy(data->separator,"|", 2);//从源"|"所指的内存地址的起始位置开始拷贝2个字节到目标data->separator所指的内存地址的起始位置中
+  data->showHeader = 0;//不显示列名
+  sqlite3_config(SQLITE_CONFIG_URI, 1);//非零启用，所有文件名传递给sqlite3_open(),sqlite3_open_v2(),sqlite3_open16()
   /*sqlite3_config() 用于更改全局变量让SQLite 适应应用的具体需要。
   它支持少数的应用不常见的需求。*/
   sqlite3_config(SQLITE_CONFIG_LOG, shellLog, data);
-  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt,"sqlite> ");
-  sqlite3_snprintf(sizeof(continuePrompt), continuePrompt,"   ...> ");
-  sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
+  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt,"sqlite> ");//char mainPrompt[20],mainPrompt的初始值为sqlite>.最多从源串中拷贝sizeof(mainPrompt)－1个字符到目标串中，然后再在后面加一个0。
+  sqlite3_snprintf(sizeof(continuePrompt), continuePrompt,"   ...> ");//延续提示continuePrompt[20]，continuePrompt的初始值为...>
+  sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);//这个选项设置单线程的线程模式。换句话说,它禁用所有互斥锁并将SQLite数据放入一个模式,它只能由一个线程使用。
 }
 
 /*
@@ -3090,23 +3090,25 @@ static void main_init(struct callback_data *data) {/*其参数为结构体回显
 int main(int argc, char **argv){
   char *zErrMsg = 0;/*声明一个存放错误信息的指针*/
   struct callback_data data;//声明回显参数
-  const char *zInitFile = 0;
-  char *zFirstCmd = 0;
+  const char *zInitFile = 0;//文件初始化
+  char *zFirstCmd = 0;//接收命令
   int i;
-  int rc = 0;
+  int rc = 0; //一个标志位
 
   if( strcmp(sqlite3_sourceid(),SQLITE_SOURCE_ID)!=0 ){/*比较数据库版本号是否相同*/
     fprintf(stderr, "SQLite header and source version mismatch\n%s\n%s\n",//数据库版本不匹配
             sqlite3_sourceid(), SQLITE_SOURCE_ID);
     exit(1);
   }
-  Argv0 = argv[0];
+  Argv0 = argv[0];// argv[]是argc个参数，其中第0个参数是程序的全名，以后的参数 
   main_init(&data);//设置默认的回显形式
-  stdin_is_interactive = isatty(0);
+  stdin_is_interactive = isatty(0);//如果返回值为1则可以进行交互式输入，否则交换输入是管道或者文件，isatty函数判断其是不是设备
 
   /* 完成以前，确保 有一个有效的信号处理程序 */
 #ifdef SIGINT
   signal(SIGINT, interrupt_handler);//用户按下Ctrl-C键,发出中断信号
+  //signal函数的原型void (*signal(int signo, void (*handler)(int)))(int);
+  //当随后出现信号当随后出现信号SIGINT时，就中断正在执行的操作，转而执行信号处理函数interrupt_handler(SIGINT)。如果从信号处理程序中返回，则从中断的位置继续执行。
 #endif
 
  /* 
@@ -3119,7 +3121,7 @@ int main(int argc, char **argv){
     if( argv[i][0]!='-' ) break;// 如果某行的第一个字符不是'-' 则跳出当前循环。
     z = argv[i];//指针Z是行指针
     if( z[1]=='-' ) z++;
-    if( strcmp(z,"-separator")==0
+    if( strcmp(z,"-separator")==0//判断输入的命令中是否有-separator||-nullvalue||-cmd
      || strcmp(z,"-nullvalue")==0
      || strcmp(z,"-cmd")==0
     ){//若与上述字符串中的某个匹配，则执行以下程序段
@@ -3134,7 +3136,7 @@ int main(int argc, char **argv){
 **以便我们能够避免打印信息（就像来自sqliterc 进程）。
    */
     }else if( strcmp(z,"-batch")==0 ){/*比较字符串*/
-      stdin_is_interactive = 0;
+      stdin_is_interactive = 0;//文件或者管道进行交互
     }else if( strcmp(z,"-heap")==0 ){/*比较字符串*/
 #if defined(SQLITE_ENABLE_MEMSYS3) || defined(SQLITE_ENABLE_MEMSYS5)
       int j, c;
@@ -3173,7 +3175,7 @@ int main(int argc, char **argv){
     }else if( strcmp(z,"-vfs")==0 ){
       sqlite3_vfs *pVfs = sqlite3_vfs_find(argv[++i]);
       if( pVfs ){
-        sqlite3_vfs_register(pVfs, 1);
+		  sqlite3_vfs_register(pVfs, 1);	//使用sqlite3_vfs_register()接口,通过注册或更改默认VFS re - registering VFS 
       }else{
         fprintf(stderr, "no such VFS: \"%s\"\n", argv[i]);
         exit(1);
@@ -3184,20 +3186,20 @@ int main(int argc, char **argv){
     data.zDbFilename = argv[i++];//数据库文件名
   }else{
 #ifndef SQLITE_OMIT_MEMORYDB
-    data.zDbFilename = ":memory:";
+    data.zDbFilename = ":memory:";//如果没有给出数据库名则选用默认的数据库:memory:
 #else
     data.zDbFilename = 0;
 #endif
   }
   if( i<argc ){
-    zFirstCmd = argv[i++];
+    zFirstCmd = argv[i++];//将命令行的命令赋值给zFirstCmd 
   }
   if( i<argc ){
-    fprintf(stderr,"%s: Error: too many options: \"%s\"\n", Argv0, argv[i]);
+    fprintf(stderr,"%s: Error: too many options: \"%s\"\n", Argv0, argv[i]);//输出错误信息
     fprintf(stderr,"Use -help for a list of options.\n");
     return 1;
   }
-  data.out = stdout;
+  data.out = stdout;	//它就是一个文件，而这个文件和标准输出设备(屏幕)建立了某种关联，当数据写到这个文件里面的时候，屏幕就会通过既定的方式把你写进去的东西显示出来
 
 #ifdef SQLITE_OMIT_MEMORYDB
   if( data.zDbFilename==0 ){//data.zDbFilename的值为0，则执行如下操作
@@ -3212,8 +3214,9 @@ int main(int argc, char **argv){
 **如果该文件不存在，延迟打开它。
 **防止空数据库文件在用户错误输入数据库名称参数的时候被创建。
   */
-  if( access(data.zDbFilename, 0)==0 ){
-    open_db(&data);
+  if( access(data.zDbFilename, 0)==0 ){//access函数确定文件或文件夹的访问权限。即，检查某个文件的存取方式，比如说是只读方式、只写方式等。
+			                           //如果指定的存取方式有效，则函数返回0，否则函数返回-1。
+    open_db(&data);//打开数据库
   }
 
   /*
