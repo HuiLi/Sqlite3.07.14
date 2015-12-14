@@ -3476,7 +3476,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 /*
 **分配和填充一个sqlite3_index_info结构。是调用者的责任最终释放结构通过这个函数返回的指针sqlite3_free().
 */
-static sqlite3_index_info *allocateIndexInfo(
+static sqlite3_index_info *allocateIndexInfo(//分配索引号
   Parse *pParse, 
   WhereClause *pWC,
   struct SrcList_item *pSrc,
@@ -3489,9 +3489,10 @@ static sqlite3_index_info *allocateIndexInfo(
   struct sqlite3_index_constraint_usage *pUsage;
   WhereTerm *pTerm;
   int nOrderBy;
-  sqlite3_index_info *pIdxInfo;
+  sqlite3_index_info *pIdxInfo;//配和填充一个sqlite3_index_info数据结构。
 
-  WHERETRACE(("Recomputing index info for %s...\n", pSrc->pTab->zName));
+  WHERETRACE(("Recomputing index info for %s...\n", pSrc->pTab->zName));//通过sqlite3_free()函数返回的
+
 
   /* Count the number of possible WHERE clause constraints referring 统计与这个虚拟表可能相关联的WHERE子句的个数
   ** to this virtual table */
@@ -3500,14 +3501,14 @@ static sqlite3_index_info *allocateIndexInfo(
   /*
   **如果ORDER BY子句中只包含列当前虚拟表然后分配空间的aOrderBy sqlite3_index_info结构的一部分。
   */
-  for(i=nTerm=0, pTerm=pWC->a; i<pWC->nTerm; i++, pTerm++){
+  for(i=nTerm=0, pTerm=pWC->a; i<pWC->nTerm; i++, pTerm++){// 统计与这个虚拟表可能相关联的WHERE子句的个数
     if( pTerm->leftCursor != pSrc->iCursor ) continue;
     assert( (pTerm->eOperator&(pTerm->eOperator-1))==0 );
     testcase( pTerm->eOperator==WO_IN );
     testcase( pTerm->eOperator==WO_ISNULL );
     if( pTerm->eOperator & (WO_IN|WO_ISNULL) ) continue;
-    if( pTerm->wtFlags & TERM_VNULL ) continue;
-    nTerm++;
+    if( pTerm->wtFlags & TERM_VNULL ) continue;//计算指向这个虚表的可能的WHERE子句约束的数量。
+    nTerm++;//计数
   }
 
   /* If the ORDER BY clause contains only columns in the current 
@@ -3522,14 +3523,14 @@ static sqlite3_index_info *allocateIndexInfo(
   /*
   **如果ORDER BY子句中只包含列当前虚拟表然后分配空间的aOrderBy sqlite3_index_info结构的一部分。
   */
-  nOrderBy = 0;
-  if( pOrderBy ){
+  nOrderBy = 0;//初值设置
+  if( pOrderBy ){//如果ORDER BY子句只包含在当前虚表的列
     for(i=0; i<pOrderBy->nExpr; i++){
-      Expr *pExpr = pOrderBy->a[i].pExpr;
+      Expr *pExpr = pOrderBy->a[i].pExpr;//为sqlite3_index_info数据结构的aOrderBy部分分配空间
       if( pExpr->op!=TK_COLUMN || pExpr->iTable!=pSrc->iCursor ) break;
     }
-    if( i==pOrderBy->nExpr ){
-      nOrderBy = pOrderBy->nExpr;
+    if( i==pOrderBy->nExpr ){//如果ORDER BY子句只包含当前虚表的列，那么为sqlite3_index_info
+      nOrderBy = pOrderBy->nExpr;//结构中的aOrderby部分分配空间。
     }
   }
 
@@ -3540,7 +3541,7 @@ static sqlite3_index_info *allocateIndexInfo(
   /*
   **分配sqlite3_index_info结构。
   */
-  pIdxInfo = sqlite3DbMallocZero(pParse->db, sizeof(*pIdxInfo)
+  pIdxInfo = sqlite3DbMallocZero(pParse->db, sizeof(*pIdxInfo)//结构中的aOrderby部分分配空间。
                            + (sizeof(*pIdxCons) + sizeof(*pUsage))*nTerm
                            + sizeof(*pIdxOrderBy)*nOrderBy );
   if( pIdxInfo==0 ){
@@ -3661,12 +3662,12 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
   int i;
   int rc;
 
-  WHERETRACE(("xBestIndex for %s\n", pTab->zName));
-  TRACE_IDX_INPUTS(p);
-  rc = pVtab->pModule->xBestIndex(pVtab, p);
-  TRACE_IDX_OUTPUTS(p);
+  WHERETRACE(("xBestIndex for %s\n", pTab->zName));//输出虚拟表的名字
+  TRACE_IDX_INPUTS(p);//变量传输调用TRACE_IDX_INPUTS()；
+  rc = pVtab->pModule->xBestIndex(pVtab, p);//rc指针指向最佳索引,唤醒虚拟表中有sqlite3_index_info指针
+  TRACE_IDX_OUTPUTS(p);//变量传输调用TRACE_IDX_INPUTS()；
 
-  if( rc!=SQLITE_OK ){
+  if( rc!=SQLITE_OK ){//如果有错误
     if( rc==SQLITE_NOMEM ){
       pParse->db->mallocFailed = 1;
     }else if( !pVtab->zErrMsg ){
@@ -3675,8 +3676,8 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
       sqlite3ErrorMsg(pParse, "%s", pVtab->zErrMsg);
     }
   }
-  sqlite3_free(pVtab->zErrMsg);
-  pVtab->zErrMsg = 0;
+  sqlite3_free(pVtab->zErrMsg);//释放pVtab->zErrMsg指针
+  pVtab->zErrMsg = 0;//填充剩下的sqlite3_index_info数据结构的输出部分。
 
   for(i=0; i<p->nConstraint; i++){
     if( !p->aConstraint[i].usable && p->aConstraintUsage[i].argvIndex>0 ){
@@ -3685,7 +3686,7 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
     }
   }
 
-  return pParse->nErr;
+  return pParse->nErr;//如果一个错误出现，pParse用一个错误信息填充并且一个非0值
 }
 
 
@@ -3754,14 +3755,14 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   sqlite3_index_info **ppIdxInfo  /* Index information passed to xBestIndex 传人xBestIndex的索引信息 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
-  Table *pTab = pSrc->pTab; //初始化表结构
-  sqlite3_index_info *pIdxInfo; //用于存储选出的索引信息
-  struct sqlite3_index_constraint *pIdxCons;  //用于存储索引约束信息
-  struct sqlite3_index_constraint_usage *pUsage; //用于有用的索引约束
+  Table *pTab = pSrc->pTab; //初始化表结构//初始化表结构
+  sqlite3_index_info *pIdxInfo; //用于存储选出的索引信息//用于存储选出的索引信息
+  struct sqlite3_index_constraint *pIdxCons;  //用于存储索引约束信息//用于存储索引约束信息
+  struct sqlite3_index_constraint_usage *pUsage; //用于有用的索引约束 //用于有用的索引约束
   WhereTerm *pTerm;
-  int i, j; //i是循环计数器，j用于存储
-  int nOrderBy; //Order By中的terms数
-  double rCost; //所需代价
+  int i, j; //i是循环计数器，j用于存储//i是循环计数器，j用于存储
+  int nOrderBy; //Order By中的terms数//Order By中的terms数
+  double rCost; //所需代价//所需代价
 
   /* Make sure wsFlags is initialized to some sane value. Otherwise, if the 
   ** malloc in allocateIndexInfo() fails and this function returns leaving
@@ -3779,8 +3780,8 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   /*
   **确保wsFlags初始化一些健全的价值。否则,如果在allocateIndexInfo malloc()失败,这个函数返回离开wsFlags在未初始化状态,调用者可能不可预知的行为。.
   */
-  memset(pCost, 0, sizeof(*pCost));
-  pCost->plan.wsFlags = WHERE_VIRTUALTABLE;
+  memset(pCost, 0, sizeof(*pCost));//分配内存
+  pCost->plan.wsFlags = WHERE_VIRTUALTABLE;//标志计划是使用虚拟表处理
 =======
   memset(pCost, 0, sizeof(*pCost)); //分配内存
   pCost->plan.wsFlags = WHERE_VIRTUALTABLE; //标志计划是使用虚拟表处理
@@ -3795,10 +3796,10 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   ** 和初始化。
   */
   pIdxInfo = *ppIdxInfo;
-  if( pIdxInfo==0 ){//如果索引信息为被初始化
-    *ppIdxInfo = pIdxInfo = allocateIndexInfo(pParse, pWC, pSrc, pOrderBy);//分配和初始化索引信息
+  if( pIdxInfo==0 ){//如果索引信息为被初始化//如果索引信息为被初始化
+    *ppIdxInfo = pIdxInfo = allocateIndexInfo(pParse, pWC, pSrc, pOrderBy);//分配和初始化索引信息//分配和初始化索引信息
   }
-  if( pIdxInfo==0 ){//如果分配和初始化索引信息失败
+  if( pIdxInfo==0 ){//如果分配和初始化索引信息失败//如果索引信息为被初始化
     return;
   }
 
@@ -3833,11 +3834,11 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   ** 定义模块名。同时，必须有一个指针指向sqlite3_vtab结构，否则
   ** sqlite3ViewColumnNames()可能会出现错误。
   */
-  assert( pTab->azModuleArg && pTab->azModuleArg[0] );
+  assert( pTab->azModuleArg && pTab->azModuleArg[0] );//检验是否定义了模块名
 =======
   assert( pTab->azModuleArg && pTab->azModuleArg[0] ); //检验是否定义了模块名
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
-  assert( sqlite3GetVTable(pParse->db, pTab) );
+  assert( sqlite3GetVTable(pParse->db, pTab) );//指针指向sqlite3GetVTable的数据结构
 
   /* Set the aConstraint[].usable fields and initialize all 
   ** output variables to zero.
