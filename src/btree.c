@@ -2183,6 +2183,12 @@ static void releasePage(MemPage *pPage){
 ** page to agree with the restored data.
 ** 这个程序需要在页面的最后重新设定额外的数据部分以适合恢复数据 */
 /*回滚后，页重新装information到cache。*/
+
+/*
+【潘光珍】**回滚后，页重新装information到cache。因此，在事务开始时，该缓存将恢复到它的原始状态，
+对于每一个页面都恢复了这个程序的调用。
+**该程序需要重置页面的额外数据段以与恢复的数据一致。
+*/
 static void pageReinit(DbPage *pData){    //pager对象重新装载信息到缓存
   MemPage *pPage;
   pPage = (MemPage *)sqlite3PagerGetExtra(pData);
@@ -2197,7 +2203,12 @@ static void pageReinit(DbPage *pData){    //pager对象重新装载信息到缓存
       ** But no harm is done by this.  And it is very important that    //在每一个B树页上调用btreeInitPage()是很重要的，
       ** btreeInitPage() be called on every btree page so we make       //因此我们为每一个重新初始化的每一个页面发出调用请求。
       ** the call for every page that comes in for re-initing. 
-	  */
+	  */	
+	/*【潘光珍】页可能不是Btree页；它可能是一个溢出页或ptrmap页或一个空闲的主页。
+		在这种情况下，下面的调用会返回sqlite_corrupt btreeinitpage()。但是没有害处的。
+		这是非常重要的，btreeinitpage()被每个B树页调用所以我们做出的每一页，都在重新初始化调用。
+		
+		*/
       btreeInitPage(pPage);
     }
   }
@@ -2210,7 +2221,7 @@ static int btreeInvokeBusyHandler(void *pArg){
   BtShared *pBt = (BtShared*)pArg;
   assert( pBt->db );
   assert( sqlite3_mutex_held(pBt->db->mutex) );
-  return sqlite3InvokeBusyHandler(&pBt->db->busyHandler);
+  return sqlite3InvokeBusyHandler(&pBt->db->busyHandler);/*【潘光珍】调用一个btree繁忙的处理程序。*/
 }
 
 /*
@@ -2241,6 +2252,15 @@ static int btreeInvokeBusyHandler(void *pArg){
 ** 如果数据库已经在相同的数据库连接中打开了并且在共享缓存模式下,然后用一个打开将会失败返回SQLITE_CONSTRAINT错误。
 ** 在同一数据库连接中我们不能允许两个或多个BtShared对象，因为这样做会导致锁问题。
 */
+/*【潘光珍】打开数据库文件。
+**zfilename是数据库文件的名称。如果zFilename是NULL，则创建一个短暂的数据库。
+短暂的数据库可能是专门在内存中，或者它可以使用基于磁盘的内存缓存。无论哪种方式，
+短暂的数据库将自动删除当调用sqlite3BtreeClose()时。
+**如果zFilename是":memory:"那么一个内存数据库的创建，关闭时自动销毁。
+**flags参数的位掩码可能包含位像BTREE_OMIT_JOURNAL and/or BTREE_MEMORY。
+**如果数据库在同一个数据库连接中已打开是我们在共享缓存模式，然后打开将失败与sqlite_constraint误差。
+我们不能允许两个或两个以上的btshared在同一数据库连接中的对象，因为这样做将导致锁定问题。
+*/
 int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
   sqlite3_vfs *pVfs,      /* VFS to use for this b-tree */                      //VFS使用B树
   const char *zFilename,  /* Name of the file containing the BTree database */  //包含B树数据库文件的名字
@@ -2251,8 +2271,8 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
 ){
   BtShared *pBt = 0;             /* Shared part of btree structure */           //B树结构的共享部分
   Btree *p;                      /* Handle to return */                         //返回的句柄
-  sqlite3_mutex *mutexOpen = 0;  /* Prevents a race condition. Ticket #3537 */  //避免竞态条件。标签#3537
-  int rc = SQLITE_OK;            /* Result code from this function */           //这个函数的状态码
+  sqlite3_mutex *mutexOpen = 0;  /* Prevents a race condition. Ticket #3537 */  //避免竞态条件。标签#3537/*【潘光珍】防止竞争条件。标签#3537*/
+  int rc = SQLITE_OK;            /* Result code from this function */           //这个函数的状态码/*【潘光珍】此函数的结果代码*/
   u8 nReserve;                   /* Byte of unused space on each page */        //每个页上的不用空间的字节数
   unsigned char zDbHeader[100];  /* Database header content */                  //数据库文件头内容
 
@@ -2263,10 +2283,13 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
   ** false for a file-based database.
   ** 对于内存数据库设置变量isMemdb真，对于基于文件的数据库变量isMemdb设为假。
   */
+   /*
+  【潘光珍】设置变量ismemdb真正为一个内存数据库，或虚假的一个基于文件的数据库。
+  */
 #ifdef SQLITE_OMIT_MEMORYDB
   const int isMemdb = 0;
 #else
-  const int isMemdb = (zFilename && strcmp(zFilename, ":memory:")==0)
+  const int isMemdb = (zFilename && strcmp(zFilename, ":memory:")==0)//【潘光珍】zFilename为":memory:"，所有信息都放到缓冲区中，不会被写入磁盘。
                        || (isTempDb && sqlite3TempInMemory(db))
                        || (vfsFlags & SQLITE_OPEN_MEMORY)!=0;
 #endif
@@ -2276,7 +2299,7 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
   assert( sqlite3_mutex_held(db->mutex) );
   assert( (flags&0xff)==flags );   /* flags fit in 8 bits */    //标记占8个字节
 
-  /* Only a BTREE_SINGLE database can be BTREE_UNORDERED */
+  /* Only a BTREE_SINGLE database can be BTREE_UNORDERED */  /*【潘光珍】只有一个btree_single数据库可以是btree_unordered*/
   assert( (flags & BTREE_UNORDERED)==0 || (flags & BTREE_SINGLE)!=0 );
 
   /* A BTREE_SINGLE database is always a temporary and/or ephemeral */  //BTREE_SINGLE数据库总是临时的。
@@ -2305,6 +2328,7 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
   ** existing BtShared object that we can share with
   ** 如果这Btree共享缓存是候选的,尝试找到一个可共享的存在的BtShared对象。
   */
+  /*【潘光珍】如果这B树是一个共享缓存的候选,则试图找到一个现有的btshared对象可以让我们分享*/
   if( isTempDb==0 && (isMemdb==0 || (vfsFlags&SQLITE_OPEN_URI)!=0) ){
     if( vfsFlags & SQLITE_OPEN_SHAREDCACHE ){
       int nFullPathname = pVfs->mxPathname+1;
@@ -2365,6 +2389,9 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
 	  ** 在调试模式下,我们将所有持久化数据库标记为可共享的，即使他们不是持久化的。这练习锁定代码
 	  ** 和asserts(sqlite3_mutex_held())语句给更多的机会找到锁问题。
       */
+
+/*【潘光珍】在调试模式下，我们标记所有持续数据库，即使他们不共享。提供更多的asserts(sqlite3_mutex_held())语句来找到锁定问题。
+*/
       p->sharable = 1;
     }
 #endif
@@ -2377,6 +2404,9 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
     ** when compiling on a different architecture.
 	** 下面的断言是确保B树使用的结构的大小是正确的。这是为了防止编译不同的架构时大小变化的结果。
     */
+	  /*
+	  【潘光珍】以下断言确保使用的B树结构正确的大小。这是在一个不同的体系结构编译时，对结果的大小变化进行保护。
+	  */
     assert( sizeof(i64)==8 || sizeof(i64)==4 );
     assert( sizeof(u64)==8 || sizeof(u64)==4 );
     assert( sizeof(u32)==4 );
@@ -2421,6 +2451,11 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
 	  ** 即使SQLITE_DEFAULT_AUTOVACUUM值为真。另一方面，如果SQLITE_OMIT_MEMORYDB已经被定义，则":memory:"
 	  ** 是一个规则的文件名。此种情况下，auto-vacuum正常使用。
       */
+	  /*
+	  **如果这个magic为 ":memory:"将创建一个内存数据库，然后把autovacuum模式0（不设置auto-vacuum），
+        即使sqlite_default_autovacuum为真。另一方面，如果sqlite_omit_memorydb已经被定义，
+		那么":memory:"只是一个普通的文件名。在这种情况下，auto-vacuum适用正常。
+	  */
       if( zFilename && !isMemdb ){
         pBt->autoVacuum = (SQLITE_DEFAULT_AUTOVACUUM ? 1 : 0);
         pBt->incrVacuum = (SQLITE_DEFAULT_AUTOVACUUM==2 ? 1 : 0);
@@ -2438,7 +2473,7 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
     rc = sqlite3PagerSetPagesize(pBt->pPager, &pBt->pageSize, nReserve);
     if( rc ) goto btree_open_out;
     pBt->usableSize = pBt->pageSize - nReserve;
-    assert( (pBt->pageSize & 7)==0 );  /* 8-byte alignment of pageSize */
+    assert( (pBt->pageSize & 7)==0 );  /* 8-byte alignment of pageSize *//*8字节平衡的页大小*/
    
 #if !defined(SQLITE_OMIT_SHARED_CACHE) && !defined(SQLITE_OMIT_DISKIO)
     /* Add the new BtShared object to the linked list sharable BtShareds.
@@ -2467,6 +2502,10 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
   ** Btree into the list of all sharable Btrees for the same connection.
   ** The list is kept in ascending order by pBt address.
   ** 如果新的Btree使用可共享pBtShared,那么对于相同的连接，链接新B树到所有可共享Btree的列表。列表pBt的地址递增有序。
+  */
+  /*
+ 【潘光珍】 如果新的B树使用一个共享的pBtShared，然后链接新的B树的所有共享Btrees列表相同的连接。
+  该列表保存在上升的PBT地址顺序。
   */
   if( p->sharable ){
     int i;
@@ -2510,6 +2549,9 @@ btree_open_out:
     ** do not change the pager-cache size.
 	** 如果B树打开成功，则设置页面缓存的大小为默认值。除此之外，当在一个已存在的可共享页面缓存上打开时，不要改变页面缓存的大小。
     */
+	  /*
+	  【潘光珍】如果B树被成功打开，设置缓存大小的默认值。只是，当打开一个现有的共享缓存，不改变缓存大小。
+	  */
     if( sqlite3BtreeSchema(p, 0, 0)==0 ){
       sqlite3PagerSetCachesize(p->pBt->pPager, SQLITE_DEFAULT_CACHE_SIZE);
     }
@@ -2528,6 +2570,10 @@ btree_open_out:
 ** false if it is still positive.
 ** 递减BtShared.nRef计数器。当它达到零时，从共享列表中删除BtShared结构。
 ** 如果BtShared.nRef计数器达到零返回true，如果它仍然为正并返回false。
+*/
+/*
+【潘光珍】BtShared.nRef递减计数器。当它到达零，从共享列表中删除BtShared结构。
+如果BtShared.nRef计数器达到零，返回正确并且如果它仍然是正，则返回错误。
 */
 static int removeFromSharingList(BtShared *pBt){
 #ifndef SQLITE_OMIT_SHARED_CACHE
@@ -2579,13 +2625,13 @@ static void allocateTempSpace(BtShared *pBt){
 */
 static void freeTempSpace(BtShared *pBt){
   sqlite3PageFree( pBt->pTmpSpace);
-  pBt->pTmpSpace = 0;
+  pBt->pTmpSpace = 0;//【潘光珍】将pBt->pTmpSpace分配释放
 }
 
 /*
 ** Close an open database and invalidate all cursors. //关闭已打开的数据库并且使游标无效
 */
-int sqlite3BtreeClose(Btree *p){
+int sqlite3BtreeClose(Btree *p){/*【潘光珍】定义一个关闭已打开的数据库和无效的所有游标的函数。*/
   BtShared *pBt = p->pBt;
   BtCursor *pCur;
 
@@ -2597,7 +2643,7 @@ int sqlite3BtreeClose(Btree *p){
     BtCursor *pTmp = pCur;
     pCur = pCur->pNext;
     if( pTmp->pBtree==p ){		
-      sqlite3BtreeCloseCursor(pTmp);/* 使所有游标无效 */
+      sqlite3BtreeCloseCursor(pTmp);/* 使所有游标无效 *//* 【潘光珍】调用使所有游标无效的函数 */
     }
   }
 
@@ -2606,6 +2652,7 @@ int sqlite3BtreeClose(Btree *p){
   ** this handle.
   ** 回滚任何活动事务并且释放句柄结构。调用sqlite3BtreeRollback()，删除被这个句柄持有的任何锁标。
   */
+  /*【潘光珍】回滚任何活动事务，并释放句柄结构.调用sqlite3BtreeRollback()，删除这个句柄所持有的所有表锁。*/
   sqlite3BtreeRollback(p, SQLITE_OK);/*删除了这个句柄上所持有的所有表锁*/
   sqlite3BtreeLeave(p);
 
@@ -2627,18 +2674,18 @@ int sqlite3BtreeClose(Btree *p){
       pBt->xFreeSchema(pBt->pSchema);
     }
     sqlite3DbFree(0, pBt->pSchema);
-    freeTempSpace(pBt);
-    sqlite3_free(pBt);
+    freeTempSpace(pBt);//【潘光珍】将pBt释放临时空间
+    sqlite3_free(pBt);//【潘光珍】删除BtShared对象中的pBt
   }
 
 #ifndef SQLITE_OMIT_SHARED_CACHE
   assert( p->wantToLock==0 );
   assert( p->locked==0 );
-  if( p->pPrev ) p->pPrev->pNext = p->pNext;
-  if( p->pNext ) p->pNext->pPrev = p->pPrev;
+  if( p->pPrev ) p->pPrev->pNext = p->pNext;//上页指向下下页
+  if( p->pNext ) p->pNext->pPrev = p->pPrev;//下页指向上上页
 #endif
 
-  sqlite3_free(p);
+  sqlite3_free(p); //将p释放
   return SQLITE_OK;
 }
 
@@ -2662,6 +2709,11 @@ int sqlite3BtreeClose(Btree *p){
 ** 数据库可能会处于不一致的和不可恢复的状态。同步是默认的，因此数据库损坏通常是令人担忧的。
 */
 /*控制页缓存大小以及同步写入（在编译指示synchronous中定义）*/
+/*【潘光珍】控制页缓存大小以及同步写入（在编译指示synchronous中定义）
+**缓存页面的最大数量设置为mxpage绝对值。如果mxpage是负的，分页器将异步操作（不同时）-它会不停的做fsync()确保数据被写入到磁盘表面继续前。
+如果同步是关闭的，则事务仍然工作，如果该程序将无法被损坏崩溃。但是，如果操作系统崩溃或有突然断电时同步时，数据库可能处于不一致的和不可恢复的状态离开。
+同步是默认情况下，所以数据库损坏通常是不担心。
+*/
 int sqlite3BtreeSetCacheSize(Btree *p, int mxPage){
   BtShared *pBt = p->pBt;
   assert( sqlite3_mutex_held(p->db->mutex) );
