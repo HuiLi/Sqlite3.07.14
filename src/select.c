@@ -1062,91 +1062,96 @@ static void explainComposite(
 ** 循环终止后我们需要运行分选机和输出结果。下面的例程生成所需的代码。
 */
 static void generateSortTail(
-	Parse *pParse,    /* Parsing context 语义分析*/
-	Select *p,        /* The SELECT statement   select语句*/
-	Vdbe *v,          /* Generate code into this VDBE  在VDBE中生成代码**/
-	int nColumn,      /* Number of columns of data 数据种列的数目*/
-	SelectDest *pDest /* Write the sorted results here 在这里写入排序结果*/
+	Parse *pParse,    /* Parsing context 语义分析*/ /* Parsing context |语义分析*/
+	Select *p,        /* The SELECT statement   select语句*//* The SELECT statement   |select语句*/
+	Vdbe *v,          /* Generate code into this VDBE  在VDBE中生成代码**//* Generate code into this VDBE  |在VDBE中生成代码**/
+	int nColumn,      /* Number of columns of data 数据种列的数目*//* Number of columns of data |数据的列数*/
+	SelectDest *pDest /* Write the sorted results here 在这里写入排序结果*//* Write the sorted results here |在这里写入排序结果*/
 	){
-	int addrBreak = sqlite3VdbeMakeLabel(v);     /* Jump here to exit loop 跳转到这里退出循环*/
-	int addrContinue = sqlite3VdbeMakeLabel(v);  /* Jump here for next cycle 跳转到这里进行下一个循环*/
+	int addrBreak = sqlite3VdbeMakeLabel(v);     /* Jump here to exit loop 跳转到这里退出循环*/ /* Jump here to exit loop |中断循环的跳转地址*/
+	int addrContinue = sqlite3VdbeMakeLabel(v);  /* Jump here for next cycle 跳转到这里进行下一个循环*/ /* Jump here for next cycle |继续下轮循环的跳转地址*/
 	int addr;
 	int iTab;
 	int pseudoTab = 0;
 	ExprList *pOrderBy = p->pOrderBy;/*将Select结构体中ORDERBY赋值到表达式列表中的ORDERBY表达式属性*/
 
-	int eDest = pDest->eDest;/*将查询结果集中处理方式传递给eDest*/
+	int eDest = pDest->eDest;/*将查询结果集中处理方式传递给eDest*//*定义Select结果的处理方式*/
 	int iParm = pDest->iSDParm;/*将查询结果集中处理方式中的参数传递给iParm*/
 
 	int regRow;
-	int regRowid;
+	int regRowid;/*寄存器暂存CREATE TABLE入口的行ID地址*//*寄存器暂存CREATE TABLE入口的行ID地址*/
 
-	iTab = pOrderBy->iECursor;/*把pOrderBy->iECursor赋给整型iTab*/
-	regRow = sqlite3GetTempReg(pParse);/*为pParse语法树分配一个寄存器,存储计算的中间结果*/
-	if (eDest == SRT_Output || eDest == SRT_Coroutine){/*如果处理方式是SRT_Output（输出）或SRT_Coroutine（协同程序）*/
-		pseudoTab = pParse->nTab++;/*逐次将分析语法树中表数传给pseudoTab（虚表）*/
-		sqlite3VdbeAddOp3(v, OP_OpenPseudo, pseudoTab, regRow, nColumn);/*将OP_Explain操作交给虚拟机*/
+	iTab = pOrderBy->iECursor;/*把pOrderBy->iECursor赋给整型iTab*//*把pOrderBy->iECursor（排序器的游标数目）赋给整型iTab*/
+	regRow = sqlite3GetTempReg(pParse);/*为pParse语法树分配一个寄存器,存储计算的中间结果*//*分配一个新的寄存器，用于暂存中间结果。*/
+	if (eDest == SRT_Output || eDest == SRT_Coroutine){/*如果处理方式是SRT_Output（输出）或SRT_Coroutine（协同程序）*//*如果eDest==SRT_Output(输出每行结果)、
+                                                  或者==SRT_Coroutine（结果生成的一个单行）*/
+		pseudoTab = pParse->nTab++;/*逐次将分析语法树中表数传给pseudoTab（虚表）*//*把 列游标数目 赋给pseudoTab后自加*/
+		sqlite3VdbeAddOp3(v, OP_OpenPseudo, pseudoTab, regRow, nColumn);/*将OP_Explain操作交给虚拟机*//*向当前VDBE的指令列表中添加一条新指令*/
 		regRowid = 0;
 	}
-	else{
+	else{/*否则，分配一个新的寄存器给regRowid*/
 		regRowid = sqlite3GetTempReg(pParse);/*为pParse语法树分配一个寄存器,存储计算的中间结果*/
 	}
-	if (p->selFlags & SF_UseSorter){/*如果Select结构体中的selFlags属性值为SF_UseSorter，使用分拣器（排序程序）*/
+	if (p->selFlags & SF_UseSorter){/*如果选择标志位存在，并且=SF_UseSorter（使用排序[最新版中已弃用该标志位]）。“SF_”=“Select Flag”*//*如果Select结构体中的selFlags属性值为SF_UseSorter，使用分拣器（排序程序）*/
 		int regSortOut = ++pParse->nMem;/*分配寄存器，个数是分析语法树中内存数+1*/
 		int ptab2 = pParse->nTab++;/*将分析语法树中表的个数赋值给ptab2*/
 		sqlite3VdbeAddOp3(v, OP_OpenPseudo, ptab2, regSortOut, pOrderBy->nExpr + 2);/*将OP_OpenPseudo（打开虚拟操作）交给VDBE，返回表达式列表中表达式个数的值+2*/
 		addr = 1 + sqlite3VdbeAddOp2(v, OP_SorterSort, iTab, addrBreak);/*将OP_SorterSort（分拣器进行排序）交给VDBE，返回的地址+1赋值给addr*/
-		codeOffset(v, p, addrContinue);/*设置偏移量，其中addrContinue是下一次循环要调到的地址*/
+		codeOffset(v, p, addrContinue);/*设置偏移量，其中addrContinue是下一次循环要调到的地址*//*添加代码来实现offset*/
 		sqlite3VdbeAddOp2(v, OP_SorterData, iTab, regSortOut);/*将OP_SorterData操作交给虚拟机*/
 		sqlite3VdbeAddOp3(v, OP_Column, ptab2, pOrderBy->nExpr + 1, regRow);/*将OP_Column操作交给虚拟机*/
-		sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);/*改变OPFLAG_CLEARCACHE（清除缓存）的操作数，因为地址经过sqlite3VdbeAddOp3和sqlite3VdbeAddOp2（）函数改变了地址*/
+		sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);/*把操作数P5的值改为OPFLAG_CLEARCACHE*//*改变OPFLAG_CLEARCACHE（清除缓存）的操作数，因为地址经过sqlite3VdbeAddOp3和sqlite3VdbeAddOp2（）函数改变了地址*/
 	}
 	else{
 		addr = 1 + sqlite3VdbeAddOp2(v, OP_Sort, iTab, addrBreak);/*将OP_Sort操作交给虚拟机，返回的地址+1*/
-		codeOffset(v, p, addrContinue);/*设置偏移量，其中addrContinue是下一次循环要调到的地址*/
-		sqlite3VdbeAddOp3(v, OP_Column, iTab, pOrderBy->nExpr + 1, regRow);/*将OP_Column操作交给VDBE，再把OP_Column的地址返回*/
+		codeOffset(v, p, addrContinue);/*设置偏移量，其中addrContinue是下一次循环要调到的地址*//*添加代码来实现offset*/
+		sqlite3VdbeAddOp3(v, OP_Column, iTab, pOrderBy->nExpr + 1, regRow);/*把操作数P5的值改为OPFLAG_CLEARCACHE*//*将OP_Column操作交给VDBE，再把OP_Column的地址返回*/
 	}
-	switch (eDest){/*switch函数，参数eDest，选择结果集的处理方法*/
-	case SRT_Table:/*如果eDest为SRT_Table，则结果按照自动的rowid自动保存*/
-	case SRT_EphemTab: {/*如果eDest为SRT_EphemTab，则创建临时表并存储为像SRT_Table的表*/
+	switch (eDest){/*switch函数，参数eDest*//*switch函数，参数eDest，选择结果集的处理方法*/
+	case SRT_Table:/*如果eDest为SRT_Table，即：结果按照自动的rowid自动保存*//*如果eDest为SRT_Table，则结果按照自动的rowid自动保存*/
+	case SRT_EphemTab: {/*如果eDest为SRT_EphemTab，即：创建临时表并存储为像SRT_Table的表*//*如果eDest为SRT_EphemTab，则创建临时表并存储为像SRT_Table的表*/
 		testcase(eDest == SRT_Table);/*处理方式中是否SRT_Table*/
 		testcase(eDest == SRT_EphemTab);/*处理方式中是否SRT_EphemTab*/
 		sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, regRowid);/*将OP_NewRowid操作交给VDBE，再返回这个操作的地址*/
 		sqlite3VdbeAddOp3(v, OP_Insert, iParm, regRow, regRowid);/*将OP_Insert操作交给VDBE，再返回这个操作的地址*/
-		sqlite3VdbeChangeP5(v, OPFLAG_APPEND);/*改变OPFLAG_APPEND（设置路径），因为地址经过sqlite3VdbeAddOp2（）和sqlite3VdbeAddOp3（）函数改变了地址*/
+		sqlite3VdbeChangeP5(v, OPFLAG_APPEND);/*把操作数P5的值改为OPFLAG_APPEND*//*改变OPFLAG_APPEND（设置路径），因为地址经过sqlite3VdbeAddOp2（）和sqlite3VdbeAddOp3（）函数改变了地址*/
 		break;
 	}
-#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
-	case SRT_Set: {/*如果eDest为SRT_Set，则结果作为关键字存入索引*/
+#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*//*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
+	case SRT_Set: {/*如果eDest为SRT_Set，则结果作为关键字存入索引*//*如果eDest为SRT_Set，即：把结果作为关键字存入索引*/
 		assert(nColumn == 1);/*加入断点，判断列数是否等于1*/
 		sqlite3VdbeAddOp4(v, OP_MakeRecord, regRow, 1, regRowid, &p->affinity, 1);/*添加一个OP_MakeRecord操作，并将它的值作为一个指针*/
 		sqlite3ExprCacheAffinityChange(pParse, regRow, 1); /*记录从iStart开始，发生在iCount寄存器中的改变的事实。*/
 		sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, regRowid);/*将OP_IdxInsert（索引插入）操作交给VDBE，再返回这个操作的地址*/
 		break;
 	}
-	case SRT_Mem: {/*如果eDest为SRT_Mem，则将结果存储在存储单元*/
+	case SRT_Mem: {/*如果eDest为SRT_Mem，则将结果存储在存储单元*//*如果eDest为SRT_Mem，即：将结果存储在存储单元*/
 		assert(nColumn == 1);/*加入断点，判断列数是否等于1*/
 		sqlite3ExprCodeMove(pParse, regRow, iParm, 1);/*释放寄存器中的内容，保持寄存器的内容及时更新*/
 		/* 
 		** The LIMIT clause will terminate the loop for us
 		** limit子句将为我们终止循环
 		*/
+		
+		/* The LIMIT clause will terminate the loop for us 
+      **limit子句将终止我们的循环
+      */
 		break;
 	}
 #endif/*终止if*/
-	default: {
+	default: {/*默认条件*/
 		int i;
-		assert(eDest == SRT_Output || eDest == SRT_Coroutine); /*插入断点，判断结果集处理类型是否有SRT_Output（输出）或SRT_Coroutine（协同处理）*/
+		assert(eDest == SRT_Output || eDest == SRT_Coroutine); /*执行assert函数*//*插入断点，判断结果集处理类型是否有SRT_Output（输出）或SRT_Coroutine（协同处理）*/
 		testcase(eDest == SRT_Output);/*测试是否包含SRT_Output*/
 		testcase(eDest == SRT_Coroutine);/*测试是否包含SRT_Coroutine*/
-		for (i = 0; i<nColumn; i++){/*遍历列*/
+		for (i = 0; i<nColumn; i++){/*遍历列*//*执行for循环语句*//*满足if条件，执行if语句*/
 			assert(regRow != pDest->iSdst + i);/*插入断点，判断寄存器的编号值不等于基址寄存器的编号值+i*/
 			sqlite3VdbeAddOp3(v, OP_Column, pseudoTab, i, pDest->iSdst + i);/*将OP_Column操作交给VDBE，再返回这个操作的地址*/
 			if (i == 0){/*如果没有列*/
 				sqlite3VdbeChangeP5(v, OPFLAG_CLEARCACHE);/*改变OPFLAG_CLEARCACHE（清除缓存）的操作数，因为地址经过sqlite3VdbeAddOp3（）函数改变了地址*/
 			}
 		}
-		if (eDest == SRT_Output){/*如果结果集的处理方式是SRT_Output*/
+		if (eDest == SRT_Output){/*如果结果集的处理方式是SRT_Output*//*循环结束，执行if语句，否则执行else语句*/
 			sqlite3VdbeAddOp2(v, OP_ResultRow, pDest->iSdst, nColumn);/*将OP_ResultRow操作交给VDBE，再返回这个操作的地址*/
 			sqlite3ExprCacheAffinityChange(pParse, pDest->iSdst, nColumn);/*处理语法树pParse，寄存器中的亲和性数据*/
 		}
@@ -1156,20 +1161,22 @@ static void generateSortTail(
 		break;
 	}
 	}
+	  /*释放临时寄存器*/
 	sqlite3ReleaseTempReg(pParse, regRow);/*释放寄存器*/
 	sqlite3ReleaseTempReg(pParse, regRowid);/*释放寄存器*/
 
 	/* The bottom of the loop
 	** 循环的底部
 	*/
-	sqlite3VdbeResolveLabel(v, addrContinue);/*addrContinue作为下一条插入指令的地址，其中addrContinue能优先调用sqlite3VdbeMakeLabel（）*/
+	 /* 循环的底部 */
+	sqlite3VdbeResolveLabel(v, addrContinue);/*解析插入的下一条指令的地址*//*addrContinue作为下一条插入指令的地址，其中addrContinue能优先调用sqlite3VdbeMakeLabel（）*/
 	if (p->selFlags & SF_UseSorter){/*selFlags的值是SF_UseSorter*/
 		sqlite3VdbeAddOp2(v, OP_SorterNext, iTab, addr);/*将OP_SorterNext操作交给VDBE，再返回这个操作的地址*/
 	}
 	else{
 		sqlite3VdbeAddOp2(v, OP_Next, iTab, addr);/*将OP_Next操作交给VDBE，再返回这个操作的地址*/
 	}
-	sqlite3VdbeResolveLabel(v, addrBreak);/*addrBreak作为下一条插入指令的地址，其中addrBreak能优先调用sqlite3VdbeMakeLabel（）*/
+	sqlite3VdbeResolveLabel(v, addrBreak);/*解析插入的下一条指令的地址*//*addrBreak作为下一条插入指令的地址，其中addrBreak能优先调用sqlite3VdbeMakeLabel（）*/
 	if (eDest == SRT_Output || eDest == SRT_Coroutine){/*如果结果集的处理方式SRT_Output或SRT_Coroutine*/
 		sqlite3VdbeAddOp2(v, OP_Close, pseudoTab, 0);/*将OP_Close操作交给VDBE，再返回这个操作的地址*/
 	}
