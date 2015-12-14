@@ -1047,6 +1047,11 @@ static int btreeRestoreCursorPosition(BtCursor *pCur){
 ** 使用单独的sqlite3BtreeCursorRestore()程序恢复一个游标到它应该在的位置，如果这个程序返回true的话。
 */
 /*游标是否移动。出错返回错误代码。*/
+/*
+【潘光珍】确定是否一个游标已经从它的位置最后被放置。游标可以移动,当行指向
+在被删除从他们。如果出现错误，这个程序返回一个错误代码。如果游标已经移动了，
+则 pHasMoved这个整形指针被设置为1，否则为0。
+*/
 int sqlite3BtreeCursorHasMoved(BtCursor *pCur, int *pHasMoved){
   int rc;  //状态码
 
@@ -1076,6 +1081,11 @@ int sqlite3BtreeCursorHasMoved(BtCursor *pCur, int *pHasMoved){
 ** 对于pgno==1，返回0（不是一个有效的页）。因为没有与页1相关的指针位图。
 ** 完整性检查的逻辑要求是ptrmapPageno(*,1)!=1
 */
+/*
+【潘光珍】鉴于常规数据库页面的页码,返回的页面数量pointer-map页面,其中包含的条目
+输入页码。返回0(不是一个有效的页面)以来pgno = = 1没有指针映射与第1页。integrity_check逻辑
+要求ptrmapPageno(* 1)! = 1。
+*/
 static Pgno ptrmapPageno(BtShared *pBt, Pgno pgno){
   int nPagesPerMapPage;
   Pgno iPtrMap, ret;
@@ -1104,12 +1114,17 @@ static Pgno ptrmapPageno(BtShared *pBt, Pgno pgno){
 ** 如果*pRC的初始化是非零的(non-SQLITE_OK)，那么这个程序无操作的。
 ** 如果一个错误发生，则相应的错误代码被写入*pRC.
 */
+/*
+【潘光珍】
+*写一个进入的指针映项。
+**这个程序更新页码'key'的指针映射项以便它映射到类型'eType'和父页码'pgno'如果*pRC最初非零(non-SQLITE_OK)，
+则这个程序可以任何操作。如果发生错误，适当的错误代码会写进*pRC*/
 static void ptrmapPut(BtShared *pBt, Pgno key, u8 eType, Pgno parent, int *pRC){
-  DbPage *pDbPage;  /* The pointer map page 指针位图页*/
-  u8 *pPtrmap;      /* The pointer map data 指针位图的数据域*/
+  DbPage *pDbPage;  /* The pointer map page 指针位图页*/ /*【潘光珍】Pager的页句柄*/
+  u8 *pPtrmap;      /* The pointer map data 指针位图的数据域*/ 
   Pgno iPtrmap;     /* The pointer map page number 指针位图的页码*/
   int offset;       /* Offset in pointer map page 指针位图页的偏移量*/
-  int rc;           /* Return code from subfunctions(子函数) 从子函数返回到代码*/
+  int rc;           /* Return code from subfunctions(子函数) 从子函数返回到代码*//* 【潘光珍】返回子函数代码*/
 
   if( *pRC ) return;
 
@@ -1117,6 +1132,7 @@ static void ptrmapPut(BtShared *pBt, Pgno key, u8 eType, Pgno parent, int *pRC){
   /* The master-journal page number must never be used as a pointer map page 
   ** 主日志页码一定不能用作指针位图页
   */
+  /*【潘光珍】master-journal页面数量绝不能被用作一个指针位图页面*/
   assert( 0==PTRMAP_ISPAGE(pBt, PENDING_BYTE_PAGE(pBt)) );
 
   assert( pBt->autoVacuum );
@@ -1162,11 +1178,16 @@ ptrmap_exit:
 ** 如果运行出错则返回错误代码，其他返回SQLITE_OK.
 */
 /*读取pointer map的条目，写入pEType和pPgno中*/
+/*
+【潘光珍】*读一个进入映像的指针。
+**这个程序获取指针映射条目页面'key',写的类型和父页数目的*pEType 和 *pPgno相互分开
+**如果出现错误,返回一个错误的代码，否则返回SQLITE_OK。
+*/
 static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
-  DbPage *pDbPage;   /* The pointer map page 指针位图页*/
-  int iPtrmap;       /* Pointer map page index 指针位图页索引*/
-  u8 *pPtrmap;       /* Pointer map page data 指针位图页数据*/
-  int offset;        /* Offset of entry in pointer map 指针位图页的偏移量*/
+  DbPage *pDbPage;   /* The pointer map page 指针位图页*/  /*【潘光珍】Pager的页句柄*/
+  int iPtrmap;       /* Pointer map page index 指针位图页索引*//*【潘光珍】指针映射页面索引*/
+  u8 *pPtrmap;       /* Pointer map page data 指针位图页数据*/ /*【潘光珍】指针映射页数据*/
+  int offset;        /* Offset of entry in pointer map 指针位图页的偏移量*//*【潘光珍】指针映射的输入偏移*/
   int rc;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -1209,6 +1230,10 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 ** 这个程序只对不包含溢出单元的页起作用
 */
 /*给定的B树页和单元索引（0意味着页上的第一个单元，1是第二个单元，等等）返回一个指向单元内容的指针*/
+/*
+【潘光珍】在btree页面和一个cell index当中 (0意味着页面上的第一个单元格,1意味着第二个单元格,等等)返回一个指针指向单元内容。
+这个程序只适合页面不包含溢出的cells。
+*/
 #define findCell(P,I) \
   ((P)->aData + ((P)->maskPage & get2byte(&(P)->aCellIdx[2*(I)])))
 #define findCellv2(D,M,O,I) (D+(M&get2byte(D+(O+2*(I)))))
@@ -1218,6 +1243,9 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 ** This a more complex version of findCell() that works for
 ** pages that do contain overflow cells.
 ** 针对包含溢出单元的更为复杂的findCell()版本
+*/
+/*
+【潘光珍】这个更复杂的版本的findCell()为页面做的工作包含溢出的cells。
 */
 static u8 *findOverflowCell(MemPage *pPage, int iCell){
   int i;
@@ -1248,13 +1276,21 @@ static u8 *findOverflowCell(MemPage *pPage, int iCell){
 ** 在这文件内，可以调用宏parseCell()而不是btreeParseCellPtr()。用一些编译程序会更快。
 */
 /*解析cell content block，填在CellInfo结构中。*/
+/*
+【潘光珍】**解析cell content block，填在CellInfo结构中。这个函数有两个版本。
+在btreeParseCell()这函数中，将一个单元格作为第二个参数，
+在btreeParseCellPtr()这个函数中，将一个指针指向单元格本身作为它第二个参数。
+
+**在这个文件中,parseCell()的宏可以代替btreeParseCellPtr()。使用编译器,这样将会更快。
+
+*/
 static void btreeParseCellPtr(           //解析单元内容块，填在CellInfo结构中
-  MemPage *pPage,         /* Page containing the cell 包含单元的页*/
-  u8 *pCell,              /* Pointer to the cell text. 单元文本的指针*/
+  MemPage *pPage,         /* Page containing the cell 包含单元的页*/  /*【潘光珍】包含单元格的页面*/
+  u8 *pCell,              /* Pointer to the cell text. 单元文本的指针*/ /*【潘光珍】指向单元内容的指针*/
   CellInfo *pInfo         /* Fill in this structure 填充这个结构*/
 ){
-  u16 n;                  /* Number bytes in cell content header 单元内容头部的字节数*/
-  u32 nPayload;           /* Number of bytes of cell payload 单元有效载荷（B树记录）的字节数*/
+  u16 n;                  /* Number bytes in cell content header 单元内容头部的字节数*/  
+  u32 nPayload;           /* Number of bytes of cell payload 单元有效载荷（B树记录）的字节数*/ /*【潘光珍】单元有效负载的字节数*/
 
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
 
@@ -1284,6 +1320,9 @@ static void btreeParseCellPtr(           //解析单元内容块，填在CellInf
     ** on the local page.  No overflow is required.
 	** 这是个常见的情况，所有的有效载荷都固定在本地页上。不需要溢出。
     */
+	   /*
+	  【潘光珍】这是在容易的情况下，整个负载适合在本地页面上。不需要溢出
+	  */
     if( (pInfo->nSize = (u16)(n+nPayload))<4 ) pInfo->nSize = 4;
     pInfo->nLocal = (u16)nPayload;
     pInfo->iOverflow = 0;
@@ -1300,10 +1339,15 @@ static void btreeParseCellPtr(           //解析单元内容块，填在CellInf
 	** 这个策略是减少溢出页上未使用空间的数量 同时保持本地存储的数量在minLocal和maxLocal之间。
 	** 警告:任意改变溢流载荷分布会导致不兼容的文件格式。
     */
+	  /*
+	【潘光珍】如果负载将不完全匹配本地页，我们必须决定多少存储在本地和多少泄漏到溢出页。
+	未使用的策略是减少空间溢出页同时保持中的本地存储minLocal和maxLocal之间。
+	警告:以任何方式改变溢流载荷分布的方式会导致不兼容的文件格式。
+	*/
     /*使本地存储在最小和最大值之间并且将溢出页未使用区域最小化*/
-    int minLocal;  /* Minimum amount of payload held locally */       //本地持有的最小有效载荷数量
+    int minLocal;  /* Minimum amount of payload held locally */       //本地持有的最小有效载荷数量 
     int maxLocal;  /* Maximum amount of payload held locally */       //本地持有的最大有效载荷数量
-    int surplus;   /* Overflow payload available for local storage */ //溢出的有效载荷可用于本地存储
+    int surplus;   /* Overflow payload available for local storage */ //溢出的有效载荷可用于本地存储  /*【潘光珍】可用于本地存储的溢出有效负载*/
 
     minLocal = pPage->minLocal;
     maxLocal = pPage->maxLocal;
@@ -1322,8 +1366,8 @@ static void btreeParseCellPtr(           //解析单元内容块，填在CellInf
 #define parseCell(pPage, iCell, pInfo) \
   btreeParseCellPtr((pPage), findCell((pPage), (iCell)), (pInfo))
 static void btreeParseCell(                                      //解析单元内容块
-  MemPage *pPage,         /* Page containing the cell */         //包含单元的页
-  int iCell,              /* The cell index.  First cell is 0 */ //单元的索引，第一个单元iCell为0
+  MemPage *pPage,         /* Page containing the cell */         //包含单元的页  /*【潘光珍】包含单元格的页面*/
+  int iCell,              /* The cell index.  First cell is 0 */ //单元的索引，第一个单元iCell为0  /*【潘光珍】单元格索引，首单元格是0*/
   CellInfo *pInfo         /* Fill in this structure */           //填写这个结构
 ){
   parseCell(pPage, iCell, pInfo);
@@ -1336,6 +1380,10 @@ static void btreeParseCell(                                      //解析单元�
 ** the space used by the cell pointer.
 */
 /*计算一个Cell需要的总的字节数*/
+/*【潘光珍】计算单元格数据区域中b树页的单元格需要的总字节数。
+返回的数字包括小区数据头和本地负载，但没有任何溢出页或单元指针所使用的空间。
+
+*/
 static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的总的字节数
   u8 *pIter = &pCell[pPage->childPtrSize];
   u32 nSize;
@@ -1347,6 +1395,10 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
   ** this function verifies that this invariant(不变式) is not violated(违反). 
   ** 这个函数的返回值应始终是和执行一个完整的解析中发现的单元（CellInfo.nSize）值相同。
   ** 如果SQLITE_DEBUG被定义，一个assert（）处的底部他的功能验证这个不变不违反。*/
+  /*
+  【潘光珍】这个函数返回的值应该是相同的（CellInfo.nSize）值做一个全面的解析单元格的发现。
+  如果SQLITE_DEBUG被定义，在这个函数的底部assert()证明这种不变（不变式）不违反（违反）。
+  */
   CellInfo debuginfo;
   btreeParseCellPtr(pPage, pCell, &debuginfo);
 #endif
@@ -1363,6 +1415,8 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
     ** integer. The following block moves pIter to point at the first byte
     ** past the end of the key value. 
 	** pIter现在指向在64位整数关键字值，可变长度整数。下面的块移动pIter指向键值末尾的第一个字节。*/
+	/*【潘光珍】pIter指在64位整数的关键值，一个可变长度的整数。
+	下面的块移动pIter指向第一个字节的关键值结束过去*/
     pEnd = &pIter[9];
     while( (*pIter++)&0x80 && pIter<pEnd );
   }else{
@@ -1383,7 +1437,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
   }
   nSize += (u32)(pIter - pCell);
 
-  /* The minimum size of any cell is 4 bytes. */
+  /* The minimum size of any cell is 4 bytes. */ /*【潘光珍】任何单元的最小尺寸为4个字节。*/
   if( nSize<4 ){
     nSize = 4;
   }
@@ -1396,6 +1450,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
 /* This variation on cellSizePtr() is used inside of assert() statements
 ** only. 
 ** cellSizePtr()中的变量仅仅被用在assert()语句中 */
+/*【潘光珍】这种变化对cellsizeptr()里面assert()语句只能使用。*/
 static u16 cellSize(MemPage *pPage, int iCell){
   return cellSizePtr(pPage, findCell(pPage, iCell));
 }
@@ -1431,6 +1486,10 @@ static void ptrmapPutOvflPtr(MemPage *pPage, u8 *pCell, int *pRC){
 ** 在所述头部和单元指针数组和小区内容区域之间的一个大的FreeBlk。
 */
 /*重整页面。*/
+/*
+【潘光珍】整理页面。所有的单元格都移到页面结束所有的自由空间被收集到
+一个大的FreeBlk发生在头和单元格指针和数组内容区域之间。
+*/
 static int defragmentPage(MemPage *pPage){
   int i;                     /* Loop counter */                      //循环内的参数i
   int pc;                    /* Address of a i-th cell */            //第i个单元的地址
