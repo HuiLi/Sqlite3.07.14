@@ -4,7 +4,7 @@
 ** 解析：
 ** 2015 November 15
 ** Source resolve author： Qingkai Hu
-** 源码解析作者：户庆凯(英文名字：hiekay)     解析标志： @author: hiekay
+** 源码解析作者：户庆凯(英文名字：hiekay)      
 **
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -14,7 +14,7 @@
 **    May you do good and not evil.
 **    May you find forgiveness for yourself and forgive others.
 **    May you share freely, never taking more than you give.
-**   	愿你做的好事，而不是坏事。
+**        	 愿你做的好事，而不是坏事。
  	           愿你原谅自己，原谅别人。
 	           你可以自由共享，一定多付出 少获取。
 **
@@ -360,14 +360,14 @@ struct RtreeConstraint {
 
 /* 
 ** An rtree structure node.
-** 一个R节点的数结构
+** 一个R树节点的数结构
 */
 struct RtreeNode {
   RtreeNode *pParent;               /* Parent node  父节点 */
-  i64 iNode;
-  int nRef;
-  int isDirty;
-  u8 *zData;
+  i64 iNode;                        //结点子树高度
+  int nRef;                         //nRef是该结点的引用次数,用来衡量是否需要将该结点从hash链中删除
+  int isDirty;                      //isDirty是用来确认该结点是否已被修改.将该结点从hash链删除前如果isDirty=1,则需要将结点数据写入到数据库中
+  u8 *zData;                       //zData保存了结点相关信息.如果该结点为根结点,则zData前2byte保存了树的高度信息,如果该结点非根节点,则前2byte未使用.zData[2-3]保存了该结点的单元数.
   RtreeNode *pNext;                 /* Next node in this hash chain  在该hash链的下一个节点*/
 };
 #define NCELL(pNode) readInt16(&(pNode)->zData[2])
@@ -437,7 +437,7 @@ struct RtreeGeomCallback {  // R 树几何回调结构
 ** 该函数是反序列化一个16位的整型，32位真值和64位整型数，并返回反序列化的值
 */
 static int readInt16(u8 *p){
-  return (p[0]<<8) + p[1];
+  return (p[0]<<8) + p[1];   // 左移符号 <<
 }
 static void readCoord(u8 *p, RtreeCoord *pCoord){
   u32 i = (
@@ -521,7 +521,7 @@ static void nodeZero(Rtree *pRtree, RtreeNode *p){
 */
 static int nodeHash(i64 iNode){
   return (
-    (iNode>>56) ^ (iNode>>48) ^ (iNode>>40) ^ (iNode>>32) ^ 
+    (iNode>>56) ^ (iNode>>48) ^ (iNode>>40) ^ (iNode>>32) ^  //^异或 符号
     (iNode>>24) ^ (iNode>>16) ^ (iNode>> 8) ^ (iNode>> 0)
   ) % HASHSIZE;
 }
@@ -554,7 +554,7 @@ static void nodeHashInsert(Rtree *pRtree, RtreeNode *pNode){
 ** 从hash表中删除结点pNode
 */
 static void nodeHashDelete(Rtree *pRtree, RtreeNode *pNode){
-  RtreeNode **pp;
+  RtreeNode **pp;        // 二级指针 
   if( pNode->iNode!=0 ){
     pp = &pRtree->aHash[nodeHash(pNode->iNode)];
     for( ; (*pp)!=pNode; pp = &(*pp)->pNext){ assert(*pp); }
@@ -570,13 +570,21 @@ static void nodeHashDelete(Rtree *pRtree, RtreeNode *pNode){
 ** node contents out to the database.
 ** 分配并返回一个新的R树结点。
 ** 初始时(RtreeNode.iNode==0)指明该节点没有被分配一个节点，
-** 该节点会被分配一个节点当 节点写方法被调用用于写节点内容到数据库的时候
+** 该节点会被分配一个节点当节点写方法被调用用于写节点内容到数据库的时候
+**
+**引用函数void *memset(void *s, int ch, unsigned n);
+**　将s所指向的某一块内存中的每个字节的内容全部设置为ch指定的ASCII值,
+**　　块的大小由第三个参数指定,这个函数通常为新申请的内存做初始化工作,
+**　　其返回值为指向S的指针。
+**
+**
+**
 */
 static RtreeNode *nodeNew(Rtree *pRtree, RtreeNode *pParent){
   RtreeNode *pNode;
-  pNode = (RtreeNode *)sqlite3_malloc(sizeof(RtreeNode) + pRtree->iNodeSize);
+  pNode = (RtreeNode *)sqlite3_malloc(sizeof(RtreeNode) + pRtree->iNodeSize);  //sqlite3_malloc 申请内存空间
   if( pNode ){
-    memset(pNode, 0, sizeof(RtreeNode) + pRtree->iNodeSize);
+    memset(pNode, 0, sizeof(RtreeNode) + pRtree->iNodeSize); //void *memset(void *s, int ch, unsigned n)
     pNode->zData = (u8 *)&pNode[1];
     pNode->nRef = 1;
     pNode->pParent = pParent;
@@ -605,23 +613,26 @@ nodeAcquire(
   ** increase its reference count and return it.
   ** 检查所请求的结点是否已在hash表中，
   ** 如果在，则增加指向它的指针数量并返回
+  **引用的方法：
+  **void assert( int expression )
+  ** assert的作用是现计算表达式 expression ，如果其值为假（即为0），那么它先向stderr打印一条出错信息，然后通过调用 abort 来终止程序运行。
   */
   if( (pNode = nodeHashLookup(pRtree, iNode)) ){
-    assert( !pParent || !pNode->pParent || pNode->pParent==pParent );
+    assert( !pParent || !pNode->pParent || pNode->pParent==pParent );  //void assert( int expression )
     if( pParent && !pNode->pParent ){
       nodeReference(pParent);
       pNode->pParent = pParent;
     }
     pNode->nRef++;
     *ppNode = pNode;
-    return SQLITE_OK;
+    return SQLITE_OK; 
   }
 
-  sqlite3_bind_int64(pRtree->pReadNode, 1, iNode);
-  rc = sqlite3_step(pRtree->pReadNode);
+  sqlite3_bind_int64(pRtree->pReadNode, 1, iNode); //邦定64位参数 方法
+  rc = sqlite3_step(pRtree->pReadNode);            //执行sql语句
   if( rc==SQLITE_ROW ){
-    const u8 *zBlob = sqlite3_column_blob(pRtree->pReadNode, 0);
-    if( pRtree->iNodeSize==sqlite3_column_bytes(pRtree->pReadNode, 0) ){
+    const u8 *zBlob = sqlite3_column_blob(pRtree->pReadNode, 0);  //sqlite3_step返回SQLITE_ROW，需要用sqlite3_column_blob取blob类型的数据 
+    if( pRtree->iNodeSize==sqlite3_column_bytes(pRtree->pReadNode, 0) ){       //用sqlite3_column_bytes取bytes类型的数据
       pNode = (RtreeNode *)sqlite3_malloc(sizeof(RtreeNode)+pRtree->iNodeSize);
       if( !pNode ){
         rc2 = SQLITE_NOMEM;
@@ -632,12 +643,13 @@ nodeAcquire(
         pNode->iNode = iNode;
         pNode->isDirty = 0;
         pNode->pNext = 0;
-        memcpy(pNode->zData, zBlob, pRtree->iNodeSize);
-        nodeReference(pParent);
+        memcpy(pNode->zData, zBlob, pRtree->iNodeSize);  //void *memcpy(void *dest, const void *src, size_t n);
+                                                          //memcpy函数的功能是从源src所指的内存地址的起始位置开始拷贝n个字节到目标dest所指的内存地址的起始位置中。
+        nodeReference(pParent);                         
       }
     }
   }
-  rc = sqlite3_reset(pRtree->pReadNode);
+  rc = sqlite3_reset(pRtree->pReadNode);     //重置过程的执行 ,过程将回到没有执行之前的状态，绑定的参数不会变化
   if( rc==SQLITE_OK ) rc = rc2;
 
   /* If the root node was just loaded, set pRtree->iDepth to the height
@@ -650,7 +662,7 @@ nodeAcquire(
   ** 如果指定根结点 的高度超过了最大值(RTREE_MAX_DEPTH)，R树肯定会崩溃。
   */
   if( pNode && iNode==1 ){
-    pRtree->iDepth = readInt16(pNode->zData);
+    pRtree->iDepth = readInt16(pNode->zData); //反序列化
     if( pRtree->iDepth>RTREE_MAX_DEPTH ){
       rc = SQLITE_CORRUPT_VTAB;
     }
@@ -663,20 +675,20 @@ nodeAcquire(
   ** 如果是这样，设置返回代码为SQLITE_CORRUPT_VTAB
   */
   if( pNode && rc==SQLITE_OK ){
-    if( NCELL(pNode)>((pRtree->iNodeSize-4)/pRtree->nBytesPerCell) ){
+    if( NCELL(pNode)>((pRtree->iNodeSize-4)/pRtree->nBytesPerCell) ){   //NCELL ： readIn16 
       rc = SQLITE_CORRUPT_VTAB;
     }
   }
 
   if( rc==SQLITE_OK ){
     if( pNode!=0 ){
-      nodeHashInsert(pRtree, pNode);
+      nodeHashInsert(pRtree, pNode);    //pnode 插入pRtree 
     }else{
       rc = SQLITE_CORRUPT_VTAB;
     }
     *ppNode = pNode;
   }else{
-    sqlite3_free(pNode);
+    sqlite3_free(pNode);    //释放pNode
     *ppNode = 0;
   }
 
@@ -695,9 +707,9 @@ static void nodeOverwriteCell(
 ){
   int ii;
   u8 *p = &pNode->zData[4 + pRtree->nBytesPerCell*iCell];
-  p += writeInt64(p, pCell->iRowid);
+  p += writeInt64(p, pCell->iRowid);         //序列化64位
   for(ii=0; ii<(pRtree->nDim*2); ii++){
-    p += writeCoord(p, &pCell->aCoord[ii]);
+    p += writeCoord(p, &pCell->aCoord[ii]);    //序列化32位
   }
   pNode->isDirty = 1;
 }
@@ -706,11 +718,12 @@ static void nodeOverwriteCell(
 ** Remove cell the cell with index iCell from node pNode.
 ** 移除结点pNode中索引为iCell的单元
 */
-static void nodeDeleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell){
+static void nodeDeleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell){ 
   u8 *pDst = &pNode->zData[4 + pRtree->nBytesPerCell*iCell];
   u8 *pSrc = &pDst[pRtree->nBytesPerCell];
-  int nByte = (NCELL(pNode) - iCell - 1) * pRtree->nBytesPerCell;
-  memmove(pDst, pSrc, nByte);
+  int nByte = (NCELL(pNode) - iCell - 1) * pRtree->nBytesPerCell;  //NCELL ： readIn16 
+  memmove(pDst, pSrc, nByte);                           //void *memmove( void* dest, const void* src, size_t count );
+                                                        //头文件：<string.h> 功能：由src所指内存区域复制count个字节到dest所指内存区域。
   writeInt16(&pNode->zData[2], NCELL(pNode)-1);
   pNode->isDirty = 1;
 }
@@ -732,9 +745,9 @@ nodeInsertCell(
   int nMaxCell;                 /* Maximum number of cells for pNode pNode节点最大的单元数*/
 
   nMaxCell = (pRtree->iNodeSize-4)/pRtree->nBytesPerCell;
-  nCell = NCELL(pNode);
-
-  assert( nCell<=nMaxCell );
+  nCell = NCELL(pNode);        //NCELL ： readIn16 
+ 
+  assert( nCell<=nMaxCell );       //条件为错，就终止程序
   if( nCell<nMaxCell ){
     nodeOverwriteCell(pRtree, pNode, pCell, nCell);
     writeInt16(&pNode->zData[2], nCell+1);
@@ -763,7 +776,7 @@ nodeWrite(Rtree *pRtree, RtreeNode *pNode){
     pNode->isDirty = 0;
     rc = sqlite3_reset(p);
     if( pNode->iNode==0 && rc==SQLITE_OK ){
-      pNode->iNode = sqlite3_last_insert_rowid(pRtree->db);
+      pNode->iNode = sqlite3_last_insert_rowid(pRtree->db);  //返回最近插入的记录的id 
       nodeHashInsert(pRtree, pNode);
     }
   }
@@ -807,7 +820,7 @@ nodeRelease(Rtree *pRtree, RtreeNode *pNode){
 */
 static i64 nodeGetRowid(
   Rtree *pRtree, 
-  RtreeNode *pNode, 
+  RtreeNode *pNode,
   int iCell
 ){
   assert( iCell<NCELL(pNode) );
@@ -842,7 +855,7 @@ static void nodeGetCell(
 ){
   int ii;
   pCell->iRowid = nodeGetRowid(pRtree, pNode, iCell);
-  for(ii=0; ii<pRtree->nDim*2; ii++){
+  for(ii=0; ii<pRtree->nDim*2; ii++){       //nDim  维度
     nodeGetCoord(pRtree, pNode, iCell, ii, &pCell->aCoord[ii]);
   }
 }
@@ -862,9 +875,9 @@ static int rtreeInit(
 */
 static int rtreeCreate(
   sqlite3 *db,
-  void *pAux,
-  int argc, const char *const*argv,
-  sqlite3_vtab **ppVtab,
+  void *pAux,         //void *则为“无类型指针”，void *可以指向任何类型的数据
+  int argc, const char *const*argv,       //const  常类型
+  sqlite3_vtab **ppVtab,                 // 虚拟表
   char **pzErr
 ){
   return rtreeInit(db, pAux, argc, argv, ppVtab, pzErr, 1);
@@ -878,7 +891,7 @@ static int rtreeConnect(
   sqlite3 *db,
   void *pAux,
   int argc, const char *const*argv,
-  sqlite3_vtab **ppVtab,
+  sqlite3_vtab **ppVtab,   
   char **pzErr
 ){
   return rtreeInit(db, pAux, argc, argv, ppVtab, pzErr, 0);
@@ -889,7 +902,7 @@ static int rtreeConnect(
 ** R树引用数量+1
 */
 static void rtreeReference(Rtree *pRtree){
-  pRtree->nBusy++;
+  pRtree->nBusy++;      
 }
 
 /*
@@ -900,7 +913,7 @@ static void rtreeReference(Rtree *pRtree){
 static void rtreeRelease(Rtree *pRtree){
   pRtree->nBusy--;
   if( pRtree->nBusy==0 ){
-    sqlite3_finalize(pRtree->pReadNode);
+    sqlite3_finalize(pRtree->pReadNode);      // 销毁资源 
     sqlite3_finalize(pRtree->pWriteNode);
     sqlite3_finalize(pRtree->pDeleteNode);
     sqlite3_finalize(pRtree->pReadRowid);
@@ -929,7 +942,7 @@ static int rtreeDisconnect(sqlite3_vtab *pVtab){
 static int rtreeDestroy(sqlite3_vtab *pVtab){
   Rtree *pRtree = (Rtree *)pVtab;
   int rc;
-  char *zCreate = sqlite3_mprintf(
+  char *zCreate = sqlite3_mprintf(       //格式化
     "DROP TABLE '%q'.'%q_node';"
     "DROP TABLE '%q'.'%q_rowid';"
     "DROP TABLE '%q'.'%q_parent';",
@@ -940,8 +953,8 @@ static int rtreeDestroy(sqlite3_vtab *pVtab){
   if( !zCreate ){
     rc = SQLITE_NOMEM;
   }else{
-    rc = sqlite3_exec(pRtree->db, zCreate, 0, 0, 0);
-    sqlite3_free(zCreate);
+    rc = sqlite3_exec(pRtree->db, zCreate, 0, 0, 0);  //执行sql 语句 
+    sqlite3_free(zCreate);     //  释放对象防止内存泄露
   }
   if( rc==SQLITE_OK ){
     rtreeRelease(pRtree);
@@ -978,8 +991,8 @@ static void freeCursorConstraints(RtreeCursor *pCsr){
   if( pCsr->aConstraint ){
     int i;                        /* Used to iterate through constraint array 被用于通过约束数组的迭代计数器*/
     for(i=0; i<pCsr->nConstraint; i++){
-      sqlite3_rtree_geometry *pGeom = pCsr->aConstraint[i].pGeom;
-      if( pGeom ){
+      sqlite3_rtree_geometry *pGeom = pCsr->aConstraint[i].pGeom;    
+      if( pGeom ){  
         if( pGeom->xDelUser ) pGeom->xDelUser(pGeom->pUser);
         sqlite3_free(pGeom);
       }
