@@ -20,6 +20,10 @@
 
 //BLOB: 值是数据的二进制对象，如何输入就如何存储，不改变格式。
 
+/** 引入两个头文件：
+** vdbeInt.h中定义了VDBE常用的数据结构；
+** sqliteInt.h中定义了SQLite的内部接口和数据结构。
+**/
 #include "sqliteInt.h"
 #include "vdbeInt.h"
 

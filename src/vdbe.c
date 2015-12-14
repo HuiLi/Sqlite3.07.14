@@ -350,14 +350,14 @@ static void applyNumericAffinity(Mem *pRec){
 **    无操作,pRec不变
 */
 static void applyAffinity(
-  Mem *pRec,          /* The value to apply affinity to */
-  char affinity,      /* The affinity to be applied */
-  u8 enc              /* Use this text encoding */
+  Mem *pRec,          /* The value to apply affinity to 应用关联的值*/
+  char affinity,      /* The affinity to be applied 被应用的关联*/
+  u8 enc              /* Use this text encoding 使用此文本编码*/
 ){
   if( affinity==SQLITE_AFF_TEXT ){
     /* Only attempt the conversion to TEXT if there is an integer or real
     ** representation (blob and NULL do not get converted) but no string
-    ** representation.
+    ** representation.如果有一个整数或实数则仅尝试转换为文本形式。（blob和null没有被转换）但没有字符串表示形式。
     */
     if( 0==(pRec->flags&MEM_Str) && (pRec->flags&(MEM_Real|MEM_Int)) ){//如果字符数据不是string real int类型数据
       sqlite3VdbeMemStringify(pRec, enc);//转换成string型数据
@@ -661,27 +661,27 @@ int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
   int checkProgress;         /* True if progress callbacks are enabled 如果进展回调可用就为真*/
   int nProgressOps = 0;      /* Opcodes executed since progress callback. 操作码将会执行如果进展回调*/
 #endif
-  Mem *aMem = p->aMem;       /* Copy of p->aMem */
-  Mem *pIn1 = 0;             /* 1st input operand */
-  Mem *pIn2 = 0;             /* 2nd input operand */
-  Mem *pIn3 = 0;             /* 3rd input operand */
-  Mem *pOut = 0;             /* Output operand */
+  Mem *aMem = p->aMem;       /* Copy of p->aMem 复制p->aMem*/
+  Mem *pIn1 = 0;             /* 1st input operand 第一次输入的操作数*/
+  Mem *pIn2 = 0;             /* 2nd input operand 第二次输入的操作数*/
+  Mem *pIn3 = 0;             /* 3rd input operand 第三次输入的操作数*/
+  Mem *pOut = 0;             /* Output operand 输出操作数*/
   int iCompare = 0;          /* Result of last OP_Compare operation 存放操作码OP_Compare的操作结果*/
   int *aPermute = 0;         /* Permutation of columns for OP_Compare 操作码OP_Compare使用的数组*/
-  i64 lastRowid = db->lastRowid;  /* Saved value of the last insert ROWID */
+  i64 lastRowid = db->lastRowid;  /* Saved value of the last insert ROWID 保存最后插入的ROWID值*/
 #ifdef VDBE_PROFILE
-  u64 start;                 /* CPU clock count at start of opcode */
-  int origPc;              /* Program counter at start of opcode */
+  u64 start;                 /* CPU clock count at start of opcode 操作码开始的CPU时钟计数*/
+  int origPc;              /* Program counter at start of opcode 操作码开始的程序计数器*/
 #endif
-  /* Program counter at start of opcode */
+  /* Program counter at start of opcode操作码开始的程序计数器 */
 #endif
   /*** INSERT STACK UNION HERE ***/
 
-  assert( p->magic==VDBE_MAGIC_RUN );  /* sqlite3_step() verifies this */
+  assert( p->magic==VDBE_MAGIC_RUN );  /* sqlite3_step() verifies this sqlite3_step()核实这项*/
   sqlite3VdbeEnter(p);//锁定B树 如果SQLite编译支持共享缓存模式和线程安全,这个程序获得与每个BtShared结构关联的互斥锁,可能被VM访问作为一个参数传递。这样做也可以设置BtShared.db成员的每个BtShared结构,确保如果需要的时候正确的busy-handler被调用。
   if( p->rc==SQLITE_NOMEM ){
     /* This happens if a malloc() inside a call to sqlite3_column_text() or
-    ** sqlite3_column_text16() failed.  */
+    ** sqlite3_column_text16() failed.  一个malloc()里的调用sqlite3_column_text()或sqlite3_column_text16()失败则这项发生*/
     goto no_mem;
   }
   assert( p->rc==SQLITE_OK || p->rc==SQLITE_BUSY );
@@ -715,7 +715,7 @@ int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
 #endif
     pOp = &aOp[pc];
 
-    /* Only allow tracing if SQLITE_DEBUG is defined.
+    /* Only allow tracing if SQLITE_DEBUG is defined.如果SQLITE_DEBUG被定义则仅允许跟踪
     */
 #ifdef SQLITE_DEBUG
     if( p->trace ){
@@ -783,7 +783,7 @@ int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
       pOut->flags = MEM_Int;
     }
 
-    /* Sanity checking on other operands */
+    /* Sanity checking on other operands 检查其他操作数*/
 #ifdef SQLITE_DEBUG
     if( (pOp->opflags & OPFLG_IN1)!=0 ){
       assert( pOp->p1>0 );
@@ -1130,13 +1130,14 @@ case OP_Null: {           /* out2-prerelease */
 **
 ** P4 points to a blob of data P1 bytes long.  Store this
 ** blob in register P2.
-** 
+** P4指向一个blob数据P1字节的长度。
+** 存储这个blob在寄存器P2中。
 */
 case OP_Blob: {                /* out2-prerelease */
-  assert( pOp->p1 <= SQLITE_MAX_LENGTH );
-  sqlite3VdbeMemSetStr(pOut, pOp->p4.z, pOp->p1, 0, 0);
-  pOut->enc = encoding;
-  UPDATE_MAX_BLOBSIZE(pOut);
+  assert( pOp->p1 <= SQLITE_MAX_LENGTH );//当p1字节的长度小于SQLITE_MAX_LENGTH时候执行
+  sqlite3VdbeMemSetStr(pOut, pOp->p4.z, pOp->p1, 0, 0);//给pOut和p4分配内存空间
+  pOut->enc = encoding;					//输出的结果的编码类型
+  UPDATE_MAX_BLOBSIZE(pOut);			//更新最大的blob类型的大小
   break;
 } 
 
@@ -1851,18 +1852,24 @@ case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
 ** 强制P1里的值为一个二进制大文件值，如果这个值正好是数字类型的，
 ** 转换为字符串,字符串是对二进制大文件简单地进行重新解释,它所代表的数据是不变的
 ** 此程序无法改变NULL值,它就是NULL.
+** 刘志齐修改：
+** 把寄存器P1中的值强制转换成BLOB类型，
+** 如果这个值是一个数字类型，首先把它转换成一个字符串类型。
+** 字符串只是对blobs类型的数据仅仅重新解释，并没有改变基础数据。
+** 此程序无法改变NULL值,它就是NULL。
 */
 case OP_ToBlob: {                  /* same as TK_TO_BLOB, in1 */
-  pIn1 = &aMem[pOp->p1];
+  pIn1 = &aMem[pOp->p1];     
   if( pIn1->flags & MEM_Null ) break;
   if( (pIn1->flags & MEM_Blob)==0 ){
     applyAffinity(pIn1, SQLITE_AFF_TEXT, encoding);
     assert( pIn1->flags & MEM_Str || db->mallocFailed );
-    MemSetTypeFlag(pIn1, MEM_Blob);
+    MemSetTypeFlag(pIn1, MEM_Blob);  //将Mem中的任何现有的标记来自Mem清除都并且用MEM_Blob替换
   }else{
-    pIn1->flags &= ~(MEM_TypeMask&~MEM_Blob);
-  }
-  UPDATE_MAX_BLOBSIZE(pIn1);
+    pIn1->flags &= ~(MEM_TypeMask&~MEM_Blob);//把MEM_TypeMask的值与MEM_Blob的取非的结果再取非的结果
+											 //与pIn1->flags取非的结果赋给pIn1->flags。
+  }	
+  UPDATE_MAX_BLOBSIZE(pIn1);      //更新最大的blob类型的大小根据pIn1
   break;
 }
 
