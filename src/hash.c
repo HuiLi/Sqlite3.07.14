@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** 2001 September 22
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -10,7 +10,7 @@
 **
 *************************************************************************
 ** This is the implementation of generic hash-tables
-** used in SQLite.
+** used in SQLite.使用SQLite
 */
 /*SQLite中哈希表的实现*/
 
