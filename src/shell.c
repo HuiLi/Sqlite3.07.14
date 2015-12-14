@@ -3065,7 +3065,7 @@ static void usage(int showDetail){
 
 /*初始化数据的状态信息*/
 static void main_init(struct callback_data *data) {/*其参数为结构体回显指针*/
-  memset(data, 0, sizeof(*data));
+  memset(data, 0, sizeof(*data));//清零 sizeof(*data),指针data所占内存的字节数 4
   data->mode = MODE_List;
   memcpy(data->separator,"|", 2);
   data->showHeader = 0;
