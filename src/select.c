@@ -158,82 +158,126 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){ /*初始化
 ** structure.
 **分配一个新的选择结构并返回一个指向该结构体的指针.select语法分析最终在sqlite3SelectNew中完成，得到各个语法树汇总到Select结构体，然后根据结构体，进行语义分析生成执行计划。，
 */
-Select *sqlite3SelectNew( /*分配一个新的选择结构和返回一个结构的指针*/
+Select *sqlite3SelectNew(               /*分配一个新的选择结构和返回一个结构的指针*/
 /*分配一个新的查询结构，返回一个指向该结构体的指针*/(/*select语法分析最终在sqlite3SelectNew中完成,它主要就是将之前得到的各个子语法树汇总到Select结构体，并根据该结构，进行接下来语义分析及生成执行计划等工作。*/
-	Parse *pParse,        /* Parsing context  句法分析*//* Parsing context  语义分析*/
-	ExprList *pEList,     /* which columns to include in the result  在结果中包含哪些列*//* which columns to include in the result  存放表达式列表*/
+	Parse *pParse,                  /*定义Parse类型指针*/      
+/* Parsing context  句法分析*//* Parsing context  语义分析*/
+	ExprList *pEList,               /*定义ExprList类型指针*/      
+/* which columns to include in the result  在结果中包含哪些列*//* which columns to include in the result  存放表达式列表*/
 
-	SrcList *pSrc,        /* the FROM clause -- which tables to scan  from语法树，扫描有哪些表 */ /* the FROM clause -- which tables to scan  from存放from语法树---扫描表 */
+	SrcList *pSrc,                  /*定义SrcList类型指针*/
+ /* the FROM clause -- which tables to scan  from语法树，扫描有哪些表 */ /* the FROM clause -- which tables to scan  from存放from语法树---扫描表 */
 
-	Expr *pWhere,         /* the WHERE clause       where部分的语法树 ，子句表达式放where子句*//* the WHERE clause  存放where语法树*/
-	ExprList *pGroupBy,   /* the GROUP BY clause    group by语句的语法树，表达式列表放Group by子句表达式*//* the GROUP BY clause   存放group by语法树*/
-	Expr *pHaving,        /* the HAVING clause      having语句的语法树，放Having表达式*//* the HAVING clause  存放having语法树*/
+	Expr *pWhere,                   /*定义Expr类型指针*/         
+/* the WHERE clause       where部分的语法树 ，子句表达式放where子句*//* the WHERE clause  存放where语法树*/
+	ExprList *pGroupBy,              /*定义ExprList类型指针*/
+/* the GROUP BY clause    group by语句的语法树，表达式列表放Group by子句表达式*//* the GROUP BY clause   存放group by语法树*/
+	Expr *pHaving,                   /*定义Expr类型指针*/   
+/* the HAVING clause      having语句的语法树，放Having表达式*//* the HAVING clause  存放having语法树*/
 
-	ExprList *pOrderBy,   /* the ORDER BY clause    order by语句的语法树，表达式列表放Order by子句表达式*//* the ORDER BY clause  存放order by语法树*/
+	ExprList *pOrderBy,               /*定义ExprList类型指针*/ 
+/* the ORDER BY clause    order by语句的语法树，表达式列表放Order by子句表达式*//* the ORDER BY clause  存放order by语法树*/
 
-	int isDistinct,       /* true if the DISTINCT keyword is present  如果关键字distinct存在，则返回true*//* true if the DISTINCT keyword is present  如果关键字distinct存在，则返回true*/
+	int isDistinct,                   /*定义整型参数判断distinct是否存在*/ 
+/* true if the DISTINCT keyword is present  如果关键字distinct存在，则返回true*//* true if the DISTINCT keyword is present  如果关键字distinct存在，则返回true*/
 
-	Expr *pLimit,         /* LIMIT value.  NULL means not used  limit值，如果值为空意味着limit未使用*/ /* LIMIT value.  NULL means not used  limit值，如果值为空意味着limit未使用*/
+	Expr *pLimit,                      /*定义Expr类型指针，判断limit是否在使用*/        
+/* LIMIT value.  NULL means not used  limit值，如果值为空意味着limit未使用*/ /* LIMIT value.  NULL means not used  limit值，如果值为空意味着limit未使用*/
 
-	Expr *pOffset         /* OFFSET value.  NULL means no offset  offset值，如果值为空意味着offset未使用*//* OFFSET value.  NULL means no offset  offset值，如果值为空意味着offset未使用*/
+	Expr *pOffset                       /*定义Expr类型指针，判断pOffset是否在使用*/        
+/* OFFSET value.  NULL means no offset  offset值，如果值为空意味着offset未使用*//* OFFSET value.  NULL means no offset  offset值，如果值为空意味着offset未使用*/
 
 	){
-	Select *pNew;/*定义结构体指针pNew*//*创建一个select结构体指针pNew*/
+	Select *pNew;                        /*定义Selcet类型指针,指向新指针*/
+/*定义结构体指针pNew*//*创建一个select结构体指针pNew*/
 
-	Select standin;/*定义结构体类型变量standin*//*创建一个select结构体类型变量standin*/
-	sqlite3 *db = pParse->db;/*结构体Parse的成员db赋值给结构体sqlite3指针db*//*创建一个sqlite3结构体，这是主数据库的结构体，并将解析上下文中的数据赋值给它的数据指针*/
+	Select standin;                      /*定义Select类型指针,指向standin指针变量*/
+/*定义结构体类型变量standin*//*创建一个select结构体类型变量standin*/
+	sqlite3 *db = pParse->db;             /*/*结构体Parse的成员db赋值给结构体sqlite3指针db*/*/
+/*结构体Parse的成员db赋值给结构体sqlite3指针db*//*创建一个sqlite3结构体，这是主数据库的结构体，并将解析上下文中的数据赋值给它的数据指针*/
 
-	pNew = sqlite3DbMallocZero(db, sizeof(*pNew));  /* 分配并清空内存，分配大小为第二个参数的内存。 *//* 分配和清空内存，如果分配失败，将mallocFaied标志放入连接指针中。*/
+	pNew = sqlite3DbMallocZero(db, sizeof(*pNew));  /* 分配和零内存，如果分配失败，使mallocFaied标志在连接指针中。 */ 
+/* 分配并清空内存，分配大小为第二个参数的内存。 *//* 分配和清空内存，如果分配失败，将mallocFaied标志放入连接指针中。*/
 
-	assert(db->mallocFailed || !pOffset || pLimit); /* 判断分配是否失败,或pOffset值为空,或pLimit值不为空*//* 判断分配是否失败,或pOffset值为空,或pLimit值不为空，如果条件为真，则终止当前操作*/
-	if (pNew == 0){/*如果结构体指针变量pNew分配失败*//*如果结构体指针变量pNew指向的地址为0，即创建结构体指针失败*/
+	assert(db->mallocFailed || !pOffset || pLimit); /* 判断分配是否失败,或pOffset值为空,或pLimit值不为空*/
+/* 判断分配是否失败,或pOffset值为空,或pLimit值不为空*//* 判断分配是否失败,或pOffset值为空,或pLimit值不为空，如果条件为真，则终止当前操作*/
+	if (pNew == 0){         /*如果结构体指针变量pNew指向的地址为0*/
+/*如果结构体指针变量pNew分配失败*//*如果结构体指针变量pNew指向的地址为0，即创建结构体指针失败*/
 
-		assert(db->mallocFailed);/*如果分配失败，分配内存*/
-		pNew = &standin;/*把standin的存储地址赋给pNew*/
-		memset(pNew, 0, sizeof(*pNew));/*将pNew中前sizeof(*pNew)个字节用0替换并且返回pNew*/
+		assert(db->mallocFailed);/*如果分配失败，重新申请分配内存*/  
+		pNew = &standin;         /*把standin的内存地址值赋给pNew*/
+/*把standin的存储地址赋给pNew*/      /*把standin的存储地址赋给pNew指针常量*/
+		memset(pNew, 0, sizeof(*pNew));  /*调用memset()函数给pNew赋值*/
+/*将pNew中前sizeof(*pNew)个字节用0替换并且返回pNew*/
 	}
-	if (pEList == 0){/*如果表达式列表为空*/
-		pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db, TK_ALL, 0)); /*在表达式列表后追加一条表达式，如果没有表达式，列表会新建一个再加入*/
-	  
-																			
-																			
-	}
-	pNew->pEList = pEList;/*pEList指向元素的地址赋给pNew->pEList*/
-	if (pSrc == 0) pSrc = sqlite3DbMallocZero(db, sizeof(*pSrc));/*分配并清空内存，分配大小为第二个参数的内存，如果分配失败，会在mallocFailed中做标记*/
-	pNew->pSrc = pSrc;/*为Select结构体中FROM子句表达式赋值*/
-	pNew->pWhere = pWhere;/*为Select结构体中Where子句表达式赋值*/
-	pNew->pGroupBy = pGroupBy;/*为Select结构体中GroupBy子句表达式赋值*/
-	pNew->pHaving = pHaving;/*为Select结构体中Having子句表达式赋值*/
-	pNew->pOrderBy = pOrderBy;/*为Select结构体中OrderBy子句表达式赋值*/
-	pNew->selFlags = isDistinct ? SF_Distinct : 0;/*设置SF_*中的值*/
-	pNew->op = TK_SELECT;/*只能设置为TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT 其中一个值*/
-	pNew->pLimit = pLimit;/*为Select结构体中Limit子句表达式赋值*/
-	pNew->pOffset = pOffset;/*为Select结构体中Offset子句表达式赋值*/
-	assert(pOffset == 0 || pLimit != 0);/*如果偏移量为空，或者Limit不为空，则分配内存*/
-	pNew->addrOpenEphm[0] = -1;       /*对地址信息初始化*/
-	pNew->addrOpenEphm[1] = -1;		  /*对地址信息初始化*/
-	pNew->addrOpenEphm[2] = -1;		  /*对地址信息初始化*/
-	if (db->mallocFailed) {          /*如果内存分配失败*/
-		clearSelect(db, pNew);          /*调用clearSelect，清除Select结构体中内容*/
-		if (pNew != &standin) sqlite3DbFree(db, pNew);/*如果Select结构体standin的地址未赋值给pNew，则清除pNew，*/
-		pNew = 0;                      /*将Select结构体设置为空*/
+	if (pEList == 0){   /*判断pEList表达式是否为空*/
+/*如果表达式列表为空*/
+		pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db, TK_ALL, 0));   /*调用函数给pEList赋值，重新分配内存*/
+/*在表达式列表后追加一条表达式，如果没有表达式，列表会新建一个再加入*/													
+	                }
+	pNew->pEList = pEList;   /*pEList指向元素的地址赋给pNew->pEList*/
+/*pEList指向元素的地址赋给pNew->pEList*/
+	if (pSrc == 0) pSrc = sqlite3DbMallocZero(db, sizeof(*pSrc)); /*如果pSrc取值0时，申请内存空间*/
+/*分配并清空内存，分配大小为第二个参数的内存，如果分配失败，会在mallocFailed中做标记*/
+	pNew->pSrc = pSrc;     /*pNew指向元素的地址赋给pNew->pSrc*/
+/*如果pSrc取值0时，申请内存空间*/
+/*为Select结构体中FROM子句表达式赋值*/
+	pNew->pWhere = pWhere;/*pWhere指向元素的地址赋给pNew->pWhere*/
+/*为Select结构体中Where子句表达式赋值*/
+	pNew->pGroupBy = pGroupBy;/*pGroupBy指向元素的地址赋给pNew->pGroupBy*/
+/*为Select结构体中GroupBy子句表达式赋值*/
+	pNew->pHaving = pHaving;/*pHaving指向元素的地址赋给pNew->pHaving*/
+/*为Select结构体中Having子句表达式赋值*/
+	pNew->pOrderBy = pOrderBy; /*pOrderBy指向元素的地址赋给pNew->pOSrderBy*/
+/*为Select结构体中OrderBy子句表达式赋值*/
+	pNew->selFlags = isDistinct ? SF_Distinct : 0;   /*指向元素的地址赋给pNew->pEList*/
+/*设置SF_*中的值*/
+	pNew->op = TK_SELECT;   /*TK_SELECT指向元素的地址赋给pNew->op*/
+/*只能设置为TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT 其中一个值*/
+	pNew->pLimit = pLimit;   /*pLimit指向元素的地址赋给pNew->pLimit*/
+/*为Select结构体中Limit子句表达式赋值*/
+	pNew->pOffset = pOffset;  /*pOffset指向元素的地址赋给pNew->pOffset*/
+/*为Select结构体中Offset子句表达式赋值*/
+	assert(pOffset == 0 || pLimit != 0);  /*调用函数选择赋值*/
+/*如果偏移量为空，或者Limit不为空，则分配内存*/
+	pNew->addrOpenEphm[0] = -1;   /*把-1赋值给pNew->addrOpenEphm[0] */
+    /*对地址信息初始化*/
+	pNew->addrOpenEphm[1] = -1;   /*把-1赋值给pNew->addrOpenEphm[1] */
+		  /*对地址信息初始化*/
+	pNew->addrOpenEphm[2] = -1;   /*把-1赋值给pNew->addrOpenEphm[2] */
+   		  /*对地址信息初始化*/
+	if (db->mallocFailed) {        /*判断分配内存是否失败*/ 
+     /*如果内存分配失败*/
+		clearSelect(db, pNew);  /*删除所有选择的内容结构但不释放选择结构本身*/      
+   /*调用clearSelect，清除Select结构体中内容*/
+		if (pNew != &standin) sqlite3DbFree(db, pNew);  /*如果pNew没有获得standin的地址，释放相关联的内存。 */
+/*如果Select结构体standin的地址未赋值给pNew，则清除pNew，*/
+		pNew = 0;           /*把pNew的值赋值为0*/               
+ /*将Select结构体设置为空*/
 	}
 	else{                           /*能分配内存*/
-		assert(pNew->pSrc != 0 || pParse->nErr>0);/*判断是否有From子句或者是否有分析错误*/
+		assert(pNew->pSrc != 0 || pParse->nErr>0);   /*调用函数assert进行判断*/
+/*判断是否有From子句或者是否有分析错误*/
 	}
-	assert(pNew != &standin);/*判断Select结构体是否同替换结构体standin的地址相同*/
-	return pNew;/*返回这个构造好的Select结构体*/
+	assert(pNew != &standin);    /*再次调用函数assert进行判断*/
+/*判断Select结构体是否同替换结构体standin的地址相同*/
+	return pNew;   /*返回pNew的值*/ 
+/*返回这个构造好的Select结构体*/
 }
 
 /*
 ** Delete the given Select structure and all of its substructures.
 ** 删除给定的选择结构和所有的子结构
 */
-void sqlite3SelectDelete(sqlite3 *db, Select *p){/*删除已分配的查询结构和它所有的子结构
+void sqlite3SelectDelete(sqlite3 *db, Select *p){  /*删除给定的选择结构和所有的子结构*/
+/*删除已分配的查询结构和它所有的子结构
 定义数据库db以及Select类型的结构体p作为参数*/
-	if (p){/*如果Select结构体指针p存在*/
-		clearSelect(db, p);  /*调用clearSelect函数，清空Select类型结构体p里面的内容*/
-		sqlite3DbFree(db, p);  /*再调用sqlite3DbFree函数，释放掉空间*/
+	if (p){  /*如果结构体指针p指向的地址非空*/
+/*如果Select结构体指针p存在*/
+		clearSelect(db, p); /*删除所有选择的内容结构但不释放选择结构本身*/  
+/*调用clearSelect函数，清空Select类型结构体p里面的内容*/
+		sqlite3DbFree(db, p);   /*空闲内存,可能被关联到一个特定的数据库连接。*/
+ /*再调用sqlite3DbFree函数，释放掉空间*/
 	}
 }
 
@@ -256,6 +300,13 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){/*删除已分配的查询结�
 ** 全外连接是JT_LEFT和JT_RIGHT结合。 如果检测到是非法字符或者不支持的连接类型，
 ** 也会返回一个连接类型，但是会在pParse结构中放入一个错误信息。
 */
+
+
+
+
+
+
+
 int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*传入分析树，三个令牌结构体pA、pB、pC*/
 	int jointype = 0;/*默认连接类型为0*/
 	Token *apAll[3];/*定义结构体指针数组apAll存放令牌*/
