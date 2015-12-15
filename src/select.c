@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** 2001 September 15
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -14,28 +14,46 @@
 **此文件包含 C 代码程序，它是由 SQLite中处理 SELECT 语句的语法分析器调用的。
 */
 
+*************************************************************************
+** This file contains C code routines that are called by the parser
+** to handle SELECT statements in SQLite.
+**此文件包含由语法分析器来处理在 SQLite 的 SELECT 语句调用的 C 代码例程
+*/
+
+
+/*********************************************************************
+2001年9月15日
+**作者放弃版权这个源代码。在的地方一个合法的通知,这是一个祝福:
+**愿你做好事,而不是邪恶的。
+**愿你找到原谅自己,原谅他人。
+**可能你分享自由,永远不会超过你给。
+**
+*************************************************************************
+**此文件包含由语法分析器来处理在 SQLite 的 SELECT 语句调用的 C 代码例程
+***********************************************************************/
+
 /*
 ** This file contains C code routines that are called by the parser
 ** to handle SELECT statements in SQLite.
 **本文件包含SQLite中利用语法分析器处理SLEECT语句的C代码程序。SQLite的语法分析器使用Lemon LALR(1)分析程序生成器来产生，Lemon做的工作与YACC/BISON相同，但它使用不同的输入句法，这种句法更不易出错。Lemon还产生可重入的并且线程安全的语法分析器。Lemon定义了非终结析构器的概念，当遇到语法错误时它不会泄露内存。驱动Lemon的源文件可在parse.y中找到。
     因为lemon是一个在开发机器上不常见的程序，所以lemon的源代码（只是一个C文件）被放在SQLite的"tool"子目录下。 lemon的文档放在"doc"子目录下
 */
-#include "sqliteInt.h"  /*C语言中预编译处理器把sqliteInt.h文件中的内容加载到下面的程序中*/
+#include "sqliteInt.h"  /*C语言中预编译处理器把sqliteInt.h文件中的内容加载到下面的程序中*/      /*预编译处理器把sqliteInt.h文件中的内容加载到程序中来*/
 
 /*
 ** Trace output macros
 ** 跟踪输出宏
 */
 
-#if SELECTTRACE_ENABLED //预编译指令
-/***/ int sqlite3SelectTrace = 0;
-# define SELECTTRACE(K,P,S,X)  
-  if(sqlite3SelectTrace&(K))   
-    sqlite3DebugPrintf("%*s%s.%p: ",(P)->nSelectIndent*2-2,"",
-        (S)->zSelName,(S)),
-    sqlite3DebugPrintf X
+#if SELECTTRACE_ENABLED //预编译指令                                                            /*预编译处理器把预编译指令包含进来*/                                                          
+/***/ int sqlite3SelectTrace = 0;                                                               /*定义整型且赋值为0*/
+# define SELECTTRACE(K,P,S,X)                                                                   /*定义宏命令*/  
+  if(sqlite3SelectTrace&(K))                                                                    /*判断选择跟踪栈*/   
+    sqlite3DebugPrintf("%*s%s.%p: ",(P)->nSelectIndent*2-2,"",                        
+        (S)->zSelName,(S)),                                                                     /*给出输出值*/
+    sqlite3DebugPrintf X                                                                        /*定义常量X*/
 #else
-# define SELECTTRACE(K,P,S,X)
+# define SELECTTRACE(K,P,S,X)                                                                   /*定义宏选择有四个参数*/
 #endif
 
 /*
@@ -45,11 +63,11 @@
 ** 下面结构体的一个实例是用于记录有关如何处理DISTINCT关键字的信息，为了简化传递该信息到selectInnerLoop（）事务。
 */
 
-typedef struct DistinctCtx DistinctCtx;
-struct DistinctCtx {
-	u8 isTnct;      /* 如果DISTINCT关键字存在则真  */ 
-		u8 eTnctType;   /* 其中的WHERE_DISTINCT_*运算符*/ 
-		int tabTnct;    /* 处理DISTINCT的临时表*/
+typedef struct DistinctCtx DistinctCtx;                                  /*定义结构体类型*/
+struct DistinctCtx {                                                     /*定义结构体名称*/
+	u8 isTnct;      /* 如果DISTINCT关键字存在则真  */                /*定义结构体关键字*/
+		u8 eTnctType;   /* 其中的WHERE_DISTINCT_*运算符*/        /*定义结构体中要使用的整型运算符*/
+		int tabTnct;    /* 处理DISTINCT的临时表*/                /*定义处理临时表的整型*/
 		int addrTnct;   /* OP_OpenEphemeral操作码的地址*/ 
 };
 
@@ -59,17 +77,17 @@ struct DistinctCtx {
 ** 下面结构体的一个实例是用于记录ORDER BY(或者 GROUP BY)查询字句的信息
 */
 
-typedef struct SortCtx SortCtx;
-struct SortCtx {
-	ExprList *pOrderBy;   /* ORDER BY(或者 GROUP BY字句)*/ 
-		int nOBSat;           /* ORDER BY语句的数量满足指数*/
-		int iECursor;         /* 分类器的游标数目*/
-		int regReturn;        /* 寄存器控制块输出返回地址*/
-		int labelBkOut;       /* 块输出子程序的启动标签*/  
-		int addrSortIndex;    /* OP_SorterOpen或者OP_OpenEphemeral的地址 */ 
-		u8 sortFlags;         /* 零或者更多的SORTFLAG_* 位 */ 
+typedef struct SortCtx SortCtx;                                                        /*定义结构体用来记录order by 查询子句的信息*/                                                       
+struct SortCtx {                                                                       /*定义结构体名称类型*/
+	ExprList *pOrderBy;   /* ORDER BY(或者 GROUP BY字句)*/                         /*定义排序中用到的查询列表*/
+		int nOBSat;           /* ORDER BY语句的数量满足指数*/                  /*定义查询的条件与要求*/
+		int iECursor;         /* 分类器的游标数目*/                            /*定义结构体分类器的游标数目*/
+		int regReturn;        /* 寄存器控制块输出返回地址*/                    /*定义结构体寄存器控制块输出的返回地址*/
+		int labelBkOut;       /* 块输出子程序的启动标签*/                      /*定义结构体中块输出子程序的启动标签*/  
+		int addrSortIndex;    /* OP_SorterOpen或者OP_OpenEphemeral的地址 */    /*定义结构体中查询时要用到的地址*/
+		u8 sortFlags;         /* 零或者更多的SORTFLAG_* 位 */                  /*定义结构体中更多需要查找到的位*/
 };
-#define SORTFLAG_UseSorter  0x01   /* 使用sorteropen代替openephemeral */ 
+#define SORTFLAG_UseSorter  0x01   /* 使用sorteropen代替openephemeral */               /*定义结构体用户编号*/
 
 /*
 ** Delete all the content of a Select structure.  Deallocate the structure
@@ -81,24 +99,24 @@ struct SortCtx {
 ** the select structure itself.
 **删除查询结构的内容而不释放结构体本身。为了清除表达式
 */
-static void clearSelect(sqlite3 *db, Select *p, int bFree){  /*函数的用处是用于清除*//*清除查询结构*/
+static void clearSelect(sqlite3 *db, Select *p, int bFree){  /*函数的用处是用于清除*//*清除查询结构*/                                              /*定义删除函数用于清除查询结构*/
 	while (p){
-		Select *pPrior = p->pPrior;                  /*将p->pPrior赋值给Select *pPrior*/
-			sqlite3ExprListDelete(db, p->pEList);        /*清除select结构体中的查询结果*/ /*删除整个表达式列表*/
-			sqlite3SrcListDelete(db, p->pSrc);           /*从表达式列表中清除FROM子句表达式*//*删除表达式列表中的FROM子句*/
-			sqlite3ExprDelete(db, p->pWhere);           /*从表达式列表中清除where子句表达式*//*递归删除where子句*/
-			sqlite3ExprListDelete(db, p->pGroupBy);      /*从表达式列表中清除group by子句表达式*/ /*删除groupby子句*/
-			sqlite3ExprDelete(db, p->pHaving);            /*从表达式列表中清除Having子句表达式*//*递归删除having子句*/
-			sqlite3ExprListDelete(db, p->pOrderBy);    /*从表达式列表中清除Order by子句表达式*/ /*删除orderby*/
-			sqlite3ExprDelete(db, p->pLimit);           /*从表达式列表中清除Limit子句表达式*//*删除优先选择子句*/
-			sqlite3ExprDelete(db, p->pOffset);          /*从表达式列表中清除偏移量Offset子句表达式*//*递归删除限制返回数据数量的子句*/
+		Select *pPrior = p->pPrior;                  /*将p->pPrior赋值给Select *pPrior*/                                                   /*定义需要赋值的参数*/
+			sqlite3ExprListDelete(db, p->pEList);        /*清除select结构体中的查询结果*/ /*删除整个表达式列表*/                       /*清除选择结构中表达式列表*/
+			sqlite3SrcListDelete(db, p->pSrc);           /*从表达式列表中清除FROM子句表达式*//*删除表达式列表中的FROM子句*/            /*清除from子句中的符合条件的表达式*/
+			sqlite3ExprDelete(db, p->pWhere);           /*从表达式列表中清除where子句表达式*//*递归删除where子句*/                     /*运用递归查法删除where子句*/
+			sqlite3ExprListDelete(db, p->pGroupBy);      /*从表达式列表中清除group by子句表达式*/ /*删除groupby子句*/                  /*清除group by子句表达式结构*/
+			sqlite3ExprDelete(db, p->pHaving);            /*从表达式列表中清除Having子句表达式*//*递归删除having子句*/                 /*运用递归查找方法删除having子句*/
+			sqlite3ExprListDelete(db, p->pOrderBy);    /*从表达式列表中清除Order by子句表达式*/ /*删除orderby*/                        /*删除orderby子句中的表达式*/
+			sqlite3ExprDelete(db, p->pLimit);           /*从表达式列表中清除Limit子句表达式*//*删除优先选择子句*/                      /*删除Limit子句表达式*/
+			sqlite3ExprDelete(db, p->pOffset);          /*从表达式列表中清除偏移量Offset子句表达式*//*递归删除限制返回数据数量的子句*/ /*删除偏移量offset子句表达式*/
 	}
-			sqlite3WithDelete(db, p->pWith);			 /*递归删除一个条件树*//*递归删除偏移量offset子句*/
+			sqlite3WithDelete(db, p->pWith);			 /*递归删除一个条件树*//*递归删除偏移量offset子句*/                 /*递归删除一个条件树*/
 
-			if (bFree)                                     /*如果树不为空*/
-				sqlite3DbFree(db, p);					 /*释放*db*/
-				p = pPrior;                                      /*pPrior赋值给p*/
-		bFree = 1; ?               /树不为空*/
+			if (bFree)                                     /*如果树不为空*/                                                             /*判断一棵树是否为空*/
+				sqlite3DbFree(db, p);					 /*释放*db*/                                                /*释放占用的内存空间*/
+				p = pPrior;                                      /*pPrior赋值给p*/                                                  /*把pPrior的值赋给p*/
+		bFree = 1; ?               /树不为空*/                                                                                              /*判断树不为空*/
 	}
 }
 
@@ -110,20 +128,39 @@ static void clearSelect(sqlite3 *db, Select *p, int bFree){  /*函数的用处�
 ** Initialize a SelectDest structure.
 **初始化一个SelectDest结构.为了创建一个SelectDest,传入参数，定制一个结构体
 */
-void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){ /*初始化SelectDest查询结构*/
-         /*函数sqlite3SelectDestInit的参数列表为  结构体SelectDest指针pDest， 整型指针 eDest ,整型指针iParm */
-																	  结构体SelectDest指针pDest，整型指针eDest，
-																	  整型指针iParm
-																	  */
-	pDest->eDest = (u8)eDest; /*把整型eDest强制类型转化为u8型，然后赋值给pDest->eDest /*把整型eDest 强制类型转化为u8型，eDest是为了处理select操作结果*/
+void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){ /*初始化SelectDest查询结构*/                /*建立函数用来传递参数*/
+ /*函数sqlite3SelectDestInit的参数列表为  结构体SelectDest指针pDest， 整型指针 eDest ,整型指针iParm */
+			结构体SelectDest指针pDest，整型指针eDest，
+						整型指针iParm*/
+	pDest->eDest = (u8)eDest; /*把整型eDest强制类型转化为u8型，然后赋值给pDest->eDest                        /*用强制转换来赋值*/
+/*把整型eDest 强制类型转化为u8型，eDest是为了处理select操作结果*/
 
 	 u8是一个无符号字型，eDest是为了处理select操作结果*/
-	pDest->iSDParm = iParm; /*整型参数iParm赋值为pDest->iSDParm*/ /*整型参数iParm赋值为pDest->iSDParm，eDest的第几个处理方法，相当于设置eDest==SRT_Set，默认为0，表明没有设置*/
-	pDest->affSdst = 0; /*0赋值给pDest->affSdst*//*把整型eDest 强制类型转化为u8型，eDest是为了处理select操作结果*/
-	pDest->iSdst = 0; /*0赋值给pDest->iSdst*//*0赋值给pDest->iSdst，结果写在基址寄存器的编号，默认为0*/
+	pDest->iSDParm = iParm; /*整型参数iParm赋值为pDest->iSDParm*/                                            /*利用赋值来进行传递操作*/
+/*整型参数iParm赋值为pDest->iSDParm，eDest的第几个处理方法，相当于设置eDest==SRT_Set，默认为0，表明没有设置*/
+	pDest->affSdst = 0;                                                                                      /*对pDest中参数进行赋值0*/
+/*0赋值给pDest->affSdst*//*把整型eDest 强制类型转化为u8型，eDest是为了处理select操作结果*/
+	pDest->iSdst = 0;                                                                                       /*对pDest中参数进行赋值0，结果写在寄存器中*/
+/*0赋值给pDest->iSdst*//*0赋值给pDest->iSdst，结果写在基址寄存器的编号，默认为0*/
 
-	pDest->nSdst = 0; /*0赋值给pDest->nSdst*//*0赋值给pDest->nSdst，分配寄存器的数量*/
+	pDest->nSdst = 0;                                                                                       /*对pDest中参数进行赋值0，分配寄存器的数量*/
+ /*0赋值给pDest->nSdst*//*0赋值给pDest->nSdst，分配寄存器的数量*/
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 ** Allocate a new Select structure and return a pointer to that
