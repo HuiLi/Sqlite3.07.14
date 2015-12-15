@@ -1170,6 +1170,7 @@ static void generateSortTail(
 	*/
 	 /* 循环的底部 */
 	sqlite3VdbeResolveLabel(v, addrContinue);/*解析插入的下一条指令的地址*//*addrContinue作为下一条插入指令的地址，其中addrContinue能优先调用sqlite3VdbeMakeLabel（）*/
+	/*根据满足条件，执行下列条件语句*//*addrContinue作为下一条插入指令的地址，其中addrContinue能优先调用sqlite3VdbeMakeLabel（）*/
 	if (p->selFlags & SF_UseSorter){/*selFlags的值是SF_UseSorter*/
 		sqlite3VdbeAddOp2(v, OP_SorterNext, iTab, addr);/*将OP_SorterNext操作交给VDBE，再返回这个操作的地址*/
 	}
@@ -1225,9 +1226,9 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 	char const *zOriginTab = 0;
 	char const *zOriginCol = 0;
 	int j;
-	if (NEVER(pExpr == 0) || pNC->pSrcList == 0) return 0;
+	if (NEVER(pExpr == 0) || pNC->pSrcList == 0) return 0;/*满足if语句条件，返回0*/
 
-	switch (pExpr->op){/*遍历表达式中的操作*/
+	switch (pExpr->op)/*遍历表达式*/{/*遍历表达式中的操作*/
 	case TK_AGG_COLUMN:
 	case TK_COLUMN: {
 		/* 
@@ -1237,24 +1238,24 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		** 表达式是一个列。被定位的表的列从NameContext.pSrcList中提取。
 		** 这个表可能是真实的数据库表，或者是一个子查询。
 		*/
-		Table *pTab = 0;            /* Table structure column is extracted from 表结构列被提取*/
-		Select *pS = 0;             /* Select the column is extracted from 选择列被提取*/
-		int iCol = pExpr->iColumn;  /* Index of column in pTab 索引列在pTab中*/
+		Table *pTab = 0;           /*定义一个Table型的指针变量并赋初值为0*/ /* Table structure column is extracted from 表结构列被提取*/
+		Select *pS = 0;              /*定义一个Seclet型的指针变量并赋初值为pExpr->iColumn*//* Select the column is extracted from 选择列被提取*/
+		int iCol = pExpr->iColumn;  /*定义一个整型的iCol变量并赋值为*//* Index of column in pTab 索引列在pTab中*/
 		testcase(pExpr->op == TK_AGG_COLUMN);/*这个表达式的操作是否是TK_AGG_COLUMN（嵌套列）*/
 		testcase(pExpr->op == TK_COLUMN);/*这个表达式的操作是否是TK_COLUMN（列索引）*/
-		while (pNC && !pTab){/*命名上下文结构体存在，被提取的表结构列（就是一个被提取的列组成的表）不存在*/
+		while (pNC && !pTab)/*满足结构体存在与表结构列不存在，则执行循环语句*/{/*命名上下文结构体存在，被提取的表结构列（就是一个被提取的列组成的表）不存在*/
 			SrcList *pTabList = pNC->pSrcList;/*命名上下文结构体中列表赋值给描述FROM的来源表或子查询结果的列表*/
-			for (j = 0; j<pTabList->nSrc && pTabList->a[j].iCursor != pExpr->iTable; j++);/*遍历查询列表*/
-			if (j<pTabList->nSrc){/*如果j小于列表中表的总个数*/
-				pTab = pTabList->a[j].pTab;/*赋值列表中的第j-1表给Table结构体的实体变量pTab*/
-				pS = pTabList->a[j].pSelect;/*赋值列表中的第j-1表的select结构体给ps*/
+			for (j = 0; j<pTabList->nSrc && pTabList->a[j].iCursor != pExpr->iTable; j++);/*遍历查询列*/
+			if (j<pTabList->nSrc)/*满足条件，执行if语句*/{/*如果j小于列表中表的总个数*/
+				pTab = pTabList->a[j].pTab;/*赋值列表中的第j-1表给Table结构体的实体变量pTab*//*把表中的第i-1表赋值给pTab*/
+				pS = pTabList->a[j].pSelect;/*赋值列表中的第j-1表的select结构体给ps*//*把第j-1表的select结构体赋值给pS*/
 			}
 			else{
-				pNC = pNC->pNext;/*否则，将命名上下文结构体的下一个外部命名上下文赋值给pNC变量*/
+				pNC = pNC->pNext;/*否则，将命名上下文结构体的下一个外部命名上下文赋值给pNC变量*//*否则，把下一个指令赋值给pNC*/
 			}
 		}
 
-		if (pTab == 0){
+		if (pTab == 0)/*如果表为空，则执行if语句*/{
 			/* At one time, code such as "SELECT new.x" within a trigger would
 			** cause this condition to run.  Since then, we have restructured how
 			** trigger code is generated and so this condition is no longer
@@ -1284,7 +1285,7 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 			** 这不是一个问题，因为" t1.col "的列类型是从未使用过。当columnType ()被调用的
 			** 表达式"(SELECT t1.col)" ，则返回正确的类型(请参阅下面的TK_SELECT分支)。
 			*/
-			break;
+			break;//结束
 		}
 
 		assert(pTab && pExpr->pTab == pTab);
