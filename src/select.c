@@ -395,9 +395,9 @@ static void setJoinExpr(Expr *p, int iTable){/*函数setJoinExpr的参数列表�
 		ExprSetProperty(p, EP_FromJoin);/*设置join中使用ON和USING子句*/
 		assert(!ExprHasAnyProperty(p, EP_TokenOnly | EP_Reduced));/*判断表达式的属性，关于表达式的长度和剩余长度*/
 		ExprSetIrreducible(p);/*调试表达式，判读是否错误*/
-		p->iRightJoinTable = (i16)iTable;/*连接右表，即参数中传入的表*/
+		p->iRightJoinTable = (i16)iTable;/*连接右表，即参数中传入的表，把整型iTable强制类型转换为i16型，并将其赋值给p->iRightJoinTable*/
 		setJoinExpr(p->pLeft, iTable);/*递归调用自身*/
-		p = p->pRight;/*赋值表达式，将p赋值成为原来p的右子节点*/
+		p = p->pRight;/*赋值表达式，原来p的右子节点赋值给p*/
 	}
 }
 
@@ -415,13 +415,13 @@ static void setJoinExpr(Expr *p, int iTable){/*函数setJoinExpr的参数列表�
 ** entries 0 and 1.  Any ON or USING clauses associated with the join are
 ** also attached to the left entry.
 **from子句被Select.pSrc(Select结构体中FROM属性)所包含。
-**左边的表通常是Select.pSrc的入口。右边的表通常是最后一个入口（entry在hashmap中作为循环的节点入口，此处的理解的表连接遍历的记录入口）
-**join操作符在入口的左边。然后入口点0包含的连接操作符在入口0和入口1之间。任何涉及join的ON和USING子句，也将连接操作符放到左边入口。
+**左最左边的表在Select.pSrc中是第一项。最右边的表是最后一项。
+**jojoin操作符在入口的左边。然后入口点0包含的连接操作符在入口0和入口1之间。任何涉及join的ON和USING子句，也将连接操作符放到左边入口。
 **
 ** This routine returns the number of errors encountered.
 ** 这个程序返回遇到错误的数量
 */
-static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse，Select结构体p*/
+static int sqliteProcessJoin(Parse *pParse, Select *p){/*处理select语句的连接信息,传入分析树pParse，Select结构体p*/
 	SrcList *pSrc;                  /* All tables in the FROM clause   from子句中的所有表*/
 	int i, j;                       /* Loop counters  循环计数器*/
 	struct SrcList_item *pLeft;     /* Left table being joined   左表被加入*/
@@ -430,9 +430,9 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse�
 	pSrc = p->pSrc;/*把p->pSrc赋值给结构体指针pSrc*/
 	pLeft = &pSrc->a[0];/*把&pSrc->a[0]放入左表*/
 	pRight = &pLeft[1];/*把&pLeft[1]放入右表*/
-	for (i = 0; i < pSrc->nSrc - 1; i++, pRight++, pLeft++){
-		Table *pLeftTab = pLeft->pTab;/*把pLeft->pTab赋给结构体指针pLeftTab*/
-		Table *pRightTab = pRight->pTab;/*把pRight->pTab赋给结构体指针pRightTab*/
+	for (i = 0; i < pSrc->nSrc - 1; i++, pRight++, pLeft++){/*循环表数组中所有表*/
+		Table *pLeftTab = pLeft->pTab;/*把pLeft->pTab赋给结构体指针pLeftTab,作为左表*/
+		Table *pRightTab = pRight->pTab;/*把pRight->pTab赋给结构体指针pRightTab,作为右表*/
 		int isOuter;/*用于判断*/
 
 		if (NEVER(pLeftTab == 0 || pRightTab == 0)) continue;/*如果左表或右表有一个为空则跳出本次循环*/
@@ -464,9 +464,9 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse�
 		/* Disallow both ON and USING clauses in the same join
 		** 不允许在同一个连接中使用on和using子句
 		*/
-		if (pRight->pOn && pRight->pUsing){/*如果结构体指针pRight引用的成员变量錺On和pUsing非空*/
+		if (pRight->pOn && pRight->pUsing){/*如果右表中既有ON又有USING*/
 			sqlite3ErrorMsg(pParse, "cannot have both ON and USING "
-				"clauses in the same join");/*输出错误信息“cannot have both ON and USING clauses in the same join”*/
+				"clauses in the same join");/*语法树中将会报错”*/
 			return 1;
 		}
 
@@ -474,7 +474,7 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse�
 		** an AND operator.
 		** 将on子句添加到where子句的末尾，用and操作符连接
 		*/
-		if (pRight->pOn){/*如果结构体指针pRight引用的成员变量pOn非空*/
+		if (pRight->pOn){/*如果右表中有ON关键字*/
 			if (isOuter) setJoinExpr(pRight->pOn, pRight->iCursor);/*如果有外连接，设置连接表达式中ON子句和游标*/
 			p->pWhere = sqlite3ExprAnd(pParse->db, p->pWhere, pRight->pOn);/*设置将WHERE子句与ON子句连接一起，赋值给结构体的WHERE*/
 			pRight->pOn = 0;/*如果没有外连接，就设置不使用ON子句*/
@@ -492,10 +492,10 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse�
 		** 如果using子句中提到的任何列不包含在表的连接中，就会报告
 		** 一个错误。
 		*/
-		if (pRight->pUsing){/*如果结构体指针pRight引用的成员变量pUsing非空*/
-			IdList *pList = pRight->pUsing;/*把pRight->pUsing赋给结构体指针pList*/
+		if (pRight->pUsing){/*如果右表中含有USING*/
+			IdList *pList = pRight->pUsing;/*将右表中的USING赋值给标示符列表*/
 			for (j = 0; j < pList->nId; j++){/*遍历标示符列表*/
-				char *zName;     /* Name of the term in the USING clause   using子句的名称术语*/
+				char *zName;     /* Name of the term in the USING clause  USING子句在标示符列表中的名字*/
 				int iLeft;       /* Table on the left with matching column name   左表与匹配的列名*/
 				int iLeftCol;    /* Column number of matching column on the left  左表匹配列的列数*/
 				int iRightCol;   /* Column number of matching column on the right  右表匹配列的列数*/
@@ -506,7 +506,7 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse�
 					|| !tableAndColumnIndex(pSrc, i + 1, zName, &iLeft, &iLeftCol)/*如果列不存在*/
 					){
 					sqlite3ErrorMsg(pParse, "cannot join using column %s - column "
-						"not present in both tables", zName);/*输出错误信息*/
+						"not present in both tables", zName);/*在语法分析树中添加一条报错信息*/
 					return 1;
 				}
 				addWhereTerm(pParse, pSrc, iLeft, iLeftCol, i + 1, iRightCol,
@@ -520,9 +520,9 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*传入分析树pParse�
 /*
 ** Insert code into "v" that will push the record on the top of the
 ** stack into the sorter.
-** 插入代码"v"，在分类器将会推进记录到栈的顶部。
+** 把代码插入到"v"，分选机将会推进记录到栈的顶部。
 */
-static void pushOntoSorter(
+static void pushOntoSorter(/*推进记录到栈的顶部*/
 	Parse *pParse,         /* Parser context  语义分析*/
 	ExprList *pOrderBy,    /* The ORDER BY clause   order by子句*/
 	Select *pSelect,       /* The whole SELECT statement  整个select语句*/
@@ -534,11 +534,11 @@ static void pushOntoSorter(
 	int regRecord = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果。*/
 	int op;
 	sqlite3ExprCacheClear(pParse); /*清除所有列的缓存条目*/
-	sqlite3ExprCodeExprList(pParse, pOrderBy, regBase, 0);/*生成代码，将给定的表达式列表的每个元素的值放到寄存器开始的目标序列。返回元素评估的数量。*/
+	sqlite3ExprCodeExprList(pParse, pOrderBy, regBase, 0);/*将表达式列表中每个元素的每个值都放到一个队列中，返回一个元素的估计个数。*/
 	sqlite3VdbeAddOp2(v, OP_Sequence, pOrderBy->iECursor, regBase + nExpr);/*将表达式放到VDBE中，再返回一个新的指令地址*/
 	sqlite3ExprCodeMove(pParse, regData, regBase + nExpr + 1, 1);/*更改寄存器中的内容，这样做能及时更新寄存器中的列缓存数据*/
 	sqlite3VdbeAddOp3(v, OP_MakeRecord, regBase, nExpr + 2, regRecord);/*将nExpr放到当前使用的VDBE中，再返回一个新的指令的地址*/
-	if (pSelect->selFlags & SF_UseSorter){/*如果select结构体中selFlags的值是SF_UseSorter，提一下，selFlags的值全是以SF开头，这个表示使用了分拣器了。*/
+	if (pSelect->selFlags & SF_UseSorter){/*如果select结构体中selFlags的值是SF_UseSorter。*/
 		op = OP_SorterInsert;/*因为使用分拣器，所以操作符设置为插入分拣器*/
 	}
 	else{
@@ -570,12 +570,12 @@ static void pushOntoSorter(
 ** Add code to implement the OFFSET
 ** 添加代码来实现offset偏移
 */
-static void codeOffset(
+static void codeOffset(/*实现offset偏移量功能*/
 	Vdbe *v,          /* Generate code into this VM  在虚拟器中生成代码*/
 	Select *p,        /* The SELECT statement being coded  select语句被编码*/
-	int iContinue     /* Jump here to skip the current record  跳到这里以跳过当前记录*/
+	int iContinue     /* Jump here to skip the current record  从这里跳过当前记录*/
 	){
-	if (p->iOffset && iContinue != 0){/*如果结构体指针p引用的成员iOffset非空且整型iContinue不等于0*/
+	if (p->iOffset && iContinue != 0){/*如果Select结构体中含有IOffset属性值并且设置了跳过当前记录*/
 		int addr;
 		sqlite3VdbeAddOp2(v, OP_AddImm, p->iOffset, -1);/*在VDBE中新添加一条指令，返回一个新指令的地址*/
 		addr = sqlite3VdbeAddOp1(v, OP_IfNeg, p->iOffset);/*实质上调用sqlite3VdbeAddOp3（）修改指令的地址*/
@@ -590,30 +590,30 @@ static void codeOffset(
 ** form a distinct entry.  iTab is a sorting index that holds previously
 ** seen combinations of the N values.  A new entry is made in iTab
 ** if the current N values are new.
-** 添加代码，将检查确保N个寄存器开始iMem形成一个单独的条目。iTab是一个分类索引，
-** 预先见到的N值得组合。如果当前的N值是新的，一个新的条目由在iTab中产生。
-**
+**  编写代码检查确定一个iMem表中N个注册者在一个单独的入口。
+** iTab是一个分类索引，预先能看到N个值的组合。如果在iTab中存在一个新的N值，那么在iTab 中将会产生一个新的入口。	
 ** A jump to addrRepeat is made and the N+1 values are popped from the
 ** stack if the top N elements are not distinct.
-** 如最上面N个元素不明显，则跳转到addrRepeat，N+1个值从栈中弹出。
+** 如果N+1个值突然从栈中弹出，其中N个值是不唯一的，那么将会产生大量重复的地址（addrRepeat）
 */
-static void codeDistinct(
+static void codeDistinct(/*去重*/
 	Parse *pParse,     /* Parsing and code generating context 语义和代码生成*/
 	int iTab,          /* A sorting index used to test for distinctness 一个排列索引用于唯一性的测试*/
 	int addrRepeat,    /* Jump to here if not distinct 如果没有“去除重复”跳到此处*/
 	int N,             /* Number of elements 元素数目*/
 	int iMem           /* First element 第一个元素*/
 	){
-	Vdbe *v;/*定义结构体指针v*/
+	Vdbe *v;/*虚拟机*/
 	int r1;
 
-	v = pParse->pVdbe;/*把结构体成员pParse->pVdbe赋给结构体指针v*/
+	v = pParse->pVdbe;/*声明一个处理数据库字节码的引擎*/
 	r1 = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果，返回的整数赋给r1.*/
 	sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N);/*把操作的值看成整数，然后添加这个操作符到虚拟机中*/
 	sqlite3VdbeAddOp3(v, OP_MakeRecord, iMem, N, r1);/*调用sqlite3VdbeAddOp3（）修改指令的地址*/
 	sqlite3VdbeAddOp2(v, OP_IdxInsert, iTab, r1);/*实际也是使用sqlite3VdbeAddOp3()只是参数变为前4个，修改指令的地址*/
-	sqlite3ReleaseTempReg(pParse, r1);/*生成代码，将给定的表达式列表的每个元素的值放到寄存器开始的目标序列。返回元素评估的数量。释放寄存器*/
-}
+	sqlite3ReleaseTempReg(pParse, r1);/*解除寄存器,sqlite3GetTempReg()分配的*/
+		
+	}
 
 #ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
 /*
@@ -622,11 +622,11 @@ static void codeDistinct(
 ** column.  We do this in a subroutine because the error used to occur
 ** in multiple places.  (The error only occurs in one place now, but we
 ** retain the subroutine to minimize code disruption.)
-** 当一个select语句中使用子表达式就产生一个错误的信息(例如:a in(select * from table))，
-** 但是它有多于1的结果列。我们在子程序中这样做是因为错误通常发生在多个地方。
-** (现在错误只发生在一个地方，但是我们保留中断的子程序将代码错误减少到最小。)
+**如果select中使用一个这样的子句（“a IN (SELECT * FROM table)”）将会产生错误。
+** 因为它有不止一个结果列。我们在子程序中这样做是因为错误通常发生在多个地方。
+** 现在这个错误只在一处发生，但是我们依然保留这个子程序最小化代码中断。
 */
-static int checkForMultiColumnSelectError(
+static int checkForMultiColumnSelectError(/*如果select中有不止一个结果列将会产生错误*/
 	Parse *pParse,       /* Parse context. 语义分析 */
 	SelectDest *pDest,   /* Destination of SELECT results   select结果的集合*/
 	int nExpr            /* Number of result columns returned by SELECT  结果列的数目由select返回*/
@@ -634,11 +634,11 @@ static int checkForMultiColumnSelectError(
 	int eDest = pDest->eDest;/*处理结果集*/
 	if (nExpr > 1 && (eDest == SRT_Mem || eDest == SRT_Set)){/*如果结果集大于1并且select的结果集是SRT_Mem或SRT_Set*/
 		sqlite3ErrorMsg(pParse, "only a single result allowed for "
-			"a SELECT that is part of an expression");/*输出错误信息*/
-		return 1;
+			"a SELECT that is part of an expression");/*在语法分析树中写一个错误信息*/
+		return 1;/*此处返回1，因为有select结果集，只不过可能大于1*/
 	}
 	else{
-		return 0;
+		return 0;/*如果没有满足条件，只返回0*/
 	}
 }
 #endif/*终止if*/
@@ -646,16 +646,16 @@ static int checkForMultiColumnSelectError(
 /*
 ** This routine generates the code for the inside of the inner loop
 ** of a SELECT.
-** 这个程序产生代码为了select内连接的内部代码。
+** 这段程序产生的代码是为了select内连接循环。
 **
 ** If srcTab and nColumn are both zero, then the pEList expressions
 ** are evaluated in order to get the data for this row.  If nColumn>0
 ** then data is pulled from srcTab and pEList is used only to get the
 ** datatypes for each column.
-** 如果srcTab和nColumn都是零，那么pEList表达式为了获得行数据进行赋值。
-** 如果nColumn>0 那么数据从srcTab中拉出，pEList只用于从每一列获得数据类型。
+** 如果取数据的表和列都是0，那么pEList表达式为了获得行数据进行赋值。
+** 如果srcTab（源表）中列数>0，那么数据从srcTab中拿出，pEList只用于从每一列获得数据类型。
 */
-static void selectInnerLoop(
+static void selectInnerLoop(/*select内连接循环*/
 	Parse *pParse,          /* The parser context 语义分析*/
 	Select *p,              /* The complete select statement being coded 完整的select语句被编码*/
 	ExprList *pEList,       /* List of values being extracted  输出结果列的语法树*/
@@ -670,7 +670,7 @@ static void selectInnerLoop(
 	Vdbe *v = pParse->pVdbe;/*声明一个虚拟机*/
 	int i;
 	int hasDistinct;        /* True if the DISTINCT keyword is present 如果distinct关键字存在返回true*/
-	int regResult;              /* Start of memory holding result set 开始的内存持有结果集*/
+	int regResult;              /* Start of memory holding result set 结果集的起始处*/
 	int eDest = pDest->eDest;   /* How to dispose of results 怎样处理结果*/
 	int iParm = pDest->iSDParm; /* First argument to disposal method 第一个参数的处理方法*/
 	int nResultCol;             /* Number of result columns 结果列的数目*/
@@ -709,12 +709,11 @@ static void selectInnerLoop(
 	else if (eDest != SRT_Exists){/*如果处理的结果集不存在*/
 		/* If the destination is an EXISTS(...) expression, the actual
 		** values returned by the SELECT are not required.
-		** 如果目标是一个EXISTS(...)表达式，由select返回的实际值是不需要的。
+		** 如果结果存在，select不用返回值了。
 		*/
-		sqlite3ExprCacheClear(pParse);  /*清除所有列中的内容*/
-		sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest == SRT_Output);/*生成代码，将给定的表达式列表的每个元素的值放到寄存器开始的目标序列。返回元素评估的数量。*/
-	}
-	nColumn = nResultCol;/*给列数赋值结果列的列数*/
+		sqlite3ExprCacheClear(pParse);  /*清除语法分析树的缓存*/
+		sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest == SRT_Output);/*把表达式列表中的值放到一系列的寄存器中*/
+	nColumn = nResultCol;/*赋值列数等于结果列的列数*/
 
 	/* If the DISTINCT keyword was present on the SELECT statement
 	** and this row has been seen before, then do not make this row
