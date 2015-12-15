@@ -2493,12 +2493,15 @@ int sqlite3BtreeOpen(     //打开数据库文件并返回B树对象
     }
 #endif
   }
-
 #if !defined(SQLITE_OMIT_SHARED_CACHE) && !defined(SQLITE_OMIT_DISKIO)
   /* If the new Btree uses a sharable pBtShared, then link the new
   ** Btree into the list of all sharable Btrees for the same connection.
   ** The list is kept in ascending order by pBt address.
   ** 如果新的Btree使用可共享pBtShared,那么对于相同的连接，链接新B树到所有可共享Btree的列表。列表pBt的地址递增有序。
+  */
+  /*
+ 【潘光珍】 如果新的B树使用一个共享的pBtShared，然后链接新的B树的所有共享Btrees列表相同的连接。
+  该列表保存在上升的PBT地址顺序。
   */
   if( p->sharable ){
     int i;
@@ -2542,6 +2545,9 @@ btree_open_out:
     ** do not change the pager-cache size.
 	** 如果B树打开成功，则设置页面缓存的大小为默认值。除此之外，当在一个已存在的可共享页面缓存上打开时，不要改变页面缓存的大小。
     */
+	  /*
+	  【潘光珍】如果B树被成功打开，设置缓存大小的默认值。只是，当打开一个现有的共享缓存，不改变缓存大小。
+	  */
     if( sqlite3BtreeSchema(p, 0, 0)==0 ){
       sqlite3PagerSetCachesize(p->pBt->pPager, SQLITE_DEFAULT_CACHE_SIZE);
     }
@@ -2560,6 +2566,10 @@ btree_open_out:
 ** false if it is still positive.
 ** 递减BtShared.nRef计数器。当它达到零时，从共享列表中删除BtShared结构。
 ** 如果BtShared.nRef计数器达到零返回true，如果它仍然为正并返回false。
+*/
+/*
+【潘光珍】BtShared.nRef递减计数器。当它到达零，从共享列表中删除BtShared结构。
+如果BtShared.nRef计数器达到零，返回正确并且如果它仍然是正，则返回错误。
 */
 static int removeFromSharingList(BtShared *pBt){
 #ifndef SQLITE_OMIT_SHARED_CACHE
@@ -2611,13 +2621,13 @@ static void allocateTempSpace(BtShared *pBt){
 */
 static void freeTempSpace(BtShared *pBt){
   sqlite3PageFree( pBt->pTmpSpace);
-  pBt->pTmpSpace = 0;
+  pBt->pTmpSpace = 0;//【潘光珍】将pBt->pTmpSpace分配释放
 }
 
 /*
 ** Close an open database and invalidate all cursors. //关闭已打开的数据库并且使游标无效
 */
-int sqlite3BtreeClose(Btree *p){
+int sqlite3BtreeClose(Btree *p){/*【潘光珍】定义一个关闭已打开的数据库和无效的所有游标的函数。*/
   BtShared *pBt = p->pBt;
   BtCursor *pCur;
 
@@ -2629,7 +2639,7 @@ int sqlite3BtreeClose(Btree *p){
     BtCursor *pTmp = pCur;
     pCur = pCur->pNext;
     if( pTmp->pBtree==p ){		
-      sqlite3BtreeCloseCursor(pTmp);/* 使所有游标无效 */
+      sqlite3BtreeCloseCursor(pTmp);/* 使所有游标无效 *//* 【潘光珍】调用使所有游标无效的函数 */
     }
   }
 
@@ -2638,6 +2648,7 @@ int sqlite3BtreeClose(Btree *p){
   ** this handle.
   ** 回滚任何活动事务并且释放句柄结构。调用sqlite3BtreeRollback()，删除被这个句柄持有的任何锁标。
   */
+  /*【潘光珍】回滚任何活动事务，并释放句柄结构.调用sqlite3BtreeRollback()，删除这个句柄所持有的所有表锁。*/
   sqlite3BtreeRollback(p, SQLITE_OK);/*删除了这个句柄上所持有的所有表锁*/
   sqlite3BtreeLeave(p);
 
@@ -2659,18 +2670,18 @@ int sqlite3BtreeClose(Btree *p){
       pBt->xFreeSchema(pBt->pSchema);
     }
     sqlite3DbFree(0, pBt->pSchema);
-    freeTempSpace(pBt);
-    sqlite3_free(pBt);
+    freeTempSpace(pBt);//【潘光珍】将pBt释放临时空间
+    sqlite3_free(pBt);//【潘光珍】删除BtShared对象中的pBt
   }
 
 #ifndef SQLITE_OMIT_SHARED_CACHE
   assert( p->wantToLock==0 );
   assert( p->locked==0 );
-  if( p->pPrev ) p->pPrev->pNext = p->pNext;
-  if( p->pNext ) p->pNext->pPrev = p->pPrev;
+  if( p->pPrev ) p->pPrev->pNext = p->pNext;//上页指向下下页
+  if( p->pNext ) p->pNext->pPrev = p->pPrev;//下页指向上上页
 #endif
 
-  sqlite3_free(p);
+  sqlite3_free(p); //将p释放
   return SQLITE_OK;
 }
 
@@ -2694,6 +2705,11 @@ int sqlite3BtreeClose(Btree *p){
 ** 数据库可能会处于不一致的和不可恢复的状态。同步是默认的，因此数据库损坏通常是令人担忧的。
 */
 /*控制页缓存大小以及同步写入（在编译指示synchronous中定义）*/
+/*【潘光珍】控制页缓存大小以及同步写入（在编译指示synchronous中定义）
+**缓存页面的最大数量设置为mxpage绝对值。如果mxpage是负的，分页器将异步操作（不同时）-它会不停的做fsync()确保数据被写入到磁盘表面继续前。
+如果同步是关闭的，则事务仍然工作，如果该程序将无法被损坏崩溃。但是，如果操作系统崩溃或有突然断电时同步时，数据库可能处于不一致的和不可恢复的状态离开。
+同步是默认情况下，所以数据库损坏通常是不担心。
+*/
 int sqlite3BtreeSetCacheSize(Btree *p, int mxPage){
   BtShared *pBt = p->pBt;
   assert( sqlite3_mutex_held(p->db->mutex) );
@@ -2727,10 +2743,10 @@ int sqlite3BtreeSetSafetyLevel(      //改变磁盘数据的访问方式，以�
 ){
   BtShared *pBt = p->pBt;
   assert( sqlite3_mutex_held(p->db->mutex) );
-  assert( level>=1 && level<=3 );
-  sqlite3BtreeEnter(p);
-  sqlite3PagerSetSafetyLevel(pBt->pPager, level, fullSync, ckptFullSync);
-  sqlite3BtreeLeave(p);
+  assert( level>=1 && level<=3 );//【潘光珍】安全级别为1，2，3
+  sqlite3BtreeEnter(p);//【潘光珍】调用进入B树的函数
+  sqlite3PagerSetSafetyLevel(pBt->pPager, level, fullSync, ckptFullSync);//【潘光珍】调用Pager设置安全级别的函数
+  sqlite3BtreeLeave(p);//【潘光珍】调用离开B树的函数
   return SQLITE_OK;
 }
 #endif
@@ -2739,6 +2755,9 @@ int sqlite3BtreeSetSafetyLevel(      //改变磁盘数据的访问方式，以�
 ** Return TRUE if the given btree is set to safety level 1.  In other
 ** words, return TRUE if no sync() occurs on the disk files.
 ** 给定的B树被设定的安全级别为1返回true。即是如果在磁盘上没有sync()出现返回true。
+*/
+/*
+【潘光珍】如果给定的B树的安全级别是1，则返回true。换句话说，如果没有sync()发生在磁盘文件，则返回true。
 */
 int sqlite3BtreeSyncDisabled(Btree *p){
   BtShared *pBt = p->pBt;
@@ -2772,6 +2791,13 @@ int sqlite3BtreeSyncDisabled(Btree *p){
 ** and autovacuum mode can no longer be changed.
 */
 /*设置数据库页大小*/
+/*
+【潘光珍】**更改默认的页大小和保留的字节数量。或者，如果网页的大小已经固定，sqlite_readonly不做任何改变。
+**页面大小必须是2的幂在512和65536之间。如果页面大小不满足此约束，则页面大小没有改变。
+**页面大小限制为2的幂，区域用于锁定数据库文件（从pending_byte，第一个字节过去1GB的边界，0x40000000）需要发生在一页的开头。
+**如果参数nReserve小于零，然后数保留每一页的字节数不变。
+**如果iFIX！= 0然后设置bts_pagesize_fixed标志，页面大小和autovacuum模式不再能被改变。
+*/
 int sqlite3BtreeSetPageSize(Btree *p, int pageSize, int nReserve, int iFix){
   int rc = SQLITE_OK;
   BtShared *pBt = p->pBt;
@@ -2806,7 +2832,7 @@ int sqlite3BtreeSetPageSize(Btree *p, int pageSize, int nReserve, int iFix){
 返回数据库页的大小
 */
 int sqlite3BtreeGetPageSize(Btree *p){
-  return p->pBt->pageSize;
+  return p->pBt->pageSize;//返回数据库页的大小
 }
 
 #if !defined(SQLITE_OMIT_PAGER_PRAGMAS) || !defined(SQLITE_OMIT_VACUUM)
@@ -2815,7 +2841,10 @@ int sqlite3BtreeGetPageSize(Btree *p){
 ** are intentually left unused.  This is the "reserved" space that is
 ** sometimes used by extensions.
 */
-int sqlite3BtreeGetReserve(Btree *p){
+/*
+【潘光珍】返回在最后每一页都未被使用的字节数的空间。这是“保留”的空间，有时使用扩展。
+*/
+int sqlite3BtreeGetReserve(Btree *p){//定义一个保留空间的函数
   int n;
   sqlite3BtreeEnter(p);
   n = p->pBt->pageSize - p->pBt->usableSize;/*页中未被使用的字节数*/
@@ -2829,7 +2858,11 @@ int sqlite3BtreeGetReserve(Btree *p){
 ** Regardless of the value of mxPage, return the maximum page count.
 ** 如果mxPage是正的，设置数据库的最大页数。如果mxPage是0或负则不改变大小。不管mxPage的值,返回最大页数。
 */
-int sqlite3BtreeMaxPageCount(Btree *p, int mxPage){
+/*
+【潘光珍】如果mxpage是正，则设置最大页数的数据库。如果mxpage是0或负数了，则没有变化。不管mxpage的值，返回的最大页数。
+
+*/
+int sqlite3BtreeMaxPageCount(Btree *p, int mxPage){//定义一个最大页数的数据库的函数
   int n;
   sqlite3BtreeEnter(p);
   n = sqlite3PagerMaxPageCount(p->pBt->pPager, mxPage);/*mxPage为正，pPager->mxPgno = mxPage;*/
@@ -2842,6 +2875,9 @@ int sqlite3BtreeMaxPageCount(Btree *p, int mxPage){
 ** then make no changes.  Always return the value of the BTS_SECURE_DELETE
 ** setting after the change.
 ** 如果newFlag是0或1，设置BTS_SECURE_DELETE标志。如果newFlag是-1,则不设置。一旦设定将总是返回BTS_SECURE_DELETE的值。
+*/
+/*
+【潘光珍】如果newflag是0或1，则设置BTS_SECURE_DELETE标志。如果newFlag是-1，那么不需要改变。总之返回BTS_SECURE_DELETE设置更改后的值就行。
 */
 int sqlite3BtreeSecureDelete(Btree *p, int newFlag){
   int b;
@@ -2865,8 +2901,12 @@ int sqlite3BtreeSecureDelete(Btree *p, int newFlag){
 ** 设置数据库自动清理空闲页属性。如果“autoVacuum”参数是零,那么auto-vacuum模式开启。如果为零则禁用。
 ** auto-vacuum属性的默认值由宏SQLITE_DEFAULT_AUTOVACUUM定义。
 *//*设置数据库自动清理空闲页属性。*/
-
-int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){
+/*
+【潘光珍】**设置数据库自动清理空闲页属性。
+**改变数据库的'auto-vacuum'属性。如果“autovacuum”参数为非零，则auto-vacuum模式被启用。
+如果零，它被禁用。为auto-vacuum属性的默认值是由SQLITE_DEFAULT_AUTOVACUUM 宏观决定。
+*/
+int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){//定义一个设置数据库自动清理的函数
 #ifdef SQLITE_OMIT_AUTOVACUUM
   return SQLITE_READONLY;
 #else
@@ -2890,18 +2930,22 @@ int sqlite3BtreeSetAutoVacuum(Btree *p, int autoVacuum){
 ** Return the value of the 'auto-vacuum' property. If auto-vacuum is 
 ** enabled 1 is returned. Otherwise 0.
 *//*获取数据库是否自动清理页。*/
-int sqlite3BtreeGetAutoVacuum(Btree *p){
+/*
+【潘光珍】
+**返回'auto-vacuum'属性的值。如果启用auto-vacuum，则返回1。否则0。
+*/
+int sqlite3BtreeGetAutoVacuum(Btree *p){//获取数据库是否自动清理页。
 #ifdef SQLITE_OMIT_AUTOVACUUM
   return BTREE_AUTOVACUUM_NONE;
 #else
   int rc;
-  sqlite3BtreeEnter(p);
+  sqlite3BtreeEnter(p);//将p进入btree
   rc = (
     (!p->pBt->autoVacuum)?BTREE_AUTOVACUUM_NONE:
     (!p->pBt->incrVacuum)?BTREE_AUTOVACUUM_FULL:
     BTREE_AUTOVACUUM_INCR
   );/*若autoVacuum为1，除去空白页，判断incrVacuum的值，若incrVacuum=1， Incremental vacuum*/
-  sqlite3BtreeLeave(p);
+  sqlite3BtreeLeave(p);//将p离开btree
   return rc;
 #endif
 }
@@ -2917,9 +2961,14 @@ int sqlite3BtreeGetAutoVacuum(Btree *p){
 ** 成功则返回SQLITE_OK。如果文件不是一个格式良好的数据库文件,然后返回SQLITE_CORRUPT。
 ** 如果数据库被锁定返回SQLITE_BUSY。如果内存耗尽返回SQLITE_NOMEM.
 */
+/*
+【潘光珍】**得到一个参考的数据库文件pPage1。这也将对该文件获得读锁。
+**SQLITE_OK 被返回成功。如果这个文件不是一个很好的数据库文件，然后SQLITE_CORRUPT被返回。
+**如果数据库被锁定，则SQLITE_BUSY 被返回。如果我们使用完它的内存，则SQLITE_NOMEM被返回。
+*/
 static int lockBtree(BtShared *pBt){
   int rc;              /* Result code from subfunctions */                     //从子函数返回结果代码
-  MemPage *pPage1;     /* Page 1 of the database file */                       //数据库文件的页1
+  MemPage *pPage1;     /* Page 1 of the database file */                       //数据库文件的页1 /*【潘光珍】 数据库的page 1 */
   int nPage;           /* Number of pages in the database */                   //数据库中的页数量
   int nPageFile = 0;   /* Number of pages in the database file */              //数据库文件中的页数量
   int nPageHeader;     /* Number of pages in the database according to hdr */  //据hdr在数据库中的页面数
@@ -2940,8 +2989,8 @@ static int lockBtree(BtShared *pBt){
     nPage = nPageFile;
   }
   if( nPage>0 ){
-    u32 pageSize;
-    u32 usableSize;
+    u32 pageSize;  /* 每页的字节数 */
+    u32 usableSize; /* 每页可用的字节数。pageSize-每页尾部保留空间的大小，在文件头偏移为20处设定。 */
     u8 *page1 = pPage1->aData;
     rc = SQLITE_NOTADB;
     if( memcmp(page1, zMagicHeader, 16)!=0 ){
