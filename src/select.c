@@ -148,20 +148,6 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){ /*初始化
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
 ** Allocate a new Select structure and return a pointer to that
 ** structure.
@@ -172,7 +158,8 @@ void sqlite3SelectDestInit(SelectDest *pDest, int eDest, int iParm){ /*初始化
 ** structure.
 **分配一个新的选择结构并返回一个指向该结构体的指针.select语法分析最终在sqlite3SelectNew中完成，得到各个语法树汇总到Select结构体，然后根据结构体，进行语义分析生成执行计划。，
 */
-Select *sqlite3SelectNew( /*分配一个新的查询结构，返回一个指向该结构体的指针*/(/*select语法分析最终在sqlite3SelectNew中完成,它主要就是将之前得到的各个子语法树汇总到Select结构体，并根据该结构，进行接下来语义分析及生成执行计划等工作。*/
+Select *sqlite3SelectNew( /*分配一个新的选择结构和返回一个结构的指针*/
+/*分配一个新的查询结构，返回一个指向该结构体的指针*/(/*select语法分析最终在sqlite3SelectNew中完成,它主要就是将之前得到的各个子语法树汇总到Select结构体，并根据该结构，进行接下来语义分析及生成执行计划等工作。*/
 	Parse *pParse,        /* Parsing context  句法分析*//* Parsing context  语义分析*/
 	ExprList *pEList,     /* which columns to include in the result  在结果中包含哪些列*//* which columns to include in the result  存放表达式列表*/
 
