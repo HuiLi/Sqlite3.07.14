@@ -109,11 +109,34 @@ const char *sqlite3IndexAffinityStr(Vdbe *v, Index *pIdx)
   return pIdx->zColAff;
 }
 
-////3.该函数主要是用于把表和与列相关的字符关联在一起。
+/*
+** Set P4 of the most recently inserted opcode to a column affinity
+** string for table pTab.
+** 对于最常插入列关联一个字符串
+** A column affinity string has one character
+** for each column indexed by the index, according to the affinity of the
+** column:
+** 一个列关联字符串
+**  Character      Column affinity
+**  ------------------------------
+**  'a'            TEXT
+**  'b'            NONE
+**  'c'            NUMERIC
+**  'd'            INTEGER
+**  'e'            REAL
+*/
+// 该函数主要是用于把表和与列相关的字符关联在一起。
 void sqlite3TableAffinityStr(Vdbe *v, Table *pTab)
 {
+	/* The first time a column affinity string for a particular table
+	** is required, it is allocated and populated here. It is then
+	** stored as a member of the Table structure for subsequent use.
+	**
+	** The column affinity string will eventually be deleted by
+	** sqlite3DeleteTable() when the Table structure itself is cleaned up.
+	*/
     /* 对于一个特定的索引来说，一个列关联字符串在第一次才需要分配和赋值的。
-    **然后对于后续的使用，它将会作为一个索引结构成员存储.
+    ** 然后对于后续的使用，它将会作为一个索引结构成员存储.
     ** 当索引结构本身被清除了的时候，最终这个列关联的字符串通过sqliteDeleteIndex()函数删除。
     */
   if( !pTab->zColAff )
@@ -139,11 +162,20 @@ void sqlite3TableAffinityStr(Vdbe *v, Table *pTab)
   sqlite3VdbeChangeP4(v, -1, pTab->zColAff, P4_TRANSIENT);//同上
 }
 
+
+/*
+** Return non-zero if the table pTab in database iDb or any of its indices
+** have been opened at any point in the VDBE program beginning at location
+** iStartAddr throught the end of the program.  This is used to see if
+** a statement of the form  "INSERT INTO <iDb, pTab> SELECT ..." can
+** run without using temporary table for the results of the SELECT.
+*/
+
 /*
 **如果表pTab在数据库索引数组中，或是它的索引在任何时候被打开在VDBE程序中的开始位置到结束位置的话，返回非零值。
 这是用于检查"INSERT INTO <iDb, pTab> SELECT ..."规则的语句是否对于查询结构没有临时表的情况下可以运行
 */
-////4.申明一个静态函数仅限于表文件调用。
+//4.申明一个静态函数仅限于表文件调用。
 static int readsTable(Parse *p, int iStartAddr, int iDb, Table *pTab)
 {
   Vdbe *v = sqlite3GetVdbe(p);
