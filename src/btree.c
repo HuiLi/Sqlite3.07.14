@@ -3021,6 +3021,11 @@ static int lockBtree(BtShared *pBt){
 	** 如果写版本设置为2,应该在WAL模式下访问这个数据库。如果日志不是已经打开,打开它。然后返回SQLITE_OK并且返回没有占据BtShared.pPage1 
 	** 调用者检测到这一点并再次调用这个函数。这是需要第1页的版本目前在page1缓冲区，可能不是最新版本,可能会有一个新的日志文件。
     */
+	/*
+	【潘光珍】如果写的版本是2，这应该是在预写日志系统模式访问数据库。如果日志尚未打开，打开它。
+	然后返回SQLITE_OK还没有填充BtShared.pPage1来检测，再调用这个函数。
+	这是需要1页的版本目前在第一页缓冲区可能不是最新的版本可能会有一个新的日志文件中。
+	*/
     if( page1[19]==2 && (pBt->btsFlags & BTS_NO_WAL)==0 ){
       int isOpen = 0;
       rc = sqlite3PagerOpenWal(pBt->pPager, &isOpen);/*打开日志*/
@@ -3039,6 +3044,9 @@ static int lockBtree(BtShared *pBt){
     ** version 3.6.0, we require them to be fixed.
 	** 最大的嵌入部分必须是25%而且最小嵌入部分包括叶数据域和non-leaf-data必须是12.5%。最初的设计允许这些数量不同,但截至3.6.0版本,我们要求他们是固定的。
     */
+	/*
+	【潘光珍】对于叶数据和非叶数据，最大嵌入式部分必须是25%和最小嵌入部分必须为12.5%。原设计允许这些数量有所不同，但作为版本3.6.0，我们要求他们是固定的。
+	*/
     if( memcmp(&page1[21], "\100\040\040",3)!=0 ){
       goto page1_init_failed;
     }
@@ -3060,6 +3068,9 @@ static int lockBtree(BtShared *pBt){
 	  ** 读完第一页数据库的假设一个BtShared.pageSize的页面大小。我们已经发现page-size是实际的页大小。打开数据库,将pBt->pPage1留在0处
 	  ** 并返回SQLITE_OK。调用者将会用正确的page-size再次调用这个函数。
       */
+		/*
+		【潘光珍】读第一页后数据库假设一个BtShared.pageSize页面大小，我们发现，实际上是为页面大小。打开数据库，将pBt->pPage1为零和返回SQLITE_OK。调用方将再次调用这个函数，用正确的页面大小。
+		*/
       releasePage(pPage1);
       pBt->usableSize = usableSize;
       pBt->pageSize = pageSize;
@@ -3103,6 +3114,18 @@ static int lockBtree(BtShared *pBt){
   **     4字节的溢出页指针
   ** 所以单元由一个2字节的指针,一个17字节长的头，0到N个字节的有效负载,和一个可选的4字节溢出页面指针。
   */
+   /*
+ 【潘光珍】 maxlocal是有效载荷的最大存储量局部单元格。确保它是足够小，
+  这样至少minfanout单元格可以将适合在一个页面。我们假设一个10字节的页头。
+  除了有效载荷，这个单元格必须存储：
+  2个字节指针的单元格
+  4个字节的页指针
+  9个字节nKey的值
+  4个字节nData的值
+  4个字节溢出页指针
+所以一个单元由一个2字节的指针，头部是一样的17字节长，0到N字节的有效载荷，和一个可选的4字节溢出
+页面指针。
+  */
   pBt->maxLocal = (u16)((pBt->usableSize-12)*64/255 - 23);
   pBt->minLocal = (u16)((pBt->usableSize-12)*32/255 - 23);
   pBt->maxLeaf = (u16)(pBt->usableSize - 35);
@@ -3132,6 +3155,10 @@ page1_init_failed:
 ** If there is a transaction in progress, this routine is a no-op.
 ** 如果在进程中有一个事务,这个例程将是一个空操作。
 */
+/*
+【潘光珍】**如果没有很好的游标和我们不在一个事务中但有读锁的数据库，然后这个程序unrefs数据库的文件，释放读锁影响的第一页。
+**如果有一个进程中的事务，这个程序是一个空操作。
+*/
 static void unlockBtreeIfUnused(BtShared *pBt){
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( pBt->pCursor==0 || pBt->inTransaction>TRANS_NONE );
@@ -3149,6 +3176,9 @@ static void unlockBtreeIfUnused(BtShared *pBt){
 ** into a new empty database by initializing the first page of
 ** the database.
 ** 如果pBt指向一个空文件,那么通过初始化数据库的第一页传送空文件到一个新的空数据库。
+*/
+/*
+【潘光珍】如果pBt指向空文件，然后将空文件到一个新的空数据库初始化数据库的第一页。
 */
 static int newDatabase(BtShared *pBt){
   MemPage *pP1;
@@ -3228,6 +3258,24 @@ static int newDatabase(BtShared *pBt){
 ** 假设有两个进程A和B，A有一个读锁和B有reserved锁。B试图获得互斥但因为A的读锁被锁。A试图促进保留但被B锁。
 ** 一个或两个进程必须给其他的方式或者没有进程。当A已经有过一个读锁时返回SQLITE_BUSY而不是调用忙,尽量让A放弃，让B持有。
 */
+/*
+【潘光珍】**尝试启动新的事务。如果另一个参数为非零，则为非零，则为读事务。
+如果二个参数是2个或多个，并且独占事务被启动，这意味着没有其他进程可以访问数据库。
+一个已经存在的事务可能无法通过调用这个例程第二次——排它标志只能用于一个新的事务升级为独家。
+**在尝试更改数据库之前，必须先开始写事务处理。没有下列例程将工作，除非一个事务是开始的：
+**      sqlite3BtreeCreateTable()
+**      sqlite3BtreeCreateIndex()
+**      sqlite3BtreeClearTable()
+**      sqlite3BtreeDropTable()
+**      sqlite3BtreeInsert()
+**      sqlite3BtreeDelete()
+**      sqlite3BtreeUpdateMeta()
+**如果最初的尝试获得锁由于锁争用失败和数据库是先前解锁的，如果有一个数据库，则调用这个繁忙的处理程序。
+但是如果有以前读锁，不调用处理程序只返回SQLITE_BUSY。SQLITE_BUSY返回时，已经有一个读锁，以避免死锁。
+**假设有两个进程A和B。A具有读锁和B具有保留的锁。B试图促进独占但受阻是因为一个读锁，A试图推广到保留但被B阻止。
+一个或另一个进程必须让路或有没有进展。返回SQLITE_BUSY不调用回调时忙已经有一个读锁，我们放弃A让B进行。
+
+*/
 int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事务，否则开始读事务
   sqlite3 *pBlock = 0;
   BtShared *pBt = p->pBt;
@@ -3242,11 +3290,14 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事�
   ** is requested, this is a no-op.
   ** 如果btree已经在写事务中,或者它已在读事务中并且读事务被请求,那么这是一个空操作。
   */
+  /*
+如果B树已经在写事务，或是已经在读事务和请求读取事务，这是一个空操作。
+*/
   if( p->inTrans==TRANS_WRITE || (p->inTrans==TRANS_READ && !wrflag) ){
     goto trans_begun;
   }
 
-  /* Write transactions are not possible on a read-only database */ //写事务不可能在一个只读的数据库上
+  /* Write transactions are not possible on a read-only database */ //写事务不可能在一个只读的数据库上 /*【潘光珍】在只读数据库中写入事务是不可能的*/
   if( (pBt->btsFlags & BTS_READ_ONLY)!=0 && wrflag ){
     rc = SQLITE_READONLY;
     goto trans_begun;
@@ -3257,6 +3308,9 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事�
   ** on this shared-btree structure and a second write transaction is
   ** requested, return SQLITE_LOCKED.
   ** 如果另一个数据库处理程序已经在这shared-btree结构开启了写事务并且请求第二个写事务,则返回SQLITE_LOCKED。
+  */
+  /*
+  【潘光珍】如果一个数据库句柄已开通写事务在这共享的B树结构和请求第二个写事务，则返回SQLITE_LOCKED。
   */
   if( (wrflag && pBt->inTransaction==TRANS_WRITE)
    || (pBt->btsFlags & BTS_PENDING)!=0
@@ -3282,7 +3336,9 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事�
   ** page 1. So if some other shared-cache client already has a write-lock 
   ** on page 1, the transaction cannot be opened. 
   ** 任何只读或读写事务意味着在页1上有读锁。如果其他共享缓存客户端在页1上已经有一个写锁,那么事务不能被开启。*/
-  
+  /*
+ 【潘光珍】 任何只读或读写事务意味着读锁页为1。因此，如果一些其他共享缓存客户端已经有一个写锁页为1，则该事务不能被打开。
+  */
   rc = querySharedCacheTableLock(p, MASTER_ROOT, READ_LOCK);
   if( SQLITE_OK!=rc ) goto trans_begun;
 
@@ -3299,6 +3355,11 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事�
 	** lockBtree()可能返回SQLITE_OK但赋pBt->pPage1为0 ，如果读第1页后发现数据库文件页面大小不是pBt->pageSize。
 	** 在这种情况下lockBtree()将更新pBt->pageSize的大小为磁盘上文件的页大小。
     */
+	  /*
+	 【潘光珍】 调用lockBtree()函数直到pBt->pPage1被填充或者lockBtree()函数返回SQLITE_OK以外的内容。
+	  lockbtree()函数可能返回SQLITE_OK但是pBt->pPage1设置为0如果读的页为1发现页面大小的 数据库文件不是pBt->pageSize。
+	  在这种情况下lockbtree()将更新pBt->pageSize的页面文件大小的磁盘上。
+	  */
     while( pBt->pPage1==0 && SQLITE_OK==(rc = lockBtree(pBt)) );
 
     if( rc==SQLITE_OK && wrflag ){
@@ -3351,6 +3412,10 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事�
 	  ** 如果db-size头字段不正确(如果一个旧客户端一直在写数据库文件，则这种情况可能发生),则立即更新。
 	  ** 更新宜早不宜迟，因为如果一个保存点或事务在事务中发生回滚，数据库大小可以从第1页安全地重读。
       */
+	  /*
+	 【潘光珍】 如果数据库大小的头部是错误的(因为这可能是一个旧客户写数据库文件),则马上更新。
+	  这样做迟早意味着，如果一个保存点回滚或事务发生在事务数据库大小可以安全地重新读取数据库大小页为1。
+	  */
       if( pBt->nPage!=get4byte(&pPage1->aData[28]) ){
         rc = sqlite3PagerWrite(pPage1->pDbPage);/*更新db-size的头字段*/
         if( rc==SQLITE_OK ){
@@ -3359,8 +3424,6 @@ int sqlite3BtreeBeginTrans(Btree *p, int wrflag){   //wrflag非零开始写事�
       }
     }
   }
-
-
 trans_begun:
   if( rc==SQLITE_OK && wrflag ){
     /* This call makes sure that the pager has the correct number of
@@ -3368,6 +3431,9 @@ trans_begun:
     ** the sub-journal is not already open, then it will be opened here.
 	** 这个调用确保pager有正确的开放性保存点数目。如果第二个参数大于0并且sub-journal没有打开,那么它将被打开。
     */
+	  /*
+	  【潘光珍】这个调用保证页缓冲区具有开放的保存点正确的数量。如果二个参数大于0和sub-journal不是已经打开，那么它将在这里打开。
+	  */
     rc = sqlite3PagerOpenSavepoint(pBt->pPager, p->db->nSavepoint);/*wrflag>0,打开保存点*/
   }
 
