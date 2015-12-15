@@ -139,10 +139,9 @@ static SQLITE_WSD struct Mem0Global {/* SQLITE_WSD 是const* MemGlobal结构体 
 ** total memory allocation is about to exceed the soft heap
 ** limit.
 **
-** 当内存分配器
-** 知道所有的内存分配是否超越了软堆的限制
+** 这个例程是在当内存分配将超过软队限制的大小时执行。
 */
-static void softHeapLimitEnforcer(/*当堆内存已经满了，执行程序*/
+static void softHeapLimitEnforcer(
   void *NotUsed, //是否被占用用
   sqlite3_int64 NotUsed2,//没有被利用
   int allocSize//分配的大小
@@ -737,22 +736,22 @@ void *sqlite3DbMallocRaw(sqlite3 *db, int n){
   void *p;
   assert( db==0 || sqlite3_mutex_held(db->mutex) );
   assert( db==0 || db->pnBytesFreed==0 );
-#ifndef SQLITE_OMIT_LOOKASIDE//定义宏
+#ifndef SQLITE_OMIT_LOOKASIDE  //定义宏
   if( db ){
-    LookasideSlot *pBuf;//pBuf指向一个大的连续的内存块
-    if( db->mallocFailed ){//分配失败 返回0
+    LookasideSlot *pBuf;  //pBuf指向一个大的连续的内存块
+    if( db->mallocFailed ){  //分配失败 返回0
       return 0;    }
       ///*0：命中。 1：不是完全命中。 2：全部未命中*/
-    if( db->lookaside.bEnabled ){//禁用后备内存
-      if( n>db->lookaside.sz ){//如果给的n大于每个缓冲区大小
+    if( db->lookaside.bEnabled ){  //禁用后备内存
+      if( n>db->lookaside.sz ){  //如果给的n大于每个缓冲区大小
         db->lookaside.anStat[1]++;
       }else if( (pBuf = db->lookaside.pFree)==0 ){
         db->lookaside.anStat[2]++;
       }else{
         db->lookaside.pFree = pBuf->pNext;
         db->lookaside.nOut++;
-        db->lookaside.anStat[0]++;//命中
-        if( db->lookaside.nOut>db->lookaside.mxOut ){//最大值
+        db->lookaside.anStat[0]++;  //命中
+        if( db->lookaside.nOut>db->lookaside.mxOut ){  //最大值
           db->lookaside.mxOut = db->lookaside.nOut;
         }
         return (void*)pBuf;
@@ -839,7 +838,7 @@ void *sqlite3DbReallocOrFree(sqlite3 *db, void *p, int n){
 ** 这些宏记录了当前的文件和行号
 */
 char *sqlite3DbStrDup(sqlite3 *db, const char *z){
-  char *zNew;//定义新的指针 指向新的字符串
+  char *zNew;  //定义新的指针 指向新的字符串
   size_t n;
   if( z==0 ){
     return 0;
@@ -848,7 +847,7 @@ char *sqlite3DbStrDup(sqlite3 *db, const char *z){
   assert( (n&0x7fffffff)==n );
   zNew = sqlite3DbMallocRaw(db, (int)n);//新分配空间
   if( zNew ){
-    memcpy(zNew, z, n);//分配失败
+    memcpy(zNew, z, n);
   }
   return zNew;
 }
@@ -906,6 +905,9 @@ int sqlite3ApiExit(sqlite3* db, int rc){
   /* If the db handle is not NULL, then we must hold the connection handle
   ** mutex here. Otherwise the read (and possible write) of db->mallocFailed 
   ** is unsafe, as is the call to sqlite3Error().
+  ** 
+  ** 如果数据库句柄不为空，则我们必须把这个连接加锁。
+  ** 否则，读取db->mallocFailed是不安全的，可能会调用sqlite3Error()。
   */
   assert( !db || sqlite3_mutex_held(db->mutex) );
   if( db && (db->mallocFailed || rc==SQLITE_IOERR_NOMEM) ){
