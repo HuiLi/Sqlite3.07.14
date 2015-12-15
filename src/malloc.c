@@ -96,7 +96,7 @@ typedef struct ScratchFreeslot {		/*结构体  记录空闲缓冲区*/
 ** 内存分配子系统的状态信息
 */
 static SQLITE_WSD struct Mem0Global {/* SQLITE_WSD 是const* MemGlobal结构体 */
-  sqlite3_mutex *mutex;         /* Mutex to serialize access *//*串行访问的变量的锁*/
+  sqlite3_mutex *mutex;         /* Mutex to serialize access  串行访问的变量的锁*/
 
   /*
   ** The alarm callback and its arguments.  The mem0.mutex lock will
@@ -107,26 +107,29 @@ static SQLITE_WSD struct Mem0Global {/* SQLITE_WSD 是const* MemGlobal结构体 
   ** 回凋和参数
   ** 当回调函数被执行，mem0.mutex加锁，进入内存子系统的递归调用将会被执行，但是不能执行新的回调
   */
-  sqlite3_int64 alarmThreshold;//申明长整型的变量 预警值
-  void (*alarmCallback)(void*, sqlite3_int64,int);//互斥锁的回调函数
+  sqlite3_int64 alarmThreshold;  //申明长整型的变量 预警值
+  void (*alarmCallback)(void*, sqlite3_int64,int);  //互斥锁的回调函数
   void *alarmArg;
 
   /*
   ** Pointers to the end of sqlite3GlobalConfig.pScratch memory
   ** (so that a range test can be used to determine if an allocation
   ** being freed came from pScratch) and a pointer to the list of
-  ** unused scratch allocations.
-  **指向临时内存得末端 释放的分配是否来自临时内存的指针和没有用到的临时内存
+  ** unused scratch allocations. 
+  ** 
+  ** 指向临时内存得末端 释放的分配是否来自临时内存的指针和没有用到的临时内存
   */
-  void *pScratchEnd;/*指向缓冲区的末端*/
-  ScratchFreeslot *pScratchFree;/*指向空闲缓冲区*/
-  u32 nScratchFree;/*无符号整型 表示连续空闲缓冲区的个数*/
+  void *pScratchEnd;  /*指向缓冲区的末端*/
+  ScratchFreeslot *pScratchFree;  /*指向空闲缓冲区*/
+  u32 nScratchFree;  /*无符号整型 表示连续空闲缓冲区的个数*/
 
   /*
   ** True if heap is nearly "full" where "full" is defined by the
   ** sqlite3_soft_heap_limit() setting.
+  ** 
+  ** 当由sqlite3_soft_heap_limit()定义的堆快满时，置该值为真
   */
-  int nearlyFull;/*弱堆限制的堆内存最大值*/
+  int nearlyFull; 
 } mem0 = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 #define mem0 GLOBAL(struct Mem0Global, mem0)//定义全局函数
@@ -154,18 +157,18 @@ static void softHeapLimitEnforcer(/*当堆内存已经满了，执行程序*/
 ** 改变警告回调
 */
 static int sqlite3MemoryAlarm(
-  void(*xCallback)(void *pArg, sqlite3_int64 used,int N),//回调函数
+  void(*xCallback)(void *pArg, sqlite3_int64 used,int N),  //回调函数
   void *pArg,
   sqlite3_int64 iThreshold
 ){
-  int nUsed;//有n块可用
-  sqlite3_mutex_enter(mem0.mutex);/*进入锁定状态*/
-  mem0.alarmCallback = xCallback;/*调用回调函数*/
+  int nUsed;  //有n块可用
+  sqlite3_mutex_enter(mem0.mutex);
+  mem0.alarmCallback = xCallback;  /*调用回调函数*/
   mem0.alarmArg = pArg;
-  mem0.alarmThreshold = iThreshold;/*报警阈值*/
+  mem0.alarmThreshold = iThreshold;  /*报警阈值*/
   nUsed = sqlite3StatusValue(SQLITE_STATUS_MEMORY_USED);
-  mem0.nearlyFull = (iThreshold>0 && iThreshold<=nUsed);/*内存是否溢出*/
-  sqlite3_mutex_leave(mem0.mutex);/*保留互斥*/
+  mem0.nearlyFull = (iThreshold>0 && iThreshold<=nUsed);  /*内存是否溢出*/
+  sqlite3_mutex_leave(mem0.mutex);
   return SQLITE_OK;
 }
 
@@ -177,9 +180,9 @@ static int sqlite3MemoryAlarm(
 ** 废弃的额外的接口
 */
 int sqlite3_memory_alarm(
-  void(*xCallback)(void *pArg, sqlite3_int64 used,int N),/*回调函数*/
-  void *pArg,/*指针*/
-  sqlite3_int64 iThreshold/*阈值*/
+  void(*xCallback)(void *pArg, sqlite3_int64 used,int N),  /*回调函数*/
+  void *pArg,
+  sqlite3_int64 iThreshold
 ){
   return sqlite3MemoryAlarm(xCallback, pArg, iThreshold);
 }
@@ -196,26 +199,26 @@ int sqlite3_memory_alarm(
 sqlite3_int64 sqlite3_soft_heap_limit64(sqlite3_int64 n){
   sqlite3_int64 priorLimit;
   sqlite3_int64 excess;
-#ifndef SQLITE_OMIT_AUTOINIT//omit忽略
+#ifndef SQLITE_OMIT_AUTOINIT  
   int rc = sqlite3_initialize();
   if( rc ) return -1;
 #endif
-  sqlite3_mutex_enter(mem0.mutex);	/*　线程安全：加锁保护 */ 
-  priorLimit = mem0.alarmThreshold;	/*	最小阈值*/
-  sqlite3_mutex_leave(mem0.mutex);/*退出互斥*/
-  if( n<0 ) return priorLimit;/*正常返回*/
+  sqlite3_mutex_enter(mem0.mutex);	
+  priorLimit = mem0.alarmThreshold;	 /*最小阈值*/
+  sqlite3_mutex_leave(mem0.mutex);
+  if( n<0 ) return priorLimit;
   if( n>0 ){
     sqlite3MemoryAlarm(softHeapLimitEnforcer, 0, n);/*发出警告*/
   }else{
     sqlite3MemoryAlarm(0, 0, 0);
   }
   excess = sqlite3_memory_used() - n;
-  if( excess>0 ) sqlite3_release_memory((int)(excess & 0x7fffffff));/*越界就释放内存*/
+  if( excess>0 ) sqlite3_release_memory((int)(excess & 0x7fffffff));  /*越界就释放内存*/
   return priorLimit;
 }
-void sqlite3_soft_heap_limit(int n){/*堆限制*/
+void sqlite3_soft_heap_limit(int n){  /*堆限制*/
   if( n<0 ) n = 0;
-  sqlite3_soft_heap_limit64(n);/*内存使用限制*/
+  sqlite3_soft_heap_limit64(n);  /*内存使用限制*/
 }
 
 /*
@@ -277,7 +280,7 @@ int sqlite3HeapNearlyFull(void){
 /*
 ** Deinitialize the memory allocation subsystem.
 ** 
-** 重新初始化内存分配子系统
+** 取消初始化内存分配子系统
 */
 void sqlite3MallocEnd(void){
   if( sqlite3GlobalConfig.m.xShutdown ){
