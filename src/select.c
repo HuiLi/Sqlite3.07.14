@@ -3800,27 +3800,28 @@ static u8 minMaxQuery(Select *p){
 	**  (4)在结果集中每一列查找"*"操作符或"TABLE.*"操作符，如果找到，在每张表的每列扩展"*"或"TABLE.*"。
 	*/
 	static int selectExpander(Walker *pWalker, Select *p){
-	  Parse *pParse = pWalker->pParse;//语法解析树的声明
-	  int i, j, k;//自定义变量
-	  SrcList *pTabList;//from子句列表指针的声明
-	  ExprList *pEList;//表达式列表的声明
+	  Parse *pParse = pWalker->pParse;//将pWalker的解析器上下文赋给一个新的解析器
+	  int i, j, k;//定义变量用于遍历
+	  SrcList *pTabList;//初始化一个FROM子句指针
+	  ExprList *pEList;//初始化一个表达式列表
 	  struct SrcList_item *pFrom;//实例化一个结构体
-	  sqlite3 *db = pParse->db;//数据库连接的定义
+	  sqlite3 *db = pParse->db;//pParse的数据库赋给一个新的数据库
 
-	  if( db->mallocFailed  ){//检查内存分配问题
-		return WRC_Abort;//*如果内存分配错误，终止程序
+	  if( db->mallocFailed  ){//若动态内存分配失败
+		return WRC_Abort;//放弃树的遍历，并终止程序
 	  }
-	  if( NEVER(p->pSrc==0) || (p->selFlags & SF_Expanded)!=0 ){//没有from子句或标记符和SF_Expanded位运算相等
-		return WRC_Prune;//删除
+	  if( NEVER(p->pSrc==0) || (p->selFlags & SF_Expanded)!=0 ){//如果p没有FROM子句，或p存在SF_*标志且为SF_Expanded
+		return WRC_Prune;//忽略孩子结点但继续访问兄弟结点，终止这段程序
 	  }
-	  p->selFlags |= SF_Expanded;//变量的位运算
-	  pTabList = p->pSrc;//FROM子句所指的赋值给FROM子句列表指针
-	  pEList = p->pEList;//获取表达式列表
+	  p->selFlags |= SF_Expanded;//p的selFlags与SF_Expanded按位与，并将结果赋给p的selFlags
+	  pTabList = p->pSrc;//p的FROM子句赋给pTabList
+	  pEList = p->pEList;//p的表达式列表赋给pEList
 
 	  /* Make sure cursor numbers have been assigned to all entries in
 	  ** the FROM clause of the SELECT statement.
-	  *//*确保游标号已经分配给所有的在SELECT语句里中FROM子句里。*/
-	  sqlite3SrcListAssignCursors(pParse, pTabList);/*为表达式列表pTabList中所有表分配游标号*/
+	  */
+	  /*确保游标号已经分配给所有的在SELECT语句里中FROM子句里。*/
+	  sqlite3SrcListAssignCursors(pParse, pTabList);/*分配vdbe游标索引号到所有pTabList表中*/
 
 	  /* Look up every table named in the FROM clause of the select.  If
 	  ** an entry of the FROM clause is a subquery instead of a table or view,
