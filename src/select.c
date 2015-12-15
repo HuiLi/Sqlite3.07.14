@@ -4023,8 +4023,8 @@ static u8 minMaxQuery(Select *p){
 被设置对为解析树中的每一个子查询有用。
 */
 	static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
-	  UNUSED_PARAMETER2(NotUsed, NotUsed2);
-	  return WRC_Continue;//继续执行
+	  UNUSED_PARAMETER2(NotUsed, NotUsed2);/*如果NotUsed2没有使用，并驻留在函数中。输出警告信息。*/
+	  return WRC_Continue;/*返回继续执行标识符*/
 	}
 /*
 ** This routine "expands" a SELECT statement and all of its subqueries.
@@ -4063,7 +4063,7 @@ static u8 minMaxQuery(Select *p){
 	*/
 	static void sqlite3SelectExpand(Parse *pParse, Select *pSelect){
 	  Walker w;//Walker结构体的声明
-	  w.xSelectCallback = selectExpander;
+	  w.xSelectCallback = selectExpander;/*调用一个selectExpander函数给回调函数xSelectCallback（调用SELECT的函数）*/
 	  w.xExprCallback = exprWalkNoop;//若表达式含有未使用的信息，调用回调函数
 	  w.pParse = pParse;//赋值
 	  sqlite3WalkSelect(&w, pSelect);//回调函数，调用sqlite3WalkSelect
@@ -4121,7 +4121,7 @@ static u8 minMaxQuery(Select *p){
 	  if( (p->selFlags & SF_HasTypeInfo)==0 ){//检查标记变量和类型信息
 		p->selFlags |= SF_HasTypeInfo;//位运算
 		pParse = pWalker->pParse;//语法解析树
-		pTabList = p->pSrc;
+		pTabList = p->pSrc;/*将SELECT中FROM子句赋值给FROM子句表达式列表*/
 		//遍历列表的表达式
 		for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
 		  Table *pTab = pFrom->pTab;//获取from子句中的列表
@@ -4264,7 +4264,7 @@ static u8 minMaxQuery(Select *p){
 	  }
 	  //聚集函数的遍历
 	  for(pFunc=pAggInfo->aFunc, i=0; i<pAggInfo->nFunc; i++, pFunc++){/*循环调用sqlite3VdbeAddOp2方法，参数和上面不同*/
-    sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);
+    sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem); /*将OP_Null操作交给vdbe，然后返回这个操作的地址*/
 		sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);//操作处理
 		if( pFunc->iDistinct>=0 )/*判断是否去重*/
 		  Expr *pE = pFunc->pExpr;//获取AggInfo_func中的表达式/*表达式指针指向pFunc的pExpr域*/
@@ -4294,7 +4294,7 @@ static u8 minMaxQuery(Select *p){
 	  int i;//声明一个变量
 	  struct AggInfo_func *pF;//声明一个AggInfo_func结构体对象
 	  //聚集函数的遍历
-	  for(i=0, pF=pAggInfo->aFunc; i<pAggInfo->nFunc; i++, pF++){
+	  for(i=0, pF=pAggInfo->aFunc; i<pAggInfo->nFunc; i++, pF++){/*遍历聚集函数*/
 		ExprList *pList = pF->pExpr->x.pList;//获取表达式列表
 		assert( !ExprHasProperty(pF->pExpr, EP_xIsSelect) );//异常处理，加入断点
 		sqlite3VdbeAddOp4(v, OP_AggFinal, pF->iMem, pList ? pList->nExpr : 0, 0,
@@ -4361,7 +4361,7 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数�
 		if (addrNext){// 如果有下一个执行地址
 			sqlite3VdbeResolveLabel(v, addrNext);//解析addrNext，此时addrNext是一个标签，并作为下一条被插入的地址
 			sqlite3ExprCacheClear(pParse);//清除缓存中的语法解析树
-		}， 
+		} 
 	}
 
 	/* Before populating the accumulator registers, clear the column cache.
@@ -4475,7 +4475,7 @@ static void explainSimpleCount(
 	** 这段程序并不释放SELECT结构体。调用的函数需要释放SELECT结构体。
 	*/
 int sqlite3Select(
-	Parse *pParse,         /* The parser context */
+	Parse *pParse,         /* The parser context *//*解析上下文*/
 	Select *p,             /* The SELECT statement being coded. SELECT语句被编码*/
 	SelectDest *pDest      /* What to do with the query results 如何处理查询结果*/
 	){
@@ -4484,22 +4484,22 @@ int sqlite3Select(
 	Vdbe *v;               /* The virtual machine under construction 创建中的虚拟机*/
 	int isAgg;             /* True for select lists like "count(*)" 选择是否是聚集*/
 	ExprList *pEList;      /* List of columns to extract. 提取的列列表*/
-	SrcList *pTabList;     /* List of tables to select from */
-	Expr *pWhere;          /* The WHERE clause.  May be NULL */
-	ExprList *pOrderBy;    /* The ORDER BY clause.  May be NULL */
-	ExprList *pGroupBy;    /* The GROUP BY clause.  May be NULL */
-	Expr *pHaving;         /* The HAVING clause.  May be NULL */
-	int isDistinct;        /* True if the DISTINCT keyword is present */
-	int distinct;          /* Table to use for the distinct set */
-	int rc = 1;            /* Value to return from this function */
-	int addrSortIndex;     /* Address of an OP_OpenEphemeral instruction */
-	int addrDistinctIndex; /* Address of an OP_OpenEphemeral instruction */
+	SrcList *pTabList;     /* List of tables to select from 查询表列表 */
+	Expr *pWhere;          /* The WHERE clause.  May be NULL  where子句 可能为空*/
+	ExprList *pOrderBy;    /* The ORDER BY clause.  May be NULL order by子句，可能为空*/
+	ExprList *pGroupBy;    /* The GROUP BY clause.  May be NULL group by子句，可能为空*/
+	Expr *pHaving;         /* The HAVING clause.  May be NULL having子句，可能为空*/
+	int isDistinct;        /* True if the DISTINCT keyword is present  如果存在不同的关键字*/
+	int distinct;          /* Table to use for the distinct set 对表使用distinct 设置*/
+	int rc = 1;            /* Value to return from this function 从函数返回值*/
+	int addrSortIndex;     /* Address of an OP_OpenEphemeral instruction OP_OpenEphemeral指令的地址*/
+	int addrDistinctIndex; /* Address of an OP_OpenEphemeral instruction OP_OpenEphemeral指令的地址*/
 	AggInfo sAggInfo;      /* Information used by aggregate queries 聚集信息*/
 	int iEnd;              /* Address of the end of the query 查询结束地址*/
 	sqlite3 *db;           /* The database connection 数据库连接*/
 
 #ifndef SQLITE_OMIT_EXPLAIN
-	int iRestoreSelectId = pParse->iSelectId;
+	int iRestoreSelectId = pParse->iSelectId; /*将语法解析树中查找ID存储在iRestoreSelectId中*/
 	pParse->iSelectId = pParse->iNextSelectId++;/*将语法解析树中查找的ID存储在iRestoreSelectId中，然后再将语法解析树中下一个查找ID存储在iSelectId中*/
 #endif
 
