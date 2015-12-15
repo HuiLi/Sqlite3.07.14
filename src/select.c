@@ -1160,7 +1160,8 @@ static void generateSortTail(
 	/* The bottom of the loop
 	** 循环的底部
 	*/
-	sqlite3VdbeResolveLabel(v, addrContinue);/*addrContinue作为下一条插入指令的地址，其中addrContinue能优先调用sqlite3VdbeMakeLabel（）*/
+	sqlite3VdbeResolveLabel(v, addrContinue);//执行  sqlite3VdbeResolveLabel函数/*addrContinue作为下一条插入指令的地址，其中addrContinue能优先调用sqlite3VdbeMakeLabel（）*/
+	 /*根据满足条件，执行下列条件语句*/
 	if (p->selFlags & SF_UseSorter){/*selFlags的值是SF_UseSorter*/
 		sqlite3VdbeAddOp2(v, OP_SorterNext, iTab, addr);/*将OP_SorterNext操作交给VDBE，再返回这个操作的地址*/
 	}
@@ -1172,7 +1173,6 @@ static void generateSortTail(
 		sqlite3VdbeAddOp2(v, OP_Close, pseudoTab, 0);/*将OP_Close操作交给VDBE，再返回这个操作的地址*/
 	}
 	}
-
 /*
 ** Return a pointer to a string containing the 'declaration type' of the
 ** expression pExpr. The string may be treated as static by the caller.
@@ -1204,12 +1204,12 @@ static void generateSortTail(
 **   SELECT abc FROM (SELECT col AS abc FROM tbl);
 ** 声明类型以外的任何表达式列是空的。
 */
-static const char *columnType(/*定义静态且是只读的字符型指针columnType*/
+static const char *columnType(/*定义静态且是只读的字符型指针columnType*//*定义静态且是只读的字符型指针columnType*/
 	NameContext *pNC, /*声明一个命名上下文结构体（决定表或者列的名字）*/
 	Expr *pExpr,
-	const char **pzOriginDb,/*定义只读的字符型二级指针pzOriginDb*/
-	const char **pzOriginTab,/*定义只读的字符型二级指针pzOriginTab*/
-	const char **pzOriginCol,/*定义只读的字符型二级指针pzOriginCol*/
+	const char **pzOriginDb,/*定义只读的字符型二级指针pzOriginDb*//*定义只读的字符型二级指针pzOriginDb*/
+	const char **pzOriginTab,/*定义只读的字符型二级指针pzOriginTab*//*定义只读的字符型二级指针pzOriginTab*/
+	const char **pzOriginCol,/*定义只读的字符型二级指针pzOriginCol*//*定义只读的字符型二级指针pzOriginCol*/
 	){
 	char const *zType = 0;
 	char const *zOriginDb = 0;
@@ -1228,12 +1228,12 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		** 表达式是一个列。被定位的表的列从NameContext.pSrcList中提取。
 		** 这个表可能是真实的数据库表，或者是一个子查询。
 		*/
-		Table *pTab = 0;            /* Table structure column is extracted from 表结构列被提取*/
-		Select *pS = 0;             /* Select the column is extracted from 选择列被提取*/
-		int iCol = pExpr->iColumn;  /* Index of column in pTab 索引列在pTab中*/
+		Table *pTab = 0;            /* Table structure column is extracted from 表结构列被提取*/ /* Table structure column is extracted from 表结构列被提取*/
+		Select *pS = 0;             /* Select the column is extracted from 选择列被提取*//* Select the column is extracted from 选择列被提取*/
+		int iCol = pExpr->iColumn;  /* Index of column in pTab 索引列在pTab中*//* Index of column in pTab 索引列在pTab中*/
 		testcase(pExpr->op == TK_AGG_COLUMN);/*这个表达式的操作是否是TK_AGG_COLUMN（嵌套列）*/
 		testcase(pExpr->op == TK_COLUMN);/*这个表达式的操作是否是TK_COLUMN（列索引）*/
-		while (pNC && !pTab){/*命名上下文结构体存在，被提取的表结构列（就是一个被提取的列组成的表）不存在*/
+		while (pNC && !pTab){/*执行while循环语句*//*命名上下文结构体存在，被提取的表结构列（就是一个被提取的列组成的表）不存在*/
 			SrcList *pTabList = pNC->pSrcList;/*命名上下文结构体中列表赋值给描述FROM的来源表或子查询结果的列表*/
 			for (j = 0; j<pTabList->nSrc && pTabList->a[j].iCursor != pExpr->iTable; j++);/*遍历查询列表*/
 			if (j<pTabList->nSrc){/*如果j小于列表中表的总个数*/
@@ -1279,7 +1279,12 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		}
 
 		assert(pTab && pExpr->pTab == pTab);
-		if (pS){
+		if (pS){ /* The "table" is actually a sub-select or a view in the FROM clause
+                         ** of the SELECT statement. Return the declaration type and origin
+                         ** data for the result-set column of the sub-select.
+                         **"表"实际上是一个子选择，或者是一个在select语句的from子句的视图。
+                         **返回声明类型和来源数据的子选择的结果集列。
+                         */
 			/* The "table" is actually a sub-select or a view in the FROM clause
 			** of the SELECT statement. Return the declaration type and origin
 			** data for the result-set column of the sub-select.
@@ -1287,6 +1292,12 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 			** 返回声明类型和来源数据的子选择的结果集列。
 			*/
 			if (iCol >= 0 && ALWAYS(iCol < pS->pEList->nExpr)){
+				 /* If iCol is less than zero, then the expression requests the
+                                  ** rowid of the sub-select or view. This expression is legal (see 
+                                  ** test case misc2.2.2) - it always evaluates to NULL.
+                                  **如果iCol小于零，则表达式请求子选择或视图的rowid。
+                                  **这种表达式合法的(见测试案例misc2.2.2)-它始终计算为空。
+                                  */
 				/* If iCol is less than zero, then the expression requests the
 				** rowid of the sub-select or view. This expression is legal (see
 				** test case misc2.2.2) - it always evaluates to NULL.
@@ -1301,7 +1312,7 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 				zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); /*将生成的属性类型赋值给zType*/
 			}
 		}
-		else if (ALWAYS(pTab->pSchema)){/*pTab表的模式存在*/
+		else if (ALWAYS(pTab->pSchema)){/* A real table 一个真实的表*//*pTab表的模式存在*/
 			/* A real table *//*一个真实的表*/
 			assert(!pS);/*插入断点，判断Select结构体是否为空*/
 			if (iCol<0) iCol = pTab->iPKey;/*如果列号小于0，将表中的关键字数组的首元素赋值给ICol*/
@@ -1322,7 +1333,7 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		}
 		break;
 	}
-#ifndef SQLITE_OMIT_SUBQUERY
+#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是被宏定义过*/
 	case TK_SELECT: {
 		/* The expression is a sub-select. Return the declaration type and
 		** origin info for the single column in the result set of the SELECT
@@ -1331,6 +1342,11 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		/*
 		** 这个表达式是子查询。返回一个声明类型和初始信息给select结果集中的一列。
 		*/
+		/* The expression is a sub-select. Return the declaration type and
+                ** origin info for the single column in the result set of the SELECT
+                ** statement.
+                **表达式是一个子选择。返回声明类型和 在SELECT语句的结果集的单个列的来源信息
+                */
 		NameContext sNC;
 		Select *pS = pExpr->x.pSelect;/*将表达式中Select结构体赋值给一个SELECT结构体实体变量*/
 		Expr *p = pS->pEList->a[0].pExpr;/*将SELECT的表达式列表中第一个表达式赋值给表达式变量p*/
@@ -1352,7 +1368,11 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 	}
 	return zType;/*返回列类型*/
 }
-
+/*
+** Generate code that will tell the VDBE the declaration types of columns
+** in the result set.
+**生成的代码会告诉VDBE在结果集中的列的声明类型。
+*/
 
 /*
 ** Generate code that will tell the VDBE the declaration types of columns
@@ -1360,11 +1380,11 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 ** 生成代码，告诉VDBE在结果集中的列的声明类型的。
 */
 static void generateColumnTypes(
-	Parse *pParse,      /* Parser context 语义分析*/
-	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*/
-	ExprList *pEList    /* Expressions defining the result set 输出结果列的语法树*/
+	Parse *pParse,      /* Parser context 语义分析*//* Parser context 语义分析*/
+	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*//* List of tables 输出表的集合的语法树*/
+	ExprList *pEList    /* Expressions defining the result set 输出结果列的语法树*//* Expressions defining the result set 输出结果列的语法树*/
 	){
-#ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
+#ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*//*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
 	Vdbe *v = pParse->pVdbe;
 	int i;
 	NameContext sNC;
@@ -1373,7 +1393,7 @@ static void generateColumnTypes(
 	for (i = 0; i < pEList->nExpr; i++){
 		Expr *p = pEList->a[i].pExpr;
 		const char *zType;
-#ifdef SQLITE_ENABLE_COLUMN_METADATA/*测试SQLITE_ENABLE_COLUMN_METADATA是否被宏定义过*/
+#ifdef SQLITE_ENABLE_COLUMN_METADATA/*测试SQLITE_ENABLE_COLUMN_METADATA是否被宏定义过*//*测试SQLITE_ENABLE_COLUMN_METADATA是否被宏定义过*/
 		const char *zOrigDb = 0;
 		const char *zOrigTab = 0;
 		const char *zOrigCol = 0;
@@ -1384,6 +1404,12 @@ static void generateColumnTypes(
 		** virtual machine is deleted.
 		** 为防止该虚拟机被删除前架构重设，该VDBE必须做出自己的列式和其他列的特定字符串的副本。
 		*/
+		/* The vdbe must make its own copy of the column-type and other 
+                 ** column specific strings, in case the schema is reset before this  
+                 ** virtual machine is deleted.
+                 **VDBE必须做出自己的列的类型和其他列的特定字符串的副本，在此情况下，
+                 **虚拟机被删除之前的模式被重置。
+                 */
 		sqlite3VdbeSetColName(v, i, COLNAME_DATABASE, zOrigDb, SQLITE_TRANSIENT);
 		sqlite3VdbeSetColName(v, i, COLNAME_TABLE, zOrigTab, SQLITE_TRANSIENT);
 		sqlite3VdbeSetColName(v, i, COLNAME_COLUMN, zOrigCol, SQLITE_TRANSIENT);
@@ -1402,71 +1428,74 @@ static void generateColumnTypes(
 ** 生成代码，告诉 VDBE 在结果集中的列的名称。这些信息被用于提供在回调中azCol[]的值。
 */
 static void generateColumnNames(
-	Parse *pParse,      /* Parser context   解析上下文 */
-	SrcList *pTabList,  /* List of tables   列表*/
-	ExprList *pEList    /* Expressions defining the result set   输出结果列的语法树*/
+	Parse *pParse,      /* Parser context   解析上下文 *//*定义一个Parse型的指针*/
+	SrcList *pTabList,  /* List of tables   列表*//*定义一个SrcList型的指针*/
+	ExprList *pEList    /* Expressions defining the result set   输出结果列的语法树*//*定义一个ExprList型的指针*/
 	){
 	Vdbe *v = pParse->pVdbe;
 	int i, j;
 	sqlite3 *db = pParse->db;
-	int fullNames, shortNames;
+	int fullNames, shortNames;/*定义整形变量*/
 
 #ifndef SQLITE_OMIT_EXPLAIN
 	/* If this is an EXPLAIN, skip this step    如果这是一个表达式, 跳过这一步 */
-	if (pParse->explain){/*如果语法分析树中的explain属性存在，直接返回*/
+	if (pParse->explain){/*如果语法分析树中的explain属性存在，直接返回*//*如果语法分析树中的explain属性存在，直接返回*/
 		return;
 	}
 #endif
 
-	if (pParse->colNamesSet || NEVER(v == 0) || db->mallocFailed) return;/*如果存在语法分析树的列明集合或不存在VDBE变量或分配内存失败都将直接返回*/
-	pParse->colNamesSet = 1;/*设置语法分析树中列名集合为1*/
-	fullNames = (db->flags & SQLITE_FullColNames) != 0;/*如果数据库连接的名字交SQLIte全称列名不为空，交集返回给变量为fullNames*/
-	shortNames = (db->flags & SQLITE_ShortColNames) != 0;/*如果数据库连接的名字交SQLIte简称列名不为空，交集返回给变量为shortNames*/
-	sqlite3VdbeSetNumCols(v, pEList->nExpr);/*根据表达式返回结果集列的数量*/
-	for (i = 0; i < pEList->nExpr; i++){/*遍历标示符列表*/
+	if (pParse->colNamesSet || NEVER(v == 0) || db->mallocFailed) return;/*如果存在语法分析树的列明集合或不存在VDBE变量或分配内存失败都将直接返回*//*如果存在语法分析树的列明集合或不存在VDBE变量或分配内存失败都将直接返回*/
+	pParse->colNamesSet = 1;/*设置语法分析树中列名集合为1*//*设置语法分析树中列名集合为1*/
+	fullNames = (db->flags & SQLITE_FullColNames) != 0;/*如果数据库连接的名字交SQLIte全称列名不为空，交集返回给变量为fullNames*//*如果数据库连接的名字交SQLIte全称列名不为空，交集返回给变量为fullNames*/
+	shortNames = (db->flags & SQLITE_ShortColNames) != 0;/*如果数据库连接的名字交SQLIte简称列名不为空，交集返回给变量为shortNames*//*如果数据库连接的名字交SQLIte简称列名不为空，交集返回给变量为shortNames*/
+	sqlite3VdbeSetNumCols(v, pEList->nExpr);/*根据表达式返回结果集列的数量*//*根据表达式返回结果集列的数量*/
+	for (i = 0; i < pEList->nExpr; i++){/*遍历标示符列表*//*遍历标示符列表*/
 		Expr *p;
-		p = pEList->a[i].pExpr;/*将表达式列表中第i-1个赋值给p*/
-		if (NEVER(p == 0)) continue;/*如果p为0，直接跳过*/
-		if (pEList->a[i].zName){/*如果第i-1个表达式的名字存在*/
-			char *zName = pEList->a[i].zName;/*将第i-1个表达式的名字存在赋值给zName*/
-			sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_TRANSIENT);/*设置SQL执行后返回结果集的列数*/
+		p = pEList->a[i].pExpr;/*将表达式列表中第i-1个赋值给p*//*将表达式列表中第i-1个赋值给p*/
+		if (NEVER(p == 0)) continue;/*如果p为0，直接跳过*//*如果p是0，则直接继续执一下语句*/
+  	        if (pEList->a[i].zName){/*如果第i-1个表达式的名字存在*//*如果第i-1个表达式的名字存在*/
+			char *zName = pEList->a[i].zName;/*将第i-1个表达式的名字存在赋值给zName*//*把i-1表达式中的名字赋值给zName*/
+			sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_TRANSIENT);/*执行sqlite3VdbeSetColName函数*//*设置SQL执行后返回结果集的列数 执行sqlite3VdbeSetColName函数*/
 		}
-		else if ((p->op == TK_COLUMN || p->op == TK_AGG_COLUMN) && pTabList){/*如果表达式中操作为TK_COLUMN或TK_AGG_COLUMN，并且与表的集合有交集*/
-			Table *pTab;
-			char *zCol;
-			int iCol = p->iColumn;/*将表达式中iColumn赋值给ICol*/
-			for (j = 0; ALWAYS(j < pTabList->nSrc); j++){/*遍历表集合*/
-				if (pTabList->a[j].iCursor == p->iTable) break;/*如果表中的游标指向ITable，中断*/
+		else if ((p->op == TK_COLUMN || p->op == TK_AGG_COLUMN) && pTabList){/*如果表达式中操作为TK_COLUMN或TK_AGG_COLUMN，并且与表的集合有交集*//*满足if语句的条件，则执行语句*/
+			Table *pTab;/*定义Table型的指针变*/
+			char *zCol;/*定义字符型的指针变*/
+			int iCol = p->iColumn;/*将表达式中iColumn赋值给ICol*//*将p->iColumn赋值给整型变量iCol*/
+			for (j = 0; ALWAYS(j < pTabList->nSrc); j++)/*满足条件，执行for循环*/
+			{/*遍历表集合*//*遍历表集合*/
+				if (pTabList->a[j].iCursor == p->iTable) break;/*如果表中的游标指向ITable，中断*//*如果表中的游标指向ITable，中断*/
 			}
-			assert(j < pTabList->nSrc);/*插入断点，判断j小于表集合的数目*/
-			pTab = pTabList->a[j].pTab;/*将表集合中表赋值给变量pTab*/
-			if (iCol < 0) iCol = pTab->iPKey;/*如果列小于0，设置iCol为当前表变量的主键*/
+			assert(j < pTabList->nSrc);/*插入断点，判断j小于表集合的数目*//*插入断点，判断j小于表集合的数目*/
+			pTab = pTabList->a[j].pTab;/*将表集合中表赋值给变量pTab*//*将表集合中表赋值给变量pTab*/
+			if (iCol < 0) iCol = pTab->iPKey;/*如果列小于0，设置iCol为当前表变量的主键*//*如果列小于0，设置iCol为当前表变量的主键*/
 			assert(iCol == -1 || (iCol >= 0 && iCol < pTab->nCol));/*插入断点，判断iCol的范围*/
-			if (iCol < 0){/*如果iCol小于0*/
-				zCol = "rowid";/*设置zCol为主键，“rowid”*/
+			if (iCol < 0)
+			/*如果iCol小于0，则执行if语句*/
+			{/*如果iCol小于0*/
+				zCol = "rowid";/*设置zCol为主键，“rowid”*//*设置zCol为主键*/
 			}
 			else{
-				zCol = pTab->aCol[iCol].zName;/*否则令zCol为当前表第i-1列的名字*/
+				zCol = pTab->aCol[iCol].zName;/*否则令zCol为当前表第i-1列的名字*//*否则，把当前表第i-1列的名字给zCol*/
 			}
-			if (!shortNames && !fullNames){/*如果既不是简称又不是全称*/
+			if (!shortNames && !fullNames)/*如果既不是名字的简称又不是全名，则执行if语句*/{/*如果既不是简称又不是全称*/
 				sqlite3VdbeSetColName(v, i, COLNAME_NAME,
-					sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
+					sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*返回一个已分配给数据库连接中pEList->a[i].zSpan的值，再返回给sqlite3VdbeSetColName（）计算结果集的列数*//*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
 			}
-			else if (fullNames){/*如果是全称*/
-				char *zName = 0;
+			else if (fullNames)/*如果是全程的话，执行if语句*/{/*如果是全称*/
+				char *zName = 0;/*把立命的初值赋值为0*/
 				zName = sqlite3MPrintf(db, "%s.%s", pTab->zName, zCol);/*列名为pTab中的zCol名*/
-				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_DYNAMIC);/*计算结果集的列数*/
+				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_DYNAMIC);/*计算结果集的列数*//*计算结果集的列数*/
 			}
 			else{
-				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zCol, SQLITE_TRANSIENT);/*计算结果集的列数*/
+				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zCol, SQLITE_TRANSIENT);/*计算结果集的列数*//*否则计算结果集的列数*/
 			}
 		}
 		else{
 			sqlite3VdbeSetColName(v, i, COLNAME_NAME,
-				sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
+				sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*否则返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*//*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
 		}
 	}
-	generateColumnTypes(pParse, pTabList, pEList);/*根据语法分析树，表的列表和表达式列表产生列类型*/
+	generateColumnTypes(pParse, pTabList, pEList);/*根据语法分析树，表的列表和表达式列表产生列类型*//*根据语法分析树，表的列表和表达式列表产生列类型*/
 }
 
 /*
