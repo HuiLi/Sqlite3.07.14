@@ -48,7 +48,7 @@
 #ifdef HAVE_EDITLINE
 # include <editline/editline.h>
 #endif
-#if defined(HAVE_READLINE) && HAVE_READLINE==1
+#if defined(HAVE_READLINE) && HAVE_READLINE==1//Èç¹û¶¨ÒåÁËHAVE_READLINE²¢ÇÒHAVE_READLINEÖµÎª1£¬Ôò½«readlineÎÄ¼şÏÂµÄreadline.h,history.hÒıÈë
 # include <readline/readline.h>
 # include <readline/history.h>
 #endif
@@ -71,7 +71,7 @@
 #else
 /* Make sure isatty() has a prototype.
 */
-extern int isatty(int);
+extern int isatty(int);//ÉêÃ÷Ò»¸öÍâ²¿º¯Êıisatty£¬ÅĞ¶ÏÉè±¸ÊÇ²»ÊÇÖÕ¶ËÉè±¸
 #endif
 
 #if defined(_WIN32_WCE)
@@ -102,13 +102,12 @@ static struct rusage sBegin;    //¶¨Òå¿ªÊ¼
 */
 static void beginTimer(void){  //±íÊ¾¿ªÊ¼µÄÊ±¼äº¯Êı
   if( enableTimer ){
-    getrusage(RUSAGE_SELF, &sBegin);
+    getrusage(RUSAGE_SELF, &sBegin);//»ñÈ¡µ±Ç°½ø³Ì»òÆäËùÓĞÒÑÖÕÖ¹µÄ×Ó½ø³ÌµÄ×ÊÔ´Ê¹ÓÃĞÅÏ¢£¬²¢½«Æä´æÈëÖ¸ÕëusageËùÖ¸½á¹¹Ìå
   }
 }
 
 /* Return the difference of two time_structs in seconds */
 static double timeDiff(struct timeval *pStart, struct timeval *pEnd){  // ÓĞ¹Ø·µ»ØÓÃ»§Ê±¼äºÍÏµÍ³Ê±¼äÖ®¼äµÄ
-
 ²îÒì
   return (pEnd->tv_usec - pStart->tv_usec)*0.000001 + 
          (double)(pEnd->tv_sec - pStart->tv_sec);
@@ -120,7 +119,7 @@ static double timeDiff(struct timeval *pStart, struct timeval *pEnd){  // ÓĞ¹Ø·µ
 static void endTimer(void){   //±íÊ¾´òÓ¡½á¹ûµÄÊ±¼ä
   if( enableTimer ){
     struct rusage sEnd;   //½áÊø
-    getrusage(RUSAGE_SELF, &sEnd);
+    getrusage(RUSAGE_SELF, &sEnd);//»ñÈ¡µ±Ç°½ø³Ì»òÆäËùÓĞÒÑÖÕÖ¹µÄ×Ó½ø³ÌµÄ×ÊÔ´Ê¹ÓÃĞÅÏ¢£¬²¢½«Æä´æÈëÖ¸ÕëusageËùÖ¸½á¹¹Ìå
     printf("CPU Time: user %f sys %f\n",
        timeDiff(&sBegin.ru_utime, &sEnd.ru_utime),
        timeDiff(&sBegin.ru_stime, &sEnd.ru_stime));
@@ -136,7 +135,7 @@ static void endTimer(void){   //±íÊ¾´òÓ¡½á¹ûµÄÊ±¼ä
 #include <windows.h>
 
 /* Saved resource information for the beginning of an operation */
-static HANDLE hProcess;
+static HANDLE hProcess;//¾ä±ú
 static FILETIME ftKernelBegin; //ÄÚºË¿ªÊ¼Ê±¼ä
 static FILETIME ftUserBegin;  //ÓÃ»§¿ªÊ¼Ê±¼ä
 typedef BOOL (WINAPI *GETPROCTIMES)(HANDLE, LPFILETIME, LPFILETIME, LPFILETIME, LPFILETIME);
@@ -154,7 +153,7 @@ static int hasTimer(void){    //¼ÆÊ±Æ÷
     ** See if the version we are running on has it, and if it does, save off
     ** a pointer to it and the current process handle.
     */
-    hProcess = GetCurrentProcess();
+    hProcess = GetCurrentProcess();//»ñÈ¡µ±Ç°½ø³ÌµÄÒ»¸ö¾ä±ú,·µ»ØÖµÎªµ±Ç°½ø³ÌµÄ¾ä±ú
     if( hProcess ){
       HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  //¼ÓÔØ¶¯Ì¬Á´½Ó¿â¡£Ö®ºó¿ÉÒÔ·ÃÎÊ¿âÄÚµÄ×ÊÔ´  
                                                                /*kernel32.dllÊÇWindows 9x/MeÖĞ ·Ç³£ÖØÒªµÄ32Î» ¶¯Ì¬Á´½Ó¿âÎÄ¼ş
@@ -168,7 +167,8 @@ static int hasTimer(void){    //¼ÆÊ±Æ÷
        if( NULL != hinstLib ){
         getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");  //»ñÈ¡¶¯
 
-Ì¬Á¬½Ó¿âÀïµÄ¹¦ÄÜº¯ÊıµØÖ·
+//Ì¬Á¬½Ó¿âÀïµÄ¹¦ÄÜº¯ÊıµØÖ·£¬hinstLibÎª¾ä±ú£¬GetProcessTimesÎªº¯ÊıÃû
+			
         if( NULL != getProcessTimesAddr ){  //Èç¹û»ñÈ¡³É¹¦£¬·µ»Ø1
           return 1;
         }
@@ -204,8 +204,8 @@ static void endTimer(void){  //±íÊ¾´òÓ¡½á¹ûµÄÊ±¼ä
     FILETIME ftCreation, ftExit, ftKernelEnd, ftUserEnd;
     getProcessTimesAddr(hProcess, &ftCreation, &ftExit, &ftKernelEnd, &ftUserEnd);
     printf("CPU Time: user %f sys %f\n",
-       timeDiff(&ftUserBegin, &ftUserEnd),
-       timeDiff(&ftKernelBegin, &ftKernelEnd));
+       timeDiff(&ftUserBegin, &ftUserEnd),// ÓĞ¹Ø·µ»ØÓÃ»§¿ªÊ¼Ê±¼äºÍÏµÍ³Ê±¼äÖ®¼äµÄ²îÒì
+       timeDiff(&ftKernelBegin, &ftKernelEnd));// ÓĞ¹Ø·µ»ØÄÚºË¿ªÊ¼Ê±¼äºÍÏµÍ³Ê±¼äÖ®¼äµÄ²îÒì
   }
 }
 
@@ -320,7 +320,7 @@ static int isNumber(const char *z, int *realnum){
     z++;
     if( *z=='+' || *z=='-' ) z++; //Ö¸ÊıµÄÕı¸º
     if( !IsDigit(*z) ) return 0;
-    while( IsDigit(*z) ){ z++; }
+    while( IsDigit(*z) ){ z++; }//Èç¹ûÓöµ½·ÇÊı×Ö,z++
     if( realnum ) *realnum = 1;
   }
   return *z==0;
@@ -344,11 +344,11 @@ static void shellstaticFunc(   //
   int argc,
   sqlite3_value **argv
 ){
-  assert( 0==argc );
+  assert( 0==argc );//Èç¹ûËüµÄÌõ¼ş·µ»Ø´íÎó£¬ÔòÖÕÖ¹³ÌĞòÖ´ĞĞ
   assert( zShellStatic );
   UNUSED_PARAMETER(argc);  //²»Ê¹ÓÃµÄ²ÎÊı£¬¸ù¾İÇ°ÃæµÄ¶¨ÒåÉèÖÃÎª¿Õ
   UNUSED_PARAMETER(argv);
-  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC); //
+  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC); // SQLITE_STATICÎªÒ»¸öº¯ÊıÖ¸Õë£¬SQLITE3Ö´ĞĞÍê²Ù×÷ºó»Øµ÷´Ëº¯Êı£¬Í¨³£ÓÃÓÚÊÍ·Å×Ö·û´®Õ¼ÓÃµÄÄÚ´æ
 }
 
 
@@ -376,27 +376,27 @@ static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //´ÓÎÄ¼şÖĞ¶ÁÈ
 
   if( zPrompt && *zPrompt ){// ¶ÁÈ¡³É¹¦£¬ÔòÊä³ö×Ö·û´®
     printf("%s",zPrompt);
-    fflush(stdout);
+    fflush(stdout);//Çå¿ÕstdoutµÄ»º³åÇø
   }
   nLine = 100;  //¸³ÖµÖ¸¶¨³¤¶È
   zLine = malloc( nLine ); //·ÖÅä´óĞ¡ÎªnLineµÄÄÚ´æ¿Õ¼ä
   if( zLine==0 ) return 0;  //Èç¹û×Ö·û´®Îª¿Õ£¬Ôò·µ»Ø0
-  n = 0;
+  n = 0;//nµÄ³õÊ¼ÖµÎª0
   while( 1 ){  //Éè¶¨Ò»¸öÒ»°ã×Ö·û´®µÄ³¤¶ÈÏŞÖÆÎª»º³åÇøµÄ´óĞ¡, Ã¿´Î¶ÁÈ¡ºó, ÔÙÅĞ¶ÏÏÂÊÇ·ñµ½´ïĞĞÄ©, Èç¹ûÃ»ÓĞµ½´ï, 
 
 ÔÙÀûÓÃÉÏÃæµÄ·½·¨¶¯Ì¬·ÖÅä»º³åÇø
     if( n+100>nLine ){  
       nLine = nLine*2 + 100;
       zLine = realloc(zLine, nLine); //½«zLine¶ÔÏóµÄ´æ´¢¿Õ¼ä¸ÄÎªnLine´óĞ¡
-      if( zLine==0 ) return 0;
+      if( zLine==0 ) return 0;//Èç¹û·ÖÅäÄÚ´æ²»³É¹¦£¬·µ»Ø
     }
-    if( fgets(&zLine[n], nLine - n, in)==0 ){
-      if( n==0 ){
-        free(zLine);
+    if( fgets(&zLine[n], nLine - n, in)==0 ){//ÅĞ¶Ï´ÓÎÄ¼şÖĞ¶ÁÈëµÄ×Ö·û´®ÊÇÎª¿Õ
+		if( n==0 ){ 
+        free(zLine);//ÊÍ·ÅzLineÄÚ´æ
         return 0;
       }
       zLine[n] = 0;
-      break;
+      break;//½áÊø´Ë´ÎÑ­»·
     }
     while( zLine[n] ){
       if( zLine[n]=='"' ) inQuote = !inQuote;
@@ -409,7 +409,7 @@ static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //´ÓÎÄ¼şÖĞ¶ÁÈ
       break;
     }
   }
-  zLine = realloc( zLine, n+1 );
+  zLine = realloc( zLine, n+1 );//½«zLine¶ÔÏóµÄ´æ´¢¿Õ¼ä¸ÄÎªn+1´óĞ¡
   return zLine;
 }
 
@@ -422,17 +422,17 @@ static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //´ÓÎÄ¼şÖĞ¶ÁÈ
 static char *one_input_line(const char *zPrior, FILE *in){
   char *zPrompt;
   char *zResult;
-  if( in!=0 ){
+  if( in!=0 ){//ÎÄ¼ş²»¿Õ£¬¾Í´ÓÎÄ¼şÖĞ¶ÁÈ¡ÃüÁî
     return local_getline(0, in, 0);
   }
   if( zPrior && zPrior[0] ){
-    zPrompt = continuePrompt;
+    zPrompt = continuePrompt;//Èç¹ûzPrior && zPrior[0]²»¿Õ£¬ÔòzPrompt = continuePrompt£¬continuePromptµÄ³õÊ¼ÖµÎª"...>"
   }else{
-    zPrompt = mainPrompt;
+    zPrompt = mainPrompt;//·ñÔò zPrompt = mainPrompt£¬ÆäÖĞmainPromptµÄ³õÊ¼ÖµÎª"sqlite3>"
   }
-  zResult = readline(zPrompt);
+  zResult = readline(zPrompt);//¶ÁÈ¡zPromptµÄÖµ
 #if defined(HAVE_READLINE) && HAVE_READLINE==1
-  if( zResult && *zResult ) add_history(zResult);
+  if( zResult && *zResult ) add_history(zResult);//Èç¹û¶¨ÒåÁË(HAVE_READLINE) && HAVE_READLINE==1²¢ÇÒzResult && *zResult·Ç¿Õ£¬Ôò½«zResult ¼ÓÈëµ½¼ÇÂ¼ÖĞ
 #endif
   return zResult;
 }
@@ -535,7 +535,7 @@ static int strlen30(const char *z){     //ÄÜ¹»´æ´¢µÄ×î´óbitÊı;×Ö·û´®³¤¶ÈÊÇÓĞÏŞµÄ
 ** A callback for the sqlite3_log() interface.    //sqlite3_log()½Ó¿ÚµÄ»Øµ÷
 */
 static void shellLog(void *pArg, int iErrCode, const char *zMsg){  //Éú²úshellÏÂÔËĞĞµÄÈÕÖ¾
-  struct callback_data *p = (struct callback_data*)pArg;  
+  struct callback_data *p = (struct callback_data*)pArg; //½«Ö¸ÕëpArgÇ¿ÖÆ×ª»»Ö¸Ïòcallback_dataĞÍ£¬²¢¸³¸øp.
   if( p->pLog==0 ) return;   //Èç¹ûÃ»ÓĞÈÕÖ¾·µ»Ø
   fprintf(p->pLog, "(%d) %s\n", iErrCode, zMsg); //Êä³öÈÕÖ¾ĞÅÏ¢
   fflush(p->pLog); //Çå¿Õ»º´æ
@@ -561,16 +561,16 @@ static void output_quoted_string(FILE *out, const char *z){//½«×Ö·û´®ÒÔÒıÖ¤×Ö·û´
   int i;
   int nSingle = 0;
   for(i=0; z[i]; i++){
-    if( z[i]=='\'' ) nSingle++;
+    if( z[i]=='\'' ) nSingle++;//¼ÇÂ¼×Ö·û´®ÖĞ'\'µÄ¸öÊı
   }
-  if( nSingle==0 ){ //
-    fprintf(out,"'%s'",z);
+  if( nSingle==0 ){ //×Ö·û´®ÖĞ'\'µÄ¸öÊıÎª0
+    fprintf(out,"'%s'",z);//zÒÔ'%s'ÖÖĞÎÊ½Êä³ö
   }else{
     fprintf(out,"'");
     while( *z ){
       for(i=0; z[i] && z[i]!='\''; i++){}
       if( i==0 ){
-        fprintf(out,"''");
+        fprintf(out,"''");//ÒÔ ''µÄĞÎÊ½Êä³öÖÁoutÎÄ¼ş
         z++;
       }else if( z[i]=='\'' ){
         fprintf(out,"%.*s''",i,z);
@@ -592,7 +592,7 @@ static void output_c_string(FILE *out, const char *z){  //¸ù¾İC»òTCLÒıÓÃ¹æÔòÊä³ö
   fputc('"', out);
   while( (c = *(z++))!=0 ){
     if( c=='\\' ){
-      fputc(c, out);
+      fputc(c, out);//½«×Ö·û´®cĞ´ÈëÎÄ¼şoutÖĞ
       fputc(c, out);
     }else if( c=='\t' ){
       fputc('\\', out);
@@ -603,9 +603,9 @@ static void output_c_string(FILE *out, const char *z){  //¸ù¾İC»òTCLÒıÓÃ¹æÔòÊä³ö
     }else if( c=='\r' ){
       fputc('\\', out);
       fputc('r', out);
-    }else if( !isprint(c) ){
-      fprintf(out, "\\%03o", c&0xff);
-    }else{
+    }else if( !isprint(c) ){//Èç¹ûc²»ÊÇ¿É´òÓ¡µÄ×Ö·û
+      fprintf(out, "\\%03o", c&0xff);//½«×Ö·û´®cÓëoxff½øĞĞ°´Î»Óë£¬È»ºóÒÔ\\%03oĞÎÊ½Êä³öÖÁoutÎÄ¼ş
+    }else{//·ñÔò,½«×Ö·û´®cĞ´ÈëoutÎÄ¼şÖĞ
       fputc(c, out);
     }
   }
@@ -616,6 +616,7 @@ static void output_c_string(FILE *out, const char *z){  //¸ù¾İC»òTCLÒıÓÃ¹æÔòÊä³ö
 ** Output the given string with characters that are special to
 ** HTML escaped. 
 */
+//Èç¹ûÏëÊä³öÏÂÃæÌØÊâµÄ×Ö·û´®£¬ÔòĞèÒªÓÃËüÃÇ¶ÔÓ¦µÄ×Ö·ûÊµÌå
 static void output_html_string(FILE *out, const char *z){//ÒÔÌØÊâµÄHTML´úÂë·½Ê½ÏÔÊ¾×Ö·û´®
   int i;
   while( *z ){
@@ -625,16 +626,16 @@ static void output_html_string(FILE *out, const char *z){//ÒÔÌØÊâµÄHTML´úÂë·½Ê½Ï
             && z[i]!='>' 
             && z[i]!='\"' 
             && z[i]!='\'';
-        i++){}
+        i++){}//Èç¹ûÃ»ÓĞÕâĞ©ÌØÊâ×Ö·û£¬Ôò²»Ğë¶ÔÊä³ö×ö´¦Àí
     if( i>0 ){
       fprintf(out,"%.*s",i,z);
     }
     if( z[i]=='<' ){
-      fprintf(out,"&lt;");
+      fprintf(out,"&lt;");//Èç¹ûÓĞ'<'·ûºÅ£¬Ôò½«ÕıÈ·Êä³öĞ¡ÓÚ·ûºÅ
     }else if( z[i]=='&' ){
-      fprintf(out,"&amp;");
+      fprintf(out,"&amp;");//ÕıÈ·Êä³öºÍºÅ
     }else if( z[i]=='>' ){
-      fprintf(out,"&gt;");
+      fprintf(out,"&gt;");//ÕıÈ·Êä³ö´óÓÚ·ûºÅ
     }else if( z[i]=='\"' ){
       fprintf(out,"&quot;");
     }else if( z[i]=='\'' ){
@@ -684,7 +685,7 @@ static void output_csv(struct callback_data *p, const char *z, int bSep){//ÒÔcsv
     fprintf(out,"%s",p->nullvalue);  //¸ñÊ½»¯Êä³ö fprintf(ÎÄ¼şÖ¸Õë,¸ñÊ½×Ö·û´®,Êä³ö±íÁĞ)
   }else{
     int i;
-    int nSep = strlen30(p->separator);
+    int nSep = strlen30(p->separator);//½«p->separator
     for(i=0; z[i]; i++){
       if( needCsvQuote[((unsigned char*)z)[i]] 
          || (z[i]==p->separator[0] && 
