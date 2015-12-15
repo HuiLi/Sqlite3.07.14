@@ -209,6 +209,7 @@ static void setResultStrOrError(
     sqlite3_result_error_toobig(pCtx);
   }
 }
+//该函数表示从用户自定义的应用程序中返回blob的内容，由第二个参数指出，第三个参数n为字长。
 void sqlite3_result_blob(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -219,10 +220,12 @@ void sqlite3_result_blob(
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   setResultStrOrError(pCtx, z, n, 0, xDel);
 }
+//该应用程序定义函数的返回值是在第二个参数中给出的浮点型的值
 void sqlite3_result_double(sqlite3_context *pCtx, double rVal){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetDouble(&pCtx->s, rVal);
 }
+//该函数返回使用utf-8编码的错误
 void sqlite3_result_error(sqlite3_context *pCtx, const char *z, int n){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex));
   pCtx->isError = SQLITE_ERROR;
@@ -230,24 +233,29 @@ void sqlite3_result_error(sqlite3_context *pCtx, const char *z, int n){
 }
 //const void *z 定义z指针，这种定义方式表示z可以指向任意类型，但是它只能指向常量
 #ifndef SQLITE_OMIT_UTF16
+//该函数返回使用utf-16编码的错误
 void sqlite3_result_error16(sqlite3_context *pCtx, const void *z, int n){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   pCtx->isError = SQLITE_ERROR;
   sqlite3VdbeMemSetStr(&pCtx->s, z, n, SQLITE_UTF16NATIVE, SQLITE_TRANSIENT);
 }
+//该应用程序定义函数的返回值是在第二个参数中给出的32位符号整数的值
 #endif
 void sqlite3_result_int(sqlite3_context *pCtx, int iVal){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetInt64(&pCtx->s, (i64)iVal);
 }
+//该应用程序定义函数的返回值是在第二个参数中给出的64位符号整数的值
 void sqlite3_result_int64(sqlite3_context *pCtx, i64 iVal){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetInt64(&pCtx->s, iVal);
 }
+//该函数返回用户自定义的应用程序是空的值
 void sqlite3_result_null(sqlite3_context *pCtx){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetNull(&pCtx->s);
 }
+//该函数从用户自定义的的应用程序中返回一个使用utf-8编码的text字符串
 void sqlite3_result_text(
   sqlite3_context *pCtx, 
   const char *z, //const void *z 定义z指针，这种定义方式表示z可以指向任意类型，但是它只能指向常量
@@ -258,6 +266,7 @@ void sqlite3_result_text(
   setResultStrOrError(pCtx, z, n, SQLITE_UTF8, xDel);
 }
 #ifndef SQLITE_OMIT_UTF16
+//该函数从用户自定义的的应用程序中返回一个使用utf-16native byte order编码的text字符串
 void sqlite3_result_text16(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -267,6 +276,7 @@ void sqlite3_result_text16(
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   setResultStrOrError(pCtx, z, n, SQLITE_UTF16NATIVE, xDel);
 }
+//该函数从用户自定义的的应用程序中返回一个使用 UTF-16 little endian编码的text字符串
 void sqlite3_result_text16be(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -276,6 +286,7 @@ void sqlite3_result_text16be(
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   setResultStrOrError(pCtx, z, n, SQLITE_UTF16BE, xDel);
 }
+//该函数从用户自定义的的应用程序中返回一个使用 UTF-16 big endian编码的text字符串
 void sqlite3_result_text16le(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -286,14 +297,17 @@ void sqlite3_result_text16le(
   setResultStrOrError(pCtx, z, n, SQLITE_UTF16LE, xDel);
 }
 #endif /* SQLITE_OMIT_UTF16 */
+//该函数设置应用程序定义的函数返回对第二个参数指定的不受保护的sqlite3_value对象的copy
 void sqlite3_result_value(sqlite3_context *pCtx, sqlite3_value *pValue){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemCopy(&pCtx->s, pValue);
 }
+//该函数获得指定大小的全零block数据。
 void sqlite3_result_zeroblob(sqlite3_context *pCtx, int n){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetZeroBlob(&pCtx->s, n);
 }
+//该函数设置使用的编码错误
 void sqlite3_result_error_code(sqlite3_context *pCtx, int errCode){
   pCtx->isError = errCode;
   if( pCtx->s.flags & MEM_Null ){
