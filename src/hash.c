@@ -398,9 +398,6 @@ void *sqlite3HashInsert(Hash *pH, const char *pKey, int nKey, void *data){  /*�
   if( pH->htsize ){                                                         /*如果pH的htsize成员变量不为0,即使用哈希表存放数据项*/
     h = strHash(pKey, nKey) % pH->htsize;/*如果pH的htsize成员变量不为0,     /*使用 strHash 函数计算桶号h*/
 即使用哈希表存放数据项那么使用 strHash 函数计算桶号h*/
-  }else{
-    h = 0;/*如果pH的htsize成员变量为0,那么h=0*/                             /*如果pH的htsize成员变量为0,那么h=0*/
-  }
   elem = findElementGivenHash(pH,pKey,nKey,h);                              /*查找给定的hash元素*/
   if( elem ){                                                               /*若存在，就更新数据*/
     void *old_data = elem->data;                                            /*给指定的一个空类型的指针赋值*/
