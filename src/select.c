@@ -1558,32 +1558,32 @@ static int selectColumnsFromExprList(
 
 		/* Make sure the column name is unique.  If the name is not unique,
 		** append a integer to the name so that it becomes unique.
-		** 确保列名是唯一的。如果名字不是唯一的,给名称附加一个整数,这样就变得唯一了
+		** 确定 列名是唯一的。如果名字不是唯一的,添加一个整数给他成为唯一的
 		*/
-		nName = sqlite3Strlen30(zName);
+		nName = sqlite3Strlen30(zName);/*限制列名的长度不能超过30*/
 		for (j = cnt = 0; j < i; j++){
-			if (sqlite3StrICmp(aCol[j].zName, zName) == 0){
+			if (sqlite3StrICmp(aCol[j].zName, zName) == 0){/*如果初始化后的结果列中的列的名字和在Name相同*/
 				char *zNewName;
 				zName[nName] = 0;
-				zNewName = sqlite3MPrintf(db, "%s:%d", zName, ++cnt);
-				sqlite3DbFree(db, zName);
-				zName = zNewName;
-				j = -1;
-				if (zName == 0) break;
+				zNewName = sqlite3MPrintf(db, "%s:%d", zName, ++cnt);/*格式化输出来zName连接++cnt的字符串，赋值给zNewName*/
+				sqlite3DbFree(db, zName);/*释放可能关联的数据库连接的内存*/
+				zName = zNewName;/*令zName的值为格式化处理后的zNewName值*/
+				j = -1;/*下次循环j值为0*/
+				if (zName == 0) break;/*如果zName为0，说明没有zName字符串，就不用再赋值*/
 			}
 		}
-		pCol->zName = zName;
+		pCol->zName = zName;/*将各种情况中，设置的zName值写到结果列中*/
 	}
-	if (db->mallocFailed){
+	if (db->mallocFailed){/*如果分配失败*/
 		for (j = 0; j < i; j++){
-			sqlite3DbFree(db, aCol[j].zName);
+			sqlite3DbFree(db, aCol[j].zName);/*释放关联列中名字为zName的内存块*/
 		}
-		sqlite3DbFree(db, aCol);
-		*paCol = 0;
-		*pnCol = 0;
-		return SQLITE_NOMEM;
+		sqlite3DbFree(db, aCol);/*释放关联结果列的数据库连接*/
+		*paCol = 0;/*令写列表名为0*/
+		*pnCol = 0;/*令列名为0*/
+		return SQLITE_NOMEM;/*返回SQLITE_NOMEM（没有分配）*/
 	}
-	return SQLITE_OK;
+	return SQLITE_OK;/*返回SQLITE_OK值*/
 }
 
 /*
@@ -1597,38 +1597,46 @@ static int selectColumnsFromExprList(
 ** 列表来自于selectColumnNamesFromExprList()。列表只有名字,没有类型或排序。这个事务遍历并添加类型和排序。
 **
 ** This routine requires that all identifiers in the SELECT
+
 ** statement be resolved.
 ** 这个程序要求，在SELECT语句中的所有标识符得到解决。
+/*在select指令的基础上添加一个类型和校对信息的列表。
+	** 
+	** 这个列表假设来自selectColumnNamesFromExprList（）。这个列有唯一的列名，类型和排序规则不唯一。
+	** 这个程序通过和添加类型和排序规则。
+	** 
+	** 这个程序要求select指令中所有标示符都是确定的。
 */
 static void selectAddColumnTypeAndCollation(
 	Parse *pParse,        /* Parsing contexts 解析上下文*/
-	int nCol,             /* Number of columns 列数*/
+	int nCol,             /* Number of columns 列数*/ 
 	Column *aCol,         /* List of columns 列表*/
-	Select *pSelect       /* SELECT used to determine types and collations      SELECT用于确定类型和排序*/
+	Select *pSelect       /* SELECT used to determine types and collations      SELECT用于确定类型和排序*//*用来确定类型和排序规则的select结构体*/
 	){
-	sqlite3 *db = pParse->db;
-	NameContext sNC;
-	Column *pCol;
-	CollSeq *pColl;
+	sqlite3 *db = pParse->db;/*声明一个数据库连接*/
+	NameContext sNC;/*声明一个命名上下文结构体（决定表或者列的名字）*/
+	Column *pCol;;/*声明一个列表*/
+	CollSeq *pColl;/*声明一个排序队列*/
 	int i;
-	Expr *p;
-	struct ExprList_item *a;
+	Expr *p;/*声明一个表达式变量*/
+	struct ExprList_item *a;/*声明一个表达式列表项变量*/
 
-	assert(pSelect != 0);
-	assert((pSelect->selFlags & SF_Resolved) != 0);
-	assert(nCol == pSelect->pEList->nExpr || db->mallocFailed);
-	if (db->mallocFailed) return;
-	memset(&sNC, 0, sizeof(sNC));
-	sNC.pSrcList = pSelect->pSrc;
+	assert(pSelect != 0);/*插入断点，测试用来确定类型和排序规则的select结构体是否为空*/
+	assert((pSelect->selFlags & SF_Resolved) != 0);/*插入断点，如果select结构体中的selFlags为SF_Resolved*/
+	assert(nCol == pSelect->pEList->nExpr || db->mallocFailed);/*插入断点，判断列数是否等于表达式个数或者数据库连接是否分配内存失败*/
+	if (db->mallocFailed) return;/*数据库连接是否分配内存失败*/
+	memset(&sNC, 0, sizeof(sNC));/*将sNC中前sizeof(sNC)个字节用0替换*/
+	sNC.pSrcList = pSelect->pSrc;/*将SELECT结构体的列表赋值给命名结构体的列表/
 	a = pSelect->pEList->a;
-	for (i = 0, pCol = aCol; i < nCol; i++, pCol++){
-		p = a[i].pExpr;
-		pCol->zType = sqlite3DbStrDup(db, columnType(&sNC, p, 0, 0, 0));
-		pCol->affinity = sqlite3ExprAffinity(p);
-		if (pCol->affinity == 0) pCol->affinity = SQLITE_AFF_NONE;
-		pColl = sqlite3ExprCollSeq(pParse, p);
-		if (pColl){
-			pCol->zColl = sqlite3DbStrDup(db, pColl->zName);
+	
+	for (i = 0, pCol = aCol; i < nCol; i++, pCol++){/*遍历列*/
+		p = a[i].pExpr;/*令p等于列中表达式*/
+		pCol->zType = sqlite3DbStrDup(db, columnType(&sNC, p, 0, 0, 0));/*将命名上下文中的表达式的类型赋值给zType*/
+		pCol->affinity = sqlite3ExprAffinity(p);/*将命名上下文中的表达式的类型进行亲和性处理给affinity*/
+		if (pCol->affinity == 0) pCol->affinity = SQLITE_AFF_NONE;/*如果列表的亲和性处理值为0或SQLITE_AFF_NONE（没有）*/
+		pColl = sqlite3ExprCollSeq(pParse, p);/*那么根据分析语法树和列表达式生成一个排序队列*/
+		if (pColl){/*如果存在排序队列*/
+			pCol->zColl = sqlite3DbStrDup(db, pColl->zName);/*根据数据库连接和排序队列的列名生成一个排序队列*/
 		}
 	}
 }
@@ -1636,39 +1644,43 @@ static void selectAddColumnTypeAndCollation(
 /*
 ** Given a SELECT statement, generate a Table structure that describes
 ** the result set of that SELECT.
+
 **给定一个SELECT语句,生成一个表结构,来描述那个SELECT的结果集
+  给一个SELECT指令，生成一个描述SELECT结果集的表结构 
 */
 Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
-	Table *pTab;
-	sqlite3 *db = pParse->db;
+	Table *pTab;/*声明一个Table结构体*/
+	sqlite3 *db = pParse->db;/*声明一个数据库连接*/
 	int savedFlags;
 
-	savedFlags = db->flags;
-	db->flags &= ~SQLITE_FullColNames;
-	db->flags |= SQLITE_ShortColNames;
-	sqlite3SelectPrep(pParse, pSelect, 0);
-	if (pParse->nErr) return 0;
-	while (pSelect->pPrior) pSelect = pSelect->pPrior;
-	db->flags = savedFlags;
-	pTab = sqlite3DbMallocZero(db, sizeof(Table));
-	if (pTab == 0){
-		return 0;
+	savedFlags = db->flags; /*保存数据库连接标记*/
+	db->flags &= ~SQLITE_FullColNames;/*位与SQLite中列名的全称*/
+	db->flags |= SQLITE_ShortColNames; /*或与SQLite中列名的简称*/
+	sqlite3SelectPrep(pParse, pSelect, 0);/*根据语法分析树和SELECT结构体建立一个SELECT指令*/
+	if (pParse->nErr) return 0;/*如果语法分析树含有错误，直接返回0*/
+	while (pSelect->pPrior) pSelect = pSelect->pPrior;/*遍历SELECT结构体中优先查找*/
+	db->flags = savedFlags;/*将数据库连接标记放到数据库连接的flags属性中*/
+	pTab = sqlite3DbMallocZero(db, sizeof(Table));/*分配并清空内存，分配大小为表Table的大小的内存*/
+	if (pTab == 0){ /*如果表为空*/
+		return 0;/*直接返回0*/
 	}
 	/* The sqlite3ResultSetOfSelect() is only used n contexts where lookaside
 	** is disabled
 	**sqlite3ResultSetOfSelect()在lookaside禁用的地方只使用n个上下文*/
-	assert(db->lookaside.bEnabled == 0);
-	pTab->nRef = 1;
-	pTab->zName = 0;
-	pTab->nRowEst = 1000000;
+	/*函数只能用在n个上下文，不能只用在一个后备（lookaside）上下文中*/
+	assert(db->lookaside.bEnabled == 0); /*插入断点，判断后备（lookaside）上下文是否可用*/
+	pTab->nRef = 1;/*令表中指针的数量为1*/
+	pTab->zName = 0;/*表的名字为0*/
+	pTab->nRowEst = 1000000;/*估计表和行数*/
 	selectColumnsFromExprList(pParse, pSelect->pEList, &pTab->nCol, &pTab->aCol);
-	selectAddColumnTypeAndCollation(pParse, pTab->nCol, pTab->aCol, pSelect);
-	pTab->iPKey = -1;
-	if (db->mallocFailed){
-		sqlite3DeleteTable(db, pTab);
-		return 0;
+	 /*根据语法分析树，SELECT结构体中表达式列表，表的列数和列表查找列*/
+	selectAddColumnTypeAndCollation(pParse, pTab->nCol, pTab->aCol, pSelect);/*添加列的类型和校对信息*/
+	pTab->iPKey = -1;/*令表的主键为-1*/
+	if (db->mallocFailed){/*如果分配内存失败*/
+		sqlite3DeleteTable(db, pTab); /*删除这个表*/
+		return 0;/*返回0*/
 	}
-	return pTab;
+	return pTab;/*返回描述SELECT结果集的表结构*/
 }
 
 /*
@@ -1677,17 +1689,20 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 ** 从给定的解析器获得一个VDBE，在必要的情况下创建一个新的VDBE。
 ** 如果发生错误，返回NULL并且在pParse里留下信息。
 */
+/*得到一个虚拟数据库引擎处理给的上下文语法解析器，如果需要创建一个新的。
+ 如果发生错误，返回空值并在分析语法树中留一个报错信息*/
 Vdbe *sqlite3GetVdbe(Parse *pParse){
-	Vdbe *v = pParse->pVdbe;
-	if (v == 0){
+	Vdbe *v = pParse->pVdbe;/*声明一个虚拟数据库引擎*/
+	if (v == 0){/*如果虚拟数据库引擎为空*/
 		v = pParse->pVdbe = sqlite3VdbeCreate(pParse->db);
+		/*那么使用当前的VDBE根据语法分析树创建一个虚拟数据库引擎，并赋值给语法分析树中的pVdbe和局部变量v*/
 #ifndef SQLITE_OMIT_TRACE
-		if (v){
-			sqlite3VdbeAddOp0(v, OP_Trace);
+		if (v){/*如果虚拟数据库引擎不为空*/
+			sqlite3VdbeAddOp0(v, OP_Trace);/*添加OP_Trace指令到VDBE，并返回这个指令的地址*/
 		}
 #endif
 	}
-	return v;
+	return v;/*返回创建成功的VDBE*/
 }
 
 
@@ -1718,13 +1733,22 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 ** 调用这个程序之前iLimit和iOffset应该是预设到适当的默认值(通常但不总是-1)。
 ** 只有nLimit>=0或者nOffset>0限制寄存器重新定义。
 ** UNION ALL操作符使用这个属性通过多个SELECT语句来迫使相同的限制和偏移暂存器的重用。
+/*
+	** 基于SELECT中Limit和Offset表达式计算limit和offset的域。pLimit和pOffset出现在原始的SQL语句的LIMIT和OFFSET关键字后。
+	** 如果这些关键字是空，那就忽略。iLimit和iOffset整数寄存器编号用来计算limit和offset。如果没有limit和（或）offset，
+	** iLimit和iOffset为负数。
+	**
+	** 如果iLimit和iOffset被pLimit和pOffset定义，那么这个程序能改变iLimit和iOffset的值。iLimit和iOffset应该被预先定义一个值
+	** （应该但不总是为-1）优先使用这个程序。如果只是pLimit!=0或pOffset!=0，那么iLimit寄存器需被重新定义。
+	** 在多重查询中UNION ALL操作符使用一种性质，强制重新使用limit和offset的相同的寄存器。
+	*/
 */
 static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
-	Vdbe *v = 0;
-	int iLimit = 0;
-	int iOffset;
+	Vdbe *v = 0;/*初始化vdbe变量*/
+	int iLimit = 0;/*初始化iLimit*/
+	int iOffset;/*声明iOffset*/
 	int addr1, n;
-	if (p->iLimit) return;
+	if (p->iLimit) return;/*如果SELECT结构体中含有limit偏移量直接返回*/
 
 	/*
 	** "LIMIT -1" always shows all rows.  There is some
@@ -1732,43 +1756,47 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 	** The current implementation interprets "LIMIT 0" to mean
 	** no rows.
 	** "LIMIT -1" 总是显示所有行。在这里什么是正确的行为还有一些争议。当前实现解释"LIMIT 0"意味着没有行。
-	*/
-	sqlite3ExprCacheClear(pParse);
-	assert(p->pOffset == 0 || p->pLimit != 0);
-	if (p->pLimit){
-		p->iLimit = iLimit = ++pParse->nMem;
-		v = sqlite3GetVdbe(pParse);
-		if (NEVER(v == 0)) return;  /* VDBE should have already been allocated VDBE应该已经分配*/
-		if (sqlite3ExprIsInteger(p->pLimit, &n)){
-			sqlite3VdbeAddOp2(v, OP_Integer, n, iLimit);
-			VdbeComment((v, "LIMIT counter"));
-			if (n == 0){
-				sqlite3VdbeAddOp2(v, OP_Goto, 0, iBreak);
+
+	LIMIT -1"总是出现在所有行中。这是正确的行为的相反情况。
+	  ** 当前应用解析"LIMIT 0"为空行。	*/
+	sqlite3ExprCacheClear(pParse);/*清除缓存中的语法解析树*/
+	assert(p->pOffset == 0 || p->pLimit != 0);/*插入断点，判断偏移量是否为0，返回行不为0*/
+	if (p->pLimit){/*如果返回行存在*/
+		p->iLimit = iLimit = ++pParse->nMem;/*返回值为语法解析树中的占内存的行数（没找到nMem,估计是多少个Memory，此处默认为全部返回）*/
+		v = sqlite3GetVdbe(pParse);/*根据语法解析树生成一个虚拟数据库引擎*/
+		if (NEVER(v == 0)) return;  /* VDBE should have already been allocated VDBE应该已经分配*//*vdbe应该已经被分配*/
+		if (sqlite3ExprIsInteger(p->pLimit, &n)){/*判断这个limit是否大于32，如果小于把n置为1，否则置0*/
+			sqlite3VdbeAddOp2(v, OP_Integer, n, iLimit);/*将OP_Integer操作交给vdbe，然后返回这个操作的地址*/
+			VdbeComment((v, "LIMIT counter"));/*在vdbe中存入"LIMIT counter"字符串，对应上句的地址*/
+			if (n == 0){/*如果n为0*/
+				sqlite3VdbeAddOp2(v, OP_Goto, 0, iBreak);/*将OP_Integer操作交给vdbe，然后不返回地址（iBreak设定）*/
 			}
 			else{
 				if (p->nSelectRow > (double)n) p->nSelectRow = (double)n;
+		/*如果SELECT结构体中的行数（nSelectRow）大于n，直接设置nSelectRow为n*/
 			}
 		}
 		else{
-			sqlite3ExprCode(pParse, p->pLimit, iLimit);
-			sqlite3VdbeAddOp1(v, OP_MustBeInt, iLimit);
-			VdbeComment((v, "LIMIT counter"));
-			sqlite3VdbeAddOp2(v, OP_IfZero, iLimit, iBreak);
+			sqlite3ExprCode(pParse, p->pLimit, iLimit);/*存放pLimit表达式和iLimit的值*/
+			sqlite3VdbeAddOp1(v, OP_MustBeInt, iLimit);/*将OP_Integer操作交给vdbe，然后返回这个操作的地址*/
+			VdbeComment((v, "LIMIT counter"));/*在vdbe中存入"LIMIT counter"字符串，对应上句的地址*/
+			sqlite3VdbeAddOp2(v, OP_IfZero, iLimit, iBreak);/*将OP_Integer操作交给vdbe，然后不返回地址（iBreak设定）*/
 		}
-		if (p->pOffset){
+		if (p->pOffset){/*如果结构体中偏移量*/
 			p->iOffset = iOffset = ++pParse->nMem;
+		/*返回值为语法解析树中的占内存的行数（没找到nMem,估计是多少个Memory，此处默认可以偏移到最大值）*/
 			pParse->nMem++;   /* Allocate an extra register for limit+offset 分配一个额外的寄存器给limit+offset*/
-			sqlite3ExprCode(pParse, p->pOffset, iOffset);
-			sqlite3VdbeAddOp1(v, OP_MustBeInt, iOffset);
-			VdbeComment((v, "OFFSET counter"));
-			addr1 = sqlite3VdbeAddOp1(v, OP_IfPos, iOffset);
-			sqlite3VdbeAddOp2(v, OP_Integer, 0, iOffset);
-			sqlite3VdbeJumpHere(v, addr1);
-			sqlite3VdbeAddOp3(v, OP_Add, iLimit, iOffset, iOffset + 1);
-			VdbeComment((v, "LIMIT+OFFSET"));
-			addr1 = sqlite3VdbeAddOp1(v, OP_IfPos, iLimit);
-			sqlite3VdbeAddOp2(v, OP_Integer, -1, iOffset + 1);
-			sqlite3VdbeJumpHere(v, addr1);
+			sqlite3ExprCode(pParse, p->pOffset, iOffset);/*存放pOffset表达式和iOffset的值*/
+			sqlite3VdbeAddOp1(v, OP_MustBeInt, iOffset);/*将OP_MustBeInt操作交给vdbe，然后返回这个操作的地址*/
+			VdbeComment((v, "OFFSET counter"));/*在vdbe中存入"OFFSET counter"字符串，对应上句的地址*/
+			addr1 = sqlite3VdbeAddOp1(v, OP_IfPos, iOffset);/*将OP_IfPos操作交给vdbe，然后返回这个操作的地址并赋值给addr1*/
+			sqlite3VdbeAddOp2(v, OP_Integer, 0, iOffset);/*将OP_Integer操作交给vdbe，然后返回这个操作的地址*/
+			sqlite3VdbeJumpHere(v, addr1);/*运行地址跳到addr1*/
+			sqlite3VdbeAddOp3(v, OP_Add, iLimit, iOffset, iOffset + 1);/*将OP_Add操作交给vdbe，然后返回这个操作的地址*/
+			VdbeComment((v, "LIMIT+OFFSET"));/*在vdbe中存入"LIMIT+OFFSET"字符串，对应上句的地址*/
+			addr1 = sqlite3VdbeAddOp1(v, OP_IfPos, iLimit);/*将OP_IfPos操作交给vdbe，然后返回这个操作的地址并赋值给addr1*/
+			sqlite3VdbeAddOp2(v, OP_Integer, -1, iOffset + 1);/*将OP_Integer操作交给vdbe，然后返回这个操作的地址*/
+			sqlite3VdbeJumpHere(v, addr1);/*运行地址跳到addr1*/
 		}
 	}
 }
