@@ -3449,9 +3449,12 @@ trans_begun:
 ** map entries for the overflow pages as well.
 ** 对页pPage的所有孩子节点设置指针映射条目。如果pPage包含指向溢出页的指针的单元，也对溢出页设置指针映射条目。
 */
+/*
+【潘光珍】设置指针位图为pPage所有孩子页。同时，如果pPage包含指向溢出页的单元，设置溢出页的指针位图。
+*/
 static int setChildPtrmaps(MemPage *pPage){
   int i;                             /* Counter variable */    //计数器变量
-  int nCell;                         /* Number of cells in page pPage */  //在页pPage中的单元的数量
+  int nCell;                         /* Number of cells in page pPage */  //在页pPage中的单元的数量  /* 【潘光珍】本页的单元数*/
   int rc;                            /* Return code */    //返回值变量
   BtShared *pBt = pPage->pBt;
   u8 isInitOrig = pPage->isInit;
@@ -3499,6 +3502,12 @@ set_child_ptrmaps_out:
 ** PTRMAP_OVERFLOW2: pPage is an overflow-page. The pointer points at the next
 **                   overflow page in the list.
 */                   //指针指向列表中的下一个溢出页面
+/*
+【潘光珍】**从pPage指向iFrom页。修改该指针使其指向ITO。参数eType描述要修改指针的类型，如下：
+** PTRMAP_BTREE: pPage是b树页，这个指针指向子页的pPage。
+** PTRMAP_OVERFLOW1:pPage是b树页。指针指向一个溢出页指着由一个在pPage的单元格。
+** PTRMAP_OVERFLOW2:pPage是溢出页。该指针指向列表中的下一个溢出页。
+*/
 static int modifyPagePointer(MemPage *pPage, Pgno iFrom, Pgno iTo, u8 eType){
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
@@ -3558,11 +3567,16 @@ static int modifyPagePointer(MemPage *pPage, Pgno iFrom, Pgno iTo, u8 eType){
 ** page.
 ** isCommit标志表示在数据库页pDbPage->pgno可能被写之前日志需要sync()同步没有必要记录。调用者不去写那个页。
 */
+/*
+【潘光珍】**将打开的数据库页pDbPage数据库中的位置iFreePage。pDbPage仍然有效的参考。
+**isCommit标志表示不需要记住日志而需要sync() ED在数据库页面pDbPage->pgno 
+可以写。调用者已经答应不写该页面。
+*/
 static int relocatePage(
   BtShared *pBt,           /* Btree */               //B树
   MemPage *pDbPage,        /* Open page to move */   //要移动的开放性页
-  u8 eType,                /* Pointer map 'type' entry for pDbPage */    //pDbPage指针映射类型条目
-  Pgno iPtrPage,           /* Pointer map 'page-no' entry for pDbPage */ //pDbPage指针映射'page-no'条目
+  u8 eType,                /* Pointer map 'type' entry for pDbPage */    //pDbPage指针映射类型条目 /*【潘光珍】pDbPage指针位图'type'*/
+  Pgno iPtrPage,           /* Pointer map 'page-no' entry for pDbPage */ //pDbPage指针映射'page-no'条目//【潘光珍】pDbPage指针位图'page-no'
   Pgno iFreePage,          /* The location to move pDbPage to */         //移动pDbPage到的位置
   int isCommit             /* isCommit flag passed to sqlite3PagerMovepage */  //传递给sqlite3PagerMovepage的isCommit标志
 ){
@@ -3578,7 +3592,7 @@ static int relocatePage(
 
   /* Move page iDbPage from its current location to page number iFreePage */ //从当前位置移动页面iDbPage到页码iFreePage
   TRACE(("AUTOVACUUM: Moving %d to free page %d (ptr page %d type %d)\n", 
-      iDbPage, iFreePage, iPtrPage, eType));
+      iDbPage, iFreePage, iPtrPage, eType));//【潘光珍】iDbPage从当前位置移动到iFreePage页数上
   rc = sqlite3PagerMovepage(pPager, pDbPage->pDbPage, iFreePage, isCommit);
   if( rc!=SQLITE_OK ){
     return rc;
@@ -3593,6 +3607,10 @@ static int relocatePage(
   ** pointer to a subsequent overflow page. If this is the case, then
   ** the pointer map needs to be updated for the subsequent overflow page.
   ** 如果pDbPage是一个溢出页,那么第一个4字节存储一个指向后续溢出页的指针。如果是这种情况,那么指针映射需要随后继溢出页面更新。
+  */
+  /*
+  【潘光珍】**如果pDbPage是B树页，那么它可能有子页面和/或单元格指向溢出页。所有这些页的指针位图需要更改。
+  **如果pDbPage是溢出页，然后第一个4字节可以存储一个指向随后溢出页。如果是这样的情况，则该指针位图需要为随后的溢出页进行更新。
   */
   if( eType==PTRMAP_BTREE || eType==PTRMAP_ROOTPAGE ){
     rc = setChildPtrmaps(pDbPage);
@@ -3613,6 +3631,9 @@ static int relocatePage(
   ** that it points at iFreePage. Also fix the pointer map entry for
   ** iPtrPage.
   ** 固定数据库指针到页iPtrPage上，该页指向iDbPage,以便它指向iFreePage。同时对于iPtrPage，固定指针映射条目。
+  */
+   /*
+ 【潘光珍】 修改数据库指针iPtrPage页指向iDbPage使它指向iFreePage。并且还将修改iPtrPage指针位图。
   */
   if( eType!=PTRMAP_ROOTPAGE ){
     rc = btreeGetPage(pBt, iPtrPage, &pPtrPage, 0);
@@ -3657,6 +3678,12 @@ static int allocateBtreePage(BtShared *, MemPage **, Pgno *, Pgno, u8);
 ** 在进程完成之后将被包含。如果nFin是零,它假定incrVacuumStep()将被调用有限次，freelist可能会或可能不会空。
 ** 一个完整的autovacuum有nFin>0。一个"PRAGMA incremental_vacuum"有nFin==0。
 */
+/*
+【潘光珍】**单独执行一个渐进的incremental-vacuum。如果成功，返回SQLITE_OK。如果没有工作要做（因此再次调用这个函数没有点），返回SQLITE_DONE。
+**更具体地说，这个函数试图重新组织数据库，最后一页的文件正在使用不再使用。
+**如果nFin参数不为零，这个函数假定调用者会一直调用incrVacuumStep()直到返回SQLITE_DONE或错误，并且nFin是网页数据库文件将包含在这个过程中的数量是完整的。如果nFin是零，它是假定incrVacuumStep()
+将被称为一个有限的时间，可能会或可能不会空自由列表。
+*/
 static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执行一个单独的incremental-vacuum步骤。
   Pgno nFreeList;           /* Number of pages still on the free-list */  //仍在空闲列表的页面数
   int rc;
@@ -3690,14 +3717,18 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
 		** 删除文件空闲列表的页面。如果nFin是非零的则这不是必需的。在这种情况下,空闲列表在这个函数返回后截断为零,
 		** 所以如果它还包含了一些垃圾条目也没有问题。
         */
+		   /*
+		  从“文件”空闲列表中删除该页。如果nFin是非零。在这种情况下，此函数返回后，空闲列表将被截断为零，
+		  因此，如果它仍然包含一些没有用的信息，是没有关系的。
+		  */
         Pgno iFreePg;
         MemPage *pFreePg;
         rc = allocateBtreePage(pBt, &pFreePg, &iFreePg, iLastPg, 1);
         if( rc!=SQLITE_OK ){
-          return rc;
+          return rc;//返回allocateBtreePage()函数
         }
         assert( iFreePg==iLastPg );
-        releasePage(pFreePg);
+        releasePage(pFreePg);//调用释放页的函数
       }
     } else {
       Pgno iFreePg;             /* Index of free page to move pLastPg to */  //移动pLastPg所要到的空闲页的索引
@@ -3705,8 +3736,9 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
 
       rc = btreeGetPage(pBt, iLastPg, &pLastPg, 0);
       if( rc!=SQLITE_OK ){
-        return rc;
+        return rc;//返回btreeGetPage()函数
       }
+/*以上是潘光珍做的*/ 
 
       /* If nFin is zero, this loop runs exactly once and page pLastPg
       ** is swapped with the first free page pulled off the free list.
