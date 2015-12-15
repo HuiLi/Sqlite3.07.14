@@ -12,16 +12,24 @@
 ** This file implements a external (disk-based) database using BTrees.
 ** See the header comment on "btreeInt.h" for additional information.
 ** Including a description of file format and an overview of operation.
-** 这个文件使用B树结构来实现外部(基于磁盘)数据库。在“btreeInt.h”文件中查看声明的附加信息。
+** 这个文件使用来实现外部(基于磁盘)数据库。在“btreeInt.h”文件中查看声明的附加信息。
 ** 包括文件格式描述和操作概述。
 */
-
+/*
+【潘光珍】
+这个文件使用来实现外部(基于磁盘)数据库在"btreeInt.h"文件里附加一些需要调用的方法。 
+包括文件格式的描述和操作的概述。
+*/
 #include "btreeInt.h"
 
 /*
 ** The header string that appears at the beginning of every
 ** SQLite database.
 ** "btreeInt.h"这个头文件在所有的SQLite数据库的开头中都会出现。
+*/
+/*
+【潘光珍】定义一个常字符串，然后将"btreeInt.h"里的定义的一个SQLite头文件的值赋给这个常字符串
+
 */
 static const char zMagicHeader[] = SQLITE_FILE_HEADER;
 
@@ -30,8 +38,12 @@ static const char zMagicHeader[] = SQLITE_FILE_HEADER;
 ** macro.
 ** 设置全局变量，值为1可以用宏TRACE跟踪
 */
+/*
+【潘光珍】这是一个宏指令，它将全局变量设置为1，如果是0，就定义一个整形的追踪树，
+并赋值为1；然后定义一个追踪函数，如果sqlite3BtreeTrace为真，就进行追踪。否则一开始就为真的话，就进行追踪。
+*/
 #if 0
-int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示可以追踪 */
+int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示可以追踪 *///【潘光珍】如果是true，则追踪
 # define TRACE(X)  if(sqlite3BtreeTrace){printf X;fflush(stdout);}
 #else
 # define TRACE(X)
@@ -47,10 +59,15 @@ int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示�
 ** This routine makes the necessary adjustment to 65536.
 */
 /*
-** 从无符号字节数组中取出一个2字节的大端整数。但是，如果该值为零，使它等于65536。
-** 此程序用来从B树页面的标题中提取“偏移单元格的内容区”的值。
-** 如果页面大小是65536和页是空的，偏移应该是65536，但2个字节的值存储为零。
-** 这个程序进行必要的调整，调整到65536。
+**从无符号字节数组中取出一个2字节的大端整数。但是，如果该值为零，使它等于65536。
+此程序用来从B树页面的标题中提取“偏移单元格的内容区”的值。
+如果页面大小是65536和页是空的，偏移应该是65536，但2个字节的值存储为零。
+这个程序进行必要的调整，调整到65536。
+*/
+/*
+【潘光珍】**从一个无符号字节数组中提取保存cell的地址的大端整数，但如果这个值为0，就将它赋值为65536。
+这个程序通常用来从一个btree页的头部(首部)中提取“偏移格cell内容区域”。如果页的大小为65536和页
+的大小为空，偏移的大小应该为65536，但是保存cell的地址的值存储为0。这个程序进行必要调整到65536。
 */
 
 #define get2byteNotZero(X)  (((((int)get2byte(X))-1)&0xffff)+1)
@@ -67,6 +84,10 @@ int sqlite3BtreeTrace=1;  /* True to enable tracing *//* 逻辑值为真表示�
 /*
 一系列BtShared对象有权限访问共享缓存。这个变量在创建时有一个文件作用域，但测试工具需要访问它，
 所以为了测试我们把它变为全局变量。访问这个由SQLITE_MUTEX_STATIC_MASTER保护的变量。
+*/
+/*
+【潘光珍】** btree结构中最主要包含一个BtShared结构，该结构有权限访问共享缓存，这个变量构建时有一个文件作用域，
+但是测试工具需要访问这个变量，因此我们为了测试就把这个变量变成全局变量。访问这个变量时，会受SQLITE_MUTEX_STATIC_MASTER保护
 */
 #ifdef SQLITE_TEST
 BtShared *SQLITE_WSD sqlite3SharedCacheList = 0;
@@ -86,6 +107,11 @@ static BtShared *SQLITE_WSD sqlite3SharedCacheList = 0;
 /*
 启用或禁用共享的页和模式的特点。这个程序对现有的数据库连接没有影响。
 共享缓存设置仅影响将来调用sqlite3_open（），sqlite3_open16（），或sqlite3_open_v2（）。
+*/
+/*
+【潘光珍】**启动或禁止共享页和模式特征，这个程序没有影响到现存的数据库的连接，
+共享缓存设置只影响未来的调用sqlite3_open(), sqlite3_open16(), or sqlite3_open_v2()
+
 */
 int sqlite3_enable_shared_cache(int enable){
   sqlite3GlobalConfig.sharedCacheEnabled = enable;
@@ -110,6 +136,13 @@ int sqlite3_enable_shared_cache(int enable){
 操纵链表BtShared.pLock中的记录，这个链表存储共享缓存表级锁。如果库在共享缓存功能禁用的情况下编译，
 那么每个BtShared结构就永远只能有一个用户，因此该锁定是没有必要的。
 所以定义锁相关的功能为空操作。
+*/
+  /*
+【潘光珍】分别定义了函数querySharedCacheTableLock（）：链表存储共享缓存表级锁，
+setSharedCacheTableLock（）：设置共享缓存表锁，
+clearAllSharedCacheTableLocks（）：清空所有共享缓存表锁。
+通过操纵链表BtShared.pLock中的记录，这个链表存储共享缓存表级锁。如果库在共享缓存功能禁用的情况下编译，
+那么每个BtShared结构就永远只能有一个用户，因此该锁定是没有必要的。所以定义锁相关的功能为空操作。
 */
   #define querySharedCacheTableLock(a,b,c) SQLITE_OK  //查询共享缓存表锁
   #define setSharedCacheTableLock(a,b,c) SQLITE_OK    //设置共享缓存表锁
@@ -153,11 +186,21 @@ assert（hasSharedCacheTableLock（pBtree，iRoot，0，WRITE_LOCK））;
 数据库架构。主调可能持有架构表中的一个写锁，而不是根植在页面iRoot上的表或者索引上的锁。
 这也是可以接受的。
 */
+/*
+【潘光珍】这个函数仅仅是作为一个assert()语句的一部分。检查pBtree拥有所需的锁读或写iRoot与根表页面。
+如果是真的则返回1，否则返回0。
+例如,当写入表根页iRoot通过Btree连接pBtree:
+assert(hasSharedCacheTableLock(WRITE_LOCK pBtree iRoot 0));
+当编写一个索引,驻留在共享数据库,调用者应该首先获得一个锁指定相应的根页表。
+这使得事情更加复杂,因为这个模块对每个表作为一个单独的结构。
+确定写入表的索引,这个函数搜索数据库模式。而不是根植在页面iRoot上的表或者索引上的锁,调用者
+在进行一个写锁模式表(根1页)。这也是可以接受的。
+*/
 static int hasSharedCacheTableLock(
-  Btree *pBtree,         /* Handle that must hold lock *这个句柄要持有锁*/
-  Pgno iRoot,            /* Root page of b-tree  *B—树的根页*/
-  int isIndex,           /* True if iRoot is the root of an index b-tree *如果iRoot是Brtee索引的根页则为true*/
-  int eLockType          /* Required lock type (READ_LOCK or WRITE_LOCK) 需要锁类型*/
+  Btree *pBtree,         /* Handle that must hold lock *这个句柄要持有锁*/ /*【潘光珍】b树页必须持有锁*/
+  Pgno iRoot,            /* Root page of b-tree  *B—树的根页*/   /*【潘光珍】此Btree的根页页号*/
+  int isIndex,           /* True if iRoot is the root of an index b-tree *如果iRoot是Brtee索引的根页则为true*/ /*【潘光珍】索引B树的根页*/
+  int eLockType          /* Required lock type (READ_LOCK or WRITE_LOCK) 需要锁类型*/  /*【潘光珍】需要锁类型（读锁或是写锁）*/
 ){
   Schema *pSchema = (Schema *)pBtree->pBt->pSchema;
   Pgno iTab = 0;
@@ -171,6 +214,10 @@ static int hasSharedCacheTableLock(
   如果该数据库是非共享的，或者如果客户端正在读并且具有读未提交的标志设置，则不需要锁。
   立即返回true。
   */
+   /*
+  如果这个数据库不是可共享的,或者客户端在读,读未提交的标记设置,然后不需要锁。立即返回true。
+  */
+  
   if( (pBtree->sharable==0)
    || (eLockType==READ_LOCK && (pBtree->db->flags & SQLITE_ReadUncommitted))
   ){
@@ -185,8 +232,12 @@ static int hasSharedCacheTableLock(
   /*如果用户正在读取或写入索引的时候(isIndex)，模式没有加载(!pSchema)，
   此时去判断pBtree是否持有正确的锁非常困难((pSchema->flags&DB_SchemaLoaded)==0)。
   所以，不要困惑，仅仅返回true。  幸好，此情况出现的很少。*/
+  /*
+【潘光珍】如果客户端是读和写一个索引模式并不是加载,那么它实际上是很难检查正确的锁。因此不要担心,返回true就行。
+这种情况并不经常出现。
+  */
   if( isIndex && (!pSchema || (pSchema->flags&DB_SchemaLoaded)==0) ){
-    return 1;
+    return 1; //返回真
   }
 
   /* Figure out the root-page that the lock should be held on. For table
@@ -197,6 +248,9 @@ static int hasSharedCacheTableLock(
   /*
   ** 计算出应该持有锁的根页，对表B树（表是B+-tree），这只是正在被读或者写的B树的根页。
   ** 对于索引B树，它是相对应表的根页。
+  */
+  /*
+   【潘光珍】找出根页应该持有的锁。对于表b树,这只是b树的根页被读或写。索引b树,它的根页相关表。
   */
   if( isIndex ){
     HashElem *p;
@@ -216,6 +270,11 @@ static int hasSharedCacheTableLock(
   /*搜索所需的锁(pLock)。在根页iTAB上的写锁(pLock->eLock==WRITE_LOCK) ，在架构表上的写锁( pLock->iTable==1)，或（如果客户正在读）ITAB上的读锁
   就足够了(pLock->eLock>=eLockType,eLockType为所需要的锁)。如果上述情况出现就返回1。
   */
+  /*
+  【潘光珍】寻找所需的锁（pLock）。在根页iTab上的写锁(pLock->eLock==WRITE_LOCK) ，
+  在架构表上的写锁( pLock->iTable==1)，或（如果客户正在读）iTab上的读锁
+  就足够了(pLock->eLock>=eLockType,eLockType为所需要的锁)。如果这些发现返回1。
+  */
   for(pLock=pBtree->pBt->pLock; pLock; pLock=pLock->pNext){
     if( pLock->pBtree==pBtree 
      && (pLock->iTable==iTab || (pLock->eLock==WRITE_LOCK && pLock->iTable==1))
@@ -225,7 +284,7 @@ static int hasSharedCacheTableLock(
     }
   }
 
-  /* Failed to find the required lock. 未查询到相应的锁则返回0 */
+  /* Failed to find the required lock. 未查询到相应的锁则返回0 *//*【潘光珍】没有找到所需的锁,则返回0*/
   return 0;
 }
 #endif /* SQLITE_DEBUG */  //调试程序SQLITE_DEBUG 
@@ -258,6 +317,14 @@ static int hasSharedCacheTableLock(
 例如，在写根页上的表或索引之前，应该调用：
 	assert（！hasReadConflicts（pBtree，iRoot））;
 */
+/*
+【潘光珍】可以使用这个函数只assert()语句的一部分。如果是因为其他共享连接同时读取同一个表或索引，
+导致非法的pBtree写进去的表或根iRoot上的索引，如果一些其他的B树对象共享相同的BtShared对象，
+BtShared对象正在读取或写入的iRoot表(p->pgnoRoot==iRoot )，此时pBtree的写入是非法的。
+除外，如果有其他Btree对象读未提交标记集,那么它可以为其他对象有一个读指针，返回true。
+例如,在写根页上的表或索引的一部分根页面iRoot之前，
+应该调用：assert( !hasReadConflicts(pBtree, iRoot) );
+*/
 static int hasReadConflicts(Btree *pBtree, Pgno iRoot){
   BtCursor *p;
   for(p=pBtree->pBt->pCursor; p; p=p->pNext){
@@ -284,7 +351,11 @@ static int hasReadConflicts(Btree *pBtree, Pgno iRoot){
 **查看Btree句柄p是否在具有根页iTab的表上获得了eLock类型（读锁或写锁）的锁。
 ** 如果通过调用setSharedCacheTableLock()获得了锁，返回SQLITE_OK,否则返回SQLITE_LOCKED.
 */
-static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
+/*
+【潘光珍】查询，判断B树句柄p是否能在iTab根页的表上获取eLock类型的锁（读锁或者是写锁）
+如果通过调用 setSharedCacheTableLock（），可以获得锁，返回SQLITE_OK。否则返回SQLITE_LOCKED。
+*/
+static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){//定义一个查询共享缓存表锁的函数
   BtShared *pBt = p->pBt;
   BtLock *pIter;    //pIterB树上的锁指针变量
 
@@ -299,11 +370,14 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
   ** 如果需要一个写锁，那么B树必须有一个开放的写事务。显然，为了达到这种效果
   ** 文件本身必须有一个开放的写事务。
   */
+  /*
+  【潘光珍】如果请求一个写锁,那么Btree必须有一个在这个文件打开写事务。
+  很明显,这是必须有一个开放的写事务文件本身。  */
   assert( eLock==READ_LOCK || (p==pBt->pWriter && p->inTrans==TRANS_WRITE) );
   assert( eLock==READ_LOCK || pBt->inTransaction==TRANS_WRITE );
   
   /* This routine is a no-op if the shared-cache is not enabled */
-  /*如果未启用共享缓存，这个程序则是一个空操作*/
+  /*如果未启用共享缓存，这个程序则是一个空操作*/ /*【潘光珍】如果没有启用共享缓存，这个程序是一个空操作*/
   if( !p->sharable ){    //获得写锁返回SQLITE_OK
     return SQLITE_OK;
   }
@@ -312,6 +386,8 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
   ** requested lock may not be obtained.
   ** 如果一些其他的连接正在持有互斥锁(pBt->btsFlags & BTS_EXCLUSIVE)!=0,那么无法获得所请求的锁。
   */
+  /*
+【潘光珍】如果其他连接持有排它锁,可能不会获得所请求的锁。  */
   if( pBt->pWriter!=p && (pBt->btsFlags & BTS_EXCLUSIVE)!=0 ){
     sqlite3ConnectionBlocked(p->db, pBt->pWriter->db);
     return SQLITE_LOCKED_SHAREDCACHE;
@@ -332,6 +408,13 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
 	** 因为我们知道，如果eLock== WRITE_LOCK，则没有其他连接可能持有这个文件的任何表的WRITE_LOCK
 	**（因为只有一个写进程）。
 	*/
+	  /*
+	【潘光珍】在下面的条件（pIter-> eLock！= eLock）如果（...）   
+    语句是一个简化：        
+    （eLock== WRITE_LOCK|| pIter-> eLock== WRITE_LOCK），
+    因为我们知道，如果eLock== WRITE_LOCK，然后没有其他连接
+	可能持有对这个文件中的任何表的WRITE_LOCK（因为只有一个写进程）。
+    	*/
     assert( pIter->eLock==READ_LOCK || pIter->eLock==WRITE_LOCK );
     assert( eLock==READ_LOCK || pIter->pBtree==p || pIter->eLock==READ_LOCK);
     if( pIter->pBtree!=p && pIter->iTable==iTab && pIter->eLock!=eLock ){
@@ -340,7 +423,7 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
         assert( p==pBt->pWriter );
         pBt->btsFlags |= BTS_PENDING;
       }
-      return SQLITE_LOCKED_SHAREDCACHE;
+      return SQLITE_LOCKED_SHAREDCACHE; //返回共享缓存锁
     }
   }
   return SQLITE_OK;
@@ -378,7 +461,16 @@ static int querySharedCacheTableLock(Btree *p, Pgno iTab, u8 eLock){
 （二）没有其他B树对象持有与所请求的锁相冲突的锁（例如querySharedCacheTableLock（）
 已经被调用并且返回SQLITE_OK）。如果锁成功添加返回SQLITE_OK。如果malloc失败则返回SQLITE_NOMEM。
 */
-static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
+/*
+【潘光珍】通过B树句柄p在根页iTable的表上添加锁到共享B树上。 
+参数eLock必须是READ_LOCK或 WRITE_LOCK。
+这个函数假设如下:
+（a）用来指定B树对象p是连接到一个共享数据库(一个BtShared。设置共享标志)
+（b）没有其他B树对象持有的锁与请求的锁冲突(即querySharedCacheTableLock()
+已经被调用并返回SQLITE_OK)。
+如果锁添加成功则返回SQLITE_OK。如果malloc尝试失败则返回SQLITE_NOMEM。
+*/
+static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){//设置共享缓存表锁的函数
   BtShared *pBt = p->pBt;
   BtLock *pLock = 0;
   BtLock *pIter;
@@ -397,33 +489,43 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   有读未提交标志的连接不会通过该功能获得读锁。在SQLITE_MASTER表中读未提交模式下才能获得只读锁。
   并且在BtreeBeginTrans（）中获得锁。
   */
+  /*
+  【潘光珍】有读未提交标志的永远不会尝试使用这个函数获得读锁。唯一通过连接见sqlite_master表读未提交模式,
+  才获得锁在BtreeBeginTrans()。
+  */
   assert( 0==(p->db->flags&SQLITE_ReadUncommitted) || eLock==WRITE_LOCK );
 
   /* This function should only be called on a sharable b-tree after it 
   ** has been determined that no other b-tree holds a conflicting lock.  
   ** 在没有其他的B树持有一个冲突的锁之后，才能在一个共享的B树上调用这个函数。
   */
-  assert( p->sharable );
+  /*
+ 【潘光珍】在确定没有其他B树持有冲突的锁后，这个函数只能调用一个可分享的B树。
+	  */
+  assert( p->sharable );//指向共享的b树
   assert( SQLITE_OK==querySharedCacheTableLock(p, iTable, eLock) );/*有锁*/
 
   /* First search the list for an existing lock on this table. */
-  /* 首先搜索在表上已存在的锁列表   */
+  /*首先搜索在表上已存在的锁列表   */
+   /*
+  【潘光珍】优先搜索现有的锁在这个表的列表上。
+    */
   for(pIter=pBt->pLock; pIter; pIter=pIter->pNext){
     if( pIter->iTable==iTable && pIter->pBtree==p ){
       pLock = pIter;
       break;
     }
   }
-
-  /* If the above search did not find a BtLock struct associating Btree p
+    /* If the above search did not find a BtLock struct associating Btree p
   ** with table iTable, allocate one and link it into the list.
   */
   /*
   ** 如果上面的搜索没有找到( !pLock)BtLock结构关联的在表iTable上的B树p，那么就分配
   ** 一个( pLock = (BtLock *)sqlite3MallocZero(sizeof(BtLock)); )并把它链接到列表中。
   */
-  if( !pLock ){
-    pLock = (BtLock *)sqlite3MallocZero(sizeof(BtLock));
+  
+  if( !pLock ){ //【潘光珍】如果在表iTable上的B树p没有找到关联的锁
+    pLock = (BtLock *)sqlite3MallocZero(sizeof(BtLock));//【潘光珍】分配锁并把它链接到列表中
     if( !pLock ){
       return SQLITE_NOMEM;
     }
@@ -441,6 +543,10 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
   */
   /*将BtLock.eLock变量设置为当前的锁与所请求的锁的最大 值。这意味着，
   如果已经持有一个写锁  和请求一个读锁，我们正确地降级锁。*/
+   /*
+【潘光珍】设置BtLock.eLock变量为当前的锁与所请求的锁的最大值
+这意味着如果已经持有一个写锁和一个请求读锁，我们适当地降级锁。
+  */
   assert( WRITE_LOCK>READ_LOCK );
   if( eLock>pLock->eLock ){
     pLock->eLock = eLock;
@@ -463,6 +569,10 @@ static int setSharedCacheTableLock(Btree *p, Pgno iTable, u8 eLock){
 释放所有B树对象P所持有的表锁（通过调用setSharedCacheTableLock（）
 方法获得的锁）。此函数假定B树P有一个开放的读或写操作事务。
 如果没有，则BTS_PENDING标志可能被错误地清除。pBt->btsFlags &= ~(BTS_EXCLUSIVE|BTS_PENDING);
+*/
+/*
+【潘光珍】释放所有的表锁(锁的获得是通过调用setSharedCacheTableLock()的过程)Btree对象持有的p。
+此函数假定B树P有一个开放的读或写操作事务。如果没有，那么BTS_PENDING标志可能被不正确地清除。
 */
 static void clearAllSharedCacheTableLocks(Btree *p){
   BtShared *pBt = p->pBt;
@@ -507,6 +617,11 @@ static void clearAllSharedCacheTableLocks(Btree *p){
     /*在B树p结束事务时，该函数被调用。如果有当前存在一个写事务，p不是那个写事务。
     那么连接进程而不是写进程持有的锁的数量大约降至零。在这种情况下，设置BTS_PENDING标志为0。
     如果目前还没有一个写事务，那么BTS_PENDING为零。因此，下一行(pBt->btsFlags &= ~BTS_PENDING;)在这种情况下是没有影响的。*/
+	   /*
+	【潘光珍】在B树p结束事务时，将调用此函数。如果目前存在一个写事务，并且p不是那个写事务。那么连接进程而不是
+	写进程持有的锁的数量大约降至零。在这种情况下，设置BTS_PENDING标志为0。
+	如果目前还没有一个写事务，那么BTS_PENDING必须为零。因此，下一行(pBt->btsFlags &= ~BTS_PENDING;)在这种情况下是没有影响的。
+	*/
     pBt->btsFlags &= ~BTS_PENDING;
   }
 }
@@ -515,6 +630,9 @@ static void clearAllSharedCacheTableLocks(Btree *p){
 ** This function changes all write-locks held by Btree p into read-locks.
 */
 /*这个函数将B树p持有的所有写锁改变为读锁。*/
+/*
+【潘光珍】该函数将B树P持有的所有写锁变为读锁
+*/
 static void downgradeAllSharedCacheTableLocks(Btree *p){
   BtShared *pBt = p->pBt;
   if( pBt->pWriter==p ){
@@ -530,7 +648,7 @@ static void downgradeAllSharedCacheTableLocks(Btree *p){
 
 #endif /* SQLITE_OMIT_SHARED_CACHE */
 
-static void releasePage(MemPage *pPage);  /* Forward reference 向前引用*/
+static void releasePage(MemPage *pPage);  /* Forward reference 向前引用*/ //【潘光珍】释放pPage
 
 /*
 ***** This routine is used inside of assert() only ****
@@ -538,6 +656,9 @@ static void releasePage(MemPage *pPage);  /* Forward reference 向前引用*/
 ** Verify that the cursor holds the mutex on its BtShared
 */
 /*这个程序里面只有assert（），确认游标持有BtShared上的互斥量。*/
+/*
+【潘光珍】这个程序用于内部的assert()仅仅确认游标BtShared持有互斥锁
+*/
 #ifdef SQLITE_DEBUG
 static int cursorHoldsMutex(BtCursor *p){
   return sqlite3_mutex_held(p->pBt->mutex);
@@ -550,12 +671,12 @@ static int cursorHoldsMutex(BtCursor *p){
 ** Invalidate the overflow page-list cache for cursor pCur, if any.
 */
 /*
-** 游标pCur持有的溢出页面（如有）缓存列表无效( pCur->aOverflow = 0)。
+游标pCur持有的溢出页面（如有）缓存列表无效( pCur->aOverflow = 0)。
 */
 static void invalidateOverflowCache(BtCursor *pCur){
   assert( cursorHoldsMutex(pCur) );
   sqlite3_free(pCur->aOverflow);
-  pCur->aOverflow = 0;
+  pCur->aOverflow = 0;  //【潘光珍】游标pCur持有的溢出页面为0
 }
 
 /*
@@ -567,7 +688,7 @@ static void invalidateAllOverflowCache(BtShared *pBt){
   BtCursor *p;
   assert( sqlite3_mutex_held(pBt->mutex));
   for(p=pBt->pCursor; p; p=p->pNext){
-    invalidateOverflowCache(p);
+    invalidateOverflowCache(p); //【潘光珍】调用游标pCur持有的溢出页面（如有）缓存列表无效的方法
   }
 }
 
@@ -590,8 +711,14 @@ static void invalidateAllOverflowCache(BtShared *pBt){
 ** 另外，如果参数isClearTable为假，那么有rowid iRow的行将被代替或删除。
 ** 在这种情况下，在特定行上的开放的这些incrblob游标无效。
 */
+/*
+【潘光珍】这个函数被调用之前修改一个表的内容无效的任何incrblob游标打开行或行被修改。
+如果论点isClearTable是真的,那么的全部内容表将被删除。在这种情况下所有incrblob失效
+游标打开表中的所有行根页pgnoRoot。否则,如果论点isClearTable是假的,那么行
+rowid iRow被替换或删除。在这种情况下无效只有那些incrblob游标打开特定行。
+*/
 static void invalidateIncrblobCursors(        //使开放的行或行中的一个被修改的一个incrblob游标无效
-  Btree *pBtree,          /* The database file to check */         //检查数据库文件
+  Btree *pBtree,          /* The database file to check */         //检查数据库文件 
   i64 iRow,               /* The rowid that might be changing */   //rowid可能发生改变
   int isClearTable        /* True if all rows are being deleted */ //如果所有的行都被删除返回真
 ){
@@ -606,7 +733,7 @@ static void invalidateIncrblobCursors(        //使开放的行或行中的一�
 }
 
 #else
-  /* Stub functions when INCRBLOB is omitted 当INCRBLOB被忽略时，清除函数*/
+  /* Stub functions when INCRBLOB is omitted 当INCRBLOB被忽略时，清除函数*/ /*【潘光珍】当INCRBLOB被省略时，存根函数*/
   #define invalidateOverflowCache(x)
   #define invalidateAllOverflowCache(x)
   #define invalidateIncrblobCursors(x,y,z)
@@ -666,6 +793,23 @@ static void invalidateIncrblobCursors(        //使开放的行或行中的一�
 ** 相应的位将在位向量中设置。每当一个叶节点页从空列表中提取，如果相应的位已经在
 ** BtShared.pHasContent中设置，则以上两种优化将被忽略。在每一事务结束该时，位向量的内容将被清除。
 */
+/*
+【潘光珍】设置一些使用pgno BtShared。pHasContent bitvec。
+当一个页面之前包含数据成为空闲列表的叶子页面,这时被调用。
+BtShared。pHasContent bitvec存在在一个不起眼的工作
+错误引起的周围两个有用的IO优化之间的交互
+叶空闲列表页:
+1)当所有数据从一个页面和页面删除叶空闲列表页面,页面不写入数据库(如叶空闲列表页面不包含有意义的数据)。
+有时这样一个页面甚至不是日志(不会被修改,为什么其他的日志?)。
+2)当一个空闲列表叶页面重用,其内容不是阅读从数据库或写入日志文件(为什么它是,如果不是有意义呢?)。
+
+本身这些优化工作,提供一个方便的批量删除或插入操作的性能提升。然而,如果搬到一个页面内的空闲列表然后重用相同交易,出现问题。如果页面没有杂志时
+搬到空闲列表,它也不是杂志时从空闲列表中提取和重用,那么原始数据可能会丢失。在发生回滚,它可能是不可能的恢复数据库到原来的配置。
+
+解决方案是BtShared。pHasContent bitvec。当一个页面搬到成为一个空闲列表页,相应的位在bitvec中设置。
+每当从空闲列表中提取叶子页面时,优化2如果相应的一些已经被忽略BtShared.pHasContent。bitvec的内容被清除在每笔交易的结束。
+
+*/
 static int btreeSetHasContent(BtShared *pBt, Pgno pgno){
   int rc = SQLITE_OK;
   if( !pBt->pHasContent ){  /*自由页*/
@@ -690,6 +834,10 @@ static int btreeSetHasContent(BtShared *pBt, Pgno pgno){
 ** 查询BtShared.pHasContent向量。
 ** 当一个空表的叶节点的页面从重用的空表中被移除时，这个函数将被调用。如果从
 ** 带有no-content标签的页面对象层检索页面是安全的则返回false。否则返回true
+*/
+/*
+【潘光珍】**查询BtShared.pHasContent向量。这个函数被调用时叶空闲列表页面中
+空闲列表以便重用。它检索返回false,如果它是安全的从页面调度程序层页面设置没有内容的标志。否则为True。
 */
 static int btreeGetHasContent(BtShared *pBt, Pgno pgno){
   Bitvec *p = pBt->pHasContent; /*是否为自由页*/
@@ -720,7 +868,7 @@ static void btreeClearHasContent(BtShared *pBt){
 中nKey长度的字段就可以找到游标所在位置。其中游标从0开始，pKey
 指向游标的 last known位置。
 */
-static int saveCursorPosition(BtCursor *pCur){
+static int saveCursorPosition(BtCursor *pCur){//【潘光珍】保存游标所在的位置的方法
   int rc;
 
   assert( CURSOR_VALID==pCur->eState );/*前提:游标有效*/
@@ -738,6 +886,11 @@ static int saveCursorPosition(BtCursor *pCur){
   ** 如果有一个intKey表，然后上边调用BtreeKeySize()并存储这个整数到pCur->nKey里。
   ** 在这时，这个值就是所需要的值。否则，如果在intKey表上pCur不是开放的，那么
   ** 动态分配空间并且存储关键字数据的 pCur->nKey字节。
+  */
+  /*
+  【潘光珍】如果这是一个intKey表,然后上面的调用BtreeKeySize()
+  将整数键存储在pCur->nKey。在这种情况下,这个值是需要的。
+  否则,如果游标在intKey表中没有打开,然后分配malloc和存储空间 pCur->nKey字节的关键数据。
   */
   if( 0==pCur->apPage[0]->intKey ){/*游标在intKey表中没有打开，分配pCur->nKey大小的空间*/
     void *pKey = sqlite3Malloc( (int)pCur->nKey );
@@ -764,7 +917,7 @@ static int saveCursorPosition(BtCursor *pCur){
     pCur->eState = CURSOR_REQUIRESEEK;/*游标指向的表被修改了，需要重新定位游标的位置*/
   }
 
-  invalidateOverflowCache(pCur);
+  invalidateOverflowCache(pCur);//【潘光珍】调用游标pCur持有的溢出页面（如有）缓存列表无效的方法
   return rc;
 }
 
@@ -780,6 +933,11 @@ static int saveCursorPosition(BtCursor *pCur){
 ** 如果pExpect!=NULL并且如果在相同的根页上没有游标，那么在pExpect上的BTCF_Multiple标记将被清除
 ** 避免再一次无意义的调用这个程序。
 ** 实现时注意：这个程序很少去核对是否有游标需要保存。它调用saveCursorsOnList()(异常)事件,游标是需要被保存。
+*/
+/*
+【潘光珍】保存所有游标的位置(pExcept除外)与打开表上根页的iRoot。
+通常,这调用前游标pExcept用于修改表(BtreeDelete()或BtreeInsert())。
+
 */
 static int saveAllCursors(BtShared *pBt, Pgno iRoot, BtCursor *pExcept){
   BtCursor *p;
@@ -797,7 +955,7 @@ static int saveAllCursors(BtShared *pBt, Pgno iRoot, BtCursor *pExcept){
   return SQLITE_OK;
 }
 
-/* Clear the current cursor position.   清除当前游标位置*/
+/* Clear the current cursor position.   清除当前游标位置*//*【潘光珍】删除当前游标所在位置*/
 void sqlite3BtreeClearCursor(BtCursor *pCur){
   assert( cursorHoldsMutex(pCur) );
   sqlite3_free(pCur->pKey);
@@ -812,12 +970,14 @@ void sqlite3BtreeClearCursor(BtCursor *pCur){
 ** 在BtreeMoveto的这个版本中，pKey是一个包索引记录如由OP_MakeRecord生成的操作码。
 ** 打开记录然后调用BtreeMovetoUnpacked()来完成这项工作。
 */
+/*【潘光珍】在这个版本的BtreeMoveto,pKey拥挤指数由OP_MakeRecord操作码生成等记录。
+打开记录,然后调用BtreeMovetoUnpacked()来做这个工作。*/
 static int btreeMoveto(
-  BtCursor *pCur,     /* Cursor open on the btree to be searched  在B树上开放游标使之能被搜索到*/
-  const void *pKey,   /* Packed key if the btree is an index 如果B树是一个索引则打包关键字*/
-  i64 nKey,           /* Integer key for tables.  Size of pKey for indices 表的整数关键字，pKey的大小*/
-  int bias,           /* Bias search to the high end 搜索最终高度*/
-  int *pRes           /* Write search results here 写搜索结果*/
+  BtCursor *pCur,     /* Cursor open on the btree to be searched  在B树上开放游标使之能被搜索到*//*【潘光珍】游标打开btree搜索*/
+  const void *pKey,   /* Packed key if the btree is an index 如果B树是一个索引则打包关键字*/ /*【潘光珍】如果btree索引是包装的关键*/
+  i64 nKey,           /* Integer key for tables.  Size of pKey for indices 表的整数关键字，pKey的大小*/  /*【潘光珍】表中的整形键*/
+  int bias,           /* Bias search to the high end 搜索最终高度*/ /*【潘光珍】搜索到最大值*/
+  int *pRes           /* Write search results here 写搜索结果*/    /*【潘光珍】搜索结果写在这里*/
 ){
   int rc;                    /* Status code 状态码*/
   UnpackedRecord *pIdxKey;   /* Unpacked index key 打开索引键 */
@@ -840,7 +1000,6 @@ static int btreeMoveto(
   }
   return rc;
 }
-
 /*
 ** Restore the cursor to the position it was in (or as close to as possible)
 ** when saveCursorPosition() was called. Note that this call deletes the 
@@ -888,6 +1047,11 @@ static int btreeRestoreCursorPosition(BtCursor *pCur){
 ** 使用单独的sqlite3BtreeCursorRestore()程序恢复一个游标到它应该在的位置，如果这个程序返回true的话。
 */
 /*游标是否移动。出错返回错误代码。*/
+/*
+【潘光珍】确定是否一个游标已经从它的位置最后被放置。游标可以移动,当行指向
+在被删除从他们。如果出现错误，这个程序返回一个错误代码。如果游标已经移动了，
+则 pHasMoved这个整形指针被设置为1，否则为0。
+*/
 int sqlite3BtreeCursorHasMoved(BtCursor *pCur, int *pHasMoved){
   int rc;  //状态码
 
@@ -917,6 +1081,11 @@ int sqlite3BtreeCursorHasMoved(BtCursor *pCur, int *pHasMoved){
 ** 对于pgno==1，返回0（不是一个有效的页）。因为没有与页1相关的指针位图。
 ** 完整性检查的逻辑要求是ptrmapPageno(*,1)!=1
 */
+/*
+【潘光珍】鉴于常规数据库页面的页码,返回的页面数量pointer-map页面,其中包含的条目
+输入页码。返回0(不是一个有效的页面)以来pgno = = 1没有指针映射与第1页。integrity_check逻辑
+要求ptrmapPageno(* 1)! = 1。
+*/
 static Pgno ptrmapPageno(BtShared *pBt, Pgno pgno){
   int nPagesPerMapPage;
   Pgno iPtrMap, ret;
@@ -945,12 +1114,17 @@ static Pgno ptrmapPageno(BtShared *pBt, Pgno pgno){
 ** 如果*pRC的初始化是非零的(non-SQLITE_OK)，那么这个程序无操作的。
 ** 如果一个错误发生，则相应的错误代码被写入*pRC.
 */
+/*
+【潘光珍】
+*写一个进入的指针映项。
+**这个程序更新页码'key'的指针映射项以便它映射到类型'eType'和父页码'pgno'如果*pRC最初非零(non-SQLITE_OK)，
+则这个程序可以任何操作。如果发生错误，适当的错误代码会写进*pRC*/
 static void ptrmapPut(BtShared *pBt, Pgno key, u8 eType, Pgno parent, int *pRC){
-  DbPage *pDbPage;  /* The pointer map page 指针位图页*/
-  u8 *pPtrmap;      /* The pointer map data 指针位图的数据域*/
+  DbPage *pDbPage;  /* The pointer map page 指针位图页*/ /*【潘光珍】Pager的页句柄*/
+  u8 *pPtrmap;      /* The pointer map data 指针位图的数据域*/ 
   Pgno iPtrmap;     /* The pointer map page number 指针位图的页码*/
   int offset;       /* Offset in pointer map page 指针位图页的偏移量*/
-  int rc;           /* Return code from subfunctions(子函数) 从子函数返回到代码*/
+  int rc;           /* Return code from subfunctions(子函数) 从子函数返回到代码*//* 【潘光珍】返回子函数代码*/
 
   if( *pRC ) return;
 
@@ -958,6 +1132,7 @@ static void ptrmapPut(BtShared *pBt, Pgno key, u8 eType, Pgno parent, int *pRC){
   /* The master-journal page number must never be used as a pointer map page 
   ** 主日志页码一定不能用作指针位图页
   */
+  /*【潘光珍】master-journal页面数量绝不能被用作一个指针位图页面*/
   assert( 0==PTRMAP_ISPAGE(pBt, PENDING_BYTE_PAGE(pBt)) );
 
   assert( pBt->autoVacuum );
@@ -1003,11 +1178,16 @@ ptrmap_exit:
 ** 如果运行出错则返回错误代码，其他返回SQLITE_OK.
 */
 /*读取pointer map的条目，写入pEType和pPgno中*/
+/*
+【潘光珍】*读一个进入映像的指针。
+**这个程序获取指针映射条目页面'key',写的类型和父页数目的*pEType 和 *pPgno相互分开
+**如果出现错误,返回一个错误的代码，否则返回SQLITE_OK。
+*/
 static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
-  DbPage *pDbPage;   /* The pointer map page 指针位图页*/
-  int iPtrmap;       /* Pointer map page index 指针位图页索引*/
-  u8 *pPtrmap;       /* Pointer map page data 指针位图页数据*/
-  int offset;        /* Offset of entry in pointer map 指针位图页的偏移量*/
+  DbPage *pDbPage;   /* The pointer map page 指针位图页*/  /*【潘光珍】Pager的页句柄*/
+  int iPtrmap;       /* Pointer map page index 指针位图页索引*//*【潘光珍】指针映射页面索引*/
+  u8 *pPtrmap;       /* Pointer map page data 指针位图页数据*/ /*【潘光珍】指针映射页数据*/
+  int offset;        /* Offset of entry in pointer map 指针位图页的偏移量*//*【潘光珍】指针映射的输入偏移*/
   int rc;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -1050,6 +1230,10 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 ** 这个程序只对不包含溢出单元的页起作用
 */
 /*给定的B树页和单元索引（0意味着页上的第一个单元，1是第二个单元，等等）返回一个指向单元内容的指针*/
+/*
+【潘光珍】在btree页面和一个cell index当中 (0意味着页面上的第一个单元格,1意味着第二个单元格,等等)返回一个指针指向单元内容。
+这个程序只适合页面不包含溢出的cells。
+*/
 #define findCell(P,I) \
   ((P)->aData + ((P)->maskPage & get2byte(&(P)->aCellIdx[2*(I)])))
 #define findCellv2(D,M,O,I) (D+(M&get2byte(D+(O+2*(I)))))
@@ -1059,6 +1243,9 @@ static int ptrmapGet(BtShared *pBt, Pgno key, u8 *pEType, Pgno *pPgno){
 ** This a more complex version of findCell() that works for
 ** pages that do contain overflow cells.
 ** 针对包含溢出单元的更为复杂的findCell()版本
+*/
+/*
+【潘光珍】这个更复杂的版本的findCell()为页面做的工作包含溢出的cells。
 */
 static u8 *findOverflowCell(MemPage *pPage, int iCell){
   int i;
@@ -1089,13 +1276,21 @@ static u8 *findOverflowCell(MemPage *pPage, int iCell){
 ** 在这文件内，可以调用宏parseCell()而不是btreeParseCellPtr()。用一些编译程序会更快。
 */
 /*解析cell content block，填在CellInfo结构中。*/
+/*
+【潘光珍】**解析cell content block，填在CellInfo结构中。这个函数有两个版本。
+在btreeParseCell()这函数中，将一个单元格作为第二个参数，
+在btreeParseCellPtr()这个函数中，将一个指针指向单元格本身作为它第二个参数。
+
+**在这个文件中,parseCell()的宏可以代替btreeParseCellPtr()。使用编译器,这样将会更快。
+
+*/
 static void btreeParseCellPtr(           //解析单元内容块，填在CellInfo结构中
-  MemPage *pPage,         /* Page containing the cell 包含单元的页*/
-  u8 *pCell,              /* Pointer to the cell text. 单元文本的指针*/
+  MemPage *pPage,         /* Page containing the cell 包含单元的页*/  /*【潘光珍】包含单元格的页面*/
+  u8 *pCell,              /* Pointer to the cell text. 单元文本的指针*/ /*【潘光珍】指向单元内容的指针*/
   CellInfo *pInfo         /* Fill in this structure 填充这个结构*/
 ){
-  u16 n;                  /* Number bytes in cell content header 单元内容头部的字节数*/
-  u32 nPayload;           /* Number of bytes of cell payload 单元有效载荷（B树记录）的字节数*/
+  u16 n;                  /* Number bytes in cell content header 单元内容头部的字节数*/  
+  u32 nPayload;           /* Number of bytes of cell payload 单元有效载荷（B树记录）的字节数*/ /*【潘光珍】单元有效负载的字节数*/
 
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
 
@@ -1125,6 +1320,9 @@ static void btreeParseCellPtr(           //解析单元内容块，填在CellInf
     ** on the local page.  No overflow is required.
 	** 这是个常见的情况，所有的有效载荷都固定在本地页上。不需要溢出。
     */
+	   /*
+	  【潘光珍】这是在容易的情况下，整个负载适合在本地页面上。不需要溢出
+	  */
     if( (pInfo->nSize = (u16)(n+nPayload))<4 ) pInfo->nSize = 4;
     pInfo->nLocal = (u16)nPayload;
     pInfo->iOverflow = 0;
@@ -1141,10 +1339,15 @@ static void btreeParseCellPtr(           //解析单元内容块，填在CellInf
 	** 这个策略是减少溢出页上未使用空间的数量 同时保持本地存储的数量在minLocal和maxLocal之间。
 	** 警告:任意改变溢流载荷分布会导致不兼容的文件格式。
     */
+	  /*
+	【潘光珍】如果负载将不完全匹配本地页，我们必须决定多少存储在本地和多少泄漏到溢出页。
+	未使用的策略是减少空间溢出页同时保持中的本地存储minLocal和maxLocal之间。
+	警告:以任何方式改变溢流载荷分布的方式会导致不兼容的文件格式。
+	*/
     /*使本地存储在最小和最大值之间并且将溢出页未使用区域最小化*/
-    int minLocal;  /* Minimum amount of payload held locally */       //本地持有的最小有效载荷数量
+    int minLocal;  /* Minimum amount of payload held locally */       //本地持有的最小有效载荷数量 
     int maxLocal;  /* Maximum amount of payload held locally */       //本地持有的最大有效载荷数量
-    int surplus;   /* Overflow payload available for local storage */ //溢出的有效载荷可用于本地存储
+    int surplus;   /* Overflow payload available for local storage */ //溢出的有效载荷可用于本地存储  /*【潘光珍】可用于本地存储的溢出有效负载*/
 
     minLocal = pPage->minLocal;
     maxLocal = pPage->maxLocal;
@@ -1163,8 +1366,8 @@ static void btreeParseCellPtr(           //解析单元内容块，填在CellInf
 #define parseCell(pPage, iCell, pInfo) \
   btreeParseCellPtr((pPage), findCell((pPage), (iCell)), (pInfo))
 static void btreeParseCell(                                      //解析单元内容块
-  MemPage *pPage,         /* Page containing the cell */         //包含单元的页
-  int iCell,              /* The cell index.  First cell is 0 */ //单元的索引，第一个单元iCell为0
+  MemPage *pPage,         /* Page containing the cell */         //包含单元的页  /*【潘光珍】包含单元格的页面*/
+  int iCell,              /* The cell index.  First cell is 0 */ //单元的索引，第一个单元iCell为0  /*【潘光珍】单元格索引，首单元格是0*/
   CellInfo *pInfo         /* Fill in this structure */           //填写这个结构
 ){
   parseCell(pPage, iCell, pInfo);
@@ -1177,6 +1380,10 @@ static void btreeParseCell(                                      //解析单元�
 ** the space used by the cell pointer.
 */
 /*计算一个Cell需要的总的字节数*/
+/*【潘光珍】计算单元格数据区域中b树页的单元格需要的总字节数。
+返回的数字包括小区数据头和本地负载，但没有任何溢出页或单元指针所使用的空间。
+
+*/
 static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的总的字节数
   u8 *pIter = &pCell[pPage->childPtrSize];
   u32 nSize;
@@ -1188,6 +1395,10 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
   ** this function verifies that this invariant(不变式) is not violated(违反). 
   ** 这个函数的返回值应始终是和执行一个完整的解析中发现的单元（CellInfo.nSize）值相同。
   ** 如果SQLITE_DEBUG被定义，一个assert（）处的底部他的功能验证这个不变不违反。*/
+  /*
+  【潘光珍】这个函数返回的值应该是相同的（CellInfo.nSize）值做一个全面的解析单元格的发现。
+  如果SQLITE_DEBUG被定义，在这个函数的底部assert()证明这种不变（不变式）不违反（违反）。
+  */
   CellInfo debuginfo;
   btreeParseCellPtr(pPage, pCell, &debuginfo);
 #endif
@@ -1204,6 +1415,8 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
     ** integer. The following block moves pIter to point at the first byte
     ** past the end of the key value. 
 	** pIter现在指向在64位整数关键字值，可变长度整数。下面的块移动pIter指向键值末尾的第一个字节。*/
+	/*【潘光珍】pIter指在64位整数的关键值，一个可变长度的整数。
+	下面的块移动pIter指向第一个字节的关键值结束过去*/
     pEnd = &pIter[9];
     while( (*pIter++)&0x80 && pIter<pEnd );
   }else{
@@ -1224,7 +1437,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
   }
   nSize += (u32)(pIter - pCell);
 
-  /* The minimum size of any cell is 4 bytes. */
+  /* The minimum size of any cell is 4 bytes. */ /*【潘光珍】任何单元的最小尺寸为4个字节。*/
   if( nSize<4 ){
     nSize = 4;
   }
@@ -1237,6 +1450,7 @@ static u16 cellSizePtr(MemPage *pPage, u8 *pCell){  //计算一个Cell需要的�
 /* This variation on cellSizePtr() is used inside of assert() statements
 ** only. 
 ** cellSizePtr()中的变量仅仅被用在assert()语句中 */
+/*【潘光珍】这种变化对cellsizeptr()里面assert()语句只能使用。*/
 static u16 cellSize(MemPage *pPage, int iCell){
   return cellSizePtr(pPage, findCell(pPage, iCell));
 }
@@ -1272,6 +1486,10 @@ static void ptrmapPutOvflPtr(MemPage *pPage, u8 *pCell, int *pRC){
 ** 在所述头部和单元指针数组和小区内容区域之间的一个大的FreeBlk。
 */
 /*重整页面。*/
+/*
+【潘光珍】整理页面。所有的单元格都移到页面结束所有的自由空间被收集到
+一个大的FreeBlk发生在头和单元格指针和数组内容区域之间。
+*/
 static int defragmentPage(MemPage *pPage){
   int i;                     /* Loop counter */                      //循环内的参数i
   int pc;                    /* Address of a i-th cell */            //第i个单元的地址
