@@ -259,10 +259,10 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*传入分�
 ** is not contained in the table.
 ** 返回一个表中的列的索引。如果该列没有包含在表中返回-1。
 */
-static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函数columnIndex，参数列表为结构体指针pTab、只读的字符型指针zCol*/
+static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函数columnIndex，参数列表为列名——结构体指针pTab、表名——只读的字符型指针zCol*/
 	int i;/*定义临时变量*/
 	for (i = 0; i < pTab->nCol; i++){/*对所有的列进行遍历*/
-		if (sqlite3StrICmp(pTab->aCol[i].zName, zCol) == 0) return i;/*如果匹配成功，那么返回i*/
+		if (sqlite3StrICmp(pTab->aCol[i].zName, zCol) == 0) return i;/*如果pTab->aCol[i].zName和zCol指向的地址是同一个地址，那么返回i*/
 	}
 	return -1;/*否则，返回-1*/
 }
@@ -280,27 +280,27 @@ static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函
 ** 如果没有找到，返回FALSE。
 */
 static int tableAndColumnIndex(
-	SrcList *pSrc,       /* Array of tables to search 存放待查找的表的队列*/
+	SrcList *pSrc,       /* Array of tables to search 存放待查找的表的数组*/
 	int N,               /* Number of tables in pSrc->a[] to search 表的数目*/
-	const char *zCol,    /* Name of the column we are looking for 寻找的列名*/
-	int *piTab,          /* Write index of pSrc->a[] here 写入索引*/
-	int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here 写入索引*/
+	const char *zCol,    /* Name of the column we are looking for 待查找的列名*/
+	int *piTab,          /* Write index of pSrc->a[] here 为表数组写索引*/
+	int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here 为表数组中某个表的列写索引*/
 	){
-	int i;               /* For looping over tables in pSrc 对pSrc遍历表*/
+	int i;               /* For looping over tables in pSrc 循环表数组中的表*/
 	int iCol;            /* Index of column matching zCol   匹配上的列的索引，第几列*/
 
-	assert((piTab == 0) == (piCol == 0));  /* Both or neither are NULL  判断表索引和列索引都是或都不是空*/
-	for (i = 0; i < N; i++){/*遍历所有的表*/
+	assert((piTab == 0) == (piCol == 0));  /* Both or neither are NULL  判断表索引和列索引是否都为空*/
+	for (i = 0; i < N; i++){/*遍历表数组中的列*/
 		iCol = columnIndex(pSrc->a[i].pTab, zCol); /*返回表的列的索引赋给iCol，如果该列没有在表中，iCol的值是-1.*/
 		if (iCol >= 0){/*如果列索引存在*/
 			if (piTab){/*如果表索引存在*/
-				*piTab = i;/*把i 赋给指针piTab 的目标变量*/
-				*piCol = iCol;/*把iCol 赋值给指针piCol 的目标变量*/
+				*piTab = i;/*那么设置表的索引*/
+				*piCol = iCol;/*设置列索引*/
 			}
 			return 1;/*否则返回1*/
 		}
 	}
-	return 0;
+	return 0;/*空表返回0*/
 }
 
 /*
@@ -319,10 +319,9 @@ static int tableAndColumnIndex(
 **
 ** (tab1.col1 = tab2.col2)
 **
-** tab1是SrcList pSrc的iSrc'th表，tab2是(iSrc+1)'th。列col1是tab1的iColLeft列，col2是
-** tab2的iColRight列
+** tab1是表集合pSrc中的第i个表，tab2是第i+1个表。col1是tab1中索引，col2 是tab2d的索。
 */
-static void addWhereTerm(
+static void addWhereTerm(/*添加where子句解释含有JOIN语法句,从而解释select语句*/
 	Parse *pParse,                  /* Parsing context  语义分析*/
 	SrcList *pSrc,                  /* List of tables in FROM clause   from字句中的列表 */
 	int iLeft,                      /* Index of first table to join in pSrc  第一个连接的表索引 */
@@ -337,7 +336,7 @@ static void addWhereTerm(
 	Expr *pE2; /*定义结构体指针pE2*/
 	Expr *pEq; /*定义结构体指针pEq*/
 
-	assert(iLeft<iRight);/*判断如果第一个表索引值是否小于第二个表索引值*/
+	assert(iLeft<iRight);/*判断左表的索引值是否小于右的索引值*/
 	assert(pSrc->nSrc>iRight);/*判断表集合中的表的数目是否大于右表的索引值*/
 	assert(pSrc->a[iLeft].pTab);/*判断表集合中表中左表索引的表是否为空*/
 	assert(pSrc->a[iRight].pTab);/*判断表集合中表中右表索引的表是否为空*/
@@ -346,11 +345,11 @@ static void addWhereTerm(
 	pE2 = sqlite3CreateColumnExpr(db, pSrc, iRight, iColRight);/*分配并返回一个表达式指针去加载表集合中右表的一个列索引*/
 
 	pEq = sqlite3PExpr(pParse, TK_EQ, pE1, pE2, 0);/*分配一个额外节点连接这两个子树表达式*/
-	if (pEq && isOuterJoin){/*如果pEq表达式是全连接表达式*/
+	if (pEq && isOuterJoin){/*如果定义结构体指针pEq指向的地址非空且isOuterJoin为真*/
 		ExprSetProperty(pEq, EP_FromJoin);/*那么在连接中使用ON或USING子句*/
 		assert(!ExprHasAnyProperty(pEq, EP_TokenOnly | EP_Reduced));/*判断pEq表达式是否是EP_TokenOnly或EP_Reduced*/
 		ExprSetIrreducible(pEq);/*调试pEq,设置是否可以约束*/
-		pEq->iRightJoinTable = (i16)pE2->iTable;/*指定要连接的右表是第二个表达式的表*/
+		pEq->iRightJoinTable = (i16)pE2->iTable;/*指定第二个表达式的表赋值给要连接的右表*/
 	}
 	*ppWhere = sqlite3ExprAnd(db, *ppWhere, pEq);/*对指定数据库的表达式是进行连接*/
 }
@@ -359,7 +358,7 @@ static void addWhereTerm(
 ** Set the EP_FromJoin property on all terms of the given expression.
 ** And set the Expr.iRightJoinTable to iTable for every term in the
 ** expression.
-** 在给定的表达式中的所有条件进行EP_FromJoin的属性设置。并给iTable的每一种
+** 在给出的所有的表达式的条款中，设定EP_FromJoin（FROM连接表达式）属性。并给iTable的每一种
 ** 表达形式进行Expr.iRightJoinTable设置。
 **
 ** The EP_FromJoin property is used on terms of an expression to tell
@@ -368,9 +367,9 @@ static void addWhereTerm(
 ** of the more general WHERE clause.  These terms are moved over to the
 ** WHERE clause during join processing but we need to remember that they
 ** originated in the ON or USING clause.
-** EP_FromJoin 属性用于左外连接处理逻辑的表达形式，这种形式是加入限制指定on或者
-** using子句的一部分，不是一般where子句的一部分。这些术语移植到where 子句中
-** 使用，但是我们必须记住它们起源于on或者useing子句。
+** EP_FromJoin属性作为表达式的条款，表达左外连接的处理逻辑，它是ON或者USING特定限制连接中的一部分，
+**但通常不作为WHERE子句的一部分。这些术语在表连接处理中移植到where中使用，我们需要记住它来源于on或using子句。
+	
 **
 ** The Expr.iRightJoinTable tells the WHERE clause processing that the
 ** expression depends on table iRightJoinTable even if that table is not
@@ -388,9 +387,8 @@ static void addWhereTerm(
 ** Expr.iRightJoinTable告诉where子句表达式依靠表iRightJoinTable处理，即使表在
 ** 表达式中没有明确提到。这些信息需要像这个例子:
 ** SELECT * FROM t1 LEFT JOIN t2 ON t1.a=t2.b AND t1.x=5
-** where 子句需要推迟处理t1.x=5，直到加入t2循环之后。以这种方式，
-** 每当t1.x!=5时，一个NULL t2行将被加入。如果我们不推迟 t1.x=5的处理，
-** 将会被立即处理后与t1循环和列t1.x!=5永远不会输出，这是不正确的。
+** where 子句需要推迟处理t1.x=5，直到t2循环连接完毕。通过这种方式,每当t1.x!=5时，一个NULL t2行将被加入。
+**如果我们没有延时处理t1.x=5，将会在t1循环完后立刻被处理，列t1.x!=5永远不会输出，这是不正确的。
 */
 static void setJoinExpr(Expr *p, int iTable){/*函数setJoinExpr的参数列表为结构体指针p，整型iTable*/
 	while (p){/*当p为真时循环*/
