@@ -261,18 +261,18 @@ static void removeElementGivenHash(
 
 void *sqlite3HashFind(const Hash *pH, const char *pKey, int nKey){
   HashElem *elem;    /* The element that matches key *//*匹配的元素*/
-  unsigned int h;    /* A hash on key */
+  unsigned int h;    /* A hash on key *//*一个散列键值*/
 
   assert( pH!=0 );/*pH!=0为真，继续执行，否则推出执行*/
   assert( pKey!=0 );/*pKey!=0为真，继续执行，否则推出执行*/
   assert( nKey>=0 );/*nKey!=0为真，继续执行，否则推出执行*/
-  if( pH->ht ){
-    h = strHash(pKey, nKey) % pH->htsize;
+  if( pH->ht ){/*若hash表不空*/
+    h = strHash(pKey, nKey) % pH->htsize;/*使用 strHash 函数计算桶号h*/
   }else{
-    h = 0;
+    h = 0;/*若为空，散列值就为0*/
   }
-  elem = findElementGivenHash(pH, pKey, nKey, h);
-  return elem ? elem->data : 0;
+  elem = findElementGivenHash(pH, pKey, nKey, h);/*在表中查找给定的元素*/
+  return elem ? elem->data : 0;/*找到则返回数据，没找到就返回0*/
 }
 
 /* Insert an element into the hash table pH.  The key is pKey,nKey
@@ -300,47 +300,47 @@ void *sqlite3HashFind(const Hash *pH, const char *pKey, int nKey){
 */
 
 void *sqlite3HashInsert(Hash *pH, const char *pKey, int nKey, void *data){
-  unsigned int h;       /* the hash of the key modulo hash table size */
-  HashElem *elem;       /* Used to loop thru the element list */
-  HashElem *new_elem;   /* New element added to the pH */
+  unsigned int h;       /* the hash of the key modulo hash table size *//* hash表的散列模型的大小*/
+  HashElem *elem;       /* Used to loop thru the element list *//* 用来通过循环列表的元素 */
+  HashElem *new_elem;   /* New element added to the pH *//* 添加到hash表的新元素 */
 
-  assert( pH!=0 );/*pH!=0为真，继续执行，否则推出执行*/ 
-  assert( pKey!=0 );/*pKey!=0为真，继续执行，否则推出执行*/ 
-  assert( nKey>=0 );/*nKey!=0为真，继续执行，否则推出执行*/ 
-  if( pH->htsize ){
+  assert( pH!=0 );/*若表存在，继续执行*/ 
+  assert( pKey!=0 );/*若表存在且有键值，继续执行*/ 
+  assert( nKey>=0 ); /*若表存在，有键值且有数据，继续执行*/ 
+  if( pH->htsize ){/*如果pH的htsize成员变量不为0,即使用哈希表存放数据项*/
     h = strHash(pKey, nKey) % pH->htsize;/*如果pH的htsize成员变量不为0,即使用哈希表存放数据项那么使用 strHash 函数计算桶号h*/
   }else{
     h = 0;/*如果pH的htsize成员变量为0,那么h=0*/
   }
-  elem = findElementGivenHash(pH,pKey,nKey,h);
-  if( elem ){
+  elem = findElementGivenHash(pH,pKey,nKey,h);/*查找给定的hash元素*/
+  if( elem ){/*若存在，就更新数据*/
     void *old_data = elem->data;
-    if( data==0 ){
+    if( data==0 ){/*如果数据为0，按照给定的指针和哈希表的元素值删除*/
       removeElementGivenHash(pH,elem,h);
-    }else{
+    }else{/*否则就将数据、键值写入表，并验证数据*/
       elem->data = data;
       elem->pKey = pKey;
       assert(nKey==elem->nKey);
     }
-    return old_data;
+    return old_data;/*更新完数据后将老数据返回*/
   }
-  if( data==0 ) return 0;
-  new_elem = (HashElem*)sqlite3Malloc( sizeof(HashElem) );
-  if( new_elem==0 ) return data;
+  if( data==0 ) return 0;/*如果数据为0，就返回0*/
+  new_elem = (HashElem*)sqlite3Malloc( sizeof(HashElem) );/*给新元素分配空间，大小为sizeof(HashElem)*/
+  if( new_elem==0 ) return data;/*若新元素空间为0，则返回老数据，并将键值、数据写到新空间*/
   new_elem->pKey = pKey;
   new_elem->nKey = nKey;
   new_elem->data = data;
-  pH->count++;
-  if( pH->count>=10 && pH->count > 2*pH->htsize ){
-    if( rehash(pH, pH->count*2) ){
+  pH->count++;/*hash表记录自加*/
+  if( pH->count>=10 && pH->count > 2*pH->htsize ){/*若hsah表记录数大于等于10条且大于表空间的2倍*/
+    if( rehash(pH, pH->count*2) ){ /*把hash表大小调整为记录数的2倍并检测大小是否大于0*/
       assert( pH->htsize>0 );
-      h = strHash(pKey, nKey) % pH->htsize;
+      h = strHash(pKey, nKey) % pH->htsize;/*大于0，则计算散列值*/
     }
   }
-  if( pH->ht ){
+  if( pH->ht ){/*若hash表存在结构指针，则按查找的散列值在表中插入新元素*/
     insertElement(pH, &pH->ht[h], new_elem);
   }else{
-    insertElement(pH, 0, new_elem);
+    insertElement(pH, 0, new_elem);/*否则在插入的新元素为0*/
   }
   return 0;
 }
