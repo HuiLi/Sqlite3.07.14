@@ -270,7 +270,7 @@ int sqlite3MallocInit(void){
 ** words if the amount of heap used is close to the limit set by
 ** sqlite3_soft_heap_limit().
 **
-** 如果堆内存没有满  返回真
+** 如果堆内存没有满，返回真
 */
 int sqlite3HeapNearlyFull(void){
   return mem0.nearlyFull;/*内存是否满*/
@@ -341,13 +341,13 @@ static void sqlite3MallocAlarm(int nByte){
 ** Do a memory allocation with statistics and alarms.  Assume the
 ** lock is already held.
 **
-** 根据统计和警报来进行内存分配，假设锁已经被执行
+** 分配内存，更新统计和设置警报，假设已经加锁
 */
 static int mallocWithAlarm(int n, void **pp){
   int nFull;
   void *p;
   assert( sqlite3_mutex_held(mem0.mutex) );/*假设执行锁*/
-  nFull = sqlite3GlobalConfig.m.xRoundup(n);/*四舍五入请求大小来分配大小*/
+  nFull = sqlite3GlobalConfig.m.xRoundup(n);/*将请求的大小进行舍入处理*/
   sqlite3StatusSet(SQLITE_STATUS_MALLOC_SIZE, n);/*设置状态*/
   if( mem0.alarmCallback!=0 ){/*发生警告*/
     int nUsed = sqlite3StatusValue(SQLITE_STATUS_MEMORY_USED);/*此时被占用*/
@@ -389,8 +389,10 @@ void *sqlite3Malloc(int n){
     ** signed integer value might cause an integer overflow inside of the
     ** xMalloc().  Hence we limit the maximum size to 0x7fffff00, giving
     ** 255 bytes of overhead.  SQLite itself will never use anything near
-    ** this amount.  The only way to reach the limit is with sqlite3_malloc() */
-    /*内存分配满了就用sqlite3_malloc*/
+    ** this amount.  The only way to reach the limit is with sqlite3_malloc() 
+    ** 
+    ** 限制最大的值为0x7fffff00，
+    */
     p = 0;
   }else if( sqlite3GlobalConfig.bMemstat ){//允许分配
     sqlite3_mutex_enter(mem0.mutex);
@@ -423,7 +425,7 @@ void *sqlite3_malloc(int n){
 ** case by setting scratchAllocOut to 1 when an allocation
 ** is outstanding clearing it when the allocation is freed.
 ** 
-** 每个线程可能只有一个单独的分配，我们通过设置scratchAllocOut=1在单线程验证这个约束
+** 每个线程可能只有一个单独的分配器，我们通过设置scratchAllocOut=1在单线程验证这个约束
 */
 #if SQLITE_THREADSAFE==0 && !defined(NDEBUG)
 static int scratchAllocOut = 0;
