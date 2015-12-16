@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** 2010 February 1
 **
 ** The author disclaims否认 copyright to this source code.  In place of
@@ -34,39 +34,38 @@
 ** The WAL header is 32 bytes in size and consists of the following eight
 ** big-endian 32-bit unsigned无符号的 integer values:
 **
-
-**     0: Magic number.  0x377f0682 or 0x377f0683幻数
-**     4: File format version.  Currently 3007000版本号
-**     8: Database page size.  Example: 1024数据库页面大小
-**    12: Checkpoint sequence序列 number检查点序列号
-**    16: Salt-1, random integer incremented增大 with each checkpoint随机整数递增，每个检查站
-**    20: Salt-2, a different random integer changing with each ckpt不同的随机整数，每个CKPT改变
-**    24: Checksum-1 (first part of checksum for first 24 bytes of header).校验-1（校验和的前24个字节的头的第一部分）。
-**    28: Checksum-2 (second part of checksum for first 24 bytes of header).校验-2（校验和的前24个字节头部的第二部分）。
+**     0: Magic number.  0x377f0682 or 0x377f0683
+**     4: File format version.  Currently 3007000
+**     8: Database page size.  Example: 1024
+**    12: Checkpoint sequence序列 number
+**    16: Salt-1, random integer incremented增大 with each checkpoint
+**    20: Salt-2, a different random integer changing with each ckpt
+**    24: Checksum-1 (first part of checksum for first 24 bytes of header).
+**    28: Checksum-2 (second part of checksum for first 24 bytes of header).
 **
 ** Immediately following the wal-header are zero or more frames. Each
 ** frame consists of a 24-byte frame-header followed by接着是 a <page-size> bytes
 ** of page data. The frame-header is six big-endian 32-bit unsigned 
 ** integer values, as follows:
-** 紧随wal头的是零个或多个帧。每一帧由一个24字节帧头后跟一个<page size>页数据的字节。帧报头是6大端32位无符号整数值，具体如下：
-**     0: Page number.页码
+**
+**     0: Page number.
 **     4: For commit records, the size of the database image in pages 
-**        after the commit. For all other records, zero.对于提交记录，在页面提交该数据库镜像的大小。对于所有其他记录，为零
+**        after the commit. For all other records, zero.
 **     8: Salt-1 (copied from the header)
 **    12: Salt-2 (copied from the header)
 **    16: Checksum-1.
 **    20: Checksum-2.
 **
 ** A frame is considered valid if and only if the following conditions are
-** true: 帧有效当且仅当满足一下条件
+** true:
 **
 **    (1) The salt-1 and salt-2 values in the frame-header match
-**        salt values in the wal-header salt1和salt2值在wal的帧报头的salt值相匹配
+**        salt values in the wal-header
 **
 **    (2) The checksum values in the final 8 bytes of the frame-header
 **        exactly match the checksum computed consecutively连续地 on the
 **        WAL header and the first 8 bytes and the content of all frames
-**        up to一直到 and including the current frame.帧报头的最后的8个字节的校验和完全匹配以下内容的校验结果包括在WAL头上最开始的8个字节和当前帧的所有内容. 
+**        up to and including the current frame.
 **
 ** The checksum is computed using 32-bit big-endian integers if the
 ** magic number in the first 4 bytes of the WAL is 0x377f0683 and it
@@ -76,18 +75,16 @@
 ** the checksum.  The checksum is computed by interpreting the input as
 ** an even number of unsigned 32-bit integers: x[0] through x[N].  The
 ** algorithm算法 used for the checksum is as follows:
-** 校验和是使用32位大端整数计算，如果在第一个4字节WAL的幻数是0x377f0683，它是使用小端，如果一个幻数是0x377f0682计算。
-在帧的报头校验值始终以大端法的格式保存无论用哪个字节顺序来计算校验和。校验和是通过解释输入为偶数个的32位无符号整数来计算，X[0]到X[N]。用于计算校验和的算法如下：
+** 
 **   for i from 0 to n-1 step 2:
 **     s0 += x[i] + s1;
 **     s1 += x[i+1] + s0;
 **   endfor
 **
-** Note that既然 s0 and s1 are both weighted 加权中checksums using fibonacci斐波拉契 weights
+** Note that s0 and s1 are both weighted 加权中checksums using fibonacci weights
 ** in reverse order倒序的 (the largest fibonacci weight occurs on the first element
 ** of the sequence being summed.)  The s1 value spans all 32-bit 
-** terms of the sequence序列 whereas然而 s0 omits the final term.需要注意的是S0和S1是利用以倒序的斐波纳契权重加权校验和（最大斐波纳契重量发生序列的第一个元素上被求和）。
-   s1的值跨越所有32位的序列而s0省略了最后一个绝对项
+** terms of the sequence序列 whereas然而 s0 omits the final term.
 **
 ** On a checkpoint, the WAL is first VFS.xSync-ed, then valid content of the
 ** WAL is transferred搬到 into the database, then the database is VFS.xSync-ed.
@@ -103,21 +100,18 @@
 ** READER ALGORITHM
 **
 ** To read a page from the database (call it page number P), a reader
-** first checks the WAL to see if it contains page P.  以从数据库中读取一个页面（称之为页号码P）时，读取器首先检查的WAL，以查看它是否包含页P.
-**If so, then the last valid instance实例 of page P that is a followed by a commit frame
+** first checks the WAL to see if it contains page P.  If so, then the
+** last valid instance实例 of page P that is a followed by a commit frame
 ** or is a commit frame itself becomes the value read.  If the WAL
 ** contains no copies of page P that are valid and which are a commit
 ** frame or are followed by a commit frame, then page P is read from
 ** the database file.
-** 启动一个读事务，读取器记录WAL最后一个有效帧的索引。读取器所有的后续的读取操作都使用“mxFrame”的值。
-新的事务可以被附加到WAL，但只要该读取器使用其原始mxFrame值，并忽略新追加的内容，
-就会看到数据库的在单个时间点的一致性。这种技术允许多个并发的读取者同时查看不同版本的数据库内容。
-
+**
 ** To start a read transaction, the reader records the index of the last
 ** valid frame in the WAL.  The reader uses this recorded "mxFrame" value
 ** for all subsequent后面的 read operations.  New transactions can be appended
 ** to the WAL, but as long as the reader uses its original mxFrame value
-** and ignores the newly appended content, it will see a consistent snapshot
+** and ignores the newly appended content, it will see a consistent(一致的） snapshot快照
 ** of the database from a single point in time.  This technique allows
 ** multiple concurrent并发的 readers to view different versions of the database
 ** content simultaneously同时的.
@@ -132,19 +126,17 @@
 ** 
 ** WAL-INDEX FORMAT 日志索引结构
 **
-** Conceptually, the wal-index is shared memory, though VFS implementations安装启用
+** Conceptually, the wal-index is shared memory, though VFS implementations
 ** might choose to implement实施 the wal-index using a mmapped file映射文件.  Because
 ** the wal-index is shared memory, SQLite does not support journal_mode=WAL 
 ** on a network filesystem.  All users of the database must be able to
-** share memory共享内存. 从概念上讲，wal索引是共享内存，虽然VFS实现可能选择实施使用WAL索引的镜像文件。
-因为wal索引的共享内存，当客户端在不同的机器时，
-在网络文件系统中SQLite不支持WAL机制。数据库中的所有用户必须能够共享内存。
+** share memory共享内存.
 **
 ** The wal-index is transient短暂的.  After a crash, the wal-index can (and should
 ** be) reconstructed重组 from the original WAL file.  In fact, the VFS is required
 ** to either truncate or zero the header of the wal-index when the last
 ** connection to it closes.  Because the wal-index is transient, it can
-** use an architecture-specific format; it does not have to be cross-platform跨平台.
+** use an architecture-specific format; it does not have to be cross-platform.
 ** Hence, unlike the database and WAL file formats which store all values
 ** as big endian, the wal-index can store multi-byte values in the native
 ** byte order of the host computer.
@@ -155,18 +147,17 @@
 ** NULL if there are no frames for page P in the WAL prior to M.
 **
 ** The wal-index consists of a header region, followed by an one or
-** more index blocks.  WAL索引由头部以及一个或多个索引块组成，
+** more index blocks.  
 **
 ** The wal-index header contains the total number of frames within the WAL
-** in the mxFrame field.WAL索引报头包含wal在mxFrame内的帧的总数。
+** in the mxFrame field.
 **
 ** Each index block except for the first contains information on 
 ** HASHTABLE_NPAGE frames. The first index block contains information on
 ** HASHTABLE_NPAGE_ONE frames. The values of HASHTABLE_NPAGE_ONE and 
 ** HASHTABLE_NPAGE are selected so that together the wal-index header and
 ** first index block are the same size as all other index blocks in the
-** wal-index.每个索引块除了第一个都包含HASHTABLE_NPAGE帧的信息。第一个索引块包含HASHTABLE_NPAGE_ONE帧的信息。
-HASHTABLE_NPAGE_ONE和 HASHTABLE_NPAGE的值，使得wal索引的报头和第一索引块的大小与在WAL索引的所有其他索引块相同
+** wal-index.
 **
 ** Each index block contains two sections, a page-mapping that contains the
 ** database page number associated with each wal frame, and a hash-table 
@@ -176,12 +167,7 @@ HASHTABLE_NPAGE_ONE和 HASHTABLE_NPAGE的值，使得wal索引的报头和第一
 ** first index-block contains the database page number corresponding to与...相一致 the
 ** first frame in the WAL file. The first entry in the second index block
 ** in the WAL file corresponds to the (HASHTABLE_NPAGE_ONE+1)th frame in
-** the log, and so on.每个索引块包含两个部分，一个页映射，
-其中包含wal帧与相关联的数据库页号的映射，
-和一个哈希表，允许读取器查询一个特定的页号对应的索引块。
-页面映射为HASHTABLE_NPAGE（或HASHTABLE_NPAGE_ONE为第一索引块）32位页码的数组。
-在第一索引块中的第一个条目包含相应于WAL文件的第一帧的数据库页号。
-在第二块索引中的WAL文件的第一项对应于（HASHTABLE_NPAGE_ONE + 1）在日志中的帧，
+** the log, and so on.
 **
 ** The last index block in a wal-index usually contains less than the full
 ** complement of HASHTABLE_NPAGE (or HASHTABLE_NPAGE_ONE) page-numbers,
@@ -196,7 +182,7 @@ HASHTABLE_NPAGE_ONE和 HASHTABLE_NPAGE的值，使得wal索引的报头和第一
 ** beginning.  The first entry that equals P corresponds to the frame
 ** holding the content for that page.
 **
-** The hash table consists of HASHTABLE_NSLOT 16-bit unsigned integers.哈希表由16位无符号整数HASHTABLE_NSLOT组成
+** The hash table consists of HASHTABLE_NSLOT 16-bit unsigned integers.
 ** HASHTABLE_NSLOT = 2*HASHTABLE_NPAGE, and there is one entry in the
 ** hash table for each page number in the mapping section, so the hash 
 ** table is never more than half full.  The expected number of collisions 冲突
@@ -282,7 +268,7 @@ int sqlite3WalTrace = 0;
 ** WALINDEX_MAX_VERSION, then no read-transaction is opened and SQLite
 ** returns SQLITE_CANTOPEN.  定义wal_max_version 和WALINDEX_MAX_VERSION 得值
 */
-#define WAL_MAX_VERSION      3007000/*将3007000用WAL_MAX_VERSION替换*/
+#define WAL_MAX_VERSION      3007000
 #define WALINDEX_MAX_VERSION 3007000
 
 /*
@@ -315,16 +301,16 @@ typedef struct WalCkptInfo WalCkptInfo;
 */
 struct WalIndexHdr {
   u32 iVersion;                   /* Wal-index version */          Wal-index版本信息
-  u32 unused;                     /* Unused (padding) field */     未使用的地方     
-  u32 iChange;                    /* Counter incremented each transaction */记录每个事务的增长情况
-  u8 isInit;                      /* 1 when initialized */ 初始化为1
+  u32 unused;                     /* Unused (padding) field */     没有过的地方     
+  u32 iChange;                    /* Counter incremented each transaction */记录每个事务的增长
+  u8 isInit;                      /* 1 when initialized */ 当初始化时是  1
   u8 bigEndCksum;                 /* True if checksums in WAL are big-endian */如果在WAl的总和检查是二进制则为true
-  u16 szPage;                     /* Database page size in bytes. 1==64K */ 数据库每页的大小，单位为byte，1==64k
-  u32 mxFrame;                    /* Index of last valid frame in the WAL */将最新的有效的索引值写入WAL
-  u32 nPage;                      /* Size of database in pages */数据库包含的页数
-  u32 aFrameCksum[2];             /* Checksum of last frame in log */ 最后的检查和写入LOG
-  u32 aSalt[2];                   /* Two salt values copied from WAL header */从Wal的头文件复制两个混淆值
-  u32 aCksum[2];                  /* Checksum over all prior fields */对所有字段进行校和
+  u16 szPage;                     /* Database page size in bytes. 1==64K */ 数据库页的大小，单位为byte，1==64k
+  u32 mxFrame;                    /* Index of last valid frame in the WAL */写入WAl 的最新的有效的索引值
+  u32 nPage;                      /* Size of database in pages */一个数据库有多少个页
+  u32 aFrameCksum[2];             /* Checksum of last frame in log */ 检验最后写入log的
+  u32 aSalt[2];                   /* Two salt values copied from WAL header */从Wal header 复制的两个混淆值
+  u32 aCksum[2];                  /* Checksum over all prior fields */进行所有字段进行校和
 };
 
 /*
@@ -406,7 +392,7 @@ struct WalCkptInfo {
 ** If the LSB is set, then the checksums for each frame within the WAL
 ** file are calculated by treating all data as an array of 32-bit 
 ** big-endian words. Otherwise, they are calculated by interpreting 
-** all data as 32-bit little-endian words.WAL幻值。这个值,或至少相同的值还有效位设置(WAL_MAGIC | 0 x00000001)存储在32位　　 大端格式WAL的前4个字节的文件。如果设置LSB,然后在身内的每一帧的校验和文件处理所有的数据计算了一个32位的数组大端法的话。否则,计算它们的解释所有数据作为32位低位优先的单词。
+** all data as 32-bit little-endian words.WAL魔法值。这个值,或至少相同的值还有效位设置(WAL_MAGIC | 0 x00000001)存储在32位　　 大端格式WAL的前4个字节的文件。如果设置LSB,然后在身内的每一帧的校验和文件处理所有的数据计算了一个32位的数组大端法的话。否则,计算它们的解释所有数据作为32位低位优先的单词。
 */
 #define WAL_MAGIC 0x377f0682
 
@@ -425,28 +411,28 @@ struct WalCkptInfo {
 */
 struct Wal {
   sqlite3_vfs *pVfs;         /* The VFS used to create pDbFd */
-  sqlite3_file *pDbFd;       /* File handle for the database file */数据库文件的文件句柄处理
-  sqlite3_file *pWalFd;      /* File handle for WAL file */WAL文件的文件句柄处理
-  u32 iCallback;             /* Value to pass to log callback (or 0) */通过日志回滚的值
-  i64 mxWalSize;             /* Truncate WAL to this size upon reset */缩短WAL的大小接近重置的值
-  int nWiData;               /* Size of array apWiData */apWiData数组的大小
-  int szFirstBlock;          /* Size of first block written to WAL file */写入WAL文件的第一块的大小
-  volatile u32 **apWiData;   /* Pointer to wal-index content in memory */指针指向内存中WAL索引目录
-  u32 szPage;                /* Database page size */数据库页面的大小
+  sqlite3_file *pDbFd;       /* File handle for the database file */
+  sqlite3_file *pWalFd;      /* File handle for WAL file */
+  u32 iCallback;             /* Value to pass to log callback (or 0) */
+  i64 mxWalSize;             /* Truncate WAL to this size upon reset */
+  int nWiData;               /* Size of array apWiData */
+  int szFirstBlock;          /* Size of first block written to WAL file */
+  volatile u32 **apWiData;   /* Pointer to wal-index content in memory */**指针大小
+  u32 szPage;                /* Database page size */
   i16 readLock;              /* Which read lock is being held.  -1 for none */那种读锁被持有。-1 表示没有
-  u8 syncFlags;              /* Flags to use to sync header writes */并行的标志
-  u8 exclusiveMode;          /* Non-zero if connection is in exclusive mode */非零表示连接是互斥模式
-  u8 writeLock;              /* True if in a write transaction */如果在一个写事务中为真
+  u8 syncFlags;              /* Flags to use to sync header writes */
+  u8 exclusiveMode;          /* Non-zero if connection is in exclusive mode */
+  u8 writeLock;              /* True if in a write transaction */                如果在一个写事务中为真
   u8 ckptLock;               /* True if holding a checkpoint lock */   如果有一个checkpoint 锁 则 值为真
   u8 readOnly;               /* WAL_RDWR, WAL_RDONLY, or WAL_SHM_RDONLY */
   u8 truncateOnCommit;       /* True to truncate WAL file on commit */
   u8 syncHeader;             /* Fsync the WAL header if true */
-  u8 padToSectorBoundary;    /* Pad transactions out to the next sector */试图执行下一个扇区的任务
+  u8 padToSectorBoundary;    /* Pad transactions out to the next sector */
   WalIndexHdr hdr;           /* Wal-index header for current transaction */  当前事务 Wal-index header
-  const char *zWalName;      /* Name of WAL file */WAL文件名
+  const char *zWalName;      /* Name of WAL file */
   u32 nCkpt;                 /* Checkpoint sequence counter in the wal-header */wal-header检查点序列计数器
 #ifdef SQLITE_DEBUG
-  u8 lockError;              /* True if a locking error has occurred */锁发生错误为真
+  u8 lockError;              /* True if a locking error has occurred */
 #endif
 };
 
@@ -462,62 +448,62 @@ Wal.exclusiveMode 的候选值
 /*
 ** Possible values for WAL.readOnly  可能的值只有下面
 */
-#define WAL_RDWR        0    /* Normal read/write connection */正常读写连接
-#define WAL_RDONLY      1    /* The WAL file is readonly */WAL文件是只读的
-#define WAL_SHM_RDONLY  2    /* The SHM file is readonly */SHM文件是只读的
+#define WAL_RDWR        0    /* Normal read/write connection */
+#define WAL_RDONLY      1    /* The WAL file is readonly */
+#define WAL_SHM_RDONLY  2    /* The SHM file is readonly */
 
 /*
-** Each page of the wal-index mapping contains a hash-table made up of   wal-index映射的每个页面包含一个哈希表，由HASHTABLE_NSLOT数组元素的类型组成。
+** Each page of the wal-index mapping contains a hash-table made up of   wal-index映射的每个页面包含一个哈希表组成HASHTABLE_NSLOT数组元素的类型。
 ** an array of HASHTABLE_NSLOT elements of the following type.  
 */
 typedef u16 ht_slot;
 
 /*
-** This structure is used to implement an iterator迭代器 that loops through
+** This structure is used to implement an iterator that loops through
 ** all frames in the WAL in database page order. Where two or more frames
 ** correspond to the same database page, the iterator visits only the 
 ** frame most recently written to the WAL (in other words, the frame with
-** the largest index).这个结构是用来实现迭代器遍历WAL在数据库中的所有帧页面顺序。两个或两个以上的帧在哪里对应于相同的数据库页面,迭代器只访问最近写入WAL的帧( ** 换句话说,框架最大的指数)
+** the largest index).这个结构是用来实现迭代器遍历WAL在数据库中的所有帧页面顺序。两个或两个以上的帧在哪里对应于相同的数据库页面,迭代器只访问帧最近写入WAL( ** 换句话说,框架最大的指数)
 **
-** The internals of this structure are only accessed by: 这种结构的内部只能被访问，通过：
+** The internals of this structure are only accessed by: 这种结构的内部只能被访问方式
 **
-**   walIteratorInit() - Create a new iterator, 创建一个新的迭代器
+**   walIteratorInit() - Create a new iterator, 创建迭代
 **   walIteratorNext() - Step an iterator,         进行下一步
-**   walIteratorFree() - Free an iterator.    释放迭代器
+**   walIteratorFree() - Free an iterator.    释放迭代
 **
-** This functionality is used by the checkpoint检查点 code (see walCheckpoint()). 用于checkpoint 
+** This functionality is used by the checkpoint code (see walCheckpoint()). 用于checkpoint 
 */
 struct WalIterator {
-  int iPrior;                     /* Last result returned from the iterator */ 返回迭代器中的最后一个值
-  int nSegment;                   /* Number of entries in aSegment[] */ aSegment的项目数
+  int iPrior;                     /* Last result returned from the iterator */ 最后的返回值
+  int nSegment;                   /* Number of entries in aSegment[] */ 项目数
     int iNext;                    /* Next slot in aIndex[] not yet returned */ aIndex的下一个下标
-    ht_slot *aIndex;              /* i0, i1, i2... such that aPgno[iN] ascend */升序
+    ht_slot *aIndex;              /* i0, i1, i2... such that aPgno[iN] ascend */
     u32 *aPgno;                   /* Array of page numbers. */    数组页码
     int nEntry;                   /* Nr. of entries in aPgno[] and aIndex[] */ aPgno【】和aIndex【】
-    int iZero;                    /* Frame number associated with aPgno[0] */ 帧数和aPgno[0]一致
+    int iZero;                    /* Frame number associated with aPgno[0] */ 帧数和aPgno[]一致
    aSegment[1];                  /* One for every 32KB page in the wal-index */ 32kb 的页
 };
 
 /*
 ** Define the parameters of the hash tables in the wal-index file. There
 ** is a hash-table following every HASHTABLE_NPAGE page numbers in the
-** wal-index.定义wal-index文件里的哈希表参数，有哈希表对应着wal-index里的每个HASHTABLE_NPAGE的页数
+** wal-index.
 **
-** Changing any of these constants常量 will alter the wal-index format and
-** create incompatibilities不一致.
+** Changing any of these constants will alter the wal-index format and
+** create incompatibilities.
 */
-#define HASHTABLE_NPAGE      4096                 /* Must be power of 2 */必须是2的幂
-#define HASHTABLE_HASH_1     383                  /* Should be prime */是质数
+#define HASHTABLE_NPAGE      4096                 /* Must be power of 2 */
+#define HASHTABLE_HASH_1     383                  /* Should be prime */
 #define HASHTABLE_NSLOT      (HASHTABLE_NPAGE*2)  /* Must be a power of 2 */
 
 /* 
 ** The block of page numbers associated with the first hash-table in a
 ** wal-index is smaller than usual. This is so that there is a complete
-** hash-table on each aligned 32KB page of the wal-index.比普通的小的页号块与wal-index第一个哈希表，使wal-index的哈希表32kb每页
+** hash-table on each aligned 32KB page of the wal-index.
 */
 #define HASHTABLE_NPAGE_ONE  (HASHTABLE_NPAGE - (WALINDEX_HDR_SIZE/sizeof(u32)))
 
-/* The wal-index is divided into pages of WALINDEX_PGSZ bytes each.日志每页大小为WALINDEX_PGSZ */
+/* The wal-index is divided into pages of WALINDEX_PGSZ bytes each. */
 #define WALINDEX_PGSZ   (                                         \
     sizeof(ht_slot)*HASHTABLE_NSLOT + HASHTABLE_NPAGE*sizeof(u32) \
 )
@@ -530,44 +516,37 @@ struct WalIterator {
 ** If this call is successful, *ppPage is set to point to the wal-index
 ** page and SQLITE_OK is returned. If an error (an OOM or VFS error) occurs,
 ** then an SQLite error code is returned and *ppPage is set to 0.如果这个函数调用成功，ppPage 等于日志索引页返回return ok
-发生错误，返回 SQLite的错误代码并且pppage设为0
+发生错误，返回 SQLite error code pppage 等于 0
 */
-static int walIndexPage(Wal *pWal, int iPage , volatile u32 **ppPage){
+static int walIndexPage(Wal *pWal, int iPage, volatile u32 **ppPage){
   int rc = SQLITE_OK;
 
-  /* Enlarge the pWal->apWiData[] array if required  扩大pWal - > apWiData[]数组 */
-  if( pWal->nWiData<=iPage )
-  {           /**nWiData为指针内存大小*/
-    int nByte = sizeof(u32*)*(iPage+1); /*计算第i个所需字节数*/
-    volatile u32 **apNew/*;定义一个新的指针*/
-    apNew = (volatile u32 **)sqlite3_realloc((void *)pWal->apWiData, nByte);/*为新的指针重新分配内存*/
-    //分配内存失败  返回SQLITE_NOMEM
-    if( !apNew )
-	{                                    
+  /* Enlarge the pWal->apWiData[] array if required */扩大pWal - > apWiData[]数组
+  if( pWal->nWiData<=iPage ){           **nWiData为指针内存大小
+    int nByte = sizeof(u32*)*(iPage+1); **就算第i个所需字节数
+    volatile u32 **apNew; ?*定义一个新的指针
+    apNew = (volatile u32 **)sqlite3_realloc((void *)pWal->apWiData, nByte);** 为新的指针分配内存
+    
+    if( !apNew ){                                    
       *ppPage = 0;
       return SQLITE_NOMEM;
     }
     memset((void*)&apNew[pWal->nWiData], 0,
            sizeof(u32*)*(iPage+1-pWal->nWiData));
-    pWal->apWiData = apNew;/*内存分配成功，指针指向内存的首个地址*/
+    pWal->apWiData = apNew;
     pWal->nWiData = iPage+1;
   }
 
-  /* Request a pointer to the required page from the VFS */请求VFS页面所需要的指针
-  if( pWal->apWiData[iPage]==0 )
-  {
-    if( pWal->exclusiveMode==WAL_HEAPMEMORY_MODE )
-	{
+  /* Request a pointer to the required page from the VFS */
+  if( pWal->apWiData[iPage]==0 ){
+    if( pWal->exclusiveMode==WAL_HEAPMEMORY_MODE ){
       pWal->apWiData[iPage] = (u32 volatile *)sqlite3MallocZero(WALINDEX_PGSZ);
-      if( !pWal->apWiData[iPage] ) 
-		  rc = SQLITE_NOMEM;
-    }
-    else
-	{
+      if( !pWal->apWiData[iPage] ) rc = SQLITE_NOMEM;
+    }else{
       rc = sqlite3OsShmMap(pWal->pDbFd, iPage, WALINDEX_PGSZ, 
-          pWal->writeLock, (void volatile **)&pWal->apWiData[iPage]);
-      if( rc==SQLITE_READONLY )
-	  {
+          pWal->writeLock, (void volatile **)&pWal->apWiData[iPage]
+      );
+      if( rc==SQLITE_READONLY ){
         pWal->readOnly |= WAL_SHM_RDONLY;
         rc = SQLITE_OK;
       }
@@ -583,8 +562,8 @@ static int walIndexPage(Wal *pWal, int iPage , volatile u32 **ppPage){
 ** Return a pointer to the WalCkptInfo structure in the wal-index.返回一个WalCKptINfo指针
 */
 static volatile WalCkptInfo *walCkptInfo(Wal *pWal){
-  assert( pWal->nWiData>0 && pWal->apWiData[0] );   /* assert c函数  其作用是如果它的条件返回错误，则终止程序执行*/
-  return (volatile WalCkptInfo*)&(pWal->apWiData[0][sizeof(WalIndexHdr)/2]);  
+  assert( pWal->nWiData>0 && pWal->apWiData[0] );           assert c函数  其作用是如果它的条件返回错误，则终止程序执行
+  return (volatile WalCkptInfo*)&(pWal->apWiData[0][sizeof(WalIndexHdr)/2]);  ？
 }
 
 /*
@@ -610,45 +589,39 @@ static volatile WalIndexHdr *walIndexHdr(Wal *pWal){
 /*
 ** Generate or extend an 8 byte checksum based on the data in 
 ** array aByte[] and the initial values of aIn[0] and aIn[1] (or
-** initial values of 0 and 0 if aIn==NULL).对一个8位字节的校验是基于数组abyte【】和ain【1】 的初始值
+** initial values of 0 and 0 if aIn==NULL).对一个8位字节的校验是基于数组abyte【】和ain【】1 0 的初始值
 **
 ** The checksum is written back into aOut[] before returning. 校验结果在返回之前写回 在aout【】
 **
 ** nByte must be a positive multiple of 8.  nbyte 必须是8的整数倍
 */
 static void walChecksumBytes(
-  int nativeCksum, /* True for native byte-order, false for non-native */true：原始顺序
-  u8 *a,           /* Content to be checksummed */     校验和内容
+  int nativeCksum, /* True for native byte-order, false for non-native */
+  u8 *a,           /* Content to be checksummed */     校验 内容
   int nByte,       /* Bytes of content in a[].  Must be a multiple of 8. */a[] 有多少字节，必须是8的倍数
-  const u32 *aIn,  /* Initial checksum value input */   输入校验和的初始值
-  u32 *aOut        /* OUT: Final checksum value output */ 输出最后校验值
+  const u32 *aIn,  /* Initial checksum value input */   校验和  的初始值
+  u32 *aOut        /* OUT: Final checksum value output */ 最后 校验值得 输出
 ){
-  u32 s1, s2;                              /* 定义 s1,s2;*/
-  u32 *aData = (u32 *)a;                  /*  将 *a 赋予 *aData*/
+  u32 s1, s2;                               定义 s1,s2;
+  u32 *aData = (u32 *)a;                    将 *a 赋予 *aData
   u32 *aEnd = (u32 *)&a[nByte];             
 
-  if( aIn )
-  {                       /* 如果 ain 不为空*/
+  if( aIn ){                        如果 ain 不为空
     s1 = aIn[0];                        
     s2 = aIn[1];
-  }
-  else
-  {                          /* 否则*/
+  }else{                           否则
     s1 = s2 = 0;
   }
 
-  assert( nByte>=8 );          /*如果nByteb小于8为，则终止程序 */
-  assert( (nByte&0x00000007)==0 ); /* 如果 nByte 不是8的倍数 ，则程序终止*/
+  assert( nByte>=8 );          如果nByteb不大于8为假，则终止程序 
+  assert( (nByte&0x00000007)==0 );  如果 nByte 不是8的倍数 ，则程序终止
 
-  if( nativeCksum )
-  {                     /*  如果nativeCksum 为真，则*/
+  if( nativeCksum ){                       如果nativeCksum 为真，则
     do {
       s1 += *aData++ + s2;
       s2 += *aData++ + s1;
     }while( aData<aEnd );
-  }
-  else
-  {                                 /* 否则*/
+  }else{                                  否则
     do {
       s1 += BYTESWAP32(aData[0]) + s2;
       s2 += BYTESWAP32(aData[1]) + s1;
@@ -656,39 +629,39 @@ static void walChecksumBytes(
     }while( aData<aEnd );
   }
 
-  aOut[0] = s1;           /* 将s1赋值给aOut[0]*/ 
-  aOut[1] = s2;           /* 将s2赋值给aout[1] */
+  aOut[0] = s1;            将s1赋值给aOut[0] 
+  aOut[1] = s2;            将s2赋值给aout[1] 
 }
 
 static void walShmBarrier(Wal *pWal){ 
-  if( pWal->exclusiveMode!=WAL_HEAPMEMORY_MODE ){     /*如果pWal->exclusiveMode 不等于2*/
+  if( pWal->exclusiveMode!=WAL_HEAPMEMORY_MODE ){     如果pWal->exclusiveMode 不等于2
     sqlite3OsShmBarrier(pWal->pDbFd);
   }
 }
 
 /*
-** Write the header information in pWal->hdr into the wal-index.将pWal->hdr头的信息写入wal-index
+** Write the header information in pWal->hdr into the wal-index.将 标题信息写入pWal->hdr
 **
-** The checksum on pWal->hdr is updated before it is written. 写之前更新pWal ->hdr 的校验和*/
-static void walIndexWriteHdr(Wal *pWal)
-{
-  volatile WalIndexHdr *aHdr = walIndexHdr(pWal);         /*调用前面定义的walIndexHdr()函数返回一个WalIndexHdr 结构指针*/ 
-  const int nCksum = offsetof(WalIndexHdr, aCksum);     /*返回WalIndexHdr中aCksum的偏移量    */     
+** The checksum on pWal->hdr is updated before it is written. pWal ->hdr 的校验和更新是在它被写之前
+*/
+static void walIndexWriteHdr(Wal *pWal){
+  volatile WalIndexHdr *aHdr = walIndexHdr(pWal);                返回一个WalIndexHdr 结构指针 
+  const int nCksum = offsetof(WalIndexHdr, aCksum);              
 
-  assert( pWal->writeLock );                        /* 如果为假，程序终止 */                         
-  pWal->hdr.isInit = 1;                             /* 初始值为1*/
-  pWal->hdr.iVersion = WALINDEX_MAX_VERSION;          /*版本号为WALINDEX_MAX_VERSION*/
-  walChecksumBytes(1, (u8*)&pWal->hdr, nCksum, 0, pWal->hdr.aCksum); /* 进行校验*/
-  memcpy((void *)&aHdr[1], (void *)&pWal->hdr, sizeof(WalIndexHdr));         /*从源pWal->hdr所指的内存地址的起始位置开始拷贝sizeof(WalIndexHdr)个字节到目标Hdr[1]所指的内存地址的起始位置中*/
-  walShmBarrier(pWal);              /*调用  walShmBarrier（）*/
-  memcpy((void *)&aHdr[0], (void *)&pWal->hdr, sizeof(WalIndexHdr)); 
+  assert( pWal->writeLock );                         如果不为真 则程序终止                          
+  pWal->hdr.isInit = 1;                              初始值为1
+  pWal->hdr.iVersion = WALINDEX_MAX_VERSION;          设置版本号 为WALINDEX_MAX_VERSION
+  walChecksumBytes(1, (u8*)&pWal->hdr, nCksum, 0, pWal->hdr.aCksum);  进行校验
+  memcpy((void *)&aHdr[1], (void *)&pWal->hdr, sizeof(WalIndexHdr));         memcpy函数的功能是从源src所指的内存地址的起始位置开始拷贝n个字节到目标dest所指的内存地址的起始位置中。
+  walShmBarrier(pWal);              调用  walShmBarrier（）
+  memcpy((void *)&aHdr[0], (void *)&pWal->hdr, sizeof(WalIndexHdr));
 }
 
 /*
-** This function encodes编码 a single frame header and writes it to a buffer
-** supplied by the caller. A frame-header is made up of a series of 4-byte big-endian integers, as follows:    这个函数编码一个单独的帧头，并将其写入到由调用者提供的缓冲区，一个帧头由4字节的二进制整数组成，如下：
+** This function encodes a single frame header and writes it to a buffer
+** supplied by the caller. A frame-header is made up of a series of 4-byte big-endian integers, as follows:    这个结构编码单一帧头，它的作用是将其写入到由调用者提供的缓冲区，由下列组成
 **
-**     0: Page number.页数
+**     0: Page number.
 **     4: For commit records, the size of the database image in pages 
 **        after the commit. For all other records, zero.
 **     8: Salt-1 (copied from the wal-header)
@@ -698,39 +671,38 @@ static void walIndexWriteHdr(Wal *pWal)
 */
 static void walEncodeFrame(
   Wal *pWal,                      /* The write-ahead log */  预写日志
-  u32 iPage,                      /* Database page number for frame */  某一帧对应的数据库页
+  u32 iPage,                      /* Database page number for frame */  对某一帧在数据库中那一页
   u32 nTruncate,                  /* New db size (or 0 for non-commit frames) */ 新db 大小
-  u8 *aData,                      /* Pointer to page data */  指向页数据的指针
-  u8 *aFrame                      /* OUT: Write encoded frame here */写编码帧
-)
-{
-	int nativeCksum;                /* True for native byte-order checksums */ true表示校验和原始字节次序
+  u8 *aData,                      /* Pointer to page data */  指向 页数据的指针
+  u8 *aFrame                      /* OUT: Write encoded frame here */
+){
+  int nativeCksum;                /* True for native byte-order checksums */ 
   u32 *aCksum = pWal->hdr.aFrameCksum;  
   assert( WAL_FRAME_HDRSIZE==24 );           如果为假，则终止程序
   sqlite3Put4byte(&aFrame[0], iPage);
   sqlite3Put4byte(&aFrame[4], nTruncate);
-  memcpy(&aFrame[8], pWal->hdr.aSalt, 8);从pWal->hdr         所指的内存地址开始拷贝8个字节到aFrame[8]所指的内存地址中
+  memcpy(&aFrame[8], pWal->hdr.aSalt, 8);
 
-  nativeCksum = (pWal->hdr.bigEndCksum==SQLITE_BIGENDIAN);     给nativeCksum赋值，1或0
-  walChecksumBytes(nativeCksum, aFrame, 8, aCksum, aCksum);    调用 walChecksumBytes函数，对其进行校验
+  nativeCksum = (pWal->hdr.bigEndCksum==SQLITE_BIGENDIAN);
+  walChecksumBytes(nativeCksum, aFrame, 8, aCksum, aCksum);
   walChecksumBytes(nativeCksum, aData, pWal->szPage, aCksum, aCksum);
+
   sqlite3Put4byte(&aFrame[16], aCksum[0]);
   sqlite3Put4byte(&aFrame[20], aCksum[1]);
 }
 
 /*
-** Check to see if the frame with header in aFrame[] and content
+** Check to see if the frame with header in aFrame[] and content检查aFrame【】和adata[] 是否正确，如果正确，填写*piPage  pnTruncate指针return true
 ** in aData[] is valid.  If it is a valid frame, fill *piPage and
 ** *pnTruncate and return true.  Return if the frame is not valid.
-*/检查aFrame【】和adata[] 是否正确，如果正确，填写*piPage  pnTruncate指针return true
+*/
 static int walDecodeFrame(
-  Wal *pWal,                      /* The write-ahead log */ 预写日志  
+  Wal *pWal,                      /* The write-ahead log */   
   u32 *piPage,                    /* OUT: Database page number for frame */  数据库页码
-  u32 *pnTruncate,                /* OUT: New db size (or 0 if not commit) */新db大小(若未提交为0)
+  u32 *pnTruncate,                /* OUT: New db size (or 0 if not commit) */新db大小
   u8 *aData,                      /* Pointer to page data (for checksum) */ 指向页数据的指针
-  u8 *aFrame                      /* Frame data */ 结构数据
-)
-{
+  u8 *aFrame                      /* Frame data */ 框架数据
+){
   int nativeCksum;                /* True for native byte-order checksums */   检查值
   u32 *aCksum = pWal->hdr.aFrameCksum;
   u32 pgno;                       /* Page number of the frame */ 定义数据库的页码
@@ -739,39 +711,35 @@ static int walDecodeFrame(
   /* A frame is only valid if the salt values in the frame-header
   ** match the salt values in the wal-header. 
   */
-  if( memcmp(&pWal->hdr.aSalt, &aFrame[8], 8)!=0 )
-  {  如果不匹配则 返回0
+  if( memcmp(&pWal->hdr.aSalt, &aFrame[8], 8)!=0 ){  如果不匹配则 
     return 0;
   }
 
   /* A frame is only valid if the page number is creater than zero.
-  */如果页码大于0那么帧是有效的
-
+  */
   pgno = sqlite3Get4byte(&aFrame[0]);  为pgno赋值
-  if( pgno==0 )
-  {  
+  if( pgno==0 ){  为真，则
     return 0;
   }
 
   /* A frame is only valid if a checksum of the WAL header,
-  ** all prior frams, the first 16 bytes of this frame-header, 
+  ** all prior frams, the first 16 bytes of this frame-header,  好像是前16和后8个字节代表的信息
   ** and the frame-data matches the checksum in the last 8 
   ** bytes of this frame-header.
-  , aCksum, aCksum);*/wal的头部以及所有帧之前的校验和，这些帧头部前16个字节和帧数据部分与帧头的后8个字节想匹配
-  nativeCksum = (pWal->hdr.bigEndCksum==SQLITE_BIGENDIAN); 给nativeCksum赋值   
-  walChecksumBytes(nativeCksum, aFrame, 8, aCksum, aCksum);调用walChecksumBytes函数，检查
-  walChecksumBytes(nativeCksum, aData, pWal->szPage
+  */
+  nativeCksum = (pWal->hdr.bigEndCksum==SQLITE_BIGENDIAN);    ？？？ 
+  walChecksumBytes(nativeCksum, aFrame, 8, aCksum, aCksum);
+  walChecksumBytes(nativeCksum, aData, pWal->szPage, aCksum, aCksum);
   if( aCksum[0]!=sqlite3Get4byte(&aFrame[16]) 
    || aCksum[1]!=sqlite3Get4byte(&aFrame[20]) 
-  )
-  {
+  ){
     /* Checksum failed. */
-    return 0;检查和失败
+    return 0;
   }
 
   /* If we reach this point, the frame is valid.  Return the page number
-  ** and the new database size.
-  */如果 帧是有效的，返回页数和新的数据库大小
+  ** and the new database size.如果 帧是有效的，返回页数和新的数据库大小
+  */
   *piPage = pgno;
   *pnTruncate = sqlite3Get4byte(&aFrame[4]);
   return 1;
@@ -781,23 +749,16 @@ static int walDecodeFrame(
 #if defined(SQLITE_TEST) && defined(SQLITE_DEBUG)
 /*
 ** Names of locks.  This routine is used to provide debugging output and is not
-** a part of an ordinary build.  锁的名称。这个程序是用来提供调试输出，而不是一个普通版本的一部分
+** a part of an ordinary build.      获取Wal锁得命名  通过传入的参数 lockIdx 的值进行比较 返回锁名
 */
 static const char *walLockName(int lockIdx){   
-  if( lockIdx==WAL_WRITE_LOCK )
-  {   
-    return "WRITE-LOCK";    /* 返回写锁*/
-  }
-  else if( lockIdx==WAL_CKPT_LOCK )
-  {
-    return "CKPT-LOCK";  /* 返回ckpt-lock*/
-  }
-  else if( lockIdx==WAL_RECOVER_LOCK )
-  {
-    return "RECOVER-LOCK";    /*返回recover-lock*/
-  }
-  else
-  {
+  if( lockIdx==WAL_WRITE_LOCK ){   
+    return "WRITE-LOCK";
+  }else if( lockIdx==WAL_CKPT_LOCK ){
+    return "CKPT-LOCK";
+  }else if( lockIdx==WAL_RECOVER_LOCK ){
+    return "RECOVER-LOCK";
+  }else{
     static char zName[15];
     sqlite3_snprintf(sizeof(zName), zName, "READ-LOCK[%d]",
                      lockIdx-WAL_READ_LOCK(0));
@@ -808,18 +769,15 @@ static const char *walLockName(int lockIdx){
     
 
 /*
-** Set or release locks on the WAL.  Locks are either shared or exclusive.
-** A lock cannot be moved directly between shared and exclusive - it must go
+** Set or release locks on the WAL.  Locks are either shared or exclusive.设置或释放一个锁，锁可能是一个共享或排斥锁
+** A lock cannot be moved directly between shared and exclusive - it must go一个锁不能直接从共享锁移动到排斥，他必须进入解锁状态
 ** through the unlocked state first.
 **
 ** In locking_mode=EXCLUSIVE, all of these routines become no-ops.
-*/设置或释放一个锁，锁可能是一个共享或排斥锁，一个锁不能直接从共享锁移动到排斥，他必须进入解锁状态，锁为排它锁时，其它进程则不能停止等待。
-static int walLockShared(Wal *pWal, int lockIdx)
-{                       /* 加共享锁*/
-  int rc;                                                  /* 返回码*/
-  if( pWal->exclusiveMode ) 
-	  return SQLITE_OK;                    /*如果Wal在互斥模式下 ，则返回SQLITE_OK ；*/
-
+*/
+static int walLockShared(Wal *pWal, int lockIdx){                        加共享锁
+  int rc;                                                   返回码
+  if( pWal->exclusiveMode ) return SQLITE_OK;                    如果Wal在互斥模式下 ，则返回 ；
   rc = sqlite3OsShmLock(pWal->pDbFd, lockIdx, 1,
                         SQLITE_SHM_LOCK | SQLITE_SHM_SHARED);
   WALTRACE(("WAL%p: acquire SHARED-%s %s\n", pWal,
@@ -827,13 +785,13 @@ static int walLockShared(Wal *pWal, int lockIdx)
   VVA_ONLY( pWal->lockError = (u8)(rc!=SQLITE_OK && rc!=SQLITE_BUSY); )
   return rc;
 }
-static void walUnlockShared(Wal *pWal, int lockIdx){                       /*释放共享锁 */        
+static void walUnlockShared(Wal *pWal, int lockIdx){                       释放共享锁         
   if( pWal->exclusiveMode ) return;
   (void)sqlite3OsShmLock(pWal->pDbFd, lockIdx, 1,
                          SQLITE_SHM_UNLOCK | SQLITE_SHM_SHARED);
   WALTRACE(("WAL%p: release SHARED-%s\n", pWal, walLockName(lockIdx)));
 }
-static int walLockExclusive(Wal *pWal, int lockIdx, int n){       /*  加排它锁*/
+static int walLockExclusive(Wal *pWal, int lockIdx, int n){         加排它锁
   int rc;  
   if( pWal->exclusiveMode ) return SQLITE_OK;
   rc = sqlite3OsShmLock(pWal->pDbFd, lockIdx, n,
@@ -843,7 +801,7 @@ static int walLockExclusive(Wal *pWal, int lockIdx, int n){       /*  加排它�
   VVA_ONLY( pWal->lockError = (u8)(rc!=SQLITE_OK && rc!=SQLITE_BUSY); )
   return rc;
 }
-static void walUnlockExclusive(Wal *pWal, int lockIdx, int n){        /*释放排它锁*/
+static void walUnlockExclusive(Wal *pWal, int lockIdx, int n){        释放排它锁
   if( pWal->exclusiveMode ) return;
   (void)sqlite3OsShmLock(pWal->pDbFd, lockIdx, n,
                          SQLITE_SHM_UNLOCK | SQLITE_SHM_EXCLUSIVE);
@@ -855,30 +813,29 @@ static void walUnlockExclusive(Wal *pWal, int lockIdx, int n){        /*释放�
 ** Compute a hash on a page number.  The resulting hash value must land
 ** between 0 and (HASHTABLE_NSLOT-1).  The walHashNext() function advances
 ** the hash to the next value in the event of a collision.
-*/计算页码的散列。散列值必须介于0和（HASHTABLE_NSLOT-1）之间。walHashNext（）函数提出在发生冲突的情况下的下一个散列值。
-static int walHash(u32 iPage)
-{       /* 计算页面所对应的哈希值*/
-  assert( iPage>0 );                   /* 如果IPage<=0，终止程序*/
-  assert( (HASHTABLE_NSLOT & (HASHTABLE_NSLOT-1))==0 ); /*如果不等于0，终止程序*/
-  return (iPage*HASHTABLE_HASH_1) & (HASHTABLE_NSLOT-1);/*返回与页所对应的哈希值
-}*/
-static int walNextHash(int iPriorHash){    /*  发生冲突时，下一哈希值*/
+*/
+static int walHash(u32 iPage){         一个哈希值在 对应的那一页 的值
+  assert( iPage>0 );                    如果IPage>0 为假，终止程序
+  assert( (HASHTABLE_NSLOT & (HASHTABLE_NSLOT-1))==0 ); 如果不等于0则，终止程序
+  return (iPage*HASHTABLE_HASH_1) & (HASHTABLE_NSLOT-1);返回页对应的哈希值
+}
+static int walNextHash(int iPriorHash){   如果发生碰撞，
   return (iPriorHash+1)&(HASHTABLE_NSLOT-1);
 }
 
 /* 
-** Return pointers to the hash table and page number array stored on      
-** page iHash of the wal-index. The wal-index is broken into 32KB pages    
+** Return pointers to the hash table and page number array stored on      返回存储在哈希表的指针和页码数组页面iHash wal-index
+** page iHash of the wal-index. The wal-index is broken into 32KB pages     wal-index分为32 kb的页面　编号从0开始
 ** numbered starting from 0. 
-** Set output variable *paHash to point to the start of the hash table   
-** in the wal-index file. Set *piZero to one less than the frame      
-** number of the first frame indexed by this hash table. If a            　
+**
+** Set output variable *paHash to point to the start of the hash table   在wal-index文件中设置输出变量* paHash哈希表的开始
+** in the wal-index file. Set *piZero to one less than the frame        piZero设置为一个小于第一帧由这个哈希表索引
+** number of the first frame indexed by this hash table. If a            　如果一个槽在哈希表中设置为N,它指的是帧数(* piZero + N)在日志中。
 ** slot in the hash table is set to N, it refers to frame number 
 ** (*piZero+N) in the log.
-** Finally, set *paPgno so that *paPgno[1] is the page number of the     
-** first frame indexed by the hash table, frame (*piZero+1). 
-返回哈希表和页码的指针数组存储在页面iHash wal-indexWal。索引被分为32KB/页面,编号起始为0。设置输出变量* paHash开始指向wal索引文件中的哈希表。piZero设置为一个小于该散列表索引的第一帧的帧号。
-如果哈希表的位置设置为N，它是指在帧号（* piZero+ N）的日志。最后，设置* paPgno以便* paPgno[1]是通过哈希表索引的第一帧的页号，帧（* piZero+ 1）。
+**
+** Finally, set *paPgno so that *paPgno[1] is the page number of the      最后,设置* paPgno使* paPgno[1]的页码第一帧索引的哈希表,帧(* piZero + 1）
+** first frame indexed by the hash table, frame (*piZero+1).
 */
 static int walHashGet(                返回文件第i页的指针
   Wal *pWal,                      /* WAL handle */    Wal文件
@@ -886,65 +843,58 @@ static int walHashGet(                返回文件第i页的指针
   volatile ht_slot **paHash,      /* OUT: Pointer to hash index */ hash索引的指针
   volatile u32 **paPgno,          /* OUT: Pointer to page number array */页码数组的指针
   u32 *piZero                     /* OUT: Frame associated with *paPgno[0] */为*paPgno[0] 定义一个指针
-)
-{
+){
   int rc;                         /* Return code */  返回码
   volatile u32 *aPgno;              
 
-  rc = walIndexPage(pWal, iHash, &aPgno); /* 获取日志文件第i页的指针*/
-  assert( rc==SQLITE_OK || iHash>0 );	/* 判断是否成功，不成功则终止程序	*/
+  rc = walIndexPage(pWal, iHash, &aPgno);  获取日志文件第i页的指针
+  assert( rc==SQLITE_OK || iHash>0 );	 判断是否成功，不成功则终止程序	
 
-  if( rc==SQLITE_OK )
-  {                     /*如果获取成功*/
-    u32 iZero;                           /*定义 U32 的变量     */
-    volatile ht_slot *aHash;             /*定义一个 ht_slot的 指针变量*/
+  if( rc==SQLITE_OK ){                     如果获取成功
+    u32 iZero;                           定义 U32 的变量     
+    volatile ht_slot *aHash;             定义一个 ht_slot的 指针变量
 
-    aHash = (volatile ht_slot *)&aPgno[HASHTABLE_NPAGE];   /*HASHTABLE_NPAGE为4096 ，给aHash赋值*/
-    if( iHash==0 )
-	{                                           /*当Ihash 值为 0 时*/
-      aPgno = &aPgno[WALINDEX_HDR_SIZE/sizeof(u32)];        /* aPgno等值方式*/
-      iZero = 0;                                             /* IZero 为0*/
-    }
-	else
-	{                                                   /*  iHash 不为0*/
-      iZero = HASHTABLE_NPAGE_ONE + (iHash-1)*HASHTABLE_NPAGE; /*IZero 的赋值方式*/
+    aHash = (volatile ht_slot *)&aPgno[HASHTABLE_NPAGE];   HASHTABLE_NPAGE为4096 ，给aHash赋值
+    if( iHash==0 ){                                           当Ihash 值为 0 时
+      aPgno = &aPgno[WALINDEX_HDR_SIZE/sizeof(u32)];         aPgno等值方式
+      iZero = 0;                                              IZero 为0
+    }else{                                                     iHash 不为0
+      iZero = HASHTABLE_NPAGE_ONE + (iHash-1)*HASHTABLE_NPAGE; IZero 的赋值方式
     }
   
-    *paPgno = &aPgno[-1]; /* 为paPgno 赋值*/
-    *paHash = aHash;      /* 为PaHash赋值  */ 
-    *piZero = iZero;     /*  为PiZero 赋值*/
+    *paPgno = &aPgno[-1];  为paPgno 赋值
+    *paHash = aHash;       为PaHash赋值   
+    *piZero = iZero;       为PiZero 赋值
   }
-  return rc;            /* 返回 rc*/
+  return rc;             返回 rc
 }
 
 /*
 ** Return the number of the wal-index page that contains the hash-table
 ** and page-number array that contain entries corresponding to WAL frame
 ** iFrame. The wal-index is broken up into 32KB pages. Wal-index pages 
-** are numbered starting from 0.   返回包含含有对应于WAL帧的iFrame哈希表和页码数组WAL索引页的数目。Wal索引分为32KB的页面。wal索引页是从0开始编号。
+** are numbered starting from 0.                                   返回的数量wal-index页面包含哈希表和页码数组包含条目对应于WAL框架iFrame。wal-index分为32 kb的页面。Wal-index页面从0开始编号。
 */
-static int walFramePage(u32 iFrame)
-{
-  int iHash = (iFrame+HASHTABLE_NPAGE-HASHTABLE_NPAGE_ONE-1) / HASHTABLE_NPAGE; /*计算 IHash的值*/
-  assert( (iHash==0 || iFrame>HASHTABLE_NPAGE_ONE)    /* 判断是否终止程序*/
+static int walFramePage(u32 iFrame){
+  int iHash = (iFrame+HASHTABLE_NPAGE-HASHTABLE_NPAGE_ONE-1) / HASHTABLE_NPAGE; 计算 IHash的值
+  assert( (iHash==0 || iFrame>HASHTABLE_NPAGE_ONE)     判断是否终止程序
        && (iHash>=1 || iFrame<=HASHTABLE_NPAGE_ONE)
        && (iHash<=1 || iFrame>(HASHTABLE_NPAGE_ONE+HASHTABLE_NPAGE))
        && (iHash>=2 || iFrame<=HASHTABLE_NPAGE_ONE+HASHTABLE_NPAGE)
        && (iHash<=2 || iFrame>(HASHTABLE_NPAGE_ONE+2*HASHTABLE_NPAGE))
   );
-  return iHash;  /*  返回 Ihash*/
+  return iHash;    返回 Ihash
 }
 
 /*
-** Return the page number associated with frame iFrame in this WAL. 返回与wal的帧iFrame相关的页码
+** Return the page number associated with frame iFrame in this WAL. 返回与IFrame对应的 页的数
 */
-static u32 walFramePgno(Wal *pWal, u32 iFrame)
-{
-  int iHash = walFramePage(iFrame); /* 调用walFramePage函数获取与Iframe对应的 索引页第几页*/
-  if( iHash==0 ){          /* 如果Ihash为0*/
-    return pWal->apWiData[0][WALINDEX_HDR_SIZE/sizeof(u32) + iFrame - 1];  /*返回 与iFrame对在Wal中的页*/
+static u32 walFramePgno(Wal *pWal, u32 iFrame){
+  int iHash = walFramePage(iFrame);  调用walFramePage函数获取与Iframe对应的 索引页第几页
+  if( iHash==0 ){           如果Ihash为0
+    return pWal->apWiData[0][WALINDEX_HDR_SIZE/sizeof(u32) + iFrame - 1];  返回 与iFrame对在Wal中的页
   }
-  return pWal->apWiData[iHash][(iFrame-1-HASHTABLE_NPAGE_ONE)%HASHTABLE_NPAGE];/*返回 与iFrame对在Wal中的页*/
+  return pWal->apWiData[iHash][(iFrame-1-HASHTABLE_NPAGE_ONE)%HASHTABLE_NPAGE];返回 与iFrame对在Wal中的页
 }
 
 /*
@@ -959,8 +909,7 @@ static u32 walFramePgno(Wal *pWal, u32 iFrame)
 ** pWal->hdr.mxFrame advances to the point where those hash tables are
 ** actually needed.最多只包含pWal - > hdr.mxFrame需要更新。任何后来哈希表时将自动清除 pWal - > hdr.mxFrame进步,这些哈希表实际需要。
 */
-static void walCleanupHash(Wal *pWal)
-{
+static void walCleanupHash(Wal *pWal){
   volatile ht_slot *aHash = 0;    /* Pointer to hash table to clear */指向要删除的指针
   volatile u32 *aPgno = 0;        /* Page number array for hash table */页码为哈希表数组
   u32 iZero = 0;                  /* frame == (aHash[x]+iZero) */
@@ -968,52 +917,50 @@ static void walCleanupHash(Wal *pWal)
   int nByte;                      /* Number of bytes to zero in aPgno[] */
   int i;                          /* Used to iterate through aHash[] */ 变量用于循环
 
-  assert( pWal->writeLock ); /*看Wal在写事务中，在的话 终止程序*/
-  testcase( pWal->hdr.mxFrame==HASHTABLE_NPAGE_ONE-1 );/*调用testcase（）函数 测试评估*/
-  testcase( pWal->hdr.mxFrame==HASHTABLE_NPAGE_ONE );/*调用testcase（）函数 测试评估*/
-  testcase( pWal->hdr.mxFrame==HASHTABLE_NPAGE_ONE+1 );/*调用testcase（）函数 测试评估*/
+  assert( pWal->writeLock ); 看Wal在写事务中，在的话 终止程序
+  testcase( pWal->hdr.mxFrame==HASHTABLE_NPAGE_ONE-1 );调用testcase（）函数 测试评估
+  testcase( pWal->hdr.mxFrame==HASHTABLE_NPAGE_ONE );调用testcase（）函数 测试评估
+  testcase( pWal->hdr.mxFrame==HASHTABLE_NPAGE_ONE+1 );调用testcase（）函数 测试评估
 
-  if( pWal->hdr.mxFrame==0 ) return;   /*如果索引值为0 ，则返回空*/
+  if( pWal->hdr.mxFrame==0 ) return;   如果索引值为0 ，则返回空
 
   /* Obtain pointers to the hash-table and page-number array containing 
   ** the entry that corresponds to frame pWal->hdr.mxFrame. It is guaranteed
   ** that the page said hash-table and array reside on is already mapped.获取包含哈希表和页码的指针数组的条目对应帧pWal - > hdr.mxFrame。这是保证页面说哈希表和数组驻留在已经映射。
   */
-  assert( pWal->nWiData>walFramePage(pWal->hdr.mxFrame) ); /*判断是否终止程序*/
-  assert( pWal->apWiData[walFramePage(pWal->hdr.mxFrame)] );/*判断是否终止程序*/
+  assert( pWal->nWiData>walFramePage(pWal->hdr.mxFrame) ); 判断是否终止程序
+  assert( pWal->apWiData[walFramePage(pWal->hdr.mxFrame)] );判断是否终止程序
   walHashGet(pWal, walFramePage(pWal->hdr.mxFrame), &aHash, &aPgno, &iZero);
 
   /* Zero all hash-table entries that correspond to frame numbers greater
   ** than pWal->hdr.mxFrame.
   */
-  iLimit = pWal->hdr.mxFrame - iZero; /*获取ilimit值*/
-  assert( iLimit>0 );            /*如果 ilimit 小于0 则程序终止*/
-  for(i=0; i<HASHTABLE_NSLOT; i++)
-  { 对aHash进行遍历，
-    if( aHash[i]>iLimit )
-	{           /* 如果hash值超过限制 ，*/
-      aHash[i] = 0;                      /* 则将其 赋值为0*/
+  iLimit = pWal->hdr.mxFrame - iZero; 获取ilimit值
+  assert( iLimit>0 );            如果 ilimit 小于0 则程序终止
+  for(i=0; i<HASHTABLE_NSLOT; i++){ 对aHash进行遍历，
+    if( aHash[i]>iLimit ){            如果hash值超过限制 ，
+      aHash[i] = 0;                       则将其 赋值为0
     }
   }
   
   /* Zero the entries in the aPgno array that correspond to frames with
   ** frame numbers greater than pWal->hdr.mxFrame. 
   */
-  nByte = (int)((char *)aHash - (char *)&aPgno[iLimit+1]);/* 获取 nByte 的值*/
-  memset((void *)&aPgno[iLimit+1], 0, nByte);         /* 为 aPgno分配内存*/
+  nByte = (int)((char *)aHash - (char *)&aPgno[iLimit+1]); 获取 nByte 的值
+  memset((void *)&aPgno[iLimit+1], 0, nByte);          为 aPgno分配内存
 
 #ifdef SQLITE_ENABLE_EXPENSIVE_ASSERT
   /* Verify that the every entry in the mapping region is still reachable
   ** via the hash table even after the cleanup. 确保每一个映射区域 可以通过映射达到
   */
-  if( iLimit ){               /* 如果 Ilimit 不为0*/
+  if( iLimit ){                如果 Ilimit 不为0
     int i;           /* Loop counter */ 循环计数
     int iKey;        /* Hash key */    哈希键
-    for(i=1; i<=iLimit; i++){             /* 循环*/
-      for(iKey=walHash(aPgno[i]); aHash[iKey]; iKey=walNextHash(iKey)){/* 获取IKey的值，判断aHash是否为空，获取下一个hash值*/
-        if( aHash[iKey]==i ) break;  /*如果aHash的值与下标相同 则跳出循环*/
+    for(i=1; i<=iLimit; i++){              循环
+      for(iKey=walHash(aPgno[i]); aHash[iKey]; iKey=walNextHash(iKey)){ 获取IKey的值，判断aHash是否为空，获取下一个hash值
+        if( aHash[iKey]==i ) break;  如果aHash的值与下标相同 则跳出循环
       }
-      assert( aHash[iKey]==i );      /* 如果aHash的值与下标不相同，则终止程序*/
+      assert( aHash[iKey]==i );       如果aHash的值与下标不相同，则终止程序
     }
   }
 #endif /* SQLITE_ENABLE_EXPENSIVE_ASSERT */
@@ -1024,8 +971,7 @@ static void walCleanupHash(Wal *pWal)
 ** Set an entry in the wal-index that will map database page number
 ** pPage into WAL frame iFrame.       在Wal-index设置一个标记作为 可以将 数据页码映射到 Wal帧中的第iFrame
 */
-static int walIndexAppend(Wal *pWal, u32 iFrame, u32 iPage)
-{
+static int walIndexAppend(Wal *pWal, u32 iFrame, u32 iPage){
   int rc;                         /* Return code */ 返回码
   u32 iZero = 0;                  /* One less than frame number of aPgno[1] */ 小于aPgno【1】的帧号
   volatile u32 *aPgno = 0;        /* Page number array */ 变量 数组页码
@@ -1036,22 +982,20 @@ static int walIndexAppend(Wal *pWal, u32 iFrame, u32 iPage)
   /* Assuming the wal-index file was successfully mapped, populate the
   ** page number array and hash table entry.
   */
-  if( rc==SQLITE_OK )
-  {                 /*  如果调用函数成功 */
+  if( rc==SQLITE_OK ){                   如果调用函数成功 
     int iKey;                     /* Hash table key */  哈希键
     int idx;                      /* Value to write to hash-table slot */ 写入hash槽的值
     int nCollide;                 /* Number of hash collisions */ 哈希碰撞数目
 
-    idx = iFrame - iZero;     /*  求 idx的值   */                
-    assert( idx <= HASHTABLE_NSLOT/2 + 1 ); /* 终止程序*/
+    idx = iFrame - iZero;       求 idx的值                   
+    assert( idx <= HASHTABLE_NSLOT/2 + 1 );  终止程序
     
     /* If this is the first entry to be added to this hash-table, zero the
     ** entire hash table and aPgno[] array before proceding. 
     */
-    if( idx==1 )
-	{ 
+    if( idx==1 ){ 
       int nByte = (int)((u8 *)&aHash[HASHTABLE_NSLOT] - (u8 *)&aPgno[1]);
-      memset((void*)&aPgno[1], 0, nByte);   /* 为aPgno分配内存，并初始化为0*/
+      memset((void*)&aPgno[1], 0, nByte);    为aPgno分配内存，并初始化为0
     }
 
     /* If the entry in aPgno[] is already set, then the previous writer
@@ -1059,35 +1003,28 @@ static int walIndexAppend(Wal *pWal, u32 iFrame, u32 iPage)
     ** writing one or more dirty pages to the WAL to free up memory). 
     ** Remove the remnants of that writers uncommitted transaction from 
     ** the hash-table before writing any new entries.
-	如果aPgno[]进入已经设定，那么以前的写必须有意外的事务处理过程中退出（写入一个或多个脏页WAL以释放内存后）。写任何新项目前，应先从哈希表移除未提交的写事务
     */
-    if( aPgno[idx] )
-	{            aPgno[idx] 不为0
+    if( aPgno[idx] ){            aPgno[idx] 不为0
       walCleanupHash(pWal);
-      assert( !aPgno[idx] );         /*终止程序*/
+      assert( !aPgno[idx] );         终止程序
     }
 
     /* Write the aPgno[] array entry and the hash-table slot. */ 
-    nCollide = idx;      /* 为nCollide 赋值*/
-    for(iKey=walHash(iPage); aHash[iKey]; iKey=walNextHash(iKey))
-	{ 获取ikey值，判段aHash 
-      if( (nCollide--)==0 )
-		  return SQLITE_CORRUPT_BKPT;  /*如果碰撞数为0 则返回 SQLITE_CORRUPT_BKPT*/
+    nCollide = idx;       为nCollide 赋值
+    for(iKey=walHash(iPage); aHash[iKey]; iKey=walNextHash(iKey)){ 获取ikey值，判段aHash 
+      if( (nCollide--)==0 ) return SQLITE_CORRUPT_BKPT;  如果碰撞数为0 则返回 SQLITE_CORRUPT_BKPT
     }
-    aPgno[idx] = iPage;       /* 为apgno[] 赋值*/
-    aHash[iKey] = (ht_slot)idx; /* 第ikey的hash值为 idx*/
+    aPgno[idx] = iPage;        为apgno[] 赋值
+    aHash[iKey] = (ht_slot)idx;  第ikey的hash值为 idx
 
 #ifdef SQLITE_ENABLE_EXPENSIVE_ASSERT
     /* Verify that the number of entries in the hash table exactly equals
-    ** the number of entries in the mapping region. 确保 hash 表的入口和 映射区域的入口的数目相同*/
+    ** the number of entries in the mapping region. 确保 hash 表的入口和 映射区域的入口的数目相同
     {
       int i;           /* Loop counter */ 循环计数
       int nEntry = 0;  /* Number of entries in the hash table */ 入口数目为0
-      for(i=0; i<HASHTABLE_NSLOT; i++)
-	  { 
-		  if( aHash[i] ) nEntry++;
-	  }/* 进行循环*/
-      assert( nEntry==idx );  /*  终止程序*/
+      for(i=0; i<HASHTABLE_NSLOT; i++){ if( aHash[i] ) nEntry++; } 进行循环
+      assert( nEntry==idx );    终止程序
     }
 
     /* Verify that the every entry in the mapping region is reachable
@@ -1095,16 +1032,13 @@ static int walIndexAppend(Wal *pWal, u32 iFrame, u32 iPage)
     ** thing to check, so only do this occasionally - not on every
     ** iteration.　验证每个条目映射区域是可获得的通过哈希表这被证明是一个非常非常昂贵要检查,所以只是偶尔这样做——而不是在每一个迭代。
     */
-    if( (idx&0x3ff)==0 )
-	{  
+    if( (idx&0x3ff)==0 ){  
       int i;           /* Loop counter */ 循环变量
-      for(i=1; i<=idx; i++)
-	  { /*   对idex进行遍历*/
-        for(iKey=walHash(aPgno[i]); aHash[iKey]; iKey=walNextHash(iKey))
-		{
+      for(i=1; i<=idx; i++){    对idex进行遍历
+        for(iKey=walHash(aPgno[i]); aHash[iKey]; iKey=walNextHash(iKey)){
           if( aHash[iKey]==i ) break;
         }
-        assert( aHash[iKey]==i ); /*终止程序*/
+        assert( aHash[iKey]==i ); 终止程序
       }
     }
 #endif /* SQLITE_ENABLE_EXPENSIVE_ASSERT */
@@ -2092,6 +2026,7 @@ static int walIndexReadHdr(Wal *pWal, int *pChanged){
 ** This is the value that walTryBeginRead returns when it needs to
 ** be retried. 
 */
+////*这是当 walTryBeginRead需要重试时返回的值。
 #define WAL_RETRY  (-1)
 
 /*
@@ -2102,16 +2037,25 @@ static int walIndexReadHdr(Wal *pWal, int *pChanged){
 ** On success return SQLITE_OK.  On a permanent failure (such an
 ** I/O error or an SQLITE_BUSY because another process is running
 ** recovery) return a positive error code.
-**　成功返回SQLITE_OK。(这样一个永久失败I / O错误或SQLITE_BUSY因为另一个进程正在运行恢复)返回一个正误差。
+** 在永久性故障（如I/O错误或sqlite_busy，因为另一个进程正在运行恢复）返回一个正的错误代码。
 ** The useWal parameter is true to force the use of the WAL and disable
 ** the case where the WAL is bypassed because it has been completely
 ** checkpointed.  If useWal==0 then this routine calls walIndexReadHdr() 
-** to make a copy of the wal-index header into pWal->hdr.  If the 
-** wal-index header has changed, *pChanged is set to 1 (as an indication 
+** to make a copy of the wal-index header into pWal->hdr. 
+////* 为了强制使用WAL并且使忽略WAL这种情况不发生，useWal参数被设置为真，因为他已经被完全检查过。
+////  如果 useWal==0，为了使wal-index的头部复制给pWal->hdr，就调用walIndexReadHdr() 。（为了使pWal->hdr=wal-index的头部）
+*/
+** If the wal-index header has changed, *pChanged is set to 1 (as an indication 
 ** to the caller that the local paget cache is obsolete and needs to be 
 ** flushed.)  When useWal==1, the wal-index header is assumed to already
 ** be loaded and the pChanged parameter is unused.
-**useWal参数是真的强迫使用WAL和禁用的WAL忽略,因为它已经完全设置检查点。如果useWal = = 0,这个例程调用walIndexReadHdr()复制wal-index头到pWal - > hdr。如果wal-index头已经改变,pChanged设置为1(就像一个想法给调用者,当地的佩吉特缓存过时的和需要刷新)。useWal = = 1时,wal-index头已经假定被加载和pChanged参数是未使用的。
+////* 如果wal-index的头部已经改变，则设置*pChanged=1（用来指示调用者当前缓冲区已经陈旧需要冲掉）。
+///// 当useWal==1，wal-index的头部已经被加载，并且pChanged参数没被使用。
+*/
+**useWal参数是真的强迫使用WAL和禁用的WAL忽略,因为它已经完全设置检查点。
+如果useWal = = 0,这个例程调用walIndexReadHdr()复制wal-index头到pWal - > hdr。
+如果wal-index头已经改变,pChanged设置为1(就像一个想法给调用者,当地的佩吉特缓存过时的和需要刷新)。
+useWal = = 1时,wal-index头已经假定被加载和pChanged参数是未使用的。
 ** The caller must set the cnt parameter to the number of prior calls to
 ** this routine during the current read attempt that returned WAL_RETRY.
 ** This routine will start taking more aggressive measures to clear the
@@ -2123,6 +2067,8 @@ static int walIndexReadHdr(Wal *pWal, int *pChanged){
 ** bad luck when there is lots of contention for the wal-index, but that
 ** possibility is so small that it can be safely neglected, we believe.
 **
+////*当当前的读尝试返回WAL_RETRY使，调用者为该程序将参数cnt设为之前调用的数量。
+//// 
 ** On success, this routine obtains a read lock on 
 ** WAL_READ_LOCK(pWal->readLock).  The pWal->readLock integer is
 ** in the range 0 <= pWal->readLock < WAL_NREADER.  If pWal->readLock==(-1)
@@ -2137,12 +2083,24 @@ static int walIndexReadHdr(Wal *pWal, int *pChanged){
 ** When the read transaction is completed, the caller must release the
 ** lock on WAL_READ_LOCK(pWal->readLock) and set pWal->readLock to -1.
 **
+////*如果成功，这个程序从 WAL_READ_LOCK(pWal->readLock)获得一个读锁。
+////  pWal->readLock的取值范围是：0 <= pWal->readLock < WAL_NREADER。
+//// 如果 pWal->readLock==(-1)，说明Wal没有任何读锁。
+//// 访问者一定不能访问任何被WAL架构修改的数据库页并且。
+//// 如果pWal->readLock>0或pWal->readLock==0，访问者将使用WAL架构并且包含pWal->hdr.mxFrame，否则访问者将完全忽视
+//// WAL并且直接从数据库文件获取内容。
+//// 如果useWal==1，WAL将不会被忽视，并程序总是使pWal->readLock>0。
+//// 当读事务完成时，调用者必须释放在 WAL_READ_LOCK(pWal->readLock)上的锁，并且设置pWal->readLock=-1.
+*/
 ** This routine uses the nBackfill and aReadMark[] fields of the header
 ** to select a particular WAL_READ_LOCK() that strives to let the
 ** checkpoint process do as much work as possible.  This routine might
 ** update values of the aReadMark[] array in the header, but if it does
 ** so it takes care to hold an exclusive lock on the corresponding
 ** WAL_READ_LOCK() while changing values.
+*/
+////* 这个程序使用头的nBackfill 和 aReadMark[]领域来选择一个特殊的WAL_READ_LOCK()，以至于使检查程序做尽量多的工作。
+//// 这个程序可能更新在头部的aReadMark[]数组的值，但是如果它真的要改变值，则它必须在相关的WAL_READ_LOCK()上持有排斥锁以便改变值。
 */
 static int walTryBeginRead(Wal *pWal, int *pChanged, int useWal, int cnt){
   volatile WalCkptInfo *pInfo;    /* Checkpoint information in wal-index */ 检查值
@@ -2323,23 +2281,34 @@ static int walTryBeginRead(Wal *pWal, int *pChanged, int useWal, int cnt){
 ** Begin a read transaction on the database. 在数据库开始一个读事务
 **
 ** This routine used to be called sqlite3OpenSnapshot() and with good reason:
-** it takes a snapshot of the state of the WAL and wal-index for the current
-** instant in time.  The current thread will continue to use this snapshot.
+** it takes a snapshot（快照） of the state of the WAL and wal-index for the current
+** instant（立即的；紧急的；紧迫的） in time（及时）.  The current thread will continue to use this snapshot.
 ** Other threads might append new content to the WAL and wal-index but
-** that extra content is ignored by the current thread.这个程序通常被SQLite3OpenSnapshot（）函数调用，原因：需要的快照WAL和wal-index当前的即时状态，当前线程继续使用抓拍技术。其他的线程可能添加新的内容到Wal和Wal-index，但当前线程不考虑它。
+** that extra content is ignored by the current thread.这个程序通常被SQLite3OpenSnapshot（）函数调用，
+原因：需要的快照WAL和wal-index当前的即时状态，当前线程继续使用抓拍技术。
+其他的线程可能添加新的内容到Wal和Wal-index，但当前线程不考虑它。
 **
 ** If the database contents have changes since the previous read
 ** transaction, then *pChanged is set to 1 before returning.  The
 ** Pager layer will use this to know that is cache is stale and
 ** needs to be flushed.　如果数据库内容变化这是由于从以前读事务,然后*pChanged返回之前被设置为1。要刷新。
 */
+
+/////*在数据库开始一个读事务。
+///// 这个程序过去被叫做sqlite3OpenSnapshot()，并且有好的理由：
+///// 它及时地为当前的紧迫的预写式日志(WAL)和预写式日志索引(WAL-index)的状态做下快照。
+///// 当前的线程会继续使用这个快照。
+///// 其他线程可能会为WAL 和 wal-index添加内容，但是当前线程将会忽略额外的内容。
+///// 如果由于之前的读事务使得数据库内容发生了改变，则在返回之前，*pChanged被设置为1.
+///// 页管理层使用此知道缓存已失效并且需要被冲掉。
+*/
 int sqlite3WalBeginReadTransaction(Wal *pWal, int *pChanged){
   int rc;                         /* Return code */ 返回码
-  int cnt = 0;                    /* Number of TryBeginRead attempts */ 重新读 的次数
+  int cnt = 0;                    /* Number of TryBeginRead attempts */ 重新TryBeginRead的次数
 
   do{
-    rc = walTryBeginRead(pWal, pChanged, 0, ++cnt);  调用函数
-  }while( rc==WAL_RETRY ); 当 读取成功
+    rc = walTryBeginRead(pWal, pChanged, 0, ++cnt);  ////wal开始读，成功返回一个SQLITE_OK，失败就返回WAL_RETRY，并立即重试。
+  }while( rc==WAL_RETRY ); ////当读取失败，则什么也不做
   testcase( (rc&0xff)==SQLITE_BUSY );测试函数
   testcase( (rc&0xff)==SQLITE_IOERR );测试函数
   testcase( rc==SQLITE_PROTOCOL );测试函数
@@ -2350,6 +2319,8 @@ int sqlite3WalBeginReadTransaction(Wal *pWal, int *pChanged){
 /*
 ** Finish with a read transaction.  All this does is release the
 ** read-lock. 当完成读事务后  释放 read-lock
+*/
+////* 当完成一个事务后，要做的事就是释放读锁。
 */
 void sqlite3WalEndReadTransaction(Wal *pWal){
   sqlite3WalEndWriteTransaction(pWal); 调用结束写事务
@@ -2363,20 +2334,24 @@ void sqlite3WalEndReadTransaction(Wal *pWal){
 ** Read a page from the WAL, if it is present in the WAL and if the 
 ** current read transaction is configured to use the WAL.  从在身读取一个页面,如果它存在于WAL如果当前读事务配置使用Wal
 ** 
+////*如果一个页在WAL中，并且当前的读事务被设置来使用WAL，则从预写式日志(WAL)中读取一个页。
+*/
 ** The *pInWal is set to 1 if the requested page is in the WAL and          
 ** has been loaded.  Or *pInWal is set to 0 if the page was not in 
 ** the WAL and needs to be read out of the database.*pInWal 赋值为1  当需要的page 在Wal中，且已被加载， 赋值为0 ，如果 不在wal中，需要充数据库中加载
 */
+////*如果被访问的页存在于WAL中，并且已经被加载，则使*pInWal=1.
+*/
 int sqlite3WalRead(
-  Wal *pWal,                      /* WAL handle */ 第一指针
-  Pgno pgno,                      /* Database page number to read data for */ 数据页号
-  int *pInWal,                    /* OUT: True if data is read from WAL */ 数据是充Wal中读取则为真
-  int nOut,                       /* Size of buffer pOut in bytes */ 输出字节流的大小  字节为单位
+  Wal *pWal,                      /* WAL handle */ 第一指针////WAL的头指针
+  Pgno pgno,                      /* Database page number to read data for */ 数据页号////要读取的数据的数据库页号
+  int *pInWal,                    /* OUT: True if data is read from WAL */ 数据是充Wal中读取则为真////输出：如果数据是从WAL中读取，则*pInWal为真
+  int nOut,                       /* Size of buffer pOut in bytes */ 输出字节流的大小  字节为单位////输出的字节缓冲区的大小
   u8 *pOut                        /* Buffer to write page data to */写数据的缓冲区
 ){
   u32 iRead = 0;                  /* If !=0, WAL frame to return data from */
-  u32 iLast = pWal->hdr.mxFrame;  /* Last page in WAL for this reader */Wal 最新页
-  int iHash;                      /* Used to loop through N hash tables */  哈希表
+  u32 iLast = pWal->hdr.mxFrame;  /* Last page in WAL for this reader */Wal 最新页////如果不为0，则WAL框架为读取者从WAL的最后一页返回数据。
+  int iHash;                      /* Used to loop through N hash tables */  哈希表////通过N哈希表执行循环
 
   /* This routine is only be called from within a read transaction. */ 只能被读事务所调用
   assert( pWal->readLock>=0 || pWal->lockError );  判断是否终止程序
@@ -2387,6 +2362,10 @@ int sqlite3WalRead(
   ** then the WAL is ignored by the reader so return early, as if the 
   ** WAL were empty.如果wal-index头的“最后一页”字段快照为0,任何情况下没有数据将从Wal读取。同样的，如果 pWal->readLock为0，然后被读者忽略,好像WAL是空的
   */
+////* 如果wal-index头部快照的“最后一页”为0，则在任何环境下都不会有数据从wal中被读取。
+////  在这种情况下作为最优性提前返回。
+////  同样，如果 pWal->readLock==0，WAL被读取这忽视，就像WAL为空，被提前返回。
+*/
   if( iLast==0 || pWal->readLock==0 ){ 如果ILast或readLock为0
     *pInWal = 0;  数据不是从wal 来 所以为假
     return SQLITE_OK; 返回ok
@@ -2396,6 +2375,9 @@ int sqlite3WalRead(
   ** pgno. Each iteration of the following for() loop searches one
   ** hash table (each hash table indexes up to HASHTABLE_NPAGE frames).
   ** 搜索哈希表搜索一个和页码相匹配的条目， 每一次迭代 都是搜索一表
+////*在哈希表或表中搜索与pgno（要访问的页号）匹配的页。
+////下面的for循环每一次迭代搜索一个哈希表（每一个哈希表索引在HASHTABLE_NPAGE架构中）。
+*/
   ** This code might run concurrently to the code in walIndexAppend()
   ** that adds entries to the wal-index (and possibly to this hash 
   ** table). This means the value just read from the hash 
@@ -2406,6 +2388,11 @@ int sqlite3WalRead(
   ** that any slots written before the current read transaction was
   ** opened remain unmodified.
   **
+////*这些代码可能同时运行在walIndexAppend()中会给wal-index添加条目（可能也会给哈希表添加）的代码。
+//// 这意味着刚从哈希表中读的值可能在当前读事务被开始前或后被添加。
+//// 在当前读事务被开始后加入的值可能已经被错误写入，即：这些条目可能包含垃圾数据。
+//// 然而，我们假设，当前读事务被开始前被写入的条目是不被更改的。
+*/
   ** For the reasons above, the if(...) condition featured in the inner
   ** loop of the following block is more stringent that would be required 
   ** if we had exclusive access to the hash-table:
@@ -2417,6 +2404,7 @@ int sqlite3WalRead(
   **     This condition filters out entries that were added to the hash
   **     table after the current read-transaction had started.
   */
+////*由于以上原因，
   for(iHash=walFramePage(iLast); iHash>=0 && iRead==0; iHash--){ 获取最新页所对应的hash值 
     volatile ht_slot *aHash;      /* Pointer to hash table */ 哈希表的指针
     volatile u32 *aPgno;          /* Pointer to array of page numbers */ 页码的指针
@@ -2434,7 +2422,7 @@ int sqlite3WalRead(
       u32 iFrame = aHash[iKey] + iZero;        计算获取 IFrame
       if( iFrame<=iLast && aPgno[aHash[iKey]]==pgno ){  如果IFrame小于Ilast且 为真
         /* assert( iFrame>iRead ); -- not true if there is corruption */
-        iRead = iFrame; 
+        iRead = iFrame;  
       }
       if( (nCollide--)==0 ){  如果hash碰撞为0了
         return SQLITE_CORRUPT_BKPT; 返回
@@ -2446,12 +2434,15 @@ int sqlite3WalRead(
   /* If expensive assert() statements are available, do a linear search
   ** of the wal-index file content. Make sure the results agree with the
   ** result obtained using the hash indexes above.  */如果昂贵的assert()语句可以使用,进行线性搜索wal-index文件的内容。确保结果同意结果上面使用的散列索引
-  {
+ ////*如果昂贵的assert()语句可以使用,进行线性搜索wal-index文件的内容。
+//// 确保该结果与上面使用哈希索引获得的结果一致。
+*/
+ {
     u32 iRead2 = 0;
     u32 iTest; 
     for(iTest=iLast; iTest>0; iTest--){  循环iLast 
-      if( walFramePgno(pWal, iTest)==pgno ){  如果 查询到与贫雇农相匹配的 
-        iRead2 = iTest;
+      if( walFramePgno(pWal, iTest)==pgno ){  ////如果找到相应的页 
+        iRead2 = iTest;////取得数据页在wal中的索引
         break;                                 则 跳出循环
       }
     }
@@ -2462,6 +2453,9 @@ int sqlite3WalRead(
   /* If iRead is non-zero, then it is the log frame number that contains the
   ** required page. Read and return data from the log file.如果iRead非0,那么它就是日志框架包含数量所需的页面。从日志文件中读取并返回数据
   */
+////*如果iRead非0,那么它就是包含所要访问页的日志框架的编号。
+////从日志文件中读取并返回数据
+*/
   if( iRead ){  如果非空
     int sz;    
     i64 iOffset; 
@@ -2481,7 +2475,7 @@ int sqlite3WalRead(
 
 
 /* 
-** Return the size of the database in pages (or zero, if unknown).
+** Return the size of the database in pages (or zero, if unknown).////以页为单位返回数据库的长度（或者当不知道时为0）
 */
 Pgno sqlite3WalDbsize(Wal *pWal){ 获取数据库大小，页为单位
   if( pWal && ALWAYS(pWal->readLock>=0) ){
@@ -2503,21 +2497,28 @@ Pgno sqlite3WalDbsize(Wal *pWal){ 获取数据库大小，页为单位
 ** returns SQLITE_BUSY in that case and no write transaction is started.如果另一个线程或进程写入数据库读事务开始,那么它是不可能的线程写这样做将导致一个叉。所以这个例程返回SQLITE_BUSY在这种情况下,没有写事务开始。
 ** There can only be a single writer active at a time.同一时间内只能进行一个写
 */
+////* 在WAL中开始一个写事务
+//// 一个读事务必须通过优先调用sqlite3WalBeginReadTransaction()来开始。
+//// 如果这个读事务开始后，另一个线程或进程已经往数据库中写入了数据，那么该线程不可能执行写操作，因为会导致冲突。
+//// 因此，在这种情况下该程序会返回一个SQLITE_BUSY并且没有些食物被开始。
+//// 同一时间内只能进行一个写操作。
+*/
 int sqlite3WalBeginWriteTransaction(Wal *pWal){
   int rc; 
 
   /* Cannot start a write transaction without first holding a read
-  ** transaction. */ 写事务开启前必须读事务在运行
+  ** transaction. */ 写事务开启前必须有读事务在运行
   assert( pWal->readLock>=0 ); 如果有锁
 
-  if( pWal->readOnly ){ 如果不是只读
+  if( pWal->readOnly ){ 如果不是只读////如果只读
     return SQLITE_READONLY;返回
   }
 
   /* Only one writer allowed at a time.  Get the write lock.  Return
   ** SQLITE_BUSY if unable. 同一时间内只能进行一个写，获取写锁。返回SQlote_busy 如果不能的话
   */
-  rc = walLockExclusive(pWal, WAL_WRITE_LOCK, 1); 加锁
+////* 同一时间内只能进行一个写。获取写锁。如果不能获得写锁，则返回SQlote_busy 。
+  rc = walLockExclusive(pWal, WAL_WRITE_LOCK, 1); 加锁////获取排斥锁
   if( rc ){
     return rc;
   }
@@ -2527,6 +2528,8 @@ int sqlite3WalBeginWriteTransaction(Wal *pWal){
   ** time the read transaction on this connection was started, then
   ** the write is disallowed.如果另一个连接后写入数据库文件时间读事务开始在这个连接,那么写无效
   */
+////* 如果另一个连接已经写入数据库文件而此时在这个连接上的读事务已经开始了，那么写是不被允许的。
+*/
   if( memcmp(&pWal->hdr, (void *)walIndexHdr(pWal), sizeof(WalIndexHdr))!=0 ){ 比较前sizeof(WalIndexHdr)字节
     walUnlockExclusive(pWal, WAL_WRITE_LOCK, 1); 解锁
     pWal->writeLock = 0; 更该它的值
@@ -2538,7 +2541,7 @@ int sqlite3WalBeginWriteTransaction(Wal *pWal){
 
 /*
 ** End a write transaction.  The commit has already been done.  This
-** routine merely releases the lock.写事务结束。提交已经完成。这程序是释放锁
+** routine merely releases the lock.写事务结束。提交已经完成。这程序只是释放锁
 */
 int sqlite3WalEndWriteTransaction(Wal *pWal){
   if( pWal->writeLock ){  如果WAL有锁
@@ -2561,6 +2564,11 @@ int sqlite3WalEndWriteTransaction(Wal *pWal){
 ** Otherwise, if the callback function does not return an error, this
 ** function returns SQLITE_OK.否则,如果回调函数不返回一个错误,这一点函数返回SQLITE_OK
 */
+////*如果有任何数据已经被写到日志文件(但还没提交),这个函数移动写指针回到事务开始处。
+//// 此外，回调函数被唤醒，直到到达WAL中该事物开始的地方。
+//// 如果回调函数返回的不是SQLITE_OK，则它将不会在被唤醒并返回错误码给调用者。
+//// 否则，如果没有返回任何错误吗，则返回SQLITE_OK。
+*/
 int sqlite3WalUndo(Wal *pWal, int (*xUndo)(void *, Pgno), void *pUndoCtx){
   int rc = SQLITE_OK;
   if( ALWAYS(pWal->writeLock) ){ 如果pWal->writeLock是否为真， 
@@ -2581,7 +2589,9 @@ int sqlite3WalUndo(Wal *pWal, int (*xUndo)(void *, Pgno), void *pUndoCtx){
       ** (b) has an outstanding reference, then xUndo is either a no-op
       ** (if (a) is false) or simply expels the page from the cache (if (b)
       ** is false).
-**　这调用不能失败。除非页码的页面作为在缓存中第二个参数传递的是(a)和(b)有一个明显的的引用,然后xUndo要么是无为法(如果(a)是假的)或从缓存中排出一些页(如果(b) 　　是假的)。
+**　这调用不能失败。除非页码的页面作为在缓存中第二个参数传递的是(a)和(b)有一个明显的的引用,然后xUndo要么是无为法(如果(a)是假的)或从缓存中排出一些页(如果(b)是假的)。
+/////*这个回调不会失败。除非当第二个参数a存在于缓冲区并且b被调用时这个页的页码已经被通过，那么xUndo要么是一个空操作（如果a是错的）
+///// 要么从缓冲区讲该页冲掉（如果b是错的）。
       ** If the upper layer is doing a rollback, it is guaranteed that there
       ** are no outstanding references to any page other than page 1. And
       ** page 1 is never written to the log until the transaction is
@@ -2602,6 +2612,8 @@ int sqlite3WalUndo(Wal *pWal, int (*xUndo)(void *, Pgno), void *pUndoCtx){
 ** "rollback" the write position of the WAL handle back to the current 
 ** point in the event of a savepoint rollback (via WalSavepointUndo()).
 */ 参数aWalData 必须 指向WAL_SAVEPOINT_NDATA 数组，为u32。
+////* 参数aWalData 必须 指向WAL_SAVEPOINT_NDATA 数组，为u32。
+////  这个函数给数组赋值，要求将回滚的WAL的写位置给在回滚事件中的当前指针。(经由 WalSavepointUndo())。
 void sqlite3WalSavepoint(Wal *pWal, u32 *aWalData){
   assert( pWal->writeLock ); 如果Wal中有锁
   aWalData[0] = pWal->hdr.mxFrame; 为awaldata的数组赋值
@@ -2616,6 +2628,9 @@ void sqlite3WalSavepoint(Wal *pWal, u32 *aWalData){
 ** of WAL_SAVEPOINT_NDATA u32 values that has been previously populated
 ** by a call to WalSavepoint().
 */将写入位置移回到保存点位置。
+/////*通过aWalData[] 数组中的值将WAL的写指针给指针证实。
+///// 是sqlite3WalSavepoint的逆过程。
+*/
 int sqlite3WalSavepointUndo(Wal *pWal, u32 *aWalData){
   int rc = SQLITE_OK; 先令rc赋值为ok
 
@@ -2654,6 +2669,10 @@ int sqlite3WalSavepointUndo(Wal *pWal, u32 *aWalData){
 ** or not pWal->hdr.mxFrame is modified). An SQLite error code is returned
 ** if an error occurs.成功返回，出错返回
 */
+////*在写一组帧到日志文件之前调用该函数。
+//// 它检查是否用新的frame（框架或帧）重写日志文件的开头部分，而不是给当前日志文件添加帧。
+//// 如果是，则设置pWal->hdr.mxFrame=0.否则，pWal->hdr.mxFrame不被改变。
+*/
 static int walRestartLog(Wal *pWal){
   int rc = SQLITE_OK; 
   int cnt; 重新读的次数
@@ -2676,6 +2695,11 @@ static int walRestartLog(Wal *pWal){
         ** safe and means there is no special case for sqlite3WalUndo()
         ** to handle if this transaction is rolled back. 理论上说可以成功进行更新，
         */
+/////* 如果所有的访问者都使用WAL_READ_LOCK(0)（换句话说，当前没有读取WAl的事务），那么事务frame（帧或框架）
+/////  将覆盖现有的日志的开始部分。更新wal-index的头部来反映此。
+/////  理论上说，只有此时才能更新缓冲区的头部。但是更新实际的wal-index头是安全的，并且这意味着对sqlite3WalUndo()
+/////  没有特殊的情况来处理是否事务被回滚了。
+*/
         int i;                    /* Loop counter */ 循环变量
         u32 *aSalt = pWal->hdr.aSalt;       /* Big-endian salt values */ 获取混淆值
 
@@ -2700,7 +2724,7 @@ static int walRestartLog(Wal *pWal){
       int notUsed;
       rc = walTryBeginRead(pWal, &notUsed, 1, ++cnt);
     }while( rc==WAL_RETRY );开始读
-    assert( (rc&0xff)!=SQLITE_BUSY ); /* BUSY not possible when useWal==1 */
+    assert( (rc&0xff)!=SQLITE_BUSY ); /* BUSY not possible when useWal==1 */////当useWal==1时，BUSY是不可能的。
     testcase( (rc&0xff)==SQLITE_IOERR );测试
     testcase( rc==SQLITE_PROTOCOL );测试
     testcase( rc==SQLITE_OK );测试
@@ -2711,12 +2735,14 @@ static int walRestartLog(Wal *pWal){
 /*
 ** Information about the current state of the WAL file and where
 ** the next fsync should occur - passed from sqlite3WalFrames() into
-** walWriteToLog(). 当前Wal文件所处状态和何处发生同步通过sqlite3WalFrames()转化成 walWriteToLog()的信息。
+** walWriteToLog(). 当前Wal文件所处状态的信息和何处发生同步通过sqlite3WalFrames()转化成 walWriteToLog()的信息。
+*/
+////*当前Wal文件所处状态的信息和下一个通过sqlite3WalFrames()转化成 walWriteToLog()的同步信息
 */
 typedef struct WalWriter {
-  Wal *pWal;                   /* The complete WAL information */ 定义Wal 指针变量
-  sqlite3_file *pFd;           /* The WAL file to which we write */ Wal
-  sqlite3_int64 iSyncPoint;    /* Fsync at this offset */ 
+  Wal *pWal;                   /* The complete WAL information */ 定义Wal 指针变量  ///WAL的完整信息
+  sqlite3_file *pFd;           /* The WAL file to which we write */ Wal  ////我们要写的文件
+  sqlite3_int64 iSyncPoint;    /* Fsync at this offset */  /////在该偏移量下帧同步信息
   int syncFlags;               /* Flags for the fsync */同步的标志
   int szPage;                  /* Size of one page */ 页的大小
 } WalWriter;
@@ -2729,6 +2755,9 @@ typedef struct WalWriter {
 ** first write the part before iSyncPoint, then sync, then write the
 ** rest.
 */
+////*将iAmt字节的内容写入到WAL文件的开始的iOffset偏移量处。
+//// 当超过p->iSyncPoint边界时，做帧同步信息标记。
+//// 换句话说，在iSyncPoint之前首先写下这部分，则sync，如果iSyncPoint在iOffset和iOffset+iAmt之间，那么写下的其余部分。
 static int walWriteToLog(
   WalWriter *p,              /* WAL to write to */ WalWriter 指针变量
   void *pContent,            /* Content to be written */ 要写的内容
@@ -2737,7 +2766,7 @@ static int walWriteToLog(
 ){
   int rc; 返回值
   if( iOffset<p->iSyncPoint && iOffset+iAmt>=p->iSyncPoint ){                                    P->ISyncPoint 是否在偏移和偏移后之间
-    int iFirstAmt = (int)(p->iSyncPoint - iOffset); 计算第一次偏移量
+    int iFirstAmt = (int)(p->iSyncPoint - iOffset); ////计算要插入的长度
     rc = sqlite3OsWrite(p->pFd, pContent, iFirstAmt, iOffset); 调用系统函数，写入内容
     if( rc ) return rc; 是否成功
     iOffset += iFirstAmt; 计算IOffset的值
@@ -2754,25 +2783,26 @@ static int walWriteToLog(
 /*
 ** Write out a single frame of the WAL 写出Wal的单帧
 */
+////写下WAL的一个单帧。
 static int walWriteOneFrame(
-  WalWriter *p,               /* Where to write the frame */ 定义WalWrite 指针
-  PgHdr *pPage,               /* The page of the frame to be written */ 要写入的帧页
-  int nTruncate,              /* The commit flag.  Usually 0.  >0 for commit */ 提交标记
-  sqlite3_int64 iOffset       /* Byte offset at which to write */ 偏移字节
+  WalWriter *p,               /* Where to write the frame */ 定义WalWrite 指针///// 定义要写下frame的WalWrite 指针
+  PgHdr *pPage,               /* The page of the frame to be written */ 要写入的帧页   ////要写入的frame的页
+  int nTruncate,              /* The commit flag.  Usually 0.  >0 for commit */ 提交标记 ////通常为0，如果大于0，则已经提交
+  sqlite3_int64 iOffset       /* Byte offset at which to write */ 偏移字节   ////要写如的字节偏移量
 ){
   int rc;                         /* Result code from subfunctions */从子函数返回
   void *pData;                    /* Data actually written */实际要写数据
-  u8 aFrame[WAL_FRAME_HDRSIZE];   /* Buffer to assemble frame-header in */帧头数据要编译的缓冲区
+  u8 aFrame[WAL_FRAME_HDRSIZE];   /* Buffer to assemble frame-header in */帧头数据要编译的缓冲区////组装frame头的缓冲区
 #if defined(SQLITE_HAS_CODEC)
   if( (pData = sqlite3PagerCodec(pPage))==0 ) return SQLITE_NOMEM; 获取包含页内容的指针，如果出错，返回null
 #else
   pData = pPage->pData;给pData赋值
 #endif
   walEncodeFrame(p->pWal, pPage->pgno, nTruncate, pData, aFrame);调用函数进行编码。
-  rc = walWriteToLog(p, aFrame, sizeof(aFrame), iOffset); 调用函数写入到Wal中。
+  rc = walWriteToLog(p, aFrame, sizeof(aFrame), iOffset); 调用函数写入到Wal中。///将frame头写入WAl中
   if( rc ) return rc;
   /* Write the page data */ 编写页面数据
-  rc = walWriteToLog(p, pData, p->szPage, iOffset+sizeof(aFrame));调用函数写入到页中
+  rc = walWriteToLog(p, pData, p->szPage, iOffset+sizeof(aFrame));调用函数写入到页中///将pData写入WAl中
   return rc;
 }
 
@@ -2780,31 +2810,34 @@ static int walWriteOneFrame(
 ** Write a set of frames to the log. The caller must hold the write-lock
 ** on the log file (obtained using sqlite3WalBeginWriteTransaction()).编写框架集到日志中。调用者必须持有写锁在日志文件中
 */
+////*往日志里写入一组frame。调用者必须持有在日志文件上的写锁（使用sqlite3WalBeginWriteTransaction()获得）。
 int sqlite3WalFrames(
-  Wal *pWal,                      /* Wal handle to write to */ 定义变量
+  Wal *pWal,                      /* Wal handle to write to */ 定义变量 ///要写入的日志文件的指针
   int szPage,                     /* Database page-size in bytes */ 数据库页的大小，单位是字节
-  PgHdr *pList,                   /* List of dirty pages to write */  脏页写的列表
+  PgHdr *pList,                   /* List of dirty pages to write */  脏页写的列表   ////写脏页的列表的指针
   Pgno nTruncate,                 /* Database size after this commit */ 这次提交后数据库大小
   int isCommit,                   /* True if this is a commit */如果提交，则为真。
   int sync_flags                  /* Flags to pass to OsSync() (or 0) */ 同步的标志
 ){
   int rc;                         /* Used to catch return codes */ 返回码
   u32 iFrame;                     /* Next frame address */ 下一帧地址
-  PgHdr *p;                       /* Iterator to run through pList with. */ 沿着pList 迭代
-  PgHdr *pLast = 0;               /* Last frame in list */ 在链表中最后一帧
-  int nExtra = 0;                 /* Number of extra copies of last page */ 
-  int szFrame;                    /* The size of a single frame */ 单帧的大小
-  i64 iOffset;                    /* Next byte to write in WAL file */ 偏移字节
-  WalWriter w;                    /* The writer */ WalW的变量
+  PgHdr *p;                       /* Iterator to run through pList with. */ 沿着pList 迭代 
+  PgHdr *pLast = 0;               /* Last frame in list */ 在链表中最后一帧  ////初始值为0
+  int nExtra = 0;                 /* Number of extra copies of last page */   ///最后一页的额外的复制的数量，初始值为0
+  int szFrame;                    /* The size of a single frame */ 单帧的大小 
+  i64 iOffset;                    /* Next byte to write in WAL file */ 偏移字节  ///要写入日志文件中的下一字节
+  WalWriter w;                    /* The writer */ WalW的变量   /////当前Wal文件所处状态的信息和下一个通过sqlite3WalFrames()转化成 walWriteToLog()的同步信息
 
   assert( pList );判断链表是否为空，为空则终止程序
-  assert( pWal->writeLock ); 判断是加锁
+  assert( pWal->writeLock ); 判断是否有写锁
 
   /* If this frame set completes a transaction, then nTruncate>0.  If
   ** nTruncate==0 then this frame set does not complete the transaction. */
-  assert( (isCommit!=0)==(nTruncate!=0) ); 如果提交为真，Wal不为0 
+ ////*如果完成了一个事务，则nTruncate>0。如果nTruncate==0，则该事务没有完成。
+*/
+  assert( (isCommit!=0)==(nTruncate!=0) ); ////判断该事务成功提交，并写入了frame。 
 
-#if defined(SQLITE_TEST) && defined(SQLITE_DEBUG)
+#if defined(SQLITE_TEST) && defined(SQLITE_DEBUG)////调试和除虫，输出wal的路径
   { int cnt; 
   for(cnt=0, p=pList; p; p=p->pDirty, cnt++){} 
     WALTRACE(("WAL%p: frame write begin. %d frames. mxFrame=%d. %s\n",
@@ -2815,6 +2848,8 @@ int sqlite3WalFrames(
   /* See if it is possible to write these frames into the start of the
   ** log file, instead of appending to it at pWal->hdr.mxFrame.
   */是否可以写这些框的开始日志文件,而不是附加在pWal - > hdr.mxFrame它
+////*检查是否可以将这些frame写入日志文件的开头部分，而不是附加在pWal - > hdr.mxFrame后面。
+*/
   if( SQLITE_OK!=(rc = walRestartLog(pWal)) ){
     return rc;
   }
@@ -2823,11 +2858,14 @@ int sqlite3WalFrames(
   ** header to the start of the WAL file. See comments at the top of
   ** this source file for a description of the WAL header format.
   */如果这是第一帧写入日志,Wal头数据写在WAL文件。看部这个源文件的描述WAL标题格式
+/////*如果第一个frame写入了日志，则将WAL的头部写入日志文件的开始部分。
+*/
   iFrame = pWal->hdr.mxFrame; 获取Wal中的最大帧参数值
   if( iFrame==0 ){
     u8 aWalHdr[WAL_HDRSIZE];      /* Buffer to assemble wal-header in */
     u32 aCksum[2];                /* Checksum for wal-header */
 
+/////以下为为日志文件的头部的8个部分赋值。
     sqlite3Put4byte(&aWalHdr[0], (WAL_MAGIC | SQLITE_BIGENDIAN)); 调用函数 ，为aWalHdr[] 赋值
     sqlite3Put4byte(&aWalHdr[4], WAL_MAX_VERSION);
     sqlite3Put4byte(&aWalHdr[8], szPage);
@@ -2857,6 +2895,9 @@ int sqlite3WalFrames(
     **
     **     http://localhost:591/sqlite/info/ff5be73dee
     */
+////* 头部的帧同步信息（除非SQLITE_IOCAP_SEQUENTIAL是真的或者除非帧同步信息被PRAGMA关闭，synchronous=OFF）。
+///// 否则由于乱序的写入引起的WAL重启会导致数据库的崩溃。
+*/
     if( pWal->syncHeader && sync_flags ){  如果Walden的参数为真且同步标记为真
       rc = sqlite3OsSync(pWal->pWalFd, sync_flags & SQLITE_SYNC_MASK);调用系统同步函数
       if( rc ) return rc;
@@ -2865,20 +2906,21 @@ int sqlite3WalFrames(
   assert( (int)pWal->szPage==szPage ); 如果Wal的参数szPage 与当前szPage不同，则终止程序
 
   /* Setup information needed to write frames into the WAL */设置帧写入在Wal所需的信息
+////设置帧写入Wal所需的信息
   w.pWal = pWal; 设置WalWrite结构体的参数值
   w.pFd = pWal->pWalFd;
   w.iSyncPoint = 0;
   w.syncFlags = sync_flags;
   w.szPage = szPage;
-  iOffset = walFrameOffset(iFrame+1, szPage); 计算偏移量
+  iOffset = walFrameOffset(iFrame+1, szPage); 计算偏移量////The offset returned  is to the start of the write-ahead log frame-header.
   szFrame = szPage + WAL_FRAME_HDRSIZE; 
 
-  /* Write all frames into the log file exactly once */所有帧写入日志文件完全一次
-  for(p=pList; p; p=p->pDirty){ 对链表进行遍历
+  /* Write all frames into the log file exactly once */所有帧写入日志文件完全一次////一次性将所有帧写入日志文件
+  for(p=pList; p; p=p->pDirty){ 对链表进行遍历/////对脏链进行遍历
     int nDbSize;   /* 0 normally.  Positive == commit flag */ 正常位0 ，正数为commit flag
-    iFrame++; 
+    iFrame++; /////帧的地址自增
     assert( iOffset==walFrameOffset(iFrame, szPage) ); 如果偏移量为
-    nDbSize = (isCommit && p->pDirty==0) ? nTruncate : 0; 如果提交且P的脏数据标记为0 则 返回nTruncate，否则为0
+    nDbSize = (isCommit && p->pDirty==0) ? nTruncate : 0; 如果提交且P的脏数据标记为0 则 返回nTruncate，否则为0////如果提交且P链遍历结束，则返回nTruncate，否则为0
     rc = walWriteOneFrame(&w, p, nDbSize, iOffset); 调用函数写入到oneFrame
     if( rc ) return rc;
     pLast = p; 重新给pLast赋值
@@ -2899,15 +2941,22 @@ int sqlite3WalFrames(
   ** sector boundary is synced; the part of the last frame that extends
   ** past the sector boundary is written after the sync.
   */如果SQLITE_IOCAP_POWERSAFE_OVERWRITE  被定义，则 padding不需要，只用做同步。如果需要填充,然后最后一帧重复(其提交标记),直到下一个部分边界交叉。只有WAL之前最后的一部分边界是同步的;最后一帧扩展的一部分过去部分边界是同步后写的
+ //////*如果这是一个事务的结束,那么我们可能需要填补事务和/或同步WAL文件。
+/////   如果一个事务完成了一组frame的写入且PRAGMA synchronous=FULL，则填充和同步才会发生。
+/////   如果synchronous==NORMAL或 synchonous==OFF，那么填充和同步都不需要。
+/////   SQLITE_IOCAP_POWERSAFE_OVERWRITE被定义了，则填充是不被需要的，只有同步会发生。
+/////   如果需要填充，那么最后一帧被重复写入(其提交标记),直到下一个部分边界被超过。
+/////   只有WAL之前最后的一部分边界是同步的;最后一帧扩展的超过边界的部分是同步后写的。
+*/
   if( isCommit && (sync_flags & WAL_SYNC_TRANSACTIONS)!=0 ){ 
     if( pWal->padToSectorBoundary ){
       int sectorSize = sqlite3OsSectorSize(pWal->pWalFd);通过调用系统函数 获取？？
       w.iSyncPoint = ((iOffset+sectorSize-1)/sectorSize)*sectorSize;
-      while( iOffset<w.iSyncPoint ){
+      while( iOffset<w.iSyncPoint ){///如果需要填充
         rc = walWriteOneFrame(&w, pLast, nTruncate, iOffset);
         if( rc ) return rc;
         iOffset += szFrame;
-        nExtra++;
+        nExtra++;//最后一帧的复制的数量自增
       }
     }else{
       rc = sqlite3OsSync(w.pFd, sync_flags & SQLITE_SYNC_MASK);
@@ -2918,6 +2967,7 @@ int sqlite3WalFrames(
   ** if PRAGMA journal_size_limit is set, then truncate the WAL to the
   ** journal size limit, if possible.
   */如果这个帧设置完成第一个事务,如果编译指示journal_size_limit被设置,然后截断WAL的限制日志大小,
+/////如果如果这个帧设置在WAL上完成第一个事务并且PRAGMA journal_size_limit被设置，那么如果可能的话将WAL截断设置为journal_size_limit。
   if( isCommit && pWal->truncateOnCommit && pWal->mxWalSize>=0 ){
     i64 sz = pWal->mxWalSize; 获取wal 可能的最大值
     if( walFrameOffset(iFrame+nExtra+1, szPage)>pWal->mxWalSize ){     
@@ -2932,12 +2982,16 @@ int sqlite3WalFrames(
   ** guarantees that there are no other writers, and no data that may
   ** be in use by existing readers is being overwritten.
   */将数据添加到wal-index。没有必要锁定wal-index为此wal-index SQLITE_SHM_WRITE锁了保证没有其它写操作,和没有数据被现有的读操作使用且被覆盖。
-  iFrame = pWal->hdr.mxFrame;
+ /////*将数据附加到 wal-index。
+////// 为了这样做，没必要给 wal-index上锁，因为 wal-index持有的SQLITE_SHM_WRITE锁保证了没有其他的写者并且没有可能正被现存访问
+/////  者使用的数据被重写。
+*/
+ iFrame = pWal->hdr.mxFrame;
   for(p=pList; p && rc==SQLITE_OK; p=p->pDirty){   对链表进行遍历
     iFrame++;
     rc = walIndexAppend(pWal, iFrame, p->pgno); 调用函数
   }
-  while( rc==SQLITE_OK && nExtra>0 ){ 当调用成功
+  while( rc==SQLITE_OK && nExtra>0 ){ //将最后一帧的复制映射到WAL
     iFrame++;
     nExtra--;
     rc = walIndexAppend(pWal, iFrame, pLast->pgno);
@@ -2974,16 +3028,20 @@ int sqlite3WalFrames(
 ** If parameter xBusy is not NULL, it is a pointer to a busy-handler
 ** callback. In this case this function runs a blocking checkpoint.
 */如果参数 Xbusy 不为空，有个Busy-Handler 指针 。 在这种情况下,该函数运行阻塞检查点
+////*这个程序被调用来完成 sqlite3_wal_checkpoint()和相关的接口。
+//// 获取一个CHECKPOINT锁，并且尽可能多的回填WAL的信息到数据中。
+//// 如果参数xBusy不为空，它是busy-handler回滚的一个指针。在这种情况下,该函数运行阻塞检查点
+*/
 int sqlite3WalCheckpoint(
   Wal *pWal,                      /* Wal connection */ 定义 wal 指针
   int eMode,                      /* PASSIVE, FULL or RESTART */ 哪一种模式
   int (*xBusy)(void*),            /* Function to call when busy */ 当忙时调用
   void *pBusyArg,                 /* Context argument for xBusyHandler */ xBusyHandler的上下环境
-  int sync_flags,                 /* Flags to sync db file with (or 0) */同步标志
+  int sync_flags,                 /* Flags to sync db file with (or 0) */同步标志///数据库文件的同步标志
   int nBuf,                       /* Size of temporary buffer */临时缓冲区的大小
   u8 *zBuf,                       /* Temporary buffer to use */ 临时缓存区
-  int *pnLog,                     /* OUT: Number of frames in WAL */在Wal中的个数
-  int *pnCkpt                     /* OUT: Number of backfilled frames in WAL */
+  int *pnLog,                     /* OUT: Number of frames in WAL */在Wal中的个数  ////WAL中frame的个数
+  int *pnCkpt                     /* OUT: Number of backfilled frames in WAL */   ////WAL中被回填的frame的个数
 ){
   int rc;                         /* Return code */ 返回码
   int isChanged = 0;              /* True if a new wal-index header is loaded */  如果一个新的wal-index被加载，则为真
@@ -2994,14 +3052,15 @@ int sqlite3WalCheckpoint(
 
   if( pWal->readOnly ) return SQLITE_READONLY; 如果Wal中readonly 不为0
   WALTRACE(("WAL%p: checkpoint begins\n", pWal));
-  rc = walLockExclusive(pWal, WAL_CKPT_LOCK, 1); 加锁
-  if( rc ){
+  rc = walLockExclusive(pWal, WAL_CKPT_LOCK, 1); 加锁 ////WAL获取排它锁
+  if( rc ){  
     /* Usually this is SQLITE_BUSY meaning that another thread or process
     ** is already running a checkpoint, or maybe a recovery.  But it might
-    ** also be SQLITE_IOERR. */ 当用SQLITE_BUSY意味着 另一个线程或进程已经在运行checkpoint或则进行恢复。 也肯是SQLITE_IOERR
+    ** also be SQLITE_IOERR. */ 
+//////当用SQLITE_BUSY意味着 另一个线程或进程已经在运行checkpoint或则进行恢复。 也可能是SQLITE_IOERR
     return rc;
   }
-  pWal->ckptLock = 1; 为ckptLock赋值
+  pWal->ckptLock = 1; 为ckptLock赋值   //// 如果有一个checkpoint 锁 则值为真
 
   /* If this is a blocking-checkpoint, then obtain the write-lock as well
   ** to prevent any writers from running while the checkpoint is underway.
@@ -3012,8 +3071,14 @@ int sqlite3WalCheckpoint(
   ** there is no point in blocking waiting for any readers. Assuming no 
   ** other error occurs, this function will return SQLITE_BUSY to the caller.
   */如果无法获得写锁,那么一个被动的检查点将代替运行。由于checkpoint无法加载锁，是毫无意义的阻塞等待任何读者，假设没有其他错误发生时,该函数将返回SQLITE_BUSY给调用者。
+ /////*如果有blocking-checkpoint，那么尽管checkpoint在进行中，都会获得一个写锁以阻止任何的写程序运行。
+/////  在下面调用walIndexReadHdr()之前，上述已经被做。
+/////  如果不能获得写锁，那么运行一个消极的checkpoint 。
+/////  因为checkpointer没有持有写锁，为任何访问者阻塞等待是没有意义的。
+/////  假定没有其他错误发生，这个程序会为调用者返回SQLITE_BUSY 。
+*/
   if( eMode!=SQLITE_CHECKPOINT_PASSIVE ){  如果模式不是SQLITE_CHECKPOINT_PASSIVE 
-    rc = walBusyLock(pWal, xBusy, pBusyArg, WAL_WRITE_LOCK, 1); 获取锁
+    rc = walBusyLock(pWal, xBusy, pBusyArg, WAL_WRITE_LOCK, 1); ////试图获取Wal的排他锁根据LockIdex 和1。
     if( rc==SQLITE_OK ){ 如果调用成功
       pWal->writeLock = 1;  更改参数值
     }else if( rc==SQLITE_BUSY ){ 如果返回时Sqlite_busy
@@ -3023,7 +3088,7 @@ int sqlite3WalCheckpoint(
   }
 
   /* Read the wal-index header. */ 读取 Wal-index 头
-  if( rc==SQLITE_OK ){  如果
+  if( rc==SQLITE_OK ){  
     rc = walIndexReadHdr(pWal, &isChanged); 
   }
 
@@ -3049,6 +3114,8 @@ int sqlite3WalCheckpoint(
     ** next time the pager opens a snapshot on this database it knows that
     ** the cache needs to be reset.
     */
+/////*如果一个新的wal-index头在checkpoint开始前被加载，那么页缓冲器与当前输出数据的pWal相连。
+///// 因此，为了保证下一次页管理器在知道缓冲器需要重置的数据库上打开一个快照，则使wal-index头部的缓冲器为0。
     memset(&pWal->hdr, 0, sizeof(WalIndexHdr)); 清零
   }
 
@@ -3065,6 +3132,9 @@ int sqlite3WalCheckpoint(
 ** sqlite3WalCallback() was called.  If no commits have occurred since
 ** the last call, then return 0.
 */
+////*通过回调返回一个值，该值等于从sqlite3WalCallback()被调用开始最后一个事务提交时的frame的数量。
+//// 如果最后一次回调时没有任何的提交发生，则返回0。
+*/
 int sqlite3WalCallback(Wal *pWal){
   u32 ret = 0;
   if( pWal ){
@@ -3078,6 +3148,7 @@ int sqlite3WalCallback(Wal *pWal){
 ** This function is called to change the WAL subsystem into or out
 ** of locking_mode=EXCLUSIVE.
 **
+////这个程序被调用来将WAL子系统改变成locking_mode=EXCLUSIVE。
 ** If op is zero, then attempt to change from locking_mode=EXCLUSIVE
 ** into locking_mode=NORMAL.  This means that we must acquire a lock
 ** on the pWal->readLock byte.  If the WAL is already in locking_mode=NORMAL
@@ -3086,6 +3157,12 @@ int sqlite3WalCallback(Wal *pWal){
 ** operation must occur while the pager is still holding the exclusive
 ** lock on the main database file.
 **
+////*如果操作的个数为0，那么尝试将locking_mode=EXCLUSIVE改变为locking_mode=NORMAL。
+//// 这意味着我们必须pWal->readLock上获取一个锁。
+//// 如果WAL已经处于locking_mode=NORMAL状态或者如果请求锁失败，那么返回0.
+//// 如果该事务是排他模型，则返回1.
+//// 这个操作必须发生，而页管理器仍然在主数据库文件上持有排它锁。
+*/
 ** If op is one, then change from locking_mode=NORMAL into 
 ** locking_mode=EXCLUSIVE.  This means that the pWal->readLock must
 ** be released.  Return 1 if the transition is made and 0 if the
@@ -3093,10 +3170,18 @@ int sqlite3WalCallback(Wal *pWal){
 ** routine is a no-op.  The pager must already hold the exclusive lock
 ** on the main database file before invoking this operation.
 **
+////*如果操作的个数为1，那么将locking_mode=NORMAL变为locking_mode=EXCLUSIVE。
+//// 这意味着pWal->readLock必须被释放。
+//// 如果该事务已经被执行并且WAL已经在排它锁模式——意味着改程序是空操作，那么返回1。
+//// 在这个操作被唤醒之前，页管理器仍然在主数据库文件上持有排它锁。
+*/
 ** If op is negative, then do a dry-run of the op==1 case but do
 ** not actually change anything. The pager uses this to see if it
 ** should acquire the database exclusive lock prior to invoking
 ** the op==1 case.
+*/
+/////*如果操作的个数为负，那么做op==1的情形，但是这实际上没什么改变。
+///// 页管理器以此判断在唤醒op==1情形之前是否应该获取数据库的排它锁。
 */
 int sqlite3WalExclusiveMode(Wal *pWal, int op){
   int rc;
@@ -3109,6 +3194,10 @@ int sqlite3WalExclusiveMode(Wal *pWal, int op){
   ** locks are taken in this case). Nor should the pager attempt to
   ** upgrade to exclusive-mode following such an error.
   */
+////*pWal->readLock通常被设置，但是如果在尝试获取读锁时返回一个错误，那么pWal->readLock可能为-1.
+//// 如果链接处于排他模式，那么上述情况不能发生（因为在这种情况下没有xShmLock锁）。
+//// 页管理器也不应该在该错误情况下升级为排他模式。
+*/
   assert( pWal->readLock>=0 || pWal->lockError );
   assert( pWal->readLock>=0 || (op<=0 && pWal->exclusiveMode==0) );
 
@@ -3150,6 +3239,7 @@ int sqlite3WalHeapMemory(Wal *pWal){
 ** read-lock. This function returns the database page-size if it is known,
 ** or zero if it is not (or if pWal is NULL).如果参数不空,它指向Wal对象持有读锁。这个程序返回数据库页大小，或则0 
 */
+///如果参数不空,它指向持有读锁的Wal对象。这个程序返回数据库页大小（当页可知），或当不可知时（或wal为空）返回0。
 int sqlite3WalFramesize(Wal *pWal){
   assert( pWal==0 || pWal->readLock>=0 ); 如果Wal为0，或持有读锁。
   return (pWal ? pWal->szPage : 0); 返回数据库页大小或0

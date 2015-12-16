@@ -46,21 +46,21 @@
 ** sqlite_rename_table('CREATE INDEX i ON abc(a)', 'def')
 **     -> 'CREATE INDEX i ON def(a, b, c)'
 */
-static void renameTableFunc(
-  sqlite3_context *context,
+static void renameTableFunc(//创建表名
+  sqlite3_context *context,//创建文本
   int NotUsed,
   sqlite3_value **argv
 ){
-  unsigned char const *zSql = sqlite3_value_text(argv[0]);
-  unsigned char const *zTableName = sqlite3_value_text(argv[1]);
+  unsigned char const *zSql = sqlite3_value_text(argv[0]);//创建索引
+  unsigned char const *zTableName = sqlite3_value_text(argv[1]);//创建表名
 
-  int token;
+  int token; //定义标记
   Token tname;
-  unsigned char const *zCsr = zSql;
+  unsigned char const *zCsr = zSql;//建立index语句
   int len = 0;
   char *zRet;
 
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//建表，替换第三个参数
 
   UNUSED_PARAMETER(NotUsed);
 
@@ -70,7 +70,7 @@ static void renameTableFunc(
   原理用于定位在CREATE table语句表名,
   该语句是表名是立即紧随其后TK_LP或进行技术改造TK_USING令牌的第一个非空间令牌。
   */
-  if( zSql ){
+  if( zSql ){//如果zsql非0，执行下面的语句
     do {
       if( !*zCsr ){
         /* Ran out of input before finding an opening bracket. Return NULL. 找到一个开括号之前放弃输入。返回null。*/
@@ -78,7 +78,7 @@ static void renameTableFunc(
       }
 
       /* Store the token that zCsr points to in tname. 存储tname zCsr指向表名的令牌 */
-      tname.z = (char*)zCsr;
+      tname.z = (char*)zCsr;//定位CREATE table语句表名
       tname.n = len;
 
       /* Advance zCsr to the next token. Store that token type in 'token',
@@ -88,14 +88,14 @@ static void renameTableFunc(
       */
       do {
         zCsr += len;
-        len = sqlite3GetToken(zCsr, &token);
-      } while( token==TK_SPACE );
+        len = sqlite3GetToken(zCsr, &token);//推进zCsr到下一个令牌并使令牌类型存储用token
+      } while( token==TK_SPACE );//token里的类容和TK_SPACE相同时执行
       assert( len>0 );
-    } while( token!=TK_LP && token!=TK_USING );
+    } while( token!=TK_LP && token!=TK_USING );//循环使用存储标记
 
-    zRet = sqlite3MPrintf(db, "%.*s\"%w\"%s", ((u8*)tname.z) - zSql, zSql, 
+    zRet = sqlite3MPrintf(db, "%.*s\"%w\"%s", ((u8*)tname.z) - zSql, zSql, //下一个迭代的循环使用
        zTableName, tname.z+tname.n);
-    sqlite3_result_text(context, zRet, -1, SQLITE_DYNAMIC);
+    sqlite3_result_text(context, zRet, -1, SQLITE_DYNAMIC);//定义文本存储
   }
 }
 
@@ -125,13 +125,13 @@ RENAME命令来修改任何外键约束的定义使用的表被重命名为父�
 **   sqlite_rename_parent('CREATE TABLE t1(a REFERENCES t2)', 't2', 't3')
 **       -> 'CREATE TABLE t1(a REFERENCES t3)'
 */
-#ifndef SQLITE_OMIT_FOREIGN_KEY
+#ifndef SQLITE_OMIT_FOREIGN_KEY//修改CREATE TABLE语句的完整文本
 static void renameParentFunc(
   sqlite3_context *context,
   int NotUsed,
   sqlite3_value **argv
 ){
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//重命名表的就名称
   char *zOutput = 0;
   char *zResult;
   unsigned char const *zInput = sqlite3_value_text(argv[0]);
@@ -142,15 +142,15 @@ static void renameParentFunc(
   int n;                          /* Length of token z 令牌z的长度*/
   int token;                      /* Type of token 令牌的类型*/
 
-  UNUSED_PARAMETER(NotUsed);
+  UNUSED_PARAMETER(NotUsed); //修改外键约束条件
   for(z=zInput; *z; z=z+n){
     n = sqlite3GetToken(z, &token);
-    if( token==TK_REFERENCES ){
+    if( token==TK_REFERENCES ){//如果token的值和TK_REFERENCES的值相同
       char *zParent;
       do {
         z += n;
         n = sqlite3GetToken(z, &token);
-      }while( token==TK_SPACE );
+      }while( token==TK_SPACE );//如果token的值和TK_SPACE的值相同，则循环
 
       zParent = sqlite3DbStrNDup(db, (const char *)z, n);
       if( zParent==0 ) break;
@@ -167,8 +167,8 @@ static void renameParentFunc(
     }
   }
 
-  zResult = sqlite3MPrintf(db, "%s%s", (zOutput?zOutput:""), zInput), 
-  sqlite3_result_text(context, zResult, -1, SQLITE_DYNAMIC);
+  zResult = sqlite3MPrintf(db, "%s%s", (zOutput?zOutput:""), zInput), //创建触发器文本
+  sqlite3_result_text(context, zResult, -1, SQLITE_DYNAMIC);//重命名表的新名称
   sqlite3DbFree(db, zOutput);
 }
 #endif
@@ -190,10 +190,10 @@ static void renameParentFunc(
 static void renameTriggerFunc(
   sqlite3_context *context,
   int NotUsed,
-  sqlite3_value **argv
+  sqlite3_value **argv//创建触发器文本
 ){
-  unsigned char const *zSql = sqlite3_value_text(argv[0]);
-  unsigned char const *zTableName = sqlite3_value_text(argv[1]);
+  unsigned char const *zSql = sqlite3_value_text(argv[0]);//创建返回文本
+  unsigned char const *zTableName = sqlite3_value_text(argv[1]);//创建返回表名
 
   int token;
   Token tname;
@@ -201,7 +201,7 @@ static void renameTriggerFunc(
   unsigned char const *zCsr = zSql;
   int len = 0;
   char *zRet;
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//创建表名，替换参数
 
   UNUSED_PARAMETER(NotUsed);
 
@@ -249,18 +249,18 @@ static void renameTriggerFunc(
       所以没有必要担心语法如"CREATE TRIGGER ... ON ON.ON BEGIN ..." 等。
       */
       dist++;
-      if( token==TK_DOT || token==TK_ON ){
+      if( token==TK_DOT || token==TK_ON ){ //变量'dist'存储令牌数量读最近TK_DOT或TK_ON
         dist = 0;
       }
-    } while( dist!=2 || (token!=TK_WHEN && token!=TK_FOR && token!=TK_BEGIN) );
+    } while( dist!=2 || (token!=TK_WHEN && token!=TK_FOR && token!=TK_BEGIN) );//当一个when,for或begin是读时，'dist'为2,满足上述条件
 
     /* Variable tname now contains the token that is the old table-name
     ** in the CREATE TRIGGER statement.
     现在变量tname包含在创建触发器语句旧表名的令牌。
     */
-    zRet = sqlite3MPrintf(db, "%.*s\"%w\"%s", ((u8*)tname.z) - zSql, zSql, 
+    zRet = sqlite3MPrintf(db, "%.*s\"%w\"%s", ((u8*)tname.z) - zSql, zSql, //现在变量tname包含在创建触发器语句旧表名的令牌
        zTableName, tname.z+tname.n);
-    sqlite3_result_text(context, zRet, -1, SQLITE_DYNAMIC);
+    sqlite3_result_text(context, zRet, -1, SQLITE_DYNAMIC);//创建触发器语句的旧表名令牌
   }
 }
 #endif   /* !SQLITE_OMIT_TRIGGER */
@@ -269,7 +269,7 @@ static void renameTriggerFunc(
 ** Register built-in functions used to help implement ALTER TABLE
 注册内置函数用于去帮助实现ALTER TABLE
 */
-void sqlite3AlterFunctions(void){
+void sqlite3AlterFunctions(void){//帮助实现ALTER TABLE
   static SQLITE_WSD FuncDef aAlterTableFuncs[] = {
     FUNCTION(sqlite_rename_table,   2, 0, 0, renameTableFunc),
 #ifndef SQLITE_OMIT_TRIGGER
@@ -280,11 +280,11 @@ void sqlite3AlterFunctions(void){
 #endif
   };
   int i;
-  FuncDefHash *pHash = &GLOBAL(FuncDefHash, sqlite3GlobalFunctions);
+  FuncDefHash *pHash = &GLOBAL(FuncDefHash, sqlite3GlobalFunctions);//注册内置函数
   FuncDef *aFunc = (FuncDef*)&GLOBAL(FuncDef, aAlterTableFuncs);
 
   for(i=0; i<ArraySize(aAlterTableFuncs); i++){
-    sqlite3FuncDefInsert(pHash, &aFunc[i]);
+    sqlite3FuncDefInsert(pHash, &aFunc[i]);//循环表名函数
   }
 }
 
@@ -314,15 +314,15 @@ void sqlite3AlterFunctions(void){
 在这种情况下，返回之前，zWhere传递给sqlite3DbFree()。
 * *
 */
-static char *whereOrName(sqlite3 *db, char *zWhere, char *zConstant){
+static char *whereOrName(sqlite3 *db, char *zWhere, char *zConstant){//创建表达式形式的文本
   char *zNew;
-  if( !zWhere ){
-    zNew = sqlite3MPrintf(db, "name=%Q", zConstant);
+  if( !zWhere ){//如果参数zWhere是NULL,那么指针包含文本字符串返回“name = <常数> 
+    zNew = sqlite3MPrintf(db, "name=%Q", zConstant); //如果返回！where，则字符串返回表名为constant
   }else{
-    zNew = sqlite3MPrintf(db, "%s OR name=%Q", zWhere, zConstant);
+    zNew = sqlite3MPrintf(db, "%s OR name=%Q", zWhere, zConstant);//否则返回zconstan
     sqlite3DbFree(db, zWhere);
   }
-  return zNew;
+  return zNew;//这里的<where> 是zWhere的内容
 }
 
 #if !defined(SQLITE_OMIT_FOREIGN_KEY) && !defined(SQLITE_OMIT_TRIGGER)
@@ -334,13 +334,13 @@ static char *whereOrName(sqlite3 *db, char *zWhere, char *zConstant){
 生成一个WHERE表达式的文本可以用来选择所有表的外键约束,
 这个外键约束是从 sqlite_master table中参考表pTab的(即约束的pTab sqlite_master表的父表)。
 */
-static char *whereForeignKeys(Parse *pParse, Table *pTab){
+static char *whereForeignKeys(Parse *pParse, Table *pTab){//生成一个WHERE表达式的文本可以用来选择所有表的外键约束,
   FKey *p;
-  char *zWhere = 0;
+  char *zWhere = 0;//从 sqlite_master table中参考表pTab的外键约束
   for(p=sqlite3FkReferences(pTab); p; p=p->pNextTo){
-    zWhere = whereOrName(pParse->db, zWhere, p->pFrom->zName);
+    zWhere = whereOrName(pParse->db, zWhere, p->pFrom->zName);//循环生成一个where表达式
   }
-  return zWhere;
+  return zWhere;//返回zwhere
 }
 #endif
 
@@ -353,8 +353,8 @@ static char *whereForeignKeys(Parse *pParse, Table *pTab){
 从sqlite_temp_master表中在表pTab上所有临时的触发器。
 如果表pTab没有临时触发,或者本身就是存储在临时数据库,返回NULL。
 */
-static char *whereTempTriggers(Parse *pParse, Table *pTab){
-  Trigger *pTrig;
+static char *whereTempTriggers(Parse *pParse, Table *pTab){//生成一个WHERE表达式文本可以用来选择
+  Trigger *pTrig;//从sqlite_temp_master表中所有临时的触发器。
   char *zWhere = 0;
   const Schema *pTempSchema = pParse->db->aDb[1].pSchema; /* Temp db schema 临时数据库模式*/
 
@@ -366,19 +366,19 @@ static char *whereTempTriggers(Parse *pParse, Table *pTab){
   为每个触发器,不是临时数据库模式的一部分,添加一个子句到在zWhere建立的WHERE表达式。
   */
   if( pTab->pSchema!=pTempSchema ){
-    sqlite3 *db = pParse->db;
-    for(pTrig=sqlite3TriggerList(pParse, pTab); pTrig; pTrig=pTrig->pNext){
-      if( pTrig->pSchema==pTempSchema ){
-        zWhere = whereOrName(db, zWhere, pTrig->zName);
+    sqlite3 *db = pParse->db; //如果没有在临时数据库，返回空
+    for(pTrig=sqlite3TriggerList(pParse, pTab); pTrig; pTrig=pTrig->pNext){//通过触发器的遍历表
+      if( pTrig->pSchema==pTempSchema ){ //如果表没有位于临时数据库
+        zWhere = whereOrName(db, zWhere, pTrig->zName);//where名赋给zwhere
       }
     }
   }
   if( zWhere ){
-    char *zNew = sqlite3MPrintf(pParse->db, "type='trigger' AND (%s)", zWhere);
-    sqlite3DbFree(pParse->db, zWhere);
-    zWhere = zNew;
+    char *zNew = sqlite3MPrintf(pParse->db, "type='trigger' AND (%s)", zWhere);//添加一个子句到在zWhere建立的WHERE表达式
+    sqlite3DbFree(pParse->db, zWhere);//建立zwher表达式
+    zWhere = zNew;//将znew赋给在where
   }
-  return zWhere;
+  return zWhere;//返回到zwhere
 }
 
 /*
@@ -401,26 +401,26 @@ static void reloadTableSchema(Parse *pParse, Table *pTab, const char *zName){
   Trigger *pTrig;
 #endif
 
-  v = sqlite3GetVdbe(pParse);
+  v = sqlite3GetVdbe(pParse);//生成代码执行
   if( NEVER(v==0) ) return;
-  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );
+  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );//执行触发器和临时触发器
   iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);
   assert( iDb>=0 );
 
 #ifndef SQLITE_OMIT_TRIGGER
   /* Drop any table triggers from the internal schema. 降低任何表触发器内部模式。*/
   for(pTrig=sqlite3TriggerList(pParse, pTab); pTrig; pTrig=pTrig->pNext){
-    int iTrigDb = sqlite3SchemaToIndex(pParse->db, pTrig->pSchema);
+    int iTrigDb = sqlite3SchemaToIndex(pParse->db, pTrig->pSchema);//降低内部模式触发
     assert( iTrigDb==iDb || iTrigDb==1 );
     sqlite3VdbeAddOp4(v, OP_DropTrigger, iTrigDb, 0, 0, pTrig->zName, 0);
   }
 #endif
 
   /* Drop the table and index from the internal schema.  从内部模式中降低表和索引*/
-  sqlite3VdbeAddOp4(v, OP_DropTable, iDb, 0, 0, pTab->zName, 0);
+  sqlite3VdbeAddOp4(v, OP_DropTable, iDb, 0, 0, pTab->zName, 0);//从内部模式中降低表和索引
 
   /* Reload the table, index and permanent trigger schemas. 重载表、索引和不变的触发器模式*/
-  zWhere = sqlite3MPrintf(pParse->db, "tbl_name=%Q", zName);
+  zWhere = sqlite3MPrintf(pParse->db, "tbl_name=%Q", zName);//重载表、索引和不变的触发器模式
   if( !zWhere ) return;
   sqlite3VdbeAddParseSchemaOp(v, iDb, zWhere);
 
@@ -431,7 +431,7 @@ static void reloadTableSchema(Parse *pParse, Table *pTab, const char *zName){
   不要用IN(...)在 SQLITE_OMIT_SUBQUERY被默认的情况下。
   */
   if( (zWhere=whereTempTriggers(pParse, pTab))!=0 ){
-    sqlite3VdbeAddParseSchemaOp(v, 1, zWhere);
+    sqlite3VdbeAddParseSchemaOp(v, 1, zWhere); //重载触发器
   }
 #endif
 }
@@ -449,10 +449,10 @@ static void reloadTableSchema(Parse *pParse, Table *pTab, const char *zName){
 */
 static int isSystemTable(Parse *pParse, const char *zName){
   if( sqlite3Strlen30(zName)>6 && 0==sqlite3StrNICmp(zName, "sqlite_", 7) ){
-    sqlite3ErrorMsg(pParse, "table %s may not be altered", zName);
-    return 1;
+    sqlite3ErrorMsg(pParse, "table %s may not be altered", zName);//判断zname是否为系统表
+    return 1;//如果是系统表就返回1
   }
-  return 0;
+  return 0;//如果不是就返回0
 }
 
 /*
@@ -479,14 +479,14 @@ void sqlite3AlterRenameTable(
   int savedDbFlags;         /* Saved value of db->flags db->flags的保留值*/
 
   savedDbFlags = db->flags;  
-  if( NEVER(db->mallocFailed) ) goto exit_rename_table;
+  if( NEVER(db->mallocFailed) ) goto exit_rename_table;//重命名表
   assert( pSrc->nSrc==1 );
-  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );
+  assert( sqlite3BtreeHoldsAllMutexes(pParse->db) );//提示信息
 
-  pTab = sqlite3LocateTable(pParse, 0, pSrc->a[0].zName, pSrc->a[0].zDatabase);
-  if( !pTab ) goto exit_rename_table;
-  iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);
-  zDb = db->aDb[iDb].zName;
+  pTab = sqlite3LocateTable(pParse, 0, pSrc->a[0].zName, pSrc->a[0].zDatabase);//本地表调用
+  if( !pTab ) goto exit_rename_table;//如果ptab的值为0，循环修改表名
+  iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);//将表名赋给数据库idb
+  zDb = db->aDb[iDb].zName;//将表名赋给数据库zdb
   db->flags |= SQLITE_PreferBuiltin;
 
   /* Get a NULL terminated version of the new table name. 得到一个空终止版本的新表的名称。*/
@@ -497,9 +497,9 @@ void sqlite3AlterRenameTable(
   ** in database iDb. If so, this is an error.检查一个表或索引名叫“zName”不存在数据库iDb。
   如果是这样,这是一个错误。
   */
-  if( sqlite3FindTable(db, zName, zDb) || sqlite3FindIndex(db, zName, zDb) ){
+  if( sqlite3FindTable(db, zName, zDb) || sqlite3FindIndex(db, zName, zDb) ){//检查表名存不存在数据库idb    
     sqlite3ErrorMsg(pParse, 
-        "there is already another table or index with this name: %s", zName);
+        "there is already another table or index with this name: %s", zName);//若存在，这是一个错误
     goto exit_rename_table;
   }
 
@@ -507,23 +507,23 @@ void sqlite3AlterRenameTable(
   ** that the table is being renamed to.
   确保它不是一个正在被修改的系统表或者一个正在被重命名的保留的名称表
   */
-  if( SQLITE_OK!=isSystemTable(pParse, pTab->zName) ){
-    goto exit_rename_table;
+  if( SQLITE_OK!=isSystemTable(pParse, pTab->zName) ){//如果SQLITE_OK的值不等于isSystemTable的值
+    goto exit_rename_table;//重命名数据表
   }
-  if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){ goto
-    exit_rename_table;
+  if( SQLITE_OK!=sqlite3CheckObjectName(pParse, zName) ){ goto//SQLITE_OK的值不等于sqlite3CheckObjectName的值
+    exit_rename_table;//重命名表名
   }
 
 #ifndef SQLITE_OMIT_VIEW
-  if( pTab->pSelect ){
-    sqlite3ErrorMsg(pParse, "view %s may not be altered", pTab->zName);
+  if( pTab->pSelect ){//如果pTab中的pSelect不为零 
+    sqlite3ErrorMsg(pParse, "view %s may not be altered", pTab->zName);//ptab重命名
     goto exit_rename_table;
   }
 #endif
 
 #ifndef SQLITE_OMIT_AUTHORIZATION
   /* Invoke the authorization callback. 调用授权回调。*/
-  if( sqlite3AuthCheck(pParse, SQLITE_ALTER_TABLE, zDb, pTab->zName, 0) ){
+  if( sqlite3AuthCheck(pParse, SQLITE_ALTER_TABLE, zDb, pTab->zName, 0) ){//如果ptab中的zname为零，授权回调
     goto exit_rename_table;
   }
 #endif
@@ -548,12 +548,12 @@ void sqlite3AlterRenameTable(
 然后修改模式cookie(因为ALTER TABLE修改模式)。
 如果表是一个虚拟表打开一个声明事务。
   */
-  v = sqlite3GetVdbe(pParse);
-  if( v==0 ){
-    goto exit_rename_table;
+  v = sqlite3GetVdbe(pParse);//开始一个事物和代码的VerifyCookie
+  if( v==0 ){//如果sqlite3GetVdbe的值为零
+    goto exit_rename_table;//打开事务声明
   }
-  sqlite3BeginWriteOperation(pParse, pVTab!=0, iDb);
-  sqlite3ChangeCookie(pParse, iDb);
+  sqlite3BeginWriteOperation(pParse, pVTab!=0, iDb);//修改模式cookie
+  sqlite3ChangeCookie(pParse, iDb);//用虚拟表打开
 
   /* If this is a virtual table, invoke the xRename() function if
   ** one is defined. The xRename() callback will modify the names
@@ -564,10 +564,10 @@ void sqlite3AlterRenameTable(
   这个v-table实现是确定的虚拟表的名称。
   */
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  if( pVTab ){
-    int i = ++pParse->nMem;
+  if( pVTab ){//如果这是一个虚拟表
+    int i = ++pParse->nMem;//调用xrename
     sqlite3VdbeAddOp4(v, OP_String8, 0, i, 0, zName, 0);
-    sqlite3VdbeAddOp4(v, OP_VRename, i, 0, 0,(const char*)pVTab, P4_VTAB);
+    sqlite3VdbeAddOp4(v, OP_VRename, i, 0, 0,(const char*)pVTab, P4_VTAB);//回调使用v—table
     sqlite3MayAbort(pParse);
   }
 #endif
@@ -582,11 +582,11 @@ void sqlite3AlterRenameTable(
     ** statements corresponding to all child tables of foreign key constraints
     ** for which the renamed table is the parent table. 
     如果启用了外键的支持,重写CREATE TABLE语句对应的所有子表的外键约束重命名表的父表。*/
-    if( (zWhere=whereForeignKeys(pParse, pTab))!=0 ){
+    if( (zWhere=whereForeignKeys(pParse, pTab))!=0 ){//如果启用了外键支持
       sqlite3NestedParse(pParse, 
           "UPDATE \"%w\".%s SET "
               "sql = sqlite_rename_parent(sql, %Q, %Q) "
-              "WHERE %s;", zDb, SCHEMA_TABLE(iDb), zTabName, zName, zWhere);
+              "WHERE %s;", zDb, SCHEMA_TABLE(iDb), zTabName, zName, zWhere);//重写CREATE TABLE语句对应的所有子表的外键约束重命名表的父表
       sqlite3DbFree(db, zWhere);
     }
   }
@@ -622,8 +622,8 @@ void sqlite3AlterRenameTable(
   ** it with the new table name.
   如果sqlite_sequence表存在于这个数据库中,那么用新表的名称更新它
   */
-  if( sqlite3FindTable(db, "sqlite_sequence", zDb) ){
-    sqlite3NestedParse(pParse,
+  if( sqlite3FindTable(db, "sqlite_sequence", zDb) ){//如果sqlite_sequence表存在这个数据库中
+    sqlite3NestedParse(pParse,//更新表的名称
         "UPDATE \"%w\".sqlite_sequence set name = %Q WHERE name = %Q",
         zDb, zName, pTab->zName);
   }
@@ -636,8 +636,8 @@ void sqlite3AlterRenameTable(
   如果在这个表上有临时触发器，修改sqlite_temp_master表，
   如果表被修改本身就是位于临时数据库，不要做这些。
   */
-  if( (zWhere=whereTempTriggers(pParse, pTab))!=0 ){
-    sqlite3NestedParse(pParse, 
+  if( (zWhere=whereTempTriggers(pParse, pTab))!=0 ){//如果这个表上有零时触发器
+    sqlite3NestedParse(pParse, //修改sqlite_temp_master表
         "UPDATE sqlite_temp_master SET "
             "sql = sqlite_rename_trigger(sql, %Q), "
             "tbl_name = %Q "
@@ -661,9 +661,9 @@ void sqlite3AlterRenameTable(
   /* Drop and reload the internal table schema. 删除和重新加载内部表模式。*/
   reloadTableSchema(pParse, pTab, zName);
 
-exit_rename_table:
-  sqlite3SrcListDelete(db, pSrc);
-  sqlite3DbFree(db, zName);
+exit_rename_table: //重命名表 
+  sqlite3SrcListDelete(db, pSrc); //删除内部表
+  sqlite3DbFree(db, zName);//重新加载内部表模式
   db->flags = savedDbFlags;
 }
 
@@ -674,7 +674,7 @@ exit_rename_table:
 生成代码以确保至少是minFormat文件格式数量。
 如果必要的话，生成的代码将会增加文件格式数量。
 */
-void sqlite3MinimumFileFormat(Parse *pParse, int iDb, int minFormat){
+void sqlite3MinimumFileFormat(Parse *pParse, int iDb, int minFormat){//生成代码以确保至少是minFormat文件格式数量
   Vdbe *v;
   v = sqlite3GetVdbe(pParse);
   /* The VDBE should have been allocated before this routine is called.
@@ -687,14 +687,14 @@ void sqlite3MinimumFileFormat(Parse *pParse, int iDb, int minFormat){
     int r1 = sqlite3GetTempReg(pParse);
     int r2 = sqlite3GetTempReg(pParse);
     int j1;
-    sqlite3VdbeAddOp3(v, OP_ReadCookie, iDb, r1, BTREE_FILE_FORMAT);
+    sqlite3VdbeAddOp3(v, OP_ReadCookie, iDb, r1, BTREE_FILE_FORMAT);//分配VDBE
     sqlite3VdbeUsesBtree(v, iDb);
-    sqlite3VdbeAddOp2(v, OP_Integer, minFormat, r2);
+    sqlite3VdbeAddOp2(v, OP_Integer, minFormat, r2);//放弃分配
     j1 = sqlite3VdbeAddOp3(v, OP_Ge, r2, 0, r1);
     sqlite3VdbeAddOp3(v, OP_SetCookie, iDb, BTREE_FILE_FORMAT, r2);
     sqlite3VdbeJumpHere(v, j1);
     sqlite3ReleaseTempReg(pParse, r1);
-    sqlite3ReleaseTempReg(pParse, r2);
+    sqlite3ReleaseTempReg(pParse, r2);//判断是否分配失败
   }
 }
 
@@ -721,22 +721,22 @@ void sqlite3AlterFinishAddColumn(Parse *pParse, Token *pColDef){
   sqlite3 *db;              /* The database connection; 数据库的连接*/
 
   db = pParse->db;
-  if( pParse->nErr || db->mallocFailed ) return;
-  pNew = pParse->pNewTable;
+  if( pParse->nErr || db->mallocFailed ) return;//如果pcoldef包含新列定义的文本
+  pNew = pParse->pNewTable;//扩大到解析新列
   assert( pNew );
 
   assert( sqlite3BtreeHoldsAllMutexes(db) );
-  iDb = sqlite3SchemaToIndex(db, pNew->pSchema);
+  iDb = sqlite3SchemaToIndex(db, pNew->pSchema);//添加声明解析
   zDb = db->aDb[iDb].zName;
   zTab = &pNew->zName[16];  /* Skip the "sqlite_altertab_" prefix on the name 跳过“sqlite_altertab_”前缀的名称*/
   pCol = &pNew->aCol[pNew->nCol-1];
   pDflt = pCol->pDflt;
-  pTab = sqlite3FindTable(db, zTab, zDb);
+  pTab = sqlite3FindTable(db, zTab, zDb);//增加表结构
   assert( pTab );
 
 #ifndef SQLITE_OMIT_AUTHORIZATION
   /* Invoke the authorization callback. 调用授权回调*/
-  if( sqlite3AuthCheck(pParse, SQLITE_ALTER_TABLE, zDb, pTab->zName, 0) ){
+  if( sqlite3AuthCheck(pParse, SQLITE_ALTER_TABLE, zDb, pTab->zName, 0) ){//调用授权回调
     return;
   }
 #endif
@@ -747,8 +747,8 @@ void sqlite3AlterFinishAddColumn(Parse *pParse, Token *pColDef){
   如果新列的默认值是用文字指定NULL,那么pDflt设置为0。
   这简化了检查SQL空下面的默认。
   */
-  if( pDflt && pDflt->op==TK_NULL ){
-    pDflt = 0;
+  if( pDflt && pDflt->op==TK_NULL ){//如果新列的默认值是用文字指定NULL,
+    pDflt = 0; //pDflt设置为0
   }
 
   /* Check that the new column is not specified as PRIMARY KEY or UNIQUE.
@@ -766,13 +766,13 @@ void sqlite3AlterFinishAddColumn(Parse *pParse, Token *pColDef){
     return;
   }
   if( (db->flags&SQLITE_ForeignKeys) && pNew->pFKey && pDflt ){
-    sqlite3ErrorMsg(pParse, 
-        "Cannot add a REFERENCES column with non-NULL default value");
+    sqlite3ErrorMsg(pParse, //检查新列没有指定主键或唯一的
+        "Cannot add a REFERENCES column with non-NULL default value");//默认值非空约束
     return;
   }
   if( pCol->notNull && !pDflt ){
     sqlite3ErrorMsg(pParse, 
-        "Cannot add a NOT NULL column with default value NULL");
+        "Cannot add a NOT NULL column with default value NULL");//列的默认值不能为空
     return;
   }
 
@@ -786,8 +786,8 @@ void sqlite3AlterFinishAddColumn(Parse *pParse, Token *pColDef){
       db->mallocFailed = 1;
       return;
     }
-    if( !pVal ){
-      sqlite3ErrorMsg(pParse, "Cannot add a column with non-constant default");
+    if( !pVal ){//如果pval为零
+      sqlite3ErrorMsg(pParse, "Cannot add a column with non-constant default");//确保默认表达式是sqlite3ValueFromExpr()可以处理的事
       return;
     }
     sqlite3ValueFree(pVal);
@@ -795,8 +795,8 @@ void sqlite3AlterFinishAddColumn(Parse *pParse, Token *pColDef){
 
   /* Modify the CREATE TABLE statement. 修改CREATE TABLE语句。*/
   zCol = sqlite3DbStrNDup(db, (char*)pColDef->z, pColDef->n);
-  if( zCol ){
-    char *zEnd = &zCol[pColDef->n-1];
+  if( zCol ){//如果zcol为非零
+    char *zEnd = &zCol[pColDef->n-1]; //保存表名
     int savedDbFlags = db->flags;
     while( zEnd>zCol && (*zEnd==';' || sqlite3Isspace(*zEnd)) ){
       *zEnd-- = '\0';
@@ -806,7 +806,7 @@ void sqlite3AlterFinishAddColumn(Parse *pParse, Token *pColDef){
         "UPDATE \"%w\".%s SET "
           "sql = substr(sql,1,%d) || ', ' || %Q || substr(sql,%d) "
         "WHERE type = 'table' AND name = %Q", 
-      zDb, SCHEMA_TABLE(iDb), pNew->addColOffset, zCol, pNew->addColOffset+1,
+      zDb, SCHEMA_TABLE(iDb), pNew->addColOffset, zCol, pNew->addColOffset+1,//修改表名语句
       zTab
     );
     sqlite3DbFree(db, zCol);
@@ -852,11 +852,11 @@ void sqlite3AlterBeginAddColumn(Parse *pParse, SrcList *pSrc){
   int iDb;
   int i;
   int nAlloc;
-  sqlite3 *db = pParse->db;
+  sqlite3 *db = pParse->db;//调用解析器
 
   /* Look up the table being altered. 查看被修改的表*/
   assert( pParse->pNewTable==0 );
-  assert( sqlite3BtreeHoldsAllMutexes(db) );
+  assert( sqlite3BtreeHoldsAllMutexes(db) );//查看被修改的表
   if( db->mallocFailed ) goto exit_begin_add_column;
   pTab = sqlite3LocateTable(pParse, 0, pSrc->a[0].zName, pSrc->a[0].zDatabase);
   if( !pTab ) goto exit_begin_add_column;
@@ -891,15 +891,15 @@ void sqlite3AlterBeginAddColumn(Parse *pParse, SrcList *pSrc){
   通过增加这些前缀，我们确保这个名称与存在的表不发生冲突。
   因为用户表不允许在他们名称里有这 个"sqlite_"前缀。
   */
-  pNew = (Table*)sqlite3DbMallocZero(db, sizeof(Table));
-  if( !pNew ) goto exit_begin_add_column;
+  pNew = (Table*)sqlite3DbMallocZero(db, sizeof(Table));//在解析器里放一个表结构的副本。pNewTable为sqlite3AddColumn() 函数和友元函数修改
+  if( !pNew ) goto exit_begin_add_column;//通过增加一个"sqlite_altertab_"前缀才能修改这个名称。
   pParse->pNewTable = pNew;
   pNew->nRef = 1;
   pNew->nCol = pTab->nCol;
   assert( pNew->nCol>0 );
   nAlloc = (((pNew->nCol-1)/8)*8)+8;
-  assert( nAlloc>=pNew->nCol && nAlloc%8==0 && nAlloc-pNew->nCol<8 );
-  pNew->aCol = (Column*)sqlite3DbMallocZero(db, sizeof(Column)*nAlloc);
+  assert( nAlloc>=pNew->nCol && nAlloc%8==0 && nAlloc-pNew->nCol<8 );//增加前缀
+  pNew->aCol = (Column*)sqlite3DbMallocZero(db, sizeof(Column)*nAlloc);//确保这个名称与存在的表不发生冲突
   pNew->zName = sqlite3MPrintf(db, "sqlite_altertab_%s", pTab->zName);
   if( !pNew->aCol || !pNew->zName ){
     db->mallocFailed = 1;
@@ -919,7 +919,7 @@ void sqlite3AlterBeginAddColumn(Parse *pParse, SrcList *pSrc){
   pNew->nRef = 1;
 
   /* Begin a transaction and increment the schema cookie.  开始一个事务和增量cookie模式。*/
-  sqlite3BeginWriteOperation(pParse, 0, iDb);
+  sqlite3BeginWriteOperation(pParse, 0, iDb);//开始一个事务和增量cookie模式。
   v = sqlite3GetVdbe(pParse);
   if( !v ) goto exit_begin_add_column;
   sqlite3ChangeCookie(pParse, iDb);
