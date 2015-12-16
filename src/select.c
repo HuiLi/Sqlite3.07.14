@@ -3020,7 +3020,7 @@ static int multiSelectOrderBy(
 }
 #endif
 
-//汤海婷
+
 
 #if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)//宏定义
 /* Forward Declarations *//*预先声明*/
@@ -3076,7 +3076,7 @@ static Expr *substExpr(
 				pNew->pColl = pExpr->pColl;//全局变量赋值
 			}
 			sqlite3ExprDelete(db, pExpr);//调用数据库中表达式删除函数
-			pExpr = pNew;//全局变量赋值
+			pExpr = pNew;//获取当前表达式
 		}
 	}
 	else{
@@ -3259,8 +3259,8 @@ static void substSelect(
 **
 ** 要理解扁平化的概念，要考虑以下的查询：
 **   SELECT a FROM (SELECT x+y AS a FROM t1 WHERE z<100) WHERE a>5
-** 默认先执行子查询语句，然后将结果存储在临时表中，在该临时表上运行外部查询。这要求有两个操作。
-** 此外，因为临时表没有索引，对外部查询的where字句不能进行优化。
+**默认先执行内查询，把结果放到一个临时表，再对这个表进行外部查询，这就要对数据进行两次处理，
+**由于该临时表无索引，所以对外部查询就不能进行优化了
 ** 这个程序尝试重写查询，根据上面的SQL语句，作为像这样的一个单独的扁平化查询：
 **   SELECT a FROM (SELECT x+y AS a FROM t1 WHERE z<100) WHERE a>5
 ** 代码给出同样的结果但只需要扫描一次数据。因为索引可能在表t1上存在，可能避免一次完成的数据扫描。
@@ -3815,7 +3815,7 @@ static u8 minMaxQuery(Select *p){
 	  Table *pTab;//初始化一个表
 	  Expr *pExpr;//初始化一个表达式
 
-	  assert( !p->pGroupBy );//断言判断 !p->pGroupBy
+	  assert( !p->pGroupBy );//断点判断 !p->pGroupBy
 
 	  if( p->pWhere || p->pEList->nExpr!=1 //查询语句含WHERE子句或表达式的个数不为1
 	   || p->pSrc->nSrc!=1 || p->pSrc->a[0].pSelect)//或查询语句FROM子句不等于1，或者至少包含一个有嵌套子查询
@@ -4067,7 +4067,7 @@ static u8 minMaxQuery(Select *p){
 				continue;//跳出本次循环
 			  }
 			  tableSeen = 1;//设置标记变量
-			  //遍历表中的列
+			  //遍历表中的列，也就是所有的field
 			  for(j=0; j<pTab->nCol; j++){
 				Expr *pExpr, *pRight;//声明表达式
 				char *zName = pTab->aCol[j].zName;//获取每一列包含的表的名字
