@@ -300,67 +300,80 @@ void sqlite3SelectDelete(sqlite3 *db, Select *p){  /*删除给定的选择结构
 ** 全外连接是JT_LEFT和JT_RIGHT结合。 如果检测到是非法字符或者不支持的连接类型，
 ** 也会返回一个连接类型，但是会在pParse结构中放入一个错误信息。
 */
-
-
-
-
-
-
-
-int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){/*传入分析树，三个令牌结构体pA、pB、pC*/
-	int jointype = 0;/*默认连接类型为0*/
-	Token *apAll[3];/*定义结构体指针数组apAll存放令牌*/
-	Token *p;/*声明一个临时令牌*/
+int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){ /*定义连接函数*/
+/*传入分析树，三个令牌结构体pA、pB、pC*/
+	int jointype = 0;/*定义连接整数类型*/
+/*默认连接类型为0*/
+	Token *apAll[3]; /*定义结构体指针数组apAll*/
+/*定义结构体指针数组apAll存放令牌*/
+	Token *p; /*定义结构体指针p*/
+/*声明一个临时令牌*/
 	/*   0123456789 123456789 123456789 123 */
-	static const char zKeyText[] = "naturaleftouterightfullinnercross";/*存放字符数组，里面装的是连接类型，在下文中进行调用*/
-	static const struct {/*声明一个内部结构体*/
-		u8 i;        /* Beginning of keyword text in zKeyText[]   zKeyText数组的起始关键字*/
-		u8 nChar;    /* Length of the keyword in characters  关键字的字符长度*/
-		u8 code;     /* Join type mask 标记连接类型*/
-	} aKeyword[] = {/*声明一个关键字数组，根据下标和长度找到连接类型*/
-		/* natural 下标从0开始，长度为7，自然连接 */{ 0, 7, JT_NATURAL },
-		/* left   下标从6开始，长度为4，左连接 */{ 6, 4, JT_LEFT | JT_OUTER },
-		/* outer  下标从10开始，长度为5，外连接 */{ 10, 5, JT_OUTER },
-		/* right   下标从14开始，长度为5，右连接*/{ 14, 5, JT_RIGHT | JT_OUTER },
-		/* full    下标从19开始，长度为4，全连接*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },
-		/* inner  下标从23开始，长度为5，内连接 */{ 23, 5, JT_INNER },
-		/* cross   下标从28开始，长度为5，内连接或CROSS连接*/{ 28, 5, JT_INNER | JT_CROSS },
+	static const char zKeyText[] = "naturaleftouterightfullinnercross";  /*定义只读的且只能在当前模块中可见的字符型数组zKeyText，并对其进行赋值*/
+/*存放字符数组，里面装的是连接类型，在下文中进行调用*/
+	static const struct { /*定义只读的且只能在当前模块可见结构体*/
+/*声明一个内部结构体*/
+		u8 i;        /* 定义KeyText[] 中开始关键字的文本*/
+/* Beginning of keyword text in zKeyText[]   zKeyText数组的起始关键字*/
+		u8 nChar;    /*定义字符中关键字的长度*/
+/* Length of the keyword in characters  关键字的字符长度*/
+		u8 code;    /* 定义连接标识符类型 */
+ /* Join type mask 标记连接类型*/
+	} aKeyword[] = { /*给定义的数组赋值*/
+/*声明一个关键字数组，根据下标和长度找到连接类型*/
+		/* natural 下标从0开始，长度为7，自然连接 */{ 0, 7, JT_NATURAL },/* natural 自然连接 */
+		/* left   下标从6开始，长度为4，左连接 */{ 6, 4, JT_LEFT | JT_OUTER },/* left   左连接 */
+		/* outer  下标从10开始，长度为5，外连接 */{ 10, 5, JT_OUTER },/* outer  外连接 *
+		/* right   下标从14开始，长度为5，右连接*/{ 14, 5, JT_RIGHT | JT_OUTER },/* right   右连接*/
+		/* full    下标从19开始，长度为4，全连接*/{ 19, 4, JT_LEFT | JT_RIGHT | JT_OUTER },/* full    全连接*/
+		/* inner  下标从23开始，长度为5，内连接 */{ 23, 5, JT_INNER },/* inner  内连接 */
+		/* cross   下标从28开始，长度为5，内连接或CROSS连接*/{ 28, 5, JT_INNER | JT_CROSS },/* cross   交叉连接*/
 	};//定义全部类型的连接，并给出起始位置、长度、连接类型
-	int i, j;
-	apAll[0] = pA;/*令牌pA指向的地址赋给apAll[0]*/
-	apAll[1] = pB;/*指针pB指向的地址赋给apAll[1]*/
-	apAll[2] = pC;/*指针pC指向的地址赋给apAll[2] */
-	for (i = 0; i < 3 && apAll[i]; i++){//循环处理apAll数组
-		p = apAll[i];/*指针apAll[i]的地址赋给指针p*/
+	int i, j;/*定义两个整型数*/
+	apAll[0] = pA;/*令牌pA指向的地址赋给apAll[0]*/  /*指针pA指向的地址赋给apAll[0] */
+	apAll[1] = pB;/*指针pB指向的地址赋给apAll[1]*/  /*指针pB指向的地址赋给apAll[1] */
+	apAll[2] = pC;/*指针pC指向的地址赋给apAll[2] */  /*指针pc指向的地址赋给apAll[2] */
+	for (i = 0; i < 3 && apAll[i]; i++){ /*定义循环结构*/
+//循环处理apAll数组
+		p = apAll[i];/*指针apAll[i]的地址赋给指针p*/  /*指针apAll[i]的地址赋给指针p*/
 		if (p->n == aKeyword[j].nChar /*如果令牌中字符个数等于连接数组中的关键字长度*/
-			&& sqlite3StrNICmp((char*)p->z, &zKeyText[aKeyword[j].i], p->n) == 0){/*并且p->z和p->n以及zKeyText[aKeyword[j].i]相等*/
-			jointype |= aKeyword[j].code;/*如果通过了比较长度和内容，返回连接类型，注意是，使用的是“位或”*/
-			break;//跳出本层循环
+			&& sqlite3StrNICmp((char*)p->z, &zKeyText[aKeyword[j].i], p->n) == 0){/*定义条件语句进行判断*
+/*并且p->z和p->n以及zKeyText[aKeyword[j].i]相等*/
+			jointype |= aKeyword[j].code; /*统计连接的个数*/
+/*如果通过了比较长度和内容，返回连接类型，注意是，使用的是“位或”*/
+			break;  /*跳出循环*/   //跳出本层循环
 		}
 	}
-	testcase(j == 0 || j == 1 || j == 2 || j == 3 || j == 4 || j == 5 || j == 6);/*利用测试代码中testcast，测试j值，是否在这个范围*/
-	if (j >= ArraySize(aKeyword)){/*如果j大于等于连接关键字数组*/
-		jointype |= JT_ERROR;/*那就jointype与JT_ERROR“位或”，返回一个错误*/
-		break;//跳出本层循环
+	testcase(j == 0 || j == 1 || j == 2 || j == 3 || j == 4 || j == 5 || j == 6);  /*调用函数testcase()进行选择*/  /*利用测试代码中testcast，测试j值，是否在这个范围*/
+	if (j >= ArraySize(aKeyword)){  /*给定义的数组赋值*/  /*如果j大于等于连接关键字数组*/
+		jointype |= JT_ERROR;  /*统计连接的个数*/  /*那就jointype与JT_ERROR“位或”，返回一个错误*/
+		break;  /*跳出循环*/   //跳出本层循环
 	  }
 	}
 	if (
 	(jointype & (JT_INNER | JT_OUTER)) == (JT_INNER | JT_OUTER) ||/*如果连接类型交上(JT_INNER|JT_OUTER)的结果，与JT_INNER和JT_OUTER一样*/
 	(jointype & JT_ERROR) != 0/*或者连接类型交上JT_ERROR不等于0*/
-	){
-		const char *zSp = " "; /*空值赋给只读的字符型指针zSp*/
-		assert(pB != 0);/*判断pB是否为空*/
-		if (pC == 0){ zSp++; }/*如果指针pC指向的地址为0，则zSp++*/
-		sqlite3ErrorMsg(pParse, "unknown or unsupported join type: ""%T %T%s%T", pA, pB, zSp, pC);  /*在Parse分析树中，存放一个错误信息”*/
-		jointype = JT_INNER ;/*默认使用内连接*/
+	){  /*选择条件句判断*/
+		const char *zSp = " ";  /*只读的字符型指针zSp*/ /*空值赋给只读的字符型指针zSp*/
+		assert(pB != 0);  /*调用函数assert()*/  /*判断pB是否为空*/
+		if (pC == 0){ zSp++; }  /*如果指针pC指向的地址为0，那么指针zSp指向的地址前移一个存储单元*/  /*如果指针pC指向的地址为0，则zSp++*/
+		sqlite3ErrorMsg(pParse, "unknown or unsupported join type: ""%T %T%s%T", pA, pB, zSp, pC);  /*抛出错误消息*/  /*在Parse分析树中，存放一个错误信息”*/
+		jointype = JT_INNER ;  /*给返回类型赋值*/  /*默认使用内连接*/
 	}
 	else if ((jointype & JT_OUTER) != 0/* 如果连接类型和外连接有交集*/
 		&& (jointype & (JT_LEFT | JT_RIGHT)) != JT_LEFT){/*如果连接类型和外连接有交集，并且连接类型和(JT_LEFT|JT_RIGHT)交集，不是左连接*/
-		sqlite3ErrorMsg(pParse,"RIGHT and FULL OUTER JOINs are not currently supported");/*那么在Parse分析树中返回一个“右连接和全外连接当前不被支持”的错误消息”*/
-		jointype = JT_INNER; /*默认使用内连接*/
+		sqlite3ErrorMsg(pParse,"RIGHT and FULL OUTER JOINs are not currently supported");  /*考虑另一情况的判断*/  /*那么在Parse分析树中返回一个“右连接和全外连接当前不被支持”的错误消息”*/
+		jointype = JT_INNER; /*给返回类型赋值*/  /*默认使用内连接*/
 	}
-	return jointype;/*返回连接类型*/
+	return jointype;   /*返回连接数的个数*/  /*返回连接类型*/
 }
+
+
+
+
+
+
+
 
 /*
 ** Return the index of a column in a table.  Return -1 if the column
