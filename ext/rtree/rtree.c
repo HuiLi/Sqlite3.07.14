@@ -265,8 +265,8 @@ struct Rtree {
   typedef sqlite3_int64 RtreeDValue;       /* High accuracy coordinate  高精度的坐标*/
   typedef int RtreeValue;                  /* Low accuracy coordinate  低精度的坐标*/
 #else
-  typedef double RtreeDValue;              /* High accuracy coordinate */
-  typedef float RtreeValue;                /* Low accuracy coordinate */
+  typedef double RtreeDValue;              /* High accuracy coordinate 高精度的坐标 */
+  typedef float RtreeValue;                /* Low accuracy coordinate 低精度的坐标*/
 #endif
 
 /*
@@ -370,7 +370,7 @@ struct RtreeNode {
   u8 *zData;                       //zData保存了结点相关信息.如果该结点为根结点,则zData前2byte保存了树的高度信息,如果该结点非根节点,则前2byte未使用.zData[2-3]保存了该结点的单元数.
   RtreeNode *pNext;                 /* Next node in this hash chain  在该hash链的下一个节点*/
 };
-#define NCELL(pNode) readInt16(&(pNode)->zData[2])
+#define NCELL(pNode) readInt16(&(pNode)->zData[2])  // 定义宏NCELL为反序列化一个16位的整型 方法
 
 /* 
 ** Structure to store a deserialized rtree record.
@@ -601,7 +601,7 @@ static RtreeNode *nodeNew(Rtree *pRtree, RtreeNode *pParent){
 static int
 nodeAcquire(
   Rtree *pRtree,             /* R-tree structure  R树结构*/
-  i64 iNode,                 /* Node number to load 节点数量加载 */
+  i64 iNode,                 /* Node number to load 节点号加载 */
   RtreeNode *pParent,        /* Either the parent node or NULL 父节点或没有节点 */
   RtreeNode **ppNode         /* OUT: Acquired node  输出：获得的节点*/
 ){
@@ -618,8 +618,8 @@ nodeAcquire(
   ** assert的作用是现计算表达式 expression ，如果其值为假（即为0），那么它先向stderr打印一条出错信息，然后通过调用 abort 来终止程序运行。
   */
   if( (pNode = nodeHashLookup(pRtree, iNode)) ){
-    assert( !pParent || !pNode->pParent || pNode->pParent==pParent );  //void assert( int expression )
-    if( pParent && !pNode->pParent ){
+    assert( !pParnt || !pNode->pParent || pNode->pParent==pParent );  //void assert( int expression )
+    if( pParent &&e !pNode->pParent ){
       nodeReference(pParent);
       pNode->pParent = pParent;
     }
@@ -844,8 +844,8 @@ static void nodeGetCoord(
 /*
 ** Deserialize cell iCell of node pNode. Populate the structure pointed
 ** to by pCell with the results.
-** 反序列化pNode节点的iCell单元.
-** 把结果填写到pNode指向的结构
+** 反序列化pNode节点的iCell单元. 把结果填写到pNode指向的结构
+** 
 */
 static void nodeGetCell(
   Rtree *pRtree, 
@@ -854,9 +854,9 @@ static void nodeGetCell(
   RtreeCell *pCell
 ){
   int ii;
-  pCell->iRowid = nodeGetRowid(pRtree, pNode, iCell);
+  pCell->iRowid = nodeGetRowid(pRtree, pNode, iCell);   //返回 pNode 节点中ICell单元的Rowid
   for(ii=0; ii<pRtree->nDim*2; ii++){       //nDim  维度
-    nodeGetCoord(pRtree, pNode, iCell, ii, &pCell->aCoord[ii]);
+    nodeGetCoord(pRtree, pNode, iCell, ii, &pCell->aCoord[ii]);  // 返回icell 单元的坐标  
   }
 }
 
@@ -990,7 +990,7 @@ static int rtreeOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
 static void freeCursorConstraints(RtreeCursor *pCsr){
   if( pCsr->aConstraint ){
     int i;                        /* Used to iterate through constraint array 被用于通过约束数组的迭代计数器*/
-    for(i=0; i<pCsr->nConstraint; i++){
+    for(i=0; i<pCsr->nConstraint; i++){ 
       sqlite3_rtree_geometry *pGeom = pCsr->aConstraint[i].pGeom;    
       if( pGeom ){  
         if( pGeom->xDelUser ) pGeom->xDelUser(pGeom->pUser);
@@ -1018,7 +1018,7 @@ static int rtreeClose(sqlite3_vtab_cursor *cur){
 
 /*
 ** Rtree virtual table module xEof method.
-** R树虚表模块结束xEOF方法
+** R树虚表模块结束xEOF方法      EOF它是end of file（End   of   File就是文件的结束,也即EOF,通常用来判断文件的操作是否结束的标志 ）的缩写
 ** Return non-zero if the cursor does not currently point to a valid 
 ** record (i.e if the scan has finished), or zero otherwise.
 ** 如果当前指针没有指向一个有效的记录(已完成扫描)则返回非空值,否则返回0
@@ -1040,20 +1040,20 @@ static int testRtreeGeom(
   int *pbRes                      /* OUT: Test result  输出：测试结果*/
 ){
   int i;
-  RtreeDValue aCoord[RTREE_MAX_DIMENSIONS*2];
+  RtreeDValue aCoord[RTREE_MAX_DIMENSIONS*2];  //高精度坐标 
   int nCoord = pRtree->nDim*2;
 
   assert( pConstraint->op==RTREE_MATCH );
   assert( pConstraint->pGeom );
 
   for(i=0; i<nCoord; i++){
-    aCoord[i] = DCOORD(pCell->aCoord[i]);
+    aCoord[i] = DCOORD(pCell->aCoord[i]);  //定义游标
   }
   return pConstraint->xGeom(pConstraint->pGeom, nCoord, aCoord, pbRes);
 }
 
 /* 
-** Cursor pCursor currently points to a cell in a non-leaf page.
+** Cursor pCursor currently points to a cell in a non-leaf page.  
 ** Set *pbEof to true if the sub-tree headed by the cell is filtered
 ** (excluded) by the constraints in the pCursor->aConstraint[] 
 ** array, or false otherwise.
@@ -1074,16 +1074,16 @@ static int testRtreeCell(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
   nodeGetCell(pRtree, pCursor->pNode, pCursor->iCell, &cell);
   for(ii=0; bRes==0 && ii<pCursor->nConstraint; ii++){
     RtreeConstraint *p = &pCursor->aConstraint[ii];
-    RtreeDValue cell_min = DCOORD(cell.aCoord[(p->iCoord>>1)*2]);
+    RtreeDValue cell_min = DCOORD(cell.aCoord[(p->iCoord>>1)*2]);   // RtreeDValue 坐标约束值  DCOORD 定义游标
     RtreeDValue cell_max = DCOORD(cell.aCoord[(p->iCoord>>1)*2+1]);
 
-    assert(p->op==RTREE_LE || p->op==RTREE_LT || p->op==RTREE_GE 
+    assert(p->op==RTREE_LE || p->op==RTREE_LT || p->op==RTREE_GE         //约束可能值
         || p->op==RTREE_GT || p->op==RTREE_EQ || p->op==RTREE_MATCH
     );
 
     switch( p->op ){
       case RTREE_LE: case RTREE_LT: 
-        bRes = p->rValue<cell_min; 
+        bRes = p->rValue<cell_min;    //返回值
         break;
 
       case RTREE_GE: case RTREE_GT: 
@@ -1096,7 +1096,7 @@ static int testRtreeCell(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
 
       default: {
         assert( p->op==RTREE_MATCH );
-        rc = testRtreeGeom(pRtree, p, &cell, &bRes);
+        rc = testRtreeGeom(pRtree, p, &cell, &bRes);  //测试单元
         bRes = !bRes;
         break;
       }
@@ -1126,7 +1126,7 @@ static int testRtreeEntry(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
   int ii;
   *pbEof = 0;
 
-  nodeGetCell(pRtree, pCursor->pNode, pCursor->iCell, &cell);
+  nodeGetCell(pRtree, pCursor->pNode, pCursor->iCell, &cell);  
   for(ii=0; ii<pCursor->nConstraint; ii++){
     RtreeConstraint *p = &pCursor->aConstraint[ii];
     RtreeDValue coord = DCOORD(cell.aCoord[p->iCoord]);
@@ -1142,8 +1142,8 @@ static int testRtreeEntry(Rtree *pRtree, RtreeCursor *pCursor, int *pbEof){
       case RTREE_EQ: res = (coord==p->rValue); break;
       default: {
         int rc;
-        assert( p->op==RTREE_MATCH );
-        rc = testRtreeGeom(pRtree, p, &cell, &res);
+        assert( p->op==RTREE_MATCH );  
+        rc = testRtreeGeom(pRtree, p, &cell, &res);  //测试单元
         if( rc!=SQLITE_OK ){
           return rc;
         }
@@ -1172,7 +1172,7 @@ static int descendToCell(
   Rtree *pRtree, 
   RtreeCursor *pCursor, 
   int iHeight,
-  int *pEof                 /* OUT: Set to true if cannot descend */
+  int *pEof                 /* OUT: Set to true if cannot descend  输出：如果游标不能向下移动就设置为true*/
 ){
   int isEof;
   int rc;
@@ -1185,7 +1185,7 @@ static int descendToCell(
 
   assert( iHeight>=0 );
 
-  if( iHeight==0 ){
+  if( iHeight==0 ){   //判断是否是叶节点
     rc = testRtreeEntry(pRtree, pCursor, &isEof);
   }else{
     rc = testRtreeCell(pRtree, pCursor, &isEof);
@@ -1195,7 +1195,7 @@ static int descendToCell(
   }
 
   iRowid = nodeGetRowid(pRtree, pCursor->pNode, pCursor->iCell);
-  rc = nodeAcquire(pRtree, iRowid, pCursor->pNode, &pChild);
+  rc = nodeAcquire(pRtree, iRowid, pCursor->pNode, &pChild);  //获得一个指向R树结点的指针
   if( rc!=SQLITE_OK ){
     goto descend_to_cell_out;
   }
@@ -1205,7 +1205,7 @@ static int descendToCell(
   isEof = 1;
   for(ii=0; isEof && ii<NCELL(pChild); ii++){
     pCursor->iCell = ii;
-    rc = descendToCell(pRtree, pCursor, iHeight-1, &isEof);
+    rc = descendToCell(pRtree, pCursor, iHeight-1, &isEof);  //继续向下
     if( rc!=SQLITE_OK ){
       goto descend_to_cell_out;
     }
@@ -1336,7 +1336,7 @@ static int rtreeColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i){
 
   if( i==0 ){
     i64 iRowid = nodeGetRowid(pRtree, pCsr->pNode, pCsr->iCell);
-    sqlite3_result_int64(ctx, iRowid);
+    sqlite3_result_int64(ctx, iRowid);  //获得返回结果
   }else{
     RtreeCoord c;
     nodeGetCoord(pRtree, pCsr->pNode, pCsr->iCell, i-1, &c);
@@ -1373,7 +1373,7 @@ static int findLeafNode(Rtree *pRtree, i64 iRowid, RtreeNode **ppLeaf){
     rc = nodeAcquire(pRtree, iNode, 0, ppLeaf);
     sqlite3_reset(pRtree->pReadRowid);
   }else{
-    rc = sqlite3_reset(pRtree->pReadRowid);
+    rc = sqlite3_reset(pRtree->pReadRowid); 
   }
   return rc;
 }
@@ -1408,10 +1408,10 @@ static int deserializeGeometry(sqlite3_value *pValue, RtreeConstraint *pCons){
       sizeof(sqlite3_rtree_geometry) + nBlob
   );
   if( !pGeom ) return SQLITE_NOMEM;
-  memset(pGeom, 0, sizeof(sqlite3_rtree_geometry));
+  memset(pGeom, 0, sizeof(sqlite3_rtree_geometry)); //把pGeom 所指向的的内存的值设置为0 
   p = (RtreeMatchArg *)&pGeom[1];
 
-  memcpy(p, sqlite3_value_blob(pValue), nBlob);
+  memcpy(p, sqlite3_value_blob(pValue), nBlob); //从sqlite3_value_blob(pValue)复制nBlob个字节到p中
   if( p->magic!=RTREE_GEOMETRY_MAGIC 
    || nBlob!=(int)(sizeof(RtreeMatchArg) + (p->nParam-1)*sizeof(RtreeDValue))
   ){
@@ -1444,9 +1444,9 @@ static int rtreeFilter(
   int ii;
   int rc = SQLITE_OK;
 
-  rtreeReference(pRtree);
+  rtreeReference(pRtree); //引用数加1 
 
-  freeCursorConstraints(pCsr);
+  freeCursorConstraints(pCsr); //释放游标
   pCsr->iStrategy = idxNum;
 
   if( idxNum==1 ){
@@ -1532,17 +1532,19 @@ static int rtreeFilter(
 ** Rtree virtual table module xBestIndex method. There are three
 ** table scan strategies to choose from (in order from most to 
 ** least desirable):
-** R树虚拟表模块xBestIdex方法
+** R树虚拟表模块xBestIdex方法 
+   SQLite 使用虚拟表格模块的xBestIndex 方法来确定访问虚拟表的最佳方式是xBestIndex方法
+
 ** 有三种表扫描策略可选择（为了从多到少可取）
 **   idxNum     idxStr        Strategy
 **   ------------------------------------------------
 **     1        Unused        Direct lookup by rowid.
 **     2        See below     R-tree query or full-table scan.
 **   ------------------------------------------------
-**   索引                        id字符串                          策略
+**   索引       id字符串        策略
 **   --------------------------------------------------
-**   1          没有                                 通过rowid直接查找
-**   2          查看下面                         R树查找或全表扫描
+**   1          没用的               通过rowid直接查找
+**   2          查看下面             R树查找或全表扫描
 **
 ** If strategy 1 is used, then idxStr is not meaningful. If strategy
 ** 2 is used, idxStr is formatted to contain 2 bytes for each 
@@ -1569,7 +1571,7 @@ static int rtreeFilter(
 ** is 'a', the second from the left 'b' etc.
 ** idxStr每对字节的第二个2字节识别哪种约束被使用在坐标列上，最左边的列为a，接下来的为b，等等
 */
-static int rtreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
+static int rtreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){  
   int rc = SQLITE_OK;
   int ii;
 
@@ -1639,7 +1641,7 @@ static int rtreeBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo){
 ** 返回存储在p中的单元的的N维列数据
 */
 static RtreeDValue cellArea(Rtree *pRtree, RtreeCell *p){
-  RtreeDValue area = (RtreeDValue)1;
+  RtreeDValue area = (RtreeDValue)1;     
   int ii;
   for(ii=0; ii<(pRtree->nDim*2); ii+=2){
     area = (area * (DCOORD(p->aCoord[ii+1]) - DCOORD(p->aCoord[ii])));
@@ -1668,10 +1670,10 @@ static RtreeDValue cellMargin(Rtree *pRtree, RtreeCell *p){
 */
 static void cellUnion(Rtree *pRtree, RtreeCell *p1, RtreeCell *p2){
   int ii;
-  if( pRtree->eCoordType==RTREE_COORD_REAL32 ){
+  if( pRtree->eCoordType==RTREE_COORD_REAL32 ){  //判断类型
     for(ii=0; ii<(pRtree->nDim*2); ii+=2){
-      p1->aCoord[ii].f = MIN(p1->aCoord[ii].f, p2->aCoord[ii].f);
-      p1->aCoord[ii+1].f = MAX(p1->aCoord[ii+1].f, p2->aCoord[ii+1].f);
+      p1->aCoord[ii].f = MIN(p1->aCoord[ii].f, p2->aCoord[ii].f);  //把最小值合并
+      p1->aCoord[ii+1].f = MAX(p1->aCoord[ii+1].f, p2->aCoord[ii+1].f);//把最大值合并
     }
   }else{
     for(ii=0; ii<(pRtree->nDim*2); ii+=2){
@@ -1688,7 +1690,7 @@ static void cellUnion(Rtree *pRtree, RtreeCell *p1, RtreeCell *p2){
 */
 static int cellContains(Rtree *pRtree, RtreeCell *p1, RtreeCell *p2){
   int ii;
-  int isInt = (pRtree->eCoordType==RTREE_COORD_INT32);
+  int isInt = (pRtree->eCoordType==RTREE_COORD_INT32);//判断类型
   for(ii=0; ii<(pRtree->nDim*2); ii+=2){
     RtreeCoord *a1 = &p1->aCoord[ii];
     RtreeCoord *a2 = &p2->aCoord[ii];
@@ -1714,8 +1716,9 @@ static RtreeDValue cellGrowth(Rtree *pRtree, RtreeCell *p, RtreeCell *pCell){
   return (cellArea(pRtree, &cell)-area);
 }
 
+//返回单元重叠值
 #if VARIANT_RSTARTREE_CHOOSESUBTREE || VARIANT_RSTARTREE_SPLIT
-static RtreeDValue cellOverlap(
+static RtreeDValue cellOverlap(     
   Rtree *pRtree, 
   RtreeCell *p, 
   RtreeCell *aCell, 
@@ -1725,11 +1728,11 @@ static RtreeDValue cellOverlap(
   int ii;
   RtreeDValue overlap = 0.0;
   for(ii=0; ii<nCell; ii++){
-#if VARIANT_RSTARTREE_CHOOSESUBTREE
+#if VARIANT_RSTARTREE_CHOOSESUBTREE // 如果选择子树
     if( ii!=iExclude )
 #else
     assert( iExclude==-1 );
-    UNUSED_PARAMETER(iExclude);
+    UNUSED_PARAMETER(iExclude);    //设定为没用
 #endif
     {
       int jj;
@@ -1753,10 +1756,9 @@ static RtreeDValue cellOverlap(
   return overlap;
 }
 #endif
-
+//返回插入单元pInsert后单元p和单元aCell区域的重叠值增量
 #if VARIANT_RSTARTREE_CHOOSESUBTREE  //R*树选择子树算法
 static RtreeDValue cellOverlapEnlargement(
-        //返回插入单元pInsert后单元p和单元aCell区域的重叠值增量
   Rtree *pRtree, 
   RtreeCell *p, 
   RtreeCell *pInsert, 
@@ -1776,19 +1778,19 @@ static RtreeDValue cellOverlapEnlargement(
 /*
 ** This function implements the ChooseLeaf algorithm from Gutman[84].
 ** ChooseSubTree in r*tree terminology.
-** 这个函数实现了Gutman[84]中的选择叶结点算法
+** 这个函数实现了Gutman[84]中的术语选择叶结点算法
 ** ChooseSubTree 是R*树 中的术语
 */
 static int ChooseLeaf(
-  Rtree *pRtree,               /* Rtree table */
-  RtreeCell *pCell,            /* Cell to insert into rtree */
-  int iHeight,                 /* Height of sub-tree rooted at pCell */
-  RtreeNode **ppLeaf           /* OUT: Selected leaf page */
+  Rtree *pRtree,               /* Rtree table R树表*/
+  RtreeCell *pCell,            /* Cell to insert into rtree 要插入R树的单元*/
+  int iHeight,                 /* Height of sub-tree rooted at pCell 在pcell中的子节点的高度*/
+  RtreeNode **ppLeaf           /* OUT: Selected leaf page 输出：选择的叶节点页面*/
 ){
   int rc;
   int ii;
   RtreeNode *pNode;
-  rc = nodeAcquire(pRtree, 1, 0, &pNode);
+  rc = nodeAcquire(pRtree, 1, 0, &pNode);   //获得指向R树节点的指针
 
   for(ii=0; rc==SQLITE_OK && ii<(pRtree->iDepth-iHeight); ii++){
     int iCell;
@@ -1801,7 +1803,7 @@ static int ChooseLeaf(
     RtreeDValue overlap;
 #endif
 
-    int nCell = NCELL(pNode);
+    int nCell = NCELL(pNode);  //反序列化一个整数
     RtreeCell cell;
     RtreeNode *pChild;
 
@@ -1832,7 +1834,7 @@ static int ChooseLeaf(
       int bBest = 0;
       RtreeDValue growth;
       RtreeDValue area;
-      nodeGetCell(pRtree, pNode, iCell, &cell);
+      nodeGetCell(pRtree, pNode, iCell, &cell);   //写入节点
       growth = cellGrowth(pRtree, &cell, pCell);
       area = cellArea(pRtree, &cell);
 
@@ -1877,6 +1879,7 @@ static int ChooseLeaf(
 ** the node pNode. This function updates the bounding box cells in
 ** all ancestor elements.
 ** 与pCell有相同内容的单元插入到结点pNode中，这个函数在原来所有的元素上更新了所有的边界框单元。
+叶子结点的改变向上传递至根结点以改变各个矩阵。在传递变换的过程中可能会产生结点的分裂。 
 */
 static int AdjustTree(
   Rtree *pRtree,                    /* Rtree table R树表*/
@@ -1884,19 +1887,19 @@ static int AdjustTree(
   RtreeCell *pCell                  /* This cell was just inserted 这个单元仅仅是被插入的*/
 ){
   RtreeNode *p = pNode;
-  while( p->pParent ){
-    RtreeNode *pParent = p->pParent;
+  while( p->pParent ){   
+    RtreeNode *pParent = p->pParent; //设pParent为pNode的父节点
     RtreeCell cell;
     int iCell;
 
-    if( nodeParentIndex(pRtree, p, &iCell) ){
+    if( nodeParentIndex(pRtree, p, &iCell) ){ // 判断是否是根节点  返回一个包含指向其父节点中pNode指针单元的索引，如果pNode为根结点则返回-1
       return SQLITE_CORRUPT_VTAB;
     }
 
-    nodeGetCell(pRtree, pParent, iCell, &cell);
-    if( !cellContains(pRtree, &cell, pCell) ){
-      cellUnion(pRtree, &cell, pCell);
-      nodeOverwriteCell(pRtree, pParent, &cell, iCell);
+    nodeGetCell(pRtree, pParent, iCell, &cell); // 把icell 单元写入pParent 
+    if( !cellContains(pRtree, &cell, pCell) ){  //如果pCell区域是区域 cell的子集，则返回true,否则返回false
+      cellUnion(pRtree, &cell, pCell);     //合并  cell  pCell
+      nodeOverwriteCell(pRtree, pParent, &cell, iCell);   //用cell中的内容重写pParent的iCell单元的内容
     }
     p = pParent;
   }
@@ -1916,7 +1919,7 @@ static int rowidWrite(Rtree *pRtree, sqlite3_int64 iRowid, sqlite3_int64 iNode){
 
 /*
 ** Write mapping (iNode->iPar) to the <rtree>_parent table.
-** 把(iRowid->iNode) 的映射到写入 <rtree>_rowid 表,将R树结构存放到虚表中
+** 把 (iNode->iPar) 的映射到写入<rtree>_parent 表,将R树结构存放到虚表中
 */
 static int parentWrite(Rtree *pRtree, sqlite3_int64 iNode, sqlite3_int64 iPar){
   sqlite3_bind_int64(pRtree->pWriteParent, 1, iNode);
@@ -1928,13 +1931,21 @@ static int parentWrite(Rtree *pRtree, sqlite3_int64 iNode, sqlite3_int64 iPar){
 static int rtreeInsertCell(Rtree *, RtreeNode *, RtreeCell *, int);
 // 将单元pCell插入到结点pNode中，结点pNode是高度为iHeight子树的首结点
 
+ //线性分裂  
 #if VARIANT_GUTTMAN_LINEAR_SPLIT
 /*
+在搜索中是否搜索某一个节点，是有这个节点的矩形是否和待搜索矩形有重叠来决定的，
+因此， split 后的两个矩形的覆盖面积应该最小
+
 ** Implementation of the linear variant of the PickNext() function from
 ** Guttman[84].
 ** 实现Guttman[84]中方法PickNext()的变形 ----线性PickNext()方法
-*/
-static RtreeCell *LinearPickNext(
+picknext:
+  PN1. 对于每一个没有分配到 group 中的 entry E ， 计算 将 EI 放到 group1 中后的面积增加值 d1 。 d2 类似。
+                计算d1、d2差值的绝对值：d = |d1 - d2|
+  PN2. 选择d最大的entry
+*/  
+static RtreeCell *LinearPickNext(   //选择下一个元素算法
   Rtree *pRtree,
   RtreeCell *aCell, 
   int nCell, 
@@ -1952,12 +1963,16 @@ static RtreeCell *LinearPickNext(
 ** Implementation of the linear variant of the PickSeeds() function from
 ** Guttman[84].
 ** 实现Guttman[84]中方法PickSeeds()的变形 ----线性PickSeeds()方法
+   选择第一个元素算法
+   pickseeds 
+    PS1. 对于每一对 entry ： E1 和 E2 ，计算包含 E1I 和 E2I 的矩形 J 的面积，令 d=area(J)-area(E1I)-area(E2I)
+    PS2. 选择 d 最大的作为初始元素。
 */
-static void LinearPickSeeds(
+static void LinearPickSeeds(   //选择第一个元素算法
   Rtree *pRtree,
   RtreeCell *aCell, 
   int nCell, 
-  int *piLeftSeed, 
+  int *piLeftSeed,  
   int *piRightSeed
 ){
   int i;
@@ -2014,9 +2029,24 @@ static void LinearPickSeeds(
 
 #if VARIANT_GUTTMAN_QUADRATIC_SPLIT
 /*
+时间复杂度为平方的近似算法。
+这个算法试图找到一个面积和最小的 split ，但不保证会找的到。
+算法先从 M+1 个 enrty 中挑出两个作为 2 个新 group 的第一个元素。
+这两个 entry 的选择是这样的：如果将这两个 entry 放到同一个 group 的话，所需要的矩形面积最大。
+然后每一步再对剩余的 entry 进行分组，每个元素放到一个 group 中。
+在每一步中，计算将每个 entry 放入到每个 group 后的面积增加值，
+然后将差值最大的 entry 进行分配
+
 ** Implementation of the quadratic variant of the PickNext() function from
 ** Guttman[84].
 ** 实现Guttman[84]PickNext（）方法的变形方法-----平方分裂算法
+
+ QS1. 为每个 group 选择第一个 entry 。利用算法 PickSeeds 来选择最初的两个 entry ，并将他们分配到不同的 group 中。
+
+ QS2. 检查是否结束。如果所有的 entry 都已经分配了，停止。如果一个 group 拥有的 entry 比较多，那么要将剩余的 entry 分配到另外一个 group( 为了保证 >=m)
+
+ QS3. 调用算法 PickNext 来将下一个 entry 进行分配。将该 entry 分配到面积增加最小的组中。重复 QS2.
+
 */
 static RtreeCell *QuadraticPickNext(
   Rtree *pRtree,
