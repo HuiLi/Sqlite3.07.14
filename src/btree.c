@@ -4766,47 +4766,46 @@ static int getOverflowPage(
   }
   return (rc==SQLITE_DONE ? SQLITE_OK : rc);
 }
-
 /*
 ** Copy data from a buffer to a page, or from a page to a buffer.
-** 将数据从缓冲区复制到一个页面,或从一个页面到缓冲区。
+** 将数据从缓冲区复制到一个页面,或从一个页面到缓冲区.
 ** pPayload is a pointer to data stored on database page pDbPage.
 ** If argument eOp is false, then nByte bytes of data are copied
 ** from pPayload to the buffer pointed at by pBuf. If eOp is true,
 ** then sqlite3PagerWrite() is called on pDbPage and nByte bytes
 ** of data are copied from the buffer pBuf to pPayload.
-** pPayload是一个指针指向存储在数据库页pDbPage上的数据。如果参数eOp 为假,那么nByte字节的数据从pPayload复制 到pBuf
-** 指向的缓冲区指着。如果eOp为真, 然后在pDbPage上调用sqlite3PagerWrite()并且nByte字节的数据从pBuf复制 到pPayload。
+** pPayload是一个指针指向存储在数据库页pDbPage上的数据.如果参数eOp 为假,那么nByte字节的数据从pPayload复制 到pBuf
+** 指向的缓冲区指着.如果eOp为真, 然后在pDbPage上调用sqlite3PagerWrite()并且nByte字节的数据从pBuf复制 到pPayload.
 ** SQLITE_OK is returned on success, otherwise an error code.
-** 成功则返回SQLITE_OK ，否则返回错误代码。
+** 成功则返回SQLITE_OK ,否则返回错误代码.
 */
 	/*
-	**从缓冲区复制数据到一个页面，或者从一个页面复制到缓冲器。
+	**从缓冲区复制数据到一个页面,或者从一个页面复制到缓冲器.
 	**
-	** pPayload是一个指向存储在数据库页面pDbPage数据的指针。
-	**如果参数EOP是假的，那么nByte字节数据被复制
-	**通过PBUF从pPayload到缓冲区指向。如果EOP是true，
-	**然后sqlite3PagerWrite（）被调用，nByte字节
-	**数据从缓冲器 pBuf 到pPayload被复制。
-	** 成功返回SQLITE_OK，否则返回错误代码。
+	** pPayload是一个指向存储在数据库页面pDbPage数据的指针.
+	**如果参数EOP是假的,那么nByte字节数据被复制
+	**通过PBUF从pPayload到缓冲区指向.如果EOP是true,
+	**然后sqlite3PagerWrite()被调用,nByte字节
+	**数据从缓冲器 pBuf 到pPayload被复制.
+	** 成功返回SQLITE_OK,否则返回错误代码.
 	*/
 
 static int copyPayload(                      //将数据从缓冲区复制到一个页面,或从一个页面到缓冲区
-  void *pPayload,           /* Pointer to page data */                             //页面数据的指针
-  void *pBuf,               /* Pointer to buffer */                                     //缓存区指针
+  void *pPayload,           /* Pointer to page data */                             //页面数据的指针		/* 【赵大成】指向页面数据的指针*/
+  void *pBuf,               /* Pointer to buffer */                                     //缓存区指针    /* 【赵大成】指向缓存区的指针*/
   int nByte,                /* Number of bytes to copy */                          //拷贝的字节数
-  int eOp,                  /* 0 -> copy from page, 1 -> copy to page */   //eOp为0从页拷贝到缓存区，为1则从缓存区拷贝到页
+  int eOp,                  /* 0 -> copy from page, 1 -> copy to page */   //eOp为0从页拷贝到缓存区,为1则从缓存区拷贝到页
   DbPage *pDbPage           /* Page containing pPayload */               //页包含pPayload
 ){
   if( eOp ){
-    /* Copy data from buffer to page (a write operation) */  //为1则从缓存区拷贝到页
+    /* Copy data from buffer to page (a write operation) */  //为1则从缓存区拷贝到页		/* 【赵大成】eOp等于1，将数据从缓冲区复制到页面(写操作)*/
     int rc = sqlite3PagerWrite(pDbPage);
     if( rc!=SQLITE_OK ){
       return rc;
     }
     memcpy(pPayload, pBuf, nByte);
   }else{
-    /* Copy data from page to buffer (a read operation) */    //eOp为0从页拷贝到缓存区
+    /* Copy data from page to buffer (a read operation) */    //eOp为0从页拷贝到缓存区		/* 【赵大成】eOp等于0，页面的数据复制到缓冲区(一个读操作)*/
     memcpy(pBuf, pPayload, nByte);
   }
   return SQLITE_OK;
@@ -4841,18 +4840,26 @@ static int copyPayload(                      //将数据从缓冲区复制到一
 **   * Creating a table (may require moving an overflow page).
 */
 	/*
-	** 对于游标pCur正指向的条目，此功能用于读或覆写有效载荷信息。
-	** 如果参数eOp为0，这是一个读操作（数据复制到缓存pBuf）。
-	** 如果它不为零，数据从缓存 pBuf中复制到页。
+	** 对于游标pCur正指向的条目,此功能用于读或覆写有效载荷信息.
+	** 如果参数eOp为0,这是一个读操作(数据复制到缓存pBuf).
+	** 如果它不为零,数据从缓存 pBuf中复制到页.
 	** 总共有“amt”字节的数据被读或写从"offset"开始.
-	** 正在读或写的内容可能出现在主页上或分散在多个溢出页。 如果设置了BtCursor.isIncrblobHandle标志,
-	** 且当前游标条目使用一个或多个溢出页,这个函数分配空间和慢慢增加溢出页列表缓存数组(BtCursor.aOverflow)。
-	** 后续调用使用这个缓存使寻求提供的偏移更有效率。
-	** 一旦溢出页列表缓存已经被分配，如果其他游标写入
-	** 同一个表则无效,或者游标移动到不同行。此外,在auto-vacuum 模式,下面的事件可能使一个缓存溢出页列表缓存无效。
+	** 正在读或写的内容可能出现在主页上或分散在多个溢出页. 如果设置了BtCursor.isIncrblobHandle标志,
+	** 且当前游标条目使用一个或多个溢出页,这个函数分配空间和慢慢增加溢出页列表缓存数组(BtCursor.aOverflow).
+	** 后续调用使用这个缓存使寻求提供的偏移更有效率.
+	** 一旦溢出页列表缓存已经被分配,如果其他游标写入
+	** 同一个表则无效,或者游标移动到不同行.此外,在auto-vacuum 模式,下面的事件可能使一个缓存溢出页列表缓存无效.
 	**   * 增量式清理,
 	**   * 在 auto_vacuum="full" 模式中的一个提交,
 	**   * 创建表 (可能要求移动一个溢出页).
+	*/
+    /* 【赵大成】
+	** 此功能用于读或覆写信息的有效载荷，
+	** pCur游标指向此入口。如果EOP
+	** 参数为0，这是一个读操作（数据复制到
+	** 缓存PBUF）。如果它不为零，数据从缓存 pBuf中复制。
+	** 一旦溢出页列表缓存已经被分配，
+	** 如果游标写入同一个表则无效。
 	*/
 
 static int accessPayload(          //读或覆写有效载荷信息
@@ -4860,7 +4867,7 @@ static int accessPayload(          //读或覆写有效载荷信息
   u32 offset,          /* Begin reading this far into payload */               //开始进一步读到有效载荷
   u32 amt,             /* Read this many bytes */                                       //读取大量字节
   unsigned char *pBuf, /* Write the bytes into this buffer */             //写这写数据到缓存区
-  int eOp              /* zero to read. non-zero to write. */                        //零读，非零写
+  int eOp              /* zero to read. non-zero to write. */                        //零读,非零写
 ){
   unsigned char *aPayload;
   int rc = SQLITE_OK;
@@ -4882,10 +4889,12 @@ static int accessPayload(          //读或覆写有效载荷信息
    || &aPayload[pCur->info.nLocal] > &pPage->aData[pBt->usableSize]
   ){
     /* Trying to read or write past the end of the data is an error */  //尝试去读或写数据末端以后的数据将发生一个错误
+	/* 【赵大成】尝试读或写数据的最后一个错误*/
     return SQLITE_CORRUPT_BKPT;
   }
 
   /* Check if data must be read/written to/from the btree page itself. */  //检查是否从B树页本身去读取或者写
+  /* 【赵大成】检查是否数据必须从btree读取/写入/页面本身*/
   if( offset<pCur->info.nLocal ){
     int a = amt;
     if( a+offset>pCur->info.nLocal ){
@@ -4913,14 +4922,20 @@ static int accessPayload(          //读或覆写有效载荷信息
     ** etc. A value of 0 in the aOverflow[] array means "not yet known"
     ** (the cache is lazily populated).
     */
-    /*如果isIncrblobHandle标志被设置和BtCursor.aOverflow[]尚未分配，现在分配它。   
-	aOverflow[]中的0表示“还发现”。
+    /*如果isIncrblobHandle标志被设置和BtCursor.aOverflow[]尚未分配,现在分配它.   
+	aOverflow[]中的0表示“还发现”.
+	*/
+	/* 【赵大成】
+	**  如果isIncrblobHandle标志设置成B树指针。aOverflow[]尚未分配,现在就分配它。
+	**  数组被规定在每个溢出页溢出链中的一个条目。第一个溢出页面的页码是存储在aOverflow[0],
+	**  一个值为0的aOverflow[]数组表示“不确定”
 	*/
     if( pCur->isIncrblobHandle && !pCur->aOverflow ){
       int nOvfl = (pCur->info.nPayload-pCur->info.nLocal+ovflSize-1)/ovflSize;
       pCur->aOverflow = (Pgno *)sqlite3MallocZero(sizeof(Pgno)*nOvfl);
       /* nOvfl is always positive.  If it were zero, fetchPayload would have
       ** been used instead of this routine. */
+	  /* 【赵大成】 nOvfl总是正的。如果是零,用fetchPayload来代替这个例程。*/
       if( ALWAYS(nOvfl) && !pCur->aOverflow ){
         rc = SQLITE_NOMEM;
       }
@@ -4930,7 +4945,7 @@ static int accessPayload(          //读或覆写有效载荷信息
     ** entry for the first required overflow page is valid, skip
     ** directly to it.
     */
-    /*如果溢出页列表缓存已分配，第一个溢出页项是有效的，直接跳过它。	*/  
+    /*如果溢出页列表缓存已分配,第一个溢出页项是有效的,直接跳过它.	*/  
     if( pCur->aOverflow && pCur->aOverflow[offset/ovflSize] ){
       iIdx = (offset/ovflSize);
       nextPage = pCur->aOverflow[iIdx];
@@ -4941,7 +4956,7 @@ static int accessPayload(          //读或覆写有效载荷信息
     for( ; rc==SQLITE_OK && amt>0 && nextPage; iIdx++){
 
 #ifndef SQLITE_OMIT_INCRBLOB
-      /* If required, populate the overflow page-list cache. */   //如果需要,填充溢出页列表缓存。
+      /* If required, populate the overflow page-list cache. */   //如果需要,填充溢出页列表缓存.
       if( pCur->aOverflow ){
         assert(!pCur->aOverflow[iIdx] || pCur->aOverflow[iIdx]==nextPage);
         pCur->aOverflow[iIdx] = nextPage;
@@ -4955,9 +4970,9 @@ static int accessPayload(          //读或覆写有效载荷信息
         ** page-list cache, if any, then fall back to the getOverflowPage()
         ** function.
         */
-        /*读此页的唯一原因是为了获得该页面在溢出页链表中的下一个页号。
-        页面不需要数据。所以，先试着查找溢出页列表缓存，如果有的话，
-        则退回到getOverflowPage()函数。
+        /*读此页的唯一原因是为了获得该页面在溢出页链表中的下一个页号.
+        页面不需要数据.所以,先试着查找溢出页列表缓存,如果有的话,
+        则退回到getOverflowPage()函数.
 */
 #ifndef SQLITE_OMIT_INCRBLOB
         if( pCur->aOverflow && pCur->aOverflow[iIdx+1] ){
@@ -4969,7 +4984,7 @@ static int accessPayload(          //读或覆写有效载荷信息
       }else{
         /* Need to read this page properly. It contains some of the
         ** range of data that is being read (eOp==0) or written (eOp!=0).
-		** 需要正确地读这个页面。它包含的一些正在被读取(eOp==0)或写(eOp! = 0)的数据范围。
+		** 需要正确地读这个页面.它包含的一些正在被读取(eOp==0)或写(eOp! = 0)的数据范围.
         */
 #ifdef SQLITE_DIRECT_OVERFLOW_READ
         sqlite3_file *fd;
@@ -4993,13 +5008,13 @@ static int accessPayload(          //读或覆写有效载荷信息
         ** up loading large records that span many overflow pages.
         */
         /*如果所有的下列条件为真：
-		1）这是一个读操作，并且
-		2）数据被溢出页请求，并且
-		3）数据库文件的支持，并且
-		4）没有开放性写事务，
-		5）数据库不是一个WAL数据库，
+		1)这是一个读操作,并且
+		2)数据被溢出页请求,并且
+		3)数据库文件的支持,并且
+		4)没有开放性写事务,
+		5)数据库不是一个WAL数据库,
 		然后数据可以直接从数据库文件读入到
-		输出缓冲。这加快了溢出页的大记录的加载。
+		输出缓冲.这加快了溢出页的大记录的加载.
 */
         if( eOp==0                                             /* (1) */
          && offset==0                                          /* (2) */
@@ -5015,6 +5030,10 @@ static int accessPayload(          //读或覆写有效载荷信息
           memcpy(aWrite, aSave, 4);
         }else
 #endif
+		 /* 【赵大成】
+		** 可以直接从数据库文件中读取数据到输出缓冲区,
+		** 完全绕过页面缓存。这加速多溢出页的加载记录。
+		*/
 
         {
           DbPage *pDbPage;
@@ -5046,20 +5065,20 @@ static int accessPayload(          //读或覆写有效载荷信息
 ** 读与游标pCur关联的关键字."amt"字节数将被传递到数组pBuf[]中.传递从"offset"开始.
 ** The caller must ensure that pCur is pointing to a valid row
 ** in the table.
-** 调用者必须确保pCur指向表中有效的行。
+** 调用者必须确保pCur指向表中有效的行.
 ** Return SQLITE_OK on success or an error code if anything goes
 ** wrong.  An error is returned if "offset+amt" is larger than
 ** the available payload.
-** 成功则返回SQLITE_OK或如果任何错误发生则返回错误代码。如果 "offset+amt"比可用的有效载荷还大则返回一个错误。
+** 成功则返回SQLITE_OK或如果任何错误发生则返回错误代码.如果 "offset+amt"比可用的有效载荷还大则返回一个错误.
 */
-/*若游标pCur指向表中有效的一行，返回SQLITE_OK，若"offset+amt">有效负载，返回error code*/
+/*若游标pCur指向表中有效的一行,返回SQLITE_OK,若"offset+amt">有效负载,返回error code*/
 int sqlite3BtreeKey(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
-  assert( cursorHoldsMutex(pCur) );
+  assert( cursorHoldsMutex(pCur) );		/* 【赵大成】必须确保pCur指向一个有效的表中的行。*/
   assert( pCur->eState==CURSOR_VALID );/*游标指向表中有效的一行*/
   assert( pCur->iPage>=0 && pCur->apPage[pCur->iPage] );
   assert( pCur->aiIdx[pCur->iPage]<pCur->apPage[pCur->iPage]->nCell );
   return accessPayload(pCur, offset, amt, (unsigned char*)pBuf, 0);/*
-  返回当前游标所指记录的关键字。
+  返回当前游标所指记录的关键字.
   */
 }
 
@@ -5071,7 +5090,7 @@ int sqlite3BtreeKey(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
 ** Return SQLITE_OK on success or an error code if anything goes
 ** wrong.  An error is returned if "offset+amt" is larger than
 ** the available payload.
-** 成功则返回SQLITE_OK或如果任何错误发生则返回错误代码。如果 "offset+amt"比可用的有效载荷还大则返回一个错误。
+** 成功则返回SQLITE_OK或如果任何错误发生则返回错误代码.如果 "offset+amt"比可用的有效载荷还大则返回一个错误.
 */
 /*
 返回当前游标所指记录的数据
@@ -5087,11 +5106,11 @@ int sqlite3BtreeData(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
 
   assert( cursorHoldsMutex(pCur) );
   rc = restoreCursorPosition(pCur);
-  if( rc==SQLITE_OK ){
+  if( rc==SQLITE_OK ){			 /* 【赵大成】成功则返回SQLITE_OK或如果发生了错误则返回错误代码。*/
     assert( pCur->eState==CURSOR_VALID );
     assert( pCur->iPage>=0 && pCur->apPage[pCur->iPage] );
     assert( pCur->aiIdx[pCur->iPage]<pCur->apPage[pCur->iPage]->nCell );
-    rc = accessPayload(pCur, offset, amt, pBuf, 0);
+    rc = accessPayload(pCur, offset, amt, pBuf, 0);			/* 【赵大成】如果 "offset+amt"比可用的有效载荷还大则返回一个错误。*/
   }
   return rc;
 }
@@ -5103,28 +5122,34 @@ int sqlite3BtreeData(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
 ** skipKey==1.  The number of bytes of available key/data is written
 ** into *pAmt.  If *pAmt==0, then the value returned will not be
 ** a valid pointer.
-** 返回从pCur游标正在指向的条目到有效载荷的指针。如果skipKey==0 则该指针指向关键字的开
-** 始，并且如果skipKey==1指向数据域的开始。可用关键字或数据域的字节数被写入到*pAmt.如
-** 果* pAmt ==0,那么返回的值应是一个有效的指针。
+** 返回从pCur游标正在指向的条目到有效载荷的指针.如果skipKey==0 则该指针指向关键字的开
+** 始,并且如果skipKey==1指向数据域的开始.可用关键字或数据域的字节数被写入到*pAmt.如
+** 果* pAmt ==0,那么返回的值应是一个有效的指针.
 ** This routine is an optimization.  It is common for the entire key
 ** and data to fit on the local page and for there to be no overflow
 ** pages.  When that is so, this routine can be used to access the
 ** key and data without making a copy.  If the key and/or data spills
 ** onto overflow pages, then accessPayload() must be used to reassemble
 ** the key/data and copy it into a preallocated buffer.
-** 此函数是一个优化。对于全部关键字与数据域适应本地页面是常见的,并且对于没有溢出页面的也是常见的。
-** 当如此,这个函数可以用作访问没有副本的关键字和数据域。如果键和/或数据在溢出页面上溢出,
-** 那么accessPayload()必须用于重组键/数据并将其复制到一个预先分配的缓冲区。
+** 此函数是一个优化.对于全部关键字与数据域适应本地页面是常见的,并且对于没有溢出页面的也是常见的.
+** 当如此,这个函数可以用作访问没有副本的关键字和数据域.如果键和/或数据在溢出页面上溢出,
+** 那么accessPayload()必须用于重组键/数据并将其复制到一个预先分配的缓冲区.
 ** The pointer returned by this routine looks directly into the cached
 ** page of the database.  The data might change or move the next time
 ** any btree routine is called.
-** 指针通过这个函数直接查看数据库中的缓存页返回。下次任何btree函数被调用时数据可能会改变或移动。
+** 指针通过这个函数直接查看数据库中的缓存页返回.下次任何btree函数被调用时数据可能会改变或移动.
 */
 	/*
-	返回一个指向有效载荷的指针。如果skipKey== 0，指针指向key的开始。如果skipKey==1，
-	指针指向data的开始。如果* PAMT== 0，则返回的值将为无效指针。此程序是一个优化。
-	当任何B树程序被调用，该数据可能会改变或移动。
+	返回一个指向有效载荷的指针.如果skipKey== 0,指针指向key的开始.如果skipKey==1,
+	指针指向data的开始.如果* PAMT== 0,则返回的值将为无效指针.此程序是一个优化.
+	当任何B树程序被调用,该数据可能会改变或移动.
 	*/
+/* 【赵大成】
+** 这个例程是一个优化。通常为整个密钥和数据以适应当地的页面上,
+** 是没有溢出页。当如此,这个例程可以用来访问密钥和数据复制。如果键和(或)
+** 数据泄漏到溢出的页面,然后accessPayload()必须使用重组键/数据并将其复制到
+** 一个预先分配的缓冲区。
+*/
 static const unsigned char *fetchPayload(       //返回从pCur游标正在指向的条目到有效载荷的指针
   BtCursor *pCur,      /* Cursor pointing to entry to read from */      //指向要读取条目的游标
   int *pAmt,           /* Write the number of available bytes here */   //写可用字节数
@@ -5146,7 +5171,7 @@ static const unsigned char *fetchPayload(       //返回从pCur游标正在指�
   }
   aPayload = pCur->info.pCell;
   aPayload += pCur->info.nHeader;
-  if( pPage->intKey ){
+  if( pPage->intKey ){		/* 【赵大成】访问密钥和数据*/
     nKey = 0;
   }else{
     nKey = (int)pCur->info.nKey;
@@ -5177,10 +5202,14 @@ static const unsigned char *fetchPayload(       //返回从pCur游标正在指�
 ** in the common case where no overflow pages are used.
 */
 	/*
-	对于游标pCur指向条目，返回key 或者 data的几个字节。写可用的字节数到*pAmt。
-	返回的指针是短暂的。在下一次调用任何B树函数的时候，key/data可能移动或被销毁，
-	包括其他线程对相同缓存的调用。因此BtShared上的一个互斥锁应该在调用这个函数
-	前被持有这个程序在没有溢出页使用的常见情况下，用于快速访问key 和 data。
+	对于游标pCur指向条目,返回key 或者 data的几个字节.写可用的字节数到*pAmt.
+	返回的指针是短暂的.在下一次调用任何B树函数的时候,key/data可能移动或被销毁,
+	包括其他线程对相同缓存的调用.因此BtShared上的一个互斥锁应该在调用这个函数
+	前被持有这个程序在没有溢出页使用的常见情况下,用于快速访问key 和 data.
+	*/
+	/* 【赵大成】
+	** 对于游标pCur指向入口，返回key 或者 data的几个字节。写入可用的字节数到*pAmt。
+	** 返回的指针是短暂的。这个程序在没有溢出页的使用常见的情况，用于快速访问key 和 data。
 	*/
 
 const void *sqlite3BtreeKeyFetch(BtCursor *pCur, int *pAmt){  //用于快速访问key
@@ -5206,17 +5235,17 @@ const void *sqlite3BtreeDataFetch(BtCursor *pCur, int *pAmt){  //用于快速访
 /*
 ** Move the cursor down to a new child page.  The newPgno argument is the
 ** page number of the child page to move to.
-** 移动游标到下一个新的孩子页面。newPgno参数是所以到的孩子页面的页码。
+** 移动游标到下一个新的孩子页面.newPgno参数是所以到的孩子页面的页码.
 ** This function returns SQLITE_CORRUPT if the page-header flags field of
 ** the new child page does not match the flags field of the parent (i.e.
 ** if an intkey page appears to be the parent of a non-intkey page, or
 ** vice-versa).
-** 如果新的孩子页面的页头标志域和父节点的标志域不匹配，则函数返回SQLITE_CORRUPT.
+** 如果新的孩子页面的页头标志域和父节点的标志域不匹配,则函数返回SQLITE_CORRUPT.
 ** (例如一个内部关键字页是非内部关键字页的父节点页)
 */
 	/*
-	下移光标到一个新的子页面。该newPgno参数是子页面移动的页号。
-	如果page-header标志与其父节点的标志不匹配，此函数返回SQLITE_CORRUPT。
+	下移光标到一个新的子页面.该newPgno参数是子页面移动的页号.
+	如果page-header标志与其父节点的标志不匹配,此函数返回SQLITE_CORRUPT.
 	*/
 
 static int moveToChild(BtCursor *pCur, u32 newPgno){      //移动游标到下一个新的孩子页面
