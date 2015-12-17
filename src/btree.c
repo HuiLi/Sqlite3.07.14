@@ -3710,13 +3710,19 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
       }
 /*以上是潘光珍做的*/ 
 
-      /* If nFin is zero, this loop runs exactly once and page pLastPg
+     	 /* If nFin is zero, this loop runs exactly once and page pLastPg
       ** is swapped with the first free page pulled off the free list.
       ** 如果nFin是零,这循环正好运行一次和页面pLastPg将与在空闲列表页中的第一个空闲页交换.
       ** On the other hand, if nFin is greater than zero, then keep
       ** looping until a free-page located within the first nFin pages
       ** of the file is found.
 	  ** 另一方面,如果nFin大于零,然后继续循环,直到空闲页位于文件的第一个nFin页面被发现.
+<<<<<<< HEAD
+      */
+	   /* 【赵大成】如果nFin是零,这个循环完全运行一次和页面pLastPg与第一次自由交换了空闲列表页。
+	  ** 另一方面,如果nFin大于零,然后继续循环,直到一个空闲分页位于第一nFin页的文件。
+=======
+>>>>>>> panguangzhen/master
       */
       do {
         MemPage *pFreePg;
@@ -3726,7 +3732,7 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
           return rc;
         }
         releasePage(pFreePg);
-      }while( nFin!=0 && iFreePg>nFin );
+      }while( nFin!=0 && iFreePg>nFin );		 /* 【赵大成】判断nFin是否等于0，重复循环释放页面 */
       assert( iFreePg<iLastPg );
       
       rc = sqlite3PagerWrite(pLastPg->pDbPage);
@@ -3740,7 +3746,7 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
     }
   }
 
-  if( nFin==0 ){
+  if( nFin==0 ){							/* 【赵大成】如果nFin为0，pLastPg将与在空闲列表页中的第一个空闲页交换*/
     iLastPg--;
     while( iLastPg==PENDING_BYTE_PAGE(pBt)||PTRMAP_ISPAGE(pBt, iLastPg) ){
       if( PTRMAP_ISPAGE(pBt, iLastPg) ){
@@ -3775,6 +3781,14 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
 */
 /*
 调用这个程序之前,写事务必须打开.
+<<<<<<< HEAD
+*/
+/* 【赵大成】调用这个程序之前，写事务必须打开。
+** 它执行单个工作单元对增量为空。
+** 如果增量为空这个函数运行结束后,返回SQLITE_DONE。
+** 如果没有完成,但是没有发生错误,返回SQLITE_OK。否则是一个错误代码。
+=======
+>>>>>>> panguangzhen/master
 */
 int sqlite3BtreeIncrVacuum(Btree *p){
   int rc;
@@ -3783,7 +3797,7 @@ int sqlite3BtreeIncrVacuum(Btree *p){
   sqlite3BtreeEnter(p);
   assert( pBt->inTransaction==TRANS_WRITE && p->inTrans==TRANS_WRITE );
   if( !pBt->autoVacuum ){
-    rc = SQLITE_DONE;
+    rc = SQLITE_DONE;		/* 【赵大成】增量为空这个函数运行结束后,返回SQLITE_DONE*/
   }else{
     invalidateAllOverflowCache(pBt);
     rc = incrVacuumStep(pBt, 0, btreePagecount(pBt));
@@ -3806,6 +3820,13 @@ int sqlite3BtreeIncrVacuum(Btree *p){
 ** pages are in use.
 ** 如果返回SQLITE_OK,那么*pnTrunc设置页面的数量,数据库文件在提交过程中应该被截断.
 ** 即数据库已经重组,以便只有第一个*pnTrunc页面在用.
+<<<<<<< HEAD
+*/
+/* 【赵大成】
+** 当自动真空数据库的事务sqlite3PagerCommit被提交之后，这个程序被调用。
+** 如果返回SQLITE_OK，那么* pnTrunc设为数据库文件页数。
+=======
+>>>>>>> panguangzhen/master
 */
 static int autoVacuumCommit(BtShared *pBt){
   int rc = SQLITE_OK;
@@ -3830,6 +3851,10 @@ static int autoVacuumCommit(BtShared *pBt){
       ** is encountered, this indicates corruption.
 	  ** 对于最后一页是一个指针映射页或者是pending-byte类型的页,创建一个数据库是不可能的.如果创建了,这表明是不良的.
       */
+	 /*【赵大成】
+      ** 不可能创建一个这样的数据库，它的最后一页是pointer-map页或者pending-byte页。如果
+      ** 遇到这样的数据库，这个指标不正常。
+	  */
       return SQLITE_CORRUPT_BKPT;
     }
 
@@ -3845,7 +3870,7 @@ static int autoVacuumCommit(BtShared *pBt){
     }
     if( nFin>nOrig ) return SQLITE_CORRUPT_BKPT;
 
-    for(iFree=nOrig; iFree>nFin && rc==SQLITE_OK; iFree--){
+    for(iFree=nOrig; iFree>nFin && rc==SQLITE_OK; iFree--){		/* 【赵大成】空闲列表上最初的页面数大于清理后数据页面数，就循环把rc代入incrVacumStep()*/
       rc = incrVacuumStep(pBt, nFin, iFree);
     }
     if( (rc==SQLITE_DONE || rc==SQLITE_OK) && nFree>0 ){
@@ -3901,6 +3926,14 @@ static int autoVacuumCommit(BtShared *pBt){
 ** 或者为空,表示没有主日志文件(单个数据库事务).当被调用时,该主日志应该已被创建、用日志指针和同步写入到磁盘.
 ** 一旦该函数返回,唯一事情就是需要提交写事务,数据库文件应该删除日志.
 /*提交阶段分为2部分,这是第1部分,成功返回SQLITE_OK.第二部分在sqlite3BtreeCommitPhaseTwo*/
+<<<<<<< HEAD
+/* 【赵大成】
+** 如果没有写事务目前活跃在pBt,这个调用是一个空操作。否则,btree pBt的数据库文件同步。
+** zMaster指向一个主日志文件的名称应该写进个人日志文件,或者为空,
+** 表示没有主日志文件(单个数据库事务)。
+*/
+=======
+>>>>>>> panguangzhen/master
 int sqlite3BtreeCommitPhaseOne(Btree *p, const char *zMaster){
   int rc = SQLITE_OK;
   if( p->inTrans==TRANS_WRITE ){/*若没有写事务,此调用为空操作*/
@@ -3910,7 +3943,7 @@ int sqlite3BtreeCommitPhaseOne(Btree *p, const char *zMaster){
     if( pBt->autoVacuum ){
       rc = autoVacuumCommit(pBt);
       if( rc!=SQLITE_OK ){
-        sqlite3BtreeLeave(p);
+        sqlite3BtreeLeave(p);	/*【赵大成】如果不等于SQLITE_OK,释放sqlite3Btree*/
         return rc;
       }
     }
@@ -3925,6 +3958,12 @@ int sqlite3BtreeCommitPhaseOne(Btree *p, const char *zMaster){
 ** This function is called from both BtreeCommitPhaseTwo() and BtreeRollback()
 ** at the conclusion of a transaction.
 ** 在一个事务的结束,BtreeCommitPhaseTwo()和BtreeRollback()调用这个函数.
+<<<<<<< HEAD
+*/
+/*【赵大成】
+** 这个函数被调用来自BtreeCommitPhaseTwo()和BtreeRollback()在一个事务的结论。
+=======
+>>>>>>> panguangzhen/master
 */
 static void btreeEndTransaction(Btree *p){
   BtShared *pBt = p->pBt;
@@ -3945,6 +3984,13 @@ static void btreeEndTransaction(Btree *p){
     ** call below will unlock the pager.  
 	** 如果处理任何事务开放,减量可共享B树的事务数.如果事务数达到0,设置共享状态为TRANS_NONE.
 	** unlockBtreeIfUnused()调用下面将解锁pager.*/
+<<<<<<< HEAD
+	/* 【赵大成】
+	** 如果处理任何事务公开,共享减量的事务数来。如果事务数达到0,设置共享状态为TRANS_NONE。
+	**下面unlockBtreeIfUnused()调用将解锁pager。
+	*/
+=======
+>>>>>>> panguangzhen/master
     if( p->inTrans!=TRANS_NONE ){ /*有事务*/
       clearAllSharedCacheTableLocks(p);
       pBt->nTransaction--;
@@ -3956,6 +4002,10 @@ static void btreeEndTransaction(Btree *p){
     /* Set the current transaction state to TRANS_NONE and unlock the 
     ** pager if this call closed the only read or write transaction.  
 	** 设置当前事务状态TRANS_NONE并如果这个调用关闭唯一读或写事务则解锁pager.*/
+<<<<<<< HEAD
+	/*【赵大成】设置当前事务状态TRANS_NONE，如果这个调用关闭唯一读或写事务并解锁分页。*/
+=======
+>>>>>>> panguangzhen/master
     p->inTrans = TRANS_NONE;
     unlockBtreeIfUnused(pBt);/*当关闭了最后的读或写事务,解锁pager*/
   }
@@ -4012,6 +4062,12 @@ int sqlite3BtreeCommitPhaseTwo(Btree *p, int bCleanup){
   /* If the handle has a write-transaction open, commit the shared-btrees 
   ** transaction and set the shared state to TRANS_READ.
   ** 如果该句柄有开放性写事务,提交shared-btrees事务并设置事务共享状态为TRANS_READ.*/
+<<<<<<< HEAD
+  /* 【赵大成】
+  ** 如果有写事务处理打开,提交shared-btrees TRANS_READ事务并设置共享状态
+  */
+=======
+>>>>>>> panguangzhen/master
   if( p->inTrans==TRANS_WRITE ){
     int rc;
     BtShared *pBt = p->pBt;
@@ -4038,7 +4094,7 @@ int sqlite3BtreeCommit(Btree *p){
   sqlite3BtreeEnter(p);
   rc = sqlite3BtreeCommitPhaseOne(p, 0);
   if( rc==SQLITE_OK ){
-    rc = sqlite3BtreeCommitPhaseTwo(p, 0);
+    rc = sqlite3BtreeCommitPhaseTwo(p, 0);	/* 【赵大成】两阶段提交*/
   }
   sqlite3BtreeLeave(p);
   return rc;
@@ -4054,6 +4110,7 @@ int sqlite3BtreeCommit(Btree *p){
 ** is capable of writing to the databse.  That means the cursor was
 ** originally opened for writing and the cursor has not be disabled
 ** by having its state changed to CURSOR_FAULT.
+**【赵大成】对于本例程,write-cursor任何写入数据库的指针。这意味着光标最初是为写或者没有改变状态CURSOR_FAULT而打开的。
 */
 /*返回写游标的数量*/
 static int countWriteCursors(BtShared *pBt){
@@ -4093,7 +4150,7 @@ void sqlite3BtreeTripAllCursors(Btree *pBtree, int errCode){
   for(p=pBtree->pBt->pCursor; p; p=p->pNext){
     int i;
     sqlite3BtreeClearCursor(p);
-    p->eState = CURSOR_FAULT;
+    p->eState = CURSOR_FAULT;		/* 【赵大成】例程被调用时发生反转*/
     p->skipNext = errCode;
     for(i=0; i<=p->iPage; i++){
       releasePage(p->apPage[i]);
@@ -4114,6 +4171,10 @@ void sqlite3BtreeTripAllCursors(Btree *pBtree, int errCode){
 ** 这将释放在数据库文件中的写锁.如果没有活跃的游标,也会释放读锁.
 */
 /*回滚事务,使所有游标失效*/
+<<<<<<< HEAD
+/* 【赵大成】回滚事务，使所有游标失效，将释放数据库文件中的写锁。如果没有活跃的游标时,也会释放读锁。*/
+=======
+>>>>>>> panguangzhen/master
 int sqlite3BtreeRollback(Btree *p, int tripCode){
   int rc;
   BtShared *pBt = p->pBt;
@@ -4143,13 +4204,17 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
     ** call btreeGetPage() on page 1 again to make
     ** sure pPage1->aData is set correctly. 
 	** 回滚可能已经破坏了pPage1->aData价值.所以在1页上在此调用btreeGetPage(),确定pPage1->aData设置正确.*/
+<<<<<<< HEAD
+	/* 【赵大成】回滚可能已经摧毁了pPage1 - > aData原值。所以使用btreeGetPage (),以确保pPage1 - > aData设置正确*/
+=======
+>>>>>>> panguangzhen/master
     if( btreeGetPage(pBt, 1, &pPage1, 0)==SQLITE_OK ){
       int nPage = get4byte(28+(u8*)pPage1->aData);
       testcase( nPage==0 );
       if( nPage==0 ) sqlite3PagerPagecount(pBt->pPager, &nPage);
       testcase( pBt->nPage!=nPage );
       pBt->nPage = nPage;
-      releasePage(pPage1);
+      releasePage(pPage1);		/* 【赵大成】确保pPage1->aData 设置正确*/
     }
     assert( countWriteCursors(pBt)==0 );
     pBt->inTransaction = TRANS_READ;/*若没有活动游标,释放读锁.*/
@@ -4183,6 +4248,19 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
 ** 的值是保存点的总数,包括新的匿名保存点,在b-ree开放的.即如果没有
 ** 活跃的保存点和没有其他statement-transactions开放,那么iStatement是1.
 ** 这个匿名的保存点可以使用sqlite3BtreeSavepoint()释放或回滚.
+<<<<<<< HEAD
+*/
+/* 【赵大成】
+**	启动子事务发表声明。子事务都可以单独回滚事务。
+**  你必须在启动子事务之前启动一个事务。如果主要事务提交或回滚子事务自动结束。
+**  声明中使用子事务在单个SQL语句中包含的一个开始…提交。
+**  如果在声明中发生约束错误,这个声明的影响可以回滚,不需要回滚整个事务。
+**  声明sub-transaction被实现为一个匿名的保存点。
+**  作为第二个参数传递的值保存点的总数,包括新的匿名保存点,开放在b - tree。
+**  即如果没有积极的保存点和没有其他statement-transactions开放,iStatement是1。
+**  这个匿名保存点可以使用sqlite3BtreeSavepoint被释放或回滚()函数。
+=======
+>>>>>>> panguangzhen/master
 */
 int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //开始一个语句子事务
   int rc;
@@ -4199,6 +4277,12 @@ int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //开始一个语句子事
   ** such savepoints while the statement transaction savepoint is active.
   ** 在pager 水平上,语句事务是一个保存点,带有一个大于明确使用SQL语句创建的所有保存
   ** 点的索引.当语句事务保存点活跃时,开放,释放或回滚任何这样的保存点都是非法的.
+<<<<<<< HEAD
+  */
+  /* 【赵大成】
+  **在分页水平上，声明事务是一个保存点和一个指数大于使用SQL语句显式创建的所有保存点。开，释放或回滚任何这样的活跃的保存点是违法的,。
+=======
+>>>>>>> panguangzhen/master
   */
   rc = sqlite3PagerOpenSavepoint(pBt->pPager, iStatement);
   sqlite3BtreeLeave(p);
@@ -4224,7 +4308,7 @@ int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //是释放还�
   int rc = SQLITE_OK;
   if( p && p->inTrans==TRANS_WRITE ){
     BtShared *pBt = p->pBt;
-    assert( op==SAVEPOINT_RELEASE || op==SAVEPOINT_ROLLBACK );
+    assert( op==SAVEPOINT_RELEASE || op==SAVEPOINT_ROLLBACK );		/* 【赵大成】声明 op为SAVEPOINT_ROLLBACK或SAVEPOINT_RELEASE*/
     assert( iSavepoint>=0 || (iSavepoint==-1 && op==SAVEPOINT_ROLLBACK) );
     sqlite3BtreeEnter(p);
     rc = sqlite3PagerSavepoint(pBt->pPager, op, iSavepoint);
@@ -4233,18 +4317,21 @@ int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //是释放还�
         pBt->nPage = 0;
       }
       rc = newDatabase(pBt);
-      pBt->nPage = get4byte(28 + pBt->pPage1->aData);
+      pBt->nPage = get4byte(28 + pBt->pPage1->aData);		/* 【赵大成】数据库的大小是写进标题的偏移量28开始*/
       /* The database size was written into the offset 28 of the header
       ** when the transaction started, so we know that the value at offset
       ** 28 is nonzero. 
 	  ** 在事务开始时,数据库的大小是被写到头部的偏移量28处的,因此在偏移量28的值是非零的.*/
+<<<<<<< HEAD
+	  /* 【赵大成】在事务开始的时候，数据库被写入头部偏移量为28，所以偏移量为28不为0*/
+=======
+>>>>>>> panguangzhen/master
       assert( pBt->nPage>0 );
     }
     sqlite3BtreeLeave(p);
   }
   return rc;
 }
-
 /*
 ** Create a new cursor for the BTree whose root is on the page
 ** iTable. If a read-only cursor is requested, it is assumed that
@@ -4314,6 +4401,10 @@ static int btreeCursor(
 B树数据库,连接持有所需的表锁,
 并没有其他连接具有任何打开的游标与此锁冲突
  */
+ /* 【赵大成】
+ ** 以下断言验证,如果这是一个可共享的b -树数据库,连接所需的表锁,
+ ** 而且没有其他连接锁打开游标,则与此相矛盾
+ */
 
   assert( hasSharedCacheTableLock(p, iTable, pKeyInfo!=0, wrFlag+1) );
   assert( wrFlag==0 || !hasReadConflicts(p, iTable) );
@@ -4334,6 +4425,10 @@ B树数据库,连接持有所需的表锁,
   /* Now that no other errors can occur, finish filling in the BtCursor
   ** variables and link the cursor into the BtShared list.  
   ** 现在没有其他错误发生,完成给BtCursor变量赋值和链接游标到BtShared列表.*/
+<<<<<<< HEAD
+  /* 【赵大成】现在没有其他错误可以发生,完成填写BtCursor游标变量和链接到BtShared列表。*/
+=======
+>>>>>>> panguangzhen/master
   pCur->pgnoRoot = (Pgno)iTable;
   pCur->iPage = -1;
   pCur->pKeyInfo = pKeyInfo;
@@ -4344,7 +4439,7 @@ B树数据库,连接持有所需的表锁,
   if( pCur->pNext ){
     pCur->pNext->pPrev = pCur;
   }
-  pBt->pCursor = pCur;
+  pBt->pCursor = pCur;		/* 【赵大成】填写BtCursor游标变量*/
   pCur->eState = CURSOR_INVALID;
   pCur->cachedRowid = 0;
   return SQLITE_OK;
@@ -4473,7 +4568,7 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
       releasePage(pCur->apPage[i]);
     }
     unlockBtreeIfUnused(pBt);
-    invalidateOverflowCache(pCur);
+    invalidateOverflowCache(pCur);		/* 【赵大成】数据库文件的读锁被释放*/
     /* sqlite3_free(pCur); */
     sqlite3BtreeLeave(pBtree);
   }
@@ -4494,6 +4589,8 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
 ** (when less compiler optimizations like -Os or -O0 are used and the
 ** compiler is not doing agressive inlining.)  So we use a real function
 ** for MSVC and a macro for everything else.  Ticket #2457.
+**【赵大成】MSVC一些版本有一个缺陷，当getCellInfo()实现为一个宏导致编译器崩溃。
+** 但是MSVC在速度上是有优势的，所以我们使用实函数MSVC.
 */
 #ifndef NDEBUG
   static void assertCellInfo(BtCursor *pCur){       /*保证BtCursor有有效的BtCursor.info结构.若无效,调用btreeParseCell()去填充*/
@@ -4501,7 +4598,7 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
     int iPage = pCur->iPage;
     memset(&info, 0, sizeof(info));                        //将info中前sizeof(info)个字节 用0替换并返回info .
     btreeParseCell(pCur->apPage[iPage], pCur->aiIdx[iPage], &info);        //解析单元内容块
-    assert( memcmp(&info, &pCur->info, sizeof(info))==0 );
+    assert( memcmp(&info, &pCur->info, sizeof(info))==0 );			/* 【赵大成】缓存减少了调用的数量btreeParseCell()*/
   }
 #else
   #define assertCellInfo(x)
@@ -4539,6 +4636,10 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
 	**如果给定的BtCursor是有效的,返回true.一个有效的游标是在非空
 	**的表中当前指向的行.这是一个验证程序只在assert()语句中使用.
 	*/
+/* 【赵大成】
+** 如果给定的BtCursor是有效的,返回真。一个只向当前表格行才是一个有效的指针，
+** 这个验证程序只在assert()语句中使用。
+*/
 int sqlite3BtreeCursorIsValid(BtCursor *pCur){          //给定的BtCursor是否有效
   return pCur && pCur->eState==CURSOR_VALID;
 }
@@ -4554,7 +4655,8 @@ int sqlite3BtreeCursorIsValid(BtCursor *pCur){          //给定的BtCursor是�
 ** 对INTKEY标志的表设置,这个函数返回关键字本身,而不是关键字的字节数.
 ** The caller must position the cursor prior to invoking this routine.
 ** 调用者
-** This routine cannot fail.  It always returns SQLITE_OK.  
+** This routine cannot fail.  It always returns SQLITE_OK. 
+**【赵大成】调用者必须将光标之前调用这个例程。这个例程不能失败。它总是返回SQLITE_OK
 */
 /*pSize为buffer的大小,buffer用来保存当前条目(用pCur指向)的key值.*/
 int sqlite3BtreeKeySize(BtCursor *pCur, i64 *pSize){
@@ -4566,7 +4668,7 @@ int sqlite3BtreeKeySize(BtCursor *pCur, i64 *pSize){
     getCellInfo(pCur);
     *pSize = pCur->info.nKey;
   }
-  return SQLITE_OK;
+  return SQLITE_OK;			/* 【赵大成】为表设置了INTKEY标志,这个例程返回键本身,而不是在关键的字节数*/
 }
 
 /*
@@ -4581,6 +4683,12 @@ int sqlite3BtreeKeySize(BtCursor *pCur, i64 *pSize){
 ** It might just as well be a procedure (returning void) but we continue
 ** to return an integer result code for historical reasons.
 ** 这个函数始终返回SQLITE_OK.也可能仅仅是一个过程(返回void)但是我们继续返回一个整数结果代码.
+<<<<<<< HEAD
+*/
+/* 【赵大成】
+** 返回当前游标所指记录的数据长度（字节）
+=======
+>>>>>>> panguangzhen/master
 */
 
 int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*设定当前游标所指记录的数据长度(字节)*/
@@ -4588,7 +4696,7 @@ int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*设定当前游标�
   assert( pCur->eState==CURSOR_VALID );
   getCellInfo(pCur);
   *pSize = pCur->info.nData;/*用pSize返回数据长度*/
-  return SQLITE_OK;
+  return SQLITE_OK;			/*【赵大成】这个函数始终返回SQLITE_OK。*/
 }
 
 /*
@@ -4626,7 +4734,7 @@ static int getOverflowPage(
   int rc = SQLITE_OK;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
-  assert(pPgnoNext);
+  assert(pPgnoNext);		/* 【赵大成】页码链接列表中的下一个溢出页写入* pPgnoNext*/
 
 #ifndef SQLITE_OMIT_AUTOVACUUM
   /* Try to find the next page in the overflow list using the
@@ -4649,7 +4757,7 @@ static int getOverflowPage(
     if( iGuess<=btreePagecount(pBt) ){
       rc = ptrmapGet(pBt, iGuess, &eType, &pgno);
       if( rc==SQLITE_OK && eType==PTRMAP_OVERFLOW2 && pgno==ovfl ){
-        next = iGuess;
+        next = iGuess;		/* 【赵大成】如果想证明是错误的,回到加载数据的页码ovfl来确定下一个页码*/
         rc = SQLITE_DONE;
       }
     }
@@ -4673,7 +4781,6 @@ static int getOverflowPage(
   }
   return (rc==SQLITE_DONE ? SQLITE_OK : rc);
 }
-
 /*
 ** Copy data from a buffer to a page, or from a page to a buffer.
 ** 将数据从缓冲区复制到一个页面,或从一个页面到缓冲区.
@@ -4699,21 +4806,21 @@ static int getOverflowPage(
 	*/
 
 static int copyPayload(                      //将数据从缓冲区复制到一个页面,或从一个页面到缓冲区
-  void *pPayload,           /* Pointer to page data */                             //页面数据的指针
-  void *pBuf,               /* Pointer to buffer */                                     //缓存区指针
+  void *pPayload,           /* Pointer to page data */                             //页面数据的指针		/* 【赵大成】指向页面数据的指针*/
+  void *pBuf,               /* Pointer to buffer */                                     //缓存区指针    /* 【赵大成】指向缓存区的指针*/
   int nByte,                /* Number of bytes to copy */                          //拷贝的字节数
   int eOp,                  /* 0 -> copy from page, 1 -> copy to page */   //eOp为0从页拷贝到缓存区,为1则从缓存区拷贝到页
   DbPage *pDbPage           /* Page containing pPayload */               //页包含pPayload
 ){
   if( eOp ){
-    /* Copy data from buffer to page (a write operation) */  //为1则从缓存区拷贝到页
+    /* Copy data from buffer to page (a write operation) */  //为1则从缓存区拷贝到页		/* 【赵大成】eOp等于1，将数据从缓冲区复制到页面(写操作)*/
     int rc = sqlite3PagerWrite(pDbPage);
     if( rc!=SQLITE_OK ){
       return rc;
     }
     memcpy(pPayload, pBuf, nByte);
   }else{
-    /* Copy data from page to buffer (a read operation) */    //eOp为0从页拷贝到缓存区
+    /* Copy data from page to buffer (a read operation) */    //eOp为0从页拷贝到缓存区		/* 【赵大成】eOp等于0，页面的数据复制到缓冲区(一个读操作)*/
     memcpy(pBuf, pPayload, nByte);
   }
   return SQLITE_OK;
@@ -4761,6 +4868,14 @@ static int copyPayload(                      //将数据从缓冲区复制到一
 	**   * 在 auto_vacuum="full" 模式中的一个提交,
 	**   * 创建表 (可能要求移动一个溢出页).
 	*/
+    /* 【赵大成】
+	** 此功能用于读或覆写信息的有效载荷，
+	** pCur游标指向此入口。如果EOP
+	** 参数为0，这是一个读操作（数据复制到
+	** 缓存PBUF）。如果它不为零，数据从缓存 pBuf中复制。
+	** 一旦溢出页列表缓存已经被分配，
+	** 如果游标写入同一个表则无效。
+	*/
 
 static int accessPayload(          //读或覆写有效载荷信息
   BtCursor *pCur,      /* Cursor pointing to entry to read from */     //游标指向要读取数据的条目
@@ -4789,10 +4904,12 @@ static int accessPayload(          //读或覆写有效载荷信息
    || &aPayload[pCur->info.nLocal] > &pPage->aData[pBt->usableSize]
   ){
     /* Trying to read or write past the end of the data is an error */  //尝试去读或写数据末端以后的数据将发生一个错误
+	/* 【赵大成】尝试读或写数据的最后一个错误*/
     return SQLITE_CORRUPT_BKPT;
   }
 
   /* Check if data must be read/written to/from the btree page itself. */  //检查是否从B树页本身去读取或者写
+  /* 【赵大成】检查是否数据必须从btree读取/写入/页面本身*/
   if( offset<pCur->info.nLocal ){
     int a = amt;
     if( a+offset>pCur->info.nLocal ){
@@ -4822,12 +4939,21 @@ static int accessPayload(          //读或覆写有效载荷信息
     */
     /*如果isIncrblobHandle标志被设置和BtCursor.aOverflow[]尚未分配,现在分配它.   
 	aOverflow[]中的0表示“还发现”.
+<<<<<<< HEAD
+	*/
+	/* 【赵大成】
+	**  如果isIncrblobHandle标志设置成B树指针。aOverflow[]尚未分配,现在就分配它。
+	**  数组被规定在每个溢出页溢出链中的一个条目。第一个溢出页面的页码是存储在aOverflow[0],
+	**  一个值为0的aOverflow[]数组表示“不确定”
+=======
+>>>>>>> panguangzhen/master
 	*/
     if( pCur->isIncrblobHandle && !pCur->aOverflow ){
       int nOvfl = (pCur->info.nPayload-pCur->info.nLocal+ovflSize-1)/ovflSize;
       pCur->aOverflow = (Pgno *)sqlite3MallocZero(sizeof(Pgno)*nOvfl);
       /* nOvfl is always positive.  If it were zero, fetchPayload would have
       ** been used instead of this routine. */
+	  /* 【赵大成】 nOvfl总是正的。如果是零,用fetchPayload来代替这个例程。*/
       if( ALWAYS(nOvfl) && !pCur->aOverflow ){
         rc = SQLITE_NOMEM;
       }
@@ -4922,6 +5048,10 @@ static int accessPayload(          //读或覆写有效载荷信息
           memcpy(aWrite, aSave, 4);
         }else
 #endif
+		 /* 【赵大成】
+		** 可以直接从数据库文件中读取数据到输出缓冲区,
+		** 完全绕过页面缓存。这加速多溢出页的加载记录。
+		*/
 
         {
           DbPage *pDbPage;
@@ -4961,7 +5091,7 @@ static int accessPayload(          //读或覆写有效载荷信息
 */
 /*若游标pCur指向表中有效的一行,返回SQLITE_OK,若"offset+amt">有效负载,返回error code*/
 int sqlite3BtreeKey(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
-  assert( cursorHoldsMutex(pCur) );
+  assert( cursorHoldsMutex(pCur) );		/* 【赵大成】必须确保pCur指向一个有效的表中的行。*/
   assert( pCur->eState==CURSOR_VALID );/*游标指向表中有效的一行*/
   assert( pCur->iPage>=0 && pCur->apPage[pCur->iPage] );
   assert( pCur->aiIdx[pCur->iPage]<pCur->apPage[pCur->iPage]->nCell );
@@ -4994,11 +5124,11 @@ int sqlite3BtreeData(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
 
   assert( cursorHoldsMutex(pCur) );
   rc = restoreCursorPosition(pCur);
-  if( rc==SQLITE_OK ){
+  if( rc==SQLITE_OK ){			 /* 【赵大成】成功则返回SQLITE_OK或如果发生了错误则返回错误代码。*/
     assert( pCur->eState==CURSOR_VALID );
     assert( pCur->iPage>=0 && pCur->apPage[pCur->iPage] );
     assert( pCur->aiIdx[pCur->iPage]<pCur->apPage[pCur->iPage]->nCell );
-    rc = accessPayload(pCur, offset, amt, pBuf, 0);
+    rc = accessPayload(pCur, offset, amt, pBuf, 0);			/* 【赵大成】如果 "offset+amt"比可用的有效载荷还大则返回一个错误。*/
   }
   return rc;
 }
@@ -5032,6 +5162,12 @@ int sqlite3BtreeData(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
 	指针指向data的开始.如果* PAMT== 0,则返回的值将为无效指针.此程序是一个优化.
 	当任何B树程序被调用,该数据可能会改变或移动.
 	*/
+/* 【赵大成】
+** 这个例程是一个优化。通常为整个密钥和数据以适应当地的页面上,
+** 是没有溢出页。当如此,这个例程可以用来访问密钥和数据复制。如果键和(或)
+** 数据泄漏到溢出的页面,然后accessPayload()必须使用重组键/数据并将其复制到
+** 一个预先分配的缓冲区。
+*/
 static const unsigned char *fetchPayload(       //返回从pCur游标正在指向的条目到有效载荷的指针
   BtCursor *pCur,      /* Cursor pointing to entry to read from */      //指向要读取条目的游标
   int *pAmt,           /* Write the number of available bytes here */   //写可用字节数
@@ -5053,7 +5189,7 @@ static const unsigned char *fetchPayload(       //返回从pCur游标正在指�
   }
   aPayload = pCur->info.pCell;
   aPayload += pCur->info.nHeader;
-  if( pPage->intKey ){
+  if( pPage->intKey ){		/* 【赵大成】访问密钥和数据*/
     nKey = 0;
   }else{
     nKey = (int)pCur->info.nKey;
@@ -5088,6 +5224,13 @@ static const unsigned char *fetchPayload(       //返回从pCur游标正在指�
 	返回的指针是短暂的.在下一次调用任何B树函数的时候,key/data可能移动或被销毁,
 	包括其他线程对相同缓存的调用.因此BtShared上的一个互斥锁应该在调用这个函数
 	前被持有这个程序在没有溢出页使用的常见情况下,用于快速访问key 和 data.
+<<<<<<< HEAD
+	*/
+	/* 【赵大成】
+	** 对于游标pCur指向入口，返回key 或者 data的几个字节。写入可用的字节数到*pAmt。
+	** 返回的指针是短暂的。这个程序在没有溢出页的使用常见的情况，用于快速访问key 和 data。
+=======
+>>>>>>> panguangzhen/master
 	*/
 
 const void *sqlite3BtreeKeyFetch(BtCursor *pCur, int *pAmt){  //用于快速访问key
@@ -5162,6 +5305,7 @@ static int moveToChild(BtCursor *pCur, u32 newPgno){      //移动游标到下�
 ** 页面pParent是B树内部(非叶)页.这个函数断言如果第iIdx单元在页pParent中则页码iChild
 ** 是左孩子.或,如果iIdx等于pParent中单元的总数,那么页码iChild是页面的右孩子.
 */
+/* 【赵大成】如果iIdx等于pParent分支的总数,这个页码iChild就是的右孩子页面。*/
 static void assertParentIndex(MemPage *pParent, int iIdx, Pgno iChild){  //判断页pParent的孩子页面是左孩子还是右孩子
   assert( iIdx<=pParent->nCell );
   if( iIdx==pParent->nCell ){
@@ -5185,6 +5329,13 @@ static void assertParentIndex(MemPage *pParent, int iIdx, Pgno iChild){  //判�
 	/*
 	将游标移动到父页面.pCur-> IDX被设定为包含指向页的指针的单元索引.如果为最右边的子页面,pCur-> IDX被设置为比最大的单元更大的索引.
 	*/
+<<<<<<< HEAD
+  /*【赵大成】
+  ** 将游标移动到父节点。 pCur-> IDX被设定为包含指向父节点的指针的单元索引。
+  ** 如果来自最右边的子页，pCur-> IDX被设置为比最大还大的单元索引。
+  */
+=======
+>>>>>>> panguangzhen/master
 static void moveToParent(BtCursor *pCur){     //向上移动游标到父节点页面.
   assert( cursorHoldsMutex(pCur) );
   assert( pCur->eState==CURSOR_VALID );
@@ -5199,6 +5350,14 @@ static void moveToParent(BtCursor *pCur){     //向上移动游标到父节点�
   ** 如果数据库文件中断的话,由assert测试的条件很有可能为假.如果当一个参数
   ** 被另一个游标持有时一个游标已经修改了页面pParent ,那么这可能会发生.
   ** 如果一个页面被链接到不止一个b -树结构在不良的数据库中则以上也会出现.*/
+<<<<<<< HEAD
+  /* 【赵大成】
+  ** 更新:它实际上是可能的条件测试下面的断言是不真实的,如果数据库文件是腐败。
+  ** 这可能发生,如果一个光标修改页面pParent引用时由第二个游标。
+  ** 这只会发生,如果一个页面链接到一个以上的b -树结构在腐败的数据库中。
+  */
+=======
+>>>>>>> panguangzhen/master
 #if 0
   assertParentIndex(
     pCur->apPage[pCur->iPage-1], 
@@ -5258,7 +5417,7 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
     sqlite3BtreeClearCursor(pCur);
   }
 
-  if( pCur->iPage>=0 ){
+  if( pCur->iPage>=0 ){		/* 【赵大成】如果b -树结构是空的*/
     int i;
     for(i=1; i<=pCur->iPage; i++){
       releasePage(pCur->apPage[i]);
@@ -5281,9 +5440,16 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
     ** return an SQLITE_CORRUPT error.  
 	** 如果pCur->pKeyInfo非空,那么调用者打开将在索引B树上打开的游标.否则,如果pKeyInfo为空,
 	** 调用者需要表B树.除此之外,返回一个SQLITE_CORRUPT错误.*/
+<<<<<<< HEAD
+	/* 【赵大成】
+	**  如果pCur->pKeyInfo非空,那么这些带有b树游标指针是调用者期望打开的，
+	**  否则,如果pKeyInfo为空, 调用者期望打开B树表。除此之外，返回一个SQLITE_CORRUPT错误
+	*/
+=======
+>>>>>>> panguangzhen/master
     assert( pCur->apPage[0]->intKey==1 || pCur->apPage[0]->intKey==0 );
     if( (pCur->pKeyInfo==0)!=pCur->apPage[0]->intKey ){
-      return SQLITE_CORRUPT_BKPT;
+      return SQLITE_CORRUPT_BKPT;		/* 【赵大成】返回一个SQLITE_CORRUPT错误*/
     }
   }
 
@@ -5295,6 +5461,13 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
   ** to the page.  
   ** 判断根页有正确的类型.调用此函数加载的根页时一定是这样的(或者这个调用或先前调用)如果假设是不正确的,
   ** 该函数将检测到损坏.并且对于标志字节来说,当游标正在持有页的一个参数时被修改是不可能的.*/
+<<<<<<< HEAD
+  /* 【赵大成】
+  ** 断言的根页是正确的类型。
+  ** 必须这样的调用这个函数加载的根页(这叫或以前的调用) 
+  */
+=======
+>>>>>>> panguangzhen/master
   pRoot = pCur->apPage[0];
   assert( pRoot->pgno==pCur->pgnoRoot );
   assert( pRoot->isInit && (pCur->pKeyInfo==0)==pRoot->intKey );
@@ -5306,9 +5479,9 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
 
   if( pRoot->nCell==0 && !pRoot->leaf ){
     Pgno subpage;
-    if( pRoot->pgno!=1 ) return SQLITE_CORRUPT_BKPT;
+    if( pRoot->pgno!=1 ) return SQLITE_CORRUPT_BKPT;		/* 【赵大成】如果的假设是不正确的,它不可能标志字节被修改*/
     subpage = get4byte(&pRoot->aData[pRoot->hdrOffset+8]);
-    pCur->eState = CURSOR_VALID;
+    pCur->eState = CURSOR_VALID;		/* 【赵大成】这个游标是页面的引用*/
     rc = moveToChild(pCur, subpage);
   }else{
     pCur->eState = ((pRoot->nCell>0)?CURSOR_VALID:CURSOR_INVALID);
@@ -5323,6 +5496,13 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
 ** The left-most leaf is the one with the smallest key - the first
 ** in ascending order.
 ** 最左的叶子节点拥有最小的键值,几递增有序的第一个关键字.
+<<<<<<< HEAD
+*/
+/* 【赵大成】
+** 移动光标到最左边的叶子下面条目的条目目前指向。
+** 最左边的叶子是最小的一个关键——第一个以升序排序。
+=======
+>>>>>>> panguangzhen/master
 */
 static int moveToLeftmost(BtCursor *pCur){     //移动游标到最左叶子
   Pgno pgno;
@@ -5376,6 +5556,13 @@ static int moveToRightmost(BtCursor *pCur){   //移动游标到最右的叶子�
 ** or set *pRes to 1 if the table is empty.
 ** 将游标移动到表中的第一个元素.若成功,返回SQLITE_OK.
 ** 如果表在指向一些地方,设置*pRes为0或如果表是空的设置*pRes为1.
+<<<<<<< HEAD
+*/
+/* 【赵大成】
+** 将光标移动到表中的第一个元素。返回SQLITE_OK成功。
+** 设置*pRes为0,如果光标只向某一些或如果表是空的就设置*pRes为1。
+=======
+>>>>>>> panguangzhen/master
 */
 int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //将游标移动到表中的第一个条目
   int rc;
@@ -5400,6 +5587,13 @@ int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //将游标移动到表中�
 ** on success.  Set *pRes to 0 if the cursor actually points to something
 ** or set *pRes to 1 if the table is empty.
 ** 将游标移动到表中的最后一个条目.成功则返回SQLITE_OK.若游标正指向某处设*pRes为0或表为空设置*pRes为1.
+<<<<<<< HEAD
+*/
+/* 【赵大成】
+** 将光标移动到表中的第一个元素。返回SQLITE_OK成功。
+** 设置*pRes为0,如果光标只向某一些或如果表是空的就设置*pRes为1。
+=======
+>>>>>>> panguangzhen/master
 */
 int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //将游标移动到表中的最后一个条目
   int rc;
@@ -5466,6 +5660,11 @@ int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //将游标移动到表中�
 **                  is larger than intKey/pIdxKey.
 **
 */
+/*	【赵大成】
+**		*pRes<0		左节点为空
+**		*pRes==0	光标指向一个条目,完全匹配intKey / pIdxKey
+**		*pRes>0		光标指向一个条目,大于intKey / pIdxKey。
+*/
 int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey相对应的条目
   BtCursor *pCur,          /* The cursor to be moved */                           //该游标将发生移动
   UnpackedRecord *pIdxKey, /* Unpacked index key */                               //解压的索引关键字
@@ -5482,7 +5681,12 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
 
   /* If the cursor is already positioned at the point we are trying
   ** to move to, then just return without doing any work 
+<<<<<<< HEAD
+  ** 如果游标已经在要移到的点,则返回不作操作*/ 
+ /* 【赵大成】 如果指针已经在我们想要移到的位置，那就返回不做任何工作*/
+=======
   ** 如果游标已经在要移到的点,则返回不作操作*/  
+>>>>>>> panguangzhen/master
   if( pCur->eState==CURSOR_VALID && pCur->validNKey 
    && pCur->apPage[0]->intKey 
   ){
@@ -5522,11 +5726,15 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
 	** pPage->nCell必须比0大.如果它是根页面上面的游标无效并且for(;;) 循环不会执行.
 	** 如果不是跟根页,那么 moveToChild()函数将检测db崩溃.同样, pPage必须是正确种类的B树
 	** 否则,moveToChild() 或 moveToRoot() 的调用将发现崩溃.*/
+<<<<<<< HEAD
+    assert( pPage->nCell>0 );		/* 【赵大成】pPage - > nCell必须大于零。*/
+=======
     assert( pPage->nCell>0 );
+>>>>>>> panguangzhen/master
     assert( pPage->intKey==(pIdxKey==0) );
     lwr = 0;
     upr = pPage->nCell-1;
-    if( biasRight ){
+    if( biasRight ){			/* 【赵大成】如果这是上面的根页光标是无效的,这for循环不会运行。*/
       pCur->aiIdx[pCur->iPage] = (u16)(idx = upr);
     }else{
       pCur->aiIdx[pCur->iPage] = (u16)(idx = (upr+lwr)/2);             //二分查找
@@ -5564,6 +5772,10 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
 		** 支持的最大页面大小为65536字节.这意味着储在索引B树页中的记录的最大数字节小于16384字节,可以存储为一个2字节的变量.
 		** 此信息用于试图通过检查避免解析整个单元,对于该情况,记录完全存储在B树页通过检查该单元的开始的两个字节.
         */
+		/* 【赵大成】
+		** 支持的最大页面大小为65536字节。
+		** 这意味着的最大记录数个字节存储在b -树索引页面小于16384字节,可以存储为2个不同字节。
+		*/
         int nCell = pCell[0];
         if( nCell<=pPage->max1bytePayload
          /* && (pCell+nCell)<pPage->aDataEnd */
@@ -5572,6 +5784,10 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
           ** single byte varint and the record fits entirely on the main
           ** b-tree page.  
 		  **如果单元的记录域是一个单字节的变量并且记录完全存储在主B树页上,执行该分支.*/
+<<<<<<< HEAD
+		 /* 【赵大成】如果恰好是一个字节*/
+=======
+>>>>>>> panguangzhen/master
           testcase( pCell+nCell+1==pPage->aDataEnd );
           c = sqlite3VdbeRecordCompare(nCell, (void*)&pCell[1], pIdxKey);
         }else if( !(pCell[1] & 0x80) 
@@ -5581,6 +5797,10 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
           /* The record-size field is a 2 byte varint and the record  
           ** fits entirely on the main b-tree page. 
 		  ** 变量的记录到小域是一个两字节的变量并且记录完全存储在主B树页上.*/
+<<<<<<< HEAD
+		  /* 【赵大成】如果是两个字节*/
+=======
+>>>>>>> panguangzhen/master
           testcase( pCell+nCell+2==pPage->aDataEnd );
           c = sqlite3VdbeRecordCompare(nCell, (void*)&pCell[2], pIdxKey);
         }else{
@@ -5590,6 +5810,10 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
           ** buffer before VdbeRecordCompare() can be called. 
 		  ** 记录溢出是存储在一个或多个溢出页上.在这种情况下整个单元需要解析,分配一个缓冲区和accessPayload()
 		  ** 用于检索在VdbeRecordCompare()可以被调用之前进入到缓冲区的记录.*/
+<<<<<<< HEAD
+		  /* 【赵大成】记录流到一个或多个溢出页。在这种情况下,需要解析完整的分支*/
+=======
+>>>>>>> panguangzhen/master
           void *pCellKey;
           u8 * const pCellBody = pCell - pPage->childPtrSize;
           btreeParseCellPtr(pPage, pCellBody, &pCur->info);
@@ -5618,9 +5842,9 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
           goto moveto_finish;
         }
       }
-      if( c<0 ){
+      if( c<0 ){			/* 【赵大成】如果c小于0，lwr加1*/
         lwr = idx+1;
-      }else{
+      }else{				/* 【赵大成】如果c大于等于，lwr减1*/
         upr = idx-1;
       }
       if( lwr>upr ){
@@ -5652,14 +5876,15 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
 moveto_finish:
   return rc;
 }
-
+/*以上赵大成做*/
 
 /*
 ** Return TRUE if the cursor is not pointing at an entry of the table.
-** 如果游标没有指向表的一个条目返回true.
+** 
 ** TRUE will be returned after a call to sqlite3BtreeNext() moves
 ** past the last entry in the table or sqlite3BtreePrev() moves past
 ** the first entry.  TRUE is also returned if the table is empty.
+** 如果游标没有指向表的一个条目返回true.
 ** 调用sqlite3BtreeNext()后移动到标的而最后一个条目或调用sqlite3BtreePrev()移动到第一个条目则返回True.如果表是空的也返回true.
 */
 int sqlite3BtreeEof(BtCursor *pCur){
