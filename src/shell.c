@@ -689,14 +689,14 @@ static void output_csv(struct callback_data *p, const char *z, int bSep){//以cs
     for(i=0; z[i]; i++){
       if( needCsvQuote[((unsigned char*)z)[i]] 
          || (z[i]==p->separator[0] && 
-             (nSep==1 || memcmp(z, p->separator, nSep)==0)) ){
+             (nSep==1 || memcmp(z, p->separator, nSep)==0)) ){//判断字符串是否含有一些特殊的字符
         i = 0;
         break;
       }
     }
     if( i==0 ){
       putc('"', out);
-      for(i=0; z[i]; i++){
+      for(i=0; z[i]; i++){//如果含有半角符号'或者"，则输出时需要加上""号
         if( z[i]=='"' ) putc('"', out);
         putc(z[i], out);
       }
@@ -734,16 +734,16 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
 
   switch( p->mode ){  //判断调用的模式，根据调用的模式不同，选择不同的方式输出结果
     case MODE_Line: {  //Line模式
-      int w = 5;
-      if( azArg==0 ) break;
-      for(i=0; i<nArg; i++){
+      int w = 5;//设置w的初始值
+      if( azArg==0 ) break;//如果查询结果为空，则跳出循环
+      for(i=0; i<nArg; i++){//计算长度
         int len = strlen30(azCol[i] ? azCol[i] : "");
         if( len>w ) w = len;
       }
-      if( p->cnt++>0 ) fprintf(p->out,"\n");
-      for(i=0; i<nArg; i++){
+      if( p->cnt++>0 ) fprintf(p->out,"\n");//如果输出的记录数不为0，则进行换行
+      for(i=0; i<nArg; i++){//以下列的方式输出每条记录
         fprintf(p->out,"%*s = %s\n", w, azCol[i],
-                azArg[i] ? azArg[i] : p->nullvalue);  //p->nullvalue表示NUll值
+                azArg[i] ? azArg[i] : p->nullvalue);  //p->nullvalue表示NUll值，以列名=值形式输出后并换行
       }
       break;
     }
@@ -753,7 +753,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
         for(i=0; i<nArg; i++){
           int w, n;
           if( i<ArraySize(p->colWidth) ){
-            w = p->colWidth[i];
+            w = p->colWidth[i];//求出在列模式下的列宽
           }else{
             w = 0;
           }
@@ -764,13 +764,13 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
             if( w<n ) w = n;
           }
           if( i<ArraySize(p->actualWidth) ){
-            p->actualWidth[i] = w;
+            p->actualWidth[i] = w;//计算列的实际宽度
           }
-          if( p->showHeader ){
+          if( p->showHeader ){//以列的格式输出表头
             fprintf(p->out,"%-*.*s%s",w,w,azCol[i], i==nArg-1 ? "\n": "  ");
           }
         }
-        if( p->showHeader ){
+        if( p->showHeader ){//如果已经输出表头
           for(i=0; i<nArg; i++){
             int w;
             if( i<ArraySize(p->actualWidth) ){
@@ -780,15 +780,15 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
             }
             fprintf(p->out,"%-*.*s%s",w,w,"-----------------------------------"
                    "----------------------------------------------------------",
-                    i==nArg-1 ? "\n": "  ");
+                    i==nArg-1 ? "\n": "  ");//用以上的方式输出一行-----------
           }
         }
       }
-      if( azArg==0 ) break;
-      for(i=0; i<nArg; i++){
+      if( azArg==0 ) break;//记录数为空，则跳出循环
+      for(i=0; i<nArg; i++){//以列的方式循环输出每一条记录
         int w;
         if( i<ArraySize(p->actualWidth) ){
-           w = p->actualWidth[i];
+           w = p->actualWidth[i];//计算输出格式的长度
         }else{
            w = 10;
         }
@@ -797,7 +797,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
           w = strlen30(azArg[i]);
         }
         fprintf(p->out,"%-*.*s%s",w,w,
-            azArg[i] ? azArg[i] : p->nullvalue, i==nArg-1 ? "\n": "  ");
+            azArg[i] ? azArg[i] : p->nullvalue, i==nArg-1 ? "\n": "  ");//输出查询的记录值
       }
       break;
     }
@@ -808,7 +808,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
           fprintf(p->out,"%s%s",azCol[i], i==nArg-1 ? "\n" : p->separator);
         }
       }
-      if( azArg==0 ) break;
+      if( azArg==0 ) break;//如果查询的记录为空就跳出循环
       for(i=0; i<nArg; i++){
         char *z = azArg[i];
         if( z==0 ) z = p->nullvalue;
@@ -824,7 +824,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       break;
     }
     case MODE_Html: {  //Html模式
-      if( p->cnt++==0 && p->showHeader ){
+      if( p->cnt++==0 && p->showHeader ){//以html格式输出表头
         fprintf(p->out,"<TR>");
         for(i=0; i<nArg; i++){
           fprintf(p->out,"<TH>");
@@ -835,7 +835,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       }
       if( azArg==0 ) break;
       fprintf(p->out,"<TR>");
-      for(i=0; i<nArg; i++){
+      for(i=0; i<nArg; i++){//以html格式输出查询的记录值
         fprintf(p->out,"<TD>");
         output_html_string(p->out, azArg[i] ? azArg[i] : p->nullvalue);
         fprintf(p->out,"</TD>\n");
@@ -844,7 +844,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       break;
     }
     case MODE_Tcl: { // Tcl模式
-      if( p->cnt++==0 && p->showHeader ){
+      if( p->cnt++==0 && p->showHeader ){//如果还没有记录输出并且表头值为1，则与“”的形式输出表头
         for(i=0; i<nArg; i++){
           output_c_string(p->out,azCol[i] ? azCol[i] : "");
           fprintf(p->out, "%s", p->separator);
@@ -876,14 +876,14 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
     case MODE_Insert: {  //Insert模式
       p->cnt++;
       if( azArg==0 ) break;
-      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);//指目的表
+      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);////以插入语句的形式输出，p->zDestTable指要插入的表名
       for(i=0; i<nArg; i++){
         char *zSep = i>0 ? ",": "";
         if( (azArg[i]==0) || (aiType && aiType[i]==SQLITE_NULL) ){
-          fprintf(p->out,"%sNULL",zSep);
+          fprintf(p->out,"%sNULL",zSep);//值为空时
         }else if( aiType && aiType[i]==SQLITE_TEXT ){
           if( zSep[0] ) fprintf(p->out,"%s",zSep);
-          output_quoted_string(p->out, azArg[i]);
+          output_quoted_string(p->out, azArg[i]);//值为文本时
         }else if( aiType && (aiType[i]==SQLITE_INTEGER || aiType[i]==SQLITE_FLOAT) ){
           fprintf(p->out,"%s%s",zSep, azArg[i]);
         }else if( aiType && aiType[i]==SQLITE_BLOB && p->pStmt ){
@@ -898,7 +898,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
           output_quoted_string(p->out, azArg[i]);
         }
       }
-      fprintf(p->out,");\n");
+      fprintf(p->out,");\n");//输出反括号，换行
       break;
     }
   }
@@ -933,16 +933,16 @@ static void set_table_name(struct callback_data *p, const char *zName){ //设定
     p->zDestTable = 0;
   }
   if( zName==0 ) return;
-  needQuote = !isalpha((unsigned char)*zName) && *zName!='_';
+  needQuote = !isalpha((unsigned char)*zName) && *zName!='_';//isalpha函数判断字符*zName是否为英文字母，若为小写字母，返回2，若为大写字母，返回1。若不是字母，返回0,当表名中没有字母或者_时， needQuote==1
   for(i=n=0; zName[i]; i++, n++){
-    if( !isalnum((unsigned char)zName[i]) && zName[i]!='_' ){
+    if( !isalnum((unsigned char)zName[i]) && zName[i]!='_' ){//当zName[i]为数字0-9或字母a-z及A-Z时，返回非零值，否则返回零
       needQuote = 1;
       if( zName[i]=='\'' ) n++;
     }
   }
-  if( needQuote ) n += 2;
-  z = p->zDestTable = malloc( n+1 );
-  if( z==0 ){
+  if( needQuote ) n += 2;//needQuote不为0，即表名中不包含特殊符号时,n=n+2
+  z = p->zDestTable = malloc( n+1 );//给表分配空间
+  if( z==0 ){//如果表空间分配失败，则输出错误信息
     fprintf(stderr,"Error: out of memory\n");
     exit(1);
   }
@@ -967,10 +967,10 @@ static void set_table_name(struct callback_data *p, const char *zName){ //设定
 static char *appendText(char *zIn, char const *zAppend, char quote){//zInt是在malloc()中获得的内存中以NUll字符串结尾的字符串指针或表示NUll指针；zAppend指向的字符串是加到zInt上的，返回的结果来自malloc()；如果第三个参数不是'\0',那么用作zAppend引用字符
   int len;//定义长度
   int i;
-  int nAppend = strlen30(zAppend);
-  int nIn = (zIn?strlen30(zIn):0);
+  int nAppend = strlen30(zAppend);//计算字符zAppend的长度
+  int nIn = (zIn?strlen30(zIn):0);//计算zIn的长度
 
-  len = nAppend+nIn+1;
+  len = nAppend+nIn+1;//计算总长度
   if( quote ){//如果quote不是'\0',那么用作zAppend引用字符
     len += 2;
     for(i=0; i<nAppend; i++){
@@ -979,7 +979,7 @@ static char *appendText(char *zIn, char const *zAppend, char quote){//zInt是在
   }
 
   zIn = (char *)realloc(zIn, len);//重新分配内存
-  if( !zIn ){
+  if( !zIn ){//分配不成功，则返回
     return 0;
   }
 
@@ -1084,7 +1084,7 @@ static char *save_err_msg(  //保存错误信息
   if( zErrMsg ){
     memcpy(zErrMsg, sqlite3_errmsg(db), nErrMsg);//更新错误信息
   }
-  return zErrMsg;
+  return zErrMsg;//返回错误信息
 }
 
 /*
@@ -1204,7 +1204,7 @@ bReset);//sqlite3_db_status()多一个数据库连接参数，并且返回的是
 ** and callback data argument.
 */
 
-/*执行一个或一组语句，根据当前模式输出结果，和sqlite3_exec()函数相似/*
+/*执行一个或一组语句，根据当前模式输出结果，和sqlite3_exec()函数相似*/
 
 static int shell_exec(
   sqlite3 *db,                                /* An open database */ /*一个打开的数据库*/
@@ -1445,7 +1445,7 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
       zSelect = appendText(zSelect, " ORDER BY rowid DESC", 0);
       run_table_dump_query(p, zSelect, 0);
     }
-    free(zSelect);
+    free(zSelect);//释放空间
   }
   return 0;
 }
