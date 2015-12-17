@@ -731,8 +731,10 @@ void *sqlite3DbMallocZero(sqlite3 *db, int n){
 **
 ** 分配0内存，如果分配失败了，在数据库连接中置分配失败的标志
 ** 如果db不存在 或者失败分配 那就返回0
-** 因此一个特定的数据库连接，只要分配失败他就全部失败
+** 因此一个特定的数据库连接，只要一个分配失败，之后的分配都会失败
 ** 这是很重要的假设，代码中很多地方都是这样的
+** 
+** 如果sqlite3DbMallocRaw后一个分配成功的话，说明之前的分配都会成功。
 */
 void *sqlite3DbMallocRaw(sqlite3 *db, int n){
   void *p;
@@ -744,7 +746,7 @@ void *sqlite3DbMallocRaw(sqlite3 *db, int n){
     if( db->mallocFailed ){  //分配失败 返回0
       return 0;    }
       ///*0：命中。 1：不是完全命中。 2：全部未命中*/
-    if( db->lookaside.bEnabled ){  //禁用后备内存
+    if( db->lookaside.bEnabled ){ 
       if( n>db->lookaside.sz ){  //如果给的n大于每个缓冲区大小
         db->lookaside.anStat[1]++;
       }else if( (pBuf = db->lookaside.pFree)==0 ){
@@ -835,7 +837,7 @@ void *sqlite3DbReallocOrFree(sqlite3 *db, void *p, int n){
 ** called via macros that record the current file and line number in the
 ** ThreadData structure.
 ** 
-** 从sqliteMalloc函数拷贝一个字符串，这些函数直接调用sqlite3MallocRaw，
+** 从利用sqliteMalloc函数获取的内存中拷贝一个字符串，这些函数直接调用sqlite3MallocRaw，
 ** 这是因为内存调试开关打开了，两个函数调用了宏，在线程数据结构中
 ** 这些宏记录了当前的文件和行号
 */
@@ -899,7 +901,7 @@ void sqlite3SetString(char **pz, sqlite3 *db, const char *zFormat, ...){
 ** then the connection error-code (the value returned by sqlite3_errcode())
 ** is set to SQLITE_NOMEM.
 **
-** 在退出任何API这个函数必须被调用
+** 在退出任何API函数（调用sqlite3_malloc或者sqlite3_realloc）必须被调用
 ** 返回类型是第二个参数的复制 如果malloc()失败 系统返回SQLITE_NOMEM
 ** 如果db 不空 并且分配错误 然后连接错误码被设置为SQLITE_NOMEM
 */
