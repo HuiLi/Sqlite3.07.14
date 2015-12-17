@@ -3740,13 +3740,16 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
       }
 /*以上是潘光珍做的*/ 
 
-      /* If nFin is zero, this loop runs exactly once and page pLastPg
+     	 /* If nFin is zero, this loop runs exactly once and page pLastPg
       ** is swapped with the first free page pulled off the free list.
-      ** 如果nFin是零,这循环正好运行一次和页面pLastPg将与在空闲列表页中的第一个空闲页交换。
+      ** 如果nFin是零,这循环正好运行一次和页面pLastPg将与在空闲列表页中的第一个空闲页交换.
       ** On the other hand, if nFin is greater than zero, then keep
       ** looping until a free-page located within the first nFin pages
       ** of the file is found.
-	  ** 另一方面,如果nFin大于零,然后继续循环,直到空闲页位于文件的第一个nFin页面被发现。
+	  ** 另一方面,如果nFin大于零,然后继续循环,直到空闲页位于文件的第一个nFin页面被发现.
+      */
+	   /* 【赵大成】如果nFin是零,这个循环完全运行一次和页面pLastPg与第一次自由交换了空闲列表页。
+	  ** 另一方面,如果nFin大于零,然后继续循环,直到一个空闲分页位于第一nFin页的文件。
       */
       do {
         MemPage *pFreePg;
@@ -3756,7 +3759,7 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
           return rc;
         }
         releasePage(pFreePg);
-      }while( nFin!=0 && iFreePg>nFin );
+      }while( nFin!=0 && iFreePg>nFin );		 /* 【赵大成】判断nFin是否等于0，重复循环释放页面 */
       assert( iFreePg<iLastPg );
       
       rc = sqlite3PagerWrite(pLastPg->pDbPage);
@@ -3770,7 +3773,7 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
     }
   }
 
-  if( nFin==0 ){
+  if( nFin==0 ){							/* 【赵大成】如果nFin为0，pLastPg将与在空闲列表页中的第一个空闲页交换*/
     iLastPg--;
     while( iLastPg==PENDING_BYTE_PAGE(pBt)||PTRMAP_ISPAGE(pBt, iLastPg) ){
       if( PTRMAP_ISPAGE(pBt, iLastPg) ){
@@ -3796,15 +3799,20 @@ static int incrVacuumStep(BtShared *pBt, Pgno nFin, Pgno iLastPg){        //执�
 /*
 ** A write-transaction must be opened before calling this function.
 ** It performs a single unit of work towards an incremental vacuum.
-** 调用这个程序之前，写事务必须打开。它执行单个工作单元对incremental vacuum。
+** 调用这个程序之前,写事务必须打开.它执行单个工作单元对incremental vacuum.
 ** If the incremental vacuum is finished after this function has run,
 ** SQLITE_DONE is returned. If it is not finished, but no error occurred,
 ** SQLITE_OK is returned. Otherwise an SQLite error code. 
-** 如果incremental vacuum在这个函数运行结束后被完成,返回SQLITE_DONE。如果没有完成,但是没有错误发生,返回SQLITE_OK。
-** 否则返回一个SQLite错误代码。
+** 如果incremental vacuum在这个函数运行结束后被完成,返回SQLITE_DONE.如果没有完成,但是没有错误发生,返回SQLITE_OK.
+** 否则返回一个SQLite错误代码.
 */
 /*
-调用这个程序之前，写事务必须打开。
+调用这个程序之前,写事务必须打开.
+*/
+/* 【赵大成】调用这个程序之前，写事务必须打开。
+** 它执行单个工作单元对增量为空。
+** 如果增量为空这个函数运行结束后,返回SQLITE_DONE。
+** 如果没有完成,但是没有发生错误,返回SQLITE_OK。否则是一个错误代码。
 */
 int sqlite3BtreeIncrVacuum(Btree *p){
   int rc;
@@ -3813,7 +3821,7 @@ int sqlite3BtreeIncrVacuum(Btree *p){
   sqlite3BtreeEnter(p);
   assert( pBt->inTransaction==TRANS_WRITE && p->inTrans==TRANS_WRITE );
   if( !pBt->autoVacuum ){
-    rc = SQLITE_DONE;
+    rc = SQLITE_DONE;		/* 【赵大成】增量为空这个函数运行结束后,返回SQLITE_DONE*/
   }else{
     invalidateAllOverflowCache(pBt);
     rc = incrVacuumStep(pBt, 0, btreePagecount(pBt));
@@ -3829,13 +3837,17 @@ int sqlite3BtreeIncrVacuum(Btree *p){
 /*
 ** This routine is called prior to sqlite3PagerCommit when a transaction
 ** is commited for an auto-vacuum database.
-** 对于一个auto-vacuum数据库，当一个事务被提交之后这个函数将在sqlite3PagerCommit之前被调用。
+** 对于一个auto-vacuum数据库,当一个事务被提交之后这个函数将在sqlite3PagerCommit之前被调用.
 ** If SQLITE_OK is returned, then *pnTrunc is set to the number of pages
 ** the database file should be truncated to during the commit process. 
 ** i.e. the database has been reorganized so that only the first *pnTrunc
 ** pages are in use.
-** 如果返回SQLITE_OK,那么*pnTrunc设置页面的数量，数据库文件在提交过程中应该被截断。
-** 即数据库已经重组,以便只有第一个*pnTrunc页面在用。
+** 如果返回SQLITE_OK,那么*pnTrunc设置页面的数量,数据库文件在提交过程中应该被截断.
+** 即数据库已经重组,以便只有第一个*pnTrunc页面在用.
+*/
+/* 【赵大成】
+** 当自动真空数据库的事务sqlite3PagerCommit被提交之后，这个程序被调用。
+** 如果返回SQLITE_OK，那么* pnTrunc设为数据库文件页数。
 */
 static int autoVacuumCommit(BtShared *pBt){
   int rc = SQLITE_OK;
@@ -3858,8 +3870,12 @@ static int autoVacuumCommit(BtShared *pBt){
       /* It is not possible to create a database for which the final page
       ** is either a pointer-map page or the pending-byte page. If one
       ** is encountered, this indicates corruption.
-	  ** 对于最后一页是一个指针映射页或者是pending-byte类型的页，创建一个数据库是不可能的。如果创建了,这表明是不良的。
+	  ** 对于最后一页是一个指针映射页或者是pending-byte类型的页,创建一个数据库是不可能的.如果创建了,这表明是不良的.
       */
+	 /*【赵大成】
+      ** 不可能创建一个这样的数据库，它的最后一页是pointer-map页或者pending-byte页。如果
+      ** 遇到这样的数据库，这个指标不正常。
+	  */
       return SQLITE_CORRUPT_BKPT;
     }
 
@@ -3875,7 +3891,7 @@ static int autoVacuumCommit(BtShared *pBt){
     }
     if( nFin>nOrig ) return SQLITE_CORRUPT_BKPT;
 
-    for(iFree=nOrig; iFree>nFin && rc==SQLITE_OK; iFree--){
+    for(iFree=nOrig; iFree>nFin && rc==SQLITE_OK; iFree--){		/* 【赵大成】空闲列表上最初的页面数大于清理后数据页面数，就循环把rc代入incrVacumStep()*/
       rc = incrVacuumStep(pBt, nFin, iFree);
     }
     if( (rc==SQLITE_DONE || rc==SQLITE_OK) && nFree>0 ){
@@ -3923,24 +3939,29 @@ static int autoVacuumCommit(BtShared *pBt){
 **
 ** Once this is routine has returned, the only thing required to commit
 ** the write-transaction for this database file is to delete the journal.
-** 这个函数是两阶段提交的第一阶段。这个函数创建回滚日志(如果它不存在)并加入足够的信息以便于如果出现功率损耗，
-** 数据库可以通过日志恢复到原来的状态。日志的内容就写回到磁盘。在日志安全写回后,更改的数据库写入数据库文件和写到磁盘。
+** 这个函数是两阶段提交的第一阶段.这个函数创建回滚日志(如果它不存在)并加入足够的信息以便于如果出现功率损耗,
+** 数据库可以通过日志恢复到原来的状态.日志的内容就写回到磁盘.在日志安全写回后,更改的数据库写入数据库文件和写到磁盘.
 ** 这个调用结束时,回滚日志在磁盘上仍然存在和仍持有所有的锁,所以事务没有提交.提交进程的第二个阶段是sqlite3BtreeCommitPhaseTwo().
-** 如果没有写事务目前活跃在pBt上，则这个调用是一个空操作。
-** 否则,对btree pBt的数据库文件同步。zMaster指向主日志文件的名字，该主日志文件应该写进单独的日志文件中。
-** 或者为空,表示没有主日志文件(单个数据库事务)。当被调用时,该主日志应该已被创建、用日志指针和同步写入到磁盘。
-** 一旦该函数返回，唯一事情就是需要提交写事务，数据库文件应该删除日志。
-/*提交阶段分为2部分，这是第1部分，成功返回SQLITE_OK。第二部分在sqlite3BtreeCommitPhaseTwo*/
+** 如果没有写事务目前活跃在pBt上,则这个调用是一个空操作.
+** 否则,对btree pBt的数据库文件同步.zMaster指向主日志文件的名字,该主日志文件应该写进单独的日志文件中.
+** 或者为空,表示没有主日志文件(单个数据库事务).当被调用时,该主日志应该已被创建、用日志指针和同步写入到磁盘.
+** 一旦该函数返回,唯一事情就是需要提交写事务,数据库文件应该删除日志.
+/*提交阶段分为2部分,这是第1部分,成功返回SQLITE_OK.第二部分在sqlite3BtreeCommitPhaseTwo*/
+/* 【赵大成】
+** 如果没有写事务目前活跃在pBt,这个调用是一个空操作。否则,btree pBt的数据库文件同步。
+** zMaster指向一个主日志文件的名称应该写进个人日志文件,或者为空,
+** 表示没有主日志文件(单个数据库事务)。
+*/
 int sqlite3BtreeCommitPhaseOne(Btree *p, const char *zMaster){
   int rc = SQLITE_OK;
-  if( p->inTrans==TRANS_WRITE ){/*若没有写事务，此调用为空操作*/
+  if( p->inTrans==TRANS_WRITE ){/*若没有写事务,此调用为空操作*/
     BtShared *pBt = p->pBt;
     sqlite3BtreeEnter(p);
 #ifndef SQLITE_OMIT_AUTOVACUUM
     if( pBt->autoVacuum ){
       rc = autoVacuumCommit(pBt);
       if( rc!=SQLITE_OK ){
-        sqlite3BtreeLeave(p);
+        sqlite3BtreeLeave(p);	/*【赵大成】如果不等于SQLITE_OK,释放sqlite3Btree*/
         return rc;
       }
     }
@@ -3954,18 +3975,21 @@ int sqlite3BtreeCommitPhaseOne(Btree *p, const char *zMaster){
 /*
 ** This function is called from both BtreeCommitPhaseTwo() and BtreeRollback()
 ** at the conclusion of a transaction.
-** 在一个事务的结束，BtreeCommitPhaseTwo()和BtreeRollback()调用这个函数。
+** 在一个事务的结束,BtreeCommitPhaseTwo()和BtreeRollback()调用这个函数.
+*/
+/*【赵大成】
+** 这个函数被调用来自BtreeCommitPhaseTwo()和BtreeRollback()在一个事务的结论。
 */
 static void btreeEndTransaction(Btree *p){
   BtShared *pBt = p->pBt;
   assert( sqlite3BtreeHoldsMutex(p) );
 
-  btreeClearHasContent(pBt);	/*销毁位图对象，回收用过的内存*/
+  btreeClearHasContent(pBt);	/*销毁位图对象,回收用过的内存*/
   if( p->inTrans>TRANS_NONE && p->db->activeVdbeCnt>1 ){
     /* If there are other active statements that belong to this database
     ** handle, downgrade to a read-only transaction. The other statements
     ** may still be reading from the database.  
-	** 如果有其他活跃的属于这个数据库处理程序的语句,下调一个只读事务。其他语句或许正在从数据库中读。*/
+	** 如果有其他活跃的属于这个数据库处理程序的语句,下调一个只读事务.其他语句或许正在从数据库中读.*/
     downgradeAllSharedCacheTableLocks(p);
     p->inTrans = TRANS_READ;
   }else{
@@ -3973,8 +3997,12 @@ static void btreeEndTransaction(Btree *p){
     ** transaction count of the shared btree. If the transaction count 
     ** reaches 0, set the shared state to TRANS_NONE. The unlockBtreeIfUnused()
     ** call below will unlock the pager.  
-	** 如果处理任何事务开放，减量可共享B树的事务数。如果事务数达到0,设置共享状态为TRANS_NONE。
-	** unlockBtreeIfUnused()调用下面将解锁pager。*/
+	** 如果处理任何事务开放,减量可共享B树的事务数.如果事务数达到0,设置共享状态为TRANS_NONE.
+	** unlockBtreeIfUnused()调用下面将解锁pager.*/
+	/* 【赵大成】
+	** 如果处理任何事务公开,共享减量的事务数来。如果事务数达到0,设置共享状态为TRANS_NONE。
+	**下面unlockBtreeIfUnused()调用将解锁pager。
+	*/
     if( p->inTrans!=TRANS_NONE ){ /*有事务*/
       clearAllSharedCacheTableLocks(p);
       pBt->nTransaction--;
@@ -3985,9 +4013,10 @@ static void btreeEndTransaction(Btree *p){
 
     /* Set the current transaction state to TRANS_NONE and unlock the 
     ** pager if this call closed the only read or write transaction.  
-	** 设置当前事务状态TRANS_NONE并如果这个调用关闭唯一读或写事务则解锁pager。*/
+	** 设置当前事务状态TRANS_NONE并如果这个调用关闭唯一读或写事务则解锁pager.*/
+	/*【赵大成】设置当前事务状态TRANS_NONE，如果这个调用关闭唯一读或写事务并解锁分页。*/
     p->inTrans = TRANS_NONE;
-    unlockBtreeIfUnused(pBt);/*当关闭了最后的读或写事务，解锁pager*/
+    unlockBtreeIfUnused(pBt);/*当关闭了最后的读或写事务,解锁pager*/
   }
 
   btreeIntegrity(p);
@@ -3995,7 +4024,7 @@ static void btreeEndTransaction(Btree *p){
 
 /*
 ** Commit the transaction currently in progress.
-** 提交当前在进程中的事务。
+** 提交当前在进程中的事务.
 ** This routine implements the second phase of a 2-phase commit.  The
 ** sqlite3BtreeCommitPhaseOne() routine does the first phase and should
 ** be invoked prior to calling this routine.  The sqlite3BtreeCommitPhaseOne()
@@ -4020,17 +4049,17 @@ static void btreeEndTransaction(Btree *p){
 ** are no active cursors, it also releases the read lock.
 */
 
-/*提交阶段分为2部分，这是第2部分。第一部分在sqlite3BtreeCommitPhaseOne
+/*提交阶段分为2部分,这是第2部分.第一部分在sqlite3BtreeCommitPhaseOne
 两者关系:
-1、第一阶段调用后才能调用第二阶段。
-2、第一阶段完成写信息到磁盘。第二阶段释放写锁，若无活动游标，释放读锁。
+1、第一阶段调用后才能调用第二阶段.
+2、第一阶段完成写信息到磁盘.第二阶段释放写锁,若无活动游标,释放读锁.
 为什么分2个阶段?
-保证所有节点在进行事务提交时保持一致性。在分布式系统中，每个节点虽然可以知晓自己的操作时成功
-或者失败，却无法知道其他节点的操作的成功或失败。当一个事务跨越多个节点时，为了保持事务的
-ACID特性，需要引入一个作为协调者的组件来统一掌控所有节点(称作参与者)的操作结果并最终指示
-这些节点是否要把操作结果进行真正的提交(比如将更新后的数据写入磁盘等等)。因此，二阶段提交
-的算法思路可以概括为： 参与者将操作成败通知协调者，再由协调者根据所有参与者的反馈情报决定
-各参与者是否要提交操作还是中止操作。
+保证所有节点在进行事务提交时保持一致性.在分布式系统中,每个节点虽然可以知晓自己的操作时成功
+或者失败,却无法知道其他节点的操作的成功或失败.当一个事务跨越多个节点时,为了保持事务的
+ACID特性,需要引入一个作为协调者的组件来统一掌控所有节点(称作参与者)的操作结果并最终指示
+这些节点是否要把操作结果进行真正的提交(比如将更新后的数据写入磁盘等等).因此,二阶段提交
+的算法思路可以概括为： 参与者将操作成败通知协调者,再由协调者根据所有参与者的反馈情报决定
+各参与者是否要提交操作还是中止操作.
 */
 
 int sqlite3BtreeCommitPhaseTwo(Btree *p, int bCleanup){
@@ -4041,7 +4070,10 @@ int sqlite3BtreeCommitPhaseTwo(Btree *p, int bCleanup){
 
   /* If the handle has a write-transaction open, commit the shared-btrees 
   ** transaction and set the shared state to TRANS_READ.
-  ** 如果该句柄有开放性写事务,提交shared-btrees事务并设置事务共享状态为TRANS_READ。*/
+  ** 如果该句柄有开放性写事务,提交shared-btrees事务并设置事务共享状态为TRANS_READ.*/
+  /* 【赵大成】
+  ** 如果有写事务处理打开,提交shared-btrees TRANS_READ事务并设置共享状态
+  */
   if( p->inTrans==TRANS_WRITE ){
     int rc;
     BtShared *pBt = p->pBt;
@@ -4068,7 +4100,7 @@ int sqlite3BtreeCommit(Btree *p){
   sqlite3BtreeEnter(p);
   rc = sqlite3BtreeCommitPhaseOne(p, 0);
   if( rc==SQLITE_OK ){
-    rc = sqlite3BtreeCommitPhaseTwo(p, 0);
+    rc = sqlite3BtreeCommitPhaseTwo(p, 0);	/* 【赵大成】两阶段提交*/
   }
   sqlite3BtreeLeave(p);
   return rc;
@@ -4079,18 +4111,19 @@ int sqlite3BtreeCommit(Btree *p){
 ** Return the number of write-cursors open on this handle. This is for use
 ** in assert() expressions, so it is only compiled if NDEBUG is not
 ** defined.
-** 这个句柄返回开放性写游标数。在assert()语句中使用，因此如果NDEBUG没有定义则它只编译。
+** 这个句柄返回开放性写游标数.在assert()语句中使用,因此如果NDEBUG没有定义则它只编译.
 ** For the purposes of this routine, a write-cursor is any cursor that
 ** is capable of writing to the databse.  That means the cursor was
 ** originally opened for writing and the cursor has not be disabled
 ** by having its state changed to CURSOR_FAULT.
+**【赵大成】对于本例程,write-cursor任何写入数据库的指针。这意味着光标最初是为写或者没有改变状态CURSOR_FAULT而打开的。
 */
 /*返回写游标的数量*/
 static int countWriteCursors(BtShared *pBt){
   BtCursor *pCur;
   int r = 0;
   for(pCur=pBt->pCursor; pCur; pCur=pCur->pNext){
-    if( pCur->wrFlag && pCur->eState!=CURSOR_FAULT ) r++; /*pCur->eState!=CURSOR_FAULT时，游标处于激活状态*/
+    if( pCur->wrFlag && pCur->eState!=CURSOR_FAULT ) r++; /*pCur->eState!=CURSOR_FAULT时,游标处于激活状态*/
   }
   return r;
 }
@@ -4100,11 +4133,11 @@ static int countWriteCursors(BtShared *pBt){
 ** This routine sets the state to CURSOR_FAULT and the error
 ** code to errCode for every cursor on BtShared that pBtree
 ** references.
-** 对于pBtree引用的BtShared上的游标这个函数将状态设置为CURSOR_FAULT和错误代码为errCode。
+** 对于pBtree引用的BtShared上的游标这个函数将状态设置为CURSOR_FAULT和错误代码为errCode.
 ** Every cursor is tripped, including cursors that belong
 ** to other database connections that happen to be sharing
 ** the cache with pBtree.
-** 每个游标都被遍历，包括属于其他数据库连接的游标，其中数据库连接正在与pBtree共享缓存。
+** 每个游标都被遍历,包括属于其他数据库连接的游标,其中数据库连接正在与pBtree共享缓存.
 ** This routine gets called when a rollback occurs.
 ** All cursors using the same cache must be tripped
 ** to prevent them from trying to use the btree after
@@ -4112,10 +4145,10 @@ static int countWriteCursors(BtShared *pBt){
 ** or moved root pages, so it is not sufficient to
 ** save the state of the cursor.  The cursor must be
 ** invalidated.
-** 当发生回滚时这个函数被调用。所有使用相同的缓存的游标必须被遍历,以阻止他们在回滚之后试图利用btree。
-** 回滚可能删除表或移动根页面,所以保存游标的状态是不够的。游标必须失效。
+** 当发生回滚时这个函数被调用.所有使用相同的缓存的游标必须被遍历,以阻止他们在回滚之后试图利用btree.
+** 回滚可能删除表或移动根页面,所以保存游标的状态是不够的.游标必须失效.
 */
-/*将游标状态设置为 CURSOR_FAULT ，将error code设置为errCode*/
+/*将游标状态设置为 CURSOR_FAULT ,将error code设置为errCode*/
 void sqlite3BtreeTripAllCursors(Btree *pBtree, int errCode){
   BtCursor *p;
   if( pBtree==0 ) return;
@@ -4123,7 +4156,7 @@ void sqlite3BtreeTripAllCursors(Btree *pBtree, int errCode){
   for(p=pBtree->pBt->pCursor; p; p=p->pNext){
     int i;
     sqlite3BtreeClearCursor(p);
-    p->eState = CURSOR_FAULT;
+    p->eState = CURSOR_FAULT;		/* 【赵大成】例程被调用时发生反转*/
     p->skipNext = errCode;
     for(i=0; i<=p->iPage; i++){
       releasePage(p->apPage[i]);
@@ -4138,12 +4171,13 @@ void sqlite3BtreeTripAllCursors(Btree *pBtree, int errCode){
 ** invalided by this operation.  Any attempt to use a cursor
 ** that was open at the beginning of this operation will result
 ** in an error.
-** 回滚进程中的事务。通过该操作是所有游标失效。任何试图使用在这个操作开始时打开的游标都会出错。
+** 回滚进程中的事务.通过该操作是所有游标失效.任何试图使用在这个操作开始时打开的游标都会出错.
 ** This will release the write lock on the database file.  If there
 ** are no active cursors, it also releases the read lock.
-** 这将释放在数据库文件中的写锁。如果没有活跃的游标,也会释放读锁。
+** 这将释放在数据库文件中的写锁.如果没有活跃的游标,也会释放读锁.
 */
-/*回滚事务，使所有游标失效*/
+/*回滚事务,使所有游标失效*/
+/* 【赵大成】回滚事务，使所有游标失效，将释放数据库文件中的写锁。如果没有活跃的游标时,也会释放读锁。*/
 int sqlite3BtreeRollback(Btree *p, int tripCode){
   int rc;
   BtShared *pBt = p->pBt;
@@ -4172,17 +4206,18 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
     /* The rollback may have destroyed the pPage1->aData value.  So
     ** call btreeGetPage() on page 1 again to make
     ** sure pPage1->aData is set correctly. 
-	** 回滚可能已经破坏了pPage1->aData价值。所以在1页上在此调用btreeGetPage()，确定pPage1->aData设置正确。*/
+	** 回滚可能已经破坏了pPage1->aData价值.所以在1页上在此调用btreeGetPage(),确定pPage1->aData设置正确.*/
+	/* 【赵大成】回滚可能已经摧毁了pPage1 - > aData原值。所以使用btreeGetPage (),以确保pPage1 - > aData设置正确*/
     if( btreeGetPage(pBt, 1, &pPage1, 0)==SQLITE_OK ){
       int nPage = get4byte(28+(u8*)pPage1->aData);
       testcase( nPage==0 );
       if( nPage==0 ) sqlite3PagerPagecount(pBt->pPager, &nPage);
       testcase( pBt->nPage!=nPage );
       pBt->nPage = nPage;
-      releasePage(pPage1);
+      releasePage(pPage1);		/* 【赵大成】确保pPage1->aData 设置正确*/
     }
     assert( countWriteCursors(pBt)==0 );
-    pBt->inTransaction = TRANS_READ;/*若没有活动游标，释放读锁。*/
+    pBt->inTransaction = TRANS_READ;/*若没有活动游标,释放读锁.*/
   }
 
   btreeEndTransaction(p);
@@ -4194,25 +4229,35 @@ int sqlite3BtreeRollback(Btree *p, int tripCode){
 ** back independently of the main transaction. You must start a transaction 
 ** before starting a subtransaction. The subtransaction is ended automatically 
 ** if the main transaction commits or rolls back.
-** 开始一个语句子事务。子事务可以被主事务独立的回滚。在开始子事务之前
-** 要有一个主事务。如果主要事务提交或回滚，子事务自动结束。
+** 开始一个语句子事务.子事务可以被主事务独立的回滚.在开始子事务之前
+** 要有一个主事务.如果主要事务提交或回滚,子事务自动结束.
 ** Statement subtransactions are used around individual SQL statements
 ** that are contained within a BEGIN...COMMIT block.  If a constraint
 ** error occurs within the statement, the effect of that one statement
 ** can be rolled back without having to rollback the entire transaction.
-** 语句子事务使用在包含在一个BEGIN...COMMIT块中的单个SQL语句中。
+** 语句子事务使用在包含在一个BEGIN...COMMIT块中的单个SQL语句中.
 ** 如果在语句内出现一个约束错误,这个语句的效果可能是回滚,
-** 然而并不需要回滚整个事务。
+** 然而并不需要回滚整个事务.
 ** A statement sub-transaction is implemented as an anonymous savepoint. The
 ** value passed as the second parameter is the total number of savepoints,
 ** including the new anonymous savepoint, open on the B-Tree. i.e. if there
 ** are no active savepoints and no other statement-transactions open,
 ** iStatement is 1. This anonymous savepoint can be released or rolled back
 ** using the sqlite3BtreeSavepoint() function.
-** 声明sub-transaction被实现为一个匿名的保存点。作为第二个参数传递
-** 的值是保存点的总数,包括新的匿名保存点,在b-ree开放的。即如果没有
-** 活跃的保存点和没有其他statement-transactions开放,那么iStatement是1。
-** 这个匿名的保存点可以使用sqlite3BtreeSavepoint()释放或回滚。
+** 声明sub-transaction被实现为一个匿名的保存点.作为第二个参数传递
+** 的值是保存点的总数,包括新的匿名保存点,在b-ree开放的.即如果没有
+** 活跃的保存点和没有其他statement-transactions开放,那么iStatement是1.
+** 这个匿名的保存点可以使用sqlite3BtreeSavepoint()释放或回滚.
+*/
+/* 【赵大成】
+**	启动子事务发表声明。子事务都可以单独回滚事务。
+**  你必须在启动子事务之前启动一个事务。如果主要事务提交或回滚子事务自动结束。
+**  声明中使用子事务在单个SQL语句中包含的一个开始…提交。
+**  如果在声明中发生约束错误,这个声明的影响可以回滚,不需要回滚整个事务。
+**  声明sub-transaction被实现为一个匿名的保存点。
+**  作为第二个参数传递的值保存点的总数,包括新的匿名保存点,开放在b - tree。
+**  即如果没有积极的保存点和没有其他statement-transactions开放,iStatement是1。
+**  这个匿名保存点可以使用sqlite3BtreeSavepoint被释放或回滚()函数。
 */
 int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //开始一个语句子事务
   int rc;
@@ -4228,7 +4273,10 @@ int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //开始一个语句子事
   ** SQL statements. It is illegal to open, release or rollback any
   ** such savepoints while the statement transaction savepoint is active.
   ** 在pager 水平上,语句事务是一个保存点,带有一个大于明确使用SQL语句创建的所有保存
-  ** 点的索引。当语句事务保存点活跃时，开放，释放或回滚任何这样的保存点都是非法的。
+  ** 点的索引.当语句事务保存点活跃时,开放,释放或回滚任何这样的保存点都是非法的.
+  */
+  /* 【赵大成】
+  **在分页水平上，声明事务是一个保存点和一个指数大于使用SQL语句显式创建的所有保存点。开，释放或回滚任何这样的活跃的保存点是违法的,。
   */
   rc = sqlite3PagerOpenSavepoint(pBt->pPager, iStatement);
   sqlite3BtreeLeave(p);
@@ -4239,22 +4287,22 @@ int sqlite3BtreeBeginStmt(Btree *p, int iStatement){  //开始一个语句子事
 ** or SAVEPOINT_RELEASE. This function either releases or rolls back the
 ** savepoint identified by parameter iSavepoint, depending on the value 
 ** of op.
-** 该函数的第二个参数,op,总是SAVEPOINT_ROLLBACK或SAVEPOINT_RELEASE。
-** 这个函数释放或回滚被参数iSavepoint识别的保存点,是依赖于op的值。
+** 该函数的第二个参数,op,总是SAVEPOINT_ROLLBACK或SAVEPOINT_RELEASE.
+** 这个函数释放或回滚被参数iSavepoint识别的保存点,是依赖于op的值.
 ** Normally, iSavepoint is greater than or equal to zero. However, if op is
 ** SAVEPOINT_ROLLBACK, then iSavepoint may also be -1. In this case the 
 ** contents of the entire transaction are rolled back. This is different
 ** from a normal transaction rollback, as no locks are released and the
 ** transaction remains open.
-** 通常,iSavepoint>=0。然而,如果op是 SAVEPOINT_ROLLBACK,那么iSavepoint也可能是1。在这种
-** 情况下, 整个事务的内容回滚。这与正常的事务回滚是不同的,因为没有锁释放,事务仍然开放。
+** 通常,iSavepoint>=0.然而,如果op是 SAVEPOINT_ROLLBACK,那么iSavepoint也可能是1.在这种
+** 情况下, 整个事务的内容回滚.这与正常的事务回滚是不同的,因为没有锁释放,事务仍然开放.
 */
-/*op为SAVEPOINT_ROLLBACK或SAVEPOINT_RELEASE，根据此值释放或者回滚保存点*/
-int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //是释放还是回滚依赖于参数op的值
+/*op为SAVEPOINT_ROLLBACK或SAVEPOINT_RELEASE,根据此值释放或者回滚保存点*/
+int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //是释放还是回滚保存点依赖于参数op的值
   int rc = SQLITE_OK;
   if( p && p->inTrans==TRANS_WRITE ){
     BtShared *pBt = p->pBt;
-    assert( op==SAVEPOINT_RELEASE || op==SAVEPOINT_ROLLBACK );
+    assert( op==SAVEPOINT_RELEASE || op==SAVEPOINT_ROLLBACK );		/* 【赵大成】声明 op为SAVEPOINT_ROLLBACK或SAVEPOINT_RELEASE*/
     assert( iSavepoint>=0 || (iSavepoint==-1 && op==SAVEPOINT_ROLLBACK) );
     sqlite3BtreeEnter(p);
     rc = sqlite3PagerSavepoint(pBt->pPager, op, iSavepoint);
@@ -4263,18 +4311,18 @@ int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //是释放还�
         pBt->nPage = 0;
       }
       rc = newDatabase(pBt);
-      pBt->nPage = get4byte(28 + pBt->pPage1->aData);
+      pBt->nPage = get4byte(28 + pBt->pPage1->aData);		/* 【赵大成】数据库的大小是写进标题的偏移量28开始*/
       /* The database size was written into the offset 28 of the header
       ** when the transaction started, so we know that the value at offset
       ** 28 is nonzero. 
-	  ** 在事务开始时，数据库的大小是被写到头部的偏移量28处的，因此在偏移量28的值是非零的。*/
+	  ** 在事务开始时,数据库的大小是被写到头部的偏移量28处的,因此在偏移量28的值是非零的.*/
+	  /* 【赵大成】在事务开始的时候，数据库被写入头部偏移量为28，所以偏移量为28不为0*/
       assert( pBt->nPage>0 );
     }
     sqlite3BtreeLeave(p);
   }
   return rc;
 }
-
 /*
 ** Create a new cursor for the BTree whose root is on the page
 ** iTable. If a read-only cursor is requested, it is assumed that
