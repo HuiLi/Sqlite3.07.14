@@ -3943,37 +3943,40 @@ static u8 minMaxQuery(Select *p){
 	  /* Look up every table named in the FROM clause of the select.  If
 	  ** an entry of the FROM clause is a subquery instead of a table or view,
 	  ** then create a transient table structure to describe the subquery.
-	  *//*查找SELECT中FROM子句中每一个表名。若FROM子句的一个条目是子查询而不是一个表或视图，
-	  那么就创建一个描述子查询的事务表	  */
-	  //遍历表达式列表
-	  for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
-		Table *pTab;//定义一个table类型的变量
-		if( pFrom->pTab!=0 ){//如果from表项中有表
+	  */
+	  /* 查找查询语句中FROM子句里面每一个命名的表，如果FROM子句的入口是一个子查询而不是表或视图，
+	  ** 就创建一个瞬态表结构描述这个子查询。
+	  */
+	  for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){ //遍历pFrom中表达式列表
+		Table *pTab;//初始化一个table类型的指针变量
+		if( pFrom->pTab!=0 ){//如果pFrom对应的zName语句存在
 		  /* This statement has already been prepared.  There is no need
 		  ** to go further. */
-		  这个声明已经被事先执行，没有必要继续进行。
-		  assert( i==0 );//异常处理，加入断点。
-		  return WRC_Prune;//删除
+		  /* 
+		  ** 这种逻辑已经具备，无需继续。
+		  */
+		  assert( i==0 );//设置断言
+		  return WRC_Prune;//忽略孩子结点但继续访问兄弟结点，终止这段程序
 		}
-		if( pFrom->zName==0 ){
-		//若表名为空
-	#ifndef SQLITE_OMIT_SUBQUERY
-		  Select *pSel = pFrom->pSelect;//将pFrom赋值给pSel
-		  /* A sub-query in the FROM clause of a SELECT *//*SELECT中FROM子句的子查询*/
-		  assert( pSel!=0 );//异常处理，加入断点
-		  assert( pFrom->pTab==0 );//异常处理，加入断点
-		  sqlite3WalkSelect(pWalker, pSel);//调用sqlite3WalkSelect函数
-		  pFrom->pTab = pTab = sqlite3DbMallocZero(db, sizeof(Table));//分配和表的大小相等的内存
-		  if( pTab==0 ) return WRC_Abort;//如果分配错误，则终止程序
-		  pTab->nRef = 1;//pTab->nRef赋值为1
-		  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//将相关的信息打印出来赋给pTab->zName
-		  //遍历，查找优先的select
-		  while( pSel->pPrior ){ pSel = pSel->pPrior; }//获取优先select语句
-		  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//在表达式列表中查找列
-		  pTab->iPKey = -1;//置iPKey=-1，不用它做主键
-		  pTab->nRowEst = 1000000;//设置表的行数
-		  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表的标记变量，二进制特定位上的无条件赋值
-	#endif
+		if( pFrom->zName==0 ){ //如果表名为空
+			#ifndef SQLITE_OMIT_SUBQUERY
+			  Select *pSel = pFrom->pSelect;//将pFrom中代替表名的SELECT语句赋给一个新的Select变量
+			  /* A sub-query in the FROM clause of a SELECT */
+			  /*SELECT中FROM子句的子查询*/
+			  assert( pSel!=0 );//异常处理，加入断言
+			  assert( pFrom->pTab==0 );//异常处理，加入断言
+			  sqlite3WalkSelect(pWalker, pSel);//对pSel中每一个语句调用sqlite3WalkExpr()方法
+			  pFrom->pTab = pTab = sqlite3DbMallocZero(db, sizeof(Table));//重新分配数据库内存，并赋给pTab和pFrom->pTab
+			  if( pTab==0 ) return WRC_Abort;//如果分配出错，则终止程序
+			  pTab->nRef = 1;//指向表pTab的指针数目置零
+			  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//从内存获取相关信息打印出来赋给pTab名称
+			  //遍历，查找优先的select
+			  while( pSel->pPrior ){ pSel = pSel->pPrior; }//获取优先select语句
+			  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//在表达式列表中查找列
+			  pTab->iPKey = -1;//置iPKey=-1，不用它做主键
+			  pTab->nRowEst = 1000000;//设置表的行数
+			  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表的标记变量，二进制特定位上的无条件赋值
+			#endif
 		}else{
 		  /* An ordinary table or view name in the FROM clause *//*FROM语句中常规的表或视图名字*/
 		  assert( pFrom->pTab==0 );//异常处理，加入断点
