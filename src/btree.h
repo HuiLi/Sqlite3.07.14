@@ -69,7 +69,7 @@ int sqlite3BtreeSyncDisabled(Btree*);
 int sqlite3BtreeSetPageSize(Btree *p, int nPagesize, int nReserve, int eFix);  //设置数据库页大小
 int sqlite3BtreeGetPageSize(Btree*);                                           //返回数据库页大小
 int sqlite3BtreeMaxPageCount(Btree*,int);                                      //设置数据库的最大页数
-u32 sqlite3BtreeLastPage(Btree*);                                              //
+u32 sqlite3BtreeLastPage(Btree*);                                              //最后页
 int sqlite3BtreeSecureDelete(Btree*,int);                                      //设置BTS_SECURE_DELETE标志
 int sqlite3BtreeGetReserve(Btree*);                                            //页中未被使用的字节数
 int sqlite3BtreeSetAutoVacuum(Btree *, int);                                   //设置数据库自动清理空闲页属性

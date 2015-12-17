@@ -312,7 +312,7 @@ struct MemPage {
                        ** non-overflow cell */          
   u8 *apOvfl[5];       /* Pointers to the body of overflow cells */          //指向溢出单元的指针
   BtShared *pBt;       /* Pointer to BtShared that this page is part of */   //指向BtShared的指针，该页是BtShared的一部分
-  u8 *aData;           /* Pointer to disk image of the page data */          //指向页数据的磁盘映像
+  u8 *aData;           /* Pointer to disk image of the page data */          //指向页数据的磁盘映像的指针
   u8 *aDataEnd;        /* One byte past the end of usable data */            //可用数据的最后的一个字节
   u8 *aCellIdx;        /* The cell index area */                             //单元的指针域
   DbPage *pDbPage;     /* Pager page handle */                               //Pager的页句柄
@@ -683,7 +683,7 @@ struct BtCursor {           //B树上的游标，游标是指向一个特定条�
 typedef struct IntegrityCk IntegrityCk;
 struct IntegrityCk {
   BtShared *pBt;    /* The tree being checked out */                             //B树正在检查数据完整性
-  Pager *pPager;    /* The associated pager.  Also accessible by pBt->pPager */  //相关页对象，也可以通过pBt->pPager访问
+  Pager *pPager;    /* The associated pager.  Also accessible by pBt->pPager */  //相关页面调度程序，也可以通过pBt->pPager访问
   u8 *aPgRef;       /* 1 bit per page in the db (see above) */                   //在db中每页1位
   Pgno nPage;       /* Number of pages in the database */                        //在数据库中页的数量
   int mxErr;        /* Stop accumulating errors when this reaches zero */        //当这个变量达到零的时候，停止积累错误
