@@ -1797,6 +1797,7 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 			addr1 = sqlite3VdbeAddOp1(v, OP_IfPos, iLimit);/*将OP_IfPos操作交给vdbe，然后返回这个操作的地址并赋值给addr1*/
 			sqlite3VdbeAddOp2(v, OP_Integer, -1, iOffset + 1);/*将OP_Integer操作交给vdbe，然后返回这个操作的地址*/
 			sqlite3VdbeJumpHere(v, addr1);/*运行地址跳到addr1*/
+			
 		}
 	}
 }
@@ -1812,28 +1813,30 @@ static void computeLimitRegisters(Parse *pParse, Select *p, int iBreak){
 ** The collating sequence for the compound select is taken from the
 ** left-most term of the select that has a collating sequence.
 ** 复合查询的排序序列来自具有排序序列的最左边的查询。
+**为符合查询指令p的结果集的第i列返回一个恰当的排序序列
+**这个为符合查询的排序序列选自最左边有排序序列的条款。
 */
 static CollSeq *multiSelectCollSeq(Parse *pParse, Select *p, int iCol){
-	CollSeq *pRet;
-	if (p->pPrior){
-		pRet = multiSelectCollSeq(pParse, p->pPrior, iCol);
+	CollSeq *pRet;/*声明一个排序序列。*/
+	if (p->pPrior){/* 如果有优先查找 */
+		pRet = multiSelectCollSeq(pParse, p->pPrior, iCol);/*先使用优先查找的，返回一个排序序列*/
 	}
 	else{
-		pRet = 0;
+		pRet = 0;/*排序序列为0*/
 	}
-	assert(iCol >= 0);
-	if (pRet == 0 && iCol < p->pEList->nExpr){
-		pRet = sqlite3ExprCollSeq(pParse, p->pEList->a[iCol].pExpr);
+	assert(iCol >= 0);/*插入断点，判断列号是否大于等于0*/
+	if (pRet == 0 && iCol < p->pEList->nExpr){/*如果没有优先查找和列号小于表达式的个数（在范围内）*/
+		pRet = sqlite3ExprCollSeq(pParse, p->pEList->a[iCol].pExpr);/*返回一个默认的排序序列*/
 	}
-	return pRet;
+	return pRet;/*根据各种情况，返回最终的排序序列*/
 }
 #endif /* SQLITE_OMIT_COMPOUND_SELECT */
 
-/* Forward reference 向前引用*/
+/* Forward reference 向前引用*/　
 static int multiSelectOrderBy(
 	Parse *pParse,        /* Parsing context 解析上下文*/
-	Select *p,            /* The right-most of SELECTs to be coded 最右边的需要解码的查询语句*/
-	SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
+	Select *p,            /* The right-most of SELECTs to be coded 最右边的需要解码的查询语句*//*SELECT集中最右的select代码*/
+	SelectDest *pDest     /* What to do with query results 如何处理查询结果*//*select结果集*/
 	);
 
 
@@ -1874,21 +1877,22 @@ static int multiSelectOrderBy(
 ** Notice that because of the way SQLite parses compound SELECTs, the
 ** individual selects always group from left to right.
 ** 注意,因为SQLite解析复合查询语句的逻辑问题,单个查询总是从左到右。
+××注意SQLite的解析复合查询的方式，这个独特的查询，总是从左到右。
 */
 static int multiSelect(
 	Parse *pParse,        /* Parsing context 解析的上下文 */
-	Select *p,            /* The right-most of SELECTs to be coded 最右边的SELECTs将会被编码*/
-	SelectDest *pDest     /* What to do with query results 如何处理查询结果*/
+	Select *p,            /* The right-most of SELECTs to be coded 最右边的SELECTs将会被编码*//*最右边的SELECT结构体*/
+	SelectDest *pDest     /* What to do with query results 如何处理查询结果*//*定义如何处理结果集*/
 	){
-	int rc = SQLITE_OK;   /* Success code from a subroutine 从子程序传递来的成功参数 */
-	Select *pPrior;       /* Another SELECT immediately to our left 另一个SELECT指向左边*/
-	Vdbe *v;              /* Generate code to this VDBE 为这个VDBE生成代码*/
-	SelectDest dest;      /* Alternative data destination 可变动的数据目的地*/
-	Select *pDelete = 0;  /* Chain of simple selects to delete 用来删除的简单查询链*/
+	int rc = SQLITE_OK;   /* Success code from a subroutine 从子程序传递来的成功参数 *//*子程序成功执行*/
+	Select *pPrior;       /* Another SELECT immediately to our left 另一个SELECT指向左边*//*一个在左边的优先立即查询的SELECT*/
+	Vdbe *v;              /* Generate code to this VDBE 为这个VDBE生成代码*//*声明VDBE*/
+	SelectDest dest;      /* Alternative data destination 可变动的数据目的地*///*供选择的目标数据集*/
+	Select *pDelete = 0;  /* Chain of simple selects to delete 用来删除的简单查询链*//*简单的链式删除*/
 	sqlite3 *db;          /* Database connection 连接数据库*/
 #ifndef SQLITE_OMIT_EXPLAIN
-	int iSub1;            /* EQP id of left-hand query     EQP id左侧的查询*/
-	int iSub2;            /* EQP id of right-hand query    EQP id右侧的查询*/
+	int iSub1;            /* EQP id of left-hand query     EQP id左侧的查询*//*左查询的id*/
+	int iSub2;            /* EQP id of right-hand query    EQP id右侧的查询*//*右查询的id*/
 #endif
 
 	/* Make sure there is no ORDER BY or LIMIT clause on prior SELECTs.  Only
@@ -1901,52 +1905,52 @@ static int multiSelect(
 	assert(pPrior->pRightmost != pPrior);	/*插入断点，判断优先级的最右边表达式不是当前优先SELECT*/
 	assert(pPrior->pRightmost == p->pRightmost);	/*插入断点，判断优先级的最右边表达式是当前优先SELECT的最右边SELECT*/
 	dest = *pDest;	/*将如何处理结果集的结构体赋值给dest*/
-	if (pPrior->pOrderBy){
+	if (pPrior->pOrderBy){/*如果优先SELECT中含ORDERBY*/
 		sqlite3ErrorMsg(pParse, "ORDER BY clause should come after %s not before",
-			selectOpName(p->op));
-		rc = 1;
-		goto multi_select_end;
+			selectOpName(p->op));/*在语法解析树中添加一条报错信息*/
+		rc = 1;/*做执行完毕标记*/
+		goto multi_select_end;/*跳到multi_select_end（执行结束）*/
 	}
-	if (pPrior->pLimit){
+	if (pPrior->pLimit){/*如果优先SELECT含LIMIT*/
 		sqlite3ErrorMsg(pParse, "LIMIT clause should come after %s not before",
-			selectOpName(p->op));
-		rc = 1;
-		goto multi_select_end;
+			selectOpName(p->op));/*在语法解析树中添加一条报错信息*/
+		rc = 1;/*做执行完毕标记*/
+		goto multi_select_end;/*跳到multi_select_end（执行结束）*/
 	}
 
 	v = sqlite3GetVdbe(pParse);	/*根据语法解析树生成一个虚拟数据库引擎*/
 	assert(v != 0);  /* The VDBE already created by calling function   虚拟数据库引擎已经被函数创建*/
 
 	/* Create the destination temporary table if necessary   如果需要，创建一个临时目标表*/
-	if (dest.eDest == SRT_EphemTab){
-		assert(p->pEList);
-		sqlite3VdbeAddOp2(v, OP_OpenEphemeral, dest.iSDParm, p->pEList->nExpr);
-		sqlite3VdbeChangeP5(v, BTREE_UNORDERED);
-		dest.eDest = SRT_Table;
+	if (dest.eDest == SRT_EphemTab){/*如果数据集是SRT_EphemTab*/
+		assert(p->pEList);/*插入断点，判断是否有结果域*/
+		sqlite3VdbeAddOp2(v, OP_OpenEphemeral, dest.iSDParm, p->pEList->nExpr);/*将OP_OpenEphemeral操作交给vdbe，然后返回这个操作的地址*/
+		sqlite3VdbeChangeP5(v, BTREE_UNORDERED);/*把BTREE_UNORDERED设置为最近最多使用的值*/
+		dest.eDest = SRT_Table;/*令数据集为SRT_Table*/
 	}
 
 	/* Make sure all SELECTs in the statement have the same number of elements
 	** in their result sets.
 	** 确定所有声明的SELECT有相同结果集元素的个数
 	*/
-	assert(p->pEList && pPrior->pEList);
-	if (p->pEList->nExpr != pPrior->pEList->nExpr){
-		if (p->selFlags & SF_Values){
-			sqlite3ErrorMsg(pParse, "all VALUES must have the same number of terms");
+	assert(p->pEList && pPrior->pEList);/*插入断点，SELECT结果域和优先SELECT的结果域有交集*/
+	if (p->pEList->nExpr != pPrior->pEList->nExpr){/*如果结果域的表达式和优先SELECT的结果域的表达式不同*/
+		if (p->selFlags & SF_Values){/*如果selFlags的标记为SF_Values*/
+			sqlite3ErrorMsg(pParse, "all VALUES must have the same number of terms");/*在语法解析树中添加一条报错信息*/
 		}
 		else{
 			sqlite3ErrorMsg(pParse, "SELECTs to the left and right of %s"
-				" do not have the same number of result columns", selectOpName(p->op));
+				" do not have the same number of result columns", selectOpName(p->op));/*否则在语法解析树中添加一条这样的信息其中%S为p->op*/
 		}
-		rc = 1;
-		goto multi_select_end;
+		rc = 1;/*做执行完毕标记*/
+		goto multi_select_end;/*跳到multi_select_end（执行结束）*/
 	}
 
 	/* Compound SELECTs that have an ORDER BY clause are handled separately.
 	** 含有ORDERBY的复合SELECT要分开处理
 	*/
-	if (p->pOrderBy){
-		return multiSelectOrderBy(pParse, p, pDest);
+	if (p->pOrderBy){/*如果含有ORDERBY*/
+		return multiSelectOrderBy(pParse, p, pDest);/*递归使用本身，其实在递归p*/
 	}
 
 	/* Generate code for the left and right SELECT statements.
