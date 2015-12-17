@@ -825,7 +825,8 @@ void sqlite3StrAccumInit(StrAccum *p, char *zBase, int n, int mx){
 /*
 ** Print into memory obtained from sqliteMalloc().  Use the internal
 ** %-conversion extensions.
-这个函数用于打印到从sqliteMalloc()函数获得的内存中去，并且使用内部%转换扩展。
+** 
+** 这个函数用于打印信息到从sqliteMalloc()函数获得的内存中去，并且使用内部%转换扩展。
 */
 char *sqlite3VMPrintf(sqlite3 *db, const char *zFormat, va_list ap){
   char *z;

@@ -1,6 +1,6 @@
-﻿ /*
+﻿       /*
 ** 2003 September 6
-**
+**   
 ** The author disclaims copyright to this source code.  In place of
 ** a legal notice, here is a blessing:
 **
@@ -70,7 +70,7 @@ void sqlite3VdbeSetSql(Vdbe *p, const char *z, int n, int isPrepareV2){
 
 /*
 ** Return the SQL associated with a prepared statement返回与事先声明语句关联的 SQL
-返回结果集的列数
+     返回结果集中的列数
 */
 const char *sqlite3_sql(sqlite3_stmt *pStmt){
   Vdbe *p = (Vdbe *)pStmt;
@@ -579,8 +579,8 @@ int sqlite3VdbeAddOpList(Vdbe *p, int nOp, VdbeOpList const *aOp){
 ** This routine is useful when a large program is loaded from a
 ** static array using sqlite3VdbeAddOpList but we want to make a
 ** few minor changes to the program.
-为一个特定的指令改变操作数P1的值。当一个大的程序被从一个使用
-sqlite3VdbeAddOpList的静态数组加载时是非常有用的，但是我们想对这个程序做
+为一个特定的指令改变操作数P1的值。当一个大的程序被一个使用
+sqlite3VdbeAddOpList的静态数组加载时这是非常有用的，但是我们想对这个程序做
 一个细微的改变。
 */
 void sqlite3VdbeChangeP1(Vdbe *p, u32 addr, int val){
@@ -594,7 +594,7 @@ void sqlite3VdbeChangeP1(Vdbe *p, u32 addr, int val){
 ** Change the value of the P2 operand for a specific instruction.
 ** This routine is useful for setting a jump destination.
 为一个特定的指令改变操作数P2的值。
-用于设置跳转目标时这个例程非常有用。
+在用于设置跳转目标，时这个例程非常有用。
 */
 void sqlite3VdbeChangeP2(Vdbe *p, u32 addr, int val){
   assert( p!=0 );
@@ -630,7 +630,7 @@ void sqlite3VdbeChangeP5(Vdbe *p, u8 val){
 /*
 ** Change the P2 operand of instruction addr so that it points to
 ** the address of the next instruction to be coded.
-更改的P2操作数的指令地址，以便它指向下一条指令进行编码的地址。
+更改的P2操作数的指令地址，以便它指向下一条指令的地址编码，进行编码。
 */
 void sqlite3VdbeJumpHere(Vdbe *p, int addr){
   assert( addr>=0 || p->db->mallocFailed );
@@ -704,7 +704,7 @@ static void freeP4(sqlite3 *db, int p4type, void *p4){
 ** Free the space allocated for aOp and any p4 values allocated for the
 ** opcodes contained within. If aOp is not NULL it is assumed to contain 
 ** nOp entries. 
-免费为 aOp 分配空间和为任何内部的操作码分配 p4 的值。如果 aOp 不是 NULL 那么它被假定包含 nOp 条目。
+免费为 aOp 分配空间和为任何内部的操作码分配 p4 的值。如果 aOp 不是 NULL 那么则被假定包含为 nOp 条目。
 */
 static void vdbeFreeOpArray(sqlite3 *db, Op *aOp, int nOp){
   if( aOp ){
@@ -909,8 +909,8 @@ void sqlite3VdbeNoopComment(Vdbe *p, const char *zFormat, ...){
 ** if SQLITE_OMIT_TRACE is defined, the OP_Trace is omitted and we do need to
 ** check the value of p->nOp-1 before continuing.
 关于 #ifdef SQLITE_OMIT_TRACE： 通常情况下，它永远不会被调用，除非 p-> nOp > 0。这是因为缺乏
-SQLITE_OMIT_TRACE，OP_Trace 指令总是被插入sqlite3VdbeGet()一旦一个新的VDBE被创建。所以我们可以自由地将地址设置为 p-> nOp 1，
-而无须双重检查以确保其结果为非负值。但是如果定义了 SQLITE_OMIT_TRACE，则省略了 OP_Trace，我们需要在继续之前检查 p-> nOp 1 的值。
+SQLITE_OMIT_TRACE，OP_Trace 指令总是被插入sqlite3VdbeGet()，一旦一个新的VDBE被创建。我们就可以自由地将地址设置为 p-> nOp 1，
+而无须双重检查以确保其结果为非负值。但是如果定义了 SQLITE_OMIT_TRACE，则省略了 OP_Trace，那么我们需要在继续之前检查 p-> nOp 1 的值。
 */
 VdbeOp *sqlite3VdbeGetOp(Vdbe *p, int addr){
   /* C89 specifies that the constant "dummy" will be initialized to all
@@ -1994,7 +1994,7 @@ static int vdbeCommit(sqlite3 *db, Vdbe *p){
     ** but could happen. In this case abandon processing and return the error.
 		只有当所有数据库成功完成阶段1后才执行提交操作。如果BtreeCommitPhaseOne()
 		的一个调用失败，表明在删除或者截断一个日志文件的时候出现了IO错误。
-		这种情况虽然不太可能，但也有可能发生。在这种情况下，放弃处理并返回一个错误。
+		这种情况虽然不太可能，但也有可能发生。在这种情况下，放弃处理并返回错误。
     */
     for(i=0; rc==SQLITE_OK && i<db->nDb; i++){
       Btree *pBt = db->aDb[i].pBt;
@@ -2119,8 +2119,8 @@ static int vdbeCommit(sqlite3 *db, Vdbe *p){
     ** master journal file will be orphaned. But we cannot delete it,
     ** in case the master journal file name was written into the journal
     ** file before the failure occurred.
-		如果第一次调用sqlite3BtreeCommitPhaseOne()时出现错误，还有一次机会，
-		主日志文件将被孤立。我们不能删除它，万一在失败出现前主日志文件名被
+		如果第一次调用sqlite3BtreeCommitPhaseOne()时出现错误，则还有一次机会，
+		主日志文件将被孤立。我们不能删除它，以防在失败出现前主日志文件名被
 		写进了日志文件中。
     */
     for(i=0; rc==SQLITE_OK && i<db->nDb; i++){ 
@@ -2158,7 +2158,7 @@ static int vdbeCommit(sqlite3 *db, Vdbe *p){
 		所有的文件和目录已经被同步，因此接下来对sqlite3BtreeCommitPhaseTwo()的
 		调用就只是关闭文件，删除或截断日志。如果在执行这些操作的是时候出现了问题，
 		我们不用关心。事务的完整性已经有保证了，但是一些游离的“冷”日志可能会到处撒谎。
-		这时返回一个错误代码是无济于事的。
+		这时返回错误代码是无济于事的。
     */
     disable_simulated_io_errors();
     sqlite3BeginBenignMalloc();
@@ -2220,7 +2220,7 @@ static void checkActiveVdbeCnt(sqlite3 *db){
 	那么接下来声明事务将被回滚。如果是SAVEPOINT_RELEASE，那么声明事务将被提交。
 ** If an IO error occurs, an SQLITE_IOERR_XXX error code is returned. 
 ** Otherwise SQLITE_OK.
-	如果出现IO错误，就返回一个SQLITE_IOERR_XXX错误代码。否则返回SQLITE_OK.
+	如果出现IO错误，就返回SQLITE_IOERR_XXX错误代码。否则返回SQLITE_OK.
 */
 int sqlite3VdbeCloseStatement(Vdbe *p, int eOp){
   sqlite3 *const db = p->db;
@@ -2335,7 +2335,7 @@ int sqlite3VdbeHalt(Vdbe *p){
 
   /* 在方法中会包含处理逻辑用于判断一个语句或一个事务被虚拟机处理后返回是提交成功还是事务回滚。
    **如果一下四种任何一种错误发生的话（SQLITE_NOMEM，SQLITE_IOERR，SQLITE_FULL，SQLITE_INTERRUPT），那将会导
-  致内部缓存出现不一致的状态，那么我们需要回滚事务，如果没有完整的事务声明。
+  致内部缓存出现不一致的状态，如果没有完整的事务声明，那么我们需要回滚事务。
   This function contains the logic that determines if a statement or
   ** transaction will be committed or rolled back as a result of the
   ** execution of this virtual machine. 
@@ -2384,7 +2384,7 @@ int sqlite3VdbeHalt(Vdbe *p){
     isSpecialError = mrc==SQLITE_NOMEM || mrc==SQLITE_IOERR
                      || mrc==SQLITE_INTERRUPT || mrc==SQLITE_FULL;
     if( isSpecialError ){
-      /* 如果发生isSpecialError是True时，会分到更细的情况来处理。
+      /* 如果发生isSpecialError是True时，则会分到更细的情况来处理。
 	  当查询语句是只读的时候而且错误代码是SQLITE_INTERRUPT不需要回滚，因为没有对数据库有写操作。其他的情况会发生对数据库
 	  改变需要执行数据库事务回滚来达到数据库的一致性。即为写操作回滚到原来数据库一致的状态。
 	  **对于一个简单的读取数据的语句，更重要的是关心一个语句或者事务的回滚操作。如果错误发生在写日志或者一个数据文件做为
@@ -2479,7 +2479,7 @@ int sqlite3VdbeHalt(Vdbe *p){
       }
     }
   
-    /* 如果eStatementOp的值不等于0，那么对于一个声明事务要么提交，要们回滚事务，调用函数sqlite3VdbeCloseStatement(p,eOp)
+    /* 如果eStatementOp的值不等于0，那么对于一个声明事务要么提交，要么回滚事务，调用函数sqlite3VdbeCloseStatement(p,eOp)
 	来完成上述描述功能当p->iStatement 的值大于0会关闭当前的声明事务.其中形参eOp必须是SAVEPOINT_ROLLBACK或者
 	SAVEPOINT_RELEASE，不可以取其他的值。如果eOp取值为SAVEPOINT_ROLLBACK，当前的事务会回滚；如果eOp取值为SAVEPOINT_RELEASE
 	会提交当前的事务。如果执行的过程中出现了IO日常错误，形如SQLITE_IOERR_XXX的错误代码会返回给程序的调用，否则程序返回True
@@ -2781,7 +2781,7 @@ void sqlite3VdbeDelete(Vdbe *p){
   sqlite3VdbeDeleteObject(db, p);//释放资源
 }
 
-/*确保游标P已经准备好读或者写最近的定位到的行。如果遇到OOM错误或者I/O错误是返回错误代码，阻止我们定位
+/*确保游标P已经准备好读或者写的行是最近的定位。如果遇到OOM错误或者I/O错误是返回错误代码，阻止我们定位
 光标移动到正确的位置。如果说一个MoveTo指令在给定的光标之前出现，那么我们执行MoveTo指令。如果没有先出现
 p->deferredMoveto指令那么检查在当前游标下的行是否已经被删除了，如果当前行被删除了标记当前行为NULL，
 p->nullRow = 1。
@@ -3566,7 +3566,7 @@ void sqlite3VdbeSetChanges(sqlite3 *db, int nChange){
   db->nTotalChange += nChange;
 }
 
-/*设置一个标志在vdbe更新计数器当数据库结束或者被重置的时候。
+/*设置一个标志在vdbe来更新计数器的变化当数据库结束或者被重置的时候。
 ** Set a flag in the vdbe to update the change counter when it is finalised
 ** or reset.
 */
@@ -3593,7 +3593,7 @@ void sqlite3ExpirePreparedStatements(sqlite3 *db){
   }
 }
 
-/*移除数据库和Vdbe的连接关系。
+/*返回移除数据库和Vdbe的连接关系。
 ** Return the database associated with the Vdbe.
 */
 sqlite3 *sqlite3VdbeDb(Vdbe *v){

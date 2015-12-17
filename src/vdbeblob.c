@@ -13,7 +13,13 @@
 ** BLOB常常是数据库中用来存储二进制文件的字段类型
 ** BLOB是一个大文件，典型的BLOB是一张图片或一个声音文件，由于它们的尺寸，必须使用特殊的
 ** 方式来处理（例如：上传、下载或者存放到一个数据库）
-**
+** PS:blob类型知识的补充
+** BLOB数据类型是适合用于存储可变长度的二进制大对象数据以及可变长度的音频和视频数据。在
+** SQLite的BLOB类型中存储复杂的数据时，长度是不加限制的[2]。使用B-树索引来管理和组织属性数据，
+** 通过SQL语句到数据库相关数据中实现增、删、改、查的操作。SQLite不支持静态数据类型，而是使用列
+** 关系。当数据记录的字段内容插入到数据库中时，
+** SQLite将对该字段内容的类型做检查，若类型不能匹配到相关联的列，则SQLite会将该字段内容转换成列
+** 的类型。因此，数据库中BLOB数据类型的合理应用也直接影响存储效率和查询速度的提高。
 ** This file contains code used to implement incremental BLOB I/O.
 ** 这个文件包含代码用于实现增量BLOB I/O
 */
@@ -80,8 +86,8 @@ struct Incrblob {
 ** 或者 blob_reopen()函数立即返回SQLITE_ABORT。
 */
 static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
-  int rc;                         /* Error code */
-  char *zErr = 0;                 /* Error message */
+  int rc;                         /* Error code 错误代码 */
+  char *zErr = 0;                 /* Error message 错误信息*/
   Vdbe *v = (Vdbe *)p->pStmt;
 
   /* Set the value of the SQL statements only variable to integer iRow. 
@@ -90,18 +96,20 @@ static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
   ** 设置SQL语句的值，唯一的变量为整数iRow
   ** 这是直接完成的，而不是使用sqlite3_bind_int64()，以避免触发断言相关的互斥
   */
-  assert( v->aVar[0].flags&MEM_Int );
+  assert( v->aVar[0].flags&MEM_Int );//assert就表示断言，
+                                     //断言就是用于在代码中捕捉这些假设，可以将断言看作是异常处理的一种高级形式。
   v->aVar[0].u.i = iRow;
 
-  rc = sqlite3_step(p->pStmt);
+  rc = sqlite3_step(p->pStmt);       //sqlite3_step()表示如果一个模式出现错误，回调sqlite3reprepare()再试，
+                                     //再执行一次sqlite3reprepare()
   if( rc==SQLITE_ROW ){
     u32 type = v->apCsr[0]->aType[p->iCol];
-    if( type<12 ){
+    if( type<12 ){                 
       zErr = sqlite3MPrintf(p->db, "cannot open value of type %s",
           type==0?"null": type==7?"real": "integer"
       );
       rc = SQLITE_ERROR;
-      sqlite3_finalize(p->pStmt);
+      sqlite3_finalize(p->pStmt);    //sqlite3_finalize()表示被回调去删除一个已经准备好的语句。
       p->pStmt = 0;
     }else{
       p->iOffset = v->apCsr[0]->aOffset[p->iCol];
@@ -119,7 +127,7 @@ static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
     rc = sqlite3_finalize(p->pStmt);
     p->pStmt = 0;
     if( rc==SQLITE_OK ){
-      zErr = sqlite3MPrintf(p->db, "no such rowid: %lld", iRow);
+      zErr = sqlite3MPrintf(p->db, "no such rowid: %lld", iRow);//输出这行的信息
       rc = SQLITE_ERROR;
     }else{
       zErr = sqlite3MPrintf(p->db, "%s", sqlite3_errmsg(p->db));
@@ -134,7 +142,7 @@ static int blobSeekToRow(Incrblob *p, sqlite3_int64 iRow, char **pzErr){
 }
 
 /*
-** Open a blob handle.
+** Open a blob handle.表示打开一个blob类型的句柄(句柄表示一个32位的整数，它代表一个对象)
 */
 int sqlite3_blob_open(
   sqlite3* db,            /* The database connection 
@@ -177,7 +185,7 @@ int sqlite3_blob_open(
   ** transaction.
   ** 该sqlite3_blob_close()函数最终确定VDBE程序，该程序关闭B树光标(可能)提交事务
   */
-  static const VdbeOpList openBlob[] = {
+  static const VdbeOpList openBlob[] = {   //定义一个静态数组结构，对vdbe操作码的定义
     {OP_Transaction, 0, 0, 0},     /* 0: Start a transaction 开始一个事务*/
     {OP_VerifyCookie, 0, 0, 0},    /* 1: Check the schema cookie 检查模式的cookie*/
     {OP_TableLock, 0, 0, 0},       /* 2: Acquire a read or write lock 获取一个读或者写的加锁*/
@@ -217,9 +225,9 @@ int sqlite3_blob_open(
   if( !pParse ) goto blob_open_out;
 
   do {
-    memset(pParse, 0, sizeof(Parse));
+    memset(pParse, 0, sizeof(Parse));//给pParse分配sizeof(Parse)大小的空间
     pParse->db = db;
-    sqlite3DbFree(db, zErr);
+    sqlite3DbFree(db, zErr);  //释放数据库db的内存
     zErr = 0;
 
     sqlite3BtreeEnterAll(db);
@@ -278,7 +286,7 @@ int sqlite3_blob_open(
         ** is not necessary to check if it is part of a parent key, as parent
         ** key columns must be indexed. The check below will pick up this 
         ** case. 
-    ** 检查列不是一个FK子键定义的一部分,
+        ** 检查列不是一个FK子键定义的一部分,
         ** 它没有必要检查,如果是父母key的一部分
         ** 作为父母键一定必须被索引，下面的检查将会拿起这个案例
     */
@@ -310,7 +318,7 @@ int sqlite3_blob_open(
       }
     }
 
-    pBlob->pStmt = (sqlite3_stmt *)sqlite3VdbeCreate(db);
+    pBlob->pStmt = (sqlite3_stmt *)sqlite3VdbeCreate(db); //数据库引擎的创建
     assert( pBlob->pStmt || db->mallocFailed );
     if( pBlob->pStmt ){
       Vdbe *v = (Vdbe *)pBlob->pStmt;
@@ -341,7 +349,7 @@ int sqlite3_blob_open(
         配置操作码TableLock指令
       */
 #ifdef SQLITE_OMIT_SHARED_CACHE
-      sqlite3VdbeChangeToNoop(v, 2);
+      sqlite3VdbeChangeToNoop(v, 2);//改变操作码
 #else
       sqlite3VdbeChangeP1(v, 2, iDb);
       sqlite3VdbeChangeP2(v, 2, pTab->tnum);
@@ -363,7 +371,7 @@ int sqlite3_blob_open(
       ** always return an SQL NULL. This is useful because it means
       ** we can invoke OP_Column to fill in the vdbe cursors type 
       ** and offset cache without causing any IO.
-    ** 配置列数,配置这个游标去确认这个表有至少一列确实这样做了。
+      ** 配置列数,配置这个游标去确认这个表有至少一列确实这样做了。
       ** 一个OP_Column检索这个虚构列将始终返回SQL NULL
       ** 因为这意味着我们可以调用OP_Column填写的VDBE游标类型和偏移的缓存，
       ** 而不会造成任何IO这是非常有用
@@ -374,7 +382,7 @@ int sqlite3_blob_open(
         pParse->nVar = 1;
         pParse->nMem = 1;
         pParse->nTab = 1;
-        sqlite3VdbeMakeReady(v, pParse);
+        sqlite3VdbeMakeReady(v, pParse);  //为创建vdbe做准备
       }
     }
    

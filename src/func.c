@@ -1007,6 +1007,7 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 ** The hex() function.  Interpret the argument as a blob.  Return
 ** a hexadecimal rendering as text.
 hex()函数，解释的参数作为BLOB。返回十六进制显示为文本。
+hex()函数，解释的参数作为BLOB(binary large object二进制大对象）。返回呈现一个十六进制文本。
 */
 static void hexFunc(//将其参数hex( )函数作为BLOB 并返回一个字符串, 它呈现的内容是大写十六进制blob
   sqlite3_context *context,
@@ -1036,6 +1037,7 @@ static void hexFunc(//将其参数hex( )函数作为BLOB 并返回一个字符�
 /*
 ** The zeroblob(N) function returns a zero-filled blob of size N bytes.
 zeroblob(N)函数返回一个N个字节大小的zero-filled blob。
+zeroblob(N)函数返回一个N个字节大小的被零填充的blob。
 */
 static void zeroblobFunc(//zeroblob(n )函数返回一个BLOB n字节的0x00 组成的SQLite这些zeroblobs 
 //非常高效地管理zeroblobs可用于编写的BLOB 的更高版本预留空间使用增量BLOB I/O 
@@ -1066,7 +1068,7 @@ static void zeroblobFunc(//zeroblob(n )函数返回一个BLOB n字节的0x00 组
 replace()函数。三个参数都是字符串:称之为A,B,c .结果也是字符串,这个字符串来自A，通过取代每一个出现B和C得来。
 必须精确匹配。排序序列不被使用。
 */
-static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串通过字符串替换形成的字符串
+static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串通过字符串替换形成的字符串。函数所返回一个字符串，该字符串是通过字符串替换形成的字符串
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -1162,6 +1164,8 @@ static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串
 ** The userdata is 0x1 for left trim, 0x2 for right trim, 0x3 for both.
 实现TRIM(), LTRIM(), and RTRIM()函数。用户数据是0x1代表左侧空格符移除，
 0x2代表右侧空格符移除即尾部的空格符清除，0x3代表两侧空格符都移除。
+实现TRIM(), LTRIM(), and RTRIM()函数。用户数据是0x1代表左对齐，
+0x2代表右对齐，0x3代表两端对齐。
 */
 static void trimFunc(//trim() 函数所返回一个字符串
   sqlite3_context *context,
@@ -1249,6 +1253,7 @@ static void trimFunc(//trim() 函数所返回一个字符串
 ** when SQLite is built.
 这个函数是省略了默认SQLite。它
 只有SQLITE_SOUNDEX编译时选项时该函数才可用
+SQLite默认省略这个函数。当构建SQLite时，如果SQLITE_SOUNDEX 编译时选择使用，这个函数才可用。
 */
 #ifdef SQLITE_SOUNDEX
 /*
@@ -1301,7 +1306,9 @@ static void soundexFunc(//	计算字符串X的soundex编码。
     sqlite3_result_text(context, zResult, 4, SQLITE_TRANSIENT);
   }else{
     /* IMP: R-64894-50321 The string "?000" is returned if the argument
-    ** is NULL or contains no ASCII alphabetic characters.参数为NULL或不包含ASCII字母字符时返回字符串"?000". */
+    ** is NULL or contains no ASCII alphabetic characters.参数为NULL或不包含ASCII字母字符时返回字符串"?000".
+        如果参数是NULL或者不包含ASCII字母字符，那么返回字符串"？000" 。     
+	  */
     sqlite3_result_text(context, "?000", 4, SQLITE_STATIC);
   }
 }

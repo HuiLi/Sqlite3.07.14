@@ -137,7 +137,7 @@ static SQLITE_WSD struct Mem3Global {
   ** 可用内存. nPool配置的可用内存大小为数组(in Mem3Blocks)所指的小于2的aPool。
   */
   u32 nPool;   //内存变量数组分配的空间大小
-  Mem3Block *aPool;//指向Mem3Block类型变量的指针，用于指向nPool
+  Mem3Block *aPool;//指向Mem3Block类型变量的指针
 
   /*
   ** True if we are evaluating an out-of-memory callback.  
@@ -170,7 +170,7 @@ static SQLITE_WSD struct Mem3Global {
   ** 如果没有主块，则iMaster为0.主块既不在aiHash[]，也不在aiSmall[]。
   */
   u32 iMaster;  //新分配的chunk的索引号
-  u32 szMaster;  //当前chunk的大小，不构成双链表
+  u32 szMaster;  //当前chunk的大小(block的数目)，不构成双链表
 
   /*
   ** Array of lists of free blocks according to the block size 
@@ -324,9 +324,9 @@ static void *memsys3Checkout(u32 i, u32 nBlock){
   assert( mem3.aPool[i-1].u.hdr.size4x/4==nBlock ); 
   assert( mem3.aPool[i+nBlock-1].u.hdr.prevSize==nBlock );
   x = mem3.aPool[i-1].u.hdr.size4x;
-  mem3.aPool[i-1].u.hdr.size4x = nBlock*4 | 1 | (x&2);  //调整块大小
+  mem3.aPool[i-1].u.hdr.size4x = nBlock*4 | 1 | (x&2);  //调整块大小，并置当前chunk为已使用
   mem3.aPool[i+nBlock-1].u.hdr.prevSize = nBlock;
-  mem3.aPool[i+nBlock-1].u.hdr.size4x |= 2;
+  mem3.aPool[i+nBlock-1].u.hdr.size4x |= 2;  //置前一chunk为已使用
   return &mem3.aPool[i];    //返回一个指向用户使用该块处的指针
 }
 
@@ -338,7 +338,7 @@ static void *memsys3Checkout(u32 i, u32 nBlock){
 ** 从mem3.iMaster的尾端取一块空闲的内存。返回指向新分配器的指针。
 ** 或者，当主块不够大时，返回0。
 */      
-//从iMaster开始的大chunk上切下nBlock的大小供用户使用，返回该空间的地址。
+//从iMaster开始的大chunk上切下nBlock的chunk供用户使用，返回该空间的地址。
 static void *memsys3FromMaster(u32 nBlock){
   assert( sqlite3_mutex_held(mem3.mutex) ); 
   assert( mem3.szMaster>=nBlock );  //主要块的大小若小于nBlock，则终止程序
@@ -355,7 +355,7 @@ static void *memsys3FromMaster(u32 nBlock){
     newi = mem3.iMaster + mem3.szMaster - nBlock; //将多出来的空间赋给newi
     assert( newi > mem3.iMaster+1 ); //除去nBlock大小外的空间小于等于mem3.iMaster，则终止
     mem3.aPool[mem3.iMaster+mem3.szMaster-1].u.hdr.prevSize = nBlock;//分裂出的chunk
-    mem3.aPool[mem3.iMaster+mem3.szMaster-1].u.hdr.size4x |= 2;
+    mem3.aPool[mem3.iMaster+mem3.szMaster-1].u.hdr.size4x |= 2;  //置前一块为已使用
     mem3.aPool[newi-1].u.hdr.size4x = nBlock*4 + 1;
     mem3.szMaster -= nBlock;       //当前chunk大小为nBlock
     mem3.aPool[newi-1].u.hdr.prevSize = mem3.szMaster; //剩余部分的前一块大小也即为nBlock

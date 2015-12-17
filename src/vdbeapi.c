@@ -144,7 +144,7 @@ int sqlite3_clear_bindings(sqlite3_stmt *pStmt){
 ** structure.
 ** 下面的程序是从Mem和sqlite_value两个结构体中提取信息
 */
-const void *sqlite3_value_blob(sqlite3_value *pVal){//sqlite3_value的结构体就是Mem
+const void *sqlite3_value_blob(sqlite3_value *pVal){//sqlite3_value的结构体就是Mem,该函数用于提取二进制数据blob的值。
   Mem *p = (Mem*)pVal;
   if( p->flags & (MEM_Blob|MEM_Str) ){
     sqlite3VdbeMemExpandBlob(p);//转化成普通的blob类型数据存储在动态分布的空间里
@@ -155,36 +155,36 @@ const void *sqlite3_value_blob(sqlite3_value *pVal){//sqlite3_value的结构体�
     return sqlite3_value_text(pVal);
   }
 }
-int sqlite3_value_bytes(sqlite3_value *pVal){
+int sqlite3_value_bytes(sqlite3_value *pVal){//该函数用于获取数据的字节长度
   return sqlite3ValueBytes(pVal, SQLITE_UTF8);
 }
-int sqlite3_value_bytes16(sqlite3_value *pVal){
+int sqlite3_value_bytes16(sqlite3_value *pVal){//该函数获取utf-16编码的字符串长度
   return sqlite3ValueBytes(pVal, SQLITE_UTF16NATIVE);
 }
-double sqlite3_value_double(sqlite3_value *pVal){
+double sqlite3_value_double(sqlite3_value *pVal){//该函数获取double浮点数
   return sqlite3VdbeRealValue((Mem*)pVal);
 }
-int sqlite3_value_int(sqlite3_value *pVal){
+int sqlite3_value_int(sqlite3_value *pVal){//该函数获取Int 整数。
   return (int)sqlite3VdbeIntValue((Mem*)pVal);
 }
-sqlite_int64 sqlite3_value_int64(sqlite3_value *pVal){
+sqlite_int64 sqlite3_value_int64(sqlite3_value *pVal){//该函数获取具有64位长度的整数
   return sqlite3VdbeIntValue((Mem*)pVal);
 }
-const unsigned char *sqlite3_value_text(sqlite3_value *pVal){
+const unsigned char *sqlite3_value_text(sqlite3_value *pVal){//该函数获取一段使用utf-8编码的字符串
   return (const unsigned char *)sqlite3ValueText(pVal, SQLITE_UTF8);
 }
 #ifndef SQLITE_OMIT_UTF16
-const void *sqlite3_value_text16(sqlite3_value* pVal){
+const void *sqlite3_value_text16(sqlite3_value* pVal){//该函数获取一段使用utf-16编码的字符串
   return sqlite3ValueText(pVal, SQLITE_UTF16NATIVE);
 }
-const void *sqlite3_value_text16be(sqlite3_value *pVal){
+const void *sqlite3_value_text16be(sqlite3_value *pVal){//该函数获取一段使用utf-16be编码的字符串
   return sqlite3ValueText(pVal, SQLITE_UTF16BE);
 }
-const void *sqlite3_value_text16le(sqlite3_value *pVal){
+const void *sqlite3_value_text16le(sqlite3_value *pVal){//该函数获取一段使用utf-16le编码的字符串
   return sqlite3ValueText(pVal, SQLITE_UTF16LE);
 }
 #endif /* SQLITE_OMIT_UTF16 */
-int sqlite3_value_type(sqlite3_value* pVal){
+int sqlite3_value_type(sqlite3_value* pVal){//该函数获取sqlite3_value的数据类型,比如用户自定义的回调函数的第二个参数的数据类型
   return pVal->type;
 }
 
@@ -209,6 +209,7 @@ static void setResultStrOrError(
     sqlite3_result_error_toobig(pCtx);
   }
 }
+//该函数表示从用户自定义的应用程序中返回blob的内容，由第二个参数指出，第三个参数n为字长。
 void sqlite3_result_blob(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -219,10 +220,12 @@ void sqlite3_result_blob(
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   setResultStrOrError(pCtx, z, n, 0, xDel);
 }
+//该应用程序定义函数的返回值是在第二个参数中给出的浮点型的值
 void sqlite3_result_double(sqlite3_context *pCtx, double rVal){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetDouble(&pCtx->s, rVal);
 }
+//该函数返回使用utf-8编码的错误
 void sqlite3_result_error(sqlite3_context *pCtx, const char *z, int n){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex));
   pCtx->isError = SQLITE_ERROR;
@@ -230,24 +233,29 @@ void sqlite3_result_error(sqlite3_context *pCtx, const char *z, int n){
 }
 //const void *z 定义z指针，这种定义方式表示z可以指向任意类型，但是它只能指向常量
 #ifndef SQLITE_OMIT_UTF16
+//该函数返回使用utf-16编码的错误
 void sqlite3_result_error16(sqlite3_context *pCtx, const void *z, int n){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   pCtx->isError = SQLITE_ERROR;
   sqlite3VdbeMemSetStr(&pCtx->s, z, n, SQLITE_UTF16NATIVE, SQLITE_TRANSIENT);
 }
+//该应用程序定义函数的返回值是在第二个参数中给出的32位符号整数的值
 #endif
 void sqlite3_result_int(sqlite3_context *pCtx, int iVal){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetInt64(&pCtx->s, (i64)iVal);
 }
+//该应用程序定义函数的返回值是在第二个参数中给出的64位符号整数的值
 void sqlite3_result_int64(sqlite3_context *pCtx, i64 iVal){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetInt64(&pCtx->s, iVal);
 }
+//该函数返回用户自定义的应用程序是空的值
 void sqlite3_result_null(sqlite3_context *pCtx){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetNull(&pCtx->s);
 }
+//该函数从用户自定义的的应用程序中返回一个使用utf-8编码的text字符串
 void sqlite3_result_text(
   sqlite3_context *pCtx, 
   const char *z, //const void *z 定义z指针，这种定义方式表示z可以指向任意类型，但是它只能指向常量
@@ -258,6 +266,7 @@ void sqlite3_result_text(
   setResultStrOrError(pCtx, z, n, SQLITE_UTF8, xDel);
 }
 #ifndef SQLITE_OMIT_UTF16
+//该函数从用户自定义的的应用程序中返回一个使用utf-16native byte order编码的text字符串
 void sqlite3_result_text16(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -267,6 +276,7 @@ void sqlite3_result_text16(
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   setResultStrOrError(pCtx, z, n, SQLITE_UTF16NATIVE, xDel);
 }
+//该函数从用户自定义的的应用程序中返回一个使用 UTF-16 little endian编码的text字符串
 void sqlite3_result_text16be(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -276,6 +286,7 @@ void sqlite3_result_text16be(
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   setResultStrOrError(pCtx, z, n, SQLITE_UTF16BE, xDel);
 }
+//该函数从用户自定义的的应用程序中返回一个使用 UTF-16 big endian编码的text字符串
 void sqlite3_result_text16le(
   sqlite3_context *pCtx, 
   const void *z, 
@@ -286,14 +297,17 @@ void sqlite3_result_text16le(
   setResultStrOrError(pCtx, z, n, SQLITE_UTF16LE, xDel);
 }
 #endif /* SQLITE_OMIT_UTF16 */
+//该函数设置应用程序定义的函数返回对第二个参数指定的不受保护的sqlite3_value对象的copy
 void sqlite3_result_value(sqlite3_context *pCtx, sqlite3_value *pValue){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemCopy(&pCtx->s, pValue);
 }
+//该函数获得指定大小的全零block数据。
 void sqlite3_result_zeroblob(sqlite3_context *pCtx, int n){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetZeroBlob(&pCtx->s, n);
 }
+//该函数设置使用的编码错误
 void sqlite3_result_error_code(sqlite3_context *pCtx, int errCode){
   pCtx->isError = errCode;
   if( pCtx->s.flags & MEM_Null ){
@@ -832,7 +846,7 @@ static void columnMallocFailure(sqlite3_stmt *pStmt)
 ** in the result set.
 ** 下面程序用来访问当前行的结果集。
 */
-const void *sqlite3_column_blob(sqlite3_stmt *pStmt, int i){
+const void *sqlite3_column_blob(sqlite3_stmt *pStmt, int i){//该函数用于访问当前行的结果集，即blob数据。
   const void *val;
   val = sqlite3_value_blob( columnMem(pStmt,i) );//从Mem和sqlite_value两个结构体中提取信息
   /* Even though there is no encoding conversion, value_blob() might
@@ -843,32 +857,32 @@ const void *sqlite3_column_blob(sqlite3_stmt *pStmt, int i){
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_bytes(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte）
+int sqlite3_column_bytes(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte）该函数用来返回 UTF-8 编码的BLOBs列的字节数或者TEXT字符串的字节数。
   int val = sqlite3_value_bytes( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_bytes16(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte16）
+int sqlite3_column_bytes16(sqlite3_stmt *pStmt, int i){//获取每一列数据值（byte16） 该函数用于返回BLOBs列的字节数或者TEXT字符串的字节数，但是对于TEXT字符串则按 UTF-16 的编码来计算。
   int val = sqlite3_value_bytes16( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-double sqlite3_column_double(sqlite3_stmt *pStmt, int i){//获取每一列数据值（double型）
+double sqlite3_column_double(sqlite3_stmt *pStmt, int i){//获取每一列数据值（double型）该函数要求返回一个浮点数。
   double val = sqlite3_value_double( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-int sqlite3_column_int(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int类型）
+int sqlite3_column_int(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int类型）该函数要求以本地主机的整数格式返回一个整数值。
   int val = sqlite3_value_int( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-sqlite_int64 sqlite3_column_int64(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int64 8位有符号整型）
+sqlite_int64 sqlite3_column_int64(sqlite3_stmt *pStmt, int i){//获取每一列数据值（int64 8位有符号整型）该函数要求返回一个64位的整数
   sqlite_int64 val = sqlite3_value_int64( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
 }
-const unsigned char *sqlite3_column_text(sqlite3_stmt *pStmt, int i){//获取每一列数据值（文本数据text）
+const unsigned char *sqlite3_column_text(sqlite3_stmt *pStmt, int i){//获取每一列数据值（文本数据text）返回 UTF-8 编码的 TEXT 数据
   const unsigned char *val = sqlite3_value_text( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return val;
@@ -889,7 +903,7 @@ const void *sqlite3_column_text16(sqlite3_stmt *pStmt, int i){
   return val;
 }
 #endif /* SQLITE_OMIT_UTF16 */
-int sqlite3_column_type(sqlite3_stmt *pStmt, int i){
+int sqlite3_column_type(sqlite3_stmt *pStmt, int i){// 函数返回第N列的值的数据类型，其中，具体返回值为SQLITE_INTEGER为 1，SQLITE_FLOAT为 2，SQLITE_TEXT为 3，SQLITE_BLOB为4，SQLITE_NULL为5。
   int iType = sqlite3_value_type( columnMem(pStmt,i) );
   columnMallocFailure(pStmt);
   return iType;
@@ -990,11 +1004,11 @@ const void *sqlite3_column_name16(sqlite3_stmt *pStmt, int N){
 ** of the result set of SQL statement pStmt.
 ** 返回第i列pStmt SQL语句执行的结果集的列声明类型。（如果是可用的）
 */
-const char *sqlite3_column_decltype(sqlite3_stmt *pStmt, int N){
+const char *sqlite3_column_decltype(sqlite3_stmt *pStmt, int N){//返回该列在 CREATE TABLE 语句中声明的类型. 它可以用在当返回类型是空字符串的时候
   return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, COLNAME_DECLTYPE);
 }
 #ifndef SQLITE_OMIT_UTF16
-const void *sqlite3_column_decltype16(sqlite3_stmt *pStmt, int N){
+const void *sqlite3_column_decltype16(sqlite3_stmt *pStmt, int N){// 如果是可用的,则返回第i列pStmt SQL语句执行的结果集的列声明类型.
   return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text16, COLNAME_DECLTYPE);
 }
 #endif /* SQLITE_OMIT_UTF16 */
