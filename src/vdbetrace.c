@@ -25,7 +25,7 @@
 ** bytes in this text up to but excluding the first character in 此文本中字节最多，但是排除了在主机参数中的第一个字符。如果文本没有包含主机参数，返回文本中的总字节数。
 ** a host parameter.  If the text contains no host parameters, return
 ** the total number of bytes in the text.
-
+这个用于统计SQL文本中的字符数，用字节表示。如果文本中含有通配符，则不统计在内; 如果不含有，则全部统计。其中参数zSql表示以0为结尾的一串uft-8 SQL text。参数pnToken是表示标记参数的长度。
 */
 static int findNextHostParameter(const char *zSql, int *pnToken){
   int tokenType;
@@ -64,6 +64,8 @@ static int findNextHostParameter(const char *zSql, int *pnToken){
 ** statement for the corresponding OP_Variable opcode.  Once the host
 ** parameter index is known, locate the value in p->aVar[].  Then render 然后传递该值作为一个文字取代主机参数值。
 ** the value as a literal in place of the host parameter name.
+这个函数的作用是向SQL语句中添加一些通配符。该函数最终返回一个char类型的指针，该指针在内存中指向一个“null”结尾的数组。其中，函数参数为p为一个vdbe指针, zRawSql表示SQL语句。在该部分，
+若sqlite3.vdbeExecCnt 的值等于1，则它返回的字符串包含SQL语句内容，并且在语句中添加了一些通配符；若sqlite3.vdbeExecCnt的值大于1，则返回的字符串中每一行都将加上一个前缀”--“。
 */
 char *sqlite3VdbeExpandSql(
   Vdbe *p,                 /* The prepared statement being evaluated */ //被估计的准备声明
@@ -195,6 +197,7 @@ static int endsWithNL(Explain *p){
     
 /*
 ** Append text to the indentation
+使用这个函数的目的主要是针对递归的结构，解释过程中会交错输出数据， 添加文本有力于递归数据的理解
 */
 void sqlite3ExplainPrintf(Vdbe *pVdbe, const char *zFormat, ...){
   Explain *p;
@@ -224,6 +227,7 @@ void sqlite3ExplainNL(Vdbe *pVdbe){
 /*
 ** Push a new indentation level.  Subsequent lines will be indented
 ** so that they begin at the current cursor position. 推一个新的缩进水平。随后的行将是被缩进以便于他们在光标位置的起点。
+ 将待解释的结构体入栈
 */
 void sqlite3ExplainPush(Vdbe *pVdbe){
   Explain *p;
@@ -245,6 +249,7 @@ void sqlite3ExplainPush(Vdbe *pVdbe){
 
 /*
 ** Pop the indentation stack by one level. 通过一个层次，出缩进栈
+用下划线记录当前的索引位置，便于确定开始位置出栈
 */
 void sqlite3ExplainPop(Vdbe *p){
   if( p && p->pExplain ) p->pExplain->nIndent--;
@@ -252,6 +257,7 @@ void sqlite3ExplainPop(Vdbe *p){
 
 /*
 ** Free the indentation structure 释放缩进结构。
+ 释放结构体
 */
 void sqlite3ExplainFinish(Vdbe *pVdbe){
   if( pVdbe && pVdbe->pExplain ){
