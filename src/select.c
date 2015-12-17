@@ -3970,20 +3970,23 @@ static u8 minMaxQuery(Select *p){
 			  if( pTab==0 ) return WRC_Abort;//如果分配出错，则终止程序
 			  pTab->nRef = 1;//指向表pTab的指针数目置零
 			  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//从内存获取相关信息打印出来赋给pTab名称
-			  //遍历，查找优先的select
-			  while( pSel->pPrior ){ pSel = pSel->pPrior; }//获取优先select语句
-			  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//在表达式列表中查找列
-			  pTab->iPKey = -1;//置iPKey=-1，不用它做主键
-			  pTab->nRowEst = 1000000;//设置表的行数
-			  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表的标记变量，二进制特定位上的无条件赋值
+			  //遍历，查找优先的select赋给pSel
+			  while( pSel->pPrior ){ //当pSel复合SELECT语句中有较优先的Select语句时
+				  pSel = pSel->pPrior; //将较优先的Select语句赋给pSel
+			  }
+			  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//在表达式列表中计算一个合适的列名
+			  pTab->iPKey = -1;//将pTab->iPKey的值置为负，不用它做主键
+			  pTab->nRowEst = 1000000;//将pTab的预算行数设为1000000
+			  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表需要屏蔽的TF_值，二进制特定位上的无条件赋值
 			#endif
 		}else{
-		  /* An ordinary table or view name in the FROM clause *//*FROM语句中常规的表或视图名字*/
-		  assert( pFrom->pTab==0 );//异常处理，加入断点
+		  /* An ordinary table or view name in the FROM clause */
+		  /*FROM语句中常规的表或视图名字*/
+		  assert( pFrom->pTab==0 );//异常处理，pFrom中对应zName的SQL表是否存在，加入断言
 		  pFrom->pTab = pTab = 
-			sqlite3LocateTable(pParse,0,pFrom->zName,pFrom->zDatabase);//由语法解析，数据库连接，数据库名字定位所寻找的表
-		  if( pTab==0 ) return WRC_Abort;//不存在该表则终止
-		  pTab->nRef++;//自加
+			sqlite3LocateTable(pParse,0,pFrom->zName,pFrom->zDatabase);//由语法解析，定位描述表pFrom的数据库内存结构
+		  if( pTab==0 ) return WRC_Abort;//内存中未找到该表则终止程序
+		  pTab->nRef++;//指向该表的指针数目+1
 	#if !defined(SQLITE_OMIT_VIEW) || !defined (SQLITE_OMIT_VIRTUALTABLE)
 		  if( pTab->pSelect || IsVirtual(pTab) ){//若表中SELECT非空或pTab是虚表
 			/* We reach here if the named table is a really a view *//*到达这一步，如果，说明这个表是一个真正的视图*/
