@@ -4356,23 +4356,23 @@ int sqlite3BtreeSavepoint(Btree *p, int op, int iSavepoint){    //是释放还�
 ** on pCur to initialize the memory space prior to invoking this routine.
 */
 /*
-为BTree创建一个新的游标，B树的根在页iTable上。
-如果请求一个只读游标，数据库上至少有一个只读事务打开。
-如果被请求的是写游标，必须有一打开的写事务。
-如wrFlag== 0，则游标仅能用于读取。
-如wrFlag== 1，则游标可用于读或者用于写。
-1：wrFlag==1游标必须已经打开。
-2：共享相同的页缓存， 不是READ_UNCOMMITTED状态，wrFlag==0 时，
-游标可能不是打开状态。
-3：数据库必须是可写的（而不是只读介质）
-4：必须有一个活动的事务。
-假设在调用这个程序之前，sqlite3BtreeCursorZero（）被调用，
-用pCur初始化内存空间。
+为BTree创建一个新的游标,B树的根在页iTable上.
+如果请求一个只读游标,数据库上至少有一个只读事务打开.
+如果被请求的是写游标,必须有一打开的写事务.
+如wrFlag== 0,则游标仅能用于读取.
+如wrFlag== 1,则游标可用于读或者用于写.
+1：wrFlag==1游标必须已经打开.
+2：共享相同的页缓存, 不是READ_UNCOMMITTED状态,wrFlag==0 时,
+游标可能不是打开状态.
+3：数据库必须是可写的(而不是只读介质)
+4：必须有一个活动的事务.
+假设在调用这个程序之前,sqlite3BtreeCursorZero()被调用,
+用pCur初始化内存空间.
 */
 static int btreeCursor(
   Btree *p,                              /* The btree */                                  //p为B树
   int iTable,                            /* Root page of table to open */      //开放的表的根页
-  int wrFlag                           /* 1 to write. 0 read-only */              //wrFlag为1表示写，0表示只读
+  int wrFlag                           /* 1 to write. 0 read-only */              //wrFlag为1表示写,0表示只读
   struct KeyInfo *pKeyInfo,              /* First arg to comparison function */     //比较函数的第一个参数
   BtCursor *pCur                         /* Space for new cursor */        //新游标空间
 ){
@@ -4385,18 +4385,22 @@ static int btreeCursor(
   ** b-tree database, the connection is holding the required table locks, 
   ** and that no other connection has any open cursor that conflicts with 
   ** this lock.  
-  ** 下面的断言函数语句验证是不是一个可共享的B树数据库，验证连接持有需要的表锁并且
-  ** 没有其他连接与该锁冲突的任何开放的游标。
+  ** 下面的断言函数语句验证是不是一个可共享的B树数据库,验证连接持有需要的表锁并且
+  ** 没有其他连接与该锁冲突的任何开放的游标.
   */
-	/*下面的语句验证，如果这是一个可共享
-B树数据库，连接持有所需的表锁，
+	/*下面的语句验证,如果这是一个可共享
+B树数据库,连接持有所需的表锁,
 并没有其他连接具有任何打开的游标与此锁冲突
+ */
+ /* 【赵大成】
+ ** 以下断言验证,如果这是一个可共享的b -树数据库,连接所需的表锁,
+ ** 而且没有其他连接锁打开游标,则与此相矛盾
  */
 
   assert( hasSharedCacheTableLock(p, iTable, pKeyInfo!=0, wrFlag+1) );
   assert( wrFlag==0 || !hasReadConflicts(p, iTable) );
 
-  /* Assert that the caller has opened the required transaction. */  //断言调用者以开放了所需的事务。
+  /* Assert that the caller has opened the required transaction. */  //断言调用者以开放了所需的事务.
   assert( p->inTrans>TRANS_NONE );
   assert( wrFlag==0 || p->inTrans==TRANS_WRITE );
   assert( pBt->pPage1 && pBt->pPage1->aData );
@@ -4411,7 +4415,8 @@ B树数据库，连接持有所需的表锁，
 
   /* Now that no other errors can occur, finish filling in the BtCursor
   ** variables and link the cursor into the BtShared list.  
-  ** 现在没有其他错误发生,完成给BtCursor变量赋值和链接游标到BtShared列表。*/
+  ** 现在没有其他错误发生,完成给BtCursor变量赋值和链接游标到BtShared列表.*/
+  /* 【赵大成】现在没有其他错误可以发生,完成填写BtCursor游标变量和链接到BtShared列表。*/
   pCur->pgnoRoot = (Pgno)iTable;
   pCur->iPage = -1;
   pCur->pKeyInfo = pKeyInfo;
@@ -4422,19 +4427,19 @@ B树数据库，连接持有所需的表锁，
   if( pCur->pNext ){
     pCur->pNext->pPrev = pCur;
   }
-  pBt->pCursor = pCur;
+  pBt->pCursor = pCur;		/* 【赵大成】填写BtCursor游标变量*/
   pCur->eState = CURSOR_INVALID;
   pCur->cachedRowid = 0;
   return SQLITE_OK;
 }
 /*
-创建一个指向特定B-tree的游标。游标可以是读游标，也可以是写游标，但是读游标和写游标不能同时在
-同一个B-tree中存在。
+创建一个指向特定B-tree的游标.游标可以是读游标,也可以是写游标,但是读游标和写游标不能同时在
+同一个B-tree中存在.
 */
 int sqlite3BtreeCursor(
   Btree *p,                                   /* The btree */                                        //p为B树
   int iTable,                                 /* Root page of table to open */            //开放的表的根页
-  int wrFlag,                                 /* 1 to write. 0 read-only */                  //wrFlag为1表示写，0表示只读
+  int wrFlag,                                 /* 1 to write. 0 read-only */                  //wrFlag为1表示写,0表示只读
   struct KeyInfo *pKeyInfo,                   /* First arg to xCompare() */   //比较函数的第一个参数
   BtCursor *pCur                              /* Write new cursor here */            //写新的游标到这里
 ){
@@ -4452,13 +4457,13 @@ int sqlite3BtreeCursor(
 ** sufficient storage to hold a cursor.  The BtCursor object is opaque
 ** to users so they cannot do the sizeof() themselves - they must call
 ** this routine.
-** 这个接口是为了游标的用户可以预先分配足够存储空间来存放一个游标。
-** BtCursor对象对用户不透明,所以他们不能做sizeof()—必须调用这个函数。
+** 这个接口是为了游标的用户可以预先分配足够存储空间来存放一个游标.
+** BtCursor对象对用户不透明,所以他们不能做sizeof()—必须调用这个函数.
 */
 	/*
-	**返回一个BtCursor对象的大小(以字节计)。需要该接口使游标可以预先分配	
-	**足够的存储空间。该BtCursor对象对用户是不透明的
-	**对用户，他们不能用sizeof（）- 他们必须调用此程序。
+	**返回一个BtCursor对象的大小(以字节计).需要该接口使游标可以预先分配	
+	**足够的存储空间.该BtCursor对象对用户是不透明的
+	**对用户,他们不能用sizeof()- 他们必须调用此程序.
 	*/
 int sqlite3BtreeCursorSize(void){  //返回BtCursor对象的字节大小
   return ROUND8(sizeof(BtCursor));
@@ -4473,9 +4478,9 @@ int sqlite3BtreeCursorSize(void){  //返回BtCursor对象的字节大小
 ** of run-time by skipping the initialization of those elements.
 */
 /*
-** 初始化将被转换成一个BtCursor对象的存储器。
-** 这里一个简单方法是用memset()将整个对象置为零。但事实证明，apPage[]和aiIdx[]数组不需要
-** 进行调零，他们比较大，所以我们通过跳过这些元素的初始化，可以节省很多的运行时间。
+** 初始化将被转换成一个BtCursor对象的存储器.
+** 这里一个简单方法是用memset()将整个对象置为零.但事实证明,apPage[]和aiIdx[]数组不需要
+** 进行调零,他们比较大,所以我们通过跳过这些元素的初始化,可以节省很多的运行时间.
 */
 void sqlite3BtreeCursorZero(BtCursor *p){  //初始化将被转换成一个BtCursor对象的存储器
   memset(p, 0, offsetof(BtCursor, iPage)); //用memset()将整个对象置为零
@@ -4494,13 +4499,13 @@ void sqlite3BtreeCursorZero(BtCursor *p){  //初始化将被转换成一个BtCur
 ** or negative rowids are very uncommon so this should not be a problem.
 */
 	/*
-	**相同的数据库文件中设置每个游标的cache行号。
-	**该值设置为iRowid。只有正的rowid值被认为是适用于该缓存。
-	**高速缓存被初始化为零，表示一个无效的高速缓冲存储器。
-	**一个B树有零或负的rowid将正常工作。
-	**高速缓存为零或负的rowid不行，这意味着表使用零或
-	**负的rowid可能运行慢一点。但在实践中，零
-	**或负的rowid非常少见所以这不应该是一个问题。
+	**相同的数据库文件中设置每个游标的cache行号.
+	**该值设置为iRowid.只有正的rowid值被认为是适用于该缓存.
+	**高速缓存被初始化为零,表示一个无效的高速缓冲存储器.
+	**一个B树有零或负的rowid将正常工作.
+	**高速缓存为零或负的rowid不行,这意味着表使用零或
+	**负的rowid可能运行慢一点.但在实践中,零
+	**或负的rowid非常少见所以这不应该是一个问题.
 	*/
 
 void sqlite3BtreeSetCachedRowid(BtCursor *pCur, sqlite3_int64 iRowid){   //设置相同的数据库文件中中每个游标的cache行号
@@ -4518,10 +4523,10 @@ void sqlite3BtreeSetCachedRowid(BtCursor *pCur, sqlite3_int64 iRowid){   //设�
 ** zero is returned.
 */
 /*
-**返回游标的缓存的rowid。负或为零的
-**返回值表示其rowid高速缓存无效，并应
-**忽略。如果rowid缓存以前从未被设置，则
-**返回零。
+**返回游标的缓存的rowid.负或为零的
+**返回值表示其rowid高速缓存无效,并应
+**忽略.如果rowid缓存以前从未被设置,则
+**返回零.
 */
 sqlite3_int64 sqlite3BtreeGetCachedRowid(BtCursor *pCur){      //返回游标的缓存的rowid
   return pCur->cachedRowid;
@@ -4530,7 +4535,7 @@ sqlite3_int64 sqlite3BtreeGetCachedRowid(BtCursor *pCur){      //返回游标的
 /*
 ** Close a cursor.  The read lock on the database file is released
 ** when the last cursor is closed.
-** 关闭B-tree游标。当最后游标关闭时释放数据库上的读锁。
+** 关闭B-tree游标.当最后游标关闭时释放数据库上的读锁.
 */   /*关闭B-tree游标*/
 int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
   Btree *pBtree = pCur->pBtree;
@@ -4551,7 +4556,7 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
       releasePage(pCur->apPage[i]);
     }
     unlockBtreeIfUnused(pBt);
-    invalidateOverflowCache(pCur);
+    invalidateOverflowCache(pCur);		/* 【赵大成】数据库文件的读锁被释放*/
     /* sqlite3_free(pCur); */
     sqlite3BtreeLeave(pBtree);
   }
@@ -4562,30 +4567,32 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
 ** Make sure the BtCursor* given in the argument has a valid
 ** BtCursor.info structure.  If it is not already valid, call
 ** btreeParseCell() to fill it in.
-** 确保在argument中给出的BtCursor 有一个有效的BtCursor.info结构。如果尚未有效,调用btreeParseCell()使之有效。
+** 确保在argument中给出的BtCursor 有一个有效的BtCursor.info结构.如果尚未有效,调用btreeParseCell()使之有效.
 ** BtCursor.info is a cache of the information in the current cell.
 ** Using this cache reduces the number of calls to btreeParseCell().
-** BtCursor.info是一个在当前单元中的信息缓存。使用这个缓存减少调用btreeParseCell()的数量。
+** BtCursor.info是一个在当前单元中的信息缓存.使用这个缓存减少调用btreeParseCell()的数量.
 ** 2007-06-25:  There is a bug in some versions of MSVC that cause the
 ** compiler to crash when getCellInfo() is implemented as a macro.
 ** But there is a measureable speed advantage to using the macro on gcc
 ** (when less compiler optimizations like -Os or -O0 are used and the
 ** compiler is not doing agressive inlining.)  So we use a real function
 ** for MSVC and a macro for everything else.  Ticket #2457.
+**【赵大成】MSVC一些版本有一个缺陷，当getCellInfo()实现为一个宏导致编译器崩溃。
+** 但是MSVC在速度上是有优势的，所以我们使用实函数MSVC.
 */
 #ifndef NDEBUG
-  static void assertCellInfo(BtCursor *pCur){       /*保证BtCursor有有效的BtCursor.info结构。若无效，调用btreeParseCell()去填充*/
+  static void assertCellInfo(BtCursor *pCur){       /*保证BtCursor有有效的BtCursor.info结构.若无效,调用btreeParseCell()去填充*/
     CellInfo info;
     int iPage = pCur->iPage;
-    memset(&info, 0, sizeof(info));                        //将info中前sizeof(info)个字节 用0替换并返回info 。
+    memset(&info, 0, sizeof(info));                        //将info中前sizeof(info)个字节 用0替换并返回info .
     btreeParseCell(pCur->apPage[iPage], pCur->aiIdx[iPage], &info);        //解析单元内容块
-    assert( memcmp(&info, &pCur->info, sizeof(info))==0 );
+    assert( memcmp(&info, &pCur->info, sizeof(info))==0 );			/* 【赵大成】缓存减少了调用的数量btreeParseCell()*/
   }
 #else
   #define assertCellInfo(x)
 #endif
 #ifdef _MSC_VER
-  /* Use a real function in MSVC to work around bugs in that compiler. */   //在MSVC中使用一个真正的函数解决编译器错误。
+  /* Use a real function in MSVC to work around bugs in that compiler. */   //在MSVC中使用一个真正的函数解决编译器错误.
   static void getCellInfo(BtCursor *pCur){
     if( pCur->info.nSize==0 ){
       int iPage = pCur->iPage;
@@ -4596,7 +4603,7 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
     }
   }
 #else /* if not _MSC_VER */
-  /* Use a macro in all other compilers so that the function is inlined */  //在所有其他编译器使用宏,这样函数是联机的。
+  /* Use a macro in all other compilers so that the function is inlined */  //在所有其他编译器使用宏,这样函数是联机的.
 #define getCellInfo(pCur)                                                      \
   if( pCur->info.nSize==0 ){                                                   \
     int iPage = pCur->iPage;                                                   \
@@ -4607,16 +4614,20 @@ int sqlite3BtreeCloseCursor(BtCursor *pCur){  //关闭B-tree游标
   }
 #endif /* _MSC_VER */
 
-#ifndef NDEBUG  /* The next routine used only within assert() statements */  //下一个函数只在assert()语句使用。
+#ifndef NDEBUG  /* The next routine used only within assert() statements */  //下一个函数只在assert()语句使用.
 /*
 ** Return true if the given BtCursor is valid.  A valid cursor is one
 ** that is currently pointing to a row in a (non-empty) table.
 ** This is a verification routine is used only within assert() statements.
 */
 	/*
-	**如果给定的BtCursor是有效的,返回true。一个有效的游标是在非空
-	**的表中当前指向的行。这是一个验证程序只在assert()语句中使用。
+	**如果给定的BtCursor是有效的,返回true.一个有效的游标是在非空
+	**的表中当前指向的行.这是一个验证程序只在assert()语句中使用.
 	*/
+/* 【赵大成】
+** 如果给定的BtCursor是有效的,返回真。一个只向当前表格行才是一个有效的指针，
+** 这个验证程序只在assert()语句中使用。
+*/
 int sqlite3BtreeCursorIsValid(BtCursor *pCur){          //给定的BtCursor是否有效
   return pCur && pCur->eState==CURSOR_VALID;
 }
@@ -4626,47 +4637,51 @@ int sqlite3BtreeCursorIsValid(BtCursor *pCur){          //给定的BtCursor是�
 ** Set *pSize to the size of the buffer needed to hold the value of
 ** the key for the current entry.  If the cursor is not pointing
 ** to a valid entry, *pSize is set to 0. 
-** pSize为buffer的大小，buffer用来保存当前条目(用pCur指向)的key值。如果游标未指向一个有效的条目,* pSize设置为0。
+** pSize为buffer的大小,buffer用来保存当前条目(用pCur指向)的key值.如果游标未指向一个有效的条目,* pSize设置为0.
 ** For a table with the INTKEY flag set, this routine returns the key
 ** itself, not the number of bytes in the key.
-** 对INTKEY标志的表设置,这个函数返回关键字本身,而不是关键字的字节数。
+** 对INTKEY标志的表设置,这个函数返回关键字本身,而不是关键字的字节数.
 ** The caller must position the cursor prior to invoking this routine.
 ** 调用者
-** This routine cannot fail.  It always returns SQLITE_OK.  
+** This routine cannot fail.  It always returns SQLITE_OK. 
+**【赵大成】调用者必须将光标之前调用这个例程。这个例程不能失败。它总是返回SQLITE_OK
 */
-/*pSize为buffer的大小，buffer用来保存当前条目(用pCur指向)的key值。*/
+/*pSize为buffer的大小,buffer用来保存当前条目(用pCur指向)的key值.*/
 int sqlite3BtreeKeySize(BtCursor *pCur, i64 *pSize){
   assert( cursorHoldsMutex(pCur) );
   assert( pCur->eState==CURSOR_INVALID || pCur->eState==CURSOR_VALID );
-  if( pCur->eState!=CURSOR_VALID ){          /*游标指向无效条目，pSize = 0*/
+  if( pCur->eState!=CURSOR_VALID ){          /*游标指向无效条目,pSize = 0*/
     *pSize = 0;
   }else{
     getCellInfo(pCur);
     *pSize = pCur->info.nKey;
   }
-  return SQLITE_OK;
+  return SQLITE_OK;			/* 【赵大成】为表设置了INTKEY标志,这个例程返回键本身,而不是在关键的字节数*/
 }
 
 /*
 ** Set *pSize to the number of bytes of data in the entry the
 ** cursor currently points to.
-** 设置*pSize的数据域的字节数，*pSize 在当前游标指向的条目中。
+** 设置*pSize的数据域的字节数,*pSize 在当前游标指向的条目中.
 ** The caller must guarantee that the cursor is pointing to a non-NULL
 ** valid entry.  In other words, the calling procedure must guarantee
 ** that the cursor has Cursor.eState==CURSOR_VALID.
-** 调用者必须保证游标指向一个非空有效条目。换句话说,调用程序必须保证游标Cursor.eState = = CURSOR_VALID。
+** 调用者必须保证游标指向一个非空有效条目.换句话说,调用程序必须保证游标Cursor.eState = = CURSOR_VALID.
 ** Failure is not possible.  This function always returns SQLITE_OK.
 ** It might just as well be a procedure (returning void) but we continue
 ** to return an integer result code for historical reasons.
-** 这个函数始终返回SQLITE_OK。也可能仅仅是一个过程(返回void)但是我们继续返回一个整数结果代码。
+** 这个函数始终返回SQLITE_OK.也可能仅仅是一个过程(返回void)但是我们继续返回一个整数结果代码.
+*/
+/* 【赵大成】
+** 返回当前游标所指记录的数据长度（字节）
 */
 
-int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*设定当前游标所指记录的数据长度（字节）*/
+int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*设定当前游标所指记录的数据长度(字节)*/
   assert( cursorHoldsMutex(pCur) );
   assert( pCur->eState==CURSOR_VALID );
   getCellInfo(pCur);
   *pSize = pCur->info.nData;/*用pSize返回数据长度*/
-  return SQLITE_OK;
+  return SQLITE_OK;			/*【赵大成】这个函数始终返回SQLITE_OK。*/
 }
 
 /*
@@ -4675,28 +4690,28 @@ int sqlite3BtreeDataSize(BtCursor *pCur, u32 *pSize){      /*设定当前游标�
 ** linked list of overflow pages. If possible, it uses the auto-vacuum
 ** pointer-map data instead of reading the content of page ovfl to do so. 
 ** 给出一个在数据库中的溢出页页码(参数为ovfl),这个函数找到下一个溢出页面的链表中
-** 的页面的页码。如果可能,它使用auto-vacuum  pointer-map数据而不是读页面ovfl的内容。
+** 的页面的页码.如果可能,它使用auto-vacuum  pointer-map数据而不是读页面ovfl的内容.
 ** If an error occurs an SQLite error code is returned. Otherwise:
-** 如果出现错误一个SQLite返回错误代码。否则：
+** 如果出现错误一个SQLite返回错误代码.否则：
 ** The page number of the next overflow page in the linked list is 
 ** written to *pPgnoNext. If page ovfl is the last page in its linked 
 ** list, *pPgnoNext is set to zero. 
-** 链接列表中的下一个溢出页面的页码被写到* pPgnoNext中。如果ovfl页是最后一页,* pPgnoNext设置为零。
+** 链接列表中的下一个溢出页面的页码被写到* pPgnoNext中.如果ovfl页是最后一页,* pPgnoNext设置为零.
 ** If ppPage is not NULL, and a reference to the MemPage object corresponding
 ** to page number pOvfl was obtained, then *ppPage is set to point to that
 ** reference. It is the responsibility of the caller to call releasePage()
 ** on *ppPage to free the reference. In no reference was obtained (because
 ** the pointer-map was used to obtain the value for *pPgnoNext), then
 ** *ppPage is set to zero.
-** 如果ppPage非空,对 MemPage对象相应页码pOvfl的引用被获得,则设置* ppPage指向引用。
-** 负责调用者的调用releasePage()在ppPage上释放引用 。在没有引用获得(因为 pointer-map被用来获得* pPgnoNext的值), 
-** 那么 * ppPage设置为零。
+** 如果ppPage非空,对 MemPage对象相应页码pOvfl的引用被获得,则设置* ppPage指向引用.
+** 负责调用者的调用releasePage()在ppPage上释放引用 .在没有引用获得(因为 pointer-map被用来获得* pPgnoNext的值), 
+** 那么 * ppPage设置为零.
 */
-/*找到下一个溢出页的页号。*/
+/*找到下一个溢出页的页号.*/
 static int getOverflowPage(
   BtShared *pBt,               /* The database file */                                                       //数据库文件
   Pgno ovfl,                   /* Current overflow page number */                                    //当前溢出页号     
-  MemPage **ppPage,            /* OUT: MemPage handle (may be NULL) */         //内存页句柄（可能为NULL）
+  MemPage **ppPage,            /* OUT: MemPage handle (may be NULL) */         //内存页句柄(可能为NULL)
   Pgno *pPgnoNext              /* OUT: Next overflow page number */                       //下一个溢出页的页号
 ){
   Pgno next = 0;
@@ -4704,7 +4719,7 @@ static int getOverflowPage(
   int rc = SQLITE_OK;
 
   assert( sqlite3_mutex_held(pBt->mutex) );
-  assert(pPgnoNext);
+  assert(pPgnoNext);		/* 【赵大成】页码链接列表中的下一个溢出页写入* pPgnoNext*/
 
 #ifndef SQLITE_OMIT_AUTOVACUUM
   /* Try to find the next page in the overflow list using the
@@ -4712,8 +4727,8 @@ static int getOverflowPage(
   ** the overflow list is page number (ovfl+1). If that guess turns 
   ** out to be wrong, fall back to loading the data of page 
   ** number ovfl to determine the next page number.
-  ** 试图找到溢出列表中的在autovacuum pointer-map页面中使用的下一个页面。猜测溢出列表
-  ** 中下一个页面页号为(ovfl + 1)。如果猜测是错的,回到加载页号ovfl的数据来确定下一个页码。
+  ** 试图找到溢出列表中的在autovacuum pointer-map页面中使用的下一个页面.猜测溢出列表
+  ** 中下一个页面页号为(ovfl + 1).如果猜测是错的,回到加载页号ovfl的数据来确定下一个页码.
   */
   if( pBt->autoVacuum ){
     Pgno pgno;
@@ -4721,13 +4736,13 @@ static int getOverflowPage(
     u8 eType;
 
     while( PTRMAP_ISPAGE(pBt, iGuess) || iGuess==PENDING_BYTE_PAGE(pBt) ){
-      iGuess++;/*没猜对，页号往后加*/
+      iGuess++;/*没猜对,页号往后加*/
     }
 
     if( iGuess<=btreePagecount(pBt) ){
       rc = ptrmapGet(pBt, iGuess, &eType, &pgno);
       if( rc==SQLITE_OK && eType==PTRMAP_OVERFLOW2 && pgno==ovfl ){
-        next = iGuess;
+        next = iGuess;		/* 【赵大成】如果想证明是错误的,回到加载数据的页码ovfl来确定下一个页码*/
         rc = SQLITE_DONE;
       }
     }
@@ -4744,7 +4759,7 @@ static int getOverflowPage(
   }
 
   *pPgnoNext = next;
-  if( ppPage ){/*ppPage不空，ppPage指向reference*/
+  if( ppPage ){/*ppPage不空,ppPage指向reference*/
     *ppPage = pPage;
   }else{
     releasePage(pPage);
