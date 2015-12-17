@@ -5281,9 +5281,10 @@ static int moveToChild(BtCursor *pCur, u32 newPgno){      //移动游标到下�
 ** cell in page pParent. Or, if iIdx is equal to the total number of
 ** cells in pParent, that page number iChild is the right-child of
 ** the page.
-** 页面pParent是B树内部(非叶)页。这个函数断言如果第iIdx单元在页pParent中则页码iChild
-** 是左孩子。或,如果iIdx等于pParent中单元的总数,那么页码iChild是页面的右孩子。
+** 页面pParent是B树内部(非叶)页.这个函数断言如果第iIdx单元在页pParent中则页码iChild
+** 是左孩子.或,如果iIdx等于pParent中单元的总数,那么页码iChild是页面的右孩子.
 */
+/* 【赵大成】如果iIdx等于pParent分支的总数,这个页码iChild就是的右孩子页面。*/
 static void assertParentIndex(MemPage *pParent, int iIdx, Pgno iChild){  //判断页pParent的孩子页面是左孩子还是右孩子
   assert( iIdx<=pParent->nCell );
   if( iIdx==pParent->nCell ){
@@ -5298,16 +5299,20 @@ static void assertParentIndex(MemPage *pParent, int iIdx, Pgno iChild){  //判�
 
 /*
 ** Move the cursor up to the parent page.
-** 向上移动游标到父节点页面。
+** 向上移动游标到父节点页面.
 ** pCur->idx is set to the cell index that contains the pointer
 ** to the page we are coming from.  If we are coming from the
 ** right-most child page then pCur->idx is set to one more than
 ** the largest cell index.
 */
 	/*
-	将游标移动到父页面.pCur-> IDX被设定为包含指向页的指针的单元索引.如果为最右边的子页面，pCur-> IDX被设置为比最大的单元更大的索引。
+	将游标移动到父页面.pCur-> IDX被设定为包含指向页的指针的单元索引.如果为最右边的子页面,pCur-> IDX被设置为比最大的单元更大的索引.
 	*/
-static void moveToParent(BtCursor *pCur){     //向上移动游标到父节点页面。
+  /*【赵大成】
+  ** 将游标移动到父节点。 pCur-> IDX被设定为包含指向父节点的指针的单元索引。
+  ** 如果来自最右边的子页，pCur-> IDX被设置为比最大还大的单元索引。
+  */
+static void moveToParent(BtCursor *pCur){     //向上移动游标到父节点页面.
   assert( cursorHoldsMutex(pCur) );
   assert( pCur->eState==CURSOR_VALID );
   assert( pCur->iPage>0 );
@@ -5318,9 +5323,14 @@ static void moveToParent(BtCursor *pCur){     //向上移动游标到父节点�
   ** one cursor has modified page pParent while a reference to it is held 
   ** by a second cursor. Which can only happen if a single page is linked
   ** into more than one b-tree structure in a corrupt database.  
-  ** 如果数据库文件中断的话，由assert测试的条件很有可能为假。如果当一个参数
-  ** 被另一个游标持有时一个游标已经修改了页面pParent ，那么这可能会发生。
-  ** 如果一个页面被链接到不止一个b -树结构在不良的数据库中则以上也会出现。*/
+  ** 如果数据库文件中断的话,由assert测试的条件很有可能为假.如果当一个参数
+  ** 被另一个游标持有时一个游标已经修改了页面pParent ,那么这可能会发生.
+  ** 如果一个页面被链接到不止一个b -树结构在不良的数据库中则以上也会出现.*/
+  /* 【赵大成】
+  ** 更新:它实际上是可能的条件测试下面的断言是不真实的,如果数据库文件是腐败。
+  ** 这可能发生,如果一个光标修改页面pParent引用时由第二个游标。
+  ** 这只会发生,如果一个页面链接到一个以上的b -树结构在腐败的数据库中。
+  */
 #if 0
   assertParentIndex(
     pCur->apPage[pCur->iPage-1], 
@@ -5338,19 +5348,19 @@ static void moveToParent(BtCursor *pCur){     //向上移动游标到父节点�
 
 /*
 ** Move the cursor to point to the root page of its b-tree structure.
-** 移动游标指向B树结构的根页。
+** 移动游标指向B树结构的根页.
 ** If the table has a virtual root page, then the cursor is moved to point
 ** to the virtual root page instead of the actual root page. A table has a
 ** virtual root page when the actual root page contains no cells and a 
 ** single child page. This can only happen with the table rooted at page 1.
-** 如果表有一个虚拟根页面,则游标移动指向虚拟根页面而不是实际的根页。当实际根页
-** 不包含单元和单一的子页面时表上会有一个虚拟根页面。这只能发生在第1页的表上。
+** 如果表有一个虚拟根页面,则游标移动指向虚拟根页面而不是实际的根页.当实际根页
+** 不包含单元和单一的子页面时表上会有一个虚拟根页面.这只能发生在第1页的表上.
 ** If the b-tree structure is empty, the cursor state is set to 
 ** CURSOR_INVALID. Otherwise, the cursor is set to point to the first
 ** cell located on the root (or virtual root) page and the cursor state
 ** is set to CURSOR_VALID.
-** 如果b-树结构为空,将游标状态设为CURSOR_INVALID。否则,游标将指向位于根(或虚拟根)
-** 页面的第一个单元,并且游标状态设为CURSOR_VALID。
+** 如果b-树结构为空,将游标状态设为CURSOR_INVALID.否则,游标将指向位于根(或虚拟根)
+** 页面的第一个单元,并且游标状态设为CURSOR_VALID.
 ** If this function returns successfully, it may be assumed that the
 ** page-header flags indicate that the [virtual] root-page is the expected 
 ** kind of b-tree page (i.e. if when opening the cursor the caller did not
@@ -5359,8 +5369,8 @@ static void moveToParent(BtCursor *pCur){     //向上移动游标到父节点�
 ** structure the flags byte is set to 0x02 or 0x0A, indicating an index
 ** b-tree).
 ** 如果这个函数返回成功,它可能会假定头部的标志表明[虚拟]根页是b-树页面(即如果
-** 开放游标调用者没有指定KeyInfo结构，标记字节设置为0 x05或0 x0d,说明是表b-树
-** ,或者如果调用者指定KeyInfo结构标记字节设置为0x02或0x0a,说明是索引b-tree)。
+** 开放游标调用者没有指定KeyInfo结构,标记字节设置为0 x05或0 x0d,说明是表b-树
+** ,或者如果调用者指定KeyInfo结构标记字节设置为0x02或0x0a,说明是索引b-tree).
 */
 static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根页
   MemPage *pRoot;
@@ -5380,7 +5390,7 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
     sqlite3BtreeClearCursor(pCur);
   }
 
-  if( pCur->iPage>=0 ){
+  if( pCur->iPage>=0 ){		/* 【赵大成】如果b -树结构是空的*/
     int i;
     for(i=1; i<=pCur->iPage; i++){
       releasePage(pCur->apPage[i]);
@@ -5402,10 +5412,14 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
     ** NULL, the caller expects a table b-tree. If this is not the case,
     ** return an SQLITE_CORRUPT error.  
 	** 如果pCur->pKeyInfo非空,那么调用者打开将在索引B树上打开的游标.否则,如果pKeyInfo为空,
-	** 调用者需要表B树。除此之外，返回一个SQLITE_CORRUPT错误。*/
+	** 调用者需要表B树.除此之外,返回一个SQLITE_CORRUPT错误.*/
+	/* 【赵大成】
+	**  如果pCur->pKeyInfo非空,那么这些带有b树游标指针是调用者期望打开的，
+	**  否则,如果pKeyInfo为空, 调用者期望打开B树表。除此之外，返回一个SQLITE_CORRUPT错误
+	*/
     assert( pCur->apPage[0]->intKey==1 || pCur->apPage[0]->intKey==0 );
     if( (pCur->pKeyInfo==0)!=pCur->apPage[0]->intKey ){
-      return SQLITE_CORRUPT_BKPT;
+      return SQLITE_CORRUPT_BKPT;		/* 【赵大成】返回一个SQLITE_CORRUPT错误*/
     }
   }
 
@@ -5415,8 +5429,12 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
   ** if the assumption were not true, and it is not possible for the flags 
   ** byte to have been modified while this cursor is holding a reference
   ** to the page.  
-  ** 判断根页有正确的类型。调用此函数加载的根页时一定是这样的（或者这个调用或先前调用）如果假设是不正确的，
-  ** 该函数将检测到损坏。并且对于标志字节来说，当游标正在持有页的一个参数时被修改是不可能的。*/
+  ** 判断根页有正确的类型.调用此函数加载的根页时一定是这样的(或者这个调用或先前调用)如果假设是不正确的,
+  ** 该函数将检测到损坏.并且对于标志字节来说,当游标正在持有页的一个参数时被修改是不可能的.*/
+  /* 【赵大成】
+  ** 断言的根页是正确的类型。
+  ** 必须这样的调用这个函数加载的根页(这叫或以前的调用) 
+  */
   pRoot = pCur->apPage[0];
   assert( pRoot->pgno==pCur->pgnoRoot );
   assert( pRoot->isInit && (pCur->pKeyInfo==0)==pRoot->intKey );
@@ -5428,9 +5446,9 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
 
   if( pRoot->nCell==0 && !pRoot->leaf ){
     Pgno subpage;
-    if( pRoot->pgno!=1 ) return SQLITE_CORRUPT_BKPT;
+    if( pRoot->pgno!=1 ) return SQLITE_CORRUPT_BKPT;		/* 【赵大成】如果的假设是不正确的,它不可能标志字节被修改*/
     subpage = get4byte(&pRoot->aData[pRoot->hdrOffset+8]);
-    pCur->eState = CURSOR_VALID;
+    pCur->eState = CURSOR_VALID;		/* 【赵大成】这个游标是页面的引用*/
     rc = moveToChild(pCur, subpage);
   }else{
     pCur->eState = ((pRoot->nCell>0)?CURSOR_VALID:CURSOR_INVALID);
@@ -5441,10 +5459,14 @@ static int moveToRoot(BtCursor *pCur){      //移动游标指向B树结构的根
 /*
 ** Move the cursor down to the left-most leaf entry beneath the
 ** entry to which it is currently pointing.
-** 移动游标到最左叶子条目，游标当前正指向该条目。
+** 移动游标到最左叶子条目,游标当前正指向该条目.
 ** The left-most leaf is the one with the smallest key - the first
 ** in ascending order.
-** 最左的叶子节点拥有最小的键值，几递增有序的第一个关键字。
+** 最左的叶子节点拥有最小的键值,几递增有序的第一个关键字.
+*/
+/* 【赵大成】
+** 移动光标到最左边的叶子下面条目的条目目前指向。
+** 最左边的叶子是最小的一个关键——第一个以升序排序。
 */
 static int moveToLeftmost(BtCursor *pCur){     //移动游标到最左叶子
   Pgno pgno;
@@ -5467,11 +5489,11 @@ static int moveToLeftmost(BtCursor *pCur){     //移动游标到最左叶子
 ** between moveToLeftmost() and moveToRightmost().  moveToLeftmost()
 ** finds the left-most entry beneath the *entry* whereas moveToRightmost()
 ** finds the right-most entry beneath the *page*.
-** 移动游标到最右的叶子节点。注意moveToLeftmost()与moveToRightmost()的不同。moveToLeftmost()
-**  是找到最左边*entry*下的条目，而moveToRightmost()是找到最右边*page*下的条目。
+** 移动游标到最右的叶子节点.注意moveToLeftmost()与moveToRightmost()的不同.moveToLeftmost()
+**  是找到最左边*entry*下的条目,而moveToRightmost()是找到最右边*page*下的条目.
 ** The right-most entry is the one with the largest key - the last
 ** key in ascending order.
-** 最右边的条目是有序递增序列的最大的键值。
+** 最右边的条目是有序递增序列的最大的键值.
 */
 static int moveToRightmost(BtCursor *pCur){   //移动游标到最右的叶子节点
   Pgno pgno;
@@ -5496,8 +5518,12 @@ static int moveToRightmost(BtCursor *pCur){   //移动游标到最右的叶子�
 /* Move the cursor to the first entry in the table.  Return SQLITE_OK
 ** on success.  Set *pRes to 0 if the cursor actually points to something
 ** or set *pRes to 1 if the table is empty.
-** 将游标移动到表中的第一个元素。若成功,返回SQLITE_OK。
-** 如果表在指向一些地方，设置*pRes为0或如果表是空的设置*pRes为1。
+** 将游标移动到表中的第一个元素.若成功,返回SQLITE_OK.
+** 如果表在指向一些地方,设置*pRes为0或如果表是空的设置*pRes为1.
+*/
+/* 【赵大成】
+** 将光标移动到表中的第一个元素。返回SQLITE_OK成功。
+** 设置*pRes为0,如果光标只向某一些或如果表是空的就设置*pRes为1。
 */
 int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //将游标移动到表中的第一个条目
   int rc;
@@ -5521,7 +5547,11 @@ int sqlite3BtreeFirst(BtCursor *pCur, int *pRes){   //将游标移动到表中�
 /* Move the cursor to the last entry in the table.  Return SQLITE_OK
 ** on success.  Set *pRes to 0 if the cursor actually points to something
 ** or set *pRes to 1 if the table is empty.
-** 将游标移动到表中的最后一个条目。成功则返回SQLITE_OK。若游标正指向某处设*pRes为0或表为空设置*pRes为1。
+** 将游标移动到表中的最后一个条目.成功则返回SQLITE_OK.若游标正指向某处设*pRes为0或表为空设置*pRes为1.
+*/
+/* 【赵大成】
+** 将光标移动到表中的第一个元素。返回SQLITE_OK成功。
+** 设置*pRes为0,如果光标只向某一些或如果表是空的就设置*pRes为1。
 */
 int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //将游标移动到表中的最后一个条目
   int rc;
@@ -5529,11 +5559,11 @@ int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //将游标移动到表中�
   assert( cursorHoldsMutex(pCur) );
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
 
-  /* If the cursor already points to the last entry, this is a no-op. */   //若游标已经指向最后一个条目，则无操作
+  /* If the cursor already points to the last entry, this is a no-op. */   //若游标已经指向最后一个条目,则无操作
   if( CURSOR_VALID==pCur->eState && pCur->atLast ){
 #ifdef SQLITE_DEBUG
     /* This block serves to assert() that the cursor really does point 
-    ** to the last entry in the b-tree. */    //该块代码是由来判断游标已经指向了B树中的最后的条目。
+    ** to the last entry in the b-tree. */    //该块代码是由来判断游标已经指向了B树中的最后的条目.
     int ii;
     for(ii=0; ii<pCur->iPage; ii++){
       assert( pCur->aiIdx[ii]==pCur->apPage[ii]->nCell );
@@ -5556,43 +5586,48 @@ int sqlite3BtreeLast(BtCursor *pCur, int *pRes){     //将游标移动到表中�
       pCur->atLast = rc==SQLITE_OK ?1:0;
     }
   }
-  return rc;  //rc就是一个状态量，返回的是1或0.
+  return rc;  //rc就是一个状态量,返回的是1或0.
 }
 
 /* Move the cursor so that it points to an entry near the key 
 ** specified by pIdxKey or intKey.   Return a success code.
-** 移动游标以便于指向被pIdxKey 或intKey指向的条目附近的关键字。
+** 移动游标以便于指向被pIdxKey 或intKey指向的条目附近的关键字.
 ** For INTKEY tables, the intKey parameter is used.  pIdxKey 
 ** must be NULL.  For index tables, pIdxKey is used and intKey
 ** is ignored.
-** 对于INTKEY表，用的是参数intKey，pIdxKey必须是空。对于索引表，使用pIdxKey，intKey忽略不用。
+** 对于INTKEY表,用的是参数intKey,pIdxKey必须是空.对于索引表,使用pIdxKey,intKey忽略不用.
 ** If an exact match is not found, then the cursor is always
 ** left pointing at a leaf page which would hold the entry if it
 ** were present.  The cursor might point to an entry that comes
 ** before or after the key.
-** 如果没有找到准确的匹配,则游标总是向左指着叶子页面，如果页面是父节点则将保存条目。游标可能
-** 指向一个关键字之前或之后的条目。
+** 如果没有找到准确的匹配,则游标总是向左指着叶子页面,如果页面是父节点则将保存条目.游标可能
+** 指向一个关键字之前或之后的条目.
 ** An integer is written into *pRes which is the result of
 ** comparing the key with the entry to which the cursor is 
 ** pointing.  The meaning of the integer written into
 ** *pRes is as follows:
-** 一个整数写入*pRes，其结果将比较带有条目的关键字和游标指向的对象。整数写入的意义如下:
+** 一个整数写入*pRes,其结果将比较带有条目的关键字和游标指向的对象.整数写入的意义如下:
 **     *pRes<0      The cursor is left pointing at an entry tha                   // 游标离开指向一个小于intKey / pIdxKey的条目
-**                  is smaller than intKey/pIdxKey or if the table is empty       //或如果表是空的游标不指向任何地方。
+**                  is smaller than intKey/pIdxKey or if the table is empty       //或如果表是空的游标不指向任何地方.
 **                  and the cursor is therefore left point to nothing.
 **    
-**     *pRes==0     The cursor is left pointing at an entry that                  //游标指向了一个intKey/pIdxKey相对应的条目。
+**     *pRes==0     The cursor is left pointing at an entry that                  //游标指向了一个intKey/pIdxKey相对应的条目.
 **                  exactly matches intKey/pIdxKey.
 **    
 **     *pRes>0      The cursor is left pointing at an entry that                  //游标指向比intKey/pIdxKey更大的条目
 **                  is larger than intKey/pIdxKey.
 **
 */
+/*	【赵大成】
+**		*pRes<0		左节点为空
+**		*pRes==0	光标指向一个条目,完全匹配intKey / pIdxKey
+**		*pRes>0		光标指向一个条目,大于intKey / pIdxKey。
+*/
 int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey相对应的条目
   BtCursor *pCur,          /* The cursor to be moved */                           //该游标将发生移动
   UnpackedRecord *pIdxKey, /* Unpacked index key */                               //解压的索引关键字
   i64 intKey,              /* The table key */                                    //表关键字
-  int biasRight,           /* If true, bias the search to the high end */         //该变量为真，偏移到最后
+  int biasRight,           /* If true, bias the search to the high end */         //该变量为真,偏移到最后
   int *pRes                /* Write search results here */                        //将查找结果写入该变量
 ){
   int rc;
@@ -5604,7 +5639,8 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
 
   /* If the cursor is already positioned at the point we are trying
   ** to move to, then just return without doing any work 
-  ** 如果游标已经在要移到的点，则返回不作操作*/  
+  ** 如果游标已经在要移到的点,则返回不作操作*/ 
+ /* 【赵大成】 如果指针已经在我们想要移到的位置，那就返回不做任何工作*/
   if( pCur->eState==CURSOR_VALID && pCur->validNKey 
    && pCur->apPage[0]->intKey 
   ){
@@ -5641,14 +5677,14 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
     ** would have already detected db corruption. Similarly, pPage must
     ** be the right kind (index or table) of b-tree page. Otherwise
     ** a moveToChild() or moveToRoot() call would have detected corruption.  
-	** pPage->nCell必须比0大。如果它是根页面上面的游标无效并且for(;;) 循环不会执行。
-	** 如果不是跟根页，那么 moveToChild()函数将检测db崩溃。同样， pPage必须是正确种类的B树
-	** 否则，moveToChild() 或 moveToRoot() 的调用将发现崩溃。*/
-    assert( pPage->nCell>0 );
+	** pPage->nCell必须比0大.如果它是根页面上面的游标无效并且for(;;) 循环不会执行.
+	** 如果不是跟根页,那么 moveToChild()函数将检测db崩溃.同样, pPage必须是正确种类的B树
+	** 否则,moveToChild() 或 moveToRoot() 的调用将发现崩溃.*/
+    assert( pPage->nCell>0 );		/* 【赵大成】pPage - > nCell必须大于零。*/
     assert( pPage->intKey==(pIdxKey==0) );
     lwr = 0;
     upr = pPage->nCell-1;
-    if( biasRight ){
+    if( biasRight ){			/* 【赵大成】如果这是上面的根页光标是无效的,这for循环不会运行。*/
       pCur->aiIdx[pCur->iPage] = (u16)(idx = upr);
     }else{
       pCur->aiIdx[pCur->iPage] = (u16)(idx = (upr+lwr)/2);             //二分查找
@@ -5683,9 +5719,13 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
         ** the entire cell by checking for the cases where the record is 
         ** stored entirely within the b-tree page by inspecting the first 
         ** 2 bytes of the cell.
-		** 支持的最大页面大小为65536字节。这意味着储在索引B树页中的记录的最大数字节小于16384字节,可以存储为一个2字节的变量。
-		** 此信息用于试图通过检查避免解析整个单元，对于该情况，记录完全存储在B树页通过检查该单元的开始的两个字节。
+		** 支持的最大页面大小为65536字节.这意味着储在索引B树页中的记录的最大数字节小于16384字节,可以存储为一个2字节的变量.
+		** 此信息用于试图通过检查避免解析整个单元,对于该情况,记录完全存储在B树页通过检查该单元的开始的两个字节.
         */
+		/* 【赵大成】
+		** 支持的最大页面大小为65536字节。
+		** 这意味着的最大记录数个字节存储在b -树索引页面小于16384字节,可以存储为2个不同字节。
+		*/
         int nCell = pCell[0];
         if( nCell<=pPage->max1bytePayload
          /* && (pCell+nCell)<pPage->aDataEnd */
@@ -5693,7 +5733,8 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
           /* This branch runs if the record-size field of the cell is a
           ** single byte varint and the record fits entirely on the main
           ** b-tree page.  
-		  **如果单元的记录域是一个单字节的变量并且记录完全存储在主B树页上，执行该分支。*/
+		  **如果单元的记录域是一个单字节的变量并且记录完全存储在主B树页上,执行该分支.*/
+		 /* 【赵大成】如果恰好是一个字节*/
           testcase( pCell+nCell+1==pPage->aDataEnd );
           c = sqlite3VdbeRecordCompare(nCell, (void*)&pCell[1], pIdxKey);
         }else if( !(pCell[1] & 0x80) 
@@ -5702,7 +5743,8 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
         ){
           /* The record-size field is a 2 byte varint and the record  
           ** fits entirely on the main b-tree page. 
-		  ** 变量的记录到小域是一个两字节的变量并且记录完全存储在主B树页上。*/
+		  ** 变量的记录到小域是一个两字节的变量并且记录完全存储在主B树页上.*/
+		  /* 【赵大成】如果是两个字节*/
           testcase( pCell+nCell+2==pPage->aDataEnd );
           c = sqlite3VdbeRecordCompare(nCell, (void*)&pCell[2], pIdxKey);
         }else{
@@ -5710,8 +5752,9 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
           ** this case the whole cell needs to be parsed, a buffer allocated
           ** and accessPayload() used to retrieve the record into the
           ** buffer before VdbeRecordCompare() can be called. 
-		  ** 记录溢出是存储在一个或多个溢出页上。在这种情况下整个单元需要解析,分配一个缓冲区和accessPayload()
-		  ** 用于检索在VdbeRecordCompare()可以被调用之前进入到缓冲区的记录。*/
+		  ** 记录溢出是存储在一个或多个溢出页上.在这种情况下整个单元需要解析,分配一个缓冲区和accessPayload()
+		  ** 用于检索在VdbeRecordCompare()可以被调用之前进入到缓冲区的记录.*/
+		  /* 【赵大成】记录流到一个或多个溢出页。在这种情况下,需要解析完整的分支*/
           void *pCellKey;
           u8 * const pCellBody = pCell - pPage->childPtrSize;
           btreeParseCellPtr(pPage, pCellBody, &pCur->info);
@@ -5740,9 +5783,9 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
           goto moveto_finish;
         }
       }
-      if( c<0 ){
+      if( c<0 ){			/* 【赵大成】如果c小于0，lwr加1*/
         lwr = idx+1;
-      }else{
+      }else{				/* 【赵大成】如果c大于等于，lwr减1*/
         upr = idx-1;
       }
       if( lwr>upr ){
@@ -5774,7 +5817,7 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
 moveto_finish:
   return rc;
 }
-
+/*以上赵大成做*/
 
 /*
 ** Return TRUE if the cursor is not pointing at an entry of the table.
