@@ -2173,7 +2173,7 @@ static void pageReinit(DbPage *pData){    //页面管理程序pager重新装载�
 /*
 ** Invoke the busy handler for a btree.      //调用btree繁忙的处理程序.
 */
-static int btreeInvokeBusyHandler(void *pArg){
+static int btreeInvokeBusyHandler(void *pArg){ //调用btree繁忙的处理程序.
   BtShared *pBt = (BtShared*)pArg;
   assert( pBt->db );
   assert( sqlite3_mutex_held(pBt->db->mutex) );
