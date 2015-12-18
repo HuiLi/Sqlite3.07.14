@@ -3713,22 +3713,22 @@ static u8 minMaxQuery(Select *p){
 	**   （4）在结果集中扫描列表，查找“*”操作符的实例或TABLE.*操作符。如果找到了，在每个表的每一列扩展
 	*/
 	static int selectExpander(Walker *pWalker, Select *p){
-	  Parse *pParse = pWalker->pParse;//语法解析树的声明
+	  Parse *pParse = pWalker->pParse;//声明一个语法解析树
 	  int i, j, k;//自定义变量
 	  SrcList *pTabList;//from子句列表指针的声明
 	  ExprList *pEList;//表达式列表的声明
-	  struct SrcList_item *pFrom;//实例化一个结构体
-	  sqlite3 *db = pParse->db;//数据库连接的定义
+	  struct SrcList_item *pFrom;//声明一个FROM子句列表项
+	  sqlite3 *db = pParse->db;//声明一个数据库连接
 
 	  if( db->mallocFailed  ){//检查内存分配问题
 		return WRC_Abort;//*如果内存分配错误，终止程序
 	  }
 	  if( NEVER(p->pSrc==0) || (p->selFlags & SF_Expanded)!=0 ){//没有from子句或标记符和SF_Expanded位运算相等
-		return WRC_Prune;//删除
+		return WRC_Prune;//返回WRC_Prune（删除）
 	  }
-	  p->selFlags |= SF_Expanded;//变量的位运算
-	  pTabList = p->pSrc;//FROM子句所指的赋值给FROM子句列表指针
-	  pEList = p->pEList;//获取表达式列表
+	  p->selFlags |= SF_Expanded;//将selFlags属性与SF_Expanded位或，再赋值给selFlags
+	  pTabList = p->pSrc;//将FROM子句赋值给FROM子句列表
+	  pEList = p->pEList;//再将SELECT结构体中表达式列表赋值给pEList
 
 	  /* Make sure cursor numbers have been assigned to all entries in
 	  ** the FROM clause of the SELECT statement.
@@ -3746,49 +3746,47 @@ static u8 minMaxQuery(Select *p){
 		if( pFrom->pTab!=0 ){//如果from表项中有表
 		  /* This statement has already been prepared.  There is no need
 		  ** to go further. */
-		  这个声明已经被事先执行，没有必要继续进行。
-		  assert( i==0 );//异常处理，加入断点。
-		  return WRC_Prune;//删除
+		  /*这条语句已经被事先执行，这里不需要再进一步执行了。*/
+		  assert( i==0 );//插入断点，如果i！=0，抛出错误信息。
+		  return WRC_Prune;//返回WRC_Prune（可删除标签）
 		}
-		if( pFrom->zName==0 ){
-		//若表名为空
+		if( pFrom->zName==0 ){/*如果表名为空*/
 	#ifndef SQLITE_OMIT_SUBQUERY
-		  Select *pSel = pFrom->pSelect;//将pFrom赋值给pSel
+		  Select *pSel = pFrom->pSelect;//将pFrom赋值给pSel，其实就是用SELECT语句替换表名
 		  /* A sub-query in the FROM clause of a SELECT *//*SELECT中FROM子句的子查询*/
-		  assert( pSel!=0 );//异常处理，加入断点
-		  assert( pFrom->pTab==0 );//异常处理，加入断点
-		  sqlite3WalkSelect(pWalker, pSel);//调用sqlite3WalkSelect函数
+		  assert( pSel!=0 );//插入断点，如果pSel=0，抛出错误信息
+		  assert( pFrom->pTab==0 );//插入断点，如果SQL表不为空，抛出错误信息。这是因为此时zName为空，pTab和zName一致，如果不为空，说明数据不一致
+		  sqlite3WalkSelect(pWalker, pSel);//pSel结构体中每个表达式都调用sqlite3WalkExpr
 		  pFrom->pTab = pTab = sqlite3DbMallocZero(db, sizeof(Table));//分配和表的大小相等的内存
-		  if( pTab==0 ) return WRC_Abort;//如果分配错误，则终止程序
+		  if( pTab==0 ) return WRC_Abort;//如果此时pTab为0，说明没有分配到，返回中止符号WRC_Abort
 		  pTab->nRef = 1;//pTab->nRef赋值为1
-		  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//将相关的信息打印出来赋给pTab->zName
-		  //遍历，查找优先的select
-		  while( pSel->pPrior ){ pSel = pSel->pPrior; }
-		  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//在表达式列表中查找列
-		  pTab->iPKey = -1;//置iPKey=-1，不用它做主键
-		  pTab->nRowEst = 1000000;//设置表的行数
-		  pTab->tabFlags |= TF_Ephemeral;//位运算，设置表的标记变量
+		  pTab->zName = sqlite3MPrintf(db, "sqlite_subquery_%p_", (void*)pTab);//将表pTab和字符串合并放到pTab设为表名
+		  while( pSel->pPrior ){ pSel = pSel->pPrior; }//遍历找到最优先执行的SELECT
+		  selectColumnsFromExprList(pParse, pSel->pEList, &pTab->nCol, &pTab->aCol);//根据语法分析树，SELECT结构体中表达式列表，表的列数和列表名，查找列
+		  pTab->iPKey = -1;//设置iPKey=-1，说明暂时不用aCol中下标为iPKey的列做主键
+		  pTab->nRowEst = 1000000;//将表的最大行设为1000000
+		  pTab->tabFlags |= TF_Ephemeral;//将表标记设为TF_Ephemeral（临时）
 	#endif
 		}else{
 		  /* An ordinary table or view name in the FROM clause *//*FROM语句中常规的表或视图名字*/
 		  assert( pFrom->pTab==0 );//异常处理，加入断点
 		  pFrom->pTab = pTab = 
 			sqlite3LocateTable(pParse,0,pFrom->zName,pFrom->zDatabase);//由语法解析，数据库连接，数据库名字定位所寻找的表
-		  if( pTab==0 ) return WRC_Abort;//不存在该表则终止
-		  pTab->nRef++;//自加
+		  if( pTab==0 ) return WRC_Abort;//如果没找到，返回中止标签（WRC_Abort）
+		  pTab->nRef++;//将pTab中的指针数加1
 	#if !defined(SQLITE_OMIT_VIEW) || !defined (SQLITE_OMIT_VIRTUALTABLE)
 		  if( pTab->pSelect || IsVirtual(pTab) ){//若表中SELECT非空或pTab是虚表
 			/* We reach here if the named table is a really a view *//*到达这一步，如果，说明这个表是一个真正的视图*/
-			if( sqlite3ViewGetColumnNames(pParse, pTab) ) return WRC_Abort;//获取视图列名，若有错误，终止
-			assert( pFrom->pSelect==0 );//异常处理，加入断点
-			pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);//深拷贝
-			sqlite3WalkSelect(pWalker, pFrom->pSelect);/*调用sqlite3WalkSelect和sqlite3WalkExpr
+			if( sqlite3ViewGetColumnNames(pParse, pTab) ) return WRC_Abort;//将视图的名装入Tabel表结构中，返回的是执行错误次数，如果有错误，返回中止执行标记
+			assert( pFrom->pSelect==0 );//插入断点，如果pFfom表达式列表中SELECT不为空，抛出错误信息
+			pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);//将Table结构体pSelect copy 给pSelect
+			sqlite3WalkSelect(pWalker, pFrom->pSelect);/*表达式列表pFrom中每个表达式都调用sqlite3WalkExpr
 		  }
 	#endif
 		}
 
 		/* Locate the index named by the INDEXED BY clause, if any. *//*在索引子句中定位到索引的名字*/
-		if( sqlite3IndexedByLookup(pParse, pFrom) ){//查找索引
+		if( sqlite3IndexedByLookup(pParse, pFrom) ){//在表达式列表中查找索引名，如果产生错误，返回错误个数
 		  return WRC_Abort;//再返回中止执行标记
 		}
 	  }
@@ -3796,7 +3794,7 @@ static u8 minMaxQuery(Select *p){
 	  /* Process NATURAL keywords, and ON and USING clauses of joins.
 	  *//*处理连接中的NATURAL关键字 ON USING*/
 	  if( db->mallocFailed || sqliteProcessJoin(pParse, p) ){//内存分配失败或者处理连接操作
-		return WRC_Abort;//中止
+		return WRC_Abort;//再返回中止执行标记
 	  }
 
 	  /* For every "*" that occurs in the column list, insert the names of
@@ -3819,9 +3817,9 @@ static u8 minMaxQuery(Select *p){
 	  for(k=0; k<pEList->nExpr; k++){
 		Expr *pE = pEList->a[k].pExpr;/*表达式列表数组中的每个元素赋值给pe*/
 		if( pE->op==TK_ALL ) break;/*如果操作为聚集操作*/
-		assert( pE->op!=TK_DOT || pE->pRight!=0 );//异常处理，加入断点
-		assert( pE->op!=TK_DOT || (pE->pLeft!=0 && pE->pLeft->op==TK_ID) );//异常处理，加入断点
-		if( pE->op==TK_DOT && pE->pRight->op==TK_ALL ) break;//满足条件，跳出循环体
+		assert( pE->op!=TK_DOT || pE->pRight!=0 );//插入断点，如果操作为TK_DOT或者表达式的最右边表达式不存在，抛出错误信息
+		assert( pE->op!=TK_DOT || (pE->pLeft!=0 && pE->pLeft->op==TK_ID) );//插入断点，如果操作为TK_DOT或者最右边表达式有ID不存在，抛出错误信息
+		if( pE->op==TK_DOT && pE->pRight->op==TK_ALL ) break;//如果操作为TK_DOT并且右子树的操作为TK_ALL，直接break
 	  }
 	  if( k<pEList->nExpr ){//若k的值小于表达式列表的个数
 		/*
@@ -3830,10 +3828,10 @@ static u8 minMaxQuery(Select *p){
 		** in the result set and expand them one by one.
 		//到了这一步，表明结果集包含一个或多个的*操作，这些操作是需要扩展的。循环处理每一个结果集中的表达式并且扩展它们*/
 	
-		struct ExprList_item *a = pEList->a;//ExprList_item结构体对象的赋值
+		struct ExprList_item *a = pEList->a;//将表达式列表中放表达式的数组赋值给表达式列表项的表达式数组
 		ExprList *pNew = 0;//*定义一个表达式列表
-		int flags = pParse->db->flags;//解析器中标记变量
-		int longNames = (flags & SQLITE_FullColNames)!=0//flags为SQLITE_FullColNames并且不包含SQLITE_ShortColNames
+		int flags = pParse->db->flags;//将语法解析树中数据库连接的标记赋值给flags
+		int longNames = (flags & SQLITE_FullColNames)!=0//如果flags为SQLITE_FullColNames并且不包含SQLITE_ShortColNames，赋值给longNames
 						  && (flags & SQLITE_ShortColNames)==0;
 
 		//遍历表达式列表
@@ -3843,38 +3841,38 @@ static u8 minMaxQuery(Select *p){
 		  if( pE->op!=TK_ALL && (pE->op!=TK_DOT || pE->pRight->op!=TK_ALL) ){
 			/* This particular expression does not need to be expanded.
 			//这种特殊的表达不需要扩展*/
-			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//追加
-			if( pNew ){//pnew非空
-			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//数组元素表名属性赋值
-			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//数组元素的zSpan属性赋值
-			  a[k].zName = 0;//置0
-			  a[k].zSpan = 0;//置0
+			pNew = sqlite3ExprListAppend(pParse, pNew, a[k].pExpr);//将表达式pExpr添加到pParse中的pNew中，并赋值给pNew
+			if( pNew ){//如果上局的赋值不为空
+			  pNew->a[pNew->nExpr-1].zName = a[k].zName;//将表达式数组中的元素的表名赋值表达式列表中的表达式中的表名
+			  pNew->a[pNew->nExpr-1].zSpan = a[k].zSpan;//将表达式数组中的元素的范围赋值给pNew->a[pNew->nExpr-1].zSpan
+			  a[k].zName = 0;//再将表达式项ExprList_item中的表达式的表名设为0
+			  a[k].zSpan = 0;//将表达式项ExprList_item中的表达式的范围设为0
 			}
-			a[k].pExpr = 0;//置0
+			a[k].pExpr = 0;//将整个表达式置为0
 		  }else{
 			/* This expression is a "*" or a "TABLE.*" and needs to be
 			** expanded.这个表达式是一个*或者是左连接，它们是需要被扩展的  */
 			int tableSeen = 0;      /* Set to 1 when TABLE matches *///正确匹配的时候设置为1
 			char *zTName;            /* text of name of TABLE *///表的文本名
-			if( pE->op==TK_DOT ){
-			  assert( pE->pLeft!=0 );//异常处理，加入断点
-			  assert( !ExprHasProperty(pE->pLeft, EP_IntValue) );//异常处理，加入断点
-			  zTName = pE->pLeft->u.zToken;//表达式左边的u.zToken赋值给文本
+			if( pE->op==TK_DOT ){/*如果操作为TK_DOT*/
+			  assert( pE->pLeft!=0 );//插入断点，如果表达式左子树为空，抛出错误信息
+			  assert( !ExprHasProperty(pE->pLeft, EP_IntValue) );//插入断点，如果表达式左子树没有EP_IntValue属性，抛出错误信息
+			  zTName = pE->pLeft->u.zToken;//将表达式左子树的标记赋值给表的文本名
 			}else{
 			  zTName = 0;//否则文本清空
 			}
-			//表达式列表的遍历
+			//遍历表达式列表
 			for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
-			  Table *pTab = pFrom->pTab;//定义表
-			  char *zTabName = pFrom->zAlias;//from子句的依赖关系
-			  if( zTabName==0 ){//为空
-				zTabName = pTab->zName;//直接赋表名
+			  Table *pTab = pFrom->pTab;//将FROM子句列表项中SQL表赋值给pTab
+			  char *zTabName = pFrom->zAlias;//将FROM子句列表项中依赖(alias指别名)赋值给zTabName
+			  if( zTabName==0 ){//如果上句赋值的结果为空
+				zTabName = pTab->zName;//将表名赋值给zTabName（因为表名zName与pFrom->pTab中SQL表名一致）
 			  }
 			  if( db->mallocFailed ) break;//内存分配失败，跳出循环体
-			  if( zTName && sqlite3StrICmp(zTName, zTabName)!=0 ){//表名非空，表名一致
+			  if( zTName && sqlite3StrICmp(zTName, zTabName)!=0 ){//如果zTName不为空，zTName与zTabName不一致
 				continue;//跳出本次循环
 			  }
-			  tableSeen = 1;//设置标记变量
+			  tableSeen = 1;//匹配上，将表标记置为1
 			  //遍历表中的列
 			  for(j=0; j<pTab->nCol; j++){
 				Expr *pExpr, *pRight;//声明表达式
@@ -3888,11 +3886,11 @@ static u8 minMaxQuery(Select *p){
 				** result-set list.
 				*//*如果有一列标记为隐藏，当前只能对虚表，在扩展的结果集中不包括它。*/
 				if( IsHiddenColumn(&pTab->aCol[j]) ){//判断列是否被隐藏
-				  assert(IsVirtual(pTab));//异常处理，加入断点
+				  assert(IsVirtual(pTab));//插入断点，如果表不是虚表，抛出错误信息
 				  continue;//跳过本次循环
 				}
 
-				if( i>0 && zTName==0 ){
+				if( i>0 && zTName==0 ){/*如果i>0并且表的文本名为空*/
 				  if( (pFrom->jointype & JT_NATURAL)!=0/*连接类型为JT_NATURAL*/
 					&& tableAndColumnIndex(pTabList, i, zName, 0, 0)/*并且表与列索引不为空*/
 				  ){
@@ -3908,26 +3906,26 @@ static u8 minMaxQuery(Select *p){
 				}
 				pRight = sqlite3Expr(db, TK_ID, zName);//调用sqlite3Expr函数，分配列zName一个TK_ID标记
 				zColname = zName;//对列名的赋值
-				zToFree = 0;
-				if( longNames || pTabList->nSrc>1 ){
+				zToFree = 0;/*释放已分配的字符串*/
+				if( longNames || pTabList->nSrc>1 ){/*如果longNames（全称）不为空或表大于1*/
 				  Expr *pLeft;//声明表达式
-				  pLeft = sqlite3Expr(db, TK_ID, zTabName); //调用sqlite3Expr函数，分配列zTabName一个TK_ID标记
-				  pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);//调用sqlite3PExpr用来处理pLeft和pRight
-				  if( longNames ){//全路径
-					zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);//输出列名
-					zToFree = zColname;//获取列名
+				  pLeft = sqlite3Expr(db, TK_ID, zTabName); //sqlite3Expr分配给表名zTabName的TK_ID标记一个表达式，并返回给pLeft
+				  pExpr = sqlite3PExpr(pParse, TK_DOT, pLeft, pRight, 0);//分配两个表达式的标记TK_DOT一个表达式，并赋值给pExpr
+				  if( longNames ){//如果全称路径存在
+					zColname = sqlite3MPrintf(db, "%s.%s", zTabName, zName);//打印出列名返回给zColname
+					zToFree = zColname;//已分配的字符串zToFree值为zColname
 				  }
 				}else{
 				  pExpr = pRight;//pright赋值给最后的表达式
 				}
-				pNew = sqlite3ExprListAppend(pParse, pNew, pExpr);//pExpr追加到pNew
-				sColname.z = zColname;//赋值
-				sColname.n = sqlite3Strlen30(zColname);//列名的字符串长度
-				sqlite3ExprListSetName(pParse, pNew, &sColname, 0);//设置表达式列表的名字
-				sqlite3DbFree(db, zToFree);//释放内存空间
+				pNew = sqlite3ExprListAppend(pParse, pNew, pExpr);//将表达式pExpr添加到pParse中的pNew中，并赋值给pNew
+				sColname.z = zColname;//将赋值zColname给列名sColname.z
+				sColname.n = sqlite3Strlen30(zColname);//限制列名的位数不能超多30
+				sqlite3ExprListSetName(pParse, pNew, &sColname, 0);//设置pNew中列名sColname
+				sqlite3DbFree(db, zToFree);//释放数据库连接中存放zToFree标记的内存
 			  }
 			}
-			if( !tableSeen ){
+			if( !tableSeen ){/*如果没有匹配上*/
 			  if( zTName ){//列名不为空
 				sqlite3ErrorMsg(pParse, "no such table: %s", zTName);//打印错误信息
 			  }else{
@@ -3936,8 +3934,8 @@ static u8 minMaxQuery(Select *p){
 			}
 		  }
 		}
-		sqlite3ExprListDelete(db, pEList);//删除表达式列表
-		p->pEList = pNew;//赋值
+		sqlite3ExprListDelete(db, pEList);//删除数据库连接中的pEList表达式列表
+		p->pEList = pNew;//将pNew赋值给表达式列表pEList
 	  }
 	#if SQLITE_MAX_COLUMN
 	  if( p->pEList && p->pEList->nExpr>db->aLimit[SQLITE_LIMIT_COLUMN] ){//列溢出，表达式不为空
@@ -3962,8 +3960,8 @@ static u8 minMaxQuery(Select *p){
 	** 然后Walker.xSelectCallback 为语法解析树中的每一个子查询提供帮助。
 	*/
 	static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
-	  UNUSED_PARAMETER2(NotUsed, NotUsed2);
-	  return WRC_Continue;//继续执行
+	  UNUSED_PARAMETER2(NotUsed, NotUsed2);/*如果NotUsed2没有使用，并驻留在函数中。输出警告信息。*/
+	  return WRC_Continue;//返回继续执行标识符
 	}
 
 	/*
@@ -3987,10 +3985,10 @@ static u8 minMaxQuery(Select *p){
 	*/
 	static void sqlite3SelectExpand(Parse *pParse, Select *pSelect){
 	  Walker w;//Walker结构体的声明
-	  w.xSelectCallback = selectExpander;
+	  w.xSelectCallback = selectExpander;/*调用一个selectExpander函数给回调函数xSelectCallback（调用SELECT的函数）*/
 	  w.xExprCallback = exprWalkNoop;//若表达式含有未使用的信息，调用回调函数
-	  w.pParse = pParse;//赋值
-	  sqlite3WalkSelect(&w, pSelect);//回调函数，调用sqlite3WalkSelect
+	  w.pParse = pParse;//将参数中语法解析树pParse赋值给w.pParse
+	  sqlite3WalkSelect(&w, pSelect);//pSelect中每个表达式均调用sqlite3WalkExpr，表达式使用回调函数
 	}
 
 
@@ -4016,24 +4014,24 @@ static u8 minMaxQuery(Select *p){
 	** 这个例程实在解析标识之后调用的
 	*/
 	static int selectAddSubqueryTypeInfo(Walker *pWalker, Select *p){
-	  Parse *pParse;//语法解析器的声明
+	  Parse *pParse;//声明一个语法解析树
 	  int i;//声明一个整型变量
 	  SrcList *pTabList;//声明from子句的表达式列表
-	  struct SrcList_item *pFrom;//构造结构体对象
+	  struct SrcList_item *pFrom;//声明表达式列表项
 
-	  assert( p->selFlags & SF_Resolved );//异常处理，加入断点
-	  if( (p->selFlags & SF_HasTypeInfo)==0 ){//检查标记变量和类型信息
-		p->selFlags |= SF_HasTypeInfo;//位运算
-		pParse = pWalker->pParse;//语法解析树
-		pTabList = p->pSrc;
+	  assert( p->selFlags & SF_Resolved );//插入断点，如果SELECT中selFlags不为SF_Resolved（已解析）就抛出错误信息
+	  if( (p->selFlags & SF_HasTypeInfo)==0 ){//如果selFlags不为SF_HasTypeInfo
+		p->selFlags |= SF_HasTypeInfo;//将selFlags与SF_HasTypeInfo位与再赋值给selFlags
+		pParse = pWalker->pParse;//解析调用的语法解析树
+		pTabList = p->pSrc;/*将SELECT中FROM子句赋值给FROM子句表达式列表*/
 		//遍历列表的表达式
 		for(i=0, pFrom=pTabList->a; i<pTabList->nSrc; i++, pFrom++){
-		  Table *pTab = pFrom->pTab;//获取from子句中的列表
-		  if( ALWAYS(pTab!=0) && (pTab->tabFlags & TF_Ephemeral)!=0 ){//判断条件
+		  Table *pTab = pFrom->pTab;//将FROM子句表达式列表中表赋值给pTab
+		  if( ALWAYS(pTab!=0) && (pTab->tabFlags & TF_Ephemeral)!=0 ){//如果pTab不为空，并且tabFlags不是TF_Ephemeral（临时表）
 			/* A sub-query in the FROM clause of a SELECT 在from子句中的子查询*/
 			Select *pSel = pFrom->pSelect;//获取select语句
-			assert( pSel );//异常处理，加入断点
-			while( pSel->pPrior ) pSel = pSel->pPrior;//循环获取最优先的查询
+			assert( pSel );//插入断点，如果pSel为空，抛出错误信息
+			while( pSel->pPrior ) pSel = pSel->pPrior;//递归得出SELECT中最优先查询的子查询SELECT
 			selectAddColumnTypeAndCollation(pParse, pTab->nCol, pTab->aCol, pSel);//添加列的类型和相关的信息
 		  }
 		}
@@ -4050,15 +4048,15 @@ static u8 minMaxQuery(Select *p){
 	**
 	** Use this routine after name resolution.
 	*/
-	/* 在所有from子句的子查询中的表结构中添加datatype和排序信息到SELECT中子查询的所有FROM子句的TABLE结构中。
+        /* 这段程序添加datatype 和 排列序列信息到SELECT中子查询的所有FROM子句的TABLE结构中。
 	** 在名字解析后使用这段程序*/
 	static void sqlite3SelectAddTypeInfo(Parse *pParse, Select *pSelect){
 	#ifndef SQLITE_OMIT_SUBQUERY
 	  Walker w;//声明一个Walker结构体
-	  w.xSelectCallback = selectAddSubqueryTypeInfo;//子查询类型信息给回调函数
-	  w.xExprCallback = exprWalkNoop;//表达式信息给回调函数
-	  w.pParse = pParse;//解析器
-	  sqlite3WalkSelect(&w, pSelect);//回调函数，调用sqlite3WalkSelect
+	  w.xSelectCallback = selectAddSubqueryTypeInfo;//调用查询类型信息给回调函数
+	  w.xExprCallback = exprWalkNoop;//将表达式信息赋值给回调函数的表达式。
+	  w.pParse = pParse;//将语法解析树赋值给w.pParse
+	  sqlite3WalkSelect(&w, pSelect);//pSelect结构体中每个表达式都调用sqlite3WalkExpr，每个表达式均可使用回调函数
 	#endif
 	}
 
@@ -4080,22 +4078,22 @@ static u8 minMaxQuery(Select *p){
 	**   * ON 和 USING 子句切换到WHERE语句
 	**   * 结果集中扩展通配符"*" 和 "TABLE左连接"
 	**   * 在表达式中的标识符相匹配的表
-	** 这个例程以递归的方式对所有子查询
+	** 在SELECT中递归执行所有的子查询
 	*/
 	void sqlite3SelectPrep(
 	  Parse *pParse,         /* The parser context *///定义解析器
-	  Select *p,             /* The SELECT statement being coded. *///声明select类型的指针
-	  NameContext *pOuterNC  /* Name context for container *///为容器命名
+	  Select *p,             /* The SELECT statement being coded. *///编写SELECT语句
+	  NameContext *pOuterNC  /* Name context for container *///针对容器的命名上下文
 	){
 	  sqlite3 *db;//声明一个sqlite类型的数据库连接
-	  if( NEVER(p==0) ) return;//空指针，直接返回
-	  db = pParse->db;//获取语法解析器中的数据库
-	  if( p->selFlags & SF_HasTypeInfo ) return;//标识变量和类型信息的判断
-	  sqlite3SelectExpand(pParse, p);//扩展
-	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败
-	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//解析上下文
-	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败
-	  sqlite3SelectAddTypeInfo(pParse, p);//向解析树添加语法信息
+	  if( NEVER(p==0) ) return;//如果SELECT为空，直接返回
+	  db = pParse->db;//将语法解析树中的数据库赋值给db
+	  if( p->selFlags & SF_HasTypeInfo ) return;//如果SELECT结构体中的selFlags为SF_HasTypeInfo，直接返回。因为已含类型信息
+	  sqlite3SelectExpand(pParse, p);//查找SELECT中的扩展符号
+	  if( pParse->nErr || db->mallocFailed ) return;//如果解析树中有错误或者分配内存出错也返回
+	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//解析SELECT中命名上下文
+	  if( pParse->nErr || db->mallocFailed ) return;//如果解析后解析树中有错误或者分配内存出错也返回
+	  sqlite3SelectAddTypeInfo(pParse, p);//添加SELECT类型信息到语法解析树中
 	}
 
 	/*
