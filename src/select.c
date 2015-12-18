@@ -2832,7 +2832,7 @@ static int multiSelectOrderBy(
 }
 #endif
 
-//汤海婷
+//付烨
 
 #if !defined(SQLITE_OMIT_SUBQUERY) || !defined(SQLITE_OMIT_VIEW)//宏定义
 /* Forward Declarations *//*预先声明*/
@@ -2876,24 +2876,24 @@ static Expr *substExpr(
 
 	if (pExpr->op == TK_COLUMN && pExpr->iTable == iTable){
 
-		if (pExpr->iColumn<0){//表达式列数溢出
-			pExpr->op = TK_NULL;//赋值为空
+		if (pExpr->iColumn<0){//如果表达式列数小于0
+			pExpr->op = TK_NULL;//返回TK_NULL（标记列为空）
 		}
 		else{
 			Expr *pNew;//声明一个新的指向表达式的指针
-			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//异常处理，表达式不为空，并且列数小于表达式列表中表达式的个数，条件不成立则抛出
+			assert(pEList != 0 && pExpr->iColumn<pEList->nExpr);//插入断点，判断表达式不为空，并且列数小于表达式列表中表达式的个数，条件不成立则抛出
 			assert(pExpr->pLeft == 0 && pExpr->pRight == 0);//异常处理，表达式的左右子树为空，条件不成立抛出断点
-			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//深拷贝
+			pNew = sqlite3ExprDup(db, pEList->a[pExpr->iColumn].pExpr, 0);//深度copy表达式返回给pNew
 			if (pNew && pExpr->pColl){//若pNew不为空且表达式的排序序列不为空成立，执行
-				pNew->pColl = pExpr->pColl;//全局变量赋值
+				pNew->pColl = pExpr->pColl;//令新表达式的排序序列等于当前全局表达式的排序序列
 			}
-			sqlite3ExprDelete(db, pExpr);//调用数据库中表达式删除函数
-			pExpr = pNew;//全局变量赋值
+			sqlite3ExprDelete(db, pExpr);//删除数据库连接中的pExpr表达式
+			pExpr = pNew;//将pNew赋值给当前全局表达式的排序序列
 		}
 	}
 	else{
-		pExpr->pLeft = substExpr(db, pExpr->pLeft, iTable, pEList);//递归调用substExpr函数
-		pExpr->pRight = substExpr(db, pExpr->pRight, iTable, pEList);//递归调用substExpr函数
+		pExpr->pLeft = substExpr(db, pExpr->pLeft, iTable, pEList);//递归调用自身函数，将表达式中左节点赋值给表达式pExpr的左节点
+		pExpr->pRight = substExpr(db, pExpr->pRight, iTable, pEList);//递归调用自身函数，将表达式中右节点赋值给表达式pExpr的右节点
 		if (ExprHasProperty(pExpr, EP_xIsSelect)){//调用函数ExprHasProperty判断表达式pExpr是否进行EP_xIsSelect查询
 			substSelect(db, pExpr->x.pSelect, iTable, pEList);//调用substSelect函数，对pExpr->x.pSelect中Select语句进行处理
 		}
@@ -3123,7 +3123,7 @@ static int flattenSubquery(
 	int isAgg,           /* True if outer SELECT uses aggregate functions *//*外部查询如果用了聚集函数，则为TRUE*/
 	int subqueryIsAgg    /* True if the subquery uses aggregate functions *//*子查询如果使用了聚集函数，则为TRUE*/
 	){
-	const char *zSavedAuthContext = pParse->zAuthContext;/*声明常变量对语法解析树中的上下文进行赋值*/
+	const char *zSavedAuthContext = pParse->zAuthContext;/*将语法解析树中的上下文赋值给zSavedAuthContext*/
 	Select *pParent;
 	Select *pSub;       /* The inner query or "subquery" *//*声明变量 pSub用来表明内查询或子查询变量*/
 	Select *pSub1;      /* Pointer to the rightmost select in sub-query *//*声明pSub1变量，用来表示指向子查询中最右边的查询*/
@@ -3142,7 +3142,7 @@ static int flattenSubquery(
 	assert(p->pPrior == 0);  // Unable to flatten compound queries *//*不能扁平化的复合查询，加入断点，异常处理
 	if (db->flags & SQLITE_QueryFlattener) return 0;//如果数据连接中值为SQLITE_QueryFlattener且标记变量db->flags均符合条件，执行下一步 
 	pSrc = p->pSrc;/*获取查询结构体中from子句*/
-	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//异常处理，加入断点不满足条件，则抛出异常
+	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//插入断点，如果pSrc为空或FROM索引小于0或FROM索引大于等于FROM个数，就抛出警告信息
 	pSubitem = &pSrc->a[iFrom];//FROM子句中数组索引地址赋值给子查询pSubitem
 	iParent = pSubitem->iCursor;//获取子查询的游标号
 	pSub = pSubitem->pSelect;//获取当前的子查询或内查询
@@ -3617,17 +3617,17 @@ static u8 minMaxQuery(Select *p){
 	** does match this pattern, then a pointer to the Table object representing
 	** <tbl> is returned. Otherwise, 0 is returned.
 	*/
-	/* 作为第一个参数传递的 select 语句是聚集查询。* * 第二个参数是相关联的聚集信息对象。
-	** 
-	** SELECT count(*) FROM <tbl>
-	** 这个表是数据库中的表，它不是一个子查询的结果也不是一个视图。如果查询和模式匹配，那么就有个指向Table对象代表<tab>的指针返回。
-	** 否则就返回0
+        /* 查询语句传递的第一个参数是聚集查询，第二个参数是相关的聚集信息对象。
+	** 这个功能的作用是测试查询语句是否是如下格式：
+	**   SELECT count(*) FROM <tbl>
+	** 当这个表是数据库中的表，不是子查询结果或视图。如果查询和模式匹配，
+	** 那么就有一个指向该Table对象表示<tb1>的指针返回，否则返回0。
 	*/
 	static Table *isSimpleCount(Select *p, AggInfo *pAggInfo){//两个参数，其中p是查询语法树，pAggInfo是聚集函数结构体
-	  Table *pTab;//声明一个表
-	  Expr *pExpr;//声明一个表达式
+	  Table *pTab;//初始化一个表
+	  Expr *pExpr;//初始化一个表达式
 
-	  assert( !p->pGroupBy );//异常处理，加入断点，进行判断检查
+	  assert( !p->pGroupBy );//断言判断 !p->pGroupBy
 
 	  if( p->pWhere || p->pEList->nExpr!=1 //含WHERE子句或者表达式的个数不等于1
 	   || p->pSrc->nSrc!=1 || p->pSrc->a[0].pSelect//或者FROM子句不等于1或者有嵌套查询
