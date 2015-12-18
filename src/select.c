@@ -4109,32 +4109,32 @@ static u8 minMaxQuery(Select *p){
 	/* 聚集函数的重新设置
 	** 聚集累加器是一组记忆单元，它能在计算一个聚集的时候保存中间结果集。这段程序生成的代码在所有的记忆单元中存储了空值
 	*/
-	static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){
-	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性
+	static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){/*重置聚合累加器，传递两个参数：解析器指针变量，AggInfo指针变量*/
+	  Vdbe *v = pParse->pVdbe;//定义一个Vdbe指针变量，指向解析器的pVdbe域
 	  int i;//声明一个变量
-	  struct AggInfo_func *pFunc;//声明一个AggInfo_func结构体对象
-	  if( pAggInfo->nFunc+pAggInfo->nColumn==0 ){
+	  struct AggInfo_func *pFunc;//定义一个结构体变量指针pFunc，指向AggInfo_func类型
+	  if( pAggInfo->nFunc+pAggInfo->nColumn==0 ){/*判断参数的两个域内容和是否为0*/
 		return;
 	  }
 
 	  //遍历所有的列
-	  for(i=0; i<pAggInfo->nColumn; i++){
+	  for(i=0; i<pAggInfo->nColumn; i++){/*循环调用sqlite3VdbeAddOp2方法*/
 		sqlite3VdbeAddOp2(v, OP_Null, 0, pAggInfo->aCol[i].iMem);//操作处理
 	  }
 	  //聚集函数的遍历
-	  for(pFunc=pAggInfo->aFunc, i=0; i<pAggInfo->nFunc; i++, pFunc++){
+	  for(pFunc=pAggInfo->aFunc, i=0; i<pAggInfo->nFunc; i++, pFunc++){/*循环调用sqlite3VdbeAddOp2方法，参数和上面不同*/
 		sqlite3VdbeAddOp2(v, OP_Null, 0, pFunc->iMem);//操作处理
-		if( pFunc->iDistinct>=0 )
-		  Expr *pE = pFunc->pExpr;//获取AggInfo_func中的表达式
+		if( pFunc->iDistinct>=0 )/*判断是否去重*/
+		  Expr *pE = pFunc->pExpr;//表达式指针指向pFunc的pExpr域
 		  assert( !ExprHasProperty(pE, EP_xIsSelect) );//异常处理，加入断点
-		  if( pE->x.pList==0 || pE->x.pList->nExpr!=1 ){
+		  if( pE->x.pList==0 || pE->x.pList->nExpr!=1 ){/*判断表达式的x域的pList属性值是否为0或pList的下一表达式域是否为1*/
 			sqlite3ErrorMsg(pParse, "DISTINCT aggregates must have exactly one "
-			   "argument");//打印错误信息
-			pFunc->iDistinct = -1;//临时表置为-1（无效）
+			   "argument");//调用sqlite3ErrorMsg方法弹出错误信息
+			pFunc->iDistinct = -1;//将pFunc的iDistinct域置为-1
 		  }else{
-			KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);//从表达式列表中获取信息
+			KeyInfo *pKeyInfo = keyInfoFromExprList(pParse, pE->x.pList);//调用keyInfoFromExprList方法，传递两个参数，将返回值赋值给KeyInfo类型的指针变量
 			sqlite3VdbeAddOp4(v, OP_OpenEphemeral, pFunc->iDistinct, 0, 0,
-							  (char*)pKeyInfo, P4_KEYINFO_HANDOFF);//添加了一个操作符OP_OpenEphemeral
+							  (char*)pKeyInfo, P4_KEYINFO_HANDOFF);//调用sqlite3VdbeAddOp4方法
 		  }
 		}
 	  }
@@ -4159,7 +4159,7 @@ static u8 minMaxQuery(Select *p){
 						  (void*)pF->pFunc, P4_FUNCDEF);//添加了一个操作符OP_OpenEphemeral
 	  }
 	}	
-
+/付烨结束
 /*
 ** Update the accumulator memory cells for an aggregate based on
 ** the current cursor position.
