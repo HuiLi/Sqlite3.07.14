@@ -401,27 +401,27 @@ static int columnIndex(Table *pTab, const char *zCol){/*定义静态的整型函
 ** 如果没有找到，返回FALSE。
 */
 static int tableAndColumnIndex(
-	SrcList *pSrc,       /* Array of tables to search 存放待查找的表的数组*/
-	int N,               /* Number of tables in pSrc->a[] to search 表的数目*/
-	const char *zCol,    /* Name of the column we are looking for 待查找的列名*/
-	int *piTab,          /* Write index of pSrc->a[] here 为表数组写索引*/
-	int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here 为表数组中某个表的列写索引*/
+	SrcList *pSrc,       /* Array of tables to search 定义对数据库中表进行搜索*/
+	int N,               /* Number of tables in pSrc->a[] to search 对所有的列进行遍历*/
+	const char *zCol,    /* Name of the column we are looking for 定义字符常量，标记寻找的列名*/
+	int *piTab,          /* Write index of pSrc->a[] here 定义写入索引的数据类型表名*/
+	int *piCol           /* Write index of pSrc->a[*piTab].pTab->aCol[] here 定义写入索引的数据类型列名*/
 	){
-	int i;               /* For looping over tables in pSrc 循环表数组中的表*/
-	int iCol;            /* Index of column matching zCol   匹配上的列的索引，第几列*/
+	int i;               /* For looping over tables in pSrc 为循环表中的遍历定义整型数据类型*/
+	int iCol;            /* Index of column matching zCol   定义索引要查找的列名*/
 
 	assert((piTab == 0) == (piCol == 0));  /* Both or neither are NULL  判断表索引和列索引是否都为空*/
-	for (i = 0; i < N; i++){/*遍历表数组中的列*/
-		iCol = columnIndex(pSrc->a[i].pTab, zCol); /*返回表的列的索引赋给iCol，如果该列没有在表中，iCol的值是-1.*/
-		if (iCol >= 0){/*如果列索引存在*/
-			if (piTab){/*如果表索引存在*/
-				*piTab = i;/*那么设置表的索引*/
-				*piCol = iCol;/*设置列索引*/
+	for (i = 0; i < N; i++){/*定义循环结构进行遍历表中元素*/  /*遍历所有的表*/
+		iCol = columnIndex(pSrc->a[i].pTab, zCol); /*搜索定位列中的元素*/  /*返回表的列的索引赋给iCol，如果该列没有在表中，iCol的值是-1..*/
+		if (iCol >= 0){/*判断列索引是否存在*/  /*如果列索引存在*/
+			if (piTab){/*判断表索引是否存在*/  /*如果表索引存在*/
+				*piTab = i;/*把i的值赋给表中的项*/ /*把i 赋给指针piTab 的目标变量*/
+				*piCol = iCol;/*把目标变量赋给指针变量*/ /*把iCol 赋值给指针piCol 的目标变量*/
 			}
-			return 1;/*否则返回1*/
+			return 1;/*执行结束返回1*/  /*否则返回1*/
 		}
 	}
-	return 0;/*空表返回0*/
+	return 0;/*执行结束返回0*/
 }
 
 /*
@@ -440,27 +440,28 @@ static int tableAndColumnIndex(
 **
 ** (tab1.col1 = tab2.col2)
 **
-** tab1是表集合pSrc中的第i个表，tab2是第i+1个表。col1是tab1中索引，col2 是tab2d的索。
+** tab1是SrcList pSrc的iSrc'th表，tab2是(iSrc+1)'th。列col1是tab1的iColLeft列，col2是
+** tab2的iColRight列
 */
-static void addWhereTerm(/*添加where子句解释含有JOIN语法句,从而解释select语句*/
-	Parse *pParse,                  /* Parsing context  语义分析*/
-	SrcList *pSrc,                  /* List of tables in FROM clause   from字句中的列表 */
-	int iLeft,                      /* Index of first table to join in pSrc  第一个连接的表索引 */
-	int iColLeft,                   /* Index of column in first table  第一个表的列索引*/
-	int iRight,                     /* Index of second table in pSrc  第二个连接的表索引*/
-	int iColRight,                  /* Index of column in second table  第二个表的列索引*/
-	int isOuterJoin,                /* True if this is an OUTER join  如果是外连接则返回true*/
-	Expr **ppWhere                  /* IN/OUT: The WHERE clause to add to  where子句添加到in/out*/
+static void addWhereTerm(/*定义增加查询语句函数*/
+	Parse *pParse,                  /* Parsing context  定义数组类型的指针元素*/
+	SrcList *pSrc,                  /* List of tables in FROM clause   定义SrcList类型指针 */
+	int iLeft,                      /* Index of first table to join in pSrc  定义整型的左连接 */
+	int iColLeft,                   /* Index of column in first table  定义整型的左连接行*/
+	int iRight,                     /* Index of second table in pSrc  定义整型的右连接*/
+	int iColRight,                  /* Index of column in second table  定义整型的右连接行*/
+	int isOuterJoin,                /* True if this is an OUTER join  定义整型的外连接*/
+	Expr **ppWhere                  /* IN/OUT: The WHERE clause to add to  定义添加where子句的内存地址*/
 	){
-	sqlite3 *db = pParse->db;/*声明一个数据库连接*/
-	Expr *pE1; /*定义结构体指针pE1*/
-	Expr *pE2; /*定义结构体指针pE2*/
-	Expr *pEq; /*定义结构体指针pEq*/
+	sqlite3 *db = pParse->db;/*给数据库中的元素赋值*/
+	Expr *pE1; /*定义结构体中的指针元素*pE1*/
+	Expr *pE2; /*定义结构体中的指针元素*pE2*/
+	Expr *pEq; /*定义结构体中的指针元素*pE3*/
 
-	assert(iLeft<iRight);/*判断左表的索引值是否小于右的索引值*/
-	assert(pSrc->nSrc>iRight);/*判断表集合中的表的数目是否大于右表的索引值*/
-	assert(pSrc->a[iLeft].pTab);/*判断表集合中表中左表索引的表是否为空*/
-	assert(pSrc->a[iRight].pTab);/*判断表集合中表中右表索引的表是否为空*/
+	assert(iLeft<iRight);/*调用assert函数，所有元素向左移*/ /*判断如果第一个表索引值是否小于第二个表索引值*/
+	assert(pSrc->nSrc>iRight);/*调用assert函数，所有元素向右移*/ /*定义结构体中的指针元素*pE1*/ /*判断表集合中的表的数目是否大于右表的索引值*/
+	assert(pSrc->a[iLeft].pTab);/*调用assert函数，所有元素向左移进表中*/ /*判断表集合中表中左表索引的表是否为空*/
+	assert(pSrc->a[iRight].pTab);/*调用assert函数，所有元素向右移进表中*/ /*判断表集合中表中右表索引的表是否为空*/
 
 	pE1 = sqlite3CreateColumnExpr(db, pSrc, iLeft, iColLeft);/*分配并返回一个表达式指针去加载表集合中左表的一个列索引*/
 	pE2 = sqlite3CreateColumnExpr(db, pSrc, iRight, iColRight);/*分配并返回一个表达式指针去加载表集合中右表的一个列索引*/
@@ -511,14 +512,14 @@ static void addWhereTerm(/*添加where子句解释含有JOIN语法句,从而解�
 ** where 子句需要推迟处理t1.x=5，直到t2循环连接完毕。通过这种方式,每当t1.x!=5时，一个NULL t2行将被加入。
 **如果我们没有延时处理t1.x=5，将会在t1循环完后立刻被处理，列t1.x!=5永远不会输出，这是不正确的。
 */
-static void setJoinExpr(Expr *p, int iTable){/*函数setJoinExpr的参数列表为结构体指针p，整型iTable*/
-	while (p){/*当p为真时循环*/
-		ExprSetProperty(p, EP_FromJoin);/*设置join中使用ON和USING子句*/
-		assert(!ExprHasAnyProperty(p, EP_TokenOnly | EP_Reduced));/*判断表达式的属性，关于表达式的长度和剩余长度*/
-		ExprSetIrreducible(p);/*调试表达式，判读是否错误*/
-		p->iRightJoinTable = (i16)iTable;/*连接右表，即参数中传入的表，把整型iTable强制类型转换为i16型，并将其赋值给p->iRightJoinTable*/
-		setJoinExpr(p->pLeft, iTable);/*递归调用自身*/
-		p = p->pRight;/*赋值表达式，原来p的右子节点赋值给p*/
+static void setJoinExpr(Expr *p, int iTable){/*定义静态连接函数，调用元素的值*/  /*函数setJoinExpr的参数列表为结构体指针p，整型iTable*/
+	while (p){/*定义循环函数进行查找元素*/ /*当p为真时循环*/
+		ExprSetProperty(p, EP_FromJoin);/*调用递归函数进行赋值*/ /*设置join中使用ON和USING子句*/
+		assert(!ExprHasAnyProperty(p, EP_TokenOnly | EP_Reduced));/*调用递归函数进行判断*/ /*判断表达式的属性，关于表达式的长度和剩余长度*/
+		ExprSetIrreducible(p);/*函数调用进行赋值*/ /*调试表达式，判读是否错误*/
+		p->iRightJoinTable = (i16)iTable;/*访问内存单元进行赋值*/ /*连接右表，即参数中传入的表*/
+		setJoinExpr(p->pLeft, iTable);/*调用连接函数进行赋值连接*/ /*递归调用自身*/
+		p = p->pRight;/*给指针向右方赋值*/ /*赋值表达式，将p赋值成为原来p的右子节点*/
 	}
 }
 
@@ -542,40 +543,40 @@ static void setJoinExpr(Expr *p, int iTable){/*函数setJoinExpr的参数列表�
 ** This routine returns the number of errors encountered.
 ** 这个程序返回遇到错误的数量
 */
-static int sqliteProcessJoin(Parse *pParse, Select *p){/*处理select语句的连接信息,传入分析树pParse，Select结构体p*/
-	SrcList *pSrc;                  /* All tables in the FROM clause   from子句中的所有表*/
-	int i, j;                       /* Loop counters  循环计数器*/
-	struct SrcList_item *pLeft;     /* Left table being joined   左表被加入*/
-	struct SrcList_item *pRight;    /* Right table being joined   右表被加入*/
+static int sqliteProcessJoin(Parse *pParse, Select *p){/*定义静态整型进程函数，传值*/ /*传入分析树pParse，Select结构体p**/
+	SrcList *pSrc;                  /* All tables in the FROM clause   对所有的列进行遍历*/
+	int i, j;                       /* Loop counters  定义循环计数器*/
+	struct SrcList_item *pLeft;     /* Left table being joined   定义结构体左指针项目*/
+	struct SrcList_item *pRight;    /* Right table being joined   定义结构体右指针项目*/
 
-	pSrc = p->pSrc;/*把p->pSrc赋值给结构体指针pSrc*/
-	pLeft = &pSrc->a[0];/*把&pSrc->a[0]放入左表*/
-	pRight = &pLeft[1];/*把&pLeft[1]放入右表*/
-	for (i = 0; i < pSrc->nSrc - 1; i++, pRight++, pLeft++){/*循环表数组中所有表*/
-		Table *pLeftTab = pLeft->pTab;/*把pLeft->pTab赋给结构体指针pLeftTab,作为左表*/
-		Table *pRightTab = pRight->pTab;/*把pRight->pTab赋给结构体指针pRightTab,作为右表*/
-		int isOuter;/*用于判断*/
+	pSrc = p->pSrc;/*遍历结构体中的内存单元*/
+	pLeft = &pSrc->a[0];/*遍历结构体中的内存单元左表*/
+	pRight = &pLeft[1];/*遍历结构体中的内存单元右表*/
+	for (i = 0; i < pSrc->nSrc - 1; i++, pRight++, pLeft++){/*利用循环遍历结构体中的所有元素*/
+		Table *pLeftTab = pLeft->pTab;/*逐个访问表中的左向元素*/
+		Table *pRightTab = pRight->pTab;/*逐个访问表中的右向元素*/
+		int isOuter;/*定义判断的标记*/ /*用于判断*/
 
-		if (NEVER(pLeftTab == 0 || pRightTab == 0)) continue;/*如果左表或右表有一个为空则跳出本次循环*/
-		isOuter = (pRight->jointype & JT_OUTER) != 0;/*右表的连接类型交外连接类型不为空，再赋值给isOute属性值*/
+		if (NEVER(pLeftTab == 0 || pRightTab == 0)) continue;/*判断左右表是否为空*/ /*如果左表或右表有一个为空则跳出本次循环*/
+		isOuter = (pRight->jointype & JT_OUTER) != 0;/*判断是否存在外部连接*/ /*右表的连接类型交外连接类型不为空，再赋值给isOute属性值*/
 
 		/* When the NATURAL keyword is present, add WHERE clause terms for
 		** every column that the two tables have in common.
 		** 当natural关键字存在，并且WHERE子句的条件为两个表中有相同列。
 		*/
-		if (pRight->jointype & JT_NATURAL){/*如果右表的连接类型是自然连接*/
-			if (pRight->pOn || pRight->pUsing){/*如果右表有ON或USING子句*/
+		if (pRight->jointype & JT_NATURAL){/*判断左右连接是否存在*/ /*如果右表的连接类型是自然连接*/
+			if (pRight->pOn || pRight->pUsing){/*判断右表中是否有要查找的元素*/ /*如果右表有ON或USING子句*/
 				sqlite3ErrorMsg(pParse, "a NATURAL join may not have "
-					"an ON or USING clause", 0);/*那么就输出，自然连接中不能含有ON USING子句*/
+					"an ON or USING clause", 0);/*设置抛出异常的语句*/ /*那么就输出，自然连接中不能含有ON USING子句*/
 				return 1;
 			}
-			for (j = 0; j < pRightTab->nCol; j++){/*循环遍历右表中的列*/
-				char *zName;   /* Name of column in the right table 右表中列的名字*/
-				int iLeft;     /* Matching left table 匹配左表*/
-				int iLeftCol;  /* Matching column in the left table 在左表中匹配列*/
+			for (j = 0; j < pRightTab->nCol; j++){/*查找成功返回1*/
+				char *zName;   /* Name of column in the right table 定义字符型名字*/
+				int iLeft;     /* Matching left table 定义左向连接符*/
+				int iLeftCol;  /* Matching column in the left table 定义左向连接符列*/
 
 				zName = pRightTab->aCol[j].zName;/*给列名赋值*/
-				if (tableAndColumnIndex(pSrc, i + 1, zName, &iLeft, &iLeftCol)){/*如果存在左表的列的索引*/
+				if (tableAndColumnIndex(pSrc, i + 1, zName, &iLeft, &iLeftCol)){/*逐个访问数组中的元素*/
 					addWhereTerm(pParse, pSrc, iLeft, iLeftCol, i + 1, j,
 						isOuter, &p->pWhere);/*添加WHERE子句，设置左右表、列和连接方式*/
 				}
@@ -585,7 +586,7 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*处理select语句的�
 		/* Disallow both ON and USING clauses in the same join
 		** 不允许在同一个连接中使用on和using子句
 		*/
-		if (pRight->pOn && pRight->pUsing){/*如果右表中既有ON又有USING*/
+		if (pRight->pOn && pRight->pUsing){/*判断左右连接是否可用  如果结构体指针pRight引用的成员变量錺On和pUsing非空*/
 			sqlite3ErrorMsg(pParse, "cannot have both ON and USING "
 				"clauses in the same join");/*语法树中将会报错”*/
 			return 1;
@@ -595,10 +596,10 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*处理select语句的�
 		** an AND operator.
 		** 将on子句添加到where子句的末尾，用and操作符连接
 		*/
-		if (pRight->pOn){/*如果右表中有ON关键字*/
-			if (isOuter) setJoinExpr(pRight->pOn, pRight->iCursor);/*如果有外连接，设置连接表达式中ON子句和游标*/
-			p->pWhere = sqlite3ExprAnd(pParse->db, p->pWhere, pRight->pOn);/*设置将WHERE子句与ON子句连接一起，赋值给结构体的WHERE*/
-			pRight->pOn = 0;/*如果没有外连接，就设置不使用ON子句*/
+		if (pRight->pOn){/*如果结构体指针pRight引用的成员变量pOn非空*/
+			if (isOuter) setJoinExpr(pRight->pOn, pRight->iCursor);/*判断是否存在外连接*/ /*如果有外连接，设置连接表达式中ON子句和游标*/
+			p->pWhere = sqlite3ExprAnd(pParse->db, p->pWhere, pRight->pOn);/*利用where语句进行查找*/  /*设置将WHERE子句与ON子句连接一起，赋值给结构体的WHERE*/
+			pRight->pOn = 0;/*把0赋值给表中的右向元素*/ /*如果没有外连接，就设置不使用ON子句*/
 		}
 
 		/* Create extra terms on the WHERE clause for each column named
@@ -612,14 +613,15 @@ static int sqliteProcessJoin(Parse *pParse, Select *p){/*处理select语句的�
 		** where子句:A.X=B.X AND A.Y=B.Y AND A.Z=B.Z
 		** 如果using子句中提到的任何列不包含在表的连接中，就会报告
 		** 一个错误。
+		TODO 分析
 		*/
-		if (pRight->pUsing){/*如果右表中含有USING*/
-			IdList *pList = pRight->pUsing;/*将右表中的USING赋值给标示符列表*/
-			for (j = 0; j < pList->nId; j++){/*遍历标示符列表*/
-				char *zName;     /* Name of the term in the USING clause  USING子句在标示符列表中的名字*/
-				int iLeft;       /* Table on the left with matching column name   左表与匹配的列名*/
-				int iLeftCol;    /* Column number of matching column on the left  左表匹配列的列数*/
-				int iRightCol;   /* Column number of matching column on the right  右表匹配列的列数*/
+		if (pRight->pUsing){/*逐个访问表中的右表中的元素*/
+			IdList *pList = pRight->pUsing;/*把表中的元素逐个遍历*/
+			for (j = 0; j < pList->nId; j++){/*用循环遍历表中元素*/
+				char *zName;     /* Name of the term in the USING clause  用字符串定义表名*/
+				int iLeft;       /* Table on the left with matching column name   左边的表与匹配*/
+				int iLeftCol;    /* Column number of matching column on the left  左边的表与匹配的列名*/
+				int iRightCol;   /* Column number of matching column on the right  右边的表与匹配的列名*/
 
 				zName = pList->a[j].zName;/*标示符列表中的标示符*/
 				iRightCol = columnIndex(pRightTab, zName);/*根据右表和标示符右表的待匹配的列索引返回列号*/
