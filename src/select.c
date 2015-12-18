@@ -782,7 +782,7 @@ static int checkForMultiColumnSelectError(  /*定义静态整型函数查错*/ /
 ** 如果取数据的表和列都是0，那么pEList表达式为了获得行数据进行赋值。
 ** 如果srcTab（源表）中列数>0，那么数据从srcTab中拿出，pEList只用于从每一列获得数据类型。
 */
-static void selectInnerLoop(/*select内连接循环*/
+static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循环*/
 	Parse *pParse,          /* The parser context 语义分析*/
 	Select *p,              /* The complete select statement being coded 完整的select语句被编码*/
 	ExprList *pEList,       /* List of values being extracted  输出结果列的语法树*/
