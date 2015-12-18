@@ -680,12 +680,12 @@ static void pushOntoSorter(/*定义静态函数更新数据*/ /*推进记录到�
 			iLimit = pSelect->iLimit; /*用表中的数据进行赋值*/  /*否则等于默认的，从第一个开始计算*/
 		}
 		addr1 = sqlite3VdbeAddOp1(v, OP_IfZero, iLimit); /*用地址名传值*/  /*这个地址是结果限制了返回的条数，给的新的指令地址*/
-		sqlite3VdbeAddOp2(v, OP_AddImm, iLimit, -1);/*将指令放到当前使用的VDBE，然后返回一个地址*/
-		addr2 = sqlite3VdbeAddOp0(v, OP_Goto);/*这个是使用Goto语句之后返回的地址*/
-		sqlite3VdbeJumpHere(v, addr1);/*改变addr1的地址，以便VDBE指向下一条指令的地址*/
-		sqlite3VdbeAddOp1(v, OP_Last, pOrderBy->iECursor);/*将ORDERBY指令放到当前使用的虚拟机中，返回Last操作的地址*/
-		sqlite3VdbeAddOp1(v, OP_Delete, pOrderBy->iECursor);/*将ORDERBY指令放到当前使用的虚拟机中，返回Delete操作的地址*/
-		sqlite3VdbeJumpHere(v, addr2);/*改变addr2的地址，以便VDBE指向下一条指令的地址*/
+		sqlite3VdbeAddOp2(v, OP_AddImm, iLimit, -1); /*调用添加函数进行传值*/ /*将指令放到当前使用的VDBE，然后返回一个地址*/
+		addr2 = sqlite3VdbeAddOp0(v, OP_Goto);/*把添加函数传的值赋给地址addr2*/ /*这个是使用Goto语句之后返回的地址*/
+		sqlite3VdbeJumpHere(v, addr1);/*调用连接函数传值*/ /*改变addr1的地址，以便VDBE指向下一条指令的地址*/
+		sqlite3VdbeAddOp1(v, OP_Last, pOrderBy->iECursor); /*调用添加函数传值*/ /*将ORDERBY指令放到当前使用的虚拟机中，返回Last操作的地址*/
+		sqlite3VdbeAddOp1(v, OP_Delete, pOrderBy->iECursor); /*再次调用添加函数传值*/ /*将ORDERBY指令放到当前使用的虚拟机中，返回Delete操作的地址*/
+		sqlite3VdbeJumpHere(v, addr2); /*调用连接函数进行传值*/ /*改变addr2的地址，以便VDBE指向下一条指令的地址*/
 	}
 }
 
@@ -693,18 +693,18 @@ static void pushOntoSorter(/*定义静态函数更新数据*/ /*推进记录到�
 ** Add code to implement the OFFSET
 ** 添加代码来实现offset偏移
 */
-static void codeOffset(/*实现offset偏移量功能*/
-	Vdbe *v,          /* Generate code into this VM  在虚拟器中生成代码*/
-	Select *p,        /* The SELECT statement being coded  select语句被编码*/
-	int iContinue     /* Jump here to skip the current record  从这里跳过当前记录*/
+static void codeOffset( /*定义静态偏移函数*/ /*实现offset偏移量功能*/
+	Vdbe *v,         /*定义数据库类型指针*/  /* Generate code into this VM  在虚拟器中生成代码*/
+	Select *p,        /*定义选择类型指针*/ /* The SELECT statement being coded  select语句被编码*/
+	int iContinue   /*定义整型连接符号*/   /* Jump here to skip the current record  从这里跳过当前记录*/
 	){
-	if (p->iOffset && iContinue != 0){/*如果Select结构体中含有IOffset属性值并且设置了跳过当前记录*/
-		int addr;
-		sqlite3VdbeAddOp2(v, OP_AddImm, p->iOffset, -1);/*在VDBE中新添加一条指令，返回一个新指令的地址*/
-		addr = sqlite3VdbeAddOp1(v, OP_IfNeg, p->iOffset);/*实质上调用sqlite3VdbeAddOp3（）修改指令的地址*/
-		sqlite3VdbeAddOp2(v, OP_Goto, 0, iContinue);/*设置跳往的地址*/
-		VdbeComment((v, "skip OFFSET records"));/*输入偏移量记录*/
-		sqlite3VdbeJumpHere(v, addr);/*改变指定地址的操作，使其指向下一条指令的地址编码*/
+	if (p->iOffset && iContinue != 0){ /*判断偏移量*/ /*如果Select结构体中含有IOffset属性值并且设置了跳过当前记录*/
+		int addr; /*定义整型地址传值*/
+		sqlite3VdbeAddOp2(v, OP_AddImm, p->iOffset, -1);/*调用添加函数传值*/ /*在VDBE中新添加一条指令，返回一个新指令的地址*/
+		addr = sqlite3VdbeAddOp1(v, OP_IfNeg, p->iOffset); /*传递调用函数传来的值*/ /*实质上调用sqlite3VdbeAddOp3（）修改指令的地址*/
+		sqlite3VdbeAddOp2(v, OP_Goto, 0, iContinue); /*调用添加函数传值*/ /*设置跳往的地址*/
+		VdbeComment((v, "skip OFFSET records")); /*调用函数进行传值*/ /*输入偏移量记录*/
+		sqlite3VdbeJumpHere(v, addr); /*调用连接函数传值*/ /*改变指定地址的操作，使其指向下一条指令的地址编码*/
 	}
 }
 
@@ -719,26 +719,26 @@ static void codeOffset(/*实现offset偏移量功能*/
 ** stack if the top N elements are not distinct.
 ** 如果N+1个值突然从栈中弹出，其中N个值是不唯一的，那么将会产生大量重复的地址（addrRepeat）
 */
-static void codeDistinct(/*去重*/
-	Parse *pParse,     /* Parsing and code generating context 语义和代码生成*/
-	int iTab,          /* A sorting index used to test for distinctness 一个排列索引用于唯一性的测试*/
-	int addrRepeat,    /* Jump to here if not distinct 如果没有“去除重复”跳到此处*/
-	int N,             /* Number of elements 元素数目*/
-	int iMem           /* First element 第一个元素*/
+static void codeDistinct( /*定义静态删除重复代码*/ /*去重*/
+	Parse *pParse,      /*定义数组指针*/ /* Parsing and code generating context 语义和代码生成*/
+	int iTab,         /*定义整型制表符*/  /* A sorting index used to test for distinctness 一个排列索引用于唯一性的测试*/
+	int addrRepeat,    /*定义地址定位记录*/ /* Jump to here if not distinct 如果没有“去除重复”跳到此处*/
+	int N,             /*定义记录数目N*/ /* Number of elements 元素数目*/
+	int iMem           /*定义整型菜单目录项*/ /* First element 第一个元素*/
 	){
-	Vdbe *v;/*虚拟机*/
-	int r1;
+	Vdbe *v; /*定义虚拟机的型号*/ /*虚拟机*/
+	int r1; /*定义整型数据*/
 
-	v = pParse->pVdbe;/*声明一个处理数据库字节码的引擎*/
-	r1 = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果，返回的整数赋给r1.*/
-	sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N);/*把操作的值看成整数，然后添加这个操作符到虚拟机中*/
-	sqlite3VdbeAddOp3(v, OP_MakeRecord, iMem, N, r1);/*调用sqlite3VdbeAddOp3（）修改指令的地址*/
-	sqlite3VdbeAddOp2(v, OP_IdxInsert, iTab, r1);/*实际也是使用sqlite3VdbeAddOp3()只是参数变为前4个，修改指令的地址*/
-	sqlite3ReleaseTempReg(pParse, r1);/*解除寄存器,sqlite3GetTempReg()分配的*/
+	v = pParse->pVdbe; /*定义数组指针赋值*/ /*声明一个处理数据库字节码的引擎*/
+	r1 = sqlite3GetTempReg(pParse); /*传递函数值*/  /*分配一个新的寄存器用于控制中间结果，返回的整数赋给r1.*/
+	sqlite3VdbeAddOp4Int(v, OP_Found, iTab, addrRepeat, iMem, N); /*调用增加函数进行传值*/ /*把操作的值看成整数，然后添加这个操作符到虚拟机中*/
+	sqlite3VdbeAddOp3(v, OP_MakeRecord, iMem, N, r1); /*再次调用增加函数进行传值*/ /*调用sqlite3VdbeAddOp3（）修改指令的地址*/
+	sqlite3VdbeAddOp2(v, OP_IdxInsert, iTab, r1); /*定义增加函数进行传值*/ /*实际也是使用sqlite3VdbeAddOp3()只是参数变为前4个，修改指令的地址*/
+	sqlite3ReleaseTempReg(pParse, r1); /*释放函数传值*/ /*解除寄存器,sqlite3GetTempReg()分配的*/
 		
 	}
 
-#ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
+#ifndef SQLITE_OMIT_SUBQUERY /*结束宏定义*/ /*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
 /*
 ** Generate an error message when a SELECT is used within a subexpression
 ** (example:  "a IN (SELECT * FROM table)") but it has more than 1 result
@@ -749,22 +749,26 @@ static void codeDistinct(/*去重*/
 ** 因为它有不止一个结果列。我们在子程序中这样做是因为错误通常发生在多个地方。
 ** 现在这个错误只在一处发生，但是我们依然保留这个子程序最小化代码中断。
 */
-static int checkForMultiColumnSelectError(/*如果select中有不止一个结果列将会产生错误*/
-	Parse *pParse,       /* Parse context. 语义分析 */
-	SelectDest *pDest,   /* Destination of SELECT results   select结果的集合*/
-	int nExpr            /* Number of result columns returned by SELECT  结果列的数目由select返回*/
+static int checkForMultiColumnSelectError(  /*定义静态整型函数查错*/ /*如果select中有不止一个结果列将会产生错误*/
+	Parse *pParse,      /*定义数组类型指针*/  /* Parse context. 语义分析 */
+	SelectDest *pDest,   /*定义数据库型数据类型*/ /* Destination of SELECT results   select结果的集合*/
+	int nExpr           /*定义整型数据标志*/ /* Number of result columns returned by SELECT  结果列的数目由select返回*/
 	){
-	int eDest = pDest->eDest;/*处理结果集*/
-	if (nExpr > 1 && (eDest == SRT_Mem || eDest == SRT_Set)){/*如果结果集大于1并且select的结果集是SRT_Mem或SRT_Set*/
+	int eDest = pDest->eDest; /*给整型数据赋地址值*/ /*处理结果集*/
+	if (nExpr > 1 && (eDest == SRT_Mem || eDest == SRT_Set)){  /*如果结果集大于1并且select的结果集是SRT_Mem或SRT_Set*/
 		sqlite3ErrorMsg(pParse, "only a single result allowed for "
-			"a SELECT that is part of an expression");/*在语法分析树中写一个错误信息*/
-		return 1;/*此处返回1，因为有select结果集，只不过可能大于1*/
+			"a SELECT that is part of an expression"); /*抛出错误异常*/ /*在语法分析树中写一个错误信息*/
+		return 1; /*返回值结束*/ /*此处返回1，因为有select结果集，只不过可能大于1*/
 	}
 	else{
-		return 0;/*如果没有满足条件，只返回0*/
+		return 0; /*退出函数*/ /*如果没有满足条件，只返回0*/
 	}
 }
-#endif/*终止if*/
+#endif /*结束函数*/ /*终止if*/
+
+
+
+   
 
 /*
 ** This routine generates the code for the inside of the inner loop
