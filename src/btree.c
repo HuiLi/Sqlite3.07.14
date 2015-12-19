@@ -5680,12 +5680,12 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
   assert( (pIdxKey==0)==(pCur->pKeyInfo==0) );
 
   /* If the cursor is already positioned at the point we are trying
-  ** to move to, then just return without doing any work 
+   to move to, then just return without doing any work 
 <<<<<<< HEAD
-  ** 如果游标已经在要移到的点,则返回不作操作*/ 
+  */ /* 如果游标已经在要移到的点,则返回不作操作*/ 
  /* 【赵大成】 如果指针已经在我们想要移到的位置，那就返回不做任何工作*/
 =======
-  /** 如果游标已经在要移到的点,则返回不作操作*/  
+  /* 如果游标已经在要移到的点,则返回不作操作*/  
 >>>>>>> panguangzhen/master
   if( pCur->eState==CURSOR_VALID && pCur->validNKey 
    && pCur->apPage[0]->intKey 
@@ -8779,6 +8779,8 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** 如果页面包含要删除的条目不是叶子页面,移动游标到树中比要删除条目小的最大的条目.
   ** 这个单元将取代从内部节点被删除的单元.以前的条目用于此代替“next”条目,因为前面
   ** 的条目总是要删除单元的孩子页带领的子树的一部分.这使得删除操作后树的平衡造作更容易.*/
+  /* 移动节点使树更平衡 让接下来的删除操作更简单
+  */
   if( !pPage->leaf ){
     int notUsed;
     rc = sqlite3BtreePrevious(pCur, &notUsed);  //逐步使游标回到数据库中以前的条目
@@ -8792,12 +8794,16 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** 在任何修改之前,保存所有其他在此表上开放的游标的位置.使页面包含要删除的可写的条目.
   ** 然后释放任何与条目相关的溢出页,最后删除页面内的单元本身.
   */
+  /* 在做任何修改之前存储这个表上其他打开的游标的位置，是这个包含删除条目
+	的页面可写，释放这个待删除条目上所有溢出页买最后从页面移除该条目
+  */
   rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);/*修改之前保存所有打开的游标*/
   if( rc ) return rc;
 
   /* If this is a delete operation to remove a row from a table b-tree,
   ** invalidate any incrblob cursors open on the row being deleted.  
   ** 如果是从一个B树表中删除一行的删除操作,使在行上被删除的打开的任何incrblob游标无效.*/
+  
   if( pCur->pKeyInfo==0 ){
     invalidateIncrblobCursors(p, pCur->info.nKey, 0);/*如果为删除操作,使所有incrblob游标无效*/
   }
@@ -8815,6 +8821,9 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** node to replace the deleted cell. 
   ** 如果删除单元并不位于叶子页面,然后游标当前指向子树中的最大的条目,这个条目在子树中被从
   ** 一个内部节点中删除的单元的孩子页面跟从.叶节点的单元需要移动到内部节点替换删除的单元.*/
+  /* 如果被删除的条目不在叶子页面上，游标正指向这个条目子树的头结点，此时
+	删除的结点是非叶子结点，要将这个条目的叶子结点移动到此处 替换被删除的
+	结点*/
   if( !pPage->leaf ){
     MemPage *pLeaf = pCur->apPage[pCur->iPage];
     int nCell;
@@ -8913,6 +8922,9 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 	** 创建一个新表可能要移动一个存在的数据库来为新表的根页腾出空间.加入该页是一个溢出页,那么删除开放性游标
 	** 拥有的所有溢出页映射缓存.
     */
+	/* 创建一个新表，可能需要数据库为其根页腾出空间，如果这个页为溢出页，删除
+		所有游标所指向的溢出页映射
+    */
     invalidateAllOverflowCache(pBt); //在共享B树结构pBt上,对所有打开的游标使溢出页列表无效
 
     /* Read the value of meta[3] from the database to determine where the
@@ -8926,6 +8938,7 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
     /* The new root-page may not be allocated on a pointer-map page, or the
     ** PENDING_BYTE page. //新根页也许没有在指针位图页或PENDING_BYTE页上分配.
     */
+	/*新的根页不能分配到pointer-map page或者PENDING_BYTE page*/
     while( pgnoRoot==PTRMAP_PAGENO(pBt, pgnoRoot) ||
         pgnoRoot==PENDING_BYTE_PAGE(pBt) ){
       pgnoRoot++;/*新的根页不能是pointer-map page或者PENDING_BYTE page*/
@@ -8937,6 +8950,8 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
     ** to reside at pgnoRoot).
 	** 分配一个页.当前驻留在 pgnoRoot上页将移动到分配的页(除非分配的页已经驻留在 pgnoRoot中).
     */
+	/*分配一个页面，这个目前在pgnoroot中的页面将要被移动到所分配的页面
+		pgnoMove处*/
     rc = allocateBtreePage(pBt, &pPageMove, &pgnoMove, pgnoRoot,1);//从数据库文件分配一个新页面,成功则返回SQLITE_OK
     if( rc!=SQLITE_OK ){
       return rc;
@@ -8951,12 +8966,15 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 	  ** pgnoRoot是将被用作新表根页的页面(假设没有发生错误的话).但分配pgnoMove.
 	  ** 如果需要(即如果没有被扩展文件分配),那么当前页面位置pgnoMove记录到日志.
       */
+	  /* pgnroot将要被用作新表的根页，但是pgnomove已经被分配。如果需要，
+		pgnomove上的页面已经被记入日志*/
       u8 eType = 0;
       Pgno iPtrPage = 0;
 
       releasePage(pPageMove);
 
       /* Move the page currently at pgnoRoot to pgnoMove. */  //移动当前在pgnoRoot的页面到pgnoMove.
+	  /* 将pgnoRoot上的页面移动到pgnoMove. */
       rc = btreeGetPage(pBt, pgnoRoot, &pRoot, 0); //从页对象得到一个页.若需要,则初始化MemPage.pBt和MemPage.aData
       if( rc!=SQLITE_OK ){
         return rc;
@@ -8993,6 +9011,7 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 
     /* Update the pointer-map and meta-data with the new root-page number. */
 	//更新带有新根页的指针位图和元数据
+	/* 更新pointer-map和meta-data 为新的根页的序号*/
     ptrmapPut(pBt, pgnoRoot, PTRMAP_ROOTPAGE, 0, &rc);
     if( rc ){
       releasePage(pRoot);
@@ -9043,6 +9062,9 @@ int sqlite3BtreeCreateTable(Btree *p, int *piTable, int flags){
 ** Erase the given database page and all its children.  Return
 ** the page to the freelist.
 ** 擦除给定的数据库页和其所有孩子节点.返回页到列表页.
+*/
+/*
+	清空所给页面和他的所有子页面，将页面返回到自由队列
 */
 static int clearDatabasePage(    //擦除给定的数据库页和其所有孩子节点.返回页到列表页.
   BtShared *pBt,           /* The BTree that contains the table */          //包含表的B树
@@ -9106,6 +9128,12 @@ cleardatabasepage_out:
 /*
 删除B-tree中所有的数据,但保持B-tree结构完整.
 */
+/*
+删除表中中所有的数据，iTabbe是所有表根页的数目，函数执行以后根页为空
+但是仍然存在
+
+当有打开的读游标在表上时执行失败，有写游标时将游标移动到根页
+*/
 int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //删除B-tree中所有的数据,但保持B-tree结构完整
   int rc;
   BtShared *pBt = p->pBt;
@@ -9150,6 +9178,8 @@ int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //删除B-tree
 ** 这对于AUTOVACUUM正常工作是有必要的.*piMoved被设置为移动之前文件中是最后根页的页码.如果没有页要移动,
 ** 则*piMoved设为0.最后的根页是记录在meta[3]中并且meta[3]的值在这个过程中被更新.
 */
+/*清空表后将表放入自由队列，如果这个表有任何打开的游标在上面，则执行失败
+*/
 static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上的所有信息并且添加标的根到空闲列表
   int rc;
   MemPage *pPage = 0;
@@ -9166,6 +9196,10 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
   ** 如果数据库上的任何游标开放了,那么操作是非法的.这是因为在auto-vacum模式下后端可能需要移动
   ** 另外一个根页来填充通过删除根页留下的缝隙.如果一个打开的游标在页上正在使用,那么将会出现问题.
   ** This error is caught long before control reaches this point.
+  */
+  /*如果有任何打开的游标在数据库上，就不能删除数据库，因为在auto-vacuum
+	模式中，可能会移动一个新的根页到刚删除的根页，如果正好有一个
+	打开的游标在上面，将会出现一个错误
   */
   if( NEVER(pBt->pCursor) ){
     sqlite3ConnectionBlocked(p->db, pBt->pCursor->pBtree->db);
@@ -9196,6 +9230,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
         ** number in the database, put the root page on the free list. 
 		** 如果被删除的表是数据库中有最大根页码的表,那么把根页放到空闲列表.
         */
+		/* 如果iTable == maxRootPgno 那么吧根页放到空闲列表
+        */
         freePage(pPage, &rc);
         releasePage(pPage);
         if( rc!=SQLITE_OK ){
@@ -9206,6 +9242,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
         ** number in the database. So move the page that does into the 
         ** gap left by the deleted root-page.
 		** 在数据库中被删除的表没有最大的根页码,因此移动页到因删除根页而产生的缝隙处.
+        */
+		/* 如果iTable < maxRootPgno 就移动页到刚删除的根页
         */
         MemPage *pMove;
         releasePage(pPage);
@@ -9235,6 +9273,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
 	  ** 在数据库头部设置新的max-root-page的值.这是原来的值减一,如果是在根页码上要少不止1.
 	  ** 如果是PENDING_BYTE_PAGE再次减1.
       */
+	  /* 在数据库文件头中将最大根页数减1
+      */
       maxRootPgno--;
       while( maxRootPgno==PENDING_BYTE_PAGE(pBt)
              || PTRMAP_ISPAGE(pBt, maxRootPgno) ){
@@ -9259,7 +9299,6 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
   }
   return rc;  
 }
-
 int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //删除数据库中的一个B树
   int rc;
   sqlite3BtreeEnter(p);
@@ -9287,6 +9326,8 @@ int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //删除数据�
 /*如果b-tree连接一个读或写事务,这个函数可能被调用.从数据库文件中读出meta-information.
 Meta[0]是数据库中的自由页.Meta[1]可以被用户通过meta[15]访问.Meta[0]为只读,其余为读写.
 */
+/*这个架构层面上所有元数据都不同
+*/
 void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件的元数据信息
   BtShared *pBt = p->pBt;
 
@@ -9303,6 +9344,9 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件�
   /*
   ** 如果在构建中auto-vacuum为不可用状态且是auto-vacuum数据库,标记数据库为只读.
   */
+  /*
+如果auto-vacuum为禁止状态，数据库是auto-vacuum数据库，标记数据库为只读数据库。
+  */
 #ifdef SQLITE_OMIT_AUTOVACUUM
   if( idx==BTREE_LARGEST_ROOT_PAGE && *pMeta>0 ){
     pBt->btsFlags |= BTS_READ_ONLY;
@@ -9318,6 +9362,9 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件�
 */
 /*
 ** 把meta-information写回数据库.Meta[0]为只读且可能不会被写.
+*/
+/*
+把元信息写回数据库。Meta[0]为只读，不能被写。
 */
 
 int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //把meta-information写回数据库,更新元数据
@@ -9357,6 +9404,10 @@ int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //把meta-information
 第一个参数pCur,是B树上一个打开的游标.给B树上的条目计数,把结果写到*pnEntry.
 如果操作成功执行,则返回 SQLITE_OK,反之返回SQLite错误代码(例如I/O错误或数据库崩溃).
 */
+/*
+第一个参数pCur，是b-tree上一个打开的光标。给 b-tree 上的入口计数，把结果写到*pnEntry里面。
+如果操作成功执行，则返回 SQLITE_OK，反之返回SQLite error code。
+*/
 int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
   i64 nEntry = 0;                      /* Value to return in *pnEntry */   //要写入到*pnEntry的值
   int rc;                              /* Return code */                   //返回代码
@@ -9371,6 +9422,7 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
   ** page in the B-Tree structure (not including overflow pages). 
   */
   /*除非错误发生,以下循环在每一个B-Tree结构中执行一次迭代,但不包括溢出页*/
+  /*除非错误发生，以下循环在每一个B-Tree中每个page执行，除了溢出页*/
   while( rc==SQLITE_OK ){
     int iIdx;              /* Index of child node in parent */  //父节点的孩子节点的索引
     MemPage *pPage;        /* Current page of the b-tree */     //B树的当前页
@@ -9382,6 +9434,10 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
     /*
      如果这是一个叶子页,或者B树上关键字不是整型的,那么这个页包含可数的条目.相应地增加
      条目的数量.
+	*/
+	/*
+     如果这是一个叶子页，或者B树上关键字不是整型的，那么这个页包含可数的入口。相应地增加
+     入口的计数。
 	*/
     pPage = pCur->apPage[pCur->iPage];
     if( pPage->leaf || !pPage->intKey ){
@@ -9560,7 +9616,7 @@ static void checkPtrmap(           //核对从页iChild映射到页iParent的指
 ** Check the integrity of the freelist or of an overflow page list.
 ** Verify that the number of pages on the list is N.
 ** 检查空闲列表或溢出页列表的完整性.查证列表上的页数是N.
-*/
+
 
 static void checkList(        //检查空闲列表或溢出页列表的完整性
   IntegrityCk *pCheck,  /* Integrity checking context */                         //上下文完整性检查
@@ -9621,6 +9677,7 @@ static void checkList(        //检查空闲列表或溢出页列表的完整性
 	  ** 如果数据库支持auto-vacuum并且iPage不是溢出链表中的最后一页,检查匹配下一页与
 	  ** iPage匹配的指针位图条目.
 	  */
+	  
       if( pCheck->pBt->autoVacuum && N>0 ){
         i = get4byte(pOvflData);
         checkPtrmap(pCheck, i, PTRMAP_OVERFLOW2, iPage, zContext);
@@ -9745,7 +9802,7 @@ static int checkTreePage(    //在树的一个单独的页上进行检查
       checkList(pCheck, 0, pgnoOvfl, nPage, zContext);  //检查空闲列表或溢出页列表的完整性
     }
 
-    /* Check sanity of left child page. */    //核对左孩子
+       /* Check sanity of left child page. */    //核对左孩子
     if( !pPage->leaf ){
       pgno = get4byte(pCell);
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -9889,6 +9946,8 @@ static int checkTreePage(    //在树的一个单独的页上进行检查
 ** 写错误数量在*pnErr中可见.除了一些内存错误,如果*pnErr非零,一个从malloc中获得的错误信息保存在内存.*pnErr==0,
 ** 返回NULL.内存分配错误返回NULL.
 */
+/*将错误写到*pnErr中，如果*pnErr==0或者内存分配错误则返回NULL
+*/
 char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整性的检查
   Btree *p,     /* The btree to be checked */                             //要被检查的B树
   int *aRoot,   /* An array of root pages numbers for individual trees */ //一个树的根页码数组
@@ -10001,6 +10060,9 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整性的检查
 /* 返回底层数据库文件中完整的路径名.如果该数据库为内存数据库,或者为临时数据库,
 ** 返回空的字符串.pager的文件名是不变的只要pager是开放的,因此没有BtShared互斥锁也能安全访问.
 */
+/*
+只要pager是打开的，路径名就是不变的，所以可以安全的进入而不管BtShared的mutex参数
+*/
 const char *sqlite3BtreeGetFilename(Btree *p){    //返回底层数据库文件中完整的路径名
   assert( p->pBt->pPager!=0 );
   return sqlite3PagerFilename(p->pBt->pPager, 1);
@@ -10017,6 +10079,9 @@ const char *sqlite3BtreeGetFilename(Btree *p){    //返回底层数据库文件�
 /*
 ** 返回数据库中日志文件的路径名.无论日志文件是否被创建,程序返回值相同.
 ** pager日志文件名是不变的只要pager开放,因此没有BtShared互斥锁也能安全访问.
+*/
+/*
+只要pager是打开的，路径名就是不变的，所以可以安全的进入而不管BtShared的mutex参数
 */
 const char *sqlite3BtreeGetJournalname(Btree *p){  //返回数据库中日志文件的路径名
   assert( p->pBt->pPager!=0 );
@@ -10046,6 +10111,11 @@ int sqlite3BtreeIsInTrans(Btree *p){     //是否在事务中
 ** 有一个开放的事务,返回SQLITE_LOCKED,事务在被B树连接的共享在参数上.
 ** 参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一.
 */
+/*
+执行第一个参数代表的B树上的检查点
+如果其他链接在B树所连接的shared-cache上有打开的事物，返回SQLITE_LOCKED
+参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一。
+*/
 int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //执行B树上的检查点作为第一个参数传递
   int rc = SQLITE_OK;
   if( p ){
@@ -10065,6 +10135,9 @@ int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //执�
 /*
 ** Return non-zero if a read (or write) transaction is active.
 ** 如果读或写事务在活动,返回非零
+*/
+/*
+** 如果有读写事物，返回非0值
 */
 int sqlite3BtreeIsInReadTrans(Btree *p){
   assert( p );
@@ -10175,6 +10248,7 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //获得表的�
 ** 参数尝试写到现有数据的末尾,没有修改并返回SQLITE_CORRUPT.
 */
 /*仅仅数据内容能够被修改,不可能改变数据存储的长度.*/
+/*如果想超过现存数据的长度将返回错误*/
 int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //修改数据内容
   int rc;
   assert( cursorHoldsMutex(pCsr) );
@@ -10221,6 +10295,7 @@ int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //修改
 ** 这个函数只设置一个标志.实际页面位置缓存(存储在BtCursor.aOverflow[])分配和被accessPayload()使用
 ** (对函数sqlite3BtreeData()和sqlite3BtreePutData()有效).
 */  /*此函数在游标上设置一个标志,缓存溢出列表上的页*/
+/*真正的页面缓存位置由accessPayload()函数分配*/
 void sqlite3BtreeCacheOverflow(BtCursor *pCur){  //此函数在游标上设置一个溢出页缓存标志
   assert( cursorHoldsMutex(pCur) );
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
