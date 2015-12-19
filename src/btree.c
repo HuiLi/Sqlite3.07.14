@@ -5893,6 +5893,10 @@ int sqlite3BtreeEof(BtCursor *pCur){
   ** as well as the boolean result value.
   ** 假使游标在CURSOR_REQUIRESEEK但所有表项都被删除那会怎么样?这个API将需要更改返回一个错误代码以及布尔值.
   */
+  /*【白忠军】
+  如果光标在CURSOR_REQUIRESEEK中但所有表项被删除了将会怎么样?
+  这个API将会更改返回一个错误代码,以及结果的布尔值。
+  */
   return (CURSOR_VALID!=pCur->eState);
 }
 
@@ -5902,6 +5906,10 @@ int sqlite3BtreeEof(BtCursor *pCur){
 ** was already pointing to the last entry in the database before
 ** this routine was called, then set *pRes=1.
 ** 移动游标到数据库中的下一条目,如果成功设置*PRes=0.如果在调用这个函数时游标已经指向了最后一条目则设定*pRes=1.
+*/
+/*【白忠军】
+** 在数据库中推进光标到下一个条目。如果成功,则设置*pRes=0。
+如果在调用这个例程之前光标已经指向数据库中的最后一个条目,则设置*pRes=1。
 */
 int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //移动游标到数据库中的下一条目
   int rc;
@@ -5936,6 +5944,10 @@ int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //移动游标到数据库中
   ** page into more than one b-tree structure. 
   ** 如果数据库文件是损坏,idx的价值可能无效的.当游标pCur持有一个参数时如果第二个游标修改页面,
   ** 可能会出现文件损害.当连接页到多个B树结构时如果数据库以这样的方式崩溃那么这种情况会发生.*/
+  /* 【白忠军】如果数据库文件被破坏,idx的值有可能是无效的。
+  这只发生在第二个光标修改页面时,然而光标pCur持有它的一个引用。
+  如果数据库损坏这将以这种方式链接页面到多个b树结构。
+  */
   testcase( idx>pPage->nCell );
 
   pCur->info.nSize = 0;
@@ -5983,6 +5995,10 @@ int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //移动游标到数据库中
 ** 若函数被调用之前已经移到了第一个条目, *pRes=1
 */
 /*寻找数据库中以前的条目*/
+/*【白忠军】
+设置光标返回到数据库先前的条目。如果成功,则设置*pRes=0。
+如果光标在这程序被调用之前已经指向数据库中的第一个元条目,则设置*pRes=1。
+*/
 int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){   //逐步使游标回到数据库中以前的条目
   int rc;
   MemPage *pPage;
@@ -6062,6 +6078,21 @@ int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){   //逐步使游标回到�
 ** is only used by auto-vacuum databases when allocating a new table.
 ** 如果"exact"参数不是0,并且页码附近任何地方都存在在空闲列表,那么它保证了返回.这 只使用在auto-vacuum数据库分配一个新表时.
 */
+/*【白忠军】
+** 从数据库文件分配一个新页面
+**
+** 新页面被标记为脏。(换句话说,sqlite3PagerWrite()在新页面已经被调用)。
+新页面也被引用和调用例程负责在新页面调用sqlite3PagerUnref()。
+**
+** SQLITE_OK成功被返回。其他任何返回值显示一个错误。在错误发生的时候指针ppPage和pPgno是未定义的。
+如果错误被返回则不用指针ppPage调用sqlite3PagerUnref()。
+**
+** 如果“nearby”参数不为0,则努力定位一个页面去接近页码“nearby”。
+这可以试图在数据库文件中把相关页面接近彼此,从而可以使数据库访问速度更快。
+**
+** 如果“exact”参数不为0,并且页码附近在空闲列表上存在任何地方,那么它保证被返回。
+这只是被auto-vacuum数据库使用(在分配一个新表时)。
+*/
 static int allocateBtreePage(           //从数据库文件分配一个新页面,成功则返回SQLITE_OK
   BtShared *pBt, 
   MemPage **ppPage, 
@@ -6071,11 +6102,11 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
 ){
   MemPage *pPage1;
   int rc;
-  u32 n;     /* Number of pages on the freelist */                 //空闲列表上的页数
-  u32 k;     /* Number of leaves on the trunk of the freelist */   //空闲列表主干的叶子数
+  u32 n;     /* Number of pages on the freelist */                 //空闲列表上的页数/* 【白忠军】空闲列表的页面数量 */
+  u32 k;     /* Number of leaves on the trunk of the freelist */   //空闲列表主干的叶子数/* 【白忠军】空闲列表主干叶子数量 */
   MemPage *pTrunk = 0;
   MemPage *pPrevTrunk = 0;
-  Pgno mxPage;     /* Total size of the database file */           //数据库文件总的大小
+  Pgno mxPage;     /* Total size of the database file */           //数据库文件总的大小/* 【白忠军】数据库文件的总大小 */
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   pPage1 = pBt->pPage1;
@@ -6086,14 +6117,18 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     return SQLITE_CORRUPT_BKPT;
   }
   if( n>0 ){
-    /* There are pages on the freelist.  Reuse one of those pages. */        //空闲列表上有页,重新使用这些页
+    /* There are pages on the freelist.  Reuse one of those pages. */        //空闲列表上有页,重新使用这些页/* 【白忠军】在空闲列表有页面。重用其中的一个页面。*/
     Pgno iTrunk;
-    u8 searchList = 0; /* If the free-list must be searched for 'nearby' */  //'nearby'可以搜索空闲列表 
+    u8 searchList = 0; /* If the free-list must be searched for 'nearby' */  //'nearby'可以搜索空闲列表 /* 【白忠军】如果空闲列表必须寻找“nearby”*/
     
     /* If the 'exact' parameter was true and a query of the pointer-map
     ** shows that the page 'nearby' is somewhere on the free-list, then
     ** the entire-list will be searched for that page.
 	** 如果参数'exact'是true并且一个指针位图查询显示页'nearby'在空闲列表上的某处,那么对于该页整个列表可以被搜索.
+    */
+    /* 【白忠军】
+	如果'exact'参数为True并且pointer-map的一个查询显示页面的“nearby”是在空闲列表,
+	然后完整列表将搜索页面。
     */
 #ifndef SQLITE_OMIT_AUTOVACUUM
     if( exact && nearby<=mxPage ){
@@ -6111,6 +6146,9 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     /* Decrement the free-list count by 1. Set iTrunk to the index of the
     ** first free-list trunk page. iPrevTrunk is initially 1.
     ** 递减空闲列表数量到1.设定iTrunk到第一个空闲列表页的主页面索引.iPrevTrunk初始化为1.*/
+    /*【白忠军】
+	空闲列表数减1，设置iTrunk为第一个空闲列表树干页面的索引。iPrevTrunk最初为1。
+    */
     rc = sqlite3PagerWrite(pPage1->pDbPage);
     if( rc ) return rc;
     put4byte(&pPage1->aData[36], n-1);
@@ -6119,6 +6157,10 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     ** is not true. Otherwise, it runs once for each trunk-page on the
     ** free-list until the page 'nearby' is located.
     ** 如果变量'searchList'为假,则循环内的代码只运行一次.否则对于在空闲列表上的每个主页面都运行一次直到直到页面nearby*/
+    /* 【白忠军】
+	如果“searchList”变量不为TRUE,循环内的代码只运行一次。
+	否则,在页面上的“nearby”被找到之前，每个空闲列表的主干页面都运行一次。
+    */
     do {
       pPrevTrunk = pTrunk;
       if( pPrevTrunk ){
@@ -6146,6 +6188,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         ** allocated page 
 		** 主页面上无叶子并且列表不用被搜索.并且提取主页面本身并用它作为新分配的页.
 		*/
+		/* 【白忠军】树干没有叶子而且没有搜索到列表。所以提取主干页面本身和使用它作为新的分配页面 */
         assert( pPrevTrunk==0 );
         rc = sqlite3PagerWrite(pTrunk->pDbPage);
         if( rc ){
@@ -6157,7 +6200,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         pTrunk = 0;
         TRACE(("ALLOCATE: %d trunk - %d free pages left\n", *pPgno, n-1));  //跟踪分配了几个页面剩下几个空闲页面
       }else if( k>(u32)(pBt->usableSize/4 - 2) ){
-        /* Value of k is out of range.  Database corruption */     //k值超过范围,数据库崩溃
+        /* Value of k is out of range.  Database corruption */     //k值超过范围,数据库崩溃/* 【白忠军】k值超出范围。数据库被损坏 */
         rc = SQLITE_CORRUPT_BKPT;
         goto end_allocate_page;
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -6166,6 +6209,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         ** to allocate, regardless of whether it has leaves.
 		** 列表正被搜索并且这个主页面是分配的页,不管它有什么叶子
        */
+       /* 【白忠军】列表正在搜索并且这个树干页面是分配页面,无论它是否有叶子。*/
         assert( *pPgno==iTrunk );
         *ppPage = pTrunk;
         searchList = 0;
@@ -6188,6 +6232,10 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
           ** pointers to free-list leaves. The first leaf becomes a trunk
           ** page in this case.
 		  ** 主页面正在被调用函数需要但是它包含指向空闲列表页的指针.在这种情况下,第一个叶子变成主页面.
+          */
+          /* 【白忠军】
+		  主干页面被调用者所需，但它包含指向空闲列表叶子的指针。
+		  在这种情况下，第一片叶子变成一个树干页面。
           */
           MemPage *pNewTrunk;
           Pgno iNewTrunk = get4byte(&pTrunk->aData[8]);
@@ -6224,7 +6272,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         TRACE(("ALLOCATE: %d trunk - %d free pages left\n", *pPgno, n-1));
 #endif
       }else if( k>0 ){
-        /* Extract a leaf from the trunk */  //从主页面提取出一个叶子
+        /* Extract a leaf from the trunk */  //从主页面提取出一个叶子/* 【白忠军】从主干中提取一片叶子 */
         u32 closest;
         Pgno iPage;
         unsigned char *aData = pTrunk->aData;
@@ -6282,6 +6330,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     ** end of the file.
 	** 在空闲列表上没有页面,因此在文件的末尾创建新页.
 	*/
+	/* 【白忠军】在空闲列表没有页面,所以在文件的最后创建一个新页面*/
     rc = sqlite3PagerWrite(pBt->pPage1->pDbPage);
     if( rc ) return rc;
     pBt->nPage++;
@@ -6293,6 +6342,10 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
       ** at the end of the file instead of one. The first allocated page
       ** becomes a new pointer-map page, the second is used by the caller.
 	  ** 如果*pPgno值的是指针位图页,在文件末尾非配两个新页来替换它.第一个变成指针位图页,第二个用来调用.
+      */
+      /* 【白忠军】
+	  如果指针pPgno指向pointer-map页面,在文件末尾分配两个新页面而不是一个页面。
+	  第一个分配页面变成一个新的pointer-map页面,第二个被调用者使用。
       */
       MemPage *pPg = 0;
       TRACE(("ALLOCATE: %d from end of file (pointer-map page)\n", pBt->nPage));
