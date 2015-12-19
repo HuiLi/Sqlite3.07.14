@@ -9802,7 +9802,7 @@ static int checkTreePage(    //在树的一个单独的页上进行检查
       checkList(pCheck, 0, pgnoOvfl, nPage, zContext);  //检查空闲列表或溢出页列表的完整性
     }
 
-    /* Check sanity of left child page. */    //核对左孩子
+       /* Check sanity of left child page. */    //核对左孩子
     if( !pPage->leaf ){
       pgno = get4byte(pCell);
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -9946,6 +9946,8 @@ static int checkTreePage(    //在树的一个单独的页上进行检查
 ** 写错误数量在*pnErr中可见.除了一些内存错误,如果*pnErr非零,一个从malloc中获得的错误信息保存在内存.*pnErr==0,
 ** 返回NULL.内存分配错误返回NULL.
 */
+/*将错误写到*pnErr中，如果*pnErr==0或者内存分配错误则返回NULL
+*/
 char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整性的检查
   Btree *p,     /* The btree to be checked */                             //要被检查的B树
   int *aRoot,   /* An array of root pages numbers for individual trees */ //一个树的根页码数组
@@ -10058,6 +10060,9 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整性的检查
 /* 返回底层数据库文件中完整的路径名.如果该数据库为内存数据库,或者为临时数据库,
 ** 返回空的字符串.pager的文件名是不变的只要pager是开放的,因此没有BtShared互斥锁也能安全访问.
 */
+/*
+只要pager是打开的，路径名就是不变的，所以可以安全的进入而不管BtShared的mutex参数
+*/
 const char *sqlite3BtreeGetFilename(Btree *p){    //返回底层数据库文件中完整的路径名
   assert( p->pBt->pPager!=0 );
   return sqlite3PagerFilename(p->pBt->pPager, 1);
@@ -10074,6 +10079,9 @@ const char *sqlite3BtreeGetFilename(Btree *p){    //返回底层数据库文件�
 /*
 ** 返回数据库中日志文件的路径名.无论日志文件是否被创建,程序返回值相同.
 ** pager日志文件名是不变的只要pager开放,因此没有BtShared互斥锁也能安全访问.
+*/
+/*
+只要pager是打开的，路径名就是不变的，所以可以安全的进入而不管BtShared的mutex参数
 */
 const char *sqlite3BtreeGetJournalname(Btree *p){  //返回数据库中日志文件的路径名
   assert( p->pBt->pPager!=0 );
@@ -10103,6 +10111,11 @@ int sqlite3BtreeIsInTrans(Btree *p){     //是否在事务中
 ** 有一个开放的事务,返回SQLITE_LOCKED,事务在被B树连接的共享在参数上.
 ** 参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一.
 */
+/*
+执行第一个参数代表的B树上的检查点
+如果其他链接在B树所连接的shared-cache上有打开的事物，返回SQLITE_LOCKED
+参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一。
+*/
 int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //执行B树上的检查点作为第一个参数传递
   int rc = SQLITE_OK;
   if( p ){
@@ -10122,6 +10135,9 @@ int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //执�
 /*
 ** Return non-zero if a read (or write) transaction is active.
 ** 如果读或写事务在活动,返回非零
+*/
+/*
+** 如果有读写事物，返回非0值
 */
 int sqlite3BtreeIsInReadTrans(Btree *p){
   assert( p );
@@ -10232,6 +10248,7 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //获得表的�
 ** 参数尝试写到现有数据的末尾,没有修改并返回SQLITE_CORRUPT.
 */
 /*仅仅数据内容能够被修改,不可能改变数据存储的长度.*/
+/*如果想超过现存数据的长度将返回错误*/
 int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //修改数据内容
   int rc;
   assert( cursorHoldsMutex(pCsr) );
@@ -10278,6 +10295,7 @@ int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //修改
 ** 这个函数只设置一个标志.实际页面位置缓存(存储在BtCursor.aOverflow[])分配和被accessPayload()使用
 ** (对函数sqlite3BtreeData()和sqlite3BtreePutData()有效).
 */  /*此函数在游标上设置一个标志,缓存溢出列表上的页*/
+/*真正的页面缓存位置由accessPayload()函数分配*/
 void sqlite3BtreeCacheOverflow(BtCursor *pCur){  //此函数在游标上设置一个溢出页缓存标志
   assert( cursorHoldsMutex(pCur) );
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );
