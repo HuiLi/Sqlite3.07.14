@@ -9326,6 +9326,8 @@ int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //删除数据�
 /*如果b-tree连接一个读或写事务,这个函数可能被调用.从数据库文件中读出meta-information.
 Meta[0]是数据库中的自由页.Meta[1]可以被用户通过meta[15]访问.Meta[0]为只读,其余为读写.
 */
+/*这个架构层面上所有元数据都不同
+*/
 void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件的元数据信息
   BtShared *pBt = p->pBt;
 
@@ -9342,6 +9344,9 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件�
   /*
   ** 如果在构建中auto-vacuum为不可用状态且是auto-vacuum数据库,标记数据库为只读.
   */
+  /*
+如果auto-vacuum为禁止状态，数据库是auto-vacuum数据库，标记数据库为只读数据库。
+  */
 #ifdef SQLITE_OMIT_AUTOVACUUM
   if( idx==BTREE_LARGEST_ROOT_PAGE && *pMeta>0 ){
     pBt->btsFlags |= BTS_READ_ONLY;
@@ -9357,6 +9362,9 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件�
 */
 /*
 ** 把meta-information写回数据库.Meta[0]为只读且可能不会被写.
+*/
+/*
+把元信息写回数据库。Meta[0]为只读，不能被写。
 */
 
 int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //把meta-information写回数据库,更新元数据
@@ -9396,6 +9404,10 @@ int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //把meta-information
 第一个参数pCur,是B树上一个打开的游标.给B树上的条目计数,把结果写到*pnEntry.
 如果操作成功执行,则返回 SQLITE_OK,反之返回SQLite错误代码(例如I/O错误或数据库崩溃).
 */
+/*
+第一个参数pCur，是b-tree上一个打开的光标。给 b-tree 上的入口计数，把结果写到*pnEntry里面。
+如果操作成功执行，则返回 SQLITE_OK，反之返回SQLite error code。
+*/
 int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
   i64 nEntry = 0;                      /* Value to return in *pnEntry */   //要写入到*pnEntry的值
   int rc;                              /* Return code */                   //返回代码
@@ -9410,6 +9422,7 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
   ** page in the B-Tree structure (not including overflow pages). 
   */
   /*除非错误发生,以下循环在每一个B-Tree结构中执行一次迭代,但不包括溢出页*/
+  /*除非错误发生，以下循环在每一个B-Tree中每个page执行，除了溢出页*/
   while( rc==SQLITE_OK ){
     int iIdx;              /* Index of child node in parent */  //父节点的孩子节点的索引
     MemPage *pPage;        /* Current page of the b-tree */     //B树的当前页
@@ -9421,6 +9434,10 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
     /*
      如果这是一个叶子页,或者B树上关键字不是整型的,那么这个页包含可数的条目.相应地增加
      条目的数量.
+	*/
+	/*
+     如果这是一个叶子页，或者B树上关键字不是整型的，那么这个页包含可数的入口。相应地增加
+     入口的计数。
 	*/
     pPage = pCur->apPage[pCur->iPage];
     if( pPage->leaf || !pPage->intKey ){
@@ -9599,7 +9616,7 @@ static void checkPtrmap(           //核对从页iChild映射到页iParent的指
 ** Check the integrity of the freelist or of an overflow page list.
 ** Verify that the number of pages on the list is N.
 ** 检查空闲列表或溢出页列表的完整性.查证列表上的页数是N.
-*/
+
 
 static void checkList(        //检查空闲列表或溢出页列表的完整性
   IntegrityCk *pCheck,  /* Integrity checking context */                         //上下文完整性检查
@@ -9660,6 +9677,7 @@ static void checkList(        //检查空闲列表或溢出页列表的完整性
 	  ** 如果数据库支持auto-vacuum并且iPage不是溢出链表中的最后一页,检查匹配下一页与
 	  ** iPage匹配的指针位图条目.
 	  */
+	  
       if( pCheck->pBt->autoVacuum && N>0 ){
         i = get4byte(pOvflData);
         checkPtrmap(pCheck, i, PTRMAP_OVERFLOW2, iPage, zContext);
