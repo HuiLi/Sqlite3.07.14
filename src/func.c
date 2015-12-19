@@ -22,12 +22,19 @@
 //断言表示为一些布尔表达式，程序员相信在程序中的某个特定点该表达式值为真。
 //assert是宏，而不是函数。在C的assert.h头文件中。
 //assert宏的原型定义在<assert.h>中，其作用是如果它的条件返回错误，则终止程序执行
+//断言表示为一些布尔表达式，程序员相信在程序中的某个特定点该表达式值为真
+//可以在任何时候启用和禁用断言验证，因此可以在测试时启用断言而在部署时禁用断言。
+//同样，程序投入运行后，最终用户在遇到问题时可以重新启用断言。
 #include "vdbeInt.h"
 
 /*
 ** Return the collating function associated with a function.返回排序函数与函数有关。
 */
-static CollSeq *sqlite3GetFuncCollSeq(sqlite3_context *context){
+static CollSeq *sqlite3GetFuncCollSeq(sqlite3_context *context){//context是一个类，SQL函数的执行都储存在这个类中
+//所以应用定义的SQL函数（application-defined SQL function)
+//的第一个参数都是sqlite3_context *context
+//应用定义的SQL函数（application-defined SQL function)同通过sqlite_context *context来调用sqlite3_result()
+//sqlite3_aggregate_context(),sqlite3_user_date()函数等
   return context->pColl;//返回排序的序列
 }
 
@@ -57,19 +64,20 @@ static void minmaxFunc(
 
   assert( argc>1 );//如果 argc>1，则继续执行，否则终止程序执行
   mask = sqlite3_user_data(context)==0 ? 0 : -1;//判断最小最大值
-  pColl = sqlite3GetFuncCollSeq(context);
-  assert( pColl );
+  pColl = sqlite3GetFuncCollSeq(context);//返回排序的序列
+  assert( pColl );//如果pColl为空，则终止程序
   assert( mask==-1 || mask==0 );//断言最大值是-1或者最小值是0
   iBest = 0;
   if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;	//自定义接口函数
   for(i=1; i<argc; i++){
-    if( sqlite3_value_type(argv[i])==SQLITE_NULL ) return;
+    if( sqlite3_value_type(argv[i])==SQLITE_NULL ) return;//该函数得到argv[i]的类型，并判断是否为空
     if( (sqlite3MemCompare(argv[iBest], argv[i], pColl)^mask)>=0 ){	//比较大小
-      testcase( mask==0 );
-      iBest = i;
+      testcase( mask==0 );//测试用例，对mask==0是否满足需求
+      iBest = i;//通过函数sqlite3MemCompare(argv[iBest], argv[i], pColl)比较后，得到i的值
     }
   }
   sqlite3_result_value(context, argv[iBest]);	//返回最值
+  //返回argv[iBest]
 }
 
 /*
@@ -77,7 +85,7 @@ static void minmaxFunc(
 */
 static void typeofFunc(
   sqlite3_context *context,
-  int NotUsed,
+  int NotUsed,//和通常（application-defined SQL function)函数相比较，这是一个没有用到的参数
   sqlite3_value **argv
 ){
   const char *z = 0;
@@ -90,6 +98,7 @@ static void typeofFunc(
     default:             z = "null";    break;		//空值
   }
   sqlite3_result_text(context, z, -1, SQLITE_STATIC);//返回结果
+  //函数返回UTF-8字符串，原型为(sqlite3_context *context,const char *,int n,void(*)(void*))
 }
 
 
@@ -97,11 +106,11 @@ static void typeofFunc(
 ** Implementation of the length() function长度函数的实现
 */
 static void lengthFunc(
-  sqlite3_context *context,
-  int argc,
-  sqlite3_value **argv
+  sqlite3_context *context,//参数基本相似
+  int argc,//参数基本相似
+  sqlite3_value **argv//参数基本相似
 ){
-  int len;
+  int len;//保留长度
 
   assert( argc==1 );
   UNUSED_PARAMETER(argc);
@@ -110,21 +119,24 @@ static void lengthFunc(
     case SQLITE_INTEGER:				//整型
     case SQLITE_FLOAT: {				//浮点数
       sqlite3_result_int(context, sqlite3_value_bytes(argv[0]));//返回标量值
+      //该函数原型为sqlite3_result_int (sqlite3_context *context,int len)
+      //sqlite3_value_bytes(argv[0])以bytes类型返回其长度
       break;
     }
     case SQLITE_TEXT: {					//文本
-      const unsigned char *z = sqlite3_value_text(argv[0]);
+      const unsigned char *z = sqlite3_value_text(argv[0]);//z为指向字符串的指针，赋值为sqlite3_value_text(argv[0])返回值
       if( z==0 ) return;				//长度为0，返回0
       len = 0;
       while( *z ){
         len++;
-        SQLITE_SKIP_UTF8(z);
+        SQLITE_SKIP_UTF8(z);//对UTF8类型做地址加操作，用len统计Z所指向字符串长度
       }
       sqlite3_result_int(context, len);	//返回长度
       break;
     }
     default: {
       sqlite3_result_null(context);	    //返回空值
+      //函数原型为sqlite3_result_null(sqlite3_context *context)
       break;
     }
   }
@@ -137,11 +149,11 @@ static void lengthFunc(
 ** the numeric argument X. abs(X)函数返回数值的绝对值参数X
 */
 static void absFunc(sqlite3_context *context, int argc, sqlite3_value **argv)//绝对值函数
-  assert( argc==1 );
-  UNUSED_PARAMETER(argc);
-  switch( sqlite3_value_type(argv[0]) ){
-    case SQLITE_INTEGER: {
-      i64 iVal = sqlite3_value_int64(argv[0]);
+  assert( argc==1 );//断言,不等以1则停止程序
+  UNUSED_PARAMETER(argc);//无用参数
+  switch( sqlite3_value_type(argv[0]) ){//通过函数获得argv[i]的类型，并switch操作
+    case SQLITE_INTEGER: {//如果为整型
+      i64 iVal = sqlite3_value_int64(argv[0]);//i64为int64类型，用iVal变量储存argv[0]表示的抽象整型值
       if( iVal<0 ){                //判断如果ival小于0
         if( (iVal<<1)==0 ){
           /* IMP: R-35460-15084 If X is the integer -9223372036854775807 then
@@ -153,12 +165,12 @@ static void absFunc(sqlite3_context *context, int argc, sqlite3_value **argv)//�
         }
         iVal = -iVal;      //取ival的负赋值给ival
       } 
-      sqlite3_result_int64(context, iVal);
+      sqlite3_result_int64(context, iVal);//函数返回iVal的值
       break;
     }
     case SQLITE_NULL: {
       /* IMP: R-37434-19929 Abs(X) returns NULL if X is NULL. 如果x是空，则返回绝对值为空*/
-      sqlite3_result_null(context);
+      sqlite3_result_null(context);//函数返回空值
       break;
     }
     default: {
@@ -169,7 +181,7 @@ static void absFunc(sqlite3_context *context, int argc, sqlite3_value **argv)//�
       因为sqlite3_value_double()返回0.如果这个内容不可以被转换成一个数字值，
       Abs(X)返回0，如果X是一个字符串或blob,不能被转换成数字值。
       */
-      double rVal = sqlite3_value_double(argv[0]);
+      double rVal = sqlite3_value_double(argv[0]);//该函数的到double类型，并赋值给rVal
       if( rVal<0 ) rVal = -rVal;			//如果rval小于0，取rval的负赋值给rval
       sqlite3_result_double(context, rVal);	//返回绝对值
       break;
@@ -195,43 +207,49 @@ substr(x,p1,p2)是返回从p1开始查找x[]中第p2的字符
 如果p1是负的,那么我们开始从abs(p1)中x[]尾端算起。
 如果p2是负的,返回倒数第p2个字符。
 */
+/*substr(x,y,z)或substr(x,y)该函数对x所指向的字符串进行提取，从第y个开始，提取z个。如果z大于总的字符串个数
+**则从y开始，到字符串结束。如果y是负的,那么第一个字符我们开始从字符串末尾开始算起，而不是从左端
+**如果z是负的,返回从y算起的-z个字符
+**如果x所指向的是字符串，返回UTF-8类型个数
+**如果x所指向的是BLOB,返回字节数
+*/
 static void substrFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
-  const unsigned char *z;
-  const unsigned char *z2;
+  const unsigned char *z;//字符串指针
+  const unsigned char *z2;//字符串指针
   int len;
   int p0type;
   i64 p1, p2;
   int negP2 = 0;
 
-  assert( argc==3 || argc==2 );
+  assert( argc==3 || argc==2 );//至少为2或3个字符串，否则程序停止
   if( sqlite3_value_type(argv[1])==SQLITE_NULL
    || (argc==3 && sqlite3_value_type(argv[2])==SQLITE_NULL)	//判断为空值的情况
   ){
     return;	//返回空
   }
-  p0type = sqlite3_value_type(argv[0]);
+  p0type = sqlite3_value_type(argv[0]);//返回字符所表示的数值
   p1 = sqlite3_value_int(argv[1]);
   if( p0type==SQLITE_BLOB ){	//判断取值是否为二进制
-    len = sqlite3_value_bytes(argv[0]);
-    z = sqlite3_value_blob(argv[0]);
+    len = sqlite3_value_bytes(argv[0]);//返回bytes个数
+    z = sqlite3_value_blob(argv[0]);//返回blob个数
     if( z==0 ) return;
     assert( len==sqlite3_value_bytes(argv[0]) );
   }else{//若z是文本			
-    z = sqlite3_value_text(argv[0]);
+    z = sqlite3_value_text(argv[0]);//返回指向文本的指针，存入z
     if( z==0 ) return;
     len = 0;
     if( p1<0 ){	//若p1为负
       for(z2=z; *z2; len++){
-        SQLITE_SKIP_UTF8(z2);														
+        SQLITE_SKIP_UTF8(z2);	//对UTF8进行计数，直到Z指向字符串末尾													
       }
     }
   }
   if( argc==3 ){
-    p2 = sqlite3_value_int(argv[2]);												
+    p2 = sqlite3_value_int(argv[2]);//返回字符所表示的数值													
     if( p2<0 ){																		
       p2 = -p2;
       negP2 = 1;
@@ -258,22 +276,22 @@ static void substrFunc(
       p1 = 0;
     }
   }
-  assert( p1>=0 && p2>=0 );
+  assert( p1>=0 && p2>=0 );//若果p1且p2小于0,则程序终止
   if( p0type!=SQLITE_BLOB ){
     while( *z && p1 ){
-      SQLITE_SKIP_UTF8(z);
+      SQLITE_SKIP_UTF8(z);//对UTF8进行计数，直到Z指向字符串末尾或者p1为0
       p1--;
     }
     for(z2=z; *z2 && p2; p2--){
-      SQLITE_SKIP_UTF8(z2);
+      SQLITE_SKIP_UTF8(z2);//对UTF8进行计数，知道Z2指向字符串末尾或者p2为0
     }
-    sqlite3_result_text(context, (char*)z, (int)(z2-z), SQLITE_TRANSIENT);
+    sqlite3_result_text(context, (char*)z, (int)(z2-z), SQLITE_TRANSIENT);//函数返回UTF-8字符串
   }else{
     if( p1+p2>len ){
       p2 = len-p1;
       if( p2<0 ) p2 = 0;
     }
-    sqlite3_result_blob(context, (char*)&z[p1], (int)p2, SQLITE_TRANSIENT);
+    sqlite3_result_blob(context, (char*)&z[p1], (int)p2, SQLITE_TRANSIENT);//函数返回指向blob类型指针
   }
 }
 
@@ -281,15 +299,17 @@ static void substrFunc(
 ** Implementation of the round() function
 返回数字表达式并四舍五入为指定的长度或精度。
 */
+//返回数字表达式并四舍五入为指定的长度或精度,函数为round(x,y)或者round(x)
+//以x，返回一个在y左右的浮点值，如果y溢出了则返回零
 #ifndef SQLITE_OMIT_FLOATING_POINT
 static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){		
   int n = 0;
   double r;
   char *zBuf;
-  assert( argc==1 || argc==2 );
+  assert( argc==1 || argc==2 );//判断参数个数，否则终止程序
   if( argc==2 ){
     if( SQLITE_NULL==sqlite3_value_type(argv[1]) ) return;	//先判断为空值的情况
-    n = sqlite3_value_int(argv[1]);
+    n = sqlite3_value_int(argv[1]);//返回字符串表达的数值
     if( n>30 ) n = 30;
     if( n<0 ) n = 0;
   }
@@ -307,13 +327,13 @@ static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   }else if( n==0 && r<0 && (-r)<LARGEST_INT64-1 ){
     r = -(double)((sqlite_int64)((-r)+0.5));
   }else{
-    zBuf = sqlite3_mprintf("%.*f",n,r);
+    zBuf = sqlite3_mprintf("%.*f",n,r);//对r的值进行调整，然后以字符串格式输入到zBuf中
     if( zBuf==0 ){
-      sqlite3_result_error_nomem(context);
+      sqlite3_result_error_nomem(context);//如果zBuf中为0，则返回错误
       return;
     }
     sqlite3AtoF(zBuf, &r, sqlite3Strlen30(zBuf), SQLITE_UTF8);
-    sqlite3_free(zBuf);
+    sqlite3_free(zBuf);//释放zBuf的内存
   }
   sqlite3_result_double(context, r);
 }
@@ -331,16 +351,18 @@ static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 */
 static void *contextMalloc(sqlite3_context *context, i64 nByte){//该函数分配了NBytes个字节,并返回了指向这块内存的指针
 //如果分配失败，则返回一个空指针null
+//分配nByte字节的空间使用sqlite3_malloc()。如果分配失败,调用sqlite3_result_error_nomem()通知数据库句柄,malloc()失败,返回NULL。
+//如果nByte大于最大字符串或blob长度,然后引发一个SQLITE_TOOBIG异常,返回NULL。
   char *z;
-  sqlite3 *db = sqlite3_context_db_handle(context);
-  assert( nByte>0 );
-  testcase( nByte==db->aLimit[SQLITE_LIMIT_LENGTH] );
-  testcase( nByte==db->aLimit[SQLITE_LIMIT_LENGTH]+1 );
+  sqlite3 *db = sqlite3_context_db_handle(context);//db为数据库指针
+  assert( nByte>0 );//断言，nByte 如果分配内存小于0，则终止程序
+  testcase( nByte==db->aLimit[SQLITE_LIMIT_LENGTH] );//测试用例
+  testcase( nByte==db->aLimit[SQLITE_LIMIT_LENGTH]+1 );//测试用例--分配的字节是否大于限制的长度
   if( nByte>db->aLimit[SQLITE_LIMIT_LENGTH] ){	//如果nByte大于最大字符串或blob长度,然后引发一个SQLITE_TOOBIG异常,返回NULL。
-    sqlite3_result_error_toobig(context);
+    sqlite3_result_error_toobig(context);//返回'太大'这个信息错误
     z = 0;
   }else{
-    z = sqlite3Malloc((int)nByte);
+    z = sqlite3Malloc((int)nByte);//如果合适，则完成分配并返回一个指针
     if( !z ){
       sqlite3_result_error_nomem(context);//如果分配失败,调用sqlite3_result_error_nomem()通知数据库句柄,malloc()失败,返回NULL?
     }
@@ -353,17 +375,17 @@ static void *contextMalloc(sqlite3_context *context, i64 nByte){//该函数分�
 实现upper 函数把字符串转换为大写字母和 lower 函数把字符串转换为小写字母
 */
 static void upperFunc(sqlite3_context *context, int argc, sqlite3_value **argv){//返回将小写字符数据转换为大写的字符表达式。
-  char *z1;
-  const char *z2;
+  char *z1;//用来指向输出指正
+  const char *z2;//输入的指向字符串的指针，不能改变
   int i, n;
-  UNUSED_PARAMETER(argc);
-  z2 = (char*)sqlite3_value_text(argv[0]);
-  n = sqlite3_value_bytes(argv[0]);
+  UNUSED_PARAMETER(argc);//未用到的参数，让编译器不必警告
+  z2 = (char*)sqlite3_value_text(argv[0]);//返回指针
+  n = sqlite3_value_bytes(argv[0]);//返回字节数
   /* Verify that the call to _bytes() does not invalidate the _text() pointer 
   验证调用_bytes()并不能否定_text()的指针*/
-  assert( z2==(char*)sqlite3_value_text(argv[0]) );
+  assert( z2==(char*)sqlite3_value_text(argv[0]) );//如果，z2即指向输入字符的指针为空，则终止程序
   if( z2 ){
-    z1 = contextMalloc(context, ((i64)n)+1);
+    z1 = contextMalloc(context, ((i64)n)+1);//如果不为空，则分配一个内存空间，地址存入z1，待用
     if( z1 ){
       for(i=0; i<n; i++){
         z1[i] = (char)sqlite3Toupper(z2[i]);//将小写字母转化为大写字母
@@ -373,17 +395,17 @@ static void upperFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   }
 }
 static void lowerFunc(sqlite3_context *context, int argc, sqlite3_value **argv){ //将大写字符数据转换为小写字符数据后返回字符表达式。
-  char *z1;
-  const char *z2;
+  char *z1;//用来指向输出指正
+  const char *z2;//输入的指向字符串的指针，不能改变
   int i, n;
-  UNUSED_PARAMETER(argc);
-  z2 = (char*)sqlite3_value_text(argv[0]);
-  n = sqlite3_value_bytes(argv[0]);
+  UNUSED_PARAMETER(argc);//未用到的参数，让编译器不必警告
+  z2 = (char*)sqlite3_value_text(argv[0]);//返回指针
+  n = sqlite3_value_bytes(argv[0]);//返回字节数
   /* Verify that the call to _bytes() does not invalidate the _text() pointer
   验证调用_bytes()并不能否定_text()的指针*/
-  assert( z2==(char*)sqlite3_value_text(argv[0]) );
+  assert( z2==(char*)sqlite3_value_text(argv[0]) );//如果，z2即指向输入字符的指针为空，则终止程序
   if( z2 ){
-    z1 = contextMalloc(context, ((i64)n)+1);
+    z1 = contextMalloc(context, ((i64)n)+1);//如果不为空，则分配一个内存空间，地址存入z1，待用
     if( z1 ){
       for(i=0; i<n; i++){
         z1[i] = sqlite3Tolower(z2[i]);	//将大写字母转化为大写字母
@@ -401,12 +423,15 @@ static void lowerFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 ** do not have to be computed.  This legacy implementation is retained as
 ** comment.
 */
+//COALESCEE()和IFNULL()函数以前在这里应用，但是现在它们作为VDBE代码，所以没有用的引数没有必要在去编译.
+//这是一个合规则的，并保留至今的注释
 /*
 ** Implementation of the IFNULL(), NVL(), and COALESCE() functions.  
 ** All three do the same thing.  They return the first non-NULL
 ** argument.
 */
-static void ifnullFunc(
+//IFNULL(),NVL(),COALESCE()函数都是做的同一种功能
+static void ifnullFunc(//如果 **argv所指向的内容不为空则返回其内容
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
@@ -433,8 +458,8 @@ static void randomFunc(	//返回随机数。
   sqlite3_value **NotUsed2
 ){
   sqlite_int64 r;
-  UNUSED_PARAMETER2(NotUsed, NotUsed2);
-  sqlite3_randomness(sizeof(r), &r);
+  UNUSED_PARAMETER2(NotUsed, NotUsed2);//有两个参数为用到
+  sqlite3_randomness(sizeof(r), &r);//产生一个随机数
   if( r<0 ){
     /* We need to prevent a random number of 0x8000000000000000 
     ** (or -9223372036854775808) since when you do abs() of that
@@ -448,9 +473,9 @@ static void randomFunc(	//返回随机数。
     要做到这一点的方式是可测试的,掩盖了符号位的负值,结果为正值。
     然后给这2s 正值 补充。最终的结果因此可以不少于-9223372036854775807。
     */
-    r = -(r & LARGEST_INT64);
+    r = -(r & LARGEST_INT64);//与全1做与运算，再取负值即可为正
   }
-  sqlite3_result_int64(context, r);
+  sqlite3_result_int64(context, r);//返回int64类型
 }
 
 /*
@@ -459,6 +484,7 @@ static void randomFunc(	//返回随机数。
 randomblob(N )函数返回一个N-byte 二进制大对象blob
 
 */
+//函数返回一个N-byte二进制大对象blob,如果小于1字节则分配1字节
 static void randomBlob(
   sqlite3_context *context,
   int argc,
@@ -472,7 +498,9 @@ static void randomBlob(
   if( n<1 ){
     n = 1;
   }
-  p = contextMalloc(context, n);
+  p = contextMalloc(context, n);//分配nByte字节的空间使用sqlite3_malloc()，如果分配失败，调用
+  //sqlite3_result_error_nomem()通知数据库句柄，malloc()失败，返回NULL。如果nByte大于最大字符串或Blob长
+  //度，然后引发一个SQLITE_TOOBIG异常，返回NULL
   if( p ){
     sqlite3_randomness(n, p);
     sqlite3_result_blob(context, (char*)p, n, sqlite3_free);//返回随机二进制大对象
@@ -490,7 +518,7 @@ static void last_insert_rowid(	//返回last_insert_rowid( )ROWID 最后一个连
   int NotUsed, 
   sqlite3_value **NotUsed2
 ){
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//打开数据库指针
   UNUSED_PARAMETER2(NotUsed, NotUsed2);
   /* IMP: R-51513-12026 The last_insert_rowid() SQL function is a
   ** wrapper around the sqlite3_last_insert_rowid() C/C++ interface
@@ -513,7 +541,7 @@ static void changes(
   int NotUsed,
   sqlite3_value **NotUsed2
 ){
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//打开数据库指针
   UNUSED_PARAMETER2(NotUsed, NotUsed2);
   sqlite3_result_int(context, sqlite3_changes(db));//返回数据行数
 }
@@ -530,7 +558,7 @@ static void total_changes(
   int NotUsed,
   sqlite3_value **NotUsed2
 ){
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//打开数据库指针
   UNUSED_PARAMETER2(NotUsed, NotUsed2);
   /* IMP: R-52756-41993 This function is a wrapper around the
   ** sqlite3_total_changes() C/C++ interface. 这个函数是一个sqlite3_total_changes()C / c++接口的封装包。*/
@@ -771,10 +799,10 @@ static void likeFunc(//确定给定的字符串是否与指定的模式匹配。
   限制LIKE 或 GLOB 模式的长度以避免在patternCompare()里的 深度递归和 N*N 行为
   */
   nPat = sqlite3_value_bytes(argv[0]);
-  testcase( nPat==db->aLimit[SQLITE_LIMIT_LIKE_PATTERN_LENGTH] );
+  testcase( nPat==db->aLimit[SQLITE_LIMIT_LIKE_PATTERN_LENGTH] );//测试用例，是否超过最大限制
   testcase( nPat==db->aLimit[SQLITE_LIMIT_LIKE_PATTERN_LENGTH]+1 );
   if( nPat > db->aLimit[SQLITE_LIMIT_LIKE_PATTERN_LENGTH] ){
-    sqlite3_result_error(context, "LIKE or GLOB pattern too complex", -1);
+    sqlite3_result_error(context, "LIKE or GLOB pattern too complex", -1);//如果超过，则返回错误
     return;
   }
   assert( zB==sqlite3_value_text(argv[0]) );  /* Encoding did not change 编码没有改变*/
@@ -795,7 +823,7 @@ static void likeFunc(//确定给定的字符串是否与指定的模式匹配。
     escape = sqlite3Utf8Read(zEsc, &zEsc);
   }
   if( zA && zB ){
-    struct compareInfo *pInfo = sqlite3_user_data(context);
+    struct compareInfo *pInfo = sqlite3_user_data(context);//对比za和zb中的内容，相等为真
 #ifdef SQLITE_TEST
     sqlite3_like_count++;//LIKE 操作符的次数加1
 #endif
@@ -820,6 +848,8 @@ static void nullifFunc(//如果函数参数相同，返回NULL，否则返回第
   UNUSED_PARAMETER(NotUsed);
   if( sqlite3MemCompare(argv[0], argv[1], pColl)!=0 ){//比较两个参数是否相等
     sqlite3_result_value(context, argv[0]);
+    //函数原始定义为The sqlite3_result_value() interface sets the result of the application-defined function to be a copy of the
+    //unprotected sqlite3_value object specified by the 2nd parameter.
   }
 }
 
@@ -854,7 +884,7 @@ static void sourceidFunc(
   UNUSED_PARAMETER2(NotUsed, NotUsed2);
   /* IMP: R-24470-31136 This function is an SQL wrapper around the
   ** sqlite3_sourceid() C interface. 此函数是该函数的周围的SQL 包装sqlite3_libversion( )c接口*/
-  sqlite3_result_text(context, sqlite3_sourceid(), -1, SQLITE_STATIC);
+  sqlite3_result_text(context, sqlite3_sourceid(), -1, SQLITE_STATIC);//函数返回UTF-8字符串
 }
 
 /*
@@ -870,15 +900,20 @@ static void compileoptionusedFunc(
   int argc,
   sqlite3_value **argv
 ){
-  const char *zOptName;
-  assert( argc==1 );
+  const char *zOptName;//指向字符的指针
+  assert( argc==1 );//如果 多于1个或少于1个字符串则终止程序
   UNUSED_PARAMETER(argc);
   /* IMP: R-39564-36305 The sqlite_compileoption_used() SQL
   ** function is a wrapper around the sqlite3_compileoption_used() C/C++
   ** function.此函数是该函数的周围的SQL 包装sqlite3_compileoption_used() C/C++接口
   */
-  if( (zOptName = (const char*)sqlite3_value_text(argv[0]))!=0 ){
+  //该函数用与功能实现。其结果是一个整数,该整数标识用于构建SQLite的编译器选
+  //项。此函数是该函数的周围的SQL 包装sqlite3_compileoption_used() C/C++接口
+  if( (zOptName = (const char*)sqlite3_value_text(argv[0]))!=0 ){//如果字符串不为空，则返回其字符串指针
     sqlite3_result_int(context, sqlite3_compileoption_used(zOptName));
+    //The sqlite3_compileoption_used() function returns 0 or 1 indicating whether the specified option was defined at
+    //compile time. The SQLITE_ prefix may be omitted from the option name passed to sqlite3_compileoption_used().
+    //函数看是否有特殊的选项被定义为编译时间，来确定返回1或者0，SQLITE的前缀可能会从选项中溢出
   }
 }
 #endif /* SQLITE_OMIT_COMPILEOPTION_DIAGS */
@@ -932,16 +967,19 @@ quote()功能的实现。这个函数使用一个参数。如果参数为数值�
 static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){//quote( )函数返回一个字符串, 
 //它是对参数的值适合于网络部署管理器另一个SQL 语句字符串是合法的内部引号,
 //将应用程序部署到single-quotes 与转码BLOBs是编码的十六进制数文字
+//函数返回一个字符串, 它是对参数的值适合于网络部署管理器另一个SQL 语句字符串是
+//合法的内部引号,将应用程序部署到single-quotes 与转码BLOBs是编码的十六进制数文字, 这个函数使用一个参
+//数。如果参数为数值，返回值和参数相同。如果参数为空，返回值是字符串"空"。否则，该参数含在单引号转义引号
   assert( argc==1 );
   UNUSED_PARAMETER(argc);
-  switch( sqlite3_value_type(argv[0]) ){
-    case SQLITE_FLOAT: {
+  switch( sqlite3_value_type(argv[0]) ){//判断argv[0]的类型
+    case SQLITE_FLOAT: {//浮点型
       double r1, r2;
       char zBuf[50];
-      r1 = sqlite3_value_double(argv[0]);
-      sqlite3_snprintf(sizeof(zBuf), zBuf, "%!.15g", r1);
-      sqlite3AtoF(zBuf, &r2, 20, SQLITE_UTF8);
-      if( r1!=r2 ){
+      r1 = sqlite3_value_double(argv[0]);//提取argv[0]的值
+      sqlite3_snprintf(sizeof(zBuf), zBuf, "%!.15g", r1);//r1录入
+      sqlite3AtoF(zBuf, &r2, 20, SQLITE_UTF8);//r2以SQLITE_UTF8格式录入
+      if( r1!=r2 ){//r1和r2比较
         sqlite3_snprintf(sizeof(zBuf), zBuf, "%!.20e", r1);
       }
       sqlite3_result_text(context, zBuf, -1, SQLITE_TRANSIENT);
@@ -953,22 +991,22 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
     }
     case SQLITE_BLOB: {//二进制大对象
       char *zText = 0;
-      char const *zBlob = sqlite3_value_blob(argv[0]);
-      int nBlob = sqlite3_value_bytes(argv[0]);
+      char const *zBlob = sqlite3_value_blob(argv[0]);//zBlob指向argv[0]的内存地址
+      int nBlob = sqlite3_value_bytes(argv[0]);//nBlob储存个数
       assert( zBlob==sqlite3_value_blob(argv[0]) ); /* No encoding change 没有编码的变化*/
-      zText = (char *)contextMalloc(context, (2*(i64)nBlob)+4); 
+      zText = (char *)contextMalloc(context, (2*(i64)nBlob)+4);  //格式转换
       if( zText ){
         int i;
-        for(i=0; i<nBlob; i++){
+        for(i=0; i<nBlob; i++){//对每一个二进制大对象进行十六进制转换
           zText[(i*2)+2] = hexdigits[(zBlob[i]>>4)&0x0F];
           zText[(i*2)+3] = hexdigits[(zBlob[i])&0x0F];
         }
         zText[(nBlob*2)+2] = '\'';
-        zText[(nBlob*2)+3] = '\0';
+        zText[(nBlob*2)+3] = '\0';//末尾添加结束符号
         zText[0] = 'X';
         zText[1] = '\'';
         sqlite3_result_text(context, zText, -1, SQLITE_TRANSIENT);
-        sqlite3_free(zText);
+        sqlite3_free(zText);//释放内存
       }
       break;
     }
@@ -980,11 +1018,11 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 
       if( zArg==0 ) return;
       for(i=0, n=0; zArg[i]; i++){ if( zArg[i]=='\'' ) n++; }
-      z = contextMalloc(context, ((i64)i)+((i64)n)+3);
+      z = contextMalloc(context, ((i64)i)+((i64)n)+3);//开辟z指向字符串的内存空间
       if( z ){
         z[0] = '\'';
         for(i=0, j=1; zArg[i]; i++){
-          z[j++] = zArg[i];
+          z[j++] = zArg[i];//内容转移
           if( zArg[i]=='\'' ){
             z[j++] = '\'';
           }
@@ -1009,6 +1047,8 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 hex()函数，解释的参数作为BLOB。返回十六进制显示为文本。
 hex()函数，解释的参数作为BLOB(binary large object二进制大对象）。返回呈现一个十六进制文本。
 */
+//将其参数hex( )函数作为BLOB 并返回一个字符串, 
+//它呈现的内容是大写十六进制blob，并返回文本类型
 static void hexFunc(//将其参数hex( )函数作为BLOB 并返回一个字符串, 它呈现的内容是大写十六进制blob
   sqlite3_context *context,
   int argc,
@@ -1019,15 +1059,16 @@ static void hexFunc(//将其参数hex( )函数作为BLOB 并返回一个字符�
   char *zHex, *z;
   assert( argc==1 );
   UNUSED_PARAMETER(argc);
-  pBlob = sqlite3_value_blob(argv[0]);
-  n = sqlite3_value_bytes(argv[0]);
+  pBlob = sqlite3_value_blob(argv[0]);//指向二进制大对象
+  n = sqlite3_value_bytes(argv[0]);//记录二进制大对象个数
   assert( pBlob==sqlite3_value_blob(argv[0]) );  /* No encoding change 没有编码的变化*/
   z = zHex = contextMalloc(context, ((i64)n)*2 + 1);//调用 contextMalloc();
+  //开辟特定类型的空间
   if( zHex ){
     for(i=0; i<n; i++, pBlob++){
       unsigned char c = *pBlob;
       *(z++) = hexdigits[(c>>4)&0xf];
-      *(z++) = hexdigits[c&0xf];
+      *(z++) = hexdigits[c&0xf];//进行十六进制转换
     }
     *z = 0;
     sqlite3_result_text(context, zHex, n*2, sqlite3_free);//返回文本类型
@@ -1047,13 +1088,13 @@ static void zeroblobFunc(//zeroblob(n )函数返回一个BLOB n字节的0x00 组
   sqlite3_value **argv
 ){
   i64 n;
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//打开数据库指针
   assert( argc==1 );
   UNUSED_PARAMETER(argc);
   n = sqlite3_value_int64(argv[0]);
-  testcase( n==db->aLimit[SQLITE_LIMIT_LENGTH] );
+  testcase( n==db->aLimit[SQLITE_LIMIT_LENGTH] );//测试用例，是否超过其最大限制
   testcase( n==db->aLimit[SQLITE_LIMIT_LENGTH]+1 );
-  if( n>db->aLimit[SQLITE_LIMIT_LENGTH] ){
+  if( n>db->aLimit[SQLITE_LIMIT_LENGTH] ){//如果超过最大限制，则返回错误
     sqlite3_result_error_toobig(context);
   }else{
     sqlite3_result_zeroblob(context, (int)n); /* IMP: R-00293-64994 */
@@ -1068,6 +1109,12 @@ static void zeroblobFunc(//zeroblob(n )函数返回一个BLOB n字节的0x00 组
 replace()函数。三个参数都是字符串:称之为A,B,c .结果也是字符串,这个字符串来自A，通过取代每一个出现B和C得来。
 必须精确匹配。排序序列不被使用。
 */
+//The replace(X,Y,Z) function returns a string formed by substituting string Z for 
+//every occurrence of string Y in string X. The BINARY collating sequence is used
+//for comparisons. If Y is an empty string then return X unchanged. If Z is not 
+//initially a string, it is cast to a UTF-8 string prior to processing.
+//该函数返回一个用z指针代替的字符串，用来代替在x指向的字符串中的y指向的字符串
+//如果y指向空，则返回x，如果z不是初始的字符串，优先用UTF-8进行数据处理
 static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串通过字符串替换形成的字符串。函数所返回一个字符串，该字符串是通过字符串替换形成的字符串
   sqlite3_context *context,
   int argc,
@@ -1084,20 +1131,20 @@ static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串
   int loopLimit;           /* Last zStr[] that might match zPattern[] 最后 zStr[] 可能匹配的zPattern[] */
   int i, j;                /* Loop counters 循环计数*/
 
-  assert( argc==3 );
+  assert( argc==3 );//断言，要有3个字符串，否则终止程序运行
   UNUSED_PARAMETER(argc);
-  zStr = sqlite3_value_text(argv[0]);
+  zStr = sqlite3_value_text(argv[0]);//录入zStr指向的空间
   if( zStr==0 ) return;
   nStr = sqlite3_value_bytes(argv[0]);//l输入字符串
   assert( zStr==sqlite3_value_text(argv[0]) );  /* No encoding change 没有编码的变化*/
   zPattern = sqlite3_value_text(argv[1]);
   if( zPattern==0 ){
-    assert( sqlite3_value_type(argv[1])==SQLITE_NULL
+    assert( sqlite3_value_type(argv[1])==SQLITE_NULL//如果指向为空或数据库指针打开为空，终止程序运行
             || sqlite3_context_db_handle(context)->mallocFailed );
     return;
   }
   if( zPattern[0]==0 ){
-    assert( sqlite3_value_type(argv[1])!=SQLITE_NULL );
+    assert( sqlite3_value_type(argv[1])!=SQLITE_NULL );//断言是否为空
     sqlite3_result_value(context, argv[0]);
     return;
   }
@@ -1107,9 +1154,9 @@ static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串
             || sqlite3_context_db_handle(context)->mallocFailed );
     return;
   }
-  if( zPattern[0]==0 ){
+  if( zPattern[0]==0 ){//模式字符串为空
     assert( sqlite3_value_type(argv[1])!=SQLITE_NULL );
-    sqlite3_result_value(context, argv[0]);
+    sqlite3_result_value(context, argv[0]);//如果指向为空或数据库指针打开为空，终止程序运行
     return;
   }
   nPattern = sqlite3_value_bytes(argv[1]);
@@ -1119,9 +1166,9 @@ static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串
   nRep = sqlite3_value_bytes(argv[2]);
   assert( zRep==sqlite3_value_text(argv[2]) );
   nOut = nStr + 1;
-  assert( nOut<SQLITE_MAX_LENGTH );
-  zOut = contextMalloc(context, (i64)nOut);
-  if( zOut==0 ){
+  assert( nOut<SQLITE_MAX_LENGTH );//是否小于最大值，否则终止程序
+  zOut = contextMalloc(context, (i64)nOut);//开辟，(i64)格式的内存空间
+  if( zOut==0 ){//失败则返回
     return;
   }
   loopLimit = nStr - nPattern;  
@@ -1132,29 +1179,29 @@ static void replaceFunc(//replace() 函数所返回一个字符串, 该字符串
       u8 *zOld;
       sqlite3 *db = sqlite3_context_db_handle(context);
       nOut += nRep - nPattern;
-      testcase( nOut-1==db->aLimit[SQLITE_LIMIT_LENGTH] );
+      testcase( nOut-1==db->aLimit[SQLITE_LIMIT_LENGTH] );//测试用例，是否大于最大限制
       testcase( nOut-2==db->aLimit[SQLITE_LIMIT_LENGTH] );
-      if( nOut-1>db->aLimit[SQLITE_LIMIT_LENGTH] ){
-        sqlite3_result_error_toobig(context);
-        sqlite3_free(zOut);
+      if( nOut-1>db->aLimit[SQLITE_LIMIT_LENGTH] ){//如果超过限制
+        sqlite3_result_error_toobig(context);//返回错误
+        sqlite3_free(zOut);//释放内存空间
         return;
       }
-      zOld = zOut;
-      zOut = sqlite3_realloc(zOut, (int)nOut);
-      if( zOut==0 ){
-        sqlite3_result_error_nomem(context);
-        sqlite3_free(zOld);
+      zOld = zOut;//zOld保存上次的内存指针，zOut作其他用途
+      zOut = sqlite3_realloc(zOut, (int)nOut);//再开辟内存空间
+      if( zOut==0 ){//未成功
+        sqlite3_result_error_nomem(context);//返回错误
+        sqlite3_free(zOld);//释放内存空间
         return;
       }
-      memcpy(&zOut[j], zRep, nRep);
+      memcpy(&zOut[j], zRep, nRep);//内存空间复制
       j += nRep;
       i += nPattern-1;
     }
   }
-  assert( j+nStr-i+1==nOut );
+  assert( j+nStr-i+1==nOut );//如果空间不一致，则终止
   memcpy(&zOut[j], &zStr[i], nStr-i);
   j += nStr - i;
-  assert( j<=nOut );
+  assert( j<=nOut );//是否小于最大值，否则终止程序
   zOut[j] = 0;
   sqlite3_result_text(context, (char*)zOut, j, sqlite3_free);
 }
@@ -1181,13 +1228,13 @@ static void trimFunc(//trim() 函数所返回一个字符串
   unsigned char **azChar = 0;       /* Individual characters in zCharSet zCharSet单个字符*/
   int nChar;                        /* Number of characters in zCharSet zCharSet字符数*/
 
-  if( sqlite3_value_type(argv[0])==SQLITE_NULL ){
+  if( sqlite3_value_type(argv[0])==SQLITE_NULL ){//空，则返回
     return;
   }
-  zIn = sqlite3_value_text(argv[0]);
+  zIn = sqlite3_value_text(argv[0]);//指向argv[0]的指针
   if( zIn==0 ) return;//判断字符串是否为空
-  nIn = sqlite3_value_bytes(argv[0]);
-  assert( zIn==sqlite3_value_text(argv[0]) );
+  nIn = sqlite3_value_bytes(argv[0]);//得到bytes个数
+  assert( zIn==sqlite3_value_text(argv[0]) );//是否相等，否则终止程序
   if( argc==1 ){
     static const unsigned char lenOne[] = { 1 };
     static unsigned char * const azOne[] = { (u8*)" " };
@@ -1200,7 +1247,7 @@ static void trimFunc(//trim() 函数所返回一个字符串
   }else{
     const unsigned char *z;
     for(z=zCharSet, nChar=0; *z; nChar++){
-      SQLITE_SKIP_UTF8(z);
+      SQLITE_SKIP_UTF8(z);//对UTF-8格式字符进行单个扫描，直到串末尾
     }
     if( nChar>0 ){
       azChar = contextMalloc(context, ((i64)nChar)*(sizeof(char*)+1));
@@ -1210,7 +1257,7 @@ static void trimFunc(//trim() 函数所返回一个字符串
       aLen = (unsigned char*)&azChar[nChar];//移除类型的长度
       for(z=zCharSet, nChar=0; *z; nChar++){
         azChar[nChar] = (unsigned char *)z;
-        SQLITE_SKIP_UTF8(z);
+        SQLITE_SKIP_UTF8(z);//对UTF-8格式字符进行单个扫描，直到串末尾
         aLen[nChar] = (u8)(z - azChar[nChar]);
       }
     }
@@ -1234,14 +1281,14 @@ static void trimFunc(//trim() 函数所返回一个字符串
         int len = 0;
         for(i=0; i<nChar; i++){
           len = aLen[i];
-          if( len<=nIn && memcmp(&zIn[nIn-len],azChar[i],len)==0 ) break;
+          if( len<=nIn && memcmp(&zIn[nIn-len],azChar[i],len)==0 ) break;//内存空间&z和azChar比较
         }
         if( i>=nChar ) break;
         nIn -= len;
       }
     }
     if( zCharSet ){
-      sqlite3_free(azChar);
+      sqlite3_free(azChar);//释放内存
     }
   }
   sqlite3_result_text(context, (char*)zIn, nIn, SQLITE_TRANSIENT);//返回最后移除的字符串
@@ -1321,9 +1368,9 @@ static void soundexFunc(//	计算字符串X的soundex编码。
 
 */
 static void loadExt(sqlite3_context *context, int argc, sqlite3_value **argv){
-  const char *zFile = (const char *)sqlite3_value_text(argv[0]);
+  const char *zFile = (const char *)sqlite3_value_text(argv[0]);//强制转换为const char*类型
   const char *zProc;
-  sqlite3 *db = sqlite3_context_db_handle(context);
+  sqlite3 *db = sqlite3_context_db_handle(context);//打开数据库指针
   char *zErrMsg = 0;
 
   if( argc==2 ){
@@ -1331,9 +1378,10 @@ static void loadExt(sqlite3_context *context, int argc, sqlite3_value **argv){
   }else{
     zProc = 0;
   }
-  if( zFile && sqlite3_load_extension(db, zFile, zProc, &zErrMsg) ){
+  if( zFile && sqlite3_load_extension(db, zFile, zProc, &zErrMsg) ){//The load_extension(X,Y) function loads SQLite extensions out of the shared
+  //从共享库里装载SQLite_extension
     sqlite3_result_error(context, zErrMsg, -1);
-    sqlite3_free(zErrMsg);
+    sqlite3_free(zErrMsg);//释放内存
   }
 }
 #endif
@@ -1368,17 +1416,17 @@ struct SumCtx {
 此外，TOTAL总是返回一个浮点数，在这里若SUM从没有遇到一个浮点数，SUM可能返回一个整数。
 TOTAL总不会失败，但sum可能出现一个异常如果它溢出整数。
 */
-static void sumStep(sqlite3_context *context, int argc, sqlite3_value **argv){
+static void sumStep(sqlite3_context *context, int argc, sqlite3_value **argv){//聚集函数sum()
   SumCtx *p;
   int type;
-  assert( argc==1 );
+  assert( argc==1 );//只带一个字符串，对表中某一列实现聚集函数，否则终止程序
   UNUSED_PARAMETER(argc);
   p = sqlite3_aggregate_context(context, sizeof(*p));
-  type = sqlite3_value_numeric_type(argv[0]);
-  if( p && type!=SQLITE_NULL ){
+  type = sqlite3_value_numeric_type(argv[0]);//获取argv[0]的类型值
+  if( p && type!=SQLITE_NULL ){//type不为空，并与p相等
     p->cnt++;
     if( type==SQLITE_INTEGER ){
-      i64 v = sqlite3_value_int64(argv[0]);
+      i64 v = sqlite3_value_int64(argv[0]);//如果type 为整型 则存入i64 类型 v
       p->rSum += v;
       if( (p->approx|p->overflow)==0 && sqlite3AddInt64(&p->iSum, v) ){
         p->overflow = 1;
@@ -1468,7 +1516,7 @@ static void minmaxStep(
   Mem *pBest;
   UNUSED_PARAMETER(NotUsed);
 
-  pBest = (Mem *)sqlite3_aggregate_context(context, sizeof(*pBest));
+  pBest = (Mem *)sqlite3_aggregate_context(context, sizeof(*pBest));//强制转换为(Mem *)类型的指针并赋值给pBest
   if( !pBest ) return;
 
   if( sqlite3_value_type(argv[0])==SQLITE_NULL ){
@@ -1489,7 +1537,7 @@ static void minmaxStep(
     因此下一个语句集变量“max”max()聚合为1 ,或min()为0。
     */
     max = sqlite3_user_data(context)!=0;
-    cmp = sqlite3MemCompare(pBest, pArg, pColl);
+    cmp = sqlite3MemCompare(pBest, pArg, pColl);//对pBest和pArg所指向的内容进行比较
     if( (max && cmp<0) || (!max && cmp>0) ){
       sqlite3VdbeMemCopy(pBest, pArg);
     }else{
@@ -1506,7 +1554,7 @@ static void minMaxFinalize(sqlite3_context *context){
     if( pRes->flags ){
       sqlite3_result_value(context, pRes);
     }
-    sqlite3VdbeMemRelease(pRes);
+    sqlite3VdbeMemRelease(pRes);//内存释放
   }
 }
 
@@ -1524,27 +1572,27 @@ static void groupConcatStep(
   StrAccum *pAccum;
   const char *zSep;
   int nVal, nSep;
-  assert( argc==1 || argc==2 );
+  assert( argc==1 || argc==2 );//有1或2个字符串作为参数
   if( sqlite3_value_type(argv[0])==SQLITE_NULL ) return;//group里全是空值的时候它返回的是NULL。
-  pAccum = (StrAccum*)sqlite3_aggregate_context(context, sizeof(*pAccum));
+  pAccum = (StrAccum*)sqlite3_aggregate_context(context, sizeof(*pAccum));//调用sqlite3_aggregate_context(context, sizeof(*pAccum)并强制转换为(StrAccum *)类型
 
   if( pAccum ){
-    sqlite3 *db = sqlite3_context_db_handle(context);
+    sqlite3 *db = sqlite3_context_db_handle(context);//打开数据库指针
     int firstTerm = pAccum->useMalloc==0;
     pAccum->useMalloc = 2;
     pAccum->mxAlloc = db->aLimit[SQLITE_LIMIT_LENGTH];
     if( !firstTerm ){
       if( argc==2 ){
-        zSep = (char*)sqlite3_value_text(argv[1]);
-        nSep = sqlite3_value_bytes(argv[1]);
+        zSep = (char*)sqlite3_value_text(argv[1]);//zSep指向argv[1]所提取的内容
+        nSep = sqlite3_value_bytes(argv[1]);//nSep储存argv[1]的bytes数目
       }else{
         zSep = ",";
         nSep = 1;
       }
       sqlite3StrAccumAppend(pAccum, zSep, nSep);
     }
-    zVal = (char*)sqlite3_value_text(argv[0]);
-    nVal = sqlite3_value_bytes(argv[0]);
+    zVal = (char*)sqlite3_value_text(argv[0]);//zVal指向argv[0]所提取的内容
+    nVal = sqlite3_value_bytes(argv[0]);//nVal储存argv[0]的bytes数目
     sqlite3StrAccumAppend(pAccum, zVal, nVal);
   }
 }
@@ -1552,10 +1600,10 @@ static void groupConcatFinalize(sqlite3_context *context){
   StrAccum *pAccum;
   pAccum = sqlite3_aggregate_context(context, 0);
   if( pAccum ){
-    if( pAccum->tooBig ){
-      sqlite3_result_error_toobig(context);
-    }else if( pAccum->mallocFailed ){
-      sqlite3_result_error_nomem(context);
+    if( pAccum->tooBig ){//如果pAccum类中的tooBig为真
+      sqlite3_result_error_toobig(context);//则返回错误
+    }else if( pAccum->mallocFailed ){//又如果内存分配失败
+      sqlite3_result_error_nomem(context);//返回错误
     }else{    
       sqlite3_result_text(context, sqlite3StrAccumFinish(pAccum), -1, 
                           sqlite3_free);
