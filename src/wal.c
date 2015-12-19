@@ -511,9 +511,9 @@ struct WalIterator {
 ** Changing any of these constants will alter the wal-index format and
 ** create incompatibilities.
 */
-#define HASHTABLE_NPAGE      4096                 /* Must be power of 2 */
-#define HASHTABLE_HASH_1     383                  /* Should be prime */
-#define HASHTABLE_NSLOT      (HASHTABLE_NPAGE*2)  /* Must be a power of 2 */
+#define HASHTABLE_NPAGE      4096                 /* Must be power of 2 */      //定义Hash表的页大小   
+#define HASHTABLE_HASH_1     383                  /* Should be prime */           //定义Hash表的大小
+#define HASHTABLE_NSLOT      (HASHTABLE_NPAGE*2)  /* Must be a power of 2 */      //定义Hash表的NSLOT 
 
 /* 
 ** The block of page numbers associated with the first hash-table in a
