@@ -7510,14 +7510,14 @@ aOvflSpace,这个函数的第三个参数是一个指向缓冲区大得足以容
 #pragma optimize("", off)
 #endif
 static int balance_nonroot(                                //调整B树的各节点使之保持平衡
-  MemPage *pParent,               /* Parent page of siblings being balanced */      //要平衡的兄弟节点的父页面
-  int iParentIdx,                 /* Index of "the page" in pParent */              //pParent叶面中页索引
+  MemPage *pParent,               /* Parent page of siblings being balanced */      //要平衡的兄弟节点的父页面/* 【白忠军】平衡兄弟的父页面 */
+  int iParentIdx,                 /* Index of "the page" in pParent */              //pParent叶面中页索引/*【白忠军】 在pParent“页面”的索引 */
   u8 *aOvflSpace,                 /* page-size bytes of space for parent ovfl */    //双亲叶面的空间大小字节
-  int isRoot,                     /* True if pParent is a root-page */              //如果pParent是根页面则为true
-  int bBulk                       /* True if this call is part of a bulk load */    //这个调用是块负载的一部分则为true
+  int isRoot,                     /* True if pParent is a root-page */              //如果pParent是根页面则为true/* 【白忠军】如果pParent是一个根页则返回True */
+  int bBulk                       /* True if this call is part of a bulk load */    //这个调用是块负载的一部分则为true/* 【白忠军】如果这个单元格是一个批量加载的一部分则为True */
 ){
   BtShared *pBt;               /* The whole database */                             //整个数据库
-  int nCell = 0;               /* Number of cells in apCell[] */                    //apCell[]中的单元数
+  int nCell = 0;               /* Number of cells in apCell[] */                    //apCell[]中的单元数/* 【白忠军】在apCell[]中的单元格的数量 */
   int nMaxCells = 0;           /* Allocated size of apCell, szCell, aFrom. */       //分配给apCell, szCell, aFrom的大小
   int nNew = 0;                /* Number of pages in apNew[] */                     //apNew[]中页的数量
   int nOld;                    /* Number of pages in apOld[] */                     //apOld[]中也得数量
@@ -7525,24 +7525,24 @@ static int balance_nonroot(                                //调整B树的各节
   int nxDiv;                   /* Next divider slot in pParent->aCell[] */          //pParent->aCell[]中的下一个分割位置
   int rc = SQLITE_OK;          /* The return code */                                //返回代码
   u16 leafCorrection;          /* 4 if pPage is a leaf.  0 if not */                //如果是叶子节点该值为4,否则为0
-  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */     //如果pPage是LEAFDATA树的叶子节点则为true
-  int usableSpace;             /* Bytes in pPage beyond the header */               //pPage中头部后面的字节数,可用空间
+  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */     //如果pPage是LEAFDATA树的叶子节点则为true/* 【白忠军】如果pPage是LEAFDATA这棵树的一片叶子，则返回真 */
+  int usableSpace;             /* Bytes in pPage beyond the header */               //pPage中头部后面的字节数,可用空间/* 【白忠军】在pPage中超出头部的字节数 */
   int pageFlags;               /* Value of pPage->aData[0] */                       //pPage->aData[0]的值
   int subtotal;                /* Subtotal of bytes in cells on one page */         //一个页上的单元中的字节数
-  int iSpace1 = 0;             /* First unused byte of aSpace1[] */                 // aSpace1[]中第一个不可用字节
-  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */              //aOvflSpace[]中的不可用字节
+  int iSpace1 = 0;             /* First unused byte of aSpace1[] */                 // aSpace1[]中第一个不可用字节/* 【白忠军】aSpace1[]的第一个未使用的字节 */
+  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */              //aOvflSpace[]中的不可用字节/* 【白忠军】aOvflSpace[]的第一个未使用的字节 */
   int szScratch;               /* Size of scratch memory requested */               //暂存器需要的大小
   MemPage *apOld[NB];          /* pPage and up to two siblings */                   //pPage并达到两个字节
   MemPage *apCopy[NB];         /* Private copies of apOld[] pages */                //apOld[]的私有副本
-  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */    //平衡后的pPage和NB个兄弟
-  u8 *pRight;                  /* Location in parent of right-sibling pointer */    //有兄弟指针的父节点位置
+  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */    //平衡后的pPage和NB个兄弟/*【白忠军】 pPage和平衡后的NB兄弟 */
+  u8 *pRight;                  /* Location in parent of right-sibling pointer */    //有兄弟指针的父节点位置/* 【白忠军】定位父亲的右兄弟指针 */
   u8 *apDiv[NB-1];             /* Divider cells in pParent */                       //pParent中的分离的单元
-  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */       //第i个页面后单元的aCell[]中的索引
-  int szNew[NB+2];             /* Combined size of cells place on i-th page */      //第i个页面上的单元的总大小
-  u8 **apCell = 0;             /* All cells begin balanced */                       //开始时保持平衡的单元数
-  u16 *szCell;                 /* Local size of all cells in apCell[] */            //apCell[]中的所有单元的本地大小
-  u8 *aSpace1;                 /* Space for copies of dividers cells */             //分离单元的副本空间
-  Pgno pgno;                   /* Temp var to store a page number in */             //在其中存储页码的
+  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */       //第i个页面后单元的aCell[]中的索引/* 【白忠军】在aCell[]中的第一页之后的单元的索引 */
+  int szNew[NB+2];             /* Combined size of cells place on i-th page */      //第i个页面上的单元的总大小/* 【白忠军】在第一页上的单元格的大小 */
+  u8 **apCell = 0;             /* All cells begin balanced */                       //开始时保持平衡的单元数/* 【白忠军】开始平衡所有单元格 */
+  u16 *szCell;                 /* Local size of all cells in apCell[] */            //apCell[]中的所有单元的本地大小/* 【白忠军】在apCell[]中的所有本地单元格的大小 */
+  u8 *aSpace1;                 /* Space for copies of dividers cells */             //分离单元的副本空间/* 【白忠军】分隔单元的复制空间 */
+  Pgno pgno;                   /* Temp var to store a page number in */             //在其中存储页码的/*【白忠军】 临时变量来存储一个页码 */
 
   pBt = pParent->pBt;
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -7558,6 +7558,10 @@ static int balance_nonroot(                                //调整B树的各节
   ** is called (indirectly) from sqlite3BtreeDelete().
   ** 此时pParent可能最多一个溢出单元.如果这中溢出单元出现,他一定是带有iParentIdx索引的.
   ** 这个场景是这个函数被sqlite3BtreeDelete()调用(间接).
+  */
+  /* 【白忠军】
+  ** 此时pParent可能最多一个溢出单元格。如果这个溢出单元格存在,
+  它必须是索引iParentIdx的单元格。这种情况的发生是当这个函数被调用(间接)sqlite3BtreeDelete()。
   */
   assert( pParent->nOverflow==0 || pParent->nOverflow==1 );
   assert( pParent->nOverflow==0 || pParent->aiOvfl[0]==iParentIdx );
@@ -7580,6 +7584,14 @@ static int balance_nonroot(                                //调整B树的各节
   ** have already been removed.
   ** 这个循环也从父页面删除分离的单元.这样函数的其余部分不需要处理任何在
   **父页面中溢出的单元,因为如果任何存在的都已经被移除.
+  */
+  /*【白忠军】
+  找到兄弟页以达到平衡。在分开兄弟页的pParent上定位单元格。
+  在pPage的另一面试图找到NN的兄弟。有更多的兄弟从一边拿出来,然而,
+  有少于NN的兄弟在另一边。如果pParent有NB或较少的孩子那么pParent的所有孩子将被取出。
+  **
+  **这个循环也从父页面删除分隔单元。这样,函数的其余部分不需要处理任何溢出单元在父页面,
+  因为如果存在他们也将被删除。
   */
   /*找到兄弟页以达到平衡.*/
   i = pParent->nOverflow + pParent->nCell;
@@ -7639,6 +7651,15 @@ static int balance_nonroot(                                //调整B树的各节
 	  ** 但除此之外需要安全删除模式.在安全删除模式下,  dropCell()函数将用0覆盖整个单元.在这
 	  ** 种情况下,临时备份单元到aOvflSpace[]缓冲区.一旦aSpace[]缓冲区被分配它将被复制出来.
 	  */
+	  /*【白忠军】
+      ** 从父页面中删除单元格。apDiv[i]仍然指向父内的单元格,尽管它已经被删除。
+	  这是安全的,因为删除一个单元格仅覆盖它的前四个字节,
+	  并且这个函数不需要分隔单元的前四个字节。因此这个指针可以安全使用。
+      **
+      ** 但如果我们不是在安全删除模式。在安全删除模式下,dropCell()函数将用0覆盖整个单元格。
+	  在这种情况下,暂时将单元格复制到aOvflSpace[]缓冲区。
+	  一旦aSpace[]缓冲区被分配它将再一次被复制出来。
+      */
       if( pBt->btsFlags & BTS_SECURE_DELETE ){
         int iOff;
 
@@ -7658,9 +7679,10 @@ static int balance_nonroot(                                //调整B树的各节
 
   /* Make nMaxCells a multiple of 4 in order to preserve 8-byte alignment */
   //使nMaxCells为4的倍数为了保持8字节的对齐.
+  /* 【白忠军】使nMaxCells为4的倍数,以保持8字节对齐 */
   nMaxCells = (nMaxCells + 3)&~3;
 
-  /* Allocate space for memory structures */                //为内存结构分配空间
+  /* Allocate space for memory structures */                //为内存结构分配空间/* 【白忠军】为内存结构分配空间 */
   k = pBt->pageSize + ROUND8(sizeof(MemPage));
   szScratch =
        nMaxCells*sizeof(u8*)                       /* apCell */               //开始时保持平衡的单元数
@@ -7695,6 +7717,18 @@ static int balance_nonroot(                                //调整B树的各节
   ** leafData:  1 if pPage holds key+data and pParent holds only keys.
   ** leafCorrection:如果pPage是叶子,为4,否则为0.    leafData:若pPage有Key和data并且pParent仅有key那么为1.
   */
+  /* 【白忠军】
+  ** 负载指针指向兄弟页面上的所有单元格和分隔单元进入本地apCell[]数组。
+  将分隔单元复制到从aSpace1[]获取的空间，并且从pParent移除分隔单元。
+  **
+  **如果兄弟页在叶页面,那么分隔单元的孩子指针被从单元格剥削，
+  在之前这些单元格被复制到aSpace1[]。通过这种方式,所有的单元格都在没有孩子指针的apCell[]。
+  如果兄弟页面没有被分开,那么所有单元格包括孩子指针都在apCell[]中。
+  无论如何,所有在apCell[]中的单元格都是一样的。
+  **
+  **leafCorrection:4如果pPage是一片叶子。0如果pPage没有一片叶子。
+  **leafData:1如果pPage持有键+数据和pParent只持有键。
+  */
   leafCorrection = apOld[0]->leaf*4;
   leafData = apOld[0]->hasData;
   for(i=0; i<nOld; i++){
@@ -7706,6 +7740,10 @@ static int balance_nonroot(                                //调整B树的各节
     ** process of being overwritten. 
 	** 在做任何其他操作之前,复制原来的第i个兄弟.这个函数的其余部分将使用来自副本的数据,
 	** 而不是源实业的数据,原始页面将在被被覆盖的进程中.
+	*/
+	/* 【白忠军】
+    ** 在做任何其他事情之前,复制原始第i个兄弟。
+	这个函数的其余部分将从原始页面的副本中使用数据,而在此过程中原来的页面将被覆盖。
 	*/
     MemPage *pOld = apCopy[i] = (MemPage*)&aSpace1[pBt->pageSize + k*i];
     memcpy(pOld, apOld[i], sizeof(MemPage));
@@ -7750,6 +7788,7 @@ static int balance_nonroot(                                //调整B树的各节
         /* The right pointer of the child page pOld becomes the left
         ** pointer of the divider cell 
 		** 孩子页面pOld的右指针变成分离单元的左指针*/
+		/* 【白忠军】孩子页面的右指针pOld变成分隔单元的左指针 */
         memcpy(apCell[nCell], &pOld->aData[8], 4);
       }else{
         assert( leafCorrection==4 );
@@ -7777,6 +7816,19 @@ static int balance_nonroot(                                //调整B树的各节
   **   cntNew[i]: Index in apCell[] and szCell[] for the first cell to     //cntNew[i]：在apCell[] 和szCell[]中第i个兄弟页的右侧第一个单元的索引
   **              the right of the i-th sibling page.
   ** usableSpace: Number of bytes of space available on each sibling.   //usableSpace:每个兄弟页上可用的空间字节大小
+  */
+  /* 【白忠军】
+  ** 找出需要保存的所有nCell单元格的页数。用“k”存储这个数字。
+  同时计算szNew[]这是在第i页所有单元格的总大小，
+  cntNew[]是把单元格从第i页分开到第i+1页在apCell[]上的索引。
+  cntNew[k]和nCell应该相等。
+  **
+  ** 通过这段代码计算的值:
+  **
+  ** k:兄弟页面的总数量
+  ** szNew[i]:第i个兄弟页面使用的空间大小。
+  ** cntNew[i]:第i个兄弟页面的右边第一个单元格在apCell[]和szCell[]上的索引。
+  ** usableSpace:在一个兄弟页面上的可用空间的字节数
   */
   usableSpace = pBt->usableSize - 12 + leafCorrection;
   for(subtotal=k=i=0; i<nCell; i++){
@@ -7808,11 +7860,18 @@ static int balance_nonroot(                                //调整B树的各节
   ** 这种调整更优化.上面的包装可能会是失去平衡,因此是非法的.
   ** 例如,最右边兄弟可能完全是空的,此时这种调整不可选.
   */
+  /* 【白忠军】
+  ** 对前一块包装计算是偏向于左边上的兄弟页。左边的兄弟页几乎总是满的,
+  而最右边的兄弟页可能几乎为空。这段代码试图为包装的兄弟调整一个更好的平衡。
+  **
+  ** 这种调整是一个多优化。上面的包装可能会因此失去平衡这是不合理的。
+  例如,最右边的兄弟可能完全是空的。这种调整不是可选的。
+  */
   for(i=k-1; i>0; i--){
     int szRight = szNew[i];  /* Size of sibling on the right */                 //右兄弟的大小
     int szLeft = szNew[i-1]; /* Size of sibling on the left */                  //左兄弟的大小
-    int r;              /* Index of right-most cell in left sibling */          //左兄弟中最右单元的索引
-    int d;              /* Index of first cell to the left of right sibling */  //右兄弟最左侧第一个单元的索引
+    int r;              /* Index of right-most cell in left sibling */          //左兄弟中最右单元的索引/* 【白忠军】左边兄弟的最右边单元格的索引 */
+    int d;              /* Index of first cell to the left of right sibling */  //右兄弟最左侧第一个单元的索引/*【白忠军】右边兄弟的左边第一个单元格的索引 */
 
     r = cntNew[i-1] - 1;
     d = r + 1 - leafData;
@@ -7830,6 +7889,7 @@ static int balance_nonroot(                                //调整B树的各节
     szNew[i] = szRight;
     szNew[i-1] = szLeft;
   }
+
 
   /* Either we found one or more cells (cntnew[0])>0) or pPage is
   ** a virtual root page.  A virtual root page is when the real root
