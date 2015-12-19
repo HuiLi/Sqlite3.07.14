@@ -14,7 +14,7 @@
 **此文件包含由语法分析器来处理在 SQLite 的 SELECT 语句调用的 C 代码例程
 */
 
-#include "sqliteInt.h"  /*预编译处理器把sqliteInt.h文件中的内容加载到程序中来*/
+#include "sqliteInt.h"  //预编译处理器把sqliteInt.h文件中的内容加载到程序中来
 
 /*
 ** Trace output macros
@@ -38,7 +38,7 @@
 ** into the selectInnerLoop() routine.
 ** 下面结构体的一个实例是用于记录有关如何处理DISTINCT关键字的信息，为了简化传递该信息到selectInnerLoop（）事务。
 */
-
+//这个 结构体用于记录关于怎样处理 DISTINCT 关键字 
 typedef struct DistinctCtx DistinctCtx;
 struct DistinctCtx {
 	u8 isTnct;      /* 如果DISTINCT关键字存在则真 */ 
@@ -52,7 +52,7 @@ struct DistinctCtx {
 ** the ORDER BY (or GROUP BY) clause of query is being coded.
 ** 下面结构体的一个实例是用于记录ORDER BY(或者 GROUP BY)查询字句的信息
 */
-
+//用于记录the ORDER BY (or GROUP BY) 子句 的结构体 
 typedef struct SortCtx SortCtx;
 struct SortCtx {
 	ExprList *pOrderBy;   /* ORDER BY(或者 GROUP BY字句)*/ 
@@ -63,14 +63,14 @@ struct SortCtx {
 		int addrSortIndex;    /* OP_SorterOpen或者OP_OpenEphemeral的地址 */ 
 		u8 sortFlags;         /* 零或者更多的SORTFLAG_* 位 */ 
 };
-#define SORTFLAG_UseSorter  0x01   /* 使用sorteropen代替openephemeral */ 
+#define SORTFLAG_UseSorter  0x01   //* 使用sorteropen代替openephemeral */ 
 
 /*
 ** Delete all the content of a Select structure.  Deallocate the structure
 ** itself only if bFree is true.
 ** 删除选择结构的所有内容。仅当bFree是真的时候释放结构本身
 */
-
+//删除所有选择的内容结构但不释放选择结构本身。
 static void clearSelect(sqlite3 *db, Select *p, int bFree){
 	while (p){
 		Select *pPrior = p->pPrior;                  /*将p->pPrior赋值给Select *pPrior*/
