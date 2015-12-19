@@ -7890,8 +7890,7 @@ static int balance_nonroot(                                //调整B树的各节
     szNew[i-1] = szLeft;
   }
 
-
-  /* Either we found one or more cells (cntnew[0])>0) or pPage is
+/* Either we found one or more cells (cntnew[0])>0) or pPage is
   ** a virtual root page.  A virtual root page is when the real root
   ** page is page 1 and we are the only child of that page.
   ** 我们发现一个或更多(cntnew[0])> 0)或pPage是一个虚拟根页面.
@@ -7899,6 +7898,13 @@ static int balance_nonroot(                                //调整B树的各节
   ** UPDATE:  The assert() below is not necessarily true if the database
   ** file is corrupt.  The corruption will be detected and reported later
   ** in this procedure so there is no need to act upon it now.
+  */
+  /* 【白忠军】
+  ** 要么是我们发现一个或多个单元格(cntnew[0])> 0)，要么pPage是一个虚拟的根页。
+  虚拟根页面是当真实的根页是第1页和我们是页面的唯一孩子。
+  **
+  ** 更新:如果数据库文件被损坏assert()不一定为真。
+  这个损坏将会检测并报告后在这个过程中不需要立即采取行动。
   */
 #if 0
   assert( cntNew[0]>0 || (pParent->pgno==1 && pParent->nCell==0) );
@@ -7910,7 +7916,7 @@ static int balance_nonroot(                                //调整B树的各节
     nOld>=3 ? apOld[2]->pgno : 0
   ));
 
-  /*Allocate k new pages.  Reuse old pages where possible. */     //分配k新页.有可能重新使用老页
+  /*Allocate k new pages.  Reuse old pages where possible. */     //分配k新页.有可能重新使用老页/* 【白忠军】分配k个新页面。在可能的情况下重用旧的页面。*/
   if( apOld[0]->pgno<=1 ){
     rc = SQLITE_CORRUPT_BKPT;
     goto balance_cleanup;
@@ -7931,7 +7937,7 @@ static int balance_nonroot(                                //调整B树的各节
       apNew[i] = pNew;
       nNew++;
 
-      /* Set the pointer-map entry for the new sibling page. */  //对于新的兄弟页设置指针位图条目
+      /* Set the pointer-map entry for the new sibling page. */  //对于新的兄弟页设置指针位图条目/* 【白忠军】为新兄弟页面设置pointer-map条目。*/
       if( ISAUTOVACUUM ){
         ptrmapPut(pBt, pNew->pgno, PTRMAP_BTREE, pParent->pgno, &rc);
         if( rc!=SQLITE_OK ){
@@ -7941,7 +7947,7 @@ static int balance_nonroot(                                //调整B树的各节
     }
   }
 
-  /* Free any old pages that were not reused as new pages.*/    //释放没有重新使用作新页的老页
+  /* Free any old pages that were not reused as new pages.*/    //释放没有重新使用作新页的老页/* 【白忠军】空闲的任何旧页面都没有作为新页面被重用。*/
   while( i<nOld ){
     freePage(apOld[i], &rc);
     if( rc ) goto balance_cleanup;
@@ -7965,6 +7971,14 @@ static int balance_nonroot(                                //调整B树的各节
   ** When NB==3, this one optimization makes the database
   ** about 25% faster for large insertions and deletions.
   ** 当NB==3,这个优化使数据库对于删除插入提高大约25%左右.
+  */
+  /*【白忠军】
+  ** 按升序排列新页面。这有助于保持磁盘文件中的条目，为了这表是一个线性扫描的扫描文件。
+  这反过来又帮助操作系统从磁盘快速传送页面。
+  **
+  ** 使用O(n^2)插入排序算法,但由于n是不会超过NB(小常数),这应该不是一个问题。
+  **
+  ** 当NB等于3,这个优化对于数据库做大的插入和删除快25%左右。
   */
   for(i=0; i<k-1; i++){
     int minV = apNew[i]->pgno;
@@ -7997,9 +8011,11 @@ static int balance_nonroot(                                //调整B树的各节
   ** Insert divider cells into pParent as necessary.
   ** 在新的页面的apCell[]中均匀分布数据.插入分隔单元pParent是必要的.
   */
+  /* 【白忠军】apCell[]均匀分布的数据覆盖新的页面。向分隔单元插入pParent是必要的。
+  */
   j = 0;
   for(i=0; i<nNew; i++){
-    /* Assemble the new sibling page. */     //组装新兄弟页
+    /* Assemble the new sibling page. */     //组装新兄弟页/* 【白忠军】组装新兄弟页面。*/
     MemPage *pNew = apNew[i];
     assert( j<nMaxCells );
     zeroPage(pNew, pageFlags);
@@ -8013,6 +8029,9 @@ static int balance_nonroot(                                //调整B树的各节
     ** insert a divider cell into the parent page. 
 	** 如果上面组装的兄弟页面并不是最右边的兄弟,插入隔离单元到父页面.
     */
+    /*【白忠军】如果上面组装的兄弟页面并不是最右边的兄弟,则向分隔单元插入父页面。
+    */
+    asser
     assert( i<nNew-1 || j==nCell );
     if( j<nCell ){
       u8 *pCell;
@@ -8033,6 +8052,10 @@ static int balance_nonroot(                                //调整B树的各节
 		** 如果是叶数据的树,并且各节点是叶节点,那么在APCell[]中没有分割单元.
 		** 相反分割单元是以上装配的兄弟节点的最右的单元的整形关键字组成.
         */
+        /* 【白忠军】
+        ** 如果这树是叶级树,并且兄弟节点是分开的,那么apCell[]就没有分隔单元。
+		相反,分隔单元是由最右边的sibling-page组装单元的整数键组成。
+		*/
         CellInfo info;
         j--;
         btreeParseCellPtr(pNew, apCell[j], &info);
@@ -8056,6 +8079,14 @@ static int balance_nonroot(                                //调整B树的各节
 		** 注意,这可能不会发生在一个SQLite数据文件中,所有单元至少有4个字节.
 		** 它只发生在b树中用来评估"IN (SELECT ...)"和相关子句.
         */
+        /* 【白忠军】
+        对于non-leaf-data这种树的模糊情况是：如果单元格pCell以前存储在一个叶节点,
+		并且它的大小是4个字节,那么它可能会小于这个（btreeParseCellPtr(),4个字节是任意单元格的最小大小）。
+		但重要的是把恰当的大小分配给insertCell(),所以现在重新解析单元格。
+		**
+		注意,这永远不会发生在一个SQLite数据文件,所有的单元格都是至少4个字节。
+		它只发生在b树用来评估”(选择…)”和类似的子句。
+		*/
         if( szCell[j]==4 ){
           assert(leafCorrection==4);
           sz = cellSizePtr(pParent, pCell);
@@ -8099,6 +8130,14 @@ static int balance_nonroot(                                //调整B树的各节
     ** image.  
 	** 第二个断言验证子页面被碎片化了(这是必须的,因为它只是使用assemblePage()重建).
 	** 这是很重要的,如果父页面是数据库镜像的page 1.*/
+	/*【白忠军】
+	**b树的根页现在不包含单元格。唯一的兄弟结点页是父结点的右子结点。复制的内容子节点页到父结点，
+	降低了整体的高度B树结构的一个。这被形容为“平衡较浅”文件中的子算法。
+	**如果这是一个自动-空闲的数据库，调用这个 copyNodeContent()设置对应于数据库图像页的所有指针映射项
+	该指针存储在被复制的内容中。
+	**第二个assert下边证明子页碎片整理（这是必须的，因为它只是重建使用assemblePage()）。
+    如果父页恰好是那么重要图像数据库的第一页。
+	*/
     assert( nNew==1 );
     assert( apNew[0]->nFree == 
         (get2byte(&apNew[0]->aData[5])-apNew[0]->cellOffset-apNew[0]->nCell*2) 
@@ -8143,6 +8182,19 @@ static int balance_nonroot(                                //调整B树的各节
     ** actually moved between pages.  
 	** 前两种情况被其他代码处理.下一个块处理情况下3和4,之后5.因为设置一个指针映射条目是一个
 	** 相对浪费的操作,所以这个代码只对在页面之间移动的孩子或溢出页设置指针的映射条目.*/
+	/*【白忠军】
+	修复所有单元格被移位的指针映射项有几个不同类型的指针映射项需要
+    被这个程序处理。其中一些已经被设置，但许多没有设置，以下是一些总结：
+     （1）当这个函数被调用时，该项与“new”兄弟结点页相关联的页上。这些已经被设置。
+          我们不需要担心“old”兄弟结点，它被转移到空闲列表的freepage()代码且受它们的照顾。
+     （2）用于新的分页单元使用的任意溢出链中的第一个溢出页的指针映射项。这些都已经由insertcell()代码照顾。
+     （3）如果兄弟页结点是非子叶，则存储在兄弟结点页上的子页可能需要更新。
+     （4）如果兄弟结点页不是内部intkey节点，那么任何溢出页使用这些细单元可能需要更新。
+         （内部intkey节点不包含指针溢出页）。
+     （5）如果兄弟结点页没有子叶，则每一个兄弟的右子页的指针映射项可能需要更新。
+          1和2的情况下，由其他代码处理。下一个块处理3和4的情况下，一个接一个，处理5。自设置一个指针映射项是一个
+          比较开销很大的操作，这代码只设置有兄弟结点或溢出页的指针映射项实际上在页面之间移动。
+    */
     MemPage *pNew = apNew[0];
     MemPage *pOld = apCopy[0];
     int nOverflow = pOld->nOverflow;
@@ -8157,6 +8209,9 @@ static int balance_nonroot(                                //调整B树的各节
         ** sibling page j. If the siblings are not leaf pages of an
         ** intkey b-tree, then cell i was a divider cell. 
 		** 单元i是单元立即老兄弟页最后单元后.如果不是intkeyB树的叶子节点那么单元i是一个分割单元*/
+		/*【白忠军】单元格变量i是这单元格在新的兄弟结点页上立即对最后的单元进行追踪。
+		如果这兄弟结点在intkey b-tree是非叶子页，则单元格变量i是一个分页的单元。
+		*/
         assert( j+1 < ArraySize(apCopy) );
         assert( j+1 < nOld );
         pOld = apCopy[++j];
@@ -8182,6 +8237,9 @@ static int balance_nonroot(                                //调整B树的各节
         /* Cell i is the cell immediately following the last cell on new
         ** sibling page k. If the siblings are not leaf pages of an
         ** intkey b-tree, then cell i is a divider cell.  */
+        /*【白忠军】单元格变量i是这单元格在新的兄弟结点页上立即对最后的单元进行追踪。
+		如果这兄弟结点在intkey b-tree是非叶子页，则单元格变量i是一个分页的单元。
+		*/
         pNew = apNew[++k];
         if( !leafData ) continue;
       }
@@ -8192,6 +8250,10 @@ static int balance_nonroot(                                //调整B树的各节
       ** an overflow cell, or if the cell was located on a different sibling
       ** page before the balancing, then the pointer map entries associated
       ** with any child or overflow pages need to be updated.  */
+      /*【白忠军】如果这单元格刚开始是分页单元（不是现在）或者是一个溢出单元，
+	  或者这个单元在平衡之前，位于一个不同的兄弟结点页上，然后将指针
+	  映射项与子节点页或是溢出页相关联需要进行修改。
+	  */
       if( isDivider || pOld->pgno!=pNew->pgno ){
         if( !leafCorrection ){
           ptrmapPut(pBt, get4byte(apCell[i]), PTRMAP_BTREE, pNew->pgno, &rc);
@@ -8208,7 +8270,6 @@ static int balance_nonroot(                                //调整B树的各节
         ptrmapPut(pBt, key, PTRMAP_BTREE, apNew[i]->pgno, &rc);
       }
     }
-
 #if 0
     /* The ptrmapCheckPages() contains assert() statements that verify that
     ** all pointer map pages are set correctly. This is helpful while 
