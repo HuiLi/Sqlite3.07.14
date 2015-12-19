@@ -6404,14 +6404,22 @@ end_allocate_page:
 ** If a pointer to a MemPage object is passed as the second argument,
 ** its reference count is not altered by this function.
 ** 如果一个指针MemPage对象作为第二个参数传递,那么它引用数不会被这个函数改变.
-*/ 
+*/
+/*【白忠军】
+** 这个函数是用于添加iPage页面到空闲列表的数据库文件。假设该页面已经不是空闲列表的一部分。
+**
+** 作为第二个参数传递给该函数的值是可选的。
+如果调用者碰巧有一个指针指向MemPage对象对应的iPage邻近页面,它可能把它作为第二个值。否则,它可能为NULL。
+**
+** 如果一个指针指向MemPage对象作为第二个参数传递,它的引用计数不会被这个函数改变。
+*/
 static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添加页面iPage到数据库文件空闲列表
   MemPage *pTrunk = 0;                /* Free-list trunk page */                 //空闲列表页的主页面
   Pgno iTrunk = 0;                    /* Page number of free-list trunk page */  //空闲列表页的主页面的页码
   MemPage *pPage1 = pBt->pPage1;      /* Local reference to page 1 */            //内存引用页1
   MemPage *pPage;                     /* Page being freed. May be NULL. */       //页被释放,肯能是空
   int rc;                             /* Return Code */                          //返回代码
-  int nFree;                          /* Initial number of pages on free-list */ //空闲列表页上最初的页数量
+  int nFree;                          /* Initial number of pages on free-list */ //空闲列表页上最初的页数量/* 【白忠军】初始化空闲列表的页面数量 */
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( iPage>1 );
@@ -6424,7 +6432,7 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
     pPage = btreePageLookup(pBt, iPage);
   }
 
-  /* Increment the free page count on pPage1 */    //递增pPage1上的空闲页的数量
+  /* Increment the free page count on pPage1 */    //递增pPage1上的空闲页的数量/* 【白忠军】pPage1增加空闲页面 */
   rc = sqlite3PagerWrite(pPage1->pDbPage);
   if( rc ) goto freepage_out;                     //如果rc值为0转到freepage_out
   nFree = get4byte(&pPage1->aData[36]);
@@ -6434,6 +6442,9 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
     /* If the secure_delete option is enabled, then
     ** always fully overwrite deleted information with zeros.
 	** 如果secure_delete选项可用,那么总是完全重写删除信息为0.
+    */
+    /* 【白忠军】
+	如果启用了secure_delete选项,则总是用0完全覆盖删除信息。
     */
     if( (!pPage && ((rc = btreeGetPage(pBt, iPage, &pPage, 0))!=0) )
      ||            ((rc = sqlite3PagerWrite(pPage->pDbPage))!=0)
@@ -6446,6 +6457,9 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
   /* If the database supports auto-vacuum, write an entry in the pointer-map
   ** to indicate that the page is free.
   ** 如果数据库支持自动清理,写一个条目在指针位图来表明也是空闲的.
+  */
+  /* 【白忠军】
+  如果数据库支持auto-vacuum,在pointer-map里面写一个条目表明页面是空闲的。
   */
   if( ISAUTOVACUUM ){
     ptrmapPut(pBt, iPage, PTRMAP_FREEPAGE, 0, &rc);
@@ -6462,8 +6476,15 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
   ** 上的第一主页面是满的,那么这将成为一个页面新的空闲列表的主页面.否则,它将成为当前空闲列
   ** 中的第一个主页面的一个叶子.如果它可以添加页面作为一个新的空闲列表的叶子则对这个块测试.
   */
+  /* 【白忠军】
+  现在操作实际的数据库空闲列表结构。有两种可能性。
+  如果空闲列表当前为空,或者如果空闲列表中第一个树干页面已满,
+  那么这个页面将成为一个新的树干空闲列表页面。
+  否则,它将成为当前空闲列表的第一个树干的叶子页面。
+  这个块测试如果可以添加页面作为一个新的空闲列表的叶子。
+  */
   if( nFree!=0 ){
-    u32 nLeaf;                /* Initial number of leaf cells on trunk page */  //主页面上最初的叶子单元的数量
+    u32 nLeaf;                /* Initial number of leaf cells on trunk page */  //主页面上最初的叶子单元的数量/* 白忠军在树干页面初始化叶子单元格的数量 */
 
     iTrunk = get4byte(&pPage1->aData[32]);
     rc = btreeGetPage(pBt, iTrunk, &pTrunk, 0);
@@ -6497,6 +6518,14 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
 	  ** 在将来的某个时候(每个人都有一次升级3.6.0或之后)我们应该考虑解决上面的条件读“usableSize/4-2”,
 	  ** 而不是“usableSize/4-8”.
       */
+      /* 【白忠军】
+	  ** 在这种情况下,树干页面上有空间去插入页面被作为一片新叶子。
+	  **
+	  ** 注意,树干页面不是完整的,直到它包含usableSize/4-2个条目,而不是usableSize/4-8条目。
+	  但由于SQLite3.6.0之前的版本有一个编码错误,带有空闲列表树干页的数据库拥有超过usableSize/4-8条目将被报告为损坏。
+	  为了保持向后兼容SQLite的旧版本,我们将继续限制条目的数量为usableSize/4-8。
+	  在将来的某个时候(一旦每个人都升级到3.6.0或更高版本)我们应该考虑修复上述条件去读“usableSize/4-2”,而不是“usableSize/4-8”。
+      */
       rc = sqlite3PagerWrite(pTrunk->pDbPage);
       if( rc==SQLITE_OK ){
         put4byte(&pTrunk->aData[4], nLeaf+1);
@@ -6519,6 +6548,11 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
   ** 如果控制流达到这一点,那么它是不可能的添加被释放的页面成为空闲列表中的主页面的第一个叶子页面.
   ** 可能是因为空闲列表是空的,或可能是因为空闲列表中的第一个主页面已经满了.无论哪种方式,页面被释放
   ** 将成为新的空闲列表中的第一个主页面.
+  */
+  /* 【白忠军】如果控制流向这一点,那么它是不可能添加被释放的叶子页面，
+  该叶子页是在空闲列表中的第一个树干的叶子页面。
+  可能是因为空闲列表是空的,或可能是因为空闲列表中的第一个树干已经满了。
+  无论哪种方式,页面被释放将成为空闲列表中的新的第一个树干页面。
   */
   if( pPage==0 && SQLITE_OK!=(rc = btreeGetPage(pBt, iPage, &pPage, 0)) ){
     goto freepage_out;
@@ -6546,7 +6580,10 @@ static void freePage(MemPage *pPage, int *pRC){
   }
 }
 
-/*Free any overflow pages associated with the given Cell.*/   
+/*Free any overflow pages associated with the given Cell.*/
+/*【白忠军】
+** 空闲的任何溢出页面与给定单元格有关。
+*/
 static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何与给定单元相关的溢出页
   BtShared *pBt = pPage->pBt;
   CellInfo info;
@@ -6558,10 +6595,10 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   btreeParseCellPtr(pPage, pCell, &info);
   if( info.iOverflow==0 ){
-    return SQLITE_OK;  /* No overflow pages. Return without doing anything */   //没有溢出页,不做操作返回
+    return SQLITE_OK;  /* No overflow pages. Return without doing anything */   //没有溢出页,不做操作返回/* 【白忠军】不是溢出页面。返回不做任何事情 */
   }
   if( pCell+info.iOverflow+3 > pPage->aData+pPage->maskPage ){
-    return SQLITE_CORRUPT;  /* Cell extends past end of page */  //单元超过了页面的范围
+    return SQLITE_CORRUPT;  /* Cell extends past end of page */  //单元超过了页面的范围/*【白忠军】 单元格延伸到页面末尾 */
   }
   ovflPgno = get4byte(&pCell[info.iOverflow]);
   assert( pBt->usableSize > 4 );
@@ -6576,6 +6613,9 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
       ** overflow page. Therefore if ovflPgno<2 or past the end of the 
       ** file the database must be corrupt.
 	  0不是合法的页码并且1不可能是溢出页.因此,如果ovflPgno<2或者超过数据库文件一定返回SQLITE_CORRUPT_BKPT*/
+	  /* 【白忠军】0不是一个合法的页码和第1页不能溢出页面。
+	  因此如果ovflPgno < 2或数据库文件的末尾被破坏。
+	  */
       return SQLITE_CORRUPT_BKPT;
     }
     if( nOvfl ){
@@ -6599,6 +6639,12 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
 	  ** 不一定是一个真的溢出页面和数据库一定崩溃.它有助于调用freePage2()之前检测该情况.如果安全删除模式启用,
 	  ** freePage2()会清零页面内容.如果这“溢出”页面是一个调用遍历或以其他方式使用的页面,这可能是有问题的.
       */
+      /* 【白忠军】
+	  没有理由任何光标都应该有一个溢出页属于一个删除或更新的单元格的引用。
+	  如果存在多个引用这个页面,那么它必须不是一个溢出页面并且数据库必须被破坏。
+	  在调用freePage2()之前它有助于检测,因为freePage2()也许是零页面内容，如果启用了安全删除模式。
+	  如果这“溢出”的页面发生在这样一个页面（调用者是遍历或以其他方式使用,这可能是有问题的）。
+	  */
       rc = SQLITE_CORRUPT_BKPT;
     }else{
       rc = freePage2(pBt, pOvfl, ovflPgno);
@@ -6628,14 +6674,22 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
 ** 注意,pCell并不必要需要指向pPage->aData区域.pCell可能指向一些临时存储区.
 ** 单元会在这个临时区域被创建然后复制到pPage->aData.
 */
+/*
+**【白忠军】
+创建字节序列用来代表一个在pPage页的单元格和写字节序列到pCell[]。
+溢出页在必要时分配和填写。调用程序负责确保分配给pCell[]有足够的空间。
+**
+注意,pCell并没必要指向pPage->aData区域。pCell可能指向一些临时存储。
+单元格将在这个临时区域被构造然后复制到pPage->aData之后。
+*/
 /*创建字节序列写入pCell*/
 static int fillInCell(     //创建字节序列用来代表一个pPage页上的单元并将字节序列写到pCell[]
-  MemPage *pPage,                /* The page that contains the cell */     //包含该单元的页
-  unsigned char *pCell,          /* Complete text of the cell */           //单元的完整文本
-  const void *pKey, i64 nKey,    /* The key */                             //关键字
+  MemPage *pPage,                /* The page that contains the cell */     //包含该单元的页/* 【白忠军】页面包含单元格 */
+  unsigned char *pCell,          /* Complete text of the cell */           //单元的完整文本/* 【白忠军】完成单元格文本 */
+  const void *pKey, i64 nKey,    /* The key */                             //关键字/* 【白忠军】键 */
   const void *pData,int nData,   /* The data */                            //数据域
-  int nZero,                     /* Extra zero bytes to append to pData */ //附加在pData上的额外0字节
-  int *pnSize                    /* Write cell size here */                //将单元的大小写到该变量
+  int nZero,                     /* Extra zero bytes to append to pData */ //附加在pData上的额外0字节/* 【白忠军】向pData追加额外的零字节*/
+  int *pnSize                    /* Write cell size here */                //将单元的大小写到该变量/* 【白忠军】写单元格大小 */
 ){
   int nPayload;
   const u8 *pSrc;
@@ -6655,10 +6709,12 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
   /* pPage is not necessarily writeable since pCell might be auxiliary
   ** buffer space that is separate from the pPage buffer area 
   ** pPage不一定是可写的因为pCell可能是从pPage缓冲区分出的辅助缓冲区空间.*/
+  /* 【白忠军】pPage不一定可写，因为pCell可能辅助缓冲区空间分开pPage缓冲区
+  */
   assert( pCell<pPage->aData || pCell>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
-  /* Fill in the header. */     //添加头信息
+  /* Fill in the header. */     //添加头信息/* 【白忠军】添加头部 */
   nHeader = 0;
   if( !pPage->leaf ){
     nHeader += 4;
@@ -6696,7 +6752,7 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
   while( nPayload>0 ){
     if( spaceLeft==0 ){
 #ifndef SQLITE_OMIT_AUTOVACUUM
-      Pgno pgnoPtrmap = pgnoOvfl; /* Overflow page pointer-map entry page */  //溢出页位图指针条目页
+      Pgno pgnoPtrmap = pgnoOvfl; /* Overflow page pointer-map entry page */  //溢出页位图指针条目页/* 【白忠军】溢出页pointer-map条目页 */
       if( pBt->autoVacuum ){
         do{
           pgnoOvfl++;
@@ -6719,6 +6775,15 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
 	  ** 如果这是第一个溢出页,那么写一个局部页条目到指针位图.如果不写到指针位图位置,那么
 	  ** 客观来说在clearCell()中处理的溢出链接将会弄错未初始化的值并且将从数据库中删除错误页.
       */
+      /*
+	  **【白忠军】
+	  如果数据库支持auto-vacuum,并且第二个或后续溢出页被分配,
+	  现从那个页面添加一个条目到pointer-map。
+	  **
+	  如果这是第一次溢出页,然后写部分条目给pointer-map。
+	  如果我们不写条目给这个pointer-map槽,
+	  那么乐观的溢出链处理clearCell()可能会误解为未初始化值和从数据库中删除错误的页面。
+	  */
       if( pBt->autoVacuum && rc==SQLITE_OK ){
         u8 eType = (pgnoPtrmap?PTRMAP_OVERFLOW2:PTRMAP_OVERFLOW1);
         ptrmapPut(pBt, pgnoOvfl, eType, pgnoPtrmap, &rc);
@@ -6735,11 +6800,13 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
       /* If pToRelease is not zero than pPrior points into the data area
       ** of pToRelease.  Make sure pToRelease is still writeable. 
 	  ** 如果pToRelease一不为0,pPrior就指向pToRelease的数据域.确保pToRelease是可写的. */
+	  /* 【白忠军】如果pToRelease不为零，pPayload指向pToRelease的数据区域。确保pToRelease仍可写。 */
       assert( pToRelease==0 || sqlite3PagerIswriteable(pToRelease->pDbPage) );
 
       /* If pPrior is part of the data area of pPage, then make sure pPage
       ** is still writeable 
 	  ** 如果pPrior是pPage数据域的一部分,那么确保pPage仍然可写. */
+	  /* 【白忠军】如果pPrior是pPage数据区域的一部分,然后确保pPage仍可写 */
       assert( pPrior<pPage->aData || pPrior>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
@@ -6757,11 +6824,13 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
     /* If pToRelease is not zero than pPayload points into the data area
     ** of pToRelease.  Make sure pToRelease is still writeable.
 	** 如果pToRelease一不为0,pPrior就指向pToRelease的数据域.确保pToRelease是可写的.  */
+	/* 【白忠军】如果pToRelease不为零，pPayload指向pToRelease的数据区域。确保pToRelease仍可写。 */
     assert( pToRelease==0 || sqlite3PagerIswriteable(pToRelease->pDbPage) );
 
     /* If pPayload is part of the data area of pPage, then make sure pPage
     ** is still writeable 
 	** 如果pPrior是pPage数据域的一部分,那么确保pPage仍然可写.*/
+	/* 【白忠军】如果pPayload是pPage数据区域的一部分,然后确保pPage仍可写 */
     assert( pPayload<pPage->aData || pPayload>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
@@ -6795,10 +6864,18 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
 ** 假定单元的内容已经拷贝到其他地方.这个函数将只pPage中单元的引用.
 ** "sz" must be the number of bytes in the cell. //参数sz是单元的字节数.
 */
+/*
+**【白忠军】
+从pPage删除第i个单元格。pPage只影响这个例程。不释放或收回单元格内容。
+假设单元格内容被复制别的地方。这个例程从pPage删除单元格的引用。
+**
+"sz" 必须是单元格中字节数
+**
+*/
 static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //删除pPage的第i个单元.
-  u32 pc;         /* Offset to cell content of cell being deleted */  //要被删除的单元内容的偏移量
+  u32 pc;         /* Offset to cell content of cell being deleted */  //要被删除的单元内容的偏移量/* 【白忠军】被删除的单元格的偏移量 */
   u8 *data;       /* pPage->aData */                                  //pPage->aData的数据
-  u8 *ptr;        /* Used to move bytes around within data[] */       //在data[]中用于移动字节
+  u8 *ptr;        /* Used to move bytes around within data[] */       //在data[]中用于移动字节/* 【白忠军】用于data[]内移动字节*/
   u8 *endPtr;     /* End of loop */                                   //循环结束
   int rc;         /* The return code */                               //返回代码
   int hdr;        /* Beginning of the header.  0 most pages.  100 page 1 */   //头部的开始,为0是其他页,为1 是第一页
