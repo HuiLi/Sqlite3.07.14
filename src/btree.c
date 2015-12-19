@@ -8779,6 +8779,8 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** 如果页面包含要删除的条目不是叶子页面,移动游标到树中比要删除条目小的最大的条目.
   ** 这个单元将取代从内部节点被删除的单元.以前的条目用于此代替“next”条目,因为前面
   ** 的条目总是要删除单元的孩子页带领的子树的一部分.这使得删除操作后树的平衡造作更容易.*/
+  /* 移动节点使树更平衡 让接下来的删除操作更简单
+  */
   if( !pPage->leaf ){
     int notUsed;
     rc = sqlite3BtreePrevious(pCur, &notUsed);  //逐步使游标回到数据库中以前的条目
@@ -8792,12 +8794,16 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** 在任何修改之前,保存所有其他在此表上开放的游标的位置.使页面包含要删除的可写的条目.
   ** 然后释放任何与条目相关的溢出页,最后删除页面内的单元本身.
   */
+  /* 在做任何修改之前存储这个表上其他打开的游标的位置，是这个包含删除条目
+	的页面可写，释放这个待删除条目上所有溢出页买最后从页面移除该条目
+  */
   rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);/*修改之前保存所有打开的游标*/
   if( rc ) return rc;
 
   /* If this is a delete operation to remove a row from a table b-tree,
   ** invalidate any incrblob cursors open on the row being deleted.  
   ** 如果是从一个B树表中删除一行的删除操作,使在行上被删除的打开的任何incrblob游标无效.*/
+  
   if( pCur->pKeyInfo==0 ){
     invalidateIncrblobCursors(p, pCur->info.nKey, 0);/*如果为删除操作,使所有incrblob游标无效*/
   }
@@ -8815,6 +8821,9 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** node to replace the deleted cell. 
   ** 如果删除单元并不位于叶子页面,然后游标当前指向子树中的最大的条目,这个条目在子树中被从
   ** 一个内部节点中删除的单元的孩子页面跟从.叶节点的单元需要移动到内部节点替换删除的单元.*/
+  /* 如果被删除的条目不在叶子页面上，游标正指向这个条目子树的头结点，此时
+	删除的结点是非叶子结点，要将这个条目的叶子结点移动到此处 替换被删除的
+	结点*/
   if( !pPage->leaf ){
     MemPage *pLeaf = pCur->apPage[pCur->iPage];
     int nCell;
@@ -8913,6 +8922,9 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 	** 创建一个新表可能要移动一个存在的数据库来为新表的根页腾出空间.加入该页是一个溢出页,那么删除开放性游标
 	** 拥有的所有溢出页映射缓存.
     */
+	/* 创建一个新表，可能需要数据库为其根页腾出空间，如果这个页为溢出页，删除
+		所有游标所指向的溢出页映射
+    */
     invalidateAllOverflowCache(pBt); //在共享B树结构pBt上,对所有打开的游标使溢出页列表无效
 
     /* Read the value of meta[3] from the database to determine where the
@@ -8926,6 +8938,7 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
     /* The new root-page may not be allocated on a pointer-map page, or the
     ** PENDING_BYTE page. //新根页也许没有在指针位图页或PENDING_BYTE页上分配.
     */
+	/*新的根页不能分配到pointer-map page或者PENDING_BYTE page*/
     while( pgnoRoot==PTRMAP_PAGENO(pBt, pgnoRoot) ||
         pgnoRoot==PENDING_BYTE_PAGE(pBt) ){
       pgnoRoot++;/*新的根页不能是pointer-map page或者PENDING_BYTE page*/
@@ -8937,6 +8950,8 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
     ** to reside at pgnoRoot).
 	** 分配一个页.当前驻留在 pgnoRoot上页将移动到分配的页(除非分配的页已经驻留在 pgnoRoot中).
     */
+	/*分配一个页面，这个目前在pgnoroot中的页面将要被移动到所分配的页面
+		pgnoMove处*/
     rc = allocateBtreePage(pBt, &pPageMove, &pgnoMove, pgnoRoot,1);//从数据库文件分配一个新页面,成功则返回SQLITE_OK
     if( rc!=SQLITE_OK ){
       return rc;
@@ -8951,12 +8966,15 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 	  ** pgnoRoot是将被用作新表根页的页面(假设没有发生错误的话).但分配pgnoMove.
 	  ** 如果需要(即如果没有被扩展文件分配),那么当前页面位置pgnoMove记录到日志.
       */
+	  /* pgnroot将要被用作新表的根页，但是pgnomove已经被分配。如果需要，
+		pgnomove上的页面已经被记入日志*/
       u8 eType = 0;
       Pgno iPtrPage = 0;
 
       releasePage(pPageMove);
 
       /* Move the page currently at pgnoRoot to pgnoMove. */  //移动当前在pgnoRoot的页面到pgnoMove.
+	  /* 将pgnoRoot上的页面移动到pgnoMove. */
       rc = btreeGetPage(pBt, pgnoRoot, &pRoot, 0); //从页对象得到一个页.若需要,则初始化MemPage.pBt和MemPage.aData
       if( rc!=SQLITE_OK ){
         return rc;
@@ -8993,6 +9011,7 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 
     /* Update the pointer-map and meta-data with the new root-page number. */
 	//更新带有新根页的指针位图和元数据
+	/* 更新pointer-map和meta-data 为新的根页的序号*/
     ptrmapPut(pBt, pgnoRoot, PTRMAP_ROOTPAGE, 0, &rc);
     if( rc ){
       releasePage(pRoot);
@@ -9043,6 +9062,9 @@ int sqlite3BtreeCreateTable(Btree *p, int *piTable, int flags){
 ** Erase the given database page and all its children.  Return
 ** the page to the freelist.
 ** 擦除给定的数据库页和其所有孩子节点.返回页到列表页.
+*/
+/*
+	清空所给页面和他的所有子页面，将页面返回到自由队列
 */
 static int clearDatabasePage(    //擦除给定的数据库页和其所有孩子节点.返回页到列表页.
   BtShared *pBt,           /* The BTree that contains the table */          //包含表的B树
@@ -9106,6 +9128,12 @@ cleardatabasepage_out:
 /*
 删除B-tree中所有的数据,但保持B-tree结构完整.
 */
+/*
+删除表中中所有的数据，iTabbe是所有表根页的数目，函数执行以后根页为空
+但是仍然存在
+
+当有打开的读游标在表上时执行失败，有写游标时将游标移动到根页
+*/
 int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //删除B-tree中所有的数据,但保持B-tree结构完整
   int rc;
   BtShared *pBt = p->pBt;
@@ -9150,6 +9178,8 @@ int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //删除B-tree
 ** 这对于AUTOVACUUM正常工作是有必要的.*piMoved被设置为移动之前文件中是最后根页的页码.如果没有页要移动,
 ** 则*piMoved设为0.最后的根页是记录在meta[3]中并且meta[3]的值在这个过程中被更新.
 */
+/*清空表后将表放入自由队列，如果这个表有任何打开的游标在上面，则执行失败
+*/
 static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上的所有信息并且添加标的根到空闲列表
   int rc;
   MemPage *pPage = 0;
@@ -9166,6 +9196,10 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
   ** 如果数据库上的任何游标开放了,那么操作是非法的.这是因为在auto-vacum模式下后端可能需要移动
   ** 另外一个根页来填充通过删除根页留下的缝隙.如果一个打开的游标在页上正在使用,那么将会出现问题.
   ** This error is caught long before control reaches this point.
+  */
+  /*如果有任何打开的游标在数据库上，就不能删除数据库，因为在auto-vacuum
+	模式中，可能会移动一个新的根页到刚删除的根页，如果正好有一个
+	打开的游标在上面，将会出现一个错误
   */
   if( NEVER(pBt->pCursor) ){
     sqlite3ConnectionBlocked(p->db, pBt->pCursor->pBtree->db);
@@ -9196,6 +9230,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
         ** number in the database, put the root page on the free list. 
 		** 如果被删除的表是数据库中有最大根页码的表,那么把根页放到空闲列表.
         */
+		/* 如果iTable == maxRootPgno 那么吧根页放到空闲列表
+        */
         freePage(pPage, &rc);
         releasePage(pPage);
         if( rc!=SQLITE_OK ){
@@ -9206,6 +9242,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
         ** number in the database. So move the page that does into the 
         ** gap left by the deleted root-page.
 		** 在数据库中被删除的表没有最大的根页码,因此移动页到因删除根页而产生的缝隙处.
+        */
+		/* 如果iTable < maxRootPgno 就移动页到刚删除的根页
         */
         MemPage *pMove;
         releasePage(pPage);
@@ -9235,6 +9273,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
 	  ** 在数据库头部设置新的max-root-page的值.这是原来的值减一,如果是在根页码上要少不止1.
 	  ** 如果是PENDING_BYTE_PAGE再次减1.
       */
+	  /* 在数据库文件头中将最大根页数减1
+      */
       maxRootPgno--;
       while( maxRootPgno==PENDING_BYTE_PAGE(pBt)
              || PTRMAP_ISPAGE(pBt, maxRootPgno) ){
@@ -9259,7 +9299,6 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
   }
   return rc;  
 }
-
 int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //删除数据库中的一个B树
   int rc;
   sqlite3BtreeEnter(p);
