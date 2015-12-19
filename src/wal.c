@@ -579,8 +579,9 @@ static int walIndexPage(Wal *pWal, int iPage, volatile u32 **ppPage){
 }
 
 /*
-** Return a pointer to the WalCkptInfo structure in the wal-index.返回一个WalCKptINfo指针
+** Return a pointer to the WalCkptInfo structure in the wal-index.返回一个WalCKptINfo指针  //返回一个指向walckptinfo结构在WAL指数
 */
+//定义静态函数WalCkptInfo
 static volatile WalCkptInfo *walCkptInfo(Wal *pWal){
   assert( pWal->nWiData>0 && pWal->apWiData[0] );        //   assert c函数  其作用是如果它的条件返回错误，则终止程序执行
   return (volatile WalCkptInfo*)&(pWal->apWiData[0][sizeof(WalIndexHdr)/2]); // ？
@@ -601,6 +602,11 @@ static volatile WalIndexHdr *walIndexHdr(Wal *pWal){
 ** returns the value that would be produced by intepreting the 4 bytes
 ** of the input value as a little-endian integer.
 */
+/*
+这个参数的类型必须是U32宏。
+在小端的架构，它返回的U32的值，解释4字节为大端值得结果。
+在big-endian的架构，它返回的值将被解释的输入值的4个字节为little-endian整数产生。
+*/
 #define BYTESWAP32(x) ( \
     (((x)&0x000000FF)<<24) + (((x)&0x0000FF00)<<8)  \
   + (((x)&0x00FF0000)>>8)  + (((x)&0xFF000000)>>24) \
@@ -615,33 +621,34 @@ static volatile WalIndexHdr *walIndexHdr(Wal *pWal){
 **
 ** nByte must be a positive multiple of 8.  nbyte 必须是8的整数倍
 */
+
 static void walChecksumBytes(
   int nativeCksum, /* True for native byte-order, false for non-native */
-  u8 *a,           /* Content to be checksummed */     校验 内容
-  int nByte,       /* Bytes of content in a[].  Must be a multiple of 8. */a[] 有多少字节，必须是8的倍数
-  const u32 *aIn,  /* Initial checksum value input */   校验和  的初始值
-  u32 *aOut        /* OUT: Final checksum value output */ 最后 校验值得 输出
+  u8 *a,           /* Content to be checksummed */     鏍￠獙 鍐呭                                                          //校验内容
+  int nByte,       /* Bytes of content in a[].  Must be a multiple of 8. */a[] 鏈夊灏戝瓧鑺傦紝蹇呴』鏄?鐨勫€嶆暟          //a[]有多少字节，必须三8的倍数
+  const u32 *aIn,  /* Initial checksum value input */   鏍￠獙鍜? 鐨勫垵濮嬪€?                                                //校验和的初始值
+  u32 *aOut        /* OUT: Final checksum value output */ 鏈€鍚?鏍￠獙鍊煎緱 杈撳嚭                                           //最后校验值的输出
 ){
-  u32 s1, s2;                               定义 s1,s2;
-  u32 *aData = (u32 *)a;                    将 *a 赋予 *aData
+  u32 s1, s2;                               瀹氫箟 s1,s2;                                                                       //定义u32类型的变量s1、s2
+  u32 *aData = (u32 *)a;                    灏?*a 璧嬩簣 *aData                                                                 //定义u32类型指针aData，并且指向a
   u32 *aEnd = (u32 *)&a[nByte];             
 
-  if( aIn ){                        如果 ain 不为空
-    s1 = aIn[0];                        
-    s2 = aIn[1];
-  }else{                           否则
+  if( aIn ){                        濡傛灉 ain 涓嶄负绌?                                                                        //如果aIn不为空
+    s1 = aIn[0];                                                                                                                //把aIn[0]的值赋给s1
+    s2 = aIn[1];                                                                                                                //把aIn[1]的值赋给s2
+  }else{                           鍚﹀垯                                                                                        //否则s1与s2都为0
     s1 = s2 = 0;
   }
 
-  assert( nByte>=8 );          如果nByteb不大于8为假，则终止程序 
-  assert( (nByte&0x00000007)==0 );  如果 nByte 不是8的倍数 ，则程序终止
+  assert( nByte>=8 );          濡傛灉nByteb涓嶅ぇ浜?涓哄亣锛屽垯缁堟绋嬪簭                                                     //如果nByteb不大于8为假，则终止程序 
+  assert( (nByte&0x00000007)==0 );  濡傛灉 nByte 涓嶆槸8鐨勫€嶆暟 锛屽垯绋嬪簭缁堟                                            // 如果 nByte 不是8的倍数 ，则程序终止
 
-  if( nativeCksum ){                       如果nativeCksum 为真，则
+  if( nativeCksum ){                       濡傛灉nativeCksum 涓虹湡锛屽垯                                                         //如果nativeCksum 为真，则
     do {
       s1 += *aData++ + s2;
       s2 += *aData++ + s1;
     }while( aData<aEnd );
-  }else{                                  否则
+  }else{                                  鍚﹀垯                                                                                  //否则
     do {
       s1 += BYTESWAP32(aData[0]) + s2;
       s2 += BYTESWAP32(aData[1]) + s1;
@@ -649,12 +656,12 @@ static void walChecksumBytes(
     }while( aData<aEnd );
   }
 
-  aOut[0] = s1;            将s1赋值给aOut[0] 
-  aOut[1] = s2;            将s2赋值给aout[1] 
+  aOut[0] = s1;            灏唖1璧嬪€肩粰aOut[0]                                                                                    //将s1赋值给aOut[0] 
+  aOut[1] = s2;            灏唖2璧嬪€肩粰aout[1]                                                                                    // 将s2赋值给aout[1] 
 }
 
 static void walShmBarrier(Wal *pWal){ 
-  if( pWal->exclusiveMode!=WAL_HEAPMEMORY_MODE ){     如果pWal->exclusiveMode 不等于2
+  if( pWal->exclusiveMode!=WAL_HEAPMEMORY_MODE ){     濡傛灉pWal->exclusiveMode 涓嶇瓑浜?                                              // 如果pWal->exclusiveMode 不等于2
     sqlite3OsShmBarrier(pWal->pDbFd);
   }
 }
@@ -665,15 +672,15 @@ static void walShmBarrier(Wal *pWal){
 ** The checksum on pWal->hdr is updated before it is written. pWal ->hdr 的校验和更新是在它被写之前
 */
 static void walIndexWriteHdr(Wal *pWal){
-  volatile WalIndexHdr *aHdr = walIndexHdr(pWal);                返回一个WalIndexHdr 结构指针 
+  volatile WalIndexHdr *aHdr = walIndexHdr(pWal);                //返回一个WalIndexHdr 结构指针   // 返回一个WalIndexHdr 结构指针 
   const int nCksum = offsetof(WalIndexHdr, aCksum);              
 
-  assert( pWal->writeLock );                         如果不为真 则程序终止                          
-  pWal->hdr.isInit = 1;                              初始值为1
-  pWal->hdr.iVersion = WALINDEX_MAX_VERSION;          设置版本号 为WALINDEX_MAX_VERSION
-  walChecksumBytes(1, (u8*)&pWal->hdr, nCksum, 0, pWal->hdr.aCksum);  进行校验
-  memcpy((void *)&aHdr[1], (void *)&pWal->hdr, sizeof(WalIndexHdr));         memcpy函数的功能是从源src所指的内存地址的起始位置开始拷贝n个字节到目标dest所指的内存地址的起始位置中。
-  walShmBarrier(pWal);              调用  walShmBarrier（）
+  assert( pWal->writeLock );                         //如果不为真 则程序终止                          
+  pWal->hdr.isInit = 1;                              //初始值为1
+  pWal->hdr.iVersion = WALINDEX_MAX_VERSION;         // 设置版本号 为WALINDEX_MAX_VERSION
+  walChecksumBytes(1, (u8*)&pWal->hdr, nCksum, 0, pWal->hdr.aCksum); // 进行校验
+  memcpy((void *)&aHdr[1], (void *)&pWal->hdr, sizeof(WalIndexHdr));        // memcpy函数的功能是从源src所指的内存地址的起始位置开始拷贝n个字节到目标dest所指的内存地址的起始位置中。
+  walShmBarrier(pWal);            //  调用  walShmBarrier（）
   memcpy((void *)&aHdr[0], (void *)&pWal->hdr, sizeof(WalIndexHdr));
 }
 
@@ -689,16 +696,31 @@ static void walIndexWriteHdr(Wal *pWal){
 **    16: Checksum-1.
 **    20: Checksum-2.
 */
+/*
+跟在WAL头上的是0到多个框。每个框由一个24字节的框头（frame-header）和一个页大小的页数据组成。
+框头是6个大端的32位无符号整数，如下：
+0: Page number.
+4: For commit records, the size of the database image in pages after the commit. For all other records, zero.
+8: Salt-1 (copied from the header)
+12: Salt-2 (copied from the header)
+16: Checksum-1.
+20: Checksum-2.
+当一个框满足下面条件时，才被认为是有效的：
+1.在框头中Salt-1和salt-2的值跟在wal头里面的一致
+2.框头的最后的8个字节的校验和完全匹配一下内容的校验结果包括在WAL头上最开始的8个字节和当前框的所有内容。
+如果WAL文件的开头4个字节是0x377f0683，那么校验和就使用32位的大端计算，如果是0x377f0682，则用小端计算。
+校验和始终存储在框头使用大端模式存储而无论使用什么模式计算的。
+*/
 static void walEncodeFrame(
-  Wal *pWal,                      /* The write-ahead log */  预写日志
-  u32 iPage,                      /* Database page number for frame */  对某一帧在数据库中那一页
-  u32 nTruncate,                  /* New db size (or 0 for non-commit frames) */ 新db 大小
-  u8 *aData,                      /* Pointer to page data */  指向 页数据的指针
+  Wal *pWal,                      /* The write-ahead log */  //预写日志
+  u32 iPage,                      /* Database page number for frame */  //对某一帧在数据库中那一页
+  u32 nTruncate,                  /* New db size (or 0 for non-commit frames) */ //新db 大小
+  u8 *aData,                      /* Pointer to page data */  //指向 页数据的指针
   u8 *aFrame                      /* OUT: Write encoded frame here */
 ){
   int nativeCksum;                /* True for native byte-order checksums */ 
   u32 *aCksum = pWal->hdr.aFrameCksum;  
-  assert( WAL_FRAME_HDRSIZE==24 );           如果为假，则终止程序
+  assert( WAL_FRAME_HDRSIZE==24 );          // 如果为假，则终止程序
   sqlite3Put4byte(&aFrame[0], iPage);
   sqlite3Put4byte(&aFrame[4], nTruncate);
   memcpy(&aFrame[8], pWal->hdr.aSalt, 8);
@@ -718,27 +740,27 @@ static void walEncodeFrame(
 */
 static int walDecodeFrame(
   Wal *pWal,                      /* The write-ahead log */   
-  u32 *piPage,                    /* OUT: Database page number for frame */  数据库页码
-  u32 *pnTruncate,                /* OUT: New db size (or 0 if not commit) */新db大小
-  u8 *aData,                      /* Pointer to page data (for checksum) */ 指向页数据的指针
-  u8 *aFrame                      /* Frame data */ 框架数据
+  u32 *piPage,                    /* OUT: Database page number for frame */ // 数据库页码
+  u32 *pnTruncate,                /* OUT: New db size (or 0 if not commit) *///新db大小
+  u8 *aData,                      /* Pointer to page data (for checksum) */ //指向页数据的指针
+  u8 *aFrame                      /* Frame data */ //框架数据
 ){
-  int nativeCksum;                /* True for native byte-order checksums */   检查值
+  int nativeCksum;                /* True for native byte-order checksums */   //检查值
   u32 *aCksum = pWal->hdr.aFrameCksum;
-  u32 pgno;                       /* Page number of the frame */ 定义数据库的页码
-  assert( WAL_FRAME_HDRSIZE==24 );     如果为假，则终止程序
+  u32 pgno;                       /* Page number of the frame */ //定义数据库的页码
+  assert( WAL_FRAME_HDRSIZE==24 );    // 如果为假，则终止程序
 
   /* A frame is only valid if the salt values in the frame-header
   ** match the salt values in the wal-header. 
   */
-  if( memcmp(&pWal->hdr.aSalt, &aFrame[8], 8)!=0 ){  如果不匹配则 
+  if( memcmp(&pWal->hdr.aSalt, &aFrame[8], 8)!=0 ){ // 如果不匹配则 
     return 0;
   }
 
   /* A frame is only valid if the page number is creater than zero.
   */
-  pgno = sqlite3Get4byte(&aFrame[0]);  为pgno赋值
-  if( pgno==0 ){  为真，则
+  pgno = sqlite3Get4byte(&aFrame[0]);  //为pgno赋值
+  if( pgno==0 ){  //为真，则
     return 0;
   }
 
@@ -771,6 +793,7 @@ static int walDecodeFrame(
 ** Names of locks.  This routine is used to provide debugging output and is not
 ** a part of an ordinary build.      获取Wal锁得命名  通过传入的参数 lockIdx 的值进行比较 返回锁名
 */
+//定义WAL锁名字 写锁，恢复锁，分享锁
 static const char *walLockName(int lockIdx){   
   if( lockIdx==WAL_WRITE_LOCK ){   
     return "WRITE-LOCK";
