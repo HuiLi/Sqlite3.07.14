@@ -5680,12 +5680,12 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
   assert( (pIdxKey==0)==(pCur->pKeyInfo==0) );
 
   /* If the cursor is already positioned at the point we are trying
-  ** to move to, then just return without doing any work 
+   to move to, then just return without doing any work 
 <<<<<<< HEAD
-  ** 如果游标已经在要移到的点,则返回不作操作*/ 
+  */ /* 如果游标已经在要移到的点,则返回不作操作*/ 
  /* 【赵大成】 如果指针已经在我们想要移到的位置，那就返回不做任何工作*/
 =======
-  /** 如果游标已经在要移到的点,则返回不作操作*/  
+  /* 如果游标已经在要移到的点,则返回不作操作*/  
 >>>>>>> panguangzhen/master
   if( pCur->eState==CURSOR_VALID && pCur->validNKey 
    && pCur->apPage[0]->intKey 
