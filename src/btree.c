@@ -8325,6 +8325,10 @@ balance_cleanup:
 ** 如果成功,*ppChild将包含一个对孩子页的引用并返回SQLITE_OK.在这种情况下,调用者需要
 ** 在*ppChild上对releasePage()调用恰好一次.如果出现错误,返回一个错误代码并且ppChild设置为0.
 */
+/* 当根页过满时将调用这个函数，分配一个新页面作为根页面的右子叶，
+	将当前根页的内容包括溢出条目
+	一起拷贝进来，然后将当前根面重写为空页
+	在执行之前根页里所有的映射将改变为和新页中的一致*/
 static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //进一步调整B树的页
   int rc;                        /* Return value from subprocedures */   //子函数的返回值
   MemPage *pChild = 0;           /* Pointer to a new child page */       //新孩子页的指针
@@ -8338,6 +8342,9 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //进�
   ** page that will become the new right-child of pPage. Copy the contents
   ** of the node stored on pRoot into the new child page.
   ** 使pRoot(B树的根页)可写,分配一个新页使之成为pPage的右孩子.拷贝存储在pRoot上的节点的内容到新的孩子页面.
+  */
+  /* 使这颗B树根页可写。在根页的新右孩子结点上分配一个新页，将根页存储的内容
+	  复制到新页
   */
   rc = sqlite3PagerWrite(pRoot->pDbPage);
   if( rc==SQLITE_OK ){
@@ -8385,6 +8392,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //进�
 **   balance_deeper()
 **   balance_nonroot()
 */
+/*如果游标当前页面需要平衡，这个函数通过调用三个函数提供平衡方案。*/
 static int balance(BtCursor *pCur){
   int rc = SQLITE_OK;
   const int nMin = pCur->pBt->usableSize * 2 / 3;
@@ -8407,6 +8415,8 @@ static int balance(BtCursor *pCur){
 		** B树的根页是过满.在这种情况下,调用balance_deeper()函数为根页创建一个新的孩子
 		** 并复制的当前内容根页到该孩子页.下一个迭代循环语句的平衡子页面.
         */ 
+		/*如果根页过满，则调用balance_deeper()在根页下增加一个子节点，
+			将目前根页中的内容复制到新的子页下，然后在下一次迭代中平衡子叶*/
         assert( (balance_deeper_called++)==0 );
         rc = balance_deeper(pPage, &pCur->apPage[1]);
         if( rc==SQLITE_OK ){
@@ -8450,6 +8460,10 @@ static int balance(BtCursor *pCur){
 		  ** 下面的assert()的目的是检查,对于每个调用函数只有一个调用balance_quick().如果这是不验证,
 		  ** aBalanceQuickSpace[]重用的时候将发生一个微妙的错误.
           */
+		  /*调用balance_quick()创建新的兄弟节点来存储溢出条目，balance_quick()
+			在其父节点上插入一个新条目，这可能到这父节点溢出，这种情况如果出现
+			则在下一次迭代中通过balance_nonroot() 或者 balance_deeper()平衡父节点，
+			而这些溢出条目一直存储在aBalanceQuickSpace[]中，直到以上情况发生前*/
           assert( (balance_quick_called++)==0 );
           rc = balance_quick(pParent, pPage, aBalanceQuickSpace);
         }else
@@ -8478,6 +8492,15 @@ static int balance(BtCursor *pCur){
 		  ** 的pSpace缓冲区将是安全的,此时溢出单元数据将被复制到数据库页面的主体或复制到新的pSpace缓冲区,
 		  ** 该实现通过后来调用balance_nonroot()传递.
           */
+		   /*在这种情况下，调用balance_nonroot()来平衡这个页面和他的其他两个
+			兄弟节点，这将牵涉修改父节点的内容，这将导致父节点过满或过空，
+			这个问题将在下一次迭代中平衡
+			如果父节点溢出，这些条目将被存储在立即分配的pSpace buffer中
+			一个随后迭代将在之后通过调用balance_nonroot()处理这些条目，一旦
+			接下来的迭代通过调用balance_nonroot()成功，那么之前存储溢出条目
+			的pSpace buffer将可以安全释放，里面的内容将被复制到新的节点或者
+			再次被分配到新的pSpace buffer中
+			*/
           u8 *pSpace = sqlite3PageMalloc(pCur->pBt->pageSize);
           rc = balance_nonroot(pParent, iIdx, pSpace, iPage==1, pCur->hints);
           if( pFree ){
@@ -8487,6 +8510,7 @@ static int balance(BtCursor *pCur){
             ** new pSpace buffer, so it may be safely freed here. 
 			** ** 如果pFree不是NULL,它指向之前被balance_nonroot()调用的pSpace缓冲区.它的内容现在存储在实际
 			** 数据库页面或新pSpace缓冲区中,所以这里可以安全地释放.*/
+			/* 如果pFree不为空，将被安全释放，因为他的内容已被存入真正的数据库中*/
             sqlite3PageFree(pFree);
           }
 
@@ -8547,6 +8571,9 @@ static int balance(BtCursor *pCur){
 分配内存空间
 插入结点
 */
+/*如果seekResult为非0，那么调用者保证游标正指向一个存在可插入的条目，如果为0，就必须继续寻找
+	可以插入的地方
+*/
 int sqlite3BtreeInsert(          //插入新记录到B树
   BtCursor *pCur,                /* Insert data into the table of this cursor */  //插入数据到游标指向的表
   const void *pKey, i64 nKey,    /* The key of the new record */                  //新记录的键值
@@ -8582,6 +8609,8 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** blob of associated data.  
   ** 断言调用者是一致的.如果这个游标被打开的B树索引,那么调用者应该插入没有相关数据
   ** 的blob键.如果游标被开放对于intkey表,调用者应该插入带有相关数据的blob的整数键.*/
+  /*断言调用函数依然执行，如果游标打开在一个B-Tree索引上，那么调用函数插入一个key
+	而没有数据，如果打开在一个intkey表上，那么必须插入key和相关数据*/
   assert( (pKey==0)==(pCur->pKeyInfo==0) );
 
   /* Save the positions of any other cursors open on this table.
@@ -8598,6 +8627,7 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** VDBE层调用sqlite3BtreeLast()求出要使用的整数键.然后调用这个函数来插入数据到intkeyB树.在这种情况
   ** 下btreeMoveto()识别游标已经在需要它的地方,并返回.为了避免影响这些优化,不清除这里的游标是很重要的.
   */ 
+  /* 存储所有其他在这个表上打开着的游标的位置  */
   rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);     /*保存所有游标*/
   if( rc ) return rc;
 
@@ -8605,6 +8635,7 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** cursors open on the row being replaced (assuming this is a replace
   ** operation - if it is not, the following is a no-op).  
   ** 如果插入到表B树,使在被替换的行上的任何开放性的递增blob游标.(假设这是一个替换操作,如果不是,则无操作.)*/
+  /* 如果任何其他游标在需要插入的行上打开，那么让这个游标无效*/
   if( pCur->pKeyInfo==0 ){
     invalidateIncrblobCursors(p, nKey, 0);   //使开放的行或行中的一个被修改的一个incrblob游标无效
   }
@@ -8682,6 +8713,9 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** 如果游标指向表中最后一个条目,下一行插入有一个比已存在的最后键值要大的整数键值,它可以
   ** 在没有游标的的行插入.这可以极大地提高性能.
   */
+  /*这里有一个重要而精妙的操作能大大提升执行效率，如果有一个使用单个游标
+	插入操作，让游标指向最后条目，如果插入下个条目比目前所有条目都要大，那么
+	就不用再移动游标*/
   pCur->info.nSize = 0;
   pCur->validNKey = 0;
   if( rc==SQLITE_OK && pPage->nOverflow ){   /*pPage有溢出的单元格,调用balance(pCur)平衡B树*/
@@ -8693,6 +8727,7 @@ int sqlite3BtreeInsert(          //插入新记录到B树
     ** from trying to save the current position of the cursor.  
 	** 必须确保nOverflow复位为零,即使balance()失败.内部数据结构崩溃将导致其他结果.也要设置游标状态为无效.
 	** 这将使saveCursorPosition()从试图保存当前光标的位置停止*/
+	/* 即使balance()调用失败也要确保没有溢出页，*/
     pCur->apPage[pCur->iPage]->nOverflow = 0;
     pCur->eState = CURSOR_INVALID;
   }
@@ -8734,7 +8769,6 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   iCellIdx = pCur->aiIdx[iCellDepth];
   pPage = pCur->apPage[iCellDepth];
   pCell = findCell(pPage, iCellIdx);
-
   /* If the page containing the entry to delete is not a leaf page, move
   ** the cursor to the largest entry in the tree that is smaller than
   ** the entry being deleted. This cell will replace the cell being deleted
