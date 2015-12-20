@@ -5680,12 +5680,12 @@ int sqlite3BtreeMovetoUnpacked(              //游标指向一个intKey/pIdxKey�
   assert( (pIdxKey==0)==(pCur->pKeyInfo==0) );
 
   /* If the cursor is already positioned at the point we are trying
-  ** to move to, then just return without doing any work 
+   to move to, then just return without doing any work 
 <<<<<<< HEAD
-  ** 如果游标已经在要移到的点,则返回不作操作*/ 
+  */ /* 如果游标已经在要移到的点,则返回不作操作*/ 
  /* 【赵大成】 如果指针已经在我们想要移到的位置，那就返回不做任何工作*/
 =======
-  ** 如果游标已经在要移到的点,则返回不作操作*/  
+  /* 如果游标已经在要移到的点,则返回不作操作*/  
 >>>>>>> panguangzhen/master
   if( pCur->eState==CURSOR_VALID && pCur->validNKey 
    && pCur->apPage[0]->intKey 
@@ -5893,6 +5893,10 @@ int sqlite3BtreeEof(BtCursor *pCur){
   ** as well as the boolean result value.
   ** 假使游标在CURSOR_REQUIRESEEK但所有表项都被删除那会怎么样?这个API将需要更改返回一个错误代码以及布尔值.
   */
+  /*【白忠军】
+  如果光标在CURSOR_REQUIRESEEK中但所有表项被删除了将会怎么样?
+  这个API将会更改返回一个错误代码,以及结果的布尔值。
+  */
   return (CURSOR_VALID!=pCur->eState);
 }
 
@@ -5902,6 +5906,10 @@ int sqlite3BtreeEof(BtCursor *pCur){
 ** was already pointing to the last entry in the database before
 ** this routine was called, then set *pRes=1.
 ** 移动游标到数据库中的下一条目,如果成功设置*PRes=0.如果在调用这个函数时游标已经指向了最后一条目则设定*pRes=1.
+*/
+/*【白忠军】
+** 在数据库中推进光标到下一个条目。如果成功,则设置*pRes=0。
+如果在调用这个例程之前光标已经指向数据库中的最后一个条目,则设置*pRes=1。
 */
 int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //移动游标到数据库中的下一条目
   int rc;
@@ -5936,6 +5944,10 @@ int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //移动游标到数据库中
   ** page into more than one b-tree structure. 
   ** 如果数据库文件是损坏,idx的价值可能无效的.当游标pCur持有一个参数时如果第二个游标修改页面,
   ** 可能会出现文件损害.当连接页到多个B树结构时如果数据库以这样的方式崩溃那么这种情况会发生.*/
+  /* 【白忠军】如果数据库文件被破坏,idx的值有可能是无效的。
+  这只发生在第二个光标修改页面时,然而光标pCur持有它的一个引用。
+  如果数据库损坏这将以这种方式链接页面到多个b树结构。
+  */
   testcase( idx>pPage->nCell );
 
   pCur->info.nSize = 0;
@@ -5983,6 +5995,10 @@ int sqlite3BtreeNext(BtCursor *pCur, int *pRes){   //移动游标到数据库中
 ** 若函数被调用之前已经移到了第一个条目, *pRes=1
 */
 /*寻找数据库中以前的条目*/
+/*【白忠军】
+设置光标返回到数据库先前的条目。如果成功,则设置*pRes=0。
+如果光标在这程序被调用之前已经指向数据库中的第一个元条目,则设置*pRes=1。
+*/
 int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){   //逐步使游标回到数据库中以前的条目
   int rc;
   MemPage *pPage;
@@ -6062,6 +6078,21 @@ int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){   //逐步使游标回到�
 ** is only used by auto-vacuum databases when allocating a new table.
 ** 如果"exact"参数不是0,并且页码附近任何地方都存在在空闲列表,那么它保证了返回.这 只使用在auto-vacuum数据库分配一个新表时.
 */
+/*【白忠军】
+** 从数据库文件分配一个新页面
+**
+** 新页面被标记为脏。(换句话说,sqlite3PagerWrite()在新页面已经被调用)。
+新页面也被引用和调用例程负责在新页面调用sqlite3PagerUnref()。
+**
+** SQLITE_OK成功被返回。其他任何返回值显示一个错误。在错误发生的时候指针ppPage和pPgno是未定义的。
+如果错误被返回则不用指针ppPage调用sqlite3PagerUnref()。
+**
+** 如果“nearby”参数不为0,则努力定位一个页面去接近页码“nearby”。
+这可以试图在数据库文件中把相关页面接近彼此,从而可以使数据库访问速度更快。
+**
+** 如果“exact”参数不为0,并且页码附近在空闲列表上存在任何地方,那么它保证被返回。
+这只是被auto-vacuum数据库使用(在分配一个新表时)。
+*/
 static int allocateBtreePage(           //从数据库文件分配一个新页面,成功则返回SQLITE_OK
   BtShared *pBt, 
   MemPage **ppPage, 
@@ -6071,11 +6102,11 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
 ){
   MemPage *pPage1;
   int rc;
-  u32 n;     /* Number of pages on the freelist */                 //空闲列表上的页数
-  u32 k;     /* Number of leaves on the trunk of the freelist */   //空闲列表主干的叶子数
+  u32 n;     /* Number of pages on the freelist */                 //空闲列表上的页数/* 【白忠军】空闲列表的页面数量 */
+  u32 k;     /* Number of leaves on the trunk of the freelist */   //空闲列表主干的叶子数/* 【白忠军】空闲列表主干叶子数量 */
   MemPage *pTrunk = 0;
   MemPage *pPrevTrunk = 0;
-  Pgno mxPage;     /* Total size of the database file */           //数据库文件总的大小
+  Pgno mxPage;     /* Total size of the database file */           //数据库文件总的大小/* 【白忠军】数据库文件的总大小 */
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   pPage1 = pBt->pPage1;
@@ -6086,14 +6117,18 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     return SQLITE_CORRUPT_BKPT;
   }
   if( n>0 ){
-    /* There are pages on the freelist.  Reuse one of those pages. */        //空闲列表上有页,重新使用这些页
+    /* There are pages on the freelist.  Reuse one of those pages. */        //空闲列表上有页,重新使用这些页/* 【白忠军】在空闲列表有页面。重用其中的一个页面。*/
     Pgno iTrunk;
-    u8 searchList = 0; /* If the free-list must be searched for 'nearby' */  //'nearby'可以搜索空闲列表 
+    u8 searchList = 0; /* If the free-list must be searched for 'nearby' */  //'nearby'可以搜索空闲列表 /* 【白忠军】如果空闲列表必须寻找“nearby”*/
     
     /* If the 'exact' parameter was true and a query of the pointer-map
     ** shows that the page 'nearby' is somewhere on the free-list, then
     ** the entire-list will be searched for that page.
 	** 如果参数'exact'是true并且一个指针位图查询显示页'nearby'在空闲列表上的某处,那么对于该页整个列表可以被搜索.
+    */
+    /* 【白忠军】
+	如果'exact'参数为True并且pointer-map的一个查询显示页面的“nearby”是在空闲列表,
+	然后完整列表将搜索页面。
     */
 #ifndef SQLITE_OMIT_AUTOVACUUM
     if( exact && nearby<=mxPage ){
@@ -6111,6 +6146,9 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     /* Decrement the free-list count by 1. Set iTrunk to the index of the
     ** first free-list trunk page. iPrevTrunk is initially 1.
     ** 递减空闲列表数量到1.设定iTrunk到第一个空闲列表页的主页面索引.iPrevTrunk初始化为1.*/
+    /*【白忠军】
+	空闲列表数减1，设置iTrunk为第一个空闲列表树干页面的索引。iPrevTrunk最初为1。
+    */
     rc = sqlite3PagerWrite(pPage1->pDbPage);
     if( rc ) return rc;
     put4byte(&pPage1->aData[36], n-1);
@@ -6119,6 +6157,10 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     ** is not true. Otherwise, it runs once for each trunk-page on the
     ** free-list until the page 'nearby' is located.
     ** 如果变量'searchList'为假,则循环内的代码只运行一次.否则对于在空闲列表上的每个主页面都运行一次直到直到页面nearby*/
+    /* 【白忠军】
+	如果“searchList”变量不为TRUE,循环内的代码只运行一次。
+	否则,在页面上的“nearby”被找到之前，每个空闲列表的主干页面都运行一次。
+    */
     do {
       pPrevTrunk = pTrunk;
       if( pPrevTrunk ){
@@ -6146,6 +6188,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         ** allocated page 
 		** 主页面上无叶子并且列表不用被搜索.并且提取主页面本身并用它作为新分配的页.
 		*/
+		/* 【白忠军】树干没有叶子而且没有搜索到列表。所以提取主干页面本身和使用它作为新的分配页面 */
         assert( pPrevTrunk==0 );
         rc = sqlite3PagerWrite(pTrunk->pDbPage);
         if( rc ){
@@ -6157,7 +6200,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         pTrunk = 0;
         TRACE(("ALLOCATE: %d trunk - %d free pages left\n", *pPgno, n-1));  //跟踪分配了几个页面剩下几个空闲页面
       }else if( k>(u32)(pBt->usableSize/4 - 2) ){
-        /* Value of k is out of range.  Database corruption */     //k值超过范围,数据库崩溃
+        /* Value of k is out of range.  Database corruption */     //k值超过范围,数据库崩溃/* 【白忠军】k值超出范围。数据库被损坏 */
         rc = SQLITE_CORRUPT_BKPT;
         goto end_allocate_page;
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -6166,6 +6209,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         ** to allocate, regardless of whether it has leaves.
 		** 列表正被搜索并且这个主页面是分配的页,不管它有什么叶子
        */
+       /* 【白忠军】列表正在搜索并且这个树干页面是分配页面,无论它是否有叶子。*/
         assert( *pPgno==iTrunk );
         *ppPage = pTrunk;
         searchList = 0;
@@ -6188,6 +6232,10 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
           ** pointers to free-list leaves. The first leaf becomes a trunk
           ** page in this case.
 		  ** 主页面正在被调用函数需要但是它包含指向空闲列表页的指针.在这种情况下,第一个叶子变成主页面.
+          */
+          /* 【白忠军】
+		  主干页面被调用者所需，但它包含指向空闲列表叶子的指针。
+		  在这种情况下，第一片叶子变成一个树干页面。
           */
           MemPage *pNewTrunk;
           Pgno iNewTrunk = get4byte(&pTrunk->aData[8]);
@@ -6224,7 +6272,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
         TRACE(("ALLOCATE: %d trunk - %d free pages left\n", *pPgno, n-1));
 #endif
       }else if( k>0 ){
-        /* Extract a leaf from the trunk */  //从主页面提取出一个叶子
+        /* Extract a leaf from the trunk */  //从主页面提取出一个叶子/* 【白忠军】从主干中提取一片叶子 */
         u32 closest;
         Pgno iPage;
         unsigned char *aData = pTrunk->aData;
@@ -6282,6 +6330,7 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
     ** end of the file.
 	** 在空闲列表上没有页面,因此在文件的末尾创建新页.
 	*/
+	/* 【白忠军】在空闲列表没有页面,所以在文件的最后创建一个新页面*/
     rc = sqlite3PagerWrite(pBt->pPage1->pDbPage);
     if( rc ) return rc;
     pBt->nPage++;
@@ -6293,6 +6342,10 @@ static int allocateBtreePage(           //从数据库文件分配一个新页�
       ** at the end of the file instead of one. The first allocated page
       ** becomes a new pointer-map page, the second is used by the caller.
 	  ** 如果*pPgno值的是指针位图页,在文件末尾非配两个新页来替换它.第一个变成指针位图页,第二个用来调用.
+      */
+      /* 【白忠军】
+	  如果指针pPgno指向pointer-map页面,在文件末尾分配两个新页面而不是一个页面。
+	  第一个分配页面变成一个新的pointer-map页面,第二个被调用者使用。
       */
       MemPage *pPg = 0;
       TRACE(("ALLOCATE: %d from end of file (pointer-map page)\n", pBt->nPage));
@@ -6351,14 +6404,22 @@ end_allocate_page:
 ** If a pointer to a MemPage object is passed as the second argument,
 ** its reference count is not altered by this function.
 ** 如果一个指针MemPage对象作为第二个参数传递,那么它引用数不会被这个函数改变.
-*/ 
+*/
+/*【白忠军】
+** 这个函数是用于添加iPage页面到空闲列表的数据库文件。假设该页面已经不是空闲列表的一部分。
+**
+** 作为第二个参数传递给该函数的值是可选的。
+如果调用者碰巧有一个指针指向MemPage对象对应的iPage邻近页面,它可能把它作为第二个值。否则,它可能为NULL。
+**
+** 如果一个指针指向MemPage对象作为第二个参数传递,它的引用计数不会被这个函数改变。
+*/
 static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添加页面iPage到数据库文件空闲列表
   MemPage *pTrunk = 0;                /* Free-list trunk page */                 //空闲列表页的主页面
   Pgno iTrunk = 0;                    /* Page number of free-list trunk page */  //空闲列表页的主页面的页码
   MemPage *pPage1 = pBt->pPage1;      /* Local reference to page 1 */            //内存引用页1
   MemPage *pPage;                     /* Page being freed. May be NULL. */       //页被释放,肯能是空
   int rc;                             /* Return Code */                          //返回代码
-  int nFree;                          /* Initial number of pages on free-list */ //空闲列表页上最初的页数量
+  int nFree;                          /* Initial number of pages on free-list */ //空闲列表页上最初的页数量/* 【白忠军】初始化空闲列表的页面数量 */
 
   assert( sqlite3_mutex_held(pBt->mutex) );
   assert( iPage>1 );
@@ -6371,7 +6432,7 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
     pPage = btreePageLookup(pBt, iPage);
   }
 
-  /* Increment the free page count on pPage1 */    //递增pPage1上的空闲页的数量
+  /* Increment the free page count on pPage1 */    //递增pPage1上的空闲页的数量/* 【白忠军】pPage1增加空闲页面 */
   rc = sqlite3PagerWrite(pPage1->pDbPage);
   if( rc ) goto freepage_out;                     //如果rc值为0转到freepage_out
   nFree = get4byte(&pPage1->aData[36]);
@@ -6381,6 +6442,9 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
     /* If the secure_delete option is enabled, then
     ** always fully overwrite deleted information with zeros.
 	** 如果secure_delete选项可用,那么总是完全重写删除信息为0.
+    */
+    /* 【白忠军】
+	如果启用了secure_delete选项,则总是用0完全覆盖删除信息。
     */
     if( (!pPage && ((rc = btreeGetPage(pBt, iPage, &pPage, 0))!=0) )
      ||            ((rc = sqlite3PagerWrite(pPage->pDbPage))!=0)
@@ -6393,6 +6457,9 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
   /* If the database supports auto-vacuum, write an entry in the pointer-map
   ** to indicate that the page is free.
   ** 如果数据库支持自动清理,写一个条目在指针位图来表明也是空闲的.
+  */
+  /* 【白忠军】
+  如果数据库支持auto-vacuum,在pointer-map里面写一个条目表明页面是空闲的。
   */
   if( ISAUTOVACUUM ){
     ptrmapPut(pBt, iPage, PTRMAP_FREEPAGE, 0, &rc);
@@ -6409,8 +6476,15 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
   ** 上的第一主页面是满的,那么这将成为一个页面新的空闲列表的主页面.否则,它将成为当前空闲列
   ** 中的第一个主页面的一个叶子.如果它可以添加页面作为一个新的空闲列表的叶子则对这个块测试.
   */
+  /* 【白忠军】
+  现在操作实际的数据库空闲列表结构。有两种可能性。
+  如果空闲列表当前为空,或者如果空闲列表中第一个树干页面已满,
+  那么这个页面将成为一个新的树干空闲列表页面。
+  否则,它将成为当前空闲列表的第一个树干的叶子页面。
+  这个块测试如果可以添加页面作为一个新的空闲列表的叶子。
+  */
   if( nFree!=0 ){
-    u32 nLeaf;                /* Initial number of leaf cells on trunk page */  //主页面上最初的叶子单元的数量
+    u32 nLeaf;                /* Initial number of leaf cells on trunk page */  //主页面上最初的叶子单元的数量/* 白忠军在树干页面初始化叶子单元格的数量 */
 
     iTrunk = get4byte(&pPage1->aData[32]);
     rc = btreeGetPage(pBt, iTrunk, &pTrunk, 0);
@@ -6444,6 +6518,14 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
 	  ** 在将来的某个时候(每个人都有一次升级3.6.0或之后)我们应该考虑解决上面的条件读“usableSize/4-2”,
 	  ** 而不是“usableSize/4-8”.
       */
+      /* 【白忠军】
+	  ** 在这种情况下,树干页面上有空间去插入页面被作为一片新叶子。
+	  **
+	  ** 注意,树干页面不是完整的,直到它包含usableSize/4-2个条目,而不是usableSize/4-8条目。
+	  但由于SQLite3.6.0之前的版本有一个编码错误,带有空闲列表树干页的数据库拥有超过usableSize/4-8条目将被报告为损坏。
+	  为了保持向后兼容SQLite的旧版本,我们将继续限制条目的数量为usableSize/4-8。
+	  在将来的某个时候(一旦每个人都升级到3.6.0或更高版本)我们应该考虑修复上述条件去读“usableSize/4-2”,而不是“usableSize/4-8”。
+      */
       rc = sqlite3PagerWrite(pTrunk->pDbPage);
       if( rc==SQLITE_OK ){
         put4byte(&pTrunk->aData[4], nLeaf+1);
@@ -6466,6 +6548,11 @@ static int freePage2(BtShared *pBt, MemPage *pMemPage, Pgno iPage){       //添�
   ** 如果控制流达到这一点,那么它是不可能的添加被释放的页面成为空闲列表中的主页面的第一个叶子页面.
   ** 可能是因为空闲列表是空的,或可能是因为空闲列表中的第一个主页面已经满了.无论哪种方式,页面被释放
   ** 将成为新的空闲列表中的第一个主页面.
+  */
+  /* 【白忠军】如果控制流向这一点,那么它是不可能添加被释放的叶子页面，
+  该叶子页是在空闲列表中的第一个树干的叶子页面。
+  可能是因为空闲列表是空的,或可能是因为空闲列表中的第一个树干已经满了。
+  无论哪种方式,页面被释放将成为空闲列表中的新的第一个树干页面。
   */
   if( pPage==0 && SQLITE_OK!=(rc = btreeGetPage(pBt, iPage, &pPage, 0)) ){
     goto freepage_out;
@@ -6493,7 +6580,10 @@ static void freePage(MemPage *pPage, int *pRC){
   }
 }
 
-/*Free any overflow pages associated with the given Cell.*/   
+/*Free any overflow pages associated with the given Cell.*/
+/*【白忠军】
+** 空闲的任何溢出页面与给定单元格有关。
+*/
 static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何与给定单元相关的溢出页
   BtShared *pBt = pPage->pBt;
   CellInfo info;
@@ -6505,10 +6595,10 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
   btreeParseCellPtr(pPage, pCell, &info);
   if( info.iOverflow==0 ){
-    return SQLITE_OK;  /* No overflow pages. Return without doing anything */   //没有溢出页,不做操作返回
+    return SQLITE_OK;  /* No overflow pages. Return without doing anything */   //没有溢出页,不做操作返回/* 【白忠军】不是溢出页面。返回不做任何事情 */
   }
   if( pCell+info.iOverflow+3 > pPage->aData+pPage->maskPage ){
-    return SQLITE_CORRUPT;  /* Cell extends past end of page */  //单元超过了页面的范围
+    return SQLITE_CORRUPT;  /* Cell extends past end of page */  //单元超过了页面的范围/*【白忠军】 单元格延伸到页面末尾 */
   }
   ovflPgno = get4byte(&pCell[info.iOverflow]);
   assert( pBt->usableSize > 4 );
@@ -6523,6 +6613,9 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
       ** overflow page. Therefore if ovflPgno<2 or past the end of the 
       ** file the database must be corrupt.
 	  0不是合法的页码并且1不可能是溢出页.因此,如果ovflPgno<2或者超过数据库文件一定返回SQLITE_CORRUPT_BKPT*/
+	  /* 【白忠军】0不是一个合法的页码和第1页不能溢出页面。
+	  因此如果ovflPgno < 2或数据库文件的末尾被破坏。
+	  */
       return SQLITE_CORRUPT_BKPT;
     }
     if( nOvfl ){
@@ -6546,6 +6639,12 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
 	  ** 不一定是一个真的溢出页面和数据库一定崩溃.它有助于调用freePage2()之前检测该情况.如果安全删除模式启用,
 	  ** freePage2()会清零页面内容.如果这“溢出”页面是一个调用遍历或以其他方式使用的页面,这可能是有问题的.
       */
+      /* 【白忠军】
+	  没有理由任何光标都应该有一个溢出页属于一个删除或更新的单元格的引用。
+	  如果存在多个引用这个页面,那么它必须不是一个溢出页面并且数据库必须被破坏。
+	  在调用freePage2()之前它有助于检测,因为freePage2()也许是零页面内容，如果启用了安全删除模式。
+	  如果这“溢出”的页面发生在这样一个页面（调用者是遍历或以其他方式使用,这可能是有问题的）。
+	  */
       rc = SQLITE_CORRUPT_BKPT;
     }else{
       rc = freePage2(pBt, pOvfl, ovflPgno);
@@ -6575,14 +6674,22 @@ static int clearCell(MemPage *pPage, unsigned char *pCell){     //释放任何�
 ** 注意,pCell并不必要需要指向pPage->aData区域.pCell可能指向一些临时存储区.
 ** 单元会在这个临时区域被创建然后复制到pPage->aData.
 */
+/*
+**【白忠军】
+创建字节序列用来代表一个在pPage页的单元格和写字节序列到pCell[]。
+溢出页在必要时分配和填写。调用程序负责确保分配给pCell[]有足够的空间。
+**
+注意,pCell并没必要指向pPage->aData区域。pCell可能指向一些临时存储。
+单元格将在这个临时区域被构造然后复制到pPage->aData之后。
+*/
 /*创建字节序列写入pCell*/
 static int fillInCell(     //创建字节序列用来代表一个pPage页上的单元并将字节序列写到pCell[]
-  MemPage *pPage,                /* The page that contains the cell */     //包含该单元的页
-  unsigned char *pCell,          /* Complete text of the cell */           //单元的完整文本
-  const void *pKey, i64 nKey,    /* The key */                             //关键字
+  MemPage *pPage,                /* The page that contains the cell */     //包含该单元的页/* 【白忠军】页面包含单元格 */
+  unsigned char *pCell,          /* Complete text of the cell */           //单元的完整文本/* 【白忠军】完成单元格文本 */
+  const void *pKey, i64 nKey,    /* The key */                             //关键字/* 【白忠军】键 */
   const void *pData,int nData,   /* The data */                            //数据域
-  int nZero,                     /* Extra zero bytes to append to pData */ //附加在pData上的额外0字节
-  int *pnSize                    /* Write cell size here */                //将单元的大小写到该变量
+  int nZero,                     /* Extra zero bytes to append to pData */ //附加在pData上的额外0字节/* 【白忠军】向pData追加额外的零字节*/
+  int *pnSize                    /* Write cell size here */                //将单元的大小写到该变量/* 【白忠军】写单元格大小 */
 ){
   int nPayload;
   const u8 *pSrc;
@@ -6602,10 +6709,12 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
   /* pPage is not necessarily writeable since pCell might be auxiliary
   ** buffer space that is separate from the pPage buffer area 
   ** pPage不一定是可写的因为pCell可能是从pPage缓冲区分出的辅助缓冲区空间.*/
+  /* 【白忠军】pPage不一定可写，因为pCell可能辅助缓冲区空间分开pPage缓冲区
+  */
   assert( pCell<pPage->aData || pCell>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
-  /* Fill in the header. */     //添加头信息
+  /* Fill in the header. */     //添加头信息/* 【白忠军】添加头部 */
   nHeader = 0;
   if( !pPage->leaf ){
     nHeader += 4;
@@ -6643,7 +6752,7 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
   while( nPayload>0 ){
     if( spaceLeft==0 ){
 #ifndef SQLITE_OMIT_AUTOVACUUM
-      Pgno pgnoPtrmap = pgnoOvfl; /* Overflow page pointer-map entry page */  //溢出页位图指针条目页
+      Pgno pgnoPtrmap = pgnoOvfl; /* Overflow page pointer-map entry page */  //溢出页位图指针条目页/* 【白忠军】溢出页pointer-map条目页 */
       if( pBt->autoVacuum ){
         do{
           pgnoOvfl++;
@@ -6666,6 +6775,15 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
 	  ** 如果这是第一个溢出页,那么写一个局部页条目到指针位图.如果不写到指针位图位置,那么
 	  ** 客观来说在clearCell()中处理的溢出链接将会弄错未初始化的值并且将从数据库中删除错误页.
       */
+      /*
+	  **【白忠军】
+	  如果数据库支持auto-vacuum,并且第二个或后续溢出页被分配,
+	  现从那个页面添加一个条目到pointer-map。
+	  **
+	  如果这是第一次溢出页,然后写部分条目给pointer-map。
+	  如果我们不写条目给这个pointer-map槽,
+	  那么乐观的溢出链处理clearCell()可能会误解为未初始化值和从数据库中删除错误的页面。
+	  */
       if( pBt->autoVacuum && rc==SQLITE_OK ){
         u8 eType = (pgnoPtrmap?PTRMAP_OVERFLOW2:PTRMAP_OVERFLOW1);
         ptrmapPut(pBt, pgnoOvfl, eType, pgnoPtrmap, &rc);
@@ -6682,11 +6800,13 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
       /* If pToRelease is not zero than pPrior points into the data area
       ** of pToRelease.  Make sure pToRelease is still writeable. 
 	  ** 如果pToRelease一不为0,pPrior就指向pToRelease的数据域.确保pToRelease是可写的. */
+	  /* 【白忠军】如果pToRelease不为零，pPayload指向pToRelease的数据区域。确保pToRelease仍可写。 */
       assert( pToRelease==0 || sqlite3PagerIswriteable(pToRelease->pDbPage) );
 
       /* If pPrior is part of the data area of pPage, then make sure pPage
       ** is still writeable 
 	  ** 如果pPrior是pPage数据域的一部分,那么确保pPage仍然可写. */
+	  /* 【白忠军】如果pPrior是pPage数据区域的一部分,然后确保pPage仍可写 */
       assert( pPrior<pPage->aData || pPrior>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
@@ -6704,11 +6824,13 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
     /* If pToRelease is not zero than pPayload points into the data area
     ** of pToRelease.  Make sure pToRelease is still writeable.
 	** 如果pToRelease一不为0,pPrior就指向pToRelease的数据域.确保pToRelease是可写的.  */
+	/* 【白忠军】如果pToRelease不为零，pPayload指向pToRelease的数据区域。确保pToRelease仍可写。 */
     assert( pToRelease==0 || sqlite3PagerIswriteable(pToRelease->pDbPage) );
 
     /* If pPayload is part of the data area of pPage, then make sure pPage
     ** is still writeable 
 	** 如果pPrior是pPage数据域的一部分,那么确保pPage仍然可写.*/
+	/* 【白忠军】如果pPayload是pPage数据区域的一部分,然后确保pPage仍可写 */
     assert( pPayload<pPage->aData || pPayload>=&pPage->aData[pBt->pageSize]
             || sqlite3PagerIswriteable(pPage->pDbPage) );
 
@@ -6742,10 +6864,18 @@ static int fillInCell(     //创建字节序列用来代表一个pPage页上的�
 ** 假定单元的内容已经拷贝到其他地方.这个函数将只pPage中单元的引用.
 ** "sz" must be the number of bytes in the cell. //参数sz是单元的字节数.
 */
+/*
+**【白忠军】
+从pPage删除第i个单元格。pPage只影响这个例程。不释放或收回单元格内容。
+假设单元格内容被复制别的地方。这个例程从pPage删除单元格的引用。
+**
+"sz" 必须是单元格中字节数
+**
+*/
 static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //删除pPage的第i个单元.
-  u32 pc;         /* Offset to cell content of cell being deleted */  //要被删除的单元内容的偏移量
+  u32 pc;         /* Offset to cell content of cell being deleted */  //要被删除的单元内容的偏移量/* 【白忠军】被删除的单元格的偏移量 */
   u8 *data;       /* pPage->aData */                                  //pPage->aData的数据
-  u8 *ptr;        /* Used to move bytes around within data[] */       //在data[]中用于移动字节
+  u8 *ptr;        /* Used to move bytes around within data[] */       //在data[]中用于移动字节/* 【白忠军】用于data[]内移动字节*/
   u8 *endPtr;     /* End of loop */                                   //循环结束
   int rc;         /* The return code */                               //返回代码
   int hdr;        /* Beginning of the header.  0 most pages.  100 page 1 */   //头部的开始,为0是其他页,为1 是第一页
@@ -6803,23 +6933,36 @@ static void dropCell(MemPage *pPage, int idx, int sz, int *pRC){      //删除pP
 ** 如果nSkip是非零的,那么不要复制单元的第一个nSkip字节.这个函数返回后调用者将覆盖他们.
 ** 如果nSkip是零,那么pCell并不指向一个无效的内存位置(但pCell + nSkip总是有效).
 */
+/*
+**【白忠军】
+在索引i的pPage单元格插入一个新单元格。pCell指向单元格的内容。
+**
+如果单元格的内容适合在页面上,然后把它放在那里。
+如果不适合,那么就把单元格的内容复制到pTemp（如果pTemp不为空）。
+不管pTemp,在pPage - > apOvfl[]分配一个新的条目并使其指向单元格内容(在pTemp或原始pCell)
+并记录其索引。分配一个新条目在pPage - > aCell[]意味着pPage - > nOverflow递增。
+**
+如果nSkip是非零的,那么不要复制第一个nSkip的单元格字节数。这个函数返回后调用者将覆盖它们。
+如果nSkip是非零的,那么pCell并不指向一个无效的内存位置(但pCell+nSkip总是有效)。
+**
+*/
 /*在页的第i个单元格中插入一个单元格*/
 static void insertCell(             //在pPage的单元索引i处插入一个新单元
   MemPage *pPage,   /* Page into which we are copying */                      //存放拷贝内容的页
-  int i,            /* New cell becomes the i-th cell of the page */          //新单元将变为页的第i个单元
-  u8 *pCell,        /* Content of the new cell */                             //新单元的内容
-  int sz,           /* Bytes of content in pCell */                           //pCell中内容的字节
-  u8 *pTemp,        /* Temp storage space for pCell, if needed */             //如果需要,它将是pCell的临时存储空间
-  Pgno iChild,      /* If non-zero, replace first 4 bytes with this value */  //非零则替换这个值的开始的4个字节.
+  int i,            /* New cell becomes the i-th cell of the page */          //新单元将变为页的第i个单元/* 【白忠军】新的单元格变成页面中第i个单元格 */
+  u8 *pCell,        /* Content of the new cell */                             //新单元的内容/* 【白忠军】新单元格的内容 */
+  int sz,           /* Bytes of content in pCell */                           //pCell中内容的字节/* 【白忠军】pCell的内容的字节数 */
+  u8 *pTemp,        /* Temp storage space for pCell, if needed */             //如果需要,它将是pCell的临时存储空间/* 【白忠军】如果需要，为pCell分配临时存储空间 */
+  Pgno iChild,      /* If non-zero, replace first 4 bytes with this value */  //非零则替换这个值的开始的4个字节./* 【白忠军】如果不为零，用这个值代替前四个字节 */
   int *pRC          /* Read and write return code from here */                //从这读或写返回字节
 ){
-  int idx = 0;      /* Where to write new cell content in data[] */           //在data[]中写新单元的内容
-  int j;            /* Loop counter */                                        //循环计数
-  int end;          /* First byte past the last cell pointer in data[] */     //data[]中最后一个单元后的第一个字节
-  int ins;          /* Index in data[] where new cell pointer is inserted */  //data[]中将要插入新单元地方的索引
-  int cellOffset;   /* Address of first cell pointer in data[] */             //data[]中第一个单元指针的地址
+  int idx = 0;      /* Where to write new cell content in data[] */           //在data[]中写新单元的内容/* 【白忠军】在data[]中写新的单元格内容 */
+  int j;            /* Loop counter */                                        //循环计数/* 【白忠军】循环计数器 */
+  int end;          /* First byte past the last cell pointer in data[] */     //data[]中最后一个单元后的第一个字节/*【白忠军】 在data[]中最后的单元格指针 */
+  int ins;          /* Index in data[] where new cell pointer is inserted */  //data[]中将要插入新单元地方的索引/* 【白忠军】新的单元格指针在data[]中的索引被插入 */
+  int cellOffset;   /* Address of first cell pointer in data[] */             //data[]中第一个单元指针的地址/* 【白忠军】在data[]中的第一个单元格指针的地址 */
   u8 *data;         /* The content of the whole page */                       //整个页的内容
-  u8 *ptr;          /* Used for moving information around in data[] */        //data[]中用作移动信息
+  u8 *ptr;          /* Used for moving information around in data[] */        //data[]中用作移动信息/* 【白忠军】在data[]中用于移动信息 */
   u8 *endPtr;       /* End of the loop */                                     //循环的结尾
 
   int nSkip = (iChild ? 4 : 0);
@@ -6838,6 +6981,10 @@ static void insertCell(             //在pPage的单元索引i处插入一个新
   ** the term after the || in the following assert(). 
   ** 单元大小通常应正确.然而,当移动畸形单元从一片叶子页面内部页,如果单元的大小少于4但在叶上算到了4,
   ** 那么内部节点上大小可能少于8(leaf-size + pointer).*/
+  /* 【白忠军】
+  ** 单元格大小通常应正确。然而,当从一片叶子页移动畸形单元格到面内部页,
+  如果叶子页面上的单元格的大小要小于4但算到4,那么在内部节点上大小可能小于8(页大小+指针)。
+  */
   assert( sz==cellSizePtr(pPage, pCell) || (sz==8 && iChild>0) );
   if( pPage->nOverflow || sz+2>pPage->nFree ){
     if( pTemp ){
@@ -6866,6 +7013,9 @@ static void insertCell(             //在pPage的单元索引i处插入一个新
     if( rc ){ *pRC = rc; return; }
     /* The allocateSpace() routine guarantees the following two properties
     ** if it returns success */
+    /*
+	** 【白忠军】allocateSpace()例程如果返回成功则保证以下两个属性。
+	*/
     assert( idx >= end+2 );
     assert( idx+sz <= (int)pPage->pBt->usableSize );
     pPage->nCell++;
@@ -6876,7 +7026,7 @@ static void insertCell(             //在pPage的单元索引i处插入一个新
     }
     ptr = &data[end];
     endPtr = &data[ins];
-    assert( (SQLITE_PTR_TO_INT(ptr)&1)==0 );  /* ptr is always 2-byte aligned */
+    assert( (SQLITE_PTR_TO_INT(ptr)&1)==0 );  /* ptr is always 2-byte aligned *//*【白忠军】ptr总是2字节对齐*/
     while( ptr>endPtr ){
       *(u16*)ptr = *(u16*)&ptr[-2];
       ptr -= 2;
@@ -6888,6 +7038,9 @@ static void insertCell(             //在pPage的单元索引i处插入一个新
       /* The cell may contain a pointer to an overflow page. If so, write
       ** the entry for the overflow page into the pointer map.
       ** 单元可能包含到溢出页的指针.如果包含,则对于溢出页写条目到指针位图*/
+      /*【白忠军】
+	  单元格可能包含一个指针指向一个溢出页。如果是这样,溢出的页面条目写入指针映射。
+      */
       ptrmapPutOvflPtr(pPage, pCell, pRC);
     }
 #endif
@@ -6901,19 +7054,22 @@ static void insertCell(             //在pPage的单元索引i处插入一个新
 /*
 添加一个页上的单元格.该页面应该是最初为空.确保单元格适合页.
 */
+/*【白忠军】
+添加一个页上的单元格。该页面应该是最初为空。确保单元格适合页。
+*/
 
 static void assemblePage(        //在页上添加单元列表
   MemPage *pPage,   /* The page to be assemblied */                   //装配页
-  int nCell,        /* The number of cells to add to this page */     //添加到页上的单元数
-  u8 **apCell,      /* Pointers to cell bodies */                     //单元体的指针
-  u16 *aSize        /* Sizes of the cells */                          //单元得大小
+  int nCell,        /* The number of cells to add to this page */     //添加到页上的单元数/* 【白忠军】增加页面的单元格数量 */
+  u8 **apCell,      /* Pointers to cell bodies */                     //单元体的指针/* 【白忠军】单元格主体指针 */
+  u16 *aSize        /* Sizes of the cells */                          //单元得大小/* 【白忠军】单元格的大小 */
 ){
   int i;            /* Loop counter */                                //循环计数变量
-  u8 *pCellptr;     /* Address of next cell pointer */                //下一单元的指针地址
-  int cellbody;     /* Address of next cell body */                   //下一个单元体的地址
-  u8 * const data = pPage->aData;             /* Pointer to data for pPage */     //页中数据的指针
-  const int hdr = pPage->hdrOffset;           /* Offset of header on pPage */     //页上头部的偏移量
-  const int nUsable = pPage->pBt->usableSize; /* Usable size of page */           //可用页的大小
+  u8 *pCellptr;     /* Address of next cell pointer */                //下一单元的指针地址/* 【白忠军】下一个单元格指针的地址 */
+  int cellbody;     /* Address of next cell body */                   //下一个单元体的地址/* 【白忠军】下一个单元格主体的地址 */
+  u8 * const data = pPage->aData;             /* Pointer to data for pPage */     //页中数据的指针/* 【白忠军】pPage指针指向的数据 */
+  const int hdr = pPage->hdrOffset;           /* Offset of header on pPage */     //页上头部的偏移量/* 【白忠军】pPage头部的偏移量 */
+  const int nUsable = pPage->pBt->usableSize; /* Usable size of page */           //可用页的大小/* 【白忠军】页面的可用大小 */
 
   assert( pPage->nOverflow==0 );
   assert( sqlite3_mutex_held(pPage->pBt->mutex) );
@@ -6921,7 +7077,7 @@ static void assemblePage(        //在页上添加单元列表
             && (int)MX_CELL(pPage->pBt)<=10921);
   assert( sqlite3PagerIswriteable(pPage->pDbPage) );
 
-  /* Check that the page has just been zeroed by zeroPage() */  //检查页是否已经被zeroPage()置零.
+  /* Check that the page has just been zeroed by zeroPage() */  //检查页是否已经被zeroPage()置零./* 【白忠军】检查页面已经被zeroPage()函数0处理 */
   assert( pPage->nCell==0 );
   assert( get2byteNotZero(&data[hdr+5])==nUsable );
 
@@ -6958,10 +7114,17 @@ static void assemblePage(        //在页上添加单元列表
 /*下面的参数确定在平衡操作里面涉及多少相邻的页面,数量记为NN.NB是参与的页的总数量.
 NN的最小值是1.增加NN到1以上(2或3), 能够改善SELECT和DELETE性能.
 */
+/*
+**【白忠军】
+以下参数确定有多少相邻页面参与平衡操作。NN是参与平衡操作的页面两侧的邻居数量。
+NB的总页数是参与,包括目标页面和页面两侧的NN邻居。
+**
+NN的最小值是1(当然)。增加NN大于1(2或3)提供了一个选择和删除性能的改善,
+以换取更大的插入和更新性能的退化。NN的值似乎给最好的结果。
+*/
 
-
-#define NN 1             /* Number of neighbors on either side of pPage */   //pPage两侧相邻的页数
-#define NB (NN*2+1)      /* Total pages involved in the balance */           //在平衡中涉及的总页数
+#define NN 1             /* Number of neighbors on either side of pPage */   //pPage两侧相邻的页数/* 【白忠军】pPage两侧的邻居页数 */
+#define NB (NN*2+1)      /* Total pages involved in the balance */           //在平衡中涉及的总页数/* 【白忠军】参与平衡的总页数 */
 
 
 #ifndef SQLITE_OMIT_QUICKBALANCE
@@ -6992,6 +7155,21 @@ NN的最小值是1.增加NN到1以上(2或3), 能够改善SELECT和DELETE性能.
 ** pSpace缓冲区用于存储将插入pParent的临时副本的单元.这样一个单元包含在一个可变长度的整数后的4字节页码组成.
 ** 换句话说,最多13字节.因此,pSpace缓冲区必须要至少13个字节大小.
 */
+/*
+**【白忠军】
+balance()的这个版本处理普通的特殊情况，这种情况是一个新的条目被插入在树的最右端,
+换句话说,当新条目将成为树上最大的条目。
+**
+而不是试图平衡3个最右端的叶页面,只需在右手边添加一个新页面并且在这页放入一个新条目。
+树右边的叶子有些不平衡。但奇怪的是,我们将插入新条目不久后几乎空白页会很快填满。
+**
+pPage是树的最右边页面上的叶子页，pParent是它的父亲。
+pPage必须有一个溢出条目也是这页上最右边的条目。
+**
+pSpace缓冲区用于存储临时分隔单元的副本，这副本将插入pParent。
+这样一个单元格包含一个4字节页码后面跟着一个可变长度的整数。
+换句话说,最多13字节。因此,pSpace缓冲必须至少13个字节大小。
+*/
 
 /*
 此版本的balance()处理常见的特殊情况.新条目被插在树的最右端,
@@ -7008,13 +7186,18 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //处�
   assert( sqlite3PagerIswriteable(pParent->pDbPage) );
   assert( pPage->nOverflow==1 );
 
-  /* This error condition is now caught prior to reaching this function */ 
+  /* This error condition is now caught prior to reaching this function */
+  /* 【白忠军】产生这种错误条件之前触发这个函数 */
   if( pPage->nCell<=0 ) return SQLITE_CORRUPT_BKPT;
 
   /* Allocate a new page. This page will become the right-sibling of 
   ** pPage. Make the parent page writable, so that the new divider cell
   ** may be inserted. If both these operations are successful, proceed.
   ** 分配一个新页,该页将变为pPage右侧的分支,确保父页面时可写的以便于新分出的单元被插入.如果这两个操作都成功,则保护.
+  */
+  /* 【白忠军】分配一个新页面。这个页面将成为pPage的右兄弟。
+  使父页面可写的,以至于新分隔单元可能被插入。
+  如果这些操作都成功了,继续分配一个新页面。
   */
   rc = allocateBtreePage(pBt, &pNew, &pgnoNew, 0, 0);  //分配一个新页
 
@@ -7043,6 +7226,12 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //处�
 	操作失败,返回代码被设置,但父页面被thh代码操纵.在这一点上保证父页面
 	被标记为脏字.返回错误代码将导致回滚,撤销父页面所做的任何更改.
 	*/
+	/*【白忠军】
+	** 如果这是一个auto-vacuum数据库,为新页面更新带有条目的指针映射,
+	并且更新任意指针从页面上的单元格到一个溢出页面。
+	如果这两种操作失败,返回码被设置,但父页面的内容仍然被下面的thh代码操纵。
+	这是好的,在这一点上保证父页面标记为脏。返回一个错误代码将导致一个回滚,取消对父页面的任何更改。
+	*/
     if( ISAUTOVACUUM ){
       ptrmapPut(pBt, pgnoNew, PTRMAP_BTREE, pParent->pgno, &rc);
       if( szCell>pNew->minLocal ){
@@ -7070,20 +7259,29 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //处�
 	(一个可变长度的整数大小最多32位)和关键字值(一个可变长度的整数,可能有价值).
 	第一个while循环跳过以下记录长度字段.第二个while循环拷贝pPage上的单元关键字值到pSpace缓冲区. 
 */
+    /* 【白忠军】
+	**创建一个分隔单元插入pParent。
+	这个分隔单元由一个4字节的页码(pPage的页码)和可变长度的键值(必须是相同的值作为pPage上的最大键值)组成。
+	**
+	为了找到pPage上最大的键值,首先找到pPage上最右边的单元格。
+	这个单元格的前两个字段是记录长度(一个可变长度的整数大小最多32位)和键值(一个可变长度的整数,可能为任何值)。
+	第一个while循环跳过记录长度字段。第二个while循环从pPage上的单元格复制键值到pSpace缓冲区。
+	**
+	*/
     pCell = findCell(pPage, pPage->nCell-1);
     pStop = &pCell[9];
     while( (*(pCell++)&0x80) && pCell<pStop );
     pStop = &pCell[9];
     while( ((*(pOut++) = *(pCell++))&0x80) && pCell<pStop );
 
-    /* Insert the new divider cell into pParent. */  //插入新的除法器单元到pParent
+    /* Insert the new divider cell into pParent. */  //插入新的除法器单元到pParent/* 【白忠军】向pParent插入新的分隔单元 */
     insertCell(pParent, pParent->nCell, pSpace, (int)(pOut-pSpace),
                0, pPage->pgno, &rc);
 
-    /* Set the right-child pointer of pParent to point to the new page. */  //设置pParent右孩子的指针指向新页
+    /* Set the right-child pointer of pParent to point to the new page. */  //设置pParent右孩子的指针指向新页/* 【白忠军】设置pParent的右孩子结点指针指向新页面。 */
     put4byte(&pParent->aData[pParent->hdrOffset+8], pgnoNew);
   
-    /* Release the reference to the new page. */     //释放对新页的引用
+    /* Release the reference to the new page. */     //释放对新页的引用/* 【白忠军】释放对新页面的引用。 */
     releasePage(pNew);
   }
 
@@ -7097,6 +7295,9 @@ static int balance_quick(MemPage *pParent, MemPage *pPage, u8 *pSpace){  //处�
 ** it is sometimes activated temporarily while debugging code responsible 
 ** for setting pointer-map entries.
 ** 如果函数对SQLite操作内有任何帮助.只是当调试代码设置pointer-map条目时暂时激活.
+*/
+/*【白忠军】
+** 这个函数对SQLite的操作没有很大的帮助。有时它暂时被激活,而调试代码负责设置pointer-map条目。
 */
 static int ptrmapCheckPages(MemPage **apPage, int nPage){
   int i, j;
@@ -7159,6 +7360,20 @@ static int ptrmapCheckPages(MemPage **apPage, int nPage){
 	返回之前,页面pTo需要用btreeInitPage()重新初始化.此功能的性能不是关键.
 	 它仅由balance_shallower()和balance_deeper()程序使用.通常情况下,两者都不用.
 	*/
+/*
+**【白忠军】
+这个函数是用来把b树节点存储在pFrom页面的内容复制到页面pTo。
+如果页面pFrom不是一片叶子,那么每个孩子页的pointer-map条目都被更新,
+以至于父页面存储在映射pTo页面的指针。如果pFrom包含带有溢出页指针任何单元格,
+那么相应的指针映射条目也被更新以至于父页面是pTo页面。
+**
+如果pFrom目前携带任何溢单元格(在MemPage.apOvfl[]数组里面的条目),他们不会复制到pTo页面。
+**
+函数返回之前,使用btreeInitPage()初始化页面pTo。
+**
+这个函数的性能并不是至关重要的，它仅被balance_shallower()和balance_deeper()程序使用,
+通常在正常情况下没有一个被调用。
+*/
 
 static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //复制pFrom页上b树节点的存储内容到pTo页
   if( (*pRC)==SQLITE_OK ){
@@ -7175,7 +7390,7 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //复制p
     assert( pFrom->nFree>=iToHdr );
     assert( get2byte(&aFrom[iFromHdr+5]) <= (int)pBt->usableSize );
   
-    /* Copy the b-tree node content from page pFrom to page pTo. */  //从pFrom页拷贝B树节点内容到pTo页
+    /* Copy the b-tree node content from page pFrom to page pTo. */  //从pFrom页拷贝B树节点内容到pTo页/* 【白忠军】从pFrom页面复制b树节点的内容到pTo页面。 */
     iData = get2byte(&aFrom[iFromHdr+5]);
     memcpy(&aTo[iData], &aFrom[iData], pBt->usableSize-iData);
     memcpy(&aTo[iToHdr], &aFrom[iFromHdr], pFrom->cellOffset + 2*pFrom->nCell);
@@ -7187,6 +7402,10 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //复制p
 	** 重新初始化页pTo来使MemPage结构的内容和新的数据匹配.相当模糊的情况下,pTo的初始化可能失败,
 	** 即使它是一个已经初始化pFrom页的副本.
     */
+    /* 【白忠军】
+    ** 重新启动页面pTo让MemPage结构的内容匹配新数据。
+	** 在相当模糊的情况下，pTo的重新启动可以失败,即使它是pFrom初始化页面的副本。
+    */
     pTo->isInit = 0;
     rc = btreeInitPage(pTo);   //初始化页pTo
     if( rc!=SQLITE_OK ){
@@ -7196,6 +7415,9 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //复制p
     /* If this is an auto-vacuum database, update the pointer-map entries
     ** for any b-tree or overflow pages that pTo now contains the pointers to.
     ** 如果这是一个自动清理的数据库,那么对于pTo的指针指向的任何B树或溢出页面更新指针位图条目.*/
+    /* 【白忠军】
+    ** 如果这是一个auto-vacuum数据库,更新b树的pointer-map条目或溢出页.
+    */
     if( ISAUTOVACUUM ){
       *pRC = setChildPtrmaps(pTo);
     }
@@ -7251,6 +7473,36 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //复制p
 ** 如果aOvflSpace没有设定指针,则函数返回SQLITE_NOMEM.
 */
 /*
+**【白忠军】
+这个函数为pParent(以下简称“页面”)和2个兄弟的第iParentIdx孩子重新分配单元格，
+这样所有页面有相同数量的自由空间。通常一个兄弟两侧的页面用于平衡。
+虽然兄弟可能来自一方如果页面是父母的第一个或最后一个孩子。
+如果页面少于2兄弟(这只会发生在每一页是一个根或根页面的情况下)，
+那么所有可用的兄弟参与平衡。
+**
+页的兄弟的数量也许会增加或减少一两个，这是为了保持页面接近完整而不是溢出.
+**
+注意,当调用这个例程,其中在页面上的一些单元格可能不是存储在MemPage.aData[]。
+如果页面的溢出的,这中情况才发生。这个例程在返回之前将确保所有的单元格都分配到页面和
+它的兄弟融入MemPage.aData[]
+**
+在平衡页面和它的兄弟的过程中,单元格可能会插入或删除从父页面(pParent)。
+这样做可能导致父页面溢出或不完整。如果发生这种情况,
+它是调用者调用正确的平衡函数去解决这个问题(见balance()函数)。
+**
+如果这个例程因为任何原因失败,它可能会以损坏状态分离数据库。
+所以如果这个例程失败,数据库应该回滚。
+**
+aOvflSpace,这个函数的第三个参数是一个指向缓冲区大得足以容纳一页。
+如果在向单元格插入父页面(pParent)父页面将会溢出,这个缓冲区用于存储父页面的溢出单元格。
+因为这个函数将四个分隔单元的最大值插入父页，并且一个单元格的最小值在一个内部节点，
+这个内部节点总是少于page-size，aOvflSpace[]缓冲区的1/4，
+这些缓冲区保证对所有溢出单元格足够大的空间。
+**
+如果aOvflSpace设置为一个空指针,这个函数返回SQLITE_NOMEM。
+**
+*/
+/*
 这个程序重新分配单元格到兄弟节点.
 */
 
@@ -7258,14 +7510,14 @@ static void copyNodeContent(MemPage *pFrom, MemPage *pTo, int *pRC){   //复制p
 #pragma optimize("", off)
 #endif
 static int balance_nonroot(                                //调整B树的各节点使之保持平衡
-  MemPage *pParent,               /* Parent page of siblings being balanced */      //要平衡的兄弟节点的父页面
-  int iParentIdx,                 /* Index of "the page" in pParent */              //pParent叶面中页索引
+  MemPage *pParent,               /* Parent page of siblings being balanced */      //要平衡的兄弟节点的父页面/* 【白忠军】平衡兄弟的父页面 */
+  int iParentIdx,                 /* Index of "the page" in pParent */              //pParent叶面中页索引/*【白忠军】 在pParent“页面”的索引 */
   u8 *aOvflSpace,                 /* page-size bytes of space for parent ovfl */    //双亲叶面的空间大小字节
-  int isRoot,                     /* True if pParent is a root-page */              //如果pParent是根页面则为true
-  int bBulk                       /* True if this call is part of a bulk load */    //这个调用是块负载的一部分则为true
+  int isRoot,                     /* True if pParent is a root-page */              //如果pParent是根页面则为true/* 【白忠军】如果pParent是一个根页则返回True */
+  int bBulk                       /* True if this call is part of a bulk load */    //这个调用是块负载的一部分则为true/* 【白忠军】如果这个单元格是一个批量加载的一部分则为True */
 ){
   BtShared *pBt;               /* The whole database */                             //整个数据库
-  int nCell = 0;               /* Number of cells in apCell[] */                    //apCell[]中的单元数
+  int nCell = 0;               /* Number of cells in apCell[] */                    //apCell[]中的单元数/* 【白忠军】在apCell[]中的单元格的数量 */
   int nMaxCells = 0;           /* Allocated size of apCell, szCell, aFrom. */       //分配给apCell, szCell, aFrom的大小
   int nNew = 0;                /* Number of pages in apNew[] */                     //apNew[]中页的数量
   int nOld;                    /* Number of pages in apOld[] */                     //apOld[]中也得数量
@@ -7273,24 +7525,24 @@ static int balance_nonroot(                                //调整B树的各节
   int nxDiv;                   /* Next divider slot in pParent->aCell[] */          //pParent->aCell[]中的下一个分割位置
   int rc = SQLITE_OK;          /* The return code */                                //返回代码
   u16 leafCorrection;          /* 4 if pPage is a leaf.  0 if not */                //如果是叶子节点该值为4,否则为0
-  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */     //如果pPage是LEAFDATA树的叶子节点则为true
-  int usableSpace;             /* Bytes in pPage beyond the header */               //pPage中头部后面的字节数,可用空间
+  int leafData;                /* True if pPage is a leaf of a LEAFDATA tree */     //如果pPage是LEAFDATA树的叶子节点则为true/* 【白忠军】如果pPage是LEAFDATA这棵树的一片叶子，则返回真 */
+  int usableSpace;             /* Bytes in pPage beyond the header */               //pPage中头部后面的字节数,可用空间/* 【白忠军】在pPage中超出头部的字节数 */
   int pageFlags;               /* Value of pPage->aData[0] */                       //pPage->aData[0]的值
   int subtotal;                /* Subtotal of bytes in cells on one page */         //一个页上的单元中的字节数
-  int iSpace1 = 0;             /* First unused byte of aSpace1[] */                 // aSpace1[]中第一个不可用字节
-  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */              //aOvflSpace[]中的不可用字节
+  int iSpace1 = 0;             /* First unused byte of aSpace1[] */                 // aSpace1[]中第一个不可用字节/* 【白忠军】aSpace1[]的第一个未使用的字节 */
+  int iOvflSpace = 0;          /* First unused byte of aOvflSpace[] */              //aOvflSpace[]中的不可用字节/* 【白忠军】aOvflSpace[]的第一个未使用的字节 */
   int szScratch;               /* Size of scratch memory requested */               //暂存器需要的大小
   MemPage *apOld[NB];          /* pPage and up to two siblings */                   //pPage并达到两个字节
   MemPage *apCopy[NB];         /* Private copies of apOld[] pages */                //apOld[]的私有副本
-  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */    //平衡后的pPage和NB个兄弟
-  u8 *pRight;                  /* Location in parent of right-sibling pointer */    //有兄弟指针的父节点位置
+  MemPage *apNew[NB+2];        /* pPage and up to NB siblings after balancing */    //平衡后的pPage和NB个兄弟/*【白忠军】 pPage和平衡后的NB兄弟 */
+  u8 *pRight;                  /* Location in parent of right-sibling pointer */    //有兄弟指针的父节点位置/* 【白忠军】定位父亲的右兄弟指针 */
   u8 *apDiv[NB-1];             /* Divider cells in pParent */                       //pParent中的分离的单元
-  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */       //第i个页面后单元的aCell[]中的索引
-  int szNew[NB+2];             /* Combined size of cells place on i-th page */      //第i个页面上的单元的总大小
-  u8 **apCell = 0;             /* All cells begin balanced */                       //开始时保持平衡的单元数
-  u16 *szCell;                 /* Local size of all cells in apCell[] */            //apCell[]中的所有单元的本地大小
-  u8 *aSpace1;                 /* Space for copies of dividers cells */             //分离单元的副本空间
-  Pgno pgno;                   /* Temp var to store a page number in */             //在其中存储页码的
+  int cntNew[NB+2];            /* Index in aCell[] of cell after i-th page */       //第i个页面后单元的aCell[]中的索引/* 【白忠军】在aCell[]中的第一页之后的单元的索引 */
+  int szNew[NB+2];             /* Combined size of cells place on i-th page */      //第i个页面上的单元的总大小/* 【白忠军】在第一页上的单元格的大小 */
+  u8 **apCell = 0;             /* All cells begin balanced */                       //开始时保持平衡的单元数/* 【白忠军】开始平衡所有单元格 */
+  u16 *szCell;                 /* Local size of all cells in apCell[] */            //apCell[]中的所有单元的本地大小/* 【白忠军】在apCell[]中的所有本地单元格的大小 */
+  u8 *aSpace1;                 /* Space for copies of dividers cells */             //分离单元的副本空间/* 【白忠军】分隔单元的复制空间 */
+  Pgno pgno;                   /* Temp var to store a page number in */             //在其中存储页码的/*【白忠军】 临时变量来存储一个页码 */
 
   pBt = pParent->pBt;
   assert( sqlite3_mutex_held(pBt->mutex) );
@@ -7306,6 +7558,10 @@ static int balance_nonroot(                                //调整B树的各节
   ** is called (indirectly) from sqlite3BtreeDelete().
   ** 此时pParent可能最多一个溢出单元.如果这中溢出单元出现,他一定是带有iParentIdx索引的.
   ** 这个场景是这个函数被sqlite3BtreeDelete()调用(间接).
+  */
+  /* 【白忠军】
+  ** 此时pParent可能最多一个溢出单元格。如果这个溢出单元格存在,
+  它必须是索引iParentIdx的单元格。这种情况的发生是当这个函数被调用(间接)sqlite3BtreeDelete()。
   */
   assert( pParent->nOverflow==0 || pParent->nOverflow==1 );
   assert( pParent->nOverflow==0 || pParent->aiOvfl[0]==iParentIdx );
@@ -7328,6 +7584,14 @@ static int balance_nonroot(                                //调整B树的各节
   ** have already been removed.
   ** 这个循环也从父页面删除分离的单元.这样函数的其余部分不需要处理任何在
   **父页面中溢出的单元,因为如果任何存在的都已经被移除.
+  */
+  /*【白忠军】
+  找到兄弟页以达到平衡。在分开兄弟页的pParent上定位单元格。
+  在pPage的另一面试图找到NN的兄弟。有更多的兄弟从一边拿出来,然而,
+  有少于NN的兄弟在另一边。如果pParent有NB或较少的孩子那么pParent的所有孩子将被取出。
+  **
+  **这个循环也从父页面删除分隔单元。这样,函数的其余部分不需要处理任何溢出单元在父页面,
+  因为如果存在他们也将被删除。
   */
   /*找到兄弟页以达到平衡.*/
   i = pParent->nOverflow + pParent->nCell;
@@ -7387,6 +7651,15 @@ static int balance_nonroot(                                //调整B树的各节
 	  ** 但除此之外需要安全删除模式.在安全删除模式下,  dropCell()函数将用0覆盖整个单元.在这
 	  ** 种情况下,临时备份单元到aOvflSpace[]缓冲区.一旦aSpace[]缓冲区被分配它将被复制出来.
 	  */
+	  /*【白忠军】
+      ** 从父页面中删除单元格。apDiv[i]仍然指向父内的单元格,尽管它已经被删除。
+	  这是安全的,因为删除一个单元格仅覆盖它的前四个字节,
+	  并且这个函数不需要分隔单元的前四个字节。因此这个指针可以安全使用。
+      **
+      ** 但如果我们不是在安全删除模式。在安全删除模式下,dropCell()函数将用0覆盖整个单元格。
+	  在这种情况下,暂时将单元格复制到aOvflSpace[]缓冲区。
+	  一旦aSpace[]缓冲区被分配它将再一次被复制出来。
+      */
       if( pBt->btsFlags & BTS_SECURE_DELETE ){
         int iOff;
 
@@ -7406,9 +7679,10 @@ static int balance_nonroot(                                //调整B树的各节
 
   /* Make nMaxCells a multiple of 4 in order to preserve 8-byte alignment */
   //使nMaxCells为4的倍数为了保持8字节的对齐.
+  /* 【白忠军】使nMaxCells为4的倍数,以保持8字节对齐 */
   nMaxCells = (nMaxCells + 3)&~3;
 
-  /* Allocate space for memory structures */                //为内存结构分配空间
+  /* Allocate space for memory structures */                //为内存结构分配空间/* 【白忠军】为内存结构分配空间 */
   k = pBt->pageSize + ROUND8(sizeof(MemPage));
   szScratch =
        nMaxCells*sizeof(u8*)                       /* apCell */               //开始时保持平衡的单元数
@@ -7443,6 +7717,18 @@ static int balance_nonroot(                                //调整B树的各节
   ** leafData:  1 if pPage holds key+data and pParent holds only keys.
   ** leafCorrection:如果pPage是叶子,为4,否则为0.    leafData:若pPage有Key和data并且pParent仅有key那么为1.
   */
+  /* 【白忠军】
+  ** 负载指针指向兄弟页面上的所有单元格和分隔单元进入本地apCell[]数组。
+  将分隔单元复制到从aSpace1[]获取的空间，并且从pParent移除分隔单元。
+  **
+  **如果兄弟页在叶页面,那么分隔单元的孩子指针被从单元格剥削，
+  在之前这些单元格被复制到aSpace1[]。通过这种方式,所有的单元格都在没有孩子指针的apCell[]。
+  如果兄弟页面没有被分开,那么所有单元格包括孩子指针都在apCell[]中。
+  无论如何,所有在apCell[]中的单元格都是一样的。
+  **
+  **leafCorrection:4如果pPage是一片叶子。0如果pPage没有一片叶子。
+  **leafData:1如果pPage持有键+数据和pParent只持有键。
+  */
   leafCorrection = apOld[0]->leaf*4;
   leafData = apOld[0]->hasData;
   for(i=0; i<nOld; i++){
@@ -7454,6 +7740,10 @@ static int balance_nonroot(                                //调整B树的各节
     ** process of being overwritten. 
 	** 在做任何其他操作之前,复制原来的第i个兄弟.这个函数的其余部分将使用来自副本的数据,
 	** 而不是源实业的数据,原始页面将在被被覆盖的进程中.
+	*/
+	/* 【白忠军】
+    ** 在做任何其他事情之前,复制原始第i个兄弟。
+	这个函数的其余部分将从原始页面的副本中使用数据,而在此过程中原来的页面将被覆盖。
 	*/
     MemPage *pOld = apCopy[i] = (MemPage*)&aSpace1[pBt->pageSize + k*i];
     memcpy(pOld, apOld[i], sizeof(MemPage));
@@ -7498,6 +7788,7 @@ static int balance_nonroot(                                //调整B树的各节
         /* The right pointer of the child page pOld becomes the left
         ** pointer of the divider cell 
 		** 孩子页面pOld的右指针变成分离单元的左指针*/
+		/* 【白忠军】孩子页面的右指针pOld变成分隔单元的左指针 */
         memcpy(apCell[nCell], &pOld->aData[8], 4);
       }else{
         assert( leafCorrection==4 );
@@ -7525,6 +7816,19 @@ static int balance_nonroot(                                //调整B树的各节
   **   cntNew[i]: Index in apCell[] and szCell[] for the first cell to     //cntNew[i]：在apCell[] 和szCell[]中第i个兄弟页的右侧第一个单元的索引
   **              the right of the i-th sibling page.
   ** usableSpace: Number of bytes of space available on each sibling.   //usableSpace:每个兄弟页上可用的空间字节大小
+  */
+  /* 【白忠军】
+  ** 找出需要保存的所有nCell单元格的页数。用“k”存储这个数字。
+  同时计算szNew[]这是在第i页所有单元格的总大小，
+  cntNew[]是把单元格从第i页分开到第i+1页在apCell[]上的索引。
+  cntNew[k]和nCell应该相等。
+  **
+  ** 通过这段代码计算的值:
+  **
+  ** k:兄弟页面的总数量
+  ** szNew[i]:第i个兄弟页面使用的空间大小。
+  ** cntNew[i]:第i个兄弟页面的右边第一个单元格在apCell[]和szCell[]上的索引。
+  ** usableSpace:在一个兄弟页面上的可用空间的字节数
   */
   usableSpace = pBt->usableSize - 12 + leafCorrection;
   for(subtotal=k=i=0; i<nCell; i++){
@@ -7556,11 +7860,18 @@ static int balance_nonroot(                                //调整B树的各节
   ** 这种调整更优化.上面的包装可能会是失去平衡,因此是非法的.
   ** 例如,最右边兄弟可能完全是空的,此时这种调整不可选.
   */
+  /* 【白忠军】
+  ** 对前一块包装计算是偏向于左边上的兄弟页。左边的兄弟页几乎总是满的,
+  而最右边的兄弟页可能几乎为空。这段代码试图为包装的兄弟调整一个更好的平衡。
+  **
+  ** 这种调整是一个多优化。上面的包装可能会因此失去平衡这是不合理的。
+  例如,最右边的兄弟可能完全是空的。这种调整不是可选的。
+  */
   for(i=k-1; i>0; i--){
     int szRight = szNew[i];  /* Size of sibling on the right */                 //右兄弟的大小
     int szLeft = szNew[i-1]; /* Size of sibling on the left */                  //左兄弟的大小
-    int r;              /* Index of right-most cell in left sibling */          //左兄弟中最右单元的索引
-    int d;              /* Index of first cell to the left of right sibling */  //右兄弟最左侧第一个单元的索引
+    int r;              /* Index of right-most cell in left sibling */          //左兄弟中最右单元的索引/* 【白忠军】左边兄弟的最右边单元格的索引 */
+    int d;              /* Index of first cell to the left of right sibling */  //右兄弟最左侧第一个单元的索引/*【白忠军】右边兄弟的左边第一个单元格的索引 */
 
     r = cntNew[i-1] - 1;
     d = r + 1 - leafData;
@@ -7579,7 +7890,7 @@ static int balance_nonroot(                                //调整B树的各节
     szNew[i-1] = szLeft;
   }
 
-  /* Either we found one or more cells (cntnew[0])>0) or pPage is
+/* Either we found one or more cells (cntnew[0])>0) or pPage is
   ** a virtual root page.  A virtual root page is when the real root
   ** page is page 1 and we are the only child of that page.
   ** 我们发现一个或更多(cntnew[0])> 0)或pPage是一个虚拟根页面.
@@ -7587,6 +7898,13 @@ static int balance_nonroot(                                //调整B树的各节
   ** UPDATE:  The assert() below is not necessarily true if the database
   ** file is corrupt.  The corruption will be detected and reported later
   ** in this procedure so there is no need to act upon it now.
+  */
+  /* 【白忠军】
+  ** 要么是我们发现一个或多个单元格(cntnew[0])> 0)，要么pPage是一个虚拟的根页。
+  虚拟根页面是当真实的根页是第1页和我们是页面的唯一孩子。
+  **
+  ** 更新:如果数据库文件被损坏assert()不一定为真。
+  这个损坏将会检测并报告后在这个过程中不需要立即采取行动。
   */
 #if 0
   assert( cntNew[0]>0 || (pParent->pgno==1 && pParent->nCell==0) );
@@ -7598,7 +7916,7 @@ static int balance_nonroot(                                //调整B树的各节
     nOld>=3 ? apOld[2]->pgno : 0
   ));
 
-  /*Allocate k new pages.  Reuse old pages where possible. */     //分配k新页.有可能重新使用老页
+  /*Allocate k new pages.  Reuse old pages where possible. */     //分配k新页.有可能重新使用老页/* 【白忠军】分配k个新页面。在可能的情况下重用旧的页面。*/
   if( apOld[0]->pgno<=1 ){
     rc = SQLITE_CORRUPT_BKPT;
     goto balance_cleanup;
@@ -7619,7 +7937,7 @@ static int balance_nonroot(                                //调整B树的各节
       apNew[i] = pNew;
       nNew++;
 
-      /* Set the pointer-map entry for the new sibling page. */  //对于新的兄弟页设置指针位图条目
+      /* Set the pointer-map entry for the new sibling page. */  //对于新的兄弟页设置指针位图条目/* 【白忠军】为新兄弟页面设置pointer-map条目。*/
       if( ISAUTOVACUUM ){
         ptrmapPut(pBt, pNew->pgno, PTRMAP_BTREE, pParent->pgno, &rc);
         if( rc!=SQLITE_OK ){
@@ -7629,7 +7947,7 @@ static int balance_nonroot(                                //调整B树的各节
     }
   }
 
-  /* Free any old pages that were not reused as new pages.*/    //释放没有重新使用作新页的老页
+  /* Free any old pages that were not reused as new pages.*/    //释放没有重新使用作新页的老页/* 【白忠军】空闲的任何旧页面都没有作为新页面被重用。*/
   while( i<nOld ){
     freePage(apOld[i], &rc);
     if( rc ) goto balance_cleanup;
@@ -7653,6 +7971,14 @@ static int balance_nonroot(                                //调整B树的各节
   ** When NB==3, this one optimization makes the database
   ** about 25% faster for large insertions and deletions.
   ** 当NB==3,这个优化使数据库对于删除插入提高大约25%左右.
+  */
+  /*【白忠军】
+  ** 按升序排列新页面。这有助于保持磁盘文件中的条目，为了这表是一个线性扫描的扫描文件。
+  这反过来又帮助操作系统从磁盘快速传送页面。
+  **
+  ** 使用O(n^2)插入排序算法,但由于n是不会超过NB(小常数),这应该不是一个问题。
+  **
+  ** 当NB等于3,这个优化对于数据库做大的插入和删除快25%左右。
   */
   for(i=0; i<k-1; i++){
     int minV = apNew[i]->pgno;
@@ -7685,9 +8011,11 @@ static int balance_nonroot(                                //调整B树的各节
   ** Insert divider cells into pParent as necessary.
   ** 在新的页面的apCell[]中均匀分布数据.插入分隔单元pParent是必要的.
   */
+  /* 【白忠军】apCell[]均匀分布的数据覆盖新的页面。向分隔单元插入pParent是必要的。
+  */
   j = 0;
   for(i=0; i<nNew; i++){
-    /* Assemble the new sibling page. */     //组装新兄弟页
+    /* Assemble the new sibling page. */     //组装新兄弟页/* 【白忠军】组装新兄弟页面。*/
     MemPage *pNew = apNew[i];
     assert( j<nMaxCells );
     zeroPage(pNew, pageFlags);
@@ -7701,6 +8029,9 @@ static int balance_nonroot(                                //调整B树的各节
     ** insert a divider cell into the parent page. 
 	** 如果上面组装的兄弟页面并不是最右边的兄弟,插入隔离单元到父页面.
     */
+    /*【白忠军】如果上面组装的兄弟页面并不是最右边的兄弟,则向分隔单元插入父页面。
+    */
+    asser
     assert( i<nNew-1 || j==nCell );
     if( j<nCell ){
       u8 *pCell;
@@ -7721,6 +8052,10 @@ static int balance_nonroot(                                //调整B树的各节
 		** 如果是叶数据的树,并且各节点是叶节点,那么在APCell[]中没有分割单元.
 		** 相反分割单元是以上装配的兄弟节点的最右的单元的整形关键字组成.
         */
+        /* 【白忠军】
+        ** 如果这树是叶级树,并且兄弟节点是分开的,那么apCell[]就没有分隔单元。
+		相反,分隔单元是由最右边的sibling-page组装单元的整数键组成。
+		*/
         CellInfo info;
         j--;
         btreeParseCellPtr(pNew, apCell[j], &info);
@@ -7744,6 +8079,14 @@ static int balance_nonroot(                                //调整B树的各节
 		** 注意,这可能不会发生在一个SQLite数据文件中,所有单元至少有4个字节.
 		** 它只发生在b树中用来评估"IN (SELECT ...)"和相关子句.
         */
+        /* 【白忠军】
+        对于non-leaf-data这种树的模糊情况是：如果单元格pCell以前存储在一个叶节点,
+		并且它的大小是4个字节,那么它可能会小于这个（btreeParseCellPtr(),4个字节是任意单元格的最小大小）。
+		但重要的是把恰当的大小分配给insertCell(),所以现在重新解析单元格。
+		**
+		注意,这永远不会发生在一个SQLite数据文件,所有的单元格都是至少4个字节。
+		它只发生在b树用来评估”(选择…)”和类似的子句。
+		*/
         if( szCell[j]==4 ){
           assert(leafCorrection==4);
           sz = cellSizePtr(pParent, pCell);
@@ -7787,6 +8130,14 @@ static int balance_nonroot(                                //调整B树的各节
     ** image.  
 	** 第二个断言验证子页面被碎片化了(这是必须的,因为它只是使用assemblePage()重建).
 	** 这是很重要的,如果父页面是数据库镜像的page 1.*/
+	/*【白忠军】
+	**b树的根页现在不包含单元格。唯一的兄弟结点页是父结点的右子结点。复制的内容子节点页到父结点，
+	降低了整体的高度B树结构的一个。这被形容为“平衡较浅”文件中的子算法。
+	**如果这是一个自动-空闲的数据库，调用这个 copyNodeContent()设置对应于数据库图像页的所有指针映射项
+	该指针存储在被复制的内容中。
+	**第二个assert下边证明子页碎片整理（这是必须的，因为它只是重建使用assemblePage()）。
+    如果父页恰好是那么重要图像数据库的第一页。
+	*/
     assert( nNew==1 );
     assert( apNew[0]->nFree == 
         (get2byte(&apNew[0]->aData[5])-apNew[0]->cellOffset-apNew[0]->nCell*2) 
@@ -7831,6 +8182,19 @@ static int balance_nonroot(                                //调整B树的各节
     ** actually moved between pages.  
 	** 前两种情况被其他代码处理.下一个块处理情况下3和4,之后5.因为设置一个指针映射条目是一个
 	** 相对浪费的操作,所以这个代码只对在页面之间移动的孩子或溢出页设置指针的映射条目.*/
+	/*【白忠军】
+	修复所有单元格被移位的指针映射项有几个不同类型的指针映射项需要
+    被这个程序处理。其中一些已经被设置，但许多没有设置，以下是一些总结：
+     （1）当这个函数被调用时，该项与“new”兄弟结点页相关联的页上。这些已经被设置。
+          我们不需要担心“old”兄弟结点，它被转移到空闲列表的freepage()代码且受它们的照顾。
+     （2）用于新的分页单元使用的任意溢出链中的第一个溢出页的指针映射项。这些都已经由insertcell()代码照顾。
+     （3）如果兄弟页结点是非子叶，则存储在兄弟结点页上的子页可能需要更新。
+     （4）如果兄弟结点页不是内部intkey节点，那么任何溢出页使用这些细单元可能需要更新。
+         （内部intkey节点不包含指针溢出页）。
+     （5）如果兄弟结点页没有子叶，则每一个兄弟的右子页的指针映射项可能需要更新。
+          1和2的情况下，由其他代码处理。下一个块处理3和4的情况下，一个接一个，处理5。自设置一个指针映射项是一个
+          比较开销很大的操作，这代码只设置有兄弟结点或溢出页的指针映射项实际上在页面之间移动。
+    */
     MemPage *pNew = apNew[0];
     MemPage *pOld = apCopy[0];
     int nOverflow = pOld->nOverflow;
@@ -7845,6 +8209,9 @@ static int balance_nonroot(                                //调整B树的各节
         ** sibling page j. If the siblings are not leaf pages of an
         ** intkey b-tree, then cell i was a divider cell. 
 		** 单元i是单元立即老兄弟页最后单元后.如果不是intkeyB树的叶子节点那么单元i是一个分割单元*/
+		/*【白忠军】单元格变量i是这单元格在新的兄弟结点页上立即对最后的单元进行追踪。
+		如果这兄弟结点在intkey b-tree是非叶子页，则单元格变量i是一个分页的单元。
+		*/
         assert( j+1 < ArraySize(apCopy) );
         assert( j+1 < nOld );
         pOld = apCopy[++j];
@@ -7870,6 +8237,9 @@ static int balance_nonroot(                                //调整B树的各节
         /* Cell i is the cell immediately following the last cell on new
         ** sibling page k. If the siblings are not leaf pages of an
         ** intkey b-tree, then cell i is a divider cell.  */
+        /*【白忠军】单元格变量i是这单元格在新的兄弟结点页上立即对最后的单元进行追踪。
+		如果这兄弟结点在intkey b-tree是非叶子页，则单元格变量i是一个分页的单元。
+		*/
         pNew = apNew[++k];
         if( !leafData ) continue;
       }
@@ -7880,6 +8250,10 @@ static int balance_nonroot(                                //调整B树的各节
       ** an overflow cell, or if the cell was located on a different sibling
       ** page before the balancing, then the pointer map entries associated
       ** with any child or overflow pages need to be updated.  */
+      /*【白忠军】如果这单元格刚开始是分页单元（不是现在）或者是一个溢出单元，
+	  或者这个单元在平衡之前，位于一个不同的兄弟结点页上，然后将指针
+	  映射项与子节点页或是溢出页相关联需要进行修改。
+	  */
       if( isDivider || pOld->pgno!=pNew->pgno ){
         if( !leafCorrection ){
           ptrmapPut(pBt, get4byte(apCell[i]), PTRMAP_BTREE, pNew->pgno, &rc);
@@ -7896,7 +8270,6 @@ static int balance_nonroot(                                //调整B树的各节
         ptrmapPut(pBt, key, PTRMAP_BTREE, apNew[i]->pgno, &rc);
       }
     }
-
 #if 0
     /* The ptrmapCheckPages() contains assert() statements that verify that
     ** all pointer map pages are set correctly. This is helpful while 
@@ -7952,6 +8325,10 @@ balance_cleanup:
 ** 如果成功,*ppChild将包含一个对孩子页的引用并返回SQLITE_OK.在这种情况下,调用者需要
 ** 在*ppChild上对releasePage()调用恰好一次.如果出现错误,返回一个错误代码并且ppChild设置为0.
 */
+/* 当根页过满时将调用这个函数，分配一个新页面作为根页面的右子叶，
+	将当前根页的内容包括溢出条目
+	一起拷贝进来，然后将当前根面重写为空页
+	在执行之前根页里所有的映射将改变为和新页中的一致*/
 static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //进一步调整B树的页
   int rc;                        /* Return value from subprocedures */   //子函数的返回值
   MemPage *pChild = 0;           /* Pointer to a new child page */       //新孩子页的指针
@@ -7965,6 +8342,9 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //进�
   ** page that will become the new right-child of pPage. Copy the contents
   ** of the node stored on pRoot into the new child page.
   ** 使pRoot(B树的根页)可写,分配一个新页使之成为pPage的右孩子.拷贝存储在pRoot上的节点的内容到新的孩子页面.
+  */
+  /* 使这颗B树根页可写。在根页的新右孩子结点上分配一个新页，将根页存储的内容
+	  复制到新页
   */
   rc = sqlite3PagerWrite(pRoot->pDbPage);
   if( rc==SQLITE_OK ){
@@ -8012,6 +8392,7 @@ static int balance_deeper(MemPage *pRoot, MemPage **ppChild){            //进�
 **   balance_deeper()
 **   balance_nonroot()
 */
+/*如果游标当前页面需要平衡，这个函数通过调用三个函数提供平衡方案。*/
 static int balance(BtCursor *pCur){
   int rc = SQLITE_OK;
   const int nMin = pCur->pBt->usableSize * 2 / 3;
@@ -8034,6 +8415,8 @@ static int balance(BtCursor *pCur){
 		** B树的根页是过满.在这种情况下,调用balance_deeper()函数为根页创建一个新的孩子
 		** 并复制的当前内容根页到该孩子页.下一个迭代循环语句的平衡子页面.
         */ 
+		/*如果根页过满，则调用balance_deeper()在根页下增加一个子节点，
+			将目前根页中的内容复制到新的子页下，然后在下一次迭代中平衡子叶*/
         assert( (balance_deeper_called++)==0 );
         rc = balance_deeper(pPage, &pCur->apPage[1]);
         if( rc==SQLITE_OK ){
@@ -8077,6 +8460,10 @@ static int balance(BtCursor *pCur){
 		  ** 下面的assert()的目的是检查,对于每个调用函数只有一个调用balance_quick().如果这是不验证,
 		  ** aBalanceQuickSpace[]重用的时候将发生一个微妙的错误.
           */
+		  /*调用balance_quick()创建新的兄弟节点来存储溢出条目，balance_quick()
+			在其父节点上插入一个新条目，这可能到这父节点溢出，这种情况如果出现
+			则在下一次迭代中通过balance_nonroot() 或者 balance_deeper()平衡父节点，
+			而这些溢出条目一直存储在aBalanceQuickSpace[]中，直到以上情况发生前*/
           assert( (balance_quick_called++)==0 );
           rc = balance_quick(pParent, pPage, aBalanceQuickSpace);
         }else
@@ -8105,6 +8492,15 @@ static int balance(BtCursor *pCur){
 		  ** 的pSpace缓冲区将是安全的,此时溢出单元数据将被复制到数据库页面的主体或复制到新的pSpace缓冲区,
 		  ** 该实现通过后来调用balance_nonroot()传递.
           */
+		   /*在这种情况下，调用balance_nonroot()来平衡这个页面和他的其他两个
+			兄弟节点，这将牵涉修改父节点的内容，这将导致父节点过满或过空，
+			这个问题将在下一次迭代中平衡
+			如果父节点溢出，这些条目将被存储在立即分配的pSpace buffer中
+			一个随后迭代将在之后通过调用balance_nonroot()处理这些条目，一旦
+			接下来的迭代通过调用balance_nonroot()成功，那么之前存储溢出条目
+			的pSpace buffer将可以安全释放，里面的内容将被复制到新的节点或者
+			再次被分配到新的pSpace buffer中
+			*/
           u8 *pSpace = sqlite3PageMalloc(pCur->pBt->pageSize);
           rc = balance_nonroot(pParent, iIdx, pSpace, iPage==1, pCur->hints);
           if( pFree ){
@@ -8114,6 +8510,7 @@ static int balance(BtCursor *pCur){
             ** new pSpace buffer, so it may be safely freed here. 
 			** ** 如果pFree不是NULL,它指向之前被balance_nonroot()调用的pSpace缓冲区.它的内容现在存储在实际
 			** 数据库页面或新pSpace缓冲区中,所以这里可以安全地释放.*/
+			/* 如果pFree不为空，将被安全释放，因为他的内容已被存入真正的数据库中*/
             sqlite3PageFree(pFree);
           }
 
@@ -8174,6 +8571,9 @@ static int balance(BtCursor *pCur){
 分配内存空间
 插入结点
 */
+/*如果seekResult为非0，那么调用者保证游标正指向一个存在可插入的条目，如果为0，就必须继续寻找
+	可以插入的地方
+*/
 int sqlite3BtreeInsert(          //插入新记录到B树
   BtCursor *pCur,                /* Insert data into the table of this cursor */  //插入数据到游标指向的表
   const void *pKey, i64 nKey,    /* The key of the new record */                  //新记录的键值
@@ -8209,6 +8609,8 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** blob of associated data.  
   ** 断言调用者是一致的.如果这个游标被打开的B树索引,那么调用者应该插入没有相关数据
   ** 的blob键.如果游标被开放对于intkey表,调用者应该插入带有相关数据的blob的整数键.*/
+  /*断言调用函数依然执行，如果游标打开在一个B-Tree索引上，那么调用函数插入一个key
+	而没有数据，如果打开在一个intkey表上，那么必须插入key和相关数据*/
   assert( (pKey==0)==(pCur->pKeyInfo==0) );
 
   /* Save the positions of any other cursors open on this table.
@@ -8225,6 +8627,7 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** VDBE层调用sqlite3BtreeLast()求出要使用的整数键.然后调用这个函数来插入数据到intkeyB树.在这种情况
   ** 下btreeMoveto()识别游标已经在需要它的地方,并返回.为了避免影响这些优化,不清除这里的游标是很重要的.
   */ 
+  /* 存储所有其他在这个表上打开着的游标的位置  */
   rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);     /*保存所有游标*/
   if( rc ) return rc;
 
@@ -8232,6 +8635,7 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** cursors open on the row being replaced (assuming this is a replace
   ** operation - if it is not, the following is a no-op).  
   ** 如果插入到表B树,使在被替换的行上的任何开放性的递增blob游标.(假设这是一个替换操作,如果不是,则无操作.)*/
+  /* 如果任何其他游标在需要插入的行上打开，那么让这个游标无效*/
   if( pCur->pKeyInfo==0 ){
     invalidateIncrblobCursors(p, nKey, 0);   //使开放的行或行中的一个被修改的一个incrblob游标无效
   }
@@ -8309,6 +8713,9 @@ int sqlite3BtreeInsert(          //插入新记录到B树
   ** 如果游标指向表中最后一个条目,下一行插入有一个比已存在的最后键值要大的整数键值,它可以
   ** 在没有游标的的行插入.这可以极大地提高性能.
   */
+  /*这里有一个重要而精妙的操作能大大提升执行效率，如果有一个使用单个游标
+	插入操作，让游标指向最后条目，如果插入下个条目比目前所有条目都要大，那么
+	就不用再移动游标*/
   pCur->info.nSize = 0;
   pCur->validNKey = 0;
   if( rc==SQLITE_OK && pPage->nOverflow ){   /*pPage有溢出的单元格,调用balance(pCur)平衡B树*/
@@ -8320,6 +8727,7 @@ int sqlite3BtreeInsert(          //插入新记录到B树
     ** from trying to save the current position of the cursor.  
 	** 必须确保nOverflow复位为零,即使balance()失败.内部数据结构崩溃将导致其他结果.也要设置游标状态为无效.
 	** 这将使saveCursorPosition()从试图保存当前光标的位置停止*/
+	/* 即使balance()调用失败也要确保没有溢出页，*/
     pCur->apPage[pCur->iPage]->nOverflow = 0;
     pCur->eState = CURSOR_INVALID;
   }
@@ -8361,7 +8769,6 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   iCellIdx = pCur->aiIdx[iCellDepth];
   pPage = pCur->apPage[iCellDepth];
   pCell = findCell(pPage, iCellIdx);
-
   /* If the page containing the entry to delete is not a leaf page, move
   ** the cursor to the largest entry in the tree that is smaller than
   ** the entry being deleted. This cell will replace the cell being deleted
@@ -8372,6 +8779,8 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** 如果页面包含要删除的条目不是叶子页面,移动游标到树中比要删除条目小的最大的条目.
   ** 这个单元将取代从内部节点被删除的单元.以前的条目用于此代替“next”条目,因为前面
   ** 的条目总是要删除单元的孩子页带领的子树的一部分.这使得删除操作后树的平衡造作更容易.*/
+  /* 移动节点使树更平衡 让接下来的删除操作更简单
+  */
   if( !pPage->leaf ){
     int notUsed;
     rc = sqlite3BtreePrevious(pCur, &notUsed);  //逐步使游标回到数据库中以前的条目
@@ -8385,12 +8794,16 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** 在任何修改之前,保存所有其他在此表上开放的游标的位置.使页面包含要删除的可写的条目.
   ** 然后释放任何与条目相关的溢出页,最后删除页面内的单元本身.
   */
+  /* 在做任何修改之前存储这个表上其他打开的游标的位置，是这个包含删除条目
+	的页面可写，释放这个待删除条目上所有溢出页买最后从页面移除该条目
+  */
   rc = saveAllCursors(pBt, pCur->pgnoRoot, pCur);/*修改之前保存所有打开的游标*/
   if( rc ) return rc;
 
   /* If this is a delete operation to remove a row from a table b-tree,
   ** invalidate any incrblob cursors open on the row being deleted.  
   ** 如果是从一个B树表中删除一行的删除操作,使在行上被删除的打开的任何incrblob游标无效.*/
+  
   if( pCur->pKeyInfo==0 ){
     invalidateIncrblobCursors(p, pCur->info.nKey, 0);/*如果为删除操作,使所有incrblob游标无效*/
   }
@@ -8408,6 +8821,9 @@ int sqlite3BtreeDelete(BtCursor *pCur){    //删除游标指向的条目,使之�
   ** node to replace the deleted cell. 
   ** 如果删除单元并不位于叶子页面,然后游标当前指向子树中的最大的条目,这个条目在子树中被从
   ** 一个内部节点中删除的单元的孩子页面跟从.叶节点的单元需要移动到内部节点替换删除的单元.*/
+  /* 如果被删除的条目不在叶子页面上，游标正指向这个条目子树的头结点，此时
+	删除的结点是非叶子结点，要将这个条目的叶子结点移动到此处 替换被删除的
+	结点*/
   if( !pPage->leaf ){
     MemPage *pLeaf = pCur->apPage[pCur->iPage];
     int nCell;
@@ -8506,6 +8922,9 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 	** 创建一个新表可能要移动一个存在的数据库来为新表的根页腾出空间.加入该页是一个溢出页,那么删除开放性游标
 	** 拥有的所有溢出页映射缓存.
     */
+	/* 创建一个新表，可能需要数据库为其根页腾出空间，如果这个页为溢出页，删除
+		所有游标所指向的溢出页映射
+    */
     invalidateAllOverflowCache(pBt); //在共享B树结构pBt上,对所有打开的游标使溢出页列表无效
 
     /* Read the value of meta[3] from the database to determine where the
@@ -8519,6 +8938,7 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
     /* The new root-page may not be allocated on a pointer-map page, or the
     ** PENDING_BYTE page. //新根页也许没有在指针位图页或PENDING_BYTE页上分配.
     */
+	/*新的根页不能分配到pointer-map page或者PENDING_BYTE page*/
     while( pgnoRoot==PTRMAP_PAGENO(pBt, pgnoRoot) ||
         pgnoRoot==PENDING_BYTE_PAGE(pBt) ){
       pgnoRoot++;/*新的根页不能是pointer-map page或者PENDING_BYTE page*/
@@ -8530,6 +8950,8 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
     ** to reside at pgnoRoot).
 	** 分配一个页.当前驻留在 pgnoRoot上页将移动到分配的页(除非分配的页已经驻留在 pgnoRoot中).
     */
+	/*分配一个页面，这个目前在pgnoroot中的页面将要被移动到所分配的页面
+		pgnoMove处*/
     rc = allocateBtreePage(pBt, &pPageMove, &pgnoMove, pgnoRoot,1);//从数据库文件分配一个新页面,成功则返回SQLITE_OK
     if( rc!=SQLITE_OK ){
       return rc;
@@ -8544,12 +8966,15 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 	  ** pgnoRoot是将被用作新表根页的页面(假设没有发生错误的话).但分配pgnoMove.
 	  ** 如果需要(即如果没有被扩展文件分配),那么当前页面位置pgnoMove记录到日志.
       */
+	  /* pgnroot将要被用作新表的根页，但是pgnomove已经被分配。如果需要，
+		pgnomove上的页面已经被记入日志*/
       u8 eType = 0;
       Pgno iPtrPage = 0;
 
       releasePage(pPageMove);
 
       /* Move the page currently at pgnoRoot to pgnoMove. */  //移动当前在pgnoRoot的页面到pgnoMove.
+	  /* 将pgnoRoot上的页面移动到pgnoMove. */
       rc = btreeGetPage(pBt, pgnoRoot, &pRoot, 0); //从页对象得到一个页.若需要,则初始化MemPage.pBt和MemPage.aData
       if( rc!=SQLITE_OK ){
         return rc;
@@ -8586,6 +9011,7 @@ static int btreeCreateTable(Btree *p, int *piTable, int createTabFlags){ //创�
 
     /* Update the pointer-map and meta-data with the new root-page number. */
 	//更新带有新根页的指针位图和元数据
+	/* 更新pointer-map和meta-data 为新的根页的序号*/
     ptrmapPut(pBt, pgnoRoot, PTRMAP_ROOTPAGE, 0, &rc);
     if( rc ){
       releasePage(pRoot);
@@ -8636,6 +9062,9 @@ int sqlite3BtreeCreateTable(Btree *p, int *piTable, int flags){
 ** Erase the given database page and all its children.  Return
 ** the page to the freelist.
 ** 擦除给定的数据库页和其所有孩子节点.返回页到列表页.
+*/
+/*
+	清空所给页面和他的所有子页面，将页面返回到自由队列
 */
 static int clearDatabasePage(    //擦除给定的数据库页和其所有孩子节点.返回页到列表页.
   BtShared *pBt,           /* The BTree that contains the table */          //包含表的B树
@@ -8699,6 +9128,12 @@ cleardatabasepage_out:
 /*
 删除B-tree中所有的数据,但保持B-tree结构完整.
 */
+/*
+删除表中中所有的数据，iTabbe是所有表根页的数目，函数执行以后根页为空
+但是仍然存在
+
+当有打开的读游标在表上时执行失败，有写游标时将游标移动到根页
+*/
 int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //删除B-tree中所有的数据,但保持B-tree结构完整
   int rc;
   BtShared *pBt = p->pBt;
@@ -8743,6 +9178,8 @@ int sqlite3BtreeClearTable(Btree *p, int iTable, int *pnChange){  //删除B-tree
 ** 这对于AUTOVACUUM正常工作是有必要的.*piMoved被设置为移动之前文件中是最后根页的页码.如果没有页要移动,
 ** 则*piMoved设为0.最后的根页是记录在meta[3]中并且meta[3]的值在这个过程中被更新.
 */
+/*清空表后将表放入自由队列，如果这个表有任何打开的游标在上面，则执行失败
+*/
 static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上的所有信息并且添加标的根到空闲列表
   int rc;
   MemPage *pPage = 0;
@@ -8759,6 +9196,10 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
   ** 如果数据库上的任何游标开放了,那么操作是非法的.这是因为在auto-vacum模式下后端可能需要移动
   ** 另外一个根页来填充通过删除根页留下的缝隙.如果一个打开的游标在页上正在使用,那么将会出现问题.
   ** This error is caught long before control reaches this point.
+  */
+  /*如果有任何打开的游标在数据库上，就不能删除数据库，因为在auto-vacuum
+	模式中，可能会移动一个新的根页到刚删除的根页，如果正好有一个
+	打开的游标在上面，将会出现一个错误
   */
   if( NEVER(pBt->pCursor) ){
     sqlite3ConnectionBlocked(p->db, pBt->pCursor->pBtree->db);
@@ -8789,6 +9230,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
         ** number in the database, put the root page on the free list. 
 		** 如果被删除的表是数据库中有最大根页码的表,那么把根页放到空闲列表.
         */
+		/* 如果iTable == maxRootPgno 那么吧根页放到空闲列表
+        */
         freePage(pPage, &rc);
         releasePage(pPage);
         if( rc!=SQLITE_OK ){
@@ -8799,6 +9242,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
         ** number in the database. So move the page that does into the 
         ** gap left by the deleted root-page.
 		** 在数据库中被删除的表没有最大的根页码,因此移动页到因删除根页而产生的缝隙处.
+        */
+		/* 如果iTable < maxRootPgno 就移动页到刚删除的根页
         */
         MemPage *pMove;
         releasePage(pPage);
@@ -8828,6 +9273,8 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
 	  ** 在数据库头部设置新的max-root-page的值.这是原来的值减一,如果是在根页码上要少不止1.
 	  ** 如果是PENDING_BYTE_PAGE再次减1.
       */
+	  /* 在数据库文件头中将最大根页数减1
+      */
       maxRootPgno--;
       while( maxRootPgno==PENDING_BYTE_PAGE(pBt)
              || PTRMAP_ISPAGE(pBt, maxRootPgno) ){
@@ -8852,7 +9299,6 @@ static int btreeDropTable(Btree *p, Pgno iTable, int *piMoved){   //清除表上
   }
   return rc;  
 }
-
 int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //删除数据库中的一个B树
   int rc;
   sqlite3BtreeEnter(p);
@@ -8880,6 +9326,8 @@ int sqlite3BtreeDropTable(Btree *p, int iTable, int *piMoved){  //删除数据�
 /*如果b-tree连接一个读或写事务,这个函数可能被调用.从数据库文件中读出meta-information.
 Meta[0]是数据库中的自由页.Meta[1]可以被用户通过meta[15]访问.Meta[0]为只读,其余为读写.
 */
+/*这个架构层面上所有元数据都不同
+*/
 void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件的元数据信息
   BtShared *pBt = p->pBt;
 
@@ -8896,6 +9344,9 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件�
   /*
   ** 如果在构建中auto-vacuum为不可用状态且是auto-vacuum数据库,标记数据库为只读.
   */
+  /*
+如果auto-vacuum为禁止状态，数据库是auto-vacuum数据库，标记数据库为只读数据库。
+  */
 #ifdef SQLITE_OMIT_AUTOVACUUM
   if( idx==BTREE_LARGEST_ROOT_PAGE && *pMeta>0 ){
     pBt->btsFlags |= BTS_READ_ONLY;
@@ -8911,6 +9362,9 @@ void sqlite3BtreeGetMeta(Btree *p, int idx, u32 *pMeta){   //读数据库文件�
 */
 /*
 ** 把meta-information写回数据库.Meta[0]为只读且可能不会被写.
+*/
+/*
+把元信息写回数据库。Meta[0]为只读，不能被写。
 */
 
 int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //把meta-information写回数据库,更新元数据
@@ -8950,6 +9404,10 @@ int sqlite3BtreeUpdateMeta(Btree *p, int idx, u32 iMeta){  //把meta-information
 第一个参数pCur,是B树上一个打开的游标.给B树上的条目计数,把结果写到*pnEntry.
 如果操作成功执行,则返回 SQLITE_OK,反之返回SQLite错误代码(例如I/O错误或数据库崩溃).
 */
+/*
+第一个参数pCur，是b-tree上一个打开的光标。给 b-tree 上的入口计数，把结果写到*pnEntry里面。
+如果操作成功执行，则返回 SQLITE_OK，反之返回SQLite error code。
+*/
 int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
   i64 nEntry = 0;                      /* Value to return in *pnEntry */   //要写入到*pnEntry的值
   int rc;                              /* Return code */                   //返回代码
@@ -8964,6 +9422,7 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
   ** page in the B-Tree structure (not including overflow pages). 
   */
   /*除非错误发生,以下循环在每一个B-Tree结构中执行一次迭代,但不包括溢出页*/
+  /*除非错误发生，以下循环在每一个B-Tree中每个page执行，除了溢出页*/
   while( rc==SQLITE_OK ){
     int iIdx;              /* Index of child node in parent */  //父节点的孩子节点的索引
     MemPage *pPage;        /* Current page of the b-tree */     //B树的当前页
@@ -8975,6 +9434,10 @@ int sqlite3BtreeCount(BtCursor *pCur, i64 *pnEntry){    //给B树上的条目数
     /*
      如果这是一个叶子页,或者B树上关键字不是整型的,那么这个页包含可数的条目.相应地增加
      条目的数量.
+	*/
+	/*
+     如果这是一个叶子页，或者B树上关键字不是整型的，那么这个页包含可数的入口。相应地增加
+     入口的计数。
 	*/
     pPage = pCur->apPage[pCur->iPage];
     if( pPage->leaf || !pPage->intKey ){
@@ -9153,7 +9616,7 @@ static void checkPtrmap(           //核对从页iChild映射到页iParent的指
 ** Check the integrity of the freelist or of an overflow page list.
 ** Verify that the number of pages on the list is N.
 ** 检查空闲列表或溢出页列表的完整性.查证列表上的页数是N.
-*/
+
 
 static void checkList(        //检查空闲列表或溢出页列表的完整性
   IntegrityCk *pCheck,  /* Integrity checking context */                         //上下文完整性检查
@@ -9214,6 +9677,7 @@ static void checkList(        //检查空闲列表或溢出页列表的完整性
 	  ** 如果数据库支持auto-vacuum并且iPage不是溢出链表中的最后一页,检查匹配下一页与
 	  ** iPage匹配的指针位图条目.
 	  */
+	  
       if( pCheck->pBt->autoVacuum && N>0 ){
         i = get4byte(pOvflData);
         checkPtrmap(pCheck, i, PTRMAP_OVERFLOW2, iPage, zContext);
@@ -9338,7 +9802,7 @@ static int checkTreePage(    //在树的一个单独的页上进行检查
       checkList(pCheck, 0, pgnoOvfl, nPage, zContext);  //检查空闲列表或溢出页列表的完整性
     }
 
-    /* Check sanity of left child page. */    //核对左孩子
+       /* Check sanity of left child page. */    //核对左孩子
     if( !pPage->leaf ){
       pgno = get4byte(pCell);
 #ifndef SQLITE_OMIT_AUTOVACUUM
@@ -9482,6 +9946,8 @@ static int checkTreePage(    //在树的一个单独的页上进行检查
 ** 写错误数量在*pnErr中可见.除了一些内存错误,如果*pnErr非零,一个从malloc中获得的错误信息保存在内存.*pnErr==0,
 ** 返回NULL.内存分配错误返回NULL.
 */
+/*将错误写到*pnErr中，如果*pnErr==0或者内存分配错误则返回NULL
+*/
 char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整性的检查
   Btree *p,     /* The btree to be checked */                             //要被检查的B树
   int *aRoot,   /* An array of root pages numbers for individual trees */ //一个树的根页码数组
@@ -9594,6 +10060,9 @@ char *sqlite3BtreeIntegrityCheck(    //对BTree文件做一个完整性的检查
 /* 返回底层数据库文件中完整的路径名.如果该数据库为内存数据库,或者为临时数据库,
 ** 返回空的字符串.pager的文件名是不变的只要pager是开放的,因此没有BtShared互斥锁也能安全访问.
 */
+/*
+只要pager是打开的，路径名就是不变的，所以可以安全的进入而不管BtShared的mutex参数
+*/
 const char *sqlite3BtreeGetFilename(Btree *p){    //返回底层数据库文件中完整的路径名
   assert( p->pBt->pPager!=0 );
   return sqlite3PagerFilename(p->pBt->pPager, 1);
@@ -9610,6 +10079,9 @@ const char *sqlite3BtreeGetFilename(Btree *p){    //返回底层数据库文件�
 /*
 ** 返回数据库中日志文件的路径名.无论日志文件是否被创建,程序返回值相同.
 ** pager日志文件名是不变的只要pager开放,因此没有BtShared互斥锁也能安全访问.
+*/
+/*
+只要pager是打开的，路径名就是不变的，所以可以安全的进入而不管BtShared的mutex参数
 */
 const char *sqlite3BtreeGetJournalname(Btree *p){  //返回数据库中日志文件的路径名
   assert( p->pBt->pPager!=0 );
@@ -9639,6 +10111,11 @@ int sqlite3BtreeIsInTrans(Btree *p){     //是否在事务中
 ** 有一个开放的事务,返回SQLITE_LOCKED,事务在被B树连接的共享在参数上.
 ** 参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一.
 */
+/*
+执行第一个参数代表的B树上的检查点
+如果其他链接在B树所连接的shared-cache上有打开的事物，返回SQLITE_LOCKED
+参数eMode为SQLITE_CHECKPOINT_PASSIVE, FULL or RESTART之一。
+*/
 int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //执行B树上的检查点作为第一个参数传递
   int rc = SQLITE_OK;
   if( p ){
@@ -9658,6 +10135,9 @@ int sqlite3BtreeCheckpoint(Btree *p, int eMode, int *pnLog, int *pnCkpt){ //执�
 /*
 ** Return non-zero if a read (or write) transaction is active.
 ** 如果读或写事务在活动,返回非零
+*/
+/*
+** 如果有读写事物，返回非0值
 */
 int sqlite3BtreeIsInReadTrans(Btree *p){
   assert( p );
@@ -9768,6 +10248,7 @@ int sqlite3BtreeLockTable(Btree *p, int iTab, u8 isWriteLock){   //获得表的�
 ** 参数尝试写到现有数据的末尾,没有修改并返回SQLITE_CORRUPT.
 */
 /*仅仅数据内容能够被修改,不可能改变数据存储的长度.*/
+/*如果想超过现存数据的长度将返回错误*/
 int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //修改数据内容
   int rc;
   assert( cursorHoldsMutex(pCsr) );
@@ -9814,6 +10295,7 @@ int sqlite3BtreePutData(BtCursor *pCsr, u32 offset, u32 amt, void *z){  //修改
 ** 这个函数只设置一个标志.实际页面位置缓存(存储在BtCursor.aOverflow[])分配和被accessPayload()使用
 ** (对函数sqlite3BtreeData()和sqlite3BtreePutData()有效).
 */  /*此函数在游标上设置一个标志,缓存溢出列表上的页*/
+/*真正的页面缓存位置由accessPayload()函数分配*/
 void sqlite3BtreeCacheOverflow(BtCursor *pCur){  //此函数在游标上设置一个溢出页缓存标志
   assert( cursorHoldsMutex(pCur) );
   assert( sqlite3_mutex_held(pCur->pBtree->db->mutex) );

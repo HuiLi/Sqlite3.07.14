@@ -3097,7 +3097,7 @@ static Expr *substExpr(
 	sqlite3 *db,        /* Report malloc errors to this connection *//*定义数据库db,报告malloc错误连接*/
 	Expr *pExpr,        /* Expr in which substitution occurs *//*定义pExpr变量，当替换发生*/
 	int iTable,         /* Table to be substituted *//*替换的表号*/
-	ExprList *pEList    /* Substitute expressions *//*替换的表达式列表*/
+	ExprList *pEList    /* Substitute expressions *//*替换的表达式列表，输出结果列的语法树*/
 	)
 {
 	///*判断条件，若表达式为空，返回*/
@@ -3136,7 +3136,7 @@ static void substExprList(
 	sqlite3 *db,         /* Report malloc errors here *//*声明sqlite的对象，报告分配内存错误*/
 	ExprList *pList,     /* List to scan and in which to make substitutes *//*定义pExpr变量，当替换发生扫描列表*/
 	int iTable,          /* Table to be substituted *//*声明要替换的表号*/
-	ExprList *pEList     /* Substitute values *//*替换的表达式列表*/
+	ExprList *pEList     /* Substitute values *//*替换的表达式列表，输出结果列的语法树*/
 	){
 	int i;//声明整变量i
 	if (pList == 0) return;//表达式列表为空，返回
@@ -3150,9 +3150,9 @@ static void substSelect(
 	sqlite3 *db,         /* Report malloc errors here *//*声明sqlite的对象，报告分配内存错误*/
 	Select *p,           /* SELECT statement in which to make substitutions *//*声明一个Select对象*/
 	int iTable,          /* Table to be replaced *//*声明要替换的表号*/
-	ExprList *pEList     /* Substitute values *//*替换的表达式列表*/
+	ExprList *pEList     /* Substitute values *//*替换的表达式列表，输出结果列的语法树*/
 	){
-	SrcList *pSrc;//声明描述SELECT中的FROM子句的对象
+	SrcList *pSrc;//声明描述SELECT中的FROM子句的对象，from子句语法树
 	struct SrcList_item *pItem;//声明SrcList_item结构体的一个FROM子句对象
 	int i;//声明整变量i
 	if (!p) return;//若p不空，返回
@@ -3346,7 +3346,7 @@ static void substSelect(
 *表达式分析必须发生在程序运行之前的外部查询和子查询中。
 */
 static int flattenSubquery(
-	Parse *pParse,       /* Parsing context *//*声明解析上下文的变量（解析器）*/
+	Parse *pParse,       /* Parsing context *//*声明解析上下文的变量（解析器）语义分析*/
 	Select *p,           /* The parent or outer SELECT statement *//*声明一个父查询或外部查询的变量*/
 	int iFrom,           /* Index in p->pSrc->a[] of the inner subquery *//*内部查询中p->pSrc->a[]中的索引*/
 	int isAgg,           /* True if outer SELECT uses aggregate functions *//*外部查询如果用了聚集函数，则为TRUE*/
@@ -3361,7 +3361,7 @@ static int flattenSubquery(
 	ExprList *pList;    /* The result set of the outer query *//*声明表达式Exprlist的变量，表示外部查询的结果集*/
 	int iParent;        /* VDBE cursor number of the pSub result set temp table *//*声明整数类型的变量，用来上表示VDBE游标号，指向内查询的临时表*/
 	int i;              /* Loop counter *//*循环计数*/
-	Expr *pWhere;                    /* The WHERE clause *//*用来表示WHERE子句*/
+	Expr *pWhere;                    /* The WHERE clause *//*用来表示WHERE子句，where部分语法树*/
 	struct SrcList_item *pSubitem;   /* The subquery *//*声明一个SrcList_item类型的子查询结构体*/
 	sqlite3 *db = pParse->db;//声明一个sqlite3的对象，表示数据库连接
 
@@ -3370,7 +3370,7 @@ static int flattenSubquery(
 	assert(p != 0);//SELECT结构体为空，抛出异常，这里是设置了断点，用于处理异常
 	assert(p->pPrior == 0);  // Unable to flatten compound queries *//*不能扁平化的复合查询，加入断点，异常处理
 	if (db->flags & SQLITE_QueryFlattener) return 0;//如果数据连接中值为SQLITE_QueryFlattener且标记变量db->flags均符合条件，执行下一步 
-	pSrc = p->pSrc;/*获取查询结构体中from子句*/
+	pSrc = p->pSrc;/*获取查询结构体中from子句，子句的外部查询*/
 	assert(pSrc && iFrom >= 0 && iFrom<pSrc->nSrc);//插入断点，如果pSrc为空或FROM索引小于0或FROM索引大于等于FROM个数，就抛出警告信息
 	pSubitem = &pSrc->a[iFrom];//FROM子句中数组索引地址赋值给子查询pSubitem
 	iParent = pSubitem->iCursor;//获取子查询的游标号
@@ -3378,7 +3378,7 @@ static int flattenSubquery(
 	assert(pSub != 0);//异常处理，加入断点，如果子查询结构体为空，抛出警告信息
 	if (isAgg && subqueryIsAgg) return 0;                 /* Restriction (1)  *//*规则（1）子查询和外部查询使用了聚集函数，程序直接返回*/
 	if (subqueryIsAgg && pSrc->nSrc>1) return 0;          /* Restriction (2)  *//*规则（2）*///使用聚集函数或者from的子句个数>1
-	pSubSrc = pSub->pSrc;//获取子查询的from语句
+	pSubSrc = pSub->pSrc;//获取子查询的from语句，子句的子查询
 	assert(pSubSrc);/*异常处理，加入断点，如果pSubSrc为空，抛出错误信息*/
 	/* Prior to version 3.1.2, when LIMIT and OFFSET had to be simple constants,
 	** not arbitrary expresssions, we allowed some combining of LIMIT and OFFSET
@@ -3504,9 +3504,9 @@ static int flattenSubquery(
 	  /***** If we reach this point, flattening is permitted. *****/
       /*若能执行到这一步，允许扁平化*/
 	  /* Authorize the subquery *//*授权允许子查询*/
-	  pParse->zAuthContext = pSubitem->zName;//子查询的名字赋值给语法解析树的已经授权的上下文属性
+	  pParse->zAuthContext = pSubitem->zName;//子查询的名字赋值给语法解析树的已经授权的上下文属性，进行授权验证
 	  TESTONLY(i =) sqlite3AuthCheck(pParse, SQLITE_SELECT, 0, 0, 0);/**///检查授权属性
-	  testcase( i==SQLITE_DENY );//调用testcase测试i是否为SQLITE_DENY
+	  testcase( i==SQLITE_DENY );//调用testcase测试i是否为SQLITE_DENY，错误类型将不被授权，错误数和错误pParse里适当修改的消息
 	  pParse->zAuthContext = zSavedAuthContext;//语法解析树中的上下文赋值给语法解析树的授权上下文属性
 
 	  /* If the sub-query is a compound SELECT statement, then (by restrictions
@@ -3655,7 +3655,7 @@ static int flattenSubquery(
 	  for(pParent=p; pParent; pParent=pParent->pPrior, pSub=pSub->pPrior){
 		int nSubSrc;//声明整型变量nsubsrc
 		u8 jointype = 0; //自定义类型变量的声明
-		pSubSrc = pSub->pSrc;     /* FROM clause of subquery *//*from子查询*/
+		pSubSrc = pSub->pSrc;     /* FROM clause of subquery *//*from子查询，子句的子查询*/
 		nSubSrc = pSubSrc->nSrc;  /* Number of terms in subquery FROM clause *//*from子句的数目*/
 		pSrc = pParent->pSrc;     /* FROM clause of the outer query *//*外部查询的FROM子句*/
 
@@ -3947,10 +3947,10 @@ static u8 minMaxQuery(Select *p){
 	static int selectExpander(Walker *pWalker, Select *p){
 	  Parse *pParse = pWalker->pParse;//声明一个语法解析树
 	  int i, j, k;//自定义变量
-	  SrcList *pTabList;//from子句列表指针的声明
-	  ExprList *pEList;//表达式列表的声明
+	  SrcList *pTabList;//from子句列表指针的声明，扫描的所有表
+	  ExprList *pEList;//表达式列表的声明，输出结果列的语法树
 	  struct SrcList_item *pFrom;//声明一个FROM子句列表项
-	  sqlite3 *db = pParse->db;//声明一个数据库连接
+	  sqlite3 *db = pParse->db;//声明一个数据库连接，结构体Parse的成员db赋值给结构体sqlite3指针db
 
 	  if( db->mallocFailed  ){//若动态内存分配失败
 		return WRC_Abort;//放弃树的遍历，并终止程序
@@ -4122,7 +4122,7 @@ static u8 minMaxQuery(Select *p){
 				char *zName = pTab->aCol[j].zName;//获取每一列包含的表的名字
 				char *zColname;  // The computed column name //计算的列名
 				char *zToFree;   /* Malloced string that needs to be freed *//*释放已分配字符串的空间*/
-				Token sColname;  /* Computed column name as a token *//*标记列名
+				Token sColname;  /* Computed column name as a token *//*标记列名，临时令牌
 
 				/* If a column is marked as 'hidden' (currently only possible
 				** for virtual tables), do not include it in the expanded result-set list.
@@ -4395,7 +4395,7 @@ static u8 minMaxQuery(Select *p){
 **     *  Identifiers in expression are matched to tables.                                   表达式的标识符被匹配到相应的表
 **
 ** This routine acts recursively on all subqueries within the SELECT.
-**这个程序递归地运行在select中的子查询中
+**对select语句中的子句进行处理
 */
 	void sqlite3SelectPrep(
 	  Parse *pParse,         /* The parser context *///定义解析器/*  解析器的上下文 */
@@ -4406,7 +4406,7 @@ static u8 minMaxQuery(Select *p){
 	  if( NEVER(p==0) ) return;//空指针，直接返回/*判断传递过来的参数select表达式指针是否为空*/
 	  db = pParse->db;//获取语法解析器中的数据库/*数据库指针变量指向解析器上下文对象的数据库存储域*/
 	  if( p->selFlags & SF_HasTypeInfo ) return;//标识变量和类型信息的判断/*判断传递过来的参数select表达式指针与SF_HasTypeInfo进行与运算后的结果*/
-	  sqlite3SelectExpand(pParse, p);//扩展/*调用sqlite3SelectExpand方法，传递两个参数：解析器和表达式指针变量*/
+	  sqlite3SelectExpand(pParse, p);//扩展，查找SELECT中的扩展符号/*调用sqlite3SelectExpand方法，传递两个参数：解析器和表达式指针变量*/
 	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败/*判断解析器的是否出错或数据库分配内存是否成功*/
 	  sqlite3ResolveSelectNames(pParse, p, pOuterNC);//解析上下文/*调用sqlite3ResolveSelectNames方法，传递三个参数：解析器，表达式指针，命名上下文指针*/
 	  if( pParse->nErr || db->mallocFailed ) return;//解析错误或者分配内存失败/*再次判断解析器的是否出错或数据库分配内存是否成功*/
@@ -4469,7 +4469,7 @@ static u8 minMaxQuery(Select *p){
 	** in the AggInfo structure.
 	*/
 	/*
-	** 在AggInfo结构体中，为每一个聚集函数调用OP_AggFinalize操作码*/
+	** 先处理聚集函数，再为AggInfo结构体中每一个聚集函数调用OP_AggFinalize（完成）操作*/
 
 	static void finalizeAggFunctions(Parse *pParse, AggInfo *pAggInfo){
 	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性
@@ -4477,10 +4477,10 @@ static u8 minMaxQuery(Select *p){
 	  struct AggInfo_func *pF;//声明一个AggInfo_func结构体对象
 	  //聚集函数的遍历
 	  for(i=0, pF=pAggInfo->aFunc; i<pAggInfo->nFunc; i++, pF++){/*遍历聚集函数*/
-		ExprList *pList = pF->pExpr->x.pList;//获取表达式列表
-		assert( !ExprHasProperty(pF->pExpr, EP_xIsSelect) );//异常处理，加入断点
+		ExprList *pList = pF->pExpr->x.pList;//聚集函数的表达式赋值给pList
+		assert( !ExprHasProperty(pF->pExpr, EP_xIsSelect) );//异常处理，加入断点，pE不含EP_xIsSelect，抛出错误信息
 		sqlite3VdbeAddOp4(v, OP_AggFinal, pF->iMem, pList ? pList->nExpr : 0, 0,
-						  (void*)pF->pFunc, P4_FUNCDEF);//添加了一个操作符OP_OpenEphemeral
+						  (void*)pF->pFunc, P4_FUNCDEF);//添加了一个操作符OP_OpenEphemeral，将它的值作为一个指针
 	  }
 	}	
 /*
