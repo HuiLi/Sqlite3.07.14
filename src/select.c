@@ -764,11 +764,7 @@ static int checkForMultiColumnSelectError(  /*定义静态整型函数查错*/ /
 		return 0; /*退出函数*/ /*如果没有满足条件，只返回0*/
 	}
 }
-#endif /*结束函数*/ /*终止if*/
-
-
-
-   
+#endif /*结束函数*/ /*终止if*/ 
 
 /*
 ** This routine generates the code for the inside of the inner loop
@@ -782,93 +778,93 @@ static int checkForMultiColumnSelectError(  /*定义静态整型函数查错*/ /
 ** 如果取数据的表和列都是0，那么pEList表达式为了获得行数据进行赋值。
 ** 如果srcTab（源表）中列数>0，那么数据从srcTab中拿出，pEList只用于从每一列获得数据类型。
 */
-static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循环*/
-	Parse *pParse,          /* The parser context 语义分析*/
-	Select *p,              /* The complete select statement being coded 完整的select语句被编码*/
-	ExprList *pEList,       /* List of values being extracted  输出结果列的语法树*/
-	int srcTab,             /* Pull data from this table 从这个表中提取数据*/
-	int nColumn,            /* Number of columns in the source table  源表中列的数目*/
-	ExprList *pOrderBy,     /* If not NULL, sort results using this key 如果不是NULL，使用这个key对结果进行排序*/
-	int distinct,           /* If >=0, make sure results are distinct 如果>=0，确保结果是不同的*/
-	SelectDest *pDest,      /* How to dispose of the results 怎样处理结果*/
-	int iContinue,          /* Jump here to continue with next row 跳到这里继续下一行*/
-	int iBreak              /* Jump here to break out of the inner loop 跳到这里中断内部循环*/
+static void selectInnerLoop( /*定义选择插入函数*/  /*select内连接循环*/
+	Parse *pParse,        /*定义数组类型数据*/   /* The parser context 语义分析*/
+	Select *p,            /*定义选择型指针函数*/   /* The complete select statement being coded 完整的select语句被编码*/
+	ExprList *pEList,     /*定义列表型指针数据*/   /* List of values being extracted  输出结果列的语法树*/
+	int srcTab,           /*定义整型制表符*/   /* Pull data from this table 从这个表中提取数据*/
+	int nColumn,         /*定义整型数据列名*/    /* Number of columns in the source table  源表中列的数目*/
+	ExprList *pOrderBy,  /*定义排序列表型指针*/    /* If not NULL, sort results using this key 如果不是NULL，使用这个key对结果进行排序*/
+	int distinct,        /*定义删除整型数据*/    /* If >=0, make sure results are distinct 如果>=0，确保结果是不同的*/
+	SelectDest *pDest,  /*定义选择型插入指针类型数据*/     /* How to dispose of the results 怎样处理结果*/
+	int iContinue,       /*定义整型数据列名*/    /* Jump here to continue with next row 跳到这里继续下一行*/
+	int iBreak           /*定义中断循环变量*/    /* Jump here to break out of the inner loop 跳到这里中断内部循环*/
 	){
-	Vdbe *v = pParse->pVdbe;/*声明一个虚拟机*/
-	int i;
-	int hasDistinct;        /* True if the DISTINCT keyword is present 如果distinct关键字存在返回true*/
-	int regResult;              /* Start of memory holding result set 结果集的起始处*/
-	int eDest = pDest->eDest;   /* How to dispose of results 怎样处理结果*/
-	int iParm = pDest->iSDParm; /* First argument to disposal method 第一个参数的处理方法*/
-	int nResultCol;             /* Number of result columns 结果列的数目*/
+	Vdbe *v = pParse->pVdbe;  /*定义虚拟机且赋值*/  /*声明一个虚拟机*/
+	int i;               /*定义整型变量i*/ 
+	int hasDistinct;        /*定义删除类型数据*/  /* True if the DISTINCT keyword is present 如果distinct关键字存在返回true*/
+	int regResult;           /*定义整型数据用来定义结果*/     /* Start of memory holding result set 结果集的起始处*/
+	int eDest = pDest->eDest;  /*定义整型数据且赋值*/   /* How to dispose of results 怎样处理结果*/
+	int iParm = pDest->iSDParm; /*定义整型数组数据且赋值*/  /* First argument to disposal method 第一个参数的处理方法*/
+	int nResultCol;            /*定义返回结果值*/   /* Number of result columns 结果列的数目*/
 
-	assert(v);/*判断虚拟机*/
-	if (NEVER(v == 0)) return;/*如果虚拟机不存在，直接返回*/
-	assert(pEList != 0);/*判断表达式列表是否为空*/
-	hasDistinct = distinct >= 0;/*赋值“去除重复”操作符*/
-	if (pOrderBy == 0 && !hasDistinct){/*如果使用了ORDERBY交hasDistinct取反值*/
-		codeOffset(v, p, iContinue);/*设置偏移量，VDBE和select确定，偏移参数是IContinue*/
+	assert(v); /*调用函数取值*/  /*判断虚拟机*/
+	if (NEVER(v == 0)) return;  /*调用判断来返回结果*/   /*如果虚拟机不存在，直接返回*/
+	assert(pEList != 0);/*调用函数判断是否能取到0*/   /*判断表达式列表是否为空*/
+	hasDistinct = distinct >= 0;  /*调用数据去除重复*/  /*赋值“去除重复”操作符*/
+	if (pOrderBy == 0 && !hasDistinct){   /*如果使用了ORDERBY交hasDistinct取反值*/
+		codeOffset(v, p, iContinue); /*调用函数进行取值判断*/  /*设置偏移量，VDBE和select确定，偏移参数是IContinue*/
 	}
 
 	/* Pull the requested columns.
 	** 从要求的列中取出数据
 	*/
-	if (nColumn > 0){/*如果表中列的数目大于0*/
-		nResultCol = nColumn;/*把列的数目赋给整型nResultCol*/
+	if (nColumn > 0){  /*判断表中列的数目是否大于0*/ /*如果表中列的数目大于0*/
+		nResultCol = nColumn; /*给列结果的值赋值*/ /*把列的数目赋给整型nResultCol*/
 	}
 	else{
-		nResultCol = pEList->nExpr;/*否则，赋值为被提取值得列数*/
+		nResultCol = pEList->nExpr; /*如果列结果的值不合适则提取列数值*/  /*否则，赋值为被提取值得列数*/
 	}
-	if (pDest->iSdst == 0){/*如果查询数据集的写入结果的基址寄存器的值为0*/
-		pDest->iSdst = pParse->nMem + 1;/*那么基址寄存器的值设为分析语法树的下一个地址*/
-		pDest->nSdst = nResultCol;/*注册寄存器的数量为结果列的数量*/
-		pParse->nMem += nResultCol;/*分析树的地址设为自身的再加上结果列的数量*/
+	if (pDest->iSdst == 0){ /*判断寄存器的地址是否为0*/ /*如果查询数据集的写入结果的基址寄存器的值为0*/
+		pDest->iSdst = pParse->nMem + 1; /*从第一个元素开始赋值*/ /*那么基址寄存器的值设为分析语法树的下一个地址*/
+		pDest->nSdst = nResultCol; /*赋值返回的列*/ /*注册寄存器的数量为结果列的数量*/
+		pParse->nMem += nResultCol; /*合并结果值*/ /*分析树的地址设为自身的再加上结果列的数量*/
 	}
 	else{
-		assert(pDest->nSdst == nResultCol);/*判断结果集中寄存器的个数是否与结果列的列数相同*/
+		assert(pDest->nSdst == nResultCol); /*调用函数取值*/ /*判断结果集中寄存器的个数是否与结果列的列数相同*/
 	}
-	regResult = pDest->iSdst;/*再把储存结果集的寄存器的地址设为结果集的起始地址*/
-	if (nColumn > 0){/*如果行数大于0*/
-		for (i = 0; i < nColumn; i++){/*则遍历每一列*/
-			sqlite3VdbeAddOp3(v, OP_Column, srcTab, i, regResult + i);/*将队列操作送入到VDBE再返回新的指令地址*/
+	regResult = pDest->iSdst; /*给结果值赋值*/ /*再把储存结果集的寄存器的地址设为结果集的起始地址*/
+	if (nColumn > 0){ /*判断列值是否大于0*/ /*如果行数大于0*/
+		for (i = 0; i < nColumn; i++){ /*利用循环逐步操作*/ /*则遍历每一列*/
+			sqlite3VdbeAddOp3(v, OP_Column, srcTab, i, regResult + i); /*调用函数取值*/ /*将队列操作送入到VDBE再返回新的指令地址*/
 		}
 	}
-	else if (eDest != SRT_Exists){/*如果处理的结果集不存在*/
+	else if (eDest != SRT_Exists){ /*再次判断处理的结果集是否存在*/ /*如果处理的结果集不存在*/
 		/* If the destination is an EXISTS(...) expression, the actual
 		** values returned by the SELECT are not required.
 		** 如果结果存在，select不用返回值了。
 		*/
-		sqlite3ExprCacheClear(pParse);  /*清除语法分析树的缓存*/
-		sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest == SRT_Output);/*把表达式列表中的值放到一系列的寄存器中*/
-	nColumn = nResultCol;/*赋值列数等于结果列的列数*/
+		sqlite3ExprCacheClear(pParse);   /*释放一些内存空间*/ /*清除语法分析树的缓存*/
+		sqlite3ExprCodeExprList(pParse, pEList, regResult, eDest == SRT_Output); /*传表达式的值*/ /*把表达式列表中的值放到一系列的寄存器中*/
+	nColumn = nResultCol; /*把结果值赋给列*/ /*赋值列数等于结果列的列数*/
 
 	/* If the DISTINCT keyword was present on the SELECT statement
 	** and this row has been seen before, then do not make this row
 	** part of the result.
 	** 如果distinct关键字在select语句中出现，这行之前已经见过，那么这行不作为结果的一部分。
 	*/
-	if (hasDistinct){/*如果使用了distinct关键字*/
-		assert(pEList != 0);/*做断点，判断被提取的值列表是否为空*/
-		assert(pEList->nExpr == nColumn);/*被提取的值列表的列数是否等于列数*/
-		codeDistinct(pParse, distinct, iContinue, nColumn, regResult);/*进行“去除重复操作”*/
-		if (pOrderBy == 0){/*如果没有使用ORDERBY字句 */
-			codeOffset(v, p, iContinue);/*使用codeOffset（），设置逐条进行产生结果*/
+	if (hasDistinct){ /*判断hasDistinct是否存在*/ /*如果使用了distinct关键字*/
+		assert(pEList != 0); /*调用函数做判断其值是否存在*/ /*做断点，判断被提取的值列表是否为空*/
+		assert(pEList->nExpr == nColumn); /*调用函数取值*/ /*被提取的值列表的列数是否等于列数*/
+		codeDistinct(pParse, distinct, iContinue, nColumn, regResult); /*调用函数进行去除操作*/ /*进行“去除重复操作”*/
+		if (pOrderBy == 0){ /*判断搜索的结果值是否为0*/ /*如果没有使用ORDERBY字句 */
+			codeOffset(v, p, iContinue); /*调用函数，计算产生结果*/ /*使用codeOffset（），设置逐条进行产生结果*/
 		}
 	}
 
-	switch (eDest){/*定义switch函数，根据参数eDest判断怎样处理结果*/
+	switch (eDest){ /*用循环进行操作*/ /*定义switch函数，根据参数eDest判断怎样处理结果*/
 		/* In this mode, write each query result to the key of the temporary
 		** table iParm.
 		** 在这种模式下，给临时表iParm写入每个查询结果。
 		*/
-#ifndef SQLITE_OMIT_COMPOUND_SELECT/*测试SQLITE_OMIT_COMPOUND_SELECT是否被宏定义过*/
+#ifndef SQLITE_OMIT_COMPOUND_SELECT /*测试SQLITE_OMIT_COMPOUND_SELECT是否被宏定义过*/
 	case SRT_Union: {/*如果eDest为SRT_Union，则结果作为关键字存储在索引*/
-		int r1;
+		int r1;/*定义一个整型数据*/
 		r1 = sqlite3GetTempReg(pParse);/*分配一个新的寄存器控制中间结果，返回值赋给r1*/
 		sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*把OP_MakeRecord（做记录）操作送入VDBE，再返回一个新指令地址*/
 		sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);/*把OP_IdxInsert（索引插入）操作送入VDBE，再返回一个新指令地址*/
 		sqlite3ReleaseTempReg(pParse, r1);/*释放寄存器，使其可以从用于其他目的。如果一个寄存器当前被用于列缓存，则dallocation被推迟，直到使用的列寄存器变的陈旧*/
-		break;
+		break; /*调出这层循环*/
 	}
 
 		/* Construct a record from the query result, but instead of
@@ -876,9 +872,9 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 		** the temporary table iParm.
 		** 构建一个记录的查询结果，但不是保存该记录，将其作为从临时表iParm删除元素的一个键。
 		*/
-	case SRT_Except: {/*如果eDest为SRT_Except，则从union索引中移除结果*/
+	case SRT_Except: {/*利用case分支判断*/ /*如果eDest为SRT_Except，则从union索引中移除结果*/
 		sqlite3VdbeAddOp3(v, OP_IdxDelete, iParm, regResult, nColumn); /*添加一个新的指令VDBE指示当前的列表。返回新指令的地址。*/
-		break;
+		break;/*跳出这一层循环*/
 	}
 #endif/*终止if*/
 
@@ -886,24 +882,24 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 		** Store the result as data using a unique key.
 		** 存储数据使用唯一关键字的结果
 		*/
-	case SRT_Table:/*如果eDest为SRT_Table，则结果按照自动的rowid自动保存*/
-	case SRT_EphemTab: {/*如果eDest为SRT_EphemTab，则创建临时表并存储为像SRT_Table的表*/
-		int r1 = sqlite3GetTempReg(pParse); /*分配一个新的寄存器用于控制中间结果，并把返回值赋给r1*/
-		testcase(eDest == SRT_Table);/*测试处理的结果集的表名称*/
-		testcase(eDest == SRT_EphemTab);/*测试处理的结果集的表的大小*/
-		sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*添加一个新的指令VDBE指示当前的列表。返回新指令的地址。*/
-		if (pOrderBy){/*如果有orderby字句*/
-			pushOntoSorter(pParse, pOrderBy, p, r1);/*插入代码"V"，在分选机将会推进记录到栈的顶部*/
+	case SRT_Table: /*如果eDest为SRT_Table，则结果按照自动的rowid自动保存*/
+	case SRT_EphemTab: { /*考虑另一case情况*/ /*如果eDest为SRT_EphemTab，则创建临时表并存储为像SRT_Table的表*/
+		int r1 = sqlite3GetTempReg(pParse);  /*定义一个整型并对其进行赋值*/ /*分配一个新的寄存器用于控制中间结果，并把返回值赋给r1*/
+		testcase(eDest == SRT_Table); /*调用函数进行判断传值表*/ /*测试处理的结果集的表名称*/
+		testcase(eDest == SRT_EphemTab); /*调用函数进行判断传值表的大小*/ /*测试处理的结果集的表的大小*/
+		sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1); /*调用函数进行增加项*/ /*添加一个新的指令VDBE指示当前的列表。返回新指令的地址。*/
+		if (pOrderBy){ /*调用判断语句进行判断*/ /*如果有orderby字句*/
+			pushOntoSorter(pParse, pOrderBy, p, r1);/*推到栈顶端*/ /*插入代码"V"，在分选机将会推进记录到栈的顶部*/
 		}
 		else{
-			int r2 = sqlite3GetTempReg(pParse);/*分配一个新的寄存器用于控制中间结果，并把返回值赋给r2*/
-			sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, r2);/*把OP_NewRowid（新建记录）操作送入VDBE，再返回一个新指令地址*/
-			sqlite3VdbeAddOp3(v, OP_Insert, iParm, r1, r2);/*把OP_Insert（插入记录）操作送入VDBE，再返回一个新指令地址*/
-			sqlite3VdbeChangeP5(v, OPFLAG_APPEND);  /*对于最新添加的操作，改变p5操作数的值。*/
-			sqlite3ReleaseTempReg(pParse, r2);/*释放寄存器，使其可以从用于其他目的。如果一个寄存器当前被用于列缓存，则dallocation被推迟，直到使用的列寄存器变的陈旧*/
+			int r2 = sqlite3GetTempReg(pParse); /*定义整型元素进行赋值*/ /*分配一个新的寄存器用于控制中间结果，并把返回值赋给r2*/
+			sqlite3VdbeAddOp2(v, OP_NewRowid, iParm, r2); /*调用函数进行传值*/ /*把OP_NewRowid（新建记录）操作送入VDBE，再返回一个新指令地址*/
+			sqlite3VdbeAddOp3(v, OP_Insert, iParm, r1, r2); /*调用函数进行取值*/ /*把OP_Insert（插入记录）操作送入VDBE，再返回一个新指令地址*/
+			sqlite3VdbeChangeP5(v, OPFLAG_APPEND);  /*调用函数进行取值*/ /*对于最新添加的操作，改变p5操作数的值。*/
+			sqlite3ReleaseTempReg(pParse, r2);/*调用进行释放空间*/ /*释放寄存器，使其可以从用于其他目的。如果一个寄存器当前被用于列缓存，则dallocation被推迟，直到使用的列寄存器变的陈旧*/
 		}
-		sqlite3ReleaseTempReg(pParse, r1);/*释放寄存器*/
-		break;
+		sqlite3ReleaseTempReg(pParse, r1); /*释放占用的寄存器空间*//*释放寄存器*/
+		break; /*跳出这层循环*/
 	}
 
 #ifndef SQLITE_OMIT_SUBQUERY/*测试SQLITE_OMIT_SUBQUERY是否被宏定义过*/
@@ -935,7 +931,7 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 			sqlite3VdbeAddOp2(v, OP_IdxInsert, iParm, r1);/*把OP_IdxInsert操作送入VDBE，再返回一个新指令地址*/
 			sqlite3ReleaseTempReg(pParse, r1);/*释放寄存器*/
 		}
-		break;
+		break;/*跳出这层循环*/
 	}
 
 		/* 
@@ -948,7 +944,7 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 		** The LIMIT clause will terminate the loop for us
 		** limit子句将终止我们的循环
 		*/
-		break;
+		break;/*跳出这层循环*/
 	}
 
 		/* 
@@ -959,7 +955,7 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 		*/
 	case SRT_Mem: {/*如果eDest为SRT_Mem，则将结果存储在存储单元*/
 		assert(nColumn == 1);/*做断点，判断被提取的值列表是否为空*/
-		if (pOrderBy){
+		if (pOrderBy){/*判断条件子句*/
 			pushOntoSorter(pParse, pOrderBy, p, regResult);/*推入栈顶*/
 		}
 		else{
@@ -969,7 +965,7 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 			** limit子句会为我们跳出循环
 			*/
 		}
-		break;
+		break; /*跳出这层循环*/
 	}
 #endif /* #ifndef SQLITE_OMIT_SUBQUERY */
 		/* 
@@ -978,25 +974,25 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 		** popping the data from the stack.
 		** 将数据发送到回调函数或子程序。在子程序的情况下，子程序本身负责从堆栈中弹出数据。
 		*/
-		testcase(eDest == SRT_Coroutine);/*测试处理结果集是否是协同处理*/
-		testcase(eDest == SRT_Output);   /*测试处理结果集是否要输出*/
-		if (pOrderBy){/*如果包含了OEDERBY子句*/
-			int r1 = sqlite3GetTempReg(pParse);/*分配一个寄存器，存储中间计算结果*/
-			sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1);/*把OP_MakeRecord操作送入VDBE，再返回一个新指令地址*/
-			pushOntoSorter(pParse, pOrderBy, p, r1);/*推入栈顶*/
-			sqlite3ReleaseTempReg(pParse, r1);/*释放寄存器*/
+		testcase(eDest == SRT_Coroutine); /*调用函数处理结果*//*测试处理结果集是否是协同处理*/
+		testcase(eDest == SRT_Output);  /*调用函数判断是否有输出结果集*/  /*测试处理结果集是否要输出*/
+		if (pOrderBy){ /*判断是否存在子句*/ /*如果包含了OEDERBY子句*/
+			int r1 = sqlite3GetTempReg(pParse);/*定义整型数据进行传值*/ /*分配一个寄存器，存储中间计算结果*/
+			sqlite3VdbeAddOp3(v, OP_MakeRecord, regResult, nColumn, r1); /*调用函数进行增加函数的传值*/ /*把OP_MakeRecord操作送入VDBE，再返回一个新指令地址*/
+			pushOntoSorter(pParse, pOrderBy, p, r1); /*传一些值到栈顶部*/ /*推入栈顶*/
+			sqlite3ReleaseTempReg(pParse, r1);/*释放内存里的空间*/ /*释放寄存器*/
 		}
-		else if (eDest == SRT_Coroutine){/*如果处理结果集是协同处理*/
-			sqlite3VdbeAddOp1(v, OP_Yield, pDest->iSDParm);/*把OP_Yield操作送入VDBE，再返回一个新指令地址*/
+		else if (eDest == SRT_Coroutine){ /*判断是否还要进行处理结果*/ /*如果处理结果集是协同处理*/
+			sqlite3VdbeAddOp1(v, OP_Yield, pDest->iSDParm); /*调用函数进行增加值*/ /*把OP_Yield操作送入VDBE，再返回一个新指令地址*/
 		}
 		else{
-			sqlite3VdbeAddOp2(v, OP_ResultRow, regResult, nColumn);/*把OP_ResultRow操作送入VDBE，再返回一个新指令地址*/
-			sqlite3ExprCacheAffinityChange(pParse, regResult, nColumn);/*记录亲和类型的数据的改变的计数寄存器的起始地址*/
+			sqlite3VdbeAddOp2(v, OP_ResultRow, regResult, nColumn); /*调用增加函数进行传值*/ /*把OP_ResultRow操作送入VDBE，再返回一个新指令地址*/
+			sqlite3ExprCacheAffinityChange(pParse, regResult, nColumn); /*进行缓存的操作*/ /*记录亲和类型的数据的改变的计数寄存器的起始地址*/
 		}
-		break;
+		break; /*跳出这层循环*/
 		}
 
-#if !defined(SQLITE_OMIT_TRIGGER)/*条件编译*/
+#if !defined(SQLITE_OMIT_TRIGGER)/*条件编译传值*/ /*条件编译*/
 		/* 
 		** Discard the results.  This is used for SELECT statements inside
 		** the body of a TRIGGER.  The purpose of such selects is to call
@@ -1006,11 +1002,12 @@ static void selectInnerLoop( /*定义选择插入函数*/ /*select内连接循�
 		** 我们不必关心实际的选择结果。
 		*/
 	default: {/*默认条件下*/
-		assert(eDest == SRT_Discard);/*如果处理结果集是SRT_Discard（舍弃）*/
-		break;
+		assert(eDest == SRT_Discard); /*调用函数进行判断是否需要传值*/ /*如果处理结果集是SRT_Discard（舍弃）*/
+		break; /*跳出这层循环*/ 
 	}
 #endif/*条件编译结束*/
 	}
+
 
 	/* Jump to the end of the loop if the LIMIT is reached.  Except, if
 	** there is a sorter, in which case the sorter has already limited
