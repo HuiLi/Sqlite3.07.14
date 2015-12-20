@@ -4148,6 +4148,8 @@ static u8 minMaxQuery(Select *p){
 ** SELECT statement.  The SELECT statement must be expanded before
 ** name resolution is performed.扩大一个SELECT语句是处理SELECT语句的第一步。SELECT语句在执行名称
   解析之前必须扩大。
+  
+
 
 ** If anything goes wrong, an error message is written into pParse.
 ** The calling function can detect the problem by looking at pParse->nErr
@@ -4172,6 +4174,19 @@ static u8 minMaxQuery(Select *p){
 	** SELECT声明中的第一步是扩展一个SELECT语句。在解析执行前，这个select语句必须被扩展
 	**
 	** 若有错误出现，那这条错误信息就写到解析器中。回调函数可以在pParse->nErr 或 pParse->db->mallocFailed中找出错误信息
+	*/
+	
+	/*
+	** 这个例程扩展了一个SELECT语句和它所有的子查询。
+	** 想要查询更多有关扩展了一个SELECT语句的信息，请查看上面selectExpand 
+	** 回调的注释。
+	**
+	** 扩展一个SELECT语句是处理一个SELECT语句的第一步。 
+	** SELECT语句必须在名称解析之前完成扩展操作。
+	**
+	** 如果发生了任何错误，则会有一条错误信息返回到pParse。
+	** 通过查看pParse->nErr和/或pParse->db->mallocFailed指针，调用方法可以检测
+	** 问题。
 	*/
 	static void sqlite3SelectExpand(Parse *pParse, Select *pSelect){
 	  Walker w;//Walker结构体的声明
@@ -4222,6 +4237,15 @@ static u8 minMaxQuery(Select *p){
 	**
 	** 表结构代表结果集由selectExpander（）构建，但在这种情况下类型和排列信息会被省略，因为没有解析标识符。
 	** 这个例程实在解析标识之后调用的
+	*/
+	
+	/*
+	** 这是一个用于sqlite3SelectTypeInfo()接口的Walker.xSelectCallback方法的回调模块。
+	** 对于每个FROM语句子查询，添加Column.zType和Column.zColl信息到Table结构中，
+	** Table结构代表了该子查询的结果集。
+	** 
+	** 表示该子查询结果集的Table结构是由selectExpander()建立的，但类型和排序信息
+	** 在这个时候被遗漏了，因为还没有解析标识符。这个例程在解析标识符之后调用。 
 	*/
 	static int selectAddSubqueryTypeInfo(Walker *pWalker, Select *p){
 	  Parse *pParse;//语法解析器的声明
