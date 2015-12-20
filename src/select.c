@@ -110,13 +110,12 @@ static void clearSelect(sqlite3 *db, Select *p, int bFree){  /*函数的用处�
 			sqlite3ExprListDelete(db, p->pOrderBy);    /*从表达式列表中清除Order by子句表达式*/ /*删除orderby*/                        /*删除orderby子句中的表达式*/
 			sqlite3ExprDelete(db, p->pLimit);           /*从表达式列表中清除Limit子句表达式*//*删除优先选择子句*/                      /*删除Limit子句表达式*/
 			sqlite3ExprDelete(db, p->pOffset);          /*从表达式列表中清除偏移量Offset子句表达式*//*递归删除限制返回数据数量的子句*/ /*删除偏移量offset子句表达式*/
-	}
 			sqlite3WithDelete(db, p->pWith);			 /*递归删除一个条件树*//*递归删除偏移量offset子句*/                 /*递归删除一个条件树*/
 
 			if (bFree)                                     /*如果树不为空*/                                                             /*判断一棵树是否为空*/
 				sqlite3DbFree(db, p);					 /*释放*db*/                                                /*释放占用的内存空间*/
-				p = pPrior;                                      /*pPrior赋值给p*/                                                  /*把pPrior的值赋给p*/
-		bFree = 1; ?               /树不为空*/                                                                                              /*判断树不为空*/
+			p = pPrior;                                      /*pPrior赋值给p*/                                                  /*把pPrior的值赋给p*/
+			bFree = 1;               /*树不为空*/                                                                                              /*判断树不为空*/
 	}
 }
 
