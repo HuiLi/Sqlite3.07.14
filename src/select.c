@@ -1410,21 +1410,23 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		}
 
 		assert(pTab && pExpr->pTab == pTab);
-		if (pS){
+		if (pS)//如果p不为0，执行下列语句
+		{
 			/* The "table" is actually a sub-select or a view in the FROM clause
 			** of the SELECT statement. Return the declaration type and origin
 			** data for the result-set column of the sub-select.
 			** "表"实际上是一个子选择，或者是一个在select语句的from子句的视图。
 			** 返回声明类型和来源数据的子选择的结果集列。
 			*/
-			if (iCol >= 0 && ALWAYS(iCol < pS->pEList->nExpr)){
+			if (iCol >= 0 && ALWAYS(iCol < pS->pEList->nExpr))//如果满足条件，执行if语句
+			{
 				/* If iCol is less than zero, then the expression requests the
 				** rowid of the sub-select or view. This expression is legal (see
 				** test case misc2.2.2) - it always evaluates to NULL.
 				** 如果iCol小于零，则表达式请求子选择或视图的rowid。
 				** 这种表达式合法的(见测试案例misc2.2.2)-它始终计算为空。
 				*/
-				NameContext sNC;
+				NameContext sNC;//定义一个NameContext变量
 				Expr *p = pS->pEList->a[iCol].pExpr;/*被提取的列组成的select结构体中表达式列表中第i个表达式赋值给p*/
 				sNC.pSrcList = pS->pSrc;/*被提取的列组成的select结构体中pSrc（FROM子句）赋值给pSrcList（一个或多个表用来命名的属性）*/
 				sNC.pNext = pNC;/*命名上下文结构体赋值给当前命名上下文结构体的next指针*/
@@ -1432,26 +1434,28 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 				zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); /*将生成的属性类型赋值给zType*/
 			}
 		}
-		else if (ALWAYS(pTab->pSchema)){/*pTab表的模式存在*/
+		else if (ALWAYS(pTab->pSchema))//如果满足所给条件，执行if语句
+		{/*pTab表的模式存在*/
 			/* A real table *//*一个真实的表*/
 			assert(!pS);/*插入断点，判断Select结构体是否为空*/
 			if (iCol<0) iCol = pTab->iPKey;/*如果列号小于0，将表中的关键字数组的首元素赋值给ICol*/
 			assert(iCol == -1 || (iCol >= 0 && iCol<pTab->nCol));/*插入断点，判断ICol正确，在哪个范围*/
-			if (iCol<0){/*如果ICol号小于0*/
-				zType = "INTEGER";/*将类型定义为整型*/
-				zOriginCol = "rowid";/*关键字为rowid*/
+			if (iCol<0){/*如果ICol号小于0*///如果iCol小于0，则执行下列语句
+				zType = "INTEGER";/*将类型定义为整型*///将类型定义为整型
+				zOriginCol = "rowid";/*关键字为rowid*///关键字为rowid
 			}
 			else{
-				zType = pTab->aCol[iCol].zType;/*否则，定义类型为类型表中第iCol的类型*/
+				zType = pTab->aCol[iCol].zType;/*否则，定义类型为类型表中第iCol的类型*///否则，定义类型为类型表中的第iCol类型
 				zOriginCol = pTab->aCol[iCol].zName;/*类型的名字为型表中第iCol的名字*/
 			}
 			zOriginTab = pTab->zName;/*使用默认的名字，定义类型*/
-			if (pNC->pParse){/*如果命名上下文结构体中的语法分析树存在*/
+			if (pNC->pParse)//如果满条件，则执行if语句
+			{/*如果命名上下文结构体中的语法分析树存在*/
 				int iDb = sqlite3SchemaToIndex(pNC->pParse->db, pTab->pSchema);/*将Schema的指针转化给命名上下文结构体中分析语法树的db*/
 				zOriginDb = pNC->pParse->db->aDb[iDb].zName;/*将上下文语法分析树中的db中第i-1个Db的命名赋值给zOriginDb数据库名*/
 			}
 		}
-		break;
+		break;//结束
 	}
 #ifndef SQLITE_OMIT_SUBQUERY
 	case TK_SELECT: {
@@ -1462,7 +1466,7 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		/*
 		** 这个表达式是子查询。返回一个声明类型和初始信息给select结果集中的一列。
 		*/
-		NameContext sNC;
+		NameContext sNC;//定义一个变量sNC
 		Select *pS = pExpr->x.pSelect;/*将表达式中Select结构体赋值给一个SELECT结构体实体变量*/
 		Expr *p = pS->pEList->a[0].pExpr;/*将SELECT的表达式列表中第一个表达式赋值给表达式变量p*/
 		assert(ExprHasProperty(pExpr, EP_xIsSelect));/*插入断点，测试是否包含EP_xIsSelect表达式*/
@@ -1470,18 +1474,19 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 		sNC.pNext = pNC;/*命名上下文结构体赋值给当前命名上下文结构体的next指针*/
 		sNC.pParse = pNC->pParse;/*将命名上下文结构体中分析语法树赋值给当前命名结构体的分析语法树属性*/
 		zType = columnType(&sNC, p, &zOriginDb, &zOriginTab, &zOriginCol); /*返回属性类型*/
-		break;
+		break;//结束
 	}
 #endif
 	}
 
-	if (pzOriginDb){/*如果存在原始的数据库*/
+	if (pzOriginDb)//如果存在原始的数据库，则执行if语句
+	{/*如果存在原始的数据库*/
 		assert(pzOriginTab && pzOriginCol);/*插入断点，判断表和列是否存在*/
 		*pzOriginDb = zOriginDb;/*文件中数据库赋值给数据库变量pzOriginDb*/
 		*pzOriginTab = zOriginTab;/*文件中表赋值给表变量pzOriginTab*/
 		*pzOriginCol = zOriginCol;/*文件中列赋值给列变量pzOriginCol*/
 	}
-	return zType;/*返回列类型*/
+	return zType;/*返回列类型*///返回zType类型
 }
 
 /////////
