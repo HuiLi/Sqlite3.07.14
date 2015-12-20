@@ -4116,16 +4116,24 @@ static u8 minMaxQuery(Select *p){
 	** 然后Walker.xSelectCallback 为语法解析树中的每一个子查询提供帮助。
 	*/
 	/*
-** No-op routine for the parse-tree walker.
-**对于parse-tree walker的无操作例程
-** When this routine is the Walker.xExprCallback then expression trees
-** are walked without any actions being taken at each node.  Presumably,
-** when this routine is used for Walker.xExprCallback then 
-** Walker.xSelectCallback is set to do something useful for every 
-** subquery in the parser tree.当这个例程是Walker.xExprCallback ，那么表达树在每个节点上不采取
-任何行动都可以。由此可以推断,当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback 
-被设置对为解析树中的每一个子查询有用。
-*/
+	** No-op routine for the parse-tree walker.
+	**对于parse-tree walker的无操作例程
+	** When this routine is the Walker.xExprCallback then expression trees
+	** are walked without any actions being taken at each node.  Presumably,
+	** when this routine is used for Walker.xExprCallback then 
+	** Walker.xSelectCallback is set to do something useful for every 
+	** subquery in the parser tree.当这个例程是Walker.xExprCallback ，那么表达树在每个节点上不采取
+	任何行动都可以。由此可以推断,当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback 
+	被设置对为解析树中的每一个子查询有用。
+	*/
+	
+	/*
+	** 这是关于解析树Walker的无操作例程
+	**
+	** 当这个例程是Walker.xExprCallback时， 表达式树在每个节点上即使不采取行动
+	** 也可以。因此，当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback 
+	** 被设置成解析树中每个子查询都有用。
+	*/
 	static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
 	  UNUSED_PARAMETER2(NotUsed, NotUsed2);/*如果NotUsed2没有使用，并驻留在函数中。输出警告信息。*/
 	  return WRC_Continue;/*返回继续执行标识符*/
