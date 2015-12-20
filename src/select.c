@@ -1376,23 +1376,24 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 ** 生成代码，告诉VDBE在结果集中的列的声明类型的。
 */
 static void generateColumnTypes(
-	Parse *pParse,      /* Parser context 解析上下文*/
-	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*/
-	ExprList *pEList    /* Expressions defining the result set 定义结果集的表达式列表 */
+	Parse *pParse,      /* Parser context 解析上下文*///定义一个Parse类型的指针变量
+	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*///定义一个SrcList类型的指针变量
+	ExprList *pEList    /* Expressions defining the result set 定义结果集的表达式列表 *///定义一个ExprList类型的指针变
 	){
-#ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
+#ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*///测试 SQLITE_OMIT_DECLTYPE是不是已经被定义过
 	Vdbe *v = pParse->pVdbe;/*将分析语法数中的VDBE赋值给VDBE变量V*/
-	int i;
-	NameContext sNC;
+	int i;//定义一个整形变量i
+	NameContext sNC;//定义一个NameContext类型的变量sNC
 	sNC.pSrcList = pTabList;/*将表集合赋值给命名上下文结构体中的表集合属性*/
 	sNC.pParse = pParse;/*将分析语法树赋值给命名上下文语法树*/
-	for (i = 0; i < pEList->nExpr; i++){/*遍历表达式列表*/
-		Expr *p = pEList->a[i].pExpr;/*将表达式变量赋值给p*/
-		const char *zType;
+	for (i = 0; i < pEList->nExpr; i++)//满足条件，执行循环
+	{/*遍历表达式列表*/
+		Expr *p = pEList->a[i].pExpr;/*将表达式变量赋值给p*///将表达式变量赋值给指针变量p
+		const char *zType;//定义一个const char指针变量zType
 #ifdef SQLITE_ENABLE_COLUMN_METADATA/*测试SQLITE_ENABLE_COLUMN_METADATA是否被宏定义过*/
-		const char *zOrigDb = 0;
-		const char *zOrigTab = 0;
-		const char *zOrigCol = 0;
+		const char *zOrigDb = 0;//定义一个const char 变量zOrigDb并赋初值为0
+		const char *zOrigTab = 0;//定义一个const char 变量zOrigTab并赋初值为0
+		const char *zOrigCol = 0;//定义一个const char 变量zOrigCol并赋初值为0
 		zType = columnType(&sNC, p, &zOrigDb, &zOrigTab, &zOrigCol);/*将当前的表达式传给columnType，返回列属性类型*/
 
 		/* The vdbe must make its own copy of the column-type and other
@@ -1408,7 +1409,7 @@ static void generateColumnTypes(
 #endif
 		sqlite3VdbeSetColName(v, i, COLNAME_DECLTYPE, zType, SQLITE_TRANSIENT);/*返回类型获取声明中的第i-1个名*/
 	}
-#endif /* SQLITE_OMIT_DECLTYPE */
+#endif /* SQLITE_OMIT_DECLTYPE *///结束
 }
 
 /*
