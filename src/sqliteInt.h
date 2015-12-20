@@ -9,30 +9,30 @@
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** Internal interface definitions for SQLite. SQLiteå†…éƒ¨ç•Œé¢çš„å®šä¹‰
+** Internal interface definitions for SQLite. SQLiteÄÚ²¿½çÃæµÄ¶¨Òå
 ** 
 */
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_
 
 /*
-** These #defines should enable >2GB file support on POSIX if the     å¦‚æœæ½œåœ¨çš„æ“ä½œç³»ç»Ÿèƒ½å¤Ÿæ”¯æ’‘çš„è¯ï¼Œ_SQLITEINT_H_çš„å®šä¹‰åº”è¯¥ä½¿å¾—å¯ç§»æ¤æ€§æ“ä½œç³»ç»Ÿæ¥å£èƒ½æ”¯æ’‘2Gä»¥ä¸Šçš„å¤§æ–‡ä»¶
+** These #defines should enable >2GB file support on POSIX if the     Èç¹ûÇ±ÔÚµÄ²Ù×÷ÏµÍ³ÄÜ¹»Ö§³ÅµÄ»°£¬_SQLITEINT_H_µÄ¶¨ÒåÓ¦¸ÃÊ¹µÃ¿ÉÒÆÖ²ĞÔ²Ù×÷ÏµÍ³½Ó¿ÚÄÜÖ§³Å2GÒÔÉÏµÄ´óÎÄ¼ş
 ** underlying operating system supports it.  If the OS lacks
-** large file support, or if the OS is windows, these should be no-ops.  å¦‚æœæ“ä½œç³»ç»Ÿç¼ºä¹å¤§æ–‡ä»¶çš„æ”¯æ’‘ï¼Œæˆ–è€…å¦‚æœæ“ä½œç³»ç»Ÿæ˜¯windowsæ“ä½œç³»ç»Ÿï¼Œè¿™é‡Œå°±åº”è¯¥æ˜¯ç©ºæ“ä½œã€‚
+** large file support, or if the OS is windows, these should be no-ops.  Èç¹û²Ù×÷ÏµÍ³È±·¦´óÎÄ¼şµÄÖ§³Å£¬»òÕßÈç¹û²Ù×÷ÏµÍ³ÊÇwindows²Ù×÷ÏµÍ³£¬ÕâÀï¾ÍÓ¦¸ÃÊÇ¿Õ²Ù×÷¡£
 **
-** Ticket #2739:  The _LARGEFILE_SOURCE macro must appear before any     æ ‡ç­¾#2739:å®_LARGEFILE_SOURCEå¿…é¡»åœ¨ä»»ä¸€ç³»ç»Ÿ#includeså‰å‡ºç°
-** system #includes.  Hence, this block of code must be the very first   å› æ­¤ï¼Œä»£ç å—å¿…é¡»åœ¨æ‰€æœ‰æºæ–‡ä»¶ä¸­é¦–å…ˆç¼–ç ã€‚
+** Ticket #2739:  The _LARGEFILE_SOURCE macro must appear before any     ±êÇ©#2739:ºê_LARGEFILE_SOURCE±ØĞëÔÚÈÎÒ»ÏµÍ³#includesÇ°³öÏÖ
+** system #includes.  Hence, this block of code must be the very first   Òò´Ë£¬´úÂë¿é±ØĞëÔÚËùÓĞÔ´ÎÄ¼şÖĞÊ×ÏÈ±àÂë¡£
 ** code in all source files.
 **
-** Large file support can be disabled using the -DSQLITE_DISABLE_LFS switch   å¤§æ–‡ä»¶çš„æ”¯æŒå¯èƒ½ä¼šç¦æ­¢ -DSQLITE_DISABLE_LFSåœ¨ç¼–è¯‘å™¨å‘½ä»¤è¡Œä¸Šçš„è½¬æ¢ã€‚
-** on the compiler command line.  This is necessary if you are compiling      è¿™æ˜¯æœ‰å¿…è¦çš„å‡å¦‚ä½ è¦åœ¨åœ¨è¿‘æœŸçš„æœºå™¨ä¸Šç¼–è¯‘çš„è¯(Red Hat 7.2é™¤å¤–)ï¼Œ
-** on a recent machine (ex: Red Hat 7.2) but you want your code to work       é™¤éä½ æƒ³è¦ä½ çš„ä»£ç åœ¨è€å¼æœºå™¨ä¸Šè¿è¡Œ(Red Hat 6.0é™¤å¤–)
-** on an older machine (ex: Red Hat 6.0).  If you compile on Red Hat 7.2      å¦‚æœä½ çš„ç¼–è¯‘åœ¨Red Hat 7.2ä¸Šæ²¡æœ‰è¿™ä¸ªé€‰é¡¹
-** without this option, LFS is enable.  But LFS does not exist in the kernel  LFSé€»è¾‘æ–‡ä»¶ç³»ç»Ÿï¼ˆLogical File Systemï¼‰/é€»è¾‘æ–‡ä»¶ç»“æ„ï¼ˆLogical File Structureï¼‰å°†ä½¿ä¹‹æˆä¸ºå¯èƒ½ã€‚
-** in Red Hat 6.0, so the code won't work.  Hence, for maximum binary         ä½†å¦‚æœ Red Hat 6.0çš„å†…æ ¸é‡Œé¢ä¸å­˜åœ¨LFSï¼Œé‚£ä¹ˆä»£ç ä¸ä¼šè¢«è¿è¡Œã€‚
-** portability you should omit LFS.  å› æ­¤ï¼Œå¯¹äºæœ€å¤§çš„äºŒè¿›åˆ¶å¯ç§»æ¤æ€§ï¼Œä½ åº”è¯¥å¿½ç•¥LFSã€‚                                  
+** Large file support can be disabled using the -DSQLITE_DISABLE_LFS switch   ´óÎÄ¼şµÄÖ§³Ö¿ÉÄÜ»á½ûÖ¹ -DSQLITE_DISABLE_LFSÔÚ±àÒëÆ÷ÃüÁîĞĞÉÏµÄ×ª»»¡£
+** on the compiler command line.  This is necessary if you are compiling      ÕâÊÇÓĞ±ØÒªµÄ¼ÙÈçÄãÒªÔÚÔÚ½üÆÚµÄ»úÆ÷ÉÏ±àÒëµÄ»°(Red Hat 7.2³ıÍâ)£¬
+** on a recent machine (ex: Red Hat 7.2) but you want your code to work       ³ı·ÇÄãÏëÒªÄãµÄ´úÂëÔÚÀÏÊ½»úÆ÷ÉÏÔËĞĞ(Red Hat 6.0³ıÍâ)
+** on an older machine (ex: Red Hat 6.0).  If you compile on Red Hat 7.2      Èç¹ûÄãµÄ±àÒëÔÚRed Hat 7.2ÉÏÃ»ÓĞÕâ¸öÑ¡Ïî
+** without this option, LFS is enable.  But LFS does not exist in the kernel  LFSÂß¼­ÎÄ¼şÏµÍ³£¨Logical File System£©/Âß¼­ÎÄ¼ş½á¹¹£¨Logical File Structure£©½«Ê¹Ö®³ÉÎª¿ÉÄÜ¡£
+** in Red Hat 6.0, so the code won't work.  Hence, for maximum binary         µ«Èç¹û Red Hat 6.0µÄÄÚºËÀïÃæ²»´æÔÚLFS£¬ÄÇÃ´´úÂë²»»á±»ÔËĞĞ¡£
+** portability you should omit LFS.  Òò´Ë£¬¶ÔÓÚ×î´óµÄ¶ş½øÖÆ¿ÉÒÆÖ²ĞÔ£¬ÄãÓ¦¸ÃºöÂÔLFS¡£                                  
 **
-** Similar is true for Mac OS X.  LFS is only supported on Mac OS X 9 and later.  å¯¹äºæ“ä½œç³»ç»ŸMac OS Xä¹Ÿæ˜¯ä¸€æ ·çš„ã€‚   LFCä»…ä»…æ”¯æŒMAC OS X 9åŠä¹‹åçš„ç‰ˆæœ¬ã€‚
+** Similar is true for Mac OS X.  LFS is only supported on Mac OS X 9 and later.  ¶ÔÓÚ²Ù×÷ÏµÍ³Mac OS XÒ²ÊÇÒ»ÑùµÄ¡£   LFC½ö½öÖ§³ÖMAC OS X 9¼°Ö®ºóµÄ°æ±¾¡£
 */
 #ifndef SQLITE_DISABLE_LFS
 # define _LARGE_FILE       1
@@ -43,8 +43,8 @@
 #endif
 
 /*
-** Include the configuration header output by 'configure' if we're using the    å‡å¦‚æˆ‘ä»¬ä½¿ç”¨åŸºäºatuoconfæ„å»º,åˆ™è¦incloude 'configure'é…ç½®å¤´è¾“å‡ºã€‚
-** autoconf-based build         Autoconfæ˜¯ä¸€ä¸ªç”¨äºç”Ÿæˆå¯ä»¥è‡ªåŠ¨åœ°é…ç½®è½¯ä»¶æºä»£ç åŒ…ä»¥é€‚åº”å¤šç§Unixç±»ç³»ç»Ÿçš„ shellè„šæœ¬çš„å·¥å…·ã€‚
+** Include the configuration header output by 'configure' if we're using the    ¼ÙÈçÎÒÃÇÊ¹ÓÃ»ùÓÚatuoconf¹¹½¨,ÔòÒªincloude 'configure'ÅäÖÃÍ·Êä³ö¡£
+** autoconf-based build         AutoconfÊÇÒ»¸öÓÃÓÚÉú³É¿ÉÒÔ×Ô¶¯µØÅäÖÃÈí¼şÔ´´úÂë°üÒÔÊÊÓ¦¶àÖÖUnixÀàÏµÍ³µÄ shell½Å±¾µÄ¹¤¾ß¡£
 */
 #ifdef _HAVE_SQLITE_CONFIG_H
 #include "config.h"
@@ -52,22 +52,22 @@
 
 #include "sqliteLimit.h"
 
-/* Disable nuisance warnings on Borland compilers ç¦æ­¢Borlandç¼–è¯‘å™¨ä¸Šçš„å¦¨æ‰°è­¦å‘Šä¿¡å· */   
+/* Disable nuisance warnings on Borland compilers ½ûÖ¹Borland±àÒëÆ÷ÉÏµÄ·ÁÈÅ¾¯¸æĞÅºÅ */   
 #if defined(__BORLANDC__)
-#pragma warn -rch /* unreachable code ä¸å¯è¾¾ä»£ç  */
-#pragma warn -ccc /* Condition is always true or false æ¡ä»¶è¦ä¹ˆæ˜¯çœŸè¦ä¹ˆæ˜¯å‡*/
-#pragma warn -aus /* Assigned value is never used åˆ†é…å€¼ä»æœªç”¨è¿‡*/
-#pragma warn -csu /* Comparing signed and unsigned æ¯”è¾ƒæœ‰ç¬¦å·å’Œæ— ç¬¦å·*/
-#pragma warn -spa /* Suspicious pointer arithmetic å¯ç–‘çš„æŒ‡é’ˆè¿ç®—*/
+#pragma warn -rch /* unreachable code ²»¿É´ï´úÂë */
+#pragma warn -ccc /* Condition is always true or false Ìõ¼şÒªÃ´ÊÇÕæÒªÃ´ÊÇ¼Ù*/
+#pragma warn -aus /* Assigned value is never used ·ÖÅäÖµ´ÓÎ´ÓÃ¹ı*/
+#pragma warn -csu /* Comparing signed and unsigned ±È½ÏÓĞ·ûºÅºÍÎŞ·ûºÅ*/
+#pragma warn -spa /* Suspicious pointer arithmetic ¿ÉÒÉµÄÖ¸ÕëÔËËã*/
 #endif
 
-/* Needed for various definitions... éœ€è¦ä¸ºå˜é‡åšå®šä¹‰*/
+/* Needed for various definitions... ĞèÒªÎª±äÁ¿×ö¶¨Òå*/
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE
 #endif
 
 /*
-** Include standard header files as necessary     Includeæ ‡å‡†çš„å¤´æ–‡ä»¶æ˜¯å¿…è¦çš„
+** Include standard header files as necessary     Include±ê×¼µÄÍ·ÎÄ¼şÊÇ±ØÒªµÄ
 */
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -77,90 +77,90 @@
 #endif
 
 /*
-** The following macros are used to cast pointers to integers and     ä¸‹é¢çš„å®å®šä¹‰æ˜¯æŒ‡é’ˆåˆ°æ•´å‹ï¼Œæ•´å‹åˆ°æŒ‡é’ˆçš„è½¬æ¢
-** integers to pointers.  The way you do this varies from one compiler  ç”¨è¿™æ ·çš„æ–¹æ³•ï¼Œä¸€ä¸ªç¼–è¯‘å™¨åˆ°ä¸‹ä¸€ä¸ªç¼–è¯‘å™¨æ˜¯ä¸åŒçš„ï¼Œ
-** to the next, so we have developed the following set of #if statements  å› æ­¤ï¼Œæˆ‘ä»¬ç ”åˆ¶å‡ºäº†ä¸‹é¢è¿™æ ·ä¸€ç»„æ¡ä»¶è¯­å¥ä¸ºè®¸å¤šä¸åŒçš„ç¼–è¯‘å™¨ç”Ÿæˆä¸€ä¸ªé€‚å½“çš„å®å‘½ä»¤ã€‚
+** The following macros are used to cast pointers to integers and     ÏÂÃæµÄºê¶¨ÒåÊÇÖ¸Õëµ½ÕûĞÍ£¬ÕûĞÍµ½Ö¸ÕëµÄ×ª»»
+** integers to pointers.  The way you do this varies from one compiler  ÓÃÕâÑùµÄ·½·¨£¬Ò»¸ö±àÒëÆ÷µ½ÏÂÒ»¸ö±àÒëÆ÷ÊÇ²»Í¬µÄ£¬
+** to the next, so we have developed the following set of #if statements  Òò´Ë£¬ÎÒÃÇÑĞÖÆ³öÁËÏÂÃæÕâÑùÒ»×éÌõ¼şÓï¾äÎªĞí¶à²»Í¬µÄ±àÒëÆ÷Éú³ÉÒ»¸öÊÊµ±µÄºêÃüÁî¡£
 ** to generate appropriate macros for a wide range of compilers.
 **
-** The correct "ANSI" way to do this is to use the intptr_t type    æ­£ç¡®çš„æ–¹å¼æ˜¯ç”¨intptr_tç±»å‹æ¥åšè¿™äº›ã€‚  æ³¨:intptr_tåœ¨ä¸åŒçš„å¹³å°æ˜¯ä¸ä¸€æ ·çš„ï¼Œå§‹ç»ˆä¸åœ°å€ä½æ•°ç›¸åŒï¼Œå› æ­¤ç”¨æ¥å­˜æ”¾åœ°å€ï¼Œå³åœ°å€ã€‚
-** Unfortunately, that typedef is not available on all compilers, or  ä¸å¹¸çš„æ˜¯ï¼Œè¿™ç§ç±»å‹å®šä¹‰åœ¨æ‰€æœ‰çš„ç¼–è¯‘å™¨ä¸Šéƒ½æ˜¯æ— æ•ˆçš„ï¼Œ
-** if it is available, it requires an #include of specific headers    å³æ˜¯æ˜¯æœ‰æ•ˆçš„ï¼Œä¹Ÿéœ€è¦#includeç‰¹æ®Šçš„ä»ä¸€ä¸ªç¼–è¯‘å™¨åˆ°ä¸‹ä¸€ä¸ªç¼–è¯‘å™¨æ˜¯ä¸åŒçš„å¤´æ–‡ä»¶
+** The correct "ANSI" way to do this is to use the intptr_t type    ÕıÈ·µÄ·½Ê½ÊÇÓÃintptr_tÀàĞÍÀ´×öÕâĞ©¡£  ×¢:intptr_tÔÚ²»Í¬µÄÆ½Ì¨ÊÇ²»Ò»ÑùµÄ£¬Ê¼ÖÕÓëµØÖ·Î»ÊıÏàÍ¬£¬Òò´ËÓÃÀ´´æ·ÅµØÖ·£¬¼´µØÖ·¡£
+** Unfortunately, that typedef is not available on all compilers, or  ²»ĞÒµÄÊÇ£¬ÕâÖÖÀàĞÍ¶¨ÒåÔÚËùÓĞµÄ±àÒëÆ÷ÉÏ¶¼ÊÇÎŞĞ§µÄ£¬
+** if it is available, it requires an #include of specific headers    ¼´ÊÇÊÇÓĞĞ§µÄ£¬Ò²ĞèÒª#includeÌØÊâµÄ´ÓÒ»¸ö±àÒëÆ÷µ½ÏÂÒ»¸ö±àÒëÆ÷ÊÇ²»Í¬µÄÍ·ÎÄ¼ş
 ** that vary from one machine to the next.
 **
-** Ticket #3860:  The llvm-gcc-4.2 compiler from Apple chokes on    æ ‡ç­¾#3860: æ¥è‡ªè‹¹æœå…¬å¸çš„llvm-gcc-4.2ç¼–è¯‘å™¨åœæ­¢äº†ä½¿ç”¨((void*)&((char*)0)[X])ç»“æ„
-** the ((void*)&((char*)0)[X]) construct.  But MSVC chokes on ((void*)(X)).   ä½†æ˜¯MSVCåœæ­¢äº†ä½¿ç”¨((void*)(X))ï¼Œå› æ­¤æˆ‘ä»¬ä¸å¾—ä¸å–å†³äºç¼–è¯‘å™¨åœ¨ä¸åŒçš„æ–¹å¼ä¸­å®šä¹‰å®æŒ‡ä»¤
+** Ticket #3860:  The llvm-gcc-4.2 compiler from Apple chokes on    ±êÇ©#3860: À´×ÔÆ»¹û¹«Ë¾µÄllvm-gcc-4.2±àÒëÆ÷Í£Ö¹ÁËÊ¹ÓÃ((void*)&((char*)0)[X])½á¹¹
+** the ((void*)&((char*)0)[X]) construct.  But MSVC chokes on ((void*)(X)).   µ«ÊÇMSVCÍ£Ö¹ÁËÊ¹ÓÃ((void*)(X))£¬Òò´ËÎÒÃÇ²»µÃ²»È¡¾öÓÚ±àÒëÆ÷ÔÚ²»Í¬µÄ·½Ê½ÖĞ¶¨ÒåºêÖ¸Áî
 ** So we have to define the macros in different ways depending on the
 ** compiler.
 */
 #if defined(__PTRDIFF_TYPE__)  /* This case should work for GCC */
 # define SQLITE_INT_TO_PTR(X)  ((void*)(__PTRDIFF_TYPE__)(X))
 # define SQLITE_PTR_TO_INT(X)  ((int)(__PTRDIFF_TYPE__)(X))
-#elif !defined(__GNUC__)       /* Works for compilers other than LLVM åœ¨ç¼–è¯‘å™¨ä¸Šè¿è¡Œè€Œä¸æ˜¯åœ¨LLVMä¸Šè¿è¡Œ   LLVM:ä½çº§è™šæ‹Ÿæœº(Low Level Virtual Machine) */
+#elif !defined(__GNUC__)       /* Works for compilers other than LLVM ÔÚ±àÒëÆ÷ÉÏÔËĞĞ¶ø²»ÊÇÔÚLLVMÉÏÔËĞĞ   LLVM:µÍ¼¶ĞéÄâ»ú(Low Level Virtual Machine) */
 # define SQLITE_INT_TO_PTR(X)  ((void*)&((char*)0)[X])
 # define SQLITE_PTR_TO_INT(X)  ((int)(((char*)X)-(char*)0))
-#elif defined(HAVE_STDINT_H)   /* Use this case if we have ANSI headers åœ¨å¦‚æœæˆ‘æ²¡æœ‰ANSIæ ‡å‡†çš„å¤´æ–‡ä»¶ï¼Œè¿™ç§æƒ…å†µä¸‹ä½¿ç”¨    ANSI:ç¾å›½å›½å®¶æ ‡å‡†å­¦ä¼šï¼ˆ American National Standards Instituteï¼‰ */
+#elif defined(HAVE_STDINT_H)   /* Use this case if we have ANSI headers ÔÚÈç¹ûÎÒÃ»ÓĞANSI±ê×¼µÄÍ·ÎÄ¼ş£¬ÕâÖÖÇé¿öÏÂÊ¹ÓÃ    ANSI:ÃÀ¹ú¹ú¼Ò±ê×¼Ñ§»á£¨ American National Standards Institute£© */
 # define SQLITE_INT_TO_PTR(X)  ((void*)(intptr_t)(X))
 # define SQLITE_PTR_TO_INT(X)  ((int)(intptr_t)(X))
-#else                          /* Generates a warning - but it always works å½¢æˆä¸€ä¸ªè­¦å‘Šï¼Œä½†æ˜¯è¿˜æ˜¯è¿è¡Œçš„*/
+#else                          /* Generates a warning - but it always works ĞÎ³ÉÒ»¸ö¾¯¸æ£¬µ«ÊÇ»¹ÊÇÔËĞĞµÄ*/
 # define SQLITE_INT_TO_PTR(X)  ((void*)(X))
 # define SQLITE_PTR_TO_INT(X)  ((int)(X))
 #endif
 
 /*
-** The SQLITE_THREADSAFE macro must be defined as 0, 1, or 2.      å®SQLITE_THREADSAFEå¿…é¡»å®šä¹‰ä¸º'0','1'æˆ–è€…'2'
-** 0 means mutexes are permanently disable and the library is never    '0'è¡¨ç¤ºäº’æ–¥é”æ˜¯æ°¸ä¹…æ— æ•ˆçš„ï¼Œå¹¶ä¸”åº“æ˜¯æ²¡æœ‰å®‰å…¨å¨èƒçš„ã€‚
-** threadsafe.  1 means the library is serialized which is the highest   '1'è¡¨ç¤ºåº“æ˜¯åºåˆ—åŒ–çš„ï¼Œçº¿ç¨‹å®‰å…¨çš„ç­‰çº§æ˜¯æœ€é«˜çº§
+** The SQLITE_THREADSAFE macro must be defined as 0, 1, or 2.      ºêSQLITE_THREADSAFE±ØĞë¶¨ÒåÎª'0','1'»òÕß'2'
+** 0 means mutexes are permanently disable and the library is never    '0'±íÊ¾»¥³âËøÊÇÓÀ¾ÃÎŞĞ§µÄ£¬²¢ÇÒ¿âÊÇÃ»ÓĞ°²È«ÍşĞ²µÄ¡£
+** threadsafe.  1 means the library is serialized which is the highest   '1'±íÊ¾¿âÊÇĞòÁĞ»¯µÄ£¬Ïß³Ì°²È«µÄµÈ¼¶ÊÇ×î¸ß¼¶
 ** level of threadsafety.  2 means the libary is multithreaded - multiple   
-** threads can use SQLite as long as no two threads try to use the same    '2'è¡¨ç¤ºåº“å¯ä»¥å¤šçº¿ç¨‹åˆ°å¤šçº¿ç¨‹çš„ä½¿ç”¨ï¼Œåªè¦æ²¡æœ‰åŒæ—¶æœ‰2ä¸ªçº¿ç¨‹ä½¿ç”¨ç›¸åŒçš„æ•°æ®åº“è¿æ¥ã€‚
+** threads can use SQLite as long as no two threads try to use the same    '2'±íÊ¾¿â¿ÉÒÔ¶àÏß³Ìµ½¶àÏß³ÌµÄÊ¹ÓÃ£¬Ö»ÒªÃ»ÓĞÍ¬Ê±ÓĞ2¸öÏß³ÌÊ¹ÓÃÏàÍ¬µÄÊı¾İ¿âÁ¬½Ó¡£
 ** database connection at the same time.
 **
-** Older versions of SQLite used an optional THREADSAFE macro.   è€ç‰ˆæœ¬çš„SQLiteä½¿ç”¨äº†ä¸€ä¸ªå¯é€‰æ‹©çš„ THREADSAFEå®
-** We support that for legacy.   æˆ‘ä»¬æŠŠå®ƒä½œä¸ºé—äº§æ¥æ”¯æŒ
+** Older versions of SQLite used an optional THREADSAFE macro.   ÀÏ°æ±¾µÄSQLiteÊ¹ÓÃÁËÒ»¸ö¿ÉÑ¡ÔñµÄ THREADSAFEºê
+** We support that for legacy.   ÎÒÃÇ°ÑËü×÷ÎªÒÅ²úÀ´Ö§³Ö
 */
 #if !defined(SQLITE_THREADSAFE)
 #if defined(THREADSAFE)
 # define SQLITE_THREADSAFE THREADSAFE
 #else
-# define SQLITE_THREADSAFE 1 /* IMP: R-07272-22309  æ¥å£ä¿¡æ¯å¤„ç†å™¨:R-07272-22309 */
+# define SQLITE_THREADSAFE 1 /* IMP: R-07272-22309  ½Ó¿ÚĞÅÏ¢´¦ÀíÆ÷:R-07272-22309 */
 #endif
 #endif
 
 /*
-** Powersafe overwrite is on by default.  But can be turned off using    Powersafeé»˜è®¤æƒ…å†µä¸‹æ˜¯è¦†ç›–ã€‚  
-** the -DSQLITE_POWERSAFE_OVERWRITE=0 command-line option.      ä½†æ˜¯å¯ä»¥å…³æ‰ -DSQLITE_POWERSAFE_OVERWRITE=0å‘½ä»¤è¡Œé€‰é¡¹çš„ä½¿ç”¨ã€‚
+** Powersafe overwrite is on by default.  But can be turned off using    PowersafeÄ¬ÈÏÇé¿öÏÂÊÇ¸²¸Ç¡£  
+** the -DSQLITE_POWERSAFE_OVERWRITE=0 command-line option.      µ«ÊÇ¿ÉÒÔ¹Øµô -DSQLITE_POWERSAFE_OVERWRITE=0ÃüÁîĞĞÑ¡ÏîµÄÊ¹ÓÃ¡£
 */
 #ifndef SQLITE_POWERSAFE_OVERWRITE
 # define SQLITE_POWERSAFE_OVERWRITE 1
 #endif
 
 /*
-** The SQLITE_DEFAULT_MEMSTATUS macro must be defined as either 0 or 1.  å®SQLITE_DEFAULT_MEMSTATUSå¿…é¡»è¢«å®šä¹‰ä¸º0æˆ–è€…1.
+** The SQLITE_DEFAULT_MEMSTATUS macro must be defined as either 0 or 1.  ºêSQLITE_DEFAULT_MEMSTATUS±ØĞë±»¶¨ÒåÎª0»òÕß1.
 ** It determines whether or not the features related to 
-** SQLITE_CONFIG_MEMSTATUS are available by default or not. This value can    å–å†³äºè¿™ä¸ªç‰¹å¾æ˜¯å¦ä¸SQLITE_CONFIG_MEMSTATUSæ˜¯ä¸æ˜¯é»˜è®¤å¯ä¾›ä½¿ç”¨çš„æœ‰å…³
-** be overridden at runtime using the sqlite3_config() API. åœ¨è¿è¡Œæ—¶ä½¿ç”¨sqlite3_config() API,è¿™ä¸ªå€¼å¯ä»¥è¢«è¦†ç›–        API:åº”ç”¨ç¨‹åºç•Œé¢ï¼ˆApplication Program Interfaceï¼‰
+** SQLITE_CONFIG_MEMSTATUS are available by default or not. This value can    È¡¾öÓÚÕâ¸öÌØÕ÷ÊÇ·ñÓëSQLITE_CONFIG_MEMSTATUSÊÇ²»ÊÇÄ¬ÈÏ¿É¹©Ê¹ÓÃµÄÓĞ¹Ø
+** be overridden at runtime using the sqlite3_config() API. ÔÚÔËĞĞÊ±Ê¹ÓÃsqlite3_config() API,Õâ¸öÖµ¿ÉÒÔ±»¸²¸Ç        API:Ó¦ÓÃ³ÌĞò½çÃæ£¨Application Program Interface£©
 */
 #if !defined(SQLITE_DEFAULT_MEMSTATUS)
 # define SQLITE_DEFAULT_MEMSTATUS 1
 #endif
 
 /*
-** Exactly one of the following macros must be defined in order to     ä¸ºäº†æŒ‡å®šå“ªä¸€ä¸ªå†…å­˜å­ç³»ç»Ÿè¢«ä½¿ç”¨ï¼Œä¸‹é¢çš„å…¶ä¸­ä¸€ä¸ªå®è¢«å®šä¹‰æ˜¯æ­£ç¡®çš„ã€‚
+** Exactly one of the following macros must be defined in order to     ÎªÁËÖ¸¶¨ÄÄÒ»¸öÄÚ´æ×ÓÏµÍ³±»Ê¹ÓÃ£¬ÏÂÃæµÄÆäÖĞÒ»¸öºê±»¶¨ÒåÊÇÕıÈ·µÄ¡£
 ** specify which memory allocation subsystem to use.
 **
-**     SQLITE_SYSTEM_MALLOC          // Use normal system malloc()    ç”¨æ ‡å‡†ç³»ç»Ÿçš„å†…å­˜åˆ†é…å‡½æ•°
-**     SQLITE_WIN32_MALLOC           // Use Win32 native heap API     ç”¨win32è‡ªèº«çš„å †æ ˆAPI
-**     SQLITE_ZERO_MALLOC            // Use a stub allocator that always fails  ç”¨æ•…éšœçš„æ ¹åˆ†é…å™¨
-**     SQLITE_MEMDEBUG               // Debugging version of system malloc()  ç³»ç»Ÿè°ƒè¯•ç‰ˆçš„å†…å­˜åˆ†é…å‡½æ•°
+**     SQLITE_SYSTEM_MALLOC          // Use normal system malloc()    ÓÃ±ê×¼ÏµÍ³µÄÄÚ´æ·ÖÅäº¯Êı
+**     SQLITE_WIN32_MALLOC           // Use Win32 native heap API     ÓÃwin32×ÔÉíµÄ¶ÑÕ»API
+**     SQLITE_ZERO_MALLOC            // Use a stub allocator that always fails  ÓÃ¹ÊÕÏµÄ¸ù·ÖÅäÆ÷
+**     SQLITE_MEMDEBUG               // Debugging version of system malloc()  ÏµÍ³µ÷ÊÔ°æµÄÄÚ´æ·ÖÅäº¯Êı
 **
-** On Windows, if the SQLITE_WIN32_MALLOC_VALIDATE macro is defined and the   åœ¨windowsæ“ä½œç³»ç»Ÿä¸Šï¼Œå¦‚æœå®SQLITE_WIN32_MALLOC_VALIDATEè¢«å®šä¹‰å¹¶ä¸”å®assert()è¢«å¯ç”¨ã€‚
-** assert() macro is enabled, each call into the Win32 native heap subsystem                assert()æ˜¯ä¸ªå®šä¹‰åœ¨ <assert.h> ä¸­çš„å®, ç”¨æ¥æµ‹è¯•æ–­è¨€ã€‚ä¸€ä¸ªæ–­è¨€æœ¬è´¨ä¸Šæ˜¯å†™ä¸‹ç¨‹åºå‘˜çš„å‡è®¾, å¦‚æœå‡è®¾è¢«è¿å, é‚£è¡¨æ˜æœ‰ä¸ªä¸¥é‡çš„ç¨‹åºé”™è¯¯ã€‚
-** will cause HeapValidate to be called.  If heap validation should fail, an  æ¯ä¸€æ¬¡åœ¨win32è‡ªèº«çš„å †æ ˆå­ç³»ç»Ÿä¸Šçš„è°ƒç”¨å°†å¼•èµ·HeapValidateçš„è°ƒç”¨ã€‚
-** assertion will be triggered. å¦‚æœå †æ ˆå»ºè®®å¤±è´¥äº†ï¼Œå°†å¼•èµ·ä¸€ä¸ªè­¦å‘Šã€‚
+** On Windows, if the SQLITE_WIN32_MALLOC_VALIDATE macro is defined and the   ÔÚwindows²Ù×÷ÏµÍ³ÉÏ£¬Èç¹ûºêSQLITE_WIN32_MALLOC_VALIDATE±»¶¨Òå²¢ÇÒºêassert()±»ÆôÓÃ¡£
+** assert() macro is enabled, each call into the Win32 native heap subsystem                assert()ÊÇ¸ö¶¨ÒåÔÚ <assert.h> ÖĞµÄºê, ÓÃÀ´²âÊÔ¶ÏÑÔ¡£Ò»¸ö¶ÏÑÔ±¾ÖÊÉÏÊÇĞ´ÏÂ³ÌĞòÔ±µÄ¼ÙÉè, Èç¹û¼ÙÉè±»Î¥·´, ÄÇ±íÃ÷ÓĞ¸öÑÏÖØµÄ³ÌĞò´íÎó¡£
+** will cause HeapValidate to be called.  If heap validation should fail, an  Ã¿Ò»´ÎÔÚwin32×ÔÉíµÄ¶ÑÕ»×ÓÏµÍ³ÉÏµÄµ÷ÓÃ½«ÒıÆğHeapValidateµÄµ÷ÓÃ¡£
+** assertion will be triggered. Èç¹û¶ÑÕ»½¨ÒéÊ§°ÜÁË£¬½«ÒıÆğÒ»¸ö¾¯¸æ¡£
 **
-** (Historical note:  There used to be several other options, but we've  å†å²æ³¨é‡Š:è¿‡å»æœ‰å¾ˆå¤šå¾ˆå¤šå…¶ä»–çš„é€‰é¡¹ï¼Œä½†æˆ‘ä»¬æ¶ˆå‡å¾—åªå‰©ä¸‰ä¸ªäº†ã€‚
+** (Historical note:  There used to be several other options, but we've  ÀúÊ·×¢ÊÍ:¹ıÈ¥ÓĞºÜ¶àºÜ¶àÆäËûµÄÑ¡Ïî£¬µ«ÎÒÃÇÏû¼õµÃÖ»Ê£Èı¸öÁË¡£
 ** pared it down to just these three.)
 **
-** If none of the above are defined, then set SQLITE_SYSTEM_MALLOC as   å‡å¦‚ä¸Šé¢çš„éƒ½æ²¡æœ‰è¢«å®šä¹‰ï¼ŒSQLITE_SYSTEM_MALLOCå°†è¢«è®¾ç½®ä¸ºé»˜è®¤å€¼ã€‚
+** If none of the above are defined, then set SQLITE_SYSTEM_MALLOC as   ¼ÙÈçÉÏÃæµÄ¶¼Ã»ÓĞ±»¶¨Òå£¬SQLITE_SYSTEM_MALLOC½«±»ÉèÖÃÎªÄ¬ÈÏÖµ¡£
 ** the default.
 */
 #if defined(SQLITE_SYSTEM_MALLOC) \
@@ -180,7 +180,7 @@
 #endif
 
 /*
-** If SQLITE_MALLOC_SOFT_LIMIT is not zero, then try to keep the   å¦‚æœSQLITE_MALLOC_SOFT_LIMITçš„å€¼ä¸æ˜¯0ï¼Œåˆ™ä¿æŒå¯èƒ½çš„å€¼ä¸‹åˆ†é…çš„å†…å­˜å¤§å°ã€‚
+** If SQLITE_MALLOC_SOFT_LIMIT is not zero, then try to keep the   Èç¹ûSQLITE_MALLOC_SOFT_LIMITµÄÖµ²»ÊÇ0£¬Ôò±£³Ö¿ÉÄÜµÄÖµÏÂ·ÖÅäµÄÄÚ´æ´óĞ¡¡£
 ** sizes of memory allocations below this value where possible.
 */
 #if !defined(SQLITE_MALLOC_SOFT_LIMIT)
@@ -188,38 +188,38 @@
 #endif
 
 /*
-** We need to define _XOPEN_SOURCE as follows in order to enable    ä¸ºäº†å¯ç”¨åœ¨å¤§å¤šæ•°UNIXæ“ä½œç³»ç»Ÿä¸Šçš„é€’å½’äº’æ–¥ä½“ï¼Œ æˆ‘ä»¬éœ€è¦å°†_XOPEN_SOURCEåšå¦‚ä¸‹å®šä¹‰
-** recursive mutexes on most Unix systems.  But Mac OS X is different.  ä½† Mac OS X æ“ä½œç³»ç»Ÿæ˜¯ä¸åŒçš„ã€‚
-** The _XOPEN_SOURCE define causes problems for Mac OS X we are told,    _XOPEN_SOURCE defineçš„å®šä¹‰ä¼šå¯¼è‡´æˆ‘ä»¬è¯´è¿‡çš„ Mac OS Xæ“ä½œç³»ç»Ÿçš„é—®é¢˜
-** so it is omitted there.  See ticket #2673.  å› æ­¤ï¼Œè¿™å„¿æ˜¯å¿½ç•¥äº†çš„ã€‚è§æ ‡ç­¾:#2673
+** We need to define _XOPEN_SOURCE as follows in order to enable    ÎªÁËÆôÓÃÔÚ´ó¶àÊıUNIX²Ù×÷ÏµÍ³ÉÏµÄµİ¹é»¥³âÌå£¬ ÎÒÃÇĞèÒª½«_XOPEN_SOURCE×öÈçÏÂ¶¨Òå
+** recursive mutexes on most Unix systems.  But Mac OS X is different.  µ« Mac OS X ²Ù×÷ÏµÍ³ÊÇ²»Í¬µÄ¡£
+** The _XOPEN_SOURCE define causes problems for Mac OS X we are told,    _XOPEN_SOURCE defineµÄ¶¨Òå»áµ¼ÖÂÎÒÃÇËµ¹ıµÄ Mac OS X²Ù×÷ÏµÍ³µÄÎÊÌâ
+** so it is omitted there.  See ticket #2673.  Òò´Ë£¬Õâ¶ùÊÇºöÂÔÁËµÄ¡£¼û±êÇ©:#2673
 **
-** Later we learn that _XOPEN_SOURCE is poorly or incorrectly  ç¨åï¼Œæˆ‘ä»¬å°†å­¦åˆ° _XOPEN_SOURCEåœ¨ä¸€äº›æ“ä½œç³»ç»Ÿä¸Šçš„æ‰§è¡Œæ˜¯ä¸è‰¯çš„æˆ–è€…è¯´æ˜¯é”™è¯¯çš„ã€‚
+** Later we learn that _XOPEN_SOURCE is poorly or incorrectly  ÉÔºó£¬ÎÒÃÇ½«Ñ§µ½ _XOPEN_SOURCEÔÚÒ»Ğ©²Ù×÷ÏµÍ³ÉÏµÄÖ´ĞĞÊÇ²»Á¼µÄ»òÕßËµÊÇ´íÎóµÄ¡£
 ** implemented on some systems.  So we avoid defining it at all
-** if it is already defined or if it is unneeded because we are   å› æ­¤ï¼Œæˆ‘ä»¬å¯ä»¥ä¸å®šä¹‰å®ƒï¼Œå‡å¦‚å®ƒå·²ç»è¢«å®šä¹‰äº†æˆ–å¦‚æœå®ƒå› ä¸ºæˆ‘ä»¬ä¸åšä¸å®‰å…¨çš„æ„å»ºè€Œä¸éœ€è¦äº†ã€‚
-** not doing a threadsafe build.  Ticket #2681.   æ ‡ç­¾:#2681
+** if it is already defined or if it is unneeded because we are   Òò´Ë£¬ÎÒÃÇ¿ÉÒÔ²»¶¨ÒåËü£¬¼ÙÈçËüÒÑ¾­±»¶¨ÒåÁË»òÈç¹ûËüÒòÎªÎÒÃÇ²»×ö²»°²È«µÄ¹¹½¨¶ø²»ĞèÒªÁË¡£
+** not doing a threadsafe build.  Ticket #2681.   ±êÇ©:#2681
 **
-** See also ticket #2741.  ä¹Ÿçœ‹æ ‡ç­¾:#2741
+** See also ticket #2741.  Ò²¿´±êÇ©:#2741
 */
 #if !defined(_XOPEN_SOURCE) && !defined(__DARWIN__) && !defined(__APPLE__) && SQLITE_THREADSAFE
-#  define _XOPEN_SOURCE 500  /* Needed to enable pthread recursive mutexes éœ€è¦å¯ç”¨å¤šçº¿ç¨‹ç¼–ç¨‹é€’å½’äº’æ–¥ä½“*/
+#  define _XOPEN_SOURCE 500  /* Needed to enable pthread recursive mutexes ĞèÒªÆôÓÃ¶àÏß³Ì±à³Ìµİ¹é»¥³âÌå*/
 #endif
 
 /*
-** The TCL headers are only needed when compiling the TCL bindings.   TCLå¤´æ–‡ä»¶åªæœ‰å½“ç¼–è¯‘TCLç»‘å®šæ—¶æ‰éœ€è¦ã€‚  TCLï¼šäº‹åŠ¡æ§åˆ¶è¯­è¨€
+** The TCL headers are only needed when compiling the TCL bindings.   TCLÍ·ÎÄ¼şÖ»ÓĞµ±±àÒëTCL°ó¶¨Ê±²ÅĞèÒª¡£  TCL£ºÊÂÎñ¿ØÖÆÓïÑÔ
 */
 #if defined(SQLITE_TCL) || defined(TCLSH)
 # include <tcl.h>
 #endif
 
 /*
-** NDEBUG and SQLITE_DEBUG are opposites.  It should always be true that      NDEBUG å’Œ SQLITE_DEBUGæ˜¯ç›¸åçš„ã€‚
-** defined(NDEBUG)==!defined(SQLITE_DEBUG).  If this is not currently true,   defined(NDEBUG)==!defined(SQLITE_DEBUG)è¿™ä¸ªå®šä¹‰æ˜¯æ°¸è¿œä¸ºçœŸçš„ã€‚
-** make it true by defining or undefining NDEBUG.     å¦‚æœå½“å‰ä¸æ˜¯çœŸçš„ï¼Œåˆ™å¯ä»¥é€šè¿‡å®šä¹‰æˆ–è€…ä¸å®šä¹‰NDEBUGæ¥è®©å®ƒä¸ºçœŸã€‚
+** NDEBUG and SQLITE_DEBUG are opposites.  It should always be true that      NDEBUG ºÍ SQLITE_DEBUGÊÇÏà·´µÄ¡£
+** defined(NDEBUG)==!defined(SQLITE_DEBUG).  If this is not currently true,   defined(NDEBUG)==!defined(SQLITE_DEBUG)Õâ¸ö¶¨ÒåÊÇÓÀÔ¶ÎªÕæµÄ¡£
+** make it true by defining or undefining NDEBUG.     Èç¹ûµ±Ç°²»ÊÇÕæµÄ£¬Ôò¿ÉÒÔÍ¨¹ı¶¨Òå»òÕß²»¶¨ÒåNDEBUGÀ´ÈÃËüÎªÕæ¡£
 **
-** Setting NDEBUG makes the code smaller and run faster by disabling the     è®¾ç½®NDEBUGï¼Œé€šè¿‡ç¦æ­¢åœ¨ä»£ç ä¸­assert()è¯­å¥çš„æ•°ç›®ï¼Œè®©ä»£ç æ›´å°ä¸€äº›ï¼Œè¿è¡Œé€Ÿåº¦æ›´å¿«ä¸€äº›ã€‚
-** number assert() statements in the code.  So we want the default action    å› æ­¤ï¼Œæˆ‘ä»¬æƒ³è¦çš„é»˜è®¤æ“ä½œæ˜¯è®¾ç½® NDEBUGå¹¶ä¸” NDEBUGåªæœ‰åœ¨SQLITE_DEBUGè¢«è®¾ç½®çš„æ—¶å€™æ‰ä¸è¢«å®šä¹‰ã€‚
+** Setting NDEBUG makes the code smaller and run faster by disabling the     ÉèÖÃNDEBUG£¬Í¨¹ı½ûÖ¹ÔÚ´úÂëÖĞassert()Óï¾äµÄÊıÄ¿£¬ÈÃ´úÂë¸üĞ¡Ò»Ğ©£¬ÔËĞĞËÙ¶È¸ü¿ìÒ»Ğ©¡£
+** number assert() statements in the code.  So we want the default action    Òò´Ë£¬ÎÒÃÇÏëÒªµÄÄ¬ÈÏ²Ù×÷ÊÇÉèÖÃ NDEBUG²¢ÇÒ NDEBUGÖ»ÓĞÔÚSQLITE_DEBUG±»ÉèÖÃµÄÊ±ºò²Å²»±»¶¨Òå¡£
 ** to be for NDEBUG to be set and NDEBUG to be undefined only if SQLITE_DEBUG
-** is set.  Thus NDEBUG becomes an opt-in rather than an opt-out      å› æ­¤ï¼ŒNDEBUGå˜æˆäº†é€‰æ‹©æ€§è¾“å…¥ï¼Œè€Œä¸æ˜¯é€‰æ‹©æ€§è¾“å‡º
+** is set.  Thus NDEBUG becomes an opt-in rather than an opt-out      Òò´Ë£¬NDEBUG±ä³ÉÁËÑ¡ÔñĞÔÊäÈë£¬¶ø²»ÊÇÑ¡ÔñĞÔÊä³ö
 ** feature.
 */
 #if !defined(NDEBUG) && !defined(SQLITE_DEBUG) 
@@ -230,16 +230,16 @@
 #endif
 
 /*
-** The testcase() macro is used to aid in coverage testing.  When  å®testcase()è¢«ç”¨äºå¸®åŠ©è¦†ç›–æµ‹è¯•ã€‚
+** The testcase() macro is used to aid in coverage testing.  When  ºêtestcase()±»ÓÃÓÚ°ïÖú¸²¸Ç²âÊÔ¡£
 ** doing coverage testing, the condition inside the argument to
-** testcase() must be evaluated both true and false in order to           å½“åšè¦†ç›–æµ‹è¯•æ—¶å†…å®¹æ¦‚è¦ä¸­çš„æ¡ä»¶æ˜¯testcase() å¿…é¡»åœ¨çœŸå’Œå‡ä¹‹é—´ä¼°å€¼ ï¼Œè¿™æ ·åšä¸ºäº†å¾—åˆ°å®Œæ•´çš„åˆ†æ”¯è¦†ç›–ã€‚ 
+** testcase() must be evaluated both true and false in order to           µ±×ö¸²¸Ç²âÊÔÊ±ÄÚÈİ¸ÅÒªÖĞµÄÌõ¼şÊÇtestcase() ±ØĞëÔÚÕæºÍ¼ÙÖ®¼ä¹ÀÖµ £¬ÕâÑù×öÎªÁËµÃµ½ÍêÕûµÄ·ÖÖ§¸²¸Ç¡£ 
 ** get full branch coverage.  The testcase() macro is inserted
-** to help ensure adequate test coverage in places where simple          å®testcase()çš„æ’å…¥å¼ä¸ºäº†ä¿è¯åœ¨æŸäº›åœ°æ–¹å……åˆ†çš„æµ‹è¯•è¦†ç›–ï¼Œè¿™äº›åœ°æ–¹ç®€å•çš„æ¡ä»¶è¦†ç›–æˆ–åˆ†æ”¯è¦†ç›–æ˜¯ä¸è¶³çš„ã€‚
+** to help ensure adequate test coverage in places where simple          ºêtestcase()µÄ²åÈëÊ½ÎªÁË±£Ö¤ÔÚÄ³Ğ©µØ·½³ä·ÖµÄ²âÊÔ¸²¸Ç£¬ÕâĞ©µØ·½¼òµ¥µÄÌõ¼ş¸²¸Ç»ò·ÖÖ§¸²¸ÇÊÇ²»×ãµÄ¡£
 ** condition/decision coverage is inadequate.  For example, testcase()
-** can be used to make sure boundary values are tested.  For    ä¾‹å¦‚ï¼Œå®testcase()å¯ä»¥ç”¨æ¥ç¡®ä¿åˆ†æ”¯å€¼æ˜¯è¢«æµ‹è¯•è¿‡çš„ã€‚
-** bitmask tests, testcase() can be used to make sure each bit  å¯¹äºä½æ©ç æµ‹è¯•ï¼Œå®testcase()å¯ä»¥ç”¨æ¥ç¡®ä¿æ¯ä¸€ä½éƒ½æ˜¯æœ‰æ„ä¹‰çš„å¹¶ä¸”è‡³å°‘è¢«ä½¿ç”¨ä¸€æ¬¡ã€‚
+** can be used to make sure boundary values are tested.  For    ÀıÈç£¬ºêtestcase()¿ÉÒÔÓÃÀ´È·±£·ÖÖ§ÖµÊÇ±»²âÊÔ¹ıµÄ¡£
+** bitmask tests, testcase() can be used to make sure each bit  ¶ÔÓÚÎ»ÑÚÂë²âÊÔ£¬ºêtestcase()¿ÉÒÔÓÃÀ´È·±£Ã¿Ò»Î»¶¼ÊÇÓĞÒâÒåµÄ²¢ÇÒÖÁÉÙ±»Ê¹ÓÃÒ»´Î¡£
 ** is significant and used at least once.  On switch statements
-** where multiple cases go to the same block of code, testcase()  åœ¨switchè¯­å¥ä¸­ï¼Œå¤šé‡æ¡ä»¶å®šä½åˆ°ç›¸åŒçš„ä»£ç å—ï¼Œå®testcase()å¯ä»¥ç¡®ä¿æ‰€æœ‰çš„æ¡ä»¶æ˜¯å·²ç»è¢«ä¼°è®¡çš„ã€‚
+** where multiple cases go to the same block of code, testcase()  ÔÚswitchÓï¾äÖĞ£¬¶àÖØÌõ¼ş¶¨Î»µ½ÏàÍ¬µÄ´úÂë¿é£¬ºêtestcase()¿ÉÒÔÈ·±£ËùÓĞµÄÌõ¼şÊÇÒÑ¾­±»¹À¼ÆµÄ¡£
 ** can insure that all cases are evaluated.
 **
 */
@@ -251,7 +251,7 @@
 #endif
 
 /*
-** The TESTONLY macro is used to enclose variable declarations or    å®TESTONLYè¢«ç”¨æ¥è£…å…¥å˜é‡å£°æ˜æˆ–å…¶å®ƒå°å—çš„ä»£ç ï¼Œè¿™éœ€è¦å®testcase() å’Œ assert()ä¸­å‚æ•°çš„æ”¯æ’‘ã€‚
+** The TESTONLY macro is used to enclose variable declarations or    ºêTESTONLY±»ÓÃÀ´×°Èë±äÁ¿ÉùÃ÷»òÆäËüĞ¡¿éµÄ´úÂë£¬ÕâĞèÒªºêtestcase() ºÍ assert()ÖĞ²ÎÊıµÄÖ§³Å¡£
 ** other bits of code that are needed to support the arguments
 ** within testcase() and assert() macros.
 */
@@ -262,12 +262,12 @@
 #endif
 
 /*
-** Sometimes we need a small amount of code such as a variable initialization   ä¸€äº›æ—¶å€™ï¼Œæˆ‘ä»¬éœ€è¦ä¸€äº›å°‘é‡çš„ä»£ç ï¼Œå¦‚è®¾ç½®å˜é‡åˆå§‹åŒ–çš„ä»£ç ï¼Œæ¥è®¾ç½®åé¢çš„assert()è¯­å¥ã€‚
-** to setup for a later assert() statement.  We do not want this code to    æˆ‘ä»¬ä¸æƒ³è¦è¿™äº›ä»£ç åœ¨assert()æ— æ•ˆæ—¶/è¢«ç¦æ­¢æ—¶å‡ºç°ã€‚
-** appear when assert() is disabled.  The following macro is therefore   å› æ­¤åé¢çš„å®è¢«ç”¨æ¥éšè—(contain)è®¾ç½®ç ã€‚
-** used to contain that setup code.  The "VVA" acronym stands for     é¦–å­—æ¯ç¼©å†™'VVA'è¢«ç”¨æ¥æ›¿ä»£"Verification, Validation, and Accreditation".
+** Sometimes we need a small amount of code such as a variable initialization   Ò»Ğ©Ê±ºò£¬ÎÒÃÇĞèÒªÒ»Ğ©ÉÙÁ¿µÄ´úÂë£¬ÈçÉèÖÃ±äÁ¿³õÊ¼»¯µÄ´úÂë£¬À´ÉèÖÃºóÃæµÄassert()Óï¾ä¡£
+** to setup for a later assert() statement.  We do not want this code to    ÎÒÃÇ²»ÏëÒªÕâĞ©´úÂëÔÚassert()ÎŞĞ§Ê±/±»½ûÖ¹Ê±³öÏÖ¡£
+** appear when assert() is disabled.  The following macro is therefore   Òò´ËºóÃæµÄºê±»ÓÃÀ´Òş²Ø(contain)ÉèÖÃÂë¡£
+** used to contain that setup code.  The "VVA" acronym stands for     Ê××ÖÄ¸ËõĞ´'VVA'±»ÓÃÀ´Ìæ´ú"Verification, Validation, and Accreditation".
 ** "Verification, Validation, and Accreditation".  In other words, the
-** code within VVA_ONLY() will only run during verification processes.  æ¢å¥è¯è¯´ï¼ŒVVA_ONLY()ä¸­çš„ä»£ç å°†ä»…ä»…åœ¨éªŒè¯è¿‡ç¨‹æœŸé—´è¿è¡Œã€‚
+** code within VVA_ONLY() will only run during verification processes.  »»¾ä»°Ëµ£¬VVA_ONLY()ÖĞµÄ´úÂë½«½ö½öÔÚÑéÖ¤¹ı³ÌÆÚ¼äÔËĞĞ¡£
 */
 #ifndef NDEBUG
 # define VVA_ONLY(X)  X
@@ -276,17 +276,17 @@
 #endif
 
 /*
-** The ALWAYS and NEVER macros surround boolean expressions which      å®ALWAYS å’Œ NEVERå›´ç»•å¸ƒå°”è¡¨è¾¾å¼ï¼Œå…¶ç›®çš„æ˜¯å®ƒä»¬åˆ†åˆ«æ€»æ˜¯çœŸçš„æˆ–å‡çš„
+** The ALWAYS and NEVER macros surround boolean expressions which      ºêALWAYS ºÍ NEVERÎ§ÈÆ²¼¶û±í´ïÊ½£¬ÆäÄ¿µÄÊÇËüÃÇ·Ö±ğ×ÜÊÇÕæµÄ»ò¼ÙµÄ
 ** are intended to always be true or false, respectively.  Such
-** expressions could be omitted from the code completely.  But they   è¿™ä¸ªè¡¨è¾¾å¯ä»¥å®Œå…¨ä»ä»£ç ä¸­åˆ é™¤ã€‚
-** are included in a few cases in order to enhance the resilience     ä½†è¿™é‡ŒåŒ…å«äº†ä¸€äº›å°‘æ•°æƒ…å½¢ï¼Œå…¶ç›®çš„æ˜¯ä¸ºäº†æé«˜SQLiteæ„å¤–è¡Œä¸ºçš„æ¢å¤åŠ›ï¼Œ
-** of SQLite to unexpected behavior - to make the code "self-healing"   åœ¨é¦–æ¬¡æ„å¤–è¡Œä¸ºæš—ç¤ºæ—¶ï¼Œè®©ä»£ç è‡ªæ„ˆæˆ–å¯å¡‘è€Œä¸æ˜¯æ˜“ç¢æˆ–å½»åº•æ‚”äº†
+** expressions could be omitted from the code completely.  But they   Õâ¸ö±í´ï¿ÉÒÔÍêÈ«´Ó´úÂëÖĞÉ¾³ı¡£
+** are included in a few cases in order to enhance the resilience     µ«ÕâÀï°üº¬ÁËÒ»Ğ©ÉÙÊıÇéĞÎ£¬ÆäÄ¿µÄÊÇÎªÁËÌá¸ßSQLiteÒâÍâĞĞÎªµÄ»Ö¸´Á¦£¬
+** of SQLite to unexpected behavior - to make the code "self-healing"   ÔÚÊ×´ÎÒâÍâĞĞÎª°µÊ¾Ê±£¬ÈÃ´úÂë×ÔÓú»ò¿ÉËÜ¶ø²»ÊÇÒ×Ëé»ò³¹µ×»ÚÁË
 ** or "ductile" rather than being "brittle" and crashing at the first
 ** hint of unplanned behavior.
 **
-** In other words, ALWAYS and NEVER are added for defensive code.   æ¢å¥è¯è¯´ï¼Œ å®ALWAYS å’Œ NEVERæ˜¯ä¸ºäº†ä¿æŠ¤ä»£ç è€Œå¼•å…¥çš„ã€‚
+** In other words, ALWAYS and NEVER are added for defensive code.   »»¾ä»°Ëµ£¬ ºêALWAYS ºÍ NEVERÊÇÎªÁË±£»¤´úÂë¶øÒıÈëµÄ¡£
 **
-** When doing coverage testing ALWAYS and NEVER are hard-coded to   å½“åšæ¢å¤æµ‹è¯•æ—¶ï¼Œå®ALWAYS å’Œ NEVERè¢«ç¡¬ç¼–ç ä¸ºçœŸå’Œå‡ï¼Œä»¥è‡³äºå½“æ—¶è¢«æŒ‡å®šçš„ä¸å¯è¾¾ä»£ç ä¸è¢«è®¡ç®—å…¥æœªç»æ£€éªŒçš„ä»£ç ä¸­ã€‚
+** When doing coverage testing ALWAYS and NEVER are hard-coded to   µ±×ö»Ö¸´²âÊÔÊ±£¬ºêALWAYS ºÍ NEVER±»Ó²±àÂëÎªÕæºÍ¼Ù£¬ÒÔÖÁÓÚµ±Ê±±»Ö¸¶¨µÄ²»¿É´ï´úÂë²»±»¼ÆËãÈëÎ´¾­¼ìÑéµÄ´úÂëÖĞ¡£
 ** be true and false so that the unreachable code then specify will
 ** not be counted as untested code.
 */
@@ -302,17 +302,17 @@
 #endif
 
 /*
-** Return true (non-zero) if the input is a integer that is too large    å¦‚æœè¾“å…¥çš„æ•´å‹å¤ªå¤§è€Œä¸èƒ½æ”¾å…¥32ä½ï¼Œåˆ™è¿”å›çœŸ(éé›¶)ã€‚
-** to fit in 32-bits.  This macro is used inside of various testcase()   è¿™ä¸ªå®ç”¨äºtestcase()å®å˜é‡å†…ï¼Œæ¥éªŒè¯æˆ‘ä»¬å·²ç»æµ‹è¯•çš„å¤§æ–‡ä»¶æ”¯æŒçš„æ•°æ®åº“ã€‚
+** Return true (non-zero) if the input is a integer that is too large    Èç¹ûÊäÈëµÄÕûĞÍÌ«´ó¶ø²»ÄÜ·ÅÈë32Î»£¬Ôò·µ»ØÕæ(·ÇÁã)¡£
+** to fit in 32-bits.  This macro is used inside of various testcase()   Õâ¸öºêÓÃÓÚtestcase()ºê±äÁ¿ÄÚ£¬À´ÑéÖ¤ÎÒÃÇÒÑ¾­²âÊÔµÄ´óÎÄ¼şÖ§³ÖµÄÊı¾İ¿â¡£
 ** macros to verify that we have tested SQLite for large-file support.
 */
 #define IS_BIG_INT(X)  (((X)&~(i64)0xffffffff)!=0)
 
 /*
-** The macro unlikely() is a hint that surrounds a boolean    å®unlikely()æ˜¯ä¸€ä¸ªç¯ç»•ä¸€ä¸ªå€¼é€šå¸¸ä¸ºå‡çš„å¸ƒå°”è¡¨è¾¾å¼çš„æç¤ºã€‚
-** expression that is usually false.  Macro likely() surrounds  å®likely()æ˜¯ä¸€ä¸ªç¯ç»•ä¸€ä¸ªå€¼é€šå¸¸ä¸ºçœŸçš„å¸ƒå°”è¡¨è¾¾å¼çš„æç¤ºã€‚
-** a boolean expression that is usually true.  GCC is able to   æœ‰æ—¶ï¼ŒGCCèƒ½å¤Ÿç”¨è¿™ç§æç¤ºæ¥ç”Ÿæˆæ›´å¥½çš„ä»£ç ã€‚   
-** use these hints to generate better code, sometimes.      GCCï¼ˆGNU Compiler Collectionï¼ŒGNUç¼–è¯‘å™¨å¥—è£…ï¼‰ï¼Œæ˜¯ä¸€å¥—ç”±GNUå¼€å‘çš„ç¼–ç¨‹è¯­è¨€ç¼–è¯‘å™¨ã€‚
+** The macro unlikely() is a hint that surrounds a boolean    ºêunlikely()ÊÇÒ»¸ö»·ÈÆÒ»¸öÖµÍ¨³£Îª¼ÙµÄ²¼¶û±í´ïÊ½µÄÌáÊ¾¡£
+** expression that is usually false.  Macro likely() surrounds  ºêlikely()ÊÇÒ»¸ö»·ÈÆÒ»¸öÖµÍ¨³£ÎªÕæµÄ²¼¶û±í´ïÊ½µÄÌáÊ¾¡£
+** a boolean expression that is usually true.  GCC is able to   ÓĞÊ±£¬GCCÄÜ¹»ÓÃÕâÖÖÌáÊ¾À´Éú³É¸üºÃµÄ´úÂë¡£   
+** use these hints to generate better code, sometimes.      GCC£¨GNU Compiler Collection£¬GNU±àÒëÆ÷Ì××°£©£¬ÊÇÒ»Ì×ÓÉGNU¿ª·¢µÄ±à³ÌÓïÑÔ±àÒëÆ÷¡£
 */
 #if defined(__GNUC__) && 0
 # define likely(X)    __builtin_expect((X),1)
@@ -332,7 +332,7 @@
 #include <stddef.h>
 
 /*
-** If compiling for a processor that lacks floating point support,   å‡å¦‚å¤„ç†æœºçš„ç¼–è¯‘ç¼ºä¹æµ®ç‚¹å‹çš„æ”¯æ’‘ï¼Œå¯ä»¥ç”¨æ•´å‹å–ä»£æµ®ç‚¹å‹ã€‚
+** If compiling for a processor that lacks floating point support,   ¼ÙÈç´¦Àí»úµÄ±àÒëÈ±·¦¸¡µãĞÍµÄÖ§³Å£¬¿ÉÒÔÓÃÕûĞÍÈ¡´ú¸¡µãĞÍ¡£
 ** substitute integer for floating-point
 */
 #ifdef SQLITE_OMIT_FLOATING_POINT
@@ -352,8 +352,8 @@
 #endif
 
 /*
-** OMIT_TEMPDB is set to 1 if SQLITE_OMIT_TEMPDB is defined, or 0       å¦‚æœSQLITE_OMIT_TEMPDBè¢«å®šä¹‰äº†ï¼ŒOMIT_TEMPDBè¢«è®¾ç½®ä¸º1ï¼Œå¦åˆ™ï¼Œè®¾ä¸º0
-** afterward. Having this macro allows us to cause the C compiler     è¿™ä¸ªå®å…è®¸æˆ‘ä»¬è§¦å‘Cç¼–è¯‘å™¨å¿½ç•¥æ²¡æœ‰å‡Œä¹±çš„#ifndefè¯­å¥çš„TEMPè¡¨çš„ä»£ç çš„ä½¿ç”¨ã€‚ 
+** OMIT_TEMPDB is set to 1 if SQLITE_OMIT_TEMPDB is defined, or 0       Èç¹ûSQLITE_OMIT_TEMPDB±»¶¨ÒåÁË£¬OMIT_TEMPDB±»ÉèÖÃÎª1£¬·ñÔò£¬ÉèÎª0
+** afterward. Having this macro allows us to cause the C compiler     Õâ¸öºêÔÊĞíÎÒÃÇ´¥·¢C±àÒëÆ÷ºöÂÔÃ»ÓĞÁèÂÒµÄ#ifndefÓï¾äµÄTEMP±íµÄ´úÂëµÄÊ¹ÓÃ¡£ 
 ** to omit code used by TEMP tables without messy #ifndef statements.      
 */
 #ifdef SQLITE_OMIT_TEMPDB
@@ -363,8 +363,8 @@
 #endif
 
 /*
-** The "file format" number is an integer that is incremented whenever   æ–‡ä»¶æ ¼å¼å·æ˜¯ä¸€ä¸ªæ•´æ•°ï¼Œæ¯å½“VDBEçº§çš„æ–‡ä»¶æ ¼å¼æ”¹å˜æ—¶è¿™ä¸ªå€¼æ˜¯é€’å¢çš„ã€‚    VDBE:è™šæ‹Ÿæ•°æ®åº“å¼•æ“Virtual Database Engine
-** the VDBE-level file format changes.  The following macros define the     ä¸‹é¢çš„å®å®šä¹‰äº†æ–°æ•°æ®åº“çš„ç¼ºçœæ–‡ä»¶æ ¼å¼å’Œåº“å¯ä»¥è¯»çš„æœ€å¤§æ–‡ä»¶æ ¼å¼
+** The "file format" number is an integer that is incremented whenever   ÎÄ¼ş¸ñÊ½ºÅÊÇÒ»¸öÕûÊı£¬Ã¿µ±VDBE¼¶µÄÎÄ¼ş¸ñÊ½¸Ä±äÊ±Õâ¸öÖµÊÇµİÔöµÄ¡£    VDBE:ĞéÄâÊı¾İ¿âÒıÇæVirtual Database Engine
+** the VDBE-level file format changes.  The following macros define the     ÏÂÃæµÄºê¶¨ÒåÁËĞÂÊı¾İ¿âµÄÈ±Ê¡ÎÄ¼ş¸ñÊ½ºÍ¿â¿ÉÒÔ¶ÁµÄ×î´óÎÄ¼ş¸ñÊ½
 ** the default file format for new databases and the maximum file format
 ** that the library can read.
 */
@@ -374,7 +374,7 @@
 #endif
 
 /*
-** Determine whether triggers are recursive by default.  This can be   å–å†³äºè§¦å‘å™¨æ˜¯å¦æ˜¯é»˜è®¤é€’å½’çš„ã€‚è¿™æ˜¯å¯ä»¥è¢«æ”¹å˜çš„åœ¨è¿è¡Œæ—¶ä½¿ç”¨ä¸€ä¸ªç¼–è¯‘æŒ‡ç¤ºã€‚
+** Determine whether triggers are recursive by default.  This can be   È¡¾öÓÚ´¥·¢Æ÷ÊÇ·ñÊÇÄ¬ÈÏµİ¹éµÄ¡£ÕâÊÇ¿ÉÒÔ±»¸Ä±äµÄÔÚÔËĞĞÊ±Ê¹ÓÃÒ»¸ö±àÒëÖ¸Ê¾¡£
 ** changed at run-time using a pragma.
 */
 #ifndef SQLITE_DEFAULT_RECURSIVE_TRIGGERS
@@ -382,7 +382,7 @@
 #endif
 
 /*
-** Provide a default value for SQLITE_TEMP_STORE in case it is not specified  ä¸º SQLITE_TEMP_STOREæä¾›ä¸€ä¸ªç¼ºçœå€¼ï¼Œå¦‚æœå®ƒåœ¨å‘½ä»¤è¡Œä¸Šæ²¡è¢«è§„å®šçš„è¯ã€‚
+** Provide a default value for SQLITE_TEMP_STORE in case it is not specified  Îª SQLITE_TEMP_STOREÌá¹©Ò»¸öÈ±Ê¡Öµ£¬Èç¹ûËüÔÚÃüÁîĞĞÉÏÃ»±»¹æ¶¨µÄ»°¡£
 ** on the command-line
 */
 #ifndef SQLITE_TEMP_STORE
@@ -390,16 +390,16 @@
 #endif
 
 /*
-** GCC does not define the offsetof() macro so we'll have to do it    GCCå¹¶æ²¡æœ‰å®šä¹‰å®offsetof()ï¼Œå› æ­¤æˆ‘ä»¬ä¸å¾—ä¸è‡ªå·±å®šä¹‰ã€‚
-** ourselves.                                                         GCCï¼ˆGNU Compiler Collectionï¼ŒGNUç¼–è¯‘å™¨å¥—è£…ï¼‰ï¼Œæ˜¯ä¸€å¥—ç”±GNUå¼€å‘çš„ç¼–ç¨‹è¯­è¨€ç¼–è¯‘å™¨ã€‚
+** GCC does not define the offsetof() macro so we'll have to do it    GCC²¢Ã»ÓĞ¶¨Òåºêoffsetof()£¬Òò´ËÎÒÃÇ²»µÃ²»×Ô¼º¶¨Òå¡£
+** ourselves.                                                         GCC£¨GNU Compiler Collection£¬GNU±àÒëÆ÷Ì××°£©£¬ÊÇÒ»Ì×ÓÉGNU¿ª·¢µÄ±à³ÌÓïÑÔ±àÒëÆ÷¡£
 */
 #ifndef offsetof
 #define offsetof(STRUCTURE,FIELD) ((int)((char*)&((STRUCTURE*)0)->FIELD))
 #endif
 
 /*
-** Check to see if this machine uses EBCDIC.  (Yes, believe it or       æ£€æŸ¥æœºå™¨æ˜¯å¦ä½¿ç”¨äº†EBCDICã€‚ (æ˜¯ï¼Œç›¸ä¿¡æˆ–è€…ä¸ç›¸ä¿¡ï¼Œéƒ½ä¼šæœ‰æœºå™¨åœ¨é‚£é‡Œä½¿ç”¨EBCDIC)
-** not, there are still machines out there that use EBCDIC.)              EBCDIC:æ‰©å……çš„äºŒè¿›åˆ¶ç¼–ç çš„åè¿›åˆ¶äº¤æ¢ç ï¼ˆExtended Binary Coded Decimal Interchange Codeï¼‰
+** Check to see if this machine uses EBCDIC.  (Yes, believe it or       ¼ì²é»úÆ÷ÊÇ·ñÊ¹ÓÃÁËEBCDIC¡£ (ÊÇ£¬ÏàĞÅ»òÕß²»ÏàĞÅ£¬¶¼»áÓĞ»úÆ÷ÔÚÄÇÀïÊ¹ÓÃEBCDIC)
+** not, there are still machines out there that use EBCDIC.)              EBCDIC:À©³äµÄ¶ş½øÖÆ±àÂëµÄÊ®½øÖÆ½»»»Âë£¨Extended Binary Coded Decimal Interchange Code£©
 */
 #if 'A' == '\301'
 # define SQLITE_EBCDIC 1
@@ -408,11 +408,11 @@
 #endif
 
 /*
-** Integers of known sizes.  These typedefs might change for architectures   å·²çŸ¥å°ºå¯¸çš„æ•´å‹ã€‚  è¿™äº›ç±»å‹å¯èƒ½ä¼šæ”¹å˜ç»“æ„çš„å¤§å°ã€‚
-** where the sizes very.  Preprocessor macros are available so that the      é¢„å¤„ç†å®æ˜¯å¯ç”¨çš„ï¼Œæ‰€ä»¥åœ¨ç¼–è¯‘ç±»å‹ä¸Šå¯ä»¥æ–¹ä¾¿åœ°é‡æ–°å®šä¹‰çš„ç±»å‹ã€‚
-** types can be conveniently redefined at compile-type.  Like this:          ä¾‹å¦‚:æŠŠ'-DUINTPTR_TYPEå®šä¹‰ä¸ºlong long intå‹
+** Integers of known sizes.  These typedefs might change for architectures   ÒÑÖª³ß´çµÄÕûĞÍ¡£  ÕâĞ©ÀàĞÍ¿ÉÄÜ»á¸Ä±ä½á¹¹µÄ´óĞ¡¡£
+** where the sizes very.  Preprocessor macros are available so that the      Ô¤´¦ÀíºêÊÇ¿ÉÓÃµÄ£¬ËùÒÔÔÚ±àÒëÀàĞÍÉÏ¿ÉÒÔ·½±ãµØÖØĞÂ¶¨ÒåµÄÀàĞÍ¡£
+** types can be conveniently redefined at compile-type.  Like this:          ÀıÈç:°Ñ'-DUINTPTR_TYPE¶¨ÒåÎªlong long intĞÍ
 **
-**         cc '-DUINTPTR_TYPE=long long int' ...                         int åœ¨å†…å­˜å ä¸¤ä¸ªå­—èŠ‚ ï¼ŒèŒƒå›´æ˜¯-32768~32767ï¼›è€Œlong long intåœ¨å†…å­˜å å…«ä¸ªå­—èŠ‚ï¼Œ èŒƒå›´æ˜¯-922337203685775808~922337203685775807
+**         cc '-DUINTPTR_TYPE=long long int' ...                         int ÔÚÄÚ´æÕ¼Á½¸ö×Ö½Ú £¬·¶Î§ÊÇ-32768~32767£»¶ølong long intÔÚÄÚ´æÕ¼°Ë¸ö×Ö½Ú£¬ ·¶Î§ÊÇ-922337203685775808~922337203685775807
 */
 #ifndef UINT32_TYPE
 # ifdef HAVE_UINT32_T
@@ -452,37 +452,37 @@
 #ifndef LONGDOUBLE_TYPE
 # define LONGDOUBLE_TYPE long double
 #endif
-typedef sqlite_int64 i64;          /* 8-byte signed integer 8ä½æœ‰ç¬¦å·æ•´å‹*/
-typedef sqlite_uint64 u64;         /* 8-byte unsigned integer 8ä½æ— ç¬¦å·æ•´å‹*/
-typedef UINT32_TYPE u32;           /* 4-byte unsigned integer 4ä½æ— ç¬¦å·æ•´å‹*/
-typedef UINT16_TYPE u16;           /* 2-byte unsigned integer 2ä½æ— ç¬¦å·æ•´å‹*/
-typedef INT16_TYPE i16;            /* 2-byte signed integer 2ä½æœ‰ç¬¦å·æ•´å‹*/
-typedef UINT8_TYPE u8;             /* 1-byte unsigned integer 1ä½æ— ç¬¦å·æ•´å‹*/
-typedef INT8_TYPE i8;              /* 1-byte signed integer 1ä½æœ‰ç¬¦å·æ•´å‹*/
+typedef sqlite_int64 i64;          /* 8-byte signed integer 8Î»ÓĞ·ûºÅÕûĞÍ*/
+typedef sqlite_uint64 u64;         /* 8-byte unsigned integer 8Î»ÎŞ·ûºÅÕûĞÍ*/
+typedef UINT32_TYPE u32;           /* 4-byte unsigned integer 4Î»ÎŞ·ûºÅÕûĞÍ*/
+typedef UINT16_TYPE u16;           /* 2-byte unsigned integer 2Î»ÎŞ·ûºÅÕûĞÍ*/
+typedef INT16_TYPE i16;            /* 2-byte signed integer 2Î»ÓĞ·ûºÅÕûĞÍ*/
+typedef UINT8_TYPE u8;             /* 1-byte unsigned integer 1Î»ÎŞ·ûºÅÕûĞÍ*/
+typedef INT8_TYPE i8;              /* 1-byte signed integer 1Î»ÓĞ·ûºÅÕûĞÍ*/
 
 /*
 ** SQLITE_MAX_U32 is a u64 constant that is the maximum u64 value        
-SQLITE_MAX_U32æ˜¯ä¸€ä¸ªu64ç±»å‹(ä¸Šé¢å®šä¹‰çš„8ä½æ— ç¬¦å·æ•´å‹)çš„å¸¸é‡ï¼Œå°±æ˜¯è¯´ï¼Œu64çš„æœ€å¤§å€¼å¯ä»¥è¢«å­˜å‚¨åœ¨u32(4ä½æ— ç¬¦å·æ•´å‹)ä¸­è€Œä¸”ä¸ä¸¢å¤±æ•°æ®ã€‚
-** that can be stored in a u32 without loss of data.  The value     è¿™ä¸ªå€¼æ˜¯0x00000000ffffffffã€‚
-** is 0x00000000ffffffff.  But because of quirks of some compilers, we     ä½†æ˜¯ç”±äºä¸€äº›ç¼–è¯‘å™¨çš„æ€ªå¼‚æ¨¡å¼ï¼Œæˆ‘ä»¬ä¸å¾—ä¸æŒ‡å®šè¿™ä¸ªå€¼åœ¨ä¸ç›´è§‚çš„æ–¹å¼æ˜¾ç¤ºã€‚
+SQLITE_MAX_U32ÊÇÒ»¸öu64ÀàĞÍ(ÉÏÃæ¶¨ÒåµÄ8Î»ÎŞ·ûºÅÕûĞÍ)µÄ³£Á¿£¬¾ÍÊÇËµ£¬u64µÄ×î´óÖµ¿ÉÒÔ±»´æ´¢ÔÚu32(4Î»ÎŞ·ûºÅÕûĞÍ)ÖĞ¶øÇÒ²»¶ªÊ§Êı¾İ¡£
+** that can be stored in a u32 without loss of data.  The value     Õâ¸öÖµÊÇ0x00000000ffffffff¡£
+** is 0x00000000ffffffff.  But because of quirks of some compilers, we     µ«ÊÇÓÉÓÚÒ»Ğ©±àÒëÆ÷µÄ¹ÖÒìÄ£Ê½£¬ÎÒÃÇ²»µÃ²»Ö¸¶¨Õâ¸öÖµÔÚ²»Ö±¹ÛµÄ·½Ê½ÏÔÊ¾¡£
 ** have to specify the value in the less intuitive manner shown:
 */
 #define SQLITE_MAX_U32  ((((u64)1)<<32)-1)
 
 /*
-** The datatype used to store estimates of the number of rows in a    è¿™ä¸ªæ•°æ®ç±»å‹è¢«ç”¨æ¥å­˜å‚¨ä¸€ä¸ªè¡¨æˆ–è€…ç´¢å¼•ä¸­æ‰€ä¼°è®¡çš„è¡Œæ•°ã€‚
-** table or index.  This is an unsigned integer type.  For 99.9% of   è¿™æ˜¯ä¸€ä¸ªæ— ç¬¦å·æ•´å‹ã€‚
-** the world, a 32-bit integer is sufficient.  But a 64-bit integer   ä¸–ç•Œä¸Š99.9%çš„32ä½æ•´å‹æ˜¯è¶³å¤Ÿçš„ã€‚ ä½†64ä½æ•´å‹å¦‚æœ‰å¿…è¦çš„è¯å°†åœ¨ç¼–è¯‘é˜¶æ®µè¢«ä½¿ç”¨ã€‚
+** The datatype used to store estimates of the number of rows in a    Õâ¸öÊı¾İÀàĞÍ±»ÓÃÀ´´æ´¢Ò»¸ö±í»òÕßË÷ÒıÖĞËù¹À¼ÆµÄĞĞÊı¡£
+** table or index.  This is an unsigned integer type.  For 99.9% of   ÕâÊÇÒ»¸öÎŞ·ûºÅÕûĞÍ¡£
+** the world, a 32-bit integer is sufficient.  But a 64-bit integer   ÊÀ½çÉÏ99.9%µÄ32Î»ÕûĞÍÊÇ×ã¹»µÄ¡£ µ«64Î»ÕûĞÍÈçÓĞ±ØÒªµÄ»°½«ÔÚ±àÒë½×¶Î±»Ê¹ÓÃ¡£
 ** can be used at compile-time if desired.
 */
 #ifdef SQLITE_64BIT_STATS
- typedef u64 tRowcnt;    /* 64-bit only if requested at compile-time 64ä½åªåœ¨ç¼–è¯‘é˜¶æ®µæœ‰ä½¿ç”¨è¯·æ±‚*/
+ typedef u64 tRowcnt;    /* 64-bit only if requested at compile-time 64Î»Ö»ÔÚ±àÒë½×¶ÎÓĞÊ¹ÓÃÇëÇó*/
 #else
- typedef u32 tRowcnt;    /* 32-bit is the default 32ä½æ˜¯é»˜è®¤çš„*/
+ typedef u32 tRowcnt;    /* 32-bit is the default 32Î»ÊÇÄ¬ÈÏµÄ*/
 #endif
 
 /*
-** Macros to determine whether the machine is big or little endian,    å®å†³å®šæœºå™¨åœ¨è¿è¡ŒæœŸé—´çš„ä¼°å€¼æ˜¯ä½ä½ä¼˜å…ˆè¿˜æ˜¯é«˜ä½ä¼˜å…ˆ
+** Macros to determine whether the machine is big or little endian,    ºê¾ö¶¨»úÆ÷ÔÚÔËĞĞÆÚ¼äµÄ¹ÀÖµÊÇµÍÎ»ÓÅÏÈ»¹ÊÇ¸ßÎ»ÓÅÏÈ
 ** evaluated at runtime.
 */
 #ifdef SQLITE_AMALGAMATION
@@ -502,32 +502,32 @@ extern const int sqlite3one;
 #endif
 
 /*
-** Constants for the largest and smallest possible 64-bit signed integers.  64ä½æœ‰ç¬¦å·æ•´å‹å¯èƒ½çš„æœ€å¤§å¸¸é‡å’Œæœ€å°å¸¸é‡ã€‚
-** These macros are designed to work correctly on both 32-bit and 64-bit    è¿™äº›å®è¢«å®šä¹‰æ­£ç¡®åœ°åœ¨32ä½å’Œ64ä½ç¼–è¯‘å™¨ä¸Šå·¥ä½œã€‚ 
+** Constants for the largest and smallest possible 64-bit signed integers.  64Î»ÓĞ·ûºÅÕûĞÍ¿ÉÄÜµÄ×î´ó³£Á¿ºÍ×îĞ¡³£Á¿¡£
+** These macros are designed to work correctly on both 32-bit and 64-bit    ÕâĞ©ºê±»¶¨ÒåÕıÈ·µØÔÚ32Î»ºÍ64Î»±àÒëÆ÷ÉÏ¹¤×÷¡£ 
 ** compilers.
 */
 #define LARGEST_INT64  (0xffffffff|(((i64)0x7fffffff)<<32))
 #define SMALLEST_INT64 (((i64)-1) - LARGEST_INT64)
 
 /* 
-** Round up a number to the next larger multiple of 8.  This is used      å‘ä¸Šèˆå…¥ä¸€ä¸ªæ•°ï¼Œä½¿ä¹‹æ¥è¿‘8çš„å€æ•°ã€‚
-** to force 8-byte alignment on 64-bit architectures.     è¿™æ˜¯ç”¨æ¥å¼ºåˆ¶8ä½å¯¹é½64ä½çš„ä½“ç³»ç»“æ„ã€‚
+** Round up a number to the next larger multiple of 8.  This is used      ÏòÉÏÉáÈëÒ»¸öÊı£¬Ê¹Ö®½Ó½ü8µÄ±¶Êı¡£
+** to force 8-byte alignment on 64-bit architectures.     ÕâÊÇÓÃÀ´Ç¿ÖÆ8Î»¶ÔÆë64Î»µÄÌåÏµ½á¹¹¡£
 */
 #define ROUND8(x)     (((x)+7)&~7)
 
 /*
-** Round down to the nearest multiple of 8   æœ€æ¥è¿‘8çš„å€æ•°çš„å››èˆäº”å…¥ã€‚
+** Round down to the nearest multiple of 8   ×î½Ó½ü8µÄ±¶ÊıµÄËÄÉáÎåÈë¡£
 */
 #define ROUNDDOWN8(x) ((x)&~7)
 
 /*
-** Assert that the pointer X is aligned to an 8-byte boundary.  This   å£°æ˜æŒ‡é’ˆXæ˜¯å¯¹é½åˆ°8å­—èŠ‚è¾¹ç•Œçš„ã€‚
-** macro is used only within assert() to verify that the code gets     è¿™ä¸ªå®åªåœ¨assert()ä¸­ç”¨æ¥éªŒè¯ä»£ç æ˜¯å¦å¾—åˆ°äº†æ­£ç¡®çš„å¯¹é½é™åˆ¶ã€‚
+** Assert that the pointer X is aligned to an 8-byte boundary.  This   ÉùÃ÷Ö¸ÕëXÊÇ¶ÔÆëµ½8×Ö½Ú±ß½çµÄ¡£
+** macro is used only within assert() to verify that the code gets     Õâ¸öºêÖ»ÔÚassert()ÖĞÓÃÀ´ÑéÖ¤´úÂëÊÇ·ñµÃµ½ÁËÕıÈ·µÄ¶ÔÆëÏŞÖÆ¡£
 ** all alignment restrictions correct.
 **
-** Except, if SQLITE_4_BYTE_ALIGNED_MALLOC is defined, then the      æœ‰ä¾‹å¤–ï¼Œå¦‚æœ SQLITE_4_BYTE_ALIGNED_MALLOCè¢«å®šä¹‰äº†ï¼Œ æ½œåœ¨çš„malloc()å®ç°å¯èƒ½ä¼šè¿”å›æˆ‘ä»¬4å­—èŠ‚å¯¹é½çš„æŒ‡é’ˆ
+** Except, if SQLITE_4_BYTE_ALIGNED_MALLOC is defined, then the      ÓĞÀıÍâ£¬Èç¹û SQLITE_4_BYTE_ALIGNED_MALLOC±»¶¨ÒåÁË£¬ Ç±ÔÚµÄmalloc()ÊµÏÖ¿ÉÄÜ»á·µ»ØÎÒÃÇ4×Ö½Ú¶ÔÆëµÄÖ¸Õë
 ** underlying malloc() implemention might return us 4-byte aligned
-** pointers.  In that case, only verify 4-byte alignment.            åœ¨è¿™ç§æƒ…å†µä¸‹ï¼ŒåªéªŒè¯4å­—èŠ‚çš„å¯¹é½ã€‚
+** pointers.  In that case, only verify 4-byte alignment.            ÔÚÕâÖÖÇé¿öÏÂ£¬Ö»ÑéÖ¤4×Ö½ÚµÄ¶ÔÆë¡£
 */
 #ifdef SQLITE_4_BYTE_ALIGNED_MALLOC
 # define EIGHT_BYTE_ALIGNMENT(X)   ((((char*)(X) - (char*)0)&3)==0)
@@ -537,67 +537,67 @@ extern const int sqlite3one;
 
 
 /*
-** An instance of the following structure is used to store the busy-handler   ä»¥ä¸‹çš„ç»“æ„çš„ä¸€ä¸ªå®ä¾‹æ˜¯ç”¨äºå­˜å‚¨ç¹å¿™çš„å¤„ç†å™¨å›è°ƒç»™SQLiteçš„ä¸€ä¸ªå¤„ç†ã€‚
+** An instance of the following structure is used to store the busy-handler   ÒÔÏÂµÄ½á¹¹µÄÒ»¸öÊµÀıÊÇÓÃÓÚ´æ´¢·±Ã¦µÄ´¦ÀíÆ÷»Øµ÷¸øSQLiteµÄÒ»¸ö´¦Àí¡£
 ** callback for a given sqlite handle. 
 **
-** The sqlite.busyHandler member of the sqlite struct contains the busy   ç»“æ„ä½“busyHandlerçš„æˆå‘˜åŒ…æ‹¬æ•°æ®åº“å¥æŸ„çš„é¢‘ç¹å›è°ƒ
-** callback for the database handle. Each pager opened via the sqlite     æ¯ä¸€é¡µé€šè¿‡SQLiteå¥æŸ„ä¼ é€’ä¸€ä¸ªæŒ‡é’ˆåˆ°sqlite.busyhandleræ‰“å¼€
-** handle is passed a pointer to sqlite.busyHandler. The busy-handler     ç¹å¿™çš„å¤„ç†ç¨‹åºçš„å›è°ƒç›®å‰ä»…ä»…æ˜¯pager.cä¸­çš„è°ƒç”¨ã€‚
+** The sqlite.busyHandler member of the sqlite struct contains the busy   ½á¹¹ÌåbusyHandlerµÄ³ÉÔ±°üÀ¨Êı¾İ¿â¾ä±úµÄÆµ·±»Øµ÷
+** callback for the database handle. Each pager opened via the sqlite     Ã¿Ò»Ò³Í¨¹ıSQLite¾ä±ú´«µİÒ»¸öÖ¸Õëµ½sqlite.busyhandler´ò¿ª
+** handle is passed a pointer to sqlite.busyHandler. The busy-handler     ·±Ã¦µÄ´¦Àí³ÌĞòµÄ»Øµ÷Ä¿Ç°½ö½öÊÇpager.cÖĞµÄµ÷ÓÃ¡£
 ** callback is currently invoked only from within pager.c.
 */
 typedef struct BusyHandler BusyHandler;
 struct BusyHandler {
-  int (*xFunc)(void *,int);  /* The busy callback é¢‘ç¹å›è°ƒ*/
-  void *pArg;                /* First arg to busy callback é¢‘ç¹å›è°ƒçš„ç¬¬ä¸€ä¸ªè‡ªå˜é‡*/
-  int nBusy;                 /* Incremented with each busy call æ¯ä¸€ä¸ªé¢‘ç¹è°ƒç”¨çš„å¢åŠ */
+  int (*xFunc)(void *,int);  /* The busy callback Æµ·±»Øµ÷*/
+  void *pArg;                /* First arg to busy callback Æµ·±»Øµ÷µÄµÚÒ»¸ö×Ô±äÁ¿*/
+  int nBusy;                 /* Incremented with each busy call Ã¿Ò»¸öÆµ·±µ÷ÓÃµÄÔö¼Ó*/
 };
 
 /*
-** Name of the master database table.  The master database table   ä¸»æ•°æ®åº“è¡¨åã€‚  
-** is a special table that holds the names and attributes of all   ä¸»æ•°æ®åº“è¡¨æ˜¯ä¸€ä¸ªç‰¹æ®Šçš„è¡¨ï¼Œæ‹¥æœ‰æ‰€æœ‰ç”¨æˆ·æ•°æ®è¡¨å’Œç´¢å¼•çš„åå­—å’Œç‰¹å¾å±æ€§ã€‚
+** Name of the master database table.  The master database table   Ö÷Êı¾İ¿â±íÃû¡£  
+** is a special table that holds the names and attributes of all   Ö÷Êı¾İ¿â±íÊÇÒ»¸öÌØÊâµÄ±í£¬ÓµÓĞËùÓĞÓÃ»§Êı¾İ±íºÍË÷ÒıµÄÃû×ÖºÍÌØÕ÷ÊôĞÔ¡£
 ** user tables and indices.
 */
 #define MASTER_NAME       "sqlite_master"
 #define TEMP_MASTER_NAME  "sqlite_temp_master"
 
 /*
-** The root-page of the master database table.    ä¸»æ•°æ®åº“è¡¨çš„æ ¹é¡µã€‚
+** The root-page of the master database table.    Ö÷Êı¾İ¿â±íµÄ¸ùÒ³¡£
 */
 #define MASTER_ROOT       1
 
 /*
-** The name of the schema table.   æ¨¡å¼è¡¨è¡¨åã€‚
+** The name of the schema table.   Ä£Ê½±í±íÃû¡£
 */
 #define SCHEMA_TABLE(x)  ((!OMIT_TEMPDB)&&(x==1)?TEMP_MASTER_NAME:MASTER_NAME)
 
 /*
-** A convenience macro that returns the number of elements in   ä¸€ä¸ªå¾ˆæ–¹ä¾¿çš„å®ï¼Œå¯ä»¥è¿”å›æ•°ç»„ä¸­å…ƒç´ çš„ä¸ªæ•°ã€‚
+** A convenience macro that returns the number of elements in   Ò»¸öºÜ·½±ãµÄºê£¬¿ÉÒÔ·µ»ØÊı×éÖĞÔªËØµÄ¸öÊı¡£
 ** an array.
 */
 #define ArraySize(X)    ((int)(sizeof(X)/sizeof(X[0])))
 
 /*
-** The following value as a destructor means to use sqlite3DbFree().       ä»¥ä¸‹çš„å€¼ä½œä¸ºä¸€ä¸ªææ„å‡½æ•°æ„å‘³ç€è¦ä½¿ç”¨sqlite3dbfree()
-** The sqlite3DbFree() routine requires two parameters instead of the      å¸¸è§„çš„sqlite3dbfree()éœ€è¦ä¸¤ä¸ªå‚æ•°æ¥ä»£æ›¿ææ„å‡½æ•°é€šå¸¸æ‰€éœ€è¦çš„ä¸€ä¸ªå‚æ•°
-** one parameter that destructors normally want.  So we have to introduce  æ‰€ä»¥æˆ‘ä»¬å¿…é¡»å¼•å…¥è¿™ä¸ªé­”æ³•å€¼ï¼Œé­”æ³•å€¼çš„ä»£ç çŸ¥é“å¤„ç†å·®å¼‚ã€‚
+** The following value as a destructor means to use sqlite3DbFree().       ÒÔÏÂµÄÖµ×÷ÎªÒ»¸öÎö¹¹º¯ÊıÒâÎ¶×ÅÒªÊ¹ÓÃsqlite3dbfree()
+** The sqlite3DbFree() routine requires two parameters instead of the      ³£¹æµÄsqlite3dbfree()ĞèÒªÁ½¸ö²ÎÊıÀ´´úÌæÎö¹¹º¯ÊıÍ¨³£ËùĞèÒªµÄÒ»¸ö²ÎÊı
+** one parameter that destructors normally want.  So we have to introduce  ËùÒÔÎÒÃÇ±ØĞëÒıÈëÕâ¸öÄ§·¨Öµ£¬Ä§·¨ÖµµÄ´úÂëÖªµÀ´¦Àí²îÒì¡£
 ** this magic value that the code knows to handle differently.  Any 
-** pointer will work here as long as it is distinct from SQLITE_STATIC     æ‰€æœ‰æŒ‡é’ˆï¼Œåªè¦ä¸SQLITE_STATICå’ŒSQLITE_TRANSIENTä¸åŒï¼Œéƒ½åœ¨è¿™é‡Œèµ·ä½œç”¨ã€‚
+** pointer will work here as long as it is distinct from SQLITE_STATIC     ËùÓĞÖ¸Õë£¬Ö»ÒªÓëSQLITE_STATICºÍSQLITE_TRANSIENT²»Í¬£¬¶¼ÔÚÕâÀïÆğ×÷ÓÃ¡£
 ** and SQLITE_TRANSIENT.
 */
 #define SQLITE_DYNAMIC   ((sqlite3_destructor_type)sqlite3MallocSize)
 
 /*
-** When SQLITE_OMIT_WSD is defined, it means that the target platform does     å½“SQLITE_OMIT_WSDè¢«å®šä¹‰æ—¶ï¼Œè¿™å°±æ„å‘³ç€ç›®æ ‡å¹³å°ä¸æ”¯æŒå…¨å±€å¯å†™å˜é‡ï¼Œä¾‹å¦‚å…¨å±€å˜é‡å’Œé™æ€å˜é‡ã€‚
-** not support Writable Static Data (WSD) such as global and static variables.   WSD:å…¨å±€å¯å†™å˜é‡Writable Static Data (WSD)
-** All variables must either be on the stack or dynamically allocated from     æ‰€æœ‰å˜é‡éƒ½å¿…é¡»æ˜¯åœ¨å †æ ˆä¸Šæˆ–ä»å †ä¸­åŠ¨æ€åˆ†é…çš„ã€‚
-** the heap.  When WSD is unsupported, the variable declarations scattered     å½“WSDä¸æ”¯æŒæ—¶ï¼Œéå¸ƒåœ¨SQLiteä»£ç ä¸­çš„å˜é‡å£°æ˜å¿…é¡»å˜æˆå¸¸æ•°ä»£æ›¿ã€‚
-** throughout the SQLite code must become constants instead.  The SQLITE_WSD   å®SQLITE_WSDå°±æ˜¯ç”¨æ¥è¾¾åˆ°è¿™ä¸ªç›®çš„çš„ã€‚
+** When SQLITE_OMIT_WSD is defined, it means that the target platform does     µ±SQLITE_OMIT_WSD±»¶¨ÒåÊ±£¬Õâ¾ÍÒâÎ¶×ÅÄ¿±êÆ½Ì¨²»Ö§³ÖÈ«¾Ö¿ÉĞ´±äÁ¿£¬ÀıÈçÈ«¾Ö±äÁ¿ºÍ¾²Ì¬±äÁ¿¡£
+** not support Writable Static Data (WSD) such as global and static variables.   WSD:È«¾Ö¿ÉĞ´±äÁ¿Writable Static Data (WSD)
+** All variables must either be on the stack or dynamically allocated from     ËùÓĞ±äÁ¿¶¼±ØĞëÊÇÔÚ¶ÑÕ»ÉÏ»ò´Ó¶ÑÖĞ¶¯Ì¬·ÖÅäµÄ¡£
+** the heap.  When WSD is unsupported, the variable declarations scattered     µ±WSD²»Ö§³ÖÊ±£¬±é²¼ÔÚSQLite´úÂëÖĞµÄ±äÁ¿ÉùÃ÷±ØĞë±ä³É³£Êı´úÌæ¡£
+** throughout the SQLite code must become constants instead.  The SQLITE_WSD   ºêSQLITE_WSD¾ÍÊÇÓÃÀ´´ïµ½Õâ¸öÄ¿µÄµÄ¡£
 ** macro is used for this purpose.  And instead of referencing the variable
-** directly, we use its constant as a key to lookup the run-time allocated     ä»£æ›¿ç›´æ¥å¼•ç”¨å˜é‡ï¼Œæˆ‘ä»¬ä½¿ç”¨å¸¸é‡ä½œä¸ºæŸ¥æ‰¾è¿è¡Œæ—¶åˆ†é…å­˜æ”¾å®å‹å˜é‡çš„ç¼“å†²åŒºçš„å…³é”®ã€‚
-** buffer that holds real variable.  The constant is also the initializer      å¸¸é‡ä¹Ÿæ˜¯åˆå§‹åŒ–è¿è¡Œæ—¶åˆ†é…ç¼“å†²åŒºçš„å…³é”®ã€‚
+** directly, we use its constant as a key to lookup the run-time allocated     ´úÌæÖ±½ÓÒıÓÃ±äÁ¿£¬ÎÒÃÇÊ¹ÓÃ³£Á¿×÷Îª²éÕÒÔËĞĞÊ±·ÖÅä´æ·ÅÊµĞÍ±äÁ¿µÄ»º³åÇøµÄ¹Ø¼ü¡£
+** buffer that holds real variable.  The constant is also the initializer      ³£Á¿Ò²ÊÇ³õÊ¼»¯ÔËĞĞÊ±·ÖÅä»º³åÇøµÄ¹Ø¼ü¡£
 ** for the run-time allocated buffer.
 **
-** In the usual case where WSD is supported, the SQLITE_WSD and GLOBAL         åœ¨é€šå¸¸çš„æƒ…å†µä¸‹WSDæ˜¯è¢«æ”¯æŒçš„,å®SQLITE_WSD å’Œ GLOBALæˆäº†ç©ºæ“ä½œï¼Œå¹¶ä¸”ä¸å½±å“æ‰§è¡Œã€‚
+** In the usual case where WSD is supported, the SQLITE_WSD and GLOBAL         ÔÚÍ¨³£µÄÇé¿öÏÂWSDÊÇ±»Ö§³ÖµÄ,ºêSQLITE_WSD ºÍ GLOBAL³ÉÁË¿Õ²Ù×÷£¬²¢ÇÒ²»Ó°ÏìÖ´ĞĞ¡£
 ** macros become no-ops and have zero performance impact.
 */
 #ifdef SQLITE_OMIT_WSD
@@ -613,26 +613,26 @@ struct BusyHandler {
 #endif
 
 /*
-** The following macros are used to suppress compiler warnings and to          ä»¥ä¸‹çš„å®è¢«ç”¨æ¥æ¥æŠ‘åˆ¶ç¼–è¯‘å™¨è­¦å‘Šï¼Œ
-** make it clear to human readers when a function parameter is deliberately    è€Œä¸”å½“ä¸€ä¸ªå‡½æ•°çš„å‚æ•°æ˜¯æ•…æ„è½åœ¨å‡½æ•°ä½“å†…éƒ¨æœªä½¿ç”¨æ˜¯ï¼Œå¯ä»¥è®©äººç±»è¯»è€…æ¸…æ¥šçš„çŸ¥é“è¿™ä¸€ç‚¹ã€‚
+** The following macros are used to suppress compiler warnings and to          ÒÔÏÂµÄºê±»ÓÃÀ´À´ÒÖÖÆ±àÒëÆ÷¾¯¸æ£¬
+** make it clear to human readers when a function parameter is deliberately    ¶øÇÒµ±Ò»¸öº¯ÊıµÄ²ÎÊıÊÇ¹ÊÒâÂäÔÚº¯ÊıÌåÄÚ²¿Î´Ê¹ÓÃÊÇ£¬¿ÉÒÔÈÃÈËÀà¶ÁÕßÇå³şµÄÖªµÀÕâÒ»µã¡£
 ** left unused within the body of a function. This usually happens when
-** a function is called via a function pointer. For example the                è¿™é€šå¸¸å‘ç”Ÿåœ¨é€šè¿‡ä¸€ä¸ªå‡½æ•°æŒ‡é’ˆçš„è°ƒç”¨å‡½æ•°æ—¶ã€‚
-** implementation of an SQL aggregate step callback may not use the            ä¾‹å¦‚ï¼ŒSQLèšåˆæ­¥éª¤çš„å®ç°å›è°ƒå¯èƒ½ä¸ä¼šä½¿ç”¨å‚æ•°æŒ‡å‡ºä¼ é€’åˆ°æ€»ä½“çš„å‚æ•°æ•°é‡,
-** parameter indicating the number of arguments passed to the aggregate,       å¦‚æœå®ƒçŸ¥é“è¿™æ˜¯åœ¨å…¶ä»–åœ°æ–¹å¼ºåˆ¶æ‰§è¡Œçš„ã€‚
+** a function is called via a function pointer. For example the                ÕâÍ¨³£·¢ÉúÔÚÍ¨¹ıÒ»¸öº¯ÊıÖ¸ÕëµÄµ÷ÓÃº¯ÊıÊ±¡£
+** implementation of an SQL aggregate step callback may not use the            ÀıÈç£¬SQL¾ÛºÏ²½ÖèµÄÊµÏÖ»Øµ÷¿ÉÄÜ²»»áÊ¹ÓÃ²ÎÊıÖ¸³ö´«µİµ½×ÜÌåµÄ²ÎÊıÊıÁ¿,
+** parameter indicating the number of arguments passed to the aggregate,       Èç¹ûËüÖªµÀÕâÊÇÔÚÆäËûµØ·½Ç¿ÖÆÖ´ĞĞµÄ¡£
 ** if it knows that this is enforced elsewhere.
 **
-** When a function parameter is not used at all within the body of a function, å½“ä¸€ä¸ªå‡½æ•°çš„å‚æ•°æ˜¯æ ¹æœ¬ä¸ç”¨åœ¨å‡½æ•°ä½“å†…éƒ¨ï¼Œä¸€èˆ¬ç§°ä¹‹ä¸º "NotUsed"æˆ–"NotUsed2"ä»¥ä½¿äº‹æƒ…æ›´åŠ æ¸…æ™°ã€‚
+** When a function parameter is not used at all within the body of a function, µ±Ò»¸öº¯ÊıµÄ²ÎÊıÊÇ¸ù±¾²»ÓÃÔÚº¯ÊıÌåÄÚ²¿£¬Ò»°ã³ÆÖ®Îª "NotUsed"»ò"NotUsed2"ÒÔÊ¹ÊÂÇé¸ü¼ÓÇåÎú¡£
 ** it is generally named "NotUsed" or "NotUsed2" to make things even clearer.
-** However, these macros may also be used to suppress warnings related to      ç„¶è€Œï¼Œè¿™äº›å®ä¹Ÿå¯ä»¥ç”¨æ¥æŠ‘åˆ¶ï¼Œå¯èƒ½ä¼šæˆ–å¯èƒ½ä¸ä¼šè¢«ç”¨äºæ ¹æ®ç¼–è¯‘é€‰é¡¹å‚æ•°ç›¸å…³çš„è­¦å‘Šã€‚
+** However, these macros may also be used to suppress warnings related to      È»¶ø£¬ÕâĞ©ºêÒ²¿ÉÒÔÓÃÀ´ÒÖÖÆ£¬¿ÉÄÜ»á»ò¿ÉÄÜ²»»á±»ÓÃÓÚ¸ù¾İ±àÒëÑ¡Ïî²ÎÊıÏà¹ØµÄ¾¯¸æ¡£
 ** parameters that may or may not be used depending on compilation options.
-** For example those parameters only used in assert() statements. In these     ä¾‹å¦‚ï¼Œè¿™äº›å‚æ•°ä»…ç”¨äºassert()è¯­å¥ã€‚åœ¨è¿™äº›æƒ…å†µä¸‹ï¼Œå‚æ•°çš„å‘½åæŒ‰æƒ¯ä¾‹ã€‚
+** For example those parameters only used in assert() statements. In these     ÀıÈç£¬ÕâĞ©²ÎÊı½öÓÃÓÚassert()Óï¾ä¡£ÔÚÕâĞ©Çé¿öÏÂ£¬²ÎÊıµÄÃüÃû°´¹ßÀı¡£
 ** cases the parameters are named as per the usual conventions.
 */
 #define UNUSED_PARAMETER(x) (void)(x)
 #define UNUSED_PARAMETER2(x,y) UNUSED_PARAMETER(x),UNUSED_PARAMETER(y)
 
 /*
-** Forward references to structures   ç»“æ„ä½“çš„å‰å‘å¼•ç”¨
+** Forward references to structures   ½á¹¹ÌåµÄÇ°ÏòÒıÓÃ
 */
 typedef struct AggInfo AggInfo;
 typedef struct AuthContext AuthContext;
@@ -679,9 +679,9 @@ typedef struct WhereInfo WhereInfo;
 typedef struct WhereLevel WhereLevel;
 
 /*
-** Defer sourcing vdbe.h and btree.h until after the "u8" and               åœ¨"u8"å’Œ"BusyHandler"ç±»å‹å®šä¹‰ä¹‹åæ¨è¿Ÿ vdbe.h å’Œ btree.hçš„å‘èµ·ã€‚
-** "BusyHandler" typedefs. vdbe.h also requires a few of the opaque         vdbe.hä¹Ÿéœ€è¦ä¸€äº›ä¸é€æ˜æŒ‡é’ˆå‹(å³å‡½æ•°å®šä¹‰)å®šä¹‰ä¸Šé¢çš„ä¸œè¥¿ã€‚
-** pointer types (i.e. FuncDef) defined above.         ä¸é€æ˜æ•°æ®ç±»å‹éšè—äº†å®ƒä»¬å†…éƒ¨æ ¼å¼æˆ–ç»“æ„ã€‚åœ¨Cè¯­è¨€ä¸­ï¼Œå®ƒä»¬å°±åƒé»‘ç›’ä¸€æ ·ã€‚æ”¯æŒå®ƒä»¬çš„è¯­è¨€ä¸æ˜¯å¾ˆå¤šã€‚ä½œä¸ºæ›¿ä»£ï¼Œå¼€å‘è€…ä»¬åˆ©ç”¨typedefå£°æ˜ä¸€ä¸ªç±»å‹ï¼ŒæŠŠå®ƒå«åšä¸é€æ˜ç±»å‹ï¼Œå¸Œæœ›å…¶ä»–äººåˆ«å»æŠŠå®ƒé‡æ–°è½¬åŒ–å›å¯¹åº”çš„é‚£ä¸ªæ ‡å‡†Cç±»å‹ã€‚
+** Defer sourcing vdbe.h and btree.h until after the "u8" and               ÔÚ"u8"ºÍ"BusyHandler"ÀàĞÍ¶¨ÒåÖ®ºóÍÆ³Ù vdbe.h ºÍ btree.hµÄ·¢Æğ¡£
+** "BusyHandler" typedefs. vdbe.h also requires a few of the opaque         vdbe.hÒ²ĞèÒªÒ»Ğ©²»Í¸Ã÷Ö¸ÕëĞÍ(¼´º¯Êı¶¨Òå)¶¨ÒåÉÏÃæµÄ¶«Î÷¡£
+** pointer types (i.e. FuncDef) defined above.         ²»Í¸Ã÷Êı¾İÀàĞÍÒş²ØÁËËüÃÇÄÚ²¿¸ñÊ½»ò½á¹¹¡£ÔÚCÓïÑÔÖĞ£¬ËüÃÇ¾ÍÏñºÚºĞÒ»Ñù¡£Ö§³ÖËüÃÇµÄÓïÑÔ²»ÊÇºÜ¶à¡£×÷ÎªÌæ´ú£¬¿ª·¢ÕßÃÇÀûÓÃtypedefÉùÃ÷Ò»¸öÀàĞÍ£¬°ÑËü½Ğ×ö²»Í¸Ã÷ÀàĞÍ£¬Ï£ÍûÆäËûÈË±ğÈ¥°ÑËüÖØĞÂ×ª»¯»Ø¶ÔÓ¦µÄÄÇ¸ö±ê×¼CÀàĞÍ¡£
 */
 #include "btree.h"
 #include "vdbe.h"
@@ -693,62 +693,62 @@ typedef struct WhereLevel WhereLevel;
 
 
 /*
-** Each database file to be accessed by the system is an instance  æ¯ä¸ªæ•°æ®åº“æ–‡ä»¶å°†è¢«ç³»ç»Ÿè®¿é—®ä¸‹åˆ—ç»“æ„å®ä¾‹ã€‚
-** of the following structure.  There are normally two of these structures  åœ¨æ•°ç»„sqlite.aDb[]é‡Œé€šå¸¸æœ‰ä¸¤ä¸ªè¿™ç§ç»“æ„ã€‚
-** in the sqlite.aDb[] array.  aDb[0] is the main database file and         aDb[0]æ˜¯ä¸»æ•°æ®åº“æ–‡ä»¶ï¼ŒaDb[1]æ˜¯ç”¨äºå­˜æ”¾ä¸´æ—¶æ•°æ®è¡¨çš„æ•°æ®åº“æ–‡ä»¶ã€‚
-** aDb[1] is the database file used to hold temporary tables.  Additional   é™„åŠ æ•°æ®åº“å¯ä»¥è¢«è¿æ¥ã€‚
+** Each database file to be accessed by the system is an instance  Ã¿¸öÊı¾İ¿âÎÄ¼ş½«±»ÏµÍ³·ÃÎÊÏÂÁĞ½á¹¹ÊµÀı¡£
+** of the following structure.  There are normally two of these structures  ÔÚÊı×ésqlite.aDb[]ÀïÍ¨³£ÓĞÁ½¸öÕâÖÖ½á¹¹¡£
+** in the sqlite.aDb[] array.  aDb[0] is the main database file and         aDb[0]ÊÇÖ÷Êı¾İ¿âÎÄ¼ş£¬aDb[1]ÊÇÓÃÓÚ´æ·ÅÁÙÊ±Êı¾İ±íµÄÊı¾İ¿âÎÄ¼ş¡£
+** aDb[1] is the database file used to hold temporary tables.  Additional   ¸½¼ÓÊı¾İ¿â¿ÉÒÔ±»Á¬½Ó¡£
 ** databases may be attached.  
 */
 struct Db {
 <<<<<<< HEAD
-  char *zName;         /* Name of this database æ•°æ®åº“åç§°*/
-  Btree *pBt;          /* The B*Tree structure for this database file æ•°æ®åº“æ–‡ä»¶çš„B*Treeç»“æ„*/
+  char *zName;         /* Name of this database Êı¾İ¿âÃû³Æ*/
+  Btree *pBt;          /* The B*Tree structure for this database file Êı¾İ¿âÎÄ¼şµÄB*Tree½á¹¹*/
   u8 inTrans;          /* 0: not writable.  1: Transaction.  2: Checkpoint */
-  u8 safety_level;     /* How aggressive at syncing data to disk   0:ä¸å¯å†™ 1:äº‹åŠ¡å¤„ç†  2:æ£€æŸ¥*/
-  Schema *pSchema;     /* Pointer to database schema (possibly shared) æŒ‡å‘æ•°æ®åº“æ¨¡å¼çš„æŒ‡é’ˆ(å¯èƒ½æ˜¯å…±äº«çš„)*/
+  u8 safety_level;     /* How aggressive at syncing data to disk   0:²»¿ÉĞ´ 1:ÊÂÎñ´¦Àí  2:¼ì²é*/
+  Schema *pSchema;     /* Pointer to database schema (possibly shared) Ö¸ÏòÊı¾İ¿âÄ£Ê½µÄÖ¸Õë(¿ÉÄÜÊÇ¹²ÏíµÄ)*/
 =======
-  char *zName;         /* Name of this database æ•°æ®åº“çš„åå­—*/
-  Btree *pBt;          /* The B*Tree structure for this database file æ­¤æ•°æ®åº“æ–‡ä»¶çš„Bæ ‘ç»“æ„*/
-  u8 inTrans;          /* 0: not writable.  1: Transaction.  2: Checkpoint 0ï¼šä¸å¯å†™ 1ï¼šäº‹åŠ¡ 2:æ£€æŸ¥ç‚¹*/
-  u8 safety_level;     /* How aggressive at syncing data to disk  å°†æ•°æ®åŒæ­¥åˆ°ç£ç›˜çš„å¯é ç¨‹åº¦ */
-  Schema *pSchema;     /* Pointer to database schema (possibly shared)  æŒ‡å‘æ•°æ®åº“æ¨¡å¼(å¯èƒ½è¢«å…±äº«)*/
+  char *zName;         /* Name of this database Êı¾İ¿âµÄÃû×Ö*/
+  Btree *pBt;          /* The B*Tree structure for this database file ´ËÊı¾İ¿âÎÄ¼şµÄBÊ÷½á¹¹*/
+  u8 inTrans;          /* 0: not writable.  1: Transaction.  2: Checkpoint 0£º²»¿ÉĞ´ 1£ºÊÂÎñ 2:¼ì²éµã*/
+  u8 safety_level;     /* How aggressive at syncing data to disk  ½«Êı¾İÍ¬²½µ½´ÅÅÌµÄ¿É¿¿³Ì¶È */
+  Schema *pSchema;     /* Pointer to database schema (possibly shared)  Ö¸ÏòÊı¾İ¿âÄ£Ê½(¿ÉÄÜ±»¹²Ïí)*/
 >>>>>>> ba548246c0eb8783d5eca71d784e77030f3fe838
 };
 
 /*
 ** An instance of the following structure stores a database schema.
-**//ä»¥ä¸‹ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹å­˜å‚¨çš„æ˜¯æ•°æ®åº“çš„æ¨¡å¼ã€‚
-** Most Schema objects are associated with a Btree.  The exception is  //å¤§å¤šæ•°çš„æ¨¡å¼å¯¹è±¡éƒ½ä¸æ ‘ç›¸å…³ï¼Œåªæœ‰TEMPæ•°æ®åº“æ¨¡å¼ä¾‹å¤–ï¼Œå®ƒä¸éœ€è¦å…¶ä»–ç»“æ„çš„æ”¯æ’‘ã€‚
+**//ÒÔÏÂ½á¹¹ÌåµÄÒ»¸öÊµÀı´æ´¢µÄÊÇÊı¾İ¿âµÄÄ£Ê½¡£
+** Most Schema objects are associated with a Btree.  The exception is  //´ó¶àÊıµÄÄ£Ê½¶ÔÏó¶¼ÓëÊ÷Ïà¹Ø£¬Ö»ÓĞTEMPÊı¾İ¿âÄ£Ê½ÀıÍâ£¬Ëü²»ĞèÒªÆäËû½á¹¹µÄÖ§³Å¡£
 ** the Schema for the TEMP databaes (sqlite3.aDb[1]) which is free-standing.
-** In shared cache mode, a single Schema object can be shared by multiple//åœ¨å…±äº«ç¼“å­˜æ¨¡å¼ä¸‹ï¼Œä¸€ä¸ªå•ä¸€çš„æ¨¡å¼å¯¹è±¡å¯ä»¥ä¸ºå¤šä¸ªBæ ‘æ‰€å…±äº«ï¼ŒæŒ‡çš„æ˜¯åŒä¸€ä¸ªåº•å±‚BtSharedå¯¹è±¡ã€‚
+** In shared cache mode, a single Schema object can be shared by multiple//ÔÚ¹²Ïí»º´æÄ£Ê½ÏÂ£¬Ò»¸öµ¥Ò»µÄÄ£Ê½¶ÔÏó¿ÉÒÔÎª¶à¸öBÊ÷Ëù¹²Ïí£¬Ö¸µÄÊÇÍ¬Ò»¸öµ×²ãBtShared¶ÔÏó¡£
 ** Btrees that refer to the same underlying BtShared object.
 ** 
 ** Schema objects are automatically deallocated when the last Btree that
 ** references them is destroyed.   The TEMP Schema is manually freed by
-** sqlite3_close().//å½“æ²¡æœ‰Bæ ‘å¼•ç”¨è¯¥æ¨¡å¼å¯¹è±¡çš„æ—¶å€™ï¼Œè¯¥æ¨¡å¼å¯¹è±¡å°†è¢«ç³»ç»Ÿè‡ªåŠ¨é‡Šæ”¾ï¼Œä½†æ˜¯TEMPæ¨¡å¼å¯¹è±¡éœ€è¦åˆ©ç”¨sqlite3_close()å‡½æ•°æ¥æ‰‹åŠ¨é‡Šæ”¾ã€‚
+** sqlite3_close().//µ±Ã»ÓĞBÊ÷ÒıÓÃ¸ÃÄ£Ê½¶ÔÏóµÄÊ±ºò£¬¸ÃÄ£Ê½¶ÔÏó½«±»ÏµÍ³×Ô¶¯ÊÍ·Å£¬µ«ÊÇTEMPÄ£Ê½¶ÔÏóĞèÒªÀûÓÃsqlite3_close()º¯ÊıÀ´ÊÖ¶¯ÊÍ·Å¡£
 *
-** A thread must be holding a mutex on the corresponding Btree in order    //çº¿ç¨‹å¿…é¡»æ‹¥æœ‰ç›¸åº”çš„Bæ ‘äº’æ–¥æ‰å¯ä»¥è®¿é—®æ¨¡å¼çš„å†…å®¹ã€‚
-** to access Schema content.  This implies that the thread must also be   //è¿™æ„å‘³ç€è¯¥çº¿ç¨‹å¿…é¡»åŒæ—¶æ‹¥æœ‰sqlite3è¿æ¥æŒ‡é’ˆçš„äº’æ–¥ã€‚
+** A thread must be holding a mutex on the corresponding Btree in order    //Ïß³Ì±ØĞëÓµÓĞÏàÓ¦µÄBÊ÷»¥³â²Å¿ÉÒÔ·ÃÎÊÄ£Ê½µÄÄÚÈİ¡£
+** to access Schema content.  This implies that the thread must also be   //ÕâÒâÎ¶×Å¸ÃÏß³Ì±ØĞëÍ¬Ê±ÓµÓĞsqlite3Á¬½ÓÖ¸ÕëµÄ»¥³â¡£
 ** holding a mutex on the sqlite3 connection pointer that owns the Btree.
-** For a TEMP Schema, only the connection mutex is required.//å¯¹äºTEMPæ¨¡å¼ï¼Œåªæœ‰è¿æ¥äº’æ–¥æ˜¯å¿…é¡»çš„ã€‚
+** For a TEMP Schema, only the connection mutex is required.//¶ÔÓÚTEMPÄ£Ê½£¬Ö»ÓĞÁ¬½Ó»¥³âÊÇ±ØĞëµÄ¡£
 */
 struct Schema {
-  int schema_cookie;   /* Database schema version number for this fileè¯¥æ–‡ä»¶æ•°æ®åº“æ¨¡å¼çš„ç‰ˆæœ¬å· */
-  int iGeneration;     /* Generation counter.  Incremented with each change ä»£è®¡æ•°å™¨ï¼Œéšç€æ¨¡å¼çš„æ”¹å˜å…¶å€¼é€’å¢*/
-  Hash tblHash;        /* All tables indexed by name æ¯ä¸ªæ•°æ®åº“è¡¨éƒ½æ˜¯é€šè¿‡å…¶åå­—æ¥è¿›è¡Œç´¢å¼•*/
-  Hash idxHash;        /* All (named) indices indexed by name ç”¨åå­—ç´¢å¼•å·²å‘½åçš„ç´¢å¼•*/
-  Hash trigHash;       /* All triggers indexed by nameæ‰€æœ‰çš„è§¦å‘å™¨åˆ©ç”¨åå­—è¿›è¡Œç´¢å¼• */
-  Hash fkeyHash;       /* All foreign keys by referenced table name å¤–é”®é€šè¿‡æ‰€å‚ç…§è¡¨çš„åå­—è¿›è¡Œç´¢å¼•*/
-  Table *pSeqTab;      /* The sqlite_sequence table used by AUTOINCREMENT è¢«AUTOINCREMENTheä½¿ç”¨çš„sqlite_sequenceè¡¨*/
-  u8 file_format;      /* Schema format version for this filæ–‡ä»¶çš„æ¨¡å¼æ ¼å¼ç‰ˆæœ¬ */
-  u8 enc;              /* Text encoding used by this databaseæ•°æ®åº“æ‰€ä½¿ç”¨çš„æ–‡å­—ç¼–ç  */
-  u16 flags;           /* Flags associated with this schema ä¸è¯¥æ¨¡å¼ç›¸å…³è”çš„æ ‡å¿—*/
-  int cache_size;      /* Number of pages to use in the cache åœ¨ç¼“å­˜cacheä¸­ä½¿ç”¨çš„å¿«æ•°*/
+  int schema_cookie;   /* Database schema version number for this file¸ÃÎÄ¼şÊı¾İ¿âÄ£Ê½µÄ°æ±¾ºÅ */
+  int iGeneration;     /* Generation counter.  Incremented with each change ´ú¼ÆÊıÆ÷£¬Ëæ×ÅÄ£Ê½µÄ¸Ä±äÆäÖµµİÔö*/
+  Hash tblHash;        /* All tables indexed by name Ã¿¸öÊı¾İ¿â±í¶¼ÊÇÍ¨¹ıÆäÃû×ÖÀ´½øĞĞË÷Òı*/
+  Hash idxHash;        /* All (named) indices indexed by name ÓÃÃû×ÖË÷ÒıÒÑÃüÃûµÄË÷Òı*/
+  Hash trigHash;       /* All triggers indexed by nameËùÓĞµÄ´¥·¢Æ÷ÀûÓÃÃû×Ö½øĞĞË÷Òı */
+  Hash fkeyHash;       /* All foreign keys by referenced table name Íâ¼üÍ¨¹ıËù²ÎÕÕ±íµÄÃû×Ö½øĞĞË÷Òı*/
+  Table *pSeqTab;      /* The sqlite_sequence table used by AUTOINCREMENT ±»AUTOINCREMENTheÊ¹ÓÃµÄsqlite_sequence±í*/
+  u8 file_format;      /* Schema format version for this filÎÄ¼şµÄÄ£Ê½¸ñÊ½°æ±¾ */
+  u8 enc;              /* Text encoding used by this databaseÊı¾İ¿âËùÊ¹ÓÃµÄÎÄ×Ö±àÂë */
+  u16 flags;           /* Flags associated with this schema Óë¸ÃÄ£Ê½Ïà¹ØÁªµÄ±êÖ¾*/
+  int cache_size;      /* Number of pages to use in the cache ÔÚ»º´æcacheÖĞÊ¹ÓÃµÄ¿ìÊı*/
 };
 
 /*
 ** These macros can be used to test, set, or clear bits in the 
-** Db.pSchema->flags field.//è¿™äº›å®å¯ç”¨äºæµ‹è¯•ï¼Œè®¾ç½®æˆ–æ¸…é™¤åœ¨Db.pSchema->flagså­—æ®µä¸­çš„ä½ä¿¡æ¯ã€‚
+** Db.pSchema->flags field.//ÕâĞ©ºê¿ÉÓÃÓÚ²âÊÔ£¬ÉèÖÃ»òÇå³ıÔÚDb.pSchema->flags×Ö¶ÎÖĞµÄÎ»ĞÅÏ¢¡£
 */
 #define DbHasProperty(D,I,P)     (((D)->aDb[I].pSchema->flags&(P))==(P))
 #define DbHasAnyProperty(D,I,P)  (((D)->aDb[I].pSchema->flags&(P))!=0)
@@ -756,117 +756,117 @@ struct Schema {
 #define DbClearProperty(D,I,P)   (D)->aDb[I].pSchema->flags&=~(P)
 
 /*
-** Allowed values for the DB.pSchema->flags field.   //DB.pSchema->flags å­—æ®µæ‰€å…è®¸çš„å€¼ã€‚
+** Allowed values for the DB.pSchema->flags field.   //DB.pSchema->flags ×Ö¶ÎËùÔÊĞíµÄÖµ¡£
 **
 ** The DB_SchemaLoaded flag is set after the database schema has been
-** read into internal hash tables.  //å½“æ•°æ®åº“æ¨¡å¼è¢«è¯»å…¥å†…éƒ¨å“ˆå¸Œè¡¨ä¹‹åï¼ŒDB_SchemaLoadedæ ‡å¿—å°†è¢«è®¾ç½®ã€‚
+** read into internal hash tables.  //µ±Êı¾İ¿âÄ£Ê½±»¶ÁÈëÄÚ²¿¹şÏ£±íÖ®ºó£¬DB_SchemaLoaded±êÖ¾½«±»ÉèÖÃ¡£
 **
 ** DB_UnresetViews means that one or more views have column names that 
 ** have been filled out.  If the schema changes, these column names might
-** changes and so the view will need to be reset.//DB_UnresetViewsæ˜¯æŒ‡ä¸€ä¸ªæˆ–è€…å¤šä¸ªè§†å›¾æœ‰åˆ—åï¼Œå½“æ¨¡å¼æ”¹å˜çš„æ—¶å€™ï¼Œåˆ—çš„åå­—æˆ–è®¸ä¹Ÿä¼šå˜ï¼Œæ‰€ä»¥è§†å›¾ä¹Ÿéœ€è¦è¢«å¤ä½ã€‚
+** changes and so the view will need to be reset.//DB_UnresetViewsÊÇÖ¸Ò»¸ö»òÕß¶à¸öÊÓÍ¼ÓĞÁĞÃû£¬µ±Ä£Ê½¸Ä±äµÄÊ±ºò£¬ÁĞµÄÃû×Ö»òĞíÒ²»á±ä£¬ËùÒÔÊÓÍ¼Ò²ĞèÒª±»¸´Î»¡£
 */
-#define DB_SchemaLoaded    0x0001  /* The schema has been loaded æ¨¡å¼å·²è¢«åŠ è½½*/
-#define DB_UnresetViews    0x0002  /* Some views have defined column names ä¸€äº›å®šä¹‰åˆ—åå­—çš„è§†å›¾*/
-#define DB_Empty           0x0004  /* The file is empty (length 0 bytes) ç©ºæ–‡ä»¶*/
+#define DB_SchemaLoaded    0x0001  /* The schema has been loaded Ä£Ê½ÒÑ±»¼ÓÔØ*/
+#define DB_UnresetViews    0x0002  /* Some views have defined column names Ò»Ğ©¶¨ÒåÁĞÃû×ÖµÄÊÓÍ¼*/
+#define DB_Empty           0x0004  /* The file is empty (length 0 bytes) ¿ÕÎÄ¼ş*/
 
 /*
 ** The number of different kinds of things that can be limited
-** using the sqlite3_limit() interface.//ä¸åŒç§ç±»ä¸œè¥¿çš„æ•°é‡æ˜¯å¯ä»¥ç”¨sqlite3_limit()æ¥å£æ¥è¿›è¡Œé™åˆ¶çš„ã€‚
+** using the sqlite3_limit() interface.//²»Í¬ÖÖÀà¶«Î÷µÄÊıÁ¿ÊÇ¿ÉÒÔÓÃsqlite3_limit()½Ó¿ÚÀ´½øĞĞÏŞÖÆµÄ¡£
 */
 #define SQLITE_N_LIMIT (SQLITE_LIMIT_TRIGGER_DEPTH+1)
 
 /*
-** Lookaside malloc is a set of fixed-size buffers that can be used    //mallocå…¨ç§°æ˜¯memory allocation,å³åŠ¨æ€å†…å­˜åˆ†é…ï¼Œæ— æ³•çŸ¥é“å†…å­˜å…·ä½“ä½ç½®çš„æ—¶å€™ï¼Œæƒ³è¦ç»‘å®šçœŸæ­£çš„å†…å­˜ç©ºé—´ï¼Œå°±éœ€è¦ç”¨åˆ°åŠ¨æ€çš„åˆ†é…å†…å­˜ã€‚
+** Lookaside malloc is a set of fixed-size buffers that can be used    //mallocÈ«³ÆÊÇmemory allocation,¼´¶¯Ì¬ÄÚ´æ·ÖÅä£¬ÎŞ·¨ÖªµÀÄÚ´æ¾ßÌåÎ»ÖÃµÄÊ±ºò£¬ÏëÒª°ó¶¨ÕæÕıµÄÄÚ´æ¿Õ¼ä£¬¾ÍĞèÒªÓÃµ½¶¯Ì¬µÄ·ÖÅäÄÚ´æ¡£
 ** to satisfy small transient memory allocation requests for objects
-** associated with a particular database connection.  The use of       //åå¤‡åŠ¨æ€å†…å­˜åˆ†é…æ˜¯ä¸€ç»„å›ºå®šå¤§å°çš„ç¼“å†²åŒºï¼Œå¯ä»¥ç”¨æ¥æ»¡è¶³ä¸€ä¸ªç‰¹å®šæ•°æ®åº“è¿æ¥å¯¹è±¡çš„å°çš„å³æ—¶å†…å­˜åˆ†é…è¯·æ±‚ã€‚
+** associated with a particular database connection.  The use of       //ºó±¸¶¯Ì¬ÄÚ´æ·ÖÅäÊÇÒ»×é¹Ì¶¨´óĞ¡µÄ»º³åÇø£¬¿ÉÒÔÓÃÀ´Âú×ãÒ»¸öÌØ¶¨Êı¾İ¿âÁ¬½Ó¶ÔÏóµÄĞ¡µÄ¼´Ê±ÄÚ´æ·ÖÅäÇëÇó¡£
 ** lookaside malloc provides a significant performance enhancement
 ** (approx 10%) by avoiding numerous malloc/free requests while parsing
-** SQL statements.//é€šè¿‡é¿å…SQLè¯­å¥è§£ææ—¶çš„å¤§é‡çš„åŠ¨æ€å†…å­˜åˆ†é…æˆ–é‡Šæ”¾ï¼Œåå¤‡åŠ¨æ€å†…å­˜ç¼“å†²åŒºçš„ä½¿ç”¨ä½¿å¾—SQLiteçš„æ€§èƒ½æœ‰æ˜¾è‘—çš„æé«˜ï¼Œå¤§çº¦æœ‰10%ã€‚
+** SQL statements.//Í¨¹ı±ÜÃâSQLÓï¾ä½âÎöÊ±µÄ´óÁ¿µÄ¶¯Ì¬ÄÚ´æ·ÖÅä»òÊÍ·Å£¬ºó±¸¶¯Ì¬ÄÚ´æ»º³åÇøµÄÊ¹ÓÃÊ¹µÃSQLiteµÄĞÔÄÜÓĞÏÔÖøµÄÌá¸ß£¬´óÔ¼ÓĞ10%¡£
 **
 ** The Lookaside structure holds configuration information about the
-** lookaside malloc subsystem.  Each available memory allocation in   //Lookasideç»“æ„ä½“æ‹¥æœ‰åå¤‡åŠ¨æ€å†…å­˜åˆ†é…å­ç³»ç»Ÿçš„é…ç½®ä¿¡æ¯ã€‚
+** lookaside malloc subsystem.  Each available memory allocation in   //Lookaside½á¹¹ÌåÓµÓĞºó±¸¶¯Ì¬ÄÚ´æ·ÖÅä×ÓÏµÍ³µÄÅäÖÃĞÅÏ¢¡£
 ** the lookaside subsystem is stored on a linked list of LookasideSlot
-** objects.  åœ¨åå¤‡å†…å­˜åˆ†é…å­ç³»ç»Ÿä¸­çš„æ¯ä¸€ä¸ªå¯ç”¨çš„å†…å­˜åˆ†é…ç©ºé—´éƒ½æ˜¯å­˜å‚¨åœ¨ç»“æ„ä½“ç±»å‹LookasideSlotç±»å¯¹è±¡çš„é“¾æ¥åˆ—è¡¨ä¸­ã€‚//
+** objects.  ÔÚºó±¸ÄÚ´æ·ÖÅä×ÓÏµÍ³ÖĞµÄÃ¿Ò»¸ö¿ÉÓÃµÄÄÚ´æ·ÖÅä¿Õ¼ä¶¼ÊÇ´æ´¢ÔÚ½á¹¹ÌåÀàĞÍLookasideSlotÀà¶ÔÏóµÄÁ´½ÓÁĞ±íÖĞ¡£//
 **
-** Lookaside allocations are only allowed for objects that are associated  //åªå…è®¸å¯¹ä¸ç‰¹å®šçš„æ•°æ®åº“è¿æ¥ç›¸å…³è”çš„å¯¹è±¡è¿›è¡Œåå¤‡åŠ¨æ€å†…å­˜åˆ†é…ã€‚
+** Lookaside allocations are only allowed for objects that are associated  //Ö»ÔÊĞí¶ÔÓëÌØ¶¨µÄÊı¾İ¿âÁ¬½ÓÏà¹ØÁªµÄ¶ÔÏó½øĞĞºó±¸¶¯Ì¬ÄÚ´æ·ÖÅä¡£
 ** with a particular database connection.  Hence, schema information cannot
-** be stored in lookaside because in shared cache mode the schema information//æ‰€ä»¥ï¼Œæ¨¡å¼ä¿¡æ¯ä¸èƒ½å­˜å‚¨åœ¨åå¤‡å†…å­˜åŒºé‡Œï¼Œå› ä¸ºåœ¨å…±äº«cacheæ¨¡å—ä¸­æ¨¡å¼ä¿¡æ¯æ˜¯è¢«å¤šä¸ªæ•°æ®åº“è¿æ¥æ‰€å…±äº«çš„ã€‚
+** be stored in lookaside because in shared cache mode the schema information//ËùÒÔ£¬Ä£Ê½ĞÅÏ¢²»ÄÜ´æ´¢ÔÚºó±¸ÄÚ´æÇøÀï£¬ÒòÎªÔÚ¹²ÏícacheÄ£¿éÖĞÄ£Ê½ĞÅÏ¢ÊÇ±»¶à¸öÊı¾İ¿âÁ¬½ÓËù¹²ÏíµÄ¡£
 ** is shared by multiple database connections.  Therefore, while parsing
 ** schema information, the Lookaside.bEnabled flag is cleared so that
-** lookaside allocations are not used to construct the schema objects. //å› æ­¤ï¼Œå½“è§£ææ¨¡å¼ä¿¡æ¯æ—¶ï¼ŒLookaside.bEnabledæ ‡å¿—å°†ä¼šè¢«æ¸…é™¤ï¼Œæ¥ä¿è¯åå¤‡å†…å­˜åˆ†é…ä¸ä¼šè¢«ç”¨æ¥æ„å»ºæ¨¡å¼å¯¹è±¡ã€‚
+** lookaside allocations are not used to construct the schema objects. //Òò´Ë£¬µ±½âÎöÄ£Ê½ĞÅÏ¢Ê±£¬Lookaside.bEnabled±êÖ¾½«»á±»Çå³ı£¬À´±£Ö¤ºó±¸ÄÚ´æ·ÖÅä²»»á±»ÓÃÀ´¹¹½¨Ä£Ê½¶ÔÏó¡£
 */
 struct Lookaside {
-  u16 sz;                 /* Size of each buffer in bytes , u16æ˜¯sqliteå†…éƒ¨è‡ªå®šä¹‰çš„ä¸€ä¸ªç±»å‹ï¼Œå³æ˜¯UINT16_TYPEï¼Œ2-byte unsigned integerï¼Œä¸¤å­—èŠ‚çš„æ— ç¬¦å·æ•´æ•°ï¼Œszä»£è¡¨æ¯ä¸€ä¸ªç¼“å†²åŒºçš„å¤§å°ï¼Œå³å…¶æ‰€åŒ…å«çš„å­—èŠ‚æ•°ã€‚*/
-  u8 bEnabled;            /* False to disable new lookaside allocations , bEnabledæ˜¯ä¸€ä¸ªæ ‡å¿—ä½ï¼Œå ç”¨ä¸¤ä¸ªå­—èŠ‚çš„æ— ç¬¦å·æ•´æ•°ï¼Œè¡¨ç¤ºå¯ä»¥è¿›è¡Œæ–°çš„åå¤‡å†…å­˜åŒºçš„åˆ†é…ã€‚*/
-  u8 bMalloced;           /* True if pStart obtained from sqlite3_malloc()  å¦‚æœæœ‰è¶³å¤Ÿçš„åå¤‡å†…å­˜åŒºï¼Œåˆ™bMallocedçš„å€¼å³ä¸ºçœŸã€‚ */
-  int nOut;               /* Number of buffers currently checked out å½“å‰å·²çŸ¥çš„ç¼“å†²åŒºæ•°é‡ã€‚ */
-  int mxOut;              /* Highwater mark for nOut nOutçš„æœ€å¤§æ ‡è®°? */
+  u16 sz;                 /* Size of each buffer in bytes , u16ÊÇsqliteÄÚ²¿×Ô¶¨ÒåµÄÒ»¸öÀàĞÍ£¬¼´ÊÇUINT16_TYPE£¬2-byte unsigned integer£¬Á½×Ö½ÚµÄÎŞ·ûºÅÕûÊı£¬sz´ú±íÃ¿Ò»¸ö»º³åÇøµÄ´óĞ¡£¬¼´ÆäËù°üº¬µÄ×Ö½ÚÊı¡£*/
+  u8 bEnabled;            /* False to disable new lookaside allocations , bEnabledÊÇÒ»¸ö±êÖ¾Î»£¬Õ¼ÓÃÁ½¸ö×Ö½ÚµÄÎŞ·ûºÅÕûÊı£¬±íÊ¾¿ÉÒÔ½øĞĞĞÂµÄºó±¸ÄÚ´æÇøµÄ·ÖÅä¡£*/
+  u8 bMalloced;           /* True if pStart obtained from sqlite3_malloc()  Èç¹ûÓĞ×ã¹»µÄºó±¸ÄÚ´æÇø£¬ÔòbMallocedµÄÖµ¼´ÎªÕæ¡£ */
+  int nOut;               /* Number of buffers currently checked out µ±Ç°ÒÑÖªµÄ»º³åÇøÊıÁ¿¡£ */
+  int mxOut;              /* Highwater mark for nOut nOutµÄ×î´ó±ê¼Ç? */
   int anStat[3];          /* 0: hits.  1: size misses.  2: full misses   */
-  LookasideSlot *pFree;   /* List of available buffers  å¯ç”¨ç¼“å†²åŒºåˆ—è¡¨*/
-  void *pStart;           /* First byte of available memory space  å¯ç”¨å†…å­˜ç©ºé—´çš„ç¬¬ä¸€ä¸ªå­—èŠ‚*/
-  void *pEnd;             /* First byte past end of available space å¯ç”¨ç©ºé—´åçš„é¦–ä¸ªå­—èŠ‚*/
+  LookasideSlot *pFree;   /* List of available buffers  ¿ÉÓÃ»º³åÇøÁĞ±í*/
+  void *pStart;           /* First byte of available memory space  ¿ÉÓÃÄÚ´æ¿Õ¼äµÄµÚÒ»¸ö×Ö½Ú*/
+  void *pEnd;             /* First byte past end of available space ¿ÉÓÃ¿Õ¼äºóµÄÊ×¸ö×Ö½Ú*/
 };
 struct LookasideSlot {
-  LookasideSlot *pNext;    /* Next buffer in the list of free buffers , pNextæ˜¯ä¸€ä¸ªLookasideSlotç»“æ„ä½“ç±»å‹çš„æŒ‡é’ˆï¼ŒæŒ‡å‘çš„æ˜¯ç©ºé—´ç¼“å†²åŒºåˆ—è¡¨ä¸­çš„ä¸‹ä¸€ä¸ªç¼“å†²åŒºã€‚*/
+  LookasideSlot *pNext;    /* Next buffer in the list of free buffers , pNextÊÇÒ»¸öLookasideSlot½á¹¹ÌåÀàĞÍµÄÖ¸Õë£¬Ö¸ÏòµÄÊÇ¿Õ¼ä»º³åÇøÁĞ±íÖĞµÄÏÂÒ»¸ö»º³åÇø¡£*/
 };
 
 /*
-** A hash table for function definitions.   //ç”¨äºå‡½æ•°å®šä¹‰çš„å“ˆå¸Œè¡¨
+** A hash table for function definitions.   //ÓÃÓÚº¯Êı¶¨ÒåµÄ¹şÏ£±í
 **
 ** Hash each FuncDef structure into one of the FuncDefHash.a[] slots.
-** Collisions are on the FuncDef.pHash chain. //å°†æ¯ä¸ªFuncDefç»“æ„æ•£åˆ—è¿›FuncDefHash.a[]æ§½ä¸­ï¼Œåœ¨FuncDef.pHashé“¾ä¸Šå­˜åœ¨ç¢°æ’ã€‚
+** Collisions are on the FuncDef.pHash chain. //½«Ã¿¸öFuncDef½á¹¹É¢ÁĞ½øFuncDefHash.a[]²ÛÖĞ£¬ÔÚFuncDef.pHashÁ´ÉÏ´æÔÚÅö×²¡£
 */
 struct FuncDefHash {
-  FuncDef *a[23];       /* Hash table for functions å‡½æ•°çš„å“ˆå¸Œè¡¨*/
+  FuncDef *a[23];       /* Hash table for functions º¯ÊıµÄ¹şÏ£±í*/
 };
 
 /*
-** Each database connection is an instance of the following structure. //æ¯ä¸€ä¸ªæ•°æ®åº“é“¾æ¥éƒ½æ˜¯å¦‚ä¸‹ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹
+** Each database connection is an instance of the following structure. //Ã¿Ò»¸öÊı¾İ¿âÁ´½Ó¶¼ÊÇÈçÏÂ½á¹¹ÌåµÄÒ»¸öÊµÀı
 */
 struct sqlite3 {
-  sqlite3_vfs *pVfs;            /* OS Interface æ“ä½œç³»ç»Ÿæ¥å£ */
-  struct Vdbe *pVdbe;           /* List of active virtual machines æ´»åŠ¨è™šæ‹Ÿæœºåˆ—è¡¨*/
-  CollSeq *pDfltColl;           /* The default collating sequence (BINARY) é»˜è®¤æ’åºé¡ºåº*/
-  sqlite3_mutex *mutex;         /* Connection mutex é“¾æ¥äº’æ–¥*/
-  Db *aDb;                      /* All backends æ‰€æœ‰åç«¯*/
-  int nDb;                      /* Number of backends currently in use ç›®å‰æ‰€ä½¿ç”¨çš„åç«¯æ•°*/
-  int flags;                    /* Miscellaneous flags. See below æ‚é¡¹æ ‡å¿—*/
-  i64 lastRowid;                /* ROWID of most recent insert (see above) æœ€è¿‘æ’å…¥çš„è¡ŒID*/
-  unsigned int openFlags;       /* Flags passed to sqlite3_vfs.xOpen() ä¼ é€’ç»™sqlite3_vfs.xOpen()å‡½æ•°çš„æ ‡å¿—*/
-  int errCode;                  /* Most recent error code (SQLITE_*) æœ€è¿‘çš„é”™è¯¯ä»£ç */
-  int errMask;                  /* & result codes with this before returning æ‰€å‡ºç°é”™è¯¯çš„æç¤ºç */
-  u8 autoCommit;                /* The auto-commit flag. è‡ªåŠ¨æäº¤æ ‡å¿—*/
-  u8 temp_store;                /* 1: file 2: memory 0: default 1:æ–‡ä»¶  2:å†…å­˜  0:é»˜è®¤*/
-  u8 mallocFailed;              /* True if we have seen a malloc failure è‹¥åŠ¨æ€å†…å­˜åˆ†é…å¤±è´¥å³ä¸ºçœŸ*/
-  u8 dfltLockMode;              /* Default locking-mode for attached dbs é™„åŠ æ•°æ®åº“ç³»ç»Ÿçš„é»˜è®¤é”å®šæ¨¡å¼*/
+  sqlite3_vfs *pVfs;            /* OS Interface ²Ù×÷ÏµÍ³½Ó¿Ú */
+  struct Vdbe *pVdbe;           /* List of active virtual machines »î¶¯ĞéÄâ»úÁĞ±í*/
+  CollSeq *pDfltColl;           /* The default collating sequence (BINARY) Ä¬ÈÏÅÅĞòË³Ğò*/
+  sqlite3_mutex *mutex;         /* Connection mutex Á´½Ó»¥³â*/
+  Db *aDb;                      /* All backends ËùÓĞºó¶Ë*/
+  int nDb;                      /* Number of backends currently in use Ä¿Ç°ËùÊ¹ÓÃµÄºó¶ËÊı*/
+  int flags;                    /* Miscellaneous flags. See below ÔÓÏî±êÖ¾*/
+  i64 lastRowid;                /* ROWID of most recent insert (see above) ×î½ü²åÈëµÄĞĞID*/
+  unsigned int openFlags;       /* Flags passed to sqlite3_vfs.xOpen() ´«µİ¸øsqlite3_vfs.xOpen()º¯ÊıµÄ±êÖ¾*/
+  int errCode;                  /* Most recent error code (SQLITE_*) ×î½üµÄ´íÎó´úÂë*/
+  int errMask;                  /* & result codes with this before returning Ëù³öÏÖ´íÎóµÄÌáÊ¾Âë*/
+  u8 autoCommit;                /* The auto-commit flag. ×Ô¶¯Ìá½»±êÖ¾*/
+  u8 temp_store;                /* 1: file 2: memory 0: default 1:ÎÄ¼ş  2:ÄÚ´æ  0:Ä¬ÈÏ*/
+  u8 mallocFailed;              /* True if we have seen a malloc failure Èô¶¯Ì¬ÄÚ´æ·ÖÅäÊ§°Ü¼´ÎªÕæ*/
+  u8 dfltLockMode;              /* Default locking-mode for attached dbs ¸½¼ÓÊı¾İ¿âÏµÍ³µÄÄ¬ÈÏËø¶¨Ä£Ê½*/
   signed char nextAutovac;      /* Autovac setting after VACUUM if >=0 */
-  u8 suppressErr;               /* Do not issue error messages if true è‹¥ä¸ºçœŸåˆ™ä¸æç¤ºé”™è¯¯ä¿¡æ¯*/
-  u8 vtabOnConflict;            /* Value to return for s3_vtab_on_conflict() , è¿”å›ç»™s3_vtab_on_conflict()å‡½æ•°çš„å€¼*/
-  u8 isTransactionSavepoint;    /* True if the outermost savepoint is a TS è‹¥å¤–å±‚ä¿å­˜ç‚¹æ˜¯ä¸€ä¸ªäº‹åŠ¡ä¿å­˜ç‚¹ï¼Œåˆ™ä¸ºçœŸ*/
+  u8 suppressErr;               /* Do not issue error messages if true ÈôÎªÕæÔò²»ÌáÊ¾´íÎóĞÅÏ¢*/
+  u8 vtabOnConflict;            /* Value to return for s3_vtab_on_conflict() , ·µ»Ø¸øs3_vtab_on_conflict()º¯ÊıµÄÖµ*/
+  u8 isTransactionSavepoint;    /* True if the outermost savepoint is a TS ÈôÍâ²ã±£´æµãÊÇÒ»¸öÊÂÎñ±£´æµã£¬ÔòÎªÕæ*/
   int nextPagesize;             /* Pagesize after VACUUM if >0 */
-  u32 magic;                    /* Magic number for detect library misuse å¹»æ•°æ£€æµ‹åº“æ»¥ç”¨*/
-  int nChange;                  /* Value returned by sqlite3_changes() , sqlite3_changes()å‡½æ•°æ‰€è¿”å›çš„å€¼*/
-  int nTotalChange;             /* Value returned by sqlite3_total_changes() , sqlite3_total_changes()å‡½æ•°æ‰€è¿”å›çš„å€¼*/
-  int aLimit[SQLITE_N_LIMIT];   /* Limits é™åˆ¶ä¿¡æ¯*/
-  struct sqlite3InitInfo {      /* Information used during initialization åˆå§‹åŒ–æ—¶å€™æ‰€ä½¿ç”¨åˆ°çš„ä¿¡æ¯*/
-    int newTnum;                /* Rootpage of table being initialized è¡¨çš„Rootpageè¢«åˆå§‹åŒ–*/
-    u8 iDb;                     /* Which db file is being initialized å“ªä¸€ä¸ªæ•°æ®åº“æ–‡ä»¶è¢«åˆå§‹åŒ–*/
-    u8 busy;                    /* TRUE if currently initializing è‹¥å½“å‰æ­£åœ¨è¢«åˆå§‹åŒ–ï¼Œå³ä¸ºçœŸ*/
-    u8 orphanTrigger;           /* Last statement is orphaned TEMP trigger æœ€åä¸€æ¡è¯­å¥æ˜¯ä¸€ä¸ªå­¤ç«‹çš„TEMPè§¦å‘å™¨*/
+  u32 magic;                    /* Magic number for detect library misuse »ÃÊı¼ì²â¿âÀÄÓÃ*/
+  int nChange;                  /* Value returned by sqlite3_changes() , sqlite3_changes()º¯ÊıËù·µ»ØµÄÖµ*/
+  int nTotalChange;             /* Value returned by sqlite3_total_changes() , sqlite3_total_changes()º¯ÊıËù·µ»ØµÄÖµ*/
+  int aLimit[SQLITE_N_LIMIT];   /* Limits ÏŞÖÆĞÅÏ¢*/
+  struct sqlite3InitInfo {      /* Information used during initialization ³õÊ¼»¯Ê±ºòËùÊ¹ÓÃµ½µÄĞÅÏ¢*/
+    int newTnum;                /* Rootpage of table being initialized ±íµÄRootpage±»³õÊ¼»¯*/
+    u8 iDb;                     /* Which db file is being initialized ÄÄÒ»¸öÊı¾İ¿âÎÄ¼ş±»³õÊ¼»¯*/
+    u8 busy;                    /* TRUE if currently initializing Èôµ±Ç°ÕıÔÚ±»³õÊ¼»¯£¬¼´ÎªÕæ*/
+    u8 orphanTrigger;           /* Last statement is orphaned TEMP trigger ×îºóÒ»ÌõÓï¾äÊÇÒ»¸ö¹ÂÁ¢µÄTEMP´¥·¢Æ÷*/
   } init;
-  int activeVdbeCnt;            /* Number of VDBEs currently executing æ­£åœ¨æ‰§è¡Œçš„è™šæ‹Ÿæ•°æ®åº“å¼•æ“çš„æ•°ç›®*/
-  int writeVdbeCnt;             /* Number of active VDBEs that are writing æ´»è·ƒçš„å†™è™šæ‹Ÿæ•°æ®åº“å¼•æ“çš„æ•°ç›®*/
-  int vdbeExecCnt;              /* Number of nested calls to VdbeExec() åµŒå¥—è°ƒç”¨VdbeExec()çš„æ¬¡æ•°*/
-  int nExtension;               /* Number of loaded extensions åŠ è½½æ‰©å±•æ•°*/
-  void **aExtension;            /* Array of shared library handles å…±äº«åº“å¥æŸ„æ•°ç»„*/
-  void (*xTrace)(void*,const char*);        /* Trace function è·Ÿè¸ªåŠŸèƒ½*/
-  void *pTraceArg;                          /* Argument to the trace function è·Ÿè¸ªåŠŸèƒ½çš„å‚æ•°*/
-  void (*xProfile)(void*,const char*,u64);  /* Profiling function åˆ†æåŠŸèƒ½*/
-  void *pProfileArg;                        /* Argument to profile function åˆ†æåŠŸèƒ½çš„å‚æ•°*/
-  void *pCommitArg;                 /* Argument to xCommitCallback() å‡½æ•°xCommitCallback()çš„å‚æ•°*/   
-  int (*xCommitCallback)(void*);    /* Invoked at every commit. æ¯æ¬¡æäº¤æ—¶éƒ½ä¼šè¢«è°ƒç”¨*/
+  int activeVdbeCnt;            /* Number of VDBEs currently executing ÕıÔÚÖ´ĞĞµÄĞéÄâÊı¾İ¿âÒıÇæµÄÊıÄ¿*/
+  int writeVdbeCnt;             /* Number of active VDBEs that are writing »îÔ¾µÄĞ´ĞéÄâÊı¾İ¿âÒıÇæµÄÊıÄ¿*/
+  int vdbeExecCnt;              /* Number of nested calls to VdbeExec() Ç¶Ì×µ÷ÓÃVdbeExec()µÄ´ÎÊı*/
+  int nExtension;               /* Number of loaded extensions ¼ÓÔØÀ©Õ¹Êı*/
+  void **aExtension;            /* Array of shared library handles ¹²Ïí¿â¾ä±úÊı×é*/
+  void (*xTrace)(void*,const char*);        /* Trace function ¸ú×Ù¹¦ÄÜ*/
+  void *pTraceArg;                          /* Argument to the trace function ¸ú×Ù¹¦ÄÜµÄ²ÎÊı*/
+  void (*xProfile)(void*,const char*,u64);  /* Profiling function ·ÖÎö¹¦ÄÜ*/
+  void *pProfileArg;                        /* Argument to profile function ·ÖÎö¹¦ÄÜµÄ²ÎÊı*/
+  void *pCommitArg;                 /* Argument to xCommitCallback() º¯ÊıxCommitCallback()µÄ²ÎÊı*/   
+  int (*xCommitCallback)(void*);    /* Invoked at every commit. Ã¿´ÎÌá½»Ê±¶¼»á±»µ÷ÓÃ*/
   void *pRollbackArg;               /* Argument to xRollbackCallback() */   
-  void (*xRollbackCallback)(void*); /* Invoked at every commit. å‡½æ•°xRollbackCallback()çš„å‚æ•°*/
+  void (*xRollbackCallback)(void*); /* Invoked at every commit. º¯ÊıxRollbackCallback()µÄ²ÎÊı*/
   void *pUpdateArg;
   void (*xUpdateCallback)(void*,int, const char*,const char*,sqlite_int64);
 #ifndef SQLITE_OMIT_WAL
@@ -876,145 +876,145 @@ struct sqlite3 {
   void(*xCollNeeded)(void*,sqlite3*,int eTextRep,const char*);
   void(*xCollNeeded16)(void*,sqlite3*,int eTextRep,const void*);
   void *pCollNeededArg;
-  sqlite3_value *pErr;          /* Most recent error message æœ€è¿‘çš„é”™è¯¯ä¿¡æ¯*/
-  char *zErrMsg;                /* Most recent error message (UTF-8 encoded) å•å­—èŠ‚ç¼–ç çš„æœ€è¿‘é”™è¯¯ä¿¡æ¯*/
-  char *zErrMsg16;              /* Most recent error message (UTF-16 encoded) åŒå­—èŠ‚ç¼–ç çš„æœ€è¿‘é”™è¯¯ä¿¡æ¯*/
+  sqlite3_value *pErr;          /* Most recent error message ×î½üµÄ´íÎóĞÅÏ¢*/
+  char *zErrMsg;                /* Most recent error message (UTF-8 encoded) µ¥×Ö½Ú±àÂëµÄ×î½ü´íÎóĞÅÏ¢*/
+  char *zErrMsg16;              /* Most recent error message (UTF-16 encoded) Ë«×Ö½Ú±àÂëµÄ×î½ü´íÎóĞÅÏ¢*/
   union {
-    volatile int isInterrupted; /* True if sqlite3_interrupt has been called è‹¥sqlite3_interruptè¢«è°ƒç”¨å³ä¸ºçœŸ*/
+    volatile int isInterrupted; /* True if sqlite3_interrupt has been called Èôsqlite3_interrupt±»µ÷ÓÃ¼´ÎªÕæ*/
     double notUsed1;            /* Spacer */
   } u1;
-  Lookaside lookaside;          /* Lookaside malloc configuration åå¤‡åŠ¨æ€å†…å­˜åˆ†é…é…ç½®*/
+  Lookaside lookaside;          /* Lookaside malloc configuration ºó±¸¶¯Ì¬ÄÚ´æ·ÖÅäÅäÖÃ*/
 #ifndef SQLITE_OMIT_AUTHORIZATION
   int (*xAuth)(void*,int,const char*,const char*,const char*,const char*);
-                                /* Access authorization function è®¿é—®æˆæƒåŠŸèƒ½*/
-  void *pAuthArg;               /* 1st argument to the access auth function è®¿é—®èº«ä»½éªŒè¯åŠŸèƒ½çš„é¦–ä¸ªå‚æ•°*/
+                                /* Access authorization function ·ÃÎÊÊÚÈ¨¹¦ÄÜ*/
+  void *pAuthArg;               /* 1st argument to the access auth function ·ÃÎÊÉí·İÑéÖ¤¹¦ÄÜµÄÊ×¸ö²ÎÊı*/
 #endif
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
-  int (*xProgress)(void *);     /* The progress callback è¿›ç¨‹å›æ»š*/
-  void *pProgressArg;           /* Argument to the progress callback è¿›ç¨‹å›æ»šçš„å‚æ•°*/
-  int nProgressOps;             /* Number of opcodes for progress callback è¿›ç¨‹å›æ»šæ‰€éœ€è¦çš„æ“ä½œç çš„æ•°ç›®*/
+  int (*xProgress)(void *);     /* The progress callback ½ø³Ì»Ø¹ö*/
+  void *pProgressArg;           /* Argument to the progress callback ½ø³Ì»Ø¹öµÄ²ÎÊı*/
+  int nProgressOps;             /* Number of opcodes for progress callback ½ø³Ì»Ø¹öËùĞèÒªµÄ²Ù×÷ÂëµÄÊıÄ¿*/
 #endif
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  int nVTrans;                  /* Allocated size of aVTrans ä¸ºaVTrans(å¼€æ”¾äº¤æ˜“çš„è™šæ‹Ÿè¡¨)æ‰€åˆ†é…çš„å¤§å°*/
-  Hash aModule;                 /* populated by sqlite3_create_module() é€šè¿‡sqlite3_create_module()å‡½æ•°å¡«å……*/
-  VtabCtx *pVtabCtx;            /* Context for active vtab connect/create æ´»è·ƒçš„æœªåˆ†ç±»è¿æ¥/åˆ›å»º*/
-  VTable **aVTrans;             /* Virtual tables with open transactions å¼€æ”¾äº¤æ˜“çš„è™šæ‹Ÿè¡¨*/
-  VTable *pDisconnect;    /* Disconnect these in next sqlite3_prepare() åœ¨æ¥ä¸‹æ¥çš„sqlite3_prepare()å‡½æ•°ä¸­æ–­å¼€è¿™äº›é“¾æ¥*/
+  int nVTrans;                  /* Allocated size of aVTrans ÎªaVTrans(¿ª·Å½»Ò×µÄĞéÄâ±í)Ëù·ÖÅäµÄ´óĞ¡*/
+  Hash aModule;                 /* populated by sqlite3_create_module() Í¨¹ısqlite3_create_module()º¯ÊıÌî³ä*/
+  VtabCtx *pVtabCtx;            /* Context for active vtab connect/create »îÔ¾µÄÎ´·ÖÀàÁ¬½Ó/´´½¨*/
+  VTable **aVTrans;             /* Virtual tables with open transactions ¿ª·Å½»Ò×µÄĞéÄâ±í*/
+  VTable *pDisconnect;    /* Disconnect these in next sqlite3_prepare() ÔÚ½ÓÏÂÀ´µÄsqlite3_prepare()º¯ÊıÖĞ¶Ï¿ªÕâĞ©Á´½Ó*/
 #endif
-  FuncDefHash aFunc;            /* Hash table of connection functions è¿æ¥åŠŸèƒ½å“ˆå¸Œè¡¨*/
-  Hash aCollSeq;                /* All collating sequences æ‰€æœ‰æ’åºåºåˆ—*/
-  BusyHandler busyHandler;      /* Busy callback å›æ»šç¹å¿™*/
-  Db aDbStatic[2];              /* Static space for the 2 default backends 2é»˜è®¤åç«¯çš„é™æ€ç©ºé—´*/
-  Savepoint *pSavepoint;        /* List of active savepoints æ´»åŠ¨ä¿å­˜ç‚¹åˆ—è¡¨*/
-  int busyTimeout;              /* Busy handler timeout, in msec å¿™å¤„ç†è¶…æ—¶ï¼Œä»¥æ¯«ç§’ä¸ºå•ä½*/
-  int nSavepoint;               /* Number of non-transaction savepoints éäº¤æ˜“ä¿å­˜ç‚¹çš„æ•°?*/
-  int nStatement;               /* Number of nested statement-transactions  åµŒå¥—äº‹åŠ¡è¯­å¥çš„æ•°é‡*/
-  i64 nDeferredCons;            /* Net deferred constraints this transaction. ç½‘ç»œå»¶è¿Ÿçº¦æŸè¿™ä¸ªäº¤æ˜“*/
-  int *pnBytesFreed;            /* If not NULL, increment this in DbFree() è‹¥ä¸ä¸ºç©ºï¼Œå°†å…¶åŠ å…¥å‡½æ•°DbFree()ä¸­*/
+  FuncDefHash aFunc;            /* Hash table of connection functions Á¬½Ó¹¦ÄÜ¹şÏ£±í*/
+  Hash aCollSeq;                /* All collating sequences ËùÓĞÅÅĞòĞòÁĞ*/
+  BusyHandler busyHandler;      /* Busy callback »Ø¹ö·±Ã¦*/
+  Db aDbStatic[2];              /* Static space for the 2 default backends 2Ä¬ÈÏºó¶ËµÄ¾²Ì¬¿Õ¼ä*/
+  Savepoint *pSavepoint;        /* List of active savepoints »î¶¯±£´æµãÁĞ±í*/
+  int busyTimeout;              /* Busy handler timeout, in msec Ã¦´¦Àí³¬Ê±£¬ÒÔºÁÃëÎªµ¥Î»*/
+  int nSavepoint;               /* Number of non-transaction savepoints ·Ç½»Ò×±£´æµãµÄÊı?*/
+  int nStatement;               /* Number of nested statement-transactions  Ç¶Ì×ÊÂÎñÓï¾äµÄÊıÁ¿*/
+  i64 nDeferredCons;            /* Net deferred constraints this transaction. ÍøÂçÑÓ³ÙÔ¼ÊøÕâ¸ö½»Ò×*/
+  int *pnBytesFreed;            /* If not NULL, increment this in DbFree() Èô²»Îª¿Õ£¬½«Æä¼ÓÈëº¯ÊıDbFree()ÖĞ*/
 
 #ifdef SQLITE_ENABLE_UNLOCK_NOTIFY
-  /* The following variables are all protected by the STATIC_MASTER //ä»¥ä¸‹å˜é‡æ˜¯ç”±STATIC_MASTERäº’æ–¥ä¿æŠ¤çš„ï¼Œè€Œä¸æ˜¯sqlite3.mutexã€‚
-  ** mutex, not by sqlite3.mutex. They are used by code in notify.c. //å®ƒä»¬è¢«notify.cä¸­çš„ä»£ç æ‰€ä½¿ç”¨
+  /* The following variables are all protected by the STATIC_MASTER //ÒÔÏÂ±äÁ¿ÊÇÓÉSTATIC_MASTER»¥³â±£»¤µÄ£¬¶ø²»ÊÇsqlite3.mutex¡£
+  ** mutex, not by sqlite3.mutex. They are used by code in notify.c. //ËüÃÇ±»notify.cÖĞµÄ´úÂëËùÊ¹ÓÃ
   **
   ** When X.pUnlockConnection==Y, that means that X is waiting for Y to
-  ** unlock so that it can proceed.//è‹¥X.pUnlockConnection==Y,æ„å‘³ç€Xæ­£åœ¨ç­‰å¾…Yè§£é”ï¼Œä»¥ä¾¿å®ƒå¯ä»¥ç»§ç»­æ‰§è¡Œ
+  ** unlock so that it can proceed.//ÈôX.pUnlockConnection==Y,ÒâÎ¶×ÅXÕıÔÚµÈ´ıY½âËø£¬ÒÔ±ãËü¿ÉÒÔ¼ÌĞøÖ´ĞĞ
   **
   ** When X.pBlockingConnection==Y, that means that something that X tried
   ** tried to do recently failed with an SQLITE_LOCKED error due to locks
-  ** held by Y.//å½“X.pBlockingConnection==Y,è¿™è¯´æ˜Xæœ€è¿‘è¯•å›¾äº§ç”Ÿçš„åŠ¨ä½œå› ä¸ºYæ‰€æŒæœ‰çš„æ‰€æœªè¢«é‡Šæ”¾è€Œå¼•å‘çš„SQLITE_LOCKEDé”™è¯¯è€Œå¤±è´¥
+  ** held by Y.//µ±X.pBlockingConnection==Y,ÕâËµÃ÷X×î½üÊÔÍ¼²úÉúµÄ¶¯×÷ÒòÎªYËù³ÖÓĞµÄËùÎ´±»ÊÍ·Å¶øÒı·¢µÄSQLITE_LOCKED´íÎó¶øÊ§°Ü
   */
-  sqlite3 *pBlockingConnection; /* Connection that caused SQLITE_LOCKED å¼•å‘SQLITE_LOCKEDé“¾æ¥*/
-  sqlite3 *pUnlockConnection;           /* Connection to watch for unlock ç­‰å¾…è§£é”çš„é“¾æ¥*/
-  void *pUnlockArg;                     /* Argument to xUnlockNotify ï¼ŒxUnlockNotifyçš„å‚æ•°*/
-  void (*xUnlockNotify)(void **, int);  /* Unlock notify callback è§£é”é€šçŸ¥å›è°ƒ*/
-  sqlite3 *pNextBlocked;        /* Next in list of all blocked connections åŠ é”é“¾æ¥åˆ—è¡¨ä¸­çš„ä¸‹ä¸€ä¸ª*/
+  sqlite3 *pBlockingConnection; /* Connection that caused SQLITE_LOCKED Òı·¢SQLITE_LOCKEDÁ´½Ó*/
+  sqlite3 *pUnlockConnection;           /* Connection to watch for unlock µÈ´ı½âËøµÄÁ´½Ó*/
+  void *pUnlockArg;                     /* Argument to xUnlockNotify £¬xUnlockNotifyµÄ²ÎÊı*/
+  void (*xUnlockNotify)(void **, int);  /* Unlock notify callback ½âËøÍ¨Öª»Øµ÷*/
+  sqlite3 *pNextBlocked;        /* Next in list of all blocked connections ¼ÓËøÁ´½ÓÁĞ±íÖĞµÄÏÂÒ»¸ö*/
 #endif
 };
 
 /*
-** A macro to discover the encoding of a database. æ£€æµ‹æ•°æ®åº“ç¼–ç çš„å®
+** A macro to discover the encoding of a database. ¼ì²âÊı¾İ¿â±àÂëµÄºê
 */
 #define ENC(db) ((db)->aDb[0].pSchema->enc)
 
 /*
-** Possible values for the sqlite3.flags.    sqlite3.flagsçš„å¯èƒ½çš„å€¼
+** Possible values for the sqlite3.flags.    sqlite3.flagsµÄ¿ÉÄÜµÄÖµ
 */
-#define SQLITE_VdbeTrace      0x00000100  /* True to trace VDBE execution è·Ÿè¸ªVDBEçš„æ‰§è¡Œ*/
-#define SQLITE_InternChanges  0x00000200  /* Uncommitted Hash table changes æœªæäº¤çš„å“ˆå¸Œè¡¨çš„æ›´æ”¹*/
-#define SQLITE_FullColNames   0x00000400  /* Show full column names on SELECT åœ¨selectæ“ä½œæ—¶æ˜¾ç¤ºåˆ—å…¨å*/
-#define SQLITE_ShortColNames  0x00000800  /* Show short columns names æ˜¾ç¤ºåˆ—çŸ­å*/
+#define SQLITE_VdbeTrace      0x00000100  /* True to trace VDBE execution ¸ú×ÙVDBEµÄÖ´ĞĞ*/
+#define SQLITE_InternChanges  0x00000200  /* Uncommitted Hash table changes Î´Ìá½»µÄ¹şÏ£±íµÄ¸ü¸Ä*/
+#define SQLITE_FullColNames   0x00000400  /* Show full column names on SELECT ÔÚselect²Ù×÷Ê±ÏÔÊ¾ÁĞÈ«Ãû*/
+#define SQLITE_ShortColNames  0x00000800  /* Show short columns names ÏÔÊ¾ÁĞ¶ÌÃû*/
 #define SQLITE_CountRows      0x00001000  /* Count rows changed by INSERT, */
                                           /*   DELETE, or UPDATE and return */
-                                          /*   the count using a callback. è®¡ç®—å› ä¸ºå¢åˆ æ”¹è€Œå˜åŒ–çš„è¡Œæ•°ï¼Œå¹¶é€šè¿‡å›è°ƒè¿”å›æ•°å€¼*/
+                                          /*   the count using a callback. ¼ÆËãÒòÎªÔöÉ¾¸Ä¶ø±ä»¯µÄĞĞÊı£¬²¢Í¨¹ı»Øµ÷·µ»ØÊıÖµ*/
 #define SQLITE_NullCallback   0x00002000  /* Invoke the callback once if the */
-                                          /*   result set is empty è‹¥ç»“æœé›†åˆä¸ºç©ºï¼Œè°ƒç”¨ä¸€æ¬¡å›æ»š*/
-#define SQLITE_SqlTrace       0x00004000  /* Debug print SQL as it executes å½“SQLæ‰§è¡Œæ—¶å°†å…¶è°ƒè¯•æ‰“å°*/
-#define SQLITE_VdbeListing    0x00008000  /* Debug listings of VDBE programsï¼ŒVDBEç¨‹åºçš„è°ƒè¯•åˆ—è¡¨ */
-#define SQLITE_WriteSchema    0x00010000  /* OK to update SQLITE_MASTER å¯ä»¥æ›´æ–°SQLITE_MASTER*/
+                                          /*   result set is empty Èô½á¹û¼¯ºÏÎª¿Õ£¬µ÷ÓÃÒ»´Î»Ø¹ö*/
+#define SQLITE_SqlTrace       0x00004000  /* Debug print SQL as it executes µ±SQLÖ´ĞĞÊ±½«Æäµ÷ÊÔ´òÓ¡*/
+#define SQLITE_VdbeListing    0x00008000  /* Debug listings of VDBE programs£¬VDBE³ÌĞòµÄµ÷ÊÔÁĞ±í */
+#define SQLITE_WriteSchema    0x00010000  /* OK to update SQLITE_MASTER ¿ÉÒÔ¸üĞÂSQLITE_MASTER*/
                          /*   0x00020000  Unused */
-#define SQLITE_IgnoreChecks   0x00040000  /* Do not enforce check constraints å¿½ç•¥å¼ºåˆ¶æ£€æŸ¥çº¦æŸ*/
-#define SQLITE_ReadUncommitted 0x0080000  /* For shared-cache mode å¯¹äºå…±äº«ç¼“å­˜æ¨¡å¼*/
-#define SQLITE_LegacyFileFmt  0x00100000  /* Create new databases in format 1 åˆ›å»ºæ ¼å¼1çš„æ–°æ•°æ®åº“*/
-#define SQLITE_FullFSync      0x00200000  /* Use full fsync on the backend åœ¨åç«¯ä½¿ç”¨å…¨fsync(fsyncå‡½æ•°åŒæ­¥å†…å­˜ä¸­æ‰€æœ‰å·²ä¿®æ”¹çš„æ–‡ä»¶æ•°æ®åˆ°å‚¨å­˜è®¾å¤‡).*/
-#define SQLITE_CkptFullFSync  0x00400000  /* Use full fsync for checkpoint å¯¹æ£€æŸ¥ç‚¹ä½¿ç”¨å…¨fsync*/
-#define SQLITE_RecoveryMode   0x00800000  /* Ignore schema errors å¿½ç•¥æ¨¡å¼é”™è¯¯*/
-#define SQLITE_ReverseOrder   0x01000000  /* Reverse unordered SELECTs é€†è½¬æ— åºæŸ¥è¯¢*/
-#define SQLITE_RecTriggers    0x02000000  /* Enable recursive triggers å¯ç”¨é€’å½’è§¦å‘å™¨*/
-#define SQLITE_ForeignKeys    0x04000000  /* Enforce foreign key constraints  æ‰§è¡Œå¤–é”®çº¦æŸ*/
-#define SQLITE_AutoIndex      0x08000000  /* Enable automatic indexes å¯ç”¨è‡ªåŠ¨ç´¢å¼•*/
-#define SQLITE_PreferBuiltin  0x10000000  /* Preference to built-in funcs å†…ç½®å‡½æ•°ä¼˜å…ˆ*/
-#define SQLITE_LoadExtension  0x20000000  /* Enable load_extension å¯ç”¨load_extension*/
-#define SQLITE_EnableTrigger  0x40000000  /* True to enable triggers ä¸ºçœŸä»¥ä¾¿äºå¯ç”¨è§¦å‘å™¨*/
+#define SQLITE_IgnoreChecks   0x00040000  /* Do not enforce check constraints ºöÂÔÇ¿ÖÆ¼ì²éÔ¼Êø*/
+#define SQLITE_ReadUncommitted 0x0080000  /* For shared-cache mode ¶ÔÓÚ¹²Ïí»º´æÄ£Ê½*/
+#define SQLITE_LegacyFileFmt  0x00100000  /* Create new databases in format 1 ´´½¨¸ñÊ½1µÄĞÂÊı¾İ¿â*/
+#define SQLITE_FullFSync      0x00200000  /* Use full fsync on the backend ÔÚºó¶ËÊ¹ÓÃÈ«fsync(fsyncº¯ÊıÍ¬²½ÄÚ´æÖĞËùÓĞÒÑĞŞ¸ÄµÄÎÄ¼şÊı¾İµ½´¢´æÉè±¸).*/
+#define SQLITE_CkptFullFSync  0x00400000  /* Use full fsync for checkpoint ¶Ô¼ì²éµãÊ¹ÓÃÈ«fsync*/
+#define SQLITE_RecoveryMode   0x00800000  /* Ignore schema errors ºöÂÔÄ£Ê½´íÎó*/
+#define SQLITE_ReverseOrder   0x01000000  /* Reverse unordered SELECTs Äæ×ªÎŞĞò²éÑ¯*/
+#define SQLITE_RecTriggers    0x02000000  /* Enable recursive triggers ÆôÓÃµİ¹é´¥·¢Æ÷*/
+#define SQLITE_ForeignKeys    0x04000000  /* Enforce foreign key constraints  Ö´ĞĞÍâ¼üÔ¼Êø*/
+#define SQLITE_AutoIndex      0x08000000  /* Enable automatic indexes ÆôÓÃ×Ô¶¯Ë÷Òı*/
+#define SQLITE_PreferBuiltin  0x10000000  /* Preference to built-in funcs ÄÚÖÃº¯ÊıÓÅÏÈ*/
+#define SQLITE_LoadExtension  0x20000000  /* Enable load_extension ÆôÓÃload_extension*/
+#define SQLITE_EnableTrigger  0x40000000  /* True to enable triggers ÎªÕæÒÔ±ãÓÚÆôÓÃ´¥·¢Æ÷*/
 
 /*
 ** Bits of the sqlite3.flags field that are used by the
 ** sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...) interface.
 ** These must be the low-order bits of the flags field.
-** sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...)æ¥å£æ‰€ä½¿ç”¨çš„sqlite3.flagså­—æ®µï¼Œå¿…é¡»æ˜¯è¿™äº›æ ‡å¿—å­—æ®µçš„ä½ä½ä¿¡æ¯
+** sqlite3_test_control(SQLITE_TESTCTRL_OPTIMIZATIONS,...)½Ó¿ÚËùÊ¹ÓÃµÄsqlite3.flags×Ö¶Î£¬±ØĞëÊÇÕâĞ©±êÖ¾×Ö¶ÎµÄµÍÎ»ĞÅÏ¢
 */
-#define SQLITE_QueryFlattener 0x01        /* Disable query flattening å…³é—­æŸ¥è¯¢æ‰å¹³åŒ–*/
-#define SQLITE_ColumnCache    0x02        /* Disable the column cache ç¦ç”¨åˆ—ç¼“å­˜*/
-#define SQLITE_IndexSort      0x04        /* Disable indexes for sorting ç¦ç”¨ç´¢å¼•æ’åº*/
-#define SQLITE_IndexSearch    0x08        /* Disable indexes for searching ç¦ç”¨ç´¢å¼•æœç´¢*/
-#define SQLITE_IndexCover     0x10        /* Disable index covering table ç¦ç”¨ç´¢å¼•è¦†ç›–è¡¨*/
-#define SQLITE_GroupByOrder   0x20        /* Disable GROUPBY cover of ORDERBY  ç¦æ­¢ORDERBYè¦†ç›–GROUPB*/
-#define SQLITE_FactorOutConst 0x40        /* Disable factoring out constants ç¦æ­¢åˆ†è§£å‡ºå¸¸æ•°*/
-#define SQLITE_IdxRealAsInt   0x80        /* Store REAL as INT in indices å°†REALå­˜å‚¨ä¸ºä¸‹æ ‡ä¸­çš„INT*/
-#define SQLITE_DistinctOpt    0x80        /* DISTINCT using indexes ä¸‹æ ‡ä¸å…è®¸é‡å¤*/
-#define SQLITE_OptMask        0xff        /* Mask of all disablable opts å±è”½æ‰€æœ‰ç¦æ­¢é¡¹*/
+#define SQLITE_QueryFlattener 0x01        /* Disable query flattening ¹Ø±Õ²éÑ¯±âÆ½»¯*/
+#define SQLITE_ColumnCache    0x02        /* Disable the column cache ½ûÓÃÁĞ»º´æ*/
+#define SQLITE_IndexSort      0x04        /* Disable indexes for sorting ½ûÓÃË÷ÒıÅÅĞò*/
+#define SQLITE_IndexSearch    0x08        /* Disable indexes for searching ½ûÓÃË÷ÒıËÑË÷*/
+#define SQLITE_IndexCover     0x10        /* Disable index covering table ½ûÓÃË÷Òı¸²¸Ç±í*/
+#define SQLITE_GroupByOrder   0x20        /* Disable GROUPBY cover of ORDERBY  ½ûÖ¹ORDERBY¸²¸ÇGROUPB*/
+#define SQLITE_FactorOutConst 0x40        /* Disable factoring out constants ½ûÖ¹·Ö½â³ö³£Êı*/
+#define SQLITE_IdxRealAsInt   0x80        /* Store REAL as INT in indices ½«REAL´æ´¢ÎªÏÂ±êÖĞµÄINT*/
+#define SQLITE_DistinctOpt    0x80        /* DISTINCT using indexes ÏÂ±ê²»ÔÊĞíÖØ¸´*/
+#define SQLITE_OptMask        0xff        /* Mask of all disablable opts ÆÁ±ÎËùÓĞ½ûÖ¹Ïî*/
 
 /*
 ** Possible values for the sqlite.magic field.
 ** The numbers are obtained at random and have no special meaning, other
 ** than being distinct from one another.
-**sqlite.magic å­—æ®µçš„å€¼æ˜¯éšæœºè·å¾—çš„ï¼Œé™¤äº†å®ƒä»¬å½¼æ­¤å„ä¸ç›¸åŒä¹‹å¤–ï¼Œæ²¡æœ‰å…¶ä»–ç‰¹åˆ«çš„å«ä¹‰
+**sqlite.magic ×Ö¶ÎµÄÖµÊÇËæ»ú»ñµÃµÄ£¬³ıÁËËüÃÇ±Ë´Ë¸÷²»ÏàÍ¬Ö®Íâ£¬Ã»ÓĞÆäËûÌØ±ğµÄº¬Òå
 */
-#define SQLITE_MAGIC_OPEN     0xa029a697  /* Database is open æ•°æ®åº“æ˜¯æ‰“å¼€çš„*/
-#define SQLITE_MAGIC_CLOSED   0x9f3c2d33  /* Database is closed æ•°æ®åº“æ˜¯å…³é—­çš„*/
-#define SQLITE_MAGIC_SICK     0x4b771290  /* Error and awaiting close é”™è¯¯å¹¶ç­‰å¾…å…³é—­*/
-#define SQLITE_MAGIC_BUSY     0xf03b7906  /* Database currently in use å½“å‰æ­£åœ¨ä½¿ç”¨çš„æ•°æ®åº“*/
-#define SQLITE_MAGIC_ERROR    0xb5357930  /* An SQLITE_MISUSE error occurred å‡ºç°ä¸€ä¸ªæ•°æ®åº“æ»¥ç”¨é”™è¯¯*/
-#define SQLITE_MAGIC_ZOMBIE   0x64cffc7f  /* Close with last statement close æœ€åä¸€æ¡è¯­å¥ç»“æŸå³å…³é—­*/
+#define SQLITE_MAGIC_OPEN     0xa029a697  /* Database is open Êı¾İ¿âÊÇ´ò¿ªµÄ*/
+#define SQLITE_MAGIC_CLOSED   0x9f3c2d33  /* Database is closed Êı¾İ¿âÊÇ¹Ø±ÕµÄ*/
+#define SQLITE_MAGIC_SICK     0x4b771290  /* Error and awaiting close ´íÎó²¢µÈ´ı¹Ø±Õ*/
+#define SQLITE_MAGIC_BUSY     0xf03b7906  /* Database currently in use µ±Ç°ÕıÔÚÊ¹ÓÃµÄÊı¾İ¿â*/
+#define SQLITE_MAGIC_ERROR    0xb5357930  /* An SQLITE_MISUSE error occurred ³öÏÖÒ»¸öÊı¾İ¿âÀÄÓÃ´íÎó*/
+#define SQLITE_MAGIC_ZOMBIE   0x64cffc7f  /* Close with last statement close ×îºóÒ»ÌõÓï¾ä½áÊø¼´¹Ø±Õ*/
 
 /*
 ** Each SQL function is defined by an instance of the following
 ** structure.  A pointer to this structure is stored in the sqlite.aFunc
 ** hash table.  When multiple functions have the same name, the hash table
 ** points to a linked list of these structures.
-**æ¯ä¸ªSQLå‡½æ•°éƒ½æ˜¯ç”±ä»¥ä¸‹ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹æ¥å®šä¹‰ã€‚æŒ‡å‘ä»¥ä¸‹ç»“æ„çš„æŒ‡é’ˆè¢«å­˜å‚¨åœ¨sqlite.aFuncå“ˆå¸Œè¡¨ä¸­ã€‚å½“æœ‰å¤šä¸ªå‡½æ•°é‡åçš„æ—¶å€™ï¼Œå“ˆå¸Œè¡¨æŒ‡å‘çš„æ˜¯è¿™äº›ç»“æ„ä½“çš„ä¸€ä¸ªé“¾æ¥åˆ—è¡¨ã€‚
+**Ã¿¸öSQLº¯Êı¶¼ÊÇÓÉÒÔÏÂ½á¹¹ÌåµÄÒ»¸öÊµÀıÀ´¶¨Òå¡£Ö¸ÏòÒÔÏÂ½á¹¹µÄÖ¸Õë±»´æ´¢ÔÚsqlite.aFunc¹şÏ£±íÖĞ¡£µ±ÓĞ¶à¸öº¯ÊıÖØÃûµÄÊ±ºò£¬¹şÏ£±íÖ¸ÏòµÄÊÇÕâĞ©½á¹¹ÌåµÄÒ»¸öÁ´½ÓÁĞ±í¡£
 */
 struct FuncDef {
-  i16 nArg;            /* Number of arguments.  -1 means unlimited å‚æ•°çš„æ•°é‡ï¼Œ1è¡¨ç¤ºæ— é™åˆ¶*/
-  u8 iPrefEnc;         /* Preferred text encoding (SQLITE_UTF8, 16LE, 16BE) æ‰€é€‰æ‹©çš„æ–‡æœ¬ç¼–ç æ–¹å¼*/
-  u8 flags;            /* Some combination of SQLITE_FUNC_* ï¼Œ SQLITE_FUNC_*çš„æŸç§ç»„åˆ*/
-  void *pUserData;     /* User data parameter ç”¨æˆ·æ•°æ®å‚æ•°*/
-  FuncDef *pNext;      /* Next function with same name é‡åçš„ä¸‹ä¸€ä¸ªå‡½æ•°*/
-  void (*xFunc)(sqlite3_context*,int,sqlite3_value**); /* Regular function å¸¸è§„åŠŸèƒ½*/
-  void (*xStep)(sqlite3_context*,int,sqlite3_value**); /* Aggregate step æ€»æ­¥*/
-  void (*xFinalize)(sqlite3_context*);                /* Aggregate finalizer æ€»ç»ˆç»“*/
-  char *zName;         /* SQL name of the function. å‡½æ•°çš„SQLåç§°*/
-  FuncDef *pHash;      /* Next with a different name but the same hash ä¸‹ä¸€ä¸ªä¸é‡åä½†æ˜¯æœ‰ç›¸åŒå“ˆå¸Œçš„å‡½æ•°*/
-  FuncDestructor *pDestructor;   /* Reference counted destructor function å¼•ç”¨è®¡æ•°ææ„å‡½æ•°*/
+  i16 nArg;            /* Number of arguments.  -1 means unlimited ²ÎÊıµÄÊıÁ¿£¬1±íÊ¾ÎŞÏŞÖÆ*/
+  u8 iPrefEnc;         /* Preferred text encoding (SQLITE_UTF8, 16LE, 16BE) ËùÑ¡ÔñµÄÎÄ±¾±àÂë·½Ê½*/
+  u8 flags;            /* Some combination of SQLITE_FUNC_* £¬ SQLITE_FUNC_*µÄÄ³ÖÖ×éºÏ*/
+  void *pUserData;     /* User data parameter ÓÃ»§Êı¾İ²ÎÊı*/
+  FuncDef *pNext;      /* Next function with same name ÖØÃûµÄÏÂÒ»¸öº¯Êı*/
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**); /* Regular function ³£¹æ¹¦ÄÜ*/
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**); /* Aggregate step ×Ü²½*/
+  void (*xFinalize)(sqlite3_context*);                /* Aggregate finalizer ×ÜÖÕ½á*/
+  char *zName;         /* SQL name of the function. º¯ÊıµÄSQLÃû³Æ*/
+  FuncDef *pHash;      /* Next with a different name but the same hash ÏÂÒ»¸ö²»ÖØÃûµ«ÊÇÓĞÏàÍ¬¹şÏ£µÄº¯Êı*/
+  FuncDestructor *pDestructor;   /* Reference counted destructor function ÒıÓÃ¼ÆÊıÎö¹¹º¯Êı*/
 };
 
 /*
@@ -1026,14 +1026,14 @@ struct FuncDef {
 ** or not the specified encoding is SQLITE_ANY). The FuncDef.pDestructor
 ** member of each of the new FuncDef objects is set to point to the allocated
 ** FuncDestructor.
-** è¿™ä¸ªç»“æ„ä½“å°è£…äº†ä¸€ä¸ªç”¨æˆ·åŠŸèƒ½çš„ææ„å‡½æ•°å›æ»šå’Œä¸€ä¸ªå‚ç…§è®¡æ•°å™¨.
-**å½“create_function_v2ï¼ˆï¼‰è¢«è°ƒç”¨æ¥åˆ©ç”¨ä¸€ä¸ªææ„å‡½æ•°åˆ›å»ºä¸€ä¸ªå‡½æ•°ï¼Œè¿™ä¸ªç»“æ„ä½“ç±»å‹çš„ä¸€ä¸ªå¯¹è±¡å°±ä¼šè¢«åˆ†é….
-**FuncDestructor.nRefçš„å€¼è®¾ç½®ä¸ºFuncDefå¯¹è±¡æ‰€è¢«åˆ›å»ºçš„æ•°é‡ã€‚æ¯ä¸ªæ–°FuncDefå¯¹è±¡çš„FuncDef.pDestructoræ„ä»¶è¢«è®¾ç½®ä¸ºæŒ‡å‘å·²åˆ†é…çš„FuncDestructorã€‚
+** Õâ¸ö½á¹¹Ìå·â×°ÁËÒ»¸öÓÃ»§¹¦ÄÜµÄÎö¹¹º¯Êı»Ø¹öºÍÒ»¸ö²ÎÕÕ¼ÆÊıÆ÷.
+**µ±create_function_v2£¨£©±»µ÷ÓÃÀ´ÀûÓÃÒ»¸öÎö¹¹º¯Êı´´½¨Ò»¸öº¯Êı£¬Õâ¸ö½á¹¹ÌåÀàĞÍµÄÒ»¸ö¶ÔÏó¾Í»á±»·ÖÅä.
+**FuncDestructor.nRefµÄÖµÉèÖÃÎªFuncDef¶ÔÏóËù±»´´½¨µÄÊıÁ¿¡£Ã¿¸öĞÂFuncDef¶ÔÏóµÄFuncDef.pDestructor¹¹¼ş±»ÉèÖÃÎªÖ¸ÏòÒÑ·ÖÅäµÄFuncDestructor¡£
 **
 ** Thereafter, when one of the FuncDef objects is deleted, the reference
 ** count on this object is decremented. When it reaches 0, the destructor
 ** is invoked and the FuncDestructor structure freed.
-æ­¤åï¼Œå½“FuncDefçš„æŸä¸€å¯¹è±¡è¢«åˆ é™¤æ—¶ï¼Œè¯¥å¯¹è±¡ä¸Šçš„å¼•ç”¨è®¡æ•°é€’å‡ã€‚å½“å®ƒåˆ°è¾¾0ï¼Œææ„å‡½æ•°è¢«è°ƒç”¨ï¼ŒFuncDestructorç»“æ„ä½“è¢«é‡Šæ”¾ã€‚
+´Ëºó£¬µ±FuncDefµÄÄ³Ò»¶ÔÏó±»É¾³ıÊ±£¬¸Ã¶ÔÏóÉÏµÄÒıÓÃ¼ÆÊıµİ¼õ¡£µ±Ëüµ½´ï0£¬Îö¹¹º¯Êı±»µ÷ÓÃ£¬FuncDestructor½á¹¹Ìå±»ÊÍ·Å¡£
 */
 struct FuncDestructor {
   int nRef;
@@ -1045,22 +1045,22 @@ struct FuncDestructor {
 ** Possible values for FuncDef.flags.  Note that the _LENGTH and _TYPEOF
 ** values must correspond to OPFLAG_LENGTHARG and OPFLAG_TYPEOFARG.  There
 ** are assert() statements in the code to verify this.
-FuncDef.flagsçš„å¯èƒ½çš„å€¼ã€‚éœ€è¦æ³¨æ„çš„æ˜¯_lengthå’Œ_TYPEOFå€¼å¿…é¡»ä¸OPFLAG_LENGTHARGå’ŒOPFLAG_TYPEOFARGç›¸å¯¹åº”ã€‚
-åœ¨ä»£ç ä¸­æœ‰assert()è¯­å¥æ¥éªŒè¯è¿™ä¸€ç‚¹ã€‚
+FuncDef.flagsµÄ¿ÉÄÜµÄÖµ¡£ĞèÒª×¢ÒâµÄÊÇ_lengthºÍ_TYPEOFÖµ±ØĞëÓëOPFLAG_LENGTHARGºÍOPFLAG_TYPEOFARGÏà¶ÔÓ¦¡£
+ÔÚ´úÂëÖĞÓĞassert()Óï¾äÀ´ÑéÖ¤ÕâÒ»µã¡£
 */
-#define SQLITE_FUNC_LIKE     0x01 /* Candidate for the LIKE optimization LIKEä¼˜åŒ–çš„å€™é€‰ç»“æœ*/
-#define SQLITE_FUNC_CASE     0x02 /* Case-sensitive LIKE-type function LIKEå‹åŠŸèƒ½åŒºåˆ†å¤§å°å†™*/
-#define SQLITE_FUNC_EPHEM    0x04 /* Ephemeral.  Delete with VDBE æš‚æ—¶çš„ï¼Œå’ŒVDBEä¸€èµ·åˆ é™¤*/
-#define SQLITE_FUNC_NEEDCOLL 0x08 /* sqlite3GetFuncCollSeq() might be called ï¼Œ sqlite3GetFuncCollSeq()å‡½æ•°å¾ˆå¯èƒ½è¢«è°ƒç”¨*/
-#define SQLITE_FUNC_COUNT    0x10 /* Built-in count(*) aggregate å†…ç½®è®¡æ•°èšåˆå‡½æ•°*/
-#define SQLITE_FUNC_COALESCE 0x20 /* Built-in coalesce() or ifnull() function å†…ç½®coalesce()æˆ–ifnull()å‡½æ•°*/
-#define SQLITE_FUNC_LENGTH   0x40 /* Built-in length() function å†…ç½®length()å‡½æ•°*/
-#define SQLITE_FUNC_TYPEOF   0x80 /* Built-in typeof() function å†…ç½®typeof()å‡½æ•°*/
+#define SQLITE_FUNC_LIKE     0x01 /* Candidate for the LIKE optimization LIKEÓÅ»¯µÄºòÑ¡½á¹û*/
+#define SQLITE_FUNC_CASE     0x02 /* Case-sensitive LIKE-type function LIKEĞÍ¹¦ÄÜÇø·Ö´óĞ¡Ğ´*/
+#define SQLITE_FUNC_EPHEM    0x04 /* Ephemeral.  Delete with VDBE ÔİÊ±µÄ£¬ºÍVDBEÒ»ÆğÉ¾³ı*/
+#define SQLITE_FUNC_NEEDCOLL 0x08 /* sqlite3GetFuncCollSeq() might be called £¬ sqlite3GetFuncCollSeq()º¯ÊıºÜ¿ÉÄÜ±»µ÷ÓÃ*/
+#define SQLITE_FUNC_COUNT    0x10 /* Built-in count(*) aggregate ÄÚÖÃ¼ÆÊı¾ÛºÏº¯Êı*/
+#define SQLITE_FUNC_COALESCE 0x20 /* Built-in coalesce() or ifnull() function ÄÚÖÃcoalesce()»òifnull()º¯Êı*/
+#define SQLITE_FUNC_LENGTH   0x40 /* Built-in length() function ÄÚÖÃlength()º¯Êı*/
+#define SQLITE_FUNC_TYPEOF   0x80 /* Built-in typeof() function ÄÚÖÃtypeof()º¯Êı*/
 
 /*
 ** The following three macros, FUNCTION(), LIKEFUNC() and AGGREGATE() are
 ** used to create the initializers for the FuncDef structures.
-  ä»¥ä¸‹ä¸‰ä¸ªå®å®šä¹‰ï¼ŒFUNCTION(),LIKEFUNC()å’ŒAGGREGATE()è¢«ç”¨äºFuncDefç»“æ„ä½“çš„åˆå§‹åŒ–
+  ÒÔÏÂÈı¸öºê¶¨Òå£¬FUNCTION(),LIKEFUNC()ºÍAGGREGATE()±»ÓÃÓÚFuncDef½á¹¹ÌåµÄ³õÊ¼»¯
 **
 **   FUNCTION(zName, nArg, iArg, bNC, xFunc)
 **     Used to create a scalar function definition of a function zName 
@@ -1068,16 +1068,16 @@ FuncDef.flagsçš„å¯èƒ½çš„å€¼ã€‚éœ€è¦æ³¨æ„çš„æ˜¯_lengthå’Œ_TYPEOFå€¼å¿…é¡»ä¸OP
 **     value passed as iArg is cast to a (void*) and made available
 **     as the user-data (sqlite3_user_data()) for the function. If 
 **     argument bNC is true, then the SQLITE_FUNC_NEEDCOLL flag is set.
-**FUNCTION(zName, nArg, iArg, bNC, xFunc)åˆ›å»ºäº†åŠŸèƒ½zNameçš„æ ‡é‡å‡½æ•°å®šä¹‰ï¼ŒzNameå‡½æ•°ç”±æ¥å—nArgå‚æ•°çš„Cå‡½æ•°xFuncæ¥å®ç°.
-**ä½œä¸ºiArgå‚æ•°è¢«ä¼ é€’çš„å€¼è¢«è½¬æ¢æˆæ— ç±»å‹ï¼Œå¹¶ä¸”é€šè¿‡å‡½æ•°sqlite3_user_data()æˆä¸ºå‡½æ•°å¯ä»¥ä½¿ç”¨çš„ç”¨æˆ·æ•°æ®.
-**è‹¥å‚æ•°bNC ä¸ºçœŸï¼Œé‚£ä¹ˆå°†ä¼šè®¾ç½®SQLITE_FUNC_NEEDCOLLæ ‡å¿—çš„å€¼.
+**FUNCTION(zName, nArg, iArg, bNC, xFunc)´´½¨ÁË¹¦ÄÜzNameµÄ±êÁ¿º¯Êı¶¨Òå£¬zNameº¯ÊıÓÉ½ÓÊÜnArg²ÎÊıµÄCº¯ÊıxFuncÀ´ÊµÏÖ.
+**×÷ÎªiArg²ÎÊı±»´«µİµÄÖµ±»×ª»»³ÉÎŞÀàĞÍ£¬²¢ÇÒÍ¨¹ıº¯Êısqlite3_user_data()³ÉÎªº¯Êı¿ÉÒÔÊ¹ÓÃµÄÓÃ»§Êı¾İ.
+**Èô²ÎÊıbNC ÎªÕæ£¬ÄÇÃ´½«»áÉèÖÃSQLITE_FUNC_NEEDCOLL±êÖ¾µÄÖµ.
 **     AGGREGATE(zName, nArg, iArg, bNC, xStep, xFinal)
 **     Used to create an aggregate function definition implemented by
 **     the C functions xStep and xFinal. The first four parameters
 **     are interpreted in the same way as the first 4 parameters to
 **     FUNCTION().
-**AGGREGATE(zName, nArg, iArg, bNC, xStep, xFinal)ç”¨äºåˆ›å»ºèšåˆå‡½æ•°å®šä¹‰ï¼Œè¿™ä¸ªæ˜¯ç”±å‡½æ•°xStepå’ŒxFinalå®ç°çš„.
-**å‰å››ä¸ªå‚æ•°å°†ä»¥ç›¸åŒçš„æ–¹å¼è¢«è§£é‡Šæˆä¸ºFUNCTION()å‡½æ•°çš„å‰å››ä¸ªå‚æ•°.
+**AGGREGATE(zName, nArg, iArg, bNC, xStep, xFinal)ÓÃÓÚ´´½¨¾ÛºÏº¯Êı¶¨Òå£¬Õâ¸öÊÇÓÉº¯ÊıxStepºÍxFinalÊµÏÖµÄ.
+**Ç°ËÄ¸ö²ÎÊı½«ÒÔÏàÍ¬µÄ·½Ê½±»½âÊÍ³ÉÎªFUNCTION()º¯ÊıµÄÇ°ËÄ¸ö²ÎÊı.
 **
 **
 **   LIKEFUNC(zName, nArg, pArg, flags)
@@ -1087,9 +1087,9 @@ FuncDef.flagsçš„å¯èƒ½çš„å€¼ã€‚éœ€è¦æ³¨æ„çš„æ˜¯_lengthå’Œ_TYPEOFå€¼å¿…é¡»ä¸OP
 **     available as the function user-data (sqlite3_user_data()). The
 **     FuncDef.flags variable is set to the value passed as the flags
 **     parameter.
-**LIKEFUNC(zName, nArg, pArg, flags)ç”¨äºåˆ›å»ºå‡½æ•°zNameçš„æ ‡é‡å‡½æ•°å®šä¹‰ï¼ŒzNameæ¥å—å‚æ•°nArgå¹¶ä¸”é€šè¿‡è°ƒç”¨å‡½æ•°likeFuncæ¥å®ç°.
-**å‚æ•°pArgè¢«è½¬æ¢æˆä¸€ä¸ªæ— ç±»å‹æ•°æ®ï¼Œåé€šè¿‡å‡½æ•°sqlite3_user_data()è½¬æ¢æˆç”¨æˆ·å¯åˆ©ç”¨çš„æ•°æ®.
-**FuncDef.flagså˜é‡è¢«è®¾ç½®ä¸ºä¼ é€’çš„æ ‡å¿—å‚æ•°çš„å€¼.
+**LIKEFUNC(zName, nArg, pArg, flags)ÓÃÓÚ´´½¨º¯ÊızNameµÄ±êÁ¿º¯Êı¶¨Òå£¬zName½ÓÊÜ²ÎÊınArg²¢ÇÒÍ¨¹ıµ÷ÓÃº¯ÊılikeFuncÀ´ÊµÏÖ.
+**²ÎÊıpArg±»×ª»»³ÉÒ»¸öÎŞÀàĞÍÊı¾İ£¬ºóÍ¨¹ıº¯Êısqlite3_user_data()×ª»»³ÉÓÃ»§¿ÉÀûÓÃµÄÊı¾İ.
+**FuncDef.flags±äÁ¿±»ÉèÖÃÎª´«µİµÄ±êÖ¾²ÎÊıµÄÖµ.
 **
 */
 #define FUNCTION(zName, nArg, iArg, bNC, xFunc) \
@@ -1112,22 +1112,22 @@ FuncDef.flagsçš„å¯èƒ½çš„å€¼ã€‚éœ€è¦æ³¨æ„çš„æ˜¯_lengthå’Œ_TYPEOFå€¼å¿…é¡»ä¸OP
 ** sqlite3.pSavepoint. The first element in the list is the most recently
 ** opened savepoint. Savepoints are added to the list by the vdbe
 ** OP_Savepoint instruction.
-ç›®å‰æ‰€æœ‰çš„ä¿å­˜ç‚¹éƒ½å­˜å‚¨åœ¨ä¸€ä¸ªä»¥sqlite3.pSavepointå¼€å§‹çš„é“¾æ¥åˆ—è¡¨ä¸­.
-åœ¨åˆ—è¡¨ä¸­çš„ç¬¬ä¸€ä¸ªå…ƒç´ æ˜¯æœ€è¿‘æ‰“å¼€çš„ä¿å­˜ç‚¹.ä¿å­˜ç‚¹é€šè¿‡VDBE OP_SavepointæŒ‡ä»¤è¢«æ·»åŠ åˆ°è¯¥åˆ—è¡¨.
+Ä¿Ç°ËùÓĞµÄ±£´æµã¶¼´æ´¢ÔÚÒ»¸öÒÔsqlite3.pSavepoint¿ªÊ¼µÄÁ´½ÓÁĞ±íÖĞ.
+ÔÚÁĞ±íÖĞµÄµÚÒ»¸öÔªËØÊÇ×î½ü´ò¿ªµÄ±£´æµã.±£´æµãÍ¨¹ıVDBE OP_SavepointÖ¸Áî±»Ìí¼Óµ½¸ÃÁĞ±í.
 */
 struct Savepoint {
-  char *zName;                        /* Savepoint name (nul-terminated) ä¿å­˜ç‚¹åç§°ï¼ˆç©ºç»ˆæ­¢ï¼‰*/
-  i64 nDeferredCons;                  /* Number of deferred fk violations å»¶è¿Ÿçš„å¤–é”®è¿è§„çš„æ•°é‡*/
-  Savepoint *pNext;                   /* Parent savepoint (if any) çˆ¶ä¿å­˜ç‚¹ï¼ˆå¦‚æœæœ‰çš„è¯ï¼‰*/
+  char *zName;                        /* Savepoint name (nul-terminated) ±£´æµãÃû³Æ£¨¿ÕÖÕÖ¹£©*/
+  i64 nDeferredCons;                  /* Number of deferred fk violations ÑÓ³ÙµÄÍâ¼üÎ¥¹æµÄÊıÁ¿*/
+  Savepoint *pNext;                   /* Parent savepoint (if any) ¸¸±£´æµã£¨Èç¹ûÓĞµÄ»°£©*/
 };
 
 /*
 ** The following are used as the second parameter to sqlite3Savepoint(),
 ** and as the P1 argument to the OP_Savepoint instruction.
 <<<<<<< HEAD
-** ä¸‹é¢çš„å®å®šä¹‰ç”¨ä½œå‡½æ•°sqlite3Savepoint()çš„ç¬¬2ä¸ªå‚æ•°ï¼ŒåŒæ—¶åœ¨æ“ä½œç Savepointä¸­ï¼ŒP1è¦ä¸å®ƒä»¬ä½œæ¯”è¾ƒåˆ¤æ–­ã€‚
+** ÏÂÃæµÄºê¶¨ÒåÓÃ×÷º¯Êısqlite3Savepoint()µÄµÚ2¸ö²ÎÊı£¬Í¬Ê±ÔÚ²Ù×÷ÂëSavepointÖĞ£¬P1ÒªÓëËüÃÇ×÷±È½ÏÅĞ¶Ï¡£
 =======
-**   ä»¥ä¸‹ä¸‰ä¸ªå˜é‡å°†ä½œä¸ºsqlite3Savepoint()å‡½æ•°çš„ç¬¬äºŒå‚æ•°ï¼Œå¹¶ä½œä¸ºP1å‚æ•°ä¼ é€’ç»™OP_SavepointæŒ‡ä»¤ã€‚
+**   ÒÔÏÂÈı¸ö±äÁ¿½«×÷Îªsqlite3Savepoint()º¯ÊıµÄµÚ¶ş²ÎÊı£¬²¢×÷ÎªP1²ÎÊı´«µİ¸øOP_SavepointÖ¸Áî¡£
 >>>>>>> ba548246c0eb8783d5eca71d784e77030f3fe838
 */
 #define SAVEPOINT_BEGIN      0
@@ -1139,31 +1139,31 @@ struct Savepoint {
 ** Each SQLite module (virtual table definition) is defined by an
 ** instance of the following structure, stored in the sqlite3.aModule
 ** hash table.
-æ¯ä¸ªSQLiteçš„æ¨¡å—ï¼ˆè™šæ‹Ÿè¡¨å®šä¹‰ï¼‰ç”±ä¸‹é¢çš„ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹æ¥å®šä¹‰ï¼Œå¹¶å­˜å‚¨åœ¨sqlite3.aModuleå“ˆå¸Œè¡¨ä¸­
+Ã¿¸öSQLiteµÄÄ£¿é£¨ĞéÄâ±í¶¨Òå£©ÓÉÏÂÃæµÄ½á¹¹ÌåµÄÒ»¸öÊµÀıÀ´¶¨Òå£¬²¢´æ´¢ÔÚsqlite3.aModule¹şÏ£±íÖĞ
 */
 struct Module {
-  const sqlite3_module *pModule;       /* Callback pointers å›æ»šæŒ‡é’ˆ*/
-  const char *zName;                   /* Name passed to create_module() ä¼ é€’ç»™create_module()å‡½æ•°çš„åå­—*/
-  void *pAux;                          /* pAux passed to create_module() å°†pAuxä¼ é€’ç»™create_module()å‡½æ•°*/
-  void (*xDestroy)(void *);            /* Module destructor function æ¨¡å—ææ„å‡½æ•°*/
+  const sqlite3_module *pModule;       /* Callback pointers »Ø¹öÖ¸Õë*/
+  const char *zName;                   /* Name passed to create_module() ´«µİ¸øcreate_module()º¯ÊıµÄÃû×Ö*/
+  void *pAux;                          /* pAux passed to create_module() ½«pAux´«µİ¸øcreate_module()º¯Êı*/
+  void (*xDestroy)(void *);            /* Module destructor function Ä£¿éÎö¹¹º¯Êı*/
 };
 
 /*
 ** information about each column of an SQL table is held in an instance
 ** of this structure.
-ä¸€ä¸ªSQLè¡¨çš„ä»»ä½•ä¸€ä¸ªåˆ—ä¿¡æ¯éƒ½è¢«ä¿å­˜åœ¨å¦‚ä¸‹ç»“æ„ä½“ç±»å‹çš„ä¸€ä¸ªå®ä¾‹ä¸­
+Ò»¸öSQL±íµÄÈÎºÎÒ»¸öÁĞĞÅÏ¢¶¼±»±£´æÔÚÈçÏÂ½á¹¹ÌåÀàĞÍµÄÒ»¸öÊµÀıÖĞ
 */
 struct Column {
-  char *zName;     /* Name of this column åˆ—åå­—*/
-  Expr *pDflt;     /* Default value of this column æ­¤åˆ—çš„é»˜è®¤å€¼*/
-  char *zDflt;     /* Original text of the default value é»˜è®¤å€¼çš„åŸå§‹ç±»å‹*/
-  char *zType;     /* Data type for this column æ­¤åˆ—çš„æ•°æ®ç±»å‹*/
-  char *zColl;     /* Collating sequence.  If NULL, use the default æ•´ç†åºåˆ—ï¼Œå¦‚æœä¸ºNULLï¼Œåˆ™ä½¿ç”¨ç¼ºçœ*/
-  u8 notNull;      /* True if there is a NOT NULL constraint è‹¥æœ‰ä¸€ä¸ªéç©ºçº¦æŸçš„è¯ï¼Œåˆ™ä¸ºçœŸ*/
-  u8 isPrimKey;    /* True if this column is part of the PRIMARY KEY å¦‚æœæ­¤åˆ—æ˜¯ä¸»é”®çš„ä¸€éƒ¨åˆ†ï¼Œåˆ™ä¸ºçœŸ*/
-  char affinity;   /* One of the SQLITE_AFF_... values , SQLITE_AFF_...çš„å…¶ä¸­ä¸€ä¸ªå€¼*/
+  char *zName;     /* Name of this column ÁĞÃû×Ö*/
+  Expr *pDflt;     /* Default value of this column ´ËÁĞµÄÄ¬ÈÏÖµ*/
+  char *zDflt;     /* Original text of the default value Ä¬ÈÏÖµµÄÔ­Ê¼ÀàĞÍ*/
+  char *zType;     /* Data type for this column ´ËÁĞµÄÊı¾İÀàĞÍ*/
+  char *zColl;     /* Collating sequence.  If NULL, use the default ÕûÀíĞòÁĞ£¬Èç¹ûÎªNULL£¬ÔòÊ¹ÓÃÈ±Ê¡*/
+  u8 notNull;      /* True if there is a NOT NULL constraint ÈôÓĞÒ»¸ö·Ç¿ÕÔ¼ÊøµÄ»°£¬ÔòÎªÕæ*/
+  u8 isPrimKey;    /* True if this column is part of the PRIMARY KEY Èç¹û´ËÁĞÊÇÖ÷¼üµÄÒ»²¿·Ö£¬ÔòÎªÕæ*/
+  char affinity;   /* One of the SQLITE_AFF_... values , SQLITE_AFF_...µÄÆäÖĞÒ»¸öÖµ*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  u8 isHidden;     /* True if this column is 'hidden'  è‹¥æ­¤åˆ—è¢«éšè—åˆ™ä¸ºçœŸ*/
+  u8 isHidden;     /* True if this column is 'hidden'  Èô´ËÁĞ±»Òş²ØÔòÎªÕæ*/
 #endif
 };
 
@@ -1171,8 +1171,8 @@ struct Column {
 ** A "Collating Sequence" is defined by an instance of the following
 ** structure. Conceptually, a collating sequence consists of a name and
 ** a comparison routine that defines the order of that sequence.
-** ä¸€ä¸ªâ€œæ’åºåºåˆ—â€å°±æ˜¯ä¸‹é¢è¿™ä¸ªç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹ã€‚ä»æ¦‚å¿µä¸Šè®²ï¼Œä¸€ä¸ªæ’åºåºåˆ—ç”±ä¸€ä¸ªåç§°ï¼Œä»¥åŠ
-** ä¸€ä¸ªç”¨äºå¯¹åºåˆ—è¿›è¡Œæ¯”è¾ƒã€æ’åºçš„ç¨‹åº(ä¸çŸ¥é“æ€ä¹ˆç¿»è¯‘routine)æ„æˆã€‚
+** Ò»¸ö¡°ÅÅĞòĞòÁĞ¡±¾ÍÊÇÏÂÃæÕâ¸ö½á¹¹ÌåµÄÒ»¸öÊµÀı¡£´Ó¸ÅÄîÉÏ½²£¬Ò»¸öÅÅĞòĞòÁĞÓÉÒ»¸öÃû³Æ£¬ÒÔ¼°
+** Ò»¸öÓÃÓÚ¶ÔĞòÁĞ½øĞĞ±È½Ï¡¢ÅÅĞòµÄ³ÌĞò(²»ÖªµÀÔõÃ´·­Òëroutine)¹¹³É¡£
 **
 ** There may two separate implementations of the collation function, one
 ** that processes text in UTF-8 encoding (CollSeq.xCmp) and another that
@@ -1180,57 +1180,57 @@ struct Column {
 ** native byte order. When a collation sequence is invoked, SQLite selects
 ** the version that will require the least expensive encoding
 ** translations, if any.
-** æ’åºå‡½æ•°æœ‰ä¸¤ä¸ªä¸åŒçš„çš„å®ç°ç‰ˆæœ¬ï¼Œä¸€ä¸ªå¤„ç†utf-8ç¼–ç çš„æ–‡æœ¬(CollSeq.xCmp)ï¼Œå¦ä¸€ä¸ªå¤„ç†utf - 16
-** ç¼–ç çš„æ–‡æœ¬(CollSeq.xCmp16)ï¼Œä¸¤ç§éƒ½ä½¿ç”¨è®¡ç®—æœºåŸç”Ÿçš„å­—èŠ‚é¡ºåºã€‚åœ¨è°ƒç”¨æ’åºåºåˆ—æ—¶ï¼Œå¦‚æœæ¡ä»¶å…è®¸ï¼Œ
-** SQLiteä¼šé€‰æ‹©ç¼–ç è½¬æ¢ä»£ä»·æœ€å°çš„ç‰ˆæœ¬ã€‚
+** ÅÅĞòº¯ÊıÓĞÁ½¸ö²»Í¬µÄµÄÊµÏÖ°æ±¾£¬Ò»¸ö´¦Àíutf-8±àÂëµÄÎÄ±¾(CollSeq.xCmp)£¬ÁíÒ»¸ö´¦Àíutf - 16
+** ±àÂëµÄÎÄ±¾(CollSeq.xCmp16)£¬Á½ÖÖ¶¼Ê¹ÓÃ¼ÆËã»úÔ­ÉúµÄ×Ö½ÚË³Ğò¡£ÔÚµ÷ÓÃÅÅĞòĞòÁĞÊ±£¬Èç¹ûÌõ¼şÔÊĞí£¬
+** SQLite»áÑ¡Ôñ±àÂë×ª»»´ú¼Û×îĞ¡µÄ°æ±¾¡£
 **
 ** The CollSeq.pUser member variable is an extra parameter that passed in
 ** as the first argument to the UTF-8 comparison function, xCmp.
 ** CollSeq.pUser16 is the equivalent for the UTF-16 comparison function,
 ** xCmp16.
-** æˆå‘˜å˜é‡CollSeq.pUseræ˜¯ä¸€ä¸ªé¢å¤–çš„å‚æ•°ï¼Œå®ƒä½œä¸ºç¬¬ä¸€ä¸ªå‚æ•°ä¼ é€’åˆ°utf-8ç‰ˆæœ¬çš„æ¯”è¾ƒå‡½æ•°xCmp()ã€‚
-** CollSeq.pUser16å¯¹äºç¼–ç ä¸ºutf-16çš„æ¯”è¾ƒå‡½æ•°xCmp16æœ‰åŒç­‰æ„ä¹‰ã€‚
+** ³ÉÔ±±äÁ¿CollSeq.pUserÊÇÒ»¸ö¶îÍâµÄ²ÎÊı£¬Ëü×÷ÎªµÚÒ»¸ö²ÎÊı´«µİµ½utf-8°æ±¾µÄ±È½Ïº¯ÊıxCmp()¡£
+** CollSeq.pUser16¶ÔÓÚ±àÂëÎªutf-16µÄ±È½Ïº¯ÊıxCmp16ÓĞÍ¬µÈÒâÒå¡£
 **
 ** If both CollSeq.xCmp and CollSeq.xCmp16 are NULL, it means that the
 ** collating sequence is undefined.  Indices built on an undefined
 ** collating sequence may not be read or written.
-** å¦‚æœä¸¤ä¸ªCollSeq.xCmpå’ŒCollSeq.xCmp16éƒ½æ˜¯NULLï¼Œè¿™æ„å‘³ç€æ’åºåºåˆ—æ²¡æœ‰å®šä¹‰ã€‚
-** ç´¢å¼•å»ºç«‹åœ¨ä¸€ä¸ªæœªå®šä¹‰çš„æ’åºåºåˆ—å¯èƒ½ä¸ä¼šè¢«è¯»æˆ–å†™ã€‚
+** Èç¹ûÁ½¸öCollSeq.xCmpºÍCollSeq.xCmp16¶¼ÊÇNULL£¬ÕâÒâÎ¶×ÅÅÅĞòĞòÁĞÃ»ÓĞ¶¨Òå¡£
+** Ë÷Òı½¨Á¢ÔÚÒ»¸öÎ´¶¨ÒåµÄÅÅĞòĞòÁĞ¿ÉÄÜ²»»á±»¶Á»òĞ´¡£
 */
 struct CollSeq {
-  char *zName;          /* Name of the collating sequence, UTF-8 encoded æ’åºåºåˆ—åç§°ï¼ŒUTF-8ç¼–ç */
-  u8 enc;               /* Text encoding handled by xCmp() é€šè¿‡xCmp()å‡½æ•°å¤„ç†æ–‡æœ¬ç¼–ç */
-  void *pUser;          /* First argument to xCmp() xCmp()å‡½æ•°çš„é¦–å‚*/
+  char *zName;          /* Name of the collating sequence, UTF-8 encoded ÅÅĞòĞòÁĞÃû³Æ£¬UTF-8±àÂë*/
+  u8 enc;               /* Text encoding handled by xCmp() Í¨¹ıxCmp()º¯Êı´¦ÀíÎÄ±¾±àÂë*/
+  void *pUser;          /* First argument to xCmp() xCmp()º¯ÊıµÄÊ×²Î*/
   int (*xCmp)(void*,int, const void*, int, const void*);
-  void (*xDel)(void*);  /* Destructor for pUser , pUserçš„ææ„å‡½æ•°*/
+  void (*xDel)(void*);  /* Destructor for pUser , pUserµÄÎö¹¹º¯Êı*/
 };
 
 /*
 ** A sort order can be either ASC or DESC.
- æŒ‰ç…§å‡åºæˆ–è€…é™åºæ’åˆ—
+ °´ÕÕÉıĞò»òÕß½µĞòÅÅÁĞ
 */
-#define SQLITE_SO_ASC       0  /* Sort in ascending order å‡åºæ’åˆ—*/
-#define SQLITE_SO_DESC      1  /* Sort in ascending order å‡åºæ’åˆ—*/
+#define SQLITE_SO_ASC       0  /* Sort in ascending order ÉıĞòÅÅÁĞ*/
+#define SQLITE_SO_DESC      1  /* Sort in ascending order ÉıĞòÅÅÁĞ*/
 
 /*
 ** Column affinity types.
-** åˆ—å…³è”ç±»å‹ã€‚
+** ÁĞ¹ØÁªÀàĞÍ¡£
 **
 ** These used to have mnemonic name like 'i' for SQLITE_AFF_INTEGER and
 ** 't' for SQLITE_AFF_TEXT.  But we can save a little space and improve
 ** the speed a little by numbering the values consecutively.
-** è¿™äº›å®šä¹‰æ›¾ä¹Ÿæœ‰åŠ©è®°çš„åå­—ï¼Œå°±åƒ'i'å¯¹äºSQLITE_AFF_INTEGERï¼Œ't'å¯¹äºSQLITE_AFF_TEXT.
-** ä½†æ˜¯ï¼Œæˆ‘ä»¬å¯ä»¥é€šè¿‡å°†è¿™äº›å€¼è¿›è¡Œè¿ç»­åœ°ç¼–å·èŠ‚çœä¸€ç‚¹ç©ºé—´ï¼Œæé«˜ä¸€ç‚¹é€Ÿåº¦.
+** ÕâĞ©¶¨ÒåÔøÒ²ÓĞÖú¼ÇµÄÃû×Ö£¬¾ÍÏñ'i'¶ÔÓÚSQLITE_AFF_INTEGER£¬'t'¶ÔÓÚSQLITE_AFF_TEXT.
+** µ«ÊÇ£¬ÎÒÃÇ¿ÉÒÔÍ¨¹ı½«ÕâĞ©Öµ½øĞĞÁ¬ĞøµØ±àºÅ½ÚÊ¡Ò»µã¿Õ¼ä£¬Ìá¸ßÒ»µãËÙ¶È.
 **
 ** But rather than start with 0 or 1, we begin with 'a'.  That way,
 ** when multiple affinity types are concatenated into a string and
 ** used as the P4 operand, they will be more readable.
-** ä½†æ˜¯,æˆ‘ä»¬ä»¥'a'å¼€å§‹ç¼–å·çš„ï¼Œè€Œä¸æ˜¯å…ˆä»0æˆ–1ã€‚é€šè¿‡è¿™ç§æ–¹å¼ï¼Œå½“å¤šä¸ªå…³è”ç±»å‹è¿æ¥æˆä¸€ä¸ªå­—ç¬¦ä¸²ï¼Œå¹¶ä½œä¸ºP4æ“ä½œæ•°ï¼Œä»–ä»¬ä¼šæ›´æ˜“è¯»
-** è¿˜éœ€è¦æ³¨æ„çš„æ˜¯æ•°å­—ç±»å‹è¢«åˆ†ç»„åœ¨ä¸€èµ·ï¼Œæ‰€ä»¥å¯¹äºä¸€ä¸ªæ•°å­—ç±»å‹çš„æµ‹è¯•åªæ˜¯ä¸€ä¸ªå•ä¸€çš„æ¯”è¾ƒ.
+** µ«ÊÇ,ÎÒÃÇÒÔ'a'¿ªÊ¼±àºÅµÄ£¬¶ø²»ÊÇÏÈ´Ó0»ò1¡£Í¨¹ıÕâÖÖ·½Ê½£¬µ±¶à¸ö¹ØÁªÀàĞÍÁ¬½Ó³ÉÒ»¸ö×Ö·û´®£¬²¢×÷ÎªP4²Ù×÷Êı£¬ËûÃÇ»á¸üÒ×¶Á
+** »¹ĞèÒª×¢ÒâµÄÊÇÊı×ÖÀàĞÍ±»·Ö×éÔÚÒ»Æğ£¬ËùÒÔ¶ÔÓÚÒ»¸öÊı×ÖÀàĞÍµÄ²âÊÔÖ»ÊÇÒ»¸öµ¥Ò»µÄ±È½Ï.
 **
 ** Note also that the numeric types are grouped together so that testing
 ** for a numeric type is a single comparison.
-**è¿˜éœ€è¦æ³¨æ„çš„æ˜¯æ•°å­—ç±»å‹è¢«åˆ†ç»„åœ¨ä¸€èµ·ï¼Œæ‰€ä»¥å¯¹äºä¸€ä¸ªæ•°å­—ç±»å‹çš„æµ‹è¯•åªæ˜¯ä¸€ä¸ªå•ä¸€çš„æ¯”è¾ƒ.
+**»¹ĞèÒª×¢ÒâµÄÊÇÊı×ÖÀàĞÍ±»·Ö×éÔÚÒ»Æğ£¬ËùÒÔ¶ÔÓÚÒ»¸öÊı×ÖÀàĞÍµÄ²âÊÔÖ»ÊÇÒ»¸öµ¥Ò»µÄ±È½Ï.
 */
 #define SQLITE_AFF_TEXT     'a'
 #define SQLITE_AFF_NONE     'b'
@@ -1243,27 +1243,27 @@ struct CollSeq {
 /*
 ** The SQLITE_AFF_MASK values masks off the significant bits of an
 ** affinity value.
-** SQLITE_AFF_MASKçš„å€¼å±è”½äº†ä¸€ä¸ªè¿‘ä¼¼å€¼çš„æœ‰æ•ˆä½
+** SQLITE_AFF_MASKµÄÖµÆÁ±ÎÁËÒ»¸ö½üËÆÖµµÄÓĞĞ§Î»
 */
 #define SQLITE_AFF_MASK     0x67
 
 /*
 ** Additional bit values that can be ORed with an affinity without
 ** changing the affinity.
-** å¯ä»¥ä¸è¿‘ä¼¼å€¼è¿›è¡Œæˆ–è¿ç®—ï¼Œè€Œä¸æ”¹å˜è¿‘ä¼¼å€¼
+** ¿ÉÒÔÓë½üËÆÖµ½øĞĞ»òÔËËã£¬¶ø²»¸Ä±ä½üËÆÖµ
 */
 #define SQLITE_JUMPIFNULL   0x08  /* jumps if either operand is NULL 
-								  ** è‹¥æ“ä½œæ•°ä¸ºç©ºåˆ™è·³è½¬
+								  ** Èô²Ù×÷ÊıÎª¿ÕÔòÌø×ª
 								  */
 #define SQLITE_STOREP2      0x10  /* Store result in reg[P2] rather than jump */
-								  ** å°†ç»“æœä¿å­˜åˆ°reg[P2]è€Œä¸æ˜¯è·³è½¬
+								  ** ½«½á¹û±£´æµ½reg[P2]¶ø²»ÊÇÌø×ª
 								  */
 #define SQLITE_NULLEQ       0x80  /* NULL=NULL */
 
 /*
 ** An object of this type is created for each virtual table present in
 ** the database schema.
-**ä¸ºæ•°æ®åº“æ¨¡å¼ä¸­å­˜åœ¨çš„æ¯ä¸€ä¸ªè™šæ‹Ÿè¡¨åˆ›å»ºä¸€ä¸ªè¯¥ç±»å‹çš„å¯¹è±¡
+**ÎªÊı¾İ¿âÄ£Ê½ÖĞ´æÔÚµÄÃ¿Ò»¸öĞéÄâ±í´´½¨Ò»¸ö¸ÃÀàĞÍµÄ¶ÔÏó
 ** If the database schema is shared, then there is one instance of this
 ** structure for each database connection (sqlite3*) that uses the shared
 ** schema. This is because each database connection requires its own unique
@@ -1277,11 +1277,11 @@ struct CollSeq {
 ** within the database. So that they appear as part of the callers
 ** transaction, these accesses need to be made via the same database
 ** connection as that used to execute SQL operations on the virtual table.
-**è‹¥æ•°æ®åº“æ¨¡å¼æ˜¯å…±äº«çš„ï¼Œé‚£ä¹ˆä½¿ç”¨è¿™ä¸ªå…±äº«æ¨¡å¼çš„æ¯ä¸€ä¸ªæ•°æ®åº“é“¾æ¥éƒ½ä¼šæœ‰ä¸€ä¸ªè¿™ä¸ªç»“æ„ä½“ç±»å‹çš„å®ä¾‹.
-**è¿™æ˜¯å› ä¸ºï¼Œæ¯ä¸ªæ•°æ®åº“è¿æ¥éœ€è¦å…¶è‡ªå·±çš„å”¯ä¸€sqlite3_vtab*æ‰‹æŸ„çš„å®ä¾‹æ¥è®¿é—®è™šæ‹Ÿè¡¨çš„å®ç°.
-**sqlite3_vtab*æ‰‹æŸ„ä¸èƒ½è¢«æ•°æ®åº“è¿æ¥ä¹‹é—´å…±äº«ï¼Œå³ä½¿å½“å­˜å‚¨å™¨å†…çš„æ•°æ®åº“æ¨¡å¼çš„å…¶ä½™éƒ¨åˆ†æ˜¯å…±äº«çš„.å› ä¸ºåœ¨å†…éƒ¨åˆå§‹åŒ–çš„æ—¶å€™ï¼Œé€šè¿‡xConnect() æˆ– xCreate()å°†æ•°æ®åº“é“¾æ¥å¥æŸ„ä¼ é€’ç»™å…¶å®ç°
-**è¿™ä¸ªæ•°æ®åº“é“¾æ¥å¥æŸ„æˆ–è®¸å°†ä¼šè¢«è™šæ‹Ÿè¡¨çš„å®ç°æ‰€ç”¨ï¼Œç”¨äºè®¿é—®åœ¨æ•°æ®åº“ä¸­çš„å®è¡¨.
-**æ‰€ä»¥ä»–ä»¬å°†ä¼šä½œä¸ºè°ƒç”¨è€…äº‹åŠ¡å¤„ç†çš„ä¸€éƒ¨åˆ†ï¼Œè¿™äº›è®¿é—®éœ€è¦é€šè¿‡ç›¸åŒçš„æ•°æ®åº“è¿æ¥æ¥å®ç°ï¼Œå°±åƒåœ¨è™šæ‹Ÿè¡¨ä¸Šæ‰§è¡ŒSQLæ“ä½œä¸€æ ·
+**ÈôÊı¾İ¿âÄ£Ê½ÊÇ¹²ÏíµÄ£¬ÄÇÃ´Ê¹ÓÃÕâ¸ö¹²ÏíÄ£Ê½µÄÃ¿Ò»¸öÊı¾İ¿âÁ´½Ó¶¼»áÓĞÒ»¸öÕâ¸ö½á¹¹ÌåÀàĞÍµÄÊµÀı.
+**ÕâÊÇÒòÎª£¬Ã¿¸öÊı¾İ¿âÁ¬½ÓĞèÒªÆä×Ô¼ºµÄÎ¨Ò»sqlite3_vtab*ÊÖ±úµÄÊµÀıÀ´·ÃÎÊĞéÄâ±íµÄÊµÏÖ.
+**sqlite3_vtab*ÊÖ±ú²»ÄÜ±»Êı¾İ¿âÁ¬½ÓÖ®¼ä¹²Ïí£¬¼´Ê¹µ±´æ´¢Æ÷ÄÚµÄÊı¾İ¿âÄ£Ê½µÄÆäÓà²¿·ÖÊÇ¹²ÏíµÄ.ÒòÎªÔÚÄÚ²¿³õÊ¼»¯µÄÊ±ºò£¬Í¨¹ıxConnect() »ò xCreate()½«Êı¾İ¿âÁ´½Ó¾ä±ú´«µİ¸øÆäÊµÏÖ
+**Õâ¸öÊı¾İ¿âÁ´½Ó¾ä±ú»òĞí½«»á±»ĞéÄâ±íµÄÊµÏÖËùÓÃ£¬ÓÃÓÚ·ÃÎÊÔÚÊı¾İ¿âÖĞµÄÊµ±í.
+**ËùÒÔËûÃÇ½«»á×÷Îªµ÷ÓÃÕßÊÂÎñ´¦ÀíµÄÒ»²¿·Ö£¬ÕâĞ©·ÃÎÊĞèÒªÍ¨¹ıÏàÍ¬µÄÊı¾İ¿âÁ¬½ÓÀ´ÊµÏÖ£¬¾ÍÏñÔÚĞéÄâ±íÉÏÖ´ĞĞSQL²Ù×÷Ò»Ñù
 **
 **
 ** All VTable objects that correspond to a single table in a shared
@@ -1291,8 +1291,8 @@ struct CollSeq {
 ** table, it searches the list for the VTable that corresponds to the
 ** database connection doing the preparing so as to use the correct
 ** sqlite3_vtab* handle in the compiled query.
-**åœ¨ä¸€ä¸ªå…±äº«æ•°æ®åº“æ¨¡å¼ä¸­å¯¹åº”äºå•ä¸ªè¡¨çš„æ‰€æœ‰VTableå¯¹è±¡å¼€å§‹éƒ½è¢«å‚¨å­˜åœ¨ç”±ç›¸åº”è¡¨å¯¹è±¡çš„æˆå‘˜å˜é‡ Table.pVTableæ‰€æŒ‡å‘çš„ä¸€ä¸ªé“¾æ¥è¡¨ä¸­.
-**å½“ä¸€ä¸ªsqlite3_prepare()æ“ä½œéœ€è¦è®¿é—®è™šæ‹Ÿè¡¨ï¼Œå®ƒä¼šæŸ¥æ‰¾ä¸æ•°æ®åº“é“¾æ¥ç›¸å¯¹åº”çš„çš„VTableçš„åˆ—è¡¨ï¼Œä¸ºåœ¨ç¼–è¯‘æŸ¥è¯¢æ—¶ä½¿ç”¨æ­£ç¡®çš„sqlite3_vtab*å¥æŸ„åšå‡†å¤‡
+**ÔÚÒ»¸ö¹²ÏíÊı¾İ¿âÄ£Ê½ÖĞ¶ÔÓ¦ÓÚµ¥¸ö±íµÄËùÓĞVTable¶ÔÏó¿ªÊ¼¶¼±»´¢´æÔÚÓÉÏàÓ¦±í¶ÔÏóµÄ³ÉÔ±±äÁ¿ Table.pVTableËùÖ¸ÏòµÄÒ»¸öÁ´½Ó±íÖĞ.
+**µ±Ò»¸ösqlite3_prepare()²Ù×÷ĞèÒª·ÃÎÊĞéÄâ±í£¬Ëü»á²éÕÒÓëÊı¾İ¿âÁ´½ÓÏà¶ÔÓ¦µÄµÄVTableµÄÁĞ±í£¬ÎªÔÚ±àÒë²éÑ¯Ê±Ê¹ÓÃÕıÈ·µÄsqlite3_vtab*¾ä±ú×ö×¼±¸
 ** When an in-memory Table object is deleted (for example when the
 ** schema is being reloaded for some reason), the VTable objects are not 
 ** deleted and the sqlite3_vtab* handles are not xDisconnect()ed 
@@ -1304,38 +1304,38 @@ struct CollSeq {
 ** Refer to comments above function sqlite3VtabUnlockList() for an
 ** explanation as to why it is safe to add an entry to an sqlite3.pDisconnect
 ** list without holding the corresponding sqlite3.mutex mutex.
-**å½“åœ¨å†…å­˜ä¸­çš„è¡¨å¯¹è±¡è¢«åˆ é™¤ï¼ˆä¾‹å¦‚ï¼Œå½“æ¨¡å¼ç”±äºæŸç§åŸå› è¢«é‡æ–°åŠ è½½ï¼‰ï¼Œåˆ™è™šå‡½æ•°è¡¨çš„å¯¹è±¡ä¸ä¼šè¢«ç«‹åˆ»åˆ é™¤ï¼Œsqlite3_vtab*å¥æŸ„ä¹Ÿä¸ä¼šç«‹å³æ–­å¼€é“¾æ¥.
-**ç›¸åï¼Œå®ƒä»¬ä¼šä»Table.pVTableåˆ—è¡¨ç§»åŠ¨åˆ°å¦ä¸€ä¸ªç”±ç›¸åº”çš„sqlite3ç»“æ„ä½“çš„sqlite3.pDisconnectæˆå‘˜å¼€å¤´çš„é“¾æ¥åˆ—è¡¨ä¸­.
-**ç„¶åå®ƒä»¬ä¼šè¢«sqlite3*æ‰§è¡Œçš„ä¸€æ¡è¯­å¥åœ¨ä¸‹ä¸€æ¬¡åˆ é™¤æˆ–è€…æ˜¯æ–­å¼€é“¾æ¥,è¿™æ ·åšæ˜¯ä¸ºäº†é¿å…æ¶‰åŠå¤šä¸ªsqlite3.mutexäº’æ–¥æ­»é”é—®é¢˜.
-**è¯·å‚è€ƒä¸Šé¢çš„å‡½æ•°sqlite3VtabUnlockListï¼ˆï¼‰è¯„è®ºä½œå‡ºè§£é‡Šï¼Œä¸ºä»€ä¹ˆå®ƒæ˜¯å®‰å…¨çš„,ä¸æŒæœ‰ç›¸åº”sqlite3.mutexäº’æ–¥æ¡ç›®æ·»åŠ åˆ°åˆ—è¡¨sqlite3.pDisconnec.
+**µ±ÔÚÄÚ´æÖĞµÄ±í¶ÔÏó±»É¾³ı£¨ÀıÈç£¬µ±Ä£Ê½ÓÉÓÚÄ³ÖÖÔ­Òò±»ÖØĞÂ¼ÓÔØ£©£¬ÔòĞéº¯Êı±íµÄ¶ÔÏó²»»á±»Á¢¿ÌÉ¾³ı£¬sqlite3_vtab*¾ä±úÒ²²»»áÁ¢¼´¶Ï¿ªÁ´½Ó.
+**Ïà·´£¬ËüÃÇ»á´ÓTable.pVTableÁĞ±íÒÆ¶¯µ½ÁíÒ»¸öÓÉÏàÓ¦µÄsqlite3½á¹¹ÌåµÄsqlite3.pDisconnect³ÉÔ±¿ªÍ·µÄÁ´½ÓÁĞ±íÖĞ.
+**È»ºóËüÃÇ»á±»sqlite3*Ö´ĞĞµÄÒ»ÌõÓï¾äÔÚÏÂÒ»´ÎÉ¾³ı»òÕßÊÇ¶Ï¿ªÁ´½Ó,ÕâÑù×öÊÇÎªÁË±ÜÃâÉæ¼°¶à¸ösqlite3.mutex»¥³âËÀËøÎÊÌâ.
+**Çë²Î¿¼ÉÏÃæµÄº¯Êısqlite3VtabUnlockList£¨£©ÆÀÂÛ×÷³ö½âÊÍ£¬ÎªÊ²Ã´ËüÊÇ°²È«µÄ,²»³ÖÓĞÏàÓ¦sqlite3.mutex»¥³âÌõÄ¿Ìí¼Óµ½ÁĞ±ísqlite3.pDisconnec.
 **
 ** The memory for objects of this type is always allocated by 
 ** sqlite3DbMalloc(), using the connection handle stored in VTable.db as 
 ** the first argument.
-**è¿™ä¸ªç±»å‹çš„å¯¹è±¡çš„å†…å­˜æ€»æ˜¯é€šè¿‡å­˜å‚¨åœ¨VTable.dbä¸­ä½œä¸ºé¦–å‚çš„é“¾æ¥å¥æŸ„é€šè¿‡sqlite3DbMalloc()å‡½æ•°è¿›è¡Œåˆ†é….
+**Õâ¸öÀàĞÍµÄ¶ÔÏóµÄÄÚ´æ×ÜÊÇÍ¨¹ı´æ´¢ÔÚVTable.dbÖĞ×÷ÎªÊ×²ÎµÄÁ´½Ó¾ä±úÍ¨¹ısqlite3DbMalloc()º¯Êı½øĞĞ·ÖÅä.
 **
 */
 struct VTable {
-  sqlite3 *db;              /* Database connection associated with this table ä¸æ­¤è¡¨ç›¸å…³çš„æ•°æ®åº“é“¾æ¥*/
-  Module *pMod;             /* Pointer to module implementation æŒ‡å‘æ¨¡å—å®ç°çš„æŒ‡é’ˆ*/
-  sqlite3_vtab *pVtab;      /* Pointer to vtab instance æŒ‡å‘vtabå®ä¾‹çš„æŒ‡é’ˆ*/
-  int nRef;                 /* Number of pointers to this structure æŒ‡å‘è¿™ä¸ªç»“æ„ä½“çš„æŒ‡é’ˆçš„æ•°é‡*/
-  u8 bConstraint;           /* True if constraints are supported å¦‚æœçº¦æŸæ”¯æŒçš„è¯å³ä¸ºçœŸ*/
-  int iSavepoint;           /* Depth of the SAVEPOINT stack ä¿å­˜ç‚¹æ ˆçš„æ·±åº¦*/
-  VTable *pNext;            /* Next in linked list (see above)  é“¾æ¥åˆ—è¡¨ä¸­çš„ä¸‹ä¸€ä¸ª*/
+  sqlite3 *db;              /* Database connection associated with this table Óë´Ë±íÏà¹ØµÄÊı¾İ¿âÁ´½Ó*/
+  Module *pMod;             /* Pointer to module implementation Ö¸ÏòÄ£¿éÊµÏÖµÄÖ¸Õë*/
+  sqlite3_vtab *pVtab;      /* Pointer to vtab instance Ö¸ÏòvtabÊµÀıµÄÖ¸Õë*/
+  int nRef;                 /* Number of pointers to this structure Ö¸ÏòÕâ¸ö½á¹¹ÌåµÄÖ¸ÕëµÄÊıÁ¿*/
+  u8 bConstraint;           /* True if constraints are supported Èç¹ûÔ¼ÊøÖ§³ÖµÄ»°¼´ÎªÕæ*/
+  int iSavepoint;           /* Depth of the SAVEPOINT stack ±£´æµãÕ»µÄÉî¶È*/
+  VTable *pNext;            /* Next in linked list (see above)  Á´½ÓÁĞ±íÖĞµÄÏÂÒ»¸ö*/
 };
 
 /*
 ** Each SQL table is represented in memory by an instance of the
 ** following structure.
-**æ¯ä¸ªSQLè¡¨ç”±ä»¥ä¸‹ç»“æ„çš„ä¸€ä¸ªå®ä¾‹è¡¨ç¤ºåœ¨å­˜å‚¨å™¨ä¸­.
+**Ã¿¸öSQL±íÓÉÒÔÏÂ½á¹¹µÄÒ»¸öÊµÀı±íÊ¾ÔÚ´æ´¢Æ÷ÖĞ.
 ** Table.zName is the name of the table.  The case of the original
 ** CREATE TABLE statement is stored, but case is not significant for
 ** comparisons.
-**Table.zNameæ˜¯è¿™ä¸ªè¡¨çš„åå­—.å¼€å§‹çš„åˆ›å»ºè¡¨è¯­å¥çš„å®ä¾‹è¢«å­˜å‚¨ï¼Œä½†æ˜¯æ¯”è¾ƒè€Œè¨€è¿™ä¸ªå®ä¾‹å¹¶ä¸æ˜¯é‚£æ ·é‡è¦.
+**Table.zNameÊÇÕâ¸ö±íµÄÃû×Ö.¿ªÊ¼µÄ´´½¨±íÓï¾äµÄÊµÀı±»´æ´¢£¬µ«ÊÇ±È½Ï¶øÑÔÕâ¸öÊµÀı²¢²»ÊÇÄÇÑùÖØÒª.
 ** Table.nCol is the number of columns in this table.  Table.aCol is a
 ** pointer to an array of Column structures, one for each column.
-**Table.nColæ˜¯è¿™ä¸ªè¡¨é‡Œé¢åˆ—çš„æ•°é‡.Table.aColæ˜¯ä¸€ä¸ªæŒ‡å‘ä¸ºæ¯ä¸€åˆ—æ‰€æœ‰çš„åˆ—ç»“æ„ä½“æ•°ç»„çš„æŒ‡é’ˆ.
+**Table.nColÊÇÕâ¸ö±íÀïÃæÁĞµÄÊıÁ¿.Table.aColÊÇÒ»¸öÖ¸ÏòÎªÃ¿Ò»ÁĞËùÓĞµÄÁĞ½á¹¹ÌåÊı×éµÄÖ¸Õë.
 ** If the table has an INTEGER PRIMARY KEY, then Table.iPKey is the index of
 ** the column that is that key.   Otherwise Table.iPKey is negative.  Note
 ** that the datatype of the PRIMARY KEY must be INTEGER for this field to
@@ -1343,11 +1343,11 @@ struct VTable {
 ** the table.  If a table has no INTEGER PRIMARY KEY, then a random rowid
 ** is generated for each row of the table.  TF_HasPrimaryKey is set if
 ** the table has any PRIMARY KEY, INTEGER or otherwise.
-**å¦‚æœè¡¨ä¸­æœ‰ä¸€ä¸ªæ•´å‹ä¸»é”®ï¼Œé‚£ä¹ˆTable.iPKeyæ˜¯è¯¥é”®æ‰€åœ¨åˆ—çš„ç´¢å¼•ã€‚å¦åˆ™Table.iPKeyä¸ºè´Ÿ.
-**éœ€è¦æ³¨æ„çš„æ˜¯ä¸ºäº†è¿™ä¸ªå­—æ®µçš„è®¾ç½®ï¼Œä¸»é”®çš„æ•°æ®ç±»å‹å¿…é¡»ä¸ºæ•´å‹.
-**ä¸»é”®è¢«ç”¨æ¥ä½œä¸ºè¡¨çš„æ¯ä¸€è¡Œçš„æ ‡å¿—.
-**è‹¥è¡¨æ²¡æœ‰æ•´å‹çš„ä¸»é”®ï¼Œåˆ™ä¸ºè¡¨çš„æ¯ä¸€è¡Œéšæœºäº§ç”Ÿä¸€ä¸ªéšæœºçš„è¡Œæ ‡.
-**è‹¥è¡¨æ²¡æœ‰æ•´å‹æˆ–è€…å…¶å®ƒç±»å‹çš„ä»»ä½•ä¸»é”®ï¼Œåˆ™TF_HasPrimaryKeyå°†ä¼šè¢«è®¾ç½®.
+**Èç¹û±íÖĞÓĞÒ»¸öÕûĞÍÖ÷¼ü£¬ÄÇÃ´Table.iPKeyÊÇ¸Ã¼üËùÔÚÁĞµÄË÷Òı¡£·ñÔòTable.iPKeyÎª¸º.
+**ĞèÒª×¢ÒâµÄÊÇÎªÁËÕâ¸ö×Ö¶ÎµÄÉèÖÃ£¬Ö÷¼üµÄÊı¾İÀàĞÍ±ØĞëÎªÕûĞÍ.
+**Ö÷¼ü±»ÓÃÀ´×÷Îª±íµÄÃ¿Ò»ĞĞµÄ±êÖ¾.
+**Èô±íÃ»ÓĞÕûĞÍµÄÖ÷¼ü£¬ÔòÎª±íµÄÃ¿Ò»ĞĞËæ»ú²úÉúÒ»¸öËæ»úµÄĞĞ±ê.
+**Èô±íÃ»ÓĞÕûĞÍ»òÕßÆäËüÀàĞÍµÄÈÎºÎÖ÷¼ü£¬ÔòTF_HasPrimaryKey½«»á±»ÉèÖÃ.
 **
 ** Table.tnum is the page number for the root BTree page of the table in the
 ** database file.  If Table.iDb is the index of the database table backend
@@ -1359,60 +1359,60 @@ struct VTable {
 ** page number.  Transient tables are used to hold the results of a
 ** sub-query that appears instead of a real table name in the FROM clause 
 ** of a SELECT statement.
-**Table.tnumè¡¨çš„æ•°æ®åº“æ–‡ä»¶ä¸­çš„Bæ ‘çš„æ ¹é¡µé¢çš„é¡µç .
-**å¦‚æœTable.iDæ˜¯sqlite.aDb[]ä¸­æ•°æ®åº“è¡¨åç«¯çš„ç´¢å¼•.0æ˜¯å¯¹äºä¸»æ•°æ®åº“,1æ˜¯ç”¨äºä¿å­˜ä¸´æ—¶è¡¨å’Œç´¢å¼•æ–‡ä»¶.
-**å¦‚æœTF_Ephemeralè¢«è®¾ç½®ï¼Œé‚£ä¹ˆè¯¥è¡¨å°†è¢«å­˜å‚¨åœ¨å½“VDBEå…‰æ ‡ç§»åŠ¨åˆ°è¡¨è¢«å…³é—­æ—¶ï¼Œå°†ä¼šè¢«ç³»ç»Ÿè‡ªåŠ¨åˆ é™¤çš„æ–‡ä»¶ä¸­.
-**åœ¨è¿™ç§æƒ…å†µä¸‹ï¼ŒTable.tnumæŒ‡çš„æ˜¯æŒæœ‰æ‰“å¼€è¡¨æƒé™çš„VDBEçš„å…‰æ ‡å·ï¼Œè€Œä¸æ˜¯æ ¹é¡µå·.
-**æš‚å­˜è¡¨å­˜å‚¨çš„æ˜¯å‡ºç°çš„å­æŸ¥è¯¢çš„ç»“æœï¼Œè€Œä¸æ˜¯åœ¨ select...fromè¯­å¥ä¸­æ‰€å‡ºç°çš„çœŸå®çš„è¡¨å.
+**Table.tnum±íµÄÊı¾İ¿âÎÄ¼şÖĞµÄBÊ÷µÄ¸ùÒ³ÃæµÄÒ³Âë.
+**Èç¹ûTable.iDÊÇsqlite.aDb[]ÖĞÊı¾İ¿â±íºó¶ËµÄË÷Òı.0ÊÇ¶ÔÓÚÖ÷Êı¾İ¿â,1ÊÇÓÃÓÚ±£´æÁÙÊ±±íºÍË÷ÒıÎÄ¼ş.
+**Èç¹ûTF_Ephemeral±»ÉèÖÃ£¬ÄÇÃ´¸Ã±í½«±»´æ´¢ÔÚµ±VDBE¹â±êÒÆ¶¯µ½±í±»¹Ø±ÕÊ±£¬½«»á±»ÏµÍ³×Ô¶¯É¾³ıµÄÎÄ¼şÖĞ.
+**ÔÚÕâÖÖÇé¿öÏÂ£¬Table.tnumÖ¸µÄÊÇ³ÖÓĞ´ò¿ª±íÈ¨ÏŞµÄVDBEµÄ¹â±êºÅ£¬¶ø²»ÊÇ¸ùÒ³ºÅ.
+**Ôİ´æ±í´æ´¢µÄÊÇ³öÏÖµÄ×Ó²éÑ¯µÄ½á¹û£¬¶ø²»ÊÇÔÚ select...fromÓï¾äÖĞËù³öÏÖµÄÕæÊµµÄ±íÃû.
 **
 **
 */
 struct Table {
-  char *zName;         /* Name of the table or view è¡¨æˆ–è€…è§†å›¾çš„åå­—*/
-  int iPKey;           /* If not negative, use aCol[iPKey] as the primary key è‹¥ä¸ä¸ºè´Ÿï¼Œç”¨aCol[iPKey]ä½œä¸ºä¸»é”®*/
-  int nCol;            /* Number of columns in this table è¡¨çš„åˆ—å·*/
-  Column *aCol;        /* Information about each column æ¯ä¸€åˆ—çš„ä¿¡æ¯*/
-  Index *pIndex;       /* List of SQL indexes on this table. è¡¨ä¸­çš„SQLä¸‹æ ‡åˆ—è¡¨*/
-  int tnum;            /* Root BTree node for this table (see note above) è¡¨çš„Bæ ‘çš„æ ¹èŠ‚ç‚¹*/
-  tRowcnt nRowEst;     /* Estimated rows in table - from sqlite_stat1 table ä¼°è®¡åœ¨è¡¨ä¸­çš„è¡Œæ•°- ä»sqlite_stat1è¡¨*/
-  Select *pSelect;     /* NULL for tables.  Points to definition if a view. è‹¥æ˜¯è¡¨åˆ™ä¸ºç©ºï¼Œè‹¥æ˜¯ä¸€ä¸ªè§†å›¾åˆ™æŒ‡å‘å®šä¹‰*/
-  u16 nRef;            /* Number of pointers to this Table æŒ‡å‘è¿™ä¸ªè¡¨çš„æŒ‡é’ˆæ•°ç›®*/
-  u8 tabFlags;         /* Mask of TF_* values å±è”½TF_*çš„å€¼*/
-  u8 keyConf;          /* What to do in case of uniqueness conflict on iPKey è‹¥åœ¨iPKeyä¸Šå­˜åœ¨å”¯ä¸€æ€§å†²çªçš„æƒ…å†µå°†åšä»€ä¹ˆ*/
-  FKey *pFKey;         /* Linked list of all foreign keys in this table æ­¤è¡¨çš„æ‰€æœ‰å¤–é”®çš„é“¾æ¥åˆ—è¡¨*/
-  char *zColAff;       /* String defining the affinity of each column æ¯ä¸€åˆ—è¿‘ä¼¼å€¼çš„å­—ç¬¦ä¸²å®šä¹‰*/
+  char *zName;         /* Name of the table or view ±í»òÕßÊÓÍ¼µÄÃû×Ö*/
+  int iPKey;           /* If not negative, use aCol[iPKey] as the primary key Èô²»Îª¸º£¬ÓÃaCol[iPKey]×÷ÎªÖ÷¼ü*/
+  int nCol;            /* Number of columns in this table ±íµÄÁĞºÅ*/
+  Column *aCol;        /* Information about each column Ã¿Ò»ÁĞµÄĞÅÏ¢*/
+  Index *pIndex;       /* List of SQL indexes on this table. ±íÖĞµÄSQLÏÂ±êÁĞ±í*/
+  int tnum;            /* Root BTree node for this table (see note above) ±íµÄBÊ÷µÄ¸ù½Úµã*/
+  tRowcnt nRowEst;     /* Estimated rows in table - from sqlite_stat1 table ¹À¼ÆÔÚ±íÖĞµÄĞĞÊı- ´Ósqlite_stat1±í*/
+  Select *pSelect;     /* NULL for tables.  Points to definition if a view. ÈôÊÇ±íÔòÎª¿Õ£¬ÈôÊÇÒ»¸öÊÓÍ¼ÔòÖ¸Ïò¶¨Òå*/
+  u16 nRef;            /* Number of pointers to this Table Ö¸ÏòÕâ¸ö±íµÄÖ¸ÕëÊıÄ¿*/
+  u8 tabFlags;         /* Mask of TF_* values ÆÁ±ÎTF_*µÄÖµ*/
+  u8 keyConf;          /* What to do in case of uniqueness conflict on iPKey ÈôÔÚiPKeyÉÏ´æÔÚÎ¨Ò»ĞÔ³åÍ»µÄÇé¿ö½«×öÊ²Ã´*/
+  FKey *pFKey;         /* Linked list of all foreign keys in this table ´Ë±íµÄËùÓĞÍâ¼üµÄÁ´½ÓÁĞ±í*/
+  char *zColAff;       /* String defining the affinity of each column Ã¿Ò»ÁĞ½üËÆÖµµÄ×Ö·û´®¶¨Òå*/
 #ifndef SQLITE_OMIT_CHECK
-  ExprList *pCheck;    /* All CHECK constraints æ‰€æœ‰çš„æ£€æŸ¥çº¦æŸ*/
+  ExprList *pCheck;    /* All CHECK constraints ËùÓĞµÄ¼ì²éÔ¼Êø*/
 #endif
 #ifndef SQLITE_OMIT_ALTERTABLE
-  int addColOffset;    /* Offset in CREATE TABLE stmt to add a new column åœ¨åˆ›å»ºè¡¨è¯­å¥ä¸­æ·»åŠ ä¸€åˆ—çš„åç§»é‡*/
+  int addColOffset;    /* Offset in CREATE TABLE stmt to add a new column ÔÚ´´½¨±íÓï¾äÖĞÌí¼ÓÒ»ÁĞµÄÆ«ÒÆÁ¿*/
 #endif
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  VTable *pVTable;     /* List of VTable objects. VTableå¯¹è±¡åˆ—è¡¨*/
-  int nModuleArg;      /* Number of arguments to the module  æ¨¡å—å‚æ•°çš„æ•°ç›®*/
-  char **azModuleArg;  /* Text of all module args. [0] is module name æ‰€æœ‰æ¨¡å—å‚æ•°çš„æ–‡æœ¬ï¼Œ[0]æ˜¯æ¨¡å—çš„åå­—/
+  VTable *pVTable;     /* List of VTable objects. VTable¶ÔÏóÁĞ±í*/
+  int nModuleArg;      /* Number of arguments to the module  Ä£¿é²ÎÊıµÄÊıÄ¿*/
+  char **azModuleArg;  /* Text of all module args. [0] is module name ËùÓĞÄ£¿é²ÎÊıµÄÎÄ±¾£¬[0]ÊÇÄ£¿éµÄÃû×Ö/
 #endif
-  Trigger *pTrigger;   /* List of triggers stored in pSchema å­˜å‚¨åœ¨pSchemaä¸­çš„è§¦å‘å™¨åˆ—è¡¨*/
-  Schema *pSchema;     /* Schema that contains this table åŒ…å«æ­¤è¡¨çš„æ¨¡å¼*/
-  Table *pNextZombie;  /* Next on the Parse.pZombieTab list åœ¨Parse.pZombieTabåˆ—è¡¨çš„ä¸‹ä¸€ä¸ª*/
+  Trigger *pTrigger;   /* List of triggers stored in pSchema ´æ´¢ÔÚpSchemaÖĞµÄ´¥·¢Æ÷ÁĞ±í*/
+  Schema *pSchema;     /* Schema that contains this table °üº¬´Ë±íµÄÄ£Ê½*/
+  Table *pNextZombie;  /* Next on the Parse.pZombieTab list ÔÚParse.pZombieTabÁĞ±íµÄÏÂÒ»¸ö*/
 };
 
 /*
 ** Allowed values for Tabe.tabFlags.
-**Tabe.tabFlagsçš„å¯èƒ½å€¼
+**Tabe.tabFlagsµÄ¿ÉÄÜÖµ
 */
-#define TF_Readonly        0x01    /* Read-only system table åªè¯»ç³»ç»Ÿè¡¨*/
-#define TF_Ephemeral       0x02    /* An ephemeral table ä¸€ä¸ªçŸ­æš‚çš„è¡¨*/
-#define TF_HasPrimaryKey   0x04    /* Table has a primary key æœ‰ä¸»é”®çš„è¡¨*/
-#define TF_Autoincrement   0x08    /* Integer primary key is autoincrement è‡ªå¢çš„æ•´å‹ä¸»é”®*/
-#define TF_Virtual         0x10    /* Is a virtual table æ˜¯ä¸€ä¸ªè™šè¡¨*/
+#define TF_Readonly        0x01    /* Read-only system table Ö»¶ÁÏµÍ³±í*/
+#define TF_Ephemeral       0x02    /* An ephemeral table Ò»¸ö¶ÌÔİµÄ±í*/
+#define TF_HasPrimaryKey   0x04    /* Table has a primary key ÓĞÖ÷¼üµÄ±í*/
+#define TF_Autoincrement   0x08    /* Integer primary key is autoincrement ×ÔÔöµÄÕûĞÍÖ÷¼ü*/
+#define TF_Virtual         0x10    /* Is a virtual table ÊÇÒ»¸öĞé±í*/
 
 
 /*
 ** Test to see whether or not a table is a virtual table.  This is
 ** done as a macro so that it will be optimized out when virtual
 ** table support is omitted from the build.
-**æµ‹è¯•è¯¥è¡¨æ˜¯å¦æ˜¯ä¸€ä¸ªè™šè¡¨
+**²âÊÔ¸Ã±íÊÇ·ñÊÇÒ»¸öĞé±í
 */
 #ifndef SQLITE_OMIT_VIRTUALTABLE
 #  define IsVirtual(X)      (((X)->tabFlags & TF_Virtual)!=0)
@@ -1424,11 +1424,11 @@ struct Table {
 
 /*
 ** Each foreign key constraint is an instance of the following structure.
-**æ¯ä¸€ä¸ªå¤–é”®çº¦æŸéƒ½æ˜¯å¦‚ä¸‹ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹.
+**Ã¿Ò»¸öÍâ¼üÔ¼Êø¶¼ÊÇÈçÏÂ½á¹¹ÌåµÄÒ»¸öÊµÀı.
 ** A foreign key is associated with two tables.  The "from" table is
 ** the table that contains the REFERENCES clause that creates the foreign
 ** key.  The "to" table is the table that is named in the REFERENCES clause.
-**å¤–é”®ä¸ä¸¤ä¸ªè¡¨å…³è”.â€œä»â€è¡¨æ˜¯åˆ›å»ºå¤–é”®å¹¶ä¸”åŒ…å«REFERENCESå­å¥çš„è¡¨ã€‚åœ¨â€œåˆ°â€è¡¨æ˜¯åœ¨referenceså­å¥ä¸­å‘½åçš„è¡¨.
+**Íâ¼üÓëÁ½¸ö±í¹ØÁª.¡°´Ó¡±±íÊÇ´´½¨Íâ¼ü²¢ÇÒ°üº¬REFERENCES×Ó¾äµÄ±í¡£ÔÚ¡°µ½¡±±íÊÇÔÚreferences×Ó¾äÖĞÃüÃûµÄ±í.
 **
 ** Consider this example:
 **
@@ -1438,29 +1438,29 @@ struct Table {
 **     );
 **
 ** For foreign key "fk1", the from-table is "ex1" and the to-table is "ex2".
-**å¯¹äºå¤–é”®"fk1"ï¼Œ"ex1"æ˜¯ä»è¡¨ï¼Œ"ex2"æ˜¯åˆ°è¡¨.
+**¶ÔÓÚÍâ¼ü"fk1"£¬"ex1"ÊÇ´Ó±í£¬"ex2"ÊÇµ½±í.
 ** Each REFERENCES clause generates an instance of the following structure
 ** which is attached to the from-table.  The to-table need not exist when
 ** the from-table is created.  The existence of the to-table is not checked.
-**æ¯ä¸€ä¸ªREFERENCESå­—å¥éƒ½ä¼šäº§ç”Ÿä¸€ä¸ªé™„å±äºä»è¡¨çš„å¦‚ä¸‹ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹.
-**å½“ä»è¡¨è¢«åˆ›å»ºçš„æ—¶å€™åˆ°è¡¨æ˜¯ä¸éœ€è¦å­˜åœ¨çš„ï¼Œä¸æ£€æŸ¥åˆ°è¡¨çš„å­˜åœ¨æ€§.
+**Ã¿Ò»¸öREFERENCES×Ö¾ä¶¼»á²úÉúÒ»¸ö¸½ÊôÓÚ´Ó±íµÄÈçÏÂ½á¹¹ÌåµÄÒ»¸öÊµÀı.
+**µ±´Ó±í±»´´½¨µÄÊ±ºòµ½±íÊÇ²»ĞèÒª´æÔÚµÄ£¬²»¼ì²éµ½±íµÄ´æÔÚĞÔ.
 **
 */
 struct FKey {
-  Table *pFrom;     /* Table containing the REFERENCES clause (aka: Child) åŒ…å«REFERENCESå­å¥çš„è¡¨*/
-  FKey *pNextFrom;  /* Next foreign key in pFrom åœ¨pFromä¸­çš„ä¸‹ä¸€ä¸ªå¤–é”®*/
-  char *zTo;        /* Name of table that the key points to (aka: Parent) é”®æ‰€æŒ‡å‘çš„è¡¨å*/
-  FKey *pNextTo;    /* Next foreign key on table named zTo åœ¨è¡¨zToä¸Šçš„ä¸‹ä¸€ä¸ªå¤–é”®*/
-  FKey *pPrevTo;    /* Previous foreign key on table named zTo è¡¨zToä¸Šçš„å…ˆå‰çš„å¤–é”®*/
-  int nCol;         /* Number of columns in this key åœ¨æ­¤é”®ä¸Šçš„åˆ—çš„æ•°ç›®*/
+  Table *pFrom;     /* Table containing the REFERENCES clause (aka: Child) °üº¬REFERENCES×Ó¾äµÄ±í*/
+  FKey *pNextFrom;  /* Next foreign key in pFrom ÔÚpFromÖĞµÄÏÂÒ»¸öÍâ¼ü*/
+  char *zTo;        /* Name of table that the key points to (aka: Parent) ¼üËùÖ¸ÏòµÄ±íÃû*/
+  FKey *pNextTo;    /* Next foreign key on table named zTo ÔÚ±ízToÉÏµÄÏÂÒ»¸öÍâ¼ü*/
+  FKey *pPrevTo;    /* Previous foreign key on table named zTo ±ízToÉÏµÄÏÈÇ°µÄÍâ¼ü*/
+  int nCol;         /* Number of columns in this key ÔÚ´Ë¼üÉÏµÄÁĞµÄÊıÄ¿*/
   /* EV: R-30323-21917 */
-  u8 isDeferred;    /* True if constraint checking is deferred till COMMIT å¦‚æœçº¦æŸæ£€æŸ¥è¢«æ¨è¿Ÿåˆ°COMMITï¼Œåˆ™ä¸ºçœŸ*/
-  u8 aAction[2];          /* ON DELETE and ON UPDATE actions, respectively åˆ†åˆ«ä¸ºON DELETEï¼ŒON UPDATEæ“ä½œ*/
-  Trigger *apTrigger[2];  /* Triggers for aAction[] actions , aAction[]æ“ä½œçš„è§¦å‘å™¨*/
-  struct sColMap {  /* Mapping of columns in pFrom to columns in zTo ä»è¡¨pFromåˆ°è¡¨zToçš„åˆ—æ˜ å°„*/
-    int iFrom;         /* Index of column in pFrom è¡¨pFromä¸­çš„åˆ—ç´¢å¼•*/
-    char *zCol;        /* Name of column in zTo.  If 0 use PRIMARY KEY è¡¨zToä¸­åˆ—çš„åå­—ï¼Œè‹¥ä¸º0åˆ™ä½¿ç”¨ä¸»é”®*/
-  } aCol[1];        /* One entry for each of nCol column s å¯¹æ¯ä¸ªnColä¸­åˆ—åŠ ä¸€*/
+  u8 isDeferred;    /* True if constraint checking is deferred till COMMIT Èç¹ûÔ¼Êø¼ì²é±»ÍÆ³Ùµ½COMMIT£¬ÔòÎªÕæ*/
+  u8 aAction[2];          /* ON DELETE and ON UPDATE actions, respectively ·Ö±ğÎªON DELETE£¬ON UPDATE²Ù×÷*/
+  Trigger *apTrigger[2];  /* Triggers for aAction[] actions , aAction[]²Ù×÷µÄ´¥·¢Æ÷*/
+  struct sColMap {  /* Mapping of columns in pFrom to columns in zTo ´Ó±ípFromµ½±ízToµÄÁĞÓ³Éä*/
+    int iFrom;         /* Index of column in pFrom ±ípFromÖĞµÄÁĞË÷Òı*/
+    char *zCol;        /* Name of column in zTo.  If 0 use PRIMARY KEY ±ízToÖĞÁĞµÄÃû×Ö£¬ÈôÎª0ÔòÊ¹ÓÃÖ÷¼ü*/
+  } aCol[1];        /* One entry for each of nCol column s ¶ÔÃ¿¸önColÖĞÁĞ¼ÓÒ»*/
 };
 
 /*
@@ -1477,14 +1477,14 @@ struct FKey {
 ** is returned.  REPLACE means that preexisting database rows that caused
 ** a UNIQUE constraint violation are removed so that the new insert or
 ** update can proceed.  Processing continues and no error is reported.
-**SQLiteæ”¯æŒè®¸å¤šä¸åŒçš„æ–¹æ³•æ¥å¤„ç†çº¦æŸé”™è¯¯.
-**å›æ»šå¤„ç†æ„å‘³ç€è¿åçº¦æŸå¯¼è‡´åœ¨è¿›ç¨‹å¤±è´¥çš„æ“ä½œå’Œå½“å‰äº‹åŠ¡è¢«å›æ»š.
-**ABORTæ“ä½œæ˜¯æŒ‡æ­£åœ¨å¤„ç†ä¸­çš„æ“ä½œå¤±è´¥ï¼Œå¹¶ä¸”è¯¥æ“ä½œä¹‹å‰çš„æ‰€æœ‰æ›´æ”¹å‡å›æ»šï¼Œä½†æ˜¯äº‹åŠ¡ä¸å›æ»š.
-**FAILå¤„ç†æ˜¯æŒ‡æ­£åœ¨è¿›è¡Œçš„æ“ä½œåœæ­¢ï¼Œå¹¶è¿”å›é”™è¯¯ä»£ç .
-**ä½†ç”±äºåŒæ ·çš„æ“ä½œè€Œé€ æˆçš„ä¹‹å‰çš„æ›´æ”¹éƒ½ä¸ä¼šæ”¹å˜ï¼Œæ²¡æœ‰å‘ç”Ÿå›æ»š.
-**IGNOREæ˜¯æŒ‡å¯¼è‡´çº¦æŸé”™è¯¯çš„ç‰¹å®šè¡Œä¸è¢«æ’å…¥æˆ–æ›´æ–°ã€‚å¤„ç†ç»§ç»­ï¼Œå¹¶ä¸”ä¸è¿”å›é”™è¯¯.
-**REPLACEæ˜¯æŒ‡è¿èƒŒå”¯ä¸€æ€§çº¦æŸçš„åœ¨æ•°æ®åº“ä¸­å…ˆå‰å­˜åœ¨çš„è¡Œè¢«åˆ é™¤ï¼Œä»è€Œæ–°çš„æ’å…¥æˆ–è€…æ›´æ–°æ“ä½œå¯ä»¥è¿›è¡Œ.
-**æ“ä½œç»§ç»­ï¼Œä¸æŠ¥å‘Šé”™è¯¯.
+**SQLiteÖ§³ÖĞí¶à²»Í¬µÄ·½·¨À´´¦ÀíÔ¼Êø´íÎó.
+**»Ø¹ö´¦ÀíÒâÎ¶×ÅÎ¥·´Ô¼Êøµ¼ÖÂÔÚ½ø³ÌÊ§°ÜµÄ²Ù×÷ºÍµ±Ç°ÊÂÎñ±»»Ø¹ö.
+**ABORT²Ù×÷ÊÇÖ¸ÕıÔÚ´¦ÀíÖĞµÄ²Ù×÷Ê§°Ü£¬²¢ÇÒ¸Ã²Ù×÷Ö®Ç°µÄËùÓĞ¸ü¸Ä¾ù»Ø¹ö£¬µ«ÊÇÊÂÎñ²»»Ø¹ö.
+**FAIL´¦ÀíÊÇÖ¸ÕıÔÚ½øĞĞµÄ²Ù×÷Í£Ö¹£¬²¢·µ»Ø´íÎó´úÂë.
+**µ«ÓÉÓÚÍ¬ÑùµÄ²Ù×÷¶øÔì³ÉµÄÖ®Ç°µÄ¸ü¸Ä¶¼²»»á¸Ä±ä£¬Ã»ÓĞ·¢Éú»Ø¹ö.
+**IGNOREÊÇÖ¸µ¼ÖÂÔ¼Êø´íÎóµÄÌØ¶¨ĞĞ²»±»²åÈë»ò¸üĞÂ¡£´¦Àí¼ÌĞø£¬²¢ÇÒ²»·µ»Ø´íÎó.
+**REPLACEÊÇÖ¸Î¥±³Î¨Ò»ĞÔÔ¼ÊøµÄÔÚÊı¾İ¿âÖĞÏÈÇ°´æÔÚµÄĞĞ±»É¾³ı£¬´Ó¶øĞÂµÄ²åÈë»òÕß¸üĞÂ²Ù×÷¿ÉÒÔ½øĞĞ.
+**²Ù×÷¼ÌĞø£¬²»±¨¸æ´íÎó.
 **
 ** RESTRICT, SETNULL, and CASCADE actions apply only to foreign keys.
 ** RESTRICT is the same as ABORT for IMMEDIATE foreign keys and the
@@ -1492,86 +1492,86 @@ struct FKey {
 ** key is set to NULL.  CASCADE means that a DELETE or UPDATE of the
 ** referenced table row is propagated into the row that holds the
 ** foreign key.
-**RESTRICT, SETNULL, ä»¥åŠCASCADEæ“ä½œæ˜¯é€‚ç”¨äºå¤–é”®.
-**RESTRICTå°±åƒæ˜¯ABORTå¯¹äºIMMEDIATEå¤–é”®ï¼Œä»¥åŠROLLBACKå¯¹äºDEFERREDé”®.
-**SETNULLæ˜¯æŒ‡å¤–é”®è¢«ç½®ä¸ºç©º.çº§è”æ„å‘³ç€æ‰€æ¶‰åŠåˆ°çš„è¡¨è¡Œçš„åˆ é™¤æˆ–æ›´æ–°æ“åŒæ—¶å½±å“åˆ°åŒ…å«å¤–é”®çš„è¡Œ.
+**RESTRICT, SETNULL, ÒÔ¼°CASCADE²Ù×÷ÊÇÊÊÓÃÓÚÍâ¼ü.
+**RESTRICT¾ÍÏñÊÇABORT¶ÔÓÚIMMEDIATEÍâ¼ü£¬ÒÔ¼°ROLLBACK¶ÔÓÚDEFERRED¼ü.
+**SETNULLÊÇÖ¸Íâ¼ü±»ÖÃÎª¿Õ.¼¶ÁªÒâÎ¶×ÅËùÉæ¼°µ½µÄ±íĞĞµÄÉ¾³ı»ò¸üĞÂ²ÙÍ¬Ê±Ó°Ïìµ½°üº¬Íâ¼üµÄĞĞ.
 **
 ** The following symbolic values are used to record which type
 ** of action to take.
-**ä¸‹é¢çš„ç¬¦å·å€¼æ˜¯ç”¨æ¥è®°å½•æ‰€é‡‡å–çš„è¡ŒåŠ¨çš„ç±»å‹
+**ÏÂÃæµÄ·ûºÅÖµÊÇÓÃÀ´¼ÇÂ¼Ëù²ÉÈ¡µÄĞĞ¶¯µÄÀàĞÍ
 */
-#define OE_None     0   /* There is no constraint to check æ²¡æœ‰çº¦æŸéœ€è¦æ£€æŸ¥*/
-#define OE_Rollback 1   /* Fail the operation and rollback the transaction æ“ä½œå¤±è´¥ï¼Œäº‹åŠ¡å›æ»š*/
-#define OE_Abort    2   /* Back out changes but do no rollback transaction æ’¤é”€æ›´æ”¹ï¼Œä½†æ˜¯ä¸å›æ»šäº‹åŠ¡*/
-#define OE_Fail     3   /* Stop the operation but leave all prior changes åœæ­¢æ“ä½œï¼Œä¿æŒå…ˆå‰æ›´æ”¹*/
-#define OE_Ignore   4   /* Ignore the error. Do not do the INSERT or UPDATE å¿½ç•¥é”™è¯¯ï¼Œä¸åšæ’å…¥æˆ–è€…æ›´æ–°*/
-#define OE_Replace  5   /* Delete existing record, then do INSERT or UPDATE åˆ é™¤å­˜åœ¨çš„è®°å½•ï¼Œç„¶åæ‰§è¡Œæ’å…¥æˆ–è€…æ›´æ–°æ“ä½œ*/
+#define OE_None     0   /* There is no constraint to check Ã»ÓĞÔ¼ÊøĞèÒª¼ì²é*/
+#define OE_Rollback 1   /* Fail the operation and rollback the transaction ²Ù×÷Ê§°Ü£¬ÊÂÎñ»Ø¹ö*/
+#define OE_Abort    2   /* Back out changes but do no rollback transaction ³·Ïú¸ü¸Ä£¬µ«ÊÇ²»»Ø¹öÊÂÎñ*/
+#define OE_Fail     3   /* Stop the operation but leave all prior changes Í£Ö¹²Ù×÷£¬±£³ÖÏÈÇ°¸ü¸Ä*/
+#define OE_Ignore   4   /* Ignore the error. Do not do the INSERT or UPDATE ºöÂÔ´íÎó£¬²»×ö²åÈë»òÕß¸üĞÂ*/
+#define OE_Replace  5   /* Delete existing record, then do INSERT or UPDATE É¾³ı´æÔÚµÄ¼ÇÂ¼£¬È»ºóÖ´ĞĞ²åÈë»òÕß¸üĞÂ²Ù×÷*/
 
-#define OE_Restrict 6   /* OE_Abort for IMMEDIATE, OE_Rollback for DEFERRED , OE_Aborté’ˆå¯¹IMMEDIATå‹ï¼ŒOE_Rollbacké’ˆå¯¹DEFERREDå‹*/
-#define OE_SetNull  7   /* Set the foreign key value to NULL å°†å¤–é”®çš„å€¼ç½®ä¸ºç©º*/
-#define OE_SetDflt  8   /* Set the foreign key value to its default å°†å¤–é”®è®¾ç½®ä¸ºé»˜è®¤å€¼*/
-#define OE_Cascade  9   /* Cascade the changes çº§è”æ›´æ”¹*/
+#define OE_Restrict 6   /* OE_Abort for IMMEDIATE, OE_Rollback for DEFERRED , OE_AbortÕë¶ÔIMMEDIATĞÍ£¬OE_RollbackÕë¶ÔDEFERREDĞÍ*/
+#define OE_SetNull  7   /* Set the foreign key value to NULL ½«Íâ¼üµÄÖµÖÃÎª¿Õ*/
+#define OE_SetDflt  8   /* Set the foreign key value to its default ½«Íâ¼üÉèÖÃÎªÄ¬ÈÏÖµ*/
+#define OE_Cascade  9   /* Cascade the changes ¼¶Áª¸ü¸Ä*/
 
-#define OE_Default  99  /* Do whatever the default action is æ‰§è¡Œä»»ä½•é»˜è®¤æ“ä½œ*/
+#define OE_Default  99  /* Do whatever the default action is Ö´ĞĞÈÎºÎÄ¬ÈÏ²Ù×÷*/
 
 
 /*
 ** An instance of the following structure is passed as the first
 ** argument to sqlite3VdbeKeyCompare and is used to control the
 ** comparison of the two index keys.
-** ä»¥ä¸‹ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹æ˜¯é€šè¿‡ä½œä¸ºé¦–å‚ä¼ é€’ç»™sqlite3VdbeKeyCompareå‡½æ•°ï¼Œç”¨äºæ§åˆ¶è¿™ä¸¤ä¸ªç´¢å¼•å…³é”®å­—çš„æ¯”è¾ƒã€‚
+** ÒÔÏÂ½á¹¹ÌåµÄÒ»¸öÊµÀıÊÇÍ¨¹ı×÷ÎªÊ×²Î´«µİ¸øsqlite3VdbeKeyCompareº¯Êı£¬ÓÃÓÚ¿ØÖÆÕâÁ½¸öË÷Òı¹Ø¼ü×ÖµÄ±È½Ï¡£
 */
 struct KeyInfo {
-  sqlite3 *db;        /* The database connection  æ•°æ®åº“é“¾æ¥*/
-  u8 enc;             /* Text encoding - one of the SQLITE_UTF* values æ–‡æœ¬ç¼–ç -SQLITE_UTF*çš„å…¶ä¸­ä¸€ä¸ªå€¼*/
-  u16 nField;         /* Number of entries in aColl[] åŠ å…¥aColl[]ä¸­çš„æ•°ç›®*/
-  u8 *aSortOrder;     /* Sort order for each column.  May be NULL æ¯åˆ—çš„æ’åºé¡ºåºï¼Œå¯èƒ½ä¸ºç©º*/
-  CollSeq *aColl[1];  /* Collating sequence for each term of the key æ¯ä¸€ä¸ªé”®çš„æœ¯è¯­çš„æ•´ä½“åºåˆ—*/
+  sqlite3 *db;        /* The database connection  Êı¾İ¿âÁ´½Ó*/
+  u8 enc;             /* Text encoding - one of the SQLITE_UTF* values ÎÄ±¾±àÂë-SQLITE_UTF*µÄÆäÖĞÒ»¸öÖµ*/
+  u16 nField;         /* Number of entries in aColl[] ¼ÓÈëaColl[]ÖĞµÄÊıÄ¿*/
+  u8 *aSortOrder;     /* Sort order for each column.  May be NULL Ã¿ÁĞµÄÅÅĞòË³Ğò£¬¿ÉÄÜÎª¿Õ*/
+  CollSeq *aColl[1];  /* Collating sequence for each term of the key Ã¿Ò»¸ö¼üµÄÊõÓïµÄÕûÌåĞòÁĞ*/
 };
 
 /*
 ** An instance of the following structure holds information about a
 ** single index record that has already been parsed out into individual
 ** values.
-**ä»¥ä¸‹ç»“æ„çš„ä¸€ä¸ªå®ä¾‹åŒ…å«æœ‰å…³å·²è¢«è§£æå‡ºåˆ°å•ä¸ªå€¼çš„å•ä¸ªç´¢å¼•è®°å½•çš„ä¿¡æ¯.
+**ÒÔÏÂ½á¹¹µÄÒ»¸öÊµÀı°üº¬ÓĞ¹ØÒÑ±»½âÎö³öµ½µ¥¸öÖµµÄµ¥¸öË÷Òı¼ÇÂ¼µÄĞÅÏ¢.
 **
 ** A record is an object that contains one or more fields of data.
 ** Records are used to store the content of a table row and to store
 ** the key of an index.  A blob encoding of a record is created by
 ** the OP_MakeRecord opcode of the VDBE and is disassembled by the
 ** OP_Column opcode.
-**ä¸€ä¸ªè®°å½•æ˜¯ä¸€ä¸ªåŒ…å«æ•°æ®çš„ä¸€ä¸ªæˆ–å¤šä¸ªå­—æ®µçš„å¯¹è±¡.
-**è®°å½•ç”¨äºå­˜å‚¨ä¸€ä¸ªè¡¨è¡Œçš„å†…å®¹ï¼Œå¹¶å­˜å‚¨ç´¢å¼•çš„é”®
-**å¯¹äºè®°å½•çš„äºŒè¿›åˆ¶å¤§å¯¹è±¡çš„ç¼–ç æ˜¯ç”±VDBEçš„OP_MakeRecord opcodeåˆ›å»ºçš„ï¼Œå¹¶ä¸”ç”±OP_Column opcodeæ‹†è§£.
+**Ò»¸ö¼ÇÂ¼ÊÇÒ»¸ö°üº¬Êı¾İµÄÒ»¸ö»ò¶à¸ö×Ö¶ÎµÄ¶ÔÏó.
+**¼ÇÂ¼ÓÃÓÚ´æ´¢Ò»¸ö±íĞĞµÄÄÚÈİ£¬²¢´æ´¢Ë÷ÒıµÄ¼ü
+**¶ÔÓÚ¼ÇÂ¼µÄ¶ş½øÖÆ´ó¶ÔÏóµÄ±àÂëÊÇÓÉVDBEµÄOP_MakeRecord opcode´´½¨µÄ£¬²¢ÇÒÓÉOP_Column opcode²ğ½â.
 **
 ** This structure holds a record that has already been disassembled
 ** into its constituent fields.
-**æ­¤ç»“æ„ç”¨äºä¿å­˜å·²è¢«åˆ†è§£æˆå…¶ç»„æˆçš„å­—æ®µçš„è®°å½•.
+**´Ë½á¹¹ÓÃÓÚ±£´æÒÑ±»·Ö½â³ÉÆä×é³ÉµÄ×Ö¶ÎµÄ¼ÇÂ¼.
 */
 struct UnpackedRecord {
-  KeyInfo *pKeyInfo;  /* Collation and sort-order information æ•´ç†é¡ºåºå’Œæ’åºé¡ºåºä¿¡æ¯*/
-  u16 nField;         /* Number of entries in apMem[] , apMem[]ä¸­å­˜åœ¨çš„æ•°ç›®*/
-  u8 flags;           /* Boolean settings.  UNPACKED_... below å¸ƒå°”ç±»å‹çš„è®¾ç½®ä¿¡æ¯*/
-  i64 rowid;          /* Used by UNPACKED_PREFIX_SEARCH , ä¸ºUNPACKED_PREFIX_SEARCHæ‰€ä½¿ç”¨*/
-  Mem *aMem;          /* Values  å€¼*/
+  KeyInfo *pKeyInfo;  /* Collation and sort-order information ÕûÀíË³ĞòºÍÅÅĞòË³ĞòĞÅÏ¢*/
+  u16 nField;         /* Number of entries in apMem[] , apMem[]ÖĞ´æÔÚµÄÊıÄ¿*/
+  u8 flags;           /* Boolean settings.  UNPACKED_... below ²¼¶ûÀàĞÍµÄÉèÖÃĞÅÏ¢*/
+  i64 rowid;          /* Used by UNPACKED_PREFIX_SEARCH , ÎªUNPACKED_PREFIX_SEARCHËùÊ¹ÓÃ*/
+  Mem *aMem;          /* Values  Öµ*/
 };
 
 /*
 ** Allowed values of UnpackedRecord.flags
-**UnpackedRecord.flags æ‰€å…è®¸çš„å€¼.
+**UnpackedRecord.flags ËùÔÊĞíµÄÖµ.
 */
-#define UNPACKED_INCRKEY       0x01  /* Make this key an epsilon larger ä½¿è¿™ä¸ªå…³é”®å­—æ˜¯ä¸€ä¸ªæ›´å¤§çš„å°é‡*/
-#define UNPACKED_PREFIX_MATCH  0x02  /* A prefix match is considered OK å‰ç¼€åŒ¹é…åˆæ³•*/
-#define UNPACKED_PREFIX_SEARCH 0x04  /* Ignore final (rowid) field å¿½ç•¥æœ€ç»ˆçš„è¡Œå­—æ®µ*/
+#define UNPACKED_INCRKEY       0x01  /* Make this key an epsilon larger Ê¹Õâ¸ö¹Ø¼ü×ÖÊÇÒ»¸ö¸ü´óµÄĞ¡Á¿*/
+#define UNPACKED_PREFIX_MATCH  0x02  /* A prefix match is considered OK Ç°×ºÆ¥ÅäºÏ·¨*/
+#define UNPACKED_PREFIX_SEARCH 0x04  /* Ignore final (rowid) field ºöÂÔ×îÖÕµÄĞĞ×Ö¶Î*/
 
 /*
 ** Each SQL index is represented in memory by an
 ** instance of the following structure.
-**æ¯ä¸ªSQLç´¢å¼•ç”±ä¸‹é¢ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹è¡¨ç¤ºåœ¨å­˜å‚¨å™¨ä¸­.
+**Ã¿¸öSQLË÷ÒıÓÉÏÂÃæ½á¹¹ÌåµÄÒ»¸öÊµÀı±íÊ¾ÔÚ´æ´¢Æ÷ÖĞ.
 ** The columns of the table that are to be indexed are described
 ** by the aiColumn[] field of this structure.  For example, suppose
 ** we have the following table and index:
-**è¡¨ä¸­çš„è¦è¢«ç´¢å¼•çš„åˆ—ç”±è¿™ç§ç»“æ„çš„aiColumn[]å­—æ®µè¡¨ç¤º.
+**±íÖĞµÄÒª±»Ë÷ÒıµÄÁĞÓÉÕâÖÖ½á¹¹µÄaiColumn[]×Ö¶Î±íÊ¾.
 **     CREATE TABLE Ex1(c1 int, c2 int, c3 text);
 **     CREATE INDEX Ex2 ON Ex1(c3,c1);
 **
@@ -1582,10 +1582,10 @@ struct UnpackedRecord {
 ** first column to be indexed (c3) has an index of 2 in Ex1.aCol[].
 ** The second column to be indexed (c1) has an index of 0 in
 ** Ex1.aCol[], hence Ex2.aiColumn[1]==0.
-**åœ¨æ‰€æè¿°çš„è¡¨ç»“æ„Ex1ä¸­ï¼ŒnColçš„å€¼ä¸º3ï¼Œå› ä¸ºåœ¨è¯¥è¡¨ä¸­å­˜åœ¨ä¸‰åˆ—.
-**åœ¨æ‰€æè¿°çš„ç´¢å¼•ç»“æ„Ex2ä¸­,å½“Ex1ä¸­ä¸‰åˆ—ä¸­ç”±ä¸¤åˆ—è¢«ç´¢å¼•äº†ä¹‹åï¼ŒnColumnçš„å€¼ä¸º2.
-**aiColumnæ•°ç»„çš„å€¼ä¸º{2, 0}. aiColumn[0]çš„å€¼ä¸º2ï¼Œå› ä¸ºè¢«ç´¢å¼•çš„ç¬¬ä¸€åˆ—c3åœ¨Ex1.aCol[]ä¸­çš„ä¸‹æ ‡ä¸º2.
-**è¢«ç´¢å¼•çš„ç¬¬äºŒåˆ—c1åœ¨Ex1.aCol[]ä¸­çš„ä¸‹æ ‡ä¸º0ï¼Œæ‰€ä»¥Ex2.aiColumn[1]çš„å€¼ä¸º0.
+**ÔÚËùÃèÊöµÄ±í½á¹¹Ex1ÖĞ£¬nColµÄÖµÎª3£¬ÒòÎªÔÚ¸Ã±íÖĞ´æÔÚÈıÁĞ.
+**ÔÚËùÃèÊöµÄË÷Òı½á¹¹Ex2ÖĞ,µ±Ex1ÖĞÈıÁĞÖĞÓÉÁ½ÁĞ±»Ë÷ÒıÁËÖ®ºó£¬nColumnµÄÖµÎª2.
+**aiColumnÊı×éµÄÖµÎª{2, 0}. aiColumn[0]µÄÖµÎª2£¬ÒòÎª±»Ë÷ÒıµÄµÚÒ»ÁĞc3ÔÚEx1.aCol[]ÖĞµÄÏÂ±êÎª2.
+**±»Ë÷ÒıµÄµÚ¶şÁĞc1ÔÚEx1.aCol[]ÖĞµÄÏÂ±êÎª0£¬ËùÒÔEx2.aiColumn[1]µÄÖµÎª0.
 **
 **
 ** The Index.onError field determines whether or not the indexed columns
@@ -1594,31 +1594,31 @@ struct UnpackedRecord {
 ** and the value of Index.onError indicate the which conflict resolution 
 ** algorithm to employ whenever an attempt is made to insert a non-unique
 ** element.
-**è¯¥Index.onErrorå­—æ®µç¡®å®šç´¢å¼•åˆ—æ˜¯å¦å¿…é¡»æ˜¯å”¯ä¸€çš„ï¼Œè‹¥ä¸æ˜¯ï¼Œåº”è¯¥åšä»€ä¹ˆå¤„ç†.
-**å½“Index.onError=OE_None,æ„å‘³ç€ä¸æ˜¯ä¸€ä¸ªå”¯ä¸€æ€§ç´¢å¼•.å¦åˆ™å®ƒå°±æ˜¯ä¸€ä¸ªå”¯ä¸€æ€§ç´¢å¼•
-**Index.onErrorçš„å€¼è¡¨æ˜äº†å½“è¯•å›¾æ’å…¥ä¸€ä¸ªéå”¯ä¸€æ€§å…ƒç´ çš„æ—¶å€™åº”è¯¥é‡‡å–å“ªç§å†²çªå¤„ç†ç®—æ³•.
+**¸ÃIndex.onError×Ö¶ÎÈ·¶¨Ë÷ÒıÁĞÊÇ·ñ±ØĞëÊÇÎ¨Ò»µÄ£¬Èô²»ÊÇ£¬Ó¦¸Ã×öÊ²Ã´´¦Àí.
+**µ±Index.onError=OE_None,ÒâÎ¶×Å²»ÊÇÒ»¸öÎ¨Ò»ĞÔË÷Òı.·ñÔòËü¾ÍÊÇÒ»¸öÎ¨Ò»ĞÔË÷Òı
+**Index.onErrorµÄÖµ±íÃ÷ÁËµ±ÊÔÍ¼²åÈëÒ»¸ö·ÇÎ¨Ò»ĞÔÔªËØµÄÊ±ºòÓ¦¸Ã²ÉÈ¡ÄÄÖÖ³åÍ»´¦ÀíËã·¨.
 **
 **
 */
 struct Index {
-  char *zName;     /* Name of this index ç´¢å¼•çš„åå­—*/
-  int *aiColumn;   /* Which columns are used by this index.  1st is 0 é€šè¿‡è¯¥ç´¢å¼•è€Œè¢«ä½¿ç”¨çš„åˆ—ï¼Œ0æ˜¯ç¬¬ä¸€ä¸ª*/
-  tRowcnt *aiRowEst; /* Result of ANALYZE: Est. rows selected by each column , ANALYZEçš„ç»“æœ:Est. rowsç”±æ¯ä¸€åˆ—é€‰æ‹©*/
-  Table *pTable;   /* The SQL table being indexed è¢«ç´¢å¼•çš„SQLè¡¨*/
-  char *zColAff;   /* String defining the affinity of each column ä¸ºæ¯ä¸€åˆ—çš„è¿‘ä¼¼å€¼åšå­—ç¬¦ä¸²å®šä¹‰*/
-  Index *pNext;    /* The next index associated with the same table ç”¨ç›¸åŒçš„è¡¨ç›¸å…³è”çš„ä¸‹ä¸€ä¸ªç´¢å¼•*/
-  Schema *pSchema; /* Schema containing this index å«æœ‰è¿™ç§ç´¢å¼•çš„æ¨¡å¼*/
-  u8 *aSortOrder;  /* Array of size Index.nColumn. True==DESC, False==ASC , Index.nColumné•¿åº¦çš„æ•°ç»„ï¼ŒTrue==DESC, False==ASC*/
-  char **azColl;   /* Array of collation sequence names for index ä¸ºç´¢å¼•åå­—è¿›è¡Œæ’åºçš„æ’åºåºåˆ—æ•°ç»„*/
-  int nColumn;     /* Number of columns in the table used by this index é€šè¿‡è¯¥ç´¢å¼•ä½¿ç”¨çš„è¡¨çš„åˆ—æ•°*/
-  int tnum;        /* Page containing root of this index in database file åœ¨æ•°æ®åº“æ–‡ä»¶ä¸­åŒ…å«è¯¥ç´¢å¼•çš„æ ¹çš„é¡µ*/
+  char *zName;     /* Name of this index Ë÷ÒıµÄÃû×Ö*/
+  int *aiColumn;   /* Which columns are used by this index.  1st is 0 Í¨¹ı¸ÃË÷Òı¶ø±»Ê¹ÓÃµÄÁĞ£¬0ÊÇµÚÒ»¸ö*/
+  tRowcnt *aiRowEst; /* Result of ANALYZE: Est. rows selected by each column , ANALYZEµÄ½á¹û:Est. rowsÓÉÃ¿Ò»ÁĞÑ¡Ôñ*/
+  Table *pTable;   /* The SQL table being indexed ±»Ë÷ÒıµÄSQL±í*/
+  char *zColAff;   /* String defining the affinity of each column ÎªÃ¿Ò»ÁĞµÄ½üËÆÖµ×ö×Ö·û´®¶¨Òå*/
+  Index *pNext;    /* The next index associated with the same table ÓÃÏàÍ¬µÄ±íÏà¹ØÁªµÄÏÂÒ»¸öË÷Òı*/
+  Schema *pSchema; /* Schema containing this index º¬ÓĞÕâÖÖË÷ÒıµÄÄ£Ê½*/
+  u8 *aSortOrder;  /* Array of size Index.nColumn. True==DESC, False==ASC , Index.nColumn³¤¶ÈµÄÊı×é£¬True==DESC, False==ASC*/
+  char **azColl;   /* Array of collation sequence names for index ÎªË÷ÒıÃû×Ö½øĞĞÅÅĞòµÄÅÅĞòĞòÁĞÊı×é*/
+  int nColumn;     /* Number of columns in the table used by this index Í¨¹ı¸ÃË÷ÒıÊ¹ÓÃµÄ±íµÄÁĞÊı*/
+  int tnum;        /* Page containing root of this index in database file ÔÚÊı¾İ¿âÎÄ¼şÖĞ°üº¬¸ÃË÷ÒıµÄ¸ùµÄÒ³*/
   u8 onError;      /* OE_Abort, OE_Ignore, OE_Replace, or OE_None */
-  u8 autoIndex;    /* True if is automatically created (ex: by UNIQUE) è‹¥æ˜¯ç³»ç»Ÿè‡ªåŠ¨åˆ›å»ºåˆ™ä¸ºçœŸ*/
-  u8 bUnordered;   /* Use this index for == or IN queries only å¯¹äº==ä½¿ç”¨è¯¥ç´¢å¼•ï¼Œæˆ–è€…æ˜¯ä»…ä»…å¯¹IN æŸ¥è¯¢ä½¿ç”¨*/
+  u8 autoIndex;    /* True if is automatically created (ex: by UNIQUE) ÈôÊÇÏµÍ³×Ô¶¯´´½¨ÔòÎªÕæ*/
+  u8 bUnordered;   /* Use this index for == or IN queries only ¶ÔÓÚ==Ê¹ÓÃ¸ÃË÷Òı£¬»òÕßÊÇ½ö½ö¶ÔIN ²éÑ¯Ê¹ÓÃ*/
 #ifdef SQLITE_ENABLE_STAT3
-  int nSample;             /* Number of elements in aSample[] æ•°ç»„aSampleä¸­çš„å…ƒç´ æ•°ç›®*/
-  tRowcnt avgEq;           /* Average nEq value for key values not in aSample ä¸åœ¨aSampleæ•°ç»„ä¸­çš„é”®å€¼çš„å¹³å‡nEqå€¼*/
-  IndexSample *aSample;    /* Samples of the left-most key æœ€å·¦è¾¹é”®çš„å€¼*/
+  int nSample;             /* Number of elements in aSample[] Êı×éaSampleÖĞµÄÔªËØÊıÄ¿*/
+  tRowcnt avgEq;           /* Average nEq value for key values not in aSample ²»ÔÚaSampleÊı×éÖĞµÄ¼üÖµµÄÆ½¾ùnEqÖµ*/
+  IndexSample *aSample;    /* Samples of the left-most key ×î×ó±ß¼üµÄÖµ*/
 #endif
 };
 
@@ -1626,8 +1626,8 @@ struct Index {
 ** Each sample stored in the sqlite_stat3 table is represented in memory 
 ** using a structure of this type.  See documentation at the top of the
 ** analyze.c source file for additional information.
-**å­˜å‚¨åœ¨sqlite_stat3è¡¨ä¸­çš„æ¯ä¸ªæ ·æœ¬å€¼å‡ä½¿ç”¨è¿™ç§ç±»å‹çš„ç»“æ„è¡¨ç¤ºåœ¨å­˜å‚¨å™¨ä¸­.
-**æ›´å¤šå†…å®¹å‚è§analyze.cæºæ–‡ä»¶ä¸­é¡¶ç«¯çš„æ–‡ä»¶ä¿¡æ¯.
+**´æ´¢ÔÚsqlite_stat3±íÖĞµÄÃ¿¸öÑù±¾Öµ¾ùÊ¹ÓÃÕâÖÖÀàĞÍµÄ½á¹¹±íÊ¾ÔÚ´æ´¢Æ÷ÖĞ.
+**¸ü¶àÄÚÈİ²Î¼ûanalyze.cÔ´ÎÄ¼şÖĞ¶¥¶ËµÄÎÄ¼şĞÅÏ¢.
 */
 struct IndexSample {
   union {
@@ -1636,71 +1636,71 @@ struct IndexSample {
     i64 i;          /* Value if eType is SQLITE_INTEGER */
   } u;
   u8 eType;         /* SQLITE_NULL, SQLITE_INTEGER ... etc. */
-  int nByte;        /* Size in byte of text or blob. æ–‡æœ¬æˆ–è€…æ˜¯äºŒè¿›åˆ¶å¤§å¯¹è±¡çš„å­—èŠ‚é•¿åº¦*/
-  tRowcnt nEq;      /* Est. number of rows where the key equals this sample é”®ä¸è¯¥æ ·æœ¬ç›¸åŒçš„è¡Œçš„Est. number*/
-  tRowcnt nLt;      /* Est. number of rows where key is less than this sample é”®å°‘äºè¯¥æ ·æœ¬çš„è¡Œçš„Est. number*/
-  tRowcnt nDLt;     /* Est. number of distinct keys less than this sample å°‘äºè¯¥æ ·æœ¬çš„ä¸é‡å¤çš„é”®çš„Est. number*/
+  int nByte;        /* Size in byte of text or blob. ÎÄ±¾»òÕßÊÇ¶ş½øÖÆ´ó¶ÔÏóµÄ×Ö½Ú³¤¶È*/
+  tRowcnt nEq;      /* Est. number of rows where the key equals this sample ¼üÓë¸ÃÑù±¾ÏàÍ¬µÄĞĞµÄEst. number*/
+  tRowcnt nLt;      /* Est. number of rows where key is less than this sample ¼üÉÙÓÚ¸ÃÑù±¾µÄĞĞµÄEst. number*/
+  tRowcnt nDLt;     /* Est. number of distinct keys less than this sample ÉÙÓÚ¸ÃÑù±¾µÄ²»ÖØ¸´µÄ¼üµÄEst. number*/
 };
 
 /*
 ** Each token coming out of the lexer is an instance of
 ** this structure.  Tokens are also used as part of an expression.
-**æ¥æºäºè¯æ³•åˆ†æå™¨çš„æ¯ä¸ªè®°å·éƒ½æ˜¯è¿™ä¸ªç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹ã€‚è®°å·ä¹Ÿä½œä¸ºè¡¨è¾¾å¼çš„ä¸€éƒ¨åˆ†ä½¿ç”¨.
+**À´Ô´ÓÚ´Ê·¨·ÖÎöÆ÷µÄÃ¿¸ö¼ÇºÅ¶¼ÊÇÕâ¸ö½á¹¹ÌåµÄÒ»¸öÊµÀı¡£¼ÇºÅÒ²×÷Îª±í´ïÊ½µÄÒ»²¿·ÖÊ¹ÓÃ.
 ** Note if Token.z==0 then Token.dyn and Token.n are undefined and
 ** may contain random values.  Do not make any assumptions about Token.dyn
 ** and Token.n when Token.z==0.
-**æ³¨æ„,è‹¥Token.z==0ï¼Œé‚£ä¹ˆToken.dynå’ŒToken.næ˜¯æœªè¢«å®šä¹‰çš„ï¼Œå¹¶ä¸”å¾ˆå¯èƒ½åŒ…å«éšæœºå€¼.
-**å½“ Token.z==0æ—¶ï¼Œä¸è¦å¯¹Token.dynå’ŒToken.nåšä»»ä½•å‡è®¾
+**×¢Òâ,ÈôToken.z==0£¬ÄÇÃ´Token.dynºÍToken.nÊÇÎ´±»¶¨ÒåµÄ£¬²¢ÇÒºÜ¿ÉÄÜ°üº¬Ëæ»úÖµ.
+**µ± Token.z==0Ê±£¬²»Òª¶ÔToken.dynºÍToken.n×öÈÎºÎ¼ÙÉè
 */
 struct Token {
-  const char *z;     /* Text of the token.  Not NULL-terminated! è®°å·çš„æ–‡æœ¬ï¼Œä¸æ˜¯ç©ºç»ˆç»“*/
-  unsigned int n;    /* Number of characters in this token åœ¨è¯¥è®°å·ä¸­æ‰€åŒ…å«çš„å­—ç¬¦çš„æ•°ç›®*/
+  const char *z;     /* Text of the token.  Not NULL-terminated! ¼ÇºÅµÄÎÄ±¾£¬²»ÊÇ¿ÕÖÕ½á*/
+  unsigned int n;    /* Number of characters in this token ÔÚ¸Ã¼ÇºÅÖĞËù°üº¬µÄ×Ö·ûµÄÊıÄ¿*/
 };
 
 /*
 ** An instance of this structure contains information needed to generate
 ** code for a SELECT that contains aggregate functions.
-**è¿™ç§ç»“æ„ä½“çš„ä¸€ä¸ªå®ä¾‹åŒ…å«äº†éœ€è¦ä¸ºé€‰æ‹©è¯­å¥ç”Ÿæˆä»£ç çš„ä¿¡æ¯ï¼Œè¿™ä¸ªé€‰æ‹©ä¸­åŒ…å«èšåˆå‡½æ•°.
+**ÕâÖÖ½á¹¹ÌåµÄÒ»¸öÊµÀı°üº¬ÁËĞèÒªÎªÑ¡ÔñÓï¾äÉú³É´úÂëµÄĞÅÏ¢£¬Õâ¸öÑ¡ÔñÖĞ°üº¬¾ÛºÏº¯Êı.
 ** If Expr.op==TK_AGG_COLUMN or TK_AGG_FUNCTION then Expr.pAggInfo is a
 ** pointer to this structure.  The Expr.iColumn field is the index in
 ** AggInfo.aCol[] or AggInfo.aFunc[] of information needed to generate
 ** code for that node.
-**è‹¥Expr.op==TK_AGG_COLUMNï¼Œæˆ–Expr.op==TK_AGG_FUNCTIONï¼Œé‚£ä¹ˆExpr.pAggInfoæ˜¯æŒ‡å‘è¯¥ç»“æ„ä½“çš„æŒ‡é’ˆ.
-** Expr.iColumnå­—æ®µæ˜¯AggInfo.aCol[]æˆ–è€…AggInfo.aFunc[]ä¸­éœ€è¦ä¸ºè¯¥ç»“ç‚¹ç”Ÿæˆä»£ç çš„ä¿¡æ¯çš„ç´¢å¼•.
+**ÈôExpr.op==TK_AGG_COLUMN£¬»òExpr.op==TK_AGG_FUNCTION£¬ÄÇÃ´Expr.pAggInfoÊÇÖ¸Ïò¸Ã½á¹¹ÌåµÄÖ¸Õë.
+** Expr.iColumn×Ö¶ÎÊÇAggInfo.aCol[]»òÕßAggInfo.aFunc[]ÖĞĞèÒªÎª¸Ã½áµãÉú³É´úÂëµÄĞÅÏ¢µÄË÷Òı.
 ** AggInfo.pGroupBy and AggInfo.aFunc.pExpr point to fields within the
 ** original Select structure that describes the SELECT statement.  These
 ** fields do not need to be freed when deallocating the AggInfo structure.
-** AggInfo.pGroupByä»¥åŠAggInfo.aFunc.pExpræŒ‡å‘æè¿°é€‰æ‹©è¯­å¥ï¼Œå¹¶åŒ…å«åœ¨åŸå§‹é€‰æ‹©ç»“æ„ä¸­çš„å­—æ®µ.
-** å½“AggInfoç»“æ„ä½“è¢«é‡Šæ”¾çš„æ—¶å€™ï¼Œè¿™äº›å­—æ®µä¸éœ€è¦è¢«é‡Šæ”¾.
+** AggInfo.pGroupByÒÔ¼°AggInfo.aFunc.pExprÖ¸ÏòÃèÊöÑ¡ÔñÓï¾ä£¬²¢°üº¬ÔÚÔ­Ê¼Ñ¡Ôñ½á¹¹ÖĞµÄ×Ö¶Î.
+** µ±AggInfo½á¹¹Ìå±»ÊÍ·ÅµÄÊ±ºò£¬ÕâĞ©×Ö¶Î²»ĞèÒª±»ÊÍ·Å.
 */
 struct AggInfo {
   u8 directMode;          /* Direct rendering mode means take data directly
                           ** from source tables rather than from accumulators */
   u8 useSortingIdx;       /* In direct mode, reference the sorting index rather
-                          ** than the source table åœ¨ç›´æ¥æ¨¡å¼ä¸­ï¼Œå‚è€ƒæ’åºç´¢å¼•è€Œä¸æ˜¯æºè¡¨*/
-  int sortingIdx;         /* Cursor number of the sorting index æ’åºç´¢å¼•çš„æ¸¸æ ‡å·*/
-  int sortingIdxPTab;     /* Cursor number of pseudo-table , pseudo-tableçš„æ¸¸æ ‡å·*/
-  int nSortingColumn;     /* Number of columns in the sorting index æ’åºç´¢å¼•ä¸­çš„åˆ—çš„æ•°é‡*/
-  ExprList *pGroupBy;     /* The group by clause , group by å­å¥*/
-  struct AggInfo_col {    /* For each column used in source tables å¯¹äºåœ¨æºè¡¨ä¸­ä½¿ç”¨çš„æ¯ä¸€åˆ—*/
-    Table *pTab;             /* Source table  æºè¡¨*/
-    int iTable;              /* Cursor number of the source table æºè¡¨çš„æ¸¸æ ‡å·*/
-    int iColumn;             /* Column number within the source table æºè¡¨ä¸­æ‰€åŒ…å«çš„æ¸¸æ ‡æ•°é‡*/
-    int iSorterColumn;       /* Column number in the sorting index åœ¨æ’åºç´¢å¼•ä¸­çš„åˆ—çš„æ•°é‡*/
-    int iMem;                /* Memory location that acts as accumulator å……å½“ç´¯åŠ å™¨çš„å­˜å‚¨å™¨ä½ç½®*/
-    Expr *pExpr;             /* The original expression åŸå§‹è¡¨è¾¾å¼*/
+                          ** than the source table ÔÚÖ±½ÓÄ£Ê½ÖĞ£¬²Î¿¼ÅÅĞòË÷Òı¶ø²»ÊÇÔ´±í*/
+  int sortingIdx;         /* Cursor number of the sorting index ÅÅĞòË÷ÒıµÄÓÎ±êºÅ*/
+  int sortingIdxPTab;     /* Cursor number of pseudo-table , pseudo-tableµÄÓÎ±êºÅ*/
+  int nSortingColumn;     /* Number of columns in the sorting index ÅÅĞòË÷ÒıÖĞµÄÁĞµÄÊıÁ¿*/
+  ExprList *pGroupBy;     /* The group by clause , group by ×Ó¾ä*/
+  struct AggInfo_col {    /* For each column used in source tables ¶ÔÓÚÔÚÔ´±íÖĞÊ¹ÓÃµÄÃ¿Ò»ÁĞ*/
+    Table *pTab;             /* Source table  Ô´±í*/
+    int iTable;              /* Cursor number of the source table Ô´±íµÄÓÎ±êºÅ*/
+    int iColumn;             /* Column number within the source table Ô´±íÖĞËù°üº¬µÄÓÎ±êÊıÁ¿*/
+    int iSorterColumn;       /* Column number in the sorting index ÔÚÅÅĞòË÷ÒıÖĞµÄÁĞµÄÊıÁ¿*/
+    int iMem;                /* Memory location that acts as accumulator ³äµ±ÀÛ¼ÓÆ÷µÄ´æ´¢Æ÷Î»ÖÃ*/
+    Expr *pExpr;             /* The original expression Ô­Ê¼±í´ïÊ½*/
   } *aCol;
-  int nColumn;            /* Number of used entries in aCol[] , æ•°ç»„aColä¸­è¢«ä½¿ç”¨çš„æ•°é‡*/
+  int nColumn;            /* Number of used entries in aCol[] , Êı×éaColÖĞ±»Ê¹ÓÃµÄÊıÁ¿*/
   int nAccumulator;       /* Number of columns that show through to the output.
                           ** Additional columns are used only as parameters to
-                          ** aggregate functions é€šè¿‡è¾“å‡ºæ˜¾ç¤ºçš„åˆ—çš„æ•°é‡ï¼Œå…¶ä»–çš„åˆ—ä»…ä½œä¸ºå‚æ•°ä¼ é€’ç»™èšåˆå‡½æ•°*/
-  struct AggInfo_func {   /* For each aggregate function å¯¹äºæ¯ä¸€ä¸ªèšåˆå‡½æ•°*/
-    Expr *pExpr;             /* Expression encoding the function ç¼–ç åŠŸèƒ½çš„è¡¨è¾¾å¼*/
-    FuncDef *pFunc;          /* The aggregate function implementation èšåˆå‡½æ•°çš„å®ç°*/
-    int iMem;                /* Memory location that acts as accumulator å……å½“ç´¯åŠ å™¨çš„å­˜å‚¨å™¨ä½ç½®*/
-    int iDistinct;           /* Ephemeral table used to enforce DISTINCT ç”¨äºæ‰§è¡ŒDISTINCTæ“ä½œçš„ä¸´æ—¶è¡¨*/
+                          ** aggregate functions Í¨¹ıÊä³öÏÔÊ¾µÄÁĞµÄÊıÁ¿£¬ÆäËûµÄÁĞ½ö×÷Îª²ÎÊı´«µİ¸ø¾ÛºÏº¯Êı*/
+  struct AggInfo_func {   /* For each aggregate function ¶ÔÓÚÃ¿Ò»¸ö¾ÛºÏº¯Êı*/
+    Expr *pExpr;             /* Expression encoding the function ±àÂë¹¦ÄÜµÄ±í´ïÊ½*/
+    FuncDef *pFunc;          /* The aggregate function implementation ¾ÛºÏº¯ÊıµÄÊµÏÖ*/
+    int iMem;                /* Memory location that acts as accumulator ³äµ±ÀÛ¼ÓÆ÷µÄ´æ´¢Æ÷Î»ÖÃ*/
+    int iDistinct;           /* Ephemeral table used to enforce DISTINCT ÓÃÓÚÖ´ĞĞDISTINCT²Ù×÷µÄÁÙÊ±±í*/
   } *aFunc;
-  int nFunc;              /* Number of entries in aFunc[] æ•°ç»„aFuncä¸­çš„æ•°é‡*/
+  int nFunc;              /* Number of entries in aFunc[] Êı×éaFuncÖĞµÄÊıÁ¿*/
 };
 
 /*
@@ -1712,10 +1712,10 @@ struct AggInfo {
 ** need more than about 10 or 20 variables.  But some extreme users want
 ** to have prepared statements with over 32767 variables, and for them
 ** the option is available (at compile-time).
-**æ•°æ®ç±»å‹ynVaræ˜¯16ä½æˆ–32ä½çš„æœ‰ç¬¦å·æ•´æ•°ï¼Œé€šå¸¸æ˜¯16ä½.
-**ä½†æ˜¯å¦‚æœSQLITE_MAX_VARIABLE_NUMBERå¤§äº32767ï¼Œå¿…é¡»ä½¿ç”¨32ä½.
-**16ä½æ˜¯é¦–é€‰ï¼Œå› ä¸ºåœ¨Exprå¯¹è±¡ä¸­è¿™ç§æ–¹å¼å ç”¨æ›´å°‘çš„å†…å­˜ï¼ŒåŒ…å«å¾ˆå¤šé¢„å¤„ç†è¯­å¥çš„Exprå¯¹è±¡æ˜¯ç³»ç»Ÿå†…å­˜ä½¿ç”¨çš„å¤§ç”¨æˆ·.
-**æ²¡æœ‰åº”ç”¨ç¨‹åºéœ€è¦10ä¸ªæˆ–è€…20ä¸ªä»¥ä¸Šçš„å˜é‡ï¼Œä½†æ˜¯æœ‰äº›æç«¯ç”¨æˆ·éœ€è¦è¶…è¿‡32767ä¸ªå˜é‡çš„é¢„å¤„ç†è¯­å¥ï¼Œå¹¶ä¸”åœ¨ç¼–è¯‘é˜¶æ®µå®ƒä»¬çš„è¯·æ±‚æ˜¯å¯è¢«å…è®¸çš„.
+**Êı¾İÀàĞÍynVarÊÇ16Î»»ò32Î»µÄÓĞ·ûºÅÕûÊı£¬Í¨³£ÊÇ16Î».
+**µ«ÊÇÈç¹ûSQLITE_MAX_VARIABLE_NUMBER´óÓÚ32767£¬±ØĞëÊ¹ÓÃ32Î».
+**16Î»ÊÇÊ×Ñ¡£¬ÒòÎªÔÚExpr¶ÔÏóÖĞÕâÖÖ·½Ê½Õ¼ÓÃ¸üÉÙµÄÄÚ´æ£¬°üº¬ºÜ¶àÔ¤´¦ÀíÓï¾äµÄExpr¶ÔÏóÊÇÏµÍ³ÄÚ´æÊ¹ÓÃµÄ´óÓÃ»§.
+**Ã»ÓĞÓ¦ÓÃ³ÌĞòĞèÒª10¸ö»òÕß20¸öÒÔÉÏµÄ±äÁ¿£¬µ«ÊÇÓĞĞ©¼«¶ËÓÃ»§ĞèÒª³¬¹ı32767¸ö±äÁ¿µÄÔ¤´¦ÀíÓï¾ä£¬²¢ÇÒÔÚ±àÒë½×¶ÎËüÃÇµÄÇëÇóÊÇ¿É±»ÔÊĞíµÄ.
 **
 **
 */
@@ -1726,132 +1726,132 @@ typedef int ynVar;
 #endif
 
 /*
-** Each node of an expression in the parse tree is an instance			åœ¨åˆ†ææ•°ä¸­è¡¨è¾¾å¼çš„æ¯ä¸ªèŠ‚ç‚¹æ˜¯è¯¥ç»“æ„çš„ä¸€ä¸ªå®ä¾‹
+** Each node of an expression in the parse tree is an instance			ÔÚ·ÖÎöÊıÖĞ±í´ïÊ½µÄÃ¿¸ö½ÚµãÊÇ¸Ã½á¹¹µÄÒ»¸öÊµÀı
 ** of this structure.
 **
-** Expr.op is the opcode. The integer parser token codes are reused		Expr.opæ˜¯æ“ä½œç ã€‚æ•´æ•°è§£æå™¨è¡¨ç¤ºåœ¨è¿™é‡Œä»£ç é‡ç”¨ä¸ºæ“ä½œç 
-** as opcodes here. For example, the parser defines TK_GE to be an integer	ä¾‹å¦‚ï¼Œè§£æå™¨å®šä¹‰æ•´æ•°ä»£ç TK_GEä»£è¡¨>=æ“ä½œç¬¦
-** code representing the ">=" operator. This same integer code is reused	ç›¸åŒçš„æ•´æ•°ä»£ç è¢«é‡ç”¨æ¥è¡¨ç¤ºåœ¨è¡¨è¾¾å¼æ ‘ä¸­å¤§äºæˆ–ç­‰äºæ“ä½œæ•°
+** Expr.op is the opcode. The integer parser token codes are reused		Expr.opÊÇ²Ù×÷Âë¡£ÕûÊı½âÎöÆ÷±íÊ¾ÔÚÕâÀï´úÂëÖØÓÃÎª²Ù×÷Âë
+** as opcodes here. For example, the parser defines TK_GE to be an integer	ÀıÈç£¬½âÎöÆ÷¶¨ÒåÕûÊı´úÂëTK_GE´ú±í>=²Ù×÷·û
+** code representing the ">=" operator. This same integer code is reused	ÏàÍ¬µÄÕûÊı´úÂë±»ÖØÓÃÀ´±íÊ¾ÔÚ±í´ïÊ½Ê÷ÖĞ´óÓÚ»òµÈÓÚ²Ù×÷Êı
 ** to represent the greater-than-or-equal-to operator in the expression
 ** tree.
 **
-** If the expression is an SQL literal (TK_INTEGER, TK_FLOAT, TK_BLOB, 		å¦‚æœè¡¨è¾¾å¼æ˜¯ä¸€ä¸ªSQLæ–‡å­—(TK_INTEGER,TK_FLOAT,TK_BLOBæˆ–TK_STRING)
-** or TK_STRING), then Expr.token contains the text of the SQL literal. If	é‚£ä¹ˆExpr.tokenåŒ…å«SQLæ–‡å­—çš„æ–‡æœ¬
-** the expression is a variable (TK_VARIABLE), then Expr.token contains the 	å¦‚æœè¡¨è¾¾å¼æ˜¯ä¸€ä¸ªå˜é‡(TK_VARIABLE)ï¼Œé‚£ä¹ˆï¼ŒExpr.tokenåŒ…å«äº†å˜é‡çš„åå­—
-** variable name. Finally, if the expression is an SQL function (TK_FUNCTION),	æœ€åï¼Œå¦‚æœè¯¥è¡¨è¾¾å¼æ˜¯ä¸€ä¸ªSQLå‡½æ•°(TK_FUNCTION)ï¼Œé‚£ä¹ˆExpr.tokenåŒ…å«äº†å‡½æ•°çš„åç§°
+** If the expression is an SQL literal (TK_INTEGER, TK_FLOAT, TK_BLOB, 		Èç¹û±í´ïÊ½ÊÇÒ»¸öSQLÎÄ×Ö(TK_INTEGER,TK_FLOAT,TK_BLOB»òTK_STRING)
+** or TK_STRING), then Expr.token contains the text of the SQL literal. If	ÄÇÃ´Expr.token°üº¬SQLÎÄ×ÖµÄÎÄ±¾
+** the expression is a variable (TK_VARIABLE), then Expr.token contains the 	Èç¹û±í´ïÊ½ÊÇÒ»¸ö±äÁ¿(TK_VARIABLE)£¬ÄÇÃ´£¬Expr.token°üº¬ÁË±äÁ¿µÄÃû×Ö
+** variable name. Finally, if the expression is an SQL function (TK_FUNCTION),	×îºó£¬Èç¹û¸Ã±í´ïÊ½ÊÇÒ»¸öSQLº¯Êı(TK_FUNCTION)£¬ÄÇÃ´Expr.token°üº¬ÁËº¯ÊıµÄÃû³Æ
 ** then Expr.token contains the name of the function.
 **
-** Expr.pRight and Expr.pLeft are the left and right subexpressions of a	Expr.pRightå’ŒExpr.pLeftæ˜¯ä¸€ä¸ªäºŒå…ƒè¿ç®—ç¬¦å·¦è¾¹å’Œå³è¾¹çš„å­è¡¨è¾¾å¼
-** binary operator. Either or both may be NULL.					ä¸€ä¸ªæˆ–è€…ä¸¤ä¸ªéƒ½å¯ä»¥ä¸ºç©º
+** Expr.pRight and Expr.pLeft are the left and right subexpressions of a	Expr.pRightºÍExpr.pLeftÊÇÒ»¸ö¶şÔªÔËËã·û×ó±ßºÍÓÒ±ßµÄ×Ó±í´ïÊ½
+** binary operator. Either or both may be NULL.					Ò»¸ö»òÕßÁ½¸ö¶¼¿ÉÒÔÎª¿Õ
 **
-** Expr.x.pList is a list of arguments if the expression is an SQL function,	å¦‚æœ è¡¨è¾¾å¼æ˜¯ä¸€ä¸ªSQLå‡½æ•°ï¼ŒExpr.x.pListæ˜¯å‚æ•°åˆ—è¡¨
-** a CASE expression or an IN expression of the form "<lhs> IN (<y>, <z>...)".	ä¸€ä¸ªCASEè¡¨è¾¾å¼æˆ–è€…"<lhs>IN(<y>,<z>...)"å½¢å¼çš„INè¡¨è¾¾å¼
-** Expr.x.pSelect is used if the expression is a sub-select or an expression of	å¦‚æœè¡¨è¾¾å¼æ˜¯ä¸€ä¸ªå­é€‰æ‹©æˆ–è€…"<lhs>IN(<y>,<z>...)"å½¢å¼çš„è¡¨è¾¾å¼ï¼ŒExpr.x.pSelectä¼šè¢«ä½¿ç”¨
-** the form "<lhs> IN (SELECT ...)". If the EP_xIsSelect bit is set in the	å¦‚æœExpr.x.pSelectä½åœ¨Expr.flagsè¢«éšç§˜è®¾ç½®ï¼Œé‚£ä¹ˆExpr.x.pSelectæ˜¯æœ‰æ•ˆçš„
-** Expr.flags mask, then Expr.x.pSelect is valid. Otherwise, Expr.x.pList is 	å¦åˆ™ï¼ŒExpr.x.pListæ˜¯æœ‰æ•ˆçš„
+** Expr.x.pList is a list of arguments if the expression is an SQL function,	Èç¹û ±í´ïÊ½ÊÇÒ»¸öSQLº¯Êı£¬Expr.x.pListÊÇ²ÎÊıÁĞ±í
+** a CASE expression or an IN expression of the form "<lhs> IN (<y>, <z>...)".	Ò»¸öCASE±í´ïÊ½»òÕß"<lhs>IN(<y>,<z>...)"ĞÎÊ½µÄIN±í´ïÊ½
+** Expr.x.pSelect is used if the expression is a sub-select or an expression of	Èç¹û±í´ïÊ½ÊÇÒ»¸ö×ÓÑ¡Ôñ»òÕß"<lhs>IN(<y>,<z>...)"ĞÎÊ½µÄ±í´ïÊ½£¬Expr.x.pSelect»á±»Ê¹ÓÃ
+** the form "<lhs> IN (SELECT ...)". If the EP_xIsSelect bit is set in the	Èç¹ûExpr.x.pSelectÎ»ÔÚExpr.flags±»ÒşÃØÉèÖÃ£¬ÄÇÃ´Expr.x.pSelectÊÇÓĞĞ§µÄ
+** Expr.flags mask, then Expr.x.pSelect is valid. Otherwise, Expr.x.pList is 	·ñÔò£¬Expr.x.pListÊÇÓĞĞ§µÄ
 ** valid.
 **
-** An expression of the form ID or ID.ID refers to a column in a table.		ä¸€ä¸ªè¡¨è¾¾å¼è¡¨å•çš„IDæˆ–IDã€‚IDæŒ‡è¡¨ä¸­çš„ä¸€åˆ—ã€‚
-** For such expressions, Expr.op is set to TK_COLUMN and Expr.iTable is		å¯¹è¿™æ ·çš„è¡¨è¾¾å¼ï¼ŒExpr.opè®¾ç½®TK_COLUMN,Expr.iTableæ˜¯VDBEå…‰æ ‡æŒ‡å‘è¯¥è¡¨çš„æ•´æ•°å…‰æ ‡å·ï¼Œ
-** the integer cursor number of a VDBE cursor pointing to that table and	Expr.iTableæ˜¯VDBEå…‰æ ‡æŒ‡å‘è¯¥è¡¨çš„æ•´æ•°å…‰æ ‡å·ï¼Œ
-** Expr.iColumn is the column number for the specific column.  If the		Expr.iCloumnæ˜¯ç‰¹å®šåˆ—çš„åˆ—æ•°
-** expression is used as a result in an aggregate SELECT, then the		å¦‚æœè¡¨è¾¾å¼ç”¨ä½œä¸€ä¸ªèšåˆçš„SELECTçš„ç»“æœï¼Œ
-** value is also stored in the Expr.iAgg column in the aggregate so that	é‚£ä¹ˆè¯¥å€¼ä¹Ÿä¼šè¢«å­˜å‚¨åœ¨èšåˆçš„Expr.iAggä¸­ï¼Œ
-** it can be accessed after all aggregates are computed.			ä»¥ä¾¿å®ƒå¯ä»¥åœ¨æ‰€æœ‰èšåˆä½“è¢«è®¡ç®—ä¹‹åè®¿é—®
+** An expression of the form ID or ID.ID refers to a column in a table.		Ò»¸ö±í´ïÊ½±íµ¥µÄID»òID¡£IDÖ¸±íÖĞµÄÒ»ÁĞ¡£
+** For such expressions, Expr.op is set to TK_COLUMN and Expr.iTable is		¶ÔÕâÑùµÄ±í´ïÊ½£¬Expr.opÉèÖÃTK_COLUMN,Expr.iTableÊÇVDBE¹â±êÖ¸Ïò¸Ã±íµÄÕûÊı¹â±êºÅ£¬
+** the integer cursor number of a VDBE cursor pointing to that table and	Expr.iTableÊÇVDBE¹â±êÖ¸Ïò¸Ã±íµÄÕûÊı¹â±êºÅ£¬
+** Expr.iColumn is the column number for the specific column.  If the		Expr.iCloumnÊÇÌØ¶¨ÁĞµÄÁĞÊı
+** expression is used as a result in an aggregate SELECT, then the		Èç¹û±í´ïÊ½ÓÃ×÷Ò»¸ö¾ÛºÏµÄSELECTµÄ½á¹û£¬
+** value is also stored in the Expr.iAgg column in the aggregate so that	ÄÇÃ´¸ÃÖµÒ²»á±»´æ´¢ÔÚ¾ÛºÏµÄExpr.iAggÖĞ£¬
+** it can be accessed after all aggregates are computed.			ÒÔ±ãËü¿ÉÒÔÔÚËùÓĞ¾ÛºÏÌå±»¼ÆËãÖ®ºó·ÃÎÊ
 **
-** If the expression is an unbound variable marker (a question mark 		å¦‚æœè¡¨è¾¾å¼æ˜¯ä¸€ä¸ªæœªç»‘å®šå˜é‡çš„æ ‡è®°(åœ¨åŸå§‹çš„SQLä¸­ä¸€ä¸ªé—®å·å­—ç¬¦'?')
-** character '?' in the original SQL) then the Expr.iTable holds the index 	é‚£ä¹ˆExpr.iTableæŒæœ‰è¯¥å˜é‡çš„ç´¢å¼•ã€‚
+** If the expression is an unbound variable marker (a question mark 		Èç¹û±í´ïÊ½ÊÇÒ»¸öÎ´°ó¶¨±äÁ¿µÄ±ê¼Ç(ÔÚÔ­Ê¼µÄSQLÖĞÒ»¸öÎÊºÅ×Ö·û'?')
+** character '?' in the original SQL) then the Expr.iTable holds the index 	ÄÇÃ´Expr.iTable³ÖÓĞ¸Ã±äÁ¿µÄË÷Òı¡£
 ** number for that variable.
 **
-** If the expression is a subquery then Expr.iColumn holds an integer		å¦‚æœè¡¨è¾¾å¼æ˜¯ä¸€ä¸ªå­æŸ¥è¯¢ï¼Œ
-** register number containing the result of the subquery.  If the		Expr.iColumnè®°å½•åŒ…å«å­æŸ¥è¯¢ç»“æœçš„æ•´æ•°å¯„å­˜å™¨å·
-** subquery gives a constant result, then iTable is -1.  If the subquery	å¦‚æœå­æŸ¥è¯¢æä¾›äº†ä¸€ä¸ªæ’å®šçš„ç»“æœï¼Œé‚£ä¹ˆiTableä¸º-1
-** gives a different answer at different times during statement processing	å¦‚æœå­æŸ¥è¯¢åœ¨è¯­å¥å¤„ç†è¿‡ç¨‹ä¸­ä¸åŒæ—¶é—´çš„ç»“æœä¸ä¸€æ ·ï¼Œ
-** then iTable is the address of a subroutine that computes the subquery.	é‚£ä¹ˆiTableæ˜¯è®¡ç®—å­æŸ¥è¯¢çš„å­ç¨‹åºçš„åœ°å€
+** If the expression is a subquery then Expr.iColumn holds an integer		Èç¹û±í´ïÊ½ÊÇÒ»¸ö×Ó²éÑ¯£¬
+** register number containing the result of the subquery.  If the		Expr.iColumn¼ÇÂ¼°üº¬×Ó²éÑ¯½á¹ûµÄÕûÊı¼Ä´æÆ÷ºÅ
+** subquery gives a constant result, then iTable is -1.  If the subquery	Èç¹û×Ó²éÑ¯Ìá¹©ÁËÒ»¸öºã¶¨µÄ½á¹û£¬ÄÇÃ´iTableÎª-1
+** gives a different answer at different times during statement processing	Èç¹û×Ó²éÑ¯ÔÚÓï¾ä´¦Àí¹ı³ÌÖĞ²»Í¬Ê±¼äµÄ½á¹û²»Ò»Ñù£¬
+** then iTable is the address of a subroutine that computes the subquery.	ÄÇÃ´iTableÊÇ¼ÆËã×Ó²éÑ¯µÄ×Ó³ÌĞòµÄµØÖ·
 **
-** If the Expr is of type OP_Column, and the table it is selecting from		å¦‚æœExpræ˜¯OP_Columnç±»å‹çš„ï¼Œ
-** is a disk table or the "old.*" pseudo-table, then pTab points to the		è¡¨æ˜¯ä»ä¸€ä¸ªç£ç›˜è¡¨æˆ–"old.*"ä¼ªè¡¨ä¸­é€‰æ‹©å‡ºæ¥çš„
-** corresponding table definition.						é‚£ä¹ˆpTabæ˜¯æŒ‡å‘ç›¸åº”è¡¨çš„å®šä¹‰
+** If the Expr is of type OP_Column, and the table it is selecting from		Èç¹ûExprÊÇOP_ColumnÀàĞÍµÄ£¬
+** is a disk table or the "old.*" pseudo-table, then pTab points to the		±íÊÇ´ÓÒ»¸ö´ÅÅÌ±í»ò"old.*"Î±±íÖĞÑ¡Ôñ³öÀ´µÄ
+** corresponding table definition.						ÄÇÃ´pTabÊÇÖ¸ÏòÏàÓ¦±íµÄ¶¨Òå
 **
-** ALLOCATION NOTES:								åˆ†é…æ³¨æ„
+** ALLOCATION NOTES:								·ÖÅä×¢Òâ
 **
-** Expr objects can use a lot of memory space in database schema.  To		Exprå¯¹è±¡å¯ä»¥åœ¨æ•°æ®åº“æ¶æ„æ—¶ä½¿ç”¨å¤§é‡çš„å†…å­˜ç©ºé—´
-** help reduce memory requirements, sometimes an Expr object will be		ä¸ºäº†å¸®åŠ©å‡å°‘å†…å­˜éœ€æ±‚ï¼Œæœ‰æ—¶ä¸€ä¸ªExprå¯¹è±¡ä¼šè¢«æˆªæ–­
-** truncated.  And to reduce the number of memory allocations, sometimes	ä¸ºäº†å‡å°‘å­˜å‚¨å™¨åˆ†é…çš„æ•°é‡ï¼Œ
-** two or more Expr objects will be stored in a single memory allocation,	æœ‰æ—¶ä¸¤ä¸ªæˆ–æ›´å¤šçš„Exprå¯¹è±¡å°†è¢«å­˜å‚¨åœ¨ä¸€ä¸ªå†…å­˜å•å…ƒ
-** together with Expr.zToken strings.						è¿åŒExpr.zTokenå­—ç¬¦ä¸²
+** Expr objects can use a lot of memory space in database schema.  To		Expr¶ÔÏó¿ÉÒÔÔÚÊı¾İ¿â¼Ü¹¹Ê±Ê¹ÓÃ´óÁ¿µÄÄÚ´æ¿Õ¼ä
+** help reduce memory requirements, sometimes an Expr object will be		ÎªÁË°ïÖú¼õÉÙÄÚ´æĞèÇó£¬ÓĞÊ±Ò»¸öExpr¶ÔÏó»á±»½Ø¶Ï
+** truncated.  And to reduce the number of memory allocations, sometimes	ÎªÁË¼õÉÙ´æ´¢Æ÷·ÖÅäµÄÊıÁ¿£¬
+** two or more Expr objects will be stored in a single memory allocation,	ÓĞÊ±Á½¸ö»ò¸ü¶àµÄExpr¶ÔÏó½«±»´æ´¢ÔÚÒ»¸öÄÚ´æµ¥Ôª
+** together with Expr.zToken strings.						Á¬Í¬Expr.zToken×Ö·û´®
 **
-** If the EP_Reduced and EP_TokenOnly flags are set when			å½“Exprå¯¹è±¡è¢«æˆªæ–­EP_Reducedå’ŒEP_ToKenOnlyæ ‡å¿—è¢«è®¾ç½®
-** an Expr object is truncated.  When EP_Reduced is set, then all		å½“EP_Reducedè®¾ç½®æ—¶ï¼Œ
-** the child Expr objects in the Expr.pLeft and Expr.pRight subtrees		Expr.pLeftå’ŒExpr.pRightå­æ ‘çš„æ‰€æœ‰å­Exprå¯¹è±¡åœ¨ç›¸åŒçš„å†…å­˜å•å…ƒä¸­
-** are contained within the same memory allocation.  Note, however, that	æ³¨æ„ï¼Œæ— è®ºEP_Reducedæ˜¯å¦è®¾ç½®ï¼ŒExpr.x.pListå’ŒExpr.x.PSelectå­æ ‘æ€»æ˜¯å•ç‹¬åˆ†é…
+** If the EP_Reduced and EP_TokenOnly flags are set when			µ±Expr¶ÔÏó±»½Ø¶ÏEP_ReducedºÍEP_ToKenOnly±êÖ¾±»ÉèÖÃ
+** an Expr object is truncated.  When EP_Reduced is set, then all		µ±EP_ReducedÉèÖÃÊ±£¬
+** the child Expr objects in the Expr.pLeft and Expr.pRight subtrees		Expr.pLeftºÍExpr.pRight×ÓÊ÷µÄËùÓĞ×ÓExpr¶ÔÏóÔÚÏàÍ¬µÄÄÚ´æµ¥ÔªÖĞ
+** are contained within the same memory allocation.  Note, however, that	×¢Òâ£¬ÎŞÂÛEP_ReducedÊÇ·ñÉèÖÃ£¬Expr.x.pListºÍExpr.x.PSelect×ÓÊ÷×ÜÊÇµ¥¶À·ÖÅä
 ** the subtrees in Expr.x.pList or Expr.x.pSelect are always separately
 ** allocated, regardless of whether or not EP_Reduced is set.
 */
 struct Expr {
-  u8 op;                 /* Operation performed by this node 			æ“ä½œç”±è¯¥èŠ‚ç‚¹è¿›è¡Œ*/
+  u8 op;                 /* Operation performed by this node 			²Ù×÷ÓÉ¸Ã½Úµã½øĞĞ*/
   char affinity;         /* The affinity of the column or 0 if not a colum	 */
-  u16 flags;             /* Various flags.  EP_* See below 			 å„ç§æ ‡å¿—	EP_*å‚é˜…ä¸‹æ–‡*/
+  u16 flags;             /* Various flags.  EP_* See below 			 ¸÷ÖÖ±êÖ¾	EP_*²ÎÔÄÏÂÎÄ*/
   union {
-    char *zToken;          /* Token value. Zero terminated and dequoted 	 æ ‡è®°å€¼ã€‚é›¶ç»ˆæ­¢ï¼Œæœªå¼•ç”¨*/
-    int iValue;            /* Non-negative integer value if EP_IntValu		 EP_IntValueéè´Ÿæ•´æ•°å€¼*/
+    char *zToken;          /* Token value. Zero terminated and dequoted 	 ±ê¼ÇÖµ¡£ÁãÖÕÖ¹£¬Î´ÒıÓÃ*/
+    int iValue;            /* Non-negative integer value if EP_IntValu		 EP_IntValue·Ç¸ºÕûÊıÖµ*/
   } u;
 
-  /* If the EP_TokenOnly flag is set in the Expr.flags mask, then no		å¦‚æœExpr.flagséšç§˜è®¾ç½®EP_TokenOnlyæ ‡å¿—ï¼Œ
-  ** space is allocated for the fields below this point. An attempt to		åˆ™æ²¡æœ‰ç©ºé—´åˆ†é…è¯¥è¿™ç‚¹ä¸‹é¢çš„å­—æ®µ
-  ** access them will result in a segfault or malfunction. 			è¯•å›¾è®¿é—®å®ƒä»¬å°†å¯¼è‡´ä¸€ä¸ªæ®µé”™è¯¯æˆ–æ•…éšœ
+  /* If the EP_TokenOnly flag is set in the Expr.flags mask, then no		Èç¹ûExpr.flagsÒşÃØÉèÖÃEP_TokenOnly±êÖ¾£¬
+  ** space is allocated for the fields below this point. An attempt to		ÔòÃ»ÓĞ¿Õ¼ä·ÖÅä¸ÃÕâµãÏÂÃæµÄ×Ö¶Î
+  ** access them will result in a segfault or malfunction. 			ÊÔÍ¼·ÃÎÊËüÃÇ½«µ¼ÖÂÒ»¸ö¶Î´íÎó»ò¹ÊÕÏ
   *********************************************************************/
 
-  Expr *pLeft;           /* Left subnode 	å·¦å­èŠ‚ç‚¹*/
-  Expr *pRight;          /* Right subnode 	å³å­èŠ‚ç‚¹*/
+  Expr *pLeft;           /* Left subnode 	×ó×Ó½Úµã*/
+  Expr *pRight;          /* Right subnode 	ÓÒ×Ó½Úµã*/
   union {
-    ExprList *pList;     /* Function arguments or in "<expr> IN (<expr-list)" 	å‡½æ•°å‚æ•°æˆ–è€…"<è¡¨è¾¾å¼>IN(<è¡¨è¾¾å¼åˆ—è¡¨>)*/
-    Select *pSelect;     /* Used for sub-selects and "<expr> IN (<select>)" 	ç”¨äºå­é€‰æ‹©å’Œ"<è¡¨è¾¾å¼>IN(<é€‰æ‹©>)"*/
+    ExprList *pList;     /* Function arguments or in "<expr> IN (<expr-list)" 	º¯Êı²ÎÊı»òÕß"<±í´ïÊ½>IN(<±í´ïÊ½ÁĞ±í>)*/
+    Select *pSelect;     /* Used for sub-selects and "<expr> IN (<select>)" 	ÓÃÓÚ×ÓÑ¡ÔñºÍ"<±í´ïÊ½>IN(<Ñ¡Ôñ>)"*/
   } x;
-  CollSeq *pColl;        /* The collation type of the column or 0 		åˆ—çš„æ•´ç†ç±»å‹æˆ–0*/
+  CollSeq *pColl;        /* The collation type of the column or 0 		ÁĞµÄÕûÀíÀàĞÍ»ò0*/
 
-  /* If the EP_Reduced flag is set in the Expr.flags mask, then no		å¦‚æœExpr.flagséšç§˜è®¾ç½®EP_Reduced
-  ** space is allocated for the fields below this point. An attempt to		åˆ™æ²¡æœ‰ç©ºé—´è¢«åˆ†é…ç»™è¿™ç‚¹ä¸‹é¢çš„å­—æ®µ
-  ** access them will result in a segfault or malfunction.			è¯•å›¾è®¿é—®å®ƒä»¬å°†å¯¼è‡´ä¸€ä¸ªæ®µé”™è¯¯æˆ–æ•…éšœ
+  /* If the EP_Reduced flag is set in the Expr.flags mask, then no		Èç¹ûExpr.flagsÒşÃØÉèÖÃEP_Reduced
+  ** space is allocated for the fields below this point. An attempt to		ÔòÃ»ÓĞ¿Õ¼ä±»·ÖÅä¸øÕâµãÏÂÃæµÄ×Ö¶Î
+  ** access them will result in a segfault or malfunction.			ÊÔÍ¼·ÃÎÊËüÃÇ½«µ¼ÖÂÒ»¸ö¶Î´íÎó»ò¹ÊÕÏ
   *********************************************************************/
 
-  int iTable;            /* TK_COLUMN: cursor number of table holding column	TK_COLUMN:è¡¨åˆ—æŒæœ‰å…‰æ ‡æ•°
-                         ** TK_REGISTER: register number			TK_REGISTER:å¯„å­˜å™¨å·ç 
-                         ** TK_TRIGGER: 1 -> new, 0 -> old 			TK_TRIGGER:1->æ–°,0->æ—§*/
-  ynVar iColumn;         /* TK_COLUMN: column index.  -1 for rowid.		TK_COLUMN:åˆ—ç´¢å¼•ã€‚-1ä¸ºROWID
-                         ** TK_VARIABLE: variable number (always >= 1). 	TK_VARIABLE: å˜é‡æ•°(æ€»æ˜¯å¤§äºç­‰äº1)*/
+  int iTable;            /* TK_COLUMN: cursor number of table holding column	TK_COLUMN:±íÁĞ³ÖÓĞ¹â±êÊı
+                         ** TK_REGISTER: register number			TK_REGISTER:¼Ä´æÆ÷ºÅÂë
+                         ** TK_TRIGGER: 1 -> new, 0 -> old 			TK_TRIGGER:1->ĞÂ,0->¾É*/
+  ynVar iColumn;         /* TK_COLUMN: column index.  -1 for rowid.		TK_COLUMN:ÁĞË÷Òı¡£-1ÎªROWID
+                         ** TK_VARIABLE: variable number (always >= 1). 	TK_VARIABLE: ±äÁ¿Êı(×ÜÊÇ´óÓÚµÈÓÚ1)*/
   i16 iAgg;              /* Which entry in pAggInfo->aCol[] or ->aFunc*/
-  i16 iRightJoinTable;   /* If EP_FromJoin, the right table of the join 	å³è¡¨ä¸­çš„è¿æ¥*/
-  u8 flags2;             /* Second set of flags.  EP2_... 			ç¬¬äºŒç»„çš„æ ‡å¿—*/
-  u8 op2;                /* TK_REGISTER: original value of Expr.op		TK_REGISTER:Expr.opçš„åŸå§‹å€¼
-                         ** TK_COLUMN: the value of p5 for OP_Column		TK_COLUMN: å¯¹äºOP_Columnï¼ŒP5çš„å€¼
-                         ** TK_AGG_FUNCTION: nesting depth 			TK_AGG_FUNCTION: åµŒå¥—æ·±åº¦*/
-  AggInfo *pAggInfo;     /* Used by TK_AGG_COLUMN and TK_AGG_FUNCTION 		TK_AGG_COLUMNå’ŒTK_AGG_FUNCTIONä½¿ç”¨*/
-  Table *pTab;           /* Table for TK_COLUMN expressions. 			è¡¨è¾¾å¼TK_COLUMNçš„è¡¨*/
+  i16 iRightJoinTable;   /* If EP_FromJoin, the right table of the join 	ÓÒ±íÖĞµÄÁ¬½Ó*/
+  u8 flags2;             /* Second set of flags.  EP2_... 			µÚ¶ş×éµÄ±êÖ¾*/
+  u8 op2;                /* TK_REGISTER: original value of Expr.op		TK_REGISTER:Expr.opµÄÔ­Ê¼Öµ
+                         ** TK_COLUMN: the value of p5 for OP_Column		TK_COLUMN: ¶ÔÓÚOP_Column£¬P5µÄÖµ
+                         ** TK_AGG_FUNCTION: nesting depth 			TK_AGG_FUNCTION: Ç¶Ì×Éî¶È*/
+  AggInfo *pAggInfo;     /* Used by TK_AGG_COLUMN and TK_AGG_FUNCTION 		TK_AGG_COLUMNºÍTK_AGG_FUNCTIONÊ¹ÓÃ*/
+  Table *pTab;           /* Table for TK_COLUMN expressions. 			±í´ïÊ½TK_COLUMNµÄ±í*/
 #if SQLITE_MAX_EXPR_DEPTH>0
-  int nHeight;           /* Height of the tree headed by this node 		ä»¥æ­¤èŠ‚ç‚¹ä¸ºæ ¹èŠ‚ç‚¹çš„æ•°çš„é«˜åº¦*/
+  int nHeight;           /* Height of the tree headed by this node 		ÒÔ´Ë½ÚµãÎª¸ù½ÚµãµÄÊıµÄ¸ß¶È*/
 #endif
 };
 
 /*
 ** The following are the meanings of bits in the Expr.flags field.
 */
-#define EP_FromJoin   0x0001  /* Originated in ON or USING clause of a join 	èµ·æºäºè¿æ¥çš„ONæˆ–USINGè¯­å¥*/
-#define EP_Agg        0x0002  /* Contains one or more aggregate functions 	åŒ…å«äº†ä¸€ä¸ªæˆ–å¤šä¸ªèšåˆå‡½æ•°*/
-#define EP_Resolved   0x0004  /* IDs have been resolved to COLUMNs 		æ ‡è¯†å·²ç»è¢«è§£æåˆ°åˆ—*/
-#define EP_Error      0x0008  /* Expression contains one or more errors 	è¡¨è¾¾å¼åŒ…å«ä¸€ä¸ªæˆ–å¤šä¸ªé”™è¯¯*/
-#define EP_Distinct   0x0010  /* Aggregate function with DISTINCT keyword 	æœ‰DISTINCTå…³é”®å­—çš„èšåˆå‡½æ•°*/
-#define EP_VarSelect  0x0020  /* pSelect is correlated, not constant 		pSelectæ˜¯ç›¸å…³çš„ï¼Œä¸æ˜¯æŒç»­çš„*/
-#define EP_DblQuoted  0x0040  /* token.z was originally in "..." 		token.zæºè‡ªäº"..."*/
-#define EP_InfixFunc  0x0080  /* True for an infix function: LIKE, GLOB, etc 	é€‚åˆäºä¸­ç¼€åŠŸèƒ½:LINKE,GLOBç­‰*/
-#define EP_ExpCollate 0x0100  /* Collating sequence specified explicitly 	æ’åºåºåˆ—æ˜ç¡®è§„å®š*/
-#define EP_FixedDest  0x0200  /* Result needed in a specific register 		ç»“æœéœ€è¦ä¿å­˜åœ¨ä¸€ä¸ªç‰¹å®šçš„å¯„å­˜å™¨*/
-#define EP_IntValue   0x0400  /* Integer value contained in u.iValue 		åŒ…å«åœ¨u.iValueçš„æ•´æ•°å€¼*/
-#define EP_xIsSelect  0x0800  /* x.pSelect is valid (otherwise x.pList is) 	x.pSelectæ˜¯æœ‰æ•ˆçš„(å¦åˆ™x.pListæ˜¯)*/
-#define EP_Hint       0x1000  /* Not used 					æœªä½¿ç”¨*/
-#define EP_Reduced    0x2000  /* Expr struct is EXPR_REDUCEDSIZE bytes only 	Exprç»“æ„ä½“æ˜¯å”¯ä¸€çš„EXPR_REDUCEDSIZEå­—èŠ‚*/
-#define EP_TokenOnly  0x4000  /* Expr struct is EXPR_TOKENONLYSIZE bytes only 	Exprç»“æ„ä½“æ˜¯å”¯ä¸€EXPR_TOKENONLYSIZEå­—èŠ‚*/
-#define EP_Static     0x8000  /* Held in memory not obtained from malloc() 	ä¿å­˜åœ¨å†…å­˜ä¸­æ²¡æœ‰ç”¨malloc()è·å¾—*/
+#define EP_FromJoin   0x0001  /* Originated in ON or USING clause of a join 	ÆğÔ´ÓÚÁ¬½ÓµÄON»òUSINGÓï¾ä*/
+#define EP_Agg        0x0002  /* Contains one or more aggregate functions 	°üº¬ÁËÒ»¸ö»ò¶à¸ö¾ÛºÏº¯Êı*/
+#define EP_Resolved   0x0004  /* IDs have been resolved to COLUMNs 		±êÊ¶ÒÑ¾­±»½âÎöµ½ÁĞ*/
+#define EP_Error      0x0008  /* Expression contains one or more errors 	±í´ïÊ½°üº¬Ò»¸ö»ò¶à¸ö´íÎó*/
+#define EP_Distinct   0x0010  /* Aggregate function with DISTINCT keyword 	ÓĞDISTINCT¹Ø¼ü×ÖµÄ¾ÛºÏº¯Êı*/
+#define EP_VarSelect  0x0020  /* pSelect is correlated, not constant 		pSelectÊÇÏà¹ØµÄ£¬²»ÊÇ³ÖĞøµÄ*/
+#define EP_DblQuoted  0x0040  /* token.z was originally in "..." 		token.zÔ´×ÔÓÚ"..."*/
+#define EP_InfixFunc  0x0080  /* True for an infix function: LIKE, GLOB, etc 	ÊÊºÏÓÚÖĞ×º¹¦ÄÜ:LINKE,GLOBµÈ*/
+#define EP_ExpCollate 0x0100  /* Collating sequence specified explicitly 	ÅÅĞòĞòÁĞÃ÷È·¹æ¶¨*/
+#define EP_FixedDest  0x0200  /* Result needed in a specific register 		½á¹ûĞèÒª±£´æÔÚÒ»¸öÌØ¶¨µÄ¼Ä´æÆ÷*/
+#define EP_IntValue   0x0400  /* Integer value contained in u.iValue 		°üº¬ÔÚu.iValueµÄÕûÊıÖµ*/
+#define EP_xIsSelect  0x0800  /* x.pSelect is valid (otherwise x.pList is) 	x.pSelectÊÇÓĞĞ§µÄ(·ñÔòx.pListÊÇ)*/
+#define EP_Hint       0x1000  /* Not used 					Î´Ê¹ÓÃ*/
+#define EP_Reduced    0x2000  /* Expr struct is EXPR_REDUCEDSIZE bytes only 	Expr½á¹¹ÌåÊÇÎ¨Ò»µÄEXPR_REDUCEDSIZE×Ö½Ú*/
+#define EP_TokenOnly  0x4000  /* Expr struct is EXPR_TOKENONLYSIZE bytes only 	Expr½á¹¹ÌåÊÇÎ¨Ò»EXPR_TOKENONLYSIZE×Ö½Ú*/
+#define EP_Static     0x8000  /* Held in memory not obtained from malloc() 	±£´æÔÚÄÚ´æÖĞÃ»ÓĞÓÃmalloc()»ñµÃ*/
 
 /*
 ** The following are the meanings of bits in the Expr.flags2 field.
@@ -1860,10 +1860,10 @@ struct Expr {
 #define EP2_Irreducible    0x0002  /* Cannot EXPRDUP_REDUCE this Expr */
 
 /*
-** The pseudo-routine sqlite3ExprSetIrreducible sets the EP2_Irreducible	ä¼ªä¾‹ç¨‹sqlite3ExprSetlrreducibleé€šè¿‡è¡¨è¾¾å¼ç»“æ„æ¥è®¾ç½®EP2_Irreducibleæ ‡å¿—
-** flag on an expression structure.  This flag is used for VV&A only.  The	è¯¥æ ‡å¿—åªç”¨äºVV&A
-** routine is implemented as a macro that only works when in debugging mode,	ä¾‹ç¨‹è¢«å®ç°ä¸ºä¸€ä¸ªåªåœ¨è°ƒè¯•æ¨¡å¼ä¸‹å·¥ä½œä¸‹å·¥ä½œçš„å®
-** so as not to burden production code.						ä»¥å…ç”Ÿäº§ä»£ç äº§ç”Ÿè´Ÿæ‹…
+** The pseudo-routine sqlite3ExprSetIrreducible sets the EP2_Irreducible	Î±Àı³Ìsqlite3ExprSetlrreducibleÍ¨¹ı±í´ïÊ½½á¹¹À´ÉèÖÃEP2_Irreducible±êÖ¾
+** flag on an expression structure.  This flag is used for VV&A only.  The	¸Ã±êÖ¾Ö»ÓÃÓÚVV&A
+** routine is implemented as a macro that only works when in debugging mode,	Àı³Ì±»ÊµÏÖÎªÒ»¸öÖ»ÔÚµ÷ÊÔÄ£Ê½ÏÂ¹¤×÷ÏÂ¹¤×÷µÄºê
+** so as not to burden production code.						ÒÔÃâÉú²ú´úÂë²úÉú¸ºµ£
 */
 #ifdef SQLITE_DEBUG
 # define ExprSetIrreducible(X)  (X)->flags2 |= EP2_Irreducible
@@ -1872,7 +1872,7 @@ struct Expr {
 #endif
 
 /*
-** These macros can be used to test, set, or clear bits in the 			è¿™äº›å®åœ¨Expr.flagså­—æ®µå¯ç”¨äºæµ‹è¯•ï¼Œç½®ä½æˆ–æ¸…é›¶
+** These macros can be used to test, set, or clear bits in the 			ÕâĞ©ºêÔÚExpr.flags×Ö¶Î¿ÉÓÃÓÚ²âÊÔ£¬ÖÃÎ»»òÇåÁã
 ** Expr.flags field.
 */
 #define ExprHasProperty(E,P)     (((E)->flags&(P))==(P))
@@ -1881,435 +1881,435 @@ struct Expr {
 #define ExprClearProperty(E,P)   (E)->flags&=~(P)
 
 /*
-** Macros to determine the number of bytes required by a normal Expr 		å®æ¥ç¡®å®šä¸€ä¸ªæ™®é€šExprç»“æ„ä½“çš„å­—èŠ‚æ•°
-** struct, an Expr struct with the EP_Reduced flag set in Expr.flags 		æœ‰EP_Reducedæ ‡è®°è®¾ç½®Expr.flagsçš„Exprç»“æ„ä½“
-** and an Expr struct with the EP_TokenOnly flag set.				EP_TokenOnlyè®¾ç½®çš„ç»“æ„ä½“
+** Macros to determine the number of bytes required by a normal Expr 		ºêÀ´È·¶¨Ò»¸öÆÕÍ¨Expr½á¹¹ÌåµÄ×Ö½ÚÊı
+** struct, an Expr struct with the EP_Reduced flag set in Expr.flags 		ÓĞEP_Reduced±ê¼ÇÉèÖÃExpr.flagsµÄExpr½á¹¹Ìå
+** and an Expr struct with the EP_TokenOnly flag set.				EP_TokenOnlyÉèÖÃµÄ½á¹¹Ìå
 */
-#define EXPR_FULLSIZE           sizeof(Expr)           /* Full size 		å…¨éƒ¨å¤§å°*/
-#define EXPR_REDUCEDSIZE        offsetof(Expr,iTable)  /* Common features 	å…±åŒçš„ç‰¹å¾*/
-#define EXPR_TOKENONLYSIZE      offsetof(Expr,pLeft)   /* Fewer features 	è¾ƒå°‘çš„ç‰¹å¾*/
+#define EXPR_FULLSIZE           sizeof(Expr)           /* Full size 		È«²¿´óĞ¡*/
+#define EXPR_REDUCEDSIZE        offsetof(Expr,iTable)  /* Common features 	¹²Í¬µÄÌØÕ÷*/
+#define EXPR_TOKENONLYSIZE      offsetof(Expr,pLeft)   /* Fewer features 	½ÏÉÙµÄÌØÕ÷*/
 
 /*
-** Flags passed to the sqlite3ExprDup() function. See the header comment 	æ ‡å¿—ä¼ é€’ç»™sqlite3ExprDup()å‡½æ•°
-** above sqlite3ExprDup() for details.						åœ¨sqlite3ExprDup()å¤´éƒ¨è¿›è¡Œäº†è¯¦ç»†çš„æ³¨é‡Š
+** Flags passed to the sqlite3ExprDup() function. See the header comment 	±êÖ¾´«µİ¸øsqlite3ExprDup()º¯Êı
+** above sqlite3ExprDup() for details.						ÔÚsqlite3ExprDup()Í·²¿½øĞĞÁËÏêÏ¸µÄ×¢ÊÍ
 */
 #define EXPRDUP_REDUCE         0x0001  /* Used reduced-size Expr nodes */
 
 /*
-** A list of expressions.  Each expression may optionally have a		è¡¨è¾¾å¼åˆ—è¡¨ã€‚æ¯ä¸ªè¡¨è¾¾å¼å¯ä»¥æœ‰ä¸€ä¸ªåç§°
-** name.  An expr/name combination can be used in several ways, such		ä¸€ä¸ªè¡¨è¾¾å¼/åç§°ç»„åˆå¯ä»¥ç”¨äºå‡ ä¸ªæ–¹é¢
-** as the list of "expr AS ID" fields following a "SELECT" or in the		æ¯”å¦‚åœ¨ä¸€ä¸ª"SELECT"ä¹‹åçš„"expr AS ID"åˆ—è¡¨
-** list of "ID = expr" items in an UPDATE.  A list of expressions can		æˆ–åœ¨UPDATEä¸­"ID=expr"åˆ—è¡¨
-** also be used as the argument to a function, in which case the a.zName	è¡¨è¾¾å¼åˆ—è¡¨ä¹Ÿå¯ä»¥è¢«ç”¨ä½œa.zNameå­—æ®µä¸è¢«ä½¿ç”¨çš„å‡½æ•°çš„å‚æ•°
+** A list of expressions.  Each expression may optionally have a		±í´ïÊ½ÁĞ±í¡£Ã¿¸ö±í´ïÊ½¿ÉÒÔÓĞÒ»¸öÃû³Æ
+** name.  An expr/name combination can be used in several ways, such		Ò»¸ö±í´ïÊ½/Ãû³Æ×éºÏ¿ÉÒÔÓÃÓÚ¼¸¸ö·½Ãæ
+** as the list of "expr AS ID" fields following a "SELECT" or in the		±ÈÈçÔÚÒ»¸ö"SELECT"Ö®ºóµÄ"expr AS ID"ÁĞ±í
+** list of "ID = expr" items in an UPDATE.  A list of expressions can		»òÔÚUPDATEÖĞ"ID=expr"ÁĞ±í
+** also be used as the argument to a function, in which case the a.zName	±í´ïÊ½ÁĞ±íÒ²¿ÉÒÔ±»ÓÃ×÷a.zName×Ö¶Î²»±»Ê¹ÓÃµÄº¯ÊıµÄ²ÎÊı
 ** field is not used.
 */
 struct ExprList {
-  int nExpr;             /* Number of expressions on the list 			åˆ—è¡¨ä¸­çš„è¡¨è¾¾å¼æ•°ç›®*/
-  int iECursor;          /* VDBE Cursor associated with this ExprList 		ä¸ExprListç›¸å…³çš„VDBEæ¸¸æ ‡*/
-  struct ExprList_item { /* For each expression in the list 			å¯¹äºåˆ—è¡¨ä¸­çš„æ¯ä¸ªè¡¨è¾¾å¼*/
-    Expr *pExpr;           /* The list of expressions 				è¡¨è¾¾å¼åˆ—è¡¨*/
-    char *zName;           /* Token associated with this expression 		ä¸æ­¤è¡¨è¾¾å¼ç›¸å…³çš„ç¬¦å·*/
-    char *zSpan;           /* Original text of the expression 			åŸæ–‡çš„è¡¨è¾¾*/
-    u8 sortOrder;          /* 1 for DESC or 0 for ASC 				1ä¸ºé™åºæˆ–0ä¸ºå‡åº*/
-    u8 done;               /* A flag to indicate when processing is finished 	ä¸€ä¸ªæŒ‡ç¤ºä½•æ—¶å¤„ç†å®Œæ¯•çš„æ ‡å¿—*/
-    u16 iOrderByCol;       /* For ORDER BY, column number in result set 	å¯¹äºORDER BYï¼Œç»“æœé›†ä¸­çš„åˆ—æ•°*/
-    u16 iAlias;            /* Index into Parse.aAlias[] for zName 		zNameåœ¨Parse.aAlias[]ä¸­çš„ç´¢å¼• */
-  } *a;                  /* Alloc a power of two greater or equal to nExpr 	åˆ†é…ä¸¤ä¸ªå¤§äºæˆ–ç­‰äºnExprç©ºé—´*/
+  int nExpr;             /* Number of expressions on the list 			ÁĞ±íÖĞµÄ±í´ïÊ½ÊıÄ¿*/
+  int iECursor;          /* VDBE Cursor associated with this ExprList 		ÓëExprListÏà¹ØµÄVDBEÓÎ±ê*/
+  struct ExprList_item { /* For each expression in the list 			¶ÔÓÚÁĞ±íÖĞµÄÃ¿¸ö±í´ïÊ½*/
+    Expr *pExpr;           /* The list of expressions 				±í´ïÊ½ÁĞ±í*/
+    char *zName;           /* Token associated with this expression 		Óë´Ë±í´ïÊ½Ïà¹ØµÄ·ûºÅ*/
+    char *zSpan;           /* Original text of the expression 			Ô­ÎÄµÄ±í´ï*/
+    u8 sortOrder;          /* 1 for DESC or 0 for ASC 				1Îª½µĞò»ò0ÎªÉıĞò*/
+    u8 done;               /* A flag to indicate when processing is finished 	Ò»¸öÖ¸Ê¾ºÎÊ±´¦ÀíÍê±ÏµÄ±êÖ¾*/
+    u16 iOrderByCol;       /* For ORDER BY, column number in result set 	¶ÔÓÚORDER BY£¬½á¹û¼¯ÖĞµÄÁĞÊı*/
+    u16 iAlias;            /* Index into Parse.aAlias[] for zName 		zNameÔÚParse.aAlias[]ÖĞµÄË÷Òı */
+  } *a;                  /* Alloc a power of two greater or equal to nExpr 	·ÖÅäÁ½¸ö´óÓÚ»òµÈÓÚnExpr¿Õ¼ä*/
 };
 
 /*
-** An instance of this structure is used by the parser to record both		è§£æå™¨ç”¨è¿™ç§ç»“æ„çš„ä¸€ä¸ªå®ä¾‹æ¥è®°å½•
-** the parse tree for an expression and the span of input text for an		è¡¨è¾¾å¼çš„è§£ææ ‘å’Œè¡¨è¾¾å¼è¾“å…¥æ–‡æœ¬çš„è·¨åº¦
+** An instance of this structure is used by the parser to record both		½âÎöÆ÷ÓÃÕâÖÖ½á¹¹µÄÒ»¸öÊµÀıÀ´¼ÇÂ¼
+** the parse tree for an expression and the span of input text for an		±í´ïÊ½µÄ½âÎöÊ÷ºÍ±í´ïÊ½ÊäÈëÎÄ±¾µÄ¿ç¶È
 ** expression.
 */
 struct ExprSpan {
-  Expr *pExpr;          /* The expression parse tree 				è¡¨è¾¾å¼è§£ææ ‘*/
-  const char *zStart;   /* First character of input text 			è¾“å…¥æ–‡æœ¬çš„ç¬¬ä¸€ä¸ªå­—ç¬¦*/
-  const char *zEnd;     /* One character past the end of input text 		è¾“å…¥æ–‡æœ¬çš„æœ€åä¸€ä¸ªå­—ç¬¦*/
+  Expr *pExpr;          /* The expression parse tree 				±í´ïÊ½½âÎöÊ÷*/
+  const char *zStart;   /* First character of input text 			ÊäÈëÎÄ±¾µÄµÚÒ»¸ö×Ö·û*/
+  const char *zEnd;     /* One character past the end of input text 		ÊäÈëÎÄ±¾µÄ×îºóÒ»¸ö×Ö·û*/
 };
 
 /*
-** An instance of this structure can hold a simple list of identifiers,		è¿™ç§ç»“æ„çš„ä¸€ä¸ªå®ä¾‹å¯ä»¥å®¹çº³ä¸€ä¸ªç®€å•çš„æ ‡è¯†ç¬¦åˆ—è¡¨
-** such as the list "a,b,c" in the following statements:			å¦‚åœ¨ä¸‹é¢è¿™äº›è¯­å¥ä¸­çš„"a,b,c"åˆ—è¡¨:
+** An instance of this structure can hold a simple list of identifiers,		ÕâÖÖ½á¹¹µÄÒ»¸öÊµÀı¿ÉÒÔÈİÄÉÒ»¸ö¼òµ¥µÄ±êÊ¶·ûÁĞ±í
+** such as the list "a,b,c" in the following statements:			ÈçÔÚÏÂÃæÕâĞ©Óï¾äÖĞµÄ"a,b,c"ÁĞ±í:
 **
 **      INSERT INTO t(a,b,c) VALUES ...;
 **      CREATE INDEX idx ON t(a,b,c);
 **      CREATE TRIGGER trig BEFORE UPDATE ON t(a,b,c) ...;
 **
-** The IdList.a.idx field is used when the IdList represents the list of	è¡¨ååœ¨INSERTè¯­å¥ä¸­IdListä»£è¡¨åˆ—åçš„åˆ—è¡¨æ—¶ï¼ŒIdList.a.idxè¢«ä½¿ç”¨
+** The IdList.a.idx field is used when the IdList represents the list of	±íÃûÔÚINSERTÓï¾äÖĞIdList´ú±íÁĞÃûµÄÁĞ±íÊ±£¬IdList.a.idx±»Ê¹ÓÃ
 ** column names after a table name in an INSERT statement.  In the statement
 **
 **     INSERT INTO t(a,b,c) ...
 **
-** If "a" is the k-th column of table "t", then IdList.a[0].idx==k.		å¦‚æœ"a"æ˜¯è¡¨"t"çš„ç¬¬kåˆ—ï¼Œé‚£ä¹ˆIdList.a[0].idx==k
+** If "a" is the k-th column of table "t", then IdList.a[0].idx==k.		Èç¹û"a"ÊÇ±í"t"µÄµÚkÁĞ£¬ÄÇÃ´IdList.a[0].idx==k
 */
 struct IdList {
   struct IdList_item {
-    char *zName;      /* Name of the identifier 				æ ‡è¯†ç¬¦çš„åç§°*/
-    int idx;          /* Index in some Table.aCol[] of a column named zName 	åœ¨ä¸€äº›Table.aCol[]ä¸­åˆ—ç§°ä¸ºzName*/
+    char *zName;      /* Name of the identifier 				±êÊ¶·ûµÄÃû³Æ*/
+    int idx;          /* Index in some Table.aCol[] of a column named zName 	ÔÚÒ»Ğ©Table.aCol[]ÖĞÁĞ³ÆÎªzName*/
   } *a;
-  int nId;         /* Number of identifiers on the list 			åˆ—è¡¨ä¸­æ ‡è¯†ç¬¦çš„æ•°ç›®*/
+  int nId;         /* Number of identifiers on the list 			ÁĞ±íÖĞ±êÊ¶·ûµÄÊıÄ¿*/
 };
 
 /*
-** The bitmask datatype defined below is used for various optimizations.	ä¸‹é¢å®šä¹‰çš„ä½æ©ç æ•°æ®ç±»å‹è¢«ç”¨äºå„ç§ä¼˜åŒ–
+** The bitmask datatype defined below is used for various optimizations.	ÏÂÃæ¶¨ÒåµÄÎ»ÑÚÂëÊı¾İÀàĞÍ±»ÓÃÓÚ¸÷ÖÖÓÅ»¯
 **
-** Changing this from a 64-bit to a 32-bit type limits the number of		ä»64ä½åˆ°32ä½çš„ç±»å‹æ”¹å˜é™åˆ¶äº†è¿æ¥åˆ°çš„è¡¨çš„ä¸ªæ•°æ˜¯32ä¸æ˜¯64
-** tables in a join to 32 instead of 64.  But it also reduces the size		ä½†æ˜¯ä¹Ÿå‡å°‘äº†åº“çš„å¤§å°åˆ°738å­—èŠ‚åœ¨ix86ä¸Š
+** Changing this from a 64-bit to a 32-bit type limits the number of		´Ó64Î»µ½32Î»µÄÀàĞÍ¸Ä±äÏŞÖÆÁËÁ¬½Óµ½µÄ±íµÄ¸öÊıÊÇ32²»ÊÇ64
+** tables in a join to 32 instead of 64.  But it also reduces the size		µ«ÊÇÒ²¼õÉÙÁË¿âµÄ´óĞ¡µ½738×Ö½ÚÔÚix86ÉÏ
 ** of the library by 738 bytes on ix86.
 */
 typedef u64 Bitmask;
 
 /*
-** The number of bits in a Bitmask.  "BMS" means "BitMask Size".		ä½æ©ç çš„æ¯”ç‰¹æ•°ï¼Œ"BMS"è¡¨ç¤º"æ©ç å¤§å°"
+** The number of bits in a Bitmask.  "BMS" means "BitMask Size".		Î»ÑÚÂëµÄ±ÈÌØÊı£¬"BMS"±íÊ¾"ÑÚÂë´óĞ¡"
 */
 #define BMS  ((int)(sizeof(Bitmask)*8))
 
 /*
-** The following structure describes the FROM clause of a SELECT statement.	ä¸‹é¢çš„ç»“æ„æè¿°äº†ä¸€ä¸ªSELECTè¯­å¥ä¸­çš„FORMå­å¥
-** Each table or subquery in the FROM clause is a separate element of		åœ¨FORMå­å¥ä¸­çš„æ¯ä¸ªè¡¨æˆ–å­æŸ¥è¯¢æ˜¯SrcList.a[].arrayçš„ä¸€ä¸ªç‹¬ç«‹å…ƒç´ 
+** The following structure describes the FROM clause of a SELECT statement.	ÏÂÃæµÄ½á¹¹ÃèÊöÁËÒ»¸öSELECTÓï¾äÖĞµÄFORM×Ó¾ä
+** Each table or subquery in the FROM clause is a separate element of		ÔÚFORM×Ó¾äÖĞµÄÃ¿¸ö±í»ò×Ó²éÑ¯ÊÇSrcList.a[].arrayµÄÒ»¸ö¶ÀÁ¢ÔªËØ
 ** the SrcList.a[] array.
 **
-** With the addition of multiple database support, the following structure	åœ¨å¤šä¸ªæ•°æ®åº“çš„æ”¯æŒä¸‹ï¼Œä¸‹é¢çš„ç»“æ„ä¹Ÿå¯ä»¥ç”¨æ¥æè¿°ä¸€ä¸ªç‰¹å®šçš„è¡¨
-** can also be used to describe a particular table such as the table that	å¦‚ç”±ä¸€ä¸ªINSERT,DELETE,UPDATEå­å¥ä¿®æ”¹çš„è¡¨
-** is modified by an INSERT, DELETE, or UPDATE statement.  In standard SQL,	åœ¨æ ‡å‡†çš„SQLä¸­ï¼Œè¿™æ ·çš„è¡¨å¿…é¡»æœ‰ä¸€ä¸ªç®€å•çš„åå­—:ID
-** such a table must be a simple name: ID.  But in SQLite, the table can	ä½†æ˜¯åœ¨SQLiteä¸­ï¼Œè¡¨ç°åœ¨å¯ä»¥é€šè¿‡ä¸€ä¸ªæ•°æ®åº“åï¼Œä¸€ä¸ªç‚¹ç”šè‡³è¡¨åæ¥ç¡®è®¤
+** With the addition of multiple database support, the following structure	ÔÚ¶à¸öÊı¾İ¿âµÄÖ§³ÖÏÂ£¬ÏÂÃæµÄ½á¹¹Ò²¿ÉÒÔÓÃÀ´ÃèÊöÒ»¸öÌØ¶¨µÄ±í
+** can also be used to describe a particular table such as the table that	ÈçÓÉÒ»¸öINSERT,DELETE,UPDATE×Ó¾äĞŞ¸ÄµÄ±í
+** is modified by an INSERT, DELETE, or UPDATE statement.  In standard SQL,	ÔÚ±ê×¼µÄSQLÖĞ£¬ÕâÑùµÄ±í±ØĞëÓĞÒ»¸ö¼òµ¥µÄÃû×Ö:ID
+** such a table must be a simple name: ID.  But in SQLite, the table can	µ«ÊÇÔÚSQLiteÖĞ£¬±íÏÖÔÚ¿ÉÒÔÍ¨¹ıÒ»¸öÊı¾İ¿âÃû£¬Ò»¸öµãÉõÖÁ±íÃûÀ´È·ÈÏ
 ** now be identified by a database name, a dot, then the table name: ID.ID.
 **
-** The jointype starts out showing the join type between the current table	jointypeå¼€å§‹è¡¨æ˜åœ¨åˆ—è¡¨ä¸­è¿™ä¸ªè¡¨å’Œä¸‹ä¸ªè¡¨çš„è¿æ¥ç±»å‹
-** and the next table on the list.  The parser builds the list this way.	è§£æå™¨ç”¨è¿™ç§æ–¹å¼æ„å»ºåˆ—è¡¨
-** But sqlite3SrcListShiftJoinType() later shifts the jointypes so that each	ä½†æ˜¯sqlite3SrcListShiftJoinType()ä»¥åæ”¹å˜jointypesä½¿å¾—
-** jointype expresses the join between the table and the previous table.	æ¯ä¸ªjointypeè¡¨ç¤ºè¿™ä¸ªè¡¨å’Œä¸Šä¸ªè¡¨ä¹‹é—´çš„è”ç³»
+** The jointype starts out showing the join type between the current table	jointype¿ªÊ¼±íÃ÷ÔÚÁĞ±íÖĞÕâ¸ö±íºÍÏÂ¸ö±íµÄÁ¬½ÓÀàĞÍ
+** and the next table on the list.  The parser builds the list this way.	½âÎöÆ÷ÓÃÕâÖÖ·½Ê½¹¹½¨ÁĞ±í
+** But sqlite3SrcListShiftJoinType() later shifts the jointypes so that each	µ«ÊÇsqlite3SrcListShiftJoinType()ÒÔºó¸Ä±äjointypesÊ¹µÃ
+** jointype expresses the join between the table and the previous table.	Ã¿¸öjointype±íÊ¾Õâ¸ö±íºÍÉÏ¸ö±íÖ®¼äµÄÁªÏµ
 **
-** In the colUsed field, the high-order bit (bit 63) is set if the table	åœ¨colUsedå­—æ®µï¼Œå¦‚æœè¡¨åŒ…å«å¤šäº63åˆ—å’Œ64åˆ—æˆ–æ›´é«˜åˆ—è¢«ä½¿ç”¨ï¼Œé«˜ä½(63ä½)è¢«è®¾ç½®
+** In the colUsed field, the high-order bit (bit 63) is set if the table	ÔÚcolUsed×Ö¶Î£¬Èç¹û±í°üº¬¶àÓÚ63ÁĞºÍ64ÁĞ»ò¸ü¸ßÁĞ±»Ê¹ÓÃ£¬¸ßÎ»(63Î»)±»ÉèÖÃ
 ** contains more than 63 columns and the 64-th or later column is used.
 */
 struct SrcList {
-  i16 nSrc;        /* Number of tables or subqueries in the FROM clause 	è¡¨æˆ–å­æŸ¥è¯¢çš„FORMå­å¥æ•°*/
-  i16 nAlloc;      /* Number of entries allocated in a[] below 			åˆ†é…åœ¨a[]ä¸‹é¢çš„è¾“å…¥çš„æ•°ç›®*/
+  i16 nSrc;        /* Number of tables or subqueries in the FROM clause 	±í»ò×Ó²éÑ¯µÄFORM×Ó¾äÊı*/
+  i16 nAlloc;      /* Number of entries allocated in a[] below 			·ÖÅäÔÚa[]ÏÂÃæµÄÊäÈëµÄÊıÄ¿*/
   struct SrcList_item {
-    char *zDatabase;  /* Name of database holding this table 			æŒæœ‰è¿™ä¸ªè¡¨çš„æ•°æ®åº“åç§°*/
-    char *zName;      /* Name of the table 					è¡¨çš„åç§°*/
-    char *zAlias;     /* The "B" part of a "A AS B" phrase.  zName is the "A" 	"A AS B"å­å¥ä¸­"B"éƒ¨åˆ†ï¼ŒzNameæ˜¯"A"*/
-    Table *pTab;      /* An SQL table corresponding to zName 			å¯¹åº”zNameçš„SQLè¡¨*/
-    Select *pSelect;  /* A SELECT statement used in place of a table name 	ä»£æ›¿è¡¨åä½¿ç”¨SELECTè¯­å¥*/
-    int addrFillSub;  /* Address of subroutine to manifest a subquery 		å®ç°å­æŸ¥è¯¢çš„å­ç¨‹åºåœ°å€*/
-    int regReturn;    /* Register holding return address of addrFillSub 	å¯„å­˜å™¨ä¿å­˜addrFillSubè¿”å›åœ°å€*/
-    u8 jointype;      /* Type of join between this able and the previous 	è¿™ä¸ªè¡¨å’Œä¹‹å‰è¡¨çš„çš„è¿æ¥ç±»å‹*/
-    u8 notIndexed;    /* True if there is a NOT INDEXED clause 			æ˜¯å¦æœ‰ä¸€ä¸ªNOT INDEXEDå­å¥*/
-    u8 isCorrelated;  /* True if sub-query is correlated 			æ˜¯å¦ç›¸å…³å­æŸ¥è¯¢*/
+    char *zDatabase;  /* Name of database holding this table 			³ÖÓĞÕâ¸ö±íµÄÊı¾İ¿âÃû³Æ*/
+    char *zName;      /* Name of the table 					±íµÄÃû³Æ*/
+    char *zAlias;     /* The "B" part of a "A AS B" phrase.  zName is the "A" 	"A AS B"×Ó¾äÖĞ"B"²¿·Ö£¬zNameÊÇ"A"*/
+    Table *pTab;      /* An SQL table corresponding to zName 			¶ÔÓ¦zNameµÄSQL±í*/
+    Select *pSelect;  /* A SELECT statement used in place of a table name 	´úÌæ±íÃûÊ¹ÓÃSELECTÓï¾ä*/
+    int addrFillSub;  /* Address of subroutine to manifest a subquery 		ÊµÏÖ×Ó²éÑ¯µÄ×Ó³ÌĞòµØÖ·*/
+    int regReturn;    /* Register holding return address of addrFillSub 	¼Ä´æÆ÷±£´æaddrFillSub·µ»ØµØÖ·*/
+    u8 jointype;      /* Type of join between this able and the previous 	Õâ¸ö±íºÍÖ®Ç°±íµÄµÄÁ¬½ÓÀàĞÍ*/
+    u8 notIndexed;    /* True if there is a NOT INDEXED clause 			ÊÇ·ñÓĞÒ»¸öNOT INDEXED×Ó¾ä*/
+    u8 isCorrelated;  /* True if sub-query is correlated 			ÊÇ·ñÏà¹Ø×Ó²éÑ¯*/
 #ifndef SQLITE_OMIT_EXPLAIN
-    u8 iSelectId;     /* If pSelect!=0, the id of the sub-select in EQP 	å¦‚æœpSelect!=0,EQPä¸­å­é€‰æ‹©çš„id*/
+    u8 iSelectId;     /* If pSelect!=0, the id of the sub-select in EQP 	Èç¹ûpSelect!=0,EQPÖĞ×ÓÑ¡ÔñµÄid*/
 #endif
-    int iCursor;      /* The VDBE cursor number used to access this table 	ç”¨æ¥è®¿é—®æ­¤è¡¨çš„VDBEå…‰æ ‡å·*/
-    Expr *pOn;        /* The ON clause of a join 				ONå­å¥çš„åŠ å…¥*/
-    IdList *pUsing;   /* The USING clause of a join 				USINGå­å¥çš„åŠ å…¥*/
-    Bitmask colUsed;  /* Bit N (1<<N) set if column N of pTab is used 		è®¾ç½®ä½N(1<<N)å¦‚æœè¡¨pçš„åˆ—Nè¢«ä½¿ç”¨*/
-    char *zIndex;     /* Identifier from "INDEXED BY <zIndex>" clause 		"INDEXED BY<zIndex>"å­å¥çš„è¯†åˆ«ç */
-    Index *pIndex;    /* Index structure corresponding to zIndex, if any 	å¯¹åº”äºzIndexçš„ç´¢å¼•ç»“æ„*/
-  } a[1];             /* One entry for each identifier on the list 		åˆ—è¡¨ä¸Šæ¯ä¸ªæ ‡è¯†ç¬¦çš„ä¸€ä¸ªæ¡ç›®*/
+    int iCursor;      /* The VDBE cursor number used to access this table 	ÓÃÀ´·ÃÎÊ´Ë±íµÄVDBE¹â±êºÅ*/
+    Expr *pOn;        /* The ON clause of a join 				ON×Ó¾äµÄ¼ÓÈë*/
+    IdList *pUsing;   /* The USING clause of a join 				USING×Ó¾äµÄ¼ÓÈë*/
+    Bitmask colUsed;  /* Bit N (1<<N) set if column N of pTab is used 		ÉèÖÃÎ»N(1<<N)Èç¹û±ípµÄÁĞN±»Ê¹ÓÃ*/
+    char *zIndex;     /* Identifier from "INDEXED BY <zIndex>" clause 		"INDEXED BY<zIndex>"×Ó¾äµÄÊ¶±ğÂë*/
+    Index *pIndex;    /* Index structure corresponding to zIndex, if any 	¶ÔÓ¦ÓÚzIndexµÄË÷Òı½á¹¹*/
+  } a[1];             /* One entry for each identifier on the list 		ÁĞ±íÉÏÃ¿¸ö±êÊ¶·ûµÄÒ»¸öÌõÄ¿*/
 };
 
 /*
-** Permitted values of the SrcList.a.jointype field				SrcList.a.jointypeå­—æ®µçš„å…è®¸å€¼
+** Permitted values of the SrcList.a.jointype field				SrcList.a.jointype×Ö¶ÎµÄÔÊĞíÖµ
 */
-#define JT_INNER     0x0001    /* Any kind of inner or cross join 		ä»»ä½•å†…éƒ¨æˆ–äº¤å‰è¿æ¥*/
-#define JT_CROSS     0x0002    /* Explicit use of the CROSS keyword 		æ˜ç¡®ä½¿ç”¨äº†CROSSå…³é”®å­—*/
-#define JT_NATURAL   0x0004    /* True for a "natural" join 			çœŸæ­£çš„"è‡ªç„¶"è¿æ¥*/
-#define JT_LEFT      0x0008    /* Left outer join 				å·¦å¤–è¿æ¥*/
-#define JT_RIGHT     0x0010    /* Right outer join 				å³å¤–è¿æ¥*/
-#define JT_OUTER     0x0020    /* The "OUTER" keyword is present 		å­˜åœ¨"OUTER"å…³é”®å­—*/
-#define JT_ERROR     0x0040    /* unknown or unsupported join type 		æœªçŸ¥æˆ–ä¸æ”¯æŒçš„è¿æ¥ç±»å‹*/
+#define JT_INNER     0x0001    /* Any kind of inner or cross join 		ÈÎºÎÄÚ²¿»ò½»²æÁ¬½Ó*/
+#define JT_CROSS     0x0002    /* Explicit use of the CROSS keyword 		Ã÷È·Ê¹ÓÃÁËCROSS¹Ø¼ü×Ö*/
+#define JT_NATURAL   0x0004    /* True for a "natural" join 			ÕæÕıµÄ"×ÔÈ»"Á¬½Ó*/
+#define JT_LEFT      0x0008    /* Left outer join 				×óÍâÁ¬½Ó*/
+#define JT_RIGHT     0x0010    /* Right outer join 				ÓÒÍâÁ¬½Ó*/
+#define JT_OUTER     0x0020    /* The "OUTER" keyword is present 		´æÔÚ"OUTER"¹Ø¼ü×Ö*/
+#define JT_ERROR     0x0040    /* unknown or unsupported join type 		Î´Öª»ò²»Ö§³ÖµÄÁ¬½ÓÀàĞÍ*/
 
 
 /*
-** A WherePlan object holds information that describes a lookup			WherePlanå¯¹è±¡åŒ…å«å¦‚ä¸‹ä¿¡æ¯ï¼Œæè¿°ä¸€ä¸ªæŸ¥æ‰¾ç­–ç•¥
+** A WherePlan object holds information that describes a lookup			WherePlan¶ÔÏó°üº¬ÈçÏÂĞÅÏ¢£¬ÃèÊöÒ»¸ö²éÕÒ²ßÂÔ
 ** strategy.
 **
-** This object is intended to be opaque outside of the where.c module.		è¿™ä¸ªå¯¹è±¡æ˜¯åœ¨ä¸é€æ˜çš„where.cæ¨¡å—å¤–çš„ã€‚
-** It is included here only so that that compiler will know how big it		å®ƒåªåŒ…æ‹¬è¿™é‡Œæ‰€ä»¥ç¼–è¯‘å™¨ä¼šçŸ¥é“å®ƒçš„å¤§å°
-** is.  None of the fields in this object should be used outside of		æ²¡æœ‰åœ¨æ­¤å¯¹è±¡ä¸­çš„å­—æ®µåº”åœ¨where.cæ¨¡å—å¤–ä½¿ç”¨
+** This object is intended to be opaque outside of the where.c module.		Õâ¸ö¶ÔÏóÊÇÔÚ²»Í¸Ã÷µÄwhere.cÄ£¿éÍâµÄ¡£
+** It is included here only so that that compiler will know how big it		ËüÖ»°üÀ¨ÕâÀïËùÒÔ±àÒëÆ÷»áÖªµÀËüµÄ´óĞ¡
+** is.  None of the fields in this object should be used outside of		Ã»ÓĞÔÚ´Ë¶ÔÏóÖĞµÄ×Ö¶ÎÓ¦ÔÚwhere.cÄ£¿éÍâÊ¹ÓÃ
 ** the where.c module.
 **
-** Within the union, pIdx is only used when wsFlags&WHERE_INDEXED is true.	åœ¨è¿æ¥ä¸­ï¼ŒpIdxä»…ç”¨äºå½“wsFlagå’ŒWHERE_INDEXEDæ˜¯çœŸ
-** pTerm is only used when wsFlags&WHERE_MULTI_OR is true.  And pVtabIdx	pTermä»…ç”¨äºå½“wsFlagså’ŒWHERE_MULTI_ORæ˜¯çœŸ
-** is only used when wsFlags&WHERE_VIRTUALTABLE is true.  It is never the	pVtabIdxä»…ç”¨äºå½“wsFlagså’ŒWHERE_VIRTUALTABLEæ˜¯çœŸ
-** case that more than one of these conditions is true.				æ°¸è¿œä¸ä¼šå¤šäºä¸€ä¸ªæ¡ä»¶ä¸ºçœŸ
+** Within the union, pIdx is only used when wsFlags&WHERE_INDEXED is true.	ÔÚÁ¬½ÓÖĞ£¬pIdx½öÓÃÓÚµ±wsFlagºÍWHERE_INDEXEDÊÇÕæ
+** pTerm is only used when wsFlags&WHERE_MULTI_OR is true.  And pVtabIdx	pTerm½öÓÃÓÚµ±wsFlagsºÍWHERE_MULTI_ORÊÇÕæ
+** is only used when wsFlags&WHERE_VIRTUALTABLE is true.  It is never the	pVtabIdx½öÓÃÓÚµ±wsFlagsºÍWHERE_VIRTUALTABLEÊÇÕæ
+** case that more than one of these conditions is true.				ÓÀÔ¶²»»á¶àÓÚÒ»¸öÌõ¼şÎªÕæ
 */
 struct WherePlan {
-  u32 wsFlags;                   /* WHERE_* flags that describe the strategy 	æè¿°æˆ˜ç•¥çš„WHERE_*æ ‡å¿—*/
-  u32 nEq;                       /* Number of == constraints 			==çš„æ•°é‡é™åˆ¶*/
-  double nRow;                   /* Estimated number of rows (for EQP) 		ä¼°è®¡çš„è¡Œæ•°*/
+  u32 wsFlags;                   /* WHERE_* flags that describe the strategy 	ÃèÊöÕ½ÂÔµÄWHERE_*±êÖ¾*/
+  u32 nEq;                       /* Number of == constraints 			==µÄÊıÁ¿ÏŞÖÆ*/
+  double nRow;                   /* Estimated number of rows (for EQP) 		¹À¼ÆµÄĞĞÊı*/
   union {
-    Index *pIdx;                   /* Index when WHERE_INDEXED is true 		å½“WHERE_INDEXEDæ˜¯çœŸæ—¶çš„ç´¢å¼•*/
-    struct WhereTerm *pTerm;       /* WHERE clause term for OR-search 		ORæœç´¢ä¸­WHEREå­å¥æœ¯è¯­*/
-    sqlite3_index_info *pVtabIdx;  /* Virtual table index to use 		ä½¿ç”¨è™šè¡¨ç´¢å¼•*/
+    Index *pIdx;                   /* Index when WHERE_INDEXED is true 		µ±WHERE_INDEXEDÊÇÕæÊ±µÄË÷Òı*/
+    struct WhereTerm *pTerm;       /* WHERE clause term for OR-search 		ORËÑË÷ÖĞWHERE×Ó¾äÊõÓï*/
+    sqlite3_index_info *pVtabIdx;  /* Virtual table index to use 		Ê¹ÓÃĞé±íË÷Òı*/
   } u;
 };
 
 /*
-** For each nested loop in a WHERE clause implementation, the WhereInfo		å¯¹äºåœ¨WHEREå­å¥ä¸­å®ç°çš„æ¯ä¸ªåµŒå¥—å¾ªç¯ä¸­ï¼Œ
-** structure contains a single instance of this structure.  This structure	Whereinfoç»“æ„åŒ…å«ä¸€ä¸ªå•ä¸€å®ä¾‹çš„ç»“æ„
-** is intended to be private to the where.c module and should not be		è¿™ä¸ªç»“æ„å¯¹where.cæ¨¡å—æ˜¯ç§æœ‰çš„ï¼Œ
-** access or modified by other modules.						ä¸åº”è¯¥è®¿é—®æˆ–é€šè¿‡å…¶ä»–æ¨¡å—è¿›è¡Œä¿®æ”¹
+** For each nested loop in a WHERE clause implementation, the WhereInfo		¶ÔÓÚÔÚWHERE×Ó¾äÖĞÊµÏÖµÄÃ¿¸öÇ¶Ì×Ñ­»·ÖĞ£¬
+** structure contains a single instance of this structure.  This structure	Whereinfo½á¹¹°üº¬Ò»¸öµ¥Ò»ÊµÀıµÄ½á¹¹
+** is intended to be private to the where.c module and should not be		Õâ¸ö½á¹¹¶Ôwhere.cÄ£¿éÊÇË½ÓĞµÄ£¬
+** access or modified by other modules.						²»Ó¦¸Ã·ÃÎÊ»òÍ¨¹ıÆäËûÄ£¿é½øĞĞĞŞ¸Ä
 **
-** The pIdxInfo field is used to help pick the best index on a			pIdxInfoå­—æ®µç”¨äºå¸®åŠ©æŒ‘é€‰æœ€å¥½çš„è™šæ‹Ÿè¡¨ç´¢å¼•
-** virtual table.  The pIdxInfo pointer contains indexing			pIdxInfoæŒ‡é’ˆåŒ…å«FORMå­å¥ç¬¬iä¸ªè¡¨é‡æ–°æ’åºå‰çš„ç´¢å¼•ä¿¡æ¯
+** The pIdxInfo field is used to help pick the best index on a			pIdxInfo×Ö¶ÎÓÃÓÚ°ïÖúÌôÑ¡×îºÃµÄĞéÄâ±íË÷Òı
+** virtual table.  The pIdxInfo pointer contains indexing			pIdxInfoÖ¸Õë°üº¬FORM×Ó¾äµÚi¸ö±íÖØĞÂÅÅĞòÇ°µÄË÷ÒıĞÅÏ¢
 ** information for the i-th table in the FROM clause before reordering.	
-** All the pIdxInfo pointers are freed by whereInfoFree() in where.c.		whereInfoFree()åœ¨where.cä¸­æ—¶é‡Šæ”¾æ‰€æœ‰pIdxInfoæŒ‡é’ˆ	
-** All other information in the i-th WhereLevel object for the i-th table	åœ¨FORMå­å¥æ’åºåç¬¬iä¸ªè¡¨çš„ç¬¬iä¸ªWhereLevelå¯¹è±¡çš„æ‰€æœ‰å…¶ä»–ä¿¡æ¯
+** All the pIdxInfo pointers are freed by whereInfoFree() in where.c.		whereInfoFree()ÔÚwhere.cÖĞÊ±ÊÍ·ÅËùÓĞpIdxInfoÖ¸Õë	
+** All other information in the i-th WhereLevel object for the i-th table	ÔÚFORM×Ó¾äÅÅĞòºóµÚi¸ö±íµÄµÚi¸öWhereLevel¶ÔÏóµÄËùÓĞÆäËûĞÅÏ¢
 ** after FROM clause ordering.
 */
 struct WhereLevel {
-  WherePlan plan;       /* query plan for this element of the FROM clause 	FORMå­å¥è¿™ä¸ªå…ƒç´ çš„æŸ¥è¯¢è®¡åˆ’*/
-  int iLeftJoin;        /* Memory cell used to implement LEFT OUTER JOIN 	å­˜å‚¨å•å…ƒç”¨äºå®ç°LEFT OUTER JOIN*/
-  int iTabCur;          /* The VDBE cursor used to access the table 		è®¿é—®è¡¨çš„VDBEå…‰æ ‡*/
-  int iIdxCur;          /* The VDBE cursor used to access pIdx 			è®¿é—®pIdxçš„VDBEå…‰æ ‡*/
-  int addrBrk;          /* Jump here to break out of the loop 			è·³è½¬åˆ°è¿™é‡Œè·³å‡ºå¾ªç¯*/
-  int addrNxt;          /* Jump here to start the next IN combination 		è·³è½¬åˆ°è¿™é‡Œå¼€å§‹ä¸‹ä¸€ä¸ªINè¿æ¥*/
-  int addrCont;         /* Jump here to continue with the next loop cycle 	è·³è½¬åˆ°è¿™é‡Œç»§ç»­ä¸‹ä¸€ä¸ªå¾ªç¯å‘¨æœŸ*/
-  int addrFirst;        /* First instruction of interior of the loop 		å¾ªç¯å†…éƒ¨çš„ç¬¬ä¸€æ¡æŒ‡ä»¤*/
-  u8 iFrom;             /* Which entry in the FROM clause 			FORMå­å¥ä¸­çš„æ¡ç›®*/
-  u8 op, p5;            /* Opcode and P5 of the opcode that ends the loop 	æ“ä½œç å’Œå¾ªç¯ç»“æŸçš„æ“ä½œç P5*/
-  int p1, p2;           /* Operands of the opcode used to ends the loop 	ç”¨äºç»“æŸå¾ªç¯çš„æ“ä½œç çš„æ“ä½œæ•°*/
-  union {               /* Information that depends on plan.wsFlags 		å–å†³äºplan.wsFlagsçš„ä¿¡æ¯*/
+  WherePlan plan;       /* query plan for this element of the FROM clause 	FORM×Ó¾äÕâ¸öÔªËØµÄ²éÑ¯¼Æ»®*/
+  int iLeftJoin;        /* Memory cell used to implement LEFT OUTER JOIN 	´æ´¢µ¥ÔªÓÃÓÚÊµÏÖLEFT OUTER JOIN*/
+  int iTabCur;          /* The VDBE cursor used to access the table 		·ÃÎÊ±íµÄVDBE¹â±ê*/
+  int iIdxCur;          /* The VDBE cursor used to access pIdx 			·ÃÎÊpIdxµÄVDBE¹â±ê*/
+  int addrBrk;          /* Jump here to break out of the loop 			Ìø×ªµ½ÕâÀïÌø³öÑ­»·*/
+  int addrNxt;          /* Jump here to start the next IN combination 		Ìø×ªµ½ÕâÀï¿ªÊ¼ÏÂÒ»¸öINÁ¬½Ó*/
+  int addrCont;         /* Jump here to continue with the next loop cycle 	Ìø×ªµ½ÕâÀï¼ÌĞøÏÂÒ»¸öÑ­»·ÖÜÆÚ*/
+  int addrFirst;        /* First instruction of interior of the loop 		Ñ­»·ÄÚ²¿µÄµÚÒ»ÌõÖ¸Áî*/
+  u8 iFrom;             /* Which entry in the FROM clause 			FORM×Ó¾äÖĞµÄÌõÄ¿*/
+  u8 op, p5;            /* Opcode and P5 of the opcode that ends the loop 	²Ù×÷ÂëºÍÑ­»·½áÊøµÄ²Ù×÷ÂëP5*/
+  int p1, p2;           /* Operands of the opcode used to ends the loop 	ÓÃÓÚ½áÊøÑ­»·µÄ²Ù×÷ÂëµÄ²Ù×÷Êı*/
+  union {               /* Information that depends on plan.wsFlags 		È¡¾öÓÚplan.wsFlagsµÄĞÅÏ¢*/
     struct {
-      int nIn;              /* Number of entries in aInLoop[] 			åœ¨alnLoop[]æ¡ç›®æ•°*/
+      int nIn;              /* Number of entries in aInLoop[] 			ÔÚalnLoop[]ÌõÄ¿Êı*/
       struct InLoop {
-        int iCur;              /* The VDBE cursor used by this IN operator 	INæ“ä½œç¬¦ä½¿ç”¨çš„VDBEæ¸¸æ ‡*/
-        int addrInTop;         /* Top of the IN loop 				INå¾ªç¯é¡¶éƒ¨*/
-      } *aInLoop;           /* Information about each nested IN operator 	æ¯ä¸ªåµŒå¥—INæ“ä½œç¬¦çš„ä¿¡æ¯*/
-    } in;                 /* Used when plan.wsFlags&WHERE_IN_ABLE 		plan.wsFlagså’ŒWHERE_IN_ABLEæ˜¯ä½¿ç”¨*/
-    Index *pCovidx;       /* Possible covering index for WHERE_MULTI_OR 	å¯¹äºWHERE_MULTI_ORå¯èƒ½è¦†ç›–ç´¢å¼•*/
+        int iCur;              /* The VDBE cursor used by this IN operator 	IN²Ù×÷·ûÊ¹ÓÃµÄVDBEÓÎ±ê*/
+        int addrInTop;         /* Top of the IN loop 				INÑ­»·¶¥²¿*/
+      } *aInLoop;           /* Information about each nested IN operator 	Ã¿¸öÇ¶Ì×IN²Ù×÷·ûµÄĞÅÏ¢*/
+    } in;                 /* Used when plan.wsFlags&WHERE_IN_ABLE 		plan.wsFlagsºÍWHERE_IN_ABLEÊÇÊ¹ÓÃ*/
+    Index *pCovidx;       /* Possible covering index for WHERE_MULTI_OR 	¶ÔÓÚWHERE_MULTI_OR¿ÉÄÜ¸²¸ÇË÷Òı*/
   } u;
 
-  /* The following field is really not part of the current level.  But		ä»¥ä¸‹å­—æ®µçœŸçš„ä¸æ˜¯å½“å‰çº§åˆ«çš„ä¸€éƒ¨åˆ†
-  ** we need a place to cache virtual table index information for each		ä½†æ˜¯æˆ‘ä»¬éœ€è¦ä¸€ä¸ªåœ°æ–¹æ¥ç¼“å­˜åœ¨FORMå­å¥çš„æ¯ä¸ªè™šæ‹Ÿè¡¨çš„è™šæ‹Ÿè¡¨ç´¢å¼•ä¿¡æ¯
+  /* The following field is really not part of the current level.  But		ÒÔÏÂ×Ö¶ÎÕæµÄ²»ÊÇµ±Ç°¼¶±ğµÄÒ»²¿·Ö
+  ** we need a place to cache virtual table index information for each		µ«ÊÇÎÒÃÇĞèÒªÒ»¸öµØ·½À´»º´æÔÚFORM×Ó¾äµÄÃ¿¸öĞéÄâ±íµÄĞéÄâ±íË÷ÒıĞÅÏ¢
   ** virtual table in the FROM clause and the WhereLevel structure is
-  ** a convenient place since there is one WhereLevel for each FROM clause	WhereLevelç»“æ„æ˜¯ä¸€ä¸ªæ–¹ä¾¿çš„åœ°æ–¹å› ä¸ºæ¯ä¸ªFORMå­å¥å…ƒç´ éƒ½æœ‰ä¸€ä¸ªWhereLevel
+  ** a convenient place since there is one WhereLevel for each FROM clause	WhereLevel½á¹¹ÊÇÒ»¸ö·½±ãµÄµØ·½ÒòÎªÃ¿¸öFORM×Ó¾äÔªËØ¶¼ÓĞÒ»¸öWhereLevel
   ** element.
   */
-  sqlite3_index_info *pIdxInfo;  /* Index info for n-th source table 		ç¬¬nä¸ªæºè¡¨çš„ç´¢å¼•ä¿¡æ¯*/
+  sqlite3_index_info *pIdxInfo;  /* Index info for n-th source table 		µÚn¸öÔ´±íµÄË÷ÒıĞÅÏ¢*/
 };
 
 /*
-** Flags appropriate for the wctrlFlags parameter of sqlite3WhereBegin()	æ ‡å¿—é€‚åˆsqlite3WhereBegin()çš„wctrlFlagså‚æ•°å’ŒWhereInfo.wctrFlagsæˆå‘˜
+** Flags appropriate for the wctrlFlags parameter of sqlite3WhereBegin()	±êÖ¾ÊÊºÏsqlite3WhereBegin()µÄwctrlFlags²ÎÊıºÍWhereInfo.wctrFlags³ÉÔ±
 ** and the WhereInfo.wctrlFlags member.
 */
-#define WHERE_ORDERBY_NORMAL   0x0000 /* No-op 					æ— æ“ä½œ*/
-#define WHERE_ORDERBY_MIN      0x0001 /* ORDER BY processing for min() func 	ORDER BY å¤„ç†min()å‡½æ•°*/
-#define WHERE_ORDERBY_MAX      0x0002 /* ORDER BY processing for max() func 	ORDER BYå¤„ç†max()å‡½æ•°*/
-#define WHERE_ONEPASS_DESIRED  0x0004 /* Want to do one-pass UPDATE/DELETE 	æƒ³ä¸€æ¬¡é€šè¿‡çš„UPDATE/DELETE*/
-#define WHERE_DUPLICATES_OK    0x0008 /* Ok to return a row more than once 	ä¸æ­¢ä¸€æ¬¡ç¡®è®¤è¿”å›çš„è¡Œ*/
-#define WHERE_OMIT_OPEN_CLOSE  0x0010 /* Table cursors are already open 	è¡¨æŒ‡é’ˆå·²ç»æ‰“å¼€*/
-#define WHERE_FORCE_TABLE      0x0020 /* Do not use an index-only search 	ä¸è¦ä»…ä½¿ç”¨ç´¢å¼•æœç´¢*/
-#define WHERE_ONETABLE_ONLY    0x0040 /* Only code the 1st table in pTabList 	ä»…å¯¹pTableçš„ç¬¬ä¸€ä¸ªè¡¨è¿›è¡Œç¼–ç */
-#define WHERE_AND_ONLY         0x0080 /* Don't use indices for OR terms 	ä¸è¦å¯¹ORä½¿ç”¨æŒ‡æ•°*/
+#define WHERE_ORDERBY_NORMAL   0x0000 /* No-op 					ÎŞ²Ù×÷*/
+#define WHERE_ORDERBY_MIN      0x0001 /* ORDER BY processing for min() func 	ORDER BY ´¦Àímin()º¯Êı*/
+#define WHERE_ORDERBY_MAX      0x0002 /* ORDER BY processing for max() func 	ORDER BY´¦Àímax()º¯Êı*/
+#define WHERE_ONEPASS_DESIRED  0x0004 /* Want to do one-pass UPDATE/DELETE 	ÏëÒ»´ÎÍ¨¹ıµÄUPDATE/DELETE*/
+#define WHERE_DUPLICATES_OK    0x0008 /* Ok to return a row more than once 	²»Ö¹Ò»´ÎÈ·ÈÏ·µ»ØµÄĞĞ*/
+#define WHERE_OMIT_OPEN_CLOSE  0x0010 /* Table cursors are already open 	±íÖ¸ÕëÒÑ¾­´ò¿ª*/
+#define WHERE_FORCE_TABLE      0x0020 /* Do not use an index-only search 	²»Òª½öÊ¹ÓÃË÷ÒıËÑË÷*/
+#define WHERE_ONETABLE_ONLY    0x0040 /* Only code the 1st table in pTabList 	½ö¶ÔpTableµÄµÚÒ»¸ö±í½øĞĞ±àÂë*/
+#define WHERE_AND_ONLY         0x0080 /* Don't use indices for OR terms 	²»Òª¶ÔORÊ¹ÓÃÖ¸Êı*/
 
 /*
-** The WHERE clause processing routine has two halves.  The			WHEREå­å¥å¤„ç†ç¨‹åºæœ‰ä¸¤ä¸ªéƒ¨åˆ†
-** first part does the start of the WHERE loop and the second			ç¬¬ä¸€éƒ¨åˆ†ç¡®å®åœ¨WHEREå¾ªç¯çš„å¼€å§‹
-** half does the tail of the WHERE loop.  An instance of			ç¬¬äºŒéƒ¨åˆ†ç¡®å®åœ¨WHEREå¾ªç¯çš„å°¾éƒ¨
-** this structure is returned by the first half and passed			è¿™ç§ç»“æ„çš„å®ä¾‹æ˜¯ç”±ä¸ŠåŠéƒ¨åˆ†è¿”å›
-** into the second half to give some continuity.				è¿›å…¥ä¸‹åŠéƒ¨åˆ†ç»™ä¸€äº›è¿ç»­æ€§
+** The WHERE clause processing routine has two halves.  The			WHERE×Ó¾ä´¦Àí³ÌĞòÓĞÁ½¸ö²¿·Ö
+** first part does the start of the WHERE loop and the second			µÚÒ»²¿·ÖÈ·ÊµÔÚWHEREÑ­»·µÄ¿ªÊ¼
+** half does the tail of the WHERE loop.  An instance of			µÚ¶ş²¿·ÖÈ·ÊµÔÚWHEREÑ­»·µÄÎ²²¿
+** this structure is returned by the first half and passed			ÕâÖÖ½á¹¹µÄÊµÀıÊÇÓÉÉÏ°ë²¿·Ö·µ»Ø
+** into the second half to give some continuity.				½øÈëÏÂ°ë²¿·Ö¸øÒ»Ğ©Á¬ĞøĞÔ
 */
 struct WhereInfo {
-  Parse *pParse;       /* Parsing and code generating context 			è§£æå’Œç¼–ç ç”Ÿæˆç¯å¢ƒ*/
-  u16 wctrlFlags;      /* Flags originally passed to sqlite3WhereBegin() 	æœ€åˆçš„æ ‡å¿—ä¼ é€’ç»™sqlite3WhereBegin()*/
-  u8 okOnePass;        /* Ok to use one-pass algorithm for UPDATE or DELETE 	å¯ä»¥ä½¿ç”¨ä¸€æ¬¡é€šè¿‡çš„ç®—æ³•æ›´æ–°æˆ–åˆ é™¤*/
-  u8 untestedTerms;    /* Not all WHERE terms resolved by outer loop 		å¹¶ä¸æ˜¯æ‰€æœ‰çš„WHEREæ¡ä»¶è§£å†³å¤–éƒ¨å¾ªç¯*/
+  Parse *pParse;       /* Parsing and code generating context 			½âÎöºÍ±àÂëÉú³É»·¾³*/
+  u16 wctrlFlags;      /* Flags originally passed to sqlite3WhereBegin() 	×î³õµÄ±êÖ¾´«µİ¸øsqlite3WhereBegin()*/
+  u8 okOnePass;        /* Ok to use one-pass algorithm for UPDATE or DELETE 	¿ÉÒÔÊ¹ÓÃÒ»´ÎÍ¨¹ıµÄËã·¨¸üĞÂ»òÉ¾³ı*/
+  u8 untestedTerms;    /* Not all WHERE terms resolved by outer loop 		²¢²»ÊÇËùÓĞµÄWHEREÌõ¼ş½â¾öÍâ²¿Ñ­»·*/
   u8 eDistinct;
-  SrcList *pTabList;             /* List of tables in the join 			è¿æ¥è¡¨çš„åˆ—è¡¨*/
-  int iTop;                      /* The very beginning of the WHERE loop 	WHEREå¾ªç¯çš„æœ€å¼€å§‹å¤„*/
-  int iContinue;                 /* Jump here to continue with next record 	è·³è½¬åˆ°è¿™é‡Œç»§ç»­ä¸‹ä¸€ä¸ªè®°å½•*/
-  int iBreak;                    /* Jump here to break out of the loop 		è·³è½¬åˆ°è¿™é‡Œè·³å‡ºå¾ªç¯*/
-  int nLevel;                    /* Number of nested loop 			åµŒå¥—å¾ªç¯æ•°*/
-  struct WhereClause *pWC;       /* Decomposition of the WHERE clause 		åˆ†è§£WHEREå­å¥*/
-  double savedNQueryLoop;        /* pParse->nQueryLoop outside the WHERE loop 	å¤–å¾ªç¯ä¹‹å¤–pParse->nQueryLoop*/
-  double nRowOut;                /* Estimated number of output rows 		è¾“å‡ºè¡Œçš„ä¼°è®¡æ•°*/
-  WhereLevel a[1];               /* Information about each nest loop in WHERE 	WHEREä¸­æ¯ä¸ªåµŒå¥—å¾ªç¯çš„ä¿¡æ¯*/
+  SrcList *pTabList;             /* List of tables in the join 			Á¬½Ó±íµÄÁĞ±í*/
+  int iTop;                      /* The very beginning of the WHERE loop 	WHEREÑ­»·µÄ×î¿ªÊ¼´¦*/
+  int iContinue;                 /* Jump here to continue with next record 	Ìø×ªµ½ÕâÀï¼ÌĞøÏÂÒ»¸ö¼ÇÂ¼*/
+  int iBreak;                    /* Jump here to break out of the loop 		Ìø×ªµ½ÕâÀïÌø³öÑ­»·*/
+  int nLevel;                    /* Number of nested loop 			Ç¶Ì×Ñ­»·Êı*/
+  struct WhereClause *pWC;       /* Decomposition of the WHERE clause 		·Ö½âWHERE×Ó¾ä*/
+  double savedNQueryLoop;        /* pParse->nQueryLoop outside the WHERE loop 	ÍâÑ­»·Ö®ÍâpParse->nQueryLoop*/
+  double nRowOut;                /* Estimated number of output rows 		Êä³öĞĞµÄ¹À¼ÆÊı*/
+  WhereLevel a[1];               /* Information about each nest loop in WHERE 	WHEREÖĞÃ¿¸öÇ¶Ì×Ñ­»·µÄĞÅÏ¢*/
 };
 
 #define WHERE_DISTINCT_UNIQUE 1
 #define WHERE_DISTINCT_ORDERED 2
 
 /*
-** A NameContext defines a context in which to resolve table and column		ä¸€ä¸ªNameContextå®šä¹‰äº†è§£å†³è¡¨å’Œåˆ—åçš„ä¸Šä¸‹æ–‡
-** names.  The context consists of a list of tables (the pSrcList) field and	ä¸Šä¸‹æ–‡åŒ…å«äº†è¡¨(pSrcList)çš„åˆ—è¡¨å­—æ®µå’Œå‘½åè¡¨è¾¾å¼åˆ—è¡¨(pEList)
-** a list of named expression (pEList).  The named expression list may		å‘½åè¡¨è¾¾å¼åˆ—è¡¨æœ‰å¯èƒ½æ˜¯ç©º
-** be NULL.  The pSrc corresponds to the FROM clause of a SELECT or		pSrcå¯¹åº”äºä¸€ä¸ªSELECTä¸­çš„FROMå­å¥
-** to the table being operated on by INSERT, UPDATE, or DELETE.  The		æˆ–è€…è¡¨æ­£ç”±INSERT,UPDATE,DELETEæ“ä½œ
-** pEList corresponds to the result set of a SELECT and is NULL for		pEListå¯¹åº”äºSELECTçš„ç»“æœé›†ï¼Œå¯¹å…¶ä»–å£°æ˜æ¥è¯´æ˜¯ç©º
+** A NameContext defines a context in which to resolve table and column		Ò»¸öNameContext¶¨ÒåÁË½â¾ö±íºÍÁĞÃûµÄÉÏÏÂÎÄ
+** names.  The context consists of a list of tables (the pSrcList) field and	ÉÏÏÂÎÄ°üº¬ÁË±í(pSrcList)µÄÁĞ±í×Ö¶ÎºÍÃüÃû±í´ïÊ½ÁĞ±í(pEList)
+** a list of named expression (pEList).  The named expression list may		ÃüÃû±í´ïÊ½ÁĞ±íÓĞ¿ÉÄÜÊÇ¿Õ
+** be NULL.  The pSrc corresponds to the FROM clause of a SELECT or		pSrc¶ÔÓ¦ÓÚÒ»¸öSELECTÖĞµÄFROM×Ó¾ä
+** to the table being operated on by INSERT, UPDATE, or DELETE.  The		»òÕß±íÕıÓÉINSERT,UPDATE,DELETE²Ù×÷
+** pEList corresponds to the result set of a SELECT and is NULL for		pEList¶ÔÓ¦ÓÚSELECTµÄ½á¹û¼¯£¬¶ÔÆäËûÉùÃ÷À´ËµÊÇ¿Õ
 ** other statements.
 **
-** NameContexts can be nested.  When resolving names, the inner-most 		NameContextså¯ä»¥åµŒå¥—ã€‚å½“è§£æåç§°æ—¶ï¼Œåœ¨æœ€é‡Œé¢çš„ä¸Šä¸‹æ–‡å°†è¢«ç¬¬ä¸€æœç´¢
-** context is searched first.  If no match is found, the next outer		å¦‚æœæ²¡æœ‰æ‰¾åˆ°åŒ¹é…ï¼Œä¸‹ä¸€ä¸ªå¤–éƒ¨ç¯å¢ƒè¿›è¡Œæ£€æŸ¥
-** context is checked.  If there is still no match, the next context		å¦‚æœä»ç„¶æ²¡æœ‰åŒ¹é…ï¼Œæ£€æŸ¥ä¸‹ä¸€ä¸ªä¸Šä¸‹æ–‡
-** is checked.  This process continues until either a match is found		è¿™ä¸€è¿‡ç¨‹ç»§ç»­ç›´åˆ°æ‰¾åˆ°ä¸€ä¸ªåŒ¹é…æˆ–è€…æ‰€æœ‰ä¸Šä¸‹æ–‡éƒ½æ£€æŸ¥
-** or all contexts are check.  When a match is found, the nRef member of	å½“æ‰¾åˆ°ä¸€ä¸ªåŒ¹é…ï¼ŒåŒ…å«è¯¥åŒ¹é…ä¸Šä¸‹æ–‡çš„nRefæˆå‘˜å¢åŠ 
+** NameContexts can be nested.  When resolving names, the inner-most 		NameContexts¿ÉÒÔÇ¶Ì×¡£µ±½âÎöÃû³ÆÊ±£¬ÔÚ×îÀïÃæµÄÉÏÏÂÎÄ½«±»µÚÒ»ËÑË÷
+** context is searched first.  If no match is found, the next outer		Èç¹ûÃ»ÓĞÕÒµ½Æ¥Åä£¬ÏÂÒ»¸öÍâ²¿»·¾³½øĞĞ¼ì²é
+** context is checked.  If there is still no match, the next context		Èç¹ûÈÔÈ»Ã»ÓĞÆ¥Åä£¬¼ì²éÏÂÒ»¸öÉÏÏÂÎÄ
+** is checked.  This process continues until either a match is found		ÕâÒ»¹ı³Ì¼ÌĞøÖ±µ½ÕÒµ½Ò»¸öÆ¥Åä»òÕßËùÓĞÉÏÏÂÎÄ¶¼¼ì²é
+** or all contexts are check.  When a match is found, the nRef member of	µ±ÕÒµ½Ò»¸öÆ¥Åä£¬°üº¬¸ÃÆ¥ÅäÉÏÏÂÎÄµÄnRef³ÉÔ±Ôö¼Ó
 ** the context containing the match is incremented. 
 **
-** Each subquery gets a new NameContext.  The pNext field points to the		æ¯ä¸ªå­æŸ¥è¯¢å¾—åˆ°ä¸€ä¸ªæ–°çš„NameContext.åœ¨çˆ¶æŸ¥è¯¢ä¸­pNextå­—æ®µæŒ‡å‘NameContext
-** NameContext in the parent query.  Thus the process of scanning the		å› æ­¤æ‰«æNameContextåˆ—è¡¨çš„è¿‡ç¨‹å¯¹åº”äºé€šè¿‡ä¾æ¬¡å¤–å­æŸ¥è¯¢æŸ¥æ‰¾åŒ¹é…çš„æœç´¢
+** Each subquery gets a new NameContext.  The pNext field points to the		Ã¿¸ö×Ó²éÑ¯µÃµ½Ò»¸öĞÂµÄNameContext.ÔÚ¸¸²éÑ¯ÖĞpNext×Ö¶ÎÖ¸ÏòNameContext
+** NameContext in the parent query.  Thus the process of scanning the		Òò´ËÉ¨ÃèNameContextÁĞ±íµÄ¹ı³Ì¶ÔÓ¦ÓÚÍ¨¹ıÒÀ´ÎÍâ×Ó²éÑ¯²éÕÒÆ¥ÅäµÄËÑË÷
 ** NameContext list corresponds to searching through successively outer
 ** subqueries looking for a match.
 */
 struct NameContext {
-  Parse *pParse;       /* The parser 						è§£æå™¨*/
-  SrcList *pSrcList;   /* One or more tables used to resolve names 		ç”¨äºè§£æåç§°çš„ä¸€ä¸ªæˆ–å¤šä¸ªè¡¨*/
-  ExprList *pEList;    /* Optional list of named expressions 			å‘½åè¡¨è¾¾å¼çš„å¯é€‰åˆ—è¡¨*/
-  AggInfo *pAggInfo;   /* Information about aggregates at this level 		åœ¨è¿™ä¸ªçº§åˆ«æœ‰å…³èšé›†çš„ä¿¡æ¯*/
-  NameContext *pNext;  /* Next outer name context.  NULL for outermost 		ä¸‹ä¸€ä¸ªå¤–éƒ¨åå­—çš„ä¸Šä¸‹æ–‡ï¼Œæœ€å¤–å±‚ä¸ºç©º*/
-  int nRef;            /* Number of names resolved by this context 		ä¸Šä¸‹æ–‡è§£å†³çš„åå­—çš„æ•°é‡*/
-  int nErr;            /* Number of errors encountered while resolving names 	è§£æåç§°æ—¶é‡åˆ°çš„é”™è¯¯æ•°*/
-  u8 ncFlags;          /* Zero or more NC_* flags defined below 		é›¶ä¸ªæˆ–å¤šä¸ªNC_*æ ‡å¿—å®šä¹‰å¦‚ä¸‹*/
+  Parse *pParse;       /* The parser 						½âÎöÆ÷*/
+  SrcList *pSrcList;   /* One or more tables used to resolve names 		ÓÃÓÚ½âÎöÃû³ÆµÄÒ»¸ö»ò¶à¸ö±í*/
+  ExprList *pEList;    /* Optional list of named expressions 			ÃüÃû±í´ïÊ½µÄ¿ÉÑ¡ÁĞ±í*/
+  AggInfo *pAggInfo;   /* Information about aggregates at this level 		ÔÚÕâ¸ö¼¶±ğÓĞ¹Ø¾Û¼¯µÄĞÅÏ¢*/
+  NameContext *pNext;  /* Next outer name context.  NULL for outermost 		ÏÂÒ»¸öÍâ²¿Ãû×ÖµÄÉÏÏÂÎÄ£¬×îÍâ²ãÎª¿Õ*/
+  int nRef;            /* Number of names resolved by this context 		ÉÏÏÂÎÄ½â¾öµÄÃû×ÖµÄÊıÁ¿*/
+  int nErr;            /* Number of errors encountered while resolving names 	½âÎöÃû³ÆÊ±Óöµ½µÄ´íÎóÊı*/
+  u8 ncFlags;          /* Zero or more NC_* flags defined below 		Áã¸ö»ò¶à¸öNC_*±êÖ¾¶¨ÒåÈçÏÂ*/
 };
 
 /*
-** Allowed values for the NameContext, ncFlags field.				NameContext,ncFlagså­—æ®µçš„å…è®¸å€¼
+** Allowed values for the NameContext, ncFlags field.				NameContext,ncFlags×Ö¶ÎµÄÔÊĞíÖµ
 */
-#define NC_AllowAgg  0x01    /* Aggregate functions are allowed here 		è¿™é‡Œå…è®¸èšåˆå‡½æ•°*/
-#define NC_HasAgg    0x02    /* One or more aggregate functions seen 		ä¸€ä¸ªæˆ–å¤šä¸ªèšåˆå‡½æ•°å¯è§*/
-#define NC_IsCheck   0x04    /* True if resolving names in a CHECK constraint 	åœ¨CHECKçº¦æŸä¸­è§£æåç§°ä¸ºçœŸ*/
-#define NC_InAggFunc 0x08    /* True if analyzing arguments to an agg func 	å¦‚æœåˆ†æå‚æ•°*/
+#define NC_AllowAgg  0x01    /* Aggregate functions are allowed here 		ÕâÀïÔÊĞí¾ÛºÏº¯Êı*/
+#define NC_HasAgg    0x02    /* One or more aggregate functions seen 		Ò»¸ö»ò¶à¸ö¾ÛºÏº¯Êı¿É¼û*/
+#define NC_IsCheck   0x04    /* True if resolving names in a CHECK constraint 	ÔÚCHECKÔ¼ÊøÖĞ½âÎöÃû³ÆÎªÕæ*/
+#define NC_InAggFunc 0x08    /* True if analyzing arguments to an agg func 	Èç¹û·ÖÎö²ÎÊı*/
 
 /*
-** An instance of the following structure contains all information		ä»¥ä¸‹ç»“æ„çš„ä¸€ä¸ªå®ä¾‹åŒ…å«éœ€è¦ç”Ÿæˆä»£ç çš„ä¸€ä¸ªSELECTè¯­å¥çš„æ‰€æœ‰ä¿¡æ¯
+** An instance of the following structure contains all information		ÒÔÏÂ½á¹¹µÄÒ»¸öÊµÀı°üº¬ĞèÒªÉú³É´úÂëµÄÒ»¸öSELECTÓï¾äµÄËùÓĞĞÅÏ¢
 ** needed to generate code for a single SELECT statement.
 **
-** nLimit is set to -1 if there is no LIMIT clause.  nOffset is set to 0.	å¦‚æœæ²¡æœ‰LIMITå­å¥ï¼ŒnLimitè®¾ç½®ä¸º-1.nOffsetè®¾ç½®ä¸º0
-** If there is a LIMIT clause, the parser sets nLimit to the value of the	å¦‚æœæœ‰ä¸€ä¸ªLIMITå­å¥ï¼Œåˆ†æå™¨è®¾ç½®nLimitä¸ºé™åˆ¶çš„å€¼
-** limit and nOffset to the value of the offset (or 0 if there is not		nOffsetä¸ºåç§»å€¼(å¦‚æœæ²¡æœ‰åç§»ä¸º0)
-** offset).  But later on, nLimit and nOffset become the memory locations	ä½†åæ¥ï¼ŒnLimitå’ŒnOffsetæˆä¸ºåœ¨VDBEä¸­è®°å½•é™åˆ¶å’Œåç§»è®¡æ•°å™¨çš„å†…å­˜ä½ç½®
+** nLimit is set to -1 if there is no LIMIT clause.  nOffset is set to 0.	Èç¹ûÃ»ÓĞLIMIT×Ó¾ä£¬nLimitÉèÖÃÎª-1.nOffsetÉèÖÃÎª0
+** If there is a LIMIT clause, the parser sets nLimit to the value of the	Èç¹ûÓĞÒ»¸öLIMIT×Ó¾ä£¬·ÖÎöÆ÷ÉèÖÃnLimitÎªÏŞÖÆµÄÖµ
+** limit and nOffset to the value of the offset (or 0 if there is not		nOffsetÎªÆ«ÒÆÖµ(Èç¹ûÃ»ÓĞÆ«ÒÆÎª0)
+** offset).  But later on, nLimit and nOffset become the memory locations	µ«ºóÀ´£¬nLimitºÍnOffset³ÉÎªÔÚVDBEÖĞ¼ÇÂ¼ÏŞÖÆºÍÆ«ÒÆ¼ÆÊıÆ÷µÄÄÚ´æÎ»ÖÃ
 ** in the VDBE that record the limit and offset counters.
 **
-** addrOpenEphm[] entries contain the address of OP_OpenEphemeral opcodes.	addrOpenEphm[]åŒ…å«OP_OpenEphemeralæ“ä½œç çš„åœ°å€
-** These addresses must be stored so that we can go back and fill in		è¿™äº›åœ°å€å¿…é¡»å­˜å‚¨ï¼Œ
-** the P4_KEYINFO and P2 parameters later.  Neither the KeyInfo nor		è¿™æ ·æˆ‘ä»¬å°±å¯ä»¥å›å»å¡«å†™P4_KEYINFOå’ŒP2å‚æ•°
-** the number of columns in P2 can be computed at the same time			å› ä¸ºæ²¡æœ‰è¶³å¤Ÿçš„å…³äºç¬¦åˆæŸ¥è¯¢çš„ä¿¡æ¯æ˜¯å·²çŸ¥çš„ï¼Œ
-** as the OP_OpenEphm instruction is coded because not				æ‰€ä»¥ä¸ä»…KeyInfoè€Œä¸”P2ä¸­åˆ—çš„æ•°ç›®å¯ä»¥è®¡ç®—å‡ºæ¥
-** enough information about the compound query is known at that point.		åŒæ—¶OP_OpenEphmè¢«ç¼–ç 
-** The KeyInfo for addrOpenTran[0] and [1] contains collating sequences		addrOpenTran[0]å’Œ[1]çš„KeyInfoåŒ…å«ç»“æœé›†çš„æ’åºåºåˆ—
-** for the result set.  The KeyInfo for addrOpenTran[2] contains collating	addrOpenTran[2]çš„KeyInfoåŒ…å«ORDER BYå­å¥çš„æ’åºåºåˆ—
+** addrOpenEphm[] entries contain the address of OP_OpenEphemeral opcodes.	addrOpenEphm[]°üº¬OP_OpenEphemeral²Ù×÷ÂëµÄµØÖ·
+** These addresses must be stored so that we can go back and fill in		ÕâĞ©µØÖ·±ØĞë´æ´¢£¬
+** the P4_KEYINFO and P2 parameters later.  Neither the KeyInfo nor		ÕâÑùÎÒÃÇ¾Í¿ÉÒÔ»ØÈ¥ÌîĞ´P4_KEYINFOºÍP2²ÎÊı
+** the number of columns in P2 can be computed at the same time			ÒòÎªÃ»ÓĞ×ã¹»µÄ¹ØÓÚ·ûºÏ²éÑ¯µÄĞÅÏ¢ÊÇÒÑÖªµÄ£¬
+** as the OP_OpenEphm instruction is coded because not				ËùÒÔ²»½öKeyInfo¶øÇÒP2ÖĞÁĞµÄÊıÄ¿¿ÉÒÔ¼ÆËã³öÀ´
+** enough information about the compound query is known at that point.		Í¬Ê±OP_OpenEphm±»±àÂë
+** The KeyInfo for addrOpenTran[0] and [1] contains collating sequences		addrOpenTran[0]ºÍ[1]µÄKeyInfo°üº¬½á¹û¼¯µÄÅÅĞòĞòÁĞ
+** for the result set.  The KeyInfo for addrOpenTran[2] contains collating	addrOpenTran[2]µÄKeyInfo°üº¬ORDER BY×Ó¾äµÄÅÅĞòĞòÁĞ
 ** sequences for the ORDER BY clause.
 */
 struct Select {
-  ExprList *pEList;      /* The fields of the result 				ç»“æœçš„å­—æ®µ*/
-  u8 op;                 /* One of: TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT 	TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT ä¹‹ä¸€*/
+  ExprList *pEList;      /* The fields of the result 				½á¹ûµÄ×Ö¶Î*/
+  u8 op;                 /* One of: TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT 	TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT Ö®Ò»*/
   char affinity;         /* MakeRecord with this affinity for SRT_Set 		*/
-  u16 selFlags;          /* Various SF_* values 				å„ç§SF_*å€¼*/
-  int iLimit, iOffset;   /* Memory registers holding LIMIT & OFFSET counters 	å†…å­˜å¯„å­˜å™¨æŒæœ‰LIMITå’ŒOFFSETè®¡æ•°å™¨*/
-  int addrOpenEphm[3];   /* OP_OpenEphem opcodes related to this select 	ä¸æ­¤é€‰æ‹©ç›¸å…³çš„OP_OpenEphemæ“ä½œç */
-  double nSelectRow;     /* Estimated number of result rows 			ç»“æœè¡Œçš„ä¼°è®¡æ•°*/
-  SrcList *pSrc;         /* The FROM clause 					FORMå­å¥*/
-  Expr *pWhere;          /* The WHERE clause 					WHEREå­å¥*/
-  ExprList *pGroupBy;    /* The GROUP BY clause 				GROUP BYå­å¥*/
-  Expr *pHaving;         /* The HAVING clause 					HAVINGå­å¥*/
-  ExprList *pOrderBy;    /* The ORDER BY clause 				ORDER BYå­å¥*/
-  Select *pPrior;        /* Prior select in a compound select statement 	åœ¨å¤åˆSELECTè¯­å¥ä¹‹å‰é€‰æ‹©*/
-  Select *pNext;         /* Next select to the left in a compound 		æ¥ä¸‹æ¥åœ¨å¤åˆè¯­å¥ä¸­é€‰æ‹©å·¦ä¾§*/
-  Select *pRightmost;    /* Right-most select in a compound select statement 	æœ€å³è¾¹ä¸€ä¸ªSELECTè¯­å¥çš„select*/
-  Expr *pLimit;          /* LIMIT expression. NULL means not used. 		LIMITè¡¨è¾¾å¼ï¼ŒNULLè¡¨ç¤ºæœªä½¿ç”¨*/
-  Expr *pOffset;         /* OFFSET expression. NULL means not used. 		OFFSETè¡¨è¾¾å¼ï¼ŒNULLè¡¨ç¤ºæœªä½¿ç”¨*/
+  u16 selFlags;          /* Various SF_* values 				¸÷ÖÖSF_*Öµ*/
+  int iLimit, iOffset;   /* Memory registers holding LIMIT & OFFSET counters 	ÄÚ´æ¼Ä´æÆ÷³ÖÓĞLIMITºÍOFFSET¼ÆÊıÆ÷*/
+  int addrOpenEphm[3];   /* OP_OpenEphem opcodes related to this select 	Óë´ËÑ¡ÔñÏà¹ØµÄOP_OpenEphem²Ù×÷Âë*/
+  double nSelectRow;     /* Estimated number of result rows 			½á¹ûĞĞµÄ¹À¼ÆÊı*/
+  SrcList *pSrc;         /* The FROM clause 					FORM×Ó¾ä*/
+  Expr *pWhere;          /* The WHERE clause 					WHERE×Ó¾ä*/
+  ExprList *pGroupBy;    /* The GROUP BY clause 				GROUP BY×Ó¾ä*/
+  Expr *pHaving;         /* The HAVING clause 					HAVING×Ó¾ä*/
+  ExprList *pOrderBy;    /* The ORDER BY clause 				ORDER BY×Ó¾ä*/
+  Select *pPrior;        /* Prior select in a compound select statement 	ÔÚ¸´ºÏSELECTÓï¾äÖ®Ç°Ñ¡Ôñ*/
+  Select *pNext;         /* Next select to the left in a compound 		½ÓÏÂÀ´ÔÚ¸´ºÏÓï¾äÖĞÑ¡Ôñ×ó²à*/
+  Select *pRightmost;    /* Right-most select in a compound select statement 	×îÓÒ±ßÒ»¸öSELECTÓï¾äµÄselect*/
+  Expr *pLimit;          /* LIMIT expression. NULL means not used. 		LIMIT±í´ïÊ½£¬NULL±íÊ¾Î´Ê¹ÓÃ*/
+  Expr *pOffset;         /* OFFSET expression. NULL means not used. 		OFFSET±í´ïÊ½£¬NULL±íÊ¾Î´Ê¹ÓÃ*/
 };
 
 /*
-** Allowed values for Select.selFlags.  The "SF" prefix stands for		Select.setFlagsçš„å…è®¸å€¼ã€‚"SF"å‰ç¼€ä»£è¡¨"Select Flag"
+** Allowed values for Select.selFlags.  The "SF" prefix stands for		Select.setFlagsµÄÔÊĞíÖµ¡£"SF"Ç°×º´ú±í"Select Flag"
 ** "Select Flag".
 */
-#define SF_Distinct        0x01  /* Output should be DISTINCT 			è¾“å‡ºåº”è¯¥ä¸åŒ*/
-#define SF_Resolved        0x02  /* Identifiers have been resolved 		æ ‡è¯†ç¬¦å·²ç»è§£æ*/
-#define SF_Aggregate       0x04  /* Contains aggregate functions 		åŒ…å«èšåˆå‡½æ•°*/
-#define SF_UsesEphemeral   0x08  /* Uses the OpenEphemeral opcode 		ä½¿ç”¨OpenEphemeralæ“ä½œç */
-#define SF_Expanded        0x10  /* sqlite3SelectExpand() called on this 	sqlite3SelectExpand()è°ƒç”¨è¿™ä¸ª*/
-#define SF_HasTypeInfo     0x20  /* FROM subqueries have Table metadata 	FORMå­æŸ¥è¯¢æœ‰Tableå…ƒæ•°æ®*/
-#define SF_UseSorter       0x40  /* Sort using a sorter 			æ’åºä½¿ç”¨åˆ†æ‹£æœº**/
-#define SF_Values          0x80  /* Synthesized from VALUES clause 		ä»VALUESå­å¥åˆæˆ*/
+#define SF_Distinct        0x01  /* Output should be DISTINCT 			Êä³öÓ¦¸Ã²»Í¬*/
+#define SF_Resolved        0x02  /* Identifiers have been resolved 		±êÊ¶·ûÒÑ¾­½âÎö*/
+#define SF_Aggregate       0x04  /* Contains aggregate functions 		°üº¬¾ÛºÏº¯Êı*/
+#define SF_UsesEphemeral   0x08  /* Uses the OpenEphemeral opcode 		Ê¹ÓÃOpenEphemeral²Ù×÷Âë*/
+#define SF_Expanded        0x10  /* sqlite3SelectExpand() called on this 	sqlite3SelectExpand()µ÷ÓÃÕâ¸ö*/
+#define SF_HasTypeInfo     0x20  /* FROM subqueries have Table metadata 	FORM×Ó²éÑ¯ÓĞTableÔªÊı¾İ*/
+#define SF_UseSorter       0x40  /* Sort using a sorter 			ÅÅĞòÊ¹ÓÃ·Ö¼ğ»ú**/
+#define SF_Values          0x80  /* Synthesized from VALUES clause 		´ÓVALUES×Ó¾äºÏ³É*/
 
 
 /*
-** The results of a select can be distributed in several ways.  The		ç»“æœçš„é€‰æ‹©å¯ä»¥åˆ†å¸ƒåœ¨å‡ ä¸ªæ–¹é¢
-** "SRT" prefix means "SELECT Result Type".					"SRT"å‰ç¼€è¡¨ç¤º"SELECT Result Type"
+** The results of a select can be distributed in several ways.  The		½á¹ûµÄÑ¡Ôñ¿ÉÒÔ·Ö²¼ÔÚ¼¸¸ö·½Ãæ
+** "SRT" prefix means "SELECT Result Type".					"SRT"Ç°×º±íÊ¾"SELECT Result Type"
 */
-#define SRT_Union        1  /* Store result as keys in an index 		ç»“æœä»¥ç´¢å¼•é”®å­˜å‚¨*/
-#define SRT_Except       2  /* Remove result from a UNION index 		ä»UNIONç´¢å¼•ä¸­åˆ é™¤çš„ç»“æœ*/
-#define SRT_Exists       3  /* Store 1 if the result is not empty 		å¦‚æœç»“æœä¸ä¸ºç©ºå­˜å‚¨1*/
-#define SRT_Discard      4  /* Do not save the results anywhere 		ä¸åœ¨ä»»ä½•åœ°æ–¹ä¿å­˜ç»“æœ*/
+#define SRT_Union        1  /* Store result as keys in an index 		½á¹ûÒÔË÷Òı¼ü´æ´¢*/
+#define SRT_Except       2  /* Remove result from a UNION index 		´ÓUNIONË÷ÒıÖĞÉ¾³ıµÄ½á¹û*/
+#define SRT_Exists       3  /* Store 1 if the result is not empty 		Èç¹û½á¹û²»Îª¿Õ´æ´¢1*/
+#define SRT_Discard      4  /* Do not save the results anywhere 		²»ÔÚÈÎºÎµØ·½±£´æ½á¹û*/
 
-/* The ORDER BY clause is ignored for all of the above 				åœ¨ORDER BY å­å¥å¿½ç•¥ä¸Šè¿°æ‰€æœ‰*/
+/* The ORDER BY clause is ignored for all of the above 				ÔÚORDER BY ×Ó¾äºöÂÔÉÏÊöËùÓĞ*/
 #define IgnorableOrderby(X) ((X->eDest)<=SRT_Discard)
 
-#define SRT_Output       5  /* Output each row of result 			è¾“å‡ºç»“æœçš„æ¯ä¸€è¡Œ*/
-#define SRT_Mem          6  /* Store result in a memory cell 			å°†ç»“æœå­˜å‚¨åœ¨å­˜å‚¨å•å…ƒ*/
-#define SRT_Set          7  /* Store results as keys in an index 		ç»“æœä»¥ç´¢å¼•é”®å­˜å‚¨*/
-#define SRT_Table        8  /* Store result as data with an automatic rowid 	å­˜å‚¨ç»“æœä¸ºè‡ªåŠ¨rowidæ•°æ®*/
-#define SRT_EphemTab     9  /* Create transient tab and store like SRT_Table 	åˆ›å»ºç¬æ—¶æ ‡ç­¾ï¼Œå­˜å‚¨åƒSRT_Table*/
-#define SRT_Coroutine   10  /* Generate a single row of result 			ç”Ÿæˆç»“æœçš„ä¸€ä¸ªå•åˆ—*/
+#define SRT_Output       5  /* Output each row of result 			Êä³ö½á¹ûµÄÃ¿Ò»ĞĞ*/
+#define SRT_Mem          6  /* Store result in a memory cell 			½«½á¹û´æ´¢ÔÚ´æ´¢µ¥Ôª*/
+#define SRT_Set          7  /* Store results as keys in an index 		½á¹ûÒÔË÷Òı¼ü´æ´¢*/
+#define SRT_Table        8  /* Store result as data with an automatic rowid 	´æ´¢½á¹ûÎª×Ô¶¯rowidÊı¾İ*/
+#define SRT_EphemTab     9  /* Create transient tab and store like SRT_Table 	´´½¨Ë²Ê±±êÇ©£¬´æ´¢ÏñSRT_Table*/
+#define SRT_Coroutine   10  /* Generate a single row of result 			Éú³É½á¹ûµÄÒ»¸öµ¥ÁĞ*/
 
 /*
-** A structure used to customize the behavior of sqlite3Select(). See		ç”¨æ¥åˆ¶å®šsqlite3Select()è¡Œä¸ºçš„ç»“æ„
-** comments above sqlite3Select() for details.					è§ä¸Šé¢sqlite3Select()çš„æ³¨é‡Šè¿æ¥è¯¦ç»†ä¿¡æ¯
+** A structure used to customize the behavior of sqlite3Select(). See		ÓÃÀ´ÖÆ¶¨sqlite3Select()ĞĞÎªµÄ½á¹¹
+** comments above sqlite3Select() for details.					¼ûÉÏÃæsqlite3Select()µÄ×¢ÊÍÁ¬½ÓÏêÏ¸ĞÅÏ¢
 */
 typedef struct SelectDest SelectDest;
 struct SelectDest {
-  u8 eDest;         /* How to dispose of the results 				å¦‚ä½•å¤„ç†ç»“æœ*/
+  u8 eDest;         /* How to dispose of the results 				ÈçºÎ´¦Àí½á¹û*/
   u8 affSdst;       /* Affinity used when eDest==SRT_Set */
-  int iSDParm;      /* A parameter used by the eDest disposal method 		eDestæ–¹æ³•æ‰€ç”¨çš„å‚æ•°*/
-  int iSdst;        /* Base register where results are written 			ç»“æœè¢«å†™å…¥åŸºå€å¯„å­˜å™¨**/
-  int nSdst;        /* Number of registers allocated 				åˆ†é…å¯„å­˜å™¨çš„æ•°é‡*/
+  int iSDParm;      /* A parameter used by the eDest disposal method 		eDest·½·¨ËùÓÃµÄ²ÎÊı*/
+  int iSdst;        /* Base register where results are written 			½á¹û±»Ğ´Èë»ùÖ·¼Ä´æÆ÷**/
+  int nSdst;        /* Number of registers allocated 				·ÖÅä¼Ä´æÆ÷µÄÊıÁ¿*/
 };
 
 /*
-** During code generation of statements that do inserts into AUTOINCREMENT 	åœ¨ä»£ç ç”Ÿæˆå£°æ˜ä¸­æ’å…¥åˆ°AUTOINCREMENT è¡¨
-** tables, the following information is attached to the Table.u.autoInc.p	ä»¥ä¸‹ä¿¡æ¯è¢«é™„åŠ åˆ°æ¯ä¸ªè‡ªåŠ¨å¢é‡è¡¨çš„Table.u.authoInc.pæŒ‡é’ˆè®°å½•ä»£ç ç”Ÿæˆéœ€è¦çš„ä¸€äº›ä¾§é¢ä¿¡æ¯
+** During code generation of statements that do inserts into AUTOINCREMENT 	ÔÚ´úÂëÉú³ÉÉùÃ÷ÖĞ²åÈëµ½AUTOINCREMENT ±í
+** tables, the following information is attached to the Table.u.autoInc.p	ÒÔÏÂĞÅÏ¢±»¸½¼Óµ½Ã¿¸ö×Ô¶¯ÔöÁ¿±íµÄTable.u.authoInc.pÖ¸Õë¼ÇÂ¼´úÂëÉú³ÉĞèÒªµÄÒ»Ğ©²àÃæĞÅÏ¢
 ** pointer of each autoincrement table to record some side information that
-** the code generator needs.  We have to keep per-table autoincrement		æˆ‘ä»¬å¿…é¡»æœ‰æ¯ä¸ªè¡¨çš„è‡ªåŠ¨å¢é‡ä¿¡æ¯	ï¼Œä»¥é˜²æ’å…¥æ•°åœ¨è§¦å‘å™¨å†…ä¸‹é™
-** information in case inserts are down within triggers.  Triggers do not	ä»¥é˜²æ’å…¥æ•°åœ¨è§¦å‘å™¨å†…ä¸‹é™
-** normally coordinate their activities, but we do need to coordinate the	è§¦å‘å™¨é€šå¸¸ä¸ä¼šåè°ƒå®ƒä»¬çš„æ´»åŠ¨
-** loading and saving of autoincrement information.				ä½†æ˜¯æˆ‘ä»¬ç¡®å®éœ€è¦åŠ è½½å’Œä¿å­˜è‡ªåŠ¨å¢é‡ä¿¡æ¯
+** the code generator needs.  We have to keep per-table autoincrement		ÎÒÃÇ±ØĞëÓĞÃ¿¸ö±íµÄ×Ô¶¯ÔöÁ¿ĞÅÏ¢	£¬ÒÔ·À²åÈëÊıÔÚ´¥·¢Æ÷ÄÚÏÂ½µ
+** information in case inserts are down within triggers.  Triggers do not	ÒÔ·À²åÈëÊıÔÚ´¥·¢Æ÷ÄÚÏÂ½µ
+** normally coordinate their activities, but we do need to coordinate the	´¥·¢Æ÷Í¨³£²»»áĞ­µ÷ËüÃÇµÄ»î¶¯
+** loading and saving of autoincrement information.				µ«ÊÇÎÒÃÇÈ·ÊµĞèÒª¼ÓÔØºÍ±£´æ×Ô¶¯ÔöÁ¿ĞÅÏ¢
 */
 struct AutoincInfo {
-  AutoincInfo *pNext;   /* Next info block in a list of them all 		åœ¨ä»–ä»¬æ‰€æœ‰åˆ—è¡¨çš„ä¸‹ä¸€ä¸ªä¿¡æ¯å—*/
-  Table *pTab;          /* Table this info block refers to 			è¡¨ä¿¡æ¯å—çš„æŒ‡å‘*/
-  int iDb;              /* Index in sqlite3.aDb[] of database holding pTab 	æ•°æ®åº“ä¸­sqlite3.aDb[]çš„ç´¢å¼•ä¿å­˜pTab*/
-  int regCtr;           /* Memory register holding the rowid counter 		ç”¨äºä¿å­˜ROWIDè®¡ç®—å™¨çš„å†…å­˜å¯„å­˜å™¨*/
+  AutoincInfo *pNext;   /* Next info block in a list of them all 		ÔÚËûÃÇËùÓĞÁĞ±íµÄÏÂÒ»¸öĞÅÏ¢¿é*/
+  Table *pTab;          /* Table this info block refers to 			±íĞÅÏ¢¿éµÄÖ¸Ïò*/
+  int iDb;              /* Index in sqlite3.aDb[] of database holding pTab 	Êı¾İ¿âÖĞsqlite3.aDb[]µÄË÷Òı±£´æpTab*/
+  int regCtr;           /* Memory register holding the rowid counter 		ÓÃÓÚ±£´æROWID¼ÆËãÆ÷µÄÄÚ´æ¼Ä´æÆ÷*/
 };
 
 /*
-** Size of the column cache							åˆ—ç¼“å­˜å¤§å°
+** Size of the column cache							ÁĞ»º´æ´óĞ¡
 */
 #ifndef SQLITE_N_COLCACHE
 # define SQLITE_N_COLCACHE 10
 #endif
 
 /*
-** At least one instance of the following structure is created for each 	è‡³å°‘ä¸€ä¸ªä»¥ä¸‹ç»“æ„ä½“çš„å®ä¾‹ä¸ºæ¯ä¸ªè§¦å‘å™¨åˆ›å»º
-** trigger that may be fired while parsing an INSERT, UPDATE or DELETE		å½“æ‰§è¡ŒINSERT,UPDATE,DELETEæ˜¯æœ‰å¯èƒ½è§¦å‘è§¦å‘å™¨ã€‚
-** statement. All such objects are stored in the linked list headed at		æ‰€æœ‰è¿™äº›å¯¹è±¡å­˜å‚¨åœ¨Parse.pTriggerPrgä¸ºé¦–çš„é“¾è¡¨ï¼Œ
-** Parse.pTriggerPrg and deleted once statement compilation has been		ä¸€æ—¦è¯­å¥ç¼–è¯‘å®Œæˆå°±åˆ é™¤è¿™äº›å¯¹è±¡ã€‚
+** At least one instance of the following structure is created for each 	ÖÁÉÙÒ»¸öÒÔÏÂ½á¹¹ÌåµÄÊµÀıÎªÃ¿¸ö´¥·¢Æ÷´´½¨
+** trigger that may be fired while parsing an INSERT, UPDATE or DELETE		µ±Ö´ĞĞINSERT,UPDATE,DELETEÊÇÓĞ¿ÉÄÜ´¥·¢´¥·¢Æ÷¡£
+** statement. All such objects are stored in the linked list headed at		ËùÓĞÕâĞ©¶ÔÏó´æ´¢ÔÚParse.pTriggerPrgÎªÊ×µÄÁ´±í£¬
+** Parse.pTriggerPrg and deleted once statement compilation has been		Ò»µ©Óï¾ä±àÒëÍê³É¾ÍÉ¾³ıÕâĞ©¶ÔÏó¡£
 ** completed.
 **
-** A Vdbe sub-program that implements the body and WHEN clause of trigger	ä¸€ä¸ªå®ç°äº†ä½“å’ŒWHENå­å¥è§¦å‘å™¨TriggerPrg.pTriggerçš„VDBEåˆ†ç¨‹åº
-** TriggerPrg.pTrigger, assuming a default ON CONFLICT clause of		å‡è®¾ä¸€ä¸ªTriggerPrg.orconfé»˜è®¤ON CONFLICTå­å¥
-** TriggerPrg.orconf, is stored in the TriggerPrg.pProgram variable.		å­˜å‚¨åœ¨TriggerPrg.pProgramå˜é‡ä¸­
-** The Parse.pTriggerPrg list never contains two entries with the same		Parse.pTriggerPrgåˆ—è¡¨ä»æœªåŒ…å«pTriggerå’Œorconfå€¼ç›¸åŒçš„ä¸¤ä¸ªæ¡ç›®
+** A Vdbe sub-program that implements the body and WHEN clause of trigger	Ò»¸öÊµÏÖÁËÌåºÍWHEN×Ó¾ä´¥·¢Æ÷TriggerPrg.pTriggerµÄVDBE·Ö³ÌĞò
+** TriggerPrg.pTrigger, assuming a default ON CONFLICT clause of		¼ÙÉèÒ»¸öTriggerPrg.orconfÄ¬ÈÏON CONFLICT×Ó¾ä
+** TriggerPrg.orconf, is stored in the TriggerPrg.pProgram variable.		´æ´¢ÔÚTriggerPrg.pProgram±äÁ¿ÖĞ
+** The Parse.pTriggerPrg list never contains two entries with the same		Parse.pTriggerPrgÁĞ±í´ÓÎ´°üº¬pTriggerºÍorconfÖµÏàÍ¬µÄÁ½¸öÌõÄ¿
 ** values for both pTrigger and orconf.
 **
-** The TriggerPrg.aColmask[0] variable is set to a mask of old.* columns	TriggerPrg.aColmask[0]å˜é‡è¢«è®¾ç½®ä¸ºä¸€ä¸ªéšè—çš„old.*åˆ—å­˜å‚¨
-** accessed (or set to 0 for triggers fired as a result of INSERT 		(æˆ–è®¾ç½®ä¸º0å½“INSERTç»“æœè§¦å‘äº†è§¦å‘å™¨)
-** statements). Similarly, the TriggerPrg.aColmask[1] variable is set to	åŒæ ·ï¼ŒTriggerPrg.aColmask[1]å˜é‡è®¾ç½®ä¸ºä¸€ä¸ªéšè—çš„ç”±ç¨‹åºä½¿ç”¨new.*åˆ—
+** The TriggerPrg.aColmask[0] variable is set to a mask of old.* columns	TriggerPrg.aColmask[0]±äÁ¿±»ÉèÖÃÎªÒ»¸öÒş²ØµÄold.*ÁĞ´æ´¢
+** accessed (or set to 0 for triggers fired as a result of INSERT 		(»òÉèÖÃÎª0µ±INSERT½á¹û´¥·¢ÁË´¥·¢Æ÷)
+** statements). Similarly, the TriggerPrg.aColmask[1] variable is set to	Í¬Ñù£¬TriggerPrg.aColmask[1]±äÁ¿ÉèÖÃÎªÒ»¸öÒş²ØµÄÓÉ³ÌĞòÊ¹ÓÃnew.*ÁĞ
 ** a mask of new.* columns used by the program.
 */
 struct TriggerPrg {
-  Trigger *pTrigger;      /* Trigger this program was coded from 		è§¦å‘è¿™ä¸ªç¨‹åºçš„ä»£ç */
-  TriggerPrg *pNext;      /* Next entry in Parse.pTriggerPrg list 		Parse.pTriggerPrgåˆ—è¡¨çš„ä¸‹ä¸€ä¸ªæ¡ç›®*/
-  SubProgram *pProgram;   /* Program implementing pTrigger/orconf 		é¡¹ç›®å®æ–½pTrigger/orconf*/
-  int orconf;             /* Default ON CONFLICT policy 			é»˜è®¤ON CONFLICTæ”¿ç­–*/
-  u32 aColmask[2];        /* Masks of old.*, new.* columns accessed 		old.*,new.*åˆ—çš„éšè—è®¿é—®*/
+  Trigger *pTrigger;      /* Trigger this program was coded from 		´¥·¢Õâ¸ö³ÌĞòµÄ´úÂë*/
+  TriggerPrg *pNext;      /* Next entry in Parse.pTriggerPrg list 		Parse.pTriggerPrgÁĞ±íµÄÏÂÒ»¸öÌõÄ¿*/
+  SubProgram *pProgram;   /* Program implementing pTrigger/orconf 		ÏîÄ¿ÊµÊ©pTrigger/orconf*/
+  int orconf;             /* Default ON CONFLICT policy 			Ä¬ÈÏON CONFLICTÕş²ß*/
+  u32 aColmask[2];        /* Masks of old.*, new.* columns accessed 		old.*,new.*ÁĞµÄÒş²Ø·ÃÎÊ*/
 };
 
 /*
-** The yDbMask datatype for the bitmask of all attached databases.		æ‰€æœ‰é™„åŠ æ•°æ®åº“çš„ä½æ©ç çš„yDbMaskæ•°æ®ç±»å‹
+** The yDbMask datatype for the bitmask of all attached databases.		ËùÓĞ¸½¼ÓÊı¾İ¿âµÄÎ»ÑÚÂëµÄyDbMaskÊı¾İÀàĞÍ
 */
 #if SQLITE_MAX_ATTACHED>30
   typedef sqlite3_uint64 yDbMask;
@@ -2318,113 +2318,113 @@ struct TriggerPrg {
 #endif
 
 /*
-** An SQL parser context.  A copy of this structure is passed through		ä¸€ä¸ªSQLè§£æå™¨ä¸Šä¸‹æ–‡ã€‚
-** the parser and down into all the parser action routine in order to		è¿™ç§ç»“æ„çš„å‰¯æœ¬é€šè¿‡è§£æå™¨å’Œåˆ†è§£ä¸ºæ‰€æœ‰è§£æå™¨æ“ä½œä¾‹ç¨‹
-** carry around information that is global to the entire parse.			ä»¥æºå¸¦æ•´ä¸ªå…¨å±€è§£æä¿¡æ¯
+** An SQL parser context.  A copy of this structure is passed through		Ò»¸öSQL½âÎöÆ÷ÉÏÏÂÎÄ¡£
+** the parser and down into all the parser action routine in order to		ÕâÖÖ½á¹¹µÄ¸±±¾Í¨¹ı½âÎöÆ÷ºÍ·Ö½âÎªËùÓĞ½âÎöÆ÷²Ù×÷Àı³Ì
+** carry around information that is global to the entire parse.			ÒÔĞ¯´øÕû¸öÈ«¾Ö½âÎöĞÅÏ¢
 **
-** The structure is divided into two parts.  When the parser and code		ç»“æ„åˆ†ä¸ºä¸¤éƒ¨åˆ†ã€‚å½“è§£æå™¨å’Œä»£ç ç”Ÿæˆé€’å½’è°ƒç”¨å®ƒä»¬è‡ªèº«ï¼Œ
-** generate call themselves recursively, the first part of the structure	è¯¥ç»“æ„çš„ç¬¬ä¸€éƒ¨åˆ†æ˜¯ä¸å˜çš„
-** is constant but the second part is reset at the beginning and end of		ä½†æ˜¯ç¬¬äºŒéƒ¨åˆ†åœ¨æ¯ä¸ªé€’å½’å¼€å§‹å’Œç»“æŸæ—¶è¢«å¤ä½
+** The structure is divided into two parts.  When the parser and code		½á¹¹·ÖÎªÁ½²¿·Ö¡£µ±½âÎöÆ÷ºÍ´úÂëÉú³Éµİ¹éµ÷ÓÃËüÃÇ×ÔÉí£¬
+** generate call themselves recursively, the first part of the structure	¸Ã½á¹¹µÄµÚÒ»²¿·ÖÊÇ²»±äµÄ
+** is constant but the second part is reset at the beginning and end of		µ«ÊÇµÚ¶ş²¿·ÖÔÚÃ¿¸öµİ¹é¿ªÊ¼ºÍ½áÊøÊ±±»¸´Î»
 ** each recursion.
 **
-** The nTableLock and aTableLock variables are only used if the shared-cache 	nTableLockå’ŒTableLockå˜é‡ä»…å½“å¯ç”¨å…±äº«ç¼“å­˜ç‰¹æ€§(å½“sq	lite3Ted()->useShareDateä¸ºçœŸ)æ—¶ä½¿ç”¨
-** feature is enabled (if sqlite3Tsd()->useSharedData is true). They are	(å½“sq	lite3Ted()->useShareDateä¸ºçœŸ)æ—¶ä½¿ç”¨
-** used to store the set of table-locks required by the statement being		å®ƒä»¬ç”¨æ¥å­˜å‚¨ä¸€ç»„è¡¨é”éœ€è¦çš„è¢«ç¼–è¯‘è¯­å¥
-** compiled. Function sqlite3TableLock() is used to add entries to the		sqlite3TableLock()å‡½æ•°ç”¨äºå°†æ¡ç›®æ·»åŠ åˆ°åˆ—è¡¨ä¸­
+** The nTableLock and aTableLock variables are only used if the shared-cache 	nTableLockºÍTableLock±äÁ¿½öµ±ÆôÓÃ¹²Ïí»º´æÌØĞÔ(µ±sq	lite3Ted()->useShareDateÎªÕæ)Ê±Ê¹ÓÃ
+** feature is enabled (if sqlite3Tsd()->useSharedData is true). They are	(µ±sq	lite3Ted()->useShareDateÎªÕæ)Ê±Ê¹ÓÃ
+** used to store the set of table-locks required by the statement being		ËüÃÇÓÃÀ´´æ´¢Ò»×é±íËøĞèÒªµÄ±»±àÒëÓï¾ä
+** compiled. Function sqlite3TableLock() is used to add entries to the		sqlite3TableLock()º¯ÊıÓÃÓÚ½«ÌõÄ¿Ìí¼Óµ½ÁĞ±íÖĞ
 ** list.
 */
 struct Parse {
-  sqlite3 *db;         /* The main database structure 				ä¸»æ•°æ®ç»“æ„*/
-  char *zErrMsg;       /* An error message 					é”™è¯¯æ¶ˆæ¯*/
-  Vdbe *pVdbe;         /* An engine for executing database bytecode 		æ‰§è¡Œæ•°æ®åº“å­—èŠ‚ç çš„å¼•æ“*/
-  int rc;              /* Return code from execution 				è¿”å›ä»£ç çš„æ‰§è¡Œ*/
-  u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued to pVdbe 	OP_ColumnNameå·²å¤„ç†ç»™pVdbeå*/
-  u8 checkSchema;      /* Causes schema cookie check after an error 		é”™è¯¯åå¼•èµ·çš„æ¨¡å¼cookieæ£€æŸ¥*/
-  u8 nested;           /* Number of nested calls to the parser/code generator 	åµŒå¥—è°ƒç”¨è§£æå™¨/ä»£ç ç”Ÿæˆå™¨çš„æ•°é‡*/
-  u8 nTempReg;         /* Number of temporary registers in aTempReg[] 		aTempReg[]çš„ä¸´æ—¶å¯„å­˜å™¨æ•°é‡*/
-  u8 nTempInUse;       /* Number of aTempReg[] currently checked out 		å½“å‰è¢«æ£€æŸ¥çš„TempReg[]æ•°é‡*/
-  u8 nColCache;        /* Number of entries in aColCache[] 			åœ¨aColCache[]çš„æ¡ç›®æ•°*/
-  u8 iColCache;        /* Next entry in aColCache[] to replace 			åœ¨aColCache[]ä¸­è¢«å–ä»£çš„ä¸‹ä¸€ä¸ªæ¡ç›®*/
-  u8 isMultiWrite;     /* True if statement may modify/insert multiple rows 	å¦‚æœè¯­å¥å¯ä»¥ä¿®æ”¹/æ’å…¥å¤šè¡Œ*/
-  u8 mayAbort;         /* True if statement may throw an ABORT exception 	å¦‚æœè¯­å¥å¯èƒ½ä¼šæŠ›å‡ºä¸€ä¸ªABORTå¼‚å¸¸*/
-  int aTempReg[8];     /* Holding area for temporary registers 			ä¸ºä¸´æ—¶å¯„å­˜å™¨ä¿ç•™åœ°æ–¹*/
-  int nRangeReg;       /* Size of the temporary register block 			ä¸´æ—¶å¯„å­˜å™¨å—çš„å¤§å°*/
-  int iRangeReg;       /* First register in temporary register block 		åœ¨ä¸´æ—¶å¯„å­˜å™¨å—çš„ç¬¬ä¸€ä¸ªå¯„å­˜å™¨*/
-  int nErr;            /* Number of errors seen 				çœ‹åˆ°é”™è¯¯æ•°*/
-  int nTab;            /* Number of previously allocated VDBE cursors 		ä»¥å‰åˆ†é…VDBEå…‰æ ‡çš„æ•°é‡*/
-  int nMem;            /* Number of memory cells used so far 			åˆ°ç›®å‰ä¸ºæ­¢ä½¿ç”¨çš„å†…å­˜å•å…ƒçš„æ•°é‡*/
-  int nSet;            /* Number of sets used so far 				åˆ°ç›®å‰ä¸ºæ­¢ä½¿ç”¨çš„è®¾ç½®æ•°é‡*/
-  int nOnce;           /* Number of OP_Once instructions so far 		åˆ°ç›®å‰ä¸ºæ­¢OP_OnceæŒ‡ä»¤çš„æ•°é‡*/
-  int ckBase;          /* Base register of data during check constraints 	åœ¨æ£€æŸ¥çº¦æŸæ—¶åŸºå€å¯„å­˜å™¨çš„æ•°æ®*/
-  int iCacheLevel;     /* ColCache valid when aColCache[].iLevel<=iCacheLevel 	å½“aColCache[].iLevel<=iCacheLevelæ—¶ï¼ŒColCacheæœ‰æ•ˆ*/
-  int iCacheCnt;       /* Counter used to generate aColCache[].lru values 	ç”¨äºç”ŸæˆaColCache[].lruå€¼çš„è®¡æ•°å™¨*/
+  sqlite3 *db;         /* The main database structure 				Ö÷Êı¾İ½á¹¹*/
+  char *zErrMsg;       /* An error message 					´íÎóÏûÏ¢*/
+  Vdbe *pVdbe;         /* An engine for executing database bytecode 		Ö´ĞĞÊı¾İ¿â×Ö½ÚÂëµÄÒıÇæ*/
+  int rc;              /* Return code from execution 				·µ»Ø´úÂëµÄÖ´ĞĞ*/
+  u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued to pVdbe 	OP_ColumnNameÒÑ´¦Àí¸øpVdbeºó*/
+  u8 checkSchema;      /* Causes schema cookie check after an error 		´íÎóºóÒıÆğµÄÄ£Ê½cookie¼ì²é*/
+  u8 nested;           /* Number of nested calls to the parser/code generator 	Ç¶Ì×µ÷ÓÃ½âÎöÆ÷/´úÂëÉú³ÉÆ÷µÄÊıÁ¿*/
+  u8 nTempReg;         /* Number of temporary registers in aTempReg[] 		aTempReg[]µÄÁÙÊ±¼Ä´æÆ÷ÊıÁ¿*/
+  u8 nTempInUse;       /* Number of aTempReg[] currently checked out 		µ±Ç°±»¼ì²éµÄTempReg[]ÊıÁ¿*/
+  u8 nColCache;        /* Number of entries in aColCache[] 			ÔÚaColCache[]µÄÌõÄ¿Êı*/
+  u8 iColCache;        /* Next entry in aColCache[] to replace 			ÔÚaColCache[]ÖĞ±»È¡´úµÄÏÂÒ»¸öÌõÄ¿*/
+  u8 isMultiWrite;     /* True if statement may modify/insert multiple rows 	Èç¹ûÓï¾ä¿ÉÒÔĞŞ¸Ä/²åÈë¶àĞĞ*/
+  u8 mayAbort;         /* True if statement may throw an ABORT exception 	Èç¹ûÓï¾ä¿ÉÄÜ»áÅ×³öÒ»¸öABORTÒì³£*/
+  int aTempReg[8];     /* Holding area for temporary registers 			ÎªÁÙÊ±¼Ä´æÆ÷±£ÁôµØ·½*/
+  int nRangeReg;       /* Size of the temporary register block 			ÁÙÊ±¼Ä´æÆ÷¿éµÄ´óĞ¡*/
+  int iRangeReg;       /* First register in temporary register block 		ÔÚÁÙÊ±¼Ä´æÆ÷¿éµÄµÚÒ»¸ö¼Ä´æÆ÷*/
+  int nErr;            /* Number of errors seen 				¿´µ½´íÎóÊı*/
+  int nTab;            /* Number of previously allocated VDBE cursors 		ÒÔÇ°·ÖÅäVDBE¹â±êµÄÊıÁ¿*/
+  int nMem;            /* Number of memory cells used so far 			µ½Ä¿Ç°ÎªÖ¹Ê¹ÓÃµÄÄÚ´æµ¥ÔªµÄÊıÁ¿*/
+  int nSet;            /* Number of sets used so far 				µ½Ä¿Ç°ÎªÖ¹Ê¹ÓÃµÄÉèÖÃÊıÁ¿*/
+  int nOnce;           /* Number of OP_Once instructions so far 		µ½Ä¿Ç°ÎªÖ¹OP_OnceÖ¸ÁîµÄÊıÁ¿*/
+  int ckBase;          /* Base register of data during check constraints 	ÔÚ¼ì²éÔ¼ÊøÊ±»ùÖ·¼Ä´æÆ÷µÄÊı¾İ*/
+  int iCacheLevel;     /* ColCache valid when aColCache[].iLevel<=iCacheLevel 	µ±aColCache[].iLevel<=iCacheLevelÊ±£¬ColCacheÓĞĞ§*/
+  int iCacheCnt;       /* Counter used to generate aColCache[].lru values 	ÓÃÓÚÉú³ÉaColCache[].lruÖµµÄ¼ÆÊıÆ÷*/
   struct yColCache {
-    int iTable;           /* Table cursor number 				è¡¨æŒ‡é’ˆæ•°*/
-    int iColumn;          /* Table column number 				è¡¨åˆ—å·*/
-    u8 tempReg;           /* iReg is a temp register that needs to be freed 	iRegæ˜¯éœ€è¦è¢«é‡Šæ”¾çš„ä¸´æ—¶å¯„å­˜å™¨*/
-    int iLevel;           /* Nesting level 					åµŒå¥—å±‚æ¬¡*/
-    int iReg;             /* Reg with value of this column. 0 means none. 	ä¿å­˜è¿™ä¸ªcolumn.0çš„å¯„å­˜å™¨è¡¨ç¤ºç©º*/
-    int lru;              /* Least recently used entry has the smallest value 	æœ€è¿‘æœ€å°‘ä½¿ç”¨æ¡ç›®çš„æœ€å°å€¼*/
-  } aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry 		ä¸€ä¸ªç”¨äºæ¯åˆ—ç¼“å­˜æ¡ç›®*/
-  yDbMask writeMask;   /* Start a write transaction on these databases 		å¼€å§‹å¯¹è¿™äº›æ•°æ®åº“è¿›è¡Œå†™äº‹åŠ¡*/
-  yDbMask cookieMask;  /* Bitmask of schema verified databases 			ä½æ©ç æ¨¡å¼éªŒè¯æ•°æ®åº“*/
-  int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine 	è¿½è¸ªéªŒè¯å­ç¨‹åºçš„OP_Gotoåœ°å€*/
-  int cookieValue[SQLITE_MAX_ATTACHED+2];  /* Values of cookies to verify 	è¿½è¸ªçš„å€¼æ¥éªŒè¯*/
-  int regRowid;        /* Register holding rowid of CREATE TABLE entry 		æœ‰CREATE TABLEæ¡ç›®çš„ä¼ªåˆ—çš„å¯„å­˜å™¨*/
-  int regRoot;         /* Register holding root page number for new objects 	æœ‰æ–°å¯¹è±¡çš„è·Ÿé¡µç çš„å¯„å­˜å™¨*/
-  int nMaxArg;         /* Max args passed to user function by sub-program 	Maxå‚æ•°é€šè¿‡å­ç¨‹åºä¼ é€’ç»™ç”¨æˆ·å‡½æ•°*/
-  Token constraintName;/* Name of the constraint currently being parsed 	ç›®å‰æ­£åœ¨è§£æçš„çº¦æŸçš„åå­—*/
+    int iTable;           /* Table cursor number 				±íÖ¸ÕëÊı*/
+    int iColumn;          /* Table column number 				±íÁĞºÅ*/
+    u8 tempReg;           /* iReg is a temp register that needs to be freed 	iRegÊÇĞèÒª±»ÊÍ·ÅµÄÁÙÊ±¼Ä´æÆ÷*/
+    int iLevel;           /* Nesting level 					Ç¶Ì×²ã´Î*/
+    int iReg;             /* Reg with value of this column. 0 means none. 	±£´æÕâ¸öcolumn.0µÄ¼Ä´æÆ÷±íÊ¾¿Õ*/
+    int lru;              /* Least recently used entry has the smallest value 	×î½ü×îÉÙÊ¹ÓÃÌõÄ¿µÄ×îĞ¡Öµ*/
+  } aColCache[SQLITE_N_COLCACHE];  /* One for each column cache entry 		Ò»¸öÓÃÓÚÃ¿ÁĞ»º´æÌõÄ¿*/
+  yDbMask writeMask;   /* Start a write transaction on these databases 		¿ªÊ¼¶ÔÕâĞ©Êı¾İ¿â½øĞĞĞ´ÊÂÎñ*/
+  yDbMask cookieMask;  /* Bitmask of schema verified databases 			Î»ÑÚÂëÄ£Ê½ÑéÖ¤Êı¾İ¿â*/
+  int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine 	×·×ÙÑéÖ¤×Ó³ÌĞòµÄOP_GotoµØÖ·*/
+  int cookieValue[SQLITE_MAX_ATTACHED+2];  /* Values of cookies to verify 	×·×ÙµÄÖµÀ´ÑéÖ¤*/
+  int regRowid;        /* Register holding rowid of CREATE TABLE entry 		ÓĞCREATE TABLEÌõÄ¿µÄÎ±ÁĞµÄ¼Ä´æÆ÷*/
+  int regRoot;         /* Register holding root page number for new objects 	ÓĞĞÂ¶ÔÏóµÄ¸úÒ³ÂëµÄ¼Ä´æÆ÷*/
+  int nMaxArg;         /* Max args passed to user function by sub-program 	Max²ÎÊıÍ¨¹ı×Ó³ÌĞò´«µİ¸øÓÃ»§º¯Êı*/
+  Token constraintName;/* Name of the constraint currently being parsed 	Ä¿Ç°ÕıÔÚ½âÎöµÄÔ¼ÊøµÄÃû×Ö*/
 #ifndef SQLITE_OMIT_SHARED_CACHE
-  int nTableLock;        /* Number of locks in aTableLock 			åœ¨aTableLockä¸­é”çš„æ•°é‡*/
-  TableLock *aTableLock; /* Required table locks for shared-cache mode 		è¦æ±‚è¡¨çš„å…±äº«ç¼“å­˜æ¨¡å¼çš„é”*/
+  int nTableLock;        /* Number of locks in aTableLock 			ÔÚaTableLockÖĞËøµÄÊıÁ¿*/
+  TableLock *aTableLock; /* Required table locks for shared-cache mode 		ÒªÇó±íµÄ¹²Ïí»º´æÄ£Ê½µÄËø*/
 #endif
-  AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters 		æœ‰å…³AUTOINCREMENTè®¡æ•°å™¨çš„ä¿¡æ¯*/
+  AutoincInfo *pAinc;  /* Information about AUTOINCREMENT counters 		ÓĞ¹ØAUTOINCREMENT¼ÆÊıÆ÷µÄĞÅÏ¢*/
 
-  /* Information used while coding trigger programs. 				å½“ç¼–ç è§¦å‘ç¨‹åºæ—¶ä½¿ç”¨çš„ä¿¡æ¯*/
-  Parse *pToplevel;    /* Parse structure for main program (or NULL) 		è§£æä¸»ç¨‹åºçš„ç»“æ„(æˆ–ç©º)*/
-  Table *pTriggerTab;  /* Table triggers are being coded for 			è¡¨è§¦å‘å™¨è¢«ç¼–ç */
-  double nQueryLoop;   /* Estimated number of iterations of a query 		ä¸€ä¸ªè¿­ä»£æŸ¥è¯¢çš„ä¼°è®¡æ•°*/
-  u32 oldmask;         /* Mask of old.* columns referenced 			old.*åˆ—çš„éšè—å¼•ç”¨*/
-  u32 newmask;         /* Mask of new.* columns referenced 			new.*åˆ—çš„éšè—å¼•ç”¨*/
+  /* Information used while coding trigger programs. 				µ±±àÂë´¥·¢³ÌĞòÊ±Ê¹ÓÃµÄĞÅÏ¢*/
+  Parse *pToplevel;    /* Parse structure for main program (or NULL) 		½âÎöÖ÷³ÌĞòµÄ½á¹¹(»ò¿Õ)*/
+  Table *pTriggerTab;  /* Table triggers are being coded for 			±í´¥·¢Æ÷±»±àÂë*/
+  double nQueryLoop;   /* Estimated number of iterations of a query 		Ò»¸öµü´ú²éÑ¯µÄ¹À¼ÆÊı*/
+  u32 oldmask;         /* Mask of old.* columns referenced 			old.*ÁĞµÄÒş²ØÒıÓÃ*/
+  u32 newmask;         /* Mask of new.* columns referenced 			new.*ÁĞµÄÒş²ØÒıÓÃ*/
   u8 eTriggerOp;       /* TK_UPDATE, TK_INSERT or TK_DELETE */
-  u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps 		é»˜è®¤ON CONFICTè§„åˆ™çš„è§¦å‘æ­¥éª¤*/
-  u8 disableTriggers;  /* True to disable triggers 				ç¦ç”¨è§¦å‘å™¨*/
+  u8 eOrconf;          /* Default ON CONFLICT policy for trigger steps 		Ä¬ÈÏON CONFICT¹æÔòµÄ´¥·¢²½Öè*/
+  u8 disableTriggers;  /* True to disable triggers 				½ûÓÃ´¥·¢Æ÷*/
 
-  /* Above is constant between recursions.  Below is reset before and after	ä»¥ä¸Šåœ¨æ¯æ¬¡é€’å½’æ—¶ä¸å˜ï¼Œä»¥ä¸‹åœ¨æ¯æ¬¡é€’å½’å‰å’Œé€’å½’åå¤ä½
+  /* Above is constant between recursions.  Below is reset before and after	ÒÔÉÏÔÚÃ¿´Îµİ¹éÊ±²»±ä£¬ÒÔÏÂÔÚÃ¿´Îµİ¹éÇ°ºÍµİ¹éºó¸´Î»
   ** each recursion */
 
-  int nVar;                 /* Number of '?' variables seen in the SQL so far 	ç›®å‰ä¸ºæ­¢åœ¨SQLä¸­å¯è§çš„"?"å˜é‡æ•°é‡*/
-  int nzVar;                /* Number of available slots in azVar[] 		åœ¨azVar[]ä¸­å¯ç”¨æµ‹è¯•å™¨æ•°é‡*/
-  u8 explain;               /* True if the EXPLAIN flag is found on the query 	å¦‚æœæŸ¥è¯¢æ—¶å‘ç°EXPLAINæ ‡å¿—*/
+  int nVar;                 /* Number of '?' variables seen in the SQL so far 	Ä¿Ç°ÎªÖ¹ÔÚSQLÖĞ¿É¼ûµÄ"?"±äÁ¿ÊıÁ¿*/
+  int nzVar;                /* Number of available slots in azVar[] 		ÔÚazVar[]ÖĞ¿ÉÓÃ²âÊÔÆ÷ÊıÁ¿*/
+  u8 explain;               /* True if the EXPLAIN flag is found on the query 	Èç¹û²éÑ¯Ê±·¢ÏÖEXPLAIN±êÖ¾*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  u8 declareVtab;           /* True if inside sqlite3_declare_vtab() 		å¦‚æœåœ¨sqlite3_declare_vtab()ä¸­*/
-  int nVtabLock;            /* Number of virtual tables to lock 		é”ä½çš„è™šè¡¨æ•°é‡*/
+  u8 declareVtab;           /* True if inside sqlite3_declare_vtab() 		Èç¹ûÔÚsqlite3_declare_vtab()ÖĞ*/
+  int nVtabLock;            /* Number of virtual tables to lock 		Ëø×¡µÄĞé±íÊıÁ¿*/
 #endif
-  int nAlias;               /* Number of aliased result set columns 		è®¾ç½®åˆ—çš„åˆ«åç»“æœé›†æ•°é‡*/
-  int nHeight;              /* Expression tree height of current sub-select 	è¡¨è¾¾å¼æ•°å½“å‰å­é€‰æ‹©çš„é«˜åº¦*/
+  int nAlias;               /* Number of aliased result set columns 		ÉèÖÃÁĞµÄ±ğÃû½á¹û¼¯ÊıÁ¿*/
+  int nHeight;              /* Expression tree height of current sub-select 	±í´ïÊ½Êıµ±Ç°×ÓÑ¡ÔñµÄ¸ß¶È*/
 #ifndef SQLITE_OMIT_EXPLAIN
-  int iSelectId;            /* ID of current select for EXPLAIN output 		EXPLAINè¾“å‡ºçš„å½“å‰é€‰æ‹©çš„ID*/
-  int iNextSelectId;        /* Next available select ID for EXPLAIN output 	EXPLAINè¾“å‡ºçš„ä¸‹ä¸€ä¸ªå¯ç”¨çš„é€‰æ‹©ID*/
+  int iSelectId;            /* ID of current select for EXPLAIN output 		EXPLAINÊä³öµÄµ±Ç°Ñ¡ÔñµÄID*/
+  int iNextSelectId;        /* Next available select ID for EXPLAIN output 	EXPLAINÊä³öµÄÏÂÒ»¸ö¿ÉÓÃµÄÑ¡ÔñID*/
 #endif
-  char **azVar;             /* Pointers to names of parameters 			å‚æ•°åç§°çš„æŒ‡é’ˆ*/
-  Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) 	VMè¢«é‡ä¿®(sqlite3Reprepare())*/
-  int *aAlias;              /* Register used to hold aliased result 		ç”¨æ¥å­˜å‚¨åˆ«åç»“æœçš„å¯„å­˜å™¨*/
-  const char *zTail;        /* All SQL text past the last semicolon parsed 	æ‰€æœ‰SQLæ–‡æœ¬é€šè¿‡æœ€åä¸€ä¸ªåˆ†å·è§£æ*/
-  Table *pNewTable;         /* A table being constructed by CREATE TABLE 	ä¸€ä¸ªè¡¨ç”±CREATE TABLEæ„å»º*/
-  Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER 	æ ¹æ®CREATE TRIGGERç»“æ„è§¦å‘**/
-  const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks 	ç¬¬å…­ä¸ªDB-> XAUTHå›è°ƒå‚æ•°*/
-  Token sNameToken;         /* Token with unqualified schema object name 	æ ‡è®°ä¸åˆæ ¼æ¶æ„å¯¹è±¡åç§°*/
-  Token sLastToken;         /* The last token parsed 				æœ€åä¸€ä¸ªç¬¦å·è§£æ*/
+  char **azVar;             /* Pointers to names of parameters 			²ÎÊıÃû³ÆµÄÖ¸Õë*/
+  Vdbe *pReprepare;         /* VM being reprepared (sqlite3Reprepare()) 	VM±»ÖØĞŞ(sqlite3Reprepare())*/
+  int *aAlias;              /* Register used to hold aliased result 		ÓÃÀ´´æ´¢±ğÃû½á¹ûµÄ¼Ä´æÆ÷*/
+  const char *zTail;        /* All SQL text past the last semicolon parsed 	ËùÓĞSQLÎÄ±¾Í¨¹ı×îºóÒ»¸ö·ÖºÅ½âÎö*/
+  Table *pNewTable;         /* A table being constructed by CREATE TABLE 	Ò»¸ö±íÓÉCREATE TABLE¹¹½¨*/
+  Trigger *pNewTrigger;     /* Trigger under construct by a CREATE TRIGGER 	¸ù¾İCREATE TRIGGER½á¹¹´¥·¢**/
+  const char *zAuthContext; /* The 6th parameter to db->xAuth callbacks 	µÚÁù¸öDB-> XAUTH»Øµ÷²ÎÊı*/
+  Token sNameToken;         /* Token with unqualified schema object name 	±ê¼Ç²»ºÏ¸ñ¼Ü¹¹¶ÔÏóÃû³Æ*/
+  Token sLastToken;         /* The last token parsed 				×îºóÒ»¸ö·ûºÅ½âÎö*/
 #ifndef SQLITE_OMIT_VIRTUALTABLE
-  Token sArg;               /* Complete text of a module argument 		ä¸€ä¸ªæ¨¡å—å‚æ•°çš„å®Œæ•´æ–‡æœ¬*/
-  Table **apVtabLock;       /* Pointer to virtual tables needing locking 	éœ€è¦é”å®šçš„è™šè¡¨æŒ‡é’ˆ*/
+  Token sArg;               /* Complete text of a module argument 		Ò»¸öÄ£¿é²ÎÊıµÄÍêÕûÎÄ±¾*/
+  Table **apVtabLock;       /* Pointer to virtual tables needing locking 	ĞèÒªËø¶¨µÄĞé±íÖ¸Õë*/
 #endif
-  Table *pZombieTab;        /* List of Table objects to delete after code gen 	ä»£ç ç”Ÿæˆååˆ é™¤è¡¨å¯¹è±¡åˆ—è¡¨*/
-  TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers 			ç¼–ç è§¦å‘å™¨é“¾è¡¨*/
+  Table *pZombieTab;        /* List of Table objects to delete after code gen 	´úÂëÉú³ÉºóÉ¾³ı±í¶ÔÏóÁĞ±í*/
+  TriggerPrg *pTriggerPrg;  /* Linked list of coded triggers 			±àÂë´¥·¢Æ÷Á´±í*/
 };
 
 /*
-** Return true if currently inside an sqlite3_declare_vtab() call.		å¦‚æœå½“å‰çš„sqlite3_declare_vtabï¼ˆï¼‰è°ƒç”¨é‡Œé¢è¿”å›çœŸ
+** Return true if currently inside an sqlite3_declare_vtab() call.		Èç¹ûµ±Ç°µÄsqlite3_declare_vtab£¨£©µ÷ÓÃÀïÃæ·µ»ØÕæ
 */
 #ifdef SQLITE_OMIT_VIRTUALTABLE
   #define IN_DECLARE_VTAB 0
@@ -2433,216 +2433,216 @@ struct Parse {
 #endif
 
 /*
-** An instance of the following structure can be declared on a stack and used	ä»¥ä¸‹ç»“æ„çš„å®ä¾‹å¯ä»¥åœ¨å †æ ˆä¸­å£°æ˜
-** to save the Parse.zAuthContext value so that it can be restored later.	å’Œç”¨æ¥ä¿å­˜ä¿å­˜Parse.zAuthContextå€¼ï¼Œä»¥ä¾¿åœ¨ä»¥åæ¢å¤	
+** An instance of the following structure can be declared on a stack and used	ÒÔÏÂ½á¹¹µÄÊµÀı¿ÉÒÔÔÚ¶ÑÕ»ÖĞÉùÃ÷
+** to save the Parse.zAuthContext value so that it can be restored later.	ºÍÓÃÀ´±£´æ±£´æParse.zAuthContextÖµ£¬ÒÔ±ãÔÚÒÔºó»Ö¸´	
 */
 struct AuthContext {
-  const char *zAuthContext;   /* Put saved Parse.zAuthContext here 		æŠŠParse.zAuthContextä¿å­˜åœ¨è¿™é‡Œ*/
-  Parse *pParse;              /* The Parse structure 				è§£æç»“æ„*/
+  const char *zAuthContext;   /* Put saved Parse.zAuthContext here 		°ÑParse.zAuthContext±£´æÔÚÕâÀï*/
+  Parse *pParse;              /* The Parse structure 				½âÎö½á¹¹*/
 };
 
 /*
-** Bitfield flags for P5 value in various opcodes.				ç”¨äºå„ç§æ“ä½œç P5å€¼çš„ä½åŸŸæ ‡å¿—
+** Bitfield flags for P5 value in various opcodes.				ÓÃÓÚ¸÷ÖÖ²Ù×÷ÂëP5ÖµµÄÎ»Óò±êÖ¾
 */
-#define OPFLAG_NCHANGE       0x01    /* Set to update db->nChange 		è®¾ç½®æ›´æ–°db->nChange*/
-#define OPFLAG_LASTROWID     0x02    /* Set to update db->lastRowid 		è®¾ç½®æ›´æ–°db->lastRowid*/
-#define OPFLAG_ISUPDATE      0x04    /* This OP_Insert is an sql UPDATE 	è¿™OP_Insertæ˜¯ä¸€ä¸ªSQL UPDATE*/
-#define OPFLAG_APPEND        0x08    /* This is likely to be an append 		è¿™å¾ˆå¯èƒ½æ˜¯ä¸€ä¸ªé™„åŠ */
-#define OPFLAG_USESEEKRESULT 0x10    /* Try to avoid a seek in BtreeInsert() 	å°½é‡é¿å…å¯»æ±‚BtreeInsertï¼ˆï¼‰*/
-#define OPFLAG_CLEARCACHE    0x20    /* Clear pseudo-table cache in OP_Column 	åœ¨OP_Columnæ¸…é™¤ä¼ªè¡¨ç¼“å­˜*/
-#define OPFLAG_LENGTHARG     0x40    /* OP_Column only used for length() 	OP_Columnä»…ç”¨äºlength()*/
-#define OPFLAG_TYPEOFARG     0x80    /* OP_Column only used for typeof() 	OP_Columnä»…ç”¨äºtypeof()*/
-#define OPFLAG_BULKCSR       0x01    /* OP_Open** used to open bulk cursor 	OP_Open**ç”¨äºæ‰“å¼€å¤§æ‰¹æ¸¸æ ‡*/
-#define OPFLAG_P2ISREG       0x02    /* P2 to OP_Open** is a register number 	OP_P2åˆ°OP_Open**æ˜¯ä¸€ä¸ªå¯„å­˜å™¨å·*/
+#define OPFLAG_NCHANGE       0x01    /* Set to update db->nChange 		ÉèÖÃ¸üĞÂdb->nChange*/
+#define OPFLAG_LASTROWID     0x02    /* Set to update db->lastRowid 		ÉèÖÃ¸üĞÂdb->lastRowid*/
+#define OPFLAG_ISUPDATE      0x04    /* This OP_Insert is an sql UPDATE 	ÕâOP_InsertÊÇÒ»¸öSQL UPDATE*/
+#define OPFLAG_APPEND        0x08    /* This is likely to be an append 		ÕâºÜ¿ÉÄÜÊÇÒ»¸ö¸½¼Ó*/
+#define OPFLAG_USESEEKRESULT 0x10    /* Try to avoid a seek in BtreeInsert() 	¾¡Á¿±ÜÃâÑ°ÇóBtreeInsert£¨£©*/
+#define OPFLAG_CLEARCACHE    0x20    /* Clear pseudo-table cache in OP_Column 	ÔÚOP_ColumnÇå³ıÎ±±í»º´æ*/
+#define OPFLAG_LENGTHARG     0x40    /* OP_Column only used for length() 	OP_Column½öÓÃÓÚlength()*/
+#define OPFLAG_TYPEOFARG     0x80    /* OP_Column only used for typeof() 	OP_Column½öÓÃÓÚtypeof()*/
+#define OPFLAG_BULKCSR       0x01    /* OP_Open** used to open bulk cursor 	OP_Open**ÓÃÓÚ´ò¿ª´óÅúÓÎ±ê*/
+#define OPFLAG_P2ISREG       0x02    /* P2 to OP_Open** is a register number 	OP_P2µ½OP_Open**ÊÇÒ»¸ö¼Ä´æÆ÷ºÅ*/
 
 /*
- * Each trigger present in the database schema is stored as an instance of	åœ¨æ•°æ®åº“æ¨¡å¼ä¸­æ¯ä¸ªç°å­˜çš„è§¦å‘å™¨å­˜å‚¨ä¸ºä¸€ä¸ªè§¦å‘ç»“æ„çš„å®ä¾‹
+ * Each trigger present in the database schema is stored as an instance of	ÔÚÊı¾İ¿âÄ£Ê½ÖĞÃ¿¸öÏÖ´æµÄ´¥·¢Æ÷´æ´¢ÎªÒ»¸ö´¥·¢½á¹¹µÄÊµÀı
  * struct Trigger. 
  *
- * Pointers to instances of struct Trigger are stored in two ways.		è¿™ç§è§¦å‘å™¨å®ä¾‹çš„æŒ‡é’ˆæœ‰ä¸¤ç§å­˜å‚¨æ–¹å¼
- * 1. In the "trigHash" hash table (part of the sqlite3* that represents the 	1.åœ¨â€œtrigHashâ€å“ˆå¸Œè¡¨ï¼ˆä»£è¡¨æ•°æ®åº“çš„sqlite3çš„*ä¸€éƒ¨åˆ†ï¼‰ã€‚
- *    database). This allows Trigger structures to be retrieved by name.	è¿™å…è®¸é€šè¿‡åç§°æ£€ç´¢è§¦å‘ç»“æ„ã€‚
- * 2. All triggers associated with a single table form a linked list, using the	2.ä¸ä¸€ä¸ªè¡¨ç›¸å…³è”çš„æ‰€æœ‰è§¦å‘å™¨å½¢æˆä¸€ä¸ªé“¾è¡¨,ä½¿ç”¨è§¦å‘ç»“æ„çš„pNextæˆå‘˜
- *    pNext member of struct Trigger. A pointer to the first element of the	ç¬¬ä¸€ä¸ªå…ƒç´ çš„é“¾è¡¨æŒ‡é’ˆå­˜å‚¨åœ¨ä¸Tableç›¸å…³çš„"pTrigger"æˆå‘˜ä¸­				
+ * Pointers to instances of struct Trigger are stored in two ways.		ÕâÖÖ´¥·¢Æ÷ÊµÀıµÄÖ¸ÕëÓĞÁ½ÖÖ´æ´¢·½Ê½
+ * 1. In the "trigHash" hash table (part of the sqlite3* that represents the 	1.ÔÚ¡°trigHash¡±¹şÏ£±í£¨´ú±íÊı¾İ¿âµÄsqlite3µÄ*Ò»²¿·Ö£©¡£
+ *    database). This allows Trigger structures to be retrieved by name.	ÕâÔÊĞíÍ¨¹ıÃû³Æ¼ìË÷´¥·¢½á¹¹¡£
+ * 2. All triggers associated with a single table form a linked list, using the	2.ÓëÒ»¸ö±íÏà¹ØÁªµÄËùÓĞ´¥·¢Æ÷ĞÎ³ÉÒ»¸öÁ´±í,Ê¹ÓÃ´¥·¢½á¹¹µÄpNext³ÉÔ±
+ *    pNext member of struct Trigger. A pointer to the first element of the	µÚÒ»¸öÔªËØµÄÁ´±íÖ¸Õë´æ´¢ÔÚÓëTableÏà¹ØµÄ"pTrigger"³ÉÔ±ÖĞ				
  *    linked list is stored as the "pTrigger" member of the associated
  *    struct Table.
  *
- * The "step_list" member points to the first element of a linked list		è¯¥â€œstep_listâ€æˆå‘˜æŒ‡å‘å«æœ‰æŒ‡å®šä½œä¸ºè§¦å‘ç¨‹åºçš„SQLè¯­å¥çš„é“¾è¡¨çš„ç¬¬ä¸€ä¸ªå…ƒç´ ..
+ * The "step_list" member points to the first element of a linked list		¸Ã¡°step_list¡±³ÉÔ±Ö¸Ïòº¬ÓĞÖ¸¶¨×÷Îª´¥·¢³ÌĞòµÄSQLÓï¾äµÄÁ´±íµÄµÚÒ»¸öÔªËØ..
  * containing the SQL statements specified as the trigger program.
  */
 struct Trigger {
-  char *zName;            /* The name of the trigger                        	è§¦å‘å™¨åç§°*/
-  char *table;            /* The table or view to which the trigger applies 	è§¦å‘å™¨é€‚ç”¨çš„è¡¨æˆ–è§†å›¾*/
-  u8 op;                  /* One of TK_DELETE, TK_UPDATE, TK_INSERT         	TK_DELETE, TK_UPDATE, TK_INSERTå…¶ä¸­ä¹‹ä¸€*/
-  u8 tr_tm;               /* One of TRIGGER_BEFORE, TRIGGER_AFTER 		TRIGGER_BEFORE, TRIGGER_AFTERå…¶ä¸­ä¹‹ä¸€*/
-  Expr *pWhen;            /* The WHEN clause of the expression (may be NULL) 	WHENå­å¥çš„è¡¨è¾¾å¼(å¯èƒ½ä¸ºç©º)*/
-  IdList *pColumns;       /* If this is an UPDATE OF <column-list> trigger,	å¦‚æœæ˜¯ä¸€ä¸ªUPDATE OF<åˆ—åˆ—è¡¨>è§¦å‘å™¨ï¼Œ
-                             the <column-list> is stored here 			<åˆ—åˆ—è¡¨>è§¦å‘å™¨å­˜å‚¨åœ¨è¿™é‡Œ*/
-  Schema *pSchema;        /* Schema containing the trigger 			åŒ…å«è§¦å‘å™¨çš„æ¨¡å¼*/
-  Schema *pTabSchema;     /* Schema containing the table 			åŒ…å«è¡¨çš„æ¨¡å¼*/
-  TriggerStep *step_list; /* Link list of trigger program steps             	è§¦å‘ç¨‹åºæ­¥éª¤çš„é“¾è¡¨*/
-  Trigger *pNext;         /* Next trigger associated with the table 		ä¸è¡¨å…³è”çš„ä¸‹ä¸€ä¸ªè§¦å‘å™¨*/
+  char *zName;            /* The name of the trigger                        	´¥·¢Æ÷Ãû³Æ*/
+  char *table;            /* The table or view to which the trigger applies 	´¥·¢Æ÷ÊÊÓÃµÄ±í»òÊÓÍ¼*/
+  u8 op;                  /* One of TK_DELETE, TK_UPDATE, TK_INSERT         	TK_DELETE, TK_UPDATE, TK_INSERTÆäÖĞÖ®Ò»*/
+  u8 tr_tm;               /* One of TRIGGER_BEFORE, TRIGGER_AFTER 		TRIGGER_BEFORE, TRIGGER_AFTERÆäÖĞÖ®Ò»*/
+  Expr *pWhen;            /* The WHEN clause of the expression (may be NULL) 	WHEN×Ó¾äµÄ±í´ïÊ½(¿ÉÄÜÎª¿Õ)*/
+  IdList *pColumns;       /* If this is an UPDATE OF <column-list> trigger,	Èç¹ûÊÇÒ»¸öUPDATE OF<ÁĞÁĞ±í>´¥·¢Æ÷£¬
+                             the <column-list> is stored here 			<ÁĞÁĞ±í>´¥·¢Æ÷´æ´¢ÔÚÕâÀï*/
+  Schema *pSchema;        /* Schema containing the trigger 			°üº¬´¥·¢Æ÷µÄÄ£Ê½*/
+  Schema *pTabSchema;     /* Schema containing the table 			°üº¬±íµÄÄ£Ê½*/
+  TriggerStep *step_list; /* Link list of trigger program steps             	´¥·¢³ÌĞò²½ÖèµÄÁ´±í*/
+  Trigger *pNext;         /* Next trigger associated with the table 		Óë±í¹ØÁªµÄÏÂÒ»¸ö´¥·¢Æ÷*/
 };
 
 /*
-** A trigger is either a BEFORE or an AFTER trigger.  The following constants	è§¦å‘å™¨æ˜¯æ— è®ºæ˜¯BEFOREæˆ–AFTERè§¦å‘å™¨ã€‚ä»¥ä¸‹å¸¸é‡ç¡®å®šã€‚
+** A trigger is either a BEFORE or an AFTER trigger.  The following constants	´¥·¢Æ÷ÊÇÎŞÂÛÊÇBEFORE»òAFTER´¥·¢Æ÷¡£ÒÔÏÂ³£Á¿È·¶¨¡£
 ** determine which. 
 **
-** If there are multiple triggers, you might of some BEFORE and some AFTER.	å¦‚æœæœ‰å¤šä¸ªè§¦å‘å™¨ï¼Œå¯èƒ½æœ‰BEGOREè§¦å‘å™¨å’ŒAFTERè§¦å‘å™¨
-** In that cases, the constants below can be ORed together.			åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œä¸‹é¢çš„å¸¸é‡å¯ä»¥è¿›è¡Œæˆ–è¿ç®—
+** If there are multiple triggers, you might of some BEFORE and some AFTER.	Èç¹ûÓĞ¶à¸ö´¥·¢Æ÷£¬¿ÉÄÜÓĞBEGORE´¥·¢Æ÷ºÍAFTER´¥·¢Æ÷
+** In that cases, the constants below can be ORed together.			ÔÚÕâÖÖÇé¿öÏÂ£¬ÏÂÃæµÄ³£Á¿¿ÉÒÔ½øĞĞ»òÔËËã
 */
 #define TRIGGER_BEFORE  1
 #define TRIGGER_AFTER   2
 
 /*
- * An instance of struct TriggerStep is used to store a single SQL statement	TriggerStepç»“æ„çš„ä¸€ä¸ªå®ä¾‹ç”¨äºå­˜å‚¨è§¦å‘å™¨ç¨‹åºä¸€éƒ¨åˆ†çš„å•ä¸ªSQLè¯­å¥
+ * An instance of struct TriggerStep is used to store a single SQL statement	TriggerStep½á¹¹µÄÒ»¸öÊµÀıÓÃÓÚ´æ´¢´¥·¢Æ÷³ÌĞòÒ»²¿·ÖµÄµ¥¸öSQLÓï¾ä
  * that is a part of a trigger-program. 
  *
- * Instances of struct TriggerStep are stored in a singly linked list (linked	TriggerStepç»“æ„çš„ä¸€ä¸ªå®ä¾‹å­˜å‚¨åœ¨ä¸€ä¸ªé€šè¿‡å¼•ç”¨ä¸æ­¤ç›¸å…³çš„Triggerç»“æ„çš„
- * using the "pNext" member) referenced by the "step_list" member of the 	å®ä¾‹çš„"step_list"æˆå‘˜çš„å•é“¾è¡¨(ä½¿ç”¨"pNext"æˆå‘˜è¿æ¥) 
- * associated struct Trigger instance. The first element of the linked list is	è¯¥é“¾è¡¨çš„ç¬¬ä¸€ä¸ªå…ƒç´ æ˜¯è§¦å‘ç¨‹åºçš„ç¬¬ä¸€æ­¥ã€‚
+ * Instances of struct TriggerStep are stored in a singly linked list (linked	TriggerStep½á¹¹µÄÒ»¸öÊµÀı´æ´¢ÔÚÒ»¸öÍ¨¹ıÒıÓÃÓë´ËÏà¹ØµÄTrigger½á¹¹µÄ
+ * using the "pNext" member) referenced by the "step_list" member of the 	ÊµÀıµÄ"step_list"³ÉÔ±µÄµ¥Á´±í(Ê¹ÓÃ"pNext"³ÉÔ±Á¬½Ó) 
+ * associated struct Trigger instance. The first element of the linked list is	¸ÃÁ´±íµÄµÚÒ»¸öÔªËØÊÇ´¥·¢³ÌĞòµÄµÚÒ»²½¡£
  * the first step of the trigger-program.
  * 
- * The "op" member indicates whether this is a "DELETE", "INSERT", "UPDATE" or	"op"æˆå‘˜è¡¨ç¤ºè¿™æ˜¯å¦æ˜¯ä¸€ä¸ª"DELETE", "INSERT", "UPDATE" æˆ–"SELECT"	è¯­å¥	
- * "SELECT" statement. The meanings of the other members is determined by the 	å…¶ä»–æˆå‘˜çš„å«ä¹‰æ˜¯ç”±å¦‚ä¸‹çš„â€œOPâ€çš„å€¼ç¡®å®šï¼š
+ * The "op" member indicates whether this is a "DELETE", "INSERT", "UPDATE" or	"op"³ÉÔ±±íÊ¾ÕâÊÇ·ñÊÇÒ»¸ö"DELETE", "INSERT", "UPDATE" »ò"SELECT"	Óï¾ä	
+ * "SELECT" statement. The meanings of the other members is determined by the 	ÆäËû³ÉÔ±µÄº¬ÒåÊÇÓÉÈçÏÂµÄ¡°OP¡±µÄÖµÈ·¶¨£º
  * value of "op" as follows:
  *
  * (op == TK_INSERT)
- * orconf    -> stores the ON CONFLICT algorithm				orconf->å­˜å‚¨ON CONFLICTç®—æ³•
- * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then	pSelect->å¦‚æœè¿™æ˜¯ä¸€ä¸ªINSERT INTO ... SELECT...è¯­å¥ï¼Œ
- *              this stores a pointer to the SELECT statement. Otherwise NULL.	é‚£ä¹ˆè¿™ä¸ªå­˜å‚¨çš„æŒ‡é’ˆSELECTè¯­å¥ã€‚å¦åˆ™NULLã€‚
- * target    -> A token holding the quoted name of the table to insert into.	target    -> æ ‡è®°æŒæœ‰æ’å…¥è¡¨çš„å¼•ç”¨å
- * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then	pExprList ->å¦‚æœè¿™æ˜¯ä¸€ä¸ª INSERT INTO ... VALUES ... è¯­å¥ï¼Œ
- *              this stores values to be inserted. Otherwise NULL.		é‚£ä¹ˆè¿™ä¸ªå­˜å‚¨è¦æ’å…¥çš„å€¼ã€‚å¦åˆ™NULL
- * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 	pIdList   ->å¦‚æœè¿™æ˜¯ä¸€ä¸ªINSERT INTO ... (<column-names>) VALUES ... è¯­å¥ï¼Œ
- *              statement, then this stores the column-names to be		é‚£ä¹ˆè¿™ä¸ªå­˜å‚¨è¦è¢«æ’å…¥çš„åˆ—å
+ * orconf    -> stores the ON CONFLICT algorithm				orconf->´æ´¢ON CONFLICTËã·¨
+ * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then	pSelect->Èç¹ûÕâÊÇÒ»¸öINSERT INTO ... SELECT...Óï¾ä£¬
+ *              this stores a pointer to the SELECT statement. Otherwise NULL.	ÄÇÃ´Õâ¸ö´æ´¢µÄÖ¸ÕëSELECTÓï¾ä¡£·ñÔòNULL¡£
+ * target    -> A token holding the quoted name of the table to insert into.	target    -> ±ê¼Ç³ÖÓĞ²åÈë±íµÄÒıÓÃÃû
+ * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then	pExprList ->Èç¹ûÕâÊÇÒ»¸ö INSERT INTO ... VALUES ... Óï¾ä£¬
+ *              this stores values to be inserted. Otherwise NULL.		ÄÇÃ´Õâ¸ö´æ´¢Òª²åÈëµÄÖµ¡£·ñÔòNULL
+ * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 	pIdList   ->Èç¹ûÕâÊÇÒ»¸öINSERT INTO ... (<column-names>) VALUES ... Óï¾ä£¬
+ *              statement, then this stores the column-names to be		ÄÇÃ´Õâ¸ö´æ´¢Òª±»²åÈëµÄÁĞÃû
  *              inserted into.
  *
  * (op == TK_DELETE)
- * target    -> A token holding the quoted name of the table to delete from.	target->æ ‡è®°æŒæœ‰è¿›è¡Œåˆ é™¤çš„è¡¨çš„å¼•ç”¨åç§°
- * pWhere    -> The WHERE clause of the DELETE statement if one is specified.	pWhere ->æŒ‡å®šDELETEè¯­å¥çš„WHEREå­å¥
+ * target    -> A token holding the quoted name of the table to delete from.	target->±ê¼Ç³ÖÓĞ½øĞĞÉ¾³ıµÄ±íµÄÒıÓÃÃû³Æ
+ * pWhere    -> The WHERE clause of the DELETE statement if one is specified.	pWhere ->Ö¸¶¨DELETEÓï¾äµÄWHERE×Ó¾ä
  *              Otherwise NULL.
  * 
  * (op == TK_UPDATE)
- * target    -> A token holding the quoted name of the table to update rows of.	target->æ ‡è®°æŒæœ‰æ›´æ–°è¡Œçš„è¡¨çš„å¼•ç”¨å
- * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.	pWhere->æŒ‡å®šUPDATEè¯­å¥çš„WHEREå­å¥
+ * target    -> A token holding the quoted name of the table to update rows of.	target->±ê¼Ç³ÖÓĞ¸üĞÂĞĞµÄ±íµÄÒıÓÃÃû
+ * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.	pWhere->Ö¸¶¨UPDATEÓï¾äµÄWHERE×Ó¾ä
  *              Otherwise NULL.
- * pExprList -> A list of the columns to update and the expressions to update	pExprList -> æ›´æ–°çš„åˆ—çš„åˆ—è¡¨å’Œæ›´æ–°å®ƒä»¬çš„è¡¨è¾¾å¼
- *              them to. See sqlite3Update() documentation of "pChanges"	çœ‹sqlite3Update()æ–‡æ¡£çš„"pChanges"è¯´æ³•
+ * pExprList -> A list of the columns to update and the expressions to update	pExprList -> ¸üĞÂµÄÁĞµÄÁĞ±íºÍ¸üĞÂËüÃÇµÄ±í´ïÊ½
+ *              them to. See sqlite3Update() documentation of "pChanges"	¿´sqlite3Update()ÎÄµµµÄ"pChanges"Ëµ·¨
  *              argument.
  * 
  */
 struct TriggerStep {
-  u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT 	TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECTå…¶ä¸­ä¹‹ä¸€*/
+  u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT 	TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECTÆäÖĞÖ®Ò»*/
   u8 orconf;           /* OE_Rollback etc. */
-  Trigger *pTrig;      /* The trigger that this step is a part of 		è¿™ä¸ªè§¦å‘æ˜¯è¿™ä¸€æ­¥çš„ä¸€éƒ¨åˆ†*/
+  Trigger *pTrig;      /* The trigger that this step is a part of 		Õâ¸ö´¥·¢ÊÇÕâÒ»²½µÄÒ»²¿·Ö*/
   Select *pSelect;     /* SELECT statment or RHS of INSERT INTO .. SELECT ... */
-  Token target;        /* Target table for DELETE, UPDATE, INSERT 		å¯¹äºDELETEï¼ŒUPDATEï¼ŒINSERTç›®æ ‡è¡¨*/
-  Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps 		WHEREå­å¥ä¸­DELETE æˆ–UPDATEæ­¥éª¤*/
-  ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT 	UPDATEçš„SETå­å¥ï¼ŒINSERTçš„VALUESå­å¥*/
-  IdList *pIdList;     /* Column names for INSERT 				å¯¹äºINSERTçš„åˆ—å*/
-  TriggerStep *pNext;  /* Next in the link-list 				åœ¨é“¾è¡¨ä¸­åç»§*/
-  TriggerStep *pLast;  /* Last element in link-list. Valid for 1st elem only 	é“¾è¡¨ä¸­æœ€åä¸€ä¸ªå…ƒç´ ã€‚åªæœ‰ç¬¬ä¸€ä¸ªå…ƒç´ æœ‰æ•ˆ*/
+  Token target;        /* Target table for DELETE, UPDATE, INSERT 		¶ÔÓÚDELETE£¬UPDATE£¬INSERTÄ¿±ê±í*/
+  Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps 		WHERE×Ó¾äÖĞDELETE »òUPDATE²½Öè*/
+  ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT 	UPDATEµÄSET×Ó¾ä£¬INSERTµÄVALUES×Ó¾ä*/
+  IdList *pIdList;     /* Column names for INSERT 				¶ÔÓÚINSERTµÄÁĞÃû*/
+  TriggerStep *pNext;  /* Next in the link-list 				ÔÚÁ´±íÖĞºó¼Ì*/
+  TriggerStep *pLast;  /* Last element in link-list. Valid for 1st elem only 	Á´±íÖĞ×îºóÒ»¸öÔªËØ¡£Ö»ÓĞµÚÒ»¸öÔªËØÓĞĞ§*/
 };
 
 /*
-** The following structure contains information used by the sqliteFix...	ä»¥ä¸‹ç»“æ„åŒ…å«ç”¨äºä¾‹ç¨‹sqliteFixâ€¦çš„ä¿¡æ¯
-** routines as they walk the parse tree to make database references		ä¾‹ç¨‹è§£æå¼è¡Œèµ°æ—¶æ•°æ®åº“å¼•ç”¨æ˜ç¡®
+** The following structure contains information used by the sqliteFix...	ÒÔÏÂ½á¹¹°üº¬ÓÃÓÚÀı³ÌsqliteFix¡­µÄĞÅÏ¢
+** routines as they walk the parse tree to make database references		Àı³Ì½âÎöÊ½ĞĞ×ßÊ±Êı¾İ¿âÒıÓÃÃ÷È·
 ** explicit.  
 */
 typedef struct DbFixer DbFixer;
 struct DbFixer {
-  Parse *pParse;      /* The parsing context.  Error messages written here 	è§£æä¸Šä¸‹æ–‡ã€‚é”™è¯¯ä¿¡æ¯å†™åœ¨è¿™é‡Œ*/
-  const char *zDb;    /* Make sure all objects are contained in this database 	ç¡®ä¿æ‰€æœ‰å¯¹è±¡å‡åŒ…å«åœ¨è¿™ä¸ªæ•°æ®åº“*/
-  const char *zType;  /* Type of the container - used for error messages 	å®¹å™¨çš„ç±»å‹-ç”¨äºé”™è¯¯ä¿¡æ¯*/
-  const Token *pName; /* Name of the container - used for error messages 	å®¹å™¨çš„åç§°-ç”¨äºé”™è¯¯ä¿¡æ¯*/
+  Parse *pParse;      /* The parsing context.  Error messages written here 	½âÎöÉÏÏÂÎÄ¡£´íÎóĞÅÏ¢Ğ´ÔÚÕâÀï*/
+  const char *zDb;    /* Make sure all objects are contained in this database 	È·±£ËùÓĞ¶ÔÏó¾ù°üº¬ÔÚÕâ¸öÊı¾İ¿â*/
+  const char *zType;  /* Type of the container - used for error messages 	ÈİÆ÷µÄÀàĞÍ-ÓÃÓÚ´íÎóĞÅÏ¢*/
+  const Token *pName; /* Name of the container - used for error messages 	ÈİÆ÷µÄÃû³Æ-ÓÃÓÚ´íÎóĞÅÏ¢*/
 };
 
 /*
-** An objected used to accumulate the text of a string where we			ä¸€ä¸ªç”¨æ¥ç§¯ç´¯å­—ç¬¦ä¸²æ–‡æœ¬çš„å¯¹è±¡
-** do not necessarily know how big the string will be in the end.		æˆ‘ä»¬ä¸ä¸€å®šçŸ¥é“å­—ç¬¦ä¸²æœ€ç»ˆå¤šå¤§
+** An objected used to accumulate the text of a string where we			Ò»¸öÓÃÀ´»ıÀÛ×Ö·û´®ÎÄ±¾µÄ¶ÔÏó
+** do not necessarily know how big the string will be in the end.		ÎÒÃÇ²»Ò»¶¨ÖªµÀ×Ö·û´®×îÖÕ¶à´ó
 */
 struct StrAccum {
-  sqlite3 *db;         /* Optional database for lookaside.  Can be NULL 	å¯é€‰æ•°æ®åº“çš„åå¤‡ã€‚å¯ä»¥ä¸ºç©º*/
-  char *zBase;         /* A base allocation.  Not from malloc. 			ä¸€ä¸ªåŸºæœ¬çš„åˆ†é…ã€‚ä¸æ˜¯ä»mallocåˆ†é…çš„*/
-  char *zText;         /* The string collected so far 				è‡³ä»Šæ”¶é›†çš„å­—ç¬¦ä¸²*/
-  int  nChar;          /* Length of the string so far 				åˆ°ç›®å‰å­—ç¬¦ä¸²çš„é•¿åº¦*/
-  int  nAlloc;         /* Amount of space allocated in zText 			åˆ†é…ç»™zTextçš„ç©ºé—´å¤§å°*/
-  int  mxAlloc;        /* Maximum allowed string length 			å…è®¸å­—ç¬¦ä¸²çš„æœ€å¤§é•¿åº¦*/
-  u8   mallocFailed;   /* Becomes true if any memory allocation fails 		å¦‚æœæœ‰å†…å­˜åˆ†é…å¤±è´¥åˆ™å˜ä¸ºçœŸ*/
+  sqlite3 *db;         /* Optional database for lookaside.  Can be NULL 	¿ÉÑ¡Êı¾İ¿âµÄºó±¸¡£¿ÉÒÔÎª¿Õ*/
+  char *zBase;         /* A base allocation.  Not from malloc. 			Ò»¸ö»ù±¾µÄ·ÖÅä¡£²»ÊÇ´Ómalloc·ÖÅäµÄ*/
+  char *zText;         /* The string collected so far 				ÖÁ½ñÊÕ¼¯µÄ×Ö·û´®*/
+  int  nChar;          /* Length of the string so far 				µ½Ä¿Ç°×Ö·û´®µÄ³¤¶È*/
+  int  nAlloc;         /* Amount of space allocated in zText 			·ÖÅä¸øzTextµÄ¿Õ¼ä´óĞ¡*/
+  int  mxAlloc;        /* Maximum allowed string length 			ÔÊĞí×Ö·û´®µÄ×î´ó³¤¶È*/
+  u8   mallocFailed;   /* Becomes true if any memory allocation fails 		Èç¹ûÓĞÄÚ´æ·ÖÅäÊ§°ÜÔò±äÎªÕæ*/
   u8   useMalloc;      /* 0: none,  1: sqlite3DbMalloc,  2: sqlite3_malloc */
-  u8   tooBig;         /* Becomes true if string size exceeds limits 		å¦‚æœå­—ç¬¦ä¸²å¤§å°è¶…è¿‡é™å®šå€¼å˜ä¸ºçœŸ*/
+  u8   tooBig;         /* Becomes true if string size exceeds limits 		Èç¹û×Ö·û´®´óĞ¡³¬¹ıÏŞ¶¨Öµ±äÎªÕæ*/
 };
 
 /*
-** A pointer to this structure is used to communicate information		è¯¥ç»“æ„çš„æŒ‡é’ˆç”¨æ¥ä»sqlite3Initå’ŒOP_ParseSchemaåˆ°sqlite3InitCallbackäº¤æµä¿¡æ¯
+** A pointer to this structure is used to communicate information		¸Ã½á¹¹µÄÖ¸ÕëÓÃÀ´´Ósqlite3InitºÍOP_ParseSchemaµ½sqlite3InitCallback½»Á÷ĞÅÏ¢
 ** from sqlite3Init and OP_ParseSchema into the sqlite3InitCallback.
 */
 typedef struct {
-  sqlite3 *db;        /* The database being initialized 			åˆå§‹åŒ–æ•°æ®åº“*/
-  char **pzErrMsg;    /* Error message stored here 				åœ¨æ­¤å­˜å‚¨é”™è¯¯ä¿¡æ¯*/
-  int iDb;            /* 0 for main database.  1 for TEMP, 2.. for ATTACHed 	0ä¸ºä¸»æ•°æ®åº“ï¼Œ1ä¸ºä¸´æ—¶ï¼Œ2ä¸ºé™„åŠ */
-  int rc;             /* Result code stored here 				å­˜å‚¨åœ¨æ­¤çš„ç»“æœä»£ç */
+  sqlite3 *db;        /* The database being initialized 			³õÊ¼»¯Êı¾İ¿â*/
+  char **pzErrMsg;    /* Error message stored here 				ÔÚ´Ë´æ´¢´íÎóĞÅÏ¢*/
+  int iDb;            /* 0 for main database.  1 for TEMP, 2.. for ATTACHed 	0ÎªÖ÷Êı¾İ¿â£¬1ÎªÁÙÊ±£¬2Îª¸½¼Ó*/
+  int rc;             /* Result code stored here 				´æ´¢ÔÚ´ËµÄ½á¹û´úÂë*/
 } InitData;
 
 /*
-** Structure containing global configuration data for the SQLite library.	åŒ…å«SQLiteæ•°æ®åº“å…¨å±€é…ç½®æ•°æ®çš„ç»“æ„
+** Structure containing global configuration data for the SQLite library.	°üº¬SQLiteÊı¾İ¿âÈ«¾ÖÅäÖÃÊı¾İµÄ½á¹¹
 **
-** This structure also contains some state information.				æ­¤ç»“æ„è¿˜åŒ…å«ä¸€äº›çŠ¶æ€ä¿¡æ¯
+** This structure also contains some state information.				´Ë½á¹¹»¹°üº¬Ò»Ğ©×´Ì¬ĞÅÏ¢
 */
 struct Sqlite3Config {
-  int bMemstat;                     /* True to enable memory status 		å¯ç”¨å†…å­˜çŠ¶æ€ä¸ºçœŸ*/
-  int bCoreMutex;                   /* True to enable core mutexing 		å¯ç”¨æ ¸å¿ƒäº’æ–¥ä¸ºçœŸ*/
-  int bFullMutex;                   /* True to enable full mutexing 		å¯ç”¨å®Œæ•´çš„äº’æ–¥é”ä¸ºçœŸ*/
-  int bOpenUri;                     /* True to interpret filenames as URIs 	è§£é‡Šæ–‡ä»¶åä½œä¸ºURL*/
-  int mxStrlen;                     /* Maximum string length 			å­—ç¬¦ä¸²çš„æœ€å¤§é•¿åº¦*/
-  int szLookaside;                  /* Default lookaside buffer size 		é»˜è®¤çš„åè¢«ç¼“å†²åŒºå¤§å°*/
-  int nLookaside;                   /* Default lookaside buffer count 		é»˜è®¤åå¤‡ç¼“å†²è®¡ç®—å™¨*/
-  sqlite3_mem_methods m;            /* Low-level memory allocation interface 	ä½çº§åˆ«çš„å†…å­˜åˆ†é…å€Ÿå£*/
-  sqlite3_mutex_methods mutex;      /* Low-level mutex interface 		ä½å±‚æ¬¡çš„äº’æ–¥å€Ÿå£*/
-  sqlite3_pcache_methods2 pcache2;  /* Low-level page-cache interface 		ä½çº§åˆ«çš„é¡µé¢ç¼“å­˜æ¥å£*/
-  void *pHeap;                      /* Heap storage space 			å †å­˜å‚¨ç©ºé—´*/
-  int nHeap;                        /* Size of pHeap[] 				pHead[]çš„å¤§å°*/
-  int mnReq, mxReq;                 /* Min and max heap requests sizes 		æœ€å°å †å’Œæœ€å¤§å †çš„è¦æ±‚å¤§å°*/
-  void *pScratch;                   /* Scratch memory 				ä¸´æ—¶å†…å­˜*/
-  int szScratch;                    /* Size of each scratch buffer 		æ¯ä¸ªæš‚ç”¨ç¼“å­˜çš„å¤§å°*/
-  int nScratch;                     /* Number of scratch buffers 		æš‚ç”¨ç¼“å­˜çš„æ•°é‡*/
-  void *pPage;                      /* Page cache memory 			é¡µé¢é«˜é€Ÿç¼“å­˜å­˜å‚¨å™¨*/
-  int szPage;                       /* Size of each page in pPage[] 		pPage[]ä¸­æ¯ä¸ªé¡µé¢çš„å¤§å°*/
-  int nPage;                        /* Number of pages in pPage[] 		pPage[]ä¸­é¡µé¢çš„æ•°é‡*/
-  int mxParserStack;                /* maximum depth of the parser stack 	è§£æå™¨å †æ ˆçš„æœ€å¤§æ·±åº¦*/
-  int sharedCacheEnabled;           /* true if shared-cache mode enabled 	å¦‚æœå…±äº«ç¼“å­˜æ¨¡å¼ä¸ºçœŸ*/
-  /* The above might be initialized to non-zero.  The following need to always	ä¸Šé¢å¯èƒ½ä¼šåˆå§‹åŒ–ä¸ºéé›¶ã€‚ä½†æ˜¯ä¸‹é¢å§‹ç»ˆåˆå§‹åŒ–ä¸ºé›¶
+  int bMemstat;                     /* True to enable memory status 		ÆôÓÃÄÚ´æ×´Ì¬ÎªÕæ*/
+  int bCoreMutex;                   /* True to enable core mutexing 		ÆôÓÃºËĞÄ»¥³âÎªÕæ*/
+  int bFullMutex;                   /* True to enable full mutexing 		ÆôÓÃÍêÕûµÄ»¥³âËøÎªÕæ*/
+  int bOpenUri;                     /* True to interpret filenames as URIs 	½âÊÍÎÄ¼şÃû×÷ÎªURL*/
+  int mxStrlen;                     /* Maximum string length 			×Ö·û´®µÄ×î´ó³¤¶È*/
+  int szLookaside;                  /* Default lookaside buffer size 		Ä¬ÈÏµÄºó±»»º³åÇø´óĞ¡*/
+  int nLookaside;                   /* Default lookaside buffer count 		Ä¬ÈÏºó±¸»º³å¼ÆËãÆ÷*/
+  sqlite3_mem_methods m;            /* Low-level memory allocation interface 	µÍ¼¶±ğµÄÄÚ´æ·ÖÅä½è¿Ú*/
+  sqlite3_mutex_methods mutex;      /* Low-level mutex interface 		µÍ²ã´ÎµÄ»¥³â½è¿Ú*/
+  sqlite3_pcache_methods2 pcache2;  /* Low-level page-cache interface 		µÍ¼¶±ğµÄÒ³Ãæ»º´æ½Ó¿Ú*/
+  void *pHeap;                      /* Heap storage space 			¶Ñ´æ´¢¿Õ¼ä*/
+  int nHeap;                        /* Size of pHeap[] 				pHead[]µÄ´óĞ¡*/
+  int mnReq, mxReq;                 /* Min and max heap requests sizes 		×îĞ¡¶ÑºÍ×î´ó¶ÑµÄÒªÇó´óĞ¡*/
+  void *pScratch;                   /* Scratch memory 				ÁÙÊ±ÄÚ´æ*/
+  int szScratch;                    /* Size of each scratch buffer 		Ã¿¸öÔİÓÃ»º´æµÄ´óĞ¡*/
+  int nScratch;                     /* Number of scratch buffers 		ÔİÓÃ»º´æµÄÊıÁ¿*/
+  void *pPage;                      /* Page cache memory 			Ò³Ãæ¸ßËÙ»º´æ´æ´¢Æ÷*/
+  int szPage;                       /* Size of each page in pPage[] 		pPage[]ÖĞÃ¿¸öÒ³ÃæµÄ´óĞ¡*/
+  int nPage;                        /* Number of pages in pPage[] 		pPage[]ÖĞÒ³ÃæµÄÊıÁ¿*/
+  int mxParserStack;                /* maximum depth of the parser stack 	½âÎöÆ÷¶ÑÕ»µÄ×î´óÉî¶È*/
+  int sharedCacheEnabled;           /* true if shared-cache mode enabled 	Èç¹û¹²Ïí»º´æÄ£Ê½ÎªÕæ*/
+  /* The above might be initialized to non-zero.  The following need to always	ÉÏÃæ¿ÉÄÜ»á³õÊ¼»¯Îª·ÇÁã¡£µ«ÊÇÏÂÃæÊ¼ÖÕ³õÊ¼»¯ÎªÁã
   ** initially be zero, however. */
-  int isInit;                       /* True after initialization has finished 	åˆå§‹åŒ–å®Œæˆåä¸ºçœŸ*/
-  int inProgress;                   /* True while initialization in progress 	æ­£åœ¨è¿›è¡Œåˆå§‹åŒ–ä¸ºçœŸ*/
-  int isMutexInit;                  /* True after mutexes are initialized 	äº’æ–¥ä½“è¢«åˆå§‹åŒ–åä¸ºçœŸ*/
-  int isMallocInit;                 /* True after malloc is initialized 	mallocè¢«åˆå§‹åŒ–åä¸ºçœŸ*/
-  int isPCacheInit;                 /* True after malloc is initialized 	mallocè¢«åˆå§‹åŒ–åä¸ºçœŸ*/
-  sqlite3_mutex *pInitMutex;        /* Mutex used by sqlite3_initialize() 	sqlite3_initialize()ä½¿ç”¨çš„äº’æ–¥*/
-  int nRefInitMutex;                /* Number of users of pInitMutex 		pInitMutexçš„ç”¨æˆ·æ•°*/
-  void (*xLog)(void*,int,const char*); /* Function for logging 			åŠŸèƒ½è®°å½•*/
-  void *pLogArg;                       /* First argument to xLog() 		xLog()çš„ç¬¬ä¸€ä¸ªå‚æ•°*/
-  int bLocaltimeFault;              /* True to fail localtime() calls 		è°ƒç”¨localtime()å¤±è´¥åä¸ºçœŸ*/
+  int isInit;                       /* True after initialization has finished 	³õÊ¼»¯Íê³ÉºóÎªÕæ*/
+  int inProgress;                   /* True while initialization in progress 	ÕıÔÚ½øĞĞ³õÊ¼»¯ÎªÕæ*/
+  int isMutexInit;                  /* True after mutexes are initialized 	»¥³âÌå±»³õÊ¼»¯ºóÎªÕæ*/
+  int isMallocInit;                 /* True after malloc is initialized 	malloc±»³õÊ¼»¯ºóÎªÕæ*/
+  int isPCacheInit;                 /* True after malloc is initialized 	malloc±»³õÊ¼»¯ºóÎªÕæ*/
+  sqlite3_mutex *pInitMutex;        /* Mutex used by sqlite3_initialize() 	sqlite3_initialize()Ê¹ÓÃµÄ»¥³â*/
+  int nRefInitMutex;                /* Number of users of pInitMutex 		pInitMutexµÄÓÃ»§Êı*/
+  void (*xLog)(void*,int,const char*); /* Function for logging 			¹¦ÄÜ¼ÇÂ¼*/
+  void *pLogArg;                       /* First argument to xLog() 		xLog()µÄµÚÒ»¸ö²ÎÊı*/
+  int bLocaltimeFault;              /* True to fail localtime() calls 		µ÷ÓÃlocaltime()Ê§°ÜºóÎªÕæ*/
 };
 
 /*
-** Context pointer passed down through the tree-walk.				é€šè¿‡æ•°çš„è·¯å¾„ä¼ é€’ä¸‹æ¥çš„ä¸Šä¸‹æ–‡æŒ‡é’ˆ
+** Context pointer passed down through the tree-walk.				Í¨¹ıÊıµÄÂ·¾¶´«µİÏÂÀ´µÄÉÏÏÂÎÄÖ¸Õë
 */
 struct Walker {
-  int (*xExprCallback)(Walker*, Expr*);     /* Callback for expressions *å›è°ƒå‡½æ•°è¡¨è¾¾å¼/
-  int (*xSelectCallback)(Walker*,Select*);  /* Callback for SELECTs å›è°ƒå‡½æ•°SELECTs*/
-  Parse *pParse;                            /* Parser context. åˆ†æå™¨ä¸Šä¸‹æ–‡ */
-  int walkerDepth;                          /* Number of subqueries å­æŸ¥è¯¢æ•°*/
-  union {                                   /* Extra data for callback é¢å¤–çš„å›è°ƒæ•°æ®*/
-    NameContext *pNC;                          /* Naming context ä¸€ä¸ªnamecontextç»“æ„ä½“çš„æŒ‡é’ˆå‘½åä¸Šä¸‹æ–‡*/
-    int i;                                     /* Integer value å®šä¹‰ä¸€ä¸ªæ•´å½¢*/
-    SrcList *pSrcList;                         /* FROM clause FROMå­å¥*/
-    struct SrcCount *pSrcCount;                /* Counting column referencesè®¡ç®—åˆ—å¼•ç”¨ */
+  int (*xExprCallback)(Walker*, Expr*);     /* Callback for expressions *»Øµ÷º¯Êı±í´ïÊ½/
+  int (*xSelectCallback)(Walker*,Select*);  /* Callback for SELECTs »Øµ÷º¯ÊıSELECTs*/
+  Parse *pParse;                            /* Parser context. ·ÖÎöÆ÷ÉÏÏÂÎÄ */
+  int walkerDepth;                          /* Number of subqueries ×Ó²éÑ¯Êı*/
+  union {                                   /* Extra data for callback ¶îÍâµÄ»Øµ÷Êı¾İ*/
+    NameContext *pNC;                          /* Naming context Ò»¸önamecontext½á¹¹ÌåµÄÖ¸ÕëÃüÃûÉÏÏÂÎÄ*/
+    int i;                                     /* Integer value ¶¨ÒåÒ»¸öÕûĞÎ*/
+    SrcList *pSrcList;                         /* FROM clause FROM×Ó¾ä*/
+    struct SrcCount *pSrcCount;                /* Counting column references¼ÆËãÁĞÒıÓÃ */
   } u;
 };
 
-/* Forward declarations å‰ç½®å£°æ˜*/
+/* Forward declarations Ç°ÖÃÉùÃ÷*/
 int sqlite3WalkExpr(Walker*, Expr*);
 int sqlite3WalkExprList(Walker*, ExprList*);
 int sqlite3WalkSelect(Walker*, Select*);
@@ -2652,15 +2652,15 @@ int sqlite3WalkSelectFrom(Walker*, Select*);
 /*
 ** Return code from the parse-tree walking primitives and their
 ** callbacks.
-ä»è§£ææ ‘éå†çš„ç»“ç‚¹å’Œä»–ä»¬çš„å›è°ƒå‡½æ•°è¿”å›ä»£ç */
-#define WRC_Continue    0   /* Continue down into children ç»§ç»­å‘ä¸‹è®¿é—®å­©å­ç»“ç‚¹*/
-#define WRC_Prune       1   /* Omit children but continue walking siblings å¿½ç•¥å­©å­ç»“ç‚¹ä½†ç»§ç»­è®¿é—®å…„å¼Ÿç»“ç‚¹*/
-#define WRC_Abort       2   /* Abandon the tree walkæ”¾å¼ƒæ ‘çš„éå† */
+´Ó½âÎöÊ÷±éÀúµÄ½áµãºÍËûÃÇµÄ»Øµ÷º¯Êı·µ»Ø´úÂë*/
+#define WRC_Continue    0   /* Continue down into children ¼ÌĞøÏòÏÂ·ÃÎÊº¢×Ó½áµã*/
+#define WRC_Prune       1   /* Omit children but continue walking siblings ºöÂÔº¢×Ó½áµãµ«¼ÌĞø·ÃÎÊĞÖµÜ½áµã*/
+#define WRC_Abort       2   /* Abandon the tree walk·ÅÆúÊ÷µÄ±éÀú */
 
 /*
 ** Assuming zIn points to the first byte of a UTF-8 character,
 ** advance zIn to point to the first byte of the next UTF-8 character.
-å‡è®¾æŒ‡é’ˆZINæŒ‡å‘UTF-8å­—ç¬¦çš„ç¬¬ä¸€ä¸ªå­—èŠ‚ï¼Œå°±å°†ZINå‰è¿›ä»¥æŒ‡å‘ä¸‹ä¸€ä¸ªUTF-8å­—ç¬¦çš„ç¬¬ä¸€ä¸ªå­—èŠ‚ã€‚*/
+¼ÙÉèÖ¸ÕëZINÖ¸ÏòUTF-8×Ö·ûµÄµÚÒ»¸ö×Ö½Ú£¬¾Í½«ZINÇ°½øÒÔÖ¸ÏòÏÂÒ»¸öUTF-8×Ö·ûµÄµÚÒ»¸ö×Ö½Ú¡£*/
 #define SQLITE_SKIP_UTF8(zIn) {                        \
   if( (*(zIn++))>=0xc0 ){                              \
     while( (*zIn & 0xc0)==0x80 ){ zIn++; }             \
@@ -2673,9 +2673,9 @@ int sqlite3WalkSelectFrom(Walker*, Select*);
 ** routines that report the line-number on which the error originated
 ** using sqlite3_log().  The routines also provide a convenient place
 ** to set a debugger breakpoint.
-** è¿™äº›å‘½åä¸ºSQLITE_*_BKPTçš„å®å®šä¹‰ç”¨æ¥ä»£æ›¿ä¸å®ƒä»¬åå­—ç›¸åŒçš„é”™è¯¯ä»£ç ï¼Œä¸åŒ…æ‹¬_BKPTåç¼€ã€‚
-** è¿™äº›å®è°ƒç”¨sqlite3_log()å‡½æ•°æç¤ºä»£ç åœ¨å“ªå„¿ä¸€è¡Œå‘ç”Ÿäº†é”™è¯¯ã€‚è¿™äº›ç”¨äºè°ƒè¯•ç¨‹åºçš„ä¾‹ç¨‹
-** è¿˜æä¾›äº†ä¸€ä¸ªæ–¹ä¾¿çš„åœ°æ–¹è®¾ç½®æ–­ç‚¹è°ƒè¯•å™¨ã€‚
+** ÕâĞ©ÃüÃûÎªSQLITE_*_BKPTµÄºê¶¨ÒåÓÃÀ´´úÌæÓëËüÃÇÃû×ÖÏàÍ¬µÄ´íÎó´úÂë£¬²»°üÀ¨_BKPTºó×º¡£
+** ÕâĞ©ºêµ÷ÓÃsqlite3_log()º¯ÊıÌáÊ¾´úÂëÔÚÄÄ¶ùÒ»ĞĞ·¢ÉúÁË´íÎó¡£ÕâĞ©ÓÃÓÚµ÷ÊÔ³ÌĞòµÄÀı³Ì
+** »¹Ìá¹©ÁËÒ»¸ö·½±ãµÄµØ·½ÉèÖÃ¶Ïµãµ÷ÊÔÆ÷¡£
 */
 int sqlite3CorruptError(int);
 int sqlite3MisuseError(int);
@@ -2689,14 +2689,14 @@ int sqlite3CantopenError(int);
 ** FTS4 is really an extension for FTS3.  It is enabled using the
 ** SQLITE_ENABLE_FTS3 macro.  But to avoid confusion we also all
 ** the SQLITE_ENABLE_FTS4 macro to serve as an alisse for SQLITE_ENABLE_FTS3.
-FTS4æ˜¯FTS3çœŸæ­£çš„å»¶ä¼¸ã€‚å®ƒèƒ½å¤Ÿä½¿ç”¨å®SQLITE_ENABLE_FTS3ã€‚ä½†ä¸ºäº†é¿å…æ··æ·†ï¼Œæˆ‘ä»¬ä»ç„¶å°†æ‰€æœ‰çš„SQLITE_ENABLE_FTS4ä½œä¸ºalisseæ¥æœåŠ¡äºSQLITE_ENABLE_FTS3ã€‚*/
+FTS4ÊÇFTS3ÕæÕıµÄÑÓÉì¡£ËüÄÜ¹»Ê¹ÓÃºêSQLITE_ENABLE_FTS3¡£µ«ÎªÁË±ÜÃâ»ìÏı£¬ÎÒÃÇÈÔÈ»½«ËùÓĞµÄSQLITE_ENABLE_FTS4×÷ÎªalisseÀ´·şÎñÓÚSQLITE_ENABLE_FTS3¡£*/
 #if defined(SQLITE_ENABLE_FTS4) && !defined(SQLITE_ENABLE_FTS3)
 # define SQLITE_ENABLE_FTS3
 #endif
 
 /*
 ** The ctype.h header is needed for non-ASCII systems.  It is also
-   å¤´æ–‡ä»¶ ctype.hæ˜¯éASCIIç³»ç»Ÿæ‰€å¿…é¡»çš„ã€‚å½“FTS3è¢«åŒ…æ‹¬äºamalgamationä¸­æ—¶ï¼Œè¿™ä¸ªå¤´æ–‡ä»¶å¯¹FTS3æ¥è¯´ä¹Ÿæ˜¯å¿…éœ€çš„ã€‚
+   Í·ÎÄ¼ş ctype.hÊÇ·ÇASCIIÏµÍ³Ëù±ØĞëµÄ¡£µ±FTS3±»°üÀ¨ÓÚamalgamationÖĞÊ±£¬Õâ¸öÍ·ÎÄ¼ş¶ÔFTS3À´ËµÒ²ÊÇ±ØĞèµÄ¡£
 ** needed by FTS3 when FTS3 is included in the amalgamation.
 */
 #if !defined(SQLITE_ASCII) || \
@@ -2707,9 +2707,9 @@ FTS4æ˜¯FTS3çœŸæ­£çš„å»¶ä¼¸ã€‚å®ƒèƒ½å¤Ÿä½¿ç”¨å®SQLITE_ENABLE_FTS3ã€‚ä½†ä¸ºäº†é¿
 /*
 ** The following macros mimic the standard library functions toupper(),
 ** isspace(), isalnum(), isdigit() and isxdigit(), respectively. The
-ä»¥ä¸‹çš„å®åˆ†åˆ«æ¨¡ä»¿äº†æ ‡å‡†åº“å‡½æ•° toupper(),isspace(), isalnum(), isdigit() and isxdigit()ã€‚
+ÒÔÏÂµÄºê·Ö±ğÄ£·ÂÁË±ê×¼¿âº¯Êı toupper(),isspace(), isalnum(), isdigit() and isxdigit()¡£
 ** sqlite versions only work for ASCII characters, regardless of locale.
-è¯¥sqliteç‰ˆæœ¬åªå¯¹ASCIIå­—ç¬¦ç”Ÿæ•ˆï¼Œä¸è®ºåŒºåŸŸã€‚*/
+¸Ãsqlite°æ±¾Ö»¶ÔASCII×Ö·ûÉúĞ§£¬²»ÂÛÇøÓò¡£*/
 #ifdef SQLITE_ASCII
 # define sqlite3Toupper(x)  ((x)&~(sqlite3CtypeMap[(unsigned char)(x)]&0x20))
 # define sqlite3Isspace(x)   (sqlite3CtypeMap[(unsigned char)(x)]&0x01)
@@ -2729,7 +2729,7 @@ FTS4æ˜¯FTS3çœŸæ­£çš„å»¶ä¼¸ã€‚å®ƒèƒ½å¤Ÿä½¿ç”¨å®SQLITE_ENABLE_FTS3ã€‚ä½†ä¸ºäº†é¿
 #endif
 
 /*
-** Internal function prototypeså†…éƒ¨å‡½æ•°åŸå‹
+** Internal function prototypesÄÚ²¿º¯ÊıÔ­ĞÍ
 */
 #define sqlite3StrICmp sqlite3_stricmp
 int sqlite3Strlen30(const char*);
@@ -2762,10 +2762,10 @@ int sqlite3HeapNearlyFull(void);
 ** use of alloca() to obtain space for large automatic objects.  By default,
 ** obtain space from malloc().
 **
-åœ¨å…·æœ‰å……è¶³çš„å †æ ˆç©ºé—´å’Œæ”¯æŒallocaï¼ˆï¼‰çš„ç³»ç»Ÿä¸­ï¼Œä½¿ç”¨allocaï¼ˆï¼‰æ¥ä¸ºå¤§å‹è‡ªåŠ¨å¯¹è±¡è·å–ç©ºé—´ã€‚åœ¨ç¼ºçœçš„æƒ…å†µä¸‹ï¼Œç”¨ malloc()æ¥è·å–ç©ºé—´ã€‚
+ÔÚ¾ßÓĞ³ä×ãµÄ¶ÑÕ»¿Õ¼äºÍÖ§³Öalloca£¨£©µÄÏµÍ³ÖĞ£¬Ê¹ÓÃalloca£¨£©À´Îª´óĞÍ×Ô¶¯¶ÔÏó»ñÈ¡¿Õ¼ä¡£ÔÚÈ±Ê¡µÄÇé¿öÏÂ£¬ÓÃ malloc()À´»ñÈ¡¿Õ¼ä¡£
 ** The alloca() routine never returns NULL.  This will cause code paths
 ** that deal with sqlite3StackAlloc() failures to be unreachable.
-alloca()æ°¸è¿œä¸ä¼šè¿”å›ç©ºå€¼ï¼Œè¿™å°†å¯¼è‡´å¤„ç†sqlite3StackAlloc()é”™è¯¯çš„ä»£ç è·¯å¾„ä¸å¯è¾¾ã€‚
+alloca()ÓÀÔ¶²»»á·µ»Ø¿ÕÖµ£¬Õâ½«µ¼ÖÂ´¦Àísqlite3StackAlloc()´íÎóµÄ´úÂëÂ·¾¶²»¿É´ï¡£
 */
 #ifdef SQLITE_USE_ALLOCA
 # define sqlite3StackAllocRaw(D,N)   alloca(N)
@@ -2817,7 +2817,7 @@ char *sqlite3MAppendf(sqlite3*,char*,const char*,...);
   void *sqlite3TestTextToPtr(const char*);
 #endif
 
-/* Output formatting for SQLITE_TESTCTRL_EXPLAIN*/ /*SQLITE_TESTCTRL_EXPLAINçš„æ ¼å¼åŒ–è¾“å‡º*/
+/* Output formatting for SQLITE_TESTCTRL_EXPLAIN*/ /*SQLITE_TESTCTRL_EXPLAINµÄ¸ñÊ½»¯Êä³ö*/
 #if defined(SQLITE_ENABLE_TREE_EXPLAIN)
   void sqlite3ExplainBegin(Vdbe*);
   void sqlite3ExplainPrintf(Vdbe*, const char*, ...);
@@ -3115,11 +3115,11 @@ int sqlite3VarintLen(u64 v);
 ** and decode of the integers in a record header.  It is faster for the common
 ** case where the integer is a single byte.  It is a little slower when the
 ** integer is two or more bytes.  But overall it is faster.
-**è®°å½•çš„å¤´éƒ¨ç”±ä¸€ç³»åˆ—å¯å˜é•¿åº¦çš„æ•´æ•°ç»„æˆã€‚è¿™äº›æ•´æ•°å‡ ä¹éƒ½å¾ˆå°å¹¶ä¸”è¢«ç¼–ç ä¸ºä¸€ä¸ªå•å­—èŠ‚ã€‚ä¸‹é¢çš„å®åˆ©ç”¨äº†è¿™ä¸ªä¼˜ç‚¹
-æä¾›äº†ä¸€ç§å¯¹è®°å½•å¤´é‡Œçš„æ•´æ•°å¿«é€Ÿç¼–è§£ç çš„æ–¹å¼ã€‚å½“æ•´æ•°æ˜¯å•å­—èŠ‚æ—¶è¿™ç§æ–¹å¼å°±æ¯”è¾ƒå¿«ï¼Œå½“æ•´æ•°æ˜¯åŒå­—èŠ‚æˆ–è€…å¤šå­—èŠ‚å®ƒ
-å°±ä¼šæ…¢ä¸€äº›ï¼Œä½†æ˜¯ä¸ç®¡æ€æ ·ï¼Œå®ƒéƒ½æ›´å¿«äº†ã€‚
+**¼ÇÂ¼µÄÍ·²¿ÓÉÒ»ÏµÁĞ¿É±ä³¤¶ÈµÄÕûÊı×é³É¡£ÕâĞ©ÕûÊı¼¸ºõ¶¼ºÜĞ¡²¢ÇÒ±»±àÂëÎªÒ»¸öµ¥×Ö½Ú¡£ÏÂÃæµÄºêÀûÓÃÁËÕâ¸öÓÅµã
+Ìá¹©ÁËÒ»ÖÖ¶Ô¼ÇÂ¼Í·ÀïµÄÕûÊı¿ìËÙ±à½âÂëµÄ·½Ê½¡£µ±ÕûÊıÊÇµ¥×Ö½ÚÊ±ÕâÖÖ·½Ê½¾Í±È½Ï¿ì£¬µ±ÕûÊıÊÇË«×Ö½Ú»òÕß¶à×Ö½ÚËü
+¾Í»áÂıÒ»Ğ©£¬µ«ÊÇ²»¹ÜÔõÑù£¬Ëü¶¼¸ü¿ìÁË¡£
 ** The following expressions are equivalent:
-      ä¸‹é¢çš„å¼å­æ˜¯ç›¸ç­‰çš„
+      ÏÂÃæµÄÊ½×ÓÊÇÏàµÈµÄ
 **
 **     x = sqlite3GetVarint32( A, &B );
 **     x = sqlite3PutVarint32( A, B );
@@ -3240,11 +3240,11 @@ void sqlite3BackupUpdate(sqlite3_backup *, Pgno, const u8 *);
 
 /*
 ** The interface to the LEMON-generated parser
- LEMON-generatedåˆ†æå™¨çš„æ¥å£ï¼ˆLemonçš„ä¸»è¦åŠŸèƒ½å°±æ˜¯æ ¹æ®ä¸Šä¸‹æ–‡æ— å…³æ–‡æ³•(CFG)ï¼Œç”Ÿæˆæ”¯æŒè¯¥æ–‡æ³•çš„åˆ†æå™¨ã€‚ï¼‰
+ LEMON-generated·ÖÎöÆ÷µÄ½Ó¿Ú£¨LemonµÄÖ÷Òª¹¦ÄÜ¾ÍÊÇ¸ù¾İÉÏÏÂÎÄÎŞ¹ØÎÄ·¨(CFG)£¬Éú³ÉÖ§³Ö¸ÃÎÄ·¨µÄ·ÖÎöÆ÷¡££©
 */
-void *sqlite3ParserAlloc(void*(*)(size_t));   /*ParseAllocä¸ºåˆ†æå™¨åˆ†é…ç©ºé—´ï¼Œç„¶ååˆå§‹åŒ–å®ƒï¼Œè¿”å›ä¸€ä¸ªæŒ‡å‘åˆ†æå™¨çš„æŒ‡é’ˆ*/
-void sqlite3ParserFree(void*, void(*)(void*));  /*å½“ç¨‹åºä¸å†ä½¿ç”¨åˆ†æå™¨æ—¶ï¼Œåº”è¯¥å›æ”¶ä¸ºå…¶åˆ†é…çš„å†…å­˜*/
-void sqlite3Parser(void*, int, Token, Parse*); /*Parseæ˜¯Lemonç”Ÿæˆçš„åˆ†æå™¨çš„æ ¸å¿ƒä¾‹ç¨‹ã€‚åœ¨åˆ†æå™¨è°ƒç”¨ParseAllocåï¼Œåˆ†è¯å™¨å°±å¯ä»¥å°†åˆ‡åˆ†çš„è¯ä¼ é€’ç»™Parseï¼Œè¿›è¡Œè¯­æ³•åˆ†æ,è¯¥å‡½æ•°ç”±sqlite3RunParserè°ƒç”¨*/
+void *sqlite3ParserAlloc(void*(*)(size_t));   /*ParseAllocÎª·ÖÎöÆ÷·ÖÅä¿Õ¼ä£¬È»ºó³õÊ¼»¯Ëü£¬·µ»ØÒ»¸öÖ¸Ïò·ÖÎöÆ÷µÄÖ¸Õë*/
+void sqlite3ParserFree(void*, void(*)(void*));  /*µ±³ÌĞò²»ÔÙÊ¹ÓÃ·ÖÎöÆ÷Ê±£¬Ó¦¸Ã»ØÊÕÎªÆä·ÖÅäµÄÄÚ´æ*/
+void sqlite3Parser(void*, int, Token, Parse*); /*ParseÊÇLemonÉú³ÉµÄ·ÖÎöÆ÷µÄºËĞÄÀı³Ì¡£ÔÚ·ÖÎöÆ÷µ÷ÓÃParseAllocºó£¬·Ö´ÊÆ÷¾Í¿ÉÒÔ½«ÇĞ·ÖµÄ´Ê´«µİ¸øParse£¬½øĞĞÓï·¨·ÖÎö,¸Ãº¯ÊıÓÉsqlite3RunParserµ÷ÓÃ*/
 #ifdef YYTRACKMAXSTACKDEPTH
   int sqlite3ParserStackPeak(void*);
 #endif
@@ -3317,9 +3317,9 @@ int sqlite3WalDefaultHook(void*,sqlite3*,const char*,int);
 ** OMIT_FOREIGN_KEY is not, only some of the functions are no-oped. In
 ** this case foreign keys are parsed, but no other functionality is 
 ** provided (enforcement of FK constraints requires the triggers sub-system).
-fkey.cæ–‡ä»¶ä¸­çš„å‡½æ•°å£°æ˜ã€‚å¦‚æœ OMIT_FOREIGN_KEYæ²¡æœ‰è¢«å®šä¹‰é‚£æ‰€æœ‰çš„å‡½æ•°å£°æ˜å°±ä¼šè¢«æ— æ“ä½œå®æ‰€å–ä»£ã€‚
-åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œå¤–é”®çš„åŠŸèƒ½ä¸å¯ç”¨ã€‚å¦‚æœOMIT_TRIGGERè¢«å®šä¹‰ä½†æ˜¯OMIT_FOREIGN_KEYæ²¡æœ‰è¢«å®šä¹‰,é‚£å°±ä¼šæœ‰éƒ¨åˆ†çš„åŠŸèƒ½ä¸è¢«å¯ç”¨ã€‚
-åœ¨è¿™ç§æƒ…å†µä¸‹ï¼Œå¤–é”®ä¼šè¢«è§£æï¼Œä½†æ˜¯ä¸ä¼šæä¾›åˆ«çš„åŠŸèƒ½ã€‚ï¼ˆå®æ–½FKçº¦æŸè¦æ±‚è§¦å‘å™¨å­ç³»ç»Ÿï¼‰ã€‚
+fkey.cÎÄ¼şÖĞµÄº¯ÊıÉùÃ÷¡£Èç¹û OMIT_FOREIGN_KEYÃ»ÓĞ±»¶¨ÒåÄÇËùÓĞµÄº¯ÊıÉùÃ÷¾Í»á±»ÎŞ²Ù×÷ºêËùÈ¡´ú¡£
+ÔÚÕâÖÖÇé¿öÏÂ£¬Íâ¼üµÄ¹¦ÄÜ²»¿ÉÓÃ¡£Èç¹ûOMIT_TRIGGER±»¶¨Òåµ«ÊÇOMIT_FOREIGN_KEYÃ»ÓĞ±»¶¨Òå,ÄÇ¾Í»áÓĞ²¿·ÖµÄ¹¦ÄÜ²»±»ÆôÓÃ¡£
+ÔÚÕâÖÖÇé¿öÏÂ£¬Íâ¼ü»á±»½âÎö£¬µ«ÊÇ²»»áÌá¹©±ğµÄ¹¦ÄÜ¡££¨ÊµÊ©FKÔ¼ÊøÒªÇó´¥·¢Æ÷×ÓÏµÍ³£©¡£
 */
 #if !defined(SQLITE_OMIT_FOREIGN_KEY) && !defined(SQLITE_OMIT_TRIGGER)
   void sqlite3FkCheck(Parse*, Table*, int, int);
@@ -3344,7 +3344,7 @@ fkey.cæ–‡ä»¶ä¸­çš„å‡½æ•°å£°æ˜ã€‚å¦‚æœ OMIT_FOREIGN_KEYæ²¡æœ‰è¢«å®šä¹‰é‚£æ‰€æœ‰
 
 /*
 ** Available fault injectors.  Should be numbered beginning with 0.
-å¯ç”¨çš„é”™è¯¯æ³¨å°„å™¨ï¼Œåº”è¯¥ä»0å¼€å§‹ç¼–å·
+¿ÉÓÃµÄ´íÎó×¢ÉäÆ÷£¬Ó¦¸Ã´Ó0¿ªÊ¼±àºÅ
 */
 #define SQLITE_FAULTINJECTOR_MALLOC     0
 #define SQLITE_FAULTINJECTOR_COUNT      1
@@ -3353,7 +3353,7 @@ fkey.cæ–‡ä»¶ä¸­çš„å‡½æ•°å£°æ˜ã€‚å¦‚æœ OMIT_FOREIGN_KEYæ²¡æœ‰è¢«å®šä¹‰é‚£æ‰€æœ‰
 ** The interface to the code in fault.c used for identifying "benign"
 ** malloc failures. This is only present if SQLITE_OMIT_BUILTIN_TEST
 ** is not defined.
-fault.cä¸­çš„ä»£ç çš„æ¥å£ç”¨äºè¯†åˆ«â€œè‰¯æ€§çš„â€mallocçš„æ•…éšœï¼Œåªæœ‰å½“SQLITE_OMIT_BUILTIN_TESTæ²¡æœ‰å®šä¹‰æ—¶æ‰ä¼šå‡ºç°è¿™ç§æƒ…å†µã€‚
+fault.cÖĞµÄ´úÂëµÄ½Ó¿ÚÓÃÓÚÊ¶±ğ¡°Á¼ĞÔµÄ¡±mallocµÄ¹ÊÕÏ£¬Ö»ÓĞµ±SQLITE_OMIT_BUILTIN_TESTÃ»ÓĞ¶¨ÒåÊ±²Å»á³öÏÖÕâÖÖÇé¿ö¡£
 */
 #ifndef SQLITE_OMIT_BUILTIN_TEST
   void sqlite3BeginBenignMalloc(void);
@@ -3411,7 +3411,7 @@ void sqlite3Put4byte(u8*, u32);
 ** If the SQLITE_ENABLE IOTRACE exists then the global variable
 ** sqlite3IoTrace is a pointer to a printf-like routine used to
 ** print I/O tracing messages. 
-å¦‚æœSQLITE_ENABLE IOTRACEå­˜åœ¨ï¼Œé‚£ä¹ˆé‚£ä¹ˆå…¨å±€å˜é‡sqlite3çš„IoTraceæ˜¯ä¸€ä¸ªæŒ‡å‘ç”¨äºæ‰“å°I / Oè·Ÿè¸ªæ¶ˆæ¯çš„ç±»printfç¨‹åºã€‚
+Èç¹ûSQLITE_ENABLE IOTRACE´æÔÚ£¬ÄÇÃ´ÄÇÃ´È«¾Ö±äÁ¿sqlite3µÄIoTraceÊÇÒ»¸öÖ¸ÏòÓÃÓÚ´òÓ¡I / O¸ú×ÙÏûÏ¢µÄÀàprintf³ÌĞò¡£
 */
 #ifdef SQLITE_ENABLE_IOTRACE
 # define IOTRACE(A)  if( sqlite3IoTrace ){ sqlite3IoTrace A; }
@@ -3426,19 +3426,19 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
 ** These routines are available for the mem2.c debugging memory allocator
 ** only.  They are used to verify that different "types" of memory
 ** allocations are properly tracked by the system.
-**è¿™äº›ç¨‹åºåªå¯¹mem2.cè°ƒè¯•å†…å­˜åˆ†é…å™¨å¯ç”¨ã€‚ä»–ä»¬è¢«ç”¨æ¥éªŒè¯ä¸åŒç±»å‹çš„å†…å­˜åˆ†é…æ˜¯å¦è¢«ç³»ç»Ÿæ­£ç¡®åœ°è¿½è¸ªã€‚
+**ÕâĞ©³ÌĞòÖ»¶Ômem2.cµ÷ÊÔÄÚ´æ·ÖÅäÆ÷¿ÉÓÃ¡£ËûÃÇ±»ÓÃÀ´ÑéÖ¤²»Í¬ÀàĞÍµÄÄÚ´æ·ÖÅäÊÇ·ñ±»ÏµÍ³ÕıÈ·µØ×·×Ù¡£
 ** sqlite3MemdebugSetType() sets the "type" of an allocation to one of
 ** the MEMTYPE_* macros defined below.  The type must be a bitmask with
 ** a single bit set.
-**sqlite3MemdebugSetType()è®¾ç½®çš„â€œç±»å‹â€åˆ†é…ç»™ä¸‹é¢å®šä¹‰çš„ MEMTYPE_* å®ä¹‹ä¸€ã€‚è¿™ä¸ªç±»å‹å¿…é¡»æ˜¯ä¸€ä¸ªå•æ¯”ç‰¹é›†çš„æ©ç ã€‚
+**sqlite3MemdebugSetType()ÉèÖÃµÄ¡°ÀàĞÍ¡±·ÖÅä¸øÏÂÃæ¶¨ÒåµÄ MEMTYPE_* ºêÖ®Ò»¡£Õâ¸öÀàĞÍ±ØĞëÊÇÒ»¸öµ¥±ÈÌØ¼¯µÄÑÚÂë¡£
 ** sqlite3MemdebugHasType() returns true if any of the bits in its second
 ** argument match the type set by the previous sqlite3MemdebugSetType().
 ** sqlite3MemdebugHasType() is intended for use inside assert() statements.
-** å¦‚æœåœ¨sqlite3MemdebugHasType()ç¬¬äºŒä¸ªå‚æ•°çš„ä½åŒ¹é…ä¹‹å‰ sqlite3MemdebugSetType()è®¾ç½®çš„ç±»å‹ï¼Œé‚£ä¹ˆsqlite3MemdebugHasType() è¿”å›çœŸ
-   sqlite3MemdebugHasType()æ˜¯ä¸ºäº†ä½¿ç”¨assert()å†…éƒ¨çš„è¯­å¥ã€‚
+** Èç¹ûÔÚsqlite3MemdebugHasType()µÚ¶ş¸ö²ÎÊıµÄÎ»Æ¥ÅäÖ®Ç° sqlite3MemdebugSetType()ÉèÖÃµÄÀàĞÍ£¬ÄÇÃ´sqlite3MemdebugHasType() ·µ»ØÕæ
+   sqlite3MemdebugHasType()ÊÇÎªÁËÊ¹ÓÃassert()ÄÚ²¿µÄÓï¾ä¡£
 ** sqlite3MemdebugNoType() returns true if none of the bits in its second
 ** argument match the type set by the previous sqlite3MemdebugSetType().
-**å¦‚æœsqlite3MemdebugHasType()ç¬¬äºŒä¸ªå‚æ•°çš„ä½æ²¡æœ‰ä¸€ä¸ªåŒ¹é…ä¹‹å‰ sqlite3MemdebugSetType()è®¾ç½®çš„ç±»å‹ï¼Œé‚£ä¹ˆsqlite3MemdebugNoType() è¿”å›çœŸ
+**Èç¹ûsqlite3MemdebugHasType()µÚ¶ş¸ö²ÎÊıµÄÎ»Ã»ÓĞÒ»¸öÆ¥ÅäÖ®Ç° sqlite3MemdebugSetType()ÉèÖÃµÄÀàĞÍ£¬ÄÇÃ´sqlite3MemdebugNoType() ·µ»ØÕæ
 ** Perhaps the most important point is the difference between MEMTYPE_HEAP
 ** and MEMTYPE_LOOKASIDE.  If an allocation is MEMTYPE_LOOKASIDE, that means
 ** it might have been allocated by lookaside, except the allocation was
@@ -3447,8 +3447,8 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
 ** passed back to non-lookaside free() routines.  Asserts such as the
 ** example above are placed on the non-lookaside free() routines to verify
 ** this constraint. 
-**  æœ€é‡è¦çš„ä¸€ç‚¹å°±æ˜¯MEMTYPE_HEAPä¸MEMTYPE_LOOKASIDEçš„åŒºåˆ«ã€‚å¦‚æœä¸€ä¸ªåˆ†é…æ˜¯MEMTYPE_LOOKASIDEï¼Œé‚£æ„å‘³ç€è¿™å¯èƒ½æ˜¯ç”±åå¤‡åˆ†é…çš„ï¼Œé™¤éåˆ†é…äº†å¤ªå¤§æˆ–åå¤‡å·²ç»å…¨æ»¡äº†ã€‚
-ç¡®è®¤åå¤‡å·²ç»è¢«åˆ†é…å……è¶³ä¸ä¼šå›ä¼ ç»™éåå¤‡free()ç¨‹åºæ˜¯éå¸¸é‡è¦çš„ã€‚å£°ç§°å¦‚ä¸Šé¢çš„ç¤ºä¾‹ä¸­æ”¾å…¥éåå¤‡ free() ç¨‹åºæ¥éªŒè¯æ­¤çº¦æŸã€‚
+**  ×îÖØÒªµÄÒ»µã¾ÍÊÇMEMTYPE_HEAPÓëMEMTYPE_LOOKASIDEµÄÇø±ğ¡£Èç¹ûÒ»¸ö·ÖÅäÊÇMEMTYPE_LOOKASIDE£¬ÄÇÒâÎ¶×ÅÕâ¿ÉÄÜÊÇÓÉºó±¸·ÖÅäµÄ£¬³ı·Ç·ÖÅäÁËÌ«´ó»òºó±¸ÒÑ¾­È«ÂúÁË¡£
+È·ÈÏºó±¸ÒÑ¾­±»·ÖÅä³ä×ã²»»á»Ø´«¸ø·Çºó±¸free()³ÌĞòÊÇ·Ç³£ÖØÒªµÄ¡£Éù³ÆÈçÉÏÃæµÄÊ¾ÀıÖĞ·ÅÈë·Çºó±¸ free() ³ÌĞòÀ´ÑéÖ¤´ËÔ¼Êø¡£
 ** All of this is no-op for a production build.  It only comes into
 ** play when the SQLITE_MEMDEBUG compile-time option is used.
 */
@@ -3457,14 +3457,14 @@ SQLITE_EXTERN void (*sqlite3IoTrace)(const char*,...);
   int sqlite3MemdebugHasType(void*,u8);
   int sqlite3MemdebugNoType(void*,u8);
 #else
-# define sqlite3MemdebugSetType(X,Y)  /* no-op ç©ºæ“ä½œ*/
+# define sqlite3MemdebugSetType(X,Y)  /* no-op ¿Õ²Ù×÷*/
 # define sqlite3MemdebugHasType(X,Y)  1
 # define sqlite3MemdebugNoType(X,Y)   1
 #endif
-#define MEMTYPE_HEAP       0x01  /* General heap allocations æ€»çš„å †å¼åˆ†é…*/
-#define MEMTYPE_LOOKASIDE  0x02  /* Might have been lookaside memory å¯èƒ½æ˜¯åå¤‡å­˜å‚¨å™¨*/
-#define MEMTYPE_SCRATCH    0x04  /* Scratch allocations ä»å¤´å¼€å§‹åˆ†é…*/
-#define MEMTYPE_PCACHE     0x08  /* Page cache allocationsé¡µé¢ç¼“å­˜åˆ†é… */
-#define MEMTYPE_DB         0x10  /* Uses sqlite3DbMalloc, not sqlite_malloc ä½¿ç”¨sqlite3DbMallocï¼Œè€Œä¸æ˜¯sqlite_malloc*/
+#define MEMTYPE_HEAP       0x01  /* General heap allocations ×ÜµÄ¶ÑÊ½·ÖÅä*/
+#define MEMTYPE_LOOKASIDE  0x02  /* Might have been lookaside memory ¿ÉÄÜÊÇºó±¸´æ´¢Æ÷*/
+#define MEMTYPE_SCRATCH    0x04  /* Scratch allocations ´ÓÍ·¿ªÊ¼·ÖÅä*/
+#define MEMTYPE_PCACHE     0x08  /* Page cache allocationsÒ³Ãæ»º´æ·ÖÅä */
+#define MEMTYPE_DB         0x10  /* Uses sqlite3DbMalloc, not sqlite_malloc Ê¹ÓÃsqlite3DbMalloc£¬¶ø²»ÊÇsqlite_malloc*/
 
 #endif /* _SQLITEINT_H_ */

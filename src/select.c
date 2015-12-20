@@ -4011,33 +4011,36 @@ static u8 minMaxQuery(Select *p){
 
 		}else{
 		  /* An ordinary table or view name in the FROM clause */
-		  /*FROM语句中常规的表或视图名字*/
+		  /*FROM子句中的常规表或视图名*/
 		  assert( pFrom->pTab==0 );//异常处理，pFrom中对应zName的SQL表是否存在，加入断言
 		  pFrom->pTab = pTab = 
 			sqlite3LocateTable(pParse,0,pFrom->zName,pFrom->zDatabase);//由语法解析，定位描述表pFrom的数据库内存结构
 		  if( pTab==0 ) return WRC_Abort;//内存中未找到该表则终止程序
 		  pTab->nRef++;//指向该表的指针数目+1
-	#if !defined(SQLITE_OMIT_VIEW) || !defined (SQLITE_OMIT_VIRTUALTABLE)
-		  if( pTab->pSelect || IsVirtual(pTab) ){//若表中SELECT非空或pTab是虚表
-			/* We reach here if the named table is a really a view *//*到达这一步，如果，说明这个表是一个真正的视图*/
-			if( sqlite3ViewGetColumnNames(pParse, pTab) ) return WRC_Abort;//将视图的名装入Tabel表结构中，返回的是执行错误次数，如果有错误，返回中止执行标记
-			assert( pFrom->pSelect==0 );//插入断点，如果pFfom表达式列表中SELECT不为空，抛出错误信息
-			pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);//将Table结构体pSelect copy 给pSelect
-			sqlite3WalkSelect(pWalker, pFrom->pSelect);/*表达式列表pFrom中每个表达式都调用sqlite3WalkExpr
+	#if !defined(SQLITE_OMIT_VIEW) || !defined (SQLITE_OMIT_VIRTUALTABLE) //如果没有定义忽略视图或没有定义忽略虚表
+		  if( pTab->pSelect || IsVirtual(pTab) ){//若pTab为视图或虚表
+			/* We reach here if the named table is a really a view */
+			/*当pTab确实是一个视图时，程序可以运行到这一步*/
+			if( sqlite3ViewGetColumnNames(pParse, pTab) ) //将pTab名装入Tabel表结构中，是视图则返回相应错误编号，运行if里面的代码
+				return WRC_Abort;//若出现错误，终止程序
+			assert( pFrom->pSelect==0 );//插入断言，如果pFrom为表而不是视图，抛出错误信息
+			pFrom->pSelect = sqlite3SelectDup(db, pTab->pSelect, 0);//将pTabTable结构体pSelect copy 给pFrom
+			sqlite3WalkSelect(pWalker, pFrom->pSelect);//表达式列表pFrom中每个表达式都调用sqlite3WalkExpr()
 		  }
 	#endif
 		}
 
-		/* Locate the index named by the INDEXED BY clause, if any. *//*在索引子句中定位到索引的名字*/
-		if( sqlite3IndexedByLookup(pParse, pFrom) ){//在表达式列表中查找索引名，如果产生错误，返回错误个数
-		  return WRC_Abort;//再返回中止执行标记
+		/* Locate the index named by the INDEXED BY clause, if any. */
+		/* 如果在INDEXED BY子句中存在索引名，则定位它 */
+		if( sqlite3IndexedByLookup(pParse, pFrom) ){//在pFrom的表达式列表中查找索引名，如果没找到则在pParse中留下错误信息，并执行if中的代码
+		  return WRC_Abort;//没找到索引名，终止程序
 		}
 	  }
 
-	  /* Process NATURAL keywords, and ON and USING clauses of joins.
-	  *//*处理连接中的NATURAL关键字 ON USING*/
-	  if( db->mallocFailed || sqliteProcessJoin(pParse, p) ){//内存分配失败或者处理连接操作
-		return WRC_Abort;//程序中止
+	  /* Process NATURAL keywords, and ON and USING clauses of joins. */
+	  /*处理NATURAL关键字，以及连接中的ON和USING子句 */
+	  if( db->mallocFailed || sqliteProcessJoin(pParse, p) ){//内存分配失败或者处理连接操作时发现没有NATURAL关键字，也没有ON和USING子句
+		return WRC_Abort;//终止程序
 	  }
 
 	  /* For every "*" that occurs in the column list, insert the names of
