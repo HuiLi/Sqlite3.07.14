@@ -5692,7 +5692,7 @@ static void explainAppendTerm(
   int iTerm,                  /*这个例程的索引。从0开始 */
   const char *zColumn,        /* 列名 */
   const char *zOp             /* 操作名 */
-=======
+/*=======
 **
 ** 当我们每次构建一个term时，用pStr保存表达式的内容。这个程序在表达式的最后增添一个新的term.
 ** Terms是根据AND分隔的，所以只为第二个和随后的terms添加一个"AND".
@@ -5750,9 +5750,9 @@ static void explainAppendTerm(
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 */
 static char *explainIndexRange(sqlite3 *db, WhereLevel *pLevel, Table *pTab){
-  WherePlan *pPlan = &pLevel->plan;
-  Index *pIndex = pPlan->u.pIdx;
-  int nEq = pPlan->nEq;
+  WherePlan *pPlan = &pLevel->plan;		/*扫描策略的定义*/
+  Index *pIndex = pPlan->u.pIdx;		/*用于该策略的索引*/
+  int nEq = pPlan->nEq;				/*需编码的==或IN约束数*/
   int i, j;
   Column *aCol = pTab->aCol;
   int *aiColumn = pIndex->aiColumn;
@@ -5798,7 +5798,7 @@ static void explainOneScan(
   int iLevel,                     /* 值得记录输出 */
   int iFrom,                      /* 值得form集输出 */
   u16 wctrlFlags                  /* sqlite3WhereBegin() 的标记*/
-=======
+/*=======
 **
 ** 这个函数是一个空操作，除非当前执行一个EXPLAIN QUERY PLAN命令。
 ** 如果开始编译的查询是一个EXPLAIN QUERY PLAN，输出是会添加一个记录来描述在pLevel中的表扫描策略。
@@ -5919,7 +5919,7 @@ static Bitmask codeOneLoopStart(
   int addrCont;                   /* 跳出循环进入下一周期 */
   int iRowidReg = 0;        /*Rowid存储在这个寄存器,如果不是零*/
   int iReleaseReg = 0;      /* 在返回前，释放临时寄存器 */
-=======
+/*=======
 **
 ** 通过pWInfo的描述，为WHERE子句中实现的的第i级循环的开始生成代码
 */
@@ -6067,7 +6067,7 @@ static Bitmask codeOneLoopStart(
     **       或引用多行使用"rowid IN (...)"结构。
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
     */
-    iReleaseReg = sqlite3GetTempReg(pParse);
+    iReleaseReg = sqlite3GetTempReg(pParse);			/*释放标志*/
     pTerm = findTerm(pWC, iCur, -1, notReady, WO_EQ|WO_IN, 0);
     assert( pTerm!=0 );
     assert( pTerm->pExpr!=0 );
@@ -6093,7 +6093,7 @@ static Bitmask codeOneLoopStart(
     int testOp = OP_Noop;
     int start;
     int memEndValue = 0;
-    WhereTerm *pStart, *pEnd;
+    WhereTerm *pStart, *pEnd;				/*字段的起始与终止*/
 
     assert( omitTable==0 );
     pStart = findTerm(pWC, iCur, -1, notReady, WO_GT|WO_GE, 0);
@@ -6112,7 +6112,7 @@ static Bitmask codeOneLoopStart(
       ** seek opcodes.  It depends on a particular ordering of TK_xx
       下列常数TK_xx代码映射到相应的操作码。
       这取决于一个特定TK_xx指示
-=======
+=======*/
       Expr *pX;             /* The expression that defines the start bound 表达式定义了开始范围 */
       int r1, rTemp;        /* Registers for holding the start boundary 保存开始范围的寄存器 */
 
@@ -6161,10 +6161,10 @@ static Bitmask codeOneLoopStart(
       disableTerm(pLevel, pEnd);
     }
     start = sqlite3VdbeCurrentAddr(v);
-    pLevel->op = bRev ? OP_Prev : OP_Next;
-    pLevel->p1 = iCur;
-    pLevel->p2 = start;
-    if( pStart==0 && pEnd==0 ){
+    pLevel->op = bRev ? OP_Prev : OP_Next;/*确定连接符*/
+    pLevel->p1 = iCur;			  /*游标定位*/
+    pLevel->p2 = start;			  /*起始字段*/
+    if( pStart==0 && pEnd==0 ){		  /*全表扫描完成*/
       pLevel->p5 = SQLITE_STMTSTATUS_FULLSCAN_STEP;
     }else{
       assert( pLevel->p5==0 );
@@ -6391,7 +6391,7 @@ static Bitmask codeOneLoopStart(
 <<<<<<< HEAD
     /* Seek the index cursor to the start of the range.
     寻求索引指针范围的开始。
-     */
+     
 =======
     /* Seek the index cursor to the start of the range. 查询索引游标范围的开始 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
@@ -6410,7 +6410,7 @@ static Bitmask codeOneLoopStart(
           ** SQLITE_AFF_NONE.
           由于比较是没有执行转换应用于操作数,
           设置关联应用pRight SQLITE_AFF_NONE。
-            */
+            
 =======
           ** SQLITE_AFF_NONE.  
           **
@@ -6419,13 +6419,13 @@ static Bitmask codeOneLoopStart(
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
           zStartAff[nEq] = SQLITE_AFF_NONE;
         }
-        if( sqlite3ExprNeedsNoAffinityChange(pRight, zStartAff[nEq]) ){
+        if( sqlite3ExprNeedsNoAffinityChange(pRight, zStartAff[nEq]) ){/*是否需要进行亲和性的改变*/
           zStartAff[nEq] = SQLITE_AFF_NONE;
         }
       }  
       nConstraint++;
       testcase( pRangeStart->wtFlags & TERM_VIRTUAL ); /* EV: R-30575-11662 */
-    }else if( isMinQuery ){
+    }else if( isMinQuery ){				/*查询最小的情况*/
       sqlite3VdbeAddOp2(v, OP_Null, 0, regBase+nEq);
       nConstraint++;
       startEq = 0;
@@ -6467,7 +6467,7 @@ static Bitmask codeOneLoopStart(
           ** SQLITE_AFF_NONE. 
           由于比较是没有执行转换应用于操作数,
           设置关联申请pRight SQLITE_AFF_NONE。
-           */
+           
 =======
           ** SQLITE_AFF_NONE.  
           **
