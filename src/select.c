@@ -1478,14 +1478,14 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 #endif
 	}
 
-	if (pzOriginDb)//如果存在原始的数据库，则执行if语句
+	if (pzOriginDb)//如果存在原始的数据库，则执行if语句////如果存在原始的数据库，则执行if语句
 	{/*如果存在原始的数据库*/
 		assert(pzOriginTab && pzOriginCol);/*插入断点，判断表和列是否存在*/
 		*pzOriginDb = zOriginDb;/*文件中数据库赋值给数据库变量pzOriginDb*/
 		*pzOriginTab = zOriginTab;/*文件中表赋值给表变量pzOriginTab*/
 		*pzOriginCol = zOriginCol;/*文件中列赋值给列变量pzOriginCol*/
 	}
-	return zType;/*返回列类型*///返回zType类型
+	return zType;/*返回列类型*///返回zType类型//返回zType类型
 }
 
 /////////
@@ -1496,23 +1496,24 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 ** 生成代码，告诉VDBE在结果集中的列的声明类型的。
 */
 static void generateColumnTypes(
-	Parse *pParse,      /* Parser context 解析上下文*/
-	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*/
-	ExprList *pEList    /* Expressions defining the result set 定义结果集的表达式列表 */
+	Parse *pParse,      /* Parser context 解析上下文*///定义一个Parse类型的指针变量
+	SrcList *pTabList,  /* List of tables 输出表的集合的语法树*///定义一个SrcList类型的指针变量
+	ExprList *pEList    /* Expressions defining the result set 定义结果集的表达式列表 *///定义一个ExprList类型的指针变
 	){
-#ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*/
+#ifndef SQLITE_OMIT_DECLTYPE/*测试SQLITE_OMIT_DECLTYPE是否被宏定义过*///测试 SQLITE_OMIT_DECLTYPE是不是已经被定义过
 	Vdbe *v = pParse->pVdbe;/*将分析语法数中的VDBE赋值给VDBE变量V*/
-	int i;
-	NameContext sNC;
+	int i;//定义一个整形变量i
+	NameContext sNC;//定义一个NameContext类型的变量sNC
 	sNC.pSrcList = pTabList;/*将表集合赋值给命名上下文结构体中的表集合属性*/
 	sNC.pParse = pParse;/*将分析语法树赋值给命名上下文语法树*/
-	for (i = 0; i < pEList->nExpr; i++){/*遍历表达式列表*/
-		Expr *p = pEList->a[i].pExpr;/*将表达式变量赋值给p*/
-		const char *zType;
+	for (i = 0; i < pEList->nExpr; i++)//满足条件，执行循环
+	{/*遍历表达式列表*/
+		Expr *p = pEList->a[i].pExpr;/*将表达式变量赋值给p*///将表达式变量赋值给指针变量p
+		const char *zType;//定义一个const char指针变量zType
 #ifdef SQLITE_ENABLE_COLUMN_METADATA/*测试SQLITE_ENABLE_COLUMN_METADATA是否被宏定义过*/
-		const char *zOrigDb = 0;
-		const char *zOrigTab = 0;
-		const char *zOrigCol = 0;
+		const char *zOrigDb = 0;//定义一个const char 变量zOrigDb并赋初值为0
+		const char *zOrigTab = 0;//定义一个const char 变量zOrigTab并赋初值为0
+		const char *zOrigCol = 0;//定义一个const char 变量zOrigCol并赋初值为0
 		zType = columnType(&sNC, p, &zOrigDb, &zOrigTab, &zOrigCol);/*将当前的表达式传给columnType，返回列属性类型*/
 
 		/* The vdbe must make its own copy of the column-type and other
@@ -1528,7 +1529,7 @@ static void generateColumnTypes(
 #endif
 		sqlite3VdbeSetColName(v, i, COLNAME_DECLTYPE, zType, SQLITE_TRANSIENT);/*返回类型获取声明中的第i-1个名*/
 	}
-#endif /* SQLITE_OMIT_DECLTYPE */
+#endif /* SQLITE_OMIT_DECLTYPE *///结束
 }
 
 /*
@@ -1538,40 +1539,42 @@ static void generateColumnTypes(
 ** 生成代码，告诉 VDBE 在结果集中的列的名称。这些信息被用于提供在回调中azCol[]的值。
 */
 static void generateColumnNames(
-	Parse *pParse,      /* Parser context   解析上下文 */
-	SrcList *pTabList,  /* List of tables   表的集合*/
-	ExprList *pEList    /* Expressions defining the result set   输出结果列的语法树*/
+	Parse *pParse,      /* Parser context   解析上下文 *///定义一个	Parse类型的指针变量pParse
+	SrcList *pTabList,  /* List of tables   表的集合*///定义一个SrcList类型的指针变量pTabLis
+	ExprList *pEList    /* Expressions defining the result set   输出结果列的语法树*///定义一个ExprList类型的指针变量pEList
 	){
 	Vdbe *v = pParse->pVdbe;/*将语法解析树的VDBE属性赋值给VDBE变量v*/
-	int i, j;
-	sqlite3 *db = pParse->db;/*将语法分析树的数据库赋值给数据库连接变量db*/
-	int fullNames, shortNames;/*定义两个参数，第一个是全称，第二个是简写*/
+	int i, j;//定义整形变量i,j
+	sqlite3 *db = pParse->db;/*将语法分析树的数据库赋值给数据库连接变量db*///定义一个sqlite3变量的指针变量并赋值pParse->db
+	int fullNames, shortNames;/*定义两个参数，第一个是全称，第二个是简写*///定义整型变量fullNames, shortNames
 
 #ifndef SQLITE_OMIT_EXPLAIN
 	/* If this is an EXPLAIN, skip this step    如果这是一个表达式, 跳过这一步 */
-	if (pParse->explain){/*如果语法分析树中的explain属性存在，直接返回*/
-		return;
+	if (pParse->explain)//如果指针pParse->explain不为空，则执行if语句
+	{/*如果语法分析树中的explain属性存在，直接返回*/
+		return;//返回
 	}
-#endif
+#endif//结束
 
-	if (pParse->colNamesSet || NEVER(v == 0) || db->mallocFailed) return;/*如果存在语法分析树的列明集合或不存在VDBE变量或分配内存失败都将直接返回*/
-	pParse->colNamesSet = 1;/*设置语法分析树中列名集合为1*/
+	if (pParse->colNamesSet || NEVER(v == 0) || db->mallocFailed) return;//满足if语句条件，返回/*如果存在语法分析树的列明集合或不存在VDBE变量或分配内存失败都将直接返回*/
+	pParse->colNamesSet = 1;/*设置语法分析树中列名集合为1*///赋pParse->colNamesSet的值为1
 	fullNames = (db->flags & SQLITE_FullColNames) != 0;/*如果数据库连接的名字交SQLIte全称列名不为空，交集返回给变量为fullNames*/
 	shortNames = (db->flags & SQLITE_ShortColNames) != 0;/*如果数据库连接的名字交SQLIte简称列名不为空，交集返回给变量为shortNames*/
 	sqlite3VdbeSetNumCols(v, pEList->nExpr);/*根据表达式返回结果集列的数量*/
-	for (i = 0; i < pEList->nExpr; i++){/*遍历标示符列表*/
-		Expr *p;
+	for (i = 0; i < pEList->nExpr; i++)//遍历表
+	{/*遍历标示符列表*/
+		Expr *p;//定义一个Expr类型的指针变量p
 		p = pEList->a[i].pExpr;/*将表达式列表中第i-1个赋值给p*/
-		if (NEVER(p == 0)) continue;/*如果p为0，直接跳过*/
+		if (NEVER(p == 0)) continue;/*如果p为0，直接跳过*///如果p为0，直接跳过
 		if (pEList->a[i].zName){/*如果第i-1个表达式的名字存在*/
 			char *zName = pEList->a[i].zName;/*将第i-1个表达式的名字存在赋值给zName*/
 			sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_TRANSIENT);/*设置SQL执行后返回结果集的列数*/
 		}
 		else if ((p->op == TK_COLUMN || p->op == TK_AGG_COLUMN) && pTabList){/*如果表达式中操作为TK_COLUMN或TK_AGG_COLUMN，并且与表的集合有交集*/
-			Table *pTab;
-			char *zCol;
+			Table *pTab;//定义一个Table变量指针pTab
+			char *zCol;//定义一个char变量指针zCol
 			int iCol = p->iColumn;/*将表达式中iColumn赋值给ICol*/
-			for (j = 0; ALWAYS(j < pTabList->nSrc); j++){/*遍历表集合*/
+			for (j = 0; ALWAYS(j < pTabList->nSrc); j++)//遍历表{/*遍历表集合*/
 				if (pTabList->a[j].iCursor == p->iTable) break;/*如果表中的游标指向ITable，中断*/
 			}
 			assert(j < pTabList->nSrc);/*插入断点，判断j小于表集合的数目*/
@@ -1579,17 +1582,17 @@ static void generateColumnNames(
 			if (iCol < 0) iCol = pTab->iPKey;/*如果列小于0，设置iCol为当前表变量的主键*/
 			assert(iCol == -1 || (iCol >= 0 && iCol < pTab->nCol));/*插入断点，判断iCol的范围*/
 			if (iCol < 0){/*如果iCol小于0*/
-				zCol = "rowid";/*设置zCol为主键，“rowid”*/
+				zCol = "rowid";/*设置zCol为主键，“rowid”*///如果iCol小于0，则把rowid设为主键
 			}
 			else{
-				zCol = pTab->aCol[iCol].zName;/*否则令zCol为当前表第i-1列的名字*/
+				zCol = pTab->aCol[iCol].zName;/*否则令zCol为当前表第i-1列的名字*///否则令zCol为当前表第i-1列的名字
 			}
 			if (!shortNames && !fullNames){/*如果既不是简称又不是全称*/
 				sqlite3VdbeSetColName(v, i, COLNAME_NAME,
 					sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
 			}
 			else if (fullNames){/*如果是全称*/
-				char *zName = 0;
+				char *zName = 0;//定义一个char类型的变量指针并赋值为0
 				zName = sqlite3MPrintf(db, "%s.%s", pTab->zName, zCol);/*列名为pTab中的zCol名*/
 				sqlite3VdbeSetColName(v, i, COLNAME_NAME, zName, SQLITE_DYNAMIC);/*计算结果集的列数*/
 			}
@@ -1602,7 +1605,7 @@ static void generateColumnNames(
 				sqlite3DbStrDup(db, pEList->a[i].zSpan), SQLITE_DYNAMIC);/*返回一个已分配给数据库连接中pEList->a[i].zSpan的值的内存，再返回给sqlite3VdbeSetColName（）计算结果集的列数*/
 		}
 	}
-	generateColumnTypes(pParse, pTabList, pEList);/*根据语法分析树，表的列表和表达式列表产生列类型*/
+	generateColumnTypes(pParse, pTabList, pEList);/*根据语法分析树，表的列表和表达式列表产生列类型*///根据分析树，标的列表和表达式产生列的类型
 }
 
 /*
@@ -1620,8 +1623,8 @@ static void generateColumnNames(
 ** 成功时返回SQLITE_OK。如果内存分配发生错误,在*paCol里存NULL，在*pnCol里存0，返回SQLITE_NOMEM
 */
 static int selectColumnsFromExprList(
-	Parse *pParse,          /* Parsing context 解析上下文 */
-	ExprList *pEList,       /* Expr list from which to derive column names 来自于列名的表达式列表*/
+	Parse *pParse,          /* Parsing context 解析上下文 *///定义一个Parse变量
+	ExprList *pEList,       /* Expr list from which to derive column names 来自于列名的表达式列表*///定义一个ExprList变量
 	int *pnCol,             /* Write the number of columns here 把列的数量写在这里*/
 	Column **paCol          /* Write the new column list here 把新列列表写在这里*/
 	){
@@ -1718,7 +1721,7 @@ static int selectColumnsFromExprList(
 		*pnCol = 0;/*令列名为0*/
 		return SQLITE_NOMEM;/*返回SQLITE_NOMEM（没有分配）*/
 	}
-	return SQLITE_OK;/*返回SQLITE_OK值*/
+	return SQLITE_OK;/*返回SQLITE_OK值*//*返回SQLITE_OK值*/
 }
 
 /*
@@ -1743,8 +1746,8 @@ static int selectColumnsFromExprList(
 	** 这个程序要求select指令中所有标示符都是确定的。
 */
 static void selectAddColumnTypeAndCollation(
-	Parse *pParse,        /* Parsing contexts 解析上下文*/
-	int nCol,             /* Number of columns 列数*/ 
+	Parse *pParse,        /* Parsing contexts 解析上下文*///定义一个Parse变量
+	int nCol,             /* Number of columns 列数*/ //定义一个int变量
 	Column *aCol,         /* List of columns 列表*/
 	Select *pSelect       /* SELECT used to determine types and collations      SELECT用于确定类型和排序*//*用来确定类型和排序规则的select结构体*/
 	){
@@ -1752,7 +1755,7 @@ static void selectAddColumnTypeAndCollation(
 	NameContext sNC;/*声明一个命名上下文结构体（决定表或者列的名字）*/
 	Column *pCol;;/*声明一个列表*/
 	CollSeq *pColl;/*声明一个排序队列*/
-	int i;
+	int i;//定义一个整型变量i
 	Expr *p;/*声明一个表达式变量*/
 	struct ExprList_item *a;/*声明一个表达式列表项变量*/
 
@@ -1797,7 +1800,7 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 	db->flags = savedFlags;/*将数据库连接标记放到数据库连接的flags属性中*/
 	pTab = sqlite3DbMallocZero(db, sizeof(Table));/*分配并清空内存，分配大小为表Table的大小的内存*/
 	if (pTab == 0){ /*如果表为空*/
-		return 0;/*直接返回0*/
+		return 0;/*直接返回0*///执行If语句，直接返回0
 	}
 	/* The sqlite3ResultSetOfSelect() is only used n contexts where lookaside
 	** is disabled
@@ -1837,7 +1840,7 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 		}
 #endif
 	}
-	return v;/*返回创建成功的VDBE*/
+	return v;/*返回创建成功的VDBE*///返回v
 }
 
 
@@ -4207,16 +4210,24 @@ static u8 minMaxQuery(Select *p){
 	** 然后Walker.xSelectCallback 为语法解析树中的每一个子查询提供帮助。
 	*/
 	/*
-** No-op routine for the parse-tree walker.
-**对于parse-tree walker的无操作例程
-** When this routine is the Walker.xExprCallback then expression trees
-** are walked without any actions being taken at each node.  Presumably,
-** when this routine is used for Walker.xExprCallback then 
-** Walker.xSelectCallback is set to do something useful for every 
-** subquery in the parser tree.当这个例程是Walker.xExprCallback ，那么表达树在每个节点上不采取
-任何行动都可以。由此可以推断,当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback 
-被设置对为解析树中的每一个子查询有用。
-*/
+	** No-op routine for the parse-tree walker.
+	**对于parse-tree walker的无操作例程
+	** When this routine is the Walker.xExprCallback then expression trees
+	** are walked without any actions being taken at each node.  Presumably,
+	** when this routine is used for Walker.xExprCallback then 
+	** Walker.xSelectCallback is set to do something useful for every 
+	** subquery in the parser tree.当这个例程是Walker.xExprCallback ，那么表达树在每个节点上不采取
+	任何行动都可以。由此可以推断,当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback 
+	被设置对为解析树中的每一个子查询有用。
+	*/
+	
+	/*
+	** 这是关于解析树Walker的无操作例程
+	**
+	** 当这个例程是Walker.xExprCallback时， 表达式树在每个节点上即使不采取行动
+	** 也可以。因此，当此例程被用于Walker.xExprCallback时，Walker.xSelectCallback 
+	** 被设置成解析树中每个子查询都有用。
+	*/
 	static int exprWalkNoop(Walker *NotUsed, Expr *NotUsed2){
 	  UNUSED_PARAMETER2(NotUsed, NotUsed2);/*如果NotUsed2没有使用，并驻留在函数中。输出警告信息。*/
 	  return WRC_Continue;/*返回继续执行标识符*/
@@ -4231,6 +4242,8 @@ static u8 minMaxQuery(Select *p){
 ** SELECT statement.  The SELECT statement must be expanded before
 ** name resolution is performed.扩大一个SELECT语句是处理SELECT语句的第一步。SELECT语句在执行名称
   解析之前必须扩大。
+  
+
 
 ** If anything goes wrong, an error message is written into pParse.
 ** The calling function can detect the problem by looking at pParse->nErr
@@ -4255,6 +4268,19 @@ static u8 minMaxQuery(Select *p){
 	** SELECT声明中的第一步是扩展一个SELECT语句。在解析执行前，这个select语句必须被扩展
 	**
 	** 若有错误出现，那这条错误信息就写到解析器中。回调函数可以在pParse->nErr 或 pParse->db->mallocFailed中找出错误信息
+	*/
+	
+	/*
+	** 这个例程扩展了一个SELECT语句和它所有的子查询。
+	** 想要查询更多有关扩展了一个SELECT语句的信息，请查看上面selectExpand 
+	** 回调的注释。
+	**
+	** 扩展一个SELECT语句是处理一个SELECT语句的第一步。 
+	** SELECT语句必须在名称解析之前完成扩展操作。
+	**
+	** 如果发生了任何错误，则会有一条错误信息返回到pParse。
+	** 通过查看pParse->nErr和/或pParse->db->mallocFailed指针，调用方法可以检测
+	** 问题。
 	*/
 	static void sqlite3SelectExpand(Parse *pParse, Select *pSelect){
 	  Walker w;//Walker结构体的声明
@@ -4305,6 +4331,15 @@ static u8 minMaxQuery(Select *p){
 	**
 	** 表结构代表结果集由selectExpander（）构建，但在这种情况下类型和排列信息会被省略，因为没有解析标识符。
 	** 这个例程实在解析标识之后调用的
+	*/
+	
+	/*
+	** 这是一个用于sqlite3SelectTypeInfo()接口的Walker.xSelectCallback方法的回调模块。
+	** 对于每个FROM语句子查询，添加Column.zType和Column.zColl信息到Table结构中，
+	** Table结构代表了该子查询的结果集。
+	** 
+	** 表示该子查询结果集的Table结构是由selectExpander()建立的，但类型和排序信息
+	** 在这个时候被遗漏了，因为还没有解析标识符。这个例程在解析标识符之后调用。 
 	*/
 	static int selectAddSubqueryTypeInfo(Walker *pWalker, Select *p){
 	  Parse *pParse;//声明一个语法解析树
@@ -4357,6 +4392,12 @@ static u8 minMaxQuery(Select *p){
 	*/
         /* 这段程序添加datatype 和 排列序列信息到SELECT中子查询的所有FROM子句的TABLE结构中。
 	** 在名字解析后使用这段程序*/
+	/*
+	** 此例程添加数据类型和排序序列信息到SELECT语句中所有的FROM语句子查询
+	** 的Table结构中。
+	**
+	** 在名字解析后使用此例程。
+	*/
 	static void sqlite3SelectAddTypeInfo(Parse *pParse, Select *pSelect){
 	#ifndef SQLITE_OMIT_SUBQUERY
 	  Walker w;//声明一个Walker结构体
@@ -4401,6 +4442,18 @@ static u8 minMaxQuery(Select *p){
 ** This routine acts recursively on all subqueries within the SELECT.
 **对select语句中的子句进行处理
 */
+        /*
+	** 此例程设置了SELECT语句来进行处理。  
+	** 完成了以下功能。
+	**
+	**     *  VDBE游标号分配给所有的FROM子句项。
+	**     *  为所有的FROM语句子查询创建临时表对象。
+	**     *  将ON和USING语句切换到WHERE语句。
+	**     *  结果集中扩展通配符"*" 和 "TABLE左连接"
+	**     *  表达式中的标识符匹配到表中。
+	**
+	** 此例程对所有的SELECT语句中的子查询都进行递归操作。
+	*/
 	void sqlite3SelectPrep(
 	  Parse *pParse,         /* The parser context *///定义解析器/*  解析器的上下文 */
 	  Select *p,             /* The SELECT statement being coded. *///声明select类型的指针/*  被编码的select表达式 */
@@ -4435,6 +4488,12 @@ static u8 minMaxQuery(Select *p){
 **这个程序生成代码,这些代码将null存储在所有的内存单元中
 **
 */
+        /*
+	** 重置聚集函数。
+	**
+	** 聚集函数是一组能够保存中间结果集的内存单元。  
+	** 此例程生成了保存所有内存单元中的NULL值的代码。
+	*/
 	
 	static void resetAccumulator(Parse *pParse, AggInfo *pAggInfo){/*重置聚合累加器，传递两个参数：解析器指针变量，AggInfo指针变量*/
 	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性/*定义一个Vdbe指针变量，指向解析器的pVdbe域*/
@@ -4474,7 +4533,9 @@ static u8 minMaxQuery(Select *p){
 	*/
 	/*
 	** 先处理聚集函数，再为AggInfo结构体中每一个聚集函数调用OP_AggFinalize（完成）操作*/
-
+	/*
+	** 在AggInfo结构体中，为每一个聚集函数调用OP_AggFinalize操作码。
+	*/
 	static void finalizeAggFunctions(Parse *pParse, AggInfo *pAggInfo){
 	  Vdbe *v = pParse->pVdbe;//获取语法解析器中的pVdbe属性
 	  int i;//声明一个变量
@@ -4493,6 +4554,10 @@ static u8 minMaxQuery(Select *p){
 **
 **为一个基于当前所处的位置上的聚集函数更新累加器的内存单元
 */
+	/*
+	** 为基于当前光标位置的累加器更新聚集函数内存单元。
+	*/
+	
 static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数，其中parse是分析树，pAggInfo是聚集函数结构体
 	Vdbe *v = pParse->pVdbe;    /*声明一个分析树中执行数据库字节码的引擎（PVdbe）*/
 	int i;
@@ -4568,6 +4633,15 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数�
 	**另一个解决方案是用OP_Copy操作来替换OP_Copy操作，实现将缓存中的数据复制到内存中。
 	**
 	*/
+	/* 
+	** 在获取累加寄存器的内存之前,清空列缓存。否则,如果任何所需的列值已经存
+	** 在于寄存器中,sqlite3ExprCode()函数会执行OP_SCopy操作，将这个值复制到
+	** pC->iMem（内存）中。但当这个值被使用时,初始寄存器可能被使用这就会使
+	** 得底层缓存区中保存的文本和二进制值失效。
+	** 
+	** 另一个解决方案是用OP_Copy操作来替换OP_Copy操作，实现将缓存中的数据
+	** 复制到内存中。
+	*/
 	if (regHit){//若有内存单元 
 		addrHitTest = sqlite3VdbeAddOp1(v, OP_If, regHit);//在虚拟机中添加操作码为OP_If的指令，并将返回的指令地址指令赋给addrHitTest。该指令的第一个操作数是当前内存单元的个数，还有两个默认的操作数0 
 	}
@@ -4590,6 +4664,9 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数�
 ** count(*) query ("SELECT count(*) FROM pTab").
 **添加一个单一的OP_Explain 结构到VDBE ，用来解释一个单独的count(*)查询.
 */
+        /*
+        ** 为VDBE添加一个OP_Explain 结构来解释一个简单的count(*)查询。
+        */
 #ifndef SQLITE_OMIT_EXPLAIN
 static void explainSimpleCount(
 	Parse *pParse,                  /* 解析上下文 */
@@ -4657,6 +4734,45 @@ static void explainSimpleCount(
 	** 这段程序返回错误的个数。如果存现任何错误，一个错误信息将会放在pParse->zErrMsg中。                   
 	**
 	** 这段程序并不释放SELECT结构体。调用的函数需要释放SELECT结构体。
+	*/
+	/*
+	** 为给出p参数编写SELECT语句。 
+	** 这些结果按照不同的方式分发。分发方式取决于由 pDest参数指向的SelectDest
+	** 结构的内容。
+	**     pDest->eDest    Result
+		**     ------------    -------------------------------------------
+		**     SRT_Output      为结果集中每一行产生一行输出(使用OP_ResultRow操作
+		**                     opcode)
+		**
+		**     SRT_Mem          。存储第一个结果行的第一列在寄存器pDest->iSDParm
+		**                     然后舍弃剩余的查询。为了实现"LIMIT 1".
+		**                     
+		**                    
+		**
+		**     SRT_Set         结果必须是一个单独列。存储结果的每一行作为键在表pDest->iSDParm中。
+		**                     应用相似性pDest->affSdst在存储结果前。为了实现"IN (SELECT ...)".
+		**                   
+		**     SRT_Union       存储结果作为一个可被识别的键在临时表 pDest->iSDParm 中。
+		**                     
+		**
+		**     SRT_Except      从临时表pDest->iSDParm删除结果
+		**
+		**     SRT_Table       存储结果在临时表pDest->iSDParm中。这就像 SRT_EphemTab除了假设这个表已经
+		**                     被打开。
+		**                    
+		**     SRT_EphemTab    创建一个临时表pDest->iSDParm并且在里面存储结果。这个游标是返回之后左边打开。
+		**                     这就像SRT_Table除了要使用OP_OpenEphemeral先创建一个表
+		**                     
+		**     SRT_Coroutine   创建一个协作程序，每次被调用的时候，都返回一行新的结果。这个协作程序的条目指针
+		**                     存在寄存器pDest->iSDParm中。
+		**                    
+		**     SRT_Exists      存储一个1在内存单元pDest->iSDParm 中，如果结果集不为空。
+		**                     
+		**     SRT_Discard     抛掉结果。它被一个带触发器的SELECT语句使用，触发器是这个函数的附带因素。
+		**                     
+		** 这段程序返回错误的个数。如果存现任何错误，一个错误信息将会放在pParse->zErrMsg中。                   
+		**
+		** 这段程序并不释放SELECT结构体。调用的函数需要释放SELECT结构体。
 	*/
 int sqlite3Select(
 	Parse *pParse,         /* The parser context *//*解析上下文*/

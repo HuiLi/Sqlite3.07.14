@@ -16,13 +16,17 @@
 */
 /*此文件中的代码用于实现内存DB日志。在内存中的回滚事务用于存储事务汇报，
 当journal_mode=MEMORY，说明内存编译使用中。*/
+/*这个文件的代码用于实现实现内存的回滚日志，内存回滚日志被用来汇报日志对数据库的记忆
+当journal_mode=MEMORY 指示被使用*/
+
 #include "sqliteInt.h"
 
 /* Forward references to internal structures */
 /*提出对内部结构的引用*/
-typedef struct MemJournal MemJournal;
-typedef struct FilePoint FilePoint;
-typedef struct FileChunk FileChunk;
+/*内存结构体变量声明*/
+typedef struct MemJournal MemJournal;/*结构体类型的变量MemJournal*/
+typedef struct FilePoint FilePoint;/*结构体类型的变量FilePoint*/
+typedef struct FileChunk FileChunk;/*结构体类型的变量FileChunk*/
 
 /* Space to hold the rollback journal is allocated in increments of
 ** this many bytes.
@@ -33,6 +37,7 @@ typedef struct FileChunk FileChunk;
 ** memory allocators.
 */
 /*输入的大小小于2的幂。这样，FileChunk对象会填充内存分配大小至2的幂数，这样就能将空间浪费降至最小。*/
+/*选择的大小是小于2的幂。这样，FileChunk对象会填充内存分配大小至2的幂数，这样就能将空间浪费降至最小。*/
 #define JOURNAL_CHUNKSIZE ((int)(1024-sizeof(FileChunk*)))
 
 /* Macro to find the minimum of two numeric values.
@@ -48,7 +53,7 @@ typedef struct FileChunk FileChunk;
 /*回滚日志是一个由这些结构体组成的链表*/
 struct FileChunk {
   FileChunk *pNext;               /* Next chunk in the journal *//*指向下一个节点*/
-  u8 zChunk[JOURNAL_CHUNKSIZE];   /* Content of this chunk *//*节点存放的内容*/
+  u8 zChunk[JOURNAL_CHUNKSIZE];   /* Content of this chunk *//*节点存放的内容*/ /*无符号的字符型数组zChunk[]为节点存放的内容 */
 };
 
 /*
@@ -228,19 +233,19 @@ static int memjrnlFileSize(sqlite3_file *pJfd, sqlite_int64 *pSize){
 **MemJournal sqlite3_file对象的方法表。
 */
 static const struct sqlite3_io_methods MemJournalMethods = {
-  1,                /* iVersion */
-  memjrnlClose,     /* xClose */
-  memjrnlRead,      /* xRead */
-  memjrnlWrite,     /* xWrite */
-  memjrnlTruncate,  /* xTruncate */
-  memjrnlSync,      /* xSync */
-  memjrnlFileSize,  /* xFileSize */
-  0,                /* xLock */
-  0,                /* xUnlock */
-  0,                /* xCheckReservedLock */
-  0,                /* xFileControl */
-  0,                /* xSectorSize */
-  0,                /* xDeviceCharacteristics */
+   1,                /* iVersion 版本*/
+  memjrnlClose,     /* xClose  关闭文件*/
+  memjrnlRead,      /* xRead 读文件*/
+  memjrnlWrite,     /* xWrite 写文件*/
+  memjrnlTruncate,  /* xTruncate截断文件 */
+  memjrnlSync,      /* xSync 文件同步*/
+  memjrnlFileSize,  /* xFileSize 文件大小 */
+  0,                /* xLock 加锁*/
+  0,                /* xUnlock 不加锁*/
+  0,                /* xCheckReservedLock检查排斥锁 */
+  0,                /* xFileControl 文件控制*/
+  0,                /* xSectorSize扇区大小 */
+  0,                /* xDeviceCharacteristics 设备特性 */
   0,                /* xShmMap */
   0,                /* xShmLock */
   0,                /* xShmBarrier */
