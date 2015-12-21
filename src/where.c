@@ -3033,6 +3033,9 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
 /*
 **假设一个合适的指数存在，如果WHERE子句术语pTerm一种可能会被用到一种索引访问pSrc的地方的形式，返回TRUE.
 */
+/*
+**如果WHERE子句项pTerm是可以用于和一个索引共同链接到pSrc的一种形式，则返回真，那么假设一个合适的索引是存在的。
+*/
 static int termCanDriveIndex(
 <<<<<<< HEAD
 	WhereTerm *pTerm,              /* WHERE clause term to check *//* 用于检查的WHERE子句项*/
@@ -3074,6 +3077,7 @@ struct SrcList_item *pSrc,     /* Table we are trying to access *//* 尝试登�
 /*
 **如果对于pSrc指定在pCost的查询计划 是 完整表格浏览和允许的索引（如果这里没有编入索引的子句）以及它可能去建设一个暂时性的能够比运行更好的索引。
 */
+/*如果在pCost中指定的pSrc的查询计划是一个全表扫描，并且可以使用索引(如果没有INDEXED子句)和他可能创建一个临时的索引，即使当创建索引的代价也被考虑进去仍旧比全表扫描更好，那么改变查询计划和使用临时索引。*/
 static void bestAutomaticIndex(
 <<<<<<< HEAD
 	Parse *pParse,              /* The parsing context *//* 解析文档*/
@@ -3223,6 +3227,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
 /*
 **生成代码构建的索引对象自动索引和设置WhereLevel对象pLevel这代码生成器利用自动索引。
 */
+/*为自动索引对象产生代码构建索引，并且用于设置WhereLevel对象pLevel以便代码生成器使用自动索引*/
 static void constructAutomaticIndex(
 <<<<<<< HEAD
 	Parse *pParse,              /* The parsing context *//* 解析文档*/
@@ -3476,7 +3481,8 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 /*
 **分配和填充一个sqlite3_index_info结构。是调用者的责任最终释放结构通过这个函数返回的指针sqlite3_free().
 */
-static sqlite3_index_info *allocateIndexInfo(//分配索引号
+/*分配和填充一个sqlite3_index_info数据结构。它的作用是让调用者通过这个函数返回给sqlite3_free()的指针最终释放数据结构.*/
+static sqlite3_index_info *allocateIndexInfo(//分配索引号// //分配和填充一个sqlite3_index_info数据结构。
   Parse *pParse, 
   WhereClause *pWC,
   struct SrcList_item *pSrc,
@@ -3657,6 +3663,9 @@ static sqlite3_index_info *allocateIndexInfo(//分配索引号
 **如果出现错误,pParse填充一个错误消息,并返回一个非零值。否则,返回0和输出的一部分sqlite3_index_info结构填充。
 **是否返回一个错误,它是调用者的责任最终自由p - > idxStr如果p - > needToFreeIdxStr表明这是必需的。
 */
+/*对象引用作为第二个参数传递给该函数必须代表一个虚表。这个函数调用xBestIndex()方法的虚表sqlite3_index_info指针作为参数传递。
+如果出现错误，pParse填充一个错误消息,则返回非零值。并且 sqlite3_index_info中输出的部分被留下填充。如果p->needToFreeIdxStr这是必须的话，
+那么不管是否返回了一个错误，那么都应该由调用者最终释放p->idxStr指针。*/
 static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
   sqlite3_vtab *pVtab = sqlite3GetVTable(pParse->db, pTab)->pVtab;
   int i;
@@ -3734,6 +3743,10 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
 **在加入,这个例程可能会多次呼吁同一个虚拟表。sqlite3_index_info结构是在第一次调用创建并初始化和重用在所有后续调用。
 **sqlite3_index_info结构时也使用生成代码来访问虚拟表。whereInfoDelete()例程负责释放sqlite3_index_info结构后每个人都完成了。
 */
+/*计算虚表的最佳索引。
+最佳索引是使用虚表模块的xBestIndex函数来计算的。这个例程实际上只是建立sqlite3_index_info结构的包装，这个结构用来与xBestIndex通信。
+在一次连接当中，这个例程可能会被同一个虚表调用若干次。sqlite3_index_info结构是在第一次调用时创建和初始化的，并且在所有的子调用中都会重复使用。 
+sqlite3_index_info结构同样也在生成代码来进入虚表时被使用。whereInfoDelete()例程用来处理在所有操作都完成后对sqlite3_index_info结构的释放。*/
 static void bestVirtualIndex(
 <<<<<<< HEAD
 	Parse *pParse,                  /* The parsing context *//* 解析上下文*/
@@ -4034,6 +4047,10 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
 **    aStat[1]      Est. number的行数等于pVal
 ** 返回SQLITE_OK表示操作成功。
 */
+/*估计在一个索引的所有键中的一个特别键的位置。在aStat中像下面这样保存结果:
+**    aStat[0]      行的Est. number小于pVal
+**    aStat[1]      行的Est. number等于pVal
+       返回成功时SQLITE_OK*/
 static int whereKeyStats(
 <<<<<<< HEAD
 	Parse *pParse,              /* Database connection *//*数据库连接*/
@@ -4256,6 +4273,9 @@ static int whereKeyStats(
 **
 **如果出现错误了，就返回错误代码。否则，就是SQLITE_OK。
 */
+/*如果表达式pExpr表示一个文本值，那么设*pp是指向包含相同值的sqlite3_value
+结构的指针，并且在返回之前与它紧密相关。最终把它传递到sqlite3ValueFree()中时，由调用者来释放此结构。
+*/
 #ifdef SQLITE_ENABLE_STAT3
 static int valueFromExpr(
   Parse *pParse, 
@@ -4364,6 +4384,11 @@ static int valueFromExpr(
 **
 ** 在缺乏sqlite_stat3分析数据的情况下，每个不平等因素减少了搜索空间的范围4。因此
 ** 一个约束(x>?)结果的返回4和一系列约束(x>?和x<?)结果返回16。
+*/
+/*9参数nEq是通过索引列的索引范围来约束的。或者同样地，由提出的索引扫描来优化等值约束。返回值是一个整数因子用来减少估计的搜索空间。
+返回值为1意味着范围约束是没有意义。返回值为2意味着范围约束预计将减少一半的搜索空间。等等… 
+在缺乏sqlite_stat3分析数据的情况下，每个不平等因素减少了搜索空间的范围4。
+因此 一个约束(x>?)结果的返回4和一系列约束(x>?和x<?)结果返回16。
 */
 static int whereRangeScanEst(
 <<<<<<< HEAD
@@ -4585,6 +4610,10 @@ whereEqualScanEst_cancel:
 **如果不能够加载一个排序序列需要的比较字符串，或者如果不能为一个UTF转换所需求的对照关系进行分配存储，那么这个程序就会失败。
 **这个错误存储在pParse结构中。
 */
+/*估计基于IN约束条件的返回的行数，这个约束条件是在IN操作码的右边为一串值。
+对估计行数计数并且写入*pnRow，然后返回SQLITE_OK。如果不能作出估计，则保持*pnRow为原值并且返回非零。
+如果不能够载入字符串比较所需的排序序列，或者不能够比较时所需的UTF会话分配内存空间，则此例程可以算做失败。
+错误结果储存在pParse结构中。*/
 static int whereInScanEst(
 <<<<<<< HEAD
 	Parse *pParse,       /* Parsing & code generating context *//*解析上下文并且生成代码*/
@@ -4705,6 +4734,7 @@ static int whereInScanEst(
 **
 **如果一个NOT INDEXED子句（即：pSrc->notIndexed!=0）被附在表的SQL语句中，那么就不需要考虑索引。然而，这个选择方案可能仍然要利用内置rowid主键索引。
 */
+/*选择访问一个特殊表的最好的查询计划。把最好的查询优化和它的代价写入WhereCost对象，并且作为最后的参数提供。*/
 static void bestBtreeIndex(
 <<<<<<< HEAD
   Parse *pParse,              /* 解析上下文 */
@@ -5733,6 +5763,8 @@ static void bestBtreeIndex(
 **找到访问表pSrc->pTab的查询方案。记录下最好的查询方案和它在WhereCost对象中作为最后一个参数运用的代价。
 **这个函数或许可以计算束和浏览虚拟表的成本。
 */
+/*查找访问表pSrc->pTab的查询计划。在WhereCost对象中写入最好的查询计划和它的代价，并且作为最好的参数传递给bestIndex函数。
+*这个函数可能会计算表扫描和虚拟表扫描的代价*/
 static void bestIndex(
 <<<<<<< HEAD
   Parse *pParse,              /* 解析上下文*/
