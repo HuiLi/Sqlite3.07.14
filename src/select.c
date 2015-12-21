@@ -1478,14 +1478,14 @@ static const char *columnType(/*定义静态且是只读的字符型指针column
 #endif
 	}
 
-	if (pzOriginDb)//如果存在原始的数据库，则执行if语句
+	if (pzOriginDb)//如果存在原始的数据库，则执行if语句////如果存在原始的数据库，则执行if语句
 	{/*如果存在原始的数据库*/
 		assert(pzOriginTab && pzOriginCol);/*插入断点，判断表和列是否存在*/
 		*pzOriginDb = zOriginDb;/*文件中数据库赋值给数据库变量pzOriginDb*/
 		*pzOriginTab = zOriginTab;/*文件中表赋值给表变量pzOriginTab*/
 		*pzOriginCol = zOriginCol;/*文件中列赋值给列变量pzOriginCol*/
 	}
-	return zType;/*返回列类型*///返回zType类型
+	return zType;/*返回列类型*///返回zType类型//返回zType类型
 }
 
 /////////
@@ -1721,7 +1721,7 @@ static int selectColumnsFromExprList(
 		*pnCol = 0;/*令列名为0*/
 		return SQLITE_NOMEM;/*返回SQLITE_NOMEM（没有分配）*/
 	}
-	return SQLITE_OK;/*返回SQLITE_OK值*/
+	return SQLITE_OK;/*返回SQLITE_OK值*//*返回SQLITE_OK值*/
 }
 
 /*
