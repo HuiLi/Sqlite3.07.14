@@ -1530,7 +1530,7 @@ static int selectColumnsFromExprList(
 	*pnCol = nCol;/*写列名等于列名*/
 	*paCol = aCol;/*写列表名等于结果列名*/
 
-	for (i = 0, pCol = aCol; i < nCol; i++, pCol++)//遍历所有的列
+	for (i = 0, pCol = aCol; i < nCol; i++, pCol++)//遍历所有的列//遍历所有的列
 	{/*遍历所有的结果列*/
 		/* Get an appropriate name for the column
 		**给列取一个合适的名字
@@ -1546,7 +1546,7 @@ static int selectColumnsFromExprList(
 			*/
 			zName = sqlite3DbStrDup(db, zName);/*copy数据库连接中的列名（实质上copy此时在内存中列名字符串）赋值给列名*/
 		}
-		else//执行else语句
+		else//执行else语句//执行else语句
 		{
 			Expr *pColExpr = p;  /* The expression that is the result column name 结果列名称的表达式*/
 			Table *pTab;         /* Table associated with this expression 与表达式相关的表*///定义一个与表达式相关的表
@@ -1575,7 +1575,7 @@ static int selectColumnsFromExprList(
 				zName = sqlite3MPrintf(db, "%s", pEList->a[i].zSpan);/*打印来自于列名的表达式列表的原文，并赋值给zName*/
 			}
 		}
-		if (db->mallocFailed)//如内存分配错误，则执行if语句
+		if (db->mallocFailed)//如内存分配错误，则执行if语句//如内存分配错误，则执行if语句
 		{/*分配内存出错*/
 			sqlite3DbFree(db, zName);/*释放数据库连接中的列名*/
 			break;//结束
@@ -1586,7 +1586,7 @@ static int selectColumnsFromExprList(
 		** 确保列名是唯一的。如果名字不是唯一的,给名称附加一个整数,这样就变得唯一了
 		*/
 		nName = sqlite3Strlen30(zName);//定义一个sqlite3Strlen30(zName)函数并赋值给nName
-		for (j = cnt = 0; j < i; j++)/满足j < i循环下去
+		for (j = cnt = 0; j < i; j++)//满足j < i循环下去
 		{
 			if (sqlite3StrICmp(aCol[j].zName, zName) == 0){
 				char *zNewName;//定义一个字符型的指针变量zNewName
@@ -1602,7 +1602,7 @@ static int selectColumnsFromExprList(
 	}
 	if (db->mallocFailed)//如果满足条件，执行if语句
 	{
-		for (j = 0; j < i; j++)//执行for循环
+		for (j = 0; j < i; j++)//执行for循环//执行for循环
 		{
 			sqlite3DbFree(db, aCol[j].zName);
 		}
@@ -1629,27 +1629,28 @@ static int selectColumnsFromExprList(
 ** 这个程序要求，在SELECT语句中的所有标识符得到解决。
 */
 static void selectAddColumnTypeAndCollation(
-	Parse *pParse,        /* Parsing contexts 解析上下文*/
-	int nCol,             /* Number of columns 列数*/
-	Column *aCol,         /* List of columns 列表*/
+	Parse *pParse,        /* Parsing contexts 解析上下文*///定义一个Parse类型的变量指针
+	int nCol,             /* Number of columns 列数*///定义一个int类型的变量指针
+	Column *aCol,         /* List of columns 列表*///定义一个Column类型的变量指针
 	Select *pSelect       /* SELECT used to determine types and collations      SELECT用于确定类型和排序*/
 	){
 	sqlite3 *db = pParse->db;
-	NameContext sNC;
-	Column *pCol;
-	CollSeq *pColl;
-	int i;
+	NameContext sNC;//定义一个NameContext类型的变量指针
+	Column *pCol;//定义一个Column t类型的变量指针
+	CollSeq *pColl;//定义一个CollSeqt类型的变量指针
+	int i;//定义一个int类型的变量i
 	Expr *p;
 	struct ExprList_item *a;
 
 	assert(pSelect != 0);
 	assert((pSelect->selFlags & SF_Resolved) != 0);
 	assert(nCol == pSelect->pEList->nExpr || db->mallocFailed);
-	if (db->mallocFailed) return;
+	if (db->mallocFailed) return;//满足条件，执行if语句，返回
 	memset(&sNC, 0, sizeof(sNC));
 	sNC.pSrcList = pSelect->pSrc;
 	a = pSelect->pEList->a;
-	for (i = 0, pCol = aCol; i < nCol; i++, pCol++){
+	for (i = 0, pCol = aCol; i < nCol; i++, pCol++)//满足条件，执行循环
+	{
 		p = a[i].pExpr;
 		pCol->zType = sqlite3DbStrDup(db, columnType(&sNC, p, 0, 0, 0));
 		pCol->affinity = sqlite3ExprAffinity(p);
