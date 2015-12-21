@@ -1343,6 +1343,7 @@ static void loadExt(sqlite3_context *context, int argc, sqlite3_value **argv){
 ** An instance of the following structure holds the context of a
 ** sum() or avg() aggregate computation.
 以下结构的实例持有的上下文中sum()或avg()聚集计算。
+下面结构的实例保留了sum()或avg()聚集计算的上下文。
 */
 typedef struct SumCtx SumCtx;
 struct SumCtx {
@@ -1367,6 +1368,12 @@ struct SumCtx {
 如果总和没有输入，返回null。在这种情况下TOTAL返回0
 此外，TOTAL总是返回一个浮点数，在这里若SUM从没有遇到一个浮点数，SUM可能返回一个整数。
 TOTAL总不会失败，但sum可能出现一个异常如果它溢出整数。
+程序被用来计算总数，平均值，和合计。
+SUM()函数遵照SQL标准意味着如果在求和过程中没有输入数据就返回NULL。在这种情况下TOTAL返回0.0。
+此外，TOTAL总是返回一个浮点数，同样的情况下如果SUM不处理浮点值时，则可能返回一个整数。
+TOTAL不会出错，但是如果SUM溢出一个整数，则可能抛异常。
+
+
 */
 static void sumStep(sqlite3_context *context, int argc, sqlite3_value **argv){
   SumCtx *p;
@@ -1394,11 +1401,11 @@ static void sumFinalize(sqlite3_context *context){
   p = sqlite3_aggregate_context(context, 0);
   if( p && p->cnt>0 ){
     if( p->overflow ){
-      sqlite3_result_error(context,"integer overflow",-1);//返回错误整数溢出为-1
+      sqlite3_result_error(context,"integer overflow",-1);// 返回错误整数溢出为-1
     }else if( p->approx ){
-      sqlite3_result_double(context, p->rSum);//如果不是整数时返回浮点数的总和
+      sqlite3_result_double(context, p->rSum);// 如果不是整数时返回浮点数的总和
     }else{
-      sqlite3_result_int64(context, p->iSum);//反之返回整数总和
+      sqlite3_result_int64(context, p->iSum);// 反之返回整数总和
     }
   }
 }
@@ -1420,6 +1427,7 @@ static void totalFinalize(sqlite3_context *context){
 ** The following structure keeps track of state information for the
 ** count() aggregate function.
 以下的结构保持跟踪状态信息的count()聚合函数。
+以下的结构记录了count()聚合函数的状态信息。
 */
 typedef struct CountCtx CountCtx;
 struct CountCtx {
@@ -1429,6 +1437,7 @@ struct CountCtx {
 /*
 ** Routines to implement the count() aggregate function.
 例程来实现count()聚合函数。
+编程来实现count()聚合函数。
 
 */
 static void countStep(sqlite3_context *context, int argc, sqlite3_value **argv){
@@ -1458,6 +1467,7 @@ static void countFinalize(sqlite3_context *context){
 /*
 ** Routines to implement min() and max() aggregate functions.
 例程来实现min() 和 max() 聚合函数。
+用来实现min()和max()聚合函数的程序。
 */
 static void minmaxStep(
   sqlite3_context *context, 
@@ -1476,7 +1486,7 @@ static void minmaxStep(
   }else if( pBest->flags ){
     int max;
     int cmp;
-    CollSeq *pColl = sqlite3GetFuncCollSeq(context);//调觭qlite3GetFuncCollSeq(context)函数
+    CollSeq *pColl = sqlite3GetFuncCollSeq(context);//调用qlite3GetFuncCollSeq(context)函数
     /* This step function is used for both the min() and max() aggregates,
     ** the only difference between the two being that the sense of the
     ** comparison is inverted. For the max() aggregate, the
@@ -1485,8 +1495,9 @@ static void minmaxStep(
     ** Therefore the next statement sets variable 'max' to 1 for the max()
     ** aggregate, or 0 for min().
     这阶梯函数用于min()和max()聚集,两者之间唯一的区别是,比较的意义是倒置的。
-    对于max()聚合函数,sqlite3_user_data()函数返回(void *)-1。对于min(),它返回(void *)db,db数据库sqlite3 *指针。
+    对于max()聚合函数,sqlite3_user_data()函数返回(void *)-1。对于min(),它返回(void *)db,db是数据库sqlite3 *指针。
     因此下一个语句集变量“max”max()聚合为1 ,或min()为0。
+	因此下一个语句在max()中设置max变量为1，在min()中设置为0。
     */
     max = sqlite3_user_data(context)!=0;
     cmp = sqlite3MemCompare(pBest, pArg, pColl);
@@ -1570,6 +1581,8 @@ static void groupConcatFinalize(sqlite3_context *context){
 这个例程是在每个连接函数注册。
 最上面的内置函数是全局函数集的一部分。
 这个例程只处理那些不是全局的函数。
+这个程序是连接注册函数。大多数上面的内置函数是全局函数集的一部分。
+这个程序仅仅处理不是全局的函数。
 */
 void sqlite3RegisterBuiltinFunctions(sqlite3 *db){
   int rc = sqlite3_overload_function(db, "MATCH", 2);
@@ -1596,7 +1609,7 @@ static void setLikeOptFlag(sqlite3 *db, const char *zName, u8 flagVal){
 ** Register the built-in LIKE and GLOB functions.  The caseSensitive
 ** parameter determines whether or not the LIKE operator is case
 ** sensitive.  GLOB is always case sensitive.
-注册内置的LIKE and GLOB函数。
+注册内置的LIKE和GLOB函数。
 caseSensitive参数确定LIKE 操作符是否区分大小写的。 
 GLOB永远都是区分大小写的。
 */
@@ -1647,6 +1660,8 @@ int sqlite3IsLikeFunction(sqlite3 *db, Expr *pExpr, int *pIsNocase, char *aWc){
   ** asserts() that follow verify that assumption
   memcpy()语句认为通配符compareInfo中的前三个语句结构。
   asserts() 将验证这个假设
+  memcpy()语句认为通配符是compareInfo结构中的三个语句。
+  asserts()将跟踪验证这个假设
   */
   memcpy(aWc, pDef->pUserData, 3);
   assert( (char*)&likeInfoAlt == (char*)&likeInfoAlt.matchAll );
@@ -1665,6 +1680,7 @@ int sqlite3IsLikeFunction(sqlite3 *db, Expr *pExpr, int *pIsNocase, char *aWc){
 所有的FuncDef结构都在aBuiltinFunc[]数组上面的全局函数散列表中。
 这发生在起始时间(由于调用sqlite3_initialize())。
 这个例程运行后
+这个程序运行后
 
 */
 void sqlite3RegisterGlobalFunctions(void){
@@ -1678,6 +1694,7 @@ void sqlite3RegisterGlobalFunctions(void){
 以下数组持有在这个文件中定义的所有函数的FuncDef结构。
 由于改变了FuncDef，数组不能成为常量。pHash元素起始时间。
 这个数组的元素初始化完成后是只读的。
+以下数组为这个文件中全部被定义的函数保存FuncDef结构。
   */
   static SQLITE_WSD FuncDef aBuiltinFunc[] = {
     FUNCTION(ltrim,              1, 1, 0, trimFunc         ),
