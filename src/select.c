@@ -1623,8 +1623,8 @@ static void generateColumnNames(
 ** 成功时返回SQLITE_OK。如果内存分配发生错误,在*paCol里存NULL，在*pnCol里存0，返回SQLITE_NOMEM
 */
 static int selectColumnsFromExprList(
-	Parse *pParse,          /* Parsing context 解析上下文 */
-	ExprList *pEList,       /* Expr list from which to derive column names 来自于列名的表达式列表*/
+	Parse *pParse,          /* Parsing context 解析上下文 *///定义一个Parse变量
+	ExprList *pEList,       /* Expr list from which to derive column names 来自于列名的表达式列表*///定义一个ExprList变量
 	int *pnCol,             /* Write the number of columns here 把列的数量写在这里*/
 	Column **paCol          /* Write the new column list here 把新列列表写在这里*/
 	){
@@ -1746,8 +1746,8 @@ static int selectColumnsFromExprList(
 	** 这个程序要求select指令中所有标示符都是确定的。
 */
 static void selectAddColumnTypeAndCollation(
-	Parse *pParse,        /* Parsing contexts 解析上下文*/
-	int nCol,             /* Number of columns 列数*/ 
+	Parse *pParse,        /* Parsing contexts 解析上下文*///定义一个Parse变量
+	int nCol,             /* Number of columns 列数*/ //定义一个int变量
 	Column *aCol,         /* List of columns 列表*/
 	Select *pSelect       /* SELECT used to determine types and collations      SELECT用于确定类型和排序*//*用来确定类型和排序规则的select结构体*/
 	){
@@ -1755,7 +1755,7 @@ static void selectAddColumnTypeAndCollation(
 	NameContext sNC;/*声明一个命名上下文结构体（决定表或者列的名字）*/
 	Column *pCol;;/*声明一个列表*/
 	CollSeq *pColl;/*声明一个排序队列*/
-	int i;
+	int i;//定义一个整型变量i
 	Expr *p;/*声明一个表达式变量*/
 	struct ExprList_item *a;/*声明一个表达式列表项变量*/
 
@@ -1800,7 +1800,7 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, Select *pSelect){
 	db->flags = savedFlags;/*将数据库连接标记放到数据库连接的flags属性中*/
 	pTab = sqlite3DbMallocZero(db, sizeof(Table));/*分配并清空内存，分配大小为表Table的大小的内存*/
 	if (pTab == 0){ /*如果表为空*/
-		return 0;/*直接返回0*/
+		return 0;/*直接返回0*///执行If语句，直接返回0
 	}
 	/* The sqlite3ResultSetOfSelect() is only used n contexts where lookaside
 	** is disabled
@@ -1840,7 +1840,7 @@ Vdbe *sqlite3GetVdbe(Parse *pParse){
 		}
 #endif
 	}
-	return v;/*返回创建成功的VDBE*/
+	return v;/*返回创建成功的VDBE*///返回v
 }
 
 
