@@ -1167,7 +1167,7 @@ int sqlite3_bind_blob(
 ){
   return bindText(pStmt, i, zData, nData, xDel, 0);
 }
-int sqlite3_bind_double(sqlite3_stmt *pStmt, int i, double rValue){
+int sqlite3_bind_double(sqlite3_stmt *pStmt, int i, double rValue){//绑定一个64位浮点值。
   int rc;
   Vdbe *p = (Vdbe *)pStmt;
   rc = vdbeUnbind(p, i);
@@ -1177,10 +1177,10 @@ int sqlite3_bind_double(sqlite3_stmt *pStmt, int i, double rValue){
   }
   return rc;
 }
-int sqlite3_bind_int(sqlite3_stmt *p, int i, int iValue){//i64-8位有符号整型
+int sqlite3_bind_int(sqlite3_stmt *p, int i, int iValue){//i64-8位有符号整型//绑定一个32位有符号整型值。
   return sqlite3_bind_int64(p, i, (i64)iValue);
 }
-int sqlite3_bind_int64(sqlite3_stmt *pStmt, int i, sqlite_int64 iValue){
+int sqlite3_bind_int64(sqlite3_stmt *pStmt, int i, sqlite_int64 iValue){//绑定一个64位有符号整型值。
   int rc;
   Vdbe *p = (Vdbe *)pStmt;
   rc = vdbeUnbind(p, i);
@@ -1190,7 +1190,7 @@ int sqlite3_bind_int64(sqlite3_stmt *pStmt, int i, sqlite_int64 iValue){
   }
   return rc;
 }
-int sqlite3_bind_null(sqlite3_stmt *pStmt, int i){
+int sqlite3_bind_null(sqlite3_stmt *pStmt, int i){// 绑定NULL。
   int rc;
   Vdbe *p = (Vdbe*)pStmt;
   rc = vdbeUnbind(p, i);
@@ -1199,7 +1199,7 @@ int sqlite3_bind_null(sqlite3_stmt *pStmt, int i){
   }
   return rc;
 }
-int sqlite3_bind_text( 
+int sqlite3_bind_text( //绑定一个任意长度的UTF-8编码的文本值，第4个参数是字节长度，注意不是字符长度。如果给第4个参数传递负值，SQlite就会自动计算绑定值的字节长度（不包括NULL结尾符）。
   sqlite3_stmt *pStmt, 
   int i, 
   const char *zData, 
