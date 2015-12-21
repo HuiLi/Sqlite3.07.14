@@ -2422,7 +2422,7 @@ multi_select_end:/*上文的goto跳到这个部分*/
 }
 #endif /* SQLITE_OMIT_COMPOUND_SELECT */
 
-/*
+/* 李超赢分析模块开始
 ** Code an output subroutine for a coroutine implementation of a
 ** SELECT statment.
 ** 为协同执行查询语句编写一个输出子程序.
@@ -2552,7 +2552,7 @@ static int generateOutputSubroutine(
 		*/
 	case SRT_Mem: {
 		assert(pIn->nSdst == 1);/*插入断点，判断协同处理数据集的寄存器数是否为1*/
-		sqlite3ExprCodeMove(pParse, pIn->iSdst, pDest->iSDParm, 1);/*释放寄存器中的内容，保持寄存器的内容及时更新*/
+		sqlite3ExprCodeMove(pParse, pIn->iSdst, pDest->iSDParm, 1);/*释放寄存器中的内容，及时更新寄存器内容*/
 		/* The LIMIT clause will jump out of the loop for us  Limit子句将会从循环中跳出*/
 		break;
 	}
