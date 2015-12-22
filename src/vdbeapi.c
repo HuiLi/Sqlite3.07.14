@@ -1220,7 +1220,7 @@ int sqlite3_bind_text16(
 }
 /*TODO sqlite3_bind_value 的入口，里面由pValue->type来决定调用绑定值得类型*/
 #endif /* SQLITE_OMIT_UTF16 */
-int sqlite3_bind_value(sqlite3_stmt *pStmt, int i, const sqlite3_value *pValue){
+int sqlite3_bind_value(sqlite3_stmt *pStmt, int i, const sqlite3_value *pValue){//绑定sqlite3_value结构体类型的值，sqlite3_value结构体可以保存任意格式的数据。
   int rc;
   switch( pValue->type ){
     case SQLITE_INTEGER: {
@@ -1251,7 +1251,7 @@ int sqlite3_bind_value(sqlite3_stmt *pStmt, int i, const sqlite3_value *pValue){
   }
   return rc;
 }
-int sqlite3_bind_zeroblob(sqlite3_stmt *pStmt, int i, int n){
+int sqlite3_bind_zeroblob(sqlite3_stmt *pStmt, int i, int n){//该函数绑定指定大小的全零block数据。
   int rc;
   Vdbe *p = (Vdbe *)pStmt;
   rc = vdbeUnbind(p, i);
@@ -1267,7 +1267,7 @@ int sqlite3_bind_zeroblob(sqlite3_stmt *pStmt, int i, int n){
 ** This routine is added to support DBD::SQLite.
 **  返回有可能被绑定的通配符数量。这个程序是添加DBD::SQLite支持
 */
-int sqlite3_bind_parameter_count(sqlite3_stmt *pStmt){
+int sqlite3_bind_parameter_count(sqlite3_stmt *pStmt){//该函数 能够被用于找到预声明中SQL参数的个数。
   Vdbe *p = (Vdbe*)pStmt;
   return p ? p->nVar : 0;
 }
@@ -1280,7 +1280,7 @@ int sqlite3_bind_parameter_count(sqlite3_stmt *pStmt){
 ** The result is always UTF-8.
 ** 结果通常是UTF-8编码
 */
-const char *sqlite3_bind_parameter_name(sqlite3_stmt *pStmt, int i){
+const char *sqlite3_bind_parameter_name(sqlite3_stmt *pStmt, int i){//该函数返回在预声明pStmt中的第N个SQL参数的名字。
   Vdbe *p = (Vdbe*)pStmt;
   if( p==0 || i<1 || i>p->nzVar ){
     return 0;
@@ -1309,7 +1309,7 @@ int sqlite3VdbeParameterIndex(Vdbe *p, const char *zName, int nName){
   }
   return 0;
 }
-int sqlite3_bind_parameter_index(sqlite3_stmt *pStmt, const char *zName){
+int sqlite3_bind_parameter_index(sqlite3_stmt *pStmt, const char *zName){//该函数返回一个给定名字参数的索引。返回的该索引值适合用于作为sqlite3_bind()的第二个参数使用。
   return sqlite3VdbeParameterIndex((Vdbe*)pStmt, zName, sqlite3Strlen30(zName));
 }
 
