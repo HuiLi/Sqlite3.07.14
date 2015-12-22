@@ -2064,7 +2064,7 @@ static int walIndexReadHdr(Wal *pWal, int *pChanged){
     rc = SQLITE_CANTOPEN_BKPT;
   }
 
-  return rc;  //返回值
+  return rc;  //返回值  ol
 }
 
 /*
