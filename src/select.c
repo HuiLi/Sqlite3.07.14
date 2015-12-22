@@ -4444,6 +4444,9 @@ static u8 minMaxQuery(Select *p){
 **
 **为一个基于当前所处的位置上的聚集函数更新累加器的内存单元
 */
+/*
+** 为基于当前光标位置的累加器更新聚集函数内存单元。
+*/
 static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数，其中parse是分析树，pAggInfo是聚集函数结构体
 	Vdbe *v = pParse->pVdbe;    /*声明一个分析树中执行数据库字节码的引擎（PVdbe）*/
 	int i;
@@ -4519,6 +4522,15 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数�
 	**另一个解决方案是用OP_Copy操作来替换OP_Copy操作，实现将缓存中的数据复制到内存中。
 	**
 	*/
+	/* 
+	** 在获取累加寄存器的内存之前,清空列缓存。否则,如果任何所需的列值已经存
+	** 在于寄存器中,sqlite3ExprCode()函数会执行OP_SCopy操作，将这个值复制到
+	** pC->iMem（内存）中。但当这个值被使用时,初始寄存器可能被使用这就会使
+	** 得底层缓存区中保存的文本和二进制值失效。
+	** 
+	** 另一个解决方案是用OP_Copy操作来替换OP_Copy操作，实现将缓存中的数据
+	** 复制到内存中。
+	*/
 	if (regHit){//若有内存单元 
 		addrHitTest = sqlite3VdbeAddOp1(v, OP_If, regHit);//在虚拟机中添加操作码为OP_If的指令，并将返回的指令地址指令赋给addrHitTest。该指令的第一个操作数是当前内存单元的个数，还有两个默认的操作数0 
 	}
@@ -4541,6 +4553,9 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数�
 ** Add a single OP_Explain instruction to the VDBE to explain a simple
 ** count(*) query ("SELECT count(*) FROM pTab").
 **添加一个单一的OP_Explain 结构到VDBE ，用来解释一个单独的count(*)查询.
+*/
+/*
+** 为VDBE添加一个OP_Explain 结构来解释一个简单的count(*)查询。
 */
 #ifndef SQLITE_OMIT_EXPLAIN
 static void explainSimpleCount(
@@ -4610,6 +4625,7 @@ static void explainSimpleCount(
 	**
 	** 这段程序并不释放SELECT结构体。调用的函数需要释放SELECT结构体。
 	*/
+	
 int sqlite3Select(
 	Parse *pParse,         /* The parser context *//*解析上下文*/
 	Select *p,             /* The SELECT statement being coded. SELECT语句被编码*/
@@ -4712,6 +4728,12 @@ int sqlite3Select(
 		**这可能保守一些,但比强制
 		**执行一个精确的限制更容易些
 		*/
+		/* 
+		** 
+		** 通过父选择指向的最大表达式树的高度增加Parse.nHeight。子选择可能包含
+		** (SQLITE_MAX_EXPR_DEPTH-Parse.nHeight)最大高度的表达式树。这种做法比
+		** 必要的做法更保守但比执行一个精确限制更容易。
+		*/
 		pParse->nHeight += sqlite3SelectExprHeight(p);
 
 		isAggSub = (pSub->selFlags & SF_Aggregate) != 0;/*如果selFlags为SF_Aggregate，将聚集函数信息存入isAggSub*/
@@ -4734,6 +4756,11 @@ int sqlite3Select(
 			**pItem - > regReturn是一个寄存器分配给子程序返回地址
 			**
 			*/
+			/* 
+			** 生成一个子例程，此子例程将填充一个包含其子查询内容的临时表。
+			** pItem->addrFillSub指针将指向生成的子例程的地址。pItem->regReturn
+			** 是一个寄存器分配给子例程的返回地址。
+			*/
 			int topAddr;
 			int onceAddr = 0;
 			int retAddr;
@@ -4749,6 +4776,10 @@ int sqlite3Select(
 				**如果子查询没有关联到
 				**一个触发器,那么我们只需要计算
 				**子查询的值一次。*/
+				/* 
+				** 如果子查询没有被关联并且如果我们不处于一个触发器中，那么我们只需要
+				** 计算一次子查询的值。
+				*/
 				onceAddr = sqlite3CodeOnce(pParse);/*生成一个一次操作指令并为其分配空间*/
 			}
 			sqlite3SelectDestInit(&dest, SRT_EphemTab, pItem->iCursor);/*初始化一个SelectDest结构，并且把处理结果集合存储到SRT_EphmTab*/
@@ -4781,6 +4812,9 @@ int sqlite3Select(
 	/* If there is are a sequence of queries, do the earlier ones first.
 	  **如果有一系列的查询,先做前面的。
 	  */
+	  /* 
+	  ** 如果存在一个查询序列，则先完成之前的查询。
+	  */
 	if (p->pPrior){
 		if (p->pRightmost == 0){
 			Select *pLoop, *pRight = 0;
@@ -4812,6 +4846,12 @@ int sqlite3Select(
 	**如果有GROUP BY 和 ORDER BY子句，然后如果它们是一致的，那么先执行GROUP BY然后再执行ORDER BY.
 	** 这是一种优化方式，对最后的结果没有任何影响。使用带SQLITE_TESTCTRL_OPTIMIZER的SQLITE_GroupByOrder标记
 	** 在日常测试中不断优化。
+	*/
+	/* 
+	** 如果同时有GROUP BY和ORDER BY子句并且都可识别，则中止ORDER BY语句，
+	** 因为GROUP BY语句会导致元素输出时按照正确的顺序。这是最优的情况，
+	** 正确的结果应该不被影响。在测试中使用带SQLITE_TESTCTRL_OPTIMIZER的
+	** SQLITE_GroupByOrder标志来禁用这个最优操作。
 	*/
 	if (sqlite3ExprListCompare(p->pGroupBy, pOrderBy) == 0/*如果两个表达式值相同*/
 		&& (db->flags & SQLITE_GroupByOrder) == 0){
@@ -4846,7 +4886,21 @@ int sqlite3Select(
 	**
 	**第二个格式更好，一个单独索引（临时表）可能用来能处理 ORDER BY 和 DISTINCT。最初写查询必须使用临时表在
 	** 针对ORDER BY 和 DISTINCT的其中一个，并且一个索引或分开的一个临时表给另外一个。*/
-	
+	/* 
+	** 如果查询是带ORDER BY语句的DISTINCT但不是一个聚合查询,而且如果选择列表
+	** 与ORDER BY列表相同，则此查询可以重新写作一个GROUP BY。
+	** 也就是：
+	**
+	** SELECT DISTINCT xyz FROM ... ORDER BY xyz
+	**
+	** 转换为
+	**
+	** SELECT xyz FROM ... GROUP BY xyz
+	**
+	** 第二种形式更适合作一个单一表（或临时表），它可以用来做ORDER BY和DISTINCT
+	** 两种处理。最初写查询必须使用临时表在ORDER BY 和 DISTINCT的其中一个中，并
+	** 且一个索引或分开的一个临时表给另外一个。
+	*/
 	if ((p->selFlags & (SF_Distinct | SF_Aggregate)) == SF_Distinct
 		&& sqlite3ExprListCompare(pOrderBy, p->pEList) == 0/*如果SELECT中selFlags为SF_Distinct或SF_Aggregate，并且表达式一直*/
 	  ){
@@ -4865,7 +4919,11 @@ int sqlite3Select(
 	** variable is used to facilitate that change.
 	**如果有ORDER BY子句如果数据被提前排序，排序索引可能不用。如果这种情况OP_OpenEphemeral指令会改变
 	**OP_Noop，一旦决定不需要排序索引。addrSortIndex变量用于帮助改变。*/
-	
+	/* 
+	** 如果存在ORDER BY子句，在数据被提前排序的情况下，排序索引可能结束不使用
+	** 的状态。如果发生了这种情况，则一旦我们发现不需要排序索引OP_OpenEphemeral
+	** 指令会改变为OP_Noop。addrSortIndex变量用于帮助这个转变操作。
+	*/
 	if (pOrderBy){
 		KeyInfo *pKeyInfo;
 		pKeyInfo = keyInfoFromExprList(pParse, pOrderBy);
@@ -4915,6 +4973,9 @@ int sqlite3Select(
 	/* Aggregate and non-aggregate queries are handled differently
 	  **聚合和非聚合查询被不同方式处理
 	  */
+	/* 
+	** 聚合和非聚合查询的处理方式是不同的
+	*/
 	if (!isAgg && pGroupBy == 0){
 		ExprList *pDist = (isDistinct ? p->pEList : 0);/*如果isAgg没有GroupBy，判断isDistinct是否为true，否则将p->pEList赋值给pDist*/
 
@@ -4932,6 +4993,10 @@ int sqlite3Select(
 		**如果排序索引被优先 OP_OpenEphemeral 指令创建
 		**创建不需要而被结束，那么OP_OpenEphemeral 变为OP_Noop
 		*/
+	/* 
+	** 如果由前项OP_OpenEphemeral指令产生的排序索引在结束时不需要了，
+	** 那么OP_OpenEphemeral 变为OP_Noop
+	*/
 		if (addrSortIndex >= 0 && pOrderBy == 0){/*如果排序索引存在并且ORDERBY为0*/
 			sqlite3VdbeChangeToNoop(v, addrSortIndex);/*将addrSortIndex中操作改为OP_Noop*/
 			p->addrOpenEphm[2] = -1;/*将SELECT结构体打开临时表的下标为2的元素设为-1*/
@@ -4958,6 +5023,10 @@ int sqlite3Select(
 
 				/* Change the OP_OpenEphemeral coded earlier to an OP_Integer. The
 				** OP_Integer initializes the "first row" flag.  */
+				/*
+				** 将之前编码的OP_OpenEphemeral改为OP_Integer，OP_Integer初始化第一
+				** 行标志位。
+				*/
 				pOp->opcode = OP_Integer;
 				pOp->p1 = 1;
 				pOp->p2 = iFlag;
@@ -4992,13 +5061,13 @@ int sqlite3Select(
 	}
 	else{
 		/* This is the processing for aggregate queries *//*处理聚合查询*/
-		NameContext sNC;    /* Name context for processing aggregate information *//*命名上下文处理聚合信息*/
-		int iAMem;          /* First Mem address for storing current GROUP BY *//*第一个内存地址存储GROUP BY*/
-		int iBMem;          /* First Mem address for previous GROUP BY *//*存储以前GROUP BY在第一个内存地址*/
+		NameContext sNC;    /* Name context for processing aggregate information *//*命名上下文处理聚合信息*//*为处理聚合信息命名文本*/
+		int iAMem;          /* First Mem address for storing current GROUP BY *//*第一个内存地址存储GROUP BY*//*第一个内存地址存储当前的GROUP BY*/
+		int iBMem;          /* First Mem address for previous GROUP BY *//*存储以前GROUP BY在第一个内存地址*//*第一个内存地址存储以前的GROUP BY*/
 		int iUseFlag;       /* Mem address holding flag indicating that at least
 							** one row of the input to the aggregator has been
-							** processed *//*含有标签内存地址表明至少一个输入行执行聚集*/
-		int iAbortFlag;     /* Mem address which causes query abort if positive *//*如果是整数会造成中止查询*/
+							** processed *//*含有标签内存地址表明至少一个输入行执行聚集*//*包含标志位的内存地址表明了至少一行对聚合的输入被处理了*/
+		int iAbortFlag;     /* Mem address which causes query abort if positive *//*如果是整数会造成中止查询*//*当处于激活状态就会中止查询的内存地址*/
 		int groupBySort;    /* Rows come from source in GROUP BY order *//*来源于GROUP BY命令的结果行*/
 		int addrEnd;        /* End of processing for this SELECT *//*处理SELECT的结束标记*/
 		int sortPTab = 0;   /* Pseudotable used to decode sorting results *//*Pseudotable用于解码排序的结果*/
@@ -5007,6 +5076,7 @@ int sqlite3Select(
 		/* Remove any and all aliases between the result set and the
 		** GROUP BY clause.
 		*//*删除结果集与GROUP BY之间所有的关联依赖*/
+		/*删除任意和所有结果集和GROUP BY语句之间的关联*/
 		if (pGroupBy){/*groupby 子句非空*/
 			int k;                        /* Loop counter   循环计数器*/
 			struct ExprList_item *pItem;  /* For looping over expression in a list */
@@ -5027,13 +5097,20 @@ int sqlite3Select(
 		/* Create a label to jump to when we want to abort the query 、
 		**当我们想取消查询时创建一个标签来跳转
 		*/
+		/* 
+		** 当我们想中止查询时创建一个可供跳转的标签
+		*/
 		addrEnd = sqlite3VdbeMakeLabel(v);
 
 		/* Convert TK_COLUMN nodes into TK_AGG_COLUMN and make entries in
 		** sAggInfo for all TK_AGG_FUNCTION nodes in expressions of the
 		** SELECT statement.
 		*//*将TK_COLUMN节点转化为TK_AGG_COLUMN，并且使所有sAggInfo中的条目转化为SELECT中的表达式中TK_AGG_FUNCTION节点*/
+		/*将TK_COLUMN节点转化为TK_AGG_COLUMN，并且为所有SELECT语句中的表达式中
+		** 的TK_AGG_FUNCTION节点创建进入sAggInfo的入口。
+		*/
 		memset(&sNC, 0, sizeof(sNC));/*将sNC中前sizeof(*sNc)个字节用0替换*/
+
 		sNC.pParse = pParse;
 		sNC.pSrcList = pTabList;/*将SELECT的源表集合赋值给命名上下文的源表集合（FROM子句列表）*/
 		sNC.pAggInfo = &sAggInfo;
@@ -5059,12 +5136,16 @@ int sqlite3Select(
 		**处理带有GROUP BY的聚集函数不同于不带的，而且更为复杂，
 		**而且有很大的不同，带groupby的要复杂得多。
 		*/
+		/* 
+		** 处理带有GROUP BY的聚集函数与处理不带GROUP BY 的聚集函数是不同的，
+		** 并且处理的时候更复杂
+		*/
 		if (pGroupBy){
-			KeyInfo *pKeyInfo;  /* Keying information for the group by clause 子句groupby 的关键信息*/
-			int j1;             /* A-vs-B comparision jump */
-			int addrOutputRow;  /* Start of subroutine that outputs a result row 开始一个输出结果行子程序*/
-			int regOutputRow;   /* Return address register for output subroutine  为输出子程序返回地址寄存器*/
-			int addrSetAbort;   /* Set the abort flag and return  设置终止标志并返回*/
+			KeyInfo *pKeyInfo;  /* Keying information for the group by clause 子句groupby 的关键信息*//* group by子句的关键信息*/
+			int j1;             /* A-vs-B comparision jump *//* A与B的比较跳转 */
+			int addrOutputRow;  /* Start of subroutine that outputs a result row 开始一个输出结果行子程序*//* 开始一个输出结果行子例程*/
+			int regOutputRow;   /* Return address register for output subroutine  为输出子程序返回地址寄存器*//* 为输出子程序返回地址寄存器*/
+			int addrSetAbort;   /* Set the abort flag and return  设置终止标志并返回*//* 设置终止标志并返回*/
 			int addrTopOfLoop;  /* Top of the input loop  输入循环的顶端*/
 			int addrSortingIdx; /* The OP_OpenEphemeral for the sorting index */
 			int addrReset;      /* Subroutine for resetting the accumulator   重置累加器的子程序*/
@@ -5076,6 +5157,12 @@ int sqlite3Select(
 			** will be converted into a Noop.
 			**（本人注：若实现分组，先进行排序）如果有一个GROUP BY子句，我们可能需要一个排序索引去实现它。
 		    ** 锁定排序索引。如果返回一个我们已经实现的，这个OP_SorterOpen指令将会转为Noop*/
+			*/
+			
+			/* 
+			** 如果有一个GROUP BY子句，我们可能需要一个排序索引去实现它。
+		    ** 现在分配此排序索引。如果后来发现我们不需要它，那么OP_SorterOpen指令
+			** 将会转为Noop指令。
 			*/
 			sAggInfo.sortingIdx = pParse->nTab++;
 			pKeyInfo = keyInfoFromExprList(pParse, pGroupBy);/*将表达式列表中的pGroupBy提取关键信息给pKeyInfo*/
@@ -5109,6 +5196,11 @@ int sqlite3Select(
 			** in the right order to begin with.
 			**启动一个循环，提取GROUP BY命令的所有的原列。
 			*/
+			/* 
+			** 开始一个循环，提取GROUP BY命令的所有的原列。
+			** 它可能包含两个独立的有OP_Sort在中间的循环，或者是一个以正确的顺序开始
+			** 的用索引来提取信息的单独的循环。
+			*/
 			sqlite3VdbeAddOp2(v, OP_Gosub, regReset, addrReset);
 			pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pGroupBy, 0, 0, 0);
 			if (pWInfo == 0) goto select_end;
@@ -5119,6 +5211,11 @@ int sqlite3Select(
 				**
 				**优化器能够发送出GROUP BY命令，不用再进行排序。
 				**这个临时表OP_OpenEphemeral将会被取消，因为我们使用pKeyInfo
+				*/
+				/* 
+				** 优化器能够传送GROUP BY命令中的行，这样就不用再进行排序。
+				** 这个临时表OP_OpenEphemeral可以在之后被取消，因为我们还需要使用
+				** pKeyInfo。
 				*/
 				pGroupBy = p->pGroupBy;
 				groupBySort = 0;
@@ -5131,6 +5228,10 @@ int sqlite3Select(
 				**
 				**以确定的顺序输出行。我们需要将每一行输入到排序索引，
 				**中止第一个循环，然后遍历排序索引为了得出排序的序列
+				*/
+				/* 
+				** 行以不确定的顺序输出。我们需要将每一行都放入到一个排序索引中，
+				**中止第一个循环，然后循环遍历排序索引来获取排序后的输出。
 				*/
 				int regBase;/*基址寄存器*/
 				int regRecord;/*寄存器中记录*/
@@ -5191,6 +5292,9 @@ int sqlite3Select(
 		  ** from the previous row currently stored in a0, a1, a2...
 		  *//*计算当前GROUP BY的条款并且存储在b0,b1,b2…（b0的内存地址为iBMem+0，b1的内存地址为iBMem+1…依次类推）
 		  **然后将当前GROUP BY的条款与存储在a0,a1,a2的以前的行的the GROUP BY 的条款*/
+		/* 计算当前GROUP BY项并且存储在b0,b1,b2…（b0的内存地址为iBMem+0，b1的内存地址为iBMem+1…依次类推）
+		** 然后比较当前GROUP BY的项与存储在a0,a1,a2的以前的行的the GROUP BY 的项
+		*/
 			addrTopOfLoop = sqlite3VdbeCurrentAddr(v);/*返回下一个被插入的指令的地址*/
 			sqlite3ExprCacheClear(pParse);/*清除所有列缓存条目*/
 			if (groupBySort){
@@ -5221,7 +5325,12 @@ int sqlite3Select(
 		  ** order to signal the caller to abort.
 		  ** 编一个子程序，用来重置group-by累加器
 		  ** 如果这个处理单元是针对中止查询，这个子程序子在返回之前，增大iAbortFlag内存为了中止信号调用者。*/
-			
+		/* 
+		** 生成一个子例程，该例程可以输出一个单行的结果集。这个子例程首先
+		** 查询iUseFlag，如果iUseFlag<=0，则此例程是一个空操作。如果处理过程
+		** 需要查询中止，这个子例程将在返回之前增加iAbortFlag 的内存位置，以
+		** 用来给中止的调用函数添加标签。
+		*/	
 			sqlite3ExprCodeMove(pParse, iBMem, iAMem, pGroupBy->nExpr);
 			sqlite3VdbeAddOp2(v, OP_Gosub, regOutputRow, addrOutputRow);
 			VdbeComment((v, "output one row"));
@@ -5325,6 +5434,16 @@ int sqlite3Select(
 			   ** 这个语句很常见，故进行特俗优化了。这个OP_Count指令执行在intkey表或包含数据的table<tbl>或它的索引。
 			   ** 它比较好的执行op或索引，当索引频繁传递比与表一致（这个索引对应的表）的少的页。
 			   */
+			   /*
+			/* 如果isSimpleCount() 返回一个指向TABLE结构的指针，然后SQL语句格式如下：
+			**
+			**	SELECT count(*) FROM <tbl>
+			** 
+			** Table结构返回的table<tbl>如下：
+			** 这个语句很常见，所以将它进行了特殊优化。这个OP_Count指令执行在包含<tbl>
+			** 表的数据的intkey表或者执行在它的其中一个索引上。执行在索引上的操作更好，
+			** 这是因为索引几乎总是比它对应的表占用更少的页。
+			*/
 				const int iDb = sqlite3SchemaToIndex(pParse->db, pTab->pSchema);/*为表模式建立索引，并赋值给iDb*/
 				const int iCsr = pParse->nTab++;     /*  扫描b-tree 的指针*/
 				Index *pIdx;                         /* Iterator variable 迭代变量*/
@@ -5345,7 +5464,12 @@ int sqlite3Select(
 				**
 				**查找最少出现的列的索引，如果这里有个索引，它有比较少的列，然后我们假设他消耗了较小的空间在硬盘上并且
 			    ** 扫描已经确定查询结果开销比较低。在这种情况下，设置iRoot到b-tree索引的根页号并且pKeyInfo是KeyInfo结构体需要的导航索引*/
-			
+			        /* 
+				** 查找最少出现的列的索引，如果这里这样一个索引，并且它有跟其他表相比来说
+				** 较少的列，然后我们假设它在硬盘上消耗了较小的空间并且扫描已经确定查询结
+				** 果开销比较低。在这种情况下，设置iRoot到b-tree索引的根页号并且pKeyInfo
+				** 是KeyInfo结构体需要的导航索引。
+				*/
 				for (pIdx = pTab->pIndex; pIdx; pIdx = pIdx->pNext){/*遍历索引*/
 					if (pIdx->bUnordered == 0 && (!pBest || pIdx->nColumn < pBest->nColumn)){/*如果索引没有排序并且没有最好的索引或者所有中的列小于最好索引的中的列*/
 						pBest = pIdx;
@@ -5360,6 +5484,9 @@ int sqlite3Select(
 					 **
 					 **  打开只读游标，执行OP_Count操作，关闭游标
 					 */
+				/* 
+				**  打开只读光标，执行OP_Count操作，关闭光标。
+				*/
 				sqlite3VdbeAddOp3(v, OP_OpenRead, iCsr, iRoot, iDb);
 				if (pKeyInfo){
 					sqlite3VdbeChangeP4(v, -1, (char *)pKeyInfo, P4_KEYINFO_HANDOFF);
@@ -5406,6 +5533,22 @@ int sqlite3Select(
 			**   如果这个查询是"SELECT min(x)"，然后where.c中循环代码不能迭代任何x列的空值。
 			**   where.c优化器代码（决定使用使用那些索引）应该优先'ORDER BY'子句，更多的代码和注释细节在where.c中。
 			*/
+			/* 检查查询是否是以下形式之一：
+			**   SELECT min(x) FROM ...
+			**   SELECT max(x) FROM ...
+			** 如果是，则假设不存在ORDER ON x或者ORDER ON x DESC语句，查询where.c
+			** 中的代码来并尝试将结果排序。
+			** 如果where.c能产生按这个顺序排列的结果，则在第一轮迭代之后增加vdbe代
+			** 码来跳出处理循环（因为循环的第一轮迭代是用来保证在行上的操作是以x的
+			** 最小或最大值进行的，只对行有要求。）
+			**
+			** 必须讲一个特殊的标志位送到sqlite3WhereBegin()
+			**   如果这个查询是"SELECT min(x)"，则where.c中循环代码不能以x为空来进
+			**   行迭代。
+			**   where.c优化器代码（决定使用使用那些索引）必须在满足ORDER BY语句中
+			**   设立不同的优先级，这个优先级比其他的情况更高。查询where.c中的代码
+			**   和注释来获取细节。
+			*/
 				ExprList *pMinMax = 0;/*声明一个表达式列表，存放最小或最大值的表达式*/
 				u8 flag = minMaxQuery(p);/*对SELECT结构体p进行最大值或最小值查询，并赋值给flag*/
 				if (flag){/*如果flag存在*/
@@ -5425,6 +5568,10 @@ int sqlite3Select(
 				**
 				**处理聚集函数中没有 GROUP BY情况。这个处理程序很简单
 				**只有一个单独的行输出。
+				*/
+				/*  
+				** 如果聚集函数没有 GROUP BY语句，则执行此情况。这个处理程序简单的
+				** 多因为它只有一个单行的输出。
 				*/
 				resetAccumulator(pParse, &sAggInfo);/*重置聚合累加器*/
 				pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pMinMax, 0, flag, 0);/*生成处理where子句的循环的开始*/
@@ -5462,6 +5609,10 @@ int sqlite3Select(
 	**如果这是一个ORDERBY子句，
 	**我们需要排序结果并且发送结果一个接一个的给回调函数
 	*/
+	/* 
+	** 如果这是一个ORDER BY语句，则我们需要对结果排序并且把它们依次送到
+	** 回调函数。
+	*/
 	if (pOrderBy){
 		explainTempTable(pParse, "ORDER BY");
 		generateSortTail(pParse, p, v, pEList->nExpr, pDest);/*调用自身函数，输出ORDER BY结果*/
@@ -5470,6 +5621,9 @@ int sqlite3Select(
 	/* Jump here to skip this query
 	  **为了跳过查询，直接跳转到这儿
 	  */
+	/* 
+	** 如果想跳过查询就跳到这里。
+	*/
 	sqlite3VdbeResolveLabel(v, iEnd);/*解析iEnd，并作为下一条被插入的地址*/
 
 	/* The SELECT was successfully coded.   Set the return code to 0
@@ -5477,19 +5631,27 @@ int sqlite3Select(
 	**
 	**  select 语句被成功编码，设置如果返还为0，表明没有出错
 	*/
+	/* 
+	** select 语句被成功编码，设置返回值为0表示没有出错。
+	*/
 	rc = 0;/*将执行结果标记为0*/
 	/* Control jumps to here if an error is encountered above, or upon
 	** successful coding of the SELECT.
 	**控制跳跃到这里如果上面遇
 	**  到一个错误,或对select成功编码。
 	*/
-	
+	/*
+	** 如果在上面遇到了错误或者对SELECT成功编码，则控制跳到这里。
+	*/
 select_end:
 	explainSetInteger(pParse->iSelectId, iRestoreSelectId);
 
  /* Identify column names if results of the SELECT are to be output.
   **如果select 结果集要被输出，则标出列名
   */
+    /* 
+    ** 如果SELECT结果将被输出，则确定列名。
+    */
 	if (rc == SQLITE_OK && pDest->eDest == SRT_Output){
 		generateColumnNames(pParse, pTabList, pEList);/*生成列名*/
 	}
@@ -5506,6 +5668,9 @@ select_end:
 *//*
 ** Generate a human-readable description of a the Select object.
 **生成一个可读的select 对象的描述
+*/
+/*
+** 对一个Selcet对象生成一个可读的描述。
 */
 static void explainOneSelect(Vdbe *pVdbe, Select *p){
 	sqlite3ExplainPrintf(pVdbe, "SELECT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"SELECT "*/
