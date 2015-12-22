@@ -144,15 +144,7 @@
 **所有在表sqlite_stat1和sqlite_stat3之中相关联的表的条目将被删除。如果zWhere==0,那么将
 **删除所有stat表中的条目。
 */
-/*该函数的是用于打开 sqlite_stat1 表，在iStatCur游标位置进行写操作，如果库中
-**有SQLITE_ENABLE_STAT3的宏定义，那么sqlite_stat3 表将被打开从iStatCur+1位置开始写。
-**
-**如果sqlite_stat1表之前不存在并且库中以SQLITE_ENABLE_STAT3宏定义编译的，那么该表被创建。
-**
-**参数zWhere可能是一个指向包含一个表名的缓存的指针，或者是一个空指针，如果不为空，那么
-**所有在表sqlite_stat1和sqlite_stat3之中相关联的表的条目将被删除。如果zWhere==0,那么将
-**删除所有stat表中的条目。
-*/
+
 static void openStatTable(
   Parse *pParse,          /* Parsing context */ /*解析上下文*/
   int iDb,                /* The database we are looking in */ /*操作的数据库*/
@@ -203,7 +195,7 @@ static void openStatTable(
       */
       sqlite3NestedParse(pParse,   /*递归运行解析器和代码生成器是为了生成给定SQL语句的代码，用于终止目前正在构造的pParse上下文。出自build.c*/
           "CREATE TABLE %Q.%s(%s)", pDb->zName, zTab, aTable[i].zCols
-      );  
+      );  //创建表 /* Cause rootpage to be taken from top of stack */
       aRoot[i] = pParse->regRoot;  /*regRoot表示存储新对象的根页码的寄存器*/
       aCreateTbl[i] = OPFLAG_P2ISREG;
     }else{
@@ -217,6 +209,9 @@ static void openStatTable(
       aRoot[i] = pStat->tnum;  /*tnum表示表的B树根节点*/
       sqlite3TableLock(pParse, iDb, aRoot[i], 1, zTab);//表上锁 /*sqlite3TableLock方法 记录信息，在运行时间我们想锁住一个表*/
       if( zWhere ){
+      	/* The sqlite_stat1 table exists.  Delete all entries associated with
+    ** the table zWhere. */
+    /*如果表sqlite_stat1或sqlite_stat2已经存在，删除相关联的所有条目。*/
         sqlite3NestedParse(pParse,
            "DELETE FROM %Q.%s WHERE %s=%Q", pDb->zName, zTab, zWhereType, zWhere
         );
@@ -228,8 +223,14 @@ static void openStatTable(
     }
   }
 
-  /* Open the sqlite_stat[13] tables for writing. */
-  /*打开表sqlite_stat1和表sqlite_stat3 去写*/
+ 
+   /* Open the sqlite_stat[13] tables for writing.
+  **by this vdbe program, lock it for writing at the shared-cache level. 
+  ** If this vdbe did create the sqlite_stat1 table, then it must have 
+  ** already obtained a schema-lock, making the write-lock redundant
+*/
+  /*打开表sqlite_stat[13] 去写,除非它的创建该VDBE程序，锁定它写在共享高速缓存级别。
+如果此VDBE那样创建sqlite_stat1表，那么它必须有已经获得一个模式锁定，使得写锁定冗余。*/
   for(i=0; i<ArraySize(aTable); i++){
     sqlite3VdbeAddOp3(v, OP_OpenWrite, iStatCur+i, aRoot[i], iDb);
     sqlite3VdbeChangeP4(v, -1, (char *)3, P4_INT32);
@@ -269,7 +270,7 @@ struct Stat3Accum {
     tRowcnt nLt;               /* sqlite_stat3.nLt */
     tRowcnt nDLt;              /* sqlite_stat3.nDLt */
     u8 isPSample;              /* True if a periodic sample */  /*如果是定期样本，则为true*/  /*u8表示1位无符号整数*/
-    u32 iHash;                 /* Tiebreaker hash */  
+    u32 iHash;                 /* Tiebreaker hash */  /*决胜局哈希*/
   } *a;                     /* An array of samples */  /*样本数组*/
 };
 
@@ -304,7 +305,7 @@ static void stat3Init(
   nRow = (tRowcnt)sqlite3_value_int64(argv[0]);
   mxSample = sqlite3_value_int(argv[1]);
   n = sizeof(*p) + sizeof(p->a[0])*mxSample;
-  p = sqlite3MallocZero( n );  /*分配0内存*/
+  p = sqlite3MallocZero( n );  /*分配0内存*///分配空间
   if( p==0 ){
     sqlite3_result_error_nomem(context);
     return;
@@ -643,6 +644,7 @@ static void analyzeOneTable(
     for(i=0; i<nCol; i++){
       sqlite3VdbeAddOp2(v, OP_Null, 0, iMem+nCol+i+1);
     }
+    /*Do the analysis.*/
 
     /* Start the analysis loop. This loop runs through all the entries in
     ** the index b-tree.  */
@@ -813,7 +815,7 @@ static void analyzeOneTable(
 ** Generate code that will cause the most recent index analysis to
 ** be loaded into internal hash tables where is can be used.
 */
-
+/*大多数最近分析的索引被载入到内部的哈希表*/
 /*生成代码，使最近分析的索引被载入到可用的内部哈希表*/
 static void loadAnalysis(Parse *pParse, int iDb){
   Vdbe *v = sqlite3GetVdbe(pParse);
@@ -840,7 +842,7 @@ static void analyzeDatabase(Parse *pParse, int iDb){
   openStatTable(pParse, iDb, iStatCur, 0, 0);  /*调用openStatTable方法，打开存储索引的表sqlite_stat1*/
   iMem = pParse->nMem+1;  /*nMem表示到目前为止使用的内存数量*/
   assert( sqlite3SchemaMutexHeld(db, iDb, 0) );  /*判定模式存在互斥*/
-
+ //循环对数据库中的每一个表进行分析，调用analyzeOneTable
   /*for循环，对数据库中的每一个表进行分析*/
   /*哈希表宏定义：sqliteHashFirst、sqliteHashNext、sqliteHashData，用于遍历哈希表中的所有元素。*/
   for(k=sqliteHashFirst(&pSchema->tblHash); k; k=sqliteHashNext(k)){ 
@@ -996,13 +998,11 @@ struct analysisInfo {
 ** the table.
 */
 /*
-**当读sqlite_stat1 表时，每个索引调用一次这个回调过程。
-**
-**     argv[0] = 表名
-**     argv[1] = 索引名 (可能为空)
-**     argv[2] = 分析的结果 - 对于每一列的整数
-**
-**  argv[1]==NULL 仅仅记录表中的行数
+analysisLoade这个回调函数在读取时每一个索引的时候调用一次sqlite_stat1 table. 
+   argv[0] =表中的名称
+  argv [ 0 ] =名称索引
+ argv[1] = NULL 仅仅记录表中的行数	
+argv[1]=NULL简单地记录在表中的行数。
 */
 static int analysisLoader(void *pData, int argc, char **argv, char **NotUsed){
   analysisInfo *pInfo = (analysisInfo*)pData;  /*结构体analysisInfo，用于传递信息，从读分析器到回调过程*/
