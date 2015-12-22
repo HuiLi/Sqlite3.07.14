@@ -17,8 +17,7 @@
 ** VDBE instances.  This file is solely interested in executing
 ** the VDBE program.
 **
-** 在与外部接口处，sqlite3_stmt*是一个指向VDBE的不透明的指针（解释：不透明数据类型隐藏了它们内部格式或结构。在C语言中，它们就像黑盒一样。
-** 支持它们的语言不是很多。作为替代，开发者们利用typedef声明一个类型，把它叫做不透明类型，希望其他人别去把它重新转化回对应的那个标准C类型。）
+** 在与外部通讯时，sqlite3_stmt*是一个指向VDBE的不透明的指针
 ** In the external interface, an "sqlite3_stmt*" is an opaque pointer
 ** to a VDBE.
 **
@@ -33,6 +32,7 @@
 ** and 5 operands.  Operands P1, P2, and P3 are integers.  Operand P4
 ** is a null-terminated string.  Operand P5 is an unsigned character.
 ** Few opcodes use all 5 operands.
+**
 ** 计算结果存储在一组寄存器当中,这组寄存器的编号从1开始,寄存器存放在的内存地址为Vdbe.nMem(nMem是整型)。
 ** 每个寄存器可以存储一个整数，一个以NULL结尾的字符串，一个浮点数，或者是一个值为“NULL”的SQL。
 ** 发生这种从一种类型到另一种类型的隐式转换是必要的。
@@ -92,22 +92,23 @@
 ** 的正确性，没有别的功能
 */
 #ifdef SQLITE_TEST
-int sqlite3_search_count = 0;/*这个全局变量会随着游标的移动而增大，不管是通过OP_SeekXX还是OP_Next还是OP_Prev操作码，它不能帮助核实正确的操作。*/
+int sqlite3_search_count = 0;/*这个全局变量会随着游标的移动而增大，不管是通过OP_SeekXX还是OP_Next
+							还是OP_Prev操作码，它不能帮助核实正确的操作。*/
 #endif
 
 /*
 ** When this global variable is positive, it gets decremented once before
 ** each instruction in the VDBE.  When it reaches zero, the u1.isInterrupted
 ** field of the sqlite3 structure is set in order to simulate an interrupt.
-** 当全局变量是正值时，在每次使用VDBE执行一条指令，该变量就会递减一次。当该变量值为0，sqlite3结构体中的
-** u1.isInterrupted将会被设置为true用来模仿打断状态。
 **
 ** This facility is used for testing purposes only.  It does not function
 ** in an ordinary build.
 ** 此工具仅用于测试目的。它在正常的编译中是不起作用的。
 */
 #ifdef SQLITE_TEST
-int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在VDBE中执行一次，它就减1，,当它变为0时，sqlite3结构体中的u1.isInterrupted区域会被设置以模拟一个中断发生*/
+int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在VDBE中执行一次，它就减1，,当它变为0时，
+									sqlite3结构体中的u1.isInterrupted区域会被设置以模拟一个中断发生
+									*/
 #endif
 
 /*
@@ -116,11 +117,10 @@ int sqlite3_interrupt_count = 0;/*当这个全局变量为正数时，指令在V
 ** sorting is occurring or not occurring at appropriate times.   This variable
 ** has no function other than to help verify the correct operation of the
 ** library.
-** 这个全局变量是在OP_Sort操作码执行后增加1,测试步骤会使用这个信息以确定排序在
-        适当的时间发生或没发生,这个变量除了帮助验证正确的库操作没有其他功能
 */
 #ifdef SQLITE_TEST
-int sqlite3_sort_count = 0;
+int sqlite3_sort_count = 0;/*这个全局变量是在OP_Sort操作码执行后增加1,测试步骤会使用这个信息以确定排序在
+							适当的时间发生或没发生,这个变量除了帮助验证正确的库操作没有其他功能.*/
 #endif
 
 /*
@@ -129,11 +129,10 @@ int sqlite3_sort_count = 0;
 ** use this information to make sure that the zero-blob functionality
 ** is working correctly.   This variable has no function other than to
 ** help verify the correct operation of the library.
-** 这个全局变量记录了已经被VDBE操作码使用了的最大的MEM_Blob或者MEM_Str,测试
-         步骤使用它确定zero-blob功能工作正常,这个变量除了帮助验证正确的库操作没有其他功能
 */
 #ifdef SQLITE_TEST
-int sqlite3_max_blobsize = 0;
+int sqlite3_max_blobsize = 0;/*这个全局变量记录了已经被VDBE操作码使用了的最大的MEM_Blob或者MEM_Str,测试
+							步骤使用它确定zero-blob功能工作正常,这个变量除了帮助验证正确的库操作没有其他功能*/
 static void updateMaxBlobsize(Mem *p){
   if( (p->flags & (MEM_Str|MEM_Blob))!=0 && p->n > sqlite3_max_blobsize ){
     sqlite3_max_blobsize = p->n;/*如果p指向的结构体的标记'与'上 'MEM_Str和MEM_Blob或运算的值'的结果不等于0,
@@ -148,8 +147,7 @@ static void updateMaxBlobsize(Mem *p){
 ** is executed. This is used to test whether or not the foreign key
 ** operation implemented using OP_FkIsZero is working. This variable
 ** has no function other than to help verify the correct operation of the
-** library.
-** 这个全局变量在OP_Found操作码执行后增加1,这个是用来测试外键操作实施时,是否
+** library.这个全局变量在OP_Found操作码执行后增加1,这个是用来测试外键操作实施时,是否
 ** 在使用OP_FkIsZero操作码.这个变量除了帮助验证正确的库操作没有其他功能
 */
 #ifdef SQLITE_TEST
@@ -158,8 +156,8 @@ int sqlite3_found_count = 0;
 
 /*
 ** Test a register to see if it exceeds the current maximum blob size.
-** If it does, record the new maximum blob size.
-** 测试寄存器查看它是否超过当前blob类型最大长度，如果超过了就记录下形成一个新的blob大小
+** If it does, record the new maximum blob size.测试一个寄存器来看它是否超过
+** 了当前最大blob,超过了就记录这个最大值.
 */
 #if defined(SQLITE_TEST) && !defined(SQLITE_OMIT_BUILTIN_TEST)
 # define UPDATE_MAX_BLOBSIZE(P)  updateMaxBlobsize(P)
@@ -169,8 +167,8 @@ int sqlite3_found_count = 0;
 
 /*
 ** Convert the given register into a string if it isn't one
-** already. Return non-zero if a malloc() fails.
-** 把给的不完整的寄存器值转换为一个字符串,如果malloc()失败,返回非零值.
+** already. Return non-zero if a malloc() fails.把给的不完整的寄存器值转换
+** 为一个字符串,如果malloc()失败,返回非零值.
 */
 #define Stringify(P, enc) \
    if(((P)->flags&(MEM_Str|MEM_Blob))==0 && sqlite3VdbeMemStringify(P,enc)) \
@@ -184,7 +182,6 @@ int sqlite3_found_count = 0;
 ** knowing it.
 ** 一个临时的字符串值(MEM_Ephem标记所指的)包含一个指向动态分配的字符串的指针,一些其他
 ** 的实体是负责清除这个字符串的.原因是寄存器无法控制这个字符串,寄存器可能都不知道它被删除了.
-**
 ** This routine converts an ephemeral string into a dynamically allocated
 ** string that the register itself controls.  In other words, it
 ** converts an MEM_Ephem string into an MEM_Dyn string.
@@ -236,15 +233,19 @@ void sqlite3VdbeMemStoreType(Mem *pMem){
 }
 
 /*
-** Allocate VdbeCursor number iCur.Return a pointer to it.  Return NULL
+** Allocate VdbeCursor number iCur.  Return a pointer to it.  Return NULL
 ** if we run out of memory.
 ** 分配Vdbe游标数 iCur,返回一个指针给它,如果内存用尽就返回NULL.
 */
 static VdbeCursor *allocateCursor(
-  Vdbe *p,              /* The virtual machine 虚拟机指针*/
-  int iCur,             /* Index of the new VdbeCursor 新建的虚拟机游标索引值*/
-  int nField,           /* Number of fields in the table or index ** 表中字段或索引的数量*/
-  int iDb,              /* Database the cursor belongs to, or -1 ** 这个游标属于哪个数据库，或者iDb = -1 */
+  Vdbe *p,              /* The virtual machine */
+  int iCur,             /* Index of the new VdbeCursor 虚拟机游标的索引值*/
+  int nField,           /* Number of fields in the table or index 
+                        ** 表中字段或索引的数量
+                        */
+  int iDb,              /* Database the cursor belongs to, or -1 
+                        ** 这个游标属于哪个数据库，或者iDb = -1
+                        */
   int isBtreeCursor     /* True for B-Tree.False for pseudo-table or vtab B树就为true,虚表或者假表为false*/
 ){
   /* Find the memory cell that will be used to store the blob of memory
@@ -268,8 +269,8 @@ static VdbeCursor *allocateCursor(
   ** 存储单元来管理一个VdbeCursor结构体所需要的内存分配是很方便的,原因如下:
   ** 一,在vdbe程序中,游标数有时被用于两个不同的目的,不同的用途可能会需要不同
   ** 的内存分配,而内存单元提供了可增长的分配机制.
-  ** 二,当使用ENBALE_MEMORY_MANAGEMENT时,内存单元缓冲区可以被sqlite3_release_memory()API
-  ** 释放,把内存分配数量最小化是系统决定的.
+  ** 二,当使用ENBALE_MEMORY_MANAGEMENT时,内存单元缓冲区可以被sqlite3_release
+  ** _memory()API释放,把内存分配数量最小化是系统决定的.
   ** 分配给游标的内存存储单元在地址空间的最顶端。虚拟机P在内存中的存储位置nMem(p->nMem)对应于游标0。
   ** 游标1是由内存单元(p->nMem-1)来管理,等等。
   */
@@ -309,17 +310,16 @@ static VdbeCursor *allocateCursor(
 ** do so without loss of information.  In other words, if the string
 ** looks like a number, convert it into a number.  If it does not
 ** look like a number, leave it alone.
-** 在不丢失信息的提前下,尝试把一个像数字的值转换为数字。话句话说，如果一个字符串非常像一个数字，
-** 将它转换成一个数字。如果不像数字，保持它的原型
+** 在不丢失信息的提前下,尝试把一个像数字的值转换为数字
 */
 static void applyNumericAffinity(Mem *pRec){
-  if( (pRec->flags & (MEM_Real|MEM_Int))==0 ){//满足pRec数据不是Int 或 Real要求
+  if( (pRec->flags & (MEM_Real|MEM_Int))==0 ){
     double rValue;
     i64 iValue;
     u8 enc = pRec->enc;
-    if( (pRec->flags&MEM_Str)==0 ) return;//如果字符串为空
-    if( sqlite3AtoF(pRec->z, &c, pRec->n, enc)==0 ) return;//先试着转换成Real类型
-    if( 0==sqlite3Atoi64(pRec->z, &iValue, pRec->n, enc) ){//调用sqlite3Atoi64函数对数据进行转换，转换后的数据存储在sqlite3Atoi64的参数pResult里，即iValue
+    if( (pRec->flags&MEM_Str)==0 ) return;
+    if( sqlite3AtoF(pRec->z, &rValue, pRec->n, enc)==0 ) return;
+    if( 0==sqlite3Atoi64(pRec->z, &iValue, pRec->n, enc) ){
       pRec->u.i = iValue;
       pRec->flags |= MEM_Int;
     }else{
@@ -340,8 +340,8 @@ static void applyNumericAffinity(Mem *pRec){
 **    is not possible.  Note that the integer representation is
 **    always preferred, even if the affinity is REAL, because
 **    an integer representation is more space efficient on disk.
-** 尝试把Mem结构体类型的指针pRec转换为一个整形,如果不能转换为整形就转换为浮点型
-** 要注意到整形是优先的,即使最像的参数是一个REAL类型,这是因为在磁盘上整形的空间利用率更高
+**	  尝试把Mem结构体类型的指针pRec转换为一个整形,如果不能转换为整形就转换为浮点型
+**    要注意到整形是优先的,即使最像的参数是一个REAL类型,这是因为在磁盘上整形的空间利用率更高
 ** SQLITE_AFF_TEXT:
 **    Convert pRec to a text representation.
 **    把pRec转换为文本
@@ -350,17 +350,17 @@ static void applyNumericAffinity(Mem *pRec){
 **    无操作,pRec不变
 */
 static void applyAffinity(
-  Mem *pRec,          /* The value to apply affinity to 应用关联的值*/
-  char affinity,      /* The affinity to be applied 被应用的关联*/
-  u8 enc              /* Use this text encoding 使用此文本编码*/
+  Mem *pRec,          /* The value to apply affinity to */
+  char affinity,      /* The affinity to be applied */
+  u8 enc              /* Use this text encoding */
 ){
   if( affinity==SQLITE_AFF_TEXT ){
     /* Only attempt the conversion to TEXT if there is an integer or real
     ** representation (blob and NULL do not get converted) but no string
-    ** representation.如果有一个整数或实数则仅尝试转换为文本形式。（blob和null没有被转换）但没有字符串表示形式。
+    ** representation.
     */
-    if( 0==(pRec->flags&MEM_Str) && (pRec->flags&(MEM_Real|MEM_Int)) ){//如果字符数据不是string real int类型数据
-      sqlite3VdbeMemStringify(pRec, enc);//转换成string型数据
+    if( 0==(pRec->flags&MEM_Str) && (pRec->flags&(MEM_Real|MEM_Int)) ){
+      sqlite3VdbeMemStringify(pRec, enc);
     }
     pRec->flags &= ~(MEM_Real|MEM_Int);
   }else if( affinity!=SQLITE_AFF_NONE ){
@@ -378,17 +378,18 @@ static void applyAffinity(
 ** into a numeric representation.  Use either INTEGER or REAL whichever
 ** is appropriate.  But only do the conversion if it is possible without
 ** loss of information and return the revised type of the argument.
-** 周敏菲修改：
 ** 尝试把一个函数参数或者一个结果行转换为一个数字表示的表达式.使用INTEGER或REAL中的合
-** 适的一个。但是只有在没有信息丢失的情况下才进行转换，同时返回一个修改后的type参数。
+** 适的一个.但是只在不会丢失信息和可以返回改过的参数的情况下转换.
+** 周敏菲修改：
+** 尝试…………一个。但是只有在没有信息丢失的情况下才进行转换，同时返回一个修改后的type参数。
 */
 int sqlite3_value_numeric_type(sqlite3_value *pVal){
   Mem *pMem = (Mem*)pVal;
   if( pMem->type==SQLITE_TEXT ){
     applyNumericAffinity(pMem);
-    sqlite3VdbeMemStoreType(pMem);//存储修改后的pMem
+    sqlite3VdbeMemStoreType(pMem);
   }
-  return pMem->type;//返回type类型
+  return pMem->type;
 }
 
 /*
@@ -570,14 +571,15 @@ static void registerTrace(FILE *out, int iReg, Mem *p){
 ** linked list starting at sqlite3.pSavepoint.
 **
 ** Usage:
+**
 **     assert( checkSavepointCount(db) );
 **
-**周敏菲修改：
 ** checkSavepointCount()这个函数仅仅被assert( checkSavepointCount(db) )回调.
+** 它检查sqlite3.nTransaction类型变量正在被正确的设置为开始于sqlite3.pSavepoint指针
+** 的链表中,无事务savepoints指针的数量.
+** 周敏菲修改：
 ** 它用于检测变量sqlite3.nTransaction被正确赋值为当前链表中非事务性存储点的数目，这个链表
 ** 的起始点为sqlite3.pSavepoint。
-**
-**
 */
 static int checkSavepointCount(sqlite3 *db){
   int n = 0;
@@ -597,9 +599,9 @@ static int checkSavepointCount(sqlite3 *db){
 */
 static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
   sqlite3 *db = p->db;
-  sqlite3DbFree(db, p->zErrMsg);//释放数据库连接关联的内存
-  p->zErrMsg = sqlite3DbStrDup(db, pVtab->zErrMsg);//从sqliteMalloc函数拷贝一个字符串
-  sqlite3_free(pVtab->zErrMsg);//释放sqlite里的zErrMsg
+  sqlite3DbFree(db, p->zErrMsg);
+  p->zErrMsg = sqlite3DbStrDup(db, pVtab->zErrMsg);
+  sqlite3_free(pVtab->zErrMsg);
   pVtab->zErrMsg = 0;
 }
 
@@ -610,6 +612,7 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 ** sqlite3VdbeMakeReady() must be called before this routine in order to
 ** close the program with a final OP_Halt and to set up the callbacks
 ** and the error message pointer.
+**
 **
 ** Whenever a row or result data is available, this routine will either
 ** invoke the result callback (if there is one) or return with
@@ -646,42 +649,47 @@ static void importVtabErrMsg(Vdbe *p, sqlite3_vtab *pVtab){
 ** 导致p->rc被设置为SQLITE_NOMEM,程序也会返回SQLITE_ERROR,其他一些致命
 ** 错误也会返回SQLITE_ERROR,这个程序执行结束,sqlite3VdbeFinalize()会执行
 ** 用来清除刚刚留下的垃圾
+
 */
-
-
-int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
-  int pc=0;                  /* The program counter 指令计数器*/
-  Op *aOp = p->aOp;          /* Copy of p->aOp  拷贝指令*/
-  Op *pOp;                   /* Current operation 当前指令*/
+int sqlite3VdbeExec(
+  Vdbe *p                    /* The VDBE */
+){
+  int pc=0;                  /* The program counter */
+  Op *aOp = p->aOp;          /* Copy of p->aOp */
+  Op *pOp;                   /* Current operation */
   int rc = SQLITE_OK;        /* Value to return */
-  sqlite3 *db = p->db;       /* The database 数据库*/
-  u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive 有错误发生重置计划*/
-  u8 encoding = ENC(db);     /* The database encoding 数据库编码格式。 */
+  sqlite3 *db = p->db;       /* The database */
+  u8 resetSchemaOnFault = 0; /* Reset schema after an error if positive */
+  u8 encoding = ENC(db);     /* The database encoding 
+                             ** 数据库编码格式。
+                             */
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
-  int checkProgress;         /* True if progress callbacks are enabled 如果进展回调可用就为真*/
-  int nProgressOps = 0;      /* Opcodes executed since progress callback. 操作码将会执行如果进展回调*/
+  int checkProgress;         /* True if progress callbacks are enabled */
+  int nProgressOps = 0;      /* Opcodes executed since progress callback. */
 #endif
-  Mem *aMem = p->aMem;       /* Copy of p->aMem 复制p->aMem*/
-  Mem *pIn1 = 0;             /* 1st input operand 第一次输入的操作数*/
-  Mem *pIn2 = 0;             /* 2nd input operand 第二次输入的操作数*/
-  Mem *pIn3 = 0;             /* 3rd input operand 第三次输入的操作数*/
-  Mem *pOut = 0;             /* Output operand 输出操作数*/
-  int iCompare = 0;          /* Result of last OP_Compare operation 存放操作码OP_Compare的操作结果*/
-  int *aPermute = 0;         /* Permutation of columns for OP_Compare 操作码OP_Compare使用的数组*/
-  i64 lastRowid = db->lastRowid;  /* Saved value of the last insert ROWID 保存最后插入的ROWID值*/
+  Mem *aMem = p->aMem;       /* Copy of p->aMem */
+  Mem *pIn1 = 0;             /* 1st input operand */
+  Mem *pIn2 = 0;             /* 2nd input operand */
+  Mem *pIn3 = 0;             /* 3rd input operand */
+  Mem *pOut = 0;             /* Output operand */
+  int iCompare = 0;          /* Result of last OP_Compare operation
+                             ** 存放操作码OP_Compare的操作结果
+                             */
+  int *aPermute = 0;         /* Permutation of columns for OP_Compare
+                             ** 操作码OP_Compare使用的数组。
+                             */
+  i64 lastRowid = db->lastRowid;  /* Saved value of the last insert ROWID */
 #ifdef VDBE_PROFILE
-  u64 start;                 /* CPU clock count at start of opcode 操作码开始的CPU时钟计数*/
-  int origPc;              /* Program counter at start of opcode 操作码开始的程序计数器*/
-#endif
-  /* Program counter at start of opcode操作码开始的程序计数器 */
+  u64 start;                 /* CPU clock count at start of opcode */
+  int origPc;                /* Program counter at start of opcode */
 #endif
   /*** INSERT STACK UNION HERE ***/
 
-  assert( p->magic==VDBE_MAGIC_RUN );  /* sqlite3_step() verifies this sqlite3_step()核实这项*/
-  sqlite3VdbeEnter(p);//锁定B树 如果SQLite编译支持共享缓存模式和线程安全,这个程序获得与每个BtShared结构关联的互斥锁,可能被VM访问作为一个参数传递。这样做也可以设置BtShared.db成员的每个BtShared结构,确保如果需要的时候正确的busy-handler被调用。
+  assert( p->magic==VDBE_MAGIC_RUN );  /* sqlite3_step() verifies this */
+  sqlite3VdbeEnter(p);
   if( p->rc==SQLITE_NOMEM ){
     /* This happens if a malloc() inside a call to sqlite3_column_text() or
-    ** sqlite3_column_text16() failed.  一个malloc()里的调用sqlite3_column_text()或sqlite3_column_text16()失败则这项发生*/
+    ** sqlite3_column_text16() failed.  */
     goto no_mem;
   }
   assert( p->rc==SQLITE_OK || p->rc==SQLITE_BUSY );
@@ -690,7 +698,7 @@ int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
   p->pResultSet = 0;
   db->busyHandler.nBusy = 0;
   CHECK_FOR_INTERRUPT;
-  sqlite3VdbeIOTraceSql(p);//打印一个IO的跟踪消息，显示SQL内容
+  sqlite3VdbeIOTraceSql(p);
 #ifndef SQLITE_OMIT_PROGRESS_CALLBACK
   checkProgress = db->xProgress!=0;
 #endif
@@ -715,7 +723,7 @@ int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
 #endif
     pOp = &aOp[pc];
 
-    /* Only allow tracing if SQLITE_DEBUG is defined.如果SQLITE_DEBUG被定义则仅允许跟踪
+    /* Only allow tracing if SQLITE_DEBUG is defined.
     */
 #ifdef SQLITE_DEBUG
     if( p->trace ){
@@ -783,7 +791,7 @@ int sqlite3VdbeExec(Vdbe *p/* The VDBE */){
       pOut->flags = MEM_Int;
     }
 
-    /* Sanity checking on other operands 检查其他操作数*/
+    /* Sanity checking on other operands */
 #ifdef SQLITE_DEBUG
     if( (pOp->opflags & OPFLG_IN1)!=0 ){
       assert( pOp->p1>0 );
@@ -951,7 +959,7 @@ case OP_HaltIfNull: {      /* in3 */
 ** VDBE, but do not rollback the transaction. 
 **
 ** If P4 is not null then it is an error message string.
-**TODO p1 p2 p4值简介
+**
 ** There is an implied "Halt 0 0 0" instruction inserted at the very end of
 ** every program.  So a jump past the last instruction of the program
 ** is the same as executing Halt.
@@ -1130,14 +1138,13 @@ case OP_Null: {           /* out2-prerelease */
 **
 ** P4 points to a blob of data P1 bytes long.  Store this
 ** blob in register P2.
-** P4指向一个blob数据P1字节的长度。
-** 存储这个blob在寄存器P2中。
+** 
 */
 case OP_Blob: {                /* out2-prerelease */
-  assert( pOp->p1 <= SQLITE_MAX_LENGTH );//当p1字节的长度小于SQLITE_MAX_LENGTH时候执行
-  sqlite3VdbeMemSetStr(pOut, pOp->p4.z, pOp->p1, 0, 0);//给pOut和p4分配内存空间
-  pOut->enc = encoding;					//输出的结果的编码类型
-  UPDATE_MAX_BLOBSIZE(pOut);			//更新最大的blob类型的大小
+  assert( pOp->p1 <= SQLITE_MAX_LENGTH );
+  sqlite3VdbeMemSetStr(pOut, pOp->p4.z, pOp->p1, 0, 0);
+  pOut->enc = encoding;
+  UPDATE_MAX_BLOBSIZE(pOut);
   break;
 } 
 
@@ -1282,8 +1289,7 @@ case OP_ResultRow: {
     break;
   }
 
-  /*
-  ** If the SQLITE_CountRows flag is set in sqlite3.flags mask, then
+  /* If the SQLITE_CountRows flag is set in sqlite3.flags mask, then 
   ** DML statements invoke this opcode to return the number of rows 
   ** modified to the user. This is the only way that a VM that
   ** opens a statement transaction may invoke this opcode.
@@ -1548,7 +1554,6 @@ case OP_CollSeq: {
 ** See also: AggStep and AggFinal
 ** 在P5的参数(从P2和继承者得到的)的参与下,调用一个自定义函数(P4是一个指向一
 ** 个定义函数的功能结构的指针).这个函数的结果存储在P3中,P3必须不是方法的输入参数.
-**
 ** P1是一个32位的位掩码,用于指示在编译时每一个传递给这个函数的参数是否是常量.如果
 ** 第一个参数是常量,那么P1的0位被设置.这是用于决定元数据(与一个使用了
 ** sqlite3_set-auxdata()API的自定义函数的参数有关联)是否被安全的保留着直到这个
@@ -1707,7 +1712,6 @@ case OP_ShiftRight: {           /* same as TK_RSHIFT, in1, in2, out3 */
   u8 op;
 
   pIn1 = &aMem[pOp->p1];
-
   pIn2 = &aMem[pOp->p2];
   pOut = &aMem[pOp->p3];
   if( (pIn1->flags | pIn2->flags) & MEM_Null ){
@@ -1756,7 +1760,7 @@ case OP_ShiftRight: {           /* same as TK_RSHIFT, in1, in2, out3 */
 ** The result is always an integer.
 **
 ** To force any register to be an integer, just add 0.
-** 把p2常量添加给p1寄存器值,结果是一个整数.
+** 添加一个常量P2给P1里的值,结果是一个整数.
 ** 把每个寄存器的值改为整形的话就添加0.
 */
 case OP_AddImm: {            /* in1 */
@@ -1773,8 +1777,8 @@ case OP_AddImm: {            /* in1 */
 ** in P1 is not an integer and cannot be converted into an integer
 ** without data loss, then jump immediately to P2, or if P2==0
 ** raise an SQLITE_MISMATCH exception.
-** 强行将P1寄存器内的值转换成整形数据。如果p1里面的值不是整形而且还不能在数据不丢失的情况下转化成整形数据时，
-** 立即跳转到p2，或者说如果p2==0，抛出一个SQLITE_MISMATCH异常。
+** 强制把P1里的值转换为整形,如果P1的值不是整形而且在不丢失数据的前
+** 提下也不能转换为整形,那就立即跳转到P2,或者P2==0时抛出一个SQLITE_MISMATCH异常
 */
 case OP_MustBeInt: {            /* jump, in1 */
   pIn1 = &aMem[pOp->p1];
@@ -1793,16 +1797,15 @@ case OP_MustBeInt: {            /* jump, in1 */
 }
 
 #ifndef SQLITE_OMIT_FLOATING_POINT
-
 /* Opcode: RealAffinity P1 * * * *
 **
 ** If register P1 holds an integer convert it to a real value.
+**
 ** This opcode is used when extracting information from a column that
 ** has REAL affinity.  Such column values may still be stored as
 ** integers, for space efficiency, but after extraction we want them
 ** to have only a real value.
-** Author: 吴小全
-** 如果P1寄存器里是整型就把它转换为实数,当从这个操作码用于从拥有REAL affinity的一行
+** 如果P1是整数就转换为浮点型,这个操作码用于从拥有REAL affinity的一行
 ** 提取信息.为了空间利用率,这一行的值可能还是存储为整形,但是提取后我们
 ** 想让它只有一个浮点数.
 */
@@ -1824,7 +1827,8 @@ case OP_RealAffinity: {                  /* in1 */
 ** are afterwards simply interpreted as text.
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
-** 强制P1里的值为文本，如果这个值是数字类型，将它转换成与printf()等效的字符串。二进制大文件的值是不变的,只是简单地把它转成文本表示.
+** 强制P1里的值为文本，如果这个值正好是数字类型的,使用printf()的等价物把它
+** 转换为字符串,二进制大文件的值是不变的,只是用文本表示.
 ** 此程序无法改变NULL值,它就是NULL.
 */
 case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
@@ -1850,26 +1854,20 @@ case OP_ToText: {                  /* same as TK_TO_TEXT, in1 */
 **
 ** A NULL value is not changed by this routine.  It remains NULL.
 ** 强制P1里的值为一个二进制大文件值，如果这个值正好是数字类型的，
-** 转换为字符串,字符串是对二进制大文件简单地进行重新解释,它所代表的数据是不变的
+** 转换为字符串,字符串是对二进制大文件进行重新解释,它所代表的数据是不变的
 ** 此程序无法改变NULL值,它就是NULL.
-** 刘志齐修改：
-** 把寄存器P1中的值强制转换成BLOB类型，
-** 如果这个值是一个数字类型，首先把它转换成一个字符串类型。
-** 字符串只是对blobs类型的数据仅仅重新解释，并没有改变基础数据。
-** 此程序无法改变NULL值,它就是NULL。
 */
 case OP_ToBlob: {                  /* same as TK_TO_BLOB, in1 */
-  pIn1 = &aMem[pOp->p1];     
+  pIn1 = &aMem[pOp->p1];
   if( pIn1->flags & MEM_Null ) break;
   if( (pIn1->flags & MEM_Blob)==0 ){
     applyAffinity(pIn1, SQLITE_AFF_TEXT, encoding);
     assert( pIn1->flags & MEM_Str || db->mallocFailed );
-    MemSetTypeFlag(pIn1, MEM_Blob);  //将Mem中的任何现有的标记来自Mem清除都并且用MEM_Blob替换
+    MemSetTypeFlag(pIn1, MEM_Blob);
   }else{
-    pIn1->flags &= ~(MEM_TypeMask&~MEM_Blob);//把MEM_TypeMask的值与MEM_Blob的取非的结果再取非的结果
-											 //与pIn1->flags取非的结果赋给pIn1->flags。
-  }	
-  UPDATE_MAX_BLOBSIZE(pIn1);      //更新最大的blob类型的大小根据pIn1
+    pIn1->flags &= ~(MEM_TypeMask&~MEM_Blob);
+  }
+  UPDATE_MAX_BLOBSIZE(pIn1);
   break;
 }
 
@@ -2142,6 +2140,7 @@ case OP_Ge: {             /* same as TK_GE, jump, in1, in3 */
 ** immediately prior to the OP_Compare.
 ** 这个数组是唯一一个在操作码OP_Permutation OP_Compare,OP_Halt或OP_ResultRow中都有效的值。
 ** 通常OP_Permutation操作发生在OP_Compare之前。
+**
 */
 case OP_Permutation: {
   assert( pOp->p4type==P4_INTARRAY );
@@ -2163,6 +2162,7 @@ case OP_Permutation: {
 ** only.  The KeyInfo elements are used sequentially.
 ** P4是一个KeyInfo类型的结构体，它定义了排序序列和排序方式。这个序列只应用于寄存器。
 ** 这些KeyInfo类型的元素按顺序使用。
+**
 ** The comparison is a sort comparison, so NULLs compare equal,
 ** NULLs are less than numbers, numbers are less than strings,
 ** and strings are less than blobs.
@@ -2635,10 +2635,8 @@ case OP_Column: {
     ** them, respectively.  So the maximum header length results from a
     ** 3-byte type for each of the maximum of 32768 columns plus three
     ** extra bytes for the header length itself.  32768*3 + 3 = 98307.
-    ** 类型的总条目可以介于1到5个字节。但是4和5字节类型使用如此多的数据空间,他们是32位并且每行有4096列
-    ** @author wxq
-    ** 所以，最大的头长度结果是3-字节类型，每行最大有32768列加上每个头自己额外占用字节，结果就是32768*3 + 3 = 98307
-    **
+    ** 类型的总条目可以介于1到5个字节。但是4和5字节类型使用如此多的数据空间,
+    ** (后面的看不懂什么意思)
     */
     if( offset > 98307 ){
       rc = SQLITE_CORRUPT_BKPT;
@@ -2657,9 +2655,8 @@ case OP_Column: {
     ** will likely be much smaller since nField will likely be less than
     ** 20 or so.  This insures that Robson memory allocation limits are
     ** not exceeded even for corrupt database files.
-    ** @wxq 修改
-    ** 为了获取变量nFiedld的类型值，需要计算我们读取的数据的字节长度。在这里，
-    ** 变量offset是一个上限值。但变量nField的值可能明显少于数据表中真正的列数，
+    ** 为了获取变量nFiedld的类型值，我们需要读取数据的字节个数，并计算。在这里，
+    ** 变量offset的值是一个上界。但变量nField的值可能明显少于数据表中真正的列数，
     ** 如果真是那样，5*nField+3可能小于变量offset的值。为了限制内存分配的大小，我们要
     ** 使len(数据长度)尽量小，特别是当损坏的数据库文件已经引起offset的值过大的时候。
     ** 变量Offset的极限值是98307。但98307可能还是超过了Robson内存分配在某些配置上的限制。
@@ -3013,12 +3010,11 @@ case OP_MakeRecord: {
   break;
 }
 
-/* Opcode: Count P1 P2 **
+/* Opcode: Count P1 P2 * * *
 **
 ** Store the number of entries (an integer value) in the table or index
 ** opened by cursor P1 in register P2
-** @author wxq
-** 把记录的数量或者是已经被p1游标打开的索引存储在p2里面
+** 存储表中或索引中已经被条目的数量(一个整数值)在表或索引打开游标P1在寄存器P2
 */
 #ifndef SQLITE_OMIT_BTREECOUNT
 case OP_Count: {         /* out2-prerelease */
@@ -4902,9 +4898,6 @@ case OP_Sort: {        /* jump */
 ** If P2 is 0 or if the table or index is not empty, fall through
 ** to the following instruction.
 */
-/*移动当前游标到表或索引的第一条记录.
-**如果表为空且p2>0,则跳到p2处;如果p2为0且表不空，则执行下一条指令.
-*/
 case OP_Rewind: {        /* jump */
   VdbeCursor *pC;
   BtCursor *pCrsr;
@@ -5567,7 +5560,7 @@ case OP_Program: {        /* jump */
   **如果p5标志是明确的,那么递归调用触发器
 * *禁用向后兼容(p5设置如果这个子程序
 * *真是一个触发器,没有外键操作,标记集
-* *,通过“杂注recursive_triggers”命令是显而易见的)。
+* *,通过“杂注recursive_triggers”命令是显而易见的)。 
 
   ** It is recursive invocation of triggers, at the SQL level, that is 
   ** disabled. In some cases a single trigger may generate more than one 
@@ -5941,7 +5934,7 @@ case OP_AggStep: {
 * * P4 FuncDef这个函数指针。P2
 * *的论点是不习惯操作码。只有消除歧义
 * *函数可以有不同数量的参数。的
-* *P4的论点只是所需的退化情况
+* * P4的论点只是所需的退化情况
 * *阶梯函数不是之前调用。
 */
 case OP_AggFinal: {
@@ -6081,9 +6074,9 @@ case OP_JournalMode: {    /* out2-prerelease */
         ** file. An EXCLUSIVE lock may still be held on the database file 
         ** after a successful return. 
 		如果离开WAL模式,关闭日志文件。如果成功,调用
-        ** PagerCloseWal()write-ahead-log检查点和删除
-        **文件。独占锁可能仍在数据库文件中
-        **成功后返回。
+* * PagerCloseWal()write-ahead-log检查点和删除
+* *文件。独占锁可能仍在数据库文件中
+* *成功后返回。
         */
         rc = sqlite3PagerCloseWal(pPager);
         if( rc==SQLITE_OK ){
@@ -6093,7 +6086,7 @@ case OP_JournalMode: {    /* out2-prerelease */
         /* Cannot transition directly from MEMORY to WAL.  Use mode OFF
         ** as an intermediate
 		不能直接从Memory模式过渡到WAL模式。使用模式OFF
-        **作为中间
+* *作为中间
 		*/
         sqlite3PagerSetJournalMode(pPager, PAGER_JOURNALMODE_OFF);
       }
@@ -6168,8 +6161,8 @@ case OP_IncrVacuum: {        /* jump */
 ** fails with an error code of SQLITE_SCHEMA if it is ever executed 
 ** (via sqlite3_step()).
 导致预编译语句变得过期了。一个过期的语句
-**失败的错误代码SQLITE_SCHEMA如果它执行
-**(通过sqlite3_step())。
+* *失败的错误代码SQLITE_SCHEMA如果它执行
+* *(通过sqlite3_step())。
 
 ** 
 ** If P1 is 0, then all SQL statements become expired. If P1 is non-zero,
@@ -6325,7 +6318,7 @@ case OP_VOpen: {
 ** P1 is a cursor opened using VOpen.  P2 is an address to jump to if
 ** the filtered result set is empty.
 **P1是使用VOpen打开游标。P2是跳转到一个地址
-**过滤结果集是空的。
+* *过滤结果集是空的。
 
 ** P4 is either NULL or a string that was generated by the xBestIndex
 ** method of the module.  The interpretation of the P4 string is left
@@ -6459,8 +6452,9 @@ case OP_VColumn: {
   /* Copy the result of the function to the P3 register. We
   ** do this regardless of whether or not an error occurred to ensure any
   ** dynamic allocation in sContext.s (a Mem struct) is  released.
-      函数的结果复制到P3登记。我们这样做无论是否发生错误,以确保任何
-  **在sContext动态分配。年代(Mem结构)。
+  函数的结果复制到P3登记。我们
+* *这样做无论是否发生错误,以确保任何
+* *在sContext动态分配。年代(Mem结构)。
   */
   sqlite3VdbeChangeEncoding(&sContext.s, encoding);
   sqlite3VdbeMemMove(pDest, &sContext.s);
@@ -6568,7 +6562,7 @@ case OP_VRename: {
 ** are contiguous memory cells starting at P3 to pass to the xUpdate 
 ** invocation. The value in register (P3+P2-1) corresponds to the 
 ** p2th element of the argv array passed to xUpdate.
-   P4是一个虚表指针对象,一个sqlite3_vtab结构。
+P4是一个虚表指针对象,一个sqlite3_vtab结构。
 * *此操作码调用相应的xUpdate方法。P2值
 * *是连续的记忆细胞从xUpdate P3通过
 * *调用。寄存器中的值(P3 + P2-1)对应
