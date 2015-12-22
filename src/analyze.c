@@ -11,6 +11,8 @@
 *************************************************************************
 ** This file contains code associated with the ANALYZE command.
 **
+
+  
 ** The ANALYZE command gather statistics about the content of tables
 ** and indices.  These statistics are made available to the query planner
 ** to help it make better decisions about how to perform queries.
@@ -133,6 +135,15 @@
 ** to delete all stat table entries.
 */
 
+/*该函数的是用于打开 sqlite_stat1 表，在iStatCur游标位置进行写操作，如果库中
+**有SQLITE_ENABLE_STAT3的宏定义，那么sqlite_stat3 表将被打开从iStatCur+1位置开始写。
+**
+**如果sqlite_stat1表之前不存在并且库中以SQLITE_ENABLE_STAT3宏定义编译的，那么该表被创建。
+**
+**参数zWhere可能是一个指向包含一个表名的缓存的指针，或者是一个空指针，如果不为空，那么
+**所有在表sqlite_stat1和sqlite_stat3之中相关联的表的条目将被删除。如果zWhere==0,那么将
+**删除所有stat表中的条目。
+*/
 /*该函数的是用于打开 sqlite_stat1 表，在iStatCur游标位置进行写操作，如果库中
 **有SQLITE_ENABLE_STAT3的宏定义，那么sqlite_stat3 表将被打开从iStatCur+1位置开始写。
 **
@@ -1295,4 +1306,3 @@ int sqlite3AnalysisLoad(sqlite3 *db, int iDb){
 
 
 #endif /* SQLITE_OMIT_ANALYZE */
-
