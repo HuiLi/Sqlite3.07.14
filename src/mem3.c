@@ -588,7 +588,7 @@ static int memsys3Size(void *p){
 ** 
 ** 聚集请求大小给下一个有效的内存分配大小
 */
-//聚集请求大小给下一个有效的内存分配大小。
+//舍入请求大小到一个有效的内存分配大小。
 static int memsys3Roundup(int n){
   if( n<=12 ){
     return 12;

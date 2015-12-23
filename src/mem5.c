@@ -172,7 +172,7 @@ static SQLITE_WSD struct Mem5Global {
   ** Space for tracking which blocks are checked out and the size
   ** of each block.  One byte per block.
   ** 
-  ** 用于追踪检出块和每块的大小的空间，每个块一个字节
+  ** 用于追踪检出块和每块的大小，每个块一个字节
   */
   u8 *aCtrl;
   /*
