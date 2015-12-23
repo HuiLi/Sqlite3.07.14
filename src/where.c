@@ -3048,10 +3048,10 @@ struct SrcList_item *pSrc,     /* Table we are trying to access *//* 尝试登�
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
   char aff;
-  if( pTerm->leftCursor!=pSrc->iCursor ) return 0;
-  if( pTerm->eOperator!=WO_EQ ) return 0;
-  if( (pTerm->prereqRight & notReady)!=0 ) return 0;
-  aff = pSrc->pTab->aCol[pTerm->u.leftColumn].affinity;
+  if( pTerm->leftCursor!=pSrc->iCursor ) return 0;//对列数X的游标数的比较
+  if( pTerm->eOperator!=WO_EQ ) return 0;//对运算符的比较
+  if( (pTerm->prereqRight & notReady)!=0 ) return 0;//对表位掩码的比较
+  aff = pSrc->pTab->aCol[pTerm->u.leftColumn].affinity;//亲和力的赋值
   if( !sqlite3IndexAffinityOk(pTerm->pExpr, aff) ) return 0;
   return 1;
 }
@@ -3172,7 +3172,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
     return;
   }
 
-  assert( pParse->nQueryLoop >= (double)1 );
+  assert( pParse->nQueryLoop >= (double)1 );//验证信息
   pTable = pSrc->pTab;
   nTableRow = pTable->nRowEst;
   logN = estLog(nTableRow); //评价执行复杂度
@@ -3200,7 +3200,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to search *//* 用于搜索�
     if( termCanDriveIndex(pTerm, pSrc, notReady) ){	//如果term可以使用索引
       WHERETRACE(("auto-index reduces cost from %.1f to %.1f\n",
                     pCost->rCost, costTempIdx));
-      pCost->rCost = costTempIdx;
+      pCost->rCost = costTempIdx;//索引查询代价的计算
       pCost->plan.nRow = logN + 1;
       pCost->plan.wsFlags = WHERE_TEMP_INDEX;
       pCost->used = pTerm->prereqRight;
@@ -3294,7 +3294,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   v = pParse->pVdbe;
   assert( v!=0 );
-  addrInit = sqlite3CodeOnce(pParse);
+  addrInit = sqlite3CodeOnce(pParse);//地址初始化赋值
 
   /* Count the number of columns that will be added to the index 计算将要添加到索引的列数和用于匹配WHERE子句的约束
   ** and used to match WHERE clause constraints */
@@ -3303,7 +3303,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
   /*
   **计算列的数量将被添加到索引和WHERE子句用于匹配约束
   */
-  nColumn = 0;
+  nColumn = 0;//赋初值
   pTable = pSrc->pTab;
   pWCEnd = &pWC->a[pWC->nTerm];
   idxCols = 0;
@@ -3345,7 +3345,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
   **计算额外的列的数量需要创建一个覆盖索引。“覆盖指数”是一个包含所有列建立索引所需的查询。
   **覆盖索引,原始表不需要访问。如果去同步，自动索引必须是一个覆盖索引,因为索引不会被更新如果原始表变化和索引和表都不能使用。
   */
-  extraCols = pSrc->colUsed & (~idxCols | (((Bitmask)1)<<(BMS-1)));
+  extraCols = pSrc->colUsed & (~idxCols | (((Bitmask)1)<<(BMS-1)));//额外的列
   mxBitCol = (pTable->nCol >= BMS-1) ? BMS-1 : pTable->nCol;
   testcase( pTable->nCol==BMS-1 );
   testcase( pTable->nCol==BMS-2 );
@@ -3370,7 +3370,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
   nByte += nColumn;                 /* Index.aSortOrder */
   pIdx = sqlite3DbMallocZero(pParse->db, nByte);
   if( pIdx==0 ) return;
-  pLevel->plan.u.pIdx = pIdx;
+  pLevel->plan.u.pIdx = pIdx;//填充索引信息
   pIdx->azColl = (char**)&pIdx[1];
   pIdx->aiColumn = (int*)&pIdx->azColl[nColumn];
   pIdx->aSortOrder = (u8*)&pIdx->aiColumn[nColumn];
@@ -3444,7 +3444,7 @@ struct SrcList_item *pSrc,  /* The FROM clause term to get the next index *//* �
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
   addrTop = sqlite3VdbeAddOp1(v, OP_Rewind, pLevel->iTabCur);
   regRecord = sqlite3GetTempReg(pParse);
-  sqlite3GenerateIndexKey(pParse, pIdx, pLevel->iTabCur, regRecord, 1);
+  sqlite3GenerateIndexKey(pParse, pIdx, pLevel->iTabCur, regRecord, 1);//填充自动索引的内容
   sqlite3VdbeAddOp2(v, OP_IdxInsert, pLevel->iIdxCur, regRecord);
   sqlite3VdbeChangeP5(v, OPFLAG_USESEEKRESULT);
   sqlite3VdbeAddOp2(v, OP_Next, pLevel->iTabCur, addrTop+1);
@@ -3680,7 +3680,7 @@ static int vtabBestIndex(Parse *pParse, Table *pTab, sqlite3_index_info *p){
     if( rc==SQLITE_NOMEM ){
       pParse->db->mallocFailed = 1;
     }else if( !pVtab->zErrMsg ){
-      sqlite3ErrorMsg(pParse, "%s", sqlite3ErrStr(rc));
+      sqlite3ErrorMsg(pParse, "%s", sqlite3ErrStr(rc));//输出错误信息和释放指针
     }else{
       sqlite3ErrorMsg(pParse, "%s", pVtab->zErrMsg);
     }
@@ -3905,11 +3905,11 @@ struct SrcList_item *pSrc,      /* The FROM clause term to search *//* 用于搜
   
   /*
   **设置aConstraint[]。可用的字段和初始化所有输出变量为零。
-  **
-  pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint;
+  **/
+  pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint;////aConstraints[]数组包含在当前表上的所有约束的记录。
   pUsage = pIdxInfo->aConstraintUsage;
-  for(i=0; i<pIdxInfo->nConstraint; i++, pIdxCons++){
-    j = pIdxCons->iTermOffset;
+  for(i=0; i<pIdxInfo->nConstraint; i++, pIdxCons++){//循环扫描我们需要重复计算可用的计算
+    j = pIdxCons->iTermOffset;     //存储我们需要重复计算可用的计算的数
 =======
   pIdxCons = *(struct sqlite3_index_constraint**)&pIdxInfo->aConstraint; //初始化pIdxCons
   pUsage = pIdxInfo->aConstraintUsage; //初始化pUsage
@@ -4067,9 +4067,9 @@ static int whereKeyStats(
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 ){
   tRowcnt n;
-  IndexSample *aSample;
-  int i, eType;
-  int isEq = 0;
+  IndexSample *aSample;//索引样本指针 
+  int i, eType;//定义变量
+  int isEq = 0;//标志位
   i64 v;
   double r, rS;
 
@@ -4276,7 +4276,7 @@ static int whereKeyStats(
 /*如果表达式pExpr表示一个文本值，那么设*pp是指向包含相同值的sqlite3_value
 结构的指针，并且在返回之前与它紧密相关。最终把它传递到sqlite3ValueFree()中时，由调用者来释放此结构。
 */
-#ifdef SQLITE_ENABLE_STAT3
+#ifdef SQLITE_ENABLE_STAT3//头文件定义SQLITE_ENABLE_STAT3，防止重包含
 static int valueFromExpr(
   Parse *pParse, 
   Expr *pExpr, 
@@ -4419,21 +4419,21 @@ static int whereRangeScanEst(
     u8 aff = p->pTable->aCol[p->aiColumn[0]].affinity;
 
     if( pLower ){
-      Expr *pExpr = pLower->pExpr->pRight;
-      rc = valueFromExpr(pParse, pExpr, aff, &pRangeVal);
-      assert( pLower->eOperator==WO_GT || pLower->eOperator==WO_GE );
+      Expr *pExpr = pLower->pExpr->pRight;//在范围中的下限,指向这个term的子表达式
+      rc = valueFromExpr(pParse, pExpr, aff, &pRangeVal);//pExpr表示一个文本值,并且在返回之前与它紧密相关
+      assert( pLower->eOperator==WO_GT || pLower->eOperator==WO_GE );//估计在一个索引的所有键中的一个特别键的位置
       if( rc==SQLITE_OK
        && whereKeyStats(pParse, p, pRangeVal, 0, a)==SQLITE_OK
       ){
         iLower = a[0];
         if( pLower->eOperator==WO_GT ) iLower += a[1];
       }
-      sqlite3ValueFree(pRangeVal);
+      sqlite3ValueFree(pRangeVal);//释放指针
     }
     if( rc==SQLITE_OK && pUpper ){
-      Expr *pExpr = pUpper->pExpr->pRight;
-      rc = valueFromExpr(pParse, pExpr, aff, &pRangeVal);
-      assert( pUpper->eOperator==WO_LT || pUpper->eOperator==WO_LE );
+      Expr *pExpr = pUpper->pExpr->pRight;//在范围中的上限,指向这个term的子表达式
+      rc = valueFromExpr(pParse, pExpr, aff, &pRangeVal);//pExpr表示一个文本值,并且在返回之前与它紧密相关
+      assert( pUpper->eOperator==WO_LT || pUpper->eOperator==WO_LE );//估计在一个索引的所有键中的一个特别键的位置
       if( rc==SQLITE_OK
        && whereKeyStats(pParse, p, pRangeVal, 1, a)==SQLITE_OK
       ){
@@ -4538,23 +4538,23 @@ static int whereEqualScanEst(
   tRowcnt a[2];             /* Statistics 统计信息 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
-  assert( p->aSample!=0 );
-  assert( p->nSample>0 );
-  aff = p->pTable->aCol[p->aiColumn[0]].affinity;
+  assert( p->aSample!=0 );//验证信息
+  assert( p->nSample>0 );//验证信息
+  aff = p->pTable->aCol[p->aiColumn[0]].affinity;//亲和力计算
   if( pExpr ){
-    rc = valueFromExpr(pParse, pExpr, aff, &pRhs);
+    rc = valueFromExpr(pParse, pExpr, aff, &pRhs);//pExpr表示一个文本值,并且在返回之前与它紧密相关
     if( rc ) goto whereEqualScanEst_cancel;
   }else{
     pRhs = sqlite3ValueNew(pParse->db);
   }
   if( pRhs==0 ) return SQLITE_NOTFOUND;
-  rc = whereKeyStats(pParse, p, pRhs, 0, a);
+  rc = whereKeyStats(pParse, p, pRhs, 0, a);//估计在一个索引的所有键中的一个特别键的位置
   if( rc==SQLITE_OK ){
     WHERETRACE(("equality scan regions: %d\n", (int)a[1]));
     *pnRow = a[1];
   }
 whereEqualScanEst_cancel:
-  sqlite3ValueFree(pRhs);
+  sqlite3ValueFree(pRhs);//释放指针
   return rc;
 }
 #endif /* defined(SQLITE_ENABLE_STAT3) *//*定义(SQLITE_ENABLE_STAT3)函数*/
@@ -4637,10 +4637,10 @@ static int whereInScanEst(
   int i;                      /* Loop counter 循环计数器 */
 >>>>>>> 91288352e83e9763d493ed84aec377d15ced3949
 
-  assert( p->aSample!=0 );
+  assert( p->aSample!=0 );//验证信息
   for(i=0; rc==SQLITE_OK && i<pList->nExpr; i++){
     nEst = p->aiRowEst[0];
-    rc = whereEqualScanEst(pParse, p, pList->a[i].pExpr, &nEst);
+    rc = whereEqualScanEst(pParse, p, pList->a[i].pExpr, &nEst);//估计基于等值约束条件x=VALUE返回的列数
     nRowEst += nEst;
   }
   if( rc==SQLITE_OK ){
