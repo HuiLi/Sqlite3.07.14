@@ -36,8 +36,8 @@
 **  int nPage;                        // Number of pages in pPage[]  页的数目
 **  int mxParserStack;                // maximum depth of the parser stack  解析栈的最大深度
 **  int sharedCacheEnabled;           // true if shared-cache mode enabled  如果共享缓存模式开启了，则为真
-**  // The above might be initialized to non-zero.  The following need to always
-**  ** initially be zero, however. 
+**  //The above might be initialized to non-zero.  The following need to always
+**  //initially be zero, however. 
 **  //以上的变量的初始值可为非零值，以下的变量则必须初始化为零
 **  int isInit;                       // True after initialization has finished  初始化完成以后置为真
 **  int inProgress;                   // True while initialization in progress  初始化过程中则为真
