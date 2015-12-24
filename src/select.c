@@ -1144,11 +1144,11 @@ static void explainTempTable(Parse *pParse, const char *zUsage){
 ** false, or the second form if it is true.
 **
 ** 除非一个"EXPLAIN QUERY PLAN"命令正在处理，这个功能就是一个空操作。
-** 否则，它增加一个单独的输出行到EQP结果，标题的形式为:
+** 否则，它增加一个单独的输出行到EQP结果，这个输出格式为以下范式中的一种：:
 ** "COMPOSITE SUBQUERIES iSub1 and iSub2 (op)"
 ** "COMPOSITE SUBQUERIES iSub1 and iSub2 USING TEMP B-TREE (op)"
-** iSub1和iSub2整数作为相应的传递函数参数，运算是相同名称的参数
-** 的文本表示。参数"op"必是TK_UNION, TK_EXCEPT,TK_INTERSECT或者TK_ALL之一。
+** iSub1和iSub2整数作为相应的传递函数参数，运算是相同名称的参数的文本表示。
+** 参数"op"必是TK_UNION, TK_EXCEPT,TK_INTERSECT或者TK_ALL之一。
 ** 如果参数bUseTmp是false就使用第一范式，或者如果是true就使用第二范式。
 */
 static void explainComposite(
@@ -1156,9 +1156,9 @@ static void explainComposite(
 	int op,                         /* One of TK_UNION, TK_EXCEPT etc.   TK_UNION, TK_EXCEPT等运算符中的一个*/
 	int iSub1,                      /* Subquery id 1 子查询id 1*/
 	int iSub2,                      /* Subquery id 2 子查询id 2*/
-	int bUseTmp                     /* True if a temp table was used 如果临时表被使用就是true*/
+	int bUseTmp                     /* True if a temp table was used 如果使用的是临时表，就是true*/
 	){
-	assert(op == TK_UNION || op == TK_EXCEPT || op == TK_INTERSECT || op == TK_ALL);/*测试op是否有TK_UNION或TK_EXCEPT或TK_INTERSECT或TK_ALL*/
+	assert(op == TK_UNION || op == TK_EXCEPT || op == TK_INTERSECT || op == TK_ALL);/*判断op是否是TK_UNION、TK_EXCEPT、K_INTERSECT或TK_ALL中的一种或几种*/
 	if (pParse->explain == 2){/*如果pParse->explain与字符z相同*/
 		Vdbe *v = pParse->pVdbe;/*声明一个虚拟机*/
 		char *zMsg = sqlite3MPrintf(/*设置标记信息*/
@@ -1178,15 +1178,15 @@ static void explainComposite(
 ** then the results were placed in a sorter.  After the loop is terminated
 ** we need to run the sorter and output the results.  The following
 ** routine generates the code needed to do that.
-** 如果内部循环使用一个非空pOrderBy生成参数,然后把结果放置在一个分选机。
-** 循环终止后我们需要运行分选机和输出结果。下面的例程生成所需的代码。
+** 如果内部循环使用一个非空pOrderBy生成参数,然后把结果放置在一个分选机（排序程序）。
+** 循环终止后我们需要运行分选机并输出结果。接下来的程序生成我们需要的代码。
 */
 static void generateSortTail(
-	Parse *pParse,    /* Parsing context 语义分析*/ /* Parsing context |语义分析*/
-	Select *p,        /* The SELECT statement   select语句*//* The SELECT statement   |select语句*/
-	Vdbe *v,          /* Generate code into this VDBE  在VDBE中生成代码**//* Generate code into this VDBE  |在VDBE中生成代码**/
-	int nColumn,      /* Number of columns of data 数据种列的数目*//* Number of columns of data |数据的列数*/
-	SelectDest *pDest /* Write the sorted results here 在这里写入排序结果*//* Write the sorted results here |在这里写入排序结果*/
+	Parse *pParse,    /* Parsing context 语义分析*/ 
+	Select *p,        /* The SELECT statement   |select语句*/
+	Vdbe *v,          /* Generate code into this VDBE  |在VDBE中生成代码**/
+	int nColumn,      /* Number of columns of data 数据种列的数目*/
+	SelectDest *pDest /* Write the sorted results here 在这里写入排序结果*/
 	){
 	int addrBreak = sqlite3VdbeMakeLabel(v);     /* Jump here to exit loop 跳转到这里退出循环*/ /* Jump here to exit loop |中断循环的跳转地址*/
 	int addrContinue = sqlite3VdbeMakeLabel(v);  /* Jump here for next cycle 跳转到这里进行下一个循环*/ /* Jump here for next cycle |继续下轮循环的跳转地址*/
