@@ -10,22 +10,28 @@
 **
 *************************************************************************
 ** This file contains the C functions that implement mutexes.
-**è¿™ä¸ªæ–‡ä»¶åŒ…å«å®ç°äº’æ–¥çš„Cå‡½æ•°ã€‚
+**´ËÎÄ¼ş°üº¬ÊµÏÖ»¥³âµÄCº¯Êı¡£
 ** This implementation in this file does not provide any mutual
 ** exclusion and is thus suitable for use only in applications
 ** that use SQLite in a single thread.  The routines defined
 ** here are place-holders.  Applications can substitute working
-** mutex routines at start-time using the sqlite3_config(SQLITE_CONFIG_MUTEX,...)interface.
-**åœ¨è¿™ä¸ªæ–‡ä»¶ä¸­çš„è¿™ä¸ªå®ç°ä¸æä¾›ä»»ä½•ç›¸äº’çš„æ’æ–¥,å› æ­¤ä»…é€‚åˆå•çº¿ç¨‹ä½¿ç”¨SQLiteçš„ç¨‹åºä½¿ç”¨
-**è¿™é‡Œå®šä¹‰çš„ä¾‹ç¨‹çš„å ä½ç¬¦ã€‚åº”ç”¨ç¨‹åºåœ¨å¼€å§‹å¯ä»¥ä½¿ç”¨sqlite3_config(SQLITE_CONFIG_MUTEXâ€¦)æ¥å£æ›¿ä»£å·¥ä½œäº’æ–¥åŠ¨ä½œã€‚
-**   
+** mutex routines at start-time using the
 **
-** 
+**     sqlite3_config(SQLITE_CONFIG_MUTEX,...)
+**
+** interface.
 **
 ** If compiled with SQLITE_DEBUG, then additional logic is inserted
 ** that does error checking on mutexes to make sure they are being
 ** called correctly.
-**å¦‚æœä½¿ç”¨SQLITE_DEBUGç¼–è¯‘,ç„¶åæ’å…¥é¢å¤–çš„é€»è¾‘ä»£æ›¿äº’æ–¥é”ä¸Šçš„é”™è¯¯æ£€æµ‹æ¥ç¡®ä¿ä»–ä»¬è¢«å«åˆ°æ˜¯æ­£ç¡®çš„ã€‚/
+*/
+/*ÔÚÕâ¸öÎÄ¼şÖĞµÄ´ËÊµÏÖ²»Ìá¹©ÈÎºÎ»¥³â£¬Òò´ËÊÊºÏÓÚÓÃÔÚ½öÔÚµ¥Ïß³ÌÖĞÊ¹ÓÃSQLiteµÄÓ¦ÓÃÖĞ¡£
+**¶¨ÒåÔÚÕâÀïµÄ³ÌĞòÊÇÕ¼Î»·û¡£
+**Ó¦ÓÃ³ÌĞòÊ¹ÓÃsqlite3_config£¨SQLITE_CONFIG_MUTEX£¬...£©½Ó¿Ú
+**ÔÚÆô¶¯Ê±´úÌæ¹¤×÷»¥³â³ÌĞò¡£Èç¹ûÊ¹ÓÃSQLITE_DEBUG½øĞĞ±àÒë£¬È»ºó¶îÍâµÄÂß¼­²åÈë£¬
+**×ö¶Ô»¥³âµÄ´íÎó¼ì²é£¬ÒÔÈ·±£ËüÃÇ±»ÕıÈ·µØµ÷ÓÃ¡£
+**
+*/
 #include "sqliteInt.h"
 
 #ifndef SQLITE_MUTEX_OMIT
@@ -33,17 +39,15 @@
 #ifndef SQLITE_DEBUG
 /*
 ** Stub routines for all mutex methods.
-**æ‰€æœ‰äº’æ–¥ä½“å®ç°çš„åŸºæœ¬å‡½æ•°
+**´æÖüËùÓĞµÄ»¥³â·½·¨
 ** This routines provide no mutual exclusion or error checking.
-**è¿™ä¸ªä¾‹ç¨‹æä¾›æ²¡æœ‰äº’æ–¥æˆ–é”™è¯¯æ£€æŸ¥
+**Õâ¸ö³ÌĞòÃ»ÓĞÌá¹©Ïà»¥ÅÅ³â»ò´íÎó¼ì²é¡£
 */
 static int noopMutexInit(void){ return SQLITE_OK; }
 static int noopMutexEnd(void){ return SQLITE_OK; }
 static sqlite3_mutex *noopMutexAlloc(int id){ 
-  UNUSED_PARAMETER(id);//æŒ‡é’ˆè½¬åŒ–(void)(id)
-
-  return (sqlite3_mutex*)8;//é»˜è®¤è¿”å›8
- 
+  UNUSED_PARAMETER(id);
+  return (sqlite3_mutex*)8; 
 }
 static void noopMutexFree(sqlite3_mutex *p){ UNUSED_PARAMETER(p); return; }
 static void noopMutexEnter(sqlite3_mutex *p){ UNUSED_PARAMETER(p); return; }
@@ -76,21 +80,22 @@ sqlite3_mutex_methods const *sqlite3NoopMutex(void){
 ** In this implementation, error checking is provided for testing
 ** and debugging purposes.  The mutexes still do not provide any
 ** mutual exclusion.
+**ÔÚ¸ÃÊµÏÖÖĞ£¬¶ÔÓÚ²âÊÔºÍµ÷ÊÔÌá¹©ÁËÒ»ÖÖ´íÎó¼ì²é¡£¸Ã»¥³âÁ¿ÈÔÈ»Ã»ÓĞÌá¹©ÈÎºÎ»¥³â¡£
 */
-//åœ¨è¿™ä¸ªå®ç°ä¸­,é”™è¯¯æ£€æŸ¥æä¾›testingandè°ƒè¯•ã€‚äº’æ–¥é”ä»ç„¶æ²¡æœ‰æä¾›ä»»ä½•äº’æ–¥ã€‚
-/*
-** The mutex object äº’æ–¥å¯¹è±¡
-*/
-typedef struct sqlite3_debug_mutex { //è°ƒè¯•ä¸“ç”¨äº’æ–¥ä½“
 
-  int id;     /* The mutex type */
-  int cnt;    /* Number of entries without a matching leave æ¡ç›®çš„æ•°å€¼ä¸åŒ¹é…çš„ç¦»å¼€*/
+/*
+** The mutex object
+**»¥³â¶ÔÏó
+*/
+typedef struct sqlite3_debug_mutex {
+  int id;     /* The mutex type »¥³âÀàĞÍ*/
+  int cnt;    /* Number of entries without a matching leave */
 } sqlite3_debug_mutex;
 
 /*
 ** The sqlite3_mutex_held() and sqlite3_mutex_notheld() routine are
 ** intended for use inside assert() statements.
-**The sqlite3_mutex_held() and sqlite3_mutex_notheld()å‡½æ•°ç”¨äºassertä¸€äº›æ„å¤–æƒ…å†µ
+**sqlite3_mutex_held£¨£©ºÍsqlite3_mutex_notheld£¨£©º¯ÊıÔòÖ÷ÒªÓÃÓÚÄÚ²¿µÄassert()Óï¾ä¡£
 */
 static int debugMutexHeld(sqlite3_mutex *pX){
   sqlite3_debug_mutex *p = (sqlite3_debug_mutex*)pX;
@@ -103,7 +108,7 @@ static int debugMutexNotheld(sqlite3_mutex *pX){
 
 /*
 ** Initialize and deinitialize the mutex subsystem.
-**åˆå§‹å’Œé”€æ¯äº’æ–¥ä½“ç³»ç»Ÿ
+**³õÊ¼»¯ºÍÈ¡Ïû³õÊ¼»¯»¥³â×ÓÏµÍ³¡£
 */
 static int debugMutexInit(void){ return SQLITE_OK; }
 static int debugMutexEnd(void){ return SQLITE_OK; }
@@ -112,7 +117,9 @@ static int debugMutexEnd(void){ return SQLITE_OK; }
 ** The sqlite3_mutex_alloc() routine allocates a new
 ** mutex and returns a pointer to it.  If it returns NULL
 ** that means that a mutex could not be allocated. 
-**sqlite3_mutex_alloc()ä¾‹ç¨‹åˆ†é…ä¸€ä¸ªæ–°çš„äº’æ–¥å¯¹è±¡å¹¶è¿”å›ä¸€ä¸ªæŒ‡é’ˆæŒ‡å‘å®ƒã€‚å¦‚æœè¿”å›ç©ºè¿™æ„å‘³ç€ä¸€ä¸ªäº’æ–¥é”ä¸èƒ½åˆ†é…ã€‚*/
+**¸Ãsqlite3_mutex_alloc£¨£©º¯Êı·ÖÅäÒ»¸öĞÂµÄ»¥³âËø£¬²¢·µ»ØÒ»¸öÖ¸Õë¡£
+**Èç¹û·µ»ØNULL£¬ÕâÒâÎ¶×Å»¥³âÃ»ÓĞ±»·ÖÅä¡£
+*/
 static sqlite3_mutex *debugMutexAlloc(int id){
   static sqlite3_debug_mutex aStatic[6];
   sqlite3_debug_mutex *pNew = 0;
@@ -139,7 +146,7 @@ static sqlite3_mutex *debugMutexAlloc(int id){
 
 /*
 ** This routine deallocates a previously allocated mutex.
-** è¿™ä¸ªå‡½æ•°ç”¨äºé‡æ–°åˆ†é…ä¹‹å‰åˆ†é…çš„äº’æ–¥
+**Õâ¸ö³ÌĞòÈ¡Ïû·ÖÅäÒÔÇ°·ÖÅäµÄ»¥³â¡£
 */
 static void debugMutexFree(sqlite3_mutex *pX){
   sqlite3_debug_mutex *p = (sqlite3_debug_mutex*)pX;
@@ -158,12 +165,13 @@ static void debugMutexFree(sqlite3_mutex *pX){
 ** mutex must be exited an equal number of times before another thread
 ** can enter.  If the same thread tries to enter any other kind of mutex
 ** more than once, the behavior is undefined.
-**The sqlite3_mutex_enter() and sqlite3_mutex_try()å‡½æ•°åˆ†é…é”ï¼Œå¿™åˆ™è¿”å›SQLITE_BUSY å¦åˆ™åˆ†é…é” ï¼Œ
-**é”åˆ†é…æˆåŠŸThe sqlite3_mutex_try()æ¥å£è¿”å›SQLITE_OKã€‚
-**å¯ä»¥å¤šæ¬¡è¿›å…¥äº’æ–¥ä½¿ç”¨SQLITE_MUTEX_RECURSIVEåˆ›å»ºç›¸åŒçš„çº¿ç¨‹ã€‚
-**åœ¨è¿™ç§æƒ…å†µä¸‹,äº’æ–¥é”ä¹‹å‰å¿…é¡»é€€å‡ºç›¸åŒæ¬¡æ•°çš„å¦ä¸€ä¸ªçº¿ç¨‹å¯ä»¥è¿›å…¥ã€‚
-**å¦‚æœç›¸åŒçš„çº¿ç¨‹è¯•å›¾è¿›å…¥ä»»ä½•å…¶ä»–ç±»å‹çš„äº’æ–¥ä¸æ­¢ä¸€æ¬¡,è¿™ç§è¡Œä¸ºæ˜¯æœªå®šä¹‰çš„ã€‚
 **
+** sqlite3_mutex_enter£¨£©ºÍsqlite3_mutex_try£¨£©³ÌĞòÊÔÍ¼½øÈëÒ»¸ö»¥³âÖĞ¡£
+** Èç¹ûÁíÒ»¸öÏß³ÌÒÑ¾­ÊÇ»¥³âÌå£¬sqlite3_mutex_enter£¨£©½«×èÈû£¬sqlite3_mutex_try£¨£©½«·µ»ØSQLITE_BUSY¡£
+** sqlite3_mutex_try£¨£©½Ó¿Ú·µ»ØSQLITE_OK³É¹¦½øÈë¡£
+** ´´½¨µÄ»¥³âÊ¹ÓÃsqlite_mutex_recursive¿ÉÒÔ½øÈë¶à´ÎÏàÍ¬µÄÏß³Ì¡£
+** ÔÚÕâÖÖÇé¿öÏÂ£¬ÁíÒ»¸öÏß³Ì¿ÉÒÔ½øÈëÖ®Ç°£¬»¥³â±ØĞëÍË³öÒ»¸öÏàÍ¬µÄ´ÎÊı¡£
+** Èç¹ûÍ¬Ò»¸öÏß³ÌÊÔÍ¼½øÈëÈÎºÎÆäËûÀàĞÍµÄ»¥³â²»Ö¹Ò»´Î£¬¸ÃĞĞÎªÊÇÎ´¶¨ÒåµÄ¡£
 */
 static void debugMutexEnter(sqlite3_mutex *pX){
   sqlite3_debug_mutex *p = (sqlite3_debug_mutex*)pX;
@@ -182,8 +190,10 @@ static int debugMutexTry(sqlite3_mutex *pX){
 ** previously entered by the same thread.  The behavior
 ** is undefined if the mutex is not currently entered or
 ** is not currently allocated.  SQLite will never do either.
-sqlite3_mutex_leave()å‡½æ•°é€€å‡ºä¸€ä¸ªäº’æ–¥é”è¯¥é”æ˜¯ä»¥å‰è¾“å…¥çš„ç›¸åŒçš„çº¿ç¨‹ã€‚
-å¦‚æœäº’æ–¥å¯¹è±¡å½“å‰ä¸æ˜¯ç›®å‰è¿›å…¥å£çš„ä¸åˆ†é…çš„è¡Œä¸ºæ˜¯æœªå®šä¹‰çš„,SQLiteSQLiteæ°¸è¿œä¸ä¼šåšã€‚*/
+**sqlite3_mutex_leave£¨£©º¯ÊıÍË³öÏÈÇ°ÓÉÍ¬Ò»¸öÏß³Ì½øÈëµÄÒ»¸ö»¥³â¡£
+**Èç¹û»¥³âËøµ±Ç°Î´ÊäÈë»òµ±Ç°Î´·ÖÅäµÄĞĞÎªÊÇ²»Ã÷È·µÄ¡£ 
+**SQLiteÓÀÔ¶²»»á×öÈÎºÎÊÂ¡£
+*/
 static void debugMutexLeave(sqlite3_mutex *pX){
   sqlite3_debug_mutex *p = (sqlite3_debug_mutex*)pX;
   assert( debugMutexHeld(pX) );
@@ -212,7 +222,8 @@ sqlite3_mutex_methods const *sqlite3NoopMutex(void){
 /*
 ** If compiled with SQLITE_MUTEX_NOOP, then the no-op mutex implementation
 ** is used regardless of the run-time threadsafety setting.
-å¦‚æœä½¿ç”¨SQLITE_MUTEX_NOOPç¼–è¯‘,é‚£ä¹ˆæ— æ“ä½œäº’æ–¥å¯¹è±¡çš„å®ç°è¢«ä½¿ç”¨ä¸é¡¾è¿è¡Œæ—¶çº¿ç¨‹å®‰å…¨è®¾ç½®*/
+**Èç¹û±àÒësqlite_mutex_noop£¬no-op»¥³â
+*/
 #ifdef SQLITE_MUTEX_NOOP
 sqlite3_mutex_methods const *sqlite3DefaultMutex(void){
   return sqlite3NoopMutex();
