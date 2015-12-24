@@ -27,19 +27,15 @@
 **   SQLITE_MUTEX_OMIT         No mutex logic.  Not even stubs.  The
 **                             mutexes implemention cannot be overridden
 **                             at start-time.
-							   没有互斥逻辑。甚至没有存根。互斥的实现不能在一开始就被无视。
 **
 **   SQLITE_MUTEX_NOOP         For single-threaded applications.  No
 **                             mutual exclusion is provided.  But this
 **                             implementation can be overridden at
 **                             start-time.
-							   对于单线程的应用。没有互斥    是被提供的。
 **
 **   SQLITE_MUTEX_PTHREADS     For multi-threaded applications on Unix.
-							   在Unix上多线程的应用。
 **
 **   SQLITE_MUTEX_W32          For multi-threaded applications on Win32.
-							   在win上多线程的应用。
 */
 #if !SQLITE_THREADSAFE
 # define SQLITE_MUTEX_OMIT
