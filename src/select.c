@@ -4642,6 +4642,15 @@ static void updateAccumulator(Parse *pParse, AggInfo *pAggInfo){//两个参数�
 	** 另一个解决方案是用OP_Copy操作来替换OP_Copy操作，实现将缓存中的数据
 	** 复制到内存中。
 	*/
+	/* 
+	** 在获取累加寄存器的内存之前,清空列缓存。否则,如果任何所需的列值已经存
+	** 在于寄存器中,sqlite3ExprCode()函数会执行OP_SCopy操作，将这个值复制到
+	** pC->iMem（内存）中。但当这个值被使用时,初始寄存器可能被使用这就会使
+	** 得底层缓存区中保存的文本和二进制值失效。
+	** 
+	** 另一个解决方案是用OP_Copy操作来替换OP_SCopy操作，实现将缓存中的数据
+	** 复制到内存中。
+	*/
 	if (regHit){//若有内存单元 
 		addrHitTest = sqlite3VdbeAddOp1(v, OP_If, regHit);//在虚拟机中添加操作码为OP_If的指令，并将返回的指令地址指令赋给addrHitTest。该指令的第一个操作数是当前内存单元的个数，还有两个默认的操作数0 
 	}
@@ -4838,6 +4847,10 @@ int sqlite3Select(
 
 	/* If writing to memory or generating a set
 	** only a single column may be output.
+	**如果写入内存或者生成一个集合，
+	**那么仅有一个单独的列可能被输出
+	*/
+	/* 
 	**如果写入内存或者生成一个集合，
 	**那么仅有一个单独的列可能被输出
 	*/
@@ -5087,6 +5100,9 @@ int sqlite3Select(
 	/* If the output is destined for a temporary table, open that table.
 	  **如果输出被指定到一个临时表时候，那么就要打开这个表
 	  */
+	/* 
+	** 如果输出被指定到一个临时表时候，那么就要打开这个表
+	*/
 	if (pDest->eDest == SRT_EphemTab){
 		sqlite3VdbeAddOp2(v, OP_OpenEphemeral, pDest->iSDParm, pEList->nExpr);
 	}/*如果处理的对象为SRT_EphemTab，那么将OP_OpenEphemeral操作交给vdbe，然后返回这个操作的地址*/
@@ -5105,6 +5121,9 @@ int sqlite3Select(
 	/* Open a virtual index to use for the distinct set.
 	  **为distinct集合打开一个虚拟索引
 	  */
+	/* 
+	** 为distinct集合打开一个虚拟索引
+	*/
 	if (p->selFlags & SF_Distinct){/*如果selFlags的值为SF_Distinct*/
 		KeyInfo *pKeyInfo;/*声明一个关键信息结构体*/
 		distinct = pParse->nTab++;/*将表的数量加1赋值给distinct*/
@@ -5488,6 +5507,9 @@ int sqlite3Select(
 			**
 			**基于当前内容的当前行，更新聚合累加器
 			*/
+			/* 
+			** 基于当前行的内容，更新聚合累加器
+			*/
 			sqlite3VdbeJumpHere(v, j1);
 			updateAccumulator(pParse, &sAggInfo);
 			sqlite3VdbeAddOp2(v, OP_Integer, 1, iUseFlag);
@@ -5526,6 +5548,7 @@ int sqlite3Select(
 			**那么该子程序在返回之前增加iAbortFlag 的内存单元
 			**这样做是为了告诉调用者终止调用
 			*/
+			
 			addrSetAbort = sqlite3VdbeCurrentAddr(v);
 			sqlite3VdbeAddOp2(v, OP_Integer, 1, iAbortFlag);
 			VdbeComment((v, "set abort flag"));
@@ -5546,13 +5569,18 @@ int sqlite3Select(
 			/* Generate a subroutine that will reset the group-by accumulator
 			**生成一个子程序，这个子程序将重置groupby 累加器
 			*/
+			/* 
+			** 生成一个子例程，这个子程序将重置group-by累加器
+			*/
 			sqlite3VdbeResolveLabel(v, addrReset);
 			resetAccumulator(pParse, &sAggInfo);
 			sqlite3VdbeAddOp1(v, OP_Return, regReset);
 
 		} /* endif pGroupBy.  Begin aggregate queries without GROUP BY:
 											   **开始一个无groupby的聚合查询
-											   */
+		/*  
+		** 开始一个无GROUP BY的聚合查询
+		*/									   */
 		else {
 			ExprList *pDel = 0;/*声明一个表达式列表*/
 #ifndef SQLITE_OMIT_BTREECOUNT
@@ -5608,7 +5636,12 @@ int sqlite3Select(
 				**
 				**查找最少出现的列的索引，如果这里有个索引，它有比较少的列，然后我们假设他消耗了较小的空间在硬盘上并且
 			    ** 扫描已经确定查询结果开销比较低。在这种情况下，设置iRoot到b-tree索引的根页号并且pKeyInfo是KeyInfo结构体需要的导航索引*/
-			
+				/* 
+				** 查找最少出现的列的索引，如果这里这样一个索引，并且它有跟其他表相比来说
+				** 较少的列，然后我们假设它在硬盘上消耗了较小的空间并且扫描已经确定查询结
+				** 果开销比较低。在这种情况下，设置iRoot到b-tree索引的根页号并且pKeyInfo
+				** 是KeyInfo结构体需要的导航索引。
+				*/
 				for (pIdx = pTab->pIndex; pIdx; pIdx = pIdx->pNext){/*遍历索引*/
 					if (pIdx->bUnordered == 0 && (!pBest || pIdx->nColumn < pBest->nColumn)){/*如果索引没有排序并且没有最好的索引或者所有中的列小于最好索引的中的列*/
 						pBest = pIdx;
@@ -5623,6 +5656,9 @@ int sqlite3Select(
 					 **
 					 **  打开只读游标，执行OP_Count操作，关闭游标
 					 */
+				/* 
+				**  打开只读光标，执行OP_Count操作，关闭光标。
+				*/ 
 				sqlite3VdbeAddOp3(v, OP_OpenRead, iCsr, iRoot, iDb); /*将OP_OpenRead操作交给vdbe，然后返回这个操作的地址*/
 				if (pKeyInfo){/*如果关键信息存在*/
 					sqlite3VdbeChangeP4(v, -1, (char *)pKeyInfo, P4_KEYINFO_HANDOFF);/*如果关键信息结构中地址值大于pKeyInfo,将P4_KEYINFO_HANDOFF的值设置到虚拟机*/
@@ -5669,6 +5705,22 @@ int sqlite3Select(
 			**   如果这个查询是"SELECT min(x)"，然后where.c中循环代码不能迭代任何x列的空值。
 			**   where.c优化器代码（决定使用使用那些索引）应该优先'ORDER BY'子句，更多的代码和注释细节在where.c中。
 			*/
+			/* 检查查询是否是以下形式之一：
+			**   SELECT min(x) FROM ...
+			**   SELECT max(x) FROM ...
+			** 如果是，则假设不存在ORDER ON x或者ORDER ON x DESC语句，查询where.c
+			** 中的代码来并尝试将结果排序。
+			** 如果where.c能产生按这个顺序排列的结果，则在第一轮迭代之后增加vdbe代
+			** 码来跳出处理循环（因为循环的第一轮迭代是用来保证在行上的操作是以x的
+			** 最小或最大值进行的，只对行有要求。）
+			**
+			** 必须讲一个特殊的标志位送到sqlite3WhereBegin()
+			**   如果这个查询是"SELECT min(x)"，则where.c中循环代码不能以x为空来进
+			**   行迭代。
+			**   where.c优化器代码（决定使用使用那些索引）必须在满足ORDER BY语句中
+			**   设立不同的优先级，这个优先级比其他的情况更高。查询where.c中的代码
+			**   和注释来获取细节。
+			*/
 				ExprList *pMinMax = 0;/*声明一个表达式列表，存放最小或最大值的表达式*/
 				u8 flag = minMaxQuery(p);/*对SELECT结构体p进行最大值或最小值查询，并赋值给flag*/
 				if (flag){/*如果flag存在*/
@@ -5688,6 +5740,10 @@ int sqlite3Select(
 				**
 				**处理聚集函数中没有 GROUP BY情况。这个处理程序很简单
 				**只有一个单独的行输出。
+				*/
+				/*  
+				** 如果聚集函数没有 GROUP BY语句，则执行此情况。这个处理程序简单的
+				** 多因为它只有一个单行的输出。
 				*/
 				resetAccumulator(pParse, &sAggInfo);/*重置聚合累加器*/
 				pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, &pMinMax, 0, flag, 0);/*生成处理where子句的循环的开始*/
@@ -5725,6 +5781,10 @@ int sqlite3Select(
 	**如果这是一个ORDERBY子句，
 	**我们需要排序结果并且发送结果一个接一个的给回调函数
 	*/
+	/* 
+	** 如果这是一个ORDER BY语句，则我们需要对结果排序并且把它们依次送到
+	** 回调函数。
+	*/
 	if (pOrderBy){
 		explainTempTable(pParse, "ORDER BY");/*输出信息"ORDER BY"到语法解析树*/
 		generateSortTail(pParse, p, v, pEList->nExpr, pDest);/*调用自身函数，输出ORDER BY结果*/
@@ -5733,6 +5793,9 @@ int sqlite3Select(
 	/* Jump here to skip this query
 	  **为了跳过查询，直接跳转到这儿
 	  */
+	/* 
+	** 如果想跳过查询就跳到这里。
+	*/
 	sqlite3VdbeResolveLabel(v, iEnd);/*解析iEnd，并作为下一条被插入的地址*/
 
 	/* The SELECT was successfully coded.   Set the return code to 0
@@ -5740,18 +5803,26 @@ int sqlite3Select(
 	**
 	**  select 语句被成功编码，设置如果返还为0，表明没有出错
 	*/
+	/* 
+	** select 语句被成功编码，设置返回值为0表示没有出错。
+	*/
 	rc = 0;/*将执行结果标记为0*/
 	/* Control jumps to here if an error is encountered above, or upon
 	** successful coding of the SELECT.
 	**控制跳跃到这里如果上面遇
 	**  到一个错误,或对select成功编码。
 	*/
-	
+	/*
+	** 如果在上面遇到了错误或者对SELECT成功编码，则控制跳到这里。
+	*/
 select_end:
 	explainSetInteger(pParse->iSelectId, iRestoreSelectId);/*结束语句，执行SELECT结束，并存储SELECT的ID*/
 
  /* Identify column names if results of the SELECT are to be output.
   **如果select 结果集要被输出，则标出列名
+  */
+  /* 
+  ** 如果SELECT结果将被输出，则确定列名。
   */
 	if (rc == SQLITE_OK && pDest->eDest == SRT_Output){
 		generateColumnNames(pParse, pTabList, pEList);/*生成列名*/
@@ -5769,6 +5840,9 @@ select_end:
 *//*
 ** Generate a human-readable description of a the Select object.
 **生成一个可读的select 对象的描述
+*/
+/*
+** 对一个Selcet对象生成一个可读的描述。
 */
 static void explainOneSelect(Vdbe *pVdbe, Select *p){
 	sqlite3ExplainPrintf(pVdbe, "SELECT ");/*实际上调用sqlite3VXPrintf（），进行格式化输出"SELECT "*/
