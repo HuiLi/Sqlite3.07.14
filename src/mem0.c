@@ -15,27 +15,28 @@
 ** here always fail.  SQLite will not operate with these drivers.  These
 ** are merely placeholders.  Real drivers must be substituted using
 ** sqlite3_config() before SQLite will operate.
-**
-** è¿™ä¸ªæ–‡ä»¶åŒ…å«ä¸€ä¸ªç©ºæ“ä½œSQLITE_ZERO_MALLOCå®šä¹‰æ—¶å†…å­˜åˆ†é…ä½¿ç”¨çš„é©±åŠ¨ç¨‹åºã€‚
-** è¿™é‡Œå®ç°åˆ†é…å™¨é©±åŠ¨ç¨‹åºæ€»æ˜¯å¤±è´¥çš„ã€‚
-** SQLiteä¸å¼•ç”¨è¿™äº›é©±åŠ¨ç¨‹åºã€‚è¿™äº›ä»…æ˜¯äº›å ä½ç¬¦ã€‚
-** çœŸæ­£æœ‰æ•ˆçš„é©±åŠ¨ç¨‹åºå¿…é¡»ä½¿ç”¨sqlite3_config()å°†ä¹‹å‰çš„SQLiteä»£æ›¿
 */
+/*Õâ¸öÎÄ¼şÖĞ°üº¬µÄÊÇÒ»Ğ©ÎŞ²Ù×÷µÄÄÚ´æ·ÖÅäÇı¶¯Æ÷£¬µ±ºêSQLITE_ZERO_MALLOC±»¶¨ÒåÊ±Çı¶¯Æ÷²Å±»ÔËÓÃ¡£
+Õâ¸öÄÚ´æ·ÖÅäÇı¶¯Æ÷ÕâÕâ¸öÎÄ¼şÖĞµÄÊµÏÖ×ÜÊÇÊ§°ÜµÄ¡£ËùÒÔ £¬ SQLite ½«²»ÄÜ¹»ÔË×÷ÕâĞ©Çı¶¯³ÌĞò¡£Ò²¾ÍÊÇËµÕâĞ©Çı¶¯Æ÷½ö½öÊÇÒ»¸öÕ¼Î»·û£¬
+ÕæÕıµÄÇı¶¯Æ÷ÊÇÔÚSQLite²Ù×÷Ö®Ç°£¬ÓÃsqlite3_config() À´Ìæ»»µÄ¡£*/
+
+
 #include "sqliteInt.h"
 
 /*
 ** This version of the memory allocator is the default.  It is
 ** used when no other memory allocator is specified using compile-time
 ** macros.
-**
-** æ­¤ç‰ˆæœ¬çš„å†…å­˜åˆ†é…å™¨æ˜¯é»˜è®¤çš„ã€‚å½“æ²¡æœ‰å…¶ä»–å†…å­˜åˆ†é…å™¨æŒ‡å®šä½¿ç”¨æ—¶ï¼Œå¦‚æœä½¿ç”¨SQLITE_ZERO_MALLOCå®å®šä¹‰æ—¶ï¼Œå®ƒå°±ä¼šè¢«ä½¿ç”¨
+*/
+/*´Ë°æ±¾µÄÄÚ´æ·ÖÅäÆ÷ÊÇÄ¬ÈÏµÄ¡£½öÓÃÓÚÄÚ´æ·ÖÅäÆ÷±»ÓÃÓÚ¾ßÌåµÄºê±àÒëÊ±¡£
 */
 #ifdef SQLITE_ZERO_MALLOC
 
 /*
 ** No-op versions of all memory allocation routines
-**
-** ç©ºæ“ä½œç‰ˆæœ¬çš„æ‰€æœ‰å†…å­˜åˆ†é…ä¾‹ç¨‹
+*/
+/*
+ËùÓĞÄÚ´æ·ÖÅä³ÌĞòµÄÎŞ²Ù×÷°æ±¾¡£
 */
 static void *sqlite3MemMalloc(int nByte){ return 0; }
 static void sqlite3MemFree(void *pPrior){ return; }
@@ -47,12 +48,11 @@ static void sqlite3MemShutdown(void *NotUsed){ return; }
 
 /*
 ** This routine is the only routine in this file with external linkage.
-**
+**Õâ¸ö³ÌĞò½ö½öÊÇÓÃÓÚÁ¬½ÓÍâ²¿³ÌĞòµÄ³ÌĞò¡£
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file.
-** 
-** è¿™ä¸ªä¾‹ç¨‹æ˜¯å”¯ä¸€åœ¨è¿™ä¸ªæ–‡ä»¶ä¸å¤–éƒ¨è”ç³»ã€‚
-** å¡«å……åœ¨sqlite3GlobalConfigåº•å±‚å†…å­˜åˆ†é…å‡½æ•°æŒ‡é’ˆã€‚æŒ‡é’ˆçš„ä¾‹ç¨‹åœ¨è¿™ä¸ªæ–‡ä»¶ä¸­ã€‚
+*/
+/*ÔÚÕâ¸öÎÄ¼şÖĞÓÃÖ¸ÏòÕâ¸ö³ÌĞòµÄÖ¸Õë£¬ÓÃµ×²ãÄÚ´æ·ÖÅäº¯ÊıÖ¸ÕëÌî³äÔÚsqlite3GlobalConfig.mÖĞ¡£
 */
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {

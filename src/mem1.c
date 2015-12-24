@@ -13,9 +13,9 @@
 ** This file contains low-level memory allocation drivers for when
 ** SQLite will use the standard C-library malloc/realloc/free interface
 ** to obtain the memory it needs.
-**
-** è¿™ä¸ªæ–‡ä»¶åŒ…å«å½“SQLiteå°†ä½¿ç”¨æ ‡å‡†Cåº“malloc/realloc/è‡ªç”±æ¥å£è·å¾—æ‰€éœ€è¦çš„å†…å­˜æ—¶çš„åº•å±‚å†…å­˜åˆ†é…é©±åŠ¨ç¨‹åºã€‚
-**
+**µ±SQLiteÓÃ±ê×¼µÄc¿âmalloc/realloc/free×ÔÓÉ½Ó¿ÚÀ´»ñµÃĞèÒªµÄÄÚ´æÊ±£¬Õâ¸öÎÄ¼şÊÇÎªÁËÊµÏÖµ×²ãÄÚ´æ·ÖÅäµÄÇı¶¯Æ÷¡£
+
+
 ** This file contains implementations of the low-level memory allocation
 ** routines specified in the sqlite3_mem_methods object.  The content of
 ** this file is only used if SQLITE_SYSTEM_MALLOC is defined.  The
@@ -23,12 +23,10 @@
 ** SQLITE_MEMDEBUG nor the SQLITE_WIN32_MALLOC macros are defined.  The
 ** default configuration is to use memory allocation routines in this
 ** file.
-**
-** è¿™ä¸ªæ–‡ä»¶åŒ…å«å®ç°çš„åº•å±‚sqlite3_mem_methodså¯¹è±¡ä¸­æŒ‡å®šçš„å†…å­˜åˆ†é…ä¾‹ç¨‹ã€‚
-** è¿™ä¸ªæ–‡ä»¶çš„å†…å®¹ä»…æ˜¯å¦‚æœSQLITE_SYSTEM_MALLOCè¢«å®šä¹‰ä½¿ç”¨ã€‚
-** å½“SQLITE_MEMDEBUGå’ŒSQLITE_WIN32_MALLOCå®å‘½ä»¤éƒ½æ²¡æœ‰è¢«å®šä¹‰æ—¶ï¼Œå°±ä¼šè‡ªåŠ¨å®šä¹‰ä¸º SQLITE_SYSTEM_MALLOCå®å‘½ä»¤ã€‚
-** ç¼ºçœé…ç½®æ˜¯ä½¿ç”¨è¿™ä¸ªæ–‡ä»¶ä¸­çš„ä¾‹ç¨‹
-** 
+**¶Ôµ×²ãÄÚ´æ·ÖÅä³ÌĞò¾ßÌåµÄÊµÏÖÊÇÔÚsqlite3_mem_methodsÕâÒ»¶ÔÏóÖĞ£¬¡£
+Í¬Ê±Õâ¸öÎÄ¼şµÄÄÚÈİ½öÓÃÓÚºêQLITE_SYSTEM_MALLOC±»¶¨ÒåµÄÊ±ºò¡£¶øÇÒ£¬
+ÊÇµ± SQLITE_MEMDEBUGºÍºêSQLITE_WIN32_MALLOC¶¼Ã»ÓĞ±»¶¨ÒåÊ±£¬ºêSQLITE_SYSTEM_MALLOC²Å±»×Ô¶¯¶¨Òå¡£
+Õâ¸öÄ¬ÈÏÉèÖÃÊÇÎªÁËÔÚÕâ¸öÎÄ¼şÖĞÔËÓÃÄÚ´æ·ÖÅä³ÌĞò¡£
 ** C-preprocessor macro summary:
 **
 **    HAVE_MALLOC_USABLE_SIZE     The configure script sets this symbol if
@@ -38,28 +36,22 @@
 **                                If an equivalent interface exists by
 **                                a different name, using a separate -D
 **                                option to rename it.
-** 
-**
-**                                å¦‚æœmalloc_usable_size()æ¥å£çš„å­˜åœ¨
-**                                åœ¨ç›®æ ‡å¹³å°ä¸Šï¼Œé…ç½®è„šæœ¬è®¾ç½®è¿™ä¸ªç¬¦å·ã€‚
-**                                æˆ–è€…éœ€è¦çš„è¯ï¼Œè¿™ä¸ªç¬¦å·å¯ä»¥æ‰‹åŠ¨é…ç½®ã€‚
-**                                å¦‚æœä¸€ä¸ªç­‰æ•ˆç•Œé¢å­˜åœ¨ä¸€ä¸ªä¸åŒçš„åç§°,
-**                                ä½¿ç”¨ä¸€ä¸ªå•ç‹¬çš„- dé€‰é¡¹æ¥é‡å‘½åå®ƒã€‚
-**
+**c±àÒëºê¸ÅÊö£º
+**    HAVE_MALLOC_USABLE_SIZE      Èç¹ûmalloc_usable_size()º¯Êı½Ó¿ÚÔÚÄ¿±ê³ÌĞòÖĞ´æÔÚ£¬Ä¬ÈÏ½Å±¾ÉèÖÃÕâ¸ö±êÖ¾¡£
+**                                 »òÕß£¬Õâ¸ö±êÖ¾¸ù¾İĞèÒªÄÜ¹»±»ÈËÎªµØÉèÖÃ¡£Èç¹ûÒ»¸öÏàÍ¬µÄº¯Êı½Ó¿ÚÒÔÒ»¸ö²»Í¬µÄÃû×Ö´æÔÚ£¬
+**                                 ÄÇÃ´ÓÃÒ»¸ö·Ö¸ôµÄÑ¡ÏîÈ¥ÖØÃüÃûËü¡£
+**                          
 **    SQLITE_WITHOUT_ZONEMALLOC   Some older macs lack support for the zone
 **                                memory allocator.  Set this symbol to enable
 **                                building on older macs.
 **
-**                                ä¸€äº›æ—§çš„macç¼ºä¹æ”¯æŒç©ºé—´å†…å­˜åˆ†é…å™¨ã€‚
-                                  è®¾ç½®æ­¤æ ‡å¿—,ä½¿å…¶å¯åœ¨åœ¨æ—§çš„macæ„å»ºã€‚
-**
-**    SQLITE_WITHOUT_MSIZE        Set this symbol to disable the use of
+**    SQLITE_WITHOUT_ZONEMALLOC  Ò»Ğ©¾ÉµÄÄÚ´æ´æ´¢Æ÷²»Ö§³ÖÇøÓòÄÚ´æ·ÖÅä³ÌĞò¡£ËùÒÔÔÚ¾ÉµÄÄÚ´æ´æ´¢Æ÷ÉÏÉèÖÃÒ»¸ö±êÖ¾£¬ÈÃ¾ÉµÄÄÚ´æ´æ´¢Æ÷ÄÜ¹»Ö§³ÖÇøÓòÄÚ´æ·ÖÅä¡£     													*
+      SQLITE_WITHOUT_MSIZE        Set this symbol to disable the use of
 **                                _msize() on windows systems.  This might
 **                                be necessary when compiling for Delphi,
 **                                for example.
 **
-**                                è¿™ä¸ªç¬¦å·è®¾ç½®ä¸ºåœ¨windowsç³»ç»Ÿä¸Šç¦ç”¨msize()ã€‚
-**                                ä¾‹å¦‚ï¼Œå½“è¦ä¸ºDelphiç¼–è¯‘æ—¶å¯èƒ½æœ‰å¿…è¦çš„ã€‚
+**    SQLITE_WITHOUT_MSIZE         ÉèÖÃÕâ¸ö±ê¼ÇÊÇÎªÁËÔÚwinÏµÍ³ÖĞ±ÜÃâ¶Ô_msize()µÄÔËÓÃ¡£ÀıÈç£¬ÔÚDelphiÖĞ±àÒëÊ±¿ÉÄÜÊÇ±ØĞëµÄ¡£ ‚
 **
 */
 #include "sqliteInt.h"
@@ -68,8 +60,8 @@
 ** This version of the memory allocator is the default.  It is
 ** used when no other memory allocator is specified using compile-time
 ** macros.
-**
-** è¿™æ˜¯é»˜è®¤çš„å†…å­˜åˆ†é…å™¨ã€‚ä½¿ç”¨æ—¶ç¼–è¯‘æ—¶é—´æŒ‡å®šå®æ²¡æœ‰ä½¿ç”¨å…¶ä»–å†…å­˜åˆ†é…å™¨ä½¿ç”¨ã€‚
+*/
+/*Õâ¸öÊÇÕâ¸ö°æ±¾µÄÄ¬ÈÏµÄÄÚ´æ·ÖÅä³ÌĞò¡£½öÓÃÓÚÄÚ´æ·ÖÅä³ÌĞòÕıÔÚ±»¾ßÌåµÄÓÃÓÚºê±à¼­µÄÊ±ºò¡£
 */
 #ifdef SQLITE_SYSTEM_MALLOC
 
@@ -77,9 +69,10 @@
 ** The MSVCRT has malloc_usable_size() but it is called _msize().
 ** The use of _msize() is automatic, but can be disabled by compiling
 ** with -DSQLITE_WITHOUT_MSIZE
-**
-** MSVCRT æœ‰malloc_usable_size()ï¼Œä½†è¢«ç§°ä¸º_msize().
-** _msize()æ˜¯è‡ªåŠ¨ä½¿ç”¨çš„, ä½†æ˜¯å¯ä»¥é€šè¿‡ç¼–è¯‘æ˜¯-DSQLITE_WITHOUT_MSIZEé€‰é¡¹ç¦ç”¨ã€‚
+*/
+/*
+MSVCRT£¨Ñ¡Ôñ±àÒëÆ÷£© ÖĞÓĞalloc_usable_size()º¯Êı£¬µ«Ëü±»½Ğ×ö-msize().
+ÇÒ¶Ô_msize() µÄÔËÓÃÊÇ×Ô¶¯µÄ£¬µ«ÊÇÍ¨¹ıÓÃ -DSQLITE_WITHOUT_MSIZE£¨Ó¦¸ÃÒ²ÊÇÒ»¸öºê£©Í¨¹ı±àÒëÊÇ²»ÄÜÔËĞĞµÄ¡£¯ä‚
 */
 #if defined(_MSC_VER) && !defined(SQLITE_WITHOUT_MSIZE)
 # define SQLITE_MALLOCSIZE _msize
@@ -90,8 +83,9 @@
 /*
 ** Use the zone allocator available on apple products unless the
 ** SQLITE_WITHOUT_ZONEMALLOC symbol is defined.
-**
-** é™¤éSQLITE_WITHOUT_ZONEMALLOCè¢«å®šä¹‰ï¼Œä¸ç„¶å°±ç”¨è‹¹æœäº§å“ä¸Šçš„åŒºåŸŸå†…å­˜åˆ†é…å™¨ã€‚
+*/
+/*
+Èç¹ûºêSQLITE_WITHOUT_ZONEMALLOCÃ»ÓĞ±»¶¨Òå£¬Æ»¹û²úÆ·ÖĞÓÃÇøÓò·ÖÅä³ÌĞò¡£‚
 */
 #include <sys/sysctl.h>
 #include <malloc/malloc.h>
@@ -108,9 +102,10 @@ static malloc_zone_t* _sqliteZone_;
 /*
 ** Use standard C library malloc and free on non-Apple systems.  
 ** Also used by Apple systems if SQLITE_WITHOUT_ZONEMALLOC is defined.
-**
-** éè‹¹æœç³»ç»Ÿä¸Šï¼Œä½¿ç”¨æ ‡å‡†Cåº“ä¸­mallocå’Œfreeå‡½æ•°ã€‚
-** å¦‚æœSQLITE_WITHOUT_ZONEMALLOCè¢«å®šä¹‰ï¼Œè¿˜å¯ä»¥ä½¿ç”¨è‹¹æœç³»ç»Ÿã€‚
+*/
+/*
+¶Ô·ÇÆ»¹ûÏµÍ³ÓÃ±ê×¼µÄc ¿âº¯Êı·ÖÅäÄÚ´æºÍÊÍ·ÅÄÚ´æ¡£Ò²¿ÉÒÔÓÃÓÚºêSQLITE_WITHOUT_ZONEMALLOC malloc±»
+¶¨ÒåÊ±£¬apple ÏµÍ³Ò²¿ÉÒÔÔËÓÃ¡£‚
 */
 #define SQLITE_MALLOC(x)    malloc(x)
 #define SQLITE_FREE(x)      free(x)
@@ -118,7 +113,7 @@ static malloc_zone_t* _sqliteZone_;
 
 #if (defined(_MSC_VER) && !defined(SQLITE_WITHOUT_MSIZE)) \
       || (defined(HAVE_MALLOC_H) && defined(HAVE_MALLOC_USABLE_SIZE))
-# include <malloc.h>    /* Needed for malloc_usable_size on linux */
+# include <malloc.h>    /* Needed for malloc_usable_size on linux */ /*ÔÚlinuxÏµÍ³ÖĞ£¬±»alloc_usable_sizeËùĞèÒªµÄ*/
 #endif
 #ifdef HAVE_MALLOC_USABLE_SIZE
 # ifndef SQLITE_MALLOCSIZE
@@ -127,7 +122,7 @@ static malloc_zone_t* _sqliteZone_;
 #else
 # undef SQLITE_MALLOCSIZE
 #endif
-
+ 
 #endif /* __APPLE__ or not __APPLE__ */
 
 /*
@@ -138,15 +133,16 @@ static malloc_zone_t* _sqliteZone_;
 ** cases of nByte<=0 will be intercepted and dealt with by higher level
 ** routines.
 **
-** åƒmalloc(),ä½†è®°å¿†åˆ†é…å¤§å°ï¼Œè¿™æ ·æˆ‘ä»¬å¯ä»¥åœ¨ä¹‹åä½¿ç”¨sqlite3MemSize()æ¥æ‰¾åˆ°å®ƒ.
-** å¯¹äºè¿™ä¸ªä½çº§çš„ä¾‹ç¨‹ï¼Œæˆ‘ä»¬å¿…é¡»ä¿è¯nByte>0,å› ä¸ºå¦‚æœnByte<=0ï¼Œåˆ™å°†è¢«æ‰“æ–­å’Œè¢«æ›´é«˜çº§åˆ«çš„ä¾‹ç¨‹å¤„ç†ã€‚
 */
-//åœ¨å†…å­˜çš„åŠ¨æ€åˆ†é…å­˜å‚¨åŒºä¸­åˆ†é…ä¸€å—é•¿åº¦ä¸ºnByteå­—èŠ‚çš„è¿ç»­åŒºåŸŸï¼Œå‚æ•°nByteä¸ºéœ€è¦å†…å­˜ç©ºé—´çš„é•¿åº¦ï¼Œè¿”å›è¯¥åŒºåŸŸçš„é¦–åœ°å€ã€‚
-static void *sqlite3MemMalloc(int nByte){
+/*
+Ïñmalloc(),µ«¼ÇµÃÄÚ´æ´óĞ¡ÕâÑù¿ÉÒÔÖ®ºóÔËÓÃsqlite3MemSize()ÕÒµ½Ëü¡£
+¶ÔÓÚÕâ¸öµ×²ãµÄ³ÌĞò£¬ÓÉÓÚµ±nByte<=0Ê±½âÊÍºÍ´¦Àí¶¼ÓÉ¸ß²ã³ÌĞò½øĞĞ£¬ËùÒÔÎÒÃÇ±ØĞëÈ·±£nByte>0¡£
+*/
+static void *sqlite3MemMalloc(int nByte){/*ÕâÀïÊÇÄÚ´æ·ÖÅäµÄÊµÏÖ³ÌĞò£¬Ç°ÃæÊÇ½øĞĞÖ´ĞĞÇ°µÄÅĞ¶ÏºÍ×¼±¸*/
 #ifdef SQLITE_MALLOCSIZE
   void *p = SQLITE_MALLOC( nByte );
   if( p==0 ){
-    testcase( sqlite3GlobalConfig.xLog!=0 );
+    testcase( sqlite3GlobalConfig.xLog!=0 );/*²âÊÔ*/
     sqlite3_log(SQLITE_NOMEM, "failed to allocate %u bytes of memory", nByte);
   }
   return p;
@@ -173,11 +169,12 @@ static void *sqlite3MemMalloc(int nByte){
 ** For this low-level routine, we already know that pPrior!=0 since
 ** cases where pPrior==0 will have been intecepted and dealt with
 ** by higher-level routines.
-**
-** åƒfree() å½“åœ¨å·¥ä½œæ—¶è¢«åˆ†é…åˆ°sqlite3MemMalloc()æˆ–è€…sqlite3MemRealloc().
-** å¯¹äºè¿™ä¸ªåº•å±‚ç¨‹åº, æˆ‘ä»¬å·²çŸ¥pPrior!=0ï¼Œå› ä¸ºå¦‚æœpPrior==0æ—¶ï¼Œå°†è¢«é«˜å±‚ç¨‹åºè·å–å’Œå¤„ç†ã€‚
 */
-//é‡Šæ”¾pPrioræŒ‡å‘çš„å­˜å‚¨ç©ºé—´ï¼Œè¢«é‡Šæ”¾çš„ç©ºé—´é€šå¸¸è¢«é€å…¥å¯ç”¨å­˜å‚¨åŒºåŸŸï¼Œä»¥åå¯åœ¨è°ƒç”¨mallocã€reallocå‡½æ•°æ¥å†åˆ†é…ã€‚
+/*
+ÀàËÆfree() º¯ÊıµÄ¹¦ÄÜ£¬µ«ÊÇÄÚ´æÊÍ·ÅµÄ¹¦ÄÜÖ»ÄÜÓÃÓÚÊÇ´Óqlite3MemMalloc()»òÕßqlite3MemRealloc()»ñµÃµÄÄÚ´æ·ÖÅä.
+
+¹ØÓÚÕâ¸öµ×²ã³ÌĞò£¬ÓÉÓÚ pPrior==0Ê±ÄÚ´æ·ÖÅäÊÇÓÉ¸ß²ãÄÚ´æ·ÖÅä³ÌĞò´¦ÀíºÍ½âÊÍµÄ£¬ËùÒÔPrior!=0¡£
+*/
 static void sqlite3MemFree(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
   SQLITE_FREE(pPrior);
@@ -192,10 +189,10 @@ static void sqlite3MemFree(void *pPrior){
 /*
 ** Report the allocated size of a prior return from xMalloc()
 ** or xRealloc().
-**
-** æŠ¥å‘Šæ¥è‡ªäºxMalloc()æˆ–xRealloc()ä¹‹å‰çš„åˆ†é…å¤§å°ã€‚
 */
-//å‡½æ•°è¿”å›å·²åˆ†é…å†…å­˜çš„å¤§å°ï¼Œä¹Ÿèƒ½å¤Ÿè·Ÿè¸ªæœªå½’è¿˜å†…å­˜çš„å­—èŠ‚æ•°ï¼Œå®ƒèƒ½ç¡®å®šå½“ä¸€ä¸ªåˆ†é…è¢«é‡Šæ”¾æ—¶æœ‰å¤šå°‘å­—èŠ‚ä»æœªå½’è¿˜å†…å­˜ä¸­ç§»é™¤ã€‚
+/*
+ÌáÊ¾´ÓxMalloc()»òÕßxRealloc()ÖĞ·µ»ØµÄpriorµÄ±»·ÖÅäµÄ´óĞ¡¡£
+*/
 static int sqlite3MemSize(void *pPrior){
 #ifdef SQLITE_MALLOCSIZE
   return pPrior ? (int)SQLITE_MALLOCSIZE(pPrior) : 0;
@@ -217,12 +214,12 @@ static int sqlite3MemSize(void *pPrior){
 ** redirected to xMalloc.  Similarly, we know that nByte>0 becauses
 ** cases where nByte<=0 will have been intercepted by higher-level
 ** routines and redirected to xFree.
-**
-** åƒ realloc()ï¼Œè°ƒæ•´åˆ†é…ä¹‹å‰è·å–sqlite3MemMalloc()ã€‚
-** å¯¹äºåº•å±‚æ¥å£ï¼Œæˆ‘ä»¬å·²çŸ¥pPrior!=0ï¼Œå› ä¸ºå¦‚æœpPrior==0å·²æ‹¦æˆªäº†é«˜å±‚çš„ä¾‹ç¨‹å’Œé‡å®šå‘åˆ°xMalloc. 
-** åŒæ ·ï¼Œæˆ‘ä»¬çŸ¥é“nByte>0ï¼Œå› ä¸ºnByte<=0çš„æƒ…å†µä¼šè¢«é«˜å±‚çš„ä¾‹ç¨‹æ‹¦æˆªå’Œé‡å®šå‘åˆ°xFreeã€‚
 */
-//ç»™ä¸€ä¸ªå·²ç»åˆ†é…äº†åœ°å€çš„æŒ‡é’ˆé‡æ–°åˆ†é…ç©ºé—´ï¼Œå‚æ•°pPriorä¸ºåŸæœ‰ç©ºé—´åœ°å€ï¼ŒnByteæ˜¯é‡æ–°ç”³è¯·çš„åœ°å€é•¿åº¦ã€‚
+/*
+ÀàËÆrealloc()¹¦ÄÜ£¬¶Ô´ÓÖ®Ç°ÔÚqlite3MemMalloc()»ñµÃµÄÄÚ´æµÄ´óĞ¡½øĞĞÖØĞÂÉè¶¨¡£
+¹ØÓÚµ×²ã½Ó¿Úº¯Êı£¬Ò»°ã¿ÉÒÔÈÏÎªpPrior!=0¡£ÒòÎªpPrior==0±»¸ß²ãÄÚ´æ·ÖÅä³ÌĞò½âÊÍºÍ±»xMallocÖØ¶¨Ïò. 
+ËùÒÔ¼òµ¥µÎÈÏÎªByte>0ÕıÊÇByte<=0Ê±ÄÚ´æ·ÖÅäÓÉ¸ß²ã³ÌĞò´¦ÀíºÍ±»xFreeº¯ÊıÖØĞÂ¶¨Ïò¡£
+*/
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
 #ifdef SQLITE_MALLOCSIZE
   void *p = SQLITE_REALLOC(pPrior, nByte);
@@ -254,20 +251,17 @@ static void *sqlite3MemRealloc(void *pPrior, int nByte){
 
 /*
 ** Round up a request size to the next valid allocation size.
-**
-** é›†åˆä¸€ä¸ªè¯·æ±‚å¤§å°åˆ°ä¸‹ä¸€ä¸ªæœ‰æ•ˆåˆ†é…çš„å¤§å°ã€‚
 */
-//å‡½æ•°è¿”å›ä¸‹ä¸€ä¸ªæœ‰æ•ˆå†…å­˜åˆ†é…çš„å¤§å°ã€‚
+/*
+ËÑ¼¯ÏÂÒ»¸öĞèÇóµÄÄÚ´æ´óĞ¡£¬Âú×ãËü¡£*/
 static int sqlite3MemRoundup(int n){
   return ROUND8(n);
 }
 
 /*
 ** Initialize this module.
-**
-** åˆå§‹åŒ–è¿™ä¸ªæ¨¡å—ã€‚
+**³õÊ¼»¯×é¼ş
 */
-//å‡½æ•°åˆå§‹åŒ–
 static int sqlite3MemInit(void *NotUsed){
 #if defined(__APPLE__) && !defined(SQLITE_WITHOUT_ZONEMALLOC)
   int cpuCount;
@@ -277,16 +271,16 @@ static int sqlite3MemInit(void *NotUsed){
   }
   len = sizeof(cpuCount);
   /* One usually wants to use hw.acctivecpu for MT decisions, but not here */
-  /*é€šå¸¸å¸Œæœ›ä½¿ç”¨hw.acctivecpuä¸ºMTçš„å†³å®šï¼Œä½†æ˜¯ä¸æ˜¯åœ¨è¿™é‡Œ*/
-  sysctlbyname("hw.ncpu", &cpuCount, &len, NULL, 0);
+  /*Ò»°ãÇé¿öÏÂ£¬ÓÃhw.acctivecpu×öÄÚ´æ·ÖÅä¾ö²ß£¬µ«ÔÚÕâÀï²»ÊÇÕâÖÖ²ßÂÔ*/
+  sysctlbyname("hw.ncpu", &cpuCount, &len, NULL, 0);/*sysctlbynameÊÇÒ»¸ö²éÕÒCPUĞÅÏ¢µÄº¯Êı*/
   if( cpuCount>1 ){
     /* defer MT decisions to system malloc */
-    /*æ¨è¿ŸMTå†³ç­–ç³»ç»Ÿçš„malloc*/
+    /*¶ÔÏµÍ³·ÖÅäÍÆ³ÙÄÚ´æ·ÖÅä¾ö²ß*/
     _sqliteZone_ = malloc_default_zone();
   }else{
     /* only 1 core, use our own zone to contention over global locks, 
     ** e.g. we have our own dedicated locks */
-    /*ä»…æœ‰ä¸€ä¸ªæ ¸å¿ƒï¼Œä½¿ç”¨æˆ‘ä»¬çš„åŒºåŸŸåœ¨äº‰ç”¨å…¨å±€é”ï¼Œä¾‹å¦‚ï¼Œæˆ‘ä»¬åªæœ‰è‡ªå·±çš„ä¸“ç”¨é”*/
+    /*½öÓĞÒ»¸öÄÚºË£¬ÓÃÎÒÃÇ×Ô¼ºµÄÇøÓòÈ¥¾ºÕùÈ«¾ÖËø¡£ÀıÈç£¬ÓĞÎÒÃÇ×Ô¼ºµÄ×¨ÓÃËø¡£*/
     bool success;
     malloc_zone_t* newzone = malloc_create_zone(4096, 0);
     malloc_set_zone_name(newzone, "Sqlite_Heap");
@@ -296,7 +290,7 @@ static int sqlite3MemInit(void *NotUsed){
     }while(!_sqliteZone_);
     if( !success ){
       /* somebody registered a zone first */
-      /*æœ‰äººå·²å…ˆæ³¨å†ŒåŒºåŸŸ*/
+      /*ÓĞÈËÒÑ¾­×¢²áÁËÒ»¸öÇøÓò*/
       malloc_destroy_zone(newzone);
     }
   }
@@ -307,10 +301,8 @@ static int sqlite3MemInit(void *NotUsed){
 
 /*
 ** Deinitialize this module.
-**
-** å–æ¶ˆåˆå§‹åŒ–è¿™ä¸ªæ¨¡å—
+**ÊÍ·Å³õÊ¼»¯µÄÄÇ¸ö×é¼ş
 */
-//å–æ¶ˆå‡½æ•°çš„åˆå§‹åŒ–
 static void sqlite3MemShutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   return;
@@ -321,11 +313,11 @@ static void sqlite3MemShutdown(void *NotUsed){
 **
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file.
-** 
-** è¯¥ä¾‹ç¨‹æ˜¯å¤–éƒ¨é“¾æ¥è¿™ä¸ªæ–‡ä»¶çš„å”¯ä¸€çš„ä¾‹ç¨‹ã€‚
-** åœ¨sqlite3GlobalConfig.mä¸è¿™ä¸ªæ–‡ä»¶æŒ‡é’ˆçš„ä¾‹ç¨‹ä¸­å¡«å……åº•å±‚å†…å­˜åˆ†é…å‡½æ•°æŒ‡é’ˆã€‚
 */
-//å‡½æ•°å¡«å……åº•å±‚çš„å†…å­˜åˆ†é…å‡½æ•°æŒ‡é’ˆ
+/*
+Õâ¸ö³ÌĞòÔÚÕâ¸öÎÄ¼şÖĞ½öÊÇÒ»¸öÓÃÓÚÍâ²¿Á´½ÓµÄ³ÌĞò¡£
+ÓÃÖ¸ÏòÕâ¸öÎÄ¼şÖĞµÄÖ¸Õë£¬Ìî³äµ×²ãÄÚ´æ·ÖÅäº¯ÊıÖ¸ÕëÔÚsqlite3GlobalConfig.mÖĞ¡£
+*/
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {
      sqlite3MemMalloc,

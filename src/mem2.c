@@ -18,30 +18,26 @@
 **
 ** This file contains implementations of the low-level memory allocation
 ** routines specified in the sqlite3_mem_methods object.
-**
-** è¯¥æ–‡ä»¶åŒ…å«äº†åº•å±‚å†…å­˜åˆ†é…æ—¶ï¼ŒSQLiteçš„é©±åŠ¨ç¨‹åºå°†ä½¿ç”¨æ ‡å‡†çš„c-library malloc/realloc/freeæ¥å£è·å–å†…å­˜éœ€æ±‚ï¼Œ
-** åŒæ—¶ï¼Œæ·»åŠ å¾ˆå¤šé¢å¤–çš„è°ƒè¯•ä¿¡æ¯ï¼Œæ¯ä¸ªåˆ†é…ä»¥å¸®åŠ©æ£€æµ‹å’Œä¿®å¤å†…å­˜æ³„æ¼å’Œå†…å­˜ä½¿ç”¨é”™è¯¯ã€‚
-
-** è¯¥æ–‡ä»¶åŒ…å«çš„åº•å±‚çš„å†…å­˜åˆ†é…ä¾‹ç¨‹åœ¨sqlite3_mem_methodsæŒ‡å®šå¯¹è±¡çš„å®ç°ã€‚
 */
+/*Õâ¸öÎÄ¼şÊÇµ×²ãµÄÄÚ´æ·ÖÅäÇı¶¯³ÌĞò£¬µ±SQLiteÔËÓÃ±ê×¼µÄc-library malloc /realloc /free ½Ó¿ÚÈ¥»ñµÃËüĞèÒªµÄÄÚ´æ£¬¶øÇÒ»¹¶ÔÃ¿Ò»¸ö·ÖÅä¸½¼ÓÁË¶îÍâ
+µÄÅÅ´íĞÅÏ¢£¬ÎªÁË°ïÖú±£»¤ºÍ¼ì²éÄÚ´æÒÅÂ©ÒÔ¼°ÄÚ´æÔËÓÃ´íÎó¡£
+Õâ¸öÎÄ¼şÖĞµÄµ×²ãÄÚ´æ·ÖÅä³ÌĞòµÄ¾ßÌåÊµÏÖÊÇÔÚsqlite3_mem_methods¶ÔÏóÖĞ¡£*/
 #include "sqliteInt.h"
 
 /*
 ** This version of the memory allocator is used only if the
 ** SQLITE_MEMDEBUG macro is defined
-**
-** è¿™ä¸ªç‰ˆæœ¬çš„å†…å­˜åˆ†é…å™¨æ˜¯åªæœ‰SQLITE_MEMDEBUGå®å®šä¹‰æ—¶ä½¿ç”¨ã€‚
 */
+/*Õâ¸ö°æ±¾µÄÄÚ´æ·ÖÅäÆ÷½öÓÃÓÚºêSQLITE_MEMDEBUG±»¶¨ÒåÊ±*/
 #ifdef SQLITE_MEMDEBUG
 
 /*
 ** The backtrace functionality is only available with GLIBC
-**
-** å›æº¯åŠŸèƒ½ä»…å¯ä½¿ç”¨GLIBC
 */
+/*»ØËİ¹¦ÄÜ½öÓÃÓÚGLIBCÔËĞĞ¿â*/
 #ifdef __GLIBC__
-  extern int backtrace(void**,int); //å‡½æ•°ç”¨äºè·å–å½“å‰çº¿ç¨‹çš„è°ƒç”¨å †æ ˆï¼Œè·å–çš„ä¿¡æ¯å°†ä¼šè¢«å­˜åœ¨æŒ‡é’ˆæ•°ç»„ä¸­ï¼Œå‡½æ•°è¿”å›å€¼æ˜¯å®é™…è·å–çš„æŒ‡é’ˆçš„ä¸ªæ•°ã€‚
-  extern void backtrace_symbols_fd(void*const*,int,int);  //ä»backtraceå‡½æ•°è·å–çš„ä¿¡æ¯è½¬åŒ–ä¸ºä¸€ä¸ªå­—ç¬¦ä¸²æ•°ç»„ï¼Œå‡½æ•°è¿”å›å°†ç»“æœå†™å…¥æ–‡ä»¶æè¿°ç¬¦ä¸ºfdçš„æ–‡ä»¶ä¸­ï¼Œæ¯ä¸ªå‡½æ•°å¯¹åº”ä¸€è¡Œã€‚
+  extern int backtrace(void**,int);
+  extern void backtrace_symbols_fd(void*const*,int,int);
 #else
 # define backtrace(A,B) 1
 # define backtrace_symbols_fd(A,B,C)
@@ -60,50 +56,41 @@
 ** MemBlockHdr tells us the size of the allocation and the number of
 ** backtrace pointers.  There is also a guard word at the end of the
 ** MemBlockHdr.
-**
-** æ¯ä¸ªå†…å­˜åˆ†é…çœ‹èµ·æ¥åƒè¿™æ ·ï¼š
-**
-**  ------------------------------------------------------------------------
-**  | æ ‡é¢˜ |  å›æº¯æŒ‡é’ˆ | å†…å­˜å—å†…HDR |  é…ç½®|  å°¾|
-**  ------------------------------------------------------------------------
-**
-** åº”ç”¨ç¨‹åºä»£ç åªçœ‹åˆ°ä¸€ä¸ªæŒ‡å‘åˆ†é…ã€‚æˆ‘ä»¬å¿…é¡»å†ä»åˆ†é…æŒ‡é’ˆ
-** æ‰¾åˆ°å†…å­˜å—å†…HDRã€‚è¯¥HDRå‘Šè¯‰æˆ‘ä»¬åˆ†é…çš„å¤§å°å’Œå›æº¯çš„æŒ‡é’ˆæ•°ã€‚
-** è¿™ä¹Ÿæœ‰ä¿æŠ¤è¯­å¥åœ¨å†…å­˜å—å†…HDRçš„å°¾ç«¯ã€‚
-
-** Titleï¼šç”¨äºæè¿°è¿™æ®µå†…å­˜ï¼Œåœ¨å‡ºé”™æ—¶å¯ä»¥æ‰“å°å‡ºæ¥
-** backtrace pointerï¼šç”¨äºä¿ç•™è°ƒç”¨å †æ ˆ
-** MemBlockHdrï¼šè´Ÿè´£è¿™ç‰‡å†…å­˜çš„ç®¡ç†ï¼Œä»¥åŠä¸²è”æœªé‡Šæ”¾çš„MemBlock
-** allocationï¼šåˆ†é…ç»™ä¸Šå±‚çš„ç©ºé—´
-** EndGuardï¼šå°¾éƒ¨çš„å“¨å…µï¼Œç”¨äºæ£€æŸ¥å†…å­˜è¢«è¸©ã€‚è¿˜æœ‰ä¸ªâ€œHeadGaurd â€åœ¨MemBlockHdrä¸­ã€‚
-** åº”ç”¨ç¨‹åºä»£ç å°†åªæœ‰ä¸€ä¸ªæŒ‡é’ˆåˆ†é…ã€‚
-** æˆ‘ä»¬å¿…é¡»ä»åˆ†é…æŒ‡é’ˆå¤‡ä»½æ‰¾åˆ°MemBlockHdrã€‚
-** æ‰€è¿°MemBlockHdrå‘Šè¯‰æˆ‘ä»¬çš„åˆ†é…çš„å¤§å°å’Œå›æº¯æŒ‡é’ˆçš„æ•°ç›®ã€‚è¿˜æœ‰åœ¨MemBlockHdrç»“æŸä¿æŠ¤å­—ã€‚
 */
-//å†…å­˜åˆ†é…ç»“æ„
+/*
+Ã¿Ò»¸öÄÚ´æ·ÖÅäµÄ½á¹¹**
+**  ------------------------------------------------------------------------
+**  | ±êÌâ¢˜ |  ·µ»ØÂ·¾¶Ö¸Õë | ÄÚ´æ¿éHDR |  ÄÚ´æ·ÖÅä|  ½áÊø±êÖ¾
+**  ------------------------------------------------------------------------
+**
+** Õâ¸öÓ¦ÓÃ±àÂë¿´ÉÏÈ¥½öÊÇÖ¸ÏòÄÚ´æ·ÖÅäµÄÒ»¸öÖ¸Õë¡£ËùÒÔ£¬±ØĞëÒª´ÓÄÚ´æÖ¸Õë·µ»ØÕÒµ½MemBlockHdr¡£
+¶øMemBlockHdrÖ¸Ê¾·ÖÅäµÄÄÚ´æµÄ´óĞ¡ºÍ»ØËİÖ¸ÕëµÄ±àºÅÊıÄ¿¡£Í¬Ê±£¬Õâ¸ö½á¹¹ÖĞÓĞÒ»¸öMemBlockHdr½áÊø¹Ø¼ü×Ö¡£
+
+TitleÓÃÓÚÃèÊöÕâ¶ÎÄÚ´æ£¬ÔÚ³ö´íÊ±¿ÉÒÔ´òÓ¡³öÀ´
+backtrace pointerÓÃÓÚ±£Áôµ÷ÓÃ¶ÑÕ»
+MemBlockHdr¸ºÔğÕâÆ¬ÄÚ´æµÄ¹ÜÀí£¬ÒÔ¼°´®ÁªÎ´ÊÍ·ÅµÄÄÚ´æ¿é
+allocation·ÖÅä¸øÉÏ²ãµÄ¿Õ¼ä
+EndGuardÎ²²¿µÄÉÚ±ø£¬ÓÃÓÚ¼ì²éÄÚ´æ±»²È¡£»¹ÓĞ¸ö¡°HeadGaurd ¡±ÔÚMemBlockHdrÖĞ¡£  
+  */
 struct MemBlockHdr {
-  i64 iSize;                          /* Size of this allocation  åˆ†é…çš„å¤§å°*/
-  struct MemBlockHdr *pNext, *pPrev;  /* Linked list of all unfreed memory  æ‰€æœ‰æœªé‡Šæ”¾å†…å­˜é“¾è¡¨*/
-  char nBacktrace;                    /* Number of backtraces on this alloc  è¿™ä¸ªåˆ†é…çš„è·Ÿè¸ªæŒ‡é’ˆæ•°*/
-  char nBacktraceSlots;               /* Available backtrace slots     å¯è·Ÿè¸ªæŒ‡é’ˆæ§½ */
-  u8 nTitle;                          /* Bytes of title; includes '\0'    æ ‡é¢˜å­—èŠ‚,åŒ…æ‹¬ '\0'*/
-  u8 eType;                           /* Allocation type code    åˆ†é…ç±»å‹ä»£ç */
-  int iForeGuard;                     /* Guard word for sanity     ä¿æŠ¤å­—*/
+  i64 iSize;                          /* Size of this allocation     ÄÚ´æ·ÖÅäµÄ´óĞ¡*/
+  struct MemBlockHdr *pNext, *pPrev;  /* Linked list of all unfreed memory    Ö¸µÄÊÇÃ»ÓĞ±»ÊÍ·ÅµÄÄÚ´æµÄÁ´½Ó±í½á¹¹¡¨*/
+  char nBacktrace;                    /* Number of backtraces on this alloc     ÔÚÄÚ´æ·ÖÅäÖĞµÄ·µ»ØÂ·¾¶µÄ±àºÅ*/
+  char nBacktraceSlots;               /* Available backtrace slots     ¿ÉÀûÓÃµÄÂ·¾¶·µ»Ø²Û*/
+  u8 nTitle;                          /* Bytes of title; includes '\0'    ¿Õ¸ñÔÚÄÚµÄ±êÌâµÄ×Ö½Ú*/
+  u8 eType;                           /* Allocation type code    ÄÚ´æ·ÖÅäÀàĞÍ±àÂë*/
+  int iForeGuard;                     /* Guard word for sanity     ÎªÁË½á¹¹Ã÷È·×öµÄ±ê¼Ç*/
 };
 
 /*
-** Guard words  
-** 
-** ä¿æŠ¤å­—æ®µ
+** Guard words  ¹Ø¼ü×Ö
 */
-#define FOREGUARD 0x80F5E153
-#define REARGUARD 0xE4676B53
-
+#define FOREGUARD 0x80F5E153 /*Ç°¹Ø¼ü×Ö*/
+#define REARGUARD 0xE4676B53 /*ºó¹Ø¼ü×Ö*/
 /*
 ** Number of malloc size increments to track.
-**
-** å¯¹mallocçš„å¤§å°å¢é‡æ•°é‡è¿›è¡Œè·Ÿè¸ªã€‚
 */
+/*ÎªÁË×·×ÙÄÚ´æ·ÖÅä´óĞ¡µÄÔöÁ¿µÄÊıÁ¿*/
 #define NCSIZE  1000
 
 /*
@@ -111,78 +98,73 @@ struct MemBlockHdr {
 ** into a single structure named "mem".  This is to keep the
 ** static variables organized and to reduce namespace pollution
 ** when this module is combined with other in the amalgamation.
-**
-** æ‰€æœ‰è¯¥æ¨¡å—æ‰€ä½¿ç”¨çš„é™æ€å˜é‡è¢«æ”¶é›†åˆ°ä¸€ä¸ªå•ä¸€çš„ç»“æ„ï¼Œå‘½åä¸ºâ€œmemâ€ã€‚
-** è¿™æ˜¯è®©é™æ€å˜é‡å˜å¾—æ›´å®¹æ˜“ç»„ç»‡å’Œå‡å°‘è¯¥æ¨¡å—ç»“åˆå…¶ä»–çš„æ—¶äº§ç”Ÿçš„å‘½åç©ºé—´æ±¡æŸ“ã€‚
 */
+/*
+ËùÓĞµÄ±»Õâ¸ö×é¼şÊ¹ÓÃµÄ¾²Ì¬±äÁ¿£¬±»¾Û¼¯ÔÚÒ»¸öÃû×Ö½Ğ¡°mem¡±µÄ½á¹¹µÄÖĞ¡£ÕâÑù×öÊÇÎªÁËÓĞ×éÖ¯µÄ½¨Á¢¾²Ì¬±äÁ¿£¬
+ÒÔ¼°ÎªÁË¼õÉÙµ±Õâ¸ö×é¼şÓëÆäËûµÄ½áºÏÊ±Ãû×ÖÓòÎÛÈ¾*/
 static struct {
   
   /*
   ** Mutex to control access to the memory allocation subsystem.
-  **
-  ** äº’æ–¥æ§åˆ¶è®¿é—®æ‰€è¿°å†…å­˜åˆ†é…å­ç³»ç»Ÿ
   */
+  /*ÄÚ´æ·ÖÅä×ÓÏµÍ³µÄ¿ØÖÆ´æÈ¡µÄ»¥³â*/
   sqlite3_mutex *mutex;
 
   /*
   ** Head and tail of a linked list of all outstanding allocations
-  **
-  ** æ‰€æœ‰æœªåˆ†é…çš„é“¾è¡¨çš„å¤´å’Œå°¾
   */
+ /*ËùÓĞµÄÎ´±»·ÖÅäµÄÄÚ´æµÄÁ´½Ó±íµÄÍ·ºÍÎ²*/
   struct MemBlockHdr *pFirst;
   struct MemBlockHdr *pLast;
   
   /*
   ** The number of levels of backtrace to save in new allocations.
-  **
-  ** åœ¨æ–°çš„åˆ†é…ä¸­ï¼Œä¿å­˜å›æº¯çš„çº§åˆ«æ•°
   */
+  /*ÔÚĞÂµÄÄÚ´æ·ÖÅäÖĞ£¬º¬ÓĞ»ØËİÂ·¾¶µÈ¼¶£¨Ë®Æ½£©µÄºÅÂë*/
   int nBacktrace;
   void (*xBacktrace)(int, int, void **);
 
   /*
   ** Title text to insert in front of each block
-  **
-  ** åœ¨æ¯ä¸ªå—çš„å‰éƒ¨æ’å…¥æ ‡é¢˜æ–‡æœ¬
   */
-  int nTitle;        /* Bytes of zTitle to save.  Includes '\0' and padding  ä¿å­˜zTitleçš„å­—èŠ‚,åŒ…æ‹¬'\ 0'å’Œå¡«å……*/
-  char zTitle[100];  /* The title text æ ‡é¢˜æ–‡æœ¬ */
+  /*ÔÚÃ¿Ò»¸öÄÚ´æ¿éÇ°²åÈë±êÌâÎÄ±¾*/
+  int nTitle;        /* Bytes of zTitle to save.  Includes '\0' and padding  ÓÃÓÚ´æ´¢Êı×ézTitle°üº¬'\ 0'ºÍÌî³äÄÚÈİ£¬´æ´¢´óĞ¡*/
+  char zTitle[100];  /* The title text ÓÃÊı×é´æ´¢±êÌâÎÄ±¾ */
 
   /* 
   ** sqlite3MallocDisallow() increments the following counter.
   ** sqlite3MallocAllow() decrements it.
-  **
-  ** sqlite3MallocDisallow()é€’å¢ä»¥ä¸‹è®¡æ•°å™¨
-  ** sqlite3MallocAllow()é€’å‡å®ƒ
   */
-  int disallow; /* Do not allow memory allocation  ä¸è®©å†…å­˜åˆ†é…*/
+  /*
+  sqlite3MallocDisallow()ÊÇÔö¼ÓÏÂÃæµÄ¼ÆÊıÆ÷
+  sqlite3MallocAllow()ÊÇ¼õÉÙÏÂÃæµÄ¼ÆÊıÆ÷  */
+  int disallow; /* Do not allow memory allocation  ²»ÔÊĞíÄÚ´æ·ÖÅä*/
 
   /*
   ** Gather statistics on the sizes of memory allocations.
   ** nAlloc[i] is the number of allocation attempts of i*8
   ** bytes.  i==NCSIZE is the number of allocation attempts for
   ** sizes more than NCSIZE*8 bytes.
-  **
-  ** æ”¶é›†æœ‰å…³å†…å­˜åˆ†é…å¤§å°çš„ç»Ÿè®¡æ•°æ®ã€‚nAlloc[i]æ˜¯åˆ†é…å°è¯•çš„æ¬¡æ•°ä¸ºi*8ä¸ªå­—èŠ‚ã€‚
-  ** i==NCSIZEæ˜¯å‚æ•°ncsizeåˆ†é…å°è¯•çš„å¤§å°è¶…è¿‡å‚æ•°ncsize*8ä¸ªå­—èŠ‚ã€‚
   */
-  int nAlloc[NCSIZE];      /* Total number of allocations åˆ†é…æ€»æ•°*/
-  int nCurrent[NCSIZE];    /* Current number of allocations å½“å‰åˆ†é…æ•°é‡*/
-  int mxCurrent[NCSIZE];   /* Highwater mark for nCurrent åˆ†é…æ•°é‡çš„é«˜æ°´å¹³çº¿*/
+  /*
+  ÊÕ¼¯ÄÚ´æ·ÖÅäµÄÍ³¼ÆÊı¾İ¡£Alloc[i]ÊÇÆóÍ¼ÒÔi*8×Ö½ÚµÄĞÎÊ½µÄ»ñµÃÄÚ´æ·ÖÅäµÄ±àºÅ¡£
+  i==NCSIZEÊÇÆóÍ¼ÄÚ´æµÄ´óĞ¡³¬¹ıNCSIZE*8 bytesµÄÇé¿öÏÂµÄÄÚ´æ·ÖÅäµÄ±àºÅ¡£
+  */
+  int nAlloc[NCSIZE];      /* Total number of allocations ËùÓĞµÄÄÚ´æ·ÖÅäµÄÊıÁ¿*/
+  int nCurrent[NCSIZE];    /* Current number of allocationsÄ¿Ç°·ÖÅäµÄÄÚ´æµÄÊıÁ¿*/
+  int mxCurrent[NCSIZE];   /* Highwater mark for nCurrent Ä¿Ç°·ÖÅäÄÚ´æ±äÁ¿nCurrentµÄ×î´óÖµµÄ±êÖ¾*/
 
 } mem;
 
 
 /*
 ** Adjust memory usage statistics
-** 
-** è°ƒæ•´å†…å­˜ä½¿ç”¨æƒ…å†µç»Ÿè®¡
 */
-
+/*µ÷ÕûÄÚ´æÊ¹ÓÃµÄÍ³¼ÆÊı¾İ*/
 static void adjustStats(int iSize, int increment){
-  int i = ROUND8(iSize)/8;
+  int i = ROUND8(iSize)/8;/*iSizeÊÇÆóÍ¼»ñµÃµÄÄÚ´æµÄ´óĞ¡£¬ËµÃ÷ÊÇÒÔ8¸ö×Ö½ÚµÄĞÎÊ½»ñÈ¡ÄÚ´æ*/
   if( i>NCSIZE-1 ){
-    i = NCSIZE - 1;
+    i = NCSIZE - 1;/*³¬¹ı×î´óÖµ£¬ÉèÎª×î´óÖµ*/
   }
   if( increment>0 ){
     mem.nAlloc[i]++;
@@ -201,11 +183,9 @@ static void adjustStats(int iSize, int increment){
 **
 ** This routine checks the guards at either end of the allocation and
 ** if they are incorrect it asserts.
-**
-** ç»™å®šä¸€ä¸ªåˆ†é…å™¨ï¼Œå¯»æ‰¾è¯¥åˆ†é…å™¨çš„MemBlockHdr
-** å¦‚æœä¸æ˜¯æ­£ç¡®çš„å£°æ˜ï¼Œè¿™ä¸ªä¾‹ç¨‹å°†æ£€æŸ¥é…ç½®çš„ä»»æ„ä¸€æ®µä¿æŠ¤ã€‚
 */
-//å‡½æ•°è®¾ç½®å“¨å…µå¯¹å†…å­˜ç ´åè¿›è¡Œæ£€æŸ¥
+/*
+¸ø³öÒ»¸öÄÚ´æ£¬ÒªÎªÕâ¸öÄÚ´æ·ÖÅäÕÒµ½MemBlockHdr¡£Õâ¸ö³ÌĞò¼ì²é¿´ÊÇ·ñÊÇÕâ¸öÄÚ´æµÄ½áÊø£¬²¢ÅĞ¶ÏËüÃÇÊÇ·ñÓĞ´í*/
 static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
   struct MemBlockHdr *p;
   int *pInt;
@@ -218,53 +198,49 @@ static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
   nReserve = ROUND8(p->iSize);
   pInt = (int*)pAllocation;
   pU8 = (u8*)pAllocation;
-  assert( pInt[nReserve/sizeof(int)]==(int)REARGUARD );
+  assert( pInt[nReserve/sizeof(int)]==(int)REARGUARD );/*pInt[nReserve/sizeof(int)]ÊÇÖ¸ÕëÊı×é£¬Ö¸µÄÊÇpInt[]Ö¸Õë×îºóÒ»¸öÊÇ·ñÊÇÎ²¹Ø¼ü×Ö*/
   /* This checks any of the "extra" bytes allocated due
   ** to rounding up to an 8 byte boundary to ensure 
   ** they haven't been overwritten.
-  **
-  ** è¿™æ£€æŸ¥ä»»ä½•"é¢å¤–çš„"åˆ†é…çš„å­—èŠ‚æ•°å››èˆäº”å…¥åˆ°8å­—èŠ‚è¾¹ç•Œï¼Œä»¥ç¡®ä¿ä»–ä»¬æ²¡æœ‰è¢«è¦†ç›–ã€‚
   */
+  /*¶ÔÓÚ´ïµ½8×Ö½ÚµÄ½çÏŞµÄÈÎºÎµÄ¡°¶îÍâ¡±µÄ±»·ÖÅäµÄ×Ö½Ú£¬¼ì²éËüÃÇÊÇÎªÁË±ÜÃâËüÃÇ±»ÖØĞ´*/
   while( nReserve-- > p->iSize ) assert( pU8[nReserve]==0x65 );
   return p;
 }
 
 /*
 ** Return the number of bytes currently allocated at address p.
-**
-** è¿”å›å½“å‰åˆ†é…åœ¨åœ°å€Pçš„å­—èŠ‚æ•°
 */
+/*·µ»ØÄ¿Ç°ÔÚµØÖ·pÖĞ·ÖÅäµÄ×Ö½ÚµÄÊıÄ¿*/
 static int sqlite3MemSize(void *p){
   struct MemBlockHdr *pHdr;
   if( !p ){
-    return 0;
+    return 0;/*Èç¹ûp==0£¬Ôò·µ»Ø0*/
   }
-  pHdr = sqlite3MemsysGetHeader(p);
+  pHdr = sqlite3MemsysGetHeader(p);/*´óÓÚ0,ÔòÓÃº¯Êısqlite3MemsysGetHeader()»ñÈ¡pµÄ´óĞ¡*/
   return pHdr->iSize;
 }
 
 /*
 ** Initialize the memory allocation subsystem.
-**
-** åˆå§‹åŒ–å†…å­˜åˆ†é…å­ç³»ç»Ÿ
 */
+/*³õÊ¼»¯ÄÚ´æ·ÖÅä×ÓÏµÍ³*/
 static int sqlite3MemInit(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   assert( (sizeof(struct MemBlockHdr)&7) == 0 );
   if( !sqlite3GlobalConfig.bMemstat ){
     /* If memory status is enabled, then the malloc.c wrapper will already
     ** hold the STATIC_MEM mutex when the routines here are invoked. */
-    /*å¦‚æœå†…å­˜çŠ¶æ€ä¸ºå·²å¯åŠ¨, é‚£ä¹ˆä¾‹ç¨‹å°†åœ¨malloc.cå°è£…äºå·²æŒæœ‰çš„ATATIC_MEMäº’æ–¥ä½“é‡Œæ—¶è°ƒç”¨ã€‚*/
+    /*Èç¹ûÄÚ´æÊÇ²»¿ÉÒÔÓÃµÄ×´Ì¬£¬ÄÇÃ´STATIC_MEM mutex ³ÌĞòÔÚÕâÀï±»µ÷ÓÃ£¬malloc.c·â×°Æ÷½«±£³ÖÄÚ´æ¾²Ì¬»¥³â×´Ì¬*/
     mem.mutex = sqlite3MutexAlloc(SQLITE_MUTEX_STATIC_MEM);
   }
-  return SQLITE_OK;
+  return SQLITE_OK;/*Ö¸µÄÊÇÒ»ÇĞ×¼±¸¹¤×÷ÒÑÍê³É*/
 }
 
 /*
 ** Deinitialize the memory allocation subsystem.
-**
-** å–æ¶ˆåˆå§‹åŒ–å†…å­˜åˆ†é…å­ç³»ç»Ÿ
 */
+/*È¡Ïû³õÊ¼»¯ÄÚ´æ·ÖÅä×ÓÏµÍ³*/
 static void sqlite3MemShutdown(void *NotUsed){
   UNUSED_PARAMETER(NotUsed);
   mem.mutex = 0;
@@ -272,9 +248,8 @@ static void sqlite3MemShutdown(void *NotUsed){
 
 /*
 ** Round up a request size to the next valid allocation size.
-**
-** å‘ä¸Šèˆå…¥è¯·æ±‚å¤§å°åˆ°ä¸€ä¸ªæœ‰æ•ˆåˆ†é…çš„å¤§
 */
+/*ÊÕ¼¯Âú×ãÏÂÒ»¸ö¿ÉÓÃ´óĞ¡µÄÄÚ´æ·ÖÅä*/
 static int sqlite3MemRoundup(int n){
   return ROUND8(n);
 }
@@ -283,10 +258,10 @@ static int sqlite3MemRoundup(int n){
 ** Fill a buffer with pseudo-random bytes.  This is used to preset
 ** the content of a new memory allocation to unpredictable values and
 ** to clear the content of a freed allocation to unpredictable values.
-**
-** å¡«å……ä¼ªéšæœºå­—èŠ‚çš„ç¼“å†²åŒºã€‚è¿™ç”¨äºé¢„ç½®ä¸€ä¸ªæ–°çš„å†…å­˜åˆ†é…åˆ°ä¸å¯é¢„æµ‹å€¼çš„å†…å®¹ï¼Œå¹¶æ¸…é™¤é‡Šæ”¾åˆ†é…çš„ä¸å¯é¢„æµ‹å€¼çš„å†…å®¹ã€‚
 */
-//å‡½æ•°å¡«å……ä¼ªéšæœºå­—èŠ‚çš„ç¼“å†²åŒºï¼Œé¢„ç•™ä¸€ä¸ªå†…å­˜åˆ†é…åˆ°ä¸å¯é¢„æµ‹å€¼å¹¶æ¸…é™¤é‡Šæ”¾ä¸å¯é¢„æµ‹å€¼çš„å†…å®¹ã€‚
+/*ÓÃÎ±Ëæ»ú×Ö½ÚÌî³äÒ»¸ö»º³åÇø¡£ÕâÑù×öÊÇÎªÁË¶ÔÒ»¸ö²»ÄÜ¹À¼ÆÆäÖµµÄĞÂ·ÖÅäµÄÄÚ´æµÄÄÚÈİ½øĞĞÔ¤ÉèÖÃ£¬
+ÒÔ¼°¶ÔÎŞ·¨¹À¼ÆÖµµÄÒÑ¾­ÊÍ·ÅµÄÄÚ´æµÄÄÚÈİ½øĞĞÇå³ı¡£
+*/
 static void randomFill(char *pBuf, int nByte){
   unsigned int x, y, r;
   x = SQLITE_PTR_TO_INT(pBuf);
@@ -309,9 +284,8 @@ static void randomFill(char *pBuf, int nByte){
 
 /*
 ** Allocate nByte bytes of memory.
-**
-** åˆ†é…å†…å­˜nByteå­—èŠ‚
 */
+/*·ÖÅänByte¸ö×Ö½Ú×÷ÎªÄÚ´æµÄ´óĞ¡*/
 static void *sqlite3MemMalloc(int nByte){
   struct MemBlockHdr *pHdr;
   void **pBt;
@@ -321,15 +295,16 @@ static void *sqlite3MemMalloc(int nByte){
   int totalSize;
   int nReserve;
   sqlite3_mutex_enter(mem.mutex);
-  assert( mem.disallow==0 );
+  assert( mem.disallow==0 );/*Èç¹ûdisallow==0£¬Ôò²»ÄÜ½øĞĞÄÚ´æ·ÖÅä*/
   nReserve = ROUND8(nByte);
   totalSize = nReserve + sizeof(*pHdr) + sizeof(int) +
-               mem.nBacktrace*sizeof(void*) + mem.nTitle;
+               mem.nBacktrace*sizeof(void*) + mem.nTitle;/*¼ÆËãÒ»¸öÄÚ´æËùÕ¼ÓÃµÄ×ÜµÄ¿Õ¼ä´óĞ¡*/
+  /*ÒÔÉÏÊÇÄÚ´æ·ÖÅä×¼±¸½×¶Î*/
   p = malloc(totalSize);
   if( p ){
     z = p;
-    pBt = (void**)&z[mem.nTitle];
-    pHdr = (struct MemBlockHdr*)&pBt[mem.nBacktrace];
+    pBt = (void**)&z[mem.nTitle];/*½«´óĞ¡ÎªnTitleµÄÊı×ézµÄÊ×µØÖ·¸øpBt*/
+    pHdr = (struct MemBlockHdr*)&pBt[mem.nBacktrace];/*ÓÃ»ØËİÂ·¾¶µÄÊıÄ¿µÄÖ¸ÕëpBtÀ´±íÊ¾ÄÚ´æµÄMemBlockHdr*/
     pHdr->pNext = 0;
     pHdr->pPrev = mem.pLast;
     if( mem.pLast ){
@@ -343,7 +318,7 @@ static void *sqlite3MemMalloc(int nByte){
     pHdr->nBacktraceSlots = mem.nBacktrace;
     pHdr->nTitle = mem.nTitle;
     if( mem.nBacktrace ){
-      /*å¦‚æœbacktraceæ·±åº¦ä¸º0.é‚£ä¹ˆå°±ä¸ç”¨æ‰§è¡Œ*/
+      /*Èç¹ûmem.nBacktraceµÄÖµÎªÕæ*/
       void *aAddr[40];
       pHdr->nBacktrace = backtrace(aAddr, mem.nBacktrace+1)-1;
       memcpy(pBt, &aAddr[1], pHdr->nBacktrace*sizeof(void*));
@@ -372,9 +347,8 @@ static void *sqlite3MemMalloc(int nByte){
 
 /*
 ** Free memory.
-**
-** é‡Šæ”¾å†…å­˜
 */
+/*ÊÍ·ÅÄÚ´æ*/
 static void sqlite3MemFree(void *pPrior){
   struct MemBlockHdr *pHdr;
   void **pBt;
@@ -416,11 +390,12 @@ static void sqlite3MemFree(void *pPrior){
 ** higher level code is using pointer to the old allocation, it is 
 ** much more likely to break and we are much more liking to find
 ** the error.
-**
-** æ›´æ”¹ç°æœ‰çš„å†…å­˜åˆ†é…çš„å¤§å°ã€‚
-** å¯¹äºè¿™ç§è°ƒè¯•çš„å®ç°ï¼Œæˆ‘ä»¬æ€»æ˜¯åšä¸€åˆ†é…å‰¯æœ¬å‚¨å­˜åœ¨å†…å­˜çš„æ–°ä½ç½®ã€‚
-** ç”¨è¿™ç§æ–¹æ³•ï¼Œå¦‚æœæ›´é«˜çº§åˆ«çš„ä»£ç å°†ç”¨æŒ‡é’ˆå›åˆ°æ—§é…ç½®ä¸Šï¼Œ 
-** è¿™æ ·æ›´æ˜“ä¸­æ–­å¹¶ä¸”æˆ‘ä»¬æ›´å®¹æ˜“æ‰¾å‡ºé”™è¯¯
+*/
+/*¸Ä±äÏÖÓĞµÄ·ÖÅäµÄÄÚ´æµÄ´óĞ¡¡£
+
+ÎªÁËÄÜ¹»µ÷ÊÔ´íÎó£¬×ÜÊÇÔÚÄÚ´æÖĞ£¬¸´ÖÆÄ³¸öÄÚ´æ·ÖÅäµ½Ò»¸öĞÂµÄµØ·½¡£
+ÓÃÕâÖÖ·½Ê½£¬Èç¹û¸ß²ãµÄ±àÂëÕıÔÚÔËÓÃÖ¸ÕëÖ¸Ïò¾ÉµÄÄÚ´æ·ÖÅä£¬Õâ»á¸üÓĞ¿ÉÄÜÈ¥ÖĞ¶ÏÒÔ¼°¸üÄÜ¹»ÕÒµ½´íÎó¡£
+
 */
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
   struct MemBlockHdr *pOldHdr;
@@ -428,7 +403,7 @@ static void *sqlite3MemRealloc(void *pPrior, int nByte){
   assert( mem.disallow==0 );
   assert( (nByte & 7)==0 );     /* EV: R-46199-30249 */
   pOldHdr = sqlite3MemsysGetHeader(pPrior);
-  pNew = sqlite3MemMalloc(nByte);
+  pNew = sqlite3MemMalloc(nByte);/*½«Ò»¸öÄÚ´æ·ÖÅä¸´ÖÆµ½ĞÂµÄµÄµØ·½*/
   if( pNew ){
     memcpy(pNew, pPrior, nByte<pOldHdr->iSize ? nByte : pOldHdr->iSize);
     if( nByte>pOldHdr->iSize ){
@@ -442,9 +417,10 @@ static void *sqlite3MemRealloc(void *pPrior, int nByte){
 /*
 ** Populate the low-level memory allocation function pointers in
 ** sqlite3GlobalConfig.m with pointers to the routines in this file.
-**
-** åœ¨sqlite3GlobalConfig.mä¸è¿™ä¸ªæ–‡ä»¶æŒ‡é’ˆçš„ä¾‹ç¨‹ä¸­å¡«å……åº•å±‚å†…å­˜åˆ†é…å‡½æ•°æŒ‡é’ˆã€‚
 */
+/*
+½«µ×²ãµÄÄÚ´æ·ÖÅäº¯ÊıÖ¸ÕëµØÖ·ÓÃÖ¸ÏòÕâ¸öÎÄ¼şÖĞµÄ³ÌĞòµÄÖ¸ÕëÌî³äµ½qlite3GlobalConfig.mÖĞ£¨×Ô¼ºµÄ°æ±¾£©*/
+/*ÔÚsqlite3GlobalConfig.mÓëÕâ¸öÎÄ¼şÖ¸ÕëµÄÀı³ÌÖĞÌî³äµ×²ãÄÚ´æ·ÖÅäº¯ÊıÖ¸Õë£¨ÒÔÇ°µÄ°æ±¾£©*/
 void sqlite3MemSetDefault(void){
   static const sqlite3_mem_methods defaultMethods = {
      sqlite3MemMalloc,
@@ -461,10 +437,8 @@ void sqlite3MemSetDefault(void){
 
 /*
 ** Set the "type" of an allocation.
-**
-** è®¾ç½®åˆ†é…çš„â€œç±»å‹
 */
-//è®¾ç½®å†…å­˜åˆ†é…çš„ç±»å‹
+/*ÉèÖÃÒ»¸öÄÚ´æ·ÖÅäµÄÀàĞÍ*/
 void sqlite3MemdebugSetType(void *p, u8 eType){
   if( p && sqlite3GlobalConfig.m.xMalloc==sqlite3MemMalloc ){
     struct MemBlockHdr *pHdr;
@@ -482,13 +456,11 @@ void sqlite3MemdebugSetType(void *p, u8 eType){
 ** verify the type of an allocation.  For example:
 **
 **     assert( sqlite3MemdebugHasType(p, MEMTYPE_DB) );
-**
-** å¦‚æœeTypeçš„ç±»å‹ä¸åˆ†é…Pç±»å‹ç›¸åŒ¹é…ï¼Œåˆ™è¿”å›çœŸã€‚
-** å¦‚æœp==NULLåˆ™ä¹Ÿè¿”å›çœŸã€‚
-** è¿™ä¸ªç¨‹åºè¢«è®¾è®¡ç”¨äºåœ¨assertï¼ˆï¼‰éªŒè¯é…ç½®ç±»å‹çš„ä¸€ä¸ªå£°æ˜ã€‚
-** ä¸¾ä¾‹å¦‚ï¼šassert( sqlite3MemdebugHasType(p, MEMTYPE_DB) );
 */
-//å‡½æ•°ä½¿ç”¨assertï¼ˆï¼‰è¯­å¥éªŒè¯å†…å­˜åˆ†é…çš„ç±»å‹
+/*µ±ÔÚeTypeÖĞµÄÄÚ´æµÄÀàĞÍµÄÍâÔÚÖµÓëÄÚ´æ·ÖÅäpµÄÀàĞÍÏàÍ¬Ê±£¬·µ»ØÕæ¡£¶øÇÒ£¬µ±pÊÇ¿ÕÖµÊ±Ò²·µ»ØÕæÖµ¡£
+
+ ÏÂÃæÕâ¸ö³ÌĞòÊÇ±»ÓÃÔÚassert£¨£©º¯ÊıÉùÃ÷ÖĞµÄ£¬ÊÇÎªÁË¼ì²é·ÖÅäÄÚ´æµÄÀàĞÍµÄ¡£¾Ù¸öÀı×ÓÀ´Ëµ£¬assert( sqlite3MemdebugHasType(p, MEMTYPE_DB) );
+*/
 int sqlite3MemdebugHasType(void *p, u8 eType){
   int rc = 1;
   if( p && sqlite3GlobalConfig.m.xMalloc==sqlite3MemMalloc ){
@@ -510,19 +482,17 @@ int sqlite3MemdebugHasType(void *p, u8 eType){
 ** verify the type of an allocation.  For example:
 **
 **     assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
-**
-** å¦‚æœeTypeçš„å­—èŠ‚æ©ç ä¸åˆ†é…çš„Pæ— ç›¸åŒ¹é…å­—èŠ‚åˆ™è¿”å›çœŸã€‚
-** å¦‚æœpä¸ºç©ºåˆ™ä¹Ÿä¸ºçœŸã€‚
-** è¿™ä¸ªç¨‹åºè¢«è®¾è®¡ç”¨äºåœ¨ä¸€ä¸ªassertï¼ˆï¼‰å£°æ˜é‡Œï¼Œç”¨äºéªŒè¯é…ç½®ç±»å‹ã€‚
-** ä¸¾ä¸ªä¾‹å­ï¼šassert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
 */
-//éªŒè¯å†…å­˜åˆ†é…çš„ç±»å‹
+/*
+Èç¹ûÔÚeTypeÖĞµÄÀàĞÍµÄÍâ±íÓë£¨ÄÚ´æ·ÖÅäpµÄÀàĞÍ²»Æ¥Åä£¬ÄÇÃ´¾Í·µ»ØÕæÖµ¡£Í¬Ê±£¬µ±pÎª¿ÕÖµÊ±Ò²·µ»ØÕæÖµ¡£
+Õâ¸ö³ÌĞòÊÇÓÃÔÚassert() º¯ÊıÖĞµÄ£¬ÎªÁË¼ì²éÄÚ´æ·ÖÅäµÄÀàĞÍµÄ¡£ÀıÈç£¬ssert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
+*/
 int sqlite3MemdebugNoType(void *p, u8 eType){
   int rc = 1;
   if( p && sqlite3GlobalConfig.m.xMalloc==sqlite3MemMalloc ){
     struct MemBlockHdr *pHdr;
     pHdr = sqlite3MemsysGetHeader(p);
-    assert( pHdr->iForeGuard==FOREGUARD );         /* Allocation is valid åˆ†é…æ˜¯æœ‰æ•ˆçš„*/
+    assert( pHdr->iForeGuard==FOREGUARD );         /* Allocation is valid ÄÚ´æ·ÖÅäÊÇÄÜ¹»Ê¹ÓÃµÄ*/
     if( (pHdr->eType&eType)!=0 ){
       rc = 0;
     }
@@ -534,11 +504,9 @@ int sqlite3MemdebugNoType(void *p, u8 eType){
 ** Set the number of backtrace levels kept for each allocation.
 ** A value of zero turns off backtracing.  The number is always rounded
 ** up to a multiple of 2.
-**
-** è®¾ç½®ä¿æŒå„åˆ†é…å›æº¯è·Ÿè¸ªçº§åˆ«æ•°ã€‚
-** å¦‚æœå€¼ä¸ºé›¶å°†å…³é—­å›æº¯,æ•°å­—å§‹ç»ˆå››èˆäº”å…¥åˆ° 2 çš„å€æ•°ã€‚
 */
-//å‡½æ•°è®¾ç½®æ¯ä¸ªå†…å­˜åˆ†é…å›æº¯è·Ÿè¸ªçº§åˆ«æ•°
+/*ÎªÃ¿Ò»¸öÄÚ´æ·ÖÅä£¬ÉèÖÃ»ØËİµÈ¼¶µÄÉî¶È¡£ÁãÖµÊÇ¹Ø±Õ»ØËİ£¬ÇÒÕâ¸öÊıÖµ×ÜÊÇ2µÄ±¶Êı¡£
+*/
 void sqlite3MemdebugBacktrace(int depth){
   if( depth<0 ){ depth = 0; }
   if( depth>20 ){ depth = 20; }
@@ -546,17 +514,14 @@ void sqlite3MemdebugBacktrace(int depth){
   mem.nBacktrace = depth;
 }
 
-//å‡½æ•°å†…å­˜åˆ†é…çš„å›è°ƒå‡½æ•°
 void sqlite3MemdebugBacktraceCallback(void (*xBacktrace)(int, int, void **)){
   mem.xBacktrace = xBacktrace;
 }
 
 /*
 ** Set the title string for subsequent allocations.
-**
-** è®¾ç½®æ ‡é¢˜å­—ç¬¦ä¸²è¿›è¡Œåç»­åˆ†é…
 */
-//å‡½æ•°è®¾ç½®æ ‡é¢˜å­—ç¬¦ä¸²è¿›è¡Œåç»­çš„åˆ†é…
+/*ÎªºóĞøµÄÄÚ´æ·ÖÅäÉèÖÃ±êÌâ×Ö·û´®*/
 void sqlite3MemdebugSettitle(const char *zTitle){
   unsigned int n = sqlite3Strlen30(zTitle) + 1;
   sqlite3_mutex_enter(mem.mutex);
@@ -567,7 +532,6 @@ void sqlite3MemdebugSettitle(const char *zTitle){
   sqlite3_mutex_leave(mem.mutex);
 }
 
-//å‡½æ•°åŒæ­¥
 void sqlite3MemdebugSync(){
   struct MemBlockHdr *pHdr;
   for(pHdr=mem.pFirst; pHdr; pHdr=pHdr->pNext){
@@ -580,10 +544,8 @@ void sqlite3MemdebugSync(){
 /*
 ** Open the file indicated and write a log of all unfreed memory 
 ** allocations into that log.
-**
-** æ‰“å¼€æŒ‡å®šçš„æ–‡ä»¶ï¼Œå¹¶å†™å…¥æ—¥å¿—æ‰€æœ‰æœªé‡Šæ”¾å†…å­˜åˆ†é…åˆ°è¯¥æ—¥å¿—ã€‚
 */
-//å‡½æ•°æ‰“å°è°ƒç”¨æ ˆ
+/*´ò¿ª±»Ö¸Ã÷µÄÎÄ¼ş£¬È»ºóÏòËùÓĞµÄÊÍ·ÅÁËµÄÄÚ´æÖĞĞ´ÈëÈÕÖ¾¡£*/
 void sqlite3MemdebugDump(const char *zFilename){
   FILE *out;
   struct MemBlockHdr *pHdr;
@@ -625,10 +587,8 @@ void sqlite3MemdebugDump(const char *zFilename){
 
 /*
 ** Return the number of times sqlite3MemMalloc() has been called.
-**
-** è¿”å›çš„æ˜¯å‡½æ•°sqlite3MemMalloc()è¢«è°ƒç”¨çš„æ¬¡æ•°ã€‚
 */
-//å‡½æ•°è¿”å›sqlite3MemdebugMalloc()è¢«è°ƒç”¨çš„æ¬¡æ•°
+/*·µ»Øsqlite3MemMalloc()º¯ÊıÒÑ±»µ÷ÓÃµÄ´ÎÊıµÄÊıÄ¿ */
 int sqlite3MemdebugMallocCount(){
   int i;
   int nTotal = 0;
