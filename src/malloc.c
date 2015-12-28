@@ -341,7 +341,7 @@ static void sqlite3MallocAlarm(int nByte){
 ** Do a memory allocation with statistics and alarms.  Assume the
 ** lock is already held.
 **
-** 分配内存，更新统计和设置警报，假设已经加锁
+** 分配内存，更新统计和警报，假设已经加锁
 */
 static int mallocWithAlarm(int n, void **pp){
   int nFull;
@@ -606,7 +606,7 @@ void sqlite3DbFree(sqlite3 *db, void *p){
 #endif
       pBuf->pNext = db->lookaside.pFree;
       db->lookaside.pFree = pBuf;
-      db->lookaside.nOut--;
+      db->lookaside.nOut--;  //当前检出的缓冲区数量减1
       return;
     }
   }
