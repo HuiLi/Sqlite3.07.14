@@ -154,7 +154,7 @@ static int hasTimer(void){    //计时器
     ** a pointer to it and the current process handle.
     */
     hProcess = GetCurrentProcess();//获取当前进程的一个句柄,返回值为当前进程的句柄
-    if( hProcess ){
+    if( hProcess ){//如果获得了当前的句柄
       HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  //加载动态链接库。之后可以访问库内的资源  
                                                                /*kernel32.dll是Windows 9x/Me中 非常重要的32位 动态链接库文件
 
@@ -302,7 +302,7 @@ static void iotracePrintf(const char *zFormat, ...){ //有一个参数zFormat固
 /*
 ** Determines if a string is a number of not.  //如果有很多非数字则终止,z为得到的字符串
 */
-static int isNumber(const char *z, int *realnum){
+static int isNumber(const char *z, int *realnum){//判断字符串z是否为数字
   if( *z=='-' || *z=='+' ) z++;  //判断正负
   if( !IsDigit(*z) ){ //判断是否是数字，如果不是，返回0
     return 0;
@@ -390,22 +390,22 @@ static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //从文件�
       zLine = realloc(zLine, nLine); //将zLine对象的存储空间改为nLine大小
       if( zLine==0 ) return 0;//如果分配内存不成功，返回
     }
-    if( fgets(&zLine[n], nLine - n, in)==0 ){//判断从文件中读入的字符串是为空
+    if( fgets(&zLine[n], nLine - n, in)==0 ){//判断从文件中读入的字符串是为空//fgets从in文件中读取一行放在zLine[n]中，读取那行的数据大小为nLine - n
 		if( n==0 ){ 
         free(zLine);//释放zLine内存
         return 0;
       }
-      zLine[n] = 0;
+      zLine[n] = 0;//如果读取不成功，就设置值为0
       break;//结束此次循环
     }
-    while( zLine[n] ){
-      if( zLine[n]=='"' ) inQuote = !inQuote;
+    while( zLine[n] ){//读取的行非空时，n的值要加1
+      if( zLine[n]=='"' ) inQuote = !inQuote;//如果读取的值为”，则将inQuote设置为1
       n++;
     }
-    if( n>0 && zLine[n-1]=='\n' && (!inQuote || !csvFlag) ){
+    if( n>0 && zLine[n-1]=='\n' && (!inQuote || !csvFlag) ){//读取的行为\n或\r，则需将n减1
       n--;
       if( n>0 && zLine[n-1]=='\r' ) n--;
-      zLine[n] = 0;
+      zLine[n] = 0;//设置zLine[n]的值为0
       break;
     }
   }
@@ -419,11 +419,11 @@ static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //从文件�
 ** zPrior is a string of prior text retrieved.  If not the empty
 ** string, then issue a continuation prompt.
 */
-static char *one_input_line(const char *zPrior, FILE *in){
+static char *one_input_line(const char *zPrior, FILE *in){//从文件in中读取一行
   char *zPrompt;
   char *zResult;
   if( in!=0 ){//文件不空，就从文件中读取命令
-    return local_getline(0, in, 0);
+    return local_getline(0, in, 0);//调用local_getline实现一次读一行
   }
   if( zPrior && zPrior[0] ){
     zPrompt = continuePrompt;//如果zPrior && zPrior[0]不空，则zPrompt = continuePrompt，continuePrompt的初始值为"...>"
@@ -526,9 +526,9 @@ list 显示模式，一般我们使用 column 显示模式
 static int strlen30(const char *z){     //能够存储的最大bit数;字符串长度是有限的,可以存储在低30位的32位带符
 
 号整数
-  const char *z2 = z;
-  while( *z2 ){ z2++; }
-  return 0x3fffffff & (int)(z2 - z);
+  const char *z2 = z;//将z2指向z
+  while( *z2 ){ z2++; }//计数
+  return 0x3fffffff & (int)(z2 - z);//得到字符串z的长度，并且通过与运算保证长度在30位以内。
 }
 
 /*
@@ -544,13 +544,13 @@ static void shellLog(void *pArg, int iErrCode, const char *zMsg){  //生产shell
 /*
 ** Output the given string as a hex-encoded blob (eg. X'1234' )
 */
-static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){//将字符串以hex二进制编码的方式输
+static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){//将字符串以hex二进制编码的方式输出
 
 出
   int i;
-  char *zBlob = (char *)pBlob;
-  fprintf(out,"X'");
-  for(i=0; i<nBlob; i++){ fprintf(out,"%02x",zBlob[i]&0xff); }
+  char *zBlob = (char *)pBlob;//将zBlob指向pBlob
+  fprintf(out,"X'");//输出文件设置为十六进制格式
+  for(i=0; i<nBlob; i++){ fprintf(out,"%02x",zBlob[i]&0xff); }//以二进制格式打印出pBlob，并且pBlob的长度小于2时，在左边自动补零
   fprintf(out,"'");
 }
 
@@ -559,7 +559,7 @@ static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){//将字符
 */
 static void output_quoted_string(FILE *out, const char *z){//将字符串以引证字符串的形式输出
   int i;
-  int nSingle = 0;
+  int nSingle = 0;//计数
   for(i=0; z[i]; i++){
     if( z[i]=='\'' ) nSingle++;//记录字符串中'\'的个数
   }
@@ -587,14 +587,14 @@ static void output_quoted_string(FILE *out, const char *z){//将字符串以引�
 /*
 ** Output the given string as a quoted according to C or TCL quoting rules.
 */
-static void output_c_string(FILE *out, const char *z){  //根据C或TCL引用规则输出字符串
+static void output_c_string(FILE *out, const char *z){  //根据C或TCL引用规则输出字符串//遇到特殊的字符时要进行转义
   unsigned int c;
   fputc('"', out);
   while( (c = *(z++))!=0 ){
     if( c=='\\' ){
       fputc(c, out);//将字符串c写入文件out中
       fputc(c, out);
-    }else if( c=='\t' ){
+    }else if( c=='\t' ){//遇到/t,分为两个步骤，一是将//写入out文件中，二是将t写入out文件中
       fputc('\\', out);
       fputc('t', out);
     }else if( c=='\n' ){
@@ -604,7 +604,7 @@ static void output_c_string(FILE *out, const char *z){  //根据C或TCL引用规
       fputc('\\', out);
       fputc('r', out);
     }else if( !isprint(c) ){//如果c不是可打印的字符
-      fprintf(out, "\\%03o", c&0xff);//将字符串c与oxff进行按位与，然后以\\%03o形式输出至out文件
+      fprintf(out, "\\%03o", c&0xff);//将字符串c与oxff进行按位与，然后以\\%03o形式输出至out文件//以八进制格式输出
     }else{//否则,将字符串c写入out文件中
       fputc(c, out);
     }
@@ -617,7 +617,7 @@ static void output_c_string(FILE *out, const char *z){  //根据C或TCL引用规
 ** HTML escaped. 
 */
 //如果想输出下面特殊的字符串，则需要用它们对应的字符实体
-static void output_html_string(FILE *out, const char *z){//以特殊的HTML代码方式显示字符串
+static void output_html_string(FILE *out, const char *z){//以特殊的HTML代码方式显示字符串//html格式输出要对一些特殊字符进行处理
   int i;
   while( *z ){
     for(i=0;   z[i] 
@@ -685,11 +685,11 @@ static void output_csv(struct callback_data *p, const char *z, int bSep){//以cs
     fprintf(out,"%s",p->nullvalue);  //格式化输出 fprintf(文件指针,格式字符串,输出表列)
   }else{
     int i;
-    int nSep = strlen30(p->separator);//将p->separator
+    int nSep = strlen30(p->separator);//获取长度
     for(i=0; z[i]; i++){
       if( needCsvQuote[((unsigned char*)z)[i]] 
          || (z[i]==p->separator[0] && 
-             (nSep==1 || memcmp(z, p->separator, nSep)==0)) ){//判断字符串是否含有一些特殊的字符
+             (nSep==1 || memcmp(z, p->separator, nSep)==0)) ){//判断字符串是否含有一些特殊的字符//以当前分隔符的形式显示查询值
         i = 0;
         break;
       }
@@ -737,15 +737,15 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       int w = 5;//设置w的初始值
       if( azArg==0 ) break;//如果查询结果为空，则跳出循环
       for(i=0; i<nArg; i++){//计算长度
-        int len = strlen30(azCol[i] ? azCol[i] : "");
-        if( len>w ) w = len;
+        int len = strlen30(azCol[i] ? azCol[i] : "");//如果当前列非空，则它的长度为实际的列长
+        if( len>w ) w = len;//如果计算出来的长度大于5，则w的值改为len
       }
       if( p->cnt++>0 ) fprintf(p->out,"\n");//如果输出的记录数不为0，则进行换行
       for(i=0; i<nArg; i++){//以下列的方式输出每条记录
         fprintf(p->out,"%*s = %s\n", w, azCol[i],
                 azArg[i] ? azArg[i] : p->nullvalue);  //p->nullvalue表示NUll值，以列名=值形式输出后并换行
       }
-      break;
+      break;//跳出循环
     }
     case MODE_Explain:
     case MODE_Column: {  //Explain和Column模式
@@ -766,14 +766,14 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
           if( i<ArraySize(p->actualWidth) ){
             p->actualWidth[i] = w;//计算列的实际宽度
           }
-          if( p->showHeader ){//以列的格式输出表头
-            fprintf(p->out,"%-*.*s%s",w,w,azCol[i], i==nArg-1 ? "\n": "  ");
+          if( p->showHeader ){//以列的格式输出表头//如果要输出表头
+            fprintf(p->out,"%-*.*s%s",w,w,azCol[i], i==nArg-1 ? "\n": "  ");//则先实际以w长度输出表头，用空格隔开。输出完后换行
           }
         }
         if( p->showHeader ){//如果已经输出表头
           for(i=0; i<nArg; i++){
             int w;
-            if( i<ArraySize(p->actualWidth) ){
+            if( i<ArraySize(p->actualWidth) ){//计算列的实际宽度
                w = p->actualWidth[i];
             }else{
                w = 10;
@@ -837,7 +837,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"<TR>");
       for(i=0; i<nArg; i++){//以html格式输出查询的记录值
         fprintf(p->out,"<TD>");
-        output_html_string(p->out, azArg[i] ? azArg[i] : p->nullvalue);
+        output_html_string(p->out, azArg[i] ? azArg[i] : p->nullvalue);//调用output_html_string方法将特殊符号正确输出
         fprintf(p->out,"</TD>\n");
       }
       fprintf(p->out,"</TR>\n");
@@ -847,7 +847,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       if( p->cnt++==0 && p->showHeader ){//如果还没有记录输出并且表头值为1，则与“”的形式输出表头
         for(i=0; i<nArg; i++){
           output_c_string(p->out,azCol[i] ? azCol[i] : "");
-          fprintf(p->out, "%s", p->separator);
+          fprintf(p->out, "%s", p->separator);//按照当前分隔符的值输出语句
         }
         fprintf(p->out,"\n");
       }
@@ -887,10 +887,10 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
         }else if( aiType && (aiType[i]==SQLITE_INTEGER || aiType[i]==SQLITE_FLOAT) ){
           fprintf(p->out,"%s%s",zSep, azArg[i]);
         }else if( aiType && aiType[i]==SQLITE_BLOB && p->pStmt ){
-          const void *pBlob = sqlite3_column_blob(p->pStmt, i);
-          int nBlob = sqlite3_column_bytes(p->pStmt, i);
+          const void *pBlob = sqlite3_column_blob(p->pStmt, i);//取出二进制对象
+          int nBlob = sqlite3_column_bytes(p->pStmt, i);//得到二进制的值
           if( zSep[0] ) fprintf(p->out,"%s",zSep);
-          output_hex_blob(p->out, pBlob, nBlob);
+          output_hex_blob(p->out, pBlob, nBlob);//以二进制的形式输出
         }else if( isNumber(azArg[i], 0) ){
           fprintf(p->out,"%s%s",zSep, azArg[i]);
         }else{
@@ -899,7 +899,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
         }
       }
       fprintf(p->out,");\n");//输出反括号，换行
-      break;
+      break;//跳出循环
     }
   }
   return 0;
@@ -932,7 +932,7 @@ static void set_table_name(struct callback_data *p, const char *zName){ //设定
     free(p->zDestTable);  //释放空间
     p->zDestTable = 0;
   }
-  if( zName==0 ) return;
+  if( zName==0 ) return;   //如果zName等于0，则返回                                         // zName不是字母或者_时，needQuote 为1
   needQuote = !isalpha((unsigned char)*zName) && *zName!='_';//isalpha函数判断字符*zName是否为英文字母，若为小写字母，返回2，若为大写字母，返回1。若不是字母，返回0,当表名中没有字母或者_时， needQuote==1
   for(i=n=0; zName[i]; i++, n++){
     if( !isalnum((unsigned char)zName[i]) && zName[i]!='_' ){//当zName[i]为数字0-9或字母a-z及A-Z时，返回非零值，否则返回零
@@ -941,10 +941,10 @@ static void set_table_name(struct callback_data *p, const char *zName){ //设定
     }
   }
   if( needQuote ) n += 2;//needQuote不为0，即表名中不包含特殊符号时,n=n+2
-  z = p->zDestTable = malloc( n+1 );//给表分配空间
+  z = p->zDestTable = malloc( n+1 );//给表分配空间//给表分配n+1的空间
   if( z==0 ){//如果表空间分配失败，则输出错误信息
     fprintf(stderr,"Error: out of memory\n");
-    exit(1);
+    exit(1);//结束
   }
   n = 0;
   if( needQuote ) z[n++] = '\'';
@@ -952,7 +952,7 @@ static void set_table_name(struct callback_data *p, const char *zName){ //设定
     z[n++] = zName[i];
     if( zName[i]=='\'' ) z[n++] = '\'';
   }
-  if( needQuote ) z[n++] = '\'';
+  if( needQuote ) z[n++] = '\'';//含有不规则符号时，在表名的末尾加上结束标识
   z[n] = 0;
 }
 
@@ -968,9 +968,9 @@ static char *appendText(char *zIn, char const *zAppend, char quote){//zInt是在
   int len;//定义长度
   int i;
   int nAppend = strlen30(zAppend);//计算字符zAppend的长度
-  int nIn = (zIn?strlen30(zIn):0);//计算zIn的长度
+  int nIn = (zIn?strlen30(zIn):0);//如果之前的字符串zIn非空，则计算zIn的长度，否则长度为0
 
-  len = nAppend+nIn+1;//计算总长度
+  len = nAppend+nIn+1;//计算拼接后字符串的总长度
   if( quote ){//如果quote不是'\0',那么用作zAppend引用字符
     len += 2;
     for(i=0; i<nAppend; i++){
@@ -983,22 +983,22 @@ static char *appendText(char *zIn, char const *zAppend, char quote){//zInt是在
     return 0;
   }
 
-  if( quote ){//如果quote不是'\0'
-    char *zCsr = &zIn[nIn];
+  if( quote ){//如果quote不是'0'，则需先将quote拼接在zIn后
+    char *zCsr = &zIn[nIn];//指向源字符串
     *zCsr++ = quote;
     for(i=0; i<nAppend; i++){
-      *zCsr++ = zAppend[i];
+      *zCsr++ = zAppend[i];//将zAppend拼接
       if( zAppend[i]==quote ) *zCsr++ = quote; //如果zAppend指向的字符串和quote相等
     }
     *zCsr++ = quote;
-    *zCsr++ = '\0';
+    *zCsr++ = '\0';//结束标识
     assert( (zCsr-zIn)==len );
   }else{
     memcpy(&zIn[nIn], zAppend, nAppend);//字符串拷贝
     zIn[len-1] = '\0';
   }
 
-  return zIn;
+  return zIn;//返回拼接后的值
 }
 
 
@@ -1077,7 +1077,7 @@ sqlite3_stmt 结构给释放，函数的返回值基于创建sqlite3_stmt参数�
 static char *save_err_msg(  //保存错误信息
   sqlite3 *db               //要访问的数据库 /* Database to query */
 ){
-  int nErrMsg = 1+strlen30(sqlite3_errmsg(db));
+  int nErrMsg = 1+strlen30(sqlite3_errmsg(db));//计算错误信息的长度
   char *zErrMsg = sqlite3_malloc(nErrMsg);//通过sqlite3_malloc()接口，SQLite扩展或应用程序本身都可以使
 
 用相同的SQLite的底层分配函数来使用内存
