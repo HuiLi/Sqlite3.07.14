@@ -172,7 +172,7 @@ static SQLITE_WSD struct Mem5Global {
   ** Space for tracking which blocks are checked out and the size
   ** of each block.  One byte per block.
   ** 
-  ** 用于追踪检出块和每块的大小，每个块一个字节
+  ** 用于追踪检出块和每块(block)的大小，每个块一个字节
   */
   u8 *aCtrl;
   /*
@@ -259,7 +259,6 @@ static void memsys5Link(int i, int iLogsize){
 static void memsys5Enter(void){
   sqlite3_mutex_enter(mem5.mutex);        /*加互斥锁*/
 }
-//解锁
 static void memsys5Leave(void){
   sqlite3_mutex_leave(mem5.mutex);        /*退出互斥锁*/
 }

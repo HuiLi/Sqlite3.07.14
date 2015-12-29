@@ -36,8 +36,8 @@
 **  int nPage;                        // Number of pages in pPage[]  页的数目
 **  int mxParserStack;                // maximum depth of the parser stack  解析栈的最大深度
 **  int sharedCacheEnabled;           // true if shared-cache mode enabled  如果共享缓存模式开启了，则为真
-**  // The above might be initialized to non-zero.  The following need to always
-**  ** initially be zero, however. 
+**  //The above might be initialized to non-zero.  The following need to always
+**  //initially be zero, however. 
 **  //以上的变量的初始值可为非零值，以下的变量则必须初始化为零
 **  int isInit;                       // True after initialization has finished  初始化完成以后置为真
 **  int inProgress;                   // True while initialization in progress  初始化过程中则为真
@@ -341,7 +341,7 @@ static void sqlite3MallocAlarm(int nByte){
 ** Do a memory allocation with statistics and alarms.  Assume the
 ** lock is already held.
 **
-** 分配内存，更新统计和设置警报，假设已经加锁
+** 分配内存，更新统计和警报，假设已经加锁
 */
 static int mallocWithAlarm(int n, void **pp){
   int nFull;
@@ -606,7 +606,7 @@ void sqlite3DbFree(sqlite3 *db, void *p){
 #endif
       pBuf->pNext = db->lookaside.pFree;
       db->lookaside.pFree = pBuf;
-      db->lookaside.nOut--;
+      db->lookaside.nOut--;  //当前检出的缓冲区数量减1
       return;
     }
   }

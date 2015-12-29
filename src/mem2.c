@@ -248,6 +248,8 @@ static void sqlite3MemShutdown(void *NotUsed){
 
 /*
 ** Round up a request size to the next valid allocation size.
+**
+** 向上舍入请求大小到一个有效分配的大小
 */
 /*收集满足下一个可用大小的内存分配*/
 static int sqlite3MemRoundup(int n){
@@ -482,6 +484,11 @@ int sqlite3MemdebugHasType(void *p, u8 eType){
 ** verify the type of an allocation.  For example:
 **
 **     assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
+**
+** 如果eType的字节掩码与分配的P无相匹配字节则返回真。
+** 如果p为空则也为真。
+** 这个程序被设计用于在一个assert（）声明里，用于验证配置类型。
+** 例如：assert( sqlite3MemdebugNoType(p, MEMTYPE_DB) );
 */
 /*
 如果在eType中的类型的外表与（内存分配p的类型不匹配，那么就返回真值。同时，当p为空值时也返回真值。

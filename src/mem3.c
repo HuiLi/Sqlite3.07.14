@@ -189,7 +189,7 @@ static SQLITE_WSD struct Mem3Global {
 ** Unlink the chunk at mem3.aPool[i] from list it is currently
 ** on.  *pRoot is the list that i is a member of.
 ** 
-** 该函数把当前使用的块移出列表
+** 把mem3.aPool[i]大块移出列表
 */   
 //将第i个项从双向链表中删除， 如果是第一个，则调整pRoot指针；
 //同时调整 前一个的next指针，和后一个的prev指针。将卸下来的这一项的prev和next都设置为null。               
@@ -296,7 +296,7 @@ static void memsys3Leave(void){
 ** 
 ** 当内存不够时调用
 */   
-//分配的内存不足时释放n字节空间。
+//分配的内存不足时释放nByte字节空间。
 static void memsys3OutOfMemory(int nByte){
   if( !mem3.alarmBusy ){  //mem3.alarmBusy为假时进行内存回收
     mem3.alarmBusy = 1;  //赋值为1表示进行内存回收
@@ -586,7 +586,7 @@ static int memsys3Size(void *p){
 /*
 ** Round up a request size to the next valid allocation size.
 ** 
-** 聚集请求大小给下一个有效的内存分配大小
+** 舍入请求大小到下一个有效的内存分配大小
 */
 //舍入请求大小到一个有效的内存分配大小。
 static int memsys3Roundup(int n){
@@ -600,7 +600,7 @@ static int memsys3Roundup(int n){
 /*
 ** Allocate nBytes of memory.  
 **
-** 召集请求大小到下一个有效的分配大小。
+** 分配nByte大小的内存。
 */
 //申请分配n字节的内存空间。
 static void *memsys3Malloc(int nBytes){//分配n字节的内存
@@ -613,7 +613,9 @@ static void *memsys3Malloc(int nBytes){//分配n字节的内存
 }
 
 /*
-** Free memory.   //释放内存
+** Free memory.   
+** 
+** 释放内存
 */
 //释放*pPrior指向的内存空间。
 static void memsys3Free(void *pPrior){
