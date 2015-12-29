@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 ** 2001 September 15
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -27,7 +27,7 @@
 # endif
 # define _LARGEFILE_SOURCE 1
 #endif
-//ÒıÈëÍ·ÎÄ¼ş
+//å¼•å…¥å¤´æ–‡ä»¶
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -48,7 +48,7 @@
 #ifdef HAVE_EDITLINE
 # include <editline/editline.h>
 #endif
-#if defined(HAVE_READLINE) && HAVE_READLINE==1//Èç¹û¶¨ÒåÁËHAVE_READLINE²¢ÇÒHAVE_READLINEÖµÎª1£¬Ôò½«readlineÎÄ¼şÏÂµÄreadline.h,history.hÒıÈë
+#if defined(HAVE_READLINE) && HAVE_READLINE==1//å¦‚æœå®šä¹‰äº†HAVE_READLINEå¹¶ä¸”HAVE_READLINEå€¼ä¸º1ï¼Œåˆ™å°†readlineæ–‡ä»¶ä¸‹çš„readline.h,history.hå¼•å…¥
 # include <readline/readline.h>
 # include <readline/history.h>
 #endif
@@ -59,7 +59,7 @@
 # define write_history(X)
 # define stifle_history(X)
 #endif
-//ÓĞ²ÎÊıµÄºê¶¨Òå
+//æœ‰å‚æ•°çš„å®å®šä¹‰
 #if defined(_WIN32) || defined(WIN32)
 # include <io.h>
 #define isatty(h) _isatty(h)
@@ -71,7 +71,7 @@
 #else
 /* Make sure isatty() has a prototype.
 */
-extern int isatty(int);//ÉêÃ÷Ò»¸öÍâ²¿º¯Êıisatty£¬ÅĞ¶ÏÉè±¸ÊÇ²»ÊÇÖÕ¶ËÉè±¸
+extern int isatty(int);//ç”³æ˜ä¸€ä¸ªå¤–éƒ¨å‡½æ•°isattyï¼Œåˆ¤æ–­è®¾å¤‡æ˜¯ä¸æ˜¯ç»ˆç«¯è®¾å¤‡
 #endif
 
 #if defined(_WIN32_WCE)
@@ -83,7 +83,7 @@ extern int isatty(int);//ÉêÃ÷Ò»¸öÍâ²¿º¯Êıisatty£¬ÅĞ¶ÏÉè±¸ÊÇ²»ÊÇÖÕ¶ËÉè±¸
 #endif
 
 /* True if the timer is enabled */
-static int enableTimer = 0;  // ³õÊ¼»¯ÁË¼¤»îÊ±¼ä  
+static int enableTimer = 0;  // åˆå§‹åŒ–äº†æ¿€æ´»æ—¶é—´  
 
 /* ctype macros that work with signed characters */
 #define IsSpace(X)  isspace((unsigned char)X)
@@ -95,20 +95,20 @@ static int enableTimer = 0;  // ³õÊ¼»¯ÁË¼¤»îÊ±¼ä
 #include <sys/resource.h>
 
 /* Saved resource information for the beginning of an operation */
-static struct rusage sBegin;    //¶¨Òå¿ªÊ¼
+static struct rusage sBegin;    //å®šä¹‰å¼€å§‹
 
 /*
 ** Begin timing an operation   
 */
-static void beginTimer(void){  //±íÊ¾¿ªÊ¼µÄÊ±¼äº¯Êı
+static void beginTimer(void){  //è¡¨ç¤ºå¼€å§‹çš„æ—¶é—´å‡½æ•°
   if( enableTimer ){
-    getrusage(RUSAGE_SELF, &sBegin);//»ñÈ¡µ±Ç°½ø³Ì»òÆäËùÓĞÒÑÖÕÖ¹µÄ×Ó½ø³ÌµÄ×ÊÔ´Ê¹ÓÃĞÅÏ¢£¬²¢½«Æä´æÈëÖ¸ÕëusageËùÖ¸½á¹¹Ìå
+    getrusage(RUSAGE_SELF, &sBegin);//è·å–å½“å‰è¿›ç¨‹æˆ–å…¶æ‰€æœ‰å·²ç»ˆæ­¢çš„å­è¿›ç¨‹çš„èµ„æºä½¿ç”¨ä¿¡æ¯ï¼Œå¹¶å°†å…¶å­˜å…¥æŒ‡é’ˆusageæ‰€æŒ‡ç»“æ„ä½“
   }
 }
 
 /* Return the difference of two time_structs in seconds */
-static double timeDiff(struct timeval *pStart, struct timeval *pEnd){  // ÓĞ¹Ø·µ»ØÓÃ»§Ê±¼äºÍÏµÍ³Ê±¼äÖ®¼äµÄ
-²îÒì
+static double timeDiff(struct timeval *pStart, struct timeval *pEnd){  // æœ‰å…³è¿”å›ç”¨æˆ·æ—¶é—´å’Œç³»ç»Ÿæ—¶é—´ä¹‹é—´çš„
+å·®å¼‚
   return (pEnd->tv_usec - pStart->tv_usec)*0.000001 + 
          (double)(pEnd->tv_sec - pStart->tv_sec);
 }
@@ -116,17 +116,17 @@ static double timeDiff(struct timeval *pStart, struct timeval *pEnd){  // ÓĞ¹Ø·µ
 /*
 ** Print the timing results. 
 */
-static void endTimer(void){   //±íÊ¾´òÓ¡½á¹ûµÄÊ±¼ä
+static void endTimer(void){   //è¡¨ç¤ºæ‰“å°ç»“æœçš„æ—¶é—´
   if( enableTimer ){
-    struct rusage sEnd;   //½áÊø
-    getrusage(RUSAGE_SELF, &sEnd);//»ñÈ¡µ±Ç°½ø³Ì»òÆäËùÓĞÒÑÖÕÖ¹µÄ×Ó½ø³ÌµÄ×ÊÔ´Ê¹ÓÃĞÅÏ¢£¬²¢½«Æä´æÈëÖ¸ÕëusageËùÖ¸½á¹¹Ìå
+    struct rusage sEnd;   //ç»“æŸ
+    getrusage(RUSAGE_SELF, &sEnd);//è·å–å½“å‰è¿›ç¨‹æˆ–å…¶æ‰€æœ‰å·²ç»ˆæ­¢çš„å­è¿›ç¨‹çš„èµ„æºä½¿ç”¨ä¿¡æ¯ï¼Œå¹¶å°†å…¶å­˜å…¥æŒ‡é’ˆusageæ‰€æŒ‡ç»“æ„ä½“
     printf("CPU Time: user %f sys %f\n",
        timeDiff(&sBegin.ru_utime, &sEnd.ru_utime),
        timeDiff(&sBegin.ru_stime, &sEnd.ru_stime));
   }
 }
 
-#define BEGIN_TIMER beginTimer()  //ºê¶¨ÒåÁË¿ªÊ¼ºÍ½áÊøÊ±¼äµÄº¯Êı£¬·½±ãºóÃæÊ¹ÓÃ
+#define BEGIN_TIMER beginTimer()  //å®å®šä¹‰äº†å¼€å§‹å’Œç»“æŸæ—¶é—´çš„å‡½æ•°ï¼Œæ–¹ä¾¿åé¢ä½¿ç”¨
 #define END_TIMER endTimer()
 #define HAS_TIMER 1
 
@@ -135,44 +135,44 @@ static void endTimer(void){   //±íÊ¾´òÓ¡½á¹ûµÄÊ±¼ä
 #include <windows.h>
 
 /* Saved resource information for the beginning of an operation */
-static HANDLE hProcess;//¾ä±ú
-static FILETIME ftKernelBegin; //ÄÚºË¿ªÊ¼Ê±¼ä
-static FILETIME ftUserBegin;  //ÓÃ»§¿ªÊ¼Ê±¼ä
+static HANDLE hProcess;//å¥æŸ„
+static FILETIME ftKernelBegin; //å†…æ ¸å¼€å§‹æ—¶é—´
+static FILETIME ftUserBegin;  //ç”¨æˆ·å¼€å§‹æ—¶é—´
 typedef BOOL (WINAPI *GETPROCTIMES)(HANDLE, LPFILETIME, LPFILETIME, LPFILETIME, LPFILETIME);
-static GETPROCTIMES getProcessTimesAddr = NULL;  //±íÊ¾µÃµ½½ø³ÌÊ±¼ä
+static GETPROCTIMES getProcessTimesAddr = NULL;  //è¡¨ç¤ºå¾—åˆ°è¿›ç¨‹æ—¶é—´
 
 /*
 ** Check to see if we have timer support.  Return 1 if necessary
 ** support found (or found previously).
 */
-static int hasTimer(void){    //¼ÆÊ±Æ÷
-  if( getProcessTimesAddr ){   //Èç¹ûÖ§³Ö·µ»Ø1
+static int hasTimer(void){    //è®¡æ—¶å™¨
+  if( getProcessTimesAddr ){   //å¦‚æœæ”¯æŒè¿”å›1
     return 1;
   } else {
     /* GetProcessTimes() isn't supported in WIN95 and some other Windows versions.
     ** See if the version we are running on has it, and if it does, save off
     ** a pointer to it and the current process handle.
     */
-    hProcess = GetCurrentProcess();//»ñÈ¡µ±Ç°½ø³ÌµÄÒ»¸ö¾ä±ú,·µ»ØÖµÎªµ±Ç°½ø³ÌµÄ¾ä±ú
-    if( hProcess ){
-      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  //¼ÓÔØ¶¯Ì¬Á´½Ó¿â¡£Ö®ºó¿ÉÒÔ·ÃÎÊ¿âÄÚµÄ×ÊÔ´  
-                                                               /*kernel32.dllÊÇWindows 9x/MeÖĞ ·Ç³£ÖØÒªµÄ32Î» ¶¯Ì¬Á´½Ó¿âÎÄ¼ş
+    hProcess = GetCurrentProcess();//è·å–å½“å‰è¿›ç¨‹çš„ä¸€ä¸ªå¥æŸ„,è¿”å›å€¼ä¸ºå½“å‰è¿›ç¨‹çš„å¥æŸ„
+    if( hProcess ){//å¦‚æœè·å¾—äº†å½“å‰çš„å¥æŸ„
+      HINSTANCE hinstLib = LoadLibrary(TEXT("Kernel32.dll"));  //åŠ è½½åŠ¨æ€é“¾æ¥åº“ã€‚ä¹‹åå¯ä»¥è®¿é—®åº“å†…çš„èµ„æº  
+                                                               /*kernel32.dllæ˜¯Windows 9x/Meä¸­ éå¸¸é‡è¦çš„32ä½ åŠ¨æ€é“¾æ¥åº“æ–‡ä»¶
 
-£¬ÊôÓÚÄÚºË¼¶ÎÄ¼ş¡£Ëü¿ØÖÆ×ÅÏµÍ³µÄÄÚ´æ¹ÜÀí¡¢Êı¾İµÄÊäÈëÊä³ö²Ù×÷ºÍÖĞ¶Ï´¦Àí
-                                                                ** µ±WindowsÆô¶¯Ê±£¬kernel32.dll¾Í×¤ÁôÔÚÄÚ´æÖĞÌØ¶¨µÄĞ´±£»¤ÇøÓò
+ï¼Œå±äºå†…æ ¸çº§æ–‡ä»¶ã€‚å®ƒæ§åˆ¶ç€ç³»ç»Ÿçš„å†…å­˜ç®¡ç†ã€æ•°æ®çš„è¾“å…¥è¾“å‡ºæ“ä½œå’Œä¸­æ–­å¤„ç†
+                                                                ** å½“Windowså¯åŠ¨æ—¶ï¼Œkernel32.dllå°±é©»ç•™åœ¨å†…å­˜ä¸­ç‰¹å®šçš„å†™ä¿æŠ¤åŒºåŸŸ
 
-£¬Ê¹±ğµÄ³ÌĞòÎŞ·¨Õ¼ÓÃÕâ¸öÄÚ´æÇøÓò¡£*/  								
+ï¼Œä½¿åˆ«çš„ç¨‹åºæ— æ³•å ç”¨è¿™ä¸ªå†…å­˜åŒºåŸŸã€‚*/  								
 
-			 ** ¾Í×¤ÁôÔÚÄÚ´æÖĞÌØ¶¨µÄĞ´±£»¤ÇøÓò£¬Ê¹±ğµÄ³ÌĞòÎŞ·¨Õ¼ÓÃÕâ¸öÄÚ´æÇøÓò¡£*/  
+			 ** å°±é©»ç•™åœ¨å†…å­˜ä¸­ç‰¹å®šçš„å†™ä¿æŠ¤åŒºåŸŸï¼Œä½¿åˆ«çš„ç¨‹åºæ— æ³•å ç”¨è¿™ä¸ªå†…å­˜åŒºåŸŸã€‚*/  
        if( NULL != hinstLib ){
-        getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");  //»ñÈ¡¶¯
+        getProcessTimesAddr = (GETPROCTIMES) GetProcAddress(hinstLib, "GetProcessTimes");  //è·å–åŠ¨
 
-//Ì¬Á¬½Ó¿âÀïµÄ¹¦ÄÜº¯ÊıµØÖ·£¬hinstLibÎª¾ä±ú£¬GetProcessTimesÎªº¯ÊıÃû
+//æ€è¿æ¥åº“é‡Œçš„åŠŸèƒ½å‡½æ•°åœ°å€ï¼ŒhinstLibä¸ºå¥æŸ„ï¼ŒGetProcessTimesä¸ºå‡½æ•°å
 			
-        if( NULL != getProcessTimesAddr ){  //Èç¹û»ñÈ¡³É¹¦£¬·µ»Ø1
+        if( NULL != getProcessTimesAddr ){  //å¦‚æœè·å–æˆåŠŸï¼Œè¿”å›1
           return 1;
         }
-        FreeLibrary(hinstLib);  //ÊÍ·Å¶¯Ì¬Á¬½Ó¿â¡£
+        FreeLibrary(hinstLib);  //é‡Šæ”¾åŠ¨æ€è¿æ¥åº“ã€‚
       }
     }
   }
@@ -184,14 +184,14 @@ static int hasTimer(void){    //¼ÆÊ±Æ÷
 */
 static void beginTimer(void){
   if( enableTimer && getProcessTimesAddr ){
-    FILETIME ftCreation, ftExit; //·Ö±ğ¶¨ÒåÁË±íÊ¾Ê±¼äĞÅÏ¢µÄ½¨Á¢ºÍ½áÊøµÄ±äÁ¿
+    FILETIME ftCreation, ftExit; //åˆ†åˆ«å®šä¹‰äº†è¡¨ç¤ºæ—¶é—´ä¿¡æ¯çš„å»ºç«‹å’Œç»“æŸçš„å˜é‡
     getProcessTimesAddr(hProcess, &ftCreation, &ftExit, &ftKernelBegin, &ftUserBegin);
   }
 }
 
 /* Return the difference of two FILETIME structs in seconds */
-static double timeDiff(FILETIME *pStart, FILETIME *pEnd){ // ÓĞ¹Ø·µ»Ø¿ªÊ¼Ê±¼äºÍÏµÍ³Ê±¼äÖ®¼äµÄ²îÒì
-  sqlite_int64 i64Start = *((sqlite_int64 *) pStart);  //¶¨ÒåÒ»¸öĞÂµÄÀàĞÍ sqlite_int64
+static double timeDiff(FILETIME *pStart, FILETIME *pEnd){ // æœ‰å…³è¿”å›å¼€å§‹æ—¶é—´å’Œç³»ç»Ÿæ—¶é—´ä¹‹é—´çš„å·®å¼‚
+  sqlite_int64 i64Start = *((sqlite_int64 *) pStart);  //å®šä¹‰ä¸€ä¸ªæ–°çš„ç±»å‹ sqlite_int64
   sqlite_int64 i64End = *((sqlite_int64 *) pEnd);
   return (double) ((i64End - i64Start) / 10000000.0);
 }
@@ -199,19 +199,19 @@ static double timeDiff(FILETIME *pStart, FILETIME *pEnd){ // ÓĞ¹Ø·µ»Ø¿ªÊ¼Ê±¼äºÍÏ
 /*
 ** Print the timing results.
 */
-static void endTimer(void){  //±íÊ¾´òÓ¡½á¹ûµÄÊ±¼ä
-  if( enableTimer && getProcessTimesAddr){  //¼¤»î³É¹¦²¢ÇÒµÃµ½º¯ÊıµØÖ·
+static void endTimer(void){  //è¡¨ç¤ºæ‰“å°ç»“æœçš„æ—¶é—´
+  if( enableTimer && getProcessTimesAddr){  //æ¿€æ´»æˆåŠŸå¹¶ä¸”å¾—åˆ°å‡½æ•°åœ°å€
     FILETIME ftCreation, ftExit, ftKernelEnd, ftUserEnd;
     getProcessTimesAddr(hProcess, &ftCreation, &ftExit, &ftKernelEnd, &ftUserEnd);
     printf("CPU Time: user %f sys %f\n",
-       timeDiff(&ftUserBegin, &ftUserEnd),// ÓĞ¹Ø·µ»ØÓÃ»§¿ªÊ¼Ê±¼äºÍÏµÍ³Ê±¼äÖ®¼äµÄ²îÒì
-       timeDiff(&ftKernelBegin, &ftKernelEnd));// ÓĞ¹Ø·µ»ØÄÚºË¿ªÊ¼Ê±¼äºÍÏµÍ³Ê±¼äÖ®¼äµÄ²îÒì
+       timeDiff(&ftUserBegin, &ftUserEnd),// æœ‰å…³è¿”å›ç”¨æˆ·å¼€å§‹æ—¶é—´å’Œç³»ç»Ÿæ—¶é—´ä¹‹é—´çš„å·®å¼‚
+       timeDiff(&ftKernelBegin, &ftKernelEnd));// æœ‰å…³è¿”å›å†…æ ¸å¼€å§‹æ—¶é—´å’Œç³»ç»Ÿæ—¶é—´ä¹‹é—´çš„å·®å¼‚
   }
 }
 
 #define BEGIN_TIMER beginTimer()
 #define END_TIMER endTimer()
-#define HAS_TIMER hasTimer()  //¶¨Òå¹şÏ£Ê±¼ä
+#define HAS_TIMER hasTimer()  //å®šä¹‰å“ˆå¸Œæ—¶é—´
 
 #else
 #define BEGIN_TIMER 
@@ -222,49 +222,49 @@ static void endTimer(void){  //±íÊ¾´òÓ¡½á¹ûµÄÊ±¼ä
 /*
 ** Used to prevent warnings about unused parameters
 */
-#define UNUSED_PARAMETER(x) (void)(x)  //ÎªÁË·ÀÖ¹²»Ê¹ÓÃµÄ²ÎÊıµÄ¾¯¸æ
+#define UNUSED_PARAMETER(x) (void)(x)  //ä¸ºäº†é˜²æ­¢ä¸ä½¿ç”¨çš„å‚æ•°çš„è­¦å‘Š
 
 /*
 ** If the following flag is set, then command execution stops
 ** at an error if we are not interactive.
 */
-static int bail_on_error = 0;//ÉèÖÃÏÂÃæµÄ±ê¼Ç,Èç¹ûÎÒÃÇÃ»ÓĞ½»»¥ÃüÁîÖ´ĞĞ¾Í»áÒòÎªÒ»¸ö´íÎó¶øÍ£Ö¹
+static int bail_on_error = 0;//è®¾ç½®ä¸‹é¢çš„æ ‡è®°,å¦‚æœæˆ‘ä»¬æ²¡æœ‰äº¤äº’å‘½ä»¤æ‰§è¡Œå°±ä¼šå› ä¸ºä¸€ä¸ªé”™è¯¯è€Œåœæ­¢
 
 /*
 ** Threat stdin as an interactive input if the following variable
 ** is true.  Otherwise, assume stdin is connected to a file or pipe.
 */
-static int stdin_is_interactive = 1; //Èç¹ûÕâ¸ö±äÁ¿ÊÇtrue£¬½øĞĞ½»»¥Ê½ÊäÈë£¬·ñÔò£¬¼ÙÉè½»»¥Ê½ÊäÈëÊÇÁ¬½Óµ½ÎÄ¼ş
+static int stdin_is_interactive = 1; //å¦‚æœè¿™ä¸ªå˜é‡æ˜¯trueï¼Œè¿›è¡Œäº¤äº’å¼è¾“å…¥ï¼Œå¦åˆ™ï¼Œå‡è®¾äº¤äº’å¼è¾“å…¥æ˜¯è¿æ¥åˆ°æ–‡ä»¶
 
-»òÕß¹ÜµÀµÄ¡£
+æˆ–è€…ç®¡é“çš„ã€‚
 
 /*
 ** The following is the open SQLite database.  We make a pointer
 ** to this database a static variable so that it can be accessed
 ** by the SIGINT handler to interrupt database processing.
 */
-static sqlite3 *db = 0; //±íÊ¾´ò¿ªµÄÊı¾İ¿â£¬¶¨ÒåÒ»¸ö¾²Ì¬µÄÖ¸Õë±äÁ¿£¬ÎÒÃÇ¾ÍÄÜ¹»Í¨¹ıÖĞ¶ÏĞÅºÅ¿ØÖÆÀ´ÖĞ¶ÏÊı¾İ¿â
+static sqlite3 *db = 0; //è¡¨ç¤ºæ‰“å¼€çš„æ•°æ®åº“ï¼Œå®šä¹‰ä¸€ä¸ªé™æ€çš„æŒ‡é’ˆå˜é‡ï¼Œæˆ‘ä»¬å°±èƒ½å¤Ÿé€šè¿‡ä¸­æ–­ä¿¡å·æ§åˆ¶æ¥ä¸­æ–­æ•°æ®åº“
 
-²Ù×÷
+æ“ä½œ
 
 /*
 ** True if an interrupt (Control-C) has been received.
 */
-static volatile int seenInterrupt = 0;   //ÓÃÀ´¼ì²âÖĞ¶ÏµÄ±äÁ¿£¬Èç¹ûÊÕµ½ÖĞ¶ÏĞÅºÅ£¬¾Í½«±äÁ¿¸³ÖµÎª 1
+static volatile int seenInterrupt = 0;   //ç”¨æ¥æ£€æµ‹ä¸­æ–­çš„å˜é‡ï¼Œå¦‚æœæ”¶åˆ°ä¸­æ–­ä¿¡å·ï¼Œå°±å°†å˜é‡èµ‹å€¼ä¸º 1
 
 /*
 ** This is the name of our program. It is set in main(), used
 ** in a number of other places, mostly for error messages.
 */
-static char *Argv0;  //±»Ê¹ÓÃÔÚmain£¨£©º¯ÊıºÍºÜ¶àÆäËû³¡ºÏ£¬±íÊ¾³ÌĞòµÄÃû×Ö£¬ÏÂÃæ³ÌĞòÖĞ¸ü¶à±»Ê¹ÓÃÔÚ´íÎóĞÅ
+static char *Argv0;  //è¢«ä½¿ç”¨åœ¨mainï¼ˆï¼‰å‡½æ•°å’Œå¾ˆå¤šå…¶ä»–åœºåˆï¼Œè¡¨ç¤ºç¨‹åºçš„åå­—ï¼Œä¸‹é¢ç¨‹åºä¸­æ›´å¤šè¢«ä½¿ç”¨åœ¨é”™è¯¯ä¿¡
 
-Ï¢Àï¡£Èç£ºfprintf(stderr,"%s: Error: no database filename specified\n", Argv0);
+æ¯é‡Œã€‚å¦‚ï¼šfprintf(stderr,"%s: Error: no database filename specified\n", Argv0);
 
 /*
 ** Prompt strings. Initialized in main. Settable with
 **   .prompt main continue 
 */
-//ÌáÊ¾×Ö·û´®£¬ÔÚmainº¯ÊıÖĞ³õÊ¼»¯£¬ÓÃ.prompt main continue Éè¶¨
+//æç¤ºå­—ç¬¦ä¸²ï¼Œåœ¨mainå‡½æ•°ä¸­åˆå§‹åŒ–ï¼Œç”¨.prompt main continue è®¾å®š
 static char mainPrompt[20];     /* First line prompt. default: "sqlite> "*/
 static char continuePrompt[20]; /* Continuation prompt. default: "   ...> " */
 
@@ -272,7 +272,7 @@ static char continuePrompt[20]; /* Continuation prompt. default: "   ...> " */
 ** Write I/O traces to the following stream.
 */
 #ifdef SQLITE_ENABLE_IOTRACE
-static FILE *iotrace = 0;  //±íÊ¾ÓÃÓÚÊäÈëÊä³öµÄÁ÷
+static FILE *iotrace = 0;  //è¡¨ç¤ºç”¨äºè¾“å…¥è¾“å‡ºçš„æµ
 #endif
 
 /*
@@ -280,47 +280,47 @@ static FILE *iotrace = 0;  //±íÊ¾ÓÃÓÚÊäÈëÊä³öµÄÁ÷
 ** format string and subsequent arguments are values to be substituted
 ** in place of % fields.  The result of formatting this string
 ** is written to iotrace.
-*/ //Êä³öÊ±£¬µÚÒ»¸öÄÚÈİÊÇÒ»¸ö¸ñÊ½×Ö·û´®£¬ºóÃæµÄÄÚÈİÊÇ%+×Ö¶ÎµÄ¸ñÊ½¡£Õâ¸ö½á¹ûÊÇÀ´±íÊ¾ÊäÈëÊä³öÁ÷µÄ
+*/ //è¾“å‡ºæ—¶ï¼Œç¬¬ä¸€ä¸ªå†…å®¹æ˜¯ä¸€ä¸ªæ ¼å¼å­—ç¬¦ä¸²ï¼Œåé¢çš„å†…å®¹æ˜¯%+å­—æ®µçš„æ ¼å¼ã€‚è¿™ä¸ªç»“æœæ˜¯æ¥è¡¨ç¤ºè¾“å…¥è¾“å‡ºæµçš„
 #ifdef SQLITE_ENABLE_IOTRACE
-static void iotracePrintf(const char *zFormat, ...){ //ÓĞÒ»¸ö²ÎÊızFormat¹Ì¶¨ÒÔÍâ,ºóÃæ¸úµÄ²ÎÊıµÄ¸öÊıºÍÀàĞÍ
+static void iotracePrintf(const char *zFormat, ...){ //æœ‰ä¸€ä¸ªå‚æ•°zFormatå›ºå®šä»¥å¤–,åé¢è·Ÿçš„å‚æ•°çš„ä¸ªæ•°å’Œç±»å‹
 
-ÊÇ¿É±äµÄ£¨ÓÃÈı¸öµã¡°¡­¡±×ö²ÎÊıÕ¼Î»·û£©
-  va_list ap;  //Õâ¸ö±äÁ¿ÊÇ´æ´¢²ÎÊıµØÖ·µÄÖ¸Õë.ÒòÎªµÃµ½²ÎÊıµÄµØÖ·Ö®ºó£¬ÔÙ½áºÏ²ÎÊıµÄÀàĞÍ£¬²ÅÄÜµÃµ½²ÎÊıµÄÖµ¡£
+æ˜¯å¯å˜çš„ï¼ˆç”¨ä¸‰ä¸ªç‚¹â€œâ€¦â€åšå‚æ•°å ä½ç¬¦ï¼‰
+  va_list ap;  //è¿™ä¸ªå˜é‡æ˜¯å­˜å‚¨å‚æ•°åœ°å€çš„æŒ‡é’ˆ.å› ä¸ºå¾—åˆ°å‚æ•°çš„åœ°å€ä¹‹åï¼Œå†ç»“åˆå‚æ•°çš„ç±»å‹ï¼Œæ‰èƒ½å¾—åˆ°å‚æ•°çš„å€¼ã€‚
   char *z;
-  if( iotrace==0 ) return;  //Ã»ÓĞÊäÈëÊä³ö²Ù×÷£¬·µ»Ø
-  va_start(ap, zFormat); //ÒÔ¹Ì¶¨²ÎÊıµÄµØÖ·ÎªÆğµãÈ·¶¨±ä²ÎµÄÄÚ´æÆğÊ¼µØÖ·
-  z = sqlite3_vmprintf(zFormat, ap);//º¯Êı·µ»ØµÄ×Ö·û´®±»Ğ´ÈëÍ¨¹ı malloc() µÃµ½µÄÄÚ´æ¿Õ¼ä£¬Òò´Ë£¬ÓÀÔ¶²»»á
+  if( iotrace==0 ) return;  //æ²¡æœ‰è¾“å…¥è¾“å‡ºæ“ä½œï¼Œè¿”å›
+  va_start(ap, zFormat); //ä»¥å›ºå®šå‚æ•°çš„åœ°å€ä¸ºèµ·ç‚¹ç¡®å®šå˜å‚çš„å†…å­˜èµ·å§‹åœ°å€
+  z = sqlite3_vmprintf(zFormat, ap);//å‡½æ•°è¿”å›çš„å­—ç¬¦ä¸²è¢«å†™å…¥é€šè¿‡ malloc() å¾—åˆ°çš„å†…å­˜ç©ºé—´ï¼Œå› æ­¤ï¼Œæ°¸è¿œä¸ä¼š
 
-´æÔÚÄÚ´æĞ¹Â¶µÄÎÊÌâ¡£·µ»ØµÄ×Ö·û´®ÒªÓÃsqlite3_free()ÊÍ·Å¿Õ¼ä¡£
-  va_end(ap); //½áÊø
-  fprintf(iotrace, "%s", z); // ¸ñÊ½»¯Êä³ö fprintf(ÎÄ¼şÖ¸Õë,¸ñÊ½×Ö·û´®,Êä³ö±íÁĞ)
-  sqlite3_free(z);  //ÊÍ·Å¿Õ¼ä
+å­˜åœ¨å†…å­˜æ³„éœ²çš„é—®é¢˜ã€‚è¿”å›çš„å­—ç¬¦ä¸²è¦ç”¨sqlite3_free()é‡Šæ”¾ç©ºé—´ã€‚
+  va_end(ap); //ç»“æŸ
+  fprintf(iotrace, "%s", z); // æ ¼å¼åŒ–è¾“å‡º fprintf(æ–‡ä»¶æŒ‡é’ˆ,æ ¼å¼å­—ç¬¦ä¸²,è¾“å‡ºè¡¨åˆ—)
+  sqlite3_free(z);  //é‡Šæ”¾ç©ºé—´
 }
 #endif
 
 
 /*
-** Determines if a string is a number of not.  //Èç¹ûÓĞºÜ¶à·ÇÊı×ÖÔòÖÕÖ¹,zÎªµÃµ½µÄ×Ö·û´®
+** Determines if a string is a number of not.  //å¦‚æœæœ‰å¾ˆå¤šéæ•°å­—åˆ™ç»ˆæ­¢,zä¸ºå¾—åˆ°çš„å­—ç¬¦ä¸²
 */
-static int isNumber(const char *z, int *realnum){
-  if( *z=='-' || *z=='+' ) z++;  //ÅĞ¶ÏÕı¸º
-  if( !IsDigit(*z) ){ //ÅĞ¶ÏÊÇ·ñÊÇÊı×Ö£¬Èç¹û²»ÊÇ£¬·µ»Ø0
+static int isNumber(const char *z, int *realnum){//åˆ¤æ–­å­—ç¬¦ä¸²zæ˜¯å¦ä¸ºæ•°å­—
+  if( *z=='-' || *z=='+' ) z++;  //åˆ¤æ–­æ­£è´Ÿ
+  if( !IsDigit(*z) ){ //åˆ¤æ–­æ˜¯å¦æ˜¯æ•°å­—ï¼Œå¦‚æœä¸æ˜¯ï¼Œè¿”å›0
     return 0;
   }
-  z++;       //Ö¸ÕëºóÒÆÒ»Î»
-  if( realnum ) *realnum = 0; //  ×Ö·û´®µÄÊµ¼Ê³¤¶È
-  while( IsDigit(*z) ){ z++; } //Èç¹ûÓöµ½Êı×Ö£¬Ö¸ÕëºóÒÆÒ»Î»
-  if( *z=='.' ){   //ÅĞ¶ÏÊÇ·ñÊÇĞ¡Êı
+  z++;       //æŒ‡é’ˆåç§»ä¸€ä½
+  if( realnum ) *realnum = 0; //  å­—ç¬¦ä¸²çš„å®é™…é•¿åº¦
+  while( IsDigit(*z) ){ z++; } //å¦‚æœé‡åˆ°æ•°å­—ï¼ŒæŒ‡é’ˆåç§»ä¸€ä½
+  if( *z=='.' ){   //åˆ¤æ–­æ˜¯å¦æ˜¯å°æ•°
     z++;
-    if( !IsDigit(*z) ) return 0; //Èç¹ûÓöµ½·ÇÊı×Ö£¬·µ»Ø0
+    if( !IsDigit(*z) ) return 0; //å¦‚æœé‡åˆ°éæ•°å­—ï¼Œè¿”å›0
     while( IsDigit(*z) ){ z++; }
     if( realnum ) *realnum = 1; //
   }
-  if( *z=='e' || *z=='E' ){ // ÅĞ¶ÏÊÇ·ñÓĞÖ¸Êı
+  if( *z=='e' || *z=='E' ){ // åˆ¤æ–­æ˜¯å¦æœ‰æŒ‡æ•°
     z++;
-    if( *z=='+' || *z=='-' ) z++; //Ö¸ÊıµÄÕı¸º
+    if( *z=='+' || *z=='-' ) z++; //æŒ‡æ•°çš„æ­£è´Ÿ
     if( !IsDigit(*z) ) return 0;
-    while( IsDigit(*z) ){ z++; }//Èç¹ûÓöµ½·ÇÊı×Ö,z++
+    while( IsDigit(*z) ){ z++; }//å¦‚æœé‡åˆ°éæ•°å­—,z++
     if( realnum ) *realnum = 1;
   }
   return *z==0;
@@ -333,22 +333,22 @@ static int isNumber(const char *z, int *realnum){
 ** The correct way to do this with sqlite3 is to use the bind API, but
 ** since the shell is built around the callback paradigm it would be a lot
 ** of work. Instead just use this hack, which is quite harmless.
-*/    //Ò»¸öÈ«¾ÖµÄcharÖ¸Õë±äÁ¿ºÍÒ»¸öSQLº¯Êı´ÓÒ»¸öSQLÓï¾äÖĞ·ÃÎÊËüµ±Ç°µÄÖµ¡£Õâ¸ö³ÌĞòÖ®Ç°Ê¹ÓÃ
+*/    //ä¸€ä¸ªå…¨å±€çš„charæŒ‡é’ˆå˜é‡å’Œä¸€ä¸ªSQLå‡½æ•°ä»ä¸€ä¸ªSQLè¯­å¥ä¸­è®¿é—®å®ƒå½“å‰çš„å€¼ã€‚è¿™ä¸ªç¨‹åºä¹‹å‰ä½¿ç”¨
 
-sqlite_exec_printf() AP´úÌæÒ»¸ö×Ö·û´®³ÉÎªSQLÓï¾ä£¬sqlite3µÄÕıÈ·µÄ·½·¨ÊÇÊ¹ÓÃbind API,µ«µ±shell½¨Á¢ÔÚ»Øµ÷
+sqlite_exec_printf() APä»£æ›¿ä¸€ä¸ªå­—ç¬¦ä¸²æˆä¸ºSQLè¯­å¥ï¼Œsqlite3çš„æ­£ç¡®çš„æ–¹æ³•æ˜¯ä½¿ç”¨bind API,ä½†å½“shellå»ºç«‹åœ¨å›è°ƒ
 
-Ä£Ê½,½«¿ÉÒÔÍê³É´óÁ¿µÄ¹¤×÷
+æ¨¡å¼,å°†å¯ä»¥å®Œæˆå¤§é‡çš„å·¥ä½œ
 static const char *zShellStatic = 0;
 static void shellstaticFunc(   //
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
-  assert( 0==argc );//Èç¹ûËüµÄÌõ¼ş·µ»Ø´íÎó£¬ÔòÖÕÖ¹³ÌĞòÖ´ĞĞ
+  assert( 0==argc );//å¦‚æœå®ƒçš„æ¡ä»¶è¿”å›é”™è¯¯ï¼Œåˆ™ç»ˆæ­¢ç¨‹åºæ‰§è¡Œ
   assert( zShellStatic );
-  UNUSED_PARAMETER(argc);  //²»Ê¹ÓÃµÄ²ÎÊı£¬¸ù¾İÇ°ÃæµÄ¶¨ÒåÉèÖÃÎª¿Õ
+  UNUSED_PARAMETER(argc);  //ä¸ä½¿ç”¨çš„å‚æ•°ï¼Œæ ¹æ®å‰é¢çš„å®šä¹‰è®¾ç½®ä¸ºç©º
   UNUSED_PARAMETER(argv);
-  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC); // SQLITE_STATICÎªÒ»¸öº¯ÊıÖ¸Õë£¬SQLITE3Ö´ĞĞÍê²Ù×÷ºó»Øµ÷´Ëº¯Êı£¬Í¨³£ÓÃÓÚÊÍ·Å×Ö·û´®Õ¼ÓÃµÄÄÚ´æ
+  sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC); // SQLITE_STATICä¸ºä¸€ä¸ªå‡½æ•°æŒ‡é’ˆï¼ŒSQLITE3æ‰§è¡Œå®Œæ“ä½œåå›è°ƒæ­¤å‡½æ•°ï¼Œé€šå¸¸ç”¨äºé‡Šæ”¾å­—ç¬¦ä¸²å ç”¨çš„å†…å­˜
 }
 
 
@@ -358,58 +358,58 @@ static void shellstaticFunc(   //
 ** to the text.  NULL is returned at end of file, or if malloc()
 ** fails.
 **
-** The interface is like "readline" but no command-line editing  //readline·½·¨ÃèÊö´ÓÒ»¸ötextstreamÎÄ¼ş
+** The interface is like "readline" but no command-line editing  //readlineæ–¹æ³•æè¿°ä»ä¸€ä¸ªtextstreamæ–‡ä»¶
 
-¶ÁÈ¡Ò»ÕûĞĞ²¢·µ»ØµÃµ½µÄ×Ö·û´®£¬Õâ¸ö½Ó¿ÚÊÇÏñreadlineÒ»Ñù£¬¶ø²»ÊÇÃüÁîĞĞ±à¼­
+è¯»å–ä¸€æ•´è¡Œå¹¶è¿”å›å¾—åˆ°çš„å­—ç¬¦ä¸²ï¼Œè¿™ä¸ªæ¥å£æ˜¯åƒreadlineä¸€æ ·ï¼Œè€Œä¸æ˜¯å‘½ä»¤è¡Œç¼–è¾‘
 ** is done.
-*/  //´ÓÎÄ¼şµÄÎÄ±¾ÖĞ¶ÁÈ¡Ò»ĞĞ£¬½«ÎÄ±¾´æ´¢µ½´Ómalloc£¨£©ÖĞµÃµ½µÄÄÚ´æ¿Õ¼ä£¬²¢ÇÒ·µ»ØÒ»¸öÖ¸Õë£¬Èç¹ûÊ§°Ü£¬ÔÚÎÄ
+*/  //ä»æ–‡ä»¶çš„æ–‡æœ¬ä¸­è¯»å–ä¸€è¡Œï¼Œå°†æ–‡æœ¬å­˜å‚¨åˆ°ä»mallocï¼ˆï¼‰ä¸­å¾—åˆ°çš„å†…å­˜ç©ºé—´ï¼Œå¹¶ä¸”è¿”å›ä¸€ä¸ªæŒ‡é’ˆï¼Œå¦‚æœå¤±è´¥ï¼Œåœ¨æ–‡
 
-¼ş½áÊø·µ»ØNULL,»òÕßÈç¹ûmalloc()Ê§°Ü¡£
-// ÔÚĞèÒªÒ»´Î¶ÁÈëÒ»ÕûĞĞºÜ³¤µÄÄÚÈİÊ±¿ÉÒÔÊ¹ÓÃ´Ë·½·¨
-static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //´ÓÎÄ¼şÖĞ¶ÁÈ¡ĞĞµÄº¯Êı¶¨Òå:*zPrompt±íÊ¾
+ä»¶ç»“æŸè¿”å›NULL,æˆ–è€…å¦‚æœmalloc()å¤±è´¥ã€‚
+// åœ¨éœ€è¦ä¸€æ¬¡è¯»å…¥ä¸€æ•´è¡Œå¾ˆé•¿çš„å†…å®¹æ—¶å¯ä»¥ä½¿ç”¨æ­¤æ–¹æ³•
+static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //ä»æ–‡ä»¶ä¸­è¯»å–è¡Œçš„å‡½æ•°å®šä¹‰:*zPromptè¡¨ç¤º
 
-¶ÁÈ¡µÄ×Ö·û´®*in±íÊ¾´ò¿ªÎÄ¼şµÄÖ¸Õë£¬csvFlag¶ÁÈ¡µÄ³¤¶È
-  char *zLine;  //¶ÁÈ¡ĞĞ
-  int nLine;  //Ö¸¶¨³¤¶È
+è¯»å–çš„å­—ç¬¦ä¸²*inè¡¨ç¤ºæ‰“å¼€æ–‡ä»¶çš„æŒ‡é’ˆï¼ŒcsvFlagè¯»å–çš„é•¿åº¦
+  char *zLine;  //è¯»å–è¡Œ
+  int nLine;  //æŒ‡å®šé•¿åº¦
   int n; 
   int inQuote = 0;
 
-  if( zPrompt && *zPrompt ){// ¶ÁÈ¡³É¹¦£¬ÔòÊä³ö×Ö·û´®
+  if( zPrompt && *zPrompt ){// è¯»å–æˆåŠŸï¼Œåˆ™è¾“å‡ºå­—ç¬¦ä¸²
     printf("%s",zPrompt);
-    fflush(stdout);//Çå¿ÕstdoutµÄ»º³åÇø
+    fflush(stdout);//æ¸…ç©ºstdoutçš„ç¼“å†²åŒº
   }
-  nLine = 100;  //¸³ÖµÖ¸¶¨³¤¶È
-  zLine = malloc( nLine ); //·ÖÅä´óĞ¡ÎªnLineµÄÄÚ´æ¿Õ¼ä
-  if( zLine==0 ) return 0;  //Èç¹û×Ö·û´®Îª¿Õ£¬Ôò·µ»Ø0
-  n = 0;//nµÄ³õÊ¼ÖµÎª0
-  while( 1 ){  //Éè¶¨Ò»¸öÒ»°ã×Ö·û´®µÄ³¤¶ÈÏŞÖÆÎª»º³åÇøµÄ´óĞ¡, Ã¿´Î¶ÁÈ¡ºó, ÔÙÅĞ¶ÏÏÂÊÇ·ñµ½´ïĞĞÄ©, Èç¹ûÃ»ÓĞµ½´ï, 
+  nLine = 100;  //èµ‹å€¼æŒ‡å®šé•¿åº¦
+  zLine = malloc( nLine ); //åˆ†é…å¤§å°ä¸ºnLineçš„å†…å­˜ç©ºé—´
+  if( zLine==0 ) return 0;  //å¦‚æœå­—ç¬¦ä¸²ä¸ºç©ºï¼Œåˆ™è¿”å›0
+  n = 0;//nçš„åˆå§‹å€¼ä¸º0
+  while( 1 ){  //è®¾å®šä¸€ä¸ªä¸€èˆ¬å­—ç¬¦ä¸²çš„é•¿åº¦é™åˆ¶ä¸ºç¼“å†²åŒºçš„å¤§å°, æ¯æ¬¡è¯»å–å, å†åˆ¤æ–­ä¸‹æ˜¯å¦åˆ°è¾¾è¡Œæœ«, å¦‚æœæ²¡æœ‰åˆ°è¾¾, 
 
-ÔÙÀûÓÃÉÏÃæµÄ·½·¨¶¯Ì¬·ÖÅä»º³åÇø
+å†åˆ©ç”¨ä¸Šé¢çš„æ–¹æ³•åŠ¨æ€åˆ†é…ç¼“å†²åŒº
     if( n+100>nLine ){  
       nLine = nLine*2 + 100;
-      zLine = realloc(zLine, nLine); //½«zLine¶ÔÏóµÄ´æ´¢¿Õ¼ä¸ÄÎªnLine´óĞ¡
-      if( zLine==0 ) return 0;//Èç¹û·ÖÅäÄÚ´æ²»³É¹¦£¬·µ»Ø
+      zLine = realloc(zLine, nLine); //å°†zLineå¯¹è±¡çš„å­˜å‚¨ç©ºé—´æ”¹ä¸ºnLineå¤§å°
+      if( zLine==0 ) return 0;//å¦‚æœåˆ†é…å†…å­˜ä¸æˆåŠŸï¼Œè¿”å›
     }
-    if( fgets(&zLine[n], nLine - n, in)==0 ){//ÅĞ¶Ï´ÓÎÄ¼şÖĞ¶ÁÈëµÄ×Ö·û´®ÊÇÎª¿Õ
+    if( fgets(&zLine[n], nLine - n, in)==0 ){//åˆ¤æ–­ä»æ–‡ä»¶ä¸­è¯»å…¥çš„å­—ç¬¦ä¸²æ˜¯ä¸ºç©º//fgetsä»inæ–‡ä»¶ä¸­è¯»å–ä¸€è¡Œæ”¾åœ¨zLine[n]ä¸­ï¼Œè¯»å–é‚£è¡Œçš„æ•°æ®å¤§å°ä¸ºnLine - n
 		if( n==0 ){ 
-        free(zLine);//ÊÍ·ÅzLineÄÚ´æ
+        free(zLine);//é‡Šæ”¾zLineå†…å­˜
         return 0;
       }
-      zLine[n] = 0;
-      break;//½áÊø´Ë´ÎÑ­»·
+      zLine[n] = 0;//å¦‚æœè¯»å–ä¸æˆåŠŸï¼Œå°±è®¾ç½®å€¼ä¸º0
+      break;//ç»“æŸæ­¤æ¬¡å¾ªç¯
     }
-    while( zLine[n] ){
-      if( zLine[n]=='"' ) inQuote = !inQuote;
+    while( zLine[n] ){//è¯»å–çš„è¡Œéç©ºæ—¶ï¼Œnçš„å€¼è¦åŠ 1
+      if( zLine[n]=='"' ) inQuote = !inQuote;//å¦‚æœè¯»å–çš„å€¼ä¸ºâ€ï¼Œåˆ™å°†inQuoteè®¾ç½®ä¸º1
       n++;
     }
-    if( n>0 && zLine[n-1]=='\n' && (!inQuote || !csvFlag) ){
+    if( n>0 && zLine[n-1]=='\n' && (!inQuote || !csvFlag) ){//è¯»å–çš„è¡Œä¸º\næˆ–\rï¼Œåˆ™éœ€å°†nå‡1
       n--;
       if( n>0 && zLine[n-1]=='\r' ) n--;
-      zLine[n] = 0;
+      zLine[n] = 0;//è®¾ç½®zLine[n]çš„å€¼ä¸º0
       break;
     }
   }
-  zLine = realloc( zLine, n+1 );//½«zLine¶ÔÏóµÄ´æ´¢¿Õ¼ä¸ÄÎªn+1´óĞ¡
+  zLine = realloc( zLine, n+1 );//å°†zLineå¯¹è±¡çš„å­˜å‚¨ç©ºé—´æ”¹ä¸ºn+1å¤§å°
   return zLine;
 }
 
@@ -419,29 +419,29 @@ static char *local_getline(char *zPrompt, FILE *in, int csvFlag){  //´ÓÎÄ¼şÖĞ¶ÁÈ
 ** zPrior is a string of prior text retrieved.  If not the empty
 ** string, then issue a continuation prompt.
 */
-static char *one_input_line(const char *zPrior, FILE *in){
+static char *one_input_line(const char *zPrior, FILE *in){//ä»æ–‡ä»¶inä¸­è¯»å–ä¸€è¡Œ
   char *zPrompt;
   char *zResult;
-  if( in!=0 ){//ÎÄ¼ş²»¿Õ£¬¾Í´ÓÎÄ¼şÖĞ¶ÁÈ¡ÃüÁî
-    return local_getline(0, in, 0);
+  if( in!=0 ){//æ–‡ä»¶ä¸ç©ºï¼Œå°±ä»æ–‡ä»¶ä¸­è¯»å–å‘½ä»¤
+    return local_getline(0, in, 0);//è°ƒç”¨local_getlineå®ç°ä¸€æ¬¡è¯»ä¸€è¡Œ
   }
   if( zPrior && zPrior[0] ){
-    zPrompt = continuePrompt;//Èç¹ûzPrior && zPrior[0]²»¿Õ£¬ÔòzPrompt = continuePrompt£¬continuePromptµÄ³õÊ¼ÖµÎª"...>"
+    zPrompt = continuePrompt;//å¦‚æœzPrior && zPrior[0]ä¸ç©ºï¼Œåˆ™zPrompt = continuePromptï¼ŒcontinuePromptçš„åˆå§‹å€¼ä¸º"...>"
   }else{
-    zPrompt = mainPrompt;//·ñÔò zPrompt = mainPrompt£¬ÆäÖĞmainPromptµÄ³õÊ¼ÖµÎª"sqlite3>"
+    zPrompt = mainPrompt;//å¦åˆ™ zPrompt = mainPromptï¼Œå…¶ä¸­mainPromptçš„åˆå§‹å€¼ä¸º"sqlite3>"
   }
-  zResult = readline(zPrompt);//¶ÁÈ¡zPromptµÄÖµ
+  zResult = readline(zPrompt);//è¯»å–zPromptçš„å€¼
 #if defined(HAVE_READLINE) && HAVE_READLINE==1
-  if( zResult && *zResult ) add_history(zResult);//Èç¹û¶¨ÒåÁË(HAVE_READLINE) && HAVE_READLINE==1²¢ÇÒzResult && *zResult·Ç¿Õ£¬Ôò½«zResult ¼ÓÈëµ½¼ÇÂ¼ÖĞ
+  if( zResult && *zResult ) add_history(zResult);//å¦‚æœå®šä¹‰äº†(HAVE_READLINE) && HAVE_READLINE==1å¹¶ä¸”zResult && *zResultéç©ºï¼Œåˆ™å°†zResult åŠ å…¥åˆ°è®°å½•ä¸­
 #endif
   return zResult;
 }
 
-struct previous_mode_data {  // ¶¨ÒåÁË½á¹¹Ìå£¬¸Ã½á¹¹ÌåµÄ×÷ÓÃÊÇÔÚ.explainÃüÁîÖ´ĞĞÖ®Ç°µÄÄ£Ê½ĞÅÏ¢
+struct previous_mode_data {  // å®šä¹‰äº†ç»“æ„ä½“ï¼Œè¯¥ç»“æ„ä½“çš„ä½œç”¨æ˜¯åœ¨.explainå‘½ä»¤æ‰§è¡Œä¹‹å‰çš„æ¨¡å¼ä¿¡æ¯
   int valid;        /* Is there legit data in here? */
-  int mode;                       //Êä³öÄ£Ê½
-  int showHeader;                //ÏÔÊ¾ÁĞÃû
-  int colWidth[100];             //ËùĞèÁĞ¿í
+  int mode;                       //è¾“å‡ºæ¨¡å¼
+  int showHeader;                //æ˜¾ç¤ºåˆ—å
+  int colWidth[100];             //æ‰€éœ€åˆ—å®½
 };
 
 /*
@@ -449,42 +449,42 @@ struct previous_mode_data {  // ¶¨ÒåÁË½á¹¹Ìå£¬¸Ã½á¹¹ÌåµÄ×÷ÓÃÊÇÔÚ.explainÃüÁîÖ´ĞĞ
 ** the main program to the callback.  This is used to communicate
 ** state and mode information.
 */
-struct callback_data {  //¶¨Òå½á¹¹Ìå£¬ÓÃÀ´½øĞĞ¸÷·½·¨Ö®¼äµÄ´«ÖµÓëµ±Ç°×´Ì¬µÄ»ñÈ¡£»Èç»Øµ÷£¬´«´ïÉùÃ÷ºÍÄ£Ê½ĞÅÏ¢
+struct callback_data {  //å®šä¹‰ç»“æ„ä½“ï¼Œç”¨æ¥è¿›è¡Œå„æ–¹æ³•ä¹‹é—´çš„ä¼ å€¼ä¸å½“å‰çŠ¶æ€çš„è·å–ï¼›å¦‚å›è°ƒï¼Œä¼ è¾¾å£°æ˜å’Œæ¨¡å¼ä¿¡æ¯
 
-¡£
-  sqlite3 *db;           //±íÊ¾Òª´ò¿ªµÄÊı¾İ¿â                                 /* The database */ 
+ã€‚
+  sqlite3 *db;           //è¡¨ç¤ºè¦æ‰“å¼€çš„æ•°æ®åº“                                 /* The database */ 
   int echoOn;                                                                 /* True to echo input commands */
-  int statsOn;          //ÔÚÃ¿´Î½áÊøÖ®Ç°ÏÔÊ¾´æ´¢Æ÷µÄÍ³¼ÆÊı¾İ                  /* True to display memory stats 
+  int statsOn;          //åœ¨æ¯æ¬¡ç»“æŸä¹‹å‰æ˜¾ç¤ºå­˜å‚¨å™¨çš„ç»Ÿè®¡æ•°æ®                  /* True to display memory stats 
 
 before each finalize */
-  int cnt;              //ÒÑ¾­ÏÔÊ¾µÄ¼ÇÂ¼Êı                                    /* Number of records displayed so far */
-  FILE *out;            //±íÊ¾ÓÃÓÚÊä³öµÄÎÄ¼şÁ÷                                /* Write results here */
+  int cnt;              //å·²ç»æ˜¾ç¤ºçš„è®°å½•æ•°                                    /* Number of records displayed so far */
+  FILE *out;            //è¡¨ç¤ºç”¨äºè¾“å‡ºçš„æ–‡ä»¶æµ                                /* Write results here */
   FILE *traceOut;                                                             /* Output for sqlite3_trace() */
-  int nErr;               //±íÊ¾·µ»ØµÄ´íÎó                                    /* Number of errors seen */
-  int mode;               //Êä³öÄ£Ê½                                           /* An output mode setting */
+  int nErr;               //è¡¨ç¤ºè¿”å›çš„é”™è¯¯                                    /* Number of errors seen */
+  int mode;               //è¾“å‡ºæ¨¡å¼                                           /* An output mode setting */
   int writableSchema;                                                         /* True if PRAGMA writable_schema=ON */
-  int showHeader;          //ÔÚÁĞ±í»òÕßÁĞÄ£Ê½ÏÂÏÔÊ¾ÁĞµÄÃû×Ö                    /* True to show column names in 
+  int showHeader;          //åœ¨åˆ—è¡¨æˆ–è€…åˆ—æ¨¡å¼ä¸‹æ˜¾ç¤ºåˆ—çš„åå­—                    /* True to show column names in 
 
 List or Column mode */
-  char *zDestTable;       //ÔÚinsertÏÔÊ¾Ä£Ê½ÏÂ£¬´æ´¢±íµÄÃû³Æ£¬·½±ã¹¹½¨sqlÓï¾ä  /* Name of destination table 
+  char *zDestTable;       //åœ¨insertæ˜¾ç¤ºæ¨¡å¼ä¸‹ï¼Œå­˜å‚¨è¡¨çš„åç§°ï¼Œæ–¹ä¾¿æ„å»ºsqlè¯­å¥  /* Name of destination table 
 
 when MODE_Insert */
   char separator[20];                                                         /* Separator character for MODE_List */
-  int colWidth[100];      //ÔÚÁĞÄ£Ê½ÏÂµÄËùĞèÁĞ¿í                               /* Requested width of each column 
+  int colWidth[100];      //åœ¨åˆ—æ¨¡å¼ä¸‹çš„æ‰€éœ€åˆ—å®½                               /* Requested width of each column 
 
 when in column mode*/
-  int actualWidth[100];    //ÁĞµÄÊµ¼Ê¿í¶È                                      /* Actual width of each column */
-  char nullvalue[20];     //´úÌæ´ÓÊı¾İ¿âÖĞ·µ»ØµÄ¼ÇÂ¼ÖĞ¿ÕµÄÑ¡Ïî£¬Õâ¸ö¿ÉÒÔÍ¨¹ı.nullvalueÃüÁîÀ´ÉèÖÃ
+  int actualWidth[100];    //åˆ—çš„å®é™…å®½åº¦                                      /* Actual width of each column */
+  char nullvalue[20];     //ä»£æ›¿ä»æ•°æ®åº“ä¸­è¿”å›çš„è®°å½•ä¸­ç©ºçš„é€‰é¡¹ï¼Œè¿™ä¸ªå¯ä»¥é€šè¿‡.nullvalueå‘½ä»¤æ¥è®¾ç½®
                                         /* The text to print when a NULL comes back from
                                        ** the database */
   struct previous_mode_data explainPrev;    
                                        /* Holds the mode information just before
                                        ** .explain ON */
   char outfile[FILENAME_MAX];                                                  /* Filename for *out */
-  const char *zDbFilename;    //´æ·ÅÊı¾İ¿âÎÄ¼şµÄÃû×Ö                           /* name of the database file */
+  const char *zDbFilename;    //å­˜æ”¾æ•°æ®åº“æ–‡ä»¶çš„åå­—                           /* name of the database file */
   const char *zVfs;                                                            /* Name of VFS to use */
-  sqlite3_stmt *pStmt;      //´æ·Åµ±Ç°µÄstatement¾ä±ú                          /* Current statement if any. */
-  FILE *pLog;                 //±íÊ¾ÓÃÓÚÊä³öµÄÈÕÖ¾ÎÄ¼şÁ÷                        /* Write log output here */
+  sqlite3_stmt *pStmt;      //å­˜æ”¾å½“å‰çš„statementå¥æŸ„                          /* Current statement if any. */
+  FILE *pLog;                 //è¡¨ç¤ºç”¨äºè¾“å‡ºçš„æ—¥å¿—æ–‡ä»¶æµ                        /* Write log output here */
 };
 
 /*
@@ -500,22 +500,22 @@ when in column mode*/
 #define MODE_Csv      7  /* Quote strings, numbers are plain */
 #define MODE_Explain  8  /* Like MODE_Column, but do not truncate data */
 
-static const char *modeDescr[] = { //¶¨ÒåÔÊĞíµÄÄ£Ê½×Ö·ûÊı×é£»Êı¾İÏÔÊ¾¸ñÊ½£»ÓĞºÃ¼¸ÖÖÏÔÊ¾Ä£Ê½£¬Ä¬ÈÏµÄÊÇ 
+static const char *modeDescr[] = { //å®šä¹‰å…è®¸çš„æ¨¡å¼å­—ç¬¦æ•°ç»„ï¼›æ•°æ®æ˜¾ç¤ºæ ¼å¼ï¼›æœ‰å¥½å‡ ç§æ˜¾ç¤ºæ¨¡å¼ï¼Œé»˜è®¤çš„æ˜¯ 
 
-list ÏÔÊ¾Ä£Ê½£¬Ò»°ãÎÒÃÇÊ¹ÓÃ column ÏÔÊ¾Ä£Ê½
-  "line",    //Ã¿ĞĞÒ»¸öÖµ
-  "column",   //ÒÔÕûÆëµÄÁĞÏÔÊ¾Ã¿Ò»ĞĞÊı¾İ
-  "list",    //·Ö¸ô·û·Ö¸ôµÄ×Ö·û
-  "semi",    //ºÍlistÄ£Ê½ÀàËÆ£¬µ«ÊÇÃ¿Ò»ĞĞ»áÒÔ¡°£»¡±½áÊø
-  "html",     //ÒÔhtml´úÂë·½Ê½ÏÔÊ¾
-  "insert",  //ÏÔÊ¾insert sqlÓï¾ä
-  "tcl",    //TCLÁĞ±íÔªËØ
-  "csv",     //¶ººÅ·Ö¸ôÖµ
-  "explain",  //ºÍcolumnÀàËÆ£¬µ«²»½Ø¶ÏÊı¾İ
+list æ˜¾ç¤ºæ¨¡å¼ï¼Œä¸€èˆ¬æˆ‘ä»¬ä½¿ç”¨ column æ˜¾ç¤ºæ¨¡å¼
+  "line",    //æ¯è¡Œä¸€ä¸ªå€¼
+  "column",   //ä»¥æ•´é½çš„åˆ—æ˜¾ç¤ºæ¯ä¸€è¡Œæ•°æ®
+  "list",    //åˆ†éš”ç¬¦åˆ†éš”çš„å­—ç¬¦
+  "semi",    //å’Œlistæ¨¡å¼ç±»ä¼¼ï¼Œä½†æ˜¯æ¯ä¸€è¡Œä¼šä»¥â€œï¼›â€ç»“æŸ
+  "html",     //ä»¥htmlä»£ç æ–¹å¼æ˜¾ç¤º
+  "insert",  //æ˜¾ç¤ºinsert sqlè¯­å¥
+  "tcl",    //TCLåˆ—è¡¨å…ƒç´ 
+  "csv",     //é€—å·åˆ†éš”å€¼
+  "explain",  //å’Œcolumnç±»ä¼¼ï¼Œä½†ä¸æˆªæ–­æ•°æ®
 };
 
 /*
-** Number of elements in an array   //Êı×éÖĞÔªËØµÄÊıÁ¿
+** Number of elements in an array   //æ•°ç»„ä¸­å…ƒç´ çš„æ•°é‡
 */
 #define ArraySize(X)  (int)(sizeof(X)/sizeof(X[0]))
 
@@ -523,54 +523,54 @@ list ÏÔÊ¾Ä£Ê½£¬Ò»°ãÎÒÃÇÊ¹ÓÃ column ÏÔÊ¾Ä£Ê½
 ** Compute a string length that is limited to what can be stored in
 ** lower 30 bits of a 32-bit signed integer.
 */
-static int strlen30(const char *z){     //ÄÜ¹»´æ´¢µÄ×î´óbitÊı;×Ö·û´®³¤¶ÈÊÇÓĞÏŞµÄ,¿ÉÒÔ´æ´¢ÔÚµÍ30Î»µÄ32Î»´ø·û
+static int strlen30(const char *z){     //èƒ½å¤Ÿå­˜å‚¨çš„æœ€å¤§bitæ•°;å­—ç¬¦ä¸²é•¿åº¦æ˜¯æœ‰é™çš„,å¯ä»¥å­˜å‚¨åœ¨ä½30ä½çš„32ä½å¸¦ç¬¦
 
-ºÅÕûÊı
-  const char *z2 = z;
-  while( *z2 ){ z2++; }
-  return 0x3fffffff & (int)(z2 - z);
+å·æ•´æ•°
+  const char *z2 = z;//å°†z2æŒ‡å‘z
+  while( *z2 ){ z2++; }//è®¡æ•°
+  return 0x3fffffff & (int)(z2 - z);//å¾—åˆ°å­—ç¬¦ä¸²zçš„é•¿åº¦ï¼Œå¹¶ä¸”é€šè¿‡ä¸è¿ç®—ä¿è¯é•¿åº¦åœ¨30ä½ä»¥å†…ã€‚
 }
 
 /*
-** A callback for the sqlite3_log() interface.    //sqlite3_log()½Ó¿ÚµÄ»Øµ÷
+** A callback for the sqlite3_log() interface.    //sqlite3_log()æ¥å£çš„å›è°ƒ
 */
-static void shellLog(void *pArg, int iErrCode, const char *zMsg){  //Éú²úshellÏÂÔËĞĞµÄÈÕÖ¾
-  struct callback_data *p = (struct callback_data*)pArg; //½«Ö¸ÕëpArgÇ¿ÖÆ×ª»»Ö¸Ïòcallback_dataĞÍ£¬²¢¸³¸øp.
-  if( p->pLog==0 ) return;   //Èç¹ûÃ»ÓĞÈÕÖ¾·µ»Ø
-  fprintf(p->pLog, "(%d) %s\n", iErrCode, zMsg); //Êä³öÈÕÖ¾ĞÅÏ¢
-  fflush(p->pLog); //Çå¿Õ»º´æ
+static void shellLog(void *pArg, int iErrCode, const char *zMsg){  //ç”Ÿäº§shellä¸‹è¿è¡Œçš„æ—¥å¿—
+  struct callback_data *p = (struct callback_data*)pArg; //å°†æŒ‡é’ˆpArgå¼ºåˆ¶è½¬æ¢æŒ‡å‘callback_dataå‹ï¼Œå¹¶èµ‹ç»™p.
+  if( p->pLog==0 ) return;   //å¦‚æœæ²¡æœ‰æ—¥å¿—è¿”å›
+  fprintf(p->pLog, "(%d) %s\n", iErrCode, zMsg); //è¾“å‡ºæ—¥å¿—ä¿¡æ¯
+  fflush(p->pLog); //æ¸…ç©ºç¼“å­˜
 }
 
 /*
 ** Output the given string as a hex-encoded blob (eg. X'1234' )
 */
-static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){//½«×Ö·û´®ÒÔhex¶ş½øÖÆ±àÂëµÄ·½Ê½Êä
+static void output_hex_blob(FILE *out, const void *pBlob, int nBlob){//å°†å­—ç¬¦ä¸²ä»¥hexäºŒè¿›åˆ¶ç¼–ç çš„æ–¹å¼è¾“å‡º
 
-³ö
+å‡º
   int i;
-  char *zBlob = (char *)pBlob;
-  fprintf(out,"X'");
-  for(i=0; i<nBlob; i++){ fprintf(out,"%02x",zBlob[i]&0xff); }
+  char *zBlob = (char *)pBlob;//å°†zBlobæŒ‡å‘pBlob
+  fprintf(out,"X'");//è¾“å‡ºæ–‡ä»¶è®¾ç½®ä¸ºåå…­è¿›åˆ¶æ ¼å¼
+  for(i=0; i<nBlob; i++){ fprintf(out,"%02x",zBlob[i]&0xff); }//ä»¥äºŒè¿›åˆ¶æ ¼å¼æ‰“å°å‡ºpBlobï¼Œå¹¶ä¸”pBlobçš„é•¿åº¦å°äº2æ—¶ï¼Œåœ¨å·¦è¾¹è‡ªåŠ¨è¡¥é›¶
   fprintf(out,"'");
 }
 
 /*
 ** Output the given string as a quoted string using SQL quoting conventions.
 */
-static void output_quoted_string(FILE *out, const char *z){//½«×Ö·û´®ÒÔÒıÖ¤×Ö·û´®µÄĞÎÊ½Êä³ö
+static void output_quoted_string(FILE *out, const char *z){//å°†å­—ç¬¦ä¸²ä»¥å¼•è¯å­—ç¬¦ä¸²çš„å½¢å¼è¾“å‡º
   int i;
-  int nSingle = 0;
+  int nSingle = 0;//è®¡æ•°
   for(i=0; z[i]; i++){
-    if( z[i]=='\'' ) nSingle++;//¼ÇÂ¼×Ö·û´®ÖĞ'\'µÄ¸öÊı
+    if( z[i]=='\'' ) nSingle++;//è®°å½•å­—ç¬¦ä¸²ä¸­'\'çš„ä¸ªæ•°
   }
-  if( nSingle==0 ){ //×Ö·û´®ÖĞ'\'µÄ¸öÊıÎª0
-    fprintf(out,"'%s'",z);//zÒÔ'%s'ÖÖĞÎÊ½Êä³ö
+  if( nSingle==0 ){ //å­—ç¬¦ä¸²ä¸­'\'çš„ä¸ªæ•°ä¸º0
+    fprintf(out,"'%s'",z);//zä»¥'%s'ç§å½¢å¼è¾“å‡º
   }else{
     fprintf(out,"'");
     while( *z ){
       for(i=0; z[i] && z[i]!='\''; i++){}
       if( i==0 ){
-        fprintf(out,"''");//ÒÔ ''µÄĞÎÊ½Êä³öÖÁoutÎÄ¼ş
+        fprintf(out,"''");//ä»¥ ''çš„å½¢å¼è¾“å‡ºè‡³outæ–‡ä»¶
         z++;
       }else if( z[i]=='\'' ){
         fprintf(out,"%.*s''",i,z);
@@ -587,14 +587,14 @@ static void output_quoted_string(FILE *out, const char *z){//½«×Ö·û´®ÒÔÒıÖ¤×Ö·û´
 /*
 ** Output the given string as a quoted according to C or TCL quoting rules.
 */
-static void output_c_string(FILE *out, const char *z){  //¸ù¾İC»òTCLÒıÓÃ¹æÔòÊä³ö×Ö·û´®
+static void output_c_string(FILE *out, const char *z){  //æ ¹æ®Cæˆ–TCLå¼•ç”¨è§„åˆ™è¾“å‡ºå­—ç¬¦ä¸²//é‡åˆ°ç‰¹æ®Šçš„å­—ç¬¦æ—¶è¦è¿›è¡Œè½¬ä¹‰
   unsigned int c;
   fputc('"', out);
   while( (c = *(z++))!=0 ){
     if( c=='\\' ){
-      fputc(c, out);//½«×Ö·û´®cĞ´ÈëÎÄ¼şoutÖĞ
+      fputc(c, out);//å°†å­—ç¬¦ä¸²cå†™å…¥æ–‡ä»¶outä¸­
       fputc(c, out);
-    }else if( c=='\t' ){
+    }else if( c=='\t' ){//é‡åˆ°/t,åˆ†ä¸ºä¸¤ä¸ªæ­¥éª¤ï¼Œä¸€æ˜¯å°†//å†™å…¥outæ–‡ä»¶ä¸­ï¼ŒäºŒæ˜¯å°†tå†™å…¥outæ–‡ä»¶ä¸­
       fputc('\\', out);
       fputc('t', out);
     }else if( c=='\n' ){
@@ -603,9 +603,9 @@ static void output_c_string(FILE *out, const char *z){  //¸ù¾İC»òTCLÒıÓÃ¹æÔòÊä³ö
     }else if( c=='\r' ){
       fputc('\\', out);
       fputc('r', out);
-    }else if( !isprint(c) ){//Èç¹ûc²»ÊÇ¿É´òÓ¡µÄ×Ö·û
-      fprintf(out, "\\%03o", c&0xff);//½«×Ö·û´®cÓëoxff½øĞĞ°´Î»Óë£¬È»ºóÒÔ\\%03oĞÎÊ½Êä³öÖÁoutÎÄ¼ş
-    }else{//·ñÔò,½«×Ö·û´®cĞ´ÈëoutÎÄ¼şÖĞ
+    }else if( !isprint(c) ){//å¦‚æœcä¸æ˜¯å¯æ‰“å°çš„å­—ç¬¦
+      fprintf(out, "\\%03o", c&0xff);//å°†å­—ç¬¦ä¸²cä¸oxffè¿›è¡ŒæŒ‰ä½ä¸ï¼Œç„¶åä»¥\\%03oå½¢å¼è¾“å‡ºè‡³outæ–‡ä»¶//ä»¥å…«è¿›åˆ¶æ ¼å¼è¾“å‡º
+    }else{//å¦åˆ™,å°†å­—ç¬¦ä¸²cå†™å…¥outæ–‡ä»¶ä¸­
       fputc(c, out);
     }
   }
@@ -616,8 +616,8 @@ static void output_c_string(FILE *out, const char *z){  //¸ù¾İC»òTCLÒıÓÃ¹æÔòÊä³ö
 ** Output the given string with characters that are special to
 ** HTML escaped. 
 */
-//Èç¹ûÏëÊä³öÏÂÃæÌØÊâµÄ×Ö·û´®£¬ÔòĞèÒªÓÃËüÃÇ¶ÔÓ¦µÄ×Ö·ûÊµÌå
-static void output_html_string(FILE *out, const char *z){//ÒÔÌØÊâµÄHTML´úÂë·½Ê½ÏÔÊ¾×Ö·û´®
+//å¦‚æœæƒ³è¾“å‡ºä¸‹é¢ç‰¹æ®Šçš„å­—ç¬¦ä¸²ï¼Œåˆ™éœ€è¦ç”¨å®ƒä»¬å¯¹åº”çš„å­—ç¬¦å®ä½“
+static void output_html_string(FILE *out, const char *z){//ä»¥ç‰¹æ®Šçš„HTMLä»£ç æ–¹å¼æ˜¾ç¤ºå­—ç¬¦ä¸²//htmlæ ¼å¼è¾“å‡ºè¦å¯¹ä¸€äº›ç‰¹æ®Šå­—ç¬¦è¿›è¡Œå¤„ç†
   int i;
   while( *z ){
     for(i=0;   z[i] 
@@ -626,16 +626,16 @@ static void output_html_string(FILE *out, const char *z){//ÒÔÌØÊâµÄHTML´úÂë·½Ê½Ï
             && z[i]!='>' 
             && z[i]!='\"' 
             && z[i]!='\'';
-        i++){}//Èç¹ûÃ»ÓĞÕâĞ©ÌØÊâ×Ö·û£¬Ôò²»Ğë¶ÔÊä³ö×ö´¦Àí
+        i++){}//å¦‚æœæ²¡æœ‰è¿™äº›ç‰¹æ®Šå­—ç¬¦ï¼Œåˆ™ä¸é¡»å¯¹è¾“å‡ºåšå¤„ç†
     if( i>0 ){
       fprintf(out,"%.*s",i,z);
     }
     if( z[i]=='<' ){
-      fprintf(out,"&lt;");//Èç¹ûÓĞ'<'·ûºÅ£¬Ôò½«ÕıÈ·Êä³öĞ¡ÓÚ·ûºÅ
+      fprintf(out,"&lt;");//å¦‚æœæœ‰'<'ç¬¦å·ï¼Œåˆ™å°†æ­£ç¡®è¾“å‡ºå°äºç¬¦å·
     }else if( z[i]=='&' ){
-      fprintf(out,"&amp;");//ÕıÈ·Êä³öºÍºÅ
+      fprintf(out,"&amp;");//æ­£ç¡®è¾“å‡ºå’Œå·
     }else if( z[i]=='>' ){
-      fprintf(out,"&gt;");//ÕıÈ·Êä³ö´óÓÚ·ûºÅ
+      fprintf(out,"&gt;");//æ­£ç¡®è¾“å‡ºå¤§äºç¬¦å·
     }else if( z[i]=='\"' ){
       fprintf(out,"&quot;");
     }else if( z[i]=='\'' ){
@@ -649,9 +649,9 @@ static void output_html_string(FILE *out, const char *z){//ÒÔÌØÊâµÄHTML´úÂë·½Ê½Ï
 
 /*
 ** If a field contains any character identified by a 1 in the following
-** array, then the string must be quoted for CSV.  // Èç¹ûÒ»¸öÓò°üº¬ÈÎºÎ±»ÏÂÃæÊı×éµÄ¶¨ÒåµÄ×Ö·û£¬Õâ¸ö×Ö·û
+** array, then the string must be quoted for CSV.  // å¦‚æœä¸€ä¸ªåŸŸåŒ…å«ä»»ä½•è¢«ä¸‹é¢æ•°ç»„çš„å®šä¹‰çš„å­—ç¬¦ï¼Œè¿™ä¸ªå­—ç¬¦
 
-´®±ØĞë±»ÒıÖ¤ÎªCSV
+ä¸²å¿…é¡»è¢«å¼•è¯ä¸ºCSV
 */
 static const char needCsvQuote[] = {
   1, 1, 1, 1, 1, 1, 1, 1,   1, 1, 1, 1, 1, 1, 1, 1,   
@@ -677,26 +677,26 @@ static const char needCsvQuote[] = {
 ** the separator, which may or may not be a comma.  p->nullvalue is
 ** the null value.  Strings are quoted if necessary.
 */  //
-static void output_csv(struct callback_data *p, const char *z, int bSep){//ÒÔcsv¸ñÊ½Êä³ö×Ö·û´®£¬ÆäÖĞp-
+static void output_csv(struct callback_data *p, const char *z, int bSep){//ä»¥csvæ ¼å¼è¾“å‡ºå­—ç¬¦ä¸²ï¼Œå…¶ä¸­p-
 
->separator±»ÓÃ×÷±íÊ¾·Ö¸ô·û£¬p->nullvalue±íÊ¾NUllÖµ£¬×Ö·û´®Ö»ÓĞÔÚ±ØÒªµÄÊ±ºò±»ÒıÓÃ
+>separatorè¢«ç”¨ä½œè¡¨ç¤ºåˆ†éš”ç¬¦ï¼Œp->nullvalueè¡¨ç¤ºNUllå€¼ï¼Œå­—ç¬¦ä¸²åªæœ‰åœ¨å¿…è¦çš„æ—¶å€™è¢«å¼•ç”¨
   FILE *out = p->out;
   if( z==0 ){
-    fprintf(out,"%s",p->nullvalue);  //¸ñÊ½»¯Êä³ö fprintf(ÎÄ¼şÖ¸Õë,¸ñÊ½×Ö·û´®,Êä³ö±íÁĞ)
+    fprintf(out,"%s",p->nullvalue);  //æ ¼å¼åŒ–è¾“å‡º fprintf(æ–‡ä»¶æŒ‡é’ˆ,æ ¼å¼å­—ç¬¦ä¸²,è¾“å‡ºè¡¨åˆ—)
   }else{
     int i;
-    int nSep = strlen30(p->separator);//½«p->separator
+    int nSep = strlen30(p->separator);//è·å–é•¿åº¦
     for(i=0; z[i]; i++){
       if( needCsvQuote[((unsigned char*)z)[i]] 
          || (z[i]==p->separator[0] && 
-             (nSep==1 || memcmp(z, p->separator, nSep)==0)) ){
+             (nSep==1 || memcmp(z, p->separator, nSep)==0)) ){//åˆ¤æ–­å­—ç¬¦ä¸²æ˜¯å¦å«æœ‰ä¸€äº›ç‰¹æ®Šçš„å­—ç¬¦//ä»¥å½“å‰åˆ†éš”ç¬¦çš„å½¢å¼æ˜¾ç¤ºæŸ¥è¯¢å€¼
         i = 0;
         break;
       }
     }
     if( i==0 ){
       putc('"', out);
-      for(i=0; z[i]; i++){
+      for(i=0; z[i]; i++){//å¦‚æœå«æœ‰åŠè§’ç¬¦å·'æˆ–è€…"ï¼Œåˆ™è¾“å‡ºæ—¶éœ€è¦åŠ ä¸Š""å·
         if( z[i]=='"' ) putc('"', out);
         putc(z[i], out);
       }
@@ -714,11 +714,11 @@ static void output_csv(struct callback_data *p, const char *z, int bSep){//ÒÔcsv
 /*
 ** This routine runs when the user presses Ctrl-C 
 */
-//seenInterruptÊÇÓÃÀ´¼ì²âÖĞ¶ÏµÄ±äÁ¿£¬Ç°Ãæ¶¨Òå³õÖµÎª0£¬Èç¹ûÊÕµ½ÖĞ¶ÏĞÅºÅ£¬¾Í½«±äÁ¿¸³ÖµÎª 1
-static void interrupt_handler(int NotUsed){ //ÖĞ¶Ï¿ØÖÆº¯Êı£¬µ±²Ù×÷ÎªCtrl-CµÄÊ±ºòµ÷ÓÃ
-  UNUSED_PARAMETER(NotUsed);   //±íÊ¾²»Ê¹ÓÃµÄ²ÎÊı
-  seenInterrupt = 1;   //Ö¸Ê¾ÖĞ¶ÏĞÅºÅµÄ±äÁ¿£¬´ËÊ±±íÊ¾ÊÕµ½ÖĞ¶ÏĞÅºÅ¡£
-  if( db ) sqlite3_interrupt(db);  //Èç¹ûÊı¾İ¿â±»´ò¿ª£¬ÔòÖĞ¶ÏËü
+//seenInterruptæ˜¯ç”¨æ¥æ£€æµ‹ä¸­æ–­çš„å˜é‡ï¼Œå‰é¢å®šä¹‰åˆå€¼ä¸º0ï¼Œå¦‚æœæ”¶åˆ°ä¸­æ–­ä¿¡å·ï¼Œå°±å°†å˜é‡èµ‹å€¼ä¸º 1
+static void interrupt_handler(int NotUsed){ //ä¸­æ–­æ§åˆ¶å‡½æ•°ï¼Œå½“æ“ä½œä¸ºCtrl-Cçš„æ—¶å€™è°ƒç”¨
+  UNUSED_PARAMETER(NotUsed);   //è¡¨ç¤ºä¸ä½¿ç”¨çš„å‚æ•°
+  seenInterrupt = 1;   //æŒ‡ç¤ºä¸­æ–­ä¿¡å·çš„å˜é‡ï¼Œæ­¤æ—¶è¡¨ç¤ºæ”¶åˆ°ä¸­æ–­ä¿¡å·ã€‚
+  if( db ) sqlite3_interrupt(db);  //å¦‚æœæ•°æ®åº“è¢«æ‰“å¼€ï¼Œåˆ™ä¸­æ–­å®ƒ
 }
 #endif
 
@@ -726,34 +726,34 @@ static void interrupt_handler(int NotUsed){ //ÖĞ¶Ï¿ØÖÆº¯Êı£¬µ±²Ù×÷ÎªCtrl-CµÄÊ±ºò
 ** This is the callback routine that the shell
 ** invokes for each row of a query result.
 */
-static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int *aiType){ //½âÊÍÆ÷»Øµ÷²éÑ¯½á
+static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int *aiType){ //è§£é‡Šå™¨å›è°ƒæŸ¥è¯¢ç»“
 
-¹ûµÄÃ¿Ò»ĞĞ
+æœçš„æ¯ä¸€è¡Œ
   int i;
-  struct callback_data *p = (struct callback_data*)pArg; //¶¨ÒåÒ»¸öcallback_dataµÄ¶ÔÏó
+  struct callback_data *p = (struct callback_data*)pArg; //å®šä¹‰ä¸€ä¸ªcallback_dataçš„å¯¹è±¡
 
-  switch( p->mode ){  //ÅĞ¶Ïµ÷ÓÃµÄÄ£Ê½£¬¸ù¾İµ÷ÓÃµÄÄ£Ê½²»Í¬£¬Ñ¡Ôñ²»Í¬µÄ·½Ê½Êä³ö½á¹û
-    case MODE_Line: {  //LineÄ£Ê½
-      int w = 5;
-      if( azArg==0 ) break;
-      for(i=0; i<nArg; i++){
-        int len = strlen30(azCol[i] ? azCol[i] : "");
-        if( len>w ) w = len;
+  switch( p->mode ){  //åˆ¤æ–­è°ƒç”¨çš„æ¨¡å¼ï¼Œæ ¹æ®è°ƒç”¨çš„æ¨¡å¼ä¸åŒï¼Œé€‰æ‹©ä¸åŒçš„æ–¹å¼è¾“å‡ºç»“æœ
+    case MODE_Line: {  //Lineæ¨¡å¼
+      int w = 5;//è®¾ç½®wçš„åˆå§‹å€¼
+      if( azArg==0 ) break;//å¦‚æœæŸ¥è¯¢ç»“æœä¸ºç©ºï¼Œåˆ™è·³å‡ºå¾ªç¯
+      for(i=0; i<nArg; i++){//è®¡ç®—é•¿åº¦
+        int len = strlen30(azCol[i] ? azCol[i] : "");//å¦‚æœå½“å‰åˆ—éç©ºï¼Œåˆ™å®ƒçš„é•¿åº¦ä¸ºå®é™…çš„åˆ—é•¿
+        if( len>w ) w = len;//å¦‚æœè®¡ç®—å‡ºæ¥çš„é•¿åº¦å¤§äº5ï¼Œåˆ™wçš„å€¼æ”¹ä¸ºlen
       }
-      if( p->cnt++>0 ) fprintf(p->out,"\n");
-      for(i=0; i<nArg; i++){
+      if( p->cnt++>0 ) fprintf(p->out,"\n");//å¦‚æœè¾“å‡ºçš„è®°å½•æ•°ä¸ä¸º0ï¼Œåˆ™è¿›è¡Œæ¢è¡Œ
+      for(i=0; i<nArg; i++){//ä»¥ä¸‹åˆ—çš„æ–¹å¼è¾“å‡ºæ¯æ¡è®°å½•
         fprintf(p->out,"%*s = %s\n", w, azCol[i],
-                azArg[i] ? azArg[i] : p->nullvalue);  //p->nullvalue±íÊ¾NUllÖµ
+                azArg[i] ? azArg[i] : p->nullvalue);  //p->nullvalueè¡¨ç¤ºNUllå€¼ï¼Œä»¥åˆ—å=å€¼å½¢å¼è¾“å‡ºåå¹¶æ¢è¡Œ
       }
-      break;
+      break;//è·³å‡ºå¾ªç¯
     }
     case MODE_Explain:
-    case MODE_Column: {  //ExplainºÍColumnÄ£Ê½
+    case MODE_Column: {  //Explainå’ŒColumnæ¨¡å¼
       if( p->cnt++==0 ){
         for(i=0; i<nArg; i++){
           int w, n;
           if( i<ArraySize(p->colWidth) ){
-            w = p->colWidth[i];
+            w = p->colWidth[i];//æ±‚å‡ºåœ¨åˆ—æ¨¡å¼ä¸‹çš„åˆ—å®½
           }else{
             w = 0;
           }
@@ -764,31 +764,31 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
             if( w<n ) w = n;
           }
           if( i<ArraySize(p->actualWidth) ){
-            p->actualWidth[i] = w;
+            p->actualWidth[i] = w;//è®¡ç®—åˆ—çš„å®é™…å®½åº¦
           }
-          if( p->showHeader ){
-            fprintf(p->out,"%-*.*s%s",w,w,azCol[i], i==nArg-1 ? "\n": "  ");
+          if( p->showHeader ){//ä»¥åˆ—çš„æ ¼å¼è¾“å‡ºè¡¨å¤´//å¦‚æœè¦è¾“å‡ºè¡¨å¤´
+            fprintf(p->out,"%-*.*s%s",w,w,azCol[i], i==nArg-1 ? "\n": "  ");//åˆ™å…ˆå®é™…ä»¥wé•¿åº¦è¾“å‡ºè¡¨å¤´ï¼Œç”¨ç©ºæ ¼éš”å¼€ã€‚è¾“å‡ºå®Œåæ¢è¡Œ
           }
         }
-        if( p->showHeader ){
+        if( p->showHeader ){//å¦‚æœå·²ç»è¾“å‡ºè¡¨å¤´
           for(i=0; i<nArg; i++){
             int w;
-            if( i<ArraySize(p->actualWidth) ){
+            if( i<ArraySize(p->actualWidth) ){//è®¡ç®—åˆ—çš„å®é™…å®½åº¦
                w = p->actualWidth[i];
             }else{
                w = 10;
             }
             fprintf(p->out,"%-*.*s%s",w,w,"-----------------------------------"
                    "----------------------------------------------------------",
-                    i==nArg-1 ? "\n": "  ");
+                    i==nArg-1 ? "\n": "  ");//ç”¨ä»¥ä¸Šçš„æ–¹å¼è¾“å‡ºä¸€è¡Œ-----------
           }
         }
       }
-      if( azArg==0 ) break;
-      for(i=0; i<nArg; i++){
+      if( azArg==0 ) break;//è®°å½•æ•°ä¸ºç©ºï¼Œåˆ™è·³å‡ºå¾ªç¯
+      for(i=0; i<nArg; i++){//ä»¥åˆ—çš„æ–¹å¼å¾ªç¯è¾“å‡ºæ¯ä¸€æ¡è®°å½•
         int w;
         if( i<ArraySize(p->actualWidth) ){
-           w = p->actualWidth[i];
+           w = p->actualWidth[i];//è®¡ç®—è¾“å‡ºæ ¼å¼çš„é•¿åº¦
         }else{
            w = 10;
         }
@@ -797,18 +797,18 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
           w = strlen30(azArg[i]);
         }
         fprintf(p->out,"%-*.*s%s",w,w,
-            azArg[i] ? azArg[i] : p->nullvalue, i==nArg-1 ? "\n": "  ");
+            azArg[i] ? azArg[i] : p->nullvalue, i==nArg-1 ? "\n": "  ");//è¾“å‡ºæŸ¥è¯¢çš„è®°å½•å€¼
       }
       break;
     }
     case MODE_Semi:
-    case MODE_List: { //SemiºÍListÄ£Ê½
+    case MODE_List: { //Semiå’ŒListæ¨¡å¼
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           fprintf(p->out,"%s%s",azCol[i], i==nArg-1 ? "\n" : p->separator);
         }
       }
-      if( azArg==0 ) break;
+      if( azArg==0 ) break;//å¦‚æœæŸ¥è¯¢çš„è®°å½•ä¸ºç©ºå°±è·³å‡ºå¾ªç¯
       for(i=0; i<nArg; i++){
         char *z = azArg[i];
         if( z==0 ) z = p->nullvalue;
@@ -823,8 +823,8 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       }
       break;
     }
-    case MODE_Html: {  //HtmlÄ£Ê½
-      if( p->cnt++==0 && p->showHeader ){
+    case MODE_Html: {  //Htmlæ¨¡å¼
+      if( p->cnt++==0 && p->showHeader ){//ä»¥htmlæ ¼å¼è¾“å‡ºè¡¨å¤´
         fprintf(p->out,"<TR>");
         for(i=0; i<nArg; i++){
           fprintf(p->out,"<TH>");
@@ -835,19 +835,19 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       }
       if( azArg==0 ) break;
       fprintf(p->out,"<TR>");
-      for(i=0; i<nArg; i++){
+      for(i=0; i<nArg; i++){//ä»¥htmlæ ¼å¼è¾“å‡ºæŸ¥è¯¢çš„è®°å½•å€¼
         fprintf(p->out,"<TD>");
-        output_html_string(p->out, azArg[i] ? azArg[i] : p->nullvalue);
+        output_html_string(p->out, azArg[i] ? azArg[i] : p->nullvalue);//è°ƒç”¨output_html_stringæ–¹æ³•å°†ç‰¹æ®Šç¬¦å·æ­£ç¡®è¾“å‡º
         fprintf(p->out,"</TD>\n");
       }
       fprintf(p->out,"</TR>\n");
       break;
     }
-    case MODE_Tcl: { // TclÄ£Ê½
-      if( p->cnt++==0 && p->showHeader ){
+    case MODE_Tcl: { // Tclæ¨¡å¼
+      if( p->cnt++==0 && p->showHeader ){//å¦‚æœè¿˜æ²¡æœ‰è®°å½•è¾“å‡ºå¹¶ä¸”è¡¨å¤´å€¼ä¸º1ï¼Œåˆ™ä¸â€œâ€çš„å½¢å¼è¾“å‡ºè¡¨å¤´
         for(i=0; i<nArg; i++){
           output_c_string(p->out,azCol[i] ? azCol[i] : "");
-          fprintf(p->out, "%s", p->separator);
+          fprintf(p->out, "%s", p->separator);//æŒ‰ç…§å½“å‰åˆ†éš”ç¬¦çš„å€¼è¾“å‡ºè¯­å¥
         }
         fprintf(p->out,"\n");
       }
@@ -859,7 +859,7 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"\n");
       break;
     }
-    case MODE_Csv: { //CsvÄ£Ê½
+    case MODE_Csv: { //Csvæ¨¡å¼
       if( p->cnt++==0 && p->showHeader ){
         for(i=0; i<nArg; i++){
           output_csv(p, azCol[i] ? azCol[i] : "", i<nArg-1);
@@ -873,24 +873,24 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
       fprintf(p->out,"\n");
       break;
     }
-    case MODE_Insert: {  //InsertÄ£Ê½
+    case MODE_Insert: {  //Insertæ¨¡å¼
       p->cnt++;
       if( azArg==0 ) break;
-      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);//Ö¸Ä¿µÄ±í
+      fprintf(p->out,"INSERT INTO %s VALUES(",p->zDestTable);////ä»¥æ’å…¥è¯­å¥çš„å½¢å¼è¾“å‡ºï¼Œp->zDestTableæŒ‡è¦æ’å…¥çš„è¡¨å
       for(i=0; i<nArg; i++){
         char *zSep = i>0 ? ",": "";
         if( (azArg[i]==0) || (aiType && aiType[i]==SQLITE_NULL) ){
-          fprintf(p->out,"%sNULL",zSep);
+          fprintf(p->out,"%sNULL",zSep);//å€¼ä¸ºç©ºæ—¶
         }else if( aiType && aiType[i]==SQLITE_TEXT ){
           if( zSep[0] ) fprintf(p->out,"%s",zSep);
-          output_quoted_string(p->out, azArg[i]);
+          output_quoted_string(p->out, azArg[i]);//å€¼ä¸ºæ–‡æœ¬æ—¶
         }else if( aiType && (aiType[i]==SQLITE_INTEGER || aiType[i]==SQLITE_FLOAT) ){
           fprintf(p->out,"%s%s",zSep, azArg[i]);
         }else if( aiType && aiType[i]==SQLITE_BLOB && p->pStmt ){
-          const void *pBlob = sqlite3_column_blob(p->pStmt, i);
-          int nBlob = sqlite3_column_bytes(p->pStmt, i);
+          const void *pBlob = sqlite3_column_blob(p->pStmt, i);//å–å‡ºäºŒè¿›åˆ¶å¯¹è±¡
+          int nBlob = sqlite3_column_bytes(p->pStmt, i);//å¾—åˆ°äºŒè¿›åˆ¶çš„å€¼
           if( zSep[0] ) fprintf(p->out,"%s",zSep);
-          output_hex_blob(p->out, pBlob, nBlob);
+          output_hex_blob(p->out, pBlob, nBlob);//ä»¥äºŒè¿›åˆ¶çš„å½¢å¼è¾“å‡º
         }else if( isNumber(azArg[i], 0) ){
           fprintf(p->out,"%s%s",zSep, azArg[i]);
         }else{
@@ -898,8 +898,8 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
           output_quoted_string(p->out, azArg[i]);
         }
       }
-      fprintf(p->out,");\n");
-      break;
+      fprintf(p->out,");\n");//è¾“å‡ºåæ‹¬å·ï¼Œæ¢è¡Œ
+      break;//è·³å‡ºå¾ªç¯
     }
   }
   return 0;
@@ -909,11 +909,11 @@ static int shell_callback(void *pArg, int nArg, char **azArg, char **azCol, int 
 ** This is the callback routine that the SQLite library
 ** invokes for each row of a query result.
 */  
-static int callback(void *pArg, int nArg, char **azArg, char **azCol){   //¶¨ÒåSQLite¿âµ÷ÓÃ²éÑ¯½á¹ûµÄÃ¿Ò»ĞĞ
+static int callback(void *pArg, int nArg, char **azArg, char **azCol){   //å®šä¹‰SQLiteåº“è°ƒç”¨æŸ¥è¯¢ç»“æœçš„æ¯ä¸€è¡Œ
 
-µÄ»Øµ÷³ÌĞò
+çš„å›è°ƒç¨‹åº
   /* since we don't have type info, call the shell_callback with a NULL value */
-  return shell_callback(pArg, nArg, azArg, azCol, NULL);  //µ±Ã»ÓĞÀàĞÍĞÅÏ¢,Ê¹ÓÃNullÖµµ÷ÓÃshell_callback 
+  return shell_callback(pArg, nArg, azArg, azCol, NULL);  //å½“æ²¡æœ‰ç±»å‹ä¿¡æ¯,ä½¿ç”¨Nullå€¼è°ƒç”¨shell_callback 
 }
 
 /*
@@ -921,30 +921,30 @@ static int callback(void *pArg, int nArg, char **azArg, char **azCol){   //¶¨ÒåS
 ** the name of the table given.  Escape any quote characters in the
 ** table name.
 */
-static void set_table_name(struct callback_data *p, const char *zName){ //Éè¶¨µÄÄ¿±ê±í×Ö¶Îcallback_data
+static void set_table_name(struct callback_data *p, const char *zName){ //è®¾å®šçš„ç›®æ ‡è¡¨å­—æ®µcallback_data
 
-½á¹¹µÄ±íµÄÃû³Æ¡£ÈÎºÎÒıÓÃ×Ö·û×ªÒåµÄ±íÃû¡£zName±íÊ¾±íÃû
+ç»“æ„çš„è¡¨çš„åç§°ã€‚ä»»ä½•å¼•ç”¨å­—ç¬¦è½¬ä¹‰çš„è¡¨åã€‚zNameè¡¨ç¤ºè¡¨å
   int i, n;
   int needQuote;
   char *z;
 
-  if( p->zDestTable ){   //p->zDestTableÖ¸Ä¿µÄ±í
-    free(p->zDestTable);  //ÊÍ·Å¿Õ¼ä
+  if( p->zDestTable ){   //p->zDestTableæŒ‡ç›®çš„è¡¨
+    free(p->zDestTable);  //é‡Šæ”¾ç©ºé—´
     p->zDestTable = 0;
   }
-  if( zName==0 ) return;
-  needQuote = !isalpha((unsigned char)*zName) && *zName!='_';
+  if( zName==0 ) return;   //å¦‚æœzNameç­‰äº0ï¼Œåˆ™è¿”å›                                         // zNameä¸æ˜¯å­—æ¯æˆ–è€…_æ—¶ï¼ŒneedQuote ä¸º1
+  needQuote = !isalpha((unsigned char)*zName) && *zName!='_';//isalphaå‡½æ•°åˆ¤æ–­å­—ç¬¦*zNameæ˜¯å¦ä¸ºè‹±æ–‡å­—æ¯ï¼Œè‹¥ä¸ºå°å†™å­—æ¯ï¼Œè¿”å›2ï¼Œè‹¥ä¸ºå¤§å†™å­—æ¯ï¼Œè¿”å›1ã€‚è‹¥ä¸æ˜¯å­—æ¯ï¼Œè¿”å›0,å½“è¡¨åä¸­æ²¡æœ‰å­—æ¯æˆ–è€…_æ—¶ï¼Œ needQuote==1
   for(i=n=0; zName[i]; i++, n++){
-    if( !isalnum((unsigned char)zName[i]) && zName[i]!='_' ){
+    if( !isalnum((unsigned char)zName[i]) && zName[i]!='_' ){//å½“zName[i]ä¸ºæ•°å­—0-9æˆ–å­—æ¯a-zåŠA-Zæ—¶ï¼Œè¿”å›éé›¶å€¼ï¼Œå¦åˆ™è¿”å›é›¶
       needQuote = 1;
       if( zName[i]=='\'' ) n++;
     }
   }
-  if( needQuote ) n += 2;
-  z = p->zDestTable = malloc( n+1 );
-  if( z==0 ){
+  if( needQuote ) n += 2;//needQuoteä¸ä¸º0ï¼Œå³è¡¨åä¸­ä¸åŒ…å«ç‰¹æ®Šç¬¦å·æ—¶,n=n+2
+  z = p->zDestTable = malloc( n+1 );//ç»™è¡¨åˆ†é…ç©ºé—´//ç»™è¡¨åˆ†é…n+1çš„ç©ºé—´
+  if( z==0 ){//å¦‚æœè¡¨ç©ºé—´åˆ†é…å¤±è´¥ï¼Œåˆ™è¾“å‡ºé”™è¯¯ä¿¡æ¯
     fprintf(stderr,"Error: out of memory\n");
-    exit(1);
+    exit(1);//ç»“æŸ
   }
   n = 0;
   if( needQuote ) z[n++] = '\'';
@@ -952,7 +952,7 @@ static void set_table_name(struct callback_data *p, const char *zName){ //Éè¶¨µÄ
     z[n++] = zName[i];
     if( zName[i]=='\'' ) z[n++] = '\'';
   }
-  if( needQuote ) z[n++] = '\'';
+  if( needQuote ) z[n++] = '\'';//å«æœ‰ä¸è§„åˆ™ç¬¦å·æ—¶ï¼Œåœ¨è¡¨åçš„æœ«å°¾åŠ ä¸Šç»“æŸæ ‡è¯†
   z[n] = 0;
 }
 
@@ -963,42 +963,42 @@ static void set_table_name(struct callback_data *p, const char *zName){ //Éè¶¨µÄ
 **
 ** If the third argument, quote, is not '\0', then it is used as a 
 ** quote character for zAppend.
-*/    //Èç¹ûzInt²»ÊÇnull£¬ÔòÊÍ·Å¿Õ¼ä
-static char *appendText(char *zIn, char const *zAppend, char quote){//zIntÊÇÔÚmalloc()ÖĞ»ñµÃµÄÄÚ´æÖĞÒÔNUll×Ö·û´®½áÎ²µÄ×Ö·û´®Ö¸Õë»ò±íÊ¾NUllÖ¸Õë£»zAppendÖ¸ÏòµÄ×Ö·û´®ÊÇ¼Óµ½zIntÉÏµÄ£¬·µ»ØµÄ½á¹ûÀ´×Ômalloc()£»Èç¹ûµÚÈı¸ö²ÎÊı²»ÊÇ'\0',ÄÇÃ´ÓÃ×÷zAppendÒıÓÃ×Ö·û
-  int len;//¶¨Òå³¤¶È
+*/    //å¦‚æœzIntä¸æ˜¯nullï¼Œåˆ™é‡Šæ”¾ç©ºé—´
+static char *appendText(char *zIn, char const *zAppend, char quote){//zIntæ˜¯åœ¨malloc()ä¸­è·å¾—çš„å†…å­˜ä¸­ä»¥NUllå­—ç¬¦ä¸²ç»“å°¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆæˆ–è¡¨ç¤ºNUllæŒ‡é’ˆï¼›zAppendæŒ‡å‘çš„å­—ç¬¦ä¸²æ˜¯åŠ åˆ°zIntä¸Šçš„ï¼Œè¿”å›çš„ç»“æœæ¥è‡ªmalloc()ï¼›å¦‚æœç¬¬ä¸‰ä¸ªå‚æ•°ä¸æ˜¯'\0',é‚£ä¹ˆç”¨ä½œzAppendå¼•ç”¨å­—ç¬¦
+  int len;//å®šä¹‰é•¿åº¦
   int i;
-  int nAppend = strlen30(zAppend);
-  int nIn = (zIn?strlen30(zIn):0);
+  int nAppend = strlen30(zAppend);//è®¡ç®—å­—ç¬¦zAppendçš„é•¿åº¦
+  int nIn = (zIn?strlen30(zIn):0);//å¦‚æœä¹‹å‰çš„å­—ç¬¦ä¸²zInéç©ºï¼Œåˆ™è®¡ç®—zInçš„é•¿åº¦ï¼Œå¦åˆ™é•¿åº¦ä¸º0
 
-  len = nAppend+nIn+1;
-  if( quote ){//Èç¹ûquote²»ÊÇ'\0',ÄÇÃ´ÓÃ×÷zAppendÒıÓÃ×Ö·û
+  len = nAppend+nIn+1;//è®¡ç®—æ‹¼æ¥åå­—ç¬¦ä¸²çš„æ€»é•¿åº¦
+  if( quote ){//å¦‚æœquoteä¸æ˜¯'\0',é‚£ä¹ˆç”¨ä½œzAppendå¼•ç”¨å­—ç¬¦
     len += 2;
     for(i=0; i<nAppend; i++){
       if( zAppend[i]==quote ) len++;
     }
   }
 
-  zIn = (char *)realloc(zIn, len);//ÖØĞÂ·ÖÅäÄÚ´æ
-  if( !zIn ){
+  zIn = (char *)realloc(zIn, len);//é‡æ–°åˆ†é…å†…å­˜
+  if( !zIn ){//åˆ†é…ä¸æˆåŠŸï¼Œåˆ™è¿”å›
     return 0;
   }
 
-  if( quote ){//Èç¹ûquote²»ÊÇ'\0'
-    char *zCsr = &zIn[nIn];
+  if( quote ){//å¦‚æœquoteä¸æ˜¯'0'ï¼Œåˆ™éœ€å…ˆå°†quoteæ‹¼æ¥åœ¨zInå
+    char *zCsr = &zIn[nIn];//æŒ‡å‘æºå­—ç¬¦ä¸²
     *zCsr++ = quote;
     for(i=0; i<nAppend; i++){
-      *zCsr++ = zAppend[i];
-      if( zAppend[i]==quote ) *zCsr++ = quote; //Èç¹ûzAppendÖ¸ÏòµÄ×Ö·û´®ºÍquoteÏàµÈ
+      *zCsr++ = zAppend[i];//å°†zAppendæ‹¼æ¥
+      if( zAppend[i]==quote ) *zCsr++ = quote; //å¦‚æœzAppendæŒ‡å‘çš„å­—ç¬¦ä¸²å’Œquoteç›¸ç­‰
     }
     *zCsr++ = quote;
-    *zCsr++ = '\0';
+    *zCsr++ = '\0';//ç»“æŸæ ‡è¯†
     assert( (zCsr-zIn)==len );
   }else{
-    memcpy(&zIn[nIn], zAppend, nAppend);//×Ö·û´®¿½±´
+    memcpy(&zIn[nIn], zAppend, nAppend);//å­—ç¬¦ä¸²æ‹·è´
     zIn[len-1] = '\0';
   }
 
-  return zIn;
+  return zIn;//è¿”å›æ‹¼æ¥åçš„å€¼
 }
 
 
@@ -1006,188 +1006,188 @@ static char *appendText(char *zIn, char const *zAppend, char quote){//zIntÊÇÔÚma
 ** Execute a query statement that will generate SQL output.  Print
 ** the result columns, comma-separated, on a line and then add a
 ** semicolon terminator to the end of that line.
-**  //Ö´ĞĞÒ»¸öÉú³ÉµÄSQLÊä³öµÄ²éÑ¯Óï¾ä¡£´òÓ¡½á¹ûÁĞ,¶ººÅ·Ö¸ôÏß,ÒÔÒ»¸ö·ÖºÅÖÕ½áÕâĞĞ
+**  //æ‰§è¡Œä¸€ä¸ªç”Ÿæˆçš„SQLè¾“å‡ºçš„æŸ¥è¯¢è¯­å¥ã€‚æ‰“å°ç»“æœåˆ—,é€—å·åˆ†éš”çº¿,ä»¥ä¸€ä¸ªåˆ†å·ç»ˆç»“è¿™è¡Œ
 ** If the number of columns is 1 and that column contains text "--"
 ** then write the semicolon on a separate line.  That way, if a 
 ** "--" comment occurs at the end of the statement, the comment
 ** won't consume the semicolon terminator.
-*/  //Èç¹ûÁĞµÄÊıÁ¿ÊÇ1²¢ÇÒÁĞ°üº¬ÎÄ±¾¡±¡ª¡ª¡°£¬È»ºóÊä³ö·ÖºÅÔÚµ¥¶ÀµÄĞĞÖĞ¡£ÕâÑù,Èç¹ûÒ»¸ö¡±¡ª¡ª¡°³öÏÖÔÚÉùÃ÷µÄ
+*/  //å¦‚æœåˆ—çš„æ•°é‡æ˜¯1å¹¶ä¸”åˆ—åŒ…å«æ–‡æœ¬â€â€”â€”â€œï¼Œç„¶åè¾“å‡ºåˆ†å·åœ¨å•ç‹¬çš„è¡Œä¸­ã€‚è¿™æ ·,å¦‚æœä¸€ä¸ªâ€â€”â€”â€œå‡ºç°åœ¨å£°æ˜çš„
 
-×îºó,Ôò²»Ê¹ÓÃ·ÖºÅ
-static int run_table_dump_query(//Ê¹ÓÃ.dumpÃüÁî¿ÉÒÔ½«Êı¾İ¿â¶ÔÏóµ¼³ö³ÉSQL¸ñÊ½
-  struct callback_data *p, //Òª²éÑ¯µÄÄÚÈİ    /* Query context */  
-  const char *zSelect,     //³éÈ¡Ñ¡ÔñÓï¾äµÄÄÚÈİ  /* SELECT statement to extract content */
-  const char *zFirstRow    //Èç¹û²»ÎªNUll£¬ÔòÔÚµÚÒ»ĞĞÖ®Ç°´òÓ¡   /* Print before first row, if not NULL */
+æœ€å,åˆ™ä¸ä½¿ç”¨åˆ†å·
+static int run_table_dump_query(//ä½¿ç”¨.dumpå‘½ä»¤å¯ä»¥å°†æ•°æ®åº“å¯¹è±¡å¯¼å‡ºæˆSQLæ ¼å¼
+  struct callback_data *p, //è¦æŸ¥è¯¢çš„å†…å®¹    /* Query context */  
+  const char *zSelect,     //æŠ½å–é€‰æ‹©è¯­å¥çš„å†…å®¹  /* SELECT statement to extract content */
+  const char *zFirstRow    //å¦‚æœä¸ä¸ºNUllï¼Œåˆ™åœ¨ç¬¬ä¸€è¡Œä¹‹å‰æ‰“å°   /* Print before first row, if not NULL */
 ){
-  sqlite3_stmt *pSelect;  //°ÑÒ»¸ösqlÓï¾ä½âÎöµ½pSelectÖĞ£¬¼´´æ·Åµ±Ç°µÄstatement¾ä±ú 
-  int rc;     //¶¨Òå·µ»ØÖµ
+  sqlite3_stmt *pSelect;  //æŠŠä¸€ä¸ªsqlè¯­å¥è§£æåˆ°pSelectä¸­ï¼Œå³å­˜æ”¾å½“å‰çš„statementå¥æŸ„ 
+  int rc;     //å®šä¹‰è¿”å›å€¼
   int nResult;
   int i;
   const char *z;
-  rc = sqlite3_prepare(p->db, zSelect, -1, &pSelect, 0); //º¯ÊıÍê³É sql Óï¾äµÄ½âÎö¡£µÚÒ»¸ö²ÎÊı¸úÇ°ÃæÒ»Ñù£¬
+  rc = sqlite3_prepare(p->db, zSelect, -1, &pSelect, 0); //å‡½æ•°å®Œæˆ sql è¯­å¥çš„è§£æã€‚ç¬¬ä¸€ä¸ªå‚æ•°è·Ÿå‰é¢ä¸€æ ·ï¼Œ
 
-ÊÇ¸ö sqlite3 * ÀàĞÍ±äÁ¿£¬µÚ¶ş¸ö²ÎÊıÊÇÒ»¸ö sql Óï¾ä¡£µÚÈı¸ö²ÎÊıÎÒĞ´µÄÊÇ-1£¬Õâ¸ö²ÎÊıº¬ÒåÊÇÇ°Ãæ sql Óï¾äµÄ³¤¶È
+æ˜¯ä¸ª sqlite3 * ç±»å‹å˜é‡ï¼Œç¬¬äºŒä¸ªå‚æ•°æ˜¯ä¸€ä¸ª sql è¯­å¥ã€‚ç¬¬ä¸‰ä¸ªå‚æ•°æˆ‘å†™çš„æ˜¯-1ï¼Œè¿™ä¸ªå‚æ•°å«ä¹‰æ˜¯å‰é¢ sql è¯­å¥çš„é•¿åº¦
 
-¡£Èç¹ûĞ¡ÓÚ0£¬sqlite»á×Ô¶¯¼ÆËãËüµÄ³¤¶È£¨°ÑsqlÓï¾äµ±³ÉÒÔ\0½áÎ²µÄ×Ö·û´®£©¡£µÚËÄ¸ö²ÎÊıÊÇ sqlite3_stmt µÄÖ¸Õë
+ã€‚å¦‚æœå°äº0ï¼Œsqliteä¼šè‡ªåŠ¨è®¡ç®—å®ƒçš„é•¿åº¦ï¼ˆæŠŠsqlè¯­å¥å½“æˆä»¥\0ç»“å°¾çš„å­—ç¬¦ä¸²ï¼‰ã€‚ç¬¬å››ä¸ªå‚æ•°æ˜¯ sqlite3_stmt çš„æŒ‡é’ˆ
 
-µÄÖ¸Õë¡£½âÎöÒÔºóµÄsqlÓï¾ä¾Í·ÅÔÚÕâ¸ö½á¹¹Àï¡£
-  if( rc!=SQLITE_OK || !pSelect ){ //Èç¹û·µ»ØÖµ²»ÊÇSQLITE_OK»òÕßÃ»ÓĞµÃµ½µ±Ç°Óï¾ä
-    fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db)); //ÔòÊä³ö´íÎóĞÅÏ¢
-    p->nErr++;  //nErr±íÊ¾·µ»ØµÄ´íÎóĞÅÏ¢
+çš„æŒ‡é’ˆã€‚è§£æä»¥åçš„sqlè¯­å¥å°±æ”¾åœ¨è¿™ä¸ªç»“æ„é‡Œã€‚
+  if( rc!=SQLITE_OK || !pSelect ){ //å¦‚æœè¿”å›å€¼ä¸æ˜¯SQLITE_OKæˆ–è€…æ²¡æœ‰å¾—åˆ°å½“å‰è¯­å¥
+    fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db)); //åˆ™è¾“å‡ºé”™è¯¯ä¿¡æ¯
+    p->nErr++;  //nErrè¡¨ç¤ºè¿”å›çš„é”™è¯¯ä¿¡æ¯
     return rc;
   }
-  rc = sqlite3_step(pSelect); //Í¨¹ıÕâ¸öÓï¾ä£¬pSelect ±íÊ¾µÄsqlÓï¾ä¾Í±»Ğ´µ½ÁËÊı¾İ¿âÀï¡£×îºó£¬Òª°Ñ 
+  rc = sqlite3_step(pSelect); //é€šè¿‡è¿™ä¸ªè¯­å¥ï¼ŒpSelect è¡¨ç¤ºçš„sqlè¯­å¥å°±è¢«å†™åˆ°äº†æ•°æ®åº“é‡Œã€‚æœ€åï¼Œè¦æŠŠ 
 
-sqlite3_stmt ½á¹¹¸øÊÍ·Å£¬º¯ÊıµÄ·µ»ØÖµ»ùÓÚ´´½¨sqlite3_stmt²ÎÊıËùÊ¹ÓÃµÄº¯Êı
-  nResult = sqlite3_column_count(pSelect); //·ÖÅä¿Õ¼ä
-  while( rc==SQLITE_ROW ){ //·µ»ØÖµÎªSQLITE_ROW
-    if( zFirstRow ){ //Èç¹û²»ÎªNUll£¬Ôò´òÓ¡µÚÒ»ĞĞ
+sqlite3_stmt ç»“æ„ç»™é‡Šæ”¾ï¼Œå‡½æ•°çš„è¿”å›å€¼åŸºäºåˆ›å»ºsqlite3_stmtå‚æ•°æ‰€ä½¿ç”¨çš„å‡½æ•°
+  nResult = sqlite3_column_count(pSelect); //åˆ†é…ç©ºé—´
+  while( rc==SQLITE_ROW ){ //è¿”å›å€¼ä¸ºSQLITE_ROW
+    if( zFirstRow ){ //å¦‚æœä¸ä¸ºNUllï¼Œåˆ™æ‰“å°ç¬¬ä¸€è¡Œ
       fprintf(p->out, "%s", zFirstRow);
       zFirstRow = 0;
     }
-    z = (const char*)sqlite3_column_text(pSelect, 0);//ÌáÈ¡Êı¾İ
+    z = (const char*)sqlite3_column_text(pSelect, 0);//æå–æ•°æ®
     fprintf(p->out, "%s", z);
     for(i=1; i<nResult; i++){ 
-      fprintf(p->out, ",%s", sqlite3_column_text(pSelect, i));//Ñ­»·Êä³öÊı¾İ
+      fprintf(p->out, ",%s", sqlite3_column_text(pSelect, i));//å¾ªç¯è¾“å‡ºæ•°æ®
     }
     if( z==0 ) z = "";
-    while( z[0] && (z[0]!='-' || z[1]!='-') ) z++; //Èç¹ûÁĞµÄÊıÁ¿ÊÇ1²¢ÇÒÁĞ°üº¬ÎÄ±¾¡±¡ª¡ª¡°£¬È»ºóÊä³ö·ÖºÅÔÚµ¥
+    while( z[0] && (z[0]!='-' || z[1]!='-') ) z++; //å¦‚æœåˆ—çš„æ•°é‡æ˜¯1å¹¶ä¸”åˆ—åŒ…å«æ–‡æœ¬â€â€”â€”â€œï¼Œç„¶åè¾“å‡ºåˆ†å·åœ¨å•
 
-¶ÀµÄĞĞÖĞ
+ç‹¬çš„è¡Œä¸­
     if( z[0] ){
       fprintf(p->out, "\n;\n");
     }else{
       fprintf(p->out, ";\n");
     }    
-    rc = sqlite3_step(pSelect); //°ÑsqlÓï¾äĞ´µ½Êı¾İ¿âÀï
+    rc = sqlite3_step(pSelect); //æŠŠsqlè¯­å¥å†™åˆ°æ•°æ®åº“é‡Œ
   }
-  rc = sqlite3_finalize(pSelect);//°Ñ¸Õ²Å·ÖÅäµÄÄÚÈİÎö¹¹µô£¬Õâ¸ö¹ı³ÌÏú»ÙÇ°Ãæ±»sqlite3_prepare´´½¨µÄ×¼±¸Óï¾ä
+  rc = sqlite3_finalize(pSelect);//æŠŠåˆšæ‰åˆ†é…çš„å†…å®¹ææ„æ‰ï¼Œè¿™ä¸ªè¿‡ç¨‹é”€æ¯å‰é¢è¢«sqlite3_prepareåˆ›å»ºçš„å‡†å¤‡è¯­å¥
 
-£¬Ã¿¸ö×¼±¸Óï¾ä¶¼±ØĞëÊ¹ÓÃÕâ¸öº¯ÊıÈ¥Ïú»ÙÒÔ·ÀÖ¹ÄÚ´æĞ¹Â¶¡£
-  if( rc!=SQLITE_OK ){ //Èç¹û·µ»ØÖµ²»ÊÇSQLITE_OK£¬Ôò·µ»Ø´íÎóĞÅÏ¢
+ï¼Œæ¯ä¸ªå‡†å¤‡è¯­å¥éƒ½å¿…é¡»ä½¿ç”¨è¿™ä¸ªå‡½æ•°å»é”€æ¯ä»¥é˜²æ­¢å†…å­˜æ³„éœ²ã€‚
+  if( rc!=SQLITE_OK ){ //å¦‚æœè¿”å›å€¼ä¸æ˜¯SQLITE_OKï¼Œåˆ™è¿”å›é”™è¯¯ä¿¡æ¯
     fprintf(p->out, "/**** ERROR: (%d) %s *****/\n", rc, sqlite3_errmsg(p->db));
     p->nErr++;
   }
-  return rc;  //º¯ÊıµÄ·µ»ØÖµ
+  return rc;  //å‡½æ•°çš„è¿”å›å€¼
 }
 
 /*
-** Allocate space and save off current error string. //·ÖÅä¿Õ¼ä£¬±£´æÏû³ıµ±Ç°´íÎóµÄ×Ö·û´®
+** Allocate space and save off current error string. //åˆ†é…ç©ºé—´ï¼Œä¿å­˜æ¶ˆé™¤å½“å‰é”™è¯¯çš„å­—ç¬¦ä¸²
 */
-static char *save_err_msg(  //±£´æ´íÎóĞÅÏ¢
-  sqlite3 *db               //Òª·ÃÎÊµÄÊı¾İ¿â /* Database to query */
+static char *save_err_msg(  //ä¿å­˜é”™è¯¯ä¿¡æ¯
+  sqlite3 *db               //è¦è®¿é—®çš„æ•°æ®åº“ /* Database to query */
 ){
-  int nErrMsg = 1+strlen30(sqlite3_errmsg(db));
-  char *zErrMsg = sqlite3_malloc(nErrMsg);//Í¨¹ısqlite3_malloc()½Ó¿Ú£¬SQLiteÀ©Õ¹»òÓ¦ÓÃ³ÌĞò±¾Éí¶¼¿ÉÒÔÊ¹
+  int nErrMsg = 1+strlen30(sqlite3_errmsg(db));//è®¡ç®—é”™è¯¯ä¿¡æ¯çš„é•¿åº¦
+  char *zErrMsg = sqlite3_malloc(nErrMsg);//é€šè¿‡sqlite3_malloc()æ¥å£ï¼ŒSQLiteæ‰©å±•æˆ–åº”ç”¨ç¨‹åºæœ¬èº«éƒ½å¯ä»¥ä½¿
 
-ÓÃÏàÍ¬µÄSQLiteµÄµ×²ã·ÖÅäº¯ÊıÀ´Ê¹ÓÃÄÚ´æ
+ç”¨ç›¸åŒçš„SQLiteçš„åº•å±‚åˆ†é…å‡½æ•°æ¥ä½¿ç”¨å†…å­˜
   if( zErrMsg ){
-    memcpy(zErrMsg, sqlite3_errmsg(db), nErrMsg);//¸üĞÂ´íÎóĞÅÏ¢
+    memcpy(zErrMsg, sqlite3_errmsg(db), nErrMsg);//æ›´æ–°é”™è¯¯ä¿¡æ¯
   }
-  return zErrMsg;
+  return zErrMsg;//è¿”å›é”™è¯¯ä¿¡æ¯
 }
 
 /*
-** Display memory stats.   //ÏÔÊ¾ÄÚ´æÍ³¼ÆÊı¾İ
+** Display memory stats.   //æ˜¾ç¤ºå†…å­˜ç»Ÿè®¡æ•°æ®
 */
-static int display_stats(  //ÏÔÊ¾Í³¼ÆÊı¾İ
-  sqlite3 *db,                // Òª·ÃÎÊµÄÊı¾İ¿â /* Database to query */
-  struct callback_data *pArg, //¶¨ÒåÒ»¸ö»Øµ÷º¯ÊıµÄÖ¸Õë  /* Pointer to struct callback_data */
-  int bReset                 //¶ÔÖØÖÃ²Ù×÷½øĞĞÅĞ¶Ï /* True to reset the stats */
+static int display_stats(  //æ˜¾ç¤ºç»Ÿè®¡æ•°æ®
+  sqlite3 *db,                // è¦è®¿é—®çš„æ•°æ®åº“ /* Database to query */
+  struct callback_data *pArg, //å®šä¹‰ä¸€ä¸ªå›è°ƒå‡½æ•°çš„æŒ‡é’ˆ  /* Pointer to struct callback_data */
+  int bReset                 //å¯¹é‡ç½®æ“ä½œè¿›è¡Œåˆ¤æ–­ /* True to reset the stats */
 ){
-  int iCur;  //¶¨ÒåÁ½¸öÖ¸Ê¾±äÁ¿£¬´æ´¢µ±Ç°µÄÑ¡ÔñÖµ
-  int iHiwtr; //´æ´¢ÀúÊ·×î¸ßÖµ
+  int iCur;  //å®šä¹‰ä¸¤ä¸ªæŒ‡ç¤ºå˜é‡ï¼Œå­˜å‚¨å½“å‰çš„é€‰æ‹©å€¼
+  int iHiwtr; //å­˜å‚¨å†å²æœ€é«˜å€¼
 
-  if( pArg && pArg->out ){  //pArg->outÖ¸ÏòÓÃÓÚÊä³öµÄÎÄ¼şÁ÷
+  if( pArg && pArg->out ){  //pArg->outæŒ‡å‘ç”¨äºè¾“å‡ºçš„æ–‡ä»¶æµ
     
-    iHiwtr = iCur = -1;//¸³ÖµÎª-1
+    iHiwtr = iCur = -1;//èµ‹å€¼ä¸º-1
     sqlite3_status(SQLITE_STATUS_MEMORY_USED, &iCur, &iHiwtr, 
 
-bReset);//SQLITE_STATUS_MEMORY_USEDÈ·ÈÏµ±Ç°·ÃÎÊµÄÍ³¼ÆĞÅÏ¢£¬µ±Ç°Ñ¡ÔñµÄÖµ»áĞ´Èëµ½iCurÕûĞÍ²ÎÊı£¬ÀúÊ·
+bReset);//SQLITE_STATUS_MEMORY_USEDç¡®è®¤å½“å‰è®¿é—®çš„ç»Ÿè®¡ä¿¡æ¯ï¼Œå½“å‰é€‰æ‹©çš„å€¼ä¼šå†™å…¥åˆ°iCuræ•´å‹å‚æ•°ï¼Œå†å²
 
-×î¸ßÖµ»áĞ´Èëµ½iHiwtr²ÎÊıÖĞ¡£Èç¹ûbResetÎªtrue£¬ÔòÔÚµ÷ÓÃ·µ»ØÊ±iHiwtr±êÖ¾»áÖØÖÃÎªµ±Ç°Ñ¡ÔñµÄÖµ¡£
+æœ€é«˜å€¼ä¼šå†™å…¥åˆ°iHiwtrå‚æ•°ä¸­ã€‚å¦‚æœbResetä¸ºtrueï¼Œåˆ™åœ¨è°ƒç”¨è¿”å›æ—¶iHiwtræ ‡å¿—ä¼šé‡ç½®ä¸ºå½“å‰é€‰æ‹©çš„å€¼ã€‚
     fprintf(pArg->out, "Memory Used:                         %d (max %d) bytes\n", iCur, iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &iCur, &iHiwtr, bReset);//µ±Ç°µÄÄÚ´æ·ÖÅäĞÅÏ¢
+    sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &iCur, &iHiwtr, bReset);//å½“å‰çš„å†…å­˜åˆ†é…ä¿¡æ¯
     fprintf(pArg->out, "Number of Outstanding Allocations:   %d (max %d)\n", iCur, iHiwtr);
 /*
-** Not currently used by the CLI.  // Ã»ÓĞÊ¹ÓÃÃüÁîĞĞ½çÃæ
+** Not currently used by the CLI.  // æ²¡æœ‰ä½¿ç”¨å‘½ä»¤è¡Œç•Œé¢
 **    iHiwtr = iCur = -1;
-**    sqlite3_status(SQLITE_STATUS_PAGECACHE_USED, &iCur, &iHiwtr, bReset);//Ò³Ãæ»º´æÊ¹ÓÃĞÅÏ¢
-**    fprintf(pArg->out, "Number of Pcache Pages Used:         %d (max %d) pages\n", iCur, iHiwtr);//Ê¹
+**    sqlite3_status(SQLITE_STATUS_PAGECACHE_USED, &iCur, &iHiwtr, bReset);//é¡µé¢ç¼“å­˜ä½¿ç”¨ä¿¡æ¯
+**    fprintf(pArg->out, "Number of Pcache Pages Used:         %d (max %d) pages\n", iCur, iHiwtr);//ä½¿
 
-ÓÃµÄ¼Ä´æÆ÷Ò³ÃæµÄÊıÁ¿
+ç”¨çš„å¯„å­˜å™¨é¡µé¢çš„æ•°é‡
 */
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &iCur, &iHiwtr, bReset);//Ò³Ãæ»º´æÒç³öĞÅÏ¢
+    sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &iCur, &iHiwtr, bReset);//é¡µé¢ç¼“å­˜æº¢å‡ºä¿¡æ¯
     fprintf(pArg->out, "Number of Pcache Overflow Bytes:     %d (max %d) bytes\n", iCur, iHiwtr);
 /*
 ** Not currently used by the CLI.
 **    iHiwtr = iCur = -1;
-**    sqlite3_status(SQLITE_STATUS_SCRATCH_USED, &iCur, &iHiwtr, bReset); //¼ÇÂ¼ĞÅÏ¢
+**    sqlite3_status(SQLITE_STATUS_SCRATCH_USED, &iCur, &iHiwtr, bReset); //è®°å½•ä¿¡æ¯
 **    fprintf(pArg->out, "Number of Scratch Allocations Used:  %d (max %d)\n", iCur, iHiwtr);
 */
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_SCRATCH_OVERFLOW, &iCur, &iHiwtr, bReset);//¼ÇÂ¼ĞÅÏ¢Òç³ö
+    sqlite3_status(SQLITE_STATUS_SCRATCH_OVERFLOW, &iCur, &iHiwtr, bReset);//è®°å½•ä¿¡æ¯æº¢å‡º
     fprintf(pArg->out, "Number of Scratch Overflow Byt es:    %d (max %d) bytes\n", iCur, iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &iCur, &iHiwtr, bReset);//·ÖÅäµÄÄÚ´æ´óĞ¡
+    sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &iCur, &iHiwtr, bReset);//åˆ†é…çš„å†…å­˜å¤§å°
 	.
     fprintf(pArg->out, "Largest Allocation:                  %d bytes\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PAGECACHE_SIZE, &iCur, &iHiwtr, bReset);//Ò³Ãæ»º´æµÄ´óĞ¡ĞÅÏ¢
+    sqlite3_status(SQLITE_STATUS_PAGECACHE_SIZE, &iCur, &iHiwtr, bReset);//é¡µé¢ç¼“å­˜çš„å¤§å°ä¿¡æ¯
     fprintf(pArg->out, "Largest Pcache Allocation:           %d bytes\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_SCRATCH_SIZE, &iCur, &iHiwtr, bReset);//¼ÇÂ¼ĞÅÏ¢µÄ´óĞ¡
+    sqlite3_status(SQLITE_STATUS_SCRATCH_SIZE, &iCur, &iHiwtr, bReset);//è®°å½•ä¿¡æ¯çš„å¤§å°
     fprintf(pArg->out, "Largest Scratch Allocation:          %d bytes\n", iHiwtr);
 #ifdef YYTRACKMAXSTACKDEPTH
     iHiwtr = iCur = -1;
-    sqlite3_status(SQLITE_STATUS_PARSER_STACK, &iCur, &iHiwtr, bReset); //½âÎöÆ÷¶ÑÕ»
+    sqlite3_status(SQLITE_STATUS_PARSER_STACK, &iCur, &iHiwtr, bReset); //è§£æå™¨å †æ ˆ
     fprintf(pArg->out, "Deepest Parser Stack:                %d (max %d)\n", iCur, iHiwtr);
 #endif
   }
-//¶ÔÓÚµ¥¸öÊı¾İ¿âÁ¬½ÓµÄÍ³¼Æ
-  if( pArg && pArg->out && db ){//Èç¹ûµÃµ½Êä³öÎÄ¼şÁ÷ºÍÊı¾İ¿âÁ¬½Ó³É¹¦
-    iHiwtr = iCur = -1;//¸³Öµ-1
+//å¯¹äºå•ä¸ªæ•°æ®åº“è¿æ¥çš„ç»Ÿè®¡
+  if( pArg && pArg->out && db ){//å¦‚æœå¾—åˆ°è¾“å‡ºæ–‡ä»¶æµå’Œæ•°æ®åº“è¿æ¥æˆåŠŸ
+    iHiwtr = iCur = -1;//èµ‹å€¼-1
     sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr, 
 
-bReset);//sqlite3_db_status()¶àÒ»¸öÊı¾İ¿âÁ¬½Ó²ÎÊı£¬²¢ÇÒ·µ»ØµÄÊÇÕâ¸öÁ¬½ÓµÄÄÚ´æÍ³¼ÆĞÅÏ¢£¬¶ø²»ÊÇÕû¸öSQLite
+bReset);//sqlite3_db_status()å¤šä¸€ä¸ªæ•°æ®åº“è¿æ¥å‚æ•°ï¼Œå¹¶ä¸”è¿”å›çš„æ˜¯è¿™ä¸ªè¿æ¥çš„å†…å­˜ç»Ÿè®¡ä¿¡æ¯ï¼Œè€Œä¸æ˜¯æ•´ä¸ªSQLite
 
-¿â
+åº“
     fprintf(pArg->out, "Lookaside Slots Used:                %d (max %d)\n", iCur, iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);//ºó±¸ÃüÖĞ
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);//åå¤‡å‘½ä¸­
     fprintf(pArg->out, "Successful lookaside attempts:       %d\n", iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);//ºó±¸È±Ê§
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);//åå¤‡ç¼ºå¤±
 
-´óĞ¡
+å¤§å°
     fprintf(pArg->out, "Lookaside failures due to size:      %d\n", iHiwtr);
-    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);//ºó±¸Ê§°Ü
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);//åå¤‡å¤±è´¥
     fprintf(pArg->out, "Lookaside failures due to OOM:       %d\n", iHiwtr);
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);//Ò³Ãæ¶ÑÊ¹ÓÃ
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);//é¡µé¢å †ä½¿ç”¨
     fprintf(pArg->out, "Pager Heap Usage:                    %d bytes\n", iCur);    iHiwtr = iCur = -1;
     sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &iCur, &iHiwtr, 1);
-    fprintf(pArg->out, "Page cache hits:                     %d\n", iCur);//Ò³ÃæµÄ¸ßËÙ»º´æÃüÖĞ
+    fprintf(pArg->out, "Page cache hits:                     %d\n", iCur);//é¡µé¢çš„é«˜é€Ÿç¼“å­˜å‘½ä¸­
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &iCur, &iHiwtr, 1);//Ò³ÃæµÄ»º´æ¶ªÊ§
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &iCur, &iHiwtr, 1);//é¡µé¢çš„ç¼“å­˜ä¸¢å¤±
     fprintf(pArg->out, "Page cache misses:                   %d\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_WRITE, &iCur, &iHiwtr, 1);//Ò³Ãæ¸ßËÙ»º´æ¶ªÊ§
+    sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_WRITE, &iCur, &iHiwtr, 1);//é¡µé¢é«˜é€Ÿç¼“å­˜ä¸¢å¤±
     fprintf(pArg->out, "Page cache writes:                   %d\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_SCHEMA_USED, &iCur, &iHiwtr, bReset);//Ä£Ê½µÄ¶ÑÊ¹ÓÃ
+    sqlite3_db_status(db, SQLITE_DBSTATUS_SCHEMA_USED, &iCur, &iHiwtr, bReset);//æ¨¡å¼çš„å †ä½¿ç”¨
     fprintf(pArg->out, "Schema Heap Usage:                   %d bytes\n", iCur); 
     iHiwtr = iCur = -1;
-    sqlite3_db_status(db, SQLITE_DBSTATUS_STMT_USED, &iCur, &iHiwtr, bReset);//ÉùÃ÷µÄ¶ÑºÍºó±¸Ê¹ÓÃ
+    sqlite3_db_status(db, SQLITE_DBSTATUS_STMT_USED, &iCur, &iHiwtr, bReset);//å£°æ˜çš„å †å’Œåå¤‡ä½¿ç”¨
     fprintf(pArg->out, "Statement Heap/Lookaside Usage:      %d bytes\n", iCur); 
   }
 
-  if( pArg && pArg->out && db && pArg->pStmt ){//Èç¹ûµÃµ½ÊäÈëÊı¾İÁ÷ºÍµ±Ç°µÄÉùÃ÷¾ä±ú
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, bReset);//°´²½É¨Ãè
+  if( pArg && pArg->out && db && pArg->pStmt ){//å¦‚æœå¾—åˆ°è¾“å…¥æ•°æ®æµå’Œå½“å‰çš„å£°æ˜å¥æŸ„
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, bReset);//æŒ‰æ­¥æ‰«æ
     fprintf(pArg->out, "Fullscan Steps:                      %d\n", iCur);
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_SORT, bReset);//ÅÅĞò²Ù×÷
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_SORT, bReset);//æ’åºæ“ä½œ
     fprintf(pArg->out, "Sort Operations:                     %d\n", iCur);
-    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_AUTOINDEX, bReset);//×Ô¶¯Ë÷Òı
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_AUTOINDEX, bReset);//è‡ªåŠ¨ç´¢å¼•
     fprintf(pArg->out, "Autoindex Inserts:                   %d\n", iCur);
   }
   
@@ -1204,86 +1204,86 @@ bReset);//sqlite3_db_status()¶àÒ»¸öÊı¾İ¿âÁ¬½Ó²ÎÊı£¬²¢ÇÒ·µ»ØµÄÊÇÕâ¸öÁ¬½ÓµÄÄÚ´æÍ³¼
 ** and callback data argument.
 */
 
-/*Ö´ĞĞÒ»¸ö»òÒ»×éÓï¾ä£¬¸ù¾İµ±Ç°Ä£Ê½Êä³ö½á¹û£¬ºÍsqlite3_exec()º¯ÊıÏàËÆ/*
+/*æ‰§è¡Œä¸€ä¸ªæˆ–ä¸€ç»„è¯­å¥ï¼Œæ ¹æ®å½“å‰æ¨¡å¼è¾“å‡ºç»“æœï¼Œå’Œsqlite3_exec()å‡½æ•°ç›¸ä¼¼*/
 
 static int shell_exec(
-  sqlite3 *db,                                /* An open database */ /*Ò»¸ö´ò¿ªµÄÊı¾İ¿â*/
-  const char *zSql,                           /* SQL to be evaluated */ /*ÒªÖ´ĞĞµÄSQLÓï¾ä*/
-  int (*xCallback)(void*,int,char**,char**,int*),   /* Callback function */ /*»Øµ÷º¯Êı*/
+  sqlite3 *db,                                /* An open database */ /*ä¸€ä¸ªæ‰“å¼€çš„æ•°æ®åº“*/
+  const char *zSql,                           /* SQL to be evaluated */ /*è¦æ‰§è¡Œçš„SQLè¯­å¥*/
+  int (*xCallback)(void*,int,char**,char**,int*),   /* Callback function */ /*å›è°ƒå‡½æ•°*/
                                               /* (not the same as sqlite3_exec) */
-  struct callback_data *pArg,                 /* Pointer to struct callback_data */ /*Õâ½á¹¹ÌåÇ°Ãæ¶¨Òå¹ı£¬ÓÃÀ´»ØÏÔÎÒÃÇĞèÒªµÄÖµ*/
-  char **pzErrMsg                             /* Error msg written here */ /*ÓÃÓÚ±£´æ´íÎóĞÅÏ¢*/
+  struct callback_data *pArg,                 /* Pointer to struct callback_data */ /*è¿™ç»“æ„ä½“å‰é¢å®šä¹‰è¿‡ï¼Œç”¨æ¥å›æ˜¾æˆ‘ä»¬éœ€è¦çš„å€¼*/
+  char **pzErrMsg                             /* Error msg written here */ /*ç”¨äºä¿å­˜é”™è¯¯ä¿¡æ¯*/
 ){
-  sqlite3_stmt *pStmt = NULL;     /* Statement to execute. */ /*pStmt´æ·Åµ±Ç°µÄSQLÓï¾ä£¬Ä¿Ç°Îª¿Õ*/
-  int rc = SQLITE_OK;             /* Return Code */ /*·µ»ØÂërc ¸³ÖµÎªSQLITE_OK±íÊ¾Õı³£*/
+  sqlite3_stmt *pStmt = NULL;     /* Statement to execute. */ /*pStmtå­˜æ”¾å½“å‰çš„SQLè¯­å¥ï¼Œç›®å‰ä¸ºç©º*/
+  int rc = SQLITE_OK;             /* Return Code */ /*è¿”å›ç rc èµ‹å€¼ä¸ºSQLITE_OKè¡¨ç¤ºæ­£å¸¸*/
   int rc2;
-  const char *zLeftover;          /* Tail of unprocessed SQL */ /*Ö¸ÏòÎ´´¦ÀíµÄSQLÓï¾äÎ²²¿*/
+  const char *zLeftover;          /* Tail of unprocessed SQL */ /*æŒ‡å‘æœªå¤„ç†çš„SQLè¯­å¥å°¾éƒ¨*/
 
   if( pzErrMsg ){
-    *pzErrMsg = NULL; /*´íÎóĞÅÏ¢³õÊ¼»¯Îª¿Õ*/
+    *pzErrMsg = NULL; /*é”™è¯¯ä¿¡æ¯åˆå§‹åŒ–ä¸ºç©º*/
   }
 
-  while( zSql[0] && (SQLITE_OK == rc) ){/*»¹Î´Ö´ĞĞÓï¾ä£¬ÇÒ·µ»ØÂëÊÇSQLITE_OK±íÊ¾Ò»ÇĞÕı³£*/
-    rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);/*±àÒëÓï¾ä*/
-    if( SQLITE_OK != rc ){/*Èç¹ûÓĞ´í*/
+  while( zSql[0] && (SQLITE_OK == rc) ){/*è¿˜æœªæ‰§è¡Œè¯­å¥ï¼Œä¸”è¿”å›ç æ˜¯SQLITE_OKè¡¨ç¤ºä¸€åˆ‡æ­£å¸¸*/
+    rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);/*ç¼–è¯‘è¯­å¥*/
+    if( SQLITE_OK != rc ){/*å¦‚æœæœ‰é”™*/
       if( pzErrMsg ){
-        *pzErrMsg = save_err_msg(db);/*Ğ´Èë´íÎóĞÅÏ¢*/
+        *pzErrMsg = save_err_msg(db);/*å†™å…¥é”™è¯¯ä¿¡æ¯*/
       }
     }else{
       if( !pStmt ){
-        /* this happens for a comment or white-space *//*Óöµ½×¢ÊÍ»òÕß¿Õ¸ñÊ±£¬Ö´ĞĞ´Ë·ÖÖ§*/
-        zSql = zLeftover;/*½«Óï¾äÖ¸ÕëÒÆµ½Î´±»´¦ÀíµÄÓï¾äÎ²²¿*/
-        while( IsSpace(zSql[0]) ) zSql++;/*Ñ­»·´¦ÀíÓï¾ä*/
+        /* this happens for a comment or white-space *//*é‡åˆ°æ³¨é‡Šæˆ–è€…ç©ºæ ¼æ—¶ï¼Œæ‰§è¡Œæ­¤åˆ†æ”¯*/
+        zSql = zLeftover;/*å°†è¯­å¥æŒ‡é’ˆç§»åˆ°æœªè¢«å¤„ç†çš„è¯­å¥å°¾éƒ¨*/
+        while( IsSpace(zSql[0]) ) zSql++;/*å¾ªç¯å¤„ç†è¯­å¥*/
         continue;
       }
 
-      /* save off the prepared statment handle and reset row count */ /*±£´æ×¼±¸ºÃµÄ¾ä±ú£¬ÖØÖÃĞĞÊı*/
+      /* save off the prepared statment handle and reset row count */ /*ä¿å­˜å‡†å¤‡å¥½çš„å¥æŸ„ï¼Œé‡ç½®è¡Œæ•°*/
       if( pArg ){
         pArg->pStmt = pStmt;
-        pArg->cnt = 0;/*ÖØÖÃĞĞÊıÎª0
+        pArg->cnt = 0;/*é‡ç½®è¡Œæ•°ä¸º0
       }
 
-      /* echo the sql statement if echo on *//*Èç¹ûĞèÒª»ØÏÔÔò»ØÏÔ×¼±¸ºÃµÄÃüÁîĞĞ*/
+      /* echo the sql statement if echo on *//*å¦‚æœéœ€è¦å›æ˜¾åˆ™å›æ˜¾å‡†å¤‡å¥½çš„å‘½ä»¤è¡Œ*/
       if( pArg && pArg->echoOn ){
         const char *zStmtSql = sqlite3_sql(pStmt);
         fprintf(pArg->out, "%s\n", zStmtSql ? zStmtSql : zSql);
       }
 
-      /* Output TESTCTRL_EXPLAIN text of requested *//*Êä³öĞèÒªµÄTESTCTRL_EXPLAINÎÄµµ*/
+      /* Output TESTCTRL_EXPLAIN text of requested *//*è¾“å‡ºéœ€è¦çš„TESTCTRL_EXPLAINæ–‡æ¡£*/
       if( pArg && pArg->mode==MODE_Explain ){
         const char *zExplain = 0;
-        sqlite3_test_control(SQLITE_TESTCTRL_EXPLAIN_STMT, pStmt, &zExplain);/*ÕâÊÇÒ»¸ö¼ì²âSqlite¿âÊÇ·ñÕıÈ·µÄº¯Êı*/
+        sqlite3_test_control(SQLITE_TESTCTRL_EXPLAIN_STMT, pStmt, &zExplain);/*è¿™æ˜¯ä¸€ä¸ªæ£€æµ‹Sqliteåº“æ˜¯å¦æ­£ç¡®çš„å‡½æ•°*/
         if( zExplain && zExplain[0] ){
           fprintf(pArg->out, "%s", zExplain);
         }
       }
-            /*Ö´ĞĞµÚÒ»²½£¬È»ºó»áÖªµÀÊÇ·ñÓĞÒ»¸ö½á¹û£¬ÒÔ¼°ËüµÄ´óĞ¡*/
+            /*æ‰§è¡Œç¬¬ä¸€æ­¥ï¼Œç„¶åä¼šçŸ¥é“æ˜¯å¦æœ‰ä¸€ä¸ªç»“æœï¼Œä»¥åŠå®ƒçš„å¤§å°*/
       /* perform the first step.  this will tell us if we
       ** have a result set or not and how wide it is.
       */
-      rc = sqlite3_step(pStmt);/*Ö´ĞĞÓï¾ä*/
-      /* if we have a result set... *//*Èç¹ûÒÑ¾­²úÉúÁËÒ»¸ö½á¹û*/
+      rc = sqlite3_step(pStmt);/*æ‰§è¡Œè¯­å¥*/
+      /* if we have a result set... *//*å¦‚æœå·²ç»äº§ç”Ÿäº†ä¸€ä¸ªç»“æœ*/
       if( SQLITE_ROW == rc ){
-        /* if we have a callback... *//*Èç¹ûÓĞ»Øµ÷º¯Êı£¬Ö´ĞĞ*/
+        /* if we have a callback... *//*å¦‚æœæœ‰å›è°ƒå‡½æ•°ï¼Œæ‰§è¡Œ*/
         if( xCallback ){
-          /* allocate space for col name ptr, value ptr, and type *//*·ÖÅä¿Õ¼ä*/
-          int nCol = sqlite3_column_count(pStmt);/*È¡×Ö¶ÎÊı*/
-          void *pData = sqlite3_malloc(3*nCol*sizeof(const char*) + 1);/*¸ù¾İ×Ö¶ÎÊı·ÖÅä¿Õ¼ä*/
-          if( !pData ){/*Èç¹ûÕâÒ»²½·¢Éú´íÎó*/
-            rc = SQLITE_NOMEM;/*Ôò·µ»ØSQLITE_NOMEM±íÊ¾mallocº¯Êıµ÷ÓÃÊ§°Ü*/
+          /* allocate space for col name ptr, value ptr, and type *//*åˆ†é…ç©ºé—´*/
+          int nCol = sqlite3_column_count(pStmt);/*å–å­—æ®µæ•°*/
+          void *pData = sqlite3_malloc(3*nCol*sizeof(const char*) + 1);/*æ ¹æ®å­—æ®µæ•°åˆ†é…ç©ºé—´*/
+          if( !pData ){/*å¦‚æœè¿™ä¸€æ­¥å‘ç”Ÿé”™è¯¯*/
+            rc = SQLITE_NOMEM;/*åˆ™è¿”å›SQLITE_NOMEMè¡¨ç¤ºmallocå‡½æ•°è°ƒç”¨å¤±è´¥*/
           }else{                                                                             
-            char **azCols = (char **)pData;      /* Names of result columns *//*½á¹û¼¯µÄÃû×Ö*/
-            char **azVals = &azCols[nCol];       /* Results *//*½á¹û*/
-            int *aiTypes = (int *)&azVals[nCol]; /* Result types *//*½á¹ûÀàĞÍ*/
+            char **azCols = (char **)pData;      /* Names of result columns *//*ç»“æœé›†çš„åå­—*/
+            char **azVals = &azCols[nCol];       /* Results *//*ç»“æœ*/
+            int *aiTypes = (int *)&azVals[nCol]; /* Result types *//*ç»“æœç±»å‹*/
             int i;
             assert(sizeof(int) <= sizeof(char *)); 
-            /* save off ptrs to column names *//* È¡¸÷×Ö¶ÎµÄÃû³Æ*/
+            /* save off ptrs to column names *//* å–å„å­—æ®µçš„åç§°*/
             for(i=0; i<nCol; i++){ 
               azCols[i] = (char *)sqlite3_column_name(pStmt, i);
             }
             do{
-              /* extract the data and data types *//*ÌáÈ¡Êı¾İºÍÊı¾İÀàĞÍ*/
-              for(i=0; i<nCol; i++){/*È¡¸÷×Ö¶ÎµÄÖµ*/
+              /* extract the data and data types *//*æå–æ•°æ®å’Œæ•°æ®ç±»å‹*/
+              for(i=0; i<nCol; i++){/*å–å„å­—æ®µçš„å€¼*/
                 azVals[i] = (char *)sqlite3_column_text(pStmt, i);
                 aiTypes[i] = sqlite3_column_type(pStmt, i);
                 if( !azVals[i] && (aiTypes[i]!=SQLITE_NULL) ){
@@ -1292,26 +1292,26 @@ static int shell_exec(
                 }
               } /* end for */
 
-              /* if data and types extracted successfully... *//*Èç¹ûÊı¾İÒÔ¼°ÀàĞÍÌáÈ¡³É¹¦*/
+              /* if data and types extracted successfully... *//*å¦‚æœæ•°æ®ä»¥åŠç±»å‹æå–æˆåŠŸ*/
               if( SQLITE_ROW == rc ){ 
-                /* call the supplied callback with the result row data *//*¸ù¾İµ±Ç°Êı¾İµ÷ÓÃ»Øµ÷º¯Êı¶Ô·µ»ØµÄ¼ÇÂ¼½øĞĞ´¦Àí*/
+                /* call the supplied callback with the result row data *//*æ ¹æ®å½“å‰æ•°æ®è°ƒç”¨å›è°ƒå‡½æ•°å¯¹è¿”å›çš„è®°å½•è¿›è¡Œå¤„ç†*/
                 if( xCallback(pArg, nCol, azVals, azCols, aiTypes) ){
-                  rc = SQLITE_ABORT;/*»Øµ÷º¯ÊıÇëÇóÖĞ¶Ï*/
+                  rc = SQLITE_ABORT;/*å›è°ƒå‡½æ•°è¯·æ±‚ä¸­æ–­*/
                 }else{
-                  rc = sqlite3_step(pStmt);/*Èç¹ûÃ»ÓĞÖÕ¶Ë¾ÍÖ´ĞĞÓï¾ä*/
+                  rc = sqlite3_step(pStmt);/*å¦‚æœæ²¡æœ‰ç»ˆç«¯å°±æ‰§è¡Œè¯­å¥*/
                 }
               }
-            } while( SQLITE_ROW == rc );/*µÃµ½½á¹ûºóÊÍ·Å¿Õ¼ä*/
+            } while( SQLITE_ROW == rc );/*å¾—åˆ°ç»“æœåé‡Šæ”¾ç©ºé—´*/
             sqlite3_free(pData);
           }
         }else{
           do{
-            rc = sqlite3_step(pStmt);/*Ö´ĞĞÓï¾ä*/
+            rc = sqlite3_step(pStmt);/*æ‰§è¡Œè¯­å¥*/
           } while( rc == SQLITE_ROW );
         }
       }
 
-      /* print usage stats if stats on *//*Èç¹û¿ªÆôÁËÍ³¼Æ ÄÇ¾ÍÏÔÊ¾Í³¼Æ*/
+      /* print usage stats if stats on *//*å¦‚æœå¼€å¯äº†ç»Ÿè®¡ é‚£å°±æ˜¾ç¤ºç»Ÿè®¡*/
       if( pArg && pArg->statsOn ){
         display_stats(db, pArg, 0);
       }
@@ -1319,22 +1319,22 @@ static int shell_exec(
       /* Finalize the statement just executed. If this fails, save a 
       ** copy of the error message. Otherwise, set zSql to point to the
       ** next statement to execute. */
-      /*Íê³ÉÓï¾äµÄÖ´ĞĞ£¬Èç¹ûÊ§°Ü±£´æ´íÎóĞÅÏ¢£¬·ñÔò½«Ö¸ÕëÖ¸ÏòÏÂÒ»¸öĞèÒªÖ´ĞĞµÄÓï¾ä*/
+      /*å®Œæˆè¯­å¥çš„æ‰§è¡Œï¼Œå¦‚æœå¤±è´¥ä¿å­˜é”™è¯¯ä¿¡æ¯ï¼Œå¦åˆ™å°†æŒ‡é’ˆæŒ‡å‘ä¸‹ä¸€ä¸ªéœ€è¦æ‰§è¡Œçš„è¯­å¥*/
       rc2 = sqlite3_finalize(pStmt);
       if( rc!=SQLITE_NOMEM ) rc = rc2;
       if( rc==SQLITE_OK ){
-        zSql = zLeftover;/*Ö¸ÏòÏÂÒ»¸öĞèÒªÖ´ĞĞµÄÓï¾ä*/
+        zSql = zLeftover;/*æŒ‡å‘ä¸‹ä¸€ä¸ªéœ€è¦æ‰§è¡Œçš„è¯­å¥*/
         while( IsSpace(zSql[0]) ) zSql++;
       }else if( pzErrMsg ){
-        *pzErrMsg = save_err_msg(db);/*·ñÔò±£´æ´íÎóĞÅÏ¢*/
+        *pzErrMsg = save_err_msg(db);/*å¦åˆ™ä¿å­˜é”™è¯¯ä¿¡æ¯*/
       }
 
-      /* clear saved stmt handle *//*Çå³ıÒÑ±£´æµÄ¾ä±ú*/
+      /* clear saved stmt handle *//*æ¸…é™¤å·²ä¿å­˜çš„å¥æŸ„*/
       if( pArg ){
         pArg->pStmt = NULL;
       }
     }
-  } /* end while *//*½áÊøÑ­»·*/
+  } /* end while *//*ç»“æŸå¾ªç¯*/
 
   return rc;
 }
@@ -1348,71 +1348,71 @@ static int shell_exec(
 */
 
 /*
-**ÕâÊÇÒ»¸öÓÃÓÚ×ª´¢Êı¾İ¿âµÄ»Øµ÷º¯Êı £¬Ëü»áÊÕµ½ÓÉ±íÃû¡¢±íÀà
-**ĞÍ£¨Ë÷Òı»¹ÊÇ±í£©ºÍ´´½¨Õâ±íµÄSQLµÄĞĞ£¬Õâ³ÌĞòÓ¦Êä³ö×ã¹»µÄ¿ÉÒÔ
-**ÖØ½¨±íµÄÎÄµµ¡£
+**è¿™æ˜¯ä¸€ä¸ªç”¨äºè½¬å‚¨æ•°æ®åº“çš„å›è°ƒå‡½æ•° ï¼Œå®ƒä¼šæ”¶åˆ°ç”±è¡¨åã€è¡¨ç±»
+**å‹ï¼ˆç´¢å¼•è¿˜æ˜¯è¡¨ï¼‰å’Œåˆ›å»ºè¿™è¡¨çš„SQLçš„è¡Œï¼Œè¿™ç¨‹åºåº”è¾“å‡ºè¶³å¤Ÿçš„å¯ä»¥
+**é‡å»ºè¡¨çš„æ–‡æ¡£ã€‚
 */
 
 
 static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
   int rc; 
-  const char *zTable;/*±íÃû*/
-  const char *zType;/*±íÀàĞÍ*/
-  const char *zSql;/*SQLÓï¾ä*/
+  const char *zTable;/*è¡¨å*/
+  const char *zType;/*è¡¨ç±»å‹*/
+  const char *zSql;/*SQLè¯­å¥*/
   const char *zPrepStmt = 0;
   struct callback_data *p = (struct callback_data *)pArg;
-/*ÕâÊÇÒ»¸öcallback_data½á¹¹Ìå£¬ÓÃÀ´½øĞĞ¸÷ÖÖ³ÌĞòÖ®¼äµÄ´«ÖµÒÔ¼°»ñÈ¡µ±Ç°×´Ì¬*/
-  UNUSED_PARAMETER(azCol);/*±íÊ¾²»Ê¹ÓÃ×îºóÒ»¸ö²ÎÊı*/
-  if( nArg!=3 ) return 1;/* Èç¹ûÈı¸ö²ÎÊı²»È«Ôò±íÊ¾´íÎó*/
+/*è¿™æ˜¯ä¸€ä¸ªcallback_dataç»“æ„ä½“ï¼Œç”¨æ¥è¿›è¡Œå„ç§ç¨‹åºä¹‹é—´çš„ä¼ å€¼ä»¥åŠè·å–å½“å‰çŠ¶æ€*/
+  UNUSED_PARAMETER(azCol);/*è¡¨ç¤ºä¸ä½¿ç”¨æœ€åä¸€ä¸ªå‚æ•°*/
+  if( nArg!=3 ) return 1;/* å¦‚æœä¸‰ä¸ªå‚æ•°ä¸å…¨åˆ™è¡¨ç¤ºé”™è¯¯*/
   zTable = azArg[0];
-  zType = azArg[1];/*½«azArgµÄÈı¸öÔªËØÉèÖÃÎª±íÃû ±íÀàĞÍ SQLÓï¾ä*/
+  zType = azArg[1];/*å°†azArgçš„ä¸‰ä¸ªå…ƒç´ è®¾ç½®ä¸ºè¡¨å è¡¨ç±»å‹ SQLè¯­å¥*/
   zSql = azArg[2];
-  /*Èç¹û±íÃû×ÖÎª"sqlite_sequence"£¬µ±SQLiteÊı¾İ¿âÖĞ°üº¬×ÔÔöÁĞÊ±,»á×Ô¶¯½¨Á¢Ò»¸öÃûÎª sqlite_sequence µÄ±í*/
+  /*å¦‚æœè¡¨åå­—ä¸º"sqlite_sequence"ï¼Œå½“SQLiteæ•°æ®åº“ä¸­åŒ…å«è‡ªå¢åˆ—æ—¶,ä¼šè‡ªåŠ¨å»ºç«‹ä¸€ä¸ªåä¸º sqlite_sequence çš„è¡¨*/
   if( strcmp(zTable, "sqlite_sequence")==0 ){ 
-    zPrepStmt = "DELETE FROM sqlite_sequence;\n";/*½«ËùÓĞ±íµÄ×ÔÔöÁĞ¶¼¹éÁã*/
-     /*Èç¹ûzTableµÄÖµÎª"sqlite_stat1"£¬ËùÓĞµÄÍ³¼ÆĞÅÏ¢´¢´æÔÚÒ»¸öÃû½Ğsqlite_stat1 µÄ±íÖĞ*/
+    zPrepStmt = "DELETE FROM sqlite_sequence;\n";/*å°†æ‰€æœ‰è¡¨çš„è‡ªå¢åˆ—éƒ½å½’é›¶*/
+     /*å¦‚æœzTableçš„å€¼ä¸º"sqlite_stat1"ï¼Œæ‰€æœ‰çš„ç»Ÿè®¡ä¿¡æ¯å‚¨å­˜åœ¨ä¸€ä¸ªåå«sqlite_stat1 çš„è¡¨ä¸­*/
   }else if( strcmp(zTable, "sqlite_stat1")==0 ){ 
-    fprintf(p->out, "ANALYZE sqlite_master;\n");/*sqlite_master Õâ¸ö±íÒ²ÊÇ×Ô¶¯Éú³ÉµÄ£¬ÀïÃæ±£´æÁËsqLiteµÄ¿ò¼Ü*/
+    fprintf(p->out, "ANALYZE sqlite_master;\n");/*sqlite_master è¿™ä¸ªè¡¨ä¹Ÿæ˜¯è‡ªåŠ¨ç”Ÿæˆçš„ï¼Œé‡Œé¢ä¿å­˜äº†sqLiteçš„æ¡†æ¶*/
   }else if( strncmp(zTable, "sqlite_", 7)==0 ){
     return 0;
-  }else if( strncmp(zSql, "CREATE VIRTUAL TABLE", 20)==0 ){ /*Èç¹ûSQLÓï¾ä±íÊ¾´´½¨Ò»¸öĞéÄâ±í*/
+  }else if( strncmp(zSql, "CREATE VIRTUAL TABLE", 20)==0 ){ /*å¦‚æœSQLè¯­å¥è¡¨ç¤ºåˆ›å»ºä¸€ä¸ªè™šæ‹Ÿè¡¨*/
     char *zIns;
     if( !p->writableSchema ){
-      fprintf(p->out, "PRAGMA writable_schema=ON;\n");/*Èç¹û²»ÊÇ¿ÉĞ´Ä£Ê½ ĞèÒªÏÈµ÷Õûµ½¿ÉĞ´Ä£Ê½*/
+      fprintf(p->out, "PRAGMA writable_schema=ON;\n");/*å¦‚æœä¸æ˜¯å¯å†™æ¨¡å¼ éœ€è¦å…ˆè°ƒæ•´åˆ°å¯å†™æ¨¡å¼*/
       p->writableSchema = 1;
     }
-    zIns = sqlite3_mprintf(/*¸ñÊ½»¯ÊäÈë±íÃû ±íÀàĞÍ SQLÓï¾äµ½zIns*/
-       "INSERT INTO sqlite_master(type,name,tbl_name,rootpage,sql)"/*½«±íÃû ±íÀàĞÍ SQLÓï¾ä²åÈëµ½sqlite_maste±í*/
+    zIns = sqlite3_mprintf(/*æ ¼å¼åŒ–è¾“å…¥è¡¨å è¡¨ç±»å‹ SQLè¯­å¥åˆ°zIns*/
+       "INSERT INTO sqlite_master(type,name,tbl_name,rootpage,sql)"/*å°†è¡¨å è¡¨ç±»å‹ SQLè¯­å¥æ’å…¥åˆ°sqlite_masteè¡¨*/
        "VALUES('table','%q','%q',0,'%q');",
        zTable, zTable, zSql);
-    fprintf(p->out, "%s\n", zIns);/*¸ñÊ½»¯Êä³özInsµÄÄÚÈİ*/
-    sqlite3_free(zIns);/*ÊÍ·ÅzInsµÄÄÚÈİ*/
+    fprintf(p->out, "%s\n", zIns);/*æ ¼å¼åŒ–è¾“å‡ºzInsçš„å†…å®¹*/
+    sqlite3_free(zIns);/*é‡Šæ”¾zInsçš„å†…å®¹*/
     return 0;
-  }else{/*ÊÇ¿ÉĞ´Ä£Ê½¾ÍÖ±½Ó¸ñÊ½»¯Êä³özInsµÄÄÚÈİ*/
+  }else{/*æ˜¯å¯å†™æ¨¡å¼å°±ç›´æ¥æ ¼å¼åŒ–è¾“å‡ºzInsçš„å†…å®¹*/
     fprintf(p->out, "%s;\n", zSql);
   }
 
-  if( strcmp(zType, "table")==0 ){/*Èç¹û±íÀàĞÍÎª¡°table¡±*/
+  if( strcmp(zType, "table")==0 ){/*å¦‚æœè¡¨ç±»å‹ä¸ºâ€œtableâ€*/
     sqlite3_stmt *pTableInfo = 0;
     char *zSelect = 0;
     char *zTableInfo = 0;
     char *zTmp = 0;
     int nRow = 0;
-   /*ÓÃappendTextº¯Êı¸øzTableInfo¸³Öµ£¬Õâº¯ÊıÖ®Ç°ÓĞ¶¨Òå£¬ÓÃÓÚÓï¾äµÄÆ´½Ó*/
+   /*ç”¨appendTextå‡½æ•°ç»™zTableInfoèµ‹å€¼ï¼Œè¿™å‡½æ•°ä¹‹å‰æœ‰å®šä¹‰ï¼Œç”¨äºè¯­å¥çš„æ‹¼æ¥*/
     zTableInfo = appendText(zTableInfo, "PRAGMA table_info(", 0);
     zTableInfo = appendText(zTableInfo, zTable, '"');
     zTableInfo = appendText(zTableInfo, ");", 0);
  
-    rc = sqlite3_prepare(p->db, zTableInfo, -1, &pTableInfo, 0);/*½âÎöÓï¾ä*/
-    free(zTableInfo);/*ÊÍ·ÅzTableInfo*/
-    if( rc!=SQLITE_OK || !pTableInfo ){/*Èç¹û³öÏÖ´íÎó£¬·µ»Ø1*/
+    rc = sqlite3_prepare(p->db, zTableInfo, -1, &pTableInfo, 0);/*è§£æè¯­å¥*/
+    free(zTableInfo);/*é‡Šæ”¾zTableInfo*/
+    if( rc!=SQLITE_OK || !pTableInfo ){/*å¦‚æœå‡ºç°é”™è¯¯ï¼Œè¿”å›1*/
       return 1;
     }
-/*ÓÃappendTextº¯Êı¸øzSelect¸³Öµ*/
+/*ç”¨appendTextå‡½æ•°ç»™zSelectèµ‹å€¼*/
     zSelect = appendText(zSelect, "SELECT 'INSERT INTO ' || ", 0);
     /* Always quote the table name, even if it appears to be pure ascii,
     ** in case it is a keyword. Ex:  INSERT INTO "table" ... */
-    /*Ò»°ãÒıÓÃ±íÃû */
+    /*ä¸€èˆ¬å¼•ç”¨è¡¨å */
     zTmp = appendText(zTmp, zTable, '"');
     if( zTmp ){
       zSelect = appendText(zSelect, zTmp, '\'');
@@ -1420,11 +1420,11 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
     }
     zSelect = appendText(zSelect, " || ' VALUES(' || ", 0);
     rc = sqlite3_step(pTableInfo);
-    while( rc==SQLITE_ROW ){/*ÒÑ¾­²úÉúÒ»¸ö½á¹û*/
+    while( rc==SQLITE_ROW ){/*å·²ç»äº§ç”Ÿä¸€ä¸ªç»“æœ*/
       const char *zText = (const char *)sqlite3_column_text(pTableInfo, 1);
       zSelect = appendText(zSelect, "quote(", 0);
       zSelect = appendText(zSelect, zText, '"');
-      rc = sqlite3_step(pTableInfo);/*pTableInfo±íÊ¾µÄsqlÓï¾ä½«±»Ğ´ÈëÊı¾İ¿â*/
+      rc = sqlite3_step(pTableInfo);/*pTableInfoè¡¨ç¤ºçš„sqlè¯­å¥å°†è¢«å†™å…¥æ•°æ®åº“*/
       if( rc==SQLITE_ROW ){
         zSelect = appendText(zSelect, "), ", 0);
       }else{
@@ -1432,20 +1432,20 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
       }
       nRow++;
     }
-    rc = sqlite3_finalize(pTableInfo);/*Ïú»ÙpTableInfoliÀï·ÖÅäµÄÄÚÈİ*/
+    rc = sqlite3_finalize(pTableInfo);/*é”€æ¯pTableInfolié‡Œåˆ†é…çš„å†…å®¹*/
     if( rc!=SQLITE_OK || nRow==0 ){
       free(zSelect);
       return 1;
     }
     zSelect = appendText(zSelect, "|| ')' FROM  ", 0);
     zSelect = appendText(zSelect, zTable, '"');
- /*Ê¹ÓÃrun_table_dump_queryº¯Êı¿ÉÊµÏÖ²éÑ¯£¬½á¹û½«ÒÔSQLÓï¾äÊä³ö */
+ /*ä½¿ç”¨run_table_dump_queryå‡½æ•°å¯å®ç°æŸ¥è¯¢ï¼Œç»“æœå°†ä»¥SQLè¯­å¥è¾“å‡º */
     rc = run_table_dump_query(p, zSelect, zPrepStmt); 
-    if( rc==SQLITE_CORRUPT ){/* Êı¾İ¿â´ÅÅÌÓ³Ïñ²»ÕıÈ·*/
+    if( rc==SQLITE_CORRUPT ){/* æ•°æ®åº“ç£ç›˜æ˜ åƒä¸æ­£ç¡®*/
       zSelect = appendText(zSelect, " ORDER BY rowid DESC", 0);
       run_table_dump_query(p, zSelect, 0);
     }
-    free(zSelect);
+    free(zSelect);//é‡Šæ”¾ç©ºé—´
   }
   return 0;
 }
@@ -1457,31 +1457,31 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
 ** If we get a SQLITE_CORRUPT error, rerun the query after appending
 ** "ORDER BY rowid DESC" to the end.
 */
-/*ÔËĞĞzQuery£¬ÓÃdump_callback()×÷ÎªÒ»¸ö»Øµ÷³ÌĞòÄÇÃ´²éÑ¯µÄÄÚÈİ¾Í»á×÷ÎªSQLÓïÑÔÊä³ö*/
+/*è¿è¡ŒzQueryï¼Œç”¨dump_callback()ä½œä¸ºä¸€ä¸ªå›è°ƒç¨‹åºé‚£ä¹ˆæŸ¥è¯¢çš„å†…å®¹å°±ä¼šä½œä¸ºSQLè¯­è¨€è¾“å‡º*/
 static int run_schema_dump_query(
-  struct callback_data *p, /*Òª²éÑ¯µÄÄÚÈİ*/
+  struct callback_data *p, /*è¦æŸ¥è¯¢çš„å†…å®¹*/
   const char *zQuery
 ){
-  int rc;/*¶¨Òå·µ»ØÖµ*/
-  char *zErr = 0;/*³õÊ¼»¯´íÎóĞÅÏ¢*/
-  rc = sqlite3_exec(p->db, zQuery, dump_callback, p, &zErr);/*Ö´ĞĞ*/
-  if( rc==SQLITE_CORRUPT ){/* Êı¾İ¿â´ÅÅÌÓ³Ïñ²»ÕıÈ·*/
+  int rc;/*å®šä¹‰è¿”å›å€¼*/
+  char *zErr = 0;/*åˆå§‹åŒ–é”™è¯¯ä¿¡æ¯*/
+  rc = sqlite3_exec(p->db, zQuery, dump_callback, p, &zErr);/*æ‰§è¡Œ*/
+  if( rc==SQLITE_CORRUPT ){/* æ•°æ®åº“ç£ç›˜æ˜ åƒä¸æ­£ç¡®*/
     char *zQ2;
     int len = strlen30(zQuery);
     fprintf(p->out, "/****** CORRUPTION ERROR *******/\n"); 
     if( zErr ){
-      fprintf(p->out, "/****** %s ******/\n", zErr);/*Êä³ö´íÎóĞÅÏ¢*/
-      sqlite3_free(zErr);/*ÊÍ·Å¿Õ¼ä*/
+      fprintf(p->out, "/****** %s ******/\n", zErr);/*è¾“å‡ºé”™è¯¯ä¿¡æ¯*/
+      sqlite3_free(zErr);/*é‡Šæ”¾ç©ºé—´*/
       zErr = 0;
     }
-    zQ2 = malloc( len+100 );/*ÎªZQ2·ÖÅä¿Õ¼ä*/
+    zQ2 = malloc( len+100 );/*ä¸ºZQ2åˆ†é…ç©ºé—´*/
     if( zQ2==0 ) return rc;
-    sqlite3_snprintf(len+100, zQ2, "%s ORDER BY rowid DESC", zQuery);/*µ÷ÓÃsqlite3_snprintfº¯ÊıÊµÏÖÊä³ö*/
-    rc = sqlite3_exec(p->db, zQ2, dump_callback, p, &zErr);/*Ö´ĞĞ*/
+    sqlite3_snprintf(len+100, zQ2, "%s ORDER BY rowid DESC", zQuery);/*è°ƒç”¨sqlite3_snprintfå‡½æ•°å®ç°è¾“å‡º*/
+    rc = sqlite3_exec(p->db, zQ2, dump_callback, p, &zErr);/*æ‰§è¡Œ*/
     if( rc ){
       fprintf(p->out, "/****** ERROR: %s ******/\n", zErr);
     }else{
-      rc = SQLITE_CORRUPT;/* Êı¾İ¿â´ÅÅÌÓ³Ïñ²»ÕıÈ·*/
+      rc = SQLITE_CORRUPT;/* æ•°æ®åº“ç£ç›˜æ˜ åƒä¸æ­£ç¡®*/
     }
     sqlite3_free(zErr);
     free(zQ2);
@@ -1493,87 +1493,87 @@ static int run_schema_dump_query(
 ** Text of a help message
 */
 /*
-**°ïÖúĞÅÏ¢µÄÎÄµµ£¬ÀïÃæÊÇ¸÷ÖÖµãÃüÁîµÄËµÃ÷
+**å¸®åŠ©ä¿¡æ¯çš„æ–‡æ¡£ï¼Œé‡Œé¢æ˜¯å„ç§ç‚¹å‘½ä»¤çš„è¯´æ˜
 */
 static char zHelp[] =
-/*±¸·İÖ¸¶¨µÄÊı¾İ¿âµ½Ö¸¶¨µÄÎÄ¼ş£¬È±Ê¡Îªµ±Ç°Á¬½ÓµÄmainÊı¾İ¿â*/
+/*å¤‡ä»½æŒ‡å®šçš„æ•°æ®åº“åˆ°æŒ‡å®šçš„æ–‡ä»¶ï¼Œç¼ºçœä¸ºå½“å‰è¿æ¥çš„mainæ•°æ®åº“*/
   ".backup ?DB? FILE      Backup DB (default \"main\") to FILE\n" 
-  /*Óöµ½´íÎóºó²»ÔÙÔËĞĞ  Ä¬ÈÏÊÇOFF */
+  /*é‡åˆ°é”™è¯¯åä¸å†è¿è¡Œ  é»˜è®¤æ˜¯OFF */
   ".bail ON|OFF           Stop after hitting an error.  Default OFF\n"
-  /*ÁĞ³öÊı¾İ¿âÎÄ¼şÃû*/
+  /*åˆ—å‡ºæ•°æ®åº“æ–‡ä»¶å*/
   ".databases             List names and files of attached databases\n"
-  /*ÓÃÓÚ×ª´¢ ¿ÉÉú³ÉĞÎ³ÉÊı¾İ¿â±íµÄSQL½Å±¾*/
+  /*ç”¨äºè½¬å‚¨ å¯ç”Ÿæˆå½¢æˆæ•°æ®åº“è¡¨çš„SQLè„šæœ¬*/
   ".dump ?TABLE? ...      Dump the database in an SQL text format\n"
 
   "                         If TABLE specified, only dump tables matching\n"
   "                         LIKE pattern TABLE.\n"
-  /*ÏÔÊ¾¿ª¹Ø£¬ÉèÖÃÎªONºó£¬ÃüÁî»ØÏÔ */
+  /*æ˜¾ç¤ºå¼€å…³ï¼Œè®¾ç½®ä¸ºONåï¼Œå‘½ä»¤å›æ˜¾ */
   ".echo ON|OFF           Turn command echo on or off\n"
-  ".exit                  Exit this program\n" /*ÍË³öµ±Ç°³ÌĞò*/
-  /*¿ªÆô»ò¹Ø±ÕÊÊºÏÓÚ EXPLAIN µÄÊä³öÄ£Ê½¡£Èç¹ûÃ»ÓĞ´ø²ÎÊı£¬Ôò¿ªÆô EXPLAIN¡£*/
+  ".exit                  Exit this program\n" /*é€€å‡ºå½“å‰ç¨‹åº*/
+  /*å¼€å¯æˆ–å…³é—­é€‚åˆäº EXPLAIN çš„è¾“å‡ºæ¨¡å¼ã€‚å¦‚æœæ²¡æœ‰å¸¦å‚æ•°ï¼Œåˆ™å¼€å¯ EXPLAINã€‚*/
   ".explain ?ON|OFF?      Turn output mode suitable for EXPLAIN on or off.\n"
   "                         With no args, it turns EXPLAIN on.\n"
- /*´ò¿ª»òÕß¹Ø±Õ±íÍ·ÏÔÊ¾*/
+ /*æ‰“å¼€æˆ–è€…å…³é—­è¡¨å¤´æ˜¾ç¤º*/
   ".header(s) ON|OFF      Turn display of headers on or off\n"/
-  /*ÏÔÊ¾±¾ÎÄµµ£¬ÁĞ³öËùÓĞÄÚÖÃÃüÁî*/
+  /*æ˜¾ç¤ºæœ¬æ–‡æ¡£ï¼Œåˆ—å‡ºæ‰€æœ‰å†…ç½®å‘½ä»¤*/
   ".help                  Show this message\n"
-   /*µ¼ÈëÖ¸¶¨ÎÄ¼şµÄÊı¾İµ½Ö¸¶¨±í*/
+   /*å¯¼å…¥æŒ‡å®šæ–‡ä»¶çš„æ•°æ®åˆ°æŒ‡å®šè¡¨*/
   ".import FILE TABLE     Import data from FILE into TABLE\n"
-  /*ÏÔÊ¾ËùÓĞË÷ÒıµÄÃû×Ö£¬Èç¹ûÖ¸¶¨±íÃû£¬Ôò½ö½öÏÔÊ¾Æ¥Åä¸Ã±íÃûµÄÊı¾İ±íµÄË÷Òı£¬²ÎÊı*/
+  /*æ˜¾ç¤ºæ‰€æœ‰ç´¢å¼•çš„åå­—ï¼Œå¦‚æœæŒ‡å®šè¡¨åï¼Œåˆ™ä»…ä»…æ˜¾ç¤ºåŒ¹é…è¯¥è¡¨åçš„æ•°æ®è¡¨çš„ç´¢å¼•ï¼Œå‚æ•°*/
   ".indices ?TABLE?       Show names of all indices\n"
   "                         If TABLE specified, only show indices for tables\n"  
   "                         matching LIKE pattern TABLE.\n"
 #ifdef SQLITE_ENABLE_IOTRACE
-  ".iotrace FILE          Enable I/O diagnostic logging to FILE\n"/*ÆôÓÃI/OÕï¶Ï¼ÇÂ¼µ½ÎÄ¼ş*/
+  ".iotrace FILE          Enable I/O diagnostic logging to FILE\n"/*å¯ç”¨I/Oè¯Šæ–­è®°å½•åˆ°æ–‡ä»¶*/
 #endif
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
-  ".load FILE ?ENTRY?     Load an extension library\n"  /*¼ÓÔØÒ»¸öÀ©Õ¹¿â*/
-#endif/*´ò¿ª»ò¹Ø±ÕÈÕÖ¾¹¦ÄÜ£¬FILE¿ÉÒÔÎª±ê×¼Êä³östdout£¬»ò±ê×¼´íÎóÊä³östderr*/
+  ".load FILE ?ENTRY?     Load an extension library\n"  /*åŠ è½½ä¸€ä¸ªæ‰©å±•åº“*/
+#endif/*æ‰“å¼€æˆ–å…³é—­æ—¥å¿—åŠŸèƒ½ï¼ŒFILEå¯ä»¥ä¸ºæ ‡å‡†è¾“å‡ºstdoutï¼Œæˆ–æ ‡å‡†é”™è¯¯è¾“å‡ºstderr*/
   ".log FILE|off          Turn logging on or off.  FILE can be stderr/stdout\n"
-  /*ÉèÖÃÊä³öÄ£Ê½£¬ÕâÀï×îÎª³£ÓÃµÄÄ£Ê½ÊÇcolumnÄ£Ê½£¬Ê¹SELECTÊä³öÁĞ×ó¶ÔÆëÏÔÊ¾¡£*/
+  /*è®¾ç½®è¾“å‡ºæ¨¡å¼ï¼Œè¿™é‡Œæœ€ä¸ºå¸¸ç”¨çš„æ¨¡å¼æ˜¯columnæ¨¡å¼ï¼Œä½¿SELECTè¾“å‡ºåˆ—å·¦å¯¹é½æ˜¾ç¤ºã€‚*/
   ".mode MODE ?TABLE?     Set output mode where MODE is one of:\n" 
-  "                         csv      Comma-separated values\n" /*ÒÔ¶ººÅ·Ö¸ô*/
-  "                         column   Left-aligned columns.  (See .width)\n"/*ÁĞ×ó¶ÔÆë*/
-  "                         html     HTML <table> code\n" /*ÏÔÊ¾HTML´úÂë*/
-  "                         insert   SQL insert statements for TABLE\n"/*sql²åÈëÓï¾ä*/
-  "                         line     One value per line\n"/*Ò»ĞĞÒ»¸öÖµ*/
-  "                         list     Values delimited by .separator string\n"/*ÖµÓÃSTRING·Ö¸ô*/
-  "                         tabs     Tab-separated values\n"/*ÒÔtab·Ö¸ôµÄÖµ*/
-  "                         tcl      TCL list elements\n"/*TCLÁĞ±íÔªËØ*/
-  ".nullvalue STRING      Print STRING in place of NULL values\n"/*ÓÃÖ¸¶¨µÄ´®´úÌæÊä³öµÄNULL´® */
-  ".output FILENAME       Send output to FILENAME\n"/*½«µ±Ç°ÃüÁîµÄËùÓĞÊä³öÖØ¶¨Ïòµ½Ö¸¶¨µÄÎÄ¼ş¡£*/
-  ".output stdout         Send output to the screen\n"  /*½«µ±Ç°ÃüÁîµÄËùÓĞÊä³öÖØ¶¨Ïòµ½±ê×¼Êä³ö(ÆÁÄ»)¡£*/
-  ".prompt MAIN CONTINUE  Replace the standard prompts\n" /*Ìæ»»±ê×¼ÌáÊ¾·û*/
-  ".quit                  Exit this program\n" /*ÍË³ö*/
-  ".read FILENAME         Execute SQL in FILENAME\n"/*Ö´ĞĞÖ¸¶¨ÎÄ¼şÄÚµÄSQLÓï¾ä¡£*/
-  /*´ÓÖ¸¶¨µÄÎÄ¼ş»¹Ô­Êı¾İ¿â£¬È±Ê¡ÎªmainÊı¾İ¿â£¬´ËÊ±Ò²¿ÉÒÔÖ¸¶¨ÆäËüÊı¾İ¿âÃû
-  **±»Ö¸¶¨µÄÊı¾İ¿â³ÉÎªµ±Ç°Á¬½ÓµÄattachedÊı¾İ¿â¡£*/
+  "                         csv      Comma-separated values\n" /*ä»¥é€—å·åˆ†éš”*/
+  "                         column   Left-aligned columns.  (See .width)\n"/*åˆ—å·¦å¯¹é½*/
+  "                         html     HTML <table> code\n" /*æ˜¾ç¤ºHTMLä»£ç */
+  "                         insert   SQL insert statements for TABLE\n"/*sqlæ’å…¥è¯­å¥*/
+  "                         line     One value per line\n"/*ä¸€è¡Œä¸€ä¸ªå€¼*/
+  "                         list     Values delimited by .separator string\n"/*å€¼ç”¨STRINGåˆ†éš”*/
+  "                         tabs     Tab-separated values\n"/*ä»¥tabåˆ†éš”çš„å€¼*/
+  "                         tcl      TCL list elements\n"/*TCLåˆ—è¡¨å…ƒç´ */
+  ".nullvalue STRING      Print STRING in place of NULL values\n"/*ç”¨æŒ‡å®šçš„ä¸²ä»£æ›¿è¾“å‡ºçš„NULLä¸² */
+  ".output FILENAME       Send output to FILENAME\n"/*å°†å½“å‰å‘½ä»¤çš„æ‰€æœ‰è¾“å‡ºé‡å®šå‘åˆ°æŒ‡å®šçš„æ–‡ä»¶ã€‚*/
+  ".output stdout         Send output to the screen\n"  /*å°†å½“å‰å‘½ä»¤çš„æ‰€æœ‰è¾“å‡ºé‡å®šå‘åˆ°æ ‡å‡†è¾“å‡º(å±å¹•)ã€‚*/
+  ".prompt MAIN CONTINUE  Replace the standard prompts\n" /*æ›¿æ¢æ ‡å‡†æç¤ºç¬¦*/
+  ".quit                  Exit this program\n" /*é€€å‡º*/
+  ".read FILENAME         Execute SQL in FILENAME\n"/*æ‰§è¡ŒæŒ‡å®šæ–‡ä»¶å†…çš„SQLè¯­å¥ã€‚*/
+  /*ä»æŒ‡å®šçš„æ–‡ä»¶è¿˜åŸæ•°æ®åº“ï¼Œç¼ºçœä¸ºmainæ•°æ®åº“ï¼Œæ­¤æ—¶ä¹Ÿå¯ä»¥æŒ‡å®šå…¶å®ƒæ•°æ®åº“å
+  **è¢«æŒ‡å®šçš„æ•°æ®åº“æˆä¸ºå½“å‰è¿æ¥çš„attachedæ•°æ®åº“ã€‚*/
   ".restore ?DB? FILE     Restore content of DB (default \"main\") from FILE\n" 
-  ".schema ?TABLE?        Show the CREATE statements\n"/*ÏÔÊ¾Êı¾İ±íµÄ´´½¨Óï¾ä£¬Èç¹ûÖ¸¶¨±íÃû£¬Ôò½ö½öÏÔÊ¾Æ¥Åä¸Ã±íÃûµÄÊı¾İ*/
+  ".schema ?TABLE?        Show the CREATE statements\n"/*æ˜¾ç¤ºæ•°æ®è¡¨çš„åˆ›å»ºè¯­å¥ï¼Œå¦‚æœæŒ‡å®šè¡¨åï¼Œåˆ™ä»…ä»…æ˜¾ç¤ºåŒ¹é…è¯¥è¡¨åçš„æ•°æ®*/
   "                         If TABLE specified, only show tables matching\n"
   "                         LIKE pattern TABLE.\n"
-/*"¸Ä±äÊä³öÄ£Ê½ºÍ.importµÄ×Ö¶Î¼ä·Ö¸ô·û¡£ */
+/*"æ”¹å˜è¾“å‡ºæ¨¡å¼å’Œ.importçš„å­—æ®µé—´åˆ†éš”ç¬¦ã€‚ */
   ".separator STRING      Change separator used by output mode and .import\n" 
-  /*´òÓ¡ËùÓĞSQlite»·¾³±äÁ¿µÄÉèÖÃ*/
+  /*æ‰“å°æ‰€æœ‰SQliteç¯å¢ƒå˜é‡çš„è®¾ç½®*/
   ".show                  Show the current values for various settings\n"  
-  ".stats ON|OFF          Turn stats on or off\n"/*¿ªÆô»ò¹Ø±ÕÍ³¼Æ*/
-  /*ÁĞ³öµ±Ç°Á¬½ÓÖĞmainÊı¾İ¿âµÄËùÓĞ±íÃû£¬Èç¹ûÖ¸¶¨±íÃû£¬Ôò½ö½öÏÔÊ¾Æ¥Åä¸Ã±íÃûµÄÊı¾İ±íÃû³Æ
-  **²ÎÊıTABLENAMEÖ§³ÖLIKE±í´ïÊ½Ö§³ÖµÄÍ¨Åä·û¡£*/
+  ".stats ON|OFF          Turn stats on or off\n"/*å¼€å¯æˆ–å…³é—­ç»Ÿè®¡*/
+  /*åˆ—å‡ºå½“å‰è¿æ¥ä¸­mainæ•°æ®åº“çš„æ‰€æœ‰è¡¨åï¼Œå¦‚æœæŒ‡å®šè¡¨åï¼Œåˆ™ä»…ä»…æ˜¾ç¤ºåŒ¹é…è¯¥è¡¨åçš„æ•°æ®è¡¨åç§°
+  **å‚æ•°TABLENAMEæ”¯æŒLIKEè¡¨è¾¾å¼æ”¯æŒçš„é€šé…ç¬¦ã€‚*/
   ".tables ?TABLE?        List names of tables\n"
   "                         If TABLE specified, only list tables matching\n"
   "                         LIKE pattern TABLE.\n"
-  ".timeout MS            Try opening locked tables for MS milliseconds\n"/*³¢ÊÔ´ò¿ªËø¶¨µÄ±í MS Î¢Ãë*/
-  ".trace FILE|off        Output each SQL statement as it is run\n"/*Êä³öÃ¿Ò»¸öÕıÔÚÔËĞĞµÄÓï¾ä*/
-  ".vfsname ?AUX?         Print the name of the VFS stack\n"/*Êä³öĞéÄâ¶ÑÕ»µÄÃû×Ö*/
-   /*ÔÚMODEÎªcolumnÊ±£¬ÉèÖÃ¸÷¸ö×Ö¶ÎµÄ¿í¶È£¬×¢Òâ£º¸ÃÃüÁîµÄ²ÎÊıË³Ğò±íÊ¾×Ö¶ÎÊä³öµÄË³Ğò*/
+  ".timeout MS            Try opening locked tables for MS milliseconds\n"/*å°è¯•æ‰“å¼€é”å®šçš„è¡¨ MS å¾®ç§’*/
+  ".trace FILE|off        Output each SQL statement as it is run\n"/*è¾“å‡ºæ¯ä¸€ä¸ªæ­£åœ¨è¿è¡Œçš„è¯­å¥*/
+  ".vfsname ?AUX?         Print the name of the VFS stack\n"/*è¾“å‡ºè™šæ‹Ÿå †æ ˆçš„åå­—*/
+   /*åœ¨MODEä¸ºcolumnæ—¶ï¼Œè®¾ç½®å„ä¸ªå­—æ®µçš„å®½åº¦ï¼Œæ³¨æ„ï¼šè¯¥å‘½ä»¤çš„å‚æ•°é¡ºåºè¡¨ç¤ºå­—æ®µè¾“å‡ºçš„é¡ºåº*/
   ".width NUM1 NUM2 ...   Set column widths for \"column\" mode\n" 
 ;
 
-static char zTimerHelp[] =/*¿ªÆô»ò¹Ø±Õ CPU ¶¨Ê±Æ÷²âÁ¿*/
+static char zTimerHelp[] =/*å¼€å¯æˆ–å…³é—­ CPU å®šæ—¶å™¨æµ‹é‡*/
   ".timer ON|OFF          Turn the CPU timer measurement on or off\n"
 ;
 
-/* Forward reference *//*ÒıÓÃ*/
+/* Forward reference *//*å¼•ç”¨*/
 static int process_input(struct callback_data *p, FILE *in);
 
 /*
@@ -1581,22 +1581,22 @@ static int process_input(struct callback_data *p, FILE *in);
 ** the database fails to open, print an error message and exit.
 */
 /*
-¹¦ÄÜ£ºÈ·ÈÏÊı¾İ¿âÊÇ·ñÒÑ¾­´ò¿ª¡£Èç¹ûÒÑ´ò¿ª£¬ÔòÊ²Ã´¶¼²»×ö¡£Èç¹û
-**Ã»ÓĞ£¬Ôò´ò¿ªËü¡£Èç¹û´ò¿ªÊ§°Ü£¬Êä³öÒ»¸ö´íÎóĞÅÏ¢¡£
+åŠŸèƒ½ï¼šç¡®è®¤æ•°æ®åº“æ˜¯å¦å·²ç»æ‰“å¼€ã€‚å¦‚æœå·²æ‰“å¼€ï¼Œåˆ™ä»€ä¹ˆéƒ½ä¸åšã€‚å¦‚æœ
+**æ²¡æœ‰ï¼Œåˆ™æ‰“å¼€å®ƒã€‚å¦‚æœæ‰“å¼€å¤±è´¥ï¼Œè¾“å‡ºä¸€ä¸ªé”™è¯¯ä¿¡æ¯ã€‚
 */
 static void open_db(struct callback_data *p){
-  if( p->db==0 ){/*Èç¹ûÊı¾İ¿âÎª¿Õ*/
-    sqlite3_initialize();/*³õÊ¼»¯SqliteÊı¾İ¿â*/
-    sqlite3_open(p->zDbFilename, &p->db);/*zDbFilenamÎª´æ·ÅÊı¾İ¿âÎÄ¼şµÄÃû×Ö */
+  if( p->db==0 ){/*å¦‚æœæ•°æ®åº“ä¸ºç©º*/
+    sqlite3_initialize();/*åˆå§‹åŒ–Sqliteæ•°æ®åº“*/
+    sqlite3_open(p->zDbFilename, &p->db);/*zDbFilenamä¸ºå­˜æ”¾æ•°æ®åº“æ–‡ä»¶çš„åå­— */
     db = p->db;
-    if( db && sqlite3_errcode(db)==SQLITE_OK ){/*Èç¹ûdbÎªÕæ,ÇÒÊı¾İ¿âÃ»ÓĞ·µ»Ø´íÎóĞÅÏ¢*/
+    if( db && sqlite3_errcode(db)==SQLITE_OK ){/*å¦‚æœdbä¸ºçœŸ,ä¸”æ•°æ®åº“æ²¡æœ‰è¿”å›é”™è¯¯ä¿¡æ¯*/
       sqlite3_create_function(db, "shellstatic", 0, SQLITE_UTF8, 0,
-          shellstaticFunc, 0, 0);/*½âÎöshellstaticFunc;*/
+          shellstaticFunc, 0, 0);/*è§£æshellstaticFunc;*/
     }
-    if( db==0 || SQLITE_OK!=sqlite3_errcode(db) ){/*ÎŞ·¨´ò¿ªÊı¾İ¿â*//*Èç¹ûdbÎª0»òÕßÊı¾İ¿â·µ»Ø´íÎóĞÅÏ¢*/
+    if( db==0 || SQLITE_OK!=sqlite3_errcode(db) ){/*æ— æ³•æ‰“å¼€æ•°æ®åº“*//*å¦‚æœdbä¸º0æˆ–è€…æ•°æ®åº“è¿”å›é”™è¯¯ä¿¡æ¯*/
       fprintf(stderr,"Error: unable to open database \"%s\": %s\n", 
-          p->zDbFilename, sqlite3_errmsg(db));/*Êä³öÒ»¸ö´íÎóĞÅÏ¢¡£*/
-      exit(1);//ÍË³ö;
+          p->zDbFilename, sqlite3_errmsg(db));/*è¾“å‡ºä¸€ä¸ªé”™è¯¯ä¿¡æ¯ã€‚*/
+      exit(1);//é€€å‡º;
     }
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
     sqlite3_enable_load_extension(p->db, 1);
@@ -1613,22 +1613,22 @@ static void open_db(struct callback_data *p){
 **    \NNN  -> ascii character NNN in octal
 **    \\    -> backslash
 */
-/* CÓïÑÔ·ç¸ñµÄÒıÓÃ*/
+/* Cè¯­è¨€é£æ ¼çš„å¼•ç”¨*/
 static void resolve_backslashes(char *z){
   int i, j;
   char c;
-  for(i=j=0; (c = z[i])!=0; i++, j++){/*Èç¹û(c = z[i])!=0*/
-    if( c=='\\' ){ /*×Ö·ûÖµÎª'\\'£¬±íÊ¾×ÔÔö */
+  for(i=j=0; (c = z[i])!=0; i++, j++){/*å¦‚æœ(c = z[i])!=0*/
+    if( c=='\\' ){ /*å­—ç¬¦å€¼ä¸º'\\'ï¼Œè¡¨ç¤ºè‡ªå¢ */
       c = z[++i];
       if( c=='n' ){
-        c = '\n';/*×Ö·ûÖµÎª'c'£¬±íÊ¾»»ĞĞ*/
+        c = '\n';/*å­—ç¬¦å€¼ä¸º'c'ï¼Œè¡¨ç¤ºæ¢è¡Œ*/
       }else if( c=='t' ){
-        c = '\t';/* ×Ö·ûÖµÎª't'£¬±íÊ¾±êÇ©*/
+        c = '\t';/* å­—ç¬¦å€¼ä¸º't'ï¼Œè¡¨ç¤ºæ ‡ç­¾*/
       }else if( c=='r' ){
-        c = '\r';/*×Ö·ûÖµÎª'r'£¬±íÊ¾»Ø³µ*/
+        c = '\r';/*å­—ç¬¦å€¼ä¸º'r'ï¼Œè¡¨ç¤ºå›è½¦*/
       }else if( c>='0' && c<='7' ){
         c -= '0';
-        if( z[i+1]>='0' && z[i+1]<='7' ){/*Èç¹ûÊÇ°Ë½øÖÆ*/
+        if( z[i+1]>='0' && z[i+1]<='7' ){/*å¦‚æœæ˜¯å…«è¿›åˆ¶*/
           i++;
           c = (c<<3) + z[i] - '0';
           if( z[i+1]>='0' && z[i+1]<='7' ){
@@ -1638,7 +1638,7 @@ static void resolve_backslashes(char *z){
         }
       }
     }
-    z[j] = c;/*Èç¹û c=='\\',  z[j] = c,i++,j++*/
+    z[j] = c;/*å¦‚æœ c=='\\',  z[j] = c,i++,j++*/
   }
   z[j] = 0;
 }
@@ -1647,28 +1647,28 @@ static void resolve_backslashes(char *z){
 ** Interpret zArg as a boolean value.  Return either 0 or 1.
 */
 /*
-**½«zArg·­ÒëÎª²¼¶ûÖµ£¬·µ»Ø1»ò0
+**å°†zArgç¿»è¯‘ä¸ºå¸ƒå°”å€¼ï¼Œè¿”å›1æˆ–0
 */
 
 static int booleanValue(char *zArg){
-  int val = atoi(zArg);/*½«×Ö·ûzArg×ª»»³ÉÕûĞÎ*/
+  int val = atoi(zArg);/*å°†å­—ç¬¦zArgè½¬æ¢æˆæ•´å½¢*/
   int j;
   for(j=0; zArg[j]; j++){
-    zArg[j] = ToLower(zArg[j]);/*×ª»»ÎªĞ¡Ğ´*/
+    zArg[j] = ToLower(zArg[j]);/*è½¬æ¢ä¸ºå°å†™*/
   }
-  if( strcmp(zArg,"on")==0 ){/*¡°on¡±×ª»¯Îª²¼¶ûÖµ1*/
+  if( strcmp(zArg,"on")==0 ){/*â€œonâ€è½¬åŒ–ä¸ºå¸ƒå°”å€¼1*/
     val = 1;
-  }else if( strcmp(zArg,"yes")==0 ){/*¡°yes¡±×ª»¯Îª²¼¶ûÖµ1*/
+  }else if( strcmp(zArg,"yes")==0 ){/*â€œyesâ€è½¬åŒ–ä¸ºå¸ƒå°”å€¼1*/
     val = 1;
   }
-  return val;/*·µ»ØÖµ*/
+  return val;/*è¿”å›å€¼*/
 }
 
 /*
 ** Close an output file, assuming it is not stderr or stdout
 */
 /*
-**¹Ø±ÕÒ»¸ö´ò¿ªµÄÎÄ¼ş ¼ÙÉè²»ÊÇ±ê×¼´íÎó»òÕß±ê×¼Êä³ö
+**å…³é—­ä¸€ä¸ªæ‰“å¼€çš„æ–‡ä»¶ å‡è®¾ä¸æ˜¯æ ‡å‡†é”™è¯¯æˆ–è€…æ ‡å‡†è¾“å‡º
 */
 static void output_file_close(FILE *f){
   if( f && f!=stdout && f!=stderr ) fclose(f);
@@ -1679,19 +1679,19 @@ static void output_file_close(FILE *f){
 ** recognized and do the right thing.  NULL is returned if the output 
 ** filename is "off".
 */
-/*´ò¿ªÒ»¸öÊä³öÎÄ¼ş*/
+/*æ‰“å¼€ä¸€ä¸ªè¾“å‡ºæ–‡ä»¶*/
 static FILE *output_file_open(const char *zFile){
-  FILE *f;/*fÊÇĞèÒª´ò¿ªµÄÎÄ¼şÃû×Ö*/
-  if( strcmp(zFile,"stdout")==0 ){/*"ÈÏ¿Éstdout"*/
+  FILE *f;/*fæ˜¯éœ€è¦æ‰“å¼€çš„æ–‡ä»¶åå­—*/
+  if( strcmp(zFile,"stdout")==0 ){/*"è®¤å¯stdout"*/
     f = stdout;
-  }else if( strcmp(zFile, "stderr")==0 ){/*ÈÏ¿É"stderr"*/
+  }else if( strcmp(zFile, "stderr")==0 ){/*è®¤å¯"stderr"*/
     f = stderr;
-  }else if( strcmp(zFile, "off")==0 ){/*Èç¹ûÊä³öµÄÎÄ¼şÃûÊÇOFF£¬·µ»ØNULL*/
+  }else if( strcmp(zFile, "off")==0 ){/*å¦‚æœè¾“å‡ºçš„æ–‡ä»¶åæ˜¯OFFï¼Œè¿”å›NULL*/
     f = 0;
   }else{
-    f = fopen(zFile, "wb");/*  ÓÃ¶ş½øÖÆĞÎÊ½´ò¿ªÎÄ¼ş*/
+    f = fopen(zFile, "wb");/*  ç”¨äºŒè¿›åˆ¶å½¢å¼æ‰“å¼€æ–‡ä»¶*/
     if( f==0 ){
-      fprintf(stderr, "Error: cannot open \"%s\"\n", zFile);/*Èç¹û´ò¿ªÎÄ¼şÊ§°Ü£¬Êä³ö´íÎóĞÅÏ¢*/
+      fprintf(stderr, "Error: cannot open \"%s\"\n", zFile);/*å¦‚æœæ‰“å¼€æ–‡ä»¶å¤±è´¥ï¼Œè¾“å‡ºé”™è¯¯ä¿¡æ¯*/
     }
   }
   return f;
@@ -1703,7 +1703,7 @@ static FILE *output_file_open(const char *zFile){
 
 static void sql_trace_callback(void *pArg, const char *z){
   FILE *f = (FILE*)pArg;
-  if( f ) fprintf(f, "%s\n", z);/*ÒÔ×Ö·û´®µÄĞÎÊ½Êä³öÎÄ¼ş*/
+  if( f ) fprintf(f, "%s\n", z);/*ä»¥å­—ç¬¦ä¸²çš„å½¢å¼è¾“å‡ºæ–‡ä»¶*/
 }
 
 /*
@@ -1711,7 +1711,7 @@ static void sql_trace_callback(void *pArg, const char *z){
 ** a useful spot to set a debugger breakpoint.
 */
 /*
-**Ò»¸ö¿Õ³ÌĞò,ÔÚ¶ÏµãÔËĞĞÃüÁî
+**ä¸€ä¸ªç©ºç¨‹åº,åœ¨æ–­ç‚¹è¿è¡Œå‘½ä»¤
 */
 
 static void test_breakpoint(void){
@@ -1726,11 +1726,11 @@ static void test_breakpoint(void){
 ** Return 1 on error, 2 to exit, and 0 otherwise.
 */
 
-/*Èç¹ûÒ»¸öÊäÈëĞĞÒÔ¡°.¡±¿ªÊ¼£¨CLPÃüÁî£©
-**ÄÇÃ´µ÷ÓÃ´Ë³ÌĞò´¦ÀíÄÇ¸öĞĞ
-**·µ»Ø1±íÊ¾´íÎó 2±íÊ¾½áÊø 0±íÊ¾ÆäËû
+/*å¦‚æœä¸€ä¸ªè¾“å…¥è¡Œä»¥â€œ.â€å¼€å§‹ï¼ˆCLPå‘½ä»¤ï¼‰
+**é‚£ä¹ˆè°ƒç”¨æ­¤ç¨‹åºå¤„ç†é‚£ä¸ªè¡Œ
+**è¿”å›1è¡¨ç¤ºé”™è¯¯ 2è¡¨ç¤ºç»“æŸ 0è¡¨ç¤ºå…¶ä»–
 */   
-/*¶¨ÒåÒ»¸ö**do_meta_command º¯**Êı£¬µÚÒ»¸ö²ÎÊıÊÇ×Ö·û**´®£¬µÚ¶ş¸ö²ÎÊıÊÇ»Øµ÷**º¯ÊıµÄÖ¸Õë*/
+/*å®šä¹‰ä¸€ä¸ª**do_meta_command å‡½**æ•°ï¼Œç¬¬ä¸€ä¸ªå‚æ•°æ˜¯å­—ç¬¦**ä¸²ï¼Œç¬¬äºŒä¸ªå‚æ•°æ˜¯å›è°ƒ**å‡½æ•°çš„æŒ‡é’ˆ*/
 static int do_meta_command(char *zLine, struct callback_data *p){
   int i = 1;
   int nArg = 0;
@@ -1738,61 +1738,61 @@ static int do_meta_command(char *zLine, struct callback_data *p){
   int rc = 0;
   char *azArg[50];
 
-  /* Parse the input line into tokens.*//*½âÎöÊäÈëĞĞ ½«×Ö·û´®±£´æÔÚazArgÊı×é*/
+  /* Parse the input line into tokens.*//*è§£æè¾“å…¥è¡Œ å°†å­—ç¬¦ä¸²ä¿å­˜åœ¨azArgæ•°ç»„*/
   */
-  while( zLine[i] && nArg<ArraySize(azArg) ){ /*ÖğĞĞ·ÖÎöÓï¾ä*/
+  while( zLine[i] && nArg<ArraySize(azArg) ){ /*é€è¡Œåˆ†æè¯­å¥*/
     while( IsSpace(zLine[i]) ){ i++; }
-    if( zLine[i]==0 ) break;      /* Ã»ÓĞÓï¾äºó½áÊø*/
-    if( zLine[i]=='\'' || zLine[i]=='"' ){/*Óï¾äÎª»»ĞĞ·û»òÕß¿Õ¸ñ */
-      int delim = zLine[i++];/*ÔòÌø¹ı*/
-      azArg[nArg++] = &zLine[i];/*ÊäÈëÓï¾äµØÖ·µ½Êı×é*/
+    if( zLine[i]==0 ) break;      /* æ²¡æœ‰è¯­å¥åç»“æŸ*/
+    if( zLine[i]=='\'' || zLine[i]=='"' ){/*è¯­å¥ä¸ºæ¢è¡Œç¬¦æˆ–è€…ç©ºæ ¼ */
+      int delim = zLine[i++];/*åˆ™è·³è¿‡*/
+      azArg[nArg++] = &zLine[i];/*è¾“å…¥è¯­å¥åœ°å€åˆ°æ•°ç»„*/
       while( zLine[i] && zLine[i]!=delim ){ i++; }
-      if( zLine[i]==delim ){/*zLine[i]Îª'\''»¹ÓĞ'"'Ê±*/
-        zLine[i++] = 0;/*zLine[i] = 0;i×ÔÔö*/
+      if( zLine[i]==delim ){/*zLine[i]ä¸º'\''è¿˜æœ‰'"'æ—¶*/
+        zLine[i++] = 0;/*zLine[i] = 0;iè‡ªå¢*/
       }
-      if( delim=='"' ) resolve_backslashes(azArg[nArg-1]);/*Èç¹ûÊı¾İÔ´ÊÇ¿Õ¸ñ*/
-    }else{/*×Ö·û²»ÊÇ»»ĞĞ·û»òÕß¿Õ¸ñ */
-      azArg[nArg++] = &zLine[i];/*°ÑzLine[i]·ÅÈë azArg[nArg]ÖĞ*/
+      if( delim=='"' ) resolve_backslashes(azArg[nArg-1]);/*å¦‚æœæ•°æ®æºæ˜¯ç©ºæ ¼*/
+    }else{/*å­—ç¬¦ä¸æ˜¯æ¢è¡Œç¬¦æˆ–è€…ç©ºæ ¼ */
+      azArg[nArg++] = &zLine[i];/*æŠŠzLine[i]æ”¾å…¥ azArg[nArg]ä¸­*/
       while( zLine[i] && !IsSpace(zLine[i]) ){ i++; }
       if( zLine[i] ) zLine[i++] = 0;
       resolve_backslashes(azArg[nArg-1]);
     }
   }
 
-  /* Process the input line.*//*´¦ÀíÊäÈëĞĞ*/
+  /* Process the input line.*//*å¤„ç†è¾“å…¥è¡Œ*/
   if( nArg==0 ) return 0; /* no tokens, no error */
   n = strlen30(azArg[0]);
   c = azArg[0][0];
   
-  /*±¸·İÒ»¸öÖ¸¶¨µÄÊı¾İ¿â£¨A£©µ½Ö¸¶¨µÄÎÄ¼ş£¨B£¬È±Ê¡Îªµ±Ç°Á¬½ÓµÄmainÊı¾İ¿â£©*/
+  /*å¤‡ä»½ä¸€ä¸ªæŒ‡å®šçš„æ•°æ®åº“ï¼ˆAï¼‰åˆ°æŒ‡å®šçš„æ–‡ä»¶ï¼ˆBï¼Œç¼ºçœä¸ºå½“å‰è¿æ¥çš„mainæ•°æ®åº“ï¼‰*/
   if( c=='b' && n>=3 && strncmp(azArg[0], "backup", n)==0 && nArg>1 && nArg<4){
-    const char *zDestFile;/*AµÄÃû×Ö */
-    const char *zDb;/*BµÄÃû×Ö */
-    sqlite3 *pDest;/*ĞèÒª±¸·İµÄÊı¾İ¿âA */
-    sqlite3_backup *pBackup;/*Ä¿±êÊı¾İ¿âB */
+    const char *zDestFile;/*Açš„åå­— */
+    const char *zDb;/*Bçš„åå­— */
+    sqlite3 *pDest;/*éœ€è¦å¤‡ä»½çš„æ•°æ®åº“A */
+    sqlite3_backup *pBackup;/*ç›®æ ‡æ•°æ®åº“B */
     if( nArg==2 ){
       zDestFile = azArg[1];
-      zDb = "main"; /*È±Ê¡Îªmain*/
+      zDb = "main"; /*ç¼ºçœä¸ºmain*/
     }else{
       zDestFile = azArg[2];
       zDb = azArg[1];
     }
-    rc = sqlite3_open(zDestFile, &pDest);/*´ò¿ªĞèÒª±¸·İµÄÊı¾İ¿â */
+    rc = sqlite3_open(zDestFile, &pDest);/*æ‰“å¼€éœ€è¦å¤‡ä»½çš„æ•°æ®åº“ */
     if( rc!=SQLITE_OK ){
       fprintf(stderr, "Error: cannot open \"%s\"\n", zDestFile);
       sqlite3_close(pDest);
       return 1;
     }
     open_db(p);
-    /*Sqlite3_backup_init() £ºµÚÒ»¸ö²ÎÊıÊÇÄ¿±êÊı¾İ¿â£¬µÚÈı¸ö²ÎÊıÊÇÔ´Êı¾İ¿â
-    ¹æ¶¨Á½Õß²»ÄÜÏàÍ¬£¬Èç¹û³É¹¦½«·µ»ØÖ¸ÏòÔ´Êı¾İ¿âµÄÖ¸Õë*/
+    /*Sqlite3_backup_init() ï¼šç¬¬ä¸€ä¸ªå‚æ•°æ˜¯ç›®æ ‡æ•°æ®åº“ï¼Œç¬¬ä¸‰ä¸ªå‚æ•°æ˜¯æºæ•°æ®åº“
+    è§„å®šä¸¤è€…ä¸èƒ½ç›¸åŒï¼Œå¦‚æœæˆåŠŸå°†è¿”å›æŒ‡å‘æºæ•°æ®åº“çš„æŒ‡é’ˆ*/
     pBackup = sqlite3_backup_init(pDest, "main", p->db, zDb);
-    if( pBackup==0 ){/*·¢Éú´íÎóÔòÊä³ö´íÎóĞÅÏ¢ */
+    if( pBackup==0 ){/*å‘ç”Ÿé”™è¯¯åˆ™è¾“å‡ºé”™è¯¯ä¿¡æ¯ */
       fprintf(stderr, "Error: %s\n", sqlite3_errmsg(pDest));
       sqlite3_close(pDest);
       return 1;
     }
-    /*sqlite3_backup_stepÓÃÓÚ±¸·İÊı¾İ */
+    /*sqlite3_backup_stepç”¨äºå¤‡ä»½æ•°æ® */
     while(  (rc = sqlite3_backup_step(pBackup,100))==SQLITE_OK ){}
     sqlite3_backup_finish(pBackup);
     if( rc==SQLITE_DONE ){
@@ -1800,14 +1800,14 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     }else{
       fprintf(stderr, "Error: %s\n", sqlite3_errmsg(pDest));
       rc = 1;
-    }/*Íê³Éºó¹Ø±Õ£¬·ñÔòĞ´Èë´íÎóĞÅÏ¢ */
-    sqlite3_close(pDest);/*¹Ø±ÕpDestÖ¸ÏòµÄ¿Õ¼ä*/
+    }/*å®Œæˆåå…³é—­ï¼Œå¦åˆ™å†™å…¥é”™è¯¯ä¿¡æ¯ */
+    sqlite3_close(pDest);/*å…³é—­pDestæŒ‡å‘çš„ç©ºé—´*/
   }else
 
 
-/*Óöµ½´íÎóÊ±²»ÔÙ¼ÌĞø, Ä¬ÈÏÎªOFF*/
+/*é‡åˆ°é”™è¯¯æ—¶ä¸å†ç»§ç»­, é»˜è®¤ä¸ºOFF*/
   if( c=='b' && n>=3 && strncmp(azArg[0], "bail", n)==0 && nArg>1 && nArg<3 ){
-    bail_on_error = booleanValue(azArg[1]);/*ÓÉ×ª»¯µÄ²¼¶ûÖµ¾ö¶¨¿ª¹Ø*/
+    bail_on_error = booleanValue(azArg[1]);/*ç”±è½¬åŒ–çš„å¸ƒå°”å€¼å†³å®šå¼€å…³*/
   }else
 
   /* The undocumented ".breakpoint" command causes a call to the no-op
@@ -1816,22 +1816,22 @@ static int do_meta_command(char *zLine, struct callback_data *p){
   if( c=='b' && n>=3 && strncmp(azArg[0], "breakpoint", n)==0 ){
     test_breakpoint();
   }else
-/*ÁĞ³öÊı¾İ¿âÎÄ¼şÃû*/
-  if( c=='d' && n>1 && strncmp(azArg[0], "databases", n)==0 && nArg==1 ){/* ·¢³ö¶ÏµãÃüÁîÊ±£¬½øĞĞ¶Ïµã²âÊÔ*/
-    struct callback_data data;/*ÉùÃ÷»ØÏÔ²ÎÊı*/
-    char *zErrMsg = 0;/*ÉùÃ÷Ò»¸ö´æ·Å´íÎóĞÅÏ¢µÄÖ¸Õë*/
-    open_db(p);/*´ò¿ªPÖ¸ÏòµÄÊı¾İ¿â*/
-    memcpy(&data, p, sizeof(data));/*´ÓPËùÖ¸µÄÄÚ´æµØÖ·µÄÆğÊ¼Î»ÖÃ ¿½±´date³¤¶ÈµÄ×Ö·û
-    µ½date¿Õ¼äµÄÆğÊ¼Î»ÖÃÖĞ*/
-    data.showHeader = 1;/*´ò¿ª±íÍ·ÏÔÊ¾*/
-    data.mode = MODE_Column;/*ÉèÖÃµ½ColumnÄ£Ê½*/
-    data.colWidth[0] = 3;/*¶¨ÒåÁĞ¿í*/
+/*åˆ—å‡ºæ•°æ®åº“æ–‡ä»¶å*/
+  if( c=='d' && n>1 && strncmp(azArg[0], "databases", n)==0 && nArg==1 ){/* å‘å‡ºæ–­ç‚¹å‘½ä»¤æ—¶ï¼Œè¿›è¡Œæ–­ç‚¹æµ‹è¯•*/
+    struct callback_data data;/*å£°æ˜å›æ˜¾å‚æ•°*/
+    char *zErrMsg = 0;/*å£°æ˜ä¸€ä¸ªå­˜æ”¾é”™è¯¯ä¿¡æ¯çš„æŒ‡é’ˆ*/
+    open_db(p);/*æ‰“å¼€PæŒ‡å‘çš„æ•°æ®åº“*/
+    memcpy(&data, p, sizeof(data));/*ä»Pæ‰€æŒ‡çš„å†…å­˜åœ°å€çš„èµ·å§‹ä½ç½® æ‹·è´dateé•¿åº¦çš„å­—ç¬¦
+    åˆ°dateç©ºé—´çš„èµ·å§‹ä½ç½®ä¸­*/
+    data.showHeader = 1;/*æ‰“å¼€è¡¨å¤´æ˜¾ç¤º*/
+    data.mode = MODE_Column;/*è®¾ç½®åˆ°Columnæ¨¡å¼*/
+    data.colWidth[0] = 3;/*å®šä¹‰åˆ—å®½*/
     data.colWidth[1] = 15;
     data.colWidth[2] = 58;
-    data.cnt = 0;/*¼ÇÂ¼ÊıÎª0*/
+    data.cnt = 0;/*è®°å½•æ•°ä¸º0*/
     sqlite3_exec(p->db, "PRAGMA database_list; ", callback, &data, &zErrMsg);
-    /*Ö´ĞĞÏÔÊ¾Êı¾İ¿âÁĞ±í*/
-    if( zErrMsg ){/*±£´æ´íÎóĞÅÏ¢*/
+    /*æ‰§è¡Œæ˜¾ç¤ºæ•°æ®åº“åˆ—è¡¨*/
+    if( zErrMsg ){/*ä¿å­˜é”™è¯¯ä¿¡æ¯*/
       fprintf(stderr,"Error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
       rc = 1;
@@ -1839,16 +1839,16 @@ static int do_meta_command(char *zLine, struct callback_data *p){
   }else
 
   if( c=='d' && strncmp(azArg[0], "dump", n)==0 && nArg<3 ){
-    open_db(p);/*´ò¿ªÊı¾İ¿â*/
+    open_db(p);/*æ‰“å¼€æ•°æ®åº“*/
     /* When playing back a "dump", the content might appear in an order
     ** which causes immediate foreign key constraints to be violated.
     ** So disable foreign-key constraint enforcement to prevent problems. */
     fprintf(p->out, "PRAGMA foreign_keys=OFF;\n");
     fprintf(p->out, "BEGIN TRANSACTION;\n");
-    p->writableSchema = 0;/*×ª´¢Êı¾İ¿âÊ± ÒªËø×¡£¨²»¿ÉĞ´£©£¬ÒÔÃâ³öÏÖ´íÎó*/
+    p->writableSchema = 0;/*è½¬å‚¨æ•°æ®åº“æ—¶ è¦é”ä½ï¼ˆä¸å¯å†™ï¼‰ï¼Œä»¥å…å‡ºç°é”™è¯¯*/
     sqlite3_exec(p->db, "SAVEPOINT dump; PRAGMA writable_schema=ON", 0, 0, 0);
     p->nErr = 0;
-    /*Èç¹û.dumpÃüÁîºóÃæÃ»ÓĞ²ÎÊı£¬ÔòĞèÒª¶ÔÊı¾İ¿âÄ£Ê½ºÍËùÓĞ±í¼ÇÂ¼×ö±¸·İ*/
+    /*å¦‚æœ.dumpå‘½ä»¤åé¢æ²¡æœ‰å‚æ•°ï¼Œåˆ™éœ€è¦å¯¹æ•°æ®åº“æ¨¡å¼å’Œæ‰€æœ‰è¡¨è®°å½•åšå¤‡ä»½*/
     if( nArg==1 ){
       run_schema_dump_query(p, 
         "SELECT name, type, sql FROM sqlite_master "
@@ -1862,7 +1862,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         "SELECT sql FROM sqlite_master "
         "WHERE sql NOT NULL AND type IN ('index','trigger','view')", 0
       );
-      /*Èç¹ûÓĞ²ÎÊı£¬ÔòÖ»¶Ô²ÎÊıËù¶ÔÓ¦µÄ±í½øĞĞ±¸·İ¡£*/
+      /*å¦‚æœæœ‰å‚æ•°ï¼Œåˆ™åªå¯¹å‚æ•°æ‰€å¯¹åº”çš„è¡¨è¿›è¡Œå¤‡ä»½ã€‚*/
     }else{
       int i;
       for(i=1; i<nArg; i++){
@@ -1880,34 +1880,34 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         zShellStatic = 0;
       }
     }
-    if( p->writableSchema ){/*ÈôÊı¾İ¿â¿ÉĞ´£¬ÔòÉèÖÃÊı¾İ¿â¿ÉĞ´Ä£Ê½Îª²»¿ÉĞ´*/
+    if( p->writableSchema ){/*è‹¥æ•°æ®åº“å¯å†™ï¼Œåˆ™è®¾ç½®æ•°æ®åº“å¯å†™æ¨¡å¼ä¸ºä¸å¯å†™*/
       fprintf(p->out, "PRAGMA writable_schema=OFF;\n");
       p->writableSchema = 0;
     }
     sqlite3_exec(p->db, "PRAGMA writable_schema=OFF;", 0, 0, 0);
-    sqlite3_exec(p->db, "RELEASE dump;", 0, 0, 0);//ÊÍ·Å´æ´¢£»
-    fprintf(p->out, p->nErr ? "ROLLBACK; -- due to errors\n" : "COMMIT;\n");/*ÓÉÓÚ´íÎóËù²úÉúµÄ»ØÍË*/
+    sqlite3_exec(p->db, "RELEASE dump;", 0, 0, 0);//é‡Šæ”¾å­˜å‚¨ï¼›
+    fprintf(p->out, p->nErr ? "ROLLBACK; -- due to errors\n" : "COMMIT;\n");/*ç”±äºé”™è¯¯æ‰€äº§ç”Ÿçš„å›é€€*/
   }else
-/*´ò¿ª»òÕß¹Ø±ÕÃüÁîĞĞ»ØÏÔ*/
+/*æ‰“å¼€æˆ–è€…å…³é—­å‘½ä»¤è¡Œå›æ˜¾*/
   if( c=='e' && strncmp(azArg[0], "echo", n)==0 && nArg>1 && nArg<3 ){
     p->echoOn = booleanValue(azArg[1]);
   }else
-/*ÍË³öµ±Ç°³ÌĞò*/
+/*é€€å‡ºå½“å‰ç¨‹åº*/
   if( c=='e' && strncmp(azArg[0], "exit", n)==0  && nArg==1 ){
     rc = 2;
   }else
 
   if( c=='e' && strncmp(azArg[0], "explain", n)==0 && nArg<3 ){
-    /*Èç¹ûÓĞÁ½¸öÒÔÉÏ²ÎÊı£¬È¡µÚ¶ş¸ö²ÎÊı²¼¶ûÖµ£¬·ñÔòÈ¡1*/
+    /*å¦‚æœæœ‰ä¸¤ä¸ªä»¥ä¸Šå‚æ•°ï¼Œå–ç¬¬äºŒä¸ªå‚æ•°å¸ƒå°”å€¼ï¼Œå¦åˆ™å–1*/
     int val = nArg>=2 ? booleanValue(azArg[1]) : 1;
     if(val == 1) {
-      if(!p->explainPrev.valid) {/*ÎŞĞ§Ê±£¬ÉèÖÃÓĞĞ§*/
+      if(!p->explainPrev.valid) {/*æ— æ•ˆæ—¶ï¼Œè®¾ç½®æœ‰æ•ˆ*/
         p->explainPrev.valid = 1;
         p->explainPrev.mode = p->mode;
-        p->explainPrev.showHeader = p->showHeader; /*ÏÔÊ¾±íÍ·*/
-        memcpy(p->explainPrev.colWidth,p->colWidth,sizeof(p->colWidth));/*½«p->colWidthµØÖ·µÄÄÚÈİ£¬¿½±´sizeof(p->colWidth³¤¶ÈµÄÄÚÈİµ½p->explainPrev.colWidthµØÖ·*/
+        p->explainPrev.showHeader = p->showHeader; /*æ˜¾ç¤ºè¡¨å¤´*/
+        memcpy(p->explainPrev.colWidth,p->colWidth,sizeof(p->colWidth));/*å°†p->colWidthåœ°å€çš„å†…å®¹ï¼Œæ‹·è´sizeof(p->colWidthé•¿åº¦çš„å†…å®¹åˆ°p->explainPrev.colWidthåœ°å€*/
       }
-      /*ÉèÖÃÕâ¸öÌõ¼ş£¬ÄÇÃ´Èç¹ûÒÑ¾­ÔÚexplainÄ£Ê½ÏÂ¾Í²»»áÔËĞĞ*/
+      /*è®¾ç½®è¿™ä¸ªæ¡ä»¶ï¼Œé‚£ä¹ˆå¦‚æœå·²ç»åœ¨explainæ¨¡å¼ä¸‹å°±ä¸ä¼šè¿è¡Œ*/
       /* We could put this code under the !p->explainValid
       ** condition so that it does not execute if we are already in
       ** explain mode. However, always executing it allows us an easy
@@ -1915,10 +1915,10 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       ** did an .explain followed by a .width, .mode or .header
       ** command.
       */
-      p->mode = MODE_Explain;/*ÉèÖÃÄ£Ê½*/
+      p->mode = MODE_Explain;/*è®¾ç½®æ¨¡å¼*/
       p->showHeader = 1;
-      memset(p->colWidth,0,ArraySize(p->colWidth));/*³õÊ¼»¯£¬¼´ÇåÁã*/
-      p->colWidth[0] = 4;                  /* addr */ /*¶¨ÒåÁĞ¿í*/
+      memset(p->colWidth,0,ArraySize(p->colWidth));/*åˆå§‹åŒ–ï¼Œå³æ¸…é›¶*/
+      p->colWidth[0] = 4;                  /* addr */ /*å®šä¹‰åˆ—å®½*/
       p->colWidth[1] = 13;                 /* opcode */
       p->colWidth[2] = 4;                  /* P1 */
       p->colWidth[3] = 4;                  /* P2 */
@@ -1927,35 +1927,35 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       p->colWidth[6] = 2;                  /* P5 */
       p->colWidth[7] = 13;                  /* Comment */
     }else if (p->explainPrev.valid) {
-      p->explainPrev.valid = 0;/*ÎŞĞ§*/
+      p->explainPrev.valid = 0;/*æ— æ•ˆ*/
       p->mode = p->explainPrev.mode;
       p->showHeader = p->explainPrev.showHeader;
       memcpy(p->colWidth,p->explainPrev.colWidth,sizeof(p->colWidth));
     }
   }else
-/*´ò¿ª»òÕß¹Ø±Õ±íÍ·ÏÔÊ¾*/
+/*æ‰“å¼€æˆ–è€…å…³é—­è¡¨å¤´æ˜¾ç¤º*/
   if( c=='h' && (strncmp(azArg[0], "header", n)==0 ||
                  strncmp(azArg[0], "headers", n)==0) && nArg>1 && nArg<3 ){
     p->showHeader = booleanValue(azArg[1]);
   }else
-/*ÏÔÊ¾°ïÖúÎÄµµ*/
+/*æ˜¾ç¤ºå¸®åŠ©æ–‡æ¡£*/
   if( c=='h' && strncmp(azArg[0], "help", n)==0 ){
     fprintf(stderr,"%s",zHelp);
     if( HAS_TIMER ){
       fprintf(stderr,"%s",zTimerHelp);
     }
   }else
-/*µ¼ÈëÖ¸¶¨µÄÎÄ¼şµ½Ö¸¶¨µÄ±í*/
+/*å¯¼å…¥æŒ‡å®šçš„æ–‡ä»¶åˆ°æŒ‡å®šçš„è¡¨*/
   if( c=='i' && strncmp(azArg[0], "import", n)==0 && nArg==3 ){
-    char *zTable = azArg[2];    /* Insert data into this table *//*½«±»µ¼ÈëÊı¾İµÄ±í*/
-    char *zFile = azArg[1];     /* The file from which to extract data *//*½«±»ÌáÈ¡Êı¾İµÄÎÄ¼ş*/
-    sqlite3_stmt *pStmt = NULL; /* A statement *//*¶¨ÒåÒ»¸ö¿Õ¾ä±ú*/
-    int nCol;                   /* Number of columns in the table *//*¶¨Òå±íµÄÁĞÊı*/
-    int nByte;                  /* Number of bytes in an SQL string *//*Ò»¸öSQL´®µÄ±ÈÌØÊı*/
+    char *zTable = azArg[2];    /* Insert data into this table *//*å°†è¢«å¯¼å…¥æ•°æ®çš„è¡¨*/
+    char *zFile = azArg[1];     /* The file from which to extract data *//*å°†è¢«æå–æ•°æ®çš„æ–‡ä»¶*/
+    sqlite3_stmt *pStmt = NULL; /* A statement *//*å®šä¹‰ä¸€ä¸ªç©ºå¥æŸ„*/
+    int nCol;                   /* Number of columns in the table *//*å®šä¹‰è¡¨çš„åˆ—æ•°*/
+    int nByte;                  /* Number of bytes in an SQL string *//*ä¸€ä¸ªSQLä¸²çš„æ¯”ç‰¹æ•°*/
     int i, j;                   /* Loop counters */
     int nSep;                   /* Number of bytes in p->separator[] */
-    char *zSql;                 /* An SQL statement *//*Ò»¸öSQLÓï¾ä¾ä±ú*/
-    char *zLine;                /* A single line of input from the file *//*ÎÄ¼şµÄĞĞ*/
+    char *zSql;                 /* An SQL statement *//*ä¸€ä¸ªSQLè¯­å¥å¥æŸ„*/
+    char *zLine;                /* A single line of input from the file *//*æ–‡ä»¶çš„è¡Œ*/
     char **azCol;               /* zLine[] broken up into columns */
     char *zCommit;              /* How to commit changes */   
     FILE *in;                   /* The input file */
@@ -1964,29 +1964,29 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     open_db(p);
     nSep = strlen30(p->separator);
     if( nSep==0 ){
-      fprintf(stderr, "Error: non-null separator required for import\n");/*³¤¶ÈÎª0£¬ÎŞ·¨µ¼ÈëÎÄ¼ş*/
+      fprintf(stderr, "Error: non-null separator required for import\n");/*é•¿åº¦ä¸º0ï¼Œæ— æ³•å¯¼å…¥æ–‡ä»¶*/
       return 1;
     }
-    zSql = sqlite3_mprintf("SELECT * FROM %s", zTable);/*²éÑ¯zTable±íÖĞµÄÊı¾İ*/
+    zSql = sqlite3_mprintf("SELECT * FROM %s", zTable);/*æŸ¥è¯¢zTableè¡¨ä¸­çš„æ•°æ®*/
     if( zSql==0 ){
-      fprintf(stderr, "Error: out of memory\n");/*Èô±íÖĞÃ»ÓĞÊı¾İÔòÊä³öÒ»¸öerror*/
+      fprintf(stderr, "Error: out of memory\n");/*è‹¥è¡¨ä¸­æ²¡æœ‰æ•°æ®åˆ™è¾“å‡ºä¸€ä¸ªerror*/
       return 1;
     }
     nByte = strlen30(zSql);
-    rc = sqlite3_prepare(p->db, zSql, -1, &pStmt, 0);/*Ö´ĞĞ×¼±¸*/
-    sqlite3_free(zSql);/*ÊÍ·ÅÄÚ´æ*/
+    rc = sqlite3_prepare(p->db, zSql, -1, &pStmt, 0);/*æ‰§è¡Œå‡†å¤‡*/
+    sqlite3_free(zSql);/*é‡Šæ”¾å†…å­˜*/
     if( rc ){
-      if (pStmt) sqlite3_finalize(pStmt);/*Õâ¸ö¹ı³ÌÏú»ÙÇ°Ãæ±»sqlite3_prepare´´½¨µÄ×¼±¸Óï¾ä£¬Ã¿¸ö×¼±¸Óï¾ä¶¼±ØĞëÊ¹ÓÃÕâ¸öº¯ÊıÈ¥Ïú»ÙÒÔ·ÀÖ¹ÄÚ´æĞ¹Â¶¡£*/
+      if (pStmt) sqlite3_finalize(pStmt);/*è¿™ä¸ªè¿‡ç¨‹é”€æ¯å‰é¢è¢«sqlite3_prepareåˆ›å»ºçš„å‡†å¤‡è¯­å¥ï¼Œæ¯ä¸ªå‡†å¤‡è¯­å¥éƒ½å¿…é¡»ä½¿ç”¨è¿™ä¸ªå‡½æ•°å»é”€æ¯ä»¥é˜²æ­¢å†…å­˜æ³„éœ²ã€‚*/
       fprintf(stderr,"Error: %s\n", sqlite3_errmsg(db));
       return 1;
     }
-    /* sqlite3_step()·µ»ØSQLITE_ROWºó£¬¸Ãº¯Êı·µ»Øµ±Ç°¼ÇÂ¼µÄÁĞÊı£¬µ«ÊÇÒªÇóÓï¾ä¾ä±úÉÏÓĞ»î¶¯ÓÎ±ê*/
-    nCol = sqlite3_column_count(pStmt);/*ÁĞ¼ÆËã*/
-    sqlite3_finalize(pStmt);/*Ïú»ÙÇ°Ãæ±»sqlite3_prepare´´½¨µÄ×¼±¸Óï¾ä*/
+    /* sqlite3_step()è¿”å›SQLITE_ROWåï¼Œè¯¥å‡½æ•°è¿”å›å½“å‰è®°å½•çš„åˆ—æ•°ï¼Œä½†æ˜¯è¦æ±‚è¯­å¥å¥æŸ„ä¸Šæœ‰æ´»åŠ¨æ¸¸æ ‡*/
+    nCol = sqlite3_column_count(pStmt);/*åˆ—è®¡ç®—*/
+    sqlite3_finalize(pStmt);/*é”€æ¯å‰é¢è¢«sqlite3_prepareåˆ›å»ºçš„å‡†å¤‡è¯­å¥*/
     pStmt = 0;
     if( nCol==0 ) return 0; /* no columns, no error */
     zSql = malloc( nByte + 20 + nCol*2 );
-    if( zSql==0 ){/*·ÖÅäÄÚ´æÊ§°Ü*/
+    if( zSql==0 ){/*åˆ†é…å†…å­˜å¤±è´¥*/
       fprintf(stderr, "Error: out of memory\n");
       return 1;
     }
@@ -2002,7 +2002,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     free(zSql);
     if( rc ){
       fprintf(stderr, "Error: %s\n", sqlite3_errmsg(db));
-      if (pStmt) sqlite3_finalize(pStmt);/*Ïú»ÙÇ°Ãæ±»sqlite3_prepare´´½¨µÄ×¼±¸Óï¾ä*/
+      if (pStmt) sqlite3_finalize(pStmt);/*é”€æ¯å‰é¢è¢«sqlite3_prepareåˆ›å»ºçš„å‡†å¤‡è¯­å¥*/
       return 1;
     }
     in = fopen(zFile, "rb");
@@ -2014,12 +2014,12 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     azCol = malloc( sizeof(azCol[0])*(nCol+1) );
     if( azCol==0 ){
       fprintf(stderr, "Error: out of memory\n");
-      fclose(in);/*Ïú»ÙÇ°Ãæ±»sqlite3_prepare´´½¨µÄ×¼±¸Óï¾ä*/
+      fclose(in);/*é”€æ¯å‰é¢è¢«sqlite3_prepareåˆ›å»ºçš„å‡†å¤‡è¯­å¥*/
       sqlite3_finalize(pStmt);
       return 1;
     }
     sqlite3_exec(p->db, "BEGIN", 0, 0, 0);
-    zCommit = "COMMIT";/*Ìá½» */
+    zCommit = "COMMIT";/*æäº¤ */
     while( (zLine = local_getline(0, in, 1))!=0 ){
       char *z, c;
       int inQuote = 0;
@@ -2042,7 +2042,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         fprintf(stderr,
                 "Error: %s line %d: expected %d columns of data but found %d\n",
                 zFile, lineno, nCol, i+1);
-        zCommit = "ROLLBACK";/*»Ø¹ö£¬»Ö¸´µ½Êı¾İĞŞ¸ÄÒÔÇ°*/
+        zCommit = "ROLLBACK";/*å›æ»šï¼Œæ¢å¤åˆ°æ•°æ®ä¿®æ”¹ä»¥å‰*/
         free(zLine);
         rc = 1;
         break; /* from while */
@@ -2057,12 +2057,12 @@ static int do_meta_command(char *zLine, struct callback_data *p){
           z[k] = 0;
         }
         sqlite3_bind_text(pStmt, i+1, azCol[i], -1, SQLITE_STATIC);
-      }/*sqlite3_bind_textµÄµÚ¶ş¸ö²ÎÊıÎªĞòºÅ£¨´Ó1¿ªÊ¼£©£¬µÚÈı¸ö²ÎÊıÎª×Ö·û´®Öµ£¬µÚËÄ¸ö²ÎÊıÎª×Ö·û´®³¤¶È¡£
-      µÚÎå¸ö²ÎÊıÎªÒ»¸öº¯ÊıÖ¸Õë£¬SQLITE3Ö´ĞĞÍê²Ù×÷ºó»Øµ÷´Ëº¯Êı£¬Í¨³£ÓÃÓÚÊÍ·Å×Ö·û´®Õ¼ÓÃµÄÄÚ´æ¡£*/
-      sqlite3_step(pStmt);/* Ö´ĞĞÓï¾ä*/
-      rc = sqlite3_reset(pStmt);/*ÖØÖÃÒ»¸ö×¼±¸Óï¾ä¶ÔÏóµ½ËüµÄ³õÊ¼×´Ì¬*/
+      }/*sqlite3_bind_textçš„ç¬¬äºŒä¸ªå‚æ•°ä¸ºåºå·ï¼ˆä»1å¼€å§‹ï¼‰ï¼Œç¬¬ä¸‰ä¸ªå‚æ•°ä¸ºå­—ç¬¦ä¸²å€¼ï¼Œç¬¬å››ä¸ªå‚æ•°ä¸ºå­—ç¬¦ä¸²é•¿åº¦ã€‚
+      ç¬¬äº”ä¸ªå‚æ•°ä¸ºä¸€ä¸ªå‡½æ•°æŒ‡é’ˆï¼ŒSQLITE3æ‰§è¡Œå®Œæ“ä½œåå›è°ƒæ­¤å‡½æ•°ï¼Œé€šå¸¸ç”¨äºé‡Šæ”¾å­—ç¬¦ä¸²å ç”¨çš„å†…å­˜ã€‚*/
+      sqlite3_step(pStmt);/* æ‰§è¡Œè¯­å¥*/
+      rc = sqlite3_reset(pStmt);/*é‡ç½®ä¸€ä¸ªå‡†å¤‡è¯­å¥å¯¹è±¡åˆ°å®ƒçš„åˆå§‹çŠ¶æ€*/
       free(zLine);
-      if( rc!=SQLITE_OK ){/* Êä³ö´íÎóĞÅÏ¢*/
+      if( rc!=SQLITE_OK ){/* è¾“å‡ºé”™è¯¯ä¿¡æ¯*/
         fprintf(stderr,"Error: %s\n", sqlite3_errmsg(db));
         zCommit = "ROLLBACK";
         rc = 1;
@@ -2076,23 +2076,23 @@ static int do_meta_command(char *zLine, struct callback_data *p){
   }else
 
   if( c=='i' && strncmp(azArg[0], "indices", n)==0 && nArg<3 ){
-    struct callback_data data;/*¶¨Òå»ØÏÔ½á¹¹Ìå*/
-    char *zErrMsg = 0;/*±£´æ´íÎóĞÅÏ¢µÄÖ¸Õë*/
-    open_db(p);/*´ò¿ªÊı¾İ¿â*/
-    memcpy(&data, p, sizeof(data));/*¿½±´×Ö½Ú*/
-    data.showHeader = 0;/*´ò¿ª±íÍ·ÏÔÊ¾*/
+    struct callback_data data;/*å®šä¹‰å›æ˜¾ç»“æ„ä½“*/
+    char *zErrMsg = 0;/*ä¿å­˜é”™è¯¯ä¿¡æ¯çš„æŒ‡é’ˆ*/
+    open_db(p);/*æ‰“å¼€æ•°æ®åº“*/
+    memcpy(&data, p, sizeof(data));/*æ‹·è´å­—èŠ‚*/
+    data.showHeader = 0;/*æ‰“å¼€è¡¨å¤´æ˜¾ç¤º*/
     data.mode = MODE_List;
-    if( nArg==1 ){/*Ã»ÓĞ²ÎÊıÊ± */
+    if( nArg==1 ){/*æ²¡æœ‰å‚æ•°æ—¶ */
       rc = sqlite3_exec(p->db,
         "SELECT name FROM sqlite_master "
         "WHERE type='index' AND name NOT LIKE 'sqlite_%' "
         "UNION ALL "
         "SELECT name FROM sqlite_temp_master "
-        "WHERE type='index' "/*ÏÔÊ¾ËùÓĞË÷Òı*/
+        "WHERE type='index' "/*æ˜¾ç¤ºæ‰€æœ‰ç´¢å¼•*/
         "ORDER BY 1",
         callback, &data, &zErrMsg
       );
-    }else{{/*ÓĞ²ÎÊıÊ±£¬ÏÔÊ¾¶ÔÓ¦±íµÄË÷Òı*/
+    }else{{/*æœ‰å‚æ•°æ—¶ï¼Œæ˜¾ç¤ºå¯¹åº”è¡¨çš„ç´¢å¼•*/
       zShellStatic = azArg[1];
       rc = sqlite3_exec(p->db,
         "SELECT name FROM sqlite_master "
@@ -2105,7 +2105,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       );
       zShellStatic = 0;
     }
-    if( zErrMsg ){/*Èç¹û´íÎóÔòÊä³ö´íÎóĞÅÏ¢*/
+    if( zErrMsg ){/*å¦‚æœé”™è¯¯åˆ™è¾“å‡ºé”™è¯¯ä¿¡æ¯*/
       fprintf(stderr,"Error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
       rc = 1;
@@ -2118,17 +2118,17 @@ static int do_meta_command(char *zLine, struct callback_data *p){
 #ifdef SQLITE_ENABLE_IOTRACE
   if( c=='i' && strncmp(azArg[0], "iotrace", n)==0 ){
     extern void (*sqlite3IoTrace)(const char*, ...);
-    if( iotrace && iotrace!=stdout ) fclose(iotrace);/*iotrace²»ÊÇ±ê×¼µÄÊäÈëÊä³ö£¬¹Ø±Õiotrace*/
+    if( iotrace && iotrace!=stdout ) fclose(iotrace);/*iotraceä¸æ˜¯æ ‡å‡†çš„è¾“å…¥è¾“å‡ºï¼Œå…³é—­iotrace*/
     iotrace = 0;
     if( nArg<2 ){
       sqlite3IoTrace = 0;
-    }else if( strcmp(azArg[1], "-")==0 ){/*µ±azArg[1]Îª"-"Ê±£¬iotraceÉèÖÃÎª±ê×¼µÄÊäÈëÊä³ö*/
+    }else if( strcmp(azArg[1], "-")==0 ){/*å½“azArg[1]ä¸º"-"æ—¶ï¼Œiotraceè®¾ç½®ä¸ºæ ‡å‡†çš„è¾“å…¥è¾“å‡º*/
       sqlite3IoTrace = iotracePrintf;
       iotrace = stdout;
     }else{
-      iotrace = fopen(azArg[1], "w");/*´ò¿ªÖ»Ğ´ÎÄ¼ş£¬·µ»ØÖµ¸³¸øiotrace*/
+      iotrace = fopen(azArg[1], "w");/*æ‰“å¼€åªå†™æ–‡ä»¶ï¼Œè¿”å›å€¼èµ‹ç»™iotrace*/
       if( iotrace==0 ){
-        fprintf(stderr, "Error: cannot open \"%s\"\n", azArg[1]);/*Èô´ò¿ªÊ§°Ü£¬Êä³ö´íÎóĞÅÏ¢£¬ sqlite3IoTrace ¸³ÖµÎª0£¬·ñÔò¸³ÖµÎªiotracePrintf*/
+        fprintf(stderr, "Error: cannot open \"%s\"\n", azArg[1]);/*è‹¥æ‰“å¼€å¤±è´¥ï¼Œè¾“å‡ºé”™è¯¯ä¿¡æ¯ï¼Œ sqlite3IoTrace èµ‹å€¼ä¸º0ï¼Œå¦åˆ™èµ‹å€¼ä¸ºiotracePrintf*/
         sqlite3IoTrace = 0;
         rc = 1;
       }else{
@@ -2137,7 +2137,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     }
   }else
 #endif
-/*¼ÓÔØÒ»¸öÀ©Õ¹¿â*/
+/*åŠ è½½ä¸€ä¸ªæ‰©å±•åº“*/
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
   if( c=='l' && strncmp(azArg[0], "load", n)==0 && nArg>=2 ){
     const char *zFile, *zProc;
@@ -2153,11 +2153,11 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     }
   }else
 #endif
-/*´ò¿ª»ò¹Ø±ÕÈÕÖ¾¹¦ÄÜ£¬FILE¿ÉÒÔÎª±ê×¼Êä³östdout£¬»ò±ê×¼´íÎóÊä³östderr*/
+/*æ‰“å¼€æˆ–å…³é—­æ—¥å¿—åŠŸèƒ½ï¼ŒFILEå¯ä»¥ä¸ºæ ‡å‡†è¾“å‡ºstdoutï¼Œæˆ–æ ‡å‡†é”™è¯¯è¾“å‡ºstderr*/
   if( c=='l' && strncmp(azArg[0], "log", n)==0 && nArg>=2 ){
     const char *zFile = azArg[1];
-    output_file_close(p->pLog);/*¹Ø±ÕÊä³öÎÄ¼şp->pLog*/
-    p->pLog = output_file_open(zFile);/*´ò¿ªÊä³öÎÄ¼şzFile*/
+    output_file_close(p->pLog);/*å…³é—­è¾“å‡ºæ–‡ä»¶p->pLog*/
+    p->pLog = output_file_open(zFile);/*æ‰“å¼€è¾“å‡ºæ–‡ä»¶zFile*/
   }else
 */
   if( c=='m' && strncmp(azArg[0], "mode", n)==0 && nArg==2 ){
@@ -2165,25 +2165,25 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     if( (n2==4 && strncmp(azArg[1],"line",n2)==0)
         ||
         (n2==5 && strncmp(azArg[1],"lines",n2)==0) ){
-      p->mode = MODE_Line;/*ÉèÖÃµ½LineÄ£Ê½*/
+      p->mode = MODE_Line;/*è®¾ç½®åˆ°Lineæ¨¡å¼*/
     }else if( (n2==6 && strncmp(azArg[1],"column",n2)==0)
               ||
               (n2==7 && strncmp(azArg[1],"columns",n2)==0) ){
-      p->mode = MODE_Column;/*ÉèÖÃµ½ColumnÄ£Ê½*/
+      p->mode = MODE_Column;/*è®¾ç½®åˆ°Columnæ¨¡å¼*/
     }else if( n2==4 && strncmp(azArg[1],"list",n2)==0 ){
-      p->mode = MODE_List;/*ÉèÖÃµ½ListÄ£Ê½*/
+      p->mode = MODE_List;/*è®¾ç½®åˆ°Listæ¨¡å¼*/
     }else if( n2==4 && strncmp(azArg[1],"html",n2)==0 ){
-      p->mode = MODE_Html;/*ÉèÖÃµ½HtmlÄ£Ê½*/
+      p->mode = MODE_Html;/*è®¾ç½®åˆ°Htmlæ¨¡å¼*/
     }else if( n2==3 && strncmp(azArg[1],"tcl",n2)==0 ){
-      p->mode = MODE_Tcl;/*ÉèÖÃµ½TclÄ£Ê½*/
+      p->mode = MODE_Tcl;/*è®¾ç½®åˆ°Tclæ¨¡å¼*/
     }else if( n2==3 && strncmp(azArg[1],"csv",n2)==0 ){
-      p->mode = MODE_Csv;/*ÉèÖÃµ½CsvÄ£Ê½*/
+      p->mode = MODE_Csv;/*è®¾ç½®åˆ°Csvæ¨¡å¼*/
       sqlite3_snprintf(sizeof(p->separator), p->separator, ",");
     }else if( n2==4 && strncmp(azArg[1],"tabs",n2)==0 ){
-      p->mode = MODE_List; /*ÉèÖÃµ½ListÄ£Ê½*/
+      p->mode = MODE_List; /*è®¾ç½®åˆ°Listæ¨¡å¼*/
       sqlite3_snprintf(sizeof(p->separator), p->separator, "\t");
     }else if( n2==6 && strncmp(azArg[1],"insert",n2)==0 ){
-      p->mode = MODE_Insert;/*ÉèÖÃµ½InsertÄ£Ê½*/
+      p->mode = MODE_Insert;/*è®¾ç½®åˆ°Insertæ¨¡å¼*/
       set_table_name(p, "table");
     }else {
       fprintf(stderr,"Error: mode should be one of: "
@@ -2203,12 +2203,12 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       rc = 1;
     }
   }else
-/*ÓÃÖ¸¶¨µÄ´®´úÌæÊä³öµÄNULL´®*/
+/*ç”¨æŒ‡å®šçš„ä¸²ä»£æ›¿è¾“å‡ºçš„NULLä¸²*/
   if( c=='n' && strncmp(azArg[0], "nullvalue", n)==0 && nArg==2 ) {
     sqlite3_snprintf(sizeof(p->nullvalue), p->nullvalue,
                      "%.*s", (int)ArraySize(p->nullvalue)-1, azArg[1]);
   }else
-/*½«µ±Ç°ÃüÁîµÄËùÓĞÊä³öÖØ¶¨Ïòµ½±ê×¼Êä³ö(ÆÁÄ»)¡£*/
+/*å°†å½“å‰å‘½ä»¤çš„æ‰€æœ‰è¾“å‡ºé‡å®šå‘åˆ°æ ‡å‡†è¾“å‡º(å±å¹•)ã€‚*/
   if( c=='o' && strncmp(azArg[0], "output", n)==0 && nArg==2 ){
     if( p->outfile[0]=='|' ){
       pclose(p->out);
@@ -2223,7 +2223,7 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         p->out = stdout;
         rc = 1;
       }else{
-        sqlite3_snprintf(sizeof(p->outfile), p->outfile, "%s", azArg[1]);/*sqlite3_snprintf( )·µ»ØÒ»¸öÖ¸ÏòÆä»º³åÇø¶ø·ÇÊµ¼ÊĞ´Èëµ½»º³åÇøµÄ×Ö·ûÊı */
+        sqlite3_snprintf(sizeof(p->outfile), p->outfile, "%s", azArg[1]);/*sqlite3_snprintf( )è¿”å›ä¸€ä¸ªæŒ‡å‘å…¶ç¼“å†²åŒºè€Œéå®é™…å†™å…¥åˆ°ç¼“å†²åŒºçš„å­—ç¬¦æ•° */
       }
     }else{
       p->out = output_file_open(azArg[1]);
@@ -2238,8 +2238,8 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       }
     }
   }else
-/*Ìæ»»Ä¬ÈÏµÄ±ê×¼ÌáÊ¾·û*/
-  if( c=='p' && strncmp(azArg[0], "prompt", n)==0 && (nArg==2 || nArg==3)){/*promptÃüÁî¿ÉÒÔÔÚmysqlÌáÊ¾·ûÖĞÏÔÊ¾µ±Ç°ÓÃ»§¡¢Êı¾İ¿â¡¢Ê±¼äµÈĞÅÏ¢*/
+/*æ›¿æ¢é»˜è®¤çš„æ ‡å‡†æç¤ºç¬¦*/
+  if( c=='p' && strncmp(azArg[0], "prompt", n)==0 && (nArg==2 || nArg==3)){/*promptå‘½ä»¤å¯ä»¥åœ¨mysqlæç¤ºç¬¦ä¸­æ˜¾ç¤ºå½“å‰ç”¨æˆ·ã€æ•°æ®åº“ã€æ—¶é—´ç­‰ä¿¡æ¯*/
     if( nArg >= 2) {
       strncpy(mainPrompt,azArg[1],(int)ArraySize(mainPrompt)-1);
     }
@@ -2247,11 +2247,11 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       strncpy(continuePrompt,azArg[2],(int)ArraySize(continuePrompt)-1);
     }
   }else
-/*Í£Ö¹µ±Ç°³ÌĞò*/
+/*åœæ­¢å½“å‰ç¨‹åº*/
   if( c=='q' && strncmp(azArg[0], "quit", n)==0 && nArg==1 ){
     rc = 2;
   }else
-/*Ö´ĞĞÖ¸¶¨ÎÄ¼şÄÚµÄsqlÓï¾ä*/
+/*æ‰§è¡ŒæŒ‡å®šæ–‡ä»¶å†…çš„sqlè¯­å¥*/
   if( c=='r' && n>=3 && strncmp(azArg[0], "read", n)==0 && nArg==2 ){
     FILE *alt = fopen(azArg[1], "rb");
     if( alt==0 ){
@@ -2262,11 +2262,11 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       fclose(alt);
     }
   }else
-/*´ÓÖ¸¶¨µÄÎÄ¼ş»¹Ô­Êı¾İ¿â£¬È±Ê¡ÎªmainÊı¾İ¿â£¬´ËÊ±Ò²¿ÉÒÔÖ¸¶¨ÆäËüÊı¾İ¿âÃû
-±»Ö¸¶¨µÄÊı¾İ¿â³ÉÎªµ±Ç°Á¬½ÓµÄattachedÊı¾İ¿â¡£*/
+/*ä»æŒ‡å®šçš„æ–‡ä»¶è¿˜åŸæ•°æ®åº“ï¼Œç¼ºçœä¸ºmainæ•°æ®åº“ï¼Œæ­¤æ—¶ä¹Ÿå¯ä»¥æŒ‡å®šå…¶å®ƒæ•°æ®åº“å
+è¢«æŒ‡å®šçš„æ•°æ®åº“æˆä¸ºå½“å‰è¿æ¥çš„attachedæ•°æ®åº“ã€‚*/
   if( c=='r' && n>=3 && strncmp(azArg[0], "restore", n)==0 && nArg>1 && nArg<4){
-    const char *zSrcFile; /*ĞèÒª±»»¹Ô­µÄÔ´Êı¾İ¿â*/
-    const char *zDb;/*Ö¸¶¨µÄ£¬Ä¿±êÊı¾İ¿â£¬È±Ê¡ÎªMAIN*/
+    const char *zSrcFile; /*éœ€è¦è¢«è¿˜åŸçš„æºæ•°æ®åº“*/
+    const char *zDb;/*æŒ‡å®šçš„ï¼Œç›®æ ‡æ•°æ®åº“ï¼Œç¼ºçœä¸ºMAIN*/
     sqlite3 *pSrc;
     sqlite3_backup *pBackup;
     int nTimeout = 0;
@@ -2278,27 +2278,27 @@ static int do_meta_command(char *zLine, struct callback_data *p){
       zSrcFile = azArg[2];
       zDb = azArg[1];
     }
-    rc = sqlite3_open(zSrcFile, &pSrc);/*´ò¿ªĞèÒª±»»¹Ô­µÄÔ´Êı¾İ¿â*/
-    if( rc!=SQLITE_OK ){/*Ã»´ò¿ªÊä³ö´íÎóĞÅÏ¢*/
+    rc = sqlite3_open(zSrcFile, &pSrc);/*æ‰“å¼€éœ€è¦è¢«è¿˜åŸçš„æºæ•°æ®åº“*/
+    if( rc!=SQLITE_OK ){/*æ²¡æ‰“å¼€è¾“å‡ºé”™è¯¯ä¿¡æ¯*/
       fprintf(stderr, "Error: cannot open \"%s\"\n", zSrcFile);
       sqlite3_close(pSrc);
       return 1;
     }
     open_db(p);
-    /* µÚÒ»¸ö²ÎÊıÎªÄ¿±êÊı¾İ¿â£¬µÚÈı¸ö²ÎÊıÎªÔ´Êı¾İ¿â£¬·µ»ØÖ¸ÏòÔ´Êı¾İ¿âµÄÖ¸Õë*/
-    pBackup = sqlite3_backup_init(p->db, zDb, pSrc, "main");/*º¯Êısqlite3_backup_init()ÓÃÓÚ´´½¨sqlite3_backup¶ÔÏó£¬¸Ã¶ÔÏó½«×÷Îª±¾´Î¿½±´²Ù×÷µÄ¾ä±ú´«¸øÆäÓàÁ½¸öº¯Êı¡£*/
-    if( pBackup==0 ){/*´´½¨sqlite3_backup¶ÔÏóÃ»ÓĞ³É¹¦£¬*/
+    /* ç¬¬ä¸€ä¸ªå‚æ•°ä¸ºç›®æ ‡æ•°æ®åº“ï¼Œç¬¬ä¸‰ä¸ªå‚æ•°ä¸ºæºæ•°æ®åº“ï¼Œè¿”å›æŒ‡å‘æºæ•°æ®åº“çš„æŒ‡é’ˆ*/
+    pBackup = sqlite3_backup_init(p->db, zDb, pSrc, "main");/*å‡½æ•°sqlite3_backup_init()ç”¨äºåˆ›å»ºsqlite3_backupå¯¹è±¡ï¼Œè¯¥å¯¹è±¡å°†ä½œä¸ºæœ¬æ¬¡æ‹·è´æ“ä½œçš„å¥æŸ„ä¼ ç»™å…¶ä½™ä¸¤ä¸ªå‡½æ•°ã€‚*/
+    if( pBackup==0 ){/*åˆ›å»ºsqlite3_backupå¯¹è±¡æ²¡æœ‰æˆåŠŸï¼Œ*/
       fprintf(stderr, "Error: %s\n", sqlite3_errmsg(p->db));
       sqlite3_close(pSrc);
       return 1;
     }
-    while( (rc = sqlite3_backup_step(pBackup,100))==SQLITE_OK/*¿ªÊ¼±¸·İ*/
+    while( (rc = sqlite3_backup_step(pBackup,100))==SQLITE_OK/*å¼€å§‹å¤‡ä»½*/
           || rc==SQLITE_BUSY  ){
       if( rc==SQLITE_BUSY ){
-        if( nTimeout++ >= 3 ) break; /*Èç¹ûÊı¾İÎÄ¼ş±»Ëø¶¨£¬Èı´ÎÖ®ºóÖÕ¶Ï*/
-        sqlite3_sleep(100);  /*Ïß³Ì½«±»¹ÒÆğÔİÍ£Ö´ĞĞ100ºÁÃë*/
+        if( nTimeout++ >= 3 ) break; /*å¦‚æœæ•°æ®æ–‡ä»¶è¢«é”å®šï¼Œä¸‰æ¬¡ä¹‹åç»ˆæ–­*/
+        sqlite3_sleep(100);  /*çº¿ç¨‹å°†è¢«æŒ‚èµ·æš‚åœæ‰§è¡Œ100æ¯«ç§’*/
       }
-    }/*±¸·İÍê±ÏºóÊÍ·Å¿Õ¼ä*/
+    }/*å¤‡ä»½å®Œæ¯•åé‡Šæ”¾ç©ºé—´*/
     sqlite3_backup_finish(pBackup);
     if( rc==SQLITE_DONE ){
       rc = 0;
@@ -2311,63 +2311,63 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     }
     sqlite3_close(pSrc);
   }else
-/*±¸·İÍê±ÏºóÊÍ·Å¿Õ¼ä±¸·İ³É¹¦ºó½«ÊÍ·Å¿Õ¼ä¹Ø±ÕÊı¾İ¿â£¬Ê§°Ü»á±£´æ´íÎóĞÅÏ¢*/
+/*å¤‡ä»½å®Œæ¯•åé‡Šæ”¾ç©ºé—´å¤‡ä»½æˆåŠŸåå°†é‡Šæ”¾ç©ºé—´å…³é—­æ•°æ®åº“ï¼Œå¤±è´¥ä¼šä¿å­˜é”™è¯¯ä¿¡æ¯*/
   if( c=='s' && strncmp(azArg[0], "schema", n)==0 && nArg<3 ){
     struct callback_data data;
     char *zErrMsg = 0;
-    /*È·±£Êı¾İ¿âÊÇ´ò¿ªµÄ¡£Èç¹û²»ÊÇ£¬Ôò½«Æä´ò¿ª¡£
-    Èç¹ûÊı¾İ¿âÎŞ·¨´ò¿ª£¬Êä³ö´íÎóÏûÏ¢²¢ÍË³ö*/
+    /*ç¡®ä¿æ•°æ®åº“æ˜¯æ‰“å¼€çš„ã€‚å¦‚æœä¸æ˜¯ï¼Œåˆ™å°†å…¶æ‰“å¼€ã€‚
+    å¦‚æœæ•°æ®åº“æ— æ³•æ‰“å¼€ï¼Œè¾“å‡ºé”™è¯¯æ¶ˆæ¯å¹¶é€€å‡º*/
     open_db(p);	
-    /* ³õÊ¼»¯±¸·İ,ÓÃÓÚ´´½¨sqlite3_backup¶ÔÏó£¬
-    ¸Ã¶ÔÏó½«×÷Îª±¾´Î¿½±´²Ù×÷µÄ¾ä±ú´«¸øÆäÓàÁ½¸öº¯Êı¡£*/
+    /* åˆå§‹åŒ–å¤‡ä»½,ç”¨äºåˆ›å»ºsqlite3_backupå¯¹è±¡ï¼Œ
+    è¯¥å¯¹è±¡å°†ä½œä¸ºæœ¬æ¬¡æ‹·è´æ“ä½œçš„å¥æŸ„ä¼ ç»™å…¶ä½™ä¸¤ä¸ªå‡½æ•°ã€‚*/
     pBackup = sqlite3_backup_init(p->db, zDb, pSrc, "main");
-    if( pBackup==0 ){/*³õÊ¼»¯±¸·İÊ§°Ü*/
-      fprintf(stderr, "Error: %s\n", sqlite3_errmsg(p->db));/*°Ñ´íÎóĞÅÏ¢°´ÒªÇó¸ñÊ½Êä³öµ½stderrÎÄ¼şÖĞ*/
-      sqlite3_close(pSrc);/*¹Ø±ÕpSrcÖ¸ÏòµÄ¿Õ¼ä*/
+    if( pBackup==0 ){/*åˆå§‹åŒ–å¤‡ä»½å¤±è´¥*/
+      fprintf(stderr, "Error: %s\n", sqlite3_errmsg(p->db));/*æŠŠé”™è¯¯ä¿¡æ¯æŒ‰è¦æ±‚æ ¼å¼è¾“å‡ºåˆ°stderræ–‡ä»¶ä¸­*/
+      sqlite3_close(pSrc);/*å…³é—­pSrcæŒ‡å‘çš„ç©ºé—´*/
       return 1;
     }
-    while( (rc = sqlite3_backup_step(pBackup,100))==SQLITE_OK /*ÅĞ¶Ïsqlite3_backup_step ÊÇ·ñ³É¹¦¸´ÖÆ
+    while( (rc = sqlite3_backup_step(pBackup,100))==SQLITE_OK /*åˆ¤æ–­sqlite3_backup_step æ˜¯å¦æˆåŠŸå¤åˆ¶
 
-100¸öÒ³Ãæ¡£*/
+100ä¸ªé¡µé¢ã€‚*/
           || rc==SQLITE_BUSY  ){
       if( rc==SQLITE_BUSY ) {  
-        if( nTimeout++ >= 3 ) break;/*Èı´ÎÇëÇóÖ®ºó£¬Êı¾İ¿âÎÄ¼şÒ»Ö±Ëø¶¨£¬ÔòÌø³öµ±Ç°²Ù×÷*/ 
-        sqlite3_sleep(100);  /*sqlite3_sleep º¯ÊıÊ¹µ±Ç°Ïß³ÌÔİÍ£Ö´ĞĞ100ºÁÃë¡£*/
+        if( nTimeout++ >= 3 ) break;/*ä¸‰æ¬¡è¯·æ±‚ä¹‹åï¼Œæ•°æ®åº“æ–‡ä»¶ä¸€ç›´é”å®šï¼Œåˆ™è·³å‡ºå½“å‰æ“ä½œ*/ 
+        sqlite3_sleep(100);  /*sqlite3_sleep å‡½æ•°ä½¿å½“å‰çº¿ç¨‹æš‚åœæ‰§è¡Œ100æ¯«ç§’ã€‚*/
       }
     }
-    sqlite3_backup_finish(pBackup); /*ÊÍ·ÅÓëpBackup Ïà¹ØÁªµÄËùÓĞ×ÊÔ´¡£*/
-    if( rc==SQLITE_DONE ){ /*ÅĞ¶Ïsqlite3_backup_step ÊÇ·ñÍê³ÉËùÓĞ±¸·İ²Ù×÷¡£*/
+    sqlite3_backup_finish(pBackup); /*é‡Šæ”¾ä¸pBackup ç›¸å…³è”çš„æ‰€æœ‰èµ„æºã€‚*/
+    if( rc==SQLITE_DONE ){ /*åˆ¤æ–­sqlite3_backup_step æ˜¯å¦å®Œæˆæ‰€æœ‰å¤‡ä»½æ“ä½œã€‚*/
       rc = 0;
-    }else if( rc==SQLITE_BUSY || rc==SQLITE_LOCKED ){/*µ±database connection ±»Ğ´Èëµ½Ô´Êı¾İ¿â
+    }else if( rc==SQLITE_BUSY || rc==SQLITE_LOCKED ){/*å½“database connection è¢«å†™å…¥åˆ°æºæ•°æ®åº“
 
-Ê±,sqlite3_backup_step ¾Í»á·µ»ØSQLITE_LOCKED */
-      fprintf(stderr, "Error: source database is busy\n");/*°Ñ´íÎóĞÅÏ¢Êä³öµ½stderrÖĞ*/
+æ—¶,sqlite3_backup_step å°±ä¼šè¿”å›SQLITE_LOCKED */
+      fprintf(stderr, "Error: source database is busy\n");/*æŠŠé”™è¯¯ä¿¡æ¯è¾“å‡ºåˆ°stderrä¸­*/
       rc = 1;
     }else{
-      fprintf(stderr, "Error: %s\n", sqlite3_errmsg(p->db));/*°Ñ´íÎóĞÅÏ¢°´¸ñÊ½ÒªÇóÊä³öµ½stderrÖĞ*/
+      fprintf(stderr, "Error: %s\n", sqlite3_errmsg(p->db));/*æŠŠé”™è¯¯ä¿¡æ¯æŒ‰æ ¼å¼è¦æ±‚è¾“å‡ºåˆ°stderrä¸­*/
       rc = 1;
     }
-    sqlite3_close(pSrc);/*sqlite3µÄ¶ÔÏó±»³É¹¦Ïú»Ù²¢ÇÒËùÓĞÏà¹ØµÄ×ÊÔ´±»ÊÍ·Å¡£*/
+    sqlite3_close(pSrc);/*sqlite3çš„å¯¹è±¡è¢«æˆåŠŸé”€æ¯å¹¶ä¸”æ‰€æœ‰ç›¸å…³çš„èµ„æºè¢«é‡Šæ”¾ã€‚*/
   }else
-  /*ÅĞ¶ÏÊÇ·ñÊäÈëÁË.schemaÃüÁî
-  ¸ÃÃüÁî¿ÉÒÔµÃµ½Ò»¸ö±í»òÊÓÍ¼µÄ¶¨Òå(DDL)Óï¾ä¡£*/
+  /*åˆ¤æ–­æ˜¯å¦è¾“å…¥äº†.schemaå‘½ä»¤
+  è¯¥å‘½ä»¤å¯ä»¥å¾—åˆ°ä¸€ä¸ªè¡¨æˆ–è§†å›¾çš„å®šä¹‰(DDL)è¯­å¥ã€‚*/
   if( c=='s' && strncmp(azArg[0], "schema", n)==0 && nArg<3 ){
-    struct callback_data data;/*»ØÏÔ²ÎÊı*/
+    struct callback_data data;/*å›æ˜¾å‚æ•°*/
     char *zErrMsg = 0;
-    open_db(p);/*´ò¿ªÊı¾İ¿â*/
-    memcpy(&data, p, sizeof(data));/* ´ÓpËùÖ¸µÄÄÚ´æµØÖ·µÄÆğÊ¼Î»ÖÃ¿ªÊ¼¿½±´sizeof(data)¸ö×Ö½ÚdataµÄÄÚ´æµØ
+    open_db(p);/*æ‰“å¼€æ•°æ®åº“*/
+    memcpy(&data, p, sizeof(data));/* ä»pæ‰€æŒ‡çš„å†…å­˜åœ°å€çš„èµ·å§‹ä½ç½®å¼€å§‹æ‹·è´sizeof(data)ä¸ªå­—èŠ‚dataçš„å†…å­˜åœ°
 
-Ö·µÄÆğÊ¼Î»ÖÃÖĞ¡£*/
+å€çš„èµ·å§‹ä½ç½®ä¸­ã€‚*/
     data.showHeader = 0;
-    data.mode = MODE_Semi;/*½«ºê¶¨ÒåµÄMODE_SemiµÄÖµ ¸³¸ø½á¹¹Ìå±äÁ¿*/
+    data.mode = MODE_Semi;/*å°†å®å®šä¹‰çš„MODE_Semiçš„å€¼ èµ‹ç»™ç»“æ„ä½“å˜é‡*/
     if( nArg>1 ){
       int i;
-      for(i=0; azArg[1][i]; i++) azArg[1][i] = ToLower(azArg[1][i]);/* °Ñ×Ö·û×ª»»³ÉĞ¡Ğ´×ÖÄ¸,·Ç×ÖÄ¸×Ö·û²»×ö³ö
+      for(i=0; azArg[1][i]; i++) azArg[1][i] = ToLower(azArg[1][i]);/* æŠŠå­—ç¬¦è½¬æ¢æˆå°å†™å­—æ¯,éå­—æ¯å­—ç¬¦ä¸åšå‡º
 
-´¦Àí */
-      if( strcmp(azArg[1],"sqlite_master")==0 ){/*azArg[1]Ö¸Ïò×Ö·û´®ÓëÒªÇó×Ö·û´®Æ¥Åä£¬ÔòÊä³ö¶ÔÓ¦±í*/
-        char *new_argv[2], *new_colv[2];/*¶¨ÒåÁ½¸öÖ¸ÕëÊı×é*/
-        new_argv[0] = "CREATE TABLE sqlite_master (\n"/*SQLÓï¾ä£¬´´½¨sqlite_master±í*/
+å¤„ç† */
+      if( strcmp(azArg[1],"sqlite_master")==0 ){/*azArg[1]æŒ‡å‘å­—ç¬¦ä¸²ä¸è¦æ±‚å­—ç¬¦ä¸²åŒ¹é…ï¼Œåˆ™è¾“å‡ºå¯¹åº”è¡¨*/
+        char *new_argv[2], *new_colv[2];/*å®šä¹‰ä¸¤ä¸ªæŒ‡é’ˆæ•°ç»„*/
+        new_argv[0] = "CREATE TABLE sqlite_master (\n"/*SQLè¯­å¥ï¼Œåˆ›å»ºsqlite_masterè¡¨*/
                       "  type text,\n"
                       "  name text,\n"
                       "  tbl_name text,\n"
@@ -2377,13 +2377,13 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         new_argv[1] = 0;
         new_colv[0] = "sql";
         new_colv[1] = 0;
-        callback(&data, 1, new_argv, new_colv);/*»Øµ÷º¯ÊıÓÃÒÔÏÔÊ¾²éÑ¯½á¹û£¬ÏÂÍ¬*/
+        callback(&data, 1, new_argv, new_colv);/*å›è°ƒå‡½æ•°ç”¨ä»¥æ˜¾ç¤ºæŸ¥è¯¢ç»“æœï¼Œä¸‹åŒ*/
         rc = SQLITE_OK;
-      }else if( strcmp(azArg[1],"sqlite_temp_master")==0 ){/*azArg[1]Ö¸Ïò×Ö·û´®ÓëÒªÇó×Ö·û´®Æ¥Åä£¬ÔòÊä³ö¶Ô
+      }else if( strcmp(azArg[1],"sqlite_temp_master")==0 ){/*azArg[1]æŒ‡å‘å­—ç¬¦ä¸²ä¸è¦æ±‚å­—ç¬¦ä¸²åŒ¹é…ï¼Œåˆ™è¾“å‡ºå¯¹
 
-Ó¦±í*/
-        char *new_argv[2], *new_colv[2];/*´´½¨Á½¸öÖ¸ÕëÊı×é*/
-        new_argv[0] = "CREATE TEMP TABLE sqlite_temp_master (\n"/*½«SQLÓï¾ä¸³¸ønew_argv[0]Êı×é*/
+åº”è¡¨*/
+        char *new_argv[2], *new_colv[2];/*åˆ›å»ºä¸¤ä¸ªæŒ‡é’ˆæ•°ç»„*/
+        new_argv[0] = "CREATE TEMP TABLE sqlite_temp_master (\n"/*å°†SQLè¯­å¥èµ‹ç»™new_argv[0]æ•°ç»„*/
                       "  type text,\n"
                       "  name text,\n"
                       "  tbl_name text,\n"
@@ -2393,11 +2393,11 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         new_argv[1] = 0;
         new_colv[0] = "sql";
         new_colv[1] = 0;
-        callback(&data, 1, new_argv, new_colv);/*»Øµ÷º¯ÊıÓÃÒÔÏÔÊ¾²éÑ¯½á¹û£¬ÏÂÍ¬*/
+        callback(&data, 1, new_argv, new_colv);/*å›è°ƒå‡½æ•°ç”¨ä»¥æ˜¾ç¤ºæŸ¥è¯¢ç»“æœï¼Œä¸‹åŒ*/
         rc = SQLITE_OK;
       }else{
-        zShellStatic = azArg[1];/*¾²Ì¬Ö¸ÕëzShellStaticÖ¸Ïò³£Á¿Ö¸ÕëazArg[1]µÄÄÚ´æ¿Õ¼ä*/
-        rc = sqlite3_exec(p->db,/*¶ÔpÖ¸ÕëÖ¸ÏòµÄÊı¾İ¿âÖ´ĞĞÏÂÁĞSQLÓï¾ä*/
+        zShellStatic = azArg[1];/*é™æ€æŒ‡é’ˆzShellStaticæŒ‡å‘å¸¸é‡æŒ‡é’ˆazArg[1]çš„å†…å­˜ç©ºé—´*/
+        rc = sqlite3_exec(p->db,/*å¯¹pæŒ‡é’ˆæŒ‡å‘çš„æ•°æ®åº“æ‰§è¡Œä¸‹åˆ—SQLè¯­å¥*/
           "SELECT sql FROM "
           "  (SELECT sql sql, type type, tbl_name tbl_name, name name, rowid x"
           "     FROM sqlite_master UNION ALL"
@@ -2406,11 +2406,11 @@ static int do_meta_command(char *zLine, struct callback_data *p){
           "  AND type!='meta' AND sql NOTNULL "
           "ORDER BY substr(type,2,1), "
                   " CASE type WHEN 'view' THEN rowid ELSE name END",
-          callback(&data, &zErrMsg);/*ÏÔÊ¾²éÑ¯½á¹û*/
+          callback(&data, &zErrMsg);/*æ˜¾ç¤ºæŸ¥è¯¢ç»“æœ*/
         zShellStatic = 0;
       }
     }else{
-      rc = sqlite3_exec(p->db,/*¶ÔdbÊı¾İ¿âÖ´ĞĞÏÂÁĞSQLÓï¾ä*/
+      rc = sqlite3_exec(p->db,/*å¯¹dbæ•°æ®åº“æ‰§è¡Œä¸‹åˆ—SQLè¯­å¥*/
          "SELECT sql FROM "
          "  (SELECT sql sql, type type, tbl_name tbl_name, name name, rowid x"
          "     FROM sqlite_master UNION ALL"
@@ -2420,61 +2420,61 @@ static int do_meta_command(char *zLine, struct callback_data *p){
                   " CASE type WHEN 'view' THEN rowid ELSE name END",
          callback( &data, &zErrMsg);
     }
-    if( zErrMsg ){/*Èô²»Îª¿Õ£¬ÔòÊä³özErrMsgÖĞµÄÄÚÈİµ½stderrÎÄ¼şÖĞ*/
+    if( zErrMsg ){/*è‹¥ä¸ä¸ºç©ºï¼Œåˆ™è¾“å‡ºzErrMsgä¸­çš„å†…å®¹åˆ°stderræ–‡ä»¶ä¸­*/
       fprintf(stderr,"Error: %s\n", zErrMsg);
-      sqlite3_free(zErrMsg);/*ÊÍ·ÅzErrMsgµÄÄÚ´æ¿Õ¼ä*/
+      sqlite3_free(zErrMsg);/*é‡Šæ”¾zErrMsgçš„å†…å­˜ç©ºé—´*/
       rc = 1;
-    }else if( rc != SQLITE_OK ){/*ÊÇ·ñ³É¹¦Íê³É*/
+    }else if( rc != SQLITE_OK ){/*æ˜¯å¦æˆåŠŸå®Œæˆ*/
       fprintf(stderr,"Error: querying schema information\n");
       rc = 1;
     }else{
       rc = 0;
     }
   }else
-  if( c=='s' && strncmp(azArg[0], "separator", n)==0 && nArg==2 ){ /*ÅĞ¶ÏÊÇ·ñÊäÈëÁË.separator ÃüÁî*/
-/*½« azArg[1]°´ÕÕformat¸ñÊ½»¯³É×Ö·û´®£¬È»ºóÊä³ö¡£Èô³É¹¦Ôò·µ»ØÓûĞ´ÈëµÄ×Ö·û´®³¤¶È£¬Èô³ö´íÔò·µ»Ø¸ºÖµ¡£*/
+  if( c=='s' && strncmp(azArg[0], "separator", n)==0 && nArg==2 ){ /*åˆ¤æ–­æ˜¯å¦è¾“å…¥äº†.separator å‘½ä»¤*/
+/*å°† azArg[1]æŒ‰ç…§formatæ ¼å¼åŒ–æˆå­—ç¬¦ä¸²ï¼Œç„¶åè¾“å‡ºã€‚è‹¥æˆåŠŸåˆ™è¿”å›æ¬²å†™å…¥çš„å­—ç¬¦ä¸²é•¿åº¦ï¼Œè‹¥å‡ºé”™åˆ™è¿”å›è´Ÿå€¼ã€‚*/
     sqlite3_snprintf(sizeof(p->separator), p->separator,
                      "%.*s", (int)sizeof(p->separator)-1, azArg[1]);
   }else
-  if( c=='s' && strncmp(azArg[0], "show", n)==0 && nArg==1 ){/*ÅĞ¶ÏÊÇ·ñÊäÈëÁË.show ÃüÁî*/
+  if( c=='s' && strncmp(azArg[0], "show", n)==0 && nArg==1 ){/*åˆ¤æ–­æ˜¯å¦è¾“å…¥äº†.show å‘½ä»¤*/
     int i;
-    fprintf(p->out,"%9.9s: %s\n","echo", p->echoOn ? "on" : "off"); /*»ØÏÔ¿ª¹Ø*/
+    fprintf(p->out,"%9.9s: %s\n","echo", p->echoOn ? "on" : "off"); /*å›æ˜¾å¼€å…³*/
     fprintf(p->out,"%9.9s: %s\n","explain", p->explainPrev.valid ? "on" :"off");
-    fprintf(p->out,"%9.9s: %s\n","headers", p->showHeader ? "on" : "off");/*ÊÇ·ñ´ò¿ª±íÍ·*/
-    fprintf(p->out,"%9.9s: %s\n","mode", modeDescr[p->mode]);/*modeÃüÁî¿ÉÒÔÉèÖÃ½á¹ûÊı¾İµÄ¼¸ÖÖÊä³ö
+    fprintf(p->out,"%9.9s: %s\n","headers", p->showHeader ? "on" : "off");/*æ˜¯å¦æ‰“å¼€è¡¨å¤´*/
+    fprintf(p->out,"%9.9s: %s\n","mode", modeDescr[p->mode]);/*modeå‘½ä»¤å¯ä»¥è®¾ç½®ç»“æœæ•°æ®çš„å‡ ç§è¾“å‡º
 
-¸ñÊ½,ÕâĞ©¸ñÊ½´æ·ÅÔÚmodeDescrÊı×éÖĞ*/
-    fprintf(p->out,"%9.9s: ", "nullvalue");/*¿ÕÖµÏÔÊ¾*/
-      output_c_string(p->out, p->nullvalue);/*¸ù¾İC»òTCLÒıÓÃ¹æÔò,Êä³ö¸ø¶¨µÄ×Ö·û´®¡£*/
+æ ¼å¼,è¿™äº›æ ¼å¼å­˜æ”¾åœ¨modeDescræ•°ç»„ä¸­*/
+    fprintf(p->out,"%9.9s: ", "nullvalue");/*ç©ºå€¼æ˜¾ç¤º*/
+      output_c_string(p->out, p->nullvalue);/*æ ¹æ®Cæˆ–TCLå¼•ç”¨è§„åˆ™,è¾“å‡ºç»™å®šçš„å­—ç¬¦ä¸²ã€‚*/
       fprintf(p->out, "\n");
     fprintf(p->out,"%9.9s: %s\n","output",
-            strlen30(p->outfile) ? p->outfile : "stdout");/*±ê×¼Êä³ö*/
+            strlen30(p->outfile) ? p->outfile : "stdout");/*æ ‡å‡†è¾“å‡º*/
     fprintf(p->out,"%9.9s: ", "separator");
-      output_c_string(p->out, p->separator);/*ÓÃÏàÓ¦·Ö¸ô·ûÊä³ö×Ö·û´®*/
+      output_c_string(p->out, p->separator);/*ç”¨ç›¸åº”åˆ†éš”ç¬¦è¾“å‡ºå­—ç¬¦ä¸²*/
       fprintf(p->out, "\n");
     fprintf(p->out,"%9.9s: %s\n","stats", p->statsOn ? "on" : "off");
     fprintf(p->out,"%9.9s: ","width");
-    for (i=0;i<(int)ArraySize(p->colWidth) && p->colWidth[i] != 0;i++) {/*ÁĞÊıºÍÃ¿ÁĞÁĞ¿í²»Îª0*/
-      fprintf(p->out,"%d ",p->colWidth[i]);/*Êä³öÁĞ¿í*/
+    for (i=0;i<(int)ArraySize(p->colWidth) && p->colWidth[i] != 0;i++) {/*åˆ—æ•°å’Œæ¯åˆ—åˆ—å®½ä¸ä¸º0*/
+      fprintf(p->out,"%d ",p->colWidth[i]);/*è¾“å‡ºåˆ—å®½*/
     }
     fprintf(p->out,"\n");
   }else
 
-  if( c=='s' && strncmp(azArg[0], "stats", n)==0 && nArg>1 && nArg<3 ){/*ÅĞ¶ÏÊÇ·ñÊäÈëstatsÃüÁî*/
-    p->statsOn = booleanValue(azArg[1]);/*°ÑazArg[1]µÄÖµ×ª»¯Îª²¼¶ûÖµ*/
+  if( c=='s' && strncmp(azArg[0], "stats", n)==0 && nArg>1 && nArg<3 ){/*åˆ¤æ–­æ˜¯å¦è¾“å…¥statså‘½ä»¤*/
+    p->statsOn = booleanValue(azArg[1]);/*æŠŠazArg[1]çš„å€¼è½¬åŒ–ä¸ºå¸ƒå°”å€¼*/
   }else
 
-  if( c=='t' && n>1 && strncmp(azArg[0], "tables", n)==0 && nArg<3 ){ /*ÅĞ¶ÏÊÇ·ñÊäÈëtablesÃüÁî*/
-    sqlite3_stmt *pStmt;/*ÉùÃ÷Ò»¸öÖ¸Õë*/
-    char **azResult;/*¶şÎ¬Êı×é´æ·Å½á¹û*/
+  if( c=='t' && n>1 && strncmp(azArg[0], "tables", n)==0 && nArg<3 ){ /*åˆ¤æ–­æ˜¯å¦è¾“å…¥tableså‘½ä»¤*/
+    sqlite3_stmt *pStmt;/*å£°æ˜ä¸€ä¸ªæŒ‡é’ˆ*/
+    char **azResult;/*äºŒç»´æ•°ç»„å­˜æ”¾ç»“æœ*/
     int nRow, nAlloc;
     char *zSql = 0;
     int ii;
-    open_db(p);/*´ò¿ªpÖ¸ÏòµÄÊı¾İ¿â*/
+    open_db(p);/*æ‰“å¼€pæŒ‡å‘çš„æ•°æ®åº“*/
 /* 
-**Èç¹ûnbyte²ÎÊıĞ¡ÓÚÁã£¬ÔòZSQL±»¶ÁÈ¡µ½µÚÒ»¸öÁãÖÕÖ¹¡£
-**Èç¹ûnByteÊÇ·Ç¸ºµÄ£¬ÄÇÃ´ËüÊÇ´ÓZSQL¶ÁµÄ×î´ó×Ö½ÚÊı
-**¸Ãº¯Êı²ÎÊıÁĞ±íÈçÏÂËùÊ¾£º*/
+**å¦‚æœnbyteå‚æ•°å°äºé›¶ï¼Œåˆ™ZSQLè¢«è¯»å–åˆ°ç¬¬ä¸€ä¸ªé›¶ç»ˆæ­¢ã€‚
+**å¦‚æœnByteæ˜¯éè´Ÿçš„ï¼Œé‚£ä¹ˆå®ƒæ˜¯ä»ZSQLè¯»çš„æœ€å¤§å­—èŠ‚æ•°
+**è¯¥å‡½æ•°å‚æ•°åˆ—è¡¨å¦‚ä¸‹æ‰€ç¤ºï¼š*/
 **int sqlite3_prepare_v2(
   **sqlite3 *db,            /* Database handle */
   **const char *zSql,       /* SQL statement, UTF-8 encoded */
@@ -2483,29 +2483,29 @@ static int do_meta_command(char *zLine, struct callback_data *p){
   **const char **pzTail     /* OUT: Pointer to unused portion of zSql */
 **);
 */
-    rc = sqlite3_prepare_v2(p->db, "PRAGMA database_list", -1, &pStmt, 0);/*º¯Êı·µ»ØÖµ¸³¸ørc*/
+    rc = sqlite3_prepare_v2(p->db, "PRAGMA database_list", -1, &pStmt, 0);/*å‡½æ•°è¿”å›å€¼èµ‹ç»™rc*/
     if( rc ) return rc;
-    zSql = sqlite3_mprintf(/*Êä³ö²éÑ¯½á¹ûµ½ÄÚ´æ¿Õ¼äÖĞ*/
+    zSql = sqlite3_mprintf(/*è¾“å‡ºæŸ¥è¯¢ç»“æœåˆ°å†…å­˜ç©ºé—´ä¸­*/
         "SELECT name FROM sqlite_master"
         " WHERE type IN ('table','view')"
         "   AND name NOT LIKE 'sqlite_%%'"
         "   AND name LIKE ?1");
-    while( sqlite3_step(pStmt)==SQLITE_ROW ){/*µ÷ÓÃsqlite_step »ñÈ¡½á¹û¼¯ÖĞµÄÒ»ĞĞ£¬²¢½«Óï¾ä¾ä±úµÄÓÎ±êÎ»
+    while( sqlite3_step(pStmt)==SQLITE_ROW ){/*è°ƒç”¨sqlite_step è·å–ç»“æœé›†ä¸­çš„ä¸€è¡Œï¼Œå¹¶å°†è¯­å¥å¥æŸ„çš„æ¸¸æ ‡ä½
 
-ÖÃÒÆ¶¯µ½½á¹û¼¯µÄÏÂÒ»ĞĞ*/
-      const char *zDbName = (const char*)sqlite3_column_text(pStmt, 1);/**zDbNameÖ¸ÕëÖ¸Ïò·µ»ØÖµÎª×Ö
+ç½®ç§»åŠ¨åˆ°ç»“æœé›†çš„ä¸‹ä¸€è¡Œ*/
+      const char *zDbName = (const char*)sqlite3_column_text(pStmt, 1);/**zDbNameæŒ‡é’ˆæŒ‡å‘è¿”å›å€¼ä¸ºå­—
 
-·ûĞÍÖ¸ÕëµÄº¯Êı¿Õ¼ä*/
+ç¬¦å‹æŒ‡é’ˆçš„å‡½æ•°ç©ºé—´*/
       if( zDbName==0 || strcmp(zDbName,"main")==0 ) continue;
       if( strcmp(zDbName,"temp")==0 ){
-        zSql = sqlite3_mprintf(/*½«²éÑ¯½á¹ûĞ´ÈëzSqlÖ¸ÏòµÄÄÚ´æ¿Õ¼äÖĞ*/
+        zSql = sqlite3_mprintf(/*å°†æŸ¥è¯¢ç»“æœå†™å…¥zSqlæŒ‡å‘çš„å†…å­˜ç©ºé—´ä¸­*/
                  "%z UNION ALL "
                  "SELECT 'temp.' || name FROM sqlite_temp_master"
-                 " WHERE type IN ('table','view')"/*Ñ¡ÔñÌõ¼şÎªtypeÊÇ'table'»ò'view'Öµ*/
-                 "   AND name NOT LIKE 'sqlite_%%'"/*²»ÊÇÒÔsqlite_¿ªÍ·µÄname*/
+                 " WHERE type IN ('table','view')"/*é€‰æ‹©æ¡ä»¶ä¸ºtypeæ˜¯'table'æˆ–'view'å€¼*/
+                 "   AND name NOT LIKE 'sqlite_%%'"/*ä¸æ˜¯ä»¥sqlite_å¼€å¤´çš„name*/
                  "   AND name LIKE ?1", zSql);
       }else{
-        zSql = sqlite3_mprintf(/*Êä³ö²éÑ¯½á¹ûµ½ÄÚ´æ¿Õ¼äÖĞ*/
+        zSql = sqlite3_mprintf(/*è¾“å‡ºæŸ¥è¯¢ç»“æœåˆ°å†…å­˜ç©ºé—´ä¸­*/
                  "%z UNION ALL "
                  "SELECT '%q.' || name FROM \"%w\".sqlite_master"
                  " WHERE type IN ('table','view')"
@@ -2513,68 +2513,68 @@ static int do_meta_command(char *zLine, struct callback_data *p){
                  "   AND name LIKE ?1", zSql, zDbName, zDbName);
       }
     }
-    sqlite3_finalize(pStmt);/*³·Ïú¶ÔpStmtµÄÉùÃ÷*/
-    zSql = sqlite3_mprintf("%z ORDER BY 1", zSql);/*ÅÅĞòºóÊä³ö½á¹û*/
+    sqlite3_finalize(pStmt);/*æ’¤é”€å¯¹pStmtçš„å£°æ˜*/
+    zSql = sqlite3_mprintf("%z ORDER BY 1", zSql);/*æ’åºåè¾“å‡ºç»“æœ*/
     rc = sqlite3_prepare_v2(p->db, zSql, -1, &pStmt, 0);
-    sqlite3_free(zSql);/*ÊÍ·ÅzSqlÖ¸ÏòµÄµØÖ·¿Õ¼ä*/
-    if( rc ) return rc;/*rc²»Îª¿Õ£¬Ôò·µ»ØÆäÖµ*/
+    sqlite3_free(zSql);/*é‡Šæ”¾zSqlæŒ‡å‘çš„åœ°å€ç©ºé—´*/
+    if( rc ) return rc;/*rcä¸ä¸ºç©ºï¼Œåˆ™è¿”å›å…¶å€¼*/
     nRow = nAlloc = 0;
     azResult = 0;
     if( nArg>1 ){
-      sqlite3_bind_text(pStmt, 1, azArg[1], -1, SQLITE_TRANSIENT);/*×÷ÓÃ²»Ã÷*/
+      sqlite3_bind_text(pStmt, 1, azArg[1], -1, SQLITE_TRANSIENT);/*ä½œç”¨ä¸æ˜*/
     }else{
-      sqlite3_bind_text(pStmt, 1, "%", -1, SQLITE_STATIC);/*×÷ÓÃ²»Ã÷*/
+      sqlite3_bind_text(pStmt, 1, "%", -1, SQLITE_STATIC);/*ä½œç”¨ä¸æ˜*/
     }
-    while( sqlite3_step(pStmt)==SQLITE_ROW ){/*µ±Ç°²Ù×÷µÄ·µ»ØÖµÎªSQLITE_ROW£¬¼´±íÊ¾ĞÂĞĞµÄÊı¾İÒÑ×¼±¸
+    while( sqlite3_step(pStmt)==SQLITE_ROW ){/*å½“å‰æ“ä½œçš„è¿”å›å€¼ä¸ºSQLITE_ROWï¼Œå³è¡¨ç¤ºæ–°è¡Œçš„æ•°æ®å·²å‡†å¤‡
 
-ºÃ´ı´¦Àí*/
+å¥½å¾…å¤„ç†*/
       if( nRow>=nAlloc ){
         char **azNew;
         int n = nAlloc*2 + 10;
-        azNew = sqlite3_realloc(azResult, sizeof(azResult[0])*n);/*ÖØĞÂ·ÖÅäazResultµÄÄÚ´æ¿Õ¼ä,ÖÁÉÙsizeof
+        azNew = sqlite3_realloc(azResult, sizeof(azResult[0])*n);/*é‡æ–°åˆ†é…azResultçš„å†…å­˜ç©ºé—´,è‡³å°‘sizeof
 
-(azResult[0])*n¸ö×Ö½Ú*/
-        if( azNew==0 ){/*·ÖÅäÊ§°Ü£¬Ğ´Èë´íÎóĞÅÏ¢*/
-          fprintf(stderr, "Error: out of memory\n");/*ÄÚ´æ²»×ã*/
+(azResult[0])*nä¸ªå­—èŠ‚*/
+        if( azNew==0 ){/*åˆ†é…å¤±è´¥ï¼Œå†™å…¥é”™è¯¯ä¿¡æ¯*/
+          fprintf(stderr, "Error: out of memory\n");/*å†…å­˜ä¸è¶³*/
           break;
         }
         nAlloc = n;
-        azResult = azNew;/*azResult Ö¸ÏòĞÂµÄÄÚ´æµ¥Ôª*/
+        azResult = azNew;/*azResult æŒ‡å‘æ–°çš„å†…å­˜å•å…ƒ*/
       }
       azResult[nRow] = sqlite3_mprintf("%s", sqlite3_column_text(pStmt, 0));
-      if( azResult[nRow] ) nRow++;/*Èç¹ûÎ´Ö¸Ïò¿Õ£¬Ôò±éÀúÏÂÒ»¸ö×Ö·û*/
+      if( azResult[nRow] ) nRow++;/*å¦‚æœæœªæŒ‡å‘ç©ºï¼Œåˆ™éå†ä¸‹ä¸€ä¸ªå­—ç¬¦*/
     }
-    sqlite3_finalize(pStmt);/*É¾³ı¶ÔpStmtµÄÉùÃ÷*/        
+    sqlite3_finalize(pStmt);/*åˆ é™¤å¯¹pStmtçš„å£°æ˜*/        
     if( nRow>0 ){
       int len, maxlen = 0;
       int i, j;
       int nPrintCol, nPrintRow;
       for(i=0; i<nRow; i++){
-        len = strlen30(azResult[i]);/*½«º¯Êı·µ»ØÖµ¸³¸ølen±äÁ¿*/
+        len = strlen30(azResult[i]);/*å°†å‡½æ•°è¿”å›å€¼èµ‹ç»™lenå˜é‡*/
         if( len>maxlen ) maxlen = len;
       }
-      nPrintCol = 80/(maxlen+2);/*Í³¼Æ´òÓ¡µÄÁĞ¿í¶È*/
-      if( nPrintCol<1 ) nPrintCol = 1;/*²»×ãÒ»ĞĞ£¬×÷Ò»ĞĞ´¦Àí*/
-      nPrintRow = (nRow + nPrintCol - 1)/nPrintCol;/*Í³¼Æ´òÓ¡µÄĞĞ¸ß*/
+      nPrintCol = 80/(maxlen+2);/*ç»Ÿè®¡æ‰“å°çš„åˆ—å®½åº¦*/
+      if( nPrintCol<1 ) nPrintCol = 1;/*ä¸è¶³ä¸€è¡Œï¼Œä½œä¸€è¡Œå¤„ç†*/
+      nPrintRow = (nRow + nPrintCol - 1)/nPrintCol;/*ç»Ÿè®¡æ‰“å°çš„è¡Œé«˜*/
       for(i=0; i<nPrintRow; i++){
         for(j=i; j<nRow; j+=nPrintRow){
-          char *zSp = j<nPrintRow ? "" : "  ";/*ÊÇ·ñ´òÓ¡¿Õ¸ñ*/
-          printf("%s%-*s", zSp, maxlen, azResult[j] ? azResult[j] : "");/*Êä³ö±í¸ñ*/
+          char *zSp = j<nPrintRow ? "" : "  ";/*æ˜¯å¦æ‰“å°ç©ºæ ¼*/
+          printf("%s%-*s", zSp, maxlen, azResult[j] ? azResult[j] : "");/*è¾“å‡ºè¡¨æ ¼*/
         }
-        printf("\n");/*Ã¿Íê³ÉÒ»ĞĞ£¬»»ĞĞ´¦Àí*/
+        printf("\n");/*æ¯å®Œæˆä¸€è¡Œï¼Œæ¢è¡Œå¤„ç†*/
       }
     }
-    for(ii=0; ii<nRow; ii++) sqlite3_free(azResult[ii]);/*ÊÍ·ÅÄÚ´æ¿Õ¼ä*/
-    sqlite3_free(azResult);/*ÊÍ·Å²éÑ¯½á¹ûµÄÄÚ´æ¿Õ¼ä*/
+    for(ii=0; ii<nRow; ii++) sqlite3_free(azResult[ii]);/*é‡Šæ”¾å†…å­˜ç©ºé—´*/
+    sqlite3_free(azResult);/*é‡Šæ”¾æŸ¥è¯¢ç»“æœçš„å†…å­˜ç©ºé—´*/
   }else
 
-  if( c=='t' && n>=8 && strncmp(azArg[0], "testctrl", n)==0 && nArg>=2 ){ /*ÅĞ¶ÏÊÇ·ñÊäÈë.testctrl ÃüÁî
+  if( c=='t' && n>=8 && strncmp(azArg[0], "testctrl", n)==0 && nArg>=2 ){ /*åˆ¤æ–­æ˜¯å¦è¾“å…¥.testctrl å‘½ä»¤
 
 */
-    static const struct {/*¾²Ì¬³£½á¹¹Ìå*/
-       const char *zCtrlName;   /* Ö¸Ïò³£Á¿µÄÖ¸Õë */
-       int ctrlCode;            /* ÉùÃ÷Ò»¸öÕûĞÍ´úÂë±äÁ¿£¬ÕâĞ©×Ö·û´®ÒÑ¾­ºê¶¨Òå*/
-    } aCtrl[] = {/*½á¹¹ÌåÊı×é³£Á¿£¬°üº¬Á½²¿·Ö½á¹¹*/
+    static const struct {/*é™æ€å¸¸ç»“æ„ä½“*/
+       const char *zCtrlName;   /* æŒ‡å‘å¸¸é‡çš„æŒ‡é’ˆ */
+       int ctrlCode;            /* å£°æ˜ä¸€ä¸ªæ•´å‹ä»£ç å˜é‡ï¼Œè¿™äº›å­—ç¬¦ä¸²å·²ç»å®å®šä¹‰*/
+    } aCtrl[] = {/*ç»“æ„ä½“æ•°ç»„å¸¸é‡ï¼ŒåŒ…å«ä¸¤éƒ¨åˆ†ç»“æ„*/
       { "prng_save",             SQLITE_TESTCTRL_PRNG_SAVE              },
       { "prng_restore",          SQLITE_TESTCTRL_PRNG_RESTORE           },
       { "prng_reset",            SQLITE_TESTCTRL_PRNG_RESET             },
@@ -2592,13 +2592,13 @@ static int do_meta_command(char *zLine, struct callback_data *p){
     int testctrl = -1;
     int rc = 0;
     int i, n;
-    open_db(p);/*´ò¿ªÊı¾İ¿â*/
-    /* °ÑtestctrlÎÄ±¾Ñ¡Ïî×ª»¯ÎªÊıÖµ*/
-    n = strlen30(azArg[1]); /*Í³¼ÆazArg[1]µÄ×Ö·û´®³¤¶È*/
+    open_db(p);/*æ‰“å¼€æ•°æ®åº“*/
+    /* æŠŠtestctrlæ–‡æœ¬é€‰é¡¹è½¬åŒ–ä¸ºæ•°å€¼*/
+    n = strlen30(azArg[1]); /*ç»Ÿè®¡azArg[1]çš„å­—ç¬¦ä¸²é•¿åº¦*/
     for(i=0; i<(int)(sizeof(aCtrl)/sizeof(aCtrl[0])); i++){
-      if( strncmp(azArg[1], aCtrl[i].zCtrlName, n)==0 ){/*±È½ÏÁ½Êı×éÄÚÈİÊÇ·ñÏàÍ¬*/
+      if( strncmp(azArg[1], aCtrl[i].zCtrlName, n)==0 ){/*æ¯”è¾ƒä¸¤æ•°ç»„å†…å®¹æ˜¯å¦ç›¸åŒ*/
         if( testctrl<0 ){
-          testctrl = aCtrl[i].ctrlCode;/*°ÑaCtrl[i]µÄÕûĞÍ´úÂëÖµ¸³¸øtestctrl*/
+          testctrl = aCtrl[i].ctrlCode;/*æŠŠaCtrl[i]çš„æ•´å‹ä»£ç å€¼èµ‹ç»™testctrl*/
         }else{
           fprintf(stderr, "ambiguous option name: \"%s\"\n", azArg[1]);
           testctrl = -1;
@@ -2606,75 +2606,75 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         }
       }
     }
-    if( testctrl<0 ) testctrl = atoi(azArg[1]);/*°Ñ×Ö·û×ª»»³É³¤ÕûĞÍÊı¸³¸øtestctrl±äÁ¿¡£*/
-    if( (testctrl<SQLITE_TESTCTRL_FIRST) || (testctrl>SQLITE_TESTCTRL_LAST) ){  /*Èç¹ûtestctrlĞ¡ÓÚ5 »òÕß
+    if( testctrl<0 ) testctrl = atoi(azArg[1]);/*æŠŠå­—ç¬¦è½¬æ¢æˆé•¿æ•´å‹æ•°èµ‹ç»™testctrlå˜é‡ã€‚*/
+    if( (testctrl<SQLITE_TESTCTRL_FIRST) || (testctrl>SQLITE_TESTCTRL_LAST) ){  /*å¦‚æœtestctrlå°äº5 æˆ–è€…
 
-´óÓÚ24¡£*/
-      fprintf(stderr,"Error: invalid testctrl option: %s\n", azArg[1]);/*ÎŞĞ§µÄtestctrlÑ¡Ïî*/
+å¤§äº24ã€‚*/
+      fprintf(stderr,"Error: invalid testctrl option: %s\n", azArg[1]);/*æ— æ•ˆçš„testctrlé€‰é¡¹*/
     }else{
-      switch(testctrl){/*ÒÀ¾İtestctrlµÄÖµ£¬Ñ¡Ôñcase·ÖÖ§Óï¾äÖ´ĞĞ*/
-        /* sqlite3_test_control(int, db, int) *//*¸Ãº¯ÊıÓĞÈı¸ö²ÎÊı£¬·Ö±ğÊÇÕûĞÍ¡¢Êı¾İ¿âÖ¸Õë¡¢ÕûĞÍ*/
+      switch(testctrl){/*ä¾æ®testctrlçš„å€¼ï¼Œé€‰æ‹©caseåˆ†æ”¯è¯­å¥æ‰§è¡Œ*/
+        /* sqlite3_test_control(int, db, int) *//*è¯¥å‡½æ•°æœ‰ä¸‰ä¸ªå‚æ•°ï¼Œåˆ†åˆ«æ˜¯æ•´å‹ã€æ•°æ®åº“æŒ‡é’ˆã€æ•´å‹*/
         case SQLITE_TESTCTRL_OPTIMIZATIONS:/*#define SQLITE_TESTCTRL_OPTIMIZATIONS  15*/
         case SQLITE_TESTCTRL_RESERVE:          /* #define SQLITE_TESTCTRL_RESERVE  14*/
           if( nArg==3 ){
-            int opt = (int)strtol(azArg[2], 0, 0); /*½«azArg[2]×Ö·û¸ù¾İ°´Ê®½øÖÆ×ª»»³É³¤ÕûĞÍÊı¡£Í¬Ê±µ±Óöµ½²»ºÏÌõ
+            int opt = (int)strtol(azArg[2], 0, 0); /*å°†azArg[2]å­—ç¬¦æ ¹æ®æŒ‰åè¿›åˆ¶è½¬æ¢æˆé•¿æ•´å‹æ•°ã€‚åŒæ—¶å½“é‡åˆ°ä¸åˆæ¡
 
-¼ş¶øÖÕÖ¹Ê±Ôò·µ»Ø0*/      
-            rc = sqlite3_test_control(testctrl, p->db, opt);/*·µ»ØÖ´ĞĞ×´Ì¬*/
+ä»¶è€Œç»ˆæ­¢æ—¶åˆ™è¿”å›0*/      
+            rc = sqlite3_test_control(testctrl, p->db, opt);/*è¿”å›æ‰§è¡ŒçŠ¶æ€*/
             printf("%d (0x%08x)\n", rc, rc);
           } else {
-            fprintf(stderr,"Error: testctrl %s takes a single int option\n",/*µÃµ½Ò»¸öÕûĞÍÏî*/
+            fprintf(stderr,"Error: testctrl %s takes a single int option\n",/*å¾—åˆ°ä¸€ä¸ªæ•´å‹é¡¹*/
                     azArg[1]);
           }
           break;
-        /* sqlite3_test_control(int) *//*sqlite3_test_control°üº¬Ò»¸öÕûĞÍ²ÎÊı*/
+        /* sqlite3_test_control(int) *//*sqlite3_test_controlåŒ…å«ä¸€ä¸ªæ•´å‹å‚æ•°*/
         case SQLITE_TESTCTRL_PRNG_SAVE:/*#define SQLITE_TESTCTRL_PRNG_SAVE  5 */        
         case SQLITE_TESTCTRL_PRNG_RESTORE:  /*#define SQLITE_TESTCTRL_PRNG_RESTORE  6 */         
         case SQLITE_TESTCTRL_PRNG_RESET:/*#define SQLITE_TESTCTRL_PRNG_RESET  7 */   
           if( nArg==2 ){
-            rc = sqlite3_test_control(testctrl);/*ÓÃÓÚ·µ»ØSQLite ÄÚ²¿×´Ì¬*/
+            rc = sqlite3_test_control(testctrl);/*ç”¨äºè¿”å›SQLite å†…éƒ¨çŠ¶æ€*/
             printf("%d (0x%08x)\n", rc, rc);
           } else {
-            fprintf(stderr,"Error: testctrl %s takes no options\n", azArg[1]);/*Ã»ÓĞµÃµ½Ñ¡Ïî*/
+            fprintf(stderr,"Error: testctrl %s takes no options\n", azArg[1]);/*æ²¡æœ‰å¾—åˆ°é€‰é¡¹*/
           }
           break;
-        /* sqlite3_test_control(int, uint) *//*sqlite3_test_control°üº¬Ò»¸öÕûĞÍ²ÎÊı£¬Ò»¸öÎŞ·ûºÅÕûĞÍ*/
+        /* sqlite3_test_control(int, uint) *//*sqlite3_test_controlåŒ…å«ä¸€ä¸ªæ•´å‹å‚æ•°ï¼Œä¸€ä¸ªæ— ç¬¦å·æ•´å‹*/
         case SQLITE_TESTCTRL_PENDING_BYTE: /*#define SQLITE_TESTCTRL_PENDING_BYTE   11 */      
           if( nArg==3 ){
-            unsigned int opt = (unsigned int)atoi(azArg[2]);/*°Ñ×Ö·û´®×ª»»³ÉÕûĞÍÊı£¬ÔÙÇ¿ÖÆ×ª»»ÎªÎŞ·ûºÅÕûĞÍ¸³
+            unsigned int opt = (unsigned int)atoi(azArg[2]);/*æŠŠå­—ç¬¦ä¸²è½¬æ¢æˆæ•´å‹æ•°ï¼Œå†å¼ºåˆ¶è½¬æ¢ä¸ºæ— ç¬¦å·æ•´å‹èµ‹
 
-¸øopt±äÁ¿*/        
-            rc = sqlite3_test_control(testctrl, opt);/*ÓÃÓÚ·µ»ØSQLite ÄÚ²¿×´Ì¬*/
+ç»™optå˜é‡*/        
+            rc = sqlite3_test_control(testctrl, opt);/*ç”¨äºè¿”å›SQLite å†…éƒ¨çŠ¶æ€*/
             printf("%d (0x%08x)\n", rc, rc);
           } else {
-            fprintf(stderr,"Error: testctrl %s takes a single unsigned"/*µÃµ½Ò»¸öÎŞ·ûºÅÕûĞÍÏî*/
+            fprintf(stderr,"Error: testctrl %s takes a single unsigned"/*å¾—åˆ°ä¸€ä¸ªæ— ç¬¦å·æ•´å‹é¡¹*/
                            " int option\n", azArg[1]);
           }
           break;
           
-        /* sqlite3_test_control(int, int) *//*sqlite3_test_control°üº¬Á½¸öÕûĞÍ²ÎÊı*/
+        /* sqlite3_test_control(int, int) *//*sqlite3_test_controlåŒ…å«ä¸¤ä¸ªæ•´å‹å‚æ•°*/
         case SQLITE_TESTCTRL_ASSERT:/*#define SQLITE_TESTCTRL_ASSERT   12  */            
         case SQLITE_TESTCTRL_ALWAYS: /*#define SQLITE_TESTCTRL_ALWAYS  13  */           
           if( nArg==3 ){
-            int opt = atoi(azArg[2]);  /*°Ñ×Ö·û´®×ª»»³ÉÕûĞÍÊı£¬¸³Öµ¸øopt ±äÁ¿*/    
+            int opt = atoi(azArg[2]);  /*æŠŠå­—ç¬¦ä¸²è½¬æ¢æˆæ•´å‹æ•°ï¼Œèµ‹å€¼ç»™opt å˜é‡*/    
             rc = sqlite3_test_control(testctrl, opt);
             printf("%d (0x%08x)\n", rc, rc);
           } else {
-            fprintf(stderr,"Error: testctrl %s takes a single int option\n",/*µÃµ½Ò»¸öÕûĞÍÏî*/
+            fprintf(stderr,"Error: testctrl %s takes a single int option\n",/*å¾—åˆ°ä¸€ä¸ªæ•´å‹é¡¹*/
                             azArg[1]);
           }
           break;
-/*ÉÏÊösqlite3_test_control£¨£©½Ó¿ÚÓÃÓÚ¶Á³öµÄSQLiteµÄÄÚ²¿×´Ì¬£¬²¢Ö²ÈëSQLiteµÄ´íÎóĞÅÏ¢ÓÃÓÚ²âÊÔÄ¿µÄ¡£
-µÚÒ»¸ö²ÎÊıÊÇÒ»¸ö²Ù×÷Âë£¬ËüÈ·¶¨ËùÓĞµÄºóĞø²ÎÊıµÄ¸öÊı£¬ÒâÒåºÍ²Ù×÷¡£*/
-        /* sqlite3_test_control(int, char *) *//*sqlite3_test_control°üº¬Ò»¸öÕûĞÍ²ÎÊı£¬Ò»¸öÖ¸Ïò×Ö·ûĞÍµÄÖ¸Õë*/
-#ifdef SQLITE_N_KEYWORD/*Èç¹ûºê¶¨ÒåÁËSQLITE_N_KEYWORD£¬ÔòÖ´ĞĞÒÔÏÂ²Ù×÷*/
+/*ä¸Šè¿°sqlite3_test_controlï¼ˆï¼‰æ¥å£ç”¨äºè¯»å‡ºçš„SQLiteçš„å†…éƒ¨çŠ¶æ€ï¼Œå¹¶æ¤å…¥SQLiteçš„é”™è¯¯ä¿¡æ¯ç”¨äºæµ‹è¯•ç›®çš„ã€‚
+ç¬¬ä¸€ä¸ªå‚æ•°æ˜¯ä¸€ä¸ªæ“ä½œç ï¼Œå®ƒç¡®å®šæ‰€æœ‰çš„åç»­å‚æ•°çš„ä¸ªæ•°ï¼Œæ„ä¹‰å’Œæ“ä½œã€‚*/
+        /* sqlite3_test_control(int, char *) *//*sqlite3_test_controlåŒ…å«ä¸€ä¸ªæ•´å‹å‚æ•°ï¼Œä¸€ä¸ªæŒ‡å‘å­—ç¬¦å‹çš„æŒ‡é’ˆ*/
+#ifdef SQLITE_N_KEYWORD/*å¦‚æœå®å®šä¹‰äº†SQLITE_N_KEYWORDï¼Œåˆ™æ‰§è¡Œä»¥ä¸‹æ“ä½œ*/
         case SQLITE_TESTCTRL_ISKEYWORD:           
           if( nArg==3 ){
-            const char *opt = azArg[2];/*Ö¸Õë*optÖ¸Ïò×Ö·û´®³£Á¿azArg[2]*/            
+            const char *opt = azArg[2];/*æŒ‡é’ˆ*optæŒ‡å‘å­—ç¬¦ä¸²å¸¸é‡azArg[2]*/            
             rc = sqlite3_test_control(testctrl, opt);
             printf("%d (0x%08x)\n", rc, rc);
           } else {
-            fprintf(stderr,"Error: testctrl %s takes a single char * option\n",/*µÃµ½Ò»¸öÖ¸Ïò×Ö·û´®µÄÖ¸Õë*/
+            fprintf(stderr,"Error: testctrl %s takes a single char * option\n",/*å¾—åˆ°ä¸€ä¸ªæŒ‡å‘å­—ç¬¦ä¸²çš„æŒ‡é’ˆ*/
                             azArg[1]);
           }
           break;
@@ -2685,94 +2685,94 @@ static int do_meta_command(char *zLine, struct callback_data *p){
         case SQLITE_TESTCTRL_BENIGN_MALLOC_HOOKS: 
         case SQLITE_TESTCTRL_SCRATCHMALLOC:       
         default:
-          fprintf(stderr,"Error: CLI support for testctrl %s not implemented\n",/*ÃüÁîĞĞ½çÃæÉĞÎ´ÊµÏÖ¶ÔÆäµÄÖ§³Ö*/
+          fprintf(stderr,"Error: CLI support for testctrl %s not implemented\n",/*å‘½ä»¤è¡Œç•Œé¢å°šæœªå®ç°å¯¹å…¶çš„æ”¯æŒ*/
                   azArg[1]);
           break;
       }
     }
   }else
-  if( c=='t' && n>4 && strncmp(azArg[0], "timeout", n)==0 && nArg==2 ){/*ÅĞ¶ÏÊÇ·ñÊäÈë.timeoutÃüÁî
+  if( c=='t' && n>4 && strncmp(azArg[0], "timeout", n)==0 && nArg==2 ){/*åˆ¤æ–­æ˜¯å¦è¾“å…¥.timeoutå‘½ä»¤
 
 */
-    open_db(p);/*´ò¿ªÊı¾İ¿â*/
-    sqlite3_busy_timeout(p->db, atoi(azArg[1]));/*¸Ã³ÌĞòÉèÖÃÒ»¸öÃ¦´¦Àíhandler
-µ±±í±»Ëø¶¨Ê±£¬ĞİÃßÒ»¸öÖ¸¶¨µÄÊ±¼äÁ¿¡£²ÎÊıĞ¡ÓÚ»òµÈÓÚÁãÔò¹Ø±ÕËùÓĞÕ¼Ïß´¦Àí³ÌĞò¡£*/
+    open_db(p);/*æ‰“å¼€æ•°æ®åº“*/
+    sqlite3_busy_timeout(p->db, atoi(azArg[1]));/*è¯¥ç¨‹åºè®¾ç½®ä¸€ä¸ªå¿™å¤„ç†handler
+å½“è¡¨è¢«é”å®šæ—¶ï¼Œä¼‘çœ ä¸€ä¸ªæŒ‡å®šçš„æ—¶é—´é‡ã€‚å‚æ•°å°äºæˆ–ç­‰äºé›¶åˆ™å…³é—­æ‰€æœ‰å çº¿å¤„ç†ç¨‹åºã€‚*/
   }else
     
-  if( HAS_TIMER && c=='t' && n>=5 && strncmp(azArg[0], "timer", n)==0{/*ÅĞ¶ÏÊÇ·ñÊäÈë.timeÃüÁî*/
+  if( HAS_TIMER && c=='t' && n>=5 && strncmp(azArg[0], "timer", n)==0{/*åˆ¤æ–­æ˜¯å¦è¾“å…¥.timeå‘½ä»¤*/
    && nArg==2
   ){
-    enableTimer = booleanValue(azArg[1]);/*½«azArg[1]×ª»»Îª²¼¶ûÖµ¸³Öµ¸øenableTimer*/
+    enableTimer = booleanValue(azArg[1]);/*å°†azArg[1]è½¬æ¢ä¸ºå¸ƒå°”å€¼èµ‹å€¼ç»™enableTimer*/
   }else
   
-  if( c=='t' && strncmp(azArg[0], "trace", n)==0 && nArg>1 ){/*ÅĞ¶ÏÊÇ·ñÊäÈë.traceÃüÁî*/
+  if( c=='t' && strncmp(azArg[0], "trace", n)==0 && nArg>1 ){/*åˆ¤æ–­æ˜¯å¦è¾“å…¥.traceå‘½ä»¤*/
     open_db(p);
-    output_file_close(p->traceOut);/*¹Ø±ÕÎÄ¼ş*/
-    p->traceOut = output_file_open(azArg[1]);/*´ò¿ªÎÄ¼ş*/
+    output_file_close(p->traceOut);/*å…³é—­æ–‡ä»¶*/
+    p->traceOut = output_file_open(azArg[1]);/*æ‰“å¼€æ–‡ä»¶*/
 #if !defined(SQLITE_OMIT_TRACE) && !defined(SQLITE_OMIT_FLOATING_POINT)
     if( p->traceOut==0 ){
-      sqlite3_trace(p->db, 0, 0);/*ÓÃÓÚ¸ú×ÙºÍ·ÖÎöµÄSQLÓï¾äµÄÖ´ĞĞ»Øµ÷º¯Êı¡£*/
+      sqlite3_trace(p->db, 0, 0);/*ç”¨äºè·Ÿè¸ªå’Œåˆ†æçš„SQLè¯­å¥çš„æ‰§è¡Œå›è°ƒå‡½æ•°ã€‚*/
     }else{
-      sqlite3_trace(p->db, sql_trace_callback, p->traceOut);/*ÓÃÓÚ¸ú×ÙºÍ·ÖÎöµÄSQLÓï¾äµÄÖ´ĞĞ»Øµ÷º¯Êı¡£*/
+      sqlite3_trace(p->db, sql_trace_callback, p->traceOut);/*ç”¨äºè·Ÿè¸ªå’Œåˆ†æçš„SQLè¯­å¥çš„æ‰§è¡Œå›è°ƒå‡½æ•°ã€‚*/
     }
 #endif
   }else
 
-  if( c=='v' && strncmp(azArg[0], "version", n)==0 ){/*ÅĞ¶ÏÊÇ·ñÊäÈë.version ÃüÁî*/
+  if( c=='v' && strncmp(azArg[0], "version", n)==0 ){/*åˆ¤æ–­æ˜¯å¦è¾“å…¥.version å‘½ä»¤*/
     printf("SQLite %s %s\n" /*extra-version-info*/,
-        sqlite3_libversion(), sqlite3_sourceid());/*sqlite3_libversionº¯Êı·µ»ØÒ»¸öÖ¸Ïòsqlite3_version[]×Ö·û´®
+        sqlite3_libversion(), sqlite3_sourceid());/*sqlite3_libversionå‡½æ•°è¿”å›ä¸€ä¸ªæŒ‡å‘sqlite3_version[]å­—ç¬¦ä¸²
 
-³£Á¿¡£*/
+å¸¸é‡ã€‚*/
   }else
 
-  if( c=='v' && strncmp(azArg[0], "vfsname", n)==0 ){/*ÅĞ¶ÏÊÇ·ñÊäÈë.vfsname ÃüÁî*/
-    const char *zDbName = nArg==2 ? azArg[1] : "main";/*Èç¹ûnArg=2£¬Ö¸ÕëÖ¸Ïò³£Á¿azArg[1]£¬·ñÔòÖ¸Ïò
-×Ö·û´®"main"*/
+  if( c=='v' && strncmp(azArg[0], "vfsname", n)==0 ){/*åˆ¤æ–­æ˜¯å¦è¾“å…¥.vfsname å‘½ä»¤*/
+    const char *zDbName = nArg==2 ? azArg[1] : "main";/*å¦‚æœnArg=2ï¼ŒæŒ‡é’ˆæŒ‡å‘å¸¸é‡azArg[1]ï¼Œå¦åˆ™æŒ‡å‘
+å­—ç¬¦ä¸²"main"*/
     char *zVfsName = 0;
     if( p->db ){
       sqlite3_file_control(p->db, zDbName, SQLITE_FCNTL_VFSNAME, &zVfsName);
       if( zVfsName ){
         printf("%s\n", zVfsName);
-        sqlite3_free(zVfsName);/*ÊÍ·ÅzVfsNameÄÚ´æ¿Õ¼ä*/
+        sqlite3_free(zVfsName);/*é‡Šæ”¾zVfsNameå†…å­˜ç©ºé—´*/
       }
     }
   }else
-  if( c=='w' && strncmp(azArg[0], "width", n)==0 && nArg>1 ){/*ÅĞ¶ÏÊÇ·ñÊäÈë.widthÃüÁî*/
+  if( c=='w' && strncmp(azArg[0], "width", n)==0 && nArg>1 ){/*åˆ¤æ–­æ˜¯å¦è¾“å…¥.widthå‘½ä»¤*/
     int j;
-    assert( nArg<=ArraySize(azArg) );/*assert º¯ÊıÖ»ÓĞÔÚSQLite ±»SQLITE_DEBUG ±àÒëÊ±²Å»áÆôÓÃ¡£*/
+    assert( nArg<=ArraySize(azArg) );/*assert å‡½æ•°åªæœ‰åœ¨SQLite è¢«SQLITE_DEBUG ç¼–è¯‘æ—¶æ‰ä¼šå¯ç”¨ã€‚*/
     for(j=1; j<nArg && j<ArraySize(p->colWidth); j++){
-      p->colWidth[j-1] = atoi(azArg[j]);/*°ÑazArg[j]×ª»¯ÎªÕûĞÍ*/
+      p->colWidth[j-1] = atoi(azArg[j]);/*æŠŠazArg[j]è½¬åŒ–ä¸ºæ•´å‹*/
     }
   }else
   {
     fprintf(stderr, "Error: unknown command or invalid arguments: "
-      " \"%s\". Enter \".help\" for help\n", azArg[0]);/*Êä³ö´íÎó£¬²»Ã÷Ö¸Áî»òÎŞĞ§²ÎÊı*/
+      " \"%s\". Enter \".help\" for help\n", azArg[0]);/*è¾“å‡ºé”™è¯¯ï¼Œä¸æ˜æŒ‡ä»¤æˆ–æ— æ•ˆå‚æ•°*/
     rc = 1;
   }
-  return rc;/*·µ»ØrcµÄÖµ*/
+  return rc;/*è¿”å›rcçš„å€¼*/
 }
 
 
-static int _contains_semicolon(const char *z, int N){/*µ±·ÖºÅ ³öÏÖÔÚ×Ö·û´®zµÄµÚN¸öÎ»ÖÃÉÏ£¬º¯ÊıÔò·µ»Ø1¡£*/
+static int _contains_semicolon(const char *z, int N){/*å½“åˆ†å· å‡ºç°åœ¨å­—ç¬¦ä¸²zçš„ç¬¬Nä¸ªä½ç½®ä¸Šï¼Œå‡½æ•°åˆ™è¿”å›1ã€‚*/
   int i;
   for(i=0; i<N; i++){  if( z[i]==';' ) return 1; }
   return 0;
 }
 
 
-static int _all_whitespace(const char *z){/* ²âÊÔĞĞÊÇ·ñÎª¿Õ*/
+static int _all_whitespace(const char *z){/* æµ‹è¯•è¡Œæ˜¯å¦ä¸ºç©º*/
   for(; *z; z++){
-    if( IsSpace(z[0]) ) continue;/*ÅĞ¶Ïz[0]Êı×éÊÇ·ñÎª¿Õ*/
-    if( *z=='/' && z[1]=='*' ){/*zÖ¸Ïò¡®/¡¯²¢ÇÒµÚ¶ş¸ö×Ö·ûÎª¡®*¡¯*/
+    if( IsSpace(z[0]) ) continue;/*åˆ¤æ–­z[0]æ•°ç»„æ˜¯å¦ä¸ºç©º*/
+    if( *z=='/' && z[1]=='*' ){/*zæŒ‡å‘â€˜/â€™å¹¶ä¸”ç¬¬äºŒä¸ªå­—ç¬¦ä¸ºâ€˜*â€™*/
       z += 2;/*z=z+2;*/
-      while( *z && (*z!='*' || z[1]!='/') ){ z++; }/*z²»Ö¸Ïò¡®*¡¯»òÕßµÚ¶ş¸ö×Ö·û²»Îª¡®/¡¯*/
+      while( *z && (*z!='*' || z[1]!='/') ){ z++; }/*zä¸æŒ‡å‘â€˜*â€™æˆ–è€…ç¬¬äºŒä¸ªå­—ç¬¦ä¸ä¸ºâ€˜/â€™*/
       if( *z==0 ) return 0;
       z++;
       continue;
     }
-    if( *z=='-' && z[1]=='-' ){/*zÖ¸Ïò¡®-¡¯²¢ÇÒµÚ¶ş¸ö×Ö·ûÎª¡®-¡¯*/
+    if( *z=='-' && z[1]=='-' ){/*zæŒ‡å‘â€˜-â€™å¹¶ä¸”ç¬¬äºŒä¸ªå­—ç¬¦ä¸ºâ€˜-â€™*/
       z += 2;
-      while( *z && *z!='\n' ){ z++; }/*Ö¸Õëz²»Ö¸Ïò¿Õ»ò×Ö·û´®½áÎ²*/
+      while( *z && *z!='\n' ){ z++; }/*æŒ‡é’ˆzä¸æŒ‡å‘ç©ºæˆ–å­—ç¬¦ä¸²ç»“å°¾*/
       if( *z==0 ) return 1;
       continue;
     }
@@ -2782,23 +2782,23 @@ static int _all_whitespace(const char *z){/* ²âÊÔĞĞÊÇ·ñÎª¿Õ*/
 }
 
 /*
-Èç¹û¼üÈëµÄÊÇÒ»¸öSQLÃüÁî½áÎ²£¬ÆäËû²»ÊÇÒ»¸ö·ÖºÅ£¬Ôò·µ»ØTRUE¡£
-ÔÚSQL Server·ç¸ñµÄ¡°go¡±ÃüÁî±»Àí½âÎªÊÇOracle¡°/¡±¡£
+å¦‚æœé”®å…¥çš„æ˜¯ä¸€ä¸ªSQLå‘½ä»¤ç»“å°¾ï¼Œå…¶ä»–ä¸æ˜¯ä¸€ä¸ªåˆ†å·ï¼Œåˆ™è¿”å›TRUEã€‚
+åœ¨SQL Serveré£æ ¼çš„â€œgoâ€å‘½ä»¤è¢«ç†è§£ä¸ºæ˜¯Oracleâ€œ/â€ã€‚
 */
 static int _is_command_terminator(const char *zLine){
   while( IsSpace(zLine[0]) ){ zLine++; };
-  if( zLine[0]=='/' && _all_whitespace(&zLine[1]) ){/*Êı×é¿ªÊ¼Îª"/",Ö®ºóÎª¿Õ*/
+  if( zLine[0]=='/' && _all_whitespace(&zLine[1]) ){/*æ•°ç»„å¼€å§‹ä¸º"/",ä¹‹åä¸ºç©º*/
     return 1;  /* Oracle */
   }
-  if( ToLower(zLine[0])=='g' && ToLower(zLine[1])=='o' /*Êı×é¿ªÊ¼Îª"go",Ö®ºóÎª¿Õ*/
+  if( ToLower(zLine[0])=='g' && ToLower(zLine[1])=='o' /*æ•°ç»„å¼€å§‹ä¸º"go",ä¹‹åä¸ºç©º*/
          && _all_whitespace(&zLine[2]) ){
     return 1;  /* SQL Server */
   }
   return 0;
 }
 
-/*Èç¹ûzSqlÊÇÒ»¸öÍêÕûµÄSQLÓï¾ä£¬·µ»Øtrue£»
-Èç¹ûËüÔÚÒ»¸ö×Ö·û´®»òC·ç¸ñ×¢ÊÍµÄÖĞ¼ä½áÊø£¬·µ»Øfalse¡£*/
+/*å¦‚æœzSqlæ˜¯ä¸€ä¸ªå®Œæ•´çš„SQLè¯­å¥ï¼Œè¿”å›trueï¼›
+å¦‚æœå®ƒåœ¨ä¸€ä¸ªå­—ç¬¦ä¸²æˆ–Cé£æ ¼æ³¨é‡Šçš„ä¸­é—´ç»“æŸï¼Œè¿”å›falseã€‚*/
 static int _is_complete(char *zSql, int nSql){
   int rc;
   if( zSql==0 ) return 1;
@@ -2809,11 +2809,11 @@ static int _is_complete(char *zSql, int nSql){
   return rc;
 }
 
-/*´Ó* in ÖĞ¶ÁÈ¡ÊäÈë²¢´¦Àí¡£
-Èç¹û* in==0£¬Ôò·¢Éú½»»¥- ÓÃ»§¼üÈëÄÚÈİ¡£·ñÔò ´ÓÒ»¸öÎÄ¼ş»òÉè±¸ÊäÈë¡£
-Ö»ÓĞµ±ÊäÈëÊÇ½»»¥Ê½µÄ£¬·¢³öµÄÌáÊ¾ºÍÀúÊ·¼ÇÂ¼²Å»á±»±£´æ¡£
-Ò»¸öÖĞ¶ÏĞÅºÅ½«µ¼ÖÂ¸Ã³ÌĞòÁ¢¼´ÍË³ö£¬³ı·ÇÊäÈëÊÇ½»»¥Ê½µÄ¡£
-·µ»Ø´íÎóµÄÊıÁ¿¡£*/
+/*ä»* in ä¸­è¯»å–è¾“å…¥å¹¶å¤„ç†ã€‚
+å¦‚æœ* in==0ï¼Œåˆ™å‘ç”Ÿäº¤äº’- ç”¨æˆ·é”®å…¥å†…å®¹ã€‚å¦åˆ™ ä»ä¸€ä¸ªæ–‡ä»¶æˆ–è®¾å¤‡è¾“å…¥ã€‚
+åªæœ‰å½“è¾“å…¥æ˜¯äº¤äº’å¼çš„ï¼Œå‘å‡ºçš„æç¤ºå’Œå†å²è®°å½•æ‰ä¼šè¢«ä¿å­˜ã€‚
+ä¸€ä¸ªä¸­æ–­ä¿¡å·å°†å¯¼è‡´è¯¥ç¨‹åºç«‹å³é€€å‡ºï¼Œé™¤éè¾“å…¥æ˜¯äº¤äº’å¼çš„ã€‚
+è¿”å›é”™è¯¯çš„æ•°é‡ã€‚*/
 static int process_input(struct callback_data *p, FILE *in){
   char *zLine = 0;
   char *zSql = 0;
@@ -2826,67 +2826,67 @@ static int process_input(struct callback_data *p, FILE *in){
   int startline = 0;
 
   while( errCnt==0 || !bail_on_error || (in==0 && stdin_is_interactive) ){
-    fflush(p->out);/*Çå³ı¶ÁĞ´»º³åÇø£¬ĞèÒªÁ¢¼´°ÑÊä³ö»º³åÇøµÄÊı¾İ½øĞĞÎïÀíĞ´ÈëÊ±*/
-    free(zLine);/*ÊÍ·ÅzLineÄÚ´æ¿Õ¼ä*/
+    fflush(p->out);/*æ¸…é™¤è¯»å†™ç¼“å†²åŒºï¼Œéœ€è¦ç«‹å³æŠŠè¾“å‡ºç¼“å†²åŒºçš„æ•°æ®è¿›è¡Œç‰©ç†å†™å…¥æ—¶*/
+    free(zLine);/*é‡Šæ”¾zLineå†…å­˜ç©ºé—´*/
     zLine = one_input_line(zSql, in);
     if( zLine==0 ){
       /* End of input */
-      if( stdin_is_interactive ) printf("\n");/*½»»¥Ê½±ê×¼ÊäÈëÒÔ»»ĞĞ½áÊø*/
+      if( stdin_is_interactive ) printf("\n");/*äº¤äº’å¼æ ‡å‡†è¾“å…¥ä»¥æ¢è¡Œç»“æŸ*/
       break;
     }
-    if( seenInterrupt ){/*ÖĞ¶ÏĞÅÏ¢±»ÊÕµ½£¬ÔòÆäÖµÎªtrue*/
+    if( seenInterrupt ){/*ä¸­æ–­ä¿¡æ¯è¢«æ”¶åˆ°ï¼Œåˆ™å…¶å€¼ä¸ºtrue*/
       if( in!=0 ) break;
       seenInterrupt = 0;
     }
     lineno++;
     if( (zSql==0 || zSql[0]==0) && _all_whitespace(zLine) ) continue;
     if( zLine && zLine[0]=='.' && nSql==0 ){
-      if( p->echoOn ) printf("%s\n", zLine);/*Ö´ĞĞ»ØÏÔ²Ù×÷*/
-      rc = do_meta_command(zLine, p);/*·µ»ØÖ´ĞĞ×´Ì¬¸ørc*/
+      if( p->echoOn ) printf("%s\n", zLine);/*æ‰§è¡Œå›æ˜¾æ“ä½œ*/
+      rc = do_meta_command(zLine, p);/*è¿”å›æ‰§è¡ŒçŠ¶æ€ç»™rc*/
       if( rc==2 ){ /* exit requested */
         break;
-      }else if( rc ){/*Èç¹ûrc²»Îª0£¬Ôò´íÎóÊıÁ¿¼Ó1*/
+      }else if( rc ){/*å¦‚æœrcä¸ä¸º0ï¼Œåˆ™é”™è¯¯æ•°é‡åŠ 1*/
         errCnt++;
       }
       continue;
     }
     if( _is_command_terminator(zLine) && _is_complete(zSql, nSql) ){
-      memcpy(zLine,";",2);/*´ÓzLineËùÖ¸µÄÄÚ´æµØÖ·µÄÆğÊ¼Î»ÖÃ¿ªÊ¼¿½±´2¸ö×Ö½Úµ½×Ö·û´®ÖĞ¡£*/
+      memcpy(zLine,";",2);/*ä»zLineæ‰€æŒ‡çš„å†…å­˜åœ°å€çš„èµ·å§‹ä½ç½®å¼€å§‹æ‹·è´2ä¸ªå­—èŠ‚åˆ°å­—ç¬¦ä¸²ä¸­ã€‚*/
     }
     nSqlPrior = nSql;
     if( zSql==0 ){
       int i;
       for(i=0; zLine[i] && IsSpace(zLine[i]); i++){}
       if( zLine[i]!=0 ){
-        nSql = strlen30(zLine);/*Í³¼ÆzLine×Ö·û´®³¤¶È*/
-        zSql = malloc( nSql+3 );/*ÎªzSql¶¯Ì¬·ÖÅäÄÚ´æ¿Õ¼ä*/
+        nSql = strlen30(zLine);/*ç»Ÿè®¡zLineå­—ç¬¦ä¸²é•¿åº¦*/
+        zSql = malloc( nSql+3 );/*ä¸ºzSqlåŠ¨æ€åˆ†é…å†…å­˜ç©ºé—´*/
         if( zSql==0 ){
           fprintf(stderr, "Error: out of memory\n");
           exit(1);
         }
-        memcpy(zSql, zLine, nSql+1);/*´ÓzLineËùÖ¸µÄÄÚ´æµØÖ·µÄÆğÊ¼Î»ÖÃ¿ªÊ¼¿½±´2¸ö×Ö½Úµ½×Ö·û´®ÖĞ¡£*/
+        memcpy(zSql, zLine, nSql+1);/*ä»zLineæ‰€æŒ‡çš„å†…å­˜åœ°å€çš„èµ·å§‹ä½ç½®å¼€å§‹æ‹·è´2ä¸ªå­—èŠ‚åˆ°å­—ç¬¦ä¸²ä¸­ã€‚*/
         startline = lineno;
       }
     }else{
       int len = strlen30(zLine);
-      zSql = realloc( zSql, nSql + len + 4 );/*ÖØĞÂ·ÖÅäÄÚ´æ¿Õ¼ä£¬Èç¹ûÖØĞÂ·ÖÅä³É¹¦Ôò·µ»ØÖ¸Ïò±»·ÖÅäÄÚ´æµÄÖ¸Õë£¬·ñÔò·µ»Ø¿ÕÖ¸ÕëNULL¡£*/
+      zSql = realloc( zSql, nSql + len + 4 );/*é‡æ–°åˆ†é…å†…å­˜ç©ºé—´ï¼Œå¦‚æœé‡æ–°åˆ†é…æˆåŠŸåˆ™è¿”å›æŒ‡å‘è¢«åˆ†é…å†…å­˜çš„æŒ‡é’ˆï¼Œå¦åˆ™è¿”å›ç©ºæŒ‡é’ˆNULLã€‚*/
       if( zSql==0 ){
         fprintf(stderr,"Error: out of memory\n");
         exit(1);
       }
       zSql[nSql++] = '\n';
-      memcpy(&zSql[nSql], zLine, len+1);/*´ÓzLineËùÖ¸µÄÄÚ´æµØÖ·µÄÆğÊ¼Î»ÖÃ¿ªÊ¼¿½±´2¸ö×Ö½Úµ½×Ö·û´®ÖĞ¡£*/
-      nSql += len;/* nSql×Ô¼Ólen¸öÖµ*/
+      memcpy(&zSql[nSql], zLine, len+1);/*ä»zLineæ‰€æŒ‡çš„å†…å­˜åœ°å€çš„èµ·å§‹ä½ç½®å¼€å§‹æ‹·è´2ä¸ªå­—èŠ‚åˆ°å­—ç¬¦ä¸²ä¸­ã€‚*/
+      nSql += len;/* nSqlè‡ªåŠ lenä¸ªå€¼*/
     }
     if( zSql && _contains_semicolon(&zSql[nSqlPrior], nSql-nSqlPrior)
                 && sqlite3_complete(zSql) ){
-      p->cnt = 0;/*³õÊ¼»¯Êı¾İ*/
+      p->cnt = 0;/*åˆå§‹åŒ–æ•°æ®*/
       open_db(p);
-      BEGIN_TIMER;/*¿ªÆô¶¨Ê±Æ÷*/
-      rc = shell_exec(p->db, zSql, shell_callback, p, &zErrMsg);/*Óësqlite3_exec()º¯Êı·Ç³£ÏàËÆ*/
-      END_TIMER;/*¹Ø±Õ¶¨Ê±Æ÷*/
+      BEGIN_TIMER;/*å¼€å¯å®šæ—¶å™¨*/
+      rc = shell_exec(p->db, zSql, shell_callback, p, &zErrMsg);/*ä¸sqlite3_exec()å‡½æ•°éå¸¸ç›¸ä¼¼*/
+      END_TIMER;/*å…³é—­å®šæ—¶å™¨*/
       if( rc || zErrMsg ){
-        char zPrefix[100];/*ÉùÃ÷Ò»¸öÇ°×ºÊı×é*/
+        char zPrefix[100];/*å£°æ˜ä¸€ä¸ªå‰ç¼€æ•°ç»„*/
         if( in!=0 || !stdin_is_interactive ){
           sqlite3_snprintf(sizeof(zPrefix), zPrefix, 
                            "Error: near line %d:", startline);
@@ -2895,7 +2895,7 @@ static int process_input(struct callback_data *p, FILE *in){
         }
         if( zErrMsg!=0 ){
           fprintf(stderr, "%s %s\n", zPrefix, zErrMsg);
-          sqlite3_free(zErrMsg);/*ÊÍ·ÅzErrMsgÄÚ´æ¿Õ¼ä*/
+          sqlite3_free(zErrMsg);/*é‡Šæ”¾zErrMsgå†…å­˜ç©ºé—´*/
           zErrMsg = 0;
         }else{
           fprintf(stderr, "%s %s\n", zPrefix, sqlite3_errmsg(p->db));
@@ -2917,17 +2917,17 @@ static int process_input(struct callback_data *p, FILE *in){
   return errCnt;
 }
 
-/*·µ»ØÂ·¾¶ÊÇÓÃ»§µÄÖ÷Ä¿Â¼¡£·µ»Ø 0 Ê±±íÊ¾´æÔÚÄ³ÖÖÀàĞÍµÄ´íÎó¡£*/
+/*è¿”å›è·¯å¾„æ˜¯ç”¨æˆ·çš„ä¸»ç›®å½•ã€‚è¿”å› 0 æ—¶è¡¨ç¤ºå­˜åœ¨æŸç§ç±»å‹çš„é”™è¯¯ã€‚*/
 static char *find_home_dir(void){
   static char *home_dir = NULL;
   if( home_dir ) return home_dir;
 
 #if !defined(_WIN32) && !defined(WIN32) && !defined(_WIN32_WCE) && !defined(__RTP__) && !
 
-defined(_WRS_KERNEL)/*Ìõ¼ş±àÒëÖ¸Áî£¬Èç¹ûÂú×ãÒªÇóµÄ±àÒë»·¾³£¬ÔòÖ´ĞĞÏÂÃæµÄ³ÌĞò¶Î*/
+defined(_WRS_KERNEL)/*æ¡ä»¶ç¼–è¯‘æŒ‡ä»¤ï¼Œå¦‚æœæ»¡è¶³è¦æ±‚çš„ç¼–è¯‘ç¯å¢ƒï¼Œåˆ™æ‰§è¡Œä¸‹é¢çš„ç¨‹åºæ®µ*/
   {
     struct passwd *pwent;
-    uid_t uid = getuid();/* ·µ»ØÒ»¸öµ÷ÓÃ³ÌĞòµÄÕæÊµÓÃ»§ID*/
+    uid_t uid = getuid();/* è¿”å›ä¸€ä¸ªè°ƒç”¨ç¨‹åºçš„çœŸå®ç”¨æˆ·ID*/
     if( (pwent=getpwuid(uid)) != NULL) {
       home_dir = pwent->pw_dir;
     }
@@ -2942,23 +2942,23 @@ defined(_WRS_KERNEL)/*Ìõ¼ş±àÒëÖ¸Áî£¬Èç¹ûÂú×ãÒªÇóµÄ±àÒë»·¾³£¬ÔòÖ´ĞĞÏÂÃæµÄ³ÌĞò¶Î*/
 
 #if defined(_WIN32) || defined(WIN32)
   if (!home_dir) {
-    home_dir = getenv("USERPROFILE");/*»ñÈ¡USERPROFILE»·¾³±äÁ¿µÄÖµ*/
+    home_dir = getenv("USERPROFILE");/*è·å–USERPROFILEç¯å¢ƒå˜é‡çš„å€¼*/
   }
 #endif
 
   if (!home_dir) {
-    home_dir = getenv("HOME");/*»ñÈ¡HOME»·¾³±äÁ¿µÄÖµ*/
+    home_dir = getenv("HOME");/*è·å–HOMEç¯å¢ƒå˜é‡çš„å€¼*/
   }
 
 #if defined(_WIN32) || defined(WIN32)
   if (!home_dir) {
     char *zDrive, *zPath;
     int n;
-    zDrive = getenv("HOMEDRIVE");/*»ñÈ¡HOMEDRIVE»·¾³±äÁ¿µÄÖµ*/
-    zPath = getenv("HOMEPATH");/*»ñÈ¡HOMEPATH»·¾³±äÁ¿µÄÖµ*/
+    zDrive = getenv("HOMEDRIVE");/*è·å–HOMEDRIVEç¯å¢ƒå˜é‡çš„å€¼*/
+    zPath = getenv("HOMEPATH");/*è·å–HOMEPATHç¯å¢ƒå˜é‡çš„å€¼*/
     if( zDrive && zPath ){
       n = strlen30(zDrive) + strlen30(zPath) + 1;
-      home_dir = malloc( n );/*home_dirÖ¸Ïòn¸ö×Ö½ÚµÄÄÚ´æ¿Õ¼ä*/
+      home_dir = malloc( n );/*home_diræŒ‡å‘nä¸ªå­—èŠ‚çš„å†…å­˜ç©ºé—´*/
       if( home_dir==0 ) return 0;
       sqlite3_snprintf(n, home_dir, "%s%s", zDrive, zPath);
       return home_dir;
@@ -2969,9 +2969,9 @@ defined(_WRS_KERNEL)/*Ìõ¼ş±àÒëÖ¸Áî£¬Èç¹ûÂú×ãÒªÇóµÄ±àÒë»·¾³£¬ÔòÖ´ĞĞÏÂÃæµÄ³ÌĞò¶Î*/
 
 #endif /* !_WIN32_WCE */
 
-  if( home_dir ){/*home_dirÖ¸ÏòµÄÄÚ´æ¿Õ¼ä²»Îª¿Õ*/
+  if( home_dir ){/*home_diræŒ‡å‘çš„å†…å­˜ç©ºé—´ä¸ä¸ºç©º*/
     int n = strlen30(home_dir) + 1;
-    char *z = malloc( n );/* zÖ¸Ïòn ¸ö×Ö½ÚµÄÄÚ´æ¿Õ¼ä*/
+    char *z = malloc( n );/* zæŒ‡å‘n ä¸ªå­—èŠ‚çš„å†…å­˜ç©ºé—´*/
     if( z ) memcpy(z, home_dir, n);
     home_dir = z;
   }
@@ -2980,16 +2980,16 @@ defined(_WRS_KERNEL)/*Ìõ¼ş±àÒëÖ¸Áî£¬Èç¹ûÂú×ãÒªÇóµÄ±àÒë»·¾³£¬ÔòÖ´ĞĞÏÂÃæµÄ³ÌĞò¶Î*/
 }
 
 /*
-´Ósqliterc_override¸ø³öµÄÎÄ¼ş¶ÁÈ¡ÊäÈë¡£
-»òÕßÈç¹û¸Ã²ÎÊıÎªNULL£¬Ôò´Ó~/.sqlitercÖĞÊäÈë
-·µ»Ø´íÎóµÄÊıÁ¿¡£
+ä»sqliterc_overrideç»™å‡ºçš„æ–‡ä»¶è¯»å–è¾“å…¥ã€‚
+æˆ–è€…å¦‚æœè¯¥å‚æ•°ä¸ºNULLï¼Œåˆ™ä»~/.sqlitercä¸­è¾“å…¥
+è¿”å›é”™è¯¯çš„æ•°é‡ã€‚
 */
-static int process_sqliterc(/*·µ»ØÖµÎª¾²Ì¬ÕûĞÍ*/
+static int process_sqliterc(/*è¿”å›å€¼ä¸ºé™æ€æ•´å‹*/
   struct callback_data *p,        /* Configuration data */
   const char *sqliterc_override   /* Name of config file. NULL to use default */
 ){
   char *home_dir = NULL;
-  const char *sqliterc = sqliterc_override;/*Ö¸Ïò³£×Ö·ûµÄÖ¸Õë*/
+  const char *sqliterc = sqliterc_override;/*æŒ‡å‘å¸¸å­—ç¬¦çš„æŒ‡é’ˆ*/
   char *zBuf = 0;
   FILE *in = NULL;
   int rc = 0;
@@ -2998,23 +2998,23 @@ static int process_sqliterc(/*·µ»ØÖµÎª¾²Ì¬ÕûĞÍ*/
     home_dir = find_home_dir();
     if( home_dir==0 ){
 #if !defined(__RTP__) && !defined(_WRS_KERNEL)
-      fprintf(stderr,"%s: Error: cannot locate your home directory\n", Argv0);/*°ÑArgv0ÖĞµÄ´íÎóĞÅÏ¢Êä³öµ½
+      fprintf(stderr,"%s: Error: cannot locate your home directory\n", Argv0);/*æŠŠArgv0ä¸­çš„é”™è¯¯ä¿¡æ¯è¾“å‡ºåˆ°
 
-stderr ÎÄ¼şÖĞ*/
+stderr æ–‡ä»¶ä¸­*/
 #endif
       return 1;
     }
-    sqlite3_initialize();/*³õÊ¼»¯SQLite Êı¾İ¿â*/
+    sqlite3_initialize();/*åˆå§‹åŒ–SQLite æ•°æ®åº“*/
     zBuf = sqlite3_mprintf("%s/.sqliterc",home_dir);
     sqliterc = zBuf;
   }
-  in = fopen(sqliterc,"rb");/*ÅĞ¶ÏÊÇ·ñË³Àû´ò¿ªÎÄ¼ş*/
+  in = fopen(sqliterc,"rb");/*åˆ¤æ–­æ˜¯å¦é¡ºåˆ©æ‰“å¼€æ–‡ä»¶*/
   if( in ){
-    if( stdin_is_interactive ){/*ÅĞ¶Ï±ê×¼ÊäÈëÊÇ·ñÎª½»»¥Ê½µÄ*/
+    if( stdin_is_interactive ){/*åˆ¤æ–­æ ‡å‡†è¾“å…¥æ˜¯å¦ä¸ºäº¤äº’å¼çš„*/
       fprintf(stderr,"-- Loading resources from %s\n",sqliterc);
     }
     rc = process_input(p,in);
-    fclose(in);/*¹Ø±Õin Ö¸ÕëÖ¸ÏòµÄÎÄ¼ş*/
+    fclose(in);/*å…³é—­in æŒ‡é’ˆæŒ‡å‘çš„æ–‡ä»¶*/
   }
   sqlite3_free(zBuf);
   return rc;
@@ -3023,28 +3023,28 @@ stderr ÎÄ¼şÖĞ*/
 /*
 ** Show available command line options
 */
-static const char zOptions[] = /*¶¨Òå¾²Ì¬³£×Ö·ûÊı×é*/
-  "   -bail                stop after hitting an error\n"//Óöµ½´íÎó¼´Í£Ö¹
-  "   -batch               force batch I/O\n"//Åú´¦ÀíI/O
-  "   -column              set output mode to 'column'\n"//Êä³öÄ£Ê½ÉèÖÃÎª°´ÁĞ·Ö¿ª
+static const char zOptions[] = /*å®šä¹‰é™æ€å¸¸å­—ç¬¦æ•°ç»„*/
+  "   -bail                stop after hitting an error\n"//é‡åˆ°é”™è¯¯å³åœæ­¢
+  "   -batch               force batch I/O\n"//æ‰¹å¤„ç†I/O
+  "   -column              set output mode to 'column'\n"//è¾“å‡ºæ¨¡å¼è®¾ç½®ä¸ºæŒ‰åˆ—åˆ†å¼€
   "   -cmd command         run \"command\" before reading stdin\n"
-  "   -csv                 set output mode to 'csv'\n"//Êä³ö¸ñÊ½ÉèÖÃÎªcsv
-  "   -echo                print commands before execution\n"//»ØÏÔÉèÖÃ
-  "   -init filename       read/process named file\n"//³õÊ¼»¯ÎÄ¼şÃû
-  "   -[no]header          turn headers on or off\n"//ÊÇ·ñÏÔÊ¾±íÍ·
-  "   -help                show this message\n"//ÏÔÊ¾°ïÖúĞÅÏ¢
-  "   -html                set output mode to HTML\n"//Êä³öÄ£Ê½ÉèÖÃÎªHTML
+  "   -csv                 set output mode to 'csv'\n"//è¾“å‡ºæ ¼å¼è®¾ç½®ä¸ºcsv
+  "   -echo                print commands before execution\n"//å›æ˜¾è®¾ç½®
+  "   -init filename       read/process named file\n"//åˆå§‹åŒ–æ–‡ä»¶å
+  "   -[no]header          turn headers on or off\n"//æ˜¯å¦æ˜¾ç¤ºè¡¨å¤´
+  "   -help                show this message\n"//æ˜¾ç¤ºå¸®åŠ©ä¿¡æ¯
+  "   -html                set output mode to HTML\n"//è¾“å‡ºæ¨¡å¼è®¾ç½®ä¸ºHTML
   "   -interactive         force interactive I/O\n"
   "   -line                set output mode to 'line'\n"
   "   -list                set output mode to 'list'\n"
 #ifdef SQLITE_ENABLE_MULTIPLEX
   "   -multiplex           enable the multiplexor VFS\n"
 #endif
-  "   -nullvalue 'text'    set text string for NULL values\n"//½«ÎÄ±¾×Ö·û´®ÉèÖÃÎª¿ÕÖµ
-  "   -separator 'x'       set output field separator (|)\n"//ÉèÖÃ·Ö¸ô·û
+  "   -nullvalue 'text'    set text string for NULL values\n"//å°†æ–‡æœ¬å­—ç¬¦ä¸²è®¾ç½®ä¸ºç©ºå€¼
+  "   -separator 'x'       set output field separator (|)\n"//è®¾ç½®åˆ†éš”ç¬¦
   "   -stats               print memory stats before each finalize\n"
   "   -version             show SQLite version\n"
-  "   -vfs NAME            use NAME as the default VFS\n"//Ä¬ÈÏVFSÃû³Æ
+  "   -vfs NAME            use NAME as the default VFS\n"//é»˜è®¤VFSåç§°
 #ifdef SQLITE_ENABLE_VFSTRACE
   "   -vfstrace            enable tracing of all VFS calls\n"
 #endif
@@ -3055,90 +3055,90 @@ static void usage(int showDetail){
       "FILENAME is the name of an SQLite database. A new database is created\n"
       "if the file does not previously exist.\n", Argv0);
   if( showDetail ){
-    fprintf(stderr, "OPTIONS include:\n%s", zOptions);//°ÑzOptions Êı×éÖĞµÄÃüÁî°´¸ñÊ½ÒªÇóÊä³öµ½stderrÎÄ
+    fprintf(stderr, "OPTIONS include:\n%s", zOptions);//æŠŠzOptions æ•°ç»„ä¸­çš„å‘½ä»¤æŒ‰æ ¼å¼è¦æ±‚è¾“å‡ºåˆ°stderræ–‡
 
-¼şÖĞ
+ä»¶ä¸­
   }else{
-    fprintf(stderr, "Use the -help option for additional information\n");//Ê¹ÓÃhelpÃüÁîµÃµ½¸ü¶àĞÅÏ¢
+    fprintf(stderr, "Use the -help option for additional information\n");//ä½¿ç”¨helpå‘½ä»¤å¾—åˆ°æ›´å¤šä¿¡æ¯
   }
   exit(1);
 }
 
-/*³õÊ¼»¯Êı¾İµÄ×´Ì¬ĞÅÏ¢*/
-static void main_init(struct callback_data *data) {/*Æä²ÎÊıÎª½á¹¹Ìå»ØÏÔÖ¸Õë*/
-  memset(data, 0, sizeof(*data));//ÇåÁã sizeof(*data),Ö¸ÕëdataËùÕ¼ÄÚ´æµÄ×Ö½ÚÊı 4
-  data->mode = MODE_List;//ÉèÖÃÊı¾İ¿âµÄÊä³öÄ£Ê½Îªlist
-  memcpy(data->separator,"|", 2);//´ÓÔ´"|"ËùÖ¸µÄÄÚ´æµØÖ·µÄÆğÊ¼Î»ÖÃ¿ªÊ¼¿½±´2¸ö×Ö½Úµ½Ä¿±êdata->separatorËùÖ¸µÄÄÚ´æµØÖ·µÄÆğÊ¼Î»ÖÃÖĞ
-  data->showHeader = 0;//²»ÏÔÊ¾ÁĞÃû
-  sqlite3_config(SQLITE_CONFIG_URI, 1);//·ÇÁãÆôÓÃ£¬ËùÓĞÎÄ¼şÃû´«µİ¸øsqlite3_open(),sqlite3_open_v2(),sqlite3_open16()
-  /*sqlite3_config() ÓÃÓÚ¸ü¸ÄÈ«¾Ö±äÁ¿ÈÃSQLite ÊÊÓ¦Ó¦ÓÃµÄ¾ßÌåĞèÒª¡£
-  ËüÖ§³ÖÉÙÊıµÄÓ¦ÓÃ²»³£¼ûµÄĞèÇó¡£*/
+/*åˆå§‹åŒ–æ•°æ®çš„çŠ¶æ€ä¿¡æ¯*/
+static void main_init(struct callback_data *data) {/*å…¶å‚æ•°ä¸ºç»“æ„ä½“å›æ˜¾æŒ‡é’ˆ*/
+  memset(data, 0, sizeof(*data));//æ¸…é›¶ sizeof(*data),æŒ‡é’ˆdataæ‰€å å†…å­˜çš„å­—èŠ‚æ•° 4
+  data->mode = MODE_List;//è®¾ç½®æ•°æ®åº“çš„è¾“å‡ºæ¨¡å¼ä¸ºlist
+  memcpy(data->separator,"|", 2);//ä»æº"|"æ‰€æŒ‡çš„å†…å­˜åœ°å€çš„èµ·å§‹ä½ç½®å¼€å§‹æ‹·è´2ä¸ªå­—èŠ‚åˆ°ç›®æ ‡data->separatoræ‰€æŒ‡çš„å†…å­˜åœ°å€çš„èµ·å§‹ä½ç½®ä¸­
+  data->showHeader = 0;//ä¸æ˜¾ç¤ºåˆ—å
+  sqlite3_config(SQLITE_CONFIG_URI, 1);//éé›¶å¯ç”¨ï¼Œæ‰€æœ‰æ–‡ä»¶åä¼ é€’ç»™sqlite3_open(),sqlite3_open_v2(),sqlite3_open16()
+  /*sqlite3_config() ç”¨äºæ›´æ”¹å…¨å±€å˜é‡è®©SQLite é€‚åº”åº”ç”¨çš„å…·ä½“éœ€è¦ã€‚
+  å®ƒæ”¯æŒå°‘æ•°çš„åº”ç”¨ä¸å¸¸è§çš„éœ€æ±‚ã€‚*/
   sqlite3_config(SQLITE_CONFIG_LOG, shellLog, data);
-  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt,"sqlite> ");//char mainPrompt[20],mainPromptµÄ³õÊ¼ÖµÎªsqlite>.×î¶à´ÓÔ´´®ÖĞ¿½±´sizeof(mainPrompt)£­1¸ö×Ö·ûµ½Ä¿±ê´®ÖĞ£¬È»ºóÔÙÔÚºóÃæ¼ÓÒ»¸ö0¡£
-  sqlite3_snprintf(sizeof(continuePrompt), continuePrompt,"   ...> ");//ÑÓĞøÌáÊ¾continuePrompt[20]£¬continuePromptµÄ³õÊ¼ÖµÎª...>
-  sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);//Õâ¸öÑ¡ÏîÉèÖÃµ¥Ïß³ÌµÄÏß³ÌÄ£Ê½¡£»»¾ä»°Ëµ,Ëü½ûÓÃËùÓĞ»¥³âËø²¢½«SQLiteÊı¾İ·ÅÈëÒ»¸öÄ£Ê½,ËüÖ»ÄÜÓÉÒ»¸öÏß³ÌÊ¹ÓÃ¡£
+  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt,"sqlite> ");//char mainPrompt[20],mainPromptçš„åˆå§‹å€¼ä¸ºsqlite>.æœ€å¤šä»æºä¸²ä¸­æ‹·è´sizeof(mainPrompt)ï¼1ä¸ªå­—ç¬¦åˆ°ç›®æ ‡ä¸²ä¸­ï¼Œç„¶åå†åœ¨åé¢åŠ ä¸€ä¸ª0ã€‚
+  sqlite3_snprintf(sizeof(continuePrompt), continuePrompt,"   ...> ");//å»¶ç»­æç¤ºcontinuePrompt[20]ï¼ŒcontinuePromptçš„åˆå§‹å€¼ä¸º...>
+  sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);//è¿™ä¸ªé€‰é¡¹è®¾ç½®å•çº¿ç¨‹çš„çº¿ç¨‹æ¨¡å¼ã€‚æ¢å¥è¯è¯´,å®ƒç¦ç”¨æ‰€æœ‰äº’æ–¥é”å¹¶å°†SQLiteæ•°æ®æ”¾å…¥ä¸€ä¸ªæ¨¡å¼,å®ƒåªèƒ½ç”±ä¸€ä¸ªçº¿ç¨‹ä½¿ç”¨ã€‚
 }
 
 /*
-**³ÌĞòµÄmain()º¯ÊıÔÚshell.cµÄÎ²²¿£¬
-**¼ò»¯ºóµÄmain()º¯ÊıµÄÖ´ĞĞ¹ı³ÌÖ÷Òª·ÖÎª5²½£º
-**1. ÉèÖÃ»ØÏÔ²ÎÊı 
-**2. È¡Êı¾İ¿âÎÄ¼şÃû 
-**3. ´ò¿ªÊı¾İ¿â  
-**4. Ñ­»·´¦ÀíSQLÃüÁî 
-**5. ¹Ø±ÕÊı¾İ¿â
+**ç¨‹åºçš„main()å‡½æ•°åœ¨shell.cçš„å°¾éƒ¨ï¼Œ
+**ç®€åŒ–åçš„main()å‡½æ•°çš„æ‰§è¡Œè¿‡ç¨‹ä¸»è¦åˆ†ä¸º5æ­¥ï¼š
+**1. è®¾ç½®å›æ˜¾å‚æ•° 
+**2. å–æ•°æ®åº“æ–‡ä»¶å 
+**3. æ‰“å¼€æ•°æ®åº“  
+**4. å¾ªç¯å¤„ç†SQLå‘½ä»¤ 
+**5. å…³é—­æ•°æ®åº“
 */
 int main(int argc, char **argv){
-  char *zErrMsg = 0;/*ÉùÃ÷Ò»¸ö´æ·Å´íÎóĞÅÏ¢µÄÖ¸Õë*/
-  struct callback_data data;//ÉùÃ÷»ØÏÔ²ÎÊı
-  const char *zInitFile = 0;//ÎÄ¼ş³õÊ¼»¯
-  char *zFirstCmd = 0;//½ÓÊÕÃüÁî
+  char *zErrMsg = 0;/*å£°æ˜ä¸€ä¸ªå­˜æ”¾é”™è¯¯ä¿¡æ¯çš„æŒ‡é’ˆ*/
+  struct callback_data data;//å£°æ˜å›æ˜¾å‚æ•°
+  const char *zInitFile = 0;//æ–‡ä»¶åˆå§‹åŒ–
+  char *zFirstCmd = 0;//æ¥æ”¶å‘½ä»¤
   int i;
-  int rc = 0; //Ò»¸ö±êÖ¾Î»
+  int rc = 0; //ä¸€ä¸ªæ ‡å¿—ä½
 
-  if( strcmp(sqlite3_sourceid(),SQLITE_SOURCE_ID)!=0 ){/*±È½ÏÊı¾İ¿â°æ±¾ºÅÊÇ·ñÏàÍ¬*/
-    fprintf(stderr, "SQLite header and source version mismatch\n%s\n%s\n",//Êı¾İ¿â°æ±¾²»Æ¥Åä
+  if( strcmp(sqlite3_sourceid(),SQLITE_SOURCE_ID)!=0 ){/*æ¯”è¾ƒæ•°æ®åº“ç‰ˆæœ¬å·æ˜¯å¦ç›¸åŒ*/
+    fprintf(stderr, "SQLite header and source version mismatch\n%s\n%s\n",//æ•°æ®åº“ç‰ˆæœ¬ä¸åŒ¹é…
             sqlite3_sourceid(), SQLITE_SOURCE_ID);
     exit(1);
   }
-  Argv0 = argv[0];// argv[]ÊÇargc¸ö²ÎÊı£¬ÆäÖĞµÚ0¸ö²ÎÊıÊÇ³ÌĞòµÄÈ«Ãû£¬ÒÔºóµÄ²ÎÊı 
-  main_init(&data);//ÉèÖÃÄ¬ÈÏµÄ»ØÏÔĞÎÊ½
-  stdin_is_interactive = isatty(0);//Èç¹û·µ»ØÖµÎª1Ôò¿ÉÒÔ½øĞĞ½»»¥Ê½ÊäÈë£¬·ñÔò½»»»ÊäÈëÊÇ¹ÜµÀ»òÕßÎÄ¼ş£¬isattyº¯ÊıÅĞ¶ÏÆäÊÇ²»ÊÇÉè±¸
+  Argv0 = argv[0];// argv[]æ˜¯argcä¸ªå‚æ•°ï¼Œå…¶ä¸­ç¬¬0ä¸ªå‚æ•°æ˜¯ç¨‹åºçš„å…¨åï¼Œä»¥åçš„å‚æ•° 
+  main_init(&data);//è®¾ç½®é»˜è®¤çš„å›æ˜¾å½¢å¼
+  stdin_is_interactive = isatty(0);//å¦‚æœè¿”å›å€¼ä¸º1åˆ™å¯ä»¥è¿›è¡Œäº¤äº’å¼è¾“å…¥ï¼Œå¦åˆ™äº¤æ¢è¾“å…¥æ˜¯ç®¡é“æˆ–è€…æ–‡ä»¶ï¼Œisattyå‡½æ•°åˆ¤æ–­å…¶æ˜¯ä¸æ˜¯è®¾å¤‡
 
-  /* Íê³ÉÒÔÇ°£¬È·±£ ÓĞÒ»¸öÓĞĞ§µÄĞÅºÅ´¦Àí³ÌĞò */
+  /* å®Œæˆä»¥å‰ï¼Œç¡®ä¿ æœ‰ä¸€ä¸ªæœ‰æ•ˆçš„ä¿¡å·å¤„ç†ç¨‹åº */
 #ifdef SIGINT
-  signal(SIGINT, interrupt_handler);//ÓÃ»§°´ÏÂCtrl-C¼ü,·¢³öÖĞ¶ÏĞÅºÅ
-  //signalº¯ÊıµÄÔ­ĞÍvoid (*signal(int signo, void (*handler)(int)))(int);
-  //µ±Ëæºó³öÏÖĞÅºÅµ±Ëæºó³öÏÖĞÅºÅSIGINTÊ±£¬¾ÍÖĞ¶ÏÕıÔÚÖ´ĞĞµÄ²Ù×÷£¬×ª¶øÖ´ĞĞĞÅºÅ´¦Àíº¯Êıinterrupt_handler(SIGINT)¡£Èç¹û´ÓĞÅºÅ´¦Àí³ÌĞòÖĞ·µ»Ø£¬Ôò´ÓÖĞ¶ÏµÄÎ»ÖÃ¼ÌĞøÖ´ĞĞ¡£
+  signal(SIGINT, interrupt_handler);//ç”¨æˆ·æŒ‰ä¸‹Ctrl-Cé”®,å‘å‡ºä¸­æ–­ä¿¡å·
+  //signalå‡½æ•°çš„åŸå‹void (*signal(int signo, void (*handler)(int)))(int);
+  //å½“éšåå‡ºç°ä¿¡å·å½“éšåå‡ºç°ä¿¡å·SIGINTæ—¶ï¼Œå°±ä¸­æ–­æ­£åœ¨æ‰§è¡Œçš„æ“ä½œï¼Œè½¬è€Œæ‰§è¡Œä¿¡å·å¤„ç†å‡½æ•°interrupt_handler(SIGINT)ã€‚å¦‚æœä»ä¿¡å·å¤„ç†ç¨‹åºä¸­è¿”å›ï¼Œåˆ™ä»ä¸­æ–­çš„ä½ç½®ç»§ç»­æ‰§è¡Œã€‚
 #endif
 
  /* 
-**Í¨¹ıÃüÁîĞĞ²ÎÊı¶¨Î»Êı¾İ¿âÎÄ¼şÃû£¬³õÊ¼»¯ÎÄ¼şÃû£¬
-**¿ÕÏĞµÄmalloc¶ÑµÄ´óĞ¡£¬
-**ºÍÖ´ĞĞµÚÒ»ÌõÃüÁî¡£
+**é€šè¿‡å‘½ä»¤è¡Œå‚æ•°å®šä½æ•°æ®åº“æ–‡ä»¶åï¼Œåˆå§‹åŒ–æ–‡ä»¶åï¼Œ
+**ç©ºé—²çš„mallocå †çš„å¤§å°ï¼Œ
+**å’Œæ‰§è¡Œç¬¬ä¸€æ¡å‘½ä»¤ã€‚
  */
   for(i=1; i<argc-1; i++){
     char *z;
-    if( argv[i][0]!='-' ) break;// Èç¹ûÄ³ĞĞµÄµÚÒ»¸ö×Ö·û²»ÊÇ'-' ÔòÌø³öµ±Ç°Ñ­»·¡£
-    z = argv[i];//Ö¸ÕëZÊÇĞĞÖ¸Õë
+    if( argv[i][0]!='-' ) break;// å¦‚æœæŸè¡Œçš„ç¬¬ä¸€ä¸ªå­—ç¬¦ä¸æ˜¯'-' åˆ™è·³å‡ºå½“å‰å¾ªç¯ã€‚
+    z = argv[i];//æŒ‡é’ˆZæ˜¯è¡ŒæŒ‡é’ˆ
     if( z[1]=='-' ) z++;
-    if( strcmp(z,"-separator")==0//ÅĞ¶ÏÊäÈëµÄÃüÁîÖĞÊÇ·ñÓĞ-separator||-nullvalue||-cmd
+    if( strcmp(z,"-separator")==0//åˆ¤æ–­è¾“å…¥çš„å‘½ä»¤ä¸­æ˜¯å¦æœ‰-separator||-nullvalue||-cmd
      || strcmp(z,"-nullvalue")==0
      || strcmp(z,"-cmd")==0
-    ){//ÈôÓëÉÏÊö×Ö·û´®ÖĞµÄÄ³¸öÆ¥Åä£¬ÔòÖ´ĞĞÒÔÏÂ³ÌĞò¶Î
+    ){//è‹¥ä¸ä¸Šè¿°å­—ç¬¦ä¸²ä¸­çš„æŸä¸ªåŒ¹é…ï¼Œåˆ™æ‰§è¡Œä»¥ä¸‹ç¨‹åºæ®µ
       i++;
-    }else if( strcmp(z,"-init")==0 ){/*±È½Ï×Ö·û´®*/
+    }else if( strcmp(z,"-init")==0 ){/*æ¯”è¾ƒå­—ç¬¦ä¸²*/
       i++;
       zInitFile = argv[i];
 	  
   /* 
-**µÚ¶ş´Î×öÊµ²Î´¦Àíºó,
-**ĞèÒª¼ì²éÅú´¦ÀíÄ£Ê½,
-**ÒÔ±ãÎÒÃÇÄÜ¹»±ÜÃâ´òÓ¡ĞÅÏ¢£¨¾ÍÏñÀ´×Ôsqliterc ½ø³Ì£©¡£
+**ç¬¬äºŒæ¬¡åšå®å‚å¤„ç†å,
+**éœ€è¦æ£€æŸ¥æ‰¹å¤„ç†æ¨¡å¼,
+**ä»¥ä¾¿æˆ‘ä»¬èƒ½å¤Ÿé¿å…æ‰“å°ä¿¡æ¯ï¼ˆå°±åƒæ¥è‡ªsqliterc è¿›ç¨‹ï¼‰ã€‚
    */
-    }else if( strcmp(z,"-batch")==0 ){/*±È½Ï×Ö·û´®*/
-      stdin_is_interactive = 0;//ÎÄ¼ş»òÕß¹ÜµÀ½øĞĞ½»»¥
-    }else if( strcmp(z,"-heap")==0 ){/*±È½Ï×Ö·û´®*/
+    }else if( strcmp(z,"-batch")==0 ){/*æ¯”è¾ƒå­—ç¬¦ä¸²*/
+      stdin_is_interactive = 0;//æ–‡ä»¶æˆ–è€…ç®¡é“è¿›è¡Œäº¤äº’
+    }else if( strcmp(z,"-heap")==0 ){/*æ¯”è¾ƒå­—ç¬¦ä¸²*/
 #if defined(SQLITE_ENABLE_MEMSYS3) || defined(SQLITE_ENABLE_MEMSYS5)
       int j, c;
       const char *zSize;
@@ -3152,15 +3152,15 @@ int main(int argc, char **argv){
         if( c=='G' ){ szHeap *= 1000000000; break; }
       }
       if( szHeap>0x7fff0000 ) szHeap = 0x7fff0000;
-    /*sqlite3_configÓÃÓÚ¸Ä±äSQLite µÄÈ«¾ÖÅäÖÃÒÔÂú×ã
-** Ó¦ÓÃµÄ¾ßÌåĞèÒª¡£*/
+    /*sqlite3_configç”¨äºæ”¹å˜SQLite çš„å…¨å±€é…ç½®ä»¥æ»¡è¶³
+** åº”ç”¨çš„å…·ä½“éœ€è¦ã€‚*/
       sqlite3_config(SQLITE_CONFIG_HEAP, malloc((int)szHeap), (int)szHeap, 64);
 	
 #endif
 #ifdef SQLITE_ENABLE_VFSTRACE
-    }else if( strcmp(z,"-vfstrace")==0 ){/*±È½Ï×Ö·û´®*/
-      extern int vfstrace_register(//ÉùÃ÷Íâ²¿º¯Êıvfstrace_register
-         const char *zTraceName,/*ÉùÃ÷Ò»¸öÖ¸Ïò³£×Ö·ûĞÍµÄÖ¸Õë*/
+    }else if( strcmp(z,"-vfstrace")==0 ){/*æ¯”è¾ƒå­—ç¬¦ä¸²*/
+      extern int vfstrace_register(//å£°æ˜å¤–éƒ¨å‡½æ•°vfstrace_register
+         const char *zTraceName,/*å£°æ˜ä¸€ä¸ªæŒ‡å‘å¸¸å­—ç¬¦å‹çš„æŒ‡é’ˆ*/
          const char *zOldVfsName,
          int (*xOut)(const char*,void*),
          void *pOutArg,
@@ -3169,14 +3169,14 @@ int main(int argc, char **argv){
       vfstrace_register("trace",0,(int(*)(const char*,void*))fputs,stderr,1);
 #endif
 #ifdef SQLITE_ENABLE_MULTIPLEX
-    }else if( strcmp(z,"-multiplex")==0 ){/*±È½Ï×Ö·û´®*/
-      extern int sqlite3_multiple_initialize(const char*,int);//ÉùÃ÷Íâ²¿º¯Êıvfstrace_register
-      sqlite3_multiplex_initialize(0, 1);//¶àÖØ³õÊ¼»¯²Ù×÷
+    }else if( strcmp(z,"-multiplex")==0 ){/*æ¯”è¾ƒå­—ç¬¦ä¸²*/
+      extern int sqlite3_multiple_initialize(const char*,int);//å£°æ˜å¤–éƒ¨å‡½æ•°vfstrace_register
+      sqlite3_multiplex_initialize(0, 1);//å¤šé‡åˆå§‹åŒ–æ“ä½œ
 #endif
     }else if( strcmp(z,"-vfs")==0 ){
       sqlite3_vfs *pVfs = sqlite3_vfs_find(argv[++i]);
       if( pVfs ){
-		  sqlite3_vfs_register(pVfs, 1);	//Ê¹ÓÃsqlite3_vfs_register()½Ó¿Ú,Í¨¹ı×¢²á»ò¸ü¸ÄÄ¬ÈÏVFS re - registering VFS 
+		  sqlite3_vfs_register(pVfs, 1);	//ä½¿ç”¨sqlite3_vfs_register()æ¥å£,é€šè¿‡æ³¨å†Œæˆ–æ›´æ”¹é»˜è®¤VFS re - registering VFS 
       }else{
         fprintf(stderr, "no such VFS: \"%s\"\n", argv[i]);
         exit(1);
@@ -3184,46 +3184,46 @@ int main(int argc, char **argv){
     }
   }
   if( i<argc ){
-    data.zDbFilename = argv[i++];//Êı¾İ¿âÎÄ¼şÃû
+    data.zDbFilename = argv[i++];//æ•°æ®åº“æ–‡ä»¶å
   }else{
 #ifndef SQLITE_OMIT_MEMORYDB
-    data.zDbFilename = ":memory:";//Èç¹ûÃ»ÓĞ¸ø³öÊı¾İ¿âÃûÔòÑ¡ÓÃÄ¬ÈÏµÄÊı¾İ¿â:memory:
+    data.zDbFilename = ":memory:";//å¦‚æœæ²¡æœ‰ç»™å‡ºæ•°æ®åº“ååˆ™é€‰ç”¨é»˜è®¤çš„æ•°æ®åº“:memory:
 #else
     data.zDbFilename = 0;
 #endif
   }
   if( i<argc ){
-    zFirstCmd = argv[i++];//½«ÃüÁîĞĞµÄÃüÁî¸³Öµ¸øzFirstCmd 
+    zFirstCmd = argv[i++];//å°†å‘½ä»¤è¡Œçš„å‘½ä»¤èµ‹å€¼ç»™zFirstCmd 
   }
   if( i<argc ){
-    fprintf(stderr,"%s: Error: too many options: \"%s\"\n", Argv0, argv[i]);//Êä³ö´íÎóĞÅÏ¢
+    fprintf(stderr,"%s: Error: too many options: \"%s\"\n", Argv0, argv[i]);//è¾“å‡ºé”™è¯¯ä¿¡æ¯
     fprintf(stderr,"Use -help for a list of options.\n");
     return 1;
   }
-  data.out = stdout;	//Ëü¾ÍÊÇÒ»¸öÎÄ¼ş£¬¶øÕâ¸öÎÄ¼şºÍ±ê×¼Êä³öÉè±¸(ÆÁÄ»)½¨Á¢ÁËÄ³ÖÖ¹ØÁª£¬µ±Êı¾İĞ´µ½Õâ¸öÎÄ¼şÀïÃæµÄÊ±ºò£¬ÆÁÄ»¾Í»áÍ¨¹ı¼È¶¨µÄ·½Ê½°ÑÄãĞ´½øÈ¥µÄ¶«Î÷ÏÔÊ¾³öÀ´
+  data.out = stdout;	//å®ƒå°±æ˜¯ä¸€ä¸ªæ–‡ä»¶ï¼Œè€Œè¿™ä¸ªæ–‡ä»¶å’Œæ ‡å‡†è¾“å‡ºè®¾å¤‡(å±å¹•)å»ºç«‹äº†æŸç§å…³è”ï¼Œå½“æ•°æ®å†™åˆ°è¿™ä¸ªæ–‡ä»¶é‡Œé¢çš„æ—¶å€™ï¼Œå±å¹•å°±ä¼šé€šè¿‡æ—¢å®šçš„æ–¹å¼æŠŠä½ å†™è¿›å»çš„ä¸œè¥¿æ˜¾ç¤ºå‡ºæ¥
 
 #ifdef SQLITE_OMIT_MEMORYDB
-  if( data.zDbFilename==0 ){//data.zDbFilenameµÄÖµÎª0£¬ÔòÖ´ĞĞÈçÏÂ²Ù×÷
-   /*°ÑArgv0ÖĞµÄĞÅÏ¢°´¸ñÊ½ÒªÇóĞ´Èëstderr*/
+  if( data.zDbFilename==0 ){//data.zDbFilenameçš„å€¼ä¸º0ï¼Œåˆ™æ‰§è¡Œå¦‚ä¸‹æ“ä½œ
+   /*æŠŠArgv0ä¸­çš„ä¿¡æ¯æŒ‰æ ¼å¼è¦æ±‚å†™å…¥stderr*/
     fprintf(stderr,"%s: Error: no database filename specified\n", Argv0);
     return 1;
   }
 #endif
 
   /* 
-**Èç¹ûÊı¾İ¿âÎÄ¼şÒÑ¾­´æÔÚÔò´ò¿ªËü¡£
-**Èç¹û¸ÃÎÄ¼ş²»´æÔÚ£¬ÑÓ³Ù´ò¿ªËü¡£
-**·ÀÖ¹¿ÕÊı¾İ¿âÎÄ¼şÔÚÓÃ»§´íÎóÊäÈëÊı¾İ¿âÃû³Æ²ÎÊıµÄÊ±ºò±»´´½¨¡£
+**å¦‚æœæ•°æ®åº“æ–‡ä»¶å·²ç»å­˜åœ¨åˆ™æ‰“å¼€å®ƒã€‚
+**å¦‚æœè¯¥æ–‡ä»¶ä¸å­˜åœ¨ï¼Œå»¶è¿Ÿæ‰“å¼€å®ƒã€‚
+**é˜²æ­¢ç©ºæ•°æ®åº“æ–‡ä»¶åœ¨ç”¨æˆ·é”™è¯¯è¾“å…¥æ•°æ®åº“åç§°å‚æ•°çš„æ—¶å€™è¢«åˆ›å»ºã€‚
   */
-  if( access(data.zDbFilename, 0)==0 ){//accessº¯ÊıÈ·¶¨ÎÄ¼ş»òÎÄ¼ş¼ĞµÄ·ÃÎÊÈ¨ÏŞ¡£¼´£¬¼ì²éÄ³¸öÎÄ¼şµÄ´æÈ¡·½Ê½£¬±ÈÈçËµÊÇÖ»¶Á·½Ê½¡¢Ö»Ğ´·½Ê½µÈ¡£
-			                           //Èç¹ûÖ¸¶¨µÄ´æÈ¡·½Ê½ÓĞĞ§£¬Ôòº¯Êı·µ»Ø0£¬·ñÔòº¯Êı·µ»Ø-1¡£
-    open_db(&data);//´ò¿ªÊı¾İ¿â
+  if( access(data.zDbFilename, 0)==0 ){//accesså‡½æ•°ç¡®å®šæ–‡ä»¶æˆ–æ–‡ä»¶å¤¹çš„è®¿é—®æƒé™ã€‚å³ï¼Œæ£€æŸ¥æŸä¸ªæ–‡ä»¶çš„å­˜å–æ–¹å¼ï¼Œæ¯”å¦‚è¯´æ˜¯åªè¯»æ–¹å¼ã€åªå†™æ–¹å¼ç­‰ã€‚
+			                           //å¦‚æœæŒ‡å®šçš„å­˜å–æ–¹å¼æœ‰æ•ˆï¼Œåˆ™å‡½æ•°è¿”å›0ï¼Œå¦åˆ™å‡½æ•°è¿”å›-1ã€‚
+    open_db(&data);//æ‰“å¼€æ•°æ®åº“
   }
 
   /*
-**´¦Àí¸Ã³õÊ¼»¯ÎÄ¼ş£¬Èç¹ûËü´æÔÚ¡£
-**Èç¹ûÃüÁîĞĞÉÏÃ»ÓĞ¸ø³ö-init Ñ¡Ïî£¬
-**ÔòÑ°ÕÒÒ»¸öÃûÎª~/.sqliterc µÄÎÄ¼ş£¬²¢³¢ÊÔ½øĞĞ´¦Àí¡£
+**å¤„ç†è¯¥åˆå§‹åŒ–æ–‡ä»¶ï¼Œå¦‚æœå®ƒå­˜åœ¨ã€‚
+**å¦‚æœå‘½ä»¤è¡Œä¸Šæ²¡æœ‰ç»™å‡º-init é€‰é¡¹ï¼Œ
+**åˆ™å¯»æ‰¾ä¸€ä¸ªåä¸º~/.sqliterc çš„æ–‡ä»¶ï¼Œå¹¶å°è¯•è¿›è¡Œå¤„ç†ã€‚
   */
   rc = process_sqliterc(&data,zInitFile);
   if( rc>0 ){
@@ -3231,9 +3231,9 @@ int main(int argc, char **argv){
   }
 
   /* 
-**Í¨¹ıÃüÁîĞĞ²ÎÊıºÍÉèÖÃÑ¡Ïî½øĞĞµÚ¶ş´Î²Ù×÷¡£
-**µÚ¶ş ´ÎÑÓ³ÙÖ±µ½³õÊ¼»¯ÎÄ¼ş±»´¦ÀíÖ®ºó£¬
-**ÒÔ±ãÃüÁîĞĞ²ÎÊı¸²¸Ç³õÊ¼»¯ÎÄ¼şÉèÖÃ¡£
+**é€šè¿‡å‘½ä»¤è¡Œå‚æ•°å’Œè®¾ç½®é€‰é¡¹è¿›è¡Œç¬¬äºŒæ¬¡æ“ä½œã€‚
+**ç¬¬äºŒ æ¬¡å»¶è¿Ÿç›´åˆ°åˆå§‹åŒ–æ–‡ä»¶è¢«å¤„ç†ä¹‹åï¼Œ
+**ä»¥ä¾¿å‘½ä»¤è¡Œå‚æ•°è¦†ç›–åˆå§‹åŒ–æ–‡ä»¶è®¾ç½®ã€‚
   */
   for(i=1; i<argc && argv[i][0]=='-'; i++){
     char *z = argv[i];
@@ -3280,7 +3280,7 @@ int main(int argc, char **argv){
     }else if( strcmp(z,"-stats")==0 ){
       data.statsOn = 1;
     }else if( strcmp(z,"-bail")==0 ){
-      bail_on_error = 1;//Èç¹ûÃ»ÓĞ½»»¥£¬ÃüÁîµÄÖ´ĞĞ½«Í£ÔÚÒ»¸ö´íÎó×´Ì¬£¬
+      bail_on_error = 1;//å¦‚æœæ²¡æœ‰äº¤äº’ï¼Œå‘½ä»¤çš„æ‰§è¡Œå°†åœåœ¨ä¸€ä¸ªé”™è¯¯çŠ¶æ€ï¼Œ
     }else if( strcmp(z,"-version")==0 ){
       printf("%s %s\n", sqlite3_libversion(), sqlite3_sourceid());
       return 0;
@@ -3307,7 +3307,7 @@ int main(int argc, char **argv){
       i++;
       z = argv[i];
       if( z[0]=='.' ){
-        rc = do_meta_command(z, &data);//µ÷ÓÃÕâ¸ö³ÌĞòÀ´´¦Àíz Ö¸¶¨µÄÃüÁî¡£
+        rc = do_meta_command(z, &data);//è°ƒç”¨è¿™ä¸ªç¨‹åºæ¥å¤„ç†z æŒ‡å®šçš„å‘½ä»¤ã€‚
         if( rc && bail_on_error ) return rc;
       }else{
         open_db(&data);
@@ -3328,13 +3328,13 @@ int main(int argc, char **argv){
   }
 
   if( zFirstCmd ){
-    /* Ö»ÔËĞĞºÍÊı¾İ¿âÃû³ÆÆ¥ÅäµÄÃüÁî
+    /* åªè¿è¡Œå’Œæ•°æ®åº“åç§°åŒ¹é…çš„å‘½ä»¤
     */
     if( zFirstCmd[0]=='.' ){
-      rc = do_meta_command(zFirstCmd, &data);//µ÷ÓÃÕâ¸ö³ÌĞòÀ´´¦ÀízFirstCmdÖ¸¶¨µÄÃüÁî¡£
+      rc = do_meta_command(zFirstCmd, &data);//è°ƒç”¨è¿™ä¸ªç¨‹åºæ¥å¤„ç†zFirstCmdæŒ‡å®šçš„å‘½ä»¤ã€‚
     }else{
       open_db(&data);
-    /*Í¨¹ıÌá¹©µÄ»Øµ÷º¯Êı£¬¸ù¾İµ±Ç°µÄÄ£Ê½´òÓ¡³öÏàÓ¦½á¹û*/
+    /*é€šè¿‡æä¾›çš„å›è°ƒå‡½æ•°ï¼Œæ ¹æ®å½“å‰çš„æ¨¡å¼æ‰“å°å‡ºç›¸åº”ç»“æœ*/
       rc = shell_exec(data.db, zFirstCmd, shell_callback, &data, &zErrMsg);
 
       if( zErrMsg!=0 ){
@@ -3346,8 +3346,8 @@ int main(int argc, char **argv){
       }
     }
   }else{
-    /*ÔËĞĞ´Ó±ê×¼ÊäÈë½ÓÊÕµ½µÄÃüÁî*/
-    if( stdin_is_interactive ){//½»»¥Ê½ÊäÈë
+    /*è¿è¡Œä»æ ‡å‡†è¾“å…¥æ¥æ”¶åˆ°çš„å‘½ä»¤*/
+    if( stdin_is_interactive ){//äº¤äº’å¼è¾“å…¥
       char *zHome;
       char *zHistory = 0;
       int nHistory;
@@ -3357,30 +3357,30 @@ int main(int argc, char **argv){
         "Enter SQL statements terminated with a \";\"\n",
         sqlite3_libversion(), sqlite3_sourceid()
       );
-      zHome = find_home_dir();//·µ»ØÓÃ»§Ö÷Ä¿Â¼
+      zHome = find_home_dir();//è¿”å›ç”¨æˆ·ä¸»ç›®å½•
       if( zHome ){
         nHistory = strlen30(zHome) + 20;
         if( (zHistory = malloc(nHistory))!=0 ){
-       /*Óësnprintfº¯ÊıÀàËÆ£¬Æä½á¹û±»Ğ´Èë»º³åÇø×÷ÎªµÚ¶ş¸ö²ÎÊı£¬
-      **»º³åÇø´óĞ¡ÔòÓÉµÚÒ»¸ö²ÎÊı¸ø³ö ¡£*/
+       /*ä¸snprintfå‡½æ•°ç±»ä¼¼ï¼Œå…¶ç»“æœè¢«å†™å…¥ç¼“å†²åŒºä½œä¸ºç¬¬äºŒä¸ªå‚æ•°ï¼Œ
+      **ç¼“å†²åŒºå¤§å°åˆ™ç”±ç¬¬ä¸€ä¸ªå‚æ•°ç»™å‡º ã€‚*/
           sqlite3_snprintf(nHistory, zHistory,"%s/.sqlite_history", zHome);
         }
       }
-#if defined(HAVE_READLINE) && HAVE_READLINE==1//ÅĞ¶ÏÁ½¸öºêÊÇ·ñÒÑ¾­¶¨Òå
-      if( zHistory ) read_history(zHistory);//µÃµ½zHistory ²ÎÊıÖµ
+#if defined(HAVE_READLINE) && HAVE_READLINE==1//åˆ¤æ–­ä¸¤ä¸ªå®æ˜¯å¦å·²ç»å®šä¹‰
+      if( zHistory ) read_history(zHistory);//å¾—åˆ°zHistory å‚æ•°å€¼
 #endif
       rc = process_input(&data, 0);
       if( zHistory ){
         stifle_history(100);
         write_history(zHistory);
-        free(zHistory);//ÊÍ·ÅzHistory¿Õ¼ä
+        free(zHistory);//é‡Šæ”¾zHistoryç©ºé—´
       }
     }else{
-      rc = process_input(&data, stdin);//°Ñ±ê×¼ÊäÈëµÄ´íÎóÊıÁ¿·µ»Ø¸ørc
+      rc = process_input(&data, stdin);//æŠŠæ ‡å‡†è¾“å…¥çš„é”™è¯¯æ•°é‡è¿”å›ç»™rc
     }
   }
-  set_table_name(&data, 0);//ÉèÖÃ±íÃû
+  set_table_name(&data, 0);//è®¾ç½®è¡¨å
   if( data.db ){
-    sqlite3_close(data.db);//¹Ø±ÕÊı¾İ¿â
+    sqlite3_close(data.db);//å…³é—­æ•°æ®åº“
   }
   return rc;
