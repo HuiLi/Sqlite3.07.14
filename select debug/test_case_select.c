@@ -27,6 +27,9 @@ int main()
     else if(Rtest_API_sqlite3_exec){
         test_API_sqlite3_exec();
     }
+    else if(Rtest_API_Select_Callback){
+        test_API_Select_Callback();
+    }
     return 0;
 }
 
@@ -134,7 +137,6 @@ void test_API_sqlite3_exec()
     sqlite3_close(db);
 }
 
-
 char *join(char *a, char *b) {  
     char *c = (char *) malloc(strlen(a) + strlen(b) + 1); //局部变量，用malloc申请内存  
     if (c == NULL) exit (1);  
@@ -148,3 +150,68 @@ char *join(char *a, char *b) {
     //注意，此时指针c已经指向拼接之后的字符串的结尾'\0' !  
     return tempc;//返回值是局部malloc申请的指针变量，需在函数调用结束后free之
 } 
+
+/*****************************************************************************
+ *功 能 描 述：使用回调查询数据库
+ *函 数 原 型: typedef int (*sqlite3_callback)(void*,int,char**, char**);
+ * 创建日期  : 2016年01月12日
+ * 执行结果  :  yankai@ubuntu$ ./main
+                    记录包含 2 个字段
+                    字段名:ID -> 字段值:1
+                    字段名:name -> 字段值:走路
+                    ------------------
+                    记录包含 2 个字段
+                    字段名:ID -> 字段值:2
+                    字段名:name -> 字段值:骑单车
+                    ------------------
+                    记录包含 2 个字段
+                    字段名:ID -> 字段值:3
+                    字段名:name -> 字段值:坐校车
+                    ------------------
+*****************************************************************************/
+int loadMyInfo(void *para,int n_column,char **column_value,char ** column_name)
+{
+    int i;
+    printf("记录包含 %d 个字段\n", n_column );
+    for( i = 0 ; i < n_column; i ++ )
+    {
+        printf("字段名:%s -> 字段值:%s\n", column_name[i], column_value[i] );
+    }
+    printf("------------------\n");
+    return 0;
+}
+int test_API_Select_Callback()
+{
+    sqlite3 * db;
+    int result;
+    char * errmsg = NULL;
+    result = sqlite3_open("stu2.db", &db );
+    if( result != SQLITE_OK )
+    {
+        printf("数据库打开失败！\n");
+        return -1;
+    }
+    result = sqlite3_exec( db,"create table tWay( ID integer primary key autoincrement, name nvarchar(32) )", NULL, NULL, errmsg );
+    if(result != SQLITE_OK )
+    {
+        printf("创建表失败，错误码:%d，错误原因:%s\n", result, errmsg );
+    }
+    result = sqlite3_exec( db, "insert into tWay( name ) values ( '走路' )", 0, 0, errmsg );
+    if(result != SQLITE_OK )
+    {
+        printf("插入记录失败，错误码:%d，错误原因:%s\n", result, errmsg );
+    }
+    result = sqlite3_exec( db,"insert into tWay( name ) values ( '骑单车')", 0, 0, errmsg );
+    if(result != SQLITE_OK )
+    {
+        printf("插入记录失败，错误码:%d，错误原因:%s\n", result, errmsg );
+    }
+    result = sqlite3_exec( db,"insert into tWay( name ) values ('坐校车')", 0, 0, errmsg );
+    if(result != SQLITE_OK )
+    {
+        printf("插入记录失败，错误码:%d，错误原因:%s\n", result, errmsg );
+    }
+    result = sqlite3_exec( db,"select * from tWay", loadMyInfo, NULL, errmsg );
+    sqlite3_close( db );
+    return 0;
+}
