@@ -8,5 +8,6 @@
 
 #define RkHelloSQLite                       0
 #define Rtest_minMaxQuery                   0
-#define Rtest_API_sqlite3_exec              1
+#define Rtest_API_sqlite3_exec              0
+#define Rtest_API_Select_Callback           1
 
