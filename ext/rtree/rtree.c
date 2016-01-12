@@ -2027,7 +2027,8 @@ static void LinearPickSeeds(   //选择第一个元素算法
 }
 #endif /* VARIANT_GUTTMAN_LINEAR_SPLIT 变形guttman线性分裂方法*/
 
-#if VARIANT_GUTTMAN_QUADRATIC_SPLIT
+//变形guttman平方分裂方法
+#if VARIANT_GUTTMAN_QUADRATIC_SPLIT 
 /*
 时间复杂度为平方的近似算法。
 这个算法试图找到一个面积和最小的 split ，但不保证会找的到。
@@ -2048,7 +2049,7 @@ static void LinearPickSeeds(   //选择第一个元素算法
  QS3. 调用算法 PickNext 来将下一个 entry 进行分配。将该 entry 分配到面积增加最小的组中。重复 QS2.
 
 */
-static RtreeCell *QuadraticPickNext(
+static RtreeCell *QuadraticPickNext(//选择下一个元素算法
   Rtree *pRtree,
   RtreeCell *aCell, 
   int nCell, 
@@ -2056,15 +2057,15 @@ static RtreeCell *QuadraticPickNext(
   RtreeCell *pRightBox,
   int *aiUsed
 ){
-  #define FABS(a) ((a)<0.0?-1.0*(a):(a))
+  #define FABS(a) ((a)<0.0?-1.0*(a):(a)) //返回绝对值
 
   int iSelect = -1;
   RtreeDValue fDiff;
   int ii;
   for(ii=0; ii<nCell; ii++){
     if( aiUsed[ii]==0 ){
-      RtreeDValue left = cellGrowth(pRtree, pLeftBox, &aCell[ii]);
-      RtreeDValue right = cellGrowth(pRtree, pLeftBox, &aCell[ii]);
+      RtreeDValue left = cellGrowth(pRtree, pLeftBox, &aCell[ii]); //计算增长值
+      RtreeDValue right = cellGrowth(pRtree, pLeftBox, &aCell[ii]);//计算增长值
       RtreeDValue diff = FABS(right-left);
       if( iSelect<0 || diff>fDiff ){
         fDiff = diff;
@@ -2081,7 +2082,7 @@ static RtreeCell *QuadraticPickNext(
 ** Guttman[84].
 ** 实现Guttman[84]PickSeeds（）方法的变形方法-----平方算法  QuadraticPickSeeds（）
 */
-static void QuadraticPickSeeds(
+static void QuadraticPickSeeds(  //选择第一个元素算法
   Rtree *pRtree,
   RtreeCell *aCell, 
   int nCell, 
@@ -2123,7 +2124,7 @@ static void QuadraticPickSeeds(
 ** 参数 aIdx、aDistace 和aSpare 都指向长度为nIdx的数组
 ** 这个aIdx数组包含没有特定顺序的从0到nIdx-1整数的集合
 ** 该方法根据在aDistance中的索引值排序在aIdx中的值
-** 例如：假设输入是这些:
+** 例如：假设输入是这些:  
 **
 **   aIdx      = { 0,   1,   2,   3 }
 **   aDistance = { 5.0, 2.0, 7.0, 6.0 }
@@ -2424,7 +2425,8 @@ static int splitNodeGuttman(
 }
 #endif
 
-static int updateMapping(  //更新pNode结点与iRowid映射关系
+//更新pNode结点与iRowid映射关系
+static int updateMapping(  
   Rtree *pRtree, 
   i64 iRowid, 
   RtreeNode *pNode, 
@@ -2599,7 +2601,7 @@ splitnode_out:
 ** SQLite提供行的行id来删除，通过行id能找到叶子节点在哪个存储的记录中（参数为pLeaf）。
 ** 当一个叶结点被找到时，这个函数将被调用来确定其父结点。
 */
-static int fixLeafParent(Rtree *pRtree, RtreeNode *pLeaf){
+{
   int rc = SQLITE_OK;
   RtreeNode *pChild = pLeaf;
   while( rc==SQLITE_OK && pChild->iNode!=1 && pChild->pParent==0 ){
@@ -2708,6 +2710,7 @@ static int fixBoundingBox(Rtree *pRtree, RtreeNode *pNode){
 
 /*
 ** Delete the cell at index iCell of node pNode. After removing the
+
 ** cell, adjust the r-tree data structure if required.
 ** 删除结点pNode的索引为iCell的单元，删除后如果有需要重新调整R树结构
 */
@@ -2744,8 +2747,8 @@ static int deleteCell(Rtree *pRtree, RtreeNode *pNode, int iCell, int iHeight){
 
   return rc;
 }
-
-static int Reinsert(  // 进行重插入操作
+// 进行重插入操作
+static int Reinsert(  
   Rtree *pRtree,
   RtreeNode *pNode, 
   RtreeCell *pCell, 
@@ -3243,7 +3246,9 @@ static sqlite3_module rtreeModule = {
   0                           /* xRollbackTo 回滚到*/
 };
 
-static int rtreeSqlInit(   //RtreeSQL语句初始化
+
+//RtreeSQL语句初始化
+static int rtreeSqlInit(   
   Rtree *pRtree,
   sqlite3 *db, 
   const char *zDb, 
@@ -3364,9 +3369,9 @@ static int getIntFromStmt(sqlite3 *db, const char *zSql, int *piVal){
 ** 如果数据库页远大于单个结点的最大R树最大单元数记录为了适应一个单独节点，则使用较小的结点大小
 */
 static int getNodeSize(
-  sqlite3 *db,                    /* Database handle */
-  Rtree *pRtree,                  /* Rtree handle */
-  int isCreate                    /* True for xCreate, false for xConnect */
+  sqlite3 *db,                    /* Database handle 数据库手柄*/
+  Rtree *pRtree,                  /* Rtree handle R树手柄*/
+  int isCreate                    /* True for xCreate, false for xConnect 是否链接 */
 ){
   int rc;
   char *zSql;
