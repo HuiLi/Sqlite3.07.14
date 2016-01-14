@@ -319,19 +319,19 @@ sqlite3_int64 sqlite3_memory_highwater(int resetFlag){
 /*
 ** Trigger the alarm 
 **
-** 触发警告
+** 触发警告，条用回调函数
 */
 static void sqlite3MallocAlarm(int nByte){
   void (*xCallback)(void*,sqlite3_int64,int);
   sqlite3_int64 nowUsed;
   void *pArg;
-  if( mem0.alarmCallback==0 ) return;/*没有回调 直接返回*/
+  if( mem0.alarmCallback==0 ) return;/*没有回调函数，直接返回*/
   xCallback = mem0.alarmCallback;
   nowUsed = sqlite3StatusValue(SQLITE_STATUS_MEMORY_USED);/*现在是否被占用*/
   pArg = mem0.alarmArg;/*备份警告参数*/
   mem0.alarmCallback = 0;/*回调为0*/
   sqlite3_mutex_leave(mem0.mutex);/*解除锁定*/
-  xCallback(pArg, nowUsed, nByte);/*调用回调*/
+  xCallback(pArg, nowUsed, nByte);/*调用回调函数*/
   sqlite3_mutex_enter(mem0.mutex);/*进入锁定状态*/
   mem0.alarmCallback = xCallback;/*还原结构体参数*/
   mem0.alarmArg = pArg;
@@ -620,7 +620,7 @@ void sqlite3DbFree(sqlite3 *db, void *p){
 /*
 ** Change the size of an existing memory allocation
 ** 
-** 改变存在内存分配的大小
+** 改变现有内存分配的大小
 */
 void *sqlite3Realloc(void *pOld, int nBytes){
   int nOld, nNew, nDiff;

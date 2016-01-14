@@ -1203,7 +1203,7 @@ bReset);//sqlite3_db_status()多一个数据库连接参数，并且返回的是
 ** and callback data argument.
 */
 
-/*执行一个或一组语句，根据当前模式输出结果，和sqlite3_exec()函数相似/*
+/*执行一个或一组语句，根据当前模式输出结果，和sqlite3_exec()函数相似*/
 
 static int shell_exec(
   sqlite3 *db,                                /* An open database */ /*一个打开的数据库*/
