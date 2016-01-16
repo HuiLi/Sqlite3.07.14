@@ -70,15 +70,12 @@
 ** 应用程序代码只看到一个指向分配。我们必须再从分配指针
 ** 找到内存块内HDR。该HDR告诉我们分配的大小和回溯的指针数。
 ** 这也有保护语句在内存块内HDR的尾端。
-
+**
 ** Title：用于描述这段内存，在出错时可以打印出来
 ** backtrace pointer：用于保留调用堆栈
 ** MemBlockHdr：负责这片内存的管理，以及串联未释放的MemBlock
 ** allocation：分配给上层的空间
 ** EndGuard：尾部的哨兵，用于检查内存被踩。还有个“HeadGaurd ”在MemBlockHdr中。
-** 应用程序代码将只有一个指针分配。
-** 我们必须从分配指针备份找到MemBlockHdr。
-** 所述MemBlockHdr告诉我们的分配的大小和回溯指针的数目。还有在MemBlockHdr结束保护字。
 */
 //内存分配结构
 struct MemBlockHdr {
@@ -168,7 +165,7 @@ static struct {
   */
   int nAlloc[NCSIZE];      /* Total number of allocations 分配总数*/
   int nCurrent[NCSIZE];    /* Current number of allocations 当前分配数量*/
-  int mxCurrent[NCSIZE];   /* Highwater mark for nCurrent 分配数量的高水平线*/
+  int mxCurrent[NCSIZE];   /* Highwater mark for nCurrent 分配数量的最大值*/
 
 } mem;
 
@@ -205,7 +202,7 @@ static void adjustStats(int iSize, int increment){
 ** 给定一个分配器，寻找该分配器的MemBlockHdr
 ** 如果不是正确的声明，这个例程将检查配置的任意一段保护。
 */
-//函数设置哨兵对内存破坏进行检查
+//得到锁分配内存的MemBlockHdr
 static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
   struct MemBlockHdr *p;
   int *pInt;
@@ -419,7 +416,7 @@ static void sqlite3MemFree(void *pPrior){
 **
 ** 更改现有的内存分配的大小。
 ** 对于这种调试的实现，我们总是做一分配副本储存在内存的新位置。
-** 用这种方法，如果更高级别的代码将用指针回到旧配置上， 
+** 用这种方法，如果更上层的代码将用指针回到旧分配上， 
 ** 这样更易中断并且我们更容易找出错误
 */
 static void *sqlite3MemRealloc(void *pPrior, int nByte){

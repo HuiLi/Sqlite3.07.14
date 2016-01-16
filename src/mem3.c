@@ -94,10 +94,10 @@
 ** 一个内存分配（也被称为“块“）由两个或多个8字节的块组成。
 ** 第一个8字节头块不返回给用户。一块是由两个或两个以上，自由出入的块组成。
 ** 第一块格式为u.hdr。  如果分配自由则u.hdr.size4x 将分配4倍块大小
-** 如果块在自由列表上则u.hdr.size4x&1字节错误，若块被检查那么u.hdr.size4x&1字节是真。
-** 如果前一块被检查则u.hdr.size4x&2 字节为真，若前一块为自由则u.hdr.size4x&2字节为假。
+** 如果块在自由列表上则u.hdr.size4x&1字节错误，若块被检出那么u.hdr.size4x&1字节是真。
+** 如果前一块被检出则u.hdr.size4x&2 字节为真，若前一块为自由则u.hdr.size4x&2字节为假。
 ** 若前一块在自由列表上，则u.hdr.prevSize空间大小是前一块块上大小。
-** 如果前一个块被检查，那u.hdr.prevSize作为数据块的一部分，不能被读与写。
+** 如果前一个块被检出，那u.hdr.prevSize作为数据块的一部分，不能被读与写。
 **
 ** 我们经常定义一个块的索引在 mem3.aPool[]中。这样做时，这块的索引与第二块相关。
 ** 用这种方法，第一个块有了1索引。一个块索引为0意味着“无这样的块”和等效为一个空指针u.list由第二块为自由块组成。
@@ -180,8 +180,8 @@ static SQLITE_WSD struct Mem3Global {
   ** 根据块的大小为更小的块排列空闲块列表数组，或是为更大块建哈希表。
   */
   
-  u32 aiSmall[MX_SMALL-1]; /* For sizes 2 through MX_SMALL, inclusive  双链表中较小的chunk数组 */
-  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1 and larger  较大chunk */
+  u32 aiSmall[MX_SMALL-1]; /* For sizes 2 through MX_SMALL(10), inclusive  双链表中较小的chunk数组 */
+  u32 aiHash[N_HASH];        /* For sizes MX_SMALL+1(62) and larger  较大chunk */
 } mem3 = { 97535575 };//定义一个名为mem3的全局变量并赋值
 
 #define mem3 GLOBAL(struct Mem3Global, mem3)
@@ -197,7 +197,7 @@ static void memsys3UnlinkFromList(u32 i, u32 *pRoot){
   u32 next = mem3.aPool[i].u.list.next;  //将索引号为aPool[i]的块的下一个块索引号赋值给next
   u32 prev = mem3.aPool[i].u.list.prev;  //将索引号为aPool[i]的块的前一个块索引号赋给prev
   assert( sqlite3_mutex_held(mem3.mutex) );//若当前有互斥锁，则终止程序
-  if( prev==0 ){    //若当前chunk的前一个chunk不存在
+  if( prev==0 ){    //当前chunk为第一个chunk
     *pRoot = next;     //将指针pRoot指向下一个chunk的 索引号
   }else{ 
     mem3.aPool[prev].u.list.next = next;//否则将当前chunk的next赋给前一个chunk的下一个chunk
@@ -461,7 +461,7 @@ static void *memsys3MallocUnsafe(int nByte){
   */   
   //首先在小chunk或者大chunk中寻找正确大小块的入口，一般都会成功
   if( nBlock <= MX_SMALL ){        //nBlock小于MX_SMALL，则在小chunk中找
-    i = mem3.aiSmall[nBlock-2];
+    i = mem3.aiSmall[nBlock-2];  //找到在aPool[]中的索引
     if( i>0 ){
       memsys3UnlinkFromList(i, &mem3.aiSmall[nBlock-2]);
       return memsys3Checkout(i, nBlock);  //返回找到的满足的chunk
@@ -503,13 +503,13 @@ static void *memsys3MallocUnsafe(int nByte){
       mem3.szMaster = 0;
     }
     for(i=0; i<N_HASH; i++){
-      memsys3Merge(&mem3.aiHash[i]);  //链接相邻空chunk到aiHash中
+      memsys3Merge(&mem3.aiHash[i]);  //  合并相邻空chunk到aiHash中
     }
     for(i=0; i<MX_SMALL-1; i++){
-      memsys3Merge(&mem3.aiSmall[i]); //链接相邻空chunk到aiSmall中
+      memsys3Merge(&mem3.aiSmall[i]); //合并相邻空chunk到aiSmall中
     }
     if( mem3.szMaster ){             //当前master chunk不为0，则从索引表中断开
-      memsys3Unlink(mem3.iMaster);
+      memsys3Unlink(mem3.iMaster);  //从aiSmall或aiHash中删除空闲chunk，加入到master chunk中
       if( mem3.szMaster>=nBlock ){
         return memsys3FromMaster(nBlock); //返回得到的内存空间
       }
@@ -542,7 +542,7 @@ static void memsys3FreeUnsafe(void *pOld){//*pOld指向为完成分配的内存�
   mem3.aPool[i-1].u.hdr.size4x &= ~1;
   mem3.aPool[i+size-1].u.hdr.prevSize = size;
   mem3.aPool[i+size-1].u.hdr.size4x &= ~2;
-  memsys3Link(i);  //将索引号为i的chunk链接到合适的chunk数组中
+  memsys3Link(i);     //将索引号为i的chunk链接到合适的chunk数组中
 
   /* Try to expand the master using the newly freed chunk */
   //尝试使用释放了的chunk扩大主要的chunk大小
