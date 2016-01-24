@@ -103,7 +103,7 @@ prev = -1 表示该chunk在双向链表的表头位置，没有prev；*/
 ** it is not actually possible to reach this limit.
 **
 ** 任何分配的最大尺寸为（（1<< LOGMAX）* mem5.azAtom）。
-** 因为mem5.Atom总是至少8位和32位的整数时，它实际上不可能达到这个限度。
+** 因为mem5.szAtom总是至少8位和32位的整数时，它实际上不可能达到这个限度。
 */
 #define LOGMAX 30             /*宏定义LOGMAX为30*/
 
@@ -146,7 +146,7 @@ static SQLITE_WSD struct Mem5Global {
   ** 性能统计信息 u32:无符号整型
   */
   u64 nAlloc;         /* Total number of calls to malloc  调用malloc总数*/
-  u64 totalAlloc;     /* Total of all malloc calls - includes internal frag  所有Mallocde调用总合— 包括内部碎片*/
+  u64 totalAlloc;     /* Total of all malloc calls - includes internal frag  所有Mallocde调用总和—包括内部碎片*/
   u64 totalExcess;    /* Total internal fragmentation 总内部碎片*/
   u32 currentOut;     /* Current checkout, including internal fragmentation  当前检出，包括内部碎片*/
   u32 currentCount;   /* Current number of distinct checkouts  当前不同的检出数*/
@@ -271,7 +271,7 @@ static void memsys5Leave(void){
 ** 返回一个以字节为单位的未分配的内存大小,该返回值省略了8字节大小的头开销。
 ** 该函数只适用于当前划分出的内存块。
 */
-//返回一个以字节为单位的未分配的内存大小
+//返回一个以字节为单位的分配了的内存大小
 static int memsys5Size(void *p){
   int iSize = 0;
   if( p ){
@@ -288,7 +288,7 @@ static int memsys5Size(void *p){
 ** 
 ** 查找空闲链表中的第一项条目，并返回其索引。
 ** 找到freelist链表中的第iLogSize项指向的链表中的，
-** 下标最小的那一项的下标，返回这个下标
+** 下标最小的那一项，返回这个下标
 ** 
 ** 将 iLogSize链表中的下标最小的那一项，也就是第iFirst个从链表中删除
 */

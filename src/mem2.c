@@ -63,15 +63,17 @@
 **  | 标题 |  返回路径指针 | 内存块HDR |  内存分配|  结束标志
 **  ------------------------------------------------------------------------
 **
-** 这个应用编码看上去仅是指向内存分配的一个指针。所以，必须要从内存指针返回找到MemBlockHdr。
-而MemBlockHdr指示分配的内存的大小和回溯指针的编号数目。同时，这个结构中有一个MemBlockHdr结束关键字。
-
-Title用于描述这段内存，在出错时可以打印出来
-backtrace pointer用于保留调用堆栈
-MemBlockHdr负责这片内存的管理，以及串联未释放的内存块
-allocation分配给上层的空间
-EndGuard尾部的哨兵，用于检查内存被踩。还有个“HeadGaurd ”在MemBlockHdr中。  
-  */
+** 应用程序代码只看到一个指向分配。我们必须再从分配指针
+** 找到内存块内HDR。该HDR告诉我们分配的大小和回溯的指针数。
+** 这也有保护语句在内存块内HDR的尾端。
+**
+** Title：用于描述这段内存，在出错时可以打印出来
+** backtrace pointer：用于保留调用堆栈
+** MemBlockHdr：负责这片内存的管理，以及串联未释放的MemBlock
+** allocation：分配给上层的空间
+** EndGuard：尾部的哨兵，用于检查内存被踩。还有个“HeadGaurd ”在MemBlockHdr中。
+*/
+//内存分配结构
 struct MemBlockHdr {
   i64 iSize;                          /* Size of this allocation     内存分配的大小*/
   struct MemBlockHdr *pNext, *pPrev;  /* Linked list of all unfreed memory    指的是没有被释放的内存的链接表结构〃*/
@@ -145,14 +147,13 @@ static struct {
   ** nAlloc[i] is the number of allocation attempts of i*8
   ** bytes.  i==NCSIZE is the number of allocation attempts for
   ** sizes more than NCSIZE*8 bytes.
+  **
+  ** 收集有关内存分配大小的统计数据。nAlloc[i]是分配尝试的次数为i*8个字节。
+  ** i==NCSIZE是参数ncsize分配尝试的大小超过参数ncsize*8个字节。
   */
-  /*
-  收集内存分配的统计数据。Alloc[i]是企图以i*8字节的形式的获得内存分配的编号。
-  i==NCSIZE是企图内存的大小超过NCSIZE*8 bytes的情况下的内存分配的编号。
-  */
-  int nAlloc[NCSIZE];      /* Total number of allocations 所有的内存分配的数量*/
-  int nCurrent[NCSIZE];    /* Current number of allocations目前分配的内存的数量*/
-  int mxCurrent[NCSIZE];   /* Highwater mark for nCurrent 目前分配内存变量nCurrent的最大值的标志*/
+  int nAlloc[NCSIZE];      /* Total number of allocations 分配总数*/
+  int nCurrent[NCSIZE];    /* Current number of allocations 当前分配数量*/
+  int mxCurrent[NCSIZE];   /* Highwater mark for nCurrent 分配数量的最大值*/
 
 } mem;
 
@@ -184,8 +185,7 @@ static void adjustStats(int iSize, int increment){
 ** This routine checks the guards at either end of the allocation and
 ** if they are incorrect it asserts.
 */
-/*
-给出一个内存，要为这个内存分配找到MemBlockHdr。这个程序检查看是否是这个内存的结束，并判断它们是否有错*/
+//得到锁分配内存的MemBlockHdr
 static struct MemBlockHdr *sqlite3MemsysGetHeader(void *pAllocation){
   struct MemBlockHdr *p;
   int *pInt;
@@ -392,12 +392,11 @@ static void sqlite3MemFree(void *pPrior){
 ** higher level code is using pointer to the old allocation, it is 
 ** much more likely to break and we are much more liking to find
 ** the error.
-*/
-/*改变现有的分配的内存的大小。
-
-为了能够调试错误，总是在内存中，复制某个内存分配到一个新的地方。
-用这种方式，如果高层的编码正在运用指针指向旧的内存分配，这会更有可能去中断以及更能够找到错误。
-
+**
+** 更改现有的内存分配的大小。
+** 对于这种调试的实现，我们总是做一分配副本储存在内存的新位置。
+** 用这种方法，如果更上层的代码将用指针回到旧分配上， 
+** 这样更易中断并且我们更容易找出错误
 */
 static void *sqlite3MemRealloc(void *pPrior, int nByte){
   struct MemBlockHdr *pOldHdr;
