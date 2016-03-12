@@ -572,7 +572,7 @@ static void memsys3FreeUnsafe(void *pOld){//*pOld指向为完成分配的内存�
 ** works for chunks that are currently checked out.
 **
 ** 以字节的方式返回未完成分配的内存大小，不返回头8byte，节约开销，此函数仅针对刚刚被check out的内存
-** 返回一个未分配的大小，以字节为单位。 返回8字节的包头开销大小 仅当前被检查时，该块工作。
+** 返回一个未分配的大小，以字节为单位。 返回8字节的包头开销大小 仅当前被检出时，该块工作。
 */
 //以字节返回未分配内存大小（头8字节除外）。
 static int memsys3Size(void *p){
