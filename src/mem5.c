@@ -394,10 +394,10 @@ static void *memsys5MallocUnsafe(int nByte){
   /* Update allocator performance statistics. */
   /*更新内存分配器性能统计数据。*/
   mem5.nAlloc++;
-  mem5.totalAlloc += iFullSz;
-  mem5.totalExcess += iFullSz - nByte;
+  mem5.totalAlloc += iFullSz;  //分配的总大小，包括内部碎片
+  mem5.totalExcess += iFullSz - nByte;  //总共内部碎片
   mem5.currentCount++;
-  mem5.currentOut += iFullSz;
+  mem5.currentOut += iFullSz;  //当前检出量，包括内部碎片
   if( mem5.maxCount<mem5.currentCount ) mem5.maxCount = mem5.currentCount;
   if( mem5.maxOut<mem5.currentOut ) mem5.maxOut = mem5.currentOut;
 
@@ -443,7 +443,7 @@ static void memsys5FreeUnsafe(void *pOld){
 
   mem5.aCtrl[iBlock] = CTRL_FREE | iLogsize;
   /*
-  ** 由于分配都是按照 iLogsize的整数倍来分配的，所以iBlock有可能落在
+  ** 由于分配都是按照iLogsize的整数倍来分配的，所以iBlock有可能落在
   ** 单数倍和偶数倍上，则需要按照是单数倍还是偶数倍来向前或者向后合并，  
   ** 例如 iBlock   = 4 ， iLogSize  = 2， 这时iBlock就落在单数倍上了，需要向前合并；   
   ** iBuddy =  iBlock - size;
@@ -627,6 +627,7 @@ static int memsys5Init(void *NotUsed){
   assert( zByte!=0 );  /* sqlite3_config() does not allow otherwise 若zByte==0，则返回*/
   /* boundaries on sqlite3GlobalConfig.mnReq are enforced in sqlite3_config() */
   /*在sqlite3GlobalConfig.mnReq边界强制执行sqlite3_config（）*/
+  //调整最小分配的大小
   nMinLog = memsys5Log(sqlite3GlobalConfig.mnReq);
   mem5.szAtom = (1<<nMinLog);
   while( (int)sizeof(Mem5Link)>mem5.szAtom ){
